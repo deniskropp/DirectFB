@@ -1328,7 +1328,7 @@ DEFINE_INTERFACE(   IDirectFB,
       */
      DFBResult (*GetCardCapabilities) (
           IDirectFB                *thiz,
-          DFBCardCapabilities      *caps
+          DFBCardCapabilities      *ret_caps
      );
 
      /*
@@ -1353,7 +1353,7 @@ DEFINE_INTERFACE(   IDirectFB,
      DFBResult (*CreateSurface) (
           IDirectFB                     *thiz,
           const DFBSurfaceDescription   *desc,
-          IDirectFBSurface             **interface
+          IDirectFBSurface             **ret_interface
      );
 
      /*
@@ -1363,9 +1363,9 @@ DEFINE_INTERFACE(   IDirectFB,
       * 256 entries filled with colors matching the RGB332 format.
       */
      DFBResult (*CreatePalette) (
-          IDirectFB                *thiz,
-          DFBPaletteDescription    *desc,
-          IDirectFBPalette        **interface
+          IDirectFB                    *thiz,
+          const DFBPaletteDescription  *desc,
+          IDirectFBPalette            **ret_interface
      );
 
 
@@ -1391,7 +1391,7 @@ DEFINE_INTERFACE(   IDirectFB,
      DFBResult (*GetScreen) (
           IDirectFB                *thiz,
           DFBScreenID               screen_id,
-          IDirectFBScreen         **interface
+          IDirectFBScreen         **ret_interface
      );
 
 
@@ -1420,7 +1420,7 @@ DEFINE_INTERFACE(   IDirectFB,
      DFBResult (*GetDisplayLayer) (
           IDirectFB                *thiz,
           DFBDisplayLayerID         layer_id,
-          IDirectFBDisplayLayer   **interface
+          IDirectFBDisplayLayer   **ret_interface
      );
 
 
@@ -1446,7 +1446,7 @@ DEFINE_INTERFACE(   IDirectFB,
      DFBResult (*GetInputDevice) (
           IDirectFB                *thiz,
           DFBInputDeviceID          device_id,
-          IDirectFBInputDevice    **interface
+          IDirectFBInputDevice    **ret_interface
      );
 
      /*
@@ -1456,7 +1456,7 @@ DEFINE_INTERFACE(   IDirectFB,
       */
      DFBResult (*CreateEventBuffer) (
           IDirectFB                   *thiz,
-          IDirectFBEventBuffer       **buffer
+          IDirectFBEventBuffer       **ret_buffer
      );
 
      /*
@@ -1477,7 +1477,7 @@ DEFINE_INTERFACE(   IDirectFB,
           IDirectFB                   *thiz,
           DFBInputDeviceCapabilities   caps,
           DFBBoolean                   global,
-          IDirectFBEventBuffer       **buffer
+          IDirectFBEventBuffer       **ret_buffer
      );
 
    /** Media **/
@@ -1488,7 +1488,7 @@ DEFINE_INTERFACE(   IDirectFB,
      DFBResult (*CreateImageProvider) (
           IDirectFB                *thiz,
           const char               *filename,
-          IDirectFBImageProvider  **interface
+          IDirectFBImageProvider  **ret_interface
      );
 
      /*
@@ -1497,7 +1497,7 @@ DEFINE_INTERFACE(   IDirectFB,
      DFBResult (*CreateVideoProvider) (
           IDirectFB                *thiz,
           const char               *filename,
-          IDirectFBVideoProvider  **interface
+          IDirectFBVideoProvider  **ret_interface
      );
 
      /*
@@ -1508,7 +1508,7 @@ DEFINE_INTERFACE(   IDirectFB,
           IDirectFB                     *thiz,
           const char                    *filename,
           const DFBFontDescription      *desc,
-          IDirectFBFont                **interface
+          IDirectFBFont                **ret_interface
      );
 
      /*
@@ -1518,9 +1518,9 @@ DEFINE_INTERFACE(   IDirectFB,
       * is created.
       */
      DFBResult (*CreateDataBuffer) (
-          IDirectFB                *thiz,
-          DFBDataBufferDescription *desc,
-          IDirectFBDataBuffer     **interface
+          IDirectFB                       *thiz,
+          const DFBDataBufferDescription  *desc,
+          IDirectFBDataBuffer            **ret_interface
      );
 
 
@@ -1540,22 +1540,22 @@ DEFINE_INTERFACE(   IDirectFB,
           const char               *mime_type,
           const void               *data,
           unsigned int              size,
-          struct timeval           *timestamp
+          struct timeval           *ret_timestamp
      );
 
      /*
       * Get clipboard content.
       *
-      * Memory returned in mime_type and data has to be freed.
+      * Memory returned in *ret_mimetype and *ret_data has to be freed.
       *
       * This is an experimental and intermediate API call that is
       * supposed to change soon.
       */
      DFBResult (*GetClipboardData) (
           IDirectFB                *thiz,
-          char                    **mime_type,
-          void                    **data,
-          unsigned int             *size
+          char                    **ret_mimetype,
+          void                    **ret_data,
+          unsigned int             *ret_size
      );
 
      /*
@@ -1566,7 +1566,7 @@ DEFINE_INTERFACE(   IDirectFB,
       */
      DFBResult (*GetClipboardTimeStamp) (
           IDirectFB                *thiz,
-          struct timeval           *timestamp
+          struct timeval           *ret_timestamp
      );
 
 
@@ -1625,7 +1625,7 @@ DEFINE_INTERFACE(   IDirectFB,
           const char               *type,
           const char               *implementation,
           void                     *arg,
-          void                    **interface
+          void                    **ret_interface
      );
 )
 
@@ -1953,7 +1953,7 @@ DEFINE_INTERFACE(   IDirectFBScreen,
       */
      DFBResult (*GetID) (
           IDirectFBScreen                    *thiz,
-          DFBScreenID                        *screen_id
+          DFBScreenID                        *ret_screen_id
      );
 
      /*
@@ -1961,7 +1961,7 @@ DEFINE_INTERFACE(   IDirectFBScreen,
       */
      DFBResult (*GetDescription) (
           IDirectFBScreen                    *thiz,
-          DFBScreenDescription               *desc
+          DFBScreenDescription               *ret_desc
      );
 
 
@@ -2009,12 +2009,12 @@ DEFINE_INTERFACE(   IDirectFBScreen,
       * Get a description of available mixers.
       *
       * All descriptions are written to the array pointed to by
-      * <b>descriptions</b>. The number of mixers is returned by
-      * <i>GetDescription()</i>.
+      * <b>ret_descriptions</b>. The number of mixers is returned by
+      * IDirectFBScreen::GetDescription().
       */
      DFBResult (*GetMixerDescriptions) (
           IDirectFBScreen                    *thiz,
-          DFBScreenMixerDescription          *descriptions
+          DFBScreenMixerDescription          *ret_descriptions
      );
 
      /*
@@ -2023,21 +2023,20 @@ DEFINE_INTERFACE(   IDirectFBScreen,
      DFBResult (*GetMixerConfiguration) (
           IDirectFBScreen                    *thiz,
           int                                 mixer,
-          DFBScreenMixerConfig               *config
+          DFBScreenMixerConfig               *ret_config
      );
 
      /*
       * Test mixer configuration.
       *
-      * If configuration fails and 'failed' is not NULL it will
-      * indicate which fields of the configuration caused the
-      * error.
+      * If configuration fails and 'ret_failed' is not NULL it will
+      * indicate which fields of the configuration caused the error.
       */
      DFBResult (*TestMixerConfiguration) (
           IDirectFBScreen                    *thiz,
           int                                 mixer,
           const DFBScreenMixerConfig         *config,
-          DFBScreenMixerConfigFlags          *failed
+          DFBScreenMixerConfigFlags          *ret_failed
      );
 
      /*
@@ -2056,12 +2055,12 @@ DEFINE_INTERFACE(   IDirectFBScreen,
       * Get a description of available display encoders.
       *
       * All descriptions are written to the array pointed to by
-      * <b>descriptions</b>. The number of encoders is returned by
-      * <i>GetDescription()</i>.
+      * <b>ret_descriptions</b>. The number of encoders is returned by
+      * IDirectFBScreen::GetDescription().
       */
      DFBResult (*GetEncoderDescriptions) (
           IDirectFBScreen                    *thiz,
-          DFBScreenEncoderDescription        *descriptions
+          DFBScreenEncoderDescription        *ret_descriptions
      );
 
      /*
@@ -2070,13 +2069,13 @@ DEFINE_INTERFACE(   IDirectFBScreen,
      DFBResult (*GetEncoderConfiguration) (
           IDirectFBScreen                    *thiz,
           int                                 encoder,
-          DFBScreenEncoderConfig             *config
+          DFBScreenEncoderConfig             *ret_config
      );
 
      /*
       * Test encoder configuration.
       *
-      * If configuration fails and 'failed' is not NULL it will
+      * If configuration fails and 'ret_failed' is not NULL it will
       * indicate which fields of the configuration caused the
       * error.
       */
@@ -2084,7 +2083,7 @@ DEFINE_INTERFACE(   IDirectFBScreen,
           IDirectFBScreen                    *thiz,
           int                                 encoder,
           const DFBScreenEncoderConfig       *config,
-          DFBScreenEncoderConfigFlags        *failed
+          DFBScreenEncoderConfigFlags        *ret_failed
      );
 
      /*
@@ -2103,12 +2102,12 @@ DEFINE_INTERFACE(   IDirectFBScreen,
       * Get a description of available outputs.
       *
       * All descriptions are written to the array pointed to by
-      * <b>descriptions</b>. The number of outputs is returned by
-      * <i>GetDescription()</i>.
+      * <b>ret_descriptions</b>. The number of outputs is returned by
+      * IDirectFBScreen::GetDescription().
       */
      DFBResult (*GetOutputDescriptions) (
           IDirectFBScreen                    *thiz,
-          DFBScreenOutputDescription         *descriptions
+          DFBScreenOutputDescription         *ret_descriptions
      );
 
      /*
@@ -2117,21 +2116,20 @@ DEFINE_INTERFACE(   IDirectFBScreen,
      DFBResult (*GetOutputConfiguration) (
           IDirectFBScreen                    *thiz,
           int                                 output,
-          DFBScreenOutputConfig              *config
+          DFBScreenOutputConfig              *ret_config
      );
 
      /*
       * Test output configuration.
       *
-      * If configuration fails and 'failed' is not NULL it will
-      * indicate which fields of the configuration caused the
-      * error.
+      * If configuration fails and 'ret_failed' is not NULL it will
+      * indicate which fields of the configuration caused the error.
       */
      DFBResult (*TestOutputConfiguration) (
           IDirectFBScreen                    *thiz,
           int                                 output,
           const DFBScreenOutputConfig        *config,
-          DFBScreenOutputConfigFlags         *failed
+          DFBScreenOutputConfigFlags         *ret_failed
      );
 
      /*
@@ -2161,7 +2159,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*GetID) (
           IDirectFBDisplayLayer              *thiz,
-          DFBDisplayLayerID                  *layer_id
+          DFBDisplayLayerID                  *ret_layer_id
      );
 
      /*
@@ -2169,7 +2167,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*GetDescription) (
           IDirectFBDisplayLayer              *thiz,
-          DFBDisplayLayerDescription         *desc
+          DFBDisplayLayerDescription         *ret_desc
      );
 
 
@@ -2182,7 +2180,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*GetSurface) (
           IDirectFBDisplayLayer              *thiz,
-          IDirectFBSurface                  **interface
+          IDirectFBSurface                  **ret_interface
      );
 
      /*
@@ -2190,7 +2188,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*GetScreen) (
           IDirectFBDisplayLayer              *thiz,
-          IDirectFBScreen                   **interface
+          IDirectFBScreen                   **ret_interface
      );
 
 
@@ -2277,7 +2275,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*GetLevel) (
           IDirectFBDisplayLayer              *thiz,
-          int                                *level
+          int                                *ret_level
      );
 
      /*
@@ -2306,7 +2304,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*GetCurrentOutputField) (
           IDirectFBDisplayLayer              *thiz,
-          int                                *field
+          int                                *ret_field
      );
 
      /*
@@ -2326,7 +2324,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*GetConfiguration) (
           IDirectFBDisplayLayer              *thiz,
-          DFBDisplayLayerConfig              *config
+          DFBDisplayLayerConfig              *ret_config
      );
 
      /*
@@ -2338,8 +2336,8 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*TestConfiguration) (
           IDirectFBDisplayLayer              *thiz,
-          DFBDisplayLayerConfig              *config,
-          DFBDisplayLayerConfigFlags         *failed
+          const DFBDisplayLayerConfig        *config,
+          DFBDisplayLayerConfigFlags         *ret_failed
      );
 
      /*
@@ -2349,7 +2347,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*SetConfiguration) (
           IDirectFBDisplayLayer              *thiz,
-          DFBDisplayLayerConfig              *config
+          const DFBDisplayLayerConfig        *config
      );
 
 
@@ -2395,7 +2393,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*GetColorAdjustment) (
           IDirectFBDisplayLayer              *thiz,
-          DFBColorAdjustment                 *adj
+          DFBColorAdjustment                 *ret_adj
      );
 
      /*
@@ -2409,7 +2407,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*SetColorAdjustment) (
           IDirectFBDisplayLayer              *thiz,
-          DFBColorAdjustment                 *adj
+          const DFBColorAdjustment           *adj
      );
 
    /** Windows **/
@@ -2421,7 +2419,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      DFBResult (*CreateWindow) (
           IDirectFBDisplayLayer              *thiz,
           const DFBWindowDescription         *desc,
-          IDirectFBWindow                   **interface
+          IDirectFBWindow                   **ret_interface
      );
 
      /*
@@ -2432,7 +2430,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      DFBResult (*GetWindow) (
           IDirectFBDisplayLayer              *thiz,
           DFBWindowID                         window_id,
-          IDirectFBWindow                   **interface
+          IDirectFBWindow                   **ret_interface
      );
 
 
@@ -2455,8 +2453,8 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*GetCursorPosition) (
           IDirectFBDisplayLayer              *thiz,
-          int                                *x,
-          int                                *y
+          int                                *ret_x,
+          int                                *ret_y
      );
 
      /*
@@ -2638,7 +2636,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*GetCapabilities) (
           IDirectFBSurface         *thiz,
-          DFBSurfaceCapabilities   *caps
+          DFBSurfaceCapabilities   *ret_caps
      );
 
      /*
@@ -2646,8 +2644,8 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*GetSize) (
           IDirectFBSurface         *thiz,
-          int                      *width,
-          int                      *height
+          int                      *ret_width,
+          int                      *ret_height
      );
 
      /*
@@ -2660,7 +2658,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*GetVisibleRectangle) (
           IDirectFBSurface         *thiz,
-          DFBRectangle             *rect
+          DFBRectangle             *ret_rect
      );
 
      /*
@@ -2668,7 +2666,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*GetPixelFormat) (
           IDirectFBSurface         *thiz,
-          DFBSurfacePixelFormat    *format
+          DFBSurfacePixelFormat    *ret_format
      );
 
      /*
@@ -2684,7 +2682,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*GetAccelerationMask) (
           IDirectFBSurface         *thiz,
           IDirectFBSurface         *source,
-          DFBAccelerationMask      *mask
+          DFBAccelerationMask      *ret_mask
      );
 
 
@@ -2698,7 +2696,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*GetPalette) (
           IDirectFBSurface         *thiz,
-          IDirectFBPalette        **interface
+          IDirectFBPalette        **ret_interface
      );
 
      /*
@@ -2720,8 +2718,8 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*Lock) (
           IDirectFBSurface         *thiz,
           DFBSurfaceLockFlags       flags,
-          void                    **ptr,
-          int                      *pitch
+          void                    **ret_ptr,
+          int                      *ret_pitch
      );
 
      /*
@@ -3075,7 +3073,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*GetFont) (
           IDirectFBSurface         *thiz,
-          IDirectFBFont           **font
+          IDirectFBFont           **ret_font
      );
 
      /*
@@ -3136,7 +3134,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*GetSubSurface) (
           IDirectFBSurface         *thiz,
           const DFBRectangle       *rect,
-          IDirectFBSurface        **interface
+          IDirectFBSurface        **ret_interface
      );
 
 
@@ -3147,7 +3145,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*GetGL) (
           IDirectFBSurface         *thiz,
-          IDirectFBGL             **interface
+          IDirectFBGL             **ret_interface
      );
 
 
@@ -3189,7 +3187,7 @@ DEFINE_INTERFACE(   IDirectFBPalette,
       */
      DFBResult (*GetCapabilities) (
           IDirectFBPalette         *thiz,
-          DFBPaletteCapabilities   *caps
+          DFBPaletteCapabilities   *ret_caps
      );
 
      /*
@@ -3197,7 +3195,7 @@ DEFINE_INTERFACE(   IDirectFBPalette,
       */
      DFBResult (*GetSize) (
           IDirectFBPalette         *thiz,
-          unsigned int             *size
+          unsigned int             *ret_size
      );
 
 
@@ -3224,7 +3222,7 @@ DEFINE_INTERFACE(   IDirectFBPalette,
       */
      DFBResult (*GetEntries) (
           IDirectFBPalette         *thiz,
-          DFBColor                 *entries,
+          DFBColor                 *ret_entries,
           unsigned int              num_entries,
           unsigned int              offset
      );
@@ -3240,7 +3238,7 @@ DEFINE_INTERFACE(   IDirectFBPalette,
           __u8                      g,
           __u8                      b,
           __u8                      a,
-          unsigned int             *index
+          unsigned int             *ret_index
      );
 
 
@@ -3251,7 +3249,7 @@ DEFINE_INTERFACE(   IDirectFBPalette,
       */
      DFBResult (*CreateCopy) (
           IDirectFBPalette         *thiz,
-          IDirectFBPalette        **interface
+          IDirectFBPalette        **ret_interface
      );
 )
 
@@ -3311,7 +3309,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
       */
      DFBResult (*GetID) (
           IDirectFBInputDevice          *thiz,
-          DFBInputDeviceID              *device_id
+          DFBInputDeviceID              *ret_device_id
      );
 
      /*
@@ -3319,7 +3317,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
       */
      DFBResult (*GetDescription) (
           IDirectFBInputDevice          *thiz,
-          DFBInputDeviceDescription     *desc
+          DFBInputDeviceDescription     *ret_desc
      );
 
 
@@ -3331,7 +3329,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
      DFBResult (*GetKeymapEntry) (
           IDirectFBInputDevice          *thiz,
           int                            keycode,
-          DFBInputDeviceKeymapEntry     *entry
+          DFBInputDeviceKeymapEntry     *ret_entry
      );
 
 
@@ -3342,7 +3340,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
       */
      DFBResult (*CreateEventBuffer) (
           IDirectFBInputDevice          *thiz,
-          IDirectFBEventBuffer         **buffer
+          IDirectFBEventBuffer         **ret_buffer
      );
 
      /*
@@ -3365,7 +3363,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
      DFBResult (*GetKeyState) (
           IDirectFBInputDevice          *thiz,
           DFBInputDeviceKeyIdentifier    key_id,
-          DFBInputDeviceKeyState        *state
+          DFBInputDeviceKeyState        *ret_state
      );
 
      /*
@@ -3373,7 +3371,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
       */
      DFBResult (*GetModifiers) (
           IDirectFBInputDevice          *thiz,
-          DFBInputDeviceModifierMask    *modifiers
+          DFBInputDeviceModifierMask    *ret_modifiers
      );
 
      /*
@@ -3381,7 +3379,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
       */
      DFBResult (*GetLockState) (
           IDirectFBInputDevice          *thiz,
-          DFBInputDeviceLockState       *locks
+          DFBInputDeviceLockState       *ret_locks
      );
 
      /*
@@ -3391,7 +3389,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
       */
      DFBResult (*GetButtons) (
           IDirectFBInputDevice          *thiz,
-          DFBInputDeviceButtonMask      *buttons
+          DFBInputDeviceButtonMask      *ret_buttons
      );
 
      /*
@@ -3400,7 +3398,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
      DFBResult (*GetButtonState) (
           IDirectFBInputDevice          *thiz,
           DFBInputDeviceButtonIdentifier button,
-          DFBInputDeviceButtonState     *state
+          DFBInputDeviceButtonState     *ret_state
      );
 
      /*
@@ -3409,7 +3407,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
      DFBResult (*GetAxis) (
           IDirectFBInputDevice          *thiz,
           DFBInputDeviceAxisIdentifier   axis,
-          int                           *pos
+          int                           *ret_pos
      );
 
 
@@ -3422,8 +3420,8 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
       */
      DFBResult (*GetXY) (
           IDirectFBInputDevice          *thiz,
-          int                           *x,
-          int                           *y
+          int                           *ret_x,
+          int                           *ret_y
      );
 )
 
@@ -3692,7 +3690,7 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
       */
      DFBResult (*GetEvent) (
           IDirectFBEventBuffer     *thiz,
-          DFBEvent                 *event
+          DFBEvent                 *ret_event
      );
 
      /*
@@ -3700,7 +3698,7 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
       */
      DFBResult (*PeekEvent) (
           IDirectFBEventBuffer     *thiz,
-          DFBEvent                 *event
+          DFBEvent                 *ret_event
      );
 
      /*
@@ -3747,7 +3745,7 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
       */
      DFBResult (*CreateFileDescriptor) (
           IDirectFBEventBuffer     *thiz,
-          int                      *fd
+          int                      *ret_fd
      );
 )
 
@@ -3812,7 +3810,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*GetID) (
           IDirectFBWindow               *thiz,
-          DFBWindowID                   *window_id
+          DFBWindowID                   *ret_window_id
      );
 
      /*
@@ -3820,8 +3818,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*GetPosition) (
           IDirectFBWindow               *thiz,
-          int                           *x,
-          int                           *y
+          int                           *ret_x,
+          int                           *ret_y
      );
 
      /*
@@ -3829,8 +3827,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*GetSize) (
           IDirectFBWindow               *thiz,
-          int                           *width,
-          int                           *height
+          int                           *ret_width,
+          int                           *ret_height
      );
 
 
@@ -3841,7 +3839,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*CreateEventBuffer) (
           IDirectFBWindow               *thiz,
-          IDirectFBEventBuffer         **buffer
+          IDirectFBEventBuffer         **ret_buffer
      );
 
      /*
@@ -3889,7 +3887,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*GetSurface) (
           IDirectFBWindow               *thiz,
-          IDirectFBSurface             **surface
+          IDirectFBSurface             **ret_surface
      );
 
 
@@ -3908,7 +3906,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*GetOptions) (
           IDirectFBWindow               *thiz,
-          DFBWindowOptions              *options
+          DFBWindowOptions              *ret_options
      );
 
      /*
@@ -3972,7 +3970,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*GetOpacity) (
           IDirectFBWindow               *thiz,
-          __u8                          *opacity
+          __u8                          *ret_opacity
      );
 
      /*
@@ -4181,7 +4179,7 @@ DEFINE_INTERFACE(   IDirectFBFont,
       */
      DFBResult (*GetAscender) (
           IDirectFBFont       *thiz,
-          int                 *ascender
+          int                 *ret_ascender
      );
 
      /*
@@ -4192,7 +4190,7 @@ DEFINE_INTERFACE(   IDirectFBFont,
       */
      DFBResult (*GetDescender) (
           IDirectFBFont       *thiz,
-          int                 *descender
+          int                 *ret_descender
      );
 
      /*
@@ -4204,7 +4202,7 @@ DEFINE_INTERFACE(   IDirectFBFont,
       */
      DFBResult (*GetHeight) (
           IDirectFBFont       *thiz,
-          int                 *height
+          int                 *ret_height
      );
 
      /*
@@ -4216,7 +4214,7 @@ DEFINE_INTERFACE(   IDirectFBFont,
       */
      DFBResult (*GetMaxAdvance) (
           IDirectFBFont       *thiz,
-          int                 *maxadvance
+          int                 *ret_maxadvance
      );
 
      /*
@@ -4227,8 +4225,8 @@ DEFINE_INTERFACE(   IDirectFBFont,
           IDirectFBFont       *thiz,
           unsigned int         prev_index,
           unsigned int         current_index,
-          int                 *kern_x,
-          int                 *kern_y
+          int                 *ret_kern_x,
+          int                 *ret_kern_y
      );
 
    /** String extents measurement **/
@@ -4249,7 +4247,7 @@ DEFINE_INTERFACE(   IDirectFBFont,
           IDirectFBFont       *thiz,
           const char          *text,
           int                  bytes,
-          int                 *width
+          int                 *ret_width
      );
 
      /*
@@ -4278,8 +4276,8 @@ DEFINE_INTERFACE(   IDirectFBFont,
           IDirectFBFont       *thiz,
           const char          *text,
           int                  bytes,
-          DFBRectangle        *logical_rect,
-          DFBRectangle        *ink_rect
+          DFBRectangle        *ret_logical_rect,
+          DFBRectangle        *ret_ink_rect
      );
 
      /*
@@ -4299,8 +4297,8 @@ DEFINE_INTERFACE(   IDirectFBFont,
     DFBResult (*GetGlyphExtents) (
           IDirectFBFont       *thiz,
           unsigned int         index,
-          DFBRectangle        *rect,
-          int                 *advance
+          DFBRectangle        *ret_rect,
+          int                 *ret_advance
      );
  )
 
@@ -4355,7 +4353,7 @@ DEFINE_INTERFACE(   IDirectFBImageProvider,
       */
      DFBResult (*GetSurfaceDescription) (
           IDirectFBImageProvider   *thiz,
-          DFBSurfaceDescription    *dsc
+          DFBSurfaceDescription    *ret_dsc
      );
 
      /*
@@ -4366,7 +4364,7 @@ DEFINE_INTERFACE(   IDirectFBImageProvider,
       */
      DFBResult (*GetImageDescription) (
           IDirectFBImageProvider   *thiz,
-          DFBImageDescription      *dsc
+          DFBImageDescription      *ret_dsc
      );
 
 
@@ -4427,7 +4425,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       */
      DFBResult (*GetCapabilities) (
           IDirectFBVideoProvider        *thiz,
-          DFBVideoProviderCapabilities  *caps
+          DFBVideoProviderCapabilities  *ret_caps
      );
 
      /*
@@ -4436,7 +4434,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       */
      DFBResult (*GetSurfaceDescription) (
           IDirectFBVideoProvider   *thiz,
-          DFBSurfaceDescription    *dsc
+          DFBSurfaceDescription    *ret_dsc
      );
 
 
@@ -4482,7 +4480,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       */
      DFBResult (*GetPos) (
           IDirectFBVideoProvider   *thiz,
-          double                   *seconds
+          double                   *ret_seconds
      );
 
      /*
@@ -4490,7 +4488,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       */
      DFBResult (*GetLength) (
           IDirectFBVideoProvider   *thiz,
-          double                   *seconds
+          double                   *ret_seconds
      );
 
    /** Color Adjustment **/
@@ -4500,7 +4498,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       */
      DFBResult (*GetColorAdjustment) (
           IDirectFBVideoProvider   *thiz,
-          DFBColorAdjustment       *adj
+          DFBColorAdjustment       *ret_adj
      );
 
      /*
@@ -4512,7 +4510,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       */
      DFBResult (*SetColorAdjustment) (
           IDirectFBVideoProvider   *thiz,
-          DFBColorAdjustment       *adj
+          const DFBColorAdjustment *adj
      );
 )
 
@@ -4554,7 +4552,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
       */
      DFBResult (*GetPosition) (
           IDirectFBDataBuffer      *thiz,
-          unsigned int             *offset
+          unsigned int             *ret_offset
      );
 
      /*
@@ -4566,7 +4564,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
       */
      DFBResult (*GetLength) (
           IDirectFBDataBuffer      *thiz,
-          unsigned int             *length
+          unsigned int             *ret_length
      );
 
 
@@ -4613,8 +4611,8 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
      DFBResult (*GetData) (
           IDirectFBDataBuffer      *thiz,
           unsigned int              length,
-          void                     *data,
-          unsigned int             *read
+          void                     *ret_data,
+          unsigned int             *ret_read
      );
 
      /*
@@ -4633,8 +4631,8 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
           IDirectFBDataBuffer      *thiz,
           unsigned int              length,
           int                       offset,
-          void                     *data,
-          unsigned int             *read
+          void                     *ret_data,
+          unsigned int             *ret_read
      );
 
      /*

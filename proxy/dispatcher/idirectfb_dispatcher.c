@@ -199,9 +199,9 @@ IDirectFB_Dispatcher_CreateSurface( IDirectFB                    *thiz,
 }
 
 static DFBResult
-IDirectFB_Dispatcher_CreatePalette( IDirectFB              *thiz,
-                                    DFBPaletteDescription  *desc,
-                                    IDirectFBPalette      **interface )
+IDirectFB_Dispatcher_CreatePalette( IDirectFB                    *thiz,
+                                    const DFBPaletteDescription  *desc,
+                                    IDirectFBPalette            **interface )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
@@ -383,9 +383,9 @@ IDirectFB_Dispatcher_CreateFont( IDirectFB                 *thiz,
 }
 
 static DFBResult
-IDirectFB_Dispatcher_CreateDataBuffer( IDirectFB                 *thiz,
-                                       DFBDataBufferDescription  *desc,
-                                       IDirectFBDataBuffer      **interface )
+IDirectFB_Dispatcher_CreateDataBuffer( IDirectFB                       *thiz,
+                                       const DFBDataBufferDescription  *desc,
+                                       IDirectFBDataBuffer            **interface )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 

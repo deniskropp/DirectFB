@@ -411,9 +411,9 @@ IDirectFBDisplayLayer_GetConfiguration( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
-IDirectFBDisplayLayer_TestConfiguration( IDirectFBDisplayLayer      *thiz,
-                                         DFBDisplayLayerConfig      *config,
-                                         DFBDisplayLayerConfigFlags *failed )
+IDirectFBDisplayLayer_TestConfiguration( IDirectFBDisplayLayer       *thiz,
+                                         const DFBDisplayLayerConfig *config,
+                                         DFBDisplayLayerConfigFlags  *failed )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
@@ -428,8 +428,8 @@ IDirectFBDisplayLayer_TestConfiguration( IDirectFBDisplayLayer      *thiz,
 }
 
 static DFBResult
-IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer *thiz,
-                                        DFBDisplayLayerConfig *config )
+IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer       *thiz,
+                                        const DFBDisplayLayerConfig *config )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
@@ -695,8 +695,8 @@ IDirectFBDisplayLayer_GetColorAdjustment( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
-IDirectFBDisplayLayer_SetColorAdjustment( IDirectFBDisplayLayer *thiz,
-                                          DFBColorAdjustment    *adj )
+IDirectFBDisplayLayer_SetColorAdjustment( IDirectFBDisplayLayer    *thiz,
+                                          const DFBColorAdjustment *adj )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 

@@ -59,7 +59,7 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBDisplayLayer, Dispatcher )
 static void
 IDirectFBDisplayLayer_Dispatcher_Destruct( IDirectFBDisplayLayer *thiz )
 {
-     D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+     D_DEBUG( "%s (%p)^n", __FUNCTION__, thiz );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -247,9 +247,9 @@ IDirectFBDisplayLayer_Dispatcher_GetConfiguration( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
-IDirectFBDisplayLayer_Dispatcher_TestConfiguration( IDirectFBDisplayLayer      *thiz,
-                                                    DFBDisplayLayerConfig      *config,
-                                                    DFBDisplayLayerConfigFlags *failed )
+IDirectFBDisplayLayer_Dispatcher_TestConfiguration( IDirectFBDisplayLayer       *thiz,
+                                                    const DFBDisplayLayerConfig *config,
+                                                    DFBDisplayLayerConfigFlags  *failed )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
 
@@ -259,8 +259,8 @@ IDirectFBDisplayLayer_Dispatcher_TestConfiguration( IDirectFBDisplayLayer      *
 }
 
 static DFBResult
-IDirectFBDisplayLayer_Dispatcher_SetConfiguration( IDirectFBDisplayLayer *thiz,
-                                                   DFBDisplayLayerConfig *config )
+IDirectFBDisplayLayer_Dispatcher_SetConfiguration( IDirectFBDisplayLayer       *thiz,
+                                                   const DFBDisplayLayerConfig *config )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
 
@@ -406,8 +406,8 @@ IDirectFBDisplayLayer_Dispatcher_GetColorAdjustment( IDirectFBDisplayLayer *thiz
 }
 
 static DFBResult
-IDirectFBDisplayLayer_Dispatcher_SetColorAdjustment( IDirectFBDisplayLayer *thiz,
-                                                     DFBColorAdjustment    *adj )
+IDirectFBDisplayLayer_Dispatcher_SetColorAdjustment( IDirectFBDisplayLayer    *thiz,
+                                                     const DFBColorAdjustment *adj )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
 

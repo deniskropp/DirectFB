@@ -475,9 +475,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
      return DFB_OK;
 }
 
-static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
-                                                              IDirectFBVideoProvider *thiz,
-                                                              DFBColorAdjustment     *adj )
+static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
+                                                                const DFBColorAdjustment *adj )
 {
      struct video_picture pic;
 

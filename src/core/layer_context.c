@@ -48,25 +48,25 @@
 #include <direct/util.h>
 
 
-static void      init_region_config  ( CoreLayerContext           *context,
-                                       CoreLayerRegionConfig      *config );
+static void      init_region_config  ( CoreLayerContext            *context,
+                                       CoreLayerRegionConfig       *config );
 
-static void      build_updated_config( CoreLayerContext           *context,
-                                       DFBDisplayLayerConfig      *update,
-                                       CoreLayerRegionConfig      *ret_config,
-                                       CoreLayerRegionConfigFlags *ret_flags );
+static void      build_updated_config( CoreLayerContext            *context,
+                                       const DFBDisplayLayerConfig *update,
+                                       CoreLayerRegionConfig       *ret_config,
+                                       CoreLayerRegionConfigFlags  *ret_flags );
 
-static DFBResult allocate_surface    ( CoreLayer                  *layer,
-                                       CoreLayerRegion            *region,
-                                       CoreLayerRegionConfig      *config );
+static DFBResult allocate_surface    ( CoreLayer                   *layer,
+                                       CoreLayerRegion             *region,
+                                       CoreLayerRegionConfig       *config );
 
-static DFBResult reallocate_surface  ( CoreLayer                  *layer,
-                                       CoreLayerRegion            *region,
-                                       CoreLayerRegionConfig      *config,
-                                       DFBDisplayLayerConfig      *previous );
+static DFBResult reallocate_surface  ( CoreLayer                   *layer,
+                                       CoreLayerRegion             *region,
+                                       CoreLayerRegionConfig       *config,
+                                       DFBDisplayLayerConfig       *previous );
 
-static DFBResult deallocate_surface  ( CoreLayer                  *layer,
-                                       CoreLayerRegion            *region );
+static DFBResult deallocate_surface  ( CoreLayer                   *layer,
+                                       CoreLayerRegion             *region );
 
 /******************************************************************************/
 
@@ -418,9 +418,9 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
  * configuration management
  */
 DFBResult
-dfb_layer_context_test_configuration( CoreLayerContext           *context,
-                                      DFBDisplayLayerConfig      *config,
-                                      DFBDisplayLayerConfigFlags *ret_failed )
+dfb_layer_context_test_configuration( CoreLayerContext            *context,
+                                      const DFBDisplayLayerConfig *config,
+                                      DFBDisplayLayerConfigFlags  *ret_failed )
 {
      DFBResult                   ret = DFB_OK;
      CoreLayer                  *layer;
@@ -493,8 +493,8 @@ dfb_layer_context_test_configuration( CoreLayerContext           *context,
 }
 
 DFBResult
-dfb_layer_context_set_configuration( CoreLayerContext      *context,
-                                     DFBDisplayLayerConfig *config )
+dfb_layer_context_set_configuration( CoreLayerContext            *context,
+                                     const DFBDisplayLayerConfig *config )
 {
      DFBResult                   ret;
      CoreLayer                  *layer;
@@ -862,12 +862,12 @@ dfb_layer_context_set_opacity (CoreLayerContext *context, __u8 opacity)
 }
 
 DFBResult
-dfb_layer_context_set_coloradjustment (CoreLayerContext   *context,
-                                       DFBColorAdjustment *adj)
+dfb_layer_context_set_coloradjustment (CoreLayerContext         *context,
+                                       const DFBColorAdjustment *adj)
 {
-     DFBResult                ret;
-     DFBColorAdjustmentFlags  unchanged;
-     CoreLayer               *layer;
+     DFBResult           ret;
+     DFBColorAdjustment  adjustment;
+     CoreLayer          *layer;
 
      D_ASSERT( context != NULL );
      D_ASSERT( adj != NULL );
@@ -877,8 +877,7 @@ dfb_layer_context_set_coloradjustment (CoreLayerContext   *context,
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
 
-
-     unchanged = ~adj->flags & context->adjustment.flags;
+     adjustment = context->adjustment;
 
      if (!layer->funcs->SetColorAdjustment)
           return DFB_UNSUPPORTED;
@@ -887,37 +886,27 @@ dfb_layer_context_set_coloradjustment (CoreLayerContext   *context,
      if (adj->flags & ~context->adjustment.flags)
           return DFB_UNSUPPORTED;
 
-     /* fill unchanged values */
-     if (unchanged & DCAF_BRIGHTNESS)
-          adj->brightness = context->adjustment.brightness;
+     /* take over changed values */
+     if (adj->flags & DCAF_BRIGHTNESS)
+          adjustment.brightness = adj->brightness;
 
-     if (unchanged & DCAF_CONTRAST)
-          adj->contrast = context->adjustment.contrast;
+     if (adj->flags & DCAF_CONTRAST)
+          adjustment.contrast = adj->contrast;
 
-     if (unchanged & DCAF_HUE)
-          adj->hue = context->adjustment.hue;
+     if (adj->flags & DCAF_HUE)
+          adjustment.hue = adj->hue;
 
-     if (unchanged & DCAF_SATURATION)
-          adj->saturation = context->adjustment.saturation;
+     if (adj->flags & DCAF_SATURATION)
+          adjustment.saturation = adj->saturation;
 
      /* set new adjustment */
      ret = layer->funcs->SetColorAdjustment( layer, layer->driver_data,
-                                             layer->layer_data, adj );
+                                             layer->layer_data, &adjustment );
      if (ret)
           return ret;
 
-     /* write back any changed values */
-     if (adj->flags & DCAF_BRIGHTNESS)
-          context->adjustment.brightness = adj->brightness;
-
-     if (adj->flags & DCAF_CONTRAST)
-          context->adjustment.contrast = adj->contrast;
-
-     if (adj->flags & DCAF_HUE)
-          context->adjustment.hue = adj->hue;
-
-     if (adj->flags & DCAF_SATURATION)
-          context->adjustment.saturation = adj->saturation;
+     /* keep new adjustment */
+     context->adjustment = adjustment;
 
      return DFB_OK;
 }
@@ -1098,10 +1087,10 @@ init_region_config( CoreLayerContext      *context,
 }
 
 static void
-build_updated_config( CoreLayerContext           *context,
-                      DFBDisplayLayerConfig      *update,
-                      CoreLayerRegionConfig      *ret_config,
-                      CoreLayerRegionConfigFlags *ret_flags )
+build_updated_config( CoreLayerContext            *context,
+                      const DFBDisplayLayerConfig *update,
+                      CoreLayerRegionConfig       *ret_config,
+                      CoreLayerRegionConfigFlags  *ret_flags )
 {
      CoreLayerRegionConfigFlags flags = CLRCF_NONE;
 

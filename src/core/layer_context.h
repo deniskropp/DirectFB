@@ -67,15 +67,15 @@ DFBResult dfb_layer_context_get_primary_region( CoreLayerContext  *context,
 /*
  * configuration testing/setting/getting
  */
-DFBResult dfb_layer_context_test_configuration( CoreLayerContext           *context,
-                                                DFBDisplayLayerConfig      *config,
-                                                DFBDisplayLayerConfigFlags *failed );
+DFBResult dfb_layer_context_test_configuration( CoreLayerContext            *context,
+                                                const DFBDisplayLayerConfig *config,
+                                                DFBDisplayLayerConfigFlags  *ret_failed );
 
-DFBResult dfb_layer_context_set_configuration( CoreLayerContext      *context,
-                                               DFBDisplayLayerConfig *config );
+DFBResult dfb_layer_context_set_configuration( CoreLayerContext            *context,
+                                               const DFBDisplayLayerConfig *config );
 
 DFBResult dfb_layer_context_get_configuration( CoreLayerContext      *context,
-                                               DFBDisplayLayerConfig *config );
+                                               DFBDisplayLayerConfig *ret_config );
 
 
 /*
@@ -95,8 +95,8 @@ DFBResult dfb_layer_context_set_screenlocation( CoreLayerContext *context,
 
 DFBResult dfb_layer_context_set_opacity (CoreLayerContext *context, __u8 opacity);
 
-DFBResult dfb_layer_context_set_coloradjustment (CoreLayerContext   *context,
-                                                 DFBColorAdjustment *adj);
+DFBResult dfb_layer_context_set_coloradjustment (CoreLayerContext         *context,
+                                                 const DFBColorAdjustment *adj);
 
 DFBResult dfb_layer_context_get_coloradjustment (CoreLayerContext   *context,
                                                  DFBColorAdjustment *adj);
