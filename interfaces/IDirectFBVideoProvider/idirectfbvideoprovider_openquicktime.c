@@ -74,6 +74,7 @@ typedef struct {
          pthread_mutex_t   lock;
 
          int               playing;
+         int               seeked;
     } video;
 
     IDirectFBSurface      *destination;
@@ -201,12 +202,14 @@ RGBA_to_RGB16( void *d, void *s, int len )
 {
      int    i;
      __u16 *dst = (__u16*) d;
-     __u8  *src = (__u8*) s;
+     __u32 *src = (__u32*) s;
 
      for (i=0; i<len; i++) {
-          dst[i] = PIXEL_RGB16( src[0], src[1], src[2] );
+          __u32 abgr = src[i];
 
-          src += 4;
+          dst[i] = ((abgr <<  8) & 0xF800) |
+                   ((abgr >>  5) & 0x07E0) |
+                   ((abgr >> 19) & 0x001F);
      }
 }
 
@@ -344,9 +347,9 @@ VideoThread( void *ctx )
      struct timeval start, after;
      long  frame_delay;
      long  delay = -1;
-     float rate;
+     double rate;
      int   drop = 0;
-     long  frame;
+     long  frame, start_frame = 0;
      long  frames;
 
      rate = quicktime_frame_rate( data->file, 0 ) / 1000.0;
@@ -356,27 +359,37 @@ VideoThread( void *ctx )
      if (frames == 1)
           frames = -1;
 
-     gettimeofday(&start, 0);
+     data->video.seeked = 1;
 
      while (data->video.playing) {
           pthread_mutex_lock( &data->video.lock );
 
-          while (drop) {
-               quicktime_decode_video( data->file, BC_NONE, NULL, 0 );
-               drop--;
+          if (data->video.seeked) {
+               drop = 0;
+               gettimeofday(&start, 0);
+               start_frame = quicktime_video_position( data->file, 0 );
+               data->video.seeked = 0;
           }
 
-          if (quicktime_decode_video( data->file,
-                                      BC_RGBA8888, data->video.lines, 0 ))
-          {
-               pthread_mutex_unlock( &data->video.lock );
-               break;
+          if (drop) {
+               while (drop--)
+                    quicktime_decode_video( data->file, BC_NONE, NULL, 0 );
+
+               drop = 0;
           }
+          else {
+               if (quicktime_decode_video( data->file,
+                                           BC_RGBA8888, data->video.lines, 0 ))
+               {
+                    pthread_mutex_unlock( &data->video.lock );
+                    break;
+               }
 
-          WriteFrame( data );
+               WriteFrame( data );
 
-          if (data->callback)
-               data->callback (data->ctx);
+               if (data->callback)
+                    data->callback (data->ctx);
+          }
 
           frame = quicktime_video_position( data->file, 0 );
 
@@ -384,7 +397,7 @@ VideoThread( void *ctx )
           delay = (after.tv_sec - start.tv_sec) * 1000 +
                   (after.tv_usec - start.tv_usec) / 1000;
           {
-               long cframe = (long) (delay * rate);
+               long cframe = (long) (delay * rate) + start_frame;
 
                if ( frame < cframe ) {
                     drop = cframe - frame;
@@ -392,22 +405,22 @@ VideoThread( void *ctx )
                     continue;
                }
                else if ( frame == cframe )
-                    delay = ((long) ((frame + 1) / rate)) - delay;
+                    delay = ((long) ((frame - start_frame + 1) / rate)) - delay;
                else
                     delay = frame_delay;
           }
           after.tv_sec = 0;
           after.tv_usec = delay * 1000;
-          
+
           pthread_mutex_unlock( &data->video.lock );
-          
+
           select( 0, 0, 0, 0, &after );
 
           /*  jump to start if arrived at last frame  */
           if (frame == frames) {
                pthread_mutex_lock( &data->video.lock );
                quicktime_seek_start( data->file );
-               gettimeofday(&start, 0);
+               data->video.seeked = 1;
                pthread_mutex_unlock( &data->video.lock );
           }
      }
@@ -546,6 +559,8 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_SeekTo(
           new_pos = quicktime_get_keyframe_after( data->file, new_pos, 0 );
 
      quicktime_set_video_position( data->file, new_pos, 0 );
+
+     data->video.seeked = 1;
 
      pthread_mutex_unlock( &data->video.lock );
 
