@@ -527,15 +527,67 @@ AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
 dnl check which gfxdrivers to build
 ati=no
 matrox=no
-nvidea=no
+nvidia=no
 tdfx=no
 cyber5k=no
 savage=no
 dnl neomagic is already set
 
-
 if test x$have_linux = xyes; then
 
+AC_MSG_CHECKING(which gfxdrivers should be built)
+AC_ARG_WITH(gfxdrivers,
+  [  --with-gfxdrivers=<list>  compile gfxdrivers in <list>; ]
+  [                        cards may be separated with commas; ]
+  [                        'all' compiles all drivers; ]
+  [                        Possible gfxdrivers are: ]
+  [                        ati128, cyber5k, matox, neomagic, nvidia, savage, tdfx],
+  gfxdrivers="$withval", gfxdrivers="all")
+if test "$gfxdrivers" = "all"; then
+  checkfor_ati128=yes
+  checkfor_cyber5k=yes
+  checkfor_matrox=yes
+  checkfor_neomagic=yes
+  checkfor_nvidia=yes
+  checkfor_savage=yes
+  checkfor_tdfx=yes
+  AC_MSG_RESULT(all)
+else
+  gfxdrivers=`echo $gfxdrivers | sed 's/,/ /g'`
+  for gfxdriver in $gfxdrivers
+  do
+    case "$gfxdriver" in
+        ati128)
+                checkfor_ati128=yes
+                ;;
+        cyber5k)
+                checkfor_cyber5k=yes
+                ;;
+        matrox)
+                checkfor_matrox=yes
+                ;;
+        neomagic)
+                checkfor_neomagic=yes
+                ;;
+        nvidia)
+                checkfor_nvidia=yes
+                ;;
+        savage)
+                checkfor_savage=yes
+                ;;
+        tdfx)
+                checkfor_tdfx=yes
+                ;;
+        *)
+                echo "Unknown gfxdriver $gfxdriver, exiting!"
+                exit 1
+                ;;
+    esac
+  done
+  AC_MSG_RESULT($gfxdrivers)
+fi
+
+if test x$checkfor_ati128 = xyes; then
   dnl Test for ati frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
@@ -547,7 +599,9 @@ if test x$have_linux = xyes; then
   ati=no
   AC_MSG_WARN([
 *** ATI Rage 128 gfxdriver will not be built.]))
+fi
 
+if test x$checkfor_matrox = xyes; then
   dnl Test for matrox frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
@@ -559,8 +613,9 @@ if test x$have_linux = xyes; then
   matrox=no  
   AC_MSG_WARN([
 *** Matrox G200/400/450/550 gfxdriver will not be built.]))
+fi
 
-
+if test x$checkfor_tdfx = xyes; then
   dnl Test for tdfx frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
@@ -572,8 +627,9 @@ if test x$have_linux = xyes; then
   tdfx=no  
   AC_MSG_WARN([
 *** 3DFX Voodoo/Banshee gfxdriver will not be built.]))
+fi
 
-
+if test x$checkfor_cyber5k = xyes; then
   dnl Test for cyber5k frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
@@ -585,8 +641,9 @@ if test x$have_linux = xyes; then
   cyber5k=no  
   AC_MSG_WARN([
 *** CyberPro driver will not be built.]))
+fi
 
-
+if test x$checkfor_nvidia = xyes; then
   dnl Test for nvidia frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
@@ -598,8 +655,9 @@ if test x$have_linux = xyes; then
   nvidia=no  
   AC_MSG_WARN([
 *** nVidia RIVA TNT gfxdriver will not be built.]))
+fi
 
-
+if test x$checkfor_savage = xyes; then
 dnl Test for savage frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
@@ -611,7 +669,7 @@ dnl Test for savage frame buffer support in the kernel
   savage=no   
   AC_MSG_WARN([
 *** Savage gfxdriver will not be built.]))
-
+fi
 
   AC_ARG_ENABLE(linux-input,
     [  --enable-linux-input    build Linux Input driver [default=no]],
