@@ -1,14 +1,12 @@
 Bound to releases
 ------------------
 
-0.9.13
- - Synchronize DFB++ with the DirectFB API (few days after release)
+0.9.14
+- Finish palette API.
 
 
 Sorted by priority (any release)
 ---------------------------------
-
-Finish palette API.
 
 Finish CLUT/ALUT support.
 
