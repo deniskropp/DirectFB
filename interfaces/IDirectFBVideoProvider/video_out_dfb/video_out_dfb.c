@@ -284,6 +284,9 @@ vo_dfb_tables_regen( dfb_driver_t          *this,
                this->mixer.set |=  MF_S;
      }
 
+     if (format != this->dest_format)
+          flags = MF_ALL;
+
      /* generate coefficients */
      lm_cfc = + 0x00002000 * 255 / (m->y.max  - m->y.min );
      vr_cfc = + m->v_for_r * 255 / (m->uv.max - m->uv.min);
@@ -754,6 +757,35 @@ vo_dfb_allocate_yv12( dfb_frame_t           *frame,
      }
 }
 
+static inline void
+vo_dfb_notify_reformat( dfb_driver_t          *this,
+                        int                    width,
+                        int                    height,
+                        double                 ratio,
+                        DFBSurfacePixelFormat  format )
+{
+     DFBRectangle           rect;
+     int                    src_width   = max( width,  2 );
+     int                    src_height  = max( height, 2 );
+     double                 src_ratio   = this->output_ratio ? : ratio;
+     DFBSurfacePixelFormat  dest_format = DSPF_UNKNOWN;
+
+     if (this->aspect_ratio == XINE_VO_ASPECT_SQUARE) {
+          /* update aspect ratio */
+          src_ratio = (double) (width  ? : 1) /
+                      (double) (height ? : 1);
+          this->output_ratio = src_ratio;
+     }
+     
+     this->output_cb( this->output_cdata, src_width, src_height,
+                      src_ratio ? : 1, format, &rect );
+
+     /* check if destination format changed */
+     this->dest->GetPixelFormat( this->dest, &dest_format );
+     vo_dfb_tables_regen( this, MF_NONE, dest_format );
+     this->dest_format = dest_format;
+}     
+
 static void
 vo_dfb_update_frame_format( vo_driver_t *vo_driver,
                             vo_frame_t  *vo_frame,
@@ -799,6 +831,10 @@ vo_dfb_update_frame_format( vo_driver_t *vo_driver,
                         "video_out_dfb: frame format changed to %dx%d %s\n",
                         vo_frame->width, vo_frame->height,
                         in_format ? "YV12" : "YUY2" );
+               
+               vo_dfb_notify_reformat( this, vo_frame->width, vo_frame->height,
+                                       vo_frame->ratio, frame_format );
+               out_format = DFB_PIXELFORMAT_INDEX( this->dest_format );
                
                this->frame_format = frame_format;
                this->frame_width  = vo_frame->width;
@@ -1010,13 +1046,17 @@ vo_dfb_overlay_begin( vo_driver_t *vo_driver,
 {
      dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
+     this->ovl_changed += changed;
+
      if (this->ovl) {
           IDirectFBSurface_data *ovl_data   = this->ovl_data;
           int                    ovl_width  = ovl_data->area.current.w;
           int                    ovl_height = ovl_data->area.current.h;
 
-          if (this->ovl_width  != ovl_width  ||
-              this->ovl_height != ovl_height || changed) {
+          if (this->ovl_changed              ||
+              this->ovl_width  != ovl_width  ||
+              this->ovl_height != ovl_height)
+          {
                DFBColor     color = { 0, 0, 0, 0 }; 
                DFBRectangle rect  = ovl_data->area.current;
                DFBRegion    clip;
@@ -1033,9 +1073,10 @@ vo_dfb_overlay_begin( vo_driver_t *vo_driver,
           
                dfb_gfxcard_fillrectangles( &rect, 1, &this->state );
 
-               this->ovl_width   = ovl_width;
-               this->ovl_height  = ovl_height;
-               this->ovl_changed = true;
+               this->ovl_width  = ovl_width;
+               this->ovl_height = ovl_height;
+               if (!this->ovl_changed)
+                    this->ovl_changed = 1;
           }
      }
 }          
@@ -1075,7 +1116,6 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
           vo_dfb_set_palette( this, overlay,
                               (!use_ovl) ? frame->surface->format 
                                          : this->ovl_data->surface->format );
-          this->ovl_changed = true;
      }
 
      /* FIXME: apparently bottom-right borders of the overlay get cut away */
@@ -1138,13 +1178,9 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
               
                     if (palette[index].rgb.a) {
                          DFBSpan span = { .x = x, .w = width };
-                         
-                         this->state.color.a   = palette[index].rgb.a;
-                         this->state.color.r   = palette[index].rgb.r;
-                         this->state.color.g   = palette[index].rgb.g;
-                         this->state.color.b   = palette[index].rgb.b;
-                         this->state.modified |= SMF_COLOR;
-
+               
+                         dfb_state_set_color( &this->state, 
+                                              (DFBColor*) &palette[index] );
                          dfb_gfxcard_fillspans( y, &span, 1, &this->state );
                     }
             
@@ -1268,12 +1304,12 @@ vo_dfb_overlay_end( vo_driver_t *vo_driver,
      dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
      if (this->ovl && this->ovl_changed) {
-          if (this->ovl_data->caps & DSCAPS_FLIPPING) 
+          if (this->ovl_data->caps & DSCAPS_FLIPPING)
                this->ovl->Flip( this->ovl, NULL, DSFLIP_ONSYNC );
-         dfb_state_set_destination( &this->state, this->dest_data->surface );
+          dfb_state_set_destination( &this->state, this->dest_data->surface );
      }
 
-     this->ovl_changed = false;
+     this->ovl_changed = 0;
 }          
 
 static int
@@ -1302,7 +1338,7 @@ vo_dfb_display_frame( vo_driver_t *vo_driver,
      src_ratio  = this->output_ratio ? : vo_frame->ratio;
      
      this->output_cb( this->output_cdata, src_rect.w, src_rect.h,
-                      src_ratio ? : 1.0, &dst_rect );
+                      src_ratio ? : 1.0, this->frame_format, &dst_rect );
      
      dst_rect.x += this->dest_data->area.wanted.x;
      dst_rect.y += this->dest_data->area.wanted.y;
@@ -1401,7 +1437,7 @@ vo_dfb_get_property( vo_driver_t *vo_driver,
                
           default:
                xprintf( this->xine, XINE_VERBOSITY_DEBUG,
-                        "video_out_dfb: tryed to get unsupported property %i\n",
+                        "video_out_dfb: tried to get unsupported property %i\n",
                         property );
                break;
      }
@@ -1602,7 +1638,7 @@ vo_dfb_set_destination( dfb_driver_t     *this,
      this->dest_data = (IDirectFBSurface_data*) destination->priv;
      dfb_state_set_destination( &this->state, this->dest_data->surface );
 
-     vo_dfb_tables_regen( this, MF_ALL, format );
+     vo_dfb_tables_regen( this, MF_NONE, format );
      this->dest_format = format;
 
      return true;

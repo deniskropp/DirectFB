@@ -25,11 +25,12 @@
 
 /**************************** Driver Interface ********************************/
 
-typedef void (*DVOutputCallback) ( void         *cdata,
-                                   int           width,
-                                   int           height,
-                                   double        ratio,
-                                   DFBRectangle *dest_rect );
+typedef void (*DVOutputCallback) ( void                  *cdata,
+                                   int                    width,
+                                   int                    height,
+                                   double                 ratio,
+                                   DFBSurfacePixelFormat  format,
+                                   DFBRectangle          *dest_rect );
 
 typedef struct {
      IDirectFBSurface *destination;
@@ -196,7 +197,7 @@ struct dfb_driver_s {
      IDirectFBSurface_data  *ovl_data;
      int                     ovl_width;
      int                     ovl_height;
-     bool                    ovl_changed;   
+     int                     ovl_changed;   
      
      DFBSurfacePixelFormat   frame_format;
      int                     frame_width;
