@@ -292,8 +292,9 @@ get_kerning( CoreFont *thiz,
      FT_UInt    current_index;
 
      FT2ImplKerningData *data = (FT2ImplKerningData*) thiz->impl_data;
-
      KerningCacheEntry *cache = NULL;
+
+     D_ASSUME( (kern_x != NULL) || (kern_y != NULL) );
 
      /*
       * Use cached values if characters are in the
@@ -303,8 +304,11 @@ get_kerning( CoreFont *thiz,
           cache = &KERNING_CACHE_ENTRY (prev, current);
 
           if (cache->got) {
-               *kern_x = cache->x;
-               *kern_y = cache->y;
+               if (kern_x)
+                    *kern_x = cache->x;
+
+               if (kern_y)
+                    *kern_y = cache->y;
 
                return DFB_OK;
           }
@@ -323,8 +327,11 @@ get_kerning( CoreFont *thiz,
      pthread_mutex_unlock ( &library_mutex );
 
      /* Convert to integer. */
-     *kern_x = vector.x >> 6;
-     *kern_y = vector.y >> 6;
+     if (kern_x)
+          *kern_x = vector.x >> 6;
+
+     if (kern_y)
+          *kern_y = vector.y >> 6;
 
      /*
       * Fill cache entry if characters are in the cachable range.
