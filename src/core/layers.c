@@ -1362,6 +1362,9 @@ dfb_layer_set_opacity (DisplayLayer *layer, __u8 opacity)
      DFB_ASSERT( layer->shared->enabled );
      
      shared = layer->shared;
+
+     if (shared->opacity == opacity)
+          return DFB_OK;
      
      if (!layer->funcs->SetOpacity)
           return DFB_UNSUPPORTED;
