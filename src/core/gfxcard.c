@@ -677,9 +677,10 @@ void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
      state_lock( state );
 
-     if (gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
-         gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ) &&
-         Scard->device_info.caps.flags & CCF_CLIPPING) {
+     if ((Scard->device_info.caps.flags & CCF_CLIPPING) &&
+         gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
+         gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
+     {
           card->funcs.FillTriangle( card->driver_data,
                                     card->device_data, tri );
           gfxcard_state_release( state );
