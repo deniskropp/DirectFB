@@ -1926,7 +1926,13 @@ void Xacc_blend_invsrcalpha_MMX();
 
 static void Xacc_blend_zero()
 {
-     memset( Xacc, 0, sizeof(Accumulator) * Dlength );
+     int          i;
+     Accumulator *X = Xacc;
+
+     for (i=0; i<Dlength; i++) {
+          if (!(X[i].a & 0xF000))
+               X[i].a = X[i].r = X[i].g = X[i].b = 0;
+     }
 }
 
 static void Xacc_blend_one()
@@ -2527,12 +2533,26 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     else
                          *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
 
-                    /* source blending */
+                    /* premultiply destination */
+                    if (state->drawingflags & DSBLIT_DST_PREMULTIPLY)
+                         *funcs++ = Dacc_premultiply;
+
+                    /* load source (color) */
                     Cacc.a = color.a;
                     Cacc.r = color.r;
                     Cacc.g = color.g;
                     Cacc.b = color.b;
 
+                    /* premultiply source (color) */
+                    if (state->drawingflags & DSBLIT_SRC_PREMULTIPLY) {
+                         __u16 ca = color.a + 1;
+
+                         Cacc.r = (Cacc.r * ca) >> 8;
+                         Cacc.g = (Cacc.g * ca) >> 8;
+                         Cacc.b = (Cacc.b * ca) >> 8;
+                    }
+                    
+                    /* source blending */
                     switch (state->src_blend) {
                          case DSBF_ZERO:
                          case DSBF_ONE:
@@ -2603,6 +2623,10 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                               ONCE("unimplemented src blend function");
                     }
 
+                    /* demultiply result */
+                    if (state->blittingflags & DSBLIT_DEMULTIPLY)
+                         *funcs++ = Dacc_demultiply;
+                    
                     /* write to destination */
                     *funcs++ = Sacc_is_Aacc;
                     *funcs++ = Sacc_to_Aop_PFI[dst_pfi];

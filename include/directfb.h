@@ -419,10 +419,21 @@ extern "C"
       * Flags controlling drawing commands.
       */
      typedef enum {
-          DSDRAW_NOFX         = 0x00000000,  /* uses none of the effects */
-          DSDRAW_BLEND        = 0x00000001,  /* uses source alpha from color */
-          DSDRAW_DST_COLORKEY = 0x00000002   /* write to destination only if
-                                                destination color key matches */
+          DSDRAW_NOFX               = 0x00000000, /* uses none of the effects */
+          DSDRAW_BLEND              = 0x00000001, /* uses alpha from color */
+          DSDRAW_DST_COLORKEY       = 0x00000002, /* write to destination only
+                                                     if the destination pixel
+                                                     matches the destination
+                                                     color key (not fully
+                                                     implemented yet) */
+          DSDRAW_SRC_PREMULTIPLY    = 0x00000004, /* multiplies the color's
+                                                     rgb channels by the alpha
+                                                     channel before drawing */
+          DSDRAW_DST_PREMULTIPLY    = 0x00000008, /* modulates the dest. color
+                                                     with the dest. alpha */
+          DSDRAW_DEMULTIPLY         = 0x00000010  /* divides the color by the
+                                                     alpha before writing the
+                                                     data to the destination */
      } DFBSurfaceDrawingFlags;
 
      /*
@@ -436,13 +447,16 @@ extern "C"
                                                      alpha value from color */
           DSBLIT_COLORIZE           = 0x00000004, /* modulates source color with
                                                      the color's r/g/b values */
-          DSBLIT_SRC_COLORKEY       = 0x00000008, /* only blit pixels matching
+          DSBLIT_SRC_COLORKEY       = 0x00000008, /* don't blit pixels matching
                                                      the source color key */
           DSBLIT_DST_COLORKEY       = 0x00000010, /* write to destination only
-                                                     if destination color
-                                                     key matches */
+                                                     if the destination pixel
+                                                     matches the destination
+                                                     color key (not fully
+                                                     implemented yet) */
           DSBLIT_SRC_PREMULTIPLY    = 0x00000020, /* modulates the source color
-                                                     with the source alpha */
+                                                     with the (modulated) source
+                                                     alpha */
           DSBLIT_DST_PREMULTIPLY    = 0x00000040, /* modulates the dest. color
                                                      with the dest. alpha */
           DSBLIT_DEMULTIPLY         = 0x00000080  /* divides the color by the
