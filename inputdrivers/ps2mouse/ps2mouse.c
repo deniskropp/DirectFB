@@ -236,6 +236,8 @@ int ps2GetId(int fd)
     struct timeval tv;
     fd_set fds;
 
+    tcflush (fd, TCIOFLUSH);
+
     tv.tv_sec = 0;
     tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
 
@@ -243,8 +245,6 @@ int ps2GetId(int fd)
     FD_SET(fd, &fds);
 
     write(fd, &c, 1);
-    tcflush (fd, TCIFLUSH);
-    usleep (30000);
 
     if (select(fd+1, &fds, NULL, NULL, &tv) == 0) {
        printf ("timeout!!\n");
@@ -258,6 +258,8 @@ int ps2GetId(int fd)
 
     read(fd, &c, 1);
 
+    tcflush (fd, TCIOFLUSH);
+
     return(c);
 }
 
@@ -267,6 +269,8 @@ int ps2Write( int fd, const unsigned char *data, size_t len)
 {
     int i;
     int error = 0;
+
+    tcflush (fd, TCIOFLUSH);
 
     for ( i = 0; i < len; i++ ) {
         unsigned char c = 0;
@@ -280,16 +284,19 @@ int ps2Write( int fd, const unsigned char *data, size_t len)
         FD_SET(fd, &fds);
 
         write(fd, &data[i], 1);
-        tcflush (fd, TCIFLUSH);
-        usleep (30000);
 
-        if (select(1, &fds, NULL, NULL, &tv))
+        if (select(fd+1, &fds, NULL, NULL, &tv))
             read(fd, &c, 1);
 
         if ( c != PS2_ACK )
+{printf("error @byte %i\n", i);
             error++;
+}
     }
 
+    tcflush (fd, TCIOFLUSH);
+if (error)
+   printf ("missed %i ack's!\n", error);
     return(error);
 }
 
@@ -350,9 +357,9 @@ driver_open_device( InputDevice      *device,
      PS2MouseData *data;
 
      /* open device */
-     fd = open( "/dev/psaux", O_RDWR );
+     fd = open( "/dev/psaux", O_RDWR | O_SYNC );
      if (fd < 0) {
-          fd = open( "/dev/input/mice", O_RDWR );
+          fd = open( "/dev/input/mice", O_RDWR | O_SYNC );
           if (fd < 0) {
                PERRORMSG( "DirectFB/PS2Mouse: Error opening `/dev/psaux' or `/dev/input/mice' !\n" );
                return DFB_INIT;
@@ -360,19 +367,20 @@ driver_open_device( InputDevice      *device,
      }
 
      /* Do a basic init in case the mouse is confused */
-     ps2Write(fd, basic_init, sizeof (basic_init));
-
      if (ps2Write(fd, basic_init, sizeof (basic_init)) != 0)
          printf ("imps2: PS/2 mouse failed init\n");
 
-     if (ps2Write(fd, imps2_init, sizeof (imps2_init)) != 0)
-         printf ("imps2: PS/2 mouse failed (3 Button) init\n");
+     if (ps2Write(fd, basic_init, sizeof (basic_init)) != 0)
+         printf ("imps2: PS/2 mouse failed 2nd init\n");
 
      mouseId = ps2GetId(fd);
 
 printf ("mouseId == %i\n", mouseId);
+#if 0
      if (mouseId == 250)
          mouseId = PS2_ID_IMPS2;
+     mouseId = PS2_ID_PS2;
+#endif
 
      if ( mouseId != PS2_ID_IMPS2 )
          mouseId = PS2_ID_PS2;
@@ -380,8 +388,11 @@ printf ("mouseId == %i\n", mouseId);
 
      ps2Write(fd, ps2_init, sizeof (ps2_init));
 
-     if ( mouseId == PS2_ID_IMPS2 )
+     if ( mouseId == PS2_ID_IMPS2 ) {
+         if (ps2Write(fd, imps2_init, sizeof (imps2_init)) != 0)
+            printf ("imps2: PS/2 mouse failed IMPS/2 init\n");
          packetLength = 4;
+     }
 
      /* fill device info structure */
      snprintf( info->name,
