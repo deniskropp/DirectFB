@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -102,7 +102,7 @@ struct _SurfaceBuffer
           CoreSurfaceHealth  health;    /* currently stored in system memory? */
           int                locked;    /* system instance is locked,
                                            stick to it */
-          
+
           int                pitch;     /* number of bytes til next line */
           void              *addr;      /* address pointing to surface data */
      } system;
@@ -149,7 +149,7 @@ struct _CoreSurface
 
      SurfaceBuffer         *back_buffer;   /* buffer for (reading&)writing
                                               (drawing/blitting destination) */
-     
+
      SurfaceBuffer         *idle_buffer;   /* triple buffering */
 
      SurfaceManager        *manager;
@@ -173,10 +173,10 @@ dfb_surface_data_offset( const CoreSurface *surface,
      if (surface->caps & DSCAPS_SEPARATED) {
           if (y & 1)
                y += surface->height;
-          
+
           y >>= 1;
      }
-          
+
      return data + pitch * y + DFB_BYTES_PER_LINE( surface->format, x );
 }
 
@@ -298,7 +298,7 @@ ReactionResult _dfb_surface_palette_listener( const void *msg_data,
                                               void       *ctx );
 
 typedef enum {
-     DFB_LAYER_SURFACE_LISTENER,
+     DFB_LAYER_REGION_SURFACE_LISTENER,
      DFB_LAYER_BACKGROUND_IMAGE_LISTENER,
      DFB_WINDOW_SURFACE_LISTENER
 } DFB_SURFACE_GLOBALS;

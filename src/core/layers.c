@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -45,6 +45,7 @@
 
 #include <core/input.h>
 #include <core/gfxcard.h>
+#include <core/layer_region.h>
 #include <core/layers.h>
 #include <core/state.h>
 #include <core/palette.h>
@@ -58,66 +59,11 @@
 #include <misc/memcpy.h>
 #include <misc/util.h>
 
-#include "config.h"
+#include <core/layers_internal.h>
+
 
 #define CURSORFILE         DATADIR"/cursor.dat"
 
-typedef struct {
-     DFBDisplayLayerID        id;      /* unique id, functions as an index,
-                                          primary layer has a fixed id */
-
-     DisplayLayerInfo         layer_info;  
-     void                    *layer_data;    
-
-     /****/
-
-     DFBDisplayLayerConfig    config;  /* current configuration */
-     
-     DFBDisplayLayerConfig    last_config;  /* last 'shared' configuration */
-
-     __u8                     opacity; /* if enabled this value controls
-                                          blending of the whole layer */
-
-     /* these are normalized values for stretching layers in hardware */
-     struct {
-          float     x, y;  /* 0,0 for the primary layer */
-          float     w, h;  /* 1,1 for the primary layer */
-     } screen;  
-
-     DFBColorAdjustment       adjustment;      
-
-     /****/
-
-     int                      enabled; /* layers can be turned on and off */
-
-     CoreWindowStack         *stack;   /* every layer has its own
-                                          windowstack as every layer has
-                                          its own pixel buffer */
-
-     CoreSurface             *surface; /* surface of the layer */
-     CorePalette             *palette; /* current/last palette */
-
-     FusionProperty           lock;    /* purchased during exclusive access,
-                                          leased during window stack repaint */
-
-     bool                     exclusive; /* helps to detect dead excl. access */
-
-     GlobalReaction           surface_reaction;
-     GlobalReaction           bgimage_reaction;
-} DisplayLayerShared;  
-
-struct _DisplayLayer {
-     DisplayLayerShared *shared;
-
-     GraphicsDevice     *device;
-
-     void               *driver_data;
-     void               *layer_data;   /* copy of shared->layer_data */
-
-     DisplayLayerFuncs  *funcs;
-
-     CardState           state;
-};  
 
 typedef struct {
      int                 num;
@@ -140,10 +86,13 @@ static DFBResult create_cursor_window( DisplayLayer          *layer,
                                        int                    height );
 
 static DFBResult allocate_surface    ( DisplayLayer          *layer,
+                                       CoreLayerRegion       *region,
                                        DFBDisplayLayerConfig *config );
 static DFBResult reallocate_surface  ( DisplayLayer          *layer,
+                                       CoreLayerRegion       *region,
                                        DFBDisplayLayerConfig *config );
-static DFBResult deallocate_surface  ( DisplayLayer          *layer );
+static DFBResult deallocate_surface  ( DisplayLayer          *layer,
+                                       CoreLayerRegion       *region );
 
 
 /** public **/
@@ -156,20 +105,20 @@ dfb_layers_initialize( void *data_local, void *data_shared )
 
      DFB_ASSERT( layersfield == NULL );
      DFB_ASSERT( data_shared != NULL );
-     
+
      layersfield = data_shared;
 
      for (i=0; i<dfb_num_layers; i++) {
           int                 layer_data_size;
           DisplayLayerShared *shared;
           DisplayLayer       *layer = dfb_layers[i];
-          
+
           /* allocate shared data */
           shared = SHCALLOC( 1, sizeof(DisplayLayerShared) );
 
           /* zero based counting */
           shared->id = i;
-          
+
           /* init property for exclusive access and window stack repaints */
           fusion_property_init( &shared->lock );
 
@@ -209,12 +158,18 @@ dfb_layers_initialize( void *data_local, void *data_shared )
                return ret;
           }
 
+          /* create the object pool for the regions */
+          shared->region_pool = dfb_layer_region_pool_create( shared->id );
+
+          /* initialize the vector for the regions */
+          fusion_vector_init( &shared->regions, 4 );
+
           /* make a copy for faster access */
           layer->layer_data = shared->layer_data;
-          
+
           /* store pointer to shared data */
           layer->shared = shared;
-          
+
           /* add it to the shared list */
           layersfield->layers[ layersfield->num++ ] = shared;
      }
@@ -225,7 +180,7 @@ dfb_layers_initialize( void *data_local, void *data_shared )
           ERRORMSG("DirectFB/Core/layers: Failed to enable primary layer!\n");
           return ret;
      }
-     
+
      return DFB_OK;
 }
 
@@ -236,7 +191,7 @@ dfb_layers_join( void *data_local, void *data_shared )
 
      DFB_ASSERT( layersfield == NULL );
      DFB_ASSERT( data_shared != NULL );
-     
+
      layersfield = data_shared;
 
      if (dfb_num_layers != layersfield->num)
@@ -248,11 +203,11 @@ dfb_layers_join( void *data_local, void *data_shared )
 
           /* make a copy for faster access */
           layer->layer_data = shared->layer_data;
-          
+
           /* store pointer to shared data */
           layer->shared = shared;
      }
-     
+
      return DFB_OK;
 }
 
@@ -262,10 +217,11 @@ dfb_layers_shutdown( bool emergency )
      int i;
 
      DFB_ASSERT( layersfield != NULL );
-     
+
      /* Begin with the most recently added */
      for (i=layersfield->num-1; i>=0; i--) {
-          DisplayLayer *l = dfb_layers[i];
+          DisplayLayer       *l      = dfb_layers[i];
+          DisplayLayerShared *shared = l->shared;
 
 #if 0 /* FIXME: always need to detach global reactions */
           if (emergency && l->shared->enabled) {
@@ -280,7 +236,7 @@ dfb_layers_shutdown( bool emergency )
 #if 0
           }
 #endif
-          
+
           /* Destroy property */
           fusion_property_destroy( &l->shared->lock );
 
@@ -288,13 +244,19 @@ dfb_layers_shutdown( bool emergency )
           if (l->shared->layer_data)
                SHFREE( l->shared->layer_data );
 
-          /* Free shared layer data */
-          SHFREE( l->shared );
-
           /* Deinit state for stack repaints. */
           dfb_state_set_destination( &l->state, NULL );
           dfb_state_destroy( &l->state );
-          
+
+          /* Destroy the object pool for the regions. */
+          fusion_object_pool_destroy( shared->region_pool );
+
+          /* Destroy the vector for the regions. */
+          fusion_vector_destroy( &shared->regions );
+
+          /* Free shared layer data */
+          SHFREE( l->shared );
+
           /* Free local layer data */
           DFBFREE( l );
      }
@@ -312,7 +274,7 @@ dfb_layers_leave( bool emergency )
      int i;
 
      DFB_ASSERT( layersfield != NULL );
-     
+
      /* Free all local data */
      for (i=0; i<layersfield->num; i++) {
           DisplayLayer *layer = dfb_layers[i];
@@ -326,7 +288,7 @@ dfb_layers_leave( bool emergency )
      }
 
      layersfield = NULL;
-     
+
      dfb_num_layers = 0;
 
      return DFB_OK;
@@ -338,9 +300,9 @@ dfb_layers_suspend()
      int i;
 
      DFB_ASSERT( layersfield != NULL );
-     
+
      DEBUGMSG( "DirectFB/core/layers: suspending...\n" );
-     
+
      for (i=layersfield->num-1; i>=0; i--) {
           if (fusion_property_purchase( &dfb_layers[i]->shared->lock )) {
                int n;
@@ -351,7 +313,7 @@ dfb_layers_suspend()
                return DFB_LOCKED;
           }
      }
-     
+
      for (i=layersfield->num-1; i>=0; i--) {
           DisplayLayer *layer = dfb_layers[i];
 
@@ -362,12 +324,12 @@ dfb_layers_suspend()
           if (layer->shared->enabled)
                layer->funcs->Disable( layer,
                                       layer->driver_data, layer->layer_data );
-          
+
           layer->shared->exclusive = true;
      }
 
      DEBUGMSG( "DirectFB/core/layers: suspended.\n" );
-     
+
      return DFB_OK;
 }
 
@@ -377,16 +339,16 @@ dfb_layers_resume()
      int i;
 
      DFB_ASSERT( layersfield != NULL );
-     
+
      DEBUGMSG( "DirectFB/core/layers: resuming...\n" );
-     
+
      for (i=0; i<layersfield->num; i++) {
           DisplayLayer *layer = dfb_layers[i];
 
           if (layer->shared->enabled) {
                layer->funcs->Enable( layer,
                                      layer->driver_data, layer->layer_data );
-               
+
                layer->funcs->SetConfiguration( layer, layer->driver_data,
                                                layer->layer_data,
                                                &layer->shared->config );
@@ -395,17 +357,17 @@ dfb_layers_resume()
                                          layer->driver_data, layer->layer_data,
                                          layer->shared->opacity );
           }
-          
+
           fusion_property_cede( &layer->shared->lock );
-          
+
           if (layer->shared->stack)
                dfb_windowstack_repaint_all( layer->shared->stack );
-          
+
           layer->shared->exclusive = false;
      }
 
      DEBUGMSG( "DirectFB/core/layers: resumed.\n" );
-     
+
      return DFB_OK;
 }
 
@@ -417,7 +379,7 @@ dfb_layers_register( GraphicsDevice    *device,
      DisplayLayer *layer;
 
      DFB_ASSERT( funcs != NULL );
-     
+
      if (dfb_num_layers == MAX_LAYERS) {
           ERRORMSG( "DirectFB/Core/Layers: "
                     "Maximum number of layers reached!\n" );
@@ -462,7 +424,7 @@ dfb_layers_hook_primary( GraphicsDevice     *device,
      /* copy pointer to original driver data */
      if (primary_driver_data)
           *primary_driver_data = primary->driver_data;
-     
+
      /* replace all entries in the old table that aren't NULL in the new one */
      entries = sizeof(DisplayLayerFuncs) / sizeof(void(*)());
      for (i=0; i<entries; i++) {
@@ -502,7 +464,7 @@ dfb_layers_enumerate( DisplayLayerCallback  callback,
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( callback != NULL );
-     
+
      for (i=0; i<layersfield->num; i++) {
           if (callback( dfb_layers[i], ctx ) == DFENUM_CANCEL)
                break;
@@ -529,11 +491,11 @@ dfb_layer_at_translated( DFBDisplayLayerID id )
      {
           if (id == DLID_PRIMARY)
                return dfb_layer_at( dfb_config->primary_layer );
-          
+
           if (id == dfb_config->primary_layer)
                return dfb_layer_at( DLID_PRIMARY );
      }
-     
+
      return dfb_layer_at( id );
 }
 
@@ -558,7 +520,7 @@ dfb_layer_lease( DisplayLayer *layer )
 
           /* Clear exclusive access. */
           layer->shared->exclusive = false;
-          
+
           if (layer->shared->stack) {
                fusion_property_cede( &layer->shared->lock );
 
@@ -567,7 +529,7 @@ dfb_layer_lease( DisplayLayer *layer )
                return dfb_layer_lease( layer );
           }
      }
-     
+
      return DFB_OK;
 }
 
@@ -581,7 +543,7 @@ dfb_layer_purchase( DisplayLayer *layer )
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      if (fusion_property_purchase( &layer->shared->lock ))
           return DFB_LOCKED;
 
@@ -608,7 +570,7 @@ dfb_layer_holdup( DisplayLayer *layer )
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      if (layer->shared->exclusive)
           if (fusion_property_holdup( &layer->shared->lock ))
                return DFB_FUSION;
@@ -626,7 +588,7 @@ dfb_layer_release( DisplayLayer *layer, bool repaint )
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      /* If returning from exclusive access... */
      if (layer->shared->exclusive) {
           /* Restore the last configuration for shared access. */
@@ -635,9 +597,9 @@ dfb_layer_release( DisplayLayer *layer, bool repaint )
           /* Clear exclusive access. */
           layer->shared->exclusive = false;
      }
-     
+
      fusion_property_cede( &layer->shared->lock );
-     
+
      if (repaint && layer->shared->stack)
           dfb_windowstack_repaint_all( layer->shared->stack );
 }
@@ -649,12 +611,13 @@ dfb_layer_enable( DisplayLayer *layer )
      DFBResult           ret;
      DisplayLayerShared *shared;
      DisplayLayerFuncs  *funcs;
-     
+     CoreLayerRegion    *region;
+
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     
+
      shared = layer->shared;
      funcs  = layer->funcs;
 
@@ -662,13 +625,23 @@ dfb_layer_enable( DisplayLayer *layer )
      if (shared->enabled)
           return DFB_OK;
 
+     /* Create a new region. */
+     ret = dfb_layer_region_create( layer, &region );
+     if (ret)
+          return ret;
+
+     fusion_vector_insert( &shared->regions, region, 0 );
+
      /* allocate the surface before enabling it */
      if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
-          ret = allocate_surface( layer, &shared->config );
-          if (ret)
+          ret = allocate_surface( layer, region, &shared->config );
+          if (ret) {
+               fusion_vector_remove( &shared->regions, 0 );
+               dfb_layer_region_unref( region );
                return ret;
+          }
      }
-     
+
      /* set default/last configuration, this shouldn't fail */
      ret = funcs->SetConfiguration( layer, layer->driver_data,
                                     layer->layer_data, &shared->config );
@@ -676,8 +649,11 @@ dfb_layer_enable( DisplayLayer *layer )
           ERRORMSG("DirectFB/Core/layers: "
                    "Setting default/last configuration failed!\n");
 
-          if (shared->surface)
-               deallocate_surface( layer );
+          if (region->surface)
+               deallocate_surface( layer, region );
+
+          fusion_vector_remove( &shared->regions, 0 );
+          dfb_layer_region_unref( region );
 
           return ret;
      }
@@ -687,9 +663,12 @@ dfb_layer_enable( DisplayLayer *layer )
      /* enable the display layer */
      ret = funcs->Enable( layer, layer->driver_data, layer->layer_data );
      if (ret) {
-          if (shared->surface)
-               deallocate_surface( layer );
-          
+          if (region->surface)
+               deallocate_surface( layer, region );
+
+          fusion_vector_remove( &shared->regions, 0 );
+          dfb_layer_region_unref( region );
+
           return ret;
      }
 
@@ -700,7 +679,7 @@ dfb_layer_enable( DisplayLayer *layer )
           shared->stack = dfb_windowstack_new( layer,
                                                shared->config.width,
                                                shared->config.height );
-          
+
           if (shared->config.buffermode == DLBM_WINDOWS) {
                shared->stack->hw_mode = true;
           }
@@ -709,7 +688,7 @@ dfb_layer_enable( DisplayLayer *layer )
                dfb_windowstack_repaint_all( shared->stack );
           }
      }
-     
+
      INITMSG( "DirectFB/Layer: Enabled '%s'.\n", shared->layer_info.desc.name );
 
      return DFB_OK;
@@ -720,17 +699,25 @@ dfb_layer_disable( DisplayLayer *layer )
 {
      DFBResult           ret;
      DisplayLayerShared *shared;
-     
+     CoreLayerRegion    *region;
+
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     
+
      shared = layer->shared;
-     
+
      /* FIXME: add reference counting */
      if (!shared->enabled)
           return DFB_OK;
+
+     DFB_ASSUME( shared->regions.num_elements > 0 );
+
+     if (!shared->regions.num_elements)
+          return DFB_OK;
+
+     region = shared->regions.elements[0];
 
      /* call driver's disable function */
      ret = layer->funcs->Disable( layer,
@@ -741,35 +728,29 @@ dfb_layer_disable( DisplayLayer *layer )
      /* destroy the window stack if there is one */
      if (shared->stack) {
           CoreWindowStack *stack = shared->stack;
-          
+
           shared->stack = NULL;
-          
+
           /* detach listener from background surface and unlink it */
           if (stack->bg.image) {
                dfb_surface_detach_global( stack->bg.image, &shared->bgimage_reaction );
                dfb_surface_unlink( stack->bg.image );
           }
-          
+
           dfb_windowstack_destroy( stack );
      }
-     
+
      /* deallocate the surface */
-     if (shared->surface) {
-          ret = deallocate_surface( layer );
-          if (ret) {
-               ERRORMSG("DirectFB/Core/layers: Surface deallocation failed!\n");
-               return ret;
-          }
+     ret = deallocate_surface( layer, region );
+     if (ret) {
+          ERRORMSG("DirectFB/Core/layers: Surface deallocation failed!\n");
+          return ret;
      }
 
-     /* discard current/last palette */
-     if (shared->palette) {
-          dfb_palette_unlink( shared->palette );
-          shared->palette = NULL;
-     }
-     
+     fusion_vector_remove( &shared->regions, 0 );
+
      shared->enabled = false;
-     
+
      return DFB_OK;
 }
 
@@ -794,7 +775,7 @@ dfb_layer_test_configuration( DisplayLayer               *layer,
 
      unchanged = ~(config->flags);
      shared    = layer->shared;
-     
+
      /*
       * Fill all unchanged values with their current setting.
       */
@@ -833,15 +814,18 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
 {
      DFBResult           ret;
      DisplayLayerShared *shared;
+     CoreLayerRegion    *region;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
+     DFB_ASSERT( layer->shared->regions.num_elements > 0 );
      DFB_ASSERT( config != NULL );
 
      shared = layer->shared;
+     region = shared->regions.elements[0];
 
      /* build new configuration and test it */
      ret = dfb_layer_test_configuration( layer, config, NULL );
@@ -850,14 +834,14 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
 
      /* reallocate the surface before setting the new configuration */
      if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
-          ret = reallocate_surface( layer, config );
+          ret = reallocate_surface( layer, region, config );
           if (ret) {
                ERRORMSG("DirectFB/Core/layers: "
                         "Reallocation of layer surface failed!\n");
                return ret;
           }
      }
-     
+
      /* apply new configuration, this shouldn't fail */
      ret = layer->funcs->SetConfiguration( layer, layer->driver_data,
                                            layer->layer_data, config );
@@ -865,11 +849,11 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
           CAUTION("setting new configuration failed");
           return ret;
      }
-     
-     if (shared->surface) {
-          CoreSurface *surface = shared->surface;
 
-          /* reset palette */
+     /* reset palette */
+     if (region->surface) {
+          CoreSurface *surface = region->surface;
+
           if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ) &&
               surface->palette && layer->funcs->SetPalette)
           {
@@ -877,7 +861,7 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
                                          layer->layer_data, surface->palette );
           }
      }
-     
+
      /*
       * Write back modified entries.
       */
@@ -906,11 +890,11 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
                /* Tell the windowing core about the new size. */
                dfb_windowstack_resize( stack, config->width, config->height );
           }
-          
+
           /* Backup configuration of shared access. */
           shared->last_config = shared->config;
      }
-     
+
      return DFB_OK;
 }
 
@@ -922,7 +906,7 @@ dfb_layer_get_configuration( DisplayLayer          *layer,
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( config != NULL );
-     
+
      *config = layer->shared->config;
 
      return DFB_OK;
@@ -947,7 +931,7 @@ dfb_layer_set_background_mode ( DisplayLayer                  *layer,
 
      shared = layer->shared;
      stack  = shared->stack;
-     
+
      /* nothing to do if mode is the same */
      if (mode == stack->bg.mode)
           return DFB_OK;
@@ -962,7 +946,7 @@ dfb_layer_set_background_mode ( DisplayLayer                  *layer,
      /* force an update of the window stack */
      if (mode != DLBM_DONTCARE)
           dfb_windowstack_repaint_all( stack );
-     
+
      return DFB_OK;
 }
 
@@ -988,7 +972,7 @@ dfb_layer_set_background_image( DisplayLayer *layer,
 
           /* link surface object */
           dfb_surface_link( &stack->bg.image, image );
-          
+
           /* detach listener from old surface and unlink it */
           if (old_image) {
                dfb_surface_detach_global( old_image, &shared->bgimage_reaction );
@@ -1004,7 +988,7 @@ dfb_layer_set_background_image( DisplayLayer *layer,
      /* force an update of the window stack */
      if (stack->bg.mode == DLBM_IMAGE || stack->bg.mode == DLBM_TILE)
           dfb_windowstack_repaint_all( stack );
-     
+
      return DFB_OK;
 }
 
@@ -1027,14 +1011,14 @@ dfb_layer_set_background_color( DisplayLayer *layer,
      /* do nothing if color didn't change */
      if (dfb_colors_equal( &stack->bg.color, color ))
          return DFB_OK;
-     
+
      /* set new color */
      stack->bg.color = *color;
 
      /* force an update of the window stack */
      if (stack->bg.mode == DLBM_COLOR)
           dfb_windowstack_repaint_all( stack );
-     
+
      return DFB_OK;
 }
 
@@ -1046,12 +1030,25 @@ dfb_layer_set_background_color( DisplayLayer *layer,
 CoreSurface *
 dfb_layer_surface( const DisplayLayer *layer )
 {
+     DisplayLayerShared *shared;
+     CoreLayerRegion    *region;
+
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSUME( layer->shared->surface != NULL );
 
-     return layer->shared->surface;
+     shared = layer->shared;
+
+     DFB_ASSUME( shared->regions.num_elements > 0 );
+
+     if (!shared->regions.num_elements)
+          return NULL;
+
+     region = shared->regions.elements[0];
+
+     DFB_ASSUME( region->surface != NULL );
+
+     return region->surface;
 }
 
 CardState *
@@ -1073,7 +1070,7 @@ dfb_layer_description( const DisplayLayer         *layer,
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( desc != NULL );
-     
+
      *desc = layer->shared->layer_info.desc;
 }
 
@@ -1083,7 +1080,7 @@ dfb_layer_id( const DisplayLayer *layer )
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     
+
      return layer->shared->id;
 }
 
@@ -1093,17 +1090,17 @@ dfb_layer_id_translated( const DisplayLayer *layer )
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     
+
      if (dfb_config->primary_layer > 0 &&
          dfb_config->primary_layer < layersfield->num)
      {
           if (layer->shared->id == DLID_PRIMARY)
                return dfb_config->primary_layer;
-          
+
           if (layer->shared->id == dfb_config->primary_layer)
                return DLID_PRIMARY;
      }
-     
+
      return layer->shared->id;
 }
 
@@ -1111,15 +1108,20 @@ DFBResult
 dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
 {
      DisplayLayerShared *shared;
+     CoreLayerRegion    *region;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     DFB_ASSERT( layer->shared->surface );
+     DFB_ASSERT( layer->shared->regions.num_elements > 0 );
 
      shared = layer->shared;
-     
+     region = shared->regions.elements[0];
+
+     if (!region->surface)
+          return DFB_UNSUPPORTED;
+
      switch (shared->config.buffermode) {
           case DLBM_FRONTONLY:
                return DFB_UNSUPPORTED;
@@ -1129,12 +1131,12 @@ dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
                return layer->funcs->FlipBuffers( layer,
                                                  layer->driver_data,
                                                  layer->layer_data, flags );
-          
+
           case DLBM_BACKSYSTEM:
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC)
                     dfb_layer_wait_vsync( layer );
 
-               dfb_back_to_front_copy( shared->surface, NULL );
+               dfb_back_to_front_copy( region->surface, NULL );
                dfb_layer_update_region( layer, NULL, flags );
 
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT)
@@ -1158,13 +1160,13 @@ dfb_layer_update_region( DisplayLayer        *layer,
      DFB_ASSERT( layer->funcs );
      DFB_ASSERT( layer->shared );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      if (layer->funcs->UpdateRegion)
           return layer->funcs->UpdateRegion( layer,
                                              layer->driver_data,
                                              layer->layer_data,
                                              region, flags );
-     
+
      return DFB_OK;
 }
 
@@ -1194,10 +1196,10 @@ dfb_layer_create_window( DisplayLayer           *layer,
 
      if (fusion_skirmish_prevail( &stack->lock ))
          return DFB_FUSION;
-     
+
      if (!stack->cursor.set)
           dfb_layer_cursor_enable( layer, true );
-     
+
      ret = dfb_window_create( stack, layer, x, y, width, height,
                               caps, surface_caps, pixelformat,
                               &layer->shared->last_config, &window );
@@ -1209,7 +1211,7 @@ dfb_layer_create_window( DisplayLayer           *layer,
      *ret_window = window;
 
      fusion_skirmish_dismiss( &stack->lock );
-     
+
      return DFB_OK;
 }
 
@@ -1226,25 +1228,25 @@ CoreWindow *dfb_layer_find_window( DisplayLayer *layer, DFBWindowID id )
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
      DFB_ASSERT( layer->shared->stack );
-     
+
      stack = layer->shared->stack;
-     
+
      if (fusion_skirmish_prevail( &stack->lock ))
          return NULL;
-     
+
      num     = stack->num_windows;
      windows = stack->windows;
-     
+
      for (i=0; i<num; i++) {
           if (windows[i]->id == id) {
                window = windows[i];
                break;
           }
      }
-     
+
      if (window && dfb_window_ref( window ))
           window = NULL;
-     
+
      fusion_skirmish_dismiss( &stack->lock );
 
      return window;
@@ -1259,7 +1261,7 @@ dfb_layer_set_src_colorkey( DisplayLayer *layer,
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      if (!layer->funcs->SetSrcColorKey)
           return DFB_UNSUPPORTED;
 
@@ -1276,10 +1278,10 @@ dfb_layer_set_dst_colorkey( DisplayLayer *layer,
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      if (!layer->funcs->SetDstColorKey)
           return DFB_UNSUPPORTED;
-     
+
      return layer->funcs->SetDstColorKey( layer, layer->driver_data,
                                           layer->layer_data, r, g, b );
 }
@@ -1293,10 +1295,10 @@ dfb_layer_get_level( DisplayLayer *layer, int *level )
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
      DFB_ASSERT( level != NULL );
-     
+
      if (!layer->funcs->GetLevel)
           return DFB_UNSUPPORTED;
-     
+
      return layer->funcs->GetLevel( layer, layer->driver_data,
                                     layer->layer_data, level );
 }
@@ -1309,10 +1311,10 @@ dfb_layer_set_level( DisplayLayer *layer, int level )
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      if (!layer->funcs->SetLevel)
           return DFB_UNSUPPORTED;
-     
+
      return layer->funcs->SetLevel( layer, layer->driver_data,
                                     layer->layer_data, level );
 }
@@ -1332,14 +1334,14 @@ dfb_layer_set_screenlocation( DisplayLayer *layer,
      DFB_ASSERT( layer->shared->enabled );
 
      shared = layer->shared;
-     
+
      if (shared->screen.x == x     && shared->screen.y == y &&
          shared->screen.w == width && shared->screen.h == height)
           return DFB_OK;
-     
+
      if (!layer->funcs->SetScreenLocation)
           return DFB_UNSUPPORTED;
-     
+
      ret = layer->funcs->SetScreenLocation( layer, layer->driver_data,
                                             layer->layer_data,
                                             x, y, width, height );
@@ -1365,15 +1367,15 @@ dfb_layer_set_opacity (DisplayLayer *layer, __u8 opacity)
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      shared = layer->shared;
 
      if (shared->opacity == opacity)
           return DFB_OK;
-     
+
      if (!layer->funcs->SetOpacity)
           return DFB_UNSUPPORTED;
-     
+
      ret = layer->funcs->SetOpacity( layer, layer->driver_data,
                                      layer->layer_data, opacity );
      if (ret)
@@ -1395,10 +1397,10 @@ dfb_layer_get_current_output_field( DisplayLayer *layer, int *field )
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
      DFB_ASSERT( field != NULL );
-     
+
      if (!layer->funcs->GetCurrentOutputField)
           return DFB_UNSUPPORTED;
-     
+
      ret = layer->funcs->GetCurrentOutputField( layer, layer->driver_data,
                                                 layer->layer_data, field );
      if (ret)
@@ -1417,7 +1419,7 @@ dfb_layer_set_field_parity( DisplayLayer *layer, int field )
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      if (!layer->funcs->SetFieldParity)
           return DFB_UNSUPPORTED;
 
@@ -1437,7 +1439,7 @@ dfb_layer_wait_vsync( DisplayLayer *layer )
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      if (!layer->funcs->WaitVSync)
           return DFB_UNSUPPORTED;
 
@@ -1477,17 +1479,17 @@ dfb_layer_set_coloradjustment (DisplayLayer       *layer,
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
      DFB_ASSERT( adj != NULL );
-     
+
      shared    = layer->shared;
      unchanged = ~adj->flags & shared->adjustment.flags;
-     
+
      if (!layer->funcs->SetColorAdjustment)
           return DFB_UNSUPPORTED;
 
      /* if flags are set that are not in the default adjustment */
      if (adj->flags & ~shared->adjustment.flags)
           return DFB_UNSUPPORTED;
-     
+
      /* fill unchanged values */
      if (unchanged & DCAF_BRIGHTNESS)
           adj->brightness = shared->adjustment.brightness;
@@ -1500,7 +1502,7 @@ dfb_layer_set_coloradjustment (DisplayLayer       *layer,
 
      if (unchanged & DCAF_SATURATION)
           adj->saturation = shared->adjustment.saturation;
-     
+
      /* set new adjustment */
      ret = layer->funcs->SetColorAdjustment( layer, layer->driver_data,
                                              layer->layer_data, adj );
@@ -1531,7 +1533,7 @@ dfb_layer_get_coloradjustment (DisplayLayer       *layer,
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( adj != NULL );
-     
+
      *adj = layer->shared->adjustment;
 
      return DFB_OK;
@@ -1564,11 +1566,11 @@ DFBSurfacePixelFormat
 dfb_primary_layer_pixelformat()
 {
      DisplayLayer *layer = dfb_layer_at_translated(DLID_PRIMARY);
-     
+
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     
+
      return layer->shared->config.pixelformat;
 }
 
@@ -1579,13 +1581,13 @@ dfb_primary_layer_rectangle( float x, float y,
 {
      DisplayLayer       *layer  = dfb_layers[0];
      DisplayLayerShared *shared;
-     
+
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
 
      shared = layer->shared;
-     
+
      rect->x = (int)(x * (float)shared->config.width + 0.5f);
      rect->y = (int)(y * (float)shared->config.height + 0.5f);
      rect->w = (int)(w * (float)shared->config.width + 0.5f);
@@ -1644,7 +1646,7 @@ dfb_layer_update_window( DisplayLayer          *layer,
 {
      DFBResult          ret;
      DisplayLayerFuncs *funcs;
-     
+
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->funcs != NULL );
@@ -1654,7 +1656,7 @@ dfb_layer_update_window( DisplayLayer          *layer,
      DFB_ASSERT( window->window_data != NULL );
 
      funcs = layer->funcs;
-     
+
      if (!funcs->UpdateWindow)
           return DFB_UNSUPPORTED;
 
@@ -1676,7 +1678,7 @@ dfb_layer_remove_window( DisplayLayer *layer,
 {
      DFBResult          ret;
      DisplayLayerFuncs *funcs;
-     
+
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->funcs != NULL );
@@ -1686,7 +1688,7 @@ dfb_layer_remove_window( DisplayLayer *layer,
      DFB_ASSERT( window->window_data != NULL );
 
      funcs = layer->funcs;
-     
+
      if (!funcs->RemoveWindow)
           return DFB_UNSUPPORTED;
 
@@ -1721,17 +1723,17 @@ dfb_layer_cursor_enable( DisplayLayer *layer, bool enable )
      DFB_ASSERT( layer->shared->enabled );
 
      stack = layer->shared->stack;
-     
+
      if (fusion_skirmish_prevail( &stack->lock ))
          return DFB_FUSION;
-     
+
      stack->cursor.set = true;
-     
+
      if (dfb_config->no_cursor) {
           fusion_skirmish_dismiss( &stack->lock );
           return DFB_OK;
      }
-     
+
      if (enable) {
           if (!stack->cursor.window) {
                DFBResult ret;
@@ -1756,7 +1758,7 @@ dfb_layer_cursor_enable( DisplayLayer *layer, bool enable )
      }
 
      fusion_skirmish_dismiss( &stack->lock );
-     
+
      return DFB_OK;
 }
 
@@ -1770,12 +1772,12 @@ dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->stack != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      stack = layer->shared->stack;
 
      if (fusion_skirmish_prevail( &stack->lock ))
          return DFB_FUSION;
-     
+
      if (stack->cursor.enabled) {
           DFB_ASSERT( stack->cursor.window );
 
@@ -1785,7 +1787,7 @@ dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
      stack->cursor.opacity = opacity;
 
      fusion_skirmish_dismiss( &stack->lock );
-     
+
      return DFB_OK;
 }
 
@@ -1805,10 +1807,10 @@ dfb_layer_cursor_set_shape( DisplayLayer *layer,
      DFB_ASSERT( layer->shared->stack != NULL );
      DFB_ASSERT( layer->shared->enabled );
      DFB_ASSERT( shape != NULL );
-     
+
      if (dfb_config->no_cursor)
           return DFB_OK;
-     
+
      stack = layer->shared->stack;
 
      if (fusion_skirmish_prevail( &stack->lock ))
@@ -1842,7 +1844,7 @@ dfb_layer_cursor_set_shape( DisplayLayer *layer,
           dfb_window_repaint( stack->cursor.window, NULL, 0, false, false );
 
      fusion_skirmish_dismiss( &stack->lock );
-     
+
      return DFB_OK;
 }
 
@@ -1859,17 +1861,17 @@ dfb_layer_cursor_warp( DisplayLayer *layer, int x, int y )
      DFB_ASSERT( layer->shared->enabled );
 
      stack = layer->shared->stack;
-     
+
      if (fusion_skirmish_prevail( &stack->lock ))
          return DFB_FUSION;
-     
+
      dx = x - stack->cursor.x;
      dy = y - stack->cursor.y;
 
      dfb_windowstack_handle_motion( stack, dx, dy );
 
      fusion_skirmish_dismiss( &stack->lock );
-     
+
      return DFB_OK;
 }
 
@@ -1892,7 +1894,7 @@ dfb_layer_cursor_set_acceleration( DisplayLayer *layer,
      stack->cursor.numerator   = numerator;
      stack->cursor.denominator = denominator;
      stack->cursor.threshold   = threshold;
-     
+
      return DFB_OK;
 }
 
@@ -1930,10 +1932,10 @@ load_default_cursor( DisplayLayer *layer )
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->stack != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      shared = layer->shared;
      stack  = shared->stack;
-     
+
      if (!stack->cursor.window) {
           ret = create_cursor_window( layer, 40, 40 );
           if (ret)
@@ -2017,10 +2019,10 @@ create_cursor_window( DisplayLayer *layer,
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->stack != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      shared = layer->shared;
      stack  = shared->stack;
-     
+
      /* reinitialization check */
      if (stack->cursor.window) {
           BUG( "already created a cursor for this layer" );
@@ -2050,7 +2052,7 @@ create_cursor_window( DisplayLayer *layer,
      dfb_window_link( &stack->cursor.window, cursor );
 
      dfb_window_unref( cursor );
-     
+
      dfb_window_init( cursor );
      dfb_window_set_opacity( cursor, stack->cursor.opacity );
 
@@ -2063,19 +2065,22 @@ create_cursor_window( DisplayLayer *layer,
  */
 
 static DFBResult
-allocate_surface( DisplayLayer *layer, DFBDisplayLayerConfig *config )
+allocate_surface( DisplayLayer          *layer,
+                  CoreLayerRegion       *region,
+                  DFBDisplayLayerConfig *config )
 {
      DFBResult               ret;
      DFBSurfaceCapabilities  caps   = DSCAPS_VIDEOONLY;
      DisplayLayerShared     *shared;
      DisplayLayerFuncs      *funcs;
      CoreSurface            *surface = NULL;
-     
+
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( layer->shared->surface == NULL );
+     DFB_ASSERT( region != NULL );
+     DFB_ASSERT( region->surface == NULL );
 
      shared = layer->shared;
      funcs  = layer->funcs;
@@ -2118,118 +2123,103 @@ allocate_surface( DisplayLayer *layer, DFBDisplayLayerConfig *config )
 
           ret = dfb_surface_create( config->width, config->height,
                                     config->pixelformat, CSP_VIDEOONLY,
-                                    caps, shared->palette, &surface );
+                                    caps, NULL, &surface );
           if (ret) {
                ERRORMSG( "DirectFB/core/layers: Surface creation failed!\n" );
                return ret;
           }
      }
 
-     dfb_surface_link( &shared->surface, surface );
+     dfb_layer_region_set_surface( region, surface );
+
      dfb_surface_unref( surface );
-
-     /* set surface palette */
-     if (surface->palette) {
-          if (shared->palette != surface->palette) {
-               if (shared->palette)
-                    dfb_palette_unlink( shared->palette );
-
-               dfb_palette_link( &shared->palette, surface->palette );
-          }
-
-          if (funcs->SetPalette)
-               funcs->SetPalette( layer, layer->driver_data,
-                                  layer->layer_data, surface->palette );
-     }
-
-     /* attach surface listener for palette and field switches */
-     dfb_surface_attach_global( surface, DFB_LAYER_SURFACE_LISTENER,
-                                (void*)layer->shared->id,
-                                &shared->surface_reaction );
 
      return DFB_OK;
 }
 
 static DFBResult
-reallocate_surface( DisplayLayer *layer, DFBDisplayLayerConfig *config )
+reallocate_surface( DisplayLayer          *layer,
+                    CoreLayerRegion       *region,
+                    DFBDisplayLayerConfig *config )
 {
      DFBResult           ret;
      DisplayLayerShared *shared;
-     
+
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
+     DFB_ASSERT( region != NULL );
 
      shared = layer->shared;
-     
+
      if (layer->funcs->ReallocateSurface)
           return layer->funcs->ReallocateSurface( layer, layer->driver_data,
                                                   layer->layer_data, config,
-                                                  shared->surface );
+                                                  region->surface );
 
      /* FIXME: write surface management functions
                for easier configuration changes */
-     
+
      if (shared->config.buffermode != config->buffermode) {
           if (shared->config.buffermode == DLBM_WINDOWS)
-               return allocate_surface( layer, config );
-          
-          DFB_ASSERT( layer->shared->surface != NULL );
-          
+               return allocate_surface( layer, region, config );
+
+          DFB_ASSERT( region->surface != NULL );
+
           switch (config->buffermode) {
                case DLBM_TRIPLE:
-                    shared->surface->caps |= DSCAPS_TRIPLE;
-                    shared->surface->caps &= ~DSCAPS_FLIPPING;
-                    ret = dfb_surface_reconfig( shared->surface,
+                    region->surface->caps |= DSCAPS_TRIPLE;
+                    region->surface->caps &= ~DSCAPS_FLIPPING;
+                    ret = dfb_surface_reconfig( region->surface,
                                                 CSP_VIDEOONLY, CSP_VIDEOONLY );
                     break;
                case DLBM_BACKVIDEO:
-                    shared->surface->caps |= DSCAPS_FLIPPING;
-                    shared->surface->caps &= ~DSCAPS_TRIPLE;
-                    ret = dfb_surface_reconfig( shared->surface,
+                    region->surface->caps |= DSCAPS_FLIPPING;
+                    region->surface->caps &= ~DSCAPS_TRIPLE;
+                    ret = dfb_surface_reconfig( region->surface,
                                                 CSP_VIDEOONLY, CSP_VIDEOONLY );
                     break;
                case DLBM_BACKSYSTEM:
-                    shared->surface->caps |= DSCAPS_FLIPPING;
-                    shared->surface->caps &= ~DSCAPS_TRIPLE;
-                    ret = dfb_surface_reconfig( shared->surface,
+                    region->surface->caps |= DSCAPS_FLIPPING;
+                    region->surface->caps &= ~DSCAPS_TRIPLE;
+                    ret = dfb_surface_reconfig( region->surface,
                                                 CSP_VIDEOONLY, CSP_SYSTEMONLY );
                     break;
                case DLBM_FRONTONLY:
-                    shared->surface->caps &= ~(DSCAPS_FLIPPING | DSCAPS_TRIPLE);
-                    ret = dfb_surface_reconfig( shared->surface,
+                    region->surface->caps &= ~(DSCAPS_FLIPPING | DSCAPS_TRIPLE);
+                    ret = dfb_surface_reconfig( region->surface,
                                                 CSP_VIDEOONLY, CSP_VIDEOONLY );
                     break;
                case DLBM_WINDOWS:
-                    return deallocate_surface( layer );
-               
+                    return deallocate_surface( layer, region );
+
                default:
                     BUG("unknown buffermode");
                     return DFB_BUG;
           }
-          
+
           if (ret)
                return ret;
      }
 
-     if (shared->surface) {
-          ret = dfb_surface_reformat( shared->surface, config->width,
+     if (region->surface) {
+          ret = dfb_surface_reformat( region->surface, config->width,
                                       config->height, config->pixelformat );
           if (ret)
                return ret;
 
           if (config->options & DLOP_DEINTERLACING)
-               shared->surface->caps |= DSCAPS_INTERLACED;
+               region->surface->caps |= DSCAPS_INTERLACED;
           else
-               shared->surface->caps &= ~DSCAPS_INTERLACED;
+               region->surface->caps &= ~DSCAPS_INTERLACED;
      }
 
      return DFB_OK;
 }
 
 static DFBResult
-deallocate_surface( DisplayLayer *layer )
+deallocate_surface( DisplayLayer *layer, CoreLayerRegion *region )
 {
      DisplayLayerShared *shared;
      DisplayLayerFuncs  *funcs;
@@ -2239,24 +2229,21 @@ deallocate_surface( DisplayLayer *layer )
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSUME( layer->shared->surface != NULL );
+     DFB_ASSERT( region != NULL );
+     DFB_ASSERT( region->surface != NULL );
 
      shared  = layer->shared;
      funcs   = layer->funcs;
-     surface = shared->surface;
-     
-     if (surface) {
-          shared->surface = NULL;
+     surface = region->surface;
 
-          dfb_surface_detach_global( surface, &shared->surface_reaction );
-          
-          dfb_surface_unlink( surface );
-          
+     if (surface) {
+          dfb_layer_region_set_surface( region, NULL );
+
           if (funcs->DeallocateSurface)
                return funcs->DeallocateSurface( layer, layer->driver_data,
                                                 layer->layer_data, surface );
      }
-     
+
      return DFB_OK;
 }
 
@@ -2291,66 +2278,6 @@ _dfb_layer_background_image_listener( const void *msg_data,
 
      if (notification->flags & (CSNF_FLIP | CSNF_SIZEFORMAT))
           dfb_windowstack_repaint_all( stack );
-
-     return RS_OK;
-}
-
-/*
- * listen to the layer's surface
- */
-ReactionResult
-_dfb_layer_surface_listener( const void *msg_data, void *ctx )
-{
-     CoreSurfaceNotificationFlags   flags;
-     CoreSurface                   *surface;
-     DisplayLayer                  *layer;
-     DisplayLayerFuncs             *funcs;
-     DisplayLayerShared            *shared;
-     const CoreSurfaceNotification *notification = msg_data;
-     DFBDisplayLayerID              layer_id     = (DFBDisplayLayerID) ctx;
-
-     DFB_ASSERT( layersfield != NULL );
-     DFB_ASSERT( layer_id >= 0);
-     DFB_ASSERT( layer_id < layersfield->num);
-     
-     layer = dfb_layers[layer_id];
-     
-     DFB_ASSERT( layer->funcs != NULL );
-     DFB_ASSERT( layer->shared != NULL );
-//FIXME     DFB_ASSERT( layer->shared->enabled );
-     
-     DFB_ASSERT( notification != NULL );
-     DFB_ASSERT( notification->surface != NULL );
-     
-     funcs        = layer->funcs;
-     shared       = layer->shared;
-
-     flags        = notification->flags;
-     surface      = notification->surface;
-     
-     if (flags & CSNF_DESTROY) {
-          CAUTION( "layer surface destroyed" );
-          return RS_REMOVE;
-     }
-
-     if (flags & (CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE)) {
-          if (surface->palette) {
-               if (shared->palette != surface->palette) {
-                    if (shared->palette)
-                         dfb_palette_unlink( shared->palette );
-
-                    dfb_palette_link( &shared->palette, surface->palette );
-               }
-
-               if (funcs->SetPalette)
-                    funcs->SetPalette( layer, layer->driver_data,
-                                       layer->layer_data, surface->palette );
-          }
-     }
-
-     if ((flags & CSNF_FIELD) && funcs->SetField)
-          funcs->SetField( layer, layer->driver_data,
-                           layer->layer_data, surface->field );
 
      return RS_OK;
 }

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -44,7 +44,7 @@ typedef struct {
 
 typedef struct {
      int       (*LayerDataSize)     ();
-     
+
      DFBResult (*InitLayer)         ( GraphicsDevice             *device,
                                       DisplayLayer               *layer,
                                       DisplayLayerInfo           *layer_info,
@@ -102,42 +102,42 @@ typedef struct {
                                       float                       y,
                                       float                       width,
                                       float                       height );
-     
+
      DFBResult (*SetSrcColorKey)    ( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       __u8                        r,
                                       __u8                        g,
                                       __u8                        b );
-     
+
      DFBResult (*SetDstColorKey)    ( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       __u8                        r,
                                       __u8                        g,
                                       __u8                        b );
-     
+
      DFBResult (*GetLevel)          ( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       int                        *level );
-     
+
      DFBResult (*SetLevel)          ( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       int                         level );
-     
+
      DFBResult (*FlipBuffers)       ( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       DFBSurfaceFlipFlags         flags );
-     
+
      DFBResult (*UpdateRegion)      ( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       DFBRegion                  *region,
                                       DFBSurfaceFlipFlags         flags );
-     
+
      DFBResult (*SetColorAdjustment)( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
@@ -184,20 +184,20 @@ typedef struct {
       * hardware window support
       */
      int       (*WindowDataSize)     ();
-     
+
      DFBResult (*AddWindow)    ( DisplayLayer               *layer,
                                  void                       *driver_data,
                                  void                       *layer_data,
                                  void                       *window_data,
                                  CoreWindow                 *window );
-     
+
      DFBResult (*UpdateWindow) ( DisplayLayer               *layer,
                                  void                       *driver_data,
                                  void                       *layer_data,
                                  void                       *window_data,
                                  CoreWindow                 *window,
                                  CoreWindowUpdateFlags       flags );
-     
+
      DFBResult (*RemoveWindow) ( DisplayLayer               *layer,
                                  void                       *driver_data,
                                  void                       *layer_data,
@@ -411,8 +411,6 @@ DFBResult dfb_layer_get_cursor_position (DisplayLayer       *layer,
 
 
 /* global reactions */
-ReactionResult _dfb_layer_surface_listener   ( const void *msg_data,
-                                               void       *ctx );
 ReactionResult _dfb_layer_background_image_listener( const void *msg_data,
                                                      void       *ctx );
 

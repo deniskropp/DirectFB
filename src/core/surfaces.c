@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -47,6 +47,7 @@
 
 #include <core/gfxcard.h>
 #include <core/layers.h>
+#include <core/layers_internal.h>
 #include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
@@ -71,7 +72,7 @@ static void video_access_by_software( SurfaceBuffer       *buffer,
                                       DFBSurfaceLockFlags  flags );
 
 static const React dfb_surface_globals[] = {
-/* 0 */   _dfb_layer_surface_listener,
+/* 0 */   _dfb_layer_region_surface_listener,
 /* 1 */   _dfb_layer_background_image_listener,
 /* 2 */   _dfb_window_surface_listener,
           NULL
@@ -132,7 +133,7 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
 
      DFB_ASSERT( width > 0 );
      DFB_ASSERT( height > 0 );
-     
+
      if (width * (long long) height > 4096*4096)
           return DFB_BUFFERTOOLARGE;
 
@@ -188,7 +189,7 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
           s->idle_buffer = s->front_buffer;
 
      fusion_object_activate( &s->object );
-     
+
      *surface = s;
 
      return DFB_OK;
@@ -207,7 +208,7 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
 
      DFB_ASSERT( width > 0 );
      DFB_ASSERT( height > 0 );
-     
+
      if (policy == CSP_VIDEOONLY)
           return DFB_UNSUPPORTED;
 
@@ -247,7 +248,7 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
      s->idle_buffer = s->front_buffer;
 
      fusion_object_activate( &s->object );
-     
+
      *surface = s;
 
      return DFB_OK;
@@ -277,7 +278,7 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
 
      if (width * (long long) height > 4096*4096)
           return DFB_BUFFERTOOLARGE;
-     
+
      if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
          surface->back_buffer->flags  & SBF_FOREIGN_SYSTEM)
      {
@@ -291,7 +292,7 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
      surface->width  = width;
      surface->height = height;
      surface->format = format;
-     
+
      if (width      <= surface->min_width &&
          old_width  <= surface->min_width &&
          height     <= surface->min_height &&
@@ -358,7 +359,7 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
      }
 
      dfb_surfacemanager_unlock( surface->manager );
-     
+
      dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
                                    CSNF_SYSTEM | CSNF_VIDEO );
 
@@ -367,7 +368,7 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
 
 DFBResult dfb_surface_reconfig( CoreSurface       *surface,
                                 CoreSurfacePolicy  front_policy,
-                                CoreSurfacePolicy  back_policy ) 
+                                CoreSurfacePolicy  back_policy )
 {
      DFBResult      ret;
      SurfaceBuffer *old_front;
@@ -438,7 +439,7 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
           dfb_surface_deallocate_buffer ( surface, old_idle );
 
      dfb_surfacemanager_unlock( surface->manager );
-     
+
      dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
                                    CSNF_SYSTEM | CSNF_VIDEO );
 
@@ -477,7 +478,7 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
      SurfaceBuffer *tmp;
 
      DFB_ASSERT( surface != NULL );
-     
+
      DFB_ASSERT(surface->back_buffer->policy == surface->front_buffer->policy);
 
      dfb_surfacemanager_lock( surface->manager );
@@ -518,7 +519,7 @@ DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags
      DFB_ASSERT( surface != NULL );
      DFB_ASSERT( data != NULL );
      DFB_ASSERT( pitch != NULL );
-     
+
      dfb_surfacemanager_lock( surface->manager );
      ret = dfb_surface_software_lock( surface, flags, data, pitch, front );
      dfb_surfacemanager_unlock( surface->manager );
@@ -622,14 +623,14 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
                /* avoid inconsistency, could be optimized (read/write) */
                if (buffer->system.locked)
                     break;
-               
+
                /* no reading? no force? no video instance? no success! ;-) */
                if (!(flags & (DSLF_READ|CSLF_FORCE)) && buffer->video.health != CSH_STORED)
                     break;
-               
+
                if (dfb_surfacemanager_assure_video( surface->manager, buffer ))
                     break;
-               
+
                if (flags & DSLF_WRITE)
                     buffer->system.health = CSH_RESTORE;
                /* fall through */
@@ -637,14 +638,14 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
           case CSP_VIDEOONLY:
                if (dfb_surfacemanager_assure_video( surface->manager, buffer ))
                     break;
-               
+
                buffer->video.locked++;
-               
+
                video_access_by_hardware( buffer, flags );
-               
+
                if (flags & DSLF_WRITE)
                     buffer->flags |= SBF_WRITTEN;
-               
+
                return DFB_OK;
 
           default:
@@ -658,13 +659,13 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
 void dfb_surface_unlock( CoreSurface *surface, int front )
 {
      SurfaceBuffer *buffer;
-     
+
      DFB_ASSERT( surface != NULL );
-     
+
      buffer = front ? surface->front_buffer : surface->back_buffer;
-     
+
      DFB_ASSERT( buffer != NULL );
-     
+
      if (buffer->system.locked)
           buffer->system.locked--;
 
@@ -680,7 +681,7 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
                              CorePalette            *palette )
 {
      DFB_ASSERT( surface != NULL );
-     
+
      switch (format) {
           case DSPF_A8:
           case DSPF_ARGB:
@@ -733,9 +734,9 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
 
           dfb_palette_unref( palette );
      }
-     
+
      surface->manager = dfb_gfxcard_surface_manager();
-     
+
      return DFB_OK;
 }
 
@@ -775,7 +776,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                          "0x%08x is not implemented!\n", surface->format );
                return DFB_UNSUPPORTED;
      }
-     
+
      /* Lock the surface, get the data pointer and pitch. */
      ret = dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch, true );
      if (ret)
@@ -793,7 +794,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                          "could not open %s!\n", filename);
 
                dfb_surface_unlock( surface, true );
-               
+
                return DFB_IO;
           }
      } while (errno == EEXIST);
@@ -801,14 +802,14 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      /* Create a graymap for the alpha channel using the same index. */
      if (alpha) {
           snprintf( filename, len, "%s/%s_%04d.pgm", directory, prefix, num );
-          
+
           fd_g = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
           if (fd_g < 0) {
                PERRORMSG("DirectFB/core/input: "
                          "could not open %s!\n", filename);
 
                dfb_surface_unlock( surface, true );
-               
+
                close( fd_p );
 
                snprintf( filename, len, "%s/%s_%04d.ppm",
@@ -818,7 +819,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                return DFB_IO;
           }
      }
-     
+
      /* Write the pixmap header. */
      snprintf( head, 30,
                "P6\n%d %d\n255\n", surface->width, surface->height );
@@ -840,7 +841,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
           __u8 buf_p[surface->width * 3];
           __u8 buf_g[surface->width];
-          
+
           /* Prepare one row. */
           data8 = (__u8*)
           data16 = (__u16*)
@@ -852,7 +853,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                          buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
                          buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
                          buf_p[n3+2] = (data32[n] & 0x0000FF);
-                         
+
                          buf_g[n] = data32[n] >> 24;
                     }
                     break;
@@ -861,7 +862,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                          buf_p[n3+0] = (data16[n] & 0x7C00) >> 7;
                          buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
                          buf_p[n3+2] = (data16[n] & 0x001F) << 3;
-                         
+
                          buf_g[n] = (data16[n] & 0x8000) ? 0xff : 0x00;
                     }
                     break;
@@ -1027,7 +1028,7 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
 
           /* Free old memory. */
           SHFREE( buffer->system.addr );
-          
+
           /* Write back new values. */
           buffer->system.health = CSH_STORED;
           buffer->system.pitch  = pitch;
@@ -1081,7 +1082,7 @@ _dfb_surface_palette_listener( const void *msg_data,
 
      if (notification->flags & CPNF_DESTROY)
           return RS_REMOVE;
-     
+
      if (notification->flags & CPNF_ENTRIES)
           dfb_surface_notify_listeners( surface, CSNF_PALETTE_UPDATE );
 

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -52,11 +52,12 @@ typedef struct _ModuleEntry             ModuleEntry;
 typedef struct _ModuleDirectory         ModuleDirectory;
 
 
-typedef struct _DisplayLayer            DisplayLayer;
 typedef struct _InputDevice             InputDevice;
 typedef struct _GraphicsDevice          GraphicsDevice;
 
-
+typedef struct __DFB_CoreLayer          DisplayLayer;
+typedef struct __DFB_CoreLayer          CoreLayer;
+typedef struct __DFB_CoreLayerRegion    CoreLayerRegion;
 
 #endif
 

@@ -20,6 +20,7 @@ internalinclude_HEADERS = \
 	arena.h		\
 	call.h		\
 	fusion.h	\
+	fusion_types.h	\
 	list.h		\
 	lock.h		\
 	object.h	\
@@ -27,7 +28,7 @@ internalinclude_HEADERS = \
 	reactor.h	\
 	ref.h		\
 	shmalloc.h	\
-	fusion_types.h
+	vector.h
 
 
 noinst_LTLIBRARIES = libdirectfb_core_fusion.la
@@ -43,7 +44,8 @@ libdirectfb_core_fusion_la_SOURCES = \
 	object.c		\
 	property.c		\
 	reactor.c		\
-	ref.c
+	ref.c			\
+	vector.c
 
 if ENABLE_MULTI
 libdirectfb_core_fusion_la_LIBADD = shmalloc/libdirectfb_shmalloc.la

@@ -14,9 +14,6 @@ Finish VT switching (already working well after 0.9.18 release)
 Finish implementation of cooperative levels.
 
 Finish display layer core and driver API.
- - Finish reallocate_surface() in src/core/layers.c
- - Add reference counter to each display layer and
-   implement an auto-disable if reference count gets zero.
 
 Finish multi application core.
  - Some messages may need to be dispatched synchronized.

@@ -1,0 +1,64 @@
+/*
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002-2003  convergence GmbH.
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#ifndef __CORE__LAYER_REGION_H__
+#define __CORE__LAYER_REGION_H__
+
+#include <dfb_types.h>
+#include <pthread.h>
+
+#include <core/fusion/lock.h>
+#include <core/fusion/object.h>
+
+#include <directfb.h>
+#include <core/coretypes.h>
+
+typedef enum {
+     CLRNF_SIZE     = 0x00000001   /* region has been resized */
+} CoreLayerRegionNotificationFlags;
+
+typedef struct {
+     CoreLayerRegionNotificationFlags  flags;
+     CoreLayerRegion                  *region;
+} CoreLayerRegionNotification;
+
+/*
+ * Creates a pool of region objects.
+ */
+FusionObjectPool *dfb_layer_region_pool_create();
+
+/*
+ * Generates dfb_layer_region_ref(), dfb_layer_region_attach() etc.
+ */
+FUSION_OBJECT_METHODS( CoreLayerRegion, dfb_layer_region )
+
+DFBResult dfb_layer_region_create( CoreLayer        *layer,
+                                   CoreLayerRegion **ret_region );
+
+DFBResult dfb_layer_region_set_surface( CoreLayerRegion *region,
+                                        CoreSurface     *surface );
+
+#endif
