@@ -297,6 +297,7 @@ nv_set_blittingflags( NVidiaDriverData        *nvdrv,
           case DSBLIT_ALPHABLEND:
                nvdev->blitfx = 0x00000012;
                if (nvdev->alpha != color.a) {
+                    nv_waitidle( nvdrv, nvdev );
                     nv_out32( nvdrv->PGRAPH, 0x608, color.a << 23 );
                     nvdev->alpha = color.a;
                }
@@ -304,6 +305,7 @@ nv_set_blittingflags( NVidiaDriverData        *nvdrv,
           case DSBLIT_BLEND_ALPHACHANNEL:
                nvdev->blitfx = 0x00000012;
                if (nvdev->alpha != 0xFF) {
+                    nv_waitidle( nvdrv, nvdev );
                     nv_out32( nvdrv->PGRAPH, 0x608, 0x7F800000 );
                     nvdev->alpha = 0xFF;
                }
@@ -311,12 +313,14 @@ nv_set_blittingflags( NVidiaDriverData        *nvdrv,
           case DSBLIT_BLEND_COLORALPHA:
                nvdev->blitfx = 0x00000002;
                if (nvdev->alpha != color.a) {
+                    nv_waitidle( nvdrv, nvdev );
                     nv_out32( nvdrv->PGRAPH, 0x608, color.a << 23 );
                     nvdev->alpha = color.a;
                }
                break;
           case DSBLIT_COLORIZE:
                nvdev->blitfx = 0x00000004;
+               nv_waitidle( nvdrv, nvdev );
                nv_out32( nvdrv->PGRAPH, 0x60C, nvdev->color3d );
                break;
           case DSBLIT_NOFX:
