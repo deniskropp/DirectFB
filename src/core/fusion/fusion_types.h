@@ -51,9 +51,8 @@ typedef enum {
     FUSION_PERMISSIONDENIED,
     FUSION_NOTEXISTENT,
     FUSION_LIMITREACHED,
-    FUSION_TOOHIGH,
-    FUSION_TOOLONG,
-    FUSION_INUSE
+    FUSION_INUSE,
+    FUSION_TIMEOUT
   } FusionResult;
 
   typedef struct _FusionReactor      FusionReactor;

@@ -147,6 +147,34 @@ fusion_exit()
      close( _fusion_fd );
 }
 
+FusionResult
+fusion_kill( int fusion_id, int signal, int timeout_ms )
+{
+#ifdef FUSION_KILL
+     FusionKill param;
+
+     param.fusion_id  = fusion_id;
+     param.signal     = signal;
+     param.timeout_ms = timeout_ms;
+
+     while (ioctl (_fusion_fd, FUSION_KILL, &param)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case ETIMEDOUT:
+                    return FUSION_TIMEOUT;
+               default:
+                    break;
+          }
+          
+          FPERROR ("FUSION_KILL");
+
+          return FUSION_FAILURE;
+     }
+#endif
+     return FUSION_SUCCESS;
+}
+
 long long
 fusion_get_millis()
 {

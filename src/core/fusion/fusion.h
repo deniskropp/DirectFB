@@ -47,6 +47,16 @@ extern "C"
      void fusion_exit();
 
      /*
+      * Sends a signal to one or more fusionees and optionally waits
+      * for their processes to terminate.
+      *
+      * A fusion_id of zero means all fusionees but the calling one.
+      * A timeout of zero means infinite waiting while a negative value
+      * means no waiting at all.
+      */
+     FusionResult fusion_kill( int fusion_id, int signal, int timeout_ms );
+
+     /*
       * Get the number of milliseconds passed after the start of the master.
       */
      long long fusion_get_millis();

@@ -248,8 +248,13 @@ dfb_core_unref()
           return;
 
 #ifndef FUSION_FAKE
+     if (dfb_core->master) {
+          fusion_kill( 0, SIGTERM, 5000 );
+          fusion_kill( 0, SIGKILL, 2000 );
+     }
+
      fusion_arena_exit( dfb_core->arena,
-                 dfb_core_shutdown, dfb_core_leave, NULL, false, NULL );
+                        dfb_core_shutdown, dfb_core_leave, NULL, false, NULL );
 #else
      dfb_core_shutdown( NULL, NULL, false );
 #endif
