@@ -211,11 +211,11 @@ if test "x$have_x86" = xyes; then
   AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0);], 
     AC_DEFINE(HAVE_SYSIO,1,
               [Define to 1 if you have the <sys/io.h> header file.])
-    neomagic="yes"
+    have_sysio=yes
     AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no))
 else
-  neomagic=no
+  have_sysio=no
 fi
 
 
@@ -531,18 +531,19 @@ nvidia=no
 tdfx=no
 cyber5k=no
 savage=no
-dnl neomagic is already set
+neomagic=no
 
 if test x$have_linux = xyes; then
 
 AC_MSG_CHECKING(which gfxdrivers should be built)
 AC_ARG_WITH(gfxdrivers,
-  [  --with-gfxdrivers=<list>  compile gfxdrivers in <list>; ]
-  [                        cards may be separated with commas; ]
-  [                        'all' compiles all drivers; ]
+  [  --with-gfxdrivers=<list>  compile gfxdrivers in <list> ]
+  [                        gfxdrivers may be comma separated ]
+  [                        'all' builds all drivers, 'none' builds none ]
   [                        Possible gfxdrivers are: ]
   [                        ati128, cyber5k, matox, neomagic, nvidia, savage, tdfx],
   gfxdrivers="$withval", gfxdrivers="all")
+
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
   checkfor_cyber5k=yes
@@ -552,39 +553,41 @@ if test "$gfxdrivers" = "all"; then
   checkfor_savage=yes
   checkfor_tdfx=yes
   AC_MSG_RESULT(all)
-else
-  gfxdrivers=`echo $gfxdrivers | sed 's/,/ /g'`
-  for gfxdriver in $gfxdrivers
-  do
-    case "$gfxdriver" in
-        ati128)
-                checkfor_ati128=yes
-                ;;
-        cyber5k)
-                checkfor_cyber5k=yes
-                ;;
-        matrox)
-                checkfor_matrox=yes
-                ;;
-        neomagic)
-                checkfor_neomagic=yes
-                ;;
-        nvidia)
-                checkfor_nvidia=yes
-                ;;
-        savage)
-                checkfor_savage=yes
-                ;;
-        tdfx)
-                checkfor_tdfx=yes
-                ;;
-        *)
-                echo "Unknown gfxdriver $gfxdriver, exiting!"
-                exit 1
-                ;;
-    esac
-  done
-  AC_MSG_RESULT($gfxdrivers)
+else 
+  if test "$gfxdrivers" != "none"; then
+    gfxdrivers=`echo $gfxdrivers | sed 's/,/ /g'`
+    for gfxdriver in $gfxdrivers
+    do
+      case "$gfxdriver" in
+          ati128)
+                  checkfor_ati128=yes
+                  ;;
+          cyber5k)
+                  checkfor_cyber5k=yes
+                  ;;
+          matrox)
+                  checkfor_matrox=yes
+                  ;;
+          neomagic)
+                  checkfor_neomagic=yes
+                  ;;
+          nvidia)
+                  checkfor_nvidia=yes
+                  ;;
+          savage)
+                  checkfor_savage=yes
+                  ;;
+          tdfx)
+                  checkfor_tdfx=yes
+                  ;;
+          *)
+                  echo "Unknown gfxdriver $gfxdriver, exiting!"
+                  exit 1
+                  ;;
+      esac
+    done
+    AC_MSG_RESULT($gfxdrivers)
+  fi
 fi
 
 if test x$checkfor_ati128 = xyes; then
@@ -671,10 +674,23 @@ dnl Test for savage frame buffer support in the kernel
 *** Savage gfxdriver will not be built.]))
 fi
 
+if test x$checkfor_neomagic = xyes && test x$have_sysio = xyes; then
+dnl Test for neomagic frame buffer support in the kernel
+  AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_FB_ACCEL_NEOMAGIC_NM2070
+  yes
+#endif
+  ],
+  neomagic=yes,
+  neomagic=no   
+  AC_MSG_WARN([
+*** Neomagic gfxdriver will not be built.]))
+fi
+
   AC_ARG_ENABLE(linux-input,
     [  --enable-linux-input    build Linux Input driver [default=no]],
     enable_linux_input="$enableval", enable_linux_input=no)
-
 
   dnl Test for H3600 Touchscreen support
   AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no  
