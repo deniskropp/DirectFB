@@ -77,7 +77,7 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
      pthread_mutex_init( &stack->update, NULL );
 
      while (inputdevice) {
-          if (inputdevice->desc.type & (DIDTF_KEYBOARD | DIDTF_KEYBOARD))
+          if (inputdevice->desc.type & (DIDTF_KEYBOARD | DIDTF_MOUSE))
                reactor_attach( inputdevice->reactor,
                                windowstack_inputdevice_react, stack );
           
