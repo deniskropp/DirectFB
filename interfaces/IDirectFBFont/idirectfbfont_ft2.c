@@ -303,10 +303,10 @@ get_kerning( CoreFont *thiz,
           cache = &KERNING_CACHE_ENTRY (prev, current);
 
           if (kern_x)
-               *kern_x = cache->x;
+               *kern_x = (int) cache->x;
 
           if (kern_y)
-               *kern_y = cache->y;
+               *kern_y = (int) cache->y;
 
           return DFB_OK;
      }
@@ -357,8 +357,8 @@ init_kerning_cache( FT2ImplKerningData *data )
 
                pthread_mutex_unlock ( &library_mutex );
 
-               cache->x = vector.x >> 6;
-               cache->y = vector.y >> 6;
+               cache->x = (char) (vector.x >> 6);
+               cache->y = (char) (vector.y >> 6);
           }
      }
 }
