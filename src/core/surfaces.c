@@ -512,11 +512,8 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
 
      surface->destroyed = true;
      
-     /* acquire a lock for both buffers first */
-     dfb_surfacemanager_lock( surface->manager );
-     skirmish_prevail( &surface->front_lock );
-     skirmish_prevail( &surface->back_lock );
-     dfb_surfacemanager_unlock( surface->manager );
+     /* anounce surface destruction */
+     dfb_surface_notify_listeners( surface, CSNF_DESTROY );
 
      /* deallocate first buffer */
      dfb_surface_deallocate_buffer( surface, surface->front_buffer );
@@ -525,16 +522,9 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
      if (surface->back_buffer != surface->front_buffer)
           dfb_surface_deallocate_buffer( surface, surface->back_buffer );
 
-     /* anounce surface destruction */
-     dfb_surface_notify_listeners( surface, CSNF_DESTROY );
-
-     /* unlock and destroy the locks */
-     dfb_surfacemanager_lock( surface->manager );
-     skirmish_dismiss( &surface->front_lock );
-     skirmish_dismiss( &surface->back_lock );
+     /* destroy the locks */
      skirmish_destroy( &surface->front_lock );
      skirmish_destroy( &surface->back_lock );
-     dfb_surfacemanager_unlock( surface->manager );
 
      /* deallocate palette */
      if (surface->palette)
