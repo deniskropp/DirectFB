@@ -8,6 +8,7 @@
 - Added IDirectFBSurface::SetSrcColorKeyIndex() and SetDstColorKeyIndex().
 - Added experimental blitting flag DSBLIT_DEINTERLACE which is implemented
   only in the Matrox driver for now.
+- Added DFDESC_FIXEDADVANCE forcing proportional fonts to be fixed width.
 - Added LUT8 and RGB332 acceleration to NeoMagic driver.
 - Added Meta (or Windows) key to wm hack (moving window etc.).
 - Added MPEG2 I-Frame image provider derived from mpeg2decode (mpeg.org).

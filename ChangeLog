@@ -1,3 +1,123 @@
+2002-10-29	14:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/Makefile.am (1.23) (+0 -2)
+		patches/fusion-all-linux-2.4.20-pre11.patch.bz2 (1.2) (+0 -0)
+		patches/README.fusion (1.2) (+0 -0)
+	
+	Has an extra CVS module now.
+	
+2002-10-29	13:57	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.22) (+4 -1)
+	
+	Added support for DFDESC_FIXEDADVANCE.
+	
+2002-10-29	13:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.152) (+10 -5)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.31) (+10 -4)
+	
+	Added DFDESC_FIXEDADVANCE as a workaround for using proportional fonts fixed.
+	
+	Added DFFA_NONE.
+	
+2002-10-28	19:50	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/fonts.c (1.26) (+4 -1)
+		src/core/gfxcard.c (1.88) (+5 -9)
+	
+	Assure that glyphs with an empty bitmap are inserted into the glyph cache
+	with zero width and height. Simplifies some checks performed when rendering.
+	
+2002-10-28	19:28	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.25) (+2 -2)
+	
+	Use larger glyph surfaces to reduce expensive switching
+	(caused by reactor attach/detach).
+	
+2002-10-28	19:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/thread.c (1.4) (+5 -1)
+		src/core/fusion/reactor.c (1.25) (+14 -13)
+		src/core/thread.h (1.4) (+2 -1)
+	
+	Use CoreThread with new type CTT_MESSAGING.
+	
+2002-10-28	19:19	Sven Neumann <sven@convergence.de>
+
+	Files:	src/display/idirectfbsurface.c (1.62) (+2 -1)
+	
+	indentation
+	
+2002-10-28	18:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.87) (+1 -1)
+	
+	Check x too in simple pre clipping of dfb_gfxcard_drawstring().
+	
+2002-10-28	18:27	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.50) (+17 -0)
+	
+	Added a description of the builtin "window manager".
+	
+2002-10-28	18:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.128) (+2 -1)
+	
+	DFB_CFLAGS are behind CFLAGS again. Otherwise "-g -O2" may override the
+	debugging/optimization options of DirectFB's configure script.
+	
+2002-10-28	17:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	NEWS (1.40) (+3 -2)
+	
+	Multi app related.
+	
+2002-10-28	17:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_spic.c (1.2) (+4 -3)
+	
+	SetOpacity() for sub picture layer fix by Ville Syrjala <syrjala@sci.fi>.
+	
+2002-10-28	17:22	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	README (1.49) (+3 -2)
+	
+	- added OpenBSD to the list of supported operating systems
+	
+2002-10-28	17:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.48) (+4 -4)
+	
+	The linux-fusion module doesn't only give performance, but also more stability.
+	
+2002-10-28	16:01	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/object.c (1.7) (+11 -3)
+	
+	Fixed fusion_object_destroy() for calls outside the object destructor.
+	
+2002-10-28	15:24	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/sdl/Makefile.am (1.4) (+1 -0)
+	
+	Added sdl.h to SOURCES.
+	
+2002-10-28	15:12	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/cpu_accel.c (1.4) (+8 -4)
+	
+	added more ifdefs around MMX and SSE code
+	
+2002-10-28	13:31	Sven Neumann <sven@convergence.de>
+
+	Files:	ChangeLog (1.30) (+298 -0)
+		NEWS (1.39) (+4 -1)
+	
+	Updates.
+	
 2002-10-28	13:20	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.127) (+27 -1)
