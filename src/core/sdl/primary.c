@@ -49,6 +49,7 @@
 
 static DFBResult dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config );
 static DFBResult dfb_sdl_update_screen( DFBRegion *region );
+static DFBResult dfb_sdl_set_palette( CorePalette *palette );
 
 
 static int
@@ -400,22 +401,7 @@ primarySetPalette ( DisplayLayer               *layer,
                     void                       *layer_data,
                     CorePalette                *palette )
 {
-     int       i;
-     SDL_Color colors[palette->num_entries];
-
-     for (i=0; i<palette->num_entries; i++) {
-          colors[i].r = palette->entries[i].r;
-          colors[i].g = palette->entries[i].g;
-          colors[i].b = palette->entries[i].b;
-     }
-     
-     skirmish_prevail( &dfb_sdl->lock );
-     
-//FIXME     SDL_SetColors( screen, colors, 0, palette->num_entries );
-     
-     skirmish_dismiss( &dfb_sdl->lock );
-
-     return DFB_OK;
+     return dfb_sdl_set_palette( palette );
 }
 
 static DFBResult
@@ -555,7 +541,8 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
 
 typedef enum {
      SDL_SET_VIDEO_MODE,
-     SDL_UPDATE_SCREEN
+     SDL_UPDATE_SCREEN,
+     SDL_SET_PALETTE
 } DFBSDLCall;
 
 static DFBResult
@@ -600,6 +587,27 @@ dfb_sdl_update_screen_handler( DFBRegion *region )
 
      skirmish_dismiss( &dfb_sdl->lock );
      
+     return DFB_OK;
+}
+
+static DFBResult
+dfb_sdl_set_palette_handler( CorePalette *palette )
+{
+     int       i;
+     SDL_Color colors[palette->num_entries];
+
+     for (i=0; i<palette->num_entries; i++) {
+          colors[i].r = palette->entries[i].r;
+          colors[i].g = palette->entries[i].g;
+          colors[i].b = palette->entries[i].b;
+     }
+     
+     skirmish_prevail( &dfb_sdl->lock );
+     
+     SDL_SetColors( screen, colors, 0, palette->num_entries );
+     
+     skirmish_dismiss( &dfb_sdl->lock );
+
      return DFB_OK;
 }
 
@@ -676,6 +684,17 @@ dfb_sdl_update_screen( DFBRegion *region )
 
      if (tmp)
           shfree( tmp );
+
+     return ret;
+}
+
+static DFBResult
+dfb_sdl_set_palette( CorePalette *palette )
+{
+     DFBResult ret;
+
+     fusion_call_execute( &dfb_sdl->call, SDL_SET_PALETTE,
+                          palette, (int*) &ret );
 
      return ret;
 }
