@@ -895,10 +895,10 @@ typedef enum {
      DSPF_UYVY      = DFB_SURFACE_PIXELFORMAT(  8, 16, 0, 0, 0, 2, 0, 0, 0, 0, 0 ),
 
      /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size U/V planes */
-     DSPF_I420      = DFB_SURFACE_PIXELFORMAT(  9, 12, 0, 0, 0, 1, 0, 8, 0, 0, 0 ),
+     DSPF_I420      = DFB_SURFACE_PIXELFORMAT(  9, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
 
      /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size V/U planes */
-     DSPF_YV12      = DFB_SURFACE_PIXELFORMAT( 10, 12, 0, 0, 0, 1, 0, 8, 0, 0, 0 ),
+     DSPF_YV12      = DFB_SURFACE_PIXELFORMAT( 10, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
 
      /*  8 bit   LUT (8 bit color and alpha lookup from palette) */
      DSPF_LUT8      = DFB_SURFACE_PIXELFORMAT( 11,  8, 0, 1, 0, 1, 0, 0, 0, 1, 0 ),
@@ -1655,6 +1655,11 @@ typedef enum {
      DSPM_OFF
 } DFBScreenPowerMode;
 
+/*
+ * Description of a screen output.
+ */
+typedef struct {
+} DFBScreenOutputDescription;
 
 /*******************
  * IDirectFBScreen *
