@@ -108,8 +108,9 @@ static void mach64EngineReset( void *drv, void *dev )
      mach64_out32( mmio, DP_MIX, DP_FRGD_MIX_SRC | DP_BKGD_MIX_DST );
 
      if (mdrv->accelerator == FB_ACCEL_ATI_MACH64GT) {
-          mach64_waitfifo( mdrv, mdev, 10 );
+          mach64_waitfifo( mdrv, mdev, 11 );
 
+          mach64_out32( mmio, ALPHA_TEST_CNTL, 0 );
           mach64_out32( mmio, TEX_CNTL, 0 );
           mach64_out32( mmio, Z_CNTL, 0 );
 
@@ -602,7 +603,7 @@ driver_get_info( GraphicsDevice     *device,
                "Ville Syrjala" );
 
      info->version.major = 0;
-     info->version.minor = 9;
+     info->version.minor = 10;
 
      info->driver_data_size = sizeof (Mach64DriverData);
      info->device_data_size = sizeof (Mach64DeviceData);
