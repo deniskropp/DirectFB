@@ -50,7 +50,6 @@
 #include <misc/conf.h>
 #include <misc/mem.h>
 
-
 #ifdef DFB_DEBUG
 
 typedef struct {
@@ -98,12 +97,6 @@ fbdebug_init()
           return DFB_INIT;
      }
 
-     if (ioctl( fd, FBIOGET_FSCREENINFO, &fix )) {
-          PERRORMSG( "DirectFB/FBDebug: FBIOGET_FSCREENINFO on '%s' failed!\n",
-                     dfb_config->fbdebug_device );
-          goto error_close;
-     }
-
      if (ioctl( fd, FBIOGET_VSCREENINFO, &var )) {
           PERRORMSG( "DirectFB/FBDebug: FBIOGET_VSCREENINFO on '%s' failed!\n",
                      dfb_config->fbdebug_device );
@@ -120,6 +113,12 @@ fbdebug_init()
           goto error_close;
      }
 
+     if (ioctl( fd, FBIOGET_FSCREENINFO, &fix )) {
+          PERRORMSG( "DirectFB/FBDebug: FBIOGET_FSCREENINFO on '%s' failed!\n",
+                     dfb_config->fbdebug_device );
+          goto error_close;
+     }
+
      data = mmap( NULL, fix.smem_len,
                   PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
      if ((int)data == -1) {
@@ -130,14 +129,8 @@ fbdebug_init()
 
      memset( data, 0, fix.smem_len );
 
-#if 0
-     /* HACK: Work around buggy Voodoo1 FB */
-     var.yres         = 398;
-     var.xres_virtual = 1024;
-#endif
-
      bpp   = (var.bits_per_pixel+7) / 8;
-     pitch = var.xres_virtual * bpp;
+     pitch = fix.line_length;
 
      INITMSG( "DirectFB/FBDebug: Initialized, resolution %dx%d, pitch %d.\n",
               var.xres, var.yres, pitch );
