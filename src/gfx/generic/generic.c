@@ -109,6 +109,12 @@ static int use_mmx = 0;
 
 static pthread_mutex_t generic_lock = PTHREAD_MUTEX_INITIALIZER;
 
+/* lookup tables for 2/3bit to 8bit color conversion */
+#ifdef SUPPORT_RGB332
+static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
+static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
+#endif
+
 /********************************* Cop_to_Aop_PFI *****************************/
 static void Cop_to_Aop_8()
 {
@@ -853,9 +859,9 @@ static void Sop_rgb332_Sto_Dacc()
           __u8 s = S[i>>16];
 
           D->a = 0xFF;
-          D->r = (s & 0xE0);
-          D->g = (s & 0x1C) << 3;
-          D->b = (s & 0x03) << 6;
+          D->r = lookup3to8[s >> 5];
+          D->g = lookup3to8[(s & 0x1C) >> 2];
+          D->b = lookup2to8[s & 0x03];
 
           i += SperD;
 
@@ -1245,9 +1251,9 @@ static void Sop_rgb332_to_Dacc()
           __u8 s = *S++;
 
           D->a = 0xFF;
-          D->r = (s & 0xE0);
-          D->g = (s & 0x1C) << 3;
-          D->b = (s & 0x03) << 6;
+          D->r = lookup3to8[s >> 5];
+          D->g = lookup3to8[(s & 0x1C) >> 2];
+          D->b = lookup2to8[s & 0x03];
 
           D++;
      }
@@ -1402,9 +1408,9 @@ static void Sop_rgb332_Kto_Dacc()
 
           if (s != (__u8)Skey) {
                D->a = 0xFF;
-               D->r = (s & 0xE0);
-               D->g = (s & 0x1C) << 3;
-               D->b = (s & 0x03) << 6;
+               D->r = lookup3to8[s >> 5];
+               D->g = lookup3to8[(s & 0x1C) >> 2];
+               D->b = lookup2to8[s & 0x03];
           }
           else
                D->a = 0xF000;
