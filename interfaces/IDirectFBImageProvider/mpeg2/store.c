@@ -165,7 +165,7 @@ int offset, incr, height;
 {
   int i,j;
   unsigned char *py, *pu, *pv;
-  static unsigned char *u422, *v422;
+  unsigned char *u422, *v422;
 
   if (chroma_format==CHROMA444)
     Error("4:4:4 not supported for SIF format");
@@ -177,15 +177,12 @@ int offset, incr, height;
   }
   else
   {
-    if (!u422)
-    {
-      if (!(u422 = (unsigned char *)alloca((Coded_Picture_Width>>1)
-                                           *Coded_Picture_Height)))
-        Error("alloca failed");
-      if (!(v422 = (unsigned char *)alloca((Coded_Picture_Width>>1)
-                                           *Coded_Picture_Height)))
-        Error("alloca failed");
-    }
+    if (!(u422 = (unsigned char *)alloca((Coded_Picture_Width>>1)
+                                         *Coded_Picture_Height)))
+      Error("alloca failed");
+    if (!(v422 = (unsigned char *)alloca((Coded_Picture_Width>>1)
+                                         *Coded_Picture_Height)))
+      Error("alloca failed");
   
     conv420to422(src[1],u422);
     conv420to422(src[2],v422);
@@ -237,7 +234,7 @@ int offset, incr, height;
   int y, u, v, r, g, b;
   int crv, cbu, cgu, cgv;
   unsigned char *py, *pu, *pv;
-  static unsigned char *u422, *v422, *u444, *v444;
+  unsigned char *u422 = NULL, *v422 = NULL, *u444 = NULL, *v444 = NULL;
 
   if (chroma_format==CHROMA444)
   {
@@ -246,9 +243,7 @@ int offset, incr, height;
   }
   else
   {
-    if (!u444)
-    {
-      if (chroma_format==CHROMA420)
+    if (chroma_format==CHROMA420)
       {
         if (!(u422 = (unsigned char *)alloca((Coded_Picture_Width>>1)
                                              *Coded_Picture_Height)))
@@ -257,15 +252,14 @@ int offset, incr, height;
                                              *Coded_Picture_Height)))
           Error("alloca failed");
       }
-
-      if (!(u444 = (unsigned char *)alloca(Coded_Picture_Width
-                                           *Coded_Picture_Height)))
-        Error("alloca failed");
-
-      if (!(v444 = (unsigned char *)alloca(Coded_Picture_Width
-                                           *Coded_Picture_Height)))
-        Error("alloca failed");
-    }
+    
+    if (!(u444 = (unsigned char *)alloca(Coded_Picture_Width
+                                         *Coded_Picture_Height)))
+      Error("alloca failed");
+    
+    if (!(v444 = (unsigned char *)alloca(Coded_Picture_Width
+                                         *Coded_Picture_Height)))
+      Error("alloca failed");
 
     if (chroma_format==CHROMA420)
     {
