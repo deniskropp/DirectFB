@@ -91,7 +91,10 @@ bool nvFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      reg.x2 = rect->x + rect->w;
      reg.y2 = rect->y + rect->h;
 
-     nv_setstate3d( &nvdev->state3d );
+     if (nvdev->modified_3d) {
+          nv_setstate3d( &nvdev->state3d );
+          nvdev->modified_3d = false;
+     }
 
      nv_putvertex( 0, reg.x1, reg.y1, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 1, reg.x2, reg.y1, 0, 1, nvdev->color3d, 0, 0, 0 );
@@ -109,7 +112,10 @@ bool nvFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
      NVidiaDeviceData      *nvdev  = (NVidiaDeviceData*) dev;
      NVTexturedTriangleDx5 *TexTriangle = nvdrv->TexTriangle;
 
-     nv_setstate3d( &nvdev->state3d );
+     if (nvdev->modified_3d) {
+          nv_setstate3d( &nvdev->state3d );
+          nvdev->modified_3d = false;
+     }
 
      nv_putvertex( 0, tri->x1, tri->y1, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 1, tri->x2, tri->y2, 0, 1, nvdev->color3d, 0, 0, 0 );
@@ -152,7 +158,10 @@ bool nvDrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      reg[3].x2 = rect->x + rect->w;
      reg[3].y2 = rect->y + rect->h - 2;
      
-     nv_setstate3d( &nvdev->state3d )
+     if (nvdev->modified_3d) {
+          nv_setstate3d( &nvdev->state3d );
+          nvdev->modified_3d = false;
+     }
 
      for (i = 0; i < 4; i++) {
           nv_putvertex( 0, reg[i].x1, reg[i].y1, 0, 1, nvdev->color3d, 0, 0, 0 );
@@ -190,7 +199,10 @@ bool nvDrawLine3D( void *drv, void *dev, DFBRegion *line )
           yinc = 0.0;
      }
 
-     nv_setstate3d( &nvdev->state3d );
+     if (nvdev->modified_3d) {
+          nv_setstate3d( &nvdev->state3d );
+          nvdev->modified_3d = false;
+     }
 
      nv_putvertex( 0, x1 - xinc, y1 - yinc, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 1, x1 + xinc, y1 + yinc, 0, 1, nvdev->color3d, 0, 0, 0 );
@@ -222,7 +234,10 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
           ve[i].t *= t_scale;
      }
 
-     nv_setstate3d( &nvdev->state3d );
+     if (nvdev->modified_3d) {
+          nv_setstate3d( &nvdev->state3d );
+          nvdev->modified_3d = false;
+     }
 
      switch (formation) {
           case DTTF_LIST:

@@ -53,9 +53,11 @@ bool nvFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
      NVidiaDeviceData *nvdev     = (NVidiaDeviceData*) dev;
      NVRectangle      *Rectangle = nvdrv->Rectangle;
      
-     if (nvdrv->arch == NV_ARCH_20) {
+     if (nvdrv->arch == NV_ARCH_20 && nvdev->modified & SMF_DRAWING_FLAGS) {
           nv_waitfifo( nvdev, subchannelof(Rectangle), 1 );
           Rectangle->SetOperation = nvdev->dop;
+          
+          nvdev->modified ^= SMF_DRAWING_FLAGS;
      }
      
      nv_waitfifo( nvdev, subchannelof(Rectangle), 3 );
@@ -72,9 +74,11 @@ bool nvFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
      NVidiaDeviceData *nvdev    = (NVidiaDeviceData*) dev;
      NVTriangle       *Triangle = nvdrv->Triangle;
      
-     if (nvdrv->arch == NV_ARCH_20) {
+     if (nvdrv->arch == NV_ARCH_20 && nvdev->modified & SMF_DRAWING_FLAGS) {
           nv_waitfifo( nvdev, subchannelof(Triangle), 1 );
           Triangle->SetOperation = nvdev->dop;
+
+          nvdev->modified ^= SMF_DRAWING_FLAGS;
      }
      
      nv_waitfifo( nvdev, subchannelof(Triangle), 4 );
@@ -92,9 +96,11 @@ bool nvDrawRectangle2D( void *drv, void *dev, DFBRectangle *rect )
      NVidiaDeviceData *nvdev     = (NVidiaDeviceData*) dev;
      NVRectangle      *Rectangle = nvdrv->Rectangle;
      
-     if (nvdrv->arch == NV_ARCH_20) {
+     if (nvdrv->arch == NV_ARCH_20 && nvdev->modified & SMF_DRAWING_FLAGS) {
           nv_waitfifo( nvdev, subchannelof(Rectangle), 1 );
           Rectangle->SetOperation = nvdev->dop;
+          
+          nvdev->modified ^= SMF_DRAWING_FLAGS;
      }
      
      nv_waitfifo( nvdev, subchannelof(Rectangle), 9 );
@@ -121,9 +127,11 @@ bool nvDrawLine2D( void *drv, void *dev, DFBRegion *line )
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
      NVLine           *Line  = nvdrv->Line;
      
-     if (nvdrv->arch == NV_ARCH_20) {
+     if (nvdrv->arch == NV_ARCH_20 && nvdev->modified & SMF_DRAWING_FLAGS) {
           nv_waitfifo( nvdev, subchannelof(Line), 1 );
           Line->SetOperation = nvdev->dop;
+
+          nvdev->modified ^= SMF_DRAWING_FLAGS;
      }
 
      nv_waitfifo( nvdev, subchannelof(Line), 3 );
@@ -202,9 +210,16 @@ bool nv4StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
                return false;
      }
 
-     nv_waitfifo( nvdev, subchannelof(ScaledImage), 2 );
-     ScaledImage->SetColorFormat = format;
-     ScaledImage->SetOperation   = nvdev->bop;
+     if (nvdev->modified & SMF_BLITTING_FLAGS) {
+          nv_waitfifo( nvdev, subchannelof(ScaledImage), 2 );
+          ScaledImage->SetColorFormat = format;
+          ScaledImage->SetOperation   = nvdev->bop;
+
+          nvdev->modified ^= SMF_BLITTING_FLAGS;
+     } else {
+          nv_waitfifo( nvdev, subchannelof(ScaledImage), 1 );
+          ScaledImage->SetColorFormat = format;
+     }
 
      nv_waitfifo( nvdev, subchannelof(ScaledImage), 6 );
      ScaledImage->ClipPoint      = (cr->y << 16) | (cr->x & 0xFFFF);
@@ -255,10 +270,17 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
                D_BUG( "unexpected pixelformat" );
                return false;
      }
-     
-     nv_waitfifo( nvdev, subchannelof(ScaledImage), 2 );
-     ScaledImage->SetColorFormat = format;
-     ScaledImage->SetOperation   = nvdev->bop;
+  
+     if (nvdev->modified & SMF_BLITTING_FLAGS) {
+          nv_waitfifo( nvdev, subchannelof(ScaledImage), 2 );
+          ScaledImage->SetColorFormat = format;
+          ScaledImage->SetOperation   = nvdev->bop;
+          
+          nvdev->modified ^= SMF_BLITTING_FLAGS;
+     } else {
+          nv_waitfifo( nvdev, subchannelof(ScaledImage), 1 );
+          ScaledImage->SetColorFormat = format;
+     }
 
      nv_waitfifo( nvdev, subchannelof(ScaledImage), 6 );
      ScaledImage->ClipPoint      = (cr->y << 16) | (cr->x & 0xFFFF);
