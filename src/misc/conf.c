@@ -719,7 +719,7 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
      if (home) {
           char filename[ strlen(home) +
                          strlen("/.directfbrc.") +
-                         strlen(prog) + 1 ];
+                         (prog ? strlen(prog) : 0) + 1 ];
 
           strcpy( filename, home );
           strcat( filename, "/.directfbrc" );
