@@ -36,6 +36,12 @@
 #include <sys/msg.h>
 #include <sys/sem.h>
 
+#if LINUX_FUSION
+#include <sys/ioctl.h>
+#include <linux/fusion.h>
+#endif
+
+
 #include "fusion_types.h"
 #include "lock.h"
 
@@ -57,19 +63,135 @@
  *  Public API  *
  ****************/
 
-int skirmish_init (FusionSkirmish *skirmish)
+#if LINUX_FUSION
+
+FusionResult
+skirmish_init (FusionSkirmish *skirmish)
+{
+     DFB_ASSERT( skirmish != NULL );
+     
+     if (ioctl (_fusion_fd(), FUSION_SKIRMISH_NEW, &skirmish->id)) {
+          FPERROR ("FUSION_SKIRMISH_NEW");
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+skirmish_prevail (FusionSkirmish *skirmish)
+{
+     DFB_ASSERT( skirmish != NULL );
+     
+     while (ioctl (_fusion_fd(), FUSION_SKIRMISH_PREVAIL, &skirmish->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("skirmish already destroyed\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+
+          FPERROR ("FUSION_SKIRMISH_PREVAIL");
+          
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+skirmish_swoop (FusionSkirmish *skirmish)
+{
+     DFB_ASSERT( skirmish != NULL );
+     
+     while (ioctl (_fusion_fd(), FUSION_SKIRMISH_SWOOP, &skirmish->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EAGAIN:
+                    return FUSION_INUSE;
+               case EINVAL:
+                    FERROR ("skirmish already destroyed\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
+          FPERROR ("FUSION_SKIRMISH_SWOOP");
+          
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+skirmish_dismiss (FusionSkirmish *skirmish)
+{
+     DFB_ASSERT( skirmish != NULL );
+     
+     while (ioctl (_fusion_fd(), FUSION_SKIRMISH_DISMISS, &skirmish->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("skirmish already destroyed\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
+          FPERROR ("FUSION_SKIRMISH_DISMISS");
+          
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+skirmish_destroy (FusionSkirmish *skirmish)
+{
+     DFB_ASSERT( skirmish != NULL );
+     
+     while (ioctl (_fusion_fd(), FUSION_SKIRMISH_DESTROY, &skirmish->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("skirmish already destroyed\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
+          FPERROR ("FUSION_SKIRMISH_DESTROY");
+
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+#else
+
+FusionResult
+skirmish_init (FusionSkirmish *skirmish)
 {
      union semun semopts;
 
-     skirmish->sem_id = semget (IPC_PRIVATE, 1, IPC_CREAT | 0660);
-     if (skirmish->sem_id < 0) {
+     skirmish->id = semget (IPC_PRIVATE, 1, IPC_CREAT | 0660);
+     if (skirmish->id < 0) {
           FPERROR("semget");
 
           return -1;
      }
 
      semopts.val = 1;
-     if (semctl (skirmish->sem_id, 0, SETVAL, semopts)) {
+     if (semctl (skirmish->id, 0, SETVAL, semopts)) {
           FPERROR("semctl");
 
           return -1;
@@ -78,7 +200,8 @@ int skirmish_init (FusionSkirmish *skirmish)
      return 0;
 }
 
-int skirmish_prevail (FusionSkirmish *skirmish)
+FusionResult
+skirmish_prevail (FusionSkirmish *skirmish)
 {
      struct sembuf op;
 
@@ -86,7 +209,7 @@ int skirmish_prevail (FusionSkirmish *skirmish)
      op.sem_op  = -1;
      op.sem_flg = SEM_UNDO;
 
-     while (semop (skirmish->sem_id, &op, 1)) {
+     while (semop (skirmish->id, &op, 1)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -107,7 +230,8 @@ int skirmish_prevail (FusionSkirmish *skirmish)
      return 0;
 }
 
-int skirmish_swoop (FusionSkirmish *skirmish)
+FusionResult
+skirmish_swoop (FusionSkirmish *skirmish)
 {
      struct sembuf op;
 
@@ -115,7 +239,7 @@ int skirmish_swoop (FusionSkirmish *skirmish)
      op.sem_op  = -1;
      op.sem_flg = SEM_UNDO | IPC_NOWAIT;
 
-     while (semop (skirmish->sem_id, &op, 1)) {
+     while (semop (skirmish->id, &op, 1)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -138,7 +262,8 @@ int skirmish_swoop (FusionSkirmish *skirmish)
      return FUSION_SUCCESS;
 }
 
-int skirmish_dismiss (FusionSkirmish *skirmish)
+FusionResult
+skirmish_dismiss (FusionSkirmish *skirmish)
 {
      struct sembuf op;
 
@@ -146,7 +271,7 @@ int skirmish_dismiss (FusionSkirmish *skirmish)
      op.sem_op  = 1;
      op.sem_flg = SEM_UNDO;
 
-     while (semop (skirmish->sem_id, &op, 1)) {
+     while (semop (skirmish->id, &op, 1)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -167,14 +292,20 @@ int skirmish_dismiss (FusionSkirmish *skirmish)
      return FUSION_SUCCESS;
 }
 
-void skirmish_destroy (FusionSkirmish *skirmish)
+FusionResult
+skirmish_destroy (FusionSkirmish *skirmish)
 {
      union semun semopts;
 
-     if (semctl (skirmish->sem_id, 0, IPC_RMID, semopts)) {
+     if (semctl (skirmish->id, 0, IPC_RMID, semopts)) {
           FPERROR("semctl");
+          return FUSION_FAILURE;
      }
+
+     return FUSION_SUCCESS;
 }
+
+#endif
 
 /*******************************
  *  Fusion internal functions  *

@@ -38,7 +38,7 @@ extern "C"
 #ifndef FUSION_FAKE
 
      typedef struct {
-          int sem_id;
+          int id;
      } FusionSkirmish;
 
      /** These functions returns 0 on success and -1 on failure. **/
@@ -46,27 +46,27 @@ extern "C"
      /*
       * Initialize.
       */
-     int  skirmish_init    (FusionSkirmish *skirmish);
+     FusionResult skirmish_init    (FusionSkirmish *skirmish);
 
      /*
       * Lock.
       */
-     int  skirmish_prevail (FusionSkirmish *skirmish);
+     FusionResult skirmish_prevail (FusionSkirmish *skirmish);
 
      /*
       * Try lock.
       */
-     int  skirmish_swoop   (FusionSkirmish *skirmish);
+     FusionResult skirmish_swoop   (FusionSkirmish *skirmish);
 
      /*
       * Unlock.
       */
-     int  skirmish_dismiss (FusionSkirmish *skirmish);
+     FusionResult skirmish_dismiss (FusionSkirmish *skirmish);
 
      /*
       * Deinitialize.
       */
-     void skirmish_destroy (FusionSkirmish *skirmish);
+     FusionResult skirmish_destroy (FusionSkirmish *skirmish);
 
 #else
   #include <pthread.h>
