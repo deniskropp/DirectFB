@@ -93,6 +93,7 @@ maven_write_word( MatroxMavenData  *mav,
           i2c_smbus_write_word_data( mdrv->maven_fd, reg, val );
 }
 
+#if 0
 /* i2c_smbus_read_byte_data() doesn't work with maven. */
 static int
 i2c_read_byte( int fd, __u8 addr, __u8 reg )
@@ -113,6 +114,7 @@ i2c_read_byte( int fd, __u8 addr, __u8 reg )
 
      return val;
 }
+#endif
 
 void
 maven_disable( MatroxMavenData  *mav,
@@ -241,9 +243,9 @@ maven_set_regs( MatroxMavenData       *mav,
           maven_write_byte( mav, mdrv, 0xD3, 0x01 );
           maven_write_byte( mav, mdrv, 0x8C, 0x10 );
           maven_write_byte( mav, mdrv, 0x94, 0xA2 );
-          maven_write_byte( mav, mdrv, 0x8D, 0x03);
-          maven_write_byte( mav, mdrv, 0xB9, 0x78);
-          maven_write_byte( mav, mdrv, 0xBF, 0x02);
+          maven_write_byte( mav, mdrv, 0x8D, 0x03 );
+          maven_write_byte( mav, mdrv, 0xB9, 0x78 );
+          maven_write_byte( mav, mdrv, 0xBF, 0x02 );
 
           /*
            * Deflicker: 0x00, 0xB1, 0xA2
