@@ -651,6 +651,10 @@ draw_window( CoreWindow *window, CardState *state,
                 *
                 * cx = cd * (1-As*Ac) + cs * Ac
                 * ax = Ad * (1-As*Ac) + As * Ac
+                *
+                *
+                * NOTE: The color alpha (Ac) doesn't work correctly, yet. It has a different
+                *       meaning here than the 'color alpha' had before.
                 */
                dfb_state_set_src_blend( state, DSBF_ONE );
 
@@ -675,8 +679,13 @@ draw_window( CoreWindow *window, CardState *state,
                 * premultiplication. The resulting alpha value will also be 1.0 without
                 * exceptions, therefore no need for demultiplication.
                 *
-                * cx = Cd * (1-As*Ac) + Cs * As*Ac  (still same effect as above)
-                * ax = Ad * (1-As*Ac) + As * As*Ac  (wrong, but discarded anyways)
+                * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
+                * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
+                *
+                *
+                * NOTE: If the source is premultiplied, the color alpha (Ac) doesn't
+                *       work correctly, yet. That's because using DSBF_ONE for the source
+                *       doesn't only remove the As coefficient, but also Ac ;-(
                 */
                if (window->surface->caps & DSCAPS_PREMULTIPLIED)
                     dfb_state_set_src_blend( state, DSBF_ONE );
