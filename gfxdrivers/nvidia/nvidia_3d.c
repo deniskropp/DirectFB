@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2004 Claudio Ciccani <klan82@cheapnet.it>
+   Copyright (C) 2004-2005 Claudio Ciccani <klan82@cheapnet.it>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public

@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2004  convergence GmbH.
+   (c) Copyright 2002-2005  convergence GmbH.
 
    All rights reserved.
 
@@ -116,10 +116,11 @@ DFB_GRAPHICS_DRIVER( nvidia )
                 DFXL_FILLTRIANGLE | DFXL_DRAWLINE)
 
 #define NV20_SUPPORTED_BLITTINGFLAGS \
-               (DSBLIT_NOFX)
+               (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL | \
+                DSBLIT_COLORIZE)
 
 #define NV20_SUPPORTED_BLITTINGFUNCTIONS \
-               (DFXL_BLIT)
+               (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 /* GeForceFX */
 #define NV30_SUPPORTED_DRAWINGFLAGS \
@@ -541,10 +542,6 @@ static void nv20CheckState( void *drv, void *dev,
               (state->blittingflags & ~NV20_SUPPORTED_BLITTINGFLAGS))
                return;
 
-          if (source->format != destination->format)
-               return;
-
-#if 0
           /* can't do modulation */
           if (state->blittingflags & DSBLIT_ALPHABLEND) {
                if (state->src_blend != DSBF_SRCALPHA       ||
@@ -569,7 +566,7 @@ static void nv20CheckState( void *drv, void *dev,
                default:
                     return;
           }
-#endif
+
           state->accel |= accel;
      }
      else {
@@ -1077,6 +1074,7 @@ static void nv20SetState( void *drv, void *dev,
                break;
 
           case DFXL_BLIT:
+          case DFXL_STRETCHBLIT:
                buffer = state->source->front_buffer;
                offset = (buffer->video.offset + nvdrv->fb_offset) &
                          nvdrv->fb_mask;
@@ -1100,7 +1098,6 @@ static void nv20SetState( void *drv, void *dev,
                nvdev->argb_src   = true;
                
                switch (state->blittingflags) {
-#if 0
                     case DSBLIT_ALPHABLEND:
                          nvdev->operation = 0x00000002;
                          if (nvdev->alpha != state->color.a) {
@@ -1127,7 +1124,6 @@ static void nv20SetState( void *drv, void *dev,
                          nvdev->operation = 0x00000004;
                          nv_set_beta4( nvdrv, nvdev, nvdev->color3d );
                          break;
-#endif
                     case DSBLIT_NOFX:
                          nvdev->operation = 0x00000003;
                          break;
@@ -1136,7 +1132,8 @@ static void nv20SetState( void *drv, void *dev,
                          break;
                }
                
-               state->set |= DFXL_BLIT;
+               state->set |= DFXL_BLIT |
+                             DFXL_STRETCHBLIT;
                break;
 
           default:
@@ -1456,6 +1453,7 @@ driver_init_driver( GraphicsDevice      *device,
                funcs->CheckState       = nv20CheckState;
                funcs->SetState         = nv20SetState;
                funcs->Blit             = nv5Blit;
+               funcs->StretchBlit      = nv5StretchBlit;
                break;
           case NV_ARCH_30:
                funcs->CheckState       = nv30CheckState;
