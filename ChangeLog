@@ -1,3 +1,719 @@
+2001-09-04	16:50	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.51) (+11 -3)
+		src/idirectfb.c (1.28) (+11 -7)
+	
+	Added a return value type for enumeration callbacks: DFBEnumerationResult.
+	There are two possible values: DFENUM_OK and DFENUM_CANCEL.
+	
+2001-09-03	01:15	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.22) (+19 -21)
+	
+	Accept interlaced and double scan modes, 320x200 looks really cool in some way.
+	
+	Here is a 320x200 entry for fb.modes:
+	
+	mode "320x200-70"
+	    geometry 320 200 320 200 16
+	    timings 79440 16 16 20 4 48 1
+	    double true
+	endmode
+	
+2001-09-02	22:58	<neo@convergence.de>
+
+	Files:	src/directfb.c (1.24) (+4 -2)
+	
+	Don't use the ERRORMSG() macro in DirectFBCreate() to bail out in case of
+	dfb_config == NULL because ERRORMSG() uses dfb_config->quiet.
+	
+2001-08-30	07:28	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.50) (+14 -12)
+		src/idirectfb.c (1.27) (+2 -1)
+	
+	Added the field "video_memory" to "DFBCardCapabilities" which specifies
+	the amount of video memory in bytes.
+	
+2001-08-30	07:19	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.28) (+37 -18)
+		src/core/windows.h (1.9) (+1 -0)
+	
+	It's now possible to move the window under the cursor by holding down CapsLock.
+	Should this be optional as it renders the key useless for windowed apps?
+	
+2001-08-30	06:54	<dok@convergence.de>
+
+	Files:	src/core/core.c (1.14) (+13 -10)
+	
+	Check for "card != NULL" and "vt != NULL" in emergency shutdown
+	which can happen before these are initialized.
+	
+2001-08-27	14:48	<neo@convergence.de>
+
+	Files:	examples/df_andi.c (1.10) (+3 -0)
+		examples/df_neo/df_neo.c (1.7) (+1 -0)
+	
+	Added more keycodes to make the demos useable with remote controls.
+	
+2001-08-27	03:04	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox_state.c (1.15) (+5 -1)
+	
+	fill all 32 bit of FCOL
+	
+2001-08-23	20:48	<dok@convergence.de>
+
+	Files:	src/core/input.c (1.15) (+2 -2)
+	
+	Reverted last patch that disabled deinit/init during suspend/resume.
+	
+2001-08-21	02:37	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.10) (+5 -0)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.9) (+1 -6)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.10) (+1 -6)
+	
+	Release destination surface in destruct method if still playing.
+	
+2001-08-20	19:28	<dok@convergence.de>
+
+	Files:	src/core/input.c (1.14) (+2 -2)
+	
+	dont deinit/init input drivers during suspend/resume
+	
+2001-08-20	16:06	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.49) (+3 -1)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.6) (+4 -2)
+	
+	Added DFDESC_WIDTH and the appropriate field in the description to
+	specify font widths differing from the height, e.g. for non-square pixels.
+	
+2001-08-17	10:09	<dok@convergence.de>
+
+	Files:	src/windows/idirectfbwindow.c (1.17) (+3 -23)
+	
+	detach from reactor AFTER 'window_remove()' so we get the DWET_CLOSE event
+	
+2001-08-17	05:22	<dok@convergence.de>
+
+	Files:	src/core/core.c (1.13) (+20 -7)
+	
+	In 'core_deinit_emergency()', e.g. when a signal is caught, try to prohibit
+	graphics hardware access by doing a 'gfxcard_sync()' and a
+	'pthread_mutex_trylock()' on 'card->lock' up to 100 times,
+	this may fail if the current thread locked it itself.
+	
+	Fixes corruption of X when moving the mouse cursor during a crash.
+	
+2001-08-16	21:32	<dok@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.25) (+30 -15)
+	
+	When blitting with blending don't read the destination and don't add it
+	to the source if DSBF_ZERO is set as the destination blend function.
+	Some comments added in gAcquire for better getting-into-the-code-again :)
+	
+2001-08-16	00:13	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.11) (+19 -7)
+	
+	The transparent color index did not always refer to a unique color in the
+	color table, i.e. it's just the index that makes the pixels transparent.
+	Current version uses an artificial colorkey and preserves non-transparent
+	pixels from being the same color as the key, at least for RGB565.
+	Not the best solution yet though.
+	
+2001-08-12	01:20	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.48) (+1 -1)
+	
+	DFBFontDescription's field 'attributes' was not of type 'DFBFontAttributes'.
+	
+2001-08-11	20:17	<dok@convergence.de>
+
+	Files:	examples/df_dok.c (1.24) (+1 -0)
+	
+	release font in deinitialization
+	
+2001-08-11	17:30	<dok@convergence.de>
+
+	Files:	src/core/fonts.c (1.14) (+4 -2)
+		src/display/idirectfbsurface_window.c (1.10) (+5 -0)
+		src/display/idirectfbsurface_layer.c (1.12) (+5 -0)
+	
+	Fixed segfault in 'fonts_destruct()' that occurs if no glyph
+	has been loaded at all (check for font->glyph_infos != NULL).
+	
+	Added unlocking and font releasing to destruct functions of
+	Window and Layer implementation of IDirectFBSurface, too.
+	
+2001-08-11	02:10	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.12) (+20 -6)
+	
+	Added cleanup handler that stops capturing.
+	This handler gets called by core_deinit() and core_deinit_emergency().
+	The only way to keep it capturing is to kill it with signal 9
+	or disable signal handling.
+	
+2001-08-11	01:53	<dok@convergence.de>
+
+	Files:	src/core/sig.h (1.2) (+5 -0)
+	
+	sig_remove_handlers was an implicit declaration, added it to the header
+	
+2001-08-11	01:45	<dok@convergence.de>
+
+	Files:	src/core/core.c (1.12) (+4 -0)
+	
+	remove signal handlers in deinitialization, fixes the following bug message:
+	
+	(!) --->  CAUGHT SIGNAL 2  <---
+	 (!?!)  *** BUG ALERT [vt_close() multiple times] *** vt.c (77)
+	
+2001-08-09	23:00	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.47) (+34 -0)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.7) (+81 -32)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.6) (+45 -37)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.10) (+183 -122)
+	
+	Added 'IDirectFBImageProvider->GetImageDescription' which fills out
+	a 'DFBImageDescription', it contains a 'DFBImageCapabilities' field
+	with the flags 'DICAPS_ALPHACHANNEL' and 'DICAPS_COLORKEY' for now.
+	Additionally the Image Description contains the colorkey if
+	DICAPS_COLORKEY is set, e.g. when loading a transparent GIF.
+	
+	The GIF loader no longer generates an alphachannel from the colorkey,
+	because it turned the transparent color into black.
+	
+	If you want to have transparent GIFs,
+	use colorkeying which is way faster anyway.
+	
+	
+	TODO: Turn 'IDirectFBSurface->SetSrcColorKey()' into a pixelformat
+	independent function that is called on the source for keyed blitting
+	to a destination, currently the colorkey of the source is set at the
+	destination in the source's pixelformat.
+	
+2001-08-07	23:44	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.13) (+160 -93)
+		gfxdrivers/matrox/matrox_state.h (1.2) (+3 -4)
+		gfxdrivers/matrox/matrox_state.c (1.14) (+28 -126)
+		gfxdrivers/matrox/matrox.h (1.3) (+2 -1)
+	
+	- Major cleanup.
+	- Blending state fixes.
+	
+2001-08-06	22:54	<neo@convergence.de>
+
+	Files:	include/directfb.h (1.46) (+62 -19)
+	
+	added more info to the header file (and thus to the generated documentation)
+	
+2001-08-06	11:58	<andi@convergence.de>
+
+	Files:	src/core/vt.c (1.12) (+12 -1)
+	
+	compile fix for mips, alpha and sparc architectures. SIGUNUSED is not
+	defined in asm/signal.h on these platforms.
+	
+2001-08-05	19:37	<dok@convergence.de>
+
+	Files:	inputdrivers/lirc/lirc.c (1.2) (+27 -0)
+	
+	Added character keys, only keys not in the list are F1 - F12,
+	should we add them, too?
+	
+2001-08-05	19:29	<dok@convergence.de>
+
+	Files:	configure.in (1.39) (+1 -0)
+		inputdrivers/lirc/lirc.c (1.1) ( )
+		inputdrivers/lirc/Makefile.am (1.1) ( )
+		inputdrivers/lirc/.cvsignore (1.1) ( )
+		inputdrivers/Makefile.am (1.4) (+1 -0)
+	
+	Added fiorst version of a LIRC input driver.
+	
+	Simply name your keys (in the lirc config file) like the DirectFB keycode
+	enum does without the "DIKC_" prefix, e.g. "OK", "MENU" or "VOLUMEUP".
+	
+2001-08-01	18:39	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox_state.c (1.13) (+2 -2)
+	
+	use surface width instead of pitch for texture width
+	
+2001-07-31	16:24	<andi@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.12) (+6 -6)
+	
+	fixed small render bug in StretchBlit()
+	
+2001-07-28	19:28	<dok@convergence.de>
+
+	Files:	configure.in (1.38) (+3 -3)
+	
+	handle case where $target is not set at all (tested for "NONE" before)
+	
+2001-07-28	07:03	<dok@convergence.de>
+
+	Files:	src/misc/mem.c (1.2) (+32 -5)
+	
+	Memory debugging is thread safe now.
+	Instead of exitting send SIGTRAP to ourself, when inconsistency is detected.
+	
+2001-07-26	02:52	<dok@convergence.de>
+
+	Files:	inputdrivers/serialmouse/serialmouse.c (1.12) (+2 -2)
+		src/windows/idirectfbwindow.c (1.16) (+5 -4)
+		src/misc/util.h (1.7) (+1 -42)
+		src/misc/tree.c (1.10) (+5 -5)
+		src/misc/mem.h (1.1) ( )
+		src/misc/mem.c (1.1) ( )
+		src/misc/gfx_util.c (1.12) (+3 -2)
+		src/misc/conf.c (1.11) (+6 -5)
+		src/misc/Makefile.am (1.4) (+2 -0)
+		src/media/idirectfbfont.c (1.17) (+4 -3)
+		src/input/idirectfbinputdevice.c (1.13) (+3 -2)
+		src/input/idirectfbinputbuffer.c (1.15) (+5 -4)
+		src/display/idirectfbsurface_window.c (1.9) (+3 -2)
+		src/display/idirectfbsurface_layer.c (1.11) (+4 -3)
+		src/display/idirectfbsurface.c (1.25) (+4 -3)
+		src/display/idirectfbdisplaylayer.c (1.17) (+4 -4)
+		src/core/windows.c (1.27) (+11 -12)
+		src/core/vt.c (1.11) (+10 -9)
+		src/core/surfaces.h (1.8) (+2 -0)
+		src/core/surfaces.c (1.13) (+108 -104)
+		src/core/surfacemanager.h (1.3) (+2 -0)
+		src/core/surfacemanager.c (1.9) (+133 -116)
+		src/core/reactor.c (1.5) (+5 -5)
+		src/core/layers.h (1.6) (+2 -0)
+		src/core/layers.c (1.7) (+63 -57)
+		src/core/input.h (1.8) (+5 -0)
+		src/core/input.c (1.13) (+86 -79)
+		src/core/gfxcard.h (1.9) (+2 -7)
+		src/core/gfxcard.c (1.28) (+88 -73)
+		src/core/fonts.c (1.13) (+2 -1)
+		src/core/fbdev.h (1.4) (+5 -0)
+		src/core/fbdev.c (1.21) (+613 -607)
+		src/core/coretypes.h (1.2) (+2 -0)
+		src/core/core.h (1.4) (+8 -6)
+		src/core/core.c (1.11) (+73 -56)
+		src/interface.c (1.9) (+8 -7)
+		src/idirectfb.c (1.26) (+9 -9)
+		src/directfb.c (1.23) (+4 -2)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.11) (+5 -4)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.8) (+6 -5)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.9) (+14 -13)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.6) (+4 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.5) (+4 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.9) (+6 -5)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.5) (+1 -1)
+		interfaces/IDirectFBFont/idirectfbfont_default.c (1.6) (+1 -1)
+	
+	New memory allocation debugging code that prints out a list of unfreed
+	areas with function name it was allocated in, file and line number.
+	
+	Deinitialization code cleaned up and reactivated.
+	
+	Much code cleanup (file internal functions made static and moved to the bottom).
+	
+2001-07-25	20:22	<dok@convergence.de>
+
+	Files:	inputdrivers/serialmouse/serialmouse.c (1.11) (+2 -1)
+		src/windows/idirectfbwindow.c (1.15) (+4 -2)
+		src/misc/util.h (1.6) (+47 -0)
+		src/misc/tree.c (1.9) (+4 -2)
+		src/misc/gfx_util.c (1.11) (+1 -1)
+		src/misc/conf.c (1.10) (+1 -4)
+		src/media/idirectfbfont.c (1.16) (+1 -1)
+		src/input/idirectfbinputdevice.c (1.12) (+3 -1)
+		src/input/idirectfbinputbuffer.c (1.14) (+4 -2)
+		src/display/idirectfbsurface_window.c (1.8) (+1 -1)
+		src/display/idirectfbsurface_layer.c (1.10) (+1 -1)
+		src/display/idirectfbsurface.c (1.24) (+1 -1)
+		src/display/idirectfbdisplaylayer.c (1.16) (+2 -1)
+		src/core/windows.c (1.26) (+4 -4)
+		src/core/vt.c (1.10) (+1 -1)
+		src/core/surfaces.c (1.12) (+5 -5)
+		src/core/surfacemanager.c (1.8) (+4 -4)
+		src/core/reactor.c (1.4) (+3 -2)
+		src/core/input.c (1.12) (+3 -2)
+		src/core/gfxcard.c (1.27) (+3 -2)
+		src/core/fonts.c (1.12) (+3 -2)
+		src/core/fbdev.c (1.20) (+10 -10)
+		src/core/core.c (1.10) (+2 -2)
+		src/interface.c (1.8) (+4 -4)
+		src/idirectfb.c (1.25) (+4 -4)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.10) (+1 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.7) (+2 -2)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.8) (+2 -2)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.5) (+3 -5)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.4) (+4 -4)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.8) (+3 -3)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.4) (+2 -1)
+		interfaces/IDirectFBFont/idirectfbfont_default.c (1.5) (+5 -4)
+	
+	If debug mode is enabled all 'malloc()', 'calloc()', 'realloc()' cause a
+	debug message with size, function name, file, and line number.
+	Replaced some 'malloc()'/'free()' pairs by 'alloca()'.
+	
+	After DirectFBInit/DirectFBCreate about 1500 bytes where allocated ;-)
+	Rest of the initial memory size relies to libc/libdl/libpthread.
+	
+2001-07-25	16:36	<dok@convergence.de>
+
+	Files:	src/display/idirectfbsurface.c (1.23) (+4 -0)
+	
+	Return DFB_INVARG if text is NULL in DrawString.
+	Unlock the surface in IDirectFBSurface_Destruct if it's locked.
+	
+2001-07-24	16:29	<neo@convergence.de>
+
+	Files:	include/directfb.h (1.45) (+4 -4)
+		inputdrivers/keyboard/keyboard.c (1.9) (+6 -6)
+	
+	Unified types used for key_ascii and key_unicode.
+	Please note that no inputdriver sets the unicode field at the moment.
+	
+2001-07-24	14:43	<dok@convergence.de>
+
+	Files:	src/core/gfxcard.c (1.26) (+4 -4)
+		src/core/surfaces.h (1.7) (+2 -0)
+		src/core/surfaces.c (1.11) (+2 -2)
+	
+	Added internal surface locking flag CSLF_FORCE,
+	that forces 'surface_hard_lock()' to try a video instance.
+	'gfxcard_state_acquire()' uses the flag for the destination surface
+	if the graphics operation is blitting.
+	
+2001-07-23	20:48	<andi@convergence.de>
+
+	Files:	src/directfb.c (1.22) (+0 -4)
+	
+	bugfix: removed free()s after provider->Release() is called. This fixes segmentation fault when using a background image.
+	
+2001-07-23	18:03	<dok@convergence.de>
+
+	Files:	src/core/input.c (1.11) (+1 -1)
+		src/core/surfaces.c (1.10) (+8 -0)
+	
+	The pitch for system memory surface buffers
+	is now aligned to a multpiple of 4 bytes.
+	
+	Do not set SCHED_RR for input threads, use normal scheduling
+	now, highest priority there is ok.
+	
+2001-07-23	15:20	<andi@convergence.de>
+
+	Files:	src/core/fbdev.c (1.19) (+86 -33)
+	
+	rewrote gamma initialization code, should work in all depths now.
+	
+2001-07-22	04:45	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.44) (+5 -1)
+		src/core/input.c (1.10) (+1 -5)
+		inputdrivers/ps2mouse/ps2mouse.c (1.9) (+8 -4)
+	
+	New input event field "timestamp" which can be set by the driver.
+	I also added the flag "DIEF_TIMESTAMP", PS2 driver makes already usage of it.
+	I reenabled setting high priority for input threads.
+	
+2001-07-21	04:34	<dok@convergence.de>
+
+	Files:	src/idirectfb.c (1.24) (+1 -1)
+		src/core/gfxcard.c (1.25) (+5 -5)
+		src/core/fbdev.h (1.3) (+1 -1)
+		src/core/fbdev.c (1.18) (+75 -75)
+	
+	renamed global variable "display" to "fbdev"
+	
+2001-07-19	22:55	<dok@convergence.de>
+
+	Files:	gfxdrivers/nvidia/.cvsignore (1.1) ( )
+	
+	ignore file
+	
+2001-07-19	22:54	<dok@convergence.de>
+
+	Files:	configure.in (1.37) (+15 -0)
+		gfxdrivers/nvidia/nvidia.h (1.1) ( )
+		gfxdrivers/nvidia/nvidia.c (1.1) ( )
+		gfxdrivers/nvidia/Makefile.am (1.1) ( )
+		gfxdrivers/Makefile.am (1.3) (+7 -1)
+	
+	First version of nVidia RIVA TNT/TNT2/GeForce driver.
+	Accelerates FillRectangle, DrawRectangle, DrawLine, FillTriangle
+	without blending, no blitting support at all.
+	
+	Tested on GeForce 256 SDRAM doing 830 MPixels/sec in FillRectangle.
+	
+2001-07-19	12:09	<neo@convergence.de>
+
+	Files:	patches/Makefile.am (1.4) (+2 -2)
+	
+	adapted Makefile to file changes
+	
+2001-07-18	17:22	<andi@convergence.de>
+
+	Files:	patches/aty128fb-2.4.6-benh-andi.patch (1.2) (+0 -0)
+		patches/aty128fb-2.4.6-benh-andi.patch.bz2 (1.1) ( )
+	
+	ok, i will compress it...
+	
+2001-07-18	17:10	<andi@convergence.de>
+
+	Files:	patches/README.aty128fb-2.4.6-benh-andi.patch (1.1) ( )
+		patches/aty128fb-fixes-patch-2.4.6.bz2 (1.2) (+0 -0)
+		patches/aty128fb-2.4.6-benh-andi.patch (1.1) ( )
+		patches/README.aty128fb-fixes-patch-2.4.6 (1.2) (+0 -0)
+	
+	made a new aty128fb patch based on the driver in benh's tree
+	
+2001-07-18	13:19	<andi@convergence.de>
+
+	Files:	src/core/fbdev.c (1.17) (+34 -1)
+	
+	initialize palette/gamma during initialization. this fixes the
+	"strage-color-effect" in ati framebuffer drivers without the patch in
+	DirectFB/patches. A new patch that fixes only the remaining problems is
+	underway.
+	
+2001-07-18	12:18	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.7) (+6 -5)
+	
+	fixed typos
+	
+2001-07-17	12:15	<dok@convergence.de>
+
+	Files:	gfxdrivers/ati128/ati128.c (1.5) (+12 -12)
+	
+	only check source format if source exists
+	
+2001-07-17	12:06	<dok@convergence.de>
+
+	Files:	gfxdrivers/ati128/ati128.c (1.4) (+24 -2)
+	
+	check source and destination format in CheckState,
+	hopefully rejecting surfaces with width < 8 or height < 8 now.
+	
+2001-07-16	22:46	<neo@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.9) (+32 -92)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.9) (+21 -77)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.6) (+27 -95)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.6) (+13 -39)
+	
+	use INTERFACE_GET_DATA macro (reduced codesize by 182 lines / 0.5%)
+	
+2001-07-16	22:45	<neo@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.3) (+2 -4)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.4) (+6 -16)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.3) (+6 -16)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.7) (+6 -16)
+	
+	use INTERFACE_GET_DATA macro (reduced codesize by 182 lines / 0.5%)
+	
+2001-07-16	22:01	<neo@convergence.de>
+
+	Files:	src/input/idirectfbinputbuffer.c (1.13) (+19 -12)
+		src/windows/idirectfbwindow.c (1.14) (+19 -12)
+	
+	(IDirectFB[InputBuffer|Window]->WaitForEventWithTimeout)
+	Try to lock the events_mutex and check if there are events. If no events
+	are pending, get current time before locking the mutex. This way the time
+	it takes to aquire the mutex is taken into account for the timeout.
+	
+2001-07-16	18:49	<neo@convergence.de>
+
+	Files:	NEWS (1.18) (+4 -0)
+		src/idirectfb.c (1.23) (+32 -0)
+		include/directfb.h (1.43) (+11 -0)
+		examples/df_neo/df_neo.c (1.6) (+9 -10)
+		examples/df_dok.c (1.23) (+3 -7)
+		examples/df_andi.c (1.9) (+2 -6)
+		configure.in (1.36) (+1 -1)
+	
+	Added IDirectFB->CreateInputBuffer() that allows to easily create input
+	buffers for specific events.
+	
+	Use the new function in a number of demos.
+	
+	Bumped version number to 0.9.5.
+	
+2001-07-16	17:20	<neo@convergence.de>
+
+	Files:	examples/df_andi.c (1.8) (+5 -1)
+		examples/df_neo/df_neo.c (1.5) (+3 -0)
+		examples/df_window.c (1.11) (+24 -12)
+		examples/df_dok.c (1.22) (+12 -3)
+	
+	Added some more keys (ESC, Q, BACK, STOP) that quit the demos to make them
+	useable with remote controls.
+	
+2001-07-16	16:21	<neo@convergence.de>
+
+	Files:	src/core/windows.c (1.25) (+4 -6)
+	
+	Attach all inputdevices to the window stack, not only those of type
+	DIDTF_KEYBOARD and DIDTF_MOUSE. Let's see if this is a good idea...
+	
+2001-07-16	15:41	<neo@convergence.de>
+
+	Files:	tools/gendoc.pl (1.7) (+13 -9)
+	
+	do not sort struct entries alphabetically, keep them in the original order
+	
+2001-07-15	00:22	<dok@convergence.de>
+
+	Files:	src/core/gfxcard.c (1.24) (+2 -2)
+		src/core/gfxcard.h (1.8) (+1 -1)
+	
+	Forced CCF_CLIPPING to 0x00000001, was 0 before (first enum value).
+	No hardware clipping has been used while this bug existed.
+	
+2001-07-13	13:51	<dok@convergence.de>
+
+	Files:	src/core/vt.c (1.9) (+4 -0)
+	
+	define SI_KERNEL for glibc 2.1.x
+	
+2001-07-11	18:45	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.16) (+2 -2)
+	
+	Fixed a bug in 'primaryFlipBuffers()' that caused windowstack updates
+	that are done on the whole windowstack not to get visible when buffer mode
+	is DLBM_BACKSYSTEM. (e.g. df_window with software driver)
+	
+2001-07-10	23:07	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.15) (+6 -0)
+	
+	If a mode has been set by 'fbdev_set_mode()' and the detected
+	pixelformat is DSPF_RGB15, set mode->bpp to 15.
+	If mode->bpp would be 16 bit, we won't find the mode afterwards,
+	because we will search for a 15 bit mode if the current pixelformat
+	is DSPF_RGB15.
+	
+	Fixes bogus "Setting primary layer buffer mode failed!" problems.
+	
+2001-07-10	01:05	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.42) (+12 -1)
+		src/input/idirectfbinputdevice.c (1.11) (+15 -0)
+		src/input/idirectfbinputbuffer.h (1.3) (+5 -2)
+		src/input/idirectfbinputbuffer.c (1.12) (+10 -1)
+	
+	Added 'IDirectFBInputDevice->AttachInputBuffer()'.
+	You are now able to receive events from multiple
+	input devices with one buffer, nice with 'WaitForEvent()'.
+	
+	CAUTION: Releasing an IDirectFBInputBuffer does only detach
+	from the device it was created from, following input events
+	will cause a crash! Will be fixed soon.
+	
+2001-07-08	13:47	<dok@convergence.de>
+
+	Files:	patches/Makefile.am (1.3) (+6 -5)
+		src/core/fbdev.c (1.14) (+7 -8)
+		patches/neofb-0.2.1-patch-2.4.6.bz2 (1.1) ( )
+		patches/neofb-0.2.1-patch-2.4.3.bz2 (1.2) (+0 -0)
+		patches/matroxfb-vsync-irq.patch (1.3) (+0 -0)
+		patches/matroxfb-vsync-irq-patch-2.4.6.bz2 (1.1) ( )
+		patches/aty128fb_patch_2.4.0-andi (1.2) (+0 -0)
+		patches/aty128fb-fixes-patch-2.4.6.bz2 (1.1) ( )
+		patches/README.neofb-0.2.1-patch-2.4.6 (1.1) ( )
+		patches/README.matroxfb-vsync-irq-patch-2.4.6 (1.1) ( )
+		patches/README.atyfb_patch_2.4.0-andi (1.2) (+0 -0)
+		patches/README.aty128fb-fixes-patch-2.4.6 (1.1) ( )
+	
+	Call 'surface_flip_buffers()' after panning instead of before.
+	Do a 'gfxcard_sync()' before FBIO_WAITFORVSYNC, actually a hack to
+	reduce the time between vertical retrace interrupt and pan, as panning
+	does a 'gfxcard_sync()', too.
+	
+	Updated all patches for 2.4.6, made usage of new kernel macros like
+	'interruptible_sleep_on()' in Matrox patch.
+	
+2001-07-08	09:00	<dok@convergence.de>
+
+	Files:	configure.in (1.35) (+2 -2)
+		src/core/input.c (1.9) (+1 -1)
+		src/core/gfxcard.c (1.23) (+1 -1)
+		src/core/Makefile.am (1.7) (+1 -1)
+		src/interface.c (1.7) (+2 -2)
+		src/Makefile.am (1.5) (+1 -1)
+		interfaces/IDirectFBVideoProvider/Makefile.am (1.2) (+1 -1)
+		interfaces/IDirectFBImageProvider/Makefile.am (1.3) (+1 -1)
+		interfaces/IDirectFBFont/Makefile.am (1.3) (+1 -1)
+		inputdrivers/serialmouse/Makefile.am (1.3) (+1 -1)
+		inputdrivers/ps2mouse/Makefile.am (1.3) (+1 -1)
+		inputdrivers/keyboard/Makefile.am (1.3) (+1 -1)
+		inputdrivers/joystick/Makefile.am (1.3) (+1 -1)
+		gfxdrivers/tdfx/Makefile.am (1.2) (+1 -1)
+		gfxdrivers/neomagic/Makefile.am (1.2) (+1 -1)
+		gfxdrivers/matrox/Makefile.am (1.2) (+1 -1)
+		gfxdrivers/ati128/Makefile.am (1.2) (+1 -1)
+		directfb-internal.pc.in (1.2) (+2 -3)
+	
+	Renamed LIBDIR to MODULEDIR and exported it in the pkgconfig file.
+	This is the base directory for installed modules
+	("$exec_prefix/lib/directfb"). When installing a graphics driver
+	"/gfxdrivers" has to be added to that directory.
+	
+	To query: "pkg-config --variable=moduledir directfb-internal"
+	
+2001-07-08	07:35	<dok@convergence.de>
+
+	Files:	.cvsignore (1.4) (+1 -0)
+		src/windows/Makefile.am (1.2) (+8 -2)
+		src/misc/Makefile.am (1.3) (+11 -5)
+		src/media/Makefile.am (1.4) (+8 -2)
+		src/input/Makefile.am (1.2) (+9 -3)
+		src/gfx/Makefile.am (1.2) (+9 -3)
+		src/display/Makefile.am (1.2) (+11 -5)
+		src/core/Makefile.am (1.6) (+17 -14)
+		src/Makefile.am (1.4) (+6 -1)
+		include/Makefile.am (1.2) (+3 -1)
+		directfb-internal.pc.in (1.1) ( )
+		configure.in (1.34) (+5 -0)
+		Makefile.am (1.4) (+1 -1)
+	
+	Internal headers (all except "directfb.h") are now installed to
+	"$prefix/include/directfb-internal". Files from "include", that
+	are "directfb_internals.h" and "directfb-version.h", will be
+	installed directly into this directory along with "idirectfb.h"
+	from "src". Other headers from "src" will be in the same
+	subdirectory as in the "src" tree. This way the '#include's
+	are the same whether a module is built within or outside of
+	the DirectFB source tree. First step to make it easier to write
+	third party DirectFB modules in a seperate package.
+	
+	There is a new pkgconfig file "directfb-internal.pc" which will
+	tell the third party configure script where the internal headers
+	are installed to. It will output "$prefix/include/directfb-internal"
+	when pkgconfig is called with "--cflags".
+	
+	Next thing to do is version checking on modules, because it probably
+	will crash when using a module compiled with 0.9.4 is used with 0.9.5.
+	
+2001-07-06	16:13	<dok@convergence.de>
+
+	Files:	ChangeLog (1.10) (+2117 -1246)
+		NEWS (1.17) (+32 -1)
+	
+	Added summary of changes between 0.9.3 and 0.9.4 to NEWS.
+	Generated ChangeLog, maybe Mitch can generate the better one with LDAP support.
+	
 2001-07-05	13:19	<dok@convergence.de>
 
 	Files:	src/gfx/generic/Sacc_to_Dop_rgb16_MMX.s (1.2) (+4 -4)

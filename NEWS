@@ -1,6 +1,27 @@
 0.9.5
 -----
-- Added IDirectFB->CreateInputBuffer().
+
+- Added 'IDirectFB->CreateInputBuffer()' that allows to easily
+  create input buffers for specific events.
+- Added 'IDirectFBInputDevice->AttachInputBuffer()' to
+  attach an existing input buffer to another input device.
+- Added 'IDirectFBImageProvider->GetImageDescription()' to obtain information
+  about alpha channel availability and possible color keys.
+- New LIRC input driver, name your keys (lirc config file) like the DirectFB
+  keycode enum does without the "DIKC_" prefix, e.g. "OK", "MENU" or "VOLUMEUP".
+- First version of nVidia RIVA TNT/TNT2/GeForce driver (very limited right now).
+- Updated kernel patches, improved synchronization for FBIO_WAITFORVSYNC.
+- New pkg-config file "directfb-internal.pc" for better support
+  for third party modules built outside the DirectFB source tree.
+- You can move windows with the mouse when holding down CapsLock.
+- Font width can now be set independent from height, e.g. for non-square pixels.
+- Set gamma ramp, fixes "strange-colors-effect" with some framebuffer drivers.
+- Accept interlaced or double scan modes, 320x200 looks really cool in some way.
+- Deinitialization code cleaned up and reactivated.
+- V4L capturing is now stopped by exit and signal handlers.
+- Matrox driver cleanup and blending state fixes.
+- More detailed generated API Reference (more comments in directfb.h).
+- Many bug fixes, some compile fixes.
 
 0.9.4
 ------
