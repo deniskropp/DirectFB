@@ -732,93 +732,168 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                             const char  *prefix )
 {
      DFBResult  ret;
-     int        num = 0;
-     int        fd, i, n;
+     int        num = -1;
+     int        fd_p, fd_g = -1, i, n;
      int        len = strlen(directory) + strlen(prefix) + 11;
      char       filename[len];
      char       head[30];
      void      *data;
      int        pitch;
+     bool       alpha = false;
 
      DFB_ASSERT( surface != NULL );
      DFB_ASSERT( directory != NULL );
      DFB_ASSERT( prefix != NULL );
 
+     /* Check pixel format. */
+     switch (surface->format) {
+          case DSPF_ARGB:
+          case DSPF_ARGB1555:
+               alpha = true;
+
+               /* fall through */
+
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+               break;
+
+          default:
+               ERRORMSG( "DirectFB/core/surfaces: surface dump for format "
+                         "0x%08x is not implemented!\n", surface->format );
+               return DFB_UNSUPPORTED;
+     }
+     
+     /* Lock the surface, get the data pointer and pitch. */
+     ret = dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch, true );
+     if (ret)
+          return ret;
+
+     /* Create a file with the lowest unused pixmap index. */
      do {
-          snprintf( filename, len, "%s/%s_%04d.ppm", directory, prefix, num++ );
+          snprintf( filename, len, "%s/%s_%04d.ppm", directory, prefix, ++num );
 
           errno = 0;
 
-          fd = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
-          if (fd < 0 && errno != EEXIST) {
+          fd_p = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
+          if (fd_p < 0 && errno != EEXIST) {
                PERRORMSG("DirectFB/core/input: "
                          "could not open %s!\n", filename);
+
+               dfb_surface_unlock( surface, true );
+               
                return DFB_IO;
           }
      } while (errno == EEXIST);
 
-     ret = dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch, true );
-     if (ret) {
-          close( fd );
-          return ret;
+     /* Create a graymap for the alpha channel using the same index. */
+     if (alpha) {
+          snprintf( filename, len, "%s/%s_%04d.pgm", directory, prefix, num );
+          
+          fd_g = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
+          if (fd_g < 0) {
+               PERRORMSG("DirectFB/core/input: "
+                         "could not open %s!\n", filename);
+
+               dfb_surface_unlock( surface, true );
+               
+               close( fd_p );
+
+               snprintf( filename, len, "%s/%s_%04d.ppm",
+                         directory, prefix, num );
+               unlink( filename );
+
+               return DFB_IO;
+          }
+     }
+     
+     /* Write the pixmap header. */
+     snprintf( head, 30,
+               "P6\n%d %d\n255\n", surface->width, surface->height );
+     write( fd_p, head, strlen(head) );
+
+     /* Write the graymap header. */
+     if (alpha) {
+          snprintf( head, 30,
+                    "P5\n%d %d\n255\n", surface->width, surface->height );
+          write( fd_g, head, strlen(head) );
      }
 
-     snprintf( head, 30, "P6\n%d %d\n255\n", surface->width, surface->height );
-     write( fd, head, strlen(head) );
-
+     /* Write the pixmap (and graymap) data. */
      for (i=0; i<surface->height; i++) {
           int    n3;
           __u8  *data8  = data;
           __u16 *data16 = data;
           __u32 *data32 = data;
 
-          __u8 buf[surface->width * 3];
+          __u8 buf_p[surface->width * 3];
+          __u8 buf_g[surface->width];
           
+          /* Prepare one row. */
           switch (surface->format) {
+               case DSPF_ARGB:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
+                         buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
+                         buf_p[n3+2] = (data32[n] & 0x0000FF);
+                         
+                         buf_g[n] = data32[n] >> 24;
+                    }
+                    break;
                case DSPF_ARGB1555:
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
-                         buf[n3+0] = (data16[n] & 0x7C00) >> 7;
-                         buf[n3+1] = (data16[n] & 0x03E0) >> 2;
-                         buf[n3+2] = (data16[n] & 0x001F) << 3;
+                         buf_p[n3+0] = (data16[n] & 0x7C00) >> 7;
+                         buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
+                         buf_p[n3+2] = (data16[n] & 0x001F) << 3;
+                         
+                         buf_g[n] = (data16[n] & 0x8000) ? 0xff : 0x00;
                     }
                     break;
                case DSPF_RGB16:
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
-                         buf[n3+0] = (data16[n] & 0xF800) >> 8;
-                         buf[n3+1] = (data16[n] & 0x07E0) >> 3;
-                         buf[n3+2] = (data16[n] & 0x001F) << 3;
+                         buf_p[n3+0] = (data16[n] & 0xF800) >> 8;
+                         buf_p[n3+1] = (data16[n] & 0x07E0) >> 3;
+                         buf_p[n3+2] = (data16[n] & 0x001F) << 3;
                     }
                     break;
                case DSPF_RGB24:
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
-                         buf[n3+0] = data8[n3+2];
-                         buf[n3+1] = data8[n3+1];
-                         buf[n3+2] = data8[n3+0];
+                         buf_p[n3+0] = data8[n3+2];
+                         buf_p[n3+1] = data8[n3+1];
+                         buf_p[n3+2] = data8[n3+0];
                     }
                     break;
                case DSPF_RGB32:
-               case DSPF_ARGB:
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
-                         buf[n3+0] = (data32[n] & 0xFF0000) >> 16;
-                         buf[n3+1] = (data32[n] & 0x00FF00) >>  8;
-                         buf[n3+2] = (data32[n] & 0x0000FF);
+                         buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
+                         buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
+                         buf_p[n3+2] = (data32[n] & 0x0000FF);
                     }
                     break;
                default:
-                    ONCE( "surface dump for this format is unsupported" );
-                    dfb_surface_unlock( surface, true );
-                    close( fd );
-                    return DFB_UNSUPPORTED;
+                    BUG( "unexpected pixelformat" );
+                    break;
           }
 
-          write( fd, buf, surface->width * 3 );
+          /* Write color buffer to pixmap file. */
+          write( fd_p, buf_p, surface->width * 3 );
+
+          /* Write alpha buffer to graymap file. */
+          if (alpha)
+               write( fd_g, buf_g, surface->width );
 
           data += pitch;
      }
 
+     /* Unlock the surface. */
      dfb_surface_unlock( surface, true );
 
-     close( fd );
+     /* Close pixmap file. */
+     close( fd_p );
+
+     /* Close graymap file. */
+     if (alpha)
+          close( fd_g );
 
      return DFB_OK;
 }

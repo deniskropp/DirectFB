@@ -90,12 +90,20 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
           case SIGBUS:
                switch (info->si_code) {
                     case SEGV_MAPERR:
-                         fprintf( stderr, " (at %p, invalid address)",
+                         fprintf( stderr, " (at %p, invalid address) <--\n",
                                   info->si_addr );
                          fflush( stderr );
 
-                         if (num == SIGSEGV && fusion_shmalloc_cure( info->si_addr )) {
-                              fprintf( stderr, " <-- cured!\n" );
+                         if (num == SIGSEGV &&
+                             fusion_shmalloc_cure( info->si_addr ))
+                         {
+                              int       pid    = getpid();
+                              long long millis = fusion_get_millis();
+
+                              fprintf( stderr,
+                                       "(!) [%5d: %4lld.%03lld]      -> cured!"
+                                       "\n", pid, millis/1000, millis%1000 );
+                              fprintf( stderr, " cured!\n" );
                               fflush( stderr );
                               return;
                          }

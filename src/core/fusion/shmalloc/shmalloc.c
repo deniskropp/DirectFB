@@ -630,7 +630,7 @@ fusion_shmalloc_cure (const void *ptr)
      }
      
      /* Check address space. */
-     if (offset >= SH_MAX_SIZE) {
+     if (offset < 0 || offset >= SH_MAX_SIZE) {
           FDEBUG( "  won't cure, address is outside shared address space.\n" );
           return false;
      }

@@ -425,7 +425,7 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
 
      node = lock_node( reactor_id, false );
      if (!node) {
-          FDEBUG( "no node to dispatch message\n" );
+          //FDEBUG( "no node to dispatch message\n" );
           return;
      }
      
