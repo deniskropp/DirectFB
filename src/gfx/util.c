@@ -98,9 +98,6 @@ void dfb_back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
 
      dfb_surfacemanager_lock( surface->manager );
 
-     fusion_skirmish_prevail( &surface->front_lock );
-     fusion_skirmish_prevail( &surface->back_lock );
-
      tmp = surface->front_buffer;
      surface->front_buffer = surface->back_buffer;
      surface->back_buffer = tmp;
@@ -117,9 +114,6 @@ void dfb_back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
      surface->front_buffer = surface->back_buffer;
      surface->back_buffer = tmp;
 
-     fusion_skirmish_dismiss( &surface->front_lock );
-     fusion_skirmish_dismiss( &surface->back_lock );
-     
      dfb_surfacemanager_unlock( surface->manager );
      
      pthread_mutex_unlock( &btf_lock );

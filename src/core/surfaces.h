@@ -143,14 +143,10 @@ struct _CoreSurface
 
      SurfaceBuffer         *front_buffer;  /* buffer for reading
                                               (blit from or display buffer) */
-     FusionSkirmish         front_lock;    /* skirmish lock for front buffer */
 
      SurfaceBuffer         *back_buffer;   /* buffer for (reading&)writing
                                               (drawing/blitting destination) */
-     FusionSkirmish         back_lock;     /* skirmish lock for back buffer,
-                                              mutexes are outside of
-                                              SurfaceBuffer because of flipping
-                                              that just swaps the pointers */
+     
      SurfaceBuffer         *idle_buffer;   /* triple buffering */
 
      SurfaceManager        *manager;
