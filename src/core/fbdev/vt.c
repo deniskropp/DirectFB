@@ -48,6 +48,7 @@
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
 
+#include <core/fbdev/fbdev.h>
 #include <core/fbdev/vt.h>
 
 /*
@@ -354,23 +355,14 @@ vt_init_switching()
 static int
 vt_get_fb( int vt )
 {
-     int                  fd;
-     struct fb_con2fbmap  c2m;
-     const char          *fbpath = "/dev/fb0";
-
-     if (dfb_config->fb_device)
-          fbpath = dfb_config->fb_device;
+     struct fb_con2fbmap c2m;
 
      c2m.console = vt;
 
-     fd = open( fbpath, O_RDWR );
-     if (fd != -1) {
-          if (ioctl( fd, FBIOGET_CON2FBMAP, &c2m ) < 0) {
-               PERRORMSG( "DirectFB/core/fbdev: "
-                          "FBIOGET_CON2FBMAP failed!\n" );
-          }
-
-          close( fd );
+     if (ioctl( dfb_fbdev->fd, FBIOGET_CON2FBMAP, &c2m )) {
+          PERRORMSG( "DirectFB/FBDev/vt: "
+                     "FBIOGET_CON2FBMAP failed!\n" );
+          return 0;
      }
 
      return c2m.framebuffer;
@@ -379,34 +371,24 @@ vt_get_fb( int vt )
 static void
 vt_set_fb( int vt, int fb )
 {
-     int                  fd;
-     struct fb_con2fbmap  c2m;
-     const char          *fbpath = "/dev/fb0";
+     struct fb_con2fbmap c2m;
+     struct stat         sbf;
 
-     if (dfb_config->fb_device) {
-          struct stat sbf;
-
-          if (!stat( dfb_config->fb_device, &sbf )) {
-               fbpath = dfb_config->fb_device;
-               c2m.framebuffer = (sbf.st_rdev & 0xFF) >> 5;
-          }
+     if (fstat( dfb_fbdev->fd, &sbf )) {
+          PERRORMSG( "DirectFB/FBDev/vt: Could not fstat fb device!\n" );
+          return;
      }
-     else
-          c2m.framebuffer = 0;
-
-     if (fb > -1)
+          
+     if (fb >= 0)
           c2m.framebuffer = fb;
+     else
+          c2m.framebuffer = (sbf.st_rdev & 0xFF) >> 5;
 
      c2m.console = vt;
 
-     fd = open( fbpath, O_RDWR );
-     if (fd != -1) {
-          if (ioctl( fd, FBIOPUT_CON2FBMAP, &c2m ) < 0) {
-               PERRORMSG( "DirectFB/core/fbdev: "
-                          "FBIOPUT_CON2FBMAP failed!\n" );
-          }
-
-          close( fd );
+     if (ioctl( dfb_fbdev->fd, FBIOPUT_CON2FBMAP, &c2m ) < 0) {
+          PERRORMSG( "DirectFB/FBDev/vt: "
+                     "FBIOPUT_CON2FBMAP failed!\n" );
      }
 }
 

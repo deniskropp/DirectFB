@@ -323,15 +323,14 @@ system_initialize()
           return DFB_BUG;
      }
 
-     ret = dfb_vt_initialize();
-     if (ret)
-          return ret;
-
      dfb_fbdev = (FBDev*) DFBCALLOC( 1, sizeof(FBDev) );
 
      dfb_fbdev->shared = (FBDevShared*) shcalloc( 1, sizeof(FBDevShared) );
-
-
+     
+#ifndef FUSION_FAKE
+     arena_add_shared_field( dfb_core->arena, "fbdev", dfb_fbdev->shared );
+#endif
+     
      ret = dfb_fbdev_open();
      if (ret) {
           shfree( dfb_fbdev->shared );
@@ -340,6 +339,17 @@ system_initialize()
 
           return ret;
      }
+
+     
+     ret = dfb_vt_initialize();
+     if (ret) {
+          shfree( dfb_fbdev->shared );
+          DFBFREE( dfb_fbdev );
+          dfb_fbdev = NULL;
+
+          return ret;
+     }
+
 
      /* Retrieve fixed informations like video ram size */
      if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &dfb_fbdev->shared->fix ) < 0) {
@@ -424,9 +434,6 @@ system_initialize()
      dfb_fbdev->shared->current_cmap.blue   = shcalloc( 256, 2 );
      dfb_fbdev->shared->current_cmap.transp = shcalloc( 256, 2 );
 
-     /* Register primary layer functions */
-     dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
-
      skirmish_init( &dfb_fbdev->shared->rpc_lock );
      
      dfb_fbdev->shared->rpc_reactor = reactor_new( sizeof(FBDevIoctl) );
@@ -434,9 +441,8 @@ system_initialize()
      reactor_attach( dfb_fbdev->shared->rpc_reactor,
                      fbdev_ioctl_listener, NULL, &fbdev_ioctl_reaction );
 
-#ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, "fbdev", dfb_fbdev->shared );
-#endif
+     /* Register primary layer functions */
+     dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
 
      return DFB_OK;
 }
