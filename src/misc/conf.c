@@ -419,9 +419,11 @@ DFBResult dfb_config_set( const char *name, const char *value )
           dfb_config->mmx = false;
      } else
      if (strcmp (name, "argb-font" ) == 0) {
-          dfb_config->argb_font = true;
+          dfb_config->argb_font    = true;
+          dfb_config->no_argb_font = false;
      } else
      if (strcmp (name, "no-argb-font" ) == 0) {
+          dfb_config->argb_font    = false;
           dfb_config->no_argb_font = true;
      } else
      if (strcmp (name, "sighandler" ) == 0) {
