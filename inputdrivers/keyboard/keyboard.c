@@ -85,6 +85,8 @@ keyboard_translate( unsigned short kb_value )
                switch (key_index) {
                     case 0x1c:
                          return DIKS_PRINT;
+                    case 0x7f:
+                         return DIKS_BACKSPACE;
                     default:
                          return key_index;
                }
