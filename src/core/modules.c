@@ -124,6 +124,8 @@ dfb_modules_register( ModuleDirectory *directory,
      }
 
      fusion_list_prepend( &directory->entries, &entry->link );
+
+     DEBUGMSG( "DirectFB/core/modules: ...registered.\n" );
 }
 
 int
