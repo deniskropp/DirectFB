@@ -1715,17 +1715,22 @@ static void Bop_a8_set_alphapixel_Aop_rgb32()
      }
 }
 
+
+/* saturating alpha blend */
+
 #define SET_ALPHA_PIXEL_ARGB(d,g,a)\
      switch (a) {\
-     case 0xff: *(d) = (__rb | ((g) << 8)) | (*(d) & 0xff000000);\
-     case 0: break; \
+     case 0xff: *(d) = 0xff000000 | __rb | ((g) << 8);\
+     case 0: break;\
      default: {\
           __u32 pixel = *(d);\
           __u16  s = (a)+1;\
           __u16 s1 = 256-s;\
-          *(d) = (((((pixel & 0x00ff00ff)       * s1) + (__rb * s)) >> 8) & 0x00ff00ff) | \
-                 (((((pixel & 0x0000ff00) >> 8) * s1) + ((g)  * s))       & 0x0000ff00) | \
-                                                                   (pixel & 0xff000000);\
+          __u16 sa = (pixel >> 24) + a;\
+          if (sa & 0xff00) sa = 0xff;\
+          *(d) = (sa << 24)                                                             | \
+                 (((((pixel & 0x00ff00ff)       * s1) + (__rb * s)) >> 8) & 0x00ff00ff) | \
+                 (((((pixel & 0x0000ff00) >> 8) * s1) + ((g)  * s))       & 0x0000ff00);  \
           }\
      }
 
