@@ -28,12 +28,6 @@
 
 #include <stdlib.h>
 
-#include <pthread.h>
-
-#include <core/fusion/lock.h>
-
-#include "directfb.h"
-
 #include "core/coretypes.h"
 
 #include "misc/mem.h"
@@ -60,20 +54,12 @@ static Node * tree_node_rotate_right (Node  *node);
 
 Tree * dfb_tree_new (void)
 {
-     Tree *tree;
-
-     tree = DFBCALLOC(1, sizeof (Tree));
-     if (tree)
-          skirmish_init (&tree->skirmish);
-
-     return tree;
+     return (Tree *) DFBCALLOC(1, sizeof (Tree));
 }
 
 void dfb_tree_destroy (Tree *tree)
 {
      unsigned int i;
-
-     skirmish_destroy (&tree->skirmish);
 
      for (i = 0; i < 96; i++) {
           if (tree->fast_keys[i])
