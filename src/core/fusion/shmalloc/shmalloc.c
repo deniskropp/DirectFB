@@ -60,6 +60,8 @@ Cambridge, MA 02139, USA.
 #include <fcntl.h>
 #include <signal.h>
 
+#include <misc/mem.h>
+
 #include "../fusion_internal.h"
 
 #define SH_BASE          0x70000000
@@ -73,7 +75,7 @@ Cambridge, MA 02139, USA.
 static int   fd            = -1;
 static void *mem           = NULL;
 static int   size          = 0;
-static char  default_name[]= SH_DEFAULT_NAME;
+static char *sh_name       = NULL;
 
 shmalloc_heap *_sheap = NULL;
 
@@ -88,32 +90,40 @@ shmalloc_check_shmfs (void)
      char   buffer[SH_BUFSIZE];
 
      if (!(mounts_handle = fopen (SH_MOUNTS_FILE, "r")))
-          return(default_name);
+          return DFBSTRDUP( SH_DEFAULT_NAME );
 
      while (fgets (buffer, SH_BUFSIZE, mounts_handle)) {
           pointer = buffer;
+
           strsep (&pointer, " ");
+
           mount_point = strsep (&pointer, " ");
           mount_fs = strsep (&pointer, " ");
+
           if (mount_fs && mount_point
               && (strlen (mount_fs) == strlen (SH_SHMFS_TYPE))
               && (!(strcmp (mount_fs, SH_SHMFS_TYPE))))
           {
-               if (!(pointer = malloc(strlen (mount_point)
-                                      + strlen (SH_FILE_NAME) + 1)))
+               if (!(pointer = DFBMALLOC(strlen (mount_point)
+                                         + strlen (SH_FILE_NAME) + 1)))
                {
                     fclose (mounts_handle);
-                    return(default_name);
+
+                    return DFBSTRDUP( SH_DEFAULT_NAME );
                }
+
                strcpy (pointer, mount_point);
                strcat (pointer, SH_FILE_NAME);
+
                fclose (mounts_handle);
-               return(pointer);
+
+               return pointer;
           }
      }
 
      fclose (mounts_handle);
-     return(default_name);
+
+     return DFBSTRDUP( SH_DEFAULT_NAME );
 }
 
 /* Aligned allocation.  */
@@ -342,8 +352,7 @@ _fusion_shmalloc (size_t size)
 
 void *__shmalloc_init (bool initialize)
 {
-     struct stat   st;
-     char        * sh_name = NULL;
+     struct stat st;
 
      if (mem)
           return mem;
@@ -358,6 +367,7 @@ void *__shmalloc_init (bool initialize)
           fd = open (sh_name, O_RDWR);
      if (fd < 0) {
           perror ("opening shared memory file");
+          DFBFREE( sh_name );
           return NULL;
      }
 
@@ -374,6 +384,7 @@ void *__shmalloc_init (bool initialize)
                perror ("fstating shared memory file");
                close (fd);
                fd = -1;
+               DFBFREE( sh_name );
                return NULL;
           }
 
@@ -401,6 +412,7 @@ void *__shmalloc_init (bool initialize)
           if (!_sheap->heapinfo) {
                FERROR("FATAL: Could not allocate _sheap->heapinfo!\n");
                _sheap = NULL;
+               DFBFREE( sh_name );
                return NULL;
           }
 
@@ -510,6 +522,10 @@ void __shmalloc_exit (bool shutdown)
      close (fd);
      fd = -1;
 
-     /* FIXME: unlink file, free sh_name */
+     if (shutdown)
+          unlink (sh_name);
+
+     DFBFREE (sh_name);
+     sh_name = NULL;
 }
 
