@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2005 Claudio "KLaN" Ciccani <klan82@cheapnet.it>
+ * Copyright (C) 2004-2005 Claudio "KLaN" Ciccani <klan@users.sf.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -14,687 +14,733 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- *
- *  video_out_dfb: unofficial xine video output driver using DirectFB
- *
- *
- *  based on x11osd.c by Miguel Freitas
- *
  */
 
-#include <string.h>
 
-/* CLUT == Color LookUp Table */
-typedef struct
+#define PACCEL generic
+
+
+#ifdef WORDS_BIGENDIAN
+# define W0( d )  *((uint16_t*)(d)+1)
+# define W1( d )  *((uint16_t*)(d)+0)
+#else
+# define W0( d )  *((uint16_t*)(d)+0)
+# define W1( d )  *((uint16_t*)(d)+1)
+#endif
+
+
+static
+DFB_BFUNCTION( yuy2 )
 {
-     uint8_t cb    : 8;
-     uint8_t cr    : 8;
-     uint8_t y     : 8;
-     uint8_t foo   : 8;
-
-} __attribute__ ((packed)) clut_t;
-
-
-
-
-
-static inline uint8_t*
-_skip_pixels( uint8_t *dst, int w, int x )
-{
-     if (x & 1)
-     {
-          dst += 2;
-          w--;
-     }
-     
-     dst += w >> 1;
-
-     if (w & 1)
-          dst += 2;
-
-     return dst;
-}
-
-static inline void
-_skip_planes( uint8_t* dst[], int w, int y )
-{
-     dst[0] += w;
-
-     if (y & 1)
-     {
-          dst[1] += w >> 1;
-          dst[2] += w >> 1;
-     }
-}
-
-
-static inline uint8_t*
-_store_yuy2( uint8_t *dst, clut_t color, int w, int x )
-{
-     uint32_t pix = (color.y | (color.cb << 8) | 
-               (color.y << 16) | (color.cr << 24));
-     int      n   = w >> 1;
-
-     if (x & 1)
-     {
-          *dst++ = color.y;
-          *dst++ = color.cr;
-          n = --w >> 1;
-     }
-
-     while (n--)
-     {
-          *((uint32_t*) dst) = pix;
-           dst += 4;
-     }
-
-     if (w & 1)
-     {
-          *dst++ = color.y;
-          *dst++ = color.cb;
-     }
-
-     return dst;
-}
-
-static inline uint8_t*
-_store_uyvy( uint8_t *dst, clut_t color, int w, int x )
-{
-     uint32_t pix = (color.cb | (color.y << 8) |
-               (color.cr << 16) | (color.y << 24));
-     int      n   = w >> 1;
-
-     if (x & 1)
-     {
-          *dst++ = color.cr;
-          *dst++ = color.y;
-          n = --w >> 1;
-     }
-
-     while (n--)
-     {
-          *((uint32_t*) dst) = pix;
-          dst += 4;
-     }
-
-     if (w & 1)
-     {
-          *dst++ = color.cb;
-          *dst++ = color.y;
-     }
-
-     return dst;
-}
-
-static inline void
-_store_yv12( uint8_t* dst[], clut_t color, int w, int y )
-{
-     memset( dst[0], color.y, w );
-     dst[0] += w;
-
-     if (y & 1)
-     {
-          memset( dst[1], color.cb, (w + 1) >> 1 );
-          dst[1] += w >> 1;
-          memset( dst[2], color.cr, (w + 1) >> 1 );
-          dst[2] += w >> 1;
-     }
-}
-
-
-static inline uint8_t*
-_blend_yuy2( uint8_t *dst, clut_t color, int a, int w, int x )
-{
-     int aa = (a * 4369) + 1;
-     int ia = 0x10000 - aa;
-     int y  = color.y  * aa;
-     int cb = color.cb * aa;
-     int cr = color.cr * aa;
-     int n  = w >> 1;
-
-     if (x & 1)
-     {
-          *dst = (y  + (*dst * ia)) >> 16;
-          dst++;
-          *dst = (cr + (*dst * ia)) >> 16;
-          dst++;
-          n = --w >> 1;
-     }
-
-     while (n--)
-     {
-          register uint32_t pix;
-
-          pix  = ( y  + (*dst       * ia)) >> 16;
-          pix |= ((cb + (*(dst + 1) * ia)) >>  8) & 0x0000ff00;
-          pix |= ((y  + (*(dst + 2) * ia))      ) & 0x00ff0000;
-          pix |= ((cr + (*(dst + 3) * ia)) <<  8) & 0xff000000;
-
-          *((uint32_t*) dst) = pix;
-          dst += 4;
-     }
-
-     if (w & 1)
-     {
-          *dst = (y  + (*dst * ia)) >> 16;
-          dst++;
-          *dst = (cb + (*dst * ia)) >> 16;
-          dst++;
-     }
-
-     return dst;
-}
-
-static inline uint8_t*
-_blend_uyvy( uint8_t *dst, clut_t color, int a, int w, int x )
-{
-     int aa = (a * 4369) + 1;
-     int ia = 0x10000 - aa;
-     int y  = color.y  * aa;
-     int cb = color.cb * aa;
-     int cr = color.cr * aa;
-     int n  = w >> 1;
-
-     if (x & 1)
-     {
-          *dst = (cr + (*dst * ia)) >> 16;
-          dst++;
-          *dst = (y  + (*dst * ia)) >> 16;
-          dst++;
-          n = --w >> 1;
-     }
-
-     while (n--)
-     {
-          register uint32_t pix;
-
-          pix  = ( cb + (*dst       * ia)) >> 16;
-          pix |= ((y  + (*(dst + 1) * ia)) >>  8) & 0x0000ff00;
-          pix |= ((cr + (*(dst + 2) * ia))      ) & 0x00ff0000;
-          pix |= ((y  + (*(dst + 3) * ia)) <<  8) & 0xff000000;
-
-          *((uint32_t*) dst) = pix;
-          dst += 4;
-     }
-
-     if (w & 1)
-     {
-          *dst = (cb + (*dst * ia)) >> 16;
-          dst++;
-          *dst = (y  + (*dst * ia)) >> 16;
-          dst++;
-     }
-
-     return dst;
-}
-
-static inline void
-_blend_yv12( uint8_t *dst[], clut_t color, int a, int w, int y )
-{
-     uint8_t *dy = dst[0];
-     uint8_t *du = dst[1];
-     uint8_t *dv = dst[2];
-     int      aa = (a * 4369) + 1;
-     int      ia = 0x10000 - aa;
-     int      yy = color.y * aa;
-     int      cb;
-     int      cr;
-     int      n  = w;
-
-     do
-     {
-          *dy = (yy + (*dy * ia)) >> 16;
-          dy++;
+     uint16_t *D = (uint16_t*) blender->plane[0] + blender->x;
+     uint32_t  y = color->yuv.y;
+     uint32_t  u = color->yuv.u << 8;
+     uint32_t  v = color->yuv.v << 8;
+     int       x = blender->x;
+     int       w = blender->len;
+     int       n;
+    
+     if (color->yuv.a < 0xff) {
+          uint32_t a0 = (color->yuv.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
           
-     } while (--n);
-     
-     if (y & 1)
-     {
-          cb = color.cb * aa;
-          cr = color.cr * aa;
+          y *= a0;
+          u *= a0;
+          v *= a0;
           
-          for (n = w >> 1; n--; )
-          {
-               *du = (cb + (*du * ia)) >> 16;
-               du++;
-               *dv = (cr + (*dv * ia)) >> 16;
-               dv++;
+          if (x & 1) {
+               *D =  ((y + ((*D & 0x00ff) * a1)) >> 16) |
+                    (((v + ((*D & 0xff00) * a1)) >> 16) & 0xff00);
+               D++;
+               w--;
+          }
+
+          for (n = w/2; n--;) {
+               register uint32_t Dpix;
+
+#ifdef WORDS_BIGENDIAN
+               Dpix  = ((y + ((*(D+1) & 0x00ff) * a1)) >> 16);              // __ __ __ y1
+               Dpix |= ((v + ((*(D+1) & 0xff00) * a1)) >> 16) & 0x0000ff00; // __ __ cr y1
+               Dpix |= ((y + ((*(D+0) & 0x00ff) * a1))      ) & 0x00ff0000; // __ y0 cr y1
+               Dpix |= ((u + ((*(D+0) & 0xff00) * a1))      ) & 0xff000000; // cb y0 cr y1
+#else
+               Dpix  = ((y + ((*(D+0) & 0x00ff) * a1)) >> 16);              // __ __ __ y0
+               Dpix |= ((u + ((*(D+0) & 0xff00) * a1)) >> 16) & 0x0000ff00; // __ __ cb y0
+               Dpix |= ((y + ((*(D+1) & 0x00ff) * a1))      ) & 0x00ff0000; // __ y1 cb y0
+               Dpix |= ((v + ((*(D+1) & 0xff00) * a1))      ) & 0xff000000; // cr y1 cb y0 
+#endif
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1) {
+               *D =  ((y + ((*D & 0x00ff) * a1)) >> 16) |
+                    (((u + ((*D & 0xff00) * a1)) >> 16) & 0xff00);
+          }
+     }
+     else {
+          uint32_t Dpix = (y <<  0) | (u << (YUY2_CB_SHIFT-8)) |
+                          (y << 16) | (v << (YUY2_CR_SHIFT-8));
+          
+          if (x & 1) {
+               *D++ = (y | v);
+               w--;
+          }
+
+          for (n = w/2; n--;) {
+               *((uint32_t*)D) = Dpix;
+               D += 2;
           }
 
           if (w & 1)
-          {
-               *du = (cb + (*du * ia)) >> 16;
-               *dv = (cr + (*dv * ia)) >> 16;
-          }
-     }
-
-     dst[0] = dy;
-     dst[1] = du;
-     dst[2] = dv;
-}
-
-
-
-
-static void
-dfb_overlay_blend_yuy2( dfb_frame_t  *frame,
-                        vo_overlay_t *overlay )
-{
-     uint8_t   *src   = (uint8_t*) frame->surface->back_buffer->system.addr;
-     uint32_t   pitch = (uint32_t) frame->surface->back_buffer->system.pitch;
-     DFBRegion  clip;
-     int        i, x, y;
-
-     clip.x1 = overlay->x + overlay->clip_left;
-     clip.x2 = overlay->x + overlay->clip_right;
-     clip.y1 = overlay->y + overlay->clip_top;
-     clip.y2 = overlay->y + overlay->clip_bottom;
-
-     if (clip.x2 > frame->width.cur)
-          clip.x2 = frame->width.cur;
-
-     if (clip.y2 > frame->height.cur)
-          clip.y2 = frame->height.cur;
-
-     src += overlay->y * pitch;
-
-     for (i = 0, x = overlay->x, y = overlay->y; i < overlay->num_rle; i++)
-     {
-          uint8_t *dst   = src + (x << 1);
-          int      len   = overlay->rle[i].len;
-          int      index = overlay->rle[i].color & 0xff;
-
-          while (len > 0)
-          {
-               clut_t   color = ((clut_t*) overlay->color)[index];
-               uint8_t  alpha = overlay->trans[index];
-               uint32_t width;
-
-               width = (len > overlay->width)
-                     ? overlay->width : len;
-               len -= width;
-
-               if (y >= clip.y1 && y <= clip.y2 && x <= clip.x2)
-               {
-                    if (x < clip.x1 && (x + width - 1) >= clip.x1)
-                    {
-                         width -= clip.x1 - x;
-                         len   += clip.x1 - x;
-                    } else
-                    if (x > clip.x1)
-                    {
-                         color = ((clut_t*) overlay->clip_color)[index];
-                         alpha = overlay->clip_trans[index];
-
-                         if ((x + width - 1) > clip.x2)
-                         {
-                              width -= clip.x2 - x;
-                              len   += clip.x2 - x;
-                         }
-                    }
-               }
-
-               if (alpha >= 15)
-                    dst = _store_yuy2( dst, color, width, x );
-               else if (alpha)
-                    dst = _blend_yuy2( dst, color, alpha, width, x );
-               else
-                    dst = _skip_pixels( dst, width, x );
-
-               x += width;
-
-               if (x >= (overlay->x + overlay->width))
-               {
-                    x = overlay->x;
-                    y++;
-
-                    if (y > frame->height.cur)
-                         return;
-
-                    src += pitch;
-                    dst  = src + (x << 1);
-               }
-          }
+               *D = (y | u);
      }
 }
 
-
-static void
-dfb_overlay_blend_uyvy( dfb_frame_t  *frame,
-                        vo_overlay_t *overlay )
+static
+DFB_BFUNCTION( uyvy )
 {
-     uint8_t   *src    = (uint8_t*) frame->surface->back_buffer->system.addr;
-     uint32_t   pitch  = (uint32_t) frame->surface->back_buffer->system.pitch;
-     DFBRegion  clip;
-     int        i, x, y;
+     uint16_t *D = (uint16_t*) blender->plane[0] + blender->x;
+     uint32_t  y = color->yuv.y << 8;
+     uint32_t  u = color->yuv.u;
+     uint32_t  v = color->yuv.v;
+     int       x = blender->x;
+     int       w = blender->len;
+     int       n;
+     
+     if (color->yuv.a < 0xff) {
+          uint32_t a0 = (color->yuv.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          y *= a0;
+          u *= a0;
+          v *= a0;
+          
+          if (x & 1) {
+               *D = (((v + ((*D & 0x00ff) * a1)) >> 16)         ) |
+                    (((y + ((*D & 0xff00) * a1)) >> 16) & 0xff00);
+               D++;
+               w--;
+          }
 
-     clip.x1 = overlay->x + overlay->clip_left;
-     clip.x2 = overlay->x + overlay->clip_right;
-     clip.y1 = overlay->y + overlay->clip_top;
-     clip.y2 = overlay->y + overlay->clip_bottom;
+          for (n = w/2; n--;) {
+               register uint32_t Dpix;
 
-     if (clip.x2 > frame->width.cur)
-          clip.x2 = frame->width.cur;
-
-     if (clip.y2 > frame->height.cur)
-          clip.y2 = frame->height.cur;
-
-     src += overlay->y * pitch;
-
-     for (i = 0, x = overlay->x, y = overlay->y; i < overlay->num_rle; i++)
-     {
-          uint8_t *dst   = src + (x << 1);
-          int      len   = overlay->rle[i].len;
-          int      index = overlay->rle[i].color & 0xff;
-
-          while (len > 0)
-          {
-               clut_t   color = ((clut_t*) overlay->color)[index];
-               uint8_t  alpha = overlay->trans[index];
-               uint32_t width;
-
-               width = (len > overlay->width)
-                     ? overlay->width : len;
-               len -= width;
-
-               if (y >= clip.y1 && y <= clip.y2 && x <= clip.x2)
-               {
-                    if (x < clip.x1 && (x + width - 1) >= clip.x1)
-                    {
-                         width -= clip.x1 - x;
-                         len   += clip.x1 - x;
-                    } else
-                    if (x > clip.x1)
-                    {
-                         color = ((clut_t*) overlay->clip_color)[index];
-                         alpha = overlay->clip_trans[index];
-
-                         if ((x + width - 1) > clip.x2)
-                         {
-                              width -= clip.x2 - x;
-                              len   += clip.x2 - x;
-                         }
-                    }
-               }
-
-               if (alpha >= 15)
-                    dst = _store_uyvy( dst, color, width, x );
-               else if (alpha)
-                    dst = _blend_uyvy( dst, color, alpha, width, x );
-               else
-                    dst = _skip_pixels( dst, width, x );
+#ifdef WORDS_BIGENDIAN
+               Dpix  = ((v + ((*(D+1) & 0x00ff) * a1)) >> 16);              // __ __ __ cr
+               Dpix |= ((y + ((*(D+1) & 0xff00) * a1)) >> 16) & 0x0000ff00; // __ __ y1 cr
+               Dpix |= ((u + ((*(D+0) & 0x00ff) * a1))      ) & 0x00ff0000; // __ cb y1 cr
+               Dpix |= ((y + ((*(D+0) & 0xff00) * a1))      ) & 0xff000000; // y0 cb y1 cr
+#else
+               Dpix  = ((u + ((*(D+0) & 0x00ff) * a1)) >> 16);              // __ __ __ cb
+               Dpix |= ((y + ((*(D+0) & 0xff00) * a1)) >> 16) & 0x0000ff00; // __ __ y0 cb
+               Dpix |= ((v + ((*(D+1) & 0x00ff) * a1))      ) & 0x00ff0000; // __ cr y0 cb
+               Dpix |= ((y + ((*(D+1) & 0xff00) * a1))      ) & 0xff000000; // y1 cr y0 cb
+#endif
                
-               x += width;
-
-               if (x >= (overlay->x + overlay->width))
-               {
-                    x = overlay->x;
-                    y++;
-
-                    if (y > frame->height.cur)
-                         return;
-
-                    src += pitch;
-                    dst  = src + (x << 1);
-               }
+               *((uint32_t*)D) = Dpix;
+               D += 2;
           }
+
+          if (w & 1) { 
+               *D = (((u + ((*D & 0x00ff) * a1)) >> 16)         ) |
+                    (((y + ((*D & 0xff00) * a1)) >> 16) & 0xff00);
+          }
+     }
+     else {
+          uint32_t Dpix = (u << UYVY_CB_SHIFT) | (y <<  0) |
+                          (v << UYVY_CR_SHIFT) | (y << 16);
+          
+          if (x & 1) {
+               *D++ = (v | y);
+               w--;
+          }
+
+          for (n = w/2; n--;) {
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1)
+               *D = (u | y);
      }
 }
 
-
-static void
-dfb_overlay_blend_yv12( dfb_frame_t  *frame,
-                        vo_overlay_t *overlay )
+static
+DFB_BFUNCTION( yv12 )
 {
-     uint8_t   *src[3]   = {frame->surface->back_buffer->system.addr, };
-     uint32_t   pitch[2] = {frame->width.cur, frame->width.cur >> 1};
-     DFBRegion  clip;
-     int        i, x, y;
+     uint8_t  *Dy = blender->plane[0] + blender->x;
+     uint8_t  *Du = blender->plane[1] + blender->x/2;
+     uint8_t  *Dv = blender->plane[2] + blender->x/2;
+     uint32_t  y = color->yuv.y;
+     uint32_t  u = color->yuv.u;
+     uint32_t  v = color->yuv.v;
+     int       w = blender->len;
+     int       n;
+     
+     if (color->yuv.a < 0xff) {
+          uint32_t a0 = (color->yuv.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          y *= a0;
 
-     if (frame->dstfmt.cur == DSPF_YV12)
-     {
-          src[2]  = src[0] + (pitch[0] * frame->height.cur);
-          src[1]  = src[2] + (pitch[1] * (frame->height.cur >> 1));
-     } else
-     {
-          src[1]  = src[0] + (pitch[0] * frame->height.cur);
-          src[2]  = src[1] + (pitch[1] * (frame->height.cur >> 1));
-     }
-
-     src[0] += overlay->y * pitch[0];
-     src[1] += (overlay->y >> 1) * pitch[1];
-     src[2] += (overlay->y >> 1) * pitch[1];
-
-     clip.x1 = overlay->x + overlay->clip_left;
-     clip.x2 = overlay->x + overlay->clip_right;
-     clip.y1 = overlay->y + overlay->clip_top;
-     clip.y2 = overlay->y + overlay->clip_bottom;
-
-     if (clip.x2 > frame->width.cur)
-          clip.x2 = frame->width.cur;
-
-     if (clip.y2 > frame->height.cur)
-          clip.y2 = frame->height.cur;
-
-     for (i = 0, x = overlay->x, y = overlay->y; i < overlay->num_rle; i++)
-     {
-          uint8_t *dst[3] = 
-          {
-               [0] = src[0] + x,
-               [1] = src[1] + (x >> 1),
-               [2] = src[2] + (x >> 1)
-          };
-          int      len    = overlay->rle[i].len;
-          int      index  = overlay->rle[i].color & 0xff;
-
-          while (len > 0)
-          {
-               clut_t   color = ((clut_t*) overlay->color)[index];
-               uint8_t  alpha = overlay->trans[index];
-               uint32_t width;
-
-               width = (len > overlay->width)
-                     ? overlay->width : len;
-               len -= width;
-
-               if (y >= clip.y1 && y <= clip.y2 && x <= clip.x2)
-               {
-                    if (x < clip.x1 && (x + width - 1) >= clip.x1)
-                    {
-                         width -= clip.x1 - x;
-                         len   += clip.x1 - x;
-                    } else
-                    if (x > clip.x1)
-                    {
-                         color = ((clut_t*) overlay->clip_color)[index];
-                         alpha = overlay->clip_trans[index];
-
-                         if ((x + width - 1) > clip.x2)
-                         {
-                              width -= clip.x2 - x;
-                              len   += clip.x2 - x;
-                         }
-                    }
-               }
-
-               if (alpha >= 15)
-                    _store_yv12( dst, color, width, y );
-               else if (alpha)
-                    _blend_yv12( dst, color, alpha, width, y );
-               else
-                    _skip_planes( dst, width, y );
-
-               x += width;
-
-               if (x >= (overlay->x + overlay->width))
-               {
-                    x = overlay->x;
-                    y++;
-
-                    if (y > frame->height.cur)
-                         return;
-
-                    src[0] += pitch[0];
-                    dst[0]  = src[0] + x;
-
-                    if (y & 1)
-                    {
-                         src[1] += pitch[1];
-                         dst[1]  = src[1] + (x >> 1);
-                         src[2] += pitch[1];
-                         dst[2]  = src[2] + (x >> 1);
-                    }
-               }
+          for (n = w; n--;) {
+               *Dy = (y + (*Dy * a1)) >> 16;
+               Dy++;
           }
-     }
-}
 
-
-static void
-dfb_overlay_blend_rgb( dfb_frame_t  *frame,
-                       vo_overlay_t *overlay )
-{
-     dfb_driver_t *this   = (dfb_driver_t*) frame->vo_frame.driver;
-     DFBRegion     clip;
-     int           i, x, y;
-
-     if (!overlay->rgb_clut)
-     {
-          clut_t *clut = (clut_t*) overlay->color;
-
-          /* avoid applying color adjustments */
-          for (i = 0; i < (sizeof( overlay->color ) / sizeof( clut_t )); i++)
-          {
-               DFBColor *color   = (DFBColor*) &clut[i];
-               int       y, u, v;
-               int       r, g, b;
-
-               y = clut[i].y + this->correction.used;
-               u = clut[i].cb - 128;
-               v = clut[i].cr - 128;
+          if (blender->y & 1) {
+               u *= a0;
+               v *= a0;
                
-               r = y + ((v * V_RED_FACTOR) >> 14);
-               g = y - (((v * V_GREEN_FACTOR) + (u * U_GREEN_FACTOR)) >> 14);
-               b = y + ((u * U_BLUE_FACTOR) >> 14);
-
-               color->r = (r < 0) ? 0 : ((r > 0xff) ? 0xff : r);
-               color->g = (g < 0) ? 0 : ((g > 0xff) ? 0xff : g);
-               color->b = (b < 0) ? 0 : ((b > 0xff) ? 0xff : b);
-               color->a = overlay->trans[i] * 17;
-          }
-
-          overlay->rgb_clut++;
-     }
-
-     if (!overlay->clip_rgb_clut)
-     {
-          clut_t *clut = (clut_t*) overlay->clip_color;
-
-          /* avoid applying color adjustments */
-          for (i = 0; i < (sizeof( overlay->clip_color ) / sizeof( clut_t )); i++)
-          {
-               DFBColor *color   = (DFBColor*) &clut[i];
-               int       y, u, v;
-               int       r, g, b;
-
-               y = clut[i].y  + this->correction.used;
-               u = clut[i].cb - 128;
-               v = clut[i].cr - 128;
-
-               r = y + ((v * V_RED_FACTOR) >> 14);
-               g = y - (((v * V_GREEN_FACTOR) + (u * U_GREEN_FACTOR)) >> 14);
-               b = y + ((u * U_BLUE_FACTOR) >> 14);
-
-               color->r = (r < 0) ? 0 : ((r > 0xff) ? 0xff : r);
-               color->g = (g < 0) ? 0 : ((g > 0xff) ? 0xff : g);
-               color->b = (b < 0) ? 0 : ((b > 0xff) ? 0xff : b);
-               color->a = overlay->clip_trans[i] * 17;
-          }
-
-          overlay->clip_rgb_clut++;
-     }
-
-     clip.x1 = overlay->x + overlay->clip_left;
-     clip.x2 = overlay->x + overlay->clip_right;
-     clip.y1 = overlay->y + overlay->clip_top;
-     clip.y2 = overlay->y + overlay->clip_bottom;
-
-     if (clip.x2 > frame->width.cur)
-          clip.x2 = frame->width.cur;
-
-     if (clip.y2 > frame->height.cur)
-          clip.y2 = frame->height.cur;
-
-     this->state.clip.x1      = 0;
-     this->state.clip.x2      = frame->width.cur - 1;
-     this->state.clip.y1      = 0;
-     this->state.clip.y2      = frame->height.cur - 1;
-     this->state.destination  = frame->surface;
-     this->state.modified    |= (SMF_CLIP | SMF_DESTINATION);
-
-     for (i = 0, x = overlay->x, y = overlay->y; i < overlay->num_rle; i++)
-     {
-          int len   = overlay->rle[i].len;
-          int index = overlay->rle[i].color & 0xff;
-
-          while (len > 0)
-          {
-               DFBColor *palette = (DFBColor*) overlay->color;
-               uint32_t  width;
-
-               width = (len > overlay->width)
-                     ? overlay->width : len;
-               len -= width;
-
-               if (y >= clip.y1 && y <= clip.y2 && x <= clip.x2)
-               {
-                    if (x < clip.x1 && (x + width - 1) >= clip.x1)
-                    {
-                         width -= clip.x1 - x;
-                         len   += clip.x1 - x;
-                    } else
-                    if (x > clip.x1)
-                    {
-                         palette = (DFBColor*) overlay->clip_color;
-
-                         if ((x + width - 1) > clip.x2)
-                         {
-                              width -= clip.x2 - x;
-                              len   += clip.x2 - x;
-                         }
-                    }
+               for (n = w/2; n--;) {
+                    *Du = (u + (*Du * a1)) >> 16;
+                    Du++;
+                    *Dv = (v + (*Dv * a1)) >> 16;
+                    Dv++;
                }
 
-               if (palette[index].a)
-               {
-                    DFBRectangle rect;
+               if (w & 1) {
+                    *Du = (u + (*Du * a1)) >> 16;
+                    *Dv = (v + (*Dv * a1)) >> 16;
+               }
+          }
+     }
+     else {
+          memset( Dy, y, w );
+          
+          if (blender->y & 1) {
+               memset( Du, u, (w+1)/2 );
+               memset( Dv, v, (w+1)/2 );
+          }
+     }    
+}
+
+static
+DFB_BFUNCTION( nv12 )
+{
+     uint8_t  *Dy  = blender->plane[0] + blender->x;
+     uint16_t *Duv = (uint16_t*) blender->plane[1] + blender->x/2;
+     uint32_t  y   = color->yuv.y;
+     uint32_t  u   = color->yuv.u;
+     uint32_t  v   = color->yuv.v << 8;
+     int       w   = blender->len;
+     int       n;
+     
+     if (color->yuv.a < 0xff) {
+          uint32_t a0 = (color->yuv.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          y *= a0;
+
+          for (n = w; n--;) {
+               *Dy = (y + (*Dy * a1)) >> 16;
+               Dy++;
+          }
+
+          if (blender->y & 1) {
+               u *= a0;
+               v *= a0;
+
+               if ((uint32_t)Duv & 2) { 
+                    *Duv = (((u + ((*Duv & 0x00ff) * a1)) >> 16)         ) |
+                           (((v + ((*Duv & 0xff00) * a1)) >> 16) & 0xff00);
+                    Duv++;
+                    w -= 2;
+               }
+               
+               for (n = w/4; n--;) {
+                    register uint32_t Dpix;
+
+                    Dpix  = ((u + ((W0(Duv) & 0x00ff) * a1)) >> 16);
+                    Dpix |= ((v + ((W0(Duv) & 0xff00) * a1)) >> 16) & 0x0000ff00;
+                    Dpix |= ((u + ((W1(Duv) & 0x00ff) * a1))      ) & 0x00ff0000;
+                    Dpix |= ((v + ((W1(Duv) & 0xff00) * a1))      ) & 0xff000000;
                     
-                    this->state.color     = palette[index];
-                    this->state.modified |= SMF_COLOR;
-
-                    rect.x = x;
-                    rect.y = y;
-                    rect.w = width;
-                    rect.h = 1;
-
-                    dfb_gfxcard_fillrectangles( &rect, 1, &this->state );
+                    *((uint32_t*)Duv) = Dpix;
+                    Duv += 2;
                }
 
-               x += width;
-
-               if (x >= (overlay->x + overlay->width))
-               {
-                    x = overlay->x;
-                    y++;
-
-                    if (y > frame->height.cur)
-                         goto end;
+               if (w & 2) {
+                    *Duv = (((u + ((*Duv & 0x00ff) * a1)) >> 16)         ) |
+                           (((v + ((*Duv & 0xff00) * a1)) >> 16) & 0xff00);
                }
           }
      }
+     else {
+          memset( Dy, y, w );
+          
+          if (blender->y & 1) {
+               register uint32_t Dpix = u | v | ((u|v) << 16);
+               
+               if ((uint32_t)Duv & 2) {
+                    *Duv++ = Dpix;
+                    w -= 2;
+               }
+               
+               for (n = w/4; n--;) {
+                    *((uint32_t*)Duv) = Dpix;
+                    Duv += 2;
+               }
 
-end:
-     this->state.destination  = this->dest_data->surface;
-     this->state.modified    |= SMF_DESTINATION;
+               if (w & 2)
+                    *Duv = Dpix;
+          }
+     }    
 }
+
+static
+DFB_BFUNCTION( rgb332 )
+{
+     uint8_t  *D = blender->plane[0] + blender->x;
+     uint32_t  r = (color->rgb.r & 0xe0);
+     uint32_t  g = (color->rgb.g & 0xe0) >> 3;
+     uint32_t  b = (color->rgb.b & 0xc0) >> 6;
+     int       n = blender->len;
+     
+     if (color->rgb.a < 0xff) {
+          uint32_t a0 = (color->rgb.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          r *= a0;
+          g *= a0;
+          b *= a0;
+          
+          while (n--) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((*D & 0x03) * a1)) >> 16);
+               Dpix |= ((g + ((*D & 0x1c) * a1)) >> 16) & 0x1c;
+               Dpix |= ((r + ((*D & 0xe0) * a1)) >> 16) & 0xe0;
+               
+               *D++ = Dpix;
+          }
+     } else
+          memset( D, (r | g | b), n );
+}
+
+static
+DFB_BFUNCTION( argb2554 )
+{
+     uint16_t *D = (uint16_t*) blender->plane[0] + blender->x;
+     uint32_t  a = (color->rgb.a & 0xc0) << 8;
+     uint32_t  r = (color->rgb.r & 0xf8) << 6;
+     uint32_t  g = (color->rgb.g & 0xf8) << 1;
+     uint32_t  b = (color->rgb.b & 0xf0) >> 4;
+     int       w = blender->len;
+     int       n;
+     
+     if (color->rgb.a < 0xff) {
+          uint32_t a0 = (color->rgb.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          a *= a0;
+          r *= a0;
+          g *= a0;
+          b *= a0;
+
+          if ((uint32_t)D & 2) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((*D & 0x000f) * a1)) >> 16);
+               Dpix |= ((g + ((*D & 0x01f0) * a1)) >> 16) & 0x01f0;
+               Dpix |= ((r + ((*D & 0x3e00) * a1)) >> 16) & 0x3e00;
+               Dpix |= ((a + ((*D & 0xc000) * a1)) >> 16) & 0xc000;
+
+               *D++ = Dpix;
+               w--;
+          }               
+          
+          for (n = w/2; n--;) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((W0(D) & 0x000f) * a1)) >> 16);
+               Dpix |= ((g + ((W0(D) & 0x01f0) * a1)) >> 16) & 0x000001f0;
+               Dpix |= ((r + ((W0(D) & 0x3e00) * a1)) >> 16) & 0x00003e00;
+               Dpix |= ((a + ((W0(D) & 0xc000) * a1)) >> 16) & 0x0000c000;
+               
+               Dpix |= ((b + ((W1(D) & 0x000f) * a1))      ) & 0x000f0000;
+               Dpix |= ((g + ((W1(D) & 0x01f0) * a1))      ) & 0x01f00000;
+               Dpix |= ((r + ((W1(D) & 0x3e00) * a1))      ) & 0x3e000000;
+               Dpix |= ((a + ((W1(D) & 0xc000) * a1))      ) & 0xc0000000;
+               
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((*D & 0x000f) * a1)) >> 16);
+               Dpix |= ((g + ((*D & 0x01f0) * a1)) >> 16) & 0x01f0;
+               Dpix |= ((r + ((*D & 0x3e00) * a1)) >> 16) & 0x3e00;
+               Dpix |= ((a + ((*D & 0xc000) * a1)) >> 16) & 0xc000;
+
+               *D = Dpix;
+          }
+     }
+     else {
+          uint32_t Dpix = (a | r | g | b);
+
+          Dpix |= Dpix << 16;
+
+          if ((uint32_t)D & 2) {
+               *D++ = Dpix;
+               w--;
+          }
+          
+          for (n = w/2; n--;) {
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1)
+               *D = Dpix;
+     }
+}
+
+static
+DFB_BFUNCTION( argb4444 )
+{
+     uint16_t *D = (uint16_t*) blender->plane[0] + blender->x;
+     uint32_t  a = (color->rgb.a & 0xf0) << 8;
+     uint32_t  r = (color->rgb.r & 0xf0) << 4;
+     uint32_t  g = (color->rgb.g & 0xf0);
+     uint32_t  b = (color->rgb.b & 0xf0) >> 4;
+     int       w = blender->len;
+     int       n;
+     
+     if (color->rgb.a < 0xff) {
+          uint32_t a0 = (color->rgb.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          a *= a0;
+          r *= a0;
+          g *= a0;
+          b *= a0;
+
+          if ((uint32_t)D & 2) { 
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((*D & 0x000f) * a1)) >> 16);
+               Dpix |= ((g + ((*D & 0x00f0) * a1)) >> 16) & 0x00f0;
+               Dpix |= ((r + ((*D & 0x0f00) * a1)) >> 16) & 0x0f00;
+               Dpix |= ((a + ((*D & 0xf000) * a1)) >> 16) & 0xf000;
+               
+               *D++ = Dpix;
+               w--;
+          }
+          
+          for (n = w/2; n--;) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((W0(D) & 0x000f) * a1)) >> 16);
+               Dpix |= ((g + ((W0(D) & 0x00f0) * a1)) >> 16) & 0x000000f0;
+               Dpix |= ((r + ((W0(D) & 0x0f00) * a1)) >> 16) & 0x00000f00;
+               Dpix |= ((a + ((W0(D) & 0xf000) * a1)) >> 16) & 0x0000f000;
+               
+               Dpix |= ((b + ((W1(D) & 0x000f) * a1))      ) & 0x000f0000;
+               Dpix |= ((g + ((W1(D) & 0x00f0) * a1))      ) & 0x00f00000;
+               Dpix |= ((r + ((W1(D) & 0x0f00) * a1))      ) & 0x0f000000;
+               Dpix |= ((a + ((W1(D) & 0xf000) * a1))      ) & 0xf0000000;
+               
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((*D & 0x000f) * a1)) >> 16);
+               Dpix |= ((g + ((*D & 0x00f0) * a1)) >> 16) & 0x00f0;
+               Dpix |= ((r + ((*D & 0x0f00) * a1)) >> 16) & 0x0f00;
+               Dpix |= ((a + ((*D & 0xf000) * a1)) >> 16) & 0xf000;
+               
+               *D = Dpix;
+          }
+     }
+     else {
+          uint32_t Dpix = (a | r | g | b);
+
+          Dpix |= Dpix << 16;
+
+          if ((uint32_t)D & 2) {
+               *D++ = Dpix;
+               w--;
+          }
+          
+          for (n = w/2; n--;) {
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1)
+               *D = Dpix;
+     }
+}
+
+static
+DFB_BFUNCTION( argb1555 )
+{
+     uint16_t *D = (uint16_t*) blender->plane[0] + blender->x;
+     uint32_t  a = (color->rgb.a & 0x80) << 8;
+     uint32_t  r = (color->rgb.r & 0xf8) << 7;
+     uint32_t  g = (color->rgb.g & 0xf8) << 2;
+     uint32_t  b = (color->rgb.b & 0xf8) >> 3;
+     int       w = blender->len;
+     int       n;
+     
+     if (color->rgb.a < 0xff) {
+          uint32_t a0 = (color->rgb.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          r *= a0;
+          g *= a0;
+          b *= a0;
+
+          if ((uint32_t)D & 2) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((*D & 0x001f) * a1)) >> 16);
+               Dpix |= ((g + ((*D & 0x03e0) * a1)) >> 16) & 0x03e0;
+               Dpix |= ((r + ((*D & 0x7c00) * a1)) >> 16) & 0x7c00;
+               Dpix |= (a > 127) ? 0x8000 : (*D & 0x8000);
+               
+               *D++ = Dpix;
+               w--;
+          }    
+          
+          for (n = w/2; n--;) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((W0(D) & 0x001f) * a1)) >> 16);
+               Dpix |= ((g + ((W0(D) & 0x03e0) * a1)) >> 16) & 0x000003e0;
+               Dpix |= ((r + ((W0(D) & 0x7c00) * a1)) >> 16) & 0x00007c00;
+               Dpix |= ((a > 127) ? 0x00008000 : ((W0(D) & 0x8000)));
+
+               Dpix |= ((b + ((W1(D) & 0x001f) * a1))      ) & 0x001f0000;
+               Dpix |= ((g + ((W1(D) & 0x03e0) * a1))      ) & 0x03e00000;
+               Dpix |= ((r + ((W1(D) & 0x7c00) * a1))      ) & 0x7c000000;
+               Dpix |= ((a > 127) ? 0x80000000 : ((W1(D) & 0x8000)<<16));
+               
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((*D & 0x001f) * a1)) >> 16);
+               Dpix |= ((g + ((*D & 0x03e0) * a1)) >> 16) & 0x03e0;
+               Dpix |= ((r + ((*D & 0x7c00) * a1)) >> 16) & 0x7c00;
+               Dpix |= ((a > 127) ? 0x8000 : (*D & 0x8000));
+               
+               *D = Dpix;
+          }    
+     }
+     else {
+          uint32_t Dpix = (a | r | g | b);
+
+          Dpix |= Dpix << 16;
+
+          if ((uint32_t)D & 2) {
+               *D++ = Dpix;
+               w--;
+          }
+          
+          for (n = w/2; n--;) {
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1)
+               *D = Dpix;
+     }
+}
+
+static
+DFB_BFUNCTION( rgb16 )
+{
+     uint16_t *D = (uint16_t*) blender->plane[0] + blender->x;
+     uint32_t  r = (color->rgb.r & 0xf8) << 8;
+     uint32_t  g = (color->rgb.g & 0xfc) << 3;
+     uint32_t  b = (color->rgb.b & 0xf8) >> 3;
+     int       w = blender->len;
+     int       n;
+     
+     if (color->rgb.a < 0xff) {
+          uint32_t a0 = (color->rgb.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          r *= a0;
+          g *= a0;
+          b *= a0;
+
+          if ((uint32_t)D & 2) { 
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((*D & 0x001f) * a1)) >> 16);
+               Dpix |= ((g + ((*D & 0x07e0) * a1)) >> 16) & 0x07e0;
+               Dpix |= ((r + ((*D & 0xf800) * a1)) >> 16) & 0xf800;
+               
+               *D++ = Dpix;
+               w--;
+          }
+          
+          for (n = w/2; n--;) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((W0(D) & 0x001f) * a1)) >> 16);
+               Dpix |= ((g + ((W0(D) & 0x07e0) * a1)) >> 16) & 0x000007e0;
+               Dpix |= ((r + ((W0(D) & 0xf800) * a1)) >> 16) & 0x0000f800;
+
+               Dpix |= ((b + ((W1(D) & 0x001f) * a1))      ) & 0x001f0000;
+               Dpix |= ((g + ((W1(D) & 0x07e0) * a1))      ) & 0x07e00000;
+               Dpix |= ((r + ((W1(D) & 0xf800) * a1))      ) & 0xf8000000;
+               
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + ((*D & 0x001f) * a1)) >> 16);
+               Dpix |= ((g + ((*D & 0x07e0) * a1)) >> 16) & 0x07e0;
+               Dpix |= ((r + ((*D & 0xf800) * a1)) >> 16) & 0xf800;
+               
+               *D = Dpix;
+          }
+     }
+     else {
+          uint32_t Dpix = (r | g | b);
+
+          Dpix |= Dpix << 16;
+
+          if ((uint32_t)D & 2) {
+               *D++ = Dpix;
+               w--;
+          }
+          
+          for (n = w/2; n--;) {
+               *((uint32_t*)D) = Dpix;
+               D += 2;
+          }
+
+          if (w & 1)
+               *D = Dpix;
+     }
+}
+
+static
+DFB_BFUNCTION( rgb24 )
+{
+     uint8_t  *D = blender->plane[0] + blender->x*3;
+     uint32_t  r = color->rgb.r;
+     uint32_t  g = color->rgb.g;
+     uint32_t  b = color->rgb.b;
+     int       n = blender->len;
+     
+     if (color->rgb.a < 0xff) {
+          uint32_t a0 = (color->rgb.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          r *= a0;
+          g *= a0;
+          b *= a0;
+          
+          while (n--) {
+               *(D+0) = (b + (*(D+0) * a1)) >> 16;
+               *(D+1) = (g + (*(D+1) * a1)) >> 16;
+               *(D+2) = (r + (*(D+2) * a1)) >> 16;
+               
+               D += 3;
+          }
+     }
+     else {
+          while (n--) {
+               *(D+0) = b;
+               *(D+1) = r;
+               *(D+2) = g;
+               
+               D += 3;
+          }
+     }
+}
+
+static
+DFB_BFUNCTION( rgb32 )
+{
+     uint32_t *D = (uint32_t*) blender->plane[0] + blender->x;
+     uint32_t  r = color->rgb.r;
+     uint32_t  g = color->rgb.g;
+     uint32_t  b = color->rgb.b;
+     int       n = blender->len;
+     
+     if (color->rgb.a < 0xff) {
+          uint32_t a0 = (color->rgb.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          r *= a0;
+          g *= a0;
+          b *= a0;
+          
+          while (n--) {
+               register uint32_t Dpix;
+
+               Dpix  = ((b + (((*D & 0x000000ff)      ) * a1)) >> 16);
+               Dpix |= ((g + (((*D & 0x0000ff00) >>  8) * a1)) >>  8) & 0x0000ff00;
+               Dpix |= ((r + (((*D & 0x00ff0000) >> 16) * a1))      ) & 0x00ff0000;
+
+               *D++ = Dpix;
+          }
+     }
+     else {
+          uint32_t Dpix = (r << 16) | (g << 8) | b;
+          
+          while (n--)
+               *D++ = Dpix;
+     }
+}
+
+static
+DFB_BFUNCTION( argb )
+{
+     uint32_t *D = (uint32_t*) blender->plane[0] + blender->x;
+     uint32_t  a = color->rgb.a;
+     uint32_t  r = color->rgb.r;
+     uint32_t  g = color->rgb.g;
+     uint32_t  b = color->rgb.b;
+     int       n = blender->len;
+     
+     if (a < 0xff) {
+          uint32_t a0 = (a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+         
+          a *= a0;
+          r *= a0;
+          g *= a0;
+          b *= a0;
+          
+          while (n--) {
+               register uint32_t Dpix;
+               
+               Dpix  = ((b + (((*D & 0x000000ff)      ) * a1)) >> 16);
+               Dpix |= ((g + (((*D & 0x0000ff00) >>  8) * a1)) >>  8) & 0x0000ff00;
+               Dpix |= ((r + (((*D & 0x00ff0000) >> 16) * a1))      ) & 0x00ff0000;
+               Dpix |= ((a + (((*D & 0xff000000) >> 24) * a1)) <<  8) & 0xff000000;
+
+               *D++ = Dpix;
+          }
+     }
+     else {
+          uint32_t Dpix = (a << 24) | (r << 16) | (g << 8) | b;
+
+          while (n--)
+               *D++ = Dpix;
+     }
+}
+
+
+#undef PACCEL
 
