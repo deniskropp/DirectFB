@@ -121,13 +121,16 @@ static void mouse_setspeed()
 void* mouseEventThread_ms(void *device)
 {
      InputDevice *mouse = (InputDevice*)device;
+     DFBInputEvent evt;
 
      unsigned char buf[256];
      unsigned char packet[4];
      unsigned char pos = 0;
      unsigned char last_buttons = 0;
-     int i;
+     int dx, dy;
+     int buttons;
      int readlen;
+     int i;
 
      if (mouse->number != 0)
           return NULL;
@@ -144,13 +147,18 @@ void* mouseEventThread_ms(void *device)
                if (pos == 0  && !(buf[i] & 0x40))
                     continue;
 
+               /* We did not reset the position in the mouse event handler
+                  since a forth byte may follow. We check for it now and 
+                  reset the position if this is a start byte. */
+               if (pos == 3 && buf[i] & 0x40)
+                    pos = 0;
+
                packet[pos++] = buf[i];
 
-               if (pos == 3) {
-                    int dx, dy;
-                    int buttons;
-
-                    pos = 0;
+               switch (pos) {
+               case 3:
+                    if (protocol != PROTOCOL_MOUSEMAN)
+                         pos = 0;
                     
                     buttons = packet[0] & 0x30;
                     dx = (signed char) 
@@ -160,36 +168,17 @@ void* mouseEventThread_ms(void *device)
                     
                     mouse_motion_compress( dx, dy );
                     
-                    switch (protocol) {
-
-                    case PROTOCOL_MS:
-                         break;
-                    case PROTOCOL_MS3:
+                    if (protocol == PROTOCOL_MS3) {
                          if (!dx && !dy && buttons == (last_buttons & ~MIDDLE))
                               buttons = last_buttons ^ MIDDLE;  /* toggle    */
                          else
                               buttons |= last_buttons & MIDDLE; /* preserve  */
-                         break;
-                    case PROTOCOL_MOUSEMAN:
-                         if (i == readlen - 1)
-                              break;
-                         packet[3] = buf[i+1];
-                         if (packet[3] & 0x40)
-                              break;
-                         i++;
-                         if (packet[3] & 0x20)
-                              buttons |= MIDDLE;
-                         break;
-                    default:
-                         break;
-
                     }   
 
                     if (!dfb_config->mouse_motion_compression)
                          mouse_motion_realize( device );
                          
                     if (last_buttons != buttons) {
-                         DFBInputEvent evt;
                          unsigned char changed_buttons = last_buttons ^ buttons;
                            
                          /* make sure the compressed motion event is dispatched
@@ -220,6 +209,20 @@ void* mouseEventThread_ms(void *device)
 
                          last_buttons = buttons;
                     }
+                    break;
+
+               case 4:
+                    pos = 0;
+                 
+                    evt.type = (packet[3] & 0x20) ? 
+                         DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                    evt.flags = DIEF_BUTTON;
+                    evt.button = DIBI_MIDDLE;
+                    reactor_dispatch( mouse->reactor, &evt );
+                    break;
+                    
+               default:
+                    break;
                }
           }
 
