@@ -45,8 +45,8 @@
 #include <misc/gfx_util.h>
 
 
-DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
-                         int pitch, DFBSurfacePixelFormat format );
+static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
+                                int pitch, DFBSurfacePixelFormat format );
 
 
 /*
@@ -57,31 +57,23 @@ typedef struct {
      char          *filename; /* filename of file to load */
 } IDirectFBImageProvider_PNG_data;
 
-/*
- * increments reference count of input buffer
- */
-DFBResult IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz );
+static DFBResult
+IDirectFBImageProvider_PNG_AddRef  ( IDirectFBImageProvider *thiz );
 
-/*
- * decrements reference count, destructs interface data if reference count is 0
- */
-DFBResult IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz );
+static DFBResult
+IDirectFBImageProvider_PNG_Release ( IDirectFBImageProvider *thiz );
 
-/*
- * Render the file contents into the destination contents
- * doing automatic scaling and color format conversion.
- */
-DFBResult IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
-                                               IDirectFBSurface *destination );
+static DFBResult
+IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
+                                     IDirectFBSurface       *destination );
 
-/*
- * Get a surface description that best matches the image
- * contained in the file. For opaque image formats the
- * pixel format of the primary layer is used.
- */
-DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
-                                               IDirectFBImageProvider *thiz,
-                                               DFBSurfaceDescription *dsc );
+static DFBResult
+IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
+                                                  DFBSurfaceDescription  *dsc );
+
+static DFBResult
+IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
+                                                DFBImageDescription    *dsc );
 
 
 char *get_type()
@@ -121,13 +113,14 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      thiz->AddRef = IDirectFBImageProvider_PNG_AddRef;
      thiz->Release = IDirectFBImageProvider_PNG_Release;
      thiz->RenderTo = IDirectFBImageProvider_PNG_RenderTo;
+     thiz->GetImageDescription = IDirectFBImageProvider_PNG_GetImageDescription;
      thiz->GetSurfaceDescription =
                                IDirectFBImageProvider_PNG_GetSurfaceDescription;
 
      return DFB_OK;
 }
 
-void IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
+static void IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
 {
      IDirectFBImageProvider_PNG_data *data =
                                    (IDirectFBImageProvider_PNG_data*)thiz->priv;
@@ -142,7 +135,7 @@ void IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
 #endif
 }
 
-DFBResult IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
+static DFBResult IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
@@ -151,7 +144,7 @@ DFBResult IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
+static DFBResult IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
@@ -162,7 +155,8 @@ DFBResult IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
+static DFBResult IDirectFBImageProvider_PNG_RenderTo(
+                                               IDirectFBImageProvider *thiz,
                                                IDirectFBSurface *destination )
 {
      int err, loader_result = 1;
@@ -227,8 +221,8 @@ DFBResult IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
 /* Loading routines */
 
-DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
-                         int pitch, DFBSurfacePixelFormat format )
+static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
+                                int pitch, DFBSurfacePixelFormat format )
 {
      png_structp png_ptr;
      png_infop info_ptr;
@@ -321,7 +315,7 @@ DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
      return DFB_OK;
 }
 
-DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
+static DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
                                               IDirectFBImageProvider *thiz,
                                               DFBSurfaceDescription *dsc )
 {
@@ -366,6 +360,61 @@ DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
                dsc->pixelformat = DSPF_ARGB;
           else 
                dsc->pixelformat= layers->surface->format;               
+
+          png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
+          fclose( f );
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBImageProvider_PNG_GetImageDescription(
+                                                   IDirectFBImageProvider *thiz,
+                                                   DFBImageDescription    *dsc )
+{
+     FILE *f;
+
+     INTERFACE_GET_DATA(IDirectFBImageProvider_PNG)
+
+     if (!dsc)
+          return DFB_INVARG;
+
+     f = fopen( data->filename, "rb" );
+     if (!f)
+          return errno2dfb( errno );
+
+     /* FIXME: colorkeyed PNGs are currently converted to alphachannel PNGs */
+     {
+          png_structp png_ptr;
+          png_infop info_ptr;
+
+          int png_type;
+
+          png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL,
+                                            NULL, NULL );
+          if (!png_ptr) {
+               fclose( f );
+               return DFB_FAILURE;
+          }
+
+          info_ptr = png_create_info_struct( png_ptr );
+          if (!info_ptr) {
+               png_destroy_read_struct( &png_ptr, (png_infopp)NULL,
+                                        (png_infopp)NULL );
+               fclose( f );
+               return DFB_FAILURE;
+          }
+
+          png_init_io( png_ptr, f );
+          png_read_info( png_ptr, info_ptr );
+
+          png_get_IHDR( png_ptr, info_ptr, NULL, NULL, NULL,
+                        &png_type, NULL, NULL, NULL );
+
+          if (png_type & PNG_COLOR_MASK_ALPHA) 
+               dsc->caps = DICAPS_ALPHACHANNEL;
+          else 
+               dsc->caps = DICAPS_NONE;
 
           png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
           fclose( f );

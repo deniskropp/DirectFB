@@ -55,31 +55,23 @@ typedef struct {
      char          *filename; /* filename of file to load */
 } IDirectFBImageProvider_JPEG_data;
 
-/*
- * increments reference count of input buffer
- */
-DFBResult IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz );
+static DFBResult
+IDirectFBImageProvider_JPEG_AddRef  ( IDirectFBImageProvider *thiz );
 
-/*
- * decrements reference count, destructs interface data if reference count is 0
- */
-DFBResult IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz );
+static DFBResult
+IDirectFBImageProvider_JPEG_Release ( IDirectFBImageProvider *thiz );
 
-/*
- * Render the file contents into the destination contents
- * doing automatic scaling and color format conversion.
- */
-DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
-                                                IDirectFBSurface *destination );
+static DFBResult
+IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
+                                      IDirectFBSurface       *destination );
 
-/*
- * Get a surface description that best matches the image
- * contained in the file. For opaque image formats the
- * pixel format of the primary layer is used.
- */
-DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
-                                                IDirectFBImageProvider *thiz,
-                                                DFBSurfaceDescription *dsc );
+static DFBResult
+IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
+                                                   DFBSurfaceDescription  *dsc);
+
+static DFBResult
+IDirectFBImageProvider_JPEG_GetImageDescription( IDirectFBImageProvider *thiz,
+                                                 DFBImageDescription    *dsc );
 
 
 struct my_error_mgr {
@@ -94,7 +86,7 @@ static void jpeglib_panic(j_common_ptr cinfo)
 }
 
 
-void copy_line32( __u32 *dst, __u8 *src, int width)
+static void copy_line32( __u32 *dst, __u8 *src, int width)
 {
      __u32 r, g , b;
      while (width--) {
@@ -105,7 +97,7 @@ void copy_line32( __u32 *dst, __u8 *src, int width)
      }
 }
 
-void copy_line24( __u8 *dst, __u8 *src, int width)
+static void copy_line24( __u8 *dst, __u8 *src, int width)
 {
      while (width--) {
           dst[0] = src[2];
@@ -117,7 +109,7 @@ void copy_line24( __u8 *dst, __u8 *src, int width)
      }
 }
 
-void copy_line16( __u16 *dst, __u8 *src, int width)
+static void copy_line16( __u16 *dst, __u8 *src, int width)
 {
      __u32 r, g , b;
      while (width--) {
@@ -128,7 +120,7 @@ void copy_line16( __u16 *dst, __u8 *src, int width)
      }
 }
 
-void copy_line15( __u16 *dst, __u8 *src, int width)
+static void copy_line15( __u16 *dst, __u8 *src, int width)
 {
      __u32 r, g , b;
      while (width--) {
@@ -178,13 +170,14 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      thiz->AddRef = IDirectFBImageProvider_JPEG_AddRef;
      thiz->Release = IDirectFBImageProvider_JPEG_Release;
      thiz->RenderTo = IDirectFBImageProvider_JPEG_RenderTo;
+     thiz->GetImageDescription =IDirectFBImageProvider_JPEG_GetImageDescription;
      thiz->GetSurfaceDescription =
                               IDirectFBImageProvider_JPEG_GetSurfaceDescription;
 
      return DFB_OK;
 }
 
-void IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
+static void IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
 {
      IDirectFBImageProvider_JPEG_data *data =
                                   (IDirectFBImageProvider_JPEG_data*)thiz->priv;
@@ -199,7 +192,7 @@ void IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
 #endif
 }
 
-DFBResult IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
+static DFBResult IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
@@ -208,7 +201,7 @@ DFBResult IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
+static DFBResult IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
@@ -219,8 +212,9 @@ DFBResult IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
-                                                IDirectFBSurface *destination )
+static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
+                                           IDirectFBImageProvider *thiz,
+                                           IDirectFBSurface       *destination )
 {
      int err;
      void *dst;
@@ -366,9 +360,9 @@ DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
-                                               IDirectFBImageProvider *thiz,
-                                               DFBSurfaceDescription *dsc )
+static DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
+                                                   IDirectFBImageProvider *thiz,
+                                                   DFBSurfaceDescription  *dsc )
 {
      FILE *f;
 
@@ -414,6 +408,20 @@ DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
           jpeg_destroy_decompress(&cinfo);
           fclose(f);
      }
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBImageProvider_JPEG_GetImageDescription(
+                                                   IDirectFBImageProvider *thiz,
+                                                   DFBImageDescription    *dsc )
+{
+     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
+
+     if (!dsc)
+          return DFB_INVARG;
+
+     dsc->caps = DICAPS_NONE;
 
      return DFB_OK;
 }

@@ -2233,6 +2233,29 @@ extern "C"
           );
      )
 
+     /*
+      * Capabilities of an image.
+      */
+     typedef enum {
+          DICAPS_NONE            = 0x00000000,  /* None of these.            */
+          DICAPS_ALPHACHANNEL    = 0x00000001,  /* The image data contains an
+                                                   alphachannel.             */
+          DICAPS_COLORKEY        = 0x00000002   /* The image has a colorkey,
+                                                   e.g. the transparent color
+                                                   of a GIF image.           */
+     } DFBImageCapabilities;
+     
+     /*
+      * Information about an image including capabilities and
+      * values belonging to available capabilities.
+      */
+     typedef struct {
+          DFBImageCapabilities     caps;        /* capabilities              */
+
+          __u8                     colorkey_r;  /* colorkey red channel      */
+          __u8                     colorkey_g;  /* colorkey green channel    */
+          __u8                     colorkey_b;  /* colorkey blue channel     */
+     } DFBImageDescription;
 
      /**************************
       * IDirectFBImageProvider *
@@ -2253,6 +2276,17 @@ extern "C"
           DFBResult (*GetSurfaceDescription) (
                IDirectFBImageProvider   *thiz,
                DFBSurfaceDescription    *dsc
+          );
+
+          /*
+           * Get a description of the image.
+           *
+           * This includes stuff that does not belong into the surface
+           * description, e.g. a colorkey of a transparent GIF.
+           */
+          DFBResult (*GetImageDescription) (
+               IDirectFBImageProvider   *thiz,
+               DFBImageDescription      *dsc
           );
 
 

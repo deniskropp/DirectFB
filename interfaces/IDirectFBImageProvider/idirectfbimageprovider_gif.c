@@ -92,6 +92,10 @@ static int verbose = 1;
 static int showComment = 1;
 static int ZeroDataBlock = FALSE;
 
+static __u32* ReadGIF( FILE *fd, int imageNumber, 
+                       int *width, int *height, int *transparency,
+                       __u32 *key_rgb, int headeronly);
+
 /*
  * private data struct of IDirectFBImageProvider_GIF
  */
@@ -100,31 +104,24 @@ typedef struct {
      char          *filename; /* filename of file to load */
 } IDirectFBImageProvider_GIF_data;
 
-/*
- * increments reference count of input buffer
- */
-DFBResult IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz );
+static DFBResult
+IDirectFBImageProvider_GIF_AddRef  ( IDirectFBImageProvider *thiz );
 
-/*
- * decrements reference count, destructs interface data if reference count is 0
- */
-DFBResult IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thiz );
+static DFBResult
+IDirectFBImageProvider_GIF_Release ( IDirectFBImageProvider *thiz );
 
-/*
- * Render the file contents into the destination contents
- * doing automatic scaling and color format conversion.
- */
-DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
-                                               IDirectFBSurface *destination );
+static DFBResult
+IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
+                                     IDirectFBSurface       *destination );
 
-/*
- * Get a surface description that best matches the image
- * contained in the file. For opaque image formats the
- * pixel format of the primary layer is used.
- */
-DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
-                                               IDirectFBImageProvider *thiz,
-                                               DFBSurfaceDescription *dsc );
+static DFBResult
+IDirectFBImageProvider_GIF_GetSurfaceDescription( IDirectFBImageProvider *thiz,
+                                                  DFBSurfaceDescription  *dsc );
+
+static DFBResult
+IDirectFBImageProvider_GIF_GetImageDescription( IDirectFBImageProvider *thiz,
+                                                DFBImageDescription    *dsc );
+
 
 char *get_type()
 {
@@ -163,13 +160,14 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      thiz->AddRef = IDirectFBImageProvider_GIF_AddRef;
      thiz->Release = IDirectFBImageProvider_GIF_Release;
      thiz->RenderTo = IDirectFBImageProvider_GIF_RenderTo;
+     thiz->GetImageDescription = IDirectFBImageProvider_GIF_GetImageDescription;
      thiz->GetSurfaceDescription =
                                IDirectFBImageProvider_GIF_GetSurfaceDescription;
 
      return DFB_OK;
 }
 
-void IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
+static void IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
 {
      IDirectFBImageProvider_GIF_data *data =
                                    (IDirectFBImageProvider_GIF_data*)thiz->priv;
@@ -184,7 +182,7 @@ void IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
 #endif
 }
 
-DFBResult IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
+static DFBResult IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
 
@@ -193,7 +191,7 @@ DFBResult IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thiz )
+static DFBResult IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
 
@@ -203,6 +201,134 @@ DFBResult IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thiz )
 
      return DFB_OK;
 }
+
+static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
+                                               IDirectFBSurface *destination )
+{
+     int err;
+     void *dst;
+     int pitch, width, height, src_width, src_height, transparency;
+     DFBSurfacePixelFormat format;
+     DFBSurfaceCapabilities caps;
+
+     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
+
+     err = destination->GetCapabilities( destination, &caps );
+     if (err)
+          return err;
+
+     err = destination->GetSize( destination, &width, &height );
+     if (err)
+          return err;
+
+     err = destination->GetPixelFormat( destination, &format );
+     if (err)
+          return err;
+
+
+     /* actual loading and rendering */
+     {
+          __u32 *image_data;
+          FILE *f;
+
+          f = fopen( data->filename, "rb" );
+          if (!f)
+               return errno2dfb( errno );
+
+          image_data = ReadGIF( f, 1, &src_width, &src_height,
+                                &transparency, NULL, 0 );
+          if (image_data) {
+               err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
+               if (err) {
+                    DFBFREE( image_data );
+                    fclose( f );
+                    return err;
+               }
+
+               scale_linear_32( dst, image_data, 
+                                src_width, src_height, width, height, 
+                                pitch - width * BYTES_PER_PIXEL(format),
+                                format );
+
+               destination->Unlock( destination );
+               DFBFREE(image_data);
+          }
+          fclose (f);
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
+                                                   IDirectFBImageProvider *thiz,
+                                                   DFBSurfaceDescription *dsc )
+{
+     FILE *f;
+ 
+     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
+
+     f = fopen( data->filename, "rb" );
+     if (!f)
+          return errno2dfb( errno );
+
+     {
+          int width;
+          int height;
+          int transparency;
+
+          ReadGIF( f, 1, &width, &height, &transparency, NULL, 1 ); // 1 = read header only
+
+          dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+          dsc->width  = width;
+          dsc->height = height;
+          dsc->pixelformat = layers->surface->format;
+
+          fclose (f);
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBImageProvider_GIF_GetImageDescription(
+                                                   IDirectFBImageProvider *thiz,
+                                                   DFBImageDescription    *dsc )
+{
+     FILE *f;
+ 
+     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
+
+     f = fopen( data->filename, "rb" );
+     if (!f)
+          return errno2dfb( errno );
+
+     {
+          int   width;
+          int   height;
+          int   transparency;
+          __u32 key_rgb;
+
+          ReadGIF( f, 1, &width, &height, &transparency, &key_rgb, 1 ); // 1 = read header only
+
+          if (transparency) {
+               dsc->caps = DICAPS_COLORKEY;
+
+               dsc->colorkey_r = (key_rgb & 0xff0000) >> 16;
+               dsc->colorkey_g = (key_rgb & 0x00ff00) >>  8;
+               dsc->colorkey_b = (key_rgb & 0x0000ff);
+          }
+          else
+               dsc->caps = DICAPS_NONE;
+
+          fclose (f);
+     }
+
+     return DFB_OK;
+}
+
+
+/**********************************
+         GIF Loader Code
+ **********************************/
 
 static int ReadColorMap( FILE *fd, int number,
                          __u8 buffer[3][MAXCOLORMAPSIZE] )
@@ -450,9 +576,9 @@ static int LWZReadByte( FILE *fd, int flag, int input_code_size )
 }
 
 
-__u32* ReadImage( FILE *fd, int len, int height,
-                  __u8 cmap[3][MAXCOLORMAPSIZE],
-                  int interlace, int ignore )
+static __u32* ReadImage( FILE *fd, int len, int height,
+                         __u8 cmap[3][MAXCOLORMAPSIZE],
+                         int interlace, int ignore )
 {
      __u8 c;
      int v;
@@ -491,7 +617,7 @@ __u32* ReadImage( FILE *fd, int len, int height,
 
      while ((v = LWZReadByte(fd,FALSE,c)) >= 0 ) {
           __u32 *dst = image + (ypos * len + xpos);
-          *dst++ = ((Gif89.transparent == v ? 0x0 : 0xFF000000) | 
+          *dst++ = (0xFF000000 | 
                     cmap[CM_RED][v]   << 16 | 
                     cmap[CM_GREEN][v] << 8  | 
                     cmap[CM_BLUE][v]);
@@ -549,9 +675,9 @@ fini:
 
 
 
-__u32* ReadGIF( FILE *fd, int imageNumber, 
-                int *width, int *height, int *transparency,
-                int headeronly)
+static __u32* ReadGIF( FILE *fd, int imageNumber, 
+                       int *width, int *height, int *transparency,
+                       __u32 *key_rgb, int headeronly)
 {
      __u8 buf[16];
      __u8 c;
@@ -599,6 +725,11 @@ __u32* ReadGIF( FILE *fd, int imageNumber,
           GIFERRORMSG("warning - non-square pixels");
      }
 
+     Gif89.transparent = -1;
+     Gif89.delayTime   = -1;
+     Gif89.inputFlag   = -1;
+     Gif89.disposal    = 0;
+
      for (;;) {
           if (! ReadOK(fd,&c,1)) {
                GIFERRORMSG("EOF / read error on image data" );
@@ -635,9 +766,8 @@ __u32* ReadGIF( FILE *fd, int imageNumber,
           *height = LM_to_uint(buf[6],buf[7]);
           *transparency = (Gif89.transparent != -1);
 
-          if (headeronly) {
+          if (headeronly && (!key_rgb || !*transparency))
                return NULL;
-          }
 
           useGlobalColormap = ! BitSet(buf[8], LOCALCOLORMAP);
 
@@ -647,105 +777,36 @@ __u32* ReadGIF( FILE *fd, int imageNumber,
                if (ReadColorMap(fd, bitPixel, localColorMap)) {
                     GIFERRORMSG("error reading local colormap" );
                }
+
+               if (key_rgb && *transparency)
+                    *key_rgb =
+                         (localColorMap[CM_RED][Gif89.transparent] << 16) |
+                         (localColorMap[CM_GREEN][Gif89.transparent] << 8) |
+                         (localColorMap[CM_BLUE][Gif89.transparent]);
+
+               if (headeronly)
+                    return NULL;
+
                return ReadImage( fd, LM_to_uint(buf[4],buf[5]),
                                  LM_to_uint(buf[6],buf[7]), localColorMap,
                                  BitSet(buf[8], INTERLACE),
                                  imageCount != imageNumber);
           }
           else {
+               if (key_rgb && *transparency)
+                    *key_rgb =
+                         (GifScreen.ColorMap[CM_RED][Gif89.transparent] << 16) |
+                         (GifScreen.ColorMap[CM_GREEN][Gif89.transparent] << 8)|
+                         (GifScreen.ColorMap[CM_BLUE][Gif89.transparent]);
+
+               if (headeronly)
+                    return NULL;
+               
                return ReadImage( fd, LM_to_uint(buf[4],buf[5]),
                                  LM_to_uint(buf[6],buf[7]), GifScreen.ColorMap,
                                  BitSet(buf[8], INTERLACE),
                                  imageCount != imageNumber);
           }
      }
-}
-
-
-DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
-                                               IDirectFBSurface *destination )
-{
-     int err;
-     void *dst;
-     int pitch, width, height, src_width, src_height, transparency;
-     DFBSurfacePixelFormat format;
-     DFBSurfaceCapabilities caps;
-
-     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
-
-     err = destination->GetCapabilities( destination, &caps );
-     if (err)
-          return err;
-
-     err = destination->GetSize( destination, &width, &height );
-     if (err)
-          return err;
-
-     err = destination->GetPixelFormat( destination, &format );
-     if (err)
-          return err;
-
-
-     /* actual loading and rendering */
-     {
-          __u32 *image_data;
-          FILE *f;
-
-          f = fopen( data->filename, "rb" );
-          if (!f)
-               return errno2dfb( errno );
-
-          image_data = ReadGIF( f, 1, &src_width, &src_height, &transparency, 0  );
-          if (image_data) {
-               err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
-               if (err) {
-                    DFBFREE( image_data );
-                    fclose( f );
-                    return err;
-               }
-
-               scale_linear_32( dst, image_data, 
-                                src_width, src_height, width, height, 
-                                pitch - width * BYTES_PER_PIXEL(format),
-                                format );
-
-               destination->Unlock( destination );
-               DFBFREE(image_data);
-          }
-          fclose (f);
-     }
-
-     return DFB_OK;
-}
-
-DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
-                                                   IDirectFBImageProvider *thiz,
-                                                   DFBSurfaceDescription *dsc )
-{
-     FILE *f;
- 
-     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
-
-     f = fopen( data->filename, "rb" );
-     if (!f)
-          return errno2dfb( errno );
-
-     {
-          int width;
-          int height;
-          int transparency;
-
-          ReadGIF( f, 1, &width, &height, &transparency, 1  ); // 1 = read header only
-
-          dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-          dsc->width  = width;
-          dsc->height = height;
-          dsc->pixelformat = 
-            (transparency ? DSPF_ARGB : layers->surface->format);
-
-          fclose (f);
-     }
-
-     return DFB_OK;
 }
 
