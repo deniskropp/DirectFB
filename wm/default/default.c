@@ -392,7 +392,7 @@ window_at_pointer( CoreWindowStack *stack,
                                              break;
                                         }
 
-			      __u8 *p;
+
                                         /* fall through */
                                    }
 
@@ -408,7 +408,7 @@ window_at_pointer( CoreWindowStack *stack,
                          }
                          if (options & DWOP_COLORKEYING) {
                               int pixel = 0;
-
+                              __u8 *p;
                               switch (surface->format) {
                                    case DSPF_ARGB:
                                    case DSPF_AiRGB:
