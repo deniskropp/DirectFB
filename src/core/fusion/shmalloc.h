@@ -88,9 +88,10 @@ struct shmstats shmstats (void);
 
 #else
 
-     #define shmalloc malloc
-     #define shcalloc calloc
-     #define shfree   free
+     #define shmalloc  malloc
+     #define shrealloc realloc
+     #define shcalloc  calloc
+     #define shfree    free
 
 #endif
 

@@ -272,7 +272,7 @@ IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer *thiz,
      if (!config)
           return DFB_INVARG;
 
-     return data->layer->SetConfiguration( data->layer, config );
+     return dfb_layer_set_configuration( data->layer, config );
 }
 
 static DFBResult

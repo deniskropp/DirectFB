@@ -192,14 +192,14 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                     config.buffermode = DLBM_BACKSYSTEM;
                else {
                     config.buffermode = DLBM_BACKVIDEO;
-                    if (layer->SetConfiguration( layer, &config ))
+                    if (dfb_layer_set_configuration( layer, &config ))
                          config.buffermode = DLBM_BACKSYSTEM;
                }
           }
           else
                config.buffermode = DLBM_FRONTONLY;
 
-          err = layer->SetConfiguration( layer, &config );
+          err = dfb_layer_set_configuration( layer, &config );
           if (err) {
                DFBFREE( thiz );
                return err;

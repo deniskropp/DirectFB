@@ -85,17 +85,19 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer              *layer,
                                      VideoMode                 *mode,
                                      DFBDisplayLayerBufferMode  buffermode );
 
-#if defined(HAVE_INB_OUTB_IOPL)
 static inline
 void waitretrace (void)
 {
-    while ((inb (0x3da) & 0x8))
-        ;
+#if defined(HAVE_INB_OUTB_IOPL)
+     iopl(3);
 
-    while (!(inb (0x3da) & 0x8))
-        ;
-}
+     while ((inb (0x3da) & 0x8))
+          ;
+
+     while (!(inb (0x3da) & 0x8))
+          ;
 #endif
+}
 
 
 static DFBResult dfb_fbdev_open()
@@ -354,11 +356,12 @@ VideoMode *dfb_fbdev_modes()
 
 DFBResult dfb_fbdev_wait_vsync()
 {
+     if (dfb_config->pollvsync_none)
+          return DFB_OK;
+
 #ifdef FBIO_WAITFORVSYNC
-     if (!dfb_config->pollvsync_none) {
-          dfb_gfxcard_sync();
-          ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC );
-     }
+     dfb_gfxcard_sync();
+     ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC );
 #endif
 
      return DFB_OK;
@@ -538,58 +541,27 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
 static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
                                           DFBDisplayLayerConfig *config )
 {
-     VideoMode                 *videomode;
-     DFBDisplayLayerBufferMode  buffermode;
-     DFBSurfacePixelFormat      pixelformat;
-     unsigned int               width, height, bpp;
+     VideoMode    *videomode;
+     unsigned int  bpp;
 
      if (!config)
           return dfb_fbdev_set_mode( thiz, Sfbdev->current_mode,
                                      thiz->shared->buffermode );
 
-     if (config->flags & DLCONF_OPTIONS  &&  config->options)
-          return DFB_UNSUPPORTED;
-
-     if (config->flags & DLCONF_WIDTH)
-          width = config->width;
-     else
-          width = thiz->shared->width;
-
-     if (config->flags & DLCONF_HEIGHT)
-          height = config->height;
-     else
-          height = thiz->shared->height;
-
-     if (config->flags & DLCONF_PIXELFORMAT)
-          pixelformat = config->pixelformat;
-     else
-          pixelformat = thiz->shared->surface->format;
-
-     switch (pixelformat) {
+     switch (config->pixelformat) {
           case DSPF_RGB15:  /* special case where VideoMode->bpp = 15 */
                bpp = 15;
                break;
 
           default:
-               bpp = DFB_BYTES_PER_PIXEL(pixelformat) * 8;
+               bpp = DFB_BYTES_PER_PIXEL(config->pixelformat) * 8;
      }
-
-     if (config->flags & DLCONF_BUFFERMODE)
-          buffermode = config->buffermode;
-     else
-          buffermode = thiz->shared->buffermode;
-
-     if (Sfbdev->current_mode->xres == width  &&
-         Sfbdev->current_mode->yres == height &&
-         Sfbdev->current_mode->bpp  == bpp    &&
-         thiz->shared->buffermode            == buffermode)
-          return DFB_OK;
 
      videomode = Sfbdev->modes;
      while (videomode) {
-          if (videomode->xres == width  &&
-              videomode->yres == height  &&
-              videomode->bpp == bpp)
+          if (videomode->xres == config->width  &&
+              videomode->yres == config->height &&
+              videomode->bpp  == bpp)
                break;
 
           videomode = videomode->next;
@@ -598,7 +570,7 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
      if (!videomode)
           return DFB_UNSUPPORTED;
 
-     return dfb_fbdev_set_mode( thiz, videomode, buffermode );
+     return dfb_fbdev_set_mode( thiz, videomode, config->buffermode );
 }
 
 static DFBResult primarySetOpacity( DisplayLayer *thiz, __u8 opacity )
@@ -640,12 +612,8 @@ static DFBResult primaryFlipBuffers( DisplayLayer *thiz )
 
      dfb_surface_flip_buffers( thiz->shared->surface );
 
-#if defined(HAVE_INB_OUTB_IOPL)
-     if (!dfb_config->pollvsync_none && dfb_config->pollvsync_after) {
-          iopl(3);
+     if (!dfb_config->pollvsync_none && dfb_config->pollvsync_after)
           waitretrace();
-     }
-#endif
 
      return DFB_OK;
 }

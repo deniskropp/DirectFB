@@ -276,7 +276,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | /*DLCONF_BUFFERMODE |*/
                               DLCONF_PIXELFORMAT | DLCONF_OPTIONS;
 
-               ret = dfb_layers->SetConfiguration( dfb_layers, &config );
+               ret = dfb_layer_set_configuration( dfb_layers, &config );
                if (ret)
                     return ret;
 

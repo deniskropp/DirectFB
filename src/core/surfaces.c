@@ -567,11 +567,9 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           if (buffer->system.pitch & 3)
                buffer->system.pitch += 4 - (buffer->system.pitch & 3);
 
-          /* HACK HACK HACK */
-          shfree( buffer->system.addr );
-          buffer->system.addr = shmalloc( DFB_PLANE_MULTIPLY(surface->format,
-                                                             surface->height *
-                                                             buffer->system.pitch) );
+          buffer->system.addr = shrealloc( buffer->system.addr,
+               DFB_PLANE_MULTIPLY(surface->format,
+                                  surface->height * buffer->system.pitch) );
 
           /* FIXME: better support video instance reallocation */
           dfb_surfacemanager_lock( surface->manager );

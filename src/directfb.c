@@ -264,7 +264,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      else
           layer_config.buffermode = dfb_config->buffer_mode;
 
-     if (dfb_layers->SetConfiguration( dfb_layers, &layer_config )) {
+     if (dfb_layer_set_configuration( dfb_layers, &layer_config )) {
           ERRORMSG( "DirectFB/DirectFBCreate: "
                     "Setting desktop buffer mode failed!\n"
                     "     -> No virtual resolution support or not enough memory?\n"
@@ -272,7 +272,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
           layer_config.buffermode = DLBM_BACKSYSTEM;
 
-          if (dfb_layers->SetConfiguration( dfb_layers, &layer_config ))
+          if (dfb_layer_set_configuration( dfb_layers, &layer_config ))
                ERRORMSG( "DirectFB/DirectFBCreate: "
                          "Setting system memory desktop back buffer failed!\n"
                          "     -> Using front buffer only mode.\n" );
@@ -298,7 +298,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT;
                desc.width  = dfb_layers->shared->width;
                desc.height = dfb_layers->shared->height;
-          } 
+          }
           else {
                provider->GetSurfaceDescription( provider, &desc );
           }

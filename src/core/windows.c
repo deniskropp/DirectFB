@@ -138,23 +138,8 @@ void dfb_window_insert( CoreWindow *window, int before )
 
      skirmish_prevail( &stack->update );
 
-
-     /* HACK HACK HACK */
-
-     if (stack->windows) {
-          CoreWindow **windows;
-
-          windows = shmalloc( sizeof(CoreWindow*) * (stack->num_windows + 1) );
-
-          memcpy( windows, stack->windows, sizeof(CoreWindow*) * stack->num_windows );
-
-          shfree( stack->windows );
-
-          stack->windows = windows;
-     }
-     else {
-          stack->windows = shmalloc( sizeof(CoreWindow*) );
-     }
+     stack->windows = shrealloc( stack->windows,
+                                 sizeof(CoreWindow*) * (stack->num_windows+1) );
 
      for (i=stack->num_windows; i>before; i--)
           stack->windows[i] = stack->windows[i-1];
@@ -212,18 +197,10 @@ void dfb_window_remove( CoreWindow *window )
           for (; i<stack->num_windows; i++)
                stack->windows[i] = stack->windows[i+1];
 
-          /* HACK HACK HACK */
-
           if (stack->windows) {
-               CoreWindow **windows;
-
-               windows = shmalloc( sizeof(CoreWindow*) * stack->num_windows );
-
-               memcpy( windows, stack->windows, sizeof(CoreWindow*) * stack->num_windows );
-
-               shfree( stack->windows );
-
-               stack->windows = windows;
+               stack->windows =
+                    shrealloc( stack->windows,
+                               sizeof(CoreWindow*) * stack->num_windows );
           }
           else {
                shfree( stack->windows );
@@ -851,7 +828,7 @@ static void update_region( CoreWindowStack *stack, int window,
                          break;
                     }
                     case DLBM_TILE: {
-                         DFBRectangle rect = 
+                         DFBRectangle rect =
                          { 0, 0, layer->bg.image->width, layer->bg.image->height };
 
                          if (stack->state.blittingflags != DSBLIT_NOFX) {
@@ -862,11 +839,11 @@ static void update_region( CoreWindowStack *stack, int window,
                          stack->state.source    = layer->bg.image;
                          stack->state.modified |= SMF_SOURCE;
 
-                         dfb_gfxcard_tileblit( &rect, 
+                         dfb_gfxcard_tileblit( &rect,
                                                (x1 / rect.w) * rect.w,
-                                               (y1 / rect.h) * rect.h, 
-                                               (x2 / rect.w + 1) * rect.w, 
-                                               (y2 / rect.h + 1) * rect.h, 
+                                               (y1 / rect.h) * rect.h,
+                                               (x2 / rect.w + 1) * rect.w,
+                                               (y2 / rect.h + 1) * rect.h,
                                                &stack->state );
                          break;
                     }

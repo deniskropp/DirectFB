@@ -129,37 +129,69 @@ extern DisplayLayer *dfb_layers;
  * adds the layer to the layer list, if it's the first a cleanup function
  * is added to the cleanup stack that removes all layers
  */
-void dfb_layers_add( DisplayLayer *layer );
+void
+dfb_layers_add( DisplayLayer *layer );
 
-DFBResult dfb_layers_initialize();
-DFBResult dfb_layers_join();
+DFBResult
+dfb_layers_initialize();
 
-DFBResult dfb_layers_shutdown();
-DFBResult dfb_layers_leave();
+DFBResult
+dfb_layers_join();
+
+DFBResult
+dfb_layers_shutdown();
+
+DFBResult
+dfb_layers_leave();
 
 #ifdef FUSION_FAKE
-DFBResult dfb_layers_suspend();
-DFBResult dfb_layers_resume();
+DFBResult
+dfb_layers_suspend();
+
+DFBResult
+dfb_layers_resume();
 #endif
 
 /*
  * lock/unlock layer for exclusive access
  */
-DFBResult dfb_layer_lock( DisplayLayer *layer );
-DFBResult dfb_layer_unlock( DisplayLayer *layer );
+DFBResult
+dfb_layer_lock( DisplayLayer *layer );
 
-DFBResult dfb_layer_enable( DisplayLayer *layer );
+DFBResult
+dfb_layer_unlock( DisplayLayer *layer );
 
-CoreSurface *dfb_layer_surface( DisplayLayer *layer );
+DFBResult
+dfb_layer_enable( DisplayLayer *layer );
+
+DFBResult
+dfb_layer_set_configuration( DisplayLayer          *layer,
+                             DFBDisplayLayerConfig *config );
+
+CoreSurface *
+dfb_layer_surface( DisplayLayer *layer );
 
 /*
  * utility functions
  */
-DFBResult dfb_layer_cursor_enable( DisplayLayer *layer, int enable );
-DFBResult dfb_layer_cursor_set_shape( DisplayLayer *layer, CoreSurface *shape,
-                                      int hot_x, int hot_y );
-DFBResult dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity );
-DFBResult dfb_layer_cursor_warp( DisplayLayer *layer, int x, int y );
+DFBResult
+dfb_layer_cursor_enable( DisplayLayer *layer,
+                         int           enable );
+
+DFBResult
+dfb_layer_cursor_set_shape( DisplayLayer *layer,
+                            CoreSurface  *shape,
+                            int           hot_x,
+                            int           hot_y );
+
+DFBResult
+dfb_layer_cursor_set_opacity( DisplayLayer *layer,
+                              __u8          opacity );
+
+DFBResult
+dfb_layer_cursor_warp( DisplayLayer *layer,
+                       int           x,
+                       int           y );
 
 
 #endif
