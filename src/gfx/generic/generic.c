@@ -1608,11 +1608,12 @@ static void Cacc_add_to_Dacc_C()
      Accumulator *D = Dacc;
 
      while (w--) {
-          D->a += Cacc.a;
-          D->r += Cacc.r;
-          D->g += Cacc.g;
-          D->b += Cacc.b;
-
+          if (!(D->a & 0xF000)) {
+               D->a += Cacc.a;
+               D->r += Cacc.r;
+               D->g += Cacc.g;
+               D->b += Cacc.b;
+          }
           D++;
      }
 }
@@ -1626,11 +1627,12 @@ static void Sacc_add_to_Dacc_C()
      Accumulator *D = Dacc;
 
      while (w--) {
-          D->a += S->a;
-          D->r += S->r;
-          D->g += S->g;
-          D->b += S->b;
-
+          if (!(D->a & 0xF000)) {          
+               D->a += S->a;
+               D->r += S->r;
+               D->g += S->g;
+               D->b += S->b;
+          }
           D++;
           S++;
      }
