@@ -65,6 +65,7 @@ typedef struct _VideoMode {
 
      int sync_on_green;
      int external_sync;
+     int broadcast;
 
      struct _VideoMode *next;
 } VideoMode;

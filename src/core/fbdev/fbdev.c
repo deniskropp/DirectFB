@@ -1437,6 +1437,8 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
           var.sync |= FB_SYNC_ON_GREEN;
      if (mode->external_sync)
           var.sync |= FB_SYNC_EXT;
+     if (mode->broadcast)
+          var.sync |= FB_SYNC_BROADCAST;
 
      var.vmode = 0;
      if (mode->laced)
@@ -1726,6 +1728,9 @@ static DFBResult dfb_fbdev_read_modes()
                     }
                     else if (1 == sscanf(line, " extsync %15s",value) && 0 == strcasecmp(value,"true")) {
                          temp_mode.external_sync = 1;
+                    }
+                    else if (1 == sscanf(line, " bcast %15s",value) && 0 == strcasecmp(value,"true")) {
+                         temp_mode.broadcast = 1;
                     }
                }
                if (geometry &&
