@@ -136,9 +136,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
 
                     /* FIXME: error checking! */
                     dfb_surface_create( font->row_width,
-                                        MAX( font->ascender +
-                                             ABS(font->descender) + 1,
-                                             8 ),
+                                        MAX( font->height + 1, 8 ),
                                         font->pixel_format,
                                         CSP_VIDEOLOW, DSCAPS_NONE, NULL,
                                         &font->surfaces[font->rows - 1] );
