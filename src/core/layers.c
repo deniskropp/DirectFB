@@ -556,6 +556,7 @@ dfb_layer_enable( DisplayLayer *layer )
           return ret;
      }
 
+     /* enable the display layer */
      ret = layer->funcs->Enable( layer,
                                  layer->driver_data, layer->layer_data );
      if (ret) {
@@ -567,7 +568,21 @@ dfb_layer_enable( DisplayLayer *layer )
 
      shared->enabled = true;
 
-     reactor_attach( shared->surface->reactor, layer_surface_listener, layer );
+     if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
+          CoreSurface *surface = shared->surface;
+
+          /* attach surface listener for palette and field switches */
+          reactor_attach( surface->reactor, layer_surface_listener, layer );
+
+          /* set default palette */
+          if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ) &&
+              surface->palette && layer->funcs->SetPalette)
+          {
+               layer->funcs->SetPalette( layer, layer->driver_data,
+                                         layer->layer_data, surface->palette );
+          }
+     }
+
      
      /* create a window stack on layers with a surface */
      if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
@@ -684,6 +699,18 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
      if (ret) {
           CAUTION("setting new configuration failed");
           return ret;
+     }
+     
+     if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
+          CoreSurface *surface = shared->surface;
+
+          /* reset palette */
+          if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ) &&
+              surface->palette && layer->funcs->SetPalette)
+          {
+               layer->funcs->SetPalette( layer, layer->driver_data,
+                                         layer->layer_data, surface->palette );
+          }
      }
      
      /*

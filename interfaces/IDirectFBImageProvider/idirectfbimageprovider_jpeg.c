@@ -35,6 +35,8 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <display/idirectfbsurface.h>
+
 #include <media/idirectfbimageprovider.h>
 
 #include <core/coredefs.h>
@@ -239,12 +241,23 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      int err;
      void *dst;
      int pitch;
+     int direct;
      DFBRectangle rect = { 0, 0, 0, 0 };
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
+     IDirectFBSurface_data *dst_data;
+     CoreSurface           *dst_surface;
 
      INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
+     dst_data = (IDirectFBSurface_data*) destination->priv;
+     if (!dst_data)
+          return DFB_DEAD;
+
+     dst_surface = dst_data->surface;
+     if (!dst_surface)
+          return DFB_DESTROYED;
+     
      err = destination->GetPixelFormat( destination, &format );
      if (err)
           return err;
@@ -253,14 +266,18 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 #ifdef SUPPORT_RGB332
           case DSPF_RGB332:
 #endif
-        case DSPF_RGB15:
+          case DSPF_RGB15:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
           case DSPF_ARGB:
+               direct = 1;
                break;
+
+          case DSPF_LUT8:
           default:
-               return DFB_UNSUPPORTED;
+               direct = 0;
+               break;
      }
 
      err = destination->GetCapabilities( destination, &caps );
@@ -328,7 +345,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo,
                                               JPOOL_IMAGE, row_stride, 1);
 
-          if (rect.w == cinfo.output_width && rect.h == cinfo.output_height) {
+          if (rect.w == cinfo.output_width && rect.h == cinfo.output_height && direct) {
                /* image must not be scaled */
                row_ptr = dst;
 
@@ -376,7 +393,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                }
                dfb_scale_linear_32( dst, image_data, cinfo.output_width,
                                     cinfo.output_height, rect.w, rect.h,
-                                    pitch, format );
+                                    pitch, format, dst_surface->palette );
 
                free( image_data );
           }

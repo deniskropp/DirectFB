@@ -35,20 +35,20 @@
 
 #include <core/fusion/shmalloc.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core.h"
-#include "coredefs.h"
-#include "coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "gfxcard.h"
-#include "palette.h"
-#include "surfaces.h"
-#include "surfacemanager.h"
+#include <core/gfxcard.h>
+#include <core/palette.h>
+#include <core/surfaces.h>
+#include <core/surfacemanager.h>
 
-#include "gfx/util.h"
-#include "misc/util.h"
-#include "misc/mem.h"
+#include <gfx/util.h>
+#include <misc/util.h>
+#include <misc/mem.h>
 
 static DFBResult dfb_surface_allocate_buffer  ( CoreSurface    *surface,
                                                 int             policy,
@@ -556,6 +556,9 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
      skirmish_init( &surface->back_lock );
 
      surface->palette = dfb_palette_allocate( 256 );
+
+     if (format == DSPF_LUT8)
+          dfb_palette_generate_rgb332_map( surface->palette );
      
      surface->reactor = reactor_new(sizeof(CoreSurfaceNotification));
 

@@ -722,7 +722,7 @@ typedef enum {
                                            2x2 subsampled U and V planes */
      DSPF_YV12           = 0x08100C0B,  /* 8 bit Y plane followed by 8 bit
                                            2x2 subsampled V and U planes */
-     DSPF_LUT8           = 0x4010080C   /* 8 bit lookup table (palette) */
+     DSPF_LUT8           = 0x4011080C   /* 8 bit lookup table (palette) */
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
@@ -735,7 +735,7 @@ typedef enum {
 
 #define DFB_BITS_PER_PIXEL(fmt)         (((fmt) & 0x00FF00) >>  8)
 
-#define DFB_PIXELFORMAT_HAS_ALPHA(fmt)  ((fmt) & 0x010000)
+#define DFB_PIXELFORMAT_HAS_ALPHA(fmt)  ((fmt) & 0x00010000)
 
 #define DFB_PIXELFORMAT_IS_INDEXED(fmt) ((fmt) & 0x40000000)
 

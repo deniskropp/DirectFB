@@ -131,9 +131,12 @@ IDirectFBPalette_SetEntries( IDirectFBPalette *thiz,
      if (!entries  ||  offset + num_entries > palette->num_entries)
           return DFB_INVARG;
 
-     memcpy( palette->entries + offset, entries, num_entries * sizeof(DFBColor));
+     if (num_entries) {
+          dfb_memcpy( palette->entries + offset,
+                      entries, num_entries * sizeof(DFBColor));
 
-     dfb_surface_notify_listeners( surface, CSNF_PALETTE );
+          dfb_palette_update( surface, palette );
+     }
      
      return DFB_OK;
 }

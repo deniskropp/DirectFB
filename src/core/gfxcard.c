@@ -686,8 +686,6 @@ typedef struct {
    int _2dy;
 } DDA;
 
-#define ABS(x) ((x) < 0 ? -(x) : (x))
-
 #define SETUP_DDA(xs,ys,xe,ye,dda)         \
      do {                                  \
           int dx = xe - xs;                \

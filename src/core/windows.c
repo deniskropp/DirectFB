@@ -247,27 +247,25 @@ dfb_window_create( CoreWindowStack        *stack,
 {
      DFBResult               ret;
      CoreSurface            *surface;
-     int                     surface_policy;
-     DFBSurfacePixelFormat   surface_format;
+     CoreSurfacePolicy       surface_policy;
      DFBSurfaceCapabilities  surface_caps;
      CoreWindow             *w;
      DisplayLayer           *layer = dfb_layer_at( stack->layer_id );
      CoreSurface            *layer_surface = dfb_layer_surface( layer );
 
      if (caps & DWCAPS_ALPHACHANNEL) {
-          if (pixelformat != DSPF_UNKNOWN && pixelformat != DSPF_ARGB)
+          if (pixelformat == DSPF_UNKNOWN)
+               pixelformat = DSPF_ARGB;
+          else if (! DFB_PIXELFORMAT_HAS_ALPHA(pixelformat))
                return DFB_INVARG;
 
           surface_policy = stack->wsp_alpha;
-          surface_format = DSPF_ARGB;
      }
      else {
           surface_policy = stack->wsp_opaque;
 
-          if (pixelformat != DSPF_UNKNOWN)
-               surface_format = pixelformat;
-          else
-               surface_format = stack->state.destination->format;
+          if (pixelformat == DSPF_UNKNOWN)
+               pixelformat = stack->state.destination->format;
      }
 
      if (layer_surface->back_buffer->policy == CSP_SYSTEMONLY)
@@ -278,7 +276,7 @@ dfb_window_create( CoreWindowStack        *stack,
      else
           surface_caps = DSCAPS_NONE;
 
-     ret = dfb_surface_create( width, height, surface_format, surface_policy,
+     ret = dfb_surface_create( width, height, pixelformat, surface_policy,
                                surface_caps, &surface );
      if (ret)
           return ret;

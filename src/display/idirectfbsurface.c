@@ -331,13 +331,15 @@ static DFBResult
 IDirectFBSurface_Clear( IDirectFBSurface *thiz,
                         __u8 r, __u8 g, __u8 b, __u8 a )
 {
-     DFBColor               old_color;
-     DFBSurfaceDrawingFlags old_flags;
-     DFBRectangle           rect;
-
+     DFBColor                old_color;
+     DFBSurfaceDrawingFlags  old_flags;
+     DFBRectangle            rect;
+     CoreSurface            *surface;
+     
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (!data->surface)
+     surface = data->surface;
+     if (!surface)
           return DFB_DESTROYED;
 
      if (!data->area.current.w || !data->area.current.h)
@@ -356,12 +358,16 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
           data->state.modified     |= SMF_DRAWING_FLAGS;
      }
      
-     /* FIXME: search color_index if pixelformat is indexed */
      /* set color */
-     data->state.color.r   = r;
-     data->state.color.g   = g;
-     data->state.color.b   = b;
-     data->state.color.a   = a;
+     data->state.color.r = r;
+     data->state.color.g = g;
+     data->state.color.b = b;
+     data->state.color.a = a;
+     
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          data->state.color_index = dfb_palette_search( surface->palette,
+                                                        r, g, b, a );
+     
      data->state.modified |= SMF_COLOR;
      
      /* fill the visible rectangle */
@@ -437,14 +443,14 @@ IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     /* FIXME: search color_index if pixelformat is indexed */
-     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
-          return DFB_UNIMPLEMENTED;
-
      data->state.color.a = a;
      data->state.color.r = r;
      data->state.color.g = g;
      data->state.color.b = b;
+
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          data->state.color_index = dfb_palette_search( surface->palette,
+                                                        r, g, b, a );
 
      data->state.modified |= SMF_COLOR;
 
@@ -611,17 +617,23 @@ IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
                                  __u8              g,
                                  __u8              b )
 {
+     CoreSurface *surface;
+
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (!data->surface)
+     surface = data->surface;
+     if (!surface)
           return DFB_DESTROYED;
 
-     /* FIXME: search color_index if pixelformat is indexed */
-     
      data->src_key.r = r;
      data->src_key.g = g;
      data->src_key.b = b;
-     data->src_key.value = color_to_pixel( data->surface->format, r, g, b );
+     
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          data->src_key.value = dfb_palette_search( surface->palette,
+                                                    r, g, b, 0x80 );
+     else
+          data->src_key.value = color_to_pixel( surface->format, r, g, b );
 
      /* The new key won't be applied to this surface's state.
         The key will be taken by the destination surface to apply it
@@ -636,17 +648,23 @@ IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
                                  __u8              g,
                                  __u8              b )
 {
+     CoreSurface *surface;
+
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (!data->surface)
+     surface = data->surface;
+     if (!surface)
           return DFB_DESTROYED;
 
-     /* FIXME: search color_index if pixelformat is indexed */
-     
      data->dst_key.r = r;
      data->dst_key.g = g;
      data->dst_key.b = b;
-     data->dst_key.value = color_to_pixel( data->surface->format, r, g, b );
+
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          data->dst_key.value = dfb_palette_search( surface->palette,
+                                                    r, g, b, 0x80 );
+     else
+          data->dst_key.value = color_to_pixel( surface->format, r, g, b );
 
      if (data->state.dst_colorkey != data->dst_key.value) {
           data->state.dst_colorkey = data->dst_key.value;

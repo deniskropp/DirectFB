@@ -37,12 +37,15 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <display/idirectfbsurface.h>
+
 #include <media/idirectfbimageprovider.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <core/layers.h>
+#include <core/palette.h>
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
@@ -62,7 +65,8 @@ DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, PNG )
 
 
 static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
-                                int pitch, DFBSurfacePixelFormat format );
+                                int pitch, DFBSurfacePixelFormat format,
+                                CorePalette *palette );
 
 
 /*
@@ -168,8 +172,18 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      DFBRectangle rect = { 0, 0, 0, 0 };
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
+     IDirectFBSurface_data *dst_data;
+     CoreSurface           *dst_surface;
 
      INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
+
+     dst_data = (IDirectFBSurface_data*) destination->priv;
+     if (!dst_data)
+          return DFB_DEAD;
+
+     dst_surface = dst_data->surface;
+     if (!dst_surface)
+          return DFB_DESTROYED;
 
      err = destination->GetCapabilities( destination, &caps );
      if (err)
@@ -211,7 +225,8 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
           dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
 
-          loader_result = load_png_argb( f, dst, rect.w, rect.h, pitch, format );
+          loader_result = load_png_argb( f, dst, rect.w, rect.h, pitch,
+                                         format, dst_surface->palette );
 
           err = destination->Unlock( destination );
 
@@ -229,7 +244,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
 static DFBResult
 load_png_argb( FILE *f, __u8 *dst, int width, int height,
-               int pitch, DFBSurfacePixelFormat format )
+               int pitch, DFBSurfacePixelFormat format, CorePalette *palette )
 {
      png_structp png_ptr;
      png_infop   info_ptr;
@@ -297,7 +312,7 @@ load_png_argb( FILE *f, __u8 *dst, int width, int height,
 
           dfb_scale_linear_32( (__u32*)dst, (__u32*)bptrs[0], png_width,
                                png_height, width, height,
-                               pitch, format );
+                               pitch, format, palette );
 
           DFBFREE( bptrs[0] );
      }

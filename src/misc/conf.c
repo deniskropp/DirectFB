@@ -140,6 +140,50 @@ static const char *config_usage =
     "  vsync-none:    disable polling for vertical retrace.\n"
     "\n";
 
+typedef struct {
+     char                  *string;
+     DFBSurfacePixelFormat  format;
+} FormatString;
+ 
+static const FormatString format_strings[] = {
+     { "A8",     DSPF_A8 },
+     { "ARGB",   DSPF_ARGB },
+     { "I420",   DSPF_I420 },
+     { "LUT8",   DSPF_LUT8 },
+     { "RGB15",  DSPF_RGB15 },
+     { "RGB16",  DSPF_RGB16 },
+     { "RGB24",  DSPF_RGB24 },
+     { "RGB32",  DSPF_RGB32 },
+     { "RGB332", DSPF_RGB332 },
+     { "UYVY",   DSPF_UYVY },
+     { "YUY2",   DSPF_YUY2 },
+     { "YV12",   DSPF_YV12 }
+};
+
+#define NUM_FORMAT_STRINGS    (sizeof(format_strings)/sizeof(FormatString))
+
+static int
+format_string_compare (const void *key,
+                       const void *base)
+{
+  return strcmp ((const char *) key,
+                 ((const FormatString *) base)->string);
+}
+
+static DFBSurfacePixelFormat
+parse_pixelformat( const char *format )
+{
+     FormatString *format_string;
+      
+     format_string = bsearch( format, format_strings,
+                              NUM_FORMAT_STRINGS, sizeof(FormatString),
+                              format_string_compare );
+     if (!format_string)
+          return DSPF_UNKNOWN;
+
+     return format_string->format;
+}
+
 
 /*
  * The following function isn't used because the configuration should
@@ -290,6 +334,23 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG("DirectFB/Config 'depth': No value specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "pixelformat" ) == 0) {
+          if (value) {
+               DFBSurfacePixelFormat format;
+
+               format = parse_pixelformat( value );
+               if (format == DSPF_UNKNOWN) {
+                    ERRORMSG("DirectFB/Config 'pixelformat': Could not parse format!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->mode.format = format;
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'pixelformat': No format specified!\n");
                return DFB_INVARG;
           }
      } else

@@ -29,6 +29,7 @@
 
 #include <directfb.h>
 #include <core/coretypes.h>
+#include <core/state.h>
 
 /*
  * private data struct of IDirectFBSurface

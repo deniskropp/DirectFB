@@ -33,12 +33,26 @@
 struct _CorePalette {
      int       num_entries;
      DFBColor *entries;
+
+     struct {
+          int      index;
+          DFBColor color;
+     } search_cache;
 };
 
 CorePalette *dfb_palette_allocate           ( unsigned int  size );
 void         dfb_palette_deallocate         ( CorePalette  *palette );
 
 void         dfb_palette_generate_rgb332_map( CorePalette  *palette );
+
+unsigned int dfb_palette_search             ( CorePalette  *palette,
+                                              __u8          r,
+                                              __u8          g,
+                                              __u8          b,
+                                              __u8          a );
+
+void         dfb_palette_update             ( CoreSurface  *surface,
+                                              CorePalette  *palette );
 
 #endif
 

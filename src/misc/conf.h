@@ -92,9 +92,10 @@ typedef struct
                                                      based debug output */
 
      struct {
-          int  width;                             /* default width */
-          int  height;                            /* default height */
-          int  depth;                             /* default depth */
+          int                   width;            /* primary layer width */
+          int                   height;           /* primary layer height */
+          int                   depth;            /* primary layer depth */
+          DFBSurfacePixelFormat format;           /* primary layer format */
      } mode;
 
      int       videoram_limit;                    /* limit amount of video

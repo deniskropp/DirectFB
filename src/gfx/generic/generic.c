@@ -82,8 +82,6 @@ static int src_field_offset = 0;
 
 DFBColor color;
 
-static DFBColor *sLut = NULL;
-
 /*
  * operands
  */
@@ -96,6 +94,12 @@ static __u32 Cop = 0;
  */
 static __u32 Dkey = 0;
 static __u32 Skey = 0;
+
+/*
+ * color lookup tables
+ */
+static CorePalette *Alut = NULL;
+static CorePalette *Blut = NULL;
 
 /*
  * accumulators
@@ -115,7 +119,9 @@ static GFunc gfuncs[32];
 Accumulator *Xacc = NULL;
 Accumulator *Dacc = NULL;
 Accumulator *Sacc = NULL;
+
 void        *Sop  = NULL;
+CorePalette *Slut = NULL;
 
 /* controls horizontal blitting direction */
 int Ostep = 0;
@@ -498,8 +504,7 @@ static void Bop_a8_Kto_Aop()
      ONCE( "Bop_a8_Kto_Aop() unimplemented");
 }
 
-#ifdef SUPPORT_RGB332
-static void Bop_rgb332_Kto_Aop()
+static void Bop_8_Kto_Aop()
 {
      int    w = Dlength;
      __u8 *D = (__u8*)Aop;
@@ -520,7 +525,6 @@ static void Bop_rgb332_Kto_Aop()
           D+=Ostep;
      }
 }
-#endif
 
 static GFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_rgb15_Kto_Aop,
@@ -530,15 +534,11 @@ static GFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_argb_Kto_Aop,
      Bop_a8_Kto_Aop,
      NULL,
-#ifdef SUPPORT_RGB332
-     Bop_rgb332_Kto_Aop,
-#else
-     NULL,
-#endif
+     Bop_8_Kto_Aop,
      NULL,
      NULL,
      NULL,
-     NULL
+     Bop_8_Kto_Aop
 };
 
 /********************************* Bop_PFI_Sto_Aop ****************************/
@@ -685,8 +685,7 @@ static void Bop_rgb24_SKto_Aop()
           __u8 g = S[pixelstart+1];
           __u8 r = S[pixelstart+2];
 
-          if (Skey != (r<<16 | g<<8 | b ))
-          {
+          if (Skey != (r<<16 | g<<8 | b )) {
                *D     = b;
                *(D+1) = g;
                *(D+2) = r;
@@ -738,8 +737,7 @@ static void Bop_a8_SKto_Aop()
      ONCE( "Bop_a8_SKto_Aop() unimplemented" );
 }
 
-#ifdef SUPPORT_RGB332
-static void Bop_rgb332_SKto_Aop()
+static void Bop_8_SKto_Aop()
 {
      int    w = Dlength;
      int    i = 0;
@@ -756,7 +754,6 @@ static void Bop_rgb332_SKto_Aop()
           i += SperD;
      }
 }
-#endif
 
 static GFunc Bop_PFI_SKto_Aop[DFB_NUM_PIXELFORMATS] = {
      Bop_rgb15_SKto_Aop,
@@ -766,15 +763,11 @@ static GFunc Bop_PFI_SKto_Aop[DFB_NUM_PIXELFORMATS] = {
      Bop_argb_SKto_Aop,
      Bop_a8_SKto_Aop,
      NULL,
-#ifdef SUPPORT_RGB332
-     Bop_rgb332_SKto_Aop,
-#else
-     NULL,
-#endif
+     Bop_8_SKto_Aop,
      NULL,
      NULL,
      NULL,
-     NULL
+     Bop_8_SKto_Aop
 };
 
 /********************************* Sop_PFI_Sto_Dacc ***************************/
@@ -1319,20 +1312,19 @@ static void Sop_rgb332_to_Dacc()
 }
 #endif
 
-#define LOOKUP_COLOR(D,S)                    \
-     {                                       \
-          register DFBColor col = sLut[S];   \
-          D.a = col.a;                       \
-          D.r = col.r;                       \
-          D.g = col.g;                       \
-          D.b = col.b;                       \
-     }
+#define LOOKUP_COLOR(D,S)     \
+     D.a = entries[S].a;      \
+     D.r = entries[S].r;      \
+     D.g = entries[S].g;      \
+     D.b = entries[S].b;
 
 static void Sop_lut8_to_Dacc()
 {
      int          w = Dlength;
      Accumulator *D = Dacc;
      __u8        *S = (__u8*)Sop;
+
+     DFBColor *entries = Slut->entries;
 
      while (w) {
           int l = w & 0x7;
@@ -1720,6 +1712,26 @@ static void Sacc_to_Aop_rgb332()
 }
 #endif
 
+static void Sacc_to_Aop_lut8()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u8        *D = (__u8*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000)) {
+               *D = dfb_palette_search( Alut,
+                                        (S->r & 0xFF00) ? 0xFF : S->r,
+                                        (S->g & 0xFF00) ? 0xFF : S->g,
+                                        (S->b & 0xFF00) ? 0xFF : S->b,
+                                        (S->a & 0xFF00) ? 0xFF : S->a );
+          }
+
+          D++;
+          S++;
+     }
+}
+
 GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_rgb15,
      Sacc_to_Aop_rgb16,
@@ -1736,7 +1748,7 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     NULL
+     Sacc_to_Aop_lut8
 };
 
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
@@ -2362,6 +2374,9 @@ GFunc Sacc_add_to_Dacc = Sacc_add_to_Dacc_C;
 static void Sop_is_Aop() { Sop = Aop;}
 static void Sop_is_Bop() { Sop = Bop;}
 
+static void Slut_is_Alut() { Slut = Alut;}
+static void Slut_is_Blut() { Slut = Blut;}
+
 static void Sacc_is_NULL() { Sacc = NULL;}
 static void Sacc_is_Aacc() { Sacc = Aacc;}
 static void Sacc_is_Bacc() { Sacc = Bacc;}
@@ -2431,6 +2446,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 {
      GFunc       *funcs       = gfuncs;
      CoreSurface *destination = state->destination;
+     CoreSurface *source      = state->source;
 
      int dst_pfi, src_pfi = 0;
 
@@ -2444,7 +2460,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           pthread_mutex_unlock( &generic_lock );
           return 0;
      }
-     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
+     if (!source  &&  DFB_BLITTING_FUNCTION( accel )) {
           BUG("state check: no source");
           pthread_mutex_unlock( &generic_lock );
           return 0;
@@ -2457,8 +2473,6 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      dst_pfi    = DFB_PIXELFORMAT_INDEX( dst_format );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          CoreSurface *source = state->source;
-
           src_caps   = source->caps;
           src_height = source->height;
           src_format = source->format;
@@ -2514,12 +2528,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                }
                break;
           case DSPF_LUT8:
-               if (DFB_BLITTING_FUNCTION( accel )) {
-                    ONCE("blitting to LUT8 not supported yet");
-                    pthread_mutex_unlock( &generic_lock );
-                    return 0;
-               }
-               Cop = state->color_index;
+               Cop  = state->color_index;
+               Alut = destination->palette;
                break;
           default:
                ONCE("unsupported destination format");
@@ -2552,7 +2562,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     }
                     break;
                case DSPF_LUT8:
-                    sLut = state->source->palette->entries;
+                    Blut = source->palette;
                     break;
                default:
                     ONCE("unsupported source format");
@@ -2564,7 +2574,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      dfb_surfacemanager_lock( dfb_gfxcard_surface_manager() );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          if (dfb_surface_software_lock( state->source,
+          if (dfb_surface_software_lock( source,
                                          DSLF_READ, &src_org, &src_pitch, 1 )) {
                dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
                pthread_mutex_unlock( &generic_lock );
@@ -2582,7 +2592,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                                     lock_flags, &dst_org, &dst_pitch, 0 )) {
 
           if (state->source_locked)
-               dfb_surface_unlock( state->source, 1 );
+               dfb_surface_unlock( source, 1 );
 
           dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
           pthread_mutex_unlock( &generic_lock );
@@ -2620,6 +2630,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
                     /* load from destination */
                     *funcs++ = Sop_is_Aop;
+                    if (DFB_PIXELFORMAT_IS_INDEXED(dst_format))
+                         *funcs++ = Slut_is_Alut;
                     *funcs++ = Dacc_is_Aacc;
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                          Skey = state->dst_colorkey;
@@ -2746,7 +2758,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                    (state->blittingflags ==
                      (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)) &&
                    (state->src_blend == DSBF_SRCALPHA) &&
-                   (state->dst_blend == DSBF_INVSRCALPHA))
+                   (state->dst_blend == DSBF_INVSRCALPHA) &&
+                   Bop_a8_set_alphapixel_Aop_PFI[dst_pfi])
                {
                     *funcs++ = Bop_a8_set_alphapixel_Aop_PFI[dst_pfi];
                     break;
@@ -2780,6 +2793,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          /* read the destination if needed */
                          if (read_destination) {
                               *funcs++ = Sop_is_Aop;
+                              if (DFB_PIXELFORMAT_IS_INDEXED(dst_format))
+                                   *funcs++ = Slut_is_Alut;
                               *funcs++ = Dacc_is_Aacc;
                               *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
 
@@ -2789,6 +2804,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
                          /* read the source */
                          *funcs++ = Sop_is_Bop;
+                         if (DFB_PIXELFORMAT_IS_INDEXED(src_format))
+                              *funcs++ = Slut_is_Blut;
                          *funcs++ = Dacc_is_Bacc;
                          if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                               Skey = state->src_colorkey;
@@ -2891,6 +2908,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          Sacc = Dacc = Aacc;
 
                          *funcs++ = Sop_is_Bop;
+                         if (DFB_PIXELFORMAT_IS_INDEXED(src_format))
+                              *funcs++ = Slut_is_Alut;
 
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
@@ -2932,8 +2951,6 @@ void gRelease( CardState *state )
 
      if (state->source_locked)
           dfb_surface_unlock( state->source, 1 );
-
-     sLut = NULL;
 
      pthread_mutex_unlock( &generic_lock );
 }
