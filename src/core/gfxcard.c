@@ -858,6 +858,13 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
      int odx;
      DFBRectangle srect;
 
+     /* If called with an invalid rectangle, the algorithm goes into an
+        infinite loop. This should never happen but it's safer to check. */
+     if (rect->w < 1 || rect->h < 1) {
+          BUG( "invalid rectangle" );
+          return;
+     }
+
      odx = dx;
 
      dfb_state_lock( state );
@@ -865,8 +872,8 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
 
-          for (; dy < h; dy+= rect->h) {
-               for (dx = odx; dx < w; dx+= rect->w) {
+          for (; dy < h; dy += rect->h) {
+               for (dx = odx; dx < w; dx += rect->w) {
 
                     if (!dfb_clip_blit_precheck( &state->clip,
                                                  rect->w, rect->h, dx, dy ))
@@ -888,8 +895,8 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
      else {
           if (gAquire( state, DFXL_BLIT )) {
 
-               for (; dy < h; dy+= rect->h) {
-                    for (dx = odx; dx < w; dx+= rect->w) {
+               for (; dy < h; dy += rect->h) {
+                    for (dx = odx; dx < w; dx += rect->w) {
 
                          if (!dfb_clip_blit_precheck( &state->clip,
                                                       rect->w, rect->h,
