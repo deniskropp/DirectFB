@@ -925,7 +925,7 @@ static void nv20SetState( void *drv, void *dev,
  * (code based on RivaTV Developers' work)
  */
 
-static inline int
+static inline __u32
 nv_hashkey( __u32 obj )
 {
      __u32 key = 0;
@@ -1304,9 +1304,11 @@ driver_init_device( GraphicsDevice     *device,
                     void               *driver_data,
                     void               *device_data )
 {
-     NVidiaDriverData *nvdrv  = (NVidiaDriverData*) driver_data;
-     NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) device_data;
-     volatile __u32   *PGRAPH = nvdrv->PGRAPH;
+     NVidiaDriverData *nvdrv        = (NVidiaDriverData*) driver_data;
+     NVidiaDeviceData *nvdev        = (NVidiaDeviceData*) device_data;
+     int               ram_unusable = 0;
+     int               ram_total;
+     int               ram_used;
 
      snprintf( device_info->name,
                DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "RIVA TNT/TNT2/GeForce" );
@@ -1342,24 +1344,64 @@ driver_init_device( GraphicsDevice     *device,
                device_info->caps.blitting = 0;
                break;
      }
-     
+
      device_info->limits.surface_byteoffset_alignment = 64; 
      device_info->limits.surface_pixelpitch_alignment = 32;
 
      dfb_config->pollvsync_after = 1;
+
+     /* reserve unusable memory to avoid random crashes */
+     ram_total = 1 << direct_log2( dfb_system_videoram_length() );
+     ram_used  = dfb_gfxcard_memory_length();
+ 
+     switch (nvdrv->arch) {
+          case NV_ARCH_04:
+          case NV_ARCH_05:
+               ram_unusable = 128 * 1024;
+               break;
+          case NV_ARCH_10:
+          case NV_ARCH_20:
+               ram_unusable = 192 * 1024;
+               break;
+          default:
+               break;
+     }
+     ram_unusable -= ram_total - ram_used;
+     
+     if (ram_unusable > 0) {
+          int offset;
+          
+          offset = dfb_gfxcard_reserve_memory( nvdrv->device, ram_unusable );
+          if (offset < 0) {
+               D_ERROR( "DirectFB/NVidia: "
+                        "couldn't reserve %i bytes of video memory.\n",
+                        ram_unusable );
+               return DFB_NOVIDEOMEMORY;
+          }
+
+          D_DEBUG( "DirectFB/NVidia: "
+                   "reserved %i bytes of unusable video memory at offset 0x%08x.\n",
+                   ram_unusable, offset );
+          ram_used -= ram_unusable;
+     } 
     
+     /* reserve memory for texture/color buffers */
      if (device_info->caps.accel & DFXL_TEXTRIANGLES) {
           __u32 len;
           int   offset;
           
           len    = 512 * 512 * 2 + 8;
-          len   += (dfb_gfxcard_memory_length() - len) & 0xFF;
+          len   += (ram_used - len) & 0xFF;
           offset = dfb_gfxcard_reserve_memory( nvdrv->device, len );
           if (offset < 0) {
                D_ERROR( "DirectFB/NVidia: "
                         "couldn't reserve %i bytes of video memory.\n", len );
                return DFB_NOVIDEOMEMORY;
           }
+         
+          D_DEBUG( "DirectFB/NVidia: "
+                   "reserved %i bytes for 3D buffers at offset 0x%08x.\n",
+                    len, offset );
 
           nvdev->tex_offset = offset;
           nvdev->col_offset = offset + (512 * 512 * 2);
@@ -1378,9 +1420,9 @@ driver_init_device( GraphicsDevice     *device,
      nvdev->alpha    = 0xFF;
      
      /* NV_PGRAPH_ROP3 */
-     nv_out32( PGRAPH, 0x604, 0x000000CC );
+     nv_out32( nvdrv->PGRAPH, 0x604, 0x000000CC );
      /* NV_PGRAPH_BETA_AND */
-     nv_out32( PGRAPH, 0x608, 0x7F800000 );
+     nv_out32( nvdrv->PGRAPH, 0x608, 0x7F800000 );
 
      return DFB_OK;
 }
