@@ -185,7 +185,7 @@ uc_map_blending_fn( struct uc_hw_alpha      *hwalpha,
           case DSBF_INVSRCALPHA:
                // GL_ONE_MINUS_SRC_ALPHA -- (1, 1, 1, 1) - (As, As, As, As)
                hwalpha->regHABLCop |= HC_HABLFCb_InvOPC | HC_HABLFCb_Asrc;
-               hwalpha->regHABLAop |= HC_HABLFAb_InvOPA | HC_HABLFAb_Asrc;
+               hwalpha->regHABLAop |= HC_HABLFAb_InvOPA | HC_HABLFAb_0;
                break;
 
           case DSBF_DESTALPHA:
