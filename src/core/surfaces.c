@@ -601,7 +601,11 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           ret = dfb_surfacemanager_allocate( surface->manager, buffer );
 
           if (ret) {
-               CAUTION( "reallocation of video instance failed" );
+               if (!buffer->system.health)
+                    CAUTION( "reallocation of video instance failed" );
+               else
+                    buffer->system.health = CSH_STORED;
+
                return ret;
           }
 

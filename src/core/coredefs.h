@@ -56,6 +56,9 @@
                          }
 
 #ifdef DFB_DEBUG
+
+     #include <misc/util.h>   /* for dfb_get_millis() */
+     
      #ifdef HEAVYDEBUG
           #define HEAVYDEBUGMSG(x...)   if (!dfb_config->no_debug) {           \
                                                   fprintf( stderr, "(=) "x );  \
@@ -65,7 +68,9 @@
      #endif
 
      #define DEBUGMSG(x...)   if (!dfb_config->no_debug) {                     \
-                                   fprintf( stderr, "(-) "x );                 \
+                                   fprintf( stderr, "(-) [%d: %lld] ",         \
+                                            getpid(), dfb_get_millis() );      \
+                                   fprintf( stderr, x );                       \
                               }
 
      #define DFB_ASSERT(exp)  if (!(exp)) {                                    \
@@ -93,10 +98,10 @@
 
 
 #define BUG(x)     fprintf( stderr, " (!?!)  *** BUG ALERT [%s] *** %s (%d)\n",\
-                            x, __FILE__, __LINE__ );
+                            x, __FILE__, __LINE__ )
 
 #define CAUTION(x) fprintf( stderr, " (!!!)  *** CAUTION [%s] *** %s (%d)\n",  \
-                            x, __FILE__, __LINE__ );
+                            x, __FILE__, __LINE__ )
 
 #endif
 

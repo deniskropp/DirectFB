@@ -54,11 +54,9 @@
 
 #define CURSORFILE         DATADIR"/cursor.dat"
 
-#define MAX_DISPLAY_LAYERS 100
-
 typedef struct {
      int                 num;
-     DisplayLayerShared *layers[MAX_DISPLAY_LAYERS];
+     DisplayLayerShared *layers[MAX_LAYERS];
 } CoreLayersField;
 
 static CoreLayersField *layersfield = NULL;

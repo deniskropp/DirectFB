@@ -23,7 +23,28 @@
 
 #include <string.h>
 
+#include <sys/time.h>
+#include <time.h>
+
 #include "util.h"
+
+
+static struct timeval start_time = { 0, 0 };
+
+long long dfb_get_millis()
+{
+     struct timeval tv;
+     
+     if (start_time.tv_sec == 0) {
+          gettimeofday( &start_time, NULL );
+          return 0;
+     }
+
+     gettimeofday( &tv, NULL );
+
+     return (tv.tv_sec - start_time.tv_sec) * 1000 +
+            (tv.tv_usec - start_time.tv_usec) / 1000;
+}
 
 void dfb_trim( char **s )
 {

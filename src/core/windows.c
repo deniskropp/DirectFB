@@ -546,15 +546,21 @@ dfb_window_resize( CoreWindow   *window,
      int              ow    = window->width;
      int              oh    = window->height;
 
+     skirmish_prevail( &stack->update );
+     
      ret = dfb_surface_reformat( window->surface,
                                  width, height,
                                  window->surface->format );
-     if (ret)
+     if (ret) {
+          skirmish_dismiss( &stack->update );
           return ret;
+     }
 
      window->width = window->surface->width;
      window->height = window->surface->height;
 
+     skirmish_dismiss( &stack->update );
+     
      if (window->opacity) {
           if (ow > window->width) {
                DFBRegion region = { window->x + window->width, window->y,

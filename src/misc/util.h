@@ -68,8 +68,12 @@ int dfb_rectangle_intersect( DFBRectangle *rectangle,
 void dfb_rectangle_union ( DFBRectangle *rect1,
                            DFBRectangle *rect2 );
 
-/* floor and ceil implementation to get rid of libm */
 
+/* Returns the current time after startup of DirectFB in milliseconds */
+long long dfb_get_millis();
+
+
+/* floor and ceil implementation to get rid of libm */
 
 /*
  IEEE floor for computers that round to nearest or even.

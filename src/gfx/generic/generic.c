@@ -2285,6 +2285,16 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                return 0;
      }
 
+     /* Debug checks */
+     if (!state->destination) {
+          BUG("state check: no destination");
+          return 0;
+     }
+     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
+          BUG("state check: no source");
+          return 0;
+     }
+     
      dfb_surfacemanager_lock( dfb_gfxcard_surface_manager() );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
