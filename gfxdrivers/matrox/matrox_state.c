@@ -611,7 +611,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
           texctl2 |= CKSTRANSDIS;
 
      if (surface->format == DSPF_A8)
-          texctl2 |= IDECAL;
+          texctl2 |= IDECAL | DECALDIS;
 
      mdev->texctl = texctl;
 
