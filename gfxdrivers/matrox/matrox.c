@@ -393,14 +393,14 @@ static void matroxStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
      if (drect->w < 1  ||  drect->h < 1)
           return;
 
-//     incx = (srect->w << (20 - matrox_w2))  /  drect->w;
-//     incy = (srect->h << (20 - matrox_h2))  /  drect->h;
+     incx = (srect->w << (20 - matrox_w2))  /  drect->w;
+     incy = (srect->h << (20 - matrox_h2))  /  drect->h;
 
-     incx = (((srect->w << 20) | 0x80000) >> matrox_w2) / drect->w;
-     incy = (((srect->h << 20) | 0x80000) >> matrox_h2) / drect->h;
+//     incx = ((srect->w << 20) >> matrox_w2) / drect->w;
+//     incy = ((srect->h << 20) >> matrox_h2) / drect->h;
 
-     startx = ((srect->x << 20) | 0x80000) >> matrox_w2;
-     starty = ((srect->y << 20) | 0x80000) >> matrox_h2;
+     startx = (srect->x << 20)  >> matrox_w2;
+     starty = (srect->y << 20)  >> matrox_h2;
 
      mga_waitfifo( mmio_base, 6);
 
