@@ -70,6 +70,7 @@ typedef struct {
      CoreScreen                      *screen;  /* layer's screen */
      CoreLayer                       *layer;   /* core layer data */
      CoreLayerContext                *context; /* shared or exclusive context */
+     CoreLayerRegion                 *region;  /* primary region of the context */
      CoreWindowStack                 *stack;   /* stack of shared context */
 } IDirectFBDisplayLayer_data;
 
@@ -80,6 +81,7 @@ IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
 {
      IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
 
+     dfb_layer_region_unref( data->region );
      dfb_layer_context_unref( data->context );
 
      DFB_DEALLOCATE_INTERFACE( thiz );
@@ -199,6 +201,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
 {
      DFBResult         ret;
      CoreLayerContext *context;
+     CoreLayerRegion  *region;
 
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
@@ -213,9 +216,17 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
                     if (ret)
                          return ret;
 
+                    ret = dfb_layer_context_get_primary_region( context, true, &region );
+                    if (ret) {
+                         dfb_layer_context_unref( context );
+                         return ret;
+                    }
+
+                    dfb_layer_region_unref( data->region );
                     dfb_layer_context_unref( data->context );
 
                     data->context = context;
+                    data->region  = region;
                }
 
                break;
@@ -231,9 +242,17 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
                     return ret;
                }
 
+               ret = dfb_layer_context_get_primary_region( context, true, &region );
+               if (ret) {
+                    dfb_layer_context_unref( context );
+                    return ret;
+               }
+
+               dfb_layer_region_unref( data->region );
                dfb_layer_context_unref( data->context );
 
                data->context = context;
+               data->region  = region;
 
                break;
 
@@ -683,6 +702,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
 {
      DFBResult         ret;
      CoreLayerContext *context;
+     CoreLayerRegion  *region;
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDisplayLayer)
 
@@ -692,10 +712,18 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
           return ret;
      }
 
+     ret = dfb_layer_context_get_primary_region( context, true, &region );
+     if (ret) {
+          dfb_layer_context_unref( context );
+          DFB_DEALLOCATE_INTERFACE( thiz )
+          return ret;
+     }
+
      data->ref     = 1;
      data->screen  = dfb_layer_screen( layer );
      data->layer   = layer;
      data->context = context;
+     data->region  = region;
      data->stack   = dfb_layer_context_windowstack( context );
 
      thiz->AddRef                = IDirectFBDisplayLayer_AddRef;
