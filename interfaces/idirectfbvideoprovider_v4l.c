@@ -38,6 +38,7 @@
 #include <pthread.h>
 
 #include <directfb.h>
+#include <directfb_internals.h>
 
 #include <misc/util.h>
 
@@ -54,6 +55,7 @@
 typedef struct {
      int                      ref;       /* reference counter */
 
+     char                    *filename;
      int                      fd;
      struct video_capability  vcap;
      pthread_t                thread;
@@ -71,6 +73,7 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
                                  IDirectFBVideoProvider_V4L_data *data );
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data );
 static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data );
+static void v4l_suspend_resume( int suspend, void *ctx );
 
 
 static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
@@ -78,7 +81,11 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)thiz->priv;
      
+     DFBRemoveSuspendResumeFunc( v4l_suspend_resume, (void*)data );
+     
      v4l_deinit( data );
+
+     free( data->filename );
 
      free( thiz->priv );
      thiz->priv = NULL;
@@ -307,8 +314,11 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      ioctl( fd, VIDIOCGCAP, &data->vcap );
      ioctl( fd, VIDIOCCAPTURE, &zero );
 
+     data->filename = strdup( filename );
      data->fd = fd;
      data->thread = -1;
+
+     DFBAddSuspendResumeFunc( v4l_suspend_resume, (void*)data );
      
      thiz->AddRef = IDirectFBVideoProvider_V4L_AddRef;
      thiz->Release = IDirectFBVideoProvider_V4L_Release;
@@ -516,5 +526,22 @@ static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data )
 
      close( data->fd );
      data->fd = -1;
+}
+
+static void v4l_suspend_resume( int suspend, void *ctx )
+{
+     IDirectFBVideoProvider_V4L_data *data =
+          (IDirectFBVideoProvider_V4L_data*)ctx;
+     
+     if (suspend) {
+          v4l_stop( data );
+          close( data->fd );
+     }
+     else {
+          data->fd = open( data->filename, O_RDWR );
+          if (data->fd < 0)
+               PERRORMSG( "DirectFB/v4l: Cannot reopen `%s'!\n",
+                          data->filename );
+     }
 }
 

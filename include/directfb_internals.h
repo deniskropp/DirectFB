@@ -45,5 +45,11 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
 #define DFB_ALLOCATE_INTERFACE(p,i)     \
      (p) = (i*)malloc( sizeof(i) ); \
      memset( (p), 0, sizeof(i) );     \
+     
+     
+typedef void (*DFBSuspendResumeFunc)( int suspend, void *ctx );
+
+void DFBAddSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx );
+void DFBRemoveSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx );
 
 #endif /* __DIRECTFB_INTERNALS_H__ */

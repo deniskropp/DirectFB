@@ -57,6 +57,16 @@
 
 #include "idirectfb.h"
 
+typedef struct _DFBSuspendResumeHandler {
+     DFBSuspendResumeFunc  func;
+     void                 *ctx;
+
+     struct _DFBSuspendResumeHandler *prev;
+     struct _DFBSuspendResumeHandler *next;
+} DFBSuspendResumeHandler;
+
+static DFBSuspendResumeHandler *suspend_resume_handlers = NULL;
+
 /*
  * Destructor
  *
@@ -535,9 +545,16 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
 DFBResult IDirectFB_Suspend( IDirectFB *thiz )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
+     DFBSuspendResumeHandler *h = suspend_resume_handlers;
 
      if (!data)
           return DFB_DEAD;
+
+     while (h) {
+          h->func( 1, h->ctx );
+
+          h = h->next;
+     }
 
      input_suspend();
      layers_suspend();
@@ -552,12 +569,19 @@ DFBResult IDirectFB_Suspend( IDirectFB *thiz )
 DFBResult IDirectFB_Resume( IDirectFB *thiz )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
+     DFBSuspendResumeHandler *h = suspend_resume_handlers;
 
      if (!data)
           return DFB_DEAD;
 
      layers_resume();
      input_resume();
+
+     while (h) {
+          h->func( 0, h->ctx );
+
+          h = h->next;
+     }
 
      return DFB_OK;
 }
@@ -624,5 +648,52 @@ DFBResult IDirectFB_Construct( IDirectFB *thiz )
      thiz->WaitForSync = IDirectFB_WaitForSync;
 
      return DFB_OK;
+}
+
+
+/* internals */
+
+void DFBAddSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx )
+{
+     DFBSuspendResumeHandler *h;
+
+     h = malloc( sizeof(DFBSuspendResumeHandler) );
+
+     h->func = func;
+     h->ctx  = ctx;
+     h->prev = NULL;
+
+     if (suspend_resume_handlers) {
+          h->next = suspend_resume_handlers;
+          suspend_resume_handlers->prev = h;
+          suspend_resume_handlers = h;
+     }
+     else {
+          h->next = NULL;
+          suspend_resume_handlers = h;
+     }
+}
+
+void DFBRemoveSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx )
+{
+     DFBSuspendResumeHandler *h = suspend_resume_handlers;
+
+     while (h) {
+          if (h->func == func  &&  h->ctx == ctx) {
+               if (h->prev)
+                    h->prev->next = h->next;
+               
+               if (h->next)
+                    h->next->prev = h->prev;
+
+               if (h == suspend_resume_handlers)
+                    suspend_resume_handlers = h->next;
+
+               free( h );
+               break;
+          }
+
+          h = h->next;
+     }
 }
 
