@@ -84,6 +84,65 @@ struct {
      int yres;
 } config = { 50, 930, 50, 930, 1, 1, 50, 5, 8, 640, 480};
 
+/* needed for event filter */
+static TS_EVENT *event_buffer = NULL;
+
+static int
+avg_events(int which, int count)
+{
+     int i, sum = 0;
+
+     for(i = 0; i < count; i++)
+          sum += which ? event_buffer[i].x : event_buffer[i].y;
+
+     return(sum / count);
+}
+
+static void
+filter_event(TS_EVENT *ts_event)
+{
+     int dx, dy;
+     static int lastx = 0, lasty = 0;
+     static int lastb = 0;
+     static int evcnt = 0;
+     static int event_index = 0;
+
+     /* Increment the buffer index and the count of items in the buffer. */
+     if(++evcnt > config.numevents) evcnt = config.numevents;
+     if(++event_index == config.numevents) event_index = 0;
+
+     /* If the pen has just been pressed down, reset the counters. */
+     if(ts_event->pressure > config.zthresh) {
+          if(!lastb) {
+               lastb = 1;
+               evcnt = 1;
+               event_index = 0;
+          }
+     } else lastb = 0;
+
+     /* Store this event in the circular buffer. */
+     memcpy(&event_buffer[event_index], ts_event, sizeof(TS_EVENT));
+
+     /* Don't try to average and filter if we only have one reading. */
+     if(evcnt > 1) {
+          /* Average the closest values */
+          ts_event->y = avg_events(0, evcnt);
+          ts_event->x = avg_events(1, evcnt);
+
+          /* Ignore movements which are below the minimum threshold */
+          dx = ts_event->x - lastx;
+          if(dx < 0) dx = -dx;
+          if(dx < config.jthresh) ts_event->x = lastx;
+          dy = ts_event->y - lasty;
+          if(dy < 0) dy = -dy;
+          if(dy < config.jthresh) ts_event->y = lasty;
+     }
+
+     /* Remember the values we are returning. */
+     lastx = ts_event->x;
+     lasty = ts_event->y;
+}
+
 static void
 scale_point( TS_EVENT *ts_event )
 {
@@ -132,6 +191,7 @@ ucb1x00tsEventThread( CoreThread *thread, void *driver_data )
           if (readlen < 1)
                continue;
 
+          filter_event( &ts_event );
           scale_point( &ts_event );
 	  
 	  ts_event.pressure = (ts_event.pressure > config.zthresh );
@@ -208,7 +268,7 @@ driver_get_info( InputDriverInfo *info )
                "fischlustig" );
 
      info->version.major = 0;
-     info->version.minor = 3;
+     info->version.minor = 4;
 }
 
 static DFBResult
@@ -247,6 +307,8 @@ driver_open_device( InputDevice      *device,
      data->fd     = fd;
      data->device = device;
 
+     event_buffer = malloc( sizeof( TS_EVENT) * config.numevents );
+
      /* start input thread */
      data->thread = dfb_thread_create( CTT_INPUT, ucb1x00tsEventThread, data );
 
@@ -281,6 +343,9 @@ driver_close_device( void *driver_data )
      if (close( data->fd ) < 0)
           PERRORMSG( "DirectFB/ucb1x00: Error closing `/dev/ucb1x00-ts'!\n" );
 
+     if (event_buffer)
+          free( event_buffer );
+          
      /* free private data */
      DFBFREE( data );
 }
