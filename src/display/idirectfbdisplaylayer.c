@@ -432,7 +432,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
      if (desc->flags & DWDESC_CAPS)
           caps = desc->caps;
      if (desc->flags & DWDESC_SURFACE_CAPS)
-          caps = desc->surface_caps;
+          surface_caps = desc->surface_caps;
 
      if ((caps & ~DWCAPS_ALL) || !window)
           return DFB_INVARG;
