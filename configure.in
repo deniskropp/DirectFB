@@ -554,6 +554,7 @@ matrox=no
 neomagic=no
 nsc=no
 nvidia=no
+radeon=no
 tdfx=no
 savage=no
 
@@ -566,7 +567,7 @@ AC_ARG_WITH(gfxdrivers,
   [                          'all' builds all drivers, 'none' builds none ]
   [                          Possible gfxdrivers are: ]
   [                          ati128, cyber5k, i810, matrox, neomagic, nsc,]
-  [                          nvidia, savage, tdfx],
+  [                          nvidia, radeon, savage, tdfx],
   gfxdrivers="$withval", gfxdrivers="all")
 
 if test "$gfxdrivers" = "all"; then
@@ -577,6 +578,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_neomagic=yes
   checkfor_nsc=yes
   checkfor_nvidia=yes
+  checkfor_radeon=yes
   checkfor_savage=yes
   checkfor_tdfx=yes
   AC_MSG_RESULT(all)
@@ -607,6 +609,9 @@ else
           nvidia)
                   checkfor_nvidia=yes
                   ;;
+          radeon)
+                  checkfor_radeon=yes
+                  ;;
           savage)
                   checkfor_savage=yes
                   ;;
@@ -635,6 +640,20 @@ if test x$checkfor_ati128 = xyes; then
   ati=no
   AC_MSG_WARN([
 *** ATI Rage 128 gfxdriver will not be built.]))
+fi
+
+if test x$checkfor_radeon = xyes; then
+  dnl Test for radeon frame buffer support in the kernel
+  AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_ATI_RADEON
+  yes
+#endif
+  ],
+  radeon=yes, 
+  radeon=no
+  AC_MSG_WARN([
+*** ATI Radeon gfxdriver will not be built.]))
 fi
 
 if test x$checkfor_matrox = xyes; then
@@ -791,6 +810,7 @@ AM_CONDITIONAL(GFX_MATROX, test x$matrox = xyes)
 AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
 AM_CONDITIONAL(GFX_NSC, test x$nsc = xyes)
 AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
+AM_CONDITIONAL(GFX_RADEON, test x$radeon = xyes)
 AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
 AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
 
@@ -885,6 +905,7 @@ gfxdrivers/nsc/Makefile
 gfxdrivers/nsc/include/Makefile
 gfxdrivers/tdfx/Makefile
 gfxdrivers/nvidia/Makefile
+gfxdrivers/radeon/Makefile
 gfxdrivers/savage/Makefile
 inputdrivers/Makefile
 inputdrivers/dbox2remote/Makefile
@@ -958,6 +979,7 @@ Building Graphics Drivers:
   NeoMagic              $neomagic
   NSC Geode             $nsc
   nVidia RIVA TNT       $nvidia
+  ATI Radeon            $radeon
   S3 Savage             $savage
   3Dfx Voodoo           $tdfx
 

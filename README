@@ -284,7 +284,7 @@ Thanks to
    Antonino Daplas <adaplas@users.sourceforge.net>
    Scott A McConnell <samcconn@cotw.com>
    Alex SONG <zzaleson@uqconnect.net>
-   Ville Syrjala <syrjala@sci.fi>
+   Ville Syrjälä <syrjala@sci.fi>
    Brian J. Murrell <a40e8119bbddbe7b3d281db117f19b32@interlinx.bc.ca>
    Tim Janik <timj@gtk.org>
    Billy Biggs <vektor@dumbterm.net>
@@ -297,6 +297,7 @@ Thanks to
    Oliver Schwartz <Oliver.Schwartz@gmx.de>
    Florian <florian.fernandez2@wanadoo.fr>
    J.P. Delport <jpdelport@csir.co.za>
+   Michel Dänzer <michel@daenzer.net>
 
 Special thanks to Ville Syrjala for his great work on the
 Matrox TV-Out support and for his several patches including
