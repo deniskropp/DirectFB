@@ -4,8 +4,10 @@
 
 int main (int argc, char *argv[])
 {
-  int     i;
-  DiVine *divine;
+  int         i;
+  DiVine     *divine;
+  const char *msg = "DiVine Test!";
+  int         len = strlen (msg);
 
   /* open the connection to the input driver */
   divine = divine_open ("/tmp/divine");
@@ -16,10 +18,10 @@ int main (int argc, char *argv[])
   sleep (3);
 
   /* write a string */
-  for (i=0; i<12; i++)
+  for (i=0; i<len; i++)
     {
       /* simulate typing each character */
-      divine_send_symbol (divine, "DiVine Test!"[i]);
+      divine_send_symbol (divine, msg[i]);
 
       /* wait a second */
       sleep (1);
