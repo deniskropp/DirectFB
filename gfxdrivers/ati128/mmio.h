@@ -36,8 +36,8 @@ static inline void
 ati128_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
 {
 #ifdef __powerpc__
-       asm("stwbrx %0,%1,%2;eieio" : : "r"(value), "b"(reg),
-                       "r"((volatile __u32*)mmioaddr) : "memory");
+       asm volatile("stwbrx %0,%1,%2;eieio" : : "r"(value), "b"(reg),
+                       "r"(mmioaddr) : "memory");
 
 #else
      *((volatile __u32*)(mmioaddr+reg)) = value;
@@ -50,7 +50,7 @@ ati128_in32(volatile __u8 *mmioaddr, __u32 reg)
 #ifdef __powerpc__
      __u32 value;
 
-     asm("lwbrx %0,%1,%2;eieio" : "=r"(value) : "b"(reg), "r"((volatile __u32*)mmioaddr));
+     asm volatile("lwbrx %0,%1,%2;eieio" : "=r"(value) : "b"(reg), "r"(mmioaddr));
 
      return value;
 #else
