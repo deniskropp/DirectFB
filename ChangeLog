@@ -1,3 +1,397 @@
+2003-08-15   dok	13:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	AUTHORS (1.12) (+9 -8)
+		inputdrivers/wm97xx_ts/wm97xx_ts.c (1.1) ( )
+		inputdrivers/wm97xx_ts/Makefile.am (1.1) ( )
+		inputdrivers/wm97xx_ts/.cvsignore (1.1) ( )
+		inputdrivers/Makefile.am (1.14) (+6 -1)
+		configure.in (1.172) (+9 -1)
+		README (1.73) (+1 -0)
+	
+	Added WM97XX Touchscreen driver,
+	thanks to Liam Girdwood <liam.girdwood@wolfsonmicro.com>!
+	
+2003-08-15   dok	11:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/ps2mouse/ps2mouse.c (1.41) (+1 -1)
+	
+	Increased timeout from 100 to 200 ms.
+	
+2003-08-15   dok	11:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/debug.c (1.5) (+2 -2)
+	
+	oops
+	
+2003-08-15   dok	11:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.171) (+14 -7)
+		src/windows/idirectfbwindow.c (1.64) (+2 -0)
+		src/misc/util.c (1.15) (+2 -0)
+		src/misc/utf8.c (1.9) (+2 -2)
+		src/misc/tree.c (1.15) (+2 -0)
+		src/misc/memcpy.c (1.16) (+1 -1)
+		src/misc/mem.c (1.13) (+2 -0)
+		src/misc/gfx_util.c (1.32) (+2 -0)
+		src/misc/debug.h (1.2) (+2 -1)
+		src/misc/debug.c (1.4) (+29 -5)
+		src/misc/cpu_accel.c (1.7) (+1 -1)
+		src/misc/conf.c (1.66) (+1 -1)
+		src/media/idirectfbimageprovider.c (1.4) (+2 -0)
+		src/media/idirectfbfont.c (1.29) (+2 -0)
+		src/media/idirectfbdatabuffer_streamed.c (1.11) (+2 -0)
+		src/media/idirectfbdatabuffer_memory.c (1.10) (+2 -0)
+		src/media/idirectfbdatabuffer_file.c (1.10) (+2 -0)
+		src/media/idirectfbdatabuffer.c (1.6) (+2 -0)
+		src/input/idirectfbinputdevice.c (1.34) (+2 -0)
+		src/input/idirectfbinputbuffer.c (1.39) (+2 -0)
+		src/gfx/generic/generic.c (1.123) (+1 -1)
+		src/gfx/util.c (1.13) (+2 -0)
+		src/gfx/convert.c (1.11) (+2 -0)
+		src/gfx/clip.c (1.6) (+2 -0)
+		src/display/idirectfbsurface_window.c (1.33) (+2 -0)
+		src/display/idirectfbsurface_layer.c (1.32) (+2 -0)
+		src/display/idirectfbsurface.c (1.74) (+2 -0)
+		src/display/idirectfbpalette.c (1.11) (+2 -0)
+		src/display/idirectfbdisplaylayer.c (1.55) (+2 -0)
+		src/core/sdl/sdlinput.c (1.9) (+2 -0)
+		src/core/sdl/sdl.c (1.13) (+2 -0)
+		src/core/sdl/primary.c (1.19) (+2 -0)
+		src/core/fusion/shmalloc/shrealloc.c (1.9) (+2 -0)
+		src/core/fusion/shmalloc/shmalloc.c (1.27) (+2 -0)
+		src/core/fusion/shmalloc/shfree.c (1.8) (+2 -0)
+		src/core/fusion/shmalloc/shcalloc.c (1.7) (+2 -0)
+		src/core/fusion/reactor.c (1.49) (+1 -1)
+		src/core/fusion/object.c (1.16) (+2 -0)
+		src/core/fbdev/vt.c (1.19) (+2 -0)
+		src/core/fbdev/fbdev.c (1.74) (+1 -1)
+		src/core/windows.c (1.167) (+2 -0)
+		src/core/thread.c (1.16) (+2 -0)
+		src/core/system.c (1.18) (+2 -0)
+		src/core/surfaces.c (1.82) (+2 -0)
+		src/core/surfacemanager.c (1.55) (+2 -0)
+		src/core/state.c (1.21) (+2 -0)
+		src/core/sig.c (1.21) (+6 -1)
+		src/core/palette.c (1.19) (+2 -0)
+		src/core/modules.c (1.9) (+2 -0)
+		src/core/layers.c (1.120) (+2 -0)
+		src/core/fonts.c (1.39) (+2 -0)
+		src/interface.c (1.22) (+2 -0)
+		src/directfb.c (1.67) (+2 -0)
+	
+	Call tracing has to be enabled via "--enable-trace" now.
+	
+	Show stack trace of all threads when a signal is received.
+	
+	Include <config.h> everywhere.
+	
+2003-08-14   dok	16:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.77) (+1 -1)
+		src/misc/debug.c (1.2) (+2 -2)
+		src/misc/debug.c (1.3) (+5 -5)
+	
+	Allow signal handler in slaves again.
+	
+2003-08-14   dok	16:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.170) (+1 -1)
+		src/misc/debug.h (1.1) ( )
+		src/misc/debug.c (1.1) ( )
+		src/misc/Makefile.am (1.18) (+2 -0)
+		src/core/fusion/reactor.c (1.48) (+2 -0)
+		src/core/sig.c (1.20) (+3 -1)
+	
+	Added new debugging method "dfb_debug_print_stack()" that dumps the current
+	stack trace. But it just includes functions that are compiled with the gcc
+	option "-finstrument-functions", currently all of DirectFB when --enable-debug
+	is used.
+	
+2003-08-14   dok	14:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.76) (+2 -0)
+		src/core/fusion/fusion_internal.h (1.30) (+2 -0)
+		src/core/input.c (1.91) (+2 -0)
+		src/core/core_parts.c (1.5) (+2 -0)
+	
+	Include <config.h> at least in all files depending on FUSION_FAKE.
+	
+	Switching single/multi app between builds should be working now.
+	
+2003-08-14   dok	00:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/sig.c (1.19) (+11 -3)
+		src/core/fusion/shmalloc/shmalloc.c (1.26) (+1 -1)
+		src/core/fusion/reactor.c (1.47) (+1 -1)
+		src/core/surfaces.c (1.81) (+107 -32)
+	
+	<Meta>-<Print> now stores the alpha channel of the window, too.
+	It's a pgm and is stored with the same file name except the extension.
+	
+	To convert from ppm/pgm to png do:
+	
+	pnmtopng -alpha dfb_window_0000.pgm dfb_window_0000.ppm > dfb_window_0000.png
+	
+	
+	Minor debug changes.
+	
+2003-08-13   andi	17:39	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	tools/Makefile.am (1.20) (+5 -5)
+	
+	build pixelformat conversion utilities only on linux systems.
+	
+2003-08-13   andi	17:34	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/core/core.c (1.75) (+1 -1)
+	
+	use setpgid() instead of setpgrp() to restore darwin and probably other BSD compatibility.
+	
+2003-08-12   dok	12:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.119) (+2 -1)
+	
+	Added another lock check.
+	
+2003-08-12   dok	12:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.118) (+78 -37)
+		src/display/idirectfbdisplaylayer.c (1.54) (+0 -6)
+	
+	Added a lot of necessary locks.
+	
+	IDirectFBDisplayLayer::GetWindow() is safe now, too. Was an urgent fixme.
+	
+2003-08-11   dok	16:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.123) (+2 -2)
+		src/core/surfaces.h (1.44) (+4 -2)
+		src/core/surfaces.c (1.80) (+4 -1)
+		src/core/surfacemanager.c (1.54) (+32 -28)
+	
+	Skip copying from system to video memory during auto video buffer upload
+	if the buffer has never been locked for write access.
+	
+	Enable upload of auto video buffers for write only GPU access, too.
+	
+	Speeds up surface create/clear/release cycles, nearly as fast as for video
+	only surfaces.
+	
+2003-08-11   dok	16:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/sig.c (1.18) (+8 -2)
+	
+	Indicate if segfault has been cured.
+	
+2003-08-11   dok	15:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/sig.c (1.17) (+21 -2)
+		src/core/fusion/shmalloc/shmalloc.c (1.25) (+89 -9)
+		src/core/fusion/shmalloc.h (1.15) (+8 -0)
+		src/core/fusion/fusion_shmalloc.c (1.10) (+6 -0)
+	
+	Hot fixed rare segfaults which occur if a valid shared memory pointer is
+	derefenced but the address lies in a new region which hasn't been mapped
+	locally yet.
+	
+	Added "bool fusion_shmalloc_cure( const void *ptr )" which is called by the
+	signal handler to recover such segfaults by remapping the file immediately.
+	It returns true if the segfault is cured and the signal handler may drop it.
+	
+	This is a hack until there's a better solution, maybe via Fusion Kernel Device.
+	
+2003-08-11   dok	13:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/sig.c (1.16) (+26 -5)
+	
+	Show faulting address in case of SIGSEGV.
+	
+2003-08-11   dok	13:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/thread.c (1.15) (+5 -4)
+	
+	Converted assertion to assumption, added another assumption.
+	
+2003-08-11   dok	13:20	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/shmalloc/shmalloc.c (1.24) (+6 -1)
+	
+	Added debug messages to __shmalloc_brk() and __shmalloc_react().
+	
+2003-08-11   dok	10:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.72) (+1 -0)
+		inputdrivers/mutouch/mutouch.c (1.4) (+3 -0)
+	
+	Fixed button events, thanks to Tim Wright <tim.wright@iosystems.co.uk>.
+	
+2003-08-08   dok	23:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.166) (+0 -2)
+	
+	Removed a caution message.
+	
+2003-08-08   dok	23:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.31) (+3 -3)
+		src/core/fusion/reactor.c (1.46) (+25 -8)
+		src/core/windows.c (1.165) (+2 -2)
+		src/core/thread.c (1.14) (+1 -2)
+		src/core/surfaces.c (1.79) (+2 -2)
+	
+	Block signals in slave threads and fusion read (master & slave) thread, too.
+	
+	Enhanced debug, minor cleanup.
+	
+2003-08-08   dok	21:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.30) (+8 -8)
+		src/windows/idirectfbwindow.c (1.63) (+1 -2)
+		src/core/windows.h (1.47) (+1 -7)
+		src/core/windows.c (1.164) (+82 -73)
+	
+	Cleanup, enhanced debugging and safety.
+	
+2003-08-08   dok	19:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/thread.c (1.13) (+17 -18)
+	
+	Waiting for pthread_create is required, but it's done later now.
+	
+2003-08-08   dok	19:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.74) (+2 -0)
+		src/core/coredefs.h (1.29) (+4 -2)
+	
+	Create a new process group early during initialization.
+	
+	Send SIGTRAP to process group leader instead of the calling process
+	in DFB_ASSERT and DFB_BREAK. Otherwise the signal would be blocked
+	if the assertion or break happens in a thread, e.g. an input thread.
+	
+	Call pause() after sending the signal, otherwise execution continues
+	until the signal is caught.
+	
+2003-08-08   dok	18:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/thread.c (1.12) (+10 -6)
+	
+	Use pid instead of pthread id in debug messages.
+	
+2003-08-08   dok	18:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.28) (+14 -0)
+		src/core/thread.c (1.11) (+80 -24)
+	
+	Added DFB_ASSUME which is like DFB_ASSERT, but doesn't send SIGTRAP and
+	has "(?)" instead of "(!)" at the beginning of the debug message.
+	Failing assumptions are not fatal. They can be used to unveil unusual
+	behaviour, e.g. dfb_thread_join() called while already joining/joined.
+	
+	Optimized creation of new threads by not waiting for pthread_create completion
+	in spawned threads. Also don't enter the main routine after initialization if
+	another is already joining. This is useful if DirectFB is initialized, but
+	deinitialized shortly after. In this case the fusion_read_loop() is not entered.
+	
+	
+	On a P3 800E with only fbdev (systems) and matrox (gfxdrivers) installed I did
+	
+	"while true; do dfb_init_deinit &> /dev/null; done"
+	
+	where 'dfb_init_deinit' (slave) just calls DirectFBInit/Create/Release.
+	This results in about 170 iterations per second and looks like 5.8 ms for a
+	complete init/deinit for slaves, but bash is consuming a lot of CPU, too.
+	
+	Debug messages show that a complete DirectFBInit/Create/Release (as a slave)
+	takes 3-4 ms ;)
+	
+2003-08-07   dok	16:46	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.116) (+8 -0)
+	
+	Check desc.width and desc.height for being positive in CreateFont().
+	
+2003-08-07   dok	16:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.38) (+19 -9)
+	
+	Added error handling to glyph surface creation.
+	
+2003-08-07   dok	16:26	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.115) (+0 -3)
+		src/core/windows.c (1.163) (+12 -0)
+		src/core/surfaces.h (1.43) (+1 -1)
+		src/core/surfaces.c (1.78) (+22 -3)
+		src/core/surfacemanager.h (1.16) (+2 -2)
+	
+	Added some assertions and argument checking.
+	
+2003-08-07   dok	16:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.90) (+1 -1)
+	
+	Don't filter all print keys.
+	
+2003-08-07   dok	16:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.89) (+23 -117)
+		src/core/windows.c (1.162) (+152 -153)
+		src/core/surfaces.h (1.42) (+10 -0)
+		src/core/surfaces.c (1.77) (+94 -0)
+	
+	Added <Meta>-<Print> hot key to make a screenshot of the focused window ;)
+	
+	Added dfb_surface_dump() which is used for screenshots now, replaces static
+	function dump_screen() and will store the alpha channel to an extra pgm soon.
+	
+2003-08-07   dok	00:46	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbsurface.c (1.73) (+7 -5)
+	
+	Check if the font is already set in IDirectFBSurface::SetFont(),
+	saves just a few CPU cycles though.
+	
+2003-08-06   dok	17:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/conf.c (1.65) (+88 -62)
+	
+	New environment variable "DFBARGS" is now parsed
+	like everything after "--dfb:" on the command line.
+	
+	New order:
+	
+	system       /etc/directfbrc
+	user         <home>/.directfbrc
+	system/app   /etc/directfbrc.<app>
+	user/app     <home>/.directfbrc.<app>
+	
+	environment  $DFBARGS
+	
+	command line
+	
+2003-08-04   dok	19:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.114) (+1 -1)
+	
+	Need long long.
+	
+2003-08-04   dok	19:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.113) (+3 -0)
+	
+	Reject very large surface creations (> 4096*4096 pixels).
+	
+2003-08-04   dok	18:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.45) (+1892 -1763)
+		src/core/windows.c (1.161) (+109 -47)
+		include/directfb.h (1.187) (+3 -2)
+		README (1.71) (+1 -0)
+	
+	DWOP_SHAPED support for color keyed windows,
+	thanks to Maurizio Monge <monge@sns.it>.
+	
 2003-08-02   dok	19:35	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	include/directfb.h (1.186) (+16 -1)

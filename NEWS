@@ -1,3 +1,31 @@
+0.9.20
+------
+
+- Added WM97XX Touchscreen driver,
+  thanks to Liam Girdwood <liam.girdwood@wolfsonmicro.com>!
+- Added DWOP_SHAPED which enables shaped input handling, windows with an alpha
+  channel or a color key are ignored if the pixel under the cursor is completely
+  transparent. Thanks to Monge Maurizio <monge@sns.it>!
+- Added IDirectFBEventBuffer::WakeUp() causing any WaitForEvent() or
+  WaitForEventWithTimeout() to return with DFB_INTERRUPTED.
+- Added <Meta>-<Print> hot key to make a screenshot of the focused window
+  including its alpha channel if present. Creates a ppm (RGB) and a pgm (alpha).
+  Use "pnmtopng -alpha foo.pgm foo.ppm > foo.png" to combine them.
+- Added "memcpy = <method>" option to save a lot of startup time.
+  "time dfbinfo" went from 0.080 secs to < 0.010 secs on my machine.
+- New environment variable "DFBARGS" is now parsed like the "--dfb:" parameter.
+- Added Fusion Kernel Device patch for Linux 2.6.
+- Send valid button events in MuTouch driver,
+  thanks to Tim Wright <tim.wright@iosystems.co.uk>.
+- Fixed segfault in slave processes when no graphics driver is loaded.
+- Signal handler now displays the faulting address in case of SIGSEGV.
+- Added configure option "--enable-trace" activating stack trace dumps in the
+  signal handler. Uses "-finstrument-functions" and therefor only includes
+  functions of DirectFB unless you compile your code with that option, too.
+- Optimized auto-video surface handling, speeding up Create/Clear a lot.
+- Switching single/multi between builds doesn't require "make clean" anymore.
+
+
 0.9.19
 ------
 
