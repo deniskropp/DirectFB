@@ -110,16 +110,16 @@ DFB_GRAPHICS_DRIVER(unichrome)
 
 static void uc_dump_vq(UcDeviceData *ucdev) 
 {
-	int i;
-	__u8* vq;
+    int i;
+    __u8* vq;
 
-	if (!ucdev->vq_start) return;
-	vq = dfb_system_video_memory_virtual(ucdev->vq_start);
+    if (!ucdev->vq_start) return;
+    vq = dfb_system_video_memory_virtual(ucdev->vq_start);
 
-	for (i = 0; i < 128; i++) {
-		printf("%02x ", *(vq+i));
-		if ((i+1) % 16 == 0) printf("\n");
-	}
+    for (i = 0; i < 128; i++) {
+        printf("%02x ", *(vq+i));
+        if ((i+1) % 16 == 0) printf("\n");
+    }
 }
 
 /** Allocate memory for the virtual queue. */
@@ -136,11 +136,11 @@ static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
 
     ucdev->vq_end = ucdev->vq_start + ucdev->vq_size - 1;
 
-	// Debug: clear buffer
-	memset((void *) dfb_system_video_memory_virtual(ucdev->vq_start),
-		0xcc, ucdev->vq_size);
+    // Debug: clear buffer
+    memset((void *) dfb_system_video_memory_virtual(ucdev->vq_start),
+        0xcc, ucdev->vq_size);
 
-	// uc_dump_vq(ucdev);
+    // uc_dump_vq(ucdev);
 
     return DFB_OK;
 }
@@ -311,6 +311,17 @@ void uc_init_3d_engine(volatile __u8* hwregs, int hwrev, bool init_all)
     VIA_OUT(hwregs, 0x440,0x20000000);
 }
 
+/** */
+
+static void uc_after_set_var(void* drv, void* dev)
+{
+    UcDriverData* ucdrv = (UcDriverData*) drv;
+
+    // VIA-driver interoperability - clear bit 6 in E-VGA reg 0x1a
+    VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
+    VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) & 0xbf);
+}
+
 /** Wait until the engine is idle. */
 
 static void uc_engine_sync(void* drv, void* dev)
@@ -320,14 +331,19 @@ static void uc_engine_sync(void* drv, void* dev)
 
     int loop = -1;
 
-//    printf("uc_engine_sync ");
+    /* printf("Entering uc_engine_sync(), status is 0x%08x\n",
+        VIA_IN(ucdrv->hwregs, VIA_REG_STATUS));
+     */
     
     while (loop++ < MAXLOOP) {
         if ((VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & 0xfffeffff) == 0x00020000)
             break;
     }
 
-//    printf("waiting for %d (0x%x) cycles.\n", loop, loop);
+    /* printf("Leaving uc_engine_sync(), status is 0x%08x, "
+        "waiting for %d (0x%x) cycles.\n",
+        VIA_IN(ucdrv->hwregs, VIA_REG_STATUS), loop, loop);
+     */
 
     ucdev->idle_waitcycles += loop;
     ucdev->must_wait = 0;
@@ -391,11 +407,9 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
     if ((int) ucdrv->hwregs == -1) 
          return DFB_IO;
 
-    // VIA-driver crash workaround.
-    // This clears bit 6 (software reset) in extended VGA register 0x1a
-    //VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
-    //ucdrv->vga1A_save = VGA_IN8(ucdrv->hwregs, 0x3c5);
-    //VGA_OUT8(ucdrv->hwregs, 0x3c5, ucdrv->vga1A_save & 0xbf);
+    // VIA-driver interoperability - clear bit 6 in E-VGA reg 0x1a
+    VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
+    VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) & 0xbf);
 
     ucdrv->hwrev = 3;   // FIXME: Get the real hardware revision number!!!
 
@@ -413,6 +427,7 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
     funcs->SetState      = uc_set_state;
     funcs->EngineSync    = uc_engine_sync;
     funcs->EmitCommands  = uc_emit_commands;
+    funcs->AfterSetVar   = uc_after_set_var;
 
     funcs->FillRectangle = uc_fill_rectangle;
     funcs->DrawRectangle = uc_draw_rectangle;
@@ -462,8 +477,8 @@ static DFBResult driver_init_device(GraphicsDevice* device,
     ucdev->cmd_waitcycles = 0;
     ucdev->idle_waitcycles = 0;
 
+    uc_init_2d_engine(device, ucdev, ucdrv, false); // VQ disabled - can't make it work.
     uc_init_3d_engine(ucdrv->hwregs, ucdrv->hwrev, 1);
-    uc_init_2d_engine(device, ucdev, ucdrv, false);	// VQ disabled - can't make it work.
 
     return DFB_OK;
 }
@@ -474,7 +489,7 @@ static void driver_close_device(GraphicsDevice *device,
     UcDriverData* ucdrv = (UcDriverData*) driver_data;
     UcDeviceData* ucdev = (UcDeviceData*) device_data;
 
-	// uc_dump_vq(ucdev);
+    // uc_dump_vq(ucdev);
 
     uc_engine_sync(driver_data, device_data);
     uc_init_2d_engine(device, ucdev, ucdrv, false);
@@ -483,11 +498,6 @@ static void driver_close_device(GraphicsDevice *device,
 static void driver_close_driver(GraphicsDevice* device, void* driver_data)
 {
     UcDriverData* ucdrv = (UcDriverData*) driver_data;
-
-    // VIA-driver crash workaround.
-    // This restores extended VGA register 0x1a
-    //VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
-    //VGA_OUT8(ucdrv->hwregs, 0x3c5, ucdrv->vga1A_save | 0x68);
 
     if (ucdrv->fifo) uc_fifo_destroy(ucdrv->fifo);
     if ((int) ucdrv->file != -1) close(ucdrv->file);
