@@ -263,10 +263,8 @@ __cyg_profile_func_enter (void *this_fn,
      int tid   = gettid();
      int level = threads[tid].level++;
 
-     if (level > MAX_LEVEL)
-          return;
-
-     threads[tid].trace[level] = this_fn;
+     if (level < MAX_LEVEL)
+          threads[tid].trace[level] = this_fn;
 }
 
 __attribute__((no_instrument_function))
@@ -274,14 +272,7 @@ void
 __cyg_profile_func_exit (void *this_fn,
                          void *call_site)
 {
-     int tid   = gettid();
-     int level = --threads[tid].level;
-
-     if (level > MAX_LEVEL)
-          return;
-
-//     DFB_ASSERT( level >= 0 );
-//     DFB_ASSERT( threads[tid].trace[level] == this_fn );
+     threads[gettid()].level--;
 }
 
 
