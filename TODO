@@ -6,5 +6,3 @@ Use CON2FBMAP. Allow disabling of specific input devices.
 Add creation of surfaces with preallocated memory.
 
 Memory Source or Streaming for Image/Video Provider.
-
-Swapping option for left/right mouse button.
