@@ -79,10 +79,12 @@ void dfb_font_destroy( CoreFont *font )
      dfb_tree_destroy (font->glyph_infos);
 
      for (i = 0; i < font->rows; i++) {
-          dfb_surface_detach( font->surfaces[i], font->reactions[i] );
-          dfb_surface_unref( font->surfaces[i] );
+          if (font->reactions) {
+               dfb_surface_detach( font->surfaces[i], font->reactions[i] );
+               DFBFREE( font->reactions[i] );
+          }
 
-          DFBFREE( font->reactions[i] );
+          dfb_surface_unref( font->surfaces[i] );
      }
 
      if (font->surfaces)
