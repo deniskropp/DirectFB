@@ -178,9 +178,6 @@ neoOverlaySetScreenLocation( DisplayLayer *layer,
                              float         width,
                              float         height )
 {
-     /* TODO: add workaround */
-     if (x + width > 1.0f  ||  y + height > 1.0f)
-          return DFB_UNIMPLEMENTED;
 
      layer->shared->screen.x = x;
      layer->shared->screen.y = y;
@@ -219,7 +216,13 @@ static DFBResult
 neoOverlaySetColorAdjustment( DisplayLayer       *layer,
                               DFBColorAdjustment *adj )
 {
-     return DFB_UNIMPLEMENTED;
+     if (adj->flags & DCAF_BRIGHTNESS) {
+		neo_unlock();
+		OUTGR(0xc4, (signed char)((adj->brightness >> 8) -128));
+		neo_lock();
+		return DFB_OK;
+     } else
+		return DFB_UNIMPLEMENTED;
 }
 
 static void
@@ -247,7 +250,7 @@ neo_init_overlay( void *driver_data,
 
      layer->shared = (DisplayLayerShared*) shcalloc( 1, sizeof(DisplayLayerShared) );
 
-     layer->shared->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
+     layer->shared->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE | DLCAPS_BRIGHTNESS;
 
      snprintf( layer->shared->description,
                DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "NeoMagic Overlay" );
