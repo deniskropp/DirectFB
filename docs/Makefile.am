@@ -12,6 +12,7 @@ man_MANS = \
 	directfbrc.5
 
 EXTRA_DIST = \
+	README.screenshots	\
 	dfbg.1.in		\
 	directfbrc.5.in		\
 	directfb-csource.1.in

@@ -26,7 +26,6 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = directfb.pc directfb-internal.pc
 
 EXTRA_DIST = \
-	README.screenshots	\
 	fb.modes 		\
 	directfb.spec.in	\
 	directfb.spec
