@@ -348,6 +348,6 @@ DFBResult dfb_layer_cursor_warp( DisplayLayer *layer,
                                  int           y );
 
 
-FusionObjectPool *dfb_layer_window_pool( DisplayLayer *layer );
+CoreWindowStack *dfb_layer_window_stack( DisplayLayer *layer );
 
 #endif

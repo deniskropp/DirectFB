@@ -1315,14 +1315,13 @@ dfb_layer_cursor_set_acceleration( DisplayLayer *layer,
      return DFB_OK;
 }
 
-FusionObjectPool *
-dfb_layer_window_pool( DisplayLayer *layer )
+CoreWindowStack *
+dfb_layer_window_stack( DisplayLayer *layer )
 {
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( layer->shared->stack != NULL );
 
-     return layer->shared->stack->pool;
+     return layer->shared->stack;
 }
 
 /** internal **/

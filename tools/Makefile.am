@@ -6,13 +6,19 @@ INCLUDES = \
 
 CFLAGS = $(DFB_CFLAGS)
 
+
 if DIRECTFB_CSOURCE
-bin_PROGRAMS = directfb-csource
+DFB_CSOURCE = directfb-csource
 
 directfb_csource_SOURCES = directfb-csource.c
-
-directfb_csource_LDADD = $(LIBPNG)
+directfb_csource_LDADD   = $(LIBPNG)
 endif
+
+bin_PROGRAMS = dfbdump $(DFB_CSOURCE)
+
+dfbdump_SOURCES = dfbdump.c
+dfbdump_LDADD   = ../src/libdirectfb.la
+
 
 noinst_PROGRAMS = \
 	raw15toraw24	\
