@@ -89,7 +89,13 @@ surface_callback( FusionObjectPool *pool,
           return false;
      }
 
-     printf( "%2d  ", refs );
+#ifndef FUSION_FAKE
+     printf( "0x%08x | ", object->ref.id );
+#else
+     printf( "N/A        | " );
+#endif
+
+     printf( "%3d   ", refs );
      
      printf( "%4d x %4d   ", surface->width, surface->height );
 
@@ -154,8 +160,8 @@ surface_callback( FusionObjectPool *pool,
      vmem = buffer_sizes( surface, true );
      smem = buffer_sizes( surface, false );
 
-     printf( "%6dk  ", vmem >> 10 );
-     printf( "%6dk  ", smem >> 10 );
+     printf( "%5dk  ", vmem >> 10 );
+     printf( "%5dk  ", smem >> 10 );
 
      mem->video  += vmem;
      mem->system += smem;
@@ -188,11 +194,13 @@ dump_surfaces()
      printf( "\nSurfaces\n" );
      printf( "---------\n\n" );
 
+     printf( "Reference  . Refs  Width Height  Format    Video  System  Capabilities\n" );
+
      fusion_object_pool_enum( dfb_gfxcard_surface_pool(),
                               surface_callback, &mem );
 
-     printf( "                           -------  -------\n" );
-     printf( "                           %6dk  %6dk    -> %dk total\n",
+     printf( "                                         -------  -------\n" );
+     printf( "                                         %6dk  %6dk    -> %dk total\n",
              mem.video >> 10, mem.system >> 10, (mem.video + mem.system) >> 10);
 }
 
@@ -209,7 +217,13 @@ window_callback( CoreWindow      *window,
           return false;
      }
 
-     printf( "%2d  ", refs );
+#ifndef FUSION_FAKE
+     printf( "0x%08x | ", window->object.ref.id );
+#else
+     printf( "N/A        | " );
+#endif
+
+     printf( "%3d   ", refs );
 
      printf( "%4d, %4d   ", window->x, window->y );
 
@@ -252,6 +266,9 @@ window_callback( CoreWindow      *window,
      if (stack->focused_window == window)
           printf( "FOCUSED        " );
 
+     if (window->destroyed)
+          printf( "DESTROYED      " );
+     
      printf( "\n" );
 
      return true;
