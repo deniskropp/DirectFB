@@ -2331,15 +2331,7 @@ _dfb_layer_surface_listener( const void *msg_data, void *ctx )
           return RS_REMOVE;
      }
 
-     if (flags & CSNF_PALETTE_CHANGE)
-          printf("PALETTE_CHANGE (%p -> %p)\n", shared->palette, surface->palette);
-
-     if (flags & CSNF_PALETTE_UPDATE)
-          printf("PALETTE_UPDATE\n");
-     
      if (flags & (CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE)) {
-          printf("\n");
-
           if (surface->palette) {
                if (shared->palette != surface->palette) {
                     if (shared->palette)
