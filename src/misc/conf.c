@@ -247,10 +247,11 @@ static void config_allocate()
 
      sigemptyset( &dfb_config->dont_catch );
 
-     /* default to fbdev if we have root privileges */
-     if (geteuid() == 0)
-          dfb_config->system = DFBSTRDUP( "FBDev" );
-     else
+     /* default to fbdev */
+     dfb_config->system = DFBSTRDUP( "FBDev" );
+     
+     /* default to no-vt-switch if we don't have root privileges */
+     if (geteuid())
           dfb_config->vt_switch = false;
 }
 
