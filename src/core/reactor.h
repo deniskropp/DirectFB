@@ -23,7 +23,8 @@
 
 #ifndef __REACTOR_H__
 #define __REACTOR_H__
-#include <pthread.h>
+
+#include "coretypes.h"
 
 typedef enum {
      RS_OK,

@@ -24,7 +24,9 @@
 #ifndef __SURFACES_H__
 #define __SURFACES_H__
 
-#include "core/reactor.h"
+#include <directfb.h>
+
+#include "reactor.h"
 
 #define CSLF_FORCE 0x80000000
 
