@@ -144,7 +144,7 @@ Graphics Core
 
 Display Layer Core
 - Refactored display layer core.
-- Added contexts alojg with regions allocated within them.
+- Added contexts along with regions allocated within them.
 - Drivers are only aware of regions. Usually a driver supports one region
   per layer. Hardware windows are implemented via hardware regions.
 
@@ -234,9 +234,9 @@ libdirect
   for initialization, increasing, copying and updating.
 - Added D_DEBUG_ENABLED which is defined depending on three other macros.
   It's defined to be 1, if the D_DEBUG* macros produce code. Useful for
-  embracing code that it's just required for the debugging output.
+  embracing code that is just required for the debugging output.
 - Added D_OOM() which prints the warning "out of memory" and gives
-  DFB_NOSYSTEMMEMORY if used as (return) value.
+  DFB_NOSYSTEMMEMORY if used as a (return) value.
 - Added D_OOSHM() which is the same as D_OOM() in single app build.
   Only in multi app build it prints the warning "out of shared memory"
   and gives DFB_NOSHAREDMEMORY if used as a (return) value.
@@ -270,23 +270,25 @@ libfusion
   skirmish for all reactors which is created during Fusion's initialization.
 - Added fusion_reactor_set_lock() to use another skirmish for the global
   reactions of the reactor.
-- Added "fusion_object_set_lock()" to set the skirmish for the global reactions
+- Added fusion_object_set_lock() to set the skirmish for the global reactions
   of the object's reactor, while default is the skirmish used to lock the pool.
 
 libvoodoo
 - Added network transparency to DirectFB, called Voodoo.
+  (see the related news entry on the web page for more details)
 
 Reference Manual
 - Parse preceding comments within enums.
 - Fixed hyper link generation for "const" parameters.
-- Improved layout of types page and added macros.
+- Improved layout of types page.
+- Added macro definitions to types page.
 - Added callback definitions to types page.
 - Automatically generate links if comments include function names,
   e.g.: "... IDirectFB::GetDisplayLayer() ...".
 - Show index of types and definitions on the index page.
 
 directfb-config
-- Options "--fusionsound" and "--voodoo" to generate static linking
+- Added "--fusionsound" and "--voodoo" to generate static linking
   parameters for FusionSound and Voodoo respectively.
 - Use new ".o" versions for all modules (static linking).
 
@@ -308,7 +310,7 @@ dfbscreen
 - Added configuration tool for mixers, encoders and outputs.
 
 fusion_bench
-- Replaced getpid() reference benchmark with an flock(2) benchmark.
+- Replaced getpid() reference benchmark by an flock(2) benchmark.
 - Use recursive mutexes in threaded mutex benchmark.
 - Each benchmark runs for one second now.
 - Added shmalloc/shfree benchmark.
@@ -353,7 +355,7 @@ VIA CLE266
   triangle pair instead of the upper right and lower left.
 - Other major improvements and fixes.
 
-VIA Unichrome (CLE266)
+VIA Unichrome
 - New driver based on the CLE266 driver.
 - Support for multiple north bridges.
 - DVD Sub Picture Layer support.
@@ -371,18 +373,18 @@ nVidia
 - Implemented alpha blended blitting and drawing.
 - Added experimental support for Colorizing.
 - Added sysfs support.
-- Added a really fast Flip() function.
+- Added a fast Flip() function (not using ioctl).
 - Experimental WaitForSync() support.
 - Fixed ram amount detection on Xbox (thanks to Oliver Schwartz).
-- Giant cleanup and rewite of the objects configuration routines:
-  we use runtime configuration istead of fixed tables now.
+- Giant cleanup and rewrite of the objects configuration routines:
+  we use runtime configuration instead of fixed tables now.
 - Cleanups and fixes.
 
 SiS 315
 - Added by Andreas Oberritter <obi@tuxbox.org>.
-- Rectangle Filling/Drawing, Line Drawing in 8, 16 and 32 bit
-- Blitting (with Source Color Keying) in 8 and 16 bit
-- Destination Color Keying, Clipping
+- Rectangle Filling/Drawing, Line Drawing in 8, 16 and 32 bit.
+- Blitting (with Source Color Keying) in 8 and 16 bit.
+- Destination Color Keying, Clipping.
 
 ATI Mach64
 - Added by Ville Syrjala <syrjala@sci.fi>.
@@ -407,14 +409,14 @@ LibMpeg3 Video Provider
 Linux Input
 - Take Linux Input key code as hardware keycode.
 - Use EVIOCGRAB ioctl to grab the device.
-- Primary mouse should actually be a mouse.
+- Primary mouse is also identified as a mouse now.
 - Added keyboard LED support.
 - Copied keymap support from the keyboard driver.
 - Support more axes.
 
 LIRC Input
 - Emulate keyboard like key repeat behaviour using select() with timeout
-  and a counter to drop the first two repeats.
+  and a counter to drop the first few repeats.
 
 PS/2 Mouse Input
 - Added /dev/misc/psaux.
