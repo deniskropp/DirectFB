@@ -775,7 +775,6 @@ savagePrimaryInitLayer( GraphicsDevice             *device,
                         void                       *driver_data,
                         void                       *layer_data )
 {
-     VideoMode * default_mode;
      SavagePrimaryLayerData *play = (SavagePrimaryLayerData*) layer_data;
      DFBResult ret;
     
@@ -783,45 +782,24 @@ savagePrimaryInitLayer( GraphicsDevice             *device,
             dfb_config->mode.width, dfb_config->mode.height,
             dfb_config->mode.depth);
     
-     /* initialize mode table */
-     ret = dfb_fbdev_init_modes();
+     /* call the original initialization function first */
+     ret = pfuncs.InitLayer (device, layer, layer_info,
+                             default_config, default_adj,
+                             pdriver_data, layer_data);
      if (ret)
           return ret;
 
-     default_mode = dfb_fbdev->shared->modes;
-
-     /* set capabilities and type */
-     layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION;
-     layer_info->desc.type = DLTF_GRAPHICS;
-     
      /* set name */
      snprintf(layer_info->name, DFB_DISPLAY_LAYER_INFO_NAME_LENGTH,
               "Savage Primary Stream");
-     
-     /* fill out the default configuration */
-     default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
-                                   DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
-                                   DLCONF_OPTIONS;
-     default_config->buffermode  = DLBM_FRONTONLY;
-     default_config->options     = DLOP_NONE;
-     
-     if (dfb_config->mode.width)
-          default_config->width  = dfb_config->mode.width;
-     else
-          default_config->width  = default_mode->xres;
 
-     if (dfb_config->mode.height)
-          default_config->height = dfb_config->mode.height;
-     else
-          default_config->height = default_mode->yres;
-     
-     if (dfb_config->mode.depth) {
-          default_config->pixelformat = dfb_pixelformat_for_depth(dfb_config->mode.depth);
-     } else {
-          default_config->pixelformat =
-               dfb_pixelformat_for_depth(Sfbdev->orig_var.bits_per_pixel);
-     }
+     /* add support for options */
+     default_config->flags |= DLCONF_OPTIONS;
+     default_config->options = DLOP_NONE;
 
+     /* add capabilities */
+     layer_info->desc.caps |= DLCAPS_SCREEN_LOCATION;
+     
      play->dx = 0;
      play->dy = 0;
      play->init = 0;
