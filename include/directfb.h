@@ -593,9 +593,9 @@ extern "C"
           DVCAPS_SEEK       = 0x00000001,  /* supports SeekTo                */
           DVCAPS_SCALE      = 0x00000002,  /* can scale the video            */
           DVCAPS_BRIGHTNESS = 0x00000010,  /* supports Brightness adjustment */
-          DVCAPS_HUE        = 0x00000020,  /* supports Hue adjustment        */
-          DVCAPS_COLOR      = 0x00000040,  /* supports Color adjustment      */
-          DVCAPS_CONTRAST   = 0x00000080   /* supports Contrast adjustment   */
+          DVCAPS_CONTRAST   = 0x00000020,  /* supports Contrast adjustment   */
+          DVCAPS_HUE        = 0x00000040,  /* supports Hue adjustment        */
+          DVCAPS_SATURATION = 0x00000080   /* supports Saturation adjustment */
      } DFBVideoProviderCapabilities;
 
      /* 
@@ -604,21 +604,24 @@ extern "C"
      typedef enum {
           DCAF_NONE         = 0x00000000,  /* none of these              */
           DCAF_BRIGHTNESS   = 0x00000001,  /* brightness field is valid  */
-          DCAF_HUE          = 0x00000002,  /* hue field is valid         */
-          DCAF_COLOR        = 0x00000004,  /* color field is valid       */
-          DCAF_CONTRAST     = 0x00000008   /* contrast field is valid    */
+          DCAF_CONTRAST     = 0x00000002,  /* contrast field is valid    */
+          DCAF_HUE          = 0x00000004,  /* hue field is valid         */
+          DCAF_SATURATION   = 0x00000008,  /* saturation field is valid  */
      } DFBColorAdjustmentFlags;
 
      /* 
       * Color Adjustment used to adjust video colors.
+      *
+      * All fields are in the range 0x0 to 0xFFFF with
+      *  0x8000 as default value (no adjustment).
       */
      typedef struct {
           DFBColorAdjustmentFlags  flags;
        
           __u16                    brightness;
-          __u16                    hue;
-          __u16                    color;
           __u16                    contrast;
+          __u16                    hue;
+          __u16                    saturation;
      } DFBColorAdjustment;
 
 

@@ -136,8 +136,8 @@ static DFBResult IDirectFBVideoProvider_V4L_Release( IDirectFBVideoProvider *thi
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
-                                            IDirectFBVideoProvider       *thiz,
-                                            DFBVideoProviderCapabilities *caps )                                                             
+                                           IDirectFBVideoProvider       *thiz,
+                                           DFBVideoProviderCapabilities *caps )
 {
      IDirectFBVideoProvider_V4L_data *data;
 
@@ -151,9 +151,9 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
 
      *caps = ( DVCAPS_BASIC      | 
                DVCAPS_BRIGHTNESS | 
+               DVCAPS_CONTRAST   |
                DVCAPS_HUE        | 
-               DVCAPS_COLOR      | 
-               DVCAPS_CONTRAST );
+               DVCAPS_SATURATION ); 
 
      if (data->vcap.type & VID_TYPE_SCALES)
           *caps |= DVCAPS_SCALE;
@@ -162,8 +162,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
-                                                  IDirectFBVideoProvider *thiz,
-                                                  DFBSurfaceDescription  *desc )
+                                                 IDirectFBVideoProvider *thiz,
+                                                 DFBSurfaceDescription  *desc )
 {
      IDirectFBVideoProvider_V4L_data *data;
 
@@ -183,11 +183,12 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
      return DFB_OK;
 }
 
-static DFBResult IDirectFBVideoProvider_V4L_PlayTo(IDirectFBVideoProvider *thiz,
+static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
+                                            IDirectFBVideoProvider *thiz,
                                             IDirectFBSurface       *destination,
                                             DFBRectangle           *dstrect,
                                             DVFrameCallback         callback,
-                                            void                   *ctx)
+                                            void                   *ctx )
 {
      DFBRectangle rect;
 
@@ -224,7 +225,8 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(IDirectFBVideoProvider *thiz,
      return v4l_to_surface( dst_data->surface, &rect, data );
 }
 
-static DFBResult IDirectFBVideoProvider_V4L_Stop( IDirectFBVideoProvider *thiz )
+static DFBResult IDirectFBVideoProvider_V4L_Stop( 
+                                                 IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_V4L_data *data;
 
@@ -257,8 +259,8 @@ static DFBResult IDirectFBVideoProvider_V4L_SeekTo(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetPos(
-     IDirectFBVideoProvider *thiz,
-     double                 *seconds )
+                                              IDirectFBVideoProvider *thiz,
+                                              double                 *seconds )
 {
      IDirectFBVideoProvider_V4L_data *data;
 
@@ -276,8 +278,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetPos(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetLength(
-     IDirectFBVideoProvider *thiz,
-     double                 *seconds )
+                                              IDirectFBVideoProvider *thiz,
+                                              double                 *seconds )
 {
      IDirectFBVideoProvider_V4L_data *data;
 
@@ -295,8 +297,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetLength(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
-     IDirectFBVideoProvider *thiz,
-     DFBColorAdjustment     *adj )
+                                                  IDirectFBVideoProvider *thiz,
+                                                  DFBColorAdjustment     *adj )
 {
      IDirectFBVideoProvider_V4L_data *data;
      struct video_picture pic;
@@ -311,11 +313,12 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
 
      ioctl( data->fd, VIDIOCGPICT, &pic );
      
-     adj->flags = DCAF_BRIGHTNESS | DCAF_HUE | DCAF_COLOR | DCAF_CONTRAST;
+     adj->flags = 
+          DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION;
      adj->brightness = pic.brightness;
-     adj->hue        = pic.hue;
-     adj->color      = pic.colour;
      adj->contrast   = pic.contrast;
+     adj->hue        = pic.hue;
+     adj->saturation = pic.colour;
      
      return DFB_OK;
 }
@@ -347,9 +350,9 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
      }
 
      if (adj->flags & DCAF_BRIGHTNESS) pic.brightness = adj->brightness;
-     if (adj->flags & DCAF_HUE)        pic.hue        = adj->hue;
-     if (adj->flags & DCAF_COLOR)      pic.colour     = adj->color;
      if (adj->flags & DCAF_CONTRAST)   pic.contrast   = adj->contrast;
+     if (adj->flags & DCAF_HUE)        pic.hue        = adj->hue;
+     if (adj->flags & DCAF_SATURATION) pic.colour     = adj->saturation;
 
      if (ioctl( data->fd, VIDIOCSPICT, &pic ) < 0) {
           DFBResult ret = errno2dfb( errno );
