@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.8 $
+ * $Revision: 1.9 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -156,6 +156,7 @@
 #include <misc/util.h>
 #include <core/graphics_driver.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include "nsc_galproto.h"
 

@@ -59,6 +59,7 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -1345,9 +1346,9 @@ IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
                                  (drect.h / (float)orig_src.h) + 0.5f);
 
           if (srect.w != orig_src.w)
-               drect.w = DFB_ICEIL(drect.w * (srect.w / (float)orig_src.w));
+               drect.w = D_ICEIL(drect.w * (srect.w / (float)orig_src.w));
           if (srect.h != orig_src.h)
-               drect.h = DFB_ICEIL(drect.h * (srect.h / (float)orig_src.h));
+               drect.h = D_ICEIL(drect.h * (srect.h / (float)orig_src.h));
      }
 
      dfb_state_set_source( &data->state, src_data->surface );

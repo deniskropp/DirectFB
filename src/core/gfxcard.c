@@ -58,6 +58,7 @@
 #include <direct/messages.h>
 #include <direct/tree.h>
 #include <direct/utf8.h>
+#include <direct/util.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>

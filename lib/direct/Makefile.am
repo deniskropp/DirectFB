@@ -52,7 +52,8 @@ internalinclude_HEADERS = \
 	trace.h			\
 	tree.h			\
 	types.h			\
-	utf8.h
+	utf8.h			\
+	util.h
 
 
 lib_LTLIBRARIES = libdirect.la
@@ -72,7 +73,8 @@ libdirect_la_SOURCES = \
 	trace.c			\
 	tree.c			\
 	thread.c		\
-	utf8.c
+	utf8.c			\
+	util.c
 
 libdirect_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\

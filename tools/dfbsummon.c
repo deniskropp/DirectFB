@@ -43,7 +43,7 @@
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 
-#include <misc/util.h>
+#include <direct/util.h>
 
 /******************************************************************************/
 

@@ -47,9 +47,10 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <misc/util.h>
+#include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/util.h>
 
 #include <media/idirectfbdatabuffer.h>
 

@@ -28,32 +28,12 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
-#include <config.h>
-
 #include <errno.h>
 
 #include <directfb.h>
 
 #include <direct/types.h>
 #include <direct/debug.h>
-
-#ifndef MIN
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#endif
-#ifndef MAX
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#endif
-
-#define SIGN(x)  ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
-#define ABS(x)   ((x) > 0 ? (x) : -(x))
-
-#define SET_FLAG(set,flag)       do { (set) |= (flag); } while (0)
-#define CLEAR_FLAG(set,flag)     do { (set) &= ~(flag); } while (0)
-#define FLAG_IS_SET(set,flag)    (((set) & (flag)) != 0)
-#define FLAGS_ARE_SET(set,flags) (((set) & (flags)) == (flags))
-
-void dfb_trim( char **s );
-
 
 /*
  * translates errno to DirectFB DFBResult
@@ -114,78 +94,6 @@ long long dfb_get_micros();
 
 /* Returns the current time after startup of DirectFB in milliseconds */
 long long dfb_get_millis();
-
-int dfb_try_open( const char *name1, const char *name2, int flags );
-
-/* floor and ceil implementation to get rid of libm */
-
-/*
- IEEE floor for computers that round to nearest or even.
-
- 'f' must be between -4194304 and 4194303.
-
- This floor operation is done by "(iround(f + .5) + iround(f - .5)) >> 1",
- but uses some IEEE specific tricks for better speed.
-*/
-static inline int DFB_IFLOOR(float f)
-{
-        int ai, bi;
-        double af, bf;
-
-        af = (3 << 22) + 0.5 + (double)f;
-        bf = (3 << 22) + 0.5 - (double)f;
-
-#if defined(__GNUC__) && defined(__i386__)
-        /*
-         GCC generates an extra fstp/fld without this.
-        */
-        __asm__ __volatile__ ("fstps %0" : "=m" (ai) : "t" (af) : "st");
-        __asm__ __volatile__ ("fstps %0" : "=m" (bi) : "t" (bf) : "st");
-#else
-        {
-                union { int i; float f; } u;
-                u.f = af; ai = u.i;
-                u.f = bf; bi = u.i;
-        }
-#endif
-
-        return (ai - bi) >> 1;
-}
-
-
-/*
- IEEE ceil for computers that round to nearest or even.
-
- 'f' must be between -4194304 and 4194303.
-
- This ceil operation is done by "(iround(f + .5) + iround(f - .5) + 1) >> 1",
- but uses some IEEE specific tricks for better speed.
-*/
-static inline int DFB_ICEIL(float f)
-{
-        int ai, bi;
-        double af, bf;
-
-        af = (3 << 22) + 0.5 + (double)f;
-        bf = (3 << 22) + 0.5 - (double)f;
-
-#if defined(__GNUC__) && defined(__i386__)
-        /*
-         GCC generates an extra fstp/fld without this.
-        */
-        __asm__ __volatile__ ("fstps %0" : "=m" (ai) : "t" (af) : "st");
-        __asm__ __volatile__ ("fstps %0" : "=m" (bi) : "t" (bf) : "st");
-#else
-        {
-                union { int i; float f; } u;
-                u.f = af; ai = u.i;
-                u.f = bf; bi = u.i;
-        }
-#endif
-
-        return (ai - bi + 1) >> 1;
-}
-
 
 
 #endif

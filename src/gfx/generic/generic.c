@@ -54,6 +54,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/cpu_accel.h>
+#include <direct/util.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>

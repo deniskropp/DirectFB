@@ -47,6 +47,7 @@
 #include <direct/memcpy.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <misc/util.h>
 #include <misc/gfx_util.h>
@@ -202,7 +203,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
           filter->x_offset = 0.5 * (1/x_scale - 1);
      }
      else {                    /* Tile */
-          n_x = DFB_ICEIL (1.0 + 1.0 / x_scale);
+          n_x = D_ICEIL (1.0 + 1.0 / x_scale);
           filter->x_offset = 0.0;
      }
 
@@ -211,7 +212,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
           filter->y_offset = 0.5 * (1/y_scale - 1);
      }
      else {                    /* Tile */
-          n_y = DFB_ICEIL (1.0 + 1.0/y_scale);
+          n_y = D_ICEIL (1.0 + 1.0/y_scale);
           filter->y_offset = 0.0;
      }
 
@@ -418,8 +419,8 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
      if (! bilinear_make_fast_weights( &filter, scale_x, scale_y ))
           return;
 
-     scaled_x_offset = DFB_IFLOOR( filter.x_offset * (1 << SCALE_SHIFT) );
-     sy = DFB_IFLOOR( filter.y_offset * (1 << SCALE_SHIFT) );
+     scaled_x_offset = D_IFLOOR( filter.x_offset * (1 << SCALE_SHIFT) );
+     sy = D_IFLOOR( filter.y_offset * (1 << SCALE_SHIFT) );
 
      for (i = drect->y; i < drect->y + drect->h; i++) {
           int x_start;

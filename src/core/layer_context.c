@@ -44,7 +44,7 @@
 
 #include <direct/messages.h>
 
-#include <misc/util.h>
+#include <direct/util.h>
 
 
 static void      init_region_config  ( CoreLayerContext           *context,

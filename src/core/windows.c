@@ -58,6 +58,7 @@
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <gfx/util.h>
 

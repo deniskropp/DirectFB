@@ -29,9 +29,11 @@
 
 #include <directfb.h>
 
+#include <direct/util.h>
+
 #include <misc/util.h>
 
-#include "clip.h"
+#include <gfx/clip.h>
 
 #define REGION_CODE(x,y,cx1,cx2,cy1,cy2) ( ( (y) > (cy2) ? 8 : 0) | \
                                            ( (y) < (cy1) ? 4 : 0) | \
@@ -247,9 +249,9 @@ dfb_clip_stretchblit( const DFBRegion *clip,
                              (srect->h / (float)orig_dst.h) + 0.5f );
 
      if (drect->w != orig_dst.w)
-          srect->w = DFB_ICEIL(srect->w * (drect->w / (float)orig_dst.w));
+          srect->w = D_ICEIL(srect->w * (drect->w / (float)orig_dst.w));
 
      if (drect->h != orig_dst.h)
-          srect->h = DFB_ICEIL(srect->h * (drect->h / (float)orig_dst.h));
+          srect->h = D_ICEIL(srect->h * (drect->h / (float)orig_dst.h));
 }
 

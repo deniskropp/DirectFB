@@ -28,8 +28,6 @@
 #ifndef __GENERIC_H__
 #define __GENERIC_H__
 
-#include <config.h>
-
 #include <dfb_types.h>
 
 #include <directfb.h>

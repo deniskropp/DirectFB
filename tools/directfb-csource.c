@@ -28,7 +28,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,10 +39,12 @@
 
 #include <png.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "gfx/convert.h"
-#include "misc/util.h"
+#include <direct/types.h>
+#include <direct/util.h>
+
+#include <gfx/convert.h>
 
 
 static struct {

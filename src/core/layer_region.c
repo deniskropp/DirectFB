@@ -44,7 +44,7 @@
 
 #include <gfx/util.h>
 
-#include <misc/util.h>
+#include <direct/util.h>
 
 
 static DFBResult set_region      ( CoreLayerRegion            *region,

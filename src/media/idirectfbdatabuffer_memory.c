@@ -49,9 +49,9 @@
 #include <core/input.h>
 #include <core/windows.h>
 
-#include <misc/util.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/util.h>
 
 #include <media/idirectfbdatabuffer.h>
 

@@ -53,6 +53,7 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <misc/util.h>
 

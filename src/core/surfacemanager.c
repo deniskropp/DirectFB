@@ -49,11 +49,10 @@
 #include <core/surfacemanager.h>
 #include <core/system.h>
 
-#include <misc/util.h>
-
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 /*
  * initially there is one big free chunk,

@@ -60,10 +60,11 @@
 #include <core/windows_internal.h>
 
 #include <gfx/util.h>
-#include <misc/util.h>
+
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 static DFBResult dfb_surface_allocate_buffer  ( CoreSurface        *surface,
                                                 CoreSurfacePolicy   policy,

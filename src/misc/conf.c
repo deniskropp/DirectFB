@@ -44,11 +44,10 @@
 #include <fusion/conf.h>
 #include <misc/conf.h>
 
-#include <misc/util.h>
-
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 
 DFBConfig *dfb_config = NULL;
@@ -757,7 +756,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                     char          *error;
                     unsigned long  signum;
 
-                    dfb_trim( &r );
+                    direct_trim( &r );
 
                     signum = strtoul( r, &error, 10 );
 
@@ -1001,10 +1000,10 @@ DFBResult dfb_config_read( const char *filename )
 
           if (value) {
                *value++ = 0;
-               dfb_trim( &value );
+               direct_trim( &value );
           }
 
-          dfb_trim( &name );
+          direct_trim( &name );
 
           if (!*name  ||  *name == '#')
                continue;

@@ -38,6 +38,7 @@
 #include <time.h>
 
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <misc/util.h>
 
@@ -64,51 +65,6 @@ long long
 dfb_get_millis()
 {
      return dfb_get_micros() / (long long) 1000;
-}
-
-int
-dfb_try_open( const char *name1, const char *name2, int flags )
-{
-     int fd;
-
-     fd = open (name1, flags);
-     if (fd >= 0)
-          return fd;
-
-     if (errno != ENOENT) {
-          D_PERROR( "DirectFB/Util: opening '%s' failed\n", name1 );
-          return -1;
-     }
-
-     fd = open (name2, flags);
-     if (fd >= 0)
-          return fd;
-
-     if (errno == ENOENT)
-          D_PERROR( "DirectFB/Util: opening '%s' and '%s' failed\n", name1, name2 );
-     else
-          D_PERROR( "DirectFB/Util: opening '%s' failed\n", name2 );
-
-     return -1;
-}
-
-void
-dfb_trim( char **s )
-{
-     int i;
-     int len = strlen( *s );
-
-     for (i = len-1; i >= 0; i--)
-          if ((*s)[i] <= ' ')
-               (*s)[i] = 0;
-          else
-               break;
-
-     while (**s)
-          if (**s <= ' ')
-               (*s)++;
-          else
-               return;
 }
 
 /*
