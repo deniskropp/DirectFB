@@ -38,12 +38,13 @@
 #include <core/coretypes.h>
 #include <core/windows.h>
 
+#include <unique/context.h>
 #include <unique/types.h>
 #include <unique/stret.h>
 #include <unique/window.h>
 
 
-#define UNIQUE_WM_ABI_VERSION 4
+#define UNIQUE_WM_ABI_VERSION 5
 
 
 extern const StretRegionClass unique_root_region_class;
@@ -73,6 +74,14 @@ typedef enum {
      UFI_NW
 } UniqueFooIndex;
 
+typedef ReactionResult (*UniqueWMContextNotify)( WMData                          *data,
+                                                 const UniqueContextNotification *notification,
+                                                 void                            *ctx );
+
+typedef ReactionResult (*UniqueWMWindowNotify) ( WMData                          *data,
+                                                 const UniqueWindowNotification  *notification,
+                                                 void                            *ctx );
+
 
 struct __UniQuE_WMData {
      int                           module_abi;
@@ -80,6 +89,9 @@ struct __UniQuE_WMData {
      CoreDFB                      *core;
 
      WMShared                     *shared;
+
+     UniqueWMContextNotify         context_notify;
+     UniqueWMWindowNotify          window_notify;
 };
 
 struct __UniQuE_WMShared {
@@ -242,6 +254,13 @@ void      unique_wm_module_deinit( bool      master,
 UniqueContext *unique_wm_create_context();
 UniqueWindow  *unique_wm_create_window();
 
+
+/* global reactions */
+ReactionResult _unique_wm_module_context_listener( const void *msg_data,
+                                                   void       *ctx );
+
+ReactionResult _unique_wm_module_window_listener ( const void *msg_data,
+                                                   void       *ctx );
 
 #endif
 

@@ -49,9 +49,11 @@ typedef enum {
 typedef enum {
      UWNF_NONE           = 0x00000000,
 
-     UWNF_UPDATE         = 0x00000001,
+     UWNF_DESTROYED      = 0x00000001,
 
-     UWNF_ALL            = 0x00000001
+     UWNF_UPDATE         = 0x00000010,
+
+     UWNF_ALL            = 0x00000011
 } UniqueWindowNotificationFlags;
 
 typedef struct {
@@ -72,6 +74,10 @@ DFBResult unique_window_create       ( CoreWindow              *window,
 DFBResult unique_window_close        ( UniqueWindow            *window );
 
 DFBResult unique_window_destroy      ( UniqueWindow            *window );
+
+
+DFBResult unique_window_notify       ( UniqueWindow                  *window,
+                                       UniqueWindowNotificationFlags  flags );
 
 
 DFBResult unique_window_update       ( UniqueWindow            *window,
@@ -118,8 +124,9 @@ FUSION_OBJECT_METHODS( UniqueWindow, unique_window )
 
 /* global reactions */
 
-/*typedef enum {
-} UNIQUE_WINDOW_GLOBALS;*/
+typedef enum {
+     UNIQUE_WM_MODULE_WINDOW_LISTENER
+} UNIQUE_WINDOW_GLOBALS;
 
 
 #endif

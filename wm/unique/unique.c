@@ -42,6 +42,7 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
+#include <fusion/reactor.h>
 #include <fusion/shmalloc.h>
 #include <fusion/vector.h>
 
@@ -82,15 +83,104 @@ typedef struct {
      CoreWindowStack              *stack;
 
      UniqueContext                *context;
+
+     GlobalReaction                context_reaction;
 } StackData;
 
 typedef struct {
      int                           magic;
 
+     UniqueContext                *context;
+
      UniqueWindow                 *window;
 
-     UniqueContext                *context;
+     GlobalReaction                window_reaction;
 } WindowData;
+
+/**************************************************************************************************/
+
+static ReactionResult
+context_notify( WMData                          *data,
+                const UniqueContextNotification *notification,
+                void                            *ctx )
+{
+     StackData *stack_data = ctx;
+
+     D_ASSERT( data != NULL );
+
+     D_ASSERT( notification != NULL );
+     D_ASSERT( notification->context != NULL );
+
+     D_MAGIC_ASSERT( stack_data, StackData );
+
+     D_ASSERT( notification->context == stack_data->context );
+
+     D_MAGIC_ASSERT( stack_data->context, UniqueContext );
+
+     D_ASSERT( ! D_FLAGS_IS_SET( notification->flags, ~UCNF_ALL ) );
+
+     D_DEBUG_AT( WM_Unique, "context_notify( wm_data %p, stack_data %p )\n", data, stack_data );
+
+     if (notification->flags & UCNF_DESTROYED) {
+          D_DEBUG_AT( WM_Unique, "  -> context destroyed.\n" );
+
+          stack_data->context = NULL;
+
+          return RS_REMOVE;
+     }
+
+     return RS_OK;
+}
+
+static ReactionResult
+window_notify( WMData                         *data,
+               const UniqueWindowNotification *notification,
+               void                           *ctx )
+{
+     WindowData *window_data = ctx;
+
+     D_ASSERT( data != NULL );
+
+     D_ASSERT( notification != NULL );
+     D_ASSERT( notification->window != NULL );
+
+     D_MAGIC_ASSERT( window_data, WindowData );
+
+     D_ASSERT( notification->window == window_data->window );
+
+     D_MAGIC_ASSERT( window_data->window, UniqueWindow );
+
+     D_ASSERT( ! D_FLAGS_IS_SET( notification->flags, ~UWNF_ALL ) );
+
+     D_DEBUG_AT( WM_Unique, "window_notify( wm_data %p, window_data %p )\n", data, window_data );
+
+     if (notification->flags & UWNF_DESTROYED) {
+          D_DEBUG_AT( WM_Unique, "  -> window destroyed.\n" );
+
+          window_data->window = NULL;
+
+          return RS_REMOVE;
+     }
+
+     return RS_OK;
+}
+
+/**************************************************************************************************/
+
+static void
+initialize_data( CoreDFB *core, WMData *data, WMShared *shared )
+{
+     D_ASSERT( data != NULL );
+
+     /* Initialize local data. */
+     data->core       = core;
+     data->shared     = shared;
+     data->module_abi = UNIQUE_WM_ABI_VERSION;
+
+     /* Set module callbacks. */
+     data->context_notify = context_notify;
+     data->window_notify  = window_notify;
+}
 
 /**************************************************************************************************/
 
@@ -118,11 +208,9 @@ wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
 
      D_DEBUG_AT( WM_Unique, "wm_initialize()\n" );
 
-     data->core       = core;
-     data->shared     = shared;
-     data->module_abi = UNIQUE_WM_ABI_VERSION;
+     initialize_data( core, data, shared );
 
-     return unique_wm_module_init( core, wm_data, shared_data, true );
+     return unique_wm_module_init( core, data, shared, true );
 }
 
 static DFBResult
@@ -133,11 +221,9 @@ wm_join( CoreDFB *core, void *wm_data, void *shared_data )
 
      D_DEBUG_AT( WM_Unique, "wm_join()\n" );
 
-     data->core       = core;
-     data->shared     = shared;
-     data->module_abi = UNIQUE_WM_ABI_VERSION;
+     initialize_data( core, data, shared );
 
-     return unique_wm_module_init( core, wm_data, shared_data, false );
+     return unique_wm_module_init( core, data, shared, false );
 }
 
 static DFBResult
@@ -213,13 +299,25 @@ wm_init_stack( CoreWindowStack *stack,
           return ret;
      }
 
+     /* Attach the global context listener. */
+     ret = unique_context_attach_global( data->context,
+                                         UNIQUE_WM_MODULE_CONTEXT_LISTENER,
+                                         data, &data->context_reaction );
+     if (ret) {
+          unique_context_unref( data->context );
+          D_DERROR( ret, "WM/UniQuE: Could not attach global context listener!\n" );
+          return ret;
+     }
+
      /* Inherit all local references from the layer context. */
      ret = unique_context_inherit( data->context, context );
      unique_context_unref( data->context );
      if (ret) {
+          unique_context_detach_global( data->context, &data->context_reaction );
           D_DERROR( ret, "WM/UniQuE: Could not inherit from layer context!\n" );
           return ret;
      }
+
 
 
      data->stack = stack;
@@ -241,13 +339,7 @@ wm_close_stack( CoreWindowStack *stack,
      D_ASSERT( stack_data != NULL );
 
      D_MAGIC_ASSERT( data, StackData );
-
-     if (data->context) {
-          D_MAGIC_ASSERT( data->context, UniqueContext );
-          data->context = NULL;
-     }
-     else
-          D_MAGIC_CLEAR( data );
+     D_MAGIC_CLEAR( data );
 
      return DFB_OK;
 }
@@ -475,13 +567,26 @@ wm_add_window( CoreWindowStack *stack,
           return ret;
      }
 
-     /* Inherit all local references from the core window. */
+     /* Attach the global window listener. */
+     ret = unique_window_attach_global( data->window,
+                                        UNIQUE_WM_MODULE_WINDOW_LISTENER,
+                                        data, &data->window_reaction );
+     if (ret) {
+          unique_window_unref( data->window );
+          D_DERROR( ret, "WM/UniQuE: Could not attach global window listener!\n" );
+          return ret;
+     }
+
+     /* Inherit all local references from the layer window. */
      ret = unique_window_inherit( data->window, window );
      unique_window_unref( data->window );
      if (ret) {
+          unique_window_detach_global( data->window, &data->window_reaction );
           D_DERROR( ret, "WM/UniQuE: Could not inherit from core window!\n" );
           return ret;
      }
+
+
 
      D_MAGIC_SET( data, WindowData );
 
@@ -504,11 +609,7 @@ wm_remove_window( CoreWindowStack *stack,
      D_ASSERT( window_data != NULL );
 
      D_MAGIC_ASSERT( data, WindowData );
-
      D_MAGIC_CLEAR( data );
-
-     unique_window_close( data->window );
-     unique_window_unlink( &data->window );
 
      return DFB_OK;
 }
@@ -529,6 +630,9 @@ wm_set_window_config( CoreWindow             *window,
      D_ASSERT( config != NULL );
 
      D_MAGIC_ASSERT( data, WindowData );
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      ret = unique_window_set_config( data->window, config, flags );
 
@@ -558,6 +662,9 @@ wm_restack_window( CoreWindow             *window,
 
      D_ASSERT( relative == NULL || relative == window || relation != 0);
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      return unique_window_restack( data->window, rel_data ? rel_data->window : NULL, relation );
 }
 
@@ -575,6 +682,9 @@ wm_grab( CoreWindow *window,
      D_ASSERT( grab != NULL );
 
      D_MAGIC_ASSERT( data, WindowData );
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      return unique_window_grab( data->window, grab );
 }
@@ -594,6 +704,9 @@ wm_ungrab( CoreWindow *window,
 
      D_MAGIC_ASSERT( data, WindowData );
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      return unique_window_ungrab( data->window, grab );
 }
 
@@ -609,6 +722,9 @@ wm_request_focus( CoreWindow *window,
      D_ASSERT( window_data != NULL );
 
      D_MAGIC_ASSERT( data, WindowData );
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      return unique_window_request_focus( data->window );
 }
@@ -654,6 +770,9 @@ wm_update_window( CoreWindow          *window,
      DFB_REGION_ASSERT_IF( region );
 
      D_MAGIC_ASSERT( data, WindowData );
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      return unique_window_update( data->window, region, flags );
 }

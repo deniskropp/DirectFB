@@ -112,6 +112,8 @@ unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool maste
 
      D_ASSERT( core != NULL );
      D_ASSERT( data != NULL );
+     D_ASSERT( data->context_notify != NULL );
+     D_ASSERT( data->window_notify != NULL );
      D_ASSERT( shared != NULL );
 
      D_ASSERT( dfb_core == NULL );
@@ -177,6 +179,44 @@ unique_wm_module_deinit( bool master, bool emergency )
      dfb_core  = NULL;
      wm_data   = NULL;
      wm_shared = NULL;
+}
+
+ReactionResult
+_unique_wm_module_context_listener( const void *msg_data,
+                                    void       *ctx )
+{
+     const UniqueContextNotification *notification = msg_data;
+
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( wm_data->context_notify != NULL );
+
+     D_ASSERT( notification != NULL );
+
+     D_ASSERT( ! D_FLAGS_IS_SET( notification->flags, ~UCNF_ALL ) );
+
+     D_DEBUG_AT( UniQuE_WM, "%s( context %p, flags 0x%08x )\n",
+                 __FUNCTION__, notification->context, notification->flags );
+
+     return wm_data->context_notify( wm_data, notification, ctx );
+}
+
+ReactionResult
+_unique_wm_module_window_listener ( const void *msg_data,
+                                    void       *ctx )
+{
+     const UniqueWindowNotification *notification = msg_data;
+
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( wm_data->window_notify != NULL );
+
+     D_ASSERT( notification != NULL );
+
+     D_ASSERT( ! D_FLAGS_IS_SET( notification->flags, ~UWNF_ALL ) );
+
+     D_DEBUG_AT( UniQuE_WM, "%s( window %p, flags 0x%08x )\n",
+                 __FUNCTION__, notification->window, notification->flags );
+
+     return wm_data->window_notify( wm_data, notification, ctx );
 }
 
 UniqueContext *

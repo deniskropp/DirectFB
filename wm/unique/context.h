@@ -122,8 +122,9 @@ FUSION_OBJECT_METHODS( UniqueContext, unique_context )
 
 /* global reactions */
 
-/*typedef enum {
-} UNIQUE_CONTEXT_GLOBALS;*/
+typedef enum {
+     UNIQUE_WM_MODULE_CONTEXT_LISTENER
+} UNIQUE_CONTEXT_GLOBALS;
 
 #endif
 

@@ -50,6 +50,12 @@
 
 D_DEBUG_DOMAIN( UniQuE_Window, "UniQuE/Window", "UniQuE's Window" );
 
+
+static const React unique_window_globals[] = {
+     _unique_wm_module_window_listener,
+     NULL
+};
+
 /**************************************************************************************************/
 
 static inline int get_priority( DFBWindowCapabilities caps, DFBWindowStackingClass stacking );
@@ -123,6 +129,9 @@ window_destructor( FusionObject *object, bool zombie )
 
      D_FLAGS_SET( window->flags, UWF_DESTROYED );
 
+     unique_window_notify( window, UWNF_DESTROYED );
+
+
      set_opacity( window, 0 );
 
      remove_window( window );
@@ -140,6 +149,8 @@ window_destructor( FusionObject *object, bool zombie )
      dfb_surface_unlink( &window->surface );
 
      unique_context_unlink( &window->context );
+
+     dfb_window_unlink( &window->window );
 
      D_MAGIC_CLEAR( window );
 
@@ -276,6 +287,23 @@ unique_window_destroy( UniqueWindow *window )
      return DFB_OK;
 }
 
+DFBResult
+unique_window_notify( UniqueWindow                  *window,
+                      UniqueWindowNotificationFlags  flags )
+{
+     UniqueWindowNotification notification;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     D_ASSERT( flags != UWNF_NONE );
+
+     D_ASSERT( ! (flags & ~UWNF_ALL) );
+
+     notification.flags  = flags;
+     notification.window = window;
+
+     return unique_window_dispatch( window, &notification, unique_window_globals );
+}
 
 DFBResult
 unique_window_update( UniqueWindow        *window,

@@ -56,7 +56,8 @@ D_DEBUG_DOMAIN( UniQuE_Context, "UniQuE/Context", "UniQuE's Stack Context" );
 
 
 static const React unique_context_globals[] = {
-          NULL
+     _unique_wm_module_context_listener,
+     NULL
 };
 
 /**************************************************************************************************/
@@ -110,9 +111,6 @@ context_destructor( FusionObject *object, bool zombie )
 
      unique_context_notify( context, UCNF_DESTROYED );
 
-     dfb_windowstack_lock( context->stack );
-     dfb_wm_close_stack( context->stack, false );
-     dfb_windowstack_unlock( context->stack );
 
      while (fusion_vector_has_elements( &context->windows )) {
           unique_window_destroy( fusion_vector_at( &context->windows, 0 ) );
