@@ -39,6 +39,8 @@
 #include <directfb.h>
 #include <directfb_strings.h>
 
+#include <direct/debug.h>
+
 #include <fusion/build.h>
 #include <fusion/fusion.h>
 #include <fusion/object.h>
@@ -378,15 +380,28 @@ window_callback( CoreWindow *window,
 static void
 dump_windows( CoreLayer *layer )
 {
+     DFBResult         ret;
+     CoreLayerShared  *shared;
      CoreLayerContext *context;
      CoreWindowStack  *stack;
 
-     if (dfb_layer_get_primary_context( layer, false, &context ))
+     shared = layer->shared;
+
+     ret = fusion_skirmish_prevail( &shared->lock );
+     if (ret) {
+          D_DERROR( ret, "DirectFB/Dump: Could not lock the shared layer data!\n" );
           return;
+     }
+
+     context = layer->shared->contexts.primary;
+     if (!context) {
+          fusion_skirmish_dismiss( &shared->lock );
+          return;
+     }
 
      stack = dfb_layer_context_windowstack( context );
      if (!stack) {
-          dfb_layer_context_unref( context );
+          fusion_skirmish_dismiss( &shared->lock );
           return;
      }
 
@@ -403,7 +418,7 @@ dump_windows( CoreLayer *layer )
 
      dfb_windowstack_unlock( stack );
 
-     dfb_layer_context_unref( context );
+     fusion_skirmish_dismiss( &shared->lock );
 }
 
 static DFBEnumerationResult
