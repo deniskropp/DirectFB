@@ -128,20 +128,23 @@ case "$target_or_host" in
     ;;
 esac
 
+have_linux=no
+have_freebsd=no
+need_ldl=yes
+
 case "$target_or_host" in
-  *linux*)
+  *-linux*)
     have_linux=yes
-    have_freebsd=no
     ;;
 
-  *freebsd*)
-    have_linux=no
+  *-freebsd*)
     have_freebsd=yes
+    need_ldl=no
     ;;
-
-  *)
-    have_linux=no
-    have_freebsd=no
+  *-netbsd*)
+    need_ldl=no
+    CPPFLAGS="$CPPFLAGS -I/usr/pkg/include"
+    LDFLAGS="$LDFLAGS -L/usr/pkg/lib"
     ;;
 esac
 
@@ -172,7 +175,7 @@ DFB_CFLAGS="$THREADFLAGS $DFB_CFLAGS"
 
 dnl Dynamic Linker
 DYNLIB=""
-if test x$have_freebsd = xno; then
+if test x$need_ldl = xyes; then
   if test x$enable_shared = xyes; then
     AC_CHECK_LIB(dl, dlopen, ,
       AC_MSG_ERROR([
