@@ -354,7 +354,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->disable_module[n+1] = NULL;
           }
           else {
-               D_ERROR("DirectFB/Config 'disable_module': expect module name\n");
+               D_ERROR("DirectFB/Config 'disable_module': No module name specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -1015,7 +1015,7 @@ DFBResult dfb_config_read( const char *filename )
           D_DEBUG( "DirectFB/Config: Unable to open config file `%s'!\n", filename );
           return DFB_IO;
      } else {
-          D_INFO( "DirectFB/Config: parsing config file '%s'.\n", filename );
+          D_INFO( "DirectFB/Config: Parsing config file '%s'.\n", filename );
      }
 
      while (fgets( line, 400, f )) {
