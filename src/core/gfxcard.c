@@ -774,6 +774,46 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      dfb_state_unlock( state );
 }
 
+void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *state )
+{
+     int i;
+
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+     D_ASSERT( state != NULL );
+     D_ASSERT( spans != NULL );
+     D_ASSERT( num_spans > 0 );
+
+     dfb_state_lock( state );
+
+     if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+     {
+          for (i=0; i<num_spans; i++) {
+               DFBRectangle rect = { spans[i].x, y + i, spans[i].w, 1 };
+
+               if ((card->caps.flags & CCF_CLIPPING) || dfb_clip_rectangle( &state->clip, &rect ))
+                    card->funcs.FillRectangle( card->driver_data, card->device_data, &rect );
+          }
+
+          dfb_gfxcard_state_release( state );
+     }
+     else {
+          if (gAcquire( state, DFXL_FILLRECTANGLE )) {
+               for (i=0; i<num_spans; i++) {
+                    DFBRectangle rect = { spans[i].x, y + i, spans[i].w, 1 };
+
+                    if (dfb_clip_rectangle( &state->clip, &rect ))
+                         gFillRectangle( state, &rect );
+               }
+
+               gRelease( state );
+          }
+     }
+
+     dfb_state_unlock( state );
+}
+
 
 typedef struct {
    int xi;

@@ -280,6 +280,8 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state );
 
 void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state );
 
+void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *state );
+
 void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state );
 
 void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state );

@@ -1667,6 +1667,46 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      return dfb_surface_dump( surface, directory, prefix );
 }
 
+static DFBResult
+IDirectFBSurface_FillSpans( IDirectFBSurface *thiz,
+                            int               y,
+                            const DFBSpan    *spans,
+                            unsigned int      num_spans )
+{
+     DFBSpan *local_spans = alloca(sizeof(DFBSpan) * num_spans);
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!spans || !num_spans)
+          return DFB_INVARG;
+
+     if (data->area.wanted.x || data->area.wanted.y) {
+          unsigned int i;
+
+          for (i=0; i<num_spans; i++) {
+               local_spans[i].x = spans[i].x + data->area.wanted.x;
+               local_spans[i].w = spans[i].w;
+          }
+     }
+     else
+          /* clipping may modify spans, so we copy them */
+          direct_memcpy( local_spans, spans, sizeof(DFBSpan) * num_spans );
+
+     dfb_gfxcard_fillspans( y + data->area.wanted.y, local_spans, num_spans, &data->state );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -1767,6 +1807,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetGL = IDirectFBSurface_GetGL;
 
      thiz->Dump = IDirectFBSurface_Dump;
+
+     thiz->FillSpans = IDirectFBSurface_FillSpans;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

@@ -216,6 +216,14 @@ typedef struct {
 } DFBPoint;
 
 /*
+ * A horizontal line specified by x and width.
+ */
+typedef struct {
+     int            x;   /* X coordinate */
+     int            w;   /* width of span */
+} DFBSpan;
+
+/*
  * A dimension specified by width and height.
  */
 typedef struct {
@@ -3180,6 +3188,20 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *thiz,
           const char               *directory,
           const char               *prefix
+     );
+
+
+   /** Drawing functions **/
+
+     /*
+      * Fill 'num_spans' spans with the given color following the
+      * drawing flags. Each span specified by a DFBSpan.
+      */
+     DFBResult (*FillSpans) (
+          IDirectFBSurface         *thiz,
+          int                       y,
+          const DFBSpan            *spans,
+          unsigned int              num_spans
      );
 )
 
