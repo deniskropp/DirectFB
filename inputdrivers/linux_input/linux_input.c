@@ -55,6 +55,7 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
