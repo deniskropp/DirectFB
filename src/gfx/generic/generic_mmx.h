@@ -25,6 +25,13 @@
    Boston, MA 02111-1307, USA.
 */
 
+#ifdef __GNUC__
+# define __aligned( n )  __attribute__ ((aligned((n))))
+#else
+# define __aligned( n )
+#endif
+
+
 static void SCacc_add_to_Dacc_MMX( GenefxState *gfxs )
 {
      __asm__ __volatile__ (
@@ -211,6 +218,119 @@ static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
                : "D" (gfxs->Dacc), "c" (gfxs->length),
                  "S" (gfxs->Sop), "m" (*zeros)
                : "%st", "memory");
+}
+
+static void Sop_yuy2_to_Dacc_MMX( GenefxState *gfxs )
+{
+     static __u16 __aligned(8) mask[]  = {  0xFFFF,       0,  0xFFFF,       0 };
+     static __u16 __aligned(8) sub[]   = {      16,     128,      16,     128 };   
+     static __s16 __aligned(8) mul0[]  = {  0x253F,  0x3312,  0x253F,  0x4093 };
+     static __s16 __aligned(8) mul1[]  = { -0x0C83, -0x1A04, -0x0C83, -0x1A04 };
+     static __u16 __aligned(8) alpha[] = {  0xFF00,  0xFF00,  0xFF00,  0xFF00 };
+     
+     __asm__ __volatile__ (
+               "pxor      %%mm7, %%mm7\n\t"
+               ".align 16\n"
+               "1:\n\t"
+               "movd       (%2), %%mm0\n\t" // 00 00 00 00 cr y1 cb y0
+               "punpcklbw %%mm7, %%mm0\n\t" // 00 cr 00 y1 00 cb 00 y0
+               "psubw        %3, %%mm0\n\t" // luma -= 16, chroma -= 128 
+               "psllw        $3, %%mm0\n\t" // precision
+               "movq      %%mm0, %%mm1\n\t" // save
+                
+               "pmulhw       %5, %%mm0\n\t" // 00 vr 00 y1 00 ub 00 y0
+               "movq      %%mm0, %%mm2\n\t"
+               "pand         %4, %%mm2\n\t" // 00 00 00 y1 00 00 00 y0
+               "movq      %%mm2, %%mm3\n\t"
+               "pslld       $16, %%mm3\n\t" // 00 y1 00 00 00 y0 00 00
+               "por       %%mm3, %%mm2\n\t" // 00 y1 00 y1 00 y0 00 y0
+               "psrad       $16, %%mm0\n\t" // 00 00 00 vr 00 00 00 ub
+               "packssdw  %%mm0, %%mm0\n\t" // 00 vr 00 ub 00 vr 00 ub
+               "paddw     %%mm2, %%mm0\n\t" // 00 r1 00 b1 00 r0 00 b0
+               "packuswb  %%mm0, %%mm0\n\t" // r1 b1 r0 b0 r1 b1 r0 b0
+               
+               "psrad       $16, %%mm1\n\t" // 00 00 00 cr 00 00 00 cb
+               "packssdw  %%mm1, %%mm1\n\t" // 00 cr 00 cb 00 cr 00 cb
+               "pmulhw       %6, %%mm1\n\t" // 00 vg 00 ug 00 vg 00 ug
+               "movq      %%mm1, %%mm3\n\t"
+               "psrld       $16, %%mm3\n\t" // 00 00 00 vg 00 00 00 vg
+               "paddw     %%mm3, %%mm1\n\t"
+               "paddw     %%mm1, %%mm2\n\t" // 00 XX 00 g1 00 XX 00 g0
+               "packuswb  %%mm2, %%mm2\n\t" // XX g1 XX g0 XX g1 XX g0
+               "por          %7, %%mm2\n\t" // FF g1 FF g0 FF g1 FF g0
+               
+               "punpcklbw %%mm2, %%mm0\n\t" // FF r1 g1 b1 FF r0 g0 b0
+               "movq      %%mm0, %%mm1\n\t"
+               "punpcklbw %%mm7, %%mm0\n\t" // 00 FF 00 r0 00 g0 00 b0
+               "punpckhbw %%mm7, %%mm1\n\t" // 00 FF 00 r1 00 g1 00 b1
+               "movq      %%mm0,  (%0)\n\t"
+               "movq      %%mm1, 8(%0)\n\t"
+               "addl         $4,    %2\n\t"
+               "addl        $16,    %0\n\t"
+               "decl         %1\n\t"
+               "jnz          1b\n\t"
+               "emms"
+               : /* no outputs */
+               : "D" (gfxs->Dacc), "c" (gfxs->length/2), "S" (gfxs->Sop),
+                 "m" (*sub), "m" (*mask), "m" (*mul0), "m" (*mul1), "m" (*alpha)
+               : "memory" );
+}
+
+static void Sop_uyvy_to_Dacc_MMX( GenefxState *gfxs )
+{
+     static __u16 __aligned(8) mask[]  = {  0xFFFF,       0,  0xFFFF,       0 };
+     static __u16 __aligned(8) sub[]   = {     128,      16,     128,      16 };   
+     static __s16 __aligned(8) mul0[]  = {  0x3312,  0x253F,  0x4093,  0x253F };
+     static __s16 __aligned(8) mul1[]  = { -0x0C83, -0x1A04, -0x0C83, -0x1A04 };
+     static __u16 __aligned(8) alpha[] = {  0xFF00,  0xFF00,  0xFF00,  0xFF00 };
+      
+     __asm__ __volatile__ (
+               "pxor      %%mm7, %%mm7\n\t"
+               ".align 16\n"
+               "1:\n\t"
+               "movd       (%2), %%mm0\n\t" // 00 00 00 00 y1 cr y0 cb
+               "punpcklbw %%mm7, %%mm0\n\t" // 00 y1 00 cr 00 y0 00 cb
+               "psubw        %3, %%mm0\n\t" // luma -= 16, chroma -= 128 
+               "psllw        $3, %%mm0\n\t" // precision
+               "movq      %%mm0, %%mm1\n\t" // save
+                
+               "pmulhw       %5, %%mm0\n\t" // 00 y1 00 vr 00 y0 00 ub
+               "movq      %%mm0, %%mm2\n\t"
+               "psrad       $16, %%mm2\n\t" // 00 00 00 y1 00 00 00 y0
+               "packssdw  %%mm2, %%mm2\n\t" // 00 y1 00 y0 00 y1 00 y0
+               "punpcklwd %%mm2, %%mm2\n\t" // 00 y1 00 y1 00 y0 00 y0
+               "pslld       $16, %%mm0\n\t" // 00 vr 00 00 00 ub 00 00
+               "psrad       $16, %%mm0\n\t" // 00 00 00 vr 00 00 00 ub (sign extend)
+               "packssdw  %%mm0, %%mm0\n\t" // 00 vr 00 ub 00 vr 00 ub
+               "paddw     %%mm2, %%mm0\n\t" // 00 r1 00 b1 00 r0 00 b0
+               "packuswb  %%mm0, %%mm0\n\t" // r1 b1 r0 b0 r1 b1 r0 b0
+               
+               "pslld       $16, %%mm1\n\t" // 00 cr 00 00 00 cb 00 00
+               "psrad       $16, %%mm1\n\t" // 00 00 00 cr 00 00 00 cb (sign extend)
+               "packssdw  %%mm1, %%mm1\n\t" // 00 cr 00 cb 00 cr 00 cb
+               "pmulhw       %6, %%mm1\n\t" // 00 vg 00 ug 00 vg 00 ug
+               "movq      %%mm1, %%mm3\n\t"
+               "psrld       $16, %%mm3\n\t" // 00 00 00 vg 00 00 00 vg
+               "paddw     %%mm3, %%mm1\n\t"
+               "paddw     %%mm1, %%mm2\n\t" // 00 XX 00 g1 00 XX 00 g0
+               "packuswb  %%mm2, %%mm2\n\t" // XX g1 XX g0 XX g1 XX g0
+               "por          %7, %%mm2\n\t" // FF g1 FF g0 FF g1 FF g0
+               
+               "punpcklbw %%mm2, %%mm0\n\t" // FF r1 g1 b1 FF r0 g0 b0
+               "movq      %%mm0, %%mm1\n\t"
+               "punpcklbw %%mm7, %%mm0\n\t" // 00 FF 00 r0 00 g0 00 b0
+               "punpckhbw %%mm7, %%mm1\n\t" // 00 FF 00 r1 00 g1 00 b1
+               "movq      %%mm0,  (%0)\n\t"
+               "movq      %%mm1, 8(%0)\n\t"
+               "addl         $4,    %2\n\t"
+               "addl        $16,    %0\n\t"
+               "decl         %1\n\t"
+               "jnz          1b\n\t"
+               "emms"
+               : /* no outputs */
+               : "D" (gfxs->Dacc), "c" (gfxs->length/2), "S" (gfxs->Sop),
+                 "m" (*sub), "m" (*mask), "m" (*mul0), "m" (*mul1), "m" (*alpha)
+               : "memory" );
 }
 
 static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )

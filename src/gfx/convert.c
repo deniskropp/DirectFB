@@ -56,6 +56,7 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
                     __u8 r, __u8 g, __u8 b )
 {
      __u32 pixel;
+     __u32 y, cb, cr;
 
      switch (format) {
           case DSPF_RGB332:
@@ -72,6 +73,14 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
           case DSPF_ARGB:
           case DSPF_AiRGB:
                pixel = PIXEL_RGB32( r, g, b );
+               break;
+          case DSPF_YUY2:
+               RGB_TO_YCBCR( r, g, b, y, cb, cr );
+               pixel = PIXEL_YUY2( y, cb, cr );
+               break;
+          case DSPF_UYVY:
+               RGB_TO_YCBCR( r, g, b, y, cb, cr );
+               pixel = PIXEL_UYVY( y, cb, cr );
                break;
           default:
                pixel = 0;

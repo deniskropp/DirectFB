@@ -110,6 +110,7 @@ struct _GenefxState {
      /*
       * accumulators
       */
+     void              *ABstart;
      int                ABsize;
      GenefxAccumulator *Aacc;
      GenefxAccumulator *Bacc;
