@@ -152,11 +152,8 @@ IDirectFBDataBuffer_Memory_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
-     if (data->pos + length > data->length) {
-          usleep( seconds * 1000000 + milli_seconds * 1000 );
-
+     if (data->pos + length > data->length)
           return DFB_BUFFEREMPTY;
-     }
 
      return DFB_OK;
 }
@@ -232,7 +229,7 @@ IDirectFBDataBuffer_Memory_HasData( IDirectFBDataBuffer *thiz )
 
 static DFBResult
 IDirectFBDataBuffer_Memory_PutData( IDirectFBDataBuffer *thiz,
-                                    const void          *data,
+                                    const void          *data_buffer,
                                     unsigned int         length )
 {
      return DFB_UNSUPPORTED;

@@ -148,7 +148,7 @@ IDirectFBDataBuffer_Streamed_HasData( IDirectFBDataBuffer *thiz )
 
 static DFBResult
 IDirectFBDataBuffer_Streamed_PutData( IDirectFBDataBuffer *thiz,
-                                      const void          *data,
+                                      const void          *data_buffer,
                                       unsigned int         length )
 {
      return DFB_UNIMPLEMENTED;

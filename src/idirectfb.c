@@ -596,56 +596,6 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
      return ret;
 }
 
-#if 0
-static DFBResult
-IDirectFB_CreateImageProvider( IDirectFB               *thiz,
-                               const char              *filename,
-                               IDirectFBImageProvider **interface )
-{
-     int                                  fd;
-     DFBResult                            ret;
-     DFBInterfaceFuncs                   *funcs = NULL;
-     IDirectFBImageProvider              *imageprovider;
-     IDirectFBImageProvider_ProbeContext  ctx;
-
-     INTERFACE_GET_DATA(IDirectFB)
-
-     /* Check arguments */
-     if (!filename || !interface)
-          return DFB_INVARG;
-
-     /* Fill out probe context */
-     ctx.filename = filename;
-
-     /*  read the first 32 bytes  */
-     if ((fd = open( filename, O_RDONLY | O_NONBLOCK )) == -1)
-          return errno2dfb( errno );
-     if (read( fd, ctx.header, 32 ) < 32) {
-          close( fd );
-          return DFB_IO;
-     }
-     close( fd );
-     
-     /* Find a suitable implemenation */
-     ret = DFBGetInterface( &funcs,
-                            "IDirectFBImageProvider", NULL,
-                            DFBProbeInterface, &ctx );
-     if (ret)
-          return ret;
-
-     DFB_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
-
-     /* Construct the interface */
-     ret = funcs->Construct( imageprovider, filename );
-     if (ret)
-          return ret;
-        
-     *interface = imageprovider;
-
-     return DFB_OK;
-}
-#endif
-
 static DFBResult
 IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
                                const char              *filename,

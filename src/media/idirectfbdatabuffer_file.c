@@ -166,11 +166,8 @@ IDirectFBDataBuffer_File_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
-     if (data->pos + length > data->size) {
-          usleep( seconds * 1000000 + milli_seconds * 1000 );
-
+     if (data->pos + length > data->size)
           return DFB_BUFFEREMPTY;
-     }
 
      return DFB_OK;
 }
@@ -264,7 +261,7 @@ IDirectFBDataBuffer_File_HasData( IDirectFBDataBuffer *thiz )
 
 static DFBResult
 IDirectFBDataBuffer_File_PutData( IDirectFBDataBuffer *thiz,
-                                  const void          *data,
+                                  const void          *data_buffer,
                                   unsigned int         length )
 {
      return DFB_UNSUPPORTED;
