@@ -137,9 +137,7 @@ DFBResult
 dfb_core_init( int *argc, char **argv[] )
 {
 #ifdef DFB_DYNAMIC_LINKING
-    printf( "will try opening myself\n" );
     dfb_lib_handle = dlopen(SOPATH, RTLD_GLOBAL|RTLD_LAZY);
-    printf( "opened myself %p\n", dfb_lib_handle );
 #endif
     
      return DFB_OK;
