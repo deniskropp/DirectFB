@@ -1,1 +1,3 @@
+SetVideoMode should resize the window for the primary surface
+when in normal cooperative level and it already exists.
 
