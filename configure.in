@@ -238,7 +238,7 @@ fi
 AM_CONDITIONAL(ENABLE_MULTI, test "x$enable_multi" = xyes)
 
 
-AC_ARG_ENABLE(rgb332, [  --enable-rgb332         enable RGB332 pixel format support [default=no]],,enable_rgb332=no)
+AC_ARG_ENABLE(rgb332, [  --enable-rgb332         enable RGB332 pixel format support [default=yes]],,enable_rgb332=yes)
 if test "x$enable_rgb332" = xyes; then
     AC_DEFINE(SUPPORT_RGB332,1,
               [Define to 1 to enable support for RGB332 surfaces.])
