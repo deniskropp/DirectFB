@@ -37,8 +37,6 @@
 
 #include <linux/fb.h>
 
-#include <core/fusion/shmalloc.h>
-
 #include <directfb.h>
 #include <directfb_internals.h>
 
@@ -87,8 +85,6 @@ dfb_vt_initialize()
 
      dfb_vt = DFBCALLOC( 1, sizeof(VirtualTerminal) );
 
-     dfb_vt->shared = shcalloc( 1, sizeof(VirtualTerminal) );
-
      setsid();
      dfb_vt->fd0 = open( "/dev/tty0", O_WRONLY );
      if (dfb_vt->fd0 < 0) {
@@ -128,22 +124,22 @@ dfb_vt_initialize()
           return DFB_INIT;
      }
 
-     dfb_vt->shared->prev = vs.v_active;
+     dfb_vt->prev = vs.v_active;
 
 
      if (!dfb_config->vt_switch) {
           dfb_vt->fd   = dfb_vt->fd0;
-          dfb_vt->shared->num = dfb_vt->shared->prev;
+          dfb_vt->num = dfb_vt->prev;
 
           /* move vt to framebuffer */
-          dfb_vt->shared->old_fb = vt_get_fb( dfb_vt->shared->num );
-          vt_set_fb( dfb_vt->shared->num, -1 );
+          dfb_vt->old_fb = vt_get_fb( dfb_vt->num );
+          vt_set_fb( dfb_vt->num, -1 );
      }
      else {
           int n;
 
-          n = ioctl( dfb_vt->fd0, VT_OPENQRY, &dfb_vt->shared->num );
-          if (n < 0 || dfb_vt->shared->num == -1) {
+          n = ioctl( dfb_vt->fd0, VT_OPENQRY, &dfb_vt->num );
+          if (n < 0 || dfb_vt->num == -1) {
                PERRORMSG( "DirectFB/core/vt: Cannot allocate VT!\n" );
                close( dfb_vt->fd0 );
                DFBFREE( dfb_vt );
@@ -152,11 +148,11 @@ dfb_vt_initialize()
           }
 
           /* move vt to framebuffer */
-          dfb_vt->shared->old_fb = vt_get_fb( dfb_vt->shared->num );
-          vt_set_fb( dfb_vt->shared->num, -1 );
+          dfb_vt->old_fb = vt_get_fb( dfb_vt->num );
+          vt_set_fb( dfb_vt->num, -1 );
 
           /* switch to vt */
-          while (ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->shared->num ) < 0) {
+          while (ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->num ) < 0) {
                if (errno == EINTR)
                     continue;
                PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE failed!\n" );
@@ -166,7 +162,7 @@ dfb_vt_initialize()
                return DFB_INIT;
           }
 
-          while (ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->shared->num ) < 0) {
+          while (ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->num ) < 0) {
                if (errno == EINTR)
                     continue;
                PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE failed!\n" );
@@ -183,10 +179,10 @@ dfb_vt_initialize()
      if (ret) {
           if (dfb_config->vt_switch) {
                DEBUGMSG( "switching back...\n" );
-               ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->shared->prev );
-               ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->shared->prev );
+               ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->prev );
+               ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->prev );
                DEBUGMSG( "...switched back\n" );
-               ioctl( dfb_vt->fd0, VT_DISALLOCATE, dfb_vt->shared->num );
+               ioctl( dfb_vt->fd0, VT_DISALLOCATE, dfb_vt->num );
           }
 
           close( dfb_vt->fd0 );
@@ -213,11 +209,11 @@ dfb_vt_shutdown( bool emergency )
           return DFB_OK;
 #if 0
      if (dfb_config->vt_switching) {
-          if (ioctl( dfb_vt->fd, VT_SETMODE, &dfb_vt->shared->vt_mode ) < 0)
+          if (ioctl( dfb_vt->fd, VT_SETMODE, &dfb_vt->vt_mode ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
 
-          //sigaction( SIG_SWITCH_FROM, &dfb_vt->shared->sig_usr1, NULL );
-          //sigaction( SIG_SWITCH_TO, &dfb_vt->shared->sig_usr2, NULL );
+          //sigaction( SIG_SWITCH_FROM, &dfb_vt->sig_usr1, NULL );
+          //sigaction( SIG_SWITCH_TO, &dfb_vt->sig_usr2, NULL );
      }
 #endif
      if (dfb_config->kd_graphics) {
@@ -228,10 +224,10 @@ dfb_vt_shutdown( bool emergency )
      if (dfb_config->vt_switch) {
           DEBUGMSG( "switching back...\n" );
 
-          if (ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->shared->prev ) < 0)
+          if (ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->prev ) < 0)
                PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE" );
 
-          if (ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->shared->prev ) < 0)
+          if (ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->prev ) < 0)
                PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE" );
 
           DEBUGMSG( "switched back...\n" );
@@ -239,25 +235,24 @@ dfb_vt_shutdown( bool emergency )
           usleep( 40000 );
 
           /* restore con2fbmap */
-          vt_set_fb( dfb_vt->shared->num, dfb_vt->shared->old_fb );
+          vt_set_fb( dfb_vt->num, dfb_vt->old_fb );
 
           if (close( dfb_vt->fd ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to "
                           "close file descriptor of allocated VT!\n" );
 
-          if (ioctl( dfb_vt->fd0, VT_DISALLOCATE, dfb_vt->shared->num ) < 0)
+          if (ioctl( dfb_vt->fd0, VT_DISALLOCATE, dfb_vt->num ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to disallocate VT!\n" );
      }
      else {
           /* restore con2fbmap */
-          vt_set_fb( dfb_vt->shared->num, dfb_vt->shared->old_fb );
+          vt_set_fb( dfb_vt->num, dfb_vt->old_fb );
      }
 
      if (close( dfb_vt->fd0 ) < 0)
           PERRORMSG( "DirectFB/core/vt: Unable to "
                      "close file descriptor of tty0!\n" );
 
-     shfree( dfb_vt->shared );
      DFBFREE( dfb_vt );
      dfb_vt = NULL;
 
@@ -311,17 +306,17 @@ vt_init_switching()
 
      /* FIXME: Opening the device should be moved out of this function. */
 
-     snprintf(buf, 32, "/dev/tty%d", dfb_vt->shared->num);
+     snprintf(buf, 32, "/dev/tty%d", dfb_vt->num);
      dfb_vt->fd = open( buf, O_RDWR );
      if (dfb_vt->fd < 0) {
           if (errno == ENOENT) {
-               snprintf(buf, 32, "/dev/vc/%d", dfb_vt->shared->num);
+               snprintf(buf, 32, "/dev/vc/%d", dfb_vt->num);
                dfb_vt->fd = open( buf, O_RDWR );
                if (dfb_vt->fd < 0) {
                     if (errno == ENOENT) {
                          PERRORMSG( "DirectFB/core/vt: Couldn't open "
                                     "neither `/dev/tty%d' nor `/dev/vc/%d'!\n",
-                                    dfb_vt->shared->num, dfb_vt->shared->num );
+                                    dfb_vt->num, dfb_vt->num );
                     }
                     else {
                          PERRORMSG( "DirectFB/core/vt: "
