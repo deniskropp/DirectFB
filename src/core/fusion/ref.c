@@ -529,6 +529,7 @@ fusion_ref_init (FusionRef *ref)
      DFB_ASSERT( ref != NULL );
      
      pthread_mutex_init (&ref->lock, NULL);
+     pthread_cond_init (&ref->cond, NULL);
 
      ref->refs      = 0;
      ref->destroyed = false;
@@ -654,6 +655,7 @@ fusion_ref_destroy (FusionRef *ref)
      pthread_cond_broadcast (&ref->cond);
 
      pthread_mutex_unlock (&ref->lock);
+     pthread_cond_destroy (&ref->cond);
      
      return FUSION_SUCCESS;
 }
