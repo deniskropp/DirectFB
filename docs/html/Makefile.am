@@ -1,4 +1,4 @@
-EXTRA_DIST = cimlogo.png directfb.png
+EXTRA_DIST = directfb.png
 
 docs_headers = \
 	$(top_srcdir)/include/directfb.h \
