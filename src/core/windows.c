@@ -1671,63 +1671,125 @@ window_at_pointer( CoreWindowStack *stack,
                int wx = x - w->x;
                int wy = y - w->y;
 
-               if (((w->options & (DWOP_ALPHACHANNEL|DWOP_SHAPED)) != 
-                    (DWOP_ALPHACHANNEL|DWOP_SHAPED)) || !w->surface ||
-                   ((w->options & DWOP_OPAQUE_REGION) &&
-                    (wx >= w->opaque.x1  &&  wx <= w->opaque.x2 &&
-                     wy >= w->opaque.y1  &&  wy <= w->opaque.y2)))
+               if ( !(w->options & DWOP_SHAPED)  ||
+                        !(w->options &(DWOP_ALPHACHANNEL|DWOP_COLORKEYING))
+                        || !w->surface ||
+                        ((w->options & DWOP_OPAQUE_REGION) &&
+                        (wx >= w->opaque.x1  &&  wx <= w->opaque.x2 &&
+                        wy >= w->opaque.y1  &&  wy <= w->opaque.y2)))
                {
                     return w;
                }
-               else {
+               else
+               {
                     void        *data;
                     int          pitch;
                     CoreSurface *surface = w->surface;
 
-                    if (DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) &&
-                        dfb_surface_soft_lock( surface, DSLF_READ,
-                                               &data, &pitch, true ) == DFB_OK)
+                    if( dfb_surface_soft_lock( surface, DSLF_READ,
+                                               &data, &pitch, true ) == DFB_OK )
                     {
-                         int alpha = -1;
+                        if(w->options & DWOP_ALPHACHANNEL)
+                        {
+                            int alpha = -1;
+                            
+                            DFB_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) );
+                            
+                            switch (surface->format) 
+                            {
+                                case DSPF_ARGB:
+                                    alpha = *(__u32*)(data +
+                                                        4 * wx + pitch * wy) >> 24;
+                                    break;
+                                case DSPF_ARGB1555:
+                                    alpha = *(__u16*)(data + 2 * wx +
+                                                        pitch * wy) & 0x8000;
+                                    alpha = alpha ? 0xff : 0x00;
+                                    break;
+                                case DSPF_ALUT44:
+                                    alpha = *(__u8*)(data +
+                                                        wx + pitch * wy) & 0xf0;
+                                    alpha |= alpha >> 4;
+                                    break;
+                                case DSPF_LUT8: {
+                                    CorePalette *palette = surface->palette;
+                                    __u8         pix     = *((__u8*) data + wx +
+                                                                pitch * wy);
 
-                         switch (surface->format) {
-                              case DSPF_ARGB:
-                                   alpha = *(__u32*)(data +
-                                                     4 * wx + pitch * wy) >> 24;
-                                   break;
-                              case DSPF_ARGB1555:
-                                   alpha = *(__u16*)(data + 2 * wx +
-                                                     pitch * wy) & 0x8000;
-                                   alpha = alpha ? 0xff : 0x00;
-                                   break;
-                              case DSPF_ALUT44:
-                                   alpha = *(__u8*)(data +
-                                                    wx + pitch * wy) & 0xf0;
-                                   alpha |= alpha >> 4;
-                                   break;
-                              case DSPF_LUT8: {
-                                   CorePalette *palette = surface->palette;
-                                   __u8         pix     = *((__u8*) data + wx +
-                                                            pitch * wy);
-                                   
-                                   if (palette && pix < palette->num_entries) {
-                                        alpha = palette->entries[pix].a;
-                                        break;
-                                   }
-                                   
-                                   /* fall through */
-                              }
+                                    if (palette && pix < palette->num_entries) {
+                                            alpha = palette->entries[pix].a;
+                                            break;
+                                    }
 
-                              default:
-                                   break;
-                         }
+                                    /* fall through */
+                                }
 
-                         if (alpha) { /* alpha == -1 on error */
-                              dfb_surface_unlock( surface, true );
-                              return w;
-                         }
+                                default:
+                                    break;
+                            }
 
-                         dfb_surface_unlock( surface, true );
+                            if (alpha) /* alpha == -1 on error */
+                            { 
+                                dfb_surface_unlock( surface, true );
+                                return w;
+                            }
+
+                        }
+                        if(w->options & DWOP_COLORKEYING)
+                        {
+                            int pixel = 0;
+                            
+                            switch (surface->format) 
+                            {
+                                case DSPF_ARGB:
+                                case DSPF_RGB32:
+                                    pixel = *(__u32*)(data +
+                                                        4 * wx + pitch * wy)
+                                                        & 0x00ffffff;
+                                    break;
+                                    
+                                case DSPF_RGB24:   //endianess? boh...
+                                    pixel = (*(__u32*)(data +
+                                                        3 * wx + pitch * wy))
+                                                        & 0x00ffffff;
+                                    break;
+                                    
+                                case DSPF_RGB16:
+                                    pixel = *(__u16*)(data + 2 * wx +
+                                                        pitch * wy);
+                                    break;
+                                    
+                                case DSPF_ARGB1555:
+                                    pixel = *(__u16*)(data + 2 * wx +
+                                                        pitch * wy)
+                                                        & 0x7fff;
+                                    break;
+                                    
+                                case DSPF_RGB332:
+                                case DSPF_LUT8:
+                                    pixel = *(__u8*)(data +
+                                                        wx + pitch * wy);
+                                    break;
+                                    
+                                case DSPF_ALUT44:
+                                    pixel = *(__u8*)(data +
+                                                        wx + pitch * wy)
+                                                        & 0x0f;
+                                    break;
+                                    
+                                default:
+                                    break;
+                            }
+                            
+                            if ( pixel != w->color_key ) 
+                            { 
+                                dfb_surface_unlock( surface, true );
+                                return w;
+                            }
+                        
+                        }
+                        
+                        dfb_surface_unlock( surface, true );
                     }
                }
           }

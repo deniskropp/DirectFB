@@ -2989,8 +2989,9 @@ typedef enum {
                                            window's alpha channel */
      DWOP_OPAQUE_REGION  = 0x00000004,  /* overrides DWOP_ALPHACHANNEL for the
                                            region set by SetOpaqueRegion() */
-     DWOP_SHAPED         = 0x00000008,  /* Do not send events if alpha==0, can
-                                           be used with DWOP_ALPHACHANNEL */
+     DWOP_SHAPED         = 0x00000008,  /* window doesn't receive mouse events for 
+                                           invisible regions, must be used with 
+                                           DWOP_ALPHACHANNEL or DWOP_COLORKEYING */
      DWOP_KEEP_POSITION  = 0x00000010,  /* window can't be moved
                                            with the mouse */
      DWOP_KEEP_SIZE      = 0x00000020,  /* window can't be resized
