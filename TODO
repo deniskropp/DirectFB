@@ -35,9 +35,6 @@ Add cooperative levels to input devices and implement
 a grabbing mechanism for fullscreen apps running in
 windowed mode.
 
-Allow software driven interlaced video field switches
-(functionality exists but not yet exported to apps).
-
 Rework VT handling. Readd VT switching and Suspend/Resume.
 
 Virtual window/layer resolution with scrolling/panning.
