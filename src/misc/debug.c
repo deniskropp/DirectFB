@@ -39,8 +39,9 @@
 
 #ifdef DFB_TRACE
 
+#ifdef DFB_DYNAMIC_LINKING
 #include <dlfcn.h>
-
+#endif
 
 #define MAX_LEVEL 100
 
@@ -54,7 +55,9 @@ __attribute__((no_instrument_function))
 void
 dfb_trace_print_stack( int pid )
 {
+#ifdef DFB_DYNAMIC_LINKING
      Dl_info info;
+#endif
      int     i;
      int     level;
 
@@ -80,6 +83,7 @@ dfb_trace_print_stack( int pid )
 
           fprintf( stderr, "'-> " );
 
+#ifdef DFB_DYNAMIC_LINKING
           if (dladdr( fn, &info )) {
                if (info.dli_sname)
                     fprintf( stderr, "%s()\n", info.dli_sname );
@@ -90,6 +94,7 @@ dfb_trace_print_stack( int pid )
                     fprintf( stderr, "%p\n", fn );
           }
           else
+#endif
                fprintf( stderr, "%p\n", fn );
      }
 
@@ -210,6 +215,8 @@ dfb_assumption_fail( const char *expression,
               filename, line, function );
 
      fflush( stderr );
+
+     dfb_trace_print_stack( -1 );
 }
 
 #endif
