@@ -291,8 +291,8 @@ static int GetCode(FILE *fd, int code_size, int flag)
 
 static int DoExtension( FILE *fd, int label )
 {
-     static char     buf[256];
-     char            *str;
+     static unsigned char buf[256];
+     char *str;
 
      switch (label) {
           case 0x01:              /* Plain Text Extension */
