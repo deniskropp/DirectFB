@@ -36,8 +36,8 @@
 #include <core/gfxcard.h>
 #include <core/fbdev.h>
 #include <core/layers.h>
-#include <core/surfaces.c>
-#include <core/windows.c>
+#include <core/surfaces.h>
+#include <core/windows.h>
 
 #include "regs.h"
 #include "mmio.h"
