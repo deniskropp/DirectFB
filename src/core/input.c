@@ -783,8 +783,8 @@ lookup_from_table( InputDevice        *device,
 }
 
 static int
-find_key_code( InputDevice                 *device,
-               DFBInputDeviceKeyIdentifier  id )
+find_key_code_by_id( InputDevice                 *device,
+                     DFBInputDeviceKeyIdentifier  id )
 {
      int                i;
      InputDeviceKeymap *map;
@@ -800,6 +800,31 @@ find_key_code( InputDevice                 *device,
 
           if (entry->identifier == id)
                return entry->code;
+     }
+
+     return -1;
+}
+
+static int
+find_key_code_by_symbol( InputDevice             *device,
+                         DFBInputDeviceKeySymbol  symbol )
+{
+     int                i;
+     InputDeviceKeymap *map;
+     
+     DFB_ASSERT( inputfield != NULL );
+     DFB_ASSERT( device != NULL );
+     DFB_ASSERT( device->shared != NULL );
+     
+     map = &device->shared->keymap;
+     
+     for (i=0; i<map->num_entries; i++) {
+          int                        n;
+          DFBInputDeviceKeymapEntry *entry = &map->entries[i];
+
+          for (n=0; n<=DIKSI_LAST; n++)
+               if (entry->symbols[n] == symbol)
+                    return entry->code;
      }
 
      return -1;
@@ -855,15 +880,13 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
       * With translation table
       */
      if (device->shared->keymap.num_entries) {
-          /* FIXME: 3. only, 4. and 5. not implemented yet (see above) */
           if (valid & DIEF_KEYCODE) {
                lookup_from_table( device, event, missing );
 
                missing &= ~(DIEF_KEYID | DIEF_KEYSYMBOL);
           }
           else if (valid & DIEF_KEYID) {
-               if (missing & DIEF_KEYCODE)
-                    event->key_code = find_key_code( device, event->key_id );
+               event->key_code = find_key_code_by_id( device, event->key_id );
 
                if (event->key_code != -1) {
                     lookup_from_table( device, event, missing );
@@ -874,6 +897,20 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
                     event->key_symbol = id_to_symbol( event->key_id,
                                                       event->modifiers,
                                                       event->locks );
+                    missing &= ~DIEF_KEYSYMBOL;
+               }
+          }
+          else if (valid & DIEF_KEYSYMBOL) {
+               event->key_code = find_key_code_by_symbol( device,
+                                                          event->key_symbol );
+
+               if (event->key_code != -1) {
+                    lookup_from_table( device, event, missing );
+                    
+                    missing &= ~(DIEF_KEYCODE | DIEF_KEYID);
+               }
+               else {
+                    event->key_symbol = symbol_to_id( event->key_symbol );
                     missing &= ~DIEF_KEYSYMBOL;
                }
           }

@@ -2240,13 +2240,21 @@ static GFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
 
-#define SET_ALPHA_PIXEL_DUFFS_DEVICE(D, S, w, format) \
-     while (w) {\
-          int l = w & 7;\
-          switch (l) {\
-               default:\
-                    l = 8;\
-                    SET_ALPHA_PIXEL_##format( D[7], S[7] );\
+#define DUFF_SHIFT 2                    /* 1 - 4 are allowed */
+#define DUFF_SIZE (1 << DUFF_SHIFT)
+
+#define DUFF_1(format) \
+               case 1:\
+                    SET_ALPHA_PIXEL_##format( D[0], S[0] );
+
+#define DUFF_2(format) \
+               case 3:\
+                    SET_ALPHA_PIXEL_##format( D[2], S[2] );\
+               case 2:\
+                    SET_ALPHA_PIXEL_##format( D[1], S[1] );\
+               DUFF_1(format)
+
+#define DUFF_3(format) \
                case 7:\
                     SET_ALPHA_PIXEL_##format( D[6], S[6] );\
                case 6:\
@@ -2255,17 +2263,45 @@ static GFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
                     SET_ALPHA_PIXEL_##format( D[4], S[4] );\
                case 4:\
                     SET_ALPHA_PIXEL_##format( D[3], S[3] );\
-               case 3:\
-                    SET_ALPHA_PIXEL_##format( D[2], S[2] );\
-               case 2:\
-                    SET_ALPHA_PIXEL_##format( D[1], S[1] );\
-               case 1:\
-                    SET_ALPHA_PIXEL_##format( D[0], S[0] );\
+               DUFF_2(format)
+
+#define DUFF_4(format) \
+               case 15:\
+                    SET_ALPHA_PIXEL_##format( D[14], S[14] );\
+               case 14:\
+                    SET_ALPHA_PIXEL_##format( D[13], S[13] );\
+               case 13:\
+                    SET_ALPHA_PIXEL_##format( D[12], S[12] );\
+               case 12:\
+                    SET_ALPHA_PIXEL_##format( D[11], S[11] );\
+               case 11:\
+                    SET_ALPHA_PIXEL_##format( D[10], S[10] );\
+               case 10:\
+                    SET_ALPHA_PIXEL_##format( D[9], S[9] );\
+               case 9:\
+                    SET_ALPHA_PIXEL_##format( D[8], S[8] );\
+               case 8:\
+                    SET_ALPHA_PIXEL_##format( D[7], S[7] );\
+               DUFF_3(format)
+               
+#define SET_ALPHA_PIXEL_DUFFS_DEVICE_N(D, S, w, format, n) \
+     while (w) {\
+          register int l = w & ((1 << n) - 1);\
+          switch (l) {\
+               default:\
+                    l = (1 << n);\
+                    SET_ALPHA_PIXEL_##format( D[(1 << n)-1], S[(1 << n)-1] );\
+               DUFF_##n(format)\
           }\
           D += l;\
           S += l;\
           w -= l;\
      }
+     
+/* change the last value to adjust the size of the device (1-4) */
+#define SET_ALPHA_PIXEL_DUFFS_DEVICE(D, S, w, format) \
+          SET_ALPHA_PIXEL_DUFFS_DEVICE_N(D, S, w, format, 3)
+
 
 static void Bop_a8_set_alphapixel_Aop_argb1555()
 {
