@@ -45,7 +45,7 @@ inline void uc_waitcmd(UcDriverData* ucdrv, UcDeviceData* ucdev)
 
 /** Send commands to 2D/3D engine. */
 
-bool uc_emit_commands(void* drv, void* dev)
+void uc_emit_commands(void* drv, void* dev)
 {
     UC_ACCEL_BEGIN()
     if (ucdev->must_wait == 1) uc_waitcmd(ucdrv, ucdev);
@@ -187,6 +187,8 @@ bool uc_blit(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
 
     //printf("%s: r = (%d, %d, %d, %d) -> (%d, %d)\n", __PRETTY_FUNCTION__,
     //  rect->x, rect->y, rect->h, rect->w, dx, dy);
+
+    ucdev = ucdev; // Kill 'unused variable' compiler warning.
 
     int cmd = VIA_GEC_BLT | VIA_ROP_S | VIA_GEC_CLIP_ENABLE;
 

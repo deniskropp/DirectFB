@@ -46,6 +46,8 @@
 
 // Functions 
 
+void uc_emit_commands(void* drv, void* dev);
+
 bool uc_fill_rectangle(void* drv, void* dev, DFBRectangle* r);
 bool uc_draw_rectangle(void* drv, void* dev, DFBRectangle* r);
 bool uc_draw_line(void* drv, void* dev, DFBRegion* line);
