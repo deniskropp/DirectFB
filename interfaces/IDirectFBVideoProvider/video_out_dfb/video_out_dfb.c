@@ -48,6 +48,9 @@
 #include "video_out_dfb.h"
 #include "video_out_dfb_tables.h"
 #include "video_out_dfb_blend.h"
+#ifdef ARCH_X86
+#include "video_out_dfb_mmx.h"
+#endif
 
 
 #define THIS  "video_out_dfb"
@@ -132,77 +135,33 @@ rdtsc(void)
 #endif
 
 
+
 /*
- * This formula seems to work properly:
- * 
- *  R = Y + (1.40200 * (V - 128))
- *  G = Y - (0.71414 * (V - 128)) - (0.34414 * (U - 128))
- *  B = Y + (1.77200 * (U - 128))
+ *
+ * I'm using this formula for YUV->RGB:
+ *
+ *   R = Y + (1.40200 * (V - 128))
+ *   G = Y - (0.71414 * (V - 128)) - (0.34414 * (U - 128))
+ *   B = Y + (1.77200 * (U - 128))
+ *
+ *
+ * Conversion is done as follows:
+ *
+ *   r = y + v_red_table[v];
+ *   g = y - (v_green_table[v] + u_green_table[u]);
+ *   b = y + u_blue_table[u];
+ *
+ * then values are clamped to 0-256.
+ *
+ * You can play with the "video.dfb.gamma_correction"
+ * entry in ~/.xine/config to adjust colors conversion:
+ * this variable specifies a value that is added to y
+ * (default is -16 because many encoders use a range
+ *  of 16-255 for luminance).
  *
  */
 
 
-/* we multiply each factor by 2^14 for mmx */
-static const int16_t yuv_factors[] =
-{
-	22970, 22970, 22970, 22970,
-	11700, 11700, 11700, 11700,
-	 5638,  5638,  5638,  5638,
-	29032, 29032, 29032, 29032
-};
-
-
-static const uint16_t chroma_sub[] = {128, 128, 128, 128};
-
-static const uint32_t lmask[]   = {0x000000ff, 0x000000ff};
-static const uint32_t wmask[]   = {0x00ff00ff, 0x00ff00ff};
-
-static const uint32_t b5_mask[] = {0xf8f8f8f8, 0xf8f8f8f8};
-static const uint32_t b6_mask[] = {0xfcfcfcfc, 0xfcfcfcfc};
-
-
-
-
-
-
-
-#ifdef ARCH_X86
-static void
-__mmx_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n = (frame->width * frame->height) >> 2;
-
-	__asm__ __volatile__(
-
-		"movq (wmask), %%mm2\n\t" /* mm2 = [0 0xff 0 0xff 0 0xff 0 0xff] */
-		"psllw $8, %%mm2\n\t" /* mm2 = [0xff 0 0xff 0 0xff 0 0xff 0] */
-		"movq %3, %%mm3\n\t" /* mm3 = brightness */
-		"movq %4, %%mm4\n\t" /* mm4 = contrast */
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovq (%1), %%mm0\n\t" /* mm0 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"movq %%mm0, %%mm1\n\t"
-		"pand (wmask), %%mm1\n\t" /* mm1 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %%mm3, %%mm1\n\t" /* y + brightness */
-		"psllw $2, %%mm1\n\t" /* y << 2 */
-		"pmulhw %%mm4, %%mm1\n\t" /* y * contrast */
-		"packuswb %%mm1, %%mm1\n\t" /* mm1 = [y3 y2 y1 y0 y3 y2 y1 y0] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 y3 0 y2 0 y1 0 y0] */
-		"pand %%mm2, %%mm0\n\t" /* mm0 = [v2 0 u2 0 v0 0 u0 0] */
-		"por %%mm1, %%mm0\n\t" /* mm0 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"movq %%mm0, (%0)\n\t"
-		"addl $8, %0\n\t"
-		"addl $8, %1\n\t"
-		"loop 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (yuv_data), "c" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
-}
-#endif
 
 
 static void
@@ -213,7 +172,7 @@ __dummy_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 	uint32_t n        = (frame->width * frame->height) >> 1;
 	int32_t bright    = this->brightness.l_val;
 	int32_t ctr       = this->contrast.l_val;
-	
+
 
 	do
 	{
@@ -240,45 +199,6 @@ __dummy_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 }
 
 
-#ifdef ARCH_X86
-static void
-__mmx_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n = (frame->width * frame->height) >> 2;
-	
-
-	__asm__ __volatile__(
-
-		"movq %3, %%mm3\n\t" /* mm3 = brightness */
-		"movq %4, %%mm4\n\t" /* mm4 = contrast */
-		".align 16\n"
-		"1:\tmovq (%1), %%mm0\n\t" /* mm0 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"movq %%mm0, %%mm1\n\t"
-		"pand (wmask), %%mm1\n\t" /* mm1 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %%mm3, %%mm1\n\t" /* y + brightness */
-		"psllw $2, %%mm1\n\t" /* y << 2 */
-		"pmulhw %%mm4, %%mm1\n\t" /* y * contrast */
-		"packuswb %%mm1, %%mm1\n\t" /* mm1 = [y3 y2 y1 y0 y3 y2 y1 y0] */
-		"pxor %%mm2, %%mm2\n\t"
-		"punpcklbw %%mm1, %%mm2\n\t" /* mm2 = [y3 0 y2 0 y1 0 y0 0] */
-		"psrlw $8, %%mm0\n\t" /* mm0 = [0 v2 0 u2 0 v0 0 u0] */
-		"por %%mm2, %%mm0\n\t" /* mm0 = [y3 v2 y2 u2 y1 v0 y0 u0] */
-		"movq %%mm0, (%0)\n\t"
-		"addl $8, %0\n\t"
-		"addl $8, %1\n\t"
-		"loop 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (yuv_data), "c" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
-
-}
-#endif
-
-
 static void
 __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -289,7 +209,7 @@ __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 	int32_t bright    = this->brightness.l_val;
 	int32_t ctr       = this->contrast.l_val;
 
-	
+
 	if(bright || ctr != 0x4000)
 	{
 		do
@@ -352,105 +272,6 @@ __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 		} while(--n);
 	}
 }
-
-
-#ifdef ARCH_X86
-static void
-__mmx_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint8_t* y_off    = (uint8_t*) data;
-	uint8_t* u_off;
-	uint8_t* v_off;
-	uint32_t line     = frame->width >> 3;
-	uint32_t n        = (frame->width * frame->height) >> 4;
-
-
-	if(frame->surface->format == DSPF_YV12)
-	{
-		v_off = (uint8_t*) data + (pitch * frame->height);
-		u_off = (uint8_t*) v_off + ((pitch * frame->height) >> 2);
-	} else
-	{
-		u_off = (uint8_t*) data + (pitch * frame->height);
-		v_off = (uint8_t*) u_off + ((pitch * frame->height) >> 2);
-	}
-
-	__asm__ __volatile__(
-		"movq (%0), %%mm6\n\t" /* mm6 = brightness */
-		"movq (%1), %%mm7\n\t" /* mm7 = contrast */
-		:: "r" (this->brightness.mm_val), "r" (this->contrast.mm_val)
-		: "memory");
-
-	__asm__ __volatile__(
-
-		".align 16\n"
-		"1:\tmovq (%0), %%mm0\n\t" /* mm0 = [v02 y03 u02 y02 v00 y01 u00 y00] */
-		"movq %%mm0, %%mm2\n\t" /* mm2 = [v02 y03 u02 y02 v00 y01 u00 y00] */
-		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %%mm6, %%mm2\n\t" /* y + brightness */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %%mm7, %%mm2\n\t" /* y * contrast */
-		"psrlw $8, %%mm0\n\t" /* mm0 = [0 v02 0 u02 0 v00 0 u00] */
-		"movq 8(%0), %%mm1\n\t" /* mm1 = [v06 y07 u06 y06 v04 y05 u04 y04] */
-		"movq %%mm1, %%mm3\n\t" /* mm3 = [v06 y07 u06 y06 v04 y05 u04 y04] */
-		"pand (wmask), %%mm3\n\t" /* mm3 = [0 y07 0 y06 0 y05 0 y04] */
-		"paddw %%mm6, %%mm3\n\t" /* y + brightness */
-		"psllw $2, %%mm3\n\t" /* y << 2 */
-		"pmulhw %%mm7, %%mm3\n\t" /* y * contrast */
-		"packuswb %%mm3, %%mm2\n\t" /* mm2 = [y07 y06 y05 y04 y03 y02 y01 y00] */
-		"movq %%mm2, (%1)\n\t"
-		"psrlw $8, %%mm1\n\t" /* mm1 = [0 v06 0 u06 0 v04 0 u04] */
-		"movq (%0, %4), %%mm2\n\t" /* mm2 = [v12 y13 u12 y12 v10 y11 u10 y10] */
-		"movq %%mm2, %%mm4\n\t" /* mm4 = [v12 y13 u12 y12 v10 y11 u10 y10] */
-		"pand (wmask), %%mm4\n\t" /* mm4 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %%mm6, %%mm4\n\t" /* y + brightness */
-		"psllw $2, %%mm4\n\t" /* y << 2 */
-		"pmulhw %%mm7, %%mm4\n\t" /* y * contrast */
-		"psrlw $8, %%mm2\n\t" /* mm2 = [0 v12 0 u12 0 v10 0 u10] */
-		"movq 8(%0, %4), %%mm3\n\t" /* mm3 = [v16 y17 u16 y16 v14 y15 u14 y14] */
-		"movq %%mm3, %%mm5\n\t" /* mm5 = [v16 y17 u16 y16 v14 y15 u14 y14] */
-		"pand (wmask), %%mm5\n\t" /* mm5 = [0 y17 0 y16 0 y15 0 y14] */
-		"paddw %%mm6, %%mm5\n\t" /* y + brightness */
-		"psllw $2, %%mm5\n\t" /* y << 2 */
-		"pmulhw %%mm7, %%mm5\n\t" /* y * contrast */
-		"packuswb %%mm5, %%mm4\n\t" /* mm4 = [y17 y16 y15 y14 y13 y12 y11 y10] */
-		"movq %%mm4, (%1, %5)\n\t"
-		"psrlw $8, %%mm3\n\t" /* mm3 = [0 v16 0 u16 0 v14 0 u14] */
-		"paddw %%mm2, %%mm0\n\t"
-		"psrlw $1, %%mm0\n\t" /* mm0 = [0 v1 0 u1 0 v0 0 u0] */
-		"paddw %%mm3, %%mm1\n\t"
-		"psrlw $1, %%mm1\n\t" /* mm1 = [0 v3 0 u3 0 v2 0 u2] */
-		"movq %%mm0, %%mm2\n\t" /* mm2 = [0 v1 0 u1 0 v0 0 u0] */
-		"punpcklbw %%mm1, %%mm0\n\t" /* mm0 = [0 0 v2 v0 0 0 u2 u0] */
-		"punpckhbw %%mm1, %%mm2\n\t" /* mm2 = [0 0 v3 v1 0 0 u3 u1] */
-		"movq %%mm0, %%mm1\n\t" /* mm1 = [0 0 v2 v0 0 0 u2 u0] */
-		"punpcklbw %%mm2, %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
-		"movd %%mm1, (%2)\n\t"
-		"punpckhbw %%mm2, %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
-		"movd %%mm0, (%3)\n\t"
-		"addl $16, %0\n\t"
-		"addl $8, %1\n\t"
-		"addl $4, %2\n\t"
-		"addl $4, %3\n\t"
-		"decl %6\n\t"
-		"jnz 2f\n\t"
-		"movl %4, %6\n\t" /* if(!(--line)){ */
-		"shrl $4, %6\n\t" /* line = frame->width /8 */
-		"addl %4, %0\n\t" /* yuv_data += frame->vo_frame.pitches[0] */
-		"addl %5, %1\n\t" /* y_data += pitch } */
-		".align 16\n"
-		"2:\tdecl %7\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (yuv_data), "r" (y_off), "r" (u_off), "r" (v_off),
-		   "r" (frame->vo_frame.pitches[0]), "r" (pitch),
-		   "m" (line), "m" (n)
-		: "memory");
-}
-#endif
 
 
 static void
@@ -588,73 +409,62 @@ __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 }
 
 
-#ifdef ARCH_X86
 static void
-__mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
+__dummy_yuy2_be_rgb8(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n = (frame->width * frame->height) >> 2;
+	uint32_t n     = (frame->width * frame->height) >> 1;
+	int32_t bright = this->brightness.l_val;
+
+	do
+	{
+		register int y;
+		int m1, m2, m3;
+		int r, g, b;
+
+		{
+			register int u, v;
+
+			u = *(yuv_data + 1);
+			v = *(yuv_data + 3);
+
+			m1 = v_red_table[v];
+			m2 = v_green_table[v] + u_green_table[u];
+			m3 = u_blue_table[u];
+		}
+
+		y = *yuv_data + bright;
+
+		r = y + m1;
+		g = (y - m2) >> 3;
+		b = (y + m3) >> 6;
+
+		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
+		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
+		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
+
+		*data = ((r & 0xe0) | (g & 0x1c) | b);
+
+		y = *(yuv_data + 2) + bright;
+
+		r = y + m1;
+		g = (y - m2) >> 3;
+		b = (y + m3) >> 6;
+
+		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
+		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
+		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
+
+		*(data + 1) = ((r & 0xe0) | (g & 0x1c) | b);
 
 
-	__asm__ __volatile__(
+		yuv_data += 4;
+		data     += 2;
 
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"movq %%mm0, %%mm2\n\t" /* mm2 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %3, %%mm2\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %4, %%mm2\n\t" /* y * contrast */
-		"movq %%mm0, %%mm1\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"psrld $8, %%mm1\n\t" /* mm1 = [0 v2 y3 u2 0 v0 y1 u0] */
-		"pand (lmask), %%mm1\n\t" /* mm1 = [0 0 0 u2 0 0 0 u0] */
-		"packssdw %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u0 0 u2 0 u0] */
-		"punpcklwd %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u2 0 u0 0 u0] */
-		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
-		"psllw $2, %%mm1\n\t" /* u << 2 */
-		"psrld $24, %%mm0\n\t" /* mm0 = [0 0 0 v2 0 0 0 v0] */
-		"packssdw %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v0 0 v2 0 v0] */
-		"punpcklwd %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v2 0 v0 0 v0] */
-		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
-		"psllw $2, %%mm0\n\t" /* v << 2 */
-		"movq %%mm0, %%mm3\n\t"
-		"pmulhw (yuv_factors), %%mm3\n\t" /* chroma_r */
-		"paddw %%mm2, %%mm3\n\t" /* mm3 = [r3 | r2 | r1 | r0] */
-		"packuswb %%mm3, %%mm3\n\t" /* mm3 = [r3 r2 r1 r0 r3 r2 r1 r0] */
-		"pand (b5_mask), %%mm3\n\t" /* red 15 */
-		"movq %%mm1, %%mm4\n\t"
-		"pmulhw (yuv_factors + 24), %%mm4\n\t" /* chroma_b */
-		"paddw %%mm2, %%mm4\n\t" /* mm4 = [b3 | b2 | b1 | b0] */
-		"packuswb %%mm4, %%mm4\n\t" /* mm4 = [b3 b2 b1 b0 b3 b2 b1 b0] */
-		"pmulhw (yuv_factors + 8), %%mm0\n\t"
-		"pmulhw (yuv_factors + 16), %%mm1\n\t"
-		"paddw %%mm1, %%mm0\n\t" /* chroma_g */
-		"psubw %%mm0, %%mm2\n\t" /* mm2 = [g3 | g2 | g1 | g0] */
-		"packuswb %%mm2, %%mm2\n\t" /* mm2 = [g3 g2 g1 g0 g3 g2 g1 g0] */
-		"pand (b5_mask), %%mm2\n\t" /* green 15 */
-		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 r3 0 r2 0 r1 0 r0] */
-		"psllw $7, %%mm3\n\t"
-		"punpcklbw %%mm7, %%mm4\n\t" /* mm4 = [0 b3 0 b2 0 b1 0 b0] */
-		"psrlw $3, %%mm4\n\t" /* blue 15 */
-		"por %%mm4, %%mm3\n\t"
-		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 g3 0 g2 0 g1 0 g0] */
-		"psllw $2, %%mm2\n\t" /* green 15 */
-		"por %%mm2, %%mm3\n\t" /* rgb15 */
-		"movq %%mm3, (%0)\n\t" /* out 4 pixles */
-		"addl $8, %0\n\t"
-		"addl $8, %1\n\t"
-		"decl %2\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (yuv_data), "q" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
+	} while(--n);
 
 }
-#endif
 
 
 static void
@@ -715,75 +525,6 @@ __dummy_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 }
 
 
-#ifdef ARCH_X86
-static void
-__mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n = (frame->width * frame->height) >> 2;
-
-
-	__asm__ __volatile__(
-
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"movq %%mm0, %%mm2\n\t" /* mm2 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %3, %%mm2\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %4, %%mm2\n\t" /* y * contrast */
-		"movq %%mm0, %%mm1\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"psrld $8, %%mm1\n\t" /* mm1 = [0 v2 y3 u2 0 v0 y1 u0] */
-		"pand (lmask), %%mm1\n\t" /* mm1 = [0 0 0 u2 0 0 0 u0] */
-		"packssdw %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u0 0 u2 0 u0] */
-		"punpcklwd %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u2 0 u0 0 u0] */
-		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
-		"psllw $2, %%mm1\n\t" /* u << 2 */
-		"psrld $24, %%mm0\n\t" /* mm0 = [0 0 0 v2 0 0 0 v0] */
-		"packssdw %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v0 0 v2 0 v0] */
-		"punpcklwd %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v2 0 v0 0 v0] */
-		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
-		"psllw $2, %%mm0\n\t" /* v << 2 */
-		"movq %%mm0, %%mm3\n\t"
-		"pmulhw (yuv_factors), %%mm3\n\t" /* chroma_r */
-		"paddw %%mm2, %%mm3\n\t" /* mm3 = [r3 | r2 | r1 | r0] */
-		"packuswb %%mm3, %%mm3\n\t" /* mm3 = [r3 r2 r1 r0 r3 r2 r1 r0] */
-		"pand (b5_mask), %%mm3\n\t" /* red 16 */
-		"movq %%mm1, %%mm4\n\t"
-		"pmulhw (yuv_factors + 24), %%mm4\n\t" /* chroma_b */
-		"paddw %%mm2, %%mm4\n\t" /* mm4 = [b3 | b2 | b1 | b0] */
-		"packuswb %%mm4, %%mm4\n\t" /* mm4 = [b3 b2 b1 b0 b3 b2 b1 b0] */
-		"pmulhw (yuv_factors + 8), %%mm0\n\t"
-		"pmulhw (yuv_factors + 16), %%mm1\n\t"
-		"paddw %%mm1, %%mm0\n\t" /* chroma_g */
-		"psubw %%mm0, %%mm2\n\t" /* mm2 = [g3 | g2 | g1 | g0] */
-		"packuswb %%mm2, %%mm2\n\t" /* mm2 = [g3 g2 g1 g0 g3 g2 g1 g0] */
-		"pand (b6_mask), %%mm2\n\t" /* green 16 */
-		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 r3 0 r2 0 r1 0 r0] */
-		"psllw $8, %%mm3\n\t"
-		"punpcklbw %%mm7, %%mm4\n\t" /* mm4 = [0 b3 0 b2 0 b1 0 b0] */
-		"psrlw $3, %%mm4\n\t" /* blue 16 */
-		"por %%mm4, %%mm3\n\t"
-		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 g3 0 g2 0 g1 0 g0] */
-		"psllw $3, %%mm2\n\t"
-		"por %%mm2, %%mm3\n\t" /* rgb16 */
-		"movq %%mm3, (%0)\n\t" /* out 4 pixels */
-		"addl $8, %0\n\t"
-		"addl $8, %1\n\t"
-		"decl %2\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (yuv_data), "q" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
-
-}
-#endif
-
-
 static void
 __dummy_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -841,80 +582,6 @@ __dummy_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 	} while(--n);
 
 }
-
-
-#ifdef ARCH_X86
-static void
-__mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n = (frame->width * frame->height) >> 2;
-
-
-	__asm__ __volatile__(
-
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"movq %%mm0, %%mm2\n\t" /* mm2 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %3, %%mm2\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %4, %%mm2\n\t" /* y * contrast */
-		"movq %%mm0, %%mm1\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"psrld $8, %%mm1\n\t" /* mm1 = [0 v2 y3 u2 0 v0 y1 u0] */
-		"pand (lmask), %%mm1\n\t" /* mm1 = [0 0 0 u2 0 0 0 u0] */
-		"packssdw %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u0 0 u2 0 u0] */
-		"punpcklwd %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u2 0 u0 0 u0] */
-		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
-		"psllw $2, %%mm1\n\t" /* u << 2 */
-		"psrld $24, %%mm0\n\t" /* mm0 = [0 0 0 v2 0 0 0 v0] */
-		"packssdw %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v0 0 v2 0 v0] */
-		"punpcklwd %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v2 0 v0 0 v0] */
-		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
-		"psllw $2, %%mm0\n\t" /* v << 2 */
-		"movq %%mm0, %%mm3\n\t"
-		"pmulhw (yuv_factors), %%mm3\n\t" /* chroma_r */
-		"paddw %%mm2, %%mm3\n\t" /* mm3 = [r3 | r2 | r1 | r0] */
-		"packuswb %%mm3, %%mm3\n\t" /* mm3 = [r3 r2 r1 r0 r3 r2 r1 r0] */
-		"movq %%mm1, %%mm4\n\t"
-		"pmulhw (yuv_factors + 24), %%mm4\n\t" /* chroma_b */
-		"paddw %%mm2, %%mm4\n\t" /* mm4 = [b3 | b2 | b1 | b0] */
-		"packuswb %%mm4, %%mm4\n\t" /* mm4 = [b3 b2 b1 b0 b3 b2 b1 b0] */
-		"pmulhw (yuv_factors + 8), %%mm0\n\t"
-		"pmulhw (yuv_factors + 16), %%mm1\n\t"
-		"paddw %%mm1, %%mm0\n\t" /* chroma_g */
-		"psubw %%mm0, %%mm2\n\t" /* mm2 = [g3 | g2 | g1 | g0] */
-		"packuswb %%mm2, %%mm2\n\t" /* mm2 = [g3 g2 g1 g0 g3 g2 g1 g0] */
-		"movq %%mm4, %%mm0\n\t" /* mm0 = [b3 b2 b1 b0 b3 b2 b1 b0] */
-		"punpcklbw %%mm2, %%mm0\n\t" /* mm0 = [g3 b3 g2 b2 g1 b1 g0 b0] */
-		"movq %%mm0, %%mm1\n\t" /* mm1 = [g3 b3 g2 b2 g1 b1 g0 b0] */
-		"punpcklbw %%mm3, %%mm4\n\t" /* mm4 = [r3 b3 r2 b2 r1 b1 r0 b0] */
-		"psrld $8, %%mm4\n\t" /* mm4 = [0 r3 b3 r2 0 r1 b1 r0] */
-		"punpcklwd %%mm4, %%mm0\n\t" /* mm0 = [0 r1 g1 b1 b1 r0 g0 b0] */
-		"movq %%mm0, %%mm6\n\t" /* mm6 = [0 r1 g1 b1 b1 r0 g0 b0] */
-		"psrlq $40, %%mm6\n\t" /* mm6 = [0 0 0 0 0 0 r1 g1] */
-		"punpckhwd %%mm4, %%mm1\n\t" /* mm1 = [0 r3 g3 b3 b3 r2 g2 b2] */
-		"punpcklwd %%mm1, %%mm6\n\t" /* mm6 = [b3 r2 0 0 g2 b2 r1 g1] */
-		"punpckldq %%mm6, %%mm0\n\t" /* mm0 = [g2 b2 r1 g1 b1 r0 g0 b0] */
-		"movq %%mm0, (%0)\n\t" /* out 2 + 2/3 pixels */
-		"psrld $8, %%mm1\n\t" /* mm1 = [0 0 r3 g3 0 b3 r2 g2] */
-		"psrld $16, %%mm6\n\t" /* mm6 = [0 0 b3 r2 0 0 g2 b2] */
-		"punpckhwd %%mm1, %%mm6\n\t" /* mm6 = [0 0 0 0 r3 g3 b3 r2] */
-		"movd %%mm6, 8(%0)\n\t" /* out 1/3 + 1 pixels */
-		"addl $12, %0\n\t"
-		"addl $8, %1\n\t"
-		"decl %2\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (yuv_data), "q" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
-
-}
-#endif
 
 
 /* unrolling here seems to speed up */
@@ -1001,71 +668,6 @@ __dummy_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 	} while(--n);
 
 }
-
-
-#ifdef ARCH_X86
-static void
-__mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n = (frame->width * frame->height) >> 2;
-
-
-	__asm__ __volatile__(
-
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"movq %%mm0, %%mm2\n\t" /* mm2 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %3, %%mm2\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %4, %%mm2\n\t" /* y * contrast */
-		"movq %%mm0, %%mm1\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-		"psrld $8, %%mm1\n\t" /* mm1 = [0 v2 y3 u2 0 v0 y1 u0] */
-		"pand (lmask), %%mm1\n\t" /* mm1 = [0 0 0 u2 0 0 0 u0] */
-		"packssdw %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u0 0 u2 0 u0] */
-		"punpcklwd %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u2 0 u0 0 u0] */
-		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
-		"psllw $2, %%mm1\n\t" /* u << 2 */
-		"psrld $24, %%mm0\n\t" /* mm0 = [0 0 0 v2 0 0 0 v0] */
-		"packssdw %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v0 0 v2 0 v0] */
-		"punpcklwd %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v2 0 v0 0 v0] */
-		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
-		"psllw $2, %%mm0\n\t" /* v << 2 */
-		"movq %%mm0, %%mm3\n\t"
-		"pmulhw (yuv_factors), %%mm3\n\t" /* chroma_r */
-		"paddw %%mm2, %%mm3\n\t" /* mm3 = [r3 | r2 | r1 | r0] */
-		"packuswb %%mm3, %%mm3\n\t" /* mm3 = [r3 r2 r1 r0 r3 r2 r1 r0] */
-		"movq %%mm1, %%mm4\n\t"
-		"pmulhw (yuv_factors + 24), %%mm4\n\t" /* chroma_b */
-		"paddw %%mm2, %%mm4\n\t" /* mm4 = [b3 | b2 | b1 | b0] */
-		"packuswb %%mm4, %%mm4\n\t" /* mm4 = [b3 b2 b1 b0 b3 b2 b1 b0] */
-		"pmulhw (yuv_factors + 8), %%mm0\n\t"
-		"pmulhw (yuv_factors + 16), %%mm1\n\t"
-		"paddw %%mm1, %%mm0\n\t" /* chroma_g */
-		"psubw %%mm0, %%mm2\n\t" /* mm2 = [g3 | g2 | g1 | g0] */
-		"packuswb %%mm2, %%mm2\n\t" /* mm2 = [g3 g2 g1 g0 g3 g2 g1 g0] */
-		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 r3 0 r2 0 r1 0 r0] */
-		"punpcklbw %%mm2, %%mm4\n\t" /* mm4 = [g3 b3 g2 b2 g1 b1 g0 b0] */
-		"movq %%mm4, %%mm0\n\t" /* mm0 = [g3 b3 g2 b2 g1 b1 g0 b0] */
-		"punpcklwd %%mm3, %%mm0\n\t" /* mm0 = [0 r1 g1 b1 0 r0 g0 b0] */
-		"movq %%mm0, (%0)\n\t" /* out first 2 pixels */
-		"punpckhwd %%mm3, %%mm4\n\t" /* mm4 = [0 r3 g3 b3 0 r2 g2 b2] */
-		"movq %%mm4, 8(%0)\n\t" /* out second 2 pixels */
-		"addl $16, %0\n\t"
-		"addl $8, %1\n\t"
-		"decl %2\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (yuv_data), "q" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
-
-}
-#endif
 
 
 /* unrolling here seems to speed up */
@@ -1161,6 +763,7 @@ static yuv_render_t yuy2_cc =
 	yuy2:	__dummy_yuy2_be_yuy2,
 	uyvy:	__dummy_yuy2_be_uyvy,
 	yv12:	__dummy_yuy2_be_yv12,
+	rgb8:   __dummy_yuy2_be_rgb8,
 	rgb15:	__dummy_yuy2_be_rgb15,
 	rgb16:	__dummy_yuy2_be_rgb16,
 	rgb24:  __dummy_yuy2_be_rgb24,
@@ -1170,70 +773,6 @@ static yuv_render_t yuy2_cc =
 
 
 
-
-#ifdef ARCH_X86
-static void
-__mmx_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t n      = frame->height >> 1;
-	uint32_t line;
-
-
-	__asm__ __volatile__(
-		"movq (%0), %%mm4\n\t" /* mm4 = brightness */
-		"movq (%1), %%mm5\n\t" /* mm5 = contrast */
-		"pxor %%mm7, %%mm7\n\t"
-		:: "r" (this->brightness.mm_val), "r" (this->contrast.mm_val)
-		: "memory");
-
-	__asm__ __volatile__(
-
-		".align 16\n"
-		"1:\tmovl %4, %6\n\t"
-		"shrl $2, %6\n\t"
-		".align 16\n"
-		"2:\tmovd (%1), %%mm0\n\t" /* mm0 = [0 0 0 0 y03 y02 y01 y00] */
-		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %%mm4, %%mm0\n\t" /* y + brightness */
-		"psllw $2, %%mm0\n\t" /* y << 2 */
-		"pmulhw %%mm5, %%mm0\n\t" /* y * contrast */
-		"movd (%1, %4), %%mm1\n\t" /* mm1 = [0 0 0 0 y13 y12 y11 y10] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %%mm4, %%mm1\n\t" /* y + brightness */
-		"psllw $2, %%mm1\n\t" /* y << 2 */
-		"pmulhw %%mm5, %%mm1\n\t" /* y * contrast */
-		"packuswb %%mm1, %%mm0\n\t" /* mm0 = [y13 y12 y11 y10 y03 y02 y01 y00] */
-		"movd (%2), %%mm2\n\t" /* mm2 = [0 0 0 0 u3 u2 u1 u0] */
-		"addl $2, %2\n\t" /* u_data += 2 */
-		"movd (%3), %%mm3\n\t" /* mm3 = [0 0 0 0 v3 v2 v1 v0] */
-		"addl $2, %3\n\t" /* v_data += 2 */
-		"punpcklbw %%mm3, %%mm2\n\t" /* mm2 = [v3 u3 v2 u2 v1 u1 v0 u0] */
-		"movq %%mm0, %%mm1\n\t" /* mm1 = [y13 y12 y11 y10 y03 y02 y01 y00] */
-		"punpcklbw %%mm2, %%mm1\n\t" /* mm1 = [v1 y03 u1 y02 v0 y01 u0 y00] */
-		"movq %%mm1, (%0)\n\t" /* out 2 pixels (line 1) */
-		"punpckhdq %%mm0, %%mm0\n\t" /* mm0 = [y13 y12 y11 y10 y13 y12 y11 y10] */
-		"punpcklbw %%mm2, %%mm0\n\t" /* mm0 = [v1 y13 u1 y12 v0 y11 u0 y10] */
-		"movq %%mm0, (%0, %5)\n\t" /* out 2 pixels (line 2) */
-		"addl $8, %0\n\t" /* data += 8 */
-		"addl $4, %1\n\t" /* y_data += 4 */
-		"decl %6\n\t"
-		"jnz 2b\n\t"
-		"addl %5, %0\n\t"
-		"addl %4, %1\n\t"
-		"decl %7\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
-		   "q" (frame->width), "q" (pitch), "m" (line), "m" (n)
-		: "memory");
-
-}
-#endif
 
 
  static void
@@ -1320,71 +859,6 @@ __dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 }
 
 
-#ifdef ARCH_X86
-static void
-__mmx_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t n      = frame->height >> 1;
-	uint32_t line;
-
-
-	__asm__ __volatile__(
-		"movq (%0), %%mm5\n\t" /* mm5 = brightness */
-		"movq (%1), %%mm6\n\t" /* mm6 = contrast */
-		"pxor %%mm7, %%mm7\n\t"
-		:: "r" (this->brightness.mm_val), "r" (this->contrast.mm_val)
-		: "memory");
-
-	__asm__ __volatile__(
-
-		".align 16\n"
-		"1:\tmovl %4, %6\n\t"
-		"shrl $2, %6\n\t"
-		".align 16\n"
-		"2:\tmovd (%1), %%mm1\n\t" /* mm1 = [0 0 0 0 y03 y02 y01 y00] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %%mm5, %%mm1\n\t" /* y + brightness */
-		"psllw $2, %%mm1\n\t" /* y << 2 */
-		"pmulhw %%mm6, %%mm1\n\t" /* y * contrast */
-		"movd (%1, %4), %%mm2\n\t" /* mm2 = [0 0 0 0 y13 y12 y10 y10] */
-		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %%mm5, %%mm2\n\t" /* y + brightness */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %%mm6, %%mm2\n\t" /* y * contrast */
-		"packuswb %%mm2, %%mm1\n\t" /* mm1 = [y13 y12 y10 y10 y03 y02 y01 y00] */
-		"movd (%2), %%mm3\n\t" /* mm3 = [0 0 0 0 u3 u2 u1 u0] */
-		"addl $2, %2\n\t" /* u_data += 2 */
-		"movd (%3), %%mm4\n\t" /* mm4 = [0 0 0 0 v3 v2 v1 v0] */
-		"addl $2, %3\n\t" /* v_data += 2 */
-		"punpcklbw %%mm4, %%mm3\n\t" /* mm3 = [v3 u3 v2 u2 v1 u1 v0 u0] */
-		"movq %%mm3, %%mm0\n\t"
-		"punpcklbw %%mm1, %%mm0\n\t" /* mm0 = [y03 v1 y02 u1 y01 v0 y00 u0] */
-		"movq %%mm0, (%0)\n\t"
-		"punpckhdq %%mm1, %%mm1\n\t" /* mm1 = [y13 y12 y10 y10 y13 y12 y10 y10] */
-		"punpcklbw %%mm1, %%mm3\n\t" /* mm3 = [y13 v1 y12 u1 y11 v0 y10 u0] */
-		"movq %%mm3, (%0, %5)\n\t"
-		"addl $8, %0\n\t" /* data += 8 */
-		"addl $4, %1\n\t" /* y_data += 4 */
-		"decl %6\n\t"
-		"jnz 2b\n\t"
-		"addl %5, %0\n\t"
-		"addl %4, %1\n\t"
-		"decl %7\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
-		   "q" (frame->width), "q" (pitch), "m" (line), "m" (n)
-		: "memory");
-
-}
-#endif
-
-
 static void
 __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1441,7 +915,7 @@ __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 			if(bright || ctr != 0x4000)
 			{
 				register int y;
-				
+
 				y = *y_data + bright;
 				y *= ctr;
 				y >>= 14;
@@ -1468,53 +942,6 @@ __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 	} while(--n);
 
 }
-
-
-#ifdef ARCH_X86
-static void
-__mmx_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint32_t n = (frame->width * frame->height) >> 2;
-
-
-	__asm__ __volatile__(
-
-		"movq %3, %%mm1\n\t" /* mm1 = brightness */
-		"movq %4, %%mm2\n\t" /* mm2 = contrast */
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovd (%1), %%mm0\n\t" /* mm0 = [0 0 0 0 y3 y2 y1 y0] */
-		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %%mm1, %%mm0\n\t" /* y + brightness */
-		"psllw $2, %%mm0\n\t" /* y << 2 */
-		"pmulhw %%mm2, %%mm0\n\t" /* y * contrast */
-		"packuswb %%mm0, %%mm0\n\t" /* mm0 = [y3 y2 y1 y0 y3 y2 y1 y0] */
-		"movd %%mm0, (%0)\n\t"
-		"addl $4, %0\n\t"
-		"addl $4, %1\n\t"
-		"loop 1b\n\t"
-
-		: "=&r" (data)
-		: "r" (frame->vo_frame.base[0]), "c" (n),
-		  "m" (*(this->brightness.mm_val)),
-		  "m" (*(this->contrast.mm_val)), "0" (data)
-		: "memory");
-
-	xine_fast_memcpy(data,
-			(frame->surface->format == DSPF_YV12)
-				? frame->vo_frame.base[2]
-				: frame->vo_frame.base[1],
-			(pitch * frame->height) >> 2);
-	data += (pitch * frame->height) >> 2;
-
-	xine_fast_memcpy(data,
-			(frame->surface->format == DSPF_YV12)
-				? frame->vo_frame.base[1]
-				: frame->vo_frame.base[2],
-			(pitch * frame->height) >> 2);
-}
-#endif
 
 
 static void
@@ -1559,105 +986,96 @@ __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 }
 
 
-#ifdef ARCH_X86
 static void
-__mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
+__dummy_yv12_be_rgb8(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
 	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line = frame->width >> 2;
-	uint32_t n    = (frame->width * frame->height) >> 3;
-	
-	
-	__asm__ __volatile__(
+	uint32_t line  = frame->width >> 1;
+	uint32_t n     = (frame->width * frame->height) >> 2;
+	int32_t bright = this->brightness.l_val;
 
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
-		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %8, %%mm3\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm3\n\t" /* y << 2 */
-		"pmulhw %9, %%mm3\n\t" /* y * contrast */
-		"movd (%1, %4), %%mm2\n\t" /* mm2 = [0 0 0 0 y13 y12 y11 y10] */
-		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %8, %%mm2\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %9, %%mm2\n\t" /* y * contrast */
-		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
-		"punpcklbw %%mm1, %%mm1\n\t" /* mm1 = [u3 u3 u2 u2 u1 u1 u0 u0] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 u1 0 u1 0 u0 0 u0] */
-		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
-		"psllw $2, %%mm1\n\t" /* u << 2 */
-		"movd (%3), %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
-		"punpcklbw %%mm0, %%mm0\n\t" /* mm0 = [v3 v3 v2 v2 v1 v1 v0 v0] */
-		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 v1 0 v1 0 v0 0 v0] */
-		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
-		"psllw $2, %%mm0\n\t" /* v << 2 */
-		"movq %%mm0, %%mm4\n\t" /* mm4 = [0 v1 0 v1 0 v0 0 v0] */
-		"pmulhw (yuv_factors), %%mm4\n\t" /* chroma_r */
-		"movq %%mm4, %%mm5\n\t"
-		"paddw %%mm3, %%mm4\n\t" /* mm4 = [r03 | r02 | r01 | r00] */
-		"paddw %%mm2, %%mm5\n\t" /* mm5 = [r13 | r12 | r11 | r10] */
-		"packuswb %%mm5, %%mm4\n\t" /* mm4 = [r13 r12 r11 r10 r03 r02 r01 r00] */
-		"pand (b5_mask), %%mm4\n\t" /* red 15 */
-		"movq %%mm1, %%mm5\n\t" /* mm5 = [0 u1 0 u1 0 u0 0 u0] */
-		"pmulhw (yuv_factors + 24), %%mm5\n\t" /* chroma_b */
-		"movq %%mm5, %%mm6\n\t"
-		"paddw %%mm3, %%mm5\n\t" /* mm5 = [b03 | b02 | b01 | b00] */
-		"paddw %%mm2, %%mm6\n\t" /* mm6 = [b13 | b12 | b11 | b00] */
-		"packuswb %%mm6, %%mm5\n\t" /* mm5 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"pmulhw (yuv_factors + 8), %%mm0\n\t"
-		"pmulhw (yuv_factors + 16), %%mm1\n\t"
-		"paddw %%mm1, %%mm0\n\t" /* chroma_g */
-		"psubw %%mm0, %%mm3\n\t" /* mm3 = [g03 | g02 | g01 | g00] */
-		"psubw %%mm0, %%mm2\n\t" /* mm2 = [g13 | g12 | g11 | g10] */
-		"packuswb %%mm2, %%mm3\n\t" /* mm3 = [g13 g12 g11 g10 g03 g02 g01 g00] */
-		"pand (b5_mask), %%mm3\n\t" /* green 15 */
-		"movq %%mm4, %%mm0\n\t" /* mm0 = [r13 r12 r11 r10 r03 r02 r01 r00] */
-		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 r03 0 r02 0 r01 0 r00] */
-		"psllw $7, %%mm0\n\t"
-		"movq %%mm5, %%mm1\n\t" /* mm1 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 b03 0 b02 0 b01 0 b00] */
-		"psrlw $3, %%mm1\n\t" /* blue 15 */
-		"por %%mm1, %%mm0\n\t"
-		"movq %%mm3, %%mm1\n\t" /* mm1 = [g13 g12 g11 g10 g03 g02 g01 g00] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 g03 0 g02 0 g01 0 g00] */
-		"psllw $2, %%mm1\n\t"
-		"por %%mm1, %%mm0\n\t" /* rgb15 */
-		"movq %%mm0, (%0)\n\t" /* out 4 pixels (line 1) */
-		"punpckhbw %%mm7, %%mm4\n\t" /* mm4 = [0 r13 0 r12 0 r11 0 r10] */
-		"psllw $7, %%mm4\n\t"
-		"punpckhbw %%mm7, %%mm5\n\t" /* mm5 = [0 b13 0 b12 0 b11 0 b10] */
-		"psrlw $3, %%mm5\n\t" /* blue 15 */
-		"por %%mm5, %%mm4\n\t"
-		"punpckhbw %%mm7, %%mm3\n\t" /* mm3 = [0 g13 0 g12 0 g11 0 g10] */
-		"psllw $2, %%mm3\n\t"
-		"por %%mm3, %%mm4\n\t" /* rgb15 */
-		"movq %%mm4, (%0, %5)\n\t" /* out 4 pixels (line 2) */
-		"addl $8, %0\n\t"
-		"addl $4, %1\n\t"
-		"addl $2, %2\n\t"
-		"addl $2, %3\n\t"
-		"decl %6\n\t" /* --line */
-		"jnz 2f\n\t"
-		"movl %4, %6\n\t" /* if(!line) { */
-		"shrl $2, %6\n\t" /* line = frame->width / 4 */
-		"addl %5, %0\n\t" /* data += pitch */
-		"addl %4, %1\n\t" /* y_data += frame->width } */
-		".align 16\n"
-		"2:\tdecl %7\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
 
-		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
-		   "q" (frame->width), "q" (pitch), "m" (line), "m" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
+	do
+	{
+		register int y;
+		int m1, m2, m3;
+		int r, g, b;
+
+		{
+			register int u, v;
+
+			u = *(u_data++);
+			v = *(v_data++);
+
+			m1 = v_red_table[v];
+			m2 = v_green_table[v] + u_green_table[u];
+			m3 = u_blue_table[u];
+		}
+
+		y = *y_data + bright;
+
+		r = y + m1;
+		g = (y - m2) >> 3;
+		b = (y + m3) >> 6;
+
+		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
+		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
+		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
+
+		*data = ((r & 0xe0) | (g & 0x1c) | b);
+
+		y = *(y_data + 1) + bright;
+
+		r = y + m1;
+		g = (y - m2) >> 3;
+		b = (y + m3) >> 6;
+
+		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
+		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
+		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
+
+		*(data + 1) = ((r & 0xe0) | (g & 0x1c) | b);
+
+		y = *(y_data + frame->width) + bright;
+
+		r = y + m1;
+		g = (y - m2) >> 3;
+		b = (y + m3) >> 6;
+
+		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
+		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
+		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
+
+		*(data + pitch) = ((r & 0xe0) | (g & 0x1c) | b);
+
+		y = *(y_data + frame->width + 1) + bright;
+
+		r = y + m1;
+		g = (y - m2) >> 3;
+		b = (y + m3) >> 6;
+
+		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
+		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
+		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
+
+		*(data + pitch + 1) = ((r & 0xe0) | (g & 0x1c) | b);
+
+		y_data += 2;
+		data   += 2;
+
+		if(!(--line))
+		{
+			line    = frame->width >> 1;
+			y_data += frame->width;
+			data   += pitch;
+		}
+
+	} while(--n);
 
 }
-#endif
 
 
 static void
@@ -1683,7 +1101,7 @@ __dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 
 		{
 			register int u, v;
-			
+
 			u = *(u_data++);
 			v = *(v_data++);
 
@@ -1753,107 +1171,6 @@ __dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 	} while(--n);
 
 }
-
-
-#ifdef ARCH_X86
-static void
-__mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line = frame->width >> 2;
-	uint32_t n    = (frame->width * frame->height) >> 3;
-
-
-	__asm__ __volatile__(
-
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
-		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %8, %%mm3\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm3\n\t" /* y << 2 */
-		"pmulhw %9, %%mm3\n\t" /* y * contrast */
-		"movd (%1, %4), %%mm2\n\t" /* mm2 = [0 0 0 0 y13 y12 y11 y10] */
-		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %8, %%mm2\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %9, %%mm2\n\t" /* y * contrast */
-		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
-		"punpcklbw %%mm1, %%mm1\n\t" /* mm1 = [u3 u3 u2 u2 u1 u1 u0 u0] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 u1 0 u1 0 u0 0 u0] */
-		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
-		"psllw $2, %%mm1\n\t" /* u << 2 */
-		"movd (%3), %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
-		"punpcklbw %%mm0, %%mm0\n\t" /* mm0 = [v3 v3 v2 v2 v1 v1 v0 v0] */
-		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 v1 0 v1 0 v0 0 v0] */
-		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
-		"psllw $2, %%mm0\n\t" /* v << 2 */
-		"movq %%mm0, %%mm4\n\t" /* mm4 = [0 v1 0 v1 0 v0 0 v0] */
-		"pmulhw (yuv_factors), %%mm4\n\t" /* chroma_r*/
-		"movq %%mm4, %%mm5\n\t"
-		"paddw %%mm3, %%mm4\n\t" /* mm4 = [r03 | r02 | r01 | r00] */
-		"paddw %%mm2, %%mm5\n\t" /* mm5 = [r13 | r12 | r11 | r10] */
-		"packuswb %%mm5, %%mm4\n\t" /* mm4 = [r13 r12 r11 r10 r03 r02 r01 r00] */
-		"pand (b5_mask), %%mm4\n\t" /* red 16 */
-		"movq %%mm1, %%mm5\n\t" /* mm5 = [0 u1 0 u1 0 u0 0 u0] */
-		"pmulhw (yuv_factors + 24), %%mm5\n\t" /* chroma_b */
-		"movq %%mm5, %%mm6\n\t"
-		"paddw %%mm3, %%mm5\n\t" /* mm5 = [b03 | b02 | b01 | b00] */
-		"paddw %%mm2, %%mm6\n\t" /* mm6 = [b13 | b12 | b11 | b00] */
-		"packuswb %%mm6, %%mm5\n\t" /* mm5 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"pmulhw (yuv_factors + 8), %%mm0\n\t"
-		"pmulhw (yuv_factors + 16), %%mm1\n\t"
-		"paddw %%mm1, %%mm0\n\t" /* chroma_g */
-		"psubw %%mm0, %%mm3\n\t" /* mm3 = [g03 | g02 | g01 | g00] */
-		"psubw %%mm0, %%mm2\n\t" /* mm2 = [g13 | g12 | g11 | g10] */
-		"packuswb %%mm2, %%mm3\n\t" /* mm3 = [g13 g12 g11 g10 g03 g02 g01 g00] */
-		"pand (b6_mask), %%mm3\n\t" /* green 16 */
-		"movq %%mm4, %%mm0\n\t" /* mm0 = [r13 r12 r11 r10 r03 r02 r01 r00] */
-		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 r03 0 r02 0 r01 0 r00] */
-		"psllw $8, %%mm0\n\t"
-		"movq %%mm5, %%mm1\n\t" /* mm1 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 b03 0 b02 0 b01 0 b00] */
-		"psrlw $3, %%mm1\n\t" /* blue 16 */
-		"por %%mm1, %%mm0\n\t"
-		"movq %%mm3, %%mm1\n\t" /* mm1 = [g13 g12 g11 g10 g03 g02 g01 g00] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 g03 0 g02 0 g01 0 g00] */
-		"psllw $3, %%mm1\n\t"
-		"por %%mm1, %%mm0\n\t" /* rgb16 */
-		"movq %%mm0, (%0)\n\t" /* out 4 pixels (line 1) */
-		"punpckhbw %%mm7, %%mm4\n\t" /* mm4 = [0 r13 0 r12 0 r11 0 r10] */
-		"psllw $8, %%mm4\n\t"
-		"punpckhbw %%mm7, %%mm5\n\t" /* mm5 = [0 b13 0 b12 0 b11 0 b10] */
-		"psrlw $3, %%mm5\n\t" /* blue 16 */
-		"por %%mm5, %%mm4\n\t"
-		"punpckhbw %%mm7, %%mm3\n\t" /* mm3 = [0 g13 0 g12 0 g11 0 g10] */
-		"psllw $3, %%mm3\n\t"
-		"por %%mm3, %%mm4\n\t" /* rgb16 */
-		"movq %%mm4, (%0, %5)\n\t" /* out 4 pixels (line 2) */
-		"addl $8, %0\n\t"
-		"addl $4, %1\n\t"
-		"addl $2, %2\n\t"
-		"addl $2, %3\n\t"
-		"decl %6\n\t" /* --line */
-		"jnz 2f\n\t"
-		"movl %4, %6\n\t" /* if(!line) { */
-		"shrl $2, %6\n\t" /* line = frame->width / 4 */
-		"addl %5, %0\n\t" /* data += pitch */
-		"addl %4, %1\n\t" /* y_data += frame->width } */
-		".align 16\n"
-		"2:\tdecl %7\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
-		   "q" (frame->width), "q" (pitch), "m" (line), "m" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
-
-}
-#endif
 
 
 static void
@@ -1952,117 +1269,6 @@ __dummy_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 }
 
 
-#ifdef ARCH_X86
-static void
-__mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line = frame->width >> 2;
-	uint32_t n    = (frame->width * frame->height) >> 3;
-
-
-	__asm__ __volatile__(
-
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
-		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %8, %%mm3\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm3\n\t" /* y << 2 */
-		"pmulhw %9, %%mm3\n\t" /* y * contrast */
-		"movd (%1, %4), %%mm2\n\t" /* mm2 = [0 0 0 0 y13 y12 y11 y10] */
-		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %8, %%mm2\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %9, %%mm2\n\t" /* y * contrast */
-		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
-		"punpcklbw %%mm1, %%mm1\n\t" /* mm1 = [u3 u3 u2 u2 u1 u1 u0 u0] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 u1 0 u1 0 u0 0 u0] */
-		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
-		"psllw $2, %%mm1\n\t" /* u << 2 */
-		"movd (%3), %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
-		"punpcklbw %%mm0, %%mm0\n\t" /* mm0 = [v3 v3 v2 v2 v1 v1 v0 v0] */
-		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 v1 0 v1 0 v0 0 v0] */
-		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
-		"psllw $2, %%mm0\n\t" /* v << 2 */
-		"movq %%mm0, %%mm4\n\t" /* mm4 = [0 v1 0 v1 0 v0 0 v0] */
-		"pmulhw (yuv_factors), %%mm4\n\t" /* chroma_r*/
-		"movq %%mm4, %%mm5\n\t"
-		"paddw %%mm3, %%mm4\n\t" /* mm4 = [r03 | r02 | r01 | r00] */
-		"paddw %%mm2, %%mm5\n\t" /* mm5 = [r13 | r12 | r11 | r10] */
-		"packuswb %%mm5, %%mm4\n\t" /* mm4 = [r13 r12 r11 r10 r03 r02 r01 r00] */
-		"movq %%mm1, %%mm5\n\t" /* mm5 = [0 u1 0 u1 0 u0 0 u0] */
-		"pmulhw (yuv_factors + 24), %%mm5\n\t" /* chroma_b */
-		"movq %%mm5, %%mm6\n\t"
-		"paddw %%mm3, %%mm5\n\t" /* mm5 = [b03 | b02 | b01 | b00] */
-		"paddw %%mm2, %%mm6\n\t" /* mm6 = [b13 | b12 | b11 | b00] */
-		"packuswb %%mm6, %%mm5\n\t" /* mm5 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"pmulhw (yuv_factors + 8), %%mm0\n\t"
-		"pmulhw (yuv_factors + 16), %%mm1\n\t"
-		"paddw %%mm1, %%mm0\n\t" /* chorma_g */
-		"psubw %%mm0, %%mm3\n\t" /* mm3 = [g03 | g02 | g01 | g00] */
-		"psubw %%mm0, %%mm2\n\t" /* mm2 = [g13 | g12 | g11 | g10] */
-		"packuswb %%mm2, %%mm3\n\t" /* mm3 = [g13 g12 g11 g10 g03 g02 g01 g00] */
-		"movq %%mm5, %%mm0\n\t" /* mm0 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"punpcklbw %%mm3, %%mm0\n\t" /* mm0 = [g03 b03 g02 b02 g01 b01 g00 b00] */
-		"movq %%mm0, %%mm2\n\t" /* mm2 = [g03 b03 g02 b02 g01 b01 g00 b00] */
-		"movq %%mm5, %%mm1\n\t" /* mm1 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"punpcklbw %%mm4, %%mm1\n\t" /* mm1 = [r03 b03 r02 b02 r01 b01 r00 b00] */
-		"psrld $8, %%mm1\n\t" /* mm1 = [0 r03 b03 r02 0 r01 b01 r00] */
-		"punpcklwd %%mm1, %%mm0\n\t" /* mm0 = [0 r01 g01 b01 b01 r00 g00 b00] */
-		"movq %%mm0, %%mm6\n\t" /* mm6 = [0 r01 g01 b01 b01 r00 g00 b00] */
-		"psrlq $40, %%mm6\n\t" /* mm6 = [0 0 0 0 0 0 r01 g01] */
-		"punpckhwd %%mm1, %%mm2\n\t" /* mm2 = [0 r03 g03 b03 b03 r02 g02 b02] */
-		"punpcklwd %%mm2, %%mm6\n\t" /* mm6 = [b03 r02 0 0 g02 b02 r01 g01] */
-		"punpckldq %%mm6, %%mm0\n\t" /* mm0 = [g02 b02 r01 g01 b01 r00 g00 b00] */
-		"movq %%mm0, (%0)\n\t" /* out 2 + 2/3 pixels (line 1) */
-		"psrld $8, %%mm2\n\t" /* mm1 = [0 0 r03 g03 0 b03 r02 g02] */
-		"psrld $16, %%mm6\n\t" /* mm6 = [0 0 b03 r02 0 0 g02 b02] */
-		"punpckhwd %%mm2, %%mm6\n\t" /* mm6 = [0 0 0 0 r03 g03 b03 r02] */
-		"movd %%mm6, 8(%0)\n\t" /* out 1/3 + 1 pixels (line 1) */
-		"movq %%mm5, %%mm0\n\t" /* mm0 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"punpckhbw %%mm3, %%mm0\n\t" /* mm0 = [g13 b13 g12 b12 g11 b11 g10 b10] */
-		"movq %%mm0, %%mm2\n\t" /* mm2 = [g13 b13 g12 b12 g11 b11 g10 b10] */
-		"punpckhbw %%mm4, %%mm5\n\t" /* mm5 = [r13 b13 r12 b12 r11 b11 r10 b10] */
-		"psrld $8, %%mm5\n\t" /* mm5 = [0 r13 b13 r12 0 r11 b11 r10] */
-		"punpcklwd %%mm5, %%mm0\n\t" /* mm0 = [0 r11 g11 b11 b11 r10 g10 b10] */
-		"movq %%mm0, %%mm6\n\t" /* mm6 = [0 r11 g11 b11 b11 r10 g10 b10] */
-		"psrlq $40, %%mm6\n\t" /* mm6 = [0 0 0 0 0 0 r11 b11] */
-		"punpckhwd %%mm5, %%mm2\n\t" /* mm2 = [0 r13 g13 b13 b13 r12 g12 b12] */
-		"punpcklwd %%mm2, %%mm6\n\t" /* mm6 = [b13 r12 0 0 g12 b12 r11 g11] */
-		"punpckldq %%mm6, %%mm0\n\t" /* mm0 = [g12 b12 r11 g11 b11 r10 g10 b10] */
-		"movq %%mm0, (%0, %5)\n\t" /* out 2 + 2/3 pixels (line 2) */
-		"psrld $8, %%mm2\n\t" /* mm2 = [0 0 r13 g13 0 b13 r12 g12] */
-		"psrld $16, %%mm6\n\t" /* mm6 = [0 0 b13 r12 0 0 g12 b12] */
-		"punpckhwd %%mm2, %%mm6\n\t" /* mm6 = [0 0 0 0 r13 g13 b13 r12] */
-		"movd %%mm6, 8(%0, %5)\n\t" /* out 1/3 + 1 pixels (line 2) */
-		"addl $12, %0\n\t"
-		"addl $4, %1\n\t"
-		"addl $2, %2\n\t"
-		"addl $2, %3\n\t"
-		"decl %6\n\t" /* --line */
-		"jnz 2f\n\t"
-		"movl %4, %6\n\t" /* if(!line) { */
-		"shrl $2, %6\n\t" /* line = frame->width / 4 */
-		"addl %5, %0\n\t" /* data += pitch */
-		"addl %4, %1\n\t" /* y_data += frame->width } */
-		".align 16\n"
-		"2:\tdecl %7\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
-		   "q" (frame->width), "q" (pitch), "m" (line), "m" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
-
-}
-#endif
-
-
 static void
 __dummy_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -2149,100 +1355,6 @@ __dummy_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 }
 
 
-#ifdef ARCH_X86
-static void
-__mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line = frame->width >> 2;
-	uint32_t n    = (frame->width * frame->height) >> 3;
-
-
-	__asm__ __volatile__(
-
-		"pxor %%mm7, %%mm7\n\t"
-		".align 16\n"
-		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
-		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %8, %%mm3\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm3\n\t" /* y << 2 */
-		"pmulhw %9, %%mm3\n\t" /* y * contrast */
-		"movd (%1, %4), %%mm2\n\t" /* mm2 = [0 0 0 0 y13 y12 y11 y10] */
-		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %8, %%mm2\n\t" /* y + (brightness + gamma_correction) */
-		"psllw $2, %%mm2\n\t" /* y << 2 */
-		"pmulhw %9, %%mm2\n\t" /* y * contrast */
-		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
-		"punpcklbw %%mm1, %%mm1\n\t" /* mm1 = [u3 u3 u2 u2 u1 u1 u0 u0] */
-		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 u1 0 u1 0 u0 0 u0] */
-		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
-		"psllw $2, %%mm1\n\t" /* u << 2 */
-		"movd (%3), %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
-		"punpcklbw %%mm0, %%mm0\n\t" /* mm0 = [v3 v3 v2 v2 v1 v1 v0 v0] */
-		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 v1 0 v1 0 v0 0 v0] */
-		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
-		"psllw $2, %%mm0\n\t" /* v << 2 */
-		"movq %%mm0, %%mm4\n\t" /* mm4 = [0 v1 0 v1 0 v0 0 v0] */
-		"pmulhw (yuv_factors), %%mm4\n\t" /* chroma_r*/
-		"movq %%mm4, %%mm5\n\t"
-		"paddw %%mm3, %%mm4\n\t" /* mm4 = [r03 | r02 | r01 | r00] */
-		"paddw %%mm2, %%mm5\n\t" /* mm5 = [r13 | r12 | r11 | r10] */
-		"packuswb %%mm5, %%mm4\n\t" /* mm4 = [r13 r12 r11 r10 r03 r02 r01 r00] */
-		"movq %%mm1, %%mm5\n\t" /* mm5 = [0 u1 0 u1 0 u0 0 u0] */
-		"pmulhw (yuv_factors + 24), %%mm5\n\t" /* chroma_b */
-		"movq %%mm5, %%mm6\n\t"
-		"paddw %%mm3, %%mm5\n\t" /* mm5 = [b03 | b02 | b01 | b00] */
-		"paddw %%mm2, %%mm6\n\t" /* mm6 = [b13 | b12 | b11 | b00] */
-		"packuswb %%mm6, %%mm5\n\t" /* mm5 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"pmulhw (yuv_factors + 8), %%mm0\n\t"
-		"pmulhw (yuv_factors + 16), %%mm1\n\t"
-		"paddw %%mm1, %%mm0\n\t" /* chorma_g */
-		"psubw %%mm0, %%mm3\n\t" /* mm3 = [g03 | g02 | g01 | g00] */
-		"psubw %%mm0, %%mm2\n\t" /* mm2 = [g13 | g12 | g11 | g10] */
-		"packuswb %%mm2, %%mm3\n\t" /* mm3 = [g13 g12 g11 g10 g03 g02 g01 g00] */
-		"movq %%mm4, %%mm0\n\t" /* mm0 = [r13 r12 r11 r10 r03 r02 r01 r00] */
-		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 r03 0 r02 0 r01 0 r00] */
-		"movq %%mm5, %%mm1\n\t" /* mm1 = [b13 b12 b11 b10 b03 b02 b01 b00] */
-		"punpcklbw %%mm3, %%mm1\n\t" /* mm1 = [g03 b03 g02 b02 g01 b01 g00 b00] */
-		"movq %%mm1, %%mm2\n\t" /* mm2 = [g03 b03 g02 b02 g01 b01 g00 b00] */
-		"punpcklwd %%mm0, %%mm2\n\t" /* mm2 = [0 r01 g01 b01 0 r00 g00 b00] */
-		"movq %%mm2, (%0)\n\t" /* out first 2 pixels (line 1) */
-		"punpckhwd %%mm0, %%mm1\n\t" /* mm1 = [0 r03 g03 b03 0 r02 g02 b02] */
-		"movq %%mm1, 8(%0)\n\t" /* out second 2 pixels (line 1) */
-		"punpckhbw %%mm7, %%mm4\n\t" /* mm4 = [0 r13 0 r12 0 r11 0 r10] */
-		"punpckhbw %%mm3, %%mm5\n\t" /* mm5 = [g13 b13 g12 b12 g11 b11 g10 b10] */
-		"movq %%mm5, %%mm0\n\t" /* mm0 = [g13 b13 g12 b12 g11 b11 g10 b10] */
-		"punpcklwd %%mm4, %%mm0\n\t" /* mm0 = [0 r11 g11 b11 0 r10 g10 b10] */
-		"movq %%mm0, (%0, %5)\n\t" /* out first 2 pixels (line 2) */
-		"punpckhwd %%mm4, %%mm5\n\t" /* mm5 = [0 r13 g13 b13 0 r12 g12 b12] */
-		"movq %%mm5, 8(%0, %5)\n\t" /* out second 2 pixels (line 2) */
-		"addl $16, %0\n\t"
-		"addl $4, %1\n\t"
-		"addl $2, %2\n\t"
-		"addl $2, %3\n\t"
-		"decl %6\n\t" /* --line */
-		"jnz 2f\n\t"
-		"movl %4, %6\n\t" /* if(!line) { */
-		"shrl $2, %6\n\t" /* line = frame->width / 4 */
-		"addl %5, %0\n\t" /* data += pitch */
-		"addl %4, %1\n\t" /* y_data += frame->width } */
-		".align 16\n"
-		"2:\tdecl %7\n\t"
-		"jnz 1b\n\t"
-		"emms\n\t"
-
-		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
-		   "q" (frame->width), "q" (pitch), "m" (line), "m" (n),
-		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-		: "memory");
-
-}
-#endif
-
-
 static void
 __dummy_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -2253,7 +1365,7 @@ __dummy_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 	uint32_t line  = frame->width >> 1;
 	uint32_t n     = (frame->width * frame->height) >> 2;
 	int32_t bright = this->brightness.l_val;
-	
+
 
 	do
 	{
@@ -2335,6 +1447,7 @@ static yuv_render_t yv12_cc =
 	yuy2:	__dummy_yv12_be_yuy2,
 	uyvy:	__dummy_yv12_be_uyvy,
 	yv12:	__dummy_yv12_be_yv12,
+	rgb8:   __dummy_yv12_be_rgb8,
 	rgb15:	__dummy_yv12_be_rgb15,
 	rgb16:	__dummy_yv12_be_rgb16,
 	rgb24:  __dummy_yv12_be_rgb24,
@@ -2559,6 +1672,10 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 		case DSPF_YV12:
 		case DSPF_I420:
 			frame->realize = yuv_cc->yv12;
+		break;
+
+		case DSPF_RGB332:
+			frame->realize = yuv_cc->rgb8;
 		break;
 
 		case DSPF_ARGB1555:
@@ -2882,6 +1999,7 @@ dfb_gui_data_exchange(vo_driver_t* vo_driver,
 				}
 				break;
 
+				case DSPF_RGB332:
 				case DSPF_ARGB1555:
 				case DSPF_RGB16:
 				case DSPF_RGB24:
@@ -3006,6 +2124,7 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 			yuy2_cc.yuy2  = __mmx_yuy2_be_yuy2;
 			yuy2_cc.uyvy  = __mmx_yuy2_be_uyvy;
 			yuy2_cc.yv12  = __mmx_yuy2_be_yv12;
+			yuy2_cc.rgb8  = __mmx_yuy2_be_rgb8;
 			yuy2_cc.rgb15 = __mmx_yuy2_be_rgb15;
 			yuy2_cc.rgb16 = __mmx_yuy2_be_rgb16;
 			yuy2_cc.rgb24 = __mmx_yuy2_be_rgb24;
@@ -3013,6 +2132,7 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 			yv12_cc.yuy2  = __mmx_yv12_be_yuy2;
 			yv12_cc.uyvy  = __mmx_yv12_be_uyvy;
 			yv12_cc.yv12  = __mmx_yv12_be_yv12;
+			yv12_cc.rgb8  = __mmx_yv12_be_rgb8;
 			yv12_cc.rgb15 = __mmx_yv12_be_rgb15;
 			yv12_cc.rgb16 = __mmx_yv12_be_rgb16;
 			yv12_cc.rgb24 = __mmx_yv12_be_rgb24;
@@ -3064,6 +2184,7 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 			}
 			break;
 
+			case DSPF_RGB332:
 			case DSPF_ARGB1555:
 			case DSPF_RGB16:
 			case DSPF_RGB24:
