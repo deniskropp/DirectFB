@@ -169,7 +169,8 @@ DFBResult layer_cursor_enable( DisplayLayer *layer, int enable )
                layer->windowstack->cursor = 1;
      }
      else {
-          ret = window_set_opacity( layer->windowstack->cursor_window, 0 );
+          if (layer->windowstack->cursor_window)
+               ret = window_set_opacity( layer->windowstack->cursor_window, 0 );
 
           if (ret == DFB_OK)
                layer->windowstack->cursor = 0;          
