@@ -914,7 +914,6 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                              CoreFont *font, CardState *state )
 {
      CoreGlyphData *data;
-     DFBRectangle   rect;
 
      unichar prev = 0;
      unichar current;
@@ -955,14 +954,11 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                     y += kern_y;
                }
 
-               rect.x = data->start;
-               rect.y = 0;
-               rect.w = data->width;
-               rect.h = data->height;
-
-               if (rect.w > 0) {
+               if (data->width) {
                     int xx = x + data->left;
                     int yy = y + data->top;
+                    DFBRectangle rect = { data->start, 0,
+                                          data->width, data->height };
 
                     if (font->state.source != data->surface || !blit) {
                          switch (blit) {
@@ -978,7 +974,7 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                          dfb_state_set_source( &font->state, data->surface );
 
                          if (dfb_gfxcard_state_check( &font->state, DFXL_BLIT ) &&
-                              dfb_gfxcard_state_acquire( &font->state, DFXL_BLIT ))
+                             dfb_gfxcard_state_acquire( &font->state, DFXL_BLIT ))
                               blit = 1;
                          else if (gAquire( &font->state, DFXL_BLIT ))
                               blit = 2;
@@ -1035,7 +1031,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      dfb_font_lock( font );
 
      if (dfb_font_get_glyph_data (font, index, &data) != DFB_OK ||
-         data->width <= 0 || data->height <= 0) {
+         !data->width) {
 
           dfb_font_unlock( font );
           return;

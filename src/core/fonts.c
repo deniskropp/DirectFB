@@ -112,7 +112,7 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
 
           if (font->GetGlyphInfo &&
               (* font->GetGlyphInfo) (font, glyph, data) == DFB_OK &&
-              data->width && data->height)
+              data->width > 0 && data->height > 0)
           {
 
                if (font->next_x + data->width > font->row_width) {
@@ -146,6 +146,9 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
                else {
                     data->start = data->width = data->height = 0;
                }
+          }
+          else {
+               data->start = data->width = data->height = 0;
           }
 
           dfb_tree_insert (font->glyph_infos, (void *) glyph, data);
