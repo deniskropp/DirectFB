@@ -82,20 +82,20 @@ int selfrunning = 0;
 
 /* the benchmarks */
 
-static int  draw_string          ( long t);
-static int  fill_rect            ( long t);
-static int  fill_rect_blend      ( long t);
-static int  fill_triangle        ( long t);
-static int  fill_triangle_blend  ( long t);
-static int  draw_rect            ( long t);
-static int  draw_rect_blend      ( long t);
-static int  draw_lines           ( long t);
-static int  draw_lines_blend     ( long t);
-static int  blit                 ( long t);
-static int  blit_colorkeyed      ( long t);
-static int  blit_convert         ( long t);
-static int  blit_blend           ( long t);
-static int  stretch_blit         ( long t);
+static unsigned long long  draw_string          ( long t );
+static unsigned long long  fill_rect            ( long t );
+static unsigned long long  fill_rect_blend      ( long t );
+static unsigned long long  fill_triangle        ( long t );
+static unsigned long long  fill_triangle_blend  ( long t );
+static unsigned long long  draw_rect            ( long t );
+static unsigned long long  draw_rect_blend      ( long t );
+static unsigned long long  draw_lines           ( long t );
+static unsigned long long  draw_lines_blend     ( long t );
+static unsigned long long  blit                 ( long t );
+static unsigned long long  blit_colorkeyed      ( long t );
+static unsigned long long  blit_convert         ( long t );
+static unsigned long long  blit_blend           ( long t );
+static unsigned long long  stretch_blit         ( long t );
 
 
 typedef struct {
@@ -106,7 +106,7 @@ typedef struct {
      int       requested;
      float     result;
      char    * unit;
-     int    (* func) ( long );  
+     unsigned long long (* func) ( long );  
 } Demo;
 
 static Demo demos[] = {
@@ -277,8 +277,10 @@ static void showResult()
 
           dest.w = (int)( demos[i].result * factor );
           primary->StretchBlit( primary, meter, NULL, &dest );
-          primary->DrawLine( primary, 
-                             40 + dest.w, dest.y + 18, SW-40, dest.y + 18 );
+          if (dest.w < SW-80)
+               primary->DrawLine( primary, 
+                                  40 + dest.w, dest.y + 18, 
+                                  SW-40, dest.y + 18 );
           dest.y += 38;
      }
 
@@ -316,9 +318,9 @@ static void showStatus( const char *msg )
      DFBCHECK(primary->DrawString( primary, msg, -1, SW-1, SH, DSTF_TOPRIGHT ));
 }
 
-static int draw_string( long t )
+static unsigned long long draw_string( long t )
 {
-     int i;
+     long i;
 
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
           primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
@@ -332,9 +334,9 @@ static int draw_string( long t )
      return 36*i*1000;
 }
 
-static int fill_rect( long t )
+static unsigned long long fill_rect( long t )
 {
-     int i;
+     long i;
 
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -346,9 +348,9 @@ static int fill_rect( long t )
      return SX*SY*i;
 }
 
-static int fill_rect_blend( long t )
+static unsigned long long fill_rect_blend( long t )
 {
-     int i;
+     long i;
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -361,9 +363,9 @@ static int fill_rect_blend( long t )
      return SX*SY*i;
 }
 
-static int fill_triangle( long t )          
+static unsigned long long fill_triangle( long t )          
 {
-     int i, x, y;
+     long i, x, y;
 
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -377,9 +379,9 @@ static int fill_triangle( long t )
      return SX*SY*i/2;
 }
 
-static int fill_triangle_blend( long t )
+static unsigned long long fill_triangle_blend( long t )
 {
-     int i, x, y;
+     long i, x, y;
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -394,9 +396,9 @@ static int fill_triangle_blend( long t )
      return SX*SY*i/2;
 }
 
-static int draw_rect( long t )
+static unsigned long long draw_rect( long t )
 {
-     int i;
+     long i;
      
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -408,9 +410,9 @@ static int draw_rect( long t )
      return (SX*2+SY*2-4)*i;
 }
 
-static int draw_rect_blend( long t )
+static unsigned long long draw_rect_blend( long t )
 {
-     int i;
+     long i;
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -423,10 +425,10 @@ static int draw_rect_blend( long t )
      return (SX*2+SY*2-4)*i;
 }
 
-static int draw_lines( long t )
+static unsigned long long draw_lines( long t )
 {
-     int i, x, y, dx, dy;
-     int pixels = 0;
+     long i, x, y, dx, dy;
+     unsigned long long pixels = 0;
 
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
      for (i=0; i<i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -443,10 +445,10 @@ static int draw_lines( long t )
      return pixels;
 }
 
-static int draw_lines_blend( long t )
+static unsigned long long draw_lines_blend( long t )
 {
-     int i, x, y, dx, dy;
-     int pixels = 0;
+     long i, x, y, dx, dy;
+     unsigned long long pixels = 0;
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -465,9 +467,9 @@ static int draw_lines_blend( long t )
      return pixels;
 }
 
-static int blit( long t )
+static unsigned long long blit( long t )
 {
-     int i;
+     long i;
 
      primary->SetBlittingFlags( primary, DSBLIT_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -478,9 +480,9 @@ static int blit( long t )
      return SX*SY*i;
 }
 
-static int blit_colorkeyed( long t )
+static unsigned long long blit_colorkeyed( long t )
 {
-     int i;
+     long i;
 
      primary->SetSrcColorKey( primary, 0);
      primary->SetBlittingFlags( primary, DSBLIT_SRC_COLORKEY );
@@ -492,9 +494,9 @@ static int blit_colorkeyed( long t )
      return SX*SY*i;
 }
 
-static int blit_convert( long t )
+static unsigned long long blit_convert( long t )
 {
-     int i;
+     long i;
 
      primary->SetBlittingFlags( primary, DSBLIT_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -505,9 +507,9 @@ static int blit_convert( long t )
      return SX*SY*i;
 }
 
-static int blit_blend( long t )
+static unsigned long long blit_blend( long t )
 {
-     int i;
+     long i;
 
      primary->SetBlittingFlags( primary, DSBLIT_BLEND_ALPHACHANNEL );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
@@ -518,10 +520,10 @@ static int blit_blend( long t )
      return SX*SY*i;
 }
 
-static int stretch_blit( long t )
+static unsigned long long stretch_blit( long t )
 {
-     int i, j;
-     int pixels = 0;
+     long i, j;
+     unsigned long long pixels = 0;
 
      primary->SetBlittingFlags( primary, DSBLIT_NOFX );
      for (j=1; myclock()<(t+DEMOTIME); j++) {
@@ -694,7 +696,7 @@ int main( int argc, char *argv[] )
      
      for (i = 0; i < num_demos; i++) {
            long t, dt;
-           int pixels;
+           long long pixels;
           
            if (!demos[i].requested)
                 continue;
@@ -707,7 +709,7 @@ int main( int argc, char *argv[] )
            t = myclock();
            pixels = (* demos[i].func)(t);
            dfb->WaitIdle( dfb );
-           dt = (myclock() - t);
+           dt = myclock() - t;
            demos[i].result = (float)pixels / (float)(dt * 1000);
            printf( "%-36s %6.2f secs (%8.2f %s)\n", 
                    demos[i].desc, 
