@@ -1,10 +1,12 @@
+- Modularized inputdrivers.
+- Even faster DrawString() software implementations.
 - New function Font->GetStringExtents.
 - Support for interlaced PNGs (thanks to Johannes Zellner).
 
 0.9.2
 ------
 
-- fix for loading jpegs unscaled into 24bpp surfaces
+- Fix for loading jpegs unscaled into 24bpp surfaces
 - 15bpp support for jpeg provider
 - v4l provider support for devfs (/dev/v4l/video*)
 - API change for DFBSurfaceDescription (pixelformat field instead of bpp
