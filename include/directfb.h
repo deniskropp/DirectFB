@@ -962,36 +962,42 @@ typedef enum {
      /*  8 bit alpha (1 byte, alpha 8@0), e.g. anti-aliased glyphs */
      DSPF_A8        = DFB_SURFACE_PIXELFORMAT(  5,  0, 8, 1, 0, 1, 0, 0, 0, 0, 0 ),
 
-     /* 16 bit   YUV (4 byte/ 2 pixel, macropixel contains YUYV <- MSB RIGHT) */
+     /* 16 bit   YUV (4 byte/ 2 pixel, macropixel contains CbYCrY [31:0]) */
      DSPF_YUY2      = DFB_SURFACE_PIXELFORMAT(  6, 16, 0, 0, 0, 2, 0, 0, 0, 0, 0 ),
 
-     /*  8 bit   RGB (1 byte, red 3@5, green 3@2, blue 2@0 */
+     /*  8 bit   RGB (1 byte, red 3@5, green 3@2, blue 2@0) */
      DSPF_RGB332    = DFB_SURFACE_PIXELFORMAT(  7,  8, 0, 0, 0, 1, 0, 0, 0, 0, 0 ),
 
-     /* 16 bit   YUV (4 byte/ 2 pixel, macropixel contains UYVY <- MSB RIGHT) */
+     /* 16 bit   YUV (4 byte/ 2 pixel, macropixel contains YCbYCr [31:0]) */
      DSPF_UYVY      = DFB_SURFACE_PIXELFORMAT(  8, 16, 0, 0, 0, 2, 0, 0, 0, 0, 0 ),
 
-     /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size U/V planes */
+     /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size U/V planes) */
      DSPF_I420      = DFB_SURFACE_PIXELFORMAT(  9, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
 
-     /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size V/U planes */
+     /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size V/U planes) */
      DSPF_YV12      = DFB_SURFACE_PIXELFORMAT( 10, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
 
      /*  8 bit   LUT (8 bit color and alpha lookup from palette) */
      DSPF_LUT8      = DFB_SURFACE_PIXELFORMAT( 11,  8, 0, 1, 0, 1, 0, 0, 0, 1, 0 ),
 
-     /*  8 bit  ALUT (1 byte, alpha 4@4, color lookup 4@0 */
+     /*  8 bit  ALUT (1 byte, alpha 4@4, color lookup 4@0) */
      DSPF_ALUT44    = DFB_SURFACE_PIXELFORMAT( 12,  4, 4, 1, 0, 1, 0, 0, 0, 1, 0 ),
 
      /* 32 bit  ARGB (4 byte, inv. alpha 8@24, red 8@16, green 8@8, blue 8@0) */
      DSPF_AiRGB     = DFB_SURFACE_PIXELFORMAT( 13, 24, 8, 1, 0, 4, 0, 0, 0, 0, 1 ),
 
      /*  1 bit alpha (1 byte/ 8 pixel, most significant bit used first) */
-     DSPF_A1        = DFB_SURFACE_PIXELFORMAT( 14,  0, 1, 1, 1, 0, 7, 0, 0, 0, 0 )
+     DSPF_A1        = DFB_SURFACE_PIXELFORMAT( 14,  0, 1, 1, 1, 0, 7, 0, 0, 0, 0 ),
+
+     /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size CbCr [15:0] plane) */
+     DSPF_YC420     = DFB_SURFACE_PIXELFORMAT( 15, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
+
+     /* 16 bit   YUV (8 bit Y plane followed by one 16 bit half width CbCr [15:0] plane) */
+     DSPF_YC422     = DFB_SURFACE_PIXELFORMAT( 16, 24, 0, 0, 0, 1, 0, 0, 2, 0, 0 )
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            15
+#define DFB_NUM_PIXELFORMATS            17
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )
