@@ -28,36 +28,39 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __TREE_H__
-#define __TREE_H__
+#ifndef __DIRECT__TREE_H__
+#define __DIRECT__TREE_H__
 
-#include <core/coretypes.h>
+#include <direct/types.h>
 
 
-typedef struct _Node Node;
+typedef struct __D_DirectNode DirectNode;
 
-struct _Tree
+struct __D_DirectTree
 {
-     Node  *root;
-     void  *fast_keys[96];
+     DirectNode *root;
+     void       *fast_keys[96];
 };
 
-struct _Node
+struct __D_DirectNode
 {
-     int    balance;
-     Node  *left;
-     Node  *right;
-     void  *key;
-     void  *value;
+     int         balance;
+     DirectNode *left;
+     DirectNode *right;
+     void       *key;
+     void       *value;
 };
 
 
-Tree * dfb_tree_new     (void);
-void   dfb_tree_destroy (Tree *tree);
-void   dfb_tree_insert  (Tree *tree,
-                         void *key,
-                         void *value);
-void * dfb_tree_lookup  (Tree *tree,
-                         void *key);
+DirectTree *direct_tree_new    ();
+
+void        direct_tree_destroy( DirectTree *tree );
+
+void        direct_tree_insert ( DirectTree *tree,
+                                 void       *key,
+                                 void       *value );
+
+void       *direct_tree_lookup ( DirectTree *tree,
+                                 void       *key );
 
 #endif

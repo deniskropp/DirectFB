@@ -45,7 +45,6 @@ typedef struct _SurfaceManager             SurfaceManager;
 
 typedef struct _CardState                  CardState;
 
-typedef struct _Tree                       Tree;
 typedef struct _Chunk                      Chunk;
 
 typedef struct _ModuleEntry                ModuleEntry;

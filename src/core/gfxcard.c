@@ -56,10 +56,10 @@
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/tree.h>
 #include <direct/utf8.h>
 
 #include <misc/conf.h>
-#include <misc/tree.h>
 #include <misc/util.h>
 
 DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers",
@@ -1200,7 +1200,7 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
           if (c >= 32 && c < 128)
                glyphs[offset] = font->glyph_infos->fast_keys[c-32];
           else
-               glyphs[offset] = dfb_tree_lookup( font->glyph_infos, (void *)chars[offset] );
+               glyphs[offset] = direct_tree_lookup( font->glyph_infos, (void *)chars[offset] );
 
           if (!glyphs[offset]) {
                if (dfb_font_get_glyph_data (font, chars[offset],

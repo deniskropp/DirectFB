@@ -44,9 +44,9 @@
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/tree.h>
 
 #include <misc/conf.h>
-#include <misc/tree.h>
 #include <misc/util.h>
 
 CoreFont *
@@ -69,7 +69,7 @@ dfb_font_create( CoreDFB *core )
      dfb_state_init( &font->state );
      font->state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
 
-     font->glyph_infos = dfb_tree_new ();
+     font->glyph_infos = direct_tree_new();
 
      D_MAGIC_SET( font, CoreFont );
 
@@ -92,7 +92,7 @@ dfb_font_destroy( CoreFont *font )
      dfb_state_set_source( &font->state, NULL );
      dfb_state_destroy( &font->state );
 
-     dfb_tree_destroy( font->glyph_infos );
+     direct_tree_destroy( font->glyph_infos );
 
      if (font->surfaces) {
           for (i = 0; i < font->rows; i++)
@@ -119,7 +119,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
 
      D_MAGIC_ASSERT( font, CoreFont );
 
-     if ((data = dfb_tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
+     if ((data = direct_tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
           *glyph_data = data;
           return DFB_OK;
      }
@@ -190,7 +190,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                data->start = data->width = data->height = 0;
           }
 
-          dfb_tree_insert (font->glyph_infos, (void *) glyph, data);
+          direct_tree_insert (font->glyph_infos, (void *) glyph, data);
      }
 
      *glyph_data = data;

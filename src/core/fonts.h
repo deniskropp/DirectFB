@@ -68,7 +68,7 @@ struct _CoreFont {
      int              row_width;
      int              next_x;
 
-     Tree            *glyph_infos;      /* infos about loaded glyphs        */
+     DirectTree      *glyph_infos;      /* infos about loaded glyphs        */
 
      int              height;           /* font height                      */
 

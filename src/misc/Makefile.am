@@ -14,7 +14,6 @@ internalincludedir = $(INTERNALINCLUDEDIR)/misc
 internalinclude_HEADERS = \
 	conf.h			\
 	gfx_util.h		\
-	tree.h			\
 	util.h
 
 
@@ -23,5 +22,4 @@ noinst_LTLIBRARIES = libdirectfb_misc.la
 libdirectfb_misc_la_SOURCES =	\
 	conf.c			\
 	gfx_util.c		\
-	tree.c			\
 	util.c

@@ -38,7 +38,7 @@
 
 #include <media/idirectfbfont.h>
 
-#include <misc/tree.h>
+#include <direct/tree.h>
 
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -154,7 +154,7 @@ Construct( IDirectFBFont      *thiz,
                     else
                          key = index;
 
-                    dfb_tree_insert (font->glyph_infos, (void*) key, data);
+                    direct_tree_insert (font->glyph_infos, (void*) key, data);
 
                     start = i + 1;
                     index++;
@@ -172,7 +172,7 @@ Construct( IDirectFBFont      *thiz,
           else
                key = index;
 
-          dfb_tree_insert (font->glyph_infos, (void*) key, data);
+          direct_tree_insert (font->glyph_infos, (void*) key, data);
      }
 
      dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );

@@ -31,50 +31,58 @@
 
 #include <stdlib.h>
 
-#include <core/coretypes.h>
-
 #include <direct/mem.h>
-
-#include <misc/tree.h>
-
-
-static Node * tree_node_new          (Tree  *tree,
-                                      void  *key,
-                                      void  *value);
-static void   tree_node_destroy      (Tree *tree,
-                                      Node *node);
-static Node * tree_node_insert       (Tree  *tree,
-                                      Node  *node,
-                                      void  *key,
-                                      void  *value,
-                                      int   *inserted);
-static Node * tree_node_lookup       (Node  *node,
-                                      void  *key);
-static Node * tree_node_balance      (Node  *node);
-static Node * tree_node_rotate_left  (Node  *node);
-static Node * tree_node_rotate_right (Node  *node);
+#include <direct/tree.h>
 
 
-Tree * dfb_tree_new (void)
+static DirectNode *tree_node_new         ( DirectTree *tree,
+                                           void       *key,
+                                           void       *value );
+
+static void        tree_node_destroy     ( DirectTree *tree,
+                                           DirectNode *node );
+
+static DirectNode *tree_node_insert      ( DirectTree *tree,
+                                           DirectNode *node,
+                                           void       *key,
+                                           void       *value,
+                                           int        *inserted );
+
+static DirectNode *tree_node_lookup      ( DirectNode *node,
+                                           void       *key );
+
+static DirectNode *tree_node_balance     ( DirectNode *node );
+
+static DirectNode *tree_node_rotate_left ( DirectNode *node );
+
+static DirectNode *tree_node_rotate_right( DirectNode *node );
+
+
+DirectTree *
+direct_tree_new()
 {
-     return (Tree *) D_CALLOC(1, sizeof (Tree));
+     return D_CALLOC( 1, sizeof (DirectTree) );
 }
 
-void dfb_tree_destroy (Tree *tree)
+void
+direct_tree_destroy( DirectTree *tree )
 {
      unsigned int i;
 
      for (i = 0; i < 96; i++) {
           if (tree->fast_keys[i])
-               D_FREE(tree->fast_keys[i]);
+               D_FREE( tree->fast_keys[i] );
      }
-     tree_node_destroy (tree, tree->root);
-     D_FREE(tree);
+
+     tree_node_destroy( tree, tree->root );
+
+     D_FREE( tree );
 }
 
-void dfb_tree_insert (Tree *tree,
-                      void *key,
-                      void *value)
+void
+direct_tree_insert( DirectTree *tree,
+                    void       *key,
+                    void       *value )
 {
      int inserted = 0;
      int fast_key = (unsigned int) key - 32;
@@ -82,33 +90,33 @@ void dfb_tree_insert (Tree *tree,
      if (fast_key >= 0 && fast_key < 96)
           tree->fast_keys[fast_key] = value;
      else
-          tree->root = tree_node_insert (tree,
-                                         tree->root,
-                                         key, value,
-                                         &inserted);
+          tree->root = tree_node_insert( tree, tree->root, key, value, &inserted );
 }
 
-void * dfb_tree_lookup (Tree *tree,
-                        void *key)
+void *
+direct_tree_lookup( DirectTree *tree,
+                    void       *key )
 {
-     Node *node;
+     DirectNode *node;
+
      int fast_key = (unsigned int) key - 32;
 
      if (fast_key >= 0 && fast_key < 96)
           return tree->fast_keys[fast_key];
 
-     node = tree_node_lookup (tree->root, key);
+     node = tree_node_lookup( tree->root, key );
 
-     return (node ? node->value : NULL);
+     return node ? node->value : NULL;
 }
 
-static Node * tree_node_new (Tree *tree,
-                             void *key,
-                             void *value)
+static DirectNode *
+tree_node_new( DirectTree *tree,
+               void       *key,
+               void       *value )
 {
-     Node *node;
+     DirectNode *node;
 
-     node = D_MALLOC(sizeof (Node));
+     node = D_MALLOC(sizeof (DirectNode));
 
      node->balance = 0;
      node->left    = NULL;
@@ -119,8 +127,9 @@ static Node * tree_node_new (Tree *tree,
      return node;
 }
 
-static void tree_node_destroy (Tree *tree,
-                               Node *node)
+static void
+tree_node_destroy (DirectTree *tree,
+                   DirectNode *node)
 {
      if (node) {
           tree_node_destroy (tree, node->left);
@@ -128,15 +137,17 @@ static void tree_node_destroy (Tree *tree,
 
           if (node->value)
                D_FREE(node->value);
+
           D_FREE(node);
      }
 }
 
-static Node * tree_node_insert (Tree *tree,
-                                Node *node,
-                                void *key,
-                                void *value,
-                                int  *inserted)
+static DirectNode *
+tree_node_insert (DirectTree *tree,
+                  DirectNode *node,
+                  void       *key,
+                  void       *value,
+                  int        *inserted)
 {
      int cmp;
      int old_balance;
@@ -189,8 +200,9 @@ static Node * tree_node_insert (Tree *tree,
      return node;
 }
 
-static Node * tree_node_lookup (Node *node,
-                                void *key)
+static DirectNode *
+tree_node_lookup (DirectNode *node,
+                  void       *key)
 {
      int cmp;
 
@@ -211,7 +223,8 @@ static Node * tree_node_lookup (Node *node,
      return NULL;
 }
 
-static Node * tree_node_balance (Node *node)
+static DirectNode *
+tree_node_balance (DirectNode *node)
 {
      if (node->balance < -1) {
           if (node->left->balance > 0)
@@ -227,11 +240,12 @@ static Node * tree_node_balance (Node *node)
      return node;
 }
 
-static Node * tree_node_rotate_left (Node *node)
+static DirectNode *
+tree_node_rotate_left (DirectNode *node)
 {
-     Node *right;
-     int   a_bal;
-     int   b_bal;
+     DirectNode *right;
+     int         a_bal;
+     int         b_bal;
 
      right = node->right;
 
@@ -259,11 +273,12 @@ static Node * tree_node_rotate_left (Node *node)
      return right;
 }
 
-static Node * tree_node_rotate_right (Node *node)
+static DirectNode *
+tree_node_rotate_right (DirectNode *node)
 {
-     Node *left;
-     int   a_bal;
-     int   b_bal;
+     DirectNode *left;
+     int         a_bal;
+     int         b_bal;
 
      left = node->left;
 

@@ -50,6 +50,7 @@ internalinclude_HEADERS = \
 	system.h		\
 	thread.h		\
 	trace.h			\
+	tree.h			\
 	types.h			\
 	utf8.h
 
@@ -69,6 +70,7 @@ libdirect_la_SOURCES = \
 	signals.c		\
 	system.c		\
 	trace.c			\
+	tree.c			\
 	thread.c		\
 	utf8.c
 
