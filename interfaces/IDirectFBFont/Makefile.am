@@ -2,6 +2,12 @@
 
 idirectfbfontdir = $(LIBDIR)/interfaces/IDirectFBFont
 
+if FREETYPE_PROVIDER
+FREETYPE_PROVIDER_LTLIB = libidirectfbfont_ft2.la
+else
+FREETYPE_PROVIDER_LTLIB =
+endif
+
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src 	\
@@ -11,7 +17,7 @@ CFLAGS = $(DFB_CFLAGS) $(FREETYPE_CFLAGS)
 
 idirectfbfont_LTLIBRARIES = \
 	libidirectfbfont_default.la	\
-	libidirectfbfont_ft2.la
+	$(FREETYPE_PROVIDER_LTLIB)
 
 
 libidirectfbfont_default_la_SOURCES = idirectfbfont_default.c

@@ -2,6 +2,24 @@
 
 idirectfbimageproviderdir = $(LIBDIR)/interfaces/IDirectFBImageProvider
 
+if GIF_PROVIDER
+GIF_PROVIDER_LTLIB = libidirectfbimageprovider_gif.la
+else
+GIF_PROVIDER_LTLIB = 
+endif
+
+if JPEG_PROVIDER
+JPEG_PROVIDER_LTLIB = libidirectfbimageprovider_jpeg.la
+else
+JPEG_PROVIDER_LTLIB = 
+endif
+
+if PNG_PROVIDER
+PNG_PROVIDER_LTLIB = libidirectfbimageprovider_png.la
+else
+PNG_PROVIDER_LTLIB = 
+endif
+
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src 	\
@@ -10,10 +28,9 @@ INCLUDES = \
 CFLAGS = $(DFB_CFLAGS)
 
 idirectfbimageprovider_LTLIBRARIES = \
-	libidirectfbimageprovider_png.la	\
-	libidirectfbimageprovider_gif.la	\
-	libidirectfbimageprovider_jpeg.la
-
+	$(GIF_PROVIDER_LTLIB)	\
+	$(JPEG_PROVIDER_LTLIB)	\
+	$(PNG_PROVIDER_LTLIB)
 
 libidirectfbimageprovider_png_la_SOURCES = idirectfbimageprovider_png.c
 

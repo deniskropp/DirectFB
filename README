@@ -13,21 +13,27 @@ DirectFB README
 Requirements
 ------------
 
-   - Linux kernel 2.4.x with framebuffer device support compiled in(*)
+   - Linux kernel 2.4.x with framebuffer device support compiled in.
+
    - freetype 2.0.1
    - libpng2
    - libjpeg62
    - zlib
 
-   - The video providers require some libraries that are not commonly
-     installed. We have provided packages on our web-site at
-     http://www.directfb.org/download/contrib/.
-     - If you have avifile, but not the correct version, you can explicitely 
-       disable building it by passing --disable-avifile to configure.
-     - To build the SWF video provider, you need libflash.
-     - To build the MPEG video provider, download and compile libmpeg3 and 
-       specify the path to the source when configuring DirectFB:
-       ./configure --with-libmpeg3=<path_to_libmpeg3_source>. 
+   The build of the image and font providers can be disabled but we strongly
+   suggest that you don't do this since the code examples depend on the
+   functionality provided by them.
+
+   The video providers require some libraries that are not commonly
+   installed. We have provided packages on our web-site at
+   http://www.directfb.org/download/contrib/.
+
+   - If you have avifile, but not the correct version, you can explicitely 
+     disable building it by passing --disable-avifile to configure.
+   - To build the SWF video provider, you need libflash.
+   - To build the MPEG video provider, download and compile libmpeg3 and 
+     specify the path to the source when configuring DirectFB:
+     ./configure --with-libmpeg3=<path_to_libmpeg3_source>. 
 
 
 Additional Requirements for some Demos
@@ -58,6 +64,8 @@ Installation
 	./configure
 	make
 	make install (as superuser)
+
+      Use 'configure --help' to get a list of possible configure options. 
 
    2) Make sure that /usr/local/lib is listed in your /etc/ld.so.conf.
       If you added it you have to run 'ldconfig' as superuser.

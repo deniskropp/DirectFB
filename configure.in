@@ -143,80 +143,113 @@ ac_ext="$save_ac_ext"
 
 
 dnl Test for libjpeg
-  if test -z "$LIBJPEG"; then
-    AC_CHECK_LIB(jpeg, jpeg_destroy_decompress,
-      jpeg_ok=yes,
-      jpeg_ok=no)
-    if test "$jpeg_ok" = yes; then
-      AC_CHECK_HEADER(jpeglib.h,
-	jpeg_ok=yes,
+  AC_ARG_ENABLE(jpeg, [  --enable-jpeg           build JPEG image provider [default=yes]], enable_jpeg="$enableval", enable_jpeg=yes)
+
+  if test x$enable_jpeg = xyes; then
+    if test -z "$LIBJPEG"; then
+      AC_CHECK_LIB(jpeg, jpeg_destroy_decompress,
+        jpeg_ok=yes,
         jpeg_ok=no)
       if test "$jpeg_ok" = yes; then
-	LIBJPEG='-ljpeg'
+        AC_CHECK_HEADER(jpeglib.h,
+	  jpeg_ok=yes,
+          jpeg_ok=no)
+        if test "$jpeg_ok" = yes; then
+	  JPEG=yes
+	  LIBJPEG='-ljpeg'
+        else
+	  JPEG=no
+	  AC_MSG_WARN([*** JPEG header files not found. JPEG image provider will not be built.])
+        fi
       else
-	AC_MSG_ERROR([*** JPEG header files not found.])
+	JPEG=no
+        AC_MSG_WARN([*** JPEG library not found. JPEG image provider will not be built.])
       fi
-    else
-      AC_MSG_ERROR([*** DirectFB requires libjpeg.])
     fi
   fi
 
-
-dnl Test for libz
-  if test -z "$LIBZ"; then
-    AC_CHECK_LIB(z, gzsetparams,
-      AC_CHECK_HEADER(zlib.h,
-	LIBZ='-lz',
-	AC_MSG_ERROR([*** LIBZ header files not found.])),
-      AC_MSG_ERROR([*** DirectFB requires libz.]))
-  fi
+  AM_CONDITIONAL(JPEG_PROVIDER, test x$JPEG = xyes)
 
 
-dnl Test for libpng
-  if test -z "$LIBPNG" && test -n "$LIBZ"; then
-    AC_CHECK_LIB(png, png_read_info,
-      AC_CHECK_HEADER(png.h,
-	png_ok=yes,
-	AC_MSG_ERROR([*** PNG head files not found.])),
-      AC_MSG_ERROR([*** DirectFB requires libpng.]))
-    if test "$png_ok" = yes; then
-      AC_MSG_CHECKING([for png_structp in png.h])
-      AC_TRY_COMPILE([#include <png.h>],
-        [png_structp pp;
-	 png_infop info;
-	 png_colorp cmap;
-	 png_create_read_struct;],
-        png_ok=yes,
-        png_ok=no)
-      AC_MSG_RESULT($png_ok)
+dnl Test for libpng and libz
+  AC_ARG_ENABLE(png, [  --enable-png            build PNG image provider [default=yes]], enable_png="$enableval", enable_png=yes)
+
+  if test x$enable_png = xyes; then
+
+  dnl Test for libz
+    if test -z "$LIBZ"; then
+      AC_CHECK_LIB(z, gzsetparams,
+        AC_CHECK_HEADER(zlib.h,
+	  LIBZ='-lz',
+	  AC_MSG_WARN([*** libz header files not found. PNG image provider will not be built.])),
+        AC_MSG_WARN([*** libz not found. PNG image provider will not be built.]))
+    fi
+
+  dnl Test for libpng
+    if test -z "$LIBPNG" && test -n "$LIBZ"; then
+      AC_CHECK_LIB(png, png_read_info,
+        AC_CHECK_HEADER(png.h,
+	  png_ok=yes,
+	  AC_MSG_WARN([*** PNG header files not found. PNG image provider will not be built.])),
+        AC_MSG_WARN([*** PNG library not found. PNG image provider will not be built.]))
       if test "$png_ok" = yes; then
-        LIBPNG="-lpng $LIBZ"
+        AC_MSG_CHECKING([for png_structp in png.h])
+        AC_TRY_COMPILE([#include <png.h>],
+          [png_structp pp;
+	   png_infop info;
+	   png_colorp cmap;
+	   png_create_read_struct;],
+          png_ok=yes, png_ok=no)
+        AC_MSG_RESULT($png_ok)
+        if test "$png_ok" = yes; then
+	  PNG=yes
+          LIBPNG="-lpng $LIBZ"
+        else
+	  PNG=NO
+          AC_MSG_WARN([*** PNG library is too old. PNG image provider will not be built.])
+        fi
       else
-        AC_MSG_ERROR([*** PNG library is too old.])
+	PNG=NO
       fi
-    else
-      AC_MSG_ERROR([*** PNG header files not found.])
     fi
+
   fi
+
+  AM_CONDITIONAL(PNG_PROVIDER, test x$PNG = xyes)
+
+
+dnl Allow to disable GIF support
+  AC_ARG_ENABLE(gif, [  --enable-gif            build GIF image provider [default=yes]], enable_gif="$enableval", enable_gif=yes)
+ 
+  AM_CONDITIONAL(GIF_PROVIDER, test x$enable_gif = xyes)
 
 
 dnl Test for freetype
-  AC_PATH_PROG(FREETYPE, freetype-config, no)
-  if test "$FREETYPE" = no; then
-    AC_MSG_ERROR(["Could not find freetype-config."])
-  else
-    FREETYPE_CFLAGS=`freetype-config --cflags`
-    FREETYPE_LIBS=`freetype-config --libs`
+  AC_ARG_ENABLE(freetype, [  --enable-freetype       build FreeType2 font provider [default=yes]], enable_freetype="$enableval", enable_freetype=yes)
+
+  if test x$enable_freetype = xyes; then
+    AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
+    if test "$FREETYPE_CONFIG" = no; then
+      FREETYPE=no
+      AC_MSG_WARN(["*** freetype-config not found -- FreeType font provider will not be built."])
+    else
+      FREETYPE=yes
+      FREETYPE_CFLAGS=`freetype-config --cflags`
+      FREETYPE_LIBS=`freetype-config --libs`
+    fi
   fi
+
+  AM_CONDITIONAL(FREETYPE_PROVIDER, test x$FREETYPE = xyes)
 
 
 dnl Test for avifile
-  AC_ARG_ENABLE(avifile, [  --enable-avifile        compile avifile video provider [default=auto]], enable_avifile="$enableval", enable_avifile=yes)
+  AC_ARG_ENABLE(avifile, [  --enable-avifile        build AviFile video provider [default=auto]], enable_avifile="$enableval", enable_avifile=yes)
 
   if test x$enable_avifile = xyes; then
     AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
     if test x$AVIFILE_CONFIG = xno; then
-      AC_MSG_WARN(["*** avifile-config not found -- AVI media provider will not be built"])
+      AVIFILE=no
+      AC_MSG_WARN(["*** avifile-config not found -- AVI media provider will not be built."])
     else
       AC_PROG_CXX
       AVIFILE=yes
@@ -225,7 +258,7 @@ dnl Test for avifile
     fi
   fi
 
-AM_CONDITIONAL(AVIFILE_PROVIDER, test x$AVIFILE = xyes)
+  AM_CONDITIONAL(AVIFILE_PROVIDER, test x$AVIFILE = xyes)
 
 
 
@@ -242,7 +275,7 @@ dnl Test for libflash
 AM_CONDITIONAL(FLASH_PROVIDER, test x$FLASH = xyes)
 
 
-AC_ARG_WITH(libmpeg3, [  --with-libmpeg3=path    Path to libmpeg3 build])
+AC_ARG_WITH(libmpeg3, [  --with-libmpeg3=path    path to libmpeg3 build])
 case "x$with_libmpeg3" in
   x)
     LIBMPEG3_DIR=
@@ -282,9 +315,13 @@ AC_SUBST(DFB_LDFLAGS)
 AC_SUBST(DFB_CXXFLAGS)
 AC_SUBST(THREAD_CFLAGS)
 AC_SUBST(THREAD_LIBS)
+AC_SUBST(GIF_PROVIDER)
+AC_SUBST(JPEG_PROVIDER)
+AC_SUBST(PNG_PROVIDER)
 AC_SUBST(LIBJPEG)
 AC_SUBST(LIBZ)
 AC_SUBST(LIBPNG)
+AC_SUBST(FREETYPE_PROVIDER)
 AC_SUBST(FREETYPE_CFLAGS)
 AC_SUBST(FREETYPE_LIBS)
 AC_SUBST(AVIFILE_PROVIDER)
