@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.10 $
+ * $Revision: 1.11 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -470,7 +470,7 @@ nscBlitGu1(void *drv, void *dev, DFBRectangle * rect, int dx, int dy)
 
    Gal_set_solid_pattern(nscdev->Color);
    if (nscdev->v_srcColorkey) {
-      Gal_set_source_transparency(nscdev->src_colorkey, 0xFFFF);
+//FIXME     Gal_set_source_transparency(nscdev->src_colorkey, 0xFFFF);
    }
 #if 0
    printf("rect x %d y %d w %d h %d dx %d dy %d src_off %x dst_off %x src pitch %x dst pitch %x\n",
