@@ -418,6 +418,9 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
 {
      CoreSurface *surface = buffer->surface;
 
+     if (manager->suspended)
+          return DFB_NOVIDEOMEMORY;
+
      switch (buffer->video.health) {
           case CSH_STORED:
                if (buffer->video.chunk &&
