@@ -28,8 +28,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <malloc.h>
-
 #include <fusionsound.h>
 #include <directfb_internals.h>
 

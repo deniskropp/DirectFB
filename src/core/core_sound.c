@@ -34,7 +34,7 @@
 
 #include <pthread.h>
 
-#include <linux/soundcard.h>
+#include <sys/soundcard.h>
 
 #include <core/coredefs.h>
 #include <core/core.h>
@@ -370,7 +370,9 @@ static DFBResult
 fs_core_initialize( CoreSound *core )
 {
      int              fd;
+#ifdef APF_NORMAL
      int              prof   = APF_NORMAL;
+#endif
      CoreSoundShared *shared = core->shared;
      int              fmt    = shared->config.fmt;
      int              bits   = shared->config.bits;
@@ -384,8 +386,9 @@ fs_core_initialize( CoreSound *core )
           return DFB_INIT;
 
      /* set application profile */
+#ifdef SNDCTL_DSP_PROFILE
      ioctl( fd, SNDCTL_DSP_PROFILE, &prof );
-
+#endif
      /* set bits per sample */
      ioctl( fd, SNDCTL_DSP_SETFMT, &fmt );
      if (fmt != shared->config.fmt) {
