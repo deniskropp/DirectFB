@@ -763,6 +763,8 @@ resize_window( UniqueWindow *window,
      int             ow;
      int             oh;
      UniqueContext  *context;
+     WMShared       *shared;
+     DFBRectangle   *sizes;
 
      D_MAGIC_ASSERT( window, UniqueWindow );
 
@@ -772,6 +774,12 @@ resize_window( UniqueWindow *window,
      context = window->context;
 
      D_MAGIC_ASSERT( context, UniqueContext );
+
+     shared = context->shared;
+
+     D_ASSERT( shared != NULL );
+
+     sizes = shared->foo_rects;
 
      if (width > 4096 || height > 4096)
           return DFB_LIMITEXCEEDED;
@@ -802,23 +810,27 @@ resize_window( UniqueWindow *window,
           int dh = oh - height;
 
           if (D_FLAGS_IS_SET( window->flags, UWF_DECORATED )) {
+               int        bw = dw - sizes[UFI_NE].w + sizes[UFI_E].w;
+               int        bh = dh - sizes[UFI_SW].h + sizes[UFI_S].h;
                DFBInsets *in = &window->insets;
 
-               if (dw < 0) {
-                    DFBRegion region = { in->l + width + dw, 0, in->l + width - 1, in->t - 1 };
+               if (bw < 0) {
+                    DFBRegion region = { in->l + width + bw, 0, in->l + width - 1, in->t - 1 };
 
                     update_frame( window, &region, 0, false );
+               }
 
+               if (bh < 0) {
+                    DFBRegion region = { 0, in->t + height + bh, in->l - 1, in->t + height - 1 };
+
+                    update_frame( window, &region, 0, false );
+               }
+
+               if (dw < 0)
                     dw = 0;
-               }
 
-               if (dh < 0) {
-                    DFBRegion region = { 0, in->t + height + dh, in->l - 1, in->t + height - 1 };
-
-                    update_frame( window, &region, 0, false );
-
+               if (dh < 0)
                     dh = 0;
-               }
 
                dw += in->r;
                dh += in->b;

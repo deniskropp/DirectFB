@@ -164,7 +164,7 @@ unique_context_create( CoreWindowStack    *stack,
      context->stack    = stack;
      context->shared   = shared;
      context->layer_id = layer_id;
-     context->color    = (DFBColor) { 0xc0, 0x30, 0x50, 0x80 };
+     context->color    = (DFBColor) { 0xff, 0xa0, 0xd0, 0xf0 };
 
      fusion_vector_init( &context->windows, 16 );
 

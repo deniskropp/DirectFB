@@ -57,13 +57,15 @@ foo_update( StretRegion     *region,
             const DFBRegion *updates,
             int              num )
 {
-     int           i;
-     DFBRegion     clip;
-     DFBDimension  size;
-     bool          visible;
-     WMShared     *shared;
-     UniqueWindow *window = region_data;
-     CardState    *state  = update_data;
+     int                      i;
+     DFBRegion                clip;
+     DFBDimension             size;
+     bool                     visible;
+     WMShared                *shared;
+     UniqueContext           *context;
+     UniqueWindow            *window = region_data;
+     CardState               *state  = update_data;
+     DFBSurfaceBlittingFlags  flags  = DSBLIT_NOFX;
 
      D_ASSERT( region != NULL );
      D_ASSERT( region_data != NULL );
@@ -77,6 +79,10 @@ foo_update( StretRegion     *region,
 
      D_ASSERT( shared != NULL );
      D_ASSERT( shared->foo_surface != NULL );
+
+     context = window->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      visible = D_FLAGS_IS_SET( window->flags, UWF_VISIBLE );
 
@@ -94,8 +100,33 @@ foo_update( StretRegion     *region,
 
      stret_region_get_size( region, &size );
 
+     /* Use per pixel alpha blending. */
+     flags |= DSBLIT_BLEND_ALPHACHANNEL;
+
+     /* Use global alpha blending. */
+     if (window->opacity != 0xFF) {
+          flags |= DSBLIT_BLEND_COLORALPHA;
+
+          /* Set opacity as blending factor. */
+          if (state->color.a != window->opacity) {
+               state->color.a   = window->opacity;
+               state->modified |= SMF_COLOR;
+          }
+     }
+
+     /* Use colorizing if the color is not white. */
+     if (context->color.r != 0xff || context->color.g != 0xff || context->color.b != 0xff) {
+          flags |= DSBLIT_COLORIZE;
+
+          state->color.r = context->color.r;
+          state->color.g = context->color.g;
+          state->color.b = context->color.b;
+
+          state->modified |= SMF_COLOR;
+     }
+
      /* Set blitting flags. */
-     dfb_state_set_blitting_flags( state, DSBLIT_BLEND_ALPHACHANNEL );
+     dfb_state_set_blitting_flags( state, flags );
 
      /* Set blitting source. */
      state->source    = shared->foo_surface;

@@ -339,6 +339,12 @@ wm_close_stack( CoreWindowStack *stack,
      D_ASSERT( stack_data != NULL );
 
      D_MAGIC_ASSERT( data, StackData );
+
+     D_ASSUME( data->context == NULL );
+
+     if (data->context)
+          unique_context_detach_global( data->context, &data->context_reaction );
+
      D_MAGIC_CLEAR( data );
 
      return DFB_OK;
@@ -609,6 +615,12 @@ wm_remove_window( CoreWindowStack *stack,
      D_ASSERT( window_data != NULL );
 
      D_MAGIC_ASSERT( data, WindowData );
+
+     D_ASSUME( data->window == NULL );
+
+     if (data->window)
+          unique_window_detach_global( data->window, &data->window_reaction );
+
      D_MAGIC_CLEAR( data );
 
      return DFB_OK;
