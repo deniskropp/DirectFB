@@ -471,24 +471,29 @@ rel_event( struct input_event *levt,
      switch (levt->code) {
           case REL_X:
                devt->axis = DIAI_X;
+               devt->axisrel = levt->value;
                break;
 
           case REL_Y:
                devt->axis = DIAI_Y;
+               devt->axisrel = levt->value;
                break;
 
           case REL_Z:
           case REL_WHEEL:
                devt->axis = DIAI_Z;
+               devt->axisrel = -levt->value;
                break;
 
           default:
-               return 0;
+               if (levt->code > REL_MAX || levt->code > DIAI_LAST)
+                    return 0;
+               devt->axis = levt->code;
+               devt->axisrel = levt->value;
      }
 
      devt->type    = DIET_AXISMOTION;
      devt->flags  |= DIEF_AXISREL;
-     devt->axisrel = levt->value;
 
      return 1;
 }
@@ -515,7 +520,9 @@ abs_event( struct input_event *levt,
                break;
 
           default:
-               return 0;
+               if (levt->code > ABS_MAX || levt->code > DIAI_LAST)
+                    return 0;
+               devt->axis = levt->code;
      }
 
      devt->type    = DIET_AXISMOTION;
