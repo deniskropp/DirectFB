@@ -1479,20 +1479,12 @@ update_region( CoreWindowStack *stack,
      if (i >= 0) {
           CoreWindow *window = stack->windows[i];
 
-          if ((window->opacity < 0xff) ||
-              (window->options & DWOP_COLORKEYING) ||
-              (window->options &
-               (DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION)) == DWOP_ALPHACHANNEL)
+          if ((window->options & DWOP_ALPHACHANNEL) &&
+              (window->options & DWOP_OPAQUE_REGION))
           {
-               update_region( stack, state, i-1, x1, y1, x2, y2 );
-
-               draw_window( window, state, &region, true );
-          }
-          else {
                DFBRegion opaque = region;
 
-               if ((window->options & DWOP_ALPHACHANNEL) &&
-                   !dfb_region_intersect( &opaque,
+               if (!dfb_region_intersect( &opaque,
                                           window->x + window->opaque.x1,
                                           window->y + window->opaque.y1,
                                           window->x + window->opaque.x2,
@@ -1503,55 +1495,88 @@ update_region( CoreWindowStack *stack,
                     draw_window( window, state, &region, true );
                }
                else {
-                    /* left */
-                    if (opaque.x1 != x1)
-                         update_region( stack, state, i-1, x1, opaque.y1, opaque.x1-1, opaque.y2 );
-
-                    /* upper */
-                    if (opaque.y1 != y1)
-                         update_region( stack, state, i-1, x1, y1, x2, opaque.y1-1 );
-
-                    /* right */
-                    if (opaque.x2 != x2)
-                         update_region( stack, state, i-1, opaque.x2+1, opaque.y1, x2, opaque.y2 );
-
-                    /* lower */
-                    if (opaque.y2 != y2)
-                         update_region( stack, state, i-1, x1, opaque.y2+1, x2, y2 );
-
-
-                    if (window->options & DWOP_ALPHACHANNEL) {
+                    if ((window->opacity < 0xff) ||
+                        (window->options & DWOP_COLORKEYING))
+                    {
+                         /* draw everything below */
+                         update_region( stack, state, i-1, x1, y1, x2, y2 );
+                    }
+                    else {
                          /* left */
-                         if (opaque.x1 != region.x1) {
-                              DFBRegion r = { region.x1, opaque.y1,
-                                              opaque.x1 - 1, opaque.y2 };
-                              draw_window( window, state, &r, true );
-                         }
-                         
+                         if (opaque.x1 != x1)
+                              update_region( stack, state, i-1, x1, opaque.y1, opaque.x1-1, opaque.y2 );
+
                          /* upper */
-                         if (opaque.y1 != region.y1) {
-                              DFBRegion r = { region.x1, region.y1,
-                                              region.x2, opaque.y1 - 1 };
-                              draw_window( window, state, &r, true );
-                         }
-                         
+                         if (opaque.y1 != y1)
+                              update_region( stack, state, i-1, x1, y1, x2, opaque.y1-1 );
+
                          /* right */
-                         if (opaque.x2 != region.x2) {
-                              DFBRegion r = { opaque.x2 + 1, opaque.y1,
-                                              region.x2, opaque.y2 };
-                              draw_window( window, state, &r, true );
-                         }
-                         
+                         if (opaque.x2 != x2)
+                              update_region( stack, state, i-1, opaque.x2+1, opaque.y1, x2, opaque.y2 );
+
                          /* lower */
-                         if (opaque.y2 != region.y2) {
-                              DFBRegion r = { region.x1, opaque.y2 + 1,
-                                              region.x2, region.y2 };
-                              draw_window( window, state, &r, true );
-                         }
+                         if (opaque.y2 != y2)
+                              update_region( stack, state, i-1, x1, opaque.y2+1, x2, y2 );
                     }
 
+                    /* left */
+                    if (opaque.x1 != region.x1) {
+                         DFBRegion r = { region.x1, opaque.y1,
+                                         opaque.x1 - 1, opaque.y2 };
+                         draw_window( window, state, &r, true );
+                    }
+                    
+                    /* upper */
+                    if (opaque.y1 != region.y1) {
+                         DFBRegion r = { region.x1, region.y1,
+                                         region.x2, opaque.y1 - 1 };
+                         draw_window( window, state, &r, true );
+                    }
+                    
+                    /* right */
+                    if (opaque.x2 != region.x2) {
+                         DFBRegion r = { opaque.x2 + 1, opaque.y1,
+                                         region.x2, opaque.y2 };
+                         draw_window( window, state, &r, true );
+                    }
+                    
+                    /* lower */
+                    if (opaque.y2 != region.y2) {
+                         DFBRegion r = { region.x1, opaque.y2 + 1,
+                                         region.x2, region.y2 };
+                         draw_window( window, state, &r, true );
+                    }
+
+                    /* inner */
                     draw_window( window, state, &opaque, false );
                }
+          }
+          else {
+               if ((window->opacity < 0xff) ||
+                   (window->options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL)))
+               {
+                    /* draw everything below */
+                    update_region( stack, state, i-1, x1, y1, x2, y2 );
+               }
+               else {
+                    /* left */
+                    if (region.x1 != x1)
+                         update_region( stack, state, i-1, x1, region.y1, region.x1-1, region.y2 );
+
+                    /* upper */
+                    if (region.y1 != y1)
+                         update_region( stack, state, i-1, x1, y1, x2, region.y1-1 );
+
+                    /* right */
+                    if (region.x2 != x2)
+                         update_region( stack, state, i-1, region.x2+1, region.y1, x2, region.y2 );
+
+                    /* lower */
+                    if (region.y2 != y2)
+                         update_region( stack, state, i-1, x1, region.y2+1, x2, y2 );
+               }
+               
+               draw_window( window, state, &region, true );
           }
      }
      else
