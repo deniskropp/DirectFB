@@ -1096,8 +1096,22 @@ input_filter( DFBEvent *evt,
 {
      IDirectFB_data *data = (IDirectFB_data*) ctx;
 
-     if (evt->clazz == DFEC_INPUT && !data->primary.focused)
-          return true;
+     if (evt->clazz == DFEC_INPUT) {
+          DFBInputEvent *event = &evt->input;
+
+          if (!data->primary.focused)
+               return true;
+
+          switch (event->type) {
+               case DIET_BUTTONPRESS:
+               case DIET_KEYPRESS:
+                    dfb_layer_cursor_enable( data->layer,
+                                             event->modifiers & DIMM_META );
+                    break;
+               default:
+                    break;
+          }
+     }
 
      return false;
 }
@@ -1113,5 +1127,7 @@ drop_window( IDirectFB_data *data )
 
      data->primary.window  = NULL;
      data->primary.focused = false;
+
+     dfb_layer_cursor_enable( data->layer, true );
 }
 
