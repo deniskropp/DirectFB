@@ -1549,7 +1549,7 @@ background_image_listener( const void *msg_data,
           return RS_REMOVE;
 
      if (notification->flags & CSNF_DESTROY) {
-          DEBUGMSG("DirectFB/core/layers: Surface for background vanished.\n");
+          ERRORMSG("DirectFB/core/layers: Surface for background vanished.\n");
 
           stack->bg.mode  = DLBM_COLOR;
           stack->bg.image = NULL;
