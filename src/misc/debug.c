@@ -29,10 +29,17 @@
 #include <config.h>
 
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <string.h>
 
 #include <core/coredefs.h>
+
+#include <misc/util.h>
 
 #include "debug.h"
 
@@ -44,11 +51,133 @@
 #endif
 
 #define MAX_LEVEL 100
+#define MAX_NAME  92
 
 static struct {
      int level;
      void *trace[MAX_LEVEL];
 } threads[65536];
+
+
+
+#ifdef DFB_DYNAMIC_LINKING
+
+typedef struct {
+     long offset;
+     char name[MAX_NAME];
+} Symbol;
+
+static Symbol *symbols     = NULL;
+static int     num_symbols = 0;
+
+__attribute__((constructor)) void _directfb_load_symbols();
+
+void
+_directfb_load_symbols()
+{
+     int          i, j;
+     int          num = 0;
+     int          fd;
+     struct stat  stat;
+     char        *map;
+
+     if (symbols) {
+          free( symbols );
+          symbols = NULL;
+     }
+
+     fd = open( MODULEDIR"/symbols.dynamic", O_RDONLY );
+     if (fd < 0) {
+          perror( "open "MODULEDIR"/symbols.dynamic" );
+          return;
+     }
+
+     if (fstat( fd, &stat )) {
+          perror( "stat "MODULEDIR"/symbols.dynamic" );
+          close( fd );
+          return;
+     }
+
+     map = mmap( NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0 );
+     if (map == MAP_FAILED) {
+          perror( "mmap "MODULEDIR"/symbols.dynamic" );
+          close( fd );
+          return;
+     }
+
+     for (i=0; i<stat.st_size; i++) {
+          if (map[i] == '\n')
+               num++;
+     }
+
+     symbols = malloc( num * sizeof(Symbol) );
+     if (!symbols) {
+          fprintf( stderr, "%s: Out of system memory!\n", __FUNCTION__ );
+          close( fd );
+          return;
+     }
+
+     for (i=0,j=0; i<num && j<stat.st_size-11; i++) {
+          int  n;
+          long offset = 0;
+
+          for (n=0; n<8; n++) {
+               char c = map[j++];
+
+               offset <<= 4;
+
+               if (c >= '0' && c <= '9')
+                    offset |= c - '0';
+               else
+                    offset |= c - 'a' + 10;
+          }
+
+          symbols[i].offset = offset;
+
+          j += 3;
+
+          for (n=0; map[j] != '\n'; n++, j++) {
+               if (n < MAX_NAME - 1) {
+                    symbols[i].name[n] = map[j];
+               }
+          }
+
+          symbols[i].name[MIN(n, MAX_NAME - 1)] = 0;
+
+          j++;
+     }
+
+     num_symbols = num;
+
+     munmap( map, stat.st_size );
+     close( fd );
+}
+
+static int
+compare_symbols(const void *x, const void *y)
+{
+     return  *((long*) x)  -  *((long*) y);
+}
+
+static bool
+lookup_symbol( long offset )
+{
+     Symbol *symbol;
+
+     if (!symbols)
+          return false;
+
+     symbol = bsearch( &offset, symbols, num_symbols,
+                       sizeof(Symbol), compare_symbols );
+     if (!symbol)
+          return false;
+
+     fprintf( stderr, "%s()\n", symbol->name );
+
+     return true;
+}
+
+#endif
 
 
 __attribute__((no_instrument_function))
@@ -87,9 +216,15 @@ dfb_trace_print_stack( int pid )
           if (dladdr( fn, &info )) {
                if (info.dli_sname)
                     fprintf( stderr, "%s()\n", info.dli_sname );
-               else if (info.dli_fname)
-                    fprintf( stderr, "%p (%x) from %s (%p)\n", fn, fn -
-                             info.dli_fbase, info.dli_fname, info.dli_fbase );
+               else if (info.dli_fname) {
+                    if (!strstr(SOPATH, info.dli_fname) ||
+                        !lookup_symbol((long)(fn - info.dli_fbase)))
+                    {
+                         fprintf( stderr, "%p (%x) from %s (%p)\n",
+                                  fn, fn - info.dli_fbase, info.dli_fname,
+                                  info.dli_fbase );
+                    }
+               }
                else
                     fprintf( stderr, "%p\n", fn );
           }

@@ -4,6 +4,10 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
+AM_CPPFLAGS = \
+	-DMODULEDIR=\"@MODULEDIR@\"	\
+	-DSOPATH=\"@SOPATH@\"
+
 EXTRA_DIST = \
 	ppcasm_memcpy.S			\
 	ppcasm_memcpy_cachable.S	\
