@@ -111,6 +111,18 @@ static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
                return;
      }
 
+     if (accel & 0xFFFF0000) {
+          switch (state->source->format) {
+               case DSPF_RGB15:
+               case DSPF_RGB16:
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+                    break;
+               default:
+                    return;
+          }
+     }
+
      /* FIXME: 24bit support */
      if (!(accel & 0xFFFF0000) ||
          (state->source->format != DSPF_A8 &&
@@ -135,6 +147,19 @@ static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
                break;
           default:
                return;
+     }
+
+     if (accel & 0xFFFF0000) {
+          switch (state->source->format) {
+               case DSPF_RGB15:
+               case DSPF_RGB16:
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+               case DSPF_A8:
+                    break;
+               default:
+                    return;
+          }
      }
 
      /* FIXME: 24bit support */
