@@ -437,11 +437,21 @@ static void* FrameThread( void *ctx )
 
 static ReactionResult v4l_surface_listener( const void *msg_data, void *ctx )
 {
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
+     CoreSurfaceNotification *notification = (CoreSurfaceNotification*) msg_data;
+     IDirectFBVideoProvider_V4L_data *data = (IDirectFBVideoProvider_V4L_data*) ctx;
      
-     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT)) {
-          v4l_stop( (IDirectFBVideoProvider_V4L_data*)ctx );
+/*     if ((notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT))) {
+          v4l_stop( data );
           return RS_REMOVE;
+     }*/
+
+     if (notification->flags & CSNF_VIDEO) {
+          CoreSurface *surface = data->destination;
+
+          if (surface && surface->back_buffer->video.health != CSH_STORED) {
+               v4l_stop( data );
+               return RS_REMOVE;
+          }
      }
 
      return RS_OK;
