@@ -42,106 +42,92 @@
 
 AcquisitionStatus _shm_acquire (key_t key, int size, int *shmid)
 {
-  AcquisitionStatus result;
+     AcquisitionStatus result;
 
-  /* first try to create a new shared memory segment */
-  if ((*shmid = shmget (key, PAGE_ALIGN(size),
-            IPC_CREAT | IPC_EXCL | 0660)) < 0)
-    {
-      struct shmid_ds buf;
+     /* first try to create a new shared memory segment */
+     if ((*shmid = shmget (key, PAGE_ALIGN(size),
+                           IPC_CREAT | IPC_EXCL | 0660)) < 0) {
+          struct shmid_ds buf;
 
-      /* try to get the existing shared memory segment */
-      if ((*shmid = shmget (key, 0, 0)) < 0)
-    {
-      FPERROR ("shmget failed");
-      return AS_Failure;
-    }
+          /* try to get the existing shared memory segment */
+          if ((*shmid = shmget (key, 0, 0)) < 0) {
+               FPERROR ("shmget failed");
+               return AS_Failure;
+          }
 
-      /* get information about existing segment */
-      if (shmctl (*shmid, IPC_STAT, &buf) < 0)
-    {
-      FPERROR ("shmctl (IPC_STAT) failed");
-      return AS_Failure;
-    }
+          /* get information about existing segment */
+          if (shmctl (*shmid, IPC_STAT, &buf) < 0) {
+               FPERROR ("shmctl (IPC_STAT) failed");
+               return AS_Failure;
+          }
 
-      /* if segment has another size than requested... */
-      if (buf.shm_segsz != PAGE_ALIGN(size))
-    {
-      /* if it's orphaned remove and recreate it, otherwise fail */
-      if (buf.shm_nattch == 0)
-        {
-          FDEBUG ("existing segment has a different size (recreating)\n");
+          /* if segment has another size than requested... */
+          if (buf.shm_segsz != PAGE_ALIGN(size)) {
+               /* if it's orphaned remove and recreate it, otherwise fail */
+               if (buf.shm_nattch == 0) {
+                    FDEBUG ("existing segment has a different size (recreating)\n");
 
-          if (shmctl (*shmid, IPC_RMID, NULL) < 0)
-        {
-          FPERROR ("shmctl (IPC_RMID) failed");
-          return AS_Failure;
-        }
+                    if (shmctl (*shmid, IPC_RMID, NULL) < 0) {
+                         FPERROR ("shmctl (IPC_RMID) failed");
+                         return AS_Failure;
+                    }
 
-          return _shm_acquire (key, size, shmid);
-        }
-      else
-        {
-          FERROR ("** _shm_acquire: existing segment differs in size "
-              "but cannot be destroyed because it's used by others\n");
-          return AS_Failure;
-        }
-    }
+                    return _shm_acquire (key, size, shmid);
+               }
+               else {
+                    FERROR ("** _shm_acquire: existing segment differs in size "
+                            "but cannot be destroyed because it's used by others\n");
+                    return AS_Failure;
+               }
+          }
 
-      /* reinitialize orphaned segments */
-      if (buf.shm_nattch == 0)
-    {
-      result = AS_Initialize;
-      FDEBUG ("got existing segment (reinitializing)\n");
-    }
-      else
-    {
-      result = AS_Attach;
-      FDEBUG ("got existing segment (attaching)\n");
-    }
-    }
-  else
-    {
-      result = AS_Initialize;
-      FDEBUG ("created new segment (initializing)\n");
-    }
+          /* reinitialize orphaned segments */
+          if (buf.shm_nattch == 0) {
+               result = AS_Initialize;
+               FDEBUG ("got existing segment (reinitializing)\n");
+          }
+          else {
+               result = AS_Attach;
+               FDEBUG ("got existing segment (attaching)\n");
+          }
+     }
+     else {
+          result = AS_Initialize;
+          FDEBUG ("created new segment (initializing)\n");
+     }
 
-  return result;
+     return result;
 }
 
 AbolitionStatus _shm_abolish (int shmid, void *addr)
 {
-  struct shmid_ds buf;
+     struct shmid_ds buf;
 
-  /* detach from segment first */
-  if (shmdt (addr) < 0)
-    {
-      FPERROR ("shmdt failed");
-      return AB_Failure;
-    }
+     /* detach from segment first */
+     if (shmdt (addr) < 0) {
+          FPERROR ("shmdt failed");
+          return AB_Failure;
+     }
 
-  /* get information about segment */
-  if (shmctl (shmid, IPC_STAT, &buf) < 0)
-    {
-      FPERROR ("shmctl (IPC_STAT) failed");
-      return AB_Failure;
-    }
+     /* get information about segment */
+     if (shmctl (shmid, IPC_STAT, &buf) < 0) {
+          FPERROR ("shmctl (IPC_STAT) failed");
+          return AB_Failure;
+     }
 
-  /* if no one is attached anymore destroy it */
-  if (buf.shm_nattch == 0)
-    {
-      FDEBUG ("destroying segment (no one attached)\n");
+     /* if no one is attached anymore destroy it */
+     if (buf.shm_nattch == 0) {
+          FDEBUG ("destroying segment (no one attached)\n");
 
-      if (shmctl (shmid, IPC_RMID, NULL) < 0)
-    {
-      FPERROR ("shmctl (IPC_RMID) failed");
-      return AB_Failure;
-    }
+          if (shmctl (shmid, IPC_RMID, NULL) < 0) {
+               FPERROR ("shmctl (IPC_RMID) failed");
+               return AB_Failure;
+          }
 
-      return AB_Destroyed;
-    }
+          return AB_Destroyed;
+     }
 
-  return AB_Detached;
+     return AB_Detached;
 }
 
 #endif /* !FUSION_FAKE */

@@ -90,7 +90,7 @@ struct shmstats shmstats (void);
 
      #define shmalloc malloc
      #define shcalloc calloc
-     #define shfree  free
+     #define shfree   free
 
 #endif
 

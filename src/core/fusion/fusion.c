@@ -49,20 +49,20 @@
  *
  */
 typedef struct {
-  long  next_fid;
-  void *next_shmat_addr;
+     long  next_fid;
+     void *next_shmat_addr;
 } FusionShared;
 
 /*
  *
  */
 typedef struct {
-  int  fid;
+     int  fid;
 
-  int  shared_shm;
-  int  shared_sem;
+     int  shared_shm;
+     int  shared_sem;
 
-  FusionShared *shared;
+     FusionShared *shared;
 } Fusion;
 
 
@@ -84,82 +84,78 @@ static Fusion *fusion = NULL;
 
 int fusion_init()
 {
-  AcquisitionStatus as;
+     AcquisitionStatus as;
 
-  /* check against multiple initialization */
-  if (fusion)
-    return -1;
+     /* check against multiple initialization */
+     if (fusion)
+          return -1;
 
-  _fusion_check_limits();
+     _fusion_check_limits();
 
-  /* allocate local Fusion data */
-  fusion = (Fusion*)calloc (1, sizeof(Fusion));
+     /* allocate local Fusion data */
+     fusion = (Fusion*)calloc (1, sizeof(Fusion));
 
-  /* acquire shared Fusion data */
-  as = _shm_acquire (FUSION_KEY_PREFIX,
-                     sizeof(FusionShared), &fusion->shared_shm);
+     /* acquire shared Fusion data */
+     as = _shm_acquire (FUSION_KEY_PREFIX,
+                        sizeof(FusionShared), &fusion->shared_shm);
 
-  /* on failure free local Fusion data and return */
-  if (as == AS_Failure)
-    {
-      free (fusion);
-      fusion = NULL;
-      return -1;
-    }
+     /* on failure free local Fusion data and return */
+     if (as == AS_Failure) {
+          free (fusion);
+          fusion = NULL;
+          return -1;
+     }
 
-  fusion->shared = shmat (fusion->shared_shm, NULL, 0);
+     fusion->shared = shmat (fusion->shared_shm, NULL, 0);
 
-  /* initialize shared Fusion data? */
-  if (as == AS_Initialize)
-    {
-      fusion->shared->next_fid = 1;
-      fusion->shared->next_shmat_addr = (void*)0x60000000;
-    }
+     /* initialize shared Fusion data? */
+     if (as == AS_Initialize) {
+          fusion->shared->next_fid = 1;
+          fusion->shared->next_shmat_addr = (void*)0x60000000;
+     }
 
-  /* set local Fusion ID */
-  fusion->fid = fusion->shared->next_fid++;
+     /* set local Fusion ID */
+     fusion->fid = fusion->shared->next_fid++;
 
-  /* initialize shmalloc part */
-  if (!__shmalloc_init())
-    {
-      /* destroy shared Fusion data if we initialized it */
-      if (as == AS_Initialize)
-        shmctl (fusion->shared_shm, IPC_RMID, NULL);
+     /* initialize shmalloc part */
+     if (!__shmalloc_init()) {
+          /* destroy shared Fusion data if we initialized it */
+          if (as == AS_Initialize)
+               shmctl (fusion->shared_shm, IPC_RMID, NULL);
 
-      free (fusion);
-      fusion = NULL;
-      return -1;
-    }
+          free (fusion);
+          fusion = NULL;
+          return -1;
+     }
 
-  return _fusion_id();
+     return _fusion_id();
 }
 
 void fusion_exit()
 {
-  if (!fusion)
-    return;
+     if (!fusion)
+          return;
 
 #if 0
-  _shmalloc_exit();
+     _shmalloc_exit();
 #endif
 
-  switch (_shm_abolish (fusion->shared_shm, fusion->shared))
-    {
-    case AB_Destroyed:
-      FDEBUG ("I'VE BEEN THE LAST\n");
-      break;
+     switch (_shm_abolish (fusion->shared_shm, fusion->shared)) {
+          case AB_Destroyed:
+               FDEBUG ("I'VE BEEN THE LAST\n");
+               break;
 
-    case AB_Detached:
-      FDEBUG ("OTHERS LEFT\n");
-      break;
+          case AB_Detached:
+               FDEBUG ("OTHERS LEFT\n");
+               break;
 
-    case AB_Failure:
-      FDEBUG ("UUUUUUUUH\n");
-      break;
-    }
+          case AB_Failure:
+               FDEBUG ("UUUUUUUUH\n");
+               break;
+     }
 
-  free (fusion);
-  fusion = NULL;
+     free (fusion);
+     fusion = NULL;
 }
 
 
@@ -169,46 +165,43 @@ void fusion_exit()
 
 int _fusion_id()
 {
-  if (fusion)
-    return fusion->fid;
+     if (fusion)
+          return fusion->fid;
 
-  FERROR ("called without prior init!\n");
+     FERROR ("called without prior init!\n");
 
-  return -1;
+     return -1;
 }
 
 void *_fusion_shmat (int shmid)
 {
-  void *ret;
+     void *ret;
 
-  struct shmid_ds buf;
+     struct shmid_ds buf;
 
-  if (!fusion)
-    {
-      FERROR ("called without prior init!\n");
-      return NULL;
-    }
+     if (!fusion) {
+          FERROR ("called without prior init!\n");
+          return NULL;
+     }
 
-  if (shmctl (shmid, IPC_STAT, &buf) < 0)
-    {
-      FPERROR ("shmctl failed");
-      return NULL;
-    }
+     if (shmctl (shmid, IPC_STAT, &buf) < 0) {
+          FPERROR ("shmctl failed");
+          return NULL;
+     }
 
-  FDEBUG ("attaching at %p\n", fusion->shared->next_shmat_addr);
+     FDEBUG ("attaching at %p\n", fusion->shared->next_shmat_addr);
 
-  ret = shmat (shmid, fusion->shared->next_shmat_addr, 0);
-  if (ret == (void*)(-1))
-    {
-      FPERROR ("shmat failed");
-      return NULL;
-    }
+     ret = shmat (shmid, fusion->shared->next_shmat_addr, 0);
+     if (ret == (void*)(-1)) {
+          FPERROR ("shmat failed");
+          return NULL;
+     }
 
-  FDEBUG ("attached at %p\n", ret);
+     FDEBUG ("attached at %p\n", ret);
 
-  fusion->shared->next_shmat_addr = ret + buf.shm_segsz;
+     fusion->shared->next_shmat_addr = ret + buf.shm_segsz;
 
-  return ret;
+     return ret;
 }
 
 
@@ -218,86 +211,78 @@ void *_fusion_shmat (int shmid)
 
 static void _fusion_check_msgmni()
 {
-  int     fd;
-  int     msgmni;
-  ssize_t len;
-  char    buf[20];
+     int     fd;
+     int     msgmni;
+     ssize_t len;
+     char    buf[20];
 
-  fd = open ("/proc/sys/kernel/msgmni", O_RDWR);
-  if (fd < 0)
-    {
-      perror ("opening /proc/sys/kernel/msgmni");
-      return;
-    }
+     fd = open ("/proc/sys/kernel/msgmni", O_RDWR);
+     if (fd < 0) {
+          perror ("opening /proc/sys/kernel/msgmni");
+          return;
+     }
 
-  len = read (fd, buf, 19);
-  if (len < 1)
-    {
-      perror ("reading /proc/sys/kernel/msgmni");
-      close (fd);
-      return;
-    }
-
-  if (sscanf (buf, "%d", &msgmni))
-    {
-      if (msgmni >= FUSION_MSGMNI)
-        {
+     len = read (fd, buf, 19);
+     if (len < 1) {
+          perror ("reading /proc/sys/kernel/msgmni");
           close (fd);
           return;
-        }
-    }
+     }
 
-  snprintf (buf, 19, "%d\n", FUSION_MSGMNI);
+     if (sscanf (buf, "%d", &msgmni)) {
+          if (msgmni >= FUSION_MSGMNI) {
+               close (fd);
+               return;
+          }
+     }
 
-  if (write (fd, buf, strlen (buf) + 1) < 0)
-    perror ("writing /proc/sys/kernel/msgmni");
+     snprintf (buf, 19, "%d\n", FUSION_MSGMNI);
 
-  close (fd);
+     if (write (fd, buf, strlen (buf) + 1) < 0)
+          perror ("writing /proc/sys/kernel/msgmni");
+
+     close (fd);
 }
 
 static void _fusion_check_sem()
 {
-  int     fd;
-  int     per, sys, ops, num;
-  ssize_t len;
-  char    buf[40];
+     int     fd;
+     int     per, sys, ops, num;
+     ssize_t len;
+     char    buf[40];
 
-  fd = open ("/proc/sys/kernel/sem", O_RDWR);
-  if (fd < 0)
-    {
-      perror ("opening /proc/sys/kernel/sem");
-      return;
-    }
+     fd = open ("/proc/sys/kernel/sem", O_RDWR);
+     if (fd < 0) {
+          perror ("opening /proc/sys/kernel/sem");
+          return;
+     }
 
-  len = read (fd, buf, 39);
-  if (len < 1)
-    {
-      perror ("reading /proc/sys/kernel/sem");
-      close (fd);
-      return;
-    }
+     len = read (fd, buf, 39);
+     if (len < 1) {
+          perror ("reading /proc/sys/kernel/sem");
+          close (fd);
+          return;
+     }
 
-  if (sscanf (buf, "%d %d %d %d", &per, &sys, &ops, &num) < 4)
-    {
-      fprintf (stderr, "could not parse /proc/sys/kernel/sem\n");
-      close (fd);
-      return;
-    }
+     if (sscanf (buf, "%d %d %d %d", &per, &sys, &ops, &num) < 4) {
+          fprintf (stderr, "could not parse /proc/sys/kernel/sem\n");
+          close (fd);
+          return;
+     }
 
-  if (num >= FUSION_SEM_ARRAYS)
-    {
-      close (fd);
-      return;
-    }
-  else
-    num = FUSION_SEM_ARRAYS;
+     if (num >= FUSION_SEM_ARRAYS) {
+          close (fd);
+          return;
+     }
+     else
+          num = FUSION_SEM_ARRAYS;
 
-  snprintf (buf, 39, "%d %d %d %d\n", per, per * num, ops, num);
+     snprintf (buf, 39, "%d %d %d %d\n", per, per * num, ops, num);
 
-  if (write (fd, buf, strlen (buf) + 1) < 0)
-    perror ("writing /proc/sys/kernel/sem");
+     if (write (fd, buf, strlen (buf) + 1) < 0)
+          perror ("writing /proc/sys/kernel/sem");
 
-  close (fd);
+     close (fd);
 }
 
 static void _fusion_check_limits()

@@ -55,88 +55,83 @@
 
 int skirmish_init (FusionSkirmish *skirmish)
 {
-  union semun semopts;
-  
-  skirmish->sem_id = semget (IPC_PRIVATE, 1, IPC_CREAT | 0660);
-  if (skirmish->sem_id < 0)
-    {
-      perror (__FUNCTION__": semget");
+     union semun semopts;
 
-      return -1;
-    }
-  
-  semopts.val = 1;
-  if (semctl (skirmish->sem_id, 0, SETVAL, semopts))
-    {
-      perror (__FUNCTION__": semctl");
+     skirmish->sem_id = semget (IPC_PRIVATE, 1, IPC_CREAT | 0660);
+     if (skirmish->sem_id < 0) {
+          perror (__FUNCTION__": semget");
 
-      return -1;
-    }
+          return -1;
+     }
 
-  return 0;
+     semopts.val = 1;
+     if (semctl (skirmish->sem_id, 0, SETVAL, semopts)) {
+          perror (__FUNCTION__": semctl");
+
+          return -1;
+     }
+
+     return 0;
 }
 
 int skirmish_prevail (FusionSkirmish *skirmish)
 {
-  struct sembuf op;
+     struct sembuf op;
 
-  op.sem_num = 0;
-  op.sem_op  = -1;
-  op.sem_flg = SEM_UNDO;
+     op.sem_num = 0;
+     op.sem_op  = -1;
+     op.sem_flg = SEM_UNDO;
 
-  if (semop (skirmish->sem_id, &op, 1))
-    {
-      perror (__FUNCTION__": semop");
+     if (semop (skirmish->sem_id, &op, 1)) {
+          perror (__FUNCTION__": semop");
 
-      return -1;
-    }
+          return -1;
+     }
 
-  return 0;
+     return 0;
 }
 
 int skirmish_swoop (FusionSkirmish *skirmish)
 {
-  struct sembuf op;
+     struct sembuf op;
 
-  op.sem_num = 0;
-  op.sem_op  = -1;
-  op.sem_flg = SEM_UNDO | IPC_NOWAIT;
+     op.sem_num = 0;
+     op.sem_op  = -1;
+     op.sem_flg = SEM_UNDO | IPC_NOWAIT;
 
-  return semop (skirmish->sem_id, &op, 1);
+     return semop (skirmish->sem_id, &op, 1);
 }
 
 int skirmish_dismiss (FusionSkirmish *skirmish)
 {
-  struct sembuf op;
+     struct sembuf op;
 
-  op.sem_num = 0;
-  op.sem_op  = 1;
-  op.sem_flg = SEM_UNDO;
+     op.sem_num = 0;
+     op.sem_op  = 1;
+     op.sem_flg = SEM_UNDO;
 
-  if (semop (skirmish->sem_id, &op, 1))
-    {
-      perror (__FUNCTION__": semop");
+     if (semop (skirmish->sem_id, &op, 1)) {
+          perror (__FUNCTION__": semop");
 
 #ifdef FUSION_DEBUG
-      fprintf (stderr, "semval: %d\n", semctl (skirmish->sem_id, 0, GETVAL, NULL));
+          fprintf (stderr, "semval: %d\n", semctl (skirmish->sem_id, 0, GETVAL, NULL));
 
-      kill(getpid(), 5);
+          kill(getpid(), 5);
 #endif
 
-      return -1;
-    }
+          return -1;
+     }
 
-  return 0;
+     return 0;
 }
 
 void skirmish_destroy (FusionSkirmish *skirmish)
 {
-  union semun semopts;
-  
-  if (semctl (skirmish->sem_id, 0, IPC_RMID, semopts))
-    {
-      perror (__FUNCTION__": semctl");
-    }
+     union semun semopts;
+
+     if (semctl (skirmish->sem_id, 0, IPC_RMID, semopts)) {
+          perror (__FUNCTION__": semctl");
+     }
 }
 
 /*******************************

@@ -50,257 +50,239 @@
  *  Public API  *
  ****************/
 
-FusionResult ref_init (FusionRef *ref)
+FusionResult fusion_ref_init (FusionRef *ref)
 {
-  union semun semopts;
+     union semun semopts;
 
-  /* create two semaphores, one for locking, one for counting */
-  ref->sem_id = semget (IPC_PRIVATE, 2, IPC_CREAT | 0660);
-  if (ref->sem_id < 0)
-    {
-      FPERROR ("semget");
+     /* create two semaphores, one for locking, one for counting */
+     ref->sem_id = semget (IPC_PRIVATE, 2, IPC_CREAT | 0660);
+     if (ref->sem_id < 0) {
+          FPERROR ("semget");
 
-      if (errno == ENOMEM || errno == ENOSPC)
-        return FUSION_LIMITREACHED;
+          if (errno == ENOMEM || errno == ENOSPC)
+               return FUSION_LIMITREACHED;
 
-      return FUSION_FAILURE;
-    }
+          return FUSION_FAILURE;
+     }
 
-  /* initialize the lock */
-  semopts.val = 1;
-  if (semctl (ref->sem_id, 0, SETVAL, semopts))
-    {
-      FPERROR ("semctl");
+     /* initialize the lock */
+     semopts.val = 1;
+     if (semctl (ref->sem_id, 0, SETVAL, semopts)) {
+          FPERROR ("semctl");
 
-      semctl (ref->sem_id, 0, IPC_RMID, 0);
-      return FUSION_FAILURE;
-    }
+          semctl (ref->sem_id, 0, IPC_RMID, 0);
+          return FUSION_FAILURE;
+     }
 
-  return FUSION_SUCCESS;
+     return FUSION_SUCCESS;
 }
 
-FusionResult ref_up (FusionRef *ref)
+FusionResult fusion_ref_up (FusionRef *ref)
 {
-  struct sembuf op[2];
+     struct sembuf op[2];
 
-  /* lock/increase */
-  op[0].sem_num = 0;
-  op[0].sem_op  = -1;
-  op[0].sem_flg = SEM_UNDO;
-  op[1].sem_num = 1;
-  op[1].sem_op  = 1;
-  op[1].sem_flg = SEM_UNDO;
+     /* lock/increase */
+     op[0].sem_num = 0;
+     op[0].sem_op  = -1;
+     op[0].sem_flg = SEM_UNDO;
+     op[1].sem_num = 1;
+     op[1].sem_op  = 1;
+     op[1].sem_flg = SEM_UNDO;
 
-  while (semop (ref->sem_id, op, 2))
-    {
-      FPERROR ("semop");
+     while (semop (ref->sem_id, op, 2)) {
+          FPERROR ("semop");
 
-      switch (errno)
-        {
-        case EINTR:
-          continue;
-        case EACCES:
-          return FUSION_ACCESSDENIED;
-        case EIDRM:
-          return FUSION_DESTROYED;
-        }
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EACCES:
+                    return FUSION_ACCESSDENIED;
+               case EIDRM:
+                    return FUSION_DESTROYED;
+          }
 
-      return FUSION_FAILURE;
-    }
+          return FUSION_FAILURE;
+     }
 
-  /* unlock */
-  op[0].sem_op  = 1;
+     /* unlock */
+     op[0].sem_op  = 1;
 
-  while (semop (ref->sem_id, op, 1))
-    {
-      FPERROR ("semop");
+     while (semop (ref->sem_id, op, 1)) {
+          FPERROR ("semop");
 
-      switch (errno)
-        {
-        case EINTR:
-          continue;
-        case EACCES:
-          return FUSION_ACCESSDENIED;
-        case EIDRM:
-          return FUSION_DESTROYED;
-        }
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EACCES:
+                    return FUSION_ACCESSDENIED;
+               case EIDRM:
+                    return FUSION_DESTROYED;
+          }
 
-      return FUSION_FAILURE;
-    }
+          return FUSION_FAILURE;
+     }
 
-  return FUSION_SUCCESS;
+     return FUSION_SUCCESS;
 }
 
-FusionResult ref_down (FusionRef *ref)
+FusionResult fusion_ref_down (FusionRef *ref)
 {
-  struct sembuf op[2];
+     struct sembuf op[2];
 
-  /* lock/decrease */
-  op[0].sem_num = 0;
-  op[0].sem_op  = -1;
-  op[0].sem_flg = SEM_UNDO;
-  op[1].sem_num = 1;
-  op[1].sem_op  = -1;
-  op[1].sem_flg = SEM_UNDO;
+     /* lock/decrease */
+     op[0].sem_num = 0;
+     op[0].sem_op  = -1;
+     op[0].sem_flg = SEM_UNDO;
+     op[1].sem_num = 1;
+     op[1].sem_op  = -1;
+     op[1].sem_flg = SEM_UNDO;
 
-  while (semop (ref->sem_id, op, 2))
-    {
-      FPERROR ("semop");
+     while (semop (ref->sem_id, op, 2)) {
+          FPERROR ("semop");
 
-      switch (errno)
-        {
-        case EINTR:
-          continue;
-        case EACCES:
-          return FUSION_ACCESSDENIED;
-        case EIDRM:
-          return FUSION_DESTROYED;
-        }
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EACCES:
+                    return FUSION_ACCESSDENIED;
+               case EIDRM:
+                    return FUSION_DESTROYED;
+          }
 
-      return FUSION_FAILURE;
-    }
+          return FUSION_FAILURE;
+     }
 
-  /* unlock */
-  op[0].sem_op  = 1;
+     /* unlock */
+     op[0].sem_op  = 1;
 
-  while (semop (ref->sem_id, op, 1))
-    {
-      FPERROR ("semop");
+     while (semop (ref->sem_id, op, 1)) {
+          FPERROR ("semop");
 
-      switch (errno)
-        {
-        case EINTR:
-          continue;
-        case EACCES:
-          return FUSION_ACCESSDENIED;
-        case EIDRM:
-          return FUSION_DESTROYED;
-        }
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EACCES:
+                    return FUSION_ACCESSDENIED;
+               case EIDRM:
+                    return FUSION_DESTROYED;
+          }
 
-      return FUSION_FAILURE;
-    }
+          return FUSION_FAILURE;
+     }
 
-  return FUSION_SUCCESS;
+     return FUSION_SUCCESS;
 }
 
-FusionResult ref_zero_lock (FusionRef *ref)
+FusionResult fusion_ref_zero_lock (FusionRef *ref)
 {
-  struct sembuf op[2];
+     struct sembuf op[2];
 
-  /* wait for zero / lock */
-  op[0].sem_num = 1;
-  op[0].sem_op  = 0;
-  op[0].sem_flg = 0;
-  op[1].sem_num = 0;
-  op[1].sem_op  = -1;
-  op[1].sem_flg = SEM_UNDO;
+     /* wait for zero / lock */
+     op[0].sem_num = 1;
+     op[0].sem_op  = 0;
+     op[0].sem_flg = 0;
+     op[1].sem_num = 0;
+     op[1].sem_op  = -1;
+     op[1].sem_flg = SEM_UNDO;
 
-  while (semop (ref->sem_id, op, 2))
-    {
-      FPERROR ("semop");
+     while (semop (ref->sem_id, op, 2)) {
+          FPERROR ("semop");
 
-      switch (errno)
-        {
-        case EINTR:
-          continue;
-        case EACCES:
-          return FUSION_ACCESSDENIED;
-        case EIDRM:
-          return FUSION_DESTROYED;
-        }
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EACCES:
+                    return FUSION_ACCESSDENIED;
+               case EIDRM:
+                    return FUSION_DESTROYED;
+          }
 
-      return FUSION_FAILURE;
-    }
+          return FUSION_FAILURE;
+     }
 
-  return FUSION_SUCCESS;
+     return FUSION_SUCCESS;
 }
 
-FusionResult ref_zero_trylock (FusionRef *ref)
+FusionResult fusion_ref_zero_trylock (FusionRef *ref)
 {
-  struct sembuf op[2];
+     struct sembuf op[2];
 
-  /* check for zero / lock */
-  op[0].sem_num = 1;
-  op[0].sem_op  = 0;
-  op[0].sem_flg = IPC_NOWAIT;
-  op[1].sem_num = 0;
-  op[1].sem_op  = -1;
-  op[1].sem_flg = SEM_UNDO;
+     /* check for zero / lock */
+     op[0].sem_num = 1;
+     op[0].sem_op  = 0;
+     op[0].sem_flg = IPC_NOWAIT;
+     op[1].sem_num = 0;
+     op[1].sem_op  = -1;
+     op[1].sem_flg = SEM_UNDO;
 
-  while (semop (ref->sem_id, op, 2))
-    {
-      if (errno != EAGAIN)
-        FPERROR ("semop");
+     while (semop (ref->sem_id, op, 2)) {
+          if (errno != EAGAIN)
+               FPERROR ("semop");
 
-      switch (errno)
-        {
-        case EINTR:
-          continue;
-        case EAGAIN:
-          return FUSION_INUSE;
-        case EACCES:
-          return FUSION_ACCESSDENIED;
-        case EIDRM:
-          return FUSION_DESTROYED;
-        }
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EAGAIN:
+                    return FUSION_INUSE;
+               case EACCES:
+                    return FUSION_ACCESSDENIED;
+               case EIDRM:
+                    return FUSION_DESTROYED;
+          }
 
-      return FUSION_FAILURE;
-    }
+          return FUSION_FAILURE;
+     }
 
-  return FUSION_SUCCESS;
+     return FUSION_SUCCESS;
 }
 
-FusionResult ref_unlock (FusionRef *ref)
+FusionResult fusion_ref_unlock (FusionRef *ref)
 {
-  struct sembuf op;
+     struct sembuf op;
 
-  /* unlock */
-  op.sem_num = 0;
-  op.sem_op  = 1;
-  op.sem_flg = SEM_UNDO;
+     /* unlock */
+     op.sem_num = 0;
+     op.sem_op  = 1;
+     op.sem_flg = SEM_UNDO;
 
-  while (semop (ref->sem_id, &op, 1))
-    {
-      FPERROR ("semop");
+     while (semop (ref->sem_id, &op, 1)) {
+          FPERROR ("semop");
 
-      switch (errno)
-        {
-        case EINTR:
-          continue;
-        case EACCES:
-          return FUSION_ACCESSDENIED;
-        case EIDRM:
-          return FUSION_DESTROYED;
-        }
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EACCES:
+                    return FUSION_ACCESSDENIED;
+               case EIDRM:
+                    return FUSION_DESTROYED;
+          }
 
-      return FUSION_FAILURE;
-    }
+          return FUSION_FAILURE;
+     }
 
-  return FUSION_SUCCESS;
+     return FUSION_SUCCESS;
 }
 
-FusionResult ref_destroy (FusionRef *ref)
+FusionResult fusion_ref_destroy (FusionRef *ref)
 {
-  union semun semopts;
-  
-  if (semctl (ref->sem_id, 0, IPC_RMID, semopts))
-    {
-      FPERROR ("semctl");
+     union semun semopts;
 
-      switch (errno)
-        {
-        case EACCES:
-          return FUSION_ACCESSDENIED;
-        case EPERM:
-          return FUSION_PERMISSIONDENIED;
-        case EIDRM:
-          return FUSION_DESTROYED;
-        }
+     if (semctl (ref->sem_id, 0, IPC_RMID, semopts)) {
+          FPERROR ("semctl");
 
-      return FUSION_FAILURE;
-    }
+          switch (errno) {
+               case EACCES:
+                    return FUSION_ACCESSDENIED;
+               case EPERM:
+                    return FUSION_PERMISSIONDENIED;
+               case EIDRM:
+                    return FUSION_DESTROYED;
+          }
 
-  return FUSION_SUCCESS;
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
 }
 
 /*******************************

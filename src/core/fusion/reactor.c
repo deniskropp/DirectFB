@@ -53,29 +53,29 @@
  *
  */
 typedef struct {
-  FusionLink link;  /* fusion list link */
+     FusionLink link;  /* fusion list link */
 
-  React      react; /* the reaction callback  */
-  void      *ctx;   /* optional callback context */
+     React      react; /* the reaction callback  */
+     void      *ctx;   /* optional callback context */
 } Reaction;
 
 /*
  *
  */
 struct _FusionReactor {
-  FusionSkirmish  lock;      /* access synchronization lock         */
+     FusionSkirmish  lock;      /* access synchronization lock         */
 
-  int             queue;     /* message queue id                    */
-  int             msg_size;  /* size of sent messages               */
+     int             queue;     /* message queue id                    */
+     int             msg_size;  /* size of sent messages               */
 
-  int             nodes;     /* number of attached fusionees        */
+     int             nodes;     /* number of attached fusionees        */
 
-  struct {
-    int           id;        /* fusion id                           */
-    FusionLink   *reactions; /* local list of reactions             */
-    pthread_t     receiver;  /* receiving thread of the node        */
-    FusionRef     ref;       /* reference for receiver              */
-  } node[MAX_REACTOR_NODES];
+     struct {
+          int           id;        /* fusion id                           */
+          FusionLink   *reactions; /* local list of reactions             */
+          pthread_t     receiver;  /* receiving thread of the node        */
+          FusionRef     ref;       /* reference for receiver              */
+     } node[MAX_REACTOR_NODES];
 };
 
 /*
@@ -105,272 +105,255 @@ static int   _reactor_get_free_index (const FusionReactor *reactor);
 
 FusionReactor *reactor_new (const int msg_size)
 {
-  FusionReactor *reactor;
+     FusionReactor *reactor;
 
-  /* allocate shared reactor data */
-  reactor = shcalloc (1, sizeof (FusionReactor));
+     /* allocate shared reactor data */
+     reactor = shcalloc (1, sizeof (FusionReactor));
 
-  /* set the static message size, should we make dynamic? (TODO?) */
-  reactor->msg_size = msg_size;
+     /* set the static message size, should we make dynamic? (TODO?) */
+     reactor->msg_size = msg_size;
 
-  /* create the message queue for dispatching (TODO: drop message queue usage) */
-  if ((reactor->queue = msgget (IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0660)) < 0)
-    {
-      FPERROR ("msgget for creating the queue failed");
+     /* create the message queue for dispatching (TODO: drop message queue usage) */
+     if ((reactor->queue = msgget (IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0660)) < 0) {
+          FPERROR ("msgget for creating the queue failed");
 
-      shfree (reactor);
-      return NULL;
-    }
+          shfree (reactor);
+          return NULL;
+     }
 
-  /* initialize skirmish */
-  skirmish_init (&reactor->lock);
+     /* initialize skirmish */
+     skirmish_init (&reactor->lock);
 
-  return reactor;
+     return reactor;
 }
 
 void reactor_attach (FusionReactor *reactor,
-             React          react,
-             void          *ctx)
+                     React          react,
+                     void          *ctx)
 {
-  int       index;
-  Reaction *reaction;
+     int       index;
+     Reaction *reaction;
 
-  /* lock reactor */
-  skirmish_prevail (&reactor->lock);
+     /* lock reactor */
+     skirmish_prevail (&reactor->lock);
 
-  /* find our node, needs to be replaced by a binary space tree (TODO) */
-  index = _reactor_get_node_index (reactor);
+     /* find our node, needs to be replaced by a binary space tree (TODO) */
+     index = _reactor_get_node_index (reactor);
 
-  /* if our node hasn't been found add us to the nodes */
-  if (index < 0)
-    {
-      /* check for maximum number of nodes, currently limited (TODO) */
-      if (index >= MAX_REACTOR_NODES)
-        {
-          FERROR ("maximum number of reactor nodes (%d) reached!\n",
-                  MAX_REACTOR_NODES);
-          skirmish_dismiss (&reactor->lock);
-          return;
-        }
+     /* if our node hasn't been found add us to the nodes */
+     if (index < 0) {
+          /* check for maximum number of nodes, currently limited (TODO) */
+          if (index >= MAX_REACTOR_NODES) {
+               FERROR ("maximum number of reactor nodes (%d) reached!\n",
+                       MAX_REACTOR_NODES);
+               skirmish_dismiss (&reactor->lock);
+               return;
+          }
 
-      /* increase the number of nodes and
-         write our fusion id into the last node (the new one) */
-      index = _reactor_get_free_index (reactor);
-      if (index < 0)
-        {
-          FERROR ("something went wrong, couldn't find a free node!\n");
-          skirmish_dismiss (&reactor->lock);
-          return;
-        }
+          /* increase the number of nodes and
+             write our fusion id into the last node (the new one) */
+          index = _reactor_get_free_index (reactor);
+          if (index < 0) {
+               FERROR ("something went wrong, couldn't find a free node!\n");
+               skirmish_dismiss (&reactor->lock);
+               return;
+          }
 
-      reactor->node[index].id = _fusion_id();
+          reactor->node[index].id = _fusion_id();
 
-      reactor->nodes++;
+          reactor->nodes++;
 
-      ref_init (&reactor->node[index].ref);
+          fusion_ref_init (&reactor->node[index].ref);
 
-      /* start our local receiver thread and detach it */
-      pthread_create (&reactor->node[index].receiver,
-                      NULL, _reactor_receive, reactor);
-      pthread_detach (reactor->node[index].receiver);
+          /* start our local receiver thread and detach it */
+          pthread_create (&reactor->node[index].receiver,
+                          NULL, _reactor_receive, reactor);
+          pthread_detach (reactor->node[index].receiver);
 
-      /* wait for receiver thread to get ready */
-      while (ref_zero_trylock (&reactor->node[index].ref) == FUSION_SUCCESS)
-        {
-          ref_unlock (&reactor->node[index].ref);
-          sched_yield();
-        }
-    }
+          /* wait for receiver thread to get ready */
+          while (fusion_ref_zero_trylock (&reactor->node[index].ref) == FUSION_SUCCESS) {
+               fusion_ref_unlock (&reactor->node[index].ref);
+               sched_yield();
+          }
+     }
 
-  /* allocate information for local dispatching */
-  reaction = (Reaction*)calloc (1, sizeof(Reaction));
+     /* allocate information for local dispatching */
+     reaction = (Reaction*)calloc (1, sizeof(Reaction));
 
-  /* fill out callback information */
-  reaction->react = react;
-  reaction->ctx   = ctx;
+     /* fill out callback information */
+     reaction->react = react;
+     reaction->ctx   = ctx;
 
-  /* prepend the reaction to the local reaction list */
-  fusion_list_prepend (&reactor->node[index].reactions, (FusionLink*) reaction);
+     /* prepend the reaction to the local reaction list */
+     fusion_list_prepend (&reactor->node[index].reactions, (FusionLink*) reaction);
 
-  /* unlock reactor */
-  skirmish_dismiss (&reactor->lock);
+     /* unlock reactor */
+     skirmish_dismiss (&reactor->lock);
 }
 
 void reactor_detach (FusionReactor *reactor,
-             React    react,
-             void    *ctx)
+                     React    react,
+                     void    *ctx)
 {
-  int         index;
-  FusionLink *link;
-  FusionLink *remove = NULL;
+     int         index;
+     FusionLink *link;
+     FusionLink *remove = NULL;
 
-  /* lock reactor */
-  skirmish_prevail (&reactor->lock);
+     /* lock reactor */
+     skirmish_prevail (&reactor->lock);
 
-  /* find our node and return if it hasn't been found, should return an error (TODO) */
-  index = _reactor_get_node_index (reactor);
-  if (index < 0)
-    {
-      skirmish_dismiss (&reactor->lock);
-      return;
-    }
+     /* find our node and return if it hasn't been found, should return an error (TODO) */
+     index = _reactor_get_node_index (reactor);
+     if (index < 0) {
+          skirmish_dismiss (&reactor->lock);
+          return;
+     }
 
-  /* find the reaction to remove */
-  fusion_list_foreach (link, reactor->node[index].reactions)
-    {
-      Reaction *reaction = (Reaction*) link;
+     /* find the reaction to remove */
+     fusion_list_foreach (link, reactor->node[index].reactions)
+     {
+          Reaction *reaction = (Reaction*) link;
 
-      /* found if reaction callback and context match */
-      if (reaction->react == react && reaction->ctx == ctx)
-        {
-          remove = link;
-          break;
-        }
-    }
+          /* found if reaction callback and context match */
+          if (reaction->react == react && reaction->ctx == ctx) {
+               remove = link;
+               break;
+          }
+     }
 
-  /* remove and free it if found, should return error otherwise (TODO) */
-  if (remove)
-    {
-      fusion_list_remove (&reactor->node[index].reactions, remove);
-      free (remove);
-    }
+     /* remove and free it if found, should return error otherwise (TODO) */
+     if (remove) {
+          fusion_list_remove (&reactor->node[index].reactions, remove);
+          free (remove);
+     }
 
-  /* if it was the last reaction cancel our receiver thread and free the node */
-  if (!reactor->node[index].reactions)
-    {
-      pthread_cancel (reactor->node[index].receiver);
+     /* if it was the last reaction cancel our receiver thread and free the node */
+     if (!reactor->node[index].reactions) {
+          pthread_cancel (reactor->node[index].receiver);
 
-      ref_zero_lock (&reactor->node[index].ref);
-      ref_destroy (&reactor->node[index].ref);
+          fusion_ref_zero_lock (&reactor->node[index].ref);
+          fusion_ref_destroy (&reactor->node[index].ref);
 
-      reactor->node[index].id = 0;
-      reactor->nodes--;
-    }
+          reactor->node[index].id = 0;
+          reactor->nodes--;
+     }
 
-  /* unlock reactor */
-  skirmish_dismiss (&reactor->lock);
+     /* unlock reactor */
+     skirmish_dismiss (&reactor->lock);
 }
 
 void reactor_dispatch (FusionReactor *reactor,
                        const void    *msg_data,
                        bool           self)
 {
-  int   i;
-  void *message;
+     int   i;
+     void *message;
 
-  /* lock reactor */
-  skirmish_prevail (&reactor->lock);
+     /* lock reactor */
+     skirmish_prevail (&reactor->lock);
 
-  /* allocate 'real' message memory (message id + message) */
-  message = alloca (sizeof(long) + reactor->msg_size);
+     /* allocate 'real' message memory (message id + message) */
+     message = alloca (sizeof(long) + reactor->msg_size);
 
-  /* copy the original message data into the new area */
-  memcpy ((void*)((long*)message+1), msg_data, reactor->msg_size);
+     /* copy the original message data into the new area */
+     memcpy ((void*)((long*)message+1), msg_data, reactor->msg_size);
 
-  /* loop through all nodes */
-  for (i = 0; i < MAX_REACTOR_NODES; i++)
-    {
-      /* check if it's a free node */
-      if (!reactor->node[i].id)
-        continue;
+     /* loop through all nodes */
+     for (i = 0; i < MAX_REACTOR_NODES; i++) {
+          /* check if it's a free node */
+          if (!reactor->node[i].id)
+               continue;
 
-      /* <DEBUG> */
-      if (ref_zero_trylock (&reactor->node[i].ref) == FUSION_SUCCESS)
-        {
-          printf(__FUNCTION__": node '%d' with id '%d' is dead, freeing it!\n",
-                 i, reactor->node[i].id);
-          ref_destroy (&reactor->node[i].ref);
-          reactor->node[i].id = 0;
-          reactor->nodes--;
-          continue;
-        }
-      /* </DEBUG> */
+          /* <DEBUG> */
+          if (fusion_ref_zero_trylock (&reactor->node[i].ref) == FUSION_SUCCESS) {
+               printf(__FUNCTION__": node '%d' with id '%d' is dead, freeing it!\n",
+                      i, reactor->node[i].id);
+               fusion_ref_destroy (&reactor->node[i].ref);
+               reactor->node[i].id = 0;
+               reactor->nodes--;
+               continue;
+          }
+          /* </DEBUG> */
 
-      /* set the message id to the destinations fusion id */
-      *((long*)message) = reactor->node[i].id;
+          /* set the message id to the destinations fusion id */
+          *((long*)message) = reactor->node[i].id;
 
-      /* if this node belongs to us... */
-      if (reactor->node[i].id == _fusion_id())
-        {
-          /* ...and the message is send to ourself, too... */
-          if (self)
-            {
+          /* if this node belongs to us... */
+          if (reactor->node[i].id == _fusion_id()) {
+               /* ...and the message is send to ourself, too... */
+               if (self) {
 #if 1
-              FDEBUG ("dispatching locally for fid %x (%d byte)\n",
-                      reactor->node[i].id, reactor->msg_size);
+                    FDEBUG ("dispatching locally for fid %x (%d byte)\n",
+                            reactor->node[i].id, reactor->msg_size);
 
-              /* ...dispatch it locally (directly) */
-              _reactor_process_reactions (&reactor->node[i].reactions, msg_data);
+                    /* ...dispatch it locally (directly) */
+                    _reactor_process_reactions (&reactor->node[i].reactions, msg_data);
 
-              /* if there's no remaining reaction (reactions may be removed
-                 because of RS_REMOVE) free the node */
-              if (!reactor->node[i].reactions)
-                {
-                  pthread_cancel (reactor->node[i].receiver);
+                    /* if there's no remaining reaction (reactions may be removed
+                       because of RS_REMOVE) free the node */
+                    if (!reactor->node[i].reactions) {
+                         pthread_cancel (reactor->node[i].receiver);
 
-                  ref_zero_lock (&reactor->node[i].ref);
-                  ref_destroy (&reactor->node[i].ref);
+                         fusion_ref_zero_lock (&reactor->node[i].ref);
+                         fusion_ref_destroy (&reactor->node[i].ref);
 
-                  reactor->node[i].id = 0;
-                  reactor->nodes--;
-                }
+                         reactor->node[i].id = 0;
+                         reactor->nodes--;
+                    }
 #else
-              FDEBUG ("sending to queue %d for fid %x (%d byte), that's me\n",
-                      reactor->queue, reactor->node[i].id, reactor->msg_size);
+                    FDEBUG ("sending to queue %d for fid %x (%d byte), that's me\n",
+                            reactor->queue, reactor->node[i].id, reactor->msg_size);
 
-              /* send the complete message (fusion id + data) */
-              if (msgsnd (reactor->queue, message, reactor->msg_size, IPC_NOWAIT) < 0)
-                if (errno != EAGAIN)
-                  FPERROR ("msgsnd failed");
+                    /* send the complete message (fusion id + data) */
+                    if (msgsnd (reactor->queue, message, reactor->msg_size, IPC_NOWAIT) < 0)
+                         if (errno != EAGAIN)
+                              FPERROR ("msgsnd failed");
 #endif
-            }
-        }
-      else
-    {
-      FDEBUG ("sending to queue %d for fid %x (%d byte)\n",
-          reactor->queue, reactor->node[i].id, reactor->msg_size);
+               }
+          }
+          else {
+               FDEBUG ("sending to queue %d for fid %x (%d byte)\n",
+                       reactor->queue, reactor->node[i].id, reactor->msg_size);
 
-          /* send the complete message (fusion id + data) */
-      if (msgsnd (reactor->queue, message, reactor->msg_size, IPC_NOWAIT) < 0)
-        if (errno != EAGAIN)
-          FPERROR ("msgsnd failed");
-    }
-    }
+               /* send the complete message (fusion id + data) */
+               if (msgsnd (reactor->queue, message, reactor->msg_size, IPC_NOWAIT) < 0)
+                    if (errno != EAGAIN)
+                         FPERROR ("msgsnd failed");
+          }
+     }
 
-  /* unlock reactor */
-  skirmish_dismiss (&reactor->lock);
+     /* unlock reactor */
+     skirmish_dismiss (&reactor->lock);
 }
 
 void reactor_free (FusionReactor *reactor)
 {
-  int i;
+     int i;
 
-  /* lock reactor */
-  skirmish_prevail (&reactor->lock);
+     /* lock reactor */
+     skirmish_prevail (&reactor->lock);
 
-  msgctl (reactor->queue, IPC_RMID, NULL);
+     msgctl (reactor->queue, IPC_RMID, NULL);
 
-  if (reactor->nodes)
-    {
-      /* loop through remaining nodes and print error messages */
-      for (i=0; i<MAX_REACTOR_NODES; i++)
-        {
-          if (!reactor->node[i].id)
-            continue;
+     if (reactor->nodes) {
+          /* loop through remaining nodes and print error messages */
+          for (i=0; i<MAX_REACTOR_NODES; i++) {
+               if (!reactor->node[i].id)
+                    continue;
 
-          FERROR ("reactor_free: fusionee '%d' still attached (reactions: %p)!\n",
-                  reactor->node[i].id, reactor->node[i].reactions);
-        }
+               FERROR ("reactor_free: fusionee '%d' still attached (reactions: %p)!\n",
+                       reactor->node[i].id, reactor->node[i].reactions);
+          }
 
-      //kill (getpid(), 5);
-    }
+          //kill (getpid(), 5);
+     }
 
-  /* unlock reactor and destroy the skirmish */
-  skirmish_dismiss (&reactor->lock);
-  skirmish_destroy (&reactor->lock);
+     /* unlock reactor and destroy the skirmish */
+     skirmish_dismiss (&reactor->lock);
+     skirmish_destroy (&reactor->lock);
 
-  /* free shared reactor data */
-  shfree (reactor);
+     /* free shared reactor data */
+     shfree (reactor);
 }
 
 
@@ -380,137 +363,128 @@ void reactor_free (FusionReactor *reactor)
 
 void *_reactor_receive (void *arg)
 {
-  int            index;
-  void          *message;
-  FusionReactor *reactor = (FusionReactor*) arg;
+     int            index;
+     void          *message;
+     FusionReactor *reactor = (FusionReactor*) arg;
 
-  /* find our node and return if it hasn't been found */
-  index = _reactor_get_node_index (reactor);
-  if (index < 0)
-    {
-      FERROR ("_reactor_receive: "
-              "could not find node with fusion id '%d'!\n", _fusion_id());
-      return NULL;
-    }
-
-  if (ref_up (&reactor->node[index].ref))
-    return NULL;
-
-  /* allocate local buffer for received messages */
-  message = alloca (sizeof(long) + reactor->msg_size);
-
-  while (true)
-    {
-      pthread_testcancel();
-
-      /* receive the next messages matching our fusion id */
-      if (msgrcv (reactor->queue, message,
-          reactor->msg_size, _fusion_id(), 0) < 0)
-    {
-      FPERROR ("msgrcv failed");
-
-          if (errno == EINTR)
-            continue;
-
+     /* find our node and return if it hasn't been found */
+     index = _reactor_get_node_index (reactor);
+     if (index < 0) {
+          FERROR ("_reactor_receive: "
+                  "could not find node with fusion id '%d'!\n", _fusion_id());
           return NULL;
-    }
+     }
 
-      pthread_testcancel();
-
-      /* dispatch the message locally */
-      _reactor_process_reactions (&reactor->node[index].reactions, (void*)((long*)message+1));
-
-      pthread_testcancel();
-
-      /* if there's no remaining reaction (reactions may be removed
-         because of RS_REMOVE) free the node and exit this thread */
-      if (!reactor->node[index].reactions)
-        {
-          /*  skirmish_prevail (&reactor->lock);
-              reactor->node[index] = reactor->node[ --reactor->nodes ];
-              skirmish_dismiss (&reactor->lock);*/
-
+     if (fusion_ref_up (&reactor->node[index].ref))
           return NULL;
-        }
-    }
 
-  FERROR ("universe has collapsed...\n");
+     /* allocate local buffer for received messages */
+     message = alloca (sizeof(long) + reactor->msg_size);
 
-  return NULL;
+     while (true) {
+          pthread_testcancel();
+
+          /* receive the next messages matching our fusion id */
+          if (msgrcv (reactor->queue, message,
+                      reactor->msg_size, _fusion_id(), 0) < 0) {
+               FPERROR ("msgrcv failed");
+
+               if (errno == EINTR)
+                    continue;
+
+               return NULL;
+          }
+
+          pthread_testcancel();
+
+          /* dispatch the message locally */
+          _reactor_process_reactions (&reactor->node[index].reactions, (void*)((long*)message+1));
+
+          pthread_testcancel();
+
+          /* if there's no remaining reaction (reactions may be removed
+             because of RS_REMOVE) free the node and exit this thread */
+          if (!reactor->node[index].reactions) {
+               /*  skirmish_prevail (&reactor->lock);
+                   reactor->node[index] = reactor->node[ --reactor->nodes ];
+                   skirmish_dismiss (&reactor->lock);*/
+
+               return NULL;
+          }
+     }
+
+     FERROR ("universe has collapsed...\n");
+
+     return NULL;
 }
 
 static void _reactor_process_reactions (FusionLink **reactions, const void *msg_data)
 {
-  FusionLink *link = *reactions;
+     FusionLink *link = *reactions;
 
-  /* if any reactions (should not happen, because
-     the local receiver thread is canceled after the last local detach */
-  if (!link)
-    {
-      FDEBUG ("no reactions for dispatching locally!");
-      return;
-    }
+     /* if any reactions (should not happen, because
+        the local receiver thread is canceled after the last local detach */
+     if (!link) {
+          FDEBUG ("no reactions for dispatching locally!");
+          return;
+     }
 
-  /* loop through local reactions */
-  do
-    {
-      Reaction   *r   = (Reaction*) link;
-      FusionLink *del = NULL;
+     /* loop through local reactions */
+     do {
+          Reaction   *r   = (Reaction*) link;
+          FusionLink *del = NULL;
 
-      /* invoke reaction callback, mark deletion if it returns RS_REMOVE */
-      if (r->react (msg_data, r->ctx) == RS_REMOVE)
-        del = link;
+          /* invoke reaction callback, mark deletion if it returns RS_REMOVE */
+          if (r->react (msg_data, r->ctx) == RS_REMOVE)
+               del = link;
 
-      /* fetch the next list entry */
-      link = link->next;
+          /* fetch the next list entry */
+          link = link->next;
 
-      /* if RS_REMOVE has been returned remove the reaction */
-      if (del)
-        {
-          /* remove from list and free */
-          fusion_list_remove (reactions, del);
-          free (del);
-        }
-    } while (link);
+          /* if RS_REMOVE has been returned remove the reaction */
+          if (del) {
+               /* remove from list and free */
+               fusion_list_remove (reactions, del);
+               free (del);
+          }
+     } while (link);
 }
 
 static int _reactor_get_node_index (const FusionReactor *reactor)
 {
-  int i;
-  int my_id = _fusion_id();
+     int i;
+     int my_id = _fusion_id();
 
-  /* loop through nodes and check the id, should be a binary space tree (TODO) */
-  for (i=0; i<MAX_REACTOR_NODES; i++)
-    {
-      if (reactor->node[i].id == my_id)
-        break;
-    }
+     /* loop through nodes and check the id, should be a binary space tree (TODO) */
+     for (i=0; i<MAX_REACTOR_NODES; i++) {
+          if (reactor->node[i].id == my_id)
+               break;
+     }
 
-  /* if the id wasn't found return -1 */
-  if (i == MAX_REACTOR_NODES)
-    return -1;
+     /* if the id wasn't found return -1 */
+     if (i == MAX_REACTOR_NODES)
+          return -1;
 
-  /* return index to node */
-  return i;
+     /* return index to node */
+     return i;
 }
 
 static int _reactor_get_free_index (const FusionReactor *reactor)
 {
-  int i;
+     int i;
 
-  /* loop through nodes and check the id, should be a binary space tree (TODO) */
-  for (i=0; i<MAX_REACTOR_NODES; i++)
-    {
-      if (reactor->node[i].id == 0)
-        break;
-    }
+     /* loop through nodes and check the id, should be a binary space tree (TODO) */
+     for (i=0; i<MAX_REACTOR_NODES; i++) {
+          if (reactor->node[i].id == 0)
+               break;
+     }
 
-  /* if no free node was found return -1 */
-  if (i == MAX_REACTOR_NODES)
-    return -1;
+     /* if no free node was found return -1 */
+     if (i == MAX_REACTOR_NODES)
+          return -1;
 
-  /* return index to node */
-  return i;
+     /* return index to node */
+     return i;
 }
 
 #else /* !FUSION_FAKE */

@@ -27,22 +27,22 @@
 
 void fusion_list_prepend (FusionLink **list, FusionLink *link)
 {
-  link->prev = NULL;
-  link->next = *list;
+     link->prev = NULL;
+     link->next = *list;
 
-  if (*list)
-    (*list)->prev = link;
+     if (*list)
+          (*list)->prev = link;
 
-  *list = link;
+     *list = link;
 }
 
 void fusion_list_remove (FusionLink **list, FusionLink *link)
 {
-  if (link->prev)
-    link->prev->next = link->next;
-  else
-    *list = link->next;
+     if (link->prev)
+          link->prev->next = link->next;
+     else
+          *list = link->next;
 
-  if (link->next)
-    link->next->prev = link->prev;
+     if (link->next)
+          link->next->prev = link->prev;
 }
