@@ -294,16 +294,18 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
 static void
 init_palette( CoreSurface *surface, DFBSurfaceDescription *desc )
 {
+     int          num;
      CorePalette *palette = surface->palette;
 
      if (!palette || !(desc->flags & DSDESC_PALETTE))
           return;
 
-     dfb_memcpy( palette->entries, desc->palette.entries,
-                 MIN( desc->palette.size,
-                      palette->num_entries ) * sizeof(DFBColor));
+     num = MIN( desc->palette.size, palette->num_entries );
 
-     dfb_palette_update( surface, palette );
+     dfb_memcpy( palette->entries,
+                 desc->palette.entries, num * sizeof(DFBColor));
+
+     dfb_palette_update( palette, 0, num - 1 );
 }
 
 static DFBResult

@@ -505,6 +505,24 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
      }
 }
 
+static ReactionResult
+palette_listener( const void *msg_data,
+                  void       *ctx )
+{
+     CorePaletteNotification *notification = (CorePaletteNotification*)msg_data;
+     CoreSurface             *surface      = (CoreSurface*) ctx;
+
+     if (notification->flags & CPNF_DESTROY)
+          surface->palette = NULL;
+
+     dfb_surface_notify_listeners( surface, CSNF_PALETTE );
+
+     if (notification->flags & CPNF_DESTROY)
+          return RS_REMOVE;
+
+     return RS_OK;
+}
+
 void dfb_surface_destroy( CoreSurface *surface, bool unref )
 {
      DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) entered\n", surface);
@@ -533,8 +551,10 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
      skirmish_destroy( &surface->back_lock );
 
      /* unlink palette */
-     if (surface->palette)
+     if (surface->palette) {
+          dfb_palette_detach( surface->palette, palette_listener, surface );
           dfb_palette_unlink( surface->palette );
+     }
 
      skirmish_dismiss( &surface->lock );
      
@@ -589,6 +609,8 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
 
           dfb_palette_link( &surface->palette, palette );
           dfb_palette_unref( palette );
+
+          dfb_palette_attach( palette, palette_listener, surface );
      }
      
      skirmish_init( &surface->lock );

@@ -36,14 +36,14 @@
 typedef struct {
      int                     ref;            /* reference counter */
 
-     CoreSurface            *surface;        /* the palette's surface */
+     CorePalette            *palette;        /* the palette object */
 } IDirectFBPalette_data;
 
 /*
  * initializes interface struct and private data
  */
 DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
-                                      CoreSurface      *surface );
+                                      CorePalette      *palette );
 
 
 #endif

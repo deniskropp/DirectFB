@@ -113,9 +113,12 @@ destination_listener( const void *msg_data,
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      CardState               *state        = (CardState*)ctx;
 
+     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
+                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
+          state->modified |= SMF_DESTINATION;
+
      if (notification->flags & CSNF_DESTROY) {
-          state->destination  = NULL;
-          state->modified    |= SMF_DESTINATION;
+          state->destination = NULL;
 
           return RS_REMOVE;
      }
@@ -138,10 +141,6 @@ destination_listener( const void *msg_data,
           state->modified |= SMF_CLIP;
      }
 
-     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
-                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
-          state->modified |= SMF_DESTINATION;
-
      return RS_OK;
 }
 
@@ -152,16 +151,15 @@ source_listener( const void *msg_data,
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      CardState               *state        = (CardState*)ctx;
 
-     if (notification->flags & CSNF_DESTROY) {
-          state->source = NULL;
-          state->modified |= SMF_SOURCE;
-
-          return RS_REMOVE;
-     }
-
      if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
                                 CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
           state->modified |= SMF_SOURCE;
+
+     if (notification->flags & CSNF_DESTROY) {
+          state->source = NULL;
+
+          return RS_REMOVE;
+     }
 
      return RS_OK;
 }

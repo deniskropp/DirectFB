@@ -212,19 +212,24 @@ IDirectFBSurface_GetPalette( IDirectFBSurface  *thiz,
                              IDirectFBPalette **interface )
 {
      DFBResult         ret;
+     CoreSurface      *surface;
      IDirectFBPalette *palette;
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (!data->surface)
+     surface = data->surface;
+     if (!surface)
           return DFB_DESTROYED;
+
+     if (!surface->palette)
+          return DFB_UNSUPPORTED;
 
      if (!interface)
           return DFB_INVARG;
 
      DFB_ALLOCATE_INTERFACE( palette, IDirectFBPalette );
 
-     ret = IDirectFBPalette_Construct( palette, data->surface );
+     ret = IDirectFBPalette_Construct( palette, surface->palette );
      if (ret)
           return ret;
 

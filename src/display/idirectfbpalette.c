@@ -47,18 +47,14 @@
 #include "idirectfbpalette.h"
 
 
-static ReactionResult
-IDirectFBPalette_listener( const void *msg_data, void *ctx );
-
 
 static void
 IDirectFBPalette_Destruct( IDirectFBPalette *thiz )
 {
      IDirectFBPalette_data *data = (IDirectFBPalette_data*)thiz->priv;
 
-     if (data->surface)
-          dfb_surface_detach( data->surface,
-                              IDirectFBPalette_listener, thiz );
+     if (data->palette)
+          dfb_palette_unref( data->palette );
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -88,18 +84,13 @@ static DFBResult
 IDirectFBPalette_GetSize( IDirectFBPalette *thiz,
                           unsigned int     *size )
 {
-     CoreSurface *surface;
      CorePalette *palette;
 
      INTERFACE_GET_DATA(IDirectFBPalette)
 
-     surface = data->surface;
-     if (!surface)
-          return DFB_DESTROYED;
-
-     palette = surface->palette;
+     palette = data->palette;
      if (!palette)
-          return DFB_UNSUPPORTED;
+          return DFB_DESTROYED;
 
      if (!size)
           return DFB_INVARG;
@@ -115,18 +106,13 @@ IDirectFBPalette_SetEntries( IDirectFBPalette *thiz,
                              unsigned int      num_entries,
                              unsigned int      offset )
 {
-     CoreSurface *surface;
      CorePalette *palette;
 
      INTERFACE_GET_DATA(IDirectFBPalette)
 
-     surface = data->surface;
-     if (!surface)
-          return DFB_DESTROYED;
-
-     palette = surface->palette;
+     palette = data->palette;
      if (!palette)
-          return DFB_UNSUPPORTED;
+          return DFB_DESTROYED;
 
      if (!entries  ||  offset + num_entries > palette->num_entries)
           return DFB_INVARG;
@@ -135,7 +121,7 @@ IDirectFBPalette_SetEntries( IDirectFBPalette *thiz,
           dfb_memcpy( palette->entries + offset,
                       entries, num_entries * sizeof(DFBColor));
 
-          dfb_palette_update( surface, palette );
+          dfb_palette_update( palette, offset, offset + num_entries - 1 );
      }
      
      return DFB_OK;
@@ -147,18 +133,13 @@ IDirectFBPalette_GetEntries( IDirectFBPalette *thiz,
                              unsigned int      num_entries,
                              unsigned int      offset )
 {
-     CoreSurface *surface;
      CorePalette *palette;
 
      INTERFACE_GET_DATA(IDirectFBPalette)
 
-     surface = data->surface;
-     if (!surface)
-          return DFB_DESTROYED;
-
-     palette = surface->palette;
+     palette = data->palette;
      if (!palette)
-          return DFB_UNSUPPORTED;
+          return DFB_DESTROYED;
 
      if (!entries  ||  offset + num_entries > palette->num_entries)
           return DFB_INVARG;
@@ -176,7 +157,6 @@ IDirectFBPalette_FindBestMatch( IDirectFBPalette *thiz,
                                 __u8              a,
                                 unsigned int     *index )
 {
-     CoreSurface *surface;
      CorePalette *palette;
 
      INTERFACE_GET_DATA(IDirectFBPalette)
@@ -184,13 +164,9 @@ IDirectFBPalette_FindBestMatch( IDirectFBPalette *thiz,
      if (!index)
           return DFB_INVARG;
 
-     surface = data->surface;
-     if (!surface)
-          return DFB_DESTROYED;
-
-     palette = surface->palette;
+     palette = data->palette;
      if (!palette)
-          return DFB_UNSUPPORTED;
+          return DFB_DESTROYED;
 
      *index = dfb_palette_search( palette, r, g, b, a );
      
@@ -200,14 +176,18 @@ IDirectFBPalette_FindBestMatch( IDirectFBPalette *thiz,
 /******/
 
 DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
-                                      CoreSurface      *surface )
+                                      CorePalette      *palette )
 {
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBPalette)
 
+     if (dfb_palette_ref( palette )) {
+          DFB_DEALLOCATE_INTERFACE(thiz);
+          return DFB_FAILURE;
+     }
+     
      data->ref     = 1;
-     data->surface = surface;
+     data->palette = palette;
 
-     dfb_surface_attach( surface, IDirectFBPalette_listener, thiz );
 
      thiz->AddRef        = IDirectFBPalette_AddRef;
      thiz->Release       = IDirectFBPalette_Release;
@@ -219,23 +199,5 @@ DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
      thiz->FindBestMatch = IDirectFBPalette_FindBestMatch;
      
      return DFB_OK;
-}
-
-
-/* internal */
-
-static ReactionResult
-IDirectFBPalette_listener( const void *msg_data, void *ctx )
-{
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
-     IDirectFBPalette        *thiz         = (IDirectFBPalette*)ctx;
-     IDirectFBPalette_data   *data         = (IDirectFBPalette_data*)thiz->priv;
-
-     if (notification->flags & CSNF_DESTROY) {
-          data->surface = NULL;
-          return RS_REMOVE;
-     }
-
-     return RS_OK;
 }
 

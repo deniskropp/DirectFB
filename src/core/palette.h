@@ -43,8 +43,16 @@ struct _CorePalette {
      } search_cache;
 };
 
+typedef enum {
+     CPNF_ENTRIES,
+     CPNF_DESTROY
+} CorePaletteNotificationFlags;
+
 typedef struct {
-     int foo;
+     CorePaletteNotificationFlags  flags;
+     CorePalette                  *palette;
+     int                           first;
+     int                           last;
 } CorePaletteNotification;
 
 
@@ -58,8 +66,9 @@ unsigned int dfb_palette_search             ( CorePalette  *palette,
                                               __u8          b,
                                               __u8          a );
 
-void         dfb_palette_update             ( CoreSurface  *surface,
-                                              CorePalette  *palette );
+void         dfb_palette_update             ( CorePalette  *palette,
+                                              int           first,
+                                              int           last );
 
 
 /*

@@ -42,10 +42,16 @@ static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 
 static void palette_destructor( FusionObject *object, bool zombie )
 {
-     CorePalette *palette = (CorePalette*) object;
+     CorePaletteNotification  notification;
+     CorePalette             *palette = (CorePalette*) object;
 
      DEBUGMSG("DirectFB/core/palette: destroying %p (%d)%s\n", palette,
               palette->num_entries, zombie ? " (ZOMBIE)" : "");
+
+     notification.flags   = CPNF_DESTROY;
+     notification.palette = palette;
+
+     fusion_object_dispatch( &palette->object, &notification );
 
      shfree( palette->entries );
 
@@ -156,12 +162,28 @@ dfb_palette_search( CorePalette *palette,
 }
 
 void
-dfb_palette_update( CoreSurface *surface, CorePalette *palette )
+dfb_palette_update( CorePalette *palette, int first, int last )
 {
+     CorePaletteNotification notification;
+
+     DFB_ASSERT( palette != NULL );
+     DFB_ASSERT( first >= 0 );
+     DFB_ASSERT( first < palette->num_entries );
+     DFB_ASSERT( last >= 0 );
+     DFB_ASSERT( last < palette->num_entries );
+     DFB_ASSERT( first <= last );
+
+     notification.flags   = CPNF_ENTRIES;
+     notification.palette = palette;
+     notification.first   = first;
+     notification.last    = last;
+
      /* reset cache */
-     palette->search_cache.index = -1;
+     if (palette->search_cache.index >= first &&
+         palette->search_cache.index <= last)
+          palette->search_cache.index = -1;
      
      /* post message about palette update */
-     dfb_surface_notify_listeners( surface, CSNF_PALETTE );
+     fusion_object_dispatch( &palette->object, &notification );
 }
 
