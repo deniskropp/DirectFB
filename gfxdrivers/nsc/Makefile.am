@@ -8,7 +8,7 @@ INCLUDES = \
 	-I/usr/src/linux/drivers/video/nsc/panel \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src \
-	-Iinclude
+	-I$(top_srcdir)/gfxdrivers/nsc/include
 
 nsc_LTLIBRARIES = libdirectfb_nsc.la
 
