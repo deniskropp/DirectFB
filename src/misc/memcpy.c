@@ -178,6 +178,8 @@ static inline void * __memcpy(void * to, const void * from, size_t n)
      return(to);
 }
 
+#ifdef USE_MMX
+
 #define SSE_MMREG_SIZE 16
 #define MMX_MMREG_SIZE 8
 
@@ -374,6 +376,8 @@ static void * mmx2_memcpy(void * to, const void * from, size_t len)
      return retval;
 }
 
+#endif /* USE_MMX */
+
 static void *linux_kernel_memcpy(void *to, const void *from, size_t len) {
      return __memcpy(to,from,len);
 }
@@ -394,9 +398,11 @@ static struct {
      { "glibc memcpy()", memcpy, 0, 0},
 #ifdef ARCH_X86
      { "linux kernel memcpy()", linux_kernel_memcpy, 0, 0},
+#ifdef USE_MMX
      { "MMX optimized memcpy()", mmx_memcpy, 0, MM_MMX},
      { "MMXEXT optimized memcpy()", mmx2_memcpy, 0, MM_MMXEXT},
      { "SSE optimized memcpy()", sse_memcpy, 0, MM_MMXEXT|MM_SSE},
+#endif /* USE_MMX  */
 #endif /* ARCH_X86 */
      { NULL, NULL, 0, 0}
 };
