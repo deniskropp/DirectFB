@@ -884,7 +884,7 @@ driver_open_device( CoreInputDevice  *device,
  * Fetch one entry from the kernel keymap.
  */
 static DFBResult
-driver_get_keymap_entry( InputDevice               *device,
+driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
