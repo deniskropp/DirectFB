@@ -1093,10 +1093,16 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
           return DFB_OK;
 
      if (!(flags & DSTF_TOP)) {
-          int ascender = 0;
+          int offset = 0;
 
-          data->font->GetAscender (data->font, &ascender);
-          y -= ascender;
+          data->font->GetAscender (data->font, &offset);
+          y -= offset;
+
+          if ((flags & DSTF_BOTTOM)) {
+               offset = 0;
+               data->font->GetDescender (data->font, &offset);
+               y += offset;
+          }
      }
 
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
@@ -1123,7 +1129,7 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
 static DFBResult
 IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
-                            int index, int x, int y,
+                            unsigned int index, int x, int y,
                             DFBSurfaceTextFlags flags )
 {
      IDirectFBFont_data *font_data;
@@ -1146,21 +1152,27 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
           return DFB_MISSINGFONT;
 
      if (!(flags & DSTF_TOP)) {
-          int ascender = 0;
+          int offset = 0;
 
-          data->font->GetAscender (data->font, &ascender);
-          y -= ascender;
+          data->font->GetAscender (data->font, &offset);
+          y -= offset;
+
+          if ((flags & DSTF_BOTTOM)) {
+               offset = 0;
+               data->font->GetDescender (data->font, &offset);
+               y += offset;
+          }
      }
 
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
-          DFBRectangle  rect;
+          int advance;
 
-          if (data->font->GetGlyphExtents (data->font, index, &rect, NULL) == DFB_OK) {
+          if (data->font->GetGlyphExtents (data->font, index, NULL, &advance) == DFB_OK) {
                if (flags & DSTF_RIGHT) {
-                    x -= rect.w;
+                    x -= advance;
                }
                else if (flags & DSTF_CENTER) {
-                    x -= rect.w >> 1;
+                    x -= advance >> 1;
                }
           }
      }

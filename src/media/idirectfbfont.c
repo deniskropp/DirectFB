@@ -141,16 +141,13 @@ IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
  */
 static DFBResult
 IDirectFBFont_GetKerning( IDirectFBFont *thiz,
-                          int  prev_index, int  current_index,
+                          unsigned int prev_index, unsigned int current_index,
                           int *kern_x, int *kern_y)
 {
      CoreFont *font;
      int x, y;
 
      INTERFACE_GET_DATA(IDirectFBFont)
-
-     if (!prev_index || !current_index)
-          return DFB_INVARG;
 
      if (!kern_x && !kern_y)
           return DFB_INVARG;
@@ -285,17 +282,14 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
  */
 static DFBResult
 IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
-                               int           index,
-                               DFBRectangle *rect,
-                               int          *advance )
+                               unsigned int   index,
+                               DFBRectangle  *rect,
+                               int           *advance )
 {
      CoreFont      *font;
      CoreGlyphData *glyph;
 
      INTERFACE_GET_DATA(IDirectFBFont)
-
-     if (!glyph)
-          return DFB_INVARG;
 
      if (!rect && !advance)
           return DFB_INVARG;
@@ -305,18 +299,24 @@ IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
      dfb_font_lock( font );
 
      if (dfb_font_get_glyph_data (font, index, &glyph) != DFB_OK) {
-          dfb_font_unlock( font );
-          return DFB_FAILURE;
-     }
 
-     if (rect) {
-          rect->x = glyph->left;
-          rect->y = glyph->top - font->ascender;
-          rect->w = glyph->width;
-          rect->h = glyph->height;
+          if (rect) {
+               rect->x = rect->y = rect->w = rect->h = 0;
+          }
+          if (advance) {
+               *advance = 0;
+          }
      }
-     if (advance) {
-          *advance = glyph->advance;
+     else {
+          if (rect) {
+               rect->x = glyph->left;
+               rect->y = glyph->top - font->ascender;
+               rect->w = glyph->width;
+               rect->h = glyph->height;
+          }
+          if (advance) {
+               *advance = glyph->advance;
+          }
      }
 
      dfb_font_unlock( font );

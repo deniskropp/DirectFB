@@ -1485,10 +1485,16 @@ extern "C"
 
           DSTF_TOP            = 0x00000004,  /* y specifies the top
                                                 instead of the baseline */
+          DSTF_BOTTOM         = 0x00000008,  /* y specifies the bottom
+                                                instead of the baseline */
 
           DSTF_TOPLEFT        = DSTF_TOP | DSTF_LEFT,
           DSTF_TOPCENTER      = DSTF_TOP | DSTF_CENTER,
-          DSTF_TOPRIGHT       = DSTF_TOP | DSTF_RIGHT
+          DSTF_TOPRIGHT       = DSTF_TOP | DSTF_RIGHT,
+
+          DSTF_BOTTOMLEFT     = DSTF_BOTTOM | DSTF_LEFT,
+          DSTF_BOTTOMCENTER   = DSTF_BOTTOM | DSTF_CENTER,
+          DSTF_BOTTOMRIGHT    = DSTF_BOTTOM | DSTF_RIGHT
      } DFBSurfaceTextFlags;
 
      /*
@@ -1908,7 +1914,7 @@ extern "C"
            */
           DFBResult (*DrawGlyph) (
                IDirectFBSurface         *thiz,
-               int                       index,
+               unsigned int              index,
                int                       x,
                int                       y,
                DFBSurfaceTextFlags       flags
@@ -2809,8 +2815,8 @@ extern "C"
            */
           DFBResult (*GetKerning) (
                IDirectFBFont       *thiz,
-               int                  prev_index,
-               int                  current_index,
+               unsigned int         prev_index,
+               unsigned int         current_index,
                int                 *kern_x,
                int                 *kern_y
           );
@@ -2882,7 +2888,7 @@ extern "C"
            */
          DFBResult (*GetGlyphExtents) (
                IDirectFBFont       *thiz,
-               int                  index,
+               unsigned int         index,
                DFBRectangle        *rect,
                int                 *advance
           );
