@@ -67,7 +67,7 @@ fusion_object_pool_create( const char             *name,
           return NULL;
 
      /* Initialize the pool lock. */
-     skirmish_init( &pool->lock );
+     fusion_skirmish_init( &pool->lock );
 
      /* Fill information. */
      pool->name         = shstrdup( name );
@@ -92,7 +92,7 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
      dfb_thread_join( pool->bone_collector );
 
      /* Destroy the pool lock. */
-     skirmish_destroy( &pool->lock );
+     fusion_skirmish_destroy( &pool->lock );
 
      /* Deallocate shared memory. */
      shfree( pool->name );
@@ -109,7 +109,7 @@ fusion_object_pool_enum   ( FusionObjectPool      *pool,
      FusionLink *l;
 
      /* Lock the pool's object list. */
-     skirmish_prevail( &pool->lock );
+     fusion_skirmish_prevail( &pool->lock );
 
      l = pool->objects;
      while (l) {
@@ -122,7 +122,7 @@ fusion_object_pool_enum   ( FusionObjectPool      *pool,
      }
 
      /* Unlock the pool's object list. */
-     skirmish_dismiss( &pool->lock );
+     fusion_skirmish_dismiss( &pool->lock );
      
      return FUSION_SUCCESS;
 }
@@ -149,7 +149,7 @@ fusion_object_create( FusionObjectPool *pool )
      }
 
      /* Create a reactor for message dispatching. */
-     object->reactor = reactor_new( pool->message_size );
+     object->reactor = fusion_reactor_new( pool->message_size );
      if (!object->reactor) {
           fusion_ref_destroy( &object->ref );
           shfree( object );
@@ -160,7 +160,7 @@ fusion_object_create( FusionObjectPool *pool )
      fusion_ref_up( &object->ref, false );
 
      /* Lock the pool's object list. */
-     skirmish_prevail( &pool->lock );
+     fusion_skirmish_prevail( &pool->lock );
 
      FDEBUG("{%s} adding %p\n", pool->name, object);
      
@@ -171,7 +171,7 @@ fusion_object_create( FusionObjectPool *pool )
      fusion_list_prepend( &pool->objects, &object->link );
 
      /* Unlock the pool's object list. */
-     skirmish_dismiss( &pool->lock );
+     fusion_skirmish_dismiss( &pool->lock );
      
      return object;
 }
@@ -191,14 +191,14 @@ fusion_object_attach( FusionObject     *object,
                       void             *ctx,
                       Reaction         *reaction )
 {
-     return reactor_attach( object->reactor, react, ctx, reaction );
+     return fusion_reactor_attach( object->reactor, react, ctx, reaction );
 }
 
 FusionResult
 fusion_object_detach( FusionObject     *object,
                       Reaction         *reaction )
 {
-     return reactor_detach( object->reactor, reaction );
+     return fusion_reactor_detach( object->reactor, reaction );
 }
 
 FusionResult
@@ -207,7 +207,7 @@ fusion_object_attach_global( FusionObject     *object,
                              void             *ctx,
                              GlobalReaction   *reaction )
 {
-     return reactor_attach_global( object->reactor,
+     return fusion_reactor_attach_global( object->reactor,
                                    react_index, ctx, reaction );
 }
 
@@ -215,7 +215,7 @@ FusionResult
 fusion_object_detach_global( FusionObject     *object,
                              GlobalReaction   *reaction )
 {
-     return reactor_detach_global( object->reactor, reaction );
+     return fusion_reactor_detach_global( object->reactor, reaction );
 }
 
 FusionResult
@@ -223,7 +223,7 @@ fusion_object_dispatch( FusionObject     *object,
                         void             *message,
                         const React      *globals )
 {
-     return reactor_dispatch( object->reactor, message, true, globals );
+     return fusion_reactor_dispatch( object->reactor, message, true, globals );
 }
 
 FusionResult
@@ -272,7 +272,7 @@ fusion_object_destroy( FusionObject     *object )
           FusionObjectPool *pool = object->pool;
 
           /* Lock the pool's object list. */
-          skirmish_prevail( &pool->lock );
+          fusion_skirmish_prevail( &pool->lock );
 
           /* Remove the object from the pool. */
           if (object->pool) {
@@ -281,12 +281,12 @@ fusion_object_destroy( FusionObject     *object )
           }
           
           /* Unlock the pool's object list. */
-          skirmish_dismiss( &pool->lock );
+          fusion_skirmish_dismiss( &pool->lock );
      }
      
      fusion_ref_destroy( &object->ref );
 
-     reactor_free( object->reactor );
+     fusion_reactor_free( object->reactor );
 
      shfree( object );
 
@@ -305,7 +305,7 @@ bone_collector_loop( CoreThread *thread, void *arg )
           usleep(100000);
 
           /* Lock the pool's object list. */
-          skirmish_prevail( &pool->lock );
+          fusion_skirmish_prevail( &pool->lock );
 
           l = pool->objects;
           while (l) {
@@ -349,7 +349,7 @@ bone_collector_loop( CoreThread *thread, void *arg )
           }
 
           /* Unlock the pool's object list. */
-          skirmish_dismiss( &pool->lock );
+          fusion_skirmish_dismiss( &pool->lock );
      }
 
      /* shutdown */

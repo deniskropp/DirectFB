@@ -198,7 +198,7 @@ dfb_core_ref()
      dfb_core->fid   = fid;
 
 #ifndef FUSION_FAKE
-     if (arena_enter ("DirectFB/Core",
+     if (fusion_arena_enter ("DirectFB/Core",
                       dfb_core_initialize, dfb_core_join, NULL,
                       &dfb_core->arena, &ret))
      {
@@ -248,7 +248,7 @@ dfb_core_unref()
           return;
 
 #ifndef FUSION_FAKE
-     arena_exit( dfb_core->arena,
+     fusion_arena_exit( dfb_core->arena,
                  dfb_core_shutdown, dfb_core_leave, NULL, false, NULL );
 #else
      dfb_core_shutdown( NULL, NULL, false );
@@ -326,7 +326,7 @@ dfb_core_deinit_emergency()
      dfb_core->refs = 0;
 
 #ifndef FUSION_FAKE
-     arena_exit( dfb_core->arena,
+     fusion_arena_exit( dfb_core->arena,
                  dfb_core_shutdown, dfb_core_leave, NULL, true, NULL );
 #else
      dfb_core_shutdown( NULL, NULL, true );

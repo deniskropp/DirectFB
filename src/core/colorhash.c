@@ -64,7 +64,7 @@ dfb_colorhash_initialize( void *data_local, void *data_shared )
      
      hash_field = data_shared;
 
-     skirmish_init( &hash_field->hash_lock );
+     fusion_skirmish_init( &hash_field->hash_lock );
 
      return DFB_OK;
 }
@@ -84,7 +84,7 @@ dfb_colorhash_shutdown( bool emergency )
 {
      DFB_ASSERT( hash_field != NULL );
      
-     skirmish_destroy( &hash_field->hash_lock );
+     fusion_skirmish_destroy( &hash_field->hash_lock );
 
      hash_field = NULL;
 
@@ -123,7 +123,7 @@ colorhash_lock( void )
 {
      DFB_ASSERT( hash_field != NULL );
      
-     skirmish_prevail( &hash_field->hash_lock );
+     fusion_skirmish_prevail( &hash_field->hash_lock );
 }
 
 static inline void
@@ -131,7 +131,7 @@ colorhash_unlock( void )
 {
      DFB_ASSERT( hash_field != NULL );
      
-     skirmish_dismiss( &hash_field->hash_lock );
+     fusion_skirmish_dismiss( &hash_field->hash_lock );
 }
 
 void

@@ -430,12 +430,12 @@ void *__shmalloc_init (bool initialize)
 
           _sheap->heapbase = (char *) _sheap->heapinfo;
 
-          skirmish_init (&_sheap->lock);
+          fusion_skirmish_init (&_sheap->lock);
 
-          _sheap->reactor  = reactor_new (sizeof(int));
+          _sheap->reactor  = fusion_reactor_new (sizeof(int));
      }
 
-     reactor_attach (_sheap->reactor, __shmalloc_react, NULL, &reaction);
+     fusion_reactor_attach (_sheap->reactor, __shmalloc_react, NULL, &reaction);
 
      return mem;
 }
@@ -474,7 +474,7 @@ void *__shmalloc_brk (int increment)
           size = new_size;
 
           if (_sheap && _sheap->reactor)
-               reactor_dispatch (_sheap->reactor, (const void *) &size, false, NULL);
+               fusion_reactor_dispatch (_sheap->reactor, (const void *) &size, false, NULL);
      }
 
      return mem + size - increment;
@@ -506,7 +506,7 @@ void __shmalloc_exit (bool shutdown)
 
      if (_sheap) {
           /* Detach from reactor */
-          reactor_detach (_sheap->reactor, &reaction);
+          fusion_reactor_detach (_sheap->reactor, &reaction);
 
           /* Destroy reactor & skirmish */
           if (shutdown) {
@@ -515,8 +515,8 @@ void __shmalloc_exit (bool shutdown)
                /* Avoid further dispatching by next call */
                _sheap->reactor = NULL;
 
-               reactor_free (reactor);
-               skirmish_destroy (&_sheap->lock);
+               fusion_reactor_free (reactor);
+               fusion_skirmish_destroy (&_sheap->lock);
           }
 
           _sheap = NULL;

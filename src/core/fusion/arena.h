@@ -35,27 +35,27 @@ typedef int (*ArenaEnterFunc) (FusionArena *arena, void *ctx);
 typedef int (*ArenaExitFunc) (FusionArena *arena, void *ctx, bool emergency);
 
 
-FusionResult  arena_enter            (const char      *name,
-                                      ArenaEnterFunc   initialize,
-                                      ArenaEnterFunc   join,
-                                      void            *ctx,
-                                      FusionArena    **ret_arena,
-                                      int             *ret_error);
+FusionResult fusion_arena_enter            (const char      *name,
+                                            ArenaEnterFunc   initialize,
+                                            ArenaEnterFunc   join,
+                                            void            *ctx,
+                                            FusionArena    **ret_arena,
+                                            int             *ret_error);
 
-FusionResult  arena_add_shared_field (FusionArena     *arena,
-                                      const char      *name,
-                                      void            *data);
+FusionResult fusion_arena_add_shared_field (FusionArena     *arena,
+                                            const char      *name,
+                                            void            *data);
 
-FusionResult  arena_get_shared_field (FusionArena     *arena,
-                                      const char      *name,
-                                      void           **data);
+FusionResult fusion_arena_get_shared_field (FusionArena     *arena,
+                                            const char      *name,
+                                            void           **data);
 
-FusionResult  arena_exit             (FusionArena     *arena,
-                                      ArenaExitFunc    shutdown,
-                                      ArenaExitFunc    leave,
-                                      void            *ctx,
-                                      bool             emergency,
-                                      int             *ret_error);
+FusionResult fusion_arena_exit             (FusionArena     *arena,
+                                            ArenaExitFunc    shutdown,
+                                            ArenaExitFunc    leave,
+                                            void            *ctx,
+                                            bool             emergency,
+                                            int             *ret_error);
 
 #endif /* !FUSION_FAKE */
 

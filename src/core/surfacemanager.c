@@ -120,7 +120,7 @@ dfb_surfacemanager_create( unsigned int length,
      manager->byteoffset_align = byteoffset_align;
      manager->pixelpitch_align = pixelpitch_align;
 
-     skirmish_init( &manager->lock );
+     fusion_skirmish_init( &manager->lock );
 
      return manager;
 }
@@ -144,7 +144,7 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
      }
 
      /* Destroy manager lock. */
-     skirmish_destroy( &manager->lock );
+     fusion_skirmish_destroy( &manager->lock );
      
      /* Deallocate manager struct. */
      shfree( manager );
@@ -181,12 +181,12 @@ DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 
 void dfb_surfacemanager_lock( SurfaceManager *manager )
 {
-     skirmish_prevail( &manager->lock );
+     fusion_skirmish_prevail( &manager->lock );
 }
 
 void dfb_surfacemanager_unlock( SurfaceManager *manager )
 {
-     skirmish_dismiss( &manager->lock );
+     fusion_skirmish_dismiss( &manager->lock );
 }
 
 DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,

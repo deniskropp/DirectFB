@@ -146,7 +146,7 @@ ensure_focus( CoreWindowStack *stack );
 static inline void
 stack_lock( CoreWindowStack *stack )
 {
-     skirmish_prevail( &stack->lock );
+     fusion_skirmish_prevail( &stack->lock );
 }
 
 /*
@@ -155,7 +155,7 @@ stack_lock( CoreWindowStack *stack )
 static inline void
 stack_unlock( CoreWindowStack *stack )
 {
-     skirmish_dismiss( &stack->lock );
+     fusion_skirmish_dismiss( &stack->lock );
 }
 
 static const React dfb_window_globals[] = {
@@ -214,7 +214,7 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
           stack->pool = dfb_layer_window_stack( dfb_layer_at(DLID_PRIMARY) )->pool;
 
      /* Initialize the modify/update lock */
-     skirmish_init( &stack->lock );
+     fusion_skirmish_init( &stack->lock );
 
      /* Set default acceleration */
      stack->cursor.numerator   = 2;
@@ -271,7 +271,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      if (stack->layer_id == DLID_PRIMARY)
           fusion_object_pool_destroy( stack->pool );
 
-     skirmish_destroy( &stack->lock );
+     fusion_skirmish_destroy( &stack->lock );
 
      if (stack->windows) {
           int i;

@@ -11,8 +11,8 @@
 
 #include "ppc_asm.h"
 
-	.globl	ppcasm_memcpy
-ppcasm_memcpy:
+	.globl	dfb_ppcasm_memcpy
+dfb_ppcasm_memcpy:
 	srwi.	r7,r5,3
 	addi	r6,r3,-4
 	addi	r4,r4,-4

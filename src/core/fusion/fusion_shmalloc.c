@@ -46,11 +46,11 @@ void *shmalloc (size_t __size)
 
      DFB_ASSERT( _sheap != NULL );
 
-     skirmish_prevail( &_sheap->lock );
+     fusion_skirmish_prevail( &_sheap->lock );
      
      ret = _fusion_shmalloc( __size );
      
-     skirmish_dismiss( &_sheap->lock );
+     fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
 }
@@ -63,11 +63,11 @@ void *shrealloc (void *__ptr, size_t __size)
 
      DFB_ASSERT( _sheap != NULL );
 
-     skirmish_prevail( &_sheap->lock );
+     fusion_skirmish_prevail( &_sheap->lock );
      
      ret = _fusion_shrealloc( __ptr, __size );
      
-     skirmish_dismiss( &_sheap->lock );
+     fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
 }
@@ -79,11 +79,11 @@ void *shcalloc (size_t __nmemb, size_t __size)
 
      DFB_ASSERT( _sheap != NULL );
 
-     skirmish_prevail( &_sheap->lock );
+     fusion_skirmish_prevail( &_sheap->lock );
      
      ret = _fusion_shcalloc( __nmemb, __size );
      
-     skirmish_dismiss( &_sheap->lock );
+     fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
 }
@@ -93,11 +93,11 @@ void  shfree (void *__ptr)
 {
      DFB_ASSERT( _sheap != NULL );
 
-     skirmish_prevail( &_sheap->lock );
+     fusion_skirmish_prevail( &_sheap->lock );
      
      _fusion_shfree( __ptr );
      
-     skirmish_dismiss( &_sheap->lock );
+     fusion_skirmish_dismiss( &_sheap->lock );
 }
 
 /* Allocate SIZE bytes allocated to ALIGNMENT bytes.  */
@@ -107,11 +107,11 @@ void *shmemalign (size_t __alignment, size_t __size)
 
      DFB_ASSERT( _sheap != NULL );
 
-     skirmish_prevail( &_sheap->lock );
+     fusion_skirmish_prevail( &_sheap->lock );
      
      ret = _fusion_shmemalign( __alignment, __size );
      
-     skirmish_dismiss( &_sheap->lock );
+     fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
 }
@@ -123,11 +123,11 @@ void *shvalloc (size_t __size)
 
      DFB_ASSERT( _sheap != NULL );
 
-     skirmish_prevail( &_sheap->lock );
+     fusion_skirmish_prevail( &_sheap->lock );
      
      ret = _fusion_shvalloc( __size );
      
-     skirmish_dismiss( &_sheap->lock );
+     fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
 }
@@ -139,11 +139,11 @@ struct shmstats shmstats (void)
 
      DFB_ASSERT( _sheap != NULL );
 
-     skirmish_prevail( &_sheap->lock );
+     fusion_skirmish_prevail( &_sheap->lock );
      
      ret = _fusion_shmstats();
      
-     skirmish_dismiss( &_sheap->lock );
+     fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
 }
@@ -158,13 +158,13 @@ char *shstrdup (const char* string)
 
      len = strlen( string ) + 1;
 
-     skirmish_prevail( &_sheap->lock );
+     fusion_skirmish_prevail( &_sheap->lock );
      
      ret = _fusion_shmalloc( len );
      if (ret)
           dfb_memcpy( ret, string, len );
      
-     skirmish_dismiss( &_sheap->lock );
+     fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
 }

@@ -1,7 +1,7 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.5 $
- * $Author: andi $
+ * $Revision: 1.6 $
+ * $Author: dok $
  *
  * File Contents: This file contains the main functions of the Geode 
  *                frame buffer device drivers GAL function definitions.
@@ -168,6 +168,7 @@
 		(x)->dwSize = sizeof(*x);\
 		(x)->dwVersion = FBGAL_VERSION;
 
+#if 0
 /*------------------------------------------------------------------------
  * create_devicenode
  *
@@ -177,7 +178,7 @@
  *	
  *	return:	'0' was return on creating the galdevice node.
  *----------------------------------------------------------------------*/
-int
+static int
 create_devicenode()
 {
 
@@ -203,6 +204,7 @@ create_devicenode()
 #endif
 
 }
+#endif
 
 /*------------------------------------------------------------------------
  * Gal_initialize_interface 

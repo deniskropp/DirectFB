@@ -114,8 +114,8 @@ extern FusionShared *_fusion_shared;
 /*
  * from reactor.c
  */
-void _reactor_free_all();
-void _reactor_process_message( int reactor_id, const void *msg_data );
+void _fusion_reactor_free_all();
+void _fusion_reactor_process_message( int fusion_reactor_id, const void *msg_data );
 
 /*
  * from call.c

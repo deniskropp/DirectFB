@@ -76,7 +76,7 @@ dfb_core_part_initialize( CorePart *core_part )
 
 #ifndef FUSION_FAKE
      if (shared)
-          arena_add_shared_field( dfb_core->arena, core_part->name, shared );
+          fusion_arena_add_shared_field( dfb_core->arena, core_part->name, shared );
 #endif
 
      core_part->data_local  = local;
@@ -103,7 +103,7 @@ dfb_core_part_join( CorePart *core_part )
                "Going to join '%s' core...\n", core_part->name );
      
      if (core_part->size_shared &&
-         arena_get_shared_field( dfb_core->arena, core_part->name, &shared ))
+         fusion_arena_get_shared_field( dfb_core->arena, core_part->name, &shared ))
           return DFB_FUSION;
 
      if (core_part->size_local)

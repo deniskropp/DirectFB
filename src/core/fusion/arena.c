@@ -79,12 +79,13 @@ static void         unlock_arena( FusionArena *arena );
  *  Public API  *
  ****************/
 
-FusionResult arena_enter (const char     *name,
-                          ArenaEnterFunc  initialize,
-                          ArenaEnterFunc  join,
-                          void           *ctx,
-                          FusionArena   **ret_arena,
-                          int            *ret_error)
+FusionResult
+fusion_arena_enter (const char     *name,
+                    ArenaEnterFunc  initialize,
+                    ArenaEnterFunc  join,
+                    void           *ctx,
+                    FusionArena   **ret_arena,
+                    int            *ret_error)
 {
      FusionArena    *arena;
      ArenaEnterFunc  func;
@@ -154,12 +155,12 @@ FusionResult arena_enter (const char     *name,
            /* Destroy the arena lock. This has to happen before
               locking the list. Otherwise a dead lock with lock_arena()
               below could occur. */
-           skirmish_destroy( &arena->lock );
+           fusion_skirmish_destroy( &arena->lock );
 
            /* Lock the list and remove the arena. */
-           skirmish_prevail( &_fusion_shared->arenas_lock );
+           fusion_skirmish_prevail( &_fusion_shared->arenas_lock );
            fusion_list_remove( &_fusion_shared->arenas, &arena->link );
-           skirmish_dismiss( &_fusion_shared->arenas_lock );
+           fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
 
            /* Free allocated memory. */
            shfree( arena->name );
@@ -175,9 +176,10 @@ FusionResult arena_enter (const char     *name,
      return FUSION_SUCCESS;
 }
 
-FusionResult arena_add_shared_field (FusionArena *arena,
-                                     const char  *name,
-                                     void        *data)
+FusionResult
+fusion_arena_add_shared_field (FusionArena *arena,
+                               const char  *name,
+                               void        *data)
 {
      ArenaField *field;
 
@@ -186,13 +188,13 @@ FusionResult arena_add_shared_field (FusionArena *arena,
      DFB_ASSERT( name != NULL );
 
      /* Lock the arena. */
-     if (skirmish_prevail( &arena->lock ))
+     if (fusion_skirmish_prevail( &arena->lock ))
           return FUSION_FAILURE;
 
      /* Allocate memory for the field information. */
      field = shcalloc( 1, sizeof(ArenaField) );
      if (!field) {
-          skirmish_dismiss( &arena->lock );
+          fusion_skirmish_dismiss( &arena->lock );
           return FUSION_FAILURE;
      }
 
@@ -206,14 +208,15 @@ FusionResult arena_add_shared_field (FusionArena *arena,
      fusion_list_prepend( &arena->fields, &field->link );
 
      /* Unlock the arena. */
-     skirmish_dismiss( &arena->lock );
+     fusion_skirmish_dismiss( &arena->lock );
 
      return FUSION_SUCCESS;
 }
 
-FusionResult arena_get_shared_field (FusionArena  *arena,
-                                     const char   *name,
-                                     void        **data)
+FusionResult
+fusion_arena_get_shared_field (FusionArena  *arena,
+                               const char   *name,
+                               void        **data)
 {
      FusionLink *l;
 
@@ -222,7 +225,7 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
      DFB_ASSERT( name != NULL );
      
      /* Lock the arena. */
-     if (skirmish_prevail( &arena->lock ))
+     if (fusion_skirmish_prevail( &arena->lock ))
           return FUSION_FAILURE;
 
      /* For each field in the arena... */
@@ -235,7 +238,7 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
                *data = field->data;
                
                /* Unlock the arena. */
-               skirmish_dismiss( &arena->lock );
+               fusion_skirmish_dismiss( &arena->lock );
 
                /* Field has been found. */
                return FUSION_SUCCESS;
@@ -243,18 +246,19 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
      }
      
      /* Unlock the arena. */
-     skirmish_dismiss( &arena->lock );
+     fusion_skirmish_dismiss( &arena->lock );
 
      /* No field by that name has been found. */
      return FUSION_NOTEXISTENT;
 }
 
-FusionResult arena_exit (FusionArena   *arena,
-                         ArenaExitFunc  shutdown,
-                         ArenaExitFunc  leave,
-                         void          *ctx,
-                         bool           emergency,
-                         int           *ret_error)
+FusionResult
+fusion_arena_exit (FusionArena   *arena,
+                   ArenaExitFunc  shutdown,
+                   ArenaExitFunc  leave,
+                   void          *ctx,
+                   bool           emergency,
+                   int           *ret_error)
 {
      int error = 0;
 
@@ -263,7 +267,7 @@ FusionResult arena_exit (FusionArena   *arena,
      DFB_ASSERT( leave != NULL );
      
      /* Lock the arena. */
-     if (skirmish_prevail( &arena->lock ))
+     if (fusion_skirmish_prevail( &arena->lock ))
           return FUSION_FAILURE;
 
      /* Decrease reference counter. */
@@ -294,12 +298,12 @@ FusionResult arena_exit (FusionArena   *arena,
           /* Destroy the arena lock. This has to happen before
              locking the list. Otherwise a dead lock with lock_arena()
              below could occur. */
-          skirmish_destroy( &arena->lock );
+          fusion_skirmish_destroy( &arena->lock );
           
           /* Lock the list and remove the arena. */
-          skirmish_prevail( &_fusion_shared->arenas_lock );
+          fusion_skirmish_prevail( &_fusion_shared->arenas_lock );
           fusion_list_remove( &_fusion_shared->arenas, &arena->link );
-          skirmish_dismiss( &_fusion_shared->arenas_lock );
+          fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
 
           /* Free allocated memory. */
           shfree( arena->name );
@@ -310,7 +314,7 @@ FusionResult arena_exit (FusionArena   *arena,
           error = leave( arena, ctx, emergency );
 
           /* Unlock the arena. */
-          skirmish_dismiss( &arena->lock );
+          fusion_skirmish_dismiss( &arena->lock );
      }
 
      /* Return the return value of the callback. */
@@ -331,7 +335,7 @@ lock_arena( const char *name, bool add )
      FusionLink *l;
 
      /* Lock the list. */
-     skirmish_prevail( &_fusion_shared->arenas_lock );
+     fusion_skirmish_prevail( &_fusion_shared->arenas_lock );
 
      /* For each exisiting arena... */
      fusion_list_foreach (l, _fusion_shared->arenas) {
@@ -340,7 +344,7 @@ lock_arena( const char *name, bool add )
           /* Lock the arena.
              This would fail if the arena has been
              destroyed while waiting for the lock. */
-          if (skirmish_prevail( &arena->lock ))
+          if (fusion_skirmish_prevail( &arena->lock ))
                continue;
 
           /* Check if the name matches. */
@@ -355,14 +359,14 @@ lock_arena( const char *name, bool add )
                }
 
                /* Unlock the list. */
-               skirmish_dismiss( &_fusion_shared->arenas_lock );
+               fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
 
                /* Return locked arena. */
                return arena;
           }
 
           /* Unlock mismatched arena. */
-          skirmish_dismiss( &arena->lock );
+          fusion_skirmish_dismiss( &arena->lock );
      }
 
      /* If no arena name matched, create a new arena
@@ -371,7 +375,7 @@ lock_arena( const char *name, bool add )
           FusionArena *arena = shcalloc( 1, sizeof(FusionArena) );
 
           /* Initialize lock and reference counter. */
-          skirmish_init( &arena->lock );
+          fusion_skirmish_init( &arena->lock );
           fusion_ref_init( &arena->ref );
 
           /* Give it the requested name. */
@@ -381,17 +385,17 @@ lock_arena( const char *name, bool add )
           fusion_list_prepend( &_fusion_shared->arenas, &arena->link );
           
           /* Lock the newly created arena. */
-          skirmish_prevail( &arena->lock );
+          fusion_skirmish_prevail( &arena->lock );
 
           /* Unlock the list. */
-          skirmish_dismiss( &_fusion_shared->arenas_lock );
+          fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
 
           /* Returned locked new arena. */
           return arena;
      }
      
      /* Unlock the list. */
-     skirmish_dismiss( &_fusion_shared->arenas_lock );
+     fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
 
      return NULL;
 }
@@ -402,6 +406,6 @@ unlock_arena( FusionArena *arena )
      DFB_ASSERT( arena != NULL );
 
      /* Unlock the arena. */
-     skirmish_dismiss( &arena->lock );
+     fusion_skirmish_dismiss( &arena->lock );
 }
 

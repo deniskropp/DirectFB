@@ -107,7 +107,7 @@ fusion_init()
      if (_fusion_id == 1) {
           _fusion_shared = __shmalloc_allocate_root( sizeof(FusionShared) );
 
-          skirmish_init( &_fusion_shared->arenas_lock );
+          fusion_skirmish_init( &_fusion_shared->arenas_lock );
 
           gettimeofday( &_fusion_shared->start_time, NULL );
      }
@@ -133,14 +133,14 @@ fusion_exit()
      dfb_thread_destroy( read_loop );
 
      if (_fusion_id == 1) {
-          skirmish_destroy( &_fusion_shared->arenas_lock );
+          fusion_skirmish_destroy( &_fusion_shared->arenas_lock );
      }
 
      _fusion_shared = NULL;
 
      __shmalloc_exit( _fusion_id == 1 );
 
-     _reactor_free_all();
+     _fusion_reactor_free_all();
 
      _fusion_id = 0;
      
@@ -209,7 +209,7 @@ fusion_read_loop( CoreThread *thread, void *arg )
                          _fusion_call_process( header->msg_id, data );
                          break;
                     case FMT_REACTOR:
-                         _reactor_process_message( header->msg_id, data );
+                         _fusion_reactor_process_message( header->msg_id, data );
                          break;
                     default:
                          FDEBUG( "discarding message of unknown type '%d'\n",

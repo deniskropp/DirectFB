@@ -237,14 +237,14 @@ layer_callback( DisplayLayer *layer,
      printf( "\nWindows on layer %d\n", dfb_layer_id( layer ) );
      printf( "-------------------\n\n" );
 
-     skirmish_prevail( &stack->lock );
+     fusion_skirmish_prevail( &stack->lock );
      
      for (i=stack->num_windows - 1; i>=0; i--) {
           if (!window_callback( stack->windows[i], stack ))
                break;
      }
 
-     skirmish_dismiss( &stack->lock );
+     fusion_skirmish_dismiss( &stack->lock );
      
      return DFENUM_OK;
 }

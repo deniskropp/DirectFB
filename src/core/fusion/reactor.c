@@ -97,7 +97,7 @@ static void         process_globals( FusionReactor *reactor,
  ****************/
 
 FusionReactor *
-reactor_new (int msg_size)
+fusion_reactor_new (int msg_size)
 {
      FusionReactor *reactor;
 
@@ -127,16 +127,16 @@ reactor_new (int msg_size)
      /* set the static message size, should we make dynamic? (TODO?) */
      reactor->msg_size = msg_size;
 
-     skirmish_init( &reactor->globals_lock );
+     fusion_skirmish_init( &reactor->globals_lock );
 
      return reactor;
 }
 
 FusionResult
-reactor_attach (FusionReactor *reactor,
-                React          react,
-                void          *ctx,
-                Reaction      *reaction)
+fusion_reactor_attach (FusionReactor *reactor,
+                       React          react,
+                       void          *ctx,
+                       Reaction      *reaction)
 {
      ReactorNode *node;
 
@@ -192,8 +192,8 @@ reactor_attach (FusionReactor *reactor,
 }
 
 FusionResult
-reactor_detach (FusionReactor *reactor,
-                Reaction      *reaction)
+fusion_reactor_detach (FusionReactor *reactor,
+                       Reaction      *reaction)
 {
      ReactorNode *node;
 
@@ -201,7 +201,7 @@ reactor_detach (FusionReactor *reactor,
      DFB_ASSERT( reaction != NULL );
 
      if (!reaction->attached) {
-          FDEBUG( "reactor_detach() called on reaction that isn't attached\n" );
+          FDEBUG( "fusion_reactor_detach() called on reaction that isn't attached\n" );
           return FUSION_SUCCESS;
      }
 
@@ -239,10 +239,10 @@ reactor_detach (FusionReactor *reactor,
 }
 
 FusionResult
-reactor_attach_global (FusionReactor  *reactor,
-                       int             react_index,
-                       void           *ctx,
-                       GlobalReaction *reaction)
+fusion_reactor_attach_global (FusionReactor  *reactor,
+                              int             react_index,
+                              void           *ctx,
+                              GlobalReaction *reaction)
 {
      FusionResult ret;
 
@@ -250,7 +250,7 @@ reactor_attach_global (FusionReactor  *reactor,
      DFB_ASSERT( react_index >= 0 );
      DFB_ASSERT( reaction != NULL );
 
-     ret = skirmish_prevail( &reactor->globals_lock );
+     ret = fusion_skirmish_prevail( &reactor->globals_lock );
      if (ret)
           return ret;
      
@@ -262,14 +262,14 @@ reactor_attach_global (FusionReactor  *reactor,
      /* prepend the reaction to the local reaction list */
      fusion_list_prepend (&reactor->globals, &reaction->link);
 
-     skirmish_dismiss( &reactor->globals_lock );
+     fusion_skirmish_dismiss( &reactor->globals_lock );
      
      return FUSION_SUCCESS;
 }
 
 FusionResult
-reactor_detach_global (FusionReactor  *reactor,
-                       GlobalReaction *reaction)
+fusion_reactor_detach_global (FusionReactor  *reactor,
+                              GlobalReaction *reaction)
 {
      FusionResult ret;
 
@@ -277,12 +277,12 @@ reactor_detach_global (FusionReactor  *reactor,
      DFB_ASSERT( reaction != NULL );
 
      if (!reaction->attached) {
-          FDEBUG( "reactor_detach_global() called "
+          FDEBUG( "fusion_reactor_detach_global() called "
                   "on reaction that isn't attached\n" );
           return FUSION_SUCCESS;
      }
 
-     ret = skirmish_prevail( &reactor->globals_lock );
+     ret = fusion_skirmish_prevail( &reactor->globals_lock );
      if (ret)
           return ret;
      
@@ -292,16 +292,16 @@ reactor_detach_global (FusionReactor  *reactor,
           fusion_list_remove( &reactor->globals, &reaction->link );
      }
 
-     skirmish_dismiss( &reactor->globals_lock );
+     fusion_skirmish_dismiss( &reactor->globals_lock );
      
      return FUSION_SUCCESS;
 }
 
 FusionResult
-reactor_dispatch (FusionReactor *reactor,
-                  const void    *msg_data,
-                  bool           self,
-                  const React   *globals)
+fusion_reactor_dispatch (FusionReactor *reactor,
+                         const void    *msg_data,
+                         bool           self,
+                         const React   *globals)
 {
      FusionReactorDispatch dispatch;
 
@@ -309,7 +309,7 @@ reactor_dispatch (FusionReactor *reactor,
      DFB_ASSERT( msg_data != NULL );
 
      if (self)
-          _reactor_process_message( reactor->id, msg_data );
+          _fusion_reactor_process_message( reactor->id, msg_data );
 
      if (reactor->globals) {
           if (globals)
@@ -344,12 +344,12 @@ reactor_dispatch (FusionReactor *reactor,
 }
 
 FusionResult
-reactor_free (FusionReactor *reactor)
+fusion_reactor_free (FusionReactor *reactor)
 {
      DFB_ASSERT( reactor != NULL );
 
-     skirmish_prevail( &reactor->globals_lock );
-     skirmish_destroy( &reactor->globals_lock );
+     fusion_skirmish_prevail( &reactor->globals_lock );
+     fusion_skirmish_destroy( &reactor->globals_lock );
      
      while (ioctl (_fusion_fd, FUSION_REACTOR_DESTROY, &reactor->id)) {
           switch (errno) {
@@ -378,7 +378,7 @@ reactor_free (FusionReactor *reactor)
  *******************************/
 
 void
-_reactor_free_all()
+_fusion_reactor_free_all()
 {
      /* FIXME */
 
@@ -405,7 +405,7 @@ _reactor_free_all()
 }
 
 void
-_reactor_process_message( int reactor_id, const void *msg_data )
+_fusion_reactor_process_message( int reactor_id, const void *msg_data )
 {
      FusionLink  *l;
      ReactorNode *node;
@@ -479,7 +479,7 @@ process_globals( FusionReactor *reactor,
      if (max_index < 0)
           return;
      
-     if (skirmish_prevail( &reactor->globals_lock ))
+     if (fusion_skirmish_prevail( &reactor->globals_lock ))
           return;
 
      l = reactor->globals;
@@ -500,7 +500,7 @@ process_globals( FusionReactor *reactor,
           l = next;
      }
 
-     skirmish_dismiss( &reactor->globals_lock );
+     fusion_skirmish_dismiss( &reactor->globals_lock );
 }
 
 /*****************************
@@ -605,7 +605,7 @@ process_globals( FusionReactor *reactor,
  ****************/
 
 FusionReactor *
-reactor_new (int msg_size)
+fusion_reactor_new (int msg_size)
 {
      FusionReactor           *reactor;
 
@@ -618,10 +618,10 @@ reactor_new (int msg_size)
 }
 
 FusionResult
-reactor_attach (FusionReactor *reactor,
-                React          react,
-                void          *ctx,
-                Reaction      *reaction)
+fusion_reactor_attach (FusionReactor *reactor,
+                       React          react,
+                       void          *ctx,
+                       Reaction      *reaction)
 {
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( react != NULL );
@@ -640,8 +640,8 @@ reactor_attach (FusionReactor *reactor,
 }
 
 FusionResult
-reactor_detach (FusionReactor *reactor,
-                Reaction      *reaction)
+fusion_reactor_detach (FusionReactor *reactor,
+                       Reaction      *reaction)
 {
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
@@ -656,10 +656,10 @@ reactor_detach (FusionReactor *reactor,
 }
 
 FusionResult
-reactor_attach_global (FusionReactor  *reactor,
-                       int             react_index,
-                       void           *ctx,
-                       GlobalReaction *reaction)
+fusion_reactor_attach_global (FusionReactor  *reactor,
+                              int             react_index,
+                              void           *ctx,
+                              GlobalReaction *reaction)
 {
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( react_index >= 0 );
@@ -678,8 +678,8 @@ reactor_attach_global (FusionReactor  *reactor,
 }
 
 FusionResult
-reactor_detach_global (FusionReactor  *reactor,
-                       GlobalReaction *reaction)
+fusion_reactor_detach_global (FusionReactor  *reactor,
+                              GlobalReaction *reaction)
 {
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
@@ -694,10 +694,10 @@ reactor_detach_global (FusionReactor  *reactor,
 }
 
 FusionResult
-reactor_dispatch (FusionReactor *reactor,
-                  const void    *msg_data,
-                  bool           self,
-                  const React   *globals)
+fusion_reactor_dispatch (FusionReactor *reactor,
+                         const void    *msg_data,
+                         bool           self,
+                         const React   *globals)
 {
      FusionLink *l;
 
@@ -744,7 +744,7 @@ reactor_dispatch (FusionReactor *reactor,
 }
 
 FusionResult
-reactor_free (FusionReactor *reactor)
+fusion_reactor_free (FusionReactor *reactor)
 {
      reactor->reactions = NULL;
 

@@ -229,7 +229,7 @@ dfb_input_shutdown( bool emergency )
                DFBFREE( driver );
           }
 
-          reactor_free( shared->reactor );
+          fusion_reactor_free( shared->reactor );
 
           if (shared->keymap.entries)
                shfree( shared->keymap.entries );
@@ -337,7 +337,7 @@ dfb_input_attach( InputDevice *device,
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
      
-     return reactor_attach( device->shared->reactor, react, ctx, reaction );
+     return fusion_reactor_attach( device->shared->reactor, react, ctx, reaction );
 }
 
 FusionResult
@@ -348,7 +348,7 @@ dfb_input_detach( InputDevice *device,
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
      
-     return reactor_detach( device->shared->reactor, reaction );
+     return fusion_reactor_detach( device->shared->reactor, reaction );
 }
 
 FusionResult
@@ -361,7 +361,7 @@ dfb_input_attach_global( InputDevice    *device,
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
      
-     return reactor_attach_global( device->shared->reactor,
+     return fusion_reactor_attach_global( device->shared->reactor,
                                    react_index, ctx, reaction );
 }
 
@@ -373,7 +373,7 @@ dfb_input_detach_global( InputDevice    *device,
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
      
-     return reactor_detach_global( device->shared->reactor, reaction );
+     return fusion_reactor_detach_global( device->shared->reactor, reaction );
 }
 
 void
@@ -418,7 +418,7 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
      event->device_id = device->shared->id;
 
      if (core_input_filter( device, event ))
-          reactor_dispatch( device->shared->reactor, event,
+          fusion_reactor_dispatch( device->shared->reactor, event,
                             true, dfb_input_globals );
 }
 
@@ -612,10 +612,10 @@ init_devices()
                device_info.desc.min_keycode = -1;
                device_info.desc.max_keycode = -1;
 
-               device->shared->reactor = reactor_new( sizeof(DFBInputEvent) );
+               device->shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent) );
 
                if (funcs->OpenDevice( device, n, &device_info, &driver_data )) {
-                    reactor_free( device->shared->reactor );
+                    fusion_reactor_free( device->shared->reactor );
                     shfree( device->shared );
                     DFBFREE( device );
                     continue;

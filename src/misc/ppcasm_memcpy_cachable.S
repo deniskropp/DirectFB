@@ -71,8 +71,8 @@
 
 CACHELINE_MASK = (L1_CACHE_LINE_SIZE - 1) 
 
-	.global	ppcasm_cacheable_memcpy
-ppcasm_cacheable_memcpy:
+	.global	dfb_ppcasm_cacheable_memcpy
+dfb_ppcasm_cacheable_memcpy:
 #if 0 /* this part causes "error loading shared library: unexpected reloc type
          0x0b (???) */
 	add	r7,r3,r5		/* test if the src & dst overlap */

@@ -232,7 +232,7 @@ primaryInitLayer         ( GraphicsDevice             *device,
      else
           default_config->pixelformat = DSPF_RGB16;
 
-     skirmish_prevail( &dfb_sdl->lock );
+     fusion_skirmish_prevail( &dfb_sdl->lock );
      
      /* Set video mode */
      if ( (screen=SDL_SetVideoMode(default_config->width,
@@ -242,11 +242,11 @@ primaryInitLayer         ( GraphicsDevice             *device,
              ERRORMSG("Couldn't set %dx%dx%d video mode: %s\n",
                       default_config->width, default_config->height,
                       DFB_BITS_PER_PIXEL(default_config->pixelformat), SDL_GetError());
-             skirmish_dismiss( &dfb_sdl->lock );
+             fusion_skirmish_dismiss( &dfb_sdl->lock );
              return DFB_FAILURE;
      }
      
-     skirmish_dismiss( &dfb_sdl->lock );
+     fusion_skirmish_dismiss( &dfb_sdl->lock );
      
      return DFB_OK;
 }
@@ -548,7 +548,7 @@ typedef enum {
 static DFBResult
 dfb_sdl_set_video_mode_handler( DFBDisplayLayerConfig *config )
 {
-     skirmish_prevail( &dfb_sdl->lock );
+     fusion_skirmish_prevail( &dfb_sdl->lock );
      
      /* Set video mode */
      if ( (screen=SDL_SetVideoMode(config->width,
@@ -559,12 +559,12 @@ dfb_sdl_set_video_mode_handler( DFBDisplayLayerConfig *config )
                       config->width, config->height,
                       DFB_BITS_PER_PIXEL(config->pixelformat), SDL_GetError());
 
-             skirmish_dismiss( &dfb_sdl->lock );
+             fusion_skirmish_dismiss( &dfb_sdl->lock );
 
              return DFB_FAILURE;
      }
 
-     skirmish_dismiss( &dfb_sdl->lock );
+     fusion_skirmish_dismiss( &dfb_sdl->lock );
      
      return DFB_OK;
 }
@@ -575,7 +575,7 @@ dfb_sdl_update_screen_handler( DFBRegion *region )
      DFBResult    ret;
      CoreSurface *surface = dfb_layer_surface( dfb_layer_at(DLID_PRIMARY) );
 
-     skirmish_prevail( &dfb_sdl->lock );
+     fusion_skirmish_prevail( &dfb_sdl->lock );
      
      if (!region)
           ret = update_screen( surface, 0, 0, surface->width, surface->height );
@@ -585,7 +585,7 @@ dfb_sdl_update_screen_handler( DFBRegion *region )
                                region->x2 - region->x1 + 1,
                                region->y2 - region->y1 + 1 );
 
-     skirmish_dismiss( &dfb_sdl->lock );
+     fusion_skirmish_dismiss( &dfb_sdl->lock );
      
      return DFB_OK;
 }
@@ -602,11 +602,11 @@ dfb_sdl_set_palette_handler( CorePalette *palette )
           colors[i].b = palette->entries[i].b;
      }
      
-     skirmish_prevail( &dfb_sdl->lock );
+     fusion_skirmish_prevail( &dfb_sdl->lock );
      
      SDL_SetColors( screen, colors, 0, palette->num_entries );
      
-     skirmish_dismiss( &dfb_sdl->lock );
+     fusion_skirmish_dismiss( &dfb_sdl->lock );
 
      return DFB_OK;
 }

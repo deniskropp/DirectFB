@@ -46,27 +46,27 @@ extern "C"
      /*
       * Initialize.
       */
-     FusionResult skirmish_init    (FusionSkirmish *skirmish);
+     FusionResult fusion_skirmish_init    (FusionSkirmish *skirmish);
 
      /*
       * Lock.
       */
-     FusionResult skirmish_prevail (FusionSkirmish *skirmish);
+     FusionResult fusion_skirmish_prevail (FusionSkirmish *skirmish);
 
      /*
       * Try lock.
       */
-     FusionResult skirmish_swoop   (FusionSkirmish *skirmish);
+     FusionResult fusion_skirmish_swoop   (FusionSkirmish *skirmish);
 
      /*
       * Unlock.
       */
-     FusionResult skirmish_dismiss (FusionSkirmish *skirmish);
+     FusionResult fusion_skirmish_dismiss (FusionSkirmish *skirmish);
 
      /*
       * Deinitialize.
       */
-     FusionResult skirmish_destroy (FusionSkirmish *skirmish);
+     FusionResult fusion_skirmish_destroy (FusionSkirmish *skirmish);
 
 #else
   #include <pthread.h>
@@ -76,12 +76,12 @@ extern "C"
      /*
       * Initialize.
       */
-     FusionResult skirmish_init    (FusionSkirmish *skirmish);
+     FusionResult fusion_skirmish_init    (FusionSkirmish *skirmish);
 
-  #define skirmish_prevail(s) pthread_mutex_lock (s)
-  #define skirmish_swoop(s)   pthread_mutex_trylock (s)
-  #define skirmish_dismiss(s) pthread_mutex_unlock (s)
-  #define skirmish_destroy(s) pthread_mutex_destroy (s)
+  #define fusion_skirmish_prevail(s) pthread_mutex_lock (s)
+  #define fusion_skirmish_swoop(s)   pthread_mutex_trylock (s)
+  #define fusion_skirmish_dismiss(s) pthread_mutex_unlock (s)
+  #define fusion_skirmish_destroy(s) pthread_mutex_destroy (s)
 #endif
 
 #ifdef __cplusplus

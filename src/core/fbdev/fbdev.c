@@ -332,7 +332,7 @@ system_initialize()
      dfb_fbdev->shared = (FBDevShared*) shcalloc( 1, sizeof(FBDevShared) );
 
 #ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, "fbdev", dfb_fbdev->shared );
+     fusion_arena_add_shared_field( dfb_core->arena, "fbdev", dfb_fbdev->shared );
 #endif
 
      ret = dfb_fbdev_open();
@@ -461,7 +461,7 @@ system_join()
 
      dfb_fbdev = (FBDev*)DFBCALLOC( 1, sizeof(FBDev) );
 
-     arena_get_shared_field( dfb_core->arena, "fbdev", (void**) &dfb_fbdev->shared );
+     fusion_arena_get_shared_field( dfb_core->arena, "fbdev", (void**) &dfb_fbdev->shared );
 
      /* Open framebuffer device */
      ret = dfb_fbdev_open();

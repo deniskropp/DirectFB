@@ -86,14 +86,14 @@ system_initialize()
           return DFB_INIT;
      }
      
-     skirmish_init( &dfb_sdl->lock );
+     fusion_skirmish_init( &dfb_sdl->lock );
      
      fusion_call_init( &dfb_sdl->call, dfb_sdl_call_handler, NULL );
      
      dfb_layers_register( NULL, NULL, &sdlPrimaryLayerFuncs );
 
 #ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, "sdl", dfb_sdl );
+     fusion_arena_add_shared_field( dfb_core->arena, "sdl", dfb_sdl );
 #endif
      
      return DFB_OK;
@@ -107,7 +107,7 @@ system_join()
 
      DFB_ASSERT( dfb_sdl == NULL );
 
-     arena_get_shared_field( dfb_core->arena, "sdl", &ret );
+     fusion_arena_get_shared_field( dfb_core->arena, "sdl", &ret );
 
      dfb_sdl = ret;
      
@@ -124,11 +124,11 @@ system_shutdown( bool emergency )
      
      fusion_call_destroy( &dfb_sdl->call );
      
-     skirmish_prevail( &dfb_sdl->lock );
+     fusion_skirmish_prevail( &dfb_sdl->lock );
      
      SDL_Quit();
 
-     skirmish_destroy( &dfb_sdl->lock );
+     fusion_skirmish_destroy( &dfb_sdl->lock );
      
      shfree( dfb_sdl );
      dfb_sdl = NULL;

@@ -53,24 +53,24 @@ typedef struct {
      bool        attached;
 } GlobalReaction;
 
-FusionReactor *reactor_new           (int             msg_size);
-FusionResult   reactor_free          (FusionReactor  *reactor);
-FusionResult   reactor_attach        (FusionReactor  *reactor,
-                                      React           react,
-                                      void           *ctx,
-                                      Reaction       *reaction);
-FusionResult   reactor_detach        (FusionReactor  *reactor,
-                                      Reaction       *reaction);
-FusionResult   reactor_attach_global (FusionReactor  *reactor,
-                                      int             react_index,
-                                      void           *ctx,
-                                      GlobalReaction *reaction);
-FusionResult   reactor_detach_global (FusionReactor  *reactor,
-                                      GlobalReaction *reaction);
-FusionResult   reactor_dispatch      (FusionReactor  *reactor,
-                                      const void     *msg_data,
-                                      bool            self,
-                                      const React    *globals);
+FusionReactor *fusion_reactor_new           (int             msg_size);
+FusionResult   fusion_reactor_free          (FusionReactor  *reactor);
+FusionResult   fusion_reactor_attach        (FusionReactor  *reactor,
+                                             React           react,
+                                             void           *ctx,
+                                             Reaction       *reaction);
+FusionResult   fusion_reactor_detach        (FusionReactor  *reactor,
+                                             Reaction       *reaction);
+FusionResult   fusion_reactor_attach_global (FusionReactor  *reactor,
+                                             int             react_index,
+                                             void           *ctx,
+                                             GlobalReaction *reaction);
+FusionResult   fusion_reactor_detach_global (FusionReactor  *reactor,
+                                             GlobalReaction *reaction);
+FusionResult   fusion_reactor_dispatch      (FusionReactor  *reactor,
+                                             const void     *msg_data,
+                                             bool            self,
+                                             const React    *globals);
 
 
 

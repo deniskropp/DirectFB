@@ -79,7 +79,7 @@ static void surface_destructor( FusionObject *object, bool zombie )
 
      dfb_surface_destroy( surface, false );
 
-     skirmish_destroy( &surface->lock );
+     fusion_skirmish_destroy( &surface->lock );
 
      fusion_object_destroy( object );
 }
@@ -266,8 +266,8 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
 
      dfb_surfacemanager_lock( surface->manager );
 
-     skirmish_prevail( &surface->front_lock );
-     skirmish_prevail( &surface->back_lock );
+     fusion_skirmish_prevail( &surface->front_lock );
+     fusion_skirmish_prevail( &surface->back_lock );
 
      ret = dfb_surface_reallocate_buffer( surface, surface->front_buffer );
      if (ret) {
@@ -275,8 +275,8 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
           surface->height = old_height;
           surface->format = old_format;
 
-          skirmish_dismiss( &surface->front_lock );
-          skirmish_dismiss( &surface->back_lock );
+          fusion_skirmish_dismiss( &surface->front_lock );
+          fusion_skirmish_dismiss( &surface->back_lock );
 
           dfb_surfacemanager_unlock( surface->manager );
           return ret;
@@ -291,8 +291,8 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
 
                dfb_surface_reallocate_buffer( surface, surface->front_buffer );
 
-               skirmish_dismiss( &surface->front_lock );
-               skirmish_dismiss( &surface->back_lock );
+               fusion_skirmish_dismiss( &surface->front_lock );
+               fusion_skirmish_dismiss( &surface->back_lock );
 
                dfb_surfacemanager_unlock( surface->manager );
                return ret;
@@ -309,8 +309,8 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
                dfb_surface_reallocate_buffer( surface, surface->back_buffer );
                dfb_surface_reallocate_buffer( surface, surface->front_buffer );
 
-               skirmish_dismiss( &surface->front_lock );
-               skirmish_dismiss( &surface->back_lock );
+               fusion_skirmish_dismiss( &surface->front_lock );
+               fusion_skirmish_dismiss( &surface->back_lock );
 
                dfb_surfacemanager_unlock( surface->manager );
                return ret;
@@ -336,8 +336,8 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
      dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
                                    CSNF_SYSTEM | CSNF_VIDEO );
 
-     skirmish_dismiss( &surface->front_lock );
-     skirmish_dismiss( &surface->back_lock );
+     fusion_skirmish_dismiss( &surface->front_lock );
+     fusion_skirmish_dismiss( &surface->back_lock );
 
      return DFB_OK;
 }
@@ -359,8 +359,8 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      }
 
      dfb_surfacemanager_lock( surface->manager );
-     skirmish_prevail( &surface->front_lock );
-     skirmish_prevail( &surface->back_lock );
+     fusion_skirmish_prevail( &surface->front_lock );
+     fusion_skirmish_prevail( &surface->back_lock );
      dfb_surfacemanager_unlock( surface->manager );
 
      old_front = surface->front_buffer;
@@ -370,8 +370,8 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      if (new_front) {
           ret = dfb_surface_allocate_buffer( surface, front_policy, &surface->front_buffer );
           if (ret) {
-               skirmish_dismiss( &surface->front_lock );
-               skirmish_dismiss( &surface->back_lock );
+               fusion_skirmish_dismiss( &surface->front_lock );
+               fusion_skirmish_dismiss( &surface->back_lock );
                return ret;
           }
      }
@@ -384,8 +384,8 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
                     surface->front_buffer = old_front;
                }
 
-               skirmish_dismiss( &surface->front_lock );
-               skirmish_dismiss( &surface->back_lock );
+               fusion_skirmish_dismiss( &surface->front_lock );
+               fusion_skirmish_dismiss( &surface->back_lock );
                return ret;
           }
      }
@@ -403,8 +403,8 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
                     surface->front_buffer = old_front;
                }
 
-               skirmish_dismiss( &surface->front_lock );
-               skirmish_dismiss( &surface->back_lock );
+               fusion_skirmish_dismiss( &surface->front_lock );
+               fusion_skirmish_dismiss( &surface->back_lock );
                return ret;
           }
      }
@@ -423,8 +423,8 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
                                    CSNF_SYSTEM | CSNF_VIDEO );
 
-     skirmish_dismiss( &surface->front_lock );
-     skirmish_dismiss( &surface->back_lock );
+     fusion_skirmish_dismiss( &surface->front_lock );
+     fusion_skirmish_dismiss( &surface->back_lock );
 
      return DFB_OK;
 }
@@ -466,8 +466,8 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
 
      dfb_surfacemanager_lock( surface->manager );
 
-     skirmish_prevail( &surface->front_lock );
-     skirmish_prevail( &surface->back_lock );
+     fusion_skirmish_prevail( &surface->front_lock );
+     fusion_skirmish_prevail( &surface->back_lock );
 
      if (surface->caps & DSCAPS_TRIPLE) {
           tmp = surface->front_buffer;
@@ -487,8 +487,8 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
 
      dfb_surface_notify_listeners( surface, CSNF_FLIP );
 
-     skirmish_dismiss( &surface->front_lock );
-     skirmish_dismiss( &surface->back_lock );
+     fusion_skirmish_dismiss( &surface->front_lock );
+     fusion_skirmish_dismiss( &surface->back_lock );
 }
 
 void dfb_surface_set_field( CoreSurface *surface, int field )
@@ -527,11 +527,11 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
      DFB_ASSERT( pitch != NULL );
 
      if (front) {
-          skirmish_prevail( &surface->front_lock );
+          fusion_skirmish_prevail( &surface->front_lock );
           buffer = surface->front_buffer;
      }
      else {
-          skirmish_prevail( &surface->back_lock );
+          fusion_skirmish_prevail( &surface->back_lock );
           buffer = surface->back_buffer;
      }
 
@@ -590,9 +590,9 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                BUG( "invalid surface policy" );
 
                if (front)
-                    skirmish_dismiss( &surface->front_lock );
+                    fusion_skirmish_dismiss( &surface->front_lock );
                else
-                    skirmish_dismiss( &surface->back_lock );
+                    fusion_skirmish_dismiss( &surface->back_lock );
 
                return DFB_BUG;
      }
@@ -609,11 +609,11 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
      DFB_ASSERT( flags != 0 );
 
      if (front) {
-          skirmish_prevail( &surface->front_lock );
+          fusion_skirmish_prevail( &surface->front_lock );
           buffer = surface->front_buffer;
      }
      else {
-          skirmish_prevail( &surface->back_lock );
+          fusion_skirmish_prevail( &surface->back_lock );
           buffer = surface->back_buffer;
      }
 
@@ -645,17 +645,17 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
                BUG( "invalid surface policy" );
 
                if (front)
-                    skirmish_dismiss( &surface->front_lock );
+                    fusion_skirmish_dismiss( &surface->front_lock );
                else
-                    skirmish_dismiss( &surface->back_lock );
+                    fusion_skirmish_dismiss( &surface->back_lock );
 
                return DFB_BUG;
      }
 
      if (front)
-          skirmish_dismiss( &surface->front_lock );
+          fusion_skirmish_dismiss( &surface->front_lock );
      else
-          skirmish_dismiss( &surface->back_lock );
+          fusion_skirmish_dismiss( &surface->back_lock );
 
      return DFB_FAILURE;
 }
@@ -673,7 +673,7 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
           if (buffer->video.locked)
                buffer->video.locked--;
 
-          skirmish_dismiss( &surface->front_lock );
+          fusion_skirmish_dismiss( &surface->front_lock );
      }
      else {
           SurfaceBuffer *buffer = surface->back_buffer;
@@ -684,7 +684,7 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
           if (buffer->video.locked)
                buffer->video.locked--;
 
-          skirmish_dismiss( &surface->back_lock );
+          fusion_skirmish_dismiss( &surface->back_lock );
      }
 }
 
@@ -694,10 +694,10 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
      
      DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) entered\n", surface);
 
-     skirmish_prevail( &surface->lock );
+     fusion_skirmish_prevail( &surface->lock );
 
      if (surface->destroyed) {
-          skirmish_dismiss( &surface->lock );
+          fusion_skirmish_dismiss( &surface->lock );
           return;
      }
 
@@ -718,8 +718,8 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
           dfb_surface_deallocate_buffer( surface, surface->idle_buffer );
 
      /* destroy the locks */
-     skirmish_destroy( &surface->front_lock );
-     skirmish_destroy( &surface->back_lock );
+     fusion_skirmish_destroy( &surface->front_lock );
+     fusion_skirmish_destroy( &surface->back_lock );
 
      /* unlink palette */
      if (surface->palette) {
@@ -728,7 +728,7 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
           dfb_palette_unlink( surface->palette );
      }
 
-     skirmish_dismiss( &surface->lock );
+     fusion_skirmish_dismiss( &surface->lock );
      
      /* unref surface object */
      if (unref)
@@ -777,10 +777,10 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
           surface->min_height = height;
      }
 
-     skirmish_init( &surface->lock );
+     fusion_skirmish_init( &surface->lock );
      
-     skirmish_init( &surface->front_lock );
-     skirmish_init( &surface->back_lock );
+     fusion_skirmish_init( &surface->front_lock );
+     fusion_skirmish_init( &surface->back_lock );
 
      if (palette) {
           dfb_surface_set_palette( surface, palette );

@@ -59,7 +59,7 @@ dfb_clipboard_initialize( void *data_local, void *data_shared )
 
      core_clip = data_shared;
 
-     skirmish_init( &core_clip->lock );
+     fusion_skirmish_init( &core_clip->lock );
 
      return DFB_OK;
 }
@@ -79,7 +79,7 @@ dfb_clipboard_shutdown( bool emergency )
 {
      DFB_ASSERT( core_clip != NULL );
 
-     skirmish_destroy( &core_clip->lock );
+     fusion_skirmish_destroy( &core_clip->lock );
 
      if (core_clip->data)
           shfree( core_clip->data );
@@ -146,7 +146,7 @@ dfb_clipboard_set( const char     *mime_type,
 
      dfb_memcpy( new_data, data, size );
 
-     if (skirmish_prevail( &core_clip->lock )) {
+     if (fusion_skirmish_prevail( &core_clip->lock )) {
           shfree( new_data );
           shfree( new_mime );
           return DFB_FUSION;
@@ -167,7 +167,7 @@ dfb_clipboard_set( const char     *mime_type,
      if (timestamp)
           *timestamp = core_clip->timestamp;
      
-     skirmish_dismiss( &core_clip->lock );
+     fusion_skirmish_dismiss( &core_clip->lock );
 
      return DFB_OK;
 }
@@ -177,11 +177,11 @@ dfb_clipboard_get( char **mime_type, void **data, unsigned int *size )
 {
      DFB_ASSERT( core_clip != NULL );
      
-     if (skirmish_prevail( &core_clip->lock ))
+     if (fusion_skirmish_prevail( &core_clip->lock ))
           return DFB_FUSION;
 
      if (!core_clip->mime_type || !core_clip->data) {
-          skirmish_dismiss( &core_clip->lock );
+          fusion_skirmish_dismiss( &core_clip->lock );
           return DFB_BUFFEREMPTY;
      }
 
@@ -196,7 +196,7 @@ dfb_clipboard_get( char **mime_type, void **data, unsigned int *size )
      if (size)
           *size = core_clip->size;
 
-     skirmish_dismiss( &core_clip->lock );
+     fusion_skirmish_dismiss( &core_clip->lock );
 
      return DFB_OK;
 }
@@ -207,12 +207,12 @@ dfb_clipboard_get_timestamp( struct timeval *timestamp )
      DFB_ASSERT( core_clip != NULL );
      DFB_ASSERT( timestamp != NULL );
      
-     if (skirmish_prevail( &core_clip->lock ))
+     if (fusion_skirmish_prevail( &core_clip->lock ))
           return DFB_FUSION;
 
      *timestamp = core_clip->timestamp;
      
-     skirmish_dismiss( &core_clip->lock );
+     fusion_skirmish_dismiss( &core_clip->lock );
 
      return DFB_OK;
 }

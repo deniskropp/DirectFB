@@ -63,7 +63,7 @@
 #ifndef FUSION_FAKE
 
 FusionResult
-skirmish_init (FusionSkirmish *skirmish)
+fusion_skirmish_init (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
@@ -84,7 +84,7 @@ skirmish_init (FusionSkirmish *skirmish)
 }
 
 FusionResult
-skirmish_prevail (FusionSkirmish *skirmish)
+fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
@@ -108,7 +108,7 @@ skirmish_prevail (FusionSkirmish *skirmish)
 }
 
 FusionResult
-skirmish_swoop (FusionSkirmish *skirmish)
+fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
@@ -134,7 +134,7 @@ skirmish_swoop (FusionSkirmish *skirmish)
 }
 
 FusionResult
-skirmish_dismiss (FusionSkirmish *skirmish)
+fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
@@ -158,7 +158,7 @@ skirmish_dismiss (FusionSkirmish *skirmish)
 }
 
 FusionResult
-skirmish_destroy (FusionSkirmish *skirmish)
+fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
@@ -184,7 +184,7 @@ skirmish_destroy (FusionSkirmish *skirmish)
 #else  /* !FUSION_FAKE */
 
 FusionResult
-skirmish_init (FusionSkirmish *skirmish)
+fusion_skirmish_init (FusionSkirmish *skirmish)
 {
      pthread_mutexattr_t attr;
 

@@ -41,7 +41,7 @@ bench_reactor()
      Reaction       reaction;
      Reaction       reaction2;
 
-     reactor = reactor_new( 16 );
+     reactor = fusion_reactor_new( 16 );
      if (!reactor) {
           fprintf( stderr, "Fusion Error\n" );
           return;
@@ -52,8 +52,8 @@ bench_reactor()
      t1 = dfb_get_millis();
      
      for (i=0; i<1000000; i++) {
-          reactor_attach( reactor, react, NULL, &reaction );
-          reactor_detach( reactor, &reaction );
+          fusion_reactor_attach( reactor, react, NULL, &reaction );
+          fusion_reactor_detach( reactor, &reaction );
      }
      
      t2 = dfb_get_millis();
@@ -62,31 +62,31 @@ bench_reactor()
 
      
      /* reactor attach/detach (2nd) */
-     reactor_attach( reactor, react, NULL, &reaction );
+     fusion_reactor_attach( reactor, react, NULL, &reaction );
      
      t1 = dfb_get_millis();
      
      for (i=0; i<1000000; i++) {
-          reactor_attach( reactor, react, NULL, &reaction2 );
-          reactor_detach( reactor, &reaction2 );
+          fusion_reactor_attach( reactor, react, NULL, &reaction2 );
+          fusion_reactor_detach( reactor, &reaction2 );
      }
      
      t2 = dfb_get_millis();
      
-     reactor_detach( reactor, &reaction );
+     fusion_reactor_detach( reactor, &reaction );
      
      printf( "reactor attach/detach (2nd)           -> %8.2f k/sec\n", 1000000 / (float)(t2 - t1) );
 
      
      /* reactor dispatch */
-     reactor_attach( reactor, react, &react_counter, &reaction );
+     fusion_reactor_attach( reactor, react, &react_counter, &reaction );
      
      t1 = dfb_get_millis();
      
      for (i=0; i<N_DISPATCH; i++) {
           char msg[16];
 
-          reactor_dispatch( reactor, msg, true, NULL );
+          fusion_reactor_dispatch( reactor, msg, true, NULL );
      }
      
      t2 = dfb_get_millis();
@@ -112,10 +112,10 @@ bench_reactor()
      }
 #endif     
      
-     reactor_detach( reactor, &reaction );
+     fusion_reactor_detach( reactor, &reaction );
 
      
-     reactor_free( reactor );
+     fusion_reactor_free( reactor );
 
      printf( "\n" );
 }
@@ -208,7 +208,7 @@ bench_skirmish()
      long long      t1, t2;
      FusionSkirmish skirmish;
 
-     ret = skirmish_init( &skirmish );
+     ret = fusion_skirmish_init( &skirmish );
      if (ret) {
           fprintf( stderr, "Fusion Error %d\n", ret );
           return;
@@ -219,8 +219,8 @@ bench_skirmish()
      t1 = dfb_get_millis();
      
      for (i=0; i<4000000; i++) {
-          skirmish_prevail( &skirmish );
-          skirmish_dismiss( &skirmish );
+          fusion_skirmish_prevail( &skirmish );
+          fusion_skirmish_dismiss( &skirmish );
      }
      
      t2 = dfb_get_millis();
@@ -228,7 +228,7 @@ bench_skirmish()
      printf( "skirmish prevail/dismiss              -> %8.2f k/sec\n", 4000000 / (float)(t2 - t1) );
 
      
-     skirmish_destroy( &skirmish );
+     fusion_skirmish_destroy( &skirmish );
 
      printf( "\n" );
 }
@@ -241,8 +241,8 @@ prevail_dismiss_loop( void *arg )
      FusionSkirmish *skirmish = (FusionSkirmish *) arg;
 
      for (i=0; i<700000; i++) {
-          skirmish_prevail( skirmish );
-          skirmish_dismiss( skirmish );
+          fusion_skirmish_prevail( skirmish );
+          fusion_skirmish_dismiss( skirmish );
      }
 
      return NULL;
@@ -255,7 +255,7 @@ bench_skirmish_threaded()
      int            i;
      FusionSkirmish skirmish;
 
-     ret = skirmish_init( &skirmish );
+     ret = fusion_skirmish_init( &skirmish );
      if (ret) {
           fprintf( stderr, "Fusion Error %d\n", ret );
           return;
@@ -283,7 +283,7 @@ bench_skirmish_threaded()
      }
 
      
-     skirmish_destroy( &skirmish );
+     fusion_skirmish_destroy( &skirmish );
 
      printf( "\n" );
 }
