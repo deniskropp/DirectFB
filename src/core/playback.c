@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -66,7 +66,7 @@ playback_destructor( FusionObject *object, bool zombie )
      DEBUGMSG( "FusionSound/Core: %s (%p, buffer: %p)%s\n", __FUNCTION__,
                playback, playback->buffer, zombie ? " ZOMBIE!" : "" );
 
-     fs_buffer_unlink( playback->buffer );
+     fs_buffer_unlink( &playback->buffer );
 
      fusion_skirmish_destroy( &playback->lock );
 
@@ -107,7 +107,7 @@ fs_playback_create( CoreSound        *core,
           fusion_object_destroy( &playback->object );
           return DFB_FUSION;
      }
-     
+
      /* Initialize private data. */
      playback->core   = core;
      playback->notify = notify;
@@ -116,7 +116,7 @@ fs_playback_create( CoreSound        *core,
      playback->pitch  = 0x100;
 
      fusion_skirmish_init( &playback->lock );
-     
+
      /* Activate playback object. */
      fusion_object_activate( &playback->object );
 
@@ -141,7 +141,7 @@ fs_playback_start( CorePlayback *playback,
 
      /* Set new position. */
      playback->position = position;
-     
+
      /* Start the playback if it's not running already. */
      if (!playback->running) {
           ret = fs_core_add_playback( playback->core, playback );
@@ -149,13 +149,13 @@ fs_playback_start( CorePlayback *playback,
                fusion_skirmish_dismiss( &playback->lock );
                return ret;
           }
-          
+
           playback->running = true;
      }
 
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
-     
+
      return DFB_OK;
 }
 
@@ -171,13 +171,13 @@ fs_playback_stop( CorePlayback *playback )
      /* Stop the playback if it's running. */
      if (playback->running) {
           fs_core_remove_playback( playback->core, playback );
-          
+
           playback->running = false;
      }
 
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
-     
+
      return DFB_OK;
 }
 
@@ -190,13 +190,13 @@ fs_playback_set_stop( CorePlayback *playback,
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
-     
+
      /* Adjust stop position. */
      playback->stop = stop;
-     
+
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
-     
+
      return DFB_OK;
 }
 
@@ -210,18 +210,18 @@ fs_playback_set_volume( CorePlayback *playback,
      DFB_ASSERT( left < 0x10000 );
      DFB_ASSERT( right >= 0 );
      DFB_ASSERT( right < 0x10000 );
-     
+
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
-     
+
      /* Adjust volume. */
      playback->left  = left;
      playback->right = right;
-     
+
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
-     
+
      return DFB_OK;
 }
 
@@ -232,17 +232,17 @@ fs_playback_set_pitch( CorePlayback *playback,
      DFB_ASSERT( playback != NULL );
      DFB_ASSERT( pitch >= 0 );
      DFB_ASSERT( pitch < 0x10000 );
-     
+
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
-     
+
      /* Adjust pitch. */
      playback->pitch = pitch;
-     
+
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
-     
+
      return DFB_OK;
 }
 
@@ -261,7 +261,7 @@ fs_playback_mixto( CorePlayback *playback,
      DFB_ASSERT( playback->buffer != NULL );
      DFB_ASSERT( dest != NULL );
      DFB_ASSERT( max_samples > 0 );
-     
+
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
@@ -278,10 +278,10 @@ fs_playback_mixto( CorePlayback *playback,
 
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
-     
+
      /* Notify listeners about the new position and a possible end. */
      fs_playback_notify( playback, ret ? CPNF_ENDED : CPNF_ADVANCED, pos );
-     
+
      return ret;
 }
 
@@ -300,7 +300,7 @@ fs_playback_notify( CorePlayback                  *playback,
 
      if (flags & CPNF_ENDED)
           playback->running = false;
-     
+
      if (!playback->notify)
           return;
 
