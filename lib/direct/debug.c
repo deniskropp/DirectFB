@@ -27,6 +27,11 @@
 
 #include <config.h>
 
+#include <direct/build.h>
+
+
+#if DIRECT_BUILD_DEBUG
+
 #include <stdarg.h>
 #include <unistd.h>
 #include <signal.h>
@@ -34,9 +39,6 @@
 #include <direct/clock.h>
 #include <direct/debug.h>
 #include <direct/trace.h>
-
-
-#ifdef DFB_DEBUG
 
 void
 direct_debug( const char *format, ... )

@@ -275,8 +275,13 @@ if test "$enable_debug" = "yes"; then
     AC_DEFINE(DFB_DEBUG, 1, [Define to 1 if debug code should be enabled.])
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DDFB_DEBUG"
     CFLAGS="$CFLAGS -g3 -fno-inline"
+    DIRECT_BUILD_DEBUG=1
+else
+    DIRECT_BUILD_DEBUG=0
 fi
 AM_CONDITIONAL(ENABLE_DEBUG, test "$enable_debug" = "yes")
+
+AC_SUBST(DIRECT_BUILD_DEBUG)
 
 
 AC_ARG_ENABLE(trace,
@@ -1026,6 +1031,7 @@ include/Makefile
 include/directfb_version.h
 lib/Makefile
 lib/direct/Makefile
+lib/direct/build.h
 patches/Makefile
 src/Makefile
 src/display/Makefile

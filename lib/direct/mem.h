@@ -29,8 +29,10 @@
 #define __DIRECT__MEM_H__
 
 
+#include <direct/build.h>
 
-#ifdef DFB_DEBUG
+
+#if DIRECT_BUILD_DEBUG
 
 void  direct_print_memleaks();
 

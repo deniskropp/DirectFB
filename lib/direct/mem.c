@@ -27,6 +27,11 @@
 
 #include <config.h>
 
+#include <direct/build.h>
+
+
+#if DIRECT_BUILD_DEBUG
+
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
@@ -38,8 +43,6 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/trace.h>
-
-#ifdef DFB_DEBUG
 
 typedef struct {
      const void        *mem;

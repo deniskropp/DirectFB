@@ -37,6 +37,7 @@ internalincludedir = $(INTERNALINCLUDEDIR)/direct
 
 internalinclude_HEADERS = \
 	$(ppcasm_headers)	\
+	build.h			\
 	clock.h			\
 	conf.h			\
 	cpu_accel.h		\
