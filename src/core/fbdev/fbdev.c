@@ -610,6 +610,15 @@ system_get_current_mode()
 }
 
 static DFBResult
+system_thread_init()
+{
+     if (dfb_vt)
+          ioctl( dfb_vt->fd0, TIOCNOTTY, 0 );
+
+     return DFB_OK;
+}
+
+static DFBResult
 system_wait_vsync()
 {
      if (dfb_config->pollvsync_none)

@@ -127,6 +127,11 @@ typedef struct {
      VideoMode*     (*GetCurrentMode)();
 
      /*
+      * Called at the beginning of a new thread.
+      */
+     DFBResult      (*ThreadInit)();
+
+     /*
       * Graphics drivers call this function to get access to MMIO regions.
       *
       * device: Graphics device to map
@@ -190,6 +195,9 @@ dfb_system_modes();
 
 VideoMode *
 dfb_system_current_mode();
+
+DFBResult
+dfb_system_thread_init();
 
 DFBResult
 dfb_system_wait_vsync();

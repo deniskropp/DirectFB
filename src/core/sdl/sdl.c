@@ -156,6 +156,12 @@ system_wait_vsync()
      return DFB_OK;
 }
 
+static DFBResult
+system_thread_init()
+{
+     return DFB_OK;
+}
+
 static unsigned long
 system_video_memory_physical( unsigned int offset )
 {

@@ -33,6 +33,7 @@
 
 #include <core/coredefs.h>
 #include <core/sig.h>
+#include <core/system.h>
 #include <core/thread.h>
 
 #include <misc/mem.h>
@@ -156,6 +157,8 @@ dfb_thread_main( void *arg )
 {
      CoreThread *thread = (CoreThread*) arg;
 
+     dfb_system_thread_init();
+     
      /* Wait for completion of pthread_create(). */
      while (thread->thread == -1)
           sched_yield();

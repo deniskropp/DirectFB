@@ -176,6 +176,12 @@ dfb_system_current_mode()
 }
 
 DFBResult
+dfb_system_thread_init()
+{
+     return system_funcs->ThreadInit();
+}
+
+DFBResult
 dfb_system_wait_vsync()
 {
      return system_funcs->WaitVSync();

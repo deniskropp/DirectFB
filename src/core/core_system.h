@@ -59,6 +59,9 @@ system_get_modes();
 static VideoMode*
 system_get_current_mode();
 
+static DFBResult
+system_thread_init();
+
 static volatile void*
 system_map_mmio( unsigned int    offset,
                  int             length );
@@ -91,6 +94,7 @@ static CoreSystemFuncs system_funcs = {
      WaitVSync:           system_wait_vsync,
      GetModes:            system_get_modes,
      GetCurrentMode:      system_get_current_mode,
+     ThreadInit:          system_thread_init,
      MapMMIO:             system_map_mmio,
      UnmapMMIO:           system_unmap_mmio,
      GetAccelerator:      system_get_accelerator,
