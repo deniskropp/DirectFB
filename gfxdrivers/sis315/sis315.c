@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.1 2003-11-06 18:50:11 oberritter Exp $
+ * $Id: sis315.c,v 1.2 2003-11-07 04:04:27 oberritter Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -38,7 +38,7 @@
 DFB_GRAPHICS_DRIVER(sis315);
 
 #define SIS_SUPPORTED_DRAWING_FUNCTIONS	\
-	(DFXL_FILLRECTANGLE | DFXL_DRAWLINE)
+	(DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE)
 
 #define SIS_SUPPORTED_DRAWING_FLAGS	\
 	(DSDRAW_NOFX)
@@ -47,7 +47,7 @@ DFB_GRAPHICS_DRIVER(sis315);
 	(DFXL_BLIT)
 
 #define SIS_SUPPORTED_BLITTING_FLAGS \
-	(DSBLIT_NOFX)
+	(DSBLIT_SRC_COLORKEY)
 
 typedef struct {
 	volatile __u8 *mmio_base;
@@ -56,12 +56,15 @@ typedef struct {
 
 typedef struct {
 	/* state validation */
-	int v_blit;
+	int v_blittingflags;
 	int v_color;
-	int v_src;
-	int v_dst;
+	int v_destination;
+	int v_source;
+	int v_src_colorkey;
 
 	/* stored values */
+	int blit_cmd;
+	int blit_rop;
 	int cmd_bpp;
 	int color;
 	int src_offset;
@@ -161,7 +164,7 @@ static void sis_validate_dst(SiSDriverData *drv, SiSDeviceData *dev,
 	CoreSurface *dst = state->destination;
 	SurfaceBuffer *buf = dst->back_buffer;
 
-	if (dev->v_dst)
+	if (dev->v_destination)
 		return;
 
 	dev->cmd_bpp = dspfToCmdBpp(dst->format);
@@ -172,7 +175,7 @@ static void sis_validate_dst(SiSDriverData *drv, SiSDeviceData *dev,
 	sis_ww(drv->mmio_base, SIS315_2D_DST_PITCH, buf->video.pitch);
 	sis_ww(drv->mmio_base, SIS315_2D_DST_HEIGHT, 0xffff);
 
-	dev->v_dst = 1;
+	dev->v_destination = 1;
 }
 
 static void sis_validate_src(SiSDriverData *drv, SiSDeviceData *dev,
@@ -181,7 +184,7 @@ static void sis_validate_src(SiSDriverData *drv, SiSDeviceData *dev,
 	CoreSurface *src = state->source;
 	SurfaceBuffer *buf = src->front_buffer;
 
-	if (dev->v_src)
+	if (dev->v_source)
 		return;
 
 	sis_cmd_queue_wait(drv, 3);
@@ -190,11 +193,43 @@ static void sis_validate_src(SiSDriverData *drv, SiSDeviceData *dev,
 	sis_ww(drv->mmio_base, SIS315_2D_SRC_PITCH, buf->video.pitch);
 	sis_ww(drv->mmio_base, SIS315_2D_AGP_BASE, dspfToSrcColor(src->format));
 
-	dev->v_src = 1;
+	dev->v_source = 1;
 }
 
-static void sis_validate_clip(SiSDriverData *drv, SiSDeviceData *dev,
-			      DFBRegion *clip)
+static void sis_set_src_colorkey(SiSDriverData *drv, SiSDeviceData *dev,
+				 CardState *state)
+{
+	if (dev->v_src_colorkey)
+		return;
+
+	sis_cmd_queue_wait(drv, 2);
+
+	sis_wl(drv->mmio_base, SIS315_2D_TRANS_SRC_KEY_HIGH, state->src_colorkey);
+	sis_wl(drv->mmio_base, SIS315_2D_TRANS_SRC_KEY_LOW, state->src_colorkey);
+
+	dev->v_src_colorkey = 1;
+}
+
+static void sis_set_blittingflags(SiSDriverData *drv, SiSDeviceData *dev,
+				  CardState *state)
+{
+	if (dev->v_blittingflags)
+		return;
+
+	if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+		dev->blit_cmd = SIS315_2D_CMD_TRANSPARENT_BITBLT;
+		dev->blit_rop = SIS315_ROP_AND_INVERTED_PAT;
+	}
+	else {
+		dev->blit_cmd = SIS315_2D_CMD_BITBLT;
+		dev->blit_rop = SIS315_ROP_COPY;
+	}
+
+	dev->v_blittingflags = 1;
+}
+
+static void sis_set_clip(SiSDriverData *drv, SiSDeviceData *dev,
+			 DFBRegion *clip)
 {
 	sis_cmd_queue_wait(drv, 4);
 
@@ -240,6 +275,9 @@ static void sis_check_state(void *driver_data, void *device_data,
 			return;
 		}
 
+		if (state->source->format != state->destination->format)
+			return;
+
 		state->accel |= SIS_SUPPORTED_BLITTING_FUNCTIONS;
 	}
 }
@@ -253,22 +291,26 @@ static void sis_set_state(void *driver_data, void *device_data,
 	SiSDeviceData *dev = (SiSDeviceData *)device_data;
 
 	if (state->modified) {
+		if (state->modified & SMF_SOURCE)
+			dev->v_source = 0;
+
 		if (state->modified & SMF_DESTINATION)
-			dev->v_color = dev->v_dst = 0;
+			dev->v_color = dev->v_destination = 0;
 		else if (state->modified & SMF_COLOR)
 			dev->v_color = 0;
 
-		if (state->modified & SMF_SOURCE)
-			dev->v_src = 0;
+		if (state->modified & SMF_SRC_COLORKEY)
+			dev->v_src_colorkey = 0;
 
 		if (state->modified & SMF_BLITTING_FLAGS)
-			dev->v_blit = 0;
+			dev->v_blittingflags = 0;
 	}
 
 	sis_validate_dst(drv, dev, state, funcs);
 
 	switch (accel) {
 	case DFXL_FILLRECTANGLE:
+	case DFXL_DRAWRECTANGLE:
 	case DFXL_DRAWLINE:
 		sis_validate_color(drv, dev, state);
 		state->set = SIS_SUPPORTED_DRAWING_FUNCTIONS;
@@ -276,6 +318,9 @@ static void sis_set_state(void *driver_data, void *device_data,
 	case DFXL_BLIT:
 	case DFXL_STRETCHBLIT:
 		sis_validate_src(drv, dev, state);
+		if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+			sis_set_src_colorkey(drv, dev, state);
+		sis_set_blittingflags(drv, dev, state);
 		state->set = SIS_SUPPORTED_BLITTING_FUNCTIONS;
 		break;
 	default:
@@ -284,7 +329,7 @@ static void sis_set_state(void *driver_data, void *device_data,
 	}
 
 	if (state->modified & SMF_CLIP)
-		sis_validate_clip(drv, dev, &state->clip);
+		sis_set_clip(drv, dev, &state->clip);
 
 	state->modified = 0;
 }
@@ -293,7 +338,10 @@ static void sis_cmd(SiSDriverData *drv, SiSDeviceData *dev, __u8 pat, __u8 src, 
 {
 	sis_cmd_queue_wait(drv, 2);
 
-	sis_wl(drv->mmio_base, SIS315_2D_CMD, dev->cmd_bpp | (rop << 8) | pat | src | type);
+	sis_wl(drv->mmio_base, SIS315_2D_CMD, SIS315_2D_CMD_RECT_CLIP_EN |
+					      dev->cmd_bpp | (rop << 8) |
+					      pat | src | type);
+
 	sis_wl(drv->mmio_base, SIS315_2D_FIRE_TRIGGER, 0);
 }
 
@@ -313,6 +361,40 @@ static bool sis_fill_rectangle(void *driver_data, void *device_data,
 	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 			  SIS315_2D_CMD_SRC_VIDEO,
 			  SIS315_2D_CMD_BITBLT,
+			  SIS315_ROP_COPY_PAT);
+
+	return true;
+}
+
+static bool sis_draw_rectangle(void *driver_data, void *device_data,
+			       DFBRectangle *rect)
+{
+	SiSDriverData *drv = (SiSDriverData *)driver_data;
+	SiSDeviceData *dev = (SiSDeviceData *)device_data;
+
+	sis_cmd_queue_wait(drv, 11);
+
+	/* from top left ... */
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_X0, rect->x);
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y0, rect->y);
+	/* ... to top right ... */
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_X1, rect->x + rect->w - 1);
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y1, rect->y);
+	/* ... to bottom right ... */
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_X(2), rect->x + rect->w - 1);
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y(2), rect->y + rect->h - 1);
+	/* ... to bottom left ... */
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_X(3), rect->x);
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y(3), rect->y + rect->h - 1);
+	/* ... and back to top left */
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_X(4), rect->x);
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y(4), rect->y + 1);
+
+	sis_ww(drv->mmio_base, SIS315_2D_LINE_COUNT, 4);
+
+	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
+			  SIS315_2D_CMD_SRC_VIDEO,
+			  SIS315_2D_CMD_LINE_DRAW,
 			  SIS315_ROP_COPY_PAT);
 
 	return true;
@@ -357,8 +439,8 @@ static bool sis_blit(void *driver_data, void *device_data,
 	
 	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 			  SIS315_2D_CMD_SRC_VIDEO,
-			  SIS315_2D_CMD_BITBLT,
-			  SIS315_ROP_COPY);
+			  dev->blit_cmd,
+			  dev->blit_rop);
 
 	return true;
 }
@@ -435,6 +517,7 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 
 	/* drawing functions */
 	funcs->FillRectangle = sis_fill_rectangle;
+	funcs->DrawRectangle = sis_draw_rectangle;
 	funcs->DrawLine = sis_draw_line;
 
 	/* blitting functions */
