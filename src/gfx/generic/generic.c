@@ -342,7 +342,7 @@ static void Bop_rgb15_Kto_Aop()
           __u32 dpixel = *S;
           __u16 *tmp = (__u16*)D;
 
-          if (dpixel != DSkey) {
+          if ((dpixel & 0x7FFF7FFF) != DSkey) {
                if ((dpixel & 0x7FFF0000) != (DSkey & 0x7FFF0000)) {
                     if ((dpixel & 0x00007FFF) != (DSkey & 0x00007FFF)) {
                          *D = dpixel;
