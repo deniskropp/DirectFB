@@ -71,6 +71,7 @@ static DFBResult dfb_surface_allocate_buffer  ( CoreSurface            *surface,
                                                 DFBSurfacePixelFormat   format,
                                                 SurfaceBuffer         **buffer );
 static DFBResult dfb_surface_reallocate_buffer( CoreSurface            *surface,
+                                                DFBSurfacePixelFormat   format,
                                                 SurfaceBuffer          *buffer );
 static void dfb_surface_destroy_buffer        ( CoreSurface            *surface,
                                                 SurfaceBuffer          *buffer );
@@ -343,7 +344,7 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
 
      dfb_surfacemanager_lock( surface->manager );
 
-     ret = dfb_surface_reallocate_buffer( surface, surface->front_buffer );
+     ret = dfb_surface_reallocate_buffer( surface, format, surface->front_buffer );
      if (ret) {
           surface->width  = old_width;
           surface->height = old_height;
@@ -354,13 +355,13 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      }
 
      if (surface->caps & DSCAPS_FLIPPING) {
-          ret = dfb_surface_reallocate_buffer( surface, surface->back_buffer );
+          ret = dfb_surface_reallocate_buffer( surface, format, surface->back_buffer );
           if (ret) {
                surface->width  = old_width;
                surface->height = old_height;
                surface->format = old_format;
 
-               dfb_surface_reallocate_buffer( surface, surface->front_buffer );
+               dfb_surface_reallocate_buffer( surface, old_format, surface->front_buffer );
 
                dfb_surfacemanager_unlock( surface->manager );
                return ret;
@@ -368,14 +369,14 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      }
 
      if (surface->caps & DSCAPS_TRIPLE) {
-          ret = dfb_surface_reallocate_buffer( surface, surface->idle_buffer );
+          ret = dfb_surface_reallocate_buffer( surface, format, surface->idle_buffer );
           if (ret) {
                surface->width  = old_width;
                surface->height = old_height;
                surface->format = old_format;
 
-               dfb_surface_reallocate_buffer( surface, surface->back_buffer );
-               dfb_surface_reallocate_buffer( surface, surface->front_buffer );
+               dfb_surface_reallocate_buffer( surface, old_format, surface->back_buffer );
+               dfb_surface_reallocate_buffer( surface, old_format, surface->front_buffer );
 
                dfb_surfacemanager_unlock( surface->manager );
                return ret;
@@ -383,17 +384,21 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      }
 
      if (surface->caps & DSCAPS_DEPTH) {
-          ret = dfb_surface_reallocate_buffer( surface, surface->depth_buffer );
+          ret = dfb_surface_reallocate_buffer( surface, surface->depth_buffer->format,
+                                               surface->depth_buffer );
           if (ret) {
                surface->width  = old_width;
                surface->height = old_height;
                surface->format = old_format;
 
-               if (surface->caps & DSCAPS_TRIPLE)
-                    dfb_surface_reallocate_buffer( surface, surface->idle_buffer );
+               if (surface->caps & DSCAPS_FLIPPING) {
+                    dfb_surface_reallocate_buffer( surface, old_format, surface->back_buffer );
 
-               dfb_surface_reallocate_buffer( surface, surface->back_buffer );
-               dfb_surface_reallocate_buffer( surface, surface->front_buffer );
+                    if (surface->caps & DSCAPS_TRIPLE)
+                         dfb_surface_reallocate_buffer( surface, old_format, surface->idle_buffer );
+               }
+
+               dfb_surface_reallocate_buffer( surface, old_format, surface->front_buffer );
 
                dfb_surfacemanager_unlock( surface->manager );
                return ret;
@@ -1181,8 +1186,9 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
      return DFB_OK;
 }
 
-static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
-                                                SurfaceBuffer *buffer )
+static DFBResult dfb_surface_reallocate_buffer( CoreSurface           *surface,
+                                                DFBSurfacePixelFormat  format,
+                                                SurfaceBuffer         *buffer )
 {
      DFBResult    ret;
 
@@ -1195,14 +1201,12 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           void *data;
 
           /* Calculate pitch. */
-          pitch = DFB_BYTES_PER_LINE( buffer->format,
-                                      MAX( surface->width, surface->min_width ) );
+          pitch = DFB_BYTES_PER_LINE( format, MAX( surface->width, surface->min_width ) );
           if (pitch & 3)
                pitch += 4 - (pitch & 3);
 
           /* Calculate amount of data to allocate. */
-          size = DFB_PLANE_MULTIPLY( buffer->format,
-                                     MAX( surface->height, surface->min_height ) * pitch );
+          size = DFB_PLANE_MULTIPLY( format, MAX( surface->height, surface->min_height ) * pitch );
 
           /* Allocate shared memory. */
           data = SHMALLOC( size );
@@ -1217,6 +1221,8 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           buffer->system.pitch  = pitch;
           buffer->system.addr   = data;
      }
+
+     buffer->format = format;
 
      if (buffer->video.health) {
           /* FIXME: better support video instance reallocation */
