@@ -1079,9 +1079,8 @@ static void mach64DoBlitTex( Mach64DriverData *mdrv,
 
      mach64_out32( mmio, STW_EXP, (1 << 16) | (0 << 8) | (0 << 0) );
 
-     /* FIXME: What is the correct value? Does it matter? */
-     mach64_out32( mmio, LOG_MAX_INC, MAX( ((srect->w << 15) * mdev->tex_pitch)  / drect->w,
-                                           ((srect->h << 15) * mdev->tex_height) / drect->h ) );
+     /* This register doesn't seem to have any effect on the result. */
+     mach64_out32( mmio, LOG_MAX_INC, 0 );
 
      mach64_out32( mmio, S_X_INC, (srect->w << (23 - mdev->tex_pitch)) / drect->w );
      mach64_out32( mmio, S_Y_INC, 0 );
