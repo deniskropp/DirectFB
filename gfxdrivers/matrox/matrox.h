@@ -103,6 +103,8 @@ typedef struct {
 
      __u32 texctl;
 
+     __u32 idle_status;
+
      DFBRegion clip;
 } MatroxDeviceData;
 

@@ -56,11 +56,11 @@ mga_in32(volatile __u8 *mmioaddr, __u32 reg)
      return *((volatile __u32*)(mmioaddr+reg));
 }
 
-/* Wait for idle accelerator */
+/* Wait for idle accelerator and DMA */
 static inline void
 mga_waitidle(MatroxDriverData *mdrv, MatroxDeviceData *mdev)
 {
-     while (mga_in32(mdrv->mmio_base, STATUS) & 0x10000) {
+     while ((mga_in32(mdrv->mmio_base, STATUS) & (DWGENGSTS | ENDPRDMASTS)) != mdev->idle_status) {
           mdev->idle_waitcycles++;
      }
 }

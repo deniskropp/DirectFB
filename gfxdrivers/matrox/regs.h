@@ -346,7 +346,11 @@
 #define DR15          0x1CFC
 
 #define FIFOSTATUS    0x1E10
+
 #define STATUS        0x1E14
+#     define DWGENGSTS   0x10000
+#     define ENDPRDMASTS 0x20000
+
 #define IEN           0x1E1C
 
 #define BLIT_LEFT     1

@@ -1675,6 +1675,11 @@ driver_init_device( GraphicsDevice     *device,
           mga_out32( mmio, ien, IEN );
      }
 
+     if (mdrv->accelerator == FB_ACCEL_MATROX_MGA2064W)
+          mdev->idle_status = 0;
+     else
+          mdev->idle_status = ENDPRDMASTS;
+
      mdev->atype_blk_rstr = (sgram || dfb_config->matrox_sgram) ? ATYPE_BLK : ATYPE_RSTR;
 
      return DFB_OK;
