@@ -80,6 +80,8 @@ void direct_assumption( const char *exp,
 
 #if DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG))
 
+#define D_DEBUG_ENABLED  (1)
+
 #ifdef HEAVYDEBUG
      #define D_HEAVYDEBUG(x...)    if (!direct_config || direct_config->debug) {\
                                              fprintf( stderr, "(=) "x );  \
@@ -125,6 +127,8 @@ void direct_assumption( const char *exp,
      } while (0)
 
 #else
+
+#define D_DEBUG_ENABLED  (0)
 
 #define D_HEAVYDEBUG(x...)         do {} while (0)
 #define D_DEBUG_DOMAIN(i,n,d)
