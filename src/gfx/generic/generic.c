@@ -922,14 +922,14 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
 	  Dpix |= *((__u8*) &S2[ysc>>16]) << 8;          /* first y sample */
 	  Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]) << 24; /* second y sample */
 #endif
-	  
+	
 	  *D++ = Dpix;
-	  
+	
 	  ysc  += SperD2;
 	  crsc += SperD;
      }
 }
-	  
+	
 
 static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_Sto_Aop,
@@ -960,9 +960,9 @@ static void Bop_rgb15_SKto_Aop( GenefxState *gfxs )
      int    SperD = gfxs->SperD;
 
      while (w--) {
-          __u16 s = S[i>>16] & 0x7FFF;
+          __u16 s = S[i>>16];
 
-          if (s != Skey)
+          if ((s & 0x7FFF) != Skey)
                *D = s;
 
           D++;
@@ -4726,7 +4726,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 	  int dpitch   = gfxs->dst_pitch / 2;
 	  int dfo_save = gfxs->dst_field_offset;
 	  int sfo_save = gfxs->src_field_offset;
-	  
+	
 	  gfxs->length = drect->w / 2;
 	  gfxs->dst_field_offset /= 4;
 	  gfxs->src_field_offset /= 4;
