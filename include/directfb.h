@@ -2893,6 +2893,19 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
+      * Blit a bunch of areas at once.
+      *
+      * Source may be the same surface.
+      */
+     DFBResult (*BatchBlit) (
+          IDirectFBSurface         *thiz,
+          IDirectFBSurface         *source,
+          const DFBRectangle       *source_rects,
+          const DFBPoint           *dest_points,
+          int                       num
+     );
+
+     /*
       * Blit an area scaled from the source to the destination
       * rectangle.
       *

@@ -949,6 +949,65 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      dfb_state_unlock( state );
 }
 
+void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
+                            int num, CardState *state )
+{
+     bool hw = false;
+
+     DFB_ASSERT( card != NULL );
+     DFB_ASSERT( card->shared != NULL );
+     DFB_ASSERT( state != NULL );
+     DFB_ASSERT( rects != NULL );
+     DFB_ASSERT( points != NULL );
+     DFB_ASSERT( num > 0 );
+
+     dfb_state_lock( state );
+
+     if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
+     {
+          int i;
+
+          for (i=0; i<num; i++) {
+               if (dfb_clip_blit_precheck( &state->clip,
+                                           rects[i].w, rects[i].h,
+                                           points[i].x, points[i].y ))
+               {
+                    if (!(card->caps.flags & CCF_CLIPPING))
+                         dfb_clip_blit( &state->clip, &rects[i],
+                                        &points[i].x, &points[i].y );
+
+                    hw = card->funcs.Blit( card->driver_data, card->device_data,
+                                           &rects[i], points[i].x, points[i].y );
+               }
+          }
+
+          dfb_gfxcard_state_release( state );
+     }
+
+     if (!hw) {
+          if (gAquire( state, DFXL_BLIT )) {
+               int i;
+
+               for (i=0; i<num; i++) {
+                    if (dfb_clip_blit_precheck( &state->clip,
+                                                rects[i].w, rects[i].h,
+                                                points[i].x, points[i].y ))
+                    {
+                         dfb_clip_blit( &state->clip, &rects[i],
+                                        &points[i].x, &points[i].y );
+
+                         gBlit( state, &rects[i], points[i].x, points[i].y );
+                    }
+               }
+
+               gRelease( state );
+          }
+     }
+
+     dfb_state_unlock( state );
+}
+
 void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
                            CardState *state )
 {
