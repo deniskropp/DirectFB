@@ -61,7 +61,7 @@ int driver_probe( int fd, GfxCard *card )
 {
   switch (card->fix.accel)
     {
-    case 40 ... 48:
+    case 42 ... 45:
       return 1;
     }
 
@@ -93,10 +93,10 @@ int driver_init( int fd, GfxCard *card )
   switch (card->fix.accel)
     {
     /* no support for other NeoMagic cards yet */
-    case 45:        // NM2200
-    case 46:        // NM2230
-    case 47:        // NM2360
-    case 48:        // NM2380
+    case 42:        // NM2200
+    case 43:        // NM2230
+    case 44:        // NM2360
+    case 45:        // NM2380
       return neo2200_init (card);
     }
      
