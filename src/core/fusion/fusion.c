@@ -192,11 +192,11 @@ fusion_read_loop( CoreThread *thread, void *arg )
           if (result <= 0)
                continue;
           
-          FDEBUG( "going to read...\n" );
+          //FDEBUG( "going to read...\n" );
           
           len = read (fusion_fd, buf, 1024);
           
-          FDEBUG( "read %d bytes.\n", len );
+          //FDEBUG( "read %d bytes.\n", len );
           
           dfb_thread_testcancel( thread );
           

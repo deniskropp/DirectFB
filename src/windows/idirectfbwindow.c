@@ -896,7 +896,7 @@ IDirectFBWindow_React( const void *msg_data,
      const DFBWindowEvent       *evt = (DFBWindowEvent*)msg_data;
      IDirectFBWindow_data       *data = (IDirectFBWindow_data*)ctx;
 
-     DEBUGMSG("IDirectFBWindow_React\n");
+     HEAVYDEBUGMSG("IDirectFBWindow_React\n");
 
      switch (evt->type) {
           case DWET_POSITION_SIZE:
