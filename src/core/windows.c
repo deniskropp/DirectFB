@@ -826,6 +826,8 @@ dfb_window_resize( CoreWindow   *window,
      evt.h = window->height;
      dfb_window_post_event( window, &evt );
 
+     handle_enter_leave_focus( stack );
+     
      stack_unlock( stack );
 
      return DFB_OK;
