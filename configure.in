@@ -326,6 +326,7 @@ gfxdrivers/tdfx/Makefile
 inputdrivers/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
+inputdrivers/msmouse/Makefile
 inputdrivers/ps2mouse/Makefile
 interfaces/Makefile
 interfaces/IDirectFBFont/Makefile

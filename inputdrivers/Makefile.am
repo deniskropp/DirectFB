@@ -1,3 +1,7 @@
 ## Makefile.am for DirectFB/inputdrivers
 
-SUBDIRS = keyboard ps2mouse joystick
+SUBDIRS = \
+	joystick	\
+	keyboard 	\
+	msmouse		\
+	ps2mouse
