@@ -181,8 +181,9 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                     impl->filename = malloc( strlen(buf) + 1 );
                     strcpy( impl->filename, buf );
 
-                    DEBUGMSG( "DirectFB/interface: "
-                              "Adding %s to implementations.\n", buf);
+                    INITMSG( "DirectFB/Interface: "
+                             "Loaded '%s' implementation of '%s'.\n",
+                             impl->implementation, impl->type );
 
                     implementations = realloc( implementations,
                      sizeof(DFBInterfaceImplementation) * ++n_implementations );
