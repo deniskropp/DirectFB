@@ -27,6 +27,8 @@
 #ifndef __DFB__CORE__SYSTEM_H__
 #define __DFB__CORE__SYSTEM_H__
 
+#include <directfb.h>
+
 #include <core/coretypes.h>
 #include <core/fusion/fusion_types.h>
 

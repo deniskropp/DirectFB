@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.3 $
+ * $Revision: 1.4 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -165,31 +165,23 @@
 #define GP_VECTOR_MAJOR_AXIS_POS  0x2
 #define GP_VECTOR_Y_MAJOR         0x1
 
-#define GX_BC0_DST_Y_DEC       0x00000001
-#define GX_BC0_X_DEC           0x00000002
-#define GX_BC0_SRC_TRANS       0x00000004
-#define GX_BC0_SRC_IS_FG       0x00000008
-
 #define  GFX_CPU_REDCLOUD 3
-#define GX_SUPPORTED_DRAWINGFLAGS \
-               (DSDRAW_NOFX)
+
+#define GX_SUPPORTED_DRAWINGFLAGS DSDRAW_NOFX
 
 #define GX_SUPPORTED_DRAWINGFUNCTIONS \
                (DFXL_FILLRECTANGLE | \
                 DFXL_DRAWRECTANGLE | \
                 DFXL_DRAWLINE)
 
-#define GX_SUPPORTED_BLITTINGFUNCTIONS \
-               (DFXL_BLIT)
+#define GX_SUPPORTED_BLITTINGFUNCTIONS DFXL_BLIT
 
-#define GX_SUPPORTED_BLITTINGFLAGS \
-                                (DSBLIT_SRC_COLORKEY)
+#define GX_SUPPORTED_BLITTINGFLAGS DSBLIT_SRC_COLORKEY
 
 DFB_GRAPHICS_DRIVER(nsc)
 
 typedef struct
 {
-
   unsigned long Color;
   unsigned long src_offset;
   unsigned long dst_offset;
@@ -197,7 +189,6 @@ typedef struct
   unsigned long dst_pitch;
   unsigned long src_colorkey;
   int v_srcColorkey;
-
 }NSCDeviceData;
 
 typedef struct
@@ -206,6 +197,7 @@ typedef struct
   int cpu;
 }NSCDriverData;
 
+static GAL_ADAPTERINFO sAdapterInfo;
 
 static bool nscDrawLine(void *drv, void *dev, DFBRegion *line);
 static bool nscFillRectangle(void *drv, void *dev, DFBRectangle *rect);
@@ -333,11 +325,7 @@ nscDrawLine(void *drv, void *dev, DFBRegion *line)
    unsigned short destData;
    NSCDeviceData *gxdev = (NSCDeviceData *) dev;
 
-#if 0
-   destData = GP_VECTOR_DEST_DATA;      /*  Value will be 0x8 (or) 0 */
-#else
    destData = 0;                        /*  Value will be 0x8 (or) 0 */
-#endif
    dx = line->x2 - line->x1;            /*  delta values */
    dy = line->y2 - line->y1;
    adx = ABS(dx);
@@ -441,10 +429,9 @@ nscBlit(void *drv, void *dev, DFBRectangle * rect, int dx, int dy)
 static int
 driver_probe(GraphicsDevice *device)
 {
-#ifdef FB_ACCEL_NSC_GEODE
-   if(dfb_gfxcard_get_accelerator(device) == FB_ACCEL_NSC_GEODE)
+   Gal_initialize_interface();
+   if(Gal_get_adapter_info(&sAdapterInfo))
       return 1;
-#endif
    return 0;
 }
 
@@ -456,8 +443,8 @@ driver_get_info(GraphicsDevice *device, GraphicsDriverInfo *info)
             DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH, "NSC GX1 and GX2 Driver");
    snprintf(info->vendor, DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH, "NSC");
 
-   info->version.major = 0;
-   info->version.minor = 2;
+   info->version.major = 1;
+   info->version.minor = 1;
    info->driver_data_size = sizeof(NSCDriverData);
    info->device_data_size = sizeof(NSCDeviceData);
 }
@@ -467,12 +454,7 @@ driver_init_driver(GraphicsDevice *device,
                    GraphicsDeviceFuncs *funcs, void *driver_data)
 {
    NSCDriverData *gxdrv = (NSCDriverData *) driver_data;
-   GAL_ADAPTERINFO sAdapterInfo;
-
-   if (!Gal_initialize_interface())
-      return DFB_IO;
-
-   Gal_get_adapter_info(&sAdapterInfo);
+   
    gxdrv->cpu_version = sAdapterInfo.dwCPUVersion;
    gxdrv->cpu = 0;
    if ((gxdrv->cpu_version & 0xFF) == GFX_CPU_REDCLOUD) {
@@ -503,10 +485,10 @@ driver_init_device(GraphicsDevice *device,
    NSCDriverData *gxdrv = (NSCDriverData *) driver_data;
 
    snprintf(device_info->name,
-            DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "GEODE GX1");
+            DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "NSC GX1/GX2 driver version");
    snprintf(device_info->vendor,
             DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nsc");
-
+   printf("Dependent NSC Kernel FrameBuffer driver version is 2.7.7 or later\n"); 
    device_info->caps.flags = CCF_NOTRIEMU;
    device_info->caps.accel = GX_SUPPORTED_DRAWINGFUNCTIONS;
    device_info->caps.drawing = GX_SUPPORTED_DRAWINGFLAGS;

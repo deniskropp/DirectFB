@@ -722,10 +722,7 @@ fi
 
 dnl Test for nsc framebuffer support in the kernel
 AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_NSC_GEODE
   yes
-#endif
 ], nsc=yes, 
   nsc=no  
   AC_MSG_WARN([
