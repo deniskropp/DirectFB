@@ -1179,6 +1179,7 @@ wm/Makefile
 wm/default/Makefile
 wm/unique/Makefile
 wm/unique/classes/Makefile
+wm/unique/data/Makefile
 
 gfxdrivers/Makefile
 gfxdrivers/ati128/Makefile

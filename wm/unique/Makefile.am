@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/wm/unique
 
-SUBDIRS = classes
+SUBDIRS = classes data
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\
@@ -8,10 +8,11 @@ INCLUDES = \
 	-I$(top_builddir)/lib		\
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src		\
-	-I$(top_srcdir)/wm
+	-I$(top_srcdir)/wm		\
+	-I$(top_builddir)/wm
 
 
-noinst_PROGRAMS = test_color
+noinst_PROGRAMS = test_color stret_test
 
 test_color_SOURCES = test_color.c
 
@@ -20,6 +21,13 @@ test_color_LDADD = \
 	$(top_builddir)/lib/direct/libdirect.la		\
 	$(top_builddir)/lib/fusion/libfusion.la		\
 	$(top_builddir)/src/libdirectfb.la
+
+stret_test_SOURCES = stret_test.c
+
+stret_test_LDADD = \
+	libuniquewm.la					\
+	$(top_builddir)/lib/fusion/libfusion.la		\
+	$(top_builddir)/lib/direct/libdirect.la
 
 
 # Set module installation directory
@@ -47,9 +55,10 @@ includedir = @INCLUDEDIR@/unique
 
 # Install uniquewm's library header files
 include_HEADERS = \
-	context.h	\
-	stret.h		\
-	types.h		\
+	context.h		\
+	stret.h			\
+	stret_iteration.h	\
+	types.h			\
 	uniquewm.h
 
 # Build uniquewm library
@@ -59,10 +68,14 @@ libuniquewm_la_SOURCES = \
 	context.c		\
 	internal.h		\
 	stret.c			\
+	stret_iteration.c	\
 	uniquewm.c
 	
 libuniquewm_la_LIBADD = \
-	classes/libunique_classes.la
+	classes/libunique_classes.la			\
+	$(top_builddir)/lib/direct/libdirect.la		\
+	$(top_builddir)/lib/fusion/libfusion.la		\
+	$(top_builddir)/src/libdirectfb.la
 
 libuniquewm_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\

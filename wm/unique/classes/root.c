@@ -93,6 +93,7 @@ root_update( StretRegion     *region,
           case DLBM_COLOR: {
                CoreSurface *dest  = state->destination;
                DFBColor    *color = &stack->bg.color;
+               DFBRectangle rects[num];
 
                /* Set the background color. */
                if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
@@ -102,12 +103,11 @@ root_update( StretRegion     *region,
                else
                     dfb_state_set_color( state, color );
 
-               for (i=0; i<num; i++) {
-                    DFBRectangle dst = DFB_RECTANGLE_INIT_FROM_REGION( &updates[i] );
+               for (i=0; i<num; i++)
+                    dfb_rectangle_from_region( &rects[i], &updates[i] );
 
-                    /* Simply fill the background. */
-                    dfb_gfxcard_fillrectangle( &dst, state );
-               }
+               /* Simply fill the background. */
+               dfb_gfxcard_fillrectangles( rects, num, state );
 
                break;
           }

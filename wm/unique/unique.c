@@ -267,8 +267,9 @@ window_at_pointer( CoreWindowStack *stack,
                    int              x,
                    int              y )
 {
-     int         i;
-     CoreWindow *window;
+     int          i;
+     CoreWindow  *window;
+     StretRegion *region;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
@@ -286,6 +287,18 @@ window_at_pointer( CoreWindowStack *stack,
      if (y < 0)
           y = stack->cursor.y;
 
+
+     region = stret_region_at( data->root, x, y, SRF_INPUT );
+
+     if (region) {
+          WindowData *window_data = stret_region_data( region );
+
+          D_MAGIC_ASSERT( window_data, WindowData );
+
+          return window_data->window;
+     }
+
+#if 0
      fusion_vector_foreach_reverse (window, i, data->windows) {
           if (!(window->options & DWOP_GHOST) && window->opacity &&
               x >= window->x  &&  x < window->x + window->width &&
@@ -414,7 +427,7 @@ window_at_pointer( CoreWindowStack *stack,
                }
           }
      }
-
+#endif
      return NULL;
 }
 
@@ -644,7 +657,7 @@ update_window( CoreWindow          *window,
      if (stack->hw_mode)
           return DFB_OK;
 
-     if (complete || stret_region_visible( data->region, region, regions, 32, &num_regions )) {
+     if (complete || stret_region_visible( data->region, region, false, regions, 32, &num_regions )) {
           if (region) {
                dfb_region_translate( region, window->x, window->y );
                repaint_stack( stack, stack_data, window->primary_region, region, 1, flags );
@@ -688,7 +701,7 @@ update_frame( CoreWindow          *window,
      if (stack->hw_mode)
           return DFB_OK;
 
-     if (complete || stret_region_visible( data->frame, region, regions, 32, &num_regions )) {
+     if (complete || stret_region_visible( data->frame, region, false, regions, 32, &num_regions )) {
           if (region) {
                dfb_region_translate( region,
                                      window->x - data->insets.l, window->y - data->insets.t );
@@ -2248,6 +2261,75 @@ wm_warp_cursor( CoreWindowStack *stack,
 /**************************************************************************************************/
 
 static DFBResult
+create_frame( WMShared   *shared,
+              WindowData *data,
+              int         width,
+              int         height )
+{
+     int           i;
+     DFBResult     ret;
+     DFBRectangle  rects[8];
+     DFBRectangle *sizes = shared->foo_rects;
+
+     rects[UFI_N].x  = sizes[UFI_NW].w;
+     rects[UFI_N].y  = 0;
+     rects[UFI_N].w  = width - sizes[UFI_NW].w - sizes[UFI_NE].w;
+     rects[UFI_N].h  = sizes[UFI_N].h;
+
+     rects[UFI_NE].x = width - sizes[UFI_NE].w;
+     rects[UFI_NE].y = 0;
+     rects[UFI_NE].w = sizes[UFI_NE].w;
+     rects[UFI_NE].h = sizes[UFI_NE].h;
+
+     rects[UFI_E].x  = width - sizes[UFI_E].w;
+     rects[UFI_E].y  = sizes[UFI_NE].h;
+     rects[UFI_E].w  = sizes[UFI_E].w;
+     rects[UFI_E].h  = height - sizes[UFI_NE].h - sizes[UFI_SE].h;
+
+     rects[UFI_SE].x = width - sizes[UFI_SE].w;
+     rects[UFI_SE].y = height - sizes[UFI_SE].h;
+     rects[UFI_SE].w = sizes[UFI_SE].w;
+     rects[UFI_SE].h = sizes[UFI_SE].h;
+
+     rects[UFI_S].x  = sizes[UFI_SW].w;
+     rects[UFI_S].y  = height - sizes[UFI_S].h;
+     rects[UFI_S].w  = width - sizes[UFI_SE].w - sizes[UFI_SW].w;
+     rects[UFI_S].h  = sizes[UFI_S].h;
+
+     rects[UFI_SW].x = 0;
+     rects[UFI_SW].y = height - sizes[UFI_SW].h;
+     rects[UFI_SW].w = sizes[UFI_SW].w;
+     rects[UFI_SW].h = sizes[UFI_SW].h;
+
+     rects[UFI_W].x  = 0;
+     rects[UFI_W].y  = sizes[UFI_NW].h;
+     rects[UFI_W].w  = sizes[UFI_W].w;
+     rects[UFI_W].h  = height - sizes[UFI_NW].h - sizes[UFI_SW].h;
+
+     rects[UFI_NW].x = 0;
+     rects[UFI_NW].y = 0;
+     rects[UFI_NW].w = sizes[UFI_NW].w;
+     rects[UFI_NW].h = sizes[UFI_NW].h;
+
+     for (i=0; i<8; i++) {
+          ret = stret_region_create( shared->classes[UCI_FOO], data, i,
+                                     SRF_ACTIVE | SRF_OUTPUT | SRF_INPUT,
+                                     rects[i].x, rects[i].y, rects[i].w, rects[i].h,
+                                     data->frame, &data->foos[i] );
+          if (ret)
+               goto error;
+     }
+
+     return DFB_OK;
+
+error:
+     for (--i; i>0; --i)
+          stret_region_destroy( data->foos[i] );
+
+     return ret;
+}
+
+static DFBResult
 wm_add_window( CoreWindowStack *stack,
                void            *wm_data,
                void            *stack_data,
@@ -2271,13 +2353,16 @@ wm_add_window( CoreWindowStack *stack,
 
      shared = wmdata->shared;
 
+     D_ASSERT( shared != NULL );
+
      /* Initialize window data. */
      data->window     = window;
+     data->shared     = shared;
      data->stack_data = stack_data;
      data->priority   = get_priority( window );
-     data->has_frame  = ! (window->caps & DWHC_TOPMOST);
+     data->has_frame  = ! (window->caps & DWCAPS_NODECORATION);
 
-     if (! (window->options & DWOP_GHOST))
+     if (! (window->options & DWOP_GHOST) && ! (window->caps & DWHC_TOPMOST))
           flags |= SRF_INPUT;
 
      if (! (window->caps & DWCAPS_INPUTONLY))
@@ -2287,9 +2372,9 @@ wm_add_window( CoreWindowStack *stack,
           flags |= SRF_SHAPED;
 
      if (data->has_frame) {
-          data->insets = (DFBInsets) { 4, 4, 4, 4 };
+          data->insets = shared->insets;
 
-          ret = stret_region_create( shared->classes[UCI_FRAME], data, 0, SRF_OUTPUT,
+          ret = stret_region_create( shared->classes[UCI_FRAME], data, 0, SRF_NONE,
                                      window->x - data->insets.l,
                                      window->y - data->insets.t,
                                      window->width  + data->insets.l + data->insets.r,
@@ -2303,6 +2388,16 @@ wm_add_window( CoreWindowStack *stack,
                                      data->insets.l, data->insets.t, window->width, window->height,
                                      data->frame, &data->region );
           if (ret) {
+               stret_region_destroy( data->frame );
+               return ret;
+          }
+
+
+          ret = create_frame( shared, data,
+                              data->insets.l + window->width  + data->insets.r,
+                              data->insets.t + window->height + data->insets.b );
+          if (ret) {
+               stret_region_destroy( data->region );
                stret_region_destroy( data->frame );
                return ret;
           }

@@ -54,6 +54,8 @@ context_destructor( FusionObject *object, bool zombie )
 {
      UniqueContext *context = (UniqueContext*) object;
 
+     (void) context;
+
      D_DEBUG_AT( UniQuE_Context, "destroying %p (stack data %p)%s\n",
                  context, context->stack_data, zombie ? " (ZOMBIE)" : "");
 

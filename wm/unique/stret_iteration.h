@@ -25,27 +25,37 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <config.h>
+#ifndef __UNIQUE__STRET_ITERATION_H__
+#define __UNIQUE__STRET_ITERATION_H__
 
 #include <directfb.h>
 
-#include <direct/debug.h>
-#include <direct/messages.h>
-#include <direct/util.h>
-
-#include <core/gfxcard.h>
-#include <core/state.h>
-#include <core/windows_internal.h>
-
-#include <misc/util.h>
-
-#include <unique/context.h>
-#include <unique/stret.h>
-#include <unique/internal.h>
+#include <unique/types.h>
 
 
-//D_DEBUG_DOMAIN( UniQuE_Frame, "UniQuE/Frame", "UniQuE's Frame Region Class" );
+#define STRET_ITERATION_MAX_DEPTH  4
 
-const StretRegionClass unique_frame_region_class = {
-};
+typedef struct {
+     StretRegion *region;
+     int          index;
+} StretIterationStackFrame;
+
+typedef struct {
+     int                      magic;
+
+     StretIterationStackFrame stack[STRET_ITERATION_MAX_DEPTH];
+     int                      frame;
+
+     int                      x0;
+     int                      y0;
+} StretIteration;
+
+
+void         stret_iteration_init( StretIteration  *iteration,
+                                   StretRegion     *region );
+
+StretRegion *stret_iteration_next( StretIteration  *iteration,
+                                   const DFBRegion *clip );
+
+#endif
 

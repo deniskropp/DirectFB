@@ -30,11 +30,17 @@
 #include <directfb.h>
 
 #include <direct/debug.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
+
+#include <core/surfaces.h>
 
 #include <unique/context.h>
 #include <unique/uniquewm.h>
 #include <unique/internal.h>
+
+#include <unique/data/foo.h>
+
 
 D_DEBUG_DOMAIN( UniQuE_WM, "UniQuE/WM", "UniQuE - Universal Quark Emitter" );
 
@@ -59,6 +65,42 @@ static DFBResult register_classes( WMShared *shared,
 static DFBResult unregister_classes( WMShared *shared );
 
 /**************************************************************************************************/
+
+static DFBResult
+load_foo( CoreDFB *core, WMShared *shared )
+{
+     int        i;
+     DFBResult  ret;
+     void      *data;
+     int        pitch;
+
+     ret = dfb_surface_create( core, foo_desc.width, foo_desc.height, foo_desc.pixelformat,
+                               CSP_VIDEOHIGH, DSCAPS_NONE, NULL, &shared->foo_surface );
+     if (ret) {
+          D_DERROR( ret, "UniQuE/WM: Could not create %dx%d surface for border tiles!\n",
+                    foo_desc.width, foo_desc.height );
+          return ret;
+     }
+
+     ret = dfb_surface_soft_lock( shared->foo_surface, DSLF_WRITE, &data, &pitch, false );
+     if (ret) {
+          D_DERROR( ret, "UniQuE/WM: Could not lock surface for border tiles!\n" );
+          dfb_surface_unref( shared->foo_surface );
+          return ret;
+     }
+
+     for (i=0; i<foo_desc.height; i++) {
+          direct_memcpy( dfb_surface_data_offset( shared->foo_surface, data, pitch, 0, i ),
+                         foo_data + i * foo_desc.preallocated[0].pitch,
+                         DFB_BYTES_PER_LINE( foo_desc.pixelformat, foo_desc.width ) );
+     }
+
+     dfb_surface_unlock( shared->foo_surface, false );
+
+     dfb_surface_globalize( shared->foo_surface );
+
+     return DFB_OK;
+}
 
 DFBResult
 unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool master )
@@ -86,8 +128,25 @@ unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool maste
      if (ret)
           return ret;
 
-     if (master)
+     if (master) {
+          int i;
+
+          ret = load_foo( core, shared );
+          if (ret) {
+               unregister_classes( wm_shared );
+               return ret;
+          }
+
           shared->context_pool = unique_context_pool_create();
+
+          shared->insets.l = foo[UFI_W].rect.w;
+          shared->insets.t = foo[UFI_N].rect.h;
+          shared->insets.r = foo[UFI_E].rect.w;
+          shared->insets.b = foo[UFI_S].rect.h;
+
+          for (i=0; i<8; i++)
+               shared->foo_rects[i] = foo[i].rect;
+     }
 
      dfb_core  = core;
      wm_data   = data;

@@ -57,12 +57,13 @@ foo_update( StretRegion     *region,
             const DFBRegion *updates,
             int              num )
 {
-     int                     i;
-     DFBRegion               clip;
-     DFBSurfaceDrawingFlags  flags = DSDRAW_NOFX;
-     WindowData             *data  = region_data;
-     CardState              *state = update_data;
-     CoreWindow             *window;
+     int           i;
+     DFBRegion     clip;
+     DFBDimension  size;
+     WindowData   *data  = region_data;
+     CardState    *state = update_data;
+     WMShared     *shared;
+     CoreWindow   *window;
 
      D_ASSERT( region != NULL );
      D_ASSERT( region_data != NULL );
@@ -73,6 +74,11 @@ foo_update( StretRegion     *region,
      D_MAGIC_ASSERT( state, CardState );
 
      window = data->window;
+     shared = data->shared;
+
+     D_ASSERT( window != NULL );
+     D_ASSERT( shared != NULL );
+     D_ASSERT( shared->foo_surface != NULL );
 
      D_DEBUG_AT( UniQuE_Foo, "foo_update( region %p, window %p, opacity %d, num %d )\n",
                  region, window, window->opacity, num );
@@ -86,57 +92,63 @@ foo_update( StretRegion     *region,
      if (!window->opacity)
           return;
 
-     /* Save clipping region. */
-     clip = state->clip;
+     stret_region_get_size( region, &size );
 
-     /* Use alpha blending. */
-     //if (window->opacity != 0xFF)
-          flags |= DSDRAW_BLEND;
+     /* Set blitting flags. */
+     dfb_state_set_blitting_flags( state, DSBLIT_BLEND_ALPHACHANNEL );
 
-     /* Set color. */
-     state->color     = data->stack_data->context->color;
-     state->modified |= SMF_COLOR;
+     /* Set blitting source. */
+     state->source    = shared->foo_surface;
+     state->modified |= SMF_SOURCE;
 
-     /* Set drawing flags. */
-     dfb_state_set_drawing_flags( state, flags );
+     switch (arg) {
+          case UFI_N:
+          case UFI_E:
+          case UFI_S:
+          case UFI_W:
+               clip = state->clip;
 
-     for (i=0; i<num; i++) {
-          DFBRectangle rect;
-          DFBRegion    update = DFB_REGION_INIT_TRANSLATED( &updates[i], x, y );
+/*               for (i=0; i<num; i++) {
+                    DFBRegion    update = DFB_REGION_INIT_TRANSLATED( &updates[i], x, y );
+                    DFBRectangle source = shared->foo_rects[arg];
+                    DFBRectangle dest   = { x, y, size.w, size.h };
 
-          /* Change clipping region. */
-          dfb_state_set_clip( state, &update );
+                    dfb_state_set_clip( state, &update );
 
+                    dfb_gfxcard_stretchblit( &source, &dest, state );
+               }*/
+               for (i=0; i<num; i++) {
+                    DFBRegion    update = DFB_REGION_INIT_TRANSLATED( &updates[i], x, y );
+                    DFBRectangle source = shared->foo_rects[arg];
 
-          /* top */
-          rect = (DFBRectangle) { x, y,
-                                  window->width + data->insets.l + data->insets.r, data->insets.t };
+                    dfb_state_set_clip( state, &update );
 
-          dfb_gfxcard_fillrectangle( &rect, state );
+                    dfb_gfxcard_tileblit( &source, x, y, x + size.w - 1, y + size.h - 1, state );
+               }
 
+               dfb_state_set_clip( state, &clip );
+               break;
 
-          /* left */
-          rect = (DFBRectangle) { x, y + data->insets.t, data->insets.l, window->height };
+          case UFI_NE:
+          case UFI_SE:
+          case UFI_SW:
+          case UFI_NW:
+               for (i=0; i<num; i++) {
+                    DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &updates[i] );
 
-          dfb_gfxcard_fillrectangle( &rect, state );
+                    dfb_rectangle_translate( &rect, shared->foo_rects[arg].x, shared->foo_rects[arg].y );
 
+                    dfb_gfxcard_blit( &rect, x + updates[i].x1, y + updates[i].y1, state );
+               }
+               break;
 
-          /* right */
-          rect = (DFBRectangle) { x + data->insets.l + window->width,
-                                  y + data->insets.t, data->insets.r, window->height };
-
-          dfb_gfxcard_fillrectangle( &rect, state );
-
-
-          /* bottom */
-          rect = (DFBRectangle) { x, y + data->insets.t + window->height,
-                                  window->width + data->insets.l + data->insets.r, data->insets.b };
-
-          dfb_gfxcard_fillrectangle( &rect, state );
+          default:
+               D_BUG( "invalid arg" );
      }
 
-     /* Restore clipping region. */
-     dfb_state_set_clip( state, &clip );
+     /* Reset blitting source. */
+     state->source    = NULL;
+     state->modified |= SMF_SOURCE;
 }
 
 const StretRegionClass unique_foo_region_class = {

@@ -42,7 +42,7 @@
 #include <unique/stret.h>
 
 
-#define UNIQUE_WM_ABI_VERSION 2
+#define UNIQUE_WM_ABI_VERSION 3
 
 
 extern const StretRegionClass unique_root_region_class;
@@ -61,6 +61,18 @@ typedef enum {
 } UniqueClassIndex;
 
 
+typedef enum {
+     UFI_N,
+     UFI_NE,
+     UFI_E,
+     UFI_SE,
+     UFI_S,
+     UFI_SW,
+     UFI_W,
+     UFI_NW
+} UniqueFooIndex;
+
+
 struct __UniQuE_WMData {
      int                           module_abi;
 
@@ -73,6 +85,12 @@ struct __UniQuE_WMShared {
      FusionObjectPool             *context_pool;
 
      StretRegionClassID            classes[_UCI_NUM];
+
+     DFBInsets                     insets;
+
+     DFBRectangle                  foo_rects[8];
+
+     CoreSurface                  *foo_surface;
 };
 
 struct __UniQuE_StackData {
@@ -113,8 +131,12 @@ struct __UniQuE_WindowData {
 
      CoreWindow                   *window;
 
+     WMShared                     *shared;
+
      StretRegion                  *frame;
      StretRegion                  *region;
+
+     StretRegion                  *foos[8];
 
      DFBInsets                     insets;
      bool                          has_frame;
@@ -134,6 +156,24 @@ struct __UniQuE_UniqueContext {
      StackData      *stack_data;
 
      DFBColor        color;
+};
+
+struct __UniQuE_StretRegion {
+     int                 magic;
+
+     int                 index;
+
+     StretRegion        *parent;
+     FusionVector        children;
+
+     StretRegionFlags    flags;
+
+     DFBRegion           bounds;
+
+     StretRegionClassID  clazz;
+
+     void               *data;
+     unsigned long       arg;
 };
 
 

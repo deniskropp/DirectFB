@@ -65,6 +65,7 @@ typedef struct {
 typedef int StretRegionClassID;
 
 #define SRCID_UNKNOWN    -1
+#define SRCID_DEFAULT     0
 
 
 DFBResult stret_class_register  ( const StretRegionClass *clazz,
@@ -107,11 +108,15 @@ DFBResult stret_region_restack( StretRegion         *region,
                                 int                  index );
 
 
-DFBResult stret_region_get_abs( StretRegion         *region,
-                                DFBRegion           *ret_bounds );
+void      stret_region_get_abs ( StretRegion         *region,
+                                 DFBRegion           *ret_bounds );
+
+void      stret_region_get_size( StretRegion         *region,
+                                 DFBDimension        *ret_size );
 
 DFBResult stret_region_visible( StretRegion         *region,
                                 const DFBRegion     *base,
+                                bool                 children,
                                 DFBRegion           *ret_regions,
                                 int                  max_num,
                                 int                 *ret_num );
@@ -119,6 +124,13 @@ DFBResult stret_region_visible( StretRegion         *region,
 DFBResult stret_region_update ( StretRegion         *region,
                                 const DFBRegion     *update,
                                 void                *update_data );
+
+StretRegion *stret_region_at  ( StretRegion         *region,
+                                int                  x,
+                                int                  y,
+                                StretRegionFlags     flags );
+
+void        *stret_region_data( const StretRegion   *region )    D_CONST_FUNC;
 
 #endif
 

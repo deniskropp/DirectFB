@@ -39,34 +39,42 @@
 #include <misc/util.h>
 
 #include <unique/stret.h>
+#include <unique/stret_iteration.h>
+#include <unique/internal.h>
 
 
 #define MAX_CLASSES 16
 
 D_DEBUG_DOMAIN( UniQuE_StReT, "UniQuE/StReT", "UniQuE's Stack Region Tree" );
 
-struct __UniQuE_StretRegion {
-     int                 magic;
+/**************************************************************************************************/
 
-     int                 index;
+static void
+default_update( StretRegion     *region,
+                void            *region_data,
+                void            *update_data,
+                unsigned long    arg,
+                int              x,
+                int              y,
+                const DFBRegion *updates,
+                int              num )
+{
+     D_DEBUG_AT( UniQuE_StReT, "default_update( %p, %p, %p, %lu, %d, %d, %p, %d )\n",
+                 region, region_data, update_data, arg, x, y, updates, num );
+}
 
-     StretRegion        *parent;
-     FusionVector        children;
-
-     StretRegionFlags    flags;
-
-     DFBRegion           bounds;
-
-     StretRegionClassID  clazz;
-
-     void               *data;
-     unsigned long       arg;
+static const StretRegionClass default_class = {
+     Update:   default_update
 };
 
-static const StretRegionClass *classes[MAX_CLASSES];
-static pthread_mutex_t         classes_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
-static int                     classes_count;
+/**************************************************************************************************/
 
+static const StretRegionClass *classes[MAX_CLASSES] = { &default_class, NULL };
+
+static pthread_mutex_t         classes_lock  = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static int                     classes_count = 1;
+
+/**************************************************************************************************/
 
 DFBResult
 stret_class_register( const StretRegionClass *clazz,
@@ -331,169 +339,7 @@ stret_region_restack( StretRegion *region,
      return DFB_OK;
 }
 
-
-typedef struct {
-     int        num;
-     int        max;
-     DFBRegion *regions;
-} ClipOutContext;
-
-static void
-clip_out( StretRegion    *current,
-          int             start,
-          ClipOutContext *context,
-          int             x0,
-          int             y0,
-          int             x1,
-          int             y1,
-          int             x2,
-          int             y2 )
-{
-     int          i;
-     int          num;
-     StretRegion *parent;
-
-     D_ASSERT( x1 <= x2 );
-     D_ASSERT( y1 <= y2 );
-
-restart:
-
-     D_MAGIC_ASSERT( current, StretRegion );
-
-     num = fusion_vector_size( &current->children );
-
-     D_ASSERT( start >= 0 );
-     D_ASSERT( start <= num );
-
-     for (i=start; i<num; i++) {
-          StretRegion *child = fusion_vector_at( &current->children, i );
-
-          D_MAGIC_ASSERT( child, StretRegion );
-
-          if (!FLAG_IS_SET( child->flags, SRF_ACTIVE ))
-               continue;
-
-          if (!dfb_region_intersects( &child->bounds, x1, y1, x2, y2 ))
-               continue;
-
-          if (FLAGS_ARE_SET( child->flags, SRF_OPAQUE | SRF_OUTPUT )) {
-               DFBRegion cutout = DFB_REGION_INIT_INTERSECTED( &child->bounds, x1, y1, x2, y2 );
-
-               if (child->children.count > 0) {
-                    int cx  = child->bounds.x1;
-                    int cy  = child->bounds.y1;
-                    int cx0 = x0 + cx;
-                    int cy0 = y0 + cy;
-
-                    /* upper */
-                    if (cutout.y1 != y1)
-                         clip_out( child, 0, context,
-                                   cx0, cy0, x1 - cx, y1 - cy, x2 - cx, cutout.y1-1 - cy );
-
-                    /* left */
-                    if (cutout.x1 != x1)
-                         clip_out( child, 0, context,
-                                   cx0, cy0, x1 - cx, cutout.y1 - cy, cutout.x1-1 - cx, cutout.y2 - cy );
-
-                    /* right */
-                    if (cutout.x2 != x2)
-                         clip_out( child, 0, context,
-                                   cx0, cy0, cutout.x2+1 - cx, cutout.y1 - cy, x2 - cx, cutout.y2 - cy );
-
-                    /* lower */
-                    if (cutout.y2 != y2)
-                         clip_out( child, 0, context,
-                                   cx0, cy0, x1 - cx, cutout.y2+1 - cy, x2 - cx, y2 - cy );
-               }
-               else {
-                    /* upper */
-                    if (cutout.y1 != y1)
-                         clip_out( current, i + 1, context, x0, y0, x1, y1, x2, cutout.y1-1 );
-
-                    /* left */
-                    if (cutout.x1 != x1)
-                         clip_out( current, i + 1, context, x0, y0, x1, cutout.y1, cutout.x1-1, cutout.y2 );
-
-                    /* right */
-                    if (cutout.x2 != x2)
-                         clip_out( current, i + 1, context, x0, y0, cutout.x2+1, cutout.y1, x2, cutout.y2 );
-
-                    /* lower */
-                    if (cutout.y2 != y2)
-                         clip_out( current, i + 1, context, x0, y0, x1, cutout.y2+1, x2, y2 );
-               }
-
-
-               return;
-          }
-
-          if (fusion_vector_size( &child->children ) > 0) {
-               int cx  = child->bounds.x1;
-               int cy  = child->bounds.y1;
-
-               current = child;
-               start   = 0;
-
-               x0 += cx;
-               y0 += cy;
-               x1 -= cx;
-               y1 -= cy;
-               x2 -= cx;
-               y2 -= cy;
-
-               goto restart;
-          }
-     }
-
-     parent = current->parent;
-     while (parent) {
-          int cx  = current->bounds.x1;
-          int cy  = current->bounds.y1;
-          int pos = current->index;
-
-          D_MAGIC_ASSERT( parent, StretRegion );
-
-          D_ASSERT( pos == fusion_vector_index_of( &parent->children, current ) );
-
-          x0 -= cx;
-          y0 -= cy;
-          x1 += cx;
-          y1 += cy;
-          x2 += cx;
-          y2 += cy;
-
-          if (pos < fusion_vector_size( &parent->children ) - 1) {
-               current = parent;
-               start   = pos + 1;
-
-               goto restart;
-          }
-
-          current = parent;
-          parent  = parent->parent;
-     }
-
-     D_ASSUME( x0 == 0 );
-     D_ASSUME( y0 == 0 );
-
-     context->num++;
-
-     if (context->num <= context->max) {
-          DFBRegion *region = &context->regions[ context->num - 1 ];
-
-          D_DEBUG_AT( UniQuE_StReT, "    (%2d) %4d, %4d - %4dx%4d\n",
-                      context->num - 1, x0 + x1, y0 + y1, x2 - x1 + 1, y2 - y1 + 1 );
-
-          region->x1 = x1 + x0;
-          region->y1 = y1 + y0;
-          region->x2 = x2 + x0;
-          region->y2 = y2 + y0;
-     }
-     else
-          D_DEBUG_AT( UniQuE_StReT, "  Maximum number of regions exceeded, dropping...\n" );
-}
-
-DFBResult
+void
 stret_region_get_abs( StretRegion *region,
                       DFBRegion   *ret_bounds )
 {
@@ -516,20 +362,120 @@ stret_region_get_abs( StretRegion *region,
      }
 
      *ret_bounds = bounds;
+}
 
-     return DFB_OK;
+void
+stret_region_get_size( StretRegion  *region,
+                       DFBDimension *ret_size )
+{
+     D_MAGIC_ASSERT( region, StretRegion );
+
+     D_ASSERT( ret_size != NULL );
+
+     ret_size->w = region->bounds.x2 - region->bounds.x1 + 1;
+     ret_size->h = region->bounds.y2 - region->bounds.y1 + 1;
+}
+
+
+typedef struct {
+     int        num;
+     int        max;
+     DFBRegion *regions;
+} ClipOutContext;
+
+static void
+clip_out( StretIteration *iteration,
+          ClipOutContext *context,
+          int             x1,
+          int             y1,
+          int             x2,
+          int             y2 )
+{
+     StretRegion *region;
+     DFBRegion    cutout;
+     DFBRegion    area = { x1, y1, x2, y2 };
+
+     D_DEBUG_AT( UniQuE_StReT, "  clip_out( %4d, %4d - %4dx%4d )\n",
+                 DFB_RECTANGLE_VALS_FROM_REGION( &area ) );
+
+     D_ASSERT( x1 <= x2 );
+     D_ASSERT( y1 <= y2 );
+
+     while (true) {
+          region = stret_iteration_next( iteration, &area );
+          if (!region) {
+               context->num++;
+
+               if (context->num <= context->max) {
+                    DFBRegion *region = &context->regions[ context->num - 1 ];
+
+                    D_DEBUG_AT( UniQuE_StReT, "    (%2d) %4d, %4d - %4dx%4d\n",
+                                context->num - 1, x1, y1, x2 - x1 + 1, y2 - y1 + 1 );
+
+                    region->x1 = x1;
+                    region->y1 = y1;
+                    region->x2 = x2;
+                    region->y2 = y2;
+               }
+               else
+                    D_DEBUG_AT( UniQuE_StReT, "  Maximum number of regions exceeded, dropping...\n" );
+
+               return;
+          }
+
+          D_MAGIC_ASSERT( region, StretRegion );
+
+          if (FLAGS_ARE_SET( region->flags, SRF_OUTPUT | SRF_OPAQUE ))
+               break;
+     }
+
+     cutout = DFB_REGION_INIT_TRANSLATED( &region->bounds, iteration->x0, iteration->y0 );
+
+     dfb_region_clip( &cutout, x1, y1, x2, y2 );
+
+     /* upper */
+     if (cutout.y1 != y1) {
+          StretIteration fork = *iteration;
+
+          clip_out( &fork, context, x1, y1, x2, cutout.y1 - 1 );
+     }
+
+     /* left */
+     if (cutout.x1 != x1) {
+          StretIteration fork = *iteration;
+
+          clip_out( &fork, context, x1, cutout.y1, cutout.x1 - 1, cutout.y2 );
+     }
+
+     /* right */
+     if (cutout.x2 != x2) {
+          StretIteration fork = *iteration;
+
+          clip_out( &fork, context, cutout.x2 + 1, cutout.y1, x2, cutout.y2 );
+     }
+
+     /* lower */
+     if (cutout.y2 != y2) {
+          StretIteration fork = *iteration;
+
+          clip_out( &fork, context, x1, cutout.y2 + 1, x2, y2 );
+     }
 }
 
 DFBResult
 stret_region_visible( StretRegion     *region,
                       const DFBRegion *base,
+                      bool             children,
                       DFBRegion       *ret_regions,
                       int              max_num,
                       int             *ret_num )
 {
-     bool           visible = true;
-     DFBRegion      area;
-     ClipOutContext context;
+     bool            visible = true;
+     DFBRegion       area;
+     ClipOutContext  context;
+     StretIteration  iteration;
+     StretRegion    *root;
+
      int            x0, y0;
 
      D_MAGIC_ASSERT( region, StretRegion );
@@ -576,6 +522,8 @@ stret_region_visible( StretRegion     *region,
      x0 = region->bounds.x1;
      y0 = region->bounds.y1;
 
+     root = region;
+
      if (region->parent) {
           int          rx2;
           int          ry2;
@@ -598,6 +546,8 @@ stret_region_visible( StretRegion     *region,
                rx2 = parent->bounds.x2;
                ry2 = parent->bounds.y2;
 
+               root = parent;
+
                visible = dfb_region_intersect( &area, - x0, - y0, rx2 - x0, ry2 - y0 );
 
                parent = parent->parent;
@@ -616,7 +566,9 @@ stret_region_visible( StretRegion     *region,
      }
 
 
-     clip_out( region, 0, &context, x0, y0, area.x1, area.y1, area.x2, area.y2 );
+     stret_iteration_init( &iteration, root );
+
+     clip_out( &iteration, &context, x0 + area.x1, y0 + area.y1, x0 + area.x2, y0 + area.y2 );
 
 
      *ret_num = context.num;
@@ -633,207 +585,97 @@ stret_region_visible( StretRegion     *region,
      return DFB_OK;
 }
 
-typedef struct {
-     StretRegion *region;
-     int          index;
-} StackFrame;
 
 typedef struct {
-     StackFrame   stack[8];
-     int          current;
-
-     int          x0;
-     int          y0;
+     StretIteration  iteration;
+     void           *update_data;
 } UpdateContext;
 
-#if 0
-static inline StretRegion *
-get_next_intersection( UpdateContext *context, const DFBRegion *clip )
+static void
+region_update( UpdateContext *context,
+               int            x1,
+               int            y1,
+               int            x2,
+               int            y2 )
 {
-     int          index;
+     int          x0, y0;
+     DFBRegion    area = { x1, y1, x2, y2 };
      StretRegion *region;
 
-     do {
-          region = context->stack[context->current].region;
-          index  = context->stack[context->current].index--;
-
-          if (index < 0) {
-               if (context->current > 0) {
-                    context->current--;
-                    context->x0 -= region->x1;
-                    context->y0 -= region->y1;
-               }
-          }
-          else {
-
-          }
-     } while (  );
-}
-#endif
-
-static void
-region_update( StretRegion    *current,
-               int             start,
-               void           *update_data,
-               int             x0,
-               int             y0,
-               int             x1,
-               int             y1,
-               int             x2,
-               int             y2 )
-{
-     int          i;
-     int          num;
-     bool         self;
-     DFBRegion    area = { x1, y1, x2, y2 };
-     StretRegion *parent;
-
-     D_DEBUG_AT( UniQuE_StReT, "  region_update( %4d, %4d - %4dx%4d  @ %4d, %4d  start %d) <- class %d\n",
-                 x1, y1, x2 - x1 + 1, y2 - y1 + 1, x0, y0, start, current->clazz );
+     D_DEBUG_AT( UniQuE_StReT, "  region_update( %4d, %4d - %4dx%4d )\n",
+                 x1, y1, x2 - x1 + 1, y2 - y1 + 1 );
 
      D_ASSERT( x1 <= x2 );
      D_ASSERT( y1 <= y2 );
 
-     D_MAGIC_ASSERT( current, StretRegion );
+     while (true) {
+          region = stret_iteration_next( &context->iteration, &area );
+          if (!region)
+               return;
 
-     num = fusion_vector_size( &current->children );
+          D_MAGIC_ASSERT( region, StretRegion );
 
-     D_ASSERT( start >= -1 );
-     D_ASSERT( start < num );
-
-
-     self = (FLAG_IS_SET( current->flags, SRF_ACTIVE ) &&
-             dfb_region_intersect( &area, 0, 0,
-                                   current->bounds.x2 - current->bounds.x1,
-                                   current->bounds.y2 - current->bounds.y1 ));
-
-
-     if (self) {
-          for (i=start; i>=0; i--) {
-               StretRegion *child = fusion_vector_at( &current->children, i );
-
-               D_MAGIC_ASSERT( child, StretRegion );
-
-               if (!FLAG_IS_SET( child->flags, SRF_ACTIVE ))
-                    continue;
-
-               if (dfb_region_intersects( &child->bounds, x1, y1, x2, y2 )) {
-                    int       dx    = 0;
-                    int       dy    = 0;
-                    bool      first = start == i;
-                    DFBRegion inter = DFB_REGION_INIT_INTERSECTED( &child->bounds, x1, y1, x2, y2 );
-
-                    if (first)
-                         start = i - 1;
-                    else
-                         start = i;
-
-                    if (start >= 0) {
-                         StretRegion *child = fusion_vector_at( &current->children, start );
-
-                         D_MAGIC_ASSERT( child, StretRegion );
-
-                         while (child->children.count) {
-                              dx -= child->bounds.x1;
-                              dy -= child->bounds.y1;
-
-                              start   = fusion_vector_size( &child->children ) - 1;
-                              current = child;
-
-                              child = fusion_vector_at( &current->children, start );
-
-                              D_MAGIC_ASSERT( child, StretRegion );
-                         }
-                    }
-
-                    if (FLAG_IS_SET( child->flags, SRF_OPAQUE )) {
-                         /* upper */
-                         if (inter.y1 != y1)
-                              region_update( current, start, update_data, x0 - dx, y0 - dy,
-                                             x1 + dx, y1 + dy, x2 + dx, inter.y1-1 + dy );
-
-                         /* left */
-                         if (inter.x1 != x1)
-                              region_update( current, start, update_data, x0 - dx, y0 - dy,
-                                             x1 + dx, inter.y1 + dy, inter.x1-1 + dx, inter.y2 + dy );
-
-                         /* right */
-                         if (inter.x2 != x2)
-                              region_update( current, start, update_data, x0 - dx, y0 - dy,
-                                             inter.x2+1 + dx, inter.y1 + dy, x2 + dx, inter.y2 + dy );
-
-                         /* lower */
-                         if (inter.y2 != y2)
-                              region_update( current, start, update_data, x0 - dx, y0 - dy,
-                                             x1 + dx, inter.y2+1 + dy, x2 + dx, y2 + dy );
-                    }
-                    else
-                         region_update( current, start, update_data, x0 - dx, y0 - dy,
-                                        x1 + dx, y1 + dy, x2 + dx, y2 + dy );
-
-                    if (first && FLAG_IS_SET( child->flags, SRF_OUTPUT )) {
-                         x0 += child->bounds.x1;
-                         y0 += child->bounds.y1;
-
-                         dfb_region_translate( &inter, - child->bounds.x1, - child->bounds.y1 );
-
-                         D_DEBUG_AT( UniQuE_StReT, "    -> %4d, %4d - %4dx%4d  @ %4d, %4d  (class %d, index %d)\n",
-                                     DFB_RECTANGLE_VALS_FROM_REGION( &inter ), x0, y0, child->clazz, child->index );
-
-                         classes[child->clazz]->Update( child, child->data, update_data,
-                                                        child->arg, x0, y0, &inter, 1 );
-                    }
-
-                    return;
-               }
-          }
+          if (FLAG_IS_SET( region->flags, SRF_OUTPUT ))
+               break;
      }
 
-     parent = current->parent;
-     if (parent) {
-          int dx  = current->bounds.x1;
-          int dy  = current->bounds.y1;
-          int pos = current->index;
+     x0 = context->iteration.x0;
+     y0 = context->iteration.y0;
 
-          D_MAGIC_ASSERT( parent, StretRegion );
+     D_DEBUG_AT( UniQuE_StReT, "    -> %4d, %4d - %4dx%4d  @ %4d, %4d  (class %d, index %d)\n",
+                 DFB_RECTANGLE_VALS_FROM_REGION( &region->bounds ),
+                 x0, y0, region->clazz, region->index );
 
-          D_ASSERT( pos == fusion_vector_index_of( &parent->children, current ) );
+     dfb_region_clip( &area, DFB_REGION_VALS_TRANSLATED( &region->bounds, x0, y0 ) );
 
-          start = pos - 1;
 
-          if (start >= 0) {
-               StretRegion *child = fusion_vector_at( &parent->children, start );
 
-               D_MAGIC_ASSERT( child, StretRegion );
+     if (FLAG_IS_SET( region->flags, SRF_OPAQUE )) {
+          /* upper */
+          if (area.y1 != y1) {
+               UpdateContext fork = *context;
 
-               while (child->children.count) {
-                    dx -= child->bounds.x1;
-                    dy -= child->bounds.y1;
-
-                    start  = fusion_vector_size( &child->children ) - 1;
-                    parent = child;
-
-                    child = fusion_vector_at( &parent->children, start );
-
-                    D_MAGIC_ASSERT( child, StretRegion );
-               }
+               region_update( &fork, x1, y1, x2, area.y1 - 1 );
           }
 
-          region_update( parent, start, update_data,
-                         x0 - dx, y0 - dy, x1 + dx, y1 + dy, x2 + dx, y2 + dy );
-     }
-     else {
-          D_ASSUME( x0 == 0 );
-          D_ASSUME( y0 == 0 );
-     }
+          /* left */
+          if (area.x1 != x1) {
+               UpdateContext fork = *context;
 
-     if (self && FLAG_IS_SET( current->flags, SRF_OUTPUT )) {
-          D_DEBUG_AT( UniQuE_StReT, "    => %4d, %4d - %4dx%4d  @ %4d, %4d  (class %d, index %d)\n",
-                      DFB_RECTANGLE_VALS_FROM_REGION(&area), x0, y0, current->clazz, current->index );
+               region_update( &fork, x1, area.y1, area.x1 - 1, area.y2 );
+          }
 
-          classes[current->clazz]->Update( current, current->data, update_data,
-                                           current->arg, x0, y0, &area, 1 );
+          /* right */
+          if (area.x2 != x2) {
+               UpdateContext fork = *context;
+
+               region_update( &fork, area.x2 + 1, area.y1, x2, area.y2 );
+          }
+
+          /* lower */
+          if (area.y2 != y2) {
+               UpdateContext fork = *context;
+
+               region_update( &fork, x1, area.y2 + 1, x2, y2 );
+          }
      }
+     else
+          region_update( context, x1, y1, x2, y2 );
+
+
+     x0 += region->bounds.x1;
+     y0 += region->bounds.y1;
+
+     dfb_region_translate( &area, - x0, - y0 );
+
+     D_DEBUG_AT( UniQuE_StReT, "    => %4d, %4d - %4dx%4d  @ %4d, %4d  (class %d, index %d)\n",
+                 DFB_RECTANGLE_VALS_FROM_REGION( &area ),
+                 x0, y0, region->clazz, region->index );
+
+     D_ASSERT( classes[region->clazz]->Update );
+
+     classes[region->clazz]->Update( region, region->data, context->update_data,
+                                     region->arg, x0, y0, &area, 1 );
 }
 
 DFBResult
@@ -841,7 +683,8 @@ stret_region_update( StretRegion     *region,
                      const DFBRegion *clip,
                      void            *update_data )
 {
-     DFBRegion area;
+     DFBRegion     area;
+     UpdateContext context;
 
      D_MAGIC_ASSERT( region, StretRegion );
 
@@ -867,38 +710,57 @@ stret_region_update( StretRegion     *region,
      area.x2 = region->bounds.x2 - region->bounds.x1;
      area.y2 = region->bounds.y2 - region->bounds.y1;
 
-     if (clip && !dfb_region_region_intersect( &area, clip ))
+     if (clip && !dfb_region_region_intersect( &area, clip )) {
+          D_DEBUG_AT( UniQuE_StReT, "  -> Region doesn't intersect with clip.\n" );
           return DFB_OK;
-
-     if (region->children.count) {
-          int          start = fusion_vector_size( &region->children ) - 1;
-          StretRegion *child = fusion_vector_at( &region->children, start );
-          int          x0 = 0, y0 = 0;
-
-          D_MAGIC_ASSERT( child, StretRegion );
-
-          while (child->children.count) {
-               int cx = child->bounds.x1;
-               int cy = child->bounds.y1;
-
-               x0 += cx;
-               y0 += cy;
-
-               dfb_region_translate( &area, -cx, -cy );
-
-               start  = fusion_vector_size( &child->children ) - 1;
-               region = child;
-
-               child = fusion_vector_at( &region->children, start );
-
-               D_MAGIC_ASSERT( child, StretRegion );
-          }
-
-          region_update( region, start, update_data, x0, y0, area.x1, area.y1, area.x2, area.y2 );
      }
-     else
-          region_update( region, -1, update_data, 0, 0, area.x1, area.y1, area.x2, area.y2 );
+
+
+     stret_iteration_init( &context.iteration, region );
+
+     context.update_data = update_data;
+
+     region_update( &context, area.x1, area.y1, area.x2, area.y2 );
 
      return DFB_OK;
+}
+
+StretRegion *
+stret_region_at( StretRegion      *region,
+                 int               x,
+                 int               y,
+                 StretRegionFlags  flags )
+{
+     StretIteration iteration;
+     DFBRegion      area = { x, y, x, y };
+
+     D_MAGIC_ASSERT( region, StretRegion );
+
+     D_DEBUG_AT( UniQuE_StReT, "stret_region_at( %p, %d, %d, 0x%08x )\n", region, x, y, flags );
+
+     if (! FLAG_IS_SET( region->flags, SRF_ACTIVE )) {
+          D_DEBUG_AT( UniQuE_StReT, "  -> Region is not active.\n" );
+          return NULL;
+     }
+
+
+     stret_iteration_init( &iteration, region );
+
+     while ((region = stret_iteration_next( &iteration, &area )) != NULL) {
+          if (! FLAGS_ARE_SET( region->flags, flags ))
+               continue;
+
+          return region;
+     }
+
+     return NULL;
+}
+
+void *
+stret_region_data( const StretRegion *region )
+{
+     D_MAGIC_ASSERT( region, StretRegion );
+
+     return region->data;
 }
 
