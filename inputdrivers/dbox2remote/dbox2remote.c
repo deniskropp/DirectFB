@@ -77,7 +77,7 @@ static KeyCode keycodes_new_remote[] = {
 
      { DIKC_OK, 0x000e },
      { DIKC_HOME, 0x001F },
-     { DIKC_ESCAPE, 0x0018 },                     // "d-box" key
+     { DIKC_VENDOR, 0x0018 },                     // "d-box" key
      { DIKC_POWER, 0x0010 },
 
      { DIKC_PAGEDOWN, 0x0053 },                   // dbox1 only
@@ -114,7 +114,7 @@ static KeyCode keycodes_old_remote[] = {
 
      { DIKC_OK, 0x5c30 },
      { DIKC_HOME, 0x5c20 },                       // radio key
-     { DIKC_ESCAPE, 0x5c27 },                     // TV key
+     { DIKC_VENDOR, 0x5c27 },                     // TV key
      { DIKC_POWER, 0x5c0c },
 
      { DIKC_PAGEDOWN, 0x5c53 },                   // dbox1 only
