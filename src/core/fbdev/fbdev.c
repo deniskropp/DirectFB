@@ -744,12 +744,18 @@ primaryInitLayer         ( GraphicsDevice             *device,
      default_mode = dfb_fbdev->shared->modes;
 
      /* set capabilities and type */
-     layer_info->desc.caps = DLCAPS_SURFACE;
+     layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_CONTRAST | DLCAPS_SATURATION | DLCAPS_BRIGHTNESS;
      layer_info->desc.type = DLTF_GRAPHICS;
 
      /* set name */
      snprintf( layer_info->name,
                DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "Primary Layer" );
+
+     /* fill out default color adjustment */
+     default_adj->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_SATURATION;
+     default_adj->brightness = 0x8000;
+     default_adj->contrast   = 0x8000;
+     default_adj->saturation = 0x8000;
 
      /* fill out the default configuration */
      default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
@@ -950,15 +956,127 @@ primaryFlipBuffers       ( DisplayLayer               *layer,
 
      return DFB_OK;
 }
-     
+
 static DFBResult
 primarySetColorAdjustment( DisplayLayer               *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            DFBColorAdjustment         *adj )
 {
-     /* maybe we could use the gamma ramp here */
-     return DFB_UNSUPPORTED;
+     struct fb_cmap *cmap       = &dfb_fbdev->shared->current_cmap;
+     struct fb_cmap *temp       = &dfb_fbdev->shared->temp_cmap;  
+     int             contrast   = adj->contrast >> 8;
+     int             brightness = (adj->brightness >> 8) - 128;
+     int             saturation = adj->saturation >> 8;
+     int             r, g, b, i;
+
+     if (dfb_fbdev->shared->fix.visual != FB_VISUAL_DIRECTCOLOR)
+          return DFB_UNIMPLEMENTED;
+
+     /* Use gamma ramp to set color attributes */
+     for (i = 0; i < cmap->len; i++) {
+          r = cmap->red[i];
+	  g = cmap->green[i];
+	  b = cmap->blue[i];
+	  r >>= 8;
+	  g >>= 8;
+	  b >>= 8;
+
+         /* 
+	  * Brightness Adjustment: Increase/Decrease each color channels
+	  * by a constant amount as specified by value of brightness.
+	  */
+	  if (adj->flags & DCAF_BRIGHTNESS) {
+	      r += brightness;
+	      g += brightness; 
+	      b += brightness;
+	  
+	      r = (r < 0) ? 0 : r;      
+	      g = (g < 0) ? 0 : g;      
+	      b = (b < 0) ? 0 : b;      
+
+	      r = (r > 255) ? 255 : r;  
+	      g = (g > 255) ? 255 : g;  
+	      b = (b > 255) ? 255 : b; 
+	  }
+
+	  /*
+	   * Contrast Adjustment:  We increase/decrease the "separation"
+	   * between colors in proportion to the value specified by the
+	   * contrast control. Decreasing the contrast has a side effect
+	   * of decreasing the brightness.
+	   */
+	  
+	  if (adj->flags & DCAF_CONTRAST) {
+	      /* Increase contrast */
+	      if (contrast > 128) {
+		  int c = contrast - 128;
+
+		  r = ((r + c/2)/c) * c;
+		  g = ((g + c/2)/c) * c;
+		  b = ((b + c/2)/c) * c;
+	      }
+	      /* Decrease contrast */
+	      else if (contrast < 127) {
+		  float c = (float)contrast/128.0;
+
+		  r = (int)((float)r * c);
+		  g = (int)((float)g * c);
+		  b = (int)((float)b * c);
+	      }
+	  }
+
+	  /*
+	   * Saturation Adjustment:  This is is a better implementation.
+	   * Saturation is implemented by "mixing" a proportion of medium
+	   * gray to the color value.  On the other side, "removing"
+	   * a proportion of medium gray oversaturates the color.  
+	   */
+	  if (adj->flags & DCAF_SATURATION) {
+	      if (saturation > 128) {
+	          float gray = ((float)saturation - 128.0)/128.0; 
+		  float color = 1.0 - gray;
+	      
+		  r = (int)(((float)r - 128.0 * gray)/color);
+		  g = (int)(((float)g - 128.0 * gray)/color);
+		  b = (int)(((float)b - 128.0 * gray)/color);
+	      }
+	      else if (saturation < 128) {
+		  float color = (float)saturation/128.0; 
+		  float gray = 1.0 - color;
+
+		  r = (int)(((float) r * color) + (128.0 * gray));
+		  g = (int)(((float) g * color) + (128.0 * gray));
+		  b = (int)(((float) b * color) + (128.0 * gray));
+	      }
+	  
+	      r = (r < 0) ? 0 : r;      
+	      g = (g < 0) ? 0 : g;      
+	      b = (b < 0) ? 0 : b;      
+
+	      r = (r > 255) ? 255 : r;  
+	      g = (g > 255) ? 255 : g;  
+	      b = (b > 255) ? 255 : b; 
+	  }
+	  r |= r << 8;
+	  g |= g << 8;
+	  b |= b << 8;
+
+          temp->red[i]   =  (unsigned short)r;
+          temp->green[i] =  (unsigned short)g;
+          temp->blue[i]  =  (unsigned short)b;
+      }
+
+     temp->len = cmap->len;
+     temp->start = cmap->start;
+     if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, temp ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not set the palette!\n" );
+
+          return errno2dfb(errno);
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -968,31 +1086,24 @@ primarySetPalette ( DisplayLayer               *layer,
                     CorePalette                *palette )
 {
      int            i;
-     struct fb_cmap cmap;
+     struct fb_cmap *cmap = &dfb_fbdev->shared->current_cmap;
 
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( palette != NULL );
 
-     cmap.start  = 0;
-     cmap.len    = palette->num_entries;
-     cmap.red    = (__u16*)alloca( 2 * cmap.len );
-     cmap.green  = (__u16*)alloca( 2 * cmap.len );
-     cmap.blue   = (__u16*)alloca( 2 * cmap.len );
-     cmap.transp = (__u16*)alloca( 2 * cmap.len );
+     for (i = 0; i < cmap->len; i++) {
+          cmap->red[i]     = palette->entries[i].r;
+          cmap->green[i]   = palette->entries[i].g;
+          cmap->blue[i]    = palette->entries[i].b;
+          cmap->transp[i]  = palette->entries[i].a;
 
-     for (i = 0; i < cmap.len; i++) {
-          cmap.red[i]     = palette->entries[i].r;
-          cmap.green[i]   = palette->entries[i].g;
-          cmap.blue[i]    = palette->entries[i].b;
-          cmap.transp[i]  = palette->entries[i].a;
-
-          cmap.red[i]    |= cmap.red[i] << 8;
-          cmap.green[i]  |= cmap.green[i] << 8;
-          cmap.blue[i]   |= cmap.blue[i] << 8;
-          cmap.transp[i] |= cmap.transp[i] << 8;
+          cmap->red[i]    |= cmap->red[i] << 8;
+          cmap->green[i]  |= cmap->green[i] << 8;
+          cmap->blue[i]   |= cmap->blue[i] << 8;
+          cmap->transp[i] |= cmap->transp[i] << 8;
      }
 
-     if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &cmap ) < 0) {
+     if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not set the palette!\n" );
 
@@ -1515,7 +1626,6 @@ static __u16 dfb_fbdev_calc_gamma(int n, int max)
     return ret;
 }
 
-
 static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
 {
      int i;
@@ -1530,7 +1640,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      struct fb_cmap cmap;
 
      if (!dfb_fbdev) {
-          BUG( "dfb_fbdev_set_gamme_ramp() called while dfb_fbdev == NULL!" );
+          BUG( "dfb_fbdev_set_gamma_ramp() called while dfb_fbdev == NULL!" );
 
           return DFB_BUG;
      }
@@ -1575,11 +1685,16 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      cmap.start  = 0;
      /* assume green to have most weight */
      cmap.len    = green_size;
-     cmap.red   = (__u16*)alloca( 2 * green_size );
-     cmap.green = (__u16*)alloca( 2 * green_size );
-     cmap.blue  = (__u16*)alloca( 2 * green_size );
+     cmap.red   = (__u16*)alloca( 2 * 256 );
+     cmap.green = (__u16*)alloca( 2 * 256 );
+     cmap.blue  = (__u16*)alloca( 2 * 256 );
      cmap.transp = NULL;
 
+     dfb_fbdev->shared->temp_cmap = cmap;
+
+     cmap.red   = (__u16*)alloca( 2 * 256 );
+     cmap.green = (__u16*)alloca( 2 * 256 );
+     cmap.blue  = (__u16*)alloca( 2 * 256 );
 
      for (i = 0; i < red_size; i++)
           cmap.red[i] = dfb_fbdev_calc_gamma( i, red_max );
@@ -1609,6 +1724,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
           return errno2dfb(errno);
      }
 
+     dfb_fbdev->shared->current_cmap = cmap;
      return DFB_OK;
 }
 
