@@ -145,8 +145,11 @@ static void* dfb_lib_handle = NULL;
 /******************************************************************************/
 
 static CoreDFB         *core_dfb      = NULL;
+#ifdef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
 static pthread_mutex_t  core_dfb_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-
+#else
+static pthread_mutex_t  core_dfb_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 /******************************************************************************/
 
 DFBResult
