@@ -679,17 +679,25 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
           return RS_REMOVE;
      }
 
-     if (flags & (CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE)) {
-          if (surface->palette)
-               funcs->SetRegion( layer,
-                                 layer->driver_data, layer->layer_data,
-                                 region->region_data, &region->config,
-                                 CLRCF_NONE, surface, surface->palette );
+     if (dfb_layer_region_lock( region ))
+          return RS_OK;
+
+     if (FLAG_IS_SET( region->state, CLRSF_REALIZED )) {
+          if (flags & (CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE)) {
+               if (surface->palette)
+                    funcs->SetRegion( layer,
+                                      layer->driver_data, layer->layer_data,
+                                      region->region_data, &region->config,
+                                      CLRCF_NONE, surface, surface->palette );
+          }
+
+          if ((flags & CSNF_FIELD) && funcs->SetInputField)
+               funcs->SetInputField( layer,
+                                     layer->driver_data, layer->layer_data,
+                                     region->region_data, surface->field );
      }
 
-     if ((flags & CSNF_FIELD) && funcs->SetInputField)
-          funcs->SetInputField( layer, layer->driver_data, layer->layer_data,
-                                region->region_data, surface->field );
+     dfb_layer_region_unlock( region );
 
      return RS_OK;
 }
