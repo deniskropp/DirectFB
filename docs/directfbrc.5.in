@@ -35,6 +35,11 @@ file contains one parameter per line. Comments are introduced by a
 hash sign (#), and continue until the end of the line.  Blank lines
 are ignored.
 
+Most parameters are switches that turn certain features on or off.
+These switches have a no- variant that disables the feature. This
+man-page describes the positive variant and will also note which
+setting is the compiled-in default.
+
 
 .SH PARAMETERS
 
@@ -44,7 +49,7 @@ file:
 
 .TP
 .BI fbdev=<device>
-Open the given frame buffer device instead of /dev/fb0.
+Opens the given frame buffer device instead of /dev/fb0.
 
 .TP
 .BI mode=<width>x<height>
@@ -60,10 +65,10 @@ Sets the default pixel depth in bits per pixel. If unspecified
 DirectFB will use the depth specified in the first mode from
 .I /etc/fb.modes
 DirectFB supports color depths of 15, 16, 24 and 32 (support for 8 bit
-can optionally be compiled in as well). What values are available for
-you depends on the frame buffer device you are using. Some frame
-buffer devices (namely vesafb) don't support mode switches at all and
-can only be used in the pixel depth that is set on boot time.
+can optionally be compiled in as well). What values are available
+depends on the frame buffer device you are using. Some frame buffer
+devices (namely vesafb) don't support mode switches at all and can
+only be used in the pixel depth that is set on boot time.
 
 .TP
 .BI quiet
@@ -72,12 +77,13 @@ displayed.
 
 .TP
 .BI [no-]banner
-Enables/disables the output of the DirectFB banner at startup.
+Enables the output of the DirectFB banner at startup. This is on by
+default.
 
 .TP
 .BI [no-]debug
-Enables/disables debug output. You won't see any debug output unless
-you compiled DirectFB with debugging support.
+Enables debug output. This is on by default but you won't see any
+debug output unless you compiled DirectFB with debugging support.
 
 .TP
 .BI force-windowed
@@ -86,20 +92,22 @@ applications that were written to do fullscreen access in a window.
 
 .TP
 .BI [no-]hardware
-Turns hardware acceleration on or off. If you disable hardware
-acceleration, the driver for your graphics card will not be loaded and
-all graphics operations will be performed by the software renderer.
+Turns hardware acceleration on. By default hardware acceleration is
+autodetected. If you disable hardware acceleration, the driver for
+your graphics card will not be loaded and all graphics operations will
+be performed by the software renderer.
 
 .TP
 .BI [no-]sync
 Flushes all disk buffers before initialising DirectFB. This can be
 useful if you working with experimental device drivers and expect
-crashes.
+crashes. The default is not to sync.
 
 .TP
 .BI [no-]mmx
-Allows to disable the use of MMX routines even if support for MMX was
-detected.
+The no-mmx options allows to disable the use of MMX routines even if
+support for MMX was detected. By default MMX is used if is available
+and support for MMX was compiled in.
 
 .TP
 .BI [no-]argb-font
@@ -131,19 +139,26 @@ This option allows to switch this feature on or off.
 
 .TP
 .BI [no-]vt-switch
-Allocate/switch to a new VT.
+By default DirectFB allocates a new virtual terminal and switches to
+it.
 
 .TP
 .BI [no-]vt-switching
-Allow Ctrl+Alt+<F?> (EXPERIMENTAL).
+Allow to switch virtual terminals using <Ctrl>+<Alt>+<F?>. This is an
+experimental feature that is usually disabled; use at your own risk.
 
 .TP
 .BI [no-]graphics-vt
-Put terminal into graphics mode.
+Puts the virtual terminal into graphics mode. This has the advantage
+that kernel messages won't show up on your screen while the DirectFB
+application is running.
 
 .TP
 .BI [no-]motion-compression
-Enables/Disables mouse motion event compression.
+Usually DirectFB compresses mouse motion events. This means that
+subsequent mouse motions are delivered to the application as a single
+mouse motion event. This leads to a more responsive but less exact
+mouse handling.
 
 .TP
 .BI mouse-protocol=<protocol>
@@ -163,7 +178,7 @@ protocol introduced by Logitech.
 .BI MouseSystems
 The most commonly used protocol for three button mice.
 
-The different protocols for serial mice are described in more details
+The different protocols for serial mice are described in more detail
 in mouse(4).
 
 .TP
@@ -179,7 +194,7 @@ applications may nevertheless switch it on explicitely.
 .TP
 .BI bg-none
 Completely disables background handling. Doesn't make much sense since
-your mouse and moving windows will leave ugly traces.
+the mouse and moving windows will leave ugly traces.
 
 .TP
 .BI bg-color=AARRGGBB
@@ -219,7 +234,7 @@ is enabled. Don't try to enable it if your card doesn't have SGRAM!
 .TP
 .BI fbdebug=<device>
 Allows to specify a second frame buffer device that is used to display
-how surface memory is located in the video card. This is highly
+how surface memory is allocated on the video card. This is highly
 experimental and only useful for debugging.
 
 .TP
@@ -228,7 +243,8 @@ Allows to control where window surfaces are stored. Supported values
 for <policy> are:
 
 .BI auto
-DirectFB decides depending on hardware.
+DirectFB decides depending on hardware capabilities. This is the
+default.
 
 .BI videohigh
 Swapping system/video with high priority.
@@ -237,10 +253,10 @@ Swapping system/video with high priority.
 Swapping system/video with low priority.
 
 .BI systemonly
-Window surface is always stored in system memory.
+Window surfaces are stored in system memory.
 
 .BI videoonly
-Window surface is always stored in video memory.
+Window surfaces are stored in video memory.
 
 .TP
 .BI desktop-buffer-mode=<mode>
@@ -248,24 +264,26 @@ Allows to control the desktop buffer mode. Supported values for <mode>
 are:
 
 .BI auto
-DirectFB decides depending on hardware.
+DirectFB decides depending on hardware capabilities. This is the
+default.
 
 .BI backvideo
-Front and back buffer are video only.
+Front and back buffer are allocated in video memory.
 
 .BI backsystem
-Back buffer is system only.
+The back buffer is allocated in system memory.
 
 .BI frontonly
 There is no back buffer.
 
 .TP
 .BI vsync-after
-Wait for the vertical retrace after flipping.
+Wait for the vertical retrace after flipping. The default is to wait
+before doing the flip.
 
 .TP
 .BI vsync-none
-Disable polling for vertical retrace.
+Disables polling for vertical retrace.
 
 
 .SH EXAMPLES
