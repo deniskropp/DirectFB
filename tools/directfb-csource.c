@@ -29,6 +29,8 @@
 
 #include "config.h"
 
+#include <endian.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -215,6 +217,18 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
      png_get_IHDR (png_ptr, info_ptr,
                    &width, &height, &bytes, &type, NULL, NULL, NULL);
 
+     if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS))
+          png_set_tRNS_to_alpha (png_ptr);
+
+     if (bytes == 16)
+          png_set_strip_16 (png_ptr);
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+     png_set_swap_alpha (png_ptr);
+#else
+     png_set_bgr (png_ptr);
+#endif
+
      src_format = (type & PNG_COLOR_MASK_ALPHA) ? DSPF_ARGB : DSPF_RGB32;
      switch (type) {
           case PNG_COLOR_TYPE_PALETTE:
@@ -230,24 +244,23 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
           case PNG_COLOR_TYPE_GRAY_ALPHA:
                png_set_gray_to_rgb (png_ptr);
                break;
+
+          case PNG_COLOR_TYPE_RGB:
+               if (dest_format == DSPF_RGB24) {
+                    src_format = DSPF_RGB24;
+                    break;
+               }
+               /* fallthru */
+          case PNG_COLOR_TYPE_RGB_ALPHA:
+               break;
        }
 
-     if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS))
-          png_set_tRNS_to_alpha (png_ptr);
-
-     if (bytes == 16)
-          png_set_strip_16 (png_ptr);
-
+     if (DFB_BYTES_PER_PIXEL (src_format) == 4 && !(type & PNG_COLOR_MASK_ALPHA))
+          png_set_filler (png_ptr, 0xFF,
 #if __BYTE_ORDER == __BIG_ENDIAN
-     if (!(type & PNG_COLOR_MASK_ALPHA))
-          png_set_filler (png_ptr, 0xFF, PNG_FILLER_BEFORE);
-
-     png_set_swap_alpha (png_ptr);
+                          PNG_FILLER_BEFORE);
 #else
-     if (!(type & PNG_COLOR_MASK_ALPHA))
-          png_set_filler (png_ptr, 0xFF, PNG_FILLER_AFTER);
-
-     png_set_bgr (png_ptr);
+                          PNG_FILLER_AFTER);
 #endif
 
      pitch = width * DFB_BYTES_PER_PIXEL (src_format);
