@@ -478,7 +478,7 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
           return DFB_INVARG;
 
      /*  read the first 32 bytes  */
-     fd = open (filename, O_RDONLY);
+     fd = open (filename, O_RDONLY | O_NONBLOCK);
      if (fd == -1)
           return errno2dfb( errno );
 
