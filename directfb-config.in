@@ -16,6 +16,7 @@ Options:
 	[--cflags]
 Libraries:
 	directfb
+	avifile
 EOF
 	exit $1
 }
@@ -25,6 +26,7 @@ if test $# -eq 0; then
 fi
 
 lib_directfb=yes
+lib_avifile=no
 
 while test $# -gt 0; do
   case "$1" in
@@ -58,8 +60,11 @@ while test $# -gt 0; do
     --libs)
       echo_libs=yes
       ;;
-    gtk-cim)
+    directfb)
       lib_directfb=yes
+      ;;
+    avifile)
+      lib_avifile=yes
       ;;
     *)
       usage 1 1>&2
@@ -84,8 +89,15 @@ if test "$echo_cflags" = "yes"; then
 fi
 
 if test "$echo_libs" = "yes"; then
-      libdirs=-L@libdir@
+      libs=-L@libdir@
 
-      echo $libdirs -ldirectfb -lpthread -ldl
+      if test "$lib_directfb" = "yes"; then
+	 libs="$libs -ldirectfb -lpthread -ldl"
+      fi	
+      if test "$lib_avifile" = "yes"; then
+	 libs="$libs @AVIFILE_LIBS@"
+      fi
+
+      echo $libs
 fi      
 

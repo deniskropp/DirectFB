@@ -50,20 +50,10 @@ df_fire_SOURCES = df_fire.c
 df_fire_LDADD = $(LIBADDS)
 
 df_window_SOURCES = df_window.c 
-if AVIFILE_PROVIDER
-df_window_LDADD  = $(LIBADDS) -laviplay -lstdc++
-else
-df_window_LDADD  = $(LIBADDS)
-endif
+df_window_LDADD  = $(LIBADDS) $(AVIFILE_LIBS)
 
 df_video_SOURCES = df_video.c 
-if AVIFILE_PROVIDER
-df_video_LDADD  = $(LIBADDS) -laviplay -lstdc++
-else
-df_video_LDADD  = $(LIBADDS)
-endif
-#df_video_LDADD  = ../src/.libs/libdirectfb.a -ljpeg -lpng -lfreetype -lpthread
-#df_video_LDFLAGS = -pg
+df_video_LDADD  = $(LIBADDS) $(AVIFILE_LIBS)
 
 df_dok_SOURCES = df_dok.c 
 df_dok_LDADD  = $(LIBADDS)
@@ -75,11 +65,7 @@ df_particle_SOURCES = df_particle.c
 df_particle_LDADD  = $(LIBADDS) -lm
 
 df_video_particle_SOURCES = df_video_particle.c 
-if AVIFILE_PROVIDER
-df_video_particle_LDADD  = $(LIBADDS) -lm -laviplay -lstdc++
-else
-df_video_particle_LDADD  = $(LIBADDS) -lm
-endif
+df_video_particle_LDADD  = $(LIBADDS) -lm $(AVIFILE_LIBS)
 
 df_joystick_SOURCES = df_joystick.c 
 df_joystick_LDADD  = $(LIBADDS) -lm

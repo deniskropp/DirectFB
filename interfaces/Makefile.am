@@ -52,7 +52,7 @@ libidirectfbimageprovider_jpeg_la_LDFLAGS = -avoid-version -module -disable-stat
 
 libidirectfbvideoprovider_avifile_la_SOURCES = idirectfbvideoprovider_avifile.cpp
 
-libidirectfbvideoprovider_avifile_la_LIBADD = $(AVIFILE_LIBS) -lstdc++
+libidirectfbvideoprovider_avifile_la_LIBADD = $(AVIFILE_LIBS)
 
 libidirectfbvideoprovider_avifile_la_LDFLAGS = -avoid-version -module -disable-static
 
