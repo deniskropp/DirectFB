@@ -14,33 +14,6 @@
 #include <misc/util.h>
 
 
-static IDirectFB *dfb = NULL;
-
-static DFBResult
-init_directfb( int *argc, char **argv[] )
-{
-     DFBResult ret;
-     
-     /* Initialize DirectFB. */
-     ret = DirectFBInit( argc, argv );
-     if (ret)
-          return DirectFBError( "DirectFBInit", ret );
-
-     /* Create the super interface. */
-     ret = DirectFBCreate( &dfb );
-     if (ret)
-          return DirectFBError( "DirectFBCreate", ret );
-
-     return DFB_OK;
-}
-
-static void
-deinit_directfb()
-{
-     if (dfb)
-          dfb->Release( dfb );
-}
-
 static ReactionResult
 react (const void    *msg_data,
        void          *ctx)
@@ -341,11 +314,14 @@ int
 main( int argc, char *argv[] )
 {
      DFBResult ret;
-
-     /* DirectFB initialization. */
-     ret = init_directfb( &argc, &argv );
+     
+     /* Initialize DirectFB. */
+     ret = DirectFBInit( &argc, &argv );
      if (ret)
-          goto out;
+          return DirectFBError( "DirectFBInit", ret );
+
+     if (fusion_init() < 0)
+          return -1;
 
      printf( "\n" );
 
@@ -371,9 +347,7 @@ main( int argc, char *argv[] )
      bench_reactor();
 
 
-out:
-     /* DirectFB deinitialization. */
-     deinit_directfb();
+     fusion_exit();
 
      return ret;
 }
