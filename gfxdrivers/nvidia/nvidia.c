@@ -952,6 +952,8 @@ driver_init_driver( GraphicsDevice      *device,
      nv_find_architecture( nvdrv );
 
      nvdrv->fb_base = (__u32) dfb_gfxcard_memory_physical( device, 0 );
+     if (nvdrv->chip == 0x2A0) /* GeForce3 Xbox */
+          vram += nvdrv->fb_base & 0x7fffff; /* FIXME: detect ram amount correctly */
      nvdrv->fb_mask = ((1 << direct_log2( vram )) - 0x100000) | 0x000FFFC0;
      
      nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
