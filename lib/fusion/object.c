@@ -58,7 +58,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
      FusionObjectPool *pool = ctx;
 
      if (caller) {
-          D_BUG( "call not from Fusion" );
+          D_BUG( "call not from Fusion (caller %d)", caller );
           return 0;
      }
 
@@ -76,13 +76,14 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
                          break;
 
                     case FUSION_DESTROYED:
-                         D_BUG("object already destroyed");
+                         D_BUG( "{%s} already destroyed: %d (%p)", pool->name, call_arg, object );
+
                          direct_list_remove( &pool->objects, &object->link );
                          fusion_skirmish_dismiss( &pool->lock );
                          return 0;
 
                     case FUSION_INUSE:
-                         D_BUG("object revived in the meantime");
+                         D_BUG( "{%s} revived object: %d (%p)", pool->name, call_arg, object );
                          /* fall through */
 
                     default:
@@ -90,10 +91,11 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
                          return 0;
                }
 
-               D_DEBUG("Fusion/ObjectPool: {%s} dead object: %p\n", pool->name, object);
+               D_DEBUG("Fusion/ObjectPool: {%s} dead object: %d (%p)\n", pool->name, call_arg, object);
 
                if (object->state == FOS_INIT) {
-                    D_WARN( "won't destroy incomplete object, leaking memory" );
+                    D_BUG( "{%s} incomplete object: %d (%p)", pool->name, call_arg, object );
+                    D_WARN( "won't destroy incomplete object, leaking some memory" );
                     direct_list_remove( &pool->objects, &object->link );
                     fusion_skirmish_dismiss( &pool->lock );
                     return 0;
@@ -116,7 +118,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
           }
      }
 
-     D_BUG("object not found");
+     D_BUG( "{%s} unknown object: %d\n", pool->name, call_arg );
 
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
