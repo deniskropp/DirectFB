@@ -864,27 +864,23 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
 {
      int   w;
      int   i;
-     int   l     = 0;
-     int   cr    = 0;
+     int   j     = 0;
      __u8 *D     = gfxs->Aop;
      __u8 *S     = gfxs->Bop;
      int   SperD = gfxs->SperD;
 
      for (w = 0; w < gfxs->length; w++) {
-	  i  = (l >> 16) * 2;
+	  i  = (j >> 16) * 2;
 	  *D = S[i]; /* blit luma */
 
-	  l += SperD;
-
 	  if (!(w & 1)) { /* blit chroma */
-	        i      = (cr >> 16) * 4;
+	        i      = (j >> 17) * 4;
 		*(D+1) = S[i+1];
 		*(D+3) = S[i+3];
-
-		cr += SperD;
 	  }
 
 	  D += 2;
+	  j += SperD;
      }
 }
 
@@ -892,27 +888,23 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
 {
      int   w;
      int   i;
-     int   l     = 0;
-     int   cr    = 0;
+     int   j     = 0;
      __u8 *D     = gfxs->Aop;
      __u8 *S     = gfxs->Bop;
      int   SperD = gfxs->SperD;
 
      for (w = 0; w < gfxs->length; w++) {
-          i      = (l >> 16) * 2;
+          i      = (j >> 16) * 2;
 	  *(D+1) = S[i+1]; /* blit luma */
 
-	  l += SperD;
-
 	  if (!(w & 1)) { /* blit chroma */
-                i      = (cr >> 16) * 4;
+                i      = (j >> 17) * 4;
 		*D     = S[i];
 		*(D+2) = S[i+2];
-
-		cr += SperD;
           }
 
 	  D += 2;
+	  j += SperD;
      }
 }
 	  
