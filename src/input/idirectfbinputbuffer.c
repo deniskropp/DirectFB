@@ -54,6 +54,7 @@
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #include "idirectfbinputbuffer.h"
@@ -99,6 +100,8 @@ typedef struct {
 
      bool                          pipe;           /* file descriptor mode? */
      int                           pipe_fds[2];    /* read & write file descriptor */
+
+     DirectThread                 *pipe_thread;    /* thread feeding the pipe */
 } IDirectFBEventBuffer_data;
 
 /*
@@ -113,6 +116,7 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
 static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
                                                         void       *ctx );
 
+static void *IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg );
 
 
 static void
@@ -125,6 +129,22 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      DirectLink                *n;
 
      pthread_mutex_lock( &data->events_mutex );
+
+     if (data->pipe) {
+          data->pipe = false;
+
+          pthread_cond_broadcast( &data->wait_condition );
+
+          pthread_mutex_unlock( &data->events_mutex );
+
+          direct_thread_join( data->pipe_thread );
+          direct_thread_destroy( data->pipe_thread );
+
+          pthread_mutex_lock( &data->events_mutex );
+
+          close( data->pipe_fds[0] );
+          close( data->pipe_fds[1] );
+     }
 
      direct_list_foreach_safe (device, n, data->devices) {
           dfb_input_detach( device->device, &device->reaction );
@@ -144,11 +164,6 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
 
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
-
-     if (data->pipe) {
-          close( data->pipe_fds[0] );
-          close( data->pipe_fds[1] );
-     }
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -420,9 +435,6 @@ static DFBResult
 IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
                                            int                  *ret_fd )
 {
-     EventBufferItem *item;
-     DirectLink      *n;
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      /* Check arguments. */
@@ -447,15 +459,13 @@ IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
      /* Enter pipe mode. */
      data->pipe = true;
 
-     /* Free all events. */
-     direct_list_foreach_safe (item, n, data->events)
-          D_FREE( item );
-
-     /* Empty list. */
-     data->events = NULL;
-
      /* Signal any waiting processes. */
      pthread_cond_broadcast( &data->wait_condition );
+
+     /* Create the feeding thread. */
+     data->pipe_thread = direct_thread_create( DTT_MESSAGING,
+                                               IDirectFBEventBuffer_Feed, data,
+                                               "EventBufferFeed" );
 
      /* Unlock the event queue. */
      pthread_mutex_unlock( &data->events_mutex );
@@ -538,33 +548,18 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
 static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
                                           EventBufferItem           *item )
 {
-     int ret;
-
      if (data->filter && data->filter( &item->evt, data->filter_ctx )) {
           D_FREE( item );
           return;
      }
 
-     if (data->pipe) {
-          D_HEAVYDEBUG( "DirectFB/EventBuffer: Going to write %d bytes to file descriptor %d...\n",
-                        sizeof(DFBEvent), data->pipe_fds[1] );
+     pthread_mutex_lock( &data->events_mutex );
 
-          ret = write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
+     direct_list_append( &data->events, &item->link );
 
-          D_HEAVYDEBUG( "DirectFB/EventBuffer: ...wrote %d bytes to file descriptor %d.\n",
-                        ret, data->pipe_fds[1] );
+     pthread_cond_broadcast( &data->wait_condition );
 
-          D_FREE( item );
-     }
-     else {
-          pthread_mutex_lock( &data->events_mutex );
-
-          direct_list_append( &data->events, &item->link );
-
-          pthread_cond_broadcast( &data->wait_condition );
-
-          pthread_mutex_unlock( &data->events_mutex );
-     }
+     pthread_mutex_unlock( &data->events_mutex );
 }
 
 static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
@@ -622,3 +617,40 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
      return RS_OK;
 }
 
+static void *
+IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg )
+{
+     IDirectFBEventBuffer_data *data = arg;
+
+     pthread_mutex_lock( &data->events_mutex );
+
+     while (data->pipe) {
+          while (data->events && data->pipe) {
+               int              ret;
+               EventBufferItem *item = (EventBufferItem*) data->events;
+
+               direct_list_remove( &data->events, &item->link );
+
+               pthread_mutex_unlock( &data->events_mutex );
+
+               D_DEBUG( "DirectFB/EventBuffer: Going to write %d bytes to file descriptor %d...\n",
+                        sizeof(DFBEvent), data->pipe_fds[1] );
+
+               ret = write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
+
+               D_DEBUG( "DirectFB/EventBuffer: ...wrote %d bytes to file descriptor %d.\n",
+                        ret, data->pipe_fds[1] );
+
+               D_FREE( item );
+
+               pthread_mutex_lock( &data->events_mutex );
+          }
+
+          if (data->pipe)
+               pthread_cond_wait( &data->wait_condition, &data->events_mutex );
+     }
+
+     pthread_mutex_unlock( &data->events_mutex );
+
+     return NULL;
+}
