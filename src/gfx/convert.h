@@ -72,6 +72,19 @@
                                  ((g) << 8)  | \
                                   (b) )
 
+#ifdef WORDS_BIGENDIAN
+
+#define PIXEL_YUY2(y,u,v)      ( ((u) << 24) | \
+                                 ((y) << 16) | \
+                                 ((v) << 8)  | \
+                                  (y) )
+
+#define PIXEL_UYVY(y,u,v)      ( ((y) << 24) | \
+                                 ((u) << 16) | \
+                                 ((y) << 8)  | \
+                                  (v) )
+#else /* little endian */
+     
 #define PIXEL_YUY2(y,u,v)      ( ((v) << 24) | \
                                  ((y) << 16) | \
                                  ((u) << 8)  | \
@@ -81,6 +94,8 @@
                                  ((v) << 16) | \
                                  ((y) << 8)  | \
                                   (u) )
+
+#endif
 
 
 /* packed pixel conversions */

@@ -1133,72 +1133,78 @@ static void Bop_8_Sto_Aop( GenefxState *gfxs )
 
 static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
 {
-     int    w      = gfxs->length/2;
-     int    ysc    = 0;
-     int    crsc   = 0;
-     __u32 *D      = (__u32*) gfxs->Aop;
-     __u32 *S      = (__u32*) gfxs->Bop;
-#ifdef WORDS_BIGENDIAN
-     __u16 *S2     = (__u16*) (gfxs->Bop+1);
-#else
-     __u16 *S2     = (__u16*) gfxs->Bop;
-#endif
-     int    SperD  = gfxs->SperD;
-     int    SperD2 = gfxs->SperD << 1;
+     int    w2;
+     int    w     = gfxs->length;
+     int    i     = 0;
+     int    j     = 0;
+     __u16 *D     = gfxs->Aop;
+     __u16 *S     = gfxs->Bop;
+     int    SperD = gfxs->SperD;
 
-     while (w--) {
+     if ((__u32)D & 2) {
+          *D++ = *S;
+          j = i = SperD;
+          w--;
+     }
+     
+     for (w2 = w/2; w2--;) {
           register __u32 Dpix;
 
+          Dpix  = ((__u32*)S)[i>>16] & 0xff00ff00;
 #ifdef WORDS_BIGENDIAN
-          Dpix  = S[crsc>>16] & 0x00ff00ff;              /* chroma samples */
-          Dpix |= *((__u8*) &S2[ysc>>16]) << 24;         /* first y sample */
-          Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]) << 8;  /* second y sample */
+          Dpix |= (S[j>>16]          & 0x00ff) << 16;
+          Dpix |= (S[(j+SperD)>>16]  & 0x00ff);
 #else
-          Dpix  = S[crsc>>16] & 0xff00ff00;              /* chroma samples */
-          Dpix |= *((__u8*) &S2[ysc>>16]);               /* first y sample */
-          Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]) << 16; /* second y sample */
+          Dpix |= (S[j>>16]          & 0x00ff);
+          Dpix |= (S[(j+SperD)>>16]  & 0x00ff) << 16;
 #endif
-
-          *D++ = Dpix;
-
-          ysc  += SperD2;
-          crsc += SperD;
+          *((__u32*)D) = Dpix;
+          D += 2;
+          
+          i += SperD;
+          j += SperD << 1;
      }
+
+     if (w & 1)
+          *D = *S;
 }
 
 static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
 {
-     int    w      = gfxs->length/2;
-     int    ysc    = 0;
-     int    crsc   = 0;
-     __u32 *D      = (__u32*) gfxs->Aop;
-     __u32 *S      = (__u32*) gfxs->Bop;
-#ifdef WORDS_BIGENDIAN
-     __u16 *S2     = (__u16*) gfxs->Bop;
-#else
-     __u16 *S2     = (__u16*) (gfxs->Bop+1);
-#endif
-     int    SperD  = gfxs->SperD;
-     int    SperD2 = gfxs->SperD << 1;
+     int    w2;
+     int    w     = gfxs->length;
+     int    i     = 0;
+     int    j     = 0;
+     __u16 *D     = gfxs->Aop;
+     __u16 *S     = gfxs->Bop;
+     int    SperD = gfxs->SperD;
 
-     while (w--) {
+     if ((__u32)D & 2) {
+          *D++ = *S;
+          j = i = SperD;
+          w--;
+     }
+     
+     for (w2 = w/2; w2--;) {
           register __u32 Dpix;
 
+          Dpix  = ((__u32*)S)[i>>16] & 0x00ff00ff;
 #ifdef WORDS_BIGENDIAN
-          Dpix  = S[crsc>>16] & 0xff00ff00;              /* chroma sample */
-          Dpix |= *((__u8*) &S2[ysc>>16]) << 16;         /* first y sample */
-          Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]);       /* second y sample */
+          Dpix |= (S[j>>16]          & 0xff00) << 16;
+          Dpix |= (S[(j+SperD)>>16]  & 0xff00);
 #else
-          Dpix  = S[crsc>>16] & 0x00ff00ff;              /* chroma samples */
-          Dpix |= *((__u8*) &S2[ysc>>16]) << 8;          /* first y sample */
-          Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]) << 24; /* second y sample */
+          Dpix |= (S[j>>16]          & 0xff00);
+          Dpix |= (S[(j+SperD)>>16]  & 0xff00) << 16;
 #endif
+          *((__u32*)D) = Dpix;
+          D += 2;
 	
-          *D++ = Dpix;
-	
-          ysc  += SperD2;
-          crsc += SperD;
+          i += SperD;
+          j += SperD << 1;
      }
+
+     if (w & 1)
+          *D = *S;
 }
 
 static void Bop_NV_Sto_Aop( GenefxState *gfxs )
@@ -1680,30 +1686,28 @@ static void Sop_alut44_Sto_Dacc( GenefxState *gfxs )
 
 static void Sop_yuy2_Sto_Dacc( GenefxState *gfxs )
 {
-     int w      = gfxs->length/2;
-     int i      = 0;
-     int j      = 0;
-     int SperD  = gfxs->SperD;
-     int SperD2 = gfxs->SperD*2;
+     int w     = gfxs->length/2;
+     int i     = 0;
+     int j     = 0;
+     int SperD = gfxs->SperD;
 
-     GenefxAccumulator *D  = gfxs->Dacc;
-     __u32             *S  = gfxs->Sop;
-     __u16             *S2 = (__u16*) gfxs->Sop;
+     GenefxAccumulator *D = gfxs->Dacc;
+     __u32             *S = gfxs->Sop;
 
      while (w--) {
           __u32 y0, cb, y1, cr;
           __s32 r, g, b;
 
-          cb = (S[i>>16] & 0x0000FF00) >> 8;
-          cr = (S[i>>16] & 0xFF000000) >> 24;
 #ifdef WORDS_BIGENDIAN
-          y0 = S2[(j+SperD)>>16] & 0x00FF;
-          y1 = S2[j>>16]         & 0x00FF;
+          cb = (S[i>>16] & 0xFF000000) >> 24;
+          cr = (S[i>>16] & 0x0000FF00) >>  8;
 #else
-          y0 = S2[j>>16]         & 0x00FF;
-          y1 = S2[(j+SperD)>>16] & 0x00FF;
+          cb = (S[i>>16] & 0x0000FF00) >>  8;
+          cr = (S[i>>16] & 0xFF000000) >> 24;
 #endif
-
+          y0 = ((__u16*)S)[j>>16]         & 0x00FF;
+          y1 = ((__u16*)S)[(j+SperD)>>16] & 0x00FF;
+          
           y0 = y_for_rgb[y0];
           r  = y0 + cr_for_r[cr];
           g  = y0 + cr_for_g[cr] + cb_for_g[cb];
@@ -1726,36 +1730,34 @@ static void Sop_yuy2_Sto_Dacc( GenefxState *gfxs )
 
           D += 2;
           i += SperD;
-          j += SperD2;
+          j += SperD << 1;
      }
 }
 
 static void Sop_uyvy_Sto_Dacc( GenefxState *gfxs )
 {
-     int w      = gfxs->length/2;
-     int i      = 0;
-     int j      = 0;
-     int SperD  = gfxs->SperD;
-     int SperD2 = gfxs->SperD*2;
+     int w     = gfxs->length/2;
+     int i     = 0;
+     int j     = 0;
+     int SperD = gfxs->SperD;
 
-     GenefxAccumulator *D  = gfxs->Dacc;
-     __u32             *S  = gfxs->Sop;
-     __u16             *S2 = (__u16*) gfxs->Sop;
+     GenefxAccumulator *D = gfxs->Dacc;
+     __u32             *S = gfxs->Sop;
 
      while (w--) {
           __u32 y0, cb, y1, cr;
           __s32 r, g, b;
 
+#ifdef WORDS_BIGENDIAN
+          cb = (S[i>>16] & 0x00FF0000) >> 16;
+          cr = (S[i>>16] & 0x000000FF);
+#else
           cb = (S[i>>16] & 0x000000FF);
           cr = (S[i>>16] & 0x00FF0000) >> 16;
-#ifdef WORDS_BIGENDIAN
-          y0 = S2[(j+SperD)>>16] >> 8;
-          y1 = S2[j>>16]         >> 8;
-#else
-          y0 = S2[j>>16]         >> 8;
-          y1 = S2[(j+SperD)>>16] >> 8;
 #endif
-
+          y0 = (((__u16*)S)[j>>16]         & 0xFF00) >> 8;
+          y1 = (((__u16*)S)[(j+SperD)>>16] & 0xFF00) >> 8;
+          
           y0 = y_for_rgb[y0];
           r  = y0 + cr_for_r[cr];
           g  = y0 + cr_for_g[cr] + cb_for_g[cb];
@@ -1778,7 +1780,7 @@ static void Sop_uyvy_Sto_Dacc( GenefxState *gfxs )
 
           D += 2;
           i += SperD;
-          j += SperD2;
+          j += SperD << 1;
      }
 }
 
@@ -2141,32 +2143,35 @@ static void Sop_rgb332_SKto_Dacc( GenefxState *gfxs )
 
 static void Sop_yuy2_SKto_Dacc( GenefxState *gfxs )
 {
-     int   w      = gfxs->length/2;
-     int   i      = 0;
-     int   j      = 0;
-     int   SperD  = gfxs->SperD;
-     int   SperD2 = gfxs->SperD*2;
-     __u32 Ky     = (gfxs->Skey & 0x000000FF);
-     __u32 Kcb    = (gfxs->Skey & 0x0000FF00) >> 8;
-     __u32 Kcr    = (gfxs->Skey & 0xFF000000) >> 24;
+     int   w     = gfxs->length/2;
+     int   i     = 0;
+     int   j     = 0;
+     int   SperD = gfxs->SperD;
+     __u32 Ky    = (gfxs->Skey & 0x000000FF);
+#ifdef WORDS_BIGENDIAN
+     __u32 Kcb   = (gfxs->Skey & 0xFF000000) >> 24;
+     __u32 Kcr   = (gfxs->Skey & 0x0000FF00) >>  8;
+#else
+     __u32 Kcb   = (gfxs->Skey & 0x0000FF00) >>  8;
+     __u32 Kcr   = (gfxs->Skey & 0xFF000000) >> 24;
+#endif
 
-     GenefxAccumulator *D  = gfxs->Dacc;
-     __u32             *S  = gfxs->Sop;
-     __u16             *S2 = (__u16*) gfxs->Sop;
+     GenefxAccumulator *D = gfxs->Dacc;
+     __u32             *S = gfxs->Sop;
 
      while (w--) {
           __u32 y0, cb, y1, cr;
           __s32 r, g, b;
 
-          cb = (S[i>>16] & 0x0000FF00) >> 8;
-          cr = (S[i>>16] & 0xFF000000) >> 24;
 #ifdef WORDS_BIGENDIAN
-          y0 = S2[(j+SperD)>>16] & 0x00FF;
-          y1 = S2[j>>16]         & 0x00FF;
+          cb = (S[i>>16] & 0xFF000000) >> 24;
+          cr = (S[i>>16] & 0x0000FF00) >>  8;
 #else
-          y0 = S2[j>>16]         & 0x00FF;
-          y1 = S2[(j+SperD)>>16] & 0x00FF;
+          cb = (S[i>>16] & 0x0000FF00) >>  8;
+          cr = (S[i>>16] & 0xFF000000) >> 24;
 #endif
+          y0 = ((__u16*)S)[j>>16]         & 0x00FF;
+          y1 = ((__u16*)S)[(j+SperD)>>16] & 0x00FF;
 
           if (y0 != Ky || cb != Kcb || cr != Kcr) {
                y0 = y_for_rgb[y0];
@@ -2198,38 +2203,41 @@ static void Sop_yuy2_SKto_Dacc( GenefxState *gfxs )
 
           D += 2;
           i += SperD;
-          j += SperD2;
+          j += SperD << 1;
      }
 }
 
 static void Sop_uyvy_SKto_Dacc( GenefxState *gfxs )
 {
-     int   w      = gfxs->length/2;
-     int   i      = 0;
-     int   j      = 0;
-     int   SperD  = gfxs->SperD;
-     int   SperD2 = gfxs->SperD*2;
-     __u32 Ky     = (gfxs->Skey & 0x0000FF00) >> 8;
-     __u32 Kcb    = (gfxs->Skey & 0x000000FF);
-     __u32 Kcr    = (gfxs->Skey & 0x00FF0000) >> 16;
+     int   w     = gfxs->length/2;
+     int   i     = 0;
+     int   j     = 0;
+     int   SperD = gfxs->SperD;
+     __u32 Ky    = (gfxs->Skey & 0x0000FF00) >>  8;
+#ifdef WORDS_BIGENDIAN
+     __u32 Kcb   = (gfxs->Skey & 0x00FF0000) >> 16;
+     __u32 Kcr   = (gfxs->Skey & 0x000000FF);
+#else
+     __u32 Kcb   = (gfxs->Skey & 0x000000FF);
+     __u32 Kcr   = (gfxs->Skey & 0x00FF0000) >> 16;
+#endif
 
-     GenefxAccumulator *D  = gfxs->Dacc;
-     __u32             *S  = gfxs->Sop;
-     __u16             *S2 = (__u16*) gfxs->Sop;
+     GenefxAccumulator *D = gfxs->Dacc;
+     __u32             *S = gfxs->Sop;
 
      while (w--) {
           __u32 y0, cb, y1, cr;
           __s32 r, g, b;
 
+#ifdef WORDS_BIGENDIAN
+          cb = (S[i>>16] & 0x00FF0000) >> 16;
+          cr = (S[i>>16] & 0x000000FF);
+#else
           cb = (S[i>>16] & 0x000000FF);
           cr = (S[i>>16] & 0x00FF0000) >> 16;
-#ifdef WORDS_BIGENDIAN
-          y0 = S2[(j+SperD)>>16] >> 8;
-          y1 = S2[j>>16]         >> 8;
-#else
-          y0 = S2[j>>16]         >> 8;
-          y1 = S2[(j+SperD)>>16] >> 8;
 #endif
+          y0 = (((__u16*)S)[j>>16]         & 0xFF00) >> 8;
+          y1 = (((__u16*)S)[(j+SperD)>>16] & 0xFF00) >> 8;
 
           if (y0 != Ky || cb != Kcb || cr != Kcr) {
                y0 = y_for_rgb[y0];
@@ -2261,7 +2269,7 @@ static void Sop_uyvy_SKto_Dacc( GenefxState *gfxs )
 
           D += 2;
           i += SperD;
-          j += SperD2;
+          j += SperD << 1;
      }
 }
 
@@ -2625,11 +2633,18 @@ static void Sop_yuy2_to_Dacc( GenefxState *gfxs )
           __u32 y0, cb, y1, cr;
           __s32 r, g, b;
 
+#ifdef WORDS_BIGENDIAN
+          y0 = (*S & 0x00FF0000) >> 16;
+          cb = (*S & 0xFF000000) >> 24;
+          y1 = (*S & 0x000000FF);
+          cr = (*S & 0x0000FF00) >>  8;
+#else
           y0 = (*S & 0x000000FF);
-          cb = (*S & 0x0000FF00) >> 8;
+          cb = (*S & 0x0000FF00) >>  8;
           y1 = (*S & 0x00FF0000) >> 16;
           cr = (*S & 0xFF000000) >> 24;
-
+#endif
+          
           y0 = y_for_rgb[y0];
           r  = y0 + cr_for_r[cr];
           g  = y0 + cr_for_g[cr] + cb_for_g[cb];
@@ -2665,10 +2680,17 @@ static void Sop_uyvy_to_Dacc( GenefxState *gfxs )
           __u32 y0, cb, y1, cr;
           __s32 r, g, b;
 
+#ifdef WORDS_BIGENDIAN
+          cb = (*S & 0x00FF0000) >> 16;
+          y0 = (*S & 0xFF000000) >> 24;
+          cr = (*S & 0x000000FF);
+          y1 = (*S & 0x0000FF00) >> 8;
+#else
           cb = (*S & 0x000000FF);
           y0 = (*S & 0x0000FF00) >> 8;
           cr = (*S & 0x00FF0000) >> 16;
           y1 = (*S & 0xFF000000) >> 24;
+#endif
 
           y0 = y_for_rgb[y0];
           r  = y0 + cr_for_r[cr];
@@ -2992,20 +3014,40 @@ static void Sop_yuy2_Kto_Dacc( GenefxState *gfxs )
      int                w  = gfxs->length/2;
      GenefxAccumulator *D  = gfxs->Dacc;
      __u32             *S  = gfxs->Sop;
-     __u32              K0 = gfxs->Skey & 0xFF00FFFF;
-     __u32              K1 = gfxs->Skey & 0xFFFFFF00;
+     __u32              K0;
+     __u32              K1;
 
+#ifdef WORDS_BIGENDIAN
+#define P0_MASK  0xFFFFFF00
+#define P1_MASK  0xFF00FFFF
+#else
+#define P0_MASK  0xFF00FFFF
+#define P1_MASK  0xFFFFFF00
+#endif
+
+     K0 = gfxs->Skey & P0_MASK;
+     K1 = gfxs->Skey & P1_MASK;
+     
      while (w--) {
           __u32 Spix;
           __u32 y, cb, cr;
           __s32 r, g, b;
 
           Spix = *S++;
-          cb   = (Spix & 0x0000FF00) >> 8;
-          cr   = (Spix & 0xFF000000) >> 24;
+#ifdef WORDS_BIGENDIAN
+          cb = (Spix & 0xFF000000) >> 24;
+          cr = (Spix & 0x0000FF00) >>  8;
+#else
+          cb = (Spix & 0x0000FF00) >>  8;
+          cr = (Spix & 0xFF000000) >> 24;
+#endif
 
-          if ((Spix & 0xFF00FFFF) != K0) {
+          if ((Spix & P0_MASK) != K0) {
+#ifdef WORDS_BIGENDIAN
+               y = y_for_rgb[(Spix & 0x00FF0000)>>16];
+#else
                y = y_for_rgb[(Spix & 0x000000FF)];
+#endif
                r = y + cr_for_r[cr];
                g = y + cr_for_g[cr] + cb_for_g[cb];
                b = y + cb_for_b[cb];
@@ -3018,8 +3060,12 @@ static void Sop_yuy2_Kto_Dacc( GenefxState *gfxs )
           else
                D[0].a = 0xF000;
 
-          if ((Spix &  0xFFFFFF00) != K1) {
+          if ((Spix & P1_MASK) != K1) {
+#ifdef WORDS_BIGENDIAN
+               y = y_for_rgb[(Spix & 0x000000FF)];
+#else
                y = y_for_rgb[(Spix & 0x00FF0000)>>16];
+#endif
                r = y + cr_for_r[cr];
                g = y + cr_for_g[cr] + cb_for_g[cb];
                b = y + cb_for_b[cb];
@@ -3034,6 +3080,8 @@ static void Sop_yuy2_Kto_Dacc( GenefxState *gfxs )
 
           D += 2;
      }
+#undef P0_MASK
+#undef P1_MASK
 }
 
 static void Sop_uyvy_Kto_Dacc( GenefxState *gfxs )
@@ -3041,20 +3089,40 @@ static void Sop_uyvy_Kto_Dacc( GenefxState *gfxs )
      int                w  = gfxs->length/2;
      GenefxAccumulator *D  = gfxs->Dacc;
      __u32             *S  = gfxs->Sop;
-     __u32              K0 = gfxs->Skey & 0x00FFFFFF;
-     __u32              K1 = gfxs->Skey & 0xFFFF00FF;
+     __u32              K0;
+     __u32              K1;
 
+#ifdef WORDS_BIGENDIAN
+#define P0_MASK 0xFFFF00FF
+#define P1_MASK 0x00FFFFFF
+#else
+#define P0_MASK 0x00FFFFFF
+#define P1_MASK 0xFFFF00FF
+#endif
+     
+     K0 = gfxs->Skey & P0_MASK;
+     K1 = gfxs->Skey & P1_MASK;
+     
      while (w--) {
           __u32 Spix;
           __u32 y, cb, cr;
           __s32 r, g, b;
 
           Spix = *S++;
-          cb   = (Spix & 0x000000FF);
-          cr   = (Spix & 0x00FF0000) >> 16;
+#ifdef WORDS_BIGENDIAN
+          cb = (Spix & 0x00FF0000) >> 16;
+          cr = (Spix & 0x000000FF);
+#else
+          cb = (Spix & 0x000000FF);
+          cr = (Spix & 0x00FF0000) >> 16;
+#endif
 
-          if ((Spix & 0x00FFFFFF) != K0) {
+          if ((Spix & P0_MASK) != K0) {
+#ifdef WORDS_BIGENDIAN
+               y = y_for_rgb[(Spix & 0xFF000000)>>24];
+#else
                y = y_for_rgb[(Spix & 0x0000FF00)>>8];
+#endif
                r = y + cr_for_r[cr];
                g = y + cr_for_g[cr] + cb_for_g[cb];
                b = y + cb_for_b[cb];
@@ -3067,8 +3135,12 @@ static void Sop_uyvy_Kto_Dacc( GenefxState *gfxs )
           else
                D[0].a = 0xF000;
 
-          if ((Spix & 0xFFFF00FF) != K1) {
+          if ((Spix & P1_MASK) != K1) {
+#ifdef WORDS_BIGENDIAN
+               y = y_for_rgb[(Spix & 0x0000FF00)>>8];
+#else
                y = y_for_rgb[(Spix & 0xFF000000)>>24];
+#endif
                r = y + cr_for_r[cr];
                g = y + cr_for_g[cr] + cb_for_g[cb];
                b = y + cb_for_b[cb];
@@ -3083,6 +3155,8 @@ static void Sop_uyvy_Kto_Dacc( GenefxState *gfxs )
 
           D += 2;
      }
+#undef P0_MASK
+#undef P1_MASK
 }
 
 static void Sop_argb2554_Kto_Dacc( GenefxState *gfxs )
