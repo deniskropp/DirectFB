@@ -784,7 +784,8 @@ stack_detach_devices( InputDevice *device,
 }
 
 #define TRANSPARENT_WINDOW(w) ((w)->opacity < 0xff || \
-                               (w)->caps & DWCAPS_ALPHACHANNEL)
+                               (w)->caps & DWCAPS_ALPHACHANNEL || \
+                               (w)->options & DWOP_COLORKEYING)
 
 static void
 update_region( CoreWindowStack *stack,
