@@ -929,10 +929,11 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                              int x, int y,
                              CoreFont *font, CardState *state )
 {
-     CoreGlyphData *data;
+     int            steps[bytes];
+     unichar        chars[bytes];
+     CoreGlyphData *glyphs[bytes];
 
      unichar prev = 0;
-     unichar current;
 
      int hw_clipping = (Scard->device_info.caps.flags & CCF_CLIPPING);
      int kern_x;
@@ -943,9 +944,14 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      dfb_font_lock( font );
 
      /* preload glyphs to avoid deadlock */
-     for (offset = 0; offset < bytes; offset += dfb_utf8_skip[text[offset]])
-          dfb_font_get_glyph_data (font,
-                                   dfb_utf8_get_char (&text[offset]), &data);
+     for (offset = 0; offset < bytes; offset += steps[offset]) {
+          steps[offset] = dfb_utf8_skip[text[offset]];
+          chars[offset] = dfb_utf8_get_char (&text[offset]);
+
+          if (dfb_font_get_glyph_data (font, chars[offset],
+                                       &glyphs[offset]) != DFB_OK)
+               glyphs[offset] = NULL;
+     }
      
      /* simple prechecks */
      if (x > state->clip.x2 || y > state->clip.y2 ||
@@ -957,16 +963,18 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      dfb_state_set_destination( &font->state, state->destination );
 
      /* set clip and color */
-     font->state.clip        = state->clip;
-     font->state.color       = state->color;
-     font->state.color_index = state->color_index;
-     font->state.modified |= SMF_CLIP | SMF_COLOR;
+     font->state.clip         = state->clip;
+     font->state.color        = state->color;
+     font->state.color_index  = state->color_index;
+     font->state.modified    |= SMF_CLIP | SMF_COLOR;
 
-     for (offset = 0; offset < bytes; offset += dfb_utf8_skip[text[offset]]) {
+     for (offset = 0; offset < bytes; offset += steps[offset]) {
 
-          current = dfb_utf8_get_char (&text[offset]);
+          unichar current = chars[offset];
 
-          if (dfb_font_get_glyph_data (font, current, &data) == DFB_OK) {
+          if (glyphs[offset]) {
+               CoreGlyphData *data = glyphs[offset];
+
                if (prev && font->GetKerning &&
                    (* font->GetKerning) (font, 
                                          prev, current, 
