@@ -593,8 +593,8 @@ dfb_sdl_update_screen_handler( DFBRegion *region )
 static DFBResult
 dfb_sdl_set_palette_handler( CorePalette *palette )
 {
-     int       i;
-     SDL_Color colors[palette->num_entries];
+     unsigned int i;
+     SDL_Color    colors[palette->num_entries];
 
      for (i=0; i<palette->num_entries; i++) {
           colors[i].r = palette->entries[i].r;
@@ -638,7 +638,7 @@ dfb_sdl_call_handler( int   caller,
 static DFBResult
 dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config )
 {
-     DFBResult              ret;
+     int                    ret;
      DFBDisplayLayerConfig *tmp = NULL;
 
      DFB_ASSERT( config != NULL );
@@ -655,7 +655,7 @@ dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config )
      }
      
      fusion_call_execute( &dfb_sdl->call, SDL_SET_VIDEO_MODE,
-                          tmp ? : config, (int*) &ret );
+                          tmp ? : config, &ret );
 
      if (tmp)
           shfree( tmp );
@@ -666,7 +666,7 @@ dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config )
 static DFBResult
 dfb_sdl_update_screen( DFBRegion *region )
 {
-     DFBResult  ret;
+     int        ret;
      DFBRegion *tmp = NULL;
 
      if (dfb_core_is_master())
@@ -683,7 +683,7 @@ dfb_sdl_update_screen( DFBRegion *region )
      }
      
      fusion_call_execute( &dfb_sdl->call, SDL_UPDATE_SCREEN,
-                          tmp ? : region, (int*) &ret );
+                          tmp ? : region, &ret );
 
      if (tmp)
           shfree( tmp );
@@ -694,10 +694,10 @@ dfb_sdl_update_screen( DFBRegion *region )
 static DFBResult
 dfb_sdl_set_palette( CorePalette *palette )
 {
-     DFBResult ret;
+     int ret;
 
      fusion_call_execute( &dfb_sdl->call, SDL_SET_PALETTE,
-                          palette, (int*) &ret );
+                          palette, &ret );
 
      return ret;
 }
