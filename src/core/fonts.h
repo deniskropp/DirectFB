@@ -59,7 +59,6 @@ struct _CoreFont {
      CardState                state;    /* the state used to blit glyphs    */
 
      CoreSurface    **surfaces;         /* contain bitmaps of loaded glyphs */
-     Reaction       **reactions;        /* for glyph surface listener */
      int              rows;
      int              row_width;
      int              next_x;

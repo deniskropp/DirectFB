@@ -220,9 +220,9 @@ DFBResult dfb_gfxcard_resume();
 void dfb_gfxcard_lock();
 void dfb_gfxcard_unlock( bool invalidate_state );
 
-int dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
-int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );
-void dfb_gfxcard_state_release( CardState *state );
+bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
+//bool dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );
+//void dfb_gfxcard_state_release( CardState *state );
 
 /*
  * drawing functions, lock source and destination surfaces,

@@ -29,8 +29,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <pthread.h>
-
 #include <core/fusion/shmalloc.h>
 #include <core/fusion/arena.h>
 #include <core/fusion/property.h>

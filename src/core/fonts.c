@@ -29,23 +29,22 @@
 
 #include <pthread.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "coredefs.h"
-#include "coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "fonts.h"
-#include "gfxcard.h"
-#include "surfaces.h"
+#include <core/fonts.h>
+#include <core/gfxcard.h>
+#include <core/surfaces.h>
 
-#include "misc/mem.h"
-#include "misc/tree.h"
-#include "misc/util.h"
+#include <misc/mem.h>
+#include <misc/tree.h>
+#include <misc/util.h>
 
-static ReactionResult glyph_surface_listener( const void *msg_data,
-                                              void       *ctx );
-
-CoreFont *dfb_font_create()
+CoreFont *
+dfb_font_create()
 {
      CoreFont *font;
 
@@ -66,43 +65,37 @@ CoreFont *dfb_font_create()
      return font;
 }
 
-void dfb_font_destroy( CoreFont *font )
+void
+dfb_font_destroy( CoreFont *font )
 {
      int i;
 
      dfb_font_lock( font );
 
-     dfb_tree_destroy (font->glyph_infos);
-
-     for (i = 0; i < font->rows; i++) {
-          if (font->reactions) {
-               dfb_surface_detach( font->surfaces[i], font->reactions[i] );
-               DFBFREE( font->reactions[i] );
-          }
-
-          dfb_surface_unref( font->surfaces[i] );
-     }
-
-     if (font->surfaces)
-          DFBFREE( font->surfaces );
-
-     if (font->reactions)
-          DFBFREE( font->reactions );
-
-     dfb_font_unlock( font );
-
      dfb_state_set_source( &font->state, NULL );
      dfb_state_set_destination( &font->state, NULL );
      dfb_state_destroy( &font->state );
      
+     dfb_tree_destroy( font->glyph_infos );
+
+     if (font->surfaces) {
+          for (i = 0; i < font->rows; i++)
+               dfb_surface_unref( font->surfaces[i] );
+          
+          DFBFREE( font->surfaces );
+     }
+
+     dfb_font_unlock( font );
+
      pthread_mutex_destroy( &font->lock );
 
      DFBFREE( font );
 }
 
-DFBResult dfb_font_get_glyph_data( CoreFont        *font,
-                                   unichar          glyph,
-                                   CoreGlyphData  **glyph_data )
+DFBResult
+dfb_font_get_glyph_data( CoreFont        *font,
+                         unichar          glyph,
+                         CoreGlyphData  **glyph_data )
 {
      CoreGlyphData *data;
 
@@ -140,11 +133,6 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
                     font->surfaces = DFBREALLOC( font->surfaces,
                                                  sizeof(void *) * font->rows );
 
-                    font->reactions = DFBREALLOC( font->reactions,
-                                                  sizeof(Reaction*) * font->rows );
-
-                    font->reactions[font->rows - 1] = DFBCALLOC( 1, sizeof(Reaction) );
-
                     /* FIXME: error checking! */
                     dfb_surface_create( font->row_width,
                                         MAX( font->ascender - font->descender,
@@ -152,10 +140,6 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
                                         font->pixel_format,
                                         CSP_VIDEOHIGH, DSCAPS_NONE, NULL,
                                         &font->surfaces[font->rows - 1] );
-
-                    dfb_surface_attach( font->surfaces[font->rows - 1],
-                                        glyph_surface_listener, font,
-                                        font->reactions[font->rows - 1] );
                }
 
                if ((* font->RenderGlyph)
@@ -181,14 +165,5 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
      *glyph_data = data;
 
      return DFB_OK;
-}
-
-static ReactionResult
-glyph_surface_listener( const void *msg_data,
-                        void       *ctx )
-{
-     /* Should we handle CSNF_DESTROY? */
-
-     return RS_OK;
 }
 

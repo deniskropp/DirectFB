@@ -26,17 +26,8 @@
 
 #include "config.h"
 
-#include <string.h>
-#include <dlfcn.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
-
-#include <pthread.h>
-
 #include <core/fusion/shmalloc.h>
 #include <core/fusion/arena.h>
-#include <core/fusion/list.h>
 
 #include <directfb.h>
 
@@ -57,7 +48,6 @@
 #include <gfx/clip.h>
 #include <gfx/util.h>
 
-#include <misc/gfx_util.h>
 #include <misc/utf8.h>
 #include <misc/mem.h>
 #include <misc/util.h>
@@ -103,7 +93,6 @@ struct _GraphicsDevice {
 
 
 static GraphicsDevice *card = NULL;
-#define Scard (card->shared)
 
 
 static void dfb_gfxcard_find_driver();
@@ -118,17 +107,17 @@ DFBResult dfb_gfxcard_initialize()
 
      card = (GraphicsDevice*) DFBCALLOC( 1, sizeof(GraphicsDevice) );
 
-     Scard = (GraphicsDeviceShared*) shcalloc( 1, sizeof(GraphicsDeviceShared) );
+     card->shared = (GraphicsDeviceShared*) shcalloc( 1, sizeof(GraphicsDeviceShared) );
 
 #ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, "Scard", Scard );
+     arena_add_shared_field( dfb_core->arena, "Core/GfxCard", card->shared );
 #endif
      
      /* fill generic driver info */
-     gGetDriverInfo( &Scard->driver_info );
+     gGetDriverInfo( &card->shared->driver_info );
 
      /* fill generic device info */
-     gGetDeviceInfo( &Scard->device_info );
+     gGetDeviceInfo( &card->shared->device_info );
 
 
      /* Limit video ram length */
@@ -136,9 +125,9 @@ DFBResult dfb_gfxcard_initialize()
      if (videoram_length) {
           if (dfb_config->videoram_limit > 0 &&
               dfb_config->videoram_limit < videoram_length)
-               Scard->videoram_length = dfb_config->videoram_limit;
+               card->shared->videoram_length = dfb_config->videoram_limit;
           else
-               Scard->videoram_length = videoram_length;
+               card->shared->videoram_length = videoram_length;
      }
 
      /* Build a list of available drivers. */
@@ -150,7 +139,7 @@ DFBResult dfb_gfxcard_initialize()
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
           
           card->driver_data = DFBCALLOC( 1,
-                                         Scard->driver_info.driver_data_size );
+                                         card->shared->driver_info.driver_data_size );
 
           ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
           if (ret) {
@@ -160,30 +149,30 @@ DFBResult dfb_gfxcard_initialize()
                return ret;
           }
 
-          Scard->device_data = shcalloc( 1,
-                                         Scard->driver_info.device_data_size );
+          card->shared->device_data =
+               shcalloc( 1, card->shared->driver_info.device_data_size );
 
-          ret = funcs->InitDevice( card, &Scard->device_info,
-                                   card->driver_data, Scard->device_data );
+          ret = funcs->InitDevice( card, &card->shared->device_info,
+                                   card->driver_data, card->shared->device_data );
           if (ret) {
                funcs->CloseDriver( card, card->driver_data );
-               shfree( Scard->device_data );
+               shfree( card->shared->device_data );
                DFBFREE( card->driver_data );
                DFBFREE( card );
                card = NULL;
                return ret;
           }
 
-          card->device_data = Scard->device_data;
+          card->device_data = card->shared->device_data;
      }
 
      INITMSG( "DirectFB/GraphicsDevice: %s %s %d.%d (%s)\n",
-              Scard->device_info.vendor, Scard->device_info.name,
-              Scard->driver_info.version.major,
-              Scard->driver_info.version.minor, Scard->driver_info.vendor );
+              card->shared->device_info.vendor, card->shared->device_info.name,
+              card->shared->driver_info.version.major,
+              card->shared->driver_info.version.minor, card->shared->driver_info.vendor );
 
      if (dfb_config->software_only) {
-          memset( &Scard->device_info.caps, 0, sizeof(CardCapabilities) );
+          memset( &card->shared->device_info.caps, 0, sizeof(CardCapabilities) );
 
           if (card->funcs.CheckState) {
                card->funcs.CheckState = NULL;
@@ -193,14 +182,14 @@ DFBResult dfb_gfxcard_initialize()
           }
      }
      
-     Scard->surface_manager = dfb_surfacemanager_create( Scard->videoram_length,
+     card->shared->surface_manager = dfb_surfacemanager_create( card->shared->videoram_length,
                 card->shared->device_info.limits.surface_byteoffset_alignment,
                 card->shared->device_info.limits.surface_pixelpitch_alignment );
 
-     Scard->palette_pool = dfb_palette_pool_create();
-     Scard->surface_pool = dfb_surface_pool_create();
+     card->shared->palette_pool = dfb_palette_pool_create();
+     card->shared->surface_pool = dfb_surface_pool_create();
 
-     skirmish_init( &Scard->lock );
+     skirmish_init( &card->shared->lock );
 
      return DFB_OK;
 }
@@ -212,7 +201,7 @@ DFBResult dfb_gfxcard_join()
 
      card = (GraphicsDevice*)DFBCALLOC( 1, sizeof(GraphicsDevice) );
 
-     arena_get_shared_field( dfb_core->arena, "Scard", (void**) &Scard );
+     arena_get_shared_field( dfb_core->arena, "Core/GfxCard", (void**) &card->shared );
 
      /* Build a list of available drivers. */
      dfb_modules_explore_directory( &dfb_graphics_drivers );
@@ -223,7 +212,7 @@ DFBResult dfb_gfxcard_join()
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
           
           card->driver_data = DFBCALLOC( 1,
-                                         Scard->driver_info.driver_data_size );
+                                         card->shared->driver_info.driver_data_size );
 
           ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
           if (ret) {
@@ -233,7 +222,7 @@ DFBResult dfb_gfxcard_join()
                return ret;
           }
 
-          card->device_data = Scard->device_data;
+          card->device_data = card->shared->device_data;
      }
 
      if (dfb_config->software_only && card->funcs.CheckState) {
@@ -267,14 +256,14 @@ DFBResult dfb_gfxcard_shutdown( bool emergency )
           DFBFREE( card->driver_data );
      }
 
-     dfb_surface_pool_destroy( Scard->surface_pool );
-     dfb_palette_pool_destroy( Scard->palette_pool );
+     dfb_surface_pool_destroy( card->shared->surface_pool );
+     dfb_palette_pool_destroy( card->shared->palette_pool );
 
-     dfb_surfacemanager_destroy( Scard->surface_manager );
+     dfb_surfacemanager_destroy( card->shared->surface_manager );
 
-     skirmish_destroy( &Scard->lock );
+     skirmish_destroy( &card->shared->lock );
 
-     shfree( Scard );
+     shfree( card->shared );
 
      DFBFREE( card );
      card = NULL;
@@ -319,98 +308,6 @@ DFBResult dfb_gfxcard_resume()
 }
 #endif
 
-/*
- * This function returns non zero if acceleration is available
- * for the specific function using the given state.
- */
-int dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
-{
-     /*
-      * If there's no CheckState function there's no acceleration at all.
-      */
-     if (!card->funcs.CheckState)
-          return 0;
-
-     /* Debug checks */
-     if (!state->destination) {
-          BUG("state check: no destination");
-          return 0;
-     }
-     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
-          BUG("state check: no source");
-          return 0;
-     }
-
-     /*
-      * If back_buffer policy is 'system only' there's no acceleration
-      * available.
-      */
-     if (state->destination->back_buffer->policy == CSP_SYSTEMONLY) {
-
-          /* clear 'accelerated functions' */
-          state->accel = 0;
-
-          /* return immediately */
-          return 0;
-     }
-
-     /*
-      * If front_buffer policy is 'system only' there's no accelerated
-      * blitting available.
-      */
-     if (state->source &&
-         state->source->front_buffer->policy == CSP_SYSTEMONLY) {
-       
-          /* clear 'accelerated blitting functions' */
-          state->accel &= 0xFFFF;
-
-          /* return if blitting function was requested */
-          if (DFB_BLITTING_FUNCTION( accel ))
-               return 0;
-     }
-
-     /* If destination has been changed... */
-     if (state->modified & SMF_DESTINATION) {
-          /* ...force rechecking for all functions. */
-          state->checked = 0;
-     }
-
-     /* If source has been changed... */
-     if (state->modified & SMF_SOURCE) {
-          /* ...force rechecking for all blitting functions. */
-          state->checked &= 0xFFFF;
-     }
-
-     /* If blend functions have been changed force recheck. */
-     if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND)) {
-          state->checked = 0;
-     }
-     else {
-          /* If drawing flags have been changed recheck drawing functions. */
-          if (state->modified & SMF_DRAWING_FLAGS)
-               state->checked &= 0xFFFF0000;
-
-          /* If blitting flags have been changed recheck blitting functions. */
-          if (state->modified & SMF_BLITTING_FLAGS)
-               state->checked &= 0xFFFF;
-     }
-
-     /* if function needs to be checked... */
-     if (!(state->checked & accel)) {
-          /* unset function */
-          state->accel &= ~accel;
-
-          /* call driver function that sets the bit if supported */
-          card->funcs.CheckState( card->driver_data,
-                                  card->device_data, state, accel );
-
-          /* add function to 'checked functions' */
-          state->checked |= accel;
-     }
-
-     return (state->accel & accel);
-}
-
 void
 dfb_gfxcard_lock()
 {
@@ -430,14 +327,21 @@ dfb_gfxcard_unlock( bool invalidate_state )
 }
 
 /*
- * This function returns non zero after successful locking the surface(s)
- * for access by hardware. Propagate state changes to driver.
+ * This function returns non zero if acceleration is available
+ * for the specific function using the given state.
  */
-int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
+bool
+dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 {
-     DFBSurfaceLockFlags lock_flags;
+
+     /*
+      * If there's no CheckState function there's no acceleration at all.
+      */
+     if (!card->funcs.CheckState)
+          return 0;
 
      /* Debug checks */
+#ifdef DFB_DEBUG
      if (!state->destination) {
           BUG("state check: no destination");
           return 0;
@@ -446,6 +350,91 @@ int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           BUG("state check: no source");
           return 0;
      }
+#endif
+
+     /*
+      * If back_buffer policy is 'system only' there's no acceleration
+      * available.
+      */
+     if (state->destination->back_buffer->policy == CSP_SYSTEMONLY) {
+          /* Clear 'accelerated functions'. */
+          state->accel = 0;
+
+          /* Return immediately. */
+          return 0;
+     }
+
+     /*
+      * If the front buffer policy of the source is 'system only'
+      * no accelerated blitting is available.
+      */
+     if (state->source &&
+         state->source->front_buffer->policy == CSP_SYSTEMONLY)
+     {
+          /* Clear 'accelerated blitting functions'. */
+          state->accel &= 0x0000FFFF;
+
+          /* Return if a blitting function was requested. */
+          if (DFB_BLITTING_FUNCTION( accel ))
+               return 0;
+     }
+
+     /* If destination or blend functions have been changed... */
+     if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND)) {
+          /* ...force rechecking for all functions. */
+          state->checked = 0;
+     }
+     else {
+          /* If source or blitting flags have been changed... */
+          if (state->modified & (SMF_SOURCE | SMF_BLITTING_FLAGS)) {
+               /* ...force rechecking for all blitting functions. */
+               state->checked &= 0x0000FFFF;
+          }
+
+          /* If drawing flags have been changed... */
+          if (state->modified & SMF_DRAWING_FLAGS) {
+               /* ...force rechecking for all drawing functions. */
+               state->checked &= 0xFFFF0000;
+          }
+     }
+
+     /* If the function needs to be checked... */
+     if (!(state->checked & accel)) {
+          /* Unset function bit. */
+          state->accel &= ~accel;
+
+          /* Call driver to (re)set the bit if the function is supported. */
+          card->funcs.CheckState( card->driver_data,
+                                  card->device_data, state, accel );
+
+          /* Add the function to 'checked functions'. */
+          state->checked |= accel;
+     }
+
+     /* Return whether the function bit is set. */
+     return (state->accel & accel);
+}
+
+/*
+ * This function returns non zero after successful locking the surface(s)
+ * for access by hardware. Propagate state changes to driver.
+ */
+static bool
+dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
+{
+     DFBSurfaceLockFlags lock_flags;
+
+     /* Debug checks */
+#ifdef DFB_DEBUG
+     if (!state->destination) {
+          BUG("state check: no destination");
+          return 0;
+     }
+     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
+          BUG("state check: no source");
+          return 0;
+     }
+#endif
 
      /* find locking flags */
      if (DFB_BLITTING_FUNCTION( accel ))
@@ -490,16 +479,16 @@ int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * Make sure that state setting with subsequent command execution
       * isn't done by two processes simultaneously.
       */
-     if (skirmish_prevail( &Scard->lock ))
+     if (skirmish_prevail( &card->shared->lock ))
           return 0;
 
      /* if we are switching to another state... */
-     if (state != Scard->state) {
+     if (state != card->shared->state) {
           /* ...set all modification bits and clear 'set functions' */
           state->modified |= SMF_ALL;
           state->set       = 0;
 
-          Scard->state = state;
+          card->shared->state = state;
      }
 
      /*
@@ -516,7 +505,8 @@ int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 /*
  * Unlock destination and possibly the source.
  */
-void dfb_gfxcard_state_release( CardState *state )
+static void
+dfb_gfxcard_state_release( CardState *state )
 {
      /* destination always gets locked during acquisition */
      dfb_surface_unlock( state->destination, 0 );
@@ -526,7 +516,7 @@ void dfb_gfxcard_state_release( CardState *state )
           dfb_surface_unlock( state->source, 1 );
 
      /* allow others to use the hardware */
-     skirmish_dismiss( &Scard->lock );
+     skirmish_dismiss( &card->shared->lock );
 }
 
 /** DRAWING FUNCTIONS **/
@@ -544,7 +534,7 @@ void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
            * Either hardware has clipping support or the software clipping
            * routine returned that there's something to do.
            */
-          if ((Scard->device_info.caps.flags & CCF_CLIPPING) ||
+          if ((card->shared->device_info.caps.flags & CCF_CLIPPING) ||
               dfb_clip_rectangle( &state->clip, rect ))
           {
                /*
@@ -580,9 +570,11 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      dfb_state_lock( state );
 
      if (dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE )) {
-          if (Scard->device_info.caps.flags & CCF_CLIPPING  ||
-              dfb_clip_rectangle( &state->clip, rect )) {
+         dfb_gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE ))
+     {
+          if (card->shared->device_info.caps.flags & CCF_CLIPPING  ||
+              dfb_clip_rectangle( &state->clip, rect ))
+          {
                /* FIXME: correct clipping like below */
                card->funcs.DrawRectangle( card->driver_data,
                                           card->device_data, rect );
@@ -636,8 +628,9 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      dfb_state_lock( state );
 
      if (dfb_gfxcard_state_check( state, DFXL_DRAWLINE ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_DRAWLINE )) {
-          if (Scard->device_info.caps.flags & CCF_CLIPPING)
+         dfb_gfxcard_state_acquire( state, DFXL_DRAWLINE ))
+     {
+          if (card->shared->device_info.caps.flags & CCF_CLIPPING)
                for (i=0; i<num_lines; i++)
                     card->funcs.DrawLine( card->driver_data,
                                           card->device_data, &lines[i] );
@@ -766,7 +759,7 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
      dfb_state_lock( state );
 
      /* if hardware has clipping try directly accelerated triangle filling */
-     if ((Scard->device_info.caps.flags & CCF_CLIPPING) &&
+     if ((card->shared->device_info.caps.flags & CCF_CLIPPING) &&
           dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
           dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
      {
@@ -812,8 +805,9 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      }
 
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
-          if (!(Scard->device_info.caps.flags & CCF_CLIPPING))
+         dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
+     {
+          if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
                dfb_clip_blit( &state->clip, rect, &dx, &dy );
 
           card->funcs.Blit( card->driver_data, card->device_data,
@@ -861,7 +855,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
                     y = dy;
                     srect = *rect;
 
-                    if (!(Scard->device_info.caps.flags & CCF_CLIPPING))
+                    if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
                          dfb_clip_blit( &state->clip, &srect, &x, &y );
 
                     card->funcs.Blit( card->driver_data, card->device_data,
@@ -910,8 +904,9 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      }
 
      if (dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_STRETCHBLIT )) {
-          if (!(Scard->device_info.caps.flags & CCF_CLIPPING))
+         dfb_gfxcard_state_acquire( state, DFXL_STRETCHBLIT ))
+     {
+          if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
                dfb_clip_stretchblit( &state->clip, srect, drect );
 
           card->funcs.StretchBlit( card->driver_data,
@@ -939,7 +934,7 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
 
      unichar prev = 0;
 
-     int hw_clipping = (Scard->device_info.caps.flags & CCF_CLIPPING);
+     int hw_clipping = (card->shared->device_info.caps.flags & CCF_CLIPPING);
      int kern_x;
      int kern_y;
      int offset;
@@ -1097,7 +1092,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      if (dfb_gfxcard_state_check( &font->state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( &font->state, DFXL_BLIT )) {
 
-          if (!(Scard->device_info.caps.flags & CCF_CLIPPING))
+          if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
                dfb_clip_blit( &font->state.clip, &rect, &x, &y );
 
           card->funcs.Blit( card->driver_data, card->device_data, &rect, x, y);
@@ -1134,31 +1129,31 @@ void dfb_gfxcard_after_set_var()
 DFBResult
 dfb_gfxcard_adjust_heap_offset( unsigned int offset )
 {
-     return dfb_surfacemanager_adjust_heap_offset( Scard->surface_manager, offset );
+     return dfb_surfacemanager_adjust_heap_offset( card->shared->surface_manager, offset );
 }
 
 SurfaceManager *
 dfb_gfxcard_surface_manager()
 {
-     return Scard->surface_manager;
+     return card->shared->surface_manager;
 }
 
 FusionObjectPool *
 dfb_gfxcard_surface_pool()
 {
-     return Scard->surface_pool;
+     return card->shared->surface_pool;
 }
 
 FusionObjectPool *
 dfb_gfxcard_palette_pool()
 {
-     return Scard->palette_pool;
+     return card->shared->palette_pool;
 }
 
 CardCapabilities
 dfb_gfxcard_capabilities()
 {
-     return Scard->device_info.caps;
+     return card->shared->device_info.caps;
 }
 
 int
@@ -1182,7 +1177,7 @@ dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
 unsigned int
 dfb_gfxcard_memory_length()
 {
-     return Scard->videoram_length;
+     return card->shared->videoram_length;
 }
 
 volatile void *
@@ -1240,7 +1235,7 @@ static void dfb_gfxcard_find_driver()
                continue;
 
           if (!card->module && funcs->Probe( card )) {
-               funcs->GetDriverInfo( card, &Scard->driver_info );
+               funcs->GetDriverInfo( card, &card->shared->driver_info );
 
                card->module       = module;
                card->driver_funcs = funcs;

@@ -27,17 +27,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <dlfcn.h>
-
-#include <string.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
-#include <sys/time.h>
-
-#include <pthread.h>
 
 #include <core/fusion/shmalloc.h>
 #include <core/fusion/reactor.h>
