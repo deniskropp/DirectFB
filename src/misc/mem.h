@@ -37,7 +37,11 @@
 #include <string.h>
 
 #ifndef PAGE_SIZE
+#ifdef _SC_PAGE_SIZE
 #define PAGE_SIZE     (sysconf( _SC_PAGE_SIZE ))
+#else
+#define PAGE_SIZE     4096  /* FIXME: do not guess */
+#endif
 #endif
 
 #define PAGE_ALIGN(x) ((((x) + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE)
