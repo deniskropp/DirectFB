@@ -343,7 +343,6 @@ AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
 DFB_CFLAGS="$THREAD_CFLAGS $DFB_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
 
-echo "x$cflags_set"
 if test x$cflags_set != xset ; then
   DFB_CFLAGS="$DFB_CFLAGS $CFLAGS"
 fi
