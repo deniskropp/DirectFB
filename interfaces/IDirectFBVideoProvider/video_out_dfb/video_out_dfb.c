@@ -104,7 +104,7 @@ static struct
 
 
 #include "video_out_dfb_blend.h"
-#ifdef ARCH_X86
+#ifdef USE_MMX
 # include "video_out_dfb_mmx.h"
 #endif
 
@@ -1526,7 +1526,7 @@ dfb_tables_regen( dfb_driver_t *this,
                this->mixer.modified |=  MMF_S;
      }
 
-#ifdef ARCH_X86
+#ifdef USE_MMX
      if (this->proc.accel == MM_MMX)
      {
           if (flags & MMF_B)
@@ -1890,7 +1890,7 @@ open_plugin( video_driver_class_t *vo_class,
      this->proc.funcs[0] = &dummy[0][0];
      this->proc.funcs[1] = &dummy[1][0];
      
-#ifdef ARCH_X86
+#ifdef USE_MMX
      if ((xine_mm_accel() & MM_MMX) == MM_MMX)
      {
           int use_mmx = config->register_bool( config, 
