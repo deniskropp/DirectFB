@@ -160,11 +160,17 @@ create_region( CoreDFB                 *core,
      config.width      = window->config.bounds.w;
      config.height     = window->config.bounds.h;
      config.format     = format;
-     config.buffermode = DLBM_BACKVIDEO;
      config.options    = context->config.options & DLOP_FLICKER_FILTERING;
      config.source     = (DFBRectangle) { 0, 0, config.width, config.height };
      config.dest       = window->config.bounds;
      config.opacity    = 0;
+
+     if (surface_caps & DSCAPS_DOUBLE)
+          config.buffermode = DLBM_BACKVIDEO;
+     else if (surface_caps & DSCAPS_TRIPLE)
+          config.buffermode = DLBM_TRIPLE;
+     else
+          config.buffermode = DLBM_FRONTONLY;
 
      if ((context->config.options & DLOP_ALPHACHANNEL) && DFB_PIXELFORMAT_HAS_ALPHA(format))
           config.options |= DLOP_ALPHACHANNEL;
@@ -194,7 +200,7 @@ create_region( CoreDFB                 *core,
 
 
      ret = dfb_surface_create( core, config.width, config.height, format,
-                               CSP_VIDEOONLY, surface_caps | DSCAPS_DOUBLE, NULL, &surface );
+                               CSP_VIDEOONLY, surface_caps, NULL, &surface );
      if (ret) {
           dfb_layer_region_unref( region );
           return ret;
