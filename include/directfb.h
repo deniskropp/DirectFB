@@ -192,16 +192,16 @@ extern "C"
       * optional message that is put in front with a colon.
       */
      void DirectFBError(
-                         const char *msg,    /* optional message */
-                         DFBResult result    /* result code to interpret */
+                              const char  *msg,    /* optional message */
+                              DFBResult    result  /* result code to interpret */
                        );
 
      /*
       * Behaves like DirectFBError, but shuts down the calling application.
       */
      void DirectFBErrorFatal(
-                              const char *msg,    /* optional message */
-                              DFBResult result    /* result code to interpret */
+                              const char  *msg,    /* optional message */
+                              DFBResult    result  /* result code to interpret */
                             );
 
      /*
@@ -210,8 +210,8 @@ extern "C"
       * Removes all options used by DirectFB from argv.
       */
      DFBResult DirectFBInit(
-                             int   *argc,         /* main()'s argc */
-                             char **argv[]        /* main()'s argv */
+                              int         *argc,   /* main()'s argc */
+                              char       **argv[]  /* main()'s argv */
                            );
 
      /*
@@ -220,16 +220,16 @@ extern "C"
       * DirectFBInit.
       */
      DFBResult DirectFBSetOption(
-                             char  *name,
-                             char  *value
+                              char        *name,
+                              char        *value
                            );
      
      /*
       * Create the super interface
       */
      DFBResult DirectFBCreate(
-                               IDirectFB **interface   /* pointer to the
-                                                          created interface */
+                               IDirectFB **interface  /* pointer to the
+                                                         created interface */
                              );
 
 
@@ -527,7 +527,7 @@ extern "C"
           unsigned int                       width,
           unsigned int                       height,
           unsigned int                       bpp,
-          void                               *callbackdata
+          void                              *callbackdata
      );
 
      /*
@@ -537,7 +537,7 @@ extern "C"
      typedef int (*DFBDisplayLayerCallback) (
           unsigned int                       id,
           DFBDisplayLayerCapabilities        caps,
-          void                               *callbackdata
+          void                              *callbackdata
      );
 
      /*
@@ -547,7 +547,7 @@ extern "C"
      typedef int (*DFBInputDeviceCallback) (
           unsigned int                       id,
           DFBInputDeviceDescription          desc,
-          void                               *callbackdata
+          void                              *callbackdata
      );
 
      /*
@@ -577,7 +577,7 @@ extern "C"
            */
           DFBResult (*SetCooperativeLevel) (
                IDirectFB                *thiz,
-               DFBCooperativeLevel      level
+               DFBCooperativeLevel       level
           );
 
           /*
@@ -588,9 +588,9 @@ extern "C"
            */
           DFBResult (*SetVideoMode) (
                IDirectFB                *thiz,
-               unsigned int             width,
-               unsigned int             height,
-               unsigned int             bpp
+               unsigned int              width,
+               unsigned int              height,
+               unsigned int              bpp
           );
 
 
@@ -613,7 +613,7 @@ extern "C"
            */
           DFBResult (*EnumVideoModes) (
                IDirectFB                *thiz,
-               DFBVideoModeCallback     callback,
+               DFBVideoModeCallback      callback,
                void                     *callbackdata
           );
 
@@ -626,7 +626,7 @@ extern "C"
           DFBResult (*CreateSurface) (
                IDirectFB                *thiz,
                DFBSurfaceDescription    *desc,
-               IDirectFBSurface         **interface
+               IDirectFBSurface        **interface
           );
 
 
@@ -637,7 +637,7 @@ extern "C"
            */
           DFBResult (*EnumDisplayLayers) (
                IDirectFB                *thiz,
-               DFBDisplayLayerCallback  callback,
+               DFBDisplayLayerCallback   callback,
                void                     *callbackdata
           );
 
@@ -646,8 +646,8 @@ extern "C"
            */
           DFBResult (*GetDisplayLayer) (
                IDirectFB                *thiz,
-               unsigned int             id,
-               IDirectFBDisplayLayer    **interface
+               unsigned int              id,
+               IDirectFBDisplayLayer   **interface
           );
 
 
@@ -658,7 +658,7 @@ extern "C"
            */
           DFBResult (*EnumInputDevices) (
                IDirectFB                *thiz,
-               DFBInputDeviceCallback   callback,
+               DFBInputDeviceCallback    callback,
                void                     *callbackdata
           );
 
@@ -667,8 +667,8 @@ extern "C"
            */
           DFBResult (*GetInputDevice) (
                IDirectFB                *thiz,
-               unsigned int             id,
-               IDirectFBInputDevice     **interface
+               unsigned int              id,
+               IDirectFBInputDevice    **interface
           );
 
 
@@ -680,7 +680,7 @@ extern "C"
           DFBResult (*CreateImageProvider) (
                IDirectFB                *thiz,
                const char               *filename,
-               IDirectFBImageProvider   **interface
+               IDirectFBImageProvider  **interface
           );
 
           /*
@@ -689,7 +689,7 @@ extern "C"
           DFBResult (*CreateVideoProvider) (
                IDirectFB                *thiz,
                const char               *filename,
-               IDirectFBVideoProvider   **interface
+               IDirectFBVideoProvider  **interface
           );
 
           /*
@@ -700,7 +700,7 @@ extern "C"
                IDirectFB                *thiz,
                const char               *filename,
                DFBFontDescription       *desc,
-               IDirectFBFont            **interface
+               IDirectFBFont           **interface
           );
 
 
@@ -785,7 +785,7 @@ extern "C"
            */
           DFBResult (*SetCooperativeLevel) (
                IDirectFBDisplayLayer              *thiz,
-               DFBDisplayLayerCooperativeLevel    level
+               DFBDisplayLayerCooperativeLevel     level
           );
 
           /*
@@ -795,7 +795,7 @@ extern "C"
            */
           DFBResult (*GetSurface) (
                IDirectFBDisplayLayer              *thiz,
-               IDirectFBSurface                   **interface
+               IDirectFBSurface                  **interface
           );
 
 
@@ -839,7 +839,7 @@ extern "C"
            */
           DFBResult (*SetBackgroundMode) (
                IDirectFBDisplayLayer              *thiz,
-               DFBDisplayLayerBackgroundMode      mode
+               DFBDisplayLayerBackgroundMode       mode
           );
 
           /*
@@ -859,10 +859,10 @@ extern "C"
            */
           DFBResult (*SetBackgroundColor) (
                IDirectFBDisplayLayer              *thiz,
-               __u8                               r,
-               __u8                               g,
-               __u8                               b,
-               __u8                               a
+               __u8                                r,
+               __u8                                g,
+               __u8                                b,
+               __u8                                a
           );
 
 
@@ -875,7 +875,7 @@ extern "C"
           DFBResult (*CreateWindow) (
                IDirectFBDisplayLayer              *thiz,
                DFBWindowDescription               *desc,
-               IDirectFBWindow                    **interface
+               IDirectFBWindow                   **interface
           );
 
 
@@ -899,7 +899,7 @@ extern "C"
            */
           DFBResult (*EnableCursor) (
                IDirectFBDisplayLayer              *thiz,
-               int                                enable
+               int                                 enable
           );
 
           /*
@@ -917,8 +917,8 @@ extern "C"
           DFBResult (*SetCursorShape) (
                IDirectFBDisplayLayer              *thiz,
                IDirectFBSurface                   *shape,
-               int                                hot_x,
-               int                                hot_y
+               int                                 hot_x,
+               int                                 hot_y
           );
      )
 
@@ -1076,8 +1076,8 @@ extern "C"
            */
           DFBResult (*Lock) (
                IDirectFBSurface         *thiz,
-               DFBSurfaceLockFlags      flags,
-               void                     **ptr,
+               DFBSurfaceLockFlags       flags,
+               void                    **ptr,
                int                      *pitch
           );
 
@@ -1099,7 +1099,7 @@ extern "C"
           DFBResult (*Flip) (
                IDirectFBSurface         *thiz,
                DFBRegion                *region,
-               DFBSurfaceFlipFlags      flags
+               DFBSurfaceFlipFlags       flags
           );
 
 
@@ -1120,10 +1120,10 @@ extern "C"
            */
           DFBResult (*SetColor) (
                IDirectFBSurface         *thiz,
-               __u8                     r,
-               __u8                     g,
-               __u8                     b,
-               __u8                     a
+               __u8                      r,
+               __u8                      g,
+               __u8                      b,
+               __u8                      a
           );
 
           /*
@@ -1131,7 +1131,7 @@ extern "C"
            */
           DFBResult (*SetSrcBlendFunction) (
                IDirectFBSurface         *thiz,
-               DFBSurfaceBlendFunction  function
+               DFBSurfaceBlendFunction   function
           );
 
           /*
@@ -1139,7 +1139,7 @@ extern "C"
            */
           DFBResult (*SetDstBlendFunction) (
                IDirectFBSurface         *thiz,
-               DFBSurfaceBlendFunction  function
+               DFBSurfaceBlendFunction   function
           );
 
           /*
@@ -1148,7 +1148,7 @@ extern "C"
            */
           DFBResult (*SetPorterDuff) (
                IDirectFBSurface         *thiz,
-               DFBSurfacePorterDuffRule rule
+               DFBSurfacePorterDuffRule  rule
           );
 
           /*
@@ -1157,7 +1157,7 @@ extern "C"
            */
           DFBResult (*SetSrcColorKey) (
                IDirectFBSurface         *thiz,
-               __u32                    key
+               __u32                     key
           );
 
           /*
@@ -1166,7 +1166,7 @@ extern "C"
            */
           DFBResult (*SetDstColorKey) (
                IDirectFBSurface         *thiz,
-               __u32                    key
+               __u32                     key
           );
 
 
@@ -1177,7 +1177,7 @@ extern "C"
            */
           DFBResult (*SetBlittingFlags) (
                IDirectFBSurface         *thiz,
-               DFBSurfaceBlittingFlags  flags
+               DFBSurfaceBlittingFlags   flags
           );
 
           /*
@@ -1190,8 +1190,8 @@ extern "C"
                IDirectFBSurface         *thiz,
                IDirectFBSurface         *source,
                DFBRectangle             *source_rect,
-               int                      x,
-               int                      y
+               int                       x,
+               int                       y
           );
 
           /*
@@ -1214,7 +1214,7 @@ extern "C"
            */
           DFBResult (*SetDrawingFlags) (
                IDirectFBSurface         *thiz,
-               DFBSurfaceDrawingFlags   flags
+               DFBSurfaceDrawingFlags    flags
           );
 
           /*
@@ -1223,10 +1223,10 @@ extern "C"
            */
           DFBResult (*FillRectangle) (
                IDirectFBSurface         *thiz,
-               int                      x,
-               int                      y,
-               int                      w,
-               int                      h
+               int                       x,
+               int                       y,
+               int                       w,
+               int                       h
           );
 
           /*
@@ -1235,10 +1235,10 @@ extern "C"
            */
           DFBResult (*DrawRectangle) (
                IDirectFBSurface         *thiz,
-               int                      x,
-               int                      y,
-               int                      w,
-               int                      h
+               int                       x,
+               int                       y,
+               int                       w,
+               int                       h
           );
 
           /*
@@ -1247,10 +1247,10 @@ extern "C"
            */
           DFBResult (*DrawLine) (
                IDirectFBSurface         *thiz,
-               int                      x1,
-               int                      y1,
-               int                      x2,
-               int                      y2
+               int                       x1,
+               int                       y1,
+               int                       x2,
+               int                       y2
           );
 
           /*
@@ -1258,12 +1258,12 @@ extern "C"
            */
           DFBResult (*FillTriangle) (
                IDirectFBSurface         *thiz,
-               int                      x1,
-               int                      y1,
-               int                      x2,
-               int                      y2,
-               int                      x3,
-               int                      y3
+               int                       x1,
+               int                       y1,
+               int                       x2,
+               int                       y2,
+               int                       x3,
+               int                       y3
           );
 
 
@@ -1298,10 +1298,10 @@ extern "C"
           DFBResult (*DrawString) (
                IDirectFBSurface         *thiz,
                const char               *text,
-               int                      bytes,
-               int                      x,
-               int                      y,
-               DFBSurfaceTextFlags      flags
+               int                       bytes,
+               int                       x,
+               int                       y,
+               DFBSurfaceTextFlags       flags
           );
 
 
@@ -1321,25 +1321,29 @@ extern "C"
           DFBResult (*GetSubSurface) (
                IDirectFBSurface         *thiz,
                DFBRectangle             *rect,
-               IDirectFBSurface         **interface
+               IDirectFBSurface        **interface
           );
      )
 
 
 
      /*
-      * DirectFB specific keycodes
+      * DirectFB keycodes
       */
      typedef enum {
           DIKC_UNKNOWN = 0,
+
           DIKC_A, DIKC_B, DIKC_C, DIKC_D, DIKC_E, DIKC_F, DIKC_G, DIKC_H,
           DIKC_I, DIKC_J, DIKC_K, DIKC_L, DIKC_M, DIKC_N, DIKC_O, DIKC_P,
           DIKC_Q, DIKC_R, DIKC_S, DIKC_T, DIKC_U, DIKC_V, DIKC_W, DIKC_X,
           DIKC_Y, DIKC_Z,
+
           DIKC_0, DIKC_1, DIKC_2, DIKC_3, DIKC_4, DIKC_5, DIKC_6, DIKC_7,
           DIKC_8, DIKC_9,
+
           DIKC_F1, DIKC_F2, DIKC_F3, DIKC_F4, DIKC_F5, DIKC_F6, DIKC_F7,
           DIKC_F8, DIKC_F9, DIKC_F10, DIKC_F11, DIKC_F12,
+
           DIKC_ESCAPE,
           DIKC_LEFT, DIKC_RIGHT, DIKC_UP, DIKC_DOWN,
           DIKC_CTRL, DIKC_SHIFT,
@@ -1350,29 +1354,22 @@ extern "C"
           DIKC_CAPSLOCK, DIKC_NUMLOCK, DIKC_SCRLOCK, DIKC_PRINT, DIKC_PAUSE,
           DIKC_KP_DIV, DIKC_KP_MULT, DIKC_KP_MINUS, DIKC_KP_PLUS, DIKC_KP_ENTER,
 
-          DIKC_NUMBER_OF_KEYS,
+          DIKC_POWER, DIKC_OK, DIKC_CANCEL, DIKC_MENU, DIKC_SELECT,
+          DIKC_GOTO, DIKC_OPTION, DIKC_HELP, DIKC_INFO, DIKC_VENDOR,
+          DIKC_ZOOM, DIKC_MODE, DIKC_KEYBOARD, DIKC_PC, DIKC_SCREEN,
+          DIKC_TV, DIKC_VCR, DIKC_SAT, DIKC_SAT2, DIKC_CD, DIKC_TAPE, 
+          DIKC_RADIO, DIKC_TUNER, DIKC_PLAYER, DIKC_AUDIO, DIKC_VIDEO, 
+          DIKC_VIDEOTEXT, DIKC_AUX, DIKC_FAVORITES, DIKC_EPG,
+          DIKC_INTERNET, DIKC_MAIL,
+          DIKC_RED, DIKC_GREEN, DIKC_YELLOW, DIKC_BLUE,
+          DIKC_CHANNELUP, DIKC_CHANNELDOWN, DIKC_BACK, DIKC_FORWARD,
+          DIKC_VOLUMEUP, DIKC_VOLUMEDOWN, DIKC_MUTE, DIKC_AB,
+          DIKC_PLAYPAUSE, DIKC_PLAY, DIKC_STOP, DIKC_RESTART,
+          DIKC_SLOW, DIKC_FAST, DIKC_RECORD, DIKC_EJECT, 
+          DIKC_REWIND, DIKC_FASTFORWARD, DIKC_PREVIOUS, DIKC_NEXT,
+          DIKC_DIGITS, DIKC_TEEN, DIKC_TWEN, DIKC_ASTERISK, DIKC_HASH,
 
-#ifdef OLD_ACTIVY
-          DIKC_TV, DIKC_INTERNET, DIKC_MAIL, DIKC_POWER,
-          DIKC_AUDIO, DIKC_VIDEO, DIKC_FAVORITES, DIKC_ZOOM,
-          DIKC_REWIND, DIKC_PLAYPAUSE, DIKC_FORWARD,
-          DIKC_PREVIOUS, DIKC_STOP, DIKC_NEXT,
-          DIKC_VOL_UP, DIKC_VOL_DOWN, DIKC_MUTE,
-          DIKC_CHANNEL_UP, DIKC_CHANNEL_DOWN,
-          DIKC_MENU, DIKC_OK, DIKC_MODE,
-          DIKC_ASTERISK, DIKC_HASHMARK
-#endif
-
-#ifndef NO_NEW_ACTIVY
-          DIKC_RC_BACK, DIKC_RC_SCROLLUP, DIKC_RC_SCROLLDOWN, DIKC_RC_GOTO,
-          DIKC_RC_KEYBOARD,
-          DIKC_RC_TV, DIKC_RC_INTERNET, DIKC_RC_MAIL, DIKC_RC_PLAYER,
-          DIKC_RC_HOME, DIKC_RC_MENU, DIKC_RC_OK,
-          DIKC_RC_CHANNELUP, DIKC_RC_CHANNELDOWN, DIKC_RC_HELP, DIKC_RC_MUTE,
-          DIKC_RC_VOLUMEUP, DIKC_RC_VOLUMEDOWN,
-          DIKC_RC_REWIND, DIKC_RC_PLAYPAUSE, DIKC_RC_FORWARD, DIKC_RC_RECORD,
-          DIKC_RC_TRACKPREV, DIKC_RC_STOP, DIKC_RC_TRACKNEXT, DIKC_RC_EJECT
-#endif
+          DIKC_NUMBER_OF_KEYS
      } DFBInputDeviceKeyIdentifier;
 
      /*
@@ -1424,7 +1421,7 @@ extern "C"
            */
           DFBResult (*CreateInputBuffer) (
                IDirectFBInputDevice          *thiz,
-               IDirectFBInputBuffer          **buffer
+               IDirectFBInputBuffer         **buffer
           );
 
 
@@ -1446,7 +1443,7 @@ extern "C"
            */
           DFBResult (*GetKeyState) (
                IDirectFBInputDevice          *thiz,
-               DFBInputDeviceKeyIdentifier   keycode,
+               DFBInputDeviceKeyIdentifier    keycode,
                DFBInputDeviceKeyState        *state
           );
 
@@ -1482,7 +1479,7 @@ extern "C"
            */
           DFBResult (*GetAxis) (
                IDirectFBInputDevice          *thiz,
-               DFBInputDeviceAxisIdentifier  axis,
+               DFBInputDeviceAxisIdentifier   axis,
                int                           *pos
           );
 
@@ -1534,7 +1531,7 @@ extern "C"
           DFBInputEventFlags            flags;         /* which fields are
                                                           valid? */
 
-/* DIET_KEYPRESS, DIET_KEYRELEASE, DIET_KEYREPEAT */
+     /* DIET_KEYPRESS, DIET_KEYRELEASE, DIET_KEYREPEAT */
           DFBInputDeviceKeyIdentifier   keycode;       /* in case of a key
                                                           event */
           char                          key_ascii;
@@ -1542,11 +1539,11 @@ extern "C"
           DFBInputDeviceModifierKeys    modifiers;     /* modifier keys as
                                                           a bitmask */
 
-/* DIET_BUTTONPRESS, DIET_BUTTONRELEASE */
+     /* DIET_BUTTONPRESS, DIET_BUTTONRELEASE */
           DFBInputDeviceButtonIdentifier     button;   /* in case of a button
                                                           event */
 
-/* DIET_AXISMOTION */
+     /* DIET_AXISMOTION */
           DFBInputDeviceAxisIdentifier       axis;     /* in case of an axis
                                                           event */
           int                                axisabs;  /* absolute mouse/
@@ -1716,7 +1713,7 @@ extern "C"
            */
           DFBResult (*GetSurface) (
                IDirectFBWindow     *thiz,
-               IDirectFBSurface    **surface
+               IDirectFBSurface   **surface
           );
 
 
@@ -1731,7 +1728,7 @@ extern "C"
            */
           DFBResult (*SetOpacity) (
                IDirectFBWindow     *thiz,
-               __u8                opacity
+               __u8                 opacity
           );
 
           /*
@@ -1789,8 +1786,8 @@ extern "C"
            */
           DFBResult (*Move) (
                IDirectFBWindow     *thiz,
-               int                 dx,
-               int                 dy
+               int                  dx,
+               int                  dy
           );
 
           /*
@@ -1798,8 +1795,8 @@ extern "C"
            */
           DFBResult (*MoveTo) (
                IDirectFBWindow     *thiz,
-               int                 x,
-               int                 y
+               int                  x,
+               int                  y
           );
 
           /*
@@ -1807,8 +1804,8 @@ extern "C"
            */
           DFBResult (*Resize) (
                IDirectFBWindow     *thiz,
-               unsigned int        width,
-               unsigned int        height
+               unsigned int         width,
+               unsigned int         height
           );
 
 
@@ -2038,7 +2035,7 @@ extern "C"
                IDirectFBVideoProvider   *thiz,
                IDirectFBSurface         *destination,
                DFBRectangle             *dstrect,
-               DVFrameCallback          callback,
+               DVFrameCallback           callback,
                void                     *ctx
           );
 

@@ -115,7 +115,6 @@ static void mouse_setspeed()
      tcsetattr (fd, TCSAFLUSH, &tty);
 
      write (fd, "*n", 2);
-     usleep (100000);
 }
 
 /* the main routine for MS mice (plus extensions) */
@@ -373,10 +372,10 @@ int driver_probe()
           goto error;
 
      /*  wait for the mouse to send 0x4D  */
-     FD_ZERO(&set);
-     FD_SET(fd, &set);
-     timeout.tv_sec=0;
-     timeout.tv_usec=100000;
+     FD_ZERO (&set);
+     FD_SET (fd, &set);
+     timeout.tv_sec  = 0;
+     timeout.tv_usec = 50000;
 
      while (select (fd+1, &set, NULL, NULL, &timeout) < 0 && errno == EINTR);
      if (FD_ISSET (fd, &set) && (readlen = read (fd, buf, 8) > 0)) {

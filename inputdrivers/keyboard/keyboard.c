@@ -48,16 +48,6 @@
 
 static int fd = -1;
 
-#ifdef OLD_ACTIVY
-static unsigned char lshift = 0;
-static unsigned char rshift = 0;
-#endif
-
-#ifndef NO_NEW_ACTIVY
-static unsigned char lshift = 0;
-static unsigned char rshift = 0;
-#endif
-
 static DFBInputDeviceModifierKeys modifier_state = 0;
 
 static DFBInputEvent keyboard_handle_code(char code);
@@ -111,29 +101,8 @@ static DFBInputEvent keyboard_handle_code(char code)
      }
      
      HEAVYDEBUGMSG( "DirectFB/Keyboard: kb_code 0x%x\n", code );
-     
-#ifdef OLD_ACTIVY
-     switch (code) {
-          case 0x2a:
-               lshift = keydown;
-               break;
-          case 0x36:
-               rshift = keydown;
-               break;
-     }
-#endif
-#ifndef NO_NEW_ACTIVY
-     switch (code) {
-          case 0x2a:
-               lshift = keydown;
-               break;
-          case 0x36:
-               rshift = keydown;
-               break;
-     }
-#endif
                
-     //fetch the keycode
+     /* fetch the keycode */
                     
      entry.kb_table = K_NORMTAB;
      entry.kb_index = code;
@@ -234,116 +203,6 @@ static char keyboard_translate(int kb_value)
                     return DIKC_F1 + key_index;
                break;
           case KT_LETTER:
-#ifndef NO_NEW_ACTIVY
-               if (lshift && rshift) {
-                    switch (key_index) {
-                         case 0x7a:
-                              return DIKC_ESCAPE; //DIKC_RC_BACK;
-                         case 0x61:
-                              return DIKC_PAGEUP; //DIKC_RC_SCROLLUP;
-                         case 0x69:
-                              return DIKC_PAGEDOWN; //DIKC_RC_SCROLLDOWN;
-                         case 0x78:
-                              return DIKC_G; //DIKC_RC_GOTO;
-                         case 0x6f:
-                              return DIKC_K; //DIKC_RC_KEYBOARD;
-                         case 0x79:
-                              return DIKC_F1; //DIKC_RC_TV;
-                         case 0x6d:
-                              return DIKC_F2; //DIKC_RC_INTERNET;
-                         case 0x67:
-                              return DIKC_F3; //DIKC_RC_MAIL;
-                         case 0x63:
-                              return DIKC_F4; //DIKC_RC_PLAYER;
-                         case 0x6b:
-                              return DIKC_M; //DIKC_RC_MENU;
-                         case 0x64:
-                              return DIKC_ENTER; //DIKC_RC_OK;
-                         case 0x68:
-                              return DIKC_KP_PLUS; //DIKC_RC_CHANNELUP;
-                         case 0x6a:
-                              return DIKC_KP_MINUS; //DIKC_RC_CHANNELDOWN;
-                         case 0x65:
-                              return DIKC_H; //DIKC_RC_HELP;
-                         case 0x76:
-                              return DIKC_RC_MUTE; /* FIXME: period */
-                         case 0x6c:
-                              return DIKC_X; //DIKC_RC_VOLUMEUP;
-                         case 0x77:
-                              return DIKC_Y; //DIKC_RC_VOLUMEDOWN;
-                         case 0x66:
-                              return DIKC_F7; //DIKC_RC_REWIND;
-                         case 0x73:
-                              return DIKC_F5; //DIKC_RC_PLAYPAUSE;
-                         case 0x72:
-                              return DIKC_F8; //DIKC_RC_FORWARD;
-                         case 0x74:
-                              return DIKC_F11; //DIKC_RC_RECORD;
-                         case 0x62:
-                              return DIKC_F10; //DIKC_RC_TRACKPREV;
-                         case 0x70:
-                              return DIKC_F6; //DIKC_RC_STOP;
-                         case 0x6e:
-                              return DIKC_F9; //DIKC_RC_TRACKNEXT;
-                         case 0x75:
-                              return DIKC_F12; //DIKC_RC_EJECT;
-                    }
-               }
-#endif
-#ifdef OLD_ACTIVY
-               if (lshift && rshift) {
-                    switch (key_index) {
-                         case 0x79:
-                              return DIKC_TV;
-                         case 0x6d:
-                              return DIKC_INTERNET;
-                         case 0x67:
-                              return DIKC_MAIL;
-                         case 0x71:
-                              return DIKC_POWER;
-                         case 0x63:
-                              return DIKC_AUDIO;
-                         case 0x6f:
-                              return DIKC_VIDEO;
-                         case 0x69:
-                              return DIKC_FAVORITES;
-                         case 0x74:
-                              return DIKC_ZOOM;
-                         case 0x66:
-                              return DIKC_REWIND;
-                         case 0x73:
-                              return DIKC_PLAYPAUSE;
-                         case 0x72:
-                              return DIKC_FORWARD;
-                         case 0x62:
-                              return DIKC_PREVIOUS;
-                         case 0x70:
-                              return DIKC_STOP;
-                         case 0x6e:
-                              return DIKC_NEXT;
-                         case 0x6c:
-                              return DIKC_VOL_UP;
-                         case 0x77:
-                              return DIKC_VOL_DOWN;
-                         case 0x76:
-                              return DIKC_MUTE;
-                         case 0x68:
-                              return DIKC_CHANNEL_UP;
-                         case 0x6a:
-                              return DIKC_CHANNEL_DOWN;
-                         case 0x6b:
-                              return DIKC_MENU;
-                         case 0x64:
-                              return DIKC_OK;
-                         case 0x61:
-                              return DIKC_MODE;
-                         case 0x38:
-                              return DIKC_ASTERISK;
-                         case 0x33:
-                              return DIKC_HASHMARK;
-                    }
-               }
-#endif
                if (key_index >= 'a'  &&  key_index <= 'z')
                     return DIKC_A + key_index - 'a';
                break;
@@ -357,20 +216,7 @@ static char keyboard_translate(int kb_value)
                          return DIKC_PRINT;
                     case 0x20:
                          return DIKC_SPACE;
-                    case 0x31:
-#ifndef NO_NEW_ACTIVY
-                         if (rshift && lshift)
-                              return DIKC_HOME; //DIKC_RC_HOME;
-#endif
-                    case 0x30:
-                    case 0x32:
-                    case 0x33:
-                    case 0x34:
-                    case 0x35:
-                    case 0x36:
-                    case 0x37:
-                    case 0x38:
-                    case 0x39:
+                    case 0x30 ... 0x39:
                          return DIKC_0 + key_index - 0x30;
                     case 0x7f:
                          return DIKC_BACKSPACE;
