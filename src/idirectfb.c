@@ -1105,7 +1105,8 @@ input_filter( DFBEvent *evt,
           switch (event->type) {
                case DIET_BUTTONPRESS:
                case DIET_KEYPRESS:
-                    if (event->key_symbol != DIKS_ESCAPE)
+                    if (data->primary.window &&
+                        event->key_symbol != DIKS_ESCAPE)
                          dfb_layer_cursor_enable( data->layer,
                                                   event->modifiers & DIMM_META );
                     break;
