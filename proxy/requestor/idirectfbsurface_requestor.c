@@ -792,6 +792,7 @@ static DFBResult
 IDirectFBSurface_Requestor_TextureTriangles( IDirectFBSurface     *thiz,
                                              IDirectFBSurface     *source,
                                              const DFBVertex      *vertices,
+                                             const int            *indices,
                                              int                   num,
                                              DFBTriangleFormation  formation )
 {

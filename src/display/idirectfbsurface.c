@@ -1377,6 +1377,7 @@ static DFBResult
 IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
                                    IDirectFBSurface     *source,
                                    const DFBVertex      *vertices,
+                                   const int            *indices,
                                    int                   num,
                                    DFBTriangleFormation  formation )
 {
@@ -1422,11 +1423,22 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
      if (!translated)
           return DFB_NOSYSTEMMEMORY;
 
-     direct_memcpy( translated, vertices, num * sizeof(DFBVertex) );
+     /* TODO: pass indices through to driver */
+     if (indices) {
+          for (i=0; i<num; i++) {
+               translated[i] = vertices[ indices[i] ];
 
-     for (i=0; i<num; i++) {
-          translated[i].x += data->area.wanted.x;
-          translated[i].y += data->area.wanted.y;
+               translated[i].x += data->area.wanted.x;
+               translated[i].y += data->area.wanted.y;
+          }
+     }
+     else {
+          direct_memcpy( translated, vertices, num * sizeof(DFBVertex) );
+
+          for (i=0; i<num; i++) {
+               translated[i].x += data->area.wanted.x;
+               translated[i].y += data->area.wanted.y;
+          }
      }
 
      dfb_state_set_source( &data->state, src_data->surface );

@@ -2920,11 +2920,23 @@ DEFINE_INTERFACE(   IDirectFBSurface,
 
      /*
       * Preliminary texture mapping support.
+      *
+      * Maps a <b>texture</b> onto triangles being built
+      * from <b>vertices</b> according to the chosen <b>formation</b>.
+      *
+      * Optional <b>indices</b> can be used to avoid rearrangement of vertex lists,
+      * otherwise the vertex list is processed consecutively, i.e. as if <b>indices</b>
+      * contains ascending numbers starting at zero.
+      *
+      * The number of <b>indices</b> (if non NULL) or the number of <b>vertices</b> is
+      * specified by <b>num</b> and has to be three at least. If the chosen <b>formation</b>
+      * is DTTF_LIST it also has to be a multiple of three.
       */
      DFBResult (*TextureTriangles) (
           IDirectFBSurface         *thiz,
-          IDirectFBSurface         *source,
+          IDirectFBSurface         *texture,
           const DFBVertex          *vertices,
+          const int                *indices,
           int                       num,
           DFBTriangleFormation      formation
      );
