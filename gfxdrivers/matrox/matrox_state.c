@@ -345,12 +345,8 @@ void matrox_validate_drawBlend( MatroxDriverData *mdrv,
           return;
 
      alphactrl = matroxSourceBlend[state->src_blend - 1] |
-                 matroxDestBlend  [state->dst_blend - 1] | DIFFUSEDALPHA;
-
-     if (state->dst_blend == DSBF_ZERO)
-          alphactrl |= ALPHACHANNEL;
-     else
-          alphactrl |= VIDEOALPHA;
+                 matroxDestBlend  [state->dst_blend - 1] |
+                 ALPHACHANNEL | DIFFUSEDALPHA;
 
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mmio, alphactrl, ALPHACTRL );
@@ -381,7 +377,8 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
                                  DSBLIT_BLEND_COLORALPHA))
      {
           alphactrl = matroxSourceBlend[state->src_blend - 1] |
-                      matroxDestBlend  [state->dst_blend - 1];
+                      matroxDestBlend  [state->dst_blend - 1] |
+                      ALPHACHANNEL;
 
           if (state->source->format == DSPF_RGB32) {
                alphactrl |= DIFFUSEDALPHA;
@@ -393,14 +390,9 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
           }
           else
                alphactrl |= matroxAlphaSelect [state->blittingflags & 3];
-
-          if (state->dst_blend == DSBF_ZERO)
-               alphactrl |= ALPHACHANNEL;
-          else
-               alphactrl |= VIDEOALPHA;
      }
      else {
-          alphactrl = SRC_ONE | ALPHACHANNEL;
+          alphactrl = SRC_ONE | DST_ZERO | ALPHACHANNEL;
 
           if (state->source->format == DSPF_RGB32) {
                alphactrl |= DIFFUSEDALPHA;
