@@ -707,7 +707,7 @@ AudioThread( void *ctx )
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
                                         IDirectFBSurface       *destination,
-                                        DFBRectangle           *dstrect,
+                                        const DFBRectangle     *dstrect,
                                         DVFrameCallback         callback,
                                         void                   *ctx )
 {

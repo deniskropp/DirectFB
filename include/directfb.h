@@ -1712,7 +1712,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*Flip) (
           IDirectFBSurface         *thiz,
-          DFBRegion                *region,
+          const DFBRegion          *region,
           DFBSurfaceFlipFlags       flags
      );
 
@@ -1748,7 +1748,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*SetClip) (
           IDirectFBSurface         *thiz,
-          DFBRegion                *clip
+          const DFBRegion          *clip
      );
 
      /*
@@ -1836,7 +1836,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*Blit) (
           IDirectFBSurface         *thiz,
           IDirectFBSurface         *source,
-          DFBRectangle             *source_rect,
+          const DFBRectangle       *source_rect,
           int                       x,
           int                       y
      );
@@ -1850,7 +1850,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*TileBlit) (
           IDirectFBSurface         *thiz,
           IDirectFBSurface         *source,
-          DFBRectangle             *source_rect,
+          const DFBRectangle       *source_rect,
           int                       x,
           int                       y
      );
@@ -1864,8 +1864,8 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*StretchBlit) (
           IDirectFBSurface         *thiz,
           IDirectFBSurface         *source,
-          DFBRectangle             *source_rect,
-          DFBRectangle             *destination_rect
+          const DFBRectangle       *source_rect,
+          const DFBRectangle       *destination_rect
      );
 
 
@@ -1921,7 +1921,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*DrawLines) (
           IDirectFBSurface         *thiz,
-          DFBRegion                *lines,
+          const DFBRegion          *lines,
           unsigned int              num_lines
      );
 
@@ -2009,7 +2009,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*GetSubSurface) (
           IDirectFBSurface         *thiz,
-          DFBRectangle             *rect,
+          const DFBRectangle       *rect,
           IDirectFBSurface        **interface
      );
 
@@ -3097,7 +3097,7 @@ DEFINE_INTERFACE(   IDirectFBImageProvider,
      DFBResult (*RenderTo) (
           IDirectFBImageProvider   *thiz,
           IDirectFBSurface         *destination,
-          DFBRectangle             *destination_rect
+          const DFBRectangle       *destination_rect
      );
 )
 
@@ -3151,7 +3151,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*PlayTo) (
           IDirectFBVideoProvider   *thiz,
           IDirectFBSurface         *destination,
-          DFBRectangle             *destination_rect,
+          const DFBRectangle       *destination_rect,
           DVFrameCallback           callback,
           void                     *ctx
      );

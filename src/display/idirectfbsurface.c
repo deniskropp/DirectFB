@@ -284,7 +284,7 @@ IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
 
 static DFBResult
 IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
-                       DFBRegion           *region,
+                       const DFBRegion     *region,
                        DFBSurfaceFlipFlags  flags )
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
@@ -327,7 +327,8 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_Clear( IDirectFBSurface *thiz, __u8 r, __u8 g, __u8 b, __u8 a )
+IDirectFBSurface_Clear( IDirectFBSurface *thiz,
+                        __u8 r, __u8 g, __u8 b, __u8 a )
 {
      DFBColor               old_color;
      DFBSurfaceDrawingFlags old_flags;
@@ -379,7 +380,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz, __u8 r, __u8 g, __u8 b, __u8 a )
 }
 
 static DFBResult
-IDirectFBSurface_SetClip( IDirectFBSurface *thiz, DFBRegion *clip )
+IDirectFBSurface_SetClip( IDirectFBSurface *thiz, const DFBRegion *clip )
 {
      DFBRegion newclip;
 
@@ -722,7 +723,7 @@ IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
 
 static DFBResult
 IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
-                            DFBRegion        *lines,
+                            const DFBRegion  *lines,
                             unsigned int      num_lines )
 {
      DFBRegion *local_lines = alloca(sizeof(DFBRegion) * num_lines);
@@ -837,9 +838,9 @@ IDirectFBSurface_SetBlittingFlags( IDirectFBSurface        *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_Blit( IDirectFBSurface *thiz,
-                       IDirectFBSurface *source,
-                       DFBRectangle *sr,
+IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
+                       IDirectFBSurface   *source,
+                       const DFBRectangle *sr,
                        int dx, int dy )
 {
      DFBRectangle srect;
@@ -907,9 +908,9 @@ IDirectFBSurface_Blit( IDirectFBSurface *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_TileBlit( IDirectFBSurface *thiz,
-                           IDirectFBSurface *source,
-                           DFBRectangle *sr,
+IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
+                           IDirectFBSurface   *source,
+                           const DFBRectangle *sr,
                            int dx, int dy )
 {
      DFBRectangle srect;
@@ -988,10 +989,10 @@ IDirectFBSurface_TileBlit( IDirectFBSurface *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
-                              IDirectFBSurface *source,
-                              DFBRectangle *source_rect,
-                              DFBRectangle *destination_rect )
+IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
+                              IDirectFBSurface   *source,
+                              const DFBRectangle *source_rect,
+                              const DFBRectangle *destination_rect )
 {
      DFBRectangle srect, drect;
      IDirectFBSurface_data *src_data;
@@ -1188,7 +1189,8 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
           int advance;
 
-          if (data->font->GetGlyphExtents (data->font, index, NULL, &advance) == DFB_OK) {
+          if (data->font->GetGlyphExtents (data->font,
+                                           index, NULL, &advance) == DFB_OK) {
                if (flags & DSTF_RIGHT) {
                     x -= advance;
                }
@@ -1208,9 +1210,9 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_GetSubSurface( IDirectFBSurface   *thiz,
-                                DFBRectangle       *rect,
-                                IDirectFBSurface  **surface )
+IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
+                                const DFBRectangle  *rect,
+                                IDirectFBSurface   **surface )
 {
      DFBRectangle wanted, granted;
 

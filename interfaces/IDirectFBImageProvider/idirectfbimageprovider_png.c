@@ -82,7 +82,7 @@ IDirectFBImageProvider_PNG_Release ( IDirectFBImageProvider *thiz );
 static DFBResult
 IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *destination,
-                                     DFBRectangle           *destination_rect );
+                                     const DFBRectangle     *destination_rect );
 
 static DFBResult
 IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
@@ -159,8 +159,8 @@ IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
 
 static DFBResult
 IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
-                                     IDirectFBSurface *destination,
-                                     DFBRectangle *dest_rect )
+                                     IDirectFBSurface       *destination,
+                                     const DFBRectangle     *dest_rect )
 {
      int err, loader_result = 1;
      void *dst;

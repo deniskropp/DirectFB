@@ -104,7 +104,7 @@ IDirectFBSurface_Window_Release( IDirectFBSurface *thiz )
 
 static DFBResult
 IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
-                              DFBRegion           *region,
+                              const DFBRegion     *region,
                               DFBSurfaceFlipFlags  flags )
 {
      DFBRegion reg;
@@ -156,9 +156,9 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface  *thiz,
-                                       DFBRectangle      *rect,
-                                       IDirectFBSurface **surface )
+IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
+                                       const DFBRectangle  *rect,
+                                       IDirectFBSurface   **surface )
 {
      DFBRectangle wanted, granted;  
 

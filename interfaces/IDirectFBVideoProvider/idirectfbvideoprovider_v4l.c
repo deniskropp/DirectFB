@@ -197,7 +197,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
 static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
                                             IDirectFBVideoProvider *thiz,
                                             IDirectFBSurface       *destination,
-                                            DFBRectangle           *dstrect,
+                                            const DFBRectangle     *dstrect,
                                             DVFrameCallback         callback,
                                             void                   *ctx )
 {

@@ -81,7 +81,7 @@ IDirectFBSurface_Layer_Release( IDirectFBSurface *thiz )
 
 static DFBResult
 IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
-                             DFBRegion           *region,
+                             const DFBRegion     *region,
                              DFBSurfaceFlipFlags  flags )
 {
      INTERFACE_GET_DATA(IDirectFBSurface_Layer)
@@ -128,9 +128,9 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface  *thiz,
-                                      DFBRectangle      *rect,
-                                      IDirectFBSurface **surface )
+IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
+                                      const DFBRectangle  *rect,
+                                      IDirectFBSurface   **surface )
 {
      DFBRectangle wanted, granted;  
 

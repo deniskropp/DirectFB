@@ -126,7 +126,7 @@ IDirectFBImageProvider_GIF_Release ( IDirectFBImageProvider *thiz );
 static DFBResult
 IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *destination,
-                                     DFBRectangle           *destination_rect );
+                                     const DFBRectangle     *destination_rect );
 
 static DFBResult
 IDirectFBImageProvider_GIF_GetSurfaceDescription( IDirectFBImageProvider *thiz,
@@ -199,8 +199,8 @@ static DFBResult IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thi
 }
 
 static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
-                                                      IDirectFBSurface *destination,
-                                                      DFBRectangle *dest_rect )
+                                                      IDirectFBSurface       *destination,
+                                                      const DFBRectangle     *dest_rect )
 {
      DFBRectangle rect = { 0, 0, 0, 0 };
      DFBSurfacePixelFormat format;
