@@ -44,9 +44,20 @@
 #include "gfxcard.h"
 #include "vt.h"
 
-
+/* 
+ *  FIXME: the following looks like a bad hack.
+ *
+ *  SIGUNUSED is no longer unused, but is defined for backwards compatibility. 
+ *  sparc, mips and alpha signal.h however do not define SIGUNUSED.
+ */   
+ 
+#ifdef SIGUNUSED
 #define SIG_SWITCH_FROM  (SIGUNUSED + 10)
 #define SIG_SWITCH_TO    (SIGUNUSED + 11)
+#else
+#define SIG_SWITCH_FROM  (31 + 10)
+#define SIG_SWITCH_TO    (31 + 11)
+#endif
 
 #ifndef SI_KERNEL
 // glibc 2.1.x doesn't have this in /usr/include/bits/siginfo.h
