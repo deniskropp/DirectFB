@@ -100,15 +100,25 @@ static void matroxFlushTextureCache()
 
 static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
 {
+     switch (state->destination->format) {
+          case DSPF_RGB15:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+          case DSPF_A8:
+               break;
+          default:
+               return;
+     }
+
      /* FIXME: 24bit support */
-     if (state->destination->format != DSPF_RGB24  &&
-        (!(accel & 0xFFFF0000) ||
-             (state->source->format != DSPF_A8 &&
-              state->source->format != DSPF_RGB24 &&
-              state->source->width >= 8 &&
-              state->source->height >= 8 &&
-              state->source->width <= 2048 &&
-              state->source->height <= 2048) ))
+     if (!(accel & 0xFFFF0000) ||
+         (state->source->format != DSPF_A8 &&
+          state->source->format != DSPF_RGB24 &&
+          state->source->width >= 8 &&
+          state->source->height >= 8 &&
+          state->source->width <= 2048 &&
+          state->source->height <= 2048))
      {
           state->accel |= MATROX_SUPPORTED_FUNCTIONS;
      }
@@ -116,14 +126,24 @@ static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
 
 static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
 {
+     switch (state->destination->format) {
+          case DSPF_RGB15:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+          case DSPF_A8:
+               break;
+          default:
+               return;
+     }
+
      /* FIXME: 24bit support */
-     if (state->destination->format != DSPF_RGB24  &&
-        (!(accel & 0xFFFF0000) ||
-             (state->source->format != DSPF_RGB24 &&
-              state->source->width >= 8 &&
-              state->source->height >= 8 &&
-              state->source->width <= 2048 &&
-              state->source->height <= 2048) ))
+     if (!(accel & 0xFFFF0000) ||
+         (state->source->format != DSPF_RGB24 &&
+          state->source->width >= 8 &&
+          state->source->height >= 8 &&
+          state->source->width <= 2048 &&
+          state->source->height <= 2048))
      {
           state->accel |= MATROX_SUPPORTED_FUNCTIONS;
      }
