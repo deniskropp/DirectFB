@@ -327,11 +327,11 @@ sdlEventThread( CoreThread *thread, void *driver_data )
           DFBInputEvent evt;
           SDL_Event     event;
 
-          skirmish_prevail( &dfb_sdl_lock );
+          skirmish_prevail( &dfb_sdl->lock );
           
           /* Check for events */
           while ( SDL_PollEvent(&event) ) {
-               skirmish_dismiss( &dfb_sdl_lock );
+               skirmish_dismiss( &dfb_sdl->lock );
                
                switch (event.type) {
                     case SDL_MOUSEMOTION:
@@ -360,7 +360,7 @@ sdlEventThread( CoreThread *thread, void *driver_data )
                                    evt.button = DIBI_RIGHT;
                                    break;
                               default:
-                                   skirmish_prevail( &dfb_sdl_lock );
+                                   skirmish_prevail( &dfb_sdl->lock );
                                    continue;
                          }
 
@@ -403,9 +403,11 @@ sdlEventThread( CoreThread *thread, void *driver_data )
                     default:
                          break;
                }
+               
+               skirmish_prevail( &dfb_sdl->lock );
           }
 
-          skirmish_dismiss( &dfb_sdl_lock );
+          skirmish_dismiss( &dfb_sdl->lock );
           
           motion_realize( data );
 
@@ -462,11 +464,11 @@ driver_open_device( InputDevice      *device,
 {
      SDLInputData *data;
 
-     skirmish_prevail( &dfb_sdl_lock );
+     skirmish_prevail( &dfb_sdl->lock );
      
      SDL_EnableUNICODE( true );
 
-     skirmish_dismiss( &dfb_sdl_lock );
+     skirmish_dismiss( &dfb_sdl->lock );
      
      /* set device name */
      snprintf( info->desc.name,

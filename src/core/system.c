@@ -48,11 +48,16 @@
 DEFINE_MODULE_DIRECTORY( dfb_core_systems, "systems",
                          DFB_CORE_SYSTEM_ABI_VERSION );
 
-DFB_CORE_PART( system, 0, 0 );
+typedef struct {
+     CoreSystemInfo system_info;
+} CoreSystemField;
 
+DFB_CORE_PART( system, 0, sizeof(CoreSystemField) );
 
-static ModuleEntry     *system_module  = NULL;
-static CoreSystemFuncs *system_funcs   = NULL;
+static CoreSystemField *system_field  = NULL;
+
+static ModuleEntry     *system_module = NULL;
+static CoreSystemFuncs *system_funcs  = NULL;
 static CoreSystemInfo   system_info;
 
 
@@ -97,6 +102,11 @@ static DFBResult
 dfb_system_initialize( void *data_local, void *data_shared )
 {
      DFB_ASSERT( system_funcs != NULL );
+     DFB_ASSERT( system_field == NULL );
+
+     system_field = data_shared;
+
+     system_field->system_info = system_info;
 
      return system_funcs->Initialize();
 }
@@ -105,48 +115,83 @@ static DFBResult
 dfb_system_join( void *data_local, void *data_shared )
 {
      DFB_ASSERT( system_funcs != NULL );
+     DFB_ASSERT( system_field == NULL );
 
+     system_field = data_shared;
+     
+     if (system_field->system_info.type != system_info.type ||
+         strcmp( system_field->system_info.name, system_info.name ))
+     {
+          ERRORMSG( "DirectFB/core/system: "
+                    "running system '%s' doesn't match system '%s'!\n",
+                    system_field->system_info.name, system_info.name );
+
+          system_field = NULL;
+
+          return DFB_UNSUPPORTED;
+     }
+     
+     if (system_field->system_info.version.major != system_info.version.major ||
+         system_field->system_info.version.minor != system_info.version.minor)
+     {
+          ERRORMSG( "DirectFB/core/system: running system version '%d.%d' "
+                    "doesn't match version '%d.%d'!\n",
+                    system_field->system_info.version.major,
+                    system_field->system_info.version.minor,
+                    system_info.version.major,
+                    system_info.version.minor );
+
+          system_field = NULL;
+
+          return DFB_UNSUPPORTED;
+     }
+     
      return system_funcs->Join();
 }
 
 static DFBResult
 dfb_system_shutdown( bool emergency )
 {
-     if (system_module) {
-          DFBResult ret = system_funcs->Shutdown( emergency );
+     DFBResult ret;
+     
+     DFB_ASSERT( system_field != NULL );
+     DFB_ASSERT( system_module != NULL );
+     
+     ret = system_funcs->Shutdown( emergency );
 
-          dfb_module_unref( system_module );
+     dfb_module_unref( system_module );
 
-          system_module = NULL;
-          system_funcs = NULL;
+     system_module = NULL;
+     system_funcs  = NULL;
+     system_field  = NULL;
 
-          return ret;
-     }
-
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
 dfb_system_leave( bool emergency )
 {
-     if (system_module) {
-          DFBResult ret = system_funcs->Leave( emergency );
+     DFBResult ret;
+     
+     DFB_ASSERT( system_field != NULL );
+     DFB_ASSERT( system_module != NULL );
+     
+     ret = system_funcs->Leave( emergency );
 
-          dfb_module_unref( system_module );
+     dfb_module_unref( system_module );
 
-          system_module = NULL;
-          system_funcs = NULL;
+     system_module = NULL;
+     system_funcs  = NULL;
+     system_field  = NULL;
 
-          return ret;
-     }
-
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
 dfb_system_suspend()
 {
      DFB_ASSERT( system_funcs != NULL );
+     DFB_ASSERT( system_field != NULL );
 
      return system_funcs->Suspend();
 }
@@ -155,6 +200,7 @@ static DFBResult
 dfb_system_resume()
 {
      DFB_ASSERT( system_funcs != NULL );
+     DFB_ASSERT( system_field != NULL );
 
      return system_funcs->Resume();
 }

@@ -27,7 +27,11 @@
 #include <stdio.h>
 
 #include <directfb.h>
+
+#include <core/fusion/arena.h>
+#include <core/fusion/shmalloc.h>
                                    
+#include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/layers.h>
@@ -41,6 +45,7 @@
 
 #include <SDL.h>
 
+#include "sdl.h"
 #include "primary.h"
 
 #include <core/core_system.h>
@@ -48,7 +53,7 @@
 DFB_CORE_SYSTEM( sdl )
 
 
-FusionSkirmish dfb_sdl_lock;
+DFBSDL *dfb_sdl = NULL;
 
 
 static void
@@ -62,41 +67,67 @@ system_get_info( CoreSystemInfo *info )
 static DFBResult
 system_initialize()
 {
-     skirmish_init( &dfb_sdl_lock );
+     DFB_ASSERT( dfb_sdl == NULL );
 
-     skirmish_prevail( &dfb_sdl_lock );
+     dfb_sdl = (DFBSDL*) shcalloc( 1, sizeof(DFBSDL) );
+     if (!dfb_sdl) {
+          ERRORMSG( "DirectFB/SDL: Couldn't allocate shared memory!\n" );
+          return DFB_NOSYSTEMMEMORY;
+     }
      
      /* Initialize SDL */
      if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
-          ERRORMSG("DirectFB/SDL: Couldn't initialize SDL: %s\n",SDL_GetError());
-          skirmish_dismiss( &dfb_sdl_lock );
-          skirmish_destroy( &dfb_sdl_lock );
+          ERRORMSG( "DirectFB/SDL: Couldn't initialize SDL: %s\n",
+                    SDL_GetError() );
+          
+          shfree( dfb_sdl );
+          dfb_sdl = NULL;
+          
           return DFB_INIT;
      }
      
-     skirmish_dismiss( &dfb_sdl_lock );
+     skirmish_init( &dfb_sdl->lock );
+     
+     fusion_call_init( &dfb_sdl->call, dfb_sdl_call_handler, NULL );
      
      dfb_layers_register( NULL, NULL, &sdlPrimaryLayerFuncs );
 
+#ifndef FUSION_FAKE
+     arena_add_shared_field( dfb_core->arena, "sdl", dfb_sdl );
+#endif
+     
      return DFB_OK;
 }
 
 static DFBResult
 system_join()
 {
-     return DFB_UNSUPPORTED;
+#ifndef FUSION_FAKE
+     DFB_ASSERT( dfb_sdl == NULL );
+
+     arena_get_shared_field( dfb_core->arena, "sdl", (void**) &dfb_sdl );
+     
+     dfb_layers_register( NULL, NULL, &sdlPrimaryLayerFuncs );
+
+#endif     
+     return DFB_OK;
 }
 
 static DFBResult
 system_shutdown( bool emergency )
 {
-     skirmish_prevail( &dfb_sdl_lock );
+     DFB_ASSERT( dfb_sdl != NULL );
+     
+     fusion_call_destroy( &dfb_sdl->call );
+     
+     skirmish_prevail( &dfb_sdl->lock );
      
      SDL_Quit();
 
-     skirmish_dismiss( &dfb_sdl_lock );
+     skirmish_destroy( &dfb_sdl->lock );
      
-     skirmish_destroy( &dfb_sdl_lock );
+     shfree( dfb_sdl );
+     dfb_sdl = NULL;
      
      return DFB_OK;
 }
@@ -104,19 +135,25 @@ system_shutdown( bool emergency )
 static DFBResult
 system_leave( bool emergency )
 {
-     return DFB_UNSUPPORTED;
+#ifndef FUSION_FAKE
+     DFB_ASSERT( dfb_sdl != NULL );
+
+     dfb_sdl = NULL;
+
+#endif     
+     return DFB_OK;
 }
 
 static DFBResult
 system_suspend()
 {
-     return DFB_UNSUPPORTED;
+     return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
 system_resume()
 {
-     return DFB_UNSUPPORTED;
+     return DFB_UNIMPLEMENTED;
 }
 
 static volatile void *

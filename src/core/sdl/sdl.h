@@ -27,9 +27,15 @@
 #ifndef __SDL__SDL_H__
 #define __SDL__SDL_H__
 
+#include <core/fusion/call.h>
 #include <core/fusion/lock.h>
 
-extern FusionSkirmish dfb_sdl_lock;
+typedef struct {
+     FusionSkirmish lock;
+     FusionCall     call;
+} DFBSDL;
+
+extern DFBSDL *dfb_sdl;
 
 #endif
 

@@ -359,10 +359,6 @@ AC_ARG_ENABLE(sdl,
   [  --enable-sdl            build with SDL support [default=auto]],,
   enable_sdl=yes)
 
-if test "x$enable_multi" = "xyes"; then
-  enable_sdl=no
-fi
-
 if test x$enable_sdl = xyes; then
   AC_PATH_PROG(SDL_CONFIG, sdl-config, no)
   if test x$SDL_CONFIG = xno; then

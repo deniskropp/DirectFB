@@ -320,10 +320,7 @@ system_initialize()
 {
      DFBResult ret;
 
-     if (dfb_fbdev) {
-          BUG( "dfb_fbdev_init() already called!" );
-          return DFB_BUG;
-     }
+     DFB_ASSERT( dfb_fbdev == NULL );
 
      dfb_fbdev = (FBDev*) DFBCALLOC( 1, sizeof(FBDev) );
 
@@ -451,10 +448,7 @@ system_join()
 #ifndef FUSION_FAKE
      DFBResult ret;
 
-     if (dfb_fbdev) {
-          BUG( "dfb_fbdev_join() called and display != NULL" );
-          return DFB_BUG;
-     }
+     DFB_ASSERT( dfb_fbdev == NULL );
 
      ret = dfb_vt_join();
      if (ret)
@@ -499,8 +493,7 @@ system_shutdown( bool emergency )
      DFBResult  ret;
      VideoMode *m;
      
-     if (!dfb_fbdev)
-          return DFB_OK;
+     DFB_ASSERT( dfb_fbdev != NULL );
 
      m = dfb_fbdev->shared->modes;
      while (m) {
@@ -558,20 +551,20 @@ system_leave( bool emergency )
 #ifndef FUSION_FAKE
      DFBResult ret;
 
-     if (dfb_fbdev) {
-          munmap( dfb_fbdev->framebuffer_base,
-                  dfb_fbdev->shared->fix.smem_len );
+     DFB_ASSERT( dfb_fbdev != NULL );
      
-          close( dfb_fbdev->fd );
-
-          DFBFREE( dfb_fbdev );
-          dfb_fbdev = NULL;
-     }
+     munmap( dfb_fbdev->framebuffer_base,
+             dfb_fbdev->shared->fix.smem_len );
 
      ret = dfb_vt_leave( emergency );
      if (ret)
           return ret;
-     
+
+     close( dfb_fbdev->fd );
+
+     DFBFREE( dfb_fbdev );
+     dfb_fbdev = NULL;
+
 #endif
      return DFB_OK;
 }

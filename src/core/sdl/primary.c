@@ -27,7 +27,10 @@
 #include <stdio.h>
 
 #include <directfb.h>
+
+#include <core/fusion/shmalloc.h>
                                    
+#include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/layers.h>
@@ -42,6 +45,10 @@
 #include <SDL.h>
 
 #include "sdl.h"
+
+
+static DFBResult dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config );
+static DFBResult dfb_sdl_update_screen( DFBRegion *region );
 
 
 static int
@@ -224,21 +231,21 @@ primaryInitLayer         ( GraphicsDevice             *device,
      else
           default_config->pixelformat = DSPF_RGB16;
 
-     skirmish_prevail( &dfb_sdl_lock );
+     skirmish_prevail( &dfb_sdl->lock );
      
      /* Set video mode */
      if ( (screen=SDL_SetVideoMode(default_config->width,
                                    default_config->height,
                                    DFB_BITS_PER_PIXEL(default_config->pixelformat),
-                                   SDL_HWSURFACE | SDL_DOUBLEBUF)) == NULL ) {
+                                   SDL_HWSURFACE)) == NULL ) {
              ERRORMSG("Couldn't set %dx%dx%d video mode: %s\n",
                       default_config->width, default_config->height,
                       DFB_BITS_PER_PIXEL(default_config->pixelformat), SDL_GetError());
-             skirmish_dismiss( &dfb_sdl_lock );
+             skirmish_dismiss( &dfb_sdl->lock );
              return DFB_FAILURE;
      }
      
-     skirmish_dismiss( &dfb_sdl_lock );
+     skirmish_dismiss( &dfb_sdl->lock );
      
      return DFB_OK;
 }
@@ -291,39 +298,15 @@ primarySetConfiguration  ( DisplayLayer               *layer,
                            void                       *layer_data,
                            DFBDisplayLayerConfig      *config )
 {
-     Uint32       flags;
-     CoreSurface *surface = dfb_layer_surface( layer );
-
-     flags = SDL_HWSURFACE;
+     DFBResult ret;
 
      if (config->buffermode == DLBM_TRIPLE)
           return DFB_UNSUPPORTED;
 
-     if (config->buffermode != DLBM_FRONTONLY)
-          flags |= SDL_DOUBLEBUF;
+     ret = dfb_sdl_set_video_mode( config );
+     if (ret)
+          return ret;
 
-     skirmish_prevail( &dfb_sdl_lock );
-     
-     /* Set video mode */
-     if ( (screen=SDL_SetVideoMode(config->width,
-                                   config->height,
-                                   DFB_BITS_PER_PIXEL(config->pixelformat),
-                                   flags)) == NULL ) {
-             ERRORMSG("Couldn't set %dx%dx%d video mode: %s\n",
-                      config->width, config->height,
-                      DFB_BITS_PER_PIXEL(config->pixelformat), SDL_GetError());
-             skirmish_dismiss( &dfb_sdl_lock );
-             return DFB_FAILURE;
-     }
-
-     skirmish_dismiss( &dfb_sdl_lock );
-     
-     surface->back_buffer->system.addr  = screen->pixels;
-     surface->back_buffer->system.pitch = screen->pitch;
-     
-     surface->front_buffer->system.addr  = screen->pixels;
-     surface->front_buffer->system.pitch = screen->pitch;
-     
      return DFB_OK;
 }
 
@@ -388,19 +371,7 @@ primaryFlipBuffers       ( DisplayLayer               *layer,
 
      dfb_surface_flip_buffers( surface );
 
-     skirmish_prevail( &dfb_sdl_lock );
-
-     SDL_Flip( screen );
-
-     skirmish_dismiss( &dfb_sdl_lock );
-
-     surface->back_buffer->system.addr  = screen->pixels;
-     surface->back_buffer->system.pitch = screen->pitch;
-
-     surface->front_buffer->system.addr  = screen->pixels;
-     surface->front_buffer->system.pitch = screen->pitch;
-     
-     return DFB_OK;
+     return dfb_sdl_update_screen( NULL );
 }
      
 static DFBResult
@@ -410,16 +381,7 @@ primaryUpdateRegion      ( DisplayLayer               *layer,
                            DFBRegion                  *region,
                            DFBSurfaceFlipFlags         flags )
 {
-     CoreSurface *surface = dfb_layer_surface( layer );
-
-     if (!region)
-          return update_screen( surface,
-                                0, 0, surface->width, surface->height );
-
-     return update_screen( surface,
-                           region->x1, region->y1,
-                           region->x2 - region->x1 + 1,
-                           region->y2 - region->y1 + 1 );
+     return dfb_sdl_update_screen( region );
 }
      
 static DFBResult
@@ -447,11 +409,11 @@ primarySetPalette ( DisplayLayer               *layer,
           colors[i].b = palette->entries[i].b;
      }
      
-     skirmish_prevail( &dfb_sdl_lock );
+     skirmish_prevail( &dfb_sdl->lock );
      
-     SDL_SetColors( screen, colors, 0, palette->num_entries );
+//FIXME     SDL_SetColors( screen, colors, 0, palette->num_entries );
      
-     skirmish_dismiss( &dfb_sdl_lock );
+     skirmish_dismiss( &dfb_sdl->lock );
 
      return DFB_OK;
 }
@@ -468,10 +430,9 @@ primaryAllocateSurface   ( DisplayLayer               *layer,
      if (config->buffermode != DLBM_FRONTONLY)
           caps |= DSCAPS_FLIPPING;
 
-     return dfb_surface_create_preallocated( config->width, config->height,
+     return dfb_surface_create( config->width, config->height,
                                 config->pixelformat, CSP_SYSTEMONLY,
-                                caps, NULL, screen->pixels, screen->pixels,
-                                screen->pitch, screen->pitch, ret_surface );
+                                caps, NULL, ret_surface );
 }
 
 static DFBResult
@@ -481,7 +442,6 @@ primaryReallocateSurface ( DisplayLayer               *layer,
                            DFBDisplayLayerConfig      *config,
                            CoreSurface                *surface )
 {
-#if 0
      DFBResult ret;
      
      /* FIXME: write surface management functions
@@ -519,26 +479,7 @@ primaryReallocateSurface ( DisplayLayer               *layer,
           surface->caps |= DSCAPS_INTERLACED;
      else
           surface->caps &= ~DSCAPS_INTERLACED;
-#endif
 
-     surface->width  = config->width;
-     surface->height = config->height;
-     surface->format = config->pixelformat;
-
-     switch (config->buffermode) {
-          case DLBM_BACKVIDEO:
-          case DLBM_BACKSYSTEM:
-               surface->caps |= DSCAPS_FLIPPING;
-               break;
-
-          case DLBM_FRONTONLY:
-               surface->caps &= ~DSCAPS_FLIPPING;
-               break;
-          
-          default:
-               BUG("unknown buffermode");
-               return DFB_BUG;
-     }
      
      if (DFB_PIXELFORMAT_IS_INDEXED(config->pixelformat) && !surface->palette) {
           DFBResult    ret;
@@ -566,7 +507,6 @@ primaryReallocateSurface ( DisplayLayer               *layer,
 static DFBResult
 update_screen( CoreSurface *surface, int x, int y, int w, int h )
 {
-#if 0
      int          i;
      void        *dst;
      void        *src;
@@ -605,14 +545,138 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      dfb_surface_unlock( surface, true );
      
      SDL_UnlockSurface( screen );
-#endif     
-     
-     skirmish_prevail( &dfb_sdl_lock );
-     
+
      SDL_UpdateRect( screen, x, y, w, h );
      
-     skirmish_dismiss( &dfb_sdl_lock );
+     return DFB_OK;
+}
+
+/******************************************************************************/
+
+typedef enum {
+     SDL_SET_VIDEO_MODE,
+     SDL_UPDATE_SCREEN
+} DFBSDLCall;
+
+static DFBResult
+dfb_sdl_set_video_mode_handler( DFBDisplayLayerConfig *config )
+{
+     skirmish_prevail( &dfb_sdl->lock );
+     
+     /* Set video mode */
+     if ( (screen=SDL_SetVideoMode(config->width,
+                                   config->height,
+                                   DFB_BITS_PER_PIXEL(config->pixelformat),
+                                   SDL_HWSURFACE)) == NULL ) {
+             ERRORMSG("Couldn't set %dx%dx%d video mode: %s\n",
+                      config->width, config->height,
+                      DFB_BITS_PER_PIXEL(config->pixelformat), SDL_GetError());
+
+             skirmish_dismiss( &dfb_sdl->lock );
+
+             return DFB_FAILURE;
+     }
+
+     skirmish_dismiss( &dfb_sdl->lock );
      
      return DFB_OK;
+}
+
+static DFBResult
+dfb_sdl_update_screen_handler( DFBRegion *region )
+{
+     DFBResult    ret;
+     CoreSurface *surface = dfb_layer_surface( dfb_layer_at(DLID_PRIMARY) );
+
+     skirmish_prevail( &dfb_sdl->lock );
+     
+     if (!region)
+          ret = update_screen( surface, 0, 0, surface->width, surface->height );
+     else
+          ret = update_screen( surface,
+                               region->x1, region->y1,
+                               region->x2 - region->x1 + 1,
+                               region->y2 - region->y1 + 1 );
+
+     skirmish_dismiss( &dfb_sdl->lock );
+     
+     return DFB_OK;
+}
+
+int
+dfb_sdl_call_handler( int   caller,
+                      int   call_arg,
+                      void *call_ptr,
+                      void *ctx )
+{
+     switch (call_arg) {
+          case SDL_SET_VIDEO_MODE:
+               return dfb_sdl_set_video_mode_handler( call_ptr );
+
+          case SDL_UPDATE_SCREEN:
+               return dfb_sdl_update_screen_handler( call_ptr );
+
+          default:
+               BUG( "unknown call" );
+               break;
+     }
+
+     return 0;
+}
+
+static DFBResult
+dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config )
+{
+     DFBResult              ret;
+     DFBDisplayLayerConfig *tmp = NULL;
+
+     DFB_ASSERT( config != NULL );
+
+     if (dfb_core_is_master())
+          return dfb_sdl_set_video_mode_handler( config );
+
+     if (!fusion_is_shared( config )) {
+          tmp = shmalloc( sizeof(DFBDisplayLayerConfig) );
+          if (!tmp)
+               return DFB_NOSYSTEMMEMORY;
+          
+          dfb_memcpy( tmp, config, sizeof(DFBDisplayLayerConfig) );
+     }
+     
+     fusion_call_execute( &dfb_sdl->call, SDL_SET_VIDEO_MODE,
+                          tmp ? : config, (int*) &ret );
+
+     if (tmp)
+          shfree( tmp );
+
+     return ret;
+}
+
+static DFBResult
+dfb_sdl_update_screen( DFBRegion *region )
+{
+     DFBResult  ret;
+     DFBRegion *tmp = NULL;
+
+     if (dfb_core_is_master())
+          return dfb_sdl_update_screen_handler( region );
+
+     if (region) {
+          if (!fusion_is_shared( region )) {
+               tmp = shmalloc( sizeof(DFBRegion) );
+               if (!tmp)
+                    return DFB_NOSYSTEMMEMORY;
+
+               dfb_memcpy( tmp, region, sizeof(DFBRegion) );
+          }
+     }
+     
+     fusion_call_execute( &dfb_sdl->call, SDL_UPDATE_SCREEN,
+                          tmp ? : region, (int*) &ret );
+
+     if (tmp)
+          shfree( tmp );
+
+     return ret;
 }
 

@@ -31,5 +31,10 @@
 
 extern DisplayLayerFuncs sdlPrimaryLayerFuncs;
 
+int dfb_sdl_call_handler( int   caller,
+                          int   call_arg,
+                          void *call_ptr,
+                          void *ctx );
+
 #endif
 
