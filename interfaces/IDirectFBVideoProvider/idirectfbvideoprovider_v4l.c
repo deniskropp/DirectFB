@@ -97,6 +97,7 @@ typedef struct {
 
      bool                     grab_mode;
      bool                     running;
+     pthread_mutex_t          lock;
 
      Reaction                 reaction; /* for the destination listener */
 } IDirectFBVideoProvider_V4L_data;
@@ -122,13 +123,18 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
      IDirectFBVideoProvider_V4L_data *data =
      (IDirectFBVideoProvider_V4L_data*)thiz->priv;
 
-     v4l_deinit( data );
-
+     pthread_mutex_lock( &data->lock );
+     
      if (data->cleanup)
           dfb_core_cleanup_remove( data->cleanup );
 
+     v4l_deinit( data );
+
      DFBFREE( data->filename );
 
+     pthread_mutex_unlock( &data->lock );
+     pthread_mutex_destroy( &data->lock );
+     
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -237,6 +243,8 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      if (!dfb_rectangle_intersect( &rect, &dst_data->area.current ))
           return DFB_INVAREA;
 
+     pthread_mutex_lock( &data->lock );
+     
      v4l_stop( data, true );
 
      data->callback = callback;
@@ -264,8 +272,10 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 
           dfb_surfacemanager_unlock( surface->manager );
 
-          if (ret)
+          if (ret) {
+               pthread_mutex_unlock( &data->lock );
                return ret;
+          }
      }
 
      if (data->grab_mode)
@@ -276,15 +286,25 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      if (DFB_OK != ret && !data->grab_mode)
           surface->back_buffer->video.locked--;
 
+     pthread_mutex_unlock( &data->lock );
+     
      return ret;
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_Stop(
                                                 IDirectFBVideoProvider *thiz )
 {
+     DFBResult ret;
+
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
-     return v4l_stop( data, true );
+     pthread_mutex_lock( &data->lock );
+
+     ret = v4l_stop( data, true );
+
+     pthread_mutex_unlock( &data->lock );
+
+     return ret;
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_SeekTo(
@@ -302,12 +322,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetPos(
 {
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
-     if (!seconds)
-          return DFB_INVARG;
-
-     *seconds = 0.0;
-
-     return DFB_UNIMPLEMENTED;
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetLength(
@@ -316,12 +331,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetLength(
 {
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
-     if (!seconds)
-          return DFB_INVARG;
-
-     *seconds = 0.0;
-
-     return DFB_UNIMPLEMENTED;
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
@@ -337,8 +347,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
 
      ioctl( data->fd, VIDIOCGPICT, &pic );
 
-     adj->flags =
-     DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION;
+     adj->flags = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION;
+
      adj->brightness = pic.brightness;
      adj->contrast   = pic.contrast;
      adj->hue        = pic.hue;
@@ -419,20 +429,23 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
           return ret;
      }
 
+     pthread_mutex_init( &data->lock, NULL );
+
      ioctl( fd, VIDIOCGCAP, &data->vcap );
      ioctl( fd, VIDIOCCAPTURE, &zero );
 
      ioctl( fd, VIDIOCGMBUF, &data->vmbuf );
-     data->buffer = mmap( NULL, data->vmbuf.size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+
+     data->buffer = mmap( NULL, data->vmbuf.size,
+                          PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
 
      data->filename = DFBSTRDUP( filename );
-     data->fd = fd;
+     data->fd       = fd;
 
      thiz->AddRef    = IDirectFBVideoProvider_V4L_AddRef;
      thiz->Release   = IDirectFBVideoProvider_V4L_Release;
      thiz->GetCapabilities = IDirectFBVideoProvider_V4L_GetCapabilities;
-     thiz->GetSurfaceDescription =
-     IDirectFBVideoProvider_V4L_GetSurfaceDescription;
+     thiz->GetSurfaceDescription = IDirectFBVideoProvider_V4L_GetSurfaceDescription;
      thiz->PlayTo    = IDirectFBVideoProvider_V4L_PlayTo;
      thiz->Stop      = IDirectFBVideoProvider_V4L_Stop;
      thiz->SeekTo    = IDirectFBVideoProvider_V4L_SeekTo;
@@ -569,7 +582,9 @@ static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx
      if ((notification->flags & CSNF_SIZEFORMAT) ||
          (surface->back_buffer->video.health != CSH_STORED))
      {
+          pthread_mutex_lock( &data->lock );
           v4l_stop( data, false );
+          pthread_mutex_unlock( &data->lock );
           return RS_REMOVE;
      }
 
@@ -587,7 +602,9 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
      if ((notification->flags & CSNF_SIZEFORMAT) ||
          (surface->back_buffer->system.health != CSH_STORED))
      {
+          pthread_mutex_lock( &data->lock );
           v4l_stop( data, false );
+          pthread_mutex_unlock( &data->lock );
           return RS_REMOVE;
      }
 
@@ -812,7 +829,10 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 {
      DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
-     if (VID_TYPE_OVERLAY & data->vcap.type) {
+     if (!data->running)
+          return DFB_OK;
+     
+     if (!data->grab_mode) {
           if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0) {
                DFBResult ret = errno2dfb( errno );
 
@@ -865,6 +885,9 @@ static void v4l_cleanup( void *ctx, int emergency )
 
      if (emergency)
           v4l_stop( data, false );
-     else
+     else {
+          pthread_mutex_lock( &data->lock );
           v4l_deinit( data );
+          pthread_mutex_unlock( &data->lock );
+     }
 }
