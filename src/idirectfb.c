@@ -391,7 +391,11 @@ DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
 
      while (dl) {
           if (dl->shared->id == id) {
-               dl->Enable( dl );
+               DFBResult ret;
+
+               ret = layer_enable( dl );
+               if (ret)
+                    return ret;
 
                DFB_ALLOCATE_INTERFACE( *layer, IDirectFBDisplayLayer );
 

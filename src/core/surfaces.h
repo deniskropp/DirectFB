@@ -158,6 +158,14 @@ static inline void surface_notify_listeners( CoreSurface *surface,
 void surface_flip_buffers( CoreSurface *surface );
 
 /*
+ * This is a utility function for easier usage.
+ * It locks the surface maneger, does a surface_software_lock, and unlocks
+ * the surface manager.
+ */
+DFBResult surface_soft_lock( CoreSurface *surface, unsigned int flags,
+                             void **data, unsigned int *pitch, int front );
+
+/*
  * unlocks a previously locked surface
  * note that the other instance's health is CSH_RESTORE now, if it has
  * been CSH_STORED before

@@ -84,6 +84,14 @@ DFBResult surface_create( int width, int height, int format, int policy,
                break;
      }
 
+     skirmish_init( &s->front_lock );
+     skirmish_init( &s->back_lock );
+
+     s->reactor = reactor_new(sizeof(CoreSurfaceNotification));
+
+     surfacemanager_add_surface( gfxcard_surface_manager(), s );
+
+
      ret = surface_allocate_buffer( s, policy, &s->front_buffer );
      if (ret) {
           shmfree( s );
@@ -102,12 +110,6 @@ DFBResult surface_create( int width, int height, int format, int policy,
      else
           s->back_buffer = s->front_buffer;
 
-     skirmish_init( &s->front_lock );
-     skirmish_init( &s->back_lock );
-
-     s->reactor = reactor_new(sizeof(CoreSurfaceNotification));
-
-     surfacemanager_add_surface( gfxcard_surface_manager(), s );
 
      *surface = s;
 
@@ -189,6 +191,18 @@ void surface_flip_buffers( CoreSurface *surface )
      }
      else
           back_to_front_copy( surface, NULL );
+}
+
+DFBResult surface_soft_lock( CoreSurface *surface, unsigned int flags,
+                             void **data, unsigned int *pitch, int front )
+{
+     DFBResult ret;
+
+     surfacemanager_lock( surface->manager );
+     ret = surface_software_lock( surface, flags, data, pitch, front );
+     surfacemanager_unlock( surface->manager );
+
+     return ret;
 }
 
 DFBResult surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,

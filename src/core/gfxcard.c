@@ -71,6 +71,12 @@ typedef struct {
                                   void                *driver_data,
                                   void                *device_data);
 
+     /* temporary function to have hardware layers in single app core,
+        this will change after restructuring layer driver data handling */
+     DFBResult (*InitLayers)     (void                *driver_data,
+                                  void                *device_data);
+
+
      void      (*CloseDevice)    (GraphicsDevice      *device,
                                   void                *driver_data,
                                   void                *device_data);
@@ -320,8 +326,8 @@ DFBResult gfxcard_leave()
 
 DFBResult gfxcard_init_layers()
 {
-/*     if (card->driver && card->driver->InitLayers)
-          card->driver->InitLayers();*/
+     if (card->driver && card->driver->InitLayers)
+          card->driver->InitLayers( card->driver_data, card->device_data );
 
      return DFB_OK;
 }
@@ -913,6 +919,9 @@ static CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
 
      GFXCARD_DRIVER_LINK( driver, InitDriver,
                           "driver_init_driver", handle, name );
+
+     GFXCARD_DRIVER_LINK( driver, InitLayers,
+                          "driver_init_layers", handle, name );
 
      GFXCARD_DRIVER_LINK( driver, Probe,
                           "driver_probe", handle, name );

@@ -140,6 +140,8 @@ DFBResult layers_leave();
 DFBResult layer_lock( DisplayLayer *layer );
 DFBResult layer_unlock( DisplayLayer *layer );
 
+DFBResult layer_enable( DisplayLayer *layer );
+
 CoreSurface *layer_surface( DisplayLayer *layer );
 
 /*

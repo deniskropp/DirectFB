@@ -43,57 +43,41 @@
 #include "mmio.h"
 #include "matrox.h"
 
-#if 0
+typedef struct {
+     MatroxDriverData *mdrv;
+     MatroxDeviceData *mdev;
+     DisplayLayer     *layer;
+} BESListenerContext;
 
-static struct {
-     __u32 besGLOBCTL;
-     __u32 besA1ORG;
-     __u32 besA2ORG;
-     __u32 besCTL;
+static void bes_set_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev );
+static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
+                           DisplayLayer *layer );
 
-     __u32 besCTL_field;
-
-     __u32 besHCOORD;
-     __u32 besVCOORD;
-
-     __u32 besHSRCST;
-     __u32 besHSRCEND;
-     __u32 besHSRCLST;
-
-     __u32 besLUMACTL;
-     __u32 besPITCH;
-
-     __u32 besV1WGHT;
-     __u32 besV2WGHT;
-
-     __u32 besV1SRCLST;
-     __u32 besV2SRCLST;
-
-     __u32 besVISCAL;
-     __u32 besHISCAL;
-} bes_regs;
-
-static void bes_set_regs();
-static void bes_calc_regs( DisplayLayer *layer );
-
+/* FIXME: no driver globals */
+static MatroxDriverData *mdrv = NULL;
+static MatroxDeviceData *mdev = NULL;
 
 #define BES_SUPPORTED_OPTIONS   (DLOP_INTERLACED_VIDEO)
 
 
 static ReactionResult besSurfaceListener (const void *msg_data, void *ctx)
 {
+     BESListenerContext      *context      = (BESListenerContext*) ctx;
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
-//     DisplayLayer            *layer        = (DisplayLayer*) ctx;
 
      if (notification->flags & (CSNF_SET_EVEN | CSNF_SET_ODD)) {
-          bes_regs.besCTL_field =
+          context->mdev->regs.besCTL_field =
                (notification->flags & CSNF_SET_ODD) ? 0x2000000 : 0;
 
-          mga_out32( mmio_base, bes_regs.besCTL | bes_regs.besCTL_field, BESCTL );
+          mga_out32( context->mdrv->mmio_base,
+                     context->mdev->regs.besCTL |
+                     context->mdev->regs.besCTL_field, BESCTL );
      }
 
-     if (notification->flags & CSNF_DESTROY)
+     if (notification->flags & CSNF_DESTROY) {
+          DFBFREE( context );
           return RS_REMOVE;
+     }
 
      return RS_OK;
 }
@@ -104,8 +88,9 @@ static ReactionResult besSurfaceListener (const void *msg_data, void *ctx)
 DFBResult besEnable( DisplayLayer *layer )
 {
      if (!layer->shared->surface) {
-          DFBResult              ret;
-          DFBSurfaceCapabilities caps = DSCAPS_VIDEOONLY;
+          DFBResult               ret;
+          DFBSurfaceCapabilities  caps = DSCAPS_VIDEOONLY;
+          BESListenerContext     *context;
 
           if (layer->shared->options & DLOP_INTERLACED_VIDEO)
                caps |= DSCAPS_INTERLACED;
@@ -116,7 +101,14 @@ DFBResult besEnable( DisplayLayer *layer )
           if (ret)
                return ret;
 
-          reactor_attach( layer->shared->surface->reactor, besSurfaceListener, layer );
+          context = DFBCALLOC( 1, sizeof(BESListenerContext) );
+
+          context->mdrv  = mdrv;
+          context->mdev  = mdev;
+          context->layer = layer;
+
+          reactor_attach( layer->shared->surface->reactor,
+                          besSurfaceListener, context );
      }
 
      if (!layer->shared->windowstack)
@@ -124,8 +116,8 @@ DFBResult besEnable( DisplayLayer *layer )
 
      layer->shared->enabled = 1;
 
-     bes_calc_regs( layer );
-     bes_set_regs();
+     bes_calc_regs( mdrv, mdev, layer );
+     bes_set_regs( mdrv, mdev );
 
      return DFB_OK;
 }
@@ -135,7 +127,7 @@ DFBResult besDisable( DisplayLayer *layer )
      /* FIXME: The surface should be destroyed, and the window stack? */
      layer->shared->enabled = 0;
 
-     mga_out32( mmio_base, 0, BESCTL );
+     mga_out32( mdrv->mmio_base, 0, BESCTL );
 
      return DFB_OK;
 }
@@ -192,11 +184,11 @@ DFBResult besTestConfiguration( DisplayLayer               *layer,
 DFBResult besSetConfiguration( DisplayLayer          *layer,
                                DFBDisplayLayerConfig *config )
 {
-     DFBResult                 ret;
-     int                       width, height;
-     DFBSurfacePixelFormat     format;
-     DFBDisplayLayerBufferMode buffermode;
-     DFBDisplayLayerOptions    options;
+     DFBResult                  ret;
+     int                        width, height;
+     DFBSurfacePixelFormat      format;
+     DFBDisplayLayerBufferMode  buffermode;
+     DFBDisplayLayerOptions     options;
 
      ret = besTestConfiguration( layer, config, NULL );
      if (ret)
@@ -258,8 +250,8 @@ DFBResult besSetConfiguration( DisplayLayer          *layer,
           layer->shared->windowstack->cursor_region.x2 = layer->shared->width - 1;
           layer->shared->windowstack->cursor_region.y2 = layer->shared->height - 1;
 
-          bes_calc_regs( layer );
-          bes_set_regs();
+          bes_calc_regs( mdrv, mdev, layer );
+          bes_set_regs( mdrv, mdev );
      }
 
      return DFB_OK;
@@ -270,10 +262,10 @@ DFBResult besSetOpacity( DisplayLayer *layer,
 {
      switch (opacity) {
           case 0:
-               mga_out32( mmio_base, 0, BESCTL );
+               mga_out32( mdrv->mmio_base, 0, BESCTL );
                break;
           case 0xFF:
-               mga_out32( mmio_base, 1, BESCTL );
+               mga_out32( mdrv->mmio_base, 1, BESCTL );
                break;
           default:
                return DFB_UNSUPPORTED;
@@ -293,8 +285,8 @@ DFBResult besSetScreenLocation( DisplayLayer *layer,
      layer->shared->screen.w = width;
      layer->shared->screen.h = height;
 
-     bes_calc_regs( layer );
-     bes_set_regs();
+     bes_calc_regs( mdrv, mdev, layer );
+     bes_set_regs( mdrv, mdev );
 
      return DFB_OK;
 }
@@ -322,24 +314,29 @@ DFBResult besSetColorAdjustment( DisplayLayer       *layer,
      if (adj->flags & DCAF_CONTRAST)
           layer->shared->adjustment.contrast = adj->contrast;
 
-     bes_calc_regs( layer );
-     bes_set_regs();
+     bes_calc_regs( mdrv, mdev, layer );
+     bes_set_regs( mdrv, mdev );
 
      return DFB_OK;
 }
 
 void matrox_bes_deinit( DisplayLayer *layer )
 {
-     mga_out32( mmio_base, 0, BESCTL );
+     mga_out32( mdrv->mmio_base, 0, BESCTL );
 }
 
 /* exported symbols */
 
-void driver_init_layers()
+void driver_init_layers( void *drv, void *dev )
 {
-     DisplayLayer *layer;
+     DisplayLayer     *layer;
+     volatile __u8    *mmio;
 
-     if (old_matrox)
+     /* FIXME: no driver globals */
+     mdrv = (MatroxDriverData*) drv;
+     mdev = (MatroxDeviceData*) dev;
+
+     if (mdev->old_matrox)
           return;
 
      layer = (DisplayLayer*)DFBCALLOC( 1, sizeof(DisplayLayer) );
@@ -383,51 +380,57 @@ void driver_init_layers()
 
      layer->deinit = matrox_bes_deinit;
 
-     outMGAdac(0x51, 0x00); /* keying off */
-     outMGAdac(0x52, 0xFF); /* full mask */
-     outMGAdac(0x53, 0xFF);
-     outMGAdac(0x54, 0xFF);
 
-     mga_out32( mmio_base, 0x80, BESLUMACTL );
+     mmio = mdrv->mmio_base;
+
+     outMGAdac( mmio, 0x51, 0x00 ); /* keying off */
+     outMGAdac( mmio, 0x52, 0xFF ); /* full mask */
+     outMGAdac( mmio, 0x53, 0xFF );
+     outMGAdac( mmio, 0x54, 0xFF );
+
+     mga_out32( mmio, 0x80, BESLUMACTL );
 
      /* gets filled by layers_add: layer->shared->id */
-     layers_add( layer, 1 );
+     layers_add( layer );
 }
 
 
 
 /* internal */
 
-static void bes_set_regs()
+static void bes_set_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev )
 {
-     mga_out32( mmio_base, bes_regs.besGLOBCTL, BESGLOBCTL);
+     volatile __u8 *mmio = mdrv->mmio_base;
 
-     mga_out32( mmio_base, bes_regs.besA1ORG, BESA1ORG );
-     mga_out32( mmio_base, bes_regs.besA2ORG, BESA2ORG );
+     mga_out32( mmio, mdev->regs.besGLOBCTL, BESGLOBCTL);
 
-     mga_out32( mmio_base, bes_regs.besCTL | bes_regs.besCTL_field, BESCTL );
+     mga_out32( mmio, mdev->regs.besA1ORG, BESA1ORG );
+     mga_out32( mmio, mdev->regs.besA2ORG, BESA2ORG );
 
-     mga_out32( mmio_base, bes_regs.besHCOORD, BESHCOORD );
-     mga_out32( mmio_base, bes_regs.besVCOORD, BESVCOORD );
+     mga_out32( mmio, mdev->regs.besCTL | mdev->regs.besCTL_field, BESCTL );
 
-     mga_out32( mmio_base, bes_regs.besHSRCST, BESHSRCST );
-     mga_out32( mmio_base, bes_regs.besHSRCEND, BESHSRCEND );
-     mga_out32( mmio_base, bes_regs.besHSRCLST, BESHSRCLST );
+     mga_out32( mmio, mdev->regs.besHCOORD, BESHCOORD );
+     mga_out32( mmio, mdev->regs.besVCOORD, BESVCOORD );
 
-     mga_out32( mmio_base, bes_regs.besLUMACTL, BESLUMACTL );
-     mga_out32( mmio_base, bes_regs.besPITCH, BESPITCH );
+     mga_out32( mmio, mdev->regs.besHSRCST, BESHSRCST );
+     mga_out32( mmio, mdev->regs.besHSRCEND, BESHSRCEND );
+     mga_out32( mmio, mdev->regs.besHSRCLST, BESHSRCLST );
 
-     mga_out32( mmio_base, bes_regs.besV1WGHT, BESV1WGHT );
-     mga_out32( mmio_base, bes_regs.besV2WGHT, BESV2WGHT );
+     mga_out32( mmio, mdev->regs.besLUMACTL, BESLUMACTL );
+     mga_out32( mmio, mdev->regs.besPITCH, BESPITCH );
 
-     mga_out32( mmio_base, bes_regs.besV1SRCLST, BESV1SRCLST );
-     mga_out32( mmio_base, bes_regs.besV2SRCLST, BESV2SRCLST );
+     mga_out32( mmio, mdev->regs.besV1WGHT, BESV1WGHT );
+     mga_out32( mmio, mdev->regs.besV2WGHT, BESV2WGHT );
 
-     mga_out32( mmio_base, bes_regs.besVISCAL, BESVISCAL );
-     mga_out32( mmio_base, bes_regs.besHISCAL, BESHISCAL );
+     mga_out32( mmio, mdev->regs.besV1SRCLST, BESV1SRCLST );
+     mga_out32( mmio, mdev->regs.besV2SRCLST, BESV2SRCLST );
+
+     mga_out32( mmio, mdev->regs.besVISCAL, BESVISCAL );
+     mga_out32( mmio, mdev->regs.besHISCAL, BESHISCAL );
 }
 
-static void bes_calc_regs( DisplayLayer *layer )
+static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
+                           DisplayLayer *layer )
 {
      int tmp, hzoom, intrep;
 
@@ -448,84 +451,83 @@ static void bes_calc_regs( DisplayLayer *layer )
 
      hzoom = (1000000/Sfbdev->current_var.pixclock >= 135) ? 1 : 0;
 
-     bes_regs.besCTL = BESCTL_BESEN;
+     mdev->regs.besCTL = BESCTL_BESEN;
 
      switch (surface->format) {
           case DSPF_YUY2:
-               bes_regs.besGLOBCTL = BESPROCAMP;
-               bes_regs.besCTL    |= BESCTL_BESHFEN |
-                                     BESCTL_BESVFEN | BESCTL_BESCUPS;
+               mdev->regs.besGLOBCTL = BESPROCAMP;
+               mdev->regs.besCTL    |= BESCTL_BESHFEN |
+                                       BESCTL_BESVFEN | BESCTL_BESCUPS;
                break;
           case DSPF_UYVY:
-               bes_regs.besGLOBCTL = BESPROCAMP | 0x40;
-               bes_regs.besCTL    |= BESCTL_BESHFEN |
-                                     BESCTL_BESVFEN | BESCTL_BESCUPS;
+               mdev->regs.besGLOBCTL = BESPROCAMP | 0x40;
+               mdev->regs.besCTL    |= BESCTL_BESHFEN |
+                                       BESCTL_BESVFEN | BESCTL_BESCUPS;
                break;
           case DSPF_RGB15:
-               bes_regs.besGLOBCTL = BESRGB15;
+               mdev->regs.besGLOBCTL = BESRGB15;
                break;
           case DSPF_RGB16:
-               bes_regs.besGLOBCTL = BESRGB16;
+               mdev->regs.besGLOBCTL = BESRGB16;
                break;
           case DSPF_RGB32:
                drw_w = layer->shared->width;
                dstBox.x2 = dstBox.x1 + layer->shared->width;
-               bes_regs.besGLOBCTL = BESRGB32;
+               mdev->regs.besGLOBCTL = BESRGB32;
                break;
           default:
                BUG( "unexpected pixelformat" );
                return;
      }
 
-     bes_regs.besGLOBCTL |= 3*hzoom | (Sfbdev->current_mode->yres & 0xFFF) << 16;
-     bes_regs.besA1ORG    = surface->front_buffer->video.offset;
-     bes_regs.besA2ORG    = surface->front_buffer->video.offset +
-                            surface->front_buffer->video.pitch;
+     mdev->regs.besGLOBCTL |= 3*hzoom | (Sfbdev->current_mode->yres & 0xFFF) << 16;
+     mdev->regs.besA1ORG    = surface->front_buffer->video.offset;
+     mdev->regs.besA2ORG    = surface->front_buffer->video.offset +
+                              surface->front_buffer->video.pitch;
 
-     bes_regs.besHCOORD   = (dstBox.x1 << 16) | (dstBox.x2 - 1);
-     bes_regs.besVCOORD   = (dstBox.y1 << 16) | (dstBox.y2 - 1);
+     mdev->regs.besHCOORD   = (dstBox.x1 << 16) | (dstBox.x2 - 1);
+     mdev->regs.besVCOORD   = (dstBox.y1 << 16) | (dstBox.y2 - 1);
 
-     bes_regs.besHSRCST   = 0;
-     bes_regs.besHSRCEND  = (layer->shared->width - 1) << 16;
-     bes_regs.besHSRCLST  = (layer->shared->width - 1) << 16;
+     mdev->regs.besHSRCST   = 0;
+     mdev->regs.besHSRCEND  = (layer->shared->width - 1) << 16;
+     mdev->regs.besHSRCLST  = (layer->shared->width - 1) << 16;
 
-     bes_regs.besLUMACTL  = (layer->shared->adjustment.contrast >> 8) |
-                            ((__u8)(((int)layer->shared->adjustment.brightness >> 8)
-                                     - 128)) << 16;
+     mdev->regs.besLUMACTL  = (layer->shared->adjustment.contrast >> 8) |
+                              ((__u8)(((int)layer->shared->adjustment.brightness >> 8)
+                                       - 128)) << 16;
 
-     bes_regs.besV1WGHT   = 0;
-     bes_regs.besV2WGHT   = 0x18000;
+     mdev->regs.besV1WGHT   = 0;
+     mdev->regs.besV2WGHT   = 0x18000;
 
-     bes_regs.besV1SRCLST = layer->shared->height - 1;
-     bes_regs.besV2SRCLST = layer->shared->height - 2;
+     mdev->regs.besV1SRCLST = layer->shared->height - 1;
+     mdev->regs.besV2SRCLST = layer->shared->height - 2;
 
-     bes_regs.besPITCH    = surface->front_buffer->video.pitch;
+     mdev->regs.besPITCH    = surface->front_buffer->video.pitch;
 
-     field_height         = layer->shared->height;
+     field_height           = layer->shared->height;
 
      if (layer->shared->options & DLOP_INTERLACED_VIDEO)
           field_height >>= 1;
      else {
-          bes_regs.besPITCH >>= 1;
-          bes_regs.besCTL_field = 0;
+          mdev->regs.besPITCH >>= 1;
+          mdev->regs.besCTL_field = 0;
      }
 
 
      if (layer->shared->surface->format == DSPF_RGB32)
-          bes_regs.besHISCAL = 0x20000;
+          mdev->regs.besHISCAL = 0x20000;
      else {
           intrep = ((drw_w == layer->shared->width) || (drw_w < 2)) ? 0 : 1;
           tmp = (((layer->shared->width - intrep) << 16) / (drw_w - intrep)) << hzoom;
           if (tmp >= (32 << 16))
                tmp = (32 << 16) - 1;
-          bes_regs.besHISCAL = tmp & 0x001ffffc;
+          mdev->regs.besHISCAL = tmp & 0x001ffffc;
      }
 
      intrep = ((drw_h == field_height) || (drw_h < 2)) ? 0 : 1;
      tmp = ((field_height - intrep) << 16) / (drw_h - intrep);
      if(tmp >= (32 << 16))
           tmp = (32 << 16) - 1;
-     bes_regs.besVISCAL = tmp & 0x001ffffc;
+     mdev->regs.besVISCAL = tmp & 0x001ffffc;
 }
-#endif
 

@@ -116,10 +116,12 @@ DFBResult layers_initialize()
      if (ret)
           return ret;
 
-     /* FIXME: card layers */
-/*     ret = gfxcard_init_layers();
+     /* FIXME: card layers for multiple apps */
+#ifdef FUSION_FAKE
+     ret = gfxcard_init_layers();
      if (ret)
-          return ret;*/
+          return ret;
+#endif
 
      return DFB_OK;
 }
@@ -216,6 +218,11 @@ DFBResult layer_unlock( DisplayLayer *layer )
      windowstack_repaint_all( layer->shared->windowstack );
 
      return DFB_OK;
+}
+
+DFBResult layer_enable( DisplayLayer *layer )
+{
+     return layer->Enable( layer );
 }
 
 CoreSurface *layer_surface( DisplayLayer *layer )
