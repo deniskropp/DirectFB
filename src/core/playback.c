@@ -117,7 +117,7 @@ fs_playback_create( CoreSound        *core,
      playback->right  = 0x100;
      playback->pitch  = 0x100;
 
-     fusion_skirmish_init( &playback->lock );
+     fusion_skirmish_init( &playback->lock, "FusionSound playback lock" );
 
      /* Activate playback object. */
      fusion_object_activate( &playback->object );

@@ -546,7 +546,7 @@ fs_core_initialize( CoreSound *core )
      core->fd = fd;
 
      /* initialize playback list lock */
-     fusion_skirmish_init( &shared->playlist.lock );
+     fusion_skirmish_init( &shared->playlist.lock, "FusionSound playlist list lock" );
 
      /* create a pool for sound buffer objects */
      shared->buffer_pool = fs_buffer_pool_create();
