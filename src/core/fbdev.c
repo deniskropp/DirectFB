@@ -258,7 +258,7 @@ DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *var )
                if (var->transp.length == 0 &&
                    var->red.length    == 8 && var->red.offset    == 16 &&
                    var->green.length  == 8 && var->green.offset  ==  8 &&
-                   var->blue.length   == 8 && var->blue.offset   ==  8)
+                   var->blue.length   == 8 && var->blue.offset   ==  0)
                     return DSPF_RGB32;
                
                if (var->transp.length == 8 && var->transp.offset == 24 &&
