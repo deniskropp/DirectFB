@@ -573,8 +573,8 @@ primaryInitLayer         ( GraphicsDevice             *device,
      else {
           default_config->pixelformat = DSPF_RGB16;
           
-//          if (dfb_fbdev_set_mode( NULL, NULL, default_config ))
-//               default_config->pixelformat = dfb_pixelformat_for_depth( Sfbdev->orig_var.bits_per_pixel );
+          if (dfb_fbdev_set_mode( NULL, NULL, default_config ))
+               default_config->pixelformat = dfb_pixelformat_for_depth( Sfbdev->orig_var.bits_per_pixel );
      }
 
      return DFB_OK;
