@@ -32,25 +32,25 @@ noinst_PROGRAMS = \
 	$(LINUXONLY_TOOLS)
 
 dfbdump_SOURCES = dfbdump.c
-dfbdump_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la
+dfbdump_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 dfbg_SOURCES = dfbg.c
-dfbg_LDADD   = ../src/libdirectfb.la
+dfbg_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 dfbinfo_SOURCES = dfbinfo.c
-dfbinfo_LDADD   = ../src/libdirectfb.la
+dfbinfo_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 dfblayer_SOURCES = dfblayer.c
-dfblayer_LDADD   = ../src/libdirectfb.la
+dfblayer_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 dfbproxy_SOURCES = dfbproxy.c
-dfbproxy_LDADD   = ../src/libdirectfb.la ../lib/direct/libdirect.la ../lib/voodoo/libvoodoo.la
+dfbproxy_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la ../lib/voodoo/libvoodoo.la
 
 dfbsummon_SOURCES = dfbsummon.c
-dfbsummon_LDADD   = ../src/libdirectfb.la
+dfbsummon_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 fusion_bench_SOURCES = fusion_bench.c
-fusion_bench_LDADD   = ../src/libdirectfb.la
+fusion_bench_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 raw15toraw24_SOURCES = raw15toraw24.c
 
