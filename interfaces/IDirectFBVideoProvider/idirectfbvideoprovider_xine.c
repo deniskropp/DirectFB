@@ -237,12 +237,6 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
 		{
 			data->width  = 320;
 			data->height = 240;
-		} else
-		{
-			/* width must be a multiple of 4 */
-			data->width  = ((data->width + 3) >> 2) << 2;
-			/* height must be a multiple of 2 */
-			data->height = data->height + (data->height & 1);
 		}
 	}
 
@@ -546,8 +540,8 @@ Construct( IDirectFBVideoProvider *thiz,
 {
 	const char        *xinerc;
 	int                verbosity    = XINE_VERBOSITY_LOG;
-	const char* const *plug_list;
-	const char        *audio_driver;
+	const char* const *ao_list;
+	const char        *ao_driver;
 	dfb_visual_t       visual;
 	
 	DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Xine )
@@ -604,18 +598,18 @@ Construct( IDirectFBVideoProvider *thiz,
 		return data->err;
 	}
 
-	plug_list = xine_list_audio_output_plugins( data->xine );
+	ao_list = xine_list_audio_output_plugins( data->xine );
 
-	audio_driver = xine_config_register_string( data->xine, "audio.driver",
-					plug_list[0], "Audio driver to use",
+	ao_driver = xine_config_register_string( data->xine, "audio.driver",
+					ao_list[0], "Audio driver to use",
 					NULL, 0, NULL, NULL );	
 	
-	data->ao = xine_open_audio_driver( data->xine, audio_driver, NULL );
+	data->ao = xine_open_audio_driver( data->xine, ao_driver, NULL );
 
 	if (!data->ao)
 	{
 		D_ERROR( "DirectFB/VideoProvider_Xine: "
-			 "failed to load audio driver '%s'.\n", audio_driver );
+			 "failed to load audio driver '%s'.\n", ao_driver );
 		xine_close_video_driver( data->xine, data->vo );
 		xine_exit( data->xine );
 		return data->err;
@@ -657,14 +651,15 @@ Construct( IDirectFBVideoProvider *thiz,
 	/* init a post plugin if no video */
 	if (!xine_get_stream_info( data->stream, XINE_STREAM_INFO_HAS_VIDEO ))
 	{
-		const char      *post_plugin;
-		xine_post_out_t *audio_source;
+		const char* const *post_list;
+		const char        *post_plugin;
+		xine_post_out_t   *audio_source;
 
-		plug_list = xine_list_post_plugins_typed( data->xine,
+		post_list = xine_list_post_plugins_typed( data->xine,
 					XINE_POST_TYPE_AUDIO_VISUALIZATION );
 
 		post_plugin = xine_config_register_string( data->xine,
-					"gui.post_audio_plugin", plug_list[0],
+					"gui.post_audio_plugin", post_list[0],
 					"Audio visualization plugin",
 					NULL, 0, NULL, NULL );
 
