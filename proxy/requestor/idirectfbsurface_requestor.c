@@ -312,7 +312,7 @@ IDirectFBSurface_Requestor_SetPalette( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA_FROM( palette, palette_data, IDirectFBPalette_Requestor );
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetPalette, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetPalette, VREQ_QUEUE, NULL,
                                     VMBT_ID, palette_data->instance,
                                     VMBT_NONE );
 }
@@ -372,7 +372,7 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
      }
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_QUEUE, NULL,
                                     VMBT_ODATA, sizeof(DFBRegion), region,
                                     VMBT_INT, flags,
                                     VMBT_NONE );
@@ -401,7 +401,7 @@ IDirectFBSurface_Requestor_Clear( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_Clear, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_Clear, VREQ_QUEUE, NULL,
                                     VMBT_DATA, sizeof(DFBColor), &color,
                                     VMBT_NONE );
 }
@@ -412,7 +412,7 @@ IDirectFBSurface_Requestor_SetClip( IDirectFBSurface *thiz, const DFBRegion *cli
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetClip, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetClip, VREQ_QUEUE, NULL,
                                     VMBT_ODATA, sizeof(DFBRegion), clip,
                                     VMBT_NONE );
 }
@@ -426,7 +426,7 @@ IDirectFBSurface_Requestor_SetColor( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetColor, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetColor, VREQ_QUEUE, NULL,
                                     VMBT_DATA, sizeof(DFBColor), &color,
                                     VMBT_NONE );
 }
@@ -486,7 +486,7 @@ IDirectFBSurface_Requestor_SetSrcColorKey( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetSrcColorKey, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetSrcColorKey, VREQ_QUEUE, NULL,
                                     VMBT_DATA, sizeof(DFBColor), &color,
                                     VMBT_NONE );
 }
@@ -498,7 +498,7 @@ IDirectFBSurface_Requestor_SetSrcColorKeyIndex( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetSrcColorKeyIndex, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetSrcColorKeyIndex, VREQ_QUEUE, NULL,
                                     VMBT_UINT, index,
                                     VMBT_NONE );
 }
@@ -514,7 +514,7 @@ IDirectFBSurface_Requestor_SetDstColorKey( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetDstColorKey, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetDstColorKey, VREQ_QUEUE, NULL,
                                     VMBT_DATA, sizeof(DFBColor), &color,
                                     VMBT_NONE );
 }
@@ -526,7 +526,7 @@ IDirectFBSurface_Requestor_SetDstColorKeyIndex( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetDstColorKeyIndex, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetDstColorKeyIndex, VREQ_QUEUE, NULL,
                                     VMBT_UINT, index,
                                     VMBT_NONE );
 }
@@ -554,7 +554,7 @@ IDirectFBSurface_Requestor_SetFont( IDirectFBSurface *thiz,
      data->font = font;
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetFont, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetFont, VREQ_QUEUE, NULL,
                                     VMBT_ID, font_data ? font_data->instance : VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -577,7 +577,7 @@ IDirectFBSurface_Requestor_SetDrawingFlags( IDirectFBSurface       *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetDrawingFlags, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetDrawingFlags, VREQ_QUEUE, NULL,
                                     VMBT_INT, flags,
                                     VMBT_NONE );
 }
@@ -594,7 +594,7 @@ IDirectFBSurface_Requestor_FillRectangle( IDirectFBSurface *thiz,
           return DFB_INVARG;
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_FillRectangle, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_FillRectangle, VREQ_QUEUE, NULL,
                                     VMBT_DATA, sizeof(DFBRectangle), &rect,
                                     VMBT_NONE );
 }
@@ -608,7 +608,7 @@ IDirectFBSurface_Requestor_DrawLine( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_DrawLine, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_DrawLine, VREQ_QUEUE, NULL,
                                     VMBT_DATA, sizeof(DFBRegion), &line,
                                     VMBT_NONE );
 }
@@ -624,7 +624,7 @@ IDirectFBSurface_Requestor_DrawLines( IDirectFBSurface *thiz,
           return DFB_INVARG;
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_DrawLines, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_DrawLines, VREQ_QUEUE, NULL,
                                     VMBT_UINT, num_lines,
                                     VMBT_DATA, num_lines * sizeof(DFBRegion), lines,
                                     VMBT_NONE );
@@ -642,7 +642,7 @@ IDirectFBSurface_Requestor_DrawRectangle( IDirectFBSurface *thiz,
           return DFB_INVARG;
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_DrawRectangle, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_DrawRectangle, VREQ_QUEUE, NULL,
                                     VMBT_DATA, sizeof(DFBRectangle), &rect,
                                     VMBT_NONE );
 }
@@ -658,7 +658,7 @@ IDirectFBSurface_Requestor_FillTriangle( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_FillTriangle, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_FillTriangle, VREQ_QUEUE, NULL,
                                     VMBT_DATA, sizeof(DFBTriangle), &triangle,
                                     VMBT_NONE );
 }
@@ -670,7 +670,7 @@ IDirectFBSurface_Requestor_SetBlittingFlags( IDirectFBSurface        *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetBlittingFlags, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetBlittingFlags, VREQ_QUEUE, NULL,
                                     VMBT_INT, flags,
                                     VMBT_NONE );
 }
@@ -694,7 +694,7 @@ IDirectFBSurface_Requestor_Blit( IDirectFBSurface   *thiz,
      DIRECT_INTERFACE_GET_DATA_FROM( source, source_data, IDirectFBSurface_Requestor );
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_Blit, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_Blit, VREQ_QUEUE, NULL,
                                     VMBT_ID, source_data->instance,
                                     VMBT_ODATA, sizeof(DFBRectangle), rect,
                                     VMBT_DATA, sizeof(point), &point,
@@ -720,7 +720,7 @@ IDirectFBSurface_Requestor_TileBlit( IDirectFBSurface   *thiz,
      DIRECT_INTERFACE_GET_DATA_FROM( source, source_data, IDirectFBSurface_Requestor );
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_TileBlit, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_TileBlit, VREQ_QUEUE, NULL,
                                     VMBT_ID, source_data->instance,
                                     VMBT_ODATA, sizeof(DFBRectangle), rect,
                                     VMBT_DATA, sizeof(point), &point,
@@ -760,7 +760,7 @@ IDirectFBSurface_Requestor_StretchBlit( IDirectFBSurface   *thiz,
      DIRECT_INTERFACE_GET_DATA_FROM( source, source_data, IDirectFBSurface_Requestor );
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_StretchBlit, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_StretchBlit, VREQ_QUEUE, NULL,
                                     VMBT_ID, source_data->instance,
                                     VMBT_ODATA, sizeof(DFBRectangle), source_rect,
                                     VMBT_ODATA, sizeof(DFBRectangle), destination_rect,
@@ -810,7 +810,7 @@ IDirectFBSurface_Requestor_DrawString( IDirectFBSurface    *thiz,
           return DFB_OK;
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_DrawString, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_DrawString, VREQ_QUEUE, NULL,
                                     VMBT_DATA, bytes, text,
                                     VMBT_INT, bytes,
                                     VMBT_DATA, sizeof(point), &point,
@@ -833,7 +833,7 @@ IDirectFBSurface_Requestor_DrawGlyph( IDirectFBSurface    *thiz,
           return DFB_INVARG;
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_DrawGlyph, VREQ_NONE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_DrawGlyph, VREQ_QUEUE, NULL,
                                     VMBT_UINT, index,
                                     VMBT_DATA, sizeof(point), &point,
                                     VMBT_INT, flags,

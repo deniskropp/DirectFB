@@ -49,7 +49,8 @@ typedef enum {
 typedef enum {
      VREQ_NONE    = 0x00000000,
      VREQ_RESPOND = 0x00000001,
-     VREQ_ASYNC   = 0x00000002
+     VREQ_ASYNC   = 0x00000002,
+     VREQ_QUEUE   = 0x00000004
 } VoodooRequestFlags;
 
 typedef enum {

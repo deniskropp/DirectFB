@@ -57,7 +57,6 @@ struct __V_VoodooClient {
      VoodooManager *manager;
 };
 
-static const int one = 1;
 
 DirectResult
 voodoo_client_create( const char     *hostname,
@@ -116,10 +115,6 @@ voodoo_client_create( const char     *hostname,
           D_PERROR( "Voodoo/Client: Could not create the socket via socket()!\n" );
           return errno2result( errno );
      }
-
-     /* Avoid pending messages. */
-     if (setsockopt( fd, SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
-          D_PERROR( "Voodoo/Server: Could not set TCP_NODELAY!\n" );
 
      sock_addr.sin_family = AF_INET;
      sock_addr.sin_addr   = addr;

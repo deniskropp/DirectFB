@@ -80,11 +80,13 @@ struct __V_VoodooServer {
      Super       supers[MAX_SUPER];
 };
 
-static const int one = 1;
-
 /**************************************************************************************************/
 
 static DirectResult accept_connection( VoodooServer *server );
+
+/**************************************************************************************************/
+
+static const int one = 1;
 
 /**************************************************************************************************/
 
@@ -109,10 +111,6 @@ voodoo_server_create( VoodooServer **ret_server )
      /* Allow reuse of local address. */
      if (setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one) ) < 0)
           D_PERROR( "Voodoo/Server: Could not set SO_REUSEADDR!\n" );
-
-     /* Avoid pending messages. */
-     if (setsockopt( fd, SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
-          D_PERROR( "Voodoo/Server: Could not set TCP_NODELAY!\n" );
 
      /* Bind the socket to the local port. */
      addr.sin_family      = AF_INET;
@@ -329,10 +327,6 @@ accept_connection( VoodooServer *server )
           D_FREE( connection );
           return ret;
      }
-
-     /* Avoid pending messages. */
-     if (setsockopt( connection->fd, SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
-          D_PERROR( "Voodoo/Server: Could not set TCP_NODELAY!\n" );
 
      D_INFO( "Voodoo/Server: Accepted connection.\n" );
 
