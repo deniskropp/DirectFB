@@ -616,6 +616,8 @@ system_map_mmio( unsigned int    offset,
           return NULL;
      }
 
+     printf( "0x%08lx 0x%08lx\n", dfb_fbdev->shared->fix.mmio_start, dfb_fbdev->shared->page_mask );
+
      return(volatile void*) ((__u8*) addr /*+ (dfb_fbdev->shared->fix.mmio_start &
                                              dfb_fbdev->shared->page_mask)*/);
 }
