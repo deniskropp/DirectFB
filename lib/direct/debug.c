@@ -38,13 +38,17 @@
 
 #include <direct/clock.h>
 #include <direct/debug.h>
+#include <direct/thread.h>
 #include <direct/trace.h>
 
+
+__attribute__((no_instrument_function))
 void
 direct_debug( const char *format, ... )
 {
-     char      buf[512];
-     long long millis = direct_clock_get_millis();
+     char        buf[512];
+     long long   millis = direct_clock_get_millis();
+     const char *name   = direct_thread_self_name();
 
      va_list ap;
 
@@ -52,20 +56,22 @@ direct_debug( const char *format, ... )
 
      vsnprintf( buf, sizeof(buf), format, ap );
 
-     fprintf( stderr, "(-) [%5d: %4lld.%03lld] %s",
-              direct_gettid(), millis / 1000LL, millis % 1000LL, buf );
+     fprintf( stderr, "(-) [%-15s %3lld.%03lld] (%5d) %s",
+              name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL, direct_gettid(), buf );
 
      fflush( stderr );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_break( const char *func,
               const char *file,
               int         line,
               const char *format, ... )
 {
-     char      buf[512];
-     long long millis = direct_clock_get_millis();
+     char        buf[512];
+     long long   millis = direct_clock_get_millis();
+     const char *name   = direct_thread_self_name();
 
      va_list ap;
 
@@ -74,8 +80,9 @@ direct_break( const char *func,
      vsnprintf( buf, sizeof(buf), format, ap );
 
      fprintf( stderr,
-              "(!) [%5d: %4lld.%03lld] *** Break [%s] *** [%s:%d in %s()]\n",
-              direct_gettid(), millis / 1000LL, millis % 1000LL, buf, file, line, func );
+              "(!) [%-15s %3lld.%03lld] (%5d) *** Break [%s] *** [%s:%d in %s()]\n",
+              name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,
+              direct_gettid(), buf, file, line, func );
 
      fflush( stderr );
 
@@ -92,17 +99,20 @@ direct_break( const char *func,
      _exit( -1 );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_assertion( const char *exp,
                   const char *func,
                   const char *file,
                   int         line )
 {
-     long long millis = direct_clock_get_millis();
+     long long   millis = direct_clock_get_millis();
+     const char *name   = direct_thread_self_name();
 
      fprintf( stderr,
-              "(!) [%5d: %4lld.%03lld] *** Assertion [%s] failed *** [%s:%d in %s()]\n",
-              direct_gettid(), millis / 1000LL, millis % 1000LL, exp, file, line, func );
+              "(!) [%-15s %3lld.%03lld] (%5d) *** Assertion [%s] failed *** [%s:%d in %s()]\n",
+              name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,
+              direct_gettid(), exp, file, line, func );
 
      fflush( stderr );
 
@@ -119,17 +129,20 @@ direct_assertion( const char *exp,
      _exit( -1 );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_assumption( const char *exp,
                    const char *func,
                    const char *file,
                    int         line )
 {
-     long long millis = direct_clock_get_millis();
+     long long   millis = direct_clock_get_millis();
+     const char *name   = direct_thread_self_name();
 
      fprintf( stderr,
-              "(!) [%5d: %4lld.%03lld] *** Assumption [%s] failed *** [%s:%d in %s()]\n",
-              direct_gettid(), millis / 1000LL, millis % 1000LL, exp, file, line, func );
+              "(!) [%-15s %3lld.%03lld] (%5d) *** Assumption [%s] failed *** [%s:%d in %s()]\n",
+              name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,
+              direct_gettid(), exp, file, line, func );
 
      fflush( stderr );
 

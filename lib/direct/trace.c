@@ -43,6 +43,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/system.h>
+#include <direct/thread.h>
 #include <direct/trace.h>
 
 
@@ -64,6 +65,7 @@
 
 struct __D_DirectTraceBuffer {
      pid_t tid;
+     char *name;
      int   level;
      void *trace[MAX_LEVEL];
 };
@@ -75,12 +77,14 @@ static pthread_key_t      trace_key    = -1;
 
 __attribute__((no_instrument_function))
 static void
-buffer_destroy( void *buffer )
+buffer_destroy( void *arg )
 {
-     int i;
+     int                i;
+     DirectTraceBuffer *buffer = arg;
 
      pthread_mutex_lock( &buffers_lock );
 
+     /* Remove from list. */
      for (i=0; i<buffers_num; i++) {
           if (buffers[i] == buffer)
                break;
@@ -91,7 +95,8 @@ buffer_destroy( void *buffer )
 
      buffers_num--;
 
-     free( buffer );
+     /* Deallocate the buffer. */
+     direct_trace_free_buffer( buffer );
 
      pthread_mutex_unlock( &buffers_lock );
 }
@@ -104,6 +109,8 @@ get_trace_buffer()
 
      buffer = pthread_getspecific( trace_key );
      if (!buffer) {
+          const char *name = direct_thread_self_name();
+
           pthread_mutex_lock( &buffers_lock );
 
           if (!buffers_num)
@@ -117,7 +124,8 @@ get_trace_buffer()
           pthread_setspecific( trace_key,
                                buffer = calloc( 1, sizeof(DirectTraceBuffer) ) );
 
-          buffer->tid = direct_gettid();
+          buffer->tid  = direct_gettid();
+          buffer->name = name ? strdup( name ) : NULL;
 
           buffers[buffers_num++] = buffer;
 
@@ -326,7 +334,10 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           return;
      }
 
-     fprintf( stderr, "(-) [%5d: -STACK- ]\n", buffer->tid );
+     if (buffer->name)
+          fprintf( stderr, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
+     else
+          fprintf( stderr, "(-) [%5d: -STACK- ]\n", buffer->tid );
 
      for (i=level-1; i>=0; i--) {
           void *fn = buffer->trace[i];
@@ -402,6 +413,9 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
      if (!copy)
           return NULL;
 
+     if (buffer->name)
+          copy->name = strdup( buffer->name );
+
      copy->tid   = buffer->tid;
      copy->level = buffer->level;
 
@@ -420,6 +434,9 @@ __attribute__((no_instrument_function))
 void
 direct_trace_free_buffer( DirectTraceBuffer *buffer )
 {
+     if (buffer->name)
+          free( buffer->name );
+
      free( buffer );
 }
 

@@ -36,6 +36,7 @@
 
 #if !DIRECT_BUILD_NOTEXT
 
+__attribute__((no_instrument_function))
 void
 direct_messages_info( const char *format, ... )
 {
@@ -52,6 +53,7 @@ direct_messages_info( const char *format, ... )
      fflush( stderr );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_messages_error( const char *format, ... )
 {
@@ -70,6 +72,7 @@ direct_messages_error( const char *format, ... )
      direct_trace_print_stack( NULL );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_messages_perror( int erno, const char *format, ... )
 {
@@ -88,6 +91,7 @@ direct_messages_perror( int erno, const char *format, ... )
      direct_trace_print_stack( NULL );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_messages_dlerror( const char *dlerr, const char *format, ... )
 {
@@ -106,6 +110,7 @@ direct_messages_dlerror( const char *dlerr, const char *format, ... )
      direct_trace_print_stack( NULL );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_messages_once( const char *func,
                       const char *file,
@@ -127,6 +132,7 @@ direct_messages_once( const char *func,
      direct_trace_print_stack( NULL );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_messages_unimplemented( const char *func,
                                const char *file,
@@ -139,6 +145,7 @@ direct_messages_unimplemented( const char *func,
      direct_trace_print_stack( NULL );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_messages_bug( const char *func,
                      const char *file,
@@ -160,6 +167,7 @@ direct_messages_bug( const char *func,
      direct_trace_print_stack( NULL );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_messages_warn( const char *func,
                       const char *file,

@@ -53,6 +53,21 @@ DirectThread *direct_thread_create     ( DirectThreadType  thread_type,
                                          const char       *name );
 
 /*
+ * Returns the thread of the caller.
+ */
+DirectThread *direct_thread_self       ();
+
+/*
+ * Returns the name of the specified thread.
+ */
+const char   *direct_thread_get_name   ( DirectThread     *thread );
+
+/*
+ * Returns the name of the calling thread.
+ */
+const char   *direct_thread_self_name  ();
+
+/*
  * Cancel a running thread.
  */
 void          direct_thread_cancel     ( DirectThread     *thread );

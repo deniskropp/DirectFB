@@ -49,6 +49,7 @@ static inline _syscall0(pid_t,gettid)
 #endif
 
 
+__attribute__((no_instrument_function))
 pid_t
 direct_gettid()
 {

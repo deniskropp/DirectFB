@@ -257,7 +257,7 @@ Construct( IDirectFBEventBuffer *thiz,
      thiz->WakeUp                  = IDirectFBEventBuffer_Requestor_WakeUp;
      thiz->CreateFileDescriptor    = IDirectFBEventBuffer_Requestor_CreateFileDescriptor;
 
-     data->thread = direct_thread_create( DTT_INPUT, feed_thread, data, "Event Buffer Feed" );
+     data->thread = direct_thread_create( DTT_INPUT, feed_thread, data, "Event Feed" );
 
      return DFB_OK;
 }

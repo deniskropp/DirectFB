@@ -50,6 +50,8 @@
 
 
 struct __D_DirectThread {
+     int               magic;
+
      pthread_t         thread;   /* The pthread thread identifier. */
      pid_t             tid;
 
@@ -73,6 +75,198 @@ struct __D_DirectThread {
  * and setup things like signal masks and scheduling priorities.
  */
 static void *direct_thread_main( void *arg );
+
+static const char *thread_type_name( DirectThreadType type )  D_CONST_FUNC;
+
+/******************************************************************************/
+
+static pthread_mutex_t key_lock   = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static pthread_key_t   thread_key = -1;
+
+/******************************************************************************/
+
+DirectThread *
+direct_thread_create( DirectThreadType  thread_type,
+                      DirectThreadMain  thread_main,
+                      void             *arg,
+                      const char       *name )
+{
+     DirectThread *thread;
+
+     D_ASSERT( thread_main != NULL );
+     D_ASSERT( name != NULL );
+
+     D_HEAVYDEBUG( "Direct/Thread: Creating '%s' (type %d)...\n", name, thread_type );
+
+     /* Create the key for the TSD (thread specific data). */
+     pthread_mutex_lock( &key_lock );
+
+     if (thread_key == -1)
+          pthread_key_create( &thread_key, NULL );
+
+     pthread_mutex_unlock( &key_lock );
+
+     /* Allocate thread structure. */
+     thread = D_CALLOC( 1, sizeof(DirectThread) );
+     if (!thread)
+          return NULL;
+
+     /* Write thread information to structure. */
+     thread->name = D_STRDUP( name );
+     thread->type = thread_type;
+     thread->main = thread_main;
+     thread->arg  = arg;
+
+     /* Initialize to -1 for synchronization. */
+     thread->thread = (pthread_t) -1;
+     thread->tid    = (pid_t) -1;
+
+     D_MAGIC_SET( thread, DirectThread );
+
+     /* Create and run the thread. */
+     pthread_create( &thread->thread, NULL, direct_thread_main, thread );
+
+#ifdef DIRECT_THREAD_WAIT_INIT
+     D_HEAVYDEBUG( "Direct/Thread: Waiting for thread to run...\n" );
+
+     /* Wait for completion of the thread's initialization. */
+     while (!thread->init)
+          sched_yield();
+
+     D_HEAVYDEBUG( "Direct/Thread: ...thread is running.\n" );
+#endif
+
+     D_INFO( "Direct/Thread: Running '%s' (%s, %d)...\n",
+             name, thread_type_name(thread_type), thread->tid );
+
+     return thread;
+}
+
+DirectThread *
+direct_thread_self()
+{
+     DirectThread *thread = pthread_getspecific( thread_key );
+
+     if (thread)
+          D_MAGIC_ASSERT( thread, DirectThread );
+
+     return thread;
+}
+
+const char *
+direct_thread_get_name( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->name != NULL );
+
+     return thread->name;
+}
+
+__attribute__((no_instrument_function))
+const char *
+direct_thread_self_name()
+{
+     DirectThread *thread = pthread_getspecific( thread_key );
+
+     /*
+      * This function is called by debugging functions, e.g. debug messages, assertions etc.
+      * Therefore no assertions are made here, because they would loop forever if they fail.
+      */
+
+     return thread ? thread->name : NULL;
+}
+
+void
+direct_thread_cancel( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->thread != -1 );
+     D_ASSERT( !pthread_equal( thread->thread, pthread_self() ) );
+
+     D_ASSUME( !thread->canceled );
+
+     D_DEBUG( "Direct/Thread: Canceling %d.\n", thread->tid );
+
+     thread->canceled = true;
+
+     pthread_cancel( thread->thread );
+}
+
+bool
+direct_thread_is_canceled( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+
+     return thread->canceled;
+}
+
+void
+direct_thread_testcancel( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->thread != -1 );
+     D_ASSERT( pthread_equal( thread->thread, pthread_self() ) );
+
+     /* Quick check before calling the pthread function. */
+     if (thread->canceled)
+          pthread_testcancel();
+}
+
+void
+direct_thread_join( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->thread != -1 );
+
+     D_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
+     D_ASSUME( !thread->joining );
+     D_ASSUME( !thread->joined );
+
+     if (!thread->joining && !pthread_equal( thread->thread, pthread_self() )) {
+          thread->joining = true;
+
+          D_HEAVYDEBUG( "Direct/Thread: Joining %d...\n", thread->tid );
+
+          pthread_join( thread->thread, NULL );
+
+          thread->joined = true;
+
+          D_HEAVYDEBUG( "Direct/Thread: ...joined %d.\n", thread->tid );
+     }
+}
+
+bool
+direct_thread_is_joined( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+
+     return thread->joined;
+}
+
+void
+direct_thread_destroy( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+
+     D_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
+     D_ASSUME( thread->joined );
+
+     if (!thread->joined && !pthread_equal( thread->thread, pthread_self() )) {
+          if (thread->canceled)
+               D_BUG( "thread canceled but not joined" );
+          else
+               D_BUG( "thread still running" );
+
+          D_ERROR( "Direct/Thread: Killing %d!\n", thread->tid );
+
+          pthread_kill( thread->thread, SIGKILL );
+     }
+
+     D_MAGIC_CLEAR( thread );
+
+     D_FREE( thread->name );
+     D_FREE( thread );
+}
 
 /******************************************************************************/
 
@@ -102,150 +296,18 @@ thread_type_name( DirectThreadType type )
      return "unknown type!";
 }
 
-DirectThread *
-direct_thread_create( DirectThreadType  thread_type,
-                      DirectThreadMain  thread_main,
-                      void             *arg,
-                      const char       *name )
-{
-     DirectThread *thread;
-
-     D_ASSERT( thread_main != NULL );
-     D_ASSERT( name != NULL );
-
-     D_HEAVYDEBUG( "Direct/Thread: Creating '%s' (type %d)...\n", name, thread_type );
-
-     /* Allocate thread structure. */
-     thread = D_CALLOC( 1, sizeof(DirectThread) );
-     if (!thread)
-          return NULL;
-
-     /* Write thread information to structure. */
-     thread->name = D_STRDUP( name );
-     thread->type = thread_type;
-     thread->main = thread_main;
-     thread->arg  = arg;
-
-     /* Initialize to -1 for synchronization. */
-     thread->thread = (pthread_t) -1;
-     thread->tid    = (pid_t) -1;
-
-     /* Create and run the thread. */
-     pthread_create( &thread->thread, NULL, direct_thread_main, thread );
-
-#ifdef DIRECT_THREAD_WAIT_INIT
-     D_HEAVYDEBUG( "Direct/Thread: Waiting for thread to run...\n" );
-
-     /* Wait for completion of the thread's initialization. */
-     while (!thread->init)
-          sched_yield();
-
-     D_HEAVYDEBUG( "Direct/Thread: ...thread is running.\n" );
-#endif
-
-     D_INFO( "Direct/Thread: Running '%s' (%s, %d)...\n",
-             name, thread_type_name(thread_type), thread->tid );
-
-     return thread;
-}
-
-void
-direct_thread_cancel( DirectThread *thread )
-{
-     D_ASSERT( thread != NULL );
-     D_ASSERT( thread->thread != -1 );
-     D_ASSERT( !pthread_equal( thread->thread, pthread_self() ) );
-
-     D_ASSUME( !thread->canceled );
-
-     D_DEBUG( "Direct/Thread: Canceling %d.\n", thread->tid );
-
-     thread->canceled = true;
-
-     pthread_cancel( thread->thread );
-}
-
-bool
-direct_thread_is_canceled( DirectThread *thread )
-{
-     D_ASSERT( thread != NULL );
-
-     return thread->canceled;
-}
-
-void
-direct_thread_testcancel( DirectThread *thread )
-{
-     D_ASSERT( thread != NULL );
-     D_ASSERT( thread->thread != -1 );
-     D_ASSERT( pthread_equal( thread->thread, pthread_self() ) );
-
-     /* Quick check before calling the pthread function. */
-     if (thread->canceled)
-          pthread_testcancel();
-}
-
-void
-direct_thread_join( DirectThread *thread )
-{
-     D_ASSERT( thread != NULL );
-     D_ASSERT( thread->thread != -1 );
-
-     D_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
-     D_ASSUME( !thread->joining );
-     D_ASSUME( !thread->joined );
-
-     if (!thread->joining && !pthread_equal( thread->thread, pthread_self() )) {
-          thread->joining = true;
-
-          D_HEAVYDEBUG( "Direct/Thread: Joining %d...\n", thread->tid );
-
-          pthread_join( thread->thread, NULL );
-
-          thread->joined = true;
-
-          D_HEAVYDEBUG( "Direct/Thread: ...joined %d.\n", thread->tid );
-     }
-}
-
-bool
-direct_thread_is_joined( DirectThread *thread )
-{
-     D_ASSERT( thread != NULL );
-
-     return thread->joined;
-}
-
-void
-direct_thread_destroy( DirectThread *thread )
-{
-     D_ASSERT( thread != NULL );
-
-     D_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
-     D_ASSUME( thread->joined );
-
-     if (!thread->joined && !pthread_equal( thread->thread, pthread_self() )) {
-          if (thread->canceled)
-               D_BUG( "thread canceled but not joined" );
-          else
-               D_BUG( "thread still running" );
-
-          D_ERROR( "Direct/Thread: Killing %d!\n", thread->tid );
-
-          pthread_kill( thread->thread, SIGKILL );
-     }
-
-     D_FREE( thread->name );
-     D_FREE( thread );
-}
-
 /******************************************************************************/
 
+__attribute__((no_instrument_function))
 static void *
 direct_thread_main( void *arg )
 {
      void         *ret;
      DirectThread *thread = (DirectThread*) arg;
+
+     D_MAGIC_ASSERT( thread, DirectThread );
+
+     pthread_setspecific( thread_key, thread );
 
      thread->tid = direct_gettid();
 
@@ -275,6 +337,8 @@ direct_thread_main( void *arg )
      sched_yield();
 #endif
 
+     D_MAGIC_ASSERT( thread, DirectThread );
+
      if (thread->joining) {
           D_HEAVYDEBUG( "Direct/Thread:   (thread) Being joined before entering main routine.\n" );
           return NULL;
@@ -292,11 +356,15 @@ direct_thread_main( void *arg )
      }
 #endif
 
+     D_MAGIC_ASSERT( thread, DirectThread );
+
      /* Call main routine. */
      ret = thread->main( thread, thread->arg );
 
      D_DEBUG( "Direct/Thread: Returning %p from '%s' (%s, %d)...\n",
               ret, thread->name, thread_type_name(thread->type), thread->tid );
+
+     D_MAGIC_ASSERT( thread, DirectThread );
 
      return ret;
 }
