@@ -261,6 +261,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_SeekTo(
                                                double                  seconds)
 {
      IDirectFBVideoProvider_AviFile_data *data;
+     double curpos;
 
      if (!thiz)
         return DFB_INVARG;
@@ -270,7 +271,13 @@ static DFBResult IDirectFBVideoProvider_AviFile_SeekTo(
      if (!data)
           return DFB_DEAD;
 
+     curpos = data->player->GetPos();
      data->player->Reseek( seconds );
+     /* seeking forward for some small amount may actually bring us
+      * _back_ to the last key frame -> compensate via PageUp()
+      */
+     if (seconds > curpos && curpos > data->player->GetPos())
+       data->player->PageUp();
 
      return DFB_OK;
 }
