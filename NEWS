@@ -1,3 +1,41 @@
+0.9.8
+-----
+
+- Merged multi application core, which is currently under development. Must be
+  enabled at compile time (--enable-multi). It is *NOT* stable yet.
+- Input/Gfx driver API changes to be ready for multihead and multi application
+  core.
+- Added OpenGL support via the new interface "IDirectFBGL".
+- Added support for IMPS/2 mice including wheel support.
+- Added remote control driver for dbox2.
+- Added DWET_WHEEL window event. Focused windows now receive events if the
+  mouse wheel is use.
+- Added simple blitting support for nVidia cards <dfoesch@cs.nmsu.edu>.
+- Added "wm_hack" feature: press shift lock over a window and spin the mouse
+  wheel to change the window opacity.
+- Completed support for RGB332 (8bit mode), not fully optimized yet.
+- New triange fillig code from Holger Waechtler. Adds clipping support and
+  utilizes accelerated rectangles as a fallback if possible.
+- Removed rounding factor when blitting non-scaled with tmu,         
+  very big fonts looked incorrect (matrox driver).
+- Fixed triangle filling in tdfx driver <DWood@daedalcorp.com>
+- Fixed segfault when rendering pipeline is empty, e.g. using DSDRAW_BLEND
+  with SrcFunc DSBF_ZERO and DstFunc DSBF_ONE.
+- In RGB332 mode initialize alpha values in palette. Corrected color
+  values in palette.
+- Fixed segfault in jpeg provider with large images.
+- Fixed some small memory leaks.
+- Include SMF_SOURCE in SMF_ALL, could have caused blitting from the wrong
+  source recently (longer for a very few drivers) when switching to another
+  state.
+- Fixed "--fbdev=" option.
+- ABI version handling for all drivers.
+- Moved examples to extra package (DirectFB-examples).
+- The mouse cursor is now activated by default.
+- DirectFB can be build with dietlibc.
+- Some namespace cleanups.
+- Updated aty128fb patch for linux 2.4.16.
+
 0.9.7
 -----
 
