@@ -369,6 +369,11 @@ vt_thread( CoreThread *thread, void *arg )
                     if (ioctl( dfb_vt->fd, VT_RELDISP, 2 ) < 0)
                          PERRORMSG( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
 
+                    if (dfb_config->kd_graphics) {
+                         if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0)
+                              PERRORMSG( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
+                    }
+                    
                     break;
           }
 
@@ -427,7 +432,7 @@ vt_init_switching()
 
      if (dfb_config->kd_graphics) {
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
-               PERRORMSG( "DirectFB/Keyboard: KD_GRAPHICS failed!\n" );
+               PERRORMSG( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
                close( dfb_vt->fd );
                return DFB_INIT;
           }
