@@ -74,6 +74,11 @@ Installation
       The first entry will be used by default - copy other entries you may 
       need.
 
+   4) If you want to use a serial mouse, create a link called /dev/mouse
+      that points to serial device (e.g. /dev/ttyS0). Then add a line
+      describing your mouse-protocol to /etc/directfbrc or ~/.directfbrc:
+      "mouse-protocol=[ms|ms3|mouseman|mousesystems]".
+
 
 Configuring the Linux framebuffer device
 ----------------------------------------
