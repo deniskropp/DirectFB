@@ -15,6 +15,7 @@ $names{"mitch"} = 'Michael Natterer <mitch@convergence.de>';
 $names{"holger"} = 'Holger Waechtler <holger@convergence.de>';
 $names{"count"} = 'Andreas Kotes <count@convergence.de>';
 $names{"mm"} = 'Martin Mueller <mm@convergence.de>';
+$names{"syrjala"} = 'Ville Syrjala <syrjala@sci.fi>';
 
 while (<>) {
     if (/^Working file: /) {
