@@ -177,7 +177,7 @@ window_callback( FusionObjectPool *pool,
      
      printf( "%4d, %4d   ", window->x, window->y );
 
-     printf( "0x%2x   ", window->opacity );
+     printf( "0x%02x   ", window->opacity );
 
      if (stack->focused_window == window)
           printf( "FOCUSED        " );
