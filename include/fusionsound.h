@@ -249,6 +249,8 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
 
      /*
       * Retrieve advanced playback control interface.
+      *
+      * Each playback instance represents one concurrent playback of the buffer.
       */
      DFBResult (*CreatePlayback) (
           IFusionSoundBuffer       *thiz,
@@ -342,10 +344,19 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      /*
       * Continue playback of the buffer.
       *
-      * This method is used to continue an explicitly stopped playback.
+      * This method is used to continue a playback that isn't running (anymore).
       *
-      * It returns an error, if the playback is still running, or if it has
-      * stopped automatically by reaching the stop position.
+      * The playback will begin at the position where it stopped, either
+      * explicitly by <i>Stop()</i> or by reaching the stop position.
+      *
+      * If the playback has never been started it uses the default start and
+      * stop position which means non-looping playback from the beginning
+      * to the end.
+      *
+      * It returns without an error if the playback is running. This can be used
+      * to trigger playback without having to check if it's already running,
+      * similar to simple playback via <i>IFusionSoundBuffer::Play()</i>, but
+      * rejects multiple concurrent playbacks.
       */
      DFBResult (*Continue) (
           IFusionSoundPlayback     *thiz

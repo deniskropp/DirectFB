@@ -184,14 +184,9 @@ IFusionSoundPlayback_Continue( IFusionSoundPlayback *thiz )
      
      pthread_mutex_lock( &data->lock );
      
-     if (data->ended) {
-          pthread_mutex_unlock( &data->lock );
-          return DFB_BUFFEREMPTY;
-     }
-     
      if (data->playing) {
           pthread_mutex_unlock( &data->lock );
-          return DFB_BUSY;
+          return DFB_OK;
      }
      
      data->playing = true;
