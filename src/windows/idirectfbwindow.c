@@ -39,6 +39,8 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <idirectfb.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -948,6 +950,11 @@ IDirectFBWindow_React( const void *msg_data,
                }
 
                break;
+
+          case DWET_GOTFOCUS:
+          case DWET_LOSTFOCUS:
+               IDirectFB_SetAppFocus( idirectfb_singleton,
+                                      evt->type == DWET_GOTFOCUS );
 
           default:
                break;

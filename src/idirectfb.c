@@ -89,6 +89,8 @@ typedef struct {
           Reaction        reaction; /* for the focus listener */
           bool            focused;  /* primary's window has the focus */
      } primary;                     /* Used for DFSCL_NORMAL's primary. */
+
+     bool                 app_focus;
 } IDirectFB_data;
 
 typedef struct {
@@ -1016,6 +1018,15 @@ IDirectFB_Construct( IDirectFB *thiz )
      return DFB_OK;
 }
 
+DFBResult
+IDirectFB_SetAppFocus( IDirectFB *thiz, DFBBoolean focused )
+{
+     INTERFACE_GET_DATA(IDirectFB)
+
+     data->app_focus = focused;
+     
+     return DFB_OK;
+}
 
 /*
  * internal functions
@@ -1131,7 +1142,7 @@ input_filter( DFBEvent *evt,
      if (evt->clazz == DFEC_INPUT) {
           DFBInputEvent *event = &evt->input;
 
-          if (!data->primary.focused)
+          if (!data->primary.focused && !data->app_focus)
                return true;
 
           switch (event->type) {

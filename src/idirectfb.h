@@ -34,4 +34,6 @@
  */
 DFBResult IDirectFB_Construct( IDirectFB *thiz );
 
+DFBResult IDirectFB_SetAppFocus( IDirectFB *thiz, DFBBoolean focused );
+
 #endif
