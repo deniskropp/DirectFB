@@ -66,7 +66,7 @@ struct __DFB_TraceBuffer {
 static TraceBuffer     *buffers[MAX_BUFFERS];
 static int              buffers_num  = 0;
 static pthread_mutex_t  buffers_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_key_t    trace_key;
+static pthread_key_t    trace_key    = -1;
 
 __attribute__((no_instrument_function))
 static void
