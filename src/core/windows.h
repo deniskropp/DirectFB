@@ -289,7 +289,7 @@ dfb_window_ref( CoreWindow *window )
 static inline FusionResult
 dfb_window_unref( CoreWindow *window )
 {
-     return fusion_object_ref( &window->object );
+     return fusion_object_unref( &window->object );
 }
 
 
