@@ -882,8 +882,7 @@ IDirectFB_CreateDataBuffer( IDirectFB                 *thiz,
 
           DFB_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
 
-          return IDirectFBDataBuffer_File_Construct( *interface,
-                                                     desc->file );
+          return IDirectFBDataBuffer_File_Construct( *interface, desc->file );
      }
      
      if (desc->flags & DBDESC_MEMORY) {
