@@ -347,8 +347,8 @@ void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
      if (gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
          gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
      {
-          if (card->caps.flags & CCF_CLIPPING  ||
-          clip_rectangle( &state->clip, rect ))
+          if ((card->caps.flags & CCF_CLIPPING) ||
+              clip_rectangle( &state->clip, rect ))
           {
               card->FillRectangle( rect );
           }

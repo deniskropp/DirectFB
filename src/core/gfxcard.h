@@ -28,7 +28,7 @@
 #include <pthread.h>
 
 typedef enum {
-     CCF_CLIPPING
+     CCF_CLIPPING = 0x00000001
 } CardCapabilitiesFlags;
 
 
