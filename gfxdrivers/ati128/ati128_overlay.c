@@ -62,15 +62,15 @@ static DFBResult ov0Enable( DisplayLayer *layer )
           DFBResult ret;
 
           /* FIXME HARDCODER! */
-          ret = surface_create( layer->shared->width, layer->shared->height,
-                                DSPF_YUY2, CSP_VIDEOONLY, DSCAPS_VIDEOONLY,
-                                &layer->shared->surface );
+          ret = dfb_surface_create( layer->shared->width, layer->shared->height,
+                                    DSPF_YUY2, CSP_VIDEOONLY, DSCAPS_VIDEOONLY,
+                                    &layer->shared->surface );
           if (ret)
                return ret;
      }
 
      if (!layer->shared->windowstack)
-          layer->shared->windowstack = windowstack_new( layer );
+          layer->shared->windowstack = dfb_windowstack_new( layer );
 
      layer->shared->enabled = 1;
 
@@ -181,7 +181,7 @@ static DFBResult ov0SetConfiguration( DisplayLayer          *layer,
           /* FIXME: write surface management functions
                     for easier configuration changes */
 
-          ret = surface_reformat( layer->shared->surface, width, height, format );
+          ret = dfb_surface_reformat( layer->shared->surface, width, height, format );
           if (ret)
                return ret;
 
@@ -310,7 +310,7 @@ void driver_init_layers( void *drv, void *dev )
      layer->deinit             = ati128_ov0_deinit;
 
      /* gets filled by layers_add: layer->shared->id */
-     layers_add( layer );
+     dfb_layers_add( layer );
 
      /* reset overlay */
      ati128_out32( mmio, OV0_SCALE_CNTL, 0x80000000 );

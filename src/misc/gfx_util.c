@@ -113,8 +113,8 @@ static inline void rgba_to_dst_format (__u8 *dst,
      }
 }
 
-void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
-                     DFBSurfacePixelFormat dst_format )
+void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
+                         DFBSurfacePixelFormat dst_format )
 {
      int x, y;
      __u32 rb, a;
@@ -183,7 +183,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
           filter->x_offset = 0.5 * (1/x_scale - 1);
      }
      else {                    /* Tile */
-          n_x = ICEIL (1.0 + 1.0 / x_scale);
+          n_x = DFB_ICEIL (1.0 + 1.0 / x_scale);
           filter->x_offset = 0.0;
      }
 
@@ -192,7 +192,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
           filter->y_offset = 0.5 * (1/y_scale - 1);
      }
      else {                    /* Tile */
-          n_y = ICEIL (1.0 + 1.0/y_scale);
+          n_y = DFB_ICEIL (1.0 + 1.0/y_scale);
           filter->y_offset = 0.0;
      }
 
@@ -359,8 +359,8 @@ static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
      return dst;
 }
 
-void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
-                      int dskip, DFBSurfacePixelFormat dst_format )
+void dfb_scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
+                          int dskip, DFBSurfacePixelFormat dst_format )
 {
      double scale_x, scale_y;
      int i, j;
@@ -373,7 +373,7 @@ void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
           return;
 
      if (dw == sw && dh == sh) {
-          copy_buffer_32( dst, src, sw, sh, dskip, dst_format );
+          dfb_copy_buffer_32( dst, src, sw, sh, dskip, dst_format );
           return;
      }
 
@@ -386,8 +386,8 @@ void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
      if (! bilinear_make_fast_weights( &filter, scale_x, scale_y ))
           return;
 
-     scaled_x_offset = IFLOOR( filter.x_offset * (1 << SCALE_SHIFT) );
-     y = IFLOOR( filter.y_offset * (1 << SCALE_SHIFT) );
+     scaled_x_offset = DFB_IFLOOR( filter.x_offset * (1 << SCALE_SHIFT) );
+     y = DFB_IFLOOR( filter.y_offset * (1 << SCALE_SHIFT) );
 
      for (i = 0; i < dh; i++) {
           int x_start;

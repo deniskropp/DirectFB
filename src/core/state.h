@@ -84,18 +84,18 @@ struct _CardState {
      FusionSkirmish          lock;         /* lock for state handling */
 };
 
-int state_init( CardState *state );
-void state_destroy( CardState *state );
+int dfb_state_init( CardState *state );
+void dfb_state_destroy( CardState *state );
 
-void state_set_destination( CardState *state, CoreSurface *destination );
-void state_set_source( CardState *state, CoreSurface *source );
+void dfb_state_set_destination( CardState *state, CoreSurface *destination );
+void dfb_state_set_source( CardState *state, CoreSurface *source );
 
-static inline int state_lock( CardState *state )
+static inline int dfb_state_lock( CardState *state )
 {
      return skirmish_prevail( &state->lock );
 }
 
-static inline int state_unlock( CardState *state )
+static inline int dfb_state_unlock( CardState *state )
 {
      return skirmish_dismiss( &state->lock );
 }

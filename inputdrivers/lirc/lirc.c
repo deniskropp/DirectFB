@@ -272,10 +272,10 @@ lircEventThread( void *driver_data )
           evt.keycode = lirc_parse_line( buf );
           if (evt.keycode != DIKC_UNKNOWN) {
                evt.type = DIET_KEYPRESS;
-               input_dispatch( data->device, &evt );
+               dfb_input_dispatch( data->device, &evt );
 
                evt.type = DIET_KEYRELEASE;
-               input_dispatch( data->device, &evt );
+               dfb_input_dispatch( data->device, &evt );
           }
      }
 

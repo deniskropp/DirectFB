@@ -63,8 +63,8 @@ void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 {
      IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
 
-     state_set_destination( &data->state, NULL );
-     state_set_source( &data->state, NULL );
+     dfb_state_set_destination( &data->state, NULL );
+     dfb_state_set_source( &data->state, NULL );
 
      if (data->surface) {
           reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
@@ -113,7 +113,7 @@ DFBResult IDirectFBSurface_Layer_Flip( IDirectFBSurface *thiz,
 
 
      if (flags & DSFLIP_WAITFORSYNC)
-          fbdev_wait_vsync();
+          dfb_fbdev_wait_vsync();
 
 
      if (flags & DSFLIP_BLIT || region || data->base.caps & DSCAPS_SUBSURFACE) {
@@ -126,13 +126,13 @@ DFBResult IDirectFBSurface_Layer_Flip( IDirectFBSurface *thiz,
                reg.y1 += data->base.area.wanted.y;
                reg.y2 += data->base.area.wanted.y;
 
-               if (rectangle_intersect_by_unsafe_region( &rect, &reg ))
-                    back_to_front_copy( data->base.surface, &rect );
+               if (dfb_rectangle_intersect_by_unsafe_region( &rect, &reg ))
+                    dfb_back_to_front_copy( data->base.surface, &rect );
           }
           else {
                DFBRectangle rect = data->base.area.current;
 
-               back_to_front_copy( data->base.surface, &rect );
+               dfb_back_to_front_copy( data->base.surface, &rect );
           }
      }
      else
@@ -174,7 +174,7 @@ DFBResult IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface     *thiz,
 
      granted = wanted;
 
-     if (!rectangle_intersect( &granted, &data->base.area.granted ))
+     if (!dfb_rectangle_intersect( &granted, &data->base.area.granted ))
           return DFB_INVAREA;
 
 
@@ -223,7 +223,8 @@ DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      if (!thiz->priv)
           thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBSurface_Layer_data) );
 
-     IDirectFBSurface_Construct( thiz, wanted, granted, layer_surface( layer ), caps );
+     IDirectFBSurface_Construct( thiz, wanted, granted,
+                                 dfb_layer_surface( layer ), caps );
 
      data = (IDirectFBSurface_Layer_data*)(thiz->priv);
      data->layer = layer;

@@ -142,11 +142,11 @@ DFBResult DirectFBInit( int *argc, char **argv[] )
 {
      DFBResult ret;
 
-     ret = core_init( argc, argv );
+     ret = dfb_core_init( argc, argv );
      if (ret)
           return ret;
 
-     ret = config_init( argc, argv );
+     ret = dfb_config_init( argc, argv );
      if (ret)
           return ret;
 
@@ -172,7 +172,7 @@ DFBResult DirectFBSetOption( char *name, char *value)
      if (!name)
           return DFB_INVARG;
 
-     ret = config_set(name, value);
+     ret = dfb_config_set(name, value);
      if (ret)
           return ret;
 
@@ -215,7 +215,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           printf( "\n" );
      }
 
-     ret = core_ref();
+     ret = dfb_core_ref();
      if (ret)
           return ret;
 
@@ -230,7 +230,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
      *interface = idirectfb_singleton;
 
-     if (!core_is_master())
+     if (!dfb_core_is_master())
           return DFB_OK;
 
 #ifdef FIXME_LATER
@@ -250,7 +250,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      layer_config.flags = DLCONF_BUFFERMODE;
 
      if (dfb_config->buffer_mode == -1) {
-          CardCapabilities caps = gfxcard_capabilities();
+          CardCapabilities caps = dfb_gfxcard_capabilities();
 
           if (caps.accel & DFXL_BLIT)
                layer_config.buffermode = DLBM_BACKVIDEO;
@@ -260,7 +260,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      else
           layer_config.buffermode = dfb_config->buffer_mode;
 
-     if (layers->SetConfiguration( layers, &layer_config )) {
+     if (dfb_layers->SetConfiguration( dfb_layers, &layer_config )) {
           ERRORMSG( "DirectFB/DirectFBCreate: "
                     "Setting desktop buffer mode failed!\n"
                     "     -> No virtual resolution support or not enough memory?\n"
@@ -268,15 +268,15 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
           layer_config.buffermode = DLBM_BACKSYSTEM;
 
-          if (layers->SetConfiguration( layers, &layer_config ))
+          if (dfb_layers->SetConfiguration( dfb_layers, &layer_config ))
                ERRORMSG( "DirectFB/DirectFBCreate: "
                          "Setting system memory desktop back buffer failed!\n"
                          "     -> Using front buffer only mode.\n" );
      }
 
      /* set desktop background */
-     layers->shared->bg.mode  = dfb_config->layer_bg_mode;
-     layers->shared->bg.color = dfb_config->layer_bg_color;
+     dfb_layers->shared->bg.mode  = dfb_config->layer_bg_mode;
+     dfb_layers->shared->bg.color = dfb_config->layer_bg_color;
 
      if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
           DFBSurfaceDescription   desc;
@@ -291,9 +291,9 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           }
 
           desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-          desc.width = layers->shared->width;
-          desc.height = layers->shared->height;
-          desc.pixelformat = layers->shared->surface->format;
+          desc.width = dfb_layers->shared->width;
+          desc.height = dfb_layers->shared->height;
+          desc.pixelformat = dfb_layers->shared->surface->format;
 
 
           ret = (*interface)->CreateSurface( *interface, &desc, &image );
@@ -320,13 +320,13 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
           image_data = (IDirectFBSurface_data*) image->priv;
 
-          layers->shared->bg.image = image_data->surface;
+          dfb_layers->shared->bg.image = image_data->surface;
      }
 
-     windowstack_repaint_all( layers->shared->windowstack );
+     dfb_windowstack_repaint_all( dfb_layers->shared->windowstack );
 
      if (dfb_config->show_cursor)
-          layer_cursor_enable( layers, 1 );
+          dfb_layer_cursor_enable( dfb_layers, 1 );
 
      return DFB_OK;
 }
@@ -402,7 +402,7 @@ void DirectFBErrorFatal( const char *msg, DFBResult error )
      DirectFBError( msg, error );
 
      /* Deinit all stuff here. */
-     core_unref();     /* for now, this dirty thing should work */
+     dfb_core_unref();     /* for now, this dirty thing should work */
 
      exit( error );
 }

@@ -289,9 +289,9 @@ static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
 
           png_read_image( png_ptr, bptrs );
 
-          scale_linear_32( (__u32*)dst, (__u32*)bptrs[0], png_width,
-                           png_height, width, height,
-                           pitch - DFB_BYTES_PER_LINE(format, width), format );
+          dfb_scale_linear_32( (__u32*)dst, (__u32*)bptrs[0], png_width,
+                               png_height, width, height,
+                               pitch - DFB_BYTES_PER_LINE(format, width), format );
 
           DFBFREE( bptrs[0] );
      }
@@ -345,7 +345,7 @@ static DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
           if (png_type & PNG_COLOR_MASK_ALPHA)
                dsc->pixelformat = DSPF_ARGB;
           else
-               dsc->pixelformat= layers->shared->surface->format;
+               dsc->pixelformat= dfb_layers->shared->surface->format;
 
           png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
           fclose( f );

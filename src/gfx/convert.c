@@ -29,14 +29,18 @@
 #include "convert.h"
 
 
-void convert_buffer( void                 *src,
-                     void                 *dst,
-                     int                   width,
-                     int                   height,
-                     int                   src_pitch,
-                     int                   dst_pitch,
-                     DFBSurfacePixelFormat src_format,
-                     DFBSurfacePixelFormat dst_format )
+/* Totally unused yet, not even declared */
+
+#if 0
+
+void dfb_convert_buffer( void                 *src,
+                         void                 *dst,
+                         int                   width,
+                         int                   height,
+                         int                   src_pitch,
+                         int                   dst_pitch,
+                         DFBSurfacePixelFormat src_format,
+                         DFBSurfacePixelFormat dst_format )
 {
      switch (src_format) {
           case DSPF_RGB15:
@@ -178,3 +182,6 @@ void convert_buffer( void                 *src,
                break;
      }
 }
+
+#endif
+

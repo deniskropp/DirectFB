@@ -79,32 +79,32 @@ struct _FBDev {
      int                      fd;            /* file descriptor for /dev/fb */
 };
 
-extern FBDev *fbdev;
+extern FBDev *dfb_fbdev;
 
-#define Sfbdev (fbdev->shared)
+#define Sfbdev (dfb_fbdev->shared)
 
 /*
  * core init function, opens /dev/fb, get fbdev screeninfo
  * disables font acceleration, reads mode list
  */
-DFBResult fbdev_initialize();
-DFBResult fbdev_join();
+DFBResult dfb_fbdev_initialize();
+DFBResult dfb_fbdev_join();
 
 /*
  * deinitializes DirectFB fbdev stuff and restores fbdev settings
  */
-DFBResult fbdev_shutdown();
-DFBResult fbdev_leave();
+DFBResult dfb_fbdev_shutdown();
+DFBResult dfb_fbdev_leave();
 
 /*
  * return when vertical retrace is reached, works with matrox kernel patch
  * only for now
  */
-DFBResult fbdev_wait_vsync();
+DFBResult dfb_fbdev_wait_vsync();
 
-VideoMode *fbdev_modes();
+VideoMode *dfb_fbdev_modes();
 
-DFBResult primarylayer_initialize();
-DFBResult primarylayer_join();
+DFBResult dfb_primarylayer_initialize();
+DFBResult dfb_primarylayer_join();
 
 #endif

@@ -144,7 +144,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
           (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
      desc->width  = data->player->GetWidth();
      desc->height = data->player->GetHeight();
-     desc->pixelformat = layers->shared->surface->format;
+     desc->pixelformat = dfb_layers->shared->surface->format;
 
      return DFB_OK;
 }
@@ -206,7 +206,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
 
 
      /* build the clip rectangle */
-     if (!rectangle_intersect( &rect, &dst_data->area.current ))
+     if (!dfb_rectangle_intersect( &rect, &dst_data->area.current ))
           return DFB_INVARG;
 
      /* put the destination clip into the state */
@@ -353,13 +353,13 @@ static void AviFile_DrawCallback( const CImage *image, void *p )
      DFBRectangle rect = { 0, 0, image->Width(), image->Height() };
 
      if (rect.w == data->dest_rect.w  &&  rect.h == data->dest_rect.h) {
-          gfxcard_blit( &rect, data->dest_rect.x,
-                        data->dest_rect.y, &data->state );
+          dfb_gfxcard_blit( &rect, data->dest_rect.x,
+                            data->dest_rect.y, &data->state );
      }
      else {
           DFBRectangle drect = data->dest_rect;
 
-          gfxcard_stretchblit( &rect, &drect, &data->state );
+          dfb_gfxcard_stretchblit( &rect, &drect, &data->state );
      }
 
      if (data->callback)

@@ -97,7 +97,7 @@ joystickEventThread (void *driver_data)
                continue;
 
           evt = joystick_handle_event(jse);
-          input_dispatch( data->device, &evt );
+          dfb_input_dispatch( data->device, &evt );
      }
 
      if (len <= 0 && errno != EINTR)

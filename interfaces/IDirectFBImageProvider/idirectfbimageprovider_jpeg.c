@@ -364,10 +364,10 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
                                  cinfo.output_width);
                     (__u32*)row_ptr += cinfo.output_width;
                }
-               scale_linear_32( dst, image_data, cinfo.output_width,
-                                cinfo.output_height, width, height,
-                                pitch - DFB_BYTES_PER_LINE(format, width),
-                                format );
+               dfb_scale_linear_32( dst, image_data, cinfo.output_width,
+                                    cinfo.output_height, width, height,
+                                    pitch - DFB_BYTES_PER_LINE(format, width),
+                                    format );
 
                free( image_data );
           }
@@ -426,7 +426,7 @@ static DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
           dsc->flags  = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->height = cinfo.output_height;
           dsc->width  = cinfo.output_width;
-          dsc->pixelformat = layers->shared->surface->format;
+          dsc->pixelformat = dfb_layers->shared->surface->format;
 
           jpeg_destroy_decompress(&cinfo);
           fclose(f);

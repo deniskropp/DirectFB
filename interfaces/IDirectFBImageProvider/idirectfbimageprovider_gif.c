@@ -245,10 +245,10 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
                     return err;
                }
 
-               scale_linear_32( dst, image_data,
-                                src_width, src_height, width, height,
-                                pitch - DFB_BYTES_PER_LINE(format, width),
-                                format );
+               dfb_scale_linear_32( dst, image_data,
+                                    src_width, src_height, width, height,
+                                    pitch - DFB_BYTES_PER_LINE(format, width),
+                                    format );
 
                destination->Unlock( destination );
                DFBFREE(image_data);
@@ -281,7 +281,7 @@ static DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
           dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->width  = width;
           dsc->height = height;
-          dsc->pixelformat = layers->shared->surface->format;
+          dsc->pixelformat = dfb_layers->shared->surface->format;
 
           fclose (f);
      }

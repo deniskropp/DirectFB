@@ -56,7 +56,7 @@ static Node * tree_node_rotate_left  (Node  *node);
 static Node * tree_node_rotate_right (Node  *node);
 
 
-Tree * tree_new (void)
+Tree * dfb_tree_new (void)
 {
      Tree *tree;
 
@@ -67,7 +67,7 @@ Tree * tree_new (void)
      return tree;
 }
 
-void tree_destroy (Tree *tree)
+void dfb_tree_destroy (Tree *tree)
 {
      unsigned int i;
 
@@ -81,9 +81,9 @@ void tree_destroy (Tree *tree)
      DFBFREE(tree);
 }
 
-void tree_insert (Tree *tree,
-                  void *key,
-                  void *value)
+void dfb_tree_insert (Tree *tree,
+                      void *key,
+                      void *value)
 {
      int inserted = 0;
      int fast_key = (unsigned int) key - 32;
@@ -97,8 +97,8 @@ void tree_insert (Tree *tree,
                                          &inserted);
 }
 
-void * tree_lookup (Tree *tree,
-                    void *key)
+void * dfb_tree_lookup (Tree *tree,
+                        void *key)
 {
      Node *node;
      int fast_key = (unsigned int) key - 32;

@@ -118,7 +118,7 @@ struct _DisplayLayer
      DisplayLayer *next;
 };
 
-extern DisplayLayer *layers;
+extern DisplayLayer *dfb_layers;
 
 /*
  * initializes the lock skirmish, registers input event listeners for
@@ -126,37 +126,37 @@ extern DisplayLayer *layers;
  * adds the layer to the layer list, if it's the first a cleanup function
  * is added to the cleanup stack that removes all layers
  */
-void layers_add( DisplayLayer *layer );
+void dfb_layers_add( DisplayLayer *layer );
 
-DFBResult layers_initialize();
-DFBResult layers_join();
+DFBResult dfb_layers_initialize();
+DFBResult dfb_layers_join();
 
-DFBResult layers_shutdown();
-DFBResult layers_leave();
+DFBResult dfb_layers_shutdown();
+DFBResult dfb_layers_leave();
 
 #ifdef FUSION_FAKE
-DFBResult layers_suspend();
-DFBResult layers_resume();
+DFBResult dfb_layers_suspend();
+DFBResult dfb_layers_resume();
 #endif
 
 /*
  * lock/unlock layer for exclusive access
  */
-DFBResult layer_lock( DisplayLayer *layer );
-DFBResult layer_unlock( DisplayLayer *layer );
+DFBResult dfb_layer_lock( DisplayLayer *layer );
+DFBResult dfb_layer_unlock( DisplayLayer *layer );
 
-DFBResult layer_enable( DisplayLayer *layer );
+DFBResult dfb_layer_enable( DisplayLayer *layer );
 
-CoreSurface *layer_surface( DisplayLayer *layer );
+CoreSurface *dfb_layer_surface( DisplayLayer *layer );
 
 /*
  * utility functions
  */
-DFBResult layer_cursor_enable( DisplayLayer *layer, int enable );
-DFBResult layer_cursor_set_shape( DisplayLayer *layer, CoreSurface *shape,
-                                  int hot_x, int hot_y );
-DFBResult layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity );
-DFBResult layer_cursor_warp( DisplayLayer *layer, int x, int y );
+DFBResult dfb_layer_cursor_enable( DisplayLayer *layer, int enable );
+DFBResult dfb_layer_cursor_set_shape( DisplayLayer *layer, CoreSurface *shape,
+                                      int hot_x, int hot_y );
+DFBResult dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity );
+DFBResult dfb_layer_cursor_warp( DisplayLayer *layer, int x, int y );
 
 
 #endif

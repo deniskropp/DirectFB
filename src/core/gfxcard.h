@@ -180,45 +180,45 @@ typedef struct _GraphicsDeviceFuncs {
 /*
  * initializes card struct, maps framebuffer, chooses accelerated driver
  */
-DFBResult gfxcard_initialize();
-DFBResult gfxcard_join();
+DFBResult dfb_gfxcard_initialize();
+DFBResult dfb_gfxcard_join();
 
-DFBResult gfxcard_shutdown();
-DFBResult gfxcard_leave();
+DFBResult dfb_gfxcard_shutdown();
+DFBResult dfb_gfxcard_leave();
 
 #ifdef FUSION_FAKE
-DFBResult gfxcard_suspend();
-DFBResult gfxcard_resume();
+DFBResult dfb_gfxcard_suspend();
+DFBResult dfb_gfxcard_resume();
 #endif
 
 /*
  * initializes card struct, maps framebuffer, chooses accelerated driver
  */
-DFBResult gfxcard_init_layers();
+DFBResult dfb_gfxcard_init_layers();
 
-int gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
-int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );
-void gfxcard_state_release( CardState *state );
+int dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
+int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );
+void dfb_gfxcard_state_release( CardState *state );
 
 /*
  * drawing functions, lock source and destination surfaces,
  * handle clipping and drawing method (hardware/software)
  */
-void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state );
+void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state );
 
-void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state );
+void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state );
 
-void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state );
+void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state );
 
-void gfxcard_filltriangle( DFBTriangle *tri, CardState *state );
+void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state );
 
-void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state );
+void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state );
 
-void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
-                          CardState *state );
+void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
+                              CardState *state );
 
-void gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
-                         CoreFont *font, CardState *state );
+void dfb_gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
+                             CoreFont *font, CardState *state );
 
 
 /*
@@ -230,9 +230,9 @@ void gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
  *
  * Returns the virtual address or NULL if mapping failed.
  */
-volatile void *gfxcard_map_mmio( GraphicsDevice *device,
-                                 unsigned int    offset,
-                                 int             length );
+volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,
+                                     unsigned int    offset,
+                                     int             length );
 
 /*
  * Graphics drivers call this function to unmap MMIO regions.
@@ -240,26 +240,26 @@ volatile void *gfxcard_map_mmio( GraphicsDevice *device,
  * addr:   Virtual address returned by gfxcard_map_mmio
  * length: Length of mapped region (-1 uses default length)
  */
-void gfxcard_unmap_mmio( GraphicsDevice *device,
-                         volatile void  *addr,
-                         int             length );
+void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
+                             volatile void  *addr,
+                             int             length );
 
-int gfxcard_get_accelerator( GraphicsDevice *device );
+int dfb_gfxcard_get_accelerator( GraphicsDevice *device );
 
-void gfxcard_sync();
-void gfxcard_flush_texture_cache();
-void gfxcard_after_set_var();
+void dfb_gfxcard_sync();
+void dfb_gfxcard_flush_texture_cache();
+void dfb_gfxcard_after_set_var();
 
-DFBResult gfxcard_adjust_heap_offset( unsigned int offset );
+DFBResult dfb_gfxcard_adjust_heap_offset( unsigned int offset );
 
-SurfaceManager   *gfxcard_surface_manager();
-CardCapabilities  gfxcard_capabilities();
+SurfaceManager   *dfb_gfxcard_surface_manager();
+CardCapabilities  dfb_gfxcard_capabilities();
 
-int            gfxcard_reserve_memory( GraphicsDevice *device,
-                                       unsigned int    size );
+int            dfb_gfxcard_reserve_memory( GraphicsDevice *device,
+                                           unsigned int    size );
 
-unsigned long  gfxcard_memory_physical( unsigned int offset );
-void          *gfxcard_memory_virtual( unsigned int offset );
-unsigned int   gfxcard_memory_length();
+unsigned long  dfb_gfxcard_memory_physical( unsigned int offset );
+void          *dfb_gfxcard_memory_virtual( unsigned int offset );
+unsigned int   dfb_gfxcard_memory_length();
 #endif
 

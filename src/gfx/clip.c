@@ -33,7 +33,7 @@
                                            ( (x) < (cx1) ? 1 : 0) )
 
 
-int clip_line( DFBRegion *clip, DFBRegion *line )
+int dfb_clip_line( DFBRegion *clip, DFBRegion *line )
 {
      unsigned char region_code1 = REGION_CODE( line->x1, line->y1,
                                                clip->x1,
@@ -109,8 +109,8 @@ int clip_line( DFBRegion *clip, DFBRegion *line )
      return 1; /* successfully clipped or clipping not neccessary */
 }
 
-unsigned int clip_rectangle( DFBRegion    *clip,
-                             DFBRectangle *rect )
+unsigned int dfb_clip_rectangle( DFBRegion    *clip,
+                                 DFBRectangle *rect )
 {
      unsigned int result = 0x1F;  /* returns bit flags for clipped edges  */
 
@@ -146,8 +146,8 @@ unsigned int clip_rectangle( DFBRegion    *clip,
      return result;
 }
 
-int clip_triangle_precheck( DFBRegion   *clip,
-                            DFBTriangle *tri )
+int dfb_clip_triangle_precheck( DFBRegion   *clip,
+                                DFBTriangle *tri )
 {
     int x, y, w, h;
   
@@ -165,8 +165,8 @@ int clip_triangle_precheck( DFBRegion   *clip,
     return 1;
 }
 
-int clip_blit_precheck( DFBRegion *clip,
-                        int w, int h, int dx, int dy )
+int dfb_clip_blit_precheck( DFBRegion *clip,
+                            int w, int h, int dx, int dy )
 {
      if (w < 1 || h < 1 ||
          (clip->x1 >= dx + w) ||
@@ -180,8 +180,8 @@ int clip_blit_precheck( DFBRegion *clip,
      return 1;
 }
 
-void clip_blit( DFBRegion *clip, DFBRectangle *srect,
-                int *dx, int *dy )
+void dfb_clip_blit( DFBRegion *clip, DFBRectangle *srect,
+                    int *dx, int *dy )
 {
      if (clip->x1 > *dx ) {
           srect->w = MIN( (clip->x2 - clip->x1) + 1,
@@ -205,12 +205,12 @@ void clip_blit( DFBRegion *clip, DFBRectangle *srect,
      }
 }
 
-void clip_stretchblit( DFBRegion *clip,
-                       DFBRectangle *srect, DFBRectangle *drect )
+void dfb_clip_stretchblit( DFBRegion *clip,
+                           DFBRectangle *srect, DFBRectangle *drect )
 {
      DFBRectangle orig_dst = *drect;
 
-     clip_rectangle( clip, drect );
+     dfb_clip_rectangle( clip, drect );
 
      if (drect->x != orig_dst.x)
           srect->x += (int)( (drect->x - orig_dst.x) *
@@ -221,9 +221,9 @@ void clip_stretchblit( DFBRegion *clip,
                              (srect->h / (float)orig_dst.h) + 0.5f );
      
      if (drect->w != orig_dst.w)
-          srect->w = ICEIL(srect->w * (drect->w / (float)orig_dst.w));
+          srect->w = DFB_ICEIL(srect->w * (drect->w / (float)orig_dst.w));
 
      if (drect->h != orig_dst.h)
-          srect->h = ICEIL(srect->h * (drect->h / (float)orig_dst.h));
+          srect->h = DFB_ICEIL(srect->h * (drect->h / (float)orig_dst.h));
 }
 

@@ -96,7 +96,7 @@ extern DFBConfig *dfb_config;
  *
  * Exits if "--help" is passed, FIXME!
  */
-DFBResult config_init( int *argc, char **argv[] );
+DFBResult dfb_config_init( int *argc, char **argv[] );
 
 /*
  * Read configuration options from file. Called by config_init().
@@ -106,12 +106,12 @@ DFBResult config_init( int *argc, char **argv[] );
  * Returns DFB_INVARG if an invalid option assignment is done,
  * e.g. "--desktop-buffer-mode=somethingwrong".
  */
-DFBResult config_read( const char *filename );
+DFBResult dfb_config_read( const char *filename );
 
 
 /*
  * Set indiviual option. Used by config_init(), config_read() and
  * DirectFBSetOption()
  */
-DFBResult config_set( const char *name, const char *value );
+DFBResult dfb_config_set( const char *name, const char *value );
 #endif

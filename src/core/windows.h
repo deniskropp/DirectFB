@@ -104,98 +104,98 @@ struct _CoreWindowStack
 /*
  * allocates a WindowStack, initializes it, registers it for input events
  */
-CoreWindowStack* windowstack_new( struct _DisplayLayer *layer );
+CoreWindowStack* dfb_windowstack_new( struct _DisplayLayer *layer );
 
-void windowstack_destroy( CoreWindowStack *stack );
+void dfb_windowstack_destroy( CoreWindowStack *stack );
 
 /*
  * inserts a window into the windowstack pointed to by window->stack,
  * this function is called by window_create.
  */
-void window_insert( CoreWindow *window, int before );
+void dfb_window_insert( CoreWindow *window, int before );
 
 /*
  * removes a window from the windowstack pointed to by window->stack,
  * this function is NOT called by window_destroy, it has to be called BEFORE.
  */
-void window_remove( CoreWindow *window );
+void dfb_window_remove( CoreWindow *window );
 
 /*
  * creates a window on a given stack
  */
-CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
-                           unsigned int width, unsigned int height,
-                           unsigned int caps );
+CoreWindow* dfb_window_create( CoreWindowStack *stack, int x, int y,
+                               unsigned int width, unsigned int height,
+                               unsigned int caps );
 
 /*
  * must be called after window_create
  */
-void window_init( CoreWindow *window );
+void dfb_window_init( CoreWindow *window );
 
 /*
  * deinitializes a window and removes it from the window stack
  */
-void window_destroy( CoreWindow *window );
+void dfb_window_destroy( CoreWindow *window );
 
 /*
  * moves a window relative to its current position
  */
-int window_move( CoreWindow *window, int deltax, int deltay );
+int dfb_window_move( CoreWindow *window, int deltax, int deltay );
 
 /*
  * resizes a window
  */
-int window_resize( CoreWindow *window,
-                   unsigned int width, unsigned int height );
+int dfb_window_resize( CoreWindow *window,
+                       unsigned int width, unsigned int height );
 
 /*
  * move a window up one step in window stack
  */
-int window_raise( CoreWindow *window );
+int dfb_window_raise( CoreWindow *window );
 
 /*
  * move a window down one step in window stack
  */
-int window_lower( CoreWindow *window );
+int dfb_window_lower( CoreWindow *window );
 
 /*
  * makes a window the first (topmost) window in the window stack
  */
-int window_raisetotop( CoreWindow *window );
+int dfb_window_raisetotop( CoreWindow *window );
 
 /*
  * makes a window the last (downmost) window in the window stack
  */
-int window_lowertobottom( CoreWindow *window );
+int dfb_window_lowertobottom( CoreWindow *window );
 
 /*
  * sets the global alpha factor of a window
  */
-int window_set_opacity( CoreWindow *window, __u8 opacity );
+int dfb_window_set_opacity( CoreWindow *window, __u8 opacity );
 
 /*
  * repaints part of a window, if region is NULL the whole window is repainted
  */
-int window_repaint( CoreWindow *window, DFBRegion *region );
+int dfb_window_repaint( CoreWindow *window, DFBRegion *region );
 
 /*
  * request a window to gain focus
  */
-int window_request_focus( CoreWindow *window );
+int dfb_window_request_focus( CoreWindow *window );
 
-DFBResult window_grab_keyboard( CoreWindow *window );
-DFBResult window_ungrab_keyboard( CoreWindow *window );
-DFBResult window_grab_pointer( CoreWindow *window );
-DFBResult window_ungrab_pointer( CoreWindow *window );
+DFBResult dfb_window_grab_keyboard( CoreWindow *window );
+DFBResult dfb_window_ungrab_keyboard( CoreWindow *window );
+DFBResult dfb_window_grab_pointer( CoreWindow *window );
+DFBResult dfb_window_ungrab_pointer( CoreWindow *window );
 
 /*
  * repaints all window on a window stack
  */
-void windowstack_repaint_all( CoreWindowStack *stack );
+void dfb_windowstack_repaint_all( CoreWindowStack *stack );
 
 /*
  * moves the cursor and handles events
  */
-void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
+void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
 
 #endif

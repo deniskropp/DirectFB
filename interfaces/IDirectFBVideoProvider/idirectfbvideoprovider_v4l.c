@@ -93,7 +93,7 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
      v4l_deinit( data );
 
      if (data->cleanup)
-          core_cleanup_remove( data->cleanup );
+          dfb_core_cleanup_remove( data->cleanup );
 
      DFBFREE( data->filename );
 
@@ -164,7 +164,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
      desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      desc->width  = 768;
      desc->height = 576;
-     desc->pixelformat = layers->shared->surface->format;
+     desc->pixelformat = dfb_layers->shared->surface->format;
 
      return DFB_OK;
 }
@@ -204,7 +204,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      else
           rect = dst_data->area.wanted;
 
-     if (!rectangle_intersect( &rect, &dst_data->area.current ))
+     if (!dfb_rectangle_intersect( &rect, &dst_data->area.current ))
           return DFB_INVAREA;
 
      data->callback = callback;
@@ -410,8 +410,8 @@ static void* FrameThread( void *ctx )
           pthread_testcancel();
 
           if (data->destination->caps & DSCAPS_INTERLACED) {
-               surface_notify_listeners( data->destination,
-                                         even ? CSNF_SET_EVEN : CSNF_SET_ODD );
+               dfb_surface_notify_listeners( data->destination,
+                                             even ? CSNF_SET_EVEN : CSNF_SET_ODD );
                even = !even;
           }
 
@@ -437,11 +437,11 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      int bpp, palette;
      SurfaceBuffer *buffer = surface->back_buffer;
 
-     surfacemanager_lock( surface->manager );
+     dfb_surfacemanager_lock( surface->manager );
 
-     ret = surfacemanager_assure_video( surface->manager, buffer );
+     ret = dfb_surfacemanager_assure_video( surface->manager, buffer );
 
-     surfacemanager_unlock( surface->manager );
+     dfb_surfacemanager_unlock( surface->manager );
 
      if (ret)
           return ret;
@@ -483,7 +483,7 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      {
           struct video_buffer b;
 
-          b.base = (void*)gfxcard_memory_physical( buffer->video.offset );
+          b.base = (void*)dfb_gfxcard_memory_physical( buffer->video.offset );
           b.width = surface->width;
           b.height = surface->height;
           b.depth = bpp;
@@ -544,7 +544,7 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      }
 
      if (!data->cleanup)
-          data->cleanup = core_cleanup_add( v4l_cleanup, data, 1 );
+          data->cleanup = dfb_core_cleanup_add( v4l_cleanup, data, 1 );
 
      if (ioctl( data->fd, VIDIOCCAPTURE, &one ) < 0) {
           DFBResult ret = errno2dfb( errno );

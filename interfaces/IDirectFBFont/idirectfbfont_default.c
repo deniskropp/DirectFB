@@ -84,15 +84,15 @@ DFBResult Construct( IDirectFBFont *thiz,
           return DFB_FAILURE;
      }
 
-     font = font_create();
+     font = dfb_font_create();
 
      font->height    = 20;
      font->ascender  = 16;
      font->descender = 4;
 
-     surface_create( 1024, font->height,
-                     dfb_config->argb_font ? DSPF_ARGB : DSPF_A8,
-                     CSP_VIDEOHIGH, DSCAPS_NONE, &surface );
+     dfb_surface_create( 1024, font->height,
+                         dfb_config->argb_font ? DSPF_ARGB : DSPF_A8,
+                         CSP_VIDEOHIGH, DSCAPS_NONE, &surface );
 
      font->rows = 1;
      font->row_width = 1024;
@@ -126,8 +126,8 @@ DFBResult Construct( IDirectFBFont *thiz,
                  if (font->maxadvance < data->width)
                       font->maxadvance = data->width;
 
-                 tree_insert (font->glyph_infos,
-                              (void *) utf8_get_char (glyphs), data);
+                 dfb_tree_insert (font->glyph_infos,
+                              (void *) dfb_utf8_get_char (glyphs), data);
 
                  start = i+1;
                  glyphs++;
@@ -139,13 +139,11 @@ DFBResult Construct( IDirectFBFont *thiz,
           /*  space  */
           data = DFBCALLOC(1, sizeof (CoreGlyphData));
           data->advance = 5;
-          tree_insert (font->glyph_infos,
-                       (void *) utf8_get_char (" "), data);
+          dfb_tree_insert (font->glyph_infos,
+                       (void *) dfb_utf8_get_char (" "), data);
      }
 
-     surfacemanager_lock( gfxcard_surface_manager() );
-     surface_software_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
-     surfacemanager_unlock( gfxcard_surface_manager() );
+     dfb_surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
 
      for (i = 0; i < font->height; i++) {
           if (dfb_config->argb_font) {
@@ -160,7 +158,7 @@ DFBResult Construct( IDirectFBFont *thiz,
          dst += pitch;
      }
 
-     surface_unlock( surface, 0 );
+     dfb_surface_unlock( surface, 0 );
 
      fclose( f );
 

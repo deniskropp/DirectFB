@@ -116,19 +116,19 @@ ps2mouse_motion_realize( PS2MouseData *data )
 {
      if (data->x_motion.axisrel) {
           gettimeofday( &data->x_motion.timestamp, NULL );
-          input_dispatch( data->device, &data->x_motion );
+          dfb_input_dispatch( data->device, &data->x_motion );
           data->x_motion.axisrel = 0;
      }
 
      if (data->y_motion.axisrel) {
           gettimeofday( &data->y_motion.timestamp, NULL );
-          input_dispatch( data->device, &data->y_motion );
+          dfb_input_dispatch( data->device, &data->y_motion );
           data->y_motion.axisrel = 0;
      }
 
      if (data->z_motion.axisrel) {
           gettimeofday( &data->z_motion.timestamp, NULL );
-          input_dispatch( data->device, &data->z_motion );
+          dfb_input_dispatch( data->device, &data->z_motion );
           data->z_motion.axisrel = 0;
      }
 }
@@ -200,17 +200,17 @@ ps2mouseEventThread( void *driver_data )
                          if ( changed_buttons & 0x01 ) {
                               evt.type = (buttons & 0x01) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.button = DIBI_LEFT;
-                              input_dispatch( data->device, &evt );
+                              dfb_input_dispatch( data->device, &evt );
                          }
                          if ( changed_buttons & 0x02 ) {
                               evt.type = (buttons & 0x02) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.button = DIBI_RIGHT;
-                              input_dispatch( data->device, &evt );
+                              dfb_input_dispatch( data->device, &evt );
                          }
                          if ( changed_buttons & 0x04 ) {
                               evt.type = (buttons & 0x04) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.button = DIBI_MIDDLE;
-                              input_dispatch( data->device, &evt );
+                              dfb_input_dispatch( data->device, &evt );
                          }
 
                          last_buttons = buttons;

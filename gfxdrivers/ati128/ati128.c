@@ -200,7 +200,7 @@ static void ati128FillBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      __u32 fts = adev->ATI_fake_texture_src + (adev->fake_texture_number & 7)*4;
      ati128_waitidle( adrv, adev );
-     *((__u32*)  gfxcard_memory_virtual(fts)  ) = adev->fake_texture_color;
+     *((__u32*)  dfb_gfxcard_memory_virtual(fts)  ) = adev->fake_texture_color;
      ati128_waitidle( adrv, adev );
 
      ati128_out32( mmio, SCALE_3D_DATATYPE, DST_32BPP );
@@ -266,7 +266,7 @@ static void ati128DrawBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
      __u32 fts = adev->ATI_fake_texture_src + (adev->fake_texture_number & 7)*4;
 
      ati128_waitidle( adrv, adev );
-     *((__u32*)  gfxcard_memory_virtual(fts)  ) = adev->fake_texture_color;
+     *((__u32*)  dfb_gfxcard_memory_virtual(fts)  ) = adev->fake_texture_color;
      ati128_waitidle( adrv, adev );
 
      ati128_out32( mmio, SCALE_3D_DATATYPE, DST_32BPP );
@@ -563,7 +563,7 @@ int
 driver_probe( GraphicsDevice *device )
 {
 #ifdef FB_ACCEL_ATI_RAGE128
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_ATI_RAGE128:          /* ATI Rage 128 */
                return 1;
      }
@@ -599,7 +599,7 @@ driver_init_driver( GraphicsDevice      *device,
 {
      ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
 
-     adrv->mmio_base = (volatile __u8*) gfxcard_map_mmio( device, 0, -1 );
+     adrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!adrv->mmio_base)
           return DFB_IO;
 
@@ -668,7 +668,7 @@ driver_init_device( GraphicsDevice     *device,
      ati128_out32( mmio, TEX_CNTL, 0x00000000 );
 
      /* reserve 32bit pixel for fake texture at end of framebuffer */
-     adev->ATI_fake_texture_src = gfxcard_reserve_memory( device, 4*32 );
+     adev->ATI_fake_texture_src = dfb_gfxcard_reserve_memory( device, 4*32 );
 
      return DFB_OK;
 }
@@ -734,6 +734,6 @@ driver_close_driver( GraphicsDevice *device,
 {
      ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
 
-     gfxcard_unmap_mmio( device, adrv->mmio_base, -1 );
+     dfb_gfxcard_unmap_mmio( device, adrv->mmio_base, -1 );
 }
 

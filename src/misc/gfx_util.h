@@ -31,11 +31,11 @@
 
 #include <asm/types.h>
 
-void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
-                     DFBSurfacePixelFormat dst_format );
+void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
+                         DFBSurfacePixelFormat dst_format );
 
-void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
-                      int dskip, DFBSurfacePixelFormat dst_format );
+void dfb_scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
+                          int dskip, DFBSurfacePixelFormat dst_format );
 
 
 #endif

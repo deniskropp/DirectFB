@@ -26,9 +26,9 @@
 
 #include <core/surfaces.h>
 
-void gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect );
-void back_to_front_copy( CoreSurface *surface, DFBRectangle *rect );
+void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect );
+void dfb_back_to_front_copy( CoreSurface *surface, DFBRectangle *rect );
 
-void sort_triangle( DFBTriangle *tri );
+void dfb_sort_triangle( DFBTriangle *tri );
 
 #endif

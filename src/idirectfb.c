@@ -101,9 +101,9 @@ void IDirectFB_Destruct( IDirectFB *thiz )
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
 
      if (data->level != DFSCL_NORMAL)
-          layer_unlock( layers );
+          dfb_layer_unlock( dfb_layers );
 
-     core_unref();     /* TODO: where should we place this call? */
+     dfb_core_unref();     /* TODO: where should we place this call? */
 
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
@@ -143,7 +143,7 @@ DFBResult IDirectFB_SetCooperativeLevel( IDirectFB *thiz,
 
      switch (level) {
           case DFSCL_NORMAL:
-               layer_unlock( layers );
+               dfb_layer_unlock( dfb_layers );
                break;
           case DFSCL_FULLSCREEN:
           case DFSCL_EXCLUSIVE:
@@ -151,7 +151,7 @@ DFBResult IDirectFB_SetCooperativeLevel( IDirectFB *thiz,
                     return DFB_ACCESSDENIED;
 
                if (data->level == DFSCL_NORMAL) {
-                    DFBResult ret = layer_lock( layers );
+                    DFBResult ret = dfb_layer_lock( dfb_layers );
                     if (ret)
                          return ret;
                }
@@ -175,12 +175,12 @@ DFBResult IDirectFB_GetCardCapabilities( IDirectFB               *thiz,
      if (!caps)
           return DFB_INVARG;
 
-     card_caps = gfxcard_capabilities();
+     card_caps = dfb_gfxcard_capabilities();
 
      caps->acceleration_mask = card_caps.accel;
      caps->blitting_flags    = card_caps.blitting;
      caps->drawing_flags     = card_caps.drawing;
-     caps->video_memory      = gfxcard_memory_length();
+     caps->video_memory      = dfb_gfxcard_memory_length();
 
      return DFB_OK;
 }
@@ -196,7 +196,7 @@ DFBResult IDirectFB_EnumVideoModes( IDirectFB            *thiz,
      if (!callbackfunc)
           return DFB_INVARG;
 
-     m = fbdev_modes();
+     m = dfb_fbdev_modes();
      while (m) {
           if (callbackfunc( m->xres, m->yres,
                             m->bpp, callbackdata ) == DFENUM_CANCEL)
@@ -252,7 +252,7 @@ DFBResult IDirectFB_SetVideoMode( IDirectFB *thiz,
                config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | /*DLCONF_BUFFERMODE |*/
                               DLCONF_PIXELFORMAT | DLCONF_OPTIONS;
 
-               ret = layers->SetConfiguration( layers, &config );
+               ret = dfb_layers->SetConfiguration( dfb_layers, &config );
                if (ret)
                     return ret;
 
@@ -274,7 +274,7 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
      unsigned int width = 256;
      unsigned int height = 256;
      int policy = CSP_VIDEOLOW;
-     DFBSurfacePixelFormat format = layers->shared->surface->format;
+     DFBSurfacePixelFormat format = dfb_layers->shared->surface->format;
      DFBSurfaceCapabilities caps = 0;
      CoreSurface *surface = NULL;
 
@@ -317,29 +317,29 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                     width  = data->primary.width;
                     height = data->primary.height;
 
-                    x = (layers->shared->width  - width)  / 2;
-                    y = (layers->shared->height - height) / 2;
+                    x = (dfb_layers->shared->width  - width)  / 2;
+                    y = (dfb_layers->shared->height - height) / 2;
 
                     if ((desc->flags & DSDESC_PIXELFORMAT)
                         && desc->pixelformat == DSPF_ARGB)
                     {
-                         window = window_create( layers->shared->windowstack,
-                                                 x, y,
-                                                 data->primary.width,
-                                                 data->primary.height,
-                                                 DWCAPS_ALPHACHANNEL | DWCAPS_DOUBLEBUFFER );
+                         window = dfb_window_create( dfb_layers->shared->windowstack,
+                                                     x, y,
+                                                     data->primary.width,
+                                                     data->primary.height,
+                                                     DWCAPS_ALPHACHANNEL | DWCAPS_DOUBLEBUFFER );
                     }
                     else
-                         window = window_create( layers->shared->windowstack,
-                                                 x, y,
-                                                 data->primary.width,
-                                                 data->primary.height,
-                                                 (caps & DSCAPS_FLIPPING) ?
-                                                 DWCAPS_DOUBLEBUFFER : 0 );
+                         window = dfb_window_create( dfb_layers->shared->windowstack,
+                                                     x, y,
+                                                     data->primary.width,
+                                                     data->primary.height,
+                                                     (caps & DSCAPS_FLIPPING) ?
+                                                     DWCAPS_DOUBLEBUFFER : 0 );
 
-                    window_init( window );
+                    dfb_window_init( window );
 
-                    window_set_opacity( window, 0xFF );
+                    dfb_window_set_opacity( window, 0xFF );
 
                     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
@@ -352,7 +352,7 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
                     return IDirectFBSurface_Layer_Construct( *interface, NULL,
-                                                             NULL, layers,
+                                                             NULL, dfb_layers,
                                                              caps );
           }
      }
@@ -384,18 +384,19 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                return DFB_INVARG;
           }
 
-          ret = surface_create_preallocated( width, height,
-                                             format, policy, caps,
-                                             desc->preallocated[0].data,
-                                             desc->preallocated[1].data,
-                                             desc->preallocated[0].pitch,
-                                             desc->preallocated[1].pitch,
-                                             &surface );
+          ret = dfb_surface_create_preallocated( width, height,
+                                                 format, policy, caps,
+                                                 desc->preallocated[0].data,
+                                                 desc->preallocated[1].data,
+                                                 desc->preallocated[0].pitch,
+                                                 desc->preallocated[1].pitch,
+                                                 &surface );
           if (ret)
                return ret;
      }
      else {
-          ret = surface_create( width, height, format, policy, caps, &surface );
+          ret = dfb_surface_create( width, height, format,
+                                    policy, caps, &surface );
           if (ret)
                return ret;
      }
@@ -409,7 +410,7 @@ DFBResult IDirectFB_EnumDisplayLayers( IDirectFB *thiz,
                                        DFBDisplayLayerCallback callbackfunc,
                                        void *callbackdata )
 {
-     DisplayLayer *dl = layers;
+     DisplayLayer *dl = dfb_layers;
 
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -429,7 +430,7 @@ DFBResult IDirectFB_EnumDisplayLayers( IDirectFB *thiz,
 DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
                                      IDirectFBDisplayLayer **layer )
 {
-     DisplayLayer *dl = layers;
+     DisplayLayer *dl = dfb_layers;
 
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -440,7 +441,7 @@ DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
           if (dl->shared->id == id) {
                DFBResult ret;
 
-               ret = layer_enable( dl );
+               ret = dfb_layer_enable( dl );
                if (ret)
                     return ret;
 
@@ -468,7 +469,7 @@ DFBResult IDirectFB_EnumInputDevices( IDirectFB              *thiz,
      context.callback     = callbackfunc;
      context.callback_ctx = callbackdata;
 
-     input_enumerate_devices( EnumInputDevices_Callback, &context );
+     dfb_input_enumerate_devices( EnumInputDevices_Callback, &context );
 
      return DFB_OK;
 }
@@ -487,7 +488,7 @@ DFBResult IDirectFB_GetInputDevice( IDirectFB             *thiz,
      context.interface = interface;
      context.id        = id;
 
-     input_enumerate_devices( GetInputDevice_Callback, &context );
+     dfb_input_enumerate_devices( GetInputDevice_Callback, &context );
 
      return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
 }
@@ -508,7 +509,7 @@ DFBResult IDirectFB_CreateInputBuffer( IDirectFB                   *thiz,
      context.caps      = caps;
      context.interface = interface;
 
-     input_enumerate_devices( CreateInputBuffer_Callback, &context );
+     dfb_input_enumerate_devices( CreateInputBuffer_Callback, &context );
 
      return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
 }
@@ -651,19 +652,19 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
 
 DFBResult IDirectFB_Suspend( IDirectFB *thiz )
 {
-     return core_suspend();
+     return dfb_core_suspend();
 }
 
 DFBResult IDirectFB_Resume( IDirectFB *thiz )
 {
-     return core_resume();
+     return dfb_core_resume();
 }
 
 DFBResult IDirectFB_WaitIdle( IDirectFB *thiz )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
-     gfxcard_sync();
+     dfb_gfxcard_sync();
 
      return DFB_OK;
 }
@@ -672,7 +673,7 @@ DFBResult IDirectFB_WaitForSync( IDirectFB *thiz )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
-     fbdev_wait_vsync();
+     dfb_fbdev_wait_vsync();
 
      return DFB_OK;
 }
@@ -729,8 +730,8 @@ EnumInputDevices_Callback( InputDevice *device, void *ctx )
 {
      EnumInputDevices_Context *context = (EnumInputDevices_Context*) ctx;
 
-     return context->callback( input_device_id( device ),
-                               input_device_description( device ),
+     return context->callback( dfb_input_device_id( device ),
+                               dfb_input_device_description( device ),
                                context->callback_ctx );
 }
 
@@ -739,7 +740,7 @@ GetInputDevice_Callback( InputDevice *device, void *ctx )
 {
      GetInputDevice_Context *context = (GetInputDevice_Context*) ctx;
 
-     if (input_device_id( device ) != context->id)
+     if (dfb_input_device_id( device ) != context->id)
           return DFENUM_OK;
 
      DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBInputDevice );
@@ -753,7 +754,7 @@ static DFBEnumerationResult
 CreateInputBuffer_Callback( InputDevice *device, void *ctx )
 {
      CreateInputBuffer_Context  *context = (CreateInputBuffer_Context*) ctx;
-     DFBInputDeviceDescription   desc    = input_device_description( device );
+     DFBInputDeviceDescription   desc    = dfb_input_device_description( device );
 
      if (! (desc.caps & context->caps))
           return DFENUM_OK;

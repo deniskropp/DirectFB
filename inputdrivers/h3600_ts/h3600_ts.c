@@ -80,7 +80,7 @@ static void* h3600tsEventThread( void *driver_data )
                     evt.axis    = DIAI_X;
                     evt.axisabs = ts_event.x;
 
-                    input_dispatch( data->device, &evt );
+                    dfb_input_dispatch( data->device, &evt );
 
                     old_x = ts_event.x;
                }
@@ -91,7 +91,7 @@ static void* h3600tsEventThread( void *driver_data )
                     evt.axis    = DIAI_Y;
                     evt.axisabs = ts_event.y;
 
-                    input_dispatch( data->device, &evt );
+                    dfb_input_dispatch( data->device, &evt );
 
                     old_y = ts_event.y;
                }
@@ -104,7 +104,7 @@ static void* h3600tsEventThread( void *driver_data )
                evt.flags   = DIEF_BUTTON;
                evt.button  = DIBI_LEFT;
 
-               input_dispatch( data->device, &evt );
+               dfb_input_dispatch( data->device, &evt );
 
                old_pressure = ts_event.pressure;
           }

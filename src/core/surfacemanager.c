@@ -106,9 +106,9 @@ static void debug_pause( SurfaceManager *manager );
 #endif
 
 
-SurfaceManager *surfacemanager_create( unsigned int length,
-                                       unsigned int byteoffset_align,
-                                       unsigned int pixelpitch_align )
+SurfaceManager *dfb_surfacemanager_create( unsigned int length,
+                                           unsigned int byteoffset_align,
+                                           unsigned int pixelpitch_align )
 {
      Chunk          *chunk;
      SurfaceManager *manager;
@@ -141,11 +141,11 @@ SurfaceManager *surfacemanager_create( unsigned int length,
 }
 
 #ifdef FUSION_FAKE
-DFBResult surfacemanager_suspend( SurfaceManager *manager )
+DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 {
      Chunk *c;
 
-     surfacemanager_lock( manager );
+     dfb_surfacemanager_lock( manager );
 
      c = manager->chunks;
      while (c) {
@@ -153,30 +153,30 @@ DFBResult surfacemanager_suspend( SurfaceManager *manager )
               c->buffer->policy != CSP_VIDEOONLY &&
               c->buffer->video.health == CSH_STORED)
           {
-               surfacemanager_assure_system( manager, c->buffer );
+               dfb_surfacemanager_assure_system( manager, c->buffer );
                c->buffer->video.health = CSH_RESTORE;
           }
 
           c = c->next;
      }
 
-     surfacemanager_unlock( manager );
+     dfb_surfacemanager_unlock( manager );
 
      return DFB_OK;
 }
 
-DFBResult surfacemanager_resume( SurfaceManager *manager )
+DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 {
      return DFB_OK;
 }
 #endif
 
-void surfacemanager_lock( SurfaceManager *manager )
+void dfb_surfacemanager_lock( SurfaceManager *manager )
 {
      skirmish_prevail( &manager->lock );
 }
 
-void surfacemanager_unlock( SurfaceManager *manager )
+void dfb_surfacemanager_unlock( SurfaceManager *manager )
 {
      skirmish_dismiss( &manager->lock );
 }
@@ -184,10 +184,10 @@ void surfacemanager_unlock( SurfaceManager *manager )
 /** public functions locking the surfacemanger theirself,
     NOT to be called between lock/unlock of surfacemanager **/
 
-void surfacemanager_add_surface( SurfaceManager *manager,
-                                 CoreSurface    *surface )
+void dfb_surfacemanager_add_surface( SurfaceManager *manager,
+                                     CoreSurface    *surface )
 {
-     surfacemanager_lock( manager );
+     dfb_surfacemanager_lock( manager );
 
      surface->manager = manager;
 
@@ -203,13 +203,13 @@ void surfacemanager_add_surface( SurfaceManager *manager,
           manager->surfaces = surface;
      }
 
-     surfacemanager_unlock( manager );
+     dfb_surfacemanager_unlock( manager );
 }
 
-void surfacemanager_remove_surface( SurfaceManager *manager,
-                                    CoreSurface    *surface )
+void dfb_surfacemanager_remove_surface( SurfaceManager *manager,
+                                        CoreSurface    *surface )
 {
-     surfacemanager_lock( manager );
+     dfb_surfacemanager_lock( manager );
 
      if (surface->prev)
           surface->prev->next = surface->next;
@@ -219,14 +219,14 @@ void surfacemanager_remove_surface( SurfaceManager *manager,
      if (surface->next)
           surface->next->prev = surface->prev;
 
-     surfacemanager_unlock( manager );
+     dfb_surfacemanager_unlock( manager );
 }
 
 
-DFBResult surfacemanager_adjust_heap_offset( SurfaceManager *manager,
-                                             unsigned int    offset )
+DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
+                                                 unsigned int    offset )
 {
-     surfacemanager_lock( manager );
+     dfb_surfacemanager_lock( manager );
 
      if (manager->byteoffset_align > 1) {
           offset += manager->byteoffset_align - 1;
@@ -256,7 +256,7 @@ DFBResult surfacemanager_adjust_heap_offset( SurfaceManager *manager,
      debug_dump( manager );
 #endif
 
-     surfacemanager_unlock( manager );
+     dfb_surfacemanager_unlock( manager );
 
      return DFB_OK;
 }
@@ -264,8 +264,8 @@ DFBResult surfacemanager_adjust_heap_offset( SurfaceManager *manager,
 /** public functions NOT locking the surfacemanger theirself,
     to be called between lock/unlock of surfacemanager **/
 
-DFBResult surfacemanager_allocate( SurfaceManager *manager,
-                                   SurfaceBuffer  *buffer )
+DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
+                                       SurfaceBuffer  *buffer )
 {
      int pitch;
      int length;
@@ -348,14 +348,14 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
           debug_pause( manager );
 #endif
 
-          surfacemanager_assure_system( manager, best_occupied->buffer );
+          dfb_surfacemanager_assure_system( manager, best_occupied->buffer );
 
           best_occupied->buffer->video.health = CSH_INVALID;
-          surface_notify_listeners( kicked, CSNF_VIDEO );
+          dfb_surface_notify_listeners( kicked, CSNF_VIDEO );
 
           best_occupied = free_chunk( best_occupied );
 
-          gfxcard_sync();
+          dfb_gfxcard_sync();
 
           DEBUGMSG( "kicked out.\n" );
 
@@ -388,8 +388,8 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
      return DFB_OK;
 }
 
-DFBResult surfacemanager_deallocate( SurfaceManager *manager,
-                                     SurfaceBuffer  *buffer )
+DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
+                                         SurfaceBuffer  *buffer )
 {
      Chunk *chunk = buffer->video.chunk;
 
@@ -407,15 +407,15 @@ DFBResult surfacemanager_deallocate( SurfaceManager *manager,
      debug_dump( manager );
 #endif
 
-     surface_notify_listeners( buffer->surface, CSNF_VIDEO );
+     dfb_surface_notify_listeners( buffer->surface, CSNF_VIDEO );
 
      DEBUGMSG( "deallocated.\n" );
 
      return DFB_OK;
 }
 
-DFBResult surfacemanager_assure_video( SurfaceManager *manager,
-                                       SurfaceBuffer  *buffer )
+DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
+                                           SurfaceBuffer  *buffer )
 {
      CoreSurface *surface = buffer->surface;
 
@@ -434,7 +434,7 @@ DFBResult surfacemanager_assure_video( SurfaceManager *manager,
           case CSH_INVALID: {
                DFBResult ret;
 
-               ret = surfacemanager_allocate( manager, buffer );
+               ret = dfb_surfacemanager_allocate( manager, buffer );
                if (ret)
                     return ret;
 
@@ -444,7 +444,7 @@ DFBResult surfacemanager_assure_video( SurfaceManager *manager,
           case CSH_RESTORE: {
                int   h   = DFB_PLANE_MULTIPLY(surface->format, surface->height);
                char *src = buffer->system.addr;
-               char *dst = gfxcard_memory_virtual( buffer->video.offset );
+               char *dst = dfb_gfxcard_memory_virtual( buffer->video.offset );
 
                if (buffer->system.health != CSH_STORED)
                     BUG( "system/video instances both not stored!" );
@@ -457,7 +457,7 @@ DFBResult surfacemanager_assure_video( SurfaceManager *manager,
                }
                buffer->video.health = CSH_STORED;
                buffer->video.chunk->tolerations = 0;
-               surface_notify_listeners( surface, CSNF_VIDEO );
+               dfb_surface_notify_listeners( surface, CSNF_VIDEO );
 
 #ifdef DFB_DEBUG
                debug_dump( manager );
@@ -471,8 +471,8 @@ DFBResult surfacemanager_assure_video( SurfaceManager *manager,
      return DFB_BUG;
 }
 
-DFBResult surfacemanager_assure_system( SurfaceManager *manager,
-                                        SurfaceBuffer  *buffer )
+DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
+                                            SurfaceBuffer  *buffer )
 {
      CoreSurface *surface = buffer->surface;
 
@@ -485,7 +485,7 @@ DFBResult surfacemanager_assure_system( SurfaceManager *manager,
           return DFB_OK;
      else if (buffer->video.health == CSH_STORED) {
           int   h   = DFB_PLANE_MULTIPLY(surface->format, surface->height);
-          char *src = gfxcard_memory_virtual( buffer->video.offset );
+          char *src = dfb_gfxcard_memory_virtual( buffer->video.offset );
           char *dst = buffer->system.addr;
 
           while (h--) {
@@ -500,7 +500,7 @@ DFBResult surfacemanager_assure_system( SurfaceManager *manager,
           debug_dump( manager );
 #endif
 
-          surface_notify_listeners( surface, CSNF_SYSTEM );
+          dfb_surface_notify_listeners( surface, CSNF_SYSTEM );
 
           return DFB_OK;
      }

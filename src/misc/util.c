@@ -25,7 +25,7 @@
 
 #include "util.h"
 
-void trim( char **s )
+void dfb_trim( char **s )
 {
      int i;
      int len = strlen( *s );
@@ -68,7 +68,7 @@ DFBResult errno2dfb( int erno )
      return DFB_FAILURE;
 }
 
-int region_intersect( DFBRegion *region,
+int dfb_region_intersect( DFBRegion *region,
                       int x1, int y1, int x2, int y2 )
 {
      if (region->x2 < x1 ||
@@ -85,7 +85,7 @@ int region_intersect( DFBRegion *region,
      return 1;
 }
 
-int region_rectangle_intersect( DFBRegion *region, DFBRectangle *rect )
+int dfb_region_rectangle_intersect( DFBRegion *region, DFBRectangle *rect )
 {
      int x2 = rect->x + rect->w - 1;
      int y2 = rect->y + rect->h - 1;
@@ -104,8 +104,8 @@ int region_rectangle_intersect( DFBRegion *region, DFBRectangle *rect )
      return 1;
 }
 
-int unsafe_region_intersect( DFBRegion *region,
-                             int x1, int y1, int x2, int y2 )
+int dfb_unsafe_region_intersect( DFBRegion *region,
+                                 int x1, int y1, int x2, int y2 )
 {
      if (region->x1 > region->x2) {
           int temp = region->x1;
@@ -119,10 +119,10 @@ int unsafe_region_intersect( DFBRegion *region,
           region->y2 = temp;
      }
 
-     return region_intersect( region, x1, y1, x2, y2 );
+     return dfb_region_intersect( region, x1, y1, x2, y2 );
 }
 
-int unsafe_region_rectangle_intersect( DFBRegion *region, DFBRectangle *rect )
+int dfb_unsafe_region_rectangle_intersect( DFBRegion *region, DFBRectangle *rect )
 {
      if (region->x1 > region->x2) {
           int temp = region->x1;
@@ -136,11 +136,11 @@ int unsafe_region_rectangle_intersect( DFBRegion *region, DFBRectangle *rect )
           region->y2 = temp;
      }
 
-     return region_rectangle_intersect( region, rect );
+     return dfb_region_rectangle_intersect( region, rect );
 }
 
-int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
-                                          DFBRegion    *region )
+int dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
+                                              DFBRegion    *region )
 {
      if (region->x1 > region->x2) {
           int temp = region->x1;
@@ -173,8 +173,8 @@ int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
      return (rectangle->w > 0  &&  rectangle->h > 0);
 }
 
-int rectangle_intersect( DFBRectangle *rectangle,
-                         DFBRectangle *clip )
+int dfb_rectangle_intersect( DFBRectangle *rectangle,
+                             DFBRectangle *clip )
 {
      DFBRegion region = { clip->x, clip->y,
                           clip->x + clip->w - 1, clip->y + clip->h - 1 };
@@ -198,8 +198,8 @@ int rectangle_intersect( DFBRectangle *rectangle,
      return (rectangle->w > 0  &&  rectangle->h > 0);
 }
 
-void rectangle_union ( DFBRectangle *rect1,
-                       DFBRectangle *rect2 )
+void dfb_rectangle_union ( DFBRectangle *rect1,
+                           DFBRectangle *rect2 )
 {
      if (!rect2->w || !rect2->h)
           return;

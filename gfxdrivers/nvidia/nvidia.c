@@ -456,7 +456,7 @@ int driver_get_abi_version()
 int driver_probe( GraphicsDevice *device )
 {
 #ifdef FB_ACCEL_NV4
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_NV4:
           case FB_ACCEL_NV5:
                return 1;
@@ -493,7 +493,7 @@ driver_init_driver( GraphicsDevice      *device,
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
 
-     nvdrv->mmio_base = (volatile __u8*) gfxcard_map_mmio( device, 0, -1 );
+     nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!nvdrv->mmio_base)
           return DFB_IO;
 
@@ -614,6 +614,6 @@ driver_close_driver( GraphicsDevice *device,
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
 
-     gfxcard_unmap_mmio( device, nvdrv->mmio_base, -1 );
+     dfb_gfxcard_unmap_mmio( device, nvdrv->mmio_base, -1 );
 }
 

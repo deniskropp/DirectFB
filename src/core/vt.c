@@ -67,27 +67,27 @@
 #endif
 
 
-VirtualTerminal *core_vt = NULL;
+VirtualTerminal *dfb_vt = NULL;
 
 static DFBResult vt_init_switching();
 static int       vt_get_fb( int vt );
 static void      vt_set_fb( int vt, int fb );
 
 DFBResult
-vt_initialize()
+dfb_vt_initialize()
 {
      DFBResult ret;
      struct vt_stat vs;
 
-     core_vt = (VirtualTerminal*)DFBCALLOC( 1, sizeof(VirtualTerminal) );
-     Score_vt = (VirtualTerminalShared*)shmalloc( sizeof(VirtualTerminal) );
+     dfb_vt = (VirtualTerminal*)DFBCALLOC( 1, sizeof(VirtualTerminal) );
+     Sdfb_vt = (VirtualTerminalShared*)shmalloc( sizeof(VirtualTerminal) );
 
      setsid();
-     core_vt->fd0 = open( "/dev/tty0", O_WRONLY );
-     if (core_vt->fd0 < 0) {
+     dfb_vt->fd0 = open( "/dev/tty0", O_WRONLY );
+     if (dfb_vt->fd0 < 0) {
           if (errno == ENOENT) {
-               core_vt->fd0 = open( "/dev/vc/0", O_RDWR );
-               if (core_vt->fd0 < 0) {
+               dfb_vt->fd0 = open( "/dev/vc/0", O_RDWR );
+               if (dfb_vt->fd0 < 0) {
                     if (errno == ENOENT) {
                          PERRORMSG( "DirectFB/core/vt: Couldn't open "
                                     "neither `/dev/tty0' nor `/dev/vc/0'!\n" );
@@ -97,8 +97,8 @@ vt_initialize()
                                     "Error opening `/dev/vc/0'!\n" );
                     }
 
-                    DFBFREE( core_vt );
-                    core_vt = NULL;
+                    DFBFREE( dfb_vt );
+                    dfb_vt = NULL;
 
                     return DFB_INIT;
                }
@@ -106,66 +106,66 @@ vt_initialize()
           else {
                PERRORMSG( "DirectFB/core/vt: Error opening `/dev/tty0'!\n");
 
-               DFBFREE( core_vt );
-               core_vt = NULL;
+               DFBFREE( dfb_vt );
+               dfb_vt = NULL;
 
                return DFB_INIT;
           }
      }
 
-     if (ioctl( core_vt->fd0, VT_GETSTATE, &vs ) < 0) {
+     if (ioctl( dfb_vt->fd0, VT_GETSTATE, &vs ) < 0) {
           PERRORMSG( "DirectFB/core/vt: VT_GETSTATE failed!\n" );
-          close( core_vt->fd0 );
-          DFBFREE( core_vt );
-          core_vt = NULL;
+          close( dfb_vt->fd0 );
+          DFBFREE( dfb_vt );
+          dfb_vt = NULL;
           return DFB_INIT;
      }
 
-     Score_vt->prev = vs.v_active;
+     Sdfb_vt->prev = vs.v_active;
 
 
      if (dfb_config->no_vt_switch) {
-          core_vt->fd   = core_vt->fd0;
-          Score_vt->num = Score_vt->prev;
+          dfb_vt->fd   = dfb_vt->fd0;
+          Sdfb_vt->num = Sdfb_vt->prev;
           
           /* move vt to framebuffer */
-          Score_vt->old_fb = vt_get_fb( Score_vt->num );
-          vt_set_fb( Score_vt->num, -1 );
+          Sdfb_vt->old_fb = vt_get_fb( Sdfb_vt->num );
+          vt_set_fb( Sdfb_vt->num, -1 );
      }
      else {
           int n;
 
-          n = ioctl( core_vt->fd0, VT_OPENQRY, &Score_vt->num );
-          if (n < 0 || Score_vt->num == -1) {
+          n = ioctl( dfb_vt->fd0, VT_OPENQRY, &Sdfb_vt->num );
+          if (n < 0 || Sdfb_vt->num == -1) {
                PERRORMSG( "DirectFB/core/vt: Cannot allocate VT!\n" );
-               close( core_vt->fd0 );
-               DFBFREE( core_vt );
-               core_vt = NULL;
+               close( dfb_vt->fd0 );
+               DFBFREE( dfb_vt );
+               dfb_vt = NULL;
                return DFB_INIT;
           }
 
           /* move vt to framebuffer */
-          Score_vt->old_fb = vt_get_fb( Score_vt->num );
-          vt_set_fb( Score_vt->num, -1 );
+          Sdfb_vt->old_fb = vt_get_fb( Sdfb_vt->num );
+          vt_set_fb( Sdfb_vt->num, -1 );
 
           /* switch to vt */
-          while (ioctl( core_vt->fd0, VT_ACTIVATE, Score_vt->num ) < 0) {
+          while (ioctl( dfb_vt->fd0, VT_ACTIVATE, Sdfb_vt->num ) < 0) {
                if (errno == EINTR)
                     continue;
                PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE failed!\n" );
-               close( core_vt->fd0 );
-               DFBFREE( core_vt );
-               core_vt = NULL;
+               close( dfb_vt->fd0 );
+               DFBFREE( dfb_vt );
+               dfb_vt = NULL;
                return DFB_INIT;
           }
 
-          while (ioctl( core_vt->fd0, VT_WAITACTIVE, Score_vt->num ) < 0) {
+          while (ioctl( dfb_vt->fd0, VT_WAITACTIVE, Sdfb_vt->num ) < 0) {
                if (errno == EINTR)
                     continue;
                PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE failed!\n" );
-               close( core_vt->fd0 );
-               DFBFREE( core_vt );
-               core_vt = NULL;
+               close( dfb_vt->fd0 );
+               DFBFREE( dfb_vt );
+               dfb_vt = NULL;
                return DFB_INIT;
           }
      }
@@ -174,15 +174,15 @@ vt_initialize()
      if (ret) {
           if (!dfb_config->no_vt_switch) {
                DEBUGMSG( "switching back...\n" );
-               ioctl( core_vt->fd0, VT_ACTIVATE, Score_vt->prev );
-               ioctl( core_vt->fd0, VT_WAITACTIVE, Score_vt->prev );
+               ioctl( dfb_vt->fd0, VT_ACTIVATE, Sdfb_vt->prev );
+               ioctl( dfb_vt->fd0, VT_WAITACTIVE, Sdfb_vt->prev );
                DEBUGMSG( "...switched back\n" );
-               ioctl( core_vt->fd0, VT_DISALLOCATE, Score_vt->num );
+               ioctl( dfb_vt->fd0, VT_DISALLOCATE, Sdfb_vt->num );
           }
 
-          close( core_vt->fd0 );
-          DFBFREE( core_vt );
-          core_vt = NULL;
+          close( dfb_vt->fd0 );
+          DFBFREE( dfb_vt );
+          dfb_vt = NULL;
           return ret;
      }
 
@@ -190,60 +190,60 @@ vt_initialize()
 }
 
 DFBResult
-vt_join()
+dfb_vt_join()
 {
      return DFB_OK;
 }
 
 DFBResult
-vt_shutdown()
+dfb_vt_shutdown()
 {
      if (dfb_config->vt_switching) {
-          if (ioctl( core_vt->fd, VT_SETMODE, &Score_vt->vt_mode ) < 0)
+          if (ioctl( dfb_vt->fd, VT_SETMODE, &Sdfb_vt->vt_mode ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
 
-          sigaction( SIG_SWITCH_FROM, &Score_vt->sig_usr1, NULL );
-          sigaction( SIG_SWITCH_TO, &Score_vt->sig_usr2, NULL );
+          sigaction( SIG_SWITCH_FROM, &Sdfb_vt->sig_usr1, NULL );
+          sigaction( SIG_SWITCH_TO, &Sdfb_vt->sig_usr2, NULL );
      }
 
      if (!dfb_config->no_vt_switch) {
           DEBUGMSG( "switching back...\n" );
 
-          if (ioctl( core_vt->fd0, VT_ACTIVATE, Score_vt->prev ) < 0)
+          if (ioctl( dfb_vt->fd0, VT_ACTIVATE, Sdfb_vt->prev ) < 0)
                PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE" );
 
-          if (ioctl( core_vt->fd0, VT_WAITACTIVE, Score_vt->prev ) < 0)
+          if (ioctl( dfb_vt->fd0, VT_WAITACTIVE, Sdfb_vt->prev ) < 0)
                PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE" );
 
           DEBUGMSG( "switched back...\n" );
 
           /* restore con2fbmap */
-          vt_set_fb( Score_vt->num, Score_vt->old_fb );
+          vt_set_fb( Sdfb_vt->num, Sdfb_vt->old_fb );
           
-          if (close( core_vt->fd ) < 0)
+          if (close( dfb_vt->fd ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to "
                           "close file descriptor of allocated VT!\n" );
 
-          if (ioctl( core_vt->fd0, VT_DISALLOCATE, Score_vt->num ) < 0)
+          if (ioctl( dfb_vt->fd0, VT_DISALLOCATE, Sdfb_vt->num ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to disallocate VT!\n" );
      }
      else {
           /* restore con2fbmap */
-          vt_set_fb( Score_vt->num, Score_vt->old_fb );
+          vt_set_fb( Sdfb_vt->num, Sdfb_vt->old_fb );
      }
 
-     if (close( core_vt->fd0 ) < 0)
+     if (close( dfb_vt->fd0 ) < 0)
           PERRORMSG( "DirectFB/core/vt: Unable to "
                      "close file descriptor of tty0!\n" );
 
-     DFBFREE( core_vt );
-     core_vt = NULL;
+     DFBFREE( dfb_vt );
+     dfb_vt = NULL;
 
      return DFB_OK;
 }
 
 DFBResult
-vt_leave()
+dfb_vt_leave()
 {
      return DFB_OK;
 }
@@ -255,17 +255,17 @@ vt_init_switching()
 
      /* FIXME: Opening the device should be moved out of this function. */
 
-     sprintf(buf, "/dev/tty%d", Score_vt->num);
-     core_vt->fd = open( buf, O_RDWR );
-     if (core_vt->fd < 0) {
+     sprintf(buf, "/dev/tty%d", Sdfb_vt->num);
+     dfb_vt->fd = open( buf, O_RDWR );
+     if (dfb_vt->fd < 0) {
           if (errno == ENOENT) {
-               sprintf(buf, "/dev/vc/%d", Score_vt->num);
-               core_vt->fd = open( buf, O_RDWR );
-               if (core_vt->fd < 0) {
+               sprintf(buf, "/dev/vc/%d", Sdfb_vt->num);
+               dfb_vt->fd = open( buf, O_RDWR );
+               if (dfb_vt->fd < 0) {
                     if (errno == ENOENT) {
                          PERRORMSG( "DirectFB/core/vt: Couldn't open "
                                     "neither `/dev/tty%d' nor `/dev/vc/%d'!\n",
-                                    Score_vt->num, Score_vt->num );
+                                    Sdfb_vt->num, Sdfb_vt->num );
                     }
                     else {
                          PERRORMSG( "DirectFB/core/vt: "

@@ -131,15 +131,15 @@ static GraphicsDevice *card = NULL;
 #define Scard (card->shared)
 
 
-static CoreModuleLoadResult  gfxcard_driver_handle_func( void *handle,
-                                                         char *name,
-                                                         void *ctx );
-static GraphicsDriverModule* gfxcard_find_driver();
+static CoreModuleLoadResult  dfb_gfxcard_driver_handle_func( void *handle,
+                                                             char *name,
+                                                             void *ctx );
+static GraphicsDriverModule* dfb_gfxcard_find_driver();
 
 
 /** public **/
 
-DFBResult gfxcard_initialize()
+DFBResult dfb_gfxcard_initialize()
 {
      DFBResult             ret;
      GraphicsDriverModule *driver;
@@ -156,7 +156,7 @@ DFBResult gfxcard_initialize()
 
 
 
-     if (ioctl( fbdev->fd, FBIOGET_FSCREENINFO, &Scard->fix ) < 0) {
+     if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &Scard->fix ) < 0) {
           PERRORMSG( "DirectFB/core/gfxcard: "
                      "Could not get fixed screen information!\n" );
           DFBFREE( card );
@@ -167,7 +167,7 @@ DFBResult gfxcard_initialize()
      card->framebuffer.length = Scard->fix.smem_len;
      card->framebuffer.base = mmap( NULL, Scard->fix.smem_len,
                                     PROT_READ | PROT_WRITE, MAP_SHARED,
-                                    fbdev->fd, 0 );
+                                    dfb_fbdev->fd, 0 );
      if ((int)(card->framebuffer.base) == -1) {
           PERRORMSG( "DirectFB/core/gfxcard: "
                      "Could not mmap the framebuffer!\n");
@@ -179,7 +179,7 @@ DFBResult gfxcard_initialize()
      memset( card->framebuffer.base, 0, Scard->fix.smem_len );
 
      /* load driver */
-     driver = gfxcard_find_driver();
+     driver = dfb_gfxcard_find_driver();
      if (driver) {
           card->driver_data = DFBCALLOC( 1,
                                          Scard->driver_info.driver_data_size );
@@ -219,7 +219,7 @@ DFBResult gfxcard_initialize()
               Scard->driver_info.version.major,
               Scard->driver_info.version.minor, Scard->driver_info.vendor );
 
-     Scard->surface_manager = surfacemanager_create( card->framebuffer.length,
+     Scard->surface_manager = dfb_surfacemanager_create( card->framebuffer.length,
                 card->shared->device_info.limits.surface_byteoffset_alignment,
                 card->shared->device_info.limits.surface_pixelpitch_alignment );
 
@@ -233,7 +233,7 @@ DFBResult gfxcard_initialize()
 }
 
 #ifndef FUSION_FAKE
-DFBResult gfxcard_join()
+DFBResult dfb_gfxcard_join()
 {
      DFBResult             ret;
      GraphicsDriverModule *driver;
@@ -245,7 +245,7 @@ DFBResult gfxcard_join()
      card->framebuffer.length = Scard->fix.smem_len;
      card->framebuffer.base = mmap( NULL, Scard->fix.smem_len,
                                     PROT_READ | PROT_WRITE, MAP_SHARED,
-                                    fbdev->fd, 0 );
+                                    dfb_fbdev->fd, 0 );
      if ((int)(card->framebuffer.base) == -1) {
           PERRORMSG( "DirectFB/core/gfxcard: "
                      "Could not mmap the framebuffer!\n");
@@ -255,7 +255,7 @@ DFBResult gfxcard_join()
      }
 
      /* load driver, FIXME: do not probe */
-     driver = gfxcard_find_driver();
+     driver = dfb_gfxcard_find_driver();
      if (driver) {
           card->driver_data = DFBCALLOC( 1,
                                          Scard->driver_info.driver_data_size );
@@ -278,9 +278,9 @@ DFBResult gfxcard_join()
 }
 #endif
 
-DFBResult gfxcard_shutdown()
+DFBResult dfb_gfxcard_shutdown()
 {
-     gfxcard_sync();
+     dfb_gfxcard_sync();
 
      if (card->driver) {
           card->driver->CloseDevice( card,
@@ -305,9 +305,9 @@ DFBResult gfxcard_shutdown()
 }
 
 #ifndef FUSION_FAKE
-DFBResult gfxcard_leave()
+DFBResult dfb_gfxcard_leave()
 {
-     gfxcard_sync();
+     dfb_gfxcard_sync();
 
      if (card->driver) {
           card->driver->CloseDriver( card, card->driver_data );
@@ -326,20 +326,20 @@ DFBResult gfxcard_leave()
 #endif
 
 #ifdef FUSION_FAKE
-DFBResult gfxcard_suspend()
+DFBResult dfb_gfxcard_suspend()
 {
-     gfxcard_sync();
+     dfb_gfxcard_sync();
 
-     return surfacemanager_suspend( card->shared->surface_manager );
+     return dfb_surfacemanager_suspend( card->shared->surface_manager );
 }
 
-DFBResult gfxcard_resume()
+DFBResult dfb_gfxcard_resume()
 {
-     return surfacemanager_resume( card->shared->surface_manager );
+     return dfb_surfacemanager_resume( card->shared->surface_manager );
 }
 #endif
 
-DFBResult gfxcard_init_layers()
+DFBResult dfb_gfxcard_init_layers()
 {
      if (card->driver && card->driver->InitLayers)
           card->driver->InitLayers( card->driver_data, card->device_data );
@@ -351,7 +351,7 @@ DFBResult gfxcard_init_layers()
  * This function returns non zero if acceleration is available
  * for the specific function using the given state.
  */
-int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
+int dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 {
      /*
       * If there's no CheckState function there's no acceleration at all.
@@ -448,7 +448,7 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
  * This function returns non zero after successful locking the surface(s)
  * for access by hardware. Propagate state changes to driver.
  */
-int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
+int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 {
      DFBSurfaceLockFlags lock_flags;
 
@@ -474,13 +474,13 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                        DSLF_READ | DSLF_WRITE : DSLF_WRITE;
 
      /* lock surface manager */
-     surfacemanager_lock( card->shared->surface_manager );
+     dfb_surfacemanager_lock( card->shared->surface_manager );
 
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
-          if (surface_hardware_lock( state->source, DSLF_READ, 1 )) {
-               surfacemanager_unlock( card->shared->surface_manager );
+          if (dfb_surface_hardware_lock( state->source, DSLF_READ, 1 )) {
+               dfb_surfacemanager_unlock( card->shared->surface_manager );
                return 0;
           }
 
@@ -490,16 +490,16 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           state->source_locked = 0;
 
      /* lock destination */
-     if (surface_hardware_lock( state->destination, lock_flags, 0 )) {
+     if (dfb_surface_hardware_lock( state->destination, lock_flags, 0 )) {
           if (state->source_locked)
-               surface_unlock( state->source, 1 );
+               dfb_surface_unlock( state->source, 1 );
 
-          surfacemanager_unlock( card->shared->surface_manager );
+          dfb_surfacemanager_unlock( card->shared->surface_manager );
           return 0;
      }
 
      /* unlock surface manager */
-     surfacemanager_unlock( card->shared->surface_manager );
+     dfb_surfacemanager_unlock( card->shared->surface_manager );
 
      /*
       * Make sure that state setting with subsequent command execution
@@ -530,14 +530,14 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 /*
  * Unlock destination and possibly the source.
  */
-void gfxcard_state_release( CardState *state )
+void dfb_gfxcard_state_release( CardState *state )
 {
      /* destination always gets locked during acquisition */
-     surface_unlock( state->destination, 0 );
+     dfb_surface_unlock( state->destination, 0 );
 
      /* if source got locked this value is true */
      if (state->source_locked)
-          surface_unlock( state->source, 1 );
+          dfb_surface_unlock( state->source, 1 );
 
      /* allow others to use the hardware */
      skirmish_dismiss( &Scard->lock );
@@ -545,21 +545,21 @@ void gfxcard_state_release( CardState *state )
 
 /** DRAWING FUNCTIONS **/
 
-void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
+void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
 {
      /* The state is locked during graphics operations. */
-     state_lock( state );
+     dfb_state_lock( state );
 
      /* Check for acceleration and setup execution. */
-     if (gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-         gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+     if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
      {
           /*
            * Either hardware has clipping support or the software clipping
            * routine returned that there's something to do.
            */
           if ((Scard->device_info.caps.flags & CCF_CLIPPING) ||
-              clip_rectangle( &state->clip, rect ))
+              dfb_clip_rectangle( &state->clip, rect ))
           {
                /*
                 * Now everything is prepared for execution of the
@@ -570,14 +570,14 @@ void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
           }
 
           /* Release after state acquisition. */
-          gfxcard_state_release( state );
+          dfb_gfxcard_state_release( state );
      }
      else {
           /*
            * Otherwise use the software clipping routine and execute the
            * software fallback if the rectangle isn't completely clipped.
            */
-          if (clip_rectangle( &state->clip, rect ) &&
+          if (dfb_clip_rectangle( &state->clip, rect ) &&
               gAquire( state, DFXL_FILLRECTANGLE ))
           {
                gFillRectangle( rect );
@@ -586,25 +586,25 @@ void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
      }
 
      /* Unlock after execution. */
-     state_unlock( state );
+     dfb_state_unlock( state );
 }
 
-void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
+void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 {
-     state_lock( state );
+     dfb_state_lock( state );
 
-     if (gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
-         gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE )) {
+     if (dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE )) {
           if (Scard->device_info.caps.flags & CCF_CLIPPING  ||
-              clip_rectangle( &state->clip, rect )) {
+              dfb_clip_rectangle( &state->clip, rect )) {
                /* FIXME: correct clipping like below */
                card->funcs.DrawRectangle( card->driver_data,
                                           card->device_data, rect );
           }
-          gfxcard_state_release( state );
+          dfb_gfxcard_state_release( state );
      }
      else {
-          unsigned int edges = clip_rectangle (&state->clip, rect);
+          unsigned int edges = dfb_clip_rectangle (&state->clip, rect);
 
           if (edges & 0xF) {
                if (gAquire( state, DFXL_DRAWLINE)) {
@@ -640,34 +640,34 @@ void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
           }
      }
 
-     state_unlock( state );
+     dfb_state_unlock( state );
 }
 
-void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
+void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
 {
      int i;
 
-     state_lock( state );
+     dfb_state_lock( state );
 
-     if (gfxcard_state_check( state, DFXL_DRAWLINE ) &&
-         gfxcard_state_acquire( state, DFXL_DRAWLINE )) {
+     if (dfb_gfxcard_state_check( state, DFXL_DRAWLINE ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_DRAWLINE )) {
           if (Scard->device_info.caps.flags & CCF_CLIPPING)
                for (i=0; i<num_lines; i++)
                     card->funcs.DrawLine( card->driver_data,
                                           card->device_data, &lines[i] );
           else
                for (i=0; i<num_lines; i++) {
-                    if (clip_line( &state->clip, &lines[i] ))
+                    if (dfb_clip_line( &state->clip, &lines[i] ))
                          card->funcs.DrawLine( card->driver_data,
                                                card->device_data, &lines[i] );
                }
 
-          gfxcard_state_release( state );
+          dfb_gfxcard_state_release( state );
      }
      else {
           if (gAquire( state, DFXL_DRAWLINE )) {
                for (i=0; i<num_lines; i++) {
-                    if (clip_line( &state->clip, &lines[i] ))
+                    if (dfb_clip_line( &state->clip, &lines[i] ))
                          gDrawLine( &lines[i] );
                }
 
@@ -675,7 +675,7 @@ void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
           }
      }
 
-     state_unlock( state );
+     dfb_state_unlock( state );
 }
 
 
@@ -777,33 +777,33 @@ void fill_tri( DFBTriangle *tri, CardState *state, int accelerated )
 }
 
 
-void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
+void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
-     state_lock( state );
+     dfb_state_lock( state );
 
      /* if hardware has clipping try directly accelerated triangle filling */
      if ((Scard->device_info.caps.flags & CCF_CLIPPING) &&
-          gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
-          gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
+          dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
+          dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
      {
           card->funcs.FillTriangle( card->driver_data,
                                     card->device_data, tri );
-          gfxcard_state_release( state );
+          dfb_gfxcard_state_release( state );
      }
      else {
           /* otherwise use the spanline rasterizer (fill_tri)
              and fill the triangle using a rectangle for each spanline */
 
-          sort_triangle( tri );
+          dfb_sort_triangle( tri );
 
           if (tri->y3 - tri->y1 > 0) {
                /* try hardware accelerated rectangle filling */
-               if (gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-                   gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+               if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+                   dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
                {
                     fill_tri( tri, state, 1 );
 
-                    gfxcard_state_release( state );
+                    dfb_gfxcard_state_release( state );
                }
                else if (gAquire( state, DFXL_FILLTRIANGLE )) {
                     fill_tri( tri, state, 0 );
@@ -813,75 +813,75 @@ void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
           }
      }
 
-     state_unlock( state );
+     dfb_state_unlock( state );
 }
 
 
-void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
+void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 {
-     state_lock( state );
+     dfb_state_lock( state );
 
-     if (!clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy )) {
+     if (!dfb_clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy )) {
           /* no work at all */
-          state_unlock( state );
+          dfb_state_unlock( state );
           return;
      }
 
-     if (gfxcard_state_check( state, DFXL_BLIT ) &&
-         gfxcard_state_acquire( state, DFXL_BLIT )) {
+     if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
           if (!(Scard->device_info.caps.flags & CCF_CLIPPING))
-               clip_blit( &state->clip, rect, &dx, &dy );
+               dfb_clip_blit( &state->clip, rect, &dx, &dy );
 
           card->funcs.Blit( card->driver_data, card->device_data,
                             rect, dx, dy );
-          gfxcard_state_release( state );
+          dfb_gfxcard_state_release( state );
      }
      else {
           if (gAquire( state, DFXL_BLIT )) {
-               clip_blit( &state->clip, rect, &dx, &dy );
+               dfb_clip_blit( &state->clip, rect, &dx, &dy );
                gBlit( rect, dx, dy );
                gRelease( state );
           }
      }
 
-     state_unlock( state );
+     dfb_state_unlock( state );
 }
 
-void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
+void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                           CardState *state )
 {
-     state_lock( state );
+     dfb_state_lock( state );
 
-     if (!clip_blit_precheck( &state->clip, drect->w, drect->h,
+     if (!dfb_clip_blit_precheck( &state->clip, drect->w, drect->h,
                               drect->x, drect->y ))
      {
-          state_unlock( state );
+          dfb_state_unlock( state );
           return;
      }
 
-     if (gfxcard_state_check( state, DFXL_STRETCHBLIT ) &&
-         gfxcard_state_acquire( state, DFXL_STRETCHBLIT )) {
+     if (dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_STRETCHBLIT )) {
           if (!(Scard->device_info.caps.flags & CCF_CLIPPING))
-               clip_stretchblit( &state->clip, srect, drect );
+               dfb_clip_stretchblit( &state->clip, srect, drect );
 
           card->funcs.StretchBlit( card->driver_data,
                                    card->device_data, srect, drect );
-          gfxcard_state_release( state );
+          dfb_gfxcard_state_release( state );
      }
      else {
           if (gAquire( state, DFXL_STRETCHBLIT )) {
-               clip_stretchblit( &state->clip, srect, drect );
+               dfb_clip_stretchblit( &state->clip, srect, drect );
                gStretchBlit( srect, drect );
                gRelease( state );
           }
      }
 
-     state_unlock( state );
+     dfb_state_unlock( state );
 }
 
 #define FONT_BLITTINGFLAGS   (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)
 
-void gfxcard_drawstring( const __u8 *text, int bytes,
+void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                          int x, int y,
                          CoreFont *font, CardState *state )
 {
@@ -899,22 +899,22 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
      int restore_blittingflags = 0;
      DFBSurfaceBlittingFlags original_blittingflags = 0;
 
-     state_lock( state );
-     font_lock( font );
+     dfb_state_lock( state );
+     dfb_font_lock( font );
 
      /* simple prechecks */
      if (y + font->height <= state->clip.y1) {
-          font_unlock( font );
-          state_unlock( state );
+          dfb_font_unlock( font );
+          dfb_state_unlock( state );
           return;
      }
      if (y > state->clip.y2) {
-          font_unlock( font );
-          state_unlock( state );
+          dfb_font_unlock( font );
+          dfb_state_unlock( state );
           return;
      }
 
-     state_set_source( state, NULL );
+     dfb_state_set_source( state, NULL );
 
      if (state->blittingflags != FONT_BLITTINGFLAGS) {
           restore_blittingflags = 1;
@@ -923,11 +923,11 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
           state->modified |= SMF_BLITTING_FLAGS;
      }
 
-     for (offset = 0; offset < bytes; offset += utf8_skip[text[offset]]) {
+     for (offset = 0; offset < bytes; offset += dfb_utf8_skip[text[offset]]) {
 
-          current = utf8_get_char (&text[offset]);
+          current = dfb_utf8_get_char (&text[offset]);
 
-          if (font_get_glyph_data (font, current, &data) == DFB_OK) {
+          if (dfb_font_get_glyph_data (font, current, &data) == DFB_OK) {
                if (prev && font->GetKerning &&
                    (* font->GetKerning) (font, prev, current, &kerning) == DFB_OK) {
                     x += kerning;
@@ -945,7 +945,7 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                     if (state->source != data->surface) {
                          switch (blit) {
                               case 1:
-                                   gfxcard_state_release( state );
+                                   dfb_gfxcard_state_release( state );
                                    break;
                               case 2:
                                    gRelease( state );
@@ -956,8 +956,8 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                          state->source = data->surface;
                          state->modified |= SMF_SOURCE;
 
-                         if (gfxcard_state_check( state, DFXL_BLIT ) &&
-                             gfxcard_state_acquire( state, DFXL_BLIT ))
+                         if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
+                             dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
                               blit = 1;
                          else if (gAquire( state, DFXL_BLIT ))
                               blit = 2;
@@ -965,18 +965,20 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                               blit = 0;
                     }
 
-                    if (clip_blit_precheck( &state->clip,
-                                            rect.w, rect.h, xx, yy )) {
+                    if (dfb_clip_blit_precheck( &state->clip,
+                                                rect.w, rect.h, xx, yy )) {
                          switch (blit) {
                               case 1:
                                    if (!hw_clipping)
-                                        clip_blit( &state->clip, &rect, &xx, &yy );
+                                        dfb_clip_blit( &state->clip,
+                                                       &rect, &xx, &yy );
                                    card->funcs.Blit( card->driver_data,
                                                      card->device_data,
                                                      &rect, xx, yy );
                                    break;
                               case 2:
-                                   clip_blit( &state->clip, &rect, &xx, &yy );
+                                   dfb_clip_blit( &state->clip,
+                                                  &rect, &xx, &yy );
                                    gBlit( &rect, xx, yy );
                                    break;
                               default:
@@ -991,7 +993,7 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
 
      switch (blit) {
           case 1:
-               gfxcard_state_release( state );
+               dfb_gfxcard_state_release( state );
                break;
           case 2:
                gRelease( state );
@@ -1008,11 +1010,11 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
           state->modified |= SMF_BLITTING_FLAGS;
      }
 
-     font_unlock( font );
-     state_unlock( state );
+     dfb_font_unlock( font );
+     dfb_state_unlock( state );
 }
 
-volatile void *gfxcard_map_mmio( GraphicsDevice *device,
+volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,
                                  unsigned int    offset,
                                  int             length )
 {
@@ -1022,7 +1024,7 @@ volatile void *gfxcard_map_mmio( GraphicsDevice *device,
           length = device->shared->fix.mmio_len;
 
      addr = mmap( NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED,
-                  fbdev->fd, device->shared->fix.smem_len + offset );
+                  dfb_fbdev->fd, device->shared->fix.smem_len + offset );
      if ((int)(addr) == -1) {
           PERRORMSG( "DirectFB/core/gfxcard: Could not mmap MMIO region "
                      "(offset %d, length %d)!\n", offset, length );
@@ -1032,7 +1034,7 @@ volatile void *gfxcard_map_mmio( GraphicsDevice *device,
      return (volatile void*) addr;
 }
 
-void gfxcard_unmap_mmio( GraphicsDevice *device,
+void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
                          volatile void  *addr,
                          int             length )
 {
@@ -1044,49 +1046,49 @@ void gfxcard_unmap_mmio( GraphicsDevice *device,
                      "at %p (length %d)!\n", addr, length );
 }
 
-int gfxcard_get_accelerator( GraphicsDevice *device )
+int dfb_gfxcard_get_accelerator( GraphicsDevice *device )
 {
      return device->shared->fix.accel;
 }
 
-void gfxcard_sync()
+void dfb_gfxcard_sync()
 {
      if (card->funcs.EngineSync)
           card->funcs.EngineSync( card->driver_data, card->device_data );
 }
 
-void gfxcard_flush_texture_cache()
+void dfb_gfxcard_flush_texture_cache()
 {
      if (card->funcs.FlushTextureCache)
           card->funcs.FlushTextureCache( card->driver_data, card->device_data );
 }
 
-void gfxcard_after_set_var()
+void dfb_gfxcard_after_set_var()
 {
      if (card->funcs.AfterSetVar)
           card->funcs.AfterSetVar( card->driver_data, card->device_data );
 }
 
 DFBResult
-gfxcard_adjust_heap_offset( unsigned int offset )
+dfb_gfxcard_adjust_heap_offset( unsigned int offset )
 {
-     return surfacemanager_adjust_heap_offset( Scard->surface_manager, offset );
+     return dfb_surfacemanager_adjust_heap_offset( Scard->surface_manager, offset );
 }
 
 SurfaceManager *
-gfxcard_surface_manager()
+dfb_gfxcard_surface_manager()
 {
      return Scard->surface_manager;
 }
 
 CardCapabilities
-gfxcard_capabilities()
+dfb_gfxcard_capabilities()
 {
      return Scard->device_info.caps;
 }
 
 int
-gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
+dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
 {
      if (device->shared->surface_manager)
           return -1;
@@ -1100,19 +1102,19 @@ gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
 }
 
 unsigned long
-gfxcard_memory_physical( unsigned int offset )
+dfb_gfxcard_memory_physical( unsigned int offset )
 {
      return Scard->fix.smem_start + offset;
 }
 
 void *
-gfxcard_memory_virtual( unsigned int offset )
+dfb_gfxcard_memory_virtual( unsigned int offset )
 {
      return (void*)((__u8*)(card->framebuffer.base) + offset);
 }
 
 unsigned int
-gfxcard_memory_length()
+dfb_gfxcard_memory_length()
 {
      return card->framebuffer.length;
 }
@@ -1127,7 +1129,7 @@ gfxcard_memory_length()
           return MODULE_REJECTED;                                     \
      }
 
-static CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
+static CoreModuleLoadResult dfb_gfxcard_driver_handle_func( void *handle,
                                                         char *name,
                                                         void *ctx )
 {
@@ -1177,7 +1179,7 @@ static CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
  * loads/probes/unloads one driver module after another until a suitable
  * driver is found and returns its symlinked functions
  */
-static GraphicsDriverModule* gfxcard_find_driver()
+static GraphicsDriverModule* dfb_gfxcard_find_driver()
 {
      GraphicsDriverModule *driver;
      char                 *driver_dir = MODULEDIR"/gfxdrivers";
@@ -1187,8 +1189,9 @@ static GraphicsDriverModule* gfxcard_find_driver()
 
      driver = DFBCALLOC( 1, sizeof(GraphicsDriverModule) );
 
-     if (core_load_modules( driver_dir,
-                            gfxcard_driver_handle_func, (void*)driver )) {
+     if (dfb_core_load_modules( driver_dir,
+                                dfb_gfxcard_driver_handle_func, (void*)driver ))
+     {
           DFBFREE( driver );
           driver = NULL;
      }

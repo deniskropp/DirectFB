@@ -76,7 +76,7 @@ static void IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
 
-     input_detach( data->device, IDirectFBInputDevice_React, data );
+     dfb_input_detach( data->device, IDirectFBInputDevice_React, data );
 
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
@@ -135,7 +135,7 @@ static DFBResult IDirectFBInputDevice_GetDescription(
      if (!desc)
           return DFB_INVARG;
 
-     *desc = input_device_description( data->device );
+     *desc = dfb_input_device_description( data->device );
 
      return DFB_OK;
 }
@@ -239,7 +239,7 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      data->ref = 1;
      data->device = device;
 
-     input_attach( data->device, IDirectFBInputDevice_React, data );
+     dfb_input_attach( data->device, IDirectFBInputDevice_React, data );
 
      thiz->AddRef = IDirectFBInputDevice_AddRef;
      thiz->Release = IDirectFBInputDevice_Release;

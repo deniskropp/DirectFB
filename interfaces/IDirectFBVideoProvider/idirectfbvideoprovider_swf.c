@@ -152,7 +152,7 @@ static void* FrameThread( void *ctx )
 
       drect = data->dest_rect;
 
-      gfxcard_stretchblit( &rect, &drect, &data->state );
+      dfb_gfxcard_stretchblit( &rect, &drect, &data->state );
       data->flashDisplay.flash_refresh = 0;
       
       if (data->callback)
@@ -243,7 +243,7 @@ static DFBResult IDirectFBVideoProvider_Swf_GetSurfaceDescription(
 
      desc->width  = (int) data->flashInfo.frameWidth / 20;
      desc->height = (int) data->flashInfo.frameHeight / 20;
-     desc->pixelformat = layers->shared->surface->format;
+     desc->pixelformat = dfb_layers->shared->surface->format;
 
      return DFB_OK;
 }
@@ -286,7 +286,7 @@ static DFBResult IDirectFBVideoProvider_Swf_PlayTo(
      data->dest_rect = rect;
 
      /* build the clip rectangle */
-     if (!rectangle_intersect( &rect, &dst_data->area.current ))
+     if (!dfb_rectangle_intersect( &rect, &dst_data->area.current ))
           return DFB_INVARG;
 
      /* put the destination clip into the state */
@@ -451,12 +451,12 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      FlashGetInfo (data->flashHandle, &data->flashInfo);
      
-     surface_create( (int) data->flashInfo.frameWidth  / 20,
-                     (int) data->flashInfo.frameHeight / 20,
-                     DSPF_RGB16,
-                     CSP_SYSTEMONLY,
-                     DSCAPS_SYSTEMONLY,
-                     &(data->source));
+     dfb_surface_create( (int) data->flashInfo.frameWidth  / 20,
+                         (int) data->flashInfo.frameHeight / 20,
+                         DSPF_RGB16,
+                         CSP_SYSTEMONLY,
+                         DSCAPS_SYSTEMONLY,
+                         &(data->source));
 
      data->flashDisplay.pixels = data->source->back_buffer->system.addr;
      data->flashDisplay.bpl    = data->source->back_buffer->system.pitch;

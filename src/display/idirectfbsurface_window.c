@@ -75,8 +75,8 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
           pthread_join( data->flip_thread, NULL );
      }
      
-     state_set_destination( &data->base.state, NULL );
-     state_set_source( &data->base.state, NULL );
+     dfb_state_set_destination( &data->base.state, NULL );
+     dfb_state_set_source( &data->base.state, NULL );
 
      if (data->base.surface) {
           reactor_detach( data->base.surface->reactor,
@@ -87,8 +87,8 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
           if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
                data->base.caps & DSCAPS_PRIMARY)
           {
-               window_remove( data->window );
-               window_destroy( data->window );
+               dfb_window_remove( data->window );
+               dfb_window_destroy( data->window );
           }
      }
 
@@ -139,7 +139,7 @@ DFBResult IDirectFBSurface_Window_Flip( IDirectFBSurface *thiz,
           reg.y1 += data->base.area.wanted.y;
           reg.y2 += data->base.area.wanted.y;
 
-          if (!unsafe_region_rectangle_intersect( &reg, &data->base.area.current ))
+          if (!dfb_unsafe_region_rectangle_intersect( &reg, &data->base.area.current ))
                return DFB_OK;
      }
      else {
@@ -157,15 +157,15 @@ DFBResult IDirectFBSurface_Window_Flip( IDirectFBSurface *thiz,
           if (rect.x == 0 && rect.y == 0 &&
               rect.w == data->window->width &&
               rect.h == data->window->height)
-               surface_flip_buffers( data->window->surface );
+               dfb_surface_flip_buffers( data->window->surface );
           else
-               back_to_front_copy( data->window->surface, &rect );
+               dfb_back_to_front_copy( data->window->surface, &rect );
      }
 
      if (flags & DSFLIP_WAITFORSYNC)
-          fbdev_wait_vsync();
+          dfb_fbdev_wait_vsync();
 
-     window_repaint( data->window, &reg );
+     dfb_window_repaint( data->window, &reg );
 
      return DFB_OK;
 }
@@ -203,7 +203,7 @@ DFBResult IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
 
      granted = wanted;
 
-     if (!rectangle_intersect( &granted, &data->base.area.granted ))
+     if (!dfb_rectangle_intersect( &granted, &data->base.area.granted ))
           return DFB_INVAREA;
 
 

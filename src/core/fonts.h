@@ -80,17 +80,17 @@ struct _CoreFont {
 /*
  * allocates and initializes a new font structure
  */
-CoreFont *font_create();
+CoreFont *dfb_font_create();
 
 /*
  * destroy all data in the CoreFont struct
  */
-void font_destroy( CoreFont *font );
+void dfb_font_destroy( CoreFont *font );
 
 /*
  * lock the font before accessing it
  */
-static inline void font_lock( CoreFont *font )
+static inline void dfb_font_lock( CoreFont *font )
 {
      pthread_mutex_lock( &font->lock );
 }
@@ -98,7 +98,7 @@ static inline void font_lock( CoreFont *font )
 /*
  * unlock the font after access
  */
-static inline void font_unlock( CoreFont *font )
+static inline void dfb_font_unlock( CoreFont *font )
 {
      pthread_mutex_unlock( &font->lock );
 }
@@ -106,8 +106,8 @@ static inline void font_unlock( CoreFont *font )
 /*
  * loads glyph data from font
  */
-DFBResult font_get_glyph_data( CoreFont        *font,
-                               unichar          glyph,
-                               CoreGlyphData  **glyph_data );
+DFBResult dfb_font_get_glyph_data( CoreFont        *font,
+                                   unichar          glyph,
+                                   CoreGlyphData  **glyph_data );
 
 #endif

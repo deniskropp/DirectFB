@@ -98,7 +98,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
 
 /** public **/
 
-DFBResult input_initialize()
+DFBResult dfb_input_initialize()
 {
      char *driver_dir = MODULEDIR"/inputdrivers";
 
@@ -108,13 +108,13 @@ DFBResult input_initialize()
      arena_add_shared_field( dfb_core->arena, inputfield, "Core/Input" );
 #endif
 
-     core_load_modules( driver_dir, input_driver_handle_func, NULL );
+     dfb_core_load_modules( driver_dir, input_driver_handle_func, NULL );
 
      return DFB_OK;
 }
 
 #ifndef FUSION_FAKE
-DFBResult input_join()
+DFBResult dfb_input_join()
 {
      int          i;
      FusionResult ret;
@@ -151,7 +151,7 @@ DFBResult input_join()
 }
 #endif
 
-DFBResult input_shutdown()
+DFBResult dfb_input_shutdown()
 {
      InputDevice *d = inputdevices;
 
@@ -177,7 +177,7 @@ DFBResult input_shutdown()
 }
 
 #ifndef FUSION_FAKE
-DFBResult input_leave()
+DFBResult dfb_input_leave()
 {
      InputDevice *d = inputdevices;
 
@@ -196,7 +196,7 @@ DFBResult input_leave()
 #endif
 
 #ifdef FUSION_FAKE
-DFBResult input_suspend()
+DFBResult dfb_input_suspend()
 {
      InputDevice *d = inputdevices;
 
@@ -209,7 +209,7 @@ DFBResult input_suspend()
      return DFB_OK;
 }
 
-DFBResult input_resume()
+DFBResult dfb_input_resume()
 {
      InputDevice *d = inputdevices;
 
@@ -232,8 +232,8 @@ DFBResult input_resume()
 }
 #endif
 
-void input_enumerate_devices( InputDeviceCallback  callback,
-                              void                *ctx )
+void dfb_input_enumerate_devices( InputDeviceCallback  callback,
+                                  void                *ctx )
 {
      InputDevice *d = inputdevices;
 
@@ -246,19 +246,19 @@ void input_enumerate_devices( InputDeviceCallback  callback,
 }
 
 void
-input_attach( InputDevice *device, React react, void *ctx )
+dfb_input_attach( InputDevice *device, React react, void *ctx )
 {
      reactor_attach( device->shared->reactor, react, ctx );
 }
 
 void
-input_detach( InputDevice *device, React react, void *ctx )
+dfb_input_detach( InputDevice *device, React react, void *ctx )
 {
      reactor_detach( device->shared->reactor, react, ctx );
 }
 
 void
-input_dispatch( InputDevice *device, DFBInputEvent *event )
+dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
 {
      switch (event->type) {
           case DIET_BUTTONPRESS:
@@ -279,12 +279,12 @@ input_dispatch( InputDevice *device, DFBInputEvent *event )
      reactor_dispatch( device->shared->reactor, event, true );
 }
 
-unsigned int input_device_id( const InputDevice *device )
+unsigned int dfb_input_device_id( const InputDevice *device )
 {
      return device->shared->id;
 }
 
-DFBInputDeviceDescription input_device_description( const InputDevice *device )
+DFBInputDeviceDescription dfb_input_device_description( const InputDevice *device )
 {
      return device->shared->device_info.desc;
 }

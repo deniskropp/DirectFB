@@ -152,7 +152,7 @@ DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
 
      font = data->font;
 
-     font_lock( font );
+     dfb_font_lock( font );
 
      if (ink_rect)
           memset (ink_rect, 0, sizeof (DFBRectangle));
@@ -162,11 +162,11 @@ DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
 
      for (offset = 0;
           offset < bytes;
-          offset += utf8_skip[(__u8)text[offset]]) {
+          offset += dfb_utf8_skip[(__u8)text[offset]]) {
 
-          current = utf8_get_char (&text[offset]);
+          current = dfb_utf8_get_char (&text[offset]);
 
-          if (font_get_glyph_data (font, current, &glyph) == DFB_OK) {
+          if (dfb_font_get_glyph_data (font, current, &glyph) == DFB_OK) {
 
                if (prev && font->GetKerning &&
                    (* font->GetKerning) (font, prev, current, &kerning) == DFB_OK) {
@@ -175,7 +175,7 @@ DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
                if (ink_rect) {
                     DFBRectangle glyph_rect = { width + glyph->left, glyph->top,
                                                 glyph->width, glyph->height };
-                    rectangle_union (ink_rect, &glyph_rect);
+                    dfb_rectangle_union (ink_rect, &glyph_rect);
                }
 
                width += glyph->advance;
@@ -199,7 +199,7 @@ DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
           ink_rect->y -= font->ascender;
      }
 
-     font_unlock( font );
+     dfb_font_unlock( font );
 
      return DFB_OK;
 }
@@ -254,7 +254,7 @@ void IDirectFBFont_Destruct( IDirectFBFont *thiz )
 {
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
 
-     font_destroy (data->font);
+     dfb_font_destroy (data->font);
 
      DFBFREE( thiz->priv );
      thiz->priv = NULL;

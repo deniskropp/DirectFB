@@ -41,7 +41,7 @@
 #include "misc/util.h"
 
 
-CoreFont *font_create()
+CoreFont *dfb_font_create()
 {
      CoreFont *font;
 
@@ -49,40 +49,40 @@ CoreFont *font_create()
 
      pthread_mutex_init( &font->lock, NULL );
 
-     font->glyph_infos = tree_new ();
+     font->glyph_infos = dfb_tree_new ();
 
      return font;
 }
 
-void font_destroy( CoreFont *font )
+void dfb_font_destroy( CoreFont *font )
 {
      int i;
 
-     font_lock( font );
+     dfb_font_lock( font );
 
-     tree_destroy (font->glyph_infos);
+     dfb_tree_destroy (font->glyph_infos);
 
      for (i = 0; i < font->rows; i++) {
-          surface_destroy (font->surfaces[i]);
+          dfb_surface_destroy (font->surfaces[i]);
      }
 
      if (font->surfaces)
           DFBFREE( font->surfaces );
 
-     font_unlock( font );
+     dfb_font_unlock( font );
 
      pthread_mutex_destroy( &font->lock );
 
      DFBFREE( font );
 }
 
-DFBResult font_get_glyph_data( CoreFont        *font,
-                               unichar          glyph,
-                               CoreGlyphData  **glyph_data )
+DFBResult dfb_font_get_glyph_data( CoreFont        *font,
+                                   unichar          glyph,
+                                   CoreGlyphData  **glyph_data )
 {
      CoreGlyphData *data;
 
-     if ((data = tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
+     if ((data = dfb_tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
           *glyph_data = data;
           return DFB_OK;
      }
@@ -109,10 +109,10 @@ DFBResult font_get_glyph_data( CoreFont        *font,
                     font->surfaces = DFBREALLOC(font->surfaces,
                                               sizeof (void *) * font->rows);
 
-                    surface_create( font->row_width, font->height,
-                                    dfb_config->argb_font ? DSPF_ARGB : DSPF_A8,
-                                    CSP_VIDEOHIGH, DSCAPS_NONE,
-                                    &font->surfaces[font->rows - 1] );
+                    dfb_surface_create( font->row_width, font->height,
+                                        dfb_config->argb_font ? DSPF_ARGB : DSPF_A8,
+                                        CSP_VIDEOHIGH, DSCAPS_NONE,
+                                        &font->surfaces[font->rows - 1] );
                }
 
                if ((* font->RenderGlyph)
@@ -122,14 +122,14 @@ DFBResult font_get_glyph_data( CoreFont        *font,
                     data->start   = font->next_x;
                     font->next_x += data->width;
 
-                    gfxcard_flush_texture_cache();
+                    dfb_gfxcard_flush_texture_cache();
                }
                else {
                     data->start = data->width = data->height = 0;
                }
           }
 
-          tree_insert (font->glyph_infos, (void *) glyph, data);
+          dfb_tree_insert (font->glyph_infos, (void *) glyph, data);
      }
 
      *glyph_data = data;

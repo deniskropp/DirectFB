@@ -61,7 +61,7 @@ driver_get_abi_version()
 int
 driver_probe( GraphicsDevice *device )
 {
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
           case 95:        // NM2200
           case 96:        // NM2230
@@ -92,7 +92,7 @@ driver_get_info( GraphicsDevice     *device,
      info->driver_data_size = sizeof (NeoDriverData);
      info->device_data_size = sizeof (NeoDeviceData);
 
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
           case 95:        // NM2200
           case 96:        // NM2230
@@ -111,11 +111,11 @@ driver_init_driver( GraphicsDevice      *device,
 {
      NeoDriverData *ndrv = (NeoDriverData*) driver_data;
 
-     ndrv->mmio_base = (volatile __u8*) gfxcard_map_mmio( device, 0, -1 );
+     ndrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!ndrv->mmio_base)
           return DFB_IO;
 
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
           case 95:        // NM2200
           case 96:        // NM2230
@@ -136,7 +136,7 @@ driver_init_device( GraphicsDevice     *device,
      /* use polling for syncing, artefacts occur otherwise */
      dfb_config->pollvsync_after = 1;
 
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
           case 95:        // NM2200
           case 96:        // NM2230
@@ -162,7 +162,7 @@ driver_close_device( GraphicsDevice *device,
 
      (void) ndev;
 
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
           case 95:        // NM2200
           case 96:        // NM2230
@@ -200,7 +200,7 @@ driver_close_driver( GraphicsDevice *device,
 {
      NeoDriverData *ndrv = (NeoDriverData*) driver_data;
 
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
           case 95:        // NM2200
           case 96:        // NM2230
@@ -209,6 +209,6 @@ driver_close_driver( GraphicsDevice *device,
                neo2200_close_driver( device, driver_data );
      }
 
-     gfxcard_unmap_mmio( device, ndrv->mmio_base, -1 );
+     dfb_gfxcard_unmap_mmio( device, ndrv->mmio_base, -1 );
 }
 

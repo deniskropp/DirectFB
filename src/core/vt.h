@@ -53,20 +53,20 @@ struct _VirtualTerminal {
                                       is disabled by "--no-vt-switch" */
 };
 
-extern VirtualTerminal   *core_vt;
+extern VirtualTerminal   *dfb_vt;
 
-#define Score_vt (core_vt->shared)
+#define Sdfb_vt (dfb_vt->shared)
 
 /*
  * allocates and switches to a new virtual terminal
  */
-DFBResult vt_initialize();
-DFBResult vt_join();
+DFBResult dfb_vt_initialize();
+DFBResult dfb_vt_join();
 
 /*
  * deallocates virtual terminal
  */
-DFBResult vt_shutdown();
-DFBResult vt_leave();
+DFBResult dfb_vt_shutdown();
+DFBResult dfb_vt_leave();
 
 #endif

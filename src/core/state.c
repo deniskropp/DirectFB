@@ -41,17 +41,17 @@ static ReactionResult source_listener     ( const void *msg_data,
 
 
 
-int state_init( CardState *state )
+int dfb_state_init( CardState *state )
 {
      return skirmish_init( &state->lock );
 }
 
-void state_destroy( CardState *state )
+void dfb_state_destroy( CardState *state )
 {
      skirmish_destroy( &state->lock );
 }
 
-void state_set_destination( CardState *state, CoreSurface *destination )
+void dfb_state_set_destination( CardState *state, CoreSurface *destination )
 {
      if (state->destination != destination) {
           if (state->destination)
@@ -67,7 +67,7 @@ void state_set_destination( CardState *state, CoreSurface *destination )
      }
 }
 
-void state_set_source( CardState *state, CoreSurface *source )
+void dfb_state_set_source( CardState *state, CoreSurface *source )
 {
      if (state->source != source) {
           if (state->source)

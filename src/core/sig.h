@@ -28,11 +28,11 @@
  * installs a signal handler for all signals
  * that would cause the program to terminate
  */
-void sig_install_handlers();
+void dfb_sig_install_handlers();
 
 /*
  * removes all installed handlers
  */
-void sig_remove_handlers();
+void dfb_sig_remove_handlers();
 
 #endif

@@ -32,40 +32,40 @@
 #define CSLF_FORCE 0x80000000
 
 
-SurfaceManager *surfacemanager_create( unsigned int length,
-                                       unsigned int byteoffset_align,
-                                       unsigned int pixelpitch_align );
+SurfaceManager *dfb_surfacemanager_create( unsigned int length,
+                                           unsigned int byteoffset_align,
+                                           unsigned int pixelpitch_align );
 
 #ifdef FUSION_FAKE
-DFBResult surfacemanager_suspend( SurfaceManager *manager );
-DFBResult surfacemanager_resume( SurfaceManager *manager );
+DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager );
+DFBResult dfb_surfacemanager_resume( SurfaceManager *manager );
 #endif
 
 /*
  * adjust the offset within the framebuffer for surface storage,
  * needs to be called after a resolution switch
  */
-DFBResult surfacemanager_adjust_heap_offset( SurfaceManager *manager,
-                                             unsigned int    offset );
+DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
+                                                 unsigned int    offset );
 
-void surfacemanager_add_surface( SurfaceManager *manager,
-                                 CoreSurface    *surface );
+void dfb_surfacemanager_add_surface( SurfaceManager *manager,
+                                     CoreSurface    *surface );
 
-void surfacemanager_remove_surface( SurfaceManager *manager,
-                                    CoreSurface    *surface );
+void dfb_surfacemanager_remove_surface( SurfaceManager *manager,
+                                        CoreSurface    *surface );
 
 /*
  * Lock/unlock the surfacemanager for usage of the functions below.
  */
-void surfacemanager_lock( SurfaceManager *manager );
-void surfacemanager_unlock( SurfaceManager *manager );
+void dfb_surfacemanager_lock( SurfaceManager *manager );
+void dfb_surfacemanager_unlock( SurfaceManager *manager );
 
 /*
  * lock a surface for access by software, returns a pointer to the
  * surface data and the line pitch a.k.a. rowstride
  */
-DFBResult surface_software_lock( CoreSurface *surface, unsigned int flags,
-                                 void **data, unsigned int *pitch, int front );
+DFBResult dfb_surface_software_lock( CoreSurface *surface, unsigned int flags,
+                                     void **data, unsigned int *pitch, int front );
 
 /*
  * lock a surface for access by hardware that enforces a video instance
@@ -73,8 +73,8 @@ DFBResult surface_software_lock( CoreSurface *surface, unsigned int flags,
  * video struct, however this function will fail if the surfacemanager could
  * not assure a video memory instance
  */
-DFBResult surface_hardware_lock( CoreSurface *surface,
-                                 unsigned int flags, int front );
+DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
+                                     unsigned int flags, int front );
 
 
 /*
@@ -82,28 +82,28 @@ DFBResult surface_hardware_lock( CoreSurface *surface,
  * after success the video health is CSH_RESTORE.
  * NOTE: this does not notify the listeners
  */
-DFBResult surfacemanager_allocate( SurfaceManager *manager,
-                                   SurfaceBuffer  *buffer );
+DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
+                                       SurfaceBuffer  *buffer );
 
 /*
  * sets the video health to CSH_INVALID frees the chunk and
  * notifies the listeners
  */
-DFBResult surfacemanager_deallocate( SurfaceManager *manager,
-                                     SurfaceBuffer  *buffer );
+DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
+                                         SurfaceBuffer  *buffer );
 
 /*
  * puts the surface into the video memory,
  * i.e. it initializees the video instance or fails
  */
-DFBResult surfacemanager_assure_video( SurfaceManager *manager,
-                                       SurfaceBuffer  *buffer );
+DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
+                                           SurfaceBuffer  *buffer );
 
 /*
  * makes sure the system instance is not outdated,
  * it fails if the policy is CSP_VIDEOONLY
  */
-DFBResult surfacemanager_assure_system( SurfaceManager *manager,
-                                        SurfaceBuffer  *buffer );
+DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
+                                            SurfaceBuffer  *buffer );
 
 #endif

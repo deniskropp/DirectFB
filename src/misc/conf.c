@@ -173,7 +173,7 @@ static void config_allocate()
      dfb_config->buffer_mode              = -1;
 }
 
-DFBResult config_set( const char *name, const char *value )
+DFBResult dfb_config_set( const char *name, const char *value )
 {
      if (strcmp (name, "fbdev" ) == 0) {
           if (value) {
@@ -389,7 +389,7 @@ DFBResult config_set( const char *name, const char *value )
      return DFB_OK;
 }
 
-DFBResult config_init( int *argc, char **argv[] )
+DFBResult dfb_config_init( int *argc, char **argv[] )
 {
      DFBResult ret;
      int i;
@@ -400,7 +400,7 @@ DFBResult config_init( int *argc, char **argv[] )
 
      config_allocate();
 
-     ret = config_read( "/etc/directfbrc" );
+     ret = dfb_config_read( "/etc/directfbrc" );
      if (ret  &&  ret != DFB_IO)
           return ret;
 
@@ -410,7 +410,7 @@ DFBResult config_init( int *argc, char **argv[] )
           filename = strcpy( filename, home );
           filename = strcat( filename, "/.directfbrc" );
 
-          ret = config_read( filename );
+          ret = dfb_config_read( filename );
 
           if (ret  &&  ret != DFB_IO)
                return ret;
@@ -436,7 +436,7 @@ DFBResult config_init( int *argc, char **argv[] )
                          if (value)
                               *value++ = '\0';
 
-                         ret = config_set( name, value );
+                         ret = dfb_config_set( name, value );
 
                          DFBFREE( name );
 
@@ -473,7 +473,7 @@ DFBResult config_init( int *argc, char **argv[] )
      return DFB_OK;
 }
 
-DFBResult config_read( const char *filename )
+DFBResult dfb_config_read( const char *filename )
 {
      DFBResult ret = DFB_OK;
      char line[400];
@@ -496,15 +496,15 @@ DFBResult config_read( const char *filename )
 
           if (value) {
                *value++ = 0;
-               trim( &value );
+               dfb_trim( &value );
           }
 
-          trim( &name );
+          dfb_trim( &name );
 
           if (!*name  ||  *name == '#')
                continue;
 
-          ret = config_set( name, value );
+          ret = dfb_config_set( name, value );
           if (ret) {
                if (ret == DFB_UNSUPPORTED)
                     ERRORMSG( "DirectFB/Config: In config file `%s': "

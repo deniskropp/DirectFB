@@ -96,8 +96,8 @@ DFBResult besEnable( DisplayLayer *layer )
                caps |= DSCAPS_INTERLACED;
 
           /* FIXME HARDCODER! */
-          ret = surface_create( layer->shared->width, layer->shared->height, DSPF_RGB16,
-                                CSP_VIDEOONLY, caps, &layer->shared->surface );
+          ret = dfb_surface_create( layer->shared->width, layer->shared->height, DSPF_RGB16,
+                                    CSP_VIDEOONLY, caps, &layer->shared->surface );
           if (ret)
                return ret;
 
@@ -112,7 +112,7 @@ DFBResult besEnable( DisplayLayer *layer )
      }
 
      if (!layer->shared->windowstack)
-          layer->shared->windowstack = windowstack_new( layer );
+          layer->shared->windowstack = dfb_windowstack_new( layer );
 
      layer->shared->enabled = 1;
 
@@ -238,7 +238,7 @@ DFBResult besSetConfiguration( DisplayLayer          *layer,
           /* FIXME: write surface management functions
                     for easier configuration changes */
 
-          ret = surface_reformat( layer->shared->surface, width, height, format );
+          ret = dfb_surface_reformat( layer->shared->surface, width, height, format );
           if (ret)
                return ret;
 
@@ -406,7 +406,7 @@ void driver_init_layers( void *drv, void *dev )
      mga_out32( mmio, 0x80, BESLUMACTL );
 
      /* gets filled by layers_add: layer->shared->id */
-     layers_add( layer );
+     dfb_layers_add( layer );
 }
 
 

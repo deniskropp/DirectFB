@@ -95,7 +95,7 @@ static void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
      while (data->devices) {
           AttachedDevice *device = (AttachedDevice*) data->devices;
 
-          input_detach( device->device, IDirectFBInputBuffer_React, data );
+          dfb_input_detach( device->device, IDirectFBInputBuffer_React, data );
           fusion_list_remove( &data->devices, data->devices );
           DFBFREE( device );
      }
@@ -301,7 +301,7 @@ DFBResult IDirectFBInputBuffer_Attach( IDirectFBInputBuffer *thiz,
      attached = DFBCALLOC( 1, sizeof(AttachedDevice) );
      attached->device = device;
 
-     input_attach( device, IDirectFBInputBuffer_React, data );
+     dfb_input_attach( device, IDirectFBInputBuffer_React, data );
 
      fusion_list_prepend( &data->devices, &attached->link );
 

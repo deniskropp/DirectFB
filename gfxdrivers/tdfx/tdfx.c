@@ -602,7 +602,7 @@ static void tdfxFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
 
      tdfx_waitfifo( tdrv, tdev, 7 );
 
-     sort_triangle( tri );
+     dfb_sort_triangle( tri );
 
      voodoo2D->srcXY = ((tri->y1 & 0x1FFF) << 16) | (tri->x1 & 0x1FFF);
      voodoo2D->command = 8 | (1 << 8) | (0xCC << 24);
@@ -630,7 +630,7 @@ static void tdfxFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
 
      tdfx_waitfifo( tdrv, tdev, 7 );
 
-     sort_triangle( tri );
+     dfb_sort_triangle( tri );
 
      voodoo3D->vertexAx = S12_4(tri->x1);
      voodoo3D->vertexAy = S12_4(tri->y1);
@@ -704,7 +704,7 @@ int
 driver_probe( GraphicsDevice *device )
 {
 #ifdef FB_ACCEL_3DFX_BANSHEE
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_3DFX_BANSHEE:          /* Banshee/Voodoo3 */
                return 1;
      }
@@ -739,7 +739,7 @@ driver_init_driver( GraphicsDevice      *device,
 {
      TDFXDriverData *tdrv = (TDFXDriverData*) driver_data;
 
-     tdrv->mmio_base = (volatile __u8*) gfxcard_map_mmio( device, 0, -1 );
+     tdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!tdrv->mmio_base)
           return DFB_IO;
 
@@ -862,6 +862,6 @@ driver_close_driver( GraphicsDevice *device,
 {
      TDFXDriverData *tdrv = (TDFXDriverData*) driver_data;
 
-     gfxcard_unmap_mmio( device, tdrv->mmio_base, -1 );
+     dfb_gfxcard_unmap_mmio( device, tdrv->mmio_base, -1 );
 }
 

@@ -52,21 +52,21 @@ struct _Node
 };
 
 
-Tree * tree_new     (void);
-void   tree_destroy (Tree *tree);
-void   tree_insert  (Tree *tree,
-                     void *key,
-                     void *value);
-void * tree_lookup  (Tree *tree,
-                     void *key);
+Tree * dfb_tree_new     (void);
+void   dfb_tree_destroy (Tree *tree);
+void   dfb_tree_insert  (Tree *tree,
+                         void *key,
+                         void *value);
+void * dfb_tree_lookup  (Tree *tree,
+                         void *key);
 
 
-static inline void tree_lock (Tree *tree)
+static inline void dfb_tree_lock (Tree *tree)
 {
      skirmish_prevail (&tree->skirmish);
 }
 
-static inline void tree_unlock (Tree *tree)
+static inline void dfb_tree_unlock (Tree *tree)
 {
      skirmish_dismiss (&tree->skirmish);
 }

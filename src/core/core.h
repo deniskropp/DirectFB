@@ -39,11 +39,11 @@ typedef enum {
 
 typedef void (*CoreCleanupFunc)(void *data, int emergency);
 
-DFBResult core_load_modules( char *module_dir,
-                             CoreModuleLoadResult (*handle_func)(void *handle,
-                                                                 char *name,
-                                                                 void *ctx),
-                             void *ctx );
+DFBResult dfb_core_load_modules( char *module_dir,
+                                 CoreModuleLoadResult (*handle_func)(void *handle,
+                                                                     char *name,
+                                                                     void *ctx),
+                                 void *ctx );
 
 
 typedef struct {
@@ -59,37 +59,37 @@ extern CoreData *dfb_core;
 /*
  * called by DirectFBInit
  */
-DFBResult core_init( int *argc, char **argv[] );
+DFBResult dfb_core_init( int *argc, char **argv[] );
 
 /*
  * is called by DirectFBCreate(), initializes all core parts
  */
-DFBResult core_ref();
+DFBResult dfb_core_ref();
 
 /*
  * is called by IDirectFB_Destruct() or by core_deinit_check() via atexit()
  * processes and clears the cleanup stack
  */
-void core_unref();
+void dfb_core_unref();
 
-int core_is_master();
+int dfb_core_is_master();
 
-DFBResult core_suspend();
-DFBResult core_resume();
+DFBResult dfb_core_suspend();
+DFBResult dfb_core_resume();
 
 /*
  * called by signal handler
  */
-void core_deinit_emergency();
+void dfb_core_deinit_emergency();
 
 /*
  * adds a function that is called by core_deinit() to the cleanup stack,
  * if emergency is not 0, the cleanup is even called by core_deinit_emergency()
  */
-CoreCleanup *core_cleanup_add( CoreCleanupFunc cleanup,
-                               void *data, int emergency );
+CoreCleanup *dfb_core_cleanup_add( CoreCleanupFunc cleanup,
+                                   void *data, int emergency );
 
-void core_cleanup_remove( CoreCleanup *cleanup );
+void dfb_core_cleanup_remove( CoreCleanup *cleanup );
 
 #endif
 

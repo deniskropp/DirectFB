@@ -187,11 +187,11 @@ dbox2remoteEventThread( void *driver_data )
           if (evt.keycode != DIKC_UNKNOWN) {
                /* set event type and dispatch*/
                evt.type = DIET_KEYPRESS;
-               input_dispatch( data->device, &evt );
+               dfb_input_dispatch( data->device, &evt );
 
                /* set event type and dispatch*/
                evt.type = DIET_KEYRELEASE;
-               input_dispatch( data->device, &evt );
+               dfb_input_dispatch( data->device, &evt );
           }
      }
 

@@ -105,13 +105,13 @@ mouse_motion_realize( SerialMouseData *data )
 {
      if (data->x_motion.axisrel) {
           gettimeofday( &data->x_motion.timestamp, NULL );
-          input_dispatch( data->device, &data->x_motion );
+          dfb_input_dispatch( data->device, &data->x_motion );
           data->x_motion.axisrel = 0;
      }
 
      if (data->y_motion.axisrel) {
           gettimeofday( &data->y_motion.timestamp, NULL );
-          input_dispatch( data->device, &data->y_motion );
+          dfb_input_dispatch( data->device, &data->y_motion );
           data->y_motion.axisrel = 0;
      }
 }
@@ -210,21 +210,21 @@ mouseEventThread_ms( void *driver_data )
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_LEFT;
-                              input_dispatch( data->device, &evt );
+                              dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x10) {
                               evt.type = (buttons & 0x10) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_RIGHT;
-                              input_dispatch( data->device, &evt );
+                              dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & MIDDLE) {
                               evt.type = (buttons & MIDDLE) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_MIDDLE;
-                              input_dispatch( data->device, &evt );
+                              dfb_input_dispatch( data->device, &evt );
                          }
 
                          last_buttons = buttons;
@@ -238,7 +238,7 @@ mouseEventThread_ms( void *driver_data )
                          DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                     evt.flags = DIEF_BUTTON;
                     evt.button = DIBI_MIDDLE;
-                    input_dispatch( data->device, &evt );
+                    dfb_input_dispatch( data->device, &evt );
                     break;
 
                default:
@@ -314,21 +314,21 @@ mouseEventThread_mousesystems( void *driver_data )
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_LEFT;
-                              input_dispatch( data->device, &evt );
+                              dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x01) {
                               evt.type = (buttons & 0x01) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_MIDDLE;
-                              input_dispatch( data->device, &evt );
+                              dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x02) {
                               evt.type = (buttons & 0x02) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_RIGHT;
-                              input_dispatch( data->device, &evt );
+                              dfb_input_dispatch( data->device, &evt );
                          }
 
                          last_buttons = buttons;

@@ -68,7 +68,7 @@
 
 /* Actually the last two fields used to be zero. Changed it to 1
    to avoid endless looping on invalid utf8 strings  */
-char utf8_skip[256] = {
+char dfb_utf8_skip[256] = {
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -79,7 +79,7 @@ char utf8_skip[256] = {
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
 };
 
-unichar utf8_get_char (const char *p)
+unichar dfb_utf8_get_char (const char *p)
 {
      unichar result;
      unsigned char c = (unsigned char) *p;

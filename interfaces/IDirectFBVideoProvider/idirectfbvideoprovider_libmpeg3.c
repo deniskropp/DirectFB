@@ -305,7 +305,7 @@ WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     surface_soft_lock( surface, DSLF_WRITE, (void**)&ptr, &pitch, 0 );
+     dfb_surface_soft_lock( surface, DSLF_WRITE, (void**)&ptr, &pitch, 0 );
 
      ptr += data->dest_clip.y * pitch +
             data->dest_clip.x * DFB_BYTES_PER_PIXEL (surface->format);
@@ -372,7 +372,7 @@ WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                break;
      }
 
-     surface_unlock( dst_data->surface, 0 );
+     dfb_surface_unlock( dst_data->surface, 0 );
 }
 
 static void
@@ -389,7 +389,7 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     surface_soft_lock( surface, DSLF_WRITE, (void**)&dst, &pitch, 0 );
+     dfb_surface_soft_lock( surface, DSLF_WRITE, (void**)&dst, &pitch, 0 );
 
      src_y  = data->yuv.lines[0];
      src_u  = data->yuv.lines[1];
@@ -492,7 +492,7 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                break;
      }
 
-     surface_unlock( dst_data->surface, 0 );
+     dfb_surface_unlock( dst_data->surface, 0 );
 }
 
 static void*
@@ -758,7 +758,7 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
      dest_rect = rect;
 
      /* build the clip rectangle */
-     if (!rectangle_intersect( &rect, &dst_data->area.current ))
+     if (!dfb_rectangle_intersect( &rect, &dst_data->area.current ))
           return DFB_INVARG;
 
      dest_clip = rect;

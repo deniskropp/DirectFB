@@ -145,30 +145,30 @@ struct _CoreSurface
  * creates a surface with specified width and height in the specified
  * pixelformat using the specified swapping policy
  */
-DFBResult surface_create( int width, int height, int format, int policy,
-                          DFBSurfaceCapabilities caps, CoreSurface **surface );
+DFBResult dfb_surface_create( int width, int height, int format, int policy,
+                              DFBSurfaceCapabilities caps, CoreSurface **surface );
 
 /*
  * like surface_create, but with preallocated system memory that won't be
  * freed on surface destruction
  */
-DFBResult surface_create_preallocated( int width, int height, int format,
-                                       int policy, DFBSurfaceCapabilities caps,
-                                       void *front_buffer, void *back_buffer,
-                                       int front_pitch, int back_pitch,
-                                       CoreSurface **surface );
+DFBResult dfb_surface_create_preallocated( int width, int height, int format,
+                                           int policy, DFBSurfaceCapabilities caps,
+                                           void *front_buffer, void *back_buffer,
+                                           int front_pitch, int back_pitch,
+                                           CoreSurface **surface );
 
 /*
  * reallocates data for the specified surface
  */
-DFBResult surface_reformat( CoreSurface *surface, int width, int height,
-                            DFBSurfacePixelFormat format );
+DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
+                                DFBSurfacePixelFormat format );
 
 /*
  * helper function
  */
-static inline void surface_notify_listeners( CoreSurface *surface,
-                                             CoreSurfaceNotificationFlags flags)
+static inline void dfb_surface_notify_listeners( CoreSurface *surface,
+                                                 CoreSurfaceNotificationFlags flags)
 {
      CoreSurfaceNotification notification;
 
@@ -182,27 +182,27 @@ static inline void surface_notify_listeners( CoreSurface *surface,
  * really swaps front_buffer and back_buffer if they have the same policy,
  * otherwise it does a back_to_front_copy, notifies listeners
  */
-void surface_flip_buffers( CoreSurface *surface );
+void dfb_surface_flip_buffers( CoreSurface *surface );
 
 /*
  * This is a utility function for easier usage.
  * It locks the surface maneger, does a surface_software_lock, and unlocks
  * the surface manager.
  */
-DFBResult surface_soft_lock( CoreSurface *surface, unsigned int flags,
-                             void **data, unsigned int *pitch, int front );
+DFBResult dfb_surface_soft_lock( CoreSurface *surface, unsigned int flags,
+                                 void **data, unsigned int *pitch, int front );
 
 /*
  * unlocks a previously locked surface
  * note that the other instance's health is CSH_RESTORE now, if it has
  * been CSH_STORED before
  */
-void surface_unlock( CoreSurface *surface, int front );
+void dfb_surface_unlock( CoreSurface *surface, int front );
 
 /*
  * destroy the surface and free its instances
  */
-void surface_destroy( CoreSurface *surface );
+void dfb_surface_destroy( CoreSurface *surface );
 
 
 #endif

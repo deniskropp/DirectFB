@@ -59,8 +59,8 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 {
      IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
 
-     state_set_destination( &data->state, NULL );
-     state_set_source( &data->state, NULL );
+     dfb_state_set_destination( &data->state, NULL );
+     dfb_state_set_source( &data->state, NULL );
 
      if (data->surface) {
           reactor_detach( data->surface->reactor,
@@ -69,10 +69,10 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
           thiz->Unlock( thiz );
 
           if (!(data->caps & DSCAPS_SUBSURFACE))
-               surface_destroy( data->surface );
+               dfb_surface_destroy( data->surface );
      }
 
-     state_destroy( &data->state );
+     dfb_state_destroy( &data->state );
 
      if (data->font)
           data->font->Release (data->font);
@@ -136,17 +136,17 @@ DFBResult IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      if (source) {
           IDirectFBSurface_data *src_data = (IDirectFBSurface_data*)source->priv;
 
-          state_set_source( &data->state, src_data->surface );
+          dfb_state_set_source( &data->state, src_data->surface );
      }
 
-     gfxcard_state_check( &data->state, DFXL_FILLRECTANGLE );
-     gfxcard_state_check( &data->state, DFXL_DRAWRECTANGLE );
-     gfxcard_state_check( &data->state, DFXL_DRAWLINE );
-     gfxcard_state_check( &data->state, DFXL_FILLTRIANGLE );
+     dfb_gfxcard_state_check( &data->state, DFXL_FILLRECTANGLE );
+     dfb_gfxcard_state_check( &data->state, DFXL_DRAWRECTANGLE );
+     dfb_gfxcard_state_check( &data->state, DFXL_DRAWLINE );
+     dfb_gfxcard_state_check( &data->state, DFXL_FILLTRIANGLE );
 
      if (source) {
-          gfxcard_state_check( &data->state, DFXL_BLIT );
-          gfxcard_state_check( &data->state, DFXL_STRETCHBLIT );
+          dfb_gfxcard_state_check( &data->state, DFXL_BLIT );
+          dfb_gfxcard_state_check( &data->state, DFXL_STRETCHBLIT );
      }
 
      *mask = data->state.accel;
@@ -221,9 +221,7 @@ DFBResult IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 
      front = (flags & DSLF_WRITE) ? 0 : 1;
 
-     surfacemanager_lock( gfxcard_surface_manager() );
-     ret = surface_software_lock( data->surface, flags, ptr, pitch, front );
-     surfacemanager_unlock( gfxcard_surface_manager() );
+     ret = dfb_surface_soft_lock( data->surface, flags, ptr, pitch, front );
      if (ret)
           return ret;
 
@@ -241,7 +239,7 @@ DFBResult IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
      INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->locked)
-          surface_unlock( data->surface, data->locked - 1 );
+          dfb_surface_unlock( data->surface, data->locked - 1 );
 
      data->locked = 0;
 
@@ -278,17 +276,17 @@ DFBResult IDirectFBSurface_Flip( IDirectFBSurface *thiz, DFBRegion *region,
                reg.y1 += data->area.wanted.y;
                reg.y2 += data->area.wanted.y;
 
-               if (rectangle_intersect_by_unsafe_region( &rect, &reg ))
-                    back_to_front_copy( data->surface, &rect );
+               if (dfb_rectangle_intersect_by_unsafe_region( &rect, &reg ))
+                    dfb_back_to_front_copy( data->surface, &rect );
           }
           else {
                DFBRectangle rect = data->area.current;
 
-               back_to_front_copy( data->surface, &rect );
+               dfb_back_to_front_copy( data->surface, &rect );
           }
      }
      else
-          surface_flip_buffers( data->surface );
+          dfb_surface_flip_buffers( data->surface );
 
      return DFB_OK;
 }
@@ -311,14 +309,14 @@ DFBResult IDirectFBSurface_SetClip( IDirectFBSurface *thiz, DFBRegion *clip )
           newclip.y1 += data->area.wanted.y;
           newclip.y2 += data->area.wanted.y;
 
-          if (!unsafe_region_rectangle_intersect( &newclip,
-                                                  &data->area.wanted ))
+          if (!dfb_unsafe_region_rectangle_intersect( &newclip,
+                                                      &data->area.wanted ))
                return DFB_INVARG;
 
           data->clip_set = 1;
           data->clip_wanted = newclip;
 
-          if (!region_rectangle_intersect( &newclip, &data->area.current ))
+          if (!dfb_region_rectangle_intersect( &newclip, &data->area.current ))
                return DFB_INVAREA;
      }
      else {
@@ -584,7 +582,7 @@ DFBResult IDirectFBSurface_FillRectangle( IDirectFBSurface *thiz,
      rect.x += data->area.wanted.x;
      rect.y += data->area.wanted.y;
 
-     gfxcard_fillrectangle( &rect, &data->state );
+     dfb_gfxcard_fillrectangle( &rect, &data->state );
 
      return DFB_OK;
 }
@@ -612,7 +610,7 @@ DFBResult IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
      line.y1 += data->area.wanted.y;
      line.y2 += data->area.wanted.y;
 
-     gfxcard_drawlines( &line, 1, &data->state );
+     dfb_gfxcard_drawlines( &line, 1, &data->state );
 
      return DFB_OK;
 }
@@ -648,7 +646,7 @@ DFBResult IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
           /* clipping may modify lines, so we copy them */
           memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
 
-     gfxcard_drawlines( local_lines, num_lines, &data->state );
+     dfb_gfxcard_drawlines( local_lines, num_lines, &data->state );
 
      return DFB_OK;
 }
@@ -676,7 +674,7 @@ DFBResult IDirectFBSurface_DrawRectangle( IDirectFBSurface *thiz,
      rect.x += data->area.wanted.x;
      rect.y += data->area.wanted.y;
 
-     gfxcard_drawrectangle( &rect, &data->state );
+     dfb_gfxcard_drawrectangle( &rect, &data->state );
 
      return DFB_OK;
 }
@@ -707,7 +705,7 @@ DFBResult IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
      tri.x3 += data->area.wanted.x;
      tri.y3 += data->area.wanted.y;
 
-     gfxcard_filltriangle( &tri, &data->state );
+     dfb_gfxcard_filltriangle( &tri, &data->state );
 
      return DFB_OK;
 }
@@ -764,7 +762,7 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
           srect.x += src_data->area.wanted.x;
           srect.y += src_data->area.wanted.y;
 
-          if (!rectangle_intersect( &srect, &src_data->area.current ))
+          if (!dfb_rectangle_intersect( &srect, &src_data->area.current ))
                return DFB_INVAREA;
 
           dx += srect.x - (sr->x + src_data->area.wanted.x);
@@ -777,7 +775,7 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
           dy += srect.y - src_data->area.wanted.y;
      }
 
-     state_set_source( &data->state, src_data->surface );
+     dfb_state_set_source( &data->state, src_data->surface );
 
      /* fetch the source color key from the source if necessary */
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
@@ -787,9 +785,9 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
           }
      }
 
-     gfxcard_blit( &srect,
-                   data->area.wanted.x + dx,
-                   data->area.wanted.y + dy, &data->state );
+     dfb_gfxcard_blit( &srect,
+                       data->area.wanted.x + dx,
+                       data->area.wanted.y + dy, &data->state );
 
      return DFB_OK;
 }
@@ -855,7 +853,7 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
      {
           DFBRectangle orig_src = srect;
 
-          if (!rectangle_intersect( &srect, &src_data->area.current ))
+          if (!dfb_rectangle_intersect( &srect, &src_data->area.current ))
                return DFB_INVAREA;
 
           if (srect.x != orig_src.x)
@@ -867,12 +865,12 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
                                  (drect.h / (float)orig_src.h) + 0.5f);
 
           if (srect.w != orig_src.w)
-               drect.w = ICEIL(drect.w * (srect.w / (float)orig_src.w));
+               drect.w = DFB_ICEIL(drect.w * (srect.w / (float)orig_src.w));
           if (srect.h != orig_src.h)
-               drect.h = ICEIL(drect.h * (srect.h / (float)orig_src.h));
+               drect.h = DFB_ICEIL(drect.h * (srect.h / (float)orig_src.h));
      }
 
-     state_set_source( &data->state, src_data->surface );
+     dfb_state_set_source( &data->state, src_data->surface );
 
      /* fetch the source color key from the source if necessary */
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
@@ -882,7 +880,7 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
           }
      }
 
-     gfxcard_stretchblit( &srect, &drect, &data->state );
+     dfb_gfxcard_stretchblit( &srect, &drect, &data->state );
 
      return DFB_OK;
 }
@@ -940,9 +938,9 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      font_data = (IDirectFBFont_data *)data->font->priv;
 
-     gfxcard_drawstring( text, bytes,
-                         data->area.wanted.x + x, data->area.wanted.y + y,
-                         font_data->font, &data->state );
+     dfb_gfxcard_drawstring( text, bytes,
+                             data->area.wanted.x + x, data->area.wanted.y + y,
+                             font_data->font, &data->state );
 
      return DFB_OK;
 }
@@ -982,7 +980,7 @@ DFBResult IDirectFBSurface_GetSubSurface( IDirectFBSurface   *thiz,
 
      granted = wanted;
 
-     if (!rectangle_intersect( &granted, &data->area.granted ))
+     if (!dfb_rectangle_intersect( &granted, &data->area.granted ))
           return DFB_INVAREA;
 
 
@@ -1062,12 +1060,12 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
           data->area.granted = data->area.wanted;
 
      data->area.current = data->area.granted;
-     rectangle_intersect( &data->area.current, &rect );
+     dfb_rectangle_intersect( &data->area.current, &rect );
 
      data->surface = surface;
 
-     state_init( &data->state );
-     state_set_destination( &data->state, surface );
+     dfb_state_init( &data->state );
+     dfb_state_set_destination( &data->state, surface );
 
      reactor_attach( surface->reactor, IDirectFBSurface_listener, thiz );
 
@@ -1141,7 +1139,7 @@ ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx )
 
           if (data->caps & DSCAPS_SUBSURFACE) {
                data->area.current = data->area.granted;
-               rectangle_intersect( &data->area.current, &rect );
+               dfb_rectangle_intersect( &data->area.current, &rect );
           }
           else
                data->area.wanted = data->area.granted = data->area.current=rect;

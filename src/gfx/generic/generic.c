@@ -2281,12 +2281,12 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                return 0;
      }
 
-     surfacemanager_lock( gfxcard_surface_manager() );
+     dfb_surfacemanager_lock( dfb_gfxcard_surface_manager() );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          if (surface_software_lock( state->source,
-                                     DSLF_READ, &src_org, &src_pitch, 1 )) {
-               surfacemanager_unlock( gfxcard_surface_manager() );
+          if (dfb_surface_software_lock( state->source,
+                                         DSLF_READ, &src_org, &src_pitch, 1 )) {
+               dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
                pthread_mutex_unlock( &generic_lock );
                return 0;
           }
@@ -2296,18 +2296,18 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      else
           state->source_locked = 0;
 
-     if (surface_software_lock( state->destination,
-                                lock_flags, &dst_org, &dst_pitch, 0 )) {
+     if (dfb_surface_software_lock( state->destination,
+                                    lock_flags, &dst_org, &dst_pitch, 0 )) {
 
           if (DFB_BLITTING_FUNCTION( accel ))
-                    surface_unlock( state->source, 1 );
+                    dfb_surface_unlock( state->source, 1 );
 
-          surfacemanager_unlock( gfxcard_surface_manager() );
+          dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
           pthread_mutex_unlock( &generic_lock );
           return 0;
      }
 
-     surfacemanager_unlock( gfxcard_surface_manager() );
+     dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -2577,10 +2577,10 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
 void gRelease( CardState *state )
 {
-     surface_unlock( state->destination, 0 );
+     dfb_surface_unlock( state->destination, 0 );
 
      if (state->source_locked)
-          surface_unlock( state->source, 1 );
+          dfb_surface_unlock( state->source, 1 );
 
      pthread_mutex_unlock( &generic_lock );
 }

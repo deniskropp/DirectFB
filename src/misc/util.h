@@ -38,7 +38,7 @@
 
 #define SIGN(x)  ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
 
-void trim( char **s );
+void dfb_trim( char **s );
 
 
 /*
@@ -46,27 +46,27 @@ void trim( char **s );
  */
 DFBResult errno2dfb( int erno );
 
-int region_intersect( DFBRegion *region,
-                      int x1, int y1, int x2, int y2 );
+int dfb_region_intersect( DFBRegion *region,
+                          int x1, int y1, int x2, int y2 );
 
-int region_rectangle_intersect( DFBRegion    *region,
-                                DFBRectangle *rect );
+int dfb_region_rectangle_intersect( DFBRegion    *region,
+                                    DFBRectangle *rect );
 
-int unsafe_region_intersect( DFBRegion *region,
-                             int x1, int y1, int x2, int y2 );
+int dfb_unsafe_region_intersect( DFBRegion *region,
+                                 int x1, int y1, int x2, int y2 );
 
-int unsafe_region_rectangle_intersect( DFBRegion    *region,
-                                       DFBRectangle *rect );
+int dfb_unsafe_region_rectangle_intersect( DFBRegion    *region,
+                                           DFBRectangle *rect );
 
-int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
-                                          DFBRegion    *region );
+int dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
+                                              DFBRegion    *region );
 
-int rectangle_intersect( DFBRectangle *rectangle,
-                         DFBRectangle *clip );
+int dfb_rectangle_intersect( DFBRectangle *rectangle,
+                             DFBRectangle *clip );
 
 /* returns the result in the first rectangle */
-void rectangle_union ( DFBRectangle *rect1,
-                       DFBRectangle *rect2 );
+void dfb_rectangle_union ( DFBRectangle *rect1,
+                           DFBRectangle *rect2 );
 
 /* floor and ceil implementation to get rid of libm */
 
@@ -79,7 +79,7 @@ void rectangle_union ( DFBRectangle *rect1,
  This floor operation is done by "(iround(f + .5) + iround(f - .5)) >> 1",
  but uses some IEEE specific tricks for better speed.
 */
-static inline int IFLOOR(float f)
+static inline int DFB_IFLOOR(float f)
 {
         int ai, bi;
         double af, bf;
@@ -113,7 +113,7 @@ static inline int IFLOOR(float f)
  This ceil operation is done by "(iround(f + .5) + iround(f - .5) + 1) >> 1",
  but uses some IEEE specific tricks for better speed.
 */
-static inline int ICEIL(float f)
+static inline int DFB_ICEIL(float f)
 {
         int ai, bi;
         double af, bf;

@@ -80,32 +80,32 @@ typedef struct {
 /*
  * core init function, probes all input drivers and creates devices of them
  */
-DFBResult input_initialize();
-DFBResult input_join();
+DFBResult dfb_input_initialize();
+DFBResult dfb_input_join();
 
 /*
  * cancels input threads, deinitializes drivers, deallocates device structs
  */
-DFBResult input_shutdown();
-DFBResult input_leave();
+DFBResult dfb_input_shutdown();
+DFBResult dfb_input_leave();
 
 #ifdef FUSION_FAKE
-DFBResult input_suspend();
-DFBResult input_resume();
+DFBResult dfb_input_suspend();
+DFBResult dfb_input_resume();
 #endif
 
 typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,
                                                      void        *ctx);
 
-void input_enumerate_devices( InputDeviceCallback  callback,
-                              void                *ctx );
+void dfb_input_enumerate_devices( InputDeviceCallback  callback,
+                                  void                *ctx );
 
-void input_attach( InputDevice *device, React react, void *ctx );
-void input_detach( InputDevice *device, React react, void *ctx );
-void input_dispatch( InputDevice *device, DFBInputEvent *event );
+void dfb_input_attach( InputDevice *device, React react, void *ctx );
+void dfb_input_detach( InputDevice *device, React react, void *ctx );
+void dfb_input_dispatch( InputDevice *device, DFBInputEvent *event );
 
-DFBInputDeviceDescription input_device_description( const InputDevice *device );
-unsigned int              input_device_id( const InputDevice *device );
+DFBInputDeviceDescription dfb_input_device_description( const InputDevice *device );
+unsigned int              dfb_input_device_id( const InputDevice *device );
 
 
 #endif

@@ -29,10 +29,10 @@
 
 #include <core/coretypes.h>
 
-extern char utf8_skip[256];
+extern char dfb_utf8_skip[256];
 
-#define utf8_next_char(p) (char *)((p) + utf8_skip[*(unsigned char *)(p)])
+#define dfb_utf8_next_char(p) (char *)((p) + utf8_skip[*(unsigned char *)(p)])
 
-unichar utf8_get_char (const char *p);
+unichar dfb_utf8_get_char (const char *p);
 
 #endif

@@ -39,7 +39,7 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, SIGPIPE, /*SIGPOLL,
                                 SIGSEGV, SIGTRAP, /*SIGSYS, SIGEMT,*/ SIGBUS,
                                 SIGXCPU, SIGXFSZ, -1 };
 
-void sig_remove_handlers()
+void dfb_sig_remove_handlers()
 {
      int *sigs = sigs_to_handle;
 
@@ -49,23 +49,23 @@ void sig_remove_handlers()
      }
 }
 
-void sig_handler( int num )
+static void dfb_sig_handler( int num )
 {
      ERRORMSG( "--->  CAUGHT SIGNAL %d  <---\n", num );
 
-     sig_remove_handlers();
+     dfb_sig_remove_handlers();
 
-     core_deinit_emergency();
+     dfb_core_deinit_emergency();
      
      kill( 0, num );
 }
 
-void sig_install_handlers()
+void dfb_sig_install_handlers()
 {
    int *sigs = sigs_to_handle;
 
    while (*sigs != -1) {
-      signal( *sigs, sig_handler );
+      signal( *sigs, dfb_sig_handler );
       sigs++;
    }
 }

@@ -266,7 +266,7 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer *thiz,
                     data->layer->shared->bg.mode = background_mode;
 
                     if (background_mode != DLBM_DONTCARE)
-                         windowstack_repaint_all( data->layer->shared->windowstack );
+                         dfb_windowstack_repaint_all( data->layer->shared->windowstack );
                }
                return DFB_OK;
      }
@@ -298,7 +298,7 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
                           IDirectFBDisplayLayer_bgsurface_listener, thiz );
 
           if (data->layer->shared->bg.mode == DLBM_IMAGE)
-               windowstack_repaint_all( data->layer->shared->windowstack );
+               dfb_windowstack_repaint_all( data->layer->shared->windowstack );
      }
 
      return DFB_OK;
@@ -321,7 +321,7 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
           data->layer->shared->bg.color.a = a;
 
           if (data->layer->shared->bg.mode == DLBM_COLOR)
-               windowstack_repaint_all( data->layer->shared->windowstack );
+               dfb_windowstack_repaint_all( data->layer->shared->windowstack );
      }
 
      return DFB_OK;
@@ -355,8 +355,8 @@ DFBResult IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer *thiz,
      if (!width || width > 4096 || !height || height > 4096)
           return DFB_INVARG;
 
-     w = window_create( data->layer->shared->windowstack,
-                        posx, posy, width, height, caps );
+     w = dfb_window_create( data->layer->shared->windowstack,
+                            posx, posy, width, height, caps );
      if (!w)
           return DFB_FAILURE;
 
@@ -370,7 +370,7 @@ DFBResult IDirectFBDisplayLayer_WarpCursor( IDirectFBDisplayLayer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     layer_cursor_warp( data->layer, x, y );
+     dfb_layer_cursor_warp( data->layer, x, y );
 
      return DFB_OK;
 }
@@ -380,7 +380,7 @@ DFBResult IDirectFBDisplayLayer_EnableCursor( IDirectFBDisplayLayer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     layer_cursor_enable( data->layer, enable );
+     dfb_layer_cursor_enable( data->layer, enable );
 
      return DFB_OK;
 }
@@ -422,8 +422,8 @@ DFBResult IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
          hot_y >= shape_data->surface->height)
           return DFB_INVARG;
 
-     return layer_cursor_set_shape( data->layer, shape_data->surface,
-                                    hot_x, hot_y );
+     return dfb_layer_cursor_set_shape( data->layer, shape_data->surface,
+                                        hot_x, hot_y );
 }
 
 DFBResult IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
@@ -431,7 +431,7 @@ DFBResult IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     return layer_cursor_set_opacity( data->layer, opacity );
+     return dfb_layer_cursor_set_opacity( data->layer, opacity );
 }
 
 DFBResult IDirectFBDisplayLayer_GetColorAdjustment( IDirectFBDisplayLayer *thiz,
@@ -518,13 +518,13 @@ ReactionResult IDirectFBDisplayLayer_bgsurface_listener( const void *msg_data,
           data->layer->shared->bg.mode  = DLBM_COLOR;
           data->layer->shared->bg.image = NULL;
 
-          windowstack_repaint_all( data->layer->shared->windowstack );
+          dfb_windowstack_repaint_all( data->layer->shared->windowstack );
 
           return RS_REMOVE;
      }
 
      if (notification->flags & (CSNF_FLIP | CSNF_SIZEFORMAT))
-          windowstack_repaint_all( data->layer->shared->windowstack );
+          dfb_windowstack_repaint_all( data->layer->shared->windowstack );
 
      return RS_OK;
 }

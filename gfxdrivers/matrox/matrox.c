@@ -571,7 +571,7 @@ static void matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
                            SOLID | mdev->atype_blk_rstr | OP_TRAP,
                      DWGCTL );
 
-     sort_triangle( tri );
+     dfb_sort_triangle( tri );
 
      if (tri->y2 == tri->y3) {
        matrox_fill_trapezoid( mdrv, mdev, tri->x1, tri->x1,
@@ -772,7 +772,7 @@ int driver_get_abi_version()
 
 int driver_probe( GraphicsDevice *device )
 {
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_MATROX_MGA2064W:     /* Matrox MGA2064W (Millenium)   */
           case FB_ACCEL_MATROX_MGA1064SG:    /* Matrox MGA1064SG (Mystique)   */
           case FB_ACCEL_MATROX_MGA2164W:     /* Matrox MGA2164W (Millenium II)*/
@@ -815,11 +815,11 @@ driver_init_driver( GraphicsDevice      *device,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
 
-     mdrv->mmio_base = (volatile __u8*) gfxcard_map_mmio( device, 0, -1 );
+     mdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!mdrv->mmio_base)
           return DFB_IO;
 
-     switch (gfxcard_get_accelerator( device )) {
+     switch (dfb_gfxcard_get_accelerator( device )) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
                funcs->CheckState = matroxG400CheckState;
@@ -866,7 +866,7 @@ driver_init_device( GraphicsDevice     *device,
      MatroxDeviceData *mdev = (MatroxDeviceData*) device_data;
      volatile __u8    *mmio = mdrv->mmio_base;
 
-     mdev->accelerator = gfxcard_get_accelerator( device );
+     mdev->accelerator = dfb_gfxcard_get_accelerator( device );
 
      switch (mdev->accelerator) {
 #ifdef FB_ACCEL_MATROX_MGAG400
@@ -1016,6 +1016,6 @@ driver_close_driver( GraphicsDevice *device,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
 
-     gfxcard_unmap_mmio( device, mdrv->mmio_base, -1 );
+     dfb_gfxcard_unmap_mmio( device, mdrv->mmio_base, -1 );
 }
 
