@@ -1,3 +1,32 @@
+0.9.16
+------
+
+- Added IDirectFBWindow::GrabKey() and UngrabKey().
+- Added IDirectFBWindow::SetColorKeyIndex().
+- Added IDirectFBWindow::SetCursorShape().
+- Added IDirectFBDisplayLayer::WaitForSync(), thanks to Ville Syrjala.
+- Made IDirectFBWindow::SetColorKey() lookup the index if the format is indexed.
+- Added DFB_COLOR_EQUAL macro to compare two DFBColor.
+- Added <Meta>-P shortcut to enable the cursor manually.
+- Added new multi app core shortcut Ctrl-Alt-Break which sends a SIGKILL to
+  fullscreen applications, useful if a fullscreen app hangs.
+- New automatic grabbing mechanism for fullscreen applications running windowed.
+- Added options for statically linking applications with selected modules
+  to directfb-config.
+- DirectColor visual support by Antonino Daplas <adaplas@pol.net>.
+- Color adjustment support on primary layer (via gamma ramp in direct color
+  mode) by Antonino Daplas <adaplas@pol.net>.
+- Fixed implementation of window stacking classes.
+- Fixed segfault with default font provider (non-FT2).
+- Some essiential fixes of outstanding multi app bugs related to layers.
+- Only detach slave processes from their terminal if it's really necessary.
+  Framebuffer ioctls are executed by the master only via fast RPC mechanism.
+- Avoid short single frame flicker when starting fullscreen apps by
+  temporarily switching to KD_GRAPHICS mode.
+- New configure option "--disable-text" which disables all init, debug and
+  error messages and saves about ~20k binary size (tested on i386).
+
+
 0.9.15
 ------
 
