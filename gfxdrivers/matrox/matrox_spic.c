@@ -114,26 +114,6 @@ spicInitLayer( CoreLayer                  *layer,
      return DFB_OK;
 }
 
-static void
-spicOnOff( MatroxDriverData    *mdrv,
-           MatroxSpicLayerData *mspic,
-           int                  on )
-{
-     volatile __u8 *mmio = mdrv->mmio_base;
-
-     mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
-     if (on)
-          /* c2subpicen = 1 */
-          mspic->regs.c2DATACTL |= (1 << 3);
-     else
-          /* c2subpicen = 0 */
-          mspic->regs.c2DATACTL &= ~(1 << 3);
-     mga_out32( mmio, mspic->regs.c2DATACTL, C2DATACTL );
-}
-
-
-
-
 static DFBResult
 spicTestRegion( CoreLayer                  *layer,
                 void                       *driver_data,
@@ -199,9 +179,6 @@ spicSetRegion( CoreLayer                  *layer,
      __u8                 r, g, b, y, cb, cr;
      int                  i;
 
-     if (!palette || palette->num_entries != 16)
-          return DFB_UNSUPPORTED;
-
      /* remember configuration */
      mspic->config = *config;
 
@@ -219,8 +196,49 @@ spicSetRegion( CoreLayer                  *layer,
           mga_out32( mmio, mspic->regs.c2SUBPICLUT, C2SUBPICLUT );
      }
 
-     /* enable spic */
-     spicOnOff( mdrv, mspic, 1 );
+     mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
+
+     /* c2offsetdiven = 0 */
+     mspic->regs.c2DATACTL &= ~(1 << 6);
+
+     /* c2bpp15halpha */
+     mspic->regs.c2DATACTL &= ~0x0000ff00;
+     mspic->regs.c2DATACTL |= palette->entries[1].a << 8;
+
+     /* c2bpp15lalpha */
+     mspic->regs.c2DATACTL &= ~0x00ff0000;
+     mspic->regs.c2DATACTL |= palette->entries[0].a << 16;
+
+     switch (config->opacity) {
+          case 0:
+               /* c2subpicen = 0 */
+               mspic->regs.c2DATACTL &= ~(1 << 3);
+               break;
+          case 0xFF:
+               /* c2subpicen = 1 */
+               mspic->regs.c2DATACTL |= (1 << 3);
+               break;
+          default:
+               if (!(config->options & DLOP_OPACITY))
+                    return DFB_UNSUPPORTED;
+
+               /* c2subpicen = 1 */
+               mspic->regs.c2DATACTL |= (1 << 3);
+               break;
+     }
+
+     if (config->options & DLOP_ALPHACHANNEL)
+          /* c2statickeyen = 0 */
+          mspic->regs.c2DATACTL &= ~(1 << 5);
+     else
+          /* c2statickeyen = 1 */
+          mspic->regs.c2DATACTL |= (1 << 5);
+
+     /* c2statickey */
+     mspic->regs.c2DATACTL &= ~0x1F000000;
+     mspic->regs.c2DATACTL |= ((config->opacity + 1) << 20) & 0x1F000000;
+
+     mga_out32( mmio, mspic->regs.c2DATACTL, C2DATACTL);
 
      return DFB_OK;
 }
@@ -233,9 +251,14 @@ spicRemoveRegion( CoreLayer *layer,
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
+     volatile __u8 *mmio = mdrv->mmio_base;
 
-     /* disable spic */
-     spicOnOff( mdrv, mspic, 0 );
+     mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
+
+     /* c2subpicen = 0 */
+     mspic->regs.c2DATACTL &= ~(1 << 3);
+
+     mga_out32( mmio, mspic->regs.c2DATACTL, C2DATACTL );
 
      return DFB_OK;
 }
@@ -257,53 +280,6 @@ spicFlipRegion( CoreLayer           *layer,
 
      return DFB_OK;
 }
-
-#if 0
-static DFBResult
-spicSetOpacity( CoreLayer *layer,
-                void      *driver_data,
-                void      *layer_data,
-                __u8       opacity )
-{
-     MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
-     MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
-     volatile __u8       *mmio  = mdrv->mmio_base;
-
-     mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
-     switch (opacity) {
-          case 0:
-               /* c2subpicen = 0 */
-               mspic->regs.c2DATACTL &= ~(1 << 3);
-               break;
-          case 0xFF:
-               /* c2subpicen = 1 */
-               mspic->regs.c2DATACTL |= (1 << 3);
-               break;
-          default:
-               if (!(mspic->config.options & DLOP_OPACITY))
-                    return DFB_UNSUPPORTED;
-
-               /* c2subpicen = 1 */
-               mspic->regs.c2DATACTL |= (1 << 3);
-               break;
-     }
-
-     if (mspic->config.options & DLOP_ALPHACHANNEL)
-          /* c2statickeyen = 0 */
-          mspic->regs.c2DATACTL &= ~(1 << 5);
-     else
-          /* c2statickeyen = 1 */
-          mspic->regs.c2DATACTL |= (1 << 5);
-
-     /* c2statickey */
-     mspic->regs.c2DATACTL &= ~0x1F000000;
-     mspic->regs.c2DATACTL |= ((opacity + 1) << 20) & 0x1F000000;
-
-     mga_out32( mmio, mspic->regs.c2DATACTL, C2DATACTL);
-
-     return DFB_OK;
-}
-#endif
 
 DisplayLayerFuncs matroxSpicFuncs = {
      LayerDataSize:         spicLayerDataSize,

@@ -58,7 +58,6 @@
 typedef struct {
      CoreLayerRegionConfig config;
      DFBColorAdjustment    adj;
-     int                   enabled;
      int                   field;
 
      /* Stored registers */
@@ -248,8 +247,6 @@ crtc2SetRegion( CoreLayer                  *layer,
      if (ret)
           return ret;
 
-     mcrtc2->enabled = 1;
-
      return DFB_OK;
 }
 
@@ -263,8 +260,6 @@ crtc2RemoveRegion( CoreLayer *layer,
      MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
 
      crtc2_disable_output( mdrv, mcrtc2 );
-
-     mcrtc2->enabled = 0;
 
      return DFB_OK;
 }
@@ -414,7 +409,9 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
      MatroxMavenData *mav = &mcrtc2->mav;
 
      mcrtc2->regs.c2CTL = 0;
-     mcrtc2->regs.c2DATACTL = 0;
+
+     mcrtc2->regs.c2DATACTL  = mga_in32( mdrv->mmio_base, C2DATACTL );
+     mcrtc2->regs.c2DATACTL &= ~0x00000097;
 
      /* c2pixcksel = 01 (vdoclk) */
      mcrtc2->regs.c2CTL |= (1 << 1);
