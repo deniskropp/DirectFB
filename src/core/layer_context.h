@@ -94,6 +94,10 @@ DFBResult dfb_layer_context_set_sourcerectangle( CoreLayerContext            *co
 DFBResult dfb_layer_context_set_screenlocation ( CoreLayerContext            *context,
                                                  const DFBLocation           *location );
 
+DFBResult dfb_layer_context_set_screenposition ( CoreLayerContext            *context,
+                                                 int                          x,
+                                                 int                          y );
+
 DFBResult dfb_layer_context_set_opacity        ( CoreLayerContext            *context,
                                                  __u8                         opacity);
 

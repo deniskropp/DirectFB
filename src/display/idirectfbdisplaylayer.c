@@ -748,6 +748,19 @@ IDirectFBDisplayLayer_GetSourceDescriptions( IDirectFBDisplayLayer            *t
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBDisplayLayer_SetScreenPosition( IDirectFBDisplayLayer *thiz,
+                                         int                    x,
+                                         int                    y )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
+
+     return dfb_layer_context_set_screenposition( data->context, x, y );
+}
+
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer )
@@ -814,6 +827,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetFieldParity        = IDirectFBDisplayLayer_SetFieldParity;
      thiz->WaitForSync           = IDirectFBDisplayLayer_WaitForSync;
      thiz->GetSourceDescriptions = IDirectFBDisplayLayer_GetSourceDescriptions;
+     thiz->SetScreenPosition     = IDirectFBDisplayLayer_SetScreenPosition;
 
      return DFB_OK;
 }

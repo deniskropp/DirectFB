@@ -2607,6 +2607,18 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           IDirectFBDisplayLayer              *thiz,
           DFBDisplayLayerSourceDescription   *ret_descriptions
      );
+
+
+   /** Settings **/
+
+     /*
+      * Set location on screen in pixels.
+      */
+     DFBResult (*SetScreenPosition) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                 x,
+          int                                 y
+     );
 )
 
 

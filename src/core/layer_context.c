@@ -852,6 +852,46 @@ dfb_layer_context_set_screenlocation( CoreLayerContext  *context,
 }
 
 DFBResult
+dfb_layer_context_set_screenposition( CoreLayerContext  *context,
+                                      int                x,
+                                      int                y )
+{
+     DFBResult             ret;
+     CoreLayerRegionConfig config;
+
+     D_ASSERT( context != NULL );
+
+     /* Lock the context. */
+     if (dfb_layer_context_lock( context ))
+          return DFB_FUSION;
+
+     /* Do nothing if the location didn't change. */
+     if (context->primary.config.dest.x == x && context->primary.config.dest.y == y) {
+          dfb_layer_context_unlock( context );
+          return DFB_OK;
+     }
+
+     /* Take the current configuration. */
+     config = context->primary.config;
+
+     /* Set new absolute screen coordinates. */
+     config.dest.x = x;
+     config.dest.y = y;
+
+     /* Try to set the new configuration. */
+     ret = update_primary_region_config( context, &config, CLRCF_DEST );
+     if (ret == DFB_OK) {
+          context->primary.config.dest.x = x;
+          context->primary.config.dest.y = y;
+     }
+
+     /* Unlock the context. */
+     dfb_layer_context_unlock( context );
+
+     return ret;
+}
+
+DFBResult
 dfb_layer_context_set_opacity( CoreLayerContext *context,
                                __u8              opacity )
 {
