@@ -383,6 +383,19 @@ crtc2GetCurrentOutputField( DisplayLayer *layer,
      }
 }
 
+
+static DFBResult
+crtc2WaitVSync( DisplayLayer *layer,
+                void         *driver_data,
+                void         *layer_data )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
+
+     crtc2_wait_vsync( mdrv );
+
+     return DFB_OK;
+}
+
 DisplayLayerFuncs matroxCrtc2Funcs = {
      LayerDataSize:      crtc2LayerDataSize,
      InitLayer:          crtc2InitLayer,
@@ -393,7 +406,8 @@ DisplayLayerFuncs matroxCrtc2Funcs = {
      FlipBuffers:        crtc2FlipBuffers,
      SetColorAdjustment: crtc2SetColorAdjustment,
      SetOpacity:         crtc2SetOpacity,
-     GetCurrentOutputField: crtc2GetCurrentOutputField
+     GetCurrentOutputField: crtc2GetCurrentOutputField,
+     WaitVSync:          crtc2WaitVSync
 };
 
 /* internal */

@@ -1517,6 +1517,13 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           int                                *field
      );
 
+     /*
+      * Wait for next vertical retrace.
+      */
+     DFBResult (*WaitForSync) (
+          IDirectFBDisplayLayer              *thiz
+     );
+
 
    /** Configuration handling **/
 

@@ -959,7 +959,7 @@ dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
           
           case DLBM_BACKSYSTEM:
                if (flags & DSFLIP_WAITFORSYNC)
-                    dfb_system_wait_vsync();
+                    dfb_layer_wait_vsync( layer );
                dfb_back_to_front_copy( shared->surface, NULL );
                dfb_layer_update_region( layer, NULL, flags );
                break;
@@ -1121,7 +1121,8 @@ dfb_layer_set_opacity (DisplayLayer *layer, __u8 opacity)
      return DFB_OK;
 }
 
-DFBResult dfb_layer_get_current_output_field( DisplayLayer *layer, int *field )
+DFBResult
+dfb_layer_get_current_output_field( DisplayLayer *layer, int *field )
 {
      DFBResult ret;
 
@@ -1135,6 +1136,21 @@ DFBResult dfb_layer_get_current_output_field( DisplayLayer *layer, int *field )
 
      return DFB_OK;
 }
+
+DFBResult
+dfb_layer_wait_vsync( DisplayLayer *layer )
+{
+     DFBResult ret;
+
+     if (layer->funcs->WaitVSync)
+          ret = layer->funcs->WaitVSync( layer, layer->driver_data,
+                                         layer->layer_data );
+     else
+          ret = dfb_system_wait_vsync();
+
+     return ret;
+}
+
 
 DFBResult
 dfb_layer_set_coloradjustment (DisplayLayer       *layer,

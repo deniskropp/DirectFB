@@ -100,7 +100,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      if (flags & DSFLIP_BLIT || region || data->base.caps & DSCAPS_SUBSURFACE) {
           if (flags & DSFLIP_WAITFORSYNC)
-               dfb_system_wait_vsync();
+               dfb_layer_wait_vsync( data->layer );
           
           if (region) {
                DFBRegion    reg  = *region;

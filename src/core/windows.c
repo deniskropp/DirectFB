@@ -1347,7 +1347,7 @@ repaint_stack( CoreWindowStack     *stack,
                                      region->y2 - region->y1 + 1 };
 
                if (flags & DSFLIP_WAITFORSYNC)
-                    dfb_system_wait_vsync();
+                    dfb_layer_wait_vsync( layer );
                
                dfb_back_to_front_copy( surface, &rect );
           }

@@ -209,6 +209,14 @@ IDirectFBDisplayLayer_GetCurrentOutputField( IDirectFBDisplayLayer *thiz, int *f
 }
 
 static DFBResult
+IDirectFBDisplayLayer_WaitForSync( IDirectFBDisplayLayer *thiz )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     return dfb_layer_wait_vsync( data->layer );
+}
+
+static DFBResult
 IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
                                          float                  x,
                                          float                  y,
@@ -604,6 +612,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->GetCursorPosition = IDirectFBDisplayLayer_GetCursorPosition;
      thiz->SetCursorShape = IDirectFBDisplayLayer_SetCursorShape;
      thiz->SetCursorOpacity = IDirectFBDisplayLayer_SetCursorOpacity;
+     thiz->WaitForSync = IDirectFBDisplayLayer_WaitForSync;
 
      return DFB_OK;
 }
