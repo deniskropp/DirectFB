@@ -129,6 +129,7 @@ ov0InitLayer( CoreLayer                  *layer,
      nvov0->contrast   = 4096;
      nvov0->saturation = 4096;
      nvov0->hue        = 0;
+     nvov0->colorkey   = 0;
      ov0_set_csc( nvdrv, nvov0 );
 
      nvov0->buffer = 0;
@@ -240,6 +241,7 @@ ov0SetRegion( CoreLayer                  *layer,
      ov0_calc_regs( nvdrv, nvov0, layer, config );
      ov0_set_regs( nvdrv, nvov0 );
 
+     /* set destination colorkey */
      if (config->options & DLOP_DST_COLORKEY) {
           nvov0->colorkey = dfb_color_to_pixel( dfb_primary_layer_pixelformat(),
                                                 config->dst_key.r, config->dst_key.g,
@@ -320,8 +322,8 @@ ov0AllocateSurface( CoreLayer              *layer,
      if (result != DFB_OK)
           return result;
 
-     nvov0->videoSurface = buffer;
-     nvov0->regs.NV_PVIDEO_BASE = buffer->back_buffer->video.offset & 0x07fffff0;
+     nvov0->videoSurface        = buffer;
+     nvov0->regs.NV_PVIDEO_BASE = buffer->front_buffer->video.offset & 0x07fffff0;
      // XBOX-specific: add nvov0->fbstart
      // nvov0->regs.NV_PVIDEO_BASE = (nvov0->fbstart + front_buffer->video.offset) & 0x03fffff0;
 
@@ -390,7 +392,7 @@ ov0ReallocateSurface( CoreLayer             *layer,
      if (result != DFB_OK)
           return result;
 
-     nvov0->regs.NV_PVIDEO_BASE = buffer->back_buffer->video.offset & 0x07fffff0;
+     nvov0->regs.NV_PVIDEO_BASE = buffer->front_buffer->video.offset & 0x07fffff0;
 
      result = dfb_surface_reformat( NULL, surface, src_width,
                                     config->height, config->format );
@@ -688,8 +690,7 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
                CoreLayerRegionConfig  *config )
 {
      CoreSurface   *surface = nvov0->videoSurface;
-     SurfaceBuffer *buffer  = surface->back_buffer;
-      __u32         pitch   = buffer->video.pitch;
+      __u32         pitch   = surface->front_buffer->video.pitch;
      
      nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->height << 16) | config->width;
      nvov0->regs.NV_PVIDEO_POINT_IN  = 0;
