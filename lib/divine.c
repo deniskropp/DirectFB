@@ -124,43 +124,44 @@ divine_send_vt102( DiVine *divine, int size, const char *ansistr )
           /* watch for escape sequences */
           switch (ansistr[i]) {
                case 27:
-                    if (ansistr[i+1] == 91 || ansistr[i+1] == 79) {
+                    if (ansistr[i+1] == '[' || ansistr[i+1] == 'O') {
                          switch (ansistr[i+2]) {
-                              case 80:  event.key_symbol = DIKS_F1;  f = 1; break;
-                              case 81:  event.key_symbol = DIKS_F2;  f = 1; break;
-                              case 82:  event.key_symbol = DIKS_F3;  f = 1; break;
-                              case 83:  event.key_symbol = DIKS_F4;  f = 1; break;
-                              case 49:  switch (ansistr[i+3]) {
-                                        case 54:  event.key_symbol = DIKS_F5;   break;
-                                        case 55:  event.key_symbol = DIKS_F6;   break;
-                                        case 56:  event.key_symbol = DIKS_F7;   break;
-                                        case 57:  event.key_symbol = DIKS_F8;   break;
-					case 126: event.key_symbol = DIKS_HOME; break;
+                              case 'F':  event.key_symbol = DIKS_END; f = 1; break;
+                              case 'P':  event.key_symbol = DIKS_F1;  f = 1; break;
+                              case 'Q':  event.key_symbol = DIKS_F2;  f = 1; break;
+                              case 'R':  event.key_symbol = DIKS_F3;  f = 1; break;
+                              case 'S':  event.key_symbol = DIKS_F4;  f = 1; break;
+                              case '1':  switch (ansistr[i+3]) {
+                                        case '6':  event.key_symbol = DIKS_F5;   break;
+                                        case '7':  event.key_symbol = DIKS_F6;   break;
+                                        case '8':  event.key_symbol = DIKS_F7;   break;
+                                        case '9':  event.key_symbol = DIKS_F8;   break;
+					case '~':  event.key_symbol = DIKS_HOME; break;
                                         default:   break;
                                    }
                                    f = 3;  break;
-                              case 50:  switch (ansistr[i+3]) {
-                                        case 48:  event.key_symbol = DIKS_F9;     break;
-                                        case 49:  event.key_symbol = DIKS_F10;    break;
-                                        case 51:  event.key_symbol = DIKS_F11;    break;
-                                        case 52:  event.key_symbol = DIKS_F12;    break;
-                                        case 126: event.key_symbol = DIKS_INSERT; break;
+                              case '2': switch (ansistr[i+3]) {
+                                        case '0':  event.key_symbol = DIKS_F9;     break;
+                                        case '1':  event.key_symbol = DIKS_F10;    break;
+                                        case '3':  event.key_symbol = DIKS_F11;    break;
+                                        case '4':  event.key_symbol = DIKS_F12;    break;
+                                        case '~':  event.key_symbol = DIKS_INSERT; break;
                                         default: break;
                                    }
                                    f =  3; break;
-                              case 51: event.key_symbol = DIKS_DELETE;       f = 3; break;
-                              case 53: event.key_symbol = DIKS_PAGE_UP;      f = 3; break;
-                              case 54: event.key_symbol = DIKS_PAGE_DOWN;    f = 3; break;
-                              case 56: event.key_symbol = DIKS_STOP;         f = 3; break;
-                              case 65: event.key_symbol = DIKS_CURSOR_UP;    f = 2; break;
-                              case 66: event.key_symbol = DIKS_CURSOR_DOWN;  f = 2; break;
-                              case 67: event.key_symbol = DIKS_CURSOR_RIGHT; f = 2; break;
-                              case 68: event.key_symbol = DIKS_CURSOR_LEFT;  f = 2; break;
+                              case '3': event.key_symbol = DIKS_DELETE;       f = 3; break;
+                              case '5': event.key_symbol = DIKS_PAGE_UP;      f = 3; break;
+                              case '6': event.key_symbol = DIKS_PAGE_DOWN;    f = 3; break;
+                              case '7': event.key_symbol = DIKS_STOP;         f = 3; break;
+                              case 'A': event.key_symbol = DIKS_CURSOR_UP;    f = 2; break;
+                              case 'B': event.key_symbol = DIKS_CURSOR_DOWN;  f = 2; break;
+                              case 'C': event.key_symbol = DIKS_CURSOR_RIGHT; f = 2; break;
+                              case 'D': event.key_symbol = DIKS_CURSOR_LEFT;  f = 2; break;
                               default:  break;
                          }
                          break;
                     }
-                    else  event.key_symbol = DIKS_ESCAPE;    break;
+                    else  event.key_symbol = DIKS_ESCAPE;   break;
 
                case 127: event.key_symbol = DIKS_BACKSPACE; break;
                case 10:  event.key_symbol = DIKS_ENTER;     break;
@@ -176,7 +177,7 @@ divine_send_vt102( DiVine *divine, int size, const char *ansistr )
                case '7':
                case '8':
                case '9':
-                 event.key_id = DIKI_KP_0 + ansistr[i]- '0';
+                 event.key_id = DIKI_KP_0 + ansistr[i] - '0';
                  event.flags |= DIEF_KEYID;
                  /*  fallthru  */
 
