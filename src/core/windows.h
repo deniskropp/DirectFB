@@ -42,26 +42,28 @@
  * a window
  */
 struct _CoreWindow {
-     DFBWindowID           id;
+     DFBWindowID             id;
 
-     int                   x;               /* x position in pixels */
-     int                   y;               /* y position in pixels */
-     unsigned int          width;           /* width in pixels */
-     unsigned int          height;          /* width in pixels */
+     int                     x;            /* x position in pixels */
+     int                     y;            /* y position in pixels */
+     unsigned int            width;        /* width in pixels */
+     unsigned int            height;       /* width in pixels */
 
-     DFBWindowCapabilities caps;            /* window capabilities, to enable
-                                               blending etc. */
+     DFBWindowCapabilities   caps;         /* window capabilities, to enable
+                                              blending etc. */
      
-     DFBWindowOptions      options;         /* flags for appearance/behaviour */
+     DFBWindowOptions        options;      /* flags for appearance/behaviour */
 
-     __u8                  opacity;         /* global alpha factor */
-     __u32                 color_key;       /* transparent pixel */
+     DFBWindowStackingClass  stacking;
 
-     CoreSurface          *surface;         /* backing store surface */
+     __u8                    opacity;      /* global alpha factor */
+     __u32                   color_key;    /* transparent pixel */
 
-     CoreWindowStack      *stack;           /* window stack the window belongs */
+     CoreSurface            *surface;      /* backing store surface */
 
-     FusionReactor        *reactor;         /* event dispatcher */
+     CoreWindowStack        *stack;        /* window stack the window belongs */
+
+     FusionReactor          *reactor;      /* event dispatcher */
 };
 
 /*
@@ -83,7 +85,8 @@ struct _CoreWindowStack {
      struct {
           int            enabled;         /* is cursor enabled ? */
           int            x, y;            /* cursor position */
-          CoreWindow    *window;          /* super-toplevel-window for software cursor */
+          CoreWindow    *window;          /* super-toplevel-window
+                                             for software cursor */
           __u8           opacity;         /* cursor opacity */
           DFBRegion      region;          /* cursor is clipped by this region */
 
@@ -171,6 +174,13 @@ DFBResult
 dfb_window_resize( CoreWindow   *window,
                    unsigned int  width,
                    unsigned int  height );
+
+/*
+ * changes stacking class
+ */
+void
+dfb_window_change_stacking( CoreWindow             *window,
+                            DFBWindowStackingClass  stacking );
 
 /*
  * move a window up one step in window stack

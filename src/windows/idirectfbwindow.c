@@ -73,7 +73,8 @@ typedef struct {
 } IDirectFBWindow_data;
 
 
-static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
+static void
+IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 {
      IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
 
@@ -91,7 +92,8 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -100,7 +102,8 @@ static DFBResult IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_Release( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_Release( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -110,9 +113,9 @@ static DFBResult IDirectFBWindow_Release( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_CreateEventBuffer(
-                                                  IDirectFBWindow       *thiz,
-                                                  IDirectFBEventBuffer **buffer)
+static DFBResult
+IDirectFBWindow_CreateEventBuffer( IDirectFBWindow       *thiz,
+                                   IDirectFBEventBuffer **buffer )
 {
      IDirectFBEventBuffer *b;
 
@@ -138,9 +141,9 @@ static DFBResult IDirectFBWindow_CreateEventBuffer(
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_AttachEventBuffer(
-                                                  IDirectFBWindow       *thiz,
-                                                  IDirectFBEventBuffer  *buffer)
+static DFBResult
+IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
+                                   IDirectFBEventBuffer  *buffer )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -158,8 +161,9 @@ static DFBResult IDirectFBWindow_AttachEventBuffer(
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_GetID( IDirectFBWindow *thiz,
-                                        DFBWindowID     *id )
+static DFBResult
+IDirectFBWindow_GetID( IDirectFBWindow *thiz,
+                       DFBWindowID     *id )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -174,8 +178,10 @@ static DFBResult IDirectFBWindow_GetID( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
-                                              int *x, int *y )
+static DFBResult
+IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
+                             int             *x,
+                             int             *y )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -194,9 +200,10 @@ static DFBResult IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
-                                          unsigned int    *width,
-                                          unsigned int    *height )
+static DFBResult
+IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
+                         unsigned int    *width,
+                         unsigned int    *height )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -215,8 +222,9 @@ static DFBResult IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
-                                             IDirectFBSurface **surface )
+static DFBResult
+IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
+                            IDirectFBSurface **surface )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -247,8 +255,9 @@ static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
-                                             DFBWindowOptions  options )
+static DFBResult
+IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
+                            DFBWindowOptions  options )
 {
      DFBWindowOptions changed;
 
@@ -274,8 +283,9 @@ static DFBResult IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
-                                             DFBWindowOptions *options )
+static DFBResult
+IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
+                            DFBWindowOptions *options )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -290,10 +300,11 @@ static DFBResult IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
-                                              __u8             r,
-                                              __u8             g,
-                                              __u8             b )
+static DFBResult
+IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
+                             __u8             r,
+                             __u8             g,
+                             __u8             b )
 {
      __u32 key;
 
@@ -314,8 +325,9 @@ static DFBResult IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
-                                             __u8 opacity )
+static DFBResult
+IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
+                            __u8             opacity )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -328,8 +340,9 @@ static DFBResult IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
-                                             __u8 *opacity )
+static DFBResult
+IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
+                            __u8            *opacity )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -344,7 +357,8 @@ static DFBResult IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -356,7 +370,8 @@ static DFBResult IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -366,7 +381,8 @@ static DFBResult IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
      return dfb_window_grab_keyboard( data->window );
 }
 
-static DFBResult IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -376,7 +392,8 @@ static DFBResult IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
      return dfb_window_ungrab_keyboard( data->window );
 }
 
-static DFBResult IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -386,7 +403,8 @@ static DFBResult IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
      return dfb_window_grab_pointer( data->window );
 }
 
-static DFBResult IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -396,7 +414,8 @@ static DFBResult IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
      return dfb_window_ungrab_pointer( data->window );
 }
 
-static DFBResult IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
+static DFBResult
+IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -411,7 +430,8 @@ static DFBResult IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
+static DFBResult
+IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -427,9 +447,10 @@ static DFBResult IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
-                                         unsigned int     width,
-                                         unsigned int     height )
+static DFBResult
+IDirectFBWindow_Resize( IDirectFBWindow *thiz,
+                        unsigned int     width,
+                        unsigned int     height )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -442,7 +463,8 @@ static DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
      return dfb_window_resize( data->window, width, height );
 }
 
-static DFBResult IDirectFBWindow_Raise( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_Raise( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -454,7 +476,31 @@ static DFBResult IDirectFBWindow_Raise( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_Lower( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
+                                  DFBWindowStackingClass  stacking_class )
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     switch (stacking_class) {
+          case DWSC_MIDDLE:
+          case DWSC_UPPER:
+          case DWSC_LOWER:
+               break;
+          default:
+               return DFB_INVARG;
+     }
+
+     dfb_window_change_stacking( data->window, stacking_class );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBWindow_Lower( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -466,7 +512,8 @@ static DFBResult IDirectFBWindow_Lower( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -478,7 +525,8 @@ static DFBResult IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -490,8 +538,9 @@ static DFBResult IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
-                                          IDirectFBWindow *lower )
+static DFBResult
+IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
+                         IDirectFBWindow *lower )
 {
      IDirectFBWindow_data *lower_data;
 
@@ -515,8 +564,9 @@ static DFBResult IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
-                                           IDirectFBWindow *upper )
+static DFBResult
+IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
+                           IDirectFBWindow *upper )
 {
      IDirectFBWindow_data *upper_data;
 
@@ -540,7 +590,8 @@ static DFBResult IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_Close( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_Close( IDirectFBWindow *thiz )
 {
      DFBWindowEvent evt;
 
@@ -556,7 +607,8 @@ static DFBResult IDirectFBWindow_Close( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
+static DFBResult
+IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -569,8 +621,9 @@ static DFBResult IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
-                                     CoreWindow      *window )
+DFBResult
+IDirectFBWindow_Construct( IDirectFBWindow *thiz,
+                           CoreWindow      *window )
 {
      IDirectFBWindow_data *data;
 
@@ -610,6 +663,7 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->Move = IDirectFBWindow_Move;
      thiz->MoveTo = IDirectFBWindow_MoveTo;
      thiz->Resize = IDirectFBWindow_Resize;
+     thiz->SetStackingClass = IDirectFBWindow_SetStackingClass;
      thiz->Raise = IDirectFBWindow_Raise;
      thiz->Lower = IDirectFBWindow_Lower;
      thiz->RaiseToTop = IDirectFBWindow_RaiseToTop;
@@ -625,8 +679,9 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
 
 /* internals */
 
-static ReactionResult IDirectFBWindow_React( const void *msg_data,
-                                             void       *ctx )
+static ReactionResult
+IDirectFBWindow_React( const void *msg_data,
+                       void       *ctx )
 {
      const DFBWindowEvent       *evt = (DFBWindowEvent*)msg_data;
      IDirectFBWindow_data       *data = (IDirectFBWindow_data*)ctx;

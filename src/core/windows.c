@@ -342,6 +342,75 @@ dfb_window_destroy( CoreWindow *window )
 }
 
 void
+dfb_window_change_stacking( CoreWindow             *window,
+                            DFBWindowStackingClass  stacking )
+{
+     int              index, i;
+     bool             update = false;
+     CoreWindowStack *stack  = window->stack;
+
+     stack_lock( stack );
+
+     if (stacking == window->stacking) {
+          stack_unlock( stack );
+          return;
+     }
+     
+     index = get_window_index( window );
+     if (index < 0) {
+          stack_unlock( stack );
+          return;
+     }
+
+     switch (stacking) {
+          case DWSC_LOWER:
+               /* become the top lower class window */
+               for (i=index; i>0; i--) {
+                    if (stack->windows[i-1]->stacking == DWSC_LOWER)
+                         break;
+               }
+               break;
+
+          case DWSC_UPPER:
+               /* become the bottom upper class window */
+               for (i=index; i<stack->num_windows-1; i++) {
+                    if (stack->windows[i+1]->stacking == DWSC_UPPER)
+                         break;
+               }
+               break;
+
+          case DWSC_MIDDLE:
+               if (window->stacking == DWSC_UPPER) {
+                    /* become the top middle class window */
+                    for (i=index; i>0; i--) {
+                         if (stack->windows[i-1]->stacking != DWSC_UPPER)
+                              break;
+                    }
+               }
+               else {
+                    /* become the bottom middle class window */
+                    for (i=index; i<stack->num_windows-1; i++) {
+                         if (stack->windows[i+1]->stacking != DWSC_LOWER)
+                              break;
+                    }
+               }
+               break;
+          
+          default:
+               BUG("unknown stacking class");
+               stack_unlock( stack );
+               return;
+     }
+
+     update = window_restack( stack, index, i );
+
+     if (update)
+          window_restacked( window );
+     
+     stack_unlock( stack );
+}
+
+void
 dfb_window_raise( CoreWindow *window )
 {
      int              index;
@@ -1540,7 +1609,8 @@ window_restack( CoreWindowStack *stack,
           int i;
 
           for (i=old_index; i<new_index; i++) {
-               if (!(stack->windows[i+1]->caps & DWHC_TOPMOST)) {
+               if (stack->windows[i+1]->stacking == stack->windows[i]->stacking &&
+                   !(stack->windows[i+1]->caps & DWHC_TOPMOST)) {
                     CoreWindow *temp = stack->windows[i];
                     stack->windows[i] = stack->windows[i+1];
                     stack->windows[i+1] = temp;
@@ -1555,11 +1625,15 @@ window_restack( CoreWindowStack *stack,
           int i;
 
           for (i=old_index; i>new_index; i--) {
-               CoreWindow *temp = stack->windows[i];
-               stack->windows[i] = stack->windows[i-1];
-               stack->windows[i-1] = temp;
+               if (stack->windows[i-1]->stacking == stack->windows[i]->stacking) {
+                    CoreWindow *temp = stack->windows[i];
+                    stack->windows[i] = stack->windows[i-1];
+                    stack->windows[i-1] = temp;
 
-               ret = true;
+                    ret = true;
+               }
+               else
+                    break;
           }
      }
 

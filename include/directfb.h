@@ -2320,6 +2320,24 @@ extern "C"
           DWOP_ALL            = 0x00003071   /* all possible options */
      } DFBWindowOptions;
 
+     /*
+      * The stacking class restricts the stacking order of windows.
+      */
+     typedef enum {
+          DWSC_MIDDLE         = 0x00000000,  /* This is the default stacking
+                                                class of new windows. */
+          DWSC_UPPER          = 0x00000001,  /* Window is always above windows
+                                                in the middle stacking class.
+                                                Only windows that are also in
+                                                the upper stacking class can
+                                                get above them. */
+          DWSC_LOWER          = 0x00000002   /* Window is always below windows
+                                                in the middle stacking class.
+                                                Only windows that are also in
+                                                the lower stacking class can
+                                                get below them. */
+     } DFBWindowStackingClass;
+
      /*******************
       * IDirectFBWindow *
       *******************/
@@ -2335,26 +2353,26 @@ extern "C"
            * Get the unique window ID.
            */
           DFBResult (*GetID) (
-               IDirectFBWindow     *thiz,
-               DFBWindowID         *window_id
+               IDirectFBWindow          *thiz,
+               DFBWindowID              *window_id
           );
 
           /*
            * Get the current position of this window.
            */
           DFBResult (*GetPosition) (
-               IDirectFBWindow     *thiz,
-               int                 *x,
-               int                 *y
+               IDirectFBWindow          *thiz,
+               int                      *x,
+               int                      *y
           );
 
           /*
            * Get the size of the window in pixels.
            */
           DFBResult (*GetSize) (
-               IDirectFBWindow     *thiz,
-               unsigned int        *width,
-               unsigned int        *height
+               IDirectFBWindow          *thiz,
+               unsigned int             *width,
+               unsigned int             *height
           );
 
 
@@ -2364,8 +2382,8 @@ extern "C"
            * Create an event buffer for this window and attach it.
            */
           DFBResult (*CreateEventBuffer) (
-               IDirectFBWindow               *thiz,
-               IDirectFBEventBuffer         **buffer
+               IDirectFBWindow          *thiz,
+               IDirectFBEventBuffer    **buffer
           );
 
           /*
@@ -2375,8 +2393,8 @@ extern "C"
            *
            */
           DFBResult (*AttachEventBuffer) (
-               IDirectFBWindow               *thiz,
-               IDirectFBEventBuffer          *buffer
+               IDirectFBWindow          *thiz,
+               IDirectFBEventBuffer     *buffer
           );
 
 
@@ -2389,8 +2407,8 @@ extern "C"
            * commands visible, i.e. to repaint the windowstack for that region.
            */
           DFBResult (*GetSurface) (
-               IDirectFBWindow     *thiz,
-               IDirectFBSurface   **surface
+               IDirectFBWindow          *thiz,
+               IDirectFBSurface        **surface
           );
 
 
@@ -2400,16 +2418,16 @@ extern "C"
            * Set options controlling appearance and behaviour of the window.
            */
           DFBResult (*SetOptions) (
-               IDirectFBWindow     *thiz,
-               DFBWindowOptions     options
+               IDirectFBWindow          *thiz,
+               DFBWindowOptions          options
           );
           
           /*
            * Get options controlling appearance and behaviour of the window.
            */
           DFBResult (*GetOptions) (
-               IDirectFBWindow     *thiz,
-               DFBWindowOptions    *options
+               IDirectFBWindow          *thiz,
+               DFBWindowOptions         *options
           );
           
           /*
@@ -2419,10 +2437,10 @@ extern "C"
            * or the background is visible at this point.
            */
           DFBResult (*SetColorKey) (
-               IDirectFBWindow     *thiz,
-               __u8                 r,
-               __u8                 g,
-               __u8                 b
+               IDirectFBWindow          *thiz,
+               __u8                      r,
+               __u8                      g,
+               __u8                      b
           );
           
           /*
@@ -2433,16 +2451,16 @@ extern "C"
            * it has no alpha channel.
            */
           DFBResult (*SetOpacity) (
-               IDirectFBWindow     *thiz,
-               __u8                 opacity
+               IDirectFBWindow          *thiz,
+               __u8                      opacity
           );
 
           /*
            * Get the current opacity factor of this window.
            */
           DFBResult (*GetOpacity) (
-               IDirectFBWindow     *thiz,
-               __u8                *opacity
+               IDirectFBWindow          *thiz,
+               __u8                     *opacity
           );
 
 
@@ -2452,7 +2470,7 @@ extern "C"
            * Pass the focus to this window.
            */
           DFBResult (*RequestFocus) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
           /*
@@ -2460,14 +2478,14 @@ extern "C"
            * this window ignoring the focus.
            */
           DFBResult (*GrabKeyboard) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
           /*
            * Ungrab the keyboard, i.e. switch to standard key event dispatching.
            */
           DFBResult (*UngrabKeyboard) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
           /*
@@ -2475,14 +2493,14 @@ extern "C"
            * this window ignoring the focus.
            */
           DFBResult (*GrabPointer) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
           /*
            * Ungrab the pointer, i.e. switch to standard mouse event dispatching.
            */
           DFBResult (*UngrabPointer) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
         
@@ -2492,74 +2510,82 @@ extern "C"
            * Move the window by the specified distance.
            */
           DFBResult (*Move) (
-               IDirectFBWindow     *thiz,
-               int                  dx,
-               int                  dy
+               IDirectFBWindow          *thiz,
+               int                       dx,
+               int                       dy
           );
 
           /*
            * Move the window to the specified coordinates.
            */
           DFBResult (*MoveTo) (
-               IDirectFBWindow     *thiz,
-               int                  x,
-               int                  y
+               IDirectFBWindow          *thiz,
+               int                       x,
+               int                       y
           );
 
           /*
            * Resize the window.
            */
           DFBResult (*Resize) (
-               IDirectFBWindow     *thiz,
-               unsigned int         width,
-               unsigned int         height
+               IDirectFBWindow          *thiz,
+               unsigned int              width,
+               unsigned int              height
           );
 
 
         /** Stacking **/
 
           /*
+           * Put the window into a specific stacking class.
+           */
+          DFBResult (*SetStackingClass) (
+               IDirectFBWindow          *thiz,
+               DFBWindowStackingClass    stacking_class
+          );
+
+          /*
            * Raise the window by one within the window stack.
            */
           DFBResult (*Raise) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
           /*
            * Lower the window by one within the window stack.
            */
           DFBResult (*Lower) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
           /*
            * Put the window on the top of the window stack.
            */
           DFBResult (*RaiseToTop) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
           /*
            * Send a window to the bottom of the window stack.
            */
           DFBResult (*LowerToBottom) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
           /*
            * Put a window on top of another window.
            */
           DFBResult (*PutAtop) (
-               IDirectFBWindow     *thiz,
-               IDirectFBWindow     *lower
+               IDirectFBWindow          *thiz,
+               IDirectFBWindow          *lower
           );
 
           /*
            * Put a window below another window.
            */
           DFBResult (*PutBelow) (
-               IDirectFBWindow     *thiz,
-               IDirectFBWindow     *upper
+               IDirectFBWindow          *thiz,
+               IDirectFBWindow          *upper
           );
 
 
@@ -2572,7 +2598,7 @@ extern "C"
            * It does NOT actually close it.
            */
           DFBResult (*Close) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
 
           /*
@@ -2584,7 +2610,7 @@ extern "C"
            * after that.
            */
           DFBResult (*Destroy) (
-               IDirectFBWindow     *thiz
+               IDirectFBWindow          *thiz
           );
      )
 

@@ -1085,8 +1085,8 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
 }
 
 volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,
-                                 unsigned int    offset,
-                                 int             length )
+                                     unsigned int    offset,
+                                     int             length )
 {
      void *addr;
 
@@ -1105,8 +1105,8 @@ volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,
 }
 
 void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
-                         volatile void  *addr,
-                         int             length )
+                             volatile void  *addr,
+                             int             length )
 {
      if (length < 0)
           length = device->shared->fix.mmio_len;

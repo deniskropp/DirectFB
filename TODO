@@ -31,7 +31,7 @@ Rework VT handling. Readd VT switching and Suspend/Resume.
 Finish multi application core.
  - FusionProperty needs to be implemented
  - Reduce number of thread
- - Remove leaks
+ - Destroy orphaned windows/surfaces/states
  - Add fork handling
 
 Finish surface manager.
