@@ -1387,7 +1387,7 @@ DEFINE_INTERFACE(   IDirectFB,
       * Load an implementation of a specific interface type.
       *
       * This methods loads an interface implementation of the specified
-      * <i>type</i> of interface, e.g. "IDirectAudio".
+      * <i>type</i> of interface, e.g. "IFusionSound".
       *
       * A specific implementation can be forced with the optional
       * <i>implementation</i> argument.
