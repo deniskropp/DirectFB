@@ -927,6 +927,9 @@ static void matroxDoBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      startx = sx << (20 - w2);
      starty = sy << (20 - h2);
 
+     if (mdev->blit_deinterlace && !mdev->field)
+          starty += 0x80000;
+     
      mga_waitfifo( mdrv, mdev, 8);
 
      mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
