@@ -7,13 +7,12 @@ Finish implementation of cooperative levels.
 
 Finish display layer core and driver API.
  - Finish reallocate_surface() in src/core/layers.c
- - Disable a layer if it has been enabled by a process that died.
+ - Add reference counter to each display layer and
+   implement an auto-disable if reference count gets zero.
 
 Finish multi application core.
  - Some messages may need to be dispatched synchronized
  - Add fork handling
- - Detaching foreign reactions from a reactor is not implemented
-   anymore and won't be supported again. Get rid of such usage.
 
 Finish surface manager.
  - Add kicking out a few smaller surfaces for a bigger one

@@ -55,6 +55,7 @@
 #include <core/surfaces.h>
 #include <core/layers.h>
 #include <core/input.h>
+#include <core/windows.h>
 
 #include <misc/mem.h>
 #include <misc/util.h>
@@ -157,7 +158,8 @@ static bool
 core_input_filter( InputDevice *device, DFBInputEvent *event );
 
 static const React dfb_input_globals[] = {
-     NULL
+/* 0 */   _dfb_window_stack_inputdevice_react,
+          NULL
 };
 
 /** public **/
@@ -356,6 +358,23 @@ dfb_input_detach( InputDevice *device,
                   Reaction    *reaction )
 {
      return reactor_detach( device->shared->reactor, reaction );
+}
+
+FusionResult
+dfb_input_attach_global( InputDevice    *device,
+                         int             react_index,
+                         void           *ctx,
+                         GlobalReaction *reaction )
+{
+     return reactor_attach_global( device->shared->reactor,
+                                   react_index, ctx, reaction );
+}
+
+FusionResult
+dfb_input_detach_global( InputDevice    *device,
+                         GlobalReaction *reaction )
+{
+     return reactor_detach_global( device->shared->reactor, reaction );
 }
 
 void

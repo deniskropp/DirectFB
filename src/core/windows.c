@@ -53,10 +53,10 @@
 
 
 typedef struct {
-     FusionLink   link;
+     FusionLink      link;
 
-     InputDevice *device;
-     Reaction     reaction;
+     InputDevice    *device;
+     GlobalReaction  reaction;
 } StackDevice;
 
 
@@ -113,9 +113,6 @@ window_withdraw( CoreWindow *window );
 static void
 window_restacked( CoreWindow *window );
 
-static ReactionResult
-stack_inputdevice_react( const void *msg_data,
-                         void       *ctx );
 static DFBEnumerationResult
 stack_attach_devices( InputDevice *device,
                       void        *ctx );
@@ -255,7 +252,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           FusionLink  *next   = l->next;
           StackDevice *device = (StackDevice*) l;
           
-          dfb_input_detach( device->device, &device->reaction );
+          dfb_input_detach_global( device->device, &device->reaction );
 
           shfree( device );
 
@@ -1158,7 +1155,8 @@ stack_attach_devices( InputDevice *device,
 
      fusion_list_prepend( &stack->devices, &dev->link );
 
-     dfb_input_attach( device, stack_inputdevice_react, ctx, &dev->reaction );
+     dfb_input_attach_global( device, 0 /* FIXME: macro/enum? */,
+                              ctx, &dev->reaction );
 
      return DFENUM_OK;
 }
@@ -1397,9 +1395,9 @@ window_at_pointer( CoreWindowStack *stack,
      return NULL;
 }
 
-static ReactionResult
-stack_inputdevice_react( const void *msg_data,
-                         void       *ctx )
+ReactionResult
+_dfb_window_stack_inputdevice_react( const void *msg_data,
+                                     void       *ctx )
 {
      const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
 

@@ -327,4 +327,9 @@ void dfb_windowstack_flush_keys( CoreWindowStack *stack );
  */
 void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
 
+
+/* global reactions */
+ReactionResult _dfb_window_stack_inputdevice_react( const void *msg_data,
+                                                    void       *ctx );
+
 #endif

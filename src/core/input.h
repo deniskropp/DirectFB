@@ -129,6 +129,14 @@ FusionResult dfb_input_attach( InputDevice *device,
 FusionResult dfb_input_detach( InputDevice *device,
                                Reaction    *reaction );
 
+FusionResult dfb_input_attach_global( InputDevice    *device,
+                                      int             react_index,
+                                      void           *ctx,
+                                      GlobalReaction *reaction );
+
+FusionResult dfb_input_detach_global( InputDevice    *device,
+                                      GlobalReaction *reaction );
+
 void dfb_input_dispatch( InputDevice *device, DFBInputEvent *event );
 
 void dfb_input_device_description( const InputDevice         *device,
