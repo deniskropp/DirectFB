@@ -221,9 +221,9 @@ void mach64_set_src_colorkey( Mach64DriverData *mdrv,
           return;
 
      mach64_waitfifo( mdrv, mdev, 3 );
-     mach64_out32( mmio, CLR_CMP_MASK, mdev->src_key_mask );
+     mach64_out32( mmio, CLR_CMP_MSK, mdev->src_key_mask );
      mach64_out32( mmio, CLR_CMP_CLR, state->src_colorkey );
-     mach64_out32( mmio, CLR_CMP_CNTL, COMPARE_EQUAL | COMPARE_SOURCE );
+     mach64_out32( mmio, CLR_CMP_CNTL, CLR_CMP_FN_EQUAL | CLR_CMP_SRC_2D );
 
      MACH64_VALIDATE( m_srckey );
      MACH64_INVALIDATE( m_srckey_scale | m_dstkey | m_disable_key );
@@ -239,9 +239,9 @@ void mach64_set_src_colorkey_scale( Mach64DriverData *mdrv,
           return;
 
      mach64_waitfifo( mdrv, mdev, 3 );
-     mach64_out32( mmio, CLR_CMP_MASK, mdev->src_key_mask );
+     mach64_out32( mmio, CLR_CMP_MSK, mdev->src_key_mask );
      mach64_out32( mmio, CLR_CMP_CLR, state->src_colorkey );
-     mach64_out32( mmio, CLR_CMP_CNTL, COMPARE_EQUAL | COMPARE_SCALE );
+     mach64_out32( mmio, CLR_CMP_CNTL, CLR_CMP_FN_EQUAL | CLR_CMP_SRC_SCALE );
 
      MACH64_VALIDATE( m_srckey_scale );
      MACH64_INVALIDATE( m_srckey | m_dstkey | m_disable_key );
@@ -257,9 +257,9 @@ void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
           return;
 
      mach64_waitfifo( mdrv, mdev, 3 );
-     mach64_out32( mmio, CLR_CMP_MASK, mdev->dst_key_mask );
+     mach64_out32( mmio, CLR_CMP_MSK, mdev->dst_key_mask );
      mach64_out32( mmio, CLR_CMP_CLR, state->dst_colorkey );
-     mach64_out32( mmio, CLR_CMP_CNTL, COMPARE_NOT_EQUAL | COMPARE_DESTINATION );
+     mach64_out32( mmio, CLR_CMP_CNTL, CLR_CMP_FN_NOT_EQUAL | CLR_CMP_SRC_DEST );
 
      MACH64_VALIDATE( m_dstkey );
      MACH64_INVALIDATE( m_srckey | m_srckey_scale | m_disable_key );
@@ -274,7 +274,7 @@ void mach64_disable_colorkey( Mach64DriverData *mdrv,
           return;
 
      mach64_waitfifo( mdrv, mdev, 1 );
-     mach64_out32( mmio, CLR_CMP_CNTL, COMPARE_FALSE );
+     mach64_out32( mmio, CLR_CMP_CNTL, CLR_CMP_FN_FALSE );
 
      MACH64_VALIDATE( m_disable_key );
      MACH64_INVALIDATE( m_srckey | m_srckey_scale | m_dstkey );

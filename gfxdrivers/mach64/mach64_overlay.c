@@ -131,7 +131,7 @@ ovInitLayer( CoreLayer                  *layer,
           mach64_out32( mmio, SCALER_H_COEFF2, 0x0D0A1C0D );
           mach64_out32( mmio, SCALER_H_COEFF3, 0x0C0E1A0C );
           mach64_out32( mmio, SCALER_H_COEFF4, 0x0C14140C );
-          mach64_out32( mmio, SCALER_COLOR_CNTL, 0x00101000 );
+          mach64_out32( mmio, SCALER_COLOUR_CNTL, 0x00101000 );
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
@@ -261,7 +261,7 @@ ovSetColorAdjustment( CoreLayer          *layer,
 
      mach64_waitfifo( mdrv, mdev, 1 );
 
-     mach64_out32( mmio, SCALER_COLOR_CNTL,
+     mach64_out32( mmio, SCALER_COLOUR_CNTL,
                    (((adj->brightness >> 9) - 64) & 0x0000007F) |
                    ((adj->saturation >> 3)  & 0x00001F00) |
                    ((adj->saturation << 5)  & 0x001F0000) );
@@ -318,11 +318,11 @@ static void ov_set_regs( Mach64DriverData       *mdrv,
 }
 
 static __u32 ovColorKey[] = {
-     VIDEO_MIX_TRUE | GRAPHICS_MIX_TRUE,                 /* 0 */
-     VIDEO_MIX_NOT_EQUAL | GRAPHICS_MIX_FALSE,           /* DLOP_SRC_COLORKEY */
-     VIDEO_MIX_FALSE | GRAPHICS_MIX_EQUAL,               /* DLOP_DST_COLORKEY */
-     VIDEO_MIX_NOT_EQUAL | GRAPHICS_MIX_EQUAL | CMP_MIX  /* DLOP_SRC_COLORKEY |
-                                                            DLOP_DST_COLORKEY */
+     VIDEO_KEY_FN_TRUE      | GRAPHICS_KEY_FN_TRUE  | OVERLAY_CMP_MIX_OR, /* 0 */
+     VIDEO_KEY_FN_NOT_EQUAL | GRAPHICS_KEY_FN_FALSE | OVERLAY_CMP_MIX_OR, /* DLOP_SRC_COLORKEY */
+     VIDEO_KEY_FN_FALSE     | GRAPHICS_KEY_FN_EQUAL | OVERLAY_CMP_MIX_OR, /* DLOP_DST_COLORKEY */
+     VIDEO_KEY_FN_NOT_EQUAL | GRAPHICS_KEY_FN_EQUAL | OVERLAY_CMP_MIX_AND /* DLOP_SRC_COLORKEY |
+                                                                             DLOP_DST_COLORKEY */
 };
 
 static void ov_calc_regs( Mach64DriverData       *mdrv,
@@ -334,7 +334,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
      DFBSurfacePixelFormat primary_format = dfb_primary_layer_pixelformat();
      SurfaceBuffer *front_buffer = surface->front_buffer;
      VideoMode *mode = dfb_system_current_mode();
-     __u32 lcd_gen_ctrl, lcd_vert_stretching;
+     __u32 lcd_gen_ctrl, vert_stretching;
      DFBRegion dst;
      int h_inc, v_inc;
 
@@ -352,10 +352,10 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
      h_inc = (config->source.w << 12) / config->dest.w;
 
      lcd_gen_ctrl = mach64_in_lcd( mmio, LCD_GEN_CTRL );
-     lcd_vert_stretching = mach64_in_lcd( mmio, LCD_VERT_STRETCHING );
+     vert_stretching = mach64_in_lcd( mmio, VERT_STRETCHING );
 
-     if ((lcd_gen_ctrl & LCD_ON) && (lcd_vert_stretching & VERT_STRETCH_EN))
-          v_inc = (config->source.h << 2) * (lcd_vert_stretching & VERT_STRETCH_RATIO0) / config->dest.h;
+     if ((lcd_gen_ctrl & LCD_ON) && (vert_stretching & VERT_STRETCH_EN))
+          v_inc = (config->source.h << 2) * (vert_stretching & VERT_STRETCH_RATIO0) / config->dest.h;
      else
           v_inc = (config->source.h << 12) / config->dest.h;
 
@@ -507,4 +507,3 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
      mov->regs.scaler_BUF0_OFFSET_U   = offset_u;
      mov->regs.scaler_BUF0_OFFSET_V   = offset_v;
 }
-

@@ -83,12 +83,14 @@ mach64_in32(volatile __u8 *mmioaddr, __u32 reg)
 #endif
 }
 
+#if 0
 static inline void
 mach64_out_lcd(volatile __u8 *mmioaddr, __u8 reg, __u32 value )
 {
      mach64_out8( mmioaddr, LCD_INDEX, reg );
      mach64_out32( mmioaddr, LCD_DATA, value );
 }
+#endif
 
 static inline __u32
 mach64_in_lcd(volatile __u8 *mmioaddr, __u8 reg )
@@ -97,13 +99,29 @@ mach64_in_lcd(volatile __u8 *mmioaddr, __u8 reg )
      return mach64_in32( mmioaddr, LCD_DATA );
 }
 
+#if 0
+static inline void
+mach64_out_pll( volatile __u8 *mmioaddr, __u8 reg, __u8 value )
+{
+     mach64_out8( mmioaddr, CLOCK_CNTL1, (reg << 2) | PLL_WR_EN );
+     mach64_out8( mmioaddr, CLOCK_CNTL2, value );
+}
+#endif
+
+static inline __u8
+mach64_in_pll( volatile __u8 *mmioaddr, __u8 reg )
+{
+     mach64_out8( mmioaddr, CLOCK_CNTL1, reg << 2 );
+     return mach64_in8( mmioaddr, CLOCK_CNTL2 );
+}
+
 static inline void mach64_waitidle( Mach64DriverData *mdrv,
                                     Mach64DeviceData *mdev )
 {
      int timeout = 1000000;
 
      while (timeout--) {
-          if ((mach64_in32( mdrv->mmio_base, FIFO_STAT) & 0xFFFF) == 0)
+          if ((mach64_in32( mdrv->mmio_base, FIFO_STAT) & 0x0000FFFF) == 0)
                break;
 
           mdev->idle_waitcycles++;
@@ -112,7 +130,7 @@ static inline void mach64_waitidle( Mach64DriverData *mdrv,
      timeout = 1000000;
 
      while (timeout--) {
-          if ((mach64_in32( mdrv->mmio_base, GUI_STAT) & 1) == 0)
+          if ((mach64_in32( mdrv->mmio_base, GUI_STAT) & GUI_ACTIVE) == 0)
                break;
 
           mdev->idle_waitcycles++;
