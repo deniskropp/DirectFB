@@ -2909,7 +2909,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
                          *funcs++ = Sop_is_Bop;
                          if (DFB_PIXELFORMAT_IS_INDEXED(src_format))
-                              *funcs++ = Slut_is_Alut;
+                              *funcs++ = Slut_is_Blut;
 
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
