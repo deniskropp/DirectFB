@@ -1349,19 +1349,35 @@ resize_window( CoreWindow *window,
      bounds->w = width;
      bounds->h = height;
 
-     dfb_region_intersect( &window->config.opaque, 0, 0, width - 1, height - 1 );
+     if (window->region) {
+          data->config.dest.w = data->config.source.w = data->config.width  = width;
+          data->config.dest.h = data->config.source.h = data->config.height = height;
 
-     if (VISIBLE_WINDOW (window)) {
-          if (ow > bounds->w) {
-               DFBRegion region = { bounds->w, 0, ow - 1, MIN(bounds->h, oh) - 1 };
+          ret = dfb_layer_region_set_configuration( window->region, &data->config,
+                                                    CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_SURFACE |
+                                                    CLRCF_DEST  | CLRCF_SOURCE );
+          if (ret) {
+               data->config.dest.w = data->config.source.w = data->config.width  = bounds->w = ow;
+               data->config.dest.h = data->config.source.h = data->config.height = bounds->h = oh;
 
-               update_window( window, data, &region, 0, false, false );
+               return ret;
           }
+     }
+     else {
+          dfb_region_intersect( &window->config.opaque, 0, 0, width - 1, height - 1 );
 
-          if (oh > bounds->h) {
-               DFBRegion region = { 0, bounds->h, MAX(bounds->w, ow) - 1, oh - 1 };
+          if (VISIBLE_WINDOW (window)) {
+               if (ow > bounds->w) {
+                    DFBRegion region = { bounds->w, 0, ow - 1, MIN(bounds->h, oh) - 1 };
 
-               update_window( window, data, &region, 0, false, false );
+                    update_window( window, data, &region, 0, false, false );
+               }
+
+               if (oh > bounds->h) {
+                    DFBRegion region = { 0, bounds->h, MAX(bounds->w, ow) - 1, oh - 1 };
+
+                    update_window( window, data, &region, 0, false, false );
+               }
           }
      }
 
