@@ -15,7 +15,7 @@
 #define UC_ACCEL_BEGIN()                        \
     UcDriverData *ucdrv = (UcDriverData*) drv;  \
     UcDeviceData *ucdev = (UcDeviceData*) dev;  \
-    struct uc_fifo *fifo = ucdrv->fifo;         \
+    struct uc_fifo *fifo = ucdev->fifo;         \
     /*printf("entering %s\n", __PRETTY_FUNCTION__)*/
 
 #define UC_ACCEL_END()                                      \
@@ -63,8 +63,7 @@ void uc_emit_commands(void* drv, void* dev)
 
 void uc_flush_texture_cache(void* drv, void* dev)
 {
-    UcDriverData   *ucdrv = (UcDriverData*) drv;
-    struct uc_fifo *fifo  = ucdrv->fifo;
+    UC_ACCEL_BEGIN()
 
     UC_FIFO_PREPARE(fifo, 4);
 

@@ -45,12 +45,8 @@ struct uc_fifo
     unsigned int prep;
     unsigned int used;
 
-    volatile __u32* hwregs;
-    volatile __u32* reg_tset;
-    volatile __u32* reg_tspace;
-
-    void (*flush)(struct uc_fifo* fifo);
-    void (*flush_sys)(struct uc_fifo* fifo);
+    void (*flush)(struct uc_fifo* fifo, volatile void *hwregs);
+    void (*flush_sys)(struct uc_fifo* fifo, volatile void *hwregs);
 };
 
 // Help macros ---------------------------------------------------------------
@@ -78,7 +74,7 @@ struct uc_fifo
     do {                                                    \
         if ((fifo)->used + dwsize + 32 > (fifo)->size) {    \
             DEBUGMSG("CLE266: FIFO full - flushing it.");   \
-            (fifo)->flush(fifo);                            \
+            (fifo)->flush(fifo,ucdrv->hwregs);              \
         }                                                   \
         if (dwsize + (fifo)->prep + 32 > (fifo)->size) {    \
             BUG("CLE266: FIFO too small for allocation.");  \
@@ -91,7 +87,7 @@ struct uc_fifo
 #define UC_FIFO_PREPARE(fifo, dwsize)                       \
     do {                                                    \
         if ((fifo)->used + dwsize + 32 > (fifo)->size) {    \
-            (fifo)->flush(fifo);                            \
+            (fifo)->flush(fifo,ucdrv->hwregs);              \
         }                                                   \
         (fifo)->prep += dwsize;                             \
     } while(0)
@@ -233,20 +229,20 @@ struct uc_fifo
  * the buffer. The transfer may be performed by the CPU or by DMA.
  */
 
-#define UC_FIFO_FLUSH(fifo) (fifo)->flush(fifo)
+#define UC_FIFO_FLUSH(fifo) (fifo)->flush(fifo,ucdrv->hwregs)
 
 /**
  * Same as UC_FIFO_FLUSH(), but always uses the CPU to transfer data.
  */
 
-#define UC_FIFO_FLUSH_SYS(fifo) (fifo)->flush_sys(fifo)
+#define UC_FIFO_FLUSH_SYS(fifo) (fifo)->flush_sys(fifo,ucdrv->hwregs)
 
 
 // FIFO functions ------------------------------------------------------------
 
 /** Create a FIFO. Returns NULL on failure. */
 
-struct uc_fifo* uc_fifo_create(size_t size, volatile __u8* hwregs);
+struct uc_fifo* uc_fifo_create(size_t size);
 
 /** Destroy a FIFO */
 

@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <core/fusion/shmalloc.h>
+
 #include "uc_fifo.h"
 
 //#define UC_FIFO_DUMP_DATA
@@ -63,14 +65,14 @@ static void uc_fifo_pad(struct uc_fifo* fifo)
  * @note Equivalent DRI code is in via_ioctl::flush_sys()
  */
 
-static void uc_fifo_flush_sys(struct uc_fifo* fifo)
+static void uc_fifo_flush_sys(struct uc_fifo* fifo, volatile void *regs)
 {
     __u32* p;
     __u32* q;
 
-    volatile __u32* hwregs;
-    volatile __u32* reg_tset;
-    volatile __u32* reg_tspace;
+    volatile __u32* hwregs     = regs;
+    volatile __u32* reg_tset   = regs + VIA_REG_TRANSET;
+    volatile __u32* reg_tspace = regs + VIA_REG_TRANSPACE;
 
     int check2Dcmd;
     __u32 addr;
@@ -78,10 +80,6 @@ static void uc_fifo_flush_sys(struct uc_fifo* fifo)
     p = fifo->buf;
     q = fifo->head;
     check2Dcmd = 0;
-
-    reg_tset = fifo->reg_tset;
-    reg_tspace = fifo->reg_tspace;
-    hwregs = fifo->hwregs;
 
     uc_fifo_pad(fifo);
 
@@ -155,20 +153,20 @@ static void uc_fifo_flush_agp(struct uc_fifo* fifo)
 
 /** Create a FIFO. Returns NULL on failure. */
 
-struct uc_fifo* uc_fifo_create(size_t size, volatile __u8* hwregs)
+struct uc_fifo* uc_fifo_create(size_t size)
 {
     struct uc_fifo* fifo;
 
     size += 32;     // Needed for padding.
 
-    fifo = malloc(sizeof(struct uc_fifo));
+    fifo = SHCALLOC(1, sizeof(struct uc_fifo));
     if (!fifo) return NULL;
 
     // Note: malloc won't work for DMA buffers...
 
-    fifo->buf = malloc(sizeof(__u32) * size);
+    fifo->buf = SHMALLOC(sizeof(__u32) * size);
     if (!(fifo->buf)) {
-        free(fifo);
+        SHFREE(fifo);
         return NULL;
     }
 
@@ -177,9 +175,6 @@ struct uc_fifo* uc_fifo_create(size_t size, volatile __u8* hwregs)
     fifo->size = (unsigned int) size;
     fifo->prep = 0;
 
-    fifo->hwregs = (__u32*) hwregs;
-    fifo->reg_tset = (__u32*) (hwregs + VIA_REG_TRANSET);
-    fifo->reg_tspace = (__u32*) (hwregs + VIA_REG_TRANSPACE);
     fifo->flush_sys = uc_fifo_flush_sys;
 
     fifo->flush = uc_fifo_flush_sys;
@@ -193,9 +188,9 @@ void uc_fifo_destroy(struct uc_fifo* fifo)
 {
     if (fifo) {
         if (fifo->buf) {
-            free(fifo->buf);
+            SHFREE(fifo->buf);
             fifo->buf = NULL;
         }
-        free(fifo);
+        SHFREE(fifo);
     }
 }

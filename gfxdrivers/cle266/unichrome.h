@@ -101,6 +101,7 @@ typedef struct _UcDeviceData {
     unsigned int cmd_waitcycles;
     unsigned int idle_waitcycles;
 
+    struct uc_fifo* fifo;       // Data FIFO.
 
     __u32           vq_start;   // VQ related
     __u32           vq_size;
@@ -118,11 +119,7 @@ typedef struct _UcDeviceData {
 typedef struct _UcDriverData {
     int             file;       // File handle to mmapped IO region.
     int             hwrev;      // Hardware revision
-    volatile __u8*  hwregs;     // Hardware register base
-    struct uc_fifo* fifo;       // Data FIFO.
-
-    __u8            vga1A_save;
-
+    volatile void*  hwregs;     // Hardware register base
 } UcDriverData;
 
 

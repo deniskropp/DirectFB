@@ -114,7 +114,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 {
     UcDriverData* ucdrv = (UcDriverData*) drv;
     UcDeviceData* ucdev = (UcDeviceData*) dev;
-    struct uc_fifo* fifo = ucdrv->fifo;
+    struct uc_fifo* fifo = ucdev->fifo;
 
     __u32 rop3d = HC_HROP_P;
     __u32 mask3d;
@@ -135,7 +135,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
         ucdev->v_blending_fn = 0; /* also depends on SMF_DESTINATION (rarely) */
 
     if (state->modified & SMF_DESTINATION)
-        uc_set_destination(fifo, ucdev, state);
+        uc_set_destination(ucdrv, ucdev, state);
 
     if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
         ucdev->color = uc_map_color(state->destination->format, state->color);
@@ -157,7 +157,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
     }
 
     if (state->modified & SMF_CLIP) {
-        uc_set_clip(fifo, state);
+        uc_set_clip(ucdrv, ucdev, state);
     }
 
 
@@ -176,7 +176,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
             funcs->DrawRectangle = uc_draw_rectangle;
             funcs->DrawLine = uc_draw_line;
 
-            uc_set_drawing_color_2d(fifo, state, ucdev);
+            uc_set_drawing_color_2d(ucdrv, ucdev, state);
 
             state->set = UC_DRAWING_FUNCTIONS_2D;
             break;
@@ -187,7 +187,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
             funcs->DrawLine = uc_draw_line_3d;
 
             if (state->drawingflags & DSDRAW_BLEND) {
-                uc_set_blending_fn(fifo, ucdev, state);
+                uc_set_blending_fn(ucdrv, ucdev, state);
                 regEnable |= HC_HenABL_MASK;
             }
 
@@ -205,18 +205,18 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
         switch (uc_select_blittype(state, accel))
         {
         case UC_TYPE_2D:
-            uc_set_source_2d(fifo, ucdev, state);
+            uc_set_source_2d(ucdrv, ucdev, state);
             funcs->Blit = uc_blit;
 
-            uc_set_blitting_colorkey_2d(fifo, state, ucdev);
+            uc_set_blitting_colorkey_2d(ucdrv, ucdev, state);
             state->set = UC_BLITTING_FUNCTIONS_2D;
             break;
 
         case UC_TYPE_3D:
             funcs->Blit = uc_blit_3d;
-            uc_set_source_3d(fifo, ucdev, state);
-            uc_set_texenv(fifo, ucdev, state);
-            uc_set_blending_fn(fifo, ucdev, state);
+            uc_set_source_3d(ucdrv, ucdev, state);
+            uc_set_texenv(ucdrv, ucdev, state);
+            uc_set_blending_fn(ucdrv, ucdev, state);
 
             regEnable |= HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK;
 

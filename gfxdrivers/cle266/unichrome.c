@@ -110,16 +110,16 @@ DFB_GRAPHICS_DRIVER(unichrome)
 #if 0
 static void uc_dump_vq(UcDeviceData *ucdev)
 {
-    int i;
-    __u8* vq;
+     int i;
+     __u8* vq;
 
-    if (!ucdev->vq_start) return;
-    vq = dfb_system_video_memory_virtual(ucdev->vq_start);
+     if (!ucdev->vq_start) return;
+     vq = dfb_system_video_memory_virtual(ucdev->vq_start);
 
-    for (i = 0; i < 128; i++) {
-        printf("%02x ", *(vq+i));
-        if ((i+1) % 16 == 0) printf("\n");
-    }
+     for (i = 0; i < 128; i++) {
+          printf("%02x ", *(vq+i));
+          if ((i+1) % 16 == 0) printf("\n");
+     }
 }
 #endif
 
@@ -127,23 +127,23 @@ static void uc_dump_vq(UcDeviceData *ucdev)
 
 static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
 {
-    if (ucdev->vq_start) return DFB_OK;
+     if (ucdev->vq_start) return DFB_OK;
 
-    ucdev->vq_size = 256*1024; // 256kb
-    ucdev->vq_start = dfb_gfxcard_reserve_memory( device, ucdev->vq_size );
+     ucdev->vq_size = 256*1024; // 256kb
+     ucdev->vq_start = dfb_gfxcard_reserve_memory( device, ucdev->vq_size );
 
-    if (!ucdev->vq_start)
-        return DFB_INIT;
+     if (!ucdev->vq_start)
+          return DFB_INIT;
 
-    ucdev->vq_end = ucdev->vq_start + ucdev->vq_size - 1;
+     ucdev->vq_end = ucdev->vq_start + ucdev->vq_size - 1;
 
-    // Debug: clear buffer
-    memset((void *) dfb_system_video_memory_virtual(ucdev->vq_start),
-        0xcc, ucdev->vq_size);
+     // Debug: clear buffer
+     memset((void *) dfb_system_video_memory_virtual(ucdev->vq_start),
+            0xcc, ucdev->vq_size);
 
-    // uc_dump_vq(ucdev);
+     // uc_dump_vq(ucdev);
 
-    return DFB_OK;
+     return DFB_OK;
 }
 
 /**
@@ -153,205 +153,205 @@ static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
 
 DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDeviceData *ucdev, UcDriverData *ucdrv, bool enable)
 {
-    DFBResult result = DFB_OK;
-    volatile __u8* hwregs = ucdrv->hwregs;
+     DFBResult result = DFB_OK;
+     volatile __u8* hwregs = ucdrv->hwregs;
 
-    // Init 2D engine registers to reset 2D engine
+     // Init 2D engine registers to reset 2D engine
 
-    VIA_OUT(hwregs, 0x04, 0x0);
-    VIA_OUT(hwregs, 0x08, 0x0);
-    VIA_OUT(hwregs, 0x0c, 0x0);
-    VIA_OUT(hwregs, 0x10, 0x0);
-    VIA_OUT(hwregs, 0x14, 0x0);
-    VIA_OUT(hwregs, 0x18, 0x0);
-    VIA_OUT(hwregs, 0x1c, 0x0);
-    VIA_OUT(hwregs, 0x20, 0x0);
-    VIA_OUT(hwregs, 0x24, 0x0);
-    VIA_OUT(hwregs, 0x28, 0x0);
-    VIA_OUT(hwregs, 0x2c, 0x0);
-    VIA_OUT(hwregs, 0x30, 0x0);
-    VIA_OUT(hwregs, 0x34, 0x0);
-    VIA_OUT(hwregs, 0x38, 0x0);
-    VIA_OUT(hwregs, 0x3c, 0x0);
-    VIA_OUT(hwregs, 0x40, 0x0);
+     VIA_OUT(hwregs, 0x04, 0x0);
+     VIA_OUT(hwregs, 0x08, 0x0);
+     VIA_OUT(hwregs, 0x0c, 0x0);
+     VIA_OUT(hwregs, 0x10, 0x0);
+     VIA_OUT(hwregs, 0x14, 0x0);
+     VIA_OUT(hwregs, 0x18, 0x0);
+     VIA_OUT(hwregs, 0x1c, 0x0);
+     VIA_OUT(hwregs, 0x20, 0x0);
+     VIA_OUT(hwregs, 0x24, 0x0);
+     VIA_OUT(hwregs, 0x28, 0x0);
+     VIA_OUT(hwregs, 0x2c, 0x0);
+     VIA_OUT(hwregs, 0x30, 0x0);
+     VIA_OUT(hwregs, 0x34, 0x0);
+     VIA_OUT(hwregs, 0x38, 0x0);
+     VIA_OUT(hwregs, 0x3c, 0x0);
+     VIA_OUT(hwregs, 0x40, 0x0);
 
-    // Init AGP and VQ registers
+     // Init AGP and VQ registers
 
-    VIA_OUT(hwregs, 0x43c, 0x00100000);
-    VIA_OUT(hwregs, 0x440, 0x00000000);
-    VIA_OUT(hwregs, 0x440, 0x00333004);
-    VIA_OUT(hwregs, 0x440, 0x60000000);
-    VIA_OUT(hwregs, 0x440, 0x61000000);
-    VIA_OUT(hwregs, 0x440, 0x62000000);
-    VIA_OUT(hwregs, 0x440, 0x63000000);
-    VIA_OUT(hwregs, 0x440, 0x64000000);
-    VIA_OUT(hwregs, 0x440, 0x7D000000);
+     VIA_OUT(hwregs, 0x43c, 0x00100000);
+     VIA_OUT(hwregs, 0x440, 0x00000000);
+     VIA_OUT(hwregs, 0x440, 0x00333004);
+     VIA_OUT(hwregs, 0x440, 0x60000000);
+     VIA_OUT(hwregs, 0x440, 0x61000000);
+     VIA_OUT(hwregs, 0x440, 0x62000000);
+     VIA_OUT(hwregs, 0x440, 0x63000000);
+     VIA_OUT(hwregs, 0x440, 0x64000000);
+     VIA_OUT(hwregs, 0x440, 0x7D000000);
 
-    VIA_OUT(hwregs, 0x43c, 0xfe020000);
-    VIA_OUT(hwregs, 0x440, 0x00000000);
+     VIA_OUT(hwregs, 0x43c, 0xfe020000);
+     VIA_OUT(hwregs, 0x440, 0x00000000);
 
-    if (enable) {
-        result = uc_alloc_vq(device,ucdev);
-        enable = (result == DFB_OK);
-    }
+     if (enable) {
+          result = uc_alloc_vq(device,ucdev);
+          enable = (result == DFB_OK);
+     }
 
-    if (enable) { // Enable VQ
+     if (enable) { // Enable VQ
 
-        VIA_OUT(hwregs, 0x43c, 0x00fe0000);
-        VIA_OUT(hwregs, 0x440, 0x080003fe);
-        VIA_OUT(hwregs, 0x440, 0x0a00027c);
-        VIA_OUT(hwregs, 0x440, 0x0b000260);
-        VIA_OUT(hwregs, 0x440, 0x0c000274);
-        VIA_OUT(hwregs, 0x440, 0x0d000264);
-        VIA_OUT(hwregs, 0x440, 0x0e000000);
-        VIA_OUT(hwregs, 0x440, 0x0f000020);
-        VIA_OUT(hwregs, 0x440, 0x1000027e);
-        VIA_OUT(hwregs, 0x440, 0x110002fe);
-        VIA_OUT(hwregs, 0x440, 0x200f0060);
+          VIA_OUT(hwregs, 0x43c, 0x00fe0000);
+          VIA_OUT(hwregs, 0x440, 0x080003fe);
+          VIA_OUT(hwregs, 0x440, 0x0a00027c);
+          VIA_OUT(hwregs, 0x440, 0x0b000260);
+          VIA_OUT(hwregs, 0x440, 0x0c000274);
+          VIA_OUT(hwregs, 0x440, 0x0d000264);
+          VIA_OUT(hwregs, 0x440, 0x0e000000);
+          VIA_OUT(hwregs, 0x440, 0x0f000020);
+          VIA_OUT(hwregs, 0x440, 0x1000027e);
+          VIA_OUT(hwregs, 0x440, 0x110002fe);
+          VIA_OUT(hwregs, 0x440, 0x200f0060);
 
-        VIA_OUT(hwregs, 0x440, 0x00000006);
-        VIA_OUT(hwregs, 0x440, 0x40008c0f);
-        VIA_OUT(hwregs, 0x440, 0x44000000);
-        VIA_OUT(hwregs, 0x440, 0x45080c04);
-        VIA_OUT(hwregs, 0x440, 0x46800408);
+          VIA_OUT(hwregs, 0x440, 0x00000006);
+          VIA_OUT(hwregs, 0x440, 0x40008c0f);
+          VIA_OUT(hwregs, 0x440, 0x44000000);
+          VIA_OUT(hwregs, 0x440, 0x45080c04);
+          VIA_OUT(hwregs, 0x440, 0x46800408);
 
-        VIA_OUT(hwregs, 0x440, 0x52000000 |
-            ((ucdev->vq_start & 0xFF000000) >> 24) |
-            ((ucdev->vq_end & 0xFF000000) >> 16));
-        VIA_OUT(hwregs, 0x440, 0x50000000 | (ucdev->vq_start & 0xFFFFFF));
-        VIA_OUT(hwregs, 0x440, 0x51000000 | (ucdev->vq_end & 0xFFFFFF));
-        VIA_OUT(hwregs, 0x440, 0x53000000 | (ucdev->vq_size >> 3));
-    }
-    else { // Disable VQ
+          VIA_OUT(hwregs, 0x440, 0x52000000 |
+                  ((ucdev->vq_start & 0xFF000000) >> 24) |
+                  ((ucdev->vq_end & 0xFF000000) >> 16));
+          VIA_OUT(hwregs, 0x440, 0x50000000 | (ucdev->vq_start & 0xFFFFFF));
+          VIA_OUT(hwregs, 0x440, 0x51000000 | (ucdev->vq_end & 0xFFFFFF));
+          VIA_OUT(hwregs, 0x440, 0x53000000 | (ucdev->vq_size >> 3));
+     }
+     else { // Disable VQ
 
-        VIA_OUT(hwregs, 0x43c, 0x00fe0000);
-        VIA_OUT(hwregs, 0x440, 0x00000004);
-        VIA_OUT(hwregs, 0x440, 0x40008c0f);
-        VIA_OUT(hwregs, 0x440, 0x44000000);
-        VIA_OUT(hwregs, 0x440, 0x45080c04);
-        VIA_OUT(hwregs, 0x440, 0x46800408);
-    }
+          VIA_OUT(hwregs, 0x43c, 0x00fe0000);
+          VIA_OUT(hwregs, 0x440, 0x00000004);
+          VIA_OUT(hwregs, 0x440, 0x40008c0f);
+          VIA_OUT(hwregs, 0x440, 0x44000000);
+          VIA_OUT(hwregs, 0x440, 0x45080c04);
+          VIA_OUT(hwregs, 0x440, 0x46800408);
+     }
 
-    return result;
+     return result;
 }
 
 void uc_init_3d_engine(volatile __u8* hwregs, int hwrev, bool init_all)
 {
-    __u32 i;
+     __u32 i;
 
-    if (init_all) {
+     if (init_all) {
 
-        // Clear NotTex registers (?)
+          // Clear NotTex registers (?)
 
-        VIA_OUT(hwregs, 0x43C, 0x00010000);
-        for (i = 0; i <= 0x7d; i++)
-            VIA_OUT(hwregs, 0x440, i << 24);
+          VIA_OUT(hwregs, 0x43C, 0x00010000);
+          for (i = 0; i <= 0x7d; i++)
+               VIA_OUT(hwregs, 0x440, i << 24);
 
-        // Clear texture unit 0 (?)
+          // Clear texture unit 0 (?)
 
-        VIA_OUT(hwregs, 0x43C, 0x00020000);
-        for (i = 0; i <= 0x94; i++)
-            VIA_OUT(hwregs, 0x440, i << 24);
-        VIA_OUT(hwregs, 0x440, 0x82400000);
+          VIA_OUT(hwregs, 0x43C, 0x00020000);
+          for (i = 0; i <= 0x94; i++)
+               VIA_OUT(hwregs, 0x440, i << 24);
+          VIA_OUT(hwregs, 0x440, 0x82400000);
 
-        // Clear texture unit 1 (?)
+          // Clear texture unit 1 (?)
 
-        VIA_OUT(hwregs, 0x43C, 0x01020000);
-        for (i = 0; i <= 0x94; i++)
-            VIA_OUT(hwregs, 0x440, i << 24);
-        VIA_OUT(hwregs, 0x440, 0x82400000);
+          VIA_OUT(hwregs, 0x43C, 0x01020000);
+          for (i = 0; i <= 0x94; i++)
+               VIA_OUT(hwregs, 0x440, i << 24);
+          VIA_OUT(hwregs, 0x440, 0x82400000);
 
-        // Clear general texture settings (?)
+          // Clear general texture settings (?)
 
-        VIA_OUT(hwregs, 0x43C, 0xfe020000);
-        for (i = 0; i <= 0x03; i++)
-            VIA_OUT(hwregs, 0x440, i << 24);
+          VIA_OUT(hwregs, 0x43C, 0xfe020000);
+          for (i = 0; i <= 0x03; i++)
+               VIA_OUT(hwregs, 0x440, i << 24);
 
-        // Clear palette settings (?)
+          // Clear palette settings (?)
 
-        VIA_OUT(hwregs, 0x43C, 0x00030000);
-        for (i = 0; i <= 0xff; i++)
-            VIA_OUT(hwregs, 0x440, 0);
+          VIA_OUT(hwregs, 0x43C, 0x00030000);
+          for (i = 0; i <= 0xff; i++)
+               VIA_OUT(hwregs, 0x440, 0);
 
-        VIA_OUT(hwregs, 0x43C, 0x00100000);
-        VIA_OUT(hwregs, 0x440, 0x00333004);
-        VIA_OUT(hwregs, 0x440, 0x10000002);
-        VIA_OUT(hwregs, 0x440, 0x60000000);
-        VIA_OUT(hwregs, 0x440, 0x61000000);
-        VIA_OUT(hwregs, 0x440, 0x62000000);
-        VIA_OUT(hwregs, 0x440, 0x63000000);
-        VIA_OUT(hwregs, 0x440, 0x64000000);
+          VIA_OUT(hwregs, 0x43C, 0x00100000);
+          VIA_OUT(hwregs, 0x440, 0x00333004);
+          VIA_OUT(hwregs, 0x440, 0x10000002);
+          VIA_OUT(hwregs, 0x440, 0x60000000);
+          VIA_OUT(hwregs, 0x440, 0x61000000);
+          VIA_OUT(hwregs, 0x440, 0x62000000);
+          VIA_OUT(hwregs, 0x440, 0x63000000);
+          VIA_OUT(hwregs, 0x440, 0x64000000);
 
-        VIA_OUT(hwregs, 0x43C, 0x00fe0000);
+          VIA_OUT(hwregs, 0x43C, 0x00fe0000);
 
-        if (hwrev >= 3)
-            VIA_OUT(hwregs, 0x440,0x40008c0f);
-        else
-            VIA_OUT(hwregs, 0x440,0x4000800f);
+          if (hwrev >= 3)
+               VIA_OUT(hwregs, 0x440,0x40008c0f);
+          else
+               VIA_OUT(hwregs, 0x440,0x4000800f);
 
-        VIA_OUT(hwregs, 0x440,0x44000000);
-        VIA_OUT(hwregs, 0x440,0x45080C04);
-        VIA_OUT(hwregs, 0x440,0x46800408);
-        VIA_OUT(hwregs, 0x440,0x50000000);
-        VIA_OUT(hwregs, 0x440,0x51000000);
-        VIA_OUT(hwregs, 0x440,0x52000000);
-        VIA_OUT(hwregs, 0x440,0x53000000);
+          VIA_OUT(hwregs, 0x440,0x44000000);
+          VIA_OUT(hwregs, 0x440,0x45080C04);
+          VIA_OUT(hwregs, 0x440,0x46800408);
+          VIA_OUT(hwregs, 0x440,0x50000000);
+          VIA_OUT(hwregs, 0x440,0x51000000);
+          VIA_OUT(hwregs, 0x440,0x52000000);
+          VIA_OUT(hwregs, 0x440,0x53000000);
 
-    }
+     }
 
-    VIA_OUT(hwregs, 0x43C,0x00fe0000);
-    VIA_OUT(hwregs, 0x440,0x08000001);
-    VIA_OUT(hwregs, 0x440,0x0A000183);
-    VIA_OUT(hwregs, 0x440,0x0B00019F);
-    VIA_OUT(hwregs, 0x440,0x0C00018B);
-    VIA_OUT(hwregs, 0x440,0x0D00019B);
-    VIA_OUT(hwregs, 0x440,0x0E000000);
-    VIA_OUT(hwregs, 0x440,0x0F000000);
-    VIA_OUT(hwregs, 0x440,0x10000000);
-    VIA_OUT(hwregs, 0x440,0x11000000);
-    VIA_OUT(hwregs, 0x440,0x20000000);
+     VIA_OUT(hwregs, 0x43C,0x00fe0000);
+     VIA_OUT(hwregs, 0x440,0x08000001);
+     VIA_OUT(hwregs, 0x440,0x0A000183);
+     VIA_OUT(hwregs, 0x440,0x0B00019F);
+     VIA_OUT(hwregs, 0x440,0x0C00018B);
+     VIA_OUT(hwregs, 0x440,0x0D00019B);
+     VIA_OUT(hwregs, 0x440,0x0E000000);
+     VIA_OUT(hwregs, 0x440,0x0F000000);
+     VIA_OUT(hwregs, 0x440,0x10000000);
+     VIA_OUT(hwregs, 0x440,0x11000000);
+     VIA_OUT(hwregs, 0x440,0x20000000);
 }
 
 /** */
 
 static void uc_after_set_var(void* drv, void* dev)
 {
-    UcDriverData* ucdrv = (UcDriverData*) drv;
+     UcDriverData* ucdrv = (UcDriverData*) drv;
 
-    VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
-    // Clear bit 6 in extended VGA register 0x1a to prevent system lockup.
-    VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) & 0xbf);
-    // Set bit 2, it might make a difference.
-    VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) | 0x4);
+     VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
+     // Clear bit 6 in extended VGA register 0x1a to prevent system lockup.
+     VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) & 0xbf);
+     // Set bit 2, it might make a difference.
+     VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) | 0x4);
 }
 
 /** Wait until the engine is idle. */
 
 static void uc_engine_sync(void* drv, void* dev)
 {
-    UcDriverData* ucdrv = (UcDriverData*) drv;
-    UcDeviceData* ucdev = (UcDeviceData*) dev;
+     UcDriverData* ucdrv = (UcDriverData*) drv;
+     UcDeviceData* ucdev = (UcDeviceData*) dev;
 
-    int loop = 0;
+     int loop = 0;
 
 /*    printf("Entering uc_engine_sync(), status is 0x%08x\n",
         VIA_IN(ucdrv->hwregs, VIA_REG_STATUS));
 */
 
-    while ((VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & 0xfffeffff) != 0x00020000) {
-        if (++loop > MAXLOOP) {
-            ERRORMSG("DirectFB/VIA: Timeout waiting for idle engine!\n");
-            break;
-        }
-    }
+     while ((VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & 0xfffeffff) != 0x00020000) {
+          if (++loop > MAXLOOP) {
+               ERRORMSG("DirectFB/VIA: Timeout waiting for idle engine!\n");
+               break;
+          }
+     }
 
-    /* printf("Leaving uc_engine_sync(), status is 0x%08x, "
-        "waiting for %d (0x%x) cycles.\n",
-        VIA_IN(ucdrv->hwregs, VIA_REG_STATUS), loop, loop);
-     */
+     /* printf("Leaving uc_engine_sync(), status is 0x%08x, "
+         "waiting for %d (0x%x) cycles.\n",
+         VIA_IN(ucdrv->hwregs, VIA_REG_STATUS), loop, loop);
+      */
 
-    ucdev->idle_waitcycles += loop;
-    ucdev->must_wait = 0;
+     ucdev->idle_waitcycles += loop;
+     ucdev->must_wait = 0;
 }
 
 
@@ -359,42 +359,42 @@ static void uc_engine_sync(void* drv, void* dev)
 
 static int driver_probe(GraphicsDevice *device)
 {
-    struct stat s;
+     struct stat s;
 
-    switch (dfb_gfxcard_get_accelerator( device )) {
-         case FB_ACCEL_VIA_UNICHROME:
-              return 1;
-    }
+     switch (dfb_gfxcard_get_accelerator( device )) {
+          case FB_ACCEL_VIA_UNICHROME:
+               return 1;
+     }
 
-    return stat(UNICHROME_DEVICE, &s) + 1;
+     return stat(UNICHROME_DEVICE, &s) + 1;
 }
 
 static void driver_get_info(GraphicsDevice* device,
                             GraphicsDriverInfo* info)
 {
-    // Fill in driver info structure.
+     // Fill in driver info structure.
 
-    snprintf(info->name,
-        DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
-        "VIA UniChrome Driver");
+     snprintf(info->name,
+              DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
+              "VIA UniChrome Driver");
 
-    snprintf(info->vendor,
-        DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
-        "-");
+     snprintf(info->vendor,
+              DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
+              "-");
 
-    snprintf(info->url,
-        DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH,
-        "http://www.directfb.org");
+     snprintf(info->url,
+              DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH,
+              "http://www.directfb.org");
 
      snprintf(info->license,
-         DFB_GRAPHICS_DRIVER_INFO_LICENSE_LENGTH,
-         "LGPL");
+              DFB_GRAPHICS_DRIVER_INFO_LICENSE_LENGTH,
+              "LGPL");
 
-    info->version.major = 0;
-    info->version.minor = 3;
+     info->version.major = 0;
+     info->version.minor = 3;
 
-    info->driver_data_size = sizeof (UcDriverData);
-    info->device_data_size = sizeof (UcDeviceData);
+     info->driver_data_size = sizeof (UcDriverData);
+     info->device_data_size = sizeof (UcDeviceData);
 }
 
 
@@ -403,65 +403,54 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
                                     void* driver_data,
                                     void* device_data)
 {
-    UcDriverData *ucdrv = (UcDriverData*) driver_data;
+     UcDriverData *ucdrv = (UcDriverData*) driver_data;
 
-    //printf("Entering %s\n", __PRETTY_FUNCTION__);
+     //printf("Entering %s\n", __PRETTY_FUNCTION__);
 
-    ucdrv->file = -1;
+     ucdrv->file = -1;
 
-    ucdrv->hwregs = dfb_gfxcard_map_mmio( device, 0, 0 );
-    if (!ucdrv->hwregs) {
-         int fd;
+     ucdrv->hwregs = dfb_gfxcard_map_mmio( device, 0, 0 );
+     if (!ucdrv->hwregs) {
+          int fd;
 
-         fd = open(UNICHROME_DEVICE, O_RDWR | O_SYNC, 0);
-         if (fd < 0) {
-             ERRORMSG("Could not access %s. "
-                      "Is the cle266vgaio module installed?\n", UNICHROME_DEVICE);
-             return DFB_IO;
-         }
+          fd = open(UNICHROME_DEVICE, O_RDWR | O_SYNC, 0);
+          if (fd < 0) {
+               ERRORMSG("Could not access %s. "
+                        "Is the cle266vgaio module installed?\n", UNICHROME_DEVICE);
+               return DFB_IO;
+          }
 
-         ucdrv->file = fd;
+          ucdrv->file = fd;
 
-         ucdrv->hwregs = mmap(NULL, 0x1000000, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-         if ((int) ucdrv->hwregs == -1)
-             return DFB_IO;
-    }
-
-
-    uc_after_set_var(driver_data, device_data);
-
-    ucdrv->hwrev = 3;   // FIXME: Get the real hardware revision number!!!
-
-    ucdrv->fifo = uc_fifo_create(UC_FIFO_SIZE, ucdrv->hwregs);
-    if (ucdrv->fifo == NULL) {
-        if (ucdrv->file != -1) {
-            close(ucdrv->file);
-            ucdrv->file = -1;
-        }
-
-        return DFB_NOSYSTEMMEMORY;
-    }
+          ucdrv->hwregs = mmap(NULL, 0x1000000, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+          if ((int) ucdrv->hwregs == -1)
+               return DFB_IO;
+     }
 
 
-    // Driver specific initialization
+     uc_after_set_var(driver_data, device_data);
 
-    funcs->CheckState        = uc_check_state;
-    funcs->SetState          = uc_set_state;
-    funcs->EngineSync        = uc_engine_sync;
-    funcs->EmitCommands      = uc_emit_commands;
-    funcs->FlushTextureCache = uc_flush_texture_cache;
-    funcs->AfterSetVar       = uc_after_set_var;
+     ucdrv->hwrev = 3;   // FIXME: Get the real hardware revision number!!!
 
-    funcs->FillRectangle = uc_fill_rectangle;
-    funcs->DrawRectangle = uc_draw_rectangle;
-    funcs->DrawLine      = uc_draw_line;
-    funcs->FillTriangle  = uc_fill_triangle;
-    funcs->Blit          = uc_blit;
-    funcs->StretchBlit   = uc_stretch_blit;
+     // Driver specific initialization
 
-    dfb_layers_register(device, driver_data, &ucOverlayFuncs);
+     funcs->CheckState        = uc_check_state;
+     funcs->SetState          = uc_set_state;
+     funcs->EngineSync        = uc_engine_sync;
+     funcs->EmitCommands      = uc_emit_commands;
+     funcs->FlushTextureCache = uc_flush_texture_cache;
+     funcs->AfterSetVar       = uc_after_set_var;
 
-    return DFB_OK;
+     funcs->FillRectangle = uc_fill_rectangle;
+     funcs->DrawRectangle = uc_draw_rectangle;
+     funcs->DrawLine      = uc_draw_line;
+     funcs->FillTriangle  = uc_fill_triangle;
+     funcs->Blit          = uc_blit;
+     funcs->StretchBlit   = uc_stretch_blit;
+
+     dfb_layers_register(device, driver_data, &ucOverlayFuncs);
+
+     return DFB_OK;
 }
 
 static DFBResult driver_init_device(GraphicsDevice* device,
@@ -469,62 +458,66 @@ static DFBResult driver_init_device(GraphicsDevice* device,
                                     void* driver_data,
                                     void* device_data)
 {
-    UcDriverData *ucdrv = (UcDriverData*) driver_data;
-    UcDeviceData *ucdev = (UcDeviceData*) device_data;
+     UcDriverData *ucdrv = (UcDriverData*) driver_data;
+     UcDeviceData *ucdev = (UcDeviceData*) device_data;
 
-    //printf("Entering %s\n", __PRETTY_FUNCTION__);
+     //printf("Entering %s\n", __PRETTY_FUNCTION__);
 
-    snprintf(device_info->name,
-        DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "UniChrome");
-    snprintf(device_info->vendor,
-        DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "VIA/S3G");
+     snprintf(device_info->name,
+              DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "UniChrome");
+     snprintf(device_info->vendor,
+              DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "VIA/S3G");
 
-    device_info->caps.flags = CCF_CLIPPING;
-    device_info->caps.accel =
-        UC_DRAWING_FUNCTIONS_2D | UC_DRAWING_FUNCTIONS_3D |
-        UC_BLITTING_FUNCTIONS_2D | UC_BLITTING_FUNCTIONS_3D;
+     device_info->caps.flags = CCF_CLIPPING;
+     device_info->caps.accel =
+     UC_DRAWING_FUNCTIONS_2D | UC_DRAWING_FUNCTIONS_3D |
+     UC_BLITTING_FUNCTIONS_2D | UC_BLITTING_FUNCTIONS_3D;
 
-    device_info->caps.drawing  = UC_DRAWING_FLAGS_2D | UC_DRAWING_FLAGS_3D;
-    device_info->caps.blitting = UC_BLITTING_FLAGS_2D | UC_BLITTING_FLAGS_3D;
+     device_info->caps.drawing  = UC_DRAWING_FLAGS_2D | UC_DRAWING_FLAGS_3D;
+     device_info->caps.blitting = UC_BLITTING_FLAGS_2D | UC_BLITTING_FLAGS_3D;
 
-    device_info->limits.surface_byteoffset_alignment = 32;
-    device_info->limits.surface_pixelpitch_alignment = 32;
+     device_info->limits.surface_byteoffset_alignment = 32;
+     device_info->limits.surface_pixelpitch_alignment = 32;
 
-    ucdev->pitch = 0;
-    ucdev->draw_rop2d = VIA_ROP_P;
-    ucdev->draw_rop3d = HC_HROP_P;
-    ucdev->color = 0;
-    ucdev->bflags = 0;
+     ucdev->pitch = 0;
+     ucdev->draw_rop2d = VIA_ROP_P;
+     ucdev->draw_rop3d = HC_HROP_P;
+     ucdev->color = 0;
+     ucdev->bflags = 0;
 
-    ucdev->must_wait = 0;
-    ucdev->cmd_waitcycles = 0;
-    ucdev->idle_waitcycles = 0;
+     ucdev->must_wait = 0;
+     ucdev->cmd_waitcycles = 0;
+     ucdev->idle_waitcycles = 0;
 
-    uc_init_2d_engine(device, ucdev, ucdrv, false); // VQ disabled - can't make it work.
-    uc_init_3d_engine(ucdrv->hwregs, ucdrv->hwrev, 1);
+     ucdev->fifo = uc_fifo_create(UC_FIFO_SIZE);
+     if (!ucdev->fifo)
+          return DFB_NOSYSTEMMEMORY;
 
-    return DFB_OK;
+     uc_init_2d_engine(device, ucdev, ucdrv, false); // VQ disabled - can't make it work.
+     uc_init_3d_engine(ucdrv->hwregs, ucdrv->hwrev, 1);
+
+     return DFB_OK;
 }
 
 static void driver_close_device(GraphicsDevice *device,
                                 void *driver_data, void *device_data)
 {
-    UcDriverData* ucdrv = (UcDriverData*) driver_data;
-    UcDeviceData* ucdev = (UcDeviceData*) device_data;
+     UcDriverData* ucdrv = (UcDriverData*) driver_data;
+     UcDeviceData* ucdev = (UcDeviceData*) device_data;
 
-    // uc_dump_vq(ucdev);
+     // uc_dump_vq(ucdev);
 
-    uc_engine_sync(driver_data, device_data);
-    uc_init_2d_engine(device, ucdev, ucdrv, false);
+     uc_engine_sync(driver_data, device_data);
+     uc_init_2d_engine(device, ucdev, ucdrv, false);
+
+     if (ucdev->fifo)
+          uc_fifo_destroy( ucdev->fifo );
 }
 
 static void driver_close_driver(GraphicsDevice* device, void* driver_data)
 {
-    UcDriverData* ucdrv = (UcDriverData*) driver_data;
+     UcDriverData* ucdrv = (UcDriverData*) driver_data;
 
-    if (ucdrv->fifo) uc_fifo_destroy(ucdrv->fifo);
-    if ((int) ucdrv->file != -1) close(ucdrv->file);
-
-    ucdrv->fifo = NULL;
-    ucdrv->file = -1;
+     if (ucdrv->file != -1)
+          close( ucdrv->file );
 }

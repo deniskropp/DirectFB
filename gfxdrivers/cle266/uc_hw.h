@@ -22,18 +22,36 @@ void uc_map_blitflags(struct uc_hw_texture* tex,
 
 // GPU - setting functions (uc_hwset.c)
 
-void uc_set_blending_fn(struct uc_fifo* fifo, UcDeviceData *ucdev, CardState *state);
-void uc_set_texenv(struct uc_fifo* fifo, UcDeviceData* ucdev, CardState *state);
-void uc_set_clip(struct uc_fifo* fifo, CardState* state);
-void uc_set_destination(struct uc_fifo* fifo, UcDeviceData *ucdev,
-                               CardState* state);
-void uc_set_source_2d(struct uc_fifo* fifo, UcDeviceData *ucdev,
-                             CardState* state);
-void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
-                             CardState* state);
-void uc_set_drawing_color_2d(struct uc_fifo* fifo, CardState* state,
-                             UcDeviceData* ucdev);
-void uc_set_blitting_colorkey_2d(struct uc_fifo* fifo, CardState* state,
-                                 UcDeviceData* ucdev);
+void uc_set_blending_fn         ( UcDriverData *ucdrv,
+                                  UcDeviceData *ucdev,
+                                  CardState    *state);
+
+void uc_set_texenv              ( UcDriverData *ucdrv,
+                                  UcDeviceData *ucdev,
+                                  CardState    *state );
+
+void uc_set_clip                ( UcDriverData *ucdrv,
+                                  UcDeviceData *ucdev,
+                                  CardState    *state );
+
+void uc_set_destination         ( UcDriverData *ucdrv,
+                                  UcDeviceData *ucdev,
+                                  CardState    *state );
+
+void uc_set_source_2d           ( UcDriverData *ucdrv,
+                                  UcDeviceData *ucdev,
+                                  CardState    *state );
+
+void uc_set_source_3d           ( UcDriverData *ucdrv,
+                                  UcDeviceData *ucdev,
+                                  CardState    *state );
+
+void uc_set_drawing_color_2d    ( UcDriverData *ucdrv,
+                                  UcDeviceData *ucdev,
+                                  CardState    *state );
+
+void uc_set_blitting_colorkey_2d( UcDriverData *ucdrv,
+                                  UcDeviceData *ucdev,
+                                  CardState    *state );
 
 #endif // __UC_HW_H__
