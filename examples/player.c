@@ -177,7 +177,7 @@ main (int argc, char *argv[])
      lite_set_window_opacity( window, 0xff );
 
      /* run the event loop with a timeout */
-     while (lite_window_event_loop( window, 20 ) == DFB_OK) {
+     while (lite_window_event_loop( window, 20 ) == DFB_TIMEOUT) {
           int position = 0;
 
           playback->GetStatus( playback, NULL, &position );
