@@ -467,7 +467,7 @@ png_info_callback   (png_structp png_read_ptr,
 
                for (i=0; i<data->info_ptr->num_trans; i++) {
                     if (!trans[i]) {
-                         trans[i] = 0xff;
+                         //trans[i] = 0;
                          
                          palette[i].red   = (key & 0xff0000) >> 16;
                          palette[i].green = (key & 0x00ff00) >>  8;
