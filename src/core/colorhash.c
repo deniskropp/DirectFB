@@ -256,7 +256,7 @@ dfb_colorhash_invalidate( CorePalette *palette )
      do {
           if (hash[index].palette == palette)
                hash[index].palette = NULL;
-     } while (--index);
+     } while (index--);
 
      colorhash_unlock();
 }
