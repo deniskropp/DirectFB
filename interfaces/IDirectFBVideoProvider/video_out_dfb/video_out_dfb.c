@@ -895,22 +895,20 @@ failure:
 }
 
 static void
-vo_dfb_set_palette( dfb_driver_t *this,
-                    vo_overlay_t *overlay )
+vo_dfb_set_palette( dfb_driver_t          *this,
+                    vo_overlay_t          *overlay,
+                    DFBSurfacePixelFormat  format )
 {
-     DFBSurfacePixelFormat format;
-
-     if (this->ovl)
-          format = this->ovl_data->surface->format;
-     else
-          format = this->dest_format;
+     DVColor *palette;
+     uint8_t *clut;
+     uint8_t *trans;
+     int      i;
      
      if (!overlay->rgb_clut) {
-          DVColor *palette = (DVColor*) &overlay->color[0];
-          uint8_t *clut    = (uint8_t*) &overlay->color[0];
-          uint8_t *trans   = &overlay->trans[0];
-          int      i;
-          
+          palette = (DVColor*) &overlay->color[0];
+          clut    = (uint8_t*) &overlay->color[0];
+          trans   = &overlay->trans[0];
+                 
           switch (format) { 
                case DSPF_UYVY:
                case DSPF_YUY2:
@@ -956,10 +954,9 @@ vo_dfb_set_palette( dfb_driver_t *this,
      }
 
      if (!overlay->clip_rgb_clut) { 
-          DVColor *palette = (DVColor*) &overlay->clip_color[0];
-          uint8_t *clut    = (uint8_t*) &overlay->clip_color[0];
-          uint8_t *trans   = &overlay->clip_trans[0];
-          int      i;
+          palette = (DVColor*) &overlay->clip_color[0];
+          clut    = (uint8_t*) &overlay->clip_color[0];
+          trans   = &overlay->clip_trans[0];
      
           switch (format) { 
                case DSPF_UYVY:
@@ -1066,17 +1063,19 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
      if (!overlay->rle)
           return;
 
-     if (!overlay->rgb_clut || !overlay->clip_rgb_clut) {
-          lprintf( "regenerating palette for overlay %p\n", overlay );
-          vo_dfb_set_palette( this, overlay );
-          this->ovl_changed = true;
-     }
-
      if (this->ovl) {
           use_ovl = (overlay->unscaled || 
                      (vo_frame->width  == this->ovl_data->area.wanted.w &&
                       vo_frame->height == this->ovl_data->area.wanted.h));
           //lprintf( "%s using hardware osd\n", use_ovl ? "" : "not" );
+     }
+
+     if (!overlay->rgb_clut || !overlay->clip_rgb_clut) {
+          lprintf( "regenerating palette for overlay %p\n", overlay );
+          vo_dfb_set_palette( this, overlay,
+                              (!use_ovl) ? frame->surface->format 
+                                         : this->ovl_data->surface->format );
+          this->ovl_changed = true;
      }
 
      /* FIXME: apparently bottom-right borders of the overlay get cut away */
