@@ -67,8 +67,8 @@ struct _PixopsFilter {
      int *weights;
      int n_x;
      int n_y;
-     double x_offset;
-     double y_offset;
+     float x_offset;
+     float y_offset;
 };
 
 
@@ -191,11 +191,10 @@ void dfb_copy_buffer_32( __u32 *src,
      }
 }
 
-static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
-                                       double y_scale )
+static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, float y_scale )
 {
      int i_offset, j_offset;
-     double *x_weights, *y_weights;
+     float *x_weights, *y_weights;
      int n_x, n_y;
 
      if (x_scale > 1.0) {      /* Bilinear */
@@ -225,8 +224,8 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
           return 0;
      }
 
-     x_weights = (double *) alloca (n_x * sizeof (double));
-     y_weights = (double *) alloca (n_y * sizeof (double));
+     x_weights = (float *) alloca (n_x * sizeof (float));
+     y_weights = (float *) alloca (n_y * sizeof (float));
 
      if (!x_weights || !y_weights) {
           D_FREE( filter->weights );
@@ -241,8 +240,8 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
                                     + ((i_offset * SUBSAMPLE) + j_offset)
                                     * n_x * n_y;
 
-               double x = (double)j_offset / 16;
-               double y = (double)i_offset / 16;
+               float x = (float)j_offset / 16;
+               float y = (float)i_offset / 16;
                int i,j;
 
                if (x_scale > 1.0) {     /* Bilinear */
@@ -395,7 +394,7 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
                           void  *dst, int dpitch, DFBRectangle *drect,
                           CoreSurface *dst_surface )
 {
-     double scale_x, scale_y;
+     float scale_x, scale_y;
      int i, j;
      int sx, sy;
      int x_step, y_step;
@@ -410,8 +409,8 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
           return;
      }
 
-     scale_x = (double)drect->w / sw;
-     scale_y = (double)drect->h / sh;
+     scale_x = (float)drect->w / sw;
+     scale_y = (float)drect->h / sh;
 
      x_step = (1 << SCALE_SHIFT) / scale_x;
      y_step = (1 << SCALE_SHIFT) / scale_y;
