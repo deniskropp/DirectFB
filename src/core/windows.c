@@ -144,19 +144,23 @@ ensure_focus( CoreWindowStack *stack );
  * Prohibit access to the window stack data.
  * Waits until stack is accessible.
  */
-static inline void
+static inline FusionResult
 stack_lock( CoreWindowStack *stack )
 {
-     fusion_skirmish_prevail( &stack->lock );
+     DFB_ASSERT( stack != NULL );
+
+     return fusion_skirmish_prevail( &stack->lock );
 }
 
 /*
  * Allow access to the window stack data.
  */
-static inline void
+static inline FusionResult
 stack_unlock( CoreWindowStack *stack )
 {
-     fusion_skirmish_dismiss( &stack->lock );
+     DFB_ASSERT( stack != NULL );
+
+     return fusion_skirmish_dismiss( &stack->lock );
 }
 
 static const React dfb_window_globals[] = {
@@ -174,15 +178,8 @@ window_destructor( FusionObject *object, bool zombie )
      DEBUGMSG("DirectFB/core/windows: destroying %p (%dx%d)%s\n", window,
               window->width, window->height, zombie ? " (ZOMBIE)" : "");
 
-     if (window->stack) {
-          stack_lock( window->stack );
-
-          dfb_window_deinit( window );
-          dfb_window_destroy( window, false );
-
-          stack_unlock( window->stack );
-     }
-
+     dfb_window_destroy( window );
+     
      fusion_object_destroy( object );
 }
 
@@ -266,6 +263,8 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
 
      fusion_skirmish_destroy( &stack->lock );
 
+     DFB_ASSUME( !stack->windows );
+     
      if (stack->windows) {
           int i;
 
@@ -441,62 +440,49 @@ dfb_window_init( CoreWindow *window )
      stack_unlock( stack );
 }
 
-
 void
-dfb_window_deinit( CoreWindow *window )
-{
-     CoreWindowStack *stack = window->stack;
-
-     DEBUGMSG("DirectFB/core/windows: dfb_window_deinit (%p) entered\n", window);
-
-     if (stack) {
-          stack_lock( stack );
-          window_remove( window );
-          stack_unlock( stack );
-     }
-
-     DEBUGMSG("DirectFB/core/windows: dfb_window_deinit (%p) exitting\n", window);
-}
-
-void
-dfb_window_destroy( CoreWindow *window, bool unref )
+dfb_window_destroy( CoreWindow *window )
 {
      DFBWindowEvent   evt;
-     CoreWindowStack *stack = window->stack;
+     CoreWindowStack *stack;
 
-     stack_lock( stack );
+     DFB_ASSERT( window != NULL );
 
+     DEBUGMSG( "DirectFB/core/windows: "
+               "dfb_window_destroy (%p) [%4d,%4d - %4dx%4d]\n",
+               window, window->x, window->y, window->width, window->height );
+
+     DFB_ASSERT( window->stack != NULL );
+
+     stack = window->stack;
+
+     /* Lock the window stack. */
+     if (stack_lock( stack ))
+          return;
+
+     /* Avoid multiple destructions. */
      if (window->destroyed) {
-          DEBUGMSG("DirectFB/core/windows: in dfb_window_destroy (%p), "
-                   "already destroyed!\n", window);
           stack_unlock( stack );
           return;
      }
 
-     DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) entered\n", window);
-
-     window->destroyed = true;
-
+     /* Notify listeners. */
      evt.type = DWET_DESTROYED;
      dfb_window_post_event( window, &evt );
+     
+     /* Indicate destruction. */
+     window->destroyed = true;
 
+     /* Ungrab, unfocus, hide etc. */
+     window_remove( window );
+
+     /* Unlink the window's surface. */
      if (window->surface) {
-          CoreSurface *surface = window->surface;
-
-          DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) unlinking surface...\n", window);
-
+          dfb_surface_unlink( window->surface );
           window->surface = NULL;
-
-          dfb_surface_unlink( surface );
      }
 
-     if (unref) {
-          DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) unrefing window...\n", window);
-          dfb_window_unref( window );
-     }
-
-     DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) exiting\n", window);
-
+     /* Unlock the window stack. */
      stack_unlock( stack );
 }
 
@@ -1076,6 +1062,8 @@ dfb_window_post_event( CoreWindow     *window,
      DFB_ASSERT( window != NULL );
      DFB_ASSERT( event != NULL );
 
+     DFB_ASSUME( !window->destroyed );
+     
      if (! (event->type & window->events))
           return;
 
@@ -1084,6 +1072,8 @@ dfb_window_post_event( CoreWindow     *window,
      event->clazz     = DFEC_WINDOW;
      event->window_id = window->id;
 
+     DFB_ASSUME( window->stack != NULL );
+     
      if (window->stack) {
           CoreWindowStack *stack = window->stack;
 
@@ -1920,7 +1910,8 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
 
                          case DIKS_SMALL_A:
                               if (stack->focused_window && 
-                                  ! (stack->focused_window->options & DWOP_KEEP_STACKING)) {
+                                  ! (stack->focused_window->options & DWOP_KEEP_STACKING))
+                              {
                                    dfb_window_lowertobottom( stack->focused_window );
                                    switch_focus( stack, window_at_pointer( stack, -1, -1 ) );
                               }
@@ -1929,7 +1920,8 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
 
                          case DIKS_SMALL_S:
                               if (stack->focused_window && 
-                                  ! (stack->focused_window->options & DWOP_KEEP_STACKING)) {
+                                  ! (stack->focused_window->options & DWOP_KEEP_STACKING))
+                              {
                                    dfb_window_raisetotop( stack->focused_window );
                               }
                               stack_unlock( stack );
@@ -1939,9 +1931,9 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               CoreWindow *window = stack->entered_window;
 
                               if (window &&
-                                  !(window->options & DWOP_INDESTRUCTIBLE)) {
-                                   dfb_window_deinit( window );
-                                   dfb_window_destroy( window, false );
+                                  !(window->options & DWOP_INDESTRUCTIBLE))
+                              {
+                                   dfb_window_destroy( window );
                               }
 
                               stack_unlock( stack );
@@ -2207,6 +2199,9 @@ window_insert( CoreWindow *window,
      CoreWindowStack *stack = window->stack;
 
      DFB_ASSERT( window->stack != NULL );
+     DFB_ASSERT( !window->destroyed );
+
+     DFB_ASSUME( !window->initialized );
 
      if (!window->initialized) {
           if (before < 0  ||  before > stack->num_windows)
@@ -2242,12 +2237,11 @@ window_remove( CoreWindow *window )
 {
      int              i;
      FusionLink      *l;
-     CoreWindowStack *stack  = window->stack;
-     DFBRegion        region = { window->x, window->y,
-          window->x + window->width - 1,
-          window->y + window->height - 1};
+     CoreWindowStack *stack = window->stack;
 
      DFB_ASSERT( window->stack != NULL );
+
+     DFB_ASSUME( window->initialized );
 
      window_withdraw( window );
 
@@ -2289,6 +2283,10 @@ window_remove( CoreWindow *window )
 
      /* If window was visible... */
      if (window->opacity) {
+          DFBRegion region = { window->x, window->y,
+                               window->x + window->width - 1,
+                               window->y + window->height - 1 };
+          
           /* Update the affected region */
           repaint_stack( stack, &region, 0 );
 
@@ -2400,18 +2398,19 @@ window_withdraw( CoreWindow *window )
           stack->pointer_window = NULL;
 
      for (i=0; i<8; i++) {
-          if (stack->keys[i].code != -1 &&
-              stack->keys[i].owner == window) {
-               DFBWindowEvent we;
+          if (stack->keys[i].code != -1 && stack->keys[i].owner == window) {
+               if (!window->destroyed) {
+                    DFBWindowEvent we;
 
-               we.type       = DWET_KEYUP;
-               we.key_code   = stack->keys[i].code;
-               we.key_id     = stack->keys[i].id;
-               we.key_symbol = stack->keys[i].symbol;
+                    we.type       = DWET_KEYUP;
+                    we.key_code   = stack->keys[i].code;
+                    we.key_id     = stack->keys[i].id;
+                    we.key_symbol = stack->keys[i].symbol;
 
-               dfb_window_post_event( window, &we );
+                    dfb_window_post_event( window, &we );
+               }
 
-               stack->keys[i].code = -1;
+               stack->keys[i].owner = NULL;
           }
      }
 }
@@ -2486,34 +2485,39 @@ get_keyboard_window( CoreWindowStack     *stack,
 
      /* Don't do implicit grabs on keys without a hardware index. */
      if (evt->key_code == -1)
-          return stack->keyboard_window ?
-          stack->keyboard_window : stack->focused_window;
+          return (stack->keyboard_window ?
+                  stack->keyboard_window : stack->focused_window);
 
-     /* Implicitly grab (press) key or ungrab (release) it. */
+     /* Implicitly grab (press) or ungrab (release) key. */
      if (evt->type == DIET_KEYPRESS) {
           int         i;
           int         free_key = -1;
           CoreWindow *window;
 
+          /* Check active grabs. */
           for (i=0; i<8; i++) {
+               /* Key is grabbed, send to owner (NULL if destroyed). */
                if (stack->keys[i].code == evt->key_code)
                     return stack->keys[i].owner;
 
+               /* Remember first free array item. */
                if (free_key == -1 && stack->keys[i].code == -1)
                     free_key = i;
           }
 
+          /* Key is not grabbed, check for explicit keyboard grab or focus. */
           window = stack->keyboard_window ?
                    stack->keyboard_window : stack->focused_window;
-
           if (!window)
                return NULL;
 
+          /* Check if a free array item was found. */
           if (free_key == -1) {
                CAUTION( "maximum number of owned keys reached" );
                return NULL;
           }
 
+          /* Implicitly grab the key. */
           stack->keys[free_key].symbol = evt->key_symbol;
           stack->keys[free_key].id     = evt->key_id;
           stack->keys[free_key].code   = evt->key_code;
@@ -2524,15 +2528,20 @@ get_keyboard_window( CoreWindowStack     *stack,
      else {
           int i;
 
+          /* Lookup owner and ungrab the key. */
           for (i=0; i<8; i++) {
                if (stack->keys[i].code == evt->key_code) {
                     stack->keys[i].code = -1;
-
+                    
+                    /* Return owner (NULL if destroyed). */
                     return stack->keys[i].owner;
                }
           }
      }
 
+     CAUTION( "no owner for key release" );
+     
+     /* No owner for release event found, discard it. */
      return NULL;
 }
 

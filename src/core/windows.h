@@ -192,16 +192,10 @@ void
 dfb_window_init( CoreWindow *window );
 
 /*
- * must be called before dfb_window_destroy
- */
-void
-dfb_window_deinit( CoreWindow *window );
-
-/*
  * deinitializes a window and removes it from the window stack
  */
 void
-dfb_window_destroy( CoreWindow *window, bool unref );
+dfb_window_destroy( CoreWindow *window );
 
 /*
  * moves a window relative to its current position

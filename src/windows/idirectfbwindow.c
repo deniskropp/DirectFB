@@ -840,8 +840,7 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 
      DEBUGMSG("IDirectFBWindow_Destroy\n");
      
-     dfb_window_deinit( data->window );
-     dfb_window_destroy( data->window, false );
+     dfb_window_destroy( data->window );
 
      return DFB_OK;
 }
