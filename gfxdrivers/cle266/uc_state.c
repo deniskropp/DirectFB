@@ -143,8 +143,9 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      // Check modified states and update hw
 
      if (modified & SMF_SOURCE)
-          UC_INVALIDATE( uc_source3d | uc_texenv | uc_source2d );
-     else if (modified & SMF_BLITTING_FLAGS)
+          UC_INVALIDATE( uc_source2d );
+
+     if (modified & (SMF_BLITTING_FLAGS | SMF_SOURCE))
           UC_INVALIDATE( uc_source3d | uc_texenv );
 
      if (modified & (SMF_BLITTING_FLAGS | SMF_SRC_COLORKEY | SMF_DST_COLORKEY))

@@ -48,17 +48,17 @@ uc_set_blending_fn( UcDriverData *ucdrv,
      UC_FIFO_PREPARE( fifo, 14 );
      UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
 
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLCsat,   ucdev->hwalpha.regHABLCsat);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLCop,    ucdev->hwalpha.regHABLCop);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLAsat,   ucdev->hwalpha.regHABLAsat);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLAop,    ucdev->hwalpha.regHABLAop);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRCa,    ucdev->hwalpha.regHABLRCa);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRFCa,   ucdev->hwalpha.regHABLRFCa);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRCbias, ucdev->hwalpha.regHABLRCbias);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRCb,    ucdev->hwalpha.regHABLRCb);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRFCb,   ucdev->hwalpha.regHABLRFCb);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRAa,    ucdev->hwalpha.regHABLRAa);
-     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRAb,    ucdev->hwalpha.regHABLRAb);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLCsat,   hwalpha->regHABLCsat   );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLCop,    hwalpha->regHABLCop    );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLAsat,   hwalpha->regHABLAsat   );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLAop,    hwalpha->regHABLAop    );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRCa,    hwalpha->regHABLRCa    );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRFCa,   hwalpha->regHABLRFCa   );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRCbias, hwalpha->regHABLRCbias );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRCb,    hwalpha->regHABLRCb    );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRFCb,   hwalpha->regHABLRFCb   );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRAa,    hwalpha->regHABLRAa    );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRAb,    hwalpha->regHABLRAb    );
 
      UC_FIFO_PAD_EVEN( fifo );
 
@@ -73,44 +73,37 @@ uc_set_texenv( UcDriverData *ucdrv,
                UcDeviceData *ucdev,
                CardState    *state )
 {
-     struct uc_hw_texture* tex;
-     struct uc_fifo *fifo = ucdev->fifo;
+     struct uc_fifo       *fifo  = ucdev->fifo;
+     struct uc_hw_texture *hwtex = &ucdev->hwtex;
 
      if (UC_IS_VALID( uc_texenv ))
           return;
 
-     uc_map_blitflags(&(ucdev->hwtex), state->blittingflags,
-                      state->source->format);
-
-     tex = &(ucdev->hwtex);
-
+     uc_map_blitflags( hwtex, state->blittingflags, state->source->format );
 
      // Texture mapping method
-     tex->regHTXnTB = HC_HTXnFLSs_Linear | HC_HTXnFLTs_Linear |
-                      HC_HTXnFLSe_Linear | HC_HTXnFLTe_Linear;
-     //tex->regHTXnTB = HC_HTXnFLSs_Nearest | HC_HTXnFLTs_Nearest |
-     //HC_HTXnFLSe_Nearest | HC_HTXnFLTe_Nearest;
+     hwtex->regHTXnTB   = HC_HTXnFLSs_Linear | HC_HTXnFLTs_Linear |
+                          HC_HTXnFLSe_Linear | HC_HTXnFLTe_Linear;
 
-     tex->regHTXnMPMD = HC_HTXnMPMD_Sclamp | HC_HTXnMPMD_Tclamp;
+     hwtex->regHTXnMPMD = HC_HTXnMPMD_Sclamp | HC_HTXnMPMD_Tclamp;
 
-     UC_FIFO_PREPARE(fifo, 12);
+     UC_FIFO_PREPARE( fifo, 12 );
+     UC_FIFO_ADD_HDR( fifo, (HC_ParaType_Tex << 16) | (HC_SubType_Tex0 << 24) );
 
-     UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Tex << 16) | (HC_SubType_Tex0 << 24));
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnTB,       hwtex->regHTXnTB         );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnMPMD,     hwtex->regHTXnMPMD       );
 
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnTB, tex->regHTXnTB);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnMPMD, tex->regHTXnMPMD);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnTBLCsat,  hwtex->regHTXnTBLCsat_0  );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnTBLCop,   hwtex->regHTXnTBLCop_0   );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnTBLMPfog, hwtex->regHTXnTBLMPfog_0 );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnTBLAsat,  hwtex->regHTXnTBLAsat_0  );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnTBLRCb,   hwtex->regHTXnTBLRCb_0   );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnTBLRAa,   hwtex->regHTXnTBLRAa_0   );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnTBLRFog,  hwtex->regHTXnTBLRFog_0  );
 
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnTBLCsat, tex->regHTXnTBLCsat_0);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnTBLCop, tex->regHTXnTBLCop_0);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnTBLMPfog, tex->regHTXnTBLMPfog_0);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnTBLAsat, tex->regHTXnTBLAsat_0);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnTBLRCb, tex->regHTXnTBLRCb_0);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnTBLRAa, tex->regHTXnTBLRAa_0);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnTBLRFog, tex->regHTXnTBLRFog_0);
+     UC_FIFO_PAD_EVEN( fifo );
 
-     UC_FIFO_PAD_EVEN(fifo);
-
-     UC_FIFO_CHECK(fifo);
+     UC_FIFO_CHECK( fifo );
 
      UC_VALIDATE( uc_texenv );
 }
@@ -126,24 +119,24 @@ uc_set_clip( UcDriverData *ucdrv,
      if (DFB_REGION_EQUAL( ucdev->clip, state->clip ))
           return;
 
-     UC_FIFO_PREPARE(fifo, 8);
-     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
+     UC_FIFO_PREPARE( fifo, 8 );
+     UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
 
 #ifdef UC_ENABLE_3D
 
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HClipTB,
-                    (RS12(state->clip.y1) << 12) | RS12(state->clip.y2+1));
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HClipLR,
-                    (RS12(state->clip.x1) << 12) | RS12(state->clip.x2+1));
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HClipTB,
+                      (RS12(state->clip.y1) << 12) | RS12(state->clip.y2+1) );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HClipLR,
+                      (RS12(state->clip.x1) << 12) | RS12(state->clip.x2+1) );
 
 #endif
 
-     UC_FIFO_ADD_2D(fifo, VIA_REG_CLIPTL,
-                    ((RS16(state->clip.y1) << 16) | RS16(state->clip.x1)));
-     UC_FIFO_ADD_2D(fifo, VIA_REG_CLIPBR,
-                    ((RS16(state->clip.y2) << 16) | RS16(state->clip.x2)));
+     UC_FIFO_ADD_2D ( fifo, VIA_REG_CLIPTL,
+                      (RS16(state->clip.y1) << 16) | RS16(state->clip.x1) );
+     UC_FIFO_ADD_2D ( fifo, VIA_REG_CLIPBR,
+                      (RS16(state->clip.y2) << 16) | RS16(state->clip.x2) );
 
-     UC_FIFO_CHECK(fifo);
+     UC_FIFO_CHECK( fifo );
 
      ucdev->clip = state->clip;
 }
@@ -208,22 +201,22 @@ uc_set_source_2d( UcDriverData *ucdrv,
                   UcDeviceData *ucdev,
                   CardState    *state )
 {
-     SurfaceBuffer* buf = state->source->front_buffer;
-     struct uc_fifo *fifo = ucdev->fifo;
-
+     struct uc_fifo *fifo   = ucdev->fifo;
+     SurfaceBuffer  *buffer = state->source->front_buffer;
 
      if (UC_IS_VALID( uc_source2d ))
           return;
 
-     ucdev->pitch = (ucdev->pitch & 0x7fff0000) | ((buf->video.pitch >> 3) & 0x7fff);
+     ucdev->pitch &= 0x7fff0000;
+     ucdev->pitch |= (buffer->video.pitch >> 3) & 0x7fff;
 
-     UC_FIFO_PREPARE(fifo, 6);
-     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
+     UC_FIFO_PREPARE( fifo, 6 );
+     UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
 
-     UC_FIFO_ADD_2D(fifo, VIA_REG_SRCBASE, buf->video.offset >> 3);
-     UC_FIFO_ADD_2D(fifo, VIA_REG_PITCH, VIA_PITCH_ENABLE | ucdev->pitch);
+     UC_FIFO_ADD_2D ( fifo, VIA_REG_SRCBASE, buffer->video.offset >> 3 );
+     UC_FIFO_ADD_2D ( fifo, VIA_REG_PITCH,   VIA_PITCH_ENABLE | ucdev->pitch );
 
-     UC_FIFO_CHECK(fifo);
+     UC_FIFO_CHECK( fifo );
 
      UC_VALIDATE( uc_source2d );
 }
@@ -234,21 +227,18 @@ uc_set_source_3d( UcDriverData *ucdrv,
                   UcDeviceData *ucdev,
                   CardState    *state )
 {
-     struct uc_hw_texture *tex;
-     CoreSurface          *src;
-     SurfaceBuffer        *buffer;
-     struct uc_fifo *fifo = ucdev->fifo;
+     struct uc_fifo       *fifo   = ucdev->fifo;
+     struct uc_hw_texture *hwtex  = &ucdev->hwtex;
+
+     CoreSurface          *source = state->source;
+     SurfaceBuffer        *buffer = source->front_buffer;
 
      int src_height, src_offset, src_pitch;
 
      if (UC_IS_VALID( uc_source3d ))
           return;
 
-     tex    = &(ucdev->hwtex);
-     src    = state->source;
-     buffer = src->front_buffer;
-
-     src_height = src->height;
+     src_height = source->height;
      src_offset = buffer->video.offset;
      src_pitch  = buffer->video.pitch;
 
@@ -258,81 +248,77 @@ uc_set_source_3d( UcDriverData *ucdrv,
       */
 
      if (state->blittingflags & DSBLIT_DEINTERLACE) {
-          if (src->field)
+          if (source->field)
                src_offset += src_pitch;
 
           src_height >>= 1;
           src_pitch  <<= 1;
      }
 
-     ucdev->field = src->field;
+     ucdev->field = source->field;
 
      // Round texture size up to nearest
      // value evenly divisible by 2^n
 
-     ILOG2(src->width, tex->we);
-     tex->l2w = 1 << tex->we;
-     if (tex->l2w < src->width) {
-          tex->we++;
-          tex->l2w <<= 1;
+     ILOG2(source->width, hwtex->we);
+     hwtex->l2w = 1 << hwtex->we;
+     if (hwtex->l2w < source->width) {
+          hwtex->we++;
+          hwtex->l2w <<= 1;
      }
 
-     ILOG2(src_height, tex->he);
-     tex->l2h = 1 << tex->he;
-     if (tex->l2h < src_height) {
-          tex->he++;
-          tex->l2h <<= 1;
+     ILOG2(src_height, hwtex->he);
+     hwtex->l2h = 1 << hwtex->he;
+     if (hwtex->l2h < src_height) {
+          hwtex->he++;
+          hwtex->l2h <<= 1;
      }
 
-     tex->format = uc_map_src_format_3d(src->format);
+     hwtex->format = uc_map_src_format_3d( source->format );
 
-     if (tex->format == 0xffffffff) {
-          BUG("Unexpected pixelformat!");
-          tex->format = HC_HTXnFM_ARGB8888;
-     }
+     UC_FIFO_PREPARE( fifo, 10);
 
-     UC_FIFO_PREPARE(fifo, 10);
+     UC_FIFO_ADD_HDR( fifo, (HC_ParaType_Tex << 16) | (HC_SubType_Tex0 << 24));
 
-     UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Tex << 16) | (HC_SubType_Tex0 << 24));
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnFM,       HC_HTXnLoc_Local | hwtex->format );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnL0OS,     (0 << HC_HTXnLVmax_SHIFT) );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnL0_5WE,   hwtex->we );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnL0_5HE,   hwtex->he );
 
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnFM,       HC_HTXnLoc_Local | tex->format);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0OS,     (0 << HC_HTXnLVmax_SHIFT));
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0_5WE,   tex->we);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0_5HE,   tex->he);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnL012BasH, (src_offset >> 24) & 0xff );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnL0BasL,   (src_offset      ) & 0xffffff );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HTXnL0Pit,    (HC_HTXnEnPit_MASK | src_pitch) );
 
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL012BasH, (src_offset >> 24) & 0xff);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0BasL,   (src_offset      ) & 0xffffff);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0Pit,    (HC_HTXnEnPit_MASK | src_pitch));
+     UC_FIFO_PAD_EVEN( fifo );
 
-     UC_FIFO_PAD_EVEN(fifo);
-
-     UC_FIFO_CHECK(fifo);
+     UC_FIFO_CHECK( fifo );
 
      // Upload the palette of a 256 color texture.
 
-     if (tex->format == HC_HTXnFM_Index8) {
+     if (hwtex->format == HC_HTXnFM_Index8) {
+          int       i, num;
+          DFBColor *colors;
 
-          int i, n;
-          DFBColor* c;
+          UC_FIFO_PREPARE( fifo, 258 );
 
-          UC_FIFO_PREPARE(fifo, 258);
+          UC_FIFO_ADD_HDR( fifo, ((HC_ParaType_Palette    << 16) |
+                                  (HC_SubType_TexPalette0 << 24)) );
 
-          UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Palette << 16) |
-                          (HC_SubType_TexPalette0 << 24));
+          colors = source->palette->entries;
+          num    = source->palette->num_entries;
 
-          c = src->palette->entries;
-          n = src->palette->num_entries;
-          if (n > 256) n = 256;
+          if (num > 256)
+               num = 256;
 
           /* What about the last entry? -- dok */
-          for (i = 0; i < n-1; i++) {
-               UC_FIFO_ADD(fifo, PIXEL_ARGB(c[i].a, c[i].r, c[i].g, c[i].b));
-          }
-          for (; i < 255; i++) {
-               UC_FIFO_ADD(fifo, 0);
-          }
+          for (i = 0; i < num; i++)
+               UC_FIFO_ADD( fifo, PIXEL_ARGB(colors[i].a, colors[i].r,
+                                             colors[i].g, colors[i].b) );
 
-          UC_FIFO_CHECK(fifo);
+          for (; i < 256; i++)
+               UC_FIFO_ADD( fifo, 0 );
+
+          UC_FIFO_CHECK( fifo );
      }
 
      UC_VALIDATE( uc_source3d );
@@ -344,58 +330,51 @@ uc_set_color_2d( UcDriverData *ucdrv,
                  UcDeviceData *ucdev,
                  CardState    *state )
 {
-     struct uc_fifo *fifo = ucdev->fifo;
+     struct uc_fifo *fifo  = ucdev->fifo;
+     __u32           color = 0;
 
      if (UC_IS_VALID( uc_color2d ))
           return;
 
-     UC_FIFO_PREPARE(fifo, 8);
-     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
+     switch (state->destination->format) {
+          case DSPF_ARGB1555:
+               color = PIXEL_ARGB1555( state->color.a,
+                                       state->color.r,
+                                       state->color.g,
+                                       state->color.b );
+               color |= color << 16;
+               break;
+
+          case DSPF_RGB16:
+               color = PIXEL_RGB16( state->color.r,
+                                    state->color.g,
+                                    state->color.b);
+               color |= color << 16;
+               break;
+
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               color = PIXEL_ARGB( state->color.a,
+                                   state->color.r,
+                                   state->color.g,
+                                   state->color.b );
+               break;
+
+          default:
+               BUG( "unexpected pixel format" );
+     }
+
+
+     UC_FIFO_PREPARE( fifo, 8 );
+     UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
 
      // Opaque line drawing needs this
-     UC_FIFO_ADD_2D(fifo, VIA_REG_MONOPAT0, 0xff);
+     UC_FIFO_ADD_2D( fifo, VIA_REG_MONOPAT0,   0xff );
 
-     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
-          UC_FIFO_ADD_2D(fifo, VIA_REG_KEYCONTROL,
-                         VIA_KEY_ENABLE_DSTKEY | VIA_KEY_INVERT_KEY);
-          UC_FIFO_ADD_2D(fifo, VIA_REG_FGCOLOR, state->dst_colorkey);
-     }
-     else {
-          __u32 color = 0;
+     UC_FIFO_ADD_2D( fifo, VIA_REG_KEYCONTROL, 0 );
+     UC_FIFO_ADD_2D( fifo, VIA_REG_FGCOLOR,    color );
 
-          switch (state->destination->format) {
-               case DSPF_ARGB1555:
-                    color = PIXEL_ARGB1555( state->color.a,
-                                            state->color.r,
-                                            state->color.g,
-                                            state->color.b );
-                    color |= color << 16;
-                    break;
-
-               case DSPF_RGB16:
-                    color = PIXEL_RGB16( state->color.r,
-                                         state->color.g,
-                                         state->color.b);
-                    color |= color << 16;
-                    break;
-
-               case DSPF_RGB32:
-               case DSPF_ARGB:
-                    color = PIXEL_ARGB( state->color.a,
-                                        state->color.r,
-                                        state->color.g,
-                                        state->color.b );
-                    break;
-
-               default:
-                    BUG( "unexpected pixel format" );
-          }
-
-          UC_FIFO_ADD_2D( fifo, VIA_REG_KEYCONTROL, 0 );
-          UC_FIFO_ADD_2D( fifo, VIA_REG_FGCOLOR,    color );
-     }
-
-     UC_FIFO_CHECK(fifo);
+     UC_FIFO_CHECK( fifo );
 
      UC_VALIDATE( uc_color2d );
      UC_INVALIDATE( uc_colorkey2d );
