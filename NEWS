@@ -1,7 +1,8 @@
 0.9.3
 ------
 
-- Some license headers were forgotten to change to LPGPL.
+- Image Providers and Font Providers are built conditionally.
+- Some license headers were forgotten to change to LGPL.
 - New remote control keycodes and remote control input type.
 - df_window can play video files and behaves like a window manager.
 - New "thanks to" section in README.
