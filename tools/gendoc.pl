@@ -880,16 +880,6 @@ sub html_close (FILEHANDLE)
       my $FILE = shift(@_);
 
       print $FILE "\n",
-                  "<TABLE width=100% bgcolor=black border=0 cellspacing=0 cellpadding=0>\n",
-                  "  <TR><TD valign=center>\n",
-                  "    <FONT size=-3>&nbsp;&nbsp;(C) Copyright by convergence GmbH</FONT>\n",
-                  "  </TD><TD align=right>\n",
-                  "    <A href=\"http://www.convergence.de\">\n",
-                  "      <IMG border=0 hspace=4 src=\"cimlogo.png\">\n",
-                  "    </A>\n",
-                  "  </TD></TR>\n",
-                  "</TABLE>\n",
-                  "\n",
                   "</BODY>\n",
                   "</HTML>\n";
 
