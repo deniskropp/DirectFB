@@ -48,6 +48,10 @@ void ati128_set_color( ATI128DriverData *adrv,
                        ATI128DeviceData *adev,
                        CardState        *state );
 
+void ati128_set_src_colorkey( ATI128DriverData *adrv,
+                              ATI128DeviceData *adev,
+                              CardState        *state );
+
 void ati128_set_blending_function( ATI128DriverData *adrv,
                                    ATI128DeviceData *adev,
                                    CardState        *state );

@@ -50,6 +50,14 @@ typedef struct {
      __u32 fake_texture_color;
      unsigned int fake_texture_number;
 
+     /* state validation */     
+     int v_destination;
+     int v_color;
+     int v_blending_function;
+     int v_source;
+     int v_src_colorkey;
+     int v_blittingflags;
+
      /* for fifo/performance monitoring */
      unsigned int fifo_space;
 

@@ -155,37 +155,63 @@ static void ati128SetState( void *drv, void *dev,
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
      
-     if ((state->modified & SMF_SOURCE)  &&  state->source)
-          ati128_set_source( adrv, adev, state );
+     if (state->modified & SMF_SOURCE)
+         adev->v_source = 0;
 
      if (state->modified & SMF_DESTINATION)
-          ati128_set_destination( adrv, adev, state );
-
-     if (state->modified & SMF_CLIP)
-          ati128_set_clip( adrv, adev, state );
+          adev->v_destination = adev->v_color = 0;
 
      if (state->modified & SMF_COLOR)
-          ati128_set_color( adrv, adev, state );
+          adev->v_color = 0;
 
      if (state->modified & SMF_SRC_COLORKEY)
-          ati128_out32( adrv->mmio_base, CLR_CMP_CLR_SRC, state->src_colorkey );
+          adev->v_src_colorkey = 0;
 
      if (state->modified & SMF_BLITTING_FLAGS)
-          ati128_set_blittingflags( adrv, adev, state );
+          adev->v_blittingflags = 0;
 
      if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
-          ati128_set_blending_function( adrv, adev, state );
+          adev->v_blending_function = 0;
 
-     if (state->modified & SMF_DRAWING_FLAGS) {
-          if (state->drawingflags & DSDRAW_BLEND) {
-               funcs->FillRectangle = ati128FillBlendRectangle;
-               funcs->DrawRectangle = ati128DrawBlendRectangle;
-          }
-          else {
-               funcs->FillRectangle = ati128FillRectangle;
-               funcs->DrawRectangle = ati128DrawRectangle;
-          }
+     ati128_set_destination( adrv, adev, state);
+
+     switch (accel) {
+          case DFXL_FILLRECTANGLE:
+          case DFXL_DRAWRECTANGLE:
+               if (state->drawingflags & DSDRAW_BLEND) {
+                    ati128_set_blending_function( adrv, adev, state );
+                    funcs->FillRectangle = ati128FillBlendRectangle;
+                    funcs->DrawRectangle = ati128DrawBlendRectangle;
+               }
+               else {
+                    funcs->FillRectangle = ati128FillRectangle;
+                    funcs->DrawRectangle = ati128DrawRectangle;
+               }
+          case DFXL_DRAWLINE:
+               ati128_set_color( adrv, adev, state );
+               state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWLINE | DFXL_DRAWRECTANGLE ;               
+               break;
+
+          case DFXL_BLIT:
+          case DFXL_STRETCHBLIT:
+               ati128_set_source( adrv, adev, state );
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+                    ati128_set_blending_function( adrv, adev, state );
+               if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                    ati128_set_src_colorkey( adrv, adev, state );
+               ati128_set_blittingflags( adrv, adev, state );
+               state->set |= DFXL_BLIT | DFXL_STRETCHBLIT;
+               break;
+
+          default:
+               BUG( "unexpected drawing/blitting function" );
+               break;
      }
+
+     if (state->modified & SMF_CLIP)
+          ati128_set_clip( adrv, adev, state);
+
+     state->modified = 0;
 }
 
 static bool ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect )
@@ -506,8 +532,13 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
      }
 
      ati128_out32( mmio, DP_DATATYPE, adev->ATI_dst_bpp | SRC_DSTCOLOR );
+     
      /* set the blend function */
-     ati128_out32( mmio, SCALE_3D_CNTL, adev->ATI_blend_function );
+     if (adev->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+          ati128_out32( mmio, SCALE_3D_CNTL, adev->ATI_blend_function );
+     else
+          ati128_out32( mmio, SCALE_3D_CNTL, SCALE_3D_CNTL_SCALE_3D_FN_SCALE ); 
+
      /* set up source data and copy type */
      ati128_out32( mmio, DP_MIX, ROP3_SRCCOPY | DP_SRC_RECT );
      /* set source offset */
@@ -546,7 +577,7 @@ static bool ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
      __u32 dir_cmd = 0;
 
      if ((adev->source->format != adev->destination->format) ||
-         adev->blittingflags == DSBLIT_BLEND_ALPHACHANNEL)
+         (adev->blittingflags & DSBLIT_BLEND_ALPHACHANNEL))
      {
           DFBRectangle sr = { rect->x, rect->y, rect->w, rect->h };
           DFBRectangle dr = { dx, dy, rect->w, rect->h };
@@ -627,7 +658,7 @@ driver_get_info( GraphicsDevice     *device,
                "convergence integrated media GmbH" );
 
      info->version.major = 0;
-     info->version.minor = 1;
+     info->version.minor = 2;
 
      info->driver_data_size = sizeof (ATI128DriverData);
      info->device_data_size = sizeof (ATI128DeviceData);
@@ -780,4 +811,3 @@ driver_close_driver( GraphicsDevice *device,
 
      dfb_gfxcard_unmap_mmio( device, adrv->mmio_base, -1 );
 }
-

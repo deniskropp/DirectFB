@@ -76,6 +76,9 @@ void ati128_set_destination( ATI128DriverData *adrv,
 {
      CoreSurface *destination = state->destination;
 
+     if (adev->v_destination)
+          return;
+
      ati128_waitfifo( adrv, adev, 1 );
 
      switch (destination->format) {
@@ -120,13 +123,18 @@ void ati128_set_destination( ATI128DriverData *adrv,
                break;
      }
      adev->destination = destination;
-     state->modified &= ~SMF_DESTINATION;
+
+     adev->v_destination = 1;
 }
 
 void ati128_set_source( ATI128DriverData *adrv,
                         ATI128DeviceData *adev,
                         CardState        *state )
 {
+
+     if (adev->v_source)
+          return;
+
      ati128_waitfifo( adrv, adev, 3 );
      
      switch (state->source->format) {
@@ -170,13 +178,14 @@ void ati128_set_source( ATI128DriverData *adrv,
                    state->source->front_buffer->video.offset );
 
      adev->source = state->source;
-     state->modified &= ~SMF_SOURCE;
+     adev->v_source = 1;
 }
 
 void ati128_set_clip( ATI128DriverData *adrv,
                       ATI128DeviceData *adev,
                       CardState        *state )
-{     
+{
+
      ati128_waitfifo( adrv, adev, 2 );
 
      /* 24bpp needs special treatment */
@@ -194,8 +203,6 @@ void ati128_set_clip( ATI128DriverData *adrv,
           ati128_out32( adrv->mmio_base, SC_BOTTOM_RIGHT,
                         (state->clip.y2 << 16) | state->clip.x2 );
      }
-
-     state->modified &= ~SMF_CLIP;
 }
 
 void ati128_set_color( ATI128DriverData *adrv,
@@ -204,6 +211,9 @@ void ati128_set_color( ATI128DriverData *adrv,
 {
      __u32 fill_color = 0; 
      
+     if (adev->v_color)
+          return;
+
      switch (state->destination->format) {
           case DSPF_RGB332:
                fill_color = PIXEL_RGB332( state->color.r,
@@ -247,13 +257,29 @@ void ati128_set_color( ATI128DriverData *adrv,
                                             state->color.g,
                                             state->color.b );
      
-     state->modified &= ~SMF_COLOR;
+     adev->v_color = 1;
 }
 
+void ati128_set_src_colorkey( ATI128DriverData *adrv,
+                              ATI128DeviceData *adev,
+                              CardState        *state )
+{
+     if (adev->v_src_colorkey)
+          return;
+     
+     ati128_waitfifo( adrv, adev, 1 );
+     ati128_out32( adrv->mmio_base, CLR_CMP_CLR_SRC, state->src_colorkey );
+
+     adev->v_src_colorkey = 1;
+}
+                                                                                                      
 void ati128_set_blittingflags( ATI128DriverData *adrv,
                                ATI128DeviceData *adev,
                                CardState        *state )
-{     
+{
+     if (adev->v_blittingflags)
+          return;
+
      if (state->blittingflags & DSBLIT_SRC_COLORKEY) {     
           adev->ATI_color_compare = (1 << 24) | 5;
      }
@@ -262,18 +288,20 @@ void ati128_set_blittingflags( ATI128DriverData *adrv,
      }
                             
      adev->blittingflags = state->blittingflags;
-     state->modified &= ~SMF_BLITTING_FLAGS;
+     adev->v_blittingflags = 1;
 }
 
 void ati128_set_blending_function( ATI128DriverData *adrv,
                                    ATI128DeviceData *adev,
                                    CardState        *state )
-{     
+{
+     if (adev->v_blending_function)
+          return;
+
      adev->ATI_blend_function = SCALE_3D_CNTL_SCALE_3D_FN_SCALE |
                                 ati128SourceBlend[state->src_blend - 1] |
                                 ati128DestBlend  [state->dst_blend - 1] |
                                 SCALE_3D_CNTL_TEX_MAP_AEN_ON;
      
-     state->modified &= ~(SMF_DST_BLEND | SMF_SRC_BLEND);
+     adev->v_blending_function = 1;
 }
-
