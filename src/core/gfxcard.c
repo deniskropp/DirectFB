@@ -178,6 +178,17 @@ DFBResult dfb_gfxcard_initialize()
               Scard->driver_info.version.major,
               Scard->driver_info.version.minor, Scard->driver_info.vendor );
 
+     if (dfb_config->software_only) {
+          memset( &Scard->device_info.caps, 0, sizeof(CardCapabilities) );
+
+          if (card->funcs.CheckState) {
+               card->funcs.CheckState = NULL;
+               
+               INITMSG( "DirectFB/GraphicsDevice: "
+                        "acceleration disabled (by 'no-hardware')\n" );
+          }
+     }
+     
      Scard->surface_manager = dfb_surfacemanager_create( Scard->videoram_length,
                 card->shared->device_info.limits.surface_byteoffset_alignment,
                 card->shared->device_info.limits.surface_pixelpitch_alignment );
@@ -225,6 +236,13 @@ DFBResult dfb_gfxcard_join()
           card->device_data = Scard->device_data;
      }
 
+     if (dfb_config->software_only && card->funcs.CheckState) {
+          card->funcs.CheckState = NULL;
+          
+          INITMSG( "DirectFB/GraphicsDevice: "
+                   "acceleration disabled (by 'no-hardware')\n" );
+     }
+     
      return DFB_OK;
 }
 #endif
@@ -1195,9 +1213,6 @@ dfb_gfxcard_memory_virtual( GraphicsDevice *device,
 static void dfb_gfxcard_find_driver()
 {
      FusionLink *link;
-
-     if (dfb_config->software_only)
-          return;
 
      fusion_list_foreach (link, dfb_graphics_drivers.entries) {
           ModuleEntry *module = (ModuleEntry*) link;

@@ -685,6 +685,7 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
      DFBResult ret;
      int i;
      char *home = getenv( "HOME" );
+     char *prog = NULL;
 
      if (dfb_config)
           return DFB_OK;
@@ -695,16 +696,46 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
      if (ret  &&  ret != DFB_IO)
           return ret;
 
-     if (home) {
-          char *filename = alloca( strlen(home) + strlen("/.directfbrc") + 1 );
+     if (argc && argv) {
+          prog = strrchr( (*argv)[0], '/' );
 
-          filename = strcpy( filename, home );
-          filename = strcat( filename, "/.directfbrc" );
+          if (prog)
+               prog++;
+          else
+               prog = (*argv)[0];
+     }
+     
+     if (prog && prog[0]) {
+          char buf[ strlen("/etc/directfbrc.") + strlen(prog) + 1 ];
 
-          ret = dfb_config_read( filename );
+          strcpy( buf, "/etc/directfbrc." );
+          strcat( buf, prog );
 
+          ret = dfb_config_read( buf );
           if (ret  &&  ret != DFB_IO)
                return ret;
+     }
+
+     if (home) {
+          char filename[ strlen(home) +
+                         strlen("/.directfbrc.") +
+                         strlen(prog) + 1 ];
+
+          strcpy( filename, home );
+          strcat( filename, "/.directfbrc" );
+
+          ret = dfb_config_read( filename );
+          if (ret  &&  ret != DFB_IO)
+               return ret;
+     
+          if (prog && prog[0]) {
+               strcat( filename, "." );
+               strcat( filename, prog );
+
+               ret = dfb_config_read( filename );
+               if (ret  &&  ret != DFB_IO)
+                    return ret;
+          }
      }
 
      if (argc && argv) {
