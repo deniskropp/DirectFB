@@ -104,6 +104,7 @@ static void ati128CheckState( void *drv, void *dev,
                               CardState *state, DFBAccelerationMask accel )
 {
      switch (state->destination->format) {
+          case DSPF_RGB332:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB24:
@@ -133,6 +134,7 @@ static void ati128CheckState( void *drv, void *dev,
          state->source->height >= 8 )
      {
           switch (state->source->format) {
+               case DSPF_RGB332:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB24:
@@ -152,7 +154,7 @@ static void ati128SetState( void *drv, void *dev,
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
-
+     
      if ((state->modified & SMF_SOURCE)  &&  state->source)
           ati128_set_source( adrv, adev, state );
 
@@ -418,6 +420,19 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
      ati128_out32( mmio, CLR_CMP_CNTL, adev->ATI_color_compare );
 
      switch (adev->source->format) {
+          case DSPF_RGB332:
+               ati128_out32( mmio, SCALE_3D_DATATYPE, DST_8BPP_RGB332 );
+
+               ati128_out32( mmio, SCALE_PITCH,
+                             adev->source->front_buffer->video.pitch >>3);
+
+               src = adev->source->front_buffer->video.offset +
+                     sr->y *
+                     adev->source->front_buffer->video.pitch + sr->x;
+
+               ati128_out32( mmio, TEX_CNTL, 0);
+
+               break;
           case DSPF_ARGB1555: /* FIXME: alpha channel will be zero ;( */
                ati128_out32( mmio, SCALE_3D_DATATYPE, DST_15BPP );
 
@@ -430,7 +445,7 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
 
                ati128_out32( mmio, TEX_CNTL, 0);
 
-
+               break;
           case DSPF_RGB16:
                ati128_out32( mmio, SCALE_3D_DATATYPE, DST_16BPP );
 
