@@ -268,31 +268,33 @@ region. Opaque windows are blitted without any effect and transparent windows
 are blitted using alpha blending or color keying. If there's a backbuffer
 the recomposition is not visible and the result is copied into the front
 buffer. Without a backbuffer each step of the recomposition is visible
-which produces flickering unless there are opaque windows only. DirectFB
-chooses a backbuffer in video memory if the hardware supports simple
-blitting (e.g. to copy from back- to frontbuffer). If there's no acceleration
-at all the backbuffer is allocated in system memory which gives much better
-performance during alpha blended recomposition in software and avoids reading
-from the video memory when the result is copied to the frontbuffer.
-You should set an explicit value if your hardware supports simple blitting
-but no alpha blending if you are going to have many alpha blended windows.
-In this case 'backsystem' is the recommended value. If you are using opaque
-windows only without color keying you should try 'frontonly'.
+which produces flicker unless there are opaque windows only. 
 
 Supported values for <mode> are:
 
 .BI auto
 DirectFB decides depending on hardware capabilities. This is the
-default.
+default. DirectFB chooses a backbuffer in video memory if the hardware
+supports simple blitting (e.g. to copy from back- to frontbuffer). If
+there's no acceleration at all the backbuffer is allocated in system
+memory which gives much better performance during alpha blended
+recomposition in software and avoids reading from the video memory
+when the result is copied to the frontbuffer.
 
 .BI backvideo
-Front and back buffer are allocated in video memory.
+Front and back buffer are allocated in video memory. Setting this mode
+explicitly is not required because the 'auto' mode chooses it if there's
+support for accelerated blits. Without accelerated blits this mode is
+not recommended.
 
 .BI backsystem
-The back buffer is allocated in system memory.
+The back buffer is allocated in system memory. If your hardware only supports
+simple blitting but no alpha blending and you are going to have many alpha
+blended windows then 'backsystem' is the recommended mode.
 
 .BI frontonly
-There is no back buffer.
+There is no back buffer. If you are using opaque
+windows only without color keying you should try this mode.
 
 .TP
 .BI vsync-after
