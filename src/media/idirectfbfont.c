@@ -95,16 +95,18 @@ DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font )
      return DFB_OK;
 }
 
+static void fonts_glyph_info_free(void *key,
+                                  void *value)
+{
+  free (value);
+}
+
 void IDirectFBFont_Destruct( IDirectFBFont *thiz )
 {
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
 
-     if (data->font) {
-          surface_destroy (data->font->surface);
-      if (data->font->kerning_table)
-           free (data->font->kerning_table);
-      free (data->font);
-     }
+     fonts_destruct (data->font);
+     free (data->font);
 
      free( thiz->priv );
      thiz->priv = NULL;
@@ -203,8 +205,12 @@ DFBResult IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
 DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
                                         const char *string, int *width )
 {
-     unsigned char prev = 0;
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+     CoreGlyphData *glyph;
+     unichar  prev = 0;
+     unichar  current;
+     int      kerning;
+
 
      if (!data)
           return DFB_DEAD;
@@ -218,11 +224,19 @@ DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
      *width = 0;
 
      while (*string) {
-          if (data->font->kerning_table && prev)
-        *width += data->font->kerning_table[(unsigned char)*string * 256 + prev];
-          *width += data->font->glyphs[(unsigned char)*string].advance;
+          current = utf8_get_char (string);
+               
+          if (fonts_get_glyph_data (data->font, current, &glyph) == DFB_OK) {
+            
+            if (prev && data->font->GetKerning && 
+                (* data->font->GetKerning) (data->font, prev, current, &kerning) == DFB_OK) {
+                 width += kerning;
+            }
+            width += glyph->advance;
 
-          prev = *string++;
+            prev = current;
+            string = utf8_next_char (string);
+          }
      }
 
      return DFB_OK;

@@ -1219,8 +1219,8 @@ extern "C"
           );
 
           /*
-           * Draw a string at the specified position with the given color
-           * following the specified flags.
+           * Draw an UTF-8 string at the specified position with the 
+           * given color following the specified flags. 
            */
           DFBResult (*DrawString) (
                IDirectFBSurface         *thiz,

@@ -49,10 +49,7 @@ IDirectFBSurface *image32;
 IDirectFBSurface *image32a;
 
 IDirectFBDisplayLayer *layer;
-
 IDirectFBFont *font;
-static int ascender;
-static int descender;
 static int fontheight;
 
 /* Media super interface and the provider for our images/font */
@@ -347,9 +344,6 @@ int main( int argc, char *argv[] )
           desc.height = 22;
 
           DFBCHECK(dfb->CreateFont( dfb, FONT, &desc, &font ));
-
-          DFBCHECK(font->GetAscender( font, &ascender ));
-          DFBCHECK(font->GetDescender( font, &descender ));
           DFBCHECK(font->GetHeight( font, &fontheight ));
           DFBCHECK(primary->SetFont( primary, font ));
      }
@@ -441,7 +435,6 @@ int main( int argc, char *argv[] )
 
           font->GetStringWidth( font, "DirectX is dead, this is DirectFB",
                                 &stringwidth );
-
           
           
           showMessage( "This is the DirectFB benchmarking tool, "

@@ -22,9 +22,12 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include <directfb.h>
+
+#include "gfx/convert.h"
 
 #include "fonts.h"
 #include "core.h"
@@ -35,15 +38,94 @@ static CoreFontData default_font;
 
 #define FONTFILE DATADIR"/fonts/font.data"
 
-
-void fonts_deinit()
+void fonts_destruct (CoreFontData *font)
 {
-     surface_destroy (default_font.surface);
-     default_font.surface = NULL;
+     int i;
+
+     if (!font)
+          return;
+
+     tree_destroy (font->glyph_infos);
+     font->glyph_infos = NULL;
+
+     for (i = 0; i < font->rows; i++) {  
+          surface_destroy (font->surfaces[i]);
+     }
+     free (font->surfaces);
+     font->surfaces = NULL;
+     font->rows = 0;
+}
+
+DFBResult fonts_get_glyph_data (CoreFontData    *font,
+                                unichar          glyph,
+                                CoreGlyphData  **glyph_data)
+{
+     CoreGlyphData *data;
+    
+     if (!font)
+       font = fonts_get_default ();
+
+     if (!font->glyph_infos)
+       font->glyph_infos = tree_new();
+
+     data = tree_lookup (font->glyph_infos, (void *)glyph);
+
+     if (!data) {
+       data = malloc (sizeof (CoreGlyphData));
+       if (!data)
+         return DFB_NOSYSTEMMEMORY;
+       
+       memset (data, 0, sizeof (CoreGlyphData));
+
+       if (font->GetGlyphInfo && 
+            (* font->GetGlyphInfo) (font, glyph, data) == DFB_OK &&
+            data->width && data->height) {
+         
+            if (font->next_x + data->width > font->row_width)
+                 {
+                     if (font->row_width == 0)
+                         font->row_width = ((font->maxadvance * 32) > 2048 ? 
+                                            2048 : font->maxadvance * 32);
+
+                     font->next_x = 0;
+                     font->rows++;
+
+                     font->surfaces = 
+                          realloc (font->surfaces, sizeof (void *) * font->rows);
+
+                     surface_create( font->row_width, font->height, 
+                                     config->argb_font ? DSPF_ARGB : DSPF_A8, 
+                                     CSP_VIDEOHIGH, DSCAPS_ALPHA, 
+                                     &font->surfaces[font->rows - 1] );
+                 }
+
+            if ((* font->RenderGlyph) 
+                (font, glyph, data, font->surfaces[font->rows - 1]) == DFB_OK){
+           
+                 data->start = font->next_x + font->row_width * (font->rows - 1);
+                 font->next_x += data->width;
+            }
+            else {
+                 data->start = data->width = data->height = 0;
+            }
+       }
+       
+       tree_insert (font->glyph_infos, (void *) glyph, data);       
+     }
+
+     *glyph_data = data;
+
+     return DFB_OK;
+}
+
+static void fonts_default_deinit()
+{
+     fonts_destruct (&default_font);
 }
 
 DFBResult fonts_load_default()
 {
+     CoreSurface *surface;
      FILE *f;
      __u8 *dst;
      int   pitch;
@@ -55,15 +137,24 @@ DFBResult fonts_load_default()
           return DFB_INIT;
      }
 
-     memset( &default_font, 0, sizeof(CoreFontData) );
-     default_font.height = 20;
-     default_font.ascender = 16;
+     memset( &default_font, 0, sizeof (CoreFontData) );
+     default_font.height    = 20;
+     default_font.ascender  = 16;
      default_font.descender = 4;
+     
+     default_font.glyph_infos = tree_new ();
 
-     surface_create( 1024, default_font.height, DSPF_A8, CSP_VIDEOHIGH,
-                     DSCAPS_ALPHA, &default_font.surface );
+     surface_create( 1024, default_font.height,
+                     config->argb_font ? DSPF_ARGB : DSPF_A8, 
+                     CSP_VIDEOHIGH, DSCAPS_ALPHA, &surface );
+
+     default_font.rows = 1;
+     default_font.row_width = 1024;
+     default_font.surfaces = malloc (sizeof (void *));
+     default_font.surfaces[0] = surface;
 
      {
+          CoreGlyphData *data;
           int start = 0;
           unsigned char points[1024];
           unsigned char *glyphs =  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -75,43 +166,56 @@ DFBResult fonts_load_default()
 
           for (i=0; i<1024; i++) {
                if (points[i] == 0xFF) {
-                    default_font.glyphs[*glyphs].start   = start;
-                    default_font.glyphs[*glyphs].width   = i - start;
-                    default_font.glyphs[*glyphs].height  = default_font.height;
-                    default_font.glyphs[*glyphs].left    = 0;
-                    default_font.glyphs[*glyphs].top     = 0;
-                    default_font.glyphs[*glyphs].advance = i - start + 1;
-                    HEAVYDEBUGMSG( "DirectFB/core/fonts: glyph '%c' at %d, width %d\n", *glyphs, start, i-start );
-                    if (default_font.maxadvance
-                        < default_font.glyphs[*glyphs].width)
-                    {
-                         default_font.maxadvance =
-                              default_font.glyphs[*glyphs].width;
-                    }
-                    start = i+1;
-                    glyphs++;
+                 data = malloc (sizeof (CoreGlyphData));
+                 data->start   = start;
+                 data->width   = i - start;
+                 data->height  = default_font.height;
+                 data->left    = 0;
+                 data->top     = 0;
+                 data->advance = data->width + 1;
+                 HEAVYDEBUGMSG( "DirectFB/core/fonts: glyph '%c' at %d, width %d\n", 
+                                *glyphs, start, i-start );
+
+                 if (default_font.maxadvance < data->width)
+                      default_font.maxadvance = data->width;
+                 
+                 tree_insert (default_font.glyph_infos, 
+                              (void *) utf8_get_char (glyphs), data);
+
+                 start = i+1;
+                 glyphs++;
                }
                if (*glyphs == 0)
                     break;
           }
+               
+          /*  space  */
+          data = calloc (1, sizeof (CoreGlyphData));
+          data->advance = 5;
+          tree_insert (default_font.glyph_infos, 
+                       (void *) utf8_get_char (" "), data);
      }
 
-     surface_soft_lock( default_font.surface, 
-                        DSLF_WRITE, (void **) &dst, &pitch, 0 );
+     surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
      
      for (i = 0; i < default_font.height; i++) {
-         fread( dst, 1024, 1, f);
+          if (config->argb_font) {
+               char buf[1024];
+
+               fread( buf, 1024, 1, f);
+               span_a8_to_argb(buf, (__u32*)dst, 1024);
+          }
+          else {
+               fread( dst, 1024, 1, f);
+          }
          dst += pitch;
      }
 
-     surface_unlock( default_font.surface, 0 );
+     surface_unlock( surface, 0 );
 
      fclose( f );
 
-     /* set space width */
-     default_font.glyphs[32].advance = 5;
-
-     core_cleanup_push( fonts_deinit );
+     core_cleanup_push( fonts_default_deinit );
 
      return DFB_OK;
 }
@@ -120,3 +224,4 @@ CoreFontData* fonts_get_default()
 {
      return &default_font;
 }
+

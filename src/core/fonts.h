@@ -27,41 +27,69 @@
 
 #include <directfb.h>
 
+#include <misc/tree.h>
+#include <misc/utf8.h>
+
 #include "surfaces.h"
 
 /*
- * font struct, includes kerning table for each character
+ * glyph struct
  */
 typedef struct {
-     CoreSurface    *surface;           /* contains bitmaps of the glyphs  */
+     int       start;                   /* x offset of glyph in surface     */
+     int       width;                   /* width of the glyphs bitmap       */
+     int       height;                  /* height of the glyphs bitmap      */
+     int       left;                    /* x offset of the glyph            */
+     int       top;                     /* y offset of the glyph            */
+     int       advance;                 /* placement of next glyph          */
+} CoreGlyphData;
 
-     int            height;             /* font height                     */
+/*
+ * font struct
+ */
+
+typedef struct _CoreFontData CoreFontData;
+
+struct _CoreFontData {
+     CoreSurface  **surfaces;           /* contain bitmaps of loaded glyphs */
+     int            rows;
+     int            row_width;
+     int            next_x;
+
+     Tree          *glyph_infos;        /* infos about loaded glyphs        */
+
+     int            height;             /* font height                      */
 
      int            ascender;           /* a positive value, the distance
-                                           from the baseline to the top    */
+                                           from the baseline to the top     */
      int            descender;          /* a negative value, the distance
-                                           from the baseline to the bottom */
-     int            maxadvance;         /* width of largest character      */
+                                           from the baseline to the bottom  */
+     int            maxadvance;         /* width of largest character       */
 
-     struct {
-          int       start;              /* x offset of glyph in surface    */
-          int       width;              /* width of the glyphs bitmap      */
-          int       height;             /* height of the glyphs bitmap     */
-          int       left;               /* x offset of the glyph           */
-          int       top;                /* y offset of the glyph           */
-          int       advance;            /* placement of next glyph         */
-     } glyphs[256];
+     void          *impl_data;
+     DFBResult   (* GetGlyphInfo) (CoreFontData *thiz, unichar glyph, CoreGlyphData *info);
+     DFBResult   (* RenderGlyph)  (CoreFontData *thiz, unichar glyph,
+                                   CoreGlyphData *info, CoreSurface *surface);
+     DFBResult   (* GetKerning)   (CoreFontData *thiz, 
+                                   unichar prev, unichar current, int *kerning);
+};
 
-     char          *kerning_table;
-} CoreFontData;
+/*
+ * destroy all data in the CoreFontData struct
+ */
+void fonts_destruct(CoreFontData *font);
+
+/*
+ * loads glyph data from font
+ */
+DFBResult fonts_get_glyph_data(CoreFontData    *font,
+                               unichar          glyph,
+                               CoreGlyphData  **glyph_data);
 
 /*
  * loads default DirectFB bitmap font
  */
-DFBResult fonts_load_default();
-
-void fonts_deinit();
-
+DFBResult     fonts_load_default();
 CoreFontData* fonts_get_default();
 
 #endif

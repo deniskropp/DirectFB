@@ -918,20 +918,28 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
           y -= data->font->ascender;
 
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
+          CoreGlyphData       *glyph;
           const unsigned char *string = text;
-          unsigned char        prev   = 0;
+          unichar              prev   = 0;
+          unichar              current;
           int                  width  = 0;
+          int                  kerning;
 
           while (*string) {
-               if (data->font->kerning_table && prev)
-                    width +=
-                 data->font->kerning_table[(unsigned char)*string * 256 + prev];
+               current = utf8_get_char (string);
+               
+               if (fonts_get_glyph_data (data->font, current, &glyph) == DFB_OK) {
+                  
+                    if (prev && data->font->GetKerning && 
+                        (* data->font->GetKerning) (data->font, prev, current, &kerning) == DFB_OK) {
+                         width += kerning;
+                    }
+                    width += glyph->advance;
 
-               width += data->font->glyphs[(unsigned char)*string].advance;
-
-               prev = *string++;
+                    prev = current;
+                    string = utf8_next_char (string);
+               }
           }
-
           if (flags & DSTF_RIGHT) {
                x -= width;
           }
