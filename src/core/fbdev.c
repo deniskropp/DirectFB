@@ -368,14 +368,14 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
           return errno2dfb( erno );
      }
 
-     mode->format = fbdev_get_pixelformat( &var );
-
      if (layer) {
           CoreSurface *surface = layer->surface;
 
           ioctl( display->fd, FBIOGET_VSCREENINFO, &var );
 
           surface->format = mode->format = fbdev_get_pixelformat( &var );
+          if (mode->format == DSPF_UNKNOWN)
+               return DFB_UNSUPPORTED;
 
           display->current_var = var;
           display->current_mode = mode;
@@ -512,8 +512,7 @@ static DFBResult read_modes()
                }
                if (geometry &&
                    timings &&
-                   !fbdev_set_mode(NULL, &temp_mode, DLBM_FRONTONLY) &&
-                   temp_mode.format != DSPF_UNKNOWN)
+                   !fbdev_set_mode(NULL, &temp_mode, DLBM_FRONTONLY))
                {
 
                     if (!m) {
