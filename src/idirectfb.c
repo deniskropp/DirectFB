@@ -453,8 +453,6 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
                     dfb_window_init( window );
 
-                    dfb_window_set_opacity( window, 0xFF );
-
                     init_palette( window->surface, desc );
 
                     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
