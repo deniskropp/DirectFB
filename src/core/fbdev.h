@@ -44,9 +44,13 @@ typedef struct _VideoMode {
      int vsync_len;
      int hsync_high;
      int vsync_high;
+     int csync_high;
 
      int laced;
      int doubled;
+
+     int sync_on_green;
+     int external_sync;
 
      DFBSurfacePixelFormat format; /* to be evaluated after mode switch */
 

@@ -756,6 +756,12 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
           var.sync |= FB_SYNC_HOR_HIGH_ACT;
      if (mode->vsync_high)
           var.sync |= FB_SYNC_VERT_HIGH_ACT;
+     if (mode->csync_high)
+          var.sync |= FB_SYNC_COMP_HIGH_ACT;
+     if (mode->sync_on_green)
+          var.sync |= FB_SYNC_ON_GREEN;
+     if (mode->external_sync)
+          var.sync |= FB_SYNC_EXT;
 
      var.vmode = 0;
      if (mode->laced)
@@ -899,21 +905,30 @@ static DFBResult fbdev_read_modes()
                     if (5 == sscanf(line," geometry %d %d %d %d %d", &temp_mode.xres, &temp_mode.yres, &dummy, &dummy, &temp_mode.bpp)) {
                          geometry = 1;
                     }
-                    if (7 == sscanf(line," timings %d %d %d %d %d %d %d", &temp_mode.pixclock, &temp_mode.left_margin,  &temp_mode.right_margin,
+                    else if (7 == sscanf(line," timings %d %d %d %d %d %d %d", &temp_mode.pixclock, &temp_mode.left_margin,  &temp_mode.right_margin,
                                     &temp_mode.upper_margin, &temp_mode.lower_margin, &temp_mode.hsync_len,    &temp_mode.vsync_len)) {
                          timings = 1;
                     }
-                    if (1 == sscanf(line, " hsync %15s",value) && 0 == strcasecmp(value,"high")) {
+                    else if (1 == sscanf(line, " hsync %15s",value) && 0 == strcasecmp(value,"high")) {
                          temp_mode.hsync_high = 1;
                     }
-                    if (1 == sscanf(line, " vsync %15s",value) && 0 == strcasecmp(value,"high")) {
+                    else if (1 == sscanf(line, " vsync %15s",value) && 0 == strcasecmp(value,"high")) {
                          temp_mode.vsync_high = 1;
                     }
-                    if (1 == sscanf(line, " laced %15s",value) && 0 == strcasecmp(value,"true")) {
+                    else if (1 == sscanf(line, " csync %15s",value) && 0 == strcasecmp(value,"high")) {
+                         temp_mode.csync_high = 1;
+                    }
+                    else if (1 == sscanf(line, " laced %15s",value) && 0 == strcasecmp(value,"true")) {
                          temp_mode.laced = 1;
                     }
-                    if (1 == sscanf(line, " double %15s",value) && 0 == strcasecmp(value,"true")) {
+                    else if (1 == sscanf(line, " double %15s",value) && 0 == strcasecmp(value,"true")) {
                          temp_mode.doubled = 1;
+                    }
+                    else if (1 == sscanf(line, " gsync %15s",value) && 0 == strcasecmp(value,"true")) {
+                         temp_mode.sync_on_green = 1;
+                    }
+                    else if (1 == sscanf(line, " extsync %15s",value) && 0 == strcasecmp(value,"true")) {
+                         temp_mode.external_sync = 1;
                     }
                }
                if (geometry &&
