@@ -257,15 +257,11 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      else {
           dfb_surfacemanager_lock( surface->manager );
 
-          ret = dfb_surfacemanager_assure_video( surface->manager, 
-                                                 surface->back_buffer );
-
           /*
            * Because we're constantly writing to the surface we
            * permanently lock it.
            */
-          if (DFB_OK == ret)
-               surface->back_buffer->video.locked++;
+          ret = dfb_surface_hardware_lock( surface, DSLF_WRITE, false );
 
           dfb_surfacemanager_unlock( surface->manager );
 
@@ -281,7 +277,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
           ret = v4l_to_surface_overlay( surface, &rect, data );
 
      if (DFB_OK != ret && !data->grab_mode)
-          surface->back_buffer->video.locked--;
+          dfb_surface_unlock( surface, false );
 
      pthread_mutex_unlock( &data->lock );
      
@@ -844,7 +840,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
      }
 
      if (!data->grab_mode)
-          destination->back_buffer->video.locked--;
+          dfb_surface_unlock( destination, false );
 
      data->destination = NULL;
      
