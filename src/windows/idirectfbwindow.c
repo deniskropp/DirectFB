@@ -275,6 +275,9 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
      if (!surface)
           return DFB_INVARG;
 
+     if (data->window->caps & DWCAPS_INPUTONLY)
+          return DFB_UNSUPPORTED;
+
      if (!data->surface) {
           DFBResult ret;
 
@@ -353,6 +356,9 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
 
      if (!data->window)
           return DFB_DESTROYED;
+
+     if (data->window->caps & DWCAPS_INPUTONLY)
+          return DFB_UNSUPPORTED;
 
      key = color_to_pixel( data->window->surface->format, r, g, b );
 

@@ -360,7 +360,8 @@ dfb_window_destroy( CoreWindow *window )
      evt.type = DWET_DESTROYED;
      dfb_window_dispatch( window, &evt );
 
-     dfb_surface_destroy( window->surface );
+     if (window->surface)
+          dfb_surface_destroy( window->surface );
 
      reactor_free( window->reactor );
 
@@ -598,6 +599,14 @@ dfb_window_putbelow( CoreWindow *window,
      stack_unlock( stack );
 }
 
+
+#define TRANSPARENT_WINDOW(w) ((w)->opacity < 0xff || \
+                               (w)->caps & DWCAPS_ALPHACHANNEL || \
+                               (w)->options & DWOP_COLORKEYING)
+#define VISIBLE_WINDOW(w)     (!((w)->caps & DWCAPS_INPUTONLY) && \
+                               (w)->opacity > 0)
+
+
 void
 dfb_window_move( CoreWindow *window,
                  int         dx,
@@ -611,7 +620,7 @@ dfb_window_move( CoreWindow *window,
      window->x += dx;
      window->y += dy;
 
-     if (window->opacity) {
+     if (VISIBLE_WINDOW(window)) {
           DFBRegion region = { window->x, window->y,
                                window->x + window->width - 1,
                                window->y + window->height - 1 };
@@ -643,26 +652,30 @@ dfb_window_resize( CoreWindow   *window,
                    unsigned int  width,
                    unsigned int  height )
 {
-     DFBResult        ret;
      DFBWindowEvent   evt;
      CoreWindowStack *stack = window->stack;
      int              ow    = window->width;
      int              oh    = window->height;
 
      stack_lock( stack );
-     
-     ret = dfb_surface_reformat( window->surface,
-                                 width, height,
-                                 window->surface->format );
-     if (ret) {
-          stack_unlock( stack );
-          return ret;
+
+     if (window->surface) {
+          DFBResult ret = dfb_surface_reformat( window->surface,
+                                                width, height,
+                                                window->surface->format );
+          if (ret) {
+               stack_unlock( stack );
+               return ret;
+          }
+
+          window->width = window->surface->width;
+          window->height = window->surface->height;
+     } else {
+          window->width  = width;
+          window->height = height;
      }
 
-     window->width = window->surface->width;
-     window->height = window->surface->height;
-
-     if (window->opacity) {
+     if (VISIBLE_WINDOW (window)) {
           if (ow > window->width) {
                DFBRegion region = { window->x + window->width, window->y,
                                     window->x + ow - 1,
@@ -740,7 +753,7 @@ dfb_window_repaint( CoreWindow          *window,
 {
      CoreWindowStack *stack = window->stack;
 
-     if (!window->opacity)
+     if (!VISIBLE_WINDOW(window))
           return;
 
      stack_lock( stack );
@@ -1011,10 +1024,6 @@ stack_detach_devices( InputDevice *device,
      return DFENUM_OK;
 }
 
-#define TRANSPARENT_WINDOW(w) ((w)->opacity < 0xff || \
-                               (w)->caps & DWCAPS_ALPHACHANNEL || \
-                               (w)->options & DWOP_COLORKEYING)
-
 static void
 update_region( CoreWindowStack *stack,
                int              start,
@@ -1031,7 +1040,7 @@ update_region( CoreWindowStack *stack,
      DFB_ASSERT (x1 <= x2  &&  y1 <= y2);
 
      while (i >= 0) {
-          if (stack->windows[i]->opacity > 0) {
+          if (VISIBLE_WINDOW(stack->windows[i])) {
                int       wx2    = stack->windows[i]->x +
                                   stack->windows[i]->width - 1;
                int       wy2    = stack->windows[i]->y +

@@ -601,7 +601,10 @@ typedef enum {
                                            get visible before an update if
                                            there is another reason causing
                                            a window stack repaint. */
-     DWCAPS_ALL          = 0x00000003   /* All valid flags. */
+     DWCAPS_INPUTONLY    = 0x00000004,  /* The window has no surface.
+                                           You can not draw to it but it
+                                           receives events */
+     DWCAPS_ALL          = 0x00000007   /* All valid flags. */
 } DFBWindowCapabilities;
 
 
