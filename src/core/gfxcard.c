@@ -1332,6 +1332,9 @@ static void dfb_gfxcard_find_driver()
 {
      FusionLink *link;
 
+     if (dfb_system_type() != CORE_FBDEV)
+          return;
+
      fusion_list_foreach (link, dfb_graphics_drivers.entries) {
           ModuleEntry *module = (ModuleEntry*) link;
 
