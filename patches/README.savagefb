@@ -8,5 +8,5 @@ There are two alternative patches:
  savagefb-0.4.0-linux-2.4.17.patch       contains the features of the 0.3.2
                                          version plus support for accelerated
                                          fills and blits. Unfortunately it
-                                         doesn't work. Use 'fbset accel -false'
+                                         doesn't work. Use 'fbset -accel false'
                                          to turn off acceleration.

@@ -8,12 +8,6 @@ mode "640x480 75Hz 16bit"
     timings 31747 120 16 16 1 64 3
 endmode
  
-mode "640x480 75Hz 32bit"
-    # D: 31.50 MHz, H: 37.500 kHz, V: 75.00 Hz
-    geometry 640 480 640 480 32
-    timings 31747 120 16 16 1 64 3
-endmode
- 
 
 mode "768x576 75Hz 16bit"
     # D: 49.188 MHz, H: 46.580 kHz, V: 75.008 Hz
@@ -21,24 +15,10 @@ mode "768x576 75Hz 16bit"
     timings 20330 128 32 32 8 128 5
 endmode
 
-mode "768x576 75Hz 32bit"
-    # D: 49.188 MHz, H: 46.580 kHz, V: 75.008 Hz
-    geometry 768 576 768 576 32
-    timings 20330 128 32 32 8 128 5
-endmode
-
 
 mode "800x600 75Hz 16bit"
     # D: 49.50 MHz, H: 46.875 kHz, V: 75.00 Hz
     geometry 800 600 800 600 16
-    timings 20203 160 16 21 1 80 3
-    hsync high
-    vsync high
-endmode
-
-mode "800x600 75Hz 32bit"
-    # D: 49.50 MHz, H: 46.875 kHz, V: 75.00 Hz
-    geometry 800 600 800 600 32
     timings 20203 160 16 21 1 80 3
     hsync high
     vsync high
@@ -51,24 +31,10 @@ mode "1024x768 72Hz 16bit"
     timings 13334 104 24 29 3 136 6
 endmode
  
-mode "1024x768 72Hz 32bit"
-    # D: 75.00 MHz, H: 58.230 kHz, V: 72.245 Hz
-    geometry 1024 768 1024 768 32
-    timings 13334 104 24 29 3 136 6
-endmode
- 
 
 mode "1280x1024 60Hz 16bit"
     # D: 108.00 MHz, H: 63.981 kHz, V: 60.02 Hz
     geometry 1280 1024 1280 1024 16
-    timings 9260 248 48 38 1 112 3
-    hsync high
-    vsync high
-endmode
- 
-mode "1280x1024 60Hz 32bit"
-    # D: 108.00 MHz, H: 63.981 kHz, V: 60.02 Hz
-    geometry 1280 1024 1280 1024 32
     timings 9260 248 48 38 1 112 3
     hsync high
     vsync high
@@ -80,12 +46,6 @@ mode "1600x1200 60Hz 16bit"
     geometry 1600 1200 1600 1200 16
     timings 6411 256 32 52 10 160 8
 endmode
- 
-mode "1600x1200 60Hz 32bit"
-    # D: 156.00 MHz, H: 76.200 kHz, V: 60.00 Hz
-    geometry 1600 1200 1600 1200 32
-    timings 6411 256 32 52 10 160 8
-endmode
 
 
 mode "400x300 100Hz 16bit"
@@ -94,21 +54,9 @@ mode "400x300 100Hz 16bit"
     double true
 endmode
 
-mode "400x300 100Hz 32bit"
-    geometry 400 300 400 300 32
-    timings 31747 40 16 16 1 40 3
-    double true
-endmode
-
 
 mode "320x240 70Hz 16bit"
     geometry 320 240 320 240 16
-    timings 82440 30 16 20 4 48 1
-    double true
-endmode
-
-mode "320x240 70Hz 32bit"
-    geometry 320 240 320 240 32
     timings 82440 30 16 20 4 48 1
     double true
 endmode
