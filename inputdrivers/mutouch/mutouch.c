@@ -376,6 +376,9 @@ static void *MuTouchEventThread(CoreThread *thread, void *driver_data)
                     break;
           }
 
+          evt.flags  = DIEF_NONE;
+          evt.button = DIBI_LEFT;
+
           dfb_input_dispatch (data->device, &evt);
           dfb_thread_testcancel (thread);
      }
