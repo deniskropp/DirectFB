@@ -487,6 +487,7 @@ int driver_init(InputDevice *device)
      device->info.driver_version.minor = 9;
      
      device->id = DIDID_KEYBOARD;
+     device->desc.type = DIDTF_KEYBOARD;
      device->desc.caps = DICAPS_KEYS;
      
      device->EventThread = keyboardEventThread;

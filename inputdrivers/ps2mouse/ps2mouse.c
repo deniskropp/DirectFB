@@ -206,6 +206,8 @@ int driver_init(InputDevice *device)
      device->info.driver_version.minor = 9;
 
      device->id = DIDID_MOUSE;
+
+     device->desc.type = DIDTF_MOUSE;
      device->desc.caps = DICAPS_AXIS | DICAPS_BUTTONS;
      device->desc.max_axis = DIAI_Y;
      device->desc.max_button = DIBI_MIDDLE;     /* TODO: probe!? */

@@ -131,6 +131,7 @@ int driver_init(InputDevice *device)
 
      device->id = DIDID_JOYSTICK + device->number;
 
+     device->desc.type = DIDTF_JOYSTICK;
      device->desc.caps = DICAPS_AXIS | DICAPS_BUTTONS;
      ioctl( fd[device->number], JSIOCGBUTTONS, &device->desc.max_button );
      ioctl( fd[device->number], JSIOCGAXES, &device->desc.max_axis );
