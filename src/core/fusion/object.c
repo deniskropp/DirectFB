@@ -291,7 +291,11 @@ fusion_object_create( FusionObjectPool *pool )
      /* Add the object to the pool. */
      fusion_list_prepend( &pool->objects, &object->link );
 
+#ifdef FUSION_FAKE
      FDEBUG("{%s} added %p\n", pool->name, object);
+#else
+     FDEBUG("{%s} added %p with ref 0x%08x\n", pool->name, object, object->ref.id);
+#endif
 
      DFB_MAGIC_SET( object, FusionObject );
 

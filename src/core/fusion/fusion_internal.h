@@ -60,14 +60,12 @@
 #if !defined(FUSION_DEBUG) || defined(DFB_NOTEXT)
 #  define FDEBUG(x...)   do {} while (0)
 #else
-#  define FDEBUG(x...)   do { if (!dfb_config || dfb_config->debug) {          \
-                                 long long millis = fusion_get_millis();       \
-                                 fprintf( stderr, "(-) [%5d: %4lld.%03lld] Dir"\
-                                          "ectFB/core/fusion: (%s) ", gettid(),\
-                                          millis/1000, millis%1000,            \
-                                          __FUNCTION__ );                      \
-                                 fprintf( stderr, x );                         \
-                                 fflush( stderr );                             \
+#  define FDEBUG(x...)   do { if (!dfb_config || dfb_config->debug) {                              \
+                                 long long millis = fusion_get_millis();                           \
+                                 fprintf( stderr, "(-) [%5d: %4lld.%03lld] DirectFB/Fusion: (%s) ",\
+                                 gettid(), millis/1000, millis%1000, __FUNCTION__ );               \
+                                 fprintf( stderr, x );                                             \
+                                 fflush( stderr );                                                 \
                             } } while (0)
 #endif
 
@@ -78,7 +76,7 @@
 #  define FERROR(x...) do \
 {                                                                              \
      long long millis = fusion_get_millis();                                   \
-     fprintf( stderr, "(!) [%5d: %4lld.%03lld] DirectFB/core/fusion: (%s) ",   \
+     fprintf( stderr, "(!) [%5d: %4lld.%03lld] DirectFB/Fusion: (%s) ",        \
               gettid(), millis/1000, millis%1000, __FUNCTION__ );              \
      fprintf( stderr, x );                                                     \
      fflush( stderr );                                                         \
@@ -88,7 +86,7 @@
 #  define FPERROR(x...) do \
 {                                                                              \
      long long millis = fusion_get_millis();                                   \
-     fprintf( stderr, "(!) [%5d: %4lld.%03lld] DirectFB/core/fusion: (%s) ",   \
+     fprintf( stderr, "(!) [%5d: %4lld.%03lld] DirectFB/Fusion: (%s) ",        \
               gettid(), millis/1000, millis%1000, __FUNCTION__ );              \
      fprintf( stderr, x );                                                     \
      fprintf( stderr, "    --> " );                                            \
