@@ -251,6 +251,7 @@ crtc2SetConfiguration( DisplayLayer          *layer,
      mcrtc2->config = *config;
 
      crtc2_calc_regs( mdrv, mcrtc2, layer );
+     crtc2_calc_buffer( mdrv, mcrtc2, layer );
 
      if (mcrtc2->enabled)
           return crtc2_enable_output( mdrv, mcrtc2, layer );
