@@ -386,7 +386,6 @@ typedef struct {
     __u16 FifoFree;
     __u16 Nop;
 #endif
-#if 0
     __u32 reserved01[0x014];
 
     __u32 NoOperation;             /* ignored                          0100-0103*/
@@ -397,8 +396,6 @@ typedef struct {
     __u32 SetContextDmaB;          /* NV01_CONTEXT_DMA                 0188-018b*/
     __u32 SetContextSurfaces;      /* NV04_CONTEXT_SURFACES_3D         018c-018f*/
     __u32 Reserved01[0x05c];
-#endif
-    __u32 Reserved01[0x0BB];
     __u32 ColorKeyValue;           /* see text                         0300-0303*/
     __u32 TextureOffset;           /* texture offset in bytes          0304-0307*/
     __u32 TextureFormat;           /* see text                         0308-030b*/
@@ -478,9 +475,9 @@ typedef struct
 
 
 typedef struct {
-     CardState             *state;
-
-     DFBSurfacePixelFormat  format;
+     CoreSurface           *destination;
+     CoreSurface           *source;
+     
      __u32                  color;
 
      /* for fifo/performance monitoring */

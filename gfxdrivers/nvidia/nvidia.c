@@ -184,13 +184,18 @@ static void nvCheckState( void *drv, void *dev,
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          if (state->source->format != state->destination->format)
-               return;
-
-          /* currently strechblit works only at 32bpp */
-	  if (accel == DFXL_STRETCHBLIT && 
-              DFB_BITS_PER_PIXEL( state->destination->format ) != 32 )
-               return;
+          /* FIXME: RGB16 */
+          if (accel == DFXL_STRETCHBLIT ||
+              state->source->format != state->destination->format) {
+               switch (state->source->format) {
+                    case DSPF_ARGB1555:
+                    case DSPF_RGB32:
+                    case DSPF_ARGB:
+                         break;
+                    default:
+                         return;
+               }
+          }
 
           /* if there are no other blitting flags than the supported */
           if (!(state->blittingflags & ~NV4_SUPPORTED_BLITTINGFLAGS))
@@ -230,8 +235,6 @@ static void nvSetState( void *drv, void *dev,
      volatile __u32   *PGRAPH = nvdrv->PGRAPH;
      volatile __u32   *PRAMIN = nvdrv->PRAMIN;
      volatile __u32   *FIFO   = nvdrv->FIFO;
-
-     nvdev->state = state;
      
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -255,17 +258,15 @@ static void nvSetState( void *drv, void *dev,
                break;
      }
 
-     if (state->modified & SMF_CLIP)
-          nv_set_clip( nvdrv, nvdev, &state->clip );
-
      if (state->modified & SMF_DESTINATION) {
           /* set offset & pitch */
           nv_waitidle( nvdrv, nvdev );
           PGRAPH[0x640/4] = state->destination->back_buffer->video.offset & 0x1FFFFFF;
           PGRAPH[0x670/4] = state->destination->back_buffer->video.pitch;
 
-          if (state->destination->format != nvdev->format) {
-               /* change pixelformat */
+          if (!nvdev->destination ||
+              state->destination->format != nvdev->destination->format) {
+               /* change objects pixelformat */
                switch (state->destination->format) {
                     case DSPF_ARGB1555:
                          NV_LOAD_TABLE( PGRAPH, PGRAPH_ARGB1555 )
@@ -292,18 +293,22 @@ static void nvSetState( void *drv, void *dev,
                          break;
                }
 
-               /* update fifo subchannels */
+               /* put objects into subchannels */
                NV_LOAD_TABLE( FIFO, FIFO )
-
-               nvdev->format = state->destination->format;
           }
+       
+          nvdev->destination = state->destination;
      }
 
      if (state->modified & SMF_SOURCE && state->source) {
           nv_waitidle( nvdrv, nvdev );
           PGRAPH[0x644/4] = state->source->front_buffer->video.offset & 0x1FFFFFF;
           PGRAPH[0x674/4] = state->source->front_buffer->video.pitch;
+          nvdev->source   = state->source;
      }
+
+     if (state->modified & SMF_CLIP)
+          nv_set_clip( nvdrv, nvdev, &state->clip );
 
      if (state->modified & (SMF_DESTINATION | SMF_COLOR)) {
           switch (state->destination->format) {
@@ -423,11 +428,61 @@ static bool nvDrawLine( void *drv, void *dev, DFBRegion *line )
      return true;
 }
 
+static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
+{
+
+     NVidiaDriverData       *nvdrv       = (NVidiaDriverData*) drv;
+     NVidiaDeviceData       *nvdev       = (NVidiaDeviceData*) dev;
+     volatile NVScaledImage *ScaledImage = nvdrv->ScaledImage;
+     CoreSurface            *source      = nvdev->source;
+     __u32                   format      = 0;
+ 
+     switch (source->format) {
+          case DSPF_ARGB1555:
+               format = 0x00000002;
+               break;
+          /* FIXME: RGB16 */
+          case DSPF_RGB32:
+               format = 0x00000004;
+               break;
+          case DSPF_ARGB:
+               format = 0x00000003;
+               break;
+          default:
+               D_BUG( "unexpected pixelformat" );
+               break;
+     }
+
+     NV_FIFO_FREE( nvdev, ScaledImage, 1 )
+     ScaledImage->SetColorFormat = format;
+     
+     NV_FIFO_FREE( nvdev, ScaledImage, 6 )
+     ScaledImage->ClipPoint      = (dr->y << 16) | dr->x;
+     ScaledImage->ClipSize       = (dr->h << 16) | dr->w;
+     ScaledImage->ImageOutPoint  = (dr->y << 16) | dr->x;
+     ScaledImage->ImageOutSize   = (dr->h << 16) | dr->w;
+     ScaledImage->DuDx           = (sr->w << 20) / dr->w;
+     ScaledImage->DvDy           = (sr->h << 20) / dr->h;
+
+     NV_FIFO_FREE( nvdev, ScaledImage, 4 )
+     ScaledImage->ImageInSize    = (source->height << 16) | source->width;
+     ScaledImage->ImageInFormat  = source->front_buffer->video.pitch;
+     ScaledImage->ImageInOffset  = source->front_buffer->video.offset & 0x1FFFFFF;
+     ScaledImage->ImageInPoint   = 0;
+     
+     return true;
+}
+
 static bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      NVidiaDriverData     *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData     *nvdev = (NVidiaDeviceData*) dev;
      volatile NVScreenBlt *Blt   = nvdrv->Blt;
+     
+     if (nvdev->source->format != nvdev->destination->format) {
+          DFBRectangle dr = { dx, dy, rect->w, rect->h };
+          return nvStretchBlit( drv, dev, rect, &dr );
+     }
 
      NV_FIFO_FREE( nvdev, Blt, 3 );
 
@@ -435,32 +490,6 @@ static bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      Blt->TopLeftDst  = (dy << 16) | dx;
      Blt->WidthHeight = (rect->h << 16) | rect->w;
 
-     return true;
-}
-
-
-static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
-{
-
-     NVidiaDriverData       *nvdrv       = (NVidiaDriverData*) drv;
-     NVidiaDeviceData       *nvdev       = (NVidiaDeviceData*) dev;
-     CardState              *state       = nvdev->state;
-     volatile NVScaledImage *ScaledImage = nvdrv->ScaledImage;
-
-     NV_FIFO_FREE( nvdev, ScaledImage, 6 )
-     ScaledImage->ClipPoint     = (dr->y << 16) | dr->x;
-     ScaledImage->ClipSize      = (dr->h << 16) | dr->w;
-     ScaledImage->ImageOutPoint = (dr->y << 16) | dr->x;
-     ScaledImage->ImageOutSize  = (dr->h << 16) | dr->w;
-     ScaledImage->DuDx          = (sr->w << 20) / dr->w;
-     ScaledImage->DvDy          = (sr->h << 20) / dr->h;
-
-     NV_FIFO_FREE( nvdev, ScaledImage, 4 )
-     ScaledImage->ImageInSize   = (state->source->height << 16) | state->source->width;
-     ScaledImage->ImageInFormat = state->source->front_buffer->video.pitch;
-     ScaledImage->ImageInOffset = state->source->front_buffer->video.offset & 0x1FFFFFF;
-     ScaledImage->ImageInPoint  = 0;
-     
      return true;
 }
 
@@ -588,11 +617,11 @@ static void nvAfterSetVar( void *drv, void *dev )
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
      volatile __u32   *PRAMIN = nvdrv->PRAMIN;
      volatile __u32   *FIFO   = nvdrv->FIFO;
-
-     /* write object configuration */
+     
+     /* write objects configuration */
      NV_LOAD_TABLE( PRAMIN, PRAMIN )
 
-     /* set pixelformat */
+     /* set objects pixelformat */
      switch (dfb_primary_layer_pixelformat()) {
           case DSPF_ARGB1555:
                NV_LOAD_TABLE( PRAMIN, PRAMIN_ARGB1555 )
@@ -670,10 +699,10 @@ driver_init_driver( GraphicsDevice      *device,
      nvdrv->Clip        = (volatile NVClip               *) &nvdrv->FIFO[0x2000/4];
      nvdrv->Pattern     = (volatile NVPattern            *) &nvdrv->FIFO[0x4000/4];
      nvdrv->Triangle    = (volatile NVTriangle           *) &nvdrv->FIFO[0x6000/4];
-     nvdrv->Blt         = (volatile NVScreenBlt          *) &nvdrv->FIFO[0x8000/4];
+     nvdrv->ScaledImage = (volatile NVScaledImage        *) &nvdrv->FIFO[0x8000/4];
      nvdrv->Rectangle   = (volatile NVRectangle          *) &nvdrv->FIFO[0xA000/4];
      nvdrv->Line        = (volatile NVLine               *) &nvdrv->FIFO[0xC000/4];
-     nvdrv->ScaledImage = (volatile NVScaledImage        *) &nvdrv->FIFO[0xE000/4];
+     nvdrv->Blt         = (volatile NVScreenBlt          *) &nvdrv->FIFO[0xE000/4];
      //nvdrv->TexTri      = (volatile NVTexturedTriangle05 *) &nvdrv->FIFO[0xE000/4];
      
      funcs->CheckState    = nvCheckState;
