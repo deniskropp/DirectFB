@@ -15,7 +15,7 @@
 
 static float values[4] = { 0.25f, 0.5f, 0.5f, 0 };
 
-static const char *channels[4] = { "Pitch", "Volume", "Pan", "Start" };
+static const char *channels[4] = { "Pitch", "Volume", "Pan", "Position" };
 
 static IFusionSound         *sound;
 static IFusionSoundBuffer   *buffer;
@@ -156,8 +156,14 @@ main (int argc, char *argv[])
      /* show the window */
      lite_set_window_opacity( window, 0xff );
 
-     /* run the default event loop */
-     lite_window_event_loop( window );
+     /* run the event loop with a timeout */
+     while (lite_window_event_loop( window, 20 ) == DFB_OK) {
+          int position = 0;
+          
+          playback->GetStatus( playback, NULL, &position );
+          
+          lite_set_slider_pos( slider[3], position / (float) sample_length );
+     }
 
      /* destroy the window with all this children and resources */
      lite_destroy_window( window );
