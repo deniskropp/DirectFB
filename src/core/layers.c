@@ -167,6 +167,13 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
                }
           }
 
+          if (shared->description.caps & DLCAPS_ALPHA_RAMP) {
+               shared->default_config.flags         |= DLCONF_ALPHA_RAMP;
+               shared->default_config.alpha_ramp[0]  = 0x00;
+               shared->default_config.alpha_ramp[1]  = 0x55;
+               shared->default_config.alpha_ramp[2]  = 0xaa;
+               shared->default_config.alpha_ramp[3]  = 0xff;
+          }
 
           /* Initialize the vector for the contexts. */
           fusion_vector_init( &shared->contexts.stack, 4 );
