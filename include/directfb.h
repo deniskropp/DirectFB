@@ -1964,6 +1964,7 @@ typedef enum {
      DSECONF_MIXER        = 0x00000004, /* Select mixer. */
      DSECONF_OUT_SIGNALS  = 0x00000008, /* Select generated output signal(s). */
      DSECONF_SCANMODE     = 0x00000010, /* Select interlaced or progressive output. */
+     DSECONF_TEST_COLOR   = 0x00000020, /* Set color for DSETP_SINGLE_COLOR. */
 
      DSECONF_ALL          = 0x0000001F
 } DFBScreenEncoderConfigFlags;
@@ -1975,15 +1976,16 @@ typedef enum {
      DSETP_OFF            = 0x00000000, /* Disable test picture. */
 
      DSETP_MULTI_COLOR    = 0x00000001, /* Show color bars. */
+     DSETP_SINGLE_COLOR   = 0x00000002, /* Whole screen as defined in configuration. */
 
-     DSETP_SINGLE_BLACK   = 0x00000002, /* Whole screen black. */
-     DSETP_SINGLE_WHITE   = 0x00000003, /* Whole screen white. */
-     DSETP_SINGLE_YELLOW  = 0x00000004, /* Whole screen yellow. */
-     DSETP_SINGLE_CYAN    = 0x00000005, /* Whole screen cyan. */
-     DSETP_SINGLE_GREEN   = 0x00000006, /* Whole screen green. */
-     DSETP_SINGLE_MAGENTA = 0x00000007, /* Whole screen magenta. */
-     DSETP_SINGLE_RED     = 0x00000008, /* Whole screen red. */
-     DSETP_SINGLE_BLUE    = 0x00000009  /* Whole screen blue. */
+     DSETP_SINGLE_WHITE   = 0x00000010, /* Whole screen (ff, ff, ff). */
+     DSETP_SINGLE_YELLOW  = 0x00000020, /* Whole screen (ff, ff, 00). */
+     DSETP_SINGLE_CYAN    = 0x00000030, /* Whole screen (00, ff, ff). */
+     DSETP_SINGLE_GREEN   = 0x00000040, /* Whole screen (00, ff, 00). */
+     DSETP_SINGLE_MAGENTA = 0x00000050, /* Whole screen (ff, 00, ff). */
+     DSETP_SINGLE_RED     = 0x00000060, /* Whole screen (ff, 00, 00). */
+     DSETP_SINGLE_BLUE    = 0x00000070, /* Whole screen (00, 00, ff). */
+     DSETP_SINGLE_BLACK   = 0x00000080  /* Whole screen (00, 00, 00). */
 } DFBScreenEncoderTestPicture;
 
 /*
@@ -1997,6 +1999,8 @@ typedef struct {
      int                           mixer;         /* Selected mixer. */
      DFBScreenOutputSignals        out_signals;   /* Generated output signals. */
      DFBScreenEncoderScanMode      scanmode;      /* Interlaced or progressive output. */
+
+     DFBColor                      test_color;    /* Color for DSETP_SINGLE_COLOR. */
 } DFBScreenEncoderConfig;
 
 
