@@ -33,4 +33,4 @@ yuvtbl.h: yuvtbl-gen
 	./yuvtbl-gen > $(srcdir)/yuvtbl.h
 
 clean-local:
-	rm -f yuvtbl-gen yuvtbl.h
+	rm -f yuvtbl-gen
