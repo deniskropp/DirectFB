@@ -10,7 +10,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src \
 	-Iinclude
 
-CFLAGS = $(DFB_CFLAGS)
+AM_CFLAGS = $(DFB_CFLAGS)
 
 nsc_LTLIBRARIES = libdirectfb_nsc.la
 
