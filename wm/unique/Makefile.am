@@ -70,6 +70,7 @@ includedir = @INCLUDEDIR@/unique
 include_HEADERS = \
 	context.h		\
 	device.h		\
+	events.h		\
 	stret.h			\
 	stret_iteration.h	\
 	types.h			\

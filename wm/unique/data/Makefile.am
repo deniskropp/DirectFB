@@ -28,4 +28,4 @@ endif
 endif
 
 foo.h: $(EXTRA_DIST)
-	$(directfb_csource) --name=foo $(EXTRA_DIST) > foo.h
+	$(directfb_csource) --name=foo $(EXTRA_DIST:%=$(srcdir)/%) > foo.h
