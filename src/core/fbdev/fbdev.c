@@ -1125,7 +1125,7 @@ primarySetPalette ( DisplayLayer               *layer,
           cmap->red[i]     = palette->entries[i].r;
           cmap->green[i]   = palette->entries[i].g;
           cmap->blue[i]    = palette->entries[i].b;
-          cmap->transp[i]  = ~palette->entries[i].a;
+          cmap->transp[i]  = 0xff - palette->entries[i].a;
 
           cmap->red[i]    |= cmap->red[i] << 8;
           cmap->green[i]  |= cmap->green[i] << 8;
