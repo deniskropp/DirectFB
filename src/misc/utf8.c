@@ -30,11 +30,7 @@
 
 
 #define UTF8_COMPUTE(Char, Mask, Len)   \
-  if (Char < 128) {                     \
-      Len = 1;			        \
-      Mask = 0x7f;                      \
-  }                                     \
-  else if ((Char & 0xe0) == 0xc0) {	\
+  if ((Char & 0xe0) == 0xc0) {	        \
       Len = 2;			        \
       Mask = 0x1f;			\
   }                                     \
@@ -83,14 +79,21 @@ char utf8_skip[256] = {
 
 unichar utf8_get_char (const char *p)
 {
-     int i, mask = 0, len;
      unichar result;
      unsigned char c = (unsigned char) *p;
 
-     UTF8_COMPUTE (c, mask, len);
-     if (len == -1)
-          return (unichar) -1;
-     UTF8_GET (result, p, i, mask, len);
+     if (c & 0x80)
+       {
+         int i, mask = 0, len;
 
+         UTF8_COMPUTE (c, mask, len);
+         if (len == -1)
+           return (unichar) -1;
+
+         UTF8_GET (result, p, i, mask, len);
+       }
+     else
+       result = (unichar) c;
+         
      return result;
 }
