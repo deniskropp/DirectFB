@@ -475,8 +475,11 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      /* should horizontal zoom be used? */
      if (mdrv->g450)
           hzoom = (1000000/current_mode->pixclock >= 234) ? 1 : 0;
-     else
+     else {
           hzoom = (1000000/current_mode->pixclock >= 135) ? 1 : 0;
+          if (surface->format == DSPF_RGB32)
+               hzoom = 0;
+     }
 
      /* initialize */
      mbes->regs.besGLOBCTL = 0;
@@ -559,10 +562,6 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                ;
      }
 
-     if (!mdrv->g450 && surface->format == DSPF_RGB32) {
-          dstBox.x1 *= 2;
-          dstBox.x2 *= 2;
-     }
      mbes->regs.besHCOORD   = (dstBox.x1 << 16) | dstBox.x2;
      mbes->regs.besVCOORD   = (dstBox.y1 << 16) | dstBox.y2;
 
