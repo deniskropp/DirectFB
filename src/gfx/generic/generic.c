@@ -1722,22 +1722,22 @@ static void Sop_argb1555_to_Dacc( GenefxState *gfxs )
           __u32 spixel2 = *((__u32*)S);
 
 #ifdef WORDS_BIGENDIAN
-          D[0].a = 0xFF;
+          D[0].a = (spixel2 & 0x80000000) ? 0xff : 0;
           D[0].r = (spixel2 & 0x7C000000) >> 23;
           D[0].g = (spixel2 & 0x03E00000) >> 18;
           D[0].b = (spixel2 & 0x001F0000) >> 13;
 
-          D[1].a = 0xFF;
+          D[1].a = (spixel2 & 0x8000) ? 0xff : 0;
           D[1].r = (spixel2 & 0x7C00) >> 7;
           D[1].g = (spixel2 & 0x03E0) >> 2;
           D[1].b = (spixel2 & 0x001F) << 3;
 #else
-          D[0].a = 0xFF;
+          D[0].a = (spixel2 & 0x8000) ? 0xff : 0;
           D[0].r = (spixel2 & 0x7C00) >> 7;
           D[0].g = (spixel2 & 0x03E0) >> 2;
           D[0].b = (spixel2 & 0x001F) << 3;
 
-          D[1].a = 0xFF;
+          D[1].a = (spixel2 & 0x80000000) ? 0xff : 0;
           D[1].r = (spixel2 & 0x7C000000) >> 23;
           D[1].g = (spixel2 & 0x03E00000) >> 18;
           D[1].b = (spixel2 & 0x001F0000) >> 13;
@@ -1752,7 +1752,7 @@ static void Sop_argb1555_to_Dacc( GenefxState *gfxs )
      if (w&1) {
           __u16 spixel = *S;
 
-          D->a = 0xFF;
+          D->a = (spixel & 0x8000) ? 0xff : 0;
           D->r = (spixel & 0x7C00) >> 7;
           D->g = (spixel & 0x03E0) >> 2;
           D->b = (spixel & 0x001F) << 3;
