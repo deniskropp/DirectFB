@@ -400,7 +400,7 @@ static void nv4SetState( void *drv, void *dev,
 
      if (modify & SMF_DESTINATION) {
           SurfaceBuffer *buffer = state->destination->back_buffer;
-          __u32          offset = buffer->video.offset & 0x1FFFFFF;
+          __u32          offset = buffer->video.offset & 0xFFFFFF;
 
           if (nvdev->dst_format != buffer->format     ||
               nvdev->dst_offset != offset             ||
@@ -425,7 +425,7 @@ static void nv4SetState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           SurfaceBuffer *buffer = state->source->front_buffer;
-          __u32          offset = buffer->video.offset & 0x1FFFFFF;
+          __u32          offset = buffer->video.offset & 0xFFFFFF;
 
           if (nvdev->src_format != buffer->format     ||
               nvdev->src_offset != offset             ||
@@ -852,10 +852,14 @@ nv_find_architecture( NVidiaDriverData *nvdrv )
           struct dlist           *devices;
           struct sysfs_device    *dev;
           struct sysfs_attribute *attr;
+          int                     bus;
 
           devices = sysfs_open_bus_devices_list( "pci" );
           if (devices) {
                dlist_for_each_data( devices, dev, struct sysfs_device ) {
+                    if (sscanf( dev->name, "0000:%02x:", &bus ) < 1 || bus < 1)
+                         continue;
+
                     dev = sysfs_open_device( "pci", dev->name );
                     if (!dev)
                          continue;
@@ -897,7 +901,7 @@ nv_find_architecture( NVidiaDriverData *nvdrv )
                               &device, &vendor, &chip ) != 3)
                     continue;
                
-               if (vendor == 0x10DE)
+               if (device >= 0x0100 && vendor == 0x10DE)
                     break;
                
                chip = 0;
