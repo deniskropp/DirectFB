@@ -35,16 +35,18 @@
 typedef enum {
      m_source       = 0x01,
      m_color        = 0x02,
-     m_srckey       = 0x04,
-     m_srckey_scale = 0x08,
-     m_dstkey       = 0x10,
-     m_disable_key  = 0x20
+     m_color_3d     = 0x04,
+     m_srckey       = 0x08,
+     m_srckey_scale = 0x10,
+     m_dstkey       = 0x20,
+     m_disable_key  = 0x40,
+     m_draw_blend   = 0x80
 } Mach64StateBits;
 
 #define MACH64_VALIDATE(b)      (mdev->valid |= (b))
 #define MACH64_INVALIDATE(b)    (mdev->valid &= ~(b))
 #define MACH64_IS_VALID(b)      (mdev->valid & (b))
-     
+
 typedef struct {
      /* for fifo/performance monitoring */
      unsigned int fifo_space;
@@ -61,6 +63,8 @@ typedef struct {
 
      __u32 src_key_mask;
      __u32 dst_key_mask;
+
+     __u32 draw_blend;
 
      CoreSurface *source;
 } Mach64DeviceData;

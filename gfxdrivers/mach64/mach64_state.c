@@ -184,6 +184,24 @@ void mach64_set_color( Mach64DriverData *mdrv,
      MACH64_VALIDATE( m_color );
 }
 
+void mach64_set_color_3d( Mach64DriverData *mdrv,
+                          Mach64DeviceData *mdev,
+                          CardState        *state )
+{
+     volatile __u8 *mmio = mdrv->mmio_base;
+
+     if (MACH64_IS_VALID( m_color_3d ))
+          return;
+
+     mach64_waitfifo( mdrv, mdev, 4 );
+     mach64_out32( mmio, RED_START, state->color.r << 16 );
+     mach64_out32( mmio, GREEN_START, state->color.g << 16 );
+     mach64_out32( mmio, BLUE_START, state->color.b << 16 );
+     mach64_out32( mmio, ALPHA_START, state->color.a << 16 );
+
+     MACH64_VALIDATE( m_color_3d );
+}
+
 void mach64_set_src_colorkey( Mach64DriverData *mdrv,
                               Mach64DeviceData *mdev,
                               CardState        *state )
@@ -251,4 +269,46 @@ void mach64_disable_colorkey( Mach64DriverData *mdrv,
 
      MACH64_VALIDATE( m_disable_key );
      MACH64_INVALIDATE( m_srckey | m_srckey_scale | m_dstkey );
+}
+
+static __u32 mach64SourceBlend[] = {
+     ALPHA_BLND_SRC_ZERO,
+     ALPHA_BLND_SRC_ONE,
+     0,
+     0,
+     ALPHA_BLND_SRC_SRCALPHA,
+     ALPHA_BLND_SRC_INVSRCALPHA,
+     ALPHA_BLND_SRC_DSTALPHA,
+     ALPHA_BLND_SRC_INVDSTALPHA,
+     ALPHA_BLND_SRC_DSTCOLOR,
+     ALPHA_BLND_SRC_INVDSTCOLOR,
+     ALPHA_BLND_SAT
+};
+
+static __u32 mach64DestBlend[] = {
+     ALPHA_BLND_DST_ZERO,
+     ALPHA_BLND_DST_ONE,
+     ALPHA_BLND_DST_SRCCOLOR,
+     ALPHA_BLND_DST_INVSRCCOLOR,
+     ALPHA_BLND_DST_SRCALPHA,
+     ALPHA_BLND_DST_INVSRCALPHA,
+     ALPHA_BLND_DST_DSTALPHA,
+     ALPHA_BLND_DST_INVDSTALPHA,
+     0,
+     0,
+     0
+};
+
+void mach64_set_draw_blend( Mach64DriverData *mdrv,
+                            Mach64DeviceData *mdev,
+                            CardState        *state )
+{
+     if (MACH64_IS_VALID( m_draw_blend ))
+          return;
+
+     mdev->draw_blend = SCALE_3D_FCN_SHADE | ALPHA_FOG_EN_ALPHA |
+                        mach64SourceBlend[state->src_blend - 1] |
+                        mach64DestBlend  [state->dst_blend - 1];
+
+     MACH64_VALIDATE( m_draw_blend );
 }
