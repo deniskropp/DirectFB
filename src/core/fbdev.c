@@ -71,6 +71,37 @@ void waitretrace (void)
 }
 #endif
 
+/*
+ * some fbdev drivers use the palette as gamma ramp in >8bpp modes, to have
+ * correct colors, the gamme ramp has to be initialized.
+ */
+
+static DFBResult fbdev_set_gamma_ramp()
+{
+     __u16 i;     
+     __u16 *linear_gamma = (__u16*)alloca( 2 * 256 );
+     
+     struct fb_cmap cmap = { 0, 256, linear_gamma, linear_gamma, linear_gamma };     
+
+     if (!display) {
+          BUG( "fbdev_set_gamme_ramp() called while display == NULL!" );
+
+          return DFB_BUG;
+     }
+
+     for (i = 0; i<256; i++) {
+          linear_gamma[i] = i;
+     }
+     
+     if (ioctl( display->fd, FBIOPUTCMAP, &cmap ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not set gamma ramp" );
+
+          return errno2dfb(errno);
+     }
+     
+     return DFB_OK;
+}
 
 /*
  * sets (layer != NULL) or tests (layer == NULL) video mode,
@@ -392,6 +423,9 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
           CoreSurface *surface = layer->surface;
 
           ioctl( display->fd, FBIOGET_VSCREENINFO, &var );
+          
+          fbdev_set_gamma_ramp();
+
 
           mode->format = fbdev_get_pixelformat( &var );
           if (mode->format == DSPF_UNKNOWN) {
@@ -633,7 +667,6 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
                fail |= (config->flags & (DLCONF_WIDTH  |
                                          DLCONF_HEIGHT | DLCONF_PIXELFORMAT));
      }
-
      if (config->flags & DLCONF_BUFFERMODE) {
           if (fbdev_set_mode( NULL, videomode, config->buffermode ))
                fail |= DLCONF_BUFFERMODE;
