@@ -205,6 +205,8 @@ fusion_exit()
           fusion_ref_destroy (&fusion->shared->ref);
      }
 
+     fusion->fid = 0;
+
      switch (_shm_abolish (fusion->shared_shm, fusion->shared)) {
           case AB_Destroyed:
                FDEBUG ("I'VE BEEN THE LAST\n");
@@ -231,7 +233,7 @@ fusion_get_millis()
      struct timeval tv;
      
      if (!fusion || !fusion->fid)
-          return 0;
+          return dfb_get_millis();
      
      gettimeofday( &tv, NULL );
 
