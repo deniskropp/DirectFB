@@ -1820,7 +1820,7 @@ static DFBResult dfb_fbdev_read_modes()
                }
                if (geometry &&
                    timings &&
-                   !dfb_fbdev_set_mode(NULL, &temp_mode, DLBM_FRONTONLY)) {
+                   !dfb_fbdev_set_mode(NULL, &temp_mode, NULL)) {
                     if (!m) {
                          dfb_fbdev->shared->modes = SHCALLOC(1, sizeof(VideoMode));
                          m = dfb_fbdev->shared->modes;
