@@ -864,7 +864,7 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
      int new_cx, new_cy;
      DFBWindowEvent we;
 
-     if (!stack->cursor)
+     if (!stack->cursor || !stack->cursor->opacity)
           return;
 
      new_cx = MIN( stack->cx + dx, stack->cursor_region.x2);
