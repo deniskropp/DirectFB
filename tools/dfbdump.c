@@ -246,6 +246,9 @@ window_callback( CoreWindow      *window,
      if (window->caps & DWCAPS_DOUBLEBUFFER)
           printf( "double buffer  " );
 
+     if (window->options & DWOP_GHOST)
+          printf( "GHOST          " );
+     
      if (stack->focused_window == window)
           printf( "FOCUSED        " );
 
