@@ -184,8 +184,10 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      DFBDisplayLayerConfig layer_config;
 
      if (dfb_config == NULL) {
-          ERRORMSG( "DirectFBCreate: DirectFBInit has to be "
-                    "called before DirectFBCreate!\n" );
+          /*  don't use ERRORMSG() here, it uses dfb_config  */ 
+          fprintf( stderr, 
+                   "(!) DirectFBCreate: DirectFBInit has to be "
+                   "called before DirectFBCreate!\n" );
           return DFB_INIT;
      }
 
