@@ -265,6 +265,10 @@ static DFBResult IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
                event->window = e->evt.window;
                break;
 
+          case DFEC_USER:
+               event->user = e->evt.user;
+               break;
+
           default:
                BUG("unknown event class");
      }
@@ -296,6 +300,10 @@ static DFBResult IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
 
           case DFEC_WINDOW:
                event->window = data->events->evt.window;
+               break;
+
+          case DFEC_USER:
+               event->user = data->events->evt.user;
                break;
 
           default:
