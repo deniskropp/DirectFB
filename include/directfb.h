@@ -1756,8 +1756,8 @@ extern "C"
      /* DIET_KEYPRESS, DIET_KEYRELEASE, DIET_KEYREPEAT */
           DFBInputDeviceKeyIdentifier   keycode;       /* in case of a key
                                                           event */
-          char                          key_ascii;
-          __u32                         key_unicode;
+          unsigned char                 key_ascii;
+          unsigned short                key_unicode;
           DFBInputDeviceModifierKeys    modifiers;     /* modifier keys as
                                                           a bitmask */
 
@@ -1889,8 +1889,8 @@ extern "C"
 
           /* used by DWET_KEYDOWN, DWET_KEYUP */
           DFBInputDeviceKeyIdentifier        keycode;
-          __u8                               key_ascii;
-          __u16                              key_unicode;
+          unsigned char                      key_ascii;
+          unsigned short                     key_unicode;
           DFBInputDeviceModifierKeys         modifiers;
 
           /* used by DWET_BUTTONDOWN, DWET_BUTTONUP */

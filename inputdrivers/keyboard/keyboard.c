@@ -55,9 +55,9 @@
 
 static DFBInputDeviceModifierKeys modifier_state = 0;
 
-static DFBInputEvent keyboard_handle_code(char code);
-static char keyboard_translate(int kb_value);
-static char keyboard_get_ascii(int kb_value);
+static DFBInputEvent keyboard_handle_code (unsigned char  code);
+static unsigned char keyboard_translate   (unsigned short kb_value);
+static unsigned char keyboard_get_ascii   (unsigned short kb_value);
 
 
 
@@ -92,7 +92,7 @@ static void* keyboardEventThread(void *device)
      return NULL;
 }
 
-static DFBInputEvent keyboard_handle_code(char code)
+static DFBInputEvent keyboard_handle_code(unsigned char code)
 {
      int keydown;
      struct kbentry entry;
@@ -171,7 +171,7 @@ static DFBInputEvent keyboard_handle_code(char code)
      }
 }
 
-static char keyboard_get_ascii(int kb_value)
+static unsigned char keyboard_get_ascii(unsigned short kb_value)
 {
      unsigned char key_type = (kb_value & 0xFF00) >> 8;
      unsigned char key_index = kb_value & 0xFF;
@@ -194,7 +194,7 @@ static char keyboard_get_ascii(int kb_value)
      }
 }
 
-static char keyboard_translate(int kb_value)
+static unsigned char keyboard_translate(unsigned short kb_value)
 {
      unsigned char key_type = (kb_value & 0xFF00) >> 8;
      unsigned char key_index = kb_value & 0xFF;
