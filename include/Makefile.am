@@ -70,7 +70,7 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	$(MKNAMES) DFBScreenOutputConnectors DSOC UNKNOWN ScreenOutputConnectors connector directfb.h \
 	   | grep -v DSOC_ALL >> $@
 
-	$(MKNAMES) DFBScreenOutputSignals DSOS UNKNOWN ScreenOutputSignals signal directfb.h \
+	$(MKNAMES) DFBScreenOutputSignals DSOS NONE ScreenOutputSignals signal directfb.h \
 	   | grep -v DSOS_ALL >> $@
 
 	$(MKNAMES) DFBScreenMixerCapabilities DSMCAPS NONE ScreenMixerCapabilities capability directfb.h \

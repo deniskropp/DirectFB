@@ -1722,6 +1722,8 @@ typedef struct {
      DFBSurfacePixelFormat         pixelformat; /* Pixel format */
      DFBDisplayLayerBufferMode     buffermode;  /* Buffer mode */
      DFBDisplayLayerOptions        options;     /* Enable capabilities */
+
+     int                           source;
 } DFBDisplayLayerConfig;
 
 /*
@@ -1842,7 +1844,7 @@ typedef enum {
  * Type of output signal.
  */
 typedef enum {
-     DSOS_UNKNOWN        = 0x00000000, /* Unknown type */
+     DSOS_NONE           = 0x00000000, /* No signal */
 
      DSOS_VGA            = 0x00000001, /* VGA signal */
      DSOS_YC             = 0x00000002, /* Y/C signal */
