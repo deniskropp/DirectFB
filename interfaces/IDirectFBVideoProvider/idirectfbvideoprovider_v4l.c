@@ -188,8 +188,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
           return DFB_DEAD;
 
      desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT | DSDESC_CAPS;
-     desc->width  = 768;
-     desc->height = 576;
+     desc->width  = data->vcap.maxwidth;
+     desc->height = data->vcap.maxheight;
      desc->pixelformat = dfb_primary_layer_pixelformat();
      desc->caps = DSCAPS_INTERLACED;
 
