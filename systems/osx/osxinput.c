@@ -65,13 +65,13 @@ static DFBInputEvent motionX = {
      type:     DIET_UNKNOWN,
      axisabs:  0
 };
-          
+
 static DFBInputEvent motionY = {
      type:     DIET_UNKNOWN,
      axisabs:  0
 };
 
-static void 
+static void
 motion_compress( int x, int y )
 {
      if (motionX.axisabs != x) {
@@ -89,7 +89,7 @@ motion_compress( int x, int y )
      }
 }
 
-static void*
+static void
 motion_realize( OSXInputData *data )
 {
      if (motionX.type != DIET_UNKNOWN) {
@@ -105,15 +105,15 @@ motion_realize( OSXInputData *data )
      }
 }
 
-                    
+
 static bool
 translate_key( unsigned short key, DFBInputEvent *evt )
 {
      unsigned char charcode = (unsigned char)key;
      unsigned char keycode  = (unsigned char)(key>>8);
-     
+
      printf("keycode: %d char: %d\n",keycode,charcode);
-     
+
      if (charcode) {
           evt->flags = DIEF_KEYSYMBOL;
           switch (charcode) {
@@ -132,7 +132,7 @@ translate_key( unsigned short key, DFBInputEvent *evt )
           evt->key_id = keycode;
           return true;
      }
-         
+
      return false;
 }
 

@@ -60,8 +60,8 @@
 DFB_CORE_SYSTEM( sdl )
 
 
-DFBSDL *dfb_sdl = NULL;
-
+DFBSDL  *dfb_sdl      = NULL;
+CoreDFB *dfb_sdl_core = NULL;
 
 static void
 system_get_info( CoreSystemInfo *info )
@@ -101,6 +101,8 @@ system_initialize( CoreDFB *core, void **data )
           return DFB_INIT;
      }
 
+     dfb_sdl_core = core;
+
      fusion_skirmish_init( &dfb_sdl->lock );
 
      fusion_call_init( &dfb_sdl->call, dfb_sdl_call_handler, NULL );
@@ -127,6 +129,7 @@ system_join( CoreDFB *core, void **data )
      fusion_arena_get_shared_field( dfb_core_arena( core ), "sdl", &ret );
 
      dfb_sdl = ret;
+     dfb_sdl_core = core;
 
      screen = dfb_screens_register( NULL, NULL, &sdlPrimaryScreenFuncs );
 
@@ -152,6 +155,7 @@ system_shutdown( bool emergency )
 
      SHFREE( dfb_sdl );
      dfb_sdl = NULL;
+     dfb_sdl_core = NULL;
 
      return DFB_OK;
 }
@@ -162,6 +166,7 @@ system_leave( bool emergency )
      D_ASSERT( dfb_sdl != NULL );
 
      dfb_sdl = NULL;
+     dfb_sdl_core = NULL;
 
      return DFB_OK;
 }

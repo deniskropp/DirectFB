@@ -493,11 +493,7 @@ dfb_core_enum_layer_regions( CoreDFB               *core,
 bool
 dfb_core_is_master( CoreDFB *core )
 {
-//FIXME     D_ASSUME( core != NULL );
-     D_ASSERT( core_dfb != NULL );
-
-     if (!core)
-          core = core_dfb;
+     D_ASSERT( core != NULL );
 
      return core->master;
 }

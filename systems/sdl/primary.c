@@ -53,12 +53,13 @@
 #include "sdl.h"
 #include "primary.h"
 
-extern DFBSDL *dfb_sdl;
+extern DFBSDL  *dfb_sdl;
+extern CoreDFB *dfb_sdl_core;
 
 /******************************************************************************/
 
-static DFBResult dfb_sdl_set_video_mode( CoreLayerRegionConfig *config );
-static DFBResult dfb_sdl_update_screen( DFBRegion *region );
+static DFBResult dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config );
+static DFBResult dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region );
 static DFBResult dfb_sdl_set_palette( CorePalette *palette );
 
 static DFBResult update_screen( CoreSurface *surface,
@@ -227,7 +228,7 @@ primarySetRegion( CoreLayer                  *layer,
 {
      DFBResult ret;
 
-     ret = dfb_sdl_set_video_mode( config );
+     ret = dfb_sdl_set_video_mode( dfb_sdl_core, config );
      if (ret)
           return ret;
 
@@ -261,7 +262,7 @@ primaryFlipRegion( CoreLayer           *layer,
 {
      dfb_surface_flip_buffers( surface );
 
-     return dfb_sdl_update_screen( NULL );
+     return dfb_sdl_update_screen( dfb_sdl_core, NULL );
 }
 
 static DFBResult
@@ -275,10 +276,10 @@ primaryUpdateRegion( CoreLayer           *layer,
      if (update) {
           DFBRegion region = *update;
 
-          return dfb_sdl_update_screen( &region );
+          return dfb_sdl_update_screen( dfb_sdl_core, &region );
      }
 
-     return dfb_sdl_update_screen( NULL );
+     return dfb_sdl_update_screen( dfb_sdl_core, NULL );
 }
 
 static DFBResult
@@ -525,14 +526,14 @@ dfb_sdl_call_handler( int   caller,
 }
 
 static DFBResult
-dfb_sdl_set_video_mode( CoreLayerRegionConfig *config )
+dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
 {
      int                    ret;
      CoreLayerRegionConfig *tmp = NULL;
 
      D_ASSERT( config != NULL );
 
-     if (dfb_core_is_master( NULL ))
+     if (dfb_core_is_master( core ))
           return dfb_sdl_set_video_mode_handler( config );
 
      if (!fusion_is_shared( config )) {
@@ -553,12 +554,12 @@ dfb_sdl_set_video_mode( CoreLayerRegionConfig *config )
 }
 
 static DFBResult
-dfb_sdl_update_screen( DFBRegion *region )
+dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region )
 {
      int        ret;
      DFBRegion *tmp = NULL;
 
-     if (dfb_core_is_master( NULL ))
+     if (dfb_core_is_master( core ))
           return dfb_sdl_update_screen_handler( region );
 
      if (region) {

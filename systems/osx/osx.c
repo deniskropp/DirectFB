@@ -60,7 +60,8 @@
 DFB_CORE_SYSTEM( osx )
 
 
-DFBOSX *dfb_osx = NULL;
+DFBOSX  *dfb_osx      = NULL;
+CoreDFB *dfb_osx_core = NULL;
 
 
 static void
@@ -84,6 +85,8 @@ system_initialize( CoreDFB *core, void **data )
           D_ERROR( "DirectFB/OSX: Couldn't allocate shared memory!\n" );
           return DFB_NOSYSTEMMEMORY;
      }
+
+     dfb_osx_core = core;
 
      /* Initialize OSX */
      fusion_skirmish_init( &dfb_osx->lock );
@@ -112,6 +115,7 @@ system_join( CoreDFB *core, void **data )
      fusion_arena_get_shared_field( dfb_core_arena( core ), "OSX", &ret );
 
      dfb_osx = ret;
+     dfb_osx_core = core;
 
      screen = dfb_screens_register( NULL, NULL, &osxPrimaryScreenFuncs );
 
@@ -135,6 +139,7 @@ system_shutdown( bool emergency )
 
      SHFREE( dfb_osx );
      dfb_osx = NULL;
+     dfb_osx_core = NULL;
 
      return DFB_OK;
 }
@@ -145,6 +150,7 @@ system_leave( bool emergency )
      D_ASSERT( dfb_osx != NULL );
 
      dfb_osx = NULL;
+     dfb_osx_core = NULL;
 
      return DFB_OK;
 }

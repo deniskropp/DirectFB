@@ -53,12 +53,13 @@
 #include "osx.h"
 #include "primary.h"
 
-extern DFBOSX *dfb_osx;
+extern DFBOSX  *dfb_osx;
+extern CoreDFB *dfb_osx_core;
 
 /******************************************************************************/
 
-static DFBResult dfb_osx_set_video_mode( CoreLayerRegionConfig *config );
-static DFBResult dfb_osx_update_screen( DFBRegion *region );
+static DFBResult dfb_osx_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config );
+static DFBResult dfb_osx_update_screen( CoreDFB *core, DFBRegion *region );
 static DFBResult dfb_osx_set_palette( CorePalette *palette );
 
 static DFBResult update_screen( CoreSurface *surface,
@@ -230,7 +231,7 @@ primarySetRegion( CoreLayer                  *layer,
      if (surface)
           dfb_osx->primary = surface;
 
-     ret = dfb_osx_set_video_mode( config );
+     ret = dfb_osx_set_video_mode( dfb_osx_core, config );
      if (ret)
           return ret;
 
@@ -260,7 +261,8 @@ primaryFlipRegion( CoreLayer           *layer,
                    DFBSurfaceFlipFlags  flags )
 {
      dfb_surface_flip_buffers( surface );
-     return dfb_osx_update_screen( NULL );
+
+     return dfb_osx_update_screen( dfb_osx_core, NULL );
 }
 
 static DFBResult
@@ -276,10 +278,10 @@ primaryUpdateRegion( CoreLayer           *layer,
           if (update) {
                DFBRegion region = *update;
 
-               return dfb_osx_update_screen( &region );
+               return dfb_osx_update_screen( dfb_osx_core, &region );
           }
           else
-               return dfb_osx_update_screen( NULL );
+               return dfb_osx_update_screen( dfb_osx_core, NULL );
      }
 
      return DFB_OK;
@@ -545,14 +547,14 @@ dfb_osx_call_handler( int   caller,
 }
 
 static DFBResult
-dfb_osx_set_video_mode( CoreLayerRegionConfig *config )
+dfb_osx_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
 {
      int                    ret;
      CoreLayerRegionConfig *tmp = NULL;
 
      D_ASSERT( config != NULL );
 
-     if (dfb_core_is_master( NULL ))
+     if (dfb_core_is_master( core ))
           return dfb_osx_set_video_mode_handler( config );
 
      if (!fusion_is_shared( config )) {
@@ -573,12 +575,12 @@ dfb_osx_set_video_mode( CoreLayerRegionConfig *config )
 }
 
 static DFBResult
-dfb_osx_update_screen( DFBRegion *region )
+dfb_osx_update_screen( CoreDFB *core, DFBRegion *region )
 {
      int        ret;
      DFBRegion *tmp = NULL;
 
-     if (dfb_core_is_master( NULL ))
+     if (dfb_core_is_master( core ))
           return dfb_osx_update_screen_handler( region );
 
      if (region) {
