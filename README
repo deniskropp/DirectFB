@@ -7,7 +7,7 @@ DirectFB README
    systems in mind. It offers maximum hardware accelerated performance
    at a minimum of resource usage and overhead. 
 
-   Check http://www.directfb.org/ for more and uptodate infos.
+   Check http://www.directfb.org/ for more and up to date infos.
 
 Supported Operating Systems
 ---------------------------
@@ -22,20 +22,20 @@ Supported Operating Systems
       - OpenBSD (tested on OpenBSD 3.2)
            (If you have problems, try ./configure --disable-mmx)
 
-   Support for the following operationg systems are in progress, but
+   Support for the following operating systems are in progress, but
    still have problems:
 
       - Mac OS X (tested on Mac OS X 10.2.1, problems with SDL input and
                   windows)
 
    Please note that SDL support is experimental and incomplete. It is
-   intended for developers to allow developement of DirectFB applications
+   intended for developers to allow development of DirectFB applications
    in various environments.
 
    We do not have the resources to ensure that every release of
    DirectFB works on all supported platforms. If you are a user of one
    of the operating system listed above, and have the time to test the
-   CVS version regulary, your help is greatly appreciated.
+   CVS version regularly, your help is greatly appreciated.
 
 
 Build Requirements
@@ -43,7 +43,7 @@ Build Requirements
 
    - Linux kernel 2.2.x or newer with working frame buffer device
      (check /proc/fb) for the fbdev system.
-   - Optionally SDL (Simple DirectMedia Layer) for the sdl system.
+   - Optionally SDL (Simple Direct Media Layer) for the sdl system.
 
    - freetype (version >= 2.0.1)
    - libjpeg62
@@ -52,13 +52,14 @@ Build Requirements
 
    The build of the image and font providers can be disabled but we
    strongly suggest that you don't do this since the code examples and
-   a lot of DirectFB apps depend on the functionality provided by them.
+   a lot of DirectFB applications depend on the functionality provided
+   by them.
 
    The video providers require some libraries (avifile, libflash and
    libmpeg3) that are not commonly installed. We have provided packages
    on our web-site at http://www.directfb.org/download/contrib/. If for
    some reason the build of one of the video providers fails, you can
-   disable it explicitely. Check the output of 'configure --help'.
+   disable it explicitly. Check the output of 'configure --help'.
 
    We suggest you also install pkg-config available from
    http://www.freedesktop.org/software/pkgconfig/. It will help you
@@ -99,7 +100,7 @@ Recommendations
 ---------------
 
    To take full advantage of hardware acceleration, 
-   a Matrox G200/G400/G450/G550 graphics card is recommened for this 
+   a Matrox G200/G400/G450/G550 graphics card is recommend for this 
    version of DirectFB. The drivers for ATI128, Voodoo 3/4/5/Banshee,
    NeoMagic and S3 Savage cards included with this release are work in
    progress and only yet support a subset of the possible accelerations.
@@ -158,9 +159,9 @@ Configuring the Linux frame buffer device
    documentation in the kernel tree (/usr/src/linux/Documentation/fb/) on 
    how to enable the frame buffer device for your graphics card. 
 
-   The generic vesa fbdev driver does not support mode switching and you 
-   will not get hardware acceleration. To make DirectFB work with veasfb, 
-   you should add the following lines to /etc/lilo.conf:
+   The generic VESA frame buffer device does not support mode switching
+   and you will not get hardware acceleration. To make DirectFB work with
+   veasfb, you should add the following lines to /etc/lilo.conf:
 
 	append="video=vesa:ywrap,mtrr"
 
@@ -211,14 +212,14 @@ Running multiple DirectFB applications at the same time
    DirectFB CVS repository). You can then start DirectFB applications
    from dfbterm.
 
-   DirectFB applications communicate thru a layer we called fusion. This
-   layer was previously implemented completely in user space using semaphores
-   and message queues. But since 0.9.15 the Fusion Kernel Device is required
-   which implements critical parts of fusion and brings better performance and
-   more stability. To install this kernel module (only available for linux yet),
-   check out the linux-fusion module from our CVS repository.
-   DirectFB will use the kernel module if the linux/fusion.h header file is
-   found by configure.
+   DirectFB applications communicate through a layer we called Fusion.
+   This layer was previously implemented completely in user space using
+   semaphores and message queues. But since 0.9.15 the Fusion Kernel
+   Device is required which implements critical parts of fusion and thus
+   leads to better performance and more stability. To install this kernel
+   module (only available for Linux yet), check out the linux-fusion
+   module from our CVS repository. DirectFB will use the kernel module if
+   the linux/fusion.h header file is found by configure.
 
 
 Using the builtin "window manager"

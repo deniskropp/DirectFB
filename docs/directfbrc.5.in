@@ -107,7 +107,8 @@ applications that were written to do full-screen access in a window.
 .BI [no-]hardware
 Turns hardware acceleration on. By default hardware acceleration is
 auto-detected. If you disable hardware acceleration, the driver for
-your graphics card will not be loaded and all graphics operations will
+your graphics card will still be loaded and used to access additional
+display layers (if there are any), but all graphics operations will
 be performed by the software renderer.
 
 .TP
