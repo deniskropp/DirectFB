@@ -25,6 +25,7 @@
 */
 
 #include <stdio.h>
+#include <strings.h>
 
 #include <directfb.h>
 

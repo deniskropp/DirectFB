@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 #if defined(HAVE_SYSIO)
 # include <sys/io.h>
 #endif
