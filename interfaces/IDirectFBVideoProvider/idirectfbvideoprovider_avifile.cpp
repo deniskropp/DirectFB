@@ -190,17 +190,17 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
 
      switch (dst_data->surface->format) {
           case DSPF_YUY2:
-               data->source.format = DSPF_YUY2;
+               data->source->format = DSPF_YUY2;
                if (data->player->SetColorSpace( fccYUY2, 0 ))
                     return DFB_UNSUPPORTED;
                break;
           case DSPF_UYVY:
-               data->source.format = DSPF_UYVY;
+               data->source->format = DSPF_UYVY;
                if (data->player->SetColorSpace( fccUYVY, 0 ))
                     return DFB_UNSUPPORTED;
                break;
           default:
-               data->source.format = DSPF_RGB16;
+               data->source->format = DSPF_RGB16;
                data->player->SetColorSpace( 0, 0 );
                break;
      }
@@ -433,7 +433,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
           return ret;
      }
 
-     data->state.source   = &data->source;
+     data->state.source   = data->source;
      data->state.modified = SMF_ALL;
 
      thiz->AddRef    = IDirectFBVideoProvider_AviFile_AddRef;
