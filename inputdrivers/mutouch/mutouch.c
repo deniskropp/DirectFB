@@ -132,6 +132,7 @@ DFB_INPUT_DRIVER( MuTouch )
 
 /* Event mask */
 #define MuT_PANEL_TOUCH_MASK	0x40
+#define MuT_PANEL_SYNC_MASK	0x80
 
 typedef struct __MuTData__ {
      int fd;
@@ -171,8 +172,9 @@ static inline void MuTSendPacket(int file, unsigned char *packet, unsigned char 
 
 static inline void MuTReadPacket(int file, unsigned char *packet)
 {
+     int n = 0;
      memset (packet, 0, MuT_PACKET_SIZE);
-     read (file, packet, 5);
+     while ((n += read (file, packet+n, MuT_REPORT_SIZE-n)) != MuT_REPORT_SIZE);
 }
 
 static int MuTSetToOptimalCTRL(int file, unsigned long baud)
@@ -324,9 +326,14 @@ static int MuTOpenDevice(unsigned char *device)
 }
 
 #define WORD_ASSEMBLY(byte1, byte2)	(((byte2) << 7) | (byte1))
-static void MuTGetEvent(MuTData *event)
+static int MuTGetEvent(MuTData *event)
 {
      MuTReadPacket(event->fd, packet);
+     
+     /* Sync bit always must be set to 1 */
+     if ((*packet & MuT_PANEL_SYNC_MASK) == 0)
+          return 0;
+     
      if (*packet & MuT_PANEL_TOUCH_MASK)
           event->action = MUT_PANEL_TOUCH;
      else
@@ -341,6 +348,8 @@ static void MuTGetEvent(MuTData *event)
           event->x = event->min_x - event->x;
      if (event->min_y)
           event->y = event->min_y - event->y;
+
+     return 1;
 }
 
 /* The main routine for MuTouch */
@@ -352,7 +361,8 @@ static void *MuTouchEventThread(DirectThread *thread, void *driver_data)
      while (1) {
           DFBInputEvent evt;
 
-          MuTGetEvent (data);
+          if (!MuTGetEvent (data))
+	       continue;
           direct_thread_testcancel (thread);
 
           /* Dispatch axis */
