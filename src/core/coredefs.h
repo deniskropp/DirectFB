@@ -74,7 +74,7 @@
      #endif
 
      #define DEBUGMSG(x...)   if (dfb_config->debug) {                         \
-                                   fprintf( stderr, "(-) [%d: %lld] ",         \
+                                   fprintf( stderr, "(-) [%d: %5lld] ",        \
                                             getpid(), dfb_get_millis() );      \
                                    fprintf( stderr, x );                       \
                                    fflush( stderr );                           \
