@@ -41,7 +41,6 @@ extern "C"
  * Forward declaration macro for interfaces.
  */
 #define DECLARE_INTERFACE( IFACE )                \
-     struct _##IFACE;                             \
      typedef struct _##IFACE IFACE;
 
 /*
