@@ -32,6 +32,14 @@ mode "1024x768 72Hz 16bit"
 endmode
  
 
+mode "1280x1024-75"
+    # D: 134.880 MHz, H: 79.905 kHz, V: 74.958 Hz
+    geometry 1280 1024 1280 3264 16
+    timings 7414 232 64 38 1 112 3
+    hsync high
+    vsync high
+endmode
+
 mode "1280x1024 60Hz 16bit"
     # D: 108.00 MHz, H: 63.981 kHz, V: 60.02 Hz
     geometry 1280 1024 1280 1024 16
