@@ -197,8 +197,7 @@ DFBResult fbdev_open()
           if (display->orig_var.vmode & FB_VMODE_DOUBLE)
                display->modes->doubled = 1;
      
-          if (fbdev_set_mode(NULL, display->modes, DLBM_FRONTONLY) ||
-              display->modes->format == DSPF_UNKNOWN)
+          if (fbdev_set_mode(NULL, display->modes, DLBM_FRONTONLY))
           {
                ERRORMSG("DirectFB/core/fbdev: "
                         "No valid modes found in /etc/fb.modes, "
