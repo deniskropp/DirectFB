@@ -34,14 +34,12 @@
 
 #include <fcntl.h>
 
-#include <pthread.h>
-
 #include <directfb.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/input.h>
-#include <core/sig.h>
+#include <core/thread.h>
 
 #include <misc/mem.h>
 
@@ -58,7 +56,7 @@ DFB_INPUT_DRIVER( divine )
 typedef struct {
   int          fd;
   InputDevice *device;
-  pthread_t    thread;
+  CoreThread  *thread;
 } DiVineData;
 
 
@@ -67,24 +65,21 @@ typedef struct {
  * Directly passes read events to input core.
  */
 static void*
-divineEventThread( void *driver_data )
+divineEventThread( CoreThread *thread, void *driver_data )
 {
   DiVineData     *data = (DiVineData*) driver_data;
   int             readlen;
   DFBInputEvent   event;
   struct pollfd   pfd;
 
-  /* block all signals, they must not be handled by this thread */
-  dfb_sig_block_all();
-
   /* fill poll info */
   pfd.fd     = data->fd;
   pfd.events = POLLIN;
      
   /* wait for the next event */
-  while (poll (&pfd, 1, -1) > 0)
+  while (poll (&pfd, 1, -1) > 0 || errno == EINTR)
     {
-      pthread_testcancel();
+      dfb_thread_testcancel( thread );
 
       /* read the next event from the pipe */
       if (read( data->fd, &event, sizeof(DFBInputEvent) ) == sizeof(DFBInputEvent))
@@ -208,7 +203,7 @@ driver_open_device( InputDevice      *device,
   data->device = device;
 
   /* start input thread */
-  pthread_create( &data->thread, NULL, divineEventThread, data );
+  data->thread = dfb_thread_create( CTT_INPUT, divineEventThread, data );
 
   /* set private data pointer */
   *driver_data = data;
@@ -236,8 +231,9 @@ driver_close_device( void *driver_data )
   DiVineData *data = (DiVineData*) driver_data;
 
   /* stop input thread */
-  pthread_cancel( data->thread );
-  pthread_join( data->thread, NULL );
+  dfb_thread_cancel( data->thread );
+  dfb_thread_join( data->thread );
+  dfb_thread_destroy( data->thread );
 
   /* close pipe */
   close( data->fd );
