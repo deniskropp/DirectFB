@@ -557,10 +557,16 @@ DFBResult dfb_config_set( const char *name, const char *value )
           dfb_config->banner = false;
      } else
      if (strcmp (name, "debug" ) == 0) {
-          direct_config->debug = true;
+          if (value)
+               direct_debug_config_domain( value, true );
+          else
+               direct_config->debug = true;
      } else
      if (strcmp (name, "no-debug" ) == 0) {
-          direct_config->debug = false;
+          if (value)
+               direct_debug_config_domain( value, false );
+          else
+               direct_config->debug = false;
      } else
      if (strcmp (name, "force-windowed" ) == 0) {
           dfb_config->force_windowed = true;

@@ -34,6 +34,8 @@
 #include <direct/signals.h>
 #include <direct/util.h>
 
+D_DEBUG_DOMAIN( Direct_Main, "Direct/Main", "Initialization and shutdown of libdirect" );
+
 /**************************************************************************************************/
 
 static int             refs      = 0;
@@ -46,15 +48,15 @@ direct_initialize()
 {
      pthread_mutex_lock( &refs_lock );
 
-     D_DEBUG( "Direct/Initialize: direct_initialize() called...\n" );
+     D_DEBUG_AT( Direct_Main, "direct_initialize() called...\n" );
 
      if (refs++) {
-          D_DEBUG( "Direct/Initialize: ...%d references now.\n", refs );
+          D_DEBUG_AT( Direct_Main, "...%d references now.\n", refs );
           pthread_mutex_unlock( &refs_lock );
           return DFB_OK;
      }
 
-     D_DEBUG( "Direct/Initialize: ...initializing now.\n" );
+     D_DEBUG_AT( Direct_Main, "...initializing now.\n" );
 
      direct_signals_initialize();
 
@@ -68,15 +70,15 @@ direct_shutdown()
 {
      pthread_mutex_lock( &refs_lock );
 
-     D_DEBUG( "Direct/Shutdown: direct_shutdown() called...\n" );
+     D_DEBUG_AT( Direct_Main, "direct_shutdown() called...\n" );
 
      if (--refs) {
-          D_DEBUG( "Direct/Shutdown: ...%d references left.\n", refs );
+          D_DEBUG_AT( Direct_Main, "...%d references left.\n", refs );
           pthread_mutex_unlock( &refs_lock );
           return DFB_OK;
      }
 
-     D_DEBUG( "Direct/Shutdown: ...shutting down now.\n" );
+     D_DEBUG_AT( Direct_Main, "...shutting down now.\n" );
 
      direct_signals_shutdown();
 

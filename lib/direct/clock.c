@@ -34,6 +34,7 @@
 #include <direct/debug.h>
 #include <direct/util.h>
 
+D_DEBUG_DOMAIN( Direct_Clock, "Direct/Clock", "Time measurement etc." );
 
 static struct timeval start_time = { 0, 0 };
 
@@ -69,8 +70,8 @@ direct_clock_set_start( const struct timeval *start )
      diff = (long long)(start->tv_sec  - start_time.tv_sec)  * 1000LL +
             (long long)(start->tv_usec - start_time.tv_usec) / 1000LL;
 
-     D_DEBUG( "Direct/Clock: "
-              "Adjusting start time (%lld.%lld seconds diff)\n", diff / 1000LL, ABS(diff) % 1000LL );
+     D_DEBUG_AT( Direct_Clock, "Adjusting start time "
+                 "(%lld.%lld seconds diff)\n", diff / 1000LL, ABS(diff) % 1000LL );
 
      start_time = *start;
 }

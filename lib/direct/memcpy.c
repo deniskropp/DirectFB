@@ -144,6 +144,8 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
+
 #ifdef USE_PPCASM
 #include "ppcasm_memcpy.h"
 #endif
@@ -486,7 +488,7 @@ direct_find_best_memcpy()
           return;
      }
 
-     D_DEBUG( "Direct/Memcpy: Benchmarking memcpy methods (smaller is better):\n");
+     D_DEBUG_AT( Direct_Memcpy, "Benchmarking memcpy methods (smaller is better):\n");
 
      /* make sure buffers are present on physical memory */
      memcpy( buf1, buf2, BUFSIZE * 2000 );
@@ -504,7 +506,7 @@ direct_find_best_memcpy()
           t = rdtsc() - t;
           memcpy_method[i].time = t;
 
-          D_DEBUG( "Direct/Memcpy: \t%-10s  %20lld\n", memcpy_method[i].name, t );
+          D_DEBUG_AT( Direct_Memcpy, "\t%-10s  %20lld\n", memcpy_method[i].name, t );
 
           if (best == 0 || t < memcpy_method[best].time)
                best = i;

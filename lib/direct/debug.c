@@ -31,14 +31,107 @@
 
 
 #include <stdarg.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 
 #include <direct/clock.h>
 #include <direct/debug.h>
+#include <direct/list.h>
 #include <direct/thread.h>
 #include <direct/trace.h>
+#include <direct/util.h>
 
+
+typedef struct {
+     DirectLink  link;
+     char       *name;
+     bool        enabled;
+} DebugDomainEntry;
+
+/**************************************************************************************************/
+
+static pthread_mutex_t  domains_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static unsigned int     domains_age  = 1;
+static DirectLink      *domains      = NULL;
+
+/**************************************************************************************************/
+
+__attribute__((no_instrument_function))
+static inline DebugDomainEntry *
+lookup_domain( const char *name, bool sub )
+{
+     DebugDomainEntry *entry;
+
+     direct_list_foreach (entry, domains) {
+          if (! strcasecmp( entry->name, name ))
+               return entry;
+     }
+
+     if (sub) {
+          char *tmp = strchr( name, '/' );
+
+          if (tmp) {
+               direct_list_foreach (entry, domains) {
+                    if (! strchr( entry->name, '/' ) &&
+                        ! strncasecmp( entry->name, name, tmp - name ))
+                         return entry;
+               }
+          }
+     }
+
+     return NULL;
+}
+
+__attribute__((no_instrument_function))
+static inline bool
+check_domain( DirectDebugDomain *domain )
+{
+     if (domain->age != domains_age) {
+          DebugDomainEntry *entry = lookup_domain( domain->name, true );
+
+          domain->age = domains_age;
+
+          if (entry) {
+               domain->registered = true;
+               domain->enabled    = entry->enabled;
+          }
+     }
+
+     return domain->registered ? domain->enabled : direct_config->debug;
+}
+
+/**************************************************************************************************/
+
+void
+direct_debug_config_domain( const char *name, bool enable )
+{
+     DebugDomainEntry *entry;
+
+     pthread_mutex_lock( &domains_lock );
+
+     entry = lookup_domain( name, false );
+     if (!entry) {
+          entry = calloc( 1, sizeof(DebugDomainEntry) );
+          if (!entry) {
+               D_WARN( "out of memory" );
+               pthread_mutex_unlock( &domains_lock );
+               return;
+          }
+
+          entry->name = strdup( name );
+
+          direct_list_prepend( &domains, &entry->link );
+     }
+
+     entry->enabled = enable;
+
+     ++domains_age || domains_age++;
+
+     pthread_mutex_unlock( &domains_lock );
+}
+
+/**************************************************************************************************/
 
 __attribute__((no_instrument_function))
 void
@@ -58,6 +151,33 @@ direct_debug( const char *format, ... )
               name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL, direct_gettid(), buf );
 
      fflush( stderr );
+}
+
+__attribute__((no_instrument_function))
+void
+direct_debug_at( DirectDebugDomain *domain,
+                 const char        *format, ... )
+{
+     pthread_mutex_lock( &domains_lock );
+
+     if (check_domain( domain )) {
+          char        buf[512];
+          long long   millis = direct_clock_get_millis();
+          const char *name   = direct_thread_self_name();
+
+          va_list ap;
+
+          va_start( ap, format );
+
+          vsnprintf( buf, sizeof(buf), format, ap );
+
+          fprintf( stderr, "(-) [%-15s %3lld.%03lld] (%5d) %s: %s", name ? name : "  NO NAME  ",
+                   millis / 1000LL, millis % 1000LL, direct_gettid(), domain->name, buf );
+
+          fflush( stderr );
+     }
+
+     pthread_mutex_unlock( &domains_lock );
 }
 
 __attribute__((no_instrument_function))

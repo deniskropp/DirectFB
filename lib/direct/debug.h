@@ -37,8 +37,22 @@
 #include <direct/messages.h>
 #include <direct/system.h>
 
+typedef struct {
+     unsigned int   age;
+     bool           enabled;
+     bool           registered;
+
+     const char    *name;
+     const char    *description;
+} DirectDebugDomain;
+
+void direct_debug_config_domain( const char *name, bool enable );
+
 
 void direct_debug( const char *format, ... )  D_FORMAT_PRINTF(1);
+
+void direct_debug_at( DirectDebugDomain *domain,
+                      const char        *format, ... )  D_FORMAT_PRINTF(2);
 
 void direct_break( const char *func,
                    const char *file,
@@ -66,32 +80,43 @@ void direct_assumption( const char *exp,
      #define D_HEAVYDEBUG(x...)
 #endif
 
-#define D_DEBUG(x...)    do {                                                        \
-                              if (!direct_config || direct_config->debug)            \
-                                   direct_debug( x );                                \
-                         } while (0)
 
-#define D_ASSERT(exp)    do {                                                        \
-                              if (!(exp)) {                                          \
-                                   direct_assertion( #exp,                           \
-                                                     __FUNCTION__,                   \
-                                                     __FILE__,                       \
-                                                     __LINE__ );                     \
-                              }                                                      \
-                         } while (0)
+#define D_DEBUG_DOMAIN(identifier,name,description)                                  \
+     static DirectDebugDomain identifier = { 0, false, false, name, description };
 
-#define D_ASSUME(exp)    do {                                                        \
-                              if (!(exp)) {                                          \
-                                   direct_assumption( #exp,                          \
-                                                      __FUNCTION__,                  \
-                                                      __FILE__,                      \
-                                                      __LINE__ );                    \
-                              }                                                      \
-                         } while (0)
 
-#define D_BREAK(x...)    do {                                                        \
-                              direct_break( __FUNCTION__, __FILE__, __LINE__, x );   \
-                         } while (0)
+#define D_DEBUG(x...)                                                                \
+     do {                                                                            \
+          if (!direct_config || direct_config->debug)                                \
+               direct_debug( x );                                                    \
+     } while (0)
+
+
+#define D_DEBUG_AT(d,x...)                                                           \
+     do {                                                                            \
+          direct_debug_at( &d, x );                                                  \
+     } while (0)
+
+
+#define D_ASSERT(exp)                                                                \
+     do {                                                                            \
+          if (!(exp))                                                                \
+               direct_assertion( #exp, __FUNCTION__, __FILE__, __LINE__ );           \
+     } while (0)
+
+
+#define D_ASSUME(exp)                                                                \
+     do {                                                                            \
+          if (!(exp))                                                                \
+               direct_assumption( #exp, __FUNCTION__, __FILE__, __LINE__ );          \
+     } while (0)
+
+
+#define D_BREAK(x...)                                                                \
+     do {                                                                            \
+          direct_break( __FUNCTION__, __FILE__, __LINE__, x );                       \
+     } while (0)
+
 
 #define D_MAGIC(spell)        ( (((spell)[sizeof(spell)*8/9] << 24) | \
                                  ((spell)[sizeof(spell)*7/9] << 16) | \
@@ -127,7 +152,9 @@ void direct_assumption( const char *exp,
 #define D_MAGIC_ASSERT(o,m)   do {} while (0)
 
 #define D_HEAVYDEBUG(x...)    do {} while (0)
+#define D_DEBUG_DOMAIN(i,n,d) do {} while (0)
 #define D_DEBUG(x...)         do {} while (0)
+#define D_DEBUG_AT(d,x...)    do {} while (0)
 #define D_ASSERT(exp)         do {} while (0)
 #define D_ASSUME(exp)         do {} while (0)
 #define D_BREAK(x...)         do {} while (0)

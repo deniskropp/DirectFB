@@ -57,6 +57,9 @@
 #include <direct/cpu_accel.h>
 #include <direct/debug.h>
 
+D_DEBUG_DOMAIN( Direct_CPU, "Direct/CPU", "CPU model and feature detection" );
+
+
 #ifdef ARCH_X86
 static __u32 arch_accel (void)
 {
@@ -133,7 +136,7 @@ static __u32 arch_accel (void)
 static jmp_buf sigill_return;
 
 static void sigill_handler (int n) {
-     D_DEBUG ("Direct/CPU: OS doesn't support SSE instructions.\n");
+     D_DEBUG_AT( Direct_CPU, "OS doesn't support SSE instructions.\n" );
      longjmp(sigill_return, 1);
 }
 #endif /* ARCH_X86 */
