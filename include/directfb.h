@@ -1,9 +1,12 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -26,6 +29,8 @@
 
 #include <asm/types.h>
 #include <sys/time.h> /* struct timeval */
+
+#include <directfb_keyboard.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -667,6 +672,11 @@ extern "C"
                                                              validates the
                                                              following fields */
 
+          int                                max_keycode; /* highest hardware
+                                                             keycode or -1 if
+                                                             no differentiation
+                                                             between hardware
+                                                             keys is made */
           DFBInputDeviceAxisIdentifier       max_axis;    /* highest axis
                                                              identifier */
           DFBInputDeviceButtonIdentifier     max_button;  /* highest button
@@ -1849,73 +1859,7 @@ extern "C"
           );
      )
 
-
-
-     /*
-      * DirectFB keycodes
-      */
-     typedef enum {
-          DIKC_UNKNOWN = 0,
-
-          DIKC_A, DIKC_B, DIKC_C, DIKC_D, DIKC_E, DIKC_F, DIKC_G, DIKC_H,
-          DIKC_I, DIKC_J, DIKC_K, DIKC_L, DIKC_M, DIKC_N, DIKC_O, DIKC_P,
-          DIKC_Q, DIKC_R, DIKC_S, DIKC_T, DIKC_U, DIKC_V, DIKC_W, DIKC_X,
-          DIKC_Y, DIKC_Z,
-
-          DIKC_0, DIKC_1, DIKC_2, DIKC_3, DIKC_4, DIKC_5, DIKC_6, DIKC_7,
-          DIKC_8, DIKC_9,
-
-          DIKC_F1, DIKC_F2, DIKC_F3, DIKC_F4, DIKC_F5, DIKC_F6, DIKC_F7,
-          DIKC_F8, DIKC_F9, DIKC_F10, DIKC_F11, DIKC_F12,
-
-          DIKC_ESCAPE, DIKC_LEFT, DIKC_RIGHT, DIKC_UP, DIKC_DOWN,
-          DIKC_CTRL, DIKC_SHIFT, DIKC_ALT, DIKC_ALTGR,
-          DIKC_TAB, DIKC_ENTER, DIKC_SPACE, DIKC_BACKSPACE,
-          DIKC_INSERT, DIKC_DELETE, DIKC_HOME, DIKC_END,
-          DIKC_PAGEUP, DIKC_PAGEDOWN,
-          DIKC_CAPSLOCK, DIKC_NUMLOCK, DIKC_SCRLOCK, DIKC_PRINT, DIKC_PAUSE,
-
-          DIKC_KP_DIV, DIKC_KP_MULT, DIKC_KP_MINUS, DIKC_KP_PLUS,
-          DIKC_KP_ENTER, DIKC_KP_SPACE, DIKC_KP_TAB, DIKC_KP_F1,
-          DIKC_KP_F2, DIKC_KP_F3, DIKC_KP_F4, DIKC_KP_HOME, DIKC_KP_LEFT,
-          DIKC_KP_UP, DIKC_KP_RIGHT, DIKC_KP_DOWN, DIKC_KP_PRIOR,
-          DIKC_KP_PAGE_UP, DIKC_KP_NEXT, DIKC_KP_PAGE_DOWN, DIKC_KP_END,
-          DIKC_KP_BEGIN, DIKC_KP_INSERT, DIKC_KP_DELETE, DIKC_KP_EQUAL,
-          DIKC_KP_DECIMAL, DIKC_KP_SEPARATOR,
-
-          DIKC_KP_0, DIKC_KP_1, DIKC_KP_2, DIKC_KP_3, DIKC_KP_4,
-          DIKC_KP_5, DIKC_KP_6, DIKC_KP_7, DIKC_KP_8, DIKC_KP_9,
-
-          DIKC_OK, DIKC_CANCEL, DIKC_SELECT, DIKC_GOTO, DIKC_CLEAR,
-          DIKC_POWER, DIKC_POWER2, DIKC_OPTION,
-          DIKC_MENU, DIKC_HELP, DIKC_INFO, DIKC_TIME, DIKC_VENDOR,
-
-          DIKC_ARCHIVE, DIKC_PROGRAM, DIKC_CHANNEL, DIKC_FAVORITES,
-          DIKC_EPG, DIKC_PVR, DIKC_MHP, DIKC_LANGUAGE, DIKC_TITLE,
-          DIKC_SUBTITLE, DIKC_ANGLE, DIKC_ZOOM, DIKC_MODE,
-          DIKC_KEYBOARD, DIKC_PC, DIKC_SCREEN,
-
-          DIKC_TV, DIKC_TV2, DIKC_VCR, DIKC_VCR2, DIKC_SAT, DIKC_SAT2,
-          DIKC_CD, DIKC_TAPE, DIKC_RADIO, DIKC_TUNER, DIKC_PLAYER,
-          DIKC_TEXT, DIKC_DVD, DIKC_AUX, DIKC_MP3, DIKC_PHONE,
-          DIKC_AUDIO, DIKC_VIDEO,
-
-          DIKC_INTERNET, DIKC_MAIL, DIKC_NEWS, DIKC_DIRECTORY, DIKC_LIST,
-          DIKC_CALCULATOR, DIKC_MEMO, DIKC_CALENDAR, DIKC_EDITOR,
-
-          DIKC_RED, DIKC_GREEN, DIKC_YELLOW, DIKC_BLUE,
-
-          DIKC_CHANNELUP, DIKC_CHANNELDOWN, DIKC_BACK, DIKC_FORWARD,
-          DIKC_LAST, DIKC_VOLUMEUP, DIKC_VOLUMEDOWN, DIKC_MUTE, DIKC_AB,
-          DIKC_PLAYPAUSE, DIKC_PLAY, DIKC_STOP, DIKC_RESTART,
-          DIKC_SLOW, DIKC_FAST, DIKC_RECORD, DIKC_EJECT, DIKC_SHUFFLE,
-          DIKC_REWIND, DIKC_FASTFORWARD, DIKC_PREVIOUS, DIKC_NEXT,
-
-          DIKC_DIGITS, DIKC_TEEN, DIKC_TWEN, DIKC_ASTERISK, DIKC_HASH,
-
-          DIKC_NUMBER_OF_KEYS
-     } DFBInputDeviceKeyIdentifier;
-
+     
      /*
       * Specifies whether a key is currently down.
       */
@@ -1933,15 +1877,27 @@ extern "C"
      } DFBInputDeviceButtonState;
 
      /*
-      * Flags specifying the modifiers that are currently pressed.
+      * Flags specifying which buttons are currently down.
       */
      typedef enum {
-          DIMK_SHIFT          = 0x00000001,  /* any shift key down? */
-          DIMK_CTRL           = 0x00000002,  /* any ctrl key down? */
-          DIMK_ALT            = 0x00000004,  /* alt key down? */
-          DIMK_ALTGR          = 0x00000008   /* altgr key down? */
-     } DFBInputDeviceModifierKeys;
+          DIBM_LEFT           = 0x00000001,  /* left mouse button */
+          DIBM_RIGHT          = 0x00000002,  /* right mouse button */
+          DIBM_MIDDLE         = 0x00000004   /* middle mouse button */
+     } DFBInputDeviceButtonMask;
 
+     /*
+      * Flags specifying which modifiers are currently pressed.
+      */
+     typedef enum {
+          DIMM_SHIFT     = (1 << DIMKI_SHIFT),    /* Shift key is pressed */
+          DIMM_CONTROL   = (1 << DIMKI_CONTROL),  /* Control key is pressed */
+          DIMM_ALT       = (1 << DIMKI_ALT),      /* Alt key is pressed */
+          DIMM_ALTGR     = (1 << DIMKI_ALTGR),    /* AltGr key is pressed */
+          DIMM_META      = (1 << DIMKI_META),     /* Meta key is pressed */
+          DIMM_SUPER     = (1 << DIMKI_SUPER),    /* Super key is pressed */
+          DIMM_HYPER     = (1 << DIMKI_HYPER)     /* Hyper key is pressed */
+     } DFBInputDeviceModifierMask;
+     
      /*
       * Flags specifying the key locks that are currently active.
       */
@@ -1950,15 +1906,6 @@ extern "C"
           DILS_NUM            = 0x00000002,  /* num-lock active? */
           DILS_CAPS           = 0x00000004   /* caps-lock active? */
      } DFBInputDeviceLockState;
-
-     /*
-      * Flags specifying which buttons are currently down.
-      */
-     typedef enum {
-          DIBM_LEFT           = 0x00000001,  /* left mouse button */
-          DIBM_RIGHT          = 0x00000002,  /* right mouse button */
-          DIBM_MIDDLE         = 0x00000004   /* middle mouse button */
-     } DFBInputDeviceButtonMask;
 
 
      /************************
@@ -2018,7 +1965,7 @@ extern "C"
            */
           DFBResult (*GetKeyState) (
                IDirectFBInputDevice          *thiz,
-               DFBInputDeviceKeyIdentifier    keycode,
+               DFBInputDeviceKeyIdentifier    key_id,
                DFBInputDeviceKeyState        *state
           );
 
@@ -2027,7 +1974,7 @@ extern "C"
            */
           DFBResult (*GetModifiers) (
                IDirectFBInputDevice          *thiz,
-               DFBInputDeviceModifierKeys    *modifiers
+               DFBInputDeviceModifierMask    *modifiers
           );
 
           /*
@@ -2106,16 +2053,22 @@ extern "C"
      } DFBInputEventType;
 
      /*
-      * Flags defining which event fields are valid.
+      * Flags defining which additional (optional) event fields are valid.
       */
      typedef enum {
-          DIEF_KEYCODE        = 0x01,   /* keycode is valid */
+          DIEF_NONE           = 0x00,   /* no additional fields */
+          DIEF_TIMESTAMP      = 0x01,   /* timestamp is valid */
           DIEF_MODIFIERS      = 0x02,   /* modifiers are valid */
           DIEF_LOCKS          = 0x04,   /* locks are valid */
-          DIEF_BUTTON         = 0x08,   /* button is valid */
-          DIEF_AXISABS        = 0x10,   /* axis and axisabs are valid */
-          DIEF_AXISREL        = 0x20,   /* axis and axisrel are valid */
-          DIEF_TIMESTAMP      = 0x40    /* timestamp is valid */
+          DIEF_AXISABS        = 0x08,   /* axis and axisabs are valid */
+          DIEF_AXISREL        = 0x10,   /* axis and axisrel are valid */
+
+          DIEF_KEYCODE        = 0x20,   /* used internally by the input core,
+                                           always set at application level */
+          DIEF_KEYID          = 0x40,   /* used internally by the input core,
+                                           always set at application level */
+          DIEF_KEYSYMBOL      = 0x80    /* used internally by the input core,
+                                           always set at application level */
      } DFBInputEventFlags;
 
      /*
@@ -2129,17 +2082,22 @@ extern "C"
           DFBInputEventFlags              flags;      /* which fields are
                                                          valid? */
 
+          /* additionally (check flags) */
           struct timeval                  timestamp;
 
-     /* DIET_KEYPRESS, DIET_KEYRELEASE, DIET_KEYREPEAT */
-          DFBInputDeviceKeyIdentifier     keycode;    /* in case of a key
-                                                         event */
-          unsigned char                   key_ascii;
-          unsigned short                  key_unicode;
-          DFBInputDeviceModifierKeys      modifiers;  /* modifier keys
-                                                         as a bitmask */
-          DFBInputDeviceLockState         locks;      /* key lock state
-                                                         as a bitmask */
+     /* DIET_KEYPRESS, DIET_KEYRELEASE */
+          int                             key_code;   /* hardware keycode, no
+                                                         mapping, -1 if device
+                                                         doesn't differentiate
+                                                         between several keys */
+          DFBInputDeviceKeyIdentifier     key_id;     /* basic mapping,
+                                                         modifier independent */
+          DFBInputDeviceKeySymbol         key_symbol; /* advanced mapping,
+                                                         unicode compatible,
+                                                         modifier dependent */
+          /* additionally (check flags) */
+          DFBInputDeviceModifierMask      modifiers;  /* pressed modifiers */
+          DFBInputDeviceLockState         locks;      /* active locks */
 
      /* DIET_BUTTONPRESS, DIET_BUTTONRELEASE */
           DFBInputDeviceButtonIdentifier  button;     /* in case of a button
@@ -2148,6 +2106,7 @@ extern "C"
      /* DIET_AXISMOTION */
           DFBInputDeviceAxisIdentifier    axis;       /* in case of an axis
                                                          event */
+          /* one of these two (check flags) */
           int                             axisabs;    /* absolute mouse/
                                                          joystick coordinate */
           int                             axisrel;    /* relative mouse/
@@ -2201,47 +2160,53 @@ extern "C"
       * Event from the windowing system.
       */
      typedef struct {
-          DFBEventClass                      clazz;       /* clazz of event */
+          DFBEventClass                   clazz;       /* clazz of event */
 
-          DFBWindowEventType                 type;
-          DFBWindowID                        window_id;
+          DFBWindowEventType              type;
+          DFBWindowID                     window_id;
 
           /* used by DWET_MOVE, DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP,
              DWET_ENTER, DWET_LEAVE */
-          int                                x;
-          int                                y;
+          int                             x;
+          int                             y;
 
           /* used by DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP,
              DWET_ENTER, DWET_LEAVE */
-          int                                cx;
-          int                                cy;
+          int                             cx;
+          int                             cy;
 
           /* used by DWET_WHEEL */
-          int                                step;
+          int                             step;
 
           /* used by DWET_RESIZE */
-          unsigned int                       w;
-          unsigned int                       h;
+          unsigned int                    w;
+          unsigned int                    h;
 
           /* used by DWET_KEYDOWN, DWET_KEYUP */
-          DFBInputDeviceKeyIdentifier        keycode;
-          unsigned char                      key_ascii;
-          unsigned short                     key_unicode;
-          DFBInputDeviceModifierKeys         modifiers;
-          DFBInputDeviceLockState            locks;
+          int                             key_code;   /* hardware keycode, no
+                                                         mapping, -1 if device
+                                                         doesn't differentiate
+                                                         between several keys */
+          DFBInputDeviceKeyIdentifier     key_id;     /* basic mapping,
+                                                         modifier independent */
+          DFBInputDeviceKeySymbol         key_symbol; /* advanced mapping,
+                                                         unicode compatible,
+                                                         modifier dependent */
+          DFBInputDeviceModifierMask      modifiers;  /* pressed modifiers */
+          DFBInputDeviceLockState         locks;      /* active locks */
 
           /* used by DWET_BUTTONDOWN, DWET_BUTTONUP */
-          DFBInputDeviceButtonIdentifier     button;
+          DFBInputDeviceButtonIdentifier  button;
      } DFBWindowEvent;
 
      /*
       * Event for usage by the user of this library.
       */
      typedef struct {
-          DFBEventClass                      clazz;      /* clazz of event */
+          DFBEventClass                   clazz;      /* clazz of event */
 
-          unsigned int                       type;       /* custom type */
-          void                              *data;       /* custom data */
+          unsigned int                    type;       /* custom type */
+          void                           *data;       /* custom data */
      } DFBUserEvent;
 
      /*

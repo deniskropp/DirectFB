@@ -1,9 +1,12 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -1229,15 +1232,15 @@ stack_inputdevice_react( const void *msg_data,
      if (stack->wm_hack) {
           switch (evt->type) {
                case DIET_KEYRELEASE:
-                    switch (evt->keycode) {
-                         case DIKC_CAPSLOCK:
+                    switch (evt->key_id) {
+                         case DIKI_CAPSLOCK:
                               stack->wm_hack = 0;
                               stack_lock( stack );
                               handle_enter_leave_focus( stack );
                               stack_unlock( stack );
                               break;
 
-                         case DIKC_CTRL:
+                         case DIKI_CTRL:
                               stack->wm_hack = 1;
                               return RS_OK;
 
@@ -1247,12 +1250,12 @@ stack_inputdevice_react( const void *msg_data,
                     break;
 
                case DIET_KEYPRESS:
-                    switch (evt->keycode) {
-                         case DIKC_CTRL:
+                    switch (evt->key_id) {
+                         case DIKI_CTRL:
                               stack->wm_hack = 2;
                               return RS_OK;
 
-                         case DIKC_C:
+                         case DIKI_C:
                               if (stack->entered_window) {
                                    DFBWindowEvent evt;
                                    evt.type = DWET_CLOSE;
@@ -1260,7 +1263,7 @@ stack_inputdevice_react( const void *msg_data,
                               }
                               return RS_OK;
 
-                         case DIKC_D: {
+                         case DIKI_D: {
                               CoreWindow *window = stack->entered_window;
 
                               if (window &&
@@ -1294,7 +1297,7 @@ stack_inputdevice_react( const void *msg_data,
 
      switch (evt->type) {
           case DIET_KEYPRESS:
-               if (evt->keycode == DIKC_CAPSLOCK)
+               if (evt->key_id == DIKI_CAPSLOCK)
                     stack->wm_hack = 1;
                /* fall through */
           case DIET_KEYRELEASE:
@@ -1306,11 +1309,11 @@ stack_inputdevice_react( const void *msg_data,
                if (window) {
                     we.type = (evt->type == DIET_KEYPRESS) ? DWET_KEYDOWN :
                                                              DWET_KEYUP;
-                    we.key_ascii   = evt->key_ascii;
-                    we.key_unicode = evt->key_unicode;
-                    we.keycode     = evt->keycode;
-                    we.modifiers   = evt->modifiers;
-                    we.locks       = evt->locks;
+                    we.key_code   = evt->key_code;
+                    we.key_id     = evt->key_id;
+                    we.key_symbol = evt->key_symbol;
+                    we.modifiers  = evt->modifiers;
+                    we.locks      = evt->locks;
 
                     dfb_window_dispatch( window, &we );
                }

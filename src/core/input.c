@@ -1,9 +1,12 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -92,6 +95,14 @@ static InputDevice    *inputdevices = NULL;
 
 
 static void init_devices();
+static void fixup_key_event( DFBInputEvent *event );
+
+static DFBInputDeviceKeyIdentifier
+symbol_to_id( DFBInputDeviceKeySymbol symbol );
+
+static DFBInputDeviceKeySymbol
+id_to_symbol( DFBInputDeviceKeyIdentifier id,
+              DFBInputDeviceModifierMask  modifiers );
 
 #ifdef DFB_DYNAMIC_LINKING
 static CoreModuleLoadResult input_driver_handle_func( void *handle,
@@ -288,6 +299,11 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
 
                break;
 
+          case DIET_KEYPRESS:
+          case DIET_KEYRELEASE:
+               fixup_key_event( event );
+               break;
+          
           default:
                ;
      }
@@ -436,3 +452,200 @@ static void init_devices()
           }
      }
 }
+
+
+#define FIXUP_FIELDS     (DIEF_MODIFIERS | DIEF_LOCKS | \
+                          DIEF_KEYCODE | DIEF_KEYID | DIEF_KEYSYMBOL)
+
+/*
+ * Fill partially missing values for key_code, key_id and key_symbol by
+ * translating those that are set. Fix modifiers/locks before if not set.
+ *
+ *
+ * There are five valid constellations that give reasonable values.
+ * (not counting the constellation where everything is set)
+ *
+ * Device has no translation table
+ *   1. key_id is set, key_symbol not
+ *      -> key_code defaults to -1, key_symbol from key_id (up-translation)
+ *   2. key_symbol is set, key_id not
+ *      -> key_code defaults to -1, key_id from key_symbol (down-translation)
+ *
+ * Device has a translation table
+ *   3. key_code is set
+ *      -> look up key_id and/or key_symbol (key_code being the index)
+ *   4. key_id is set
+ *      -> look up key_code and possibly key_symbol (key_id being searched for)
+ *   5. key_symbol is set
+ *      -> look up key_code and key_id (key_symbol being searched for)
+ *
+ * Fields remaining will be set to the default, e.g. key_code to -1.
+ */
+static void
+fixup_key_event( DFBInputEvent *event )
+{
+     DFBInputEventFlags valid   = event->flags & FIXUP_FIELDS;
+     DFBInputEventFlags missing = valid ^ FIXUP_FIELDS;
+
+     /* None is missing? */
+     if (missing == DIEF_NONE)
+          return;
+
+     /* Add missing flags */
+     event->flags |= missing;
+     
+     /*
+      * Use computed values for modifiers and locks if they are missing.
+      */
+     if (missing & DIEF_MODIFIERS) {
+          event->modifiers = 0; /* TODO */
+          missing &= ~DIEF_MODIFIERS;
+     }
+
+     if (missing & DIEF_LOCKS) {
+          event->locks = 0; /* TODO */
+          missing &= ~DIEF_LOCKS;
+     }
+
+     /*
+      * Return if the rest is ok.
+      */
+     if (missing == DIEF_NONE)
+          return;
+
+     /*
+      * Without translation table
+      */
+     if (valid & DIEF_KEYID) {
+          if (missing & DIEF_KEYSYMBOL) {
+               event->key_symbol = 0; /*id_to_symbol( event->key_id,
+                                                 event->modifiers ); FIXME */
+               missing &= ~DIEF_KEYSYMBOL;
+          }
+     }
+     else if (valid & DIEF_KEYSYMBOL) {
+          event->key_id = symbol_to_id( event->key_symbol );
+          missing &= ~DIEF_KEYID;
+     }
+
+     /*
+      * Clear remaining fields.
+      */
+     if (missing & DIEF_KEYCODE)
+          event->key_code = -1;
+
+     if (missing & DIEF_KEYID)
+          event->key_id = DIKI_UNKNOWN;
+
+     if (missing & DIEF_KEYSYMBOL)
+          event->key_symbol = DIKS_NULL;
+}
+
+static DFBInputDeviceKeyIdentifier
+symbol_to_id( DFBInputDeviceKeySymbol symbol )
+{
+     if (symbol >= 'a' && symbol <= 'z')
+          return DIKI_A + symbol - 'a';
+     
+     if (symbol >= 'A' && symbol <= 'Z')
+          return DIKI_A + symbol - 'A';
+     
+     if (symbol >= '0' && symbol <= '9')
+          return DIKI_0 + symbol - '0';
+
+     if (symbol >= DIKS_F1 && symbol <= DIKS_F12)
+          return DIKI_F1 + symbol - DIKS_F1;
+     
+     if (symbol >= DIKS_KP_DIV && symbol <= DIKS_KP_SEPARATOR)
+          return DIKI_KP_DIV + symbol - DIKS_KP_DIV;
+     
+     if (symbol >= DIKS_KP_0 && symbol <= DIKS_KP_9)
+          return DIKI_KP_0 + symbol - DIKS_KP_0;
+
+     switch (symbol) {
+          case DIKS_ESCAPE:
+               return DIKI_ESCAPE;
+          
+          case DIKS_CURSOR_LEFT:
+               return DIKI_LEFT;
+          
+          case DIKS_CURSOR_RIGHT:
+               return DIKI_RIGHT;
+
+          case DIKS_CURSOR_UP:
+               return DIKI_UP;
+
+          case DIKS_CURSOR_DOWN:
+               return DIKI_DOWN;
+          
+          case DIKS_CONTROL:
+               return DIKI_CTRL;
+          
+          case DIKS_SHIFT:
+               return DIKI_SHIFT;
+          
+          case DIKS_ALT:
+               return DIKI_ALT;
+          
+          case DIKS_ALTGR:
+               return DIKI_ALTGR;
+          
+          case DIKS_TAB:
+               return DIKI_TAB;
+          
+          case DIKS_ENTER:
+               return DIKI_ENTER;
+          
+          case DIKS_SPACE:
+               return DIKI_SPACE;
+          
+          case DIKS_BACKSPACE:
+               return DIKI_BACKSPACE;
+          
+          case DIKS_INSERT:
+               return DIKI_INSERT;
+          
+          case DIKS_DELETE:
+               return DIKI_DELETE;
+          
+          case DIKS_HOME:
+               return DIKI_HOME;
+          
+          case DIKS_END:
+               return DIKI_END;
+          
+          case DIKS_PAGEUP:
+               return DIKI_PAGEUP;
+          
+          case DIKS_PAGEDOWN:
+               return DIKI_PAGEDOWN;
+          
+          case DIKS_CAPSLOCK:
+               return DIKI_CAPSLOCK;
+          
+          case DIKS_NUMLOCK:
+               return DIKI_NUMLOCK;
+          
+          case DIKS_SCROLLLOCK:
+               return DIKI_SCRLOCK;
+          
+          case DIKS_PRINT:
+               return DIKI_PRINT;
+          
+          case DIKS_PAUSE:
+               return DIKI_PAUSE;
+
+          default:
+               ;
+     }
+     
+     return DIKI_UNKNOWN;
+}
+
+static DFBInputDeviceKeySymbol
+id_to_symbol( DFBInputDeviceKeyIdentifier id,
+              DFBInputDeviceModifierMask  modifiers )
+{
+     return DIKS_NULL;
+}
+

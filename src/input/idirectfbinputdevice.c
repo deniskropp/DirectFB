@@ -1,9 +1,12 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -62,9 +65,9 @@ typedef struct {
                                                        device struct*/
 
      int                         axis[DIAI_LAST+1]; /* position of all axes */
-     DFBInputDeviceKeyState      keystates[DIKC_NUMBER_OF_KEYS];
+     DFBInputDeviceKeyState      keystates[DIKI_NUMBER_OF_KEYS];
                                                     /* state of all keys */
-     DFBInputDeviceModifierKeys  modifiers;         /* bitmask reflecting the
+     DFBInputDeviceModifierMask  modifiers;         /* bitmask reflecting the
                                                        state of the modifier
                                                        keys */
      DFBInputDeviceLockState     locks;             /* bitmask reflecting the 
@@ -169,22 +172,22 @@ IDirectFBInputDevice_GetDescription( IDirectFBInputDevice      *thiz,
 
 static DFBResult
 IDirectFBInputDevice_GetKeyState( IDirectFBInputDevice        *thiz,
-                                  DFBInputDeviceKeyIdentifier  keycode,
+                                  DFBInputDeviceKeyIdentifier  key_id,
                                   DFBInputDeviceKeyState      *state )
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     if (!state || keycode < DIKC_UNKNOWN || keycode >= DIKC_NUMBER_OF_KEYS)
+     if (!state || key_id < DIKI_UNKNOWN || key_id >= DIKI_NUMBER_OF_KEYS)
           return DFB_INVARG;
 
-     *state = data->keystates[keycode];
+     *state = data->keystates[key_id];
 
      return DFB_OK;
 }
 
 static DFBResult
 IDirectFBInputDevice_GetModifiers( IDirectFBInputDevice       *thiz,
-                                   DFBInputDeviceModifierKeys *modifiers )
+                                   DFBInputDeviceModifierMask *modifiers )
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
@@ -318,8 +321,8 @@ IDirectFBInputDevice_React( const void *msg_data,
 
      switch (evt->type) {
           case DIET_KEYPRESS:
-               if (evt->flags & DIEF_KEYCODE)
-                    data->keystates[evt->keycode] = DIKS_DOWN;
+               if (evt->key_id != DIKI_UNKNOWN)
+                    data->keystates[evt->key_id] = DIKS_DOWN;
                if (evt->flags & DIEF_MODIFIERS)
                     data->modifiers = evt->modifiers;
                if (evt->flags & DIEF_LOCKS)
@@ -327,8 +330,8 @@ IDirectFBInputDevice_React( const void *msg_data,
 	       break;
 
           case DIET_KEYRELEASE:
-               if (evt->flags & DIEF_KEYCODE)
-                    data->keystates[evt->keycode] = DIKS_UP;
+               if (evt->key_id != DIKI_UNKNOWN)
+                    data->keystates[evt->key_id] = DIKS_UP;
                if (evt->flags & DIEF_MODIFIERS)
                     data->modifiers = evt->modifiers;
 	       if (evt->flags & DIEF_LOCKS)

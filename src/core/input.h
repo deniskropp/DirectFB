@@ -1,9 +1,12 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -35,7 +38,7 @@
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_INPUT_DRIVER_ABI_VERSION         2
+#define DFB_INPUT_DRIVER_ABI_VERSION         3
 
 #define DFB_INPUT_DRIVER_INFO_NAME_LENGTH   60
 #define DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH 80

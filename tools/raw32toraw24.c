@@ -1,5 +1,6 @@
 #include <endian.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include <asm/types.h>
 
@@ -13,20 +14,19 @@ int main()
      __u32 pixel32;
      
      do {
-          if (read( 0, &pixel32, 4 ) < 4)
-               break;          
-
+          fread( &pixel32, 4, 1, stdin );
+          
 #if __BYTE_ORDER == __BIG_ENDIAN
           __swab32( pixel32 );
 #endif
           
           byt = (pixel32 & 0xff0000) >> 16;
-          write (1, &byt, 1);
+          fwrite (&byt, 1, 1, stdout);
           byt = (pixel32 & 0x00ff00) >> 8;
-          write (1, &byt, 1);
+          fwrite (&byt, 1, 1, stdout);
           byt = (pixel32 & 0x0000ff);
-          write (1, &byt, 1);
-     } while (1);
+          fwrite (&byt, 1, 1, stdout);
+     } while (!feof(stdin));
      
      return 0;
 }

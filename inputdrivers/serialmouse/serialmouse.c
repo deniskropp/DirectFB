@@ -1,9 +1,11 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de>,
-              Andreas Hundt <andi@convergence.de> and
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
               Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
@@ -216,21 +218,21 @@ mouseEventThread_ms( void *driver_data )
                          if (changed_buttons & 0x20) {
                               evt.type = (buttons & 0x20) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_BUTTON;
+                              evt.flags = DIEF_NONE; /* button is always valid */
                               evt.button = DIBI_LEFT;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x10) {
                               evt.type = (buttons & 0x10) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_BUTTON;
+                              evt.flags = DIEF_NONE; /* button is always valid */
                               evt.button = DIBI_RIGHT;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & MIDDLE) {
                               evt.type = (buttons & MIDDLE) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_BUTTON;
+                              evt.flags = DIEF_NONE; /* button is always valid */
                               evt.button = DIBI_MIDDLE;
                               dfb_input_dispatch( data->device, &evt );
                          }
@@ -244,7 +246,7 @@ mouseEventThread_ms( void *driver_data )
 
                     evt.type = (packet[3] & 0x20) ?
                          DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                    evt.flags = DIEF_BUTTON;
+                    evt.flags = DIEF_NONE; /* button is always valid */
                     evt.button = DIBI_MIDDLE;
                     dfb_input_dispatch( data->device, &evt );
                     break;
@@ -323,21 +325,21 @@ mouseEventThread_mousesystems( void *driver_data )
                          if (changed_buttons & 0x04) {
                               evt.type = (buttons & 0x04) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_BUTTON;
+                              evt.flags = DIEF_NONE; /* button is always valid */
                               evt.button = DIBI_LEFT;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x01) {
                               evt.type = (buttons & 0x01) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_BUTTON;
+                              evt.flags = DIEF_NONE; /* button is always valid */
                               evt.button = DIBI_MIDDLE;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x02) {
                               evt.type = (buttons & 0x02) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_BUTTON;
+                              evt.flags = DIEF_NONE; /* button is always valid */
                               evt.button = DIBI_RIGHT;
                               dfb_input_dispatch( data->device, &evt );
                          }

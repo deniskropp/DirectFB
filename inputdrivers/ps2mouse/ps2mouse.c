@@ -1,9 +1,12 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -200,7 +203,7 @@ ps2mouseEventThread( void *driver_data )
                             before any button change */
                          ps2mouse_motion_realize( data );
 
-                         evt.flags = DIEF_BUTTON | DIEF_TIMESTAMP;
+                         evt.flags = DIEF_TIMESTAMP;
 
                          gettimeofday( &evt.timestamp, NULL );
 

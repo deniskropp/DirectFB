@@ -1,0 +1,442 @@
+/*
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#ifndef __DIRECTFB_KEYBOARD_H__
+#define __DIRECTFB_KEYBOARD_H__
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+     /*
+      * DirectFB key identifiers (for basic mapping)
+      */
+     typedef enum {
+          DIKI_UNKNOWN = 0,
+
+          DIKI_A, DIKI_B, DIKI_C, DIKI_D, DIKI_E, DIKI_F, DIKI_G, DIKI_H,
+          DIKI_I, DIKI_J, DIKI_K, DIKI_L, DIKI_M, DIKI_N, DIKI_O, DIKI_P,
+          DIKI_Q, DIKI_R, DIKI_S, DIKI_T, DIKI_U, DIKI_V, DIKI_W, DIKI_X,
+          DIKI_Y, DIKI_Z,
+
+          DIKI_0, DIKI_1, DIKI_2, DIKI_3, DIKI_4, DIKI_5, DIKI_6, DIKI_7,
+          DIKI_8, DIKI_9,
+
+          DIKI_F1, DIKI_F2, DIKI_F3, DIKI_F4, DIKI_F5, DIKI_F6, DIKI_F7,
+          DIKI_F8, DIKI_F9, DIKI_F10, DIKI_F11, DIKI_F12,
+
+          DIKI_ESCAPE, DIKI_LEFT, DIKI_RIGHT, DIKI_UP, DIKI_DOWN,
+          DIKI_CTRL, DIKI_SHIFT, DIKI_ALT, DIKI_ALTGR,
+          DIKI_TAB, DIKI_ENTER, DIKI_SPACE, DIKI_BACKSPACE,
+          DIKI_INSERT, DIKI_DELETE, DIKI_HOME, DIKI_END,
+          DIKI_PAGEUP, DIKI_PAGEDOWN,
+          DIKI_CAPSLOCK, DIKI_NUMLOCK, DIKI_SCRLOCK, DIKI_PRINT, DIKI_PAUSE,
+
+          DIKI_KP_DIV, DIKI_KP_MULT, DIKI_KP_MINUS, DIKI_KP_PLUS,
+          DIKI_KP_ENTER, DIKI_KP_SPACE, DIKI_KP_TAB, DIKI_KP_F1,
+          DIKI_KP_F2, DIKI_KP_F3, DIKI_KP_F4, DIKI_KP_HOME, DIKI_KP_LEFT,
+          DIKI_KP_UP, DIKI_KP_RIGHT, DIKI_KP_DOWN, DIKI_KP_PRIOR,
+          DIKI_KP_PAGE_UP, DIKI_KP_NEXT, DIKI_KP_PAGE_DOWN, DIKI_KP_END,
+          DIKI_KP_BEGIN, DIKI_KP_INSERT, DIKI_KP_DELETE, DIKI_KP_EQUAL,
+          DIKI_KP_DECIMAL, DIKI_KP_SEPARATOR,
+
+          DIKI_KP_0, DIKI_KP_1, DIKI_KP_2, DIKI_KP_3, DIKI_KP_4,
+          DIKI_KP_5, DIKI_KP_6, DIKI_KP_7, DIKI_KP_8, DIKI_KP_9,
+
+          DIKI_NUMBER_OF_KEYS
+     } DFBInputDeviceKeyIdentifier;
+
+     /*
+      * DirectFB key types (for advanced mapping)
+      */
+     typedef enum {
+          DIKT_UNICODE        = 0x00000,     /* Unicode 3.x character
+                                                (compatible to Latin-1) */
+          DIKT_SPECIAL        = 0xF0000,     /* Special key (e.g. EPG) */
+          DIKT_FUNCTION       = 0xF1000,     /* Function key (F1 - Fn) */
+          DIKT_NUMPAD         = 0xF2000,     /* Numeric pad key */
+          DIKT_MODIFIER       = 0xF3000,     /* Modifier key */
+          DIKT_LOCK           = 0xF4000,     /* Lock key (e.g. CapsLock) */
+          DIKT_DEAD           = 0xF5000,     /* Dead key (e.g. dead grave) */
+          DIKT_CUSTOM         = 0xF6000      /* Custom key (vendor specific) */
+     } DFBInputDeviceKeyType;
+
+     #define DFB_KEY(type,index)        ((DIKT_##type) | (index))
+     
+     #define DFB_KEY_TYPE(symbol)       ((symbol) & 0xFF000)
+     
+     #define DFB_FUNCTION_KEY(n)        (DFB_KEY( FUNCTION, n ))
+     
+     #define DFB_MODIFIER_KEY(i)        (DFB_KEY( MODIFIER, (1 << i) ))
+
+     #define DFB_CUSTOM_KEY(n)          (DFB_KEY( CUSTOM, n ))
+     
+     /*
+      * DirectFB modifier key identifiers (for advanced mapping)
+      */
+     typedef enum {
+          DIMKI_SHIFT,                       /* Shift modifier key */
+          DIMKI_CONTROL,                     /* Control modifier key */
+          DIMKI_ALT,                         /* Alt modifier key */
+          DIMKI_ALTGR,                       /* AltGr modifier key */
+          DIMKI_META,                        /* Meta modifier key */
+          DIMKI_SUPER,                       /* Super modifier key */
+          DIMKI_HYPER                        /* Hyper modifier key */
+     } DFBInputDeviceModifierKeyIdentifier;
+
+     /*
+      * DirectFB key symbols (for advanced mapping)
+      */
+     typedef enum {
+          /*
+           * Unicode excerpt - Controls and Basic Latin
+           *
+           * Any Unicode 3.x character can be used as a DirectFB key symbol,
+           * the values of this enum are compatible with Unicode.
+           */
+          DIKS_NULL                     = DFB_KEY( UNICODE, 0x00 ),
+          DIKS_BACKSPACE                = DFB_KEY( UNICODE, 0x08 ),
+          DIKS_TAB                      = DFB_KEY( UNICODE, 0x09 ),
+          DIKS_RETURN                   = DFB_KEY( UNICODE, 0x0D ),
+          DIKS_CANCEL                   = DFB_KEY( UNICODE, 0x18 ),
+          DIKS_ESCAPE                   = DFB_KEY( UNICODE, 0x1B ),
+          DIKS_SPACE                    = DFB_KEY( UNICODE, 0x20 ),
+          DIKS_EXCLAMATION_MARK         = DFB_KEY( UNICODE, 0x21 ),
+          DIKS_QUOTATION                = DFB_KEY( UNICODE, 0x22 ),
+          DIKS_NUMBER_SIGN              = DFB_KEY( UNICODE, 0x23 ),
+          DIKS_DOLLAR_SIGN              = DFB_KEY( UNICODE, 0x24 ),
+          DIKS_PERCENT_SIGN             = DFB_KEY( UNICODE, 0x25 ),
+          DIKS_AMPERSAND                = DFB_KEY( UNICODE, 0x26 ),
+          DIKS_APOSTROPHE               = DFB_KEY( UNICODE, 0x27 ),
+          DIKS_PARENTHESIS_LEFT         = DFB_KEY( UNICODE, 0x28 ),
+          DIKS_PARENTHESIS_RIGHT        = DFB_KEY( UNICODE, 0x29 ),
+          DIKS_ASTERISK                 = DFB_KEY( UNICODE, 0x2A ),
+          DIKS_PLUS_SIGN                = DFB_KEY( UNICODE, 0x2B ),
+          DIKS_COMMA                    = DFB_KEY( UNICODE, 0x2C ),
+          DIKS_MINUS_SIGN               = DFB_KEY( UNICODE, 0x2D ),
+          DIKS_PERIOD                   = DFB_KEY( UNICODE, 0x2E ),
+          DIKS_SLASH                    = DFB_KEY( UNICODE, 0x2F ),
+          DIKS_0                        = DFB_KEY( UNICODE, 0x30 ),
+          DIKS_1                        = DFB_KEY( UNICODE, 0x31 ),
+          DIKS_2                        = DFB_KEY( UNICODE, 0x32 ),
+          DIKS_3                        = DFB_KEY( UNICODE, 0x33 ),
+          DIKS_4                        = DFB_KEY( UNICODE, 0x34 ),
+          DIKS_5                        = DFB_KEY( UNICODE, 0x35 ),
+          DIKS_6                        = DFB_KEY( UNICODE, 0x36 ),
+          DIKS_7                        = DFB_KEY( UNICODE, 0x37 ),
+          DIKS_8                        = DFB_KEY( UNICODE, 0x38 ),
+          DIKS_9                        = DFB_KEY( UNICODE, 0x39 ),
+          DIKS_COLON                    = DFB_KEY( UNICODE, 0x3A ),
+          DIKS_SEMICOLON                = DFB_KEY( UNICODE, 0x3B ),
+          DIKS_LESS_THAN_SIGN           = DFB_KEY( UNICODE, 0x3C ),
+          DIKS_EQUALS_SIGN              = DFB_KEY( UNICODE, 0x3D ),
+          DIKS_GREATER_THAN_SIGN        = DFB_KEY( UNICODE, 0x3E ),
+          DIKS_QUESTION_MARK            = DFB_KEY( UNICODE, 0x3F ),
+          DIKS_AT                       = DFB_KEY( UNICODE, 0x40 ),
+          DIKS_CAPITAL_A                = DFB_KEY( UNICODE, 0x41 ),
+          DIKS_CAPITAL_B                = DFB_KEY( UNICODE, 0x42 ),
+          DIKS_CAPITAL_C                = DFB_KEY( UNICODE, 0x43 ),
+          DIKS_CAPITAL_D                = DFB_KEY( UNICODE, 0x44 ),
+          DIKS_CAPITAL_E                = DFB_KEY( UNICODE, 0x45 ),
+          DIKS_CAPITAL_F                = DFB_KEY( UNICODE, 0x46 ),
+          DIKS_CAPITAL_G                = DFB_KEY( UNICODE, 0x47 ),
+          DIKS_CAPITAL_H                = DFB_KEY( UNICODE, 0x48 ),
+          DIKS_CAPITAL_I                = DFB_KEY( UNICODE, 0x49 ),
+          DIKS_CAPITAL_J                = DFB_KEY( UNICODE, 0x4A ),
+          DIKS_CAPITAL_K                = DFB_KEY( UNICODE, 0x4B ),
+          DIKS_CAPITAL_L                = DFB_KEY( UNICODE, 0x4C ),
+          DIKS_CAPITAL_M                = DFB_KEY( UNICODE, 0x4D ),
+          DIKS_CAPITAL_N                = DFB_KEY( UNICODE, 0x4E ),
+          DIKS_CAPITAL_O                = DFB_KEY( UNICODE, 0x4F ),
+          DIKS_CAPITAL_P                = DFB_KEY( UNICODE, 0x50 ),
+          DIKS_CAPITAL_Q                = DFB_KEY( UNICODE, 0x51 ),
+          DIKS_CAPITAL_R                = DFB_KEY( UNICODE, 0x52 ),
+          DIKS_CAPITAL_S                = DFB_KEY( UNICODE, 0x53 ),
+          DIKS_CAPITAL_T                = DFB_KEY( UNICODE, 0x54 ),
+          DIKS_CAPITAL_U                = DFB_KEY( UNICODE, 0x55 ),
+          DIKS_CAPITAL_V                = DFB_KEY( UNICODE, 0x56 ),
+          DIKS_CAPITAL_W                = DFB_KEY( UNICODE, 0x57 ),
+          DIKS_CAPITAL_X                = DFB_KEY( UNICODE, 0x58 ),
+          DIKS_CAPITAL_Y                = DFB_KEY( UNICODE, 0x59 ),
+          DIKS_CAPITAL_Z                = DFB_KEY( UNICODE, 0x5A ),
+          DIKS_SQUARE_BRACKET_LEFT      = DFB_KEY( UNICODE, 0x5B ),
+          DIKS_BACKSLASH                = DFB_KEY( UNICODE, 0x5C ),
+          DIKS_SQUARE_BRACKET_RIGHT     = DFB_KEY( UNICODE, 0x5D ),
+          DIKS_CIRCUMFLEX_ACCENT        = DFB_KEY( UNICODE, 0x5E ),
+          DIKS_UNDERSCORE               = DFB_KEY( UNICODE, 0x5F ),
+          DIKS_GRAVE_ACCENT             = DFB_KEY( UNICODE, 0x60 ),
+          DIKS_SMALL_A                  = DFB_KEY( UNICODE, 0x61 ),
+          DIKS_SMALL_B                  = DFB_KEY( UNICODE, 0x62 ),
+          DIKS_SMALL_C                  = DFB_KEY( UNICODE, 0x63 ),
+          DIKS_SMALL_D                  = DFB_KEY( UNICODE, 0x64 ),
+          DIKS_SMALL_E                  = DFB_KEY( UNICODE, 0x65 ),
+          DIKS_SMALL_F                  = DFB_KEY( UNICODE, 0x66 ),
+          DIKS_SMALL_G                  = DFB_KEY( UNICODE, 0x67 ),
+          DIKS_SMALL_H                  = DFB_KEY( UNICODE, 0x68 ),
+          DIKS_SMALL_I                  = DFB_KEY( UNICODE, 0x69 ),
+          DIKS_SMALL_J                  = DFB_KEY( UNICODE, 0x6A ),
+          DIKS_SMALL_K                  = DFB_KEY( UNICODE, 0x6B ),
+          DIKS_SMALL_L                  = DFB_KEY( UNICODE, 0x6C ),
+          DIKS_SMALL_M                  = DFB_KEY( UNICODE, 0x6D ),
+          DIKS_SMALL_N                  = DFB_KEY( UNICODE, 0x6E ),
+          DIKS_SMALL_O                  = DFB_KEY( UNICODE, 0x6F ),
+          DIKS_SMALL_P                  = DFB_KEY( UNICODE, 0x70 ),
+          DIKS_SMALL_Q                  = DFB_KEY( UNICODE, 0x71 ),
+          DIKS_SMALL_R                  = DFB_KEY( UNICODE, 0x72 ),
+          DIKS_SMALL_S                  = DFB_KEY( UNICODE, 0x73 ),
+          DIKS_SMALL_T                  = DFB_KEY( UNICODE, 0x74 ),
+          DIKS_SMALL_U                  = DFB_KEY( UNICODE, 0x75 ),
+          DIKS_SMALL_V                  = DFB_KEY( UNICODE, 0x76 ),
+          DIKS_SMALL_W                  = DFB_KEY( UNICODE, 0x77 ),
+          DIKS_SMALL_X                  = DFB_KEY( UNICODE, 0x78 ),
+          DIKS_SMALL_Y                  = DFB_KEY( UNICODE, 0x79 ),
+          DIKS_SMALL_Z                  = DFB_KEY( UNICODE, 0x7A ),
+          DIKS_CURLY_BRACKET_LEFT       = DFB_KEY( UNICODE, 0x7B ),
+          DIKS_VERTICAL_BAR             = DFB_KEY( UNICODE, 0x7C ),
+          DIKS_CURLY_BRACKET_RIGHT      = DFB_KEY( UNICODE, 0x7D ),
+          DIKS_TILDE                    = DFB_KEY( UNICODE, 0x7E ),
+          DIKS_DELETE                   = DFB_KEY( UNICODE, 0x7F ),
+
+          DIKS_ENTER                    = DIKS_RETURN,
+          
+          /*
+           * Unicode private area - DirectFB Special keys
+           */
+          DIKS_CURSOR_LEFT              = DFB_KEY( SPECIAL, 0x00 ),
+          DIKS_CURSOR_RIGHT             = DFB_KEY( SPECIAL, 0x01 ),
+          DIKS_CURSOR_UP                = DFB_KEY( SPECIAL, 0x02 ),
+          DIKS_CURSOR_DOWN              = DFB_KEY( SPECIAL, 0x03 ),
+          DIKS_INSERT                   = DFB_KEY( SPECIAL, 0x04 ),
+          DIKS_HOME                     = DFB_KEY( SPECIAL, 0x05 ),
+          DIKS_END                      = DFB_KEY( SPECIAL, 0x06 ),
+          DIKS_PAGEUP                   = DFB_KEY( SPECIAL, 0x07 ),
+          DIKS_PAGEDOWN                 = DFB_KEY( SPECIAL, 0x08 ),
+          DIKS_PRINT                    = DFB_KEY( SPECIAL, 0x09 ),
+          DIKS_PAUSE                    = DFB_KEY( SPECIAL, 0x0A ),
+          DIKS_OK                       = DFB_KEY( SPECIAL, 0x0B ),
+          DIKS_SELECT                   = DFB_KEY( SPECIAL, 0x0C ),
+          DIKS_GOTO                     = DFB_KEY( SPECIAL, 0x0D ),
+          DIKS_CLEAR                    = DFB_KEY( SPECIAL, 0x0E ),
+          DIKS_POWER                    = DFB_KEY( SPECIAL, 0x0F ),
+          DIKS_POWER2                   = DFB_KEY( SPECIAL, 0x10 ),
+          DIKS_OPTION                   = DFB_KEY( SPECIAL, 0x11 ),
+          DIKS_MENU                     = DFB_KEY( SPECIAL, 0x12 ),
+          DIKS_HELP                     = DFB_KEY( SPECIAL, 0x13 ),
+          DIKS_INFO                     = DFB_KEY( SPECIAL, 0x14 ),
+          DIKS_TIME                     = DFB_KEY( SPECIAL, 0x15 ),
+          DIKS_VENDOR                   = DFB_KEY( SPECIAL, 0x16 ),
+
+          DIKS_ARCHIVE                  = DFB_KEY( SPECIAL, 0x17 ),
+          DIKS_PROGRAM                  = DFB_KEY( SPECIAL, 0x18 ),
+          DIKS_CHANNEL                  = DFB_KEY( SPECIAL, 0x19 ),
+          DIKS_FAVORITES                = DFB_KEY( SPECIAL, 0x1A ),
+          DIKS_EPG                      = DFB_KEY( SPECIAL, 0x1B ),
+          DIKS_PVR                      = DFB_KEY( SPECIAL, 0x1C ),
+          DIKS_MHP                      = DFB_KEY( SPECIAL, 0x1D ),
+          DIKS_LANGUAGE                 = DFB_KEY( SPECIAL, 0x1E ),
+          DIKS_TITLE                    = DFB_KEY( SPECIAL, 0x1F ),
+          DIKS_SUBTITLE                 = DFB_KEY( SPECIAL, 0x20 ),
+          DIKS_ANGLE                    = DFB_KEY( SPECIAL, 0x21 ),
+          DIKS_ZOOM                     = DFB_KEY( SPECIAL, 0x22 ),
+          DIKS_MODE                     = DFB_KEY( SPECIAL, 0x23 ),
+          DIKS_KEYBOARD                 = DFB_KEY( SPECIAL, 0x24 ),
+          DIKS_PC                       = DFB_KEY( SPECIAL, 0x25 ),
+          DIKS_SCREEN                   = DFB_KEY( SPECIAL, 0x26 ),
+                                                               
+          DIKS_TV                       = DFB_KEY( SPECIAL, 0x27 ),
+          DIKS_TV2                      = DFB_KEY( SPECIAL, 0x28 ),
+          DIKS_VCR                      = DFB_KEY( SPECIAL, 0x29 ),
+          DIKS_VCR2                     = DFB_KEY( SPECIAL, 0x2A ),
+          DIKS_SAT                      = DFB_KEY( SPECIAL, 0x2B ),
+          DIKS_SAT2                     = DFB_KEY( SPECIAL, 0x2C ),
+          DIKS_CD                       = DFB_KEY( SPECIAL, 0x2D ),
+          DIKS_TAPE                     = DFB_KEY( SPECIAL, 0x2E ),
+          DIKS_RADIO                    = DFB_KEY( SPECIAL, 0x2F ),
+          DIKS_TUNER                    = DFB_KEY( SPECIAL, 0x30 ),
+          DIKS_PLAYER                   = DFB_KEY( SPECIAL, 0x31 ),
+          DIKS_TEXT                     = DFB_KEY( SPECIAL, 0x32 ),
+          DIKS_DVD                      = DFB_KEY( SPECIAL, 0x33 ),
+          DIKS_AUX                      = DFB_KEY( SPECIAL, 0x34 ),
+          DIKS_MP3                      = DFB_KEY( SPECIAL, 0x35 ),
+          DIKS_PHONE                    = DFB_KEY( SPECIAL, 0x36 ),
+          DIKS_AUDIO                    = DFB_KEY( SPECIAL, 0x37 ),
+          DIKS_VIDEO                    = DFB_KEY( SPECIAL, 0x38 ),
+
+          DIKS_INTERNET                 = DFB_KEY( SPECIAL, 0x39 ),
+          DIKS_MAIL                     = DFB_KEY( SPECIAL, 0x3A ),
+          DIKS_NEWS                     = DFB_KEY( SPECIAL, 0x3B ),
+          DIKS_DIRECTORY                = DFB_KEY( SPECIAL, 0x3C ),
+          DIKS_LIST                     = DFB_KEY( SPECIAL, 0x3D ),
+          DIKS_CALCULATOR               = DFB_KEY( SPECIAL, 0x3E ),
+          DIKS_MEMO                     = DFB_KEY( SPECIAL, 0x3F ),
+          DIKS_CALENDAR                 = DFB_KEY( SPECIAL, 0x40 ),
+          DIKS_EDITOR                   = DFB_KEY( SPECIAL, 0x41 ),
+
+          DIKS_RED                      = DFB_KEY( SPECIAL, 0x42 ),
+          DIKS_GREEN                    = DFB_KEY( SPECIAL, 0x43 ),
+          DIKS_YELLOW                   = DFB_KEY( SPECIAL, 0x44 ),
+          DIKS_BLUE                     = DFB_KEY( SPECIAL, 0x45 ),
+
+          DIKS_CHANNELUP                = DFB_KEY( SPECIAL, 0x46 ),
+          DIKS_CHANNELDOWN              = DFB_KEY( SPECIAL, 0x47 ),
+          DIKS_BACK                     = DFB_KEY( SPECIAL, 0x48 ),
+          DIKS_FORWARD                  = DFB_KEY( SPECIAL, 0x49 ),
+          DIKS_FIRST                    = DFB_KEY( SPECIAL, 0x4A ),
+          DIKS_LAST                     = DFB_KEY( SPECIAL, 0x4B ),
+          DIKS_VOLUMEUP                 = DFB_KEY( SPECIAL, 0x4C ),
+          DIKS_VOLUMEDOWN               = DFB_KEY( SPECIAL, 0x4D ),
+          DIKS_MUTE                     = DFB_KEY( SPECIAL, 0x4E ),
+          DIKS_AB                       = DFB_KEY( SPECIAL, 0x4F ),
+          DIKS_PLAYPAUSE                = DFB_KEY( SPECIAL, 0x50 ),
+          DIKS_PLAY                     = DFB_KEY( SPECIAL, 0x51 ),
+          DIKS_STOP                     = DFB_KEY( SPECIAL, 0x52 ),
+          DIKS_RESTART                  = DFB_KEY( SPECIAL, 0x53 ),
+          DIKS_SLOW                     = DFB_KEY( SPECIAL, 0x54 ),
+          DIKS_FAST                     = DFB_KEY( SPECIAL, 0x55 ),
+          DIKS_RECORD                   = DFB_KEY( SPECIAL, 0x56 ),
+          DIKS_EJECT                    = DFB_KEY( SPECIAL, 0x57 ),
+          DIKS_SHUFFLE                  = DFB_KEY( SPECIAL, 0x58 ),
+          DIKS_REWIND                   = DFB_KEY( SPECIAL, 0x59 ),
+          DIKS_FASTFORWARD              = DFB_KEY( SPECIAL, 0x5A ),
+          DIKS_PREVIOUS                 = DFB_KEY( SPECIAL, 0x5B ),
+          DIKS_NEXT                     = DFB_KEY( SPECIAL, 0x5C ),
+
+          DIKS_DIGITS                   = DFB_KEY( SPECIAL, 0x5D ),
+          DIKS_TEEN                     = DFB_KEY( SPECIAL, 0x5E ),
+          DIKS_TWEN                     = DFB_KEY( SPECIAL, 0x5F ),
+
+          /*
+           * Unicode private area - DirectFB Function keys
+           *
+           * More function keys are available via DFB_FUNCTION_KEY(n).
+           */
+          DIKS_F1                       = DFB_FUNCTION_KEY(  1 ),
+          DIKS_F2                       = DFB_FUNCTION_KEY(  2 ),
+          DIKS_F3                       = DFB_FUNCTION_KEY(  3 ),
+          DIKS_F4                       = DFB_FUNCTION_KEY(  4 ),
+          DIKS_F5                       = DFB_FUNCTION_KEY(  5 ),
+          DIKS_F6                       = DFB_FUNCTION_KEY(  6 ),
+          DIKS_F7                       = DFB_FUNCTION_KEY(  7 ),
+          DIKS_F8                       = DFB_FUNCTION_KEY(  8 ),
+          DIKS_F9                       = DFB_FUNCTION_KEY(  9 ),
+          DIKS_F10                      = DFB_FUNCTION_KEY( 10 ),
+          DIKS_F11                      = DFB_FUNCTION_KEY( 11 ),
+          DIKS_F12                      = DFB_FUNCTION_KEY( 12 ),
+          
+          /*
+           * Unicode private area - DirectFB Numeric Pad keys
+           */
+          DIKS_KP_0                     = DFB_KEY( NUMPAD, 0x00 ),
+          DIKS_KP_1                     = DFB_KEY( NUMPAD, 0x01 ),
+          DIKS_KP_2                     = DFB_KEY( NUMPAD, 0x02 ),
+          DIKS_KP_3                     = DFB_KEY( NUMPAD, 0x03 ),
+          DIKS_KP_4                     = DFB_KEY( NUMPAD, 0x04 ),
+          DIKS_KP_5                     = DFB_KEY( NUMPAD, 0x05 ),
+          DIKS_KP_6                     = DFB_KEY( NUMPAD, 0x06 ),
+          DIKS_KP_7                     = DFB_KEY( NUMPAD, 0x07 ),
+          DIKS_KP_8                     = DFB_KEY( NUMPAD, 0x08 ),
+          DIKS_KP_9                     = DFB_KEY( NUMPAD, 0x09 ),
+          
+          DIKS_KP_DIV                   = DFB_KEY( NUMPAD, 0x0A ),
+          DIKS_KP_MULT                  = DFB_KEY( NUMPAD, 0x0B ),
+          DIKS_KP_MINUS                 = DFB_KEY( NUMPAD, 0x0C ),
+          DIKS_KP_PLUS                  = DFB_KEY( NUMPAD, 0x0D ),
+          DIKS_KP_ENTER                 = DFB_KEY( NUMPAD, 0x0E ),
+          DIKS_KP_SPACE                 = DFB_KEY( NUMPAD, 0x0F ),
+          DIKS_KP_TAB                   = DFB_KEY( NUMPAD, 0x10 ),
+          DIKS_KP_F1                    = DFB_KEY( NUMPAD, 0x11 ),
+          DIKS_KP_F2                    = DFB_KEY( NUMPAD, 0x12 ),
+          DIKS_KP_F3                    = DFB_KEY( NUMPAD, 0x13 ),
+          DIKS_KP_F4                    = DFB_KEY( NUMPAD, 0x14 ),
+          DIKS_KP_HOME                  = DFB_KEY( NUMPAD, 0x15 ),
+          DIKS_KP_LEFT                  = DFB_KEY( NUMPAD, 0x16 ),
+          DIKS_KP_UP                    = DFB_KEY( NUMPAD, 0x17 ),
+          DIKS_KP_RIGHT                 = DFB_KEY( NUMPAD, 0x18 ),
+          DIKS_KP_DOWN                  = DFB_KEY( NUMPAD, 0x19 ),
+          DIKS_KP_PRIOR                 = DFB_KEY( NUMPAD, 0x1A ),
+          DIKS_KP_PAGE_UP               = DFB_KEY( NUMPAD, 0x1B ),
+          DIKS_KP_NEXT                  = DFB_KEY( NUMPAD, 0x1C ),
+          DIKS_KP_PAGE_DOWN             = DFB_KEY( NUMPAD, 0x1D ),
+          DIKS_KP_END                   = DFB_KEY( NUMPAD, 0x1E ),
+          DIKS_KP_BEGIN                 = DFB_KEY( NUMPAD, 0x1F ),
+          DIKS_KP_INSERT                = DFB_KEY( NUMPAD, 0x20 ),
+          DIKS_KP_DELETE                = DFB_KEY( NUMPAD, 0x21 ),
+          DIKS_KP_EQUAL                 = DFB_KEY( NUMPAD, 0x22 ),
+          DIKS_KP_DECIMAL               = DFB_KEY( NUMPAD, 0x23 ),
+          DIKS_KP_SEPARATOR             = DFB_KEY( NUMPAD, 0x24 ),
+          
+          /*
+           * Unicode private area - DirectFB Modifier keys
+           */
+          DIKS_SHIFT                    = DFB_MODIFIER_KEY( DIMKI_SHIFT ),
+          DIKS_CONTROL                  = DFB_MODIFIER_KEY( DIMKI_CONTROL ),
+          DIKS_ALT                      = DFB_MODIFIER_KEY( DIMKI_ALT ),
+          DIKS_ALTGR                    = DFB_MODIFIER_KEY( DIMKI_ALTGR ),
+          DIKS_META                     = DFB_MODIFIER_KEY( DIMKI_META ),
+          DIKS_SUPER                    = DFB_MODIFIER_KEY( DIMKI_SUPER ),
+          DIKS_HYPER                    = DFB_MODIFIER_KEY( DIMKI_HYPER ),
+          
+          /*
+           * Unicode private area - DirectFB Lock keys
+           */
+          DIKS_CAPSLOCK                 = DFB_KEY( LOCK, 0x00 ),
+          DIKS_NUMLOCK                  = DFB_KEY( LOCK, 0x01 ),
+          DIKS_SCROLLLOCK               = DFB_KEY( LOCK, 0x02 ),
+          
+          /*
+           * Unicode private area - DirectFB Dead keys
+           */
+          DIKS_DEAD_GRAVE               = DFB_KEY( DEAD, 0x00 ),
+          DIKS_DEAD_ACUTE               = DFB_KEY( DEAD, 0x01 ),
+          DIKS_DEAD_CIRCUMFLEX          = DFB_KEY( DEAD, 0x02 ),
+          DIKS_DEAD_TILDE               = DFB_KEY( DEAD, 0x03 ),
+          DIKS_DEAD_DIAERESIS           = DFB_KEY( DEAD, 0x04 ),
+          DIKS_DEAD_CEDILLA             = DFB_KEY( DEAD, 0x05 ),
+          
+          /*
+           * Unicode private area - DirectFB Custom keys
+           *
+           * More function keys are available via DFB_CUSTOM_KEY(n).
+           */
+          DIKS_CUSTOM0                  = DFB_CUSTOM_KEY( 0 ),
+          DIKS_CUSTOM1                  = DFB_CUSTOM_KEY( 1 ),
+          DIKS_CUSTOM2                  = DFB_CUSTOM_KEY( 2 ),
+          DIKS_CUSTOM3                  = DFB_CUSTOM_KEY( 3 ),
+          DIKS_CUSTOM4                  = DFB_CUSTOM_KEY( 4 ),
+          DIKS_CUSTOM5                  = DFB_CUSTOM_KEY( 5 ),
+          DIKS_CUSTOM6                  = DFB_CUSTOM_KEY( 6 ),
+          DIKS_CUSTOM7                  = DFB_CUSTOM_KEY( 7 ),
+          DIKS_CUSTOM8                  = DFB_CUSTOM_KEY( 8 ),
+          DIKS_CUSTOM9                  = DFB_CUSTOM_KEY( 9 )
+     } DFBInputDeviceKeySymbol;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+

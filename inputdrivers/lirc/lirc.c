@@ -1,9 +1,12 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -47,175 +50,137 @@
 DFB_INPUT_DRIVER( lirc )
 
 typedef struct {
-     DFBInputDeviceKeyIdentifier  key;
-     char                        *name;
-} KeyCodeString;
+     DFBInputDeviceKeySymbol  symbol;
+     char                    *name;
+} KeySymbolString;
 
-static const KeyCodeString keycode_strings[] = {
-     { DIKC_A, "A" },
-     { DIKC_B, "B" },
-     { DIKC_C, "C" },
-     { DIKC_D, "D" },
-     { DIKC_E, "E" },
-     { DIKC_F, "F" },
-     { DIKC_G, "G" },
-     { DIKC_H, "H" },
-     { DIKC_I, "I" },
-     { DIKC_J, "J" },
-     { DIKC_K, "K" },
-     { DIKC_L, "L" },
-     { DIKC_M, "M" },
-     { DIKC_N, "N" },
-     { DIKC_O, "O" },
-     { DIKC_P, "P" },
-     { DIKC_Q, "Q" },
-     { DIKC_R, "R" },
-     { DIKC_S, "S" },
-     { DIKC_T, "T" },
-     { DIKC_U, "U" },
-     { DIKC_V, "V" },
-     { DIKC_W, "W" },
-     { DIKC_X, "X" },
-     { DIKC_Y, "Y" },
-     { DIKC_Z, "Z" },
+static const KeySymbolString keysymbol_strings[] = {
+     { DIKS_F1,   "F1" },
+     { DIKS_F2,   "F2" },
+     { DIKS_F3,   "F3" },
+     { DIKS_F4,   "F4" },
+     { DIKS_F5,   "F5" },
+     { DIKS_F6,   "F6" },
+     { DIKS_F7,   "F7" },
+     { DIKS_F8,   "F8" },
+     { DIKS_F9,   "F9" },
+     { DIKS_F10, "F10" },
+     { DIKS_F11, "F11" },
+     { DIKS_F12, "F12" },
 
-     { DIKC_0, "0" },
-     { DIKC_1, "1" },
-     { DIKC_2, "2" },
-     { DIKC_3, "3" },
-     { DIKC_4, "4" },
-     { DIKC_5, "5" },
-     { DIKC_6, "6" },
-     { DIKC_7, "7" },
-     { DIKC_8, "8" },
-     { DIKC_9, "9" },
+     { DIKS_ESCAPE, "ESCAPE" },
+     { DIKS_CURSOR_LEFT, "CURSOR_LEFT" },
+     { DIKS_CURSOR_RIGHT, "CURSOR_RIGHT" },
+     { DIKS_CURSOR_UP, "CURSOR_UP" },
+     { DIKS_CURSOR_DOWN, "CURSOR_DOWN" },
+     { DIKS_CONTROL, "CONTROL" },
+     { DIKS_SHIFT, "SHIFT" },
+     { DIKS_ALT, "ALT" },
+     { DIKS_ALTGR, "ALTGR" },
+     { DIKS_TAB, "TAB" },
+     { DIKS_ENTER, "ENTER" },
+     { DIKS_SPACE, "SPACE" },
+     { DIKS_BACKSPACE, "BACKSPACE" },
+     { DIKS_INSERT, "INSERT" },
+     { DIKS_DELETE, "DELETE" },
+     { DIKS_HOME, "HOME" },
+     { DIKS_END, "END" },
+     { DIKS_PAGEUP, "PAGEUP" },
+     { DIKS_PAGEDOWN, "PAGEDOWN" },
+     { DIKS_CAPSLOCK, "CAPSLOCK" },
+     { DIKS_NUMLOCK, "NUMLOCK" },
+     { DIKS_SCROLLLOCK, "SCROLLLOCK" },
+     { DIKS_PRINT, "PRINT" },
+     { DIKS_PAUSE, "PAUSE" },
+     { DIKS_KP_DIV, "KP_DIV" },
+     { DIKS_KP_MULT, "KP_MULT" },
+     { DIKS_KP_MINUS, "KP_MINUS" },
+     { DIKS_KP_PLUS, "KP_PLUS" },
+     { DIKS_KP_ENTER, "KP_ENTER" },
 
-     { DIKC_F1,   "F1" },
-     { DIKC_F2,   "F2" },
-     { DIKC_F3,   "F3" },
-     { DIKC_F4,   "F4" },
-     { DIKC_F5,   "F5" },
-     { DIKC_F6,   "F6" },
-     { DIKC_F7,   "F7" },
-     { DIKC_F8,   "F8" },
-     { DIKC_F9,   "F9" },
-     { DIKC_F10, "F10" },
-     { DIKC_F11, "F11" },
-     { DIKC_F12, "F12" },
+     { DIKS_OK, "OK" },
+     { DIKS_CANCEL, "CANCEL" },
+     { DIKS_SELECT, "SELECT" },
+     { DIKS_GOTO, "GOTO" },
+     { DIKS_CLEAR, "CLEAR" },
+     { DIKS_POWER, "POWER" },
+     { DIKS_POWER2, "POWER2" },
+     { DIKS_OPTION, "OPTION" },
+     { DIKS_MENU, "MENU" },
+     { DIKS_HELP, "HELP" },
+     { DIKS_INFO, "INFO" },
+     { DIKS_TIME, "TIME" },
+     { DIKS_VENDOR, "VENDOR" },
 
-     { DIKC_ESCAPE, "ESCAPE" },
-     { DIKC_LEFT, "LEFT" },
-     { DIKC_RIGHT, "RIGHT" },
-     { DIKC_UP, "UP" },
-     { DIKC_DOWN, "DOWN" },
-     { DIKC_CTRL, "CTRL" },
-     { DIKC_SHIFT, "SHIFT" },
-     { DIKC_ALT, "ALT" },
-     { DIKC_ALTGR, "ALTGR" },
-     { DIKC_TAB, "TAB" },
-     { DIKC_ENTER, "ENTER" },
-     { DIKC_SPACE, "SPACE" },
-     { DIKC_BACKSPACE, "BACKSPACE" },
-     { DIKC_INSERT, "INSERT" },
-     { DIKC_DELETE, "DELETE" },
-     { DIKC_HOME, "HOME" },
-     { DIKC_END, "END" },
-     { DIKC_PAGEUP, "PAGEUP" },
-     { DIKC_PAGEDOWN, "PAGEDOWN" },
-     { DIKC_CAPSLOCK, "CAPSLOCK" },
-     { DIKC_NUMLOCK, "NUMLOCK" },
-     { DIKC_SCRLOCK, "SCRLOCK" },
-     { DIKC_PRINT, "PRINT" },
-     { DIKC_PAUSE, "PAUSE" },
-     { DIKC_KP_DIV, "KP_DIV" },
-     { DIKC_KP_MULT, "KP_MULT" },
-     { DIKC_KP_MINUS, "KP_MINUS" },
-     { DIKC_KP_PLUS, "KP_PLUS" },
-     { DIKC_KP_ENTER, "KP_ENTER" },
+     { DIKS_ARCHIVE, "ARCHIVE" },
+     { DIKS_PROGRAM, "PROGRAM" },
+     { DIKS_FAVORITES, "FAVORITES" },
+     { DIKS_EPG, "EPG" },
+     { DIKS_LANGUAGE, "LANGUAGE" },
+     { DIKS_TITLE, "TITLE" },
+     { DIKS_SUBTITLE, "SUBTITLE" },
+     { DIKS_ANGLE, "ANGLE" },
+     { DIKS_ZOOM, "ZOOM" },
+     { DIKS_MODE, "MODE" },
+     { DIKS_KEYBOARD, "KEYBOARD" },
+     { DIKS_PC, "PC" },
+     { DIKS_SCREEN, "SCREEN" },
 
-     { DIKC_OK, "OK" },
-     { DIKC_CANCEL, "CANCEL" },
-     { DIKC_SELECT, "SELECT" },
-     { DIKC_GOTO, "GOTO" },
-     { DIKC_CLEAR, "CLEAR" },
-     { DIKC_POWER, "POWER" },
-     { DIKC_POWER2, "POWER2" },
-     { DIKC_OPTION, "OPTION" },
-     { DIKC_MENU, "MENU" },
-     { DIKC_HELP, "HELP" },
-     { DIKC_INFO, "INFO" },
-     { DIKC_TIME, "TIME" },
-     { DIKC_VENDOR, "VENDOR" },
+     { DIKS_TV, "TV" },
+     { DIKS_TV2, "TV2" },
+     { DIKS_VCR, "VCR" },
+     { DIKS_VCR2, "VCR2" },
+     { DIKS_SAT, "SAT" },
+     { DIKS_SAT2, "SAT2" },
+     { DIKS_CD, "CD" },
+     { DIKS_TAPE, "TAPE" },
+     { DIKS_RADIO, "RADIO" },
+     { DIKS_TUNER, "TUNER" },
+     { DIKS_PLAYER, "PLAYER" },
+     { DIKS_TEXT, "TEXT" },
+     { DIKS_DVD, "DVD" },
+     { DIKS_AUX, "AUX" },
+     { DIKS_MP3, "MP3" },
+     { DIKS_AUDIO, "AUDIO" },
+     { DIKS_VIDEO, "VIDEO" },
+     { DIKS_INTERNET, "INTERNET" },
+     { DIKS_MAIL, "MAIL" },
+     { DIKS_NEWS, "NEWS" },
 
-     { DIKC_ARCHIVE, "ARCHIVE" },
-     { DIKC_PROGRAM, "PROGRAM" },
-     { DIKC_FAVORITES, "FAVORITES" },
-     { DIKC_EPG, "EPG" },
-     { DIKC_LANGUAGE, "LANGUAGE" },
-     { DIKC_TITLE, "TITLE" },
-     { DIKC_SUBTITLE, "SUBTITLE" },
-     { DIKC_ANGLE, "ANGLE" },
-     { DIKC_ZOOM, "ZOOM" },
-     { DIKC_MODE, "MODE" },
-     { DIKC_KEYBOARD, "KEYBOARD" },
-     { DIKC_PC, "PC" },
-     { DIKC_SCREEN, "SCREEN" },
+     { DIKS_RED, "RED" },
+     { DIKS_GREEN, "GREEN" },
+     { DIKS_YELLOW, "YELLOW" },
+     { DIKS_BLUE, "BLUE" },
 
-     { DIKC_TV, "TV" },
-     { DIKC_TV2, "TV2" },
-     { DIKC_VCR, "VCR" },
-     { DIKC_VCR2, "VCR2" },
-     { DIKC_SAT, "SAT" },
-     { DIKC_SAT2, "SAT2" },
-     { DIKC_CD, "CD" },
-     { DIKC_TAPE, "TAPE" },
-     { DIKC_RADIO, "RADIO" },
-     { DIKC_TUNER, "TUNER" },
-     { DIKC_PLAYER, "PLAYER" },
-     { DIKC_TEXT, "TEXT" },
-     { DIKC_DVD, "DVD" },
-     { DIKC_AUX, "AUX" },
-     { DIKC_MP3, "MP3" },
-     { DIKC_AUDIO, "AUDIO" },
-     { DIKC_VIDEO, "VIDEO" },
-     { DIKC_INTERNET, "INTERNET" },
-     { DIKC_MAIL, "MAIL" },
-     { DIKC_NEWS, "NEWS" },
+     { DIKS_CHANNELUP, "CHANNELUP" },
+     { DIKS_CHANNELDOWN, "CHANNELDOWN" },
+     { DIKS_BACK, "BACK" },
+     { DIKS_FORWARD, "FORWARD" },
+     { DIKS_VOLUMEUP, "VOLUMEUP" },
+     { DIKS_VOLUMEDOWN, "VOLUMEDOWN" },
+     { DIKS_MUTE, "MUTE" },
+     { DIKS_AB, "AB" },
 
-     { DIKC_RED, "RED" },
-     { DIKC_GREEN, "GREEN" },
-     { DIKC_YELLOW, "YELLOW" },
-     { DIKC_BLUE, "BLUE" },
+     { DIKS_PLAYPAUSE, "PLAYPAUSE" },
+     { DIKS_PLAY, "PLAY" },
+     { DIKS_STOP, "STOP" },
+     { DIKS_RESTART, "RESTART" },
+     { DIKS_SLOW, "SLOW" },
+     { DIKS_FAST, "FAST" },
+     { DIKS_RECORD, "RECORD" },
+     { DIKS_EJECT, "EJECT" },
+     { DIKS_SHUFFLE, "SHUFFLE" },
+     { DIKS_REWIND, "REWIND" },
+     { DIKS_FASTFORWARD, "FASTFORWARD" },
+     { DIKS_PREVIOUS, "PREVIOUS" },
+     { DIKS_NEXT, "NEXT" },
 
-     { DIKC_CHANNELUP, "CHANNELUP" },
-     { DIKC_CHANNELDOWN, "CHANNELDOWN" },
-     { DIKC_BACK, "BACK" },
-     { DIKC_FORWARD, "FORWARD" },
-     { DIKC_VOLUMEUP, "VOLUMEUP" },
-     { DIKC_VOLUMEDOWN, "VOLUMEDOWN" },
-     { DIKC_MUTE, "MUTE" },
-     { DIKC_AB, "AB" },
-
-     { DIKC_PLAYPAUSE, "PLAYPAUSE" },
-     { DIKC_PLAY, "PLAY" },
-     { DIKC_STOP, "STOP" },
-     { DIKC_RESTART, "RESTART" },
-     { DIKC_SLOW, "SLOW" },
-     { DIKC_FAST, "FAST" },
-     { DIKC_RECORD, "RECORD" },
-     { DIKC_EJECT, "EJECT" },
-     { DIKC_SHUFFLE, "SHUFFLE" },
-     { DIKC_REWIND, "REWIND" },
-     { DIKC_FASTFORWARD, "FASTFORWARD" },
-     { DIKC_PREVIOUS, "PREVIOUS" },
-     { DIKC_NEXT, "NEXT" },
-
-     { DIKC_DIGITS, "DIGITS" },
-     { DIKC_TEEN, "TEEN" },
-     { DIKC_TWEN, "TWEN" },
-     { DIKC_ASTERISK, "ASTERISK" },
-     { DIKC_HASH, "HASH" },
-     { DIKC_UNKNOWN, NULL }
+     { DIKS_DIGITS, "DIGITS" },
+     { DIKS_TEEN, "TEEN" },
+     { DIKS_TWEN, "TWEN" },
+     { DIKS_ASTERISK, "ASTERISK" },
+     { DIKS_NUMBER_SIGN, "NUMBER_SIGN" },
+     { DIKS_NULL, NULL }
 };
 
 
@@ -226,19 +191,19 @@ typedef struct {
 } LircData;
 
 
-static DFBInputDeviceKeyIdentifier lirc_parse_line(const char *line)
+static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
 {
-     const KeyCodeString *keycode_string = keycode_strings;
-     char                *s, *name;
+     const KeySymbolString *keysymbol_string = keysymbol_strings;
+     char                  *s, *name;
 
 
      s = strchr( line, ' ' );
      if (!s || !s[1])
-          return DIKC_UNKNOWN;
+          return DIKS_NULL;
 
      s = strchr( ++s, ' ' );
      if (!s|| !s[1])
-          return DIKC_UNKNOWN;
+          return DIKS_NULL;
 
      name = ++s;
 
@@ -246,14 +211,22 @@ static DFBInputDeviceKeyIdentifier lirc_parse_line(const char *line)
      if (s)
           *s = '\0';
 
-     while (keycode_string->key != DIKC_UNKNOWN) {
-          if (!strcmp( keycode_string->name, name ))
-               return keycode_string->key;
+     switch (strlen( name )) {
+          case 0:
+               return DIKS_NULL;
+          case 1:
+               return name[0];
+          default:
+               while (keysymbol_string->symbol != DIKS_NULL) {
+                    if (!strcmp( keysymbol_string->name, name ))
+                         return keysymbol_string->symbol;
 
-          keycode_string++;
+                    keysymbol_string++;
+               }
+               break;
      }
 
-     return DIKC_UNKNOWN;
+     return DIKS_NULL;
 }
 
 static void*
@@ -269,7 +242,7 @@ lircEventThread( void *driver_data )
 
      memset( &evt, 0, sizeof(DFBInputEvent) );
 
-     evt.flags = DIEF_KEYCODE;
+     evt.flags = DIEF_KEYSYMBOL;
 
      while ((readlen = read( data->fd, buf, 128 )) > 0 || errno == EINTR) {
           pthread_testcancel();
@@ -277,8 +250,8 @@ lircEventThread( void *driver_data )
           if (readlen < 1)
                continue;
 
-          evt.keycode = lirc_parse_line( buf );
-          if (evt.keycode != DIKC_UNKNOWN) {
+          evt.key_symbol = lirc_parse_line( buf );
+          if (evt.key_symbol != DIKS_NULL) {
                evt.type = DIET_KEYPRESS;
                dfb_input_dispatch( data->device, &evt );
 

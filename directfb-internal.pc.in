@@ -4,6 +4,7 @@ moduledir=@MODULEDIR@
 includedir=@INTERNALINCLUDEDIR@
 
 Name: DirectFB-Internal
-Description: Third party modules support package for DirectFB.
+Description: Third party module support package for DirectFB.
 Version: @VERSION@
-Cflags: -I${includedir} @DFB_INTERNAL_CFLAGS@
+Requires: directfb
+Cflags: @DFB_INTERNAL_CFLAGS@ -I@INTERNALINCLUDEDIR@

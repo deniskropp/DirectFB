@@ -1,9 +1,11 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de>,
-              Andreas Hundt <andi@convergence.de> and
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
               Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or

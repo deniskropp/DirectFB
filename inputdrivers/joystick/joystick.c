@@ -1,9 +1,12 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+   
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -70,7 +73,7 @@ static DFBInputEvent joystick_handle_event(struct js_event jse)
                else
                     event.type = DIET_BUTTONRELEASE;
 
-               event.flags = DIEF_BUTTON;
+               event.flags = DIEF_NONE; /* button is always valid */
                event.button = jse.number;
                break;
           case JS_EVENT_AXIS:
