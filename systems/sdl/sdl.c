@@ -119,7 +119,8 @@ system_initialize( CoreDFB *core, void **data )
 static DFBResult
 system_join( CoreDFB *core, void **data )
 {
-     void *ret;
+     void       *ret;
+     CoreScreen *screen;
 
      D_ASSERT( dfb_sdl == NULL );
 
@@ -127,7 +128,9 @@ system_join( CoreDFB *core, void **data )
 
      dfb_sdl = ret;
 
-     dfb_layers_register( NULL, NULL, &sdlPrimaryLayerFuncs );
+     screen = dfb_screens_register( NULL, NULL, &sdlPrimaryScreenFuncs );
+
+     dfb_layers_register( screen, NULL, &sdlPrimaryLayerFuncs );
 
      *data = dfb_sdl;
 
