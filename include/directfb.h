@@ -1695,9 +1695,9 @@ DEFINE_INTERFACE(   IDirectFBScreen,
       * IDirectFB->GetDisplayLayer().
       */
      DFBResult (*EnumDisplayLayers) (
-          IDirectFBScreen          *thiz,
-          DFBDisplayLayerCallback   callback,
-          void                     *callbackdata
+          IDirectFBScreen                    *thiz,
+          DFBDisplayLayerCallback             callback,
+          void                               *callbackdata
      );
 
 
@@ -2071,6 +2071,16 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      DFBResult (*SetCursorOpacity) (
           IDirectFBDisplayLayer              *thiz,
           __u8                                opacity
+     );
+
+
+   /** Synchronization **/
+
+     /*
+      * Wait for next vertical retrace.
+      */
+     DFBResult (*WaitForSync) (
+          IDirectFBDisplayLayer              *thiz
      );
 )
 

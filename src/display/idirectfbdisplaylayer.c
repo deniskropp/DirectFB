@@ -672,6 +672,14 @@ IDirectFBDisplayLayer_SetColorAdjustment( IDirectFBDisplayLayer *thiz,
      return dfb_layer_context_set_coloradjustment( data->context, adj );
 }
 
+static DFBResult
+IDirectFBDisplayLayer_WaitForSync( IDirectFBDisplayLayer *thiz )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     return dfb_layer_wait_vsync( data->layer );
+}
+
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer )
@@ -731,6 +739,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetCursorShape        = IDirectFBDisplayLayer_SetCursorShape;
      thiz->SetCursorOpacity      = IDirectFBDisplayLayer_SetCursorOpacity;
      thiz->SetFieldParity        = IDirectFBDisplayLayer_SetFieldParity;
+     thiz->WaitForSync           = IDirectFBDisplayLayer_WaitForSync;
 
      return DFB_OK;
 }
