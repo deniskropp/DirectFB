@@ -5,7 +5,7 @@ INCLUDES = \
 lib_LTLIBRARIES = lib++dfb.la
 
 lib__dfb_la_SOURCES = \
-	++dfb.cpp			\
+	ppdfb.cpp			\
 	++dfb_internal.h		\
 	idirectfb.cpp			\
 	idirectfbdatabuffer.cpp		\
