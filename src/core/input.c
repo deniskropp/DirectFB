@@ -92,6 +92,22 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
                continue;
           }
 
+          /*  uniquify driver ID  */
+          if (inputdevices) {
+               InputDevice *dev = inputdevices;
+
+               do {
+                    if (dev->id == device->id) {
+                         /* give it a new one beyond the last predefined id */
+                         if (device->id < DIDID_REMOTE)
+                              device->id = DIDID_REMOTE;
+                         device->id++;
+                         dev = inputdevices;
+                         continue;
+                    }
+               } while ((dev = dev->next) != NULL);
+          }
+
           device->info.driver = driver;
 
           INITMSG( "DirectFB/InputDevice: %s %d.%d (%s)\n",
