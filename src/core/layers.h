@@ -268,6 +268,11 @@ DFBResult dfb_layer_cursor_set_shape( DisplayLayer *layer,
 DFBResult dfb_layer_cursor_set_opacity( DisplayLayer *layer,
                                         __u8          opacity );
 
+DFBResult dfb_layer_cursor_set_acceleration( DisplayLayer *layer,
+                                             int           numerator,
+                                             int           denominator,
+                                             int           threshold );
+
 DFBResult dfb_layer_cursor_warp( DisplayLayer *layer,
                                  int           x,
                                  int           y );

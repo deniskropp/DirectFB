@@ -107,28 +107,11 @@ ps2mouse_motion_initialize( PS2MouseData *data )
      data->z_motion.axis    = DIAI_Z;
 }
 
-#define ABS(a) ( ((a) > 0) ? (a) : -(a) )
-
-#define ACC(a) \
-     if (d##a > 3  ||  d##a < -3) { \
-          acc_##a += d##a / 2; \
-          if (ABS(acc_##a) > ABS(d##a)) \
-               acc_##a = d##a; \
-     } \
-     else \
-          acc_##a = 0;
-
 static inline void
 ps2mouse_motion_compress( PS2MouseData *data, int dx, int dy, int dz )
 {
-     static int acc_x = 0;
-     static int acc_y = 0;
-
-     ACC(x);
-     ACC(y);
-
-     data->x_motion.axisrel += dx + acc_x;
-     data->y_motion.axisrel += dy + acc_y;
+     data->x_motion.axisrel += dx;
+     data->y_motion.axisrel += dy;
      data->z_motion.axisrel += dz;
 }
 

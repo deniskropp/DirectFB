@@ -565,10 +565,10 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
      /*
       * Update the valid region for the cursor.
       */
-     shared->stack->cursor_region.x1 = 0;
-     shared->stack->cursor_region.y1 = 0;
-     shared->stack->cursor_region.x2 = config->width - 1;
-     shared->stack->cursor_region.y2 = config->height - 1;
+     shared->stack->cursor.region.x1 = 0;
+     shared->stack->cursor.region.y1 = 0;
+     shared->stack->cursor.region.x2 = config->width - 1;
+     shared->stack->cursor.region.y2 = config->height - 1;
 
      return DFB_OK;
 }
@@ -891,10 +891,10 @@ dfb_layer_get_cursor_position (DisplayLayer       *layer,
      DFB_ASSERT( shared->enabled );
 
      if (x)
-          *x = shared->stack->cx;
+          *x = shared->stack->cursor.x;
 
      if (y)
-          *y = shared->stack->cy;
+          *y = shared->stack->cursor.y;
 
      return DFB_OK;
 }
@@ -942,7 +942,7 @@ dfb_layer_cursor_enable( DisplayLayer *layer, int enable )
      DFB_ASSERT( layer->shared->enabled );
      
      if (enable) {
-          if (!stack->cursor_window) {
+          if (!stack->cursor.window) {
                DFBResult ret;
 
                ret = load_default_cursor( layer );
@@ -950,16 +950,16 @@ dfb_layer_cursor_enable( DisplayLayer *layer, int enable )
                     return ret;
           }
 
-          dfb_window_set_opacity( stack->cursor_window,
-                                  stack->cursor_opacity );
+          dfb_window_set_opacity( stack->cursor.window,
+                                  stack->cursor.opacity );
 
-          stack->cursor = 1;
+          stack->cursor.enabled = 1;
      }
      else {
-          if (stack->cursor_window)
-               dfb_window_set_opacity( stack->cursor_window, 0 );
+          if (stack->cursor.window)
+               dfb_window_set_opacity( stack->cursor.window, 0 );
 
-          stack->cursor = 0;
+          stack->cursor.enabled = 0;
      }
 
      return DFB_OK;
@@ -972,13 +972,13 @@ dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
 
      DFB_ASSERT( layer->shared->enabled );
 
-     if (stack->cursor) {
-          DFB_ASSERT( stack->cursor_window );
+     if (stack->cursor.enabled) {
+          DFB_ASSERT( stack->cursor.window );
 
-          dfb_window_set_opacity( stack->cursor_window, opacity );
+          dfb_window_set_opacity( stack->cursor.window, opacity );
      }
 
-     stack->cursor_opacity = opacity;
+     stack->cursor.opacity = opacity;
 
      return DFB_OK;
 }
@@ -994,28 +994,28 @@ dfb_layer_cursor_set_shape( DisplayLayer *layer,
 
      DFB_ASSERT( layer->shared->enabled );
 
-     if (!shared->stack->cursor_window) {
+     if (!shared->stack->cursor.window) {
           DFBResult ret =
           create_cursor_window( layer, shape->width, shape->height );
 
           if (ret)
                return ret;
      }
-     else if (shared->stack->cursor_window->width != shape->width  ||
-              shared->stack->cursor_window->height != shape->height) {
-          dfb_window_resize( shared->stack->cursor_window,
+     else if (shared->stack->cursor.window->width != shape->width  ||
+              shared->stack->cursor.window->height != shape->height) {
+          dfb_window_resize( shared->stack->cursor.window,
                              shape->width, shape->height );
      }
 
-     dfb_gfx_copy( shape, shared->stack->cursor_window->surface, NULL );
+     dfb_gfx_copy( shape, shared->stack->cursor.window->surface, NULL );
 
-     dx = shared->stack->cx - hot_x - shared->stack->cursor_window->x;
-     dy = shared->stack->cy - hot_y - shared->stack->cursor_window->y;
+     dx = shared->stack->cursor.x - hot_x - shared->stack->cursor.window->x;
+     dy = shared->stack->cursor.y - hot_y - shared->stack->cursor.window->y;
 
      if (dx || dy)
-          dfb_window_move( shared->stack->cursor_window, dx, dy );
+          dfb_window_move( shared->stack->cursor.window, dx, dy );
      else
-          dfb_window_repaint( shared->stack->cursor_window, NULL );
+          dfb_window_repaint( shared->stack->cursor.window, NULL );
 
      return DFB_OK;
 }
@@ -1028,11 +1028,28 @@ dfb_layer_cursor_warp( DisplayLayer *layer, int x, int y )
 
      DFB_ASSERT( layer->shared->enabled );
 
-     dx = x - stack->cx;
-     dy = y - stack->cy;
+     dx = x - stack->cursor.x;
+     dy = y - stack->cursor.y;
 
      dfb_windowstack_handle_motion( stack, dx, dy );
 
+     return DFB_OK;
+}
+
+DFBResult
+dfb_layer_cursor_set_acceleration( DisplayLayer *layer,
+                                   int           numerator,
+                                   int           denominator,
+                                   int           threshold )
+{
+     CoreWindowStack *stack = layer->shared->stack;
+
+     DFB_ASSERT( layer->shared->enabled );
+
+     stack->cursor.numerator   = numerator;
+     stack->cursor.denominator = denominator;
+     stack->cursor.threshold   = threshold;
+     
      return DFB_OK;
 }
 
@@ -1052,8 +1069,9 @@ load_default_cursor( DisplayLayer *layer )
      void               *data;
      FILE               *f;
      DisplayLayerShared *shared = layer->shared;
+     CoreWindowStack    *stack  = shared->stack;
 
-     if (!shared->stack->cursor_window) {
+     if (!stack->cursor.window) {
           ret = create_cursor_window( layer, 40, 40 );
           if (ret)
                return ret;
@@ -1068,7 +1086,7 @@ load_default_cursor( DisplayLayer *layer )
      }
 
      /* lock the surface of the window */
-     ret = dfb_surface_soft_lock( shared->stack->cursor_window->surface,
+     ret = dfb_surface_soft_lock( stack->cursor.window->surface,
                                   DSLF_WRITE, &data, &pitch, 0 );
      if (ret) {
           ERRORMSG( "DirectFB/core/layers: "
@@ -1086,7 +1104,7 @@ load_default_cursor( DisplayLayer *layer )
                ERRORMSG( "DirectFB/core/layers: "
                          "unexpected end or read error of cursor data!\n" );
 
-               dfb_surface_unlock( shared->stack->cursor_window->surface, 0 );
+               dfb_surface_unlock( stack->cursor.window->surface, 0 );
                fclose( f );
 
                return ret;
@@ -1109,9 +1127,9 @@ load_default_cursor( DisplayLayer *layer )
      }
 
      fclose( f );
-     dfb_surface_unlock( shared->stack->cursor_window->surface, 0 );
+     dfb_surface_unlock( stack->cursor.window->surface, 0 );
 
-     dfb_window_repaint( shared->stack->cursor_window, NULL );
+     dfb_window_repaint( stack->cursor.window, NULL );
 
      return DFB_OK;
 }
@@ -1124,21 +1142,22 @@ create_cursor_window( DisplayLayer *layer,
      DFBResult           ret;
      CoreWindow         *cursor;
      DisplayLayerShared *shared = layer->shared;
+     CoreWindowStack    *stack  = shared->stack;
 
      /* reinitialization check */
-     if (shared->stack->cursor_window) {
+     if (stack->cursor.window) {
           BUG( "already created a cursor for this layer" );
           return DFB_BUG;
      }
 
-     shared->stack->cursor_opacity = 0xFF;
-     shared->stack->cx = shared->config.width / 2;
-     shared->stack->cy = shared->config.height / 2;
+     stack->cursor.opacity = 0xFF;
+     stack->cursor.x = shared->config.width / 2;
+     stack->cursor.y = shared->config.height / 2;
 
      /* create a super-top-most_event-and-focus-less window */
-     ret = dfb_window_create( shared->stack,
-                              shared->stack->cx,
-                              shared->stack->cy, width, height,
+     ret = dfb_window_create( stack,
+                              stack->cursor.x,
+                              stack->cursor.y, width, height,
                               DWHC_GHOST | DWCAPS_ALPHACHANNEL,
                               DSPF_UNKNOWN, &cursor );
      if (ret) {
@@ -1148,9 +1167,9 @@ create_cursor_window( DisplayLayer *layer,
      }
 
      dfb_window_init( cursor );
-     dfb_window_set_opacity( cursor, shared->stack->cursor_opacity );
+     dfb_window_set_opacity( cursor, stack->cursor.opacity );
 
-     shared->stack->cursor_window  = cursor;
+     stack->cursor.window  = cursor;
 
      return DFB_OK;
 }

@@ -1288,6 +1288,20 @@ extern "C"
           );
 
           /*
+           * Set cursor acceleration.
+           *
+           * Sets the acceleration of cursor movements. The amount
+           * beyond the 'threshold' will be multiplied with the acceleration
+           * factor. The acceleration factor is 'numerator/denominator'.
+           */
+          DFBResult (*SetCursorAcceleration) (
+               IDirectFBDisplayLayer              *thiz,
+               int                                 numerator,
+               int                                 denominator,
+               int                                 threshold
+          );
+
+          /*
            * Set the cursor shape and the hotspot.
            */
           DFBResult (*SetCursorShape) (

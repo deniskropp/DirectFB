@@ -113,10 +113,15 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
 
      skirmish_init( &stack->update );
 
-     stack->cursor_region.x1 = 0;
-     stack->cursor_region.y1 = 0;
-     stack->cursor_region.x2 = width - 1;
-     stack->cursor_region.y2 = height - 1;
+     stack->cursor.region.x1 = 0;
+     stack->cursor.region.y1 = 0;
+     stack->cursor.region.x2 = width - 1;
+     stack->cursor.region.y2 = height - 1;
+
+     /* set default acceleration */
+     stack->cursor.numerator   = 2;
+     stack->cursor.denominator = 1;
+     stack->cursor.threshold   = 4;
 
      dfb_input_enumerate_devices( stack_attach_devices, stack );
 
@@ -1000,9 +1005,9 @@ window_at_pointer( CoreWindowStack *stack,
      int i;
 
      if (x < 0)
-          x = stack->cx;
+          x = stack->cursor.x;
      if (y < 0)
-          y = stack->cy;
+          y = stack->cursor.y;
 
      for (i=stack->num_windows-1; i>=0; i--) {
           CoreWindow *w = stack->windows[i];
@@ -1117,7 +1122,7 @@ stack_inputdevice_react( const void *msg_data,
                break;
           case DIET_BUTTONPRESS:
           case DIET_BUTTONRELEASE:
-               if (!stack->cursor)
+               if (!stack->cursor.enabled)
                     break;
 
                window = (stack->pointer_window ?
@@ -1127,8 +1132,8 @@ stack_inputdevice_react( const void *msg_data,
                     we.type = (evt->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN :
                                                                 DWET_BUTTONUP;
                     we.button = evt->button;
-                    we.cx     = stack->cx;
-                    we.cy     = stack->cy;
+                    we.cx     = stack->cursor.x;
+                    we.cy     = stack->cursor.y;
                     we.x      = we.cx - window->x;
                     we.y      = we.cy - window->y;
 
@@ -1138,14 +1143,24 @@ stack_inputdevice_react( const void *msg_data,
                break;
           case DIET_AXISMOTION:
                if (evt->flags & DIEF_AXISREL) {
+                    int rel = evt->axisrel;
+
+                    /* handle cursor acceleration */
+                    if (rel > stack->cursor.threshold)
+                         rel += (rel - stack->cursor.threshold)
+                                   * stack->cursor.numerator
+                                   / stack->cursor.denominator;
+                    else if (rel < -stack->cursor.threshold)
+                         rel += (rel + stack->cursor.threshold)
+                                   * stack->cursor.numerator
+                                   / stack->cursor.denominator;
+
                     switch (evt->axis) {
                          case DIAI_X:
-                              dfb_windowstack_handle_motion( stack,
-                                                             evt->axisrel, 0 );
+                              dfb_windowstack_handle_motion( stack, rel, 0 );
                               break;
                          case DIAI_Y:
-                              dfb_windowstack_handle_motion( stack,
-                                                             0, evt->axisrel );
+                              dfb_windowstack_handle_motion( stack, 0, rel );
                               break;
                          case DIAI_Z:
                               handle_wheel( stack, evt->axisrel );
@@ -1158,11 +1173,11 @@ stack_inputdevice_react( const void *msg_data,
                     switch (evt->axis) {
                          case DIAI_X:
                               dfb_windowstack_handle_motion( stack,
-                                                             evt->axisabs - stack->cx, 0 );
+                                                             evt->axisabs - stack->cursor.x, 0 );
                               break;
                          case DIAI_Y:
                               dfb_windowstack_handle_motion( stack, 0,
-                                                             evt->axisabs - stack->cy);
+                                                             evt->axisabs - stack->cursor.y);
                               break;
                          default:
                               return RS_OK;
@@ -1184,26 +1199,26 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
      int new_cx, new_cy;
      DFBWindowEvent we;
 
-     if (!stack->cursor)
+     if (!stack->cursor.enabled)
           return;
 
-     new_cx = MIN( stack->cx + dx, stack->cursor_region.x2);
-     new_cy = MIN( stack->cy + dy, stack->cursor_region.y2);
+     new_cx = MIN( stack->cursor.x + dx, stack->cursor.region.x2);
+     new_cy = MIN( stack->cursor.y + dy, stack->cursor.region.y2);
 
-     new_cx = MAX( new_cx, stack->cursor_region.x1 );
-     new_cy = MAX( new_cy, stack->cursor_region.y1 );
+     new_cx = MAX( new_cx, stack->cursor.region.x1 );
+     new_cy = MAX( new_cy, stack->cursor.region.y1 );
 
-     if (new_cx == stack->cx  &&  new_cy == stack->cy)
+     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y)
           return;
 
-     dx = new_cx - stack->cx;
-     dy = new_cy - stack->cy;
+     dx = new_cx - stack->cursor.x;
+     dy = new_cy - stack->cursor.y;
 
-     stack->cx = new_cx;
-     stack->cy = new_cy;
+     stack->cursor.x = new_cx;
+     stack->cursor.y = new_cy;
 
 
-     dfb_window_move( stack->cursor_window, dx, dy );
+     dfb_window_move( stack->cursor.window, dx, dy );
 
      switch (stack->wm_hack) {
           case 2:
@@ -1230,8 +1245,8 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
                break;
 
           case 0:
-               we.cx   = stack->cx;
-               we.cy   = stack->cy;
+               we.cx   = stack->cursor.x;
+               we.cy   = stack->cursor.y;
 
                if (stack->pointer_window) {
                     we.type = DWET_MOTION;
@@ -1258,7 +1273,7 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
                ;
      }
 
-     HEAVYDEBUGMSG("DirectFB/windows: mouse at %d, %d\n", stack->cx, stack->cy);
+     HEAVYDEBUGMSG("DirectFB/windows: mouse at %d, %d\n", stack->cursor.x, stack->cursor.y);
 }
 
 
@@ -1268,7 +1283,7 @@ handle_wheel( CoreWindowStack *stack, int dz )
      DFBWindowEvent we;
      CoreWindow *window = NULL;
 
-     if (!stack->cursor)
+     if (!stack->cursor.enabled)
           return;
 
      window = (stack->pointer_window ?
@@ -1289,8 +1304,8 @@ handle_wheel( CoreWindowStack *stack, int dz )
           else {
                we.type = DWET_WHEEL;
 
-               we.cx     = stack->cx;
-               we.cy     = stack->cy;
+               we.cx     = stack->cursor.x;
+               we.cy     = stack->cursor.y;
                we.x      = we.cx - window->x;
                we.y      = we.cy - window->y;
                we.step   = dz;
@@ -1314,8 +1329,8 @@ handle_enter_leave_focus( CoreWindowStack *stack )
                DFBWindowEvent we;
 
                /* set cursor position */
-               we.cx = stack->cx;
-               we.cy = stack->cy;
+               we.cx = stack->cursor.x;
+               we.cy = stack->cursor.y;
 
                /* send leave event */
                if (before) {

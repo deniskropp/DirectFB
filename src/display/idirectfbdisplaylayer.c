@@ -367,14 +367,6 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
 }
 
 static DFBResult
-IDirectFBDisplayLayer_WarpCursor( IDirectFBDisplayLayer *thiz, int x, int y )
-{
-     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-     return dfb_layer_cursor_warp( data->layer, x, y );
-}
-
-static DFBResult
 IDirectFBDisplayLayer_EnableCursor( IDirectFBDisplayLayer *thiz, int enable )
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
@@ -392,6 +384,26 @@ IDirectFBDisplayLayer_GetCursorPosition( IDirectFBDisplayLayer *thiz,
           return DFB_INVARG;
 
      return dfb_layer_get_cursor_position( data->layer, x, y );
+}
+
+static DFBResult
+IDirectFBDisplayLayer_WarpCursor( IDirectFBDisplayLayer *thiz, int x, int y )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     return dfb_layer_cursor_warp( data->layer, x, y );
+}
+
+static DFBResult
+IDirectFBDisplayLayer_SetCursorAcceleration( IDirectFBDisplayLayer *thiz,
+                                             int                    numerator,
+                                             int                    denominator,
+                                             int                    threshold )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     return dfb_layer_cursor_set_acceleration( data->layer, numerator,
+                                               denominator, threshold );
 }
 
 static DFBResult
@@ -486,6 +498,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetColorAdjustment = IDirectFBDisplayLayer_SetColorAdjustment;
      thiz->CreateWindow = IDirectFBDisplayLayer_CreateWindow;
      thiz->WarpCursor = IDirectFBDisplayLayer_WarpCursor;
+     thiz->SetCursorAcceleration = IDirectFBDisplayLayer_SetCursorAcceleration;
      thiz->EnableCursor = IDirectFBDisplayLayer_EnableCursor;
      thiz->GetCursorPosition = IDirectFBDisplayLayer_GetCursorPosition;
      thiz->SetCursorShape = IDirectFBDisplayLayer_SetCursorShape;
