@@ -17,6 +17,7 @@
 - Added Fusion Kernel Device patch for Linux 2.6.
 - Send valid button events in MuTouch driver,
   thanks to Tim Wright <tim.wright@iosystems.co.uk>.
+- Enable key repeat in SDL input driver.
 - Fixed segfault in slave processes when no graphics driver is loaded.
 - Signal handler now displays the faulting address in case of SIGSEGV.
 - Added configure option "--enable-trace" activating stack trace dumps in the
