@@ -800,7 +800,7 @@ static void Sop_argb1555_Sto_Dacc()
      while (w--) {
           __u16 s = S[i>>16];
 
-          D->a = (s & 0x8000) ? 0xffff : 0;
+          D->a = (s & 0x8000) ? 0xff : 0;
           D->r = (s & 0x7C00) >> 7;
           D->g = (s & 0x03E0) >> 2;
           D->b = (s & 0x001F) << 3;
@@ -1003,7 +1003,7 @@ static void Sop_argb1555_SKto_Dacc()
           __u16 s = S[i>>16];
 
           if ((s & 0x7FFF) != Skey) {
-               D->a = (s & 0x8000) ? 0xffff : 0;
+               D->a = (s & 0x8000) ? 0xff : 0;
                D->r = (s & 0x7C00) >> 7;
                D->g = (s & 0x03E0) >> 2;
                D->b = (s & 0x001F) << 3;
@@ -1182,7 +1182,7 @@ static void Sop_argb1555_to_Dacc()
      if (((long)S)&2) {
           __u16 spixel = *S;
 
-          D->a = (spixel & 0x8000) ? 0xffff : 0;
+          D->a = (spixel & 0x8000) ? 0xff : 0;
           D->r = (spixel & 0x7C00) >> 7;
           D->g = (spixel & 0x03E0) >> 2;
           D->b = (spixel & 0x001F) << 3;
@@ -1457,7 +1457,7 @@ static void Sop_argb1555_Kto_Dacc()
           __u16 s = *S++;
 
           if ((s & 0x7FFF) != Skey) {
-               D->a = (s & 0x8000) ? 0xffff : 0;
+               D->a = (s & 0x8000) ? 0xff : 0;
                D->r = (s & 0x7C00) >> 7;
                D->g = (s & 0x03E0) >> 2;
                D->b = (s & 0x001F) << 3;
