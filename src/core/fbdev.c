@@ -1168,7 +1168,7 @@ static DFBResult fbdev_set_rgb332_palette()
                     cmap.red[i]    = fbdev_calc_gamma( red_val, 7 );
                     cmap.green[i]  = fbdev_calc_gamma( green_val, 7 );
                     cmap.blue[i]   = fbdev_calc_gamma( blue_val, 3 );
-                    cmap.transp[i] = (i ? 0 : 0xffff);
+                    cmap.transp[i] = (i ? 0x2000 : 0xffff);
                     i++;
                }
           }
