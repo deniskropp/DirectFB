@@ -320,13 +320,17 @@ nv_set_clip( NVidiaDriverData *nvdrv,
              NVidiaDeviceData *nvdev,
              DFBRegion        *clip )
 {
-     NVClip *Clip   = nvdrv->Clip;
-     int     width  = clip->x2 - clip->x1 + 1;
-     int     height = clip->y2 - clip->y1 + 1;
+     NVClip       *Clip = nvdrv->Clip;
+     DFBRectangle *cr   = &nvdev->clip;
+
+     nvdev->clip.x = clip->x1;
+     nvdev->clip.y = clip->y1;
+     nvdev->clip.w = clip->x2 - clip->x1 + 1;
+     nvdev->clip.h = clip->y2 - clip->y1 + 1;
 
      nv_waitfifo( nvdev, subchannelof(Clip), 2 );
-     Clip->TopLeft     = (clip->y1 << 16) | (clip->x1 & 0xFFFF);
-     Clip->WidthHeight = (height   << 16) | (width    & 0xFFFF);
+     Clip->TopLeft     = (cr->y << 16) | (cr->x & 0xFFFF);
+     Clip->WidthHeight = (cr->h << 16) | (cr->w & 0xFFFF);
 }
 
 static inline void
@@ -1621,7 +1625,7 @@ driver_init_device( GraphicsDevice     *device,
           /* set default 3d state */
           nvdev->state3d.colorkey = 0;
           nvdev->state3d.filter   = 0x22000000;
-          nvdev->state3d.control  = 0x40180800;
+          nvdev->state3d.control  = 0x40580800;
           nvdev->state3d.fog      = 0;
      }
 

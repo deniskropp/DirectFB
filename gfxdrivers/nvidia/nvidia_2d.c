@@ -178,6 +178,7 @@ bool nv4StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      NVidiaDriverData *nvdrv       = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev       = (NVidiaDeviceData*) dev;
      NVScaledImage    *ScaledImage = nvdrv->ScaledImage;
+     DFBRectangle     *cr          = &nvdev->clip;
      __u32             format      = 0;
      
      switch (nvdev->src_format) {
@@ -206,8 +207,8 @@ bool nv4StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      ScaledImage->SetOperation   = nvdev->bop;
 
      nv_waitfifo( nvdev, subchannelof(ScaledImage), 6 );
-     ScaledImage->ClipPoint      = (dr->y << 16) | (dr->x & 0xFFFF);
-     ScaledImage->ClipSize       = (dr->h << 16) | (dr->w & 0xFFFF);
+     ScaledImage->ClipPoint      = (cr->y << 16) | (cr->x & 0xFFFF);
+     ScaledImage->ClipSize       = (cr->h << 16) | (cr->w & 0xFFFF);
      ScaledImage->ImageOutPoint  = (dr->y << 16) | (dr->x & 0xFFFF);
      ScaledImage->ImageOutSize   = (dr->h << 16) | (dr->w & 0xFFFF);
      ScaledImage->DuDx           = (sr->w << 20) /  dr->w;
@@ -228,6 +229,7 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      NVidiaDriverData *nvdrv       = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev       = (NVidiaDeviceData*) dev;
      NVScaledImage    *ScaledImage = nvdrv->ScaledImage;
+     DFBRectangle     *cr          = &nvdev->clip;
      __u32             format      = 0;
 
      switch (nvdev->src_format) {
@@ -259,8 +261,8 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      ScaledImage->SetOperation   = nvdev->bop;
 
      nv_waitfifo( nvdev, subchannelof(ScaledImage), 6 );
-     ScaledImage->ClipPoint      = (dr->y << 16) | (dr->x & 0xFFFF);
-     ScaledImage->ClipSize       = (dr->h << 16) | (dr->w & 0xFFFF);
+     ScaledImage->ClipPoint      = (cr->y << 16) | (cr->x & 0xFFFF);
+     ScaledImage->ClipSize       = (cr->h << 16) | (cr->w & 0xFFFF);
      ScaledImage->ImageOutPoint  = (dr->y << 16) | (dr->x & 0xFFFF);
      ScaledImage->ImageOutSize   = (dr->h << 16) | (dr->w & 0xFFFF);
      ScaledImage->DuDx           = (sr->w << 20) /  dr->w;

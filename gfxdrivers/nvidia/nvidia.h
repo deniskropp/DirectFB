@@ -411,6 +411,8 @@ typedef struct {
      __u32                   depth_offset;
      __u32                   depth_pitch;
 
+     DFBRectangle            clip;
+
      __u32                   color;
      __u8                    alpha;
      __u32                   dop;        /* drawing operation  */
