@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -166,17 +166,17 @@ divine_send_vt102( DiVine *divine, int size, const char *ansistr )
                case 10:  event.key_symbol = DIKS_ENTER;     break;
 
                  /*  emulate numbers as coming from keypad  */
-               case 48:
-               case 49:
-               case 50:
-               case 51:
-               case 52:
-               case 53:
-               case 54:
-               case 55:
-               case 56:
-               case 57:
-                 event.key_id = DIKI_KP_0 + 48 - ansistr[i];
+               case '0':
+               case '1':
+               case '2':
+               case '3':
+               case '4':
+               case '5':
+               case '6':
+               case '7':
+               case '8':
+               case '9':
+                 event.key_id = DIKI_KP_0 + '0' - ansistr[i];
                  event.flags |= DIEF_KEYID;
                  /*  fallthru  */
 
