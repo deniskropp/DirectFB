@@ -366,6 +366,13 @@ typedef unsigned int DFBDisplayLayerID;
 typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
 
+typedef unsigned long long DFBDisplayLayerIDs;
+
+#define DFB_DISPLAYLAYER_IDS_ADD(ids,id)     (ids) |=  (1 << (id))
+#define DFB_DISPLAYLAYER_IDS_REMOVE(ids,id)  (ids) &= ~(1 << (id))
+#define DFB_DISPLAYLAYER_IDS_HAVE(ids,id)    ((ids) & (1 << (id)))
+#define DFB_DISPLAYLAYER_IDS_EMPTY(ids)      (ids) = 0
+
 /*
  * The cooperative level controls the super interface's behaviour
  * in functions like SetVideoMode or CreateSurface for the primary.
@@ -452,10 +459,11 @@ typedef enum {
                                                 vertical retrace supported. */
      DSCCAPS_POWER_MANAGEMENT = 0x00000002,  /* Power management supported. */
 
-     DSCCAPS_ENCODERS         = 0x00000010,  /* Has encoders. */
-     DSCCAPS_OUTPUTS          = 0x00000020,  /* Has outputs. */
+     DSCCAPS_MIXERS           = 0x00000010,  /* Has mixers. */
+     DSCCAPS_ENCODERS         = 0x00000020,  /* Has encoders. */
+     DSCCAPS_OUTPUTS          = 0x00000040,  /* Has outputs. */
 
-     DSCCAPS_ALL              = 0x00000033
+     DSCCAPS_ALL              = 0x00000073
 } DFBScreenCapabilities;
 
 /*
@@ -1015,6 +1023,8 @@ typedef struct {
 
      char name[DFB_SCREEN_DESC_NAME_LENGTH];         /* Rough description. */
 
+     int                                mixers;      /* Number of mixers
+                                                        available. */
      int                                encoders;    /* Number of display
                                                         encoders available. */
      int                                outputs;     /* Number of output
@@ -1662,89 +1672,236 @@ typedef enum {
      DSPM_OFF
 } DFBScreenPowerMode;
 
+
 /*
- * Capabilities of an output.
+ * Capabilities of a mixer.
  */
 typedef enum {
-     DSOCAPS_NONE        = 0x00000000,
+     DSMCAPS_NONE         = 0x00000000, /* None of these. */
 
-     DSOCAPS_CONNECTORS  = 0x00000001,
-     DSOCAPS_SIGNALS     = 0x00000002
-} DFBScreenOutputCapabilities;
-
-/*
- * Type of output connector.
- */
-typedef enum {
-     DSOC_UNKNOWN        = 0x00000000,
-
-     DSOC_VGA            = 0x00000001,
-     DSOC_SCART          = 0x00000002,
-     DSOC_YC             = 0x00000004,
-     DSOC_CVBS           = 0x00000008
-} DFBScreenOutputConnectors;
+     DSMCAPS_FULL         = 0x00000001, /* Can mix full tree as
+                                           specified in the description. */
+     DSMCAPS_SUB_LEVEL    = 0x00000002, /* Can set a maximum layer level, e.g.
+                                           to exclude an OSD from VCR output. */
+     DSMCAPS_SUB_LAYERS   = 0x00000004, /* Can select a number of layers as
+                                           specified in the description. */
+     DSMCAPS_BACKGROUND   = 0x00000008  /* Background color is configurable. */
+} DFBScreenMixerCapabilities;
 
 /*
- * Type of output signal.
- */
-typedef enum {
-     DSOS_UNKNOWN        = 0x00000000,
-
-     DSOS_VGA            = 0x00000001,
-     DSOS_YC             = 0x00000002,
-     DSOS_CVBS           = 0x00000004,
-     DSOS_RGB            = 0x00000008
-} DFBScreenOutputSignals;
-
-/*
- * Description of a screen output.
+ * Description of a mixer.
  */
 typedef struct {
-     DFBScreenOutputCapabilities   caps;
+     DFBScreenMixerCapabilities  caps;
 
-     DFBScreenOutputConnectors     connectors;
-     DFBScreenOutputSignals        signals;
-} DFBScreenOutputDescription;
+     DFBDisplayLayerIDs          layers;     /* Visible layers if the
+                                                full tree is selected. */
+
+     int                         num_layers; /* Number of layers that can
+                                                be selected in sub mode. */
+     DFBDisplayLayerIDs          sub_layers; /* Layers available for sub mode
+                                                with layer selection. */
+} DFBScreenMixerDescription;
+
+/*
+ * Flags for mixer configuration.
+ */
+typedef enum {
+     DSMCONF_NONE         = 0x00000000, /* None of these. */
+
+     DSMCONF_TREE         = 0x00000001, /* (Sub) tree is selected. */
+     DSMCONF_LEVEL        = 0x00000002, /* Level is specified. */
+     DSMCONF_LAYERS       = 0x00000004, /* Layer selection is set. */
+
+     DSMCONF_BACKGROUND   = 0x00000010, /* Background color is set. */
+
+     DSMCONF_ALL          = 0x00000017
+} DFBScreenMixerConfigFlags;
+
+/*
+ * (Sub) tree selection.
+ */
+typedef enum {
+     DSMT_UNKNOWN         = 0x00000000, /* Unknown mode */
+
+     DSMT_FULL            = 0x00000001, /* Full tree. */
+     DSMT_SUB_LEVEL       = 0x00000002, /* Sub tree via maximum level. */
+     DSMT_SUB_LAYERS      = 0x00000003  /* Sub tree via layer selection. */
+} DFBScreenMixerTree;
+
+/*
+ * Configuration of a mixer.
+ */
+typedef struct {
+     DFBScreenMixerConfigFlags   flags;      /* Validates struct members. */
+
+     DFBScreenMixerTree          tree;       /* Selected (sub) tree. */
+
+     int                         level;      /* Max. level of sub level mode. */
+     DFBDisplayLayerIDs          layers;     /* Layers for sub layers mode. */
+
+     DFBColor                    background; /* Background color. */
+} DFBScreenMixerConfig;
+
 
 /*
  * Capabilities of a display encoder.
  */
 typedef enum {
-     DSECAPS_NONE         = 0x00000000,
+     DSECAPS_NONE         = 0x00000000, /* None of these. */
 
-     DSECAPS_TV_STANDARDS = 0x00000001
+     DSECAPS_TV_STANDARDS = 0x00000001, /* TV standards can be selected. */
+     DSECAPS_TEST_PICTURE = 0x00000002, /* Test picture generation supported. */
+     DSOCAPS_MIXER_SEL    = 0x00000004  /* Mixer can be selected. */
 } DFBScreenEncoderCapabilities;
 
 /*
  * Type of display encoder.
  */
 typedef enum {
-     DSET_UNKNOWN         = 0x00000000,
+     DSET_UNKNOWN         = 0x00000000, /* Unknown type */
 
-     DSET_CRTC            = 0x00000001,
-     DSET_TV              = 0x00000002
+     DSET_CRTC            = 0x00000001, /* Encoder is a CRTC. */
+     DSET_TV              = 0x00000002  /* TV output encoder. */
 } DFBScreenEncoderType;
 
 /*
  * TV standards.
  */
 typedef enum {
-     DSETV_UNKNOWN        = 0x00000000,
+     DSETV_UNKNOWN        = 0x00000000, /* Unknown standard */
 
-     DSETV_PAL            = 0x00000001,
-     DSETV_NTSC           = 0x00000002,
-     DSETV_SECAM          = 0x00000004
+     DSETV_PAL            = 0x00000001, /* PAL */
+     DSETV_NTSC           = 0x00000002, /* NTSC */
+     DSETV_SECAM          = 0x00000004  /* SECAM */
 } DFBScreenEncoderTVStandards;
 
 /*
  * Description of a display encoder.
  */
 typedef struct {
-     DFBScreenEncoderCapabilities  caps;
-     DFBScreenEncoderType          type;
+     DFBScreenEncoderCapabilities  caps;          /* Encoder capabilities. */
+     DFBScreenEncoderType          type;          /* Type of encoder. */
 
-     DFBScreenEncoderTVStandards   tv_standards;
+     DFBScreenEncoderTVStandards   tv_standards;  /* Supported TV standards. */
 } DFBScreenEncoderDescription;
+
+/*
+ * Flags for display encoder configuration.
+ */
+typedef enum {
+     DSECONF_NONE         = 0x00000000, /* None of these. */
+
+     DSECONF_TV_STANDARD  = 0x00000001, /* Set TV standard. */
+     DSECONF_TEST_PICTURE = 0x00000002, /* Set test picture mode. */
+     DSECONF_MIXER        = 0x00000004, /* Select mixer. */
+
+     DSECONF_ALL          = 0x00000007
+} DFBScreenEncoderConfigFlags;
+
+/*
+ * Test picture mode.
+ */
+typedef enum {
+     DSETP_OFF            = 0x00000000, /* Disable test picture. */
+
+     DSETP_MULTI_COLOR    = 0x00000001, /* Show color bars. */
+
+     DSETP_SINGLE_BLACK   = 0x00000002, /* Whole screen black. */
+     DSETP_SINGLE_WHITE   = 0x00000003, /* Whole screen white. */
+     DSETP_SINGLE_YELLOW  = 0x00000004, /* Whole screen yellow. */
+     DSETP_SINGLE_CYAN    = 0x00000005, /* Whole screen cyan. */
+     DSETP_SINGLE_GREEN   = 0x00000006, /* Whole screen green. */
+     DSETP_SINGLE_MAGENTA = 0x00000007, /* Whole screen magenta. */
+     DSETP_SINGLE_RED     = 0x00000008, /* Whole screen red. */
+     DSETP_SINGLE_BLUE    = 0x00000009  /* Whole screen blue. */
+} DFBScreenEncoderTestPicture;
+
+/*
+ * Configuration of a display encoder.
+ */
+typedef struct {
+     DFBScreenEncoderConfigFlags   flags;        /* Validates struct members. */
+
+     DFBScreenEncoderTVStandards   tv_standard;  /* TV standard. */
+     DFBScreenEncoderTestPicture   test_picture; /* Test picture mode. */
+     int                           mixer;        /* Selected mixer. */
+} DFBScreenEncoderConfig;
+
+
+/*
+ * Capabilities of an output.
+ */
+typedef enum {
+     DSOCAPS_NONE          = 0x00000000, /* None of these. */
+
+     DSOCAPS_CONNECTORS    = 0x00000001, /* Output connectors are available. */
+
+     DSOCAPS_ENCODER_SEL   = 0x00000010, /* Encoder can be selected. */
+     DSOCAPS_SIGNAL_SEL    = 0x00000020, /* Signal(s) can be selected. */
+     DSOCAPS_CONNECTOR_SEL = 0x00000040, /* Connector(s) can be selected. */
+
+     DSOCAPS_ALL           = 0x00000071
+} DFBScreenOutputCapabilities;
+
+/*
+ * Type of output connector.
+ */
+typedef enum {
+     DSOC_UNKNOWN        = 0x00000000, /* Unknown type */
+
+     DSOC_VGA            = 0x00000001, /* VGA connector */
+     DSOC_SCART          = 0x00000002, /* SCART connector */
+     DSOC_YC             = 0x00000004, /* Y/C connector */
+     DSOC_CVBS           = 0x00000008  /* CVBS connector */
+} DFBScreenOutputConnectors;
+
+/*
+ * Type of output signal.
+ */
+typedef enum {
+     DSOS_UNKNOWN        = 0x00000000, /* Unknown type */
+
+     DSOS_VGA            = 0x00000001, /* VGA signal */
+     DSOS_YC             = 0x00000002, /* Y/C signal */
+     DSOS_CVBS           = 0x00000004, /* CVBS signal */
+     DSOS_RGB            = 0x00000008  /* RGB signal */
+} DFBScreenOutputSignals;
+
+/*
+ * Description of a screen output.
+ */
+typedef struct {
+     DFBScreenOutputCapabilities   caps;       /* Screen capabilities. */
+
+     DFBScreenOutputConnectors     connectors; /* Output connectors. */
+     DFBScreenOutputSignals        signals;    /* Output signals. */
+} DFBScreenOutputDescription;
+
+/*
+ * Flags for screen output configuration.
+ */
+typedef enum {
+     DSOCONF_NONE         = 0x00000000, /* None of these. */
+
+     DSOCONF_ENCODER      = 0x00000001, /* Set encoder the signal comes from. */
+     DSOCONF_SIGNALS      = 0x00000002, /* Select signal(s) from encoder. */
+     DSOCONF_CONNECTORS   = 0x00000004, /* Select output connector(s). */
+
+     DSOCONF_ALL          = 0x00000007
+} DFBScreenOutputConfigFlags;
+
+/*
+ * Configuration of an output.
+ */
+typedef struct {
+     DFBScreenOutputConfigFlags  flags;      /* Validates struct members. */
+
+     int                         encoder;    /* Chosen encoder. */
+     DFBScreenOutputSignals      signals;    /* Selected encoder signal(s). */
+     DFBScreenOutputConnectors   connectors; /* Selected output connector(s). */
+} DFBScreenOutputConfig;
+
 
 /*******************
  * IDirectFBScreen *
@@ -1812,6 +1969,53 @@ DEFINE_INTERFACE(   IDirectFBScreen,
      );
 
 
+   /** Mixers **/
+
+     /*
+      * Get a description of available mixers.
+      *
+      * All descriptions are written to the array pointed to by
+      * <b>descriptions</b>. The number of mixers is returned by
+      * <i>GetDescription()</i>.
+      */
+     DFBResult (*GetMixerDescriptions) (
+          IDirectFBScreen                    *thiz,
+          DFBScreenMixerDescription          *descriptions
+     );
+
+     /*
+      * Get current mixer configuration.
+      */
+     DFBResult (*GetMixerConfiguration) (
+          IDirectFBScreen                    *thiz,
+          int                                 mixer,
+          DFBScreenMixerConfig               *config
+     );
+
+     /*
+      * Test mixer configuration.
+      *
+      * If configuration fails and 'failed' is not NULL it will
+      * indicate which fields of the configuration caused the
+      * error.
+      */
+     DFBResult (*TestMixerConfiguration) (
+          IDirectFBScreen                    *thiz,
+          int                                 mixer,
+          const DFBScreenMixerConfig         *config,
+          DFBScreenMixerConfigFlags          *failed
+     );
+
+     /*
+      * Set mixer configuration.
+      */
+     DFBResult (*SetMixerConfiguration) (
+          IDirectFBScreen                    *thiz,
+          int                                 mixer,
+          const DFBScreenMixerConfig         *config
+     );
+
+
    /** Encoders **/
 
      /*
@@ -1824,6 +2028,38 @@ DEFINE_INTERFACE(   IDirectFBScreen,
      DFBResult (*GetEncoderDescriptions) (
           IDirectFBScreen                    *thiz,
           DFBScreenEncoderDescription        *descriptions
+     );
+
+     /*
+      * Get current encoder configuration.
+      */
+     DFBResult (*GetEncoderConfiguration) (
+          IDirectFBScreen                    *thiz,
+          int                                 encoder,
+          DFBScreenEncoderConfig             *config
+     );
+
+     /*
+      * Test encoder configuration.
+      *
+      * If configuration fails and 'failed' is not NULL it will
+      * indicate which fields of the configuration caused the
+      * error.
+      */
+     DFBResult (*TestEncoderConfiguration) (
+          IDirectFBScreen                    *thiz,
+          int                                 encoder,
+          const DFBScreenEncoderConfig       *config,
+          DFBScreenEncoderConfigFlags        *failed
+     );
+
+     /*
+      * Set encoder configuration.
+      */
+     DFBResult (*SetEncoderConfiguration) (
+          IDirectFBScreen                    *thiz,
+          int                                 encoder,
+          const DFBScreenEncoderConfig       *config
      );
 
 
@@ -1839,6 +2075,38 @@ DEFINE_INTERFACE(   IDirectFBScreen,
      DFBResult (*GetOutputDescriptions) (
           IDirectFBScreen                    *thiz,
           DFBScreenOutputDescription         *descriptions
+     );
+
+     /*
+      * Get current output configuration.
+      */
+     DFBResult (*GetOutputConfiguration) (
+          IDirectFBScreen                    *thiz,
+          int                                 output,
+          DFBScreenOutputConfig              *config
+     );
+
+     /*
+      * Test output configuration.
+      *
+      * If configuration fails and 'failed' is not NULL it will
+      * indicate which fields of the configuration caused the
+      * error.
+      */
+     DFBResult (*TestOutputConfiguration) (
+          IDirectFBScreen                    *thiz,
+          int                                 output,
+          const DFBScreenOutputConfig        *config,
+          DFBScreenOutputConfigFlags         *failed
+     );
+
+     /*
+      * Set output configuration.
+      */
+     DFBResult (*SetOutputConfiguration) (
+          IDirectFBScreen                    *thiz,
+          int                                 output,
+          const DFBScreenOutputConfig        *config
      );
 )
 

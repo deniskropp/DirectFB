@@ -34,13 +34,8 @@ DFBResult dfb_screen_get_info        ( CoreScreen                  *screen,
                                        DFBScreenID                 *ret_id,
                                        DFBScreenDescription        *ret_desc );
 
-DFBResult dfb_screen_get_encoder_info( CoreScreen                  *screen,
-                                       int                          encoder,
-                                       DFBScreenEncoderDescription *ret_desc );
 
-DFBResult dfb_screen_get_output_info ( CoreScreen                  *screen,
-                                       int                          output,
-                                       DFBScreenOutputDescription  *ret_desc );
+/* Misc */
 
 DFBResult dfb_screen_suspend         ( CoreScreen                  *screen );
 DFBResult dfb_screen_resume          ( CoreScreen                  *screen );
@@ -49,6 +44,66 @@ DFBResult dfb_screen_set_powermode   ( CoreScreen                  *screen,
                                        DFBScreenPowerMode           mode );
 
 DFBResult dfb_screen_wait_vsync      ( CoreScreen                  *screen );
+
+
+/* Mixers */
+
+DFBResult dfb_screen_get_mixer_info   ( CoreScreen                 *screen,
+                                        int                         mixer,
+                                        DFBScreenMixerDescription  *ret_desc );
+
+DFBResult dfb_screen_get_mixer_config ( CoreScreen                 *screen,
+                                        int                         mixer,
+                                        DFBScreenMixerConfig       *ret_config );
+
+DFBResult dfb_screen_test_mixer_config( CoreScreen                 *screen,
+                                        int                         mixer,
+                                        const DFBScreenMixerConfig *config,
+                                        DFBScreenMixerConfigFlags  *ret_failed );
+
+DFBResult dfb_screen_set_mixer_config ( CoreScreen                 *screen,
+                                        int                         mixer,
+                                        const DFBScreenMixerConfig *config );
+
+
+/* Encoders */
+
+DFBResult dfb_screen_get_encoder_info   ( CoreScreen                   *screen,
+                                          int                           encoder,
+                                          DFBScreenEncoderDescription  *ret_desc );
+
+DFBResult dfb_screen_get_encoder_config ( CoreScreen                   *screen,
+                                          int                           encoder,
+                                          DFBScreenEncoderConfig       *ret_config );
+
+DFBResult dfb_screen_test_encoder_config( CoreScreen                   *screen,
+                                          int                           encoder,
+                                          const DFBScreenEncoderConfig *config,
+                                          DFBScreenEncoderConfigFlags  *ret_failed );
+
+DFBResult dfb_screen_set_encoder_config ( CoreScreen                   *screen,
+                                          int                           encoder,
+                                          const DFBScreenEncoderConfig *config );
+
+
+/* Outputs */
+
+DFBResult dfb_screen_get_output_info   ( CoreScreen                  *screen,
+                                         int                          output,
+                                         DFBScreenOutputDescription  *ret_desc );
+
+DFBResult dfb_screen_get_output_config ( CoreScreen                  *screen,
+                                         int                          output,
+                                         DFBScreenOutputConfig       *ret_config );
+
+DFBResult dfb_screen_test_output_config( CoreScreen                  *screen,
+                                         int                          output,
+                                         const DFBScreenOutputConfig *config,
+                                         DFBScreenOutputConfigFlags  *ret_failed );
+
+DFBResult dfb_screen_set_output_config ( CoreScreen                  *screen,
+                                         int                          output,
+                                         const DFBScreenOutputConfig *config );
 
 #endif
 

@@ -123,6 +123,23 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
           DFB_ASSERT( shared->description.outputs >= 0 );
           DFB_ASSERT( shared->description.outputs <= 32 );
 
+          /* Initialize mixers. */
+          if (shared->description.mixers) {
+               int i;
+
+               DFB_ASSERT( funcs->InitMixer != NULL );
+
+               shared->mixers = SHCALLOC( shared->description.mixers,
+                                          sizeof(CoreScreenMixer) );
+               for (i=0; i<shared->description.mixers; i++) {
+                    funcs->InitMixer( screen,
+                                      screen->driver_data,
+                                      shared->screen_data, i,
+                                      &shared->mixers[i].description,
+                                      &shared->mixers[i].configuration );
+               }
+          }
+
           /* Initialize encoders. */
           if (shared->description.encoders) {
                int i;
@@ -134,8 +151,9 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                for (i=0; i<shared->description.encoders; i++) {
                     funcs->InitEncoder( screen,
                                         screen->driver_data,
-                                        shared->screen_data,
-                                        i, &shared->encoders[i].description );
+                                        shared->screen_data, i,
+                                        &shared->encoders[i].description,
+                                        &shared->encoders[i].configuration );
                }
           }
 
@@ -150,8 +168,9 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                for (i=0; i<shared->description.outputs; i++) {
                     funcs->InitOutput( screen,
                                        screen->driver_data,
-                                       shared->screen_data,
-                                       i, &shared->outputs[i].description );
+                                       shared->screen_data, i,
+                                       &shared->outputs[i].description,
+                                       &shared->outputs[i].configuration );
                }
           }
 
@@ -217,6 +236,18 @@ dfb_screens_shutdown( CoreDFB *core, bool emergency )
           /* Free the driver's screen data. */
           if (shared->screen_data)
                SHFREE( shared->screen_data );
+
+          /* Free mixer data. */
+          if (shared->mixers)
+               SHFREE( shared->mixers );
+
+          /* Free encoder data. */
+          if (shared->encoders)
+               SHFREE( shared->encoders );
+
+          /* Free output data. */
+          if (shared->outputs)
+               SHFREE( shared->outputs );
 
           /* Free the shared screen data. */
           SHFREE( shared );

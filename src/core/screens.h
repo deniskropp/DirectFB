@@ -41,35 +41,50 @@ typedef struct {
      /*
       * Return size of screen data (shared memory).
       */
-     int       (*ScreenDataSize) ();
+     int       (*ScreenDataSize)();
 
      /*
       * Called once by the master to initialize screen data and reset hardware.
       * Driver has to fill the screen description.
       */
-     DFBResult (*InitScreen)     ( CoreScreen                  *screen,
-                                   GraphicsDevice              *device,
-                                   void                        *driver_data,
-                                   void                        *screen_data,
-                                   DFBScreenDescription        *description );
+     DFBResult (*InitScreen)    ( CoreScreen                   *screen,
+                                  GraphicsDevice               *device,
+                                  void                         *driver_data,
+                                  void                         *screen_data,
+                                  DFBScreenDescription         *description );
+
+     /*
+      * Called once by the master for each mixer.
+      * Driver fills description and default config.
+      */
+     DFBResult (*InitMixer)     ( CoreScreen                   *screen,
+                                  void                         *driver_data,
+                                  void                         *screen_data,
+                                  int                           mixer,
+                                  DFBScreenMixerDescription    *description,
+                                  DFBScreenMixerConfig         *config );
 
      /*
       * Called once by the master for each encoder.
+      * Driver fills description and default config.
       */
-     DFBResult (*InitEncoder)    ( CoreScreen                  *screen,
-                                   void                        *driver_data,
-                                   void                        *screen_data,
-                                   int                          encoder,
-                                   DFBScreenEncoderDescription *description );
+     DFBResult (*InitEncoder)   ( CoreScreen                   *screen,
+                                  void                         *driver_data,
+                                  void                         *screen_data,
+                                  int                           encoder,
+                                  DFBScreenEncoderDescription  *description,
+                                  DFBScreenEncoderConfig       *config );
 
      /*
       * Called once by the master for each output.
+      * Driver fills description and default config.
       */
-     DFBResult (*InitOutput)     ( CoreScreen                  *screen,
-                                   void                        *driver_data,
-                                   void                        *screen_data,
-                                   int                          output,
-                                   DFBScreenOutputDescription  *description );
+     DFBResult (*InitOutput)    ( CoreScreen                   *screen,
+                                  void                         *driver_data,
+                                  void                         *screen_data,
+                                  int                           output,
+                                  DFBScreenOutputDescription   *description,
+                                  DFBScreenOutputConfig        *config );
 
 
    /** Power management **/
@@ -91,6 +106,72 @@ typedef struct {
      DFBResult (*WaitVSync)      ( CoreScreen             *screen,
                                    void                   *driver_data,
                                    void                   *screen_data );
+
+
+   /** Mixer configuration **/
+
+     /*
+      * Test if configuration is supported. Store failing fields in 'failed'.
+      */
+     DFBResult (*TestMixerConfig)( CoreScreen                  *screen,
+                                   void                        *driver_data,
+                                   void                        *screen_data,
+                                   int                          mixer,
+                                   const DFBScreenMixerConfig  *config,
+                                   DFBScreenMixerConfigFlags   *failed );
+
+     /*
+      * Set new configuration.
+      */
+     DFBResult (*SetMixerConfig) ( CoreScreen                  *screen,
+                                   void                        *driver_data,
+                                   void                        *screen_data,
+                                   int                          mixer,
+                                   const DFBScreenMixerConfig  *config );
+
+
+   /** Encoder configuration **/
+
+     /*
+      * Test if configuration is supported. Store failing fields in 'failed'.
+      */
+     DFBResult (*TestEncoderConfig)( CoreScreen                   *screen,
+                                     void                         *driver_data,
+                                     void                         *screen_data,
+                                     int                           encoder,
+                                     const DFBScreenEncoderConfig *config,
+                                     DFBScreenEncoderConfigFlags  *failed );
+
+     /*
+      * Set new configuration.
+      */
+     DFBResult (*SetEncoderConfig) ( CoreScreen                   *screen,
+                                     void                         *driver_data,
+                                     void                         *screen_data,
+                                     int                           encoder,
+                                     const DFBScreenEncoderConfig *config );
+
+
+   /** Output configuration **/
+
+     /*
+      * Test if configuration is supported. Store failing fields in 'failed'.
+      */
+     DFBResult (*TestOutputConfig)( CoreScreen                  *screen,
+                                    void                        *driver_data,
+                                    void                        *screen_data,
+                                    int                          output,
+                                    const DFBScreenOutputConfig *config,
+                                    DFBScreenOutputConfigFlags  *failed );
+
+     /*
+      * Set new configuration.
+      */
+     DFBResult (*SetOutputConfig) ( CoreScreen                  *screen,
+                                    void                        *driver_data,
+                                    void                        *screen_data,
+                                    int                          output,
+                                    const DFBScreenOutputConfig *config );
 } ScreenFuncs;
 
 

@@ -55,6 +55,15 @@ typedef struct {
 
 /******************************************************************************/
 
+static DFBResult PatchMixerConfig  ( DFBScreenMixerConfig         *patched,
+                                     const DFBScreenMixerConfig   *patch );
+static DFBResult PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
+                                     const DFBScreenEncoderConfig *patch );
+static DFBResult PatchOutputConfig ( DFBScreenOutputConfig        *patched,
+                                     const DFBScreenOutputConfig  *patch );
+
+/******************************************************************************/
+
 typedef struct {
      CoreScreen              *screen;
 
@@ -174,6 +183,104 @@ IDirectFBScreen_WaitForSync( IDirectFBScreen *thiz )
 }
 
 static DFBResult
+IDirectFBScreen_GetMixerDescriptions( IDirectFBScreen           *thiz,
+                                      DFBScreenMixerDescription *descriptions )
+{
+     int i;
+
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!descriptions)
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_MIXERS))
+          return DFB_UNSUPPORTED;
+
+     for (i=0; i<data->description.mixers; i++)
+          dfb_screen_get_mixer_info( data->screen, i, &descriptions[i] );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBScreen_GetMixerConfiguration( IDirectFBScreen      *thiz,
+                                       int                   mixer,
+                                       DFBScreenMixerConfig *config )
+{
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!config)
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_MIXERS))
+          return DFB_UNSUPPORTED;
+
+     return dfb_screen_get_mixer_config( data->screen, mixer, config );
+}
+
+static DFBResult
+IDirectFBScreen_TestMixerConfiguration( IDirectFBScreen            *thiz,
+                                        int                         mixer,
+                                        const DFBScreenMixerConfig *config,
+                                        DFBScreenMixerConfigFlags  *failed )
+{
+     DFBResult            ret;
+     DFBScreenMixerConfig patched;
+
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!config || (config->flags & ~DSMCONF_ALL))
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_MIXERS))
+          return DFB_UNSUPPORTED;
+
+     /* Get the current configuration. */
+     ret = dfb_screen_get_mixer_config( data->screen, mixer, &patched );
+     if (ret)
+          return ret;
+
+     /* Patch the configuration. */
+     ret = PatchMixerConfig( &patched, config );
+     if (ret)
+          return ret;
+
+     /* Test the patched configuration. */
+     return dfb_screen_test_mixer_config( data->screen,
+                                          mixer, &patched, failed );
+}
+
+static DFBResult
+IDirectFBScreen_SetMixerConfiguration( IDirectFBScreen            *thiz,
+                                       int                         mixer,
+                                       const DFBScreenMixerConfig *config )
+{
+     DFBResult            ret;
+     DFBScreenMixerConfig patched;
+
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!config || (config->flags & ~DSMCONF_ALL))
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_MIXERS))
+          return DFB_UNSUPPORTED;
+
+     /* Get the current configuration. */
+     ret = dfb_screen_get_mixer_config( data->screen, mixer, &patched );
+     if (ret)
+          return ret;
+
+     /* Patch the configuration. */
+     ret = PatchMixerConfig( &patched, config );
+     if (ret)
+          return ret;
+
+     /* Set the patched configuration. */
+     return dfb_screen_set_mixer_config( data->screen, mixer, &patched );
+}
+
+static DFBResult
 IDirectFBScreen_GetEncoderDescriptions( IDirectFBScreen             *thiz,
                                         DFBScreenEncoderDescription *descriptions )
 {
@@ -184,13 +291,91 @@ IDirectFBScreen_GetEncoderDescriptions( IDirectFBScreen             *thiz,
      if (!descriptions)
           return DFB_INVARG;
 
-     if (!data->description.caps & DSCCAPS_ENCODERS)
+     if (! (data->description.caps & DSCCAPS_ENCODERS))
           return DFB_UNSUPPORTED;
 
      for (i=0; i<data->description.encoders; i++)
           dfb_screen_get_encoder_info( data->screen, i, &descriptions[i] );
 
      return DFB_OK;
+}
+
+static DFBResult
+IDirectFBScreen_GetEncoderConfiguration( IDirectFBScreen        *thiz,
+                                         int                     encoder,
+                                         DFBScreenEncoderConfig *config )
+{
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!config)
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_ENCODERS))
+          return DFB_UNSUPPORTED;
+
+     return dfb_screen_get_encoder_config( data->screen, encoder, config );
+}
+
+static DFBResult
+IDirectFBScreen_TestEncoderConfiguration( IDirectFBScreen              *thiz,
+                                          int                           encoder,
+                                          const DFBScreenEncoderConfig *config,
+                                          DFBScreenEncoderConfigFlags  *failed )
+{
+     DFBResult              ret;
+     DFBScreenEncoderConfig patched;
+
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!config || (config->flags & ~DSECONF_ALL))
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_ENCODERS))
+          return DFB_UNSUPPORTED;
+
+     /* Get the current configuration. */
+     ret = dfb_screen_get_encoder_config( data->screen, encoder, &patched );
+     if (ret)
+          return ret;
+
+     /* Patch the configuration. */
+     ret = PatchEncoderConfig( &patched, config );
+     if (ret)
+          return ret;
+
+     /* Test the patched configuration. */
+     return dfb_screen_test_encoder_config( data->screen,
+                                            encoder, &patched, failed );
+}
+
+static DFBResult
+IDirectFBScreen_SetEncoderConfiguration( IDirectFBScreen              *thiz,
+                                         int                           encoder,
+                                         const DFBScreenEncoderConfig *config )
+{
+     DFBResult              ret;
+     DFBScreenEncoderConfig patched;
+
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!config || (config->flags & ~DSECONF_ALL))
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_ENCODERS))
+          return DFB_UNSUPPORTED;
+
+     /* Get the current configuration. */
+     ret = dfb_screen_get_encoder_config( data->screen, encoder, &patched );
+     if (ret)
+          return ret;
+
+     /* Patch the configuration. */
+     ret = PatchEncoderConfig( &patched, config );
+     if (ret)
+          return ret;
+
+     /* Set the patched configuration. */
+     return dfb_screen_set_encoder_config( data->screen, encoder, &patched );
 }
 
 static DFBResult
@@ -213,6 +398,84 @@ IDirectFBScreen_GetOutputDescriptions( IDirectFBScreen            *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBScreen_GetOutputConfiguration( IDirectFBScreen       *thiz,
+                                        int                    output,
+                                        DFBScreenOutputConfig *config )
+{
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!config)
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_OUTPUTS))
+          return DFB_UNSUPPORTED;
+
+     return dfb_screen_get_output_config( data->screen, output, config );
+}
+
+static DFBResult
+IDirectFBScreen_TestOutputConfiguration( IDirectFBScreen             *thiz,
+                                         int                          output,
+                                         const DFBScreenOutputConfig *config,
+                                         DFBScreenOutputConfigFlags  *failed )
+{
+     DFBResult             ret;
+     DFBScreenOutputConfig patched;
+
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!config || (config->flags & ~DSOCONF_ALL))
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_OUTPUTS))
+          return DFB_UNSUPPORTED;
+
+     /* Get the current configuration. */
+     ret = dfb_screen_get_output_config( data->screen, output, &patched );
+     if (ret)
+          return ret;
+
+     /* Patch the configuration. */
+     ret = PatchOutputConfig( &patched, config );
+     if (ret)
+          return ret;
+
+     /* Test the patched configuration. */
+     return dfb_screen_test_output_config( data->screen,
+                                           output, &patched, failed );
+}
+
+static DFBResult
+IDirectFBScreen_SetOutputConfiguration( IDirectFBScreen             *thiz,
+                                        int                          output,
+                                        const DFBScreenOutputConfig *config )
+{
+     DFBResult             ret;
+     DFBScreenOutputConfig patched;
+
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!config || (config->flags & ~DSOCONF_ALL))
+          return DFB_INVARG;
+
+     if (! (data->description.caps & DSCCAPS_OUTPUTS))
+          return DFB_UNSUPPORTED;
+
+     /* Get the current configuration. */
+     ret = dfb_screen_get_output_config( data->screen, output, &patched );
+     if (ret)
+          return ret;
+
+     /* Patch the configuration. */
+     ret = PatchOutputConfig( &patched, config );
+     if (ret)
+          return ret;
+
+     /* Set the patched configuration. */
+     return dfb_screen_set_output_config( data->screen, output, &patched );
+}
+
 /******************************************************************************/
 
 DFBResult
@@ -226,20 +489,93 @@ IDirectFBScreen_Construct( IDirectFBScreen *thiz,
 
      dfb_screen_get_info( screen, &data->id, &data->description );
 
-     thiz->AddRef                 = IDirectFBScreen_AddRef;
-     thiz->Release                = IDirectFBScreen_Release;
-     thiz->GetID                  = IDirectFBScreen_GetID;
-     thiz->GetDescription         = IDirectFBScreen_GetDescription;
-     thiz->EnumDisplayLayers      = IDirectFBScreen_EnumDisplayLayers;
-     thiz->SetPowerMode           = IDirectFBScreen_SetPowerMode;
-     thiz->WaitForSync            = IDirectFBScreen_WaitForSync;
-     thiz->GetEncoderDescriptions = IDirectFBScreen_GetEncoderDescriptions;
-     thiz->GetOutputDescriptions  = IDirectFBScreen_GetOutputDescriptions;
+     thiz->AddRef                   = IDirectFBScreen_AddRef;
+     thiz->Release                  = IDirectFBScreen_Release;
+     thiz->GetID                    = IDirectFBScreen_GetID;
+     thiz->GetDescription           = IDirectFBScreen_GetDescription;
+     thiz->EnumDisplayLayers        = IDirectFBScreen_EnumDisplayLayers;
+     thiz->SetPowerMode             = IDirectFBScreen_SetPowerMode;
+     thiz->WaitForSync              = IDirectFBScreen_WaitForSync;
+     thiz->GetMixerDescriptions     = IDirectFBScreen_GetMixerDescriptions;
+     thiz->GetMixerConfiguration    = IDirectFBScreen_GetMixerConfiguration;
+     thiz->TestMixerConfiguration   = IDirectFBScreen_TestMixerConfiguration;
+     thiz->SetMixerConfiguration    = IDirectFBScreen_SetMixerConfiguration;
+     thiz->GetEncoderDescriptions   = IDirectFBScreen_GetEncoderDescriptions;
+     thiz->GetEncoderConfiguration  = IDirectFBScreen_GetEncoderConfiguration;
+     thiz->TestEncoderConfiguration = IDirectFBScreen_TestEncoderConfiguration;
+     thiz->SetEncoderConfiguration  = IDirectFBScreen_SetEncoderConfiguration;
+     thiz->GetOutputDescriptions    = IDirectFBScreen_GetOutputDescriptions;
+     thiz->GetOutputConfiguration   = IDirectFBScreen_GetOutputConfiguration;
+     thiz->TestOutputConfiguration  = IDirectFBScreen_TestOutputConfiguration;
+     thiz->SetOutputConfiguration   = IDirectFBScreen_SetOutputConfiguration;
 
      return DFB_OK;
 }
 
 /******************************************************************************/
+
+static DFBResult
+PatchMixerConfig( DFBScreenMixerConfig       *patched,
+                  const DFBScreenMixerConfig *patch )
+{
+     /* Check for unsupported flags. */
+     if (patch->flags & ~patched->flags)
+          return DFB_UNSUPPORTED;
+
+     if (patch->flags & DSMCONF_TREE)
+          patched->tree = patch->tree;
+
+     if (patch->flags & DSMCONF_LEVEL)
+          patched->level = patch->level;
+
+     if (patch->flags & DSMCONF_LAYERS)
+          patched->layers = patch->layers;
+
+     if (patch->flags & DSMCONF_BACKGROUND)
+          patched->background = patch->background;
+
+     return DFB_OK;
+}
+
+static DFBResult
+PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
+                    const DFBScreenEncoderConfig *patch )
+{
+     /* Check for unsupported flags. */
+     if (patch->flags & ~patched->flags)
+          return DFB_UNSUPPORTED;
+
+     if (patch->flags & DSECONF_TV_STANDARD)
+          patched->tv_standard = patch->tv_standard;
+
+     if (patch->flags & DSECONF_TEST_PICTURE)
+          patched->test_picture = patch->test_picture;
+
+     if (patch->flags & DSECONF_MIXER)
+          patched->mixer = patch->mixer;
+
+     return DFB_OK;
+}
+
+static DFBResult
+PatchOutputConfig( DFBScreenOutputConfig       *patched,
+                   const DFBScreenOutputConfig *patch )
+{
+     /* Check for unsupported flags. */
+     if (patch->flags & ~patched->flags)
+          return DFB_UNSUPPORTED;
+
+     if (patch->flags & DSOCONF_ENCODER)
+          patched->encoder = patch->encoder;
+
+     if (patch->flags & DSOCONF_SIGNALS)
+          patched->signals = patch->signals;
+
+     if (patch->flags & DSOCONF_CONNECTORS)
+          patched->connectors = patch->connectors;
+
+     return DFB_OK;
+}
 
 static DFBEnumerationResult
 EnumDisplayLayers_Callback( CoreLayer *layer, void *ctx )

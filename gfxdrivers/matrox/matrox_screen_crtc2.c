@@ -88,7 +88,8 @@ crtc2InitEncoder( CoreScreen                  *screen,
                   void                        *driver_data,
                   void                        *screen_data,
                   int                          encoder,
-                  DFBScreenEncoderDescription *description )
+                  DFBScreenEncoderDescription *description,
+                  DFBScreenEncoderConfig      *config )
 {
      /* Set the encoder capabilities & type. */
      description->caps = DSECAPS_TV_STANDARDS;
@@ -96,6 +97,10 @@ crtc2InitEncoder( CoreScreen                  *screen,
 
      /* Set supported TV standards. */
      description->tv_standards = DSETV_PAL | DSETV_NTSC;
+
+     /* Set default configuration. */
+     config->flags       = DSECONF_TV_STANDARD;
+     config->tv_standard = dfb_config->matrox_ntsc ? DSETV_NTSC : DSETV_PAL;
 
      return DFB_OK;
 }
@@ -105,14 +110,37 @@ crtc2InitOutput( CoreScreen                 *screen,
                  void                       *driver_data,
                  void                       *screen_data,
                  int                         output,
-                 DFBScreenOutputDescription *description )
+                 DFBScreenOutputDescription *description,
+                 DFBScreenOutputConfig      *config )
 {
      /* Set the output capabilities. */
-     description->caps = DSOCAPS_CONNECTORS | DSOCAPS_SIGNALS;
+     description->caps = DSOCAPS_CONNECTORS |
+                         DSOCAPS_SIGNAL_SEL | DSOCAPS_CONNECTOR_SEL;
 
      /* Set supported output connectors and signals. */
-     description->connectors = DSOC_CVBS | DSOC_YC;
-     description->signals    = DSOS_CVBS | DSOS_YC;
+     description->connectors = DSOC_CVBS | DSOC_YC | DSOC_SCART;
+     description->signals    = DSOS_CVBS | DSOS_YC | DSOS_RGB;
+
+     /* Set default configuration. */
+     config->flags = DSOCONF_SIGNALS | DSOCONF_CONNECTORS;
+
+     switch (dfb_config->matrox_cable) {
+          case 1:
+               /* SCART RGB */
+               config->signals    = DSOS_RGB;
+               config->connectors = DSOC_SCART;
+               break;
+          case 2:
+               /* SCART Composite */
+               config->signals    = DSOS_CVBS;
+               config->connectors = DSOC_SCART;
+               break;
+          default:
+               /* Composite / S-Video */
+               config->signals    = DSOS_CVBS | DSOS_YC;
+               config->connectors = DSOC_CVBS | DSOS_YC;
+               break;
+     }
 
      return DFB_OK;
 }

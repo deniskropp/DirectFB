@@ -36,11 +36,18 @@
 #include <core/screens.h>
 
 typedef struct {
-     DFBScreenEncoderDescription   description;
+     DFBScreenMixerDescription   description;
+     DFBScreenMixerConfig        configuration;
+} CoreScreenMixer;
+
+typedef struct {
+     DFBScreenEncoderDescription description;
+     DFBScreenEncoderConfig      configuration;
 } CoreScreenEncoder;
 
 typedef struct {
-     DFBScreenOutputDescription    description;
+     DFBScreenOutputDescription  description;
+     DFBScreenOutputConfig       configuration;
 } CoreScreenOutput;
 
 typedef struct {
@@ -50,6 +57,7 @@ typedef struct {
 
      DFBScreenDescription  description;
 
+     CoreScreenMixer      *mixers;
      CoreScreenEncoder    *encoders;
      CoreScreenOutput     *outputs;
 
