@@ -227,12 +227,12 @@ primarySetRegion( CoreLayer                  *layer,
 {
      DFBResult ret;
 
+     if (surface)
+          dfb_osx->primary = surface;
+
      ret = dfb_osx_set_video_mode( config );
      if (ret)
           return ret;
-
-     if (surface)
-          dfb_osx->primary = surface;
 
      if (palette)
           dfb_osx_set_palette( palette );
@@ -260,7 +260,6 @@ primaryFlipRegion( CoreLayer           *layer,
                    DFBSurfaceFlipFlags  flags )
 {
      dfb_surface_flip_buffers( surface );
-
      return dfb_osx_update_screen( NULL );
 }
 
@@ -272,7 +271,10 @@ primaryUpdateRegion( CoreLayer           *layer,
                      CoreSurface         *surface,
                      DFBRegion           *update )
 {
-     return dfb_osx_update_screen( update );
+     if (surface && (surface->caps & DSCAPS_FLIPPING))
+          return dfb_osx_update_screen( update );
+     
+     return DFB_OK;
 }
 
 static DFBResult
@@ -285,12 +287,41 @@ primaryAllocateSurface( CoreLayer              *layer,
 {
      DFBSurfaceCapabilities caps = DSCAPS_SYSTEMONLY;
 
-     if (config->buffermode != DLBM_FRONTONLY)
+     if (config->buffermode != DLBM_FRONTONLY) {
           caps |= DSCAPS_DOUBLE;
-
-     return dfb_surface_create( NULL, config->width, config->height,
+          return dfb_surface_create( NULL, config->width, config->height,
                                 config->format, CSP_SYSTEMONLY,
                                 caps, NULL, ret_surface );
+     }
+     else {
+          DFBResult ret;
+          CoreSurface *surface = NULL;
+          
+          surface = dfb_core_create_surface( NULL );
+          if (!surface)
+               return DFB_FAILURE;
+          
+          /* reallocation just needs an allocated buffer structure */
+          surface->idle_buffer = surface->back_buffer = surface->front_buffer 
+                               = SHCALLOC( 1, sizeof(SurfaceBuffer) );
+          
+          surface->front_buffer->policy = CSP_SYSTEMONLY;
+          surface->front_buffer->format = config->format;
+          
+          *ret_surface = surface;
+                    
+          ret = dfb_surface_init( NULL, surface,
+                             config->width, config->height,
+                             config->format, caps, NULL );
+          
+          if (ret)
+             return ret;
+          
+          /* activate object */
+          fusion_object_activate( &surface->object );
+
+          return ret;                                                                                             
+     }     
 }
 
 static DFBResult
@@ -305,7 +336,6 @@ primaryReallocateSurface( CoreLayer             *layer,
 
      /* FIXME: write surface management functions
                for easier configuration changes */
-
      switch (config->buffermode) {
           case DLBM_BACKVIDEO:
           case DLBM_BACKSYSTEM:
@@ -383,9 +413,8 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      int          pitch;
      int          dst_pitch;
      DFBResult    ret;
-
+     
      D_ASSERT( surface != NULL );
-
      ret = dfb_surface_soft_lock( surface, DSLF_READ, &src, &pitch, true );
      if (ret) {
           D_ERROR( "DirectFB/OSX: Couldn't lock layer surface: %s\n",
@@ -441,6 +470,11 @@ dfb_osx_set_video_mode_handler( CoreLayerRegionConfig *config )
      CGDisplaySwitchToMode( screen, mode );
      CGDisplayCapture(screen);
 
+     if (config->buffermode == DLBM_FRONTONLY) {
+          /* update primary surface information */
+          dfb_osx->primary->front_buffer->system.addr = CGDisplayBaseAddress( screen );  
+          dfb_osx->primary->front_buffer->system.pitch =  CGDisplayBytesPerRow( screen );
+     }                                 
      fusion_skirmish_dismiss( &dfb_osx->lock );
 
      return DFB_OK;

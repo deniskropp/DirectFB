@@ -154,7 +154,7 @@ driver_get_info( InputDriverInfo *info )
      snprintf ( info->name,
                 DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "OSX Input Driver" );
      snprintf ( info->vendor,
-                DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "Denis Oliver Kropp" );
+                DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "Andreas Hundt" );
 
      info->version.major = 0;
      info->version.minor = 1;
