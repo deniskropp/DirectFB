@@ -776,10 +776,22 @@ extern "C"
 
 
      /*
-      * IDirectFB is the main interface. It can be retrieved by a call to
-      * DirectFBCreate. It's the only interface with a global creation
+      * <b>IDirectFB</b> is the main interface. It can be retrieved by a call to
+      * <i>DirectFBCreate</i>. It's the only interface with a global creation
       * facility. Other interfaces are created by this interface or
       * interfaces created by it.
+      *
+      * <b>Hardware capabilities</b> such as the amount of video memory or a
+      * list of supported drawing/blitting functions and flags can be retrieved.
+      * It also provides enumeration of all supported video modes.
+      *
+      * <b>Input devices</b> and <b>display layers</b> that are present can be
+      * enumerated via a callback mechanism. The callback is given the
+      * capabilities and the device or layer ID. An interface to specific input
+      * devices or display layers can be retrieved by passing the device or
+      * layer ID to the corresponding method.
+      *
+      * <i>To be continued...</i>
       */
      DEFINE_INTERFACE(   IDirectFB,
 

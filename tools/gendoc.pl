@@ -122,11 +122,13 @@ sub parse_interface (NAME)
 #                      "  $interface_abstracts{$interface}\n",
 #                      "</P>";
 
-      $comment =~ s/\<p\>/\<p style=\"margin\-left:3%; margin\-right:17%;\"\>/g;
+      $comment =~ s/\<p\>/\<p style=\"margin\-left:3%; margin\-right:3%;\"\>/g;
       print INTERFACE "$comment";
 
       print INTERFACE "<P>\n",
-                      "  <CENTER><TABLE width=90% border=0 cellpadding=2>\n";
+                      "  <CENTER><TABLE width=93% border=0 cellpadding=2>\n";
+
+      print INTERFACE "    <TR><TH colspan=3>Methods of $interface</TH></TR>\n";
 
       while (<>)
          {
