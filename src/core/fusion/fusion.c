@@ -178,6 +178,8 @@ fusion_read_loop( CoreThread *thread, void *arg )
      
      FDEBUG( "entering loop...\n" );
 
+     dfb_thread_testcancel( thread );
+     
      while ((result = select (fusion_fd+1, &set, NULL, NULL, NULL)) >= 0 ||
             errno == EINTR)
      {
