@@ -1,5 +1,5 @@
 #
-#   DirectFB video modes
+#   DirectFB video modes, should be placed into "/etc"
 # 
 
 mode "640x480 75Hz 16bit"
