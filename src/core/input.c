@@ -91,6 +91,8 @@ typedef struct {
 typedef struct {
      DFBInputDeviceID             id;            /* unique device id */
 
+     int                          num;
+
      InputDeviceInfo              device_info;
 
      InputDeviceKeymap            keymap;
@@ -104,12 +106,12 @@ typedef struct {
 } InputDeviceShared;
 
 struct _InputDevice {
+     FusionLink         link;
+
      InputDeviceShared *shared;
 
      InputDriver       *driver;
      void              *driver_data;
-
-     InputDevice       *next;
 };
 
 typedef struct {
@@ -120,7 +122,7 @@ typedef struct {
 static FusionLink     *input_drivers = NULL;
 
 static CoreInputField *inputfield   = NULL;
-static InputDevice    *inputdevices = NULL;
+static FusionLink     *inputdevices = NULL;
 
 
 static void
@@ -205,17 +207,7 @@ dfb_input_join()
           device->shared = inputfield->devices[i];
 
           /* add it to the list */
-          if (!inputdevices) {
-               inputdevices = device;
-          }
-          else {
-               InputDevice *dev = inputdevices;
-
-               while (dev->next)
-                    dev = dev->next;
-
-               dev->next = device;
-          }
+          fusion_list_prepend( &inputdevices, &device->link );
      }
 
      return DFB_OK;
@@ -225,17 +217,18 @@ dfb_input_join()
 DFBResult
 dfb_input_shutdown( bool emergency )
 {
-     InputDevice *d = inputdevices;
+     FusionLink *l = inputdevices;
 
      if (!inputfield)
           return DFB_OK;
 
-     while (d) {
-          InputDevice       *next   = d->next;
-          InputDeviceShared *shared = d->shared;
-          InputDriver       *driver = d->driver;
+     while (l) {
+          FusionLink        *next   = l->next;
+          InputDevice       *device = (InputDevice*) l;
+          InputDeviceShared *shared = device->shared;
+          InputDriver       *driver = device->driver;
 
-          driver->funcs->CloseDevice( d->driver_data );
+          driver->funcs->CloseDevice( device->driver_data );
           
           if (!--driver->nr_devices) {
                dfb_module_unref( driver->module );
@@ -249,9 +242,9 @@ dfb_input_shutdown( bool emergency )
           
           shfree( shared );
           
-          DFBFREE( d );
+          DFBFREE( device );
 
-          d = next;
+          l = next;
      }
 
      inputdevices  = NULL;
@@ -267,17 +260,17 @@ dfb_input_shutdown( bool emergency )
 DFBResult
 dfb_input_leave( bool emergency )
 {
-     InputDevice *d = inputdevices;
+     FusionLink *l = inputdevices;
 
      if (!inputfield)
           return DFB_OK;
 
-     while (d) {
-          InputDevice *next = d->next;
+     while (l) {
+          FusionLink *next = l->next;
 
-          DFBFREE( d );
+          DFBFREE( l );
 
-          d = next;
+          l = next;
      }
 
      inputdevices = NULL;
@@ -291,14 +284,14 @@ dfb_input_leave( bool emergency )
 DFBResult
 dfb_input_suspend()
 {
-     InputDevice *d = inputdevices;
+     FusionLink *l;
 
      DFB_ASSERT( inputfield != NULL );
 
-     while (d) {
-          d->driver->funcs->CloseDevice( d->driver_data );
+     fusion_list_foreach (l, inputdevices) {
+          InputDevice *device = (InputDevice*) l;
 
-          d = d->next;
+          device->driver->funcs->CloseDevice( device->driver_data );
      }
 
      return DFB_OK;
@@ -307,23 +300,19 @@ dfb_input_suspend()
 DFBResult
 dfb_input_resume()
 {
-     InputDevice *d = inputdevices;
+     FusionLink *l;
 
      DFB_ASSERT( inputfield != NULL );
 
-     while (d) {
-          int       i;
-          DFBResult ret;
+     fusion_list_foreach (l, inputdevices) {
+          DFBResult    ret;
+          InputDevice *device = (InputDevice*) l;
 
-          for (i=0; i<d->driver->nr_devices; i++) {
-               ret = d->driver->funcs->OpenDevice( d, i,
-                                                   &d->shared->device_info,
-                                                   &d->driver_data );
-               if (ret)
-                    return ret;
-          }
-
-          d = d->next;
+          ret = device->driver->funcs->OpenDevice( device, device->shared->num,
+                                                   &device->shared->device_info,
+                                                   &device->driver_data );
+          if (ret)
+               return ret;
      }
 
      return DFB_OK;
@@ -334,13 +323,13 @@ void
 dfb_input_enumerate_devices( InputDeviceCallback  callback,
                              void                *ctx )
 {
-     InputDevice *d = inputdevices;
+     FusionLink *l;
 
-     while (d) {
-          if (callback( d, ctx ) == DFENUM_CANCEL)
+     fusion_list_foreach (l, inputdevices) {
+          InputDevice *device = (InputDevice*) l;
+
+          if (callback( device, ctx ) == DFENUM_CANCEL)
                break;
-
-          d = d->next;
      }
 }
 
@@ -427,13 +416,13 @@ dfb_input_device_id( const InputDevice *device )
 InputDevice *
 dfb_input_device_at( DFBInputDeviceID id )
 {
-     InputDevice *d = inputdevices;
+     FusionLink *l;
 
-     while (d) {
-          if (d->shared->id == id)
-               return d;
+     fusion_list_foreach (l, inputdevices) {
+          InputDevice *device = (InputDevice*) l;
 
-          d = d->next;
+          if (device->shared->id == id)
+               return device;
      }
 
      return NULL;
@@ -473,17 +462,7 @@ input_add_device( InputDevice *device )
           return;
      }
 
-     if (!inputdevices) {
-          inputdevices = device;
-     }
-     else {
-          InputDevice *dev = inputdevices;
-
-          while (dev->next)
-               dev = dev->next;
-
-          dev->next = device;
-     }
+     fusion_list_prepend( &inputdevices, &device->link );
 
      inputfield->devices[ inputfield->num++ ] = device->shared;
 }
@@ -576,6 +555,7 @@ init_devices()
 
 
                device->shared->id          = device_info.prefered_id;
+               device->shared->num         = n;
                device->shared->device_info = device_info;
 
                device->driver       = driver;
@@ -583,7 +563,7 @@ init_devices()
 
                /*  uniquify driver ID  */
                if (inputdevices) {
-                    InputDevice *dev = inputdevices;
+                    InputDevice *dev = (InputDevice*) inputdevices;
 
                     do {
                          if (dev->shared->id == device->shared->id) {
@@ -591,10 +571,10 @@ init_devices()
                               if (device->shared->id < DIDID_REMOTE)
                                    device->shared->id = DIDID_REMOTE;
                               device->shared->id++;
-                              dev = inputdevices;
+                              dev = (InputDevice*) inputdevices;
                               continue;
                          }
-                    } while ((dev = dev->next) != NULL);
+                    } while ((dev = (InputDevice*) dev->link.next) != NULL);
                }
 
                if (driver->nr_devices > 1) {
