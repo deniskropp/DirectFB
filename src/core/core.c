@@ -181,11 +181,6 @@ static pthread_mutex_t  core_dfb_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INIT
 DFBResult
 dfb_core_create( CoreDFB **ret_core )
 {
-#ifdef USE_MMX
-     char *mmx_string = " (with MMX support)";
-#else
-     char *mmx_string = "";
-#endif
      int      ret;
      int      world;
 #if FUSION_BUILD_MULTI
@@ -214,11 +209,12 @@ dfb_core_create( CoreDFB **ret_core )
 
      direct_initialize();
 
-#if FUSION_BUILD_MULTI
-     D_INFO( "DirectFB/Core: Multi Application Core.%s ("BUILDTIME")\n", mmx_string );
-#else
-     D_INFO( "DirectFB/Core: Single Application Core.%s ("BUILDTIME")\n", mmx_string );
-#endif
+
+     D_INFO( "DirectFB/Core: %s Application Core. ("BUILDTIME") %s%s\n",
+             FUSION_BUILD_MULTI ? "Multi" : "Single",
+             DIRECT_BUILD_DEBUG ? "[ DEBUG ]" : "",
+             DIRECT_BUILD_TRACE ? "[ TRACE ]" : "" );
+
 
 #ifdef DFB_DYNAMIC_LINKING
      if (!dfb_lib_handle)
