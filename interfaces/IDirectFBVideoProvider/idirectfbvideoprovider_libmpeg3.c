@@ -28,6 +28,7 @@
 #include <pthread.h>
 
 #include <directfb.h>
+#include <directfb_internals.h>
 
 #include "misc/util.h"
 
@@ -94,7 +95,7 @@ IDirectFBVideoProvider_Libmpeg3_Destruct( IDirectFBVideoProvider *thiz )
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_AddRef( IDirectFBVideoProvider *thiz )
 {
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
+    INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
     data->ref++;
 
@@ -105,7 +106,7 @@ IDirectFBVideoProvider_Libmpeg3_AddRef( IDirectFBVideoProvider *thiz )
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_Release( IDirectFBVideoProvider *thiz )
 {
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
+    INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
     if (--data->ref == 0) {
         IDirectFBVideoProvider_Libmpeg3_Destruct( thiz );
@@ -119,7 +120,7 @@ IDirectFBVideoProvider_Libmpeg3_GetCapabilities(
                                            IDirectFBVideoProvider       *thiz,
                                            DFBVideoProviderCapabilities *caps )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
      if (!caps)
           return DFB_INVARG;
@@ -133,7 +134,7 @@ static DFBResult
 IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription(
     IDirectFBVideoProvider *thiz, DFBSurfaceDescription  *desc )
 {
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
+    INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
     if (!desc)
         return DFB_INVARG;
@@ -241,7 +242,7 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
     DFBRectangle            rect;
     IDirectFBSurface_data  *dst_data;
 
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
+    INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
     if (!destination)
         return DFB_INVARG;
