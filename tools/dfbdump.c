@@ -65,6 +65,9 @@ typedef struct {
 
 static IDirectFB *dfb = NULL;
 
+static MemoryUsage mem = { 0, 0 };
+
+
 static DFBResult
 init_directfb( int *argc, char **argv[] )
 {
@@ -203,8 +206,6 @@ surface_callback( FusionObjectPool *pool,
 static void
 dump_surfaces()
 {
-     MemoryUsage mem = { 0, 0 };
-
      printf( "\n"
              "-----------------------------[ Surfaces ]-------------------------------\n" );
      printf( "Reference  . Refs  Width Height  Format     Video   System  Capabilities\n" );
@@ -489,7 +490,8 @@ main( int argc, char *argv[] )
                     total += d->bytes;
                }
 
-               printf( "   -------\n  %7dk total\n", total >> 10 );
+               printf( "   -------\n  %7dk total  (%dk without pixel buffers)\n",
+                       total >> 10, (total - mem.system) >> 10 );
           }
 
           fusion_skirmish_dismiss( &_sheap->lock );
