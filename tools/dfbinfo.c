@@ -291,6 +291,8 @@ dump_mixers( IDirectFBScreen *screen,
 
                printf( "\n" );
           }
+
+          printf( "\n" );
      }
 
      printf( "\n" );
@@ -336,11 +338,15 @@ dump_encoders( IDirectFBScreen *screen,
 
 
           /* TV Norms */
-          printf( "     TV Standards: " );
+          if (descs[i].caps & DSECAPS_TV_STANDARDS) {
+               printf( "     TV Standards: " );
 
-          for (n=0; tv_standards[n].standard; n++) {
-               if (descs[i].tv_standards & tv_standards[n].standard)
-                    printf( "%s ", tv_standards[n].name );
+               for (n=0; tv_standards[n].standard; n++) {
+                    if (descs[i].tv_standards & tv_standards[n].standard)
+                         printf( "%s ", tv_standards[n].name );
+               }
+
+               printf( "\n" );
           }
 
           printf( "\n" );
@@ -396,6 +402,8 @@ dump_outputs( IDirectFBScreen *screen,
                if (descs[i].all_signals & signals[n].signal)
                     printf( "%s ", signals[n].name );
           }
+
+          printf( "\n" );
 
           printf( "\n" );
      }
