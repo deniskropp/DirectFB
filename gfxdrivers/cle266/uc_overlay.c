@@ -72,6 +72,8 @@ uc_ovl_init_layer(GraphicsDevice        *device,
     ucovl->v1.cfg = *default_config;
     ucovl->v1.ox = 0;
     ucovl->v1.oy = 0;
+    ucovl->v1.opacity = 255;
+    ucovl->v1.level = 1;
 
     uc_ovl_disable(layer, driver_data, layer_data);
 
@@ -205,6 +207,7 @@ uc_ovl_set_opacity(CoreLayer *layer,
                    __u8       opacity)
 {
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
+    ucovl->v1.opacity = opacity;
     VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(opacity));
     return DFB_OK;
 }
@@ -291,6 +294,40 @@ uc_ovl_wait_vsync(CoreLayer *layer,
     return dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
 }
 
+static DFBResult
+uc_ovl_get_level(CoreLayer    *layer,
+                 void         *driver_data,
+                 void         *layer_data,
+                 int          *level)
+{
+    UcOverlayData* ucovl = (UcOverlayData*) layer_data;
+    *level = ucovl->v1.level;
+    return DFB_OK;
+}
+     
+static DFBResult
+uc_ovl_set_level(CoreLayer    *layer,
+                 void         *driver_data,
+                 void         *layer_data,
+                 int          level)
+{
+
+    UcOverlayData* ucovl = (UcOverlayData*) layer_data;
+
+    if (level == 0) return DFB_INVARG;
+    if (level < 0) {
+        // Enable underlay mode.
+        VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(-1));
+    }
+    else {
+        // Enable overlay mode (default)
+        VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL,
+            uc_ovl_map_alpha(ucovl->v1.opacity));
+    }
+
+    ucovl->v1.level = level;
+    return DFB_OK;
+}
 
 DisplayLayerFuncs ucOverlayFuncs = {
     LayerDataSize:      uc_ovl_datasize,
@@ -304,4 +341,6 @@ DisplayLayerFuncs ucOverlayFuncs = {
     SetDstColorKey:     uc_ovl_set_dst_color_key,
     FlipBuffers:        uc_ovl_flip_buffers,
     WaitVSync:          uc_ovl_wait_vsync,
+    GetLevel:           uc_ovl_get_level,
+    SetLevel:           uc_ovl_set_level,
 };

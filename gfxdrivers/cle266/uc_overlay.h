@@ -19,6 +19,9 @@ struct uc_ovl_vinfo {
     DFBDisplayLayerConfig cfg;      // Layer configuration
     int ox, oy;                     // Top-left visible corner (the offset)
                                     // in the source surface
+    __u8 opacity;                   // Layer opacity
+    int level;                      // Position in the DirectFB layer stack
+                                    // < 0 = underlay mode, > 0 = overlay mode
 };
 
 typedef struct _UcOverlayData {
