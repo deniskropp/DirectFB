@@ -480,7 +480,7 @@ __shmalloc_attach()
 {
      D_ASSERT( _sheap != NULL );
      D_ASSERT( _sheap->reactor != NULL );
-     
+
      fusion_reactor_attach( _sheap->reactor, __shmalloc_react, NULL, &reaction );
 }
 
@@ -530,6 +530,8 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
      void        *new_mem;
      const long  *size_msg = msg_data;
 
+     (void) size_msg;
+
      D_ASSERT( msg_data != NULL );
 
      D_ASSERT( fd >= 0 );
@@ -570,11 +572,11 @@ void __shmalloc_exit (bool shutdown, bool detach)
 
      if (_sheap) {
           FusionReactor *reactor = _sheap->reactor;
-          
+
           /* Detach from reactor */
           if (detach) {
                D_ASSERT( reactor != NULL );
-               
+
                fusion_reactor_detach (_sheap->reactor, &reaction);
           }
 
