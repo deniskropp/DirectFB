@@ -279,7 +279,8 @@ IFusionSoundStream_GetStatus( IFusionSoundStream *thiz,
                               int                *filled,
                               int                *total,
                               int                *read_position,
-                              int                *write_position )
+                              int                *write_position,
+                              DFBBoolean         *playing )
 {
      INTERFACE_GET_DATA(IFusionSoundStream)
 
@@ -300,6 +301,9 @@ IFusionSoundStream_GetStatus( IFusionSoundStream *thiz,
 
      if (write_position)
           *write_position = data->pos_write;
+
+     if (playing)
+          *playing = data->playing;
 
      pthread_mutex_unlock( &data->lock );
 

@@ -392,7 +392,8 @@ DEFINE_INTERFACE( IFusionSoundStream,
       *
       * Returns the number of samples the ring buffer is <b>filled</b> with,
       * the <b>total</b> number of samples that can be stored (buffer size),
-      * current <b>read_position</b> and current <b>write_position</b>.
+      * current <b>read_position</b> and <b>write_position</b> and if the stream
+      * is <b>playing</b>.
       *
       * Simply pass NULL for values that are not of interest.
       */
@@ -401,7 +402,8 @@ DEFINE_INTERFACE( IFusionSoundStream,
           int                      *filled,
           int                      *total,
           int                      *read_position,
-          int                      *write_position
+          int                      *write_position,
+          DFBBoolean               *playing
      );
 
 
