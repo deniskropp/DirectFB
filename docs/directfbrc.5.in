@@ -152,6 +152,11 @@ resources on exit. If it didn't, it will clean up after the application.
 This option allows to switch this feature on or off.
 
 .TP
+.BI block-all-signals
+This option activates blocking of all signals, useful for DirectFB daemons
+(a DirectFB master application that does nothing except being the master).
+
+.TP
 .BI [no-]vt-switch
 By default DirectFB allocates a new virtual terminal and switches to
 it.

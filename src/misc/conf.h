@@ -111,6 +111,8 @@ typedef struct
      char     *system;                            /* FBDev, SDL, etc. */
 
      bool      capslock_meta;                     /* map CapsLock -> Meta */
+
+     bool      block_all_signals;                 /* block all signals */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

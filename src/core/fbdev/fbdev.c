@@ -57,6 +57,7 @@
 #include <core/layers.h>
 #include <core/gfxcard.h>
 #include <core/palette.h>
+#include <core/sig.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 #include <core/state.h>
@@ -643,6 +644,9 @@ system_get_current_mode()
 static DFBResult
 system_thread_init()
 {
+     if (dfb_config->block_all_signals)
+          dfb_sig_block_all();
+     
      return dfb_vt_detach( false );
 }
 

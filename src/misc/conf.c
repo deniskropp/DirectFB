@@ -89,7 +89,9 @@ static const char *config_usage =
     "Enable signal handler\n"
     "  [no-]deinit-check              "
     "Enable deinit check at exit\n"
-    "  [no-]vt-switch                 "
+    "  [no-]sighandler                "
+    "Block all signals\n"
+    "  block-all-signals              "
     "Allocate/switch to a new VT\n"
     "  [no-]vt-switching              "
     "Allow Ctrl+Alt+<F?> (EXPERIMENTAL)\n"
@@ -425,6 +427,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-sighandler" ) == 0) {
           dfb_config->sighandler = false;
+     } else
+     if (strcmp (name, "block-all-signals" ) == 0) {
+          dfb_config->block_all_signals = true;
      } else
      if (strcmp (name, "deinit-check" ) == 0) {
           dfb_config->deinit_check = true;

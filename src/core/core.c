@@ -170,6 +170,9 @@ dfb_core_ref()
           sync();
      }
 
+     if (dfb_config->block_all_signals)
+          dfb_sig_block_all();
+
 #ifndef FUSION_FAKE
      dfb_system_thread_init();
 #endif
