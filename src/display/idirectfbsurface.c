@@ -41,7 +41,8 @@
 #include <misc/util.h>
 #include <gfx/util.h>
 
-#include <media/idirectfbfont.h>
+#include <idirectfb.h>
+
 #include "idirectfbsurface.h"
 
 #include <directfb_internals.h>

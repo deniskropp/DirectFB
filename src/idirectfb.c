@@ -52,7 +52,6 @@
 #include <display/idirectfbsurface_window.h>
 #include <display/idirectfbdisplaylayer.h>
 #include <input/idirectfbinputdevice.h>
-#include <media/idirectfbfont.h>
 
 #include "directfb_version.h"
 

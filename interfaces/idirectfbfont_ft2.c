@@ -33,10 +33,11 @@
 #include <directfb.h>
 
 #include <core/coredefs.h>
+#include <core/fonts.h>
 
 #include <gfx/convert.h>
 
-#include <media/idirectfbfont.h>
+#include <idirectfb.h>
 
 #define FTLOADFLAGS     (FT_LOAD_DEFAULT /*| FT_LOAD_NO_HINTING*/)
 
@@ -199,12 +200,156 @@ DFBResult get_kerning( CoreFontData *thiz,
      return DFB_OK;
 }
 
+void IDirectFBFont_Destruct( IDirectFBFont *thiz )
+{
+     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+
+     if (data->font->impl_data)
+          FT_Done_Face (data->font->impl_data);
+
+     fonts_destruct (data->font);
+     free( data->font );
+     free( data );
+
+     thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
+}
+
+DFBResult IDirectFBFont_AddRef( IDirectFBFont *thiz )
+{
+     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     data->ref++;
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBFont_Release( IDirectFBFont *thiz )
+{
+     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (--data->ref == 0) {
+          IDirectFBFont_Destruct( thiz );
+     }
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBFont_GetAscender( IDirectFBFont *thiz, int *ascender )
+{
+     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!ascender)
+          return DFB_INVARG;
+
+     *ascender = data->font->ascender;
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBFont_GetDescender( IDirectFBFont *thiz, int *descender )
+{
+     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!descender)
+          return DFB_INVARG;
+
+     *descender = data->font->descender;
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
+{
+     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!height)
+          return DFB_INVARG;
+
+     *height = data->font->height;
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
+{
+     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!maxadvance)
+          return DFB_INVARG;
+
+     *maxadvance = data->font->maxadvance;
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
+                                        const char *string, int *width )
+{
+     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+     CoreGlyphData *glyph;
+     unichar  prev = 0;
+     unichar  current;
+     int      kerning;
+
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!width)
+          return DFB_INVARG;
+
+     if (!string)
+          return DFB_INVARG;
+
+     *width = 0;
+
+     while (*string) {
+          current = utf8_get_char (string);
+               
+          if (fonts_get_glyph_data (data->font, current, &glyph) == DFB_OK) {
+            
+               if (prev && data->font->GetKerning && 
+                   (* data->font->GetKerning) (data->font, prev, current, &kerning) == DFB_OK) {
+                    *width += kerning;
+               }
+            *width += glyph->advance;
+          }
+
+          prev = current;
+          string = utf8_next_char (string);
+     }
+
+     return DFB_OK;
+}
 
 DFBResult Construct( IDirectFBFont *thiz,
                      const char *filename,
                      DFBFontDescription *desc )
 {
-     CoreFontData *font;
+     IDirectFBFont_data *data;
+     CoreFontData       *font;
      FT_Face  face;
      FT_Error err;
 
@@ -257,7 +402,22 @@ DFBResult Construct( IDirectFBFont *thiz,
      font->RenderGlyph  = render_glyph;
      font->GetKerning   = get_kerning;
 
-     return IDirectFBFont_Construct( thiz, font );
+     data = (IDirectFBFont_data *) malloc( sizeof(IDirectFBFont_data) );
+
+     data->ref = 1;
+     data->font = font;
+
+     thiz->priv = data;
+
+     thiz->AddRef = IDirectFBFont_AddRef;
+     thiz->Release = IDirectFBFont_Release;
+     thiz->GetAscender = IDirectFBFont_GetAscender;
+     thiz->GetDescender = IDirectFBFont_GetDescender;
+     thiz->GetHeight = IDirectFBFont_GetHeight;
+     thiz->GetMaxAdvance = IDirectFBFont_GetMaxAdvance;
+     thiz->GetStringWidth = IDirectFBFont_GetStringWidth;
+
+     return DFB_OK;
 }
 
 

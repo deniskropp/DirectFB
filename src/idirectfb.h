@@ -44,4 +44,12 @@ typedef struct {
 DFBResult IDirectFB_Construct( IDirectFB *thiz );
 
 
+/*
+ * private data struct of IDirectFBFont
+ */
+typedef struct {
+     int           ref;   /* reference counter */
+     CoreFontData *font;  /* pointer to core data */
+} IDirectFBFont_data;
+
 #endif

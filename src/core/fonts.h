@@ -66,7 +66,8 @@ struct _CoreFontData {
                                            from the baseline to the bottom  */
      int            maxadvance;         /* width of largest character       */
 
-     void          *impl_data;
+     void          *impl_data;          /* a pointer used by the impl.      */
+
      DFBResult   (* GetGlyphInfo) (CoreFontData *thiz, unichar glyph, CoreGlyphData *info);
      DFBResult   (* RenderGlyph)  (CoreFontData *thiz, unichar glyph,
                                    CoreGlyphData *info, CoreSurface *surface);
