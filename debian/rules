@@ -15,29 +15,17 @@ export DH_COMPAT=3
 #major=`ls src/.libs/lib*.so.* | \
 # awk '{if (match($$0,/\.so\.[0-9]+$$/)) print substr($$0,RSTART+4)}'`
 
-UPACKAGE=$(shell dh_listpackages | grep -- -udeb$$)
 DEVPACKAGE=$(shell dh_listpackages | grep -- -udeb.*dev$$)
 VERSION=$(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
 ARCH=$(shell dpkg --print-architecture)
-UFILENAME=$(UPACKAGE)_$(VERSION)_$(ARCH).udeb
 BUILD_DIST=directfb-build
-BUILD_UDEB=directfb-udeb
 
 
-configure: configure-dist configure-udeb
+configure: configure-dist
 
 configure-dist: $(BUILD_DIST)/configure-stamp
 
-configure-udeb: $(BUILD_UDEB)/configure-stamp
 
-configure.in.udeb: configure.in
-	dh_testdir
-	sed -e s/^LT_RELEASE=.*VERSION$$/\&-udeb/ -e s/^BINARY_VERSION=.*DIRECTFB_MINOR_VERSION/\&-udeb/ configure.in > configure.in.udeb
-
-configure.udeb: configure.in.udeb
-	autoconf configure.in.udeb > configure.udeb
-	chmod u+x configure.udeb
-	
 $(BUILD_DIST)/configure-stamp:
 	dh_testdir
 
@@ -48,44 +36,14 @@ $(BUILD_DIST)/configure-stamp:
 
 	touch $@
 
-$(BUILD_UDEB)/configure-stamp: configure.udeb
-	dh_testdir
-
-	mkdir -p $(BUILD_UDEB)
-
-	cd $(BUILD_UDEB) && \
-	../configure.udeb 	--prefix=/usr \
-				--mandir=\$${prefix}/share/man \
-				--infodir=\$${prefix}/share/info \
-				--disable-avifile \
-				--disable-sdl \
-				--disable-flash \
-				--disable-libmpeg3 \
-				--disable-gif \
-				--disable-jpeg \
-				--disable-mmx \
-				--disable-sse \
-				--without-x
-
-	touch $@
-
-build: build-dist build-udeb
+build: build-dist
 
 build-dist: configure-dist $(BUILD_DIST)/build-stamp
-
-build-udeb: configure-udeb $(BUILD_UDEB)/build-stamp
 
 $(BUILD_DIST)/build-stamp:
 	dh_testdir
 
 	$(MAKE) -C $(BUILD_DIST)
-
-	touch $@
-
-$(BUILD_UDEB)/build-stamp:
-	dh_testdir
-
-	$(MAKE) -C $(BUILD_UDEB)
 
 	touch $@
 
@@ -96,13 +54,10 @@ clean:
 	-$(MAKE) distclean
 	-rm -f install-test-stamp
 	-rm -rf $(BUILD_DIST)
-	-rm -rf $(BUILD_UDEB)
-	-rm -rf configure.in.udeb
-	-rm -rf configure.udeb
 
 	dh_clean
 
-install: install-dist install-udeb install-udev
+install: install-dist
 
 install-test: install-test-stamp
 install-test-stamp:
@@ -117,57 +72,6 @@ install-dist: build-dist install-test
 
 	$(MAKE) -C $(BUILD_DIST) install prefix=$(CURDIR)/debian/tmp/usr
 
-install-udev: build-udeb install-test
-
-	$(MAKE) -C $(BUILD_UDEB) install prefix=$(CURDIR)/debian/$(DEVPACKAGE)/usr
-	rm -rf $(CURDIR)/debian/$(DEVPACKAGE)/usr/bin
-	rm -rf $(CURDIR)/debian/$(DEVPACKAGE)/usr/include
-	rm -rf $(CURDIR)/debian/$(DEVPACKAGE)/usr/share
-	rm -rf $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/directfb*/inputdrivers/libdirectfb_joystick.*
-	rm -rf $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/directfb*/inputdrivers/libdirectfb_lirc.*
-	rm -rf $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/directfb*/inputdrivers/libdirectfb_sonypi.*
-	rm -rf $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/directfb*/interfaces/IDirectFBImageProvider/libidirectfbimageprovider_mpeg2.*
-	rm -rf $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/directfb*/interfaces/IDirectFBVideoProvider/libidirectfbvideoprovider_v4l.*
-	mv $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/*.la $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib
-	for f in $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/*.so; do \
-		if  [ -L $$f ] ; then \
-			ln -s ../`readlink $$f | tail -n 1` $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/`basename $$f`; \
-			rm $$f; \
-		fi ; \
-	done
-	rm -rf $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/pkgconfig
-	mv $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/pkgconfig $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib
-
-	sed -e "s#^libdir *= *'/usr/lib'#libdir='/usr/lib/udeblib'#" \
-		 $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/libdirectfb.la > \
-		 $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/libdirectfb.la2
-	
-	mv $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/libdirectfb.la2 $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/libdirectfb.la
-
-	sed -e 's#^Libs: *#Libs: -L/usr/lib/udeblib/ #' \
-		$(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/pkgconfig/directfb.pc > \
-		$(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/pkgconfig/directfb.pc2
-	
-	mv $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/pkgconfig/directfb.pc2 $(CURDIR)/debian/$(DEVPACKAGE)/usr/lib/udeblib/pkgconfig/directfb.pc
-
-install-udeb: build-udeb install-test
-
-	$(MAKE) -C $(BUILD_UDEB) install prefix=$(CURDIR)/debian/$(UPACKAGE)/usr
-	for f in `find $(CURDIR)/debian/$(UPACKAGE)/usr/lib -name '*.la'`; do \
-		rm $$f; \
-	done
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/lib/libdirectfb.so
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/bin
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/include
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/lib/pkgconfig
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/share/doc
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/share/man
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/lib/directfb*/inputdrivers/libdirectfb_joystick.so
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/lib/directfb*/inputdrivers/libdirectfb_lirc.so
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/lib/directfb*/inputdrivers/libdirectfb_sonypi.so
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/lib/directfb*/interfaces/IDirectFBImageProvider/libidirectfbimageprovider_mpeg2.so
-	rm -rf $(CURDIR)/debian/$(UPACKAGE)/usr/lib/directfb*/interfaces/IDirectFBVideoProvider/libidirectfbvideoprovider_v4l.so
-
 # Build architecture-independent files here.
 binary-indep: build install
 # We have nothing to do by default.
@@ -177,28 +81,20 @@ binary-arch: build install
 	dh_testdir
 	dh_testroot
 
-#	rm -rf debian/tmp/usr/share/directfb/examples
-	rm -rf debian/tmp/usr/bin/df_*
-
 	dh_movefiles -plibdirectfb-extra
-	dh_movefiles -N$(UPACKAGE)
-	dh_installdocs -N$(UPACKAGE)
-#	dh_installexamples -plibdirectfb-dev examples/*.c examples/*.png examples/*.jpg
-	dh_undocumented -plibdirectfb-dev directfb-config.1
-	dh_installchangelogs ChangeLog -N$(UPACKAGE)
-	dh_link -N$(UPACKAGE)
+	dh_movefiles
+	dh_installdocs
+	dh_installchangelogs ChangeLog
+	dh_link
 	dh_strip 
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -N$(UPACKAGE)
+	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps -Xdfbg
-	dh_gencontrol -N$(UPACKAGE)
-	dh_gencontrol -p$(UPACKAGE) -- -fdebian/files~
-	dpkg-distaddfile $(UFILENAME) debian-installer optional
-	dh_md5sums -N$(UPACKAGE)
-	dh_builddeb -N$(UPACKAGE)
-	dh_builddeb -p$(UPACKAGE) --filename=$(UFILENAME)
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install configure
