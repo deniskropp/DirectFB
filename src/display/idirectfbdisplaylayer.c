@@ -339,6 +339,9 @@ IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
+     if (! D_FLAGS_IS_SET( data->desc.caps, DLCAPS_SCREEN_LOCATION ))
+          return DFB_UNSUPPORTED;
+
      if (width <= 0 || height <= 0)
           return DFB_INVARG;
 
@@ -402,6 +405,9 @@ IDirectFBDisplayLayer_SetLevel( IDirectFBDisplayLayer *thiz,
                                 int                    level )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (! D_FLAGS_IS_SET( data->desc.caps, DLCAPS_LEVELS ))
+          return DFB_UNSUPPORTED;
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
@@ -739,7 +745,7 @@ IDirectFBDisplayLayer_GetSourceDescriptions( IDirectFBDisplayLayer            *t
      if (!ret_descriptions)
           return DFB_INVARG;
 
-     if (! (data->desc.caps & DLCAPS_SOURCES))
+     if (! D_FLAGS_IS_SET( data->desc.caps, DLCAPS_SOURCES ))
           return DFB_UNSUPPORTED;
 
      for (i=0; i<data->desc.sources; i++)
@@ -754,6 +760,9 @@ IDirectFBDisplayLayer_SetScreenPosition( IDirectFBDisplayLayer *thiz,
                                          int                    y )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (! D_FLAGS_IS_SET( data->desc.caps, DLCAPS_SCREEN_POSITION ))
+          return DFB_UNSUPPORTED;
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
