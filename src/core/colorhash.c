@@ -38,7 +38,7 @@
 #include <misc/util.h>
 #include <gfx/convert.h>
 
-#define HASH_SIZE 2777
+#define HASH_SIZE 823
 
 typedef struct {
      unsigned int  pixel;
