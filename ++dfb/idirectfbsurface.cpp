@@ -332,6 +332,11 @@ void IDirectFBSurface::Dump (const char *directory,
      DFBCHECK( iface->Dump (iface, directory, prefix) );
 }
 
+void IDirectFBSurface::DisableAcceleration (DFBAccelerationMask mask)
+{
+     DFBCHECK( iface->DisableAcceleration (iface, mask) );
+}
+
 IDirectFBGL *IDirectFBSurface::GetGL()
 {
      IDirectFBGL *idirectfbgl;

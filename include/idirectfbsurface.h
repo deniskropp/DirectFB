@@ -143,7 +143,10 @@ public:
 
      IDirectFBSurface       GetSubSurface       (DFBRectangle             *rect);
 
-     void                   Dump                (const char *directory, const char *prefix);
+     void                   Dump                (const char               *directory,
+                                                 const char               *prefix);
+
+     void                   DisableAcceleration (DFBAccelerationMask       mask);
 
      IDirectFBGL           *GetGL               ();
 
