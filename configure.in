@@ -224,7 +224,7 @@ dnl Test for avifile
 
   if test x$enable_avifile = xyes; then
     AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
-    if test "$AVIFILE" = no; then
+    if test x$AVIFILE_CONFIG = xno; then
       AC_MSG_WARN(["*** avifile-config not found -- AVI media provider will not be built"])
     else
       AC_PROG_CXX
