@@ -406,6 +406,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      CoreLayer         *layer;
      CoreLayerContext  *context;
      CoreSurface       *surface;
+     SurfaceBuffer     *buffer;
      DisplayLayerFuncs *funcs;
 
      D_ASSERT( region != NULL );
@@ -425,6 +426,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
      context = region->context;
      surface = region->surface;
+     buffer  = surface->back_buffer;
      layer   = dfb_layer_at( context->layer_id );
 
      D_ASSERT( layer->funcs != NULL );
@@ -446,7 +448,10 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                     if (FLAG_IS_SET( region->state, CLRSF_REALIZED )) {
                          D_ASSUME( funcs->FlipRegion != NULL );
 
-                         dfb_gfxcard_sync();
+                         if (buffer->video.access & VAF_HARDWARE_WRITE) {
+                              dfb_gfxcard_sync();
+                              buffer->video.access &= ~VAF_HARDWARE_WRITE;
+                         }
 
                          if (funcs->FlipRegion)
                               ret = funcs->FlipRegion( layer,
