@@ -412,10 +412,10 @@ if test "$enable_sysfs" = "yes"; then
 	use_sysfs=yes
         AC_DEFINE(USE_SYSFS,1,[Define to 1 to build with sysfs support.])
 	SYSFS_LIBS='-lsysfs',
-	AC_MSG_ERROR([
+	AC_MSG_WARN([
 *** libsysfs header files not found -- Building without sysfs support.]))
     ],[
-	AC_MSG_ERROR([ *** libsysfs not found -- Building without sysfs support.])
+	AC_MSG_WARN([ *** libsysfs not found -- Building without sysfs support.])
     ])
 fi
 
