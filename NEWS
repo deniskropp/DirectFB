@@ -1,3 +1,35 @@
+0.9.11
+------
+
+- Added IDirectFBSurface::Clear().
+- Added IDirectFBWindow::EnableEvents() and DisableEvents().
+- Added IDirectFBWindow::SetStackingClass().
+- Added IDirectFBDisplayLayer::GetLevel() and SetLevel()
+- Added IDirectFBInputDevice::GetKeymapEntry() (see below).
+- Redone keyboard handling. Each key now has a unique key_id which is mapped
+  to a Unicode-compatible key_symbol using the keymap provided by the driver.
+- Use kernel keymapping table in keyboard driver.
+- Added kernel patch for VMware SVGA framebuffer.
+- Added kernel patch for S3 Savage framebuffer (experimental).
+- Added S3 Savage driver (experimental).
+- Introduced kerning cache in FT2 font provider.
+- Added module probing to FT2 font provider.
+- Speed up text rendering by using a special state.
+- Allow to change the buffermode of layers.
+- Support DLBM_BACKVIDEO for layer surfaces.
+- Fixed A8 font blitting bug in Matrox driver.
+- Install directfb headers in a directfb subdirectory.
+- Install and look for modules in versioned subdirectory.
+- Fixed vsync polling when MDA emulation is active.
+- Cleaned up config options (directfbrc and command-line options).
+- New option "videoram-limit=<amount-in-kb>".
+- New otion "dont-catch" to disable signal handlers.
+- Added directfbrc(5) man-page.
+- Made shared memory handling thread-safe (multi-application core).
+- Optimizations in software driver.
+- Lots of bug-fixes.
+
+
 0.9.10
 ------
 
