@@ -251,7 +251,8 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
 
      DFB_ALLOCATE_INTERFACE( interface, IFusionSoundStream );
 
-     ret = IFusionSoundStream_Construct( interface, data->core, buffer, size );
+     ret = IFusionSoundStream_Construct( interface, data->core, buffer,
+                                         size, channels, format, rate );
      if (ret)
           *ret_interface = NULL;
      else

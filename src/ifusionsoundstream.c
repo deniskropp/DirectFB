@@ -105,6 +105,25 @@ IFusionSoundStream_Release( IFusionSoundStream *thiz )
 
 
 static DFBResult
+IFusionSoundStream_GetDescription( IFusionSoundStream  *thiz,
+                                   FSStreamDescription *desc )
+{
+     INTERFACE_GET_DATA(IFusionSoundStream)
+
+     if (!desc)
+          return DFB_INVARG;
+
+     desc->flags = FSSDF_BUFFERSIZE | FSSDF_CHANNELS |
+                   FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
+     desc->buffersize   = data->size;
+     desc->channels     = data->channels;
+     desc->sampleformat = data->format;
+     desc->samplerate   = data->rate;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
                                const void              *sample_data,
                                int                      length,
@@ -286,7 +305,10 @@ DFBResult
 IFusionSoundStream_Construct( IFusionSoundStream *thiz,
                               CoreSound          *core,
                               CoreSoundBuffer    *buffer,
-                              int                 size )
+                              int                 size,
+                              int                 channels,
+                              FSSampleFormat      format,
+                              int                 rate )
 {
      DFBResult     ret;
      CorePlayback *playback;
@@ -328,6 +350,9 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      data->buffer   = buffer;
      data->playback = playback;
      data->size     = size;
+     data->channels = channels;
+     data->format   = format;
+     data->rate     = rate;
 
      pthread_mutex_init( &data->lock, NULL );
      pthread_cond_init( &data->wait, NULL );
@@ -335,6 +360,8 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      /* Initialize method table. */
      thiz->AddRef    = IFusionSoundStream_AddRef;
      thiz->Release   = IFusionSoundStream_Release;
+
+     thiz->GetDescription = IFusionSoundStream_GetDescription;
 
      thiz->Write     = IFusionSoundStream_Write;
      thiz->Wait      = IFusionSoundStream_Wait;

@@ -341,6 +341,16 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
  */
 DEFINE_INTERFACE( IFusionSoundStream,
 
+   /** Information **/
+
+     /*
+      * Get a description of the stream.
+      */
+     DFBResult (*GetDescription) (
+          IFusionSoundStream       *thiz,
+          FSStreamDescription      *desc
+     );
+
    /** Ring buffer **/
 
      /*
