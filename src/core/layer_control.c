@@ -304,6 +304,7 @@ dfb_layer_activate_context( CoreLayer        *layer,
                             CoreLayerContext *context )
 {
      DFBResult          ret = DFB_OK;
+     int                index;
      CoreLayerShared   *shared;
      CoreLayerContexts *ctxs;
 
@@ -320,6 +321,9 @@ dfb_layer_activate_context( CoreLayer        *layer,
 
      DFB_ASSERT( fusion_vector_contains( &ctxs->stack, context ) );
 
+     /* Lookup the context in the context stack. */
+     index = fusion_vector_index_of( &ctxs->stack, context );
+
      /* Lock the context. */
      if (dfb_layer_context_lock( context )) {
           fusion_skirmish_dismiss( &shared->lock );
@@ -327,7 +331,7 @@ dfb_layer_activate_context( CoreLayer        *layer,
      }
 
      /* Need to activate? */
-     if (!context->active) {
+     if (ctxs->active != index) {
           DFBResult ret;
 
           /* Another context currently active? */
@@ -353,7 +357,7 @@ dfb_layer_activate_context( CoreLayer        *layer,
                     goto error;
           }
 
-          ctxs->active = fusion_vector_index_of( &ctxs->stack, context );
+          ctxs->active = index;
      }
 
      /* Unlock the context. */
@@ -414,7 +418,7 @@ dfb_layer_remove_context( CoreLayer        *layer,
           ctxs->primary = NULL;
 
      /* Need to deactivate? */
-     if (context->active) {
+     if (ctxs->active == index) {
           /* Deactivate the context. */
           if (!shared->suspended)
                dfb_layer_context_deactivate( context );
