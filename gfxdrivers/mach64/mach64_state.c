@@ -337,7 +337,7 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
-     __u32 scale_3d_cntl;
+     __u32 scale_3d_cntl = 0;
 
      if (MACH64_IS_VALID( m_blit_blend ))
           return;
