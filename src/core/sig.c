@@ -72,12 +72,33 @@ dfb_sig_remove_handlers()
 }
 
 static void
-dfb_sig_handler( int num )
+dfb_sig_action( int num, siginfo_t *info, void *foo )
 {
-     ERRORMSG( "--->  CAUGHT SIGNAL %d  <---\n", num );
+     int       pid    = getpid();
+     long long millis = fusion_get_millis();
+     
+     fprintf( stderr, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
+              pid, millis/1000, millis%1000, num );
+     fflush( stderr );
+     
+     switch (num) {
+          case SIGILL:
+          case SIGFPE:
+          case SIGSEGV:
+          case SIGBUS:
+               fprintf( stderr, " (at %p) <--\n", info->si_addr );
+               break;
 
+          default:
+               fprintf( stderr, " <--\n" );
+               break;
+     }
+     
+     fflush( stderr );
+
+     
      dfb_sig_remove_handlers();
-
+     
      dfb_core_deinit_emergency();
 
      kill( 0, num );
@@ -97,8 +118,8 @@ dfb_sig_install_handlers()
                struct sigaction action;
                int              signum = sigs_to_handle[i];
 
-               action.sa_handler = dfb_sig_handler;
-               action.sa_flags   = SA_RESTART;
+               action.sa_sigaction = dfb_sig_action;
+               action.sa_flags     = SA_RESTART | SA_SIGINFO;
                
                sigfillset( &action.sa_mask );
 
