@@ -107,8 +107,8 @@ DFBResult Probe( const char *head, const char *filename)
    switch (err)
    {
       case IMLIB_LOAD_ERROR_NONE:
-	 return DFB_OK;
-	 break;
+         return DFB_OK;
+         break;
       case IMLIB_LOAD_ERROR_FILE_DOES_NOT_EXIST:
       case IMLIB_LOAD_ERROR_FILE_IS_DIRECTORY:
       case IMLIB_LOAD_ERROR_PERMISSION_DENIED_TO_READ:
@@ -124,7 +124,7 @@ DFBResult Probe( const char *head, const char *filename)
       case IMLIB_LOAD_ERROR_OUT_OF_DISK_SPACE:
       case IMLIB_LOAD_ERROR_UNKNOWN:
       default:
-	 break;
+         break;
    }
    return DFB_UNSUPPORTED;
 }
@@ -146,22 +146,21 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      /* The image is already loaded and in cache at this point.
       * Any errors should have been caught in Probe */
      data->im = imlib_load_image (data->filename);
-     imlib_context_set_image(data->im);
 
      DEBUGMSG( "DirectFB/Media: IMLIB2 Provider Construct '%s'\n", filename );
 
      thiz->AddRef = IDirectFBImageProvider_IMLIB2_AddRef;
      thiz->Release = IDirectFBImageProvider_IMLIB2_Release;
      thiz->RenderTo = IDirectFBImageProvider_IMLIB2_RenderTo;
-     thiz->GetImageDescription = 
-	IDirectFBImageProvider_IMLIB2_GetImageDescription;
-     thiz->GetSurfaceDescription = 
-	IDirectFBImageProvider_IMLIB2_GetSurfaceDescription;
+     thiz->GetImageDescription =
+        IDirectFBImageProvider_IMLIB2_GetImageDescription;
+     thiz->GetSurfaceDescription =
+        IDirectFBImageProvider_IMLIB2_GetSurfaceDescription;
 
      return DFB_OK;
 }
 
-   
+
    static DFBResult
 IDirectFBImageProvider_IMLIB2_AddRef  ( IDirectFBImageProvider *thiz )
 {
@@ -179,7 +178,7 @@ IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz )
    INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
 
    if (--data->ref == 0) {
-      DFBFREE( data->filename );    
+      DFBFREE( data->filename );
       imlib_free_image();
       DFBFREE( thiz->priv );
       thiz->priv = NULL;
@@ -202,7 +201,9 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      DFBSurfaceCapabilities caps;
 
      INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
-  
+
+     imlib_context_set_image(data->im);
+
      src_width = imlib_image_get_width();
      src_height = imlib_image_get_height();
 
@@ -221,11 +222,11 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      image_data = imlib_image_get_data_for_reading_only();
 
      if (!image_data)
-	return DFB_FAILURE; /* what else makes sense here? */
+        return DFB_FAILURE; /* what else makes sense here? */
 
      err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
      if (err)
-	return err;
+        return err;
 
      dfb_scale_linear_32( dst, image_data,
                           src_width, src_height, width, height,
@@ -242,10 +243,13 @@ IDirectFBImageProvider_IMLIB2_GetSurfaceDescription( IDirectFBImageProvider *thi
 {
    INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
 
+   imlib_context_set_image(data->im);
+
    dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
    dsc->width = imlib_image_get_width();
    dsc->height = imlib_image_get_height();
-   dsc->pixelformat = dfb_layers->shared->surface->format;
+   dsc->pixelformat = imlib_image_has_alpha() ?
+                         DSPF_ARGB : dfb_layers->shared->surface->format;
 
    return DFB_OK;
 }
@@ -255,7 +259,9 @@ IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
                                                    DFBImageDescription    *dsc )
 {
    INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
-     
+
+   imlib_context_set_image(data->im);
+
    /* FIXME no color-keying yet */
    if(imlib_image_has_alpha())
    {
