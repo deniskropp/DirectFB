@@ -204,6 +204,60 @@ static DFBResult IDirectFBVideoProvider_V4L_Stop( IDirectFBVideoProvider *thiz )
      return v4l_stop( data );
 }
 
+static DFBResult IDirectFBVideoProvider_V4L_SeekTo(
+                                              IDirectFBVideoProvider *thiz,
+                                              double                  seconds )
+{
+     IDirectFBVideoProvider_V4L_data *data;
+
+     if (!thiz)
+        return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult IDirectFBVideoProvider_V4L_GetPos(
+     IDirectFBVideoProvider *thiz,
+     double                 *seconds )
+{
+     IDirectFBVideoProvider_V4L_data *data;
+
+     if (!thiz)
+        return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *seconds = 0.0;
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult IDirectFBVideoProvider_V4L_GetLength(
+     IDirectFBVideoProvider *thiz,
+     double                 *seconds )
+{
+     IDirectFBVideoProvider_V4L_data *data;
+
+     if (!thiz)
+        return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *seconds = 0.0;
+
+     return DFB_UNIMPLEMENTED;
+}
 
 
 /* exported symbols */
@@ -259,6 +313,9 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
           IDirectFBVideoProvider_V4L_GetSurfaceDescription;
      thiz->PlayTo = IDirectFBVideoProvider_V4L_PlayTo;
      thiz->Stop = IDirectFBVideoProvider_V4L_Stop;
+     thiz->SeekTo    = IDirectFBVideoProvider_V4L_SeekTo;
+     thiz->GetPos    = IDirectFBVideoProvider_V4L_GetPos;
+     thiz->GetLength = IDirectFBVideoProvider_V4L_GetLength;
 
      return DFB_OK;
 }

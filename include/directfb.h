@@ -1925,6 +1925,22 @@ extern "C"
                IDirectFBVideoProvider   *thiz,
                double                    seconds
           );
+
+          /*
+           * Gets current position within the stream.
+           */
+          DFBResult (*GetPos) (
+               IDirectFBVideoProvider   *thiz,
+               double                   *seconds
+          );
+
+          /*
+           * Gets the length of the stream.
+           */
+          DFBResult (*GetLength) (
+               IDirectFBVideoProvider   *thiz,
+               double                   *seconds
+          );
      )
 
 #ifdef __cplusplus

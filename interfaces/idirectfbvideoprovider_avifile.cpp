@@ -257,8 +257,8 @@ static DFBResult IDirectFBVideoProvider_AviFile_Stop(
 }
 
 static DFBResult IDirectFBVideoProvider_AviFile_SeekTo(
-                                                  IDirectFBVideoProvider *thiz,
-                                                  double               seconds )
+                                               IDirectFBVideoProvider *thiz,
+                                               double                  seconds)
 {
      IDirectFBVideoProvider_AviFile_data *data;
 
@@ -271,6 +271,44 @@ static DFBResult IDirectFBVideoProvider_AviFile_SeekTo(
           return DFB_DEAD;
 
      data->player->Reseek( seconds );
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBVideoProvider_AviFile_GetPos(
+     IDirectFBVideoProvider *thiz,
+     double                 *seconds)
+{
+     IDirectFBVideoProvider_AviFile_data *data;
+
+     if (!thiz)
+        return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *seconds = data->player->GetPos();
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBVideoProvider_AviFile_GetLength(
+     IDirectFBVideoProvider *thiz,
+     double                 *seconds)
+{
+     IDirectFBVideoProvider_AviFile_data *data;
+
+     if (!thiz)
+        return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *seconds = data->player->GetVideoLength();
 
      return DFB_OK;
 }
@@ -378,6 +416,8 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      thiz->PlayTo = IDirectFBVideoProvider_AviFile_PlayTo;
      thiz->Stop = IDirectFBVideoProvider_AviFile_Stop;
      thiz->SeekTo = IDirectFBVideoProvider_AviFile_SeekTo;
+     thiz->GetPos = IDirectFBVideoProvider_AviFile_GetPos;
+     thiz->GetLength = IDirectFBVideoProvider_AviFile_GetLength;
 
      return DFB_OK;
 }

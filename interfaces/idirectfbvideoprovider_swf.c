@@ -363,8 +363,8 @@ static DFBResult IDirectFBVideoProvider_Swf_Stop(IDirectFBVideoProvider *thiz )
 }
 
 static DFBResult IDirectFBVideoProvider_Swf_SeekTo(
-    IDirectFBVideoProvider *thiz,
-    double                  seconds )
+                                              IDirectFBVideoProvider *thiz,
+                                              double                  seconds )
 {
      IDirectFBVideoProvider_Swf_data *data;
 
@@ -376,7 +376,45 @@ static DFBResult IDirectFBVideoProvider_Swf_SeekTo(
      if (!data)
           return DFB_DEAD;
 
-     return DFB_OK;
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult IDirectFBVideoProvider_Swf_GetPos(
+     IDirectFBVideoProvider *thiz,
+     double                 *seconds )
+{
+     IDirectFBVideoProvider_Swf_data *data;
+
+     if (!thiz)
+        return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_Swf_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *seconds = 0.0;
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult IDirectFBVideoProvider_Swf_GetLength(
+     IDirectFBVideoProvider *thiz,
+     double                 *seconds )
+{
+     IDirectFBVideoProvider_Swf_data *data;
+
+     if (!thiz)
+        return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_Swf_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *seconds = 0.0;
+
+     return DFB_UNIMPLEMENTED;
 }
 
 
@@ -476,6 +514,8 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      thiz->PlayTo                = IDirectFBVideoProvider_Swf_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Swf_Stop;
      thiz->SeekTo                = IDirectFBVideoProvider_Swf_SeekTo;
+     thiz->GetPos                = IDirectFBVideoProvider_Swf_GetPos;
+     thiz->GetLength             = IDirectFBVideoProvider_Swf_GetLength;
 
      return DFB_OK;
 }
