@@ -178,7 +178,7 @@ dfb_system_current_mode()
 DFBResult
 dfb_system_thread_init()
 {
-     return system_funcs->ThreadInit();
+     return system_funcs ? system_funcs->ThreadInit() : DFB_OK;
 }
 
 DFBResult
