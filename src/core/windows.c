@@ -121,11 +121,11 @@ void dfb_windowstack_destroy( CoreWindowStack *stack )
           dfb_window_destroy( stack->windows[i] );
 
      if (stack->windows)
-          shmfree( stack->windows );
+          shfree( stack->windows );
 
      dfb_state_destroy( &stack->state );
 
-     shmfree( stack );
+     shfree( stack );
 }
 
 void dfb_window_insert( CoreWindow *window, int before )
@@ -148,7 +148,7 @@ void dfb_window_insert( CoreWindow *window, int before )
 
           memcpy( windows, stack->windows, sizeof(CoreWindow*) * stack->num_windows );
 
-          shmfree( stack->windows );
+          shfree( stack->windows );
 
           stack->windows = windows;
      }
@@ -221,12 +221,12 @@ void dfb_window_remove( CoreWindow *window )
 
                memcpy( windows, stack->windows, sizeof(CoreWindow*) * stack->num_windows );
 
-               shmfree( stack->windows );
+               shfree( stack->windows );
 
                stack->windows = windows;
           }
           else {
-               shmfree( stack->windows );
+               shfree( stack->windows );
                stack->windows = NULL;
           }
      }
@@ -337,7 +337,7 @@ void dfb_window_destroy( CoreWindow *window )
 
      reactor_free( window->reactor );
 
-     shmfree( window );
+     shfree( window );
 }
 
 int dfb_window_raise( CoreWindow *window )

@@ -39,6 +39,8 @@
 
 #ifndef FUSION_FAKE
 
+#include "shmalloc/shmalloc_internal.h"
+
 /***************************
  *  Internal declarations  *
  ***************************/
@@ -111,18 +113,18 @@ int fusion_init()
   if (as == AS_Initialize)
     {
       fusion->shared->next_fid = 1;
-      fusion->shared->next_shmat_addr = (void*)0x70000000;
+      fusion->shared->next_shmat_addr = (void*)0x60000000;
     }
 
   /* set local Fusion ID */
   fusion->fid = fusion->shared->next_fid++;
 
   /* initialize shmalloc part */
-  if (_shmalloc_init())
+  if (!__shmalloc_init())
     {
       /* destroy shared Fusion data if we initialized it */
       if (as == AS_Initialize)
-    shmctl (fusion->shared_shm, IPC_RMID, NULL);
+        shmctl (fusion->shared_shm, IPC_RMID, NULL);
 
       free (fusion);
       fusion = NULL;
@@ -137,7 +139,9 @@ void fusion_exit()
   if (!fusion)
     return;
 
+#if 0
   _shmalloc_exit();
+#endif
 
   switch (_shm_abolish (fusion->shared_shm, fusion->shared))
     {

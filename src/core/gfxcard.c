@@ -179,7 +179,7 @@ DFBResult dfb_gfxcard_initialize()
           if (ret) {
                driver->funcs->CloseDriver( card, card->driver_data );
                munmap( card->framebuffer.base, card->framebuffer.length );
-               shmfree( Scard->device_data );
+               shfree( Scard->device_data );
                DFBFREE( card->driver_data );
                DFBFREE( driver );
                DFBFREE( card );
@@ -265,7 +265,7 @@ DFBResult dfb_gfxcard_shutdown()
                                             card->driver_data, card->device_data );
           card->driver->funcs->CloseDriver( card, card->driver_data );
 
-          shmfree( card->device_data );
+          shfree( card->device_data );
           DFBFREE( card->driver_data );
           DFBFREE( card->driver );
      }
@@ -274,7 +274,7 @@ DFBResult dfb_gfxcard_shutdown()
 
      skirmish_destroy( &Scard->lock );
 
-     shmfree( Scard );
+     shfree( Scard );
 
      DFBFREE( card );
      card = NULL;

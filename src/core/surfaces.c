@@ -101,7 +101,7 @@ DFBResult dfb_surface_create( int width, int height, int format, int policy,
 
      ret = dfb_surface_init( s, width, height, format, caps );
      if (ret) {
-          shmfree( s );
+          shfree( s );
           return ret;
      }
 
@@ -119,7 +119,7 @@ DFBResult dfb_surface_create( int width, int height, int format, int policy,
 
      ret = dfb_surface_allocate_buffer( s, policy, &s->front_buffer );
      if (ret) {
-          shmfree( s );
+          shfree( s );
           return ret;
      }
 
@@ -128,7 +128,7 @@ DFBResult dfb_surface_create( int width, int height, int format, int policy,
           if (ret) {
                dfb_surface_deallocate_buffer( s, s->front_buffer );
 
-               shmfree( s );
+               shfree( s );
                return ret;
           }
      }
@@ -157,7 +157,7 @@ DFBResult dfb_surface_create_preallocated( int width, int height, int format,
 
      ret = dfb_surface_init( s, width, height, format, caps );
      if (ret) {
-          shmfree( s );
+          shfree( s );
           return ret;
      }
 
@@ -451,7 +451,7 @@ void dfb_surface_destroy( CoreSurface *surface )
 
      dfb_surfacemanager_remove_surface( surface->manager, surface );
 
-     shmfree( surface );
+     shfree( surface );
 }
 
 
@@ -530,7 +530,7 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface *surface, int policy,
                dfb_surfacemanager_unlock( surface->manager );
 
                if (ret) {
-                    shmfree( b );
+                    shfree( b );
                     return ret;
                }
 
@@ -561,7 +561,7 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
                buffer->system.pitch += 4 - (buffer->system.pitch & 3);
 
           /* HACK HACK HACK */
-          shmfree( buffer->system.addr );
+          shfree( buffer->system.addr );
           buffer->system.addr = shmalloc( DFB_PLANE_MULTIPLY(surface->format,
                                                              surface->height *
                                                              buffer->system.pitch) );
@@ -593,7 +593,7 @@ static void dfb_surface_deallocate_buffer( CoreSurface   *surface,
                                            SurfaceBuffer *buffer )
 {
      if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM))
-          shmfree( buffer->system.addr );
+          shfree( buffer->system.addr );
 
      dfb_surfacemanager_lock( surface->manager );
 
@@ -602,6 +602,6 @@ static void dfb_surface_deallocate_buffer( CoreSurface   *surface,
 
      dfb_surfacemanager_unlock( surface->manager );
 
-     shmfree( buffer );
+     shfree( buffer );
 }
 

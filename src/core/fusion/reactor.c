@@ -118,7 +118,7 @@ FusionReactor *reactor_new (const int msg_size)
     {
       FPERROR ("msgget for creating the queue failed");
 
-      shmfree (reactor);
+      shfree (reactor);
       return NULL;
     }
 
@@ -370,7 +370,7 @@ void reactor_free (FusionReactor *reactor)
   skirmish_destroy (&reactor->lock);
 
   /* free shared reactor data */
-  shmfree (reactor);
+  shfree (reactor);
 }
 
 

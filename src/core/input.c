@@ -390,7 +390,7 @@ static void init_devices()
                if (driver->funcs->OpenDevice( device, n,
                                               &device_info, &driver_data )) {
                     reactor_free( device->shared->reactor );
-                    shmfree( device->shared );
+                    shfree( device->shared );
                     DFBFREE( device );
                     continue;
                }

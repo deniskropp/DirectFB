@@ -136,17 +136,18 @@ Thanks to
    Topi Kanerva <topi.kanerva@eke.fi>
    Daniel Mack <daniel@convergence.de>
    Ara Hacopian <ahacop@anthrotronix.com>
-
+   Mike Haertel <mike@albert.ai.mit.edu>
 
 
 Legal stuff
 -----------
 
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@directfb.org> and
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <neo@directfb.org>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public

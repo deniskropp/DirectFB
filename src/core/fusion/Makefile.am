@@ -1,5 +1,9 @@
 ## Makefile.am for DirectFB/src/core/fusion
 
+if ENABLE_MULTI
+SUBDIRS = shmalloc
+endif
+
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
@@ -35,5 +39,6 @@ libdirectfb_core_fusion_la_SOURCES = \
 	lock.c			\
 	reactor.c		\
 	ref.c			\
-	shmalloc.c		\
 	util.c
+
+libdirectfb_core_fusion_la_LIBADD = shmalloc/libdirectfb_shmalloc.la

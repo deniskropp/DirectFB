@@ -120,7 +120,7 @@ SurfaceManager *dfb_surfacemanager_create( unsigned int length,
 
      chunk = shcalloc( 1, sizeof(Chunk) );
      if (!chunk) {
-          shmfree( manager );
+          shfree( manager );
           return NULL;
      }
 
@@ -564,7 +564,7 @@ static Chunk* free_chunk( Chunk *chunk )
 
           DEBUGMSG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
 
-          shmfree( chunk );
+          shfree( chunk );
           chunk = prev;
      }
 
@@ -579,7 +579,7 @@ static Chunk* free_chunk( Chunk *chunk )
           if (chunk->next)
                chunk->next->prev = chunk;
 
-          shmfree( next );
+          shfree( next );
      }
 
      return chunk;

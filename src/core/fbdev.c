@@ -165,7 +165,7 @@ DFBResult dfb_fbdev_initialize()
 
      ret = dfb_fbdev_open();
      if (ret) {
-          shmfree( Sfbdev );
+          shfree( Sfbdev );
           DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
@@ -175,7 +175,7 @@ DFBResult dfb_fbdev_initialize()
      if (ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &Sfbdev->orig_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not get variable screen information!\n" );
-          shmfree( Sfbdev );
+          shfree( Sfbdev );
           DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
@@ -188,7 +188,7 @@ DFBResult dfb_fbdev_initialize()
      if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &Sfbdev->current_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not disable console acceleration!\n" );
-          shmfree( Sfbdev );
+          shfree( Sfbdev );
           DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
@@ -240,8 +240,8 @@ DFBResult dfb_fbdev_initialize()
                          Sfbdev->orig_var.transp.offset,
                          Sfbdev->orig_var.bits_per_pixel );
 
-               shmfree( Sfbdev->modes );
-               shmfree( Sfbdev );
+               shfree( Sfbdev->modes );
+               shfree( Sfbdev );
                Sfbdev->modes = NULL;
 
                return DFB_INIT;
@@ -258,10 +258,10 @@ DFBResult dfb_fbdev_initialize()
      if (ioctl( dfb_fbdev->fd, FBIOGETCMAP, &Sfbdev->orig_cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not retrieve palette for backup!\n" );
-          shmfree( Sfbdev->orig_cmap.red );
-          shmfree( Sfbdev->orig_cmap.green );
-          shmfree( Sfbdev->orig_cmap.blue );
-          shmfree( Sfbdev->orig_cmap.transp );
+          shfree( Sfbdev->orig_cmap.red );
+          shfree( Sfbdev->orig_cmap.green );
+          shfree( Sfbdev->orig_cmap.blue );
+          shfree( Sfbdev->orig_cmap.transp );
           Sfbdev->orig_cmap.len = 0;
      }
 
@@ -304,7 +304,7 @@ DFBResult dfb_fbdev_shutdown()
      m = Sfbdev->modes;
      while (m) {
           VideoMode *next = m->next;
-          shmfree( m );
+          shfree( m );
           m = next;
      }
 
@@ -318,10 +318,10 @@ DFBResult dfb_fbdev_shutdown()
                PERRORMSG( "DirectFB/core/fbdev: "
                           "Could not restore palette!\n" );
 
-          shmfree( Sfbdev->orig_cmap.red );
-          shmfree( Sfbdev->orig_cmap.green );
-          shmfree( Sfbdev->orig_cmap.blue );
-          shmfree( Sfbdev->orig_cmap.transp );
+          shfree( Sfbdev->orig_cmap.red );
+          shfree( Sfbdev->orig_cmap.green );
+          shfree( Sfbdev->orig_cmap.blue );
+          shfree( Sfbdev->orig_cmap.transp );
      }
 
      close( dfb_fbdev->fd );
@@ -659,17 +659,17 @@ static void dfb_primarylayer_deinit( DisplayLayer *layer )
      reactor_free( surface->reactor );
 
      if (surface->back_buffer->system.health)
-          shmfree( surface->back_buffer->system.addr );
+          shfree( surface->back_buffer->system.addr );
 
-     shmfree( surface->front_buffer );
+     shfree( surface->front_buffer );
 
      if (surface->back_buffer != surface->front_buffer)
-          shmfree( surface->back_buffer );
+          shfree( surface->back_buffer );
 
      skirmish_destroy( &surface->front_lock );
      skirmish_destroy( &surface->back_lock );
 
-     shmfree( surface );
+     shfree( surface );
 }
 
 
@@ -940,9 +940,9 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
                     surface->caps &= ~DSCAPS_FLIPPING;
                     if (surface->back_buffer != surface->front_buffer) {
                          if (surface->back_buffer->system.health)
-                              shmfree( surface->back_buffer->system.addr );
+                              shfree( surface->back_buffer->system.addr );
 
-                         shmfree( surface->back_buffer );
+                         shfree( surface->back_buffer );
 
                          surface->back_buffer = surface->front_buffer;
                     }
@@ -954,7 +954,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
                     }
                     else {
                          if (surface->back_buffer->system.health)
-                              shmfree( surface->back_buffer->system.addr );
+                              shfree( surface->back_buffer->system.addr );
 
                          surface->back_buffer->system.health = CSH_INVALID;
                     }
@@ -977,7 +977,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
                                                                             var.xres_virtual);
 
                     if (surface->back_buffer->system.addr)
-                         shmfree( surface->back_buffer->system.addr );
+                         shfree( surface->back_buffer->system.addr );
 
                     surface->back_buffer->system.addr =
                          shmalloc( surface->back_buffer->system.pitch * var.yres );
