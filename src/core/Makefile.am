@@ -5,8 +5,9 @@ SUBDIRS = fusion
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
-	-I$(top_srcdir)/src		\
-	$(DFB_CFLAGS)
+	-I$(top_srcdir)/src
+
+CFLAGS = $(DFB_CFLAGS)
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\

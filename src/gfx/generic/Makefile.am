@@ -2,9 +2,9 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src	\
-	$(DFB_CFLAGS)		\
-	$(DFB_CFLAGS_OMIT_FRAME_POINTER)
+	-I$(top_srcdir)/src
+
+CFLAGS = $(DFB_CFLAGS) $(DFB_CFLAGS_OMIT_FRAME_POINTER)
 
 
 if BUILDMMX

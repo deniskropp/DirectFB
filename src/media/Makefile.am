@@ -2,8 +2,9 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src	\
-	$(DFB_CFLAGS)
+	-I$(top_srcdir)/src
+
+CFLAGS = $(DFB_CFLAGS)
 
 
 internalincludedir = $(INTERNALINCLUDEDIR)/media
