@@ -841,6 +841,7 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
 {
      const DFBInputEvent *evt = msg_data;
 
+     int                             i;
      DFBWindowEvent                  we;
      CoreWindow                     *window = NULL;
      CoreWindowStack                *stack  = ctx;
@@ -947,6 +948,21 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
                               dfb_windowstack_unlock( stack );
                               return RS_OK;
 
+                         case DIKS_SMALL_S:
+                              for (i=0; i<stack->num_windows; i++) {
+                                   CoreWindow *window = stack->windows[i];
+
+                                   if (VISIBLE_WINDOW(window) && window->stacking == DWSC_MIDDLE &&
+                                       ! (window->options & (DWOP_GHOST | DWOP_KEEP_STACKING)))
+                                   {
+                                        dfb_window_raisetotop( window );
+                                        dfb_window_request_focus( window );
+                                        break;
+                                   }
+                              }
+                              dfb_windowstack_unlock( stack );
+                              return RS_OK;
+
                          case DIKS_SMALL_C:
                               if (stack->entered_window) {
                                    DFBWindowEvent evt;
@@ -971,7 +987,7 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
                               dfb_windowstack_unlock( stack );
                               return RS_OK;
 
-                         case DIKS_SMALL_S:
+                         case DIKS_SMALL_W:
                               if (stack->focused_window &&
                                   ! (stack->focused_window->options & DWOP_KEEP_STACKING))
                               {
