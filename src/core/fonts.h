@@ -36,12 +36,13 @@
  * glyph struct
  */
 typedef struct {
-     int       start;                   /* x offset of glyph in surface     */
-     int       width;                   /* width of the glyphs bitmap       */
-     int       height;                  /* height of the glyphs bitmap      */
-     int       left;                    /* x offset of the glyph            */
-     int       top;                     /* y offset of the glyph            */
-     int       advance;                 /* placement of next glyph          */
+     CoreSurface *surface;              /* contains bitmap of glyph         */
+     int          start;                /* x offset of glyph in surface     */
+     int          width;                /* width of the glyphs bitmap       */
+     int          height;               /* height of the glyphs bitmap      */
+     int          left;                 /* x offset of the glyph            */
+     int          top;                  /* y offset of the glyph            */
+     int          advance;              /* placement of next glyph          */
 } CoreGlyphData;
 
 /*
@@ -71,7 +72,7 @@ struct _CoreFontData {
      DFBResult   (* GetGlyphInfo) (CoreFontData *thiz, unichar glyph, CoreGlyphData *info);
      DFBResult   (* RenderGlyph)  (CoreFontData *thiz, unichar glyph,
                                    CoreGlyphData *info, CoreSurface *surface);
-     DFBResult   (* GetKerning)   (CoreFontData *thiz, 
+     DFBResult   (* GetKerning)   (CoreFontData *thiz,
                                    unichar prev, unichar current, int *kerning);
 };
 

@@ -515,7 +515,6 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                          CoreFontData *font, CardState *state )
 {
      CoreGlyphData *data;
-     CoreSurface   *surface;
      DFBRectangle   rect;
 
      unichar prev = 0;
@@ -557,10 +556,7 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                     x += kerning;
                }
 
-               if (font->row_width > 0)
-                    rect.x = data->start % font->row_width;
-               else
-                    rect.x = data->start;
+               rect.x = data->start;
                rect.y = 0;
                rect.w = data->width;
                rect.h = data->height;
@@ -569,9 +565,7 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                     int xx = x + data->left;
                     int yy = y + data->top;
 
-                    surface = font->surfaces[data->start / font->row_width];
-
-                    if (state->source != surface) {
+                    if (state->source != data->surface) {
                          switch (blit) {
                          case 1:
                               gfxcard_state_release( state );
@@ -582,7 +576,7 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                          default:
                               break;
                          }
-                         state->source = surface;
+                         state->source = data->surface;
                          state->modified |= SMF_SOURCE;
 
                          if (gfxcard_state_check( state, DFXL_BLIT ) &&
