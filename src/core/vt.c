@@ -127,7 +127,9 @@ DFBResult vt_open()
                return DFB_INIT;
           }
 
-          if (ioctl( vt->fd, VT_ACTIVATE, vt->num ) < 0) {
+          while (ioctl( vt->fd, VT_ACTIVATE, vt->num ) < 0) {
+               if (errno == EINTR)
+                    continue;
                PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE failed!\n" );
                close( vt->fd );
                free( vt );
@@ -135,7 +137,9 @@ DFBResult vt_open()
                return DFB_INIT;
           }
 
-          if (ioctl( vt->fd, VT_WAITACTIVE, vt->num ) < 0) {
+          while (ioctl( vt->fd, VT_WAITACTIVE, vt->num ) < 0) {
+               if (errno == EINTR)
+                    continue;
                PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE failed!\n" );
                close( vt->fd );
                free( vt );
