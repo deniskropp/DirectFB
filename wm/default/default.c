@@ -629,6 +629,62 @@ draw_window( CoreWindow *window, CardState *state,
      if (window->surface->caps & DSCAPS_INTERLACED)
           flags |= DSBLIT_DEINTERLACE;
 
+     /* Different compositing methods depending on destination format. */
+     if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+               /*
+                * Always use compliant Porter/Duff SRC_OVER,
+                * if the destination has an alpha channel.
+                *
+                * Cd = destination color  (non-premultiplied)
+                * Ad = destination alpha
+                *
+                * Cs = source color       (non-premultiplied)
+                * As = source alpha
+                *
+                * Ac = color alpha
+                *
+                * cd = Cd * Ad            (premultiply destination)
+                * cs = Cs * As            (premultiply source)
+                *
+                * The full equation to calculate resulting color and alpha (premultiplied):
+                *
+                * cx = cd * (1-As*Ac) + cs * Ac
+                * ax = Ad * (1-As*Ac) + As * Ac
+                */
+               dfb_state_set_src_blend( state, DSBF_ONE );
+
+               /* Need to premultiply source? */
+               if (! (window->surface->caps & DSCAPS_PREMULTIPLIED))
+                    flags |= DSBLIT_SRC_PREMULTIPLY;
+
+               /* Need to premultiply/demultiply destination? */
+               if (! (state->destination->caps & DSCAPS_PREMULTIPLIED))
+                    flags |= DSBLIT_DST_PREMULTIPLY | DSBLIT_DEMULTIPLY;
+          }
+          else {
+               /*
+                * We can avoid DSBLIT_SRC_PREMULTIPLY for destinations without an alpha channel
+                * by using another blending function, which is more likely that it's accelerated
+                * than premultiplication at this point in time.
+                *
+                * This way the resulting alpha (ax) doesn't comply with SRC_OVER,
+                * but as the destination doesn't have an alpha channel it's no problem.
+                *
+                * As the destination's alpha value is always 1.0 there's no need for
+                * premultiplication. The resulting alpha value will also be 1.0 without
+                * exceptions, therefore no need for demultiplication.
+                *
+                * cx = Cd * (1-As*Ac) + Cs * As*Ac  (still same effect as above)
+                * ax = Ad * (1-As*Ac) + As * As*Ac  (wrong, but discarded anyways)
+                */
+               if (window->surface->caps & DSCAPS_PREMULTIPLIED)
+                    dfb_state_set_src_blend( state, DSBF_ONE );
+               else
+                    dfb_state_set_src_blend( state, DSBF_SRCALPHA );
+          }
+     }
+
      /* Set blitting flags. */
      dfb_state_set_blitting_flags( state, flags );
 
