@@ -52,11 +52,11 @@
 
 #include <misc/conf.h>   /* FIXME */
 
+#include <core/core.h>   /* FIXME */
+
 #include <core/core_sound.h>
 #include <core/playback.h>
 #include <core/sound_buffer.h>
-
-#define DIRECTFB_CORE_ABI     27   /* FIXME */
 
 /******************************************************************************/
 
