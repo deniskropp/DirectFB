@@ -432,9 +432,25 @@ bool uc_texture_triangles( void *drv, void *dev,
                 HC_HVPMSK_Cd  | HC_HVPMSK_S | HC_HVPMSK_T;
 
      int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HShading_FlatC |
-                HC_HVCycle_AFP | HC_HVCycle_AA | HC_HVCycle_BC | HC_HVCycle_NewC;
+                HC_HVCycle_AFP;
 
      int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
+
+
+     switch (formation) {
+          case DTTF_LIST:
+               cmdA |= HC_HVCycle_NewA | HC_HVCycle_NewB | HC_HVCycle_NewC;
+               break;
+          case DTTF_STRIP:
+               cmdA |= HC_HVCycle_AB | HC_HVCycle_BC | HC_HVCycle_NewC;
+               break;
+          case DTTF_FAN:
+               cmdA |= HC_HVCycle_AA | HC_HVCycle_BC | HC_HVCycle_NewC;
+               break;
+          default:
+               ONCE( "unknown triangle formation" );
+               return false;
+     }
 
 
      UC_FIFO_PREPARE(fifo, 6 + num * 6);
