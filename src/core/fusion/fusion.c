@@ -282,10 +282,11 @@ fusion_sync()
      int            result;
      fd_set         set;
      struct timeval tv;
+     int            loops = 100;
 
      FDEBUG( "syncing with fusion device...\n" );
 
-     while (true) {
+     while (loops--) {
           FD_ZERO(&set);
           FD_SET(_fusion_fd,&set);
 
@@ -311,6 +312,8 @@ fusion_sync()
                     usleep( 10000 );
           }
      }
+
+     FERROR( "timeout waiting for empty read buffer\n" );
 }
 
 /*****************************
