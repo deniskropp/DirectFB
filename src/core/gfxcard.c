@@ -546,6 +546,12 @@ void gfxcard_drawstring( const __u8 *text, int x, int y,
      int restore_blittingflags = 0;
      DFBSurfaceBlittingFlags original_blittingflags = 0;
 
+     /* simple precheck */
+     if (y + font->height <= state->clip.y1)
+          return;
+     if (y > state->clip.y2)
+          return;
+
      state_set_source( state, NULL );
      
      if (state->blittingflags != FONT_BLITTINGFLAGS) {
