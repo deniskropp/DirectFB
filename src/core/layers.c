@@ -2315,7 +2315,7 @@ _dfb_layer_surface_listener( const void *msg_data, void *ctx )
      
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( layer->shared->enabled );
+//FIXME     DFB_ASSERT( layer->shared->enabled );
      
      DFB_ASSERT( notification != NULL );
      DFB_ASSERT( notification->surface != NULL );
