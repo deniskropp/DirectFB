@@ -92,21 +92,29 @@ typedef enum {
 
 typedef struct _UcDeviceData {
 
-     __u32 pitch;                    // Current combined src/dst pitch (2D)
-     __u32 color;                    // Current fill color
-     __u32 color3d;                  // Current color for 3D operations
-     __u32 colormask;                // Current color mask
-     __u32 alphamask;                // Current alpha mask
-     __u32 draw_rop2d;               // Current logical drawing ROP (2D)
-     __u32 draw_rop3d;               // Current logical drawing ROP (3D)
-     struct uc_hw_alpha hwalpha;     // Current alpha blending setting (3D)
+     /* State validation */
+     UcStateBits valid;
 
-     // Entries related to the current source surface.
+     /* Current state settings */
+     __u32                   pitch;      // combined src/dst pitch (2D)
+     __u32                   color;      // 2D fill color
+     __u32                   color3d;    // color for 3D operations
+     __u32                   draw_rop2d; // logical drawing ROP (2D)
+     __u32                   draw_rop3d; // logical drawing ROP (3D)
 
-     DFBSurfaceBlittingFlags bflags; // Current blitting flags
-     DFBRegion               clip;   // Current clipping region
-     struct uc_hw_texture hwtex;     // Current hardware settings for blitting (3D)
-     int field;
+     DFBSurfaceBlittingFlags bflags;     // blitting flags
+     DFBRegion               clip;       // clipping region
+
+     DFBSurfacePixelFormat   dst_format; // destination pixel format
+     int                     dst_offset; // destination buffer byte offset
+     int                     dst_pitch;  // destination buffer byte pitch
+
+     int                     field;      // source field
+
+     /* Hardware settings */
+     struct uc_hw_alpha      hwalpha;    // alpha blending setting (3D)
+     struct uc_hw_texture    hwtex;      // hardware settings for blitting (3D)
+
 
      /// Set directly after a 2D/3D engine command is sent.
      int must_wait;
@@ -118,9 +126,6 @@ typedef struct _UcDeviceData {
      __u32           vq_start;   // VQ related
      __u32           vq_size;
      __u32           vq_end;
-
-     /*state validation*/
-     UcStateBits valid;
 
 } UcDeviceData;
 

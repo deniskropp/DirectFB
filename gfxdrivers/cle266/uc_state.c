@@ -21,44 +21,70 @@ enum uc_state_type {
 
 /// GPU selecting functions --------------------------------------------------
 
-inline bool uc_is_destination_supported(DFBSurfacePixelFormat format)
+static inline bool
+uc_has_dst_format( DFBSurfacePixelFormat format )
 {
      switch (format) {
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
-//    case DSPF_LUT8:
           case DSPF_ARGB:
-          case DSPF_ARGB1555:
                return true;
+
           default:
-               return false;
+               break;
      }
+
+     return false;
 }
 
-inline enum uc_state_type uc_select_drawtype(CardState* state,
-                                             DFBAccelerationMask accel) {
-     if (!(state->drawingflags & ~UC_DRAWING_FLAGS_2D) &&
-         !(accel & DFXL_FILLTRIANGLE)) return UC_TYPE_2D;
+static inline bool
+uc_has_src_format_3d( DFBSurfacePixelFormat format )
+{
+     switch (format) {
+          case DSPF_ARGB1555:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+          case DSPF_A8:
+          case DSPF_LUT8:
+               return true;
 
-     if (!(state->drawingflags & ~UC_DRAWING_FLAGS_3D)) return UC_TYPE_3D;
+          default:
+               break;
+     }
+
+     return false;
+}
+
+static inline enum uc_state_type
+uc_select_drawtype( CardState* state,
+                    DFBAccelerationMask accel )
+{
+     if (!(state->drawingflags & ~UC_DRAWING_FLAGS_2D) &&
+         !(accel & DFXL_FILLTRIANGLE))
+          return UC_TYPE_2D;
+
+     if (!(state->drawingflags & ~UC_DRAWING_FLAGS_3D))
+          return UC_TYPE_3D;
 
      return UC_TYPE_UNSUPPORTED;
 }
 
-inline enum uc_state_type uc_select_blittype(CardState* state,
-                                             DFBAccelerationMask accel) {
-     __u32 tmp;
-
+static inline enum uc_state_type
+uc_select_blittype( CardState* state,
+                    DFBAccelerationMask accel )
+{
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_2D)) {
           if ((state->source->format == state->destination->format) &&
               !((state->blittingflags & DSBLIT_SRC_COLORKEY) &&
                 (state->blittingflags & DSBLIT_DST_COLORKEY)) &&
-              !(accel & DFXL_STRETCHBLIT)) return UC_TYPE_2D;
+              !(accel & DFXL_STRETCHBLIT))
+               return UC_TYPE_2D;
      }
 
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
-          if ((uc_map_src_format_3d(state->source->format) >= 0) &&
-              (uc_map_dst_format(state->destination->format, &tmp, &tmp) >= 0))
+          if (uc_has_src_format_3d( state->source->format ))
                return UC_TYPE_3D;
      }
 
@@ -70,11 +96,12 @@ inline enum uc_state_type uc_select_blittype(CardState* state,
 void uc_check_state(void *drv, void *dev,
                     CardState *state, DFBAccelerationMask accel)
 {
-     if (!uc_is_destination_supported(state->destination->format)) return;
-
+     /* Check destination format. */
+     if (!uc_has_dst_format( state->destination->format ))
+          return;
 
      if (DFB_DRAWING_FUNCTION(accel)) {
-
+          /* Check drawing parameters. */
           switch (uc_select_drawtype(state, accel)) {
                case UC_TYPE_2D:
                     state->accel |= UC_DRAWING_FUNCTIONS_2D;
@@ -82,13 +109,12 @@ void uc_check_state(void *drv, void *dev,
                case UC_TYPE_3D:
                     state->accel |= UC_DRAWING_FUNCTIONS_3D;
                     break;
-               case UC_TYPE_UNSUPPORTED:
-                    break;
+               default:
+                    return;
           }
-          return;
      }
-     else { // DFB_BLITTING_FUNCTION(accel)
-
+     else {
+          /* Check blitting parameters. */
           switch (uc_select_blittype(state, accel)) {
                case UC_TYPE_2D:
                     state->accel |= UC_BLITTING_FUNCTIONS_2D;
@@ -96,10 +122,9 @@ void uc_check_state(void *drv, void *dev,
                case UC_TYPE_3D:
                     state->accel |= UC_BLITTING_FUNCTIONS_3D;
                     break;
-               case UC_TYPE_UNSUPPORTED:
-                    break;
+               default:
+                    return;
           }
-          return;
      }
 }
 
@@ -110,8 +135,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      UcDeviceData   *ucdev = (UcDeviceData*) dev;
      struct uc_fifo *fifo  = ucdev->fifo;
 
-     __u32 rop3d = HC_HROP_P;
-     __u32 mask3d;
+     __u32 rop3d     = HC_HROP_P;
      __u32 regEnable = HC_HenCW_MASK;
 
      StateModificationFlags modified = state->modified;
@@ -223,22 +247,19 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
           }
      }
 
-     mask3d = ucdev->colormask | ucdev->alphamask;
-
 #ifdef UC_ENABLE_3D
-     UC_FIFO_PREPARE(fifo, 6);
-     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
+     UC_FIFO_PREPARE( fifo, 6 );
+     UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
 
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HEnable, regEnable);
+     /* Don't know what this does. DRI code always clears it. */
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HPixGC,   0 );
 
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HFBBMSKL, mask3d & 0xffffff);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HROP, rop3d | ((mask3d >> 24) & 0xff));
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HPixGC, 0);  // Don't know what this does...
-                                               // ...DRI code always clears it.
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HEnable,  regEnable );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HFBBMSKL, 0xffffff );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HROP,     rop3d | 0xff );
 #endif
 
      UC_FIFO_CHECK(fifo);
-//    UC_FIFO_FLUSH(fifo);
 
      state->modified = 0;
 }

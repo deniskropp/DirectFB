@@ -31,44 +31,47 @@
 #define ILOG2_X86(x,y)  // TODO - use BSR (bit scan reverse) instruction
 
 /// Set alpha blending function (3D)
-void uc_set_blending_fn(UcDriverData *ucdrv,
-                        UcDeviceData *ucdev,
-                        CardState    *state)
+inline void
+uc_set_blending_fn( UcDriverData *ucdrv,
+                    UcDeviceData *ucdev,
+                    CardState    *state )
 {
-     struct uc_fifo *fifo = ucdev->fifo;
+     struct uc_fifo     *fifo    = ucdev->fifo;
+     struct uc_hw_alpha *hwalpha = &ucdev->hwalpha;
 
      if (UC_IS_VALID( uc_blending_fn ))
           return;
 
-     uc_map_blending_fn(&(ucdev->hwalpha), state->src_blend,
-                        state->dst_blend, state->destination->format);
+     uc_map_blending_fn( hwalpha, state->src_blend, state->dst_blend,
+                         state->destination->format );
 
-     UC_FIFO_PREPARE(fifo, 14);
-     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
+     UC_FIFO_PREPARE( fifo, 14 );
+     UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
 
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLCsat, ucdev->hwalpha.regHABLCsat);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLCop,  ucdev->hwalpha.regHABLCop);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLAsat, ucdev->hwalpha.regHABLAsat);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLAop,  ucdev->hwalpha.regHABLAop);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLRCa,  ucdev->hwalpha.regHABLRCa);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLRFCa, ucdev->hwalpha.regHABLRFCa);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLRCbias, ucdev->hwalpha.regHABLRCbias);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLRCb,  ucdev->hwalpha.regHABLRCb);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLRFCb, ucdev->hwalpha.regHABLRFCb);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLRAa,  ucdev->hwalpha.regHABLRAa);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HABLRAb,  ucdev->hwalpha.regHABLRAb);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLCsat,   ucdev->hwalpha.regHABLCsat);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLCop,    ucdev->hwalpha.regHABLCop);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLAsat,   ucdev->hwalpha.regHABLAsat);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLAop,    ucdev->hwalpha.regHABLAop);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRCa,    ucdev->hwalpha.regHABLRCa);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRFCa,   ucdev->hwalpha.regHABLRFCa);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRCbias, ucdev->hwalpha.regHABLRCbias);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRCb,    ucdev->hwalpha.regHABLRCb);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRFCb,   ucdev->hwalpha.regHABLRFCb);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRAa,    ucdev->hwalpha.regHABLRAa);
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HABLRAb,    ucdev->hwalpha.regHABLRAb);
 
-     UC_FIFO_PAD_EVEN(fifo);
+     UC_FIFO_PAD_EVEN( fifo );
 
-     UC_FIFO_CHECK(fifo);
+     UC_FIFO_CHECK( fifo );
 
      UC_VALIDATE( uc_blending_fn );
 }
 
 /// Set texture environment (3D)
-void uc_set_texenv(UcDriverData *ucdrv,
-                   UcDeviceData *ucdev,
-                   CardState    *state)
+inline void
+uc_set_texenv( UcDriverData *ucdrv,
+               UcDeviceData *ucdev,
+               CardState    *state )
 {
      struct uc_hw_texture* tex;
      struct uc_fifo *fifo = ucdev->fifo;
@@ -113,9 +116,10 @@ void uc_set_texenv(UcDriverData *ucdrv,
 }
 
 /// Set clipping rectangle (2D and 3D)
-void uc_set_clip(UcDriverData *ucdrv,
-                 UcDeviceData *ucdev,
-                 CardState    *state)
+inline void
+uc_set_clip( UcDriverData *ucdrv,
+             UcDeviceData *ucdev,
+             CardState    *state )
 {
      struct uc_fifo *fifo = ucdev->fifo;
 
@@ -145,62 +149,64 @@ void uc_set_clip(UcDriverData *ucdrv,
 }
 
 /// Set destination (2D and 3D)
-void uc_set_destination(UcDriverData *ucdrv,
-                        UcDeviceData *ucdev,
-                        CardState    *state)
+inline void
+uc_set_destination( UcDriverData *ucdrv,
+                    UcDeviceData *ucdev,
+                    CardState    *state )
 {
-     const int gemodes[4] = {
-          VIA_GEM_8bpp, VIA_GEM_16bpp, VIA_GEM_32bpp, VIA_GEM_32bpp
-     };
-     int dbuf = state->destination->back_buffer->video.offset;
-     int dpitch = state->destination->back_buffer->video.pitch;
-     int format;
-     int bpp; // Number of bytes per pixel.
-     struct uc_fifo *fifo = ucdev->fifo;
+     struct uc_fifo        *fifo        = ucdev->fifo;
 
-     UC_FIFO_PREPARE(fifo, 12);
-     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
+     CoreSurface           *destination = state->destination;
+     SurfaceBuffer         *buffer      = destination->back_buffer;
 
-     // 3D engine setting
+     DFBSurfacePixelFormat  dst_format  = destination->format;
+     int                    dst_offset  = buffer->video.offset;
+     int                    dst_pitch   = buffer->video.pitch;
+     int                    dst_bpp     = DFB_BYTES_PER_PIXEL( dst_format );
 
-     format = uc_map_dst_format(state->destination->format,
-                                &(ucdev->colormask), &(ucdev->alphamask));
-     if (format == -1) {
-          BUG("Unexpected pixelformat!");
-          format = HC_HDBFM_ARGB8888;
-     }
 
-#ifdef UC_ENABLE_3D
-
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HDBBasL, dbuf & 0xffffff);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HDBBasH, dbuf >> 24);
-     UC_FIFO_ADD_3D(fifo, HC_SubA_HDBFM,
-                    format | (dpitch & HC_HDBPit_MASK) | HC_HDBLoc_Local);
-
-#endif
+     /* Save FIFO space and CPU cycles. */
+     if (ucdev->dst_format == dst_format &&
+         ucdev->dst_offset == dst_offset &&
+         ucdev->dst_pitch  == dst_pitch)
+          return;
 
      // 2D engine setting
 
-     bpp = DFB_BYTES_PER_PIXEL(state->destination->format);
-     if ((bpp != 1) && (bpp != 2) && (bpp != 4)) {
-          BUG("Unexpected pixelformat!");
-          bpp = 4;
-     }
+     ucdev->pitch = (ucdev->pitch & 0x7fff) | (((dst_pitch >> 3) & 0x7fff) << 16);
 
-     ucdev->pitch = (ucdev->pitch & 0x7fff) | (((dpitch >> 3) & 0x7fff) << 16);
-     UC_FIFO_ADD_2D(fifo, VIA_REG_PITCH, VIA_PITCH_ENABLE | ucdev->pitch);
-     UC_FIFO_ADD_2D(fifo, VIA_REG_DSTBASE, dbuf >> 3);
-     UC_FIFO_ADD_2D(fifo, VIA_REG_GEMODE, gemodes[bpp >> 1]);
+     UC_FIFO_PREPARE( fifo, 12 );
+     UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
+
+
+     UC_FIFO_ADD_2D ( fifo, VIA_REG_PITCH,   (VIA_PITCH_ENABLE | ucdev->pitch) );
+     UC_FIFO_ADD_2D ( fifo, VIA_REG_DSTBASE, (dst_offset >> 3) );
+     UC_FIFO_ADD_2D ( fifo, VIA_REG_GEMODE,  (dst_bpp - 1) << 8 );
+
+#ifdef UC_ENABLE_3D
+     // 3D engine setting
+
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HDBBasL, dst_offset & 0xffffff );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HDBBasH, dst_offset >> 24 );
+     UC_FIFO_ADD_3D ( fifo, HC_SubA_HDBFM,   (uc_map_dst_format( dst_format ) |
+                                              (dst_pitch & HC_HDBPit_MASK)    |
+                                              HC_HDBLoc_Local) );
 
      UC_FIFO_PAD_EVEN(fifo);
+#endif
 
-     UC_FIFO_CHECK(fifo);
+     UC_FIFO_CHECK( fifo );
+
+     ucdev->dst_format = dst_format;
+     ucdev->dst_offset = dst_offset;
+     ucdev->dst_pitch  = dst_pitch;
 }
 
 /// Set new source (2D)
-void uc_set_source_2d(UcDriverData *ucdrv,
-                      UcDeviceData *ucdev,
-                      CardState    *state)
+inline void
+uc_set_source_2d( UcDriverData *ucdrv,
+                  UcDeviceData *ucdev,
+                  CardState    *state )
 {
      SurfaceBuffer* buf = state->source->front_buffer;
      struct uc_fifo *fifo = ucdev->fifo;
@@ -223,9 +229,10 @@ void uc_set_source_2d(UcDriverData *ucdrv,
 }
 
 /// Set new source (3D)
-void uc_set_source_3d(UcDriverData *ucdrv,
-                      UcDeviceData *ucdev,
-                      CardState    *state)
+inline void
+uc_set_source_3d( UcDriverData *ucdrv,
+                  UcDeviceData *ucdev,
+                  CardState    *state )
 {
      struct uc_hw_texture *tex;
      CoreSurface          *src;
@@ -332,9 +339,10 @@ void uc_set_source_3d(UcDriverData *ucdrv,
 }
 
 /// Set either destination color key, or fill color, as needed. (2D)
-void uc_set_color_2d( UcDriverData *ucdrv,
-                      UcDeviceData *ucdev,
-                      CardState    *state )
+inline void
+uc_set_color_2d( UcDriverData *ucdrv,
+                 UcDeviceData *ucdev,
+                 CardState    *state )
 {
      struct uc_fifo *fifo = ucdev->fifo;
 
@@ -393,9 +401,10 @@ void uc_set_color_2d( UcDriverData *ucdrv,
      UC_INVALIDATE( uc_colorkey2d );
 }
 
-void uc_set_colorkey_2d( UcDriverData *ucdrv,
-                         UcDeviceData *ucdev,
-                         CardState    *state )
+inline void
+uc_set_colorkey_2d( UcDriverData *ucdrv,
+                    UcDeviceData *ucdev,
+                    CardState    *state )
 {
      struct uc_fifo *fifo = ucdev->fifo;
 
