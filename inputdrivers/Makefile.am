@@ -6,6 +6,12 @@ else
 H3600_TS_DIR =
 endif
 
+if SONYPI
+SONYPI_DIR = sonypi
+else
+SONYPI_DIR =
+endif
+
 if DBOX2REMOTE
 DBOX2REMOTE_DIR = dbox2remote
 else
@@ -19,4 +25,5 @@ SUBDIRS = \
 	ps2mouse	\
 	serialmouse	\
 	$(H3600_TS_DIR) \
+	$(SONYPI_DIR)	\
 	$(DBOX2REMOTE_DIR)

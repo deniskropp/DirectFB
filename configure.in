@@ -414,6 +414,13 @@ AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no
 AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
 
 
+dnl Test for SonyPI Jogdial support
+AC_CHECK_HEADER( [linux/sonypi.h], sonypi=yes, sonypi=no  
+  AC_MSG_WARN(*** SonyPI Jogdial driver will not be built.))
+
+AM_CONDITIONAL(SONYPI, test x$sonypi = xyes)
+
+
 dnl Test for DBox2 Remote support
 AC_CHECK_HEADER( [dbox/fp.h], dbox2remote=yes, dbox2remote=no
   AC_MSG_WARN(*** DBox2 Remote driver will not be built.))
@@ -499,6 +506,7 @@ gfxdrivers/tdfx/Makefile
 gfxdrivers/nvidia/Makefile
 inputdrivers/Makefile
 inputdrivers/h3600_ts/Makefile
+inputdrivers/sonypi/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
 inputdrivers/lirc/Makefile
@@ -541,13 +549,14 @@ Building Font implementations:
   DirectFB font       yes
 
 Building Graphics Drivers:
-  Matrox G200/G400    $matrox
+  Matrox              $matrox
   ATI Rage 128        $ati
   NeoMagic            $neomagic
   3Dfx Voodoo         $tdfx
   nVidia RIVA TNT     $nvidia
 
 Building Input Drivers:
-  H3600 Touchscreen   $h3600_ts
   DBox2 Remote        $dbox2remote
+  H3600 Touchscreen   $h3600_ts
+  SonyPI Jogdial      $sonypi
 ]);
