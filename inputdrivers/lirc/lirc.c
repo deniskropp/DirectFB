@@ -131,8 +131,6 @@ lircEventThread( void *driver_data )
 
      memset( &evt, 0, sizeof(DFBInputEvent) );
 
-     evt.flags = DIEF_KEYSYMBOL;
-
      while ((readlen = read( data->fd, buf, 128 )) > 0 || errno == EINTR) {
           pthread_testcancel();
 
@@ -140,11 +138,14 @@ lircEventThread( void *driver_data )
                continue;
 
           evt.key_symbol = lirc_parse_line( buf );
+
           if (evt.key_symbol != DIKS_NULL) {
                evt.type = DIET_KEYPRESS;
+               evt.flags = DIEF_KEYSYMBOL;
                dfb_input_dispatch( data->device, &evt );
 
                evt.type = DIET_KEYRELEASE;
+               evt.flags = DIEF_KEYSYMBOL;
                dfb_input_dispatch( data->device, &evt );
           }
      }

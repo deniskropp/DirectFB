@@ -79,6 +79,8 @@ static DFBInputEvent joystick_handle_event(struct js_event jse)
                event.axis    = jse.number;
                event.axisabs = jse.value;
                break;
+          default:
+               PERRORMSG ("unknown joystick event type\n");
      }
 
      return event;

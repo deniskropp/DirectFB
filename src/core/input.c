@@ -128,8 +128,8 @@ fixup_key_event( InputDevice   *device,
                  DFBInputEvent *event );
 
 static void
-fixup_button_event( InputDevice   *device,
-                    DFBInputEvent *event );
+fixup_mouse_event( InputDevice   *device,
+                   DFBInputEvent *event );
 
 static DFBInputDeviceKeyIdentifier
 symbol_to_id( DFBInputDeviceKeySymbol symbol );
@@ -338,6 +338,11 @@ dfb_input_detach( InputDevice *device, React react, void *ctx )
 void
 dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
 {
+     if (!(event->flags & DIEF_TIMESTAMP)) {
+          gettimeofday( &event->timestamp, NULL );
+          event->flags |= DIEF_TIMESTAMP;
+     }
+
      switch (event->type) {
           case DIET_BUTTONPRESS:
           case DIET_BUTTONRELEASE:
@@ -349,7 +354,7 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
                }
                /* fallthru */
           case DIET_AXISMOTION:
-               fixup_button_event( device, event );
+               fixup_mouse_event( device, event );
                break;
 
           case DIET_KEYPRESS:
@@ -872,7 +877,7 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
 }
 
 static void
-fixup_button_event( InputDevice *device, DFBInputEvent *event )
+fixup_mouse_event( InputDevice *device, DFBInputEvent *event )
 {
      InputDeviceShared *shared = device->shared;
 

@@ -188,9 +188,6 @@ dbox2remoteEventThread( void *driver_data )
      /* block all signals, they must not be handled by this thread */
      dfb_sig_block_all();
      
-     /* set flags once */
-     evt.flags = DIEF_KEYCODE;
-
      while ((readlen = read( data->fd, &rccode, 2 )) == 2) {
           pthread_testcancel();
 
@@ -199,10 +196,12 @@ dbox2remoteEventThread( void *driver_data )
           if (evt.keycode != DIKC_UNKNOWN) {
                /* set event type and dispatch*/
                evt.type = DIET_KEYPRESS;
+               evt.flags = DIEF_KEYCODE;
                dfb_input_dispatch( data->device, &evt );
 
                /* set event type and dispatch*/
                evt.type = DIET_KEYRELEASE;
+               evt.flags = DIEF_KEYCODE;
                dfb_input_dispatch( data->device, &evt );
           }
      }

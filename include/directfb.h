@@ -2306,8 +2306,7 @@ typedef struct {
                                                     are valid? */
 
      /* additionally (check flags) */
-     struct timeval                  timestamp;  /* time of event
-                                                    creation (optional) */
+     struct timeval                  timestamp;  /* time of event creation */
 
 /* DIET_KEYPRESS, DIET_KEYRELEASE */
      int                             key_code;   /* hardware keycode, no

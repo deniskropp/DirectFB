@@ -110,10 +110,10 @@ static void* h3600tsEventThread( void *driver_data )
 
           if ((ts_event.pressure && !old_pressure) ||
               (!ts_event.pressure && old_pressure)) {
-               evt.type    = ts_event.pressure ?
-                             DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-               evt.flags   = DIEF_BUTTON;
-               evt.button  = DIBI_LEFT;
+               evt.type   = (ts_event.pressure ?
+                             DIET_BUTTONPRESS : DIET_BUTTONRELEASE);
+               evt.flags  = DIEF_BUTTON;
+               evt.button = DIBI_LEFT;
 
                dfb_input_dispatch( data->device, &evt );
 

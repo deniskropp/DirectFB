@@ -264,7 +264,8 @@ keyboardEventThread( void *driver_data )
           for (i = 0; i < readlen; i++) {
                DFBInputEvent evt;
 
-               evt.type     = (buf[i] & 0x80) ? DIET_KEYRELEASE : DIET_KEYPRESS;
+               evt.type     = ((buf[i] & 0x80) ?
+                               DIET_KEYRELEASE : DIET_KEYPRESS);
                evt.flags    = DIEF_KEYCODE;
                evt.key_code = buf[i] & 0x7f;
 

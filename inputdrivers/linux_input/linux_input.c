@@ -368,8 +368,6 @@ linux_input_EventThread( void *driver_data )
           if (readlen <= 0)
                continue;
 
-	  devt.flags = 0;
-
           if (translate_event( &levt, &devt))
                dfb_input_dispatch( data->device, &devt );
      }

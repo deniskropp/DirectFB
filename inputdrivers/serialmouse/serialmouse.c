@@ -34,7 +34,6 @@
 #include <termios.h>
 
 #include <sys/ioctl.h>
-#include <sys/time.h>
 #include <sys/types.h>
 
 #include <linux/serial.h>
@@ -110,15 +109,13 @@ static inline void
 mouse_motion_realize( SerialMouseData *data )
 {
      if (data->x_motion.axisrel) {
-          gettimeofday( &data->x_motion.timestamp, NULL );
-          data->x_motion.flags = DIEF_AXISREL | DIEF_TIMESTAMP;
+          data->x_motion.flags = DIEF_AXISREL;
           dfb_input_dispatch( data->device, &data->x_motion );
           data->x_motion.axisrel = 0;
      }
 
      if (data->y_motion.axisrel) {
-          gettimeofday( &data->y_motion.timestamp, NULL );
-          data->y_motion.flags = DIEF_AXISREL | DIEF_TIMESTAMP;
+          data->y_motion.flags = DIEF_AXISREL;
           dfb_input_dispatch( data->device, &data->y_motion );
           data->y_motion.axisrel = 0;
      }
@@ -216,27 +213,25 @@ mouseEventThread_ms( void *driver_data )
                             before any button change */
                          mouse_motion_realize( data );
 
-                         gettimeofday( &evt.timestamp, NULL );
-
                          if (changed_buttons & 0x20) {
                               evt.type = (buttons & 0x20) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.flags = DIEF_NONE;
                               evt.button = DIBI_LEFT;
-                              evt.flags = DIEF_TIMESTAMP;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x10) {
                               evt.type = (buttons & 0x10) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.flags = DIEF_NONE;
                               evt.button = DIBI_RIGHT;
-                              evt.flags = DIEF_TIMESTAMP;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & MIDDLE) {
                               evt.type = (buttons & MIDDLE) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.flags = DIEF_NONE;
                               evt.button = DIBI_MIDDLE;
-                              evt.flags = DIEF_TIMESTAMP;
                               dfb_input_dispatch( data->device, &evt );
                          }
 
