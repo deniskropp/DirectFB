@@ -71,9 +71,11 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
      if (data->player->IsPlaying())
           data->player->Stop();
 
+     delete data->player;
+
      reactor_free( data->source.reactor );
 
-     delete thiz->priv;
+     free (thiz->priv);
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
@@ -314,11 +316,12 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetLength(
 
 static void AviFile_KillCallback( int bogus, void *p )
 {
+  /* AviFile_KillCallback gets called when AviFile->Stop is called.
+     At the moment we do nothing here...
+
      IDirectFBVideoProvider_AviFile_data *data =
           (IDirectFBVideoProvider_AviFile_data*)p;
-
-     /* AviFile_KillCallback gets called when AviFile->Stop is called */
-     /* At the moment we do nothing here...                           */
+   */
 }
 
 static void AviFile_DrawCallback( const CImage *image, void *p )
