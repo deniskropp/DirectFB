@@ -99,6 +99,7 @@ fi
 # check target architecture
 #
 have_x86=no
+have_arm=no
 
 case x"$target" in
   xNONE | x)
@@ -111,6 +112,10 @@ case "$target_or_host" in
   i*86-*-*)
     have_x86=yes
     AC_DEFINE(ARCH_X86,1,[Define to 1 if you are compiling for ix86.])
+    ;;
+
+  *arm*)
+    have_arm=yes
     ;;
 
   ppc-*-linux* | powerpc-*)
@@ -558,6 +563,8 @@ AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no
 
 AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
 
+dnl only build ucb1x00 driver on arm
+AM_CONDITIONAL(UCB1X00_TS, test x$have_arm = xyes)
 
 dnl Test for SonyPI Jogdial support
 AC_CHECK_HEADER( [linux/sonypi.h], sonypi=yes, sonypi=no  
@@ -671,6 +678,7 @@ gfxdrivers/nvidia/Makefile
 gfxdrivers/savage/Makefile
 inputdrivers/Makefile
 inputdrivers/h3600_ts/Makefile
+inputdrivers/ucb1x00_ts/Makefile
 inputdrivers/sonypi/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
@@ -743,6 +751,7 @@ Building Input Drivers:
   Linux Input         $enable_linux_input
   DBox2 Remote        $dbox2remote
   H3600 Touchscreen   $h3600_ts
+  ucb1x00 Touchscreen $have_arm
   SonyPI Jogdial      $sonypi
 ]);
 fi

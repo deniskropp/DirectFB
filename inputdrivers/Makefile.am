@@ -12,6 +12,12 @@ else
 H3600_TS_DIR =
 endif
 
+if UCB1X00_TS
+UCB1X00_TS_DIR = ucb1x00_ts
+else
+UCB1X00_TS_DIR =
+endif
+
 if SONYPI
 SONYPI_DIR = sonypi
 else
@@ -32,5 +38,6 @@ SUBDIRS = \
 	ps2mouse	\
 	serialmouse	\
 	$(H3600_TS_DIR) \
+	$(UCB1X00_TS_DIR) \
 	$(SONYPI_DIR)	\
 	$(DBOX2REMOTE_DIR)
