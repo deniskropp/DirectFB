@@ -620,8 +620,6 @@ reactor_attach_global (FusionReactor  *reactor,
                        void           *ctx,
                        GlobalReaction *reaction)
 {
-     FusionResult ret;
-
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( react_index >= 0 );
      DFB_ASSERT( reaction != NULL );
