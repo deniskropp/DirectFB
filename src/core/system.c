@@ -33,6 +33,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/layers.h>
+#include <core/modules.h>
 #include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/system.h>
@@ -42,31 +43,12 @@
 #include <misc/conf.h>
 #include <misc/mem.h>
 
-typedef struct {
-     FusionLink       link;
-     CoreSystemFuncs *funcs;
-     int              abi_version;
-} CoreSystemModule;
+DEFINE_MODULE_DIRECTORY( dfb_core_systems, "systems",
+                         DFB_CORE_SYSTEM_ABI_VERSION );
 
-static FusionLink       *system_modules = NULL;
-
-static CoreSystemModule *system_module  = NULL;
-static CoreSystemFuncs  *system_funcs   = NULL;
-static CoreSystemInfo    system_info;
-
-
-void
-dfb_system_register_module( CoreSystemFuncs *funcs )
-{
-     CoreSystemModule *module;
-
-     module = calloc( 1, sizeof(CoreSystemModule) );
-
-     module->funcs       = funcs;
-     module->abi_version = funcs->GetAbiVersion();
-
-     fusion_list_prepend( &system_modules, &module->link );
-}
+static ModuleEntry     *system_module  = NULL;
+static CoreSystemFuncs *system_funcs   = NULL;
+static CoreSystemInfo   system_info;
 
 
 static DFBResult
@@ -74,19 +56,24 @@ lookup_system()
 {
      FusionLink *l;
 
-     fusion_list_foreach( l, system_modules ) {
-          CoreSystemModule *module = (CoreSystemModule*) l;
+     fusion_list_foreach( l, dfb_core_systems.entries ) {
+          ModuleEntry     *module = (ModuleEntry*) l;
+          CoreSystemFuncs *funcs;
 
-          module->funcs->GetSystemInfo( &system_info );
-
-          if (dfb_config->system && strcasecmp( dfb_config->system,
-                                                system_info.name ))
+          funcs = (CoreSystemFuncs*) dfb_module_ref( module );
+          if (!funcs)
                continue;
-          
-          system_module = module;
-          system_funcs  = module->funcs;
 
-          break;
+          if (!system_module && (!dfb_config->system ||
+              !strcasecmp( dfb_config->system, module->name )))
+          {
+               system_module = module;
+               system_funcs  = funcs;
+               
+               funcs->GetSystemInfo( &system_info );
+          }
+          else
+               dfb_module_unref( module );
      }
 
      if (!system_module) {
@@ -125,8 +112,13 @@ dfb_system_join()
 DFBResult
 dfb_system_shutdown( bool emergency )
 {
-     if (system_funcs)
+     if (system_module) {
+          dfb_module_unref( system_module );
+
+          system_module = NULL;
+
           return system_funcs->Shutdown( emergency );
+     }
 
      return DFB_OK;
 }
@@ -134,8 +126,13 @@ dfb_system_shutdown( bool emergency )
 DFBResult
 dfb_system_leave( bool emergency )
 {
-     if (system_funcs)
+     if (system_module) {
+          dfb_module_unref( system_module );
+
+          system_module = NULL;
+
           return system_funcs->Leave( emergency );
+     }
 
      return DFB_OK;
 }

@@ -30,6 +30,8 @@
 #include <core/coretypes.h>
 #include <core/fusion/fusion_types.h>
 
+#include <core/modules.h>
+
 typedef enum {
      CORE_ANY,
      CORE_FBDEV,
@@ -65,10 +67,12 @@ typedef struct _VideoMode {
      struct _VideoMode *next;
 } VideoMode;
 
+DECLARE_MODULE_DIRECTORY( dfb_core_systems );
+
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_SYSTEM_ABI_VERSION           1
+#define DFB_CORE_SYSTEM_ABI_VERSION           2
 
 #define DFB_CORE_SYSTEM_INFO_NAME_LENGTH     60
 #define DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH   80
@@ -102,8 +106,6 @@ typedef struct {
 } CoreSystemInfo;
 
 typedef struct {
-     int            (*GetAbiVersion)();
-
      void           (*GetSystemInfo)( CoreSystemInfo *info );
 
      DFBResult      (*Initialize)();

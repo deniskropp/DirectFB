@@ -29,12 +29,6 @@
 
 #include <core/system.h>
 
-static int
-system_get_abi_version()
-{
-     return DFB_CORE_SYSTEM_ABI_VERSION;
-}
-
 static void
 system_get_info( CoreSystemInfo *info );
 
@@ -87,7 +81,6 @@ system_videoram_length();
 
 
 static CoreSystemFuncs system_funcs = {
-     GetAbiVersion:       system_get_abi_version,
      GetSystemInfo:       system_get_info,
      Initialize:          system_initialize,
      Join:                system_join,
@@ -106,12 +99,14 @@ static CoreSystemFuncs system_funcs = {
      VideoRamLength:      system_videoram_length
 };
                                                   
-#define DFB_CORE_SYSTEM(shortname)                \
-__attribute__((constructor))                      \
-void                                              \
-directfb_##shortname (void)                       \
-{                                                 \
-     dfb_system_register_module( &system_funcs ); \
+#define DFB_CORE_SYSTEM(shortname)                          \
+__attribute__((constructor))                                \
+void                                                        \
+directfb_##shortname (void)                                 \
+{                                                           \
+     dfb_modules_register( &dfb_core_systems,               \
+                           DFB_CORE_SYSTEM_ABI_VERSION,     \
+                           #shortname, &system_funcs );     \
 }
 
 #endif

@@ -70,6 +70,13 @@ FusionResult fusion_ref_up           (FusionRef *ref, bool global);
 FusionResult fusion_ref_down         (FusionRef *ref, bool global);
 
 /*
+ * Get the current reference count. Meant for debugging only.
+ * This value is not reliable, because no locking will be performed
+ * and the value may change after or even while returning it.
+ */
+FusionResult fusion_ref_stat         (FusionRef *ref, int *refs);
+
+/*
  * Wait for zero and lock.
  */
 FusionResult fusion_ref_zero_lock    (FusionRef *ref);

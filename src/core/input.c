@@ -474,19 +474,16 @@ init_devices()
           InputDriverFuncs *funcs;
           ModuleEntry      *module = (ModuleEntry*) link;
 
-          if (module->disabled)
-               continue;
-
-          driver = DFBCALLOC( 1, sizeof(InputDriver) );
-          if (!driver)
-               continue;
-
           funcs = (InputDriverFuncs*) dfb_module_ref( module );
-          if (!funcs) {
-               DFBFREE( driver );
+          if (!funcs)
+               continue;
+          
+          driver = DFBCALLOC( 1, sizeof(InputDriver) );
+          if (!driver) {
+               dfb_module_unref( module );
                continue;
           }
-          
+
           driver->nr_devices = funcs->GetAvailable();
           if (!driver->nr_devices) {
                dfb_module_unref( module );

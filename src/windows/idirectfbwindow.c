@@ -363,6 +363,7 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
      if (data->window->caps & DWCAPS_INPUTONLY)
           return DFB_UNSUPPORTED;
 
+     /* FIXME: LUT surfaces */
      key = dfb_color_to_pixel( data->window->surface->format, r, g, b );
 
      if (data->window->color_key != key) {

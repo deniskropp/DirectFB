@@ -60,10 +60,13 @@
  
 #ifndef FUSION_FAKE
 
-FusionResult fusion_ref_init (FusionRef *ref)
+FusionResult
+fusion_ref_init (FusionRef *ref)
 {
      union semun semopts;
 
+     DFB_ASSERT( ref != NULL );
+     
      /* create two semaphores, one for locking, one for counting */
      ref->sem_id = semget (IPC_PRIVATE, 2, IPC_CREAT | 0660);
      if (ref->sem_id < 0) {
@@ -87,10 +90,13 @@ FusionResult fusion_ref_init (FusionRef *ref)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_up (FusionRef *ref, bool global)
+FusionResult
+fusion_ref_up (FusionRef *ref, bool global)
 {
      struct sembuf op[2];
 
+     DFB_ASSERT( ref != NULL );
+     
      /* lock/increase */
      op[0].sem_num = 0;
      op[0].sem_op  = -1;
@@ -138,10 +144,13 @@ FusionResult fusion_ref_up (FusionRef *ref, bool global)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_down (FusionRef *ref, bool global)
+FusionResult
+fusion_ref_down (FusionRef *ref, bool global)
 {
      struct sembuf op[2];
 
+     DFB_ASSERT( ref != NULL );
+     
      /* lock/decrease */
      op[0].sem_num = 0;
      op[0].sem_op  = -1;
@@ -189,10 +198,41 @@ FusionResult fusion_ref_down (FusionRef *ref, bool global)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_zero_lock (FusionRef *ref)
+FusionResult
+fusion_ref_stat (FusionRef *ref, int *refs)
+{
+     int val;
+
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( refs != NULL );
+
+     while ((val = semctl( ref->sem_id, 1, GETVAL )) < 0) {
+          FPERROR ("semctl");
+          
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EACCES:
+                    return FUSION_ACCESSDENIED;
+               case EIDRM:
+                    return FUSION_DESTROYED;
+          }
+
+          return FUSION_FAILURE;
+     }
+
+     *refs = val;
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_zero_lock (FusionRef *ref)
 {
      struct sembuf op[2];
 
+     DFB_ASSERT( ref != NULL );
+     
      /* wait for zero / lock */
      op[0].sem_num = 1;
      op[0].sem_op  = 0;
@@ -219,10 +259,13 @@ FusionResult fusion_ref_zero_lock (FusionRef *ref)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_zero_trylock (FusionRef *ref)
+FusionResult
+fusion_ref_zero_trylock (FusionRef *ref)
 {
      struct sembuf op[2];
 
+     DFB_ASSERT( ref != NULL );
+     
      /* check for zero / lock */
      op[0].sem_num = 1;
      op[0].sem_op  = 0;
@@ -253,10 +296,13 @@ FusionResult fusion_ref_zero_trylock (FusionRef *ref)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_unlock (FusionRef *ref)
+FusionResult
+fusion_ref_unlock (FusionRef *ref)
 {
      struct sembuf op;
 
+     DFB_ASSERT( ref != NULL );
+     
      /* unlock */
      op.sem_num = 0;
      op.sem_op  = 1;
@@ -280,10 +326,13 @@ FusionResult fusion_ref_unlock (FusionRef *ref)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_destroy (FusionRef *ref)
+FusionResult
+fusion_ref_destroy (FusionRef *ref)
 {
      union semun semopts;
 
+     DFB_ASSERT( ref != NULL );
+     
      if (semctl (ref->sem_id, 0, IPC_RMID, semopts)) {
           FPERROR ("semctl");
 
@@ -304,8 +353,11 @@ FusionResult fusion_ref_destroy (FusionRef *ref)
 
 #else /* !FUSION_FAKE */
 
-FusionResult fusion_ref_init (FusionRef *ref)
+FusionResult
+fusion_ref_init (FusionRef *ref)
 {
+     DFB_ASSERT( ref != NULL );
+     
      pthread_mutex_init (&ref->lock, NULL);
 
      ref->refs      = 0;
@@ -314,10 +366,13 @@ FusionResult fusion_ref_init (FusionRef *ref)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_up (FusionRef *ref, bool global)
+FusionResult
+fusion_ref_up (FusionRef *ref, bool global)
 {
      FusionResult ret = FUSION_SUCCESS;
 
+     DFB_ASSERT( ref != NULL );
+     
      pthread_mutex_lock (&ref->lock);
 
      if (ref->destroyed)
@@ -330,10 +385,13 @@ FusionResult fusion_ref_up (FusionRef *ref, bool global)
      return ret;
 }
 
-FusionResult fusion_ref_down (FusionRef *ref, bool global)
+FusionResult
+fusion_ref_down (FusionRef *ref, bool global)
 {
      FusionResult ret = FUSION_SUCCESS;
 
+     DFB_ASSERT( ref != NULL );
+     
      pthread_mutex_lock (&ref->lock);
 
      if (ref->destroyed)
@@ -348,10 +406,27 @@ FusionResult fusion_ref_down (FusionRef *ref, bool global)
      return ret;
 }
 
-FusionResult fusion_ref_zero_lock (FusionRef *ref)
+FusionResult
+fusion_ref_stat (FusionRef *ref, int *refs)
+{
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( refs != NULL );
+
+     if (ref->destroyed)
+          return FUSION_DESTROYED;
+
+     *refs = ref->refs;
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_zero_lock (FusionRef *ref)
 {
      FusionResult ret = FUSION_SUCCESS;
 
+     DFB_ASSERT( ref != NULL );
+     
      pthread_mutex_lock (&ref->lock);
 
      if (ref->destroyed)
@@ -369,10 +444,13 @@ FusionResult fusion_ref_zero_lock (FusionRef *ref)
      return ret;
 }
 
-FusionResult fusion_ref_zero_trylock (FusionRef *ref)
+FusionResult
+fusion_ref_zero_trylock (FusionRef *ref)
 {
      FusionResult ret = FUSION_SUCCESS;
 
+     DFB_ASSERT( ref != NULL );
+     
      pthread_mutex_lock (&ref->lock);
 
      if (ref->destroyed)
@@ -386,15 +464,21 @@ FusionResult fusion_ref_zero_trylock (FusionRef *ref)
      return ret;
 }
 
-FusionResult fusion_ref_unlock (FusionRef *ref)
+FusionResult
+fusion_ref_unlock (FusionRef *ref)
 {
+     DFB_ASSERT( ref != NULL );
+     
      pthread_mutex_unlock (&ref->lock);
 
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_destroy (FusionRef *ref)
+FusionResult
+fusion_ref_destroy (FusionRef *ref)
 {
+     DFB_ASSERT( ref != NULL );
+     
      ref->destroyed = true;
 
      pthread_cond_broadcast (&ref->cond);

@@ -2,6 +2,7 @@
 
 #include <directfb.h>
 
+#include <core/fusion/ref.h>
 #include <core/fusion/object.h>
 
 #include <core/gfxcard.h>
@@ -42,10 +43,20 @@ surface_callback( FusionObjectPool *pool,
                   FusionObject     *object,
                   void             *ctx )
 {
+     FusionResult ret;
+     int          refs;
      CoreSurface *surface = (CoreSurface*) object;
      int         *total   = (int*) ctx;
      int          mem;
 
+     ret = fusion_ref_stat( &object->ref, &refs );
+     if (ret) {
+          printf( "Fusion error %d!\n", ret );
+          return false;
+     }
+
+     printf( "%2d  ", refs );
+     
      printf( "%4d x %4d   ", surface->width, surface->height );
 
      switch (surface->format) {
@@ -140,8 +151,8 @@ dump_surfaces()
      fusion_object_pool_enum( dfb_gfxcard_surface_pool(),
                               surface_callback, &total );
 
-     printf( "                     ------\n" );
-     printf( "                      %4dk\n", total >> 10 );
+     printf( "                         ------\n" );
+     printf( "                         %4dk\n", total >> 10 );
 }
 
 static bool
@@ -149,8 +160,18 @@ window_callback( FusionObjectPool *pool,
                  FusionObject     *object,
                  void             *ctx )
 {
+     FusionResult     ret;
+     int              refs;
      CoreWindow      *window = (CoreWindow*) object;
      CoreWindowStack *stack  = (CoreWindowStack*) ctx;
+
+     ret = fusion_ref_stat( &object->ref, &refs );
+     if (ret) {
+          printf( "Fusion error %d!\n", ret );
+          return false;
+     }
+
+     printf( "%2d  ", refs );
 
      printf( "%4d x %4d   ", window->width, window->height );
      

@@ -185,7 +185,9 @@ const void *
 dfb_module_ref( ModuleEntry *module )
 {
      DFB_ASSERT( module != NULL );
-     DFB_ASSERT( module->disabled == false );
+
+     if (module->disabled)
+          return NULL;
 
 #ifdef DFB_DYNAMIC_LINKING
      if (!module->loaded && !load_module( module ))
