@@ -6,8 +6,9 @@
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
-              Sven Neumann <neo@directfb.org> and
-              Ville Syrjälä <syrjala@sci.fi>.
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan82@cheapnet.it>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -61,49 +62,35 @@
 DFB_GRAPHICS_DRIVER( nvidia )
 
 #include "nvidia.h"
+#include "nvidia_tables.h"
 
 
-#ifdef WORDS_BIGENDIAN
-/*
-   access Nop field instead of FifoFree, since they are swapped,
-   (Nop is really FifoFree here)
-*/
-#define RIVA_FIFO_FREE(nvdev,ptr,space)                     \
-{                                                           \
-     (nvdev)->waitfifo_sum += (space);                      \
-     (nvdev)->waitfifo_calls++;                             \
-                                                            \
-     if ((nvdev)->fifo_space < (space)) {                   \
-          do {                                              \
-               (nvdev)->fifo_space = (ptr)->Nop      >> 2;  \
-               (nvdev)->fifo_waitcycles++;                  \
-          } while ((nvdev)->fifo_space < (space));          \
-     }                                                      \
-     else {                                                 \
-          (nvdev)->fifo_cache_hits++;                       \
-     }                                                      \
-                                                            \
-     (nvdev)->fifo_space -= (space);                        \
+
+#define NV_FIFO_FREE( nvdev, ptr, space )                        \
+{                                                                \
+     (nvdev)->waitfifo_sum += (space);                           \
+     (nvdev)->waitfifo_calls++;                                  \
+                                                                 \
+     if ((nvdev)->fifo_space < (space)) {                        \
+          do {                                                   \
+               (nvdev)->fifo_space = (ptr)->FifoFree >> 2;       \
+               (nvdev)->fifo_waitcycles++;                       \
+          } while ((nvdev)->fifo_space < (space));               \
+     }                                                           \
+     else {                                                      \
+          (nvdev)->fifo_cache_hits++;                            \
+     }                                                           \
+                                                                 \
+     (nvdev)->fifo_space -= (space);                             \
 }
-#else
-#define RIVA_FIFO_FREE(nvdev,ptr,space)                     \
-{                                                           \
-     (nvdev)->waitfifo_sum += (space);                      \
-     (nvdev)->waitfifo_calls++;                             \
-                                                            \
-     if ((nvdev)->fifo_space < (space)) {                   \
-          do {                                              \
-               (nvdev)->fifo_space = (ptr)->FifoFree >> 2;  \
-               (nvdev)->fifo_waitcycles++;                  \
-          } while ((nvdev)->fifo_space < (space));          \
-     }                                                      \
-     else {                                                 \
-          (nvdev)->fifo_cache_hits++;                       \
-     }                                                      \
-                                                            \
-     (nvdev)->fifo_space -= (space);                        \
+
+#define NV_LOAD_TABLE( dest, table )                             \
+{                                                                \
+     int _i = 0;                                                 \
+     for (; _i < sizeof(nv##table) / sizeof(nv##table[0]); _i++) \
+          dest[nv##table[_i][0]] = nv##table[_i][1];             \
 }
-#endif
+
 
 static inline void nv_waitidle( NVidiaDriverData *nvdrv,
                                 NVidiaDeviceData *nvdev )
@@ -120,7 +107,7 @@ static void nvEngineSync( void *drv, void *dev )
 }
 
 #define NV4_SUPPORTED_DRAWINGFLAGS \
-               (DSDRAW_NOFX)
+               (DSDRAW_BLEND)
 
 #define NV4_SUPPORTED_DRAWINGFUNCTIONS \
                (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | \
@@ -130,7 +117,7 @@ static void nvEngineSync( void *drv, void *dev )
                (DSBLIT_NOFX)
 
 #define NV4_SUPPORTED_BLITTINGFUNCTIONS \
-               (DFXL_BLIT)
+               (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 
 
@@ -138,14 +125,48 @@ static inline void nv_set_clip( NVidiaDriverData *nvdrv,
                                 NVidiaDeviceData *nvdev,
                                 DFBRegion        *clip )
 {
-     volatile RivaClip *Clip   = nvdrv->Clip;
-     int                width  = clip->x2 - clip->x1 + 1;
-     int                height = clip->y2 - clip->y1 + 1;
+     volatile NVClip *Clip   = nvdrv->Clip;
+     int              width  = clip->x2 - clip->x1 + 1;
+     int              height = clip->y2 - clip->y1 + 1;
 
-     RIVA_FIFO_FREE( nvdev, Clip, 2 );
+     NV_FIFO_FREE( nvdev, Clip, 2 );
 
      Clip->TopLeft     = (clip->y1 << 16) | clip->x1;
      Clip->WidthHeight = (height << 16) | width;
+}
+
+static inline void nv_set_rop( NVidiaDriverData        *nvdrv,
+                               NVidiaDeviceData        *nvdev,
+                               DFBSurfaceBlendFunction  src,
+                               DFBSurfaceBlendFunction  dst )
+{
+     volatile NVRop *Rop = nvdrv->Rop;
+     __u32           op  = 0;
+     
+     switch (src) {
+          case 0:
+               op |= 0xC0;
+               break;
+          case DSBF_ZERO:
+               op |= 0x00;
+               break;
+          default:
+               return;
+     }
+
+     switch (dst) {
+          case 0:
+               op |= 0x0C;
+               break;
+          case DSBF_ZERO:
+               op |= 0x00;
+               break;
+          default:
+               return;
+     }
+
+     NV_FIFO_FREE( nvdev, Rop, 1 )
+     Rop->Rop3 = op;
 }
 
 
@@ -153,28 +174,50 @@ static void nvCheckState( void *drv, void *dev,
                           CardState *state, DFBAccelerationMask accel )
 {
      switch (state->destination->format) {
-	  case DSPF_ARGB1555:
-	  case DSPF_RGB16:
-          case DSPF_RGB32:
-	  case DSPF_ARGB:
+       case DSPF_ARGB1555:
+       case DSPF_RGB16:
+       case DSPF_RGB32:
+       case DSPF_ARGB:
                break;
           default:
                return;
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-	 if (state->source->format != state->destination->format)
-		  return;
+          if (state->source->format != state->destination->format)
+               return;
 
-          /* if there are no other blitting flags than the supported
-             and the source and destination formats are the same */
+          /* currently strechblit works only at 32bpp */
+	  if (accel == DFXL_STRETCHBLIT && 
+              DFB_BITS_PER_PIXEL( state->destination->format ) != 32 )
+               return;
+
+          /* if there are no other blitting flags than the supported */
           if (!(state->blittingflags & ~NV4_SUPPORTED_BLITTINGFLAGS))
                state->accel |= NV4_SUPPORTED_BLITTINGFUNCTIONS;
      }
      else {
           /* if there are no other drawing flags than the supported */
-          if (!(state->drawingflags & ~NV4_SUPPORTED_DRAWINGFLAGS))
-               state->accel |= NV4_SUPPORTED_DRAWINGFUNCTIONS;
+          if (state->drawingflags & ~NV4_SUPPORTED_DRAWINGFLAGS)
+               return;
+
+          if (state->drawingflags & DSDRAW_BLEND) {
+               switch (state->src_blend) {
+                    case DSBF_ZERO:
+                         break;
+                    default:
+                         return;
+               }
+
+               switch (state->dst_blend) {
+                    case DSBF_ZERO:
+                         break;
+                    default:
+                         return;
+               }
+          }
+            
+          state->accel |= NV4_SUPPORTED_DRAWINGFUNCTIONS;
      }
 }
 
@@ -185,6 +228,8 @@ static void nvSetState( void *drv, void *dev,
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
      volatile __u32   *PGRAPH = nvdrv->PGRAPH;
+     volatile __u32   *PRAMIN = nvdrv->PRAMIN;
+     volatile __u32   *FIFO   = nvdrv->FIFO;
 
      nvdev->state = state;
      
@@ -194,15 +239,15 @@ static void nvSetState( void *drv, void *dev,
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
           case DFXL_BLIT:
-          case DFXL_STRETCHBLIT: /* doesn't work yet */
-	  case DFXL_TEXTRIANGLES: /* doesn't work yet */
+          case DFXL_STRETCHBLIT:
+          case DFXL_TEXTRIANGLES: /* doesn't work yet */
                state->set |= DFXL_FILLTRIANGLE |
                              DFXL_FILLRECTANGLE |
                              DFXL_DRAWRECTANGLE |
                              DFXL_DRAWLINE |
                              DFXL_BLIT |
                              DFXL_STRETCHBLIT |
-			     DFXL_TEXTRIANGLES;
+                    DFXL_TEXTRIANGLES;
                break;
 
           default:
@@ -214,33 +259,44 @@ static void nvSetState( void *drv, void *dev,
           nv_set_clip( nvdrv, nvdev, &state->clip );
 
      if (state->modified & SMF_DESTINATION) {
-	  /* set offset & pitch */
+          /* set offset & pitch */
           nv_waitidle( nvdrv, nvdev );
           PGRAPH[0x640/4] = state->destination->back_buffer->video.offset & 0x1FFFFFF;
           PGRAPH[0x670/4] = state->destination->back_buffer->video.pitch;
-	  
-	  switch (state->destination->format) {
-               case DSPF_ARGB1555:
-                    PGRAPH[0x724/4] = (PGRAPH[0x724/4] & ~0xFF) | 0x44;
-		    break;
-		  
-               case DSPF_RGB16:
-		    PGRAPH[0x724/4] = (PGRAPH[0x724/4] & ~0xFF) | 0x55;
-		    break;
-		  
-               case DSPF_RGB32:
-		    PGRAPH[0x724/4] = (PGRAPH[0x724/4] & ~0xFF) | 0x77;
-		    break;
 
-               case DSPF_ARGB:
-		    PGRAPH[0x724/4] = (PGRAPH[0x724/4] & ~0xFF) | 0xCC;
-		    break;
-	       
-	       default:
-		    D_BUG( "unexpected pixelformat" );
-		    break;
+          if (state->destination->format != nvdev->format) {
+               /* change pixelformat */
+               switch (state->destination->format) {
+                    case DSPF_ARGB1555:
+                         NV_LOAD_TABLE( PGRAPH, PGRAPH_ARGB1555 )
+                         NV_LOAD_TABLE( PRAMIN, PRAMIN_ARGB1555 )
+                         break;
+            
+                    case DSPF_RGB16:
+                         NV_LOAD_TABLE( PGRAPH, PGRAPH_RGB16 )
+                         NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB16 )
+                         break;
+            
+                    case DSPF_RGB32:
+                         NV_LOAD_TABLE( PGRAPH, PGRAPH_RGB32 )
+                         NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB32 )
+                         break;
+
+                    case DSPF_ARGB:
+                         NV_LOAD_TABLE( PGRAPH, PGRAPH_ARGB )
+                         NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB32 )
+                         break;
+            
+                    default:
+                         D_BUG( "unexpected pixelformat" );
+                         break;
+               }
+
+               /* update fifo subchannels */
+               NV_LOAD_TABLE( FIFO, FIFO )
+
+               nvdev->format = state->destination->format;
           }
-			  
      }
 
      if (state->modified & SMF_SOURCE && state->source) {
@@ -251,36 +307,43 @@ static void nvSetState( void *drv, void *dev,
 
      if (state->modified & (SMF_DESTINATION | SMF_COLOR)) {
           switch (state->destination->format) {
-	       case DSPF_ARGB1555:
-		    nvdev->Color = PIXEL_ARGB1555( state->color.a,
-				                   state->color.r,
-				                   state->color.g,
-						   state->color.b );
-		    break;
-		    
-	       case DSPF_RGB16:
-                    nvdev->Color = PIXEL_RGB16( state->color.r,
+               case DSPF_ARGB1555:
+                    nvdev->color = PIXEL_ARGB1555( state->color.a,
+                                                   state->color.r,
+                                                   state->color.g,
+                                                   state->color.b );
+                    break;
+              
+               case DSPF_RGB16:
+                    nvdev->color = PIXEL_RGB16( state->color.r,
                                                 state->color.g,
                                                 state->color.b );
                     break;
-		    
-	       case DSPF_RGB32:
-		    nvdev->Color = PIXEL_RGB32( state->color.r,
-				                state->color.g,
-						state->color.b );
-	       break;
+              
+               case DSPF_RGB32:
+                    nvdev->color = PIXEL_RGB32( state->color.r,
+                                                state->color.g,
+                                                state->color.b );
+                    break;
 
-	       case DSPF_ARGB:
-	            nvdev->Color = PIXEL_ARGB( state->color.a,
-				               state->color.r,
-					       state->color.g,
-					       state->color.b );
-	       break;
-	       
+               case DSPF_ARGB:
+                    nvdev->color = PIXEL_ARGB( state->color.a,
+                                               state->color.r,
+                                               state->color.g,
+                                               state->color.b );
+                    break;
+            
                default:
                     D_BUG( "unexpected pixelformat" );
                     break;
           }
+     }
+
+     if (state->modified & SMF_DRAWING_FLAGS) {
+          if (state->drawingflags == DSDRAW_BLEND)
+               nv_set_rop( nvdrv, nvdev, state->src_blend, state->dst_blend );
+          else
+               nv_set_rop( nvdrv, nvdev, 0, 0 );
      }
 
      state->modified = 0;
@@ -288,13 +351,13 @@ static void nvSetState( void *drv, void *dev,
 
 static bool nvFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-     NVidiaDriverData       *nvdrv     = (NVidiaDriverData*) drv;
-     NVidiaDeviceData       *nvdev     = (NVidiaDeviceData*) dev;
-     volatile RivaRectangle *Rectangle = nvdrv->Rectangle;
+     NVidiaDriverData     *nvdrv     = (NVidiaDriverData*) drv;
+     NVidiaDeviceData     *nvdev     = (NVidiaDeviceData*) dev;
+     volatile NVRectangle *Rectangle = nvdrv->Rectangle;
+     
+     NV_FIFO_FREE( nvdev, Rectangle, 3 );
 
-     RIVA_FIFO_FREE( nvdev, Rectangle, 3 );
-
-     Rectangle->Color = nvdev->Color;
+     Rectangle->Color = nvdev->color;
 
      Rectangle->TopLeft     = (rect->y << 16) | rect->x;
      Rectangle->WidthHeight = (rect->h << 16) | rect->w;
@@ -304,13 +367,13 @@ static bool nvFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 
 static bool nvFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
-     NVidiaDriverData      *nvdrv    = (NVidiaDriverData*) drv;
-     NVidiaDeviceData      *nvdev    = (NVidiaDeviceData*) dev;
-     volatile RivaTriangle *Triangle = nvdrv->Triangle;
+     NVidiaDriverData    *nvdrv    = (NVidiaDriverData*) drv;
+     NVidiaDeviceData    *nvdev    = (NVidiaDeviceData*) dev;
+     volatile NVTriangle *Triangle = nvdrv->Triangle;
 
-     RIVA_FIFO_FREE( nvdev, Triangle, 4 );
+     NV_FIFO_FREE( nvdev, Triangle, 4 );
 
-     Triangle->Color = nvdev->Color;
+     Triangle->Color = nvdev->color;
 
      Triangle->TrianglePoint0 = (tri->y1 << 16) | tri->x1;
      Triangle->TrianglePoint1 = (tri->y2 << 16) | tri->x2;
@@ -321,13 +384,13 @@ static bool nvFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 
 static bool nvDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-     NVidiaDriverData       *nvdrv     = (NVidiaDriverData*) drv;
-     NVidiaDeviceData       *nvdev     = (NVidiaDeviceData*) dev;
-     volatile RivaRectangle *Rectangle = nvdrv->Rectangle;
+     NVidiaDriverData     *nvdrv     = (NVidiaDriverData*) drv;
+     NVidiaDeviceData     *nvdev     = (NVidiaDeviceData*) dev;
+     volatile NVRectangle *Rectangle = nvdrv->Rectangle;
 
-     RIVA_FIFO_FREE( nvdev, Rectangle, 9 );
+     NV_FIFO_FREE( nvdev, Rectangle, 9 );
 
-     Rectangle->Color = nvdev->Color;
+     Rectangle->Color = nvdev->color;
 
      Rectangle->TopLeft     = (rect->y << 16) | rect->x;
      Rectangle->WidthHeight = (1 << 16) | rect->w;
@@ -346,13 +409,13 @@ static bool nvDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
 static bool nvDrawLine( void *drv, void *dev, DFBRegion *line )
 {
-     NVidiaDriverData  *nvdrv = (NVidiaDriverData*) drv;
-     NVidiaDeviceData  *nvdev = (NVidiaDeviceData*) dev;
-     volatile RivaLine *Line  = nvdrv->Line;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     volatile NVLine  *Line  = nvdrv->Line;
 
-     RIVA_FIFO_FREE( nvdev, Line, 4 );
+     NV_FIFO_FREE( nvdev, Line, 4 );
 
-     Line->Color = nvdev->Color;
+     Line->Color = nvdev->color;
 
      Line->Lin[0].point0 = (line->y1 << 16) | line->x1;
      Line->Lin[0].point1 = (line->y2 << 16) | line->x2;
@@ -362,11 +425,11 @@ static bool nvDrawLine( void *drv, void *dev, DFBRegion *line )
 
 static bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
-     NVidiaDriverData       *nvdrv = (NVidiaDriverData*) drv;
-     NVidiaDeviceData       *nvdev = (NVidiaDeviceData*) dev;
-     volatile RivaScreenBlt *Blt   = nvdrv->Blt;
+     NVidiaDriverData     *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData     *nvdev = (NVidiaDeviceData*) dev;
+     volatile NVScreenBlt *Blt   = nvdrv->Blt;
 
-     RIVA_FIFO_FREE( nvdev, Blt, 3 );
+     NV_FIFO_FREE( nvdev, Blt, 3 );
 
      Blt->TopLeftSrc  = (rect->y << 16) | rect->x;
      Blt->TopLeftDst  = (dy << 16) | dx;
@@ -375,42 +438,54 @@ static bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      return true;
 }
 
+
 static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 {
-#if 0
-     NVidiaDriverData         *nvdrv       = (NVidiaDriverData*) drv;
-     NVidiaDeviceData         *nvdev       = (NVidiaDeviceData*) dev;
-     CardState                *state       = nvdev->state;
-     volatile RivaScaledImage *ScaledImage = nvdrv->ScaledImage;
 
-     RIVA_FIFO_FREE( nvdev, ScaledImage, 10 );
+     NVidiaDriverData       *nvdrv       = (NVidiaDriverData*) drv;
+     NVidiaDeviceData       *nvdev       = (NVidiaDeviceData*) dev;
+     CardState              *state       = nvdev->state;
+     volatile NVScaledImage *ScaledImage = nvdrv->ScaledImage;
 
-     /* does not work yet */
-
-     //nvdrv->PGRAPH[0x768/4] = (2 << 16) | (1 << 24) | state->source->front_buffer->video.pitch;
-     
-     ScaledImage->ClipPoint = (dr->y << 16) | dr->x;
-     ScaledImage->ClipSize = (dr->h << 16) | dr->w;
+     NV_FIFO_FREE( nvdev, ScaledImage, 6 )
+     ScaledImage->ClipPoint     = (dr->y << 16) | dr->x;
+     ScaledImage->ClipSize      = (dr->h << 16) | dr->w;
      ScaledImage->ImageOutPoint = (dr->y << 16) | dr->x;
-     ScaledImage->ImageOutSize = (dr->h << 16) | dr->w;
-     ScaledImage->DuDx = 0x8000;
-     ScaledImage->DvDy = 0x8000;
-     ScaledImage->ImageInSize = (state->source->height << 16) | state->source->width;
+     ScaledImage->ImageOutSize  = (dr->h << 16) | dr->w;
+     ScaledImage->DuDx          = (sr->w << 20) / dr->w;
+     ScaledImage->DvDy          = (sr->h << 20) / dr->h;
+
+     NV_FIFO_FREE( nvdev, ScaledImage, 4 )
+     ScaledImage->ImageInSize   = (state->source->height << 16) | state->source->width;
      ScaledImage->ImageInFormat = state->source->front_buffer->video.pitch;
-     ScaledImage->ImageInOffset = state->source->front_buffer->video.offset;
-     ScaledImage->ImageInPoint = 0;
-#endif
+     ScaledImage->ImageInOffset = state->source->front_buffer->video.offset & 0x1FFFFFF;
+     ScaledImage->ImageInPoint  = 0;
+     
      return true;
 }
 
+
 #if 0
+#define NV_VERTEX3D( v, x, y, z, w, col, spc, s, t ) \
+{\
+     NV_FIFO_FREE( nvdev, TexTri, 8 );\
+     TexTri->Vertex[v].sx       = x;\
+     TexTri->Vertex[v].sy       = y;\
+     TexTri->Vertex[v].sz       = z;\
+     TexTri->Vertex[v].rhw      = w;\
+     TexTri->Vertex[v].color    = col;\
+     TexTri->Vertex[v].specular = spc;\
+     TexTri->Vertex[v].ts       = s;\
+     TexTri->Vertex[v].tt       = t;\
+}
+
 static void
 TextureTriangle( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev,
-		 DFBVertex *v0, DFBVertex *v1, DFBVertex *v2 )
+           DFBVertex *v0, DFBVertex *v1, DFBVertex *v2 )
 {
      volatile RivaTexturedTriangle05 *TexTri = nvdrv->TexTri;
 
-     RIVA_FIFO_FREE( nvdev, TexTri, 8 );
+     NV_FIFO_FREE( nvdev, TexTri, 8 );
 
      TexTri->Vertex[0].sx       = v0->x;
      TexTri->Vertex[0].sy       = v0->y;
@@ -439,7 +514,7 @@ TextureTriangle( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev,
      TexTri->Vertex[2].ts       = v2->s;
      TexTri->Vertex[2].tt       = v2->t;
 
-     RIVA_FIFO_FREE( nvdev, TexTri, 1 );
+     NV_FIFO_FREE( nvdev, TexTri, 1 );
 
      TexTri->DrawTriangle3D     = (2 << 8) | (1 << 4) | 0;
 }
@@ -447,143 +522,94 @@ TextureTriangle( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev,
 
 static bool
 nvTextureTriangles( void *drv, void *dev, DFBVertex *vertices,
-		   int num, DFBTriangleFormation formation )
+                    int num, DFBTriangleFormation formation )
 {
 #if 0
-	NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
-	NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
-	CardState        *state = nvdev->state;
-	volatile RivaTexturedTriangle05 *TexTri = nvdrv->TexTri;
-	int               i;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     CardState        *state = nvdev->state;
+     volatile RivaTexturedTriangle05 *TexTri = nvdrv->TexTri;
+     int               i;
 
-	for ( i = 0; i < num ; i++ )
-	{
-		vertices[i].x -= 0.5;
-		vertices[i].y -= 0.5;
-		vertices[i].w  = 1.0 / vertices[i].w;
-	}
+     for ( i = 0; i < num ; i++ )
+     {
+          vertices[i].x -= 0.5;
+          vertices[i].y -= 0.5;
+          vertices[i].w  = 1.0 / vertices[i].w;
+     }
 
-	RIVA_FIFO_FREE( nvdev, TexTri, 8 );
-	
-	TexTri->TextureOffset = state->source->front_buffer->video.offset;
-	TexTri->TextureFormat = state->source->front_buffer->video.pitch;
-	TexTri->TextureFilter = 0;
-	TexTri->Blend         = 0;
-	TexTri->Control       = 0;
-	TexTri->FogColor      = 0xffffffff;
+     NV_FIFO_FREE( nvdev, TexTri, 8 );
+     
+     TexTri->TextureOffset = state->source->front_buffer->video.offset;
+     TexTri->TextureFormat = state->source->front_buffer->video.pitch;
+     TexTri->TextureFilter = 0;
+     TexTri->Blend         = 0;
+     TexTri->Control       = 0;
+     TexTri->FogColor      = 0xffffffff;
 
-	switch (formation)
-	{
-		case DTTF_LIST:
-			for (i = 0; i < num; i += 3)
-				TextureTriangle( nvdrv, nvdev,
-					&vertices[i], &vertices[i+1], &vertices[i+2] );
-		break;
+     switch (formation)
+     {
+          case DTTF_LIST:
+               for (i = 0; i < num; i += 3)
+                    TextureTriangle( nvdrv, nvdev,
+                         &vertices[i], &vertices[i+1], &vertices[i+2] );
+          break;
 
-		case DTTF_STRIP:
-			TextureTriangle( nvdrv, nvdev, 
-					&vertices[0], &vertices[1], &vertices[2] );
-			
-			for (i = 0; i < num; i++)
-				TextureTriangle( nvdrv, nvdev, 
-					&vertices[i-2], &vertices[i-1], &vertices[i] );
-		break;
+          case DTTF_STRIP:
+               TextureTriangle( nvdrv, nvdev, 
+                         &vertices[0], &vertices[1], &vertices[2] );
+               
+               for (i = 0; i < num; i++)
+                    TextureTriangle( nvdrv, nvdev, 
+                         &vertices[i-2], &vertices[i-1], &vertices[i] );
+          break;
 
-		case DTTF_FAN:
-			TextureTriangle( nvdrv, nvdev,
-					&vertices[0], &vertices[1], &vertices[2] );
+          case DTTF_FAN:
+               TextureTriangle( nvdrv, nvdev,
+                         &vertices[0], &vertices[1], &vertices[2] );
 
-			for (i = 0; i < num; i++)
-				TextureTriangle( nvdrv, nvdev,
-					&vertices[0], &vertices[i-1], &vertices[i] );
-		break;
+               for (i = 0; i < num; i++)
+                    TextureTriangle( nvdrv, nvdev,
+                         &vertices[0], &vertices[i-1], &vertices[i] );
+          break;
 
-		default:
-		return false;
-	}
+          default:
+          return false;
+     }
 
-	nv_waitidle( nvdrv, nvdev );
+     nv_waitidle( nvdrv, nvdev );
 #endif
-	return true;
+     return true;
 }
      
 
 static void nvAfterSetVar( void *drv, void *dev )
 {
-     NVidiaDriverData *nvdrv   = (NVidiaDriverData*) drv;
-     volatile __u32   *PRAMIN  = nvdrv->PRAMIN;
-     volatile __u32   *FIFO    = nvdrv->FIFO;
-     unsigned int      color   = 0;
-     
+     NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
+     volatile __u32   *PRAMIN = nvdrv->PRAMIN;
+     volatile __u32   *FIFO   = nvdrv->FIFO;
 
      /* write object configuration */
-     PRAMIN[0x00000508] = 0x01008043;   /* Rop         */
-     PRAMIN[0x0000050A] = 0x00000000;
-     PRAMIN[0x0000050B] = 0x00000000;
+     NV_LOAD_TABLE( PRAMIN, PRAMIN )
 
-     PRAMIN[0x0000050C] = 0x01008019;   /* Clip        */
-     PRAMIN[0x0000050E] = 0x00000000;
-     PRAMIN[0x0000050F] = 0x00000000;
-
-     PRAMIN[0x00000510] = 0x01008018;   /* Pattern     */
-     PRAMIN[0x00000512] = 0x00000000;
-     PRAMIN[0x00000513] = 0x00000000;
-
-     PRAMIN[0x00000514] = 0x0100A01D;   /* Triangle    */
-     PRAMIN[0x00000516] = 0x11401140;
-     PRAMIN[0x00000517] = 0x00000000;
-  
-     PRAMIN[0x00000518] = 0x0100A01F;   /* Blt */
-     PRAMIN[0x0000051A] = 0x11401140;
-     PRAMIN[0x0000051B] = 0x00000000;
-     
-     PRAMIN[0x0000051C] = 0x0100A01E;   /* Rectangle   */
-     PRAMIN[0x0000051E] = 0x11401140;
-     PRAMIN[0x0000051F] = 0x00000000;
-
-     PRAMIN[0x00000520] = 0x0100A01C;   /* Line        */
-     PRAMIN[0x00000522] = 0x11401140;
-     PRAMIN[0x00000523] = 0x00000000;
-
-     PRAMIN[0x00000524] = 0x0100A037;   /* TextureTriangle / StretchBlit */
-     PRAMIN[0x00000526] = 0x11401140;
-     PRAMIN[0x00000527] = 0x00000000;
-
+     /* set pixelformat */
      switch (dfb_primary_layer_pixelformat()) {
           case DSPF_ARGB1555:
-               color = 0x00000902;
+               NV_LOAD_TABLE( PRAMIN, PRAMIN_ARGB1555 )
                break;
           case DSPF_RGB16:
-               color = 0x00000C02;
+               NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB16 )
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
-               color = 0x00000E02;
+               NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB32 )
                break;
           default:
                break;
      }
 
-     if (color) {
-          PRAMIN[0x00000509] = color;
-	  PRAMIN[0x0000050D] = color;
-	  PRAMIN[0x00000511] = color;
-	  PRAMIN[0x00000515] = color;
-	  PRAMIN[0x00000519] = color;
-	  PRAMIN[0x0000051D] = color;
-	  PRAMIN[0x00000521] = color;
-	  PRAMIN[0x00000525] = color;
-     }
-
      /* put objects into subchannels */
-     FIFO[0x0000/4] = 0x80000000;  /* Rop                            */
-     FIFO[0x2000/4] = 0x80000001;  /* Clip                           */
-     FIFO[0x4000/4] = 0x80000002;  /* Pattern                        */
-     FIFO[0x6000/4] = 0x80000010;  /* Triangl                        */
-     FIFO[0x8000/4] = 0x80000011;  /* Blt                            */
-     FIFO[0xA000/4] = 0x80000012;  /* Rectange                       */
-     FIFO[0xC000/4] = 0x80000013;  /* Line                           */
-     FIFO[0xE000/4] = 0x80000014;  /* TextureTriangle  / StretchBlit */
+     NV_LOAD_TABLE( FIFO, FIFO )
 }
 
 
@@ -635,20 +661,20 @@ driver_init_driver( GraphicsDevice      *device,
 
      nvdrv->device = device;
 
-     nvdrv->PGRAPH = (volatile __u32*)(nvdrv->mmio_base + 0x400000);
-     nvdrv->PRAMIN = (volatile __u32*)(nvdrv->mmio_base + 0x710000);
-     nvdrv->FIFO   = (volatile __u32*)(nvdrv->mmio_base + 0x800000);
-     nvdrv->PMC    = (volatile __u32*)(nvdrv->mmio_base + 0x000000);
+     nvdrv->PGRAPH = (volatile __u32*) (nvdrv->mmio_base + 0x400000);
+     nvdrv->PRAMIN = (volatile __u32*) (nvdrv->mmio_base + 0x710000);
+     nvdrv->FIFO   = (volatile __u32*) (nvdrv->mmio_base + 0x800000);
+     nvdrv->PMC    = (volatile __u32*) (nvdrv->mmio_base + 0x000000);
 
-     nvdrv->Rop         = (volatile RivaRop                *) &nvdrv->FIFO[0x0000/4];
-     nvdrv->Clip        = (volatile RivaClip               *) &nvdrv->FIFO[0x2000/4];
-     nvdrv->Pattern     = (volatile RivaPattern            *) &nvdrv->FIFO[0x4000/4];
-     nvdrv->Triangle    = (volatile RivaTriangle           *) &nvdrv->FIFO[0x6000/4];
-     nvdrv->Blt         = (volatile RivaScreenBlt          *) &nvdrv->FIFO[0x8000/4];
-     nvdrv->Rectangle   = (volatile RivaRectangle          *) &nvdrv->FIFO[0xA000/4];
-     nvdrv->Line        = (volatile RivaLine               *) &nvdrv->FIFO[0xC000/4];
-     nvdrv->ScaledImage = (volatile RivaScaledImage        *) &nvdrv->FIFO[0xE000/4];
-     nvdrv->TexTri      = (volatile RivaTexturedTriangle05 *) &nvdrv->FIFO[0xE000/4];
+     nvdrv->Rop         = (volatile NVRop                *) &nvdrv->FIFO[0x0000/4];
+     nvdrv->Clip        = (volatile NVClip               *) &nvdrv->FIFO[0x2000/4];
+     nvdrv->Pattern     = (volatile NVPattern            *) &nvdrv->FIFO[0x4000/4];
+     nvdrv->Triangle    = (volatile NVTriangle           *) &nvdrv->FIFO[0x6000/4];
+     nvdrv->Blt         = (volatile NVScreenBlt          *) &nvdrv->FIFO[0x8000/4];
+     nvdrv->Rectangle   = (volatile NVRectangle          *) &nvdrv->FIFO[0xA000/4];
+     nvdrv->Line        = (volatile NVLine               *) &nvdrv->FIFO[0xC000/4];
+     nvdrv->ScaledImage = (volatile NVScaledImage        *) &nvdrv->FIFO[0xE000/4];
+     //nvdrv->TexTri      = (volatile NVTexturedTriangle05 *) &nvdrv->FIFO[0xE000/4];
      
      funcs->CheckState    = nvCheckState;
      funcs->SetState      = nvSetState;
@@ -675,10 +701,10 @@ driver_init_device( GraphicsDevice     *device,
                     void               *driver_data,
                     void               *device_data )
 {
-     NVidiaDriverData     *nvdrv   = (NVidiaDriverData*) driver_data;
-     NVidiaDeviceData     *nvdev   = (NVidiaDeviceData*) device_data;
-     volatile RivaPattern *Pattern = nvdrv->Pattern;
-     volatile RivaRop     *Rop     = nvdrv->Rop;
+     NVidiaDriverData   *nvdrv   = (NVidiaDriverData*) driver_data;
+     NVidiaDeviceData   *nvdev   = (NVidiaDeviceData*) device_data;
+     volatile NVPattern *Pattern = nvdrv->Pattern;
+     volatile NVRop     *Rop     = nvdrv->Rop;
 
 
      snprintf( device_info->name,
@@ -700,14 +726,14 @@ driver_init_device( GraphicsDevice     *device,
      dfb_config->pollvsync_after = 1;
 
 
-     RIVA_FIFO_FREE( nvdev, Pattern, 5 );
+     NV_FIFO_FREE( nvdev, Pattern, 5 );
      Pattern->Shape         = 0; /* 0 = 8X8, 1 = 64X1, 2 = 1X64 */
      Pattern->Color0        = 0xFFFFFFFF;
      Pattern->Color1        = 0xFFFFFFFF;
      Pattern->Monochrome[0] = 0xFFFFFFFF;
      Pattern->Monochrome[1] = 0xFFFFFFFF;
 
-     RIVA_FIFO_FREE( nvdev, Rop, 1 );
+     NV_FIFO_FREE( nvdev, Rop, 1 );
      Rop->Rop3 = 0xCC;
 
      return DFB_OK;

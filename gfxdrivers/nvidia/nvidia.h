@@ -42,46 +42,62 @@
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x0BB];
     __u32 Rop3;
-} RivaRop;
+} NVRop;
 /*
  * 8X8 Monochrome pattern.
  */
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x0BD];
     __u32 Shape;
     __u32 reserved03[0x001];
     __u32 Color0;
     __u32 Color1;
     __u32 Monochrome[2];
-} RivaPattern;
+} NVPattern;
 /*
  * Scissor clip rectangle.
  */
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x0BB];
     __u32 TopLeft;
     __u32 WidthHeight;
-} RivaClip;
+} NVClip;
 /*
  * 2D filled rectangle.
  */
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x03B];
 
     __u32 NoOperation;             /* ignored                          0100-0103*/
@@ -102,12 +118,16 @@ typedef struct
     __u32 reserved03[0x03E];
     __u32 TopLeft;
     __u32 WidthHeight;
-} RivaRectangle;
+} NVRectangle;
 
 typedef struct {
      __u32 reserved00[4];
-     __u16 FifoFree;
-     __u16 Nop;
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
+    __u16 FifoFree;
+    __u16 Nop;
+#endif
      __u32 reserved01[0x03B];
 
      __u32 NoOperation;             /* ignored                          0100-0103*/
@@ -151,12 +171,16 @@ typedef struct {
           __u32 point;                  /* y_x S16_S16 in pixels               4-   7*/
      } ColorTrimesh[16];            /* end of aliased methods in array      -05ff*/
      __u32 Reserved05[0x680];
-} RivaTriangle;
+} NVTriangle;
 
 typedef struct {
      __u32 reserved00[4];
-     __u16 FifoFree;
-     __u16 Nop;
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
+    __u16 FifoFree;
+    __u16 Nop;
+#endif
      __u32 reserved01[0x03B];
 
      __u32 NoOperation;             /* ignored                          0100-0103*/
@@ -183,7 +207,7 @@ typedef struct {
      __u32 ImageInOffset;           /* byte offset of top-left texel    0408-040b*/
      __u32 ImageInPoint;            /* v_u U12d4_U12d4                  040c-040f*/
      __u32 Reserved03[0x6fc];
-} RivaScaledImage;
+} NVScaledImage;
 
 /*
  * 2D screen-screen BLT.
@@ -191,36 +215,48 @@ typedef struct {
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x0BB];
     __u32 TopLeftSrc;
     __u32 TopLeftDst;
     __u32 WidthHeight;
-} RivaScreenBlt;
+} NVScreenBlt;
 /*
  * 2D pixel BLT.
  */
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x0BC];
     __u32 TopLeft;
     __u32 WidthHeight;
     __u32 WidthHeightIn;
     __u32 reserved02[0x03C];
     __u32 Pixels;
-} RivaPixmap;
+} NVPixmap;
 /*
  * Filled rectangle combined with monochrome expand.  Useful for glyphs.
  */
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x0BB];
     __u32 reserved03[(0x040)-1];
     __u32 Color1A;
@@ -274,15 +310,20 @@ typedef struct
     __u32 WidthHeightOutE;
     __u32 PointE;
     __u32 MonochromeData01E;
-} RivaBitmap;
+} NVBitmap;
+
 /*
  * 2D line.
  */
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x0BC];
     __u32 Color;             /* source color               0304-0307*/
     __u32 Reserved02[0x03e];
@@ -305,15 +346,16 @@ typedef struct
         __u32 color;         /* source color                     0-   3*/
         __u32 point;         /* y_x S16_S16 in pixels            4-   7*/
     } ColorPolyLin[16];     /* end of aliased methods in array      -067f*/
-} RivaLine;
+} NVLine;
+
 /*
  * 3D textured, Z buffered triangle.
  */
 typedef struct
 {
     __u32 reserved00[4];
-#ifdef WORD_BIGENDIAN
-    __u32 FifoFree;
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -334,16 +376,17 @@ typedef struct
     float EyeM;
     float TextureS;
     float TextureT;
-} RivaTexturedTriangle03;
+} NVTexturedTriangle03;
 
 typedef struct {
     __u32 reserved00[4];
-#ifdef WORD_BIGENDIAN
+#ifdef WORDS_BIGENDIAN
     __u32 FifoFree
 #else
     __u16 FifoFree;
     __u16 Nop;
 #endif
+#if 0
     __u32 reserved01[0x014];
 
     __u32 NoOperation;             /* ignored                          0100-0103*/
@@ -354,6 +397,8 @@ typedef struct {
     __u32 SetContextDmaB;          /* NV01_CONTEXT_DMA                 0188-018b*/
     __u32 SetContextSurfaces;      /* NV04_CONTEXT_SURFACES_3D         018c-018f*/
     __u32 Reserved01[0x05c];
+#endif
+    __u32 Reserved01[0x0BB];
     __u32 ColorKeyValue;           /* see text                         0300-0303*/
     __u32 TextureOffset;           /* texture offset in bytes          0304-0307*/
     __u32 TextureFormat;           /* see text                         0308-030b*/
@@ -373,7 +418,7 @@ typedef struct {
      float tt;                     /* texture t coordinate               1c-  1f*/
  } Vertex[16];                     /* end of methods in array              -05ff*/
     __u32 DrawTriangle3D;
-} RivaTexturedTriangle05;
+} NVTexturedTriangle05;
 
 
 /*
@@ -382,24 +427,34 @@ typedef struct {
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
-    __u32 reserved01[0x0BC];
+#endif
+//    __u32 reserved01[0x0BC];
+    __u32 reserved01[0x0BB];
+    __u32 Format;
     __u32 Pitch;
     __u32 SourceOffset;
     __u32 DestOffset;
-} RivaSurface;
+} NVSurface;
 
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORDS_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x0BD];
     __u32 Pitch;
     __u32 RenderBufferOffset;
     __u32 ZBufferOffset;
-} RivaSurface3D;
+} NVSurface3D;
 
 
 #define  NV01_RENDER_SOLID_RECTANGLE                               (0x0000001E)
@@ -419,41 +474,43 @@ typedef struct
           __u32 Ctx1, Ctx2, Ctx3, Ctx4;
      } contexts[32];
 
-} RivaInstances;
+} NVidiaInstances;
+
 
 typedef struct {
+     CardState             *state;
+
+     DFBSurfacePixelFormat  format;
+     __u32                  color;
+
      /* for fifo/performance monitoring */
-     unsigned int  fifo_space;
-     unsigned int  waitfifo_sum;
-     unsigned int  waitfifo_calls;
-     unsigned int  fifo_waitcycles;
-     unsigned int  idle_waitcycles;
-     unsigned int  fifo_cache_hits;
-
-     __u32         Color;
-
-     CardState    *state;
+     unsigned int           fifo_space;
+     unsigned int           waitfifo_sum;
+     unsigned int           waitfifo_calls;
+     unsigned int           fifo_waitcycles;
+     unsigned int           idle_waitcycles;
+     unsigned int           fifo_cache_hits;
 } NVidiaDeviceData;
 
 typedef struct {
-     GraphicsDevice                  *device;
+     GraphicsDevice                *device;
 
-     volatile __u8                   *mmio_base;
-     volatile __u32                  *PGRAPH;
-     volatile __u32                  *FIFO;
-     volatile __u32                  *PRAMIN;
-     volatile __u32                  *PMC;
+     volatile __u8                 *mmio_base;
+     volatile __u32                *PGRAPH;
+     volatile __u32                *FIFO;
+     volatile __u32                *PRAMIN;
+     volatile __u32                *PMC;
 
-     volatile RivaRop                *Rop;
-     volatile RivaClip               *Clip;
-     volatile RivaPattern            *Pattern;
-     volatile RivaScreenBlt          *Blt;
-     volatile RivaTriangle           *Triangle;
-     volatile RivaRectangle          *Rectangle;
-     volatile RivaLine               *Line;
-     volatile RivaSurface            *Surface;
-     volatile RivaScaledImage        *ScaledImage;
-     volatile RivaTexturedTriangle05 *TexTri;
+     volatile NVRop                *Rop;
+     volatile NVClip               *Clip;
+     volatile NVPattern            *Pattern;
+     volatile NVScreenBlt          *Blt;
+     volatile NVTriangle           *Triangle;
+     volatile NVRectangle          *Rectangle;
+     volatile NVLine               *Line;
+     volatile NVSurface            *Surface;
+     volatile NVScaledImage        *ScaledImage;
+     volatile NVTexturedTriangle05 *TexTri;
      
 } NVidiaDriverData;
 
