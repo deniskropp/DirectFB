@@ -3,6 +3,10 @@
 
 #include <asm/types.h>
 
+#ifdef __BIG_ENDIAN__
+#include <asm/byteorder.h>
+#endif
+
 int main()
 {
      __u8  byt;
