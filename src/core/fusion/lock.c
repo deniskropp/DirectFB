@@ -93,7 +93,7 @@ int skirmish_prevail (FusionSkirmish *skirmish)
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
-                    FERROR ("skirmish already destroyed");
+                    FERROR ("skirmish already destroyed\n");
                     return FUSION_DESTROYED;
                default:
                     break;
@@ -124,7 +124,7 @@ int skirmish_swoop (FusionSkirmish *skirmish)
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
-                    FERROR ("skirmish already destroyed");
+                    FERROR ("skirmish already destroyed\n");
                     return FUSION_DESTROYED;
                default:
                     break;
@@ -153,7 +153,7 @@ int skirmish_dismiss (FusionSkirmish *skirmish)
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
-                    FERROR ("skirmish already destroyed");
+                    FERROR ("skirmish already destroyed\n");
                     return FUSION_DESTROYED;
                default:
                     break;

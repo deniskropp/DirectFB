@@ -624,6 +624,15 @@ get_keymap_entry( InputDevice *device,
           /* drivers may leave this blank */
           if (entry->identifier == DIKI_UNKNOWN)
                entry->identifier = symbol_to_id( entry->symbols[DIKSI_BASE] );
+
+          if (entry->symbols[DIKSI_BASE_SHIFT] == DIKS_NULL)
+               entry->symbols[DIKSI_BASE_SHIFT] = entry->symbols[DIKSI_BASE];
+
+          if (entry->symbols[DIKSI_ALT] == DIKS_NULL)
+               entry->symbols[DIKSI_ALT] = entry->symbols[DIKSI_BASE];
+
+          if (entry->symbols[DIKSI_ALT_SHIFT] == DIKS_NULL)
+               entry->symbols[DIKSI_ALT_SHIFT] = entry->symbols[DIKSI_ALT];
      }
 
      return entry;
