@@ -74,6 +74,8 @@ later versions on an EPIA-M10000.
 
 // System headers
 
+#include <linux/fb.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -91,6 +93,9 @@ later versions on an EPIA-M10000.
 #include "uc_fifo.h"
 #include "mmio.h"
 
+#ifndef FB_ACCEL_VIA_UNICHROME
+#define FB_ACCEL_VIA_UNICHROME 77
+#endif
 
 extern DisplayLayerFuncs ucOverlayFuncs;
 
@@ -329,9 +334,9 @@ static void uc_engine_sync(void* drv, void* dev)
 
     int loop = -1;
 
-    /* printf("Entering uc_engine_sync(), status is 0x%08x\n",
+/*    printf("Entering uc_engine_sync(), status is 0x%08x\n",
         VIA_IN(ucdrv->hwregs, VIA_REG_STATUS));
-     */
+*/
 
     while (loop++ < MAXLOOP) {
         if ((VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & 0xfffeffff) == 0x00020000)
@@ -353,6 +358,12 @@ static void uc_engine_sync(void* drv, void* dev)
 static int driver_probe(GraphicsDevice *device)
 {
     struct stat s;
+
+    switch (dfb_gfxcard_get_accelerator( device )) {
+         case FB_ACCEL_VIA_UNICHROME:
+              return 1;
+    }
+
     return stat(UNICHROME_DEVICE, &s) + 1;
 }
 
@@ -391,23 +402,29 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
                                     void* device_data)
 {
     UcDriverData *ucdrv = (UcDriverData*) driver_data;
-    int fd;
 
     //printf("Entering %s\n", __PRETTY_FUNCTION__);
 
     ucdrv->file = -1;
-    fd = open(UNICHROME_DEVICE, O_RDWR | O_SYNC, 0);
-    if (fd < 0) {
-        ERRORMSG("Could not access %s. "
-            "Is the cle266vgaio module installed?\n", UNICHROME_DEVICE);
-        return DFB_IO;
-    }
-    ucdrv->file = fd;
 
-    ucdrv->hwregs = mmap(NULL, 0x1000000,
-        PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if ((int) ucdrv->hwregs == -1)
-        return DFB_IO;
+    ucdrv->hwregs = dfb_gfxcard_map_mmio( device, 0, 0 );
+    if (!ucdrv->hwregs) {
+         int fd;
+
+         fd = open(UNICHROME_DEVICE, O_RDWR | O_SYNC, 0);
+         if (fd < 0) {
+             ERRORMSG("Could not access %s. "
+                      "Is the cle266vgaio module installed?\n", UNICHROME_DEVICE);
+             return DFB_IO;
+         }
+
+         ucdrv->file = fd;
+
+         ucdrv->hwregs = mmap(NULL, 0x1000000, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+         if ((int) ucdrv->hwregs == -1)
+             return DFB_IO;
+    }
+
 
     uc_after_set_var(driver_data, device_data);
 
@@ -415,8 +432,11 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
 
     ucdrv->fifo = uc_fifo_create(UC_FIFO_SIZE, ucdrv->hwregs);
     if (ucdrv->fifo == NULL) {
-        close(ucdrv->file);
-        ucdrv->file = -1;
+        if (ucdrv->file != -1) {
+            close(ucdrv->file);
+            ucdrv->file = -1;
+        }
+
         return DFB_NOSYSTEMMEMORY;
     }
 

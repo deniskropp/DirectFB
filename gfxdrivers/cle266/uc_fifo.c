@@ -155,7 +155,7 @@ static void uc_fifo_flush_agp(struct uc_fifo* fifo)
 
 /** Create a FIFO. Returns NULL on failure. */
 
-struct uc_fifo* uc_fifo_create(size_t size, __u8* hwregs)
+struct uc_fifo* uc_fifo_create(size_t size, volatile __u8* hwregs)
 {
     struct uc_fifo* fifo;
 

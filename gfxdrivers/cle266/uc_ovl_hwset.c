@@ -20,7 +20,7 @@
  * Set up the extended video FIFO.
  * @note It will be turned on if ucovl->scrwidth > 1024.
  */
- 
+
 void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth)
 {
     __u8* mclk_save = ucovl->mclk_save;
@@ -60,7 +60,7 @@ void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth)
     ucovl->scrwidth = scrwidth;
 }
 
-void uc_ovl_vcmd_wait(__u8* vio)
+void uc_ovl_vcmd_wait(volatile __u8* vio)
 {
     while ((VIDEO_IN(vio, V_COMPOSE_MODE)
         & (V1_COMMAND_FIRE | V3_COMMAND_FIRE)));
@@ -88,7 +88,7 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     bool write_buffers = false;
     bool write_settings = false;
 
-    __u8* vio = ucovl->hwregs;
+    volatile __u8* vio = ucovl->hwregs;
 
     __u32 win_start, win_end;   // Overlay register settings
     __u32 zoom, mini;
@@ -97,7 +97,7 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     __u32 v_ctrl, fifo_ctrl;
 
     if (!ucovl->v1.isenabled) return DFB_OK;
-    
+
     qwpitch = 0;
 
     // Get screen size
@@ -108,7 +108,7 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     scr.y = 0;
 
     if (ucovl->scrwidth != scr.w) {
-        uc_ovl_setup_fifo(ucovl, scr.w);            
+        uc_ovl_setup_fifo(ucovl, scr.w);
         action |= UC_OVL_CHANGE;
     }
 

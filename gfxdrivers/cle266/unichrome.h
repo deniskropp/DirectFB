@@ -95,7 +95,7 @@ typedef struct _UcDeviceData {
 
     DFBSurfaceBlittingFlags bflags; // Current blitting flags
     struct uc_hw_texture hwtex;     // Current hardware settings for blitting (3D)
-    
+
     /// Set directly after a 2D/3D engine command is sent.
     int must_wait;
     unsigned int cmd_waitcycles;
@@ -118,7 +118,7 @@ typedef struct _UcDeviceData {
 typedef struct _UcDriverData {
     int             file;       // File handle to mmapped IO region.
     int             hwrev;      // Hardware revision
-    __u8*           hwregs;     // Hardware register base
+    volatile __u8*  hwregs;     // Hardware register base
     struct uc_fifo* fifo;       // Data FIFO.
 
     __u8            vga1A_save;

@@ -61,7 +61,7 @@ uc_ovl_init_layer( CoreLayer                   *layer,
 
     config->width  = 640;
     config->height = 480;
-    
+
     config->pixelformat = DSPF_YUY2;
     config->buffermode  = DLBM_FRONTONLY;
     config->options     = DLOP_NONE;
@@ -89,7 +89,7 @@ uc_ovl_init_layer( CoreLayer                   *layer,
 static DFBResult
 uc_ovl_set_region( CoreLayer                  *layer,
                    void                       *driver_data,
-                   void                       *layer_data, 
+                   void                       *layer_data,
                    void                       *region_data,
                    CoreLayerRegionConfig      *config,
                    CoreLayerRegionConfigFlags  updated,
@@ -113,11 +113,11 @@ uc_ovl_set_region( CoreLayer                  *layer,
 
     ucovl->v1.isenabled = true;
     ucovl->v1.win = win;
-    
+
     /* set opacity */
     ucovl->v1.opacity = config->opacity;
     VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(config->opacity));
-    
+
     return uc_ovl_update(ucovl, UC_OVL_CHANGE, surface);
 }
 
@@ -129,7 +129,7 @@ uc_ovl_remove(CoreLayer *layer,
               void      *region_data)
 {
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
-    __u8* vio = ucovl->hwregs;
+    volatile __u8* vio = ucovl->hwregs;
 
     ucovl->v1.isenabled = false;
 
@@ -258,7 +258,7 @@ uc_ovl_get_level(CoreLayer    *layer,
     *level = ucovl->v1.level;
     return DFB_OK;
 }
-     
+
 static DFBResult
 uc_ovl_set_level(CoreLayer    *layer,
                  void         *driver_data,

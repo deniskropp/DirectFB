@@ -36,7 +36,7 @@
  * flush_sys:   function pointer to flush_sys (non-DMA) function
  */
 
-struct uc_fifo 
+struct uc_fifo
 {
     __u32* buf;
     __u32* head;
@@ -45,9 +45,9 @@ struct uc_fifo
     unsigned int prep;
     unsigned int used;
 
-    __u32* hwregs;
-    __u32* reg_tset;
-    __u32* reg_tspace;
+    volatile __u32* hwregs;
+    volatile __u32* reg_tset;
+    volatile __u32* reg_tspace;
 
     void (*flush)(struct uc_fifo* fifo);
     void (*flush_sys)(struct uc_fifo* fifo);
@@ -237,7 +237,7 @@ struct uc_fifo
 
 /** Create a FIFO. Returns NULL on failure. */
 
-struct uc_fifo* uc_fifo_create(size_t size, __u8* hwregs);
+struct uc_fifo* uc_fifo_create(size_t size, volatile __u8* hwregs);
 
 /** Destroy a FIFO */
 
