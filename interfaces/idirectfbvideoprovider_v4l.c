@@ -140,10 +140,10 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
 
      memset( desc, 0, sizeof(DFBSurfaceDescription) );
      desc->flags = (DFBSurfaceDescriptionFlags)
-                             (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP);
+                            (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
      desc->width = 768;
      desc->height = 576;
-     desc->bpp = BYTES_PER_PIXEL(layers->surface->format)*8;
+     desc->pixelformat = layers->surface->format;
 
      return DFB_OK;
 }
@@ -277,6 +277,9 @@ DFBResult Probe( const char *filename )
      if (strncmp( filename, "/dev/video", 10 ) == 0)
           return DFB_OK;
 
+     if (strncmp( filename, "/dev/v4l/video", 14 ) == 0)
+          return DFB_OK;
+
      return DFB_UNSUPPORTED;
 }
 
@@ -369,6 +372,10 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      v4l_stop( data );
 
      switch (surface->format) {
+          case DSPF_RGB15:
+               bpp = 15;
+               palette = VIDEO_PALETTE_RGB555;
+               break;          
           case DSPF_RGB16:
                bpp = 16;
                palette = VIDEO_PALETTE_RGB565;

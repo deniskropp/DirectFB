@@ -203,8 +203,8 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
      DFBResult ret;
      int width = 400;
      int height = 300;
-     int format = layers->surface->format;
      int policy = CSP_VIDEOLOW;
+     DFBSurfacePixelFormat format = layers->surface->format;
      DFBSurfaceCapabilities caps = 0;
      CoreSurface *surface = NULL;
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
@@ -229,6 +229,9 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
      if (desc->flags & DSDESC_CAPS)
           caps = desc->caps;
      
+     if (desc->flags & DSDESC_PIXELFORMAT)
+          format = desc->pixelformat; 
+
      
      if (caps & DSCAPS_PRIMARY) {
 
@@ -242,11 +245,15 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                          data->primary.height = height;
                     }
 
-                    if (caps & DSCAPS_ALPHA)
+                    if ((desc->flags & DSDESC_PIXELFORMAT) 
+                        && desc->pixelformat == DSPF_ARGB) 
+                    {
+
                          window = window_create( layers->windowstack, 0, 0,
                                                  data->primary.width,
                                                  data->primary.height,
                                                  DWCAPS_ALPHACHANNEL );
+                    }
                     else
                          window = window_create( layers->windowstack, 0, 0,
                                                  data->primary.width,
@@ -270,33 +277,6 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
           }
      }
 
-     if (desc->flags & DSDESC_BPP) {
-          switch (desc->bpp) {
-               case  1:
-                    format = DSPF_A1;
-                    break;
-               case  8:
-                    format = DSPF_A8;
-                    break;
-               case 15:
-                    format = DSPF_RGB15;
-                    break;
-               case 16:
-                    format = DSPF_RGB16;
-                    break;
-               case 24:
-                    format = DSPF_RGB24;
-                    break;
-               case 32:
-                    if (caps & DSCAPS_ALPHA)
-                         format = DSPF_ARGB;
-                    else
-                         format = DSPF_RGB32;
-                    break;
-               default:
-                    return DFB_INVARG;
-          }
-     }
 
      if (caps & DSCAPS_VIDEOONLY)
           policy = CSP_VIDEOONLY;

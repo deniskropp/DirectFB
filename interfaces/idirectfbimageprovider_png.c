@@ -357,24 +357,14 @@ DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
                         &png_type, NULL, NULL, NULL );
 
           memset( dsc, 0, sizeof(DFBSurfaceDescription) );
-          dsc->flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP;
+          dsc->flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->width = png_width;
           dsc->height = png_height;
 
-          if (png_type & PNG_COLOR_MASK_ALPHA) {
-               dsc->bpp = 32;
-               dsc->flags |= DSDESC_CAPS;
-               dsc->caps |= DSCAPS_ALPHA;
-          }
-          else {
-               switch (layers->surface->format) {
-                    case DSPF_ARGB:
-                         dsc->flags |= DSDESC_CAPS;
-                         dsc->caps |= DSCAPS_ALPHA;
-                    default:
-                         dsc->bpp = BYTES_PER_PIXEL(layers->surface->format)*8;
-               }
-          }
+          if (png_type & PNG_COLOR_MASK_ALPHA) 
+               dsc->pixelformat = DSPF_ARGB;
+          else 
+               dsc->pixelformat= layers->surface->format;               
 
           png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
           fclose( f );

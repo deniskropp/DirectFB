@@ -188,11 +188,12 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                return DFB_INIT;
           }
           
-          desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP;
+          desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           desc.width = layers->width;
           desc.height = layers->height;
-          desc.bpp = BYTES_PER_PIXEL(layers->surface->format)*8;
+          desc.pixelformat = layers->surface->format;
           
+
           ret = (*interface)->CreateSurface( *interface, &desc, &image );
           if (ret) {
                DirectFBError( "Failed creating surface for background image", ret );

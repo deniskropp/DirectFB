@@ -738,18 +738,12 @@ DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
           ReadGIF( f, 1, &width, &height, 1  ); // 1 = read header only
 
           memset( dsc, 0, sizeof(DFBSurfaceDescription) );
-          dsc->flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP;
+          dsc->flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->width = width;
           dsc->height = height;
 
 
-          switch (layers->surface->format) {
-               case DSPF_ARGB:
-                    dsc->flags |= DSDESC_CAPS;
-                    dsc->caps |= DSCAPS_ALPHA;
-               default:
-                    dsc->bpp = BYTES_PER_PIXEL(layers->surface->format)*8;
-          }
+          dsc->pixelformat = layers->surface->format;
 
           fclose (f);
      }

@@ -281,13 +281,15 @@ extern "C"
           DSDESC_CAPS         = 0x00000001,  /* caps field is valid */
           DSDESC_WIDTH        = 0x00000002,  /* width field is valid */
           DSDESC_HEIGHT       = 0x00000004,  /* height field is valid */
-          DSDESC_BPP          = 0x00000008   /* bpp field is valid */
+          DSDESC_PIXELFORMAT  = 0x00000008   /* pixelformat field is valid */
      } DFBSurfaceDescriptionFlags;
 
      /*
       * Capabilities of a surface.
       */
      typedef enum {
+          DSCAPS_NONE         = 0x00000000,
+
           DSCAPS_PRIMARY      = 0x00000001,  /* it's the primary surface */
           DSCAPS_SYSTEMONLY   = 0x00000002,  /* permanently stored in system
                                                 memory, no video memory
@@ -295,7 +297,6 @@ extern "C"
           DSCAPS_VIDEOONLY    = 0x00000004,  /* permanently stored in video
                                                 memory, no system memory
                                                 allocation/storage */
-          DSCAPS_ALPHA        = 0x00000008,  /* has an alpha channel */
           DSCAPS_FLIPPING     = 0x00000010,  /* surface is double buffered
                                                 (use Flip to make changes
                                                  visible/usable) */
@@ -417,17 +418,40 @@ extern "C"
           DFDESC_ATTRIBUTES   = 0x00000001,  /* attributes field is valid */
           DFDESC_HEIGHT       = 0x00000002   /* height is specified */
      } DFBFontDescriptionFlags;
+      
+     /* Pixel format of a surface.
+      * Contains information about the format (see following macros).
+      */
+     typedef enum {
+          DSPF_UNKNOWN        = 0x00000000,  /* no specific format,
+                                                unusual and unsupported */
+          DSPF_RGB15          = 0x00020F01,  /* 15bit  RGB (2 bytes, red 5@10,
+                                                green 5@5, blue 5@0) */
+          DSPF_RGB16          = 0x00021002,  /* 16bit  RGB (2 bytes, red 5@11,
+                                                green 6@5, blue 5@0) */
+          DSPF_RGB24          = 0x00031803,  /* 24bit  RGB (3 bytes, red 8@16,
+                                                green 8@8, blue 8@0) */
+          DSPF_RGB32          = 0x00041804,  /* 24bit  RGB (4 bytes, nothing@24,
+                                                red 8@16, green 8@8, blue 8@0)*/
+          DSPF_ARGB           = 0x00042005,  /* 32bit ARGB (4 bytes, alpha 8@24,
+                                                red 8@16, green 8@8, blue 8@0)*/
+          DSPF_A8             = 0x00010806,  /* 8bit alpha (1 byte, alpha 8@0 ),
+                                                e.g. anti-aliased text glyphs */
+          DSPF_A1             = 0x00010107   /* 1bit alpha (8 pixel ber byte),
+                                                e.g. bitmap text glyphs */
+     } DFBSurfacePixelFormat;
 
+     
      /*
       * Description of the surface that is to be created.
       */
      typedef struct {
           DFBSurfaceDescriptionFlags         flags;      /* field validation */
 
-          DFBSurfaceCapabilities             caps;       /* capabilities */
-          unsigned int                       width;      /* pixel width */
-          unsigned int                       height;     /* pixel height */
-          unsigned int                       bpp;        /* pixel depth */
+          DFBSurfaceCapabilities             caps;        /* capabilities */
+          unsigned int                       width;       /* pixel width */
+          unsigned int                       height;      /* pixel height */
+          DFBSurfacePixelFormat              pixelformat; /* pixel format */
      } DFBSurfaceDescription;
 
      /*
@@ -888,28 +912,6 @@ extern "C"
           DSLF_WRITE          = 0x00000002   /* request write access */
      } DFBSurfaceLockFlags;
 
-     /*
-      * Pixel format of a surface.
-      * Contains information about the format (see following macros).
-      */
-     typedef enum {
-          DSPF_UNKNOWN        = 0x00000000,  /* no specific format,
-                                                unusual and unsupported */
-          DSPF_RGB15          = 0x00020F01,  /* 15bit  RGB (2 bytes, red 5@10,
-                                                green 5@5, blue 5@0) */
-          DSPF_RGB16          = 0x00021002,  /* 16bit  RGB (2 bytes, red 5@11,
-                                                green 6@5, blue 5@0) */
-          DSPF_RGB24          = 0x00031803,  /* 24bit  RGB (3 bytes, red 8@16,
-                                                green 8@8, blue 8@0) */
-          DSPF_RGB32          = 0x00041804,  /* 24bit  RGB (4 bytes, nothing@24,
-                                                red 8@16, green 8@8, blue 8@0)*/
-          DSPF_ARGB           = 0x00042005,  /* 32bit ARGB (4 bytes, alpha 8@24,
-                                                red 8@16, green 8@8, blue 8@0)*/
-          DSPF_A8             = 0x00010806,  /* 8bit alpha (1 byte, alpha 8@0 ),
-                                                e.g. anti-aliased text glyphs */
-          DSPF_A1             = 0x00010107   /* 1bit alpha (8 pixel ber byte),
-                                                e.g. bitmap text glyphs */
-     } DFBSurfacePixelFormat;
 
      /* These macros extract information about the pixel format. */
      #define BYTES_PER_PIXEL(format)    (((format) & 0xFF0000) >> 16)

@@ -315,7 +315,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetLength(
      if (!data)
           return DFB_DEAD;
 
-     *seconds = data->player->GetVideoLength();
+     *seconds = data->player->GetVideoLengthTime();
 
      return DFB_OK;
 }

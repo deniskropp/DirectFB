@@ -382,10 +382,11 @@ int main( int argc, char *argv[] )
                                         &provider ));
      DFBCHECK(provider->GetSurfaceDescription( provider, &dsc ));
 
-     dsc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP;
+     dsc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc.width = SX;
      dsc.height = SY;
-     dsc.bpp = BYTES_PER_PIXEL(pixelformat) == 2 ? 32 : 16;
+     dsc.pixelformat = BYTES_PER_PIXEL(pixelformat) == 2 ? 
+                       DSPF_RGB32 : DSPF_RGB16;
 
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &image32 ));
      DFBCHECK(provider->RenderTo( provider, image32 ));
@@ -394,11 +395,10 @@ int main( int argc, char *argv[] )
      /* create a surface and render an image to it */
      memset( &dsc, 0, sizeof(DFBSurfaceDescription) );
 
-     dsc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP | DSDESC_CAPS;
+     dsc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc.width = SX;
      dsc.height = SY;
-     dsc.bpp = 32;
-     dsc.caps = DSCAPS_ALPHA;
+     dsc.pixelformat = DSPF_ARGB;
      
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &image32a ));
      DFBCHECK(dfb->CreateImageProvider( dfb, DATADIR"/examples/pngtest2.png",

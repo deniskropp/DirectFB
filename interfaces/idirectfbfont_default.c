@@ -85,7 +85,7 @@ DFBResult Construct( IDirectFBFont *thiz,
 
      surface_create( 1024, font->height,
                      config->argb_font ? DSPF_ARGB : DSPF_A8, 
-                     CSP_VIDEOHIGH, DSCAPS_ALPHA, &surface );
+                     CSP_VIDEOHIGH, DSCAPS_NONE, &surface );
 
      font->rows = 1;
      font->row_width = 1024;

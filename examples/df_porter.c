@@ -81,8 +81,9 @@ int main( int argc, char *argv[] )
 
           memset( &dsc, 0, sizeof(DFBSurfaceDescription) );
 
-          dsc.flags = DSDESC_CAPS;
-          dsc.caps = DSCAPS_PRIMARY | DSCAPS_VIDEOONLY | DSCAPS_ALPHA;
+          dsc.flags = DSDESC_CAPS | DSDESC_PIXELFORMAT;
+          dsc.caps = DSCAPS_PRIMARY | DSCAPS_VIDEOONLY;
+          dsc.pixelformat = DSPF_ARGB;
 
           DFBCHECK(dfb->CreateSurface( dfb, &dsc, &primary ));
      }

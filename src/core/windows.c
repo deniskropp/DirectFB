@@ -247,10 +247,10 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
 
      if (caps & DWCAPS_ALPHACHANNEL)
           surface_create( width, height, DSPF_ARGB, stack->wsp_alpha,
-                          DSCAPS_ALPHA, &window->surface );
+                          DSCAPS_NONE, &window->surface );
      else
           surface_create( width, height, stack->layer->surface->format,
-                          stack->wsp_opaque, 0, &window->surface );
+                          stack->wsp_opaque, DSCAPS_NONE, &window->surface );
 
 
      pthread_mutex_init( &window->events_mutex, NULL );
@@ -261,9 +261,6 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
                break;
 
      window_insert( window, i );
-
-     windowstack_repaint_all( stack );   // FIXME!!!
-//     windows_repaint( window, NULL );
 
      return window;
 }

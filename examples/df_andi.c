@@ -485,7 +485,7 @@ void init_resources( int argc, char *argv[] )
      
      DFBCHECK(provider->GetSurfaceDescription( provider, &dsc ));
           
-     dsc.bpp = 32;
+     dsc.pixelformat = DSPF_RGB32;
 
      DESTINATION_MASK_WIDTH  = dsc.width;
      DESTINATION_MASK_HEIGHT = dsc.height;

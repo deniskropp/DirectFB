@@ -400,18 +400,12 @@ DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
           jpeg_start_decompress(&cinfo);
 
           memset( dsc, 0, sizeof(DFBSurfaceDescription) );
-          dsc->flags = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_BPP;
+          dsc->flags = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->height = cinfo.output_height;
           dsc->width = cinfo.output_width;
 
 
-          switch (layers->surface->format) {
-               case DSPF_ARGB:
-                    dsc->flags |= DSDESC_CAPS;
-                    dsc->caps |= DSCAPS_ALPHA;
-               default:
-                    dsc->bpp = BYTES_PER_PIXEL(layers->surface->format)*8;
-          }
+          dsc->pixelformat = layers->surface->format;
 
           jpeg_destroy_decompress(&cinfo);
           fclose(f);
