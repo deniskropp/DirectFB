@@ -528,7 +528,6 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
      if (config->flags & DLCONF_OPTIONS  &&  config->options)
           fail |= DLCONF_OPTIONS;
 
-
      if (failed)
           *failed = fail;
 

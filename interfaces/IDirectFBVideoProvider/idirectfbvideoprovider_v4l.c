@@ -546,7 +546,7 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      }
 
      if (!data->cleanup)
-          data->cleanup = dfb_core_cleanup_add( v4l_cleanup, data, 1 );
+          data->cleanup = dfb_core_cleanup_add( v4l_cleanup, data, true );
 
      if (ioctl( data->fd, VIDIOCCAPTURE, &one ) < 0) {
           DFBResult ret = errno2dfb( errno );

@@ -59,103 +59,94 @@ Cambridge, MA 02139, USA.
 void *
 shrealloc (void *ptr, size_t size)
 {
-  void  *result;
-  int    type;
-  size_t block, blocks, oldlimit;
+     void  *result;
+     int    type;
+     size_t block, blocks, oldlimit;
 
-  if (ptr == NULL)
-    return shmalloc (size);
-  else if (size == 0)
-    {
-      shfree (ptr);
-      return shmalloc (0);
-    }
-
-  block = BLOCK (ptr);
-
-  type = _sheap->heapinfo[block].busy.type;
-  switch (type)
-    {
-    case 0:
-      /* Maybe reallocate a large block to a small fragment.  */
-      if (size <= BLOCKSIZE / 2)
-        {
-          result = shmalloc (size);
-          if (result != NULL)
-            {
-              memcpy (result, ptr, size);
-              shfree (ptr);
-              return result;
-            }
-        }
-
-      /* The new size is a large allocation as well;
-         see if we can hold it in place. */
-      blocks = BLOCKIFY (size);
-      if (blocks < _sheap->heapinfo[block].busy.info.size)
-        {
-          /* The new size is smaller; return
-             excess memory to the free list. */
-          _sheap->heapinfo[block + blocks].busy.type = 0;
-          _sheap->heapinfo[block + blocks].busy.info.size
-            = _sheap->heapinfo[block].busy.info.size - blocks;
-          _sheap->heapinfo[block].busy.info.size = blocks;
-          shfree (ADDRESS (block + blocks));
-          result = ptr;
-        }
-      else if (blocks == _sheap->heapinfo[block].busy.info.size)
-        /* No size change necessary.  */
-        result = ptr;
-      else
-        {
-          /* Won't fit, so allocate a new region that will.
-             Free the old region first in case there is sufficient
-             adjacent free space to grow without moving. */
-          blocks = _sheap->heapinfo[block].busy.info.size;
-          /* Prevent free from actually returning memory to the system.  */
-          oldlimit = _sheap->heaplimit;
-          _sheap->heaplimit = 0;
+     if (ptr == NULL)
+          return shmalloc (size);
+     else if (size == 0) {
           shfree (ptr);
-          _sheap->heaplimit = oldlimit;
-          result = shmalloc (size);
-          if (result == NULL)
-            {
-              /* Now we're really in trouble.  We have to unfree
-                 the thing we just freed.  Unfortunately it might
-                 have been coalesced with its neighbors.  */
-              if (_sheap->heapindex == block)
-                (void) shmalloc (blocks * BLOCKSIZE);
-              else
-                {
-                  void *previous = shmalloc ((block - _sheap->heapindex) * BLOCKSIZE);
-                  (void) shmalloc (blocks * BLOCKSIZE);
-                  shfree (previous);
-                }
-              return NULL;
-            }
-          if (ptr != result)
-            memmove (result, ptr, blocks * BLOCKSIZE);
-        }
-      break;
+          return shmalloc (0);
+     }
 
-    default:
-      /* Old size is a fragment; type is logarithm
-         to base two of the fragment size.  */
-      if (size > (size_t) (1 << (type - 1)) && size <= (size_t) (1 << type))
-        /* The new size is the same kind of fragment.  */
-        result = ptr;
-      else
-        {
-          /* The new size is different; allocate a new space,
-             and copy the lesser of the new size and the old. */
-          result = shmalloc (size);
-          if (result == NULL)
-            return NULL;
-          memcpy (result, ptr, min (size, (size_t) 1 << type));
-          shfree (ptr);
-        }
-      break;
-    }
+     block = BLOCK (ptr);
 
-  return result;
+     type = _sheap->heapinfo[block].busy.type;
+     switch (type) {
+          case 0:
+               /* Maybe reallocate a large block to a small fragment.  */
+               if (size <= BLOCKSIZE / 2) {
+                    result = shmalloc (size);
+                    if (result != NULL) {
+                         memcpy (result, ptr, size);
+                         shfree (ptr);
+                         return result;
+                    }
+               }
+
+               /* The new size is a large allocation as well;
+                  see if we can hold it in place. */
+               blocks = BLOCKIFY (size);
+               if (blocks < _sheap->heapinfo[block].busy.info.size) {
+                    /* The new size is smaller; return
+                       excess memory to the free list. */
+                    _sheap->heapinfo[block + blocks].busy.type = 0;
+                    _sheap->heapinfo[block + blocks].busy.info.size
+                    = _sheap->heapinfo[block].busy.info.size - blocks;
+                    _sheap->heapinfo[block].busy.info.size = blocks;
+                    shfree (ADDRESS (block + blocks));
+                    result = ptr;
+               }
+               else if (blocks == _sheap->heapinfo[block].busy.info.size)
+                    /* No size change necessary.  */
+                    result = ptr;
+               else {
+                    /* Won't fit, so allocate a new region that will.
+                       Free the old region first in case there is sufficient
+                       adjacent free space to grow without moving. */
+                    blocks = _sheap->heapinfo[block].busy.info.size;
+                    /* Prevent free from actually returning memory to the system.  */
+                    oldlimit = _sheap->heaplimit;
+                    _sheap->heaplimit = 0;
+                    shfree (ptr);
+                    _sheap->heaplimit = oldlimit;
+                    result = shmalloc (size);
+                    if (result == NULL) {
+                         /* Now we're really in trouble.  We have to unfree
+                            the thing we just freed.  Unfortunately it might
+                            have been coalesced with its neighbors.  */
+                         if (_sheap->heapindex == block)
+                              (void) shmalloc (blocks * BLOCKSIZE);
+                         else {
+                              void *previous = shmalloc ((block - _sheap->heapindex) * BLOCKSIZE);
+                              (void) shmalloc (blocks * BLOCKSIZE);
+                              shfree (previous);
+                         }
+                         return NULL;
+                    }
+                    if (ptr != result)
+                         memmove (result, ptr, blocks * BLOCKSIZE);
+               }
+               break;
+
+          default:
+               /* Old size is a fragment; type is logarithm
+                  to base two of the fragment size.  */
+               if (size > (size_t) (1 << (type - 1)) && size <= (size_t) (1 << type))
+                    /* The new size is the same kind of fragment.  */
+                    result = ptr;
+               else {
+                    /* The new size is different; allocate a new space,
+                       and copy the lesser of the new size and the old. */
+                    result = shmalloc (size);
+                    if (result == NULL)
+                         return NULL;
+                    memcpy (result, ptr, min (size, (size_t) 1 << type));
+                    shfree (ptr);
+               }
+               break;
+     }
+
+     return result;
 }

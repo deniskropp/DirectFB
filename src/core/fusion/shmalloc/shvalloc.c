@@ -51,8 +51,8 @@ static size_t pagesize = 0;
 void *
 shvalloc (size_t size)
 {
-  if (pagesize == 0)
-    pagesize = getpagesize ();
+     if (pagesize == 0)
+          pagesize = getpagesize ();
 
-  return shmemalign (pagesize, size);
+     return shmemalign (pagesize, size);
 }

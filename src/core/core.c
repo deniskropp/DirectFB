@@ -31,6 +31,7 @@
 
 #include <core/fusion/fusion.h>
 #include <core/fusion/arena.h>
+#include <core/fusion/list.h>
 
 #include "directfb.h"
 
@@ -53,36 +54,46 @@
 #include "misc/fbdebug.h"
 
 /*
- * one entry in the cleanup list
+ * one entry in the cleanup stack
  */
 struct _CoreCleanup {
-     CoreCleanupFunc  cleanup;
-     void            *data;
-     int              emergency;
+     FusionLink       link;
 
-     CoreCleanup     *prev;
-     CoreCleanup     *next;
+     CoreCleanupFunc  func;        /* the cleanup function to be called */
+     void            *data;        /* context of the cleanup function */
+     bool             emergency;   /* if true, cleanup is also done during
+                                      emergency shutdown (from signal hadler) */
 };
 
 /*
  * list of cleanup functions
  */
-static CoreCleanup *core_cleanups = NULL;
+static FusionLink *core_cleanups = NULL;
 
 CoreData *dfb_core = NULL;
 
 
 
-static int dfb_core_initialize( FusionArena *arena, void *ctx );
+static int
+dfb_core_initialize( FusionArena *arena, void *ctx );
+
 #ifndef FUSION_FAKE
-static int dfb_core_join( FusionArena *arena, void *ctx );
-static int dfb_core_takeover( FusionArena *arena, void *ctx );
+static int
+dfb_core_join( FusionArena *arena, void *ctx );
+
+static int
+dfb_core_takeover( FusionArena *arena, void *ctx );
 #endif
 
-static int dfb_core_shutdown( FusionArena *arena, void *ctx );
+static int
+dfb_core_shutdown( FusionArena *arena, void *ctx );
+
 #ifndef FUSION_FAKE
-static int dfb_core_leave( FusionArena *arena, void *ctx );
-static int dfb_core_transfer( FusionArena *arena, void *ctx );
+static int
+dfb_core_leave( FusionArena *arena, void *ctx );
+
+static int
+dfb_core_transfer( FusionArena *arena, void *ctx );
 #endif
 
 /*
@@ -98,7 +109,8 @@ static int dfb_core_transfer( FusionArena *arena, void *ctx );
 /*
  * ckecks if stack is clean, otherwise prints warning, then calls core_deinit()
  */
-static void dfb_core_deinit_check()
+static void
+dfb_core_deinit_check()
 {
      if (dfb_core && dfb_core->refs) {
           DEBUGMSG( "DirectFB/core: WARNING - Application "
@@ -114,12 +126,14 @@ static void dfb_core_deinit_check()
 #endif
 }
 
-DFBResult dfb_core_init( int *argc, char **argv[] )
+DFBResult
+dfb_core_init( int *argc, char **argv[] )
 {
      return DFB_OK;
 }
 
-DFBResult dfb_core_ref()
+DFBResult
+dfb_core_ref()
 {
 #ifdef USE_MMX
      char *mmx_string = " (with MMX support)";
@@ -180,12 +194,14 @@ DFBResult dfb_core_ref()
      return DFB_OK;
 }
 
-int dfb_core_is_master()
+bool
+dfb_core_is_master()
 {
      return dfb_core->master;
 }
 
-void dfb_core_unref()
+void
+dfb_core_unref()
 {
      if (!dfb_core)
           return;
@@ -211,7 +227,8 @@ void dfb_core_unref()
      dfb_sig_remove_handlers();
 }
 
-DFBResult dfb_core_suspend()
+DFBResult
+dfb_core_suspend()
 {
 #ifndef FUSION_FAKE
      return DFB_UNSUPPORTED;
@@ -234,7 +251,8 @@ DFBResult dfb_core_suspend()
 #endif
 }
 
-DFBResult dfb_core_resume()
+DFBResult
+dfb_core_resume()
 {
 #ifndef FUSION_FAKE
      return DFB_UNSUPPORTED;
@@ -257,7 +275,8 @@ DFBResult dfb_core_resume()
 #endif
 }
 
-void dfb_core_deinit_emergency()
+void
+dfb_core_deinit_emergency()
 {
      if (!dfb_core->refs)
           return;
@@ -266,12 +285,12 @@ void dfb_core_deinit_emergency()
 
 #ifdef FUSION_FAKE
      while (core_cleanups) {
-          CoreCleanup *cleanup = core_cleanups;
+          CoreCleanup *cleanup = (CoreCleanup *)core_cleanups;
 
-          core_cleanups = core_cleanups->prev;
+          core_cleanups = core_cleanups->next;
 
           if (cleanup->emergency)
-               cleanup->cleanup( cleanup->data, 1 );
+               cleanup->func( cleanup->data, true );
 
           DFBFREE( cleanup );
      }
@@ -292,39 +311,24 @@ void dfb_core_deinit_emergency()
      dfb_sig_remove_handlers();
 }
 
-CoreCleanup *dfb_core_cleanup_add( CoreCleanupFunc cleanup,
-                                   void *data, int emergency )
+CoreCleanup *
+dfb_core_cleanup_add( CoreCleanupFunc func, void *data, bool emergency )
 {
-     CoreCleanup *c = (CoreCleanup*)DFBCALLOC( 1, sizeof(CoreCleanup) );
+     CoreCleanup *cleanup = DFBCALLOC( 1, sizeof(CoreCleanup) );
 
-     c->cleanup   = cleanup;
-     c->data      = data;
-     c->emergency = emergency;
+     cleanup->func      = func;
+     cleanup->data      = data;
+     cleanup->emergency = emergency;
 
-     if (core_cleanups) {
-          CoreCleanup *cc = core_cleanups;
+     fusion_list_prepend( &core_cleanups, &cleanup->link );
 
-          while (cc->next)
-               cc = cc->next;
-
-          c->prev = cc;
-          cc->next = c;
-     }
-     else
-          core_cleanups = c;
-
-     return c;
+     return cleanup;
 }
 
-void dfb_core_cleanup_remove( CoreCleanup *cleanup )
+void
+dfb_core_cleanup_remove( CoreCleanup *cleanup )
 {
-     if (cleanup->next)
-          cleanup->next->prev = cleanup->prev;
-
-     if (cleanup->prev)
-          cleanup->prev->next = cleanup->next;
-     else
-          core_cleanups = cleanup->next;
+     fusion_list_remove( &core_cleanups, &cleanup->link );
 
      DFBFREE( cleanup );
 }
@@ -333,11 +337,12 @@ void dfb_core_cleanup_remove( CoreCleanup *cleanup )
  * module loading functions
  */
 #ifdef DFB_DYNAMIC_LINKING
-DFBResult dfb_core_load_modules( char *module_dir,
-                                 CoreModuleLoadResult (*handle_func)(void *handle,
-                                                                     char *name,
-                                                                     void *ctx),
-                                 void *ctx )
+DFBResult
+dfb_core_load_modules( char *module_dir,
+                       CoreModuleLoadResult (*handle_func)(void *handle,
+                                                           char *name,
+                                                           void *ctx),
+                       void *ctx )
 {
      DFBResult      ret = DFB_UNSUPPORTED;
      DIR           *dir;
@@ -394,14 +399,15 @@ DFBResult dfb_core_load_modules( char *module_dir,
 
 /****************************/
 
-static int dfb_core_initialize( FusionArena *arena, void *ctx )
+static int
+dfb_core_initialize( FusionArena *arena, void *ctx )
 {
      DFBResult ret;
 
      DEBUGMSG( "DirectFB/Core: we are the master, initializing...\n" );
 
      dfb_core->arena  = arena;
-     dfb_core->master = 1;
+     dfb_core->master = true;
 
 #ifdef DFB_DEBUG
      fbdebug_init();
@@ -417,7 +423,8 @@ static int dfb_core_initialize( FusionArena *arena, void *ctx )
 }
 
 #ifndef FUSION_FAKE
-static int dfb_core_join( FusionArena *arena, void *ctx )
+static int
+dfb_core_join( FusionArena *arena, void *ctx )
 {
      DFBResult ret;
 
@@ -434,7 +441,8 @@ static int dfb_core_join( FusionArena *arena, void *ctx )
      return 0;
 }
 
-static int dfb_core_takeover( FusionArena *arena, void *ctx )
+static int
+dfb_core_takeover( FusionArena *arena, void *ctx )
 {
      DEBUGMSG( "DirectFB/Core: taking over mastership!\n" );
 
@@ -442,16 +450,17 @@ static int dfb_core_takeover( FusionArena *arena, void *ctx )
 }
 #endif
 
-static int dfb_core_shutdown( FusionArena *arena, void *ctx )
+static int
+dfb_core_shutdown( FusionArena *arena, void *ctx )
 {
      DEBUGMSG( "DirectFB/Core: shutting down!\n" );
 
      while (core_cleanups) {
-          CoreCleanup *cleanup = core_cleanups;
+          CoreCleanup *cleanup = (CoreCleanup *)core_cleanups;
 
-          core_cleanups = cleanup->next;
+          core_cleanups = core_cleanups->next;
 
-          cleanup->cleanup( cleanup->data, 0 );
+          cleanup->func( cleanup->data, false );
 
           DFBFREE( cleanup );
      }
@@ -470,7 +479,8 @@ static int dfb_core_shutdown( FusionArena *arena, void *ctx )
 }
 
 #ifndef FUSION_FAKE
-static int dfb_core_leave( FusionArena *arena, void *ctx )
+static int
+dfb_core_leave( FusionArena *arena, void *ctx )
 {
      DEBUGMSG( "DirectFB/Core: leaving!\n" );
 
@@ -483,7 +493,8 @@ static int dfb_core_leave( FusionArena *arena, void *ctx )
      return 0;
 }
 
-static int dfb_core_transfer( FusionArena *arena, void *ctx )
+static int
+dfb_core_transfer( FusionArena *arena, void *ctx )
 {
      DEBUGMSG( "DirectFB/Core: transferring mastership!\n" );
 

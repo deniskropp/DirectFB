@@ -43,36 +43,36 @@ Cambridge, MA 02139, USA.  */
 void *
 shmemalign (size_t alignment, size_t size)
 {
-  void          *result;
-  unsigned long  adj;
+     void          *result;
+     unsigned long  adj;
 
-  result = shmalloc (size + alignment - 1);
-  if (result == NULL)
-    return NULL;
+     result = shmalloc (size + alignment - 1);
+     if (result == NULL)
+          return NULL;
 
-  adj = (unsigned long) result % alignment;
-  if (adj != 0)
-    {
-      struct alignlist *l;
-      for (l = _sheap->aligned_blocks; l != NULL; l = l->next)
-        if (l->aligned == NULL)
-          /* This slot is free.  Use it.  */
-          break;
-      if (l == NULL)
-        {
-          l = (struct alignlist *)
-                shmalloc (sizeof (struct alignlist));
-          if (l == NULL)
-            {
-              shfree (result);
-              return NULL;
-            }
-          l->next = _sheap->aligned_blocks;
-          _sheap->aligned_blocks = l;
-        }
-      l->exact = result;
-      result = l->aligned = (char *) result + alignment - adj;
-    }
+     adj = (unsigned long) result % alignment;
+     if (adj != 0) {
+          struct alignlist *l;
 
-  return result;
+          for (l = _sheap->aligned_blocks; l != NULL; l = l->next)
+               if (l->aligned == NULL)
+                    /* This slot is free.  Use it.  */
+                    break;
+
+          if (l == NULL) {
+               l = (struct alignlist *) shmalloc (sizeof (struct alignlist));
+               if (l == NULL) {
+                    shfree (result);
+                    return NULL;
+               }
+
+               l->next = _sheap->aligned_blocks;
+               _sheap->aligned_blocks = l;
+          }
+
+          l->exact = result;
+          result = l->aligned = (char *) result + alignment - adj;
+     }
+
+     return result;
 }

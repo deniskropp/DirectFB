@@ -46,15 +46,14 @@ Cambridge, MA 02139, USA.
 #include "shmalloc_internal.h"
 
 struct shmstats
-shmstats ()
-{
-  struct shmstats result;
+shmstats () {
+     struct shmstats result;
 
-  result.bytes_total = (char *) __shmalloc_brk (0) - _sheap->heapbase;
-  result.chunks_used = _sheap->chunks_used;
-  result.bytes_used  = _sheap->bytes_used;
-  result.chunks_free = _sheap->chunks_free;
-  result.bytes_free  = _sheap->bytes_free;
+     result.bytes_total = (char *) __shmalloc_brk (0) - _sheap->heapbase;
+     result.chunks_used = _sheap->chunks_used;
+     result.bytes_used  = _sheap->bytes_used;
+     result.chunks_free = _sheap->chunks_free;
+     result.bytes_free  = _sheap->bytes_free;
 
-  return result;
+     return result;
 }

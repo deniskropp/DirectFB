@@ -86,84 +86,84 @@ void _shfree_internal (void *__ptr);
 /* Data structure giving per-block information.  */
 typedef union {
 
-  /* Heap information for a busy block.  */
-  struct {
+     /* Heap information for a busy block.  */
+     struct {
 
-    /* Zero for a large block, or positive giving the
-       logarithm to the base two of the fragment size.  */
-    int type;
+          /* Zero for a large block, or positive giving the
+             logarithm to the base two of the fragment size.  */
+          int type;
 
-    union {
-      struct {
-        size_t nfree;   /* Free fragments in a fragmented block.  */
-        size_t first;   /* First free fragment of the block.  */
-      } frag;
+          union {
+               struct {
+                    size_t nfree;   /* Free fragments in a fragmented block.  */
+                    size_t first;   /* First free fragment of the block.  */
+               } frag;
 
-      /* Size (in blocks) of a large cluster.  */
-      size_t size;
-    } info;
-  } busy;
+               /* Size (in blocks) of a large cluster.  */
+               size_t size;
+          } info;
+     } busy;
 
-  /* Heap information for a free block
-     (that may be the first of a free cluster).  */
-  struct {
-    size_t size;                /* Size (in blocks) of a free cluster.  */
-    size_t next;                /* Index of next free cluster.  */
-    size_t prev;                /* Index of previous free cluster.  */
-  } free;
+     /* Heap information for a free block
+        (that may be the first of a free cluster).  */
+     struct {
+          size_t size;                /* Size (in blocks) of a free cluster.  */
+          size_t next;                /* Index of next free cluster.  */
+          size_t prev;                /* Index of previous free cluster.  */
+     } free;
 } shmalloc_info;
 
 /* Doubly linked lists of free fragments.  */
 struct list {
-  struct list *next;
-  struct list *prev;
+     struct list *next;
+     struct list *prev;
 };
 
 /* List of blocks allocated with `shmemalign' (or `shvalloc').  */
 struct alignlist {
-  struct alignlist *next;
-  void *aligned;                /* The address that shmemaligned returned.  */
-  void *exact;          /* The address that shmalloc returned.  */
+     struct alignlist *next;
+     void *aligned;                /* The address that shmemaligned returned.  */
+     void *exact;          /* The address that shmalloc returned.  */
 };
 
 typedef struct {
-  /* Pointer to first block of the heap.  */
-  char *heapbase;
+     /* Pointer to first block of the heap.  */
+     char *heapbase;
 
-  /* Lock for heap management. */
-  FusionSkirmish lock;
+     /* Lock for heap management. */
+     FusionSkirmish lock;
 
-  /* Reactor for remapping messages. */
-  FusionReactor *reactor;
+     /* Reactor for remapping messages. */
+     FusionReactor *reactor;
 
-  /* Block information table indexed by block number giving per-block information. */
-  shmalloc_info *heapinfo;
+     /* Block information table indexed by block number giving per-block information. */
+     shmalloc_info *heapinfo;
 
-  /* Number of info entries.  */
-  size_t heapsize;
+     /* Number of info entries.  */
+     size_t heapsize;
 
-  /* Current search index for the heap table.  */
-  size_t heapindex;
+     /* Current search index for the heap table.  */
+     size_t heapindex;
 
-  /* Limit of valid info table indices.  */
-  size_t heaplimit;
+     /* Limit of valid info table indices.  */
+     size_t heaplimit;
 
 #if 1   /* Adapted from Mike */
-  /* Count of large blocks allocated for each fragment size. */
-  int fragblocks[BLOCKLOG];
+     /* Count of large blocks allocated for each fragment size. */
+     int fragblocks[BLOCKLOG];
 #endif
 
-  /* Free list headers for each fragment size.  */
-  struct list fraghead[BLOCKLOG];
+     /* Free list headers for each fragment size.  */
+     struct list fraghead[BLOCKLOG];
 
-  /* List of blocks allocated by shmemalign.  */
-  struct alignlist *aligned_blocks;
+     /* List of blocks allocated by shmemalign.  */
+     struct alignlist *aligned_blocks;
 
-  /* Instrumentation.  */
-  size_t chunks_used;
-  size_t bytes_used;
-  size_t chunks_free;
-  size_t bytes_free;
+     /* Instrumentation.  */
+     size_t chunks_used;
+     size_t bytes_used;
+     size_t chunks_free;
+     size_t bytes_free;
 } shmalloc_heap;
 
 /* global data at beginning of shared memory */

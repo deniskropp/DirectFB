@@ -48,10 +48,10 @@ Cambridge, MA 02139, USA.
 void *
 shcalloc (size_t nmemb, size_t size)
 {
-  void *result = shmalloc (nmemb * size);
+     void *result = shmalloc (nmemb * size);
 
-  if (result != NULL)
-    memset (result, 0, nmemb * size);
+     if (result != NULL)
+          memset (result, 0, nmemb * size);
 
-  return result;
+     return result;
 }

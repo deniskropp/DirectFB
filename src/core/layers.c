@@ -326,6 +326,10 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
      if (ret)
           return ret;
 
+     /* FIXME: generalize primary layer */
+     if (layer == dfb_layers)
+          return layer->SetConfiguration( layer, &new_config );
+
      /* FIXME: implement buffer mode changes */
      if (shared->buffermode != new_config.buffermode) {
           ONCE("Changing the buffermode of layers is unimplemented!");

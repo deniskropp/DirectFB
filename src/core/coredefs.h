@@ -40,57 +40,57 @@
 #define INITMSG(x...)    { if (!dfb_config->quiet) fprintf( stderr, "(*) "x ); }
 #define ERRORMSG(x...)   { if (!dfb_config->quiet) fprintf( stderr, "(!) "x ); }
 
-#define PERRORMSG(x...)  {                                                 \
-                              if (!dfb_config->quiet) {                    \
-                                   fprintf( stderr, "(!) "x );             \
-                                   fprintf( stderr, "    --> " );          \
-                                   perror("");                             \
-                              }                                            \
+#define PERRORMSG(x...)  if (!dfb_config->quiet) {                             \
+                              fprintf( stderr, "(!) "x );                      \
+                              fprintf( stderr, "    --> " );                   \
+                              perror("");                                      \
                          }
 
-#define DLERRORMSG(x...) {                                                 \
-                              if (!dfb_config->quiet) {                    \
-                                   fprintf( stderr, "(!) "x );             \
-                                   fprintf( stderr, "    --> %s\n",        \
-                                                    dlerror() );           \
-                              }                                            \
+#define DLERRORMSG(x...) if (!dfb_config->quiet) {                             \
+                              fprintf( stderr, "(!) "x );                      \
+                              fprintf( stderr, "    --> %s\n",                 \
+                                               dlerror() );                    \
                          }
 
 #ifdef DFB_DEBUG
      #ifdef HEAVYDEBUG
-          #define HEAVYDEBUGMSG(x...)   {                                     \
-                                             if (!dfb_config->no_debug)       \
-                                                  fprintf( stderr, "(=) "x ); \
+          #define HEAVYDEBUGMSG(x...)   if (!dfb_config->no_debug) {           \
+                                                  fprintf( stderr, "(=) "x );  \
                                         }
      #else
           #define HEAVYDEBUGMSG(x...)
      #endif
+     
+     #define DEBUGMSG(x...)   if (!dfb_config->no_debug) {                     \
+                                   fprintf( stderr, "(-) "x );                 \
+                              }
 
-     #define DEBUGMSG(x...)        {                                          \
-                                        if (!dfb_config->no_debug)            \
-                                             fprintf( stderr, "(-) "x );      \
-                                   }
+     #define DFB_ASSERT(exp)  if (!(exp)) {                                    \
+                                   ERRORMSG("DirectFB/Assertion: '" #exp       \
+                                            "' failed!\n");                    \
+                              }
 
-     #define ONCE(x){                                                         \
-                         static int print = 1;                                \
-                         if (print)                                           \
-                              DEBUGMSG( "*** [%s] *** %s (%d)\n",             \
-                                        x, __FILE__, __LINE__ );              \
-                         print = 0;                                           \
+     #define ONCE(x){                                                          \
+                         static int print = 1;                                 \
+                         if (print)                                            \
+                              DEBUGMSG( "*** [%s] *** %s (%d)\n",              \
+                                        x, __FILE__, __LINE__ );               \
+                         print = 0;                                            \
                     }
 
 #else
      #define HEAVYDEBUGMSG(x...)
      #define DEBUGMSG(x...)
+     #define DFB_ASSERT(exp)
      #define ONCE(x)
 #endif
 
 
-#define BUG(x) \
-        fprintf( stderr, " (!?!)  *** BUG ALERT [%s] *** %s (%d)\n", x, __FILE__, __LINE__ );
+#define BUG(x)     fprintf( stderr, " (!?!)  *** BUG ALERT [%s] *** %s (%d)\n",\
+                            x, __FILE__, __LINE__ );
 
-#define CAUTION(x) \
-        fprintf( stderr, " (!!!)  *** CAUTION [%s] *** %s (%d)\n", x, __FILE__, __LINE__ );
+#define CAUTION(x) fprintf( stderr, " (!!!)  *** CAUTION [%s] *** %s (%d)\n",  \
+                            x, __FILE__, __LINE__ );
 
 #endif
 

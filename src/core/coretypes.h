@@ -50,7 +50,7 @@ typedef struct _DisplayLayerShared      DisplayLayerShared;
 typedef struct _InputDevice             InputDevice;
 typedef struct _FBDev                   FBDev;
 typedef struct _VirtualTerminal         VirtualTerminal;
-typedef struct _GraphicsDevice            GraphicsDevice;
+typedef struct _GraphicsDevice          GraphicsDevice;
 
 
 
