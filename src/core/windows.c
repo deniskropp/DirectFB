@@ -963,10 +963,8 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
      new_cx = MAX( new_cx, stack->cursor.region.x1 );
      new_cy = MAX( new_cy, stack->cursor.region.y1 );
 
-     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y) {
-          stack_unlock( stack );
+     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y)
           return;
-     }
 
      dx = new_cx - stack->cursor.x;
      dy = new_cy - stack->cursor.y;
@@ -979,6 +977,23 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
      dfb_window_move( stack->cursor.window, dx, dy );
 
      switch (stack->wm_hack) {
+          case 3: {
+               CoreWindow *window = stack->entered_window;
+               
+               if (window) {
+                    int opacity = window->opacity + dx;
+
+                    if (opacity < 8)
+                         opacity = 8;
+                    else if (opacity > 255)
+                         opacity = 255;
+
+                    dfb_window_set_opacity( window, opacity );
+               }
+
+               break;
+          }
+
           case 2: {
                CoreWindow *window = stack->entered_window;
                
@@ -1318,6 +1333,7 @@ stack_inputdevice_react( const void *msg_data,
                               stack_unlock( stack );
                               break;
 
+                         case DIKS_ALT:
                          case DIKS_CONTROL:
                               stack->wm_hack = 1;
                               return RS_OK;
@@ -1329,6 +1345,10 @@ stack_inputdevice_react( const void *msg_data,
 
                case DIET_KEYPRESS:
                     switch (DFB_LOWER_CASE(evt->key_symbol)) {
+                         case DIKS_ALT:
+                              stack->wm_hack = 3;
+                              return RS_OK;
+
                          case DIKS_CONTROL:
                               stack->wm_hack = 2;
                               return RS_OK;
