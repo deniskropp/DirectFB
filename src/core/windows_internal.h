@@ -33,6 +33,8 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/gfxcard.h>
+
 #include <direct/list.h>
 #include <fusion/lock.h>
 #include <fusion/object.h>
@@ -96,6 +98,8 @@ struct __DFB_CoreWindow {
      CoreLayerRegion        *region;         /* hardware allocated window */
 
      void                   *window_data;    /* private data of window manager */
+
+     CoreGraphicsSerial      serial;
 };
 
 /*
