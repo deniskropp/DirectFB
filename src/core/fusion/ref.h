@@ -29,48 +29,62 @@ extern "C"
 #include "fusion_types.h"
 
 
-     struct _FusionRef {
+#ifndef FUSION_FAKE
+
+     typedef struct {
           int sem_id;
-     };
+     } FusionRef;
 
+#else
 
-     /*
-      * Initialize.
-      */
-     FusionResult fusion_ref_init         (FusionRef *ref);
+     #include <pthread.h>
+     
+     typedef struct {
+          int             refs;
+          pthread_cond_t  cond;
+          pthread_mutex_t lock;
+          bool            destroyed;
+     } FusionRef;
 
-     /*
-      * Lock, increase, unlock.
-      */
-     FusionResult fusion_ref_up           (FusionRef *ref);
+#endif
 
-     /*
-      * Lock, decrease, unlock.
-      */
-     FusionResult fusion_ref_down         (FusionRef *ref);
+/*
+ * Initialize.
+ */
+FusionResult fusion_ref_init         (FusionRef *ref);
 
-     /*
-      * Wait for zero and lock.
-      */
-     FusionResult fusion_ref_zero_lock    (FusionRef *ref);
+/*
+ * Lock, increase, unlock.
+ */
+FusionResult fusion_ref_up           (FusionRef *ref);
 
-     /*
-      * Check for zero and lock if true.
-      */
-     FusionResult fusion_ref_zero_trylock (FusionRef *ref);
+/*
+ * Lock, decrease, unlock.
+ */
+FusionResult fusion_ref_down         (FusionRef *ref);
 
-     /*
-      * Unlock the counter.
-      * Only to be called after successful zero_lock or zero_trylock.
-      */
-     FusionResult fusion_ref_unlock       (FusionRef *ref);
+/*
+ * Wait for zero and lock.
+ */
+FusionResult fusion_ref_zero_lock    (FusionRef *ref);
 
-     /*
-      * Deinitialize.
-      * Can be called after successful zero_lock or zero_trylock
-      * so that waiting fusion_ref_up calls return with FUSION_DESTROYED.
-      */
-     FusionResult fusion_ref_destroy      (FusionRef *ref);
+/*
+ * Check for zero and lock if true.
+ */
+FusionResult fusion_ref_zero_trylock (FusionRef *ref);
+
+/*
+ * Unlock the counter.
+ * Only to be called after successful zero_lock or zero_trylock.
+ */
+FusionResult fusion_ref_unlock       (FusionRef *ref);
+
+/*
+ * Deinitialize.
+ * Can be called after successful zero_lock or zero_trylock
+ * so that waiting fusion_ref_up calls return with FUSION_DESTROYED.
+ */
+FusionResult fusion_ref_destroy      (FusionRef *ref);
 
 #ifdef __cplusplus
 }

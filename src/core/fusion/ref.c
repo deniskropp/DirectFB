@@ -49,6 +49,8 @@
 /****************
  *  Public API  *
  ****************/
+ 
+#ifndef FUSION_FAKE
 
 FusionResult fusion_ref_init (FusionRef *ref)
 {
@@ -284,6 +286,110 @@ FusionResult fusion_ref_destroy (FusionRef *ref)
 
      return FUSION_SUCCESS;
 }
+
+#else /* !FUSION_FAKE */
+
+FusionResult fusion_ref_init (FusionRef *ref)
+{
+     pthread_mutex_init (&ref->lock, NULL);
+
+     ref->refs      = 0;
+     ref->destroyed = false;
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult fusion_ref_up (FusionRef *ref)
+{
+     FusionResult ret = FUSION_SUCCESS;
+
+     pthread_mutex_lock (&ref->lock);
+
+     if (ref->destroyed)
+          ret = FUSION_DESTROYED;
+     else
+          ref->refs++;
+     
+     pthread_mutex_unlock (&ref->lock);
+     
+     return ret;
+}
+
+FusionResult fusion_ref_down (FusionRef *ref)
+{
+     FusionResult ret = FUSION_SUCCESS;
+
+     pthread_mutex_lock (&ref->lock);
+
+     if (ref->destroyed)
+          ret = FUSION_DESTROYED;
+     else
+          ref->refs--;
+     
+     pthread_cond_broadcast (&ref->cond);
+     
+     pthread_mutex_unlock (&ref->lock);
+     
+     return ret;
+}
+
+FusionResult fusion_ref_zero_lock (FusionRef *ref)
+{
+     FusionResult ret = FUSION_SUCCESS;
+
+     pthread_mutex_lock (&ref->lock);
+
+     if (ref->destroyed)
+          ret = FUSION_DESTROYED;
+     else while (ref->refs && !ret) {
+          pthread_cond_wait (&ref->cond, &ref->lock);
+          
+          if (ref->destroyed)
+               ret = FUSION_DESTROYED;
+     }
+     
+     if (ret != FUSION_SUCCESS)
+          pthread_mutex_unlock (&ref->lock);
+     
+     return ret;
+}
+
+FusionResult fusion_ref_zero_trylock (FusionRef *ref)
+{
+     FusionResult ret = FUSION_SUCCESS;
+
+     pthread_mutex_lock (&ref->lock);
+
+     if (ref->destroyed)
+          ret = FUSION_DESTROYED;
+     else if (ref->refs)
+          ret = FUSION_INUSE;
+     
+     if (ret != FUSION_SUCCESS)
+          pthread_mutex_unlock (&ref->lock);
+     
+     return ret;
+}
+
+FusionResult fusion_ref_unlock (FusionRef *ref)
+{
+     pthread_mutex_unlock (&ref->lock);
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult fusion_ref_destroy (FusionRef *ref)
+{
+     ref->destroyed = true;
+
+     pthread_cond_broadcast (&ref->cond);
+
+     pthread_mutex_unlock (&ref->lock);
+     
+     return FUSION_SUCCESS;
+}
+
+#endif
 
 /*******************************
  *  Fusion internal functions  *

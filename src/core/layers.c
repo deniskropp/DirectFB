@@ -428,6 +428,7 @@ dfb_layer_lease( DisplayLayer *layer )
 {
      DFB_ASSERT( layer->shared->enabled );
 
+#ifndef FUSION_FAKE
      /* FIXME: workaround */
      if (layer->shared->exclusive) {
           if (skirmish_swoop( &layer->shared->lock ))
@@ -435,6 +436,7 @@ dfb_layer_lease( DisplayLayer *layer )
 
           dfb_layer_release( layer, true );
      }
+#endif
      
      if (fusion_property_lease( &layer->shared->lock ))
           return DFB_LOCKED;
@@ -450,6 +452,7 @@ dfb_layer_purchase( DisplayLayer *layer )
 {
      DFB_ASSERT( layer->shared->enabled );
      
+#ifndef FUSION_FAKE
      /* FIXME: workaround */
      if (layer->shared->exclusive) {
           if (skirmish_swoop( &layer->shared->lock ))
@@ -457,13 +460,16 @@ dfb_layer_purchase( DisplayLayer *layer )
 
           dfb_layer_release( layer, true );
      }
+#endif
      
      if (fusion_property_purchase( &layer->shared->lock ))
           return DFB_LOCKED;
 
+#ifndef FUSION_FAKE
      /* FIXME: workaround */
      layer->shared->exclusive = true;
-     
+#endif
+
      return DFB_OK;
 }
 
@@ -477,8 +483,10 @@ dfb_layer_release( DisplayLayer *layer, bool repaint )
      
      fusion_property_cede( &layer->shared->lock );
      
+#ifndef FUSION_FAKE
      /* FIXME: workaround */
      layer->shared->exclusive = false;
+#endif
      
      if (repaint)
           dfb_windowstack_repaint_all( layer->shared->stack );

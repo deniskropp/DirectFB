@@ -99,6 +99,11 @@ DFBResult dfb_input_join();
 DFBResult dfb_input_shutdown( bool emergency );
 DFBResult dfb_input_leave( bool emergency );
 
+#ifdef FUSION_FAKE
+DFBResult dfb_input_suspend();
+DFBResult dfb_input_resume();
+#endif
+
 void dfb_input_register_module( InputDriverFuncs *funcs );
 
 typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,

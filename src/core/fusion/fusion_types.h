@@ -50,12 +50,8 @@ typedef enum {
     FUSION_INUSE
   } FusionResult;
 
-  typedef struct _FusionLink     FusionLink;
-  typedef struct _FusionSkirmish FusionSkirmish;
   typedef struct _FusionReactor  FusionReactor;
   typedef struct _FusionArena    FusionArena;
-  typedef struct _FusionRef      FusionRef;
-
 
 
   union semun {

@@ -61,7 +61,7 @@ typedef struct {
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION           6
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION           7
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     60
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   80
@@ -207,6 +207,11 @@ DFBResult dfb_gfxcard_join();
 
 DFBResult dfb_gfxcard_shutdown( bool emergency );
 DFBResult dfb_gfxcard_leave( bool emergency );
+
+#ifdef FUSION_FAKE
+DFBResult dfb_gfxcard_suspend();
+DFBResult dfb_gfxcard_resume();
+#endif
 
 void dfb_graphics_register_module( GraphicsDriverFuncs *funcs );
 

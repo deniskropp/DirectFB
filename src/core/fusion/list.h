@@ -28,13 +28,13 @@ extern "C"
 
 #include "fusion_types.h"
 
-  struct _FusionLink {
-    FusionLink *next;
-    FusionLink *prev;
-  };
+     typedef struct _FusionLink {
+          struct _FusionLink *next;
+          struct _FusionLink *prev;
+     } FusionLink;
 
-  void fusion_list_prepend (FusionLink **list, FusionLink *link);
-  void fusion_list_remove  (FusionLink **list, FusionLink *link);
+     void fusion_list_prepend (FusionLink **list, FusionLink *link);
+     void fusion_list_remove  (FusionLink **list, FusionLink *link);
 
 #define fusion_list_foreach(link, list)  for (link = list; link; link = link->next)
 

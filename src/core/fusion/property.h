@@ -32,6 +32,8 @@ extern "C"
 #ifndef FUSION_FAKE
      #warning Not yet fully implemented.
      
+     #include "lock.h"
+     
      typedef FusionSkirmish FusionProperty;
 
      #define fusion_property_init     skirmish_init
