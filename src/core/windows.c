@@ -1209,9 +1209,6 @@ window_withdraw( CoreWindow *window )
      if (stack->pointer_window == window)
           stack->pointer_window = NULL;
 
-     if (stack->cursor.window == window)
-          dfb_window_unlink( &stack->cursor.window );
-
      for (i=0; i<8; i++) {
           if (stack->keys[i].code != -1 && stack->keys[i].owner == window) {
                if (!window->destroyed) {
