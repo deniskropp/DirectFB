@@ -393,8 +393,8 @@ static void Sop_a8_Kto_Aop()
 static void Sop_rgb332_Kto_Aop()
 {
      int    w = Dlength;
-     __u8 *D = (__u32*)Aop;
-     __u8 *S = (__u32*)Sop;
+     __u8 *D = (__u8*)Aop;
+     __u8 *S = (__u8*)Sop;
 
      if (Ostep < 0) {
           D+= Dlength - 1;
