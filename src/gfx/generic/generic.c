@@ -860,6 +860,63 @@ static void Bop_8_Sto_Aop( GenefxState *gfxs )
      }
 }
 
+static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
+{
+     int   w;
+     int   i;
+     int   l     = 0;
+     int   cr    = 0;
+     __u8 *D     = gfxs->Aop;
+     __u8 *S     = gfxs->Bop;
+     int   SperD = gfxs->SperD;
+
+     for (w = 0; w < gfxs->length; w++) {
+	  i  = (l >> 16) * 2;
+	  *D = S[i]; /* blit luma */
+
+	  l += SperD;
+
+	  if (!(w & 1)) { /* blit chroma */
+	        i      = (cr >> 16) * 4;
+		*(D+1) = S[i+1];
+		*(D+3) = S[i+3];
+
+		cr += SperD;
+	  }
+
+	  D += 2;
+     }
+}
+
+static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
+{
+     int   w;
+     int   i;
+     int   l     = 0;
+     int   cr    = 0;
+     __u8 *D     = gfxs->Aop;
+     __u8 *S     = gfxs->Bop;
+     int   SperD = gfxs->SperD;
+
+     for (w = 0; w < gfxs->length; w++) {
+          i      = (l >> 16) * 2;
+	  *(D+1) = S[i+1]; /* blit luma */
+
+	  l += SperD;
+
+	  if (!(w & 1)) { /* blit chroma */
+                i      = (cr >> 16) * 4;
+		*D     = S[i];
+		*(D+2) = S[i+2];
+
+		cr += SperD;
+          }
+
+	  D += 2;
+     }
+}
+	  
+
 static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_Sto_Aop,
      Bop_16_Sto_Aop,
@@ -867,11 +924,11 @@ static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_32_Sto_Aop,
      Bop_32_Sto_Aop,
      Bop_8_Sto_Aop,
-     NULL,
+     Bop_yuy2_Sto_Aop,
      Bop_8_Sto_Aop,
-     NULL,
-     NULL,
-     NULL,
+     Bop_uyvy_Sto_Aop,
+     Bop_8_Sto_Aop,
+     Bop_8_Sto_Aop,
      Bop_8_Sto_Aop,
      Bop_8_Sto_Aop,
      Bop_32_Sto_Aop
@@ -3834,10 +3891,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_UYVY:
                case DSPF_I420:
                case DSPF_YV12:
-                    if (accel != DFXL_BLIT ||
+                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
                         gfxs->src_format != gfxs->dst_format ||
                         state->blittingflags != DSBLIT_NOFX) {
-                         D_ONCE("only copying blits supported for YUV in software");
+                         D_ONCE("only copying/scaling blits supported for YUV in software");
                          return false;
                     }
                     break;
@@ -4623,6 +4680,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      int f;
      int i = 0;
+     int h;
 
      D_ASSERT( gfxs != NULL );
 
@@ -4632,11 +4690,12 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      gfxs->SperD  = (srect->w << 16) / drect->w;
 
      f = (srect->h << 16) / drect->h;
+     h = drect->h;
 
      Aop_xy( gfxs, gfxs->dst_org, drect->x, drect->y, gfxs->dst_pitch );
      Bop_xy( gfxs, gfxs->src_org, srect->x, srect->y, gfxs->src_pitch );
 
-     while (drect->h--) {
+     while (h--) {
           RUN_PIPELINE();
 
           Aop_next( gfxs, gfxs->dst_pitch );
@@ -4647,6 +4706,60 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                i -= 0x10000;
                Bop_next( gfxs, gfxs->src_pitch );
           }
+     }
+
+     /* scale other planes */
+     if (gfxs->src_format == DSPF_YV12 || gfxs->src_format == DSPF_I420) {
+	  void *sorg   = gfxs->src_org + (gfxs->src_pitch * gfxs->src_height);
+	  void *dorg   = gfxs->dst_org + (gfxs->dst_pitch * gfxs->dst_height);
+	  int spitch   = gfxs->src_pitch / 2;
+	  int dpitch   = gfxs->dst_pitch / 2;
+	  int dfo_save = gfxs->dst_field_offset;
+	  int sfo_save = gfxs->src_field_offset;
+	  
+	  gfxs->length = drect->w / 2;
+	  gfxs->dst_field_offset /= 4;
+	  gfxs->src_field_offset /= 4;
+
+	  Aop_xy( gfxs, dorg, drect->x / 2, drect->y / 2, dpitch );
+	  Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
+
+	  /* scale first plane */
+	  for (h = 0, i = 0; h < (drect->h / 2); h++) {
+	       RUN_PIPELINE();
+
+	       Aop_next( gfxs, dpitch );
+
+	       i += f;
+
+	       while (i > 0xFFFF) {
+		    i -= 0x10000;
+		    Bop_next( gfxs, spitch );
+	       }
+	  }
+
+	  sorg += (spitch * gfxs->src_height) / 2;
+	  dorg += (dpitch * gfxs->dst_height) / 2;
+
+	  Aop_xy( gfxs, dorg, drect->x / 2, drect->y / 2, dpitch );
+	  Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
+
+	  /* scale second plane */
+	  for (h = 0, i = 0; h < (drect->h / 2); h++) {
+	       RUN_PIPELINE();
+
+	       Aop_next( gfxs, dpitch );
+
+	       i += f;
+
+	       while (i > 0xFFFF) {
+		    i -= 0x10000;
+		    Bop_next( gfxs, spitch );
+	       }
+	  }
+
+	  gfxs->dst_field_offset = dfo_save;
+	  gfxs->src_field_offset = sfo_save;
      }
 }
 
