@@ -61,17 +61,19 @@ check_depth( int frame )
 }
 
 void
-stret_iteration_init( StretIteration *iteration, StretRegion *region )
+stret_iteration_init( StretIteration *iteration, StretRegion *region, StretRegion *abort_at )
 {
      D_ASSERT( iteration != NULL );
 
      D_MAGIC_ASSERT( region, StretRegion );
+     D_MAGIC_ASSERT_IF( abort_at, StretRegion );
 
      D_DEBUG_AT( UniQuE_StReT, "stret_iteration_init()\n" );
 
      iteration->frame = -1;
      iteration->x0    = 0;
      iteration->y0    = 0;
+     iteration->abort = abort_at;
 
      do {
           int last_level = region->levels - 1;
@@ -131,6 +133,11 @@ stret_iteration_next( StretIteration  *iteration,
           D_DEBUG_AT( UniQuE_StReT, "  -> (%d) %p, level [%d/%d], index %d\n",
                       iteration->frame, region, level, region->levels - 1, index );
 
+          if (iteration->abort && region == iteration->abort) {
+               D_MAGIC_CLEAR( iteration );
+               return NULL;
+          }
+
           if (index < 0) {
                level = --frame->level;
 
@@ -151,6 +158,11 @@ stret_iteration_next( StretIteration  *iteration,
                region = fusion_vector_at( &region->children[level], index );
 
                D_MAGIC_ASSERT( region, StretRegion );
+
+               if (iteration->abort && region == iteration->abort) {
+                    D_MAGIC_CLEAR( iteration );
+                    return NULL;
+               }
 
                if (accept_region( region, iteration->x0, iteration->y0, clip )) {
                     level = region->levels - 1;

@@ -42,18 +42,21 @@ typedef struct {
 } StretIterationStackFrame;
 
 typedef struct {
-     int                      magic;
+     int                       magic;
 
-     StretIterationStackFrame stack[STRET_ITERATION_MAX_DEPTH];
-     int                      frame;
+     StretIterationStackFrame  stack[STRET_ITERATION_MAX_DEPTH];
+     int                       frame;
 
-     int                      x0;
-     int                      y0;
+     int                       x0;
+     int                       y0;
+
+     StretRegion              *abort;
 } StretIteration;
 
 
 void         stret_iteration_init ( StretIteration  *iteration,
-                                    StretRegion     *region );
+                                    StretRegion     *region,
+                                    StretRegion     *abort_at );
 
 StretRegion *stret_iteration_next ( StretIteration  *iteration,
                                     const DFBRegion *clip );

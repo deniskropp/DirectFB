@@ -79,7 +79,7 @@ main( int argc, char *argv[] )
 
 
 
-     stret_iteration_init( &iteration, root );
+     stret_iteration_init( &iteration, root, NULL );
 
      clip = (DFBRegion) { 50, 50, 200, 59 };
 

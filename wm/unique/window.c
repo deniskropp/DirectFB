@@ -537,7 +537,7 @@ update_window( UniqueWindow        *window,
 
      DFB_REGION_ASSERT_IF( region );
 
-     if (complete || stret_region_visible( window->region, region, false, regions, 32, &num_regions )) {
+     if (complete || stret_region_visible( window->region, region, true, regions, 32, &num_regions )) {
           if (region) {
                DFBRegion area = DFB_REGION_INIT_TRANSLATED( region,
                                                             window->bounds.x,
@@ -569,7 +569,7 @@ update_frame( UniqueWindow        *window,
 
      DFB_REGION_ASSERT_IF( region );
 
-     if (complete || stret_region_visible( window->frame, region, false, regions, 32, &num_regions )) {
+     if (complete || stret_region_visible( window->frame, region, true, regions, 32, &num_regions )) {
           if (region) {
                DFBRegion area = DFB_REGION_INIT_TRANSLATED( region,
                                                             window->full.x,

@@ -602,7 +602,7 @@ stret_region_visible( StretRegion     *region,
      }
 
 
-     stret_iteration_init( &iteration, root );
+     stret_iteration_init( &iteration, root, children ? region : NULL );
 
      clip_out( &iteration, &context, x0 + area.x1, y0 + area.y1, x0 + area.x2, y0 + area.y2 );
 
@@ -752,7 +752,7 @@ stret_region_update( StretRegion     *region,
      }
 
 
-     stret_iteration_init( &context.iteration, region );
+     stret_iteration_init( &context.iteration, region, NULL );
 
      context.update_data = update_data;
 
@@ -780,7 +780,7 @@ stret_region_at( StretRegion      *region,
      }
 
 
-     stret_iteration_init( &iteration, region );
+     stret_iteration_init( &iteration, region, NULL );
 
      while ((region = stret_iteration_next( &iteration, &area )) != NULL) {
           if (! D_FLAGS_ARE_SET( region->flags, flags ))
