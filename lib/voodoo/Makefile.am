@@ -16,7 +16,7 @@ pkgconfig_DATA = voodoo.pc
 
 # If the old location isn't cleared, builds of external modules fail
 install-exec-local:
-	rm -rf $(INTERNALINCLUDEDIR)/voodoo
+	rm -rf $(DESTDIR)$(INTERNALINCLUDEDIR)/voodoo
 
 
 includedir = @INCLUDEDIR@/voodoo

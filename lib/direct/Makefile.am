@@ -39,7 +39,7 @@ endif
 
 # If the old location isn't cleared, builds of external modules fail
 install-exec-local:
-	rm -rf $(INTERNALINCLUDEDIR)/direct
+	rm -rf $(DESTDIR)$(INTERNALINCLUDEDIR)/direct
 
 
 includedir = @INCLUDEDIR@/direct
