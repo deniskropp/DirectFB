@@ -59,7 +59,7 @@ int suppress_module (const char *name)
 {
      int i = 0;
 
-     if (!dfb_config->disable_module)
+     if (!dfb_config || !dfb_config->disable_module)
           return 0;
      
      while (dfb_config->disable_module[i]) {
