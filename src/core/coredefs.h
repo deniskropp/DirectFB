@@ -42,6 +42,8 @@
 #include <misc/conf.h>
 #include <misc/debug.h>
 
+#include <pthread.h>
+
 #ifdef HAVE_LINUX_UNISTD_H
 #include <linux/unistd.h>
 static inline _syscall0(pid_t,gettid)
