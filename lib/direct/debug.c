@@ -168,6 +168,7 @@ direct_debug_at( DirectDebugDomain *domain,
      if (check_domain( domain )) {
           int         len;
           char        dom[48];
+          char        fmt[64];
           char        buf[512];
           long long   millis = direct_clock_get_millis();
           const char *name   = direct_thread_self_name();
@@ -182,9 +183,16 @@ direct_debug_at( DirectDebugDomain *domain,
 
           len = snprintf( dom, sizeof(dom), "%s:", domain->name );
 
+          if (len < 18)
+               len = 18;
+          else
+               len = 28;
 
-          fprintf( stderr, len < 18 ? "(-) [%-15s %3lld.%03lld] (%5d) %-18s %s" :
-                   "(-) [%-15s %3lld.%03lld] (%5d) %-28s %s", name ? name : "  NO NAME  ",
+          len += direct_trace_debug_indent() * 4;
+
+          snprintf( fmt, sizeof(fmt), "(-) [%%-15s %%3lld.%%03lld] (%%5d) %%-%ds %%s", len );
+
+          fprintf( stderr, fmt, name ? name : "  NO NAME  ",
                    millis / 1000LL, millis % 1000LL, direct_gettid(), dom, buf );
 
           fflush( stderr );

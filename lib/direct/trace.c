@@ -60,16 +60,28 @@
 #endif
 
 #define MAX_BUFFERS 200
-#define MAX_LEVEL   126
+#define MAX_LEVEL   256
 
 #define NAME_LEN    92
+
+
+typedef enum {
+     TF_NONE   = 0x00000000,
+
+     TF_DEBUG  = 0x00000001
+} TraceFlags;
+
+typedef struct {
+     void       *addr;
+     TraceFlags  flags;
+} Trace;
 
 struct __D_DirectTraceBuffer {
      pid_t tid;
      char *name;
      int   level;
      bool  in_trace;
-     void *trace[MAX_LEVEL];
+     Trace trace[MAX_LEVEL];
 };
 
 /**************************************************************************************************/
@@ -385,7 +397,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           fprintf( stderr, "(-) [%5d: -STACK- ]\n", buffer->tid );
 
      for (i=level-1; i>=0; i--) {
-          void *fn = buffer->trace[i];
+          void *fn = buffer->trace[i].addr;
 
           fprintf( stderr, "  #%-2d 0x%08lx in ", level - i - 1, (unsigned long) fn );
 
@@ -448,6 +460,27 @@ direct_trace_print_stacks()
 }
 
 __attribute__((no_instrument_function))
+int
+direct_trace_debug_indent()
+{
+     int                in;
+     DirectTraceBuffer *buffer = get_trace_buffer();
+     int                level  = buffer->level - 1;
+
+     if (level < 0)
+          return 0;
+
+     buffer->trace[level--].flags |= TF_DEBUG;
+
+     for (in=0; level>=0; level--) {
+          if (buffer->trace[level].flags & TF_DEBUG)
+               in++;
+     }
+
+     return in;
+}
+
+__attribute__((no_instrument_function))
 DirectTraceBuffer *
 direct_trace_copy_buffer( DirectTraceBuffer *buffer )
 {
@@ -473,7 +506,7 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
           level = MAX_LEVEL;
      }
 
-     direct_memcpy( copy->trace, buffer->trace, level * sizeof(void*) );
+     direct_memcpy( copy->trace, buffer->trace, level * sizeof(buffer->trace[0]) );
 
      return copy;
 }
@@ -498,9 +531,12 @@ __cyg_profile_func_enter (void *this_fn,
      if (direct_config->trace) {
           DirectTraceBuffer *buffer = get_trace_buffer();
           int                level  = buffer->level++;
+          Trace             *trace  = &buffer->trace[level];
 
-          if (level < MAX_LEVEL)
-               buffer->trace[level] = this_fn;
+          if (level < MAX_LEVEL) {
+               trace->addr  = this_fn;
+               trace->flags = TF_NONE;
+          }
      }
 }
 
@@ -529,6 +565,12 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
 void
 direct_trace_print_stacks()
 {
+}
+
+int
+direct_trace_debug_indent()
+{
+     return 0;
 }
 
 DirectTraceBuffer *

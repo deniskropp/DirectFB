@@ -33,6 +33,8 @@
 void direct_trace_print_stack( DirectTraceBuffer *buffer );
 void direct_trace_print_stacks();
 
+int  direct_trace_debug_indent();
+
 DirectTraceBuffer *direct_trace_copy_buffer( DirectTraceBuffer *buffer );
 void               direct_trace_free_buffer( DirectTraceBuffer *buffer );
 
