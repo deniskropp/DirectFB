@@ -971,9 +971,9 @@ dnl Test for i830 frame buffer support in the kernel
 if test "$checkfor_i830" = "yes"; then
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
-//#ifdef FB_ACCEL_I830
+#ifdef FB_ACCEL_I830
   yes
-//#endif
+#endif
   ],
   i830=yes,
   i830=no

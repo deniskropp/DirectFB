@@ -263,7 +263,7 @@ static int
 driver_probe( GraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
-          case 830:          /* Intel 830 */
+          case FB_ACCEL_I830:          /* Intel 830 */
                return 1;
      }
 
