@@ -60,6 +60,10 @@
                                   (b) )
 
 
+#define RGB15_TO_RGB332(pixel) ( (((pixel) & 0x7000) >> 7) | \
+                                 (((pixel) & 0x0380) >> 5) | \
+                                 (((pixel) & 0x0018) >> 3) )
+
 #define RGB15_TO_RGB16(pixel)  ( (((pixel) & 0x7C00) << 1) | \
                                  (((pixel) & 0x03E0) << 1) | \
                                  (((pixel) & 0x001F)) )
@@ -78,6 +82,10 @@
                                  (((pixel) & 0x001F) << 3) )
 
 
+#define RGB16_TO_RGB332(pixel) ( (((pixel) & 0xE000) >> 8) | \
+                                 (((pixel) & 0x0700) >> 6) | \
+                                 (((pixel) & 0x0018) >> 3) )
+
 #define RGB16_TO_RGB15(pixel)  ( (((pixel) & 0xF800) >> 1) | \
                                  (((pixel) & 0x07C0) >> 1) | \
                                  (((pixel) & 0x001F)) )
@@ -95,6 +103,10 @@
                                  (((pixel) & 0x07E0) << 5) | \
                                  (((pixel) & 0x001F) << 3) )
 
+
+#define RGB32_TO_RGB332(pixel) ( (((pixel) & 0xE00000) >> 16) | \
+                                 (((pixel) & 0x00E000) >> 11) | \
+                                 (((pixel) & 0x0000C0) >> 6) )
 
 #define RGB32_TO_RGB15(pixel)  ( (((pixel) & 0xF80000) >> 9) | \
                                  (((pixel) & 0x00F800) >> 6) | \

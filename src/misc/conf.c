@@ -113,6 +113,8 @@ static const char *config_usage =
     "Limit amount of Video RAM in kb\n"
     "  [no-]matrox-sgram              "
     "Use Matrox SGRAM features\n"
+    "  screenshot-dir=<directory>     "
+    "Dump screen content on <Print> key presses\n"
     "  fbdebug=<device>               "
     "Use a second frame buffer device for debugging\n"
     "\n"
@@ -222,6 +224,17 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG("DirectFB/Config 'fbdebug': No device name specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "screenshot-dir" ) == 0) {
+          if (value) {
+               if (dfb_config->screenshot_dir)
+                    DFBFREE( dfb_config->screenshot_dir );
+               dfb_config->screenshot_dir = DFBSTRDUP( value );
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'screenshot-dir': No directory name specified!\n");
                return DFB_INVARG;
           }
      } else

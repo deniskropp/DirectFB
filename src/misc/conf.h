@@ -101,6 +101,9 @@ typedef struct
                                                      memory used by DirectFB */
 
      sigset_t  dont_catch;                        /* don't catch these signals */
+
+     char     *screenshot_dir;                    /* dump screen content into
+                                                     this directory */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
