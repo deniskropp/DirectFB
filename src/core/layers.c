@@ -164,6 +164,9 @@ dfb_layers_shutdown()
 {
      int i;
 
+     if (!layersfield)
+          return DFB_OK;
+
      /* Begin with the most recently added */
      for (i=layersfield->num-1; i>=0; i--) {
           DisplayLayer *l = dfb_layers[i];
