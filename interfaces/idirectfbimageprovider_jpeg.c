@@ -101,15 +101,13 @@ void copy_line32( __u32 *dst, __u8 *src, int width)
 
 void copy_line24( __u8 *dst, __u8 *src, int width)
 {
-     __u8 r, g , b;
      while (width--) {
-          r = (*src++);
-          g = (*src++);
-          b = (*src++);
-
-          *dst++ = b;
-          *dst++ = g;
-          *dst++ = r;
+          dst[0] = src[2];
+          dst[1] = src[1];
+          dst[2] = src[0];
+          
+          dst += 3;
+          src += 3;
      }
 }
 
@@ -325,27 +323,25 @@ DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                          case DSPF_RGB16:
                               copy_line16( (__u16*)row_ptr, *buffer,
                                            cinfo.output_width);
-                              (__u16*)row_ptr += cinfo.output_width;
                               break;
                          case DSPF_RGB15:
                               copy_line15( (__u16*)row_ptr, *buffer,
                                            cinfo.output_width);
-                              (__u16*)row_ptr += cinfo.output_width;
                               break;
                          case DSPF_RGB24:
-                              copy_line24( row_ptr, *buffer, cinfo.output_width*3 );
-                              (__u8*)row_ptr+= cinfo.output_width*3;
+                              copy_line24( row_ptr, *buffer, 
+                                           cinfo.output_width);
                               break;
                          case DSPF_ARGB:
                          case DSPF_RGB32:
                               copy_line32( (__u32*)row_ptr, *buffer,
                                            cinfo.output_width);
-                              (__u32*)row_ptr += cinfo.output_width;
                               break;
                          default:
                               BUG("unsupported format not filtered before");
                               return DFB_BUG;
                     }
+                    (__u8*)row_ptr += pitch;
                }
           }
           else {     /* image must be scaled */
@@ -356,7 +352,7 @@ DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     copy_line32( (__u32*)row_ptr, *buffer,
                                  cinfo.output_width);
-                    (__u32*)row_ptr += cinfo.output_width;
+                    (__u8*)row_ptr += pitch;
                }
                scale_linear_32( dst, image_data, cinfo.output_width,
                                 cinfo.output_height, width, height,
