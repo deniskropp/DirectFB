@@ -296,55 +296,36 @@ sound_thread( CoreThread *thread, void *arg )
      __s16            output[samples];
      int              mixing[samples];
 
-     int              written    = 0;
-     long long        last_time  = 0;
+     int              byte_rate = (shared->config.rate *
+                                   shared->config.channels *
+                                   (shared->config.bits >> 3));
 
-     int              total_rate = shared->config.rate *
-                                   shared->config.channels;
-     
      while (true) {
-          int         i;
-          FusionLink *l, *next;
+          int             i;
+          audio_buf_info  info;
+          FusionLink     *next, *l;
 
           dfb_thread_testcancel( thread );
 
           if (!shared->playlist.entries) {
-               written   = 0;
-               last_time = 0;
-
-               usleep( 40000 );
-
+               usleep( 20000 );
                continue;
           }
           
-          if (last_time) {
-               int       played;
-               long long this_time = dfb_get_micros();
-               long long diff_time = this_time - last_time;
-
-               played = (int)(total_rate * diff_time / 1000000LL);
+          if (! ioctl( core->fd, SNDCTL_DSP_GETOSPACE, &info )) {
+               int buffered = info.fragsize * info.fragstotal - info.bytes;
                
-               written -= played;
-
-               if (written < 0) {
-                    CAUTION( "buffer underrun" );
-                    written   = 0;
-                    last_time = 0;
-               }
-               else
-                    last_time = this_time;
-
                /* do not buffer more than 40 ms */
-               if (written > total_rate * 40 / 1000)
+               if (buffered > byte_rate * 40 / 1000) {
                     usleep( 10000 );
-               
-               dfb_thread_testcancel( thread );
+                    continue;
+               }
           }
 
           /* Clear mixing buffer. */
           memset( mixing, 0, sizeof(int) * samples );
 
-          /* Iterate through running playbacks mixing them together. */
+          /* Iterate through running playbacks, mixing them together. */
           fusion_skirmish_prevail( &shared->playlist.lock );
 
           fusion_list_foreach_safe (l, next, shared->playlist.entries) {
@@ -377,12 +358,7 @@ sound_thread( CoreThread *thread, void *arg )
                output[i] = sample;
           }
           
-          if (!last_time)
-               last_time = dfb_get_micros();
-          
           write( core->fd, output, shared->config.block_size );
-
-          written += samples;
      }
 
      return NULL;
