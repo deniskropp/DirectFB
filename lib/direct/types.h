@@ -55,6 +55,7 @@ typedef struct __D_DirectHash                DirectHash;
 typedef struct __D_DirectLink                DirectLink;
 typedef struct __D_DirectModuleDir           DirectModuleDir;
 typedef struct __D_DirectModuleEntry         DirectModuleEntry;
+typedef struct __D_DirectSerial              DirectSerial;
 typedef struct __D_DirectSignalHandler       DirectSignalHandler;
 typedef struct __D_DirectTraceBuffer         DirectTraceBuffer;
 typedef struct __D_DirectTree                DirectTree;

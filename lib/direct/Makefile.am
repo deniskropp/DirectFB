@@ -60,6 +60,7 @@ include_HEADERS = \
 	memcpy.h			\
 	messages.h			\
 	modules.h			\
+	serial.h			\
 	signals.h			\
 	system.h			\
 	thread.h			\
