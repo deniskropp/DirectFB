@@ -193,7 +193,8 @@ Construct( IDirectFBImageProvider *thiz,
      return DFB_OK;
 
 error:
-     png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
+     if (data->png_ptr)
+          png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
 
      buffer->Release( buffer );
      
