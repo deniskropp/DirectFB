@@ -328,9 +328,7 @@ system_initialize( void **data )
 
      dfb_fbdev->shared = (FBDevShared*) shcalloc( 1, sizeof(FBDevShared) );
 
-#ifndef FUSION_FAKE
      fusion_arena_add_shared_field( dfb_core->arena, "fbdev", dfb_fbdev->shared );
-#endif
 
      ret = dfb_fbdev_open();
      if (ret) {
@@ -449,7 +447,6 @@ system_initialize( void **data )
 static DFBResult
 system_join( void **data )
 {
-#ifndef FUSION_FAKE
      DFBResult ret;
 
      DFB_ASSERT( dfb_fbdev == NULL );
@@ -489,7 +486,6 @@ system_join( void **data )
 
      *data = dfb_fbdev;
 
-#endif
      return DFB_OK;
 }
 
@@ -554,7 +550,6 @@ system_shutdown( bool emergency )
 static DFBResult
 system_leave( bool emergency )
 {
-#ifndef FUSION_FAKE
      DFBResult ret;
 
      DFB_ASSERT( dfb_fbdev != NULL );
@@ -571,7 +566,6 @@ system_leave( bool emergency )
      DFBFREE( dfb_fbdev );
      dfb_fbdev = NULL;
 
-#endif
      return DFB_OK;
 }
 

@@ -37,8 +37,6 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
-#include <linux/fusion.h>
-
 #include <core/coredefs.h>
 #include <core/thread.h>
 
@@ -48,8 +46,11 @@
 
 #include "fusion_internal.h"
 
+#ifndef FUSION_FAKE
 
+#include <linux/fusion.h>
 #include "shmalloc/shmalloc_internal.h"
+
 
 static void *fusion_read_loop( CoreThread *thread, void *arg );
 
@@ -287,4 +288,31 @@ fusion_read_loop( CoreThread *thread, void *arg )
 
      return NULL;
 }
+
+#else
+
+int
+fusion_init( int world, int *world_ret )
+{
+     return 1;
+}
+
+void
+fusion_exit()
+{
+}
+
+FusionResult
+fusion_kill( int fusion_id, int signal, int timeout_ms )
+{
+     return FUSION_SUCCESS;
+}
+
+long long
+fusion_get_millis()
+{
+     return dfb_get_millis();
+}
+
+#endif
 

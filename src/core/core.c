@@ -157,8 +157,8 @@ dfb_core_ref()
 #endif
      int   fid;
      int   ret;
-#ifndef FUSION_FAKE
      int   world;
+#ifndef FUSION_FAKE
      char  buf[16];
 #endif
 

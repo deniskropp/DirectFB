@@ -34,42 +34,31 @@ extern "C"
 
 #include "fusion_types.h"
 
-#ifndef FUSION_FAKE
 
-     /*
-      * Initializes fusion and returns the fusion id or -1 on failure.
-      */
-     int fusion_init( int world, int *world_ret );
+/*
+ * Initializes fusion and returns the fusion id or -1 on failure.
+ */
+int fusion_init( int world, int *world_ret );
 
-     /*
-      * Deinitializes fusion.
-      */
-     void fusion_exit();
+/*
+ * Deinitializes fusion.
+ */
+void fusion_exit();
 
-     /*
-      * Sends a signal to one or more fusionees and optionally waits
-      * for their processes to terminate.
-      *
-      * A fusion_id of zero means all fusionees but the calling one.
-      * A timeout of zero means infinite waiting while a negative value
-      * means no waiting at all.
-      */
-     FusionResult fusion_kill( int fusion_id, int signal, int timeout_ms );
+/*
+ * Sends a signal to one or more fusionees and optionally waits
+ * for their processes to terminate.
+ *
+ * A fusion_id of zero means all fusionees but the calling one.
+ * A timeout of zero means infinite waiting while a negative value
+ * means no waiting at all.
+ */
+FusionResult fusion_kill( int fusion_id, int signal, int timeout_ms );
 
-     /*
-      * Get the number of milliseconds passed after the start of the master.
-      */
-     long long fusion_get_millis();
-
-#else
-
-  #include <misc/util.h>
-
-  #define fusion_init(a,b)    (1)
-  #define fusion_exit()       do {} while (0)
-  #define fusion_get_millis   dfb_get_millis
-
-#endif
+/*
+ * Get the number of milliseconds passed after the start of the master.
+ */
+long long fusion_get_millis();
 
 
 #ifdef __cplusplus
