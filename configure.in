@@ -67,8 +67,13 @@ AC_PROG_MAKE_SET
 AC_HEADER_STDC
 AC_C_BIGENDIAN
 
-AC_PATH_PROGS(PERL, perl5 perl)
+## Work around libstuhl during cross build...
+if test "$host" != "$build"; then
+  sys_lib_dlsearch_path_spec=""
+  sys_lib_search_path_spec=""
+fi
 
+AC_PATH_PROGS(PERL, perl5 perl)
 
 AC_PATH_PROG(MAN2HTML, man2html, no)
 AC_SUBST(MAN2HTML)
