@@ -42,10 +42,10 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/input.h>
-#include <core/thread.h>
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -58,9 +58,9 @@ DFB_INPUT_DRIVER( divine )
  * declaration of private data
  */
 typedef struct {
-     int          fd;
-     InputDevice *device;
-     CoreThread  *thread;
+     int           fd;
+     InputDevice  *device;
+     DirectThread *thread;
 } DiVineData;
 
 
@@ -69,7 +69,7 @@ typedef struct {
  * Directly passes read events to input core.
  */
 static void*
-divineEventThread( CoreThread *thread, void *driver_data )
+divineEventThread( DirectThread *thread, void *driver_data )
 {
      DiVineData     *data = (DiVineData*) driver_data;
      DFBInputEvent   event;
@@ -81,7 +81,7 @@ divineEventThread( CoreThread *thread, void *driver_data )
 
      /* wait for the next event */
      while (poll( &pfd, 1, -1 ) > 0 || errno == EINTR) {
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           /* read the next event from the pipe */
           if (read( data->fd, &event, sizeof(DFBInputEvent) ) == sizeof(DFBInputEvent)) {
@@ -190,7 +190,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, divineEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, divineEventThread, data, "Virtual Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -218,9 +218,9 @@ driver_close_device( void *driver_data )
      DiVineData *data = (DiVineData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* close pipe */
      close( data->fd );
