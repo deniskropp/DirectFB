@@ -9,6 +9,10 @@ INCLUDES = \
 
 lirc_LTLIBRARIES = libdirectfb_lirc.la
 
+if BUILD_STATIC
+lirc_DATA = $(lirc_LTLIBRARIES:.la=.o)
+endif
+
 lircdir = $(MODULEDIR)/inputdrivers
 
 libdirectfb_lirc_la_SOURCES =	\
@@ -18,3 +22,7 @@ libdirectfb_lirc_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

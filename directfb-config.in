@@ -80,7 +80,7 @@ while test $# -gt 0; do
       fi
         
       for i in `echo $optarg | sed 's/,/ /g'`; do
-        echo_input="$echo_input -Wl,-udirectfb_$i -ldirectfb_$i"
+        echo_input="$echo_input $moduledir/inputdrivers/libdirectfb_$i.o"
       done
 
       echo_static=yes

@@ -8,6 +8,10 @@ INCLUDES = \
 
 joystick_LTLIBRARIES = libdirectfb_joystick.la
 
+if BUILD_STATIC
+joystick_DATA = $(joystick_LTLIBRARIES:.la=.o)
+endif
+
 joystickdir = $(MODULEDIR)/inputdrivers
 
 libdirectfb_joystick_la_SOURCES =	\
@@ -17,3 +21,7 @@ libdirectfb_joystick_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

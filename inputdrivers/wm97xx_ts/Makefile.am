@@ -8,6 +8,10 @@ INCLUDES = \
 
 input_LTLIBRARIES = libdirectfb_wm97xx_ts.la
 
+if BUILD_STATIC
+input_DATA = $(input_LTLIBRARIES:.la=.o)
+endif
+
 inputdir = $(MODULEDIR)/inputdrivers
 
 libdirectfb_wm97xx_ts_la_SOURCES =	\
@@ -17,3 +21,7 @@ libdirectfb_wm97xx_ts_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

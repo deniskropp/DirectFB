@@ -8,6 +8,10 @@ INCLUDES = \
 
 ps2mouse_LTLIBRARIES = libdirectfb_ps2mouse.la
 
+if BUILD_STATIC
+ps2mouse_DATA = $(ps2mouse_LTLIBRARIES:.la=.o)
+endif
+
 ps2mousedir = $(MODULEDIR)/inputdrivers
 
 libdirectfb_ps2mouse_la_SOURCES =	\
@@ -17,3 +21,7 @@ libdirectfb_ps2mouse_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

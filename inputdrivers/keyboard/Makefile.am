@@ -9,6 +9,10 @@ INCLUDES = \
 
 keyboard_LTLIBRARIES = libdirectfb_keyboard.la
 
+if BUILD_STATIC
+keyboard_DATA = $(keyboard_LTLIBRARIES:.la=.o)
+endif
+
 keyboarddir = $(MODULEDIR)/inputdrivers
 
 libdirectfb_keyboard_la_SOURCES =	\
@@ -18,3 +22,7 @@ libdirectfb_keyboard_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	
