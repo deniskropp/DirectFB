@@ -27,9 +27,16 @@ Memory Source or Streaming for Image/Video Provider.
 Rework VT handling. Readd VT switching and Suspend/Resume.
 
 Finish multi application core.
+ - FusionProperty needs to be implemented
+ - Reduce number of thread
+ - Add session-alive probing, reinitialize shared memory
+ - Remove leaks
+ - Drop feature of transferring mastership
+ - Add fork handling
 
 Finish surface manager.
-
+ - Add kicking out a few smaller surfaces for a bigger one
+ - Defragment free space
 
 
 
