@@ -1759,6 +1759,11 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               stack_unlock( stack );
                               return RS_OK;
 
+                         case DIKS_SMALL_E:
+                              switch_focus( stack, window_at_pointer( stack, -1, -1 ) );
+                              stack_unlock( stack );
+                              return RS_OK;
+
                          case DIKS_SMALL_A:
                               if (stack->focused_window && 
                                   ! (stack->focused_window->options & DWOP_KEEP_STACKING)) {
