@@ -2649,6 +2649,8 @@ wm_set_window_config( CoreWindow             *window,
                       const CoreWindowConfig *config,
                       CoreWindowConfigFlags   flags )
 {
+     DFBResult ret;
+
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
@@ -2669,10 +2671,13 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & CWCF_OPACITY && !config->opacity)
           set_opacity( window, window_data, config->opacity );
 
-     if (flags & CWCF_POSITION)
-          move_window( window, window_data,
-                       config->bounds.x - window->config.bounds.x,
-                       config->bounds.y - window->config.bounds.y );
+     if (flags & CWCF_POSITION) {
+          ret = move_window( window, window_data,
+                             config->bounds.x - window->config.bounds.x,
+                             config->bounds.y - window->config.bounds.y );
+          if (ret)
+               return ret;
+     }
 
      if (flags & CWCF_STACKING)
           restack_window( window, window_data, window, window_data, 0, config->stacking );
