@@ -282,11 +282,16 @@ primaryTestConfiguration ( DisplayLayer               *layer,
 {
      DFBDisplayLayerConfigFlags fail = 0;
 
-/*     if (config->buffermode == DLBM_FRONTONLY)
-          fail |= DLCONF_BUFFERMODE;*/
+     switch (config->buffermode) {
+          case DLBM_FRONTONLY:
+          case DLBM_BACKSYSTEM:
+          case DLBM_BACKVIDEO:
+               break;
 
-     if (config->buffermode == DLBM_TRIPLE)
-          fail |= DLCONF_BUFFERMODE;
+          default:
+               fail |= DLCONF_BUFFERMODE;
+               break;
+     }
 
      if (failed)
           *failed = fail;

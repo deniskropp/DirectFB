@@ -36,6 +36,8 @@
 #include <directfb.h>
 #include <core/coretypes.h>
 
+#include <core/windows.h>
+
 typedef struct {
      DFBDisplayLayerDescription  desc;  /* description of the layer's caps */
 } DisplayLayerInfo;
@@ -176,6 +178,31 @@ typedef struct {
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       CoreSurface                *surface );
+
+
+     /*
+      * hardware window support
+      */
+     int       (*WindowDataSize)     ();
+     
+     DFBResult (*AddWindow)    ( DisplayLayer               *layer,
+                                 void                       *driver_data,
+                                 void                       *layer_data,
+                                 void                       *window_data,
+                                 CoreWindow                 *window );
+     
+     DFBResult (*UpdateWindow) ( DisplayLayer               *layer,
+                                 void                       *driver_data,
+                                 void                       *layer_data,
+                                 void                       *window_data,
+                                 CoreWindow                 *window,
+                                 CoreWindowUpdateFlags       flags );
+     
+     DFBResult (*RemoveWindow) ( DisplayLayer               *layer,
+                                 void                       *driver_data,
+                                 void                       *layer_data,
+                                 void                       *window_data,
+                                 CoreWindow                 *window );
 } DisplayLayerFuncs;
 
 
@@ -323,6 +350,19 @@ void                  dfb_primary_layer_rectangle( float x, float y,
                                                    DFBRectangle *rect );
 
 /*
+ * hardware window support
+ */
+DFBResult dfb_layer_add_window   ( DisplayLayer          *layer,
+                                   CoreWindow            *window );
+
+DFBResult dfb_layer_update_window( DisplayLayer          *layer,
+                                   CoreWindow            *window,
+                                   CoreWindowUpdateFlags  flags );
+
+DFBResult dfb_layer_remove_window( DisplayLayer          *layer,
+                                   CoreWindow            *window );
+
+/*
  * window control
  */
 DFBResult dfb_layer_create_window( DisplayLayer           *layer,
@@ -339,7 +379,6 @@ CoreWindow *dfb_layer_find_window( DisplayLayer           *layer,
                                    DFBWindowID             id );
 
 CoreWindowStack *dfb_layer_window_stack( DisplayLayer *layer );
-
 
 /*
  * cursor control

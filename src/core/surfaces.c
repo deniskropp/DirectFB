@@ -73,6 +73,7 @@ static void video_access_by_software( SurfaceBuffer       *buffer,
 static const React dfb_surface_globals[] = {
 /* 0 */   _dfb_layer_surface_listener,
 /* 1 */   _dfb_layer_background_image_listener,
+/* 2 */   _dfb_window_surface_listener,
           NULL
 };
 
@@ -433,7 +434,7 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      if (old_front != old_back)
           dfb_surface_deallocate_buffer ( surface, old_back );
 
-     if (old_front != old_idle)
+     if (old_front != old_idle && old_back != old_idle)
           dfb_surface_deallocate_buffer ( surface, old_idle );
 
      dfb_surfacemanager_unlock( surface->manager );

@@ -178,6 +178,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "   BACKVIDEO     or 'video'\n");
      fprintf (stderr, "   BACKSYSTEM    or 'system'\n");
      fprintf (stderr, "   TRIPLE\n");
+     fprintf (stderr, "   WINDOWS\n");
 
      fprintf (stderr, "\n");
      fprintf (stderr, "Specifying neither mode nor format just displays the current configuration.\n");
@@ -241,6 +242,8 @@ parse_buffermode( const char *arg )
           buffermode = DLBM_BACKVIDEO;
      else if (!strcasecmp( arg, "triple" ))
           buffermode = DLBM_TRIPLE;
+     else if (!strcasecmp( arg, "windows" ))
+          buffermode = DLBM_WINDOWS;
      else {
           fprintf (stderr, "\nInvalid buffer mode specified!\n\n" );
           return DFB_FALSE;
@@ -420,6 +423,9 @@ set_configuration()
                     break;
                case DLBM_TRIPLE:
                     printf( "TRIPLE\n" );
+                    break;
+               case DLBM_WINDOWS:
+                    printf( "WINDOWS\n" );
                     break;
                default:
                     printf( "unknown!\n" );

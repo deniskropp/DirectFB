@@ -407,7 +407,7 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
           data->window->color_key = key;
 
           if (data->window->options & DWOP_COLORKEYING)
-               dfb_window_repaint( data->window, NULL, 0 );
+               dfb_window_repaint( data->window, NULL, 0, false, false );
      }
 
      return DFB_OK;
@@ -431,7 +431,7 @@ IDirectFBWindow_SetColorKeyIndex( IDirectFBWindow *thiz,
           data->window->color_key = key;
 
           if (data->window->options & DWOP_COLORKEYING)
-               dfb_window_repaint( data->window, NULL, 0 );
+               dfb_window_repaint( data->window, NULL, 0, false, false );
      }
 
      return DFB_OK;

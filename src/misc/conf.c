@@ -150,12 +150,13 @@ static const char *config_usage =
     "     videoonly:  Window surface is always stored in video memory.\n"
     "\n"
     " Desktop buffer mode:\n"
-    "  desktop-buffer-mode=(auto|triple|backvideo|backsystem|frontonly)\n"
+    "  desktop-buffer-mode=(auto|triple|backvideo|backsystem|frontonly|windows)\n"
     "     auto:       DirectFB decides depending on hardware.\n"
     "     triple:     Triple buffering (video only).\n"
     "     backvideo:  Front and back buffer are video only.\n"
     "     backsystem: Back buffer is system only.\n"
     "     frontonly:  There is no back buffer.\n"
+    "     windows:    Special mode with window buffers directly displayed.\n"
     "\n"
     " Force synchronization of vertical retrace:\n"
     "  vsync-after:   Wait for the vertical retrace after flipping.\n"
@@ -661,6 +662,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
                } else
                if (strcmp( value, "frontonly" ) == 0) {
                     dfb_config->buffer_mode = DLBM_FRONTONLY;
+               } else
+               if (strcmp( value, "windows" ) == 0) {
+                    dfb_config->buffer_mode = DLBM_WINDOWS;
                } else {
                     ERRORMSG( "DirectFB/Config: Unknown buffer mode "
                               "'%s'!\n", value );

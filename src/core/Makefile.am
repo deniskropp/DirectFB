@@ -76,4 +76,5 @@ libdirectfb_core_la_SOURCES = \
 	surfacemanager.c	\
 	system.c		\
 	thread.c		\
-	windows.c
+	windows.c		\
+	window_display.c

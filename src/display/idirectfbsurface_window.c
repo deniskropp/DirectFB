@@ -147,7 +147,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      if (!data->window->opacity && data->base.caps & DSCAPS_PRIMARY)
           dfb_window_set_opacity( data->window, 0xff );
      else
-          dfb_window_repaint( data->window, &reg, flags );
+          dfb_window_repaint( data->window, &reg, flags, false, false );
 
      return DFB_OK;
 }

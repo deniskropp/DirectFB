@@ -382,7 +382,8 @@ typedef enum {
                                                 supported. */
      DLCAPS_LEVELS            = 0x00001000,  /* Adjustment of the layer's level
                                                 (z position) is supported. */
-     DLCAPS_FIELD_PARITY      = 0x00002000   /* Field parity can be selected */
+     DLCAPS_FIELD_PARITY      = 0x00002000,  /* Field parity can be selected */
+     DLCAPS_WINDOWS           = 0x00004000   /* Hardware window support. */
 } DFBDisplayLayerCapabilities;
 
 /*
@@ -411,7 +412,9 @@ typedef enum {
      DLBM_FRONTONLY  = 0x00000000,      /* no backbuffer */
      DLBM_BACKVIDEO  = 0x00000001,      /* backbuffer in video memory */
      DLBM_BACKSYSTEM = 0x00000002,      /* backbuffer in system memory */
-     DLBM_TRIPLE     = 0x00000004       /* triple buffering */
+     DLBM_TRIPLE     = 0x00000004,      /* triple buffering */
+     DLBM_WINDOWS    = 0x00000008       /* no layer buffers at all,
+                                           using buffer of each window */
 } DFBDisplayLayerBufferMode;
 
 /*

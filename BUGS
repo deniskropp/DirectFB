@@ -3,6 +3,8 @@ different bugs and issues
 - sometimes a deadlock occurs in deinitialization done by the signal handler
 - non-debug apps in a debug session break shared memory assertions
 
+- fix late software fallback for emulated triangles
+
 
 LSB violations
 --------------

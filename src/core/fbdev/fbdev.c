@@ -1438,10 +1438,22 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
      var.yoffset = 0;
 
      if (config) {
-          if (config->buffermode == DLBM_TRIPLE)
-               vyres *= 3;
-          else if (config->buffermode == DLBM_BACKVIDEO)
-               vyres *= 2;
+          switch (config->buffermode) {
+               case DLBM_TRIPLE:
+                    vyres *= 3;
+                    break;
+
+               case DLBM_BACKVIDEO:
+                    vyres *= 2;
+                    break;
+
+               case DLBM_BACKSYSTEM:
+               case DLBM_FRONTONLY:
+                    break;
+
+               default:
+                    return DFB_UNSUPPORTED;
+          }
 
           var.bits_per_pixel = DFB_BYTES_PER_PIXEL(config->pixelformat) * 8;
 
@@ -1736,6 +1748,9 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
 
                          surface->idle_buffer = surface->front_buffer;
                     }
+                    break;
+               default:
+                    BUG( "unexpected buffer mode" );
                     break;
           }
 

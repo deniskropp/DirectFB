@@ -79,6 +79,10 @@ struct _CoreWindow {
      bool                    initialized;  /* window has been inserted into
                                               the stack */
      bool                    destroyed;    /* window is (being) destroyed */
+
+     void                   *window_data;  /* hw driver's private data */
+     
+     GlobalReaction          surface_reaction;
 };
 
 /*
@@ -148,7 +152,30 @@ struct _CoreWindowStack {
      } bg;    
 
      FusionLink         *devices;      /* input devices attached to the stack */
+
+     bool                hw_mode;      /* recompositing is done by hardware */
 };
+
+typedef enum {
+     CWUF_NONE      = 0x00000000,
+     
+     CWUF_SURFACE   = 0x00000001,
+     CWUF_POSITION  = 0x00000002,
+     CWUF_SIZE      = 0x00000004,
+     CWUF_OPTIONS   = 0x00000008,
+     CWUF_OPACITY   = 0x00000010,
+     CWUF_COLORKEY  = 0x00000020,
+     CWUF_PALETTE   = 0x00000040,
+     
+     CWUF_ALL       = 0x0000003F
+} CoreWindowUpdateFlags;
+
+#define TRANSLUCENT_WINDOW(w) ((w)->opacity < 0xff || \
+                               (w)->options & (DWOP_ALPHACHANNEL | \
+                                               DWOP_COLORKEYING))
+
+#define VISIBLE_WINDOW(w)     (!((w)->caps & DWCAPS_INPUTONLY) && \
+                               (w)->opacity > 0 && !(w)->destroyed)
 
 /*
  * allocates a WindowStack, initializes it, registers it for input events
@@ -164,6 +191,50 @@ dfb_windowstack_resize( CoreWindowStack *stack,
                         int              width,
                         int              height );
 
+/*
+ * Prohibit access to the window stack data.
+ * Waits until stack is accessible.
+ */
+static inline FusionResult
+dfb_windowstack_lock( CoreWindowStack *stack )
+{
+     DFB_ASSERT( stack != NULL );
+
+     return fusion_skirmish_prevail( &stack->lock );
+}
+
+/*
+ * Allow access to the window stack data.
+ */
+static inline FusionResult
+dfb_windowstack_unlock( CoreWindowStack *stack )
+{
+     DFB_ASSERT( stack != NULL );
+
+     return fusion_skirmish_dismiss( &stack->lock );
+}
+
+/*
+ * Returns the stacking index of the window within its stack
+ * or -1 if not found.
+ */
+static inline int
+dfb_windowstack_get_window_index( CoreWindow *window )
+{
+     int               i;
+     CoreWindowStack  *stack   = window->stack;
+     int               num     = stack->num_windows;
+     CoreWindow      **windows = stack->windows;
+
+     for (i=0; i<num; i++)
+          if (windows[i] == window)
+               return i;
+
+     CAUTION( "window not found" );
+
+     return -1;
+}
+
 
 /*
  * Generates dfb_window_ref(), dfb_window_attach() etc.
@@ -176,6 +247,7 @@ FUSION_OBJECT_METHODS( CoreWindow, dfb_window )
  */
 DFBResult
 dfb_window_create( CoreWindowStack        *stack,
+                   DisplayLayer           *layer,
                    int                     x,
                    int                     y,
                    int                     width,
@@ -183,6 +255,7 @@ dfb_window_create( CoreWindowStack        *stack,
                    DFBWindowCapabilities   caps,
                    DFBSurfaceCapabilities  surface_caps,
                    DFBSurfacePixelFormat   pixelformat,
+                   DFBDisplayLayerConfig  *config,
                    CoreWindow            **window );
 
 /*
@@ -271,7 +344,9 @@ dfb_window_set_opacity( CoreWindow *window,
 void
 dfb_window_repaint( CoreWindow          *window,
                     DFBRegion           *region,
-                    DFBSurfaceFlipFlags  flags );
+                    DFBSurfaceFlipFlags  flags,
+                    bool                 force_complete,
+                    bool                 force_invisible );
 
 /*
  * request a window to gain focus
@@ -317,4 +392,6 @@ void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
 ReactionResult _dfb_window_stack_inputdevice_react( const void *msg_data,
                                                     void       *ctx );
 
+ReactionResult _dfb_window_surface_listener       ( const void *msg_data,
+                                                    void       *ctx );
 #endif

@@ -191,17 +191,28 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                                   DisplayLayer           *layer,
                                   DFBSurfaceCapabilities  caps )
 {
-     CoreSurface *surface = dfb_layer_surface( layer );
+     DFBResult    ret;
+     CoreSurface *surface;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Layer)
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Layer);
+     
+     surface = dfb_layer_surface( layer );
+     if (!surface) {
+          DFB_DEALLOCATE_INTERFACE(thiz);
+          return DFB_UNSUPPORTED;
+     }
 
-     IDirectFBSurface_Construct( thiz, wanted, granted,
-                                 surface, surface->caps | caps );
+     ret = IDirectFBSurface_Construct( thiz, wanted, granted,
+                                       surface, surface->caps | caps );
+     if (ret) {
+          DFB_DEALLOCATE_INTERFACE(thiz);
+          return ret;
+     }
 
      data->layer = layer;
 
-     thiz->Release = IDirectFBSurface_Layer_Release;
-     thiz->Flip = IDirectFBSurface_Layer_Flip;
+     thiz->Release       = IDirectFBSurface_Layer_Release;
+     thiz->Flip          = IDirectFBSurface_Layer_Flip;
      thiz->GetSubSurface = IDirectFBSurface_Layer_GetSubSurface;
 
      return DFB_OK;

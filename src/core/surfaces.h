@@ -273,7 +273,8 @@ ReactionResult _dfb_surface_palette_listener( const void *msg_data,
 
 typedef enum {
      DFB_LAYER_SURFACE_LISTENER,
-     DFB_LAYER_BACKGROUND_IMAGE_LISTENER
+     DFB_LAYER_BACKGROUND_IMAGE_LISTENER,
+     DFB_WINDOW_SURFACE_LISTENER
 } DFB_SURFACE_GLOBALS;
 
 #endif
