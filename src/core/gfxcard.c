@@ -28,6 +28,7 @@
 
 #include <core/fusion/shmalloc.h>
 #include <core/fusion/arena.h>
+#include <core/fusion/property.h>
 
 #include <directfb.h>
 
@@ -72,7 +73,7 @@ typedef struct {
      GraphicsDeviceInfo    device_info;
      void                 *device_data;
 
-     FusionSkirmish        lock;
+     FusionProperty        lock;
      GraphicsLockFlags     lock_flags;
 
      SurfaceManager       *surface_manager;
@@ -196,7 +197,7 @@ dfb_gfxcard_initialize( void *data_local, void *data_shared )
      card->shared->palette_pool = dfb_palette_pool_create();
      card->shared->surface_pool = dfb_surface_pool_create();
 
-     skirmish_init( &card->shared->lock );
+     fusion_property_init( &card->shared->lock );
 
      return DFB_OK;
 }
@@ -247,7 +248,7 @@ dfb_gfxcard_shutdown( bool emergency )
 {
      DFB_ASSERT( card != NULL );
 
-     dfb_gfxcard_lock( true, false, false );
+     dfb_gfxcard_lock( true, true, false, false );
 
      if (card->driver_funcs) {
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
@@ -266,7 +267,7 @@ dfb_gfxcard_shutdown( bool emergency )
 
      dfb_surfacemanager_destroy( card->shared->surface_manager );
 
-     skirmish_destroy( &card->shared->lock );
+     fusion_property_destroy( &card->shared->lock );
 
      card = NULL;
 
@@ -314,14 +315,21 @@ dfb_gfxcard_resume()
 }
 
 DFBResult
-dfb_gfxcard_lock( bool sync, bool invalidate_state, bool engine_reset )
+dfb_gfxcard_lock( bool wait, bool sync,
+                  bool invalidate_state, bool engine_reset )
 {
      if (card && card->shared) {
           GraphicsDeviceShared *shared = card->shared;
           GraphicsLockFlags     flags  = shared->lock_flags;
 
-          if (skirmish_prevail( &shared->lock ))
-               return DFB_FAILURE;
+          if (wait) {
+               if (fusion_property_purchase( &shared->lock ))
+                    return DFB_FAILURE;
+          }
+          else {
+               if (fusion_property_lease( &shared->lock ))
+                    return DFB_FAILURE;
+          }
 
           if (sync)
                dfb_gfxcard_sync();
@@ -348,7 +356,7 @@ void
 dfb_gfxcard_unlock()
 {
      if (card && card->shared) {
-          skirmish_dismiss( &card->shared->lock );
+          fusion_property_cede( &card->shared->lock );
      }
 }
 
@@ -502,9 +510,18 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /*
       * Make sure that state setting with subsequent command execution
       * isn't done by two processes simultaneously.
+      *
+      * This will fail if the hardware is locked by another party with
+      * the first argument being true.
       */
-     if (dfb_gfxcard_lock( false, false, false ))
+     if (dfb_gfxcard_lock( false, false, false, false )) {
+          dfb_surface_unlock( state->destination, false );
+          
+          if (state->source_locked)
+               dfb_surface_unlock( state->source, true );
+          
           return false;
+     }
 
      /* if we are switching to another state... */
      if (state != card->shared->state) {
