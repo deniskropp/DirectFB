@@ -152,6 +152,8 @@ static inline void neo2200_validate_bltMode_dst( Neo2200DriverData *ndrv,
   switch (dst->format)
     {
     case DSPF_A8:
+    case DSPF_LUT8:
+    case DSPF_RGB332:
       bltMode |= NEO_MODE1_DEPTH8;
       break;
     case DSPF_RGB15:
@@ -210,6 +212,14 @@ static inline void neo2200_validate_fgColor( Neo2200DriverData *ndrv,
     {
     case DSPF_A8:
       ndrv->neo2200->fgColor = state->color.a;
+      break;
+    case DSPF_LUT8:
+      ndrv->neo2200->fgColor = state->color_index;
+      break;
+    case DSPF_RGB332:
+      ndrv->neo2200->fgColor = PIXEL_RGB332( state->color.r,
+                                             state->color.g,
+                                             state->color.b );
       break;
     case DSPF_RGB15:
       ndrv->neo2200->fgColor = PIXEL_RGB15( state->color.r,
@@ -272,6 +282,8 @@ static void neo2200CheckState( void *drv, void *dev,
   switch (state->destination->format)
     {
     case DSPF_A8:
+    case DSPF_LUT8:
+    case DSPF_RGB332:
     case DSPF_RGB15:
     case DSPF_RGB16:
       break;
@@ -457,7 +469,7 @@ neo2200_get_info( GraphicsDevice     *device,
                   GraphicsDriverInfo *info )
 {
      info->version.major = 0;
-     info->version.minor = 2;
+     info->version.minor = 3;
 
      info->driver_data_size = sizeof (Neo2200DriverData);
      info->device_data_size = sizeof (Neo2200DeviceData);

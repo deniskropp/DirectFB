@@ -79,6 +79,8 @@ IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
           pthread_join( data->flip_thread, NULL );
      }
 
+     fusion_object_unref( &data->window->object );
+     
      if (data->base.surface) {
           if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
                data->base.caps & DSCAPS_PRIMARY)
@@ -210,6 +212,8 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
 
      IDirectFBSurface_Construct( thiz, wanted, granted, window->surface, caps );
 
+     fusion_object_ref( &window->object );
+
      data->window = window;
      data->flip_thread = -1;
 
@@ -238,15 +242,15 @@ Flipping_Thread( void *arg )
      IDirectFBSurface             *thiz = (IDirectFBSurface*) arg;
      IDirectFBSurface_Window_data *data = (IDirectFBSurface_Window_data*) thiz->priv;
 
-     while (data->base.surface) {
-          usleep(40000);
-
+     while (data->base.surface && data->window->surface) {
           pthread_testcancel();
 
           /*
            * OPTIMIZE: only call if surface has been touched in the meantime
            */
           thiz->Flip( thiz, NULL, 0 );
+          
+          usleep(40000);
      }
 
      return NULL;

@@ -1928,6 +1928,19 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
+      * Set the source color key like with SetSrcColorKey() but using
+      * an index to the color/alpha lookup table.
+      *
+      * This method is only supported by surfaces with an
+      * indexed pixelformat, e.g. DSPF_LUT8. For these formats
+      * this method should be used instead of SetSrcColorKey().
+      */
+     DFBResult (*SetSrcColorKeyIndex) (
+          IDirectFBSurface         *thiz,
+          unsigned int              index
+     );
+
+     /*
       * Set the destination color key, i.e. the only color that
       * gets overwritten by drawing and blitting to this surface
       * when destination color keying is enabled.
@@ -1937,6 +1950,19 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           __u8                      r,
           __u8                      g,
           __u8                      b
+     );
+
+     /*
+      * Set the destination color key like with SetDstColorKey() but using
+      * an index to the color/alpha lookup table.
+      *
+      * This method is only supported by surfaces with an
+      * indexed pixelformat, e.g. DSPF_LUT8. For these formats
+      * this method should be used instead of SetDstColorKey().
+      */
+     DFBResult (*SetDstColorKeyIndex) (
+          IDirectFBSurface         *thiz,
+          unsigned int              index
      );
 
 

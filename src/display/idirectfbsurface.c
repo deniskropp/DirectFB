@@ -666,6 +666,42 @@ IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_SetSrcColorKeyIndex( IDirectFBSurface *thiz,
+                                      unsigned int      index )
+{
+     CoreSurface *surface;
+     CorePalette *palette;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          return DFB_UNSUPPORTED;
+
+     palette = surface->palette;
+     if (!palette)
+          return DFB_UNSUPPORTED;
+
+     if (index > palette->num_entries)
+          return DFB_INVARG;
+     
+     data->src_key.r = palette->entries[index].r;
+     data->src_key.g = palette->entries[index].g;
+     data->src_key.b = palette->entries[index].b;
+     
+     data->src_key.value = index;
+
+     /* The new key won't be applied to this surface's state.
+        The key will be taken by the destination surface to apply it
+        to its state when source color keying is used. */
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
                                  __u8              r,
                                  __u8              g,
@@ -691,7 +727,44 @@ IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
 
      if (data->state.dst_colorkey != data->dst_key.value) {
           data->state.dst_colorkey = data->dst_key.value;
-          data->state.modified |= SMF_DST_COLORKEY;
+          data->state.modified    |= SMF_DST_COLORKEY;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_SetDstColorKeyIndex( IDirectFBSurface *thiz,
+                                      unsigned int      index )
+{
+     CoreSurface *surface;
+     CorePalette *palette;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          return DFB_UNSUPPORTED;
+
+     palette = surface->palette;
+     if (!palette)
+          return DFB_UNSUPPORTED;
+
+     if (index > palette->num_entries)
+          return DFB_INVARG;
+     
+     data->dst_key.r = palette->entries[index].r;
+     data->dst_key.g = palette->entries[index].g;
+     data->dst_key.b = palette->entries[index].b;
+     
+     data->dst_key.value = index;
+
+     if (data->state.dst_colorkey != data->dst_key.value) {
+          data->state.dst_colorkey = data->dst_key.value;
+          data->state.modified    |= SMF_DST_COLORKEY;
      }
 
      return DFB_OK;
@@ -1449,7 +1522,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetDstBlendFunction = IDirectFBSurface_SetDstBlendFunction;
      thiz->SetPorterDuff = IDirectFBSurface_SetPorterDuff;
      thiz->SetSrcColorKey = IDirectFBSurface_SetSrcColorKey;
+     thiz->SetSrcColorKeyIndex = IDirectFBSurface_SetSrcColorKeyIndex;
      thiz->SetDstColorKey = IDirectFBSurface_SetDstColorKey;
+     thiz->SetDstColorKeyIndex = IDirectFBSurface_SetDstColorKeyIndex;
 
      thiz->SetBlittingFlags = IDirectFBSurface_SetBlittingFlags;
      thiz->Blit = IDirectFBSurface_Blit;
