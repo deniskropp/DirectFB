@@ -1539,7 +1539,7 @@ extern "C"
           /*
            * Blit an area from the source to this surface.
            *
-           * Pass a NULL rectangle to use the whole surface.
+           * Pass a NULL rectangle to use the whole source surface.
            * Source may be the same surface.
            */
           DFBResult (*Blit) (
@@ -1551,9 +1551,23 @@ extern "C"
           );
 
           /*
+           * Blit an area from the source tiled to this surface.
+           *
+           * Pass a NULL rectangle to use the whole source surface.
+           * Source may be the same surface.
+           */
+          DFBResult (*TileBlit) (
+               IDirectFBSurface         *thiz,
+               IDirectFBSurface         *source,
+               DFBRectangle             *source_rect,
+               int                       x,
+               int                       y
+          );
+
+          /*
            * Blit an area scaled from the source to the destination rectangle.
            *
-           * Pass a NULL rectangle to use the whole surface.
+           * Pass a NULL rectangle to use the whole source surface.
            */
           DFBResult (*StretchBlit) (
                IDirectFBSurface         *thiz,

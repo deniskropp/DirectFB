@@ -824,6 +824,86 @@ IDirectFBSurface_Blit( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_TileBlit( IDirectFBSurface *thiz,
+                           IDirectFBSurface *source,
+                           DFBRectangle *sr,
+                           int dx, int dy )
+{
+     DFBRectangle srect;
+     IDirectFBSurface_data *src_data;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!source)
+          return DFB_INVARG;
+
+
+     src_data = (IDirectFBSurface_data*)source->priv;
+
+     if (!src_data->area.current.w || !src_data->area.current.h)
+          return DFB_INVAREA;
+
+
+     if (sr) {
+          if (sr->w < 1  ||  sr->h < 1)
+               return DFB_OK;
+
+          srect = *sr;
+
+          srect.x += src_data->area.wanted.x;
+          srect.y += src_data->area.wanted.y;
+
+          if (!dfb_rectangle_intersect( &srect, &src_data->area.current ))
+               return DFB_INVAREA;
+
+          dx += srect.x - (sr->x + src_data->area.wanted.x);
+          dy += srect.y - (sr->y + src_data->area.wanted.y);
+     }
+     else {
+          srect = src_data->area.current;
+
+          dx += srect.x - src_data->area.wanted.x;
+          dy += srect.y - src_data->area.wanted.y;
+     }
+
+     dfb_state_set_source( &data->state, src_data->surface );
+
+     /* fetch the source color key from the source if necessary */
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
+          if (data->state.src_colorkey != src_data->src_key.value) {
+               data->state.src_colorkey = src_data->src_key.value;
+               data->state.modified |= SMF_SRC_COLORKEY;
+          }
+     }
+
+     dx %= srect.w;
+     if (dx > 0)
+       dx -= srect.w;
+
+     dy %= srect.h;
+     if (dy > 0)
+       dy -= srect.h;
+
+     dfb_gfxcard_tileblit( &srect,
+                           data->area.wanted.x + dx,
+                           data->area.wanted.y + dy,
+                           data->area.wanted.w,
+                           data->area.wanted.h, &data->state );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
                               IDirectFBSurface *source,
                               DFBRectangle *source_rect,
@@ -1135,6 +1215,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->SetBlittingFlags = IDirectFBSurface_SetBlittingFlags;
      thiz->Blit = IDirectFBSurface_Blit;
+     thiz->TileBlit = IDirectFBSurface_TileBlit;
      thiz->StretchBlit = IDirectFBSurface_StretchBlit;
 
      thiz->SetDrawingFlags = IDirectFBSurface_SetDrawingFlags;

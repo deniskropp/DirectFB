@@ -847,13 +847,74 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      dfb_state_unlock( state );
 }
 
+void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
+                           CardState *state )
+{
+     int x, y;
+     int odx;
+     DFBRectangle srect;
+
+     odx = dx;
+
+     dfb_state_lock( state );
+
+     if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
+
+          for (; dy < h; dy+= rect->h) {
+               for (dx = odx; dx < w; dx+= rect->w) {
+
+                    if (!dfb_clip_blit_precheck( &state->clip, 
+                                                 rect->w, rect->h, dx, dy ))
+                         continue;
+
+                    x = dx;
+                    y = dy;
+                    srect = *rect;
+
+                    if (!(Scard->device_info.caps.flags & CCF_CLIPPING))
+                         dfb_clip_blit( &state->clip, &srect, &x, &y );
+
+                    card->funcs.Blit( card->driver_data, card->device_data,
+                                      &srect, x, y );
+               }
+          }
+          dfb_gfxcard_state_release( state );
+     }
+     else {
+          if (gAquire( state, DFXL_BLIT )) {
+
+               for (; dy < h; dy+= rect->h) {
+                    for (dx = odx; dx < w; dx+= rect->w) {
+                         
+                         if (!dfb_clip_blit_precheck( &state->clip, 
+                                                      rect->w, rect->h, 
+                                                      dx, dy ))
+                              continue;
+
+                         x = dx;
+                         y = dy;
+                         srect = *rect;
+
+                         dfb_clip_blit( &state->clip, &srect, &x, &y );
+
+                         gBlit( &srect, x, y );
+                    }
+               }
+               gRelease( state );
+          }
+     }
+
+     dfb_state_unlock( state );
+}
+
 void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
-                          CardState *state )
+                              CardState *state )
 {
      dfb_state_lock( state );
 
      if (!dfb_clip_blit_precheck( &state->clip, drect->w, drect->h,
-                              drect->x, drect->y ))
+                                  drect->x, drect->y ))
      {
           dfb_state_unlock( state );
           return;

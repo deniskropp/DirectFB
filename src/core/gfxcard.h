@@ -214,6 +214,9 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state );
 
 void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state );
 
+void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
+                           CardState *state );
+
 void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                               CardState *state );
 
