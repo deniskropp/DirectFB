@@ -150,12 +150,10 @@ void core_deinit()
 
 void core_deinit_emergency()
 {
-     int i;
-
      core_refs = 0;
 
      while (core_cleanups) {
-          CoreCleanup     *cleanup      = core_cleanups;
+          CoreCleanup *cleanup = core_cleanups;
 
           core_cleanups = core_cleanups->prev;
 
@@ -165,16 +163,21 @@ void core_deinit_emergency()
           DFBFREE( cleanup );
      }
 
-     /* try to prohibit graphics hardware access,
-        this may fail if the current thread locked it */
-     for (i=0; i<100; i++) {
-          gfxcard_sync();
+     if (card) {
+          int i;
 
-          if (pthread_mutex_trylock( &card->lock ) != EBUSY)
-               break;
+          /* try to prohibit graphics hardware access,
+             this may fail if the current thread locked it */
+          for (i=0; i<100; i++) {
+               gfxcard_sync();
+
+               if (pthread_mutex_trylock( &card->lock ) != EBUSY)
+                    break;
+          }
      }
 
-     vt_close();
+     if (vt)
+          vt_close();
 
      sig_remove_handlers();
 }
