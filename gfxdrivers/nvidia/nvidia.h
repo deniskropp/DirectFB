@@ -44,7 +44,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -59,7 +59,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -78,7 +78,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -94,7 +94,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -124,7 +124,7 @@ typedef struct
 typedef struct {
      __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -177,7 +177,7 @@ typedef struct {
 typedef struct {
      __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -217,7 +217,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -235,7 +235,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -254,7 +254,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -321,7 +321,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -359,7 +359,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -385,7 +385,7 @@ typedef struct
 typedef struct {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -429,7 +429,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -445,7 +445,7 @@ typedef struct
 {
     __u32 reserved00[4];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree
+    __u32 FifoFree;
 #else
     __u16 FifoFree;
     __u16 Nop;
@@ -479,7 +479,6 @@ typedef struct {
      CoreSurface           *destination;
      CoreSurface           *source;
 
-     __u8                   alpha;
      __u32                  color;
      __u32                  drawfx;
      __u32                  blitfx;
