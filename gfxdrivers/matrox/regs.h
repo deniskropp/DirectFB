@@ -34,6 +34,7 @@
 #define DWGSYNC          0x2C4C
 #define SYNC_DMA_BUSY    0x8325340              /* just a random number */
 
+#define RST              0x1E40
 #define OPMODE           0x1E54
 
 /* CRTC2 registers */
@@ -143,6 +144,9 @@
 #define TEXHEIGHT     0x2C2C
 #define TEXORG        0x2C24
 #define TEXORG1       0x2CA4
+#define TEXORG2       0x2CA8
+#define TEXORG3       0x2CAC
+#define TEXORG4       0x2CB0
 #define TEXTRANS      0x2C34
 #define TEXTRANSHIGH  0x2C38
 #define TDUALSTAGE0   0x2CF8

@@ -404,6 +404,14 @@ static void matroxSetState( void *drv, void *dev,
 
      if (state->modified == SMF_ALL) {
           mdev->valid = 0;
+
+          /*
+           * Work around TMU bug(?), under some unclear circumstances
+           * the TMU's read address (src & dst) gets corrupted (negative offset
+           * applied to written values) until soft reset occured.
+           */
+          if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200)
+               mga_waitidle( mdrv, mdev );
      }
      else if (state->modified) {
           if (state->modified & SMF_COLOR)
@@ -1326,6 +1334,10 @@ driver_init_device( GraphicsDevice     *device,
      device_info->limits.surface_byteoffset_alignment = 32 * 4;
      device_info->limits.surface_pixelpitch_alignment = 64;
 
+     /* soft reset to fix eventually corrupted TMU read offset on G200 */
+     mga_out32( mmio, 1, RST );
+     usleep(10);
+     mga_out32( mmio, 0, RST );
 
      mga_waitfifo( mdrv, mdev, 11 );
      mga_out32( mmio, 0, TDUALSTAGE0 );   /* multi texture registers */

@@ -64,6 +64,15 @@ mga_in32(volatile uint8 *mmioaddr, uint32 reg)
      return *((volatile uint32*)(mmioaddr+reg));
 }
 
+/* Wait for idle accelerator */
+static inline void
+mga_waitidle(MatroxDriverData *mdrv, MatroxDeviceData *mdev)
+{
+     while (mga_in32(mdrv->mmio_base, STATUS) & 0x10000) {
+          mdev->idle_waitcycles++;
+     }
+}
+
 /* Wait for fifo space */
 static inline void
 mga_waitfifo(MatroxDriverData *mdrv, MatroxDeviceData *mdev, int space)
@@ -84,15 +93,6 @@ mga_waitfifo(MatroxDriverData *mdrv, MatroxDeviceData *mdev, int space)
      }
 
      mdev->fifo_space -= space;
-}
-
-/* Wait for idle accelerator */
-static inline void
-mga_waitidle(MatroxDriverData *mdrv, MatroxDeviceData *mdev)
-{
-     while (mga_in32(mdrv->mmio_base, STATUS) & 0x10000) {
-          mdev->idle_waitcycles++;
-     }
 }
 
 static inline void
