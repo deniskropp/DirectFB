@@ -43,11 +43,10 @@ typedef struct {
      FusionLink  link;
      React       react;
      void       *ctx;
-     int         index;  /* index to reactor nodes */
      bool        attached;
 } Reaction;
 
-FusionReactor *reactor_new      (const int      msg_size);
+FusionReactor *reactor_new      (int            msg_size);
 FusionResult   reactor_free     (FusionReactor *reactor);
 FusionResult   reactor_attach   (FusionReactor *reactor,
                                  React          react,

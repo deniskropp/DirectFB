@@ -79,6 +79,7 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
 /* Returns the current time after startup of DirectFB in milliseconds */
 long long dfb_get_millis();
 
+int dfb_try_open( const char *name1, const char *name2, int flags );
 
 /* floor and ceil implementation to get rid of libm */
 

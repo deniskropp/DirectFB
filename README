@@ -212,10 +212,11 @@ Running multiple DirectFB applications at the same time
    from dfbterm.
 
    DirectFB applications communicate thru a layer we called fusion. This
-   layer is implemented in user space using semaphores and message queues.
-   If you are brave you can try the fusion kernel module which takes a
-   different approach and might gain better performance and more stability.
-   To do so, check out the linux-fusion module from our CVS repository.
+   layer was previously implemented completely in user space using semaphores
+   and message queues. But since 0.9.15 the Fusion Kernel Device is required
+   which implements critical parts of fusion and brings better performance and
+   more stability. To install this kernel module (only available for linux yet),
+   check out the linux-fusion module from our CVS repository.
    DirectFB will use the kernel module if the linux/fusion.h header file is
    found by configure.
 
@@ -235,6 +236,9 @@ Using the builtin "window manager"
      - Press A to lower the focused window to the bottom.
      - Press S to raise the focused window to the top.
      - Press X to cycle the focus through the windows.
+
+   You might want to use the "capslock-meta" option (see directfbrc(5))
+   if you don't have a <Meta> key.
 
 
 Documentation

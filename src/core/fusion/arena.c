@@ -163,9 +163,9 @@ FusionResult arena_enter (const char     *name,
           func = join;
      }
 
-     arena->shared->nodes.ids[arena->shared->nodes.num++] = _fusion_id();
+     arena->shared->nodes.ids[arena->shared->nodes.num++] = fusion_id;
 
-     FDEBUG ("added fid %x to arena nodes (%d)\n", _fusion_id(), arena->shared->nodes.num);
+     FDEBUG ("added fid %x to arena nodes (%d)\n", fusion_id, arena->shared->nodes.num);
 
      *ret_arena = arena;
      
@@ -194,7 +194,7 @@ FusionResult arena_add_shared_field (FusionArena *arena,
      if (strlen (name) > MAX_ARENA_FIELD_NAME_LENGTH)
           return FUSION_TOOLONG;
 
-     //skirmish_prevail (&arena->shared->lock);
+     skirmish_prevail (&arena->shared->lock);
 
      shared = arena->shared;
 
@@ -203,13 +203,13 @@ FusionResult arena_add_shared_field (FusionArena *arena,
                shared->fields[i].data = data;
                strcpy (shared->fields[i].name, name);
 
-               //skirmish_dismiss (&shared->lock);
+               skirmish_dismiss (&shared->lock);
 
                return FUSION_SUCCESS;
           }
      }
 
-     //skirmish_dismiss (&shared->lock);
+     skirmish_dismiss (&shared->lock);
 
      return FUSION_LIMITREACHED;
 }
@@ -228,7 +228,7 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
      if (strlen (name) > MAX_ARENA_FIELD_NAME_LENGTH)
           return FUSION_TOOLONG;
 
-     //skirmish_prevail (&arena->shared->lock);
+     skirmish_prevail (&arena->shared->lock);
 
      shared = arena->shared;
 
@@ -236,13 +236,13 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
           if (strcmp (shared->fields[i].name, name) == 0) {
                *data = shared->fields[i].data;
 
-               //skirmish_dismiss (&shared->lock);
+               skirmish_dismiss (&shared->lock);
 
                return FUSION_SUCCESS;
           }
      }
 
-     //skirmish_dismiss (&shared->lock);
+     skirmish_dismiss (&shared->lock);
 
      return FUSION_NOTEXISTENT;
 }
@@ -265,7 +265,7 @@ FusionResult arena_exit (FusionArena   *arena,
           int i;
 
           for (i = 0; i < arena->shared->nodes.num; i++) {
-               if (arena->shared->nodes.ids[i] == _fusion_id()) {
+               if (arena->shared->nodes.ids[i] == fusion_id) {
                     arena->shared->nodes.ids[i] =
                     arena->shared->nodes.ids[arena->shared->nodes.num - 1];
 

@@ -244,11 +244,14 @@ AC_ARG_ENABLE(multi,
   [  --enable-multi          enable experimental multi application core [default=no]],,
   enable_multi=no)
 if test "x$enable_multi" = xyes; then
-  AC_MSG_WARN([
+  dnl Test for Fusion Kernel Device
+  linux_fusion=yes
+  AC_CHECK_HEADER( [linux/fusion.h],,
+    AC_MSG_ERROR([
 
-*** Multi application support is highly experimental, you have been warned. ***
+*** Multi application core requires Fusion Kernel Device (see README).])
 
-])
+  )
 else
   DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DFUSION_FAKE"
   AC_DEFINE(FUSION_FAKE, 1,
@@ -344,13 +347,6 @@ fi
 
 AM_CONDITIONAL(SDL_CORE, test x$enable_sdl = xyes)
 
-
-dnl Test for Fusion Kernel Device
-linux_fusion=yes
-AC_CHECK_HEADER( [linux/fusion.h],
-  AC_DEFINE(LINUX_FUSION, 1,
-    [Define to 1 if fusion kernel device is available.]),
-  linux_fusion=no)
 
 
 dnl Test for libjpeg
@@ -809,7 +805,6 @@ Misc options:
   Debug mode            $enable_debug
   RGB332 support        $enable_rgb332
   Multi App support     $enable_multi
-  Fusion Kernel Device  $linux_fusion
 
 Core Systems:
   Linux FBDev support   $enable_fbdev

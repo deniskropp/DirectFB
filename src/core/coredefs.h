@@ -51,17 +51,17 @@
 #define INITMSG(x...)    if (!dfb_config->quiet) fprintf( stderr, "(*) "x );
 #define ERRORMSG(x...)   if (!dfb_config->quiet) fprintf( stderr, "(!) "x );
 
-#define PERRORMSG(x...)  if (!dfb_config->quiet) {                             \
+#define PERRORMSG(x...)  do { if (!dfb_config->quiet) {                        \
                               fprintf( stderr, "(!) "x );                      \
                               fprintf( stderr, "    --> " );                   \
                               perror("");                                      \
-                         }
+                         } } while (0)
 
-#define DLERRORMSG(x...) if (!dfb_config->quiet) {                             \
+#define DLERRORMSG(x...) do { if (!dfb_config->quiet) {                        \
                               fprintf( stderr, "(!) "x );                      \
                               fprintf( stderr, "    --> %s\n",                 \
                                                dlerror() );                    \
-                         }
+                         } } while (0)
 
 #ifdef DFB_DEBUG
 

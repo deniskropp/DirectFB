@@ -133,14 +133,19 @@ typedef enum {
 /*
  * from fusion.c
  */
-int _fusion_id();
-int _fusion_fd();
+extern int fusion_id;
+extern int fusion_fd;
 
 /*
  * from util.c
  */
 AcquisitionStatus _shm_acquire (key_t key, int size, int *shmid);
 AbolitionStatus   _shm_abolish (int shmid, void *addr);
+
+/*
+ * from reactor.c
+ */
+void _reactor_process_message( int reactor_id, const void *msg_data );
 
 #endif /* __FUSION_INTERNAL_H__ */
 

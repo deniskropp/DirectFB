@@ -26,6 +26,11 @@
 
 #include <string.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <fcntl.h>
+
 #include <sys/time.h>
 #include <time.h>
 
@@ -47,6 +52,32 @@ long long dfb_get_millis()
 
      return (tv.tv_sec - start_time.tv_sec) * 1000 +
             (tv.tv_usec - start_time.tv_usec) / 1000;
+}
+
+int
+dfb_try_open( const char *name1, const char *name2, int flags )
+{
+     int fd;
+
+     fd = open (name1, flags);
+     if (fd >= 0)
+          return fd;
+
+     if (errno != ENOENT) {
+          PERRORMSG( "opening '%s' failed\n", name1 );
+          return -1;
+     }
+     
+     fd = open (name2, flags);
+     if (fd >= 0)
+          return fd;
+     
+     if (errno == ENOENT)
+          PERRORMSG( "opening '%s' and '%s' failed\n", name1, name2 );
+     else
+          PERRORMSG( "opening '%s' failed\n", name2 );
+
+     return -1;
 }
 
 void dfb_trim( char **s )

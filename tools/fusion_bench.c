@@ -52,9 +52,9 @@ react (const void    *msg_data,
 }
 
 #ifdef FUSION_FAKE
-#define N_DISPATCH  1000000
+#define N_DISPATCH  4000000
 #else
-#define N_DISPATCH  40000
+#define N_DISPATCH  1000000
 #endif
 
 static void
@@ -76,14 +76,14 @@ bench_reactor()
      /* reactor attach/detach */
      t1 = dfb_get_millis();
      
-     for (i=0; i<10000; i++) {
+     for (i=0; i<1000000; i++) {
           reactor_attach( reactor, react, NULL, &reaction );
           reactor_detach( reactor, &reaction );
      }
      
      t2 = dfb_get_millis();
      
-     printf( "reactor attach/detach                 -> %8.2f k/sec\n", 10000 / (float)(t2 - t1) );
+     printf( "reactor attach/detach                 -> %8.2f k/sec\n", 1000000 / (float)(t2 - t1) );
 
      
      /* reactor attach/detach (2nd) */
@@ -119,20 +119,22 @@ bench_reactor()
      printf( "reactor dispatch                      -> %8.2f k/sec  (%d%% arrived)\n",
              N_DISPATCH / (float)(t2 - t1), react_counter / (N_DISPATCH/100) );
 
-#if 0
-     while (react_counter < N_DISPATCH) {
-          int old_counter = react_counter;
+#if 1
+     if (react_counter < N_DISPATCH) {
+          while (react_counter < N_DISPATCH) {
+               int old_counter = react_counter;
 
-          sched_yield();
+               sched_yield();
 
-          if (old_counter == react_counter)
-               break;
+               if (old_counter == react_counter)
+                    break;
+          }
+          
+          t2 = dfb_get_millis();
+          
+          printf( "  (after waiting for arrival)    -> %8.2f k/sec  (%d%% arrived)\n",
+                  N_DISPATCH / (float)(t2 - t1), react_counter / (N_DISPATCH/100) );
      }
-     
-     t2 = dfb_get_millis();
-     
-     printf( "reactor dispatch                      -> %8.2f k/sec  (%d%% arrived)\n",
-             N_DISPATCH / (float)(t2 - t1), react_counter / (N_DISPATCH/100) );
 #endif     
      
      reactor_detach( reactor, &reaction );
@@ -261,7 +263,7 @@ prevail_dismiss_loop( void *arg )
      unsigned int    i;
      FusionSkirmish *skirmish = (FusionSkirmish *) arg;
 
-     for (i=0; i<500000; i++) {
+     for (i=0; i<700000; i++) {
           skirmish_prevail( skirmish );
           skirmish_dismiss( skirmish );
      }
@@ -283,8 +285,8 @@ bench_skirmish_threaded()
      }
 
      
-     /* skirmish prevail/dismiss (2-8 threads) */
-     for (i=2; i<=8; i++) {
+     /* skirmish prevail/dismiss (2-4 threads) */
+     for (i=2; i<=4; i++) {
           int       t;
           long long t1, t2;
           pthread_t threads[i];
@@ -300,7 +302,7 @@ bench_skirmish_threaded()
           t2 = dfb_get_millis();
 
           printf( "skirmish prevail/dismiss (%d threads)  -> %8.2f k/sec\n",
-                  i, (double)i * (double)500000 / (double)(t2 - t1) );
+                  i, (double)i * (double)700000 / (double)(t2 - t1) );
      }
 
      
@@ -320,22 +322,14 @@ bench_pthread_mutex()
      /* pthread_mutex lock/unlock */
      t1 = dfb_get_millis();
      
-     for (i=0; i<4000000; i++) {
-          pthread_mutex_lock( &mutex );
-          pthread_mutex_unlock( &mutex );
-          pthread_mutex_lock( &mutex );
-          pthread_mutex_unlock( &mutex );
-          pthread_mutex_lock( &mutex );
-          pthread_mutex_unlock( &mutex );
-          pthread_mutex_lock( &mutex );
-          pthread_mutex_unlock( &mutex );
+     for (i=0; i<40000000; i++) {
           pthread_mutex_lock( &mutex );
           pthread_mutex_unlock( &mutex );
      }
      
      t2 = dfb_get_millis();
      
-     printf( "pthread_mutex lock/unlock             -> %8.2f k/sec\n", (double)20000000 / (double)(t2 - t1) );
+     printf( "pthread_mutex lock/unlock             -> %8.2f k/sec\n", (double)40000000 / (double)(t2 - t1) );
 
      
      pthread_mutex_destroy( &mutex );
@@ -358,11 +352,7 @@ main( int argc, char *argv[] )
 #ifdef FUSION_FAKE
      printf( "Fusion Benchmark (Fusion fake mode!)\n" );
 #else
-#ifdef LINUX_FUSION
-     printf( "Fusion Benchmark (with Fusion Kernel Device)\n" );
-#else
-     printf( "Fusion Benchmark (without Fusion Kernel Device)\n" );
-#endif
+     printf( "Fusion Benchmark\n" );
 #endif
 
      printf( "\n" );

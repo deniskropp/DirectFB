@@ -9,7 +9,6 @@ Finish display layer core and driver API.
  - Finish reallocate_surface() in src/core/layers.c
 
 Finish multi application core.
- - Reduce number of thread
  - Some messages may need to be dispatched synchronized
  - Add fork handling
 

@@ -31,21 +31,19 @@
 #include <errno.h>
 #include <signal.h>
 
+#include <pthread.h>
+
 #ifndef FUSION_FAKE
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/shm.h>
+#include <sys/ioctl.h>
+#include <linux/fusion.h>
 #endif
 
-#include <core/sig.h>
 #include <core/thread.h>
 #include <misc/mem.h>
 
 #include "fusion_types.h"
 #include "list.h"
 #include "lock.h"
-#include "ref.h"
 #include "shmalloc.h"
 #include "reactor.h"
 
@@ -61,67 +59,55 @@
  *
  */
 struct _FusionReactor {
-     FusionSkirmish  lock;      /* access synchronization lock         */
-
-     int             queue;     /* message queue id                    */
-     int             msg_size;  /* size of sent messages               */
-
-     int             nodes;     /* number of attached fusionees        */
-
-     struct {
-          int           id;        /* fusion id                           */
-          FusionLink   *reactions; /* local list of reactions             */
-          CoreThread   *receiver;  /* receiving thread of the node        */
-          FusionRef     ref;       /* reference for receiver              */
-     } node[MAX_REACTOR_NODES];
+     int id;        /* reactor id                          */
+     int msg_size;  /* size of each message                */
 };
 
-/*
- * Thread that receives the messages and handles local reactions.
- */
-static void *_reactor_receive (CoreThread *thread, void *arg);
+typedef struct {
+     FusionLink       link;
+
+     pthread_mutex_t  lock;
+     
+     int              reactor_id;
+
+     FusionLink      *reactions; /* reactor listeners attached to node  */
+} ReactorNode;
 
 /*
- * Locally dispatch a message.
+ * List of reactors with at least one local reaction attached.
  */
-static void  _reactor_process_reactions (FusionLink **reactions, const void *msg_data);
+static FusionLink      *nodes      = NULL;
+static pthread_mutex_t  nodes_lock = PTHREAD_MUTEX_INITIALIZER;
 
-/*
- * Get the index to our node.
- */
-static int   _reactor_get_node_index (const FusionReactor *reactor);
+static ReactorNode *lock_node( int reactor_id, bool add );
 
-/*
- * Get the index to the first free node.
- */
-static int   _reactor_get_free_index (const FusionReactor *reactor);
-
+static void         unlock_node( ReactorNode *node );
 
 /****************
  *  Public API  *
  ****************/
 
 FusionReactor *
-reactor_new (const int msg_size)
+reactor_new (int msg_size)
 {
      FusionReactor *reactor;
 
+     DFB_ASSERT( msg_size > 0 );
+
      /* allocate shared reactor data */
      reactor = shcalloc (1, sizeof (FusionReactor));
+     if (!reactor)
+          return NULL;
 
-     /* set the static message size, should we make dynamic? (TODO?) */
-     reactor->msg_size = msg_size;
-
-     /* create the message queue for dispatching (TODO: drop message queue usage) */
-     if ((reactor->queue = msgget (IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0660)) < 0) {
-          FPERROR ("msgget for creating the queue failed");
-
-          shfree (reactor);
+     /* create a new reactor */
+     if (ioctl (fusion_fd, FUSION_REACTOR_NEW, &reactor->id)) {
+          FPERROR ("FUSION_REACTOR_NEW\n");
+          shfree( reactor );
           return NULL;
      }
 
-     /* initialize skirmish */
-     skirmish_init (&reactor->lock);
+     /* set the static message size, should we make dynamic? (TODO?) */
+     reactor->msg_size = msg_size;
 
      return reactor;
 }
@@ -132,59 +118,34 @@ reactor_attach (FusionReactor *reactor,
                 void          *ctx,
                 Reaction      *reaction)
 {
-     int index;
+     ReactorNode *node;
 
-     /* lock reactor */
-     skirmish_prevail (&reactor->lock);
+     DFB_ASSERT( reactor != NULL );
+     DFB_ASSERT( reaction != NULL );
 
-     /* find our node, needs to be replaced by a binary space tree (TODO) */
-     index = _reactor_get_node_index (reactor);
-
-     /* if our node hasn't been found add us to the nodes */
-     if (index < 0) {
-          /* check for maximum number of nodes, currently limited (TODO) */
-          if (index >= MAX_REACTOR_NODES) {
-               FERROR ("maximum number of reactor nodes (%d) reached!\n",
-                       MAX_REACTOR_NODES);
-               skirmish_dismiss (&reactor->lock);
-               return FUSION_LIMITREACHED;
-          }
-
-          /* increase the number of nodes and
-             write our fusion id into the last node (the new one) */
-          index = _reactor_get_free_index (reactor);
-          if (index < 0) {
-               FERROR ("something went wrong, couldn't find a free node!\n");
-               skirmish_dismiss (&reactor->lock);
-               return FUSION_BUG;
-          }
-
-          reactor->node[index].id = _fusion_id();
-
-          reactor->nodes++;
-
-          fusion_ref_init (&reactor->node[index].ref);
-
-          fusion_ref_up (&reactor->node[index].ref, false);
-          
-          /* start our local receiver thread and detach it */
-          reactor->node[index].receiver = dfb_thread_create (CTT_MESSAGING,
-                                                             _reactor_receive,
-                                                             reactor);
+     if (ioctl (fusion_fd, FUSION_REACTOR_ATTACH, &reactor->id)) {
+          FPERROR ("FUSION_REACTOR_ATTACH\n");
+          return FUSION_FAILURE;
      }
-
+     
+     node = lock_node( reactor->id, true );
+     if (!node) {
+          if (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor->id))
+               FPERROR ("FUSION_REACTOR_DETACH\n");
+          
+          return FUSION_FAILURE;
+     }
+     
      /* fill out callback information */
      reaction->react    = react;
      reaction->ctx      = ctx;
-     reaction->index    = index;
      reaction->attached = true;
 
      /* prepend the reaction to the local reaction list */
-     fusion_list_prepend (&reactor->node[index].reactions, &reaction->link);
+     fusion_list_prepend (&node->reactions, &reaction->link);
 
-     /* unlock reactor */
-     skirmish_dismiss (&reactor->lock);
-
+     unlock_node( node );
+     
      return FUSION_SUCCESS;
 }
 
@@ -192,47 +153,28 @@ FusionResult
 reactor_detach (FusionReactor *reactor,
                 Reaction      *reaction)
 {
-     bool foreign;
-     int  index;
+     ReactorNode *node;
 
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
-     DFB_ASSERT( reaction->attached );
 
-     index   = reaction->index;
-     foreign = reactor->node[index].id != _fusion_id();
-
-     if (foreign)
-          FDEBUG( "removing reaction %p from foreign node %d!\n",
-                  reaction, reactor->node[index].id );
+     node = lock_node( reactor->id, false );
+     if (!node) {
+          BUG( "node not found" );
+          return FUSION_BUG;
+     }
      
-     /* lock reactor */
-     skirmish_prevail (&reactor->lock);
-
-     /* detached during concurrent dispatch in the meantime of the lock? */
      if (reaction->attached) {
           reaction->attached = false;
-          
-          if (!foreign) {
-               /* remove the reaction */
-               fusion_list_remove (&reactor->node[index].reactions, &reaction->link);
 
-               /* if it was the last reaction cancel our receiver thread and free the node */
-               if (!reactor->node[index].reactions) {
-                    dfb_thread_cancel (reactor->node[index].receiver);
-                    dfb_thread_join (reactor->node[index].receiver);
+          fusion_list_remove( &node->reactions, &reaction->link );
 
-                    fusion_ref_destroy (&reactor->node[index].ref);
-
-                    reactor->node[index].id = 0;
-                    reactor->nodes--;
-               }
-          }
+          if (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor->id))
+               FPERROR ("FUSION_REACTOR_DETACH\n");
      }
 
-     /* unlock reactor */
-     skirmish_dismiss (&reactor->lock);
-
+     unlock_node( node );
+     
      return FUSION_SUCCESS;
 }
 
@@ -241,85 +183,23 @@ reactor_dispatch (FusionReactor *reactor,
                   const void    *msg_data,
                   bool           self)
 {
-     int   i;
-     void *message;
+     FusionReactorDispatch dispatch;
 
-     /* lock reactor */
-     skirmish_prevail (&reactor->lock);
+     DFB_ASSERT( reactor != NULL );
+     DFB_ASSERT( msg_data != NULL );
 
-     /* allocate 'real' message memory (message id + message) */
-     message = alloca (sizeof(long) + reactor->msg_size);
+     if (self)
+          _reactor_process_message( reactor->id, msg_data );
 
-     /* copy the original message data into the new area */
-     memcpy ((void*)((long*)message+1), msg_data, reactor->msg_size);
+     dispatch.reactor_id = reactor->id;
+     dispatch.self       = false;
+     dispatch.msg_size   = reactor->msg_size;
+     dispatch.msg_data   = msg_data;
 
-     /* loop through all nodes */
-     for (i = 0; i < MAX_REACTOR_NODES; i++) {
-          /* check if it's a free node */
-          if (!reactor->node[i].id)
-               continue;
-
-          /* <DEBUG> */
-          if (fusion_ref_zero_trylock (&reactor->node[i].ref) == FUSION_SUCCESS) {
-               FDEBUG("node '%d' with id '%d' is dead, freeing it!\n",
-                      i, reactor->node[i].id);
-               fusion_ref_destroy (&reactor->node[i].ref);
-               reactor->node[i].id        = 0;
-               reactor->node[i].reactions = NULL;
-               reactor->nodes--;
-               continue;
-          }
-          /* </DEBUG> */
-
-          /* set the message id to the destinations fusion id */
-          *((long*)message) = reactor->node[i].id;
-
-          /* if this node belongs to us... */
-          if (reactor->node[i].id == _fusion_id()) {
-               /* ...and the message is send to ourself, too... */
-               if (self) {
-#if 1
-                    FDEBUG ("dispatching locally for fid %x (%d byte)\n",
-                            reactor->node[i].id, reactor->msg_size);
-
-                    /* ...dispatch it locally (directly) */
-                    _reactor_process_reactions (&reactor->node[i].reactions, msg_data);
-
-                    /* if there's no remaining reaction (reactions may be removed
-                       because of RS_REMOVE) free the node */
-                    if (!reactor->node[i].reactions) {
-                         dfb_thread_cancel (reactor->node[i].receiver);
-                         dfb_thread_join (reactor->node[i].receiver);
-
-                         fusion_ref_destroy (&reactor->node[i].ref);
-
-                         reactor->node[i].id = 0;
-                         reactor->nodes--;
-                    }
-#else
-                    FDEBUG ("sending to queue %d for fid %x (%d byte), that's me\n",
-                            reactor->queue, reactor->node[i].id, reactor->msg_size);
-
-                    /* send the complete message (fusion id + data) */
-                    if (msgsnd (reactor->queue, message, reactor->msg_size, IPC_NOWAIT) < 0)
-                         if (errno != EAGAIN)
-                              FPERROR ("msgsnd failed");
-#endif
-               }
-          }
-          else {
-               FDEBUG ("sending to queue %d for fid %x (%d byte)\n",
-                       reactor->queue, reactor->node[i].id, reactor->msg_size);
-
-               /* send the complete message (fusion id + data) */
-               if (msgsnd (reactor->queue, message, reactor->msg_size, IPC_NOWAIT) < 0)
-                    if (errno != EAGAIN)
-                         FPERROR ("msgsnd failed");
-          }
+     if (ioctl (fusion_fd, FUSION_REACTOR_DISPATCH, &dispatch)) {
+          FPERROR ("FUSION_REACTOR_DISPATCH\n");
+          return FUSION_FAILURE;
      }
-
-     /* unlock reactor */
-     skirmish_dismiss (&reactor->lock);
 
      return FUSION_SUCCESS;
 }
@@ -327,191 +207,147 @@ reactor_dispatch (FusionReactor *reactor,
 FusionResult
 reactor_free (FusionReactor *reactor)
 {
-     int i;
+     DFB_ASSERT( reactor != NULL );
 
-     /* lock reactor */
-     skirmish_prevail (&reactor->lock);
-
-     msgctl (reactor->queue, IPC_RMID, NULL);
-
-     if (reactor->nodes) {
-          /* loop through remaining nodes and print debug messages */
-          for (i=0; i<MAX_REACTOR_NODES; i++) {
-               if (!reactor->node[i].id)
-                    continue;
-
-               FDEBUG ("reactor_free: fusionee '%d' still attached (reactions: %p)!\n",
-                       reactor->node[i].id, reactor->node[i].reactions);
-
-               reactor->node[i].reactions = NULL;
-
-               fusion_ref_destroy (&reactor->node[i].ref);
-          }
+     if (ioctl (fusion_fd, FUSION_REACTOR_DESTROY, &reactor->id)) {
+          FPERROR ("FUSION_REACTOR_DESTROY\n");
+          return FUSION_FAILURE;
      }
-
-     /* destroy the skirmish */
-     skirmish_destroy (&reactor->lock);
-
+     
      /* free shared reactor data */
      shfree (reactor);
 
      return FUSION_SUCCESS;
 }
 
+/*******************************
+ *  Fusion internal functions  *
+ *******************************/
+
+void
+_reactor_process_message( int reactor_id, const void *msg_data )
+{
+     FusionLink  *l;
+     ReactorNode *node;
+
+     DFB_ASSERT( msg_data != NULL );
+
+     node = lock_node( reactor_id, false );
+     if (!node) {
+          FDEBUG( "no node to dispatch message\n" );
+          return;
+     }
+     
+     if (!node->reactions) {
+          FDEBUG( "node has no reactions\n" );
+          unlock_node( node );
+          return;
+     }
+     
+     l = node->reactions;
+     while (l) {
+          FusionLink *next     = l->next;
+          Reaction   *reaction = (Reaction*) l;
+     
+          if (reaction->attached) {
+               if (reaction->react( msg_data, reaction->ctx ) == RS_REMOVE) {
+                    reaction->attached = false;
+
+                    fusion_list_remove( &node->reactions, &reaction->link );
+
+                    if (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor_id))
+                         FPERROR ("FUSION_REACTOR_DETACH\n");
+               }
+          }
+          else
+               fusion_list_remove( &node->reactions, &reaction->link );
+          
+          l = next;
+     }
+
+     unlock_node( node );
+}
 
 /*****************************
  *  File internal functions  *
  *****************************/
 
-void *_reactor_receive (CoreThread *thread, void *arg)
+static ReactorNode *
+lock_node( int reactor_id, bool add )
 {
-     int            index;
-     void          *message;
-     FusionReactor *reactor = (FusionReactor*) arg;
+     FusionLink *l;
 
-     /* find our node and return if it hasn't been found */
-     index = _reactor_get_node_index (reactor);
-     if (index < 0) {
-          FERROR ("_reactor_receive: "
-                  "could not find node with fusion id '%d'!\n", _fusion_id());
-          return NULL;
-     }
+     pthread_mutex_lock( &nodes_lock );
 
-     /* allocate local buffer for received messages */
-     message = alloca (sizeof(long) + reactor->msg_size);
+     l = nodes;
+     while (l) {
+          FusionLink  *next = l->next;
+          ReactorNode *node = (ReactorNode*) l;
 
-     while (true) {
-          dfb_thread_testcancel (thread);
+          if (node->reactor_id == reactor_id) {
+               pthread_mutex_lock( &node->lock );
+               pthread_mutex_unlock( &nodes_lock );
+               return node;
+          }
 
-          /* receive the next messages matching our fusion id */
-          if (msgrcv (reactor->queue, message,
-                      reactor->msg_size, _fusion_id(), 0) < 0)
-          {
-               if (errno == EINTR)
-                    continue;
+          if (!pthread_mutex_trylock( &node->lock )) {
+               if (!node->reactions) {
+                    fusion_list_remove( &nodes, &node->link );
 
-               if (errno == EIDRM || errno == EINVAL)
-                    FDEBUG("reactor vanished\n");
+                    pthread_mutex_unlock( &node->lock );
+                    pthread_mutex_destroy( &node->lock );
+
+                    DFBFREE( node );
+               }
                else
-                    FPERROR("msgrcv failed\n");
-               
-               return NULL;
-          }
-
-          dfb_thread_testcancel (thread);
-
-          /* lock reactor */
-          switch (skirmish_prevail (&reactor->lock)) {
-               case FUSION_SUCCESS:
-                    break;
-               case FUSION_DESTROYED:
-                    FDEBUG("reactor destroyed\n");
-                    return NULL;
-               default:
-                    FERROR("skirmish_prevail failed!\n");
-                    return NULL;
-          }
-
-          /* if any reactions (should not happen, because
-             the local receiver thread is canceled after the last local detach */
-          if (!reactor->node[index].reactions) {
-               FDEBUG ("no reactions for dispatching locally!\n");
-               
-               /* unlock reactor */
-               skirmish_dismiss (&reactor->lock);
-               
-               return NULL;
-          }
-
-          /* dispatch the message locally */
-          _reactor_process_reactions (&reactor->node[index].reactions, (void*)((long*)message+1));
-
-          /* if there's no remaining reaction (reactions may be removed
-             because of RS_REMOVE) free the node and exit this thread */
-          if (!reactor->node[index].reactions) {
-               fusion_ref_destroy (&reactor->node[index].ref);
-
-               reactor->node[index].id = 0;
-               reactor->nodes--;
-
-               /* unlock reactor */
-               skirmish_dismiss (&reactor->lock);
-               
-               return NULL;
+                    pthread_mutex_unlock( &node->lock );
           }
           
-          /* unlock reactor */
-          skirmish_dismiss (&reactor->lock);
+          l = next;
      }
+
+     if (add) {
+          ReactorNode *node = DFBCALLOC( 1, sizeof(ReactorNode) );
+
+#if 0
+          pthread_mutexattr_t attr;
+
+          pthread_mutexattr_init( &attr );
+          pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+          
+          pthread_mutex_init( &node->lock, &attr );
+          
+          pthread_mutexattr_destroy( &attr );
+#else
+          pthread_mutex_init( &node->lock, NULL );
+#endif
+
+
+          pthread_mutex_lock( &node->lock );
+          
+          node->reactor_id = reactor_id;
+
+          fusion_list_prepend( &nodes, &node->link );
+          
+          pthread_mutex_unlock( &nodes_lock );
+
+          return node;
+     }
+     
+     pthread_mutex_unlock( &nodes_lock );
 
      return NULL;
 }
 
-static void _reactor_process_reactions (FusionLink **reactions, const void *msg_data)
+static void
+unlock_node( ReactorNode *node )
 {
-     FusionLink *l = *reactions;
+     DFB_ASSERT( node != NULL );
 
-     /* loop through local reactions */
-     while (l) {
-          Reaction   *reaction = (Reaction*) l;
-          FusionLink *next     = l->next;
-
-          if (reaction->attached) {
-               /* invoke reaction callback, mark deletion if it returns RS_REMOVE */
-               if (reaction->react (msg_data, reaction->ctx) == RS_REMOVE) {
-                    reaction->attached = false;
-
-                    fusion_list_remove (reactions, l);
-               }
-          }
-          else
-               fusion_list_remove (reactions, l);
-
-          /* fetch the next list entry */
-          l = next;
-     }
-}
-
-static int _reactor_get_node_index (const FusionReactor *reactor)
-{
-     int i;
-     int my_id = _fusion_id();
-
-     /* loop through nodes and check the id, should be a binary space tree (TODO) */
-     for (i=0; i<MAX_REACTOR_NODES; i++) {
-          if (reactor->node[i].id == my_id)
-               break;
-     }
-
-     /* if the id wasn't found return -1 */
-     if (i == MAX_REACTOR_NODES)
-          return -1;
-
-     /* return index to node */
-     return i;
-}
-
-static int _reactor_get_free_index (const FusionReactor *reactor)
-{
-     int i;
-
-     /* loop through nodes and check the id, should be a binary space tree (TODO) */
-     for (i=0; i<MAX_REACTOR_NODES; i++) {
-          if (reactor->node[i].id == 0)
-               break;
-     }
-
-     /* if no free node was found return -1 */
-     if (i == MAX_REACTOR_NODES)
-          return -1;
-
-     /* return index to node */
-     return i;
+     pthread_mutex_unlock( &node->lock );
 }
 
 #else /* !FUSION_FAKE */
-
-#include <pthread.h>
 
 /***************************
  *  Internal declarations  *

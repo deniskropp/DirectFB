@@ -34,15 +34,12 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/shm.h>
+#include <sys/ioctl.h>
 
-#if LINUX_FUSION
 #include <linux/fusion.h>
-#endif
 
 #include <core/coredefs.h>
+#include <core/thread.h>
 
 #include <misc/mem.h>
 
@@ -50,352 +47,137 @@
 
 #include "fusion_internal.h"
 
-#include "ref.h"
-
 
 #include "shmalloc/shmalloc_internal.h"
 
-/***************************
- *  Internal declarations  *
- ***************************/
+static void *fusion_read_loop( CoreThread *thread, void *arg );
 
-/*
- * shared fusion data
- */
-typedef struct {
-     long           next_fid;
-     FusionRef      ref;
-     struct timeval start_time;
-} FusionShared;
+/**************************
+ *  Fusion internal data  *
+ **************************/
 
-/*
- * local fusion data
- */
-typedef struct {
-     int  fd;
+static int fusion_refs =  0;
+int        fusion_fd   = -1;
 
-     int  fid;
-
-     int  ref;
-
-     int  shared_shm;
-     int  shared_sem;
-
-     FusionShared *shared;
-} Fusion;
-
-
-static void check_limits();
-static int  initialize_shared (FusionShared *shared);
-
-/*******************
- *  Internal data  *
- *******************/
-
-/*
- *
- */
-static Fusion *fusion = NULL;
-
+static CoreThread *read_loop;
 
 /****************
  *  Public API  *
  ****************/
 
+int fusion_id = 0;  /* non-zero if Fusion is initialized */
+
 int
 fusion_init()
 {
-     int               fd = -1;
-     AcquisitionStatus as;
+     /* Check against multiple initialization. */
+     if (fusion_id) {
+          /* Increment local reference counter. */
+          fusion_refs++;
 
-     /* check against multiple initialization */
-     if (fusion) {
-          /* increment local reference counter */
-          fusion->ref++;
-
-          return _fusion_id();
+          return fusion_id;
      }
 
-     check_limits();
+     /* Open Fusion Kernel Device. */
+     fusion_fd = dfb_try_open ("/dev/fusion", "/dev/misc/fusion", O_RDWR);
+     if (fusion_fd < 0)
+          return -1;
 
-#if LINUX_FUSION
-     fd = open ("/dev/fusion", O_RDWR);
-     if (fd < 0) {
-          if (errno == ENOENT) {
-               fd = open ("/dev/misc/fusion", O_RDWR);
-               if (fd < 0) {
-                    if (errno == ENOENT) {
-                         FPERROR ("opening /dev/fusion and /dev/misc/fusion\n");
-                         return -1;
-                    }
-                    else {
-                         FPERROR ("opening /dev/misc/fusion\n");
-                         return -1;
-                    }
-               }
-          }
-          else {
-               FPERROR ("opening /dev/fusion\n");
-               return -1;
-          }
-     }
-#endif
-
-     /* allocate local Fusion data */
-     fusion = DFBCALLOC (1, sizeof(Fusion));
-
-     fusion->fd = fd;
-
-     /* intialize local reference counter */
-     fusion->ref = 1;
-
-     /* acquire shared Fusion data */
-     as = _shm_acquire (FUSION_KEY_PREFIX,
-                        sizeof(FusionShared), &fusion->shared_shm);
-
-     /* on failure free local Fusion data and return */
-     if (as == AS_Failure) {
-          DFBFREE (fusion);
-          fusion = NULL;
+     /* Get our Fusion ID. */
+     if (ioctl( fusion_fd, FUSION_GET_ID, &fusion_id)) {
+          FPERROR( "FUSION_GET_ID failed!\n" );
+          close( fusion_fd );
           return -1;
      }
 
-     fusion->shared = shmat (fusion->shared_shm, NULL, 0);
+     /* Initialize local reference counter. */
+     fusion_refs = 1;
 
-     /* initialize shared Fusion data? */
-     if (as == AS_Initialize) {
-          if (initialize_shared (fusion->shared)) {
-               shmctl (fusion->shared_shm, IPC_RMID, NULL);
-     
-               DFBFREE (fusion);
-               fusion = NULL;
-               
-               return -1;
-          }
-     }
-     else {
-          if (fusion_ref_up (&fusion->shared->ref, false)) {
-               DFBFREE (fusion);
-               fusion = NULL;
-               
-               return -1;
-          }
-     }
+     /* Initialize shmalloc part. */
+     if (!__shmalloc_init( fusion_id == 1 )) {
+          fusion_id = 0;
 
-     /* set local Fusion ID */
-     fusion->fid = fusion->shared->next_fid++;
-
-     /* initialize shmalloc part */
-     if (!__shmalloc_init(as == AS_Initialize)) {
-          /* destroy shared Fusion data if we initialized it */
-          if (as == AS_Initialize)
-               shmctl (fusion->shared_shm, IPC_RMID, NULL);
-
-          DFBFREE (fusion);
-          fusion = NULL;
-          
+          close( fusion_fd );
           return -1;
      }
 
-     return _fusion_id();
+     read_loop = dfb_thread_create( CTT_MESSAGING, fusion_read_loop, NULL );
+
+     return fusion_id;
 }
 
 void
 fusion_exit()
 {
-     FusionShared *shared;
-
-     if (!fusion) {
-          FERROR("called without being initialized!\n");
-          return;
-     }
-
-     shared = fusion->shared;
+     DFB_ASSERT( fusion_refs > 0 );
 
      /* decrement local reference counter */
-     if (--(fusion->ref))
+     if (--fusion_refs)
           return;
 
-     /* decrement shared reference counter */
-     fusion_ref_down (&shared->ref, false);
-     
-     /* perform a shutdown? */
-     if (fusion_ref_zero_trylock (&shared->ref) == FUSION_SUCCESS) {
-          fusion_ref_destroy (&shared->ref);
-     }
+     dfb_thread_cancel( read_loop );
+     dfb_thread_join( read_loop );
+     dfb_thread_destroy( read_loop );
 
-     fusion->shared = NULL;
+     __shmalloc_exit( fusion_id == 1 );
 
-     switch (_shm_abolish (fusion->shared_shm, shared)) {
-          case AB_Destroyed:
-               FDEBUG ("I'VE BEEN THE LAST\n");
-               __shmalloc_exit (true);
-               break;
-
-          case AB_Detached:
-               FDEBUG ("OTHERS LEFT\n");
-               __shmalloc_exit (false);
-               break;
-
-          case AB_Failure:
-               FDEBUG ("UUUUUUUUH\n");
-               break;
-     }
-
-     DFBFREE (fusion);
-     fusion = NULL;
+     close( fusion_fd );
 }
 
 long long
 fusion_get_millis()
 {
-     struct timeval tv;
+//     struct timeval tv;
      
-     if (!fusion || !fusion->fid || !fusion->shared)
+//     if (!fusion || !fusion->fid || !fusion->shared)
           return dfb_get_millis();
      
-     gettimeofday( &tv, NULL );
+//     gettimeofday( &tv, NULL );
 
-     return (tv.tv_sec - fusion->shared->start_time.tv_sec) * 1000 +
-            (tv.tv_usec - fusion->shared->start_time.tv_usec) / 1000;
+//     return (tv.tv_sec - fusion->shared->start_time.tv_sec) * 1000 +
+//            (tv.tv_usec - fusion->shared->start_time.tv_usec) / 1000;
 }
 
-/*******************************
- *  Fusion internal functions  *
- *******************************/
-
-int
-_fusion_id()
-{
-     if (!fusion) {
-          FERROR("called without being initialized!\n");
-          return -1;
-     }
-
-     return fusion->fid;
-}
-
-int
-_fusion_fd()
-{
-     if (!fusion) {
-          FERROR("called without being initialized!\n");
-          return -1;
-     }
-
-     return fusion->fd;
-}
-
-/*******************************
+/*****************************
  *  File internal functions  *
- *******************************/
+ *****************************/
 
-static void
-check_msgmni()
+static void *
+fusion_read_loop( CoreThread *thread, void *arg )
 {
-     int     fd;
-     int     msgmni;
-     ssize_t len;
-     char    buf[20];
+     int  len;
+     char buf[1024];
 
-     fd = open ("/proc/sys/kernel/msgmni", O_RDWR);
-     if (fd < 0) {
-          //perror ("opening /proc/sys/kernel/msgmni");
-          return;
-     }
+     while ((len = read (fusion_fd, buf, 1024)) > 0 || errno == EINTR) {
+          char *buf_p = buf;
 
-     len = read (fd, buf, 19);
-     if (len < 1) {
-          perror ("reading /proc/sys/kernel/msgmni");
-          close (fd);
-          return;
-     }
+          dfb_thread_testcancel( thread );
+          
+          while (buf_p < buf + len) {
+               FusionReadMessage *header = (FusionReadMessage*) buf_p;
+               void              *data   = buf_p + sizeof(FusionReadMessage);
 
-     if (sscanf (buf, "%d", &msgmni)) {
-          if (msgmni >= FUSION_MSGMNI) {
-               close (fd);
-               return;
+               switch (header->msg_type) {
+                    case FMT_REACTOR:
+                         _reactor_process_message( header->msg_id, data );
+                         break;
+                    default:
+                         FDEBUG( "discarding message of unknown type '%d'\n",
+                                 header->msg_type );
+                         break;
+               }
+
+               dfb_thread_testcancel( thread );
+               
+               buf_p = data + header->msg_size;
           }
      }
 
-     snprintf (buf, 19, "%d\n", FUSION_MSGMNI);
-
-     if (write (fd, buf, strlen (buf) + 1) < 0)
-          perror ("writing /proc/sys/kernel/msgmni");
-
-     close (fd);
-}
-
-static void
-check_sem()
-{
-     int     fd;
-     int     per, sys, ops, num;
-     ssize_t len;
-     char    buf[40];
-
-     fd = open ("/proc/sys/kernel/sem", O_RDWR);
-     if (fd < 0) {
-          //perror ("opening /proc/sys/kernel/sem");
-          return;
-     }
-
-     len = read (fd, buf, 39);
-     if (len < 1) {
-          perror ("reading /proc/sys/kernel/sem");
-          close (fd);
-          return;
-     }
-
-     if (sscanf (buf, "%d %d %d %d", &per, &sys, &ops, &num) < 4) {
-          fprintf (stderr, "could not parse /proc/sys/kernel/sem\n");
-          close (fd);
-          return;
-     }
-
-     if (num >= FUSION_SEM_ARRAYS) {
-          close (fd);
-          return;
-     }
+     if (len < 0)
+          FPERROR( "reading from fusion device failed\n" );
      else
-          num = FUSION_SEM_ARRAYS;
+          FERROR( "read zero bytes from fusion device\n" );
 
-     snprintf (buf, 39, "%d %d %d %d\n", per, per * num, ops, num);
-
-     if (write (fd, buf, strlen (buf) + 1) < 0)
-          perror ("writing /proc/sys/kernel/sem");
-
-     close (fd);
-}
-
-static void
-check_limits()
-{
-     check_msgmni();
-     check_sem();
-}
-
-
-static int
-initialize_shared (FusionShared *shared)
-{
-     DFB_ASSERT( shared != NULL );
-
-     shared->next_fid = 1;
-
-     /* initialize shared reference counter */
-     if (fusion_ref_init (&shared->ref))
-          return -1;
-
-     /* increment shared reference counter */
-     if (fusion_ref_up (&shared->ref, false)) {
-          fusion_ref_destroy (&shared->ref);
-
-          return -2;
-     }
-
-     gettimeofday( &shared->start_time, NULL );
-     
-     return 0;
+     return NULL;
 }
 

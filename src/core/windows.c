@@ -1517,7 +1517,7 @@ stack_inputdevice_react( const void *msg_data,
                                   !(window->options & DWOP_INDESTRUCTIBLE))
                               {
                                    dfb_window_deinit( window );
-                                   dfb_window_destroy( window, true );
+                                   dfb_window_destroy( window, false );
                               }
 
                               return RS_OK;
