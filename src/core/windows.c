@@ -1113,6 +1113,8 @@ update_region( CoreWindowStack *stack,
                stack->state.modified |= SMF_SOURCE;
 
                dfb_gfxcard_blit( &srect, region.x1, region.y1, &stack->state );
+
+               stack->state.source = NULL;
           }
      }
      else {
@@ -1138,6 +1140,8 @@ update_region( CoreWindowStack *stack,
                     stack->state.modified |= SMF_SOURCE;
 
                     dfb_gfxcard_blit( &rect, x1, y1, &stack->state );
+                    
+                    stack->state.source = NULL;
                     break;
                }
                case DLBM_TILE: {
@@ -1159,6 +1163,8 @@ update_region( CoreWindowStack *stack,
                                           (x2 / rect.w + 1) * rect.w,
                                           (y2 / rect.h + 1) * rect.h,
                                           &stack->state );
+                    
+                    stack->state.source = NULL;
                     break;
                }
                default:
