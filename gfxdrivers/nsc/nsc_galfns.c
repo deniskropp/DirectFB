@@ -1,7 +1,7 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.4 $
- * $Author: dok $
+ * $Revision: 1.5 $
+ * $Author: andi $
  *
  * File Contents: This file contains the main functions of the Geode 
  *                frame buffer device drivers GAL function definitions.
@@ -318,7 +318,7 @@ Gal_get_adapter_info(PGAL_ADAPTERINFO pAdapterInfo)
 
    pAdapterInfo->dwSubfunction = GALFN_GETADAPTERINFO;
 
-   if (ioctl(dfb_fbdev->fd, FBIOGAL_API, pAdapterInfo))
+   if (!dfb_fbdev || ioctl(dfb_fbdev->fd, FBIOGAL_API, pAdapterInfo))
       return 0;
    else {
       return 1;
