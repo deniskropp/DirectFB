@@ -425,6 +425,11 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
 static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
                                           IDirectFBEventBuffer_item *item )
 {
+     if (data->filter && data->filter( &item->evt, data->filter_ctx )) {
+          DFBFREE( item );
+          return;
+     }
+     
      pthread_mutex_lock( &data->events_mutex );
 
      if (!data->events) {
@@ -451,9 +456,6 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
      IDirectFBEventBuffer_item *item;
      IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)ctx;
 
-     if (data->filter && data->filter( (DFBEvent*) msg_data, data->filter_ctx ))
-          return RS_OK;
-     
      item = (IDirectFBEventBuffer_item*)
           DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
 
@@ -472,9 +474,6 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
      IDirectFBEventBuffer_item *item;
      IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)ctx;
 
-     if (data->filter && data->filter( (DFBEvent*) msg_data, data->filter_ctx ))
-          return RS_OK;
-     
      item = (IDirectFBEventBuffer_item*)
           DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
 
