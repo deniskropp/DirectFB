@@ -6,6 +6,7 @@
 #include <lite/label.h>
 #include <lite/lite.h>
 #include <lite/slider.h>
+#include <lite/button.h>
 #include <lite/window.h>
 
 #include <fusionsound.h>
@@ -102,6 +103,23 @@ slider_update( LiteSlider *slider, float pos, void *ctx )
      }
 }
 
+static void
+button_pressed( LiteButton *button, void *ctx )
+{
+     static DFBBoolean stopped;
+     
+     if (stopped) {
+          playback->Continue( playback );
+
+          stopped = DFB_FALSE;
+     }
+     else {
+          playback->Stop( playback );
+
+          stopped = DFB_TRUE;
+     }
+}
+     
 int
 main (int argc, char *argv[])
 {
@@ -109,6 +127,7 @@ main (int argc, char *argv[])
      DFBResult   ret;
      LiteLabel  *label[4];
      LiteSlider *slider[4];
+     LiteButton *playbutton;
      LiteWindow *window;
 
      ret = DirectFBInit( &argc, &argv );
@@ -131,7 +150,7 @@ main (int argc, char *argv[])
      }
 
      /* create a window */
-     window = lite_new_window( NULL, 330, 115,
+     window = lite_new_window( NULL, 330, 170,
                                DWCAPS_ALPHACHANNEL, basename(argv[1]) );
      
      /* setup the labels */
@@ -152,7 +171,14 @@ main (int argc, char *argv[])
           lite_on_slider_update( slider[i], slider_update, (void*) i );
      }
 
-     
+     /* setup the play/pause button */
+     playbutton = lite_new_button( LITE_BOX(window), 150, 110, 50, 50 );     
+     lite_set_button_image( playbutton, BS_NORMAL, "stop.png" );
+     lite_set_button_image( playbutton, BS_DISABLED, "stop_disabled.png" );
+     lite_set_button_image( playbutton, BS_HILITE, "stop_highlighted.png" );
+     lite_set_button_image( playbutton, BS_PRESSED, "stop_pressed.png" );
+     lite_on_button_press( playbutton, button_pressed, window );
+
      /* show the window */
      lite_set_window_opacity( window, 0xff );
 
