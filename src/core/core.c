@@ -35,6 +35,7 @@
 #include <core/fusion/fusion.h>
 #include <core/fusion/arena.h>
 #include <core/fusion/list.h>
+#include <core/fusion/shmalloc.h>
 
 #include <directfb.h>
 
@@ -81,6 +82,15 @@ CoreData *dfb_core = NULL;
 static void* dfb_lib_handle = NULL;
 #endif
 
+
+typedef struct {
+     FusionSkirmish  lock;
+     char           *mime_type;
+     void           *data;
+     unsigned int    size;
+} CoreClip;
+
+static CoreClip *core_clip = NULL;
 
 
 static int
@@ -356,6 +366,67 @@ dfb_core_cleanup_remove( CoreCleanup *cleanup )
      DFBFREE( cleanup );
 }
 
+DFBResult
+dfb_core_set_clip( const char *mime_type, const void *data, unsigned int size )
+{
+     char *new_mime;
+     void *new_data;
+
+     new_mime = shstrdup( mime_type );
+     if (!new_mime)
+          return DFB_NOSYSTEMMEMORY;
+     
+     new_data = shmalloc( size );
+     if (!new_data) {
+          shfree( new_mime );
+          return DFB_NOSYSTEMMEMORY;
+     }
+     
+     dfb_memcpy( new_data, data, size );
+
+     if (skirmish_prevail( &core_clip->lock )) {
+          shfree( new_data );
+          shfree( new_mime );
+          return DFB_FUSION;
+     }
+
+     if (core_clip->data)
+          shfree( core_clip->data );
+
+     if (core_clip->mime_type)
+          shfree( core_clip->mime_type );
+
+     core_clip->mime_type = new_mime;
+     core_clip->data      = new_data;
+     core_clip->size      = size;
+
+     skirmish_dismiss( &core_clip->lock );
+     
+     return DFB_OK;
+}
+
+DFBResult
+dfb_core_get_clip( char **mime_type, void **data, unsigned int *size )
+{
+     if (skirmish_prevail( &core_clip->lock ))
+          return DFB_FUSION;
+
+     if (mime_type)
+          *mime_type = strdup( core_clip->mime_type );
+
+     if (data) {
+          *data = malloc( core_clip->size );
+          dfb_memcpy( *data, core_clip->data, core_clip->size );
+     }
+
+     if (size)
+          *size = core_clip->size;
+
+     skirmish_dismiss( &core_clip->lock );
+     
+     return DFB_OK;
+}
+
 /****************************/
 
 static int
@@ -368,6 +439,16 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
      dfb_sig_install_handlers();
      
      dfb_core->master = true;
+
+     core_clip = shcalloc( 1, sizeof(CoreClip) );
+     if (!core_clip)
+          return DFB_NOSYSTEMMEMORY;
+
+     skirmish_init( &core_clip->lock );
+
+#ifndef FUSION_FAKE
+     arena_add_shared_field( arena, "Core/Clip", core_clip );
+#endif
 
      ret = dfb_colorhash_initialize();
      if (ret)
@@ -411,6 +492,8 @@ dfb_core_join( FusionArena *arena, void *ctx )
 
      dfb_sig_install_handlers();
      
+     if (arena_get_shared_field( arena, "Core/Clip", (void**) &core_clip ))
+          return DFB_FUSION;
 
      ret = dfb_colorhash_join();
      if (ret)
@@ -467,6 +550,19 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
 
      dfb_colorhash_shutdown( emergency );
 
+     if (core_clip) {
+          skirmish_destroy( &core_clip->lock );
+          
+          if (core_clip->data)
+               shfree( core_clip->data );
+
+          if (core_clip->mime_type)
+               shfree( core_clip->mime_type );
+          
+          shfree( core_clip );
+          core_clip = NULL;
+     }
+
      return 0;
 }
 
@@ -495,6 +591,8 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
 
      dfb_colorhash_leave( emergency );
 
+     core_clip = NULL;
+     
      return 0;
 }
 #endif

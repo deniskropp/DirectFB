@@ -1288,6 +1288,37 @@ DEFINE_INTERFACE(   IDirectFB,
      );
 
 
+   /** Clipboard **/
+
+     /*
+      * Set clipboard content.
+      *
+      * This is an experimental and intermediate API call that is
+      * supposed to change soon.
+      */
+     DFBResult (*SetClipboardData) (
+          IDirectFB                *thiz,
+          const char               *mime_type,
+          const void               *data,
+          unsigned int              size
+     );
+
+     /*
+      * Get clipboard content.
+      *
+      * Memory returned in mime_type and data has to be freed.
+      *
+      * This is an experimental and intermediate API call that is
+      * supposed to change soon.
+      */
+     DFBResult (*GetClipboardData) (
+          IDirectFB                *thiz,
+          char                    **mime_type,
+          void                    **data,
+          unsigned int             *size
+     );
+
+     
    /** Misc **/
 
      /*

@@ -906,6 +906,30 @@ IDirectFB_CreateDataBuffer( IDirectFB                 *thiz,
 }
 
 static DFBResult
+IDirectFB_SetClipboardData( IDirectFB                 *thiz,
+                            const char                *mime_type,
+                            const void                *data,
+                            unsigned int               size )
+{
+     if (!mime_type || !data || !size)
+          return DFB_INVARG;
+
+     return dfb_core_set_clip( mime_type, data, size );
+}
+
+static DFBResult
+IDirectFB_GetClipboardData( IDirectFB                 *thiz,
+                            char                     **mime_type,
+                            void                     **data,
+                            unsigned int              *size )
+{
+     if (!mime_type && !data && !size)
+          return DFB_INVARG;
+
+     return dfb_core_get_clip( mime_type, data, size );
+}
+
+static DFBResult
 IDirectFB_Suspend( IDirectFB *thiz )
 {
      return dfb_core_suspend();
@@ -981,6 +1005,8 @@ IDirectFB_Construct( IDirectFB *thiz )
      thiz->CreateVideoProvider = IDirectFB_CreateVideoProvider;
      thiz->CreateFont = IDirectFB_CreateFont;
      thiz->CreateDataBuffer = IDirectFB_CreateDataBuffer;
+     thiz->SetClipboardData = IDirectFB_SetClipboardData;
+     thiz->GetClipboardData = IDirectFB_GetClipboardData;
      thiz->Suspend = IDirectFB_Suspend;
      thiz->Resume = IDirectFB_Resume;
      thiz->WaitIdle = IDirectFB_WaitIdle;
