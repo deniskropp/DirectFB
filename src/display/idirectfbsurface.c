@@ -1318,6 +1318,16 @@ IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
      return DFB_OK;
 }
 
+#define SET_VERTEX(v,X,Y,Z,W,S,T)  \
+     do {                          \
+          (v)->x = X;              \
+          (v)->y = Y;              \
+          (v)->z = Z;              \
+          (v)->w = W;              \
+          (v)->s = S;              \
+          (v)->t = T;              \
+     } while (0)
+
 static DFBResult
 IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
                                    IDirectFBSurface     *source,
@@ -1329,6 +1339,9 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
      int                    i;
      DFBVertex             *translated;
      IDirectFBSurface_data *src_data;
+     bool                   src_sub;
+     float                  x0 = 0;
+     float                  y0 = 0;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -1347,8 +1360,12 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
 
      src_data = (IDirectFBSurface_data*)source->priv;
 
-     if (src_data->caps & DSCAPS_SUBSURFACE)
-          return DFB_UNSUPPORTED;
+     if ((src_sub = (src_data->caps & DSCAPS_SUBSURFACE))) {
+          D_ONCE( "sub surface texture not fully working with 'repeated' mapping" );
+
+          x0 = data->area.wanted.x;
+          y0 = data->area.wanted.y;
+     }
 
      switch (formation) {
           case DTTF_LIST:
@@ -1369,20 +1386,40 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
           return DFB_NOSYSTEMMEMORY;
 
      /* TODO: pass indices through to driver */
-     if (indices) {
-          for (i=0; i<num; i++) {
-               translated[i] = vertices[ indices[i] ];
+     if (src_sub) {
+          float oowidth  = 1.0f / src_data->surface->width;
+          float ooheight = 1.0f / src_data->surface->height;
 
-               translated[i].x += data->area.wanted.x;
-               translated[i].y += data->area.wanted.y;
+          float s0 = src_data->area.wanted.x * oowidth;
+          float t0 = src_data->area.wanted.y * ooheight;
+
+          float fs = src_data->area.wanted.w * oowidth;
+          float ft = src_data->area.wanted.h * ooheight;
+
+          for (i=0; i<num; i++) {
+               const DFBVertex *in  = &vertices[ indices ? indices[i] : i ];
+               DFBVertex       *out = &translated[i];
+
+               SET_VERTEX( out, x0 + in->x, y0 + in->y, in->z, in->w,
+                           s0 + fs * in->s, t0 + ft * in->t );
           }
      }
      else {
-          direct_memcpy( translated, vertices, num * sizeof(DFBVertex) );
+          if (indices) {
+               for (i=0; i<num; i++) {
+                    const DFBVertex *in  = &vertices[ indices[i] ];
+                    DFBVertex       *out = &translated[i];
 
-          for (i=0; i<num; i++) {
-               translated[i].x += data->area.wanted.x;
-               translated[i].y += data->area.wanted.y;
+                    SET_VERTEX( out, x0 + in->x, y0 + in->y, in->z, in->w, in->s, in->t );
+               }
+          }
+          else {
+               direct_memcpy( translated, vertices, num * sizeof(DFBVertex) );
+
+               for (i=0; i<num; i++) {
+                    translated[i].x += x0;
+                    translated[i].y += y0;
+               }
           }
      }
 
