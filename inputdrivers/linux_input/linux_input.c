@@ -125,7 +125,7 @@ int basic_keycodes [] = {
      /*KEY_103RD,*/ DIKI_BACKSLASH,
      /*KEY_F13,*/ DFB_FUNCTION_KEY(13),
      /*KEY_102ND*/ DIKI_LESS_SIGN,
-	
+
      DIKI_F11, DIKI_F12, DFB_FUNCTION_KEY(14), DFB_FUNCTION_KEY(15),
      DFB_FUNCTION_KEY(16), DFB_FUNCTION_KEY(17), DFB_FUNCTION_KEY(18),
      DFB_FUNCTION_KEY(19), DFB_FUNCTION_KEY(20),
@@ -133,7 +133,7 @@ int basic_keycodes [] = {
      DIKI_KP_ENTER, DIKI_CONTROL_R, DIKI_KP_DIV, DIKI_PRINT, DIKI_ALT_R,
 
      /*KEY_LINEFEED*/ DIKI_UNKNOWN,
-	
+
      DIKI_HOME, DIKI_UP, DIKI_PAGE_UP, DIKI_LEFT, DIKI_RIGHT,
      DIKI_END, DIKI_DOWN, DIKI_PAGE_DOWN, DIKI_INSERT, DIKI_DELETE,
 
@@ -603,7 +603,7 @@ driver_get_info( InputDriverInfo *info )
  * Called during initialization, resuming or taking over mastership.
  */
 static DFBResult
-driver_open_device( CoreInputDevice      *device,
+driver_open_device( CoreInputDevice  *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
                     void            **driver_data )
@@ -685,7 +685,7 @@ driver_open_device( CoreInputDevice      *device,
  * Fetch one entry from the device's keymap if supported.
  */
 static DFBResult
-driver_get_keymap_entry( CoreInputDevice               *device,
+driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
@@ -721,5 +721,5 @@ driver_close_device( void *driver_data )
      close( data->fd );
 
      /* free private data */
-     D_FREE ( data );
+     D_FREE( data );
 }
