@@ -117,7 +117,7 @@ static void Cop_to_Aop_16()
      __u32 DCop = ((Cop << 16) | Cop);
 
      if (((long)D)&2) {         /* align */
-          unsigned short* tmp=Aop;
+          __u16* tmp=Aop;
           --l;
           *tmp = Cop;
           D = (__u32*)(tmp+1);
@@ -130,7 +130,7 @@ static void Cop_to_Aop_16()
           ++D;
      }
 
-     if (l & 1)                 /* do the last potential pixel */
+     if (l & 1)                 /* do the last ential pixel */
           *((__u16*)D) = (__u16)Cop;
 }
 
@@ -270,45 +270,109 @@ static GFunc Sop_PFI_to_Aop_PFI[] = {
 
 static void Sop_rgb15_Kto_Aop()
 {
-     int    w = Dlength;
-     __u16 *D = (__u16*)Aop;
-     __u16 *S = (__u16*)Sop;
+     int    w, l = Dlength;
+     __u32 *D = (__u32*)Aop;
+     __u32 *S = (__u32*)Sop;
 
-     if (Ostep < 0) {
-          D+= Dlength - 1;
-          S+= Dlength - 1;
+     __u32 DSkey = (Skey << 16) | (Skey & 0x0000FFFF);
+
+     if (((long)D)&2) {         /* align */
+          __u16 *tmp = Aop;
+          --l;
+          if ((*((__u16*)S) & 0x7FFF) != (__u16)Skey)
+	       *tmp = *((__u16*)S);	       
+          
+          D = (__u32*)(tmp+1);
      }
 
-     while (w--) {
-          __u16 spixel = *S & 0x7FFF;
+     w = (l >> 1);
+     while (w) {
+          __u32 dpixel = *S;
+          __u16 *tmp = (__u16*)D;
+          
+          if (dpixel != DSkey) {
+               if ((dpixel & 0x7FFF0000) != (DSkey & 0x7FFF0000)) {
+                    if ((dpixel & 0x00007FFF) != (DSkey & 0x00007FFF)) { 
+                         *D = dpixel;
+                    }
+                    else {
+#ifdef __BIG_ENDIAN__
+                         tmp[0] = (__u16)(dpixel >> 16);
+#else
+                         tmp[1] = (__u16)(dpixel >> 16);
+#endif
+                    }
+               }
+               else {
+#ifdef __BIG_ENDIAN__
+                    tmp[1] = (__u16)dpixel;
+#else
+                    tmp[0] = (__u16)dpixel;
+#endif                    
+               }
+          }
+          ++S;
+          ++D;
+          --w;
+     }
 
-          if (spixel != (__u16)Skey)
-               *D = spixel;
-
-          S+=Ostep;
-          D+=Ostep;
+     if (l & 1) {                 /* do the last potential pixel */
+          if ((*((__u16*)S) & 0x7FFF) != (__u16)Skey)
+               *((__u16*)D) = *((__u16*)S);
      }
 }
 
 static void Sop_rgb16_Kto_Aop()
 {
-     int    w = Dlength;
-     __u16 *D = (__u16*)Aop;
-     __u16 *S = (__u16*)Sop;
+     int    w, l = Dlength;
+     __u32 *D = (__u32*)Aop;
+     __u32 *S = (__u32*)Sop;
 
-     if (Ostep < 0) {
-          D+= Dlength - 1;
-          S+= Dlength - 1;
+     __u32 DSkey = (Skey << 16) | (Skey & 0x0000FFFF);
+
+     if (((long)D)&2) {         /* align */
+          __u16 *tmp = Aop;
+          --l;
+          if (*((__u16*)S) != (__u16)Skey)
+	       *tmp = *((__u16*)S);	       
+          
+          D = (__u32*)(tmp+1);
      }
 
-     while (w--) {
-          __u16 spixel = *S;
+     w = (l >> 1);
+     while (w) {
+          __u32 dpixel = *S;
+          __u16 *tmp = (__u16*)D;
+          
+          if (dpixel != DSkey) {
+               if ((dpixel & 0xFFFF0000) != (DSkey & 0xFFFF0000)) {
+                    if ((dpixel & 0x0000FFFF) != (DSkey & 0x0000FFFF)) { 
+                         *D = dpixel;
+                    }
+                    else {
+#ifdef __BIG_ENDIAN__
+                         tmp[0] = (__u16)(dpixel >> 16);
+#else
+                         tmp[1] = (__u16)(dpixel >> 16);
+#endif
+                    }
+               }
+               else {
+#ifdef __BIG_ENDIAN__
+                    tmp[1] = (__u16)dpixel;
+#else
+                    tmp[0] = (__u16)dpixel;
+#endif                    
+               }
+          }
+          ++S;
+          ++D;
+          --w;
+     }
 
-          if (spixel != (__u16)Skey)
-               *D = spixel;
-
-          S+=Ostep;
-          D+=Ostep;
+     if (l & 1) {                 /* do the last potential pixel */
+          if (*((__u16*)S) != (__u16)Skey)
+               *((__u16*)D) = *((__u16*)S);
      }
 }
 
