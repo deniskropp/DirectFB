@@ -1,3 +1,283 @@
+2001-10-02	15:35	<dok@convergence.de>
+
+	Files:	.cvsignore (1.5) (+1 -0)
+		src/core/fbdev.c (1.24) (+32 -20)
+		configure.in (1.41) (+10 -1)
+	
+	We now accept compatible pixelformats,
+	e.g. IPAQ's RGB format is compatible with RGB16.
+	
+	Added evil workaround for automake using non substituted @AS@ like a gcc.
+	
+	Added stamp-h1 to .cvsignore
+	
+2001-09-27	03:56	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.33) (+2 -0)
+	
+	Check enter/leave and focus after ungrabbing pointer.
+	
+2001-09-26	18:20	<dok@convergence.de>
+
+	Files:	examples/df_dok.c (1.25) (+9 -3)
+	
+	Benchmark size is automatically shrinked to fit the screen, e.g. for 320x240.
+	
+2001-09-26	17:56	<dok@convergence.de>
+
+	Files:	inputdrivers/h3600_ts/h3600_ts.c (1.3) (+2 -2)
+	
+	Eek, broke button press/release, fixed ;)
+	
+2001-09-26	17:51	<dok@convergence.de>
+
+	Files:	inputdrivers/h3600_ts/h3600_ts.c (1.2) (+30 -24)
+	
+	If there is no pressure, the x/y fields seem to be invalid.
+	Check them only if there is pressure.
+	
+2001-09-26	17:31	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.32) (+2 -2)
+	
+	Fixed handling of absolute axis coordinates in window stack cursor handling.
+	
+2001-09-26	16:47	<dok@convergence.de>
+
+	Files:	configure.in (1.40) (+28 -16)
+		inputdrivers/h3600_ts/h3600_ts.c (1.1) ( )
+		inputdrivers/h3600_ts/Makefile.am (1.1) ( )
+		inputdrivers/h3600_ts/.cvsignore (1.1) ( )
+		inputdrivers/Makefile.am (1.5) (+8 -1)
+		include/directfb.h (1.55) (+1 -1)
+	
+	Added untested H3600 Touchscreen driver.
+	
+	Fixed definition of DFXL_ALL (DFXL_FILLTRIANGLE was missing).
+	
+2001-09-23	04:33	<dok@convergence.de>
+
+	Files:	include/directfb_internals.h (1.6) (+1 -1)
+		src/gfx/generic/generic.c (1.27) (+3 -5)
+		src/core/windows.c (1.31) (+8 -2)
+		src/core/surfaces.h (1.9) (+2 -0)
+		src/core/surfaces.c (1.15) (+44 -3)
+		src/core/surfacemanager.h (1.4) (+38 -2)
+		src/core/surfacemanager.c (1.11) (+51 -33)
+		src/core/state.h (1.3) (+18 -0)
+		src/core/gfxcard.h (1.10) (+2 -3)
+		src/core/gfxcard.c (1.30) (+43 -9)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.13) (+10 -4)
+	
+	Use 'DFBCALLOC' in 'DFB_ALLOCATE_INTERFACE', forgot that one.
+	
+	Fixed small event dispatching bug in window stack, a button event
+	was sent to the focused window even if it's not under the cursor
+	and doesn't grab the pointer.
+	
+	When CapsLock is hold down you can raise
+	the window under the cursor with a click.
+	
+	
+	
+	The following changes fix problems related to heavy threading,
+	e.g. more than 50 threads on my machine actively using DirectFB:
+	
+	Added 'surfacemanager_lock/unlock()' and divided surface manager functions
+	into two groups: functions doing the lock themselves and functions that can
+	only be called between lock/unlock. Functions doing the lock themself must
+	not be called between lock/unlock.
+	
+	Added 'state_lock/unlock(state)' that are called in drawing/blitting functions
+	from 'gfxcard.c'. Merged 'card->source_locked' and 'source_locked (generic.c)'
+	into new 'state->source_locked'.
+	
+	Added 'buffer->video.locked' so the surface manager does not try to kick out
+	surface buffers that are currently locked, which could end up in a dead lock.
+	
+2001-09-22	21:25	<dok@convergence.de>
+
+	Files:	examples/Makefile.am (1.10) (+1 -1)
+	
+	Added "-lm" for df_layer.
+	
+2001-09-21	21:34	<dok@convergence.de>
+
+	Files:	src/core/core.c (1.16) (+7 -2)
+		src/misc/mem.h (1.2) (+2 -0)
+		src/misc/mem.c (1.3) (+5 -22)
+		src/core/vt.c (1.14) (+15 -11)
+		src/core/input.c (1.16) (+13 -11)
+	
+	Fixed "Could not disallocate VT" problem, exit handler calls normal
+	deinit function now instead of the emergency deinit. Additionally
+	input devices are deinitialized from emergency deinit.
+	
+	Fixed problem with malloc/free debugging that occured when exit handler
+	for memory leak checking was called before exit handler of the core.
+	Memory leak checking is now called at the end of the core exit
+	handler if debugging is enabled.
+	
+2001-09-21	15:19	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.8) (+47 -62)
+	
+	Fixed segfault when loading big PNGs, seems that there was a problem
+	with alloca. However it works with malloc, but maybe the problem is that
+	libpng has a bug that does no harm when using malloc, because of other
+	address ranges.
+	
+	Also switched to 'png_read_image()' to have deinterlacing handled automatically.
+	
+2001-09-21	00:37	<dok@convergence.de>
+
+	Files:	src/core/surfacemanager.c (1.10) (+3 -1)
+	
+	Fixed surface manager bug. When surface gets kicked out of video memory,
+	make sure that the system memory instance of the buffer is up to date.
+	This fixes "missing font letters" for example.
+	
+2001-09-18	21:54	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.54) (+34 -6)
+		src/windows/idirectfbwindow.c (1.18) (+100 -7)
+		src/display/idirectfbsurface_window.c (1.12) (+18 -10)
+		src/display/idirectfbsurface_layer.c (1.13) (+12 -4)
+		src/display/idirectfbsurface.c (1.26) (+48 -14)
+		src/core/windows.c (1.30) (+25 -16)
+		src/directfb.c (1.25) (+4 -2)
+	
+	Added result 'DFB_DESTROYED' which is currently returned by 'IDirectFBWindow'
+	and 'IDirectFBSurface' if the window or surface has been destroyed.
+	
+	Added window event type 'DWET_DESTROYED' and changed meaning of 'DWET_CLOSE'.
+	-          DWET_CLOSE          = 0x00000004,  /* window got closed by window
+	-                                                manager or the application
+	-                                                itself */
+	+          DWET_CLOSE          = 0x00000004,  /* closing this window has been
+	+                                                requested only */
+	+          DWET_DESTROYED      = 0x00000008,  /* window got destroyed by global
+	+                                                deinitialization function or the
+	+                                                application itself */
+	
+	Added 'IDirectFBWindow::Close()' that puts a 'DWET_CLOSE' event into the
+	window's event queue. The event dispatcher thread can then decide to close it.
+	
+	Added 'IDirectFBWindow::Destroy()' which actually destroys the window after
+	sending a 'DWET_DESTROYED' event, so the event dispatcher thread can notice and
+	release any interfaces belonging to it.
+	
+	After a window has been destroyed by 'IDirectFBWindow::Destroy()' most functions
+	of 'IDirectFBWindow' will return 'DFB_DESTROYED'.
+	
+	There is no need to destroy windows explicitly with this new function if no
+	threads are doing 'WaitForEvent()'. If an 'IDirectFBWindow' has no more
+	references after 'Release()' the window gets destroyed implicitly if it hasn't
+	been destroyed before.
+	
+	
+	If you hold down 'CapsLock' over a window (as if you want to move it) and press
+	the key 'C' a 'DWET_CLOSE' will be sent to the window.
+	
+2001-09-16	09:46	<dok@convergence.de>
+
+	Files:	examples/df_layer.c (1.2) (+36 -5)
+		src/gfx/generic/generic.c (1.26) (+82 -70)
+		src/core/gfxcard.c (1.29) (+79 -99)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.11) (+30 -21)
+		include/directfb.h (1.53) (+2 -4)
+		gfxdrivers/matrox/regs.h (1.4) (+9 -1)
+		gfxdrivers/matrox/mmio.h (1.3) (+3 -0)
+		gfxdrivers/matrox/matrox_bes.c (1.1) ( )
+		gfxdrivers/matrox/matrox.c (1.14) (+20 -20)
+		gfxdrivers/matrox/Makefile.am (1.3) (+1 -0)
+	
+	Matrox Backend Scaler support added.
+	YUY2 added.
+	
+	With a matrox try: df_layer <any.avi>
+	
+2001-09-14	00:23	<dok@convergence.de>
+
+	Files:	examples/Makefile.am (1.9) (+1 -1)
+	
+	df_layer now links against $(AVIFILE_LIBS).
+	
+2001-09-13	23:49	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.23) (+1 -1)
+		src/core/layers.h (1.7) (+1 -1)
+	
+	Forgot to set DLCAPS_SURFACE for primary layer (fbdev).
+	Just changed the name of a function parameter in 'layers.h'.
+	
+2001-09-13	23:39	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.52) (+10 -1)
+		src/display/idirectfbsurface_window.c (1.11) (+32 -12)
+		src/core/windows.h (1.10) (+2 -2)
+		src/core/windows.c (1.29) (+98 -60)
+		src/core/surfaces.c (1.14) (+10 -1)
+		src/idirectfb.c (1.29) (+4 -6)
+	
+	Added new window capability, from the header:
+	
+	DWCAPS_DOUBLEBUFFER ... /* The window's surface is double
+	                           buffered. This is very useful
+	                           to avoid visibility of content
+	                           that is still in preparation.
+	                           Normally a window's content can
+	                           get visible before an update if
+	                           there is another reason causing
+	                           a window stack repaint. */
+	
+	
+	Use 'alloca()' in 'IDirectFB::CreateImageProvider()' instead of 'malloc()',
+	return appropriate error if file could not be opened.
+	
+2001-09-13	22:41	<dok@convergence.de>
+
+	Files:	examples/.cvsignore (1.3) (+1 -0)
+		examples/df_layer.c (1.1) ( )
+		examples/Makefile.am (1.8) (+4 -1)
+	
+	Added simple layer example which plays a video onto the second layer.
+	
+2001-09-07	00:04	<andi@convergence.de>
+
+	Files:	gfxdrivers/ati128/ati128.c (1.6) (+23 -0)
+	
+	in driver_deinit() card is set a state, where the aty128fb driver should never
+	hang.
+	
+2001-09-06	23:15	<dok@convergence.de>
+
+	Files:	src/core/vt.c (1.13) (+11 -4)
+	
+	The file descriptor of the allocated VT is now closed before deallocation.
+	Added error checking to deallocation code.
+	
+2001-09-06	22:48	<dok@convergence.de>
+
+	Files:	src/core/core.c (1.15) (+5 -0)
+	
+	Call 'sched_yield()' after mutex lock failed.
+	Call graphics card driver deinit in emergency deinit.
+	
+2001-09-06	20:31	<dok@convergence.de>
+
+	Files:	ChangeLog (1.11) (+716 -0)
+		NEWS (1.19) (+22 -1)
+	
+	Wrote a summary of changes after 0.9.4.
+	
+2001-09-06	19:56	<andi@convergence.de>
+
+	Files:	examples/df_joystick.c (1.6) (+2 -2)
+		examples/df_video.c (1.5) (+2 -2)
+	
+	enumeration callbacks return DFBEnuerationResult now (no more warnings)
+	
 2001-09-04	16:50	<dok@convergence.de>
 
 	Files:	include/directfb.h (1.51) (+11 -3)

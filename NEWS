@@ -1,3 +1,28 @@
+0.9.6
+-----
+
+- Added H3600 (ipaq) Touchscreen input driver.
+- We now accept compatible pixelformats,
+  e.g. IPAQ's RGB 444 format is compatible with RGB 565.
+- Matrox Backend Scaler support as additional display layer.
+- YUY2 format added for video playback.
+- Added simple layer example which plays a video onto the second layer.
+- Added new window capability DWCAPS_DOUBLEBUFFER to create windows with
+  two back buffers. This is useful for overlapping windows which both
+  cause frequent updates of the window stack.
+- Added 'IDirectFBWindow::Close()' that puts a 'DWET_CLOSE' event into the
+  window's event queue. The event dispatcher thread can then decide to close it.
+- Added 'IDirectFBWindow::Destroy()' which actually destroys the window after
+  sending a 'DWET_DESTROYED' event, so the event dispatcher thread can notice
+  and release any interfaces belonging to it.
+- Added result 'DFB_DESTROYED' which is currently returned by 'IDirectFBWindow'
+  and 'IDirectFBSurface' if the window or surface has been destroyed.
+- Fixed surface manager bug causing inconsistency between video/system memory.
+- More changes to surface manager fixing problems when using many many threads.
+- Fixed segfault when loading big PNGs, seemed to be a problem with alloca.
+- Minor fixes to window stack code.
+- Some fixes to deinitialization code.
+
 0.9.5
 -----
 
