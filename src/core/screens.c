@@ -148,6 +148,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                int i;
 
                D_ASSERT( funcs->InitMixer != NULL );
+               D_ASSERT( funcs->SetMixerConfig != NULL );
 
                shared->mixers = SHCALLOC( shared->description.mixers,
                                           sizeof(CoreScreenMixer) );
@@ -157,6 +158,10 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                                       shared->screen_data, i,
                                       &shared->mixers[i].description,
                                       &shared->mixers[i].configuration );
+                    funcs->SetMixerConfig( screen,
+                                           screen->driver_data,
+                                           shared->screen_data, i,
+                                           &shared->mixers[i].configuration );
                }
           }
 
@@ -174,6 +179,10 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                                         shared->screen_data, i,
                                         &shared->encoders[i].description,
                                         &shared->encoders[i].configuration );
+                    funcs->SetEncoderConfig( screen,
+                                             screen->driver_data,
+                                             shared->screen_data, i,
+                                             &shared->encoders[i].configuration );
                }
           }
 
@@ -191,6 +200,10 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                                        shared->screen_data, i,
                                        &shared->outputs[i].description,
                                        &shared->outputs[i].configuration );
+                    funcs->SetOutputConfig( screen,
+                                            screen->driver_data,
+                                            shared->screen_data, i,
+                                            &shared->outputs[i].configuration );
                }
           }
 
