@@ -1425,6 +1425,16 @@ typedef struct {
      DFBDisplayLayerOptions        options;     /* Enable capabilities */
 } DFBDisplayLayerConfig;
 
+/*
+ * Screen Power Mode.
+ */
+typedef enum {
+     DSPM_ON        = 0,
+     DSPM_STANDBY,
+     DSPM_SUSPEND,
+     DSPM_OFF
+} DFBScreenPowerMode;
+
 
 /*************************
  * IDirectFBDisplayLayer *
@@ -1585,6 +1595,13 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           IDirectFBDisplayLayer              *thiz
      );
 
+     /*
+      * Set screen power mode.
+      */
+     DFBResult (*SetScreenPowerMode) (
+          IDirectFBDisplayLayer              *thiz,
+          DFBScreenPowerMode                  mode
+     );
 
    /** Configuration handling **/
 

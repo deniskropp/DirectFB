@@ -172,11 +172,16 @@ primarySetPalette        ( DisplayLayer               *layer,
                            void                       *layer_data,
                            CorePalette                *palette );
 
-          
 static DFBResult
 primaryWaitVSync         ( DisplayLayer               *layer,
                            void                       *driver_data,
                            void                       *layer_data );
+
+static DFBResult
+primarySetScreenPowerMode( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBScreenPowerMode          mode );
 
 static DFBResult
 primaryAllocateSurface   ( DisplayLayer               *layer,
@@ -207,7 +212,8 @@ static DisplayLayerFuncs primaryLayerFuncs = {
      SetColorAdjustment: primarySetColorAdjustment,
      SetPalette:         primarySetPalette,
      WaitVSync:          primaryWaitVSync,
-          
+     SetScreenPowerMode: primarySetScreenPowerMode,
+
      AllocateSurface:    primaryAllocateSurface,
      ReallocateSurface:  primaryReallocateSurface,
      /* default DeallocateSurface copes with our chunkless video buffers */
@@ -221,6 +227,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
 static DFBResult dfb_fbdev_set_rgb332_palette();
 #endif
 static DFBResult dfb_fbdev_pan( int offset );
+static DFBResult dfb_fbdev_blank( int level );
 static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                                      VideoMode             *mode,
                                      DFBDisplayLayerConfig *config );
@@ -1145,6 +1152,34 @@ primaryWaitVSync( DisplayLayer *layer,
 }
 
 static DFBResult
+primarySetScreenPowerMode( DisplayLayer       *layer,
+                           void               *driver_data,
+                           void               *layer_data,
+                           DFBScreenPowerMode  mode )
+{
+     int level;
+
+     switch (mode) {
+          case DSPM_OFF:
+               level = 4;
+               break;
+          case DSPM_SUSPEND:
+               level = 3;
+               break;
+          case DSPM_STANDBY:
+               level = 2;
+               break;
+          case DSPM_ON:
+               level = 0;
+               break;
+          default:
+               return DFB_INVARG;
+     }
+
+     return dfb_fbdev_blank( level );
+}
+
+static DFBResult
 primaryAllocateSurface   ( DisplayLayer               *layer,
                            void                       *driver_data,
                            void                       *layer_data,
@@ -1335,6 +1370,20 @@ static DFBResult dfb_fbdev_pan( int offset )
           PERRORMSG( "DirectFB/core/fbdev: Panning display failed!\n" );
 
           return errno2dfb( erno );
+     }
+
+     return DFB_OK;
+}
+
+/*
+ * blanks display using fbdev ioctl
+ */
+static DFBResult dfb_fbdev_blank( int level )
+{
+     if (ioctl( dfb_fbdev->fd, FBIOBLANK, level ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: Display blanking failed!\n" );
+
+          return errno2dfb( errno );
      }
 
      return DFB_OK;

@@ -150,7 +150,12 @@ typedef struct {
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       int                         field );
-     
+
+     DFBResult (*SetScreenPowerMode)( DisplayLayer               *layer,
+                                      void                       *driver_data,
+                                      void                       *layer_data,
+                                      DFBScreenPowerMode          mode );
+
      /*
       * optional to override default surface (re)allocation
       */
@@ -300,6 +305,9 @@ DFBResult dfb_layer_get_current_output_field( DisplayLayer *layer, int *field );
 DFBResult dfb_layer_set_field_parity( DisplayLayer *layer, int field );
 
 DFBResult dfb_layer_wait_vsync( DisplayLayer *layer );
+
+DFBResult dfb_layer_set_screen_power_mode( DisplayLayer *layer,
+                                           DFBScreenPowerMode mode );
 
 DFBResult dfb_layer_set_coloradjustment (DisplayLayer       *layer,
                                          DFBColorAdjustment *adj);

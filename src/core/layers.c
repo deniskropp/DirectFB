@@ -1336,6 +1336,23 @@ dfb_layer_wait_vsync( DisplayLayer *layer )
                                      layer->layer_data );
 }
 
+DFBResult
+dfb_layer_set_screen_power_mode( DisplayLayer       *layer,
+                                 DFBScreenPowerMode  mode )
+{
+     DFB_ASSERT( layersfield != NULL );
+     DFB_ASSERT( layer != NULL );
+     DFB_ASSERT( layer->funcs != NULL );
+     DFB_ASSERT( layer->shared != NULL );
+     DFB_ASSERT( layer->shared->enabled );
+
+     if (!layer->funcs->SetScreenPowerMode)
+          return DFB_UNSUPPORTED;
+
+     return layer->funcs->SetScreenPowerMode( layer, layer->driver_data,
+                                              layer->layer_data, mode );
+}
+
 
 DFBResult
 dfb_layer_set_coloradjustment (DisplayLayer       *layer,

@@ -230,6 +230,18 @@ IDirectFBDisplayLayer_WaitForSync( IDirectFBDisplayLayer *thiz )
 
      return dfb_layer_wait_vsync( data->layer );
 }
+static DFBResult
+
+IDirectFBDisplayLayer_SetScreenPowerMode( IDirectFBDisplayLayer *thiz,
+                                          DFBScreenPowerMode     mode )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
+
+     return dfb_layer_set_screen_power_mode( data->layer, mode );
+}
 
 static DFBResult
 IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
@@ -668,6 +680,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetCursorOpacity = IDirectFBDisplayLayer_SetCursorOpacity;
      thiz->WaitForSync = IDirectFBDisplayLayer_WaitForSync;
      thiz->SetFieldParity = IDirectFBDisplayLayer_SetFieldParity;
+     thiz->SetScreenPowerMode = IDirectFBDisplayLayer_SetScreenPowerMode;
 
      return DFB_OK;
 }
