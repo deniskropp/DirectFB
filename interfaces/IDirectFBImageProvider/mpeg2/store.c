@@ -33,6 +33,8 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <misc/mem.h>
+
 #include "global.h"
 
 /* private prototypes */
@@ -96,21 +98,21 @@ int offset, int incr, int height)
      }
      else {
           if (dec->chroma_format==CHROMA420) {
-               if (!(u422 = (unsigned char *)alloca((dec->Coded_Picture_Width>>1)
-                                                    *dec->Coded_Picture_Height)))
-                    MPEG2_Error(dec, "alloca failed");
-               if (!(v422 = (unsigned char *)alloca((dec->Coded_Picture_Width>>1)
-                                                    *dec->Coded_Picture_Height)))
-                    MPEG2_Error(dec, "alloca failed");
+               if (!(u422 = (unsigned char *)DFBMALLOC((dec->Coded_Picture_Width>>1)
+                                                       *dec->Coded_Picture_Height)))
+                    MPEG2_Error(dec, "malloc failed");
+               if (!(v422 = (unsigned char *)DFBMALLOC((dec->Coded_Picture_Width>>1)
+                                                       *dec->Coded_Picture_Height)))
+                    MPEG2_Error(dec, "malloc failed");
           }
 
-          if (!(u444 = (unsigned char *)alloca(dec->Coded_Picture_Width
-                                               *dec->Coded_Picture_Height)))
-               MPEG2_Error(dec, "alloca failed");
+          if (!(u444 = (unsigned char *)DFBMALLOC(dec->Coded_Picture_Width
+                                                  *dec->Coded_Picture_Height)))
+               MPEG2_Error(dec, "malloc failed");
 
-          if (!(v444 = (unsigned char *)alloca(dec->Coded_Picture_Width
-                                               *dec->Coded_Picture_Height)))
-               MPEG2_Error(dec, "alloca failed");
+          if (!(v444 = (unsigned char *)DFBMALLOC(dec->Coded_Picture_Width
+                                                  *dec->Coded_Picture_Height)))
+               MPEG2_Error(dec, "malloc failed");
 
           if (dec->chroma_format==CHROMA420) {
                conv420to422(dec, src[1],u422);
@@ -147,6 +149,20 @@ int offset, int incr, int height)
                                  0xff000000 | (r << 16) | (g << 8) | b,
                                  dec->mpeg2_write_ctx);
           }
+     }
+
+     if (dec->chroma_format!=CHROMA444) {
+          if (u422)
+               DFBFREE( u422 );
+     
+          if (v422)
+               DFBFREE( v422 );
+     
+          if (u444)
+               DFBFREE( u444 );
+     
+          if (v444)
+               DFBFREE( v444 );
      }
 }
 

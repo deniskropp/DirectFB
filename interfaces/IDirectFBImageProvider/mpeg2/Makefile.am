@@ -1,5 +1,9 @@
 ## Makefile.am for DirectFB/interfaces/IDirectFBImageProvider/mpeg2
 
+INCLUDES = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/src
+
 noinst_LTLIBRARIES = libmpeg2decode.la
 
 libmpeg2decode_la_SOURCES = \

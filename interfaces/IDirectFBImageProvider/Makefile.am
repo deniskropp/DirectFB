@@ -25,8 +25,9 @@ endif
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src 	\
-	-DDATADIR=\"@DATADIR@\"
+	-I$(top_srcdir)/src
+
+AM_CPPFLAGS = -DDATADIR=\"@DATADIR@\"
 
 idirectfbimageprovider_LTLIBRARIES = \
 	libidirectfbimageprovider_mpeg2.la	\
