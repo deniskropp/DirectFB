@@ -253,12 +253,12 @@ dnl Test for freetype
 
 
 dnl Test for avifile
+AVIFILE=no
   AC_ARG_ENABLE(avifile, [  --enable-avifile        build AviFile video provider [default=auto]], enable_avifile="$enableval", enable_avifile=yes)
 
   if test x$enable_avifile = xyes; then
     AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
     if test x$AVIFILE_CONFIG = xno; then
-      AVIFILE=no
       AC_MSG_WARN(["*** avifile-config not found -- AVI media provider will not be built."])
     else
       AC_PROG_CXX
