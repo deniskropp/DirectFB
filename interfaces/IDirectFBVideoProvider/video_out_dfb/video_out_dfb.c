@@ -1380,20 +1380,22 @@ vo_dfb_get_property( vo_driver_t *vo_driver,
                return this->config.max_num_frames;
          
           case VO_PROP_WINDOW_WIDTH:
-               if (this->dest) {
+               if (this->ovl || this->dest) {
+                    IDirectFBSurface_data *data = this->ovl_data ? : this->dest_data;
                     xprintf( this->xine, XINE_VERBOSITY_DEBUG,
-                             "video_out_dfb: destination surface width is %i\n",
-                             this->dest_data->area.wanted.w );
-                    return this->dest_data->area.wanted.w;
+                             "video_out_dfb: window width is %i\n",
+                             data->area.wanted.w );
+                    return data->area.wanted.w;
                }
                break;
 
           case VO_PROP_WINDOW_HEIGHT:
-               if (this->dest) {
+               if (this->ovl || this->dest) {
+                    IDirectFBSurface_data *data = this->ovl_data ? : this->dest_data;
                     xprintf( this->xine, XINE_VERBOSITY_DEBUG,
-                             "video_out_dfb: destination surface height is %i\n",
-                             this->dest_data->area.wanted.h );
-                    return this->dest_data->area.wanted.h;
+                             "video_out_dfb: window height is %i\n",
+                             data->area.wanted.h );
+                    return data->area.wanted.h;
                }
                break;
                
@@ -1414,26 +1416,24 @@ vo_dfb_set_output_ratio( dfb_driver_t *this,
      double frame_width  = (this->frame_width ? : 1);
      double frame_height = (this->frame_height ? : 1);
 
-     if (this->aspect_ratio != ratio) {
-          switch (ratio) {
-               case XINE_VO_ASPECT_AUTO:
-                    this->output_ratio = 0.0;
-                    break;
-               case XINE_VO_ASPECT_SQUARE:
-                    this->output_ratio = frame_width/frame_height;
-                    break;
-               case XINE_VO_ASPECT_4_3:
-                    this->output_ratio = 4.0/3.0;
-                    break;
-               case XINE_VO_ASPECT_ANAMORPHIC:
-                    this->output_ratio = 16.0/9.0;
-                    break;
-               case XINE_VO_ASPECT_DVB:
-                    this->output_ratio = 2.0;
-                    break;
-               default:
-                    break;
-          }
+     switch (ratio) {
+          case XINE_VO_ASPECT_AUTO:
+               this->output_ratio = 0.0;
+               break;
+          case XINE_VO_ASPECT_SQUARE:
+               this->output_ratio = frame_width/frame_height;
+               break;
+          case XINE_VO_ASPECT_4_3:
+               this->output_ratio = 4.0/3.0;
+               break;
+          case XINE_VO_ASPECT_ANAMORPHIC:
+               this->output_ratio = 16.0/9.0;
+               break;
+          case XINE_VO_ASPECT_DVB:
+               this->output_ratio = 2.0;
+               break;
+          default:
+               break;
      }
 }
 
