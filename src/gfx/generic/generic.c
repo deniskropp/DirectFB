@@ -2438,6 +2438,18 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
      pthread_mutex_lock( &generic_lock );
 
+     /* Debug checks */
+     if (!state->destination) {
+          BUG("state check: no destination");
+          pthread_mutex_unlock( &generic_lock );
+          return 0;
+     }
+     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
+          BUG("state check: no source");
+          pthread_mutex_unlock( &generic_lock );
+          return 0;
+     }
+     
      dst_caps   = destination->caps;
      dst_height = destination->height;
      dst_format = destination->format;
@@ -2501,6 +2513,14 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     return 0;
                }
                break;
+          case DSPF_LUT8:
+               if (DFB_BLITTING_FUNCTION( accel )) {
+                    ONCE("blitting to LUT8 not supported yet");
+                    pthread_mutex_unlock( &generic_lock );
+                    return 0;
+               }
+               Cop = state->color_index;
+               break;
           default:
                ONCE("unsupported destination format");
                pthread_mutex_unlock( &generic_lock );
@@ -2541,18 +2561,6 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           }
      }
 
-     /* Debug checks */
-     if (!state->destination) {
-          BUG("state check: no destination");
-          pthread_mutex_unlock( &generic_lock );
-          return 0;
-     }
-     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
-          BUG("state check: no source");
-          pthread_mutex_unlock( &generic_lock );
-          return 0;
-     }
-     
      dfb_surfacemanager_lock( dfb_gfxcard_surface_manager() );
 
      if (DFB_BLITTING_FUNCTION( accel )) {

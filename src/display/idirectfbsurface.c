@@ -33,28 +33,29 @@
 
 #include <malloc.h>
 
-#include "directfb.h"
-#include "directfb_internals.h"
+#include <directfb.h>
+#include <directfb_internals.h>
 
-#include "core/core.h"
-#include "core/coredefs.h"
-#include "core/coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "core/gfxcard.h"
-#include "core/fonts.h"
-#include "core/state.h"
-#include "core/surfaces.h"
-#include "core/surfacemanager.h"
+#include <core/gfxcard.h>
+#include <core/fonts.h>
+#include <core/state.h>
+#include <core/palette.h>
+#include <core/surfaces.h>
+#include <core/surfacemanager.h>
 
-#include "media/idirectfbfont.h"
+#include <media/idirectfbfont.h>
 
-#include "idirectfbsurface.h"
-#include "idirectfbpalette.h"
+#include <display/idirectfbsurface.h>
+#include <display/idirectfbpalette.h>
 
-#include "misc/util.h"
-#include "misc/mem.h"
-#include "gfx/convert.h"
-#include "gfx/util.h"
+#include <misc/util.h>
+#include <misc/mem.h>
+#include <gfx/convert.h>
+#include <gfx/util.h>
 
 
 static ReactionResult
@@ -355,6 +356,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
           data->state.modified     |= SMF_DRAWING_FLAGS;
      }
      
+     /* FIXME: search color_index if pixelformat is indexed */
      /* set color */
      data->state.color.r   = r;
      data->state.color.g   = g;
@@ -427,7 +429,17 @@ static DFBResult
 IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
                            __u8 r, __u8 g, __u8 b, __u8 a )
 {
+     CoreSurface *surface;
+     
      INTERFACE_GET_DATA(IDirectFBSurface)
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     /* FIXME: search color_index if pixelformat is indexed */
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          return DFB_UNIMPLEMENTED;
 
      data->state.color.a = a;
      data->state.color.r = r;
@@ -435,6 +447,36 @@ IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
      data->state.color.b = b;
 
      data->state.modified |= SMF_COLOR;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_SetColorIndex( IDirectFBSurface *thiz,
+                                unsigned int      index )
+{
+     CoreSurface *surface;
+     CorePalette *palette;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          return DFB_UNSUPPORTED;
+
+     palette = surface->palette;
+     if (!palette)
+          return DFB_UNSUPPORTED;
+
+     if (index > palette->num_entries)
+          return DFB_INVARG;
+
+     data->state.color        = palette->entries[index];
+     data->state.color_index  = index;
+     data->state.modified    |= SMF_COLOR;
 
      return DFB_OK;
 }
@@ -574,6 +616,8 @@ IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
      if (!data->surface)
           return DFB_DESTROYED;
 
+     /* FIXME: search color_index if pixelformat is indexed */
+     
      data->src_key.r = r;
      data->src_key.g = g;
      data->src_key.b = b;
@@ -597,6 +641,8 @@ IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
      if (!data->surface)
           return DFB_DESTROYED;
 
+     /* FIXME: search color_index if pixelformat is indexed */
+     
      data->dst_key.r = r;
      data->dst_key.g = g;
      data->dst_key.b = b;
@@ -1351,6 +1397,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->SetClip = IDirectFBSurface_SetClip;
      thiz->SetColor = IDirectFBSurface_SetColor;
+     thiz->SetColorIndex = IDirectFBSurface_SetColorIndex;
      thiz->SetSrcBlendFunction = IDirectFBSurface_SetSrcBlendFunction;
      thiz->SetDstBlendFunction = IDirectFBSurface_SetDstBlendFunction;
      thiz->SetPorterDuff = IDirectFBSurface_SetPorterDuff;

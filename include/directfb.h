@@ -684,7 +684,7 @@ typedef struct {
  *
  * Format constants are encoded in the following way (bit 31 - 0):
  *
- * --gg:ffff | eeee:dddc | bbbb:bbbb | aaaa:aaaa
+ * -hgg:ffff | eeee:dddc | bbbb:bbbb | aaaa:aaaa
  *
  * a) pixelformat index<br>
  * b) effective bits per pixel of format<br>
@@ -692,7 +692,8 @@ typedef struct {
  * d) bytes per pixel in a row (1/8 fragment, i.e. bits)<br>
  * e) bytes per pixel in a row (decimal part, i.e. bytes)<br>
  * f) multiplier for planes minus one (1/16 fragment)<br>
- * g) multiplier for planes minus one (decimal part)
+ * g) multiplier for planes minus one (decimal part)<br>
+ * h) indexed pixelformat (using a palette)
  */
 typedef enum {
      DSPF_UNKNOWN        = 0x00000000,  /* no specific format,
@@ -721,7 +722,7 @@ typedef enum {
                                            2x2 subsampled U and V planes */
      DSPF_YV12           = 0x08100C0B,  /* 8 bit Y plane followed by 8 bit
                                            2x2 subsampled V and U planes */
-     DSPF_LUT8           = 0x0010080C   /* 8 bit lookup table (palette) */
+     DSPF_LUT8           = 0x4010080C   /* 8 bit lookup table (palette) */
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
@@ -735,6 +736,8 @@ typedef enum {
 #define DFB_BITS_PER_PIXEL(fmt)         (((fmt) & 0x00FF00) >>  8)
 
 #define DFB_PIXELFORMAT_HAS_ALPHA(fmt)  ((fmt) & 0x010000)
+
+#define DFB_PIXELFORMAT_IS_INDEXED(fmt) ((fmt) & 0x40000000)
 
 #define DFB_BYTES_PER_LINE(fmt,width)   (((((fmt) & 0xFE0000) >> 17) * \
                                           (width)) >> 3)
@@ -1794,6 +1797,10 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       * If you are not using the alpha value it should be set to
       * 0xff to ensure visibility when the code is ported to or
       * used for surfaces with an alpha channel.
+      *
+      * This method should be avoided for surfaces with an indexed
+      * pixelformat, e.g. DSPF_LUT8, otherwise an expensive search
+      * in the color/alpha lookup table occurs.
       */
      DFBResult (*SetColor) (
           IDirectFBSurface         *thiz,
@@ -1801,6 +1808,19 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           __u8                      g,
           __u8                      b,
           __u8                      a
+     );
+
+     /*
+      * Set the color like with SetColor() but using
+      * an index to the color/alpha lookup table.
+      *
+      * This method is only supported by surfaces with an
+      * indexed pixelformat, e.g. DSPF_LUT8. For these formats
+      * this method should be used instead of SetColor().
+      */
+     DFBResult (*SetColorIndex) (
+          IDirectFBSurface         *thiz,
+          unsigned int              index
      );
 
      /*

@@ -62,6 +62,7 @@ struct _CardState {
 
      DFBRegion               clip;         /* clipping rectangle */
      DFBColor                color;        /* color for drawing or modulation */
+     unsigned int            color_index;  /* index to color in palette */
      DFBSurfaceBlendFunction src_blend;    /* blend function for source */
      DFBSurfaceBlendFunction dst_blend;    /* blend function for destination */
      __u32                   src_colorkey; /* colorkey for source */
