@@ -108,6 +108,8 @@ DFB_GRAPHICS_DRIVER( mach64 )
 #define S13( val ) ((val) & 0x3fff)
 #define S14( val ) ((val) & 0x7fff)
 
+static bool mach64DrawLine2D( void *drv, void *dev, DFBRegion *line );
+static bool mach64DrawLine3D( void *drv, void *dev, DFBRegion *line );
 static bool mach64Blit2D( void *drv, void *dev,
                           DFBRectangle *rect, int dx, int dy );
 static bool mach64BlitScale( void *drv, void *dev,
@@ -355,6 +357,8 @@ static void mach64SetState( void *drv, void *dev,
                mach64_waitfifo( mdrv, mdev, 1 );
                mach64_out32( mmio, SCALE_3D_CNTL, mdev->draw_blend );
 
+               funcs->DrawLine = mach64DrawLine3D;
+
                state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE |
                             DFXL_DRAWLINE | DFXL_FILLTRIANGLE;
           } else {
@@ -374,6 +378,8 @@ static void mach64SetState( void *drv, void *dev,
                mach64_out32( mmio, SCALE_3D_CNTL, 0 );
 
                mach64_set_color( mdrv, mdev, state );
+
+               funcs->DrawLine = mach64DrawLine2D;
           }
 
           if (state->drawingflags & DSDRAW_DST_COLORKEY)
@@ -491,17 +497,19 @@ static bool mach64DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      return true;
 }
 
-static bool mach64DrawLine( void *drv, void *dev, DFBRegion *line )
+static void mach64_draw_line( Mach64DriverData *mdrv,
+                              Mach64DeviceData *mdev,
+                              int x1, int y1,
+                              int x2, int y2,
+                              bool draw_3d )
 {
-     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
-     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
      volatile __u8    *mmio = mdrv->mmio_base;
 
      __u32 dst_cntl = 0;
      int   dx, dy;
 
-     dx = line->x2 - line->x1;
-     dy = line->y2 - line->y1;
+     dx = x2 - x1;
+     dy = y2 - y1;
 
      if (dx < 0) {
           dx = -dx;
@@ -520,10 +528,10 @@ static bool mach64DrawLine( void *drv, void *dev, DFBRegion *line )
           mach64_waitfifo( mdrv, mdev, 3 );
 
           mach64_out32( mmio, DST_CNTL, dst_cntl);
-          mach64_out32( mmio, DST_Y_X, (S13( line->x1 ) << 16) | S14( line->y1 ) );
+          mach64_out32( mmio, DST_Y_X, (S13( x1 ) << 16) | S14( y1 ) );
           mach64_out32( mmio, DST_HEIGHT_WIDTH, ((dx+1) << 16) | (dy+1) );
 
-          return true;
+          return;
      }
 
      if (dx < dy) {
@@ -537,12 +545,46 @@ static bool mach64DrawLine( void *drv, void *dev, DFBRegion *line )
      mach64_waitfifo( mdrv, mdev, 6 );
 
      mach64_out32( mmio, DST_CNTL, DST_LAST_PEL | dst_cntl );
-     mach64_out32( mmio, DST_Y_X, (S13( line->x1 ) << 16) | S14( line->y1 ) );
+     mach64_out32( mmio, DST_Y_X, (S13( x1 ) << 16) | S14( y1 ) );
 
-     mach64_out32( mmio, DST_BRES_ERR, -dx );
-     mach64_out32( mmio, DST_BRES_INC,  2*dy );
-     mach64_out32( mmio, DST_BRES_DEC, -2*dx );
-     mach64_out32( mmio, DST_BRES_LNTH, dx+1 );
+     /* Bresenham parameters must be calculated differently
+      * for the 2D and 3D engines.
+      */
+     if (draw_3d) {
+          mach64_out32( mmio, DST_BRES_ERR, -dx );
+          mach64_out32( mmio, DST_BRES_INC, 2*dy );
+          mach64_out32( mmio, DST_BRES_DEC, -2*dx );
+          mach64_out32( mmio, DST_BRES_LNTH, dx+1 );
+     } else {
+          mach64_out32( mmio, DST_BRES_ERR, 2*dy-dx );
+          mach64_out32( mmio, DST_BRES_INC, 2*dy );
+          mach64_out32( mmio, DST_BRES_DEC, 2*dy-2*dx );
+          mach64_out32( mmio, DST_BRES_LNTH, dx+1 );
+     }
+}
+
+static bool mach64DrawLine2D( void *drv, void *dev, DFBRegion *line )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+
+     mach64_draw_line( mdrv, mdev,
+                       line->x1, line->y1,
+                       line->x2, line->y2,
+                       false );
+
+     return true;
+}
+
+static bool mach64DrawLine3D( void *drv, void *dev, DFBRegion *line )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+
+     mach64_draw_line( mdrv, mdev,
+                       line->x1, line->y1,
+                       line->x2, line->y2,
+                       true );
 
      return true;
 }
@@ -899,10 +941,9 @@ driver_init_driver( GraphicsDevice      *device,
 
      funcs->FillRectangle = mach64FillRectangle;
      funcs->DrawRectangle = mach64DrawRectangle;
-     funcs->DrawLine      = mach64DrawLine;
      funcs->FillTriangle  = mach64FillTriangle;
 
-     /* Set dynamically: funcs->Blit, funcs->StretchBlit */
+     /* Set dynamically: funcs->DrawLine, funcs->Blit, funcs->StretchBlit */
 
      switch (mdrv->accelerator) {
           case FB_ACCEL_ATI_MACH64GT:
