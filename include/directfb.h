@@ -3005,9 +3005,9 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       *
       * Optional <b>indices</b> can be used to avoid rearrangement of vertex lists,
       * otherwise the vertex list is processed consecutively, i.e. as if <b>indices</b>
-      * contains ascending numbers starting at zero.
+      * are ascending numbers starting at zero.
       *
-      * The number of <b>indices</b> (if non NULL) or the number of <b>vertices</b> is
+      * Either the number of <b>indices</b> (if non NULL) or the number of <b>vertices</b> is
       * specified by <b>num</b> and has to be three at least. If the chosen <b>formation</b>
       * is DTTF_LIST it also has to be a multiple of three.
       */
@@ -3578,6 +3578,8 @@ typedef struct {
  * Window Event Types - can also be used as flags for event filters.
  */
 typedef enum {
+     DWET_NONE           = 0x00000000,
+
      DWET_POSITION       = 0x00000001,  /* window has been moved by
                                            window manager or the
                                            application itself */
