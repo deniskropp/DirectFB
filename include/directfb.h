@@ -1613,13 +1613,13 @@ extern "C"
           );
 
 
-        /** Leightweight helpers **/
+        /** Lightweight helpers **/
 
           /*
            * Get an interface to a sub area of this surface.
            *
            * No image data is duplicated, this is a clipped graphics within the
-           * original surface. This is very helpful for leightweight components
+           * original surface. This is very helpful for lightweight components
            * in a GUI toolkit.
            * The new surface's state (color, drawingflags, etc.) is independent
            * from this one. So it's a handy graphics context.
