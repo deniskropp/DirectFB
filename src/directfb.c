@@ -310,7 +310,7 @@ apply_configuration( IDirectFB *dfb )
      layer = dfb_layer_at_translated( DLID_PRIMARY );
 
      /* get the default (shared) context */
-     ret = dfb_layer_get_primary_context( layer, &context );
+     ret = dfb_layer_get_primary_context( layer, true, &context );
      if (ret) {
           ERRORMSG( "DirectFB/DirectFBCreate: "
                     "Could not get default context of primary layer!\n" );

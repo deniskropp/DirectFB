@@ -306,7 +306,7 @@ layer_callback( CoreLayer *layer,
      CoreLayerContext *context;
      CoreWindowStack  *stack;
 
-     if (dfb_layer_get_primary_context( layer, &context ))
+     if (dfb_layer_get_primary_context( layer, false, &context ))
           return DFENUM_OK;
 
      stack = dfb_layer_context_windowstack( context );

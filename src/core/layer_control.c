@@ -46,6 +46,7 @@
 #include <core/input.h>
 #include <core/gfxcard.h>
 #include <core/layer_context.h>
+#include <core/layer_control.h>
 #include <core/layer_region.h>
 #include <core/layers.h>
 #include <core/state.h>
@@ -216,6 +217,7 @@ dfb_layer_get_active_context( CoreLayer         *layer,
 
 DFBResult
 dfb_layer_get_primary_context( CoreLayer         *layer,
+                               bool               activate,
                                CoreLayerContext **ret_context )
 {
      DFBResult          ret;
@@ -245,6 +247,16 @@ dfb_layer_get_primary_context( CoreLayer         *layer,
           /* Create the primary (shared) context. */
           ret = dfb_layer_create_context( layer, &contexts->primary );
           if (ret) {
+               fusion_skirmish_dismiss( &shared->lock );
+               return ret;
+          }
+     }
+
+     /* Activate if no context is active? */
+     if (contexts->active < 0 && activate) {
+          ret = dfb_layer_activate_context( layer, contexts->primary );
+          if (ret) {
+               dfb_layer_context_unref( contexts->primary );
                fusion_skirmish_dismiss( &shared->lock );
                return ret;
           }

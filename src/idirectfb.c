@@ -1145,19 +1145,10 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
 
      data->layer = dfb_layer_at_translated( DLID_PRIMARY );
 
-     ret = dfb_layer_get_primary_context( data->layer, &data->context );
+     ret = dfb_layer_get_primary_context( data->layer, true, &data->context );
      if (ret) {
           ERRORMSG( "IDirectFB_Construct: "
                     "Could not get default context of primary layer!\n" );
-          DFB_DEALLOCATE_INTERFACE(thiz);
-          return ret;
-     }
-
-     ret = dfb_layer_activate_context( data->layer, data->context );
-     if (ret) {
-          ERRORMSG( "IDirectFB_Construct: "
-                    "Could not activate default context of primary layer!\n" );
-          dfb_layer_context_unref( data->context );
           DFB_DEALLOCATE_INTERFACE(thiz);
           return ret;
      }

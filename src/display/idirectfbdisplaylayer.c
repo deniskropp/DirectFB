@@ -185,7 +185,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
           case DLSCL_SHARED:
           case DLSCL_ADMINISTRATIVE:
                if (data->level == DLSCL_EXCLUSIVE) {
-                    ret = dfb_layer_get_primary_context( data->layer, &context );
+                    ret = dfb_layer_get_primary_context( data->layer, false, &context );
                     if (ret)
                          return ret;
 
@@ -673,7 +673,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDisplayLayer)
 
-     ret = dfb_layer_get_primary_context( layer, &context );
+     ret = dfb_layer_get_primary_context( layer, true, &context );
      if (ret) {
           DFB_DEALLOCATE_INTERFACE( thiz )
           return ret;

@@ -1515,7 +1515,8 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
                          CoreLayerContext *context;
 
                          /* Get primary (shared) context. */
-                         ret = dfb_layer_get_primary_context( layer, &context );
+                         ret = dfb_layer_get_primary_context( layer,
+                                                              false, &context );
                          if (ret)
                               return false;
 
