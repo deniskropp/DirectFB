@@ -109,46 +109,27 @@ static void Cop_to_Dop_8()
 
 static void Cop_to_Dop_16()
 {
-#ifdef __i386__ /* dont care about alignment */
-
-     int    w = (Dlength >> 1);
-     __u32 *D = (__u32*)Dop;   
-     
-     __u32 DCop = ((Cop << 16) | Cop);
-                        
-     while (w--)        
-          *D++ = DCop;  
-	                   
-     if (Dlength & 1)   
-	     *((__u16*)D) = (__u16)Cop;
-
-#else
-
-     int    w,l=Dlength;
+     int    w, l = Dlength;
      __u32 *D = (__u32*)Dop;
 
      __u32 DCop = ((Cop << 16) | Cop);
 
-     if (((long)D)&2) {		/* align */
-       unsigned short* tmp=Dop;
-       --l;
-       *tmp=Cop;
-       D=(__u32*)(tmp+1);
+     if (((long)D)&2) {         /* align */
+          unsigned short* tmp=Dop;
+          --l;
+          *tmp = Cop;
+          D = (__u32*)(tmp+1);
      }
+
      w = (l >> 1);
-     while (w>3) {		/* unroll 4-times */
-       D[0]=D[1]=D[2]=D[3]=DCop;
-       w-=4;
-       D+=4;
+     while (w) {
+          *D = DCop;
+          --w;
+          ++D;
      }
-     switch (w) {		/* explicitly do the remaining 0-2 double-pixels */
-     case 3: D[2]=DCop;
-     case 2: D[1]=DCop;
-     case 1: D[0]=DCop;
-     }
-     if (l & 1)			/* do the last potential pixel */
+
+     if (l & 1)                 /* do the last potential pixel */
           *((__u16*)D) = (__u16)Cop;
-#endif
 }
 
 static void Cop_to_Dop_24()
@@ -329,7 +310,7 @@ static void Sop_rgb24_Kto_Dop()
           __u8 b = *S;
           __u8 g = *(S+1);
           __u8 r = *(S+2);
-          
+
           if (Skey != (r<<16 | g<<8 | b ))
           {
                *D     = b;
@@ -339,7 +320,7 @@ static void Sop_rgb24_Kto_Dop()
 
           S+=Ostep * 3;
           D+=Ostep * 3 ;
-     }     
+     }
 }
 
 static void Sop_rgb32_Kto_Dop()
@@ -394,7 +375,7 @@ static void Sop_a8_Kto_Dop()
 static GFunc Sop_PFI_Kto_Dop_PFI[] = {
      Sop_rgb15_Kto_Dop,
      Sop_rgb16_Kto_Dop,
-     Sop_rgb24_Kto_Dop,     
+     Sop_rgb24_Kto_Dop,
      Sop_rgb32_Kto_Dop,
      Sop_argb_Kto_Dop,
      Sop_a8_Kto_Dop
@@ -506,14 +487,14 @@ static void Sop_rgb24_SKto_Dop()
      int    i = 0;
      __u8 *D = (__u8*)Dop;
      __u8 *S = (__u8*)Sop;
-     
+
      while (w--) {
           int pixelstart = (i>>16)*3;
-          
+
           __u8 b = S[pixelstart+0];
           __u8 g = S[pixelstart+1];
           __u8 r = S[pixelstart+2];
-     
+
           if (Skey != (r<<16 | g<<8 | b ))
           {
                *D     = b;
@@ -521,7 +502,7 @@ static void Sop_rgb24_SKto_Dop()
                *(D+2) = r;
           }
 
-          D += 3;     
+          D += 3;
           i += SperD;
      }
 }
@@ -636,7 +617,7 @@ static void Sop_rgb24_Sto_Dacc()
 
      while (w--) {
           int pixelstart = (i>>16)*3;
-               
+
           D->a = 0xFF;
           D->r = S[pixelstart+2];
           D->g = S[pixelstart+1];
@@ -765,10 +746,10 @@ static void Sop_rgb24_SKto_Dacc()
 {
      int    w = Dlength;
      int    i = 0;
-     
+
      Accumulator *D = Dacc;
      __u8        *S = (__u8*)Sop;
-     
+
      while (w--) {
           int pixelstart = (i>>16)*3;
 
@@ -779,7 +760,7 @@ static void Sop_rgb24_SKto_Dacc()
           if (Skey != (r<<16 | g<<8 | b ))
           {
                D->a = 0xFF;
-               D->r = r; 
+               D->r = r;
                D->g = g;
                D->b = b;
           }
@@ -787,7 +768,7 @@ static void Sop_rgb24_SKto_Dacc()
                D->a = 0xFF00;
 
           i += SperD;
-     
+
           D++;
      }
 
@@ -1056,9 +1037,9 @@ static void Sop_rgb24_Kto_Dacc()
           __u8 b = *S++;
           __u8 g = *S++;
           __u8 r = *S++;
-     
+
           if (Skey != (r<<16 | g<<8 | b ))
-          {                    
+          {
                D->a = 0xFF;
                D->r = r;
                D->g = g;
@@ -1070,7 +1051,7 @@ static void Sop_rgb24_Kto_Dacc()
           D++;
      }
 }
-     
+
 static void Sop_rgb32_Kto_Dacc()
 {
      int          w = Dlength;
@@ -1284,7 +1265,7 @@ static void Sop_a8_set_alphapixel_Dop_rgb24()
           D+=3;
           S++;
      }
-          
+
 }
 
 static void Sop_a8_set_alphapixel_Dop_rgb32()
@@ -1348,7 +1329,7 @@ static void Xacc_blend_one()
      ONCE("should not be called, please optimize, developer!");
 }
 
-static void Xacc_blend_srccolor() 
+static void Xacc_blend_srccolor()
 {
      ONCE( "Xacc_blend_srccolor() unimplemented" );
 }
@@ -1357,7 +1338,7 @@ static void Xacc_blend_invsrccolor()
 {
      ONCE( "Xacc_blend_invsrccolor() unimplemented" );
 }
-     
+
 static void Xacc_blend_srcalpha()
 {
      int          w = Dlength;
@@ -1491,7 +1472,7 @@ static void Xacc_blend_invdestcolor()
 static void Xacc_blend_srcalphasat()
 {
      ONCE( "Xacc_blend_srcalphasat() unimplemented" );
-}          
+}
 
 static GFunc Xacc_blend[] = {
      Xacc_blend_zero,         /* DSBF_ZERO         */
@@ -2045,11 +2026,11 @@ void gDrawLine( DFBRegion *line )
      dxabs = abs(dx);
 
      /* the vertical distance of the line */
-     dy = line->y2 - line->y1;      
+     dy = line->y2 - line->y1;
      dyabs = abs(dy);
 
      if (!dx || !dy) {              /* draw horizontal/vertical line */
-          DFBRectangle rect = { 
+          DFBRectangle rect = {
                MIN (line->x1, line->x2),
                MIN (line->y1, line->y2),
                dxabs + 1, dyabs + 1 };
@@ -2131,13 +2112,13 @@ void gFillTriangle( DFBTriangle *tri )
 
      if (tri->y2 == tri->y3) {
        gFillTrapezoid( tri->x1, tri->x1,
-		       MIN( tri->x2, tri->x3 ), MAX( tri->x2, tri->x3 ),
-		       tri->y1, tri->y3 - tri->y1 + 1 );
+                       MIN( tri->x2, tri->x3 ), MAX( tri->x2, tri->x3 ),
+                       tri->y1, tri->y3 - tri->y1 + 1 );
      } else
      if (tri->y1 == tri->y2) {
        gFillTrapezoid( MIN( tri->x1, tri->x2 ), MAX( tri->x1, tri->x2 ),
-		       tri->x3, tri->x3,
-		       tri->y1, tri->y3 - tri->y1 + 1 );
+                       tri->x3, tri->x3,
+                       tri->y1, tri->y3 - tri->y1 + 1 );
      }
      else {
        int majDx = tri->x3 - tri->x1;
@@ -2153,13 +2134,13 @@ void gFillTriangle( DFBTriangle *tri )
        int majX2  = tri->x1 + (((majXperY * topDy) + (1<<19)) >> 20);
        int majX2a = majX2 - ((majXperY + (1<<19)) >> 20);
 
-       
+
        gFillTrapezoid( tri->x1, tri->x1,
-		       MIN( X2a, majX2a ), MAX( X2a, majX2a ),
-		       tri->y1, topDy );
+                       MIN( X2a, majX2a ), MAX( X2a, majX2a ),
+                       tri->y1, topDy );
        gFillTrapezoid( MIN( tri->x2, majX2 ), MAX( tri->x2, majX2 ),
-		       tri->x3, tri->x3,
-		       tri->y2, botDy + 1 );
+                       tri->x3, tri->x3,
+                       tri->y2, botDy + 1 );
      }
 }
 
