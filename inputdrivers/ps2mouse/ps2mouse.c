@@ -238,7 +238,7 @@ ps2mouseEventThread( CoreThread *thread, void *driver_data )
 
 
 static int
-ps2WriteChar( int fd, unsigned char c, int verbose )
+ps2WriteChar( int fd, unsigned char c, bool verbose )
 {
      struct timeval tv;
      fd_set fds;
@@ -267,7 +267,7 @@ ps2WriteChar( int fd, unsigned char c, int verbose )
 
 
 static int
-ps2GetId( int fd, int verbose )
+ps2GetId( int fd, bool verbose )
 {
      unsigned char c;
 
@@ -281,7 +281,7 @@ ps2GetId( int fd, int verbose )
 
 
 static int
-ps2Write( int fd, const unsigned char *data, size_t len, int verbose)
+ps2Write( int fd, const unsigned char *data, size_t len, bool verbose)
 {
      int i;
      int error = 0;
@@ -301,9 +301,8 @@ ps2Write( int fd, const unsigned char *data, size_t len, int verbose)
 }
 
 
-
 static int
-init_ps2( int fd, int verbose )
+init_ps2( int fd, bool verbose )
 {
      static const unsigned char basic_init[] =
      { PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100 };
@@ -313,9 +312,36 @@ init_ps2( int fd, int verbose )
      { PS2_SET_SCALE11, PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100, PS2_SET_RES, 3 };
      int mouseId;
 
-     ps2Write(fd, basic_init, sizeof (basic_init), verbose);
+     struct timeval tv;
+     fd_set fds;
+     int count = 100;
+
+     /* read all data from the file descriptor before initializing the mouse */
+     while (true) {
+          unsigned char buf[64];
+
+          tv.tv_sec  = 0;
+          tv.tv_usec = 50000;       /*  timeout 1/50 sec  */
+
+          FD_ZERO( &fds );
+          FD_SET( fd, &fds );
+
+          if (select( fd+1, &fds, NULL, NULL, &tv )) 
+               read( fd, buf, sizeof(buf) );
+          else
+               break;
+
+          if (! --count) {
+               ERRORMSG( "DirectFB/PS2Mouse: "
+                         "PS/2 mouse keeps sending data, "
+                         "initialization failed\n" );
+               return -1;
+          }
+     }
+
+     ps2Write( fd, basic_init, sizeof (basic_init), verbose );
      /* Do a basic init in case the mouse is confused */
-     if (ps2Write(fd, basic_init, sizeof (basic_init), verbose) != 0) {
+     if (ps2Write( fd, basic_init, sizeof (basic_init), verbose ) != 0) {
           if (verbose)
                ERRORMSG( "DirectFB/PS2Mouse: PS/2 mouse failed init\n" );
           return -1;
@@ -351,11 +377,11 @@ driver_get_available()
      if (dfb_system_type() != CORE_FBDEV)
           return 0;
 
-     for (i=0; i<sizeof(devname)/sizeof(devname[0]); i++) {
+     for (i = 0; i < sizeof(devname) / sizeof(devname[0]); i++) {
           fd = open( devname[i], O_RDWR | O_SYNC );
 
           if (fd >= 0) {
-               if (init_ps2 (fd, 0) >= 0) {
+               if (init_ps2( fd, false ) >= 0) {
                     devlist[n_dev] = devname[i];
                     n_dev++;
                }
@@ -400,7 +426,7 @@ driver_open_device( InputDevice      *device,
           return DFB_INIT;
      }
 
-     if ((mouseId = init_ps2(fd, 1)) < 0) {
+     if ((mouseId = init_ps2(fd, true)) < 0) {
           PERRORMSG( "DirectFB/PS2Mouse: could not initialize mouse on `%s'!\n",
                      devlist[number] );
           close( fd );
@@ -411,7 +437,8 @@ driver_open_device( InputDevice      *device,
      snprintf( info->desc.name, DFB_INPUT_DEVICE_DESC_NAME_LENGTH,
                (mouseId == PS2_ID_IMPS2) ? "IMPS/2 Mouse" : "PS/2 Mouse" );
 
-     snprintf( info->desc.vendor, DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "Unknown" );
+     snprintf( info->desc.vendor,
+               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "Unknown" );
 
      info->prefered_id     = DIDID_MOUSE;
      info->desc.type       = DIDTF_MOUSE;
