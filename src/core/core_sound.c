@@ -420,10 +420,16 @@ fs_core_initialize( CoreSound *core )
 
      /* set sample rate */
      if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
-          ERRORMSG( "FusionSound/Core: "
-                    "Unable to set rate to '%ld'!\n", shared->config.rate );
-          close( fd );
-          return DFB_UNSUPPORTED;
+          rate = 44100;
+
+          if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
+               ERRORMSG( "FusionSound/Core: "
+                         "Unable to set rate to '%ld'!\n", shared->config.rate );
+               close( fd );
+               return DFB_UNSUPPORTED;
+          }
+
+          shared->config.rate = 44100;
      }
 
      /* query block size */
@@ -558,7 +564,7 @@ fs_core_arena_initialize( FusionArena *arena,
 #endif
      shared->config.bits     = 16;
      shared->config.channels = 2;
-     shared->config.rate     = 44100;
+     shared->config.rate     = 48000;
 
      /* Initialize. */
      ret = fs_core_initialize( core );
