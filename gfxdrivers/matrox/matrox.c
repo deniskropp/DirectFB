@@ -1500,11 +1500,11 @@ driver_init_device( GraphicsDevice     *device,
      bool              g450, g550, sgram = false;
      DFBResult         ret;
 
-     if ((ret = matrox_find_pci_device( &bus, &slot, &func )))
-          return ret;
-
      switch (mdrv->accelerator) {
           case FB_ACCEL_MATROX_MGAG400:
+               if ((ret = matrox_find_pci_device( &bus, &slot, &func )))
+                    return ret;
+
                g550  = ((pci_config_in32( bus, slot, func, 0x00 ) >> 16) ==
                         PCI_DEVICE_ID_MATROX_G550);
                g450  = ((pci_config_in32( bus, slot, func, 0x08 ) & 0xFF) >= 0x80);
@@ -1515,6 +1515,9 @@ driver_init_device( GraphicsDevice     *device,
                mdev->g450_matrox = g450 || g550;
                break;
           case FB_ACCEL_MATROX_MGAG200:
+               if ((ret = matrox_find_pci_device( &bus, &slot, &func )))
+                    return ret;
+
                sgram = ((pci_config_in32( bus, slot, func, 0x40 ) & 0x4000) == 0x4000);
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G200" );
@@ -1532,6 +1535,9 @@ driver_init_device( GraphicsDevice     *device,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium I" );
                break;
           case FB_ACCEL_MATROX_MGA1064SG:
+               if ((ret = matrox_find_pci_device( &bus, &slot, &func )))
+                    return ret;
+
                mdev->old_matrox = true;
                sgram            = ((pci_config_in32( bus, slot, func, 0x40 ) & 0x4000) == 0x4000);
                snprintf( device_info->name,
