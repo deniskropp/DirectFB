@@ -195,6 +195,8 @@ static DisplayLayerFuncs primaryLayerFuncs = {
      /* default DeallocateSurface copes with our chunkless video buffers */
 };
 
+static const int zero = 0;
+
 static DFBResult dfb_fbdev_read_modes();
 static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
 #ifdef SUPPORT_RGB332
@@ -633,7 +635,7 @@ system_wait_vsync()
 
 #ifdef FBIO_WAITFORVSYNC
      dfb_gfxcard_sync();
-     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, 0 ))
+     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ))
 #endif
           waitretrace();
 

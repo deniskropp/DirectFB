@@ -89,6 +89,8 @@ typedef struct {
      struct mavenregs mr;
 } MatroxCrtc2LayerData;
 
+static const int one = 1;
+
 static void crtc2_wait_vsync( MatroxDriverData *mdrv );
 static void crtc2_set_mafc( MatroxDriverData *mdrv, int on );
 static void crtc2_set_regs( MatroxDriverData *mdrv, MatroxCrtc2LayerData *mcrtc2 );
@@ -398,14 +400,13 @@ DisplayLayerFuncs matroxCrtc2Funcs = {
 
 static void crtc2_wait_vsync( MatroxDriverData *mdrv )
 {
+     int vdisplay = (dfb_config->matrox_ntsc ? 486/2 : 576/2) + 2;
 #ifdef FBIO_WAITFORVSYNC
      dfb_gfxcard_sync();
-     ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, 1 );
-#else
-     int vdisplay = (dfb_config->matrox_ntsc ? 486/2 : 576/2) + 2;
+     ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &one );
+#endif
      while ((mga_in32( mdrv->mmio_base, C2VCOUNT ) & 0x00000FFF) != vdisplay)
           ;
-#endif
 }
 
 static void crtc2_set_mafc( MatroxDriverData     *mdrv,
