@@ -445,7 +445,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       * stopping of the playback.
       */
      DFBResult (*GetPlayback) (
-          IFusionSoundBuffer       *thiz,
+          IFusionSoundStream       *thiz,
           IFusionSoundPlayback    **interface
      );
 )

@@ -340,7 +340,8 @@ sound_thread( CoreThread *thread, void *arg )
           else
                ONCE( "SNDCTL_DSP_GETOSPACE failed!" );
 
-          if (empty = !shared->playlist.entries) {
+          empty = !shared->playlist.entries;
+          if (empty) {
                usleep( 20000 );
                continue;
           }

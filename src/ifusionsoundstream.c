@@ -362,7 +362,7 @@ IFusionSoundStream_GetPresentationDelay( IFusionSoundStream *thiz,
 }
 
 static DFBResult
-IFusionSoundStream_GetPlayback( IFusionSoundBuffer    *thiz,
+IFusionSoundStream_GetPlayback( IFusionSoundStream    *thiz,
                                 IFusionSoundPlayback **ret_interface )
 {
      DFBResult             ret;
