@@ -1973,19 +1973,19 @@ typedef enum {
  * Test picture mode.
  */
 typedef enum {
-     DSETP_OFF            = 0x00000000, /* Disable test picture. */
+     DSETP_OFF      = 0x00000000,  /* Disable test picture. */
 
-     DSETP_MULTI_COLOR    = 0x00000001, /* Show color bars. */
-     DSETP_SINGLE_COLOR   = 0x00000002, /* Whole screen as defined in configuration. */
+     DSETP_MULTI    = 0x00000001,  /* Show color bars. */
+     DSETP_SINGLE   = 0x00000002,  /* Whole screen as defined in configuration. */
 
-     DSETP_SINGLE_WHITE   = 0x00000010, /* Whole screen (ff, ff, ff). */
-     DSETP_SINGLE_YELLOW  = 0x00000020, /* Whole screen (ff, ff, 00). */
-     DSETP_SINGLE_CYAN    = 0x00000030, /* Whole screen (00, ff, ff). */
-     DSETP_SINGLE_GREEN   = 0x00000040, /* Whole screen (00, ff, 00). */
-     DSETP_SINGLE_MAGENTA = 0x00000050, /* Whole screen (ff, 00, ff). */
-     DSETP_SINGLE_RED     = 0x00000060, /* Whole screen (ff, 00, 00). */
-     DSETP_SINGLE_BLUE    = 0x00000070, /* Whole screen (00, 00, ff). */
-     DSETP_SINGLE_BLACK   = 0x00000080  /* Whole screen (00, 00, 00). */
+     DSETP_WHITE    = 0x00000010,  /* Whole screen (ff, ff, ff). */
+     DSETP_YELLOW   = 0x00000020,  /* Whole screen (ff, ff, 00). */
+     DSETP_CYAN     = 0x00000030,  /* Whole screen (00, ff, ff). */
+     DSETP_GREEN    = 0x00000040,  /* Whole screen (00, ff, 00). */
+     DSETP_MAGENTA  = 0x00000050,  /* Whole screen (ff, 00, ff). */
+     DSETP_RED      = 0x00000060,  /* Whole screen (ff, 00, 00). */
+     DSETP_BLUE     = 0x00000070,  /* Whole screen (00, 00, ff). */
+     DSETP_BLACK    = 0x00000080   /* Whole screen (00, 00, 00). */
 } DFBScreenEncoderTestPicture;
 
 /*
