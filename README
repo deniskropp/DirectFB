@@ -13,7 +13,7 @@ DirectFB README
 Requirements
 ------------
 
-   - Linux kernel 2.4.x with working framebuffer device (check /proc/fb).
+   - Linux kernel 2.2.x with working framebuffer device (check /proc/fb).
 
    - freetype 2.0.1
    - libpng2
