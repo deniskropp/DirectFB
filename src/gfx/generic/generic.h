@@ -61,51 +61,36 @@ void gInit_MMX();
 #endif
 
 
-
 #define SET_ALPHA_PIXEL_RGB15(d,r,g,b,a) \
      if (a) {\
-          __u16 pixel;\
-          \
-          if (a == 0xFF) {\
-               pixel = ((r&0xF8) << 7) | ((g&0xF8) << 2) | ((b&0xF8) >> 3);\
+          if ((a) == 0xff) {\
+               *(d) = (((r)&0xf8) << 7) | (((g)&0xf8) << 2) | (((b)&0xf8) >> 3);\
           }\
           else {\
-               __u8 dr, dg, db;\
-               __u8 ar, ag, ab;\
+               __u32 pixel = *(d);\
+               __u8  s = ((a)>>3)+1;\
+               __u8 s1 = 32-s;\
                \
-               pixel = *(d);\
-               dr = (pixel & 0x7C00) >> 10;\
-               dg = (pixel & 0x03E0) >> 5;\
-               db = (pixel & 0x001F);\
-               ar = ((((a)+1)*((r)>>3))>>8)  + dr - ((((a)+1)*dr) >> 8);\
-               ag = ((((a)+1)*((g)>>3))>>8)  + dg - ((((a)+1)*dg) >> 8);\
-               ab = ((((a)+1)*((b)>>3))>>8)  + db - ((((a)+1)*db) >> 8);\
-               pixel = (ar << 10) | (ag << 5) | (ab);\
+               pixel = (((((pixel & 0x00007c1f) * s1) + (((((r)&0xf8)<<7) | ((b)>>3)) * s)) & 0x000f83e0) + \
+                        ((((pixel & 0x000003e0) * s1) +   (((g)<<2)* s)) & 0x00007c00)) >> 5;\
+               *(d) = pixel;\
           }\
-          *(d) = pixel;\
      }
 
 #define SET_ALPHA_PIXEL_RGB16(d,r,g,b,a) \
      if (a) {\
-          __u16 pixel;\
-          \
-          if (a == 0xFF) {\
-               pixel = ((r&0xF8) << 8) | ((g&0xFC) << 3) | ((b&0xF8) >> 3);\
+          if ((a) == 0xff) {\
+               *(d) = (((r)&0xf8) << 8) | (((g)&0xfc) << 3) | (((b)&0xf8) >>3);\
           }\
           else {\
-               __u8 dr, dg, db;\
-               __u8 ar, ag, ab;\
+               __u32 pixel = *(d);\
+               __u8  s = ((a)>>2)+1;\
+               __u8 s1 = 64-s;\
                \
-               pixel = *(d);\
-               dr = (pixel & 0xF800) >> 11;\
-               dg = (pixel & 0x07E0) >> 5;\
-               db = (pixel & 0x001F);\
-               ar = ((((a)+1)*((r)>>3))>>8)  + dr - ((((a)+1)*dr) >> 8);\
-               ag = ((((a)+1)*((g)>>2))>>8)  + dg - ((((a)+1)*dg) >> 8);\
-               ab = ((((a)+1)*((b)>>3))>>8)  + db - ((((a)+1)*db) >> 8);\
-               pixel = (ar << 11) | (ag << 5) | (ab);\
+               pixel = (((((pixel & 0x0000f81f) * s1) + (((((r)&0xf8)<<8) | ((b)>>3)) * s)) & 0x003e07c0) + \
+                        ((((pixel & 0x000007e0) * s1) +   (((g)<<3) * s)) & 0x0001f800)) >> 6;\
+               *(d) = pixel;\
           }\
-          *(d) = pixel;\
      }
 
 #define SET_ALPHA_PIXEL_RGB24(d,r,g,b,a)\
@@ -127,7 +112,6 @@ void gInit_MMX();
           *dd   = ar;\
      }
 
-/* fefe code */
 #define SET_ALPHA_PIXEL_RGB32(d,r,g,b,a)\
      { \
           __u32 pixel=*(d); \
@@ -138,25 +122,6 @@ void gInit_MMX();
      	        ((((pixel & 0x0000ff00) * s1) + (((g)<<8) * s)) & 0x00ff0000)) >> 8; \
      }
 
-
-/* old code */
-/*
-#define SET_ALPHA_PIXEL_RGB32(d,r,g,b,a)\
-     { \
-          __u8  dr, dg, db; \
-          __u8  ar, ag, ab; \
-          __u32 pixel = *(d);\
-          \
-          dr = (pixel & 0x00FF0000) >> 16;\
-          dg = (pixel & 0x0000FF00) >> 8;\
-          db = (pixel & 0x000000FF);\
-          ar = ((((a)+1)*(r))>>8)  + dr - ((((a)+1)*dr) >> 8);\
-          ag = ((((a)+1)*(g))>>8)  + dg - ((((a)+1)*dg) >> 8);\
-          ab = ((((a)+1)*(b))>>8)  + db - ((((a)+1)*db) >> 8);\
-          pixel = (ar << 16) | (ag << 8) | (ab);\
-          *(d) = pixel;\
-     }
-*/
 
 #define SET_ALPHA_PIXEL_ARGB(d,r,g,b,a)\
      { \
