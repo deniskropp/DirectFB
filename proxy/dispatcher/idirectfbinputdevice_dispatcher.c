@@ -262,33 +262,63 @@ static DirectResult
 Dispatch_GetID( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
                 VoodooManager *manager, VoodooRequestMessage *msg )
 {
+     DirectResult     ret;
+     DFBInputDeviceID id;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Dispatcher)
 
-     D_UNIMPLEMENTED();
+     ret = real->GetID( real, &id );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_ID, id,
+                                    VMBT_NONE );
 }
 
 static DirectResult
 Dispatch_GetDescription( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
                          VoodooManager *manager, VoodooRequestMessage *msg )
 {
+     DirectResult              ret;
+     DFBInputDeviceDescription desc;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Dispatcher)
 
-     D_UNIMPLEMENTED();
+     ret = real->GetDescription( real, &desc );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(desc), &desc,
+                                    VMBT_NONE );
 }
 
 static DirectResult
 Dispatch_GetKeymapEntry( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
-                VoodooManager *manager, VoodooRequestMessage *msg )
+                         VoodooManager *manager, VoodooRequestMessage *msg )
 {
+     DirectResult              ret;
+     VoodooMessageParser       parser;
+     int                       keycode;
+     DFBInputDeviceKeymapEntry entry;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Dispatcher)
 
-     D_UNIMPLEMENTED();
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_INT( parser, keycode );
+     VOODOO_PARSER_END( parser );
 
-     return DFB_UNIMPLEMENTED;
+     ret = real->GetKeymapEntry( real, keycode, &entry );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(entry), &entry,
+                                    VMBT_NONE );
 }
 
 static DirectResult

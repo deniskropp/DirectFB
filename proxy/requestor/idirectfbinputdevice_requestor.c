@@ -95,14 +95,37 @@ static DFBResult
 IDirectFBInputDevice_Requestor_GetID( IDirectFBInputDevice *thiz,
                                       DFBInputDeviceID     *ret_id )
 {
+     DFBResult              ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     DFBInputDeviceID       id;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Requestor)
 
      if (!ret_id)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBINPUTDEVICE_METHOD_ID_GetID, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_ID( parser, id );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_id = id;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -194,14 +217,35 @@ static DFBResult
 IDirectFBInputDevice_Requestor_GetDescription( IDirectFBInputDevice      *thiz,
                                                DFBInputDeviceDescription *ret_desc )
 {
+     DFBResult              ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Requestor)
 
      if (!ret_desc)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBINPUTDEVICE_METHOD_ID_GetDescription,
+                                   VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_READ_DATA( parser, ret_desc, sizeof(DFBInputDeviceDescription) );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -209,14 +253,36 @@ IDirectFBInputDevice_Requestor_GetKeymapEntry( IDirectFBInputDevice      *thiz,
                                                int                        keycode,
                                                DFBInputDeviceKeymapEntry *ret_entry )
 {
+     DFBResult              ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Requestor)
 
      if (!ret_entry)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBINPUTDEVICE_METHOD_ID_GetKeymapEntry,
+                                   VREQ_RESPOND, &response,
+                                   VMBT_INT, keycode,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_READ_DATA( parser, ret_entry, sizeof(DFBInputDeviceKeymapEntry) );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return DFB_OK;
 }
 
 static DFBResult
