@@ -3,7 +3,7 @@ Installation
 
 1) Patch your kernel
 
-	patch -p1 < fusion-full-linux-2.4.21.patch
+	patch -p1 < fusion-full-linux-2.4.22.patch
 
 2) Enable the character device driver module "Fusion Kernel Device",
    build and install modules, insmod fusion.
