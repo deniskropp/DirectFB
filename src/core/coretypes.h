@@ -25,6 +25,8 @@
 #define __CORETYPES_H__
 
 
+typedef struct _CoreCleanup      CoreCleanup;
+
 typedef struct _CoreFont         CoreFont;
 typedef struct _CoreSurface      CoreSurface;
 typedef struct _CoreWindow       CoreWindow;

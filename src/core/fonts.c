@@ -34,6 +34,7 @@
 #include "reactor.h"
 #include "surfaces.h"
 
+#include "misc/mem.h"
 #include "misc/tree.h"
 #include "misc/util.h"
 
@@ -51,7 +52,7 @@ void fonts_destruct (CoreFont *font)
      for (i = 0; i < font->rows; i++) {
           surface_destroy (font->surfaces[i]);
      }
-     free (font->surfaces);
+     DFBFREE(font->surfaces);
      font->surfaces = NULL;
      font->rows = 0;
 }

@@ -35,7 +35,8 @@
 #include "directfb.h"
 #include "directfb_internals.h"
 
-#include <misc/util.h>
+#include "misc/util.h"
+#include "misc/mem.h"
 
 #include "core.h"
 #include "coredefs.h"
@@ -86,7 +87,7 @@ void vt_close()
 
      close( vt->fd0 );
 
-     free( vt );
+     DFBFREE( vt );
      vt = NULL;
 }
 
@@ -117,7 +118,7 @@ DFBResult vt_open()
                                     "Error opening `/dev/vc/0'!\n" );
                     }
 
-                    free( vt );
+                    DFBFREE( vt );
                     vt = NULL;
 
                     return DFB_INIT;
@@ -126,7 +127,7 @@ DFBResult vt_open()
           else {
                PERRORMSG( "DirectFB/core/vt: Error opening `/dev/tty0'!\n");
 
-               free( vt );
+               DFBFREE( vt );
                vt = NULL;
 
                return DFB_INIT;
@@ -136,7 +137,7 @@ DFBResult vt_open()
      if (ioctl( vt->fd0, VT_GETSTATE, &vs ) < 0) {
           PERRORMSG( "DirectFB/core/vt: VT_GETSTATE failed!\n" );
           close( vt->fd0 );
-          free( vt );
+          DFBFREE( vt );
           vt = NULL;
           return DFB_INIT;
      }
@@ -153,7 +154,7 @@ DFBResult vt_open()
           if (n < 0 || vt->num == -1) {
                PERRORMSG( "DirectFB/core/vt: Cannot allocate VT!\n" );
                close( vt->fd0 );
-               free( vt );
+               DFBFREE( vt );
                vt = NULL;
                return DFB_INIT;
           }
@@ -163,7 +164,7 @@ DFBResult vt_open()
                     continue;
                PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE failed!\n" );
                close( vt->fd0 );
-               free( vt );
+               DFBFREE( vt );
                vt = NULL;
                return DFB_INIT;
           }
@@ -173,7 +174,7 @@ DFBResult vt_open()
                     continue;
                PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE failed!\n" );
                close( vt->fd0 );
-               free( vt );
+               DFBFREE( vt );
                vt = NULL;
                return DFB_INIT;
           }
@@ -190,7 +191,7 @@ DFBResult vt_open()
           }
 
           close( vt->fd0 );
-          free( vt );
+          DFBFREE( vt );
           vt = NULL;
           return ret;
      }

@@ -80,6 +80,11 @@ extern InputDevice *inputdevices;
  */
 DFBResult input_init_devices();
 
+/*
+ * cancels input threads, deinitializes drivers, deallocates device structs
+ */
+void input_deinit();
+
 DFBResult input_suspend();
 DFBResult input_resume();
 

@@ -1,0 +1,115 @@
+/*
+   (c) Copyright 2000  convergence integrated media GmbH.
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@convergence.de> and
+              Andreas Hundt <andi@convergence.de>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#ifndef __MISC__MEM_H__
+#define __MISC__MEM_H__
+
+#include <config.h>
+
+#include <stdlib.h>
+#include <string.h>
+
+
+#ifdef DFB_DEBUG
+
+void  dbg_free( char *file, int line, char *func, char *what, void *mem );
+void *dbg_malloc( char *file, int line, char *func, size_t bytes );
+void *dbg_calloc( char *file, int line, char *func, size_t count, size_t bytes);
+void *dbg_realloc( char *file, int line, char *func, char *what, void *mem,
+                   size_t bytes );
+char *dbg_strdup( char *file, int line, char *func, const char *string );
+
+#define DFBFREE(mem)           dbg_free( __FILE__, __LINE__, __FUNCTION__, \
+                                         #mem,mem )
+#define DFBMALLOC(bytes)       dbg_malloc( __FILE__, __LINE__, __FUNCTION__, \
+                                           bytes )
+#define DFBCALLOC(count,bytes) dbg_calloc( __FILE__, __LINE__, __FUNCTION__, \
+                                           count, bytes )
+#define DFBREALLOC(mem,bytes)  dbg_realloc( __FILE__, __LINE__, __FUNCTION__, \
+                                            #mem, mem, bytes )
+#define DFBSTRDUP(string)      dbg_strdup( __FILE__, __LINE__, __FUNCTION__, \
+                                           string )
+
+#else
+
+#define DFBFREE free
+#define DFBMALLOC malloc
+#define DFBCALLOC calloc
+#define DFBREALLOC realloc
+#define DFBSTRDUP strdup
+
+#endif
+
+
+
+
+/** old code **/
+
+#if 0
+#ifdef DFB_DEBUG
+
+static inline void *dfbmalloc( int n, const char *function,
+                               const char *file, int line )
+{
+     DEBUGMSG( "DirectFB/malloc: %9d bytes in %s (%s, %d)\n",
+               n, function, file, line );
+
+     return malloc( n );
+}
+
+static inline void *dfbcalloc( int i, int n, const char *function,
+                               const char *file, int line )
+{
+     DEBUGMSG( "DirectFB/calloc: %9d bytes (%d*%d) in %s (%s, %d)\n",
+               i*n, i, n, function, file, line );
+
+     return calloc( i, n );
+}
+
+static inline void *dfbrealloc( void *p, int n, const char *name,
+                                const char *function, const char *file,
+                                int line )
+{
+     DEBUGMSG( "DirectFB/realloc: %9d bytes (%s) in %s (%s, %d)\n",
+               n, name, function, file, line );
+
+     return realloc( p, n );
+}
+
+#define DFBMALLOC(n)     dfbmalloc( n, __FUNCTION__, __FILE__, __LINE__ )
+#define DFBCALLOC(i, n)  dfbcalloc( i, n, __FUNCTION__, __FILE__, __LINE__ )
+#define DFBREALLOC(p, n) dfbrealloc( p, n, #p, __FUNCTION__, __FILE__, __LINE__)
+
+#else
+
+#define DFBMALLOC(n)     malloc( n )
+#define DFBCALLOC(i, n)  calloc( i, n )
+#define DFBREALLOC(p, n) realloc( p, n )
+
+#endif
+#endif
+
+
+
+#endif
+

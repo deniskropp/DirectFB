@@ -24,12 +24,15 @@
 #ifndef __CORE_H__
 #define __CORE_H__
 
+#include "coretypes.h"
 
 typedef enum {
      MODULE_LOADED_CONTINUE,
      MODULE_LOADED_STOP,
      MODULE_REJECTED
 } CoreModuleLoadResult;
+
+typedef void (*CoreCleanupFunc)(void *data, int emergency);
 
 DFBResult core_load_modules( char *module_dir,
                              CoreModuleLoadResult (*handle_func)(void *handle,
@@ -55,14 +58,13 @@ void core_deinit();
 void core_deinit_emergency();
 
 /*
- * puts a funtion that is called by core_deinit() on the cleanup stack
+ * adds a function that is called by core_deinit() to the cleanup stack,
+ * if emergency is not 0, the cleanup is even called by core_deinit_emergency()
  */
-void core_cleanup_push( void (*cleanup_func)() );
+CoreCleanup *core_cleanup_add( CoreCleanupFunc cleanup,
+                               void *data, int emergency );
 
-/*
- * puts a funtion that is called by core_deinit() cleanup stack at last
- */
-void core_cleanup_last( void (*cleanup_func)() );
+void core_cleanup_remove( CoreCleanup *cleanup );
 
 #endif
 

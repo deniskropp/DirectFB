@@ -52,6 +52,8 @@ typedef struct _Chunk
  */
 DFBResult surfacemanager_init_heap();
 
+void surfacemanager_deinit();
+
 /*
  * adjust the offset within the framebuffer for surface storage,
  * needs to be called after a resolution switch

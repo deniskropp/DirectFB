@@ -31,6 +31,7 @@
 #include <malloc.h>
 
 #include <misc/util.h>
+#include <misc/mem.h>
 
 #include <directfb.h>
 #include <directfb_internals.h>
@@ -131,13 +132,13 @@ void IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
      IDirectFBImageProvider_PNG_data *data =
                                    (IDirectFBImageProvider_PNG_data*)thiz->priv;
 
-     free( data->filename );
+     DFBFREE( data->filename );
      
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 

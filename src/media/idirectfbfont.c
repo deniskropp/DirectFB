@@ -38,6 +38,7 @@
 #include "idirectfbfont.h"
 
 #include "misc/utf8.h"
+#include "misc/mem.h"
 #include "misc/util.h"
 
 /*
@@ -251,12 +252,12 @@ void IDirectFBFont_Destruct( IDirectFBFont *thiz )
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
 
      fonts_destruct (data->font);
-     free (data->font);
+     DFBFREE(data->font);
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }

@@ -50,6 +50,7 @@
 
 #include "misc/gfx_util.h"
 #include "misc/utf8.h"
+#include "misc/mem.h"
 #include "misc/util.h"
 
 
@@ -59,75 +60,13 @@ GfxCard *card = NULL;
 unsigned int intel_cpu_features();
 #endif
 
+static CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
+                                                        char *name,
+                                                        void *ctx );
+static GfxDriver* gfxcard_find_driver();
 
-CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
-                                                 char *name,
-                                                 void *ctx )
-{
-     GfxDriver *driver = (GfxDriver*)ctx;
 
-     driver->Probe  = dlsym( handle, "driver_probe" );
-     if (driver->Probe) {
-          if ( driver->Probe( fbdev->fd, card )) {
-               driver->Init       = dlsym( handle, "driver_init"   );
-               driver->InitLayers = dlsym( handle, "driver_init_layers" );
-               driver->DeInit     = dlsym( handle, "driver_deinit" );
-
-               if (driver->Init  &&  driver->DeInit)
-                    return MODULE_LOADED_STOP;
-
-               DLERRORMSG( "DirectFB/core/gfxcards: "
-                           "Probe succeeded but Init/DeInit "
-                           "symbols not found in `%s'!\n", name );
-          }
-     }
-     else
-          DLERRORMSG( "DirectFB/core/gfxcards: "
-                      "Could not link probe function of `%s'!\n", name );
-
-     return MODULE_REJECTED;
-}
-
-GfxDriver* gfxcard_find_driver()
-{
-     GfxDriver *driver;
-     char      *driver_dir = MODULEDIR"/gfxdrivers";
-
-     if (dfb_config->software_only)
-          return NULL;
-
-     driver = DFBCALLOC( 1, sizeof(GfxDriver) );
-
-     if (core_load_modules( driver_dir,
-                            gfxcard_driver_handle_func, (void*)driver ))
-     {
-          free( driver );
-          driver = NULL;
-     }
-
-     return driver;
-}
-
-static void gfxcard_deinit()
-{
-     if (!card) {
-          BUG( "gfxcard_deinit without gfxcard_init!?" );
-          return;
-     }
-
-     gfxcard_sync();
-
-     if (card->info.driver && card->info.driver->DeInit)
-          card->info.driver->DeInit();
-
-     munmap( (char*)card->framebuffer.base, card->framebuffer.length );
-
-     if (card->info.driver)
-          free( card->info.driver );
-
-     free( card );
-     card = NULL;
-}
+/** public **/
 
 DFBResult gfxcard_init()
 {
@@ -164,7 +103,7 @@ DFBResult gfxcard_init()
      if (ioctl( fbdev->fd, FBIOGET_FSCREENINFO, &card->fix ) < 0) {
           PERRORMSG( "DirectFB/core/gfxcard: "
                      "Could not get fixed screen information!\n" );
-          free( card );
+          DFBFREE( card );
           card = NULL;
           return DFB_INIT;
      }
@@ -176,7 +115,7 @@ DFBResult gfxcard_init()
      if ((int)(card->framebuffer.base) == -1) {
           PERRORMSG( "DirectFB/core/gfxcard: "
                      "Could not mmap the framebuffer!\n");
-          free( card );
+          DFBFREE( card );
           card = NULL;
           return DFB_INIT;
      }
@@ -192,8 +131,8 @@ DFBResult gfxcard_init()
                if (ret) {
                     munmap( (char*)card->framebuffer.base,
                             card->framebuffer.length );
-                    free( driver );
-                    free( card );
+                    DFBFREE( driver );
+                    DFBFREE( card );
                     card = NULL;
                     return ret;
                }
@@ -212,9 +151,30 @@ DFBResult gfxcard_init()
 
      pthread_mutex_init( &card->lock, NULL );
 
-     core_cleanup_push( gfxcard_deinit );
-
      return DFB_OK;
+}
+
+void gfxcard_deinit()
+{
+     if (!card) {
+          BUG( "gfxcard_deinit without gfxcard_init!?" );
+          return;
+     }
+
+     surfacemanager_deinit();
+
+     gfxcard_sync();
+
+     if (card->info.driver && card->info.driver->DeInit)
+          card->info.driver->DeInit();
+
+     munmap( (char*)card->framebuffer.base, card->framebuffer.length );
+
+     if (card->info.driver)
+          DFBFREE( card->info.driver );
+
+     DFBFREE( card );
+     card = NULL;
 }
 
 DFBResult gfxcard_init_layers()
@@ -642,5 +602,60 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
           state->blittingflags = original_blittingflags;
           state->modified |= SMF_BLITTING_FLAGS;
      }
+}
+
+
+/** internal **/
+
+static CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
+                                                        char *name,
+                                                        void *ctx )
+{
+     GfxDriver *driver = (GfxDriver*)ctx;
+
+     driver->Probe  = dlsym( handle, "driver_probe" );
+     if (driver->Probe) {
+          if ( driver->Probe( fbdev->fd, card )) {
+               driver->Init       = dlsym( handle, "driver_init"   );
+               driver->InitLayers = dlsym( handle, "driver_init_layers" );
+               driver->DeInit     = dlsym( handle, "driver_deinit" );
+
+               if (driver->Init  &&  driver->DeInit)
+                    return MODULE_LOADED_STOP;
+
+               DLERRORMSG( "DirectFB/core/gfxcards: "
+                           "Probe succeeded but Init/DeInit "
+                           "symbols not found in `%s'!\n", name );
+          }
+     }
+     else
+          DLERRORMSG( "DirectFB/core/gfxcards: "
+                      "Could not link probe function of `%s'!\n", name );
+
+     return MODULE_REJECTED;
+}
+
+/*
+ * loads/probes/unloads one driver module after another until a suitable
+ * driver is found and returns its symlinked functions
+ */
+static GfxDriver* gfxcard_find_driver()
+{
+     GfxDriver *driver;
+     char      *driver_dir = MODULEDIR"/gfxdrivers";
+
+     if (dfb_config->software_only)
+          return NULL;
+
+     driver = DFBCALLOC( 1, sizeof(GfxDriver) );
+
+     if (core_load_modules( driver_dir,
+                            gfxcard_driver_handle_func, (void*)driver ))
+     {
+          DFBFREE( driver );
+          driver = NULL;
+     }
+
+     return driver;
 }
 

@@ -113,6 +113,8 @@ struct _DisplayLayer
  */
 void layers_add( DisplayLayer *layer );
 
+void layers_deinit();
+
 /*
  * lock/unlock layer for exclusive access
  */

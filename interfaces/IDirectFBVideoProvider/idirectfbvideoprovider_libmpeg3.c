@@ -30,17 +30,18 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
-#include "misc/util.h"
+#include <misc/util.h>
+#include <misc/mem.h>
 
-#include "core/coredefs.h"
-#include "core/coretypes.h"
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "core/layers.h"
-#include "core/state.h"
-#include "core/surfaces.h"
-#include "core/gfxcard.h"
+#include <core/layers.h>
+#include <core/state.h>
+#include <core/surfaces.h>
+#include <core/gfxcard.h>
 
-#include "display/idirectfbsurface.h"
+#include <display/idirectfbsurface.h>
 
 #include <libmpeg3.h>
 
@@ -80,15 +81,15 @@ IDirectFBVideoProvider_Libmpeg3_Destruct( IDirectFBVideoProvider *thiz )
     }
 
     mpeg3_close( data->stream );
-    free( data->scans );
+    DFBFREE( data->scans );
 
     surface_destroy( data->source );
     
-    free( thiz->priv );
+    DFBFREE( thiz->priv );
     thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-    free( thiz );
+    DFBFREE( thiz );
 #endif
 }
 
@@ -470,13 +471,13 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
     data->stream = mpeg3_open( (char *) filename);
     if ( data->stream == NULL )
     {
-        free( data );
+        DFBFREE( data );
         return DFB_FAILURE;
     }
 
     if ( !mpeg3_has_video( data->stream ) )
     {
-        free( data );
+        DFBFREE( data );
         return DFB_FAILURE;
     }
 

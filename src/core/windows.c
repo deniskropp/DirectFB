@@ -43,9 +43,10 @@
 
 #include "windows.h"
 
-#include <misc/conf.h>
-#include <misc/util.h>
-#include <gfx/util.h>
+#include "misc/conf.h"
+#include "misc/util.h"
+#include "misc/mem.h"
+#include "gfx/util.h"
 
 
 #define min(a,b)     ((a) < (b) ? (a) : (b))
@@ -116,22 +117,18 @@ void windowstack_destroy( CoreWindowStack *stack )
           inputdevice = inputdevice->next;
      }
 
-     pthread_mutex_lock( &stack->update );
+     pthread_mutex_destroy( &stack->update );
 
      for (i=0; i<stack->num_windows; i++)
           window_destroy( stack->windows[i] );
 
      if (stack->windows) {
           stack->num_windows = 0;
-          free( stack->windows );
+          DFBFREE( stack->windows );
           stack->windows = NULL;
      }
 
-     pthread_mutex_unlock( &stack->update );
-
-     pthread_mutex_destroy( &stack->update );
-
-     free( stack );
+     DFBFREE( stack );
 }
 
 void window_insert( CoreWindow *window, int before )
@@ -204,7 +201,7 @@ void window_remove( CoreWindow *window )
                stack->windows = DFBREALLOC( stack->windows,
                                          sizeof(CoreWindow*) * (stack->num_windows) );
           else {
-               free( stack->windows );
+               DFBFREE( stack->windows );
                stack->windows = NULL;
           }
      }
@@ -278,7 +275,9 @@ void window_destroy( CoreWindow *window )
 
      surface_destroy( window->surface );
 
-     free( window );
+     reactor_free( window->reactor );
+     
+     DFBFREE( window );
 }
 
 int window_raise( CoreWindow *window )

@@ -43,6 +43,7 @@
 #include <core/reactor.h>
 
 #include "misc/util.h"
+#include "misc/mem.h"
 
 #include "idirectfbinputbuffer.h"
 
@@ -89,11 +90,11 @@ static void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 
@@ -128,7 +129,7 @@ static DFBResult IDirectFBInputBuffer_Reset( IDirectFBInputBuffer *thiz )
      e = data->events;
      while (e) {
           IDirectFBInputBuffer_item *next = e->next;
-          free( e );
+          DFBFREE( e );
           e = next;
      }
      data->events = NULL;
@@ -214,7 +215,7 @@ static DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz,
      *event = e->evt;
 
      data->events = e->next;
-     free( e );
+     DFBFREE( e );
 
      pthread_mutex_unlock( &data->events_mutex );
 

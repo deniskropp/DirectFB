@@ -52,6 +52,7 @@
 #include <display/idirectfbsurface.h>
 
 #include <misc/util.h>
+#include <misc/mem.h>
 
 
 /*
@@ -89,13 +90,13 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 
      v4l_deinit( data );
 
-     free( data->filename );
+     DFBFREE( data->filename );
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 
@@ -360,7 +361,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      ioctl( fd, VIDIOCGCAP, &data->vcap );
      ioctl( fd, VIDIOCCAPTURE, &zero );
 
-     data->filename = strdup( filename );
+     data->filename = DFBSTRDUP( filename );
      data->fd = fd;
      data->thread = -1;
 

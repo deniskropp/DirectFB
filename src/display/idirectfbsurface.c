@@ -47,6 +47,7 @@
 #include "idirectfbsurface.h"
 
 #include "misc/util.h"
+#include "misc/mem.h"
 #include "gfx/util.h"
 
 
@@ -69,11 +70,11 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      if (data->font)
           data->font->Release (data->font);
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 
@@ -1015,7 +1016,7 @@ ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx )
 
                thiz->Unlock( thiz );
 
-               free( data );
+               DFBFREE( data );
                thiz->priv = NULL;
           }
 

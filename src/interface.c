@@ -32,9 +32,10 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
-#include <core/coredefs.h>
+#include "core/coredefs.h"
 
-#include <misc/util.h>
+#include "misc/mem.h"
+#include "misc/util.h"
 
 
 static pthread_mutex_t              implementations_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -75,7 +76,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                implementations[i]->references++;
 
                pthread_mutex_unlock( &implementations_mutex );
-               free( interface_dir );
+               DFBFREE( interface_dir );
 
                return DFB_OK;
           }
@@ -90,7 +91,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                      interface_dir );
           
           pthread_mutex_unlock( &implementations_mutex );
-          free( interface_dir );
+          DFBFREE( interface_dir );
           
           return errno2dfb( errno );
      }
@@ -192,7 +193,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                     implementations[n_implementations-1] = impl;
 
                     pthread_mutex_unlock( &implementations_mutex );
-                    free( interface_dir );
+                    DFBFREE( interface_dir );
 
                     return DFB_OK;
                }
@@ -208,9 +209,9 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
      closedir( dir );
 
      pthread_mutex_unlock( &implementations_mutex );
-     free( interface_dir );
+     DFBFREE( interface_dir );
 
-     free( impl );
+     DFBFREE( impl );
 
      return DFB_NOIMPL;
 }

@@ -60,7 +60,7 @@
 #include "idirectfb.h"
 
 #include "misc/conf.h"
-#include "misc/util.h"
+#include "misc/mem.h"
 
 
 typedef struct _DFBSuspendResumeHandler {
@@ -83,11 +83,11 @@ void IDirectFB_Destruct( IDirectFB *thiz )
 {
      core_deinit();     /* TODO: where should we place this call? */
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 
@@ -477,7 +477,7 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
           return DFB_FILENOTFOUND;
      ctx = DFBMALLOC(32);
      if (read (fd, ctx, 32) < 32) {
-          free (ctx);
+          DFBFREE(ctx);
           close (fd);
           return DFB_IO;
      }
@@ -486,7 +486,7 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
      ret = DFBGetInterface( &impl, "IDirectFBImageProvider", NULL,
                             image_probe, ctx );
 
-     free (ctx);
+     DFBFREE(ctx);
 
      if (ret)
           return ret;
@@ -496,7 +496,7 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
      ret = impl->Construct( *interface, filename );
 
      if (ret) {
-        free (*interface);
+        DFBFREE(*interface);
         *interface = NULL;
      }
 
@@ -541,7 +541,7 @@ DFBResult IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      ret = impl->Construct( *interface, filename );
 
      if (ret) {
-        free (*interface);
+        DFBFREE(*interface);
         *interface = NULL;
      }
 
@@ -584,7 +584,7 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
      ret = impl->Construct( *interface, filename, desc );
 
      if (ret) {
-        free (*interface);
+        DFBFREE(*interface);
         *interface = NULL;
      }
 
@@ -728,7 +728,7 @@ void DFBRemoveSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx )
                if (h == suspend_resume_handlers)
                     suspend_resume_handlers = h->next;
 
-               free( h );
+               DFBFREE( h );
                break;
           }
 

@@ -47,7 +47,7 @@
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_layer.h"
 
-#include "misc/util.h"
+#include "misc/mem.h"
 
 /*
  * private data struct of IDirectFB
@@ -78,11 +78,11 @@ void IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
      if (data->surface)
           data->surface->Release( data->surface );
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 
@@ -142,7 +142,7 @@ DFBResult IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer *thiz,
                                                   NULL, data->layer,
                                                   data->layer->surface->caps );
           if (ret) {
-               free( surface );
+               DFBFREE( surface );
                return ret;
           }
 

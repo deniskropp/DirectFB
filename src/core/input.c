@@ -42,10 +42,91 @@
 #include "layers.h"
 #include "input.h"
 
+#include "misc/mem.h"
 #include "misc/util.h"
 
 InputDevice *inputdevices = NULL;
 
+
+static CoreModuleLoadResult input_driver_handle_func( void *handle,
+                                                      char *name,
+                                                      void *ctx );
+
+
+/** public **/
+
+DFBResult input_init_devices()
+{
+     char *driver_dir = MODULEDIR"/inputdrivers";
+
+     core_load_modules( driver_dir, input_driver_handle_func, NULL );
+
+     return DFB_OK;
+}
+
+void input_deinit()
+{
+     InputDevice *d = inputdevices;
+
+     while (d) {
+          InputDevice *next = d->next;
+
+          pthread_cancel( d->event_thread );
+          pthread_join( d->event_thread, NULL );
+
+          reactor_free( d->reactor );
+
+          d->info.driver->DeInit( d );
+
+          DFBFREE( d->info.driver );
+          DFBFREE( d );
+
+          d = next;
+     }
+
+     inputdevices = NULL;
+}
+
+DFBResult input_suspend()
+{
+     InputDevice *d = inputdevices;
+
+     DEBUGMSG( "DirectFB/core/input: suspending...\n" );
+
+     while (d) {
+          pthread_cancel( d->event_thread );
+          pthread_join( d->event_thread, NULL );
+          d->info.driver->DeInit( d );
+          
+          d = d->next;
+     }
+
+     DEBUGMSG( "DirectFB/core/input: ...suspended\n" );
+     
+     return DFB_OK;
+}
+
+DFBResult input_resume()
+{
+     InputDevice *d = inputdevices;
+
+     DEBUGMSG( "DirectFB/core/input: resuming...\n" );
+     
+     while (d) {
+          d->info.driver->Init( d );
+          pthread_create( &d->event_thread, NULL,
+                           d->EventThread, d );
+          
+          d = d->next;
+     }
+
+     DEBUGMSG( "DirectFB/core/input: ...resumed\n" );
+     
+     return DFB_OK;
+}
+
+
+/** internal **/
 
 static CoreModuleLoadResult input_driver_handle_func( void *handle,
                                                       char *name,
@@ -58,7 +139,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
      if (!driver->Probe) {
           DLERRORMSG( "DirectFB/core/input: "
                       "Could not dlsym `driver_probe' from `%s'!\n", name );
-          free( driver );
+          DFBFREE( driver );
           return MODULE_REJECTED;
      }
 
@@ -66,7 +147,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
      if (!driver->Init) {
           DLERRORMSG( "DirectFB/core/input: "
                       "Could not dlsym `driver_init' from `%s'!\n", name );
-          free( driver );
+          DFBFREE( driver );
           return MODULE_REJECTED;
      }
 
@@ -74,14 +155,14 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
      if (!driver->DeInit) {
           DLERRORMSG( "DirectFB/core/input: "
                       "Could not dlsym `driver_deinit' from `%s'!\n", name );
-          free( driver );
+          DFBFREE( driver );
           return MODULE_REJECTED;
      }
 
      
      nr_devices = driver->Probe();
      if (!nr_devices) {
-          free( driver );
+          DFBFREE( driver );
           return MODULE_REJECTED;
      }
 
@@ -93,7 +174,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
           device->number = n;
 
           if (driver->Init( device ) != DFB_OK) {
-               free( device );
+               DFBFREE( device );
                continue;
           }
 
@@ -155,79 +236,5 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
      }
 
      return MODULE_LOADED_CONTINUE;
-}
-
-/*
- * cancels input threads, deinitializes drivers, deallocates device structs
- */
-void input_deinit()
-{
-     InputDevice *d = inputdevices;
-
-     while (d) {
-          InputDevice *next = d->next;
-
-          pthread_cancel( d->event_thread );
-          pthread_join( d->event_thread, NULL );
-
-          reactor_free( d->reactor );
-
-          d->info.driver->DeInit( d );
-
-          free( d );
-
-          d = next;
-     }
-
-     inputdevices = NULL;
-}
-
-DFBResult input_init_devices()
-{
-     char *driver_dir = MODULEDIR"/inputdrivers";
-
-     core_load_modules( driver_dir, input_driver_handle_func, NULL );
-     
-     core_cleanup_push( input_deinit );
-
-     return DFB_OK;
-}
-
-DFBResult input_suspend()
-{
-     InputDevice *d = inputdevices;
-
-     DEBUGMSG( "DirectFB/core/input: suspending...\n" );
-
-     while (d) {
-          pthread_cancel( d->event_thread );
-          pthread_join( d->event_thread, NULL );
-          d->info.driver->DeInit( d );
-          
-          d = d->next;
-     }
-
-     DEBUGMSG( "DirectFB/core/input: ...suspended\n" );
-     
-     return DFB_OK;
-}
-
-DFBResult input_resume()
-{
-     InputDevice *d = inputdevices;
-
-     DEBUGMSG( "DirectFB/core/input: resuming...\n" );
-     
-     while (d) {
-          d->info.driver->Init( d );
-          pthread_create( &d->event_thread, NULL,
-                           d->EventThread, d );
-          
-          d = d->next;
-     }
-
-     DEBUGMSG( "DirectFB/core/input: ...resumed\n" );
-     
-     return DFB_OK;
 }
 

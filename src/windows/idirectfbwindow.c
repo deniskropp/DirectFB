@@ -48,6 +48,7 @@
 #include "display/idirectfbsurface_window.h"
 
 #include "misc/util.h"
+#include "misc/mem.h"
 
 #include "idirectfbwindow.h"
 
@@ -97,11 +98,11 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
 
-     free( data );
+     DFBFREE( data );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 
@@ -175,7 +176,7 @@ static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
           ret = IDirectFBSurface_Window_Construct( *surface, NULL, NULL,
                                                    data->window, 0 );
           if (ret) {
-               free( *surface );
+               DFBFREE( *surface );
                return ret;
           }
 
@@ -406,7 +407,7 @@ static DFBResult IDirectFBWindow_GetEvent( IDirectFBWindow *thiz,
      *event = e->evt;
 
      data->events = e->next;
-     free( e );
+     DFBFREE( e );
 
      pthread_mutex_unlock( &data->events_mutex );
 

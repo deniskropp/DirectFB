@@ -42,100 +42,18 @@
 
 #include "gfx/util.h"
 #include "misc/util.h"
+#include "misc/mem.h"
 
 static CoreSurface *surfaces = NULL;
 
-void surfaces_cleanup()
-{
-     while (surfaces)
-          surface_destroy( surfaces );
-}
+static DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
+                                          SurfaceBuffer **buffer );
+static DFBResult surface_reallocate_buffer( SurfaceBuffer *buffer );
+static void surface_deallocate_buffer( SurfaceBuffer *buffer );
 
-DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
-                                   SurfaceBuffer **buffer )
-{
-     SurfaceBuffer *b;
 
-     b = (SurfaceBuffer *) DFBCALLOC( 1, sizeof(SurfaceBuffer) );
+/** public **/
 
-     b->policy = policy;
-     b->surface = surface;
-
-     switch (policy) {
-          case CSP_SYSTEMONLY:
-          case CSP_VIDEOLOW:
-          case CSP_VIDEOHIGH:
-               b->system.health = CSH_STORED;
-
-               b->system.pitch = surface->width *
-                                 BYTES_PER_PIXEL(surface->format);
-               if (b->system.pitch & 3)
-                    b->system.pitch += 4 - (b->system.pitch & 3);
-
-               b->system.addr = DFBMALLOC( surface->height * b->system.pitch );
-               break;
-          case CSP_VIDEOONLY: {
-               DFBResult ret;
-
-               ret = surfacemanager_allocate( b );
-               if (ret) {
-                    free( b );
-                    return ret;
-               }
-
-               b->video.health = CSH_STORED;
-               break;
-          }
-     }
-
-     *buffer = b;
-
-     return DFB_OK;
-}
-
-DFBResult surface_reallocate_buffer( SurfaceBuffer *buffer )
-{
-     CoreSurface *surface = buffer->surface;
-
-     if (buffer->system.health) {
-          buffer->system.health = CSH_STORED;
-
-          buffer->system.pitch = surface->width *
-                                 BYTES_PER_PIXEL(surface->format);
-          if (buffer->system.pitch & 3)
-               buffer->system.pitch += 4 - (buffer->system.pitch & 3);
-
-          buffer->system.addr = DFBREALLOC( buffer->system.addr,
-                                         surface->height*buffer->system.pitch );
-
-          /* FIXME: support video instance reallocation */
-          surfacemanager_deallocate( buffer );
-     }
-     else {
-          /* FIXME: support video instance reallocation */
-          surfacemanager_deallocate( buffer );
-          surfacemanager_allocate( buffer );
-
-          buffer->video.health = CSH_STORED;
-     }
-
-     return DFB_OK;
-}
-
-void surface_destroy_buffer( SurfaceBuffer *buffer )
-{
-     if (buffer->system.health)
-          free( buffer->system.addr );
-
-     if (buffer->video.health)
-          surfacemanager_deallocate( buffer );
-
-     free( buffer );
-}
-
-/*
- * surface functions
- */
 DFBResult surface_create( int width, int height, int format, int policy,
                           DFBSurfaceCapabilities caps, CoreSurface **surface )
 {
@@ -156,16 +74,16 @@ DFBResult surface_create( int width, int height, int format, int policy,
 
      ret = surface_allocate_buffer( s, policy, &s->front_buffer );
      if (ret) {
-          free( s );
+          DFBFREE( s );
           return ret;
      }
 
      if (caps & DSCAPS_FLIPPING) {
           ret = surface_allocate_buffer( s, policy, &s->back_buffer );
           if (ret) {
-               surface_destroy_buffer( s->front_buffer );
+               surface_deallocate_buffer( s->front_buffer );
 
-               free( s );
+               DFBFREE( s );
                return ret;
           }
      }
@@ -181,8 +99,6 @@ DFBResult surface_create( int width, int height, int format, int policy,
           s->next = NULL;
           s->prev = NULL;
           surfaces = s;
-
-          core_cleanup_last( surfaces_cleanup );
      }
      else {
           s->prev = NULL;
@@ -421,13 +337,13 @@ void surface_destroy( CoreSurface *surface )
 {
      surface_notify_listeners( surface, CSNF_DESTROY );
 
-     pthread_mutex_lock( &surface->front_lock );
-     pthread_mutex_lock( &surface->back_lock );
+     pthread_mutex_destroy( &surface->front_lock );
+     pthread_mutex_destroy( &surface->back_lock );
+     
+     surface_deallocate_buffer( surface->front_buffer );
 
-     surface_destroy_buffer( surface->front_buffer );
-
-     if (surface->caps & DSCAPS_FLIPPING)
-          surface_destroy_buffer( surface->back_buffer );
+     if (surface->back_buffer != surface->front_buffer)
+          surface_deallocate_buffer( surface->back_buffer );
 
      reactor_free( surface->reactor );
 
@@ -440,12 +356,100 @@ void surface_destroy( CoreSurface *surface )
      if (surface->next)
           surface->next->prev = surface->prev;
 
-     pthread_mutex_unlock( &surface->front_lock );
-     pthread_mutex_destroy( &surface->front_lock );
+     DFBFREE( surface );
+}
 
-     pthread_mutex_unlock( &surface->back_lock );
-     pthread_mutex_destroy( &surface->back_lock );
+void surfaces_deinit()
+{
+     while (surfaces) {
+          DEBUGMSG( "DirectFB/core/surfaces_cleanup: %dx%d surface found\n",
+                    surfaces->width, surfaces->height );
+          surface_destroy( surfaces );
+     }
+}
 
-     free( surface );
+
+/** internal **/
+
+static DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
+                                          SurfaceBuffer **buffer )
+{
+     SurfaceBuffer *b;
+
+     b = (SurfaceBuffer *) DFBCALLOC( 1, sizeof(SurfaceBuffer) );
+
+     b->policy = policy;
+     b->surface = surface;
+
+     switch (policy) {
+          case CSP_SYSTEMONLY:
+          case CSP_VIDEOLOW:
+          case CSP_VIDEOHIGH:
+               b->system.health = CSH_STORED;
+
+               b->system.pitch = surface->width *
+                                 BYTES_PER_PIXEL(surface->format);
+               if (b->system.pitch & 3)
+                    b->system.pitch += 4 - (b->system.pitch & 3);
+
+               b->system.addr = DFBMALLOC( surface->height * b->system.pitch );
+               break;
+          case CSP_VIDEOONLY: {
+               DFBResult ret;
+
+               ret = surfacemanager_allocate( b );
+               if (ret) {
+                    DFBFREE( b );
+                    return ret;
+               }
+
+               b->video.health = CSH_STORED;
+               break;
+          }
+     }
+
+     *buffer = b;
+
+     return DFB_OK;
+}
+
+static DFBResult surface_reallocate_buffer( SurfaceBuffer *buffer )
+{
+     CoreSurface *surface = buffer->surface;
+
+     if (buffer->system.health) {
+          buffer->system.health = CSH_STORED;
+
+          buffer->system.pitch = surface->width *
+                                 BYTES_PER_PIXEL(surface->format);
+          if (buffer->system.pitch & 3)
+               buffer->system.pitch += 4 - (buffer->system.pitch & 3);
+
+          buffer->system.addr = DFBREALLOC( buffer->system.addr,
+                                         surface->height*buffer->system.pitch );
+
+          /* FIXME: better support video instance reallocation */
+          surfacemanager_deallocate( buffer );
+     }
+     else {
+          /* FIXME: better support video instance reallocation */
+          surfacemanager_deallocate( buffer );
+          surfacemanager_allocate( buffer );
+
+          buffer->video.health = CSH_STORED;
+     }
+
+     return DFB_OK;
+}
+
+static void surface_deallocate_buffer( SurfaceBuffer *buffer )
+{
+     if (buffer->system.health)
+          DFBFREE( buffer->system.addr );
+
+     if (buffer->video.health)
+          surfacemanager_deallocate( buffer );
+
+     DFBFREE( buffer );
 }
 

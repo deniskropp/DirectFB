@@ -173,4 +173,6 @@ void surface_unlock( CoreSurface *surface, int front );
  */
 void surface_destroy( CoreSurface *surface );
 
+void surfaces_deinit();
+
 #endif

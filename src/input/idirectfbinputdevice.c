@@ -38,6 +38,7 @@
 #include <core/input.h>
 
 #include "misc/util.h"
+#include "misc/mem.h"
 
 #include "idirectfbinputdevice.h"
 #include "idirectfbinputbuffer.h"
@@ -76,11 +77,11 @@ static void IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 
      reactor_detach( data->device->reactor, IDirectFBInputDevice_React, data );
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 

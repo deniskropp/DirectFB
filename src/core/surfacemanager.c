@@ -42,129 +42,19 @@
 #include "surfacemanager.h"
 
 #include "misc/util.h"
+#include "misc/mem.h"
 
 static Chunk *chunks = NULL;
 
 static int min_toleration = 1;
 
-/*
- * helpers
- */
-static inline Chunk* split_chunk( Chunk *c, int length )
-{
-     Chunk *newchunk;
+static Chunk* split_chunk( Chunk *c, int length );
+static Chunk* free_chunk( Chunk *chunk );
+static void occupy_chunk( Chunk *chunk, SurfaceBuffer *buffer, int length );
 
-     if (c->length == length)          /* does not need be splitted */
-          return c;
 
-     newchunk = (Chunk*) DFBCALLOC( 1, sizeof(Chunk) );
+/** public **/
 
-     /* calculate offsets and lengths of resulting chunks */
-     newchunk->offset = c->offset + c->length - length;
-     newchunk->length = length;
-     c->length -= newchunk->length;
-
-     /* insert newchunk after chunk c */
-     newchunk->prev = c;
-     newchunk->next = c->next;
-     if (c->next)
-          c->next->prev = newchunk;
-     c->next = newchunk;
-
-     return newchunk;
-}
-
-static inline Chunk* free_chunk( Chunk *chunk )
-{
-     if (!chunk->buffer) {
-          BUG( "freeing free chunk" );
-          return chunk;
-     }
-     else {
-          DEBUGMSG( "freeing chunk at %d\n", chunk->offset );
-     }
-
-     chunk->buffer = NULL;
-
-     //min_toleration--;
-
-     if (chunk->prev  &&  !chunk->prev->buffer) {
-          Chunk *prev = chunk->prev;
-
-          DEBUGMSG( "  merging with previous chunk at %d\n", prev->offset );
-
-          prev->length += chunk->length;
-
-          prev->next = chunk->next;
-          if (prev->next)
-               prev->next->prev = prev;
-
-          DEBUGMSG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
-
-          free( chunk );
-          chunk = prev;
-     }
-
-     if (chunk->next  &&  !chunk->next->buffer) {
-          Chunk *next = chunk->next;
-
-          DEBUGMSG( "  merging with next chunk at %d\n", next->offset );
-
-          chunk->length += next->length;
-
-          chunk->next = next->next;
-          if (chunk->next)
-               chunk->next->prev = chunk;
-
-          free( next );
-     }
-
-     return chunk;
-}
-
-void occupy_chunk( Chunk *chunk, SurfaceBuffer *buffer, int length )
-{
-     chunk = split_chunk( chunk, length );
-
-     buffer->video.health = CSH_RESTORE;
-     buffer->video.offset = chunk->offset;
-     buffer->video.chunk = chunk;
-
-     chunk->buffer = buffer;
-
-     //min_toleration++;
-
-     DEBUGMSG( "DirectFB/core/surfacemanager: "
-               "Allocated %d bytes at offset %d.\n",
-               chunk->length, chunk->offset );
-}
-
-DFBResult surfacemanager_suspend()
-{
-     Chunk *c = chunks;
-
-     DEBUGMSG( "DirectFB/core/surfacemanager: suspending...\n" );
-
-     while (c) {
-          if (c->buffer &&
-              c->buffer->policy != CSP_VIDEOONLY &&
-              c->buffer->video.health == CSH_STORED)
-          {
-               surfacemanager_assure_system( c->buffer );
-               c->buffer->video.health = CSH_RESTORE;
-          }
-
-          c = c->next;
-     }
-
-     DEBUGMSG( "DirectFB/core/surfacemanager: ...suspended\n" );
-
-     return DFB_OK;
-}
-
-/*
- * management functions
- */
 DFBResult surfacemanager_init_heap()
 {
      if (chunks) {
@@ -192,6 +82,17 @@ DFBResult surfacemanager_init_heap()
           chunks->length -= chunks->length % card->byteoffset_align;
 
      return DFB_OK;
+}
+
+void surfacemanager_deinit()
+{
+     while (chunks) {
+          Chunk *c = chunks;
+
+          chunks = c->next;
+          
+          DFBFREE( c );
+     }
 }
 
 DFBResult surfacemanager_adjust_heap_offset( int offset )
@@ -319,7 +220,7 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
           memset( card->framebuffer.base, 0xFF, card->framebuffer.length );
           memcpy( card->framebuffer.base, tmp, card->framebuffer.length );
 
-          free( tmp );
+          DFBFREE( tmp );
           */
 
           /* no luck */
@@ -426,3 +327,119 @@ DFBResult surfacemanager_assure_system( SurfaceBuffer *buffer )
      BUG( "no valid surface instance" );
      return DFB_BUG;
 }
+
+DFBResult surfacemanager_suspend()
+{
+     Chunk *c = chunks;
+
+     DEBUGMSG( "DirectFB/core/surfacemanager: suspending...\n" );
+
+     while (c) {
+          if (c->buffer &&
+              c->buffer->policy != CSP_VIDEOONLY &&
+              c->buffer->video.health == CSH_STORED)
+          {
+               surfacemanager_assure_system( c->buffer );
+               c->buffer->video.health = CSH_RESTORE;
+          }
+
+          c = c->next;
+     }
+
+     DEBUGMSG( "DirectFB/core/surfacemanager: ...suspended\n" );
+
+     return DFB_OK;
+}
+
+
+/** internal **/
+
+static Chunk* split_chunk( Chunk *c, int length )
+{
+     Chunk *newchunk;
+
+     if (c->length == length)          /* does not need be splitted */
+          return c;
+
+     newchunk = (Chunk*) DFBCALLOC( 1, sizeof(Chunk) );
+
+     /* calculate offsets and lengths of resulting chunks */
+     newchunk->offset = c->offset + c->length - length;
+     newchunk->length = length;
+     c->length -= newchunk->length;
+
+     /* insert newchunk after chunk c */
+     newchunk->prev = c;
+     newchunk->next = c->next;
+     if (c->next)
+          c->next->prev = newchunk;
+     c->next = newchunk;
+
+     return newchunk;
+}
+
+static Chunk* free_chunk( Chunk *chunk )
+{
+     if (!chunk->buffer) {
+          BUG( "freeing free chunk" );
+          return chunk;
+     }
+     else {
+          DEBUGMSG( "freeing chunk at %d\n", chunk->offset );
+     }
+
+     chunk->buffer = NULL;
+
+     //min_toleration--;
+
+     if (chunk->prev  &&  !chunk->prev->buffer) {
+          Chunk *prev = chunk->prev;
+
+          DEBUGMSG( "  merging with previous chunk at %d\n", prev->offset );
+
+          prev->length += chunk->length;
+
+          prev->next = chunk->next;
+          if (prev->next)
+               prev->next->prev = prev;
+
+          DEBUGMSG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
+
+          DFBFREE( chunk );
+          chunk = prev;
+     }
+
+     if (chunk->next  &&  !chunk->next->buffer) {
+          Chunk *next = chunk->next;
+
+          DEBUGMSG( "  merging with next chunk at %d\n", next->offset );
+
+          chunk->length += next->length;
+
+          chunk->next = next->next;
+          if (chunk->next)
+               chunk->next->prev = chunk;
+
+          DFBFREE( next );
+     }
+
+     return chunk;
+}
+
+static void occupy_chunk( Chunk *chunk, SurfaceBuffer *buffer, int length )
+{
+     chunk = split_chunk( chunk, length );
+
+     buffer->video.health = CSH_RESTORE;
+     buffer->video.offset = chunk->offset;
+     buffer->video.chunk = chunk;
+
+     chunk->buffer = buffer;
+
+     //min_toleration++;
+
+     DEBUGMSG( "DirectFB/core/surfacemanager: "
+               "Allocated %d bytes at offset %d.\n",
+               chunk->length, chunk->offset );
+}
+

@@ -44,6 +44,7 @@
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_window.h"
 
+#include "misc/mem.h"
 #include "misc/util.h"
 
 
@@ -75,11 +76,11 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
           window_destroy( data->window );
      }
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 

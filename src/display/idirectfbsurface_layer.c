@@ -44,6 +44,7 @@
 #include "idirectfbsurface_layer.h"
 
 #include "misc/util.h"
+#include "misc/mem.h"
 #include "gfx/util.h"
 
 
@@ -67,11 +68,11 @@ void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 
      reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 
@@ -201,7 +202,7 @@ DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
 
           err = layer->SetConfiguration( layer, &config );
           if (err) {
-               free( thiz );
+               DFBFREE( thiz );
                return err;
           }
      }

@@ -42,34 +42,24 @@
 #include "windows.h"
 
 #include "gfx/util.h"
+#include "misc/mem.h"
 #include "misc/util.h"
 
 
 #define CURSORFILE     DATADIR"/cursor.dat"
 
-static int layer_id_pool = 0;
 
 DisplayLayer *layers = NULL;
 
-DFBResult layer_create_cursor_window( DisplayLayer *layer,
-                                      int width, int height );
-DFBResult layer_cursor_load_default( DisplayLayer *layer );
 
-/*
- * added to the cleanup stack
- */
-void layers_remove_all()
-{
-     while (layers) {
-          DisplayLayer *l = layers;
+static int layer_id_pool = 0;
 
-          if (l->deinit)
-               l->deinit( l );
+static DFBResult layer_cursor_load_default( DisplayLayer *layer );
+static DFBResult layer_create_cursor_window( DisplayLayer *layer,
+                                             int width, int height );
 
-          layers = l->next;
-          free( l );
-     }
-}
+
+/** public **/
 
 void layers_add( DisplayLayer *layer )
 {
@@ -87,9 +77,20 @@ void layers_add( DisplayLayer *layer )
 
           last->next = layer;
      }
-     else {
+     else
           layers = layer;
-          core_cleanup_push( layers_remove_all );
+}
+
+void layers_deinit()
+{
+     while (layers) {
+          DisplayLayer *l = layers;
+
+          if (l->deinit)
+               l->deinit( l );
+
+          layers = l->next;
+          DFBFREE( l );
      }
 }
 
@@ -180,19 +181,20 @@ DFBResult layer_cursor_enable( DisplayLayer *layer, int enable )
 
 DFBResult layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
 {
-     DFBResult ret = DFB_OK;
+     DFBResult        ret   = DFB_OK;
+     CoreWindowStack *stack = layer->windowstack;
 
-     if (layer->windowstack->cursor) {
-          if (!layer->windowstack->cursor_window)        /* no cursor yet?      */
-               ret = layer_cursor_load_default( layer ); /* install the default */
+     if (stack->cursor) {
+          if (!stack->cursor_window)                      /* no cursor yet?  */
+               ret = layer_cursor_load_default( layer );  /* install default */
 
           if (ret == DFB_OK)
-               ret = window_set_opacity( layer->windowstack->cursor_window, opacity );
+               ret = window_set_opacity( stack->cursor_window, opacity );
 
      }
 
      if (ret == DFB_OK)
-          layer->windowstack->cursor_opacity = opacity;
+          stack->cursor_opacity = opacity;
 
      return ret;
 }
@@ -244,44 +246,14 @@ DFBResult layer_cursor_warp( DisplayLayer *layer, int x, int y )
      return DFB_OK;
 }
 
-DFBResult layer_create_cursor_window( DisplayLayer *layer,
-                                      int width, int height )
-{
-     CoreWindow *cursor;
 
-     /* reinitialization check */
-     if (layer->windowstack->cursor_window) {
-          BUG( "already created a cursor for this layer" );
-          return DFB_BUG;
-     }
-
-     layer->windowstack->cursor_opacity = 0xFF;
-     layer->windowstack->cx = layer->width / 2;
-     layer->windowstack->cy = layer->height / 2;
-
-     /* create a super-top-most_event-and-focus-less window */
-     cursor = window_create( layer->windowstack, layer->windowstack->cx,
-                             layer->windowstack->cy, width, height,
-                             DWHC_GHOST | DWCAPS_ALPHACHANNEL );
-     if (!cursor) {
-          ERRORMSG( "DirectFB/core/layers: "
-                    "failed creating a window for software cursor!\n" );
-          return DFB_FAILURE;
-     }
-
-     window_init( cursor );
-     window_set_opacity( cursor, layer->windowstack->cursor_opacity );
-
-     layer->windowstack->cursor_window  = cursor;
-
-     return DFB_OK;
-}
+/** internal **/
 
 /*
  * internal function that installs the cursor window
  * and fills it with data from 'cursor.dat'
  */
-DFBResult layer_cursor_load_default( DisplayLayer *layer )
+static DFBResult layer_cursor_load_default( DisplayLayer *layer )
 {
      DFBResult ret;
      int i, pitch;
@@ -349,3 +321,37 @@ DFBResult layer_cursor_load_default( DisplayLayer *layer )
      
      return DFB_OK;
 }
+
+static DFBResult layer_create_cursor_window( DisplayLayer *layer,
+                                             int width, int height )
+{
+     CoreWindow *cursor;
+
+     /* reinitialization check */
+     if (layer->windowstack->cursor_window) {
+          BUG( "already created a cursor for this layer" );
+          return DFB_BUG;
+     }
+
+     layer->windowstack->cursor_opacity = 0xFF;
+     layer->windowstack->cx = layer->width / 2;
+     layer->windowstack->cy = layer->height / 2;
+
+     /* create a super-top-most_event-and-focus-less window */
+     cursor = window_create( layer->windowstack, layer->windowstack->cx,
+                             layer->windowstack->cy, width, height,
+                             DWHC_GHOST | DWCAPS_ALPHACHANNEL );
+     if (!cursor) {
+          ERRORMSG( "DirectFB/core/layers: "
+                    "failed creating a window for software cursor!\n" );
+          return DFB_FAILURE;
+     }
+
+     window_init( cursor );
+     window_set_opacity( cursor, layer->windowstack->cursor_opacity );
+
+     layer->windowstack->cursor_window  = cursor;
+
+     return DFB_OK;
+}
+

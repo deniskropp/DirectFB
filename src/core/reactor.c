@@ -34,7 +34,7 @@
 
 #include "reactor.h"
 
-#include "misc/util.h"
+#include "misc/mem.h"
 
 /***************************
  *  Internal declarations  *
@@ -120,7 +120,7 @@ void reactor_detach (Reactor *reactor,
                else
                     reactor->reactions = r->next;
 
-               free( r );
+               DFBFREE( r );
 
                break;
           }
@@ -165,7 +165,7 @@ void reactor_dispatch (Reactor    *reactor,
           r = r->next;
 
           if (to_free) {
-               free( to_free );
+               DFBFREE( to_free );
                to_free = NULL;
           }
      }
@@ -180,13 +180,13 @@ void reactor_free (Reactor *reactor)
      while (reactor->reactions) {
           Reaction *next = reactor->reactions->next;
           
-          free( reactor->reactions );
+          DFBFREE( reactor->reactions );
 
           reactor->reactions = next;
      }
 
      pthread_mutex_unlock( &reactor->reactions_lock );
   
-     free( reactor );
+     DFBFREE( reactor );
 }
 

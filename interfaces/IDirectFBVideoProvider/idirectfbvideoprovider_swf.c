@@ -48,6 +48,7 @@
 #include <display/idirectfbsurface.h>
 
 #include <misc/util.h>
+#include <misc/mem.h>
 
 
 /*
@@ -189,11 +190,11 @@ void IDirectFBVideoProvider_Swf_Destruct(IDirectFBVideoProvider *thiz )
      
      FlashClose(data->flashHandle);
     
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 
@@ -434,7 +435,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      if (readFile (filename, &buffer, &size) < 0)
      {
        printf( "DirectFB/Swf: Loading Swf file failed.\n");
-       free( data );
+       DFBFREE( data );
        return DFB_FAILURE;
      }
      
@@ -442,7 +443,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      if (data->flashHandle == 0)
      {
        printf( "DirectFB/Swf: Creation of Swfplayer failed.\n");
-       free( data );
+       DFBFREE( data );
        return DFB_FAILURE;
      }
 
@@ -451,7 +452,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
        status = FlashParse (data->flashHandle, 0, buffer, size);
      }
      while (status & FLASH_PARSE_NEED_DATA);
-     free(buffer);
+     DFBFREE(buffer);
 
      FlashGetInfo (data->flashHandle, &data->flashInfo);
      

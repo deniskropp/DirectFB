@@ -42,7 +42,7 @@
 
 #include <misc/tree.h>
 #include <misc/utf8.h>
-#include <misc/util.h>
+#include <misc/mem.h>
 
 
 #define FONTFILE DATADIR"/fonts/font.data"

@@ -51,6 +51,8 @@
 #include "core/windows.h"
 #include "core/vt.h"
 
+#include "misc/mem.h"
+
 #include "display/idirectfbsurface.h"
 
 #include "idirectfb.h"
@@ -224,7 +226,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
      ret = IDirectFB_Construct( idirectfb_singleton );
      if (ret) {
-          free( idirectfb_singleton );
+          DFBFREE( idirectfb_singleton );
           idirectfb_singleton = NULL;
           return ret;
      }
@@ -285,7 +287,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                DirectFBError( "Failed loading background image", ret );
 
                image->Release( image );
-               free( image );
+               DFBFREE( image );
                provider->Release( provider );
 
                return DFB_INIT;

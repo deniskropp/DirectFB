@@ -48,7 +48,7 @@
 #include <core/reactor.h>
 
 #include <misc/conf.h>
-#include <misc/util.h>
+#include <misc/mem.h>
 
 
 #define DEV_NAME "/dev/mouse"
@@ -453,7 +453,7 @@ void driver_deinit(InputDevice *device)
      if (device->number != 0)
           return;
 
-     free( device->info.driver_name );
+     DFBFREE( device->info.driver_name );
 
      close( fd );
 }

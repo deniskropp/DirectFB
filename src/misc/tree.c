@@ -32,7 +32,7 @@
 
 #include "core/coretypes.h"
 
-#include "misc/util.h"
+#include "misc/mem.h"
 
 #include "tree.h"
 
@@ -102,10 +102,10 @@ void tree_destroy (Tree *tree)
 
      for (i = 0; i < 96; i++) {
           if (tree->fast_keys[i])
-               free (tree->fast_keys[i]);
+               DFBFREE(tree->fast_keys[i]);
      }
      tree_node_destroy (tree, tree->root);
-     free (tree);
+     DFBFREE(tree);
 }
 
 void tree_insert (Tree *tree,
@@ -163,8 +163,8 @@ static void tree_node_destroy (Tree *tree,
           tree_node_destroy (tree, node->right);
 
           if (node->value)
-               free (node->value);
-          free (node);
+               DFBFREE(node->value);
+          DFBFREE(node);
      }
 }
 

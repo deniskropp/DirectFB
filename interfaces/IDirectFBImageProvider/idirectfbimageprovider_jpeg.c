@@ -40,6 +40,7 @@
 
 #include <misc/gfx_util.h>
 #include <misc/util.h>
+#include <misc/mem.h>
 
 #include <jpeglib.h>
 #include <setjmp.h>
@@ -188,13 +189,13 @@ void IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
      IDirectFBImageProvider_JPEG_data *data =
                                   (IDirectFBImageProvider_JPEG_data*)thiz->priv;
 
-     free( data->filename );
+     DFBFREE( data->filename );
      
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 

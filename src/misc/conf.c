@@ -39,6 +39,7 @@
 
 #include "conf.h"
 #include "util.h"
+#include "mem.h"
 
 
 DFBConfig *dfb_config = NULL;
@@ -122,7 +123,7 @@ static void config_cleanup()
           return;
      }
 
-     free( dfb_config );
+     DFBFREE( dfb_config );
      dfb_config = NULL;
 }
 
@@ -193,7 +194,7 @@ DFBResult config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "mouse-protocol" ) == 0) {
           if (value) {
-               dfb_config->mouse_protocol = strdup( value );
+               dfb_config->mouse_protocol = DFBSTRDUP( value );
           }
           else {
                ERRORMSG( "DirectFB/Config: No mouse protocol specified!\n" );
@@ -223,7 +224,7 @@ DFBResult config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "bg-image" ) == 0) {
           if (value) {
-               dfb_config->layer_bg_filename = strdup( value );
+               dfb_config->layer_bg_filename = DFBSTRDUP( value );
                dfb_config->layer_bg_mode = DLBM_IMAGE;
           }
           else {
@@ -369,7 +370,7 @@ DFBResult config_init( int *argc, char **argv[] )
                     if (len) {
                          char *name, *value;
 
-                         name = strdup( (*argv)[i] + 2 );
+                         name = DFBSTRDUP( (*argv)[i] + 2 );
                          value = strchr( name, '=' );
 
                          if (value)
@@ -377,7 +378,7 @@ DFBResult config_init( int *argc, char **argv[] )
 
                          ret = config_set( name, value );
 
-                         free( name );
+                         DFBFREE( name );
 
                          if (ret == DFB_OK)
                               (*argv)[i] = NULL;

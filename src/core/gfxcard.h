@@ -143,16 +143,11 @@ struct _GfxDriver
 };
 
 /*
- * loads/probes/unloads one driver module after another until a suitable
- * driver is found and returns its symlinked functions
- */
-GfxDriver* gfxcards_find_card( int fd );
-
-
-/*
  * initializes card struct, maps framebuffer, chooses accelerated driver
  */
 DFBResult gfxcard_init();
+
+void gfxcard_deinit();
 
 /*
  * initializes card struct, maps framebuffer, chooses accelerated driver

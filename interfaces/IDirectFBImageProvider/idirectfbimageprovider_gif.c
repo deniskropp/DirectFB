@@ -39,6 +39,7 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
+#include <misc/mem.h>
 #include <misc/util.h>
 
 
@@ -173,13 +174,13 @@ void IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
      IDirectFBImageProvider_GIF_data *data =
                                    (IDirectFBImageProvider_GIF_data*)thiz->priv;
 
-     free( data->filename );
+     DFBFREE( data->filename );
 
-     free( thiz->priv );
+     DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-     free( thiz );
+     DFBFREE( thiz );
 #endif
 }
 
@@ -698,7 +699,7 @@ DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
           if (image_data) {
                err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
                if (err) {
-                    free( image_data );
+                    DFBFREE( image_data );
                     fclose( f );
                     return err;
                }
@@ -709,7 +710,7 @@ DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
                                 format );
 
                destination->Unlock( destination );
-               free (image_data);
+               DFBFREE(image_data);
           }
           fclose (f);
      }

@@ -76,6 +76,11 @@ extern FBDev *fbdev;
 DFBResult fbdev_open();
 
 /*
+ * deinitializes DirectFB fbdev stuff and restores fbdev settings
+ */
+void fbdev_deinit();
+
+/*
  * return when vertical retrace is reached, works with matrox kernel patch
  * only for now
  */

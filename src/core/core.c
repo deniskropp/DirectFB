@@ -38,30 +38,38 @@
 #include "input.h"
 #include "fbdev.h"
 #include "gfxcard.h"
+#include "layers.h"
+#include "surfaces.h"
 
+#include "misc/mem.h"
 #include "misc/util.h"
 
 /*
- * one entry on the cleanup stack
+ * one entry in the cleanup list
  */
-typedef struct _Cleanup {
-     void (*cleanup)();
+struct _CoreCleanup {
+     CoreCleanupFunc  cleanup;
+     void            *data;
+     int              emergency;
 
-     struct _Cleanup     *prev;
-} Cleanup;
+     CoreCleanup     *prev;
+     CoreCleanup     *next;
+};
 
 /*
- * the cleanup stack
+ * list of cleanup functions
  */
-static Cleanup *cleanup_stack = NULL;
+static CoreCleanup *core_cleanups = NULL;
+
+static int core_refs = 0;
 
 /*
  * macro for error handling in init functions
  */
 #define INITCHECK(a...)                                                     \
-     if ((ret = a) != DFB_OK) {                                       \
+     if ((ret = a) != DFB_OK) {                                             \
           ERRORMSG("DirectFB/Core: Error during initialization: " #a "\n"); \
-          if (cleanup_stack) core_deinit();                                \
+          core_deinit_emergency();                                          \
           return ret;                                                       \
      }
 
@@ -70,9 +78,10 @@ static Cleanup *cleanup_stack = NULL;
  */
 void core_deinit_check()
 {
-     if (cleanup_stack) {
-          DEBUGMSG( "DirectFB/core: WARNING - Application exitted without deinitialization of DirectFB!\n" );
-          core_deinit();
+     if (core_refs) {
+          DEBUGMSG( "DirectFB/core: WARNING - Application "
+                    "exitted without deinitialization of DirectFB!\n" );
+          core_deinit_emergency();
      }
 }
 
@@ -85,10 +94,8 @@ DFBResult core_init()
      char *mmx_string = "";
 #endif
 
-     if (cleanup_stack) {
-          DEBUGMSG( "core_init() called with something on the cleanup stack" );
+     if (core_refs++)
           return DFB_OK;
-     }
 
      if (!dfb_config->no_sighandler)
           sig_install_handlers();
@@ -116,71 +123,81 @@ DFBResult core_init()
 
 void core_deinit()
 {
-     if (!cleanup_stack)
+     if (--core_refs)
           return;
+     
+     while (core_cleanups) {
+          CoreCleanup *cleanup = core_cleanups;
 
-     /* FIXME: cleanup the cleanup code, many deadlock problems... */
-     core_deinit_emergency();
-     return;
+          core_cleanups = cleanup->next;
 
-     while (cleanup_stack) {
-          Cleanup *cleanup = cleanup_stack;
-          void (*cleanup_func)() = cleanup_stack->cleanup;
-
-          cleanup_stack = cleanup_stack->prev;
+          cleanup->cleanup( cleanup->data, 0 );
           
-          free( cleanup );
-
-          cleanup_func();
+          DFBFREE( cleanup );
      }
 
+     layers_deinit();
+     surfaces_deinit();
+     gfxcard_deinit();
+     fbdev_deinit();
+     input_deinit();
      vt_close();
 }
 
 void core_deinit_emergency()
 {
-//     keyboard_deinit(NULL);
-     vt_close();
+     core_refs = 0;
+
+     while (core_cleanups) {
+          CoreCleanup     *cleanup      = core_cleanups;
+
+          core_cleanups = core_cleanups->prev;
+          
+          if (cleanup->emergency)
+               cleanup->cleanup( cleanup->data, 1 );
+          
+          DFBFREE( cleanup );
+     }
      
-     cleanup_stack = NULL;
+     vt_close();
 }
 
-void core_cleanup_push( void (*cleanup_func)() )
+CoreCleanup *core_cleanup_add( CoreCleanupFunc cleanup,
+                               void *data, int emergency )
 {
-     Cleanup *cleanup = (Cleanup*)DFBMALLOC( sizeof(Cleanup) );
+     CoreCleanup *c = (CoreCleanup*)DFBCALLOC( 1, sizeof(CoreCleanup) );
 
-     cleanup->cleanup = cleanup_func;
+     c->cleanup   = cleanup;
+     c->data      = data;
+     c->emergency = emergency;
 
-     if (cleanup_stack) {
-          cleanup->prev = cleanup_stack;
-     }
-     else {
-          cleanup->prev = NULL;
-     }
+     if (core_cleanups) {
+          CoreCleanup *cc = core_cleanups;
 
-     cleanup_stack = cleanup;
-}
+          while (cc->next)
+               cc = cc->next;
 
-void core_cleanup_last( void (*cleanup_func)() )
-{
-     Cleanup *cleanup = (Cleanup*)DFBMALLOC( sizeof(Cleanup) );
-
-     cleanup->cleanup = cleanup_func;
-
-     if (cleanup_stack) {
-          Cleanup *stack = cleanup_stack;
-
-          while (stack->prev)
-               stack = stack->prev;
-
-          stack->prev = cleanup;
+          c->prev = cc;
+          cc->next = c;
      }
      else
-          cleanup_stack = cleanup;
-          
-     cleanup->prev = NULL;
+          core_cleanups = c;
+
+     return c;
 }
 
+void core_cleanup_remove( CoreCleanup *cleanup )
+{
+     if (cleanup->next)
+          cleanup->next->prev = cleanup->prev;
+     
+     if (cleanup->prev)
+          cleanup->prev->next = cleanup->next;
+     else
+          core_cleanups = cleanup->next;
+
+     DFBFREE( cleanup );
+}
 
 /*
  * module loading functions

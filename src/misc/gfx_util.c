@@ -39,6 +39,7 @@
 
 #include "gfx_util.h"
 #include "util.h"
+#include "mem.h"
 
 #include <gfx/convert.h>
 
@@ -207,7 +208,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
      y_weights = (double *) alloca (n_y * sizeof (double));
 
      if (!x_weights || !y_weights) {
-          free( filter->weights );
+          DFBFREE( filter->weights );
 
           DEBUGMSG ("couldn't allocate memory for scaling\n");
           return 0;
@@ -455,7 +456,7 @@ void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
           y += y_step;
      }
 
-     free (filter.weights);
+     DFBFREE(filter.weights);
 }
 
 int clip_line( DFBRegion *clip, DFBRegion *line )
