@@ -1317,6 +1317,12 @@ static DFBResult matrox_find_pci_device( MatroxDeviceData *mdev,
           switch (device) {
           case PCI_DEVICE_ID_MATROX_G550:
           case PCI_DEVICE_ID_MATROX_G400:
+               if (addr0 == (mdev->fb.physical & ~0x1FFFFFF)) {
+                    fclose( file );
+                    return DFB_OK;
+               }
+               break;
+
           case PCI_DEVICE_ID_MATROX_G200_PCI:
           case PCI_DEVICE_ID_MATROX_G200_AGP:
           case PCI_DEVICE_ID_MATROX_G100_MM:
@@ -1490,7 +1496,6 @@ driver_init_device( GraphicsDevice     *device,
      DFBResult         ret;
 
      mdev->fb.physical = dfb_gfxcard_memory_physical( device, 0 );
-     mdev->fb.offset   = mdev->fb.physical & 0x1FFFFFF;
 
      switch (mdrv->accelerator) {
           case FB_ACCEL_MATROX_MGAG400:
@@ -1506,6 +1511,8 @@ driver_init_device( GraphicsDevice     *device,
                          g550 ? "G550" : g450 ? "G450" : "G400" );
                mdev->g450_matrox = g450 || g550;
                mdev->g550_matrox = g550;
+
+               mdev->fb.offset = mdev->fb.physical & 0x1FFFFFF;
                break;
           case FB_ACCEL_MATROX_MGAG200:
                if ((ret = matrox_find_pci_device( mdev, &bus, &slot, &func )))
