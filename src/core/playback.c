@@ -297,6 +297,9 @@ fs_playback_notify( CorePlayback                  *playback,
      DFB_ASSERT( flags == CPNF_ADVANCED || flags == CPNF_ENDED );
      DFB_ASSERT( pos >= 0 );
 
+     if (flags & CPNF_ENDED)
+          playback->running = false;
+     
      if (!playback->notify)
           return;
 
