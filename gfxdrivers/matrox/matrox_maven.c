@@ -288,8 +288,8 @@ maven_set_bwlevel( MatroxMavenData  *mav,
      bool ntsc = dfb_config->matrox_ntsc;
 
      if (mdev->g450_matrox) {
-          wlmax = ntsc ? 869 : 881;
-          blmin = ntsc ? 200 : 224;
+          wlmax = ntsc ? 936 : 938;
+          blmin = ntsc ? 267 : 281;
      } else {
           wlmax = 786;
           blmin = ntsc ? 242 : 255;
@@ -577,12 +577,12 @@ DFBResult maven_init( MatroxMavenData  *mav,
                     mav->regs[0x0A] = 0x76;
                     mav->regs[0x0B] = 0x49;
                     mav->regs[0x0C] = 0x00;
-                    mav->regs[0x0E] = 0x3E;
-                    mav->regs[0x0F] = 0x00;
-                    mav->regs[0x10] = 0x32;
-                    mav->regs[0x11] = 0x00;
-                    mav->regs[0x1E] = 0xD9;
-                    mav->regs[0x1F] = 0x01;
+                    mav->regs[0x0E] = 0x4E;
+                    mav->regs[0x0F] = 0x03;
+                    mav->regs[0x10] = 0x42;
+                    mav->regs[0x11] = 0x03;
+                    mav->regs[0x1E] = 0xEA;
+                    mav->regs[0x1F] = 0x00;
                     mav->regs[0x20] = 0xAE;
                     mav->regs[0x22] = 0xAE;
                     mav->regs[0x29] = 0x11;
@@ -598,12 +598,12 @@ DFBResult maven_init( MatroxMavenData  *mav,
                     mav->regs[0x0A] = 0x8A;
                     mav->regs[0x0B] = 0x38;
                     mav->regs[0x0C] = 0x28;
-                    mav->regs[0x0E] = 0x38;
-                    mav->regs[0x0F] = 0x00;
-                    mav->regs[0x10] = 0x38;
-                    mav->regs[0x11] = 0x00;
-                    mav->regs[0x1E] = 0xDB;
-                    mav->regs[0x1F] = 0x03;
+                    mav->regs[0x0E] = 0x46;
+                    mav->regs[0x0F] = 0x01;
+                    mav->regs[0x10] = 0x46;
+                    mav->regs[0x11] = 0x01;
+                    mav->regs[0x1E] = 0xEA;
+                    mav->regs[0x1F] = 0x00;
                     mav->regs[0x20] = 0xBB;
                     mav->regs[0x22] = 0xBB;
                     mav->regs[0x29] = 0x1A;
