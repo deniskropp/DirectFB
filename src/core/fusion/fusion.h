@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -38,7 +38,7 @@ extern "C"
 /*
  * Initializes fusion and returns the fusion id or -1 on failure.
  */
-int fusion_init( int world, int *world_ret );
+int fusion_init( int world, int abi_version, int *world_ret );
 
 /*
  * Deinitializes fusion.

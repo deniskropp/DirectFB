@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -76,7 +76,7 @@ static CoreThread *read_loop;
 int _fusion_id = 0;  /* non-zero if Fusion is initialized */
 
 int
-fusion_init( int world, int *world_ret )
+fusion_init( int world, int abi_version, int *world_ret )
 {
      char buf[20];
 
@@ -92,12 +92,12 @@ fusion_init( int world, int *world_ret )
      if (world < 0) {
           for (world=0; world<256; world++) {
                snprintf( buf, sizeof(buf), "/dev/fusion/%d", world );
-          
+
                _fusion_fd = open (buf, O_RDWR | O_NONBLOCK | O_EXCL);
                if (_fusion_fd < 0) {
                     if (errno == EBUSY)
                          continue;
-                    
+
                     FPERROR( "opening '%s' failed!\n", buf );
                     return -1;
                }
@@ -107,7 +107,7 @@ fusion_init( int world, int *world_ret )
      }
      else {
           snprintf( buf, sizeof(buf), "/dev/fusion/%d", world );
-          
+
           _fusion_fd = open (buf, O_RDWR | O_NONBLOCK);
           if (_fusion_fd < 0) {
                FPERROR( "opening '%s' failed!\n", buf );
@@ -134,7 +134,7 @@ fusion_init( int world, int *world_ret )
                              "at least 4MB of free space\n"
                            "is writable, see the DirectFB README "
                              "for more instructions.\n" );
-          
+
           _fusion_id = 0;
 
           close( _fusion_fd );
@@ -145,12 +145,30 @@ fusion_init( int world, int *world_ret )
      if (_fusion_id == 1) {
           _fusion_shared = __shmalloc_allocate_root( sizeof(FusionShared) );
 
+          _fusion_shared->abi_version = abi_version;
+
           fusion_skirmish_init( &_fusion_shared->arenas_lock );
 
           gettimeofday( &_fusion_shared->start_time, NULL );
      }
-     else
+     else {
           _fusion_shared = __shmalloc_get_root();
+
+          if (_fusion_shared->abi_version != abi_version) {
+               FERROR( "ABI version mismatch (my: %d, their: %d)\n",
+                       abi_version, _fusion_shared->abi_version );
+
+               _fusion_shared = NULL;
+
+               __shmalloc_exit( false );
+
+               _fusion_id = 0;
+
+               close( _fusion_fd );
+               _fusion_fd = -1;
+               return -1;
+          }
+     }
 
      read_loop = dfb_thread_create( CTT_MESSAGING, fusion_read_loop, NULL );
 
@@ -165,7 +183,7 @@ fusion_exit()
 {
      int               foo;
      FusionSendMessage msg;
-     
+
      DFB_ASSERT( fusion_refs > 0 );
 
      /* decrement local reference counter */
@@ -203,7 +221,7 @@ fusion_exit()
      _fusion_reactor_free_all();
 
      _fusion_id = 0;
-     
+
      if (close( _fusion_fd ))
           FPERROR( "closing the fusion device failed!\n" );
      _fusion_fd = -1;
@@ -215,7 +233,7 @@ fusion_kill( int fusion_id, int signal, int timeout_ms )
      FusionKill param;
 
      DFB_ASSERT( _fusion_fd != -1 );
-     
+
      param.fusion_id  = fusion_id;
      param.signal     = signal;
      param.timeout_ms = timeout_ms;
@@ -229,12 +247,12 @@ fusion_kill( int fusion_id, int signal, int timeout_ms )
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_KILL");
 
           return FUSION_FAILURE;
      }
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -242,10 +260,10 @@ long long
 fusion_get_millis()
 {
      struct timeval tv;
-     
+
      if (!_fusion_shared)
           return dfb_get_millis();
-     
+
      gettimeofday( &tv, NULL );
 
      return (tv.tv_sec - _fusion_shared->start_time.tv_sec) * 1000LL +
@@ -271,7 +289,7 @@ fusion_read_loop( CoreThread *thread, void *arg )
 
      FD_ZERO(&set);
      FD_SET(_fusion_fd,&set);
-     
+
      FDEBUG( "entering loop...\n" );
 
      while ((result = select (_fusion_fd+1, &set, NULL, NULL, NULL)) >= 0 ||
@@ -281,12 +299,12 @@ fusion_read_loop( CoreThread *thread, void *arg )
 
           FD_ZERO(&set);
           FD_SET(_fusion_fd,&set);
-          
+
           if (result <= 0)
                continue;
-          
+
           len = read (_fusion_fd, buf, 1024);
-          
+
           while (buf_p < buf + len) {
                FusionReadMessage *header = (FusionReadMessage*) buf_p;
                void              *data   = buf_p + sizeof(FusionReadMessage);
@@ -320,11 +338,11 @@ fusion_read_loop( CoreThread *thread, void *arg )
 #else
 
 int
-fusion_init( int world, int *ret_world )
+fusion_init( int world, int abi_version, int *ret_world )
 {
      if (ret_world)
           *ret_world = 0;
-     
+
      return 1;
 }
 

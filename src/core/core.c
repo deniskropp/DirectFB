@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -141,11 +141,11 @@ dfb_core_init( int *argc, char **argv[] )
           dfb_lib_handle = dlopen(SOPATH, RTLD_LAZY);
 #endif
 #endif
-    
+
      ret = dfb_system_lookup();
      if (ret)
           return ret;
-     
+
      return DFB_OK;
 }
 
@@ -192,8 +192,8 @@ dfb_core_ref()
      dfb_find_best_memcpy();
 
      setpgid( 0, 0 );
-     
-     fid = fusion_init( dfb_config->session, &world );
+
+     fid = fusion_init( dfb_config->session, 0, &world );
      if (fid < 0)
           return DFB_INIT;
 
@@ -223,18 +223,18 @@ dfb_core_ref()
 
           return DFB_FUSION;
      }
-     
+
      if (ret) {
           ERRORMSG("DirectFB/Core: Error during initialization (%s)\n",
                    DirectFBErrorString( ret ));
-          
+
           fusion_exit();
 
           DFBFREE( dfb_core );
           dfb_core = NULL;
 
           dfb_sig_remove_handlers();
-          
+
           return ret;
      }
 #else
@@ -242,14 +242,14 @@ dfb_core_ref()
      if (ret) {
           ERRORMSG("DirectFB/Core: Error during initialization (%s)\n",
                    DirectFBErrorString( ret ));
-          
+
           fusion_exit();
 
           DFBFREE( dfb_core );
           dfb_core = NULL;
 
           dfb_sig_remove_handlers();
-          
+
           return ret;
      }
 #endif
@@ -286,7 +286,7 @@ dfb_core_unref()
 #else
      dfb_core_shutdown( NULL, NULL, false );
 #endif
-    
+
      fusion_exit();
 
      DFBFREE( dfb_core );
@@ -309,7 +309,7 @@ dfb_core_suspend()
 
      if (!dfb_core->master)
           return DFB_ACCESSDENIED;
-     
+
      ret = dfb_core_layers.Suspend();
      if (ret)
           return ret;
@@ -406,7 +406,7 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
      dfb_core->master = true;
 
      dfb_sig_install_handlers();
-     
+
      for (i=0; i<NUM_CORE_PARTS; i++) {
           if ((ret = dfb_core_part_initialize( core_parts[i] ))) {
                dfb_core_shutdown( arena, ctx, true );
@@ -428,14 +428,14 @@ dfb_core_join( FusionArena *arena, void *ctx )
 
      //dfb_config->sighandler = false;
      dfb_sig_install_handlers();
-     
+
      for (i=0; i<NUM_CORE_PARTS; i++) {
           if ((ret = dfb_core_part_join( core_parts[i] ))) {
                dfb_core_leave( arena, ctx, true );
                return ret;
           }
      }
-     
+
      return 0;
 }
 #endif
@@ -479,7 +479,7 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
      DEBUGMSG( "DirectFB/Core: leaving!\n" );
 
      process_cleanups( emergency );
-     
+
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
           dfb_core_part_leave( core_parts[i], emergency );
 

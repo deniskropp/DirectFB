@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -99,6 +99,8 @@
  ***************************************/
 
 typedef struct {
+     int             abi_version;
+
      struct timeval  start_time;
 
      FusionLink     *arenas;

@@ -49,67 +49,67 @@ bench_reactor()
           return;
      }
 
-     
+
      /* reactor attach/detach */
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<700000; i++) {
           fusion_reactor_attach( reactor, react, NULL, &reaction );
           fusion_reactor_detach( reactor, &reaction );
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      printf( "reactor attach/detach                 -> %8.2f k/sec\n", 700000 / (float)(t2 - t1) );
 
-     
+
      /* reactor attach/detach (2nd) */
      fusion_reactor_attach( reactor, react, NULL, &reaction );
-     
+
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<700000; i++) {
           fusion_reactor_attach( reactor, react, NULL, &reaction2 );
           fusion_reactor_detach( reactor, &reaction2 );
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      fusion_reactor_detach( reactor, &reaction );
-     
+
      printf( "reactor attach/detach (2nd)           -> %8.2f k/sec\n", 700000 / (float)(t2 - t1) );
 
-     
+
      /* reactor attach/detach (global) */
      fusion_reactor_attach( reactor, react, NULL, &reaction );
-     
+
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<700000; i++) {
           fusion_reactor_attach_global( reactor, 0, NULL, &global_reaction );
           fusion_reactor_detach_global( reactor, &global_reaction );
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      fusion_reactor_detach( reactor, &reaction );
-     
+
      printf( "reactor attach/detach (global)        -> %8.2f k/sec\n", 700000 / (float)(t2 - t1) );
 
-     
+
      /* reactor dispatch */
      fusion_reactor_attach( reactor, react, &react_counter, &reaction );
-     
+
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<N_DISPATCH; i++) {
           char msg[16];
 
           fusion_reactor_dispatch( reactor, msg, true, NULL );
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      printf( "reactor dispatch                      -> %8.2f k/sec  (%d%% arrived)\n",
              N_DISPATCH / (float)(t2 - t1), react_counter / (N_DISPATCH/100) );
 
@@ -123,17 +123,17 @@ bench_reactor()
                if (old_counter == react_counter)
                     break;
           }
-          
+
           t2 = dfb_get_millis();
-          
+
           printf( "  (after waiting for arrival)    -> %8.2f k/sec  (%d%% arrived)\n",
                   N_DISPATCH / (float)(t2 - t1), react_counter / (N_DISPATCH/100) );
      }
-#endif     
-     
+#endif
+
      fusion_reactor_detach( reactor, &reaction );
 
-     
+
      fusion_reactor_free( reactor );
 
      printf( "\n" );
@@ -153,33 +153,33 @@ bench_ref()
           return;
      }
 
-     
+
      /* ref up/down (local) */
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<700000; i++) {
           fusion_ref_up( &ref, false );
           fusion_ref_down( &ref, false );
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      printf( "ref up/down (local)                   -> %8.2f k/sec\n", 700000 / (float)(t2 - t1) );
 
-     
+
      /* ref up/down (global) */
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<700000; i++) {
           fusion_ref_up( &ref, true );
           fusion_ref_down( &ref, true );
      }
-     
+
      t2 = dfb_get_millis();
 
      printf( "ref up/down (global)                  -> %8.2f k/sec\n", 700000 / (float)(t2 - t1) );
 
-     
+
      fusion_ref_destroy( &ref );
 
      printf( "\n" );
@@ -199,20 +199,20 @@ bench_property()
           return;
      }
 
-     
+
      /* property lease/cede */
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<700000; i++) {
           fusion_property_lease( &property );
           fusion_property_cede( &property );
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      printf( "property lease/cede                   -> %8.2f k/sec\n", 700000 / (float)(t2 - t1) );
 
-     
+
      fusion_property_destroy( &property );
 
      printf( "\n" );
@@ -232,20 +232,20 @@ bench_skirmish()
           return;
      }
 
-     
+
      /* skirmish prevail/dismiss */
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<700000; i++) {
           fusion_skirmish_prevail( &skirmish );
           fusion_skirmish_dismiss( &skirmish );
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      printf( "skirmish prevail/dismiss              -> %8.2f k/sec\n", 700000 / (float)(t2 - t1) );
 
-     
+
      fusion_skirmish_destroy( &skirmish );
 
      printf( "\n" );
@@ -278,13 +278,13 @@ bench_skirmish_threaded()
           return;
      }
 
-     
+
      /* skirmish prevail/dismiss (2-5 threads) */
      for (i=2; i<=5; i++) {
           int       t;
           long long t1, t2;
           pthread_t threads[i];
-          
+
           t1 = dfb_get_millis();
 
           for (t=0; t<i; t++)
@@ -299,7 +299,7 @@ bench_skirmish_threaded()
                   i, (double)i * (double)200000 / (double)(t2 - t1) );
      }
 
-     
+
      fusion_skirmish_destroy( &skirmish );
 
      printf( "\n" );
@@ -335,13 +335,13 @@ bench_spinlock_threaded()
           return;
      }
 
-     
+
      /* spinlock lock/unlock (1-5 threads) */
      for (i=1; i<=5; i++) {
           int       t;
           long long t1, t2;
           pthread_t threads[i];
-          
+
           t1 = dfb_get_millis();
 
           for (t=0; t<i; t++)
@@ -360,7 +360,7 @@ bench_spinlock_threaded()
                        (double)i * (double)2000000 / (double)(t2 - t1) );
      }
 
-     
+
      pthread_spin_destroy( &spin_lock );
 
      printf( "\n" );
@@ -387,13 +387,13 @@ bench_mutex_threaded()
      int             i;
      pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-     
+
      /* mutex lock/unlock (2-5 threads) */
      for (i=2; i<=5; i++) {
           int       t;
           long long t1, t2;
           pthread_t threads[i];
-          
+
           t1 = dfb_get_millis();
 
           for (t=0; t<i; t++)
@@ -408,7 +408,7 @@ bench_mutex_threaded()
                   i, (double)i * (double)1000000 / (double)(t2 - t1) );
      }
 
-     
+
      pthread_mutex_destroy( &lock );
 
      printf( "\n" );
@@ -422,33 +422,33 @@ bench_mutex()
      pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
      pthread_mutex_t rmutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
-     
+
      /* pthread_mutex lock/unlock */
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<2000000; i++) {
           pthread_mutex_lock( &mutex );
           pthread_mutex_unlock( &mutex );
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      printf( "mutex lock/unlock                     -> %8.2f k/sec\n", (double)2000000 / (double)(t2 - t1) );
 
-     
+
      /* pthread_mutex lock/unlock */
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<2000000; i++) {
           pthread_mutex_lock( &rmutex );
           pthread_mutex_unlock( &rmutex );
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      printf( "mutex lock/unlock (recursive)         -> %8.2f k/sec\n", (double)2000000 / (double)(t2 - t1) );
 
-     
+
      pthread_mutex_destroy( &mutex );
      pthread_mutex_destroy( &rmutex );
 
@@ -462,13 +462,13 @@ bench_getpid()
      long long       t1, t2;
 
      t1 = dfb_get_millis();
-     
+
      for (i=0; i<4000000; i++) {
           getpid();
      }
-     
+
      t2 = dfb_get_millis();
-     
+
      printf( "getpid                                -> %8.2f k/sec\n", (double)2000000 / (double)(t2 - t1) );
      printf( "\n" );
 }
@@ -479,13 +479,13 @@ int
 main( int argc, char *argv[] )
 {
      DFBResult ret;
-     
+
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
      if (ret)
           return DirectFBError( "DirectFBInit", ret );
 
-     if (fusion_init( dfb_config->session, NULL ) < 0)
+     if (fusion_init( -1, 0, NULL ) < 0)
           return -1;
 
      printf( "\n" );
@@ -497,22 +497,22 @@ main( int argc, char *argv[] )
 #endif
 
      printf( "\n" );
-     
-     
+
+
      RUN( bench_getpid() );
-     
+
      RUN( bench_mutex() );
      RUN( bench_mutex_threaded() );
-     
+
      RUN( bench_skirmish() );
      RUN( bench_skirmish_threaded() );
-     
+
      //bench_spinlock_threaded();
 
      RUN( bench_property() );
-     
+
      RUN( bench_ref() );
-     
+
      RUN( bench_reactor() );
 
      fusion_exit();
