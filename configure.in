@@ -132,6 +132,19 @@ case "$target_or_host" in
     ;;
 esac
 
+case "$target_or_host" in
+  *linux*)
+    have_linux=yes
+    ;;
+
+  *)
+    have_linux=no
+    ;;
+esac
+
+AM_CONDITIONAL(HAVE_LINUX, test x$have_linux = xyes)    
+
+
 if test "x$have_x86" = xyes; then
 ##
 ## HACK HACK HACK automake uses @AS@ like a gcc
@@ -435,6 +448,8 @@ dnl Test for libmpeg3
 
 AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
 
+if test x$have_linux = xyes; then
+
 dnl Test for ati framebuffer support in the kernel
 AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
@@ -534,6 +549,8 @@ AC_CHECK_HEADER( [dbox/fp.h], dbox2remote=yes, dbox2remote=no
 
 AM_CONDITIONAL(DBOX2REMOTE, test x$dbox2remote = xyes)
 
+fi
+
 
 DFB_CFLAGS="$DFB_CFLAGS $DFB_INTERNAL_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
@@ -570,6 +587,7 @@ INTERNALINCLUDEDIR=$includedir/directfb-internal
 SOPATH=$libdir/libdirectfb-$LT_RELEASE.so.$LT_CURRENT
 AC_SUBST(SOPATH)
 
+AC_SUBST(HAVE_LINUX)
 AC_SUBST(DFB_CFLAGS)
 AC_SUBST(DFB_CFLAGS_OMIT_FRAME_POINTER)
 AC_SUBST(DFB_LDFLAGS)
@@ -677,12 +695,15 @@ Building Video Providers:
   AviFile             $AVIFILE
   Libmpeg3            $MPEG3
   Flash               $FLASH
-  Video4Linux         yes
+  Video4Linux         $have_linux
 
 Building Font implementations:
   FreeType2           $FREETYPE
   DirectFB font       yes
+]);
 
+if test x$have_linux = xyes; then
+AC_MSG_RESULT([
 Building Graphics Drivers:
   Matrox              $matrox
   ATI Rage 128        $ati
@@ -696,5 +717,8 @@ Building Input Drivers:
   DBox2 Remote        $dbox2remote
   H3600 Touchscreen   $h3600_ts
   SonyPI Jogdial      $sonypi
+]);
+fi
+AC_MSG_RESULT([
 $png_warning $jpeg_warning $freetype_warning
 ]);

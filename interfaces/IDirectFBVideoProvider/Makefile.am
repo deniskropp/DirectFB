@@ -3,6 +3,12 @@
 idirectfbvideoproviderdir = $(MODULEDIR)/interfaces/IDirectFBVideoProvider
 
 
+if HAVE_LINUX
+V4L_PROVIDER_LTLIB = libidirectfbvideoprovider_v4l.la
+else
+V4L_PROVIDER_LTLIB =
+endif
+
 if AVIFILE_PROVIDER
 AVIFILE_PROVIDER_LTLIB = libidirectfbvideoprovider_avifile.la
 else
@@ -33,10 +39,10 @@ CFLAGS = $(DFB_CFLAGS)
 CXXFLAGS = $(DFB_CXXFLAGS) $(AVIFILE_CFLAGS)
 
 
-idirectfbvideoprovider_LTLIBRARIES = \
-	libidirectfbvideoprovider_v4l.la	\
-	$(AVIFILE_PROVIDER_LTLIB)		\
-	$(FLASH_PROVIDER_LTLIB)			\
+idirectfbvideoprovider_LTLIBRARIES =	\
+	$(V4L_PROVIDER_LTLIB)		\
+	$(AVIFILE_PROVIDER_LTLIB)	\
+	$(FLASH_PROVIDER_LTLIB)		\
 	$(LIBMPEG3_PROVIDER_LTLIB)
 
 

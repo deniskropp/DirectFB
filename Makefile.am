@@ -1,14 +1,22 @@
 ## Makefile.am for DirectFB
 
-SUBDIRS = \
-	patches 	\
-	include 	\
-	src 		\
-	tools 		\
+if HAVE_LINUX
+LINUXONLY_DIRS =	\
+	tools	 	\
 	gfxdrivers	\
-	inputdrivers	\
-	interfaces 	\
-	data		\
+	inputdrivers
+else
+LINUXONLY_DIRS =
+endif
+
+   
+SUBDIRS = \
+	patches 		\
+	include 		\
+	src 			\
+	$(LINUXONLY_DIRS)	\
+	interfaces 		\
+	data			\
 	docs
 
 bin_SCRIPTS = directfb-config

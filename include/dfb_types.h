@@ -9,7 +9,7 @@
 #define __u16 u_int16_t
 #define __u32 u_int32_t
 
-#define __s16 signed short   // FIXME: dont assume short to be 16 bit 
+#define __s16 int16_t
 #endif
 
 #endif
