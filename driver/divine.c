@@ -68,7 +68,6 @@ static void*
 divineEventThread( CoreThread *thread, void *driver_data )
 {
      DiVineData     *data = (DiVineData*) driver_data;
-     int             readlen;
      DFBInputEvent   event;
      struct pollfd   pfd;
 
@@ -94,18 +93,6 @@ divineEventThread( CoreThread *thread, void *driver_data )
 }
 
 /* exported symbols */
-
-/*
- * Return the version number of the 'binary interface'.
- * Called immediately after input module has been opened
- * and this function has been found.
- * Input drivers with differing compiled in version won't be used.
- */
-static int
-driver_get_abi_version()
-{
-     return DFB_INPUT_DRIVER_ABI_VERSION;
-}
 
 /*
  * Return the number of available devices.
@@ -175,11 +162,11 @@ driver_open_device( InputDevice      *device,
 
      /* set device name */
      snprintf( info->desc.name,
-               DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "DirectFB Virtual Input" );
+               DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "Virtual Input" );
 
      /* set device vendor */
      snprintf( info->desc.vendor,
-               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "" );
+               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "DirectFB" );
 
      /* set one of the primary input device IDs */
      info->prefered_id = DIDID_ANY;
