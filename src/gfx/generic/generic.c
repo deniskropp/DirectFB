@@ -774,8 +774,6 @@ static void Sop_rgb24_SKto_Dacc()
 
           D++;
      }
-
-     //ONCE( "Sop_rgb24_SKto_Dacc() unimplemented");
 }
 
 static void Sop_rgb32_SKto_Dacc()
