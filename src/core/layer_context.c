@@ -49,6 +49,11 @@
 #include <direct/util.h>
 
 
+D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
+
+
+/******************************************************************************/
+
 static void      init_region_config  ( CoreLayerContext            *context,
                                        CoreLayerRegionConfig       *config );
 
@@ -85,9 +90,9 @@ context_destructor( FusionObject *object, bool zombie )
 
      (void) shared;
 
-     D_DEBUG("DirectFB/core/layers: destroying context %p (%s, %sactive%s)\n",
-              context, shared->description.name, context->active ? "" : "in",
-              zombie ? " - ZOMBIE" : "");
+     D_DEBUG_AT( Core_Layers, "destroying context %p (%s, %sactive%s)\n",
+                 context, shared->description.name, context->active ? "" : "in",
+                 zombie ? " - ZOMBIE" : "");
 
      /* Remove the context from the layer's context stack. */
      dfb_layer_remove_context( layer, context );
@@ -139,7 +144,7 @@ dfb_layer_context_create( CoreLayer         *layer,
      if (!context)
           return DFB_FUSION;
 
-     D_DEBUG( "DirectFB/core/layers: %s -> %p\n", __FUNCTION__, context );
+     D_DEBUG_AT( Core_Layers, "%s -> %p\n", __FUNCTION__, context );
 
      /* Initialize the lock. */
      if (fusion_skirmish_init( &context->lock, "Layer Context" )) {
@@ -201,7 +206,7 @@ dfb_layer_context_activate( CoreLayerContext *context )
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
-     D_DEBUG( "DirectFB/core/layers: %s (%p)\n", __FUNCTION__, context );
+     D_DEBUG_AT( Core_Layers, "%s (%p)\n", __FUNCTION__, context );
 
      D_ASSUME( !context->active );
 
@@ -241,7 +246,7 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
-     D_DEBUG( "DirectFB/core/layers: %s (%p)\n", __FUNCTION__, context );
+     D_DEBUG_AT( Core_Layers, "%s (%p)\n", __FUNCTION__, context );
 
      D_ASSUME( context->active );
 

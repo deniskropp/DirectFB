@@ -69,6 +69,8 @@ typedef struct {
      CoreLayerContexts                  contexts;
 
      bool                               suspended;
+
+     FusionVector                       added_regions;
 } CoreLayerShared;
 
 struct __DFB_CoreLayer {

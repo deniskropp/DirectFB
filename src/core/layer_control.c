@@ -62,6 +62,7 @@
 
 #include <misc/util.h>
 
+#include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -69,6 +70,7 @@
 #include <core/layers_internal.h>
 
 
+D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
 
 /** public **/
 
@@ -182,8 +184,7 @@ dfb_layer_create_context( CoreLayer         *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     D_DEBUG( "DirectFB/core/layers: %s (%s)\n",
-               __FUNCTION__, shared->description.name );
+     D_DEBUG_AT( Core_Layers, "%s (%s)\n", __FUNCTION__, shared->description.name );
 
      /* Create a new context. */
      ret = dfb_layer_context_create( layer, &context );
@@ -222,6 +223,8 @@ dfb_layer_get_active_context( CoreLayer         *layer,
 
      shared   = layer->shared;
      contexts = &shared->contexts;
+
+     D_DEBUG_AT( Core_Layers, "%s (%s)\n", __FUNCTION__, shared->description.name );
 
      /* Lock the layer. */
      if (fusion_skirmish_prevail( &shared->lock ))
@@ -271,9 +274,9 @@ dfb_layer_get_primary_context( CoreLayer         *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     D_DEBUG( "DirectFB/core/layers: %s (%s, %sactivate) <- active: %d\n",
-               __FUNCTION__, shared->description.name,
-               activate ? "" : "don't ", contexts->active );
+     D_DEBUG_AT( Core_Layers, "%s (%s, %sactivate) <- active: %d\n",
+                 __FUNCTION__, shared->description.name,
+                 activate ? "" : "don't ", contexts->active );
 
      /* Check for primary context. */
      if (contexts->primary) {
@@ -331,8 +334,7 @@ dfb_layer_activate_context( CoreLayer        *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     D_DEBUG( "DirectFB/core/layers: %s (%s, %p)\n",
-               __FUNCTION__, shared->description.name, context );
+     D_DEBUG_AT( Core_Layers, "%s (%s, %p)\n", __FUNCTION__, shared->description.name, context );
 
      D_ASSERT( fusion_vector_contains( &ctxs->stack, context ) );
 
@@ -410,8 +412,7 @@ dfb_layer_remove_context( CoreLayer        *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     D_DEBUG( "DirectFB/core/layers: %s (%s, %p)\n",
-               __FUNCTION__, shared->description.name, context );
+     D_DEBUG_AT( Core_Layers, "%s (%s, %p)\n", __FUNCTION__, shared->description.name, context );
 
      D_ASSUME( fusion_vector_contains( &ctxs->stack, context ) );
 

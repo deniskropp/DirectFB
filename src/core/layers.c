@@ -59,6 +59,7 @@
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
+#include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -69,6 +70,7 @@
 #include <core/layers_internal.h>
 #include <core/screens_internal.h>
 
+D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
 
 
 typedef struct {
@@ -178,6 +180,9 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
           /* Initialize the vector for the contexts. */
           fusion_vector_init( &shared->contexts.stack, 4 );
 
+          /* Initialize the vector for realized (added) regions. */
+          fusion_vector_init( &shared->added_regions, 4 );
+
           /* No active context by default. */
           shared->contexts.active = -1;
 
@@ -228,14 +233,35 @@ dfb_layers_join( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_layers_shutdown( CoreDFB *core, bool emergency )
 {
-     int i;
+     int       i;
+     DFBResult ret;
 
      D_ASSERT( layersfield != NULL );
 
      /* Begin with the most recently added layer. */
      for (i=dfb_num_layers-1; i>=0; i--) {
-          CoreLayer       *layer  = dfb_layers[i];
-          CoreLayerShared *shared = layer->shared;
+          CoreLayer         *layer  = dfb_layers[i];
+          CoreLayerShared   *shared = layer->shared;
+          DisplayLayerFuncs *funcs  = layer->funcs;
+
+          D_ASSUME( emergency || fusion_vector_is_empty( &shared->added_regions ) );
+
+          /* Remove all regions during emergency shutdown. */
+          if (emergency && funcs->RemoveRegion) {
+               int              n;
+               CoreLayerRegion *region;
+
+               fusion_vector_foreach( region, n, shared->added_regions ) {
+                   D_DEBUG_AT( Core_Layers, "Removing region (%d, %d - %dx%d) from '%s'.\n",
+                               DFB_RECTANGLE_VALS( &region->config.dest ),
+                               shared->description.name );
+
+                   ret = funcs->RemoveRegion( layer, layer->driver_data,
+                                              layer->layer_data, region->region_data );
+                   if (ret)
+                        D_DERROR( ret, "Core/Layers: Could not remove region!\n" );
+               }
+          }
 
           /* Deinitialize the lock. */
           fusion_skirmish_destroy( &shared->lock );
@@ -245,6 +271,9 @@ dfb_layers_shutdown( CoreDFB *core, bool emergency )
 
           /* Deinitialize the vector for the contexts. */
           fusion_vector_destroy( &shared->contexts.stack );
+
+          /* Deinitialize the vector for the realized (added) regions. */
+          fusion_vector_destroy( &shared->added_regions );
 
           /* Free the driver's layer data. */
           if (shared->layer_data)

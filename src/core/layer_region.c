@@ -30,7 +30,9 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <direct/debug.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/shmalloc.h>
 
@@ -44,7 +46,8 @@
 
 #include <gfx/util.h>
 
-#include <direct/util.h>
+
+D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
 
 
 static DFBResult set_region      ( CoreLayerRegion            *region,
@@ -68,18 +71,18 @@ region_destructor( FusionObject *object, bool zombie )
 
      (void) shared;
 
-     D_DEBUG( "DirectFB/core/layers: destroying region %p (%s, %dx%d, "
-               "%s, %s, %s, %s%s)\n", region, shared->description.name,
-               region->config.width, region->config.height,
-               D_FLAGS_IS_SET( region->state,
-                            CLRSF_CONFIGURED ) ? "configured" : "unconfigured",
-               D_FLAGS_IS_SET( region->state,
-                            CLRSF_ENABLED ) ? "enabled" : "disabled",
-               D_FLAGS_IS_SET( region->state,
-                            CLRSF_ACTIVE ) ? "active" : "inactive",
-               D_FLAGS_IS_SET( region->state,
-                            CLRSF_REALIZED ) ? "realized" : "not realized",
-               zombie ? " - ZOMBIE" : "");
+     D_DEBUG_AT( Core_Layers, "destroying region %p (%s, %dx%d, "
+                 "%s, %s, %s, %s%s)\n", region, shared->description.name,
+                 region->config.width, region->config.height,
+                 D_FLAGS_IS_SET( region->state,
+                                 CLRSF_CONFIGURED ) ? "configured" : "unconfigured",
+                 D_FLAGS_IS_SET( region->state,
+                                 CLRSF_ENABLED ) ? "enabled" : "disabled",
+                 D_FLAGS_IS_SET( region->state,
+                                 CLRSF_ACTIVE ) ? "active" : "inactive",
+                 D_FLAGS_IS_SET( region->state,
+                                 CLRSF_REALIZED ) ? "realized" : "not realized",
+                 zombie ? " - ZOMBIE" : "" );
 
      /* Hide region etc. */
      if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
@@ -412,6 +415,15 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      SurfaceBuffer     *buffer;
      DisplayLayerFuncs *funcs;
 
+     if (update)
+          D_DEBUG_AT( Core_Layers,
+                      "dfb_layer_region_flip_update( %p, %p, 0x%08x ) <- [%d, %d - %dx%d]\n",
+                      region, update, flags, DFB_RECTANGLE_VALS_FROM_REGION( update ) );
+     else
+          D_DEBUG_AT( Core_Layers,
+                      "dfb_layer_region_flip_update( %p, %p, 0x%08x )\n", region, update, flags );
+
+
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
 
@@ -423,6 +435,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
      /* Check for NULL surface. */
      if (!region->surface) {
+          D_DEBUG_AT( Core_Layers, "  -> No surface => no update!\n" );
           dfb_layer_region_unlock( region );
           return DFB_UNSUPPORTED;
      }
@@ -447,15 +460,21 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                                 update->x2 == surface->width - 1 &&
                                 update->y2 == surface->height - 1)))
                {
+                    D_DEBUG_AT( Core_Layers, "  -> Going to swap buffers...\n" );
+
                     /* Use the driver's routine if the region is realized. */
                     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                          D_ASSUME( funcs->FlipRegion != NULL );
+
+                         D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
 
                          if (buffer->video.access & VAF_HARDWARE_WRITE) {
                               dfb_gfxcard_wait_serial( &buffer->video.serial );
 
                               buffer->video.access &= ~VAF_HARDWARE_WRITE;
                          }
+
+                         D_DEBUG_AT( Core_Layers, "  -> Flipping region using driver...\n" );
 
                          if (funcs->FlipRegion)
                               ret = funcs->FlipRegion( layer,
@@ -464,9 +483,12 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                                                        region->region_data,
                                                        surface, flags );
                     }
-                    else
+                    else {
+                         D_DEBUG_AT( Core_Layers, "  -> Flipping region not using driver...\n" );
+
                          /* Just do the hardware independent work. */
                          dfb_surface_flip_buffers( surface, false );
+                    }
 
                     break;
                }
@@ -474,22 +496,32 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                /* fall through */
 
           case DLBM_BACKSYSTEM:
-               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC)
+               D_DEBUG_AT( Core_Layers, "  -> Going to copy portion...\n" );
+
+               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
+                    D_DEBUG_AT( Core_Layers, "  -> Waiting for VSync...\n" );
+
                     dfb_layer_wait_vsync( layer );
+               }
+
+               D_DEBUG_AT( Core_Layers, "  -> Copying content from back to front buffer...\n" );
 
                /* ...or copy updated contents from back to front buffer. */
                dfb_back_to_front_copy( surface, update );
 
-               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT)
+               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT) {
+                    D_DEBUG_AT( Core_Layers, "  -> Waiting for VSync...\n" );
+
                     dfb_layer_wait_vsync( layer );
+               }
 
                /* fall through */
 
           case DLBM_FRONTONLY:
                /* Tell the driver about the update if the region is realized. */
-               if (funcs->UpdateRegion &&
-                   D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ))
-               {
+               if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+                    D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
+
                     ret = funcs->UpdateRegion( layer,
                                                layer->driver_data,
                                                layer->layer_data,
@@ -502,6 +534,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                D_BUG("unknown buffer mode");
                ret = DFB_BUG;
      }
+
+     D_DEBUG_AT( Core_Layers, "  -> done.\n" );
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
@@ -680,6 +714,9 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
 
+     D_DEBUG_AT( Core_Layers, "_dfb_layer_region_surface_listener( %p, %p ) <- 0x%08x\n",
+                 notification, region, notification->flags );
+
      D_ASSERT( notification->surface != NULL );
 
      D_ASSUME( notification->surface == region->surface );
@@ -766,6 +803,7 @@ realize_region( CoreLayerRegion *region )
 {
      DFBResult          ret;
      CoreLayer         *layer;
+     CoreLayerShared   *shared;
      DisplayLayerFuncs *funcs;
 
      D_ASSERT( region != NULL );
@@ -776,9 +814,13 @@ realize_region( CoreLayerRegion *region )
      layer = dfb_layer_at( region->context->layer_id );
 
      D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
      D_ASSERT( layer->funcs != NULL );
 
-     funcs = layer->funcs;
+     shared = layer->shared;
+     funcs  = layer->funcs;
+
+     D_ASSERT( ! fusion_vector_contains( &shared->added_regions, region ) );
 
      /* Allocate the driver's region data. */
      if (funcs->RegionDataSize) {
@@ -787,9 +829,12 @@ realize_region( CoreLayerRegion *region )
           if (size > 0) {
                region->region_data = SHCALLOC( 1, size );
                if (!region->region_data)
-                    return DFB_NOSYSTEMMEMORY;
+                    return D_OOSHM();
           }
      }
+
+     D_DEBUG_AT( Core_Layers, "Adding region (%d, %d - %dx%d) to '%s'.\n",
+                 DFB_RECTANGLE_VALS( &region->config.dest ), shared->description.name );
 
      /* Add the region to the driver. */
      if (funcs->AddRegion) {
@@ -797,6 +842,8 @@ realize_region( CoreLayerRegion *region )
                                   layer->driver_data, layer->layer_data,
                                   region->region_data, &region->config );
           if (ret) {
+               D_DERROR( ret, "Core/Layers: Could not add region!\n" );
+
                if (region->region_data) {
                     SHFREE( region->region_data );
                     region->region_data = NULL;
@@ -805,6 +852,9 @@ realize_region( CoreLayerRegion *region )
                return ret;
           }
      }
+
+     /* Add the region to the 'added' list. */
+     fusion_vector_add( &shared->added_regions, region );
 
      /* Update the region's state. */
      D_FLAGS_SET( region->state, CLRSF_REALIZED );
@@ -823,7 +873,9 @@ static DFBResult
 unrealize_region( CoreLayerRegion *region )
 {
      DFBResult          ret;
+     int                index;
      CoreLayer         *layer;
+     CoreLayerShared   *shared;
      DisplayLayerFuncs *funcs;
 
      D_ASSERT( region != NULL );
@@ -833,20 +885,31 @@ unrealize_region( CoreLayerRegion *region )
      layer = dfb_layer_at( region->context->layer_id );
 
      D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
      D_ASSERT( layer->funcs != NULL );
 
-     funcs = layer->funcs;
+     shared = layer->shared;
+     funcs  = layer->funcs;
+
+     D_ASSERT( fusion_vector_contains( &shared->added_regions, region ) );
+
+     index = fusion_vector_index_of( &shared->added_regions, region );
+
+     D_DEBUG_AT( Core_Layers, "Removing region (%d, %d - %dx%d) from '%s'.\n",
+                 DFB_RECTANGLE_VALS( &region->config.dest ), shared->description.name );
 
      /* Remove the region from hardware and driver. */
      if (funcs->RemoveRegion) {
           ret = funcs->RemoveRegion( layer, layer->driver_data,
                                      layer->layer_data, region->region_data );
           if (ret) {
-               D_ERROR( "DirectFB/core/layers: Could not remove region!"
-                         " (%s)\n", DirectFBErrorString(ret) );
+               D_DERROR( ret, "Core/Layers: Could not remove region!\n" );
                return ret;
           }
      }
+
+     /* Remove the region from the 'added' list. */
+     fusion_vector_remove( &shared->added_regions, index );
 
      /* Deallocate the driver's region data. */
      if (region->region_data) {
