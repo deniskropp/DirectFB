@@ -2519,14 +2519,20 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
 
 
 /*
- * Flipping flags controlling the behaviour of Flip().
+ * Flipping flags controlling the behaviour of IDirectFBSurface::Flip().
  */
 typedef enum {
-     DSFLIP_WAIT         = 0x00000001,  /* blocks until vertical retrace */
-     DSFLIP_BLIT         = 0x00000002,  /* copy backbuffer into
-                                           frontbuffer rather than
-                                           just swapping these buffers */
-     DSFLIP_ONSYNC       = 0x00000004,  /* flip during vertical retrace */
+     DSFLIP_NONE         = 0x00000000,  /* None of these. */
+
+     DSFLIP_WAIT         = 0x00000001,  /* Flip() returns upon vertical sync. Flipping is still done
+                                           immediately unless DSFLIP_ONSYNC is specified, too.  */
+     DSFLIP_BLIT         = 0x00000002,  /* Copy from back buffer to front buffer rather than
+                                           just swapping these buffers. This behaviour is enforced
+                                           if the region passed to Flip() is not NULL or if the
+                                           surface being flipped is a sub surface. */
+     DSFLIP_ONSYNC       = 0x00000004,  /* Do the actual flipping upon the next vertical sync.
+                                           The Flip() method will still return immediately unless
+                                           DSFLIP_WAIT is specified, too. */
 
      DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
