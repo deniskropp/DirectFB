@@ -54,7 +54,6 @@ static void ovl_set_regs ( NeoDriverData         *ndrv,
                            NeoOverlayLayerData   *novl );
 static void ovl_calc_regs( NeoDriverData         *ndrv,
                            NeoOverlayLayerData   *novl,
-                           CoreLayer             *layer,
                            CoreLayerRegionConfig *config,
                            CoreSurface           *surface );
 
@@ -196,7 +195,7 @@ ovlSetRegion( CoreLayer                  *layer,
      /* remember configuration */
      novl->config = *config;
 
-     ovl_calc_regs( ndrv, novl, layer, config, surface );
+     ovl_calc_regs( ndrv, novl, config, surface );
      ovl_set_regs( ndrv, novl );
 
      /* enable overlay */
@@ -239,7 +238,7 @@ ovlFlipRegion(  CoreLayer           *layer,
 
      dfb_surface_flip_buffers( surface );
 
-     ovl_calc_regs( ndrv, novl, layer, &novl->config, surface );
+     ovl_calc_regs( ndrv, novl, &novl->config, surface );
      ovl_set_regs( ndrv, novl );
 
      return DFB_OK;
@@ -302,7 +301,6 @@ static void ovl_set_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl )
 
 static void ovl_calc_regs( NeoDriverData         *ndrv,
                            NeoOverlayLayerData   *novl,
-                           CoreLayer             *layer,
                            CoreLayerRegionConfig *config,
                            CoreSurface           *surface )
 {
