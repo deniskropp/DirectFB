@@ -86,7 +86,7 @@ load_sample (IFusionSound *sound, const char *filename)
 {
      DFBResult            ret;
      int                  fd;
-     DABufferDescription  desc;
+     FSBufferDescription  desc;
      IFusionSoundBuffer  *buffer;
      void                *data;
      fmtChunk             fmt;
@@ -161,10 +161,10 @@ load_sample (IFusionSound *sound, const char *filename)
      }
      
 
-     desc.flags        = DABDF_LENGTH | DABDF_CHANNELS |
-                         DABDF_SAMPLEFORMAT | DABDF_SAMPLERATE;
+     desc.flags        = FSBDF_LENGTH | FSBDF_CHANNELS |
+                         FSBDF_SAMPLEFORMAT | FSBDF_SAMPLERATE;
      desc.channels     = fmt.channels;
-     desc.sampleformat = (fmt.bitspersample == 8) ? DASF_U8 : DASF_S16;
+     desc.sampleformat = (fmt.bitspersample == 8) ? FSSF_U8 : FSSF_S16;
      desc.samplerate   = fmt.frequency;
      
      while (DFB_TRUE) {
@@ -242,7 +242,7 @@ int main (int argc, char *argv[])
 
      buffer = load_sample (sound, argv[1]);
      if (buffer) {
-          buffer->Play (buffer, DAPLAY_LOOPING);
+          buffer->Play (buffer, FSPLAY_LOOPING);
           
           sleep (3);
           

@@ -100,15 +100,15 @@ IFusionSound_Release( IFusionSound *thiz )
 
 static DFBResult
 IFusionSound_CreateBuffer( IFusionSound         *thiz,
-                           DABufferDescription  *desc,
+                           FSBufferDescription  *desc,
                            IFusionSoundBuffer  **interface )
 {
      DFBResult                 ret;
      int                       length   = 0;
      int                       channels = 2;
-     DASampleFormat            format   = DASF_S16;
+     FSSampleFormat            format   = FSSF_S16;
      int                       rate     = 44100;
-     DABufferDescriptionFlags  flags;
+     FSBufferDescriptionFlags  flags;
      CoreSoundBuffer          *buffer;
 
      INTERFACE_GET_DATA (IFusionSound);
@@ -118,19 +118,19 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
 
      flags = desc->flags;
 
-     if (flags & ~DABDF_ALL)
+     if (flags & ~FSBDF_ALL)
           return DFB_INVARG;
 
-     if (flags & DABDF_LENGTH)
+     if (flags & FSBDF_LENGTH)
           length = desc->length;
 
-     if (flags & DABDF_CHANNELS)
+     if (flags & FSBDF_CHANNELS)
           channels = desc->channels;
 
-     if (flags & DABDF_SAMPLEFORMAT)
+     if (flags & FSBDF_SAMPLEFORMAT)
           format = desc->sampleformat;
 
-     if (flags & DABDF_SAMPLERATE)
+     if (flags & FSBDF_SAMPLERATE)
           rate = desc->samplerate;
 
      if (length < 1)
@@ -146,8 +146,8 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
      }
 
      switch (format) {
-          case DASF_S16:
-          case DASF_U8:
+          case FSSF_S16:
+          case FSSF_U8:
                break;
 
           default:
@@ -171,15 +171,15 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
 
 static DFBResult
 IFusionSound_CreateStream( IFusionSound         *thiz,
-                           DAStreamDescription  *desc,
+                           FSStreamDescription  *desc,
                            IFusionSoundStream  **interface )
 {
      DFBResult                 ret;
      int                       channels = 2;
-     DASampleFormat            format   = DASF_S16;
+     FSSampleFormat            format   = FSSF_S16;
      int                       rate     = 44100;
      int                       size     = rate;   /* space for one second */
-     DAStreamDescriptionFlags  flags    = DASDF_NONE;
+     FSStreamDescriptionFlags  flags    = FSSDF_NONE;
      CoreSoundBuffer          *buffer;
 
      INTERFACE_GET_DATA (IFusionSound);
@@ -190,19 +190,19 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
      if (desc) {
           flags = desc->flags;
 
-          if (flags & ~DASDF_ALL)
+          if (flags & ~FSSDF_ALL)
                return DFB_INVARG;
 
-          if (flags & DASDF_BUFFERSIZE)
+          if (flags & FSSDF_BUFFERSIZE)
                size = desc->buffersize;
 
-          if (flags & DASDF_CHANNELS)
+          if (flags & FSSDF_CHANNELS)
                channels = desc->channels;
 
-          if (flags & DASDF_SAMPLEFORMAT)
+          if (flags & FSSDF_SAMPLEFORMAT)
                format = desc->sampleformat;
 
-          if (flags & DASDF_SAMPLERATE)
+          if (flags & FSSDF_SAMPLERATE)
                rate = desc->samplerate;
      }
 
@@ -223,8 +223,8 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
      }
 
      switch (format) {
-          case DASF_S16:
-          case DASF_U8:
+          case FSSF_S16:
+          case FSSF_U8:
                break;
 
           default:

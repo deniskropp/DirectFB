@@ -53,60 +53,60 @@ DECLARE_INTERFACE( IFusionSoundStream )
  * The sample format is the way of storing audible information.
  */
 typedef enum {
-     DASF_UNKNOWN        = 0x00000000,      /* Unknown/invalid format. */
-     DASF_S16            = 0x00000001,      /* Signed 16 bit (linear). */
-     DASF_U8             = 0x00000002       /* Unsigned 8 bit (linear). */
-} DASampleFormat;
+     FSSF_UNKNOWN        = 0x00000000,      /* Unknown/invalid format. */
+     FSSF_S16            = 0x00000001,      /* Signed 16 bit (linear). */
+     FSSF_U8             = 0x00000002       /* Unsigned 8 bit (linear). */
+} FSSampleFormat;
 
 /*
  * Each buffer description flag validates one field of the buffer description.
  */
 typedef enum {
-     DABDF_NONE          = 0x00000000,      /* None of these. */
-     DABDF_LENGTH        = 0x00000001,      /* Buffer length is set. */
-     DABDF_CHANNELS      = 0x00000002,      /* Number of channels is set. */
-     DABDF_SAMPLEFORMAT  = 0x00000004,      /* Sample format is set. */
-     DABDF_SAMPLERATE    = 0x00000008,      /* Sample rate is set. */
-     DABDF_ALL           = 0x0000000F       /* All of these. */
-} DABufferDescriptionFlags;
+     FSBDF_NONE          = 0x00000000,      /* None of these. */
+     FSBDF_LENGTH        = 0x00000001,      /* Buffer length is set. */
+     FSBDF_CHANNELS      = 0x00000002,      /* Number of channels is set. */
+     FSBDF_SAMPLEFORMAT  = 0x00000004,      /* Sample format is set. */
+     FSBDF_SAMPLERATE    = 0x00000008,      /* Sample rate is set. */
+     FSBDF_ALL           = 0x0000000F       /* All of these. */
+} FSBufferDescriptionFlags;
 
 /*
  * The buffer description is used to create static sound buffers.
  */
 typedef struct {
-     DABufferDescriptionFlags flags;        /* Defines which fields are set. */
+     FSBufferDescriptionFlags flags;        /* Defines which fields are set. */
 
      int                      length;       /* Buffer length specified as
                                                number of samples per channel. */
      int                      channels;     /* Number of channels. */
-     DASampleFormat           sampleformat; /* Format of each sample. */
+     FSSampleFormat           sampleformat; /* Format of each sample. */
      int                      samplerate;   /* Number of samples per second. */
-} DABufferDescription;
+} FSBufferDescription;
 
 /*
  * Each stream description flag validates one field of the stream description.
  */
 typedef enum {
-     DASDF_NONE          = 0x00000000,      /* None of these. */
-     DASDF_BUFFERSIZE    = 0x00000001,      /* Ring buffer size is set. */
-     DASDF_CHANNELS      = 0x00000002,      /* Number of channels is set. */
-     DASDF_SAMPLEFORMAT  = 0x00000004,      /* Sample format is set. */
-     DASDF_SAMPLERATE    = 0x00000008,      /* Sample rate is set. */
-     DASDF_ALL           = 0x0000000F       /* All of these. */
-} DAStreamDescriptionFlags;
+     FSSDF_NONE          = 0x00000000,      /* None of these. */
+     FSSDF_BUFFERSIZE    = 0x00000001,      /* Ring buffer size is set. */
+     FSSDF_CHANNELS      = 0x00000002,      /* Number of channels is set. */
+     FSSDF_SAMPLEFORMAT  = 0x00000004,      /* Sample format is set. */
+     FSSDF_SAMPLERATE    = 0x00000008,      /* Sample rate is set. */
+     FSSDF_ALL           = 0x0000000F       /* All of these. */
+} FSStreamDescriptionFlags;
 
 /*
  * The stream description is used to create streaming sound buffers.
  */
 typedef struct {
-     DAStreamDescriptionFlags flags;        /* Defines which fields are set. */
+     FSStreamDescriptionFlags flags;        /* Defines which fields are set. */
 
      int                      buffersize;   /* Ring buffer size specified as
                                                number of samples per channel. */
      int                      channels;     /* Number of channels. */
-     DASampleFormat           sampleformat; /* Format of each sample. */
+     FSSampleFormat           sampleformat; /* Format of each sample. */
      int                      samplerate;   /* Number of samples per second. */
-} DAStreamDescription;
+} FSStreamDescription;
 
 /*
  * <i><b>IFusionSound</b></i> is the main FusionSound interface and can be
@@ -134,7 +134,7 @@ DEFINE_INTERFACE( IFusionSound,
       */
      DFBResult (*CreateBuffer) (
           IFusionSound             *thiz,
-          DABufferDescription      *desc,
+          FSBufferDescription      *desc,
           IFusionSoundBuffer      **interface
      );
 
@@ -142,12 +142,12 @@ DEFINE_INTERFACE( IFusionSound,
       * Create a streaming sound buffer.
       *
       * If <i>desc</i> is NULL, all default values will be used.
-      * Defaults are 44kHz, stereo, 16 bit (DASF_S16) with a ring buffer
+      * Defaults are 44kHz, stereo, 16 bit (FSSF_S16) with a ring buffer
       * size that holds enough samples for one second of playback.
       */
      DFBResult (*CreateStream) (
           IFusionSound             *thiz,
-          DAStreamDescription      *desc,
+          FSStreamDescription      *desc,
           IFusionSoundStream      **interface
      );
 )
@@ -156,17 +156,17 @@ DEFINE_INTERFACE( IFusionSound,
  * Playback flags control the bahaviour of <i>IFusionSoundBuffer::Play()</i>.
  */
 typedef enum {
-     DAPLAY_NOFX         = 0x00000000,  /* No effects are applied. */
-     DAPLAY_LOOPING      = 0x00000001,  /* Playback will continue at the
+     FSPLAY_NOFX         = 0x00000000,  /* No effects are applied. */
+     FSPLAY_LOOPING      = 0x00000001,  /* Playback will continue at the
                                            beginning of the buffer as soon as
                                            the end is reached. There's no gap
                                            produced by concatenation. */
-     DAPLAY_PAN          = 0x00000002,  /* Use the value passed to
+     FSPLAY_PAN          = 0x00000002,  /* Use the value passed to
                                            <i>IFusionSoundBuffer::SetPan()</i>
                                            to control the balance between left
                                            and right speakers. */
-     DAPLAY_ALL          = 0x00000003   /* All of these. */
-} DABufferPlayFlags;
+     FSPLAY_ALL          = 0x00000003   /* All of these. */
+} FSBufferPlayFlags;
 
 DEFINE_INTERFACE( IFusionSoundBuffer,
 
@@ -205,7 +205,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
       */
      DFBResult (*Play) (
           IFusionSoundBuffer       *thiz,
-          DABufferPlayFlags         flags
+          FSBufferPlayFlags         flags
      );
 
      /*

@@ -173,7 +173,7 @@ IFusionSoundBuffer_SetPan( IFusionSoundBuffer *thiz,
 
 static DFBResult
 IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
-                         DABufferPlayFlags   flags )
+                         FSBufferPlayFlags   flags )
 {
      __u16 pan = 0x8000;
 
@@ -182,13 +182,13 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
      if (!data->buffer)
           return DFB_DESTROYED;
 
-     if (flags & ~DAPLAY_ALL)
+     if (flags & ~FSPLAY_ALL)
           return DFB_INVARG;
 
-     if (flags & DAPLAY_PAN)
+     if (flags & FSPLAY_PAN)
           pan = data->pan;
 
-     return fs_buffer_playback( data->buffer, 0, pan, flags & DAPLAY_LOOPING );
+     return fs_buffer_playback( data->buffer, 0, pan, flags & FSPLAY_LOOPING );
 }
 
 static DFBResult

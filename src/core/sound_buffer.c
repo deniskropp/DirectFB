@@ -55,7 +55,7 @@ struct __FS_CoreSoundBuffer {
 
      int              length;
      int              channels;
-     DASampleFormat   format;
+     FSSampleFormat   format;
      int              rate;
      int              bytes;
 
@@ -95,7 +95,7 @@ DFBResult
 fs_buffer_create( CoreSound        *core,
                   int               length,
                   int               channels,
-                  DASampleFormat    format,
+                  FSSampleFormat    format,
                   int               rate,
                   bool              notify,
                   CoreSoundBuffer **ret_buffer )
@@ -113,11 +113,11 @@ fs_buffer_create( CoreSound        *core,
                __FUNCTION__, length, channels, format, rate );
 
      switch (format) {
-          case DASF_S16:
+          case FSSF_S16:
                bytes = 2;
                break;
 
-          case DASF_U8:
+          case FSSF_U8:
                bytes = 1;
                break;
 
@@ -376,12 +376,12 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
           break_pos += buffer->length;
      
      switch (buffer->format) {
-          case DASF_S16:
+          case FSSF_S16:
                pos += mix_from_16bit( buffer, pos, dest,
                                       max_samples, pan, loop, break_pos );
                break;
           
-          case DASF_U8:
+          case FSSF_U8:
                pos += mix_from_8bit( buffer, pos, dest,
                                      max_samples, pan, loop, break_pos );
                break;

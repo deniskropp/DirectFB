@@ -63,7 +63,7 @@ FUSION_OBJECT_METHODS( CoreSoundBuffer, fs_buffer )
 DFBResult fs_buffer_create   ( CoreSound          *core,
                                int                 length,
                                int                 channels,
-                               DASampleFormat      format,
+                               FSSampleFormat      format,
                                int                 rate,
                                bool                notify,
                                CoreSoundBuffer   **ret_buffer );

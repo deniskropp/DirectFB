@@ -53,7 +53,7 @@ main (int argc, char *argv[])
      IDirectFB           *dfb;
      IFusionSound        *sound;
      IFusionSoundStream  *stream;
-     DAStreamDescription  desc;
+     FSStreamDescription  desc;
 
      ret = DirectFBInit (&argc, &argv);
      if (ret)
@@ -69,7 +69,7 @@ main (int argc, char *argv[])
           DirectFBErrorFatal ("IDirectFB::GetInterface", ret);
 
      /* Fill stream description (using defaults of 44kHz and 16bit). */
-     desc.flags      = DASDF_BUFFERSIZE | DASDF_CHANNELS;
+     desc.flags      = FSSDF_BUFFERSIZE | FSSDF_CHANNELS;
      desc.buffersize = 32768;
      desc.channels   = 1;
 
