@@ -1,3 +1,27 @@
+2002-11-12	23:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.54) (+2 -2)
+		patches/fusion-full-linux-2.4.20-rc1.patch.bz2 (1.1) ( )
+		patches/README.fusion (1.3) (+3 -3)
+		patches/Makefile.am (1.24) (+2 -0)
+	
+	Added Fusion patch again, we don't need an extra tar ball for it.
+	
+2002-11-12	23:26	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/Makefile.am (1.12) (+1 -2)
+		tools/ipc_cleanup (1.4) (+0 -0)
+		tools/README (1.6) (+0 -6)
+	
+	Good bye, ipc_cleanup, you've been a nice friend, but your time is over...
+	
+2002-11-12	23:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.33) (+506 -0)
+		NEWS (1.42) (+27 -0)
+	
+	Updated for 0.9.15.
+	
 2002-11-12	22:56	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	README (1.53) (+11 -11)
