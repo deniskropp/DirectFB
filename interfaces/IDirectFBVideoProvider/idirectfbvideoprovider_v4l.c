@@ -769,9 +769,6 @@ static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx
      IDirectFBVideoProvider_V4L_data *data         = ctx;
      CoreSurface                     *surface      = notification->surface;
 
-     DEBUGMSG( "DirectFB/v4l: %s (%p, 0x%08x)\n", __FUNCTION__,
-               surface, notification->flags );
-
      if ((notification->flags & CSNF_SIZEFORMAT) ||
          (surface->back_buffer->video.health != CSH_STORED))
      {
@@ -787,8 +784,6 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
      const CoreSurfaceNotification   *notification = msg_data;
      IDirectFBVideoProvider_V4L_data *data         = ctx;
      CoreSurface                     *surface      = notification->surface;
-
-     DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
      if ((notification->flags & CSNF_SIZEFORMAT) ||
          (surface->back_buffer->system.health != CSH_STORED &&
