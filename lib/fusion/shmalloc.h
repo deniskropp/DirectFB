@@ -76,21 +76,21 @@ bool fusion_shmalloc_cure( const void *ptr );
 
 void  fusion_dbg_print_memleaks();
 
-void *fusion_dbg_shmalloc ( char *file, int line,
-                            char *func, size_t __size );
+void *fusion_dbg_shmalloc ( const char *file, int line,
+                            const char *func, size_t __size );
 
-void *fusion_dbg_shcalloc ( char *file, int line,
-                            char *func, size_t __nmemb, size_t __size);
+void *fusion_dbg_shcalloc ( const char *file, int line,
+                            const char *func, size_t __nmemb, size_t __size);
 
-void *fusion_dbg_shrealloc( char *file, int line,
-                            char *func, char *what, void *__ptr,
+void *fusion_dbg_shrealloc( const char *file, int line,
+                            const char *func, const char *what, void *__ptr,
                             size_t __size );
 
-void  fusion_dbg_shfree   ( char *file, int line,
-                            char *func, char *what, void *__ptr );
+void  fusion_dbg_shfree   ( const char *file, int line,
+                            const char *func, const char *what, void *__ptr );
 
-char *fusion_dbg_shstrdup ( char *file, int line,
-                            char *func, const char *string );
+char *fusion_dbg_shstrdup ( const char *file, int line,
+                            const char *func, const char *string );
 
 #define SHMALLOC(bytes)        fusion_dbg_shmalloc( __FILE__, __LINE__, __FUNCTION__, \
                                                     bytes )

@@ -106,8 +106,8 @@ fill_shmem_desc( SHMemDesc  *desc, const void *mem,  int bytes,
 
 /* Allocate SIZE bytes of memory.  */
 void *
-fusion_dbg_shmalloc( char *file, int line,
-                     char *func, size_t __size )
+fusion_dbg_shmalloc( const char *file, int line,
+                     const char *func, size_t __size )
 {
      void *ret;
 
@@ -133,8 +133,8 @@ fusion_dbg_shmalloc( char *file, int line,
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
 void *
-fusion_dbg_shcalloc( char *file, int line,
-                     char *func, size_t __nmemb, size_t __size)
+fusion_dbg_shcalloc( const char *file, int line,
+                     const char *func, size_t __nmemb, size_t __size)
 {
      void *ret;
 
@@ -162,8 +162,8 @@ fusion_dbg_shcalloc( char *file, int line,
 /* Re-allocate the previously allocated block
    in __ptr, making the new block SIZE bytes long.  */
 void *
-fusion_dbg_shrealloc( char *file, int line,
-                      char *func, char *what, void *__ptr,
+fusion_dbg_shrealloc( const char *file, int line,
+                      const char *func, const char *what, void *__ptr,
                       size_t __size )
 {
      unsigned int i;
@@ -205,8 +205,8 @@ fusion_dbg_shrealloc( char *file, int line,
 
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
 void
-fusion_dbg_shfree( char *file, int line,
-                   char *func, char *what, void *__ptr )
+fusion_dbg_shfree( const char *file, int line,
+                   const char *func, const char *what, void *__ptr )
 {
      unsigned int i;
 
@@ -241,8 +241,8 @@ fusion_dbg_shfree( char *file, int line,
 
 /* Duplicate string in shared memory. */
 char *
-fusion_dbg_shstrdup( char *file, int line,
-                     char *func, const char *string )
+fusion_dbg_shstrdup( const char *file, int line,
+                     const char *func, const char *string )
 {
      void *ret;
      int   len;
@@ -382,8 +382,8 @@ fusion_dbg_print_memleaks()
 
 /* Allocate SIZE bytes of memory.  */
 void *
-fusion_dbg_shmalloc( char *file, int line,
-                     char *func, size_t __size )
+fusion_dbg_shmalloc( const char *file, int line,
+                     const char *func, size_t __size )
 {
      D_ASSERT( __size > 0 );
 
@@ -392,8 +392,8 @@ fusion_dbg_shmalloc( char *file, int line,
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
 void *
-fusion_dbg_shcalloc( char *file, int line,
-                     char *func, size_t __nmemb, size_t __size)
+fusion_dbg_shcalloc( const char *file, int line,
+                     const char *func, size_t __nmemb, size_t __size)
 {
      D_ASSERT( __nmemb > 0 );
      D_ASSERT( __size > 0 );
@@ -404,8 +404,8 @@ fusion_dbg_shcalloc( char *file, int line,
 /* Re-allocate the previously allocated block
    in __ptr, making the new block SIZE bytes long.  */
 void *
-fusion_dbg_shrealloc( char *file, int line,
-                      char *func, char *what, void *__ptr,
+fusion_dbg_shrealloc( const char *file, int line,
+                      const char *func, const char *what, void *__ptr,
                       size_t __size )
 {
      return direct_realloc( file, line, func, what, __ptr, __size );
@@ -413,8 +413,8 @@ fusion_dbg_shrealloc( char *file, int line,
 
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
 void
-fusion_dbg_shfree( char *file, int line,
-                   char *func, char *what, void *__ptr )
+fusion_dbg_shfree( const char *file, int line,
+                   const char *func, const char *what, void *__ptr )
 {
      D_ASSERT( __ptr != NULL );
 
@@ -423,8 +423,8 @@ fusion_dbg_shfree( char *file, int line,
 
 /* Duplicate string in shared memory. */
 char *
-fusion_dbg_shstrdup( char *file, int line,
-                     char *func, const char *string )
+fusion_dbg_shstrdup( const char *file, int line,
+                     const char *func, const char *string )
 {
      D_ASSERT( string != NULL );
 

@@ -36,21 +36,21 @@ void direct_print_memleaks();
 
 #if DIRECT_BUILD_DEBUG
 
-void  direct_free   ( char *file, int line,
-                      char *func, char *what, void *mem );
+void  direct_free   ( const char *file, int line,
+                      const char *func, const char *what, void *mem );
 
-void *direct_malloc ( char *file, int line,
-                      char *func, size_t bytes );
+void *direct_malloc ( const char *file, int line,
+                      const char *func, size_t bytes );
 
-void *direct_calloc ( char *file, int line,
-                      char *func, size_t count, size_t bytes);
+void *direct_calloc ( const char *file, int line,
+                      const char *func, size_t count, size_t bytes);
 
-void *direct_realloc( char *file, int line,
-                      char *func, char *what, void *mem,
+void *direct_realloc( const char *file, int line,
+                      const char *func, const char *what, void *mem,
                       size_t bytes );
 
-char *direct_strdup ( char *file, int line,
-                      char *func, const char *string );
+char *direct_strdup ( const char *file, int line,
+                      const char *func, const char *string );
 
 #define D_FREE(mem)           direct_free( __FILE__, __LINE__, __FUNCTION__, #mem, mem )
 #define D_MALLOC(bytes)       direct_malloc( __FILE__, __LINE__, __FUNCTION__, bytes )

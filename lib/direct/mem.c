@@ -125,7 +125,7 @@ fill_mem_desc( MemDesc *desc, const void *mem, int bytes,
 }
 
 void *
-direct_malloc( char* file, int line, char *func, size_t bytes )
+direct_malloc( const char* file, int line, const char *func, size_t bytes )
 {
      void    *mem;
      MemDesc *desc;
@@ -149,7 +149,7 @@ direct_malloc( char* file, int line, char *func, size_t bytes )
 
 
 void *
-direct_calloc( char* file, int line, char *func, size_t count, size_t bytes )
+direct_calloc( const char* file, int line, const char *func, size_t count, size_t bytes )
 {
      void    *mem;
      MemDesc *desc;
@@ -174,7 +174,7 @@ direct_calloc( char* file, int line, char *func, size_t count, size_t bytes )
 
 
 void *
-direct_realloc( char *file, int line, char *func, char *what, void *mem, size_t bytes )
+direct_realloc( const char *file, int line, const char *func, const char *what, void *mem, size_t bytes )
 {
      int i;
 
@@ -219,7 +219,7 @@ direct_realloc( char *file, int line, char *func, char *what, void *mem, size_t 
 }
 
 void
-direct_free( char *file, int line, char *func, char *what, void *mem )
+direct_free( const char *file, int line, const char *func, const char *what, void *mem )
 {
      unsigned int i;
 
@@ -253,7 +253,7 @@ direct_free( char *file, int line, char *func, char *what, void *mem )
 }
 
 char *
-direct_strdup( char* file, int line, char *func, const char *string )
+direct_strdup( const char* file, int line, const char *func, const char *string )
 {
      void    *mem;
      MemDesc *desc;
