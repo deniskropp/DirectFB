@@ -149,7 +149,8 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
      unichar        current;
      int            width = 0;
      int            offset;
-     int            kerning;
+     int            kern_x;
+     int            kern_y;
 
      INTERFACE_GET_DATA(IDirectFBFont)
 
@@ -175,12 +176,16 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
 
           if (dfb_font_get_glyph_data (font, current, &glyph) == DFB_OK) {
 
+               kern_y = 0;
                if (prev && font->GetKerning &&
-                   (* font->GetKerning) (font, prev, current, &kerning) == DFB_OK) {
-                    width += kerning;
+                   (* font->GetKerning) (font, 
+                                         prev, current, 
+                                         &kern_x, &kern_y) == DFB_OK) {
+                    width += kern_x;
                }
                if (ink_rect) {
-                    DFBRectangle glyph_rect = { width + glyph->left, glyph->top,
+                    DFBRectangle glyph_rect = { width + glyph->left, 
+                                                kern_y + glyph->top,
                                                 glyph->width, glyph->height };
                     dfb_rectangle_union (ink_rect, &glyph_rect);
                }

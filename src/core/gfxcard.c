@@ -947,8 +947,8 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 #define FONT_BLITTINGFLAGS   (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)
 
 void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
-                         int x, int y,
-                         CoreFont *font, CardState *state )
+                             int x, int y,
+                             CoreFont *font, CardState *state )
 {
      CoreGlyphData *data;
      DFBRectangle   rect;
@@ -957,7 +957,8 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      unichar current;
 
      int hw_clipping = (Scard->device_info.caps.flags & CCF_CLIPPING);
-     int kerning;
+     int kern_x;
+     int kern_y;
      int offset;
      int blit = 0;
 
@@ -994,8 +995,11 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
 
           if (dfb_font_get_glyph_data (font, current, &data) == DFB_OK) {
                if (prev && font->GetKerning &&
-                   (* font->GetKerning) (font, prev, current, &kerning) == DFB_OK) {
-                    x += kerning;
+                   (* font->GetKerning) (font, 
+                                         prev, current, 
+                                         &kern_x, &kern_y) == DFB_OK) {
+                    x += kern_x;
+                    y += kern_y;
                }
 
                rect.x = data->start;

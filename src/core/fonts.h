@@ -51,30 +51,32 @@ typedef struct {
  */
 
 struct _CoreFont {
-     CoreSurface    **surfaces;           /* contain bitmaps of loaded glyphs */
+     CoreSurface    **surfaces;         /* contain bitmaps of loaded glyphs */
      int              rows;
      int              row_width;
      int              next_x;
 
-     Tree            *glyph_infos;        /* infos about loaded glyphs        */
+     Tree            *glyph_infos;      /* infos about loaded glyphs        */
 
-     int              height;             /* font height                      */
+     int              height;           /* font height                      */
 
-     int              ascender;           /* a positive value, the distance
-                                             from the baseline to the top     */
-     int              descender;          /* a negative value, the distance
-                                             from the baseline to the bottom  */
-     int              maxadvance;         /* width of largest character       */
+     int              ascender;         /* a positive value, the distance
+                                           from the baseline to the top     */
+     int              descender;        /* a negative value, the distance
+                                           from the baseline to the bottom  */
+     int              maxadvance;       /* width of largest character       */
 
-     pthread_mutex_t  lock;               /* lock during access to the font   */
+     pthread_mutex_t  lock;             /* lock during access to the font   */
 
-     void            *impl_data;          /* a pointer used by the impl.      */
+     void            *impl_data;        /* a pointer used by the impl.      */
 
-     DFBResult   (* GetGlyphInfo) (CoreFont *thiz, unichar glyph, CoreGlyphData *info);
-     DFBResult   (* RenderGlyph)  (CoreFont *thiz, unichar glyph,
-                                   CoreGlyphData *info, CoreSurface *surface);
-     DFBResult   (* GetKerning)   (CoreFont *thiz,
-                                   unichar prev, unichar current, int *kerning);
+     DFBResult   (* GetGlyphInfo) ( CoreFont *thiz, unichar glyph, 
+                                    CoreGlyphData *info );
+     DFBResult   (* RenderGlyph)  ( CoreFont *thiz, unichar glyph,
+                                    CoreGlyphData *info, CoreSurface *surface );
+     DFBResult   (* GetKerning)   ( CoreFont *thiz,
+                                    unichar prev, unichar current,
+                                    int *kern_x, int *kern_y );
 };
 
 /*
