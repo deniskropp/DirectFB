@@ -109,9 +109,6 @@ struct _CardState {
      DFBAccelerationMask      checked;       /* commands for which a state has been checked */
      DFBAccelerationMask      set;           /* commands for which a state is valid */
 
-     Reaction                 destination_reaction;
-     Reaction                 source_reaction;
-
      CoreGraphicsSerial       serial;        /* hardware serial of the last operation */
 
      /* software driver */

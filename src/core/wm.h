@@ -42,7 +42,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_wm_modules );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_WM_ABI_VERSION           7
+#define DFB_CORE_WM_ABI_VERSION           8
 
 #define DFB_CORE_WM_INFO_NAME_LENGTH     60
 #define DFB_CORE_WM_INFO_VENDOR_LENGTH   80
