@@ -232,6 +232,26 @@ static DFBResult IDirectFBVideoProvider_Swf_Release(IDirectFBVideoProvider *thiz
      return DFB_OK;
 }
 
+static DFBResult 
+IDirectFBVideoProvider_Swf_GetCapabilities(
+                                           IDirectFBVideoProvider       *thiz,
+                                           DFBVideoProviderCapabilities *caps )
+{
+     IDirectFBVideoProvider_Swf_data *data;
+
+     if (!thiz || !caps)
+          return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_Swf_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *caps = DVCAPS_BASIC | DVCAPS_SCALE;
+
+     return DFB_OK;
+}
+
 static DFBResult IDirectFBVideoProvider_Swf_GetSurfaceDescription(
                                           IDirectFBVideoProvider *thiz,
                                           DFBSurfaceDescription  *desc )
@@ -248,7 +268,7 @@ static DFBResult IDirectFBVideoProvider_Swf_GetSurfaceDescription(
 
      memset( desc, 0, sizeof(DFBSurfaceDescription) );
      desc->flags = (DFBSurfaceDescriptionFlags)
-       (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
+          (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
 
      desc->width  = (int) data->flashInfo.frameWidth / 20;
      desc->height = (int) data->flashInfo.frameHeight / 20;
@@ -265,9 +285,9 @@ static DFBResult IDirectFBVideoProvider_Swf_PlayTo(
                                            DVFrameCallback         callback,
                                            void                   *ctx )
 {
-     DFBRectangle                         rect;
-     IDirectFBVideoProvider_Swf_data     *data;
-     IDirectFBSurface_data               *dst_data;
+     DFBRectangle                     rect;
+     IDirectFBVideoProvider_Swf_data *data;
+     IDirectFBSurface_data           *dst_data;
 
      if (!thiz || !destination)
         return DFB_INVARG;
@@ -295,7 +315,6 @@ static DFBResult IDirectFBVideoProvider_Swf_PlayTo(
      /* save for later blitting operation */
      data->dest_rect = rect;
 
-
      /* build the clip rectangle */
      if (!rectangle_intersect( &rect, &dst_data->clip_rect ))
           return DFB_INVARG;
@@ -307,8 +326,7 @@ static DFBResult IDirectFBVideoProvider_Swf_PlayTo(
      data->state.clip.y2 = rect.y + rect.h - 1;
      data->state.destination = dst_data->surface;
      data->state.modified = (StateModificationFlags)
-                            (data->state.modified | SMF_CLIP | SMF_DESTINATION);
-
+          (data->state.modified | SMF_CLIP | SMF_DESTINATION);
 
      if (data->destination) {
           data->destination->Release( data->destination );
@@ -318,10 +336,8 @@ static DFBResult IDirectFBVideoProvider_Swf_PlayTo(
      destination->AddRef( destination );
      data->destination = destination;   /* FIXME: install listener */
 
-
      data->callback = callback;
      data->ctx = ctx;
-
 
      if (data->thread == -1)
        pthread_create( &data->thread, NULL, FrameThread, data );
@@ -348,7 +364,6 @@ static DFBResult IDirectFBVideoProvider_Swf_Stop(IDirectFBVideoProvider *thiz )
        pthread_join( data->thread, NULL );
        data->thread = -1;
      }
-       
      
      if (data->destination) {
           data->destination->Release( data->destination );
@@ -376,8 +391,8 @@ static DFBResult IDirectFBVideoProvider_Swf_SeekTo(
 }
 
 static DFBResult IDirectFBVideoProvider_Swf_GetPos(
-     IDirectFBVideoProvider *thiz,
-     double                 *seconds )
+                                              IDirectFBVideoProvider *thiz,
+                                              double                 *seconds )
 {
      IDirectFBVideoProvider_Swf_data *data;
 
@@ -395,8 +410,8 @@ static DFBResult IDirectFBVideoProvider_Swf_GetPos(
 }
 
 static DFBResult IDirectFBVideoProvider_Swf_GetLength(
-     IDirectFBVideoProvider *thiz,
-     double                 *seconds )
+                                              IDirectFBVideoProvider *thiz,
+                                              double                 *seconds )
 {
      IDirectFBVideoProvider_Swf_data *data;
 
@@ -411,6 +426,40 @@ static DFBResult IDirectFBVideoProvider_Swf_GetLength(
      *seconds = 0.0;
 
      return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult IDirectFBVideoProvider_Swf_GetColorAdjustment(
+                                                  IDirectFBVideoProvider *thiz,
+                                                  DFBColorAdjustment     *adj )
+{
+    IDirectFBVideoProvider_Swf_data *data;
+
+    if (!thiz || !adj)
+        return DFB_INVARG;
+
+    data = (IDirectFBVideoProvider_Swf_data*)thiz->priv;
+
+    if (!data)
+        return DFB_DEAD;
+
+    return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult IDirectFBVideoProvider_Swf_SetColorAdjustment(
+                                                  IDirectFBVideoProvider *thiz,
+                                                  DFBColorAdjustment     *adj )
+{
+    IDirectFBVideoProvider_Swf_data *data;
+
+    if (!thiz || !adj)
+        return DFB_INVARG;
+
+    data = (IDirectFBVideoProvider_Swf_data*)thiz->priv;
+
+    if (!data)
+        return DFB_DEAD;
+
+    return DFB_UNIMPLEMENTED;
 }
 
 
@@ -481,8 +530,8 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
                      DSCAPS_SYSTEMONLY,
                      &(data->source));
 
-     data->flashDisplay.pixels = data->source->back_buffer->system.addr;      //ptr
-     data->flashDisplay.bpl    = data->source->back_buffer->system.pitch; //pitch
+     data->flashDisplay.pixels = data->source->back_buffer->system.addr;
+     data->flashDisplay.bpl    = data->source->back_buffer->system.pitch;
      data->flashDisplay.width = data->source->width;
      data->flashDisplay.height = data->source->height;
      data->flashDisplay.depth = 16;
@@ -501,17 +550,24 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      FlashGraphicInit (data->flashHandle, &data->flashDisplay);
 //     FlashSoundInit(data->flashHandle, "/dev/dsp");
      FlashSetGetUrlMethod (data->flashHandle, showUrl, 0);
-     FlashSetGetSwfMethod (data->flashHandle, getSwf, (void *) data->flashHandle);
+     FlashSetGetSwfMethod (data->flashHandle, getSwf, 
+                           (void *) data->flashHandle);
      
 
-     thiz->AddRef                = IDirectFBVideoProvider_Swf_AddRef;
-     thiz->Release               = IDirectFBVideoProvider_Swf_Release;
-     thiz->GetSurfaceDescription = IDirectFBVideoProvider_Swf_GetSurfaceDescription;
-     thiz->PlayTo                = IDirectFBVideoProvider_Swf_PlayTo;
-     thiz->Stop                  = IDirectFBVideoProvider_Swf_Stop;
-     thiz->SeekTo                = IDirectFBVideoProvider_Swf_SeekTo;
-     thiz->GetPos                = IDirectFBVideoProvider_Swf_GetPos;
-     thiz->GetLength             = IDirectFBVideoProvider_Swf_GetLength;
+     thiz->AddRef    = IDirectFBVideoProvider_Swf_AddRef;
+     thiz->Release   = IDirectFBVideoProvider_Swf_Release;
+     thiz->GetCapabilities = IDirectFBVideoProvider_Swf_GetCapabilities;
+     thiz->GetSurfaceDescription = 
+          IDirectFBVideoProvider_Swf_GetSurfaceDescription;
+     thiz->PlayTo    = IDirectFBVideoProvider_Swf_PlayTo;
+     thiz->Stop      = IDirectFBVideoProvider_Swf_Stop;
+     thiz->SeekTo    = IDirectFBVideoProvider_Swf_SeekTo;
+     thiz->GetPos    = IDirectFBVideoProvider_Swf_GetPos;
+     thiz->GetLength = IDirectFBVideoProvider_Swf_GetLength;
+     thiz->GetColorAdjustment = 
+          IDirectFBVideoProvider_Swf_GetColorAdjustment;
+     thiz->SetColorAdjustment = 
+          IDirectFBVideoProvider_Swf_SetColorAdjustment;
 
      return DFB_OK;
 }

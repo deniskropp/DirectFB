@@ -135,6 +135,32 @@ static DFBResult IDirectFBVideoProvider_V4L_Release( IDirectFBVideoProvider *thi
      return DFB_OK;
 }
 
+static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
+                                            IDirectFBVideoProvider       *thiz,
+                                            DFBVideoProviderCapabilities *caps )                                                             
+{
+     IDirectFBVideoProvider_V4L_data *data;
+
+     if (!thiz || !caps)
+          return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *caps = ( DVCAPS_BASIC      | 
+               DVCAPS_BRIGHTNESS | 
+               DVCAPS_HUE        | 
+               DVCAPS_COLOR      | 
+               DVCAPS_CONTRAST );
+
+     if (data->vcap.type & VID_TYPE_SCALES)
+          *caps |= DVCAPS_SCALE;
+
+     return DFB_OK;
+}
+
 static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBSurfaceDescription  *desc )
@@ -268,6 +294,62 @@ static DFBResult IDirectFBVideoProvider_V4L_GetLength(
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
+     IDirectFBVideoProvider *thiz,
+     DFBColorAdjustment     *adj )
+{
+     IDirectFBVideoProvider_V4L_data *data;
+     struct video_picture pic;
+
+     if (!thiz || !adj)
+        return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     ioctl( data->fd, VIDIOCGPICT, &pic );
+     
+     adj->flags = DCAF_BRIGHTNESS | DCAF_HUE | DCAF_COLOR | DCAF_CONTRAST;
+     adj->brightness = pic.brightness;
+     adj->hue        = pic.hue;
+     adj->color      = pic.colour;
+     adj->contrast   = pic.contrast;
+     
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
+     IDirectFBVideoProvider *thiz,
+     DFBColorAdjustment     *adj )
+{
+     IDirectFBVideoProvider_V4L_data *data;
+     struct video_picture pic;
+
+     if (!thiz || !adj)
+        return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (adj->flags == DCAF_NONE)
+          return DFB_OK;
+
+     ioctl( data->fd, VIDIOCGPICT, &pic );
+
+     if (adj->flags & DCAF_BRIGHTNESS) pic.brightness = adj->brightness;
+     if (adj->flags & DCAF_HUE)        pic.hue        = adj->hue;
+     if (adj->flags & DCAF_COLOR)      pic.colour     = adj->color;
+     if (adj->flags & DCAF_CONTRAST)   pic.contrast   = adj->contrast;
+
+     ioctl( data->fd, VIDIOCSPICT, &pic );
+
+     return DFB_OK;
+}
+
 
 /* exported symbols */
 
@@ -322,16 +404,19 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      DFBAddSuspendResumeFunc( v4l_suspend_resume, (void*)data );
      
-     thiz->AddRef = IDirectFBVideoProvider_V4L_AddRef;
-     thiz->Release = IDirectFBVideoProvider_V4L_Release;
+     thiz->AddRef    = IDirectFBVideoProvider_V4L_AddRef;
+     thiz->Release   = IDirectFBVideoProvider_V4L_Release;
+     thiz->GetCapabilities = IDirectFBVideoProvider_V4L_GetCapabilities;
      thiz->GetSurfaceDescription =
           IDirectFBVideoProvider_V4L_GetSurfaceDescription;
-     thiz->PlayTo = IDirectFBVideoProvider_V4L_PlayTo;
-     thiz->Stop = IDirectFBVideoProvider_V4L_Stop;
+     thiz->PlayTo    = IDirectFBVideoProvider_V4L_PlayTo;
+     thiz->Stop      = IDirectFBVideoProvider_V4L_Stop;
      thiz->SeekTo    = IDirectFBVideoProvider_V4L_SeekTo;
      thiz->GetPos    = IDirectFBVideoProvider_V4L_GetPos;
      thiz->GetLength = IDirectFBVideoProvider_V4L_GetLength;
-
+     thiz->GetColorAdjustment = IDirectFBVideoProvider_V4L_GetColorAdjustment;
+     thiz->SetColorAdjustment = IDirectFBVideoProvider_V4L_SetColorAdjustment;
+     
      return DFB_OK;
 }
 

@@ -466,7 +466,8 @@ sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE)
       my $title = shift(@_);
       my $subtitle = shift(@_);
 
-      open( $FILE, ">$filename" ) || die;
+      open( $FILE, ">$filename" ) 
+	  or die ("*** Can not open '$filename' for writing:\n*** $!");
 
       print $FILE "<HTML>\n",
                   "<STYLE>\n",

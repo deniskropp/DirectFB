@@ -65,7 +65,7 @@ typedef struct {
 
 
 static void IDirectFBVideoProvider_AviFile_Destruct(
-                                                  IDirectFBVideoProvider *thiz )
+                                                 IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_AviFile_data *data;
 
@@ -87,7 +87,7 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
 }
 
 static DFBResult IDirectFBVideoProvider_AviFile_AddRef(
-                                                  IDirectFBVideoProvider *thiz )
+                                                 IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_AviFile_data *data;
 
@@ -105,7 +105,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_AddRef(
 }
 
 static DFBResult IDirectFBVideoProvider_AviFile_Release(
-                                                  IDirectFBVideoProvider *thiz )
+                                                 IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_AviFile_data *data;
 
@@ -124,9 +124,30 @@ static DFBResult IDirectFBVideoProvider_AviFile_Release(
      return DFB_OK;
 }
 
+static DFBResult IDirectFBVideoProvider_AviFile_GetCapabilities(
+                                           IDirectFBVideoProvider       *thiz,
+                                           DFBVideoProviderCapabilities *caps )
+{
+     IDirectFBVideoProvider_AviFile_data *data;
+
+     if (!thiz || !caps)
+          return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *caps = (DFBVideoProviderCapabilities) ( DVCAPS_BASIC | 
+                                              DVCAPS_SCALE | 
+                                              DVCAPS_SEEK );
+
+     return DFB_OK;
+}
+
 static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
-                                                  IDirectFBVideoProvider *thiz,
-                                                  DFBSurfaceDescription  *desc )
+                                                 IDirectFBVideoProvider *thiz,
+                                                 DFBSurfaceDescription  *desc )
 {
      IDirectFBVideoProvider_AviFile_data *data;
 
@@ -139,7 +160,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
           return DFB_DEAD;
 
      desc->flags = (DFBSurfaceDescriptionFlags)
-                            (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
+          (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
      desc->width  = data->player->GetWidth();
      desc->height = data->player->GetHeight();
      desc->pixelformat = layers->surface->format;
@@ -167,10 +188,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
      if (!data || !dst_data)
           return DFB_DEAD;
 
-//     thiz->Stop( thiz );
-
      /* URGENT: keep in sync with DrawCallback */
-
 
      /* build the destination rectangle */
      if (dstrect) {
@@ -230,7 +248,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
 }
 
 static DFBResult IDirectFBVideoProvider_AviFile_Stop(
-                                                  IDirectFBVideoProvider *thiz )
+                                                 IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_AviFile_data *data;
 
@@ -315,6 +333,40 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetLength(
      *seconds = data->player->GetVideoLength();
 
      return DFB_OK;
+}
+
+static DFBResult IDirectFBVideoProvider_AviFile_GetColorAdjustment(
+                                                  IDirectFBVideoProvider *thiz,
+                                                  DFBColorAdjustment     *adj )
+{
+    IDirectFBVideoProvider_AviFile_data *data;
+
+    if (!thiz || !adj)
+        return DFB_INVARG;
+
+    data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
+
+    if (!data)
+        return DFB_DEAD;
+
+    return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult IDirectFBVideoProvider_AviFile_SetColorAdjustment(
+                                                  IDirectFBVideoProvider *thiz,
+                                                  DFBColorAdjustment     *adj )
+{
+    IDirectFBVideoProvider_AviFile_data *data;
+
+    if (!thiz || !adj)
+        return DFB_INVARG;
+
+    data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
+
+    if (!data)
+        return DFB_DEAD;
+
+    return DFB_UNIMPLEMENTED;
 }
 
 static void AviFile_KillCallback( int bogus, void *p )
@@ -421,20 +473,23 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      
      data->source.reactor = reactor_new();
      
-     
      data->state.source   = &data->source;
      data->state.modified = SMF_ALL;
 
-
-     thiz->AddRef = IDirectFBVideoProvider_AviFile_AddRef;
-     thiz->Release = IDirectFBVideoProvider_AviFile_Release;
+     thiz->AddRef    = IDirectFBVideoProvider_AviFile_AddRef;
+     thiz->Release   = IDirectFBVideoProvider_AviFile_Release;
+     thiz->GetCapabilities = IDirectFBVideoProvider_AviFile_GetCapabilities;
      thiz->GetSurfaceDescription =
           IDirectFBVideoProvider_AviFile_GetSurfaceDescription;
-     thiz->PlayTo = IDirectFBVideoProvider_AviFile_PlayTo;
-     thiz->Stop = IDirectFBVideoProvider_AviFile_Stop;
-     thiz->SeekTo = IDirectFBVideoProvider_AviFile_SeekTo;
-     thiz->GetPos = IDirectFBVideoProvider_AviFile_GetPos;
+     thiz->PlayTo    = IDirectFBVideoProvider_AviFile_PlayTo;
+     thiz->Stop      = IDirectFBVideoProvider_AviFile_Stop;
+     thiz->SeekTo    = IDirectFBVideoProvider_AviFile_SeekTo;
+     thiz->GetPos    = IDirectFBVideoProvider_AviFile_GetPos;
      thiz->GetLength = IDirectFBVideoProvider_AviFile_GetLength;
+     thiz->GetColorAdjustment = 
+          IDirectFBVideoProvider_AviFile_GetColorAdjustment;
+     thiz->SetColorAdjustment = 
+          IDirectFBVideoProvider_AviFile_SetColorAdjustment;
 
      return DFB_OK;
 }

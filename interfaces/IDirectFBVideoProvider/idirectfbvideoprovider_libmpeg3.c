@@ -130,6 +130,26 @@ IDirectFBVideoProvider_Libmpeg3_Release( IDirectFBVideoProvider *thiz )
     return DFB_OK;
 }
 
+static DFBResult 
+IDirectFBVideoProvider_Libmpeg3_GetCapabilities(
+                                           IDirectFBVideoProvider       *thiz,
+                                           DFBVideoProviderCapabilities *caps )
+{
+     IDirectFBVideoProvider_Libmpeg3_data *data;
+
+     if (!thiz || !caps)
+          return DFB_INVARG;
+
+     data = (IDirectFBVideoProvider_Libmpeg3_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     *caps = DVCAPS_BASIC | DVCAPS_SCALE | DVCAPS_SEEK;
+
+     return DFB_OK;
+}
+
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription(
     IDirectFBVideoProvider *thiz, DFBSurfaceDescription  *desc )
@@ -336,8 +356,8 @@ IDirectFBVideoProvider_Libmpeg3_Stop( IDirectFBVideoProvider *thiz )
 
 
 static DFBResult IDirectFBVideoProvider_Libmpeg3_SeekTo(
-                                                  IDirectFBVideoProvider *thiz,
-                                                  double               seconds )
+                                              IDirectFBVideoProvider *thiz,
+                                              double                  seconds )
 {
     IDirectFBVideoProvider_Libmpeg3_data *data;
     double rate;
@@ -358,8 +378,8 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_SeekTo(
 
 
 static DFBResult IDirectFBVideoProvider_Libmpeg3_GetPos(
-                                                  IDirectFBVideoProvider *thiz,
-                                                  double              *seconds )
+                                              IDirectFBVideoProvider *thiz,
+                                              double                 *seconds )
 {
     IDirectFBVideoProvider_Libmpeg3_data *data;
     double rate;
@@ -380,8 +400,8 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_GetPos(
 
 
 static DFBResult IDirectFBVideoProvider_Libmpeg3_GetLength(
-                                                  IDirectFBVideoProvider *thiz,
-                                                  double              *seconds )
+                                              IDirectFBVideoProvider *thiz,
+                                              double                 *seconds )
 {
     IDirectFBVideoProvider_Libmpeg3_data *data;
     double rate;
@@ -405,8 +425,39 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_GetLength(
     return DFB_OK;
 }
 
+static DFBResult IDirectFBVideoProvider_Libmpeg3_GetColorAdjustment(
+                                                  IDirectFBVideoProvider *thiz,
+                                                  DFBColorAdjustment     *adj )
+{
+    IDirectFBVideoProvider_Libmpeg3_data *data;
 
+    if (!thiz || !adj)
+        return DFB_INVARG;
 
+    data = (IDirectFBVideoProvider_Libmpeg3_data*)thiz->priv;
+
+    if (!data)
+        return DFB_DEAD;
+
+    return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment(
+                                                  IDirectFBVideoProvider *thiz,
+                                                  DFBColorAdjustment     *adj )
+{
+    IDirectFBVideoProvider_Libmpeg3_data *data;
+
+    if (!thiz || !adj)
+        return DFB_INVARG;
+
+    data = (IDirectFBVideoProvider_Libmpeg3_data*)thiz->priv;
+
+    if (!data)
+        return DFB_DEAD;
+
+    return DFB_UNIMPLEMENTED;
+}
 
 
 /* exported symbols */
@@ -480,15 +531,19 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
     data->thread = -1;
 
-    thiz->AddRef = IDirectFBVideoProvider_Libmpeg3_AddRef;
-    thiz->Release = IDirectFBVideoProvider_Libmpeg3_Release;
+    thiz->AddRef    = IDirectFBVideoProvider_Libmpeg3_AddRef;
+    thiz->Release   = IDirectFBVideoProvider_Libmpeg3_Release;
     thiz->GetSurfaceDescription =
-        IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription;
-    thiz->PlayTo = IDirectFBVideoProvider_Libmpeg3_PlayTo;
-    thiz->Stop = IDirectFBVideoProvider_Libmpeg3_Stop;
-    thiz->SeekTo = IDirectFBVideoProvider_Libmpeg3_SeekTo;
-    thiz->GetPos = IDirectFBVideoProvider_Libmpeg3_GetPos;
+         IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription;
+    thiz->PlayTo    = IDirectFBVideoProvider_Libmpeg3_PlayTo;
+    thiz->Stop      = IDirectFBVideoProvider_Libmpeg3_Stop;
+    thiz->SeekTo    = IDirectFBVideoProvider_Libmpeg3_SeekTo;
+    thiz->GetPos    = IDirectFBVideoProvider_Libmpeg3_GetPos;
     thiz->GetLength = IDirectFBVideoProvider_Libmpeg3_GetLength;
+    thiz->GetColorAdjustment =
+         IDirectFBVideoProvider_Libmpeg3_GetColorAdjustment;
+    thiz->SetColorAdjustment =
+         IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment;
 
     return DFB_OK;
 }

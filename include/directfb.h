@@ -119,7 +119,6 @@ extern "C"
      DECLARE_INTERFACE( IDirectFBVideoProvider )
 
 
-
      /*
       * DirectFB interface functions return code.
       */
@@ -560,6 +559,42 @@ extern "C"
           unsigned int                       attributes;
           unsigned int                       height;
      } DFBFontDescription;
+
+     /* 
+      * Information about an IDirectFBVideoProvider.
+      */
+     typedef enum {
+          DVCAPS_BASIC      = 0x00000000,  /* basic ops (PlayTo, Stop)       */
+          DVCAPS_SEEK       = 0x00000001,  /* supports SeekTo                */
+          DVCAPS_SCALE      = 0x00000002,  /* can scale the video            */
+          DVCAPS_BRIGHTNESS = 0x00000010,  /* supports Brightness adjustment */
+          DVCAPS_HUE        = 0x00000020,  /* supports Hue adjustment        */
+          DVCAPS_COLOR      = 0x00000040,  /* supports Color adjustment      */
+          DVCAPS_CONTRAST   = 0x00000080   /* supports Contrast adjustment   */
+     } DFBVideoProviderCapabilities;
+
+     /* 
+      * Flags defining which fields of a DFBColorAdjustment are valid.
+      */
+     typedef enum {
+          DCAF_NONE         = 0x00000000,  /* none of these              */
+          DCAF_BRIGHTNESS   = 0x00000001,  /* brightness field is valid  */
+          DCAF_HUE          = 0x00000002,  /* hue field is valid         */
+          DCAF_COLOR        = 0x00000004,  /* color field is valid       */
+          DCAF_CONTRAST     = 0x00000008   /* contrast field is valid    */
+     } DFBColorAdjustmentFlags;
+
+     /* 
+      * Color Adjustment used to adjust video colors.
+      */
+     typedef struct {
+          DFBColorAdjustmentFlags  flags;
+       
+          __u16                    brightness;
+          __u16                    hue;
+          __u16                    color;
+          __u16                    contrast;
+     } DFBColorAdjustment;
 
 
      /*************
@@ -2056,6 +2091,15 @@ extern "C"
         /** Retrieving information **/
 
           /*
+           * Retrieve information about the video provider's
+           * capabilities.
+           */
+          DFBResult (*GetCapabilities) (
+               IDirectFBVideoProvider        *thiz,
+               DFBVideoProviderCapabilities  *caps
+          );
+
+          /*
            * Get a surface description that best matches the video
            * contained in the file.
            */
@@ -2114,6 +2158,24 @@ extern "C"
           DFBResult (*GetLength) (
                IDirectFBVideoProvider   *thiz,
                double                   *seconds
+          );
+
+        /** Color Adjustment **/
+
+          /*
+           * Gets the current video color settings.
+           */
+          DFBResult (*GetColorAdjustment) (
+               IDirectFBVideoProvider   *thiz,
+               DFBColorAdjustment       *adj
+          );
+          
+          /*
+           * Adjusts the video colors.
+           */
+          DFBResult (*SetColorAdjustment) (
+               IDirectFBVideoProvider   *thiz,
+               DFBColorAdjustment       *adj
           );
      )
 
