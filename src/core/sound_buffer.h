@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -46,7 +46,7 @@ struct __FS_CoreSoundBuffer {
 
      bool             notify;
      int              break_pos;
-     
+
      void            *data;
 };
 
@@ -94,7 +94,8 @@ DFBResult fs_buffer_mixto ( CoreSoundBuffer  *buffer,
                             int               left,
                             int               right,
                             int               pitch,
-                            int              *ret_pos );
+                            int              *ret_pos,
+                            int              *ret_num );
 
 #endif
 

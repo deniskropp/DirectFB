@@ -53,6 +53,7 @@ typedef struct {
      bool                   playing;
      int                    pos_write;
      int                    pos_read;
+     int                    filled;
 } IFusionSoundStream_data;
 
 /*

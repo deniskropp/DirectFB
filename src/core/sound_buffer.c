@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -139,7 +139,7 @@ fs_buffer_lock( CoreSoundBuffer  *buffer,
 
      *ret_data  = buffer->data + buffer->bytes * pos;
      *ret_bytes = buffer->bytes * length;
-     
+
      return DFB_OK;
 }
 
@@ -153,7 +153,7 @@ fs_buffer_unlock( CoreSoundBuffer *buffer )
      return DFB_OK;
 }
 
-static inline int
+static int
 mix_from_8bit( CoreSoundBuffer *buffer,
                int             *dest,
                int              dest_rate,
@@ -168,20 +168,21 @@ mix_from_8bit( CoreSoundBuffer *buffer,
      __u8 *data = buffer->data;
      int   inc  = (buffer->rate * pitch) / dest_rate;
 
-     DEBUGMSG( "FusionSound/Core: %s (%p, pos %d, max %d) ...\n",
-               __FUNCTION__, buffer, pos, max_samples / 2 );
-     
+     DEBUGMSG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
+               __FUNCTION__, buffer, pos, stop, max_samples / 2 );
+
      for (i = 0, n = 0; i < max_samples; i += 2, n += inc) {
           int p = (n >> 8) + pos;
 
           if (stop >= 0 && p >= stop)
                break;
 
-          p %= buffer->length;
+          if (p >= buffer->length)
+               p %= buffer->length;
 
           if (buffer->channels == 2) {
                p <<= 1;
-          
+
                dest[i]   += ((int) data[p]   - 128) * left;
                dest[i+1] += ((int) data[p+1] - 128) * right;
           }
@@ -193,12 +194,12 @@ mix_from_8bit( CoreSoundBuffer *buffer,
           }
      }
 
-     DEBUGMSG( "FusionSound/Core: %s ... mixed %d.\n", __FUNCTION__, n >> 8 );
-     
+     DEBUGMSG( "FusionSound/Core: %s ... mixed %d (%d).\n", __FUNCTION__, n >> 8, i >> 1 );
+
      return n >> 8;
 }
 
-static inline int
+static int
 mix_from_16bit( CoreSoundBuffer *buffer,
                 int             *dest,
                 int              dest_rate,
@@ -209,24 +210,25 @@ mix_from_16bit( CoreSoundBuffer *buffer,
                 int              right,
                 int              pitch )
 {
-     int    i, n;
-     __s16 *data = buffer->data;
-     int    inc  = (buffer->rate * pitch) / dest_rate;
+     unsigned int  i, n;
+     unsigned int  inc  = (buffer->rate * pitch) / dest_rate;
+     __s16        *data = buffer->data;
 
-     DEBUGMSG( "FusionSound/Core: %s (%p, pos %d, max %d) ...\n",
-               __FUNCTION__, buffer, pos, max_samples / 2 );
-     
+     DEBUGMSG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
+               __FUNCTION__, buffer, pos, stop, max_samples / 2 );
+
      for (i = 0, n = 0; i < max_samples; i += 2, n += inc) {
           int p = (n >> 8) + pos;
 
           if (stop >= 0 && p >= stop)
                break;
 
-          p %= buffer->length;
+          if (p >= buffer->length)
+               p %= buffer->length;
 
           if (buffer->channels == 2) {
                p <<= 1;
-               
+
                dest[i]   += (data[p]   * left) >> 8;
                dest[i+1] += (data[p+1] * right) >> 8;
           }
@@ -238,8 +240,8 @@ mix_from_16bit( CoreSoundBuffer *buffer,
           }
      }
 
-     DEBUGMSG( "FusionSound/Core: %s ... mixed %d.\n", __FUNCTION__, n >> 8 );
-     
+     DEBUGMSG( "FusionSound/Core: %s ... mixed %d (%d).\n", __FUNCTION__, n >> 8, i >> 1 );
+
      return n >> 8;
 }
 
@@ -253,38 +255,43 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                  int              left,
                  int              right,
                  int              pitch,
-                 int             *ret_pos )
+                 int             *ret_pos,
+                 int             *ret_num )
 {
      DFBResult ret = DFB_OK;
+     int       num;
 
      DFB_ASSERT( buffer != NULL );
      DFB_ASSERT( buffer->data != NULL );
      DFB_ASSERT( pos >= 0 );
      DFB_ASSERT( pos < buffer->length );
-     DFB_ASSERT( stop < buffer->length );
+     DFB_ASSERT( stop <= buffer->length );
      DFB_ASSERT( dest != NULL );
      DFB_ASSERT( max_samples >= 0 );
 
      /* Make sure stop position is greater than start position. */
-     if (stop >= 0 && pos >= stop)
+     if (stop >= 0 && pos > stop)
           stop += buffer->length;
-     
+
      /* Mix the data into the buffer. */
      switch (buffer->format) {
           case FSSF_S16:
-               pos += mix_from_16bit( buffer, dest, dest_rate, max_samples,
-                                      pos, stop, left, right, pitch );
-               break;
-          
-          case FSSF_U8:
-               pos += mix_from_8bit( buffer, dest, dest_rate, max_samples,
+               num = mix_from_16bit( buffer, dest, dest_rate, max_samples,
                                      pos, stop, left, right, pitch );
+               break;
+
+          case FSSF_U8:
+               num = mix_from_8bit( buffer, dest, dest_rate, max_samples,
+                                    pos, stop, left, right, pitch );
                break;
 
           default:
                BUG( "unknown sample format" );
                return DFB_BUG;
      }
+
+     /* Advance position. */
+     pos += num;
 
      /* Check if playback stopped. */
      if (stop >= 0 && pos >= stop) {
@@ -298,6 +305,10 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      /* Return new position. */
      if (ret_pos)
           *ret_pos = pos;
+
+     /* Return number of samples mixed in. */
+     if (ret_num)
+          *ret_num = num;
 
      return ret;
 }

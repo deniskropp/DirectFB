@@ -43,11 +43,10 @@ typedef struct {
      CorePlaybackNotificationFlags   flags;
      CorePlayback                   *playback;
 
-     int                             pos;      /* Next sample to read in case of CPNF_ADVANCE or
-                                                  start position in case of CPNF_START. */
-     int                             stop;     /* Position at which the playback will stop or has
-                                                  stopped. A negative value indicates looping
-                                                  playback in case of CPNF_START or CPNF_ADVANCE. */
+     int                             pos;    /* Always the current playback position. */
+     int                             stop;   /* Position at which the playback will stop or has
+                                                stopped. A negative value indicates looping. */
+     int                             num;    /* Number of samples played (CPNF_ADVANCE) or zero. */
 } CorePlaybackNotification;
 
 /*

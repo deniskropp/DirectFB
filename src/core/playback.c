@@ -53,7 +53,8 @@ struct __FS_CorePlayback {
 };
 
 static void fs_playback_notify( CorePlayback                  *playback,
-                                CorePlaybackNotificationFlags  flags );
+                                CorePlaybackNotificationFlags  flags,
+                                int                            num );
 
 /******************************************************************************/
 
@@ -113,6 +114,7 @@ fs_playback_create( CoreSound        *core,
      playback->left   = 0x100;
      playback->right  = 0x100;
      playback->pitch  = 0x100;
+     playback->stop   = buffer->length;
 
      fusion_skirmish_init( &playback->lock );
 
@@ -152,7 +154,7 @@ fs_playback_start( CorePlayback *playback )
           }
 
           /* Notify listeners about the start of the playback. */
-          fs_playback_notify( playback, CPNF_START );
+          fs_playback_notify( playback, CPNF_START, 0 );
      }
 
      /* Unlock playback. */
@@ -184,7 +186,7 @@ fs_playback_stop( CorePlayback *playback )
           fs_core_remove_playback( playback->core, playback );
 
           /* Notify listeners about the end of the playback. */
-          fs_playback_notify( playback, CPNF_STOP );
+          fs_playback_notify( playback, CPNF_STOP, 0 );
      }
 
      /* Unlock playback. */
@@ -202,7 +204,7 @@ fs_playback_set_stop( CorePlayback *playback,
 {
      DFB_ASSERT( playback != NULL );
      DFB_ASSERT( playback->buffer != NULL );
-     DFB_ASSERT( stop < playback->buffer->length );
+     DFB_ASSERT( stop <= playback->buffer->length );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
@@ -295,6 +297,7 @@ fs_playback_mixto( CorePlayback *playback,
 {
      DFBResult ret;
      int       pos;
+     int       num;
 
      DFB_ASSERT( playback != NULL );
      DFB_ASSERT( playback->buffer != NULL );
@@ -308,7 +311,7 @@ fs_playback_mixto( CorePlayback *playback,
      /* Mix samples... */
      ret = fs_buffer_mixto( playback->buffer, dest, dest_rate, max_samples,
                             playback->position, playback->stop, playback->left,
-                            playback->right, playback->pitch, &pos );
+                            playback->right, playback->pitch, &pos, &num );
      if (ret)
           playback->running = false;
 
@@ -319,7 +322,7 @@ fs_playback_mixto( CorePlayback *playback,
      fusion_skirmish_dismiss( &playback->lock );
 
      /* Notify listeners about the new position and a possible end. */
-     fs_playback_notify( playback, ret ? CPNF_STOP : CPNF_ADVANCE );
+     fs_playback_notify( playback, ret ? (CPNF_ADVANCE | CPNF_STOP) : CPNF_ADVANCE, num );
 
      return ret;
 }
@@ -328,13 +331,14 @@ fs_playback_mixto( CorePlayback *playback,
 
 static void
 fs_playback_notify( CorePlayback                  *playback,
-                    CorePlaybackNotificationFlags  flags )
+                    CorePlaybackNotificationFlags  flags,
+                    int                            num )
 {
      CorePlaybackNotification notification;
 
      DFB_ASSERT( playback != NULL );
      DFB_ASSERT( playback->buffer != NULL );
-     DFB_ASSERT( flags == CPNF_START || flags == CPNF_STOP || flags == CPNF_ADVANCE );
+     DFB_ASSERT( ! (flags & ~(CPNF_START | CPNF_STOP | CPNF_ADVANCE)) );
 
      if (flags & CPNF_START)
           playback->running = true;
@@ -349,6 +353,7 @@ fs_playback_notify( CorePlayback                  *playback,
      notification.playback = playback;
      notification.pos      = playback->position;
      notification.stop     = playback->running ? playback->stop : playback->position;
+     notification.num      = num;
 
      fs_playback_dispatch( playback, &notification, NULL );
 }

@@ -57,6 +57,7 @@ typedef struct {
      int                    ref;             /* reference counter */
 
      CorePlayback          *playback;
+     bool                   stream;
      int                    length;
      Reaction               reaction;
 
@@ -89,7 +90,8 @@ IFusionSoundPlayback_Destruct( IFusionSoundPlayback *thiz )
 
      fs_playback_detach( data->playback, &data->reaction );
 
-     fs_playback_stop( data->playback );
+     if (!data->stream)
+          fs_playback_stop( data->playback );
 
      fs_playback_unref( data->playback );
 
@@ -130,19 +132,19 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
      DEBUGMSG( "%s (%p, %d -> %d)\n",
                __FUNCTION__, data->playback, start, stop );
 
-     if (data->length < 0)
+     if (data->stream)
           return DFB_UNSUPPORTED;
 
      if (start < 0 || start >= data->length)
           return DFB_INVARG;
 
-     if (stop >= data->length)
+     if (stop > data->length)
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->lock );
 
      fs_playback_set_position( data->playback, start );
-     fs_playback_set_stop( data->playback, stop );
+     fs_playback_set_stop( data->playback, stop ? stop : data->length );
      fs_playback_start( data->playback );
 
      pthread_mutex_unlock( &data->lock );
@@ -289,6 +291,7 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      /* Initialize private data. */
      data->ref      = 1;
      data->playback = playback;
+     data->stream   = (length < 0);
      data->length   = length;
      data->volume   = 1.0f;
 

@@ -54,8 +54,13 @@
 
 /******/
 
-static ReactionResult IFusionSoundStream_React( const void *msg_data,
-                                                void       *ctx );
+static DFBResult      IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
+                                                     const void              *sample_data,
+                                                     int                      length,
+                                                     int                     *ret_bytes );
+
+static ReactionResult IFusionSoundStream_React     ( const void              *msg_data,
+                                                     void                    *ctx );
 
 /******/
 
@@ -124,49 +129,6 @@ IFusionSoundStream_GetDescription( IFusionSoundStream  *thiz,
 }
 
 static DFBResult
-IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
-                               const void              *sample_data,
-                               int                      length,
-                               int                     *ret_bytes )
-{
-     DFBResult        ret;
-     void            *lock_data;
-     int              lock_bytes;
-     int              offset = 0;
-
-     DEBUGMSG( "%s (%p, %d)\n", __FUNCTION__, data->buffer, length );
-
-     while (length) {
-          int num = MIN( length, data->size - data->pos_write );
-
-          /* Write data. */
-          ret = fs_buffer_lock( data->buffer, data->pos_write,
-                                num, &lock_data, &lock_bytes );
-          if (ret)
-               return ret;
-
-          dfb_memcpy( lock_data, sample_data + offset, lock_bytes );
-
-          fs_buffer_unlock( data->buffer );
-
-          /* Update input parameters. */
-          length -= num;
-          offset += lock_bytes;
-
-          /* Update write position. */
-          data->pos_write += num;
-          if (data->pos_write == data->size)
-               data->pos_write = 0;
-     }
-
-     if (ret_bytes)
-          *ret_bytes = offset;
-
-     /* Set new stop position. */
-     return fs_playback_set_stop( data->playback, data->pos_write );
-}
-
-static DFBResult
 IFusionSoundStream_Write( IFusionSoundStream *thiz,
                           const void         *sample_data,
                           int                 length )
@@ -183,28 +145,20 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           int       num;
           int       bytes;
 
-          DEBUGMSG( "%s: remaining %d, read pos %d, write pos %d\n",
-                    __FUNCTION__, length, data->pos_read, data->pos_write );
+          DEBUGMSG( "%s: length %d, read pos %d, write pos %d, filled %d/%d (%splaying)\n",
+                    __FUNCTION__, length, data->pos_read, data->pos_write, data->filled,
+                    data->size, data->playing ? "" : "not " );
+
+          DFB_ASSERT( data->filled <= data->size );
 
           /* Wait for at least one free sample. */
-          while (true) {
-               int max_pos = data->pos_read - 1;
-
-               if (max_pos == -1)
-                    max_pos += data->size;
-
-               if (data->pos_write != max_pos)
-                    break;
-
+          while (data->filled == data->size)
                pthread_cond_wait( &data->wait, &data->lock );
-          }
 
           /* Calculate number of free samples in the buffer. */
-          if (data->pos_write < data->pos_read)
-               num = data->pos_read - data->pos_write - 1;
-          else
-               num = data->size - data->pos_write + data->pos_read - 1;
+          num = data->size - data->filled;
 
+          /* Do not write more than requested. */
           if (num > length)
                num = length;
 
@@ -216,19 +170,11 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           }
 
           /* (Re)start if playback had stopped (buffer underrun). */
-          if (!data->playing && data->prebuffer >= 0) {
-               int written;
+          if (!data->playing && data->prebuffer >= 0 && data->filled >= data->prebuffer) {
+               DEBUGMSG( "%s: starting playback now!\n", __FUNCTION__ );
 
-               if (data->pos_write < data->pos_read)
-                    written = data->size - data->pos_read + data->pos_write;
-               else
-                    written = data->pos_write - data->pos_read;
-
-               if (!data->prebuffer || written >= data->prebuffer) {
-                    data->playing = true;
-
-                    fs_playback_start( data->playback );
-               }
+               data->playing = true;
+               fs_playback_start( data->playback );
           }
 
           /* Update input parameters. */
@@ -247,7 +193,7 @@ IFusionSoundStream_Wait( IFusionSoundStream *thiz,
 {
      INTERFACE_GET_DATA(IFusionSoundStream)
 
-     if (length < 0 || length >= data->size)
+     if (length < 0 || length > data->size)
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->lock );
@@ -257,10 +203,7 @@ IFusionSoundStream_Wait( IFusionSoundStream *thiz,
                int num;
 
                /* Calculate number of free samples in the buffer. */
-               if (data->pos_write < data->pos_read)
-                    num = data->pos_read - data->pos_write - 1;
-               else
-                    num = data->size - data->pos_write + data->pos_read - 1;
+               num = data->size - data->filled;
 
                if (num >= length)
                     break;
@@ -288,12 +231,8 @@ IFusionSoundStream_GetStatus( IFusionSoundStream *thiz,
 
      pthread_mutex_lock( &data->lock );
 
-     if (filled) {
-          if (data->pos_write >= data->pos_read)
-               *filled = data->pos_write - data->pos_read;
-          else
-               *filled = data->size - data->pos_read + data->pos_write;
-     }
+     if (filled)
+          *filled = data->filled;
 
      if (total)
           *total = data->size;
@@ -317,10 +256,10 @@ IFusionSoundStream_Flush( IFusionSoundStream *thiz )
 {
      INTERFACE_GET_DATA(IFusionSoundStream)
 
-     pthread_mutex_lock( &data->lock );
-
      /* Stop the playback. */
      fs_playback_stop( data->playback );
+
+     pthread_mutex_lock( &data->lock );
 
      while (data->playing) {
           pthread_cond_wait( &data->wait, &data->lock );
@@ -328,6 +267,7 @@ IFusionSoundStream_Flush( IFusionSoundStream *thiz )
 
      /* Reset the buffer. */
      data->pos_write = data->pos_read;
+     data->filled    = 0;
 
      pthread_mutex_unlock( &data->lock );
 
@@ -402,32 +342,23 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
 
      /* Increase reference counter of the buffer. */
      if (fs_buffer_ref( buffer )) {
-          DFB_DEALLOCATE_INTERFACE( thiz );
-
-          return DFB_FUSION;
+          ret = DFB_FUSION;
+          goto error_ref;
      }
 
      /* Create a playback object for the buffer. */
      ret = fs_playback_create( core, buffer, true, &playback );
-     if (ret) {
-          fs_buffer_unref( buffer );
-
-          DFB_DEALLOCATE_INTERFACE( thiz );
-
-          return ret;
-     }
+     if (ret)
+          goto error_create;
 
      /* Attach our listener to the playback object. */
-     if (fs_playback_attach( playback, IFusionSoundStream_React,
-                             data, &data->reaction ))
-     {
-          fs_playback_unref( playback );
-          fs_buffer_unref( buffer );
-
-          DFB_DEALLOCATE_INTERFACE( thiz );
-
-          return DFB_FUSION;
+     if (fs_playback_attach( playback, IFusionSoundStream_React, data, &data->reaction )) {
+          ret = DFB_FUSION;
+          goto error_attach;
      }
+
+     /* Set the stop position to the beginning of the buffer. */
+     fs_playback_set_stop( playback, 0 );
 
      /* Initialize private data. */
      data->ref       = 1;
@@ -460,35 +391,110 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      thiz->GetPlayback          = IFusionSoundStream_GetPlayback;
 
      return DFB_OK;
+
+error_attach:
+     fs_playback_unref( playback );
+
+error_create:
+     fs_buffer_unref( buffer );
+
+error_ref:
+     DFB_DEALLOCATE_INTERFACE( thiz );
+
+     return ret;
 }
 
 /******/
+
+static DFBResult
+IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
+                               const void              *sample_data,
+                               int                      length,
+                               int                     *ret_bytes )
+{
+     DFBResult        ret;
+     void            *lock_data;
+     int              lock_bytes;
+     int              offset = 0;
+
+     DEBUGMSG( "%s: length %d\n", __FUNCTION__, length );
+
+     DFB_ASSERT( length <= data->size - data->filled );
+
+     while (length) {
+          int num = MIN( length, data->size - data->pos_write );
+
+          /* Write data. */
+          ret = fs_buffer_lock( data->buffer, data->pos_write,
+                                num, &lock_data, &lock_bytes );
+          if (ret)
+               return ret;
+
+          dfb_memcpy( lock_data, sample_data + offset, lock_bytes );
+
+          fs_buffer_unlock( data->buffer );
+
+          /* Update input parameters. */
+          length -= num;
+          offset += lock_bytes;
+
+          /* Update write position. */
+          data->pos_write += num;
+
+          /* Set new stop position. */
+          ret = fs_playback_set_stop( data->playback, data->pos_write );
+          if (ret)
+               return ret;
+
+          /* Handle wrap around. */
+          if (data->pos_write == data->size)
+               data->pos_write = 0;
+
+          /* Update the fill level. */
+          data->filled += num;
+     }
+
+     if (ret_bytes)
+          *ret_bytes = offset;
+
+     return DFB_OK;
+}
 
 static ReactionResult
 IFusionSoundStream_React( const void *msg_data,
                           void       *ctx )
 {
      const CorePlaybackNotification *notification = msg_data;
+     CorePlaybackNotificationFlags   flags        = notification->flags;
      IFusionSoundStream_data        *data         = ctx;
 
-     if (notification->flags & CPNF_START)
-          DEBUGMSG( "%s: playback started at position %d\n", __FUNCTION__, notification->pos );
+     if (flags & CPNF_START) {
+          DEBUGMSG( "%s: playback started at %d\n", __FUNCTION__, notification->pos );
 
-     if (notification->flags & CPNF_STOP)
-          DEBUGMSG( "%s: playback stopped at position %d!\n", __FUNCTION__, notification->pos );
+          /* No locking here to avoid dead possible dead lock with IFusionSoundStream_Write(). */
+          data->playing = true;
 
-     if (notification->flags & CPNF_ADVANCE)
-          DEBUGMSG( "%s: playback advanced to position %d\n", __FUNCTION__, notification->pos );
+          return RS_OK;
+     }
 
      pthread_mutex_lock( &data->lock );
 
+     if (notification->flags & CPNF_ADVANCE) {
+          DEBUGMSG( "%s: playback advanced by %d from %d to %d\n",
+                    __FUNCTION__, notification->num, data->pos_read, notification->pos );
+
+          DFB_ASSERT( data->filled >= notification->num );
+
+          data->filled -= notification->num;
+     }
+
      data->pos_read = notification->pos;
 
-     if (notification->flags & CPNF_START)
-          data->playing = true;
+     if (flags & CPNF_STOP) {
+          DEBUGMSG( "%s: playback stopped at %d!\n", __FUNCTION__, notification->pos );
 
-     if (notification->flags & CPNF_STOP)
           data->playing = false;
+     }
 
      pthread_cond_broadcast( &data->wait );
 

@@ -213,24 +213,12 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                          FSBufferPlayFlags   flags )
 {
      DFBResult     ret;
-     int           left;
-     int           right;
      CorePlayback *playback;
 
      INTERFACE_GET_DATA(IFusionSoundBuffer)
 
      if (flags & ~FSPLAY_ALL)
           return DFB_INVARG;
-
-     /* Choose volume for left and right channel. */
-     if (flags & FSPLAY_PAN) {
-          left  = data->left;
-          right = data->right;
-     }
-     else {
-          left  = 0x100;
-          right = 0x100;
-     }
 
      /* Choose looping playback mode. */
      if (flags & FSPLAY_LOOPING) {
@@ -243,15 +231,15 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
           }
 
           /* Create a playback object. */
-          ret = fs_playback_create( data->core,
-                                    data->buffer, false, &playback );
+          ret = fs_playback_create( data->core, data->buffer, false, &playback );
           if (ret) {
                pthread_mutex_unlock( &data->lock );
                return ret;
           }
 
           /* Set values produced by SetPan(). */
-          fs_playback_set_volume( playback, data->left, data->right );
+          if (flags & FSPLAY_PAN)
+               fs_playback_set_volume( playback, data->left, data->right );
 
           /* Set looping playback. */
           fs_playback_set_stop( playback, -1 );
@@ -264,22 +252,22 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                return ret;
           }
 
-          /* Keep looping playback. */
+          /* Remember looping playback. */
           data->looping = playback;
 
           pthread_mutex_unlock( &data->lock );
      }
      else {
           /* Create a playback object. */
-          ret = fs_playback_create( data->core,
-                                    data->buffer, false, &playback );
+          ret = fs_playback_create( data->core, data->buffer, false, &playback );
           if (ret) {
                pthread_mutex_unlock( &data->lock );
                return ret;
           }
 
           /* Set values produced by SetPan(). */
-          fs_playback_set_volume( playback, data->left, data->right );
+          if (flags & FSPLAY_PAN)
+               fs_playback_set_volume( playback, data->left, data->right );
 
           /* Start the playback. */
           ret = fs_playback_start( playback );
