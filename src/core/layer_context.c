@@ -571,7 +571,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                if (surface) {
                     flags |= CLRCF_SURFACE | CLRCF_PALETTE;
 
-                    if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
+                    if (region->surface)
                          ret = reallocate_surface( layer, region, &region_config,
                                                    &context->config );
                     else
