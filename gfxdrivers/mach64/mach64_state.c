@@ -199,7 +199,7 @@ void mach64_set_color_3d( Mach64DriverData *mdrv,
      mach64_out32( mmio, BLUE_START, state->color.b << 16 );
      mach64_out32( mmio, ALPHA_START, state->color.a << 16 );
 
-     MACH64_INVALIDATE( m_blit_3d );
+     MACH64_INVALIDATE( m_blit_blend );
      MACH64_VALIDATE( m_color_3d );
 }
 
@@ -300,36 +300,31 @@ static __u32 mach64DestBlend[] = {
      0
 };
 
-void mach64_set_draw_3d( Mach64DriverData *mdrv,
-                         Mach64DeviceData *mdev,
-                         CardState        *state )
+void mach64_set_draw_blend( Mach64DriverData *mdrv,
+                            Mach64DeviceData *mdev,
+                            CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
      __u32 scale_3d_cntl;
 
-     if (MACH64_IS_VALID( m_draw_3d ))
+     if (MACH64_IS_VALID( m_draw_blend ))
           return;
 
      scale_3d_cntl = SCALE_3D_FCN_SHADE | ALPHA_FOG_EN_ALPHA |
                      mach64SourceBlend[state->src_blend - 1] |
                      mach64DestBlend  [state->dst_blend - 1];
 
-     mach64_waitfifo( mdrv, mdev, 2 );
-     mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
-     mach64_out32( mmio, SCALE_3D_CNTL, scale_3d_cntl );
+     mdev->draw_blend = scale_3d_cntl;
 
-     MACH64_INVALIDATE( m_blit_3d | m_draw_2d | m_blit_2d );
-     MACH64_VALIDATE( m_draw_3d );
+     MACH64_VALIDATE( m_draw_blend );
 }
 
-void mach64_set_blit_3d( Mach64DriverData *mdrv,
-                         Mach64DeviceData *mdev,
-                         CardState        *state )
+void mach64_set_blit_blend( Mach64DriverData *mdrv,
+                            Mach64DeviceData *mdev,
+                            CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
      __u32 scale_3d_cntl;
 
-     if (MACH64_IS_VALID( m_blit_3d ))
+     if (MACH64_IS_VALID( m_blit_blend ))
           return;
 
      if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
@@ -347,7 +342,7 @@ void mach64_set_blit_3d( Mach64DriverData *mdrv,
           if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
                if (state->source->format == DSPF_RGB32) {
                     mach64_waitfifo( mdrv, mdev, 1 );
-                    mach64_out32( mmio, ALPHA_START, 0xFF << 16 );
+                    mach64_out32( mdrv->mmio_base, ALPHA_START, 0xFF << 16 );
                     MACH64_INVALIDATE( m_color_3d );
                } else {
                     scale_3d_cntl |= TEX_MAP_AEN;
@@ -358,44 +353,7 @@ void mach64_set_blit_3d( Mach64DriverData *mdrv,
      if (state->blittingflags & DSBLIT_COLORIZE)
           scale_3d_cntl |= TEX_LIGHT_FCN_MODULATE;
 
-     mach64_waitfifo( mdrv, mdev, 2 );
-     mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
-     mach64_out32( mmio, SCALE_3D_CNTL, scale_3d_cntl );
+     mdev->blit_blend = scale_3d_cntl;
 
-     MACH64_INVALIDATE( m_draw_3d | m_draw_2d | m_blit_2d );
-     MACH64_VALIDATE( m_blit_3d );
-}
-
-void mach64_set_draw_2d( Mach64DriverData    *mdrv,
-                         Mach64DeviceData    *mdev,
-                         CardState           *state )
-{
-     volatile __u8 *mmio = mdrv->mmio_base;
-
-     if (MACH64_IS_VALID( m_draw_2d ))
-          return;
-
-     mach64_waitfifo( mdrv, mdev, 2 );
-     mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
-     mach64_out32( mmio, SCALE_3D_CNTL, 0 );
-
-     MACH64_INVALIDATE( m_draw_3d | m_blit_3d | m_blit_2d );
-     MACH64_VALIDATE( m_draw_2d );
-}
-
-void mach64_set_blit_2d( Mach64DriverData *mdrv,
-                         Mach64DeviceData *mdev,
-                         CardState        *state )
-{
-     volatile __u8 *mmio = mdrv->mmio_base;
-
-     if (MACH64_IS_VALID( m_blit_2d ))
-          return;
-
-     mach64_waitfifo( mdrv, mdev, 2 );
-     mach64_out32( mmio, DP_SRC, FRGD_SRC_BLIT );
-     mach64_out32( mmio, SCALE_3D_CNTL, 0 );
-
-     MACH64_INVALIDATE( m_draw_3d | m_blit_3d | m_draw_2d );
-     MACH64_VALIDATE( m_blit_2d );
+     MACH64_VALIDATE( m_blit_blend );
 }

@@ -119,7 +119,10 @@ static void mach64EngineReset( void *drv, void *dev )
      mach64_out32( mmio, DP_MIX, DP_FRGD_MIX_SRC | DP_BKGD_MIX_DST );
 
      if (mdrv->accelerator == FB_ACCEL_ATI_MACH64GT) {
-          mach64_waitfifo( mdrv, mdev, 11 );
+          mach64_waitfifo( mdrv, mdev, 13 );
+
+          /* Some 3D registers aren't accessible without this. */
+          mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SHADE );
 
           mach64_out32( mmio, ALPHA_TEST_CNTL, 0 );
           mach64_out32( mmio, TEX_CNTL, 0 );
@@ -133,6 +136,8 @@ static void mach64EngineReset( void *drv, void *dev )
           mach64_out32( mmio, BLUE_Y_INC, 0 );
           mach64_out32( mmio, ALPHA_X_INC, 0 );
           mach64_out32( mmio, ALPHA_Y_INC, 0 );
+
+          mach64_out32( mmio, SCALE_3D_CNTL, 0 );
      }
 }
 
@@ -233,12 +238,13 @@ static void mach64SetState( void *drv, void *dev,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
 
      if (state->modified == SMF_ALL) {
           mdev->valid = 0;
      } else if (state->modified) {
           if (state->modified & SMF_SOURCE)
-               MACH64_INVALIDATE( m_source | m_srckey | m_srckey_scale | m_blit_3d );
+               MACH64_INVALIDATE( m_source | m_srckey | m_srckey_scale | m_blit_blend );
 
           if (state->modified & SMF_SRC_COLORKEY)
                MACH64_INVALIDATE( m_srckey | m_srckey_scale );
@@ -253,13 +259,13 @@ static void mach64SetState( void *drv, void *dev,
                MACH64_INVALIDATE( m_dstkey );
 
           if (state->modified & SMF_BLITTING_FLAGS)
-               MACH64_INVALIDATE( m_srckey | m_srckey_scale | m_dstkey | m_disable_key | m_blit_3d | m_blit_2d );
+               MACH64_INVALIDATE( m_srckey | m_srckey_scale | m_dstkey | m_disable_key | m_blit_blend );
 
           if (state->modified & SMF_DRAWING_FLAGS)
-               MACH64_INVALIDATE( m_dstkey | m_disable_key | m_draw_3d | m_draw_2d );
+               MACH64_INVALIDATE( m_dstkey | m_disable_key | m_draw_blend );
 
           if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
-               MACH64_INVALIDATE( m_draw_3d | m_blit_3d );
+               MACH64_INVALIDATE( m_draw_blend | m_blit_blend );
      }
 
      if (state->modified & SMF_DESTINATION)
@@ -271,11 +277,22 @@ static void mach64SetState( void *drv, void *dev,
      case DFXL_DRAWLINE:
      case DFXL_FILLTRIANGLE:
           if (state->drawingflags & DSDRAW_BLEND) {
+               mach64_waitfifo( mdrv, mdev, 2 );
+               mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
+               /* Some 3D registers aren't accessible without this. */
+               mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SHADE );
+
                mach64_set_color_3d( mdrv, mdev, state );
-               mach64_set_draw_3d( mdrv, mdev, state );
+               mach64_set_draw_blend( mdrv, mdev, state );
+
+               mach64_waitfifo( mdrv, mdev, 1 );
+               mach64_out32( mmio, SCALE_3D_CNTL, mdev->draw_blend );
           } else {
+               mach64_waitfifo( mdrv, mdev, 2 );
+               mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
+               mach64_out32( mmio, SCALE_3D_CNTL, 0 );
+
                mach64_set_color( mdrv, mdev, state );
-               mach64_set_draw_2d( mdrv, mdev, state );
           }
 
           if (state->drawingflags & DSDRAW_DST_COLORKEY)
@@ -290,11 +307,19 @@ static void mach64SetState( void *drv, void *dev,
           mach64_set_source( mdrv, mdev, state );
 
           if (USE_SCALER( state, accel )) {
+               mach64_waitfifo( mdrv, mdev, 2 );
+               mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
+               /* Some 3D registers aren't accessible without this. */
+               mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SCALE );
+
                if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                            DSBLIT_COLORIZE))
                     mach64_set_color_3d( mdrv, mdev, state );
 
-               mach64_set_blit_3d( mdrv, mdev, state );
+               mach64_set_blit_blend( mdrv, mdev, state );
+
+               mach64_waitfifo( mdrv, mdev, 1 );
+               mach64_out32( mmio, SCALE_3D_CNTL, mdev->blit_blend );
 
                if (state->blittingflags & DSBLIT_DST_COLORKEY)
                     mach64_set_dst_colorkey( mdrv, mdev, state );
@@ -307,7 +332,9 @@ static void mach64SetState( void *drv, void *dev,
 
                state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
           } else {
-               mach64_set_blit_2d( mdrv, mdev, state );
+               mach64_waitfifo( mdrv, mdev, 2 );
+               mach64_out32( mmio, DP_SRC, FRGD_SRC_BLIT );
+               mach64_out32( mmio, SCALE_3D_CNTL, 0 );
 
                if (state->blittingflags & DSBLIT_DST_COLORKEY)
                     mach64_set_dst_colorkey( mdrv, mdev, state );

@@ -65,20 +65,12 @@ void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
 void mach64_disable_colorkey( Mach64DriverData *mdrv,
                               Mach64DeviceData *mdev );
 
-void mach64_set_draw_3d( Mach64DriverData *mdrv,
-                         Mach64DeviceData *mdev,
-                         CardState        *state );
+void mach64_set_draw_blend( Mach64DriverData *mdrv,
+                            Mach64DeviceData *mdev,
+                            CardState        *state );
 
-void mach64_set_blit_3d( Mach64DriverData *mdrv,
-                         Mach64DeviceData *mdev,
-                         CardState        *state );
-
-void mach64_set_draw_2d( Mach64DriverData    *mdrv,
-                         Mach64DeviceData    *mdev,
-                         CardState           *state );
-
-void mach64_set_blit_2d( Mach64DriverData *mdrv,
-                         Mach64DeviceData *mdev,
-                         CardState        *state );
+void mach64_set_blit_blend( Mach64DriverData *mdrv,
+                            Mach64DeviceData *mdev,
+                            CardState        *state );
 
 #endif
