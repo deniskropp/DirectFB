@@ -436,6 +436,8 @@ driver_init_driver( GraphicsDevice      *device,
     adrv->mmio_base = ( volatile __u8* ) dfb_gfxcard_map_mmio( device, 0, -1 );
     if (!adrv->mmio_base)
 	return DFB_IO;
+	
+    adrv->device_data = (RADEONDeviceData*) device_data;
 
     /* fill acceleration function table */
     funcs->CheckState		= radeonCheckState;

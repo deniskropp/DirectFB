@@ -34,10 +34,6 @@
 #include <core/layers.h>
 
 typedef struct {
-    volatile __u8 *mmio_base;
-} RADEONDriverData;
-
-typedef struct {
     CoreSurface *source;
     CoreSurface *destination;
     DFBSurfaceBlittingFlags blittingflags;
@@ -62,6 +58,11 @@ typedef struct {
     unsigned int idle_waitcycles;
     unsigned int fifo_cache_hits;
 } RADEONDeviceData;
+
+typedef struct {
+    volatile __u8 *mmio_base;
+    RADEONDeviceData *device_data;
+} RADEONDriverData;
 
 extern DisplayLayerFuncs RadeonOverlayFuncs;
 

@@ -52,9 +52,13 @@ typedef struct {
         __u32 P1_X_START_END;
         __u32 P2_X_START_END;
         __u32 P3_X_START_END;
+	__u32 DISPLAY_BASE_ADDR;
         __u32 VID_BUF0_BASE_ADRS;
         __u32 VID_BUF1_BASE_ADRS;
         __u32 VID_BUF2_BASE_ADRS;
+        __u32 VID_BUF3_BASE_ADRS;
+        __u32 VID_BUF4_BASE_ADRS;
+        __u32 VID_BUF5_BASE_ADRS;
         __u32 P1_V_ACCUM_INIT;
         __u32 P23_V_ACCUM_INIT;
         __u32 P1_H_ACCUM_INIT;
@@ -69,7 +73,7 @@ typedef struct {
     } regs;
 } RadeonOverlayLayerData;
 
-#define OV0_SUPPORTED_OPTIONS (DLOP_DEINTERLACING | DLOP_DST_COLORKEY | DLOP_SRC_COLORKEY | DLOP_OPACITY | DLOP_ALPHACHANNEL)
+#define OV0_SUPPORTED_OPTIONS ( DLOP_DST_COLORKEY | DLOP_SRC_COLORKEY | DLOP_OPACITY | DLOP_ALPHACHANNEL)
 
 
 static void ov_calc_scaler_regs (
@@ -79,20 +83,13 @@ static void ov_calc_scaler_regs (
             CoreLayerRegionConfig  *config
 	    )
 {
-    int tmp;
-    int v_inc;
-    int h_inc;
-    int step_by;
-    int p1_h_accum_init;
-    int p23_h_accum_init;
-    int p1_v_accum_init;
-    int p23_v_accum_init;
+    __u32 tmp;
+    __u32 h_inc;
+    __u32 step_by;
 
+    h_inc = (surface->width << 12) / config->dest.w;
 
-    v_inc   = (surface->height << 20) / config->dest.h;
-    h_inc   = (surface->width  << 12) / config->dest.w;
     step_by = 1;
-
     while (h_inc >= (2 << 12)) {
       step_by++;
       h_inc >>= 1;
@@ -100,28 +97,39 @@ static void ov_calc_scaler_regs (
 
     /* calculate values for horizontal accumulators */
     tmp = 0x00028000 + (h_inc << 3);
-    p1_h_accum_init = ((tmp <<  4) & 0x000f8000) | ((tmp << 12) & 0xf0000000);
+    rov0->regs.P1_H_ACCUM_INIT = ((tmp <<  4) & 0x000f8000) | ((tmp << 12) & 0xf0000000);
 
     tmp = 0x00028000 + (h_inc << 2);
-    p23_h_accum_init = ((tmp <<  4) & 0x000f8000) | ((tmp << 12) & 0x70000000);
+    rov0->regs.P23_H_ACCUM_INIT = ((tmp <<  4) & 0x000f8000) | ((tmp << 12) & 0x70000000);
 
     /* calculate values for vertical accumulators */
     tmp = 0x00018000;
-    p1_v_accum_init = ((tmp << 4) & 0x03ff8000) | 0x00000001;
+    rov0->regs.P1_V_ACCUM_INIT = ((tmp << 4) & OV0_P1_V_ACCUM_INIT_MASK) | (OV0_P1_MAX_LN_IN_PER_LN_OUT & 1);
 
     tmp = 0x00018000;
-    p23_v_accum_init = ((tmp << 4) & 0x01ff8000) | 0x00000001;
+    rov0->regs.P23_V_ACCUM_INIT = ((tmp << 4) & OV0_P23_V_ACCUM_INIT_MASK) | (OV0_P23_MAX_LN_IN_PER_LN_OUT & 1);
 
 
-    rov0->regs.V_INC   = v_inc;
-    rov0->regs.H_INC   = h_inc | ((h_inc >> 1) << 16);
+    rov0->regs.H_INC = h_inc | ((h_inc >> 1) << 16);
+
     rov0->regs.STEP_BY = step_by | (step_by << 8);
 
-    rov0->regs.P1_H_ACCUM_INIT        = p1_h_accum_init;
-    rov0->regs.P23_H_ACCUM_INIT       = p23_h_accum_init;
-    rov0->regs.P1_V_ACCUM_INIT        = p1_v_accum_init;
-    rov0->regs.P23_V_ACCUM_INIT       = p23_v_accum_init;
+    rov0->regs.V_INC = (surface->height << 20) / config->dest.h;
 
+    rov0->regs.Y_X_START = (config->dest.x) | (config->dest.y << 16);
+    rov0->regs.Y_X_END = (config->dest.x + config->dest.w) | ((config->dest.y + config->dest.h) << 16);
+
+    rov0->regs.P1_BLANK_LINES_AT_TOP  = P1_BLNK_LN_AT_TOP_M1_MASK  | ( (surface->height - 1) << 16);
+    rov0->regs.P23_BLANK_LINES_AT_TOP = P23_BLNK_LN_AT_TOP_M1_MASK | (( ((surface->height + 1) >> 1) - 1) << 16);
+
+    rov0->regs.P1_X_START_END = (surface->width - 1);
+    rov0->regs.P2_X_START_END = ( ( surface->width >> 1 ) - 1 );
+    rov0->regs.P3_X_START_END = ( ( surface->width >> 1 ) - 1 );
+
+    rov0->regs.VID_BUF_PITCH0_VALUE   = surface->front_buffer->video.pitch;
+    rov0->regs.VID_BUF_PITCH1_VALUE   = surface->front_buffer->video.pitch >> 1;
+
+    rov0->regs.DISPLAY_BASE_ADDR = radeon_in32( rdrv->mmio_base, DISP_BASE_ADDR);
 }
 
 static void ov_calc_buffer_regs(
@@ -169,20 +177,34 @@ static void ov_calc_buffer_regs(
     offset = front_buffer->video.offset;
     offset += croptop * front_buffer->video.pitch + cropleft * DFB_BYTES_PER_PIXEL( surface->format );
 
-    rov0->regs.VID_BUF0_BASE_ADRS     = offset & 0x03fffff0;
-    rov0->regs.VID_BUF1_BASE_ADRS     = (offset_u & 0x03fffff0) | 1;
-    rov0->regs.VID_BUF2_BASE_ADRS     = (offset_v & 0x03fffff0) | 1;
+    rov0->regs.VID_BUF0_BASE_ADRS     = offset & VIF_BUF0_BASE_ADRS_MASK;
+    rov0->regs.VID_BUF1_BASE_ADRS     = (offset_u & VIF_BUF1_BASE_ADRS_MASK) | VIF_BUF1_PITCH_SEL;
+    rov0->regs.VID_BUF2_BASE_ADRS     = (offset_v & VIF_BUF2_BASE_ADRS_MASK) | VIF_BUF2_PITCH_SEL;
 
-    rov0->regs.VID_BUF_PITCH0_VALUE   = front_buffer->video.pitch;
-    rov0->regs.VID_BUF_PITCH1_VALUE   = front_buffer->video.pitch >> 1;
+    rov0->regs.VID_BUF3_BASE_ADRS     = offset & VIF_BUF3_BASE_ADRS_MASK;
+    rov0->regs.VID_BUF4_BASE_ADRS     = (offset_u & VIF_BUF4_BASE_ADRS_MASK) | VIF_BUF1_PITCH_SEL;
+    rov0->regs.VID_BUF5_BASE_ADRS     = (offset_v & VIF_BUF5_BASE_ADRS_MASK) | VIF_BUF2_PITCH_SEL;
+}
 
+static void ov_set_buffer_regs(
+		RADEONDriverData       *rdrv,
+                RadeonOverlayLayerData *rov0,
+                CoreSurface            *surface )
+{
+    RADEONDeviceData *rdev = rdrv->device_data;
 
+    radeon_waitfifo(rdrv, rdev, 15);
     radeon_out32( rdrv->mmio_base, OV0_REG_LOAD_CNTL, REG_LD_CTL_LOCK);
+    radeon_waitidle(rdrv, rdev);
     while(!(radeon_in32( rdrv->mmio_base, OV0_REG_LOAD_CNTL) & REG_LD_CTL_LOCK_READBACK));
 
     radeon_out32( rdrv->mmio_base, OV0_VID_BUF0_BASE_ADRS, rov0->regs.VID_BUF0_BASE_ADRS );
     radeon_out32( rdrv->mmio_base, OV0_VID_BUF1_BASE_ADRS, rov0->regs.VID_BUF1_BASE_ADRS );
     radeon_out32( rdrv->mmio_base, OV0_VID_BUF2_BASE_ADRS, rov0->regs.VID_BUF2_BASE_ADRS );
+
+    radeon_out32( rdrv->mmio_base, OV0_VID_BUF3_BASE_ADRS, rov0->regs.VID_BUF3_BASE_ADRS );
+    radeon_out32( rdrv->mmio_base, OV0_VID_BUF4_BASE_ADRS, rov0->regs.VID_BUF4_BASE_ADRS );
+    radeon_out32( rdrv->mmio_base, OV0_VID_BUF5_BASE_ADRS, rov0->regs.VID_BUF5_BASE_ADRS );
 
     radeon_out32( rdrv->mmio_base, OV0_REG_LOAD_CNTL, 0);
 }
@@ -298,6 +320,7 @@ ov0SetRegion( CoreLayer                  *layer,
               CorePalette                *palette )
 {
     RADEONDriverData       *rdrv = (RADEONDriverData*) driver_data;
+    RADEONDeviceData       *rdev = rdrv->device_data;
     RadeonOverlayLayerData *rov0 = (RadeonOverlayLayerData*) layer_data;
 
     volatile __u8 *mmio = rdrv->mmio_base;
@@ -307,68 +330,11 @@ ov0SetRegion( CoreLayer                  *layer,
     /* save configuration */
     rov0->config = *config;
 
-    /* clear everything except the enable bit */
-    rov0->regs.SCALE_CNTL &= SCALER_ENABLE;
-
-    rov0->regs.SCALE_CNTL |= SCALER_DOUBLE_BUFFER_REGS | SCALER_BURST_PER_PLANE;
-
-    /* set pixel format */
-    switch (surface->format) {
-        case DSPF_ARGB1555:
-            rov0->regs.SCALE_CNTL = SCALER_SOURCE_15BPP;
-            break;
-
-        case DSPF_RGB16:
-            rov0->regs.SCALE_CNTL = SCALER_SOURCE_16BPP;
-            break;
-
-        case DSPF_RGB32:
-            rov0->regs.SCALE_CNTL = SCALER_SOURCE_32BPP;
-            break;
-
-	case DSPF_UYVY:
-    	    rov0->regs.SCALE_CNTL = SCALER_SOURCE_YVYU422;
-    	    break;
-
-        case DSPF_YUY2:
-    	    rov0->regs.SCALE_CNTL = SCALER_SOURCE_VYUY422;
-    	    break;
-
-        case DSPF_I420:
-    	    rov0->regs.SCALE_CNTL = SCALER_SOURCE_YUV12;
-    	    break;
-
-    	case DSPF_YV12:
-    	    rov0->regs.SCALE_CNTL = SCALER_SOURCE_YUV12;
-    	    break;
-
-        default:
-    	    D_BUG("unexpected pixelformat");
-    	    rov0->regs.SCALE_CNTL = 0;
-    	    return DFB_UNSUPPORTED;
-    }
-
-    ov_calc_scaler_regs ( rdrv, rov0, surface, config );
-    ov_calc_buffer_regs ( rdrv, rov0, surface );
-
-    rov0->regs.Y_X_START              = config->dest.x | (config->dest.y << 16);
-    rov0->regs.Y_X_END                = (config->dest.x + config->dest.w) | ((config->dest.y + config->dest.h) << 16);
-    rov0->regs.P1_BLANK_LINES_AT_TOP  = 0x00000fff | ((surface->height - 1) << 16);
-    rov0->regs.P23_BLANK_LINES_AT_TOP = 0x000007ff | ((((surface->height + 1) >> 1) - 1) << 16);
-    rov0->regs.P1_X_START_END         = surface->width - 1;
-    rov0->regs.P2_X_START_END         = (surface->width >> 1) - 1;
-    rov0->regs.P3_X_START_END         = (surface->width >> 1) - 1;
-
-
     /* set graphics and overlay blend mode */
     rov0->regs.VID_KEY_CLR_LOW  = PIXEL_RGB32( config->src_key.r, config->src_key.g, config->src_key.b );
     rov0->regs.VID_KEY_CLR_HIGH = rov0->regs.VID_KEY_CLR_LOW;
 
     switch (primary_format) {
-	case DSPF_RGB332:
-    	    rov0->regs.GRPH_KEY_CLR_LOW = PIXEL_RGB332( config->dst_key.r, config->dst_key.g, config->dst_key.b );
-            break;
-
         case DSPF_ARGB1555:
     	    rov0->regs.GRPH_KEY_CLR_LOW = PIXEL_ARGB1555( config->dst_key.a, config->dst_key.r, config->dst_key.g, config->dst_key.b );
             break;
@@ -392,12 +358,13 @@ ov0SetRegion( CoreLayer                  *layer,
 
     rov0->regs.GRPH_KEY_CLR_HIGH = rov0->regs.GRPH_KEY_CLR_LOW;
 
+
     rov0->regs.DISP_MERGE_CONTROL = 0xffff0001;
     rov0->regs.KEY_CNTL = 0;
 
     if (config->options & DLOP_SRC_COLORKEY) {
 	rov0->regs.DISP_MERGE_CONTROL = 0xffff0000;
-	rov0->regs.KEY_CNTL = VIDEO_KEY_FN_EQ;
+	rov0->regs.KEY_CNTL = VIDEO_KEY_FN_NE;
     }
 
     if (config->options & DLOP_DST_COLORKEY) {
@@ -415,21 +382,86 @@ ov0SetRegion( CoreLayer                  *layer,
 	rov0->regs.KEY_CNTL = VIDEO_KEY_FN_FALSE | GRAPHIC_KEY_FN_FALSE;
     } 
 
-    /* set registers */
-    radeon_out32( mmio, OV0_REG_LOAD_CNTL, 1 );
-    while (!(radeon_in32( mmio, OV0_REG_LOAD_CNTL ) & (1 << 3)));
 
-    radeon_out32( mmio, OV0_SCALE_CNTL, 		0x80000000 );
-    radeon_out32( mmio, OV0_EXCLUSIVE_HORZ, 		0 );
-    radeon_out32( mmio, OV0_AUTO_FLIP_CNTL, 		0 );
-    radeon_out32( mmio, OV0_FILTER_CNTL, 		0x0000000f );
-    radeon_out32( mmio, OV0_TEST, 			0 );
+    ov_calc_scaler_regs ( rdrv, rov0, surface, config );
+    ov_calc_buffer_regs ( rdrv, rov0, surface );
+
+
+    rov0->regs.SCALE_CNTL = SCALER_ENABLE |
+			    SCALER_SMART_SWITCH |
+			    SCALER_Y2R_TEMP |
+			    SCALER_PIX_EXPAND |
+			    SCALER_DOUBLE_BUFFER_REGS;
+
+    /* set pixel format */
+    switch (surface->format) {
+        case DSPF_ARGB1555:
+            rov0->regs.SCALE_CNTL |= SCALER_SOURCE_15BPP;
+            break;
+
+        case DSPF_RGB16:
+            rov0->regs.SCALE_CNTL |= SCALER_SOURCE_16BPP;
+            break;
+
+        case DSPF_RGB32:
+            rov0->regs.SCALE_CNTL |= SCALER_SOURCE_32BPP;
+            break;
+
+	case DSPF_UYVY:
+    	    rov0->regs.SCALE_CNTL |= SCALER_SOURCE_YVYU422;
+    	    break;
+
+        case DSPF_YUY2:
+    	    rov0->regs.SCALE_CNTL |= SCALER_SOURCE_VYUY422;
+    	    break;
+
+        case DSPF_I420:
+    	    rov0->regs.SCALE_CNTL |= SCALER_SOURCE_YUV12;
+    	    break;
+
+    	case DSPF_YV12:
+    	    rov0->regs.SCALE_CNTL |= SCALER_SOURCE_YUV12;
+    	    break;
+
+        default:
+    	    D_BUG("unexpected pixelformat");
+    	    rov0->regs.SCALE_CNTL = 0;
+    	    return DFB_UNSUPPORTED;
+    }
+
+
+    /* reset overlay */
+    radeon_waitidle(rdrv, rdev);
+    radeon_out32( mmio, OV0_SCALE_CNTL,	SCALER_SOFT_RESET );
+    radeon_out32( mmio, OV0_EXCLUSIVE_HORZ, 0 );
+    radeon_out32( mmio, OV0_AUTO_FLIP_CNTL, 0 );
+    radeon_out32( mmio, OV0_FILTER_CNTL, FILTER_HARDCODED_COEF );
+    radeon_out32( mmio, OV0_KEY_CNTL, GRAPHIC_KEY_FN_EQ);
+    radeon_out32( mmio, OV0_TEST, 0 );
+
+    /* set registers */
+    radeon_waitfifo(rdrv, rdev, 2);
+    radeon_out32( mmio, OV0_REG_LOAD_CNTL, REG_LD_CTL_LOCK );
+    radeon_waitidle(rdrv, rdev);
+    while (!(radeon_in32( mmio, OV0_REG_LOAD_CNTL ) & REG_LD_CTL_LOCK_READBACK));
+    radeon_waitfifo(rdrv, rdev, 15);
+
+    /* Shutdown capturing */
+    radeon_out32( mmio, FCP_CNTL, FCP_CNTL__GND);
+    radeon_out32( mmio, CAP0_TRIG_CNTL, 0);
+    radeon_out32( mmio, VID_BUFFER_CONTROL, (1<<16) | 0x01);
+    radeon_out32( mmio, DISP_TEST_DEBUG_CNTL, 0);
+
+    radeon_out32( mmio, OV0_AUTO_FLIP_CNTL,OV0_AUTO_FLIP_CNTL_SOFT_BUF_ODD);
+
+    radeon_waitfifo(rdrv, rdev, 2);
     radeon_out32( mmio, DISP_MERGE_CNTL,		rov0->regs.DISP_MERGE_CONTROL);
     radeon_out32( mmio, OV0_VID_KEY_CLR_LOW,		rov0->regs.VID_KEY_CLR_LOW);
     radeon_out32( mmio, OV0_VID_KEY_CLR_HIGH,		rov0->regs.VID_KEY_CLR_HIGH);
     radeon_out32( mmio, OV0_GRPH_KEY_CLR_LOW,		rov0->regs.GRPH_KEY_CLR_LOW);
     radeon_out32( mmio, OV0_GRPH_KEY_CLR_HIGH,		rov0->regs.GRPH_KEY_CLR_HIGH);
     radeon_out32( mmio, OV0_KEY_CNTL,	  		rov0->regs.KEY_CNTL);
+
     radeon_out32( mmio, OV0_H_INC,			rov0->regs.H_INC );
     radeon_out32( mmio, OV0_STEP_BY,			rov0->regs.STEP_BY );
     radeon_out32( mmio, OV0_Y_X_START,			rov0->regs.Y_X_START );
@@ -442,16 +474,27 @@ ov0SetRegion( CoreLayer                  *layer,
     radeon_out32( mmio, OV0_P1_X_START_END,		rov0->regs.P1_X_START_END );
     radeon_out32( mmio, OV0_P2_X_START_END,		rov0->regs.P2_X_START_END );
     radeon_out32( mmio, OV0_P3_X_START_END,		rov0->regs.P3_X_START_END );
+    radeon_out32( mmio, OV0_BASE_ADDR,			rov0->regs.DISPLAY_BASE_ADDR);
+
+    radeon_out32( mmio, OV0_VID_BUF0_BASE_ADRS,		rov0->regs.VID_BUF0_BASE_ADRS );
+    radeon_out32( mmio, OV0_VID_BUF1_BASE_ADRS,		rov0->regs.VID_BUF1_BASE_ADRS );
+    radeon_out32( mmio, OV0_VID_BUF2_BASE_ADRS,		rov0->regs.VID_BUF2_BASE_ADRS );
+
+    radeon_waitfifo(rdrv, rdev, 9);
+    radeon_out32( mmio, OV0_VID_BUF3_BASE_ADRS,		rov0->regs.VID_BUF3_BASE_ADRS );
+    radeon_out32( mmio, OV0_VID_BUF4_BASE_ADRS,		rov0->regs.VID_BUF4_BASE_ADRS );
+    radeon_out32( mmio, OV0_VID_BUF5_BASE_ADRS,		rov0->regs.VID_BUF5_BASE_ADRS );
+
     radeon_out32( mmio, OV0_P1_V_ACCUM_INIT,		rov0->regs.P1_V_ACCUM_INIT );
-    radeon_out32( mmio, OV0_P23_V_ACCUM_INIT,		rov0->regs.P23_V_ACCUM_INIT );
     radeon_out32( mmio, OV0_P1_H_ACCUM_INIT,		rov0->regs.P1_H_ACCUM_INIT );
+    radeon_out32( mmio, OV0_P23_V_ACCUM_INIT,		rov0->regs.P23_V_ACCUM_INIT );
     radeon_out32( mmio, OV0_P23_H_ACCUM_INIT,		rov0->regs.P23_H_ACCUM_INIT );
 
-    radeon_out32( mmio, OV0_REG_LOAD_CNTL, 0 );
 
     /* enable overlay */
-    rov0->regs.SCALE_CNTL |= SCALER_ENABLE;
     radeon_out32( mmio, OV0_SCALE_CNTL, rov0->regs.SCALE_CNTL );
+
+    radeon_out32( mmio, OV0_REG_LOAD_CNTL, 0 );
 
     return DFB_OK;
 }
@@ -470,6 +513,7 @@ ov0FlipRegion( CoreLayer           *layer,
     dfb_surface_flip_buffers( surface );
 
     ov_calc_buffer_regs( rdrv, rov0, surface );
+    ov_set_buffer_regs( rdrv, rov0, surface );
 
     return DFB_OK;
 }
