@@ -188,7 +188,7 @@ static void drop_window( IDirectFB_data *data );
  * Free data structure and set the pointer to NULL,
  * to indicate the dead interface.
  */
-static void
+void
 IDirectFB_Destruct( IDirectFB *thiz )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;

@@ -35,9 +35,13 @@
 /*
  * IDirectFB constructor/destructor
  */
-DFBResult IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core );
+DFBResult IDirectFB_Construct  ( IDirectFB  *thiz,
+                                 CoreDFB    *core );
 
-DFBResult IDirectFB_SetAppFocus( IDirectFB *thiz, DFBBoolean focused );
+void      IDirectFB_Destruct   ( IDirectFB  *thiz );
+
+DFBResult IDirectFB_SetAppFocus( IDirectFB  *thiz,
+                                 DFBBoolean  focused );
 
 
 extern IDirectFB *idirectfb_singleton;

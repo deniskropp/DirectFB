@@ -66,8 +66,6 @@
 
 IDirectFB *idirectfb_singleton = NULL;
 
-static CoreDFB *core_dfb = NULL;
-
 static DFBResult apply_configuration( IDirectFB *dfb );
 
 /*
@@ -152,7 +150,8 @@ DirectFBSetOption( const char *name, const char *value )
 DFBResult
 DirectFBCreate( IDirectFB **interface )
 {
-     DFBResult ret;
+     DFBResult  ret;
+     CoreDFB   *core_dfb;
 
      if (!dfb_config) {
           /*  don't use D_ERROR() here, it uses dfb_config  */
@@ -191,7 +190,6 @@ DirectFBCreate( IDirectFB **interface )
      if (ret) {
           idirectfb_singleton = NULL;
           dfb_core_destroy( core_dfb, false );
-          core_dfb = NULL;
           return ret;
      }
 
@@ -200,8 +198,6 @@ DirectFBCreate( IDirectFB **interface )
           if (ret) {
                idirectfb_singleton->Release( idirectfb_singleton );
                idirectfb_singleton = NULL;
-               dfb_core_destroy( core_dfb, false );
-               core_dfb = NULL;
                return ret;
           }
      }
@@ -296,8 +292,8 @@ DirectFBErrorFatal( const char *msg, DFBResult error )
 {
      DirectFBError( msg, error );
 
-     if (idirectfb_singleton && core_dfb)
-          dfb_core_destroy( core_dfb, true );
+     if (idirectfb_singleton)
+          IDirectFB_Destruct( idirectfb_singleton );
 
      exit( error );
 }
