@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.2 2003-11-07 04:04:27 oberritter Exp $
+ * $Id: sis315.c,v 1.3 2003-11-20 10:38:37 oberritter Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -20,10 +20,14 @@
  */
 
 #include <linux/fb.h>
+#include <linux/sisfb.h>
+
 #include <stdio.h>
+#include <sys/ioctl.h>
 
 #include <directfb.h>
 
+#include <core/fbdev/fbdev.h>
 #include <core/gfxcard.h>
 #include <core/graphics_driver.h>
 #include <core/state.h>
@@ -51,6 +55,7 @@ DFB_GRAPHICS_DRIVER(sis315);
 
 typedef struct {
 	volatile __u8 *mmio_base;
+	unsigned long auto_maximize;
 	int cmd_queue_len;
 } SiSDriverData;
 
@@ -60,6 +65,7 @@ typedef struct {
 	int v_color;
 	int v_destination;
 	int v_source;
+	int v_dst_colorkey;
 	int v_src_colorkey;
 
 	/* stored values */
@@ -101,7 +107,7 @@ static void sis_idle(SiSDriverData *drv)
 {
 	drv->cmd_queue_len = ((512 * 1024) / 4) - 64;
 
-	while ((sis_rw(drv->mmio_base, SIS315_2D_CMD_QUEUE_STATUS + 2) & 0x8000) != 0x8000);
+	while (!(sis_rl(drv->mmio_base, SIS315_2D_CMD_QUEUE_STATUS) & 0x80000000));
 }
 
 static void sis_cmd_queue_wait(SiSDriverData *drv, int count)
@@ -169,11 +175,10 @@ static void sis_validate_dst(SiSDriverData *drv, SiSDeviceData *dev,
 
 	dev->cmd_bpp = dspfToCmdBpp(dst->format);
 
-	sis_cmd_queue_wait(drv, 3);
+	sis_cmd_queue_wait(drv, 2);
 
 	sis_wl(drv->mmio_base, SIS315_2D_DST_ADDR, buf->video.offset);
-	sis_ww(drv->mmio_base, SIS315_2D_DST_PITCH, buf->video.pitch);
-	sis_ww(drv->mmio_base, SIS315_2D_DST_HEIGHT, 0xffff);
+	sis_wl(drv->mmio_base, SIS315_2D_DST_PITCH, (0xffff << 16) | buf->video.pitch);
 
 	dev->v_destination = 1;
 }
@@ -187,13 +192,26 @@ static void sis_validate_src(SiSDriverData *drv, SiSDeviceData *dev,
 	if (dev->v_source)
 		return;
 
-	sis_cmd_queue_wait(drv, 3);
+	sis_cmd_queue_wait(drv, 2);
 
 	sis_wl(drv->mmio_base, SIS315_2D_SRC_ADDR, buf->video.offset);
-	sis_ww(drv->mmio_base, SIS315_2D_SRC_PITCH, buf->video.pitch);
-	sis_ww(drv->mmio_base, SIS315_2D_AGP_BASE, dspfToSrcColor(src->format));
+	sis_wl(drv->mmio_base, SIS315_2D_SRC_PITCH, (dspfToSrcColor(src->format) << 16) | buf->video.pitch);
 
 	dev->v_source = 1;
+}
+
+static void sis_set_dst_colorkey(SiSDriverData *drv, SiSDeviceData *dev,
+				 CardState *state)
+{
+	if (dev->v_dst_colorkey)
+		return;
+
+	sis_cmd_queue_wait(drv, 2);
+
+	sis_wl(drv->mmio_base, SIS315_2D_TRANS_DEST_KEY_HIGH, state->dst_colorkey);
+	sis_wl(drv->mmio_base, SIS315_2D_TRANS_DEST_KEY_LOW, state->dst_colorkey);
+
+	dev->v_dst_colorkey = 1;
 }
 
 static void sis_set_src_colorkey(SiSDriverData *drv, SiSDeviceData *dev,
@@ -231,12 +249,10 @@ static void sis_set_blittingflags(SiSDriverData *drv, SiSDeviceData *dev,
 static void sis_set_clip(SiSDriverData *drv, SiSDeviceData *dev,
 			 DFBRegion *clip)
 {
-	sis_cmd_queue_wait(drv, 4);
+	sis_cmd_queue_wait(drv, 2);
 
-	sis_ww(drv->mmio_base, SIS315_2D_LEFT_CLIP, clip->x1);
-	sis_ww(drv->mmio_base, SIS315_2D_TOP_CLIP, clip->y1);
-	sis_ww(drv->mmio_base, SIS315_2D_RIGHT_CLIP, clip->x2);
-	sis_ww(drv->mmio_base, SIS315_2D_BOT_CLIP, clip->y2);
+	sis_wl(drv->mmio_base, SIS315_2D_LEFT_CLIP, (clip->y1 << 16) | clip->x1);
+	sis_wl(drv->mmio_base, SIS315_2D_RIGHT_CLIP, (clip->y2 << 16) | clip->x2);
 }
 
 static void sis_engine_sync(void *driver_data, void *device_data)
@@ -306,18 +322,20 @@ static void sis_set_state(void *driver_data, void *device_data,
 			dev->v_blittingflags = 0;
 	}
 
-	sis_validate_dst(drv, dev, state, funcs);
-
 	switch (accel) {
 	case DFXL_FILLRECTANGLE:
 	case DFXL_DRAWRECTANGLE:
 	case DFXL_DRAWLINE:
+		sis_validate_dst(drv, dev, state, funcs);
 		sis_validate_color(drv, dev, state);
 		state->set = SIS_SUPPORTED_DRAWING_FUNCTIONS;
 		break;
 	case DFXL_BLIT:
 	case DFXL_STRETCHBLIT:
 		sis_validate_src(drv, dev, state);
+		sis_validate_dst(drv, dev, state, funcs);
+		if (state->blittingflags & DSBLIT_DST_COLORKEY)
+			sis_set_dst_colorkey(drv, dev, state);
 		if (state->blittingflags & DSBLIT_SRC_COLORKEY)
 			sis_set_src_colorkey(drv, dev, state);
 		sis_set_blittingflags(drv, dev, state);
@@ -336,7 +354,7 @@ static void sis_set_state(void *driver_data, void *device_data,
 
 static void sis_cmd(SiSDriverData *drv, SiSDeviceData *dev, __u8 pat, __u8 src, __u8 type, __u8 rop)
 {
-	sis_cmd_queue_wait(drv, 2);
+	sis_cmd_queue_wait(drv, 1);
 
 	sis_wl(drv->mmio_base, SIS315_2D_CMD, SIS315_2D_CMD_RECT_CLIP_EN |
 					      dev->cmd_bpp | (rop << 8) |
@@ -351,12 +369,10 @@ static bool sis_fill_rectangle(void *driver_data, void *device_data,
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	SiSDeviceData *dev = (SiSDeviceData *)device_data;
 
-	sis_cmd_queue_wait(drv, 4);
+	sis_cmd_queue_wait(drv, 2);
 
-	sis_ww(drv->mmio_base, SIS315_2D_DST_Y, rect->y);
-	sis_ww(drv->mmio_base, SIS315_2D_DST_X, rect->x);
-	sis_ww(drv->mmio_base, SIS315_2D_RECT_WIDTH, rect->w);
-	sis_ww(drv->mmio_base, SIS315_2D_RECT_HEIGHT, rect->h);
+	sis_wl(drv->mmio_base, SIS315_2D_DST_Y, (rect->x << 16) | rect->y);
+	sis_wl(drv->mmio_base, SIS315_2D_RECT_WIDTH, (rect->h << 16) | rect->w);
 
 	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 			  SIS315_2D_CMD_SRC_VIDEO,
@@ -372,25 +388,20 @@ static bool sis_draw_rectangle(void *driver_data, void *device_data,
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	SiSDeviceData *dev = (SiSDeviceData *)device_data;
 
-	sis_cmd_queue_wait(drv, 11);
+	sis_cmd_queue_wait(drv, 6);
 
 	/* from top left ... */
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_X0, rect->x);
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y0, rect->y);
+	sis_wl(drv->mmio_base, SIS315_2D_LINE_X0, (rect->y << 16) | rect->x);
 	/* ... to top right ... */
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_X1, rect->x + rect->w - 1);
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y1, rect->y);
+	sis_wl(drv->mmio_base, SIS315_2D_LINE_X1, (rect->y << 16) | (rect->x + rect->w - 1));
 	/* ... to bottom right ... */
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_X(2), rect->x + rect->w - 1);
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y(2), rect->y + rect->h - 1);
+	sis_wl(drv->mmio_base, SIS315_2D_LINE_X(2), ((rect->y + rect->h - 1) << 16) | (rect->x + rect->w - 1));
 	/* ... to bottom left ... */
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_X(3), rect->x);
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y(3), rect->y + rect->h - 1);
+	sis_wl(drv->mmio_base, SIS315_2D_LINE_X(3), ((rect->y + rect->h - 1) << 16) | rect->x);
 	/* ... and back to top left */
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_X(4), rect->x);
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y(4), rect->y + 1);
+	sis_wl(drv->mmio_base, SIS315_2D_LINE_X(4), ((rect->y + 1) << 16) | rect->x);
 
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_COUNT, 4);
+	sis_wl(drv->mmio_base, SIS315_2D_LINE_COUNT, 4);
 
 	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 			  SIS315_2D_CMD_SRC_VIDEO,
@@ -406,13 +417,11 @@ static bool sis_draw_line(void *driver_data, void *device_data,
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	SiSDeviceData *dev = (SiSDeviceData *)device_data;
 
-	sis_cmd_queue_wait(drv, 5);
+	sis_cmd_queue_wait(drv, 3);
 
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_X0, line->x1);
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y0, line->y1);
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_X1, line->x2);
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_Y1, line->y2);
-	sis_ww(drv->mmio_base, SIS315_2D_LINE_COUNT, 1);
+	sis_wl(drv->mmio_base, SIS315_2D_LINE_X0, (line->y1 << 16) | line->x1);
+	sis_wl(drv->mmio_base, SIS315_2D_LINE_X1, (line->y2 << 16) | line->x2);
+	sis_wl(drv->mmio_base, SIS315_2D_LINE_COUNT, 1);
 
 	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 			  SIS315_2D_CMD_SRC_VIDEO,
@@ -428,15 +437,12 @@ static bool sis_blit(void *driver_data, void *device_data,
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	SiSDeviceData *dev = (SiSDeviceData *)device_data;
 
-	sis_cmd_queue_wait(drv, 6);
+	sis_cmd_queue_wait(drv, 3);
 
-	sis_ww(drv->mmio_base, SIS315_2D_SRC_Y, rect->y);
-	sis_ww(drv->mmio_base, SIS315_2D_SRC_X, rect->x);
-	sis_ww(drv->mmio_base, SIS315_2D_DST_Y, dy);
-	sis_ww(drv->mmio_base, SIS315_2D_DST_X, dx);
-	sis_ww(drv->mmio_base, SIS315_2D_RECT_WIDTH, rect->w);
-	sis_ww(drv->mmio_base, SIS315_2D_RECT_HEIGHT, rect->h);
-	
+	sis_wl(drv->mmio_base, SIS315_2D_SRC_Y, (rect->x << 16) | rect->y);
+	sis_wl(drv->mmio_base, SIS315_2D_DST_Y, (dx << 16) | dy);
+	sis_wl(drv->mmio_base, SIS315_2D_RECT_WIDTH, (rect->h << 16) | rect->w);
+
 	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 			  SIS315_2D_CMD_SRC_VIDEO,
 			  dev->blit_cmd,
@@ -451,16 +457,13 @@ static bool sis_stretch_blit(void *driver_data, void *device_data,
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	SiSDeviceData *dev = (SiSDeviceData *)device_data;
 
-	sis_cmd_queue_wait(drv, 8);
+	sis_cmd_queue_wait(drv, 4);
 
-	sis_ww(drv->mmio_base, SIS315_2D_SRC_Y, sr->y);
-	sis_ww(drv->mmio_base, SIS315_2D_SRC_X, sr->x);
-	sis_ww(drv->mmio_base, SIS315_2D_DST_Y, dr->y);
-	sis_ww(drv->mmio_base, SIS315_2D_DST_X, dr->x);
+	sis_wl(drv->mmio_base, SIS315_2D_SRC_Y, (sr->x << 16) | sr->y);
+	sis_wl(drv->mmio_base, SIS315_2D_DST_Y, (dr->x << 16) | dr->y);
 	//sis_ww(drv->mmio_base, SIS315_2D_DST_PITCH, dr->w);	/* FIXME: wrong register? */
 	//sis_ww(drv->mmio_base, SIS315_2D_DST_HEIGHT, dr->h);	/* FIXME: wrong register? */
-	sis_ww(drv->mmio_base, SIS315_2D_RECT_WIDTH, sr->w);
-	sis_ww(drv->mmio_base, SIS315_2D_RECT_HEIGHT, sr->h);
+	sis_wl(drv->mmio_base, SIS315_2D_RECT_WIDTH, (sr->h << 16) | sr->w);
 
 	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 			  SIS315_2D_CMD_SRC_VIDEO,
@@ -506,6 +509,31 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 				    void *device_data)
 {
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
+	FBDev *dfb_fbdev;
+	sisfb_info fbinfo;
+	unsigned long zero = 0;
+
+	dfb_fbdev = dfb_system_data();
+	if (!dfb_fbdev)
+		return DFB_IO;
+
+	if (ioctl(dfb_fbdev->fd, SISFB_GET_INFO, &fbinfo) == -1)
+		return DFB_IO;
+
+	if ((fbinfo.sisfb_version < 1) ||
+		((fbinfo.sisfb_version == 1) && (fbinfo.sisfb_revision < 6)) ||
+		((fbinfo.sisfb_version == 1) && (fbinfo.sisfb_revision == 6) && (fbinfo.sisfb_patchlevel < 23))) {
+		printf("*** Warning: sisfb version < 1.6.23 detected, please update your driver! ***\n");
+	}
+	else {
+		if (ioctl(dfb_fbdev->fd, SISFB_GET_AUTOMAXIMIZE, &drv->auto_maximize))
+			return DFB_IO;
+
+		if (drv->auto_maximize) {
+			if (ioctl(dfb_fbdev->fd, SISFB_SET_AUTOMAXIMIZE, &zero))
+				return DFB_IO;
+		}
+	}
 
 	drv->mmio_base = (volatile __u8 *)dfb_gfxcard_map_mmio(device, 0, -1);
 	if (!drv->mmio_base)
@@ -559,7 +587,15 @@ static void driver_close_driver(GraphicsDevice *device,
 				void *driver_data)
 {
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
+	FBDev *dfb_fbdev;
 
 	dfb_gfxcard_unmap_mmio(device, drv->mmio_base, -1);
+
+	if (drv->auto_maximize) {
+		dfb_fbdev = dfb_system_data();
+		if (!dfb_fbdev)
+			return;
+		ioctl(dfb_fbdev->fd, SISFB_SET_AUTOMAXIMIZE, &drv->auto_maximize);
+	}
 }
 
