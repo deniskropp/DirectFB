@@ -77,10 +77,10 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      if (data->surface)
           data->surface->Release( data->surface );
 
+     reactor_detach( data->window->reactor, IDirectFBWindow_React, data );
+     
      window_remove( data->window );
      window_destroy( data->window );
-
-     reactor_detach( data->window->reactor, IDirectFBWindow_React, data );
 
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
@@ -520,6 +520,9 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
 
      pthread_mutex_unlock( &data->events_mutex );
 
+     if (evt->type == DWET_CLOSE)
+          return RS_REMOVE;
+     
      return RS_OK;
 }
 

@@ -125,6 +125,10 @@ int main( int argc, char *argv[] )
      if (DirectFBInit( &argc, &argv ) != DFB_OK)
           return 1;
 
+     /* We want the fire window in system memory because we do
+        many reads on its content. */
+     DirectFBSetOption( "window-surface-policy", "systemonly" );
+
      if (DirectFBCreate( &dfb ) != DFB_OK)
           return 1;
 
@@ -141,7 +145,7 @@ int main( int argc, char *argv[] )
       * primary layer, SetVideoMode must be called in FULLSCREEN mode.
       * After the mode is set, switch back to NORMAL mode.
       *
-      * (df_fire only works in 16bpp mode since it writed directly
+      * (df_fire only works in 16bpp mode since it writes directly
       * to surface data)
       */
      {
@@ -151,7 +155,6 @@ int main( int argc, char *argv[] )
           dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
 
           dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer );
-          layer->SetBufferMode( layer, DLBM_BACKSYSTEM );
           layer->EnableCursor( layer, 1 );
           layer->GetSize( layer, &xres, &yres );
           dfb->SetVideoMode( dfb, xres, yres, 16 );
