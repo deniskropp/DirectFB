@@ -67,15 +67,15 @@ DEFINE_MODULE_DIRECTORY( dfb_input_modules, "inputdrivers",
 #define MAX_INPUT_DEVICES 100
 
 typedef struct {
-     FusionLink         link;
+     FusionLink               link;
 
-     ModuleEntry       *module;
+     ModuleEntry             *module;
 
-     InputDriverFuncs  *funcs;
+     const InputDriverFuncs  *funcs;
 
-     InputDriverInfo    info;
+     InputDriverInfo          info;
 
-     int                nr_devices;
+     int                      nr_devices;
 } InputDriver;
 
 typedef struct {
@@ -594,12 +594,12 @@ init_devices()
      DFB_ASSERT( inputfield != NULL );
      
      fusion_list_foreach( link, dfb_input_modules.entries ) {
-          int               n;
-          InputDriver      *driver;
-          InputDriverFuncs *funcs;
-          ModuleEntry      *module = (ModuleEntry*) link;
+          int                     n;
+          InputDriver            *driver;
+          const InputDriverFuncs *funcs;
+          ModuleEntry            *module = (ModuleEntry*) link;
 
-          funcs = (InputDriverFuncs*) dfb_module_ref( module );
+          funcs = dfb_module_ref( module );
           if (!funcs)
                continue;
           

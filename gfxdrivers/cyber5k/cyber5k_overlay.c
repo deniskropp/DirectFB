@@ -45,7 +45,8 @@ Current value is a group of experence value based on 70MHZ EDO/SG RAM.*/
 static unsigned char bFIFOPolicyNum[5] = {0x10, 0x10, 0x1C, 0x1C, 0x06};
 
 
-void cyber_videoreg_mask( unsigned char index, unsigned char value, unsigned char mask )
+static void
+cyber_videoreg_mask( unsigned char index, unsigned char value, unsigned char mask )
 {
      unsigned char tmp;
 
@@ -56,7 +57,8 @@ void cyber_videoreg_mask( unsigned char index, unsigned char value, unsigned cha
      cyber_out8( cyber_mmio, GRADATA, tmp );
 }
 
-void cyber_seqreg_mask( unsigned char index, unsigned char value, unsigned char mask )
+static void
+cyber_seqreg_mask( unsigned char index, unsigned char value, unsigned char mask )
 {
      unsigned char tmp;
 
@@ -68,7 +70,8 @@ void cyber_seqreg_mask( unsigned char index, unsigned char value, unsigned char 
      cyber_out8( cyber_mmio, SEQDATA, tmp );
 }
 
-void cyber_overlayreg_mask( unsigned char index, unsigned char value, unsigned char mask ) {
+static void
+cyber_overlayreg_mask( unsigned char index, unsigned char value, unsigned char mask ) {
      unsigned char tmp;
 
      cyber_out8( cyber_mmio, GRAINDEX, index );
@@ -153,7 +156,7 @@ void cyber_init_overlay(void)
      /*default to colorkey*/
      cyber_grphw(DISP_CTL_I, 0x04 );
 
-#if NTSCTVOUT /*if your TV output mode is NTSC*/
+#ifdef NTSCTVOUT /*if your TV output mode is NTSC*/
      cyber_seqreg_mask(0xA6, 0x20, ~0x30);
 #else  /*if your TV output mode is PAL*/
      cyber_seqreg_mask(0xA6, 0x30, ~0x30);

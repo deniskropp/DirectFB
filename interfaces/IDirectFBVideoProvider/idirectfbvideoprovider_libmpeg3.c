@@ -964,10 +964,10 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
      mpeg3_t *q;
 
-     if (!mpeg3_check_sig( (char *) ctx->filename ))
+     if (!mpeg3_check_sig( ctx->filename ))
           return DFB_UNSUPPORTED;
 
-     q = mpeg3_open( (char*) ctx->filename );
+     q = mpeg3_open( ctx->filename );
      if (!q)
           return DFB_UNSUPPORTED;
 

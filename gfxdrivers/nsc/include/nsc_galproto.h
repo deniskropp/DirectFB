@@ -1,6 +1,6 @@
 /*
  * $Workfile: nsc_galproto.h $
- * $Revision: 1.2 $
+ * $Revision: 1.3 $
  *
  * File Contents: This file contains the main functions of the Geode 
  *                frame buffer device drivers GAL function prototypes and  
@@ -1769,7 +1769,7 @@ BOOLEAN Gal_vga_mode(PGAL_VGAMODEDATA pvregs);
 BOOLEAN Gal_vga_test_pci(int *softvga);
 BOOLEAN Gal_vga_get_pci_command(unsigned char *value);
 BOOLEAN Gal_vga_seq_reset(int reset);
-BOOLEAN Gal_vga_set_graphics(void);
+BOOLEAN Gal_vga_set_graphics_bits(void);
 
 /** Panel **********************************************************/
 BOOLEAN Gal_pnl_set_params(unsigned long flags, PPnl_PanelParams pParam);
@@ -1897,7 +1897,7 @@ BOOLEAN Gal2_set_source_transparency(unsigned long color, unsigned long mask);
 BOOLEAN Gal2_set_source_stride(unsigned short stride);
 BOOLEAN Gal2_set_destination_stride(unsigned short stride);
 BOOLEAN Gal2_set_pattern_origin(int x, int y);
-BOOLEAN Gal_set_alpha_mode(int mode);
+BOOLEAN Gal2_set_alpha_mode(int mode);
 BOOLEAN Gal2_set_alpha_value(unsigned char value);
 BOOLEAN Gal2_pattern_fill(unsigned long dstoffset, unsigned short width,
                           unsigned short height);

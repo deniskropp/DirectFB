@@ -820,8 +820,9 @@ driver_init_device( GraphicsDevice     *device,
      voodoo2D->rop = 0xAAAAAA;
 
      tdfx_waitfifo( tdrv, tdev, 1 );           /* VOODOO !!!  */
-     *((__u32*)((__u8*) tdrv->mmio_base + 0x10c)) = 1 << 4 | 1 << 8 | 5 << 12 |
-                                                    1 << 18 | 5 << 24;
+
+     *((volatile __u32*)((volatile __u8*) tdrv->mmio_base + 0x10c)) =
+          1 << 4 | 1 << 8 | 5 << 12 | 1 << 18 | 5 << 24;
 
      dfb_config->pollvsync_after = 1;
 

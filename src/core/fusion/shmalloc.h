@@ -100,7 +100,7 @@ struct shmstats {
 };
 
 /* Pick up the current statistics. */
-struct shmstats shmstats (void);
+void shmstats (struct shmstats *stats);
 
 #else
      #include <stdlib.h>

@@ -54,8 +54,9 @@ Cambridge, MA 02139, USA.
 #include <stddef.h>
 #include <limits.h>
 
-#include "../reactor.h"
-#include "../lock.h"
+#include <core/fusion/reactor.h>
+#include <core/fusion/lock.h>
+#include <core/fusion/shmalloc.h>
 
 
 
@@ -79,7 +80,7 @@ void *_fusion_shmemalign (size_t __alignment, size_t __size);
 void *_fusion_shvalloc (size_t __size);
 
 /* Pick up the current statistics. */
-struct shmstats _fusion_shmstats (void);
+void _fusion_shmstats (struct shmstats *stats);
 
 
 void *__shmalloc_init (int world, bool initialize);

@@ -48,7 +48,6 @@ Cambridge, MA 02139, USA.
    The author may be reached (Email) at the address mike@ai.mit.edu,
    or (US mail) as Mike Haertel c/o Free Software Foundation.  */
 
-#include "../shmalloc.h"
 #include "shmalloc_internal.h"
 
 #include <string.h>

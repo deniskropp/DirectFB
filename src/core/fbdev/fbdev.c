@@ -615,7 +615,7 @@ static void
 system_unmap_mmio( volatile void  *addr,
                    int             length )
 {
-     if (length < 0)
+     if (length <= 0)
           length = dfb_fbdev->shared->fix.mmio_len;
 
      if (munmap( (void*) addr, length ) < 0)

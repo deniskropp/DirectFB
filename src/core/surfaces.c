@@ -977,8 +977,8 @@ ReactionResult
 _dfb_surface_palette_listener( const void *msg_data,
                                void       *ctx )
 {
-     CorePaletteNotification *notification = (CorePaletteNotification*)msg_data;
-     CoreSurface             *surface      = (CoreSurface*) ctx;
+     const CorePaletteNotification *notification = msg_data;
+     CoreSurface                   *surface      = ctx;
 
      if (notification->flags & CPNF_DESTROY)
           return RS_REMOVE;

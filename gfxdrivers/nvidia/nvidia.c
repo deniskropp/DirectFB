@@ -520,20 +520,20 @@ driver_init_driver( GraphicsDevice      *device,
      if (!nvdrv->mmio_base)
           return DFB_IO;
 
-     nvdrv->PGRAPH = (__u32*)(nvdrv->mmio_base + 0x400000);
-     nvdrv->PRAMIN = (__u32*)(nvdrv->mmio_base + 0x710000);
-     nvdrv->FIFO   = (__u32*)(nvdrv->mmio_base + 0x800000);
-     nvdrv->PMC    = (__u32*)(nvdrv->mmio_base + 0x000000);
+     nvdrv->PGRAPH = (volatile __u32*)(nvdrv->mmio_base + 0x400000);
+     nvdrv->PRAMIN = (volatile __u32*)(nvdrv->mmio_base + 0x710000);
+     nvdrv->FIFO   = (volatile __u32*)(nvdrv->mmio_base + 0x800000);
+     nvdrv->PMC    = (volatile __u32*)(nvdrv->mmio_base + 0x000000);
 
-     nvdrv->Rop         = (RivaRop        *)(nvdrv->FIFO + 0x0000/4);
-     nvdrv->Clip        = (RivaClip       *)(nvdrv->FIFO + 0x2000/4);
-     nvdrv->Pattern     = (RivaPattern    *)(nvdrv->FIFO + 0x4000/4);
-     nvdrv->Triangle    = (RivaTriangle   *)(nvdrv->FIFO + 0x6000/4);
-     nvdrv->ScaledImage = (RivaScaledImage*)(nvdrv->FIFO + 0x8000/4);
-     //nvdrv->Surface     = (RivaSurface    *)(nvdrv->FIFO + 0x8000/4);
-     nvdrv->Rectangle   = (RivaRectangle  *)(nvdrv->FIFO + 0xA000/4);
-     nvdrv->Line        = (RivaLine       *)(nvdrv->FIFO + 0xC000/4);
-     nvdrv->Blt         = (RivaScreenBlt  *)(nvdrv->FIFO + 0xE000/4);
+     nvdrv->Rop         = (volatile RivaRop        *)(nvdrv->FIFO + 0x0000/4);
+     nvdrv->Clip        = (volatile RivaClip       *)(nvdrv->FIFO + 0x2000/4);
+     nvdrv->Pattern     = (volatile RivaPattern    *)(nvdrv->FIFO + 0x4000/4);
+     nvdrv->Triangle    = (volatile RivaTriangle   *)(nvdrv->FIFO + 0x6000/4);
+     nvdrv->ScaledImage = (volatile RivaScaledImage*)(nvdrv->FIFO + 0x8000/4);
+     //nvdrv->Surface     = (volatile RivaSurface    *)(nvdrv->FIFO + 0x8000/4);
+     nvdrv->Rectangle   = (volatile RivaRectangle  *)(nvdrv->FIFO + 0xA000/4);
+     nvdrv->Line        = (volatile RivaLine       *)(nvdrv->FIFO + 0xC000/4);
+     nvdrv->Blt         = (volatile RivaScreenBlt  *)(nvdrv->FIFO + 0xE000/4);
 
 
      funcs->CheckState    = nvCheckState;

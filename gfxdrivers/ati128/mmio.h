@@ -44,7 +44,7 @@ ati128_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
 #endif
 }
 
-static inline volatile __u32
+static inline __u32
 ati128_in32(volatile __u8 *mmioaddr, __u32 reg)
 {
 #ifdef __powerpc__

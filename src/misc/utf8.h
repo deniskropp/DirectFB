@@ -36,11 +36,11 @@ extern const char dfb_utf8_skip[256];
 #define dfb_utf8_next_char(p) \
      (char *)((p) + dfb_utf8_skip[*(unsigned char *)(p)])
 
-static inline char *dfb_utf8_prev_char (const char *p)
+static inline const char *dfb_utf8_prev_char (const char *p)
 {
      while ((*(--p) & 0xc0) == 0x80)
           ;
-     return (char *)p;
+     return (const char *)p;
 }
 
 unichar dfb_utf8_get_char (const char *p);

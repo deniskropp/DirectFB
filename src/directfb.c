@@ -298,7 +298,9 @@ apply_configuration( IDirectFB *dfb )
      layer_config.flags = DLCONF_BUFFERMODE;
 
      if (dfb_config->buffer_mode == -1) {
-          CardCapabilities caps = dfb_gfxcard_capabilities();
+          CardCapabilities caps;
+           
+          dfb_gfxcard_get_capabilities( &caps );
 
           if (caps.accel & DFXL_BLIT)
                layer_config.buffermode = DLBM_BACKVIDEO;

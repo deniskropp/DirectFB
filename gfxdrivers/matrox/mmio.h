@@ -31,37 +31,28 @@
 
 #include "matrox.h"
 
-typedef __u8 uint8;
-typedef __u16 uint16;
-typedef __u32 uint32;
-
-typedef __s8 sint8;
-typedef __s16 sint16;
-typedef __s32 sint32;
-
-
 static inline void
-mga_out8(volatile uint8 *mmioaddr, uint8 value, uint32 reg)
+mga_out8(volatile __u8 *mmioaddr, __u8 value, __u32 reg)
 {
-     *((volatile uint8*)(mmioaddr+reg)) = value;
+     *((volatile __u8*)(mmioaddr+reg)) = value;
 }
 
 static inline void
-mga_out32(volatile uint8 *mmioaddr, uint32 value, uint32 reg)
+mga_out32(volatile __u8 *mmioaddr, __u32 value, __u32 reg)
 {
-     *((volatile uint32*)(mmioaddr+reg)) = value;
+     *((volatile __u32*)(mmioaddr+reg)) = value;
 }
 
-static inline volatile uint8
-mga_in8(volatile uint8 *mmioaddr, uint32 reg)
+static inline __u8
+mga_in8(volatile __u8 *mmioaddr, __u32 reg)
 {
-     return *((volatile uint8*)(mmioaddr+reg));
+     return *((volatile __u8*)(mmioaddr+reg));
 }
 
-static inline volatile uint32
-mga_in32(volatile uint8 *mmioaddr, uint32 reg)
+static inline __u32
+mga_in32(volatile __u8 *mmioaddr, __u32 reg)
 {
-     return *((volatile uint32*)(mmioaddr+reg));
+     return *((volatile __u32*)(mmioaddr+reg));
 }
 
 /* Wait for idle accelerator */
@@ -96,14 +87,14 @@ mga_waitfifo(MatroxDriverData *mdrv, MatroxDeviceData *mdev, unsigned int space)
 }
 
 static inline void
-mga_out_dac( volatile uint8 *mmioaddr, uint8 reg, uint8 val )
+mga_out_dac( volatile __u8 *mmioaddr, __u8 reg, __u8 val )
 {
      mga_out8( mmioaddr, reg, DAC_INDEX );
      mga_out8( mmioaddr, val, DAC_DATA );
 }
 
-static inline volatile uint8
-mga_in_dac( volatile uint8 *mmioaddr, uint8 reg )
+static inline __u8
+mga_in_dac( volatile __u8 *mmioaddr, __u8 reg )
 {
      mga_out8( mmioaddr, reg, DAC_INDEX );
      return mga_in8( mmioaddr, DAC_DATA );

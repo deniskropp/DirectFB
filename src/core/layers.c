@@ -2000,10 +2000,10 @@ ReactionResult
 _dfb_layer_background_image_listener( const void *msg_data,
                                       void       *ctx )
 {
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
-     DFBDisplayLayerID        layer_id     = (DFBDisplayLayerID) ctx;
-     DisplayLayer            *layer        = dfb_layer_at( layer_id );
-     CoreWindowStack         *stack        = layer->shared->stack;
+     const CoreSurfaceNotification *notification = msg_data;
+     DFBDisplayLayerID              layer_id     = (DFBDisplayLayerID) ctx;
+     DisplayLayer                  *layer        = dfb_layer_at( layer_id );
+     CoreWindowStack               *stack        = layer->shared->stack;
 
      if (!stack)
           return RS_REMOVE;
@@ -2033,12 +2033,12 @@ _dfb_layer_background_image_listener( const void *msg_data,
 ReactionResult
 _dfb_layer_surface_listener( const void *msg_data, void *ctx )
 {
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
-     DFBDisplayLayerID        layer_id     = (DFBDisplayLayerID) ctx;
-     DisplayLayer            *layer        = dfb_layer_at( layer_id );
-     CoreSurface             *surface      = notification->surface;
-     DisplayLayerFuncs       *funcs        = layer->funcs;
-     CoreSurfaceNotificationFlags flags    = notification->flags;
+     const CoreSurfaceNotification *notification = msg_data;
+     DFBDisplayLayerID              layer_id     = (DFBDisplayLayerID) ctx;
+     DisplayLayer                  *layer        = dfb_layer_at( layer_id );
+     CoreSurface                   *surface      = notification->surface;
+     DisplayLayerFuncs             *funcs        = layer->funcs;
+     CoreSurfaceNotificationFlags   flags        = notification->flags;
 
      if (notification->flags & CSNF_DESTROY)
           return RS_REMOVE;

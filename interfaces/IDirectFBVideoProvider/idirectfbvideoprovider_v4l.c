@@ -553,14 +553,9 @@ static void* GrabThread( CoreThread *thread, void *ctx )
 
 static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx )
 {
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*) msg_data;
-     IDirectFBVideoProvider_V4L_data *data = (IDirectFBVideoProvider_V4L_data*) ctx;
-
-/*     if ((notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT))) {
-          v4l_stop( data, false );
-          return RS_REMOVE;
-     }*/
-     CoreSurface *surface = notification->surface;
+     const CoreSurfaceNotification   *notification = msg_data;
+     IDirectFBVideoProvider_V4L_data *data         = ctx;
+     CoreSurface                     *surface      = notification->surface;
 
      DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
@@ -576,14 +571,9 @@ static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx
 
 static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ctx )
 {
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*) msg_data;
-     IDirectFBVideoProvider_V4L_data *data = (IDirectFBVideoProvider_V4L_data*) ctx;
-
-/*     if ((notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT))) {
-          v4l_stop( data, false );
-          return RS_REMOVE;
-     }*/
-     CoreSurface *surface = notification->surface;
+     const CoreSurfaceNotification   *notification = msg_data;
+     IDirectFBVideoProvider_V4L_data *data         = ctx;
+     CoreSurface                     *surface      = notification->surface;
 
      DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 

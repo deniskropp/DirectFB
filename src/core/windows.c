@@ -362,7 +362,7 @@ dfb_window_create( CoreWindowStack        *stack,
           }
           else {
                /* Examine the hardware capabilities. */
-               card_caps = dfb_gfxcard_capabilities();
+               dfb_gfxcard_get_capabilities( &card_caps );
 
                if (card_caps.accel & DFXL_BLIT) {
                     if ((card_caps.blitting & DSBLIT_BLEND_ALPHACHANNEL) ||
@@ -1675,11 +1675,11 @@ ReactionResult
 _dfb_window_stack_inputdevice_react( const void *msg_data,
                                      void       *ctx )
 {
-     const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
+     const DFBInputEvent *evt = msg_data;
 
      DFBWindowEvent   we;
      CoreWindow      *window = NULL;
-     CoreWindowStack *stack  = (CoreWindowStack*)ctx;
+     CoreWindowStack *stack  = ctx;
      DisplayLayer    *layer  = dfb_layer_at( stack->layer_id );
 
      /* FIXME: this is a bad check for exclusive access */

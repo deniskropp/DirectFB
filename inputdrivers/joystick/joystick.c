@@ -61,7 +61,8 @@ typedef struct {
 } JoystickData;
 
 
-static DFBInputEvent joystick_handle_event(struct js_event jse)
+static void
+joystick_handle_event( JoystickData *data, struct js_event jse )
 {
      DFBInputEvent event;
 
@@ -82,7 +83,7 @@ static DFBInputEvent joystick_handle_event(struct js_event jse)
                PERRORMSG ("unknown joystick event type\n");
      }
 
-     return event;
+     dfb_input_dispatch( data->device, &event );
 }
 
 static void*
@@ -90,21 +91,17 @@ joystickEventThread( CoreThread *thread, void *driver_data )
 {
      int              len;
      struct js_event  jse;
-     JoystickData    *data = (JoystickData*) driver_data;
+     JoystickData    *data = driver_data;
 
      while ((len = read( data->fd, &jse,
                          sizeof(struct js_event) )) > 0 || errno == EINTR)
      {
-          DFBInputEvent evt;
-
           dfb_thread_testcancel( thread );
 
           if (len != sizeof(struct js_event))
                continue;
 
-          evt = joystick_handle_event( jse );
-
-          dfb_input_dispatch( data->device, &evt );
+          joystick_handle_event( data, jse );
      }
 
      if (len <= 0 && errno != EINTR)

@@ -136,10 +136,11 @@
 
 #include <dfb_types.h>
 
-#include "core/coredefs.h"
+#include <core/coredefs.h>
 
-#include "misc/mem.h"
-#include "misc/cpu_accel.h"
+#include <misc/mem.h>
+#include <misc/memcpy.h>
+#include <misc/cpu_accel.h>
 
 #ifdef USE_PPCASM
 #include "ppcasm_memcpy.h"

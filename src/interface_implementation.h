@@ -70,11 +70,13 @@ Allocate( void **interface )                      \
      return DFB_OK;                               \
 }                                                 \
                                                   \
-__attribute__((constructor))                      \
+__attribute__((constructor)) void type##_##impl();\
+                                                  \
 void                                              \
-type##_##impl (void)                              \
+type##_##impl()                                   \
 {                                                 \
      DFBRegisterInterface( &interface_funcs );    \
 }
 
 #endif
+

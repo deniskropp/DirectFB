@@ -202,9 +202,6 @@ IDirectFBDataBuffer_Memory_PeekData( IDirectFBDataBuffer *thiz,
      if (data->pos + offset >= data->length)
           return DFB_BUFFEREMPTY;
      
-     if (data->pos + offset < 0)
-          return DFB_INVARG;
-     
      size = MIN( length, data->length - data->pos - offset );
      
      dfb_memcpy( data_buffer, data->buffer + data->pos + offset, size );

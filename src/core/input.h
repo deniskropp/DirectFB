@@ -42,7 +42,7 @@ DECLARE_MODULE_DIRECTORY( dfb_input_modules );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_INPUT_DRIVER_ABI_VERSION         5
+#define DFB_INPUT_DRIVER_ABI_VERSION         6
 
 #define DFB_INPUT_DRIVER_INFO_NAME_LENGTH   60
 #define DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH 80
@@ -56,11 +56,11 @@ typedef struct {
 typedef struct {
      InputDriverVersion version;
 
-     char               name[DFB_INPUT_DRIVER_INFO_NAME_LENGTH+1];
+     char               name[DFB_INPUT_DRIVER_INFO_NAME_LENGTH];
                                       /* Name of driver,
                                          e.g. 'Serial Mouse Driver' */
 
-     char               vendor[DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH+1];
+     char               vendor[DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH];
                                       /* Vendor (or author) of the driver,
                                          e.g. 'convergence' or 'Sven Neumann' */
 } InputDriverInfo;

@@ -48,8 +48,6 @@ Cambridge, MA 02139, USA.
    The author may be reached (Email) at the address mike@ai.mit.edu,
    or (US mail) as Mike Haertel c/o Free Software Foundation.  */
 
-#include "shmalloc_internal.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -63,8 +61,9 @@ Cambridge, MA 02139, USA.
 
 #include <misc/mem.h>
 
-#include "../fusion_internal.h"
-#include "../shmalloc.h"
+#include <core/fusion/fusion_internal.h>
+
+#include "shmalloc_internal.h"
 
 #define SH_BASE          0x20000000
 #define SH_MAX_SIZE      0x20000000
@@ -511,7 +510,7 @@ void *__shmalloc_brk (int increment)
 ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
 {
      void *new_mem;
-     int   new_size = *((int*) msg_data);
+     int   new_size = *((const int*) msg_data);
 
      new_mem = mremap (mem, size, new_size, 0);
      if (new_mem == MAP_FAILED) {

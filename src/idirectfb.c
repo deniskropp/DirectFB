@@ -238,7 +238,7 @@ IDirectFB_GetCardCapabilities( IDirectFB           *thiz,
      if (!caps)
           return DFB_INVARG;
 
-     card_caps = dfb_gfxcard_capabilities();
+     dfb_gfxcard_get_capabilities( &card_caps );
 
      caps->acceleration_mask = card_caps.accel;
      caps->blitting_flags    = card_caps.blitting;
@@ -1171,8 +1171,8 @@ static ReactionResult
 focus_listener( const void *msg_data,
                 void       *ctx )
 {
-     const DFBWindowEvent *evt  = (DFBWindowEvent*) msg_data;
-     IDirectFB_data       *data = (IDirectFB_data*) ctx;
+     const DFBWindowEvent *evt  = msg_data;
+     IDirectFB_data       *data = ctx;
 
      switch (evt->type) {
           case DWET_DESTROYED:

@@ -448,7 +448,7 @@ static bool savage3DStretchBlit( void *drv, void *dev,
      return false;
 }
 
-void savage3DAfterSetVar( void *drv, void *dev )
+static void savage3DAfterSetVar( void *drv, void *dev )
 {
 }
 

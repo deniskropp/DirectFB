@@ -48,18 +48,15 @@ Cambridge, MA 02139, USA.
    The author may be reached (Email) at the address mike@ai.mit.edu,
    or (US mail) as Mike Haertel c/o Free Software Foundation.  */
 
-#include "../shmalloc.h"
 #include "shmalloc_internal.h"
 
-struct shmstats
-_fusion_shmstats () {
-     struct shmstats result;
-
-     result.bytes_total = (char *) __shmalloc_brk (0) - _sheap->heapbase;
-     result.chunks_used = _sheap->chunks_used;
-     result.bytes_used  = _sheap->bytes_used;
-     result.chunks_free = _sheap->chunks_free;
-     result.bytes_free  = _sheap->bytes_free;
-
-     return result;
+void
+_fusion_shmstats (struct shmstats *stats)
+{
+     stats->bytes_total = (char *) __shmalloc_brk (0) - _sheap->heapbase;
+     stats->chunks_used = _sheap->chunks_used;
+     stats->bytes_used  = _sheap->bytes_used;
+     stats->chunks_free = _sheap->chunks_free;
+     stats->bytes_free  = _sheap->bytes_free;
 }
+

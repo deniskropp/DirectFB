@@ -254,7 +254,7 @@ IDirectFBInputDevice_GetButtonState( IDirectFBInputDevice           *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     if (!state || button < DIBI_FIRST || button > DIBI_LAST)
+     if (!state || (int)button < DIBI_FIRST || button > DIBI_LAST)
           return DFB_INVARG;
 
      *state = (data->buttonmask & (1 << button)) ? DIBS_DOWN : DIBS_UP;
@@ -269,7 +269,7 @@ IDirectFBInputDevice_GetAxis( IDirectFBInputDevice         *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     if (!pos || axis < DIAI_FIRST || axis > DIAI_LAST)
+     if (!pos || (int)axis < DIAI_FIRST || axis > DIAI_LAST)
           return DFB_INVARG;
 
      *pos = data->axis[axis];
@@ -335,8 +335,8 @@ static ReactionResult
 IDirectFBInputDevice_React( const void *msg_data,
                             void       *ctx )
 {
-     const DFBInputEvent       *evt  = (DFBInputEvent*)msg_data;
-     IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)ctx;
+     const DFBInputEvent       *evt  = msg_data;
+     IDirectFBInputDevice_data *data = ctx;
      unsigned int               index;
 
      if (evt->flags & DIEF_MODIFIERS)

@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/src
 
-SUBDIRS = core display media windows input misc gfx
+SUBDIRS = core display input gfx media misc windows
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\

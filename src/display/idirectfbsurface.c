@@ -1596,10 +1596,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 static ReactionResult
 IDirectFBSurface_listener( const void *msg_data, void *ctx )
 {
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
-     IDirectFBSurface        *thiz         = (IDirectFBSurface*)ctx;
-     IDirectFBSurface_data   *data         = (IDirectFBSurface_data*)thiz->priv;
-     CoreSurface             *surface      = data->surface;
+     const CoreSurfaceNotification *notification = msg_data;
+     IDirectFBSurface              *thiz         = ctx;
+     IDirectFBSurface_data         *data         = thiz->priv;
+     CoreSurface                   *surface      = data->surface;
 
      if (notification->flags & CSNF_DESTROY) {
           if (data->surface) {

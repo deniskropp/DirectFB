@@ -861,7 +861,7 @@ typedef struct {
                                                         entries. */
 } DFBPaletteDescription;
 
-#define DFB_DISPLAY_LAYER_DESC_NAME_LENGTH   30
+#define DFB_DISPLAY_LAYER_DESC_NAME_LENGTH   32
 
 /*
  * Description of the display layer capabilities.
@@ -875,7 +875,7 @@ typedef struct {
      char name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];  /* Display layer name. */
 } DFBDisplayLayerDescription;
 
-#define DFB_INPUT_DEVICE_DESC_NAME_LENGTH    30
+#define DFB_INPUT_DEVICE_DESC_NAME_LENGTH    32
 #define DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH  40
 
 /*

@@ -68,9 +68,10 @@ static GraphicsDriverFuncs driver_funcs = {
 };
 
 #define DFB_GRAPHICS_DRIVER(shortname)                      \
-__attribute__((constructor))                                \
+__attribute__((constructor)) void directfb_##shortname();   \
+                                                            \
 void                                                        \
-directfb_##shortname (void)                                 \
+directfb_##shortname()                                      \
 {                                                           \
      dfb_modules_register( &dfb_graphics_drivers,           \
                            DFB_GRAPHICS_DRIVER_ABI_VERSION, \

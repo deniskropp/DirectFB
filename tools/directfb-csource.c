@@ -74,7 +74,7 @@ static void       print_usage (const char            *prg_name);
 int main (int         argc,
           const char *argv[])
 {
-     DFBSurfaceDescription  desc    = { 0 };
+     DFBSurfaceDescription  desc    = { flags: 0 };
      DFBSurfacePixelFormat  format  = DSPF_UNKNOWN;
      DFBColor    palette[256];
      int         palette_size = 0;

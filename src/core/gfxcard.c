@@ -1334,12 +1334,12 @@ dfb_gfxcard_palette_pool()
      return card->shared->palette_pool;
 }
 
-CardCapabilities
-dfb_gfxcard_capabilities()
+void
+dfb_gfxcard_get_capabilities( CardCapabilities *caps )
 {
      DFB_ASSERT( card != NULL );
      
-     return card->caps;
+     *caps = card->caps;
 }
 
 int

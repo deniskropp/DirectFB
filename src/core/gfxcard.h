@@ -67,7 +67,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          15
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          16
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     60
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   80
@@ -86,18 +86,18 @@ typedef struct {
 typedef struct {
      GraphicsDriverVersion version;
 
-     char               name[DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH+1];
+     char               name[DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH];
                                 /* Name of driver, e.g. 'Matrox Driver' */
 
-     char               vendor[DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH+1];
+     char               vendor[DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH];
                                 /* Vendor (or author) of the driver,
                                    e.g. 'convergence' or 'Denis Oliver Kropp' */
 
-     char               url[DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH+1];
+     char               url[DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH];
                                 /* URL for driver updates,
                                    e.g. 'http://www.directfb.org/' */
 
-     char               license[DFB_GRAPHICS_DRIVER_INFO_LICENSE_LENGTH+1];
+     char               license[DFB_GRAPHICS_DRIVER_INFO_LICENSE_LENGTH];
                                 /* License, e.g. 'LGPL' or 'proprietary' */
 
      unsigned int       driver_data_size;
@@ -105,10 +105,10 @@ typedef struct {
 } GraphicsDriverInfo;
 
 typedef struct {
-     char               name[DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH+1];
+     char               name[DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH];
                                 /* Device name, e.g. 'G400' */
 
-     char               vendor[DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH+1];
+     char               vendor[DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH];
                                 /* Vendor of the device,
                                    e.g. 'Matrox' or 'ATI' */
 
@@ -263,7 +263,7 @@ DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 SurfaceManager   *dfb_gfxcard_surface_manager();
 FusionObjectPool *dfb_gfxcard_surface_pool();
 FusionObjectPool *dfb_gfxcard_palette_pool();
-CardCapabilities  dfb_gfxcard_capabilities();
+void              dfb_gfxcard_get_capabilities( CardCapabilities *caps );
 
 int            dfb_gfxcard_reserve_memory( GraphicsDevice *device,
                                            unsigned int    size );

@@ -453,9 +453,9 @@ static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
 static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
                                                        void       *ctx )
 {
-     const DFBInputEvent       *evt = (DFBInputEvent*)msg_data;
+     const DFBInputEvent       *evt  = msg_data;
+     IDirectFBEventBuffer_data *data = ctx;
      IDirectFBEventBuffer_item *item;
-     IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)ctx;
 
      item = (IDirectFBEventBuffer_item*)
           DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
@@ -471,9 +471,9 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
 static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
                                                         void       *ctx )
 {
-     const DFBWindowEvent      *evt = (DFBWindowEvent*)msg_data;
+     const DFBWindowEvent      *evt  = msg_data;
+     IDirectFBEventBuffer_data *data = ctx;
      IDirectFBEventBuffer_item *item;
-     IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)ctx;
 
      item = (IDirectFBEventBuffer_item*)
           DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );

@@ -923,8 +923,8 @@ static ReactionResult
 IDirectFBWindow_React( const void *msg_data,
                        void       *ctx )
 {
-     const DFBWindowEvent       *evt = (DFBWindowEvent*)msg_data;
-     IDirectFBWindow_data       *data = (IDirectFBWindow_data*)ctx;
+     const DFBWindowEvent *evt  = msg_data;
+     IDirectFBWindow_data *data = ctx;
 
      HEAVYDEBUGMSG("IDirectFBWindow_React\n");
 

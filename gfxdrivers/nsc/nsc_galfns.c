@@ -1,6 +1,6 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.7 $
+ * $Revision: 1.8 $
  * $Author: dok $
  *
  * File Contents: This file contains the main functions of the Geode 
@@ -3966,7 +3966,7 @@ Gal2_set_alpha_value(unsigned char value)
 }
 
 /*--------------------------------------------------------------------------
- * Gal_gfx2_pattern_fill
+ * Gal2_pattern_fill
  *
  *  Description: This function used to fill the pattern of GX2. 
  *				 It allows the arbitary destination stride. The rendering 
@@ -3979,8 +3979,8 @@ Gal2_set_alpha_value(unsigned char value)
  *       return: '1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
 BOOLEAN
-Gal_gfx2_pattern_fill(unsigned long dstoffset, unsigned short width,
-		      unsigned short height)
+Gal2_pattern_fill(unsigned long dstoffset, unsigned short width,
+                  unsigned short height)
 {
    GAL_GFX2PATTERNFILL sPatternfill;
 

@@ -35,7 +35,7 @@ typedef struct {
      short                 contrast;
      short                 saturation;
      short                 hue;
-     __u8                  buffer;
+     int                   buffer;
      __u32                 fbstart;
 
      struct {

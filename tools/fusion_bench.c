@@ -325,7 +325,7 @@ bench_spinlock_threaded()
           t1 = dfb_get_millis();
 
           for (t=0; t<i; t++)
-               pthread_create( &threads[t], NULL, spin_lock_unlock_loop, (void*)&lock );
+               pthread_create( &threads[t], NULL, spin_lock_unlock_loop, &lock );
 
           for (t=0; t<i; t++)
                pthread_join( threads[t], NULL );

@@ -151,8 +151,8 @@ static ReactionResult
 destination_listener( const void *msg_data,
                       void       *ctx )
 {
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
-     CardState               *state        = (CardState*)ctx;
+     const CoreSurfaceNotification *notification = msg_data;
+     CardState                     *state        = ctx;
 
      DFB_ASSERT( state->initialized );
 
@@ -199,8 +199,8 @@ static ReactionResult
 source_listener( const void *msg_data,
                  void       *ctx )
 {
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
-     CardState               *state        = (CardState*)ctx;
+     const CoreSurfaceNotification *notification = msg_data;
+     CardState                     *state        = ctx;
 
      DFB_ASSERT( state->initialized );
 

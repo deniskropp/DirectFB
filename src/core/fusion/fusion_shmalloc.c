@@ -133,19 +133,15 @@ void *shvalloc (size_t __size)
 }
 
 /* Pick up the current statistics. */
-struct shmstats shmstats (void)
+void shmstats (struct shmstats *stats)
 {
-     struct shmstats ret;
-
      DFB_ASSERT( _sheap != NULL );
 
      fusion_skirmish_prevail( &_sheap->lock );
      
-     ret = _fusion_shmstats();
+     _fusion_shmstats( stats );
      
      fusion_skirmish_dismiss( &_sheap->lock );
-
-     return ret;
 }
 
 char *shstrdup (const char* string)

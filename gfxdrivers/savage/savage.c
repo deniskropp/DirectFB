@@ -144,7 +144,7 @@ driver_init_driver( GraphicsDevice      *device,
      if (!sdrv->mmio_base)
           return DFB_IO;
 
-     sdrv->bci_base = (__u32*)(sdrv->mmio_base + BCI_BUFFER_OFFSET);
+     sdrv->bci_base = (volatile __u32*)(sdrv->mmio_base + BCI_BUFFER_OFFSET);
      
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_SAVAGE3D:       /* Savage3D series */

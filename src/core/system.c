@@ -54,12 +54,12 @@ typedef struct {
 
 DFB_CORE_PART( system, 0, sizeof(CoreSystemField) );
 
-static CoreSystemField *system_field  = NULL;
+static CoreSystemField       *system_field  = NULL;
 
-static ModuleEntry     *system_module = NULL;
-static CoreSystemFuncs *system_funcs  = NULL;
-static CoreSystemInfo   system_info;
-static void            *system_data   = NULL;
+static ModuleEntry           *system_module = NULL;
+static const CoreSystemFuncs *system_funcs  = NULL;
+static CoreSystemInfo         system_info;
+static void                  *system_data   = NULL;
 
 
 DFBResult
@@ -70,10 +70,10 @@ dfb_system_lookup()
      dfb_modules_explore_directory( &dfb_core_systems );
      
      fusion_list_foreach( l, dfb_core_systems.entries ) {
-          ModuleEntry     *module = (ModuleEntry*) l;
-          CoreSystemFuncs *funcs;
+          ModuleEntry           *module = (ModuleEntry*) l;
+          const CoreSystemFuncs *funcs;
 
-          funcs = (CoreSystemFuncs*) dfb_module_ref( module );
+          funcs = dfb_module_ref( module );
           if (!funcs)
                continue;
 

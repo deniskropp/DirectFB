@@ -24,12 +24,15 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define U8_TO_F0915(x)          (((uint32) ((x+1) << 15)) & 0x00FFFFFF)
+#ifndef __MATROX__REGS_H__
+#define __MATROX__REGS_H__
 
-#define RS16(val)               ( (uint16)((sint16)(val)))
-#define RS18(val)               (((uint32)((sint32)(val)))&0x003ffff)
-#define RS24(val)               (((uint32)((sint32)(val)))&0x0ffffff)
-#define RS27(val)               (((uint32)((sint32)(val)))&0x7ffffff)
+#define U8_TO_F0915(x)          (((__u32) ((x+1) << 15)) & 0x00FFFFFF)
+
+#define RS16(val)               ( (__u16)((__s16)(val)))
+#define RS18(val)               (((__u32)((__s32)(val)))&0x003ffff)
+#define RS24(val)               (((__u32)((__s32)(val)))&0x0ffffff)
+#define RS27(val)               (((__u32)((__s32)(val)))&0x7ffffff)
 
 #define DWGSYNC          0x2C4C
 #define SYNC_DMA_BUSY    0x8325340              /* just a random number */
@@ -371,3 +374,6 @@
 #define XDISPCTRL      0x8A
 #define XSYNCCTRL      0x8B
 #define XPWRCTRL       0xA0
+
+#endif
+

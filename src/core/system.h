@@ -74,7 +74,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_systems );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_SYSTEM_ABI_VERSION           4
+#define DFB_CORE_SYSTEM_ABI_VERSION           5
 
 #define DFB_CORE_SYSTEM_INFO_NAME_LENGTH     60
 #define DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH   80
@@ -92,18 +92,18 @@ typedef struct {
 
      CoreSystemType     type;
      
-     char               name[DFB_CORE_SYSTEM_INFO_NAME_LENGTH+1];
+     char               name[DFB_CORE_SYSTEM_INFO_NAME_LENGTH];
                                 /* Name of system, e.g. 'FBDev' */
 
-     char               vendor[DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH+1];
+     char               vendor[DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH];
                                 /* Vendor (or author) of the driver,
                                    e.g. 'convergence' or 'Denis Oliver Kropp' */
 
-     char               url[DFB_CORE_SYSTEM_INFO_URL_LENGTH+1];
+     char               url[DFB_CORE_SYSTEM_INFO_URL_LENGTH];
                                 /* URL for driver updates,
                                    e.g. 'http://www.directfb.org/' */
 
-     char               license[DFB_CORE_SYSTEM_INFO_LICENSE_LENGTH+1];
+     char               license[DFB_CORE_SYSTEM_INFO_LICENSE_LENGTH];
                                 /* License, e.g. 'LGPL' or 'proprietary' */
 } CoreSystemInfo;
 

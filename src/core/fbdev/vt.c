@@ -431,11 +431,8 @@ vt_init_switching()
      }
 
      if (dfb_config->vt_switch) {
-          if (ioctl( dfb_vt->fd0, TIOCNOTTY, 0 ) < 0);
-/*               PERRORMSG( "DirectFB/fbdev/vt: TIOCNOTTY failed!\n" );*/
-
-          if (ioctl( dfb_vt->fd, TIOCSCTTY, 0 ) < 0);
-/*               PERRORMSG( "DirectFB/fbdev/vt: TIOCSCTTY failed!\n" );*/
+          ioctl( dfb_vt->fd0, TIOCNOTTY, 0 );
+          ioctl( dfb_vt->fd, TIOCSCTTY, 0 );
      }
 
      if (dfb_config->vt_switching) {

@@ -48,7 +48,6 @@ Cambridge, MA 02139, USA.
 
 #include <string.h>
 
-#include "../shmalloc.h"
 #include "shmalloc_internal.h"
 
 /* Allocate an array of NMEMB elements each SIZE bytes long.

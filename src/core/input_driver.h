@@ -58,13 +58,14 @@ static const InputDriverFuncs driver_funcs = {
      CloseDevice:        driver_close_device
 };
 
-#define DFB_INPUT_DRIVER(shortname)                                          \
-__attribute__((constructor))                                                 \
-void                                                                         \
-directfb_##shortname (void)                                                  \
-{                                                                            \
-     dfb_modules_register( &dfb_input_modules, DFB_INPUT_DRIVER_ABI_VERSION, \
-                           #shortname, &driver_funcs );                      \
+#define DFB_INPUT_DRIVER(shortname)                                            \
+__attribute__((constructor)) void directfb_##shortname();                      \
+                                                                               \
+void                                                                           \
+directfb_##shortname()                                                         \
+{                                                                              \
+     dfb_modules_register( &dfb_input_modules, DFB_INPUT_DRIVER_ABI_VERSION,   \
+                           #shortname, &driver_funcs );                        \
 }
 
 #endif

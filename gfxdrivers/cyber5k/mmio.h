@@ -34,37 +34,37 @@
 static inline void
 cyber_out8(volatile __u8 *mmioaddr, __u32 reg, __u8 value)
 {
-     *((__u8*)(mmioaddr+reg)) = value;
+     *((volatile __u8*)(mmioaddr+reg)) = value;
 }
 
 static inline void
 cyber_out16(volatile __u8 *mmioaddr, __u32 reg, __u16 value)
 {
-     *((__u16*)(mmioaddr+reg)) = value;
+     *((volatile __u16*)(mmioaddr+reg)) = value;
 }
 
 static inline void
 cyber_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
 {
-     *((__u32*)(mmioaddr+reg)) = value;
+     *((volatile __u32*)(mmioaddr+reg)) = value;
 }
 
-static inline volatile __u8
+static inline __u8
 cyber_in8(volatile __u8 *mmioaddr, __u32 reg)
 {
-     return *((__u8*)(mmioaddr+reg));
+     return *((volatile __u8*)(mmioaddr+reg));
 }
 
-static inline volatile __u16
+static inline __u16
 cyber_in16(volatile __u8 *mmioaddr, __u32 reg)
 {
-     return *((__u16*)(mmioaddr+reg));
+     return *((volatile __u16*)(mmioaddr+reg));
 }
 
-static inline volatile __u32
+static inline __u32
 cyber_in32(volatile __u8 *mmioaddr, __u32 reg)
 {
-     return *((__u32*)(mmioaddr+reg));
+     return *((volatile __u32*)(mmioaddr+reg));
 }
 
 /* Wait for idle accelerator */

@@ -586,7 +586,7 @@ static int LWZReadByte( IDirectFBImageProvider_GIF_data *data, int flag, int inp
 
 static int SortColors (const void *a, const void *b)
 {
-     return (*((__u8 *) a) - *((__u8 *) b));
+     return (*((const __u8 *) a) - *((const __u8 *) b));
 }
 
 /*  looks for a color that is not in the colormap and ideally not
