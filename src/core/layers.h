@@ -36,14 +36,8 @@
 #include <directfb.h>
 #include <core/coretypes.h>
 
-#define DFB_DISPLAY_LAYER_INFO_NAME_LENGTH   30
-
 typedef struct {
      DFBDisplayLayerDescription  desc;  /* description of the layer's caps */
-
-     char                        name[DFB_DISPLAY_LAYER_INFO_NAME_LENGTH];
-                                        /* description set by driver */
-
 } DisplayLayerInfo;
 
 typedef struct {
@@ -288,8 +282,6 @@ CoreSurface       *dfb_layer_surface( const DisplayLayer *layer );
 CardState         *dfb_layer_state( DisplayLayer *layer );
 void               dfb_layer_description( const DisplayLayer         *layer,
                                           DFBDisplayLayerDescription *desc );
-void               dfb_layer_name( const DisplayLayer  *layer,
-                                   char               **name );
 DFBDisplayLayerID  dfb_layer_id( const DisplayLayer *layer );
 
 DFBResult          dfb_layer_flip_buffers ( DisplayLayer        *layer,

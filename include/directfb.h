@@ -857,7 +857,11 @@ typedef struct {
 /*
  * Description of the display layer capabilities.
  */
+#define DFB_DISPLAY_LAYER_DESC_NAME_LENGTH   30
 typedef struct {
+     char                               name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];
+                                                     /* Display layer name. */
+
      DFBDisplayLayerTypeFlags           type;        /* Classification of the
                                                         display layer. */
      DFBDisplayLayerCapabilities        caps;        /* Capability flags of
@@ -1395,14 +1399,6 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      DFBResult (*GetID) (
           IDirectFBDisplayLayer              *thiz,
           DFBDisplayLayerID                  *layer_id
-     );
-
-     /*
-      * Get a copy of the layer name. Caller should free it after use.
-      */
-     DFBResult (*GetName) (
-          IDirectFBDisplayLayer              *thiz,
-          char                              **layer_name
      );
 
      /*

@@ -557,8 +557,8 @@ osdInitLayer( GraphicsDevice             *device,
           return ret;
 
      /* set name */
-     snprintf(layer_info->name,
-              DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "CyberPro OSD");
+     snprintf(layer_info->desc.name,
+              DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "CyberPro OSD");
 
      /* add support for options */
      default_config->flags   |= DLCONF_OPTIONS;

@@ -129,8 +129,8 @@ crtc2InitLayer( GraphicsDevice             *device,
      layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
-     snprintf( layer_info->name,
-               DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "Matrox CRTC2" );
+     snprintf( layer_info->desc.name,
+               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Matrox CRTC2" );
 
      /* fill out the default configuration */
      default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |

@@ -111,24 +111,6 @@ IDirectFBDisplayLayer_GetID( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
-IDirectFBDisplayLayer_GetName( IDirectFBDisplayLayer  *thiz,
-                               char                  **name )
-{
-     char *layer_name;
-
-     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-     if (!name)
-          return DFB_INVARG;
-
-     dfb_layer_name( data->layer, &layer_name );
-
-     *name = strdup( layer_name );
-
-     return DFB_OK;
-}
-
-static DFBResult
 IDirectFBDisplayLayer_GetDescription( IDirectFBDisplayLayer      *thiz,
                                       DFBDisplayLayerDescription *desc )
 {
@@ -604,7 +586,6 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->AddRef = IDirectFBDisplayLayer_AddRef;
      thiz->Release = IDirectFBDisplayLayer_Release;
      thiz->GetID = IDirectFBDisplayLayer_GetID;
-     thiz->GetName = IDirectFBDisplayLayer_GetName;
      thiz->GetDescription = IDirectFBDisplayLayer_GetDescription;
      thiz->GetSurface = IDirectFBDisplayLayer_GetSurface;
      thiz->SetCooperativeLevel = IDirectFBDisplayLayer_SetCooperativeLevel;

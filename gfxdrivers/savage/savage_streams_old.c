@@ -193,7 +193,7 @@ savageSecondaryInitLayer( GraphicsDevice             *device,
      layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
      
      /* set name */
-     snprintf(layer_info->name, DFB_DISPLAY_LAYER_INFO_NAME_LENGTH,
+     snprintf(layer_info->desc.name, DFB_DISPLAY_LAYER_DESC_NAME_LENGTH,
               "Savage Secondary Stream");
      
      /* fill out the default configuration */
@@ -789,7 +789,7 @@ savagePrimaryInitLayer( GraphicsDevice             *device,
           return ret;
 
      /* set name */
-     snprintf(layer_info->name, DFB_DISPLAY_LAYER_INFO_NAME_LENGTH,
+     snprintf(layer_info->desc.name, DFB_DISPLAY_LAYER_DESC_NAME_LENGTH,
               "Savage Primary Stream");
 
      /* add support for options */

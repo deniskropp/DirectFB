@@ -74,8 +74,8 @@ udlInitLayer( GraphicsDevice             *device,
                              DLTF_BACKGROUND;
 
      /* set name */
-     snprintf( layer_info->name,
-               DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "CyberPro Underlay" );
+     snprintf( layer_info->desc.name,
+               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "CyberPro Underlay" );
 
      /* fill out the default configuration */
      default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |

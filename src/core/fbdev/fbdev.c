@@ -771,8 +771,8 @@ primaryInitLayer         ( GraphicsDevice             *device,
      layer_info->desc.type = DLTF_GRAPHICS;
 
      /* set name */
-     snprintf( layer_info->name,
-               DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "Primary Layer" );
+     snprintf( layer_info->desc.name,
+               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Primary Layer" );
 
      /* fill out default color adjustment */
      default_adj->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_SATURATION;
