@@ -247,12 +247,13 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
     UC_FIFO_ADD_3D(fifo, HC_SubA_HFBBMSKL, mask3d & 0xffffff);
     UC_FIFO_ADD_3D(fifo, HC_SubA_HROP, rop3d | ((mask3d >> 24) & 0xff));
-//    UC_FIFO_ADD_3D(fifo, HC_SubA_HPixGC, 0);  // Don't know what this does...
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HPixGC, 0);  // Don't know what this does...
                                               // ...DRI code always clears it.
     UC_FIFO_PAD_EVEN(fifo);
 #endif
 
     UC_FIFO_CHECK(fifo);
+    UC_FIFO_FLUSH(fifo);
 
   state->modified = 0;
 }
