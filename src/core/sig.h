@@ -30,4 +30,9 @@
  */
 void sig_install_handlers();
 
+/*
+ * removes all installed handlers
+ */
+void sig_remove_handlers();
+
 #endif
