@@ -86,3 +86,29 @@ mode "1600x1200 60Hz 32bit"
     geometry 1600 1200 1600 1200 32
     timings 6411 256 32 52 10 160 8
 endmode
+
+
+mode "400x300 100Hz 16bit"
+    geometry 400 300 400 300 16
+    timings 31747 40 16 16 1 40 3
+    double true
+endmode
+
+mode "400x300 100Hz 32bit"
+    geometry 400 300 400 300 32
+    timings 31747 40 16 16 1 40 3
+    double true
+endmode
+
+
+mode "320x240 70Hz 16bit"
+    geometry 320 240 320 240 16
+    timings 82440 30 16 20 4 48 1
+    double true
+endmode
+
+mode "320x240 70Hz 32bit"
+    geometry 320 240 320 240 32
+    timings 82440 30 16 20 4 48 1
+    double true
+endmode
