@@ -390,7 +390,8 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
      event->clazz     = DFEC_INPUT;
      event->device_id = device->shared->id;
 
-     reactor_dispatch( device->shared->reactor, event, true );
+     if (core_input_filter( device, event ))
+          reactor_dispatch( device->shared->reactor, event, true );
 }
 
 DFBInputDeviceID

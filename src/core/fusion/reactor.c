@@ -381,9 +381,9 @@ void *_reactor_receive (void *arg)
                     continue;
 
                if (errno == EIDRM)
-                    FDEBUG("reactor vanished");
+                    FDEBUG("reactor vanished\n");
                else
-                    FPERROR("msgrcv failed");
+                    FPERROR("msgrcv failed\n");
                
                return NULL;
           }
