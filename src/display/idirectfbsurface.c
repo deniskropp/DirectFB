@@ -479,12 +479,9 @@ DFBResult IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
      data->src_key.b = b;
      data->src_key.value = color_to_pixel( data->surface->format, r, g, b );
      
-/*
-     if (data->state.src_colorkey != data->src_key.value) {
-          data->state.src_colorkey = data->src_key.value;
-          data->state.modified |= SMF_SRC_COLORKEY;
-     }
-*/
+     /* The new key won't be applied to this surface's state.
+        The key will be taken by the destination surface to apply it
+        to its state when source color keying is used. */
 
      return DFB_OK;
 }
