@@ -2,8 +2,9 @@
 #undef HAVE_BOOL
 
 #undef VERSION
-
 #undef PACKAGE
+
+#undef DIRECTFB_VERSION
 
 /* Define if you need the GNU extensions to compile */
 #undef _GNU_SOURCE

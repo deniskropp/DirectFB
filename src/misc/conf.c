@@ -45,79 +45,82 @@
 DFBConfig *dfb_config = NULL;
 
 static const char *config_usage =
+    "DirectFB version " DIRECTFB_VERSION "\n\n"
+    " --dfb-help                      "
+    "Output DirectFB usage information and exit\n"
+    " --dfb:<option>[,<option>]...    "
+    "Pass options to DirectFB (see below)\n"
     "\n"
-    "DirectFB options:\n"
-    " --fbdev=<device>                  "
+    "DirectFB options:\n\n"
+    "  fbdev=<device>                 "
     "Open <device> instead of /dev/fb0\n"
-    " --quiet                           "
+    "  quiet                          "
     "No text output except debugging\n"
-    " --no-banner                       "
+    "  no-banner                      "
     "Disable DirectFB Banner\n"
-    " --[no-]debug                      "
+    "  [no-]debug                     "
     "Disable/enable debug output\n"
-    " --force-windowed                  "
+    "  force-windowed                 "
     "Primary surface always is a window\n"
-    " --[no-]hardware                   "
+    "  [no-]hardware                  "
     "Hardware acceleration\n"
-    " --[no-]sync                       "
+    "  [no-]sync                      "
     "Do `sync()' (default=no)\n"
 #ifdef USE_MMX
-    " --no-mmx                          "
+    "  no-mmx                         "
     "Disable mmx support\n"
 #endif
-    " --argb-font                       "
+    "  argb-font                      "
     "Load glyphs into ARGB surfaces\n"
-    " --no-sighandler                   "
+    "  no-sighandler                  "
     "Disable signal handler\n"
-    " --no-deinit-check                 "
+    "  no-deinit-check                "
     "Disable deinit check at exit\n"
-    " --no-vt-switch                    "
+    "  no-vt-switch                   "
     "Don't allocate/switch to a new VT\n"
-    " --[no-]vt-switching               "
+    "  [no-]vt-switching              "
     "Allow Ctrl+Alt+<F?> (EXPERIMENTAL)\n"
-    " --graphics-vt                     "
+    "  graphics-vt                    "
     "Put terminal into graphics mode\n"
-    " --[no-]motion-compression         "
+    "  [no-]motion-compression        "
     "Mouse motion event compression\n"
-    " --mouse-protocol=<protocol>       "
+    "  mouse-protocol=<protocol>      "
     "Mouse protocol (serial mouse)\n"
-    " --lefty                           "
+    "  lefty                          "
     "Swap left and right mouse buttons\n"
-    " --[no-]cursor                     "
+    "  [no-]cursor                    "
     "Show cursor on start up (default)\n"
-    " --bg-none                         "
+    "  bg-none                        "
     "Disable background clear\n"
-    " --bg-color=AARRGGBB               "
+    "  bg-color=AARRGGBB              "
     "Use background color (hex)\n"
-    " --bg-image=<filename>             "
+    "  bg-image=<filename>            "
     "Use background image\n"
-    " --bg-tile=<filename>              "
+    "  bg-tile=<filename>             "
     "Use tiled background image\n"
-    " --disable-window-opacity          "
+    "  disable-window-opacity         "
     "Force window opacity to be 0 or 255\n"
-    " --matrox-sgram                    "
+    "  matrox-sgram                   "
     "Use Matrox SGRAM features\n"
-    " --dfb-help                        "
-    "Output DirectFB usage information\n"
     "\n"
-    "Window surface swapping policy:\n"
-    " --window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
+    " Window surface swapping policy:\n"
+    "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
     "     auto:       DirectFB decides depending on hardware.\n"
     "     videohigh:  Swapping system/video with high priority.\n"
     "     videolow:   Swapping system/video with low priority.\n"
     "     systemonly: Window surface is always stored in system memory.\n"
     "     videoonly:  Window surface is always stored in video memory.\n"
     "\n"
-    "Desktop buffer mode:\n"
-    " --desktop-buffer-mode=(auto|backvideo|backsystem|frontonly)\n"
+    " Desktop buffer mode:\n"
+    "  desktop-buffer-mode=(auto|backvideo|backsystem|frontonly)\n"
     "     auto:       DirectFB decides depending on hardware.\n"
     "     backvideo:  Front and back buffer are video only.\n"
     "     backsystem: Back buffer is system only.\n"
     "     frontonly:  There is no back buffer.\n"
     "\n"
-    "Force synchronization of vertical retrace:\n"
-    " --vsync-after:   Wait for the vertical retrace after flipping.\n"
-    " --vsync-none:    disable polling for vertical retrace.\n"
+    " Force synchronization of vertical retrace:\n"
+    "  vsync-after:   Wait for the vertical retrace after flipping.\n"
+    "  vsync-none:    disable polling for vertical retrace.\n"
     "\n";
 
 
@@ -428,33 +431,48 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
                     exit(1);
                }
 
-               if (strncmp ((*argv)[i], "--", 2) == 0) {
-                    int len = strlen( (*argv)[i] ) - 2;
+               if (strncmp ((*argv)[i], "--dfb:", 6) == 0) {
+                    int len = strlen( (*argv)[i] ) - 6;
+                    char *arg = (*argv)[i] + 6;
 
-                    if (len) {
-                         char *name, *value;
+                    while (len) {
+                         char *name, *value, *comma;
+                         
+                         if ((comma = strchr( arg, ',' )) != NULL)
+                              *comma = '\0';
 
-                         name = DFBSTRDUP( (*argv)[i] + 2 );
+                         if (strcmp (arg, "help") == 0) {
+                              fprintf( stderr, config_usage );
+                              exit(1);
+                         }
+
+                         name = DFBSTRDUP( arg );
+                         len -= strlen( arg );
+
                          value = strchr( name, '=' );
-
                          if (value)
                               *value++ = '\0';
 
+                         printf( "%s %s\n", name, value ? value : "" );
                          ret = dfb_config_set( name, value );
 
                          DFBFREE( name );
 
                          if (ret == DFB_OK)
                               (*argv)[i] = NULL;
-                         else
-                              if (ret != DFB_UNSUPPORTED)
-                                   return ret;
+                         else if (ret != DFB_UNSUPPORTED)
+                              return ret;
+                         
+                         if (comma && len) {
+                              arg = comma + 1;
+                              len--;
+                         }
                     }
                }
           }
 
           for (i = 1; i < *argc; i++) {
-           int k;
+               int k;
 
                for (k = i; k < *argc; k++)
                    if ((*argv)[k] != NULL)
