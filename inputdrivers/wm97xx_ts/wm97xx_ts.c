@@ -74,6 +74,15 @@ typedef struct {
      int            fd;
 } WM97xxTSData;
 
+/* I copied this from the kernel driver since there is no include file */
+typedef struct {
+     __u16             pressure;
+     __u16             x;
+     __u16             y;
+     __u16             pad;
+     struct timeval  stamp;
+} TS_EVENT;
+
 static void *
 wm97xxtsEventThread( DirectThread *thread, void *driver_data )
 {
