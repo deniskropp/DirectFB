@@ -56,7 +56,7 @@ int err;
            }                                                                   \
         }
 
-int enum_layers_callback( unsigned int id, unsigned int caps, void *data )
+DFBEnumerationResult enum_layers_callback( unsigned int id, unsigned int caps, void *data )
 {
      printf( "\ndf_window: Found Layer %d\n", id );
 
@@ -65,7 +65,7 @@ int enum_layers_callback( unsigned int id, unsigned int caps, void *data )
 
      layer->EnableCursor( layer, 0 );
 
-     return 0;
+     return DFENUM_OK;
 }
 
 int main( int argc, char *argv[] )

@@ -58,7 +58,7 @@ typedef struct _Particle
 Particle *particles = NULL;
 Particle *last_particle = NULL;
 
-int enum_devices_callback( unsigned int id,
+DFBEnumerationResult enum_devices_callback( unsigned int id,
                            DFBInputDeviceDescription desc, void *data )
 {
      if (desc.type & DIDTF_JOYSTICK) {
@@ -66,7 +66,7 @@ int enum_devices_callback( unsigned int id,
           nr_joysticks++;
      }
 
-     return 0;
+     return DFENUM_OK;
 }
 
 
