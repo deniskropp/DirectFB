@@ -1580,7 +1580,7 @@ GFunc Sacc_to_Aop_PFI[] = {
           __u8  s = ((a)>>3)+1; \
           register __u32 t1,t2; \
       t1 = (pixel&0x7c1f); t2 = (pixel&0x03e0); \
-      pixel = ((((__rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
+      pixel = ((((__rb-t1)*s+(t1<<5)) & 0x000f83e0) | \
                ((( __g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5; \
       *(d) = pixel;\
           }\
@@ -1599,7 +1599,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb15()
           SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
           SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
           SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
-      w-=4;
+          w-=4;
      }
      while (w--) {
           SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
@@ -1615,7 +1615,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb15()
       __u8  s = ((a)>>2)+1;\
       register __u32 t1,t2; \
       t1 = (pixel&0xf81f); t2 = (pixel&0x07e0); \
-      pixel = ((((__rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
+      pixel = ((((__rb-t1)*s+(t1<<6)) & 0x003e07c0) | \
                ((( __g-t2)*s+(t2<<6)) & 0x0001f800)) >> 6; \
       *(d) = pixel;\
           }\
@@ -1689,7 +1689,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb24()
       __u16  s = (a)+1;\
       register __u32 t1,t2; \
       t1 = (pixel&0x00ff00ff); t2 = (pixel&0x0000ff00); \
-      pixel = ((((__rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
+      pixel = ((((__rb-t1)*s+(t1<<8)) & 0xff00ff00) | \
                ((( __g-t2)*s+(t2<<8)) & 0x00ff0000)) >> 8; \
       *(d) = pixel;\
           }\
@@ -1717,14 +1717,15 @@ static void Bop_a8_set_alphapixel_Aop_rgb32()
 
 #define SET_ALPHA_PIXEL_ARGB(d,g,a)\
      switch (a) {\
-     case 0xff: *(d) = (0xff000000 | __rb | ((g) << 8));\
+     case 0xff: *(d) = (__rb | ((g) << 8)) | (*(d) & 0xff000000);\
      case 0: break; \
      default: {\
           __u32 pixel = *(d);\
           __u16  s = (a)+1;\
           __u16 s1 = 256-s;\
-          *(d) = (((((pixel & 0x00ff00ff)       * s1) +              (__rb * s)) & 0xff00ff00) >> 8) + \
-                 (((((pixel & 0xff00ff00) >> 8) * s1) + ((((a)<<16) | (g)) * s)) & 0xff00ff00);\
+          *(d) = (((((pixel & 0x00ff00ff)       * s1) + (__rb * s)) >> 8) & 0x00ff00ff) | \
+                 (((((pixel & 0x0000ff00) >> 8) * s1) + ((g)  * s))       & 0x0000ff00) | \
+                                                                   (pixel & 0xff000000);\
           }\
      }
 
