@@ -518,10 +518,13 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
      if (!data)
           return DFB_DEAD;
 
-     if (!desc || !interface)
+     if (!interface)
           return DFB_INVARG;
 
      if (filename) {
+         if (!desc)
+	     return DFB_INVARG;
+
           /* the only supported real font format yet. */
           ret = DFBGetInterface( &impl,
                                  "IDirectFBFont", "FT2",
