@@ -100,7 +100,7 @@ int driver_init(InputDevice *device)
           }
      }
      
-     if (config->kd_graphics) {
+     if (dfb_config->kd_graphics) {
           if (ioctl( fd, KDSETMODE, KD_GRAPHICS ) < 0) {
                PERRORMSG( "DirectFB/Keyboard: KD_GRAPHICS failed!\n" );
                return DFB_INIT;

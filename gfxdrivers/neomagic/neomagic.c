@@ -86,7 +86,7 @@ int driver_init( int fd, GfxCard *card )
   card->info.driver_version.minor = 0;
 
   /* use polling for syncing, artefacts occur otherwise */
-  config->pollvsync_after = 1;
+  dfb_config->pollvsync_after = 1;
 
   neo = card;
 

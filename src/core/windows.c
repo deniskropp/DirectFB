@@ -69,8 +69,8 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
                stack->wsp_alpha = CSP_VIDEOHIGH;
      }
 
-     if (config->window_policy != -1) {
-          stack->wsp_opaque = stack->wsp_alpha = config->window_policy;
+     if (dfb_config->window_policy != -1) {
+          stack->wsp_opaque = stack->wsp_alpha = dfb_config->window_policy;
      }
 
      pthread_mutex_init( &stack->update, NULL );

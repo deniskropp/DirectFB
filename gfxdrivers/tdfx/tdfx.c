@@ -714,7 +714,7 @@ int driver_init( int fd, GfxCard *card )
 	                                      1 << 18 | 5 << 24;
      tdfx = card;
 
-     config->pollvsync_after = 1;
+     dfb_config->pollvsync_after = 1;
 
      return DFB_OK;
 }

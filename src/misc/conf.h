@@ -35,7 +35,7 @@ typedef struct
      char     *layer_bg_filename;                 /* background image for
                                                      primary layer */
 
-     int       ps2mouse_motion_compression;       /* use motion compression? */
+     int       mouse_motion_compression;          /* use motion compression? */
      int       window_policy;                     /* swapping policy for the
                                                      surface of a window */
      int       buffer_mode;                       /* default buffer mode for
@@ -65,9 +65,9 @@ typedef struct
                                                      as argb and not a8 */
 
      int       matrox_sgram;                      /* Use Matrox SGRAM features */
-} Config;
+} DFBConfig;
 
-extern Config *config;
+extern DFBConfig *dfb_config;
 
 /*
  * Allocate Config struct, fill with defaults and parse command line options

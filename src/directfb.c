@@ -107,7 +107,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 {
      DFBResult ret;
 
-     if (config == NULL) {
+     if (dfb_config == NULL) {
           ERRORMSG( "DirectFB/DirectFBCreate: DirectFBInit has to be called "
                     "before DirectFBCreate!\n" );
           return DFB_INIT;
@@ -119,7 +119,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           return DFB_OK;
      }
 
-     if (!config->quiet && !config->no_banner) {
+     if (!dfb_config->quiet && !dfb_config->no_banner) {
           printf( "\n" );
           printf( "       ----------------------- DirectFB v%d.%d.%d ---------------------\n",
                   DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
@@ -155,7 +155,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      *interface = idirectfb_singleton;
 
      /* set buffer mode for desktop */
-     if (config->buffer_mode == -1) {
+     if (dfb_config->buffer_mode == -1) {
           if (card->caps.accel & DFXL_BLIT) {
                ret = layers->SetBufferMode( layers, DLBM_BACKVIDEO );
           }      
@@ -164,7 +164,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           }
      }
      else {
-          ret = layers->SetBufferMode( layers, config->buffer_mode );
+          ret = layers->SetBufferMode( layers, dfb_config->buffer_mode );
      }
 
      if (ret) {
@@ -174,16 +174,16 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      }
      
      /* set desktop background */
-     layers->bg.mode = config->layer_bg_mode;
-     layers->bg.color = config->layer_bg_color;
+     layers->bg.mode  = dfb_config->layer_bg_mode;
+     layers->bg.color = dfb_config->layer_bg_color;
 
-     if (config->layer_bg_mode == DLBM_IMAGE) {
+     if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
           DFBSurfaceDescription   desc;
           IDirectFBImageProvider *provider;
           IDirectFBSurface       *image;
           IDirectFBSurface_data  *image_data;
 
-          ret = (*interface)->CreateImageProvider( *interface, config->layer_bg_filename, &provider );
+          ret = (*interface)->CreateImageProvider( *interface, dfb_config->layer_bg_filename, &provider );
           if (ret) {
                DirectFBError( "Failed loading background image", ret );
                return DFB_INIT;

@@ -328,7 +328,7 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
      
      switch (accel) {
           case DFXL_FILLRECTANGLE: {
-               unsigned int atype = config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
+               unsigned int atype = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
 
                if (matrox->state->drawingflags & DSDRAW_BLEND)
                     mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO |
@@ -367,7 +367,7 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                break;
           }
           case DFXL_FILLTRIANGLE: {
-               unsigned int atype = config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
+               unsigned int atype = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
 
                if (matrox->state->drawingflags & DSDRAW_BLEND)
                     mga_out32( mmio_base, BOP_COPY | SHFTZERO | ATYPE_I | OP_TRAP,

@@ -82,7 +82,7 @@ GfxDriver* gfxcard_find_driver()
      GfxDriver *driver;
      char      *driver_dir = LIBDIR"/gfxdrivers";
 
-     if (config->software_only)
+     if (dfb_config->software_only)
           return NULL;
 
      driver = calloc( 1, sizeof(GfxDriver) );
@@ -131,7 +131,7 @@ DFBResult gfxcard_init()
 
 #ifdef USE_MMX
      if  (intel_cpu_features() & (1 << 23)) {
-          if (config->no_mmx) {
+          if (dfb_config->no_mmx) {
                INITMSG( "MMX detected, but disabled by --no-mmx \n");
           }
           else {

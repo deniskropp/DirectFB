@@ -35,7 +35,7 @@
 #include "conf.h"
 #include "util.h"
 
-Config *config = NULL;
+DFBConfig *dfb_config = NULL;
 
 /*
  * prints a help message if "--help" is supplied
@@ -68,7 +68,7 @@ static void config_print_usage()
              " --graphics-vt                     "
              "Put terminal into graphics mode\n"
              " --[no-]motion-compression         "
-             "PS/2 Mouse Motion Event Compression\n"
+             "Mouse Motion Event Compression\n"
              " --bg-none                         "
              "Disable Background Clear\n"
              " --bg-color=AARRGGBB               "
@@ -103,13 +103,13 @@ static void config_print_usage()
 
 static void config_cleanup()
 {
-     if (!config) {
+     if (!dfb_config) {
           BUG("config_cleanup() called with no config allocated!");
           return;
      }
 
-     free( config );
-     config = NULL;
+     free( dfb_config );
+     dfb_config = NULL;
 }
 
 /*
@@ -117,103 +117,103 @@ static void config_cleanup()
  */
 static void config_allocate()
 {
-     if (config)
+     if (dfb_config)
           return;
 
-     config = (Config*)malloc( sizeof(Config) );
+     dfb_config = (DFBConfig*)malloc( sizeof(DFBConfig) );
 
-     config->layer_bg_color.a = 0xFF;
-     config->layer_bg_color.r = 0x40;
-     config->layer_bg_color.g = 0x80;
-     config->layer_bg_color.b = 0xC0;
-     config->layer_bg_mode = DLBM_COLOR;
-     config->layer_bg_filename = "";
+     dfb_config->layer_bg_color.a = 0xFF;
+     dfb_config->layer_bg_color.r = 0x40;
+     dfb_config->layer_bg_color.g = 0x80;
+     dfb_config->layer_bg_color.b = 0xC0;
+     dfb_config->layer_bg_mode = DLBM_COLOR;
+     dfb_config->layer_bg_filename = "";
 
-     config->ps2mouse_motion_compression = 1;
-     config->window_policy = -1;
-     config->buffer_mode = -1;
+     dfb_config->mouse_motion_compression = 1;
+     dfb_config->window_policy = -1;
+     dfb_config->buffer_mode = -1;
 
-     config->pollvsync_after = 0;
-     config->pollvsync_none = 0;
-     config->software_only = 0;
+     dfb_config->pollvsync_after = 0;
+     dfb_config->pollvsync_none = 0;
+     dfb_config->software_only = 0;
 
-     config->no_mmx = 0;
+     dfb_config->no_mmx = 0;
 
-     config->no_banner = 0;
-     config->quiet = 0;
+     dfb_config->no_banner = 0;
+     dfb_config->quiet = 0;
 
-     config->no_debug = 0;     
+     dfb_config->no_debug = 0;     
 
-     config->no_sighandler = 0;
-     config->no_deinit_check = 0;
+     dfb_config->no_sighandler = 0;
+     dfb_config->no_deinit_check = 0;
 
-     config->no_vt_switch = 0;
-     config->kd_graphics = 0;
+     dfb_config->no_vt_switch = 0;
+     dfb_config->kd_graphics = 0;
      
-     config->argb_font = 0;
+     dfb_config->argb_font = 0;
 
-     config->matrox_sgram = 0;
+     dfb_config->matrox_sgram = 0;
 }
 
 static DFBResult config_set( const char *name, const char *value )
 {
      if (strcmp (name, "quiet" ) == 0) {
-          config->quiet = 1;
+          dfb_config->quiet = 1;
      } else
      if (strcmp (name, "no-banner" ) == 0) {
-          config->no_banner = 1;
+          dfb_config->no_banner = 1;
      } else
      if (strcmp (name, "debug" ) == 0) {
-          config->no_debug = 0;
+          dfb_config->no_debug = 0;
      } else
      if (strcmp (name, "no-debug" ) == 0) {
-          config->no_debug = 1;
+          dfb_config->no_debug = 1;
      } else
      if (strcmp (name, "hardware" ) == 0) {
-          config->software_only = 0;
+          dfb_config->software_only = 0;
      } else
      if (strcmp (name, "no-hardware" ) == 0) {
-          config->software_only = 1;
+          dfb_config->software_only = 1;
      } else
 #ifdef USE_MMX
      if (strcmp (name, "no-mmx" ) == 0) {
-          config->no_mmx = 1;
+          dfb_config->no_mmx = 1;
      } else
 #endif
      if (strcmp (name, "argb-font" ) == 0) {
-          config->argb_font = 1;
+          dfb_config->argb_font = 1;
      } else
      if (strcmp (name, "no-sighandler" ) == 0) {
-          config->no_sighandler = 1;
+          dfb_config->no_sighandler = 1;
      } else
      if (strcmp (name, "no-deinit-check" ) == 0) {
-          config->no_deinit_check = 1;
+          dfb_config->no_deinit_check = 1;
      } else
      if (strcmp (name, "motion-compression" ) == 0) {
-          config->ps2mouse_motion_compression = 1;
+          dfb_config->mouse_motion_compression = 1;
      } else
      if (strcmp (name, "no-motion-compression" ) == 0) {
-          config->ps2mouse_motion_compression = 0;
+          dfb_config->mouse_motion_compression = 0;
      } else
      if (strcmp (name, "vsync-none" ) == 0) {
-          config->pollvsync_none = 1;
+          dfb_config->pollvsync_none = 1;
      } else
      if (strcmp (name, "vsync-after" ) == 0) {
-          config->pollvsync_after = 1;
+          dfb_config->pollvsync_after = 1;
      } else
      if (strcmp (name, "no-vt-switch" ) == 0) {
-          config->no_vt_switch = 1;
+          dfb_config->no_vt_switch = 1;
      } else
      if (strcmp (name, "graphics-vt" ) == 0) {
-          config->kd_graphics = 1;
+          dfb_config->kd_graphics = 1;
      } else
      if (strcmp (name, "bg-none" ) == 0) {
-          config->layer_bg_mode = DLBM_DONTCARE;
+          dfb_config->layer_bg_mode = DLBM_DONTCARE;
      } else
      if (strcmp (name, "bg-image" ) == 0) {
           if (value) {
-               config->layer_bg_filename = strdup( value );
-               config->layer_bg_mode = DLBM_IMAGE;
+               dfb_config->layer_bg_filename = strdup( value );
+               dfb_config->layer_bg_mode = DLBM_IMAGE;
           }
           else {
                ERRORMSG( "DirectFB/Config: No image filename specified!\n" );
@@ -223,19 +223,19 @@ static DFBResult config_set( const char *name, const char *value )
      if (strcmp (name, "window-surface-policy" ) == 0) {
           if (value) {
                if (strcmp( value, "auto" ) == 0) {
-                    config->window_policy = -1;
+                    dfb_config->window_policy = -1;
                } else
                if (strcmp( value, "videohigh" ) == 0) {
-                    config->window_policy = CSP_VIDEOHIGH;
+                    dfb_config->window_policy = CSP_VIDEOHIGH;
                } else
                if (strcmp( value, "videolow" ) == 0) {
-                    config->window_policy = CSP_VIDEOLOW;
+                    dfb_config->window_policy = CSP_VIDEOLOW;
                } else
                if (strcmp( value, "systemonly" ) == 0) {
-                    config->window_policy = CSP_SYSTEMONLY;
+                    dfb_config->window_policy = CSP_SYSTEMONLY;
                } else
                if (strcmp( value, "videoonly" ) == 0) {
-                    config->window_policy = CSP_VIDEOONLY;
+                    dfb_config->window_policy = CSP_VIDEOONLY;
                }
                else {
                     ERRORMSG( "DirectFB/Config: "
@@ -252,16 +252,16 @@ static DFBResult config_set( const char *name, const char *value )
      if (strcmp (name, "desktop-buffer-mode" ) == 0) {
           if (value) {
                if (strcmp( value, "auto" ) == 0) {
-                    config->buffer_mode = -1;
+                    dfb_config->buffer_mode = -1;
                } else
                if (strcmp( value, "backvideo" ) == 0) {
-                    config->buffer_mode = DLBM_BACKVIDEO;
+                    dfb_config->buffer_mode = DLBM_BACKVIDEO;
                } else
                if (strcmp( value, "backsystem" ) == 0) {
-                    config->buffer_mode = DLBM_BACKSYSTEM;
+                    dfb_config->buffer_mode = DLBM_BACKSYSTEM;
                } else
                if (strcmp( value, "frontonly" ) == 0) {
-                    config->buffer_mode = DLBM_FRONTONLY;
+                    dfb_config->buffer_mode = DLBM_FRONTONLY;
                } else {
                     ERRORMSG( "DirectFB/Config: Unknown buffer mode "
                               "'%s'!\n", value );
@@ -287,15 +287,15 @@ static DFBResult config_set( const char *name, const char *value )
                     return DFB_INVARG;
                }
 
-               config->layer_bg_color.b = argb & 0xFF;
+               dfb_config->layer_bg_color.b = argb & 0xFF;
                argb >>= 8;
-               config->layer_bg_color.g = argb & 0xFF;
+               dfb_config->layer_bg_color.g = argb & 0xFF;
                argb >>= 8;
-               config->layer_bg_color.r = argb & 0xFF;
+               dfb_config->layer_bg_color.r = argb & 0xFF;
                argb >>= 8;
-               config->layer_bg_color.a = argb & 0xFF;
+               dfb_config->layer_bg_color.a = argb & 0xFF;
 
-               config->layer_bg_mode = DLBM_COLOR;
+               dfb_config->layer_bg_mode = DLBM_COLOR;
           }
           else {
                ERRORMSG( "DirectFB/Config: No background color specified!\n" );
@@ -303,7 +303,7 @@ static DFBResult config_set( const char *name, const char *value )
           }
      } else
      if (strcmp (name, "matrox-sgram" ) == 0) {
-          config->matrox_sgram = 1;
+          dfb_config->matrox_sgram = 1;
      }
      else
           return DFB_UNSUPPORTED;

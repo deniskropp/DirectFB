@@ -460,7 +460,7 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
 DFBResult fbdev_wait_vsync()
 {
 #ifdef FBIO_WAITFORVSYNC
-     if (!config->pollvsync_none)
+     if (!dfb_config->pollvsync_none)
           ioctl( display->fd, FBIO_WAITFORVSYNC );
 #endif
 
@@ -637,7 +637,7 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
      }
 
 #if defined(HAVE_INB_OUTB_IOPL)
-     if (!config->pollvsync_none && config->pollvsync_after) {
+     if (!dfb_config->pollvsync_none && dfb_config->pollvsync_after) {
           iopl(3);
           waitretrace();
      }

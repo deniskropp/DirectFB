@@ -162,7 +162,7 @@ void* ps2mouseEventThread(void *device)
 
                     ps2mouse_motion_compress( dx, dy );
 
-                    if (!config->ps2mouse_motion_compression)
+                    if (!dfb_config->mouse_motion_compression)
                          ps2mouse_motion_realize( device );
 
                     if (last_buttons != buttons) {
@@ -206,7 +206,7 @@ void* ps2mouseEventThread(void *device)
      }
 
      if (readlen <= 0 && errno != EINTR)
-          PERRORMSG ("psmouse thread died\n");
+          PERRORMSG ("ps2mouse thread died\n");
 
      pthread_testcancel();
 

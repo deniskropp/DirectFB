@@ -31,11 +31,11 @@
 #include <stdio.h>
 #include <misc/conf.h>
 
-#define INITMSG(x...)    { if (!config->quiet) fprintf( stderr, "(*) "x ); }
-#define ERRORMSG(x...)   { if (!config->quiet) fprintf( stderr, "(!) "x ); }
+#define INITMSG(x...)    { if (!dfb_config->quiet) fprintf( stderr, "(*) "x ); }
+#define ERRORMSG(x...)   { if (!dfb_config->quiet) fprintf( stderr, "(!) "x ); }
 
 #define PERRORMSG(x...)  {                                                 \
-                              if (!config->quiet) {                        \
+                              if (!dfb_config->quiet) {                    \
                                    fprintf( stderr, "(!) "x );             \
                                    fprintf( stderr, "    --> " );          \
                                    perror("");                             \
@@ -43,7 +43,7 @@
                          }
 
 #define DLERRORMSG(x...) {                                                 \
-                              if (!config->quiet) {                        \
+                              if (!dfb_config->quiet) {                    \
                                    fprintf( stderr, "(!) "x );             \
                                    fprintf( stderr, "    --> %s\n",        \
                                                     dlerror() );           \
@@ -53,7 +53,7 @@
 #ifdef DFB_DEBUG
      #ifdef HEAVYDEBUG
           #define HEAVYDEBUGMSG(x...)   {                                     \
-                                             if (!config->no_debug)           \
+                                             if (!dfb_config->no_debug)       \
                                                   fprintf( stderr, "(=) "x ); \
                                         }
      #else
@@ -61,7 +61,7 @@
      #endif
      
      #define DEBUGMSG(x...)        {                                          \
-                                        if (!config->no_debug)                \
+                                        if (!dfb_config->no_debug)            \
                                              fprintf( stderr, "(-) "x );      \
                                    }
 

@@ -48,7 +48,7 @@ void vt_close()
           return;
      }
 
-     if (!config->no_vt_switch) {
+     if (!dfb_config->no_vt_switch) {
           DEBUGMSG( "switching back...\n" );
           ioctl( vt->fd, VT_ACTIVATE, vt->prev );
           ioctl( vt->fd, VT_WAITACTIVE, vt->prev );
@@ -114,7 +114,7 @@ DFBResult vt_open()
      }
      vt->prev = vs.v_active;
 
-     if (config->no_vt_switch) {
+     if (dfb_config->no_vt_switch) {
           vt->num = vt->prev;
      }
      else {

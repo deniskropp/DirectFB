@@ -87,10 +87,10 @@ DFBResult core_init()
           return DFB_OK;
      }
 
-     if (!config->no_sighandler)
+     if (!dfb_config->no_sighandler)
           sig_install_handlers();
 
-     if (!config->no_deinit_check)
+     if (!dfb_config->no_deinit_check)
           atexit( core_deinit_check );
 
      INITMSG( "Single Application Core.%s\n", mmx_string );
