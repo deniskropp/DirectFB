@@ -842,7 +842,8 @@ typedef enum {
      DWCAPS_INPUTONLY    = 0x00000004,  /* The window has no surface.
                                            You can not draw to it but it
                                            receives events */
-     DWCAPS_ALL          = 0x00000007   /* All valid flags. */
+     DWCAPS_NODECORATION = 0x00000008,  /* The window won't be decorated. */
+     DWCAPS_ALL          = 0x0000000F   /* All valid flags. */
 } DFBWindowCapabilities;
 
 

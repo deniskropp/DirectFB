@@ -741,8 +741,8 @@ create_cursor_window( CoreWindowStack *stack,
      stack->cursor.opacity = 0xFF;
 
      /* create a super-top-most event-and-focus-less window */
-     ret = dfb_window_create( stack, stack->cursor.x, stack->cursor.y,
-                              width, height, DWHC_TOPMOST | DWCAPS_ALPHACHANNEL,
+     ret = dfb_window_create( stack, stack->cursor.x, stack->cursor.y, width, height,
+                              DWHC_TOPMOST | DWCAPS_ALPHACHANNEL | DWCAPS_NODECORATION,
                               DSCAPS_NONE, DSPF_UNKNOWN, &window );
      if (ret) {
           D_ERROR( "DirectFB/Core/layers: "
