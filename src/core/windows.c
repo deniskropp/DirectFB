@@ -71,6 +71,9 @@ typedef struct {
      CoreWindow                 *owner;
 } GrabbedKey;
 
+static void repaint_stack_window_changed( CoreWindowStack     *stack, 
+                           DFBRegion           *region,
+                           DFBSurfaceFlipFlags  flags, int changed_window );
 static void repaint_stack( CoreWindowStack *stack, DFBRegion *region,
                            DFBSurfaceFlipFlags flags );
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
@@ -756,7 +759,7 @@ dfb_window_move( CoreWindow *window,
           else if (dy < 0)
                region.y2 -= dy;
 
-          repaint_stack( stack, &region, 0 );
+          repaint_stack_window_changed( stack, &region, 0, get_window_index(window) );
      }
 
      /* Send new position */
@@ -809,7 +812,7 @@ dfb_window_resize( CoreWindow   *window,
                     window->x + ow - 1,
                     window->y + MIN(window->height, oh) - 1};
 
-               repaint_stack( stack, &region, 0 );
+               repaint_stack_window_changed( stack, &region, 0, get_window_index(window) );
           }
 
           if (oh > window->height) {
@@ -817,7 +820,7 @@ dfb_window_resize( CoreWindow   *window,
                     window->x + MAX(window->width, ow) - 1,
                     window->y + oh - 1};
 
-               repaint_stack( stack, &region, 0 );
+               repaint_stack_window_changed( stack, &region, 0, get_window_index(window) );
           }
      }
 
@@ -853,7 +856,7 @@ dfb_window_set_opacity( CoreWindow *window,
 
           window->opacity = opacity;
 
-          repaint_stack( stack, &region, 0 );
+          repaint_stack_window_changed( stack, &region, 0, get_window_index(window) );
 
           /* Check focus after window appeared or disappeared */
           if ((!old_opacity && opacity) || !opacity)
@@ -900,24 +903,7 @@ dfb_window_repaint( CoreWindow          *window,
           region->y2 = window->y + window->height - 1;
      }
 
-     /* simple check if update is necessary */
-     for (i = get_window_index(window) + 1; i < stack->num_windows; i++) {
-          CoreWindow *upper = stack->windows[i];
-
-          if (!VISIBLE_WINDOW(upper) || TRANSLUCENT_WINDOW(upper))
-               continue;
-
-          /* if the update region completely obscured by an opaque window */
-          if (upper->x <= region->x1 && upper->y <= region->y1 &&
-              upper->x + upper->width - 1 >= region->x2 &&
-              upper->y + upper->height - 1 >= region->y2) {
-               /* discard the update */
-               stack_unlock( stack );
-               return;
-          }
-     }
-
-     repaint_stack( stack, region, flags );
+     repaint_stack_window_changed( stack, region, flags, get_window_index(window));
 
      stack_unlock( stack );
 }
@@ -1451,6 +1437,101 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
      }
 }
 
+/*
+     recurseve procedure to call repaint
+     skipping opaque windows that are above the window
+     that changed
+*/
+static void wind_of_change( CoreWindowStack     *stack,
+                           DFBRegion           *region,
+                           DFBSurfaceFlipFlags  flags,
+                           int current,
+                           int changed )
+{
+     DFB_ASSERT(current>=changed);
+     
+     /*
+          got to the window that changed, redraw.
+     */
+     if(current == changed)
+          repaint_stack( stack, region, flags );
+     else 
+     {
+          CoreWindow *window = stack->windows[current];
+          DFBRegion opaque;
+          
+          /*
+               can skip opaque region
+          */
+          if(( 
+               //can skip all opaque window?
+               (window->opacity == 0xff) &&
+               !(window->options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL)) &&
+               (opaque=*region,dfb_region_intersect( &opaque,
+                         window->x, window->y,
+                         window->x + window->width - 1,
+                         window->y + window->height -1 ) ) 
+               )||(
+               //can skip opaque region?
+               (window->options & DWOP_ALPHACHANNEL) &&
+               (window->options & DWOP_OPAQUE_REGION) &&
+               (window->opacity == 0xff) &&
+               !(window->options & DWOP_COLORKEYING) &&
+               (opaque=*region,dfb_region_intersect( &opaque,
+                         window->x + window->opaque.x1,
+                         window->y + window->opaque.y1,
+                         window->x + window->opaque.x2,
+                         window->y + window->opaque.y2 )) 
+               )) 
+          {
+               /* left */
+               if (opaque.x1 != region->x1)
+               {
+                    DFBRegion update = { region->x1, opaque.y1, opaque.x1-1, opaque.y2 };
+                    wind_of_change( stack, &update, flags, current-1, changed );
+               }
+               /* upper */
+               if (opaque.y1 != region->y1)
+               {
+                    DFBRegion update = { region->x1, region->y1, region->x2, opaque.y1-1 };
+                    wind_of_change( stack, &update, flags, current-1, changed );
+               }
+               /* right */
+               if (opaque.x2 != region->x2)
+               {
+                    DFBRegion update = { opaque.x2+1, opaque.y1, region->x2, opaque.y2 };
+                    wind_of_change( stack, &update, flags, current-1, changed );
+               }
+               /* lower */
+               if (opaque.y2 != region->y2)
+               {
+                    DFBRegion update = { region->x1, opaque.y2+1, region->x2, region->y2 };
+                    wind_of_change( stack, &update, flags, current-1, changed );
+               }
+          }
+          /*
+               pass through
+          */
+          else
+               wind_of_change( stack, region, flags, current-1, changed );
+     }
+}
+
+static void repaint_stack_window_changed
+                         ( CoreWindowStack     *stack,
+                           DFBRegion           *region,
+                           DFBSurfaceFlipFlags  flags,
+                           int changed )
+{
+     if(stack->num_windows && changed>=0)
+     {
+          DFB_ASSERT(changed<stack->num_windows);
+          wind_of_change( stack, region, flags, stack->num_windows - 1, changed ); 
+     }
+     else          
+          repaint_stack( stack, region, flags );     
+};
+                           
 static void
 update_region( CoreWindowStack *stack,
                CardState       *state,
@@ -2238,6 +2319,7 @@ static void
 window_remove( CoreWindow *window )
 {
      int              i;
+     int              index;
      FusionLink      *l;
      CoreWindowStack *stack = window->stack;
 
@@ -2264,6 +2346,7 @@ window_remove( CoreWindow *window )
           if (stack->windows[i] == window)
                break;
 
+     index = i;
      if (i < stack->num_windows) {
           stack->num_windows--;
 
@@ -2290,7 +2373,7 @@ window_remove( CoreWindow *window )
                                window->y + window->height - 1 };
           
           /* Update the affected region */
-          repaint_stack( stack, &region, 0 );
+          repaint_stack_window_changed( stack, &region, 0, index-1 );
 
           /* Possibly change focus to window now under the cursor */
           handle_enter_leave_focus( stack );
@@ -2369,7 +2452,7 @@ window_restacked( CoreWindow *window )
                window->x + window->width - 1,
                window->y + window->height - 1};
 
-          repaint_stack( stack, &region, 0 );
+          repaint_stack_window_changed( stack, &region, 0, get_window_index(window) );
 
           /* Possibly change focus to window now under the cursor */
           handle_enter_leave_focus( stack );
