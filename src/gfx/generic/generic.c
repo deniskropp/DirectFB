@@ -1722,16 +1722,14 @@ static void Bop_a8_set_alphapixel_Aop_rgb15()
 
 #define SET_ALPHA_PIXEL_RGB16(d,a) \
      switch (a) {\
-     case 0xff: *(d) = __rb + __g; \
+     case 0xff: d = Cop; \
      case 0: break; \
      default: {\
-          __u32 pixel = *(d);\
-          __u8  s = ((a)>>2)+1;\
+          register __u8  s = ((a)>>2)+1;\
           register __u32 t1,t2; \
-          t1 = (pixel&0xf81f); t2 = (pixel&0x07e0); \
-          pixel = ((((__rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
-                   ((( __g-t2)*s+(t2<<6)) & 0x0001f800)) >> 6; \
-          *(d) = pixel;\
+          t1 = (d&0xf81f); t2 = (d&0x07e0); \
+          d = ((((__rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
+               ((( __g-t2)*s+(t2<<6)) & 0x0001f800)) >> 6; \
           }\
      }
 
@@ -1739,19 +1737,52 @@ static void Bop_a8_set_alphapixel_Aop_rgb16()
 {
      int    w = Dlength;
      __u8  *S = Bop;
-     __u16 *D = (__u16*)Aop;
-     __u32 __rb = (((color.r & 0xf8) << 8) | ((color.b & 0xf8) >> 3));
-     __u32 __g  =  ((color.g & 0xfc) << 3);
+     __u16 *D = Aop;
+     __u32 __rb = Cop & 0xf81f;
+     __u32 __g  = Cop & 0x07e0;
 
-     while (w>4) {
-          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
-          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
-          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
-          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
-      w-=4;
-     }
-     while (w--) {
-          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
+     while (w) {
+          int l = w & 0xf;
+
+          switch (l) {
+               default:
+                    l = 0x10;
+                    SET_ALPHA_PIXEL_RGB16( D[0xf], S[0xf] );
+               case 0xf:
+                    SET_ALPHA_PIXEL_RGB16( D[0xe], S[0xe] );
+               case 0xe:
+                    SET_ALPHA_PIXEL_RGB16( D[0xd], S[0xd] );
+               case 0xd:
+                    SET_ALPHA_PIXEL_RGB16( D[0xc], S[0xc] );
+               case 0xc:
+                    SET_ALPHA_PIXEL_RGB16( D[0xb], S[0xb] );
+               case 0xb:
+                    SET_ALPHA_PIXEL_RGB16( D[0xa], S[0xa] );
+               case 0xa:
+                    SET_ALPHA_PIXEL_RGB16( D[0x9], S[0x9] );
+               case 0x9:
+                    SET_ALPHA_PIXEL_RGB16( D[0x8], S[0x8] );
+               case 0x8:
+                    SET_ALPHA_PIXEL_RGB16( D[0x7], S[0x7] );
+               case 0x7:
+                    SET_ALPHA_PIXEL_RGB16( D[0x6], S[0x6] );
+               case 0x6:
+                    SET_ALPHA_PIXEL_RGB16( D[0x5], S[0x5] );
+               case 0x5:
+                    SET_ALPHA_PIXEL_RGB16( D[0x4], S[0x4] );
+               case 0x4:
+                    SET_ALPHA_PIXEL_RGB16( D[0x3], S[0x3] );
+               case 0x3:
+                    SET_ALPHA_PIXEL_RGB16( D[0x2], S[0x2] );
+               case 0x2:
+                    SET_ALPHA_PIXEL_RGB16( D[0x1], S[0x1] );
+               case 0x1:
+                    SET_ALPHA_PIXEL_RGB16( D[0x0], S[0x0] );
+          }
+
+          D += l;
+          S += l;
+          w -= l;
      }
 }
 
