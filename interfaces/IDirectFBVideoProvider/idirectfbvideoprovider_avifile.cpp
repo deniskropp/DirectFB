@@ -73,7 +73,7 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
 
      reactor_free( data->source.reactor );
 
-     free( thiz->priv );
+     delete thiz->priv;
      thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
@@ -312,6 +312,15 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetLength(
      return DFB_OK;
 }
 
+static void AviFile_KillCallback( int bogus, void *p )
+{
+     IDirectFBVideoProvider_AviFile_data *data =
+          (IDirectFBVideoProvider_AviFile_data*)p;
+
+     /* AviFile_KillCallback gets called when AviFile->Stop is called */
+     /* At the moment we do nothing here...                           */
+}
+
 static void AviFile_DrawCallback( const CImage *image, void *p )
 {
      IDirectFBVideoProvider_AviFile_data *data =
@@ -379,6 +388,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
           data->player = CreateAviPlayer( filename, 16 /* FIXME */ );
 
           data->player->SetDrawCallback2( AviFile_DrawCallback, data );
+          data->player->SetKillHandler( AviFile_KillCallback, data );
      }
      catch (FatalError e) {
           ERRORMSG( "DirectFB/AviFile: CreateAviPlayer failed: %s\n",
