@@ -4,6 +4,9 @@ This directory holds some tools you might find useful.
 	statically linked DirectFB application. Modify the script to adapt
 	it to your needs.
 
+  directfb-csource  creates header files from PNG images. Check the
+        directfb-csource man-page for more details.
+
   gendoc.pl  is a Perl script used to generate HTML documentation from
 	the DirectFB header files.
 

@@ -309,6 +309,7 @@ dnl Test for libpng and libz
   fi
 
   AM_CONDITIONAL(PNG_PROVIDER, test x$PNG = xyes)
+  AM_CONDITIONAL(DIRECTFB_CSOURCE, test x$PNG = xyes)
 
   if test x$enable_png != xno && test x$PNG != xyes; then
     png_warning="
