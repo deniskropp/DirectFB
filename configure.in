@@ -328,6 +328,9 @@ inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
 inputdrivers/ps2mouse/Makefile
 interfaces/Makefile
+interfaces/IDirectFBFont/Makefile
+interfaces/IDirectFBImageProvider/Makefile
+interfaces/IDirectFBVideoProvider/Makefile
 tools/Makefile
 docs/Makefile
 ], [chmod +x directfb-config])
