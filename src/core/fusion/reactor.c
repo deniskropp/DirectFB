@@ -607,12 +607,20 @@ process_globals( FusionReactor *reactor,
 FusionReactor *
 fusion_reactor_new (int msg_size)
 {
-     FusionReactor           *reactor;
+     pthread_mutexattr_t  attr;
+     FusionReactor       *reactor;
 
      reactor = (FusionReactor*)DFBCALLOC( 1, sizeof(FusionReactor) );
+     if (!reactor)
+          return NULL;
      
-     pthread_mutex_init( &reactor->reactions_lock, NULL );
-     pthread_mutex_init( &reactor->globals_lock, NULL );
+     pthread_mutexattr_init( &attr );
+     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+
+     pthread_mutex_init( &reactor->reactions_lock, &attr );
+     pthread_mutex_init( &reactor->globals_lock, &attr );
+
+     pthread_mutexattr_destroy( &attr );
 
      return reactor;
 }
