@@ -360,6 +360,9 @@ parse_enum( const AnyOption *option, const char *arg )
           return false;
      }
 
+     while (arg[0] == ',')
+          arg++;
+
      while (arg[0]) {
           char            *p;
           int              len;
@@ -408,6 +411,9 @@ parse_ids( const AnyOption *option, const char *arg )
           fprintf( stderr, "\nCheck 'dfbinfo' for valid values.\n\n" );
           return false;
      }
+
+     while (abuf[0] == ',')
+          abuf++;
 
      while (abuf[0]) {
           char *p;
