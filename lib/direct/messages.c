@@ -32,6 +32,7 @@
 #include <direct/build.h>
 #include <direct/messages.h>
 #include <direct/trace.h>
+#include <direct/util.h>
 
 
 #if !DIRECT_BUILD_NOTEXT
@@ -70,6 +71,27 @@ direct_messages_error( const char *format, ... )
      va_end( ap );
 
      fprintf( stderr, "(!) %s", buf );
+
+     fflush( stderr );
+
+     direct_trace_print_stack( NULL );
+}
+
+__attribute__((no_instrument_function))
+void
+direct_messages_derror( DirectResult result, const char *format, ... )
+{
+     char buf[512];
+
+     va_list ap;
+
+     va_start( ap, format );
+
+     vsnprintf( buf, sizeof(buf), format, ap );
+
+     va_end( ap );
+
+     fprintf( stderr, "(!) %s    --> %s\n", buf, DirectResultString( result ) );
 
      fflush( stderr );
 

@@ -33,6 +33,7 @@
 #if DIRECT_BUILD_NOTEXT
      #define D_INFO(x...)          do { } while (0)
      #define D_ERROR(x...)         do { } while (0)
+     #define D_DERROR(x...)        do { } while (0)
      #define D_PERROR(x...)        do { } while (0)
      #define D_DLERROR(x...)       do { } while (0)
      #define D_ONCE(x...)          do { } while (0)
@@ -54,6 +55,9 @@
 void direct_messages_info         ( const char *format, ... )  D_FORMAT_PRINTF(1);
 
 void direct_messages_error        ( const char *format, ... )  D_FORMAT_PRINTF(1);
+
+void direct_messages_derror       ( DirectResult result,
+                                    const char *format, ... )  D_FORMAT_PRINTF(2);
 
 void direct_messages_perror       ( int         erno,
                                     const char *format, ... )  D_FORMAT_PRINTF(2);
@@ -89,6 +93,11 @@ void direct_messages_warn         ( const char *func,
 #define D_ERROR(x...)    do {                                                                  \
                               if (!direct_config->quiet)                                       \
                                    direct_messages_error( x );                                 \
+                         } while (0)
+
+#define D_DERROR(r,x...) do {                                                                  \
+                              if (!direct_config->quiet)                                       \
+                                   direct_messages_derror( r, x );                             \
                          } while (0)
 
 #define D_PERROR(x...)   do {                                                                  \
