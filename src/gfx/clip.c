@@ -26,7 +26,7 @@
 
 #include <directfb.h>
 
-#include "misc/util.h"
+#include <misc/util.h>
 
 #include "clip.h"
 
@@ -36,7 +36,8 @@
                                            ( (x) < (cx1) ? 1 : 0) )
 
 
-int dfb_clip_line( const DFBRegion *clip, DFBRegion *line )
+DFBBoolean
+dfb_clip_line( const DFBRegion *clip, DFBRegion *line )
 {
      unsigned char region_code1 = REGION_CODE( line->x1, line->y1,
                                                clip->x1,
@@ -51,9 +52,9 @@ int dfb_clip_line( const DFBRegion *clip, DFBRegion *line )
                                                clip->y2 );
 
      while (region_code1 | region_code2) {
+          /* line completely outside the clipping rectangle */
           if (region_code1 & region_code2)
-
-               return 0;  /* line completely outside the clipping rectangle */
+               return DFB_FALSE;
 
 
           if (region_code1) {
@@ -109,46 +110,80 @@ int dfb_clip_line( const DFBRegion *clip, DFBRegion *line )
           }
      }
 
-     return 1; /* successfully clipped or clipping not neccessary */
+     /* successfully clipped or clipping not neccessary */
+     return DFB_TRUE;
 }
 
-unsigned int dfb_clip_rectangle( const DFBRegion *clip, DFBRectangle *rect )
+DFBEdgeFlags
+dfb_clip_edges( const DFBRegion *clip, DFBRectangle *rect )
 {
-     unsigned int result = 0x1F;  /* returns bit flags for clipped edges  */
+     DFBEdgeFlags flags = DFEF_ALL;
 
      if ((clip->x1 >= rect->x + rect->w) ||
          (clip->x2 < rect->x) ||
          (clip->y1 >= rect->y + rect->h) ||
-         (clip->y2 < rect->y)) {
-          return 0;
-     }
-
+         (clip->y2 < rect->y))
+          return DFEF_NONE;
+          
      if (clip->x1 > rect->x) {
           rect->w += rect->x - clip->x1;
           rect->x = clip->x1;
-          result &= ~1;
+
+          flags &= ~DFEF_LEFT;
      }
 
      if (clip->y1 > rect->y) {
           rect->h += rect->y - clip->y1;
           rect->y = clip->y1;
-          result &= ~2;
+
+          flags &= ~DFEF_TOP;
      }
 
      if (clip->x2 < rect->x + rect->w - 1) {
           rect->w = clip->x2 - rect->x + 1;
-          result &= ~4;
+
+          flags &= ~DFEF_RIGHT;
      }
 
      if (clip->y2 < rect->y + rect->h - 1) {
           rect->h = clip->y2 - rect->y + 1;
-          result &= ~8;
+
+          flags &= ~DFEF_BOTTOM;
      }
 
-     return result;
+     return flags;
 }
 
-int dfb_clip_triangle_precheck( const DFBRegion *clip, const DFBTriangle *tri )
+DFBBoolean
+dfb_clip_rectangle( const DFBRegion *clip, DFBRectangle *rect )
+{
+     if ((clip->x1 >= rect->x + rect->w) ||
+         (clip->x2 < rect->x) ||
+         (clip->y1 >= rect->y + rect->h) ||
+         (clip->y2 < rect->y))
+          return DFB_FALSE;
+          
+     if (clip->x1 > rect->x) {
+          rect->w += rect->x - clip->x1;
+          rect->x = clip->x1;
+     }
+
+     if (clip->y1 > rect->y) {
+          rect->h += rect->y - clip->y1;
+          rect->y = clip->y1;
+     }
+
+     if (clip->x2 < rect->x + rect->w - 1)
+          rect->w = clip->x2 - rect->x + 1;
+
+     if (clip->y2 < rect->y + rect->h - 1)
+          rect->h = clip->y2 - rect->y + 1;
+
+     return DFB_TRUE;
+}
+
+DFBBoolean
+dfb_clip_triangle_precheck( const DFBRegion *clip, const DFBTriangle *tri )
 {
     int x, y, w, h;
   
@@ -161,28 +196,28 @@ int dfb_clip_triangle_precheck( const DFBRegion *clip, const DFBTriangle *tri )
         clip->x2 < x + w ||
         clip->y1 > y ||
         clip->y2 < y + h)
-      return 0;
+      return DFB_FALSE;
     
-    return 1;
+    return DFB_TRUE;
 }
 
-int dfb_clip_blit_precheck( const DFBRegion *clip,
-                            int w, int h, int dx, int dy )
+DFBBoolean
+dfb_clip_blit_precheck( const DFBRegion *clip,
+                        int w, int h, int dx, int dy )
 {
      if (w < 1 || h < 1 ||
          (clip->x1 >= dx + w) ||
          (clip->x2 < dx) ||
          (clip->y1 >= dy + h) ||
          (clip->y2 < dy))
-     {
-          return 0;
-     }
+          return DFB_FALSE;
 
-     return 1;
+     return DFB_TRUE;
 }
 
-void dfb_clip_blit( const DFBRegion *clip,
-                    DFBRectangle *srect, int *dx, int *dy )
+void
+dfb_clip_blit( const DFBRegion *clip,
+               DFBRectangle *srect, int *dx, int *dy )
 {
      if (clip->x1 > *dx ) {
           srect->w = MIN( (clip->x2 - clip->x1) + 1,
@@ -206,8 +241,9 @@ void dfb_clip_blit( const DFBRegion *clip,
      }
 }
 
-void dfb_clip_stretchblit( const DFBRegion *clip,
-                           DFBRectangle *srect, DFBRectangle *drect )
+void
+dfb_clip_stretchblit( const DFBRegion *clip,
+                      DFBRectangle *srect, DFBRectangle *drect )
 {
      DFBRectangle orig_dst = *drect;
 

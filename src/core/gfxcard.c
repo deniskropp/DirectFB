@@ -693,32 +693,32 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      }
      
      if (!hw) {
-          unsigned int edges = dfb_clip_rectangle (&state->clip, rect);
+          DFBEdgeFlags edges = dfb_clip_edges (&state->clip, rect);
 
-          if (edges & 0xF) {
-               if (gAquire( state, DFXL_DRAWLINE)) {
+          if (edges) {
+               if (gAquire( state, DFXL_DRAWLINE )) {
                     DFBRegion line;
 
-                    if (edges & 1) {
+                    if (edges & DFEF_LEFT) {
                          line.x1 = line.x2 = rect->x;
-                         line.y1 = rect->y + (edges & 2 ? 1 : 0);
+                         line.y1 = rect->y + (edges & DFEF_TOP ? 1 : 0);
                          line.y2 = rect->y + rect->h - 1;
                          gDrawLine( state, &line );
                     }
-                    if (edges & 2) {
+                    if (edges & DFEF_TOP) {
                          line.x1 = rect->x;
-                         line.x2 = rect->x + rect->w - (edges & 4 ? 2 : 1);
+                         line.x2 = rect->x + rect->w - (edges & DFEF_RIGHT ? 2 : 1);
                          line.y1 = line.y2 = rect->y;
                          gDrawLine( state, &line );
                     }
-                    if (edges & 4) {
+                    if (edges & DFEF_RIGHT) {
                          line.x1 = line.x2 = rect->x + rect->w - 1;
                          line.y1 = rect->y;
-                         line.y2 = rect->y + rect->h - (edges & 8 ? 2 : 1);
+                         line.y2 = rect->y + rect->h - (edges & DFEF_BOTTOM ? 2 : 1);
                          gDrawLine( state, &line );
                     }
-                    if (edges & 8) {
-                         line.x1 = rect->x + (edges & 1 ? 1 : 0);
+                    if (edges & DFEF_BOTTOM) {
+                         line.x1 = rect->x + (edges & DFEF_LEFT ? 1 : 0);
                          line.x2 = rect->x + rect->w - 1;
                          line.y1 = line.y2 = rect->y + rect->h - 1;
                          gDrawLine( state, &line );

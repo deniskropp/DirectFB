@@ -29,21 +29,64 @@
 
 #include <directfb.h>
 
-int dfb_clip_line( const DFBRegion *clip, DFBRegion *line );
+typedef enum {
+     DFEF_NONE      = 0x00000000,
 
-unsigned int dfb_clip_rectangle( const DFBRegion *clip, DFBRectangle *rect );
+     DFEF_LEFT      = 0x00000001,
+     DFEF_RIGHT     = 0x00000002,
+     DFEF_TOP       = 0x00000004,
+     DFEF_BOTTOM    = 0x00000008,
 
-int dfb_clip_triangle_precheck( const DFBRegion   *clip,
-                                const DFBTriangle *tri );
+     DFEF_ALL       = 0x0000000F
+} DFBEdgeFlags;
 
-int dfb_clip_blit_precheck( const DFBRegion *clip,
-                            int w, int h, int dx, int dy );
+/*
+ * Clips the line to the clipping region.
+ * Returns DFB_TRUE if at least one pixel of the line resides in the region.
+ */
+DFBBoolean   dfb_clip_line( const DFBRegion *clip, DFBRegion *line );
 
+/*
+ * Clips the rectangle to the clipping region.
+ * Returns true if there was an intersection with the clipping region.
+ */
+DFBBoolean   dfb_clip_rectangle( const DFBRegion *clip, DFBRectangle *rect );
+
+/*
+ * Clips the rectangle to the clipping region.
+ * Returns a flag for each edge that wasn't cut off.
+ */
+DFBEdgeFlags dfb_clip_edges( const DFBRegion *clip, DFBRectangle *rect );
+
+/*
+ * Simple check if triangle lies outside the clipping region.
+ * Returns true if the triangle may be visible within the region.
+ */
+DFBBoolean   dfb_clip_triangle_precheck( const DFBRegion   *clip,
+                                         const DFBTriangle *tri );
+
+/*
+ * Simple check if requested blitting lies outside of the clipping region.
+ * Returns true if blitting may need to be performed.
+ */
+DFBBoolean   dfb_clip_blit_precheck( const DFBRegion *clip,
+                                     int width, int height, int dx, int dy );
+
+/*
+ * Clips the blitting request to the clipping region.
+ * This includes adjustment of source AND destination coordinates.
+ */
 void dfb_clip_blit( const DFBRegion *clip,
                     DFBRectangle *srect, int *dx, int *dy );
 
+/*
+ * Clips the stretch blit request to the clipping region.
+ * This includes adjustment of source AND destination coordinates
+ * based on the scaling factor.
+ */
 void dfb_clip_stretchblit( const DFBRegion *clip,
                            DFBRectangle    *srect,
                            DFBRectangle    *drect );
 
 #endif
+
