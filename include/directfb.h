@@ -1309,6 +1309,14 @@ extern "C"
      } DFBInputDeviceKeyState;
 
      /*
+      * Specifies whether a button is currently pressed.
+      */
+     typedef enum {
+          DIBS_UP             = 0x00000000,  /* button is not pressed */
+          DIBS_DOWN           = 0x00000001   /* button is pressed */
+     } DFBInputDeviceButtonState;
+
+     /*
       * Flags specifying the modifiers that are currently pressed.
       */
      typedef enum {
@@ -1377,12 +1385,22 @@ extern "C"
 
           /*
            * Get a mask of currently pressed buttons.
+           * The first button corrensponds to the right most bit.
            */
           DFBResult (*GetButtons) (
                IDirectFBInputDevice          *thiz,
                DFBInputDeviceButtonMask      *buttons
           );
 
+          /*
+           * Get the state of a button.
+           */
+          DFBResult (*GetButtonState) (
+               IDirectFBInputDevice          *thiz,
+               DFBInputDeviceButtonIdentifier button,
+               DFBInputDeviceButtonState     *state
+          );
+          
           /*
            * Get the current value of the specified axis.
            */

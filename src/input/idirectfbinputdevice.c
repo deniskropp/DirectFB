@@ -38,55 +38,6 @@
 #include <directfb_internals.h>
 
 
-/*
- * increments reference count of input buffer
- */  
-DFBResult IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz );
-
-/*
- * decrements reference count, destructs device if reference count is 0
- */
-DFBResult IDirectFBInputDevice_Release( IDirectFBInputDevice *thiz );
-
-/* 
- * creates an input buffer (event queue) for the input device,
- * it is possible to create multiple input buffers for one device
- */
-DFBResult IDirectFBInputDevice_CreateInputBuffer( IDirectFBInputDevice *thiz, 
-                                                  IDirectFBInputBuffer **buffer );                                                  
-/*
- * return the input device description containing number of axes/buttons and
- * capabilities
- */
-DFBResult IDirectFBInputDevice_GetDescription( IDirectFBInputDevice *thiz, 
-                                               DFBInputDeviceDescription *desc);                                               
-/*
- * gets the state of a key
- */
-DFBResult IDirectFBInputDevice_GetKeyState( IDirectFBInputDevice *thiz, 
-                                            DFBInputDeviceKeyIdentifier keycode,
-                                            DFBInputDeviceKeyState *state );
-/*
- * gets the state of all modifier keys
- */                                            
-DFBResult IDirectFBInputDevice_GetModifiers( IDirectFBInputDevice *thiz, 
-                                             DFBInputDeviceModifierKeys *modifiers );
-/*
- * gets the device's buttonmask (state of all buttons )
- */                                             
-DFBResult IDirectFBInputDevice_GetButtons( IDirectFBInputDevice *thiz,
-                                           DFBInputDeviceButtonMask *buttons );
-/*
- * gets the current postition of one axis
- */                                           
-DFBResult IDirectFBInputDevice_GetAxis( IDirectFBInputDevice *thiz, 
-                                        DFBInputDeviceAxisIdentifier axis,
-                                        int *pos );
-/*
- * gets the current postition of the X and Y axis
- */                                        
-DFBResult IDirectFBInputDevice_GetXY( IDirectFBInputDevice *thiz, 
-                                      int *x, int *y );
 /* 
  * processes an event, updates device state 
  * (funcion is added to the event listeners)
@@ -112,35 +63,6 @@ typedef struct {
 } IDirectFBInputDevice_data;
 
 
-
-DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
-                                          InputDevice *device )
-{
-     IDirectFBInputDevice_data *data;
-
-     data = (IDirectFBInputDevice_data*)malloc( sizeof(
-                                                IDirectFBInputDevice_data) );
-                                                
-     memset( data, 0, sizeof(IDirectFBInputDevice_data) );
-     thiz->priv = data;
-
-     data->ref = 1;
-     data->device = device;
-
-     input_add_listener( device, IDirectFBInputDevice_Receive, data );
-
-     thiz->AddRef = IDirectFBInputDevice_AddRef;
-     thiz->Release = IDirectFBInputDevice_Release;
-     thiz->CreateInputBuffer = IDirectFBInputDevice_CreateInputBuffer;
-     thiz->GetDescription = IDirectFBInputDevice_GetDescription;
-     thiz->GetKeyState = IDirectFBInputDevice_GetKeyState;
-     thiz->GetModifiers = IDirectFBInputDevice_GetModifiers;
-     thiz->GetButtons = IDirectFBInputDevice_GetButtons;
-     thiz->GetAxis = IDirectFBInputDevice_GetAxis;
-     thiz->GetXY = IDirectFBInputDevice_GetXY;
-
-     return DFB_OK;
-}
 
 void IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 {
@@ -261,6 +183,24 @@ DFBResult IDirectFBInputDevice_GetButtons( IDirectFBInputDevice *thiz,
      return DFB_OK;
 }
 
+DFBResult IDirectFBInputDevice_GetButtonState( IDirectFBInputDevice *thiz,
+                                     DFBInputDeviceButtonIdentifier  button,
+                                     DFBInputDeviceButtonState      *state)
+{
+     IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
+
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!state || button < 0 || button > 7)
+          return DFB_INVARG;
+
+     *state = (data->buttonmask & (1 << button)) ? DIBS_DOWN : DIBS_UP;
+
+     return DFB_OK;
+}
+
 DFBResult IDirectFBInputDevice_GetAxis( IDirectFBInputDevice *thiz, 
                                         DFBInputDeviceAxisIdentifier axis,
                                         int *pos )
@@ -295,6 +235,36 @@ DFBResult IDirectFBInputDevice_GetXY( IDirectFBInputDevice *thiz,
      if (!y)
           *y = data->axis[DIAI_Y]; 
      
+     return DFB_OK;
+}
+
+DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
+                                          InputDevice *device )
+{
+     IDirectFBInputDevice_data *data;
+
+     data = (IDirectFBInputDevice_data*)malloc( sizeof(
+                                                IDirectFBInputDevice_data) );
+                                                
+     memset( data, 0, sizeof(IDirectFBInputDevice_data) );
+     thiz->priv = data;
+
+     data->ref = 1;
+     data->device = device;
+
+     input_add_listener( device, IDirectFBInputDevice_Receive, data );
+
+     thiz->AddRef = IDirectFBInputDevice_AddRef;
+     thiz->Release = IDirectFBInputDevice_Release;
+     thiz->CreateInputBuffer = IDirectFBInputDevice_CreateInputBuffer;
+     thiz->GetDescription = IDirectFBInputDevice_GetDescription;
+     thiz->GetKeyState = IDirectFBInputDevice_GetKeyState;
+     thiz->GetModifiers = IDirectFBInputDevice_GetModifiers;
+     thiz->GetButtons = IDirectFBInputDevice_GetButtons;
+     thiz->GetButtonState = IDirectFBInputDevice_GetButtonState;
+     thiz->GetAxis = IDirectFBInputDevice_GetAxis;
+     thiz->GetXY = IDirectFBInputDevice_GetXY;
+
      return DFB_OK;
 }
 
