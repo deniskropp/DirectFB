@@ -828,7 +828,24 @@ static void Sop_a8_Sto_Dacc()
 #ifdef SUPPORT_RGB332
 static void Sop_rgb332_Sto_Dacc()
 {
-     ONCE( "Sop_rgb332_Sto_Dacc() unimplemented" );
+     int    w = Dlength;
+     int    i = 0;
+
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          D->a = 0xFF;
+          D->r = (s & 0xE0);
+          D->g = (s & 0x1C) << 3;
+          D->b = (s & 0x03) << 6;
+
+          i += SperD;
+
+          D++;
+     }
 }
 #endif
 
@@ -1216,7 +1233,20 @@ static void Sop_argb_to_Dacc()
 #ifdef SUPPORT_RGB332
 static void Sop_rgb332_to_Dacc()
 {
-          ONCE( "Sop_rgb332_to_Dacc() unimplemented" );
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     while (w--) {
+          __u8 s = *S++;
+
+          D->a = 0xFF;
+          D->r = (s & 0xE0);
+          D->g = (s & 0x1C) << 3;
+          D->b = (s & 0x03) << 6;
+
+          D++;
+     }
 }
 #endif
 
@@ -1227,8 +1257,7 @@ static GFunc Sop_PFI_to_Dacc[] = {
      Sop_rgb32_to_Dacc,
      Sop_argb_to_Dacc,
      Sop_a8_to_Dacc,
-     Sop_a1_to_Dacc,
-     NULL
+     Sop_a1_to_Dacc
 #ifdef SUPPORT_RGB332
      ,Sop_rgb332_to_Dacc
 #endif
@@ -1481,7 +1510,20 @@ static void Sacc_to_Aop_a8()
 #ifdef SUPPORT_RGB332
 static void Sacc_to_Aop_rgb332()
 {
-     ONCE( "Sacc_to_Aop_rgb332() unimplemented" );
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u8        *D = (__u8*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000)) {
+               *D = PIXEL_RGB332( (S->r & 0xFF00) ? 0xFF : S->r,
+                                  (S->g & 0xFF00) ? 0xFF : S->g,
+                                  (S->b & 0xFF00) ? 0xFF : S->b );
+          }
+
+          D++;
+          S++;
+     }
 }
 #endif
 
@@ -1710,7 +1752,7 @@ static void Sop_a8_set_alphapixel_Aop_a8()
 
 //FIXME: implement correctly!
 #define SET_ALPHA_PIXEL_RGB332(d,a) \
-     if (a>127) \
+     if (a > 127) \
           *(d) = PIXEL_RGB332( color.r, color.g, color.b );
 
 
