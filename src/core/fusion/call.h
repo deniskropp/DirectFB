@@ -34,16 +34,11 @@ extern "C"
 
 #include "fusion_types.h"
 
-#ifndef FUSION_FAKE
-#include <sys/ioctl.h>
-#include <linux/fusion.h>
-#else
 typedef int (*FusionCallHandler) (int   caller,   /* fusion id of the caller */
                                   int   call_arg, /* optional call parameter */
                                   void *call_ptr, /* optional call parameter */
                                   void *ctx       /* optional handler context */
                                   );
-#endif
 
 typedef struct {
      int                call_id;

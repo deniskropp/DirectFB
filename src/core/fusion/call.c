@@ -42,21 +42,6 @@
 #include "fusion_internal.h"
 
 
-/***************************
- *  Internal declarations  *
- ***************************/
-
-
-/*******************
- *  Internal data  *
- *******************/
-
-
-
-/****************
- *  Public API  *
- ****************/
-
 #ifndef FUSION_FAKE
 
 FusionResult
@@ -201,11 +186,15 @@ fusion_call_destroy (FusionCall *call)
 void
 _fusion_call_process( int call_id, FusionCallMessage *call )
 {
+     FusionCallHandler handler;
+
      DFB_ASSERT( call != NULL );
      DFB_ASSERT( call->handler != NULL );
 
-     fusion_call_return( call_id, call->handler( call->caller, call->call_arg,
-                                                 call->call_ptr, call->ctx ) );
+     handler = call->handler;
+
+     fusion_call_return( call_id, handler( call->caller, call->call_arg,
+                                           call->call_ptr, call->ctx ) );
 }
 
 #else  /* !FUSION_FAKE */
@@ -266,15 +255,4 @@ fusion_call_destroy (FusionCall *call)
 }
 
 #endif
-
-/*******************************
- *  Fusion internal functions  *
- *******************************/
-
-
-
-/*****************************
- *  File internal functions  *
- *****************************/
-
 
