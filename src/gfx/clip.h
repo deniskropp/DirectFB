@@ -29,18 +29,21 @@
 
 #include <directfb.h>
 
-int dfb_clip_line( DFBRegion *clip, DFBRegion *line );
+int dfb_clip_line( const DFBRegion *clip, DFBRegion *line );
 
-unsigned int dfb_clip_rectangle( DFBRegion *clip, DFBRectangle *rect );
+unsigned int dfb_clip_rectangle( const DFBRegion *clip, DFBRectangle *rect );
 
-int dfb_clip_triangle_precheck( DFBRegion *clip, DFBTriangle *tri );
+int dfb_clip_triangle_precheck( const DFBRegion   *clip,
+                                const DFBTriangle *tri );
 
-int dfb_clip_blit_precheck( DFBRegion *clip, int w, int h, int dx, int dy );
+int dfb_clip_blit_precheck( const DFBRegion *clip,
+                            int w, int h, int dx, int dy );
 
-void dfb_clip_blit( DFBRegion *clip, DFBRectangle *srect, int *dx, int *dy );
+void dfb_clip_blit( const DFBRegion *clip,
+                    DFBRectangle *srect, int *dx, int *dy );
 
-void dfb_clip_stretchblit( DFBRegion    *clip,
-                           DFBRectangle *srect,
-                           DFBRectangle *drect );
+void dfb_clip_stretchblit( const DFBRegion *clip,
+                           DFBRectangle    *srect,
+                           DFBRectangle    *drect );
 
 #endif

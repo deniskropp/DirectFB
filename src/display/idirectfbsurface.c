@@ -310,6 +310,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz, __u8 r, __u8 g, __u8 b, __u8 a )
 {
      DFBColor               old_color;
      DFBSurfaceDrawingFlags old_flags;
+     DFBRectangle           rect;
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -340,7 +341,8 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz, __u8 r, __u8 g, __u8 b, __u8 a )
      data->state.modified |= SMF_DRAWING_FLAGS;
      
      /* fill the visible rectangle */
-     dfb_gfxcard_fillrectangle( &data->area.current, &data->state );
+     rect = data->area.current;
+     dfb_gfxcard_fillrectangle( &rect, &data->state );
 
      /* restore drawing flags */
      if (old_flags != DSDRAW_NOFX) {
@@ -1316,7 +1318,7 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
                dfb_rectangle_intersect( &data->area.current, &rect );
           }
           else
-               data->area.wanted = data->area.granted = data->area.current=rect;
+               data->area.wanted = data->area.granted = data->area.current = rect;
 
           /* Reset clip to avoid crashes caused by drawing out of bounds. */
           if (data->clip_set)

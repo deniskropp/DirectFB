@@ -36,7 +36,7 @@
                                            ( (x) < (cx1) ? 1 : 0) )
 
 
-int dfb_clip_line( DFBRegion *clip, DFBRegion *line )
+int dfb_clip_line( const DFBRegion *clip, DFBRegion *line )
 {
      unsigned char region_code1 = REGION_CODE( line->x1, line->y1,
                                                clip->x1,
@@ -112,8 +112,7 @@ int dfb_clip_line( DFBRegion *clip, DFBRegion *line )
      return 1; /* successfully clipped or clipping not neccessary */
 }
 
-unsigned int dfb_clip_rectangle( DFBRegion    *clip,
-                                 DFBRectangle *rect )
+unsigned int dfb_clip_rectangle( const DFBRegion *clip, DFBRectangle *rect )
 {
      unsigned int result = 0x1F;  /* returns bit flags for clipped edges  */
 
@@ -149,8 +148,7 @@ unsigned int dfb_clip_rectangle( DFBRegion    *clip,
      return result;
 }
 
-int dfb_clip_triangle_precheck( DFBRegion   *clip,
-                                DFBTriangle *tri )
+int dfb_clip_triangle_precheck( const DFBRegion *clip, const DFBTriangle *tri )
 {
     int x, y, w, h;
   
@@ -168,7 +166,7 @@ int dfb_clip_triangle_precheck( DFBRegion   *clip,
     return 1;
 }
 
-int dfb_clip_blit_precheck( DFBRegion *clip,
+int dfb_clip_blit_precheck( const DFBRegion *clip,
                             int w, int h, int dx, int dy )
 {
      if (w < 1 || h < 1 ||
@@ -183,8 +181,8 @@ int dfb_clip_blit_precheck( DFBRegion *clip,
      return 1;
 }
 
-void dfb_clip_blit( DFBRegion *clip, DFBRectangle *srect,
-                    int *dx, int *dy )
+void dfb_clip_blit( const DFBRegion *clip,
+                    DFBRectangle *srect, int *dx, int *dy )
 {
      if (clip->x1 > *dx ) {
           srect->w = MIN( (clip->x2 - clip->x1) + 1,
@@ -208,7 +206,7 @@ void dfb_clip_blit( DFBRegion *clip, DFBRectangle *srect,
      }
 }
 
-void dfb_clip_stretchblit( DFBRegion *clip,
+void dfb_clip_stretchblit( const DFBRegion *clip,
                            DFBRectangle *srect, DFBRectangle *drect )
 {
      DFBRectangle orig_dst = *drect;
