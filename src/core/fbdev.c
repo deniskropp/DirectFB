@@ -188,11 +188,20 @@ void waitretrace (void)
 #if defined(HAVE_INB_OUTB_IOPL)
      iopl(3);
 
-     while ((inb (0x3da) & 0x8))
-          ;
-
-     while (!(inb (0x3da) & 0x8))
-          ;
+     if (!(inb (0x3cc) & 1)) {
+       while ((inb (0x3ba) & 0x8))
+	 ;
+       
+       while (!(inb (0x3ba) & 0x8))
+	 ;
+     }
+     else {
+       while ((inb (0x3da) & 0x8))
+	 ;
+       
+       while (!(inb (0x3da) & 0x8))
+	 ;
+     }
 #endif
 }
 
