@@ -170,91 +170,74 @@ static void
 __mmx_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
 {
-	if(!this->brightness.l_val &&
-		this->contrast.l_val == 0x4000)
-	{
+	uint8_t* yuv_data = frame->vo_frame.base[0];
+	uint32_t n = (frame->width * frame->height) >> 2;
 
-		xine_fast_memcpy(data, frame->vo_frame.base[0],
-					pitch * frame->height);
+	__asm__ __volatile__(
 
-	} else
-	{
-		uint8_t* yuv_data = frame->vo_frame.base[0];
-		uint32_t n = (frame->width * frame->height) >> 2;
+		"movq (wmask), %%mm2\n\t" /* mm2 = [0 0xff 0 0xff 0 0xff 0 0xff] */
+		"psllw $8, %%mm2\n\t" /* mm2 = [0xff 0 0xff 0 0xff 0 0xff 0] */
+		"movq %3, %%mm3\n\t" /* mm3 = brightness */
+		"movq %4, %%mm4\n\t" /* mm4 = contrast */
+		"pxor %%mm7, %%mm7\n\t"
+		".align 16\n"
+		"1:\tmovq (%1), %%mm0\n\t" /* mm0 = [v2 y3 u2 y2 v0 y1 u0 y0] */
+		"movq %%mm0, %%mm1\n\t"
+		"pand (wmask), %%mm1\n\t" /* mm1 = [0 y3 0 y2 0 y1 0 y0] */
+		"paddw %%mm3, %%mm1\n\t" /* y + brightness */
+		"psllw $2, %%mm1\n\t" /* y << 2 */
+		"pmulhw %%mm4, %%mm1\n\t" /* y * contrast */
+		"packuswb %%mm1, %%mm1\n\t" /* mm1 = [y3 y2 y1 y0 y3 y2 y1 y0] */
+		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 y3 0 y2 0 y1 0 y0] */
+		"pand %%mm2, %%mm0\n\t" /* mm0 = [v2 0 u2 0 v0 0 u0 0] */
+		"por %%mm1, %%mm0\n\t" /* mm0 = [v2 y3 u2 y2 v0 y1 u0 y0] */
+		"movq %%mm0, (%0)\n\t"
+		"addl $8, %0\n\t"
+		"addl $8, %1\n\t"
+		"loop 1b\n\t"
+		"emms\n\t"
 
-		__asm__ __volatile__(
-
-			"movq (wmask), %%mm2\n\t" /* mm2 = [0 0xff 0 0xff 0 0xff 0 0xff] */
-			"psllw $8, %%mm2\n\t" /* mm2 = [0xff 0 0xff 0 0xff 0 0xff 0] */
-			"movq %3, %%mm3\n\t" /* mm3 = brightness */
-			"movq %4, %%mm4\n\t" /* mm4 = contrast */
-			"pxor %%mm7, %%mm7\n\t"
-			".align 16\n"
-			"1:\tmovq (%1), %%mm0\n\t" /* mm0 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-			"movq %%mm0, %%mm1\n\t"
-			"pand (wmask), %%mm1\n\t" /* mm1 = [0 y3 0 y2 0 y1 0 y0] */
-			"paddw %%mm3, %%mm1\n\t" /* y + brightness */
-			"psllw $2, %%mm1\n\t" /* y << 2 */
-			"pmulhw %%mm4, %%mm1\n\t" /* y * contrast */
-			"packuswb %%mm1, %%mm1\n\t" /* mm1 = [y3 y2 y1 y0 y3 y2 y1 y0] */
-			"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 y3 0 y2 0 y1 0 y0] */
-			"pand %%mm2, %%mm0\n\t" /* mm0 = [v2 0 u2 0 v0 0 u0 0] */
-			"por %%mm1, %%mm0\n\t" /* mm0 = [v2 y3 u2 y2 v0 y1 u0 y0] */
-			"movq %%mm0, (%0)\n\t"
-			"addl $8, %0\n\t"
-			"addl $8, %1\n\t"
-			"loop 1b\n\t"
-			"emms\n\t"
-
-			:: "r" (data), "r" (yuv_data), "c" (n),
-			   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
-			: "memory");
-	}
+		:: "r" (data), "r" (yuv_data), "c" (n),
+		   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
+		: "memory");
 }
 #endif
+
 
 static void
 __dummy_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
 {
-	int32_t bright = this->brightness.l_val;
-	int32_t ctr    = this->contrast.l_val;
+	uint8_t* yuv_data = frame->vo_frame.base[0];
+	uint32_t n        = (frame->width * frame->height) >> 1;
+	int32_t bright    = this->brightness.l_val;
+	int32_t ctr       = this->contrast.l_val;
 	
-	if(!bright && ctr == 0x4000)
+
+	do
 	{
-		xine_fast_memcpy(data, frame->vo_frame.base[0],
-					 pitch * frame->height);
+		register int y;
 
-	} else
-	{
-		uint8_t* yuv_data = frame->vo_frame.base[0];
-		uint32_t n = (frame->width * frame->height) >> 1;
+		y = *yuv_data + bright;
+		y *= ctr;
+		y >>= 14;
+		*data = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 
-		do
-		{
-			register int y;
+		*(data + 1) = *(yuv_data + 1);
 
-			y = *yuv_data + bright;
-			y *= ctr;
-			y >>= 14;
-			*data = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
+		y = *(yuv_data + 2) + bright;
+		y *= ctr;
+		y >>= 14;
+		*(data + 2) = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 
-			*(data + 1) = *(yuv_data + 1);
+		*(data + 3) = *(yuv_data + 3);
 
-			y = *(yuv_data + 2) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(data + 2) = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
+		data     += 4;
+		yuv_data += 4;
 
-			*(data + 3) = *(yuv_data + 3);
-
-			data     += 4;
-			yuv_data += 4;
-
-		} while(--n);
-		
-	}
+	} while(--n);
 }
+
 
 #ifdef ARCH_X86
 static void
@@ -293,6 +276,7 @@ __mmx_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 #endif
+
 
 static void
 __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
@@ -367,6 +351,105 @@ __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 		} while(--n);
 	}
 }
+
+
+#ifdef ARCH_X86
+static void
+__mmx_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
+				uint8_t* data, uint32_t pitch)
+{
+	uint8_t* yuv_data = frame->vo_frame.base[0];
+	uint8_t* y_off    = (uint8_t*) data;
+	uint8_t* u_off;
+	uint8_t* v_off;
+	uint32_t line     = frame->width >> 3;
+	uint32_t n        = (frame->width * frame->height) >> 4;
+
+
+	if(frame->surface->format == DSPF_YV12)
+	{
+		v_off = (uint8_t*) data + (pitch * frame->height);
+		u_off = (uint8_t*) v_off + ((pitch * frame->height) >> 2);
+	} else
+	{
+		u_off = (uint8_t*) data + (pitch * frame->height);
+		v_off = (uint8_t*) u_off + ((pitch * frame->height) >> 2);
+	}
+
+	__asm__ __volatile__(
+		"movq (%0), %%mm6\n\t" /* mm6 = brightness */
+		"movq (%1), %%mm7\n\t" /* mm7 = contrast */
+		:: "r" (this->brightness.mm_val), "r" (this->contrast.mm_val)
+		: "memory");
+
+	__asm__ __volatile__(
+
+		".align 16\n"
+		"1:\tmovq (%0), %%mm0\n\t" /* mm0 = [v02 y03 u02 y02 v00 y01 u00 y00] */
+		"movq %%mm0, %%mm2\n\t" /* mm2 = [v02 y03 u02 y02 v00 y01 u00 y00] */
+		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y03 0 y02 0 y01 0 y00] */
+		"paddw %%mm6, %%mm2\n\t" /* y + brightness */
+		"psllw $2, %%mm2\n\t" /* y << 2 */
+		"pmulhw %%mm7, %%mm2\n\t" /* y * contrast */
+		"psrlw $8, %%mm0\n\t" /* mm0 = [0 v02 0 u02 0 v00 0 u00] */
+		"movq 8(%0), %%mm1\n\t" /* mm1 = [v06 y07 u06 y06 v04 y05 u04 y04] */
+		"movq %%mm1, %%mm3\n\t" /* mm3 = [v06 y07 u06 y06 v04 y05 u04 y04] */
+		"pand (wmask), %%mm3\n\t" /* mm3 = [0 y07 0 y06 0 y05 0 y04] */
+		"paddw %%mm6, %%mm3\n\t" /* y + brightness */
+		"psllw $2, %%mm3\n\t" /* y << 2 */
+		"pmulhw %%mm7, %%mm3\n\t" /* y * contrast */
+		"packuswb %%mm3, %%mm2\n\t" /* mm2 = [y07 y06 y05 y04 y03 y02 y01 y00] */
+		"movq %%mm2, (%1)\n\t"
+		"psrlw $8, %%mm1\n\t" /* mm1 = [0 v06 0 u06 0 v04 0 u04] */
+		"movq (%0, %4), %%mm2\n\t" /* mm2 = [v12 y13 u12 y12 v10 y11 u10 y10] */
+		"movq %%mm2, %%mm4\n\t" /* mm4 = [v12 y13 u12 y12 v10 y11 u10 y10] */
+		"pand (wmask), %%mm4\n\t" /* mm4 = [0 y13 0 y12 0 y11 0 y10] */
+		"paddw %%mm6, %%mm4\n\t" /* y + brightness */
+		"psllw $2, %%mm4\n\t" /* y << 2 */
+		"pmulhw %%mm7, %%mm4\n\t" /* y * contrast */
+		"psrlw $8, %%mm2\n\t" /* mm2 = [0 v12 0 u12 0 v10 0 u10] */
+		"movq 8(%0, %4), %%mm3\n\t" /* mm3 = [v16 y17 u16 y16 v14 y15 u14 y14] */
+		"movq %%mm3, %%mm5\n\t" /* mm5 = [v16 y17 u16 y16 v14 y15 u14 y14] */
+		"pand (wmask), %%mm5\n\t" /* mm5 = [0 y17 0 y16 0 y15 0 y14] */
+		"paddw %%mm6, %%mm5\n\t" /* y + brightness */
+		"psllw $2, %%mm5\n\t" /* y << 2 */
+		"pmulhw %%mm7, %%mm5\n\t" /* y * contrast */
+		"packuswb %%mm5, %%mm4\n\t" /* mm4 = [y17 y16 y15 y14 y13 y12 y11 y10] */
+		"movq %%mm4, (%1, %5)\n\t"
+		"psrlw $8, %%mm3\n\t" /* mm3 = [0 v16 0 u16 0 v14 0 u14] */
+		"paddw %%mm2, %%mm0\n\t"
+		"psrlw $1, %%mm0\n\t" /* mm0 = [0 v1 0 u1 0 v0 0 u0] */
+		"paddw %%mm3, %%mm1\n\t"
+		"psrlw $1, %%mm1\n\t" /* mm1 = [0 v3 0 u3 0 v2 0 u2] */
+		"movq %%mm0, %%mm2\n\t" /* mm2 = [0 v1 0 u1 0 v0 0 u0] */
+		"punpcklbw %%mm1, %%mm0\n\t" /* mm0 = [0 0 v2 v0 0 0 u2 u0] */
+		"punpckhbw %%mm1, %%mm2\n\t" /* mm2 = [0 0 v3 v1 0 0 u3 u1] */
+		"movq %%mm0, %%mm1\n\t" /* mm1 = [0 0 v2 v0 0 0 u2 u0] */
+		"punpcklbw %%mm2, %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
+		"movd %%mm1, (%2)\n\t"
+		"punpckhbw %%mm2, %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
+		"movd %%mm0, (%3)\n\t"
+		"addl $16, %0\n\t"
+		"addl $8, %1\n\t"
+		"addl $4, %2\n\t"
+		"addl $4, %3\n\t"
+		"decl %6\n\t"
+		"jnz 2f\n\t"
+		"movl %4, %6\n\t" /* if(!(--line)){ */
+		"shrl $4, %6\n\t" /* line = frame->width /8 */
+		"addl %4, %0\n\t" /* yuv_data += frame->vo_frame.pitches[0] */
+		"addl %5, %1\n\t" /* y_data += pitch } */
+		".align 16\n"
+		"2:\tdecl %7\n\t"
+		"jnz 1b\n\t"
+		"emms\n\t"
+
+		:: "r" (yuv_data), "r" (y_off), "r" (u_off), "r" (v_off),
+		   "r" (frame->vo_frame.pitches[0]), "r" (pitch),
+		   "m" (line), "m" (n)
+		: "memory");
+}
+#endif
 
 
 static void
@@ -503,6 +586,7 @@ __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 	}
 }
 
+
 #ifdef ARCH_X86
 static void
 __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
@@ -571,6 +655,7 @@ __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 }
 #endif
 
+
 static void
 __dummy_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -627,6 +712,7 @@ __dummy_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 	} while(--n);
 
 }
+
 
 #ifdef ARCH_X86
 static void
@@ -696,6 +782,7 @@ __mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 }
 #endif
 
+
 static void
 __dummy_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -753,6 +840,7 @@ __dummy_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 	} while(--n);
 
 }
+
 
 #ifdef ARCH_X86
 static void
@@ -826,6 +914,7 @@ __mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 #endif
+
 
 /* unrolling here seems to speed up */
 static void
@@ -912,6 +1001,7 @@ __dummy_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
+
 #ifdef ARCH_X86
 static void
 __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
@@ -975,6 +1065,7 @@ __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 #endif
+
 
 /* unrolling here seems to speed up */
 static void
@@ -1143,6 +1234,7 @@ __mmx_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 }
 #endif
 
+
  static void
 __dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1226,6 +1318,7 @@ __dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
+
 #ifdef ARCH_X86
 static void
 __mmx_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
@@ -1289,6 +1382,7 @@ __mmx_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 #endif
+
 
 static void
 __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
@@ -1374,46 +1468,37 @@ __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
+
 #ifdef ARCH_X86
 static void
 __mmx_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
 {
-	if(!this->brightness.l_val &&
-		this->contrast.l_val == 0x4000)
-	{
-		xine_fast_memcpy(data,
-				frame->vo_frame.base[0],
-				pitch * frame->height);
-		data += (pitch * frame->height);
+	uint32_t n = (frame->width * frame->height) >> 2;
 
-	} else
-	{
-		uint32_t n = (frame->width * frame->height) >> 2;
 
-		__asm__ __volatile__(
+	__asm__ __volatile__(
 
-			"movq %3, %%mm1\n\t" /* mm1 = brightness */
-			"movq %4, %%mm2\n\t" /* mm2 = contrast */
-			"pxor %%mm7, %%mm7\n\t"
-			".align 16\n"
-			"1:\tmovd (%1), %%mm0\n\t" /* mm0 = [0 0 0 0 y3 y2 y1 y0] */
-			"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 y3 0 y2 0 y1 0 y0] */
-			"paddw %%mm1, %%mm0\n\t" /* y + brightness */
-			"psllw $2, %%mm0\n\t" /* y << 2 */
-			"pmulhw %%mm2, %%mm0\n\t" /* y * contrast */
-			"packuswb %%mm0, %%mm0\n\t" /* mm0 = [y3 y2 y1 y0 y3 y2 y1 y0] */
-			"movd %%mm0, (%0)\n\t"
-			"addl $4, %0\n\t"
-			"addl $4, %1\n\t"
-			"loop 1b\n\t"
+		"movq %3, %%mm1\n\t" /* mm1 = brightness */
+		"movq %4, %%mm2\n\t" /* mm2 = contrast */
+		"pxor %%mm7, %%mm7\n\t"
+		".align 16\n"
+		"1:\tmovd (%1), %%mm0\n\t" /* mm0 = [0 0 0 0 y3 y2 y1 y0] */
+		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 y3 0 y2 0 y1 0 y0] */
+		"paddw %%mm1, %%mm0\n\t" /* y + brightness */
+		"psllw $2, %%mm0\n\t" /* y << 2 */
+		"pmulhw %%mm2, %%mm0\n\t" /* y * contrast */
+		"packuswb %%mm0, %%mm0\n\t" /* mm0 = [y3 y2 y1 y0 y3 y2 y1 y0] */
+		"movd %%mm0, (%0)\n\t"
+		"addl $4, %0\n\t"
+		"addl $4, %1\n\t"
+		"loop 1b\n\t"
 
-			: "=&r" (data)
-			: "r" (frame->vo_frame.base[0]), "c" (n),
-			  "m" (*(this->brightness.mm_val)),
-			  "m" (*(this->contrast.mm_val)), "0" (data)
-			: "memory");
-	}
+		: "=&r" (data)
+		: "r" (frame->vo_frame.base[0]), "c" (n),
+		  "m" (*(this->brightness.mm_val)),
+		  "m" (*(this->contrast.mm_val)), "0" (data)
+		: "memory");
 
 	xine_fast_memcpy(data,
 			(frame->surface->format == DSPF_YV12)
@@ -1430,44 +1515,35 @@ __mmx_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 }
 #endif
 
+
 static void
 __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
 {
-	int32_t bright = this->brightness.l_val;
-	int32_t ctr    = this->contrast.l_val;
+	uint8_t* y_data = frame->vo_frame.base[0];
+	uint32_t n      = (frame->width * frame->height) >> 1;
+	int32_t bright  = this->brightness.l_val;
+	int32_t ctr     = this->contrast.l_val;
 
 
-	if(!bright && ctr == 0x4000)
+	do
 	{
-		xine_fast_memcpy(data, frame->vo_frame.base[0],
-				pitch * frame->height);
-		data += pitch * frame->height;
+		register int y;
 
-	} else
-	{
-		uint8_t* y_data = frame->vo_frame.base[0];
-		uint32_t n = (frame->width * frame->height) >> 1;
+		y = *y_data + bright;
+		y *= ctr;
+		y >>= 14;
+		*data = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 
-		do
-		{
-			register int y;
+		y = *(y_data + 1) + bright;
+		y *= ctr;
+		y >>= 14;
+		*(data + 1) = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 
-			y = *y_data + bright;
-			y *= ctr;
-			y >>= 14;
-			*data = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
+		y_data += 2;
+		data   += 2;
 
-			y = *(y_data + 1) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(data + 1) = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-
-			y_data += 2;
-			data   += 2;
-
-		} while(--n);
-	}
+	} while(--n);
 
 	xine_fast_memcpy(data, (frame->surface->format == DSPF_YV12)
 				? frame->vo_frame.base[2]
@@ -1480,6 +1556,7 @@ __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 			       : frame->vo_frame.base[2],
 			(pitch * frame->height) >> 2);
 }
+
 
 #ifdef ARCH_X86
 static void
@@ -1581,6 +1658,7 @@ __mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 }
 #endif
 
+
 static void
 __dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1674,6 +1752,7 @@ __dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 	} while(--n);
 
 }
+
 
 #ifdef ARCH_X86
 static void
@@ -1775,6 +1854,7 @@ __mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 }
 #endif
 
+
 static void
 __dummy_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1869,6 +1949,7 @@ __dummy_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 	} while(--n);
 
 }
+
 
 #ifdef ARCH_X86
 static void
@@ -1980,6 +2061,7 @@ __mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 }
 #endif
 
+
 static void
 __dummy_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -2064,6 +2146,7 @@ __dummy_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 	} while(--n);
 
 }
+
 
 #ifdef ARCH_X86
 static void
@@ -2157,6 +2240,7 @@ __mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 #endif
+
 
 static void
 __dummy_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
@@ -2272,10 +2356,7 @@ dfb_get_capabilities(vo_driver_t* vo_driver)
 static void
 dfb_proc_frame(vo_frame_t* vo_frame)
 {
-	dfb_driver_t* this = NULL;
 	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
-	uint8_t* data;
-	uint32_t pitch;
 #ifdef DFB_DEBUG
 	static int test = 8;
 #endif
@@ -2285,11 +2366,17 @@ dfb_proc_frame(vo_frame_t* vo_frame)
 
 	vo_frame->proc_called = 1;
 
-	this  = (dfb_driver_t*) vo_frame->driver;
-	data  = (uint8_t*) frame->surface->back_buffer->system.addr;
-	pitch = (uint32_t) frame->surface->back_buffer->system.pitch;
+	if(frame->proc_needed)
+	{
+		uint8_t* data;
+		uint32_t pitch;
 
-	SPEED(frame->realize(this, frame, data, pitch));
+		data  = (uint8_t*) frame->surface->back_buffer->system.addr;
+		pitch = (uint32_t) frame->surface->back_buffer->system.pitch;
+
+		SPEED(frame->realize((dfb_driver_t*) vo_frame->driver,
+					 frame, data, pitch));
+	}
 
 FAILURE:
 	return;
@@ -2347,8 +2434,8 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 		uint32_t width, uint32_t height, double ratio,
 		int format, int flags)
 {
-	dfb_driver_t* this   = (dfb_driver_t*) vo_driver;
-	dfb_frame_t* frame   = (dfb_frame_t*) vo_frame;
+	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
+	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
 	yuv_render_t* yuv_cc;
 
 	TEST(vo_driver  != NULL);
@@ -2360,8 +2447,9 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	frame->width  = width + ((width & 3) ? (4 - (width & 3)) : 0);
 	/* height must be a multiple of 2 */
 	frame->height = height + (height & 1);
-	frame->format = format;
-	
+
+	frame->proc_needed = 1;
+
 	if(frame->surface)
 	{
 		dfb_surface_unref(frame->surface);
@@ -2385,42 +2473,76 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	release(frame->chunks[1]);
 	release(frame->chunks[2]);
 	
-	switch(format)
+	if(format == XINE_IMGFMT_YUY2)
 	{
-		case XINE_IMGFMT_YUY2:
-		{
-			ONESHOT("video frame format is YUY2");
-			yuv_cc = &yuy2_cc;
-			frame->vo_frame.pitches[0] = frame->width << 1;
-			frame->vo_frame.base[0] = (uint8_t*) xine_xmalloc_aligned(16,
-							frame->vo_frame.pitches[0] * frame->height,
-							&(frame->chunks[0]));
-			TEST(frame->vo_frame.base[0] != NULL);
-		}
-		break;
+		ONESHOT("video frame format is YUY2");
 
-		/* assume XINE_IMGFMT_YV12 */
-		default:
+		yuv_cc = &yuy2_cc;
+		vo_frame->pitches[0] = frame->width << 1;
+
+		if(frame->surface->format == DSPF_YUY2 &&
+		   !this->brightness.l_val && this->contrast.l_val == 0x4000)
 		{
-			ONESHOT("video frame format is YV12");
-			yuv_cc = &yv12_cc;
-			frame->vo_frame.pitches[0] = frame->width;
-			frame->vo_frame.pitches[1] = frame->width >> 1;
-			frame->vo_frame.pitches[2] = frame->width >> 1;
-			frame->vo_frame.base[0] = (uint8_t*) xine_xmalloc_aligned(16,
-							(frame->vo_frame.pitches[0] * frame->height),
+			frame->proc_needed = 0;
+			vo_frame->base[0]  = (uint8_t*)
+					frame->surface->back_buffer->system.addr;
+		} else
+		{
+			vo_frame->base[0] = (uint8_t*) xine_xmalloc_aligned(16,
+							vo_frame->pitches[0] *
+							frame->height,
 							&(frame->chunks[0]));
-			frame->vo_frame.base[1] = (uint8_t*) xine_xmalloc_aligned(16,
-							frame->vo_frame.pitches[1] * (frame->height >> 1) + 2,
-							&(frame->chunks[1]));
-			frame->vo_frame.base[2] = (uint8_t*) xine_xmalloc_aligned(16,
-							frame->vo_frame.pitches[2] * (frame->height >> 1) + 2,
-							&(frame->chunks[2]));
-			TEST(frame->vo_frame.base[0] != NULL);
-			TEST(frame->vo_frame.base[1] != NULL);
-			TEST(frame->vo_frame.base[2] != NULL);
+			TEST(vo_frame->base[0] != NULL);
 		}
-		break;
+
+	} else /* assume XINE_IMGFMT_YV12 */
+	{
+		ONESHOT("video frame format is YV12");
+
+		yuv_cc = &yv12_cc;
+		vo_frame->pitches[0] = frame->width;
+		vo_frame->pitches[1] = frame->width >> 1;
+		vo_frame->pitches[2] = frame->width >> 1;
+
+		if((frame->surface->format == DSPF_YV12 ||
+			frame->surface->format == DSPF_I420) &&
+		    !this->brightness.l_val && this->contrast.l_val == 0x4000)
+		{
+			frame->proc_needed = 0;
+			vo_frame->base[0]  = (uint8_t*)
+					frame->surface->back_buffer->system.addr;
+			if(frame->surface->format == DSPF_YV12)
+			{
+				vo_frame->base[2] = (uint8_t*) vo_frame->base[0] +
+							(frame->width * frame->height);
+				vo_frame->base[1] = (uint8_t*) vo_frame->base[2] +
+							((frame->width * frame->height) >> 2);
+			} else
+			{
+				vo_frame->base[1] = (uint8_t*) vo_frame->base[0] +
+							(frame->width * frame->height);
+				vo_frame->base[2] = (uint8_t*) vo_frame->base[1] +
+							((frame->width * frame->height) >> 2);
+			}
+		} else
+		{
+			vo_frame->base[0] = (uint8_t*) xine_xmalloc_aligned(16,
+							vo_frame->pitches[0] *
+							frame->height,
+							&(frame->chunks[0]));
+			vo_frame->base[1] = (uint8_t*) xine_xmalloc_aligned(16,
+							vo_frame->pitches[1] *
+							(frame->height >> 1) + 2,
+							&(frame->chunks[1]));
+			vo_frame->base[2] = (uint8_t*) xine_xmalloc_aligned(16,
+							vo_frame->pitches[2] *
+							(frame->height >> 1) + 2,
+							&(frame->chunks[2]));
+			TEST(vo_frame->base[0] != NULL);
+			TEST(vo_frame->base[1] != NULL);
+			TEST(vo_frame->base[2] != NULL);
+		}
+
 	}
 
 	switch(frame->surface->format)
@@ -2999,11 +3121,13 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 #ifdef ARCH_X86
 	{
 		int accel = xine_mm_accel();
+
 		if((accel & MM_MMX) == MM_MMX)
 		{
 			SAY("MMX detected and enabled");
 			yuy2_cc.yuy2  = __mmx_yuy2_be_yuy2;
 			yuy2_cc.uyvy  = __mmx_yuy2_be_uyvy;
+			yuy2_cc.yv12  = __mmx_yuy2_be_yv12;
 			yuy2_cc.rgb15 = __mmx_yuy2_be_rgb15;
 			yuy2_cc.rgb16 = __mmx_yuy2_be_rgb16;
 			yuy2_cc.rgb24 = __mmx_yuy2_be_rgb24;
@@ -3019,6 +3143,7 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 
 	}
 #endif
+
 	{
 		config_values_t* config = class->xine->config;
 
@@ -3102,7 +3227,7 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 	this->output_cdata = visual->cdata;
 
 
-	return(&(this->vo_driver));
+	return((vo_driver_t*) this);
 
 FAILURE:
 	release(this);

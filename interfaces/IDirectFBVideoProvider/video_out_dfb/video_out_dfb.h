@@ -37,7 +37,8 @@ struct dfb_frame_s
 
 	int            width;
 	int            height;
-	int            format;
+
+	char           proc_needed;
 	
 	CardState      state;
 	CoreSurface*   surface;
