@@ -13,12 +13,17 @@ AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\
 	-DLIBDIR=\"@LIBDIR@\"
 
+
+internalincludedir = $(INTERNALINCLUDEDIR)
+
+internalinclude_HEADERS = idirectfb.h
+
+
 lib_LTLIBRARIES = libdirectfb.la
 
 libdirectfb_la_SOURCES = 	\
 	directfb.c		\
 	idirectfb.c		\
-	idirectfb.h		\
 	interface.c
 
 libdirectfb_la_LDFLAGS = \

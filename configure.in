@@ -365,6 +365,7 @@ ACLOCAL="$ACLOCAL $ACLOCAL_FLAGS"
 
 DATADIR=$datadir/directfb
 LIBDIR=$libdir/directfb
+INTERNALINCLUDEDIR=$includedir/directfb-internal
 
 AC_SUBST(DFB_CFLAGS)
 AC_SUBST(DFB_LDFLAGS)
@@ -390,10 +391,12 @@ AC_SUBST(GFX_TDFX)
 
 AC_SUBST(DATADIR)
 AC_SUBST(LIBDIR)
+AC_SUBST(INTERNALINCLUDEDIR)
 
 AC_OUTPUT([
 directfb-config
 directfb.pc
+directfb-internal.pc
 directfb-avifile.pc
 directfb-swf.pc
 Makefile
@@ -433,7 +436,9 @@ docs/Makefile
 
 
 AC_MSG_RESULT([
+
 Build options: 
+  Install prefix    $prefix
   MMX support       $MMX
   Debug mode        $enable_debug
 

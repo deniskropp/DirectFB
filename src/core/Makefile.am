@@ -18,33 +18,36 @@ AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\
 	-DLIBDIR=\"@LIBDIR@\"
 
+internalincludedir = $(INTERNALINCLUDEDIR)/core
 
-libdirectfb_core_la_SOURCES = \
+internalinclude_HEADERS = \
 	coredefs.h		\
 	coretypes.h		\
-	core.c			\
 	core.h			\
-	fbdev.c			\
 	fbdev.h			\
-	fonts.c			\
 	fonts.h			\
-	gfxcard.c		\
 	gfxcard.h		\
-	input.c			\
 	input.h			\
-	layers.c		\
 	layers.h		\
-	reactor.c		\
 	reactor.h		\
-	state.c			\
 	state.h			\
-	surfaces.c		\
 	surfaces.h		\
-	surfacemanager.c	\
 	surfacemanager.h	\
-	sig.c			\
 	sig.h			\
-	windows.c		\
 	windows.h		\
-	vt.c			\
 	vt.h
+
+libdirectfb_core_la_SOURCES = \
+	core.c			\
+	fbdev.c			\
+	fonts.c			\
+	gfxcard.c		\
+	input.c			\
+	layers.c		\
+	reactor.c		\
+	state.c			\
+	surfaces.c		\
+	surfacemanager.c	\
+	sig.c			\
+	windows.c		\
+	vt.c

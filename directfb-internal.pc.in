@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@INTERNALINCLUDEDIR@
+
+Name: DirectFB-Internal
+Description: graphics and windowing library on Linux framebuffer (internal stuff)
+Version: @VERSION@
+Libs: 
+Cflags: -I${includedir}

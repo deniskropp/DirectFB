@@ -6,10 +6,16 @@ INCLUDES = \
 
 CFLAGS = $(DFB_CFLAGS)
 
+
+internalincludedir = $(INTERNALINCLUDEDIR)/windows
+
+internalinclude_HEADERS = \
+	idirectfbwindow.h
+
+
 noinst_LTLIBRARIES = libdirectfb_windows.la
 
 libdirectfb_windows_la_SOURCES = \
-	idirectfbwindow.c	\
-	idirectfbwindow.h
+	idirectfbwindow.c
 
 libdirectfb_windows_la_LIBADD = $(THREAD_LIBS)

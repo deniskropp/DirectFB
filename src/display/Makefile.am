@@ -6,16 +6,22 @@ INCLUDES = \
 
 CFLAGS = $(DFB_CFLAGS)
 
+
+internalincludedir = $(INTERNALINCLUDEDIR)/display
+
+internalinclude_HEADERS = \
+	idirectfbsurface.h		\
+	idirectfbsurface_layer.h 	\
+	idirectfbsurface_window.h 	\
+	idirectfbdisplaylayer.h
+
+
 noinst_LTLIBRARIES = libdirectfb_display.la
 
 libdirectfb_display_la_SOURCES =	\
 	idirectfbsurface.c		\
-	idirectfbsurface.h		\
 	idirectfbsurface_layer.c 	\
-	idirectfbsurface_layer.h 	\
 	idirectfbsurface_window.c 	\
-	idirectfbsurface_window.h 	\
-	idirectfbdisplaylayer.c		\
-	idirectfbdisplaylayer.h
+	idirectfbdisplaylayer.c
 
 libdirectfb_display_la_LIBADD = $(THREAD_LIBS)

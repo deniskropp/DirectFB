@@ -6,12 +6,18 @@ INCLUDES = \
 
 CFLAGS = $(DFB_CFLAGS)
 
+
+internalincludedir = $(INTERNALINCLUDEDIR)/input
+
+internalinclude_HEADERS = \
+	idirectfbinputdevice.h	\
+	idirectfbinputbuffer.h
+
+
 noinst_LTLIBRARIES = libdirectfb_input.la
 
 libdirectfb_input_la_SOURCES = \
 	idirectfbinputdevice.c	\
-	idirectfbinputdevice.h	\
-	idirectfbinputbuffer.c	\
-	idirectfbinputbuffer.h
+	idirectfbinputbuffer.c
 
 libdirectfb_input_la_LIBADD = $(THREAD_LIBS)
