@@ -59,7 +59,7 @@ struct _ModuleDirectory {
 };
 
 #define DECLARE_MODULE_DIRECTORY(d)  \
-     ModuleDirectory d
+     extern ModuleDirectory d
 
 #define DEFINE_MODULE_DIRECTORY(d,p,n) \
      ModuleDirectory d = {             \
