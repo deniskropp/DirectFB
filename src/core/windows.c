@@ -1214,6 +1214,7 @@ window_withdraw( CoreWindow *window )
                     dfb_window_post_event( window, &we );
                }
 
+               stack->keys[i].code != -1;
                stack->keys[i].owner = NULL;
           }
      }
