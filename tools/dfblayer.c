@@ -1,12 +1,14 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <neo@directfb.org>.
-              
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
+
    This file is subject to the terms and conditions of the MIT License:
 
    Permission is hereby granted, free of charge, to any person
@@ -122,7 +124,7 @@ main( int argc, char *argv[] )
 
      /* Release the super interface. */
      dfb->Release( dfb );
-     
+
      return EXIT_SUCCESS;
 }
 
@@ -162,7 +164,7 @@ print_usage (const char *prg_name)
 
           if (DFB_PLANAR_PIXELFORMAT(format)) {
                int planes = DFB_PLANE_MULTIPLY(format, 1000);
-               
+
                fprintf (stderr, "   PLANAR (x%d.%03d)",
                         planes / 1000, planes % 1000);
           }
@@ -195,7 +197,7 @@ parse_layer( const char *arg )
 
           return DFB_FALSE;
      }
-     
+
      return DFB_TRUE;
 }
 
@@ -208,7 +210,7 @@ parse_mode( const char *arg )
           fprintf (stderr, "\nInvalid mode specified!\n\n" );
           return DFB_FALSE;
      }
-     
+
      return DFB_TRUE;
 }
 
@@ -225,7 +227,7 @@ parse_format( const char *arg )
 
           ++i;
      }
-     
+
      fprintf (stderr, "\nInvalid format specified!\n\n" );
 
      return DFB_FALSE;
@@ -248,7 +250,7 @@ parse_buffermode( const char *arg )
           fprintf (stderr, "\nInvalid buffer mode specified!\n\n" );
           return DFB_FALSE;
      }
-     
+
      return DFB_TRUE;
 }
 
@@ -260,7 +262,7 @@ parse_opacity( const char *arg )
 
           return DFB_FALSE;
      }
-     
+
      return DFB_TRUE;
 }
 
@@ -276,7 +278,7 @@ parse_command_line( int argc, char *argv[] )
                print_usage (argv[0]);
                return DFB_FALSE;
           }
-          
+
           if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0) {
                fprintf (stderr, "dfbg version %s\n", DIRECTFB_VERSION);
                return DFB_FALSE;
@@ -341,7 +343,7 @@ parse_command_line( int argc, char *argv[] )
 
                continue;
           }
-          
+
           print_usage (argv[0]);
 
           return DFB_FALSE;
@@ -361,22 +363,22 @@ set_configuration()
      printf( "\n" );
 
      config.flags = DLCONF_NONE;
-     
+
      if (width) {
           config.flags |= DLCONF_WIDTH;
           config.width  = width;
      }
-     
+
      if (height) {
           config.flags  |= DLCONF_HEIGHT;
           config.height  = height;
      }
-     
+
      if (format != DSPF_UNKNOWN) {
           config.flags       |= DLCONF_PIXELFORMAT;
           config.pixelformat  = format;
      }
-     
+
      if (buffermode != -1) {
           config.flags      |= DLCONF_BUFFERMODE;
           config.buffermode  = buffermode;
@@ -397,7 +399,7 @@ set_configuration()
           DirectFBError( "IDirectFBDisplayLayer::GetConfiguration() failed", ret );
           return;
      }
-     
+
      if (config.flags & DLCONF_WIDTH)
           printf( "Width       %d\n", config.width );
 
@@ -410,7 +412,7 @@ set_configuration()
 
      if (config.flags & DLCONF_BUFFERMODE) {
           printf( "Buffermode  " );
-          
+
           switch (config.buffermode) {
                case DLBM_FRONTONLY:
                     printf( "FRONTONLY\n" );
@@ -432,7 +434,7 @@ set_configuration()
                     break;
           }
      }
-     
+
      if (config.flags & DLCONF_OPTIONS) {
           printf( "Options     " );
 
@@ -442,29 +444,29 @@ set_configuration()
           else {
                if (config.options & DLOP_ALPHACHANNEL)
                     printf( "ALPHA CHANNEL       " );
-               
+
                if (config.options & DLOP_DEINTERLACING)
                     printf( "DEINTERLACING       " );
-               
+
                if (config.options & DLOP_DST_COLORKEY)
                     printf( "DST COLOR KEY       " );
-               
+
                if (config.options & DLOP_FIELD_PARITY)
                     printf( "FIELD PARITY        " );
-               
+
                if (config.options & DLOP_FLICKER_FILTERING)
                     printf( "FLICKER FILTERING   " );
-               
+
                if (config.options & DLOP_OPACITY)
                     printf( "OPACITY             " );
-               
+
                if (config.options & DLOP_SRC_COLORKEY)
                     printf( "SRC COLOR KEY       " );
-               
+
                printf( "\n" );
           }
      }
-     
+
      printf( "\n" );
 
      /* Set the opacity if requested. */

@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -49,7 +50,7 @@ typedef struct {
      void              *module_handle;
 
      DFBInterfaceFuncs *funcs;
-     
+
      const char        *type;
      const char        *implementation;
 
@@ -89,7 +90,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
      char                       *interface_dir;
      struct dirent              *entry;
 #endif
-     
+
      FusionLink *link;
 
      pthread_mutex_lock( &implementations_mutex );
@@ -114,7 +115,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                              "Using '%s' implementation of '%s'.\n",
                              impl->implementation, impl->type );
                }
-               
+
                *funcs = impl->funcs;
                impl->references++;
 
@@ -131,7 +132,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
      len = strlen(MODULEDIR"/interfaces/") + strlen(type) + 1;
      interface_dir = alloca( len );
      snprintf( interface_dir, len, MODULEDIR"/interfaces/%s", type );
-     
+
      dir = opendir( interface_dir );
      if (!dir) {
           PERRORMSG( "DirectFB/interfaces: "
@@ -152,7 +153,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
 
           DFBInterfaceImplementation *old_impl =
                (DFBInterfaceImplementation*) implementations;
-          
+
           if (strlen(entry->d_name) < 4 ||
               entry->d_name[strlen(entry->d_name)-1] != 'o' ||
               entry->d_name[strlen(entry->d_name)-2] != 's')
@@ -166,7 +167,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
           fusion_list_foreach( link, implementations ) {
                DFBInterfaceImplementation *impl =
                     (DFBInterfaceImplementation*) link;
-          
+
                if (impl->filename && !strcmp( impl->filename, buf )) {
                     handle = impl->module_handle;
                     break;
@@ -199,7 +200,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                     dlclose( handle );
                     continue;
                }
-               
+
                HEAVYDEBUGMSG( "DirectFB/interface: Found `%s_%s'.\n",
                               impl->type, impl->implementation );
 
@@ -208,7 +209,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                 */
                impl->filename      = DFBSTRDUP( buf );
                impl->module_handle = handle;
-               
+
                /*
                 * Almost the same stuff like above, TODO: make function.
                 */
@@ -226,12 +227,12 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                     INITMSG( "DirectFB/Interface: "
                              "Loaded '%s' implementation of '%s'.\n",
                              impl->implementation, impl->type );
-                    
+
                     *funcs = impl->funcs;
                     impl->references++;
 
                     closedir( dir );
-                    
+
                     pthread_mutex_unlock( &implementations_mutex );
 
                     return DFB_OK;

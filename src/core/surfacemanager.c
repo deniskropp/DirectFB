@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -149,7 +150,7 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
 
      /* Destroy manager lock. */
      fusion_skirmish_destroy( &manager->lock );
-     
+
      /* Deallocate manager struct. */
      SHFREE( manager );
 }
@@ -176,18 +177,18 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
      }
 
      dfb_surfacemanager_unlock( manager );
-     
+
      return DFB_OK;
 }
 
 DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 {
      dfb_surfacemanager_lock( manager );
-     
+
      manager->suspended = false;
-     
+
      dfb_surfacemanager_unlock( manager );
-     
+
      return DFB_OK;
 }
 
@@ -311,7 +312,7 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
                     c->tolerations++;
                     if (c->tolerations > 0xff)
                          c->tolerations = 0xff;
-                    
+
                     if (!c->buffer->video.locked              &&
                         c->buffer->policy <= buffer->policy   &&
                         c->buffer->policy != CSP_VIDEOONLY    &&
@@ -363,11 +364,11 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
 
 
           occupy_chunk( manager, best_occupied, buffer, length );
-          
+
           return DFB_OK;
      }
-     
-     
+
+
      DEBUGMSG( "DirectFB/core/surfacemanager: "
                "Couldn't allocate enough heap space "
                "for video memory surface!\n" );
@@ -397,7 +398,7 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
      while (buffer->video.locked) {
           if (++loops > 1000)
                break;
-          
+
           sched_yield();
      }
 
@@ -406,7 +407,7 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
 
      if (chunk)
           free_chunk( manager, chunk );
-     
+
      //DEBUGMSG( "deallocated.\n" );
 
      return DFB_OK;
@@ -425,7 +426,7 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
           case CSH_STORED:
                if (buffer->video.chunk)
                     buffer->video.chunk->tolerations = 0;
-               
+
                return DFB_OK;
 
           case CSH_INVALID:
@@ -435,7 +436,7 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
 
                /* FALL THROUGH, because after successful allocation
                   the surface health is CSH_RESTORE */
-          
+
           case CSH_RESTORE:
                if (buffer->system.health != CSH_STORED)
                     BUG( "system/video instances both not stored!" );
@@ -444,7 +445,7 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                     int   i;
                     char *src = buffer->system.addr;
                     char *dst = dfb_system_video_memory_virtual( buffer->video.offset );
-                    
+
                     for (i=0; i<surface->height; i++) {
                          dfb_memcpy( dst, src,
                                      DFB_BYTES_PER_LINE(surface->format,
@@ -452,7 +453,7 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                          src += buffer->system.pitch;
                          dst += buffer->video.pitch;
                     }
-                    
+
                     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
                          for (i=0; i<surface->height; i++) {
                               dfb_memcpy( dst, src,
@@ -614,13 +615,13 @@ occupy_chunk( SurfaceManager *manager, Chunk *chunk, SurfaceBuffer *buffer, int 
 {
      if (buffer->policy == CSP_VIDEOONLY)
           manager->available -= length;
-     
+
      chunk = split_chunk( chunk, length );
 
      DEBUGMSG( "DirectFB/core/surfacemanager: "
                "Allocating %d bytes at offset %d.\n",
                chunk->length, chunk->offset );
-     
+
      buffer->video.health = CSH_RESTORE;
      buffer->video.offset = chunk->offset;
      buffer->video.chunk  = chunk;

@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -62,7 +63,7 @@ DFB_INPUT_DRIVER( keyboard )
 typedef struct {
      InputDevice                *device;
      CoreThread                 *thread;
-     
+
      struct termios              old_ts;
 
      VirtualTerminal            *vt;
@@ -137,7 +138,7 @@ keyboard_get_symbol( int                             code,
           case K_BREAK:   return DIKS_BREAK;
           case K_CAPS:    return dfb_config->capslock_meta ? DIKS_META :
                                                              DIKS_CAPS_LOCK;
-          
+
           case K_P0:      return DIKS_INSERT;
           case K_P1:      return DIKS_END;
           case K_P2:      return DIKS_CURSOR_DOWN;
@@ -162,13 +163,13 @@ keyboard_get_symbol( int                             code,
      /* special keys not in the map, hack? */
      if (code == 125)         /* left windows key */
           return DIKS_META;
-     
+
      if (code == 126)         /* right windows key */
           return DIKS_META;
-     
+
      if (code == 127)         /* context menu key */
           return DIKS_SUPER;
-     
+
      return DIKS_NULL;
 }
 
@@ -215,13 +216,13 @@ keyboard_get_identifier( int code, unsigned short value )
      /* special keys not in the map, hack? */
      if (code == 125)         /* left windows key */
           return DIKI_META_L;
-     
+
      if (code == 126)         /* right windows key */
           return DIKI_META_R;
-     
+
      if (code == 127)         /* context menu key */
           return DIKI_SUPER_R;
-     
+
      return DIKI_UNKNOWN;
 }
 
@@ -230,7 +231,7 @@ keyboard_read_value( KeyboardData *data,
                      unsigned char table, unsigned char index )
 {
      struct kbentry entry;
-     
+
      entry.kb_table = table;
      entry.kb_index = index;
      entry.kb_value = 0;
@@ -324,7 +325,7 @@ driver_open_device( InputDevice      *device,
           PERRORMSG( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
           return DFB_INIT;
      }
-     
+
      /* allocate and fill private data */
      data = DFBCALLOC( 1, sizeof(KeyboardData) );
 
@@ -397,33 +398,33 @@ driver_get_keymap_entry( InputDevice               *device,
 
      /* write identifier to entry */
      entry->identifier = identifier;
-     
+
      /* write base level symbol to entry */
      entry->symbols[DIKSI_BASE] = keyboard_get_symbol( code, value, DIKSI_BASE );
-     
-     
+
+
      /* fetch the shifted base level */
      value = keyboard_read_value( driver_data, K_SHIFTTAB, entry->code );
-     
+
      /* write shifted base level symbol to entry */
      entry->symbols[DIKSI_BASE_SHIFT] = keyboard_get_symbol( code, value,
                                                              DIKSI_BASE_SHIFT );
-     
-     
+
+
      /* fetch the alternative level */
      value = keyboard_read_value( driver_data, K_ALTTAB, entry->code );
-     
+
      /* write alternative level symbol to entry */
      entry->symbols[DIKSI_ALT] = keyboard_get_symbol( code, value, DIKSI_ALT );
-     
-     
+
+
      /* fetch the shifted alternative level */
      value = keyboard_read_value( driver_data, K_ALTSHIFTTAB, entry->code );
-     
+
      /* write shifted alternative level symbol to entry */
      entry->symbols[DIKSI_ALT_SHIFT] = keyboard_get_symbol( code, value,
                                                             DIKSI_ALT_SHIFT );
-     
+
      return DFB_OK;
 }
 

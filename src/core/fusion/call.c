@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -67,20 +68,20 @@ fusion_call_init (FusionCall        *call,
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_CALL_NEW");
-          
+
           return FUSION_FAILURE;
      }
 
-     /* Called locally. */ 
+     /* Called locally. */
      call->handler = handler;
      call->ctx     = ctx;
 
      /* Store call and fusion id for local (direct) calls. */
      call->call_id   = call_new.call_id;
      call->fusion_id = _fusion_id;
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -92,7 +93,7 @@ fusion_call_execute (FusionCall *call,
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( call != NULL );
-     
+
      if (!call->handler)
           return FUSION_DESTROYED;
 
@@ -138,9 +139,9 @@ FusionResult
 fusion_call_return (int call_id, int val)
 {
      FusionCallReturn call_ret = { call_id, val };
-     
+
      DFB_ASSERT( _fusion_fd != -1 );
-     
+
      while (ioctl (_fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
           switch (errno) {
                case EINTR:
@@ -166,7 +167,7 @@ fusion_call_destroy (FusionCall *call)
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( call != NULL );
      DFB_ASSERT( call->handler != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_CALL_DESTROY, &call->call_id)) {
           switch (errno) {
                case EINTR:
@@ -177,14 +178,14 @@ fusion_call_destroy (FusionCall *call)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_CALL_DESTROY");
 
           return FUSION_FAILURE;
      }
 
      call->handler = NULL;
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -213,10 +214,10 @@ fusion_call_init (FusionCall        *call,
      DFB_ASSERT( call->handler == NULL );
      DFB_ASSERT( handler != NULL );
 
-     /* Called locally. */ 
+     /* Called locally. */
      call->handler = handler;
      call->ctx     = ctx;
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -237,7 +238,7 @@ fusion_call_execute (FusionCall *call,
 
      if (ret_val)
           *ret_val = ret;
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -253,9 +254,9 @@ fusion_call_destroy (FusionCall *call)
 {
      DFB_ASSERT( call != NULL );
      DFB_ASSERT( call->handler != NULL );
-     
+
      call->handler = NULL;
-     
+
      return FUSION_SUCCESS;
 }
 

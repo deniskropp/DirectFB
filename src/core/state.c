@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -58,18 +59,18 @@ dfb_state_init( CardState *state )
      pthread_mutexattr_t attr;
 
      DFB_ASSERT( state != NULL );
-     
+
      memset( state, 0, sizeof(CardState) );
-     
+
      state->modified  = SMF_ALL;
      state->src_blend = DSBF_SRCALPHA;
      state->dst_blend = DSBF_INVSRCALPHA;
 
      pthread_mutexattr_init( &attr );
      pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-     
+
      pthread_mutex_init( &state->lock, &attr );
-     
+
      pthread_mutexattr_destroy( &attr );
 
      state->initialized = true;
@@ -84,10 +85,10 @@ dfb_state_destroy( CardState *state )
      DFB_ASSERT( state->initialized );
 
      state->initialized = false;
-     
+
      if (state->gfxs)
           DFBFREE( state->gfxs );
-     
+
      pthread_mutex_destroy( &state->lock );
 }
 
@@ -98,7 +99,7 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
      DFB_ASSERT( state->initialized );
 
      dfb_state_lock( state );
-     
+
      if (state->destination != destination) {
           if (state->destination) {
                dfb_surface_detach( state->destination,
@@ -108,14 +109,14 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
 
           state->destination  = destination;
           state->modified    |= SMF_DESTINATION;
-          
+
           if (destination) {
                dfb_surface_ref( destination );
                dfb_surface_attach( destination, destination_listener,
                                    state, &state->destination_reaction );
           }
      }
-     
+
      dfb_state_unlock( state );
 }
 
@@ -126,7 +127,7 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
      DFB_ASSERT( state->initialized );
 
      dfb_state_lock( state );
-     
+
      if (state->source != source) {
           if (state->source) {
                dfb_surface_detach( state->source,
@@ -136,14 +137,14 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
 
           state->source    = source;
           state->modified |= SMF_SOURCE;
-          
+
           if (source) {
                dfb_surface_ref( source );
                dfb_surface_attach( source, source_listener,
                                    state, &state->source_reaction );
           }
      }
-     
+
      dfb_state_unlock( state );
 }
 
@@ -193,7 +194,7 @@ destination_listener( const void *msg_data,
      }
 
 //     dfb_state_unlock( state );
-     
+
      return RS_OK;
 }
 
@@ -207,7 +208,7 @@ source_listener( const void *msg_data,
      DFB_ASSERT( state->initialized );
 
 //     dfb_state_lock( state );
-     
+
      if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT | CSNF_FIELD |
                                 CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE_CHANGE |
                                 CSNF_PALETTE_UPDATE))
@@ -218,12 +219,12 @@ source_listener( const void *msg_data,
           state->source = NULL;
 
 //          dfb_state_unlock( state );
-          
+
           return RS_REMOVE;
      }
 
 //     dfb_state_unlock( state );
-     
+
      return RS_OK;
 }
 

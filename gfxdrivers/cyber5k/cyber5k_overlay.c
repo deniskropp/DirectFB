@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -350,7 +351,7 @@ void cyber_set_overlay_scale( unsigned char bEnableBob, int wSrcXExt, int wDstXE
      else {/*Enable Bob mode*/
           wSrcYExt = wSrcYExt / 2;
 	     if (wSrcYExt == wDstYExt)
-	          dwScale = 0x1000;   
+	          dwScale = 0x1000;
 	     else
 	          dwScale = ( wSrcYExt * 0x1000 ) / wDstYExt;
 	     if (dwScale <= 0x815 && dwScale >= 0x7eb) {

@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -55,9 +56,9 @@ typedef void (*GenefxFunc)(GenefxState *gfxs);
  */
 struct _GenefxState {
      GenefxFunc funcs[32];
-     
+
      int length;    /* span length (destination) */
-     
+
      /*
       * state values
       */
@@ -95,7 +96,7 @@ struct _GenefxState {
 
      int Aop_field;
      int Bop_field;
-     
+
      /*
       * color keys
       */

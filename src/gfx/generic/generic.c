@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -489,7 +490,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
           /* Align source & destination to 32 bit. */
           if ((long) D & 3) {
                n = 4 - ((long) D & 3);
-               
+
                for (i=0; i<n; i++) {
                     register __u32 pixel = S[i];
 
@@ -502,7 +503,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
 
           D32 = gfxs->Aop + n;
           S32 = gfxs->Bop + n;
-          
+
           /* Fill 32 bit with 8 bit key. */
           Skey32 = (Skey << 24) | (Skey << 16) | (Skey << 8) | Skey;
 
@@ -525,7 +526,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
                     else {
                          /* Copy one by one. */
                          D = (__u8*) (D32 + i);
-                         
+
 #ifdef WORDS_BIGENDIAN
                          if (X32 & 0xff000000)
                               D[0] = (__u8)P32 >> 24;
@@ -540,7 +541,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
                               D[3] = P32;
 
 #else
-                         
+
                          if (X32 & 0x000000ff)
                               D[0] = P32;
 
@@ -563,7 +564,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
                S = (__u8*) (S32 + n);
 
                n = w & 3;
-               
+
                for (i=0; i<n; i++) {
                     register __u32 pixel = S[i];
 
@@ -591,7 +592,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
                D += n;
                S += n;
           }
-          
+
           /* Write up to 32 bit at once. */
           for (i=0; i<w; ++i) {
                register __u32 pixel = S[i];
@@ -601,7 +602,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
                     out = (out << 8) | pixel;
 #else
                     out = (out >> 8) | (pixel << 24);
-#endif                    
+#endif
                     if (++num == 4) {
                          *(__u32*)(D+i-3) = out;
 
@@ -617,7 +618,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
                               case 1:
                                    D[i] = out;
                          }
-                         
+
                          num = 0;
                     }
                }
@@ -631,11 +632,11 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
                          case 1:
                               D[i-1] = out;
                     }
-                    
+
                     num = 0;
                }
           }
-          
+
           /* Flush 'out'. */
           if (num) {
                switch (num) {

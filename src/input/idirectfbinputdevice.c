@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -71,7 +72,7 @@ typedef struct {
      DFBInputDeviceModifierMask  modifiers;         /* bitmask reflecting the
                                                        state of the modifier
                                                        keys */
-     DFBInputDeviceLockState     locks;             /* bitmask reflecting the 
+     DFBInputDeviceLockState     locks;             /* bitmask reflecting the
 						       state of the key locks */
      DFBInputDeviceButtonMask    buttonmask;        /* bitmask reflecting the
                                                        state of the buttons */
@@ -187,7 +188,7 @@ IDirectFBInputDevice_GetKeymapEntry( IDirectFBInputDevice      *thiz,
      if (keycode < data->desc.min_keycode ||
          keycode > data->desc.max_keycode)
           return DFB_INVARG;
-     
+
      return dfb_input_device_get_keymap_entry( data->device, keycode, entry );
 }
 
@@ -306,9 +307,9 @@ IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
 
      data->ref    = 1;
      data->device = device;
-     
+
      dfb_input_device_description( device, &data->desc );
-     
+
      dfb_input_attach( data->device, IDirectFBInputDevice_React,
                        data, &data->reaction );
 
@@ -347,7 +348,7 @@ IDirectFBInputDevice_React( const void *msg_data,
           data->locks = evt->locks;
      if (evt->flags & DIEF_BUTTONS)
           data->buttonmask = evt->buttons;
-     
+
      switch (evt->type) {
           case DIET_KEYPRESS:
                index = evt->key_id - DFB_KEY(IDENTIFIER, 0);

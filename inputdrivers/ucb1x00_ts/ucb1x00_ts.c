@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -168,7 +169,7 @@ scale_point( TS_EVENT *ts_event )
      ts_event->x = config.xswap ? (config.xres - x) : x;
      ts_event->y = config.yswap ? (config.yres - y) : y;
 }
-                                        
+
 static void *
 ucb1x00tsEventThread( CoreThread *thread, void *driver_data )
 {
@@ -194,9 +195,9 @@ ucb1x00tsEventThread( CoreThread *thread, void *driver_data )
 
           filter_event( &ts_event );
           scale_point( &ts_event );
-	  
+	
 	  ts_event.pressure = (ts_event.pressure > config.zthresh );
-	  
+	
           if (ts_event.pressure) {
                if (ts_event.x != old_x) {
                     evt.type    = DIET_AXISMOTION;
@@ -243,7 +244,7 @@ ucb1x00tsEventThread( CoreThread *thread, void *driver_data )
 
 /* exported symbols */
 
-static int 
+static int
 driver_get_available()
 {
      int fd;
@@ -346,7 +347,7 @@ driver_close_device( void *driver_data )
 
      if (event_buffer)
           free( event_buffer );
-          
+
      /* free private data */
      DFBFREE( data );
 }

@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -44,7 +45,7 @@ static struct timeval start_time = { 0, 0 };
 long long dfb_get_micros()
 {
      struct timeval tv;
-     
+
      if (start_time.tv_sec == 0) {
           gettimeofday( &start_time, NULL );
           return 0;
@@ -74,11 +75,11 @@ dfb_try_open( const char *name1, const char *name2, int flags )
           PERRORMSG( "opening '%s' failed\n", name1 );
           return -1;
      }
-     
+
      fd = open (name2, flags);
      if (fd >= 0)
           return fd;
-     
+
      if (errno == ENOENT)
           PERRORMSG( "opening '%s' and '%s' failed\n", name1, name2 );
      else

@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2003  convergence GmbH.
+   (c) Copyright 2002-2004  convergence GmbH.
 
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    directfb-csource is based on gdk-pixbuf-csource, a GdkPixbuf
    based image CSource generator  Copyright (C) 1999, 2001 Tim Janik

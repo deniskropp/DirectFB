@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -48,21 +49,21 @@ extern "C"
      } DFBInputDeviceKeyType;
 
      #define DFB_KEY(type,index)        ((DIKT_##type) | (index))
-     
+
      #define DFB_KEY_TYPE(symbol)       ((symbol) & 0xFF00)
      #define DFB_KEY_INDEX(symbol)      ((symbol) & 0x00FF)
-     
+
      #define DFB_KEY_IS_ASCII(symbol)   ((symbol) < 128)
-     
+
      #define DFB_FUNCTION_KEY(n)        (DFB_KEY( FUNCTION, n ))
      #define DFB_MODIFIER_KEY(i)        (DFB_KEY( MODIFIER, (1 << i) ))
      #define DFB_CUSTOM_KEY(n)          (DFB_KEY( CUSTOM, n ))
-     
+
      #define DFB_LOWER_CASE(symbol)     (((symbol) >= 'A' && (symbol) <= 'Z') ?\
                                          ((symbol) | 0x20) : (symbol))
      #define DFB_UPPER_CASE(symbol)     (((symbol) >= 'a' && (symbol) <= 'z') ?\
                                          ((symbol) & ~0x20) : (symbol))
-     
+
      /*
       * DirectFB modifier key identifiers (for advanced mapping)
       */
@@ -139,7 +140,7 @@ extern "C"
           DIKI_SHIFT_L,
           DIKI_SHIFT_R,
           DIKI_CONTROL_L,
-          DIKI_CONTROL_R, 
+          DIKI_CONTROL_R,
           DIKI_ALT_L,
           DIKI_ALT_R,
           DIKI_ALTGR,
@@ -159,7 +160,7 @@ extern "C"
           DIKI_RIGHT,
           DIKI_UP,
           DIKI_DOWN,
-          DIKI_TAB, 
+          DIKI_TAB,
           DIKI_ENTER,
           DIKI_SPACE,
           DIKI_BACKSPACE,
@@ -203,7 +204,7 @@ extern "C"
           DIKI_KP_F4,
           DIKI_KP_EQUAL,
           DIKI_KP_SEPARATOR,
-          
+
           DIKI_KP_DECIMAL,
           DIKI_KP_0,
           DIKI_KP_1,
@@ -335,7 +336,7 @@ extern "C"
           DIKS_DELETE                   = DFB_KEY( UNICODE, 0x7F ),
 
           DIKS_ENTER                    = DIKS_RETURN,
-          
+
           /*
            * Unicode private area - DirectFB Special keys
            */
@@ -379,7 +380,7 @@ extern "C"
           DIKS_KEYBOARD                 = DFB_KEY( SPECIAL, 0x24 ),
           DIKS_PC                       = DFB_KEY( SPECIAL, 0x25 ),
           DIKS_SCREEN                   = DFB_KEY( SPECIAL, 0x26 ),
-                                                               
+
           DIKS_TV                       = DFB_KEY( SPECIAL, 0x27 ),
           DIKS_TV2                      = DFB_KEY( SPECIAL, 0x28 ),
           DIKS_VCR                      = DFB_KEY( SPECIAL, 0x29 ),
@@ -464,7 +465,7 @@ extern "C"
           DIKS_F10                      = DFB_FUNCTION_KEY( 10 ),
           DIKS_F11                      = DFB_FUNCTION_KEY( 11 ),
           DIKS_F12                      = DFB_FUNCTION_KEY( 12 ),
-          
+
           /*
            * Unicode private area - DirectFB Modifier keys
            */
@@ -475,14 +476,14 @@ extern "C"
           DIKS_META                     = DFB_MODIFIER_KEY( DIMKI_META ),
           DIKS_SUPER                    = DFB_MODIFIER_KEY( DIMKI_SUPER ),
           DIKS_HYPER                    = DFB_MODIFIER_KEY( DIMKI_HYPER ),
-          
+
           /*
            * Unicode private area - DirectFB Lock keys
            */
           DIKS_CAPS_LOCK                = DFB_KEY( LOCK, 0x00 ),
           DIKS_NUM_LOCK                 = DFB_KEY( LOCK, 0x01 ),
           DIKS_SCROLL_LOCK              = DFB_KEY( LOCK, 0x02 ),
-          
+
           /*
            * Unicode private area - DirectFB Dead keys
            */

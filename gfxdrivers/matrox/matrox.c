@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -138,7 +139,7 @@ static void matroxEngineReset( void *drv, void *dev )
      volatile __u8    *mmio = mdrv->mmio_base;
 
      mga_waitidle( mdrv, mdev );
-     
+
      mga_waitfifo( mdrv, mdev, 11 );
      mga_out32( mmio, 0, TDUALSTAGE0 );   /* multi texture registers */
      mga_out32( mmio, 0, TDUALSTAGE1 );
@@ -560,7 +561,7 @@ static bool matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      mga_out32( mmio, (RS16(rect->x + rect->w) << 16) | RS16(rect->x), FXBNDRY );
      mga_out32( mmio, (RS16(rect->y) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
-     
+
      return true;
 }
 
@@ -712,7 +713,7 @@ static bool matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
                 MIN( tri->x2, majX2 ), MAX( tri->x2, majX2 ),
                 tri->x3, tri->x3, tri->y2, botDy + 1 );
      }
-     
+
      return true;
 }
 
@@ -968,7 +969,7 @@ static void matroxDoBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
 
      if (mdev->blit_deinterlace && !mdev->field)
           starty += (0x80000 >> h2);
-     
+
      mga_waitfifo( mdrv, mdev, 8);
 
      mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
@@ -1070,7 +1071,7 @@ static bool matroxStretchBlit( void *drv, void *dev,
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
 
      matroxBlitTMU( mdrv, mdev, srect, drect, 1 );
-     
+
      return true;
 }
 
@@ -1083,7 +1084,7 @@ static bool matroxBlit3D( void *drv, void *dev,
      DFBRectangle      drect = { dx, dy, rect->w, rect->h };
 
      matroxBlitTMU( mdrv, mdev, rect, &drect, mdev->blit_deinterlace );
-     
+
      return true;
 }
 
@@ -1181,7 +1182,7 @@ driver_init_driver( GraphicsDevice      *device,
 
      /* will be set dynamically: funcs->Blit */
 
-     
+
      /* G200/G400/G450/G550 Backend Scaler Support */
      if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200 ||
          mdrv->accelerator == FB_ACCEL_MATROX_MGAG400)

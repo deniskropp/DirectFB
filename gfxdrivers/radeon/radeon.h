@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
-              Sven Neumann <sven@convergence.de> and
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
 	      Michel Dänzer <michel@daenzer.net>.
 
    This library is free software; you can redistribute it and/or
@@ -45,7 +46,7 @@ typedef struct {
     __u32 RADEON_dp_gui_master_cntl;
     __u32 RADEON_color_compare;
 
-    /* state validation */     
+    /* state validation */
     int v_destination;
     int v_color;
     int v_source;

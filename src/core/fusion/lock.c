@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -52,7 +53,7 @@ fusion_skirmish_init (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( skirmish != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->id)) {
           switch (errno) {
                case EINTR:
@@ -60,9 +61,9 @@ fusion_skirmish_init (FusionSkirmish *skirmish)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_SKIRMISH_NEW");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -74,7 +75,7 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( skirmish != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_SKIRMISH_PREVAIL, &skirmish->id)) {
           switch (errno) {
                case EINTR:
@@ -87,7 +88,7 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
           }
 
           FPERROR ("FUSION_SKIRMISH_PREVAIL");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -99,7 +100,7 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( skirmish != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_SKIRMISH_SWOOP, &skirmish->id)) {
           switch (errno) {
                case EINTR:
@@ -112,9 +113,9 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_SKIRMISH_SWOOP");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -126,7 +127,7 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( skirmish != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_SKIRMISH_DISMISS, &skirmish->id)) {
           switch (errno) {
                case EINTR:
@@ -137,9 +138,9 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_SKIRMISH_DISMISS");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -151,7 +152,7 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( skirmish != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_SKIRMISH_DESTROY, &skirmish->id)) {
           switch (errno) {
                case EINTR:
@@ -162,7 +163,7 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_SKIRMISH_DESTROY");
 
           return FUSION_FAILURE;
@@ -179,12 +180,12 @@ fusion_skirmish_init (FusionSkirmish *skirmish)
      pthread_mutexattr_t attr;
 
      DFB_ASSERT( skirmish != NULL );
-     
+
      pthread_mutexattr_init( &attr );
      pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-     
+
      pthread_mutex_init( &skirmish->fake.lock, &attr );
-     
+
      pthread_mutexattr_destroy( &attr );
 
      return FUSION_SUCCESS;
@@ -194,7 +195,7 @@ FusionResult
 fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
-     
+
      return pthread_mutex_lock( &skirmish->fake.lock );
 }
 
@@ -202,7 +203,7 @@ FusionResult
 fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
-     
+
      return pthread_mutex_trylock( &skirmish->fake.lock );
 }
 
@@ -210,7 +211,7 @@ FusionResult
 fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
-     
+
      return pthread_mutex_unlock( &skirmish->fake.lock );
 }
 
@@ -218,7 +219,7 @@ FusionResult
 fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
-     
+
      return pthread_mutex_destroy( &skirmish->fake.lock );
 }
 

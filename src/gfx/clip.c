@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -126,7 +127,7 @@ dfb_clip_edges( const DFBRegion *clip, DFBRectangle *rect )
          (clip->y1 >= rect->y + rect->h) ||
          (clip->y2 < rect->y))
           return DFEF_NONE;
-          
+
      if (clip->x1 > rect->x) {
           rect->w += rect->x - clip->x1;
           rect->x = clip->x1;
@@ -164,7 +165,7 @@ dfb_clip_rectangle( const DFBRegion *clip, DFBRectangle *rect )
          (clip->y1 >= rect->y + rect->h) ||
          (clip->y2 < rect->y))
           return DFB_FALSE;
-          
+
      if (clip->x1 > rect->x) {
           rect->w += rect->x - clip->x1;
           rect->x = clip->x1;
@@ -188,18 +189,18 @@ DFBBoolean
 dfb_clip_triangle_precheck( const DFBRegion *clip, const DFBTriangle *tri )
 {
     int x, y, w, h;
-  
+
     x = MIN (MIN (tri->x1, tri->x2), tri->x3);
     y = MIN (MIN (tri->y1, tri->y2), tri->y3);
     w = MAX (MAX (tri->x1, tri->x2), tri->x3) - x;
     h = MAX (MAX (tri->y1, tri->y2), tri->y3) - y;
-    
+
     if (clip->x1 > x ||
         clip->x2 < x + w ||
         clip->y1 > y ||
         clip->y2 < y + h)
       return DFB_FALSE;
-    
+
     return DFB_TRUE;
 }
 
@@ -244,7 +245,7 @@ dfb_clip_stretchblit( const DFBRegion *clip,
      if (drect->y != orig_dst.y)
           srect->y += (int)( (drect->y - orig_dst.y) *
                              (srect->h / (float)orig_dst.h) + 0.5f );
-     
+
      if (drect->w != orig_dst.w)
           srect->w = DFB_ICEIL(srect->w * (drect->w / (float)orig_dst.w));
 

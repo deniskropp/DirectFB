@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -51,7 +52,7 @@ fusion_dbg_print_memleaks()
      unsigned int i;
 
      DFB_ASSERT( _sheap != NULL );
-     
+
      fusion_skirmish_prevail( &_sheap->lock );
 
      if (_sheap->alloc_count) {
@@ -82,9 +83,9 @@ fusion_dbg_shmalloc( char *file, int line,
 
      HEAVYDEBUGMSG("DirectFB/shmem: allocating "
                    "%7d bytes in %s (%s: %u)\n", __size, func, file, line);
-     
+
      fusion_skirmish_prevail( &_sheap->lock );
-     
+
      ret = _fusion_shmalloc( __size );
      if (ret) {
           SHMemDesc *d;
@@ -102,7 +103,7 @@ fusion_dbg_shmalloc( char *file, int line,
           d->allocated_in_file = file;
           d->allocated_in_line = line;
      }
-     
+
      fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
@@ -121,9 +122,9 @@ fusion_dbg_shcalloc( char *file, int line,
 
      HEAVYDEBUGMSG("DirectFB/shmem: allocating %7d bytes "
                    "in %s (%s: %u)\n", __size * __nmemb, func, file, line);
-     
+
      fusion_skirmish_prevail( &_sheap->lock );
-     
+
      ret = _fusion_shcalloc( __nmemb, __size );
      if (ret) {
           SHMemDesc *d;
@@ -141,7 +142,7 @@ fusion_dbg_shcalloc( char *file, int line,
           d->allocated_in_file = file;
           d->allocated_in_line = line;
      }
-     
+
      fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
@@ -157,7 +158,7 @@ fusion_dbg_shrealloc( char *file, int line,
      unsigned int i;
 
      DFB_ASSERT( _sheap != NULL );
-     
+
      if (!__ptr)
           return fusion_dbg_shmalloc( file, line, func, __size );
 
@@ -200,7 +201,7 @@ fusion_dbg_shfree( char *file, int line,
 
      DFB_ASSERT( __ptr != NULL );
      DFB_ASSERT( _sheap != NULL );
-     
+
      fusion_skirmish_prevail( &_sheap->lock );
 
      for (i=0; i<_sheap->alloc_count; i++) {
@@ -223,7 +224,7 @@ fusion_dbg_shfree( char *file, int line,
      ERRORMSG( "%s: trying to free unknown chunk %p (%s)\n"
                "          in %s (%s: %u) !!!\n",
                __FUNCTION__, __ptr, what, func, file, line);
-     
+
      kill( 0, SIGTRAP );
 }
 
@@ -242,13 +243,13 @@ fusion_dbg_shstrdup( char *file, int line,
 
      HEAVYDEBUGMSG("DirectFB/mem: allocating %7d bytes in %s (%s: %u)\n",
                    len, func, file, line);
-     
+
      fusion_skirmish_prevail( &_sheap->lock );
 
      ret = _fusion_shmalloc( len );
      if (ret) {
           SHMemDesc *d;
-          
+
           dfb_memcpy( ret, string, len );
 
           _sheap->alloc_count++;
@@ -281,9 +282,9 @@ fusion_shmalloc (size_t __size)
      DFB_ASSERT( _sheap != NULL );
 
      fusion_skirmish_prevail( &_sheap->lock );
-     
+
      ret = _fusion_shmalloc( __size );
-     
+
      fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
@@ -300,9 +301,9 @@ fusion_shcalloc (size_t __nmemb, size_t __size)
      DFB_ASSERT( _sheap != NULL );
 
      fusion_skirmish_prevail( &_sheap->lock );
-     
+
      ret = _fusion_shcalloc( __nmemb, __size );
-     
+
      fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
@@ -318,9 +319,9 @@ fusion_shrealloc (void *__ptr, size_t __size)
      DFB_ASSERT( _sheap != NULL );
 
      fusion_skirmish_prevail( &_sheap->lock );
-     
+
      ret = _fusion_shrealloc( __ptr, __size );
-     
+
      fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;
@@ -334,9 +335,9 @@ fusion_shfree (void *__ptr)
      DFB_ASSERT( _sheap != NULL );
 
      fusion_skirmish_prevail( &_sheap->lock );
-     
+
      _fusion_shfree( __ptr );
-     
+
      fusion_skirmish_dismiss( &_sheap->lock );
 }
 
@@ -353,11 +354,11 @@ fusion_shstrdup (const char* string)
      len = strlen( string ) + 1;
 
      fusion_skirmish_prevail( &_sheap->lock );
-     
+
      ret = _fusion_shmalloc( len );
      if (ret)
           dfb_memcpy( ret, string, len );
-     
+
      fusion_skirmish_dismiss( &_sheap->lock );
 
      return ret;

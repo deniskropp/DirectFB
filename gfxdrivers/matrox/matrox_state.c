@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -259,7 +260,7 @@ void matrox_validate_drawBlend( MatroxDriverData *mdrv,
 
      if (MGA_IS_VALID( m_drawBlend ))
           return;
-     
+
      alphactrl = matroxSourceBlend[state->src_blend - 1] |
                  matroxDestBlend  [state->dst_blend - 1] | DIFFUSEDALPHA;
 
@@ -298,7 +299,7 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
      {
           alphactrl = matroxSourceBlend[state->src_blend - 1] |
                       matroxDestBlend  [state->dst_blend - 1];
-          
+
           if (state->source->format == DSPF_RGB32) {
                alphactrl |= DIFFUSEDALPHA;
 
@@ -309,7 +310,7 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
           }
           else
                alphactrl |= matroxAlphaSelect [state->blittingflags & 3];
-          
+
           if (state->dst_blend == DSBF_ZERO)
                alphactrl |= ALPHACHANNEL;
           else
@@ -317,7 +318,7 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
      }
      else {
           alphactrl = SRC_ONE | ALPHACHANNEL;
-          
+
           if (state->source->format == DSPF_RGB32) {
                alphactrl |= DIFFUSEDALPHA;
 

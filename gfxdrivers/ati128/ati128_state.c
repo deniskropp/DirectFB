@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -53,7 +54,7 @@ static __u32 ati128SourceBlend[] = {
      SCALE_3D_CNTL_ALPHA_BLEND_SRC_INVDSTALPHA, /* DSBF_INVDESTALPHA */
      SCALE_3D_CNTL_ALPHA_BLEND_SRC_DSTCOLOR,    /* DSBF_DESTCOLOR    */
      SCALE_3D_CNTL_ALPHA_BLEND_SRC_INVDSTCOLOR, /* DSBF_INVDESTCOLOR */
-     SCALE_3D_CNTL_ALPHA_BLEND_SRC_SAT          /* DSBF_SRCALPHASAT  */     
+     SCALE_3D_CNTL_ALPHA_BLEND_SRC_SAT          /* DSBF_SRCALPHASAT  */
 };
 
 static __u32 ati128DestBlend[] = {
@@ -85,21 +86,21 @@ void ati128_set_destination( ATI128DriverData *adrv,
           case DSPF_RGB332:		
                ati128_out32( adrv->mmio_base, DST_PITCH_OFFSET,
                              ((destination->back_buffer->video.pitch >> 3) << 21) |
-                             (destination->back_buffer->video.offset >> 5));               
+                             (destination->back_buffer->video.offset >> 5));
 
                adev->ATI_dst_bpp = DST_8BPP_RGB332;
-               break;          
+               break;
           case DSPF_ARGB1555:		
                ati128_out32( adrv->mmio_base, DST_PITCH_OFFSET,
                              ((destination->back_buffer->video.pitch >> 4) << 21) |
-                             (destination->back_buffer->video.offset >> 5));               
+                             (destination->back_buffer->video.offset >> 5));
 
                adev->ATI_dst_bpp = DST_15BPP;
-               break;          
+               break;
           case DSPF_RGB16:
                ati128_out32( adrv->mmio_base, DST_PITCH_OFFSET,
                              ((destination->back_buffer->video.pitch >> 4) << 21) |
-                             (destination->back_buffer->video.offset >> 5));               
+                             (destination->back_buffer->video.offset >> 5));
 
                adev->ATI_dst_bpp = DST_16BPP;
                break;
@@ -136,7 +137,7 @@ void ati128_set_source( ATI128DriverData *adrv,
           return;
 
      ati128_waitfifo( adrv, adev, 3 );
-     
+
      switch (state->source->format) {
           case DSPF_RGB332:
                ati128_out32( adrv->mmio_base, SRC_PITCH,
@@ -157,14 +158,14 @@ void ati128_set_source( ATI128DriverData *adrv,
                ati128_out32( adrv->mmio_base, CLR_CMP_MASK, 0x0000FFFF );
                break;
           case DSPF_RGB24:
-               ati128_out32( adrv->mmio_base, SRC_PITCH, 
+               ati128_out32( adrv->mmio_base, SRC_PITCH,
                              state->source->front_buffer->video.pitch >>3);
 
                ati128_out32( adrv->mmio_base, CLR_CMP_MASK, 0x00FFFFFF );
                break;
           case DSPF_RGB32:
-          case DSPF_ARGB:                             
-               ati128_out32( adrv->mmio_base, SRC_PITCH, 
+          case DSPF_ARGB:
+               ati128_out32( adrv->mmio_base, SRC_PITCH,
                              state->source->front_buffer->video.pitch >>5);
 
                ati128_out32( adrv->mmio_base, CLR_CMP_MASK, 0x00FFFFFF );
@@ -173,7 +174,7 @@ void ati128_set_source( ATI128DriverData *adrv,
                BUG( "unexpected pixelformat!" );
                break;
      }
-     
+
      ati128_out32( adrv->mmio_base, SRC_OFFSET,
                    state->source->front_buffer->video.offset );
 
@@ -209,8 +210,8 @@ void ati128_set_color( ATI128DriverData *adrv,
                        ATI128DeviceData *adev,
                        CardState        *state )
 {
-     __u32 fill_color = 0; 
-     
+     __u32 fill_color = 0;
+
      if (adev->v_color)
           return;
 
@@ -232,7 +233,7 @@ void ati128_set_color( ATI128DriverData *adrv,
                                          state->color.b );
                break;
           case DSPF_RGB24:
-          case DSPF_RGB32:                              
+          case DSPF_RGB32:
                fill_color = PIXEL_RGB32( state->color.r,
                                          state->color.g,
                                          state->color.b );
@@ -247,16 +248,16 @@ void ati128_set_color( ATI128DriverData *adrv,
                BUG( "unexpected pixelformat!" );
                break;
      }
-     
+
      ati128_waitfifo( adrv, adev, 1 );
      ati128_out32( adrv->mmio_base, DP_BRUSH_FRGD_CLR, fill_color);
-     
-     
+
+
      adev->fake_texture_color = PIXEL_ARGB( state->color.a,
                                             state->color.r,
                                             state->color.g,
                                             state->color.b );
-     
+
      adev->v_color = 1;
 }
 
@@ -266,13 +267,13 @@ void ati128_set_src_colorkey( ATI128DriverData *adrv,
 {
      if (adev->v_src_colorkey)
           return;
-     
+
      ati128_waitfifo( adrv, adev, 1 );
      ati128_out32( adrv->mmio_base, CLR_CMP_CLR_SRC, state->src_colorkey );
 
      adev->v_src_colorkey = 1;
 }
-                                                                                                      
+
 void ati128_set_blittingflags( ATI128DriverData *adrv,
                                ATI128DeviceData *adev,
                                CardState        *state )
@@ -280,13 +281,13 @@ void ati128_set_blittingflags( ATI128DriverData *adrv,
      if (adev->v_blittingflags)
           return;
 
-     if (state->blittingflags & DSBLIT_SRC_COLORKEY) {     
+     if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
           adev->ATI_color_compare = (1 << 24) | 5;
      }
      else {
           adev->ATI_color_compare = 0;
      }
-                            
+
      adev->blittingflags = state->blittingflags;
      adev->v_blittingflags = 1;
 }
@@ -302,6 +303,6 @@ void ati128_set_blending_function( ATI128DriverData *adrv,
                                 ati128SourceBlend[state->src_blend - 1] |
                                 ati128DestBlend  [state->dst_blend - 1] |
                                 SCALE_3D_CNTL_TEX_MAP_AEN_ON;
-     
+
      adev->v_blending_function = 1;
 }

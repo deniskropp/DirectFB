@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -73,7 +74,7 @@ typedef struct {
      FusionLink       link;
 
      pthread_mutex_t  lock;
-     
+
      int              reactor_id;
 
      FusionLink      *reactions; /* reactor listeners attached to node  */
@@ -157,12 +158,12 @@ fusion_reactor_attach (FusionReactor *reactor,
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_REACTOR_ATTACH\n");
-          
+
           return FUSION_FAILURE;
      }
-     
+
      node = lock_node( reactor->id, true );
      if (!node) {
           while (ioctl (_fusion_fd, FUSION_REACTOR_DETACH, &reactor->id)) {
@@ -175,15 +176,15 @@ fusion_reactor_attach (FusionReactor *reactor,
                     default:
                          break;
                }
-               
+
                FPERROR ("FUSION_REACTOR_DETACH\n");
 
                return FUSION_FAILURE;
           }
-          
+
           return FUSION_FAILURE;
      }
-     
+
      /* fill out callback information */
      reaction->react    = react;
      reaction->ctx      = ctx;
@@ -193,7 +194,7 @@ fusion_reactor_attach (FusionReactor *reactor,
      fusion_list_prepend (&node->reactions, &reaction->link);
 
      unlock_node( node );
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -208,7 +209,7 @@ fusion_reactor_detach (FusionReactor *reactor,
      DFB_ASSERT( reaction != NULL );
 
      DFB_ASSUME( reaction->attached );
-     
+
      if (!reaction->attached)
           return FUSION_SUCCESS;
 
@@ -217,7 +218,7 @@ fusion_reactor_detach (FusionReactor *reactor,
           BUG( "node not found" );
           return FUSION_BUG;
      }
-     
+
      if (reaction->attached) {
           reaction->attached = false;
 
@@ -233,7 +234,7 @@ fusion_reactor_detach (FusionReactor *reactor,
                     default:
                          break;
                }
-               
+
                FPERROR ("FUSION_REACTOR_DETACH\n");
 
                return FUSION_FAILURE;
@@ -244,7 +245,7 @@ fusion_reactor_detach (FusionReactor *reactor,
      }
 
      unlock_node( node );
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -263,7 +264,7 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
      ret = fusion_skirmish_prevail( &reactor->globals_lock );
      if (ret)
           return ret;
-     
+
      /* fill out callback information */
      reaction->react_index = react_index;
      reaction->ctx         = ctx;
@@ -273,7 +274,7 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
      fusion_list_prepend (&reactor->globals, &reaction->link);
 
      fusion_skirmish_dismiss( &reactor->globals_lock );
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -287,14 +288,14 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
      DFB_ASSERT( reaction != NULL );
 
      DFB_ASSUME( reaction->attached );
-     
+
      if (!reaction->attached)
           return FUSION_SUCCESS;
 
      ret = fusion_skirmish_prevail( &reactor->globals_lock );
      if (ret)
           return ret;
-     
+
      if (reaction->attached) {
           reaction->attached = false;
 
@@ -302,7 +303,7 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
      }
 
      fusion_skirmish_dismiss( &reactor->globals_lock );
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -344,9 +345,9 @@ fusion_reactor_dispatch (FusionReactor *reactor,
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_REACTOR_DISPATCH\n");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -361,7 +362,7 @@ fusion_reactor_free (FusionReactor *reactor)
 
      fusion_skirmish_prevail( &reactor->globals_lock );
      fusion_skirmish_destroy( &reactor->globals_lock );
-     
+
      while (ioctl (_fusion_fd, FUSION_REACTOR_DESTROY, &reactor->id)) {
           switch (errno) {
                case EINTR:
@@ -372,12 +373,12 @@ fusion_reactor_free (FusionReactor *reactor)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_REACTOR_DESTROY\n");
-          
+
           return FUSION_FAILURE;
      }
-     
+
      /* free shared reactor data */
      SHFREE( reactor );
 
@@ -397,7 +398,7 @@ _fusion_reactor_free_all()
      FusionLink *l;
 
      pthread_mutex_lock( &nodes_lock );
-     
+
      fusion_list_foreach (l, nodes) {
           FusionLink  *next = l->next;
           ReactorNode *node = (ReactorNode*) l;
@@ -409,7 +410,7 @@ _fusion_reactor_free_all()
      */
 
      nodes = NULL;
-     
+
      /*
      pthread_mutex_unlock( &nodes_lock );
      */
@@ -429,18 +430,18 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
           //FDEBUG( "no node to dispatch message\n" );
           return;
      }
-     
+
      if (!node->reactions) {
           FDEBUG( "node has no reactions\n" );
           unlock_node( node );
           return;
      }
-     
+
      l = node->reactions;
      while (l) {
           FusionLink *next     = l->next;
           Reaction   *reaction = (Reaction*) l;
-     
+
           if (reaction->attached) {
                if (reaction->react( msg_data, reaction->ctx ) == RS_REMOVE) {
                     reaction->attached = false;
@@ -466,7 +467,7 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
           }
           else
                fusion_list_remove( &node->reactions, &reaction->link );
-          
+
           l = next;
      }
 
@@ -491,7 +492,7 @@ process_globals( FusionReactor *reactor,
 
      if (max_index < 0)
           return;
-     
+
      if (fusion_skirmish_prevail( &reactor->globals_lock ))
           return;
 
@@ -499,7 +500,7 @@ process_globals( FusionReactor *reactor,
      while (l) {
           FusionLink     *next   = l->next;
           GlobalReaction *global = (GlobalReaction*) l;
-     
+
           if (global->react_index < 0 || global->react_index > max_index) {
                FERROR( "global react index out of bounds (%d)\n",
                        global->react_index );
@@ -509,7 +510,7 @@ process_globals( FusionReactor *reactor,
                                                    global->ctx ) == RS_REMOVE)
                     fusion_list_remove( &reactor->globals, &global->link );
           }
-          
+
           l = next;
      }
 
@@ -534,7 +535,7 @@ lock_node( int reactor_id, bool add )
 
           if (node->reactor_id == reactor_id) {
                pthread_mutex_lock( &node->lock );
-               
+
                /* FIXME: Don't cleanup asynchronously. */
                if (!node->reactions && !add) {
                     fusion_list_remove( &nodes, &node->link );
@@ -542,9 +543,9 @@ lock_node( int reactor_id, bool add )
                     DFBFREE( node );
                     node = NULL;
                }
-               
+
                pthread_mutex_unlock( &nodes_lock );
-               
+
                return node;
           }
 
@@ -561,7 +562,7 @@ lock_node( int reactor_id, bool add )
                else
                     pthread_mutex_unlock( &node->lock );
           }
-          
+
           l = next;
      }
 
@@ -578,19 +579,19 @@ lock_node( int reactor_id, bool add )
           pthread_mutex_init( &node->lock, &attr );
 
           pthread_mutexattr_destroy( &attr );
-          
-          
+
+
           pthread_mutex_lock( &node->lock );
-          
+
           node->reactor_id = reactor_id;
 
           fusion_list_prepend( &nodes, &node->link );
-          
+
           pthread_mutex_unlock( &nodes_lock );
 
           return node;
      }
-     
+
      pthread_mutex_unlock( &nodes_lock );
 
      return NULL;
@@ -616,7 +617,7 @@ unlock_node( ReactorNode *node )
 struct _FusionReactor {
      FusionLink       *reactions; /* reactor listeners attached to node  */
      pthread_mutex_t   reactions_lock;
-     
+
      FusionLink       *globals; /* global reactions attached to node  */
      pthread_mutex_t   globals_lock;
 };
@@ -637,11 +638,11 @@ fusion_reactor_new (int msg_size)
      FusionReactor       *reactor;
 
      DFB_ASSERT( msg_size > 0 );
-     
+
      reactor = (FusionReactor*)DFBCALLOC( 1, sizeof(FusionReactor) );
      if (!reactor)
           return NULL;
-     
+
      pthread_mutexattr_init( &attr );
      pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
 
@@ -662,7 +663,7 @@ fusion_reactor_attach (FusionReactor *reactor,
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( react != NULL );
      DFB_ASSERT( reaction != NULL );
-     
+
      reaction->react = react;
      reaction->ctx   = ctx;
 
@@ -681,7 +682,7 @@ fusion_reactor_detach (FusionReactor *reactor,
 {
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
-     
+
      pthread_mutex_lock( &reactor->reactions_lock );
 
      fusion_list_remove( &reactor->reactions, &reaction->link );
@@ -709,7 +710,7 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
      fusion_list_prepend( &reactor->globals, &reaction->link );
 
      pthread_mutex_unlock( &reactor->globals_lock );
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -719,13 +720,13 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
 {
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
-     
+
      pthread_mutex_lock( &reactor->globals_lock );
 
      fusion_list_remove( &reactor->globals, &reaction->link );
 
      pthread_mutex_unlock( &reactor->globals_lock );
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -747,7 +748,7 @@ fusion_reactor_dispatch (FusionReactor *reactor,
                FERROR( "global reactions exist but no "
                        "globals have been passed to dispatch()" );
      }
-     
+
      if (!self)
           return FUSION_SUCCESS;
 
@@ -775,7 +776,7 @@ fusion_reactor_dispatch (FusionReactor *reactor,
      }
 
      pthread_mutex_unlock( &reactor->reactions_lock );
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -783,7 +784,7 @@ FusionResult
 fusion_reactor_free (FusionReactor *reactor)
 {
      DFB_ASSERT( reactor != NULL );
-     
+
      reactor->reactions = NULL;
 
      pthread_mutex_destroy( &reactor->reactions_lock );
@@ -813,14 +814,14 @@ process_globals( FusionReactor *reactor,
 
      if (max_index < 0)
           return;
-     
+
      pthread_mutex_lock( &reactor->globals_lock );
 
      l = reactor->globals;
      while (l) {
           FusionLink     *next   = l->next;
           GlobalReaction *global = (GlobalReaction*) l;
-     
+
           if (global->react_index < 0 || global->react_index > max_index) {
                FERROR( "global react index out of bounds (%d)\n",
                        global->react_index );
@@ -830,7 +831,7 @@ process_globals( FusionReactor *reactor,
                                                    global->ctx ) == RS_REMOVE)
                     fusion_list_remove( &reactor->globals, &global->link );
           }
-          
+
           l = next;
      }
 

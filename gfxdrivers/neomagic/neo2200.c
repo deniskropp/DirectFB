@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -343,7 +344,7 @@ static void neo2200SetState( void *drv, void *dev,
 
                ndev->src_dst_equal = (state->source->front_buffer ==
                                       state->destination->back_buffer);
-               
+
                if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                     ndev->bltCntl = NEO_BC0_SRC_TRANS;
                     neo2200_validate_xpColor( ndrv, ndev, state );
@@ -462,7 +463,7 @@ static bool neo2200Blit( void *drv, void *dev,
      /* ARGH, the above code for the blitting direction doesn't work. */
      if (ndev->src_dst_equal && (rect->x < dx || rect->y < dy))
           return false;
-     
+
      src_start = rect->y * ndev->srcPitch + rect->x * ndev->srcPixelWidth;
      dst_start = dy * ndev->dstPitch + dx * ndev->dstPixelWidth;
 
@@ -517,7 +518,7 @@ neo2200_init_driver( GraphicsDevice      *device,
 
      /* overlay support */
      dfb_layers_register( device, driver_data, &neoOverlayFuncs );
-     
+
      return DFB_OK;
 }
 

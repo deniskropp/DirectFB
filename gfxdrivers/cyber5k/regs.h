@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -316,7 +317,7 @@
 #define EXT_VID_FMT_DBL_H_PIX		0x40	/* double horiz pixels			*/
 #define EXT_VID_FMT_UV128		0x80	/* UV data offset by 128		*/
 
-#define EXT_VID_DISP_CTL1	0xdc 
+#define EXT_VID_DISP_CTL1	0xdc
 #define EXT_VID_DISP_CTL1_INTRAM	0x01	/* video pixels go to internal RAM	*/
 #define EXT_VID_DISP_CTL1_IGNORE_CCOMP	0x02	/* ignore colour compare registers	*/
 #define EXT_VID_DISP_CTL1_NOCLIP	0x04	/* do not clip to 16235,16240		*/

@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -326,7 +327,7 @@ init_ps2( int fd, bool verbose )
           FD_ZERO( &fds );
           FD_SET( fd, &fds );
 
-          if (select( fd+1, &fds, NULL, NULL, &tv )) 
+          if (select( fd+1, &fds, NULL, NULL, &tv ))
                read( fd, buf, sizeof(buf) );
           else
                break;
@@ -459,7 +460,7 @@ driver_open_device( InputDevice      *device,
 
      /* set private data pointer */
      *driver_data = data;
-     
+
      return DFB_OK;
 }
 

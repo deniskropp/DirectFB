@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -154,7 +155,7 @@ static void ati128SetState( void *drv, void *dev,
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
-     
+
      if (state->modified & SMF_SOURCE)
          adev->v_source = 0;
 
@@ -189,7 +190,7 @@ static void ati128SetState( void *drv, void *dev,
                }
           case DFXL_DRAWLINE:
                ati128_set_color( adrv, adev, state );
-               state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWLINE | DFXL_DRAWRECTANGLE ;               
+               state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWLINE | DFXL_DRAWRECTANGLE ;
                break;
 
           case DFXL_BLIT:
@@ -412,7 +413,7 @@ static bool ati128DrawLine( void *drv, void *dev, DFBRegion *line )
      /* set the destination datatype */
      ati128_out32( mmio, DP_DATATYPE, adev->ATI_dst_bpp | BRUSH_SOLIDCOLOR | ROP3_SRCCOPY );
      ati128_out32( mmio, DP_MIX, ROP3_PATCOPY );
-     
+
      /* set start coorinates */
      ati128_out32( mmio, DST_Y_X, (S14(line->y1) << 16) | S12(line->x1));
      /* allow setting of last pel bit and polygon
@@ -532,12 +533,12 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
      }
 
      ati128_out32( mmio, DP_DATATYPE, adev->ATI_dst_bpp | SRC_DSTCOLOR );
-     
+
      /* set the blend function */
      if (adev->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
           ati128_out32( mmio, SCALE_3D_CNTL, adev->ATI_blend_function );
      else
-          ati128_out32( mmio, SCALE_3D_CNTL, SCALE_3D_CNTL_SCALE_3D_FN_SCALE ); 
+          ati128_out32( mmio, SCALE_3D_CNTL, SCALE_3D_CNTL_SCALE_3D_FN_SCALE );
 
      /* set up source data and copy type */
      ati128_out32( mmio, DP_MIX, ROP3_SRCCOPY | DP_SRC_RECT );
@@ -688,7 +689,7 @@ driver_init_driver( GraphicsDevice      *device,
 
      /* overlay support */
      dfb_layers_register( device, driver_data, &atiOverlayFuncs );
-     
+
      return DFB_OK;
 }
 

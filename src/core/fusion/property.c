@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
-   
+   (c) Copyright 2002-2004  convergence GmbH.
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -52,7 +53,7 @@ fusion_property_init (FusionProperty *property)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_PROPERTY_NEW, &property->id)) {
           switch (errno) {
                case EINTR:
@@ -60,9 +61,9 @@ fusion_property_init (FusionProperty *property)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_PROPERTY_NEW");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -74,7 +75,7 @@ fusion_property_lease (FusionProperty *property)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_PROPERTY_LEASE, &property->id)) {
           switch (errno) {
                case EINTR:
@@ -89,7 +90,7 @@ fusion_property_lease (FusionProperty *property)
           }
 
           FPERROR ("FUSION_PROPERTY_LEASE");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -101,7 +102,7 @@ fusion_property_purchase (FusionProperty *property)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_PROPERTY_PURCHASE, &property->id)) {
           switch (errno) {
                case EINTR:
@@ -114,9 +115,9 @@ fusion_property_purchase (FusionProperty *property)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_PROPERTY_PURCHASE");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -128,7 +129,7 @@ fusion_property_cede (FusionProperty *property)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_PROPERTY_CEDE, &property->id)) {
           switch (errno) {
                case EINTR:
@@ -139,9 +140,9 @@ fusion_property_cede (FusionProperty *property)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_PROPERTY_CEDE");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -153,7 +154,7 @@ fusion_property_holdup (FusionProperty *property)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_PROPERTY_HOLDUP, &property->id)) {
           switch (errno) {
                case EINTR:
@@ -164,9 +165,9 @@ fusion_property_holdup (FusionProperty *property)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_PROPERTY_HOLDUP");
-          
+
           return FUSION_FAILURE;
      }
 
@@ -178,7 +179,7 @@ fusion_property_destroy (FusionProperty *property)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
-     
+
      while (ioctl (_fusion_fd, FUSION_PROPERTY_DESTROY, &property->id)) {
           switch (errno) {
                case EINTR:
@@ -189,7 +190,7 @@ fusion_property_destroy (FusionProperty *property)
                default:
                     break;
           }
-          
+
           FPERROR ("FUSION_PROPERTY_DESTROY");
 
           return FUSION_FAILURE;
@@ -209,7 +210,7 @@ FusionResult
 fusion_property_init (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
-     
+
      pthread_mutex_init (&property->fake.lock, NULL);
      pthread_cond_init (&property->fake.cond, NULL);
 
@@ -227,7 +228,7 @@ fusion_property_lease (FusionProperty *property)
      FusionResult ret = FUSION_SUCCESS;
 
      DFB_ASSERT( property != NULL );
-     
+
      pthread_mutex_lock (&property->fake.lock);
 
      /* Wait as long as the property is leased by another party. */
@@ -254,7 +255,7 @@ fusion_property_purchase (FusionProperty *property)
      FusionResult ret = FUSION_SUCCESS;
 
      DFB_ASSERT( property != NULL );
-     
+
      pthread_mutex_lock (&property->fake.lock);
 
      /* Wait as long as the property is leased by another party. */
@@ -283,7 +284,7 @@ FusionResult
 fusion_property_cede (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
-     
+
      pthread_mutex_lock (&property->fake.lock);
 
      /* Simple error checking, maybe we should also check the owner. */
@@ -294,9 +295,9 @@ fusion_property_cede (FusionProperty *property)
 
      /* Wake up one waiting party if there are any. */
      pthread_cond_signal (&property->fake.cond);
-     
+
      pthread_mutex_unlock (&property->fake.lock);
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -307,7 +308,7 @@ FusionResult
 fusion_property_holdup (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
-     
+
      return FUSION_SUCCESS;
 }
 
@@ -318,10 +319,10 @@ FusionResult
 fusion_property_destroy (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
-     
+
      pthread_cond_destroy (&property->fake.cond);
      pthread_mutex_destroy (&property->fake.lock);
-     
+
      return FUSION_SUCCESS;
 }
 
