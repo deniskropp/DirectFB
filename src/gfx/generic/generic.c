@@ -2892,7 +2892,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                               else
                                    *funcs++ = Sop_PFI_to_Dacc[src_pfi];
                          }
-                         else { // DFXL_STRETCHBLIT
+                         else { /* DFXL_STRETCHBLIT */
 
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
                                    Skey = state->src_colorkey;
