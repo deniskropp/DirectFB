@@ -7,7 +7,7 @@ Summary:	Hardware graphics acceleration library
 Name:		%name
 Version:	%version
 Release:	1
-License:	GPL
+License:	LGPL
 Group:		System/Libraries
 Source0:        http://www.directfb.org/download/%{name}/%{oname}-%{version}.tar.gz
 URL:		http://www.directfb.org/
