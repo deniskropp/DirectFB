@@ -40,8 +40,6 @@ libdirectfb_la_LIBADD = \
 	gfx/libdirectfb_gfx.la		\
 	core/libdirectfb_core.la
 
-EXTRA_DIST = export_list.sym
-
 
 if ENABLE_TRACE
 
