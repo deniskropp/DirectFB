@@ -73,6 +73,7 @@ typedef struct
 
      bool      argb_font;                         /* whether to load fontmap
                                                      as argb and not a8 */
+     bool      no_argb_font;                      /* force a8 font */
 
      bool      matrox_ntsc;                       /* Matrox TV standard */
      bool      matrox_sgram;                      /* Use Matrox SGRAM features */

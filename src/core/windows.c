@@ -1473,7 +1473,7 @@ repaint_stack( CoreWindowStack     *stack,
           if (region->x1 == 0 &&
               region->y1 == 0 &&
               region->x2 == surface->width - 1 &&
-              region->y2 == surface->height - 1 && 0)
+              region->y2 == surface->height - 1)
           {
                dfb_layer_flip_buffers( layer, flags );
           }
