@@ -238,7 +238,7 @@ check_msgmni()
 
      fd = open ("/proc/sys/kernel/msgmni", O_RDWR);
      if (fd < 0) {
-          perror ("opening /proc/sys/kernel/msgmni");
+          //perror ("opening /proc/sys/kernel/msgmni");
           return;
      }
 
@@ -274,7 +274,7 @@ check_sem()
 
      fd = open ("/proc/sys/kernel/sem", O_RDWR);
      if (fd < 0) {
-          perror ("opening /proc/sys/kernel/sem");
+          //perror ("opening /proc/sys/kernel/sem");
           return;
      }
 

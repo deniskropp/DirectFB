@@ -1013,7 +1013,7 @@ DFBResult
 dfb_layer_set_dst_colorkey( DisplayLayer *layer,
                             __u8 r, __u8 g, __u8 b )
 {
-     if (!layer->funcs->SetSrcColorKey)
+     if (!layer->funcs->SetDstColorKey)
           return DFB_UNSUPPORTED;
      
      return layer->funcs->SetDstColorKey( layer, layer->driver_data,
