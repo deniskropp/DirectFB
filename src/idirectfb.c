@@ -375,6 +375,9 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                return DFB_INVARG;
      }
 
+     if (width * height > 4096*4096)
+         return DFB_INVARG;
+
      if (desc->flags & DSDESC_PALETTE)
           if (!desc->palette.entries || !desc->palette.size)
                return DFB_INVARG;
