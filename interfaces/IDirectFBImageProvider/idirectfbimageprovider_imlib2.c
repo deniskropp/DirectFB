@@ -57,6 +57,8 @@
 
 #include <display/idirectfbsurface.h>
 
+#include <media/idirectfbdatabuffer.h>
+
 #define X_DISPLAY_MISSING
 #include <Imlib2.h>
 
@@ -66,7 +68,7 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           const char             *filename );
+           IDirectFBDataBuffer    *buffer );
 
 #include <interface_implementation.h>
 
@@ -95,6 +97,11 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
                                         const DFBRectangle     *dest_rect );
 
 static DFBResult
+IDirectFBImageProvider_IMLIB2_SetRenderCallback( IDirectFBImageProvider *thiz,
+                                                 DIRenderCallback        callback,
+                                                 void                   *context );
+
+static DFBResult
 IDirectFBImageProvider_IMLIB2_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                      DFBSurfaceDescription  *dsc );
 
@@ -106,63 +113,69 @@ IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
-   Imlib_Image im;
-   Imlib_Load_Error err;
+     Imlib_Image im;
+     Imlib_Load_Error err;
 
-   im = imlib_load_image_with_error_return (ctx->filename, &err);
-   switch (err)
-   {
-      case IMLIB_LOAD_ERROR_NONE:
-         return DFB_OK;
-         break;
-      case IMLIB_LOAD_ERROR_FILE_DOES_NOT_EXIST:
-      case IMLIB_LOAD_ERROR_FILE_IS_DIRECTORY:
-      case IMLIB_LOAD_ERROR_PERMISSION_DENIED_TO_READ:
-      case IMLIB_LOAD_ERROR_NO_LOADER_FOR_FILE_FORMAT:
-      case IMLIB_LOAD_ERROR_PATH_TOO_LONG:
-      case IMLIB_LOAD_ERROR_PATH_COMPONENT_NON_EXISTANT:
-      case IMLIB_LOAD_ERROR_PATH_COMPONENT_NOT_DIRECTORY:
-      case IMLIB_LOAD_ERROR_PATH_POINTS_OUTSIDE_ADDRESS_SPACE:
-      case IMLIB_LOAD_ERROR_TOO_MANY_SYMBOLIC_LINKS:
-      case IMLIB_LOAD_ERROR_OUT_OF_MEMORY:
-      case IMLIB_LOAD_ERROR_OUT_OF_FILE_DESCRIPTORS:
-      case IMLIB_LOAD_ERROR_PERMISSION_DENIED_TO_WRITE:
-      case IMLIB_LOAD_ERROR_OUT_OF_DISK_SPACE:
-      case IMLIB_LOAD_ERROR_UNKNOWN:
-      default:
-         break;
-   }
-   return DFB_UNSUPPORTED;
+     if (!ctx->filename)
+          return DFB_UNSUPPORTED;
+
+     im = imlib_load_image_with_error_return (ctx->filename, &err);
+     switch (err) {
+          case IMLIB_LOAD_ERROR_NONE:
+               return DFB_OK;
+               break;
+          case IMLIB_LOAD_ERROR_FILE_DOES_NOT_EXIST:
+          case IMLIB_LOAD_ERROR_FILE_IS_DIRECTORY:
+          case IMLIB_LOAD_ERROR_PERMISSION_DENIED_TO_READ:
+          case IMLIB_LOAD_ERROR_NO_LOADER_FOR_FILE_FORMAT:
+          case IMLIB_LOAD_ERROR_PATH_TOO_LONG:
+          case IMLIB_LOAD_ERROR_PATH_COMPONENT_NON_EXISTANT:
+          case IMLIB_LOAD_ERROR_PATH_COMPONENT_NOT_DIRECTORY:
+          case IMLIB_LOAD_ERROR_PATH_POINTS_OUTSIDE_ADDRESS_SPACE:
+          case IMLIB_LOAD_ERROR_TOO_MANY_SYMBOLIC_LINKS:
+          case IMLIB_LOAD_ERROR_OUT_OF_MEMORY:
+          case IMLIB_LOAD_ERROR_OUT_OF_FILE_DESCRIPTORS:
+          case IMLIB_LOAD_ERROR_PERMISSION_DENIED_TO_WRITE:
+          case IMLIB_LOAD_ERROR_OUT_OF_DISK_SPACE:
+          case IMLIB_LOAD_ERROR_UNKNOWN:
+          default:
+               break;
+     }
+
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           const char             *filename )
+           IDirectFBDataBuffer    *buffer )
 {
-     IDirectFBImageProvider_IMLIB2_data *data;
+     IDirectFBDataBuffer_data *buffer_data;
 
-     data = (IDirectFBImageProvider_IMLIB2_data*)
-         DFBCALLOC( 1, sizeof(IDirectFBImageProvider_IMLIB2_data) );
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_IMLIB2)
 
-     thiz->priv = data;
+     buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
+     if (!buffer_data) {
+          DFB_DEALLOCATE_INTERFACE(thiz);
+          return DFB_DEAD;
+     }
 
      data->ref = 1;
-     data->filename = (char*)DFBMALLOC( strlen(filename)+1 );
-     strcpy( data->filename, filename );
+     data->filename = DFBSTRDUP( buffer_data->filename );
 
      /* The image is already loaded and in cache at this point.
       * Any errors should have been caught in Probe */
      data->im = imlib_load_image (data->filename);
 
-     DEBUGMSG( "DirectFB/Media: IMLIB2 Provider Construct '%s'\n", filename );
+     DEBUGMSG( "DirectFB/Media: IMLIB2 Provider Construct '%s'\n", data->filename );
 
      thiz->AddRef = IDirectFBImageProvider_IMLIB2_AddRef;
      thiz->Release = IDirectFBImageProvider_IMLIB2_Release;
      thiz->RenderTo = IDirectFBImageProvider_IMLIB2_RenderTo;
+     thiz->SetRenderCallback = IDirectFBImageProvider_IMLIB2_SetRenderCallback;
      thiz->GetImageDescription =
-        IDirectFBImageProvider_IMLIB2_GetImageDescription;
+                         IDirectFBImageProvider_IMLIB2_GetImageDescription;
      thiz->GetSurfaceDescription =
-        IDirectFBImageProvider_IMLIB2_GetSurfaceDescription;
+                         IDirectFBImageProvider_IMLIB2_GetSurfaceDescription;
 
      return DFB_OK;
 }
@@ -171,29 +184,29 @@ Construct( IDirectFBImageProvider *thiz,
 static DFBResult
 IDirectFBImageProvider_IMLIB2_AddRef  ( IDirectFBImageProvider *thiz )
 {
-   INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
+     INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
 
-   data->ref++;
+     data->ref++;
 
-   return DFB_OK;
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz )
 {
 
-   INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
+     INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
 
-   if (--data->ref == 0) {
-      DFBFREE( data->filename );
-      imlib_free_image();
-      DFBFREE( thiz->priv );
-      thiz->priv = NULL;
-   }
+     if (--data->ref == 0) {
+          DFBFREE( data->filename );
+          imlib_free_image();
+          DFBFREE( thiz->priv );
+          thiz->priv = NULL;
+     }
 #ifndef DFB_DEBUG
-   DFBFREE( thiz );
+     DFBFREE( thiz );
 #endif
-   return DFB_OK;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -240,11 +253,11 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      image_data = imlib_image_get_data_for_reading_only();
 
      if (!image_data)
-        return DFB_FAILURE; /* what else makes sense here? */
+          return DFB_FAILURE; /* what else makes sense here? */
 
      err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
      if (err)
-        return err;
+          return err;
 
      dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
 
@@ -257,37 +270,45 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
 }
 
 static DFBResult
-IDirectFBImageProvider_IMLIB2_GetSurfaceDescription( IDirectFBImageProvider *thiz,
-                                                  DFBSurfaceDescription  *dsc)
+IDirectFBImageProvider_IMLIB2_SetRenderCallback( IDirectFBImageProvider *thiz,
+                                                 DIRenderCallback        callback,
+                                                 void                   *context )
 {
-   INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
+     return DFB_UNIMPLEMENTED;
+}
 
-   imlib_context_set_image(data->im);
+static DFBResult
+IDirectFBImageProvider_IMLIB2_GetSurfaceDescription( IDirectFBImageProvider *thiz,
+                                                     DFBSurfaceDescription  *dsc)
+{
+     INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
 
-   dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-   dsc->width = imlib_image_get_width();
-   dsc->height = imlib_image_get_height();
-   dsc->pixelformat = imlib_image_has_alpha() ?
-                         DSPF_ARGB : dfb_primary_layer_pixelformat();
+     imlib_context_set_image(data->im);
 
-   return DFB_OK;
+     dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+     dsc->width = imlib_image_get_width();
+     dsc->height = imlib_image_get_height();
+     dsc->pixelformat = imlib_image_has_alpha() ?
+                        DSPF_ARGB : dfb_primary_layer_pixelformat();
+
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
                                                    DFBImageDescription    *dsc )
 {
-   INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
+     INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
 
-   imlib_context_set_image(data->im);
+     imlib_context_set_image(data->im);
 
-   /* FIXME no color-keying yet */
-   if(imlib_image_has_alpha())
-   {
-      dsc->caps = DICAPS_ALPHACHANNEL;
-   } else
-   {
-      dsc->caps = DICAPS_NONE;
-   }
-   return DFB_OK;
+     /* FIXME no color-keying yet */
+     if (imlib_image_has_alpha()) {
+          dsc->caps = DICAPS_ALPHACHANNEL;
+     }
+     else {
+          dsc->caps = DICAPS_NONE;
+     }
+     
+     return DFB_OK;
 }
