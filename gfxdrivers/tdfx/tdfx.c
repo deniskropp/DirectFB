@@ -197,6 +197,9 @@ static inline void tdfx_validate_destination3D()
                fbzMode |= (1 << 10);
                lfbmode |= TDFX_LFBMODE_ARGB8888;
                break;
+          default:
+               BUG( "unexpected pixelformat!" );
+               break;
      }
      
      tdfx_waitfifo( 4 );
@@ -258,6 +261,7 @@ static inline void tdfx_validate_colorFore()
                                                   tdfx->state->color.b );
                break;
           default:
+               BUG( "unexpected pixelformat!" );
                break;
      }
 
@@ -455,6 +459,7 @@ static void tdfxSetState( CardState *state, DFBAccelerationMask accel )
           case DFXL_ALL:
                /* these are phony acceleration functions */
           default:
+               BUG( "unexpected drawing/blitting function" );
                break;
      }
 

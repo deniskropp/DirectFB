@@ -286,6 +286,9 @@ void DirectFBError( const char *msg, DFBResult error )
           case DFB_NOIMPL:
                fprintf( stderr, "Interface implementation not available!\n" );
                break;
+          case DFB_MISSINGFONT:
+               fprintf( stderr, "No font has been set!\n" );
+               break;
           default:
                fprintf( stderr, "UNKNOWN ERROR CODE!\n" );
                break;
@@ -295,8 +298,6 @@ void DirectFBError( const char *msg, DFBResult error )
 void DirectFBErrorFatal( const char *msg, DFBResult error )
 {
      DirectFBError( msg, error );
-
-     /* Call applications AtExit here. */
 
      /* Deinit all stuff here. */
      core_deinit();     /* for now, this dirty thing should work */

@@ -139,7 +139,8 @@ static inline void neo2200_validate_bltMode_dst()
       bltMode |= NEO_MODE1_DEPTH16;
       break;
     default:
-      BUG( "destination format unsupported but was not rejected" );
+      BUG( "unexpected pixelformat!" );
+      break;
     }
 
   Neo2200_dstOrg = buffer->video.offset;
@@ -197,7 +198,8 @@ static inline void neo2200_validate_fgColor()
 				      neo->state->color.b );
       break;
     default:
-      BUG( "destination format unsupported but was not rejected" );
+      BUG( "unexpected pixelformat!" );
+      break;
     }
 
   neo2200_fgColor = 1;
@@ -300,6 +302,7 @@ static void neo2200SetState( CardState *state, DFBAccelerationMask accel )
       break;
 
     default:
+      BUG( "unexpected drawing/blitting function!" );
       break;
     }
 

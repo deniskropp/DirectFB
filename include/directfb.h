@@ -140,7 +140,8 @@ extern "C"
           DFB_FILENOTFOUND,   /* file not found */
           DFB_IO,             /* general I/O error */
           DFB_BUSY,           /* resource/device busy */
-          DFB_NOIMPL          /* no implementation for that interface */
+          DFB_NOIMPL,         /* no implementation for that interface */
+          DFB_MISSINGFONT     /* no font has been set */
      } DFBResult;
 
      /*

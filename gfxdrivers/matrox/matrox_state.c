@@ -52,6 +52,9 @@ inline void matrox_set_destination()
      mga_out32( mmio_base, buffer->video.offset, DSTORG );
 
      switch (surface->format) {
+          case DSPF_A8:
+               mga_out32( mmio_base, PW8  | NODITHER, MACCESS );
+               break;
           case DSPF_RGB15:
                mga_out32( mmio_base, PW16 | NODITHER | DIT555, MACCESS );
                break;
@@ -64,6 +67,9 @@ inline void matrox_set_destination()
           case DSPF_RGB32:
           case DSPF_ARGB:
                mga_out32( mmio_base, PW32 | NODITHER, MACCESS );
+               break;
+          default:
+               BUG( "unexpected pixelformat!" );
                break;
      }
 }
@@ -130,8 +136,8 @@ inline void matrox_validate_color()
                color = matrox->state->color.a;
                break;
           default:
-               ONCE( "Warning, unsupported pixel format in Matrox driver!" );
-               color = 0;
+               BUG( "unexpected pixelformat!" );
+               return;
      }
 
      mga_waitfifo( mmio_base, 1 );
@@ -228,8 +234,8 @@ inline void matrox_validate_Source()
                texctl |= TW32;
                break;
           default:
-               BUG( "There is no fallback!" );
-               return;
+               BUG( "unexpected pixelformat!" );
+               break;
      }
 
      if (matrox->state->blittingflags & DSBLIT_COLORIZE)
@@ -405,6 +411,7 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                break;
           }
           default:
+               BUG( "unexpected drawing/blitting function!" );
                break;
      }
 }

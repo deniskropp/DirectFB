@@ -95,8 +95,8 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
           void *handle;
           char buf[4096];
 
-          /* FIXME */
-          if (entry->d_name[strlen(entry->d_name)-1] != 'o' ||
+          if (strlen(entry->d_name) < 4 ||
+              entry->d_name[strlen(entry->d_name)-1] != 'o' ||
               entry->d_name[strlen(entry->d_name)-2] != 's')
                continue;
 

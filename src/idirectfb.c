@@ -235,7 +235,9 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
      
      if (caps & DSCAPS_PRIMARY) {
 
-          /* FIXME: singleton? */
+          /* FIXME: should we allow to create more primaries in windowed mode?
+                    should the primary surface be a singleton?
+                    or should we return an error? */
           switch (data->level) {
                case DFSCL_NORMAL: {
                     CoreWindow *window;
@@ -331,7 +333,6 @@ DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
           if (dl->id == id) {
                dl->Enable( dl );
                
-               /* FIXME: singleton? */
                DFB_ALLOCATE_INTERFACE( *layer, IDirectFBDisplayLayer );
 
                return IDirectFBDisplayLayer_Construct( *layer, dl );
@@ -377,7 +378,6 @@ DFBResult IDirectFB_GetInputDevice( IDirectFB *thiz, unsigned int id,
 
      while (d) {
           if (d->id == id) {
-               /* FIXME: singleton? */
                DFB_ALLOCATE_INTERFACE( *device, IDirectFBInputDevice );
 
                return IDirectFBInputDevice_Construct( *device, d );

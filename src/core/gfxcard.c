@@ -270,13 +270,16 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           }
      }
 
-     /* FIXME: SRC_BLEND, DST_BLEND */
+     if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND)) {
+          state->checked = 0;
+     }
+     else {
+          if (state->modified & SMF_DRAWING_FLAGS)
+               state->checked &= 0xFFFF0000;
 
-     if (state->modified & SMF_DRAWING_FLAGS)
-          state->checked &= 0xFFFF0000;
-
-     if (state->modified & SMF_BLITTING_FLAGS)
-          state->checked &= 0xFFFF;
+          if (state->modified & SMF_BLITTING_FLAGS)
+               state->checked &= 0xFFFF;
+     }
 
      if (!(state->checked & accel)) {
           state->accel &= ~accel;
@@ -459,16 +462,16 @@ void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
      if (gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
          gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
      {
-        /*  FIXME, clipping 
+          /*  FIXME: do real clipping  */
           if (card->caps.flags & CCF_CLIPPING ||
-              clip_triangle ( &state->clip, tri ))
-         */
-          card->FillTriangle( tri );
+              clip_triangle_precheck( &state->clip, tri ))
+               card->FillTriangle( tri );
+
           gfxcard_state_release( state );
      }
      else
      {
-        /*  FIXME, do real clipping  */
+          /*  FIXME: do real clipping  */
           if (clip_triangle_precheck( &state->clip, tri ) &&
               gAquire( state, DFXL_FILLTRIANGLE ))
           {

@@ -1842,7 +1842,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                break;
           case DFXL_BLIT:
                if ((state->source->format == DSPF_A8) &&
-                   (state->blittingflags &
+                   (state->blittingflags ==
                      (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)) &&
                    (state->src_blend == DSBF_SRCALPHA) &&
                    (state->dst_blend == DSBF_INVSRCALPHA))
@@ -2219,7 +2219,9 @@ void gInit_MMX()
      Xacc_blend[DSBF_SRCALPHA-1] = Xacc_blend_srcalpha_MMX;
      Xacc_blend[DSBF_INVSRCALPHA-1] = Xacc_blend_invsrcalpha_MMX;
 /********************************* Dacc_modulation ****************************/
-     Dacc_modulation[7] = Dacc_modulate_argb_MMX; //FIXME: do not hardcode
+     Dacc_modulation[DSBLIT_BLEND_ALPHACHANNEL |
+                     DSBLIT_BLEND_COLORALPHA |
+                     DSBLIT_COLORIZE] = Dacc_modulate_argb_MMX;
 /********************************* misc accumulator operations ****************/
      Cacc_add_to_Dacc = Cacc_add_to_Dacc_MMX;
      Sacc_add_to_Dacc = Sacc_add_to_Dacc_MMX;

@@ -920,9 +920,8 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     /*  FIXME: return value  */
      if (!data->font)
-          return DFB_NOIMPL;
+          return DFB_MISSINGFONT;
 
      if (bytes < 0)
           bytes = strlen (text);

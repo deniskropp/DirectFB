@@ -97,6 +97,9 @@ inline void ati128_set_destination()
 
                ATI_dst_bpp = DST_32BPP;
                break;
+          default:
+               BUG( "unexpected pixelformat!" );
+               break;
      }
      ati->state->modified &= ~SMF_DESTINATION;
 }
@@ -130,6 +133,9 @@ inline void ati128_set_source()
                              ati->state->source->front_buffer->video.pitch >>5);
 
                ati128_out32( mmio_base, CLR_CMP_MASK, 0x00FFFFFF );
+               break;
+          default:
+               BUG( "unexpected pixelformat!" );
                break;
      }
      
@@ -190,6 +196,7 @@ inline void ati128_set_color()
                                         ati->state->color.b );
                break;
           default:
+               BUG( "unexpected pixelformat!" );
                break;
      }
      

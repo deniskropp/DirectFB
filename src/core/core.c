@@ -80,7 +80,7 @@ DFBResult core_init()
 #endif
 
      if (cleanup_stack) {
-          BUG( "core_init() called with something on the cleanup stack" );
+          DEBUGMSG( "core_init() called with something on the cleanup stack" );
           return DFB_OK;
      }
 

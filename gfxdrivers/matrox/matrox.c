@@ -193,6 +193,7 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
                }
                break;
           default:
+               BUG( "unexpected drawing/blitting function!" );
                break;
      }
 

@@ -252,11 +252,11 @@ static DFBResult IDirectFBVideoProvider_Swf_GetSurfaceDescription(
 
      memset( desc, 0, sizeof(DFBSurfaceDescription) );
      desc->flags = (DFBSurfaceDescriptionFlags)
-       (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP);
+       (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
 
      desc->width  = (int) data->flashInfo.frameWidth / 20;
      desc->height = (int) data->flashInfo.frameHeight / 20;
-     desc->bpp = 16;
+     desc->pixelformat = layers->surface->format;
 
      return DFB_OK;
 }

@@ -214,20 +214,56 @@ DFBResult fbdev_open()
 
 DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *var )
 {
-     /* FIXME: all channel masks should be checked */
-
      switch (var->bits_per_pixel) {
+          case 8:
+               if (var->transp.length == 8 && var->transp.offset ==  0)
+                    return DSPF_A8;
+
+               break;
+
           case 15:
-               return DSPF_RGB15;
-          case 16:
-               if (var->green.length == 6)
-                    return DSPF_RGB16;
-               else
+               if (var->red.length    == 5 && var->red.offset    == 10 &&
+                   var->green.length  == 5 && var->green.offset  ==  5 &&
+                   var->blue.length   == 5 && var->blue.offset   ==  0)
                     return DSPF_RGB15;
+
+               break;
+
+          case 16:
+               if (var->red.length    == 5 && var->red.offset    == 10 &&
+                   var->green.length  == 5 && var->green.offset  ==  5 &&
+                   var->blue.length   == 5 && var->blue.offset   ==  0)
+                    return DSPF_RGB15;
+               
+               if (var->red.length    == 5 && var->red.offset    == 11 &&
+                   var->green.length  == 6 && var->green.offset  ==  5 &&
+                   var->blue.length   == 5 && var->blue.offset   ==  0)
+                    return DSPF_RGB16;
+
+               break;
+          
           case 24:
-               return DSPF_RGB24;
+               if (var->red.length    == 8 && var->red.offset    == 16 &&
+                   var->green.length  == 8 && var->green.offset  ==  8 &&
+                   var->blue.length   == 8 && var->blue.offset   ==  0)
+                    return DSPF_RGB24;
+
+               break;
+
           case 32:
-               return DSPF_RGB32;  /* rgb32/argb ? */
+               if (var->transp.length == 0 &&
+                   var->red.length    == 8 && var->red.offset    == 16 &&
+                   var->green.length  == 8 && var->green.offset  ==  8 &&
+                   var->blue.length   == 8 && var->blue.offset   ==  8)
+                    return DSPF_RGB32;
+               
+               if (var->transp.length == 8 && var->transp.offset == 24 &&
+                   var->red.length    == 8 && var->red.offset    == 16 &&
+                   var->green.length  == 8 && var->green.offset  ==  8 &&
+                   var->blue.length   == 8 && var->blue.offset   ==  0)
+                    return DSPF_ARGB;
+
+               break;
      }
 
      return DSPF_UNKNOWN;

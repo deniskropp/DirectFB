@@ -86,28 +86,28 @@ struct _CoreSurface
      DFBSurfaceCapabilities caps;
 
      /* size/format and instances */
-     unsigned int        width;         /* pixel width of the surface */
-     unsigned int        height;        /* pixel height of the surface */
-     unsigned int        format;        /* pixel format of the surface */
+     unsigned int           width;         /* pixel width of the surface */
+     unsigned int           height;        /* pixel height of the surface */
+     DFBSurfacePixelFormat  format;        /* pixel format of the surface */
 
-     SurfaceBuffer      *front_buffer;  /* buffer for reading
-                                           (blit from or display buffer) */
-     pthread_mutex_t     front_lock;    /* mutex lock for front buffer */
+     SurfaceBuffer         *front_buffer;  /* buffer for reading
+                                              (blit from or display buffer) */
+     pthread_mutex_t        front_lock;    /* mutex lock for front buffer */
      
-     SurfaceBuffer      *back_buffer;   /* buffer for (reading&)writing
-                                           (drawing/blitting destination) */
-     pthread_mutex_t     back_lock;     /* mutex lock for back buffer,
-                                           mutexes are outside of SurfaceBuffer
-                                           because of flipping that just swaps
-                                           the pointers */
+     SurfaceBuffer         *back_buffer;   /* buffer for (reading&)writing
+                                              (drawing/blitting destination) */
+     pthread_mutex_t        back_lock;     /* mutex lock for back buffer,
+                                              mutexes are outside of
+                                              SurfaceBuffer because of flipping
+                                              that just swaps the pointers */
 
      /* surface attribute listeners */
-     SurfaceListener    *listeners;     /* listeners list and access mutex */
-     pthread_mutex_t     listeners_mutex;
+     SurfaceListener       *listeners;     /* listeners list and access mutex */
+     pthread_mutex_t        listeners_mutex;
 
      /* doubly linked list */
-     CoreSurface        *next;
-     CoreSurface        *prev;
+     CoreSurface           *next;
+     CoreSurface           *prev;
 };
 
 /*
@@ -137,7 +137,7 @@ DFBResult surface_create( int width, int height, int format, int policy,
  * reallocates data for the specified surface
  */
 DFBResult surface_reformat( CoreSurface *surface, int width, int height,
-                            int format );
+                            DFBSurfacePixelFormat format );
 
 /*
  * really swaps front_buffer and back_buffer if they have the same policy,

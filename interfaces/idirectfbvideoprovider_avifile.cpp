@@ -142,10 +142,10 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
 
      memset( desc, 0, sizeof(DFBSurfaceDescription) );
      desc->flags = (DFBSurfaceDescriptionFlags)
-                             (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP);
+                            (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
      desc->width = data->player->GetWidth();
      desc->height = data->player->GetHeight();
-     desc->bpp = BYTES_PER_PIXEL(layers->surface->format)*8;
+     desc->pixelformat = layers->surface->format;
 
      return DFB_OK;
 }
@@ -315,7 +315,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetLength(
      if (!data)
           return DFB_DEAD;
 
-     *seconds = data->player->GetVideoLengthTime();
+     *seconds = data->player->GetVideoLength();
 
      return DFB_OK;
 }

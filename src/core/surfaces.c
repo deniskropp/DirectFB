@@ -184,33 +184,47 @@ DFBResult surface_create( int width, int height, int format, int policy,
 }
 
 DFBResult surface_reformat( CoreSurface *surface, int width, int height,
-                            int format )
+                            DFBSurfacePixelFormat format )
 {
+     int old_width, old_height;
+     DFBSurfacePixelFormat old_format;
      DFBResult ret;
 
      pthread_mutex_lock( &surface->front_lock );
      pthread_mutex_lock( &surface->back_lock );
 
+     old_width  = surface->width;
+     old_height = surface->height;
+     old_format = surface->format;
+     
      surface->width = width;
      surface->height = height;
      surface->format = format;
      
      ret = surface_reallocate_buffer( surface->front_buffer );
      if (ret) {
+          surface->width  = old_width;
+          surface->height = old_height;
+          surface->format = old_format;
+          
           pthread_mutex_unlock( &surface->front_lock );
           pthread_mutex_unlock( &surface->back_lock );
-
-          /* FIXME: restore width/height/format */
+          
           return ret;
      }
 
      if (surface->caps & DSCAPS_FLIPPING) {
           ret = surface_reallocate_buffer( surface->back_buffer );
           if (ret) {
+               surface->width  = old_width;
+               surface->height = old_height;
+               surface->format = old_format;
+               
+               surface_reallocate_buffer( surface->front_buffer );
+               
                pthread_mutex_unlock( &surface->front_lock );
                pthread_mutex_unlock( &surface->back_lock );
 
-               /* FIXME: restore width/height/format */
                return ret;
           }
      }
