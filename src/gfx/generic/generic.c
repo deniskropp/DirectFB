@@ -109,16 +109,46 @@ static void Cop_to_Dop_8()
 
 static void Cop_to_Dop_16()
 {
+#ifdef __i386__ /* dont care about alignment */
+
      int    w = (Dlength >> 1);
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Dop;   
      
      __u32 DCop = ((Cop << 16) | Cop);
-		 	
-     while (w--)
-          *D++ = DCop;
-					 	
-     if (Dlength & 1) 
+                        
+     while (w--)        
+          *D++ = DCop;  
+	                   
+     if (Dlength & 1)   
+	     *((__u16*)D) = (__u16)Cop;
+
+#else
+
+     int    w,l=Dlength;
+     __u32 *D = (__u32*)Dop;
+
+     __u32 DCop = ((Cop << 16) | Cop);
+
+     if (((long)D)&2) {		/* align */
+       unsigned short* tmp=Dop;
+       --l;
+       *tmp=Cop;
+       D=(__u32*)(tmp+1);
+     }
+     w = (l >> 1);
+     while (w>3) {		/* unroll 4-times */
+       D[0]=D[1]=D[2]=D[3]=DCop;
+       w-=4;
+       D+=4;
+     }
+     switch (w) {		/* explicitly do the remaining 0-2 double-pixels */
+     case 3: D[2]=DCop;
+     case 2: D[1]=DCop;
+     case 1: D[0]=DCop;
+     }
+     if (l & 1)			/* do the last potential pixel */
           *((__u16*)D) = (__u16)Cop;
+#endif
 }
 
 static void Cop_to_Dop_24()
