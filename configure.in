@@ -174,7 +174,7 @@ MMX=no
 
 if test "x$have_mmx" = xon; then
   AC_MSG_CHECKING(whether the binutils support MMX)
-  cp "$srcdir/src/gfx/generic/detect_MMX.s" conftest.S
+  cp "$srcdir/src/gfx/generic/Cacc_add_to_Dacc_MMX.s" conftest.S
   if AC_TRY_EVAL(ac_compile); then
     AC_DEFINE(USE_MMX)
     MMX=yes
