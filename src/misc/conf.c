@@ -206,7 +206,7 @@ parse_pixelformat( const char *format )
 
      format_string = bsearch( format, format_strings,
                               NUM_FORMAT_STRINGS, sizeof(FormatString),
-                              (__compar_fn_t) format_string_compare );
+                              format_string_compare );
      if (!format_string)
           return DSPF_UNKNOWN;
 
