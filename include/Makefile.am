@@ -15,15 +15,16 @@ include_HEADERS = \
 	dfb_types.h
 
 MKNAMES = $(top_srcdir)/include/mknames.sh
+INCP = $(top_srcdir)/include
 
 directfb_keynames.h: directfb_keyboard.h mknames.sh Makefile
 	@echo '#ifndef __DIRECTFB_KEYNAMES_H__' > $@
 	@echo '#define __DIRECTFB_KEYNAMES_H__' >> $@
 
-	$(MKNAMES) DFBInputDeviceKeySymbol DIKS NULL KeySymbol symbol directfb_keyboard.h \
+	$(MKNAMES) DFBInputDeviceKeySymbol DIKS NULL KeySymbol symbol $(INCP)/directfb_keyboard.h \
 	   | grep -v DIKS_ENTER >> $@
 
-	$(MKNAMES) DFBInputDeviceKeyIdentifier DIKI UNKNOWN KeyIdentifier identifier directfb_keyboard.h \
+	$(MKNAMES) DFBInputDeviceKeyIdentifier DIKI UNKNOWN KeyIdentifier identifier $(INCP)/directfb_keyboard.h \
 	   | grep -v DIKI_NUMBER_OF_KEYS | grep -v DIKI_KEYDEF_END >> $@
 
 	@echo '' >> $@
@@ -34,55 +35,55 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	@echo '#ifndef __DIRECTFB_STRINGS_H__' > $@
 	@echo '#define __DIRECTFB_STRINGS_H__' >> $@
 
-	$(MKNAMES) DFBSurfacePixelFormat DSPF UNKNOWN PixelFormat format directfb.h >> $@
+	$(MKNAMES) DFBSurfacePixelFormat DSPF UNKNOWN PixelFormat format $(INCP)/directfb.h >> $@
 
-	$(MKNAMES) DFBInputDeviceTypeFlags DIDTF NONE InputDeviceTypeFlags type directfb.h \
+	$(MKNAMES) DFBInputDeviceTypeFlags DIDTF NONE InputDeviceTypeFlags type $(INCP)/directfb.h \
 	   | grep -v DIDTF_ALL >> $@
 
 	@echo FIXME: Use DIMCAPS prefix for DFBImageCapabilities
-	$(MKNAMES) DFBInputDeviceCapabilities DICAPS NONE InputDeviceCapabilities capability directfb.h \
+	$(MKNAMES) DFBInputDeviceCapabilities DICAPS NONE InputDeviceCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DICAPS_ALL | grep -v DICAPS_ALPHACHANNEL | grep -v DICAPS_COLORKEY >> $@
 
-	$(MKNAMES) DFBDisplayLayerTypeFlags DLTF NONE DisplayLayerTypeFlags type directfb.h \
+	$(MKNAMES) DFBDisplayLayerTypeFlags DLTF NONE DisplayLayerTypeFlags type $(INCP)/directfb.h \
 	   | grep -v DLTF_ALL >> $@
 
-	$(MKNAMES) DFBDisplayLayerCapabilities DLCAPS NONE DisplayLayerCapabilities capability directfb.h \
+	$(MKNAMES) DFBDisplayLayerCapabilities DLCAPS NONE DisplayLayerCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DLCAPS_ALL >> $@
 
-	$(MKNAMES) DFBDisplayLayerBufferMode DLBM UNKNOWN DisplayLayerBufferMode mode directfb.h \
+	$(MKNAMES) DFBDisplayLayerBufferMode DLBM UNKNOWN DisplayLayerBufferMode mode $(INCP)/directfb.h \
 	   | grep -v DLBM_DONTCARE | grep -v DLBM_COLOR | grep -v DLBM_IMAGE | grep -v DLBM_TILE >> $@
 
-	$(MKNAMES) DFBScreenCapabilities DSCCAPS NONE ScreenCapabilities capability directfb.h \
+	$(MKNAMES) DFBScreenCapabilities DSCCAPS NONE ScreenCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DSCCAPS_ALL >> $@
 
-	$(MKNAMES) DFBScreenEncoderCapabilities DSECAPS NONE ScreenEncoderCapabilities capability directfb.h \
+	$(MKNAMES) DFBScreenEncoderCapabilities DSECAPS NONE ScreenEncoderCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DSECAPS_ALL >> $@
 
-	$(MKNAMES) DFBScreenEncoderType DSET UNKNOWN ScreenEncoderType type directfb.h \
+	$(MKNAMES) DFBScreenEncoderType DSET UNKNOWN ScreenEncoderType type $(INCP)/directfb.h \
 	   | grep -v DSET_ALL >> $@
 
-	$(MKNAMES) DFBScreenEncoderTVStandards DSETV UNKNOWN ScreenEncoderTVStandards standard directfb.h \
+	$(MKNAMES) DFBScreenEncoderTVStandards DSETV UNKNOWN ScreenEncoderTVStandards standard $(INCP)/directfb.h \
 	   | grep -v DSETV_ALL >> $@
 
-	$(MKNAMES) DFBScreenOutputCapabilities DSOCAPS NONE ScreenOutputCapabilities capability directfb.h \
+	$(MKNAMES) DFBScreenOutputCapabilities DSOCAPS NONE ScreenOutputCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DSOCAPS_ALL >> $@
 
-	$(MKNAMES) DFBScreenOutputConnectors DSOC UNKNOWN ScreenOutputConnectors connector directfb.h \
+	$(MKNAMES) DFBScreenOutputConnectors DSOC UNKNOWN ScreenOutputConnectors connector $(INCP)/directfb.h \
 	   | grep -v DSOC_ALL >> $@
 
-	$(MKNAMES) DFBScreenOutputSignals DSOS NONE ScreenOutputSignals signal directfb.h \
+	$(MKNAMES) DFBScreenOutputSignals DSOS NONE ScreenOutputSignals signal $(INCP)/directfb.h \
 	   | grep -v DSOS_ALL >> $@
 
-	$(MKNAMES) DFBScreenMixerCapabilities DSMCAPS NONE ScreenMixerCapabilities capability directfb.h \
+	$(MKNAMES) DFBScreenMixerCapabilities DSMCAPS NONE ScreenMixerCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DSMCAPS_ALL >> $@
 
-	$(MKNAMES) DFBScreenMixerTree DSMT UNKNOWN ScreenMixerTree tree directfb.h \
+	$(MKNAMES) DFBScreenMixerTree DSMT UNKNOWN ScreenMixerTree tree $(INCP)/directfb.h \
 	   | grep -v DSMT_ALL >> $@
 
-	$(MKNAMES) DFBScreenEncoderTestPicture DSETP OFF ScreenEncoderTestPicture test_picture directfb.h \
+	$(MKNAMES) DFBScreenEncoderTestPicture DSETP OFF ScreenEncoderTestPicture test_picture $(INCP)/directfb.h \
 	   | grep -v DSETP_ALL >> $@
 
-	$(MKNAMES) DFBScreenEncoderScanMode DSESM UNKNOWN ScreenEncoderScanMode scan_mode directfb.h \
+	$(MKNAMES) DFBScreenEncoderScanMode DSESM UNKNOWN ScreenEncoderScanMode scan_mode $(INCP)/directfb.h \
 	   | grep -v DSESM_ALL >> $@
 
 	@echo '' >> $@
