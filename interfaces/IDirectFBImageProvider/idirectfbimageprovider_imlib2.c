@@ -39,6 +39,8 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <media/idirectfbimageprovider.h>
+
 #include <misc/util.h>
 #include <misc/gfx_util.h>
 #include <misc/mem.h>
@@ -60,7 +62,7 @@
 
 
 static DFBResult
-Probe( const char *head, const char *filename);
+Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
@@ -101,12 +103,12 @@ IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
 
 
 static DFBResult
-Probe( const char *head, const char *filename)
+Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
    Imlib_Image im;
    Imlib_Load_Error err;
 
-   im = imlib_load_image_with_error_return (filename, &err);
+   im = imlib_load_image_with_error_return (ctx->filename, &err);
    switch (err)
    {
       case IMLIB_LOAD_ERROR_NONE:
