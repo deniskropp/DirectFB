@@ -33,7 +33,7 @@
 #include "sig.h"
 #include "vt.h"
 
-static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, SIGPIPE, /*SIGPOLL,*/
+static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGPOLL,*/
                                 SIGTERM, /*SIGUSR1, SIGUSR2,*/ /*SIGVTALRM,*/
                                 /*SIGSTKFLT,*/ SIGABRT, SIGFPE, SIGILL, SIGQUIT,
                                 SIGSEGV, SIGTRAP, /*SIGSYS, SIGEMT,*/ SIGBUS,
@@ -56,7 +56,7 @@ static void dfb_sig_handler( int num )
      dfb_sig_remove_handlers();
 
      dfb_core_deinit_emergency();
-     
+
      kill( 0, num );
 }
 
