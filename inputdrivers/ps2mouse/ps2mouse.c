@@ -308,6 +308,7 @@ int init_ps2( int fd, int verbose )
      static const unsigned char ps2_init[] = { PS2_SET_SCALE11, PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100, PS2_SET_RES, 3,};
      int mouseId;
 
+     ps2Write(fd, basic_init, sizeof (basic_init), verbose);
      /* Do a basic init in case the mouse is confused */
      if (ps2Write(fd, basic_init, sizeof (basic_init), verbose) != 0) {
           if (verbose)
