@@ -105,6 +105,8 @@ void *__shmalloc_init (bool initialize)
 
      /* init or join */
      if (initialize) {
+          chmod (sh_name, 0660);
+
           size = sizeof(shmalloc_heap);
           ftruncate (fd, size);
      }
