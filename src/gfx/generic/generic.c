@@ -479,7 +479,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
                     D[i] = pixel;
           }
      }
-#ifdef WORDS_BIGENDIAN   /* FIXME: fix little endian */
+#ifndef ARCH_X86
      else if (((long) S & 3) == ((long) D & 3)) {
           __u32 *D32;
           __u32 *S32;
@@ -595,10 +595,13 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
           /* Write up to 32 bit at once. */
           for (i=0; i<w; ++i) {
                register __u32 pixel = S[i];
-               
+
                if (pixel != Skey) {
+#ifdef WORDS_BIGENDIAN
                     out = (out << 8) | pixel;
-                    
+#else
+                    out = (out >> 8) | (pixel << 24);
+#endif                    
                     if (++num == 4) {
                          *(__u32*)(D+i-3) = out;
 
