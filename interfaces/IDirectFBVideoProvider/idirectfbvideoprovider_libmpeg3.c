@@ -1089,8 +1089,12 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
      /* open audio device */
      fd = open( "/dev/dsp", O_WRONLY );
      if (fd < 0) {
-          PERRORMSG( "Libmpeg3 Provider: Opening '/dev/dsp' failed!\n" );
-          return DFB_IO;
+          fd = open( "/dev/sound/dsp", O_WRONLY );
+          if (fd < 0) {
+               PERRORMSG( "Libmpeg3 Provider: Opening both '/dev/dsp' and "
+                          "'/dev/sound/dsp' failed!\n" );
+               return DFB_IO;
+          }
      }
 
      /* set application profile */
