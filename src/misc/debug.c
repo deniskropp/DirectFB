@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -60,7 +60,7 @@ dfb_trace_print_stack( int pid )
 
      if (!pid)
           pid = getpid();
-     
+
      level = threads[pid].level;
      if (level > MAX_LEVEL) {
           CAUTION( "only showing 100 items" );
@@ -74,12 +74,12 @@ dfb_trace_print_stack( int pid )
           void *fn = threads[pid].trace[i];
 
           fprintf( stderr, "    " );
-          
+
           for (n=0; n<i; n++)
                fprintf( stderr, "  " );
-     
+
           fprintf( stderr, "'-> " );
-          
+
           if (dladdr( fn, &info )) {
                if (info.dli_sname)
                     fprintf( stderr, "%s()\n", info.dli_sname );
@@ -92,7 +92,7 @@ dfb_trace_print_stack( int pid )
           else
                fprintf( stderr, "%p\n", fn );
      }
-     
+
      fprintf( stderr, "\n" );
 
      fflush( stderr );
@@ -106,7 +106,7 @@ dfb_trace_print_stacks()
 
      if (threads[pid].level)
           dfb_trace_print_stack( pid );
-     
+
      for (i=0; i<65536; i++) {
           if (i != pid && threads[i].level)
                dfb_trace_print_stack( i );
@@ -155,6 +155,52 @@ dfb_trace_print_stack( int pid )
 void
 dfb_trace_print_stacks()
 {
+}
+
+#endif
+
+#ifdef DFB_DEBUG
+
+void
+dfb_assertion_fail( const char *expression,
+                    const char *filename,
+                    int         line,
+                    const char *function )
+{
+     int       pid    = getpid();
+     long long millis = fusion_get_millis();
+
+     fprintf( stderr,
+              "(!) [%5d: %4lld.%03lld] *** "
+              "Assertion [%s] failed! *** %s:"
+              "%d in %s()\n", pid, millis/1000,
+              millis%1000, expression,
+              filename, line, function );
+
+     fflush( stderr );
+
+     kill( getpgrp(), SIGTRAP );
+
+     pause();
+}
+
+void
+dfb_assumption_fail( const char *expression,
+                     const char *filename,
+                     int         line,
+                     const char *function )
+{
+     int       pid    = getpid();
+     long long millis = fusion_get_millis();
+
+     fprintf( stderr,
+              "(!) [%5d: %4lld.%03lld] *** "
+              "Assumption [%s] failed! *** %s:"
+              "%d in %s()\n", pid, millis/1000,
+              millis%1000, expression,
+              filename, line, function );
+
+     fflush( stderr );
 }
 
 #endif

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -29,6 +29,18 @@
 
 void dfb_trace_print_stack( int pid );
 void dfb_trace_print_stacks();
+
+#ifdef DFB_DEBUG
+void dfb_assertion_fail( const char *expression,
+                         const char *filename,
+                         int         line,
+                         const char *function );
+
+void dfb_assumption_fail( const char *expression,
+                          const char *filename,
+                          int         line,
+                          const char *function );
+#endif
 
 #endif
 

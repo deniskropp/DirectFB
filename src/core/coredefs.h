@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -39,6 +39,7 @@
 /* #define HEAVYDEBUG */
 
 #include <misc/conf.h>
+#include <misc/debug.h>
 
 
 #ifdef PIC
@@ -122,33 +123,23 @@
                                    fflush( stderr );                           \
                               } } while (0)
 
-     #define DFB_ASSERT(exp)  if (!(exp)) {                                    \
-                                   int       pid    = getpid();                \
-                                   long long millis = fusion_get_millis();     \
-                                                                               \
-                                   fprintf( stderr,                            \
-                                            "(!) [%5d: %4lld.%03lld] *** "     \
-                                            "Assertion [%s] failed! *** %s:"   \
-                                            "%d in %s()\n", pid, millis/1000,  \
-                                            millis%1000, #exp,                 \
-                                            __FILE__, __LINE__, __FUNCTION__ );\
-                                   fflush( stderr );                           \
-                                   kill( getpgrp(), SIGTRAP );                 \
-                                   pause();                                    \
-                              }
+     #define DFB_ASSERT(exp)  do {                                             \
+                                   if (!(exp)) {                               \
+                                        dfb_assertion_fail( #exp,              \
+                                                            __FILE__,          \
+                                                            __LINE__,          \
+                                                            __FUNCTION__ );    \
+                                   }                                           \
+                              } while (0)
 
-     #define DFB_ASSUME(exp)  if (!(exp)) {                                    \
-                                   int       pid    = getpid();                \
-                                   long long millis = fusion_get_millis();     \
-                                                                               \
-                                   fprintf( stderr,                            \
-                                            "(?) [%5d: %4lld.%03lld] *** "     \
-                                            "Assumption [%s] failed! *** %s:"  \
-                                            "%d in %s()\n", pid, millis/1000,  \
-                                            millis%1000, #exp,                 \
-                                            __FILE__, __LINE__, __FUNCTION__ );\
-                                   fflush( stderr );                           \
-                              }
+     #define DFB_ASSUME(exp)  do {                                             \
+                                   if (!(exp)) {                               \
+                                        dfb_assumption_fail( #exp,             \
+                                                             __FILE__,         \
+                                                             __LINE__,         \
+                                                             __FUNCTION__ );   \
+                                   }                                           \
+                              } while (0)
 
 #else
      #define HEAVYDEBUGMSG(x...)   do { } while (0)
