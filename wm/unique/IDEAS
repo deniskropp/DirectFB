@@ -12,22 +12,38 @@ UniqueWindow object
 - options (keep position, size, stacking)
 - state (iconified, maximized, minimized, shaded)
 - window groups and relationships
+- has an UniqueInputChannel for input events
 - reactor for unique window events
 
 
 UniqueDevice
 - listents to input events
 - dispatches events to one or more UniqueInputSwitch
-- fixed sink selection (grab) for whole device or selected events
 + currently there's one instance for each these device classes
   - pointer     motion and button events, cursor acceleration
   - wheel       wheel events
   - keyboard    key events
 
 
+UniqueInputSwitch
+- bundles devices into a logical group, listening to them
+- dispatches events to the selected UniqueInputChannel
+- each device class has its own channel selection
+- automatic channel selection by pre-processing events (focus follows mouse etc.)
+- fixed channel selection (grabbing) for whole device or selected events
+
+
+UniqueInputChannel
+- each UniqueWindow has one channel to receive input events
+- StReT regions can be assigned a channel for each device class
+- automatic channel selection is based on these assignments
+- reactor for receiving input events from UniqueInputSwitch
+
+
 UniqueCursor part
-- shape switching and updating
-- manage cursor region
+- switches or updates shapes
+- manages the StReT region
+- listens to pointer devices to update the cursor position
 
 UniqueCursorShape object
 - one global fallback shape
