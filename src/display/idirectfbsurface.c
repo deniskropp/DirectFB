@@ -38,6 +38,7 @@
 #include <core/fonts.h>
 
 #include <misc/util.h>
+#include <gfx/util.h>
 
 #include <media/idirectfbfont.h>
 #include "idirectfbsurface.h"
@@ -304,10 +305,24 @@ DFBResult IDirectFBSurface_Flip( IDirectFBSurface *thiz, DFBRegion *region,
      }
 
      if (flags & DSFLIP_BLIT  ||  region  ||  data->caps & DSCAPS_SUBSURFACE) {
-/*FIXME URGENT          gfxcard_blit( data->outbuffer, data->renderbuffer, 0, 0,
-                        data->renderbuffer->width, data->renderbuffer->height,
-                        0, 0, 0 );*/
-          return DFB_UNIMPLEMENTED;
+          if (region) {
+               DFBRegion reg = *region;
+               DFBRectangle rect = data->req_rect;
+
+               reg.x1 += rect.x;
+               reg.x2 += rect.x;
+               reg.y1 += rect.y;
+               reg.y2 += rect.y;
+
+               if (rectangle_intersect_by_unsafe_region( &rect, &reg ) &&
+                   rectangle_intersect( &rect, &data->clip_rect ))
+                    back_to_front_copy( data->surface, &rect );
+          }
+          else {
+               DFBRectangle rect = data->clip_rect;
+
+               back_to_front_copy( data->surface, &rect );
+          }
      }
      else
           surface_flip_buffers( data->surface );

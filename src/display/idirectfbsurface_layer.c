@@ -100,9 +100,7 @@ DFBResult IDirectFBSurface_Layer_Flip( IDirectFBSurface *thiz,
           fbdev_wait_vsync();
      }
 
-     if (flags & DSFLIP_BLIT  || region  ||
-         data->base.caps & DSCAPS_SUBSURFACE)
-     {
+     if (flags & DSFLIP_BLIT || region || data->base.caps & DSCAPS_SUBSURFACE) {
           if (region) {
                DFBRegion reg = *region;
                DFBRectangle rect = data->base.req_rect;
