@@ -453,7 +453,7 @@ void *__shmalloc_brk (int increment)
 
           if (new_size > SH_MAX_SIZE) {
                printf ("WARNING: maximum shared size exceeded!\n");
-               kill(0,SIGTRAP);
+               return NULL;
           }
 
           if (ftruncate (fd, new_size) < 0) {
