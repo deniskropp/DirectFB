@@ -43,7 +43,6 @@ dfbsummon_LDADD   = ../src/libdirectfb.la
 
 fusion_bench_SOURCES = fusion_bench.c
 fusion_bench_LDADD   = ../src/libdirectfb.la
-fusion_bench_LDFLAGS = -udirectfb_fbdev
 
 raw15toraw24_SOURCES = raw15toraw24.c
 
