@@ -27,6 +27,8 @@
 #ifndef __FUSION_INTERNAL_H__
 #define __FUSION_INTERNAL_H__
 
+#include <config.h>
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/user.h>
