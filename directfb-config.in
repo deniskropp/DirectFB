@@ -36,8 +36,8 @@ lib_avifile=no
 
 while test $# -gt 0; do
   case "$1" in
-  -*=*) optarg=`echo "$1" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
-  *) optarg= ;;
+    -*=*) optarg=`echo "$1" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
+    *) optarg= ;;
   esac
 
   case $1 in
@@ -77,8 +77,8 @@ while test $# -gt 0; do
         usage 2 1>&2
       fi
         
-      for i in `echo $optarg | sed 's/,/ /'`; do
-        echo_input="$echo_input -Wl,-udirectfb_$i -l$i"
+      for i in `echo $optarg | sed 's/,/ /g'`; do
+        echo_input="$echo_input -Wl,-udirectfb_$i -ldirectfb_$i"
       done
 
       echo_static=yes
@@ -88,8 +88,8 @@ while test $# -gt 0; do
         usage 2 1>&2
       fi
         
-      for i in `echo $optarg | sed 's/,/ /'`; do
-        echo_graphics="$echo_graphics -Wl,-udirectfb_$i -l$i"
+      for i in `echo $optarg | sed 's/,/ /g'`; do
+        echo_graphics="$echo_graphics -Wl,-udirectfb_$i -ldirectfb_$i"
       done
 
       echo_static=yes
@@ -99,12 +99,13 @@ while test $# -gt 0; do
         usage 2 1>&2
       fi
         
-      for i in `echo $optarg | sed 's/,/ /'`; do
-        echo_font="$echo_font -Wl,-uIDirectFBFont_$i -lidirectfbfont_$i"
-
+      for i in `echo $optarg | sed 's/,/ /g'`; do
         case $i in
           ft2)
-            echo_font="$echo_font -lfreetype"
+            echo_font="$echo_font -Wl,-uIDirectFBFont_FT2 -lidirectfbfont_$i -lfreetype"
+            ;;
+          *)
+            echo_font="$echo_font -Wl,-uIDirectFBFont_$i -lidirectfbfont_$i"
             ;;
         esac
       done
@@ -116,21 +117,26 @@ while test $# -gt 0; do
         usage 2 1>&2
       fi
         
-      for i in `echo $optarg | sed 's/,/ /'`; do
-        echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_$i -lidirectfbimageprovider_$i"
-
+      for i in `echo $optarg | sed 's/,/ /g'`; do
         case $i in
           imlib2)
+            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_Imlib2 -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -lImlib2 -lttf -lm -L/usr/X11R6/lib -lXext -lX11"
             ;;
           jpeg)
+            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_JPEG -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -ljpeg"
             ;;
           png)
+            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_PNG -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -lpng -lz -lm"
             ;;
           mpeg2)
+            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_MPEG2 -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -lm"
+            ;;
+          *)
+            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_$i -lidirectfbimageprovider_$i"
             ;;
         esac
       done
@@ -142,18 +148,22 @@ while test $# -gt 0; do
         usage 2 1>&2
       fi
         
-      for i in `echo $optarg | sed 's/,/ /'`; do
-        echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_$i -lidirectfbvideoprovider_$i"
-
+      for i in `echo $optarg | sed 's/,/ /g'`; do
         case $i in
           libmpeg3)
+            echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_Libmpeg3 -lidirectfbvideoprovider_$i"
             echo_videoprovider="$echo_videoprovider -lmpeg3"
             ;;
           swf)
+            echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_SWF -lidirectfbvideoprovider_$i"
             echo_videoprovider="$echo_videoprovider -ljpeg -lz"
             ;;
           openquicktime)
+            echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_OpenQuicktime -lidirectfbvideoprovider_$i"
             echo_videoprovider="$echo_videoprovider -lopenquicktime -lz -lglib -lm"
+            ;;
+          *)
+            echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_$i -lidirectfbvideoprovider_$i"
             ;;
         esac
       done
