@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include "config.h"
 
 #include <unistd.h>
@@ -9,14 +7,14 @@ int main()
 {
      unsigned char  byt;
      unsigned short wrd;
-     
+
      do {
           fread (&wrd, 2, 1, stdin);
-          
+
 #ifdef WORDS_BIGENDIAN
-          swab (&wrd, &wrd, 2);          
+          swab (&wrd, &wrd, 2);
 #endif
-          
+
           byt = (wrd & 0xf800) >> 8;
           fwrite (&byt, 1, 1, stdout);
           byt = (wrd & 0x07E0) >> 3;
@@ -25,5 +23,5 @@ int main()
           fwrite (&byt, 1, 1, stdout);
      } while (!feof (stdin));
 
-     return 0;     
+     return 0;
 }
