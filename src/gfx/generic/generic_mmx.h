@@ -177,10 +177,10 @@ static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
                "addl     %4, %0\n\t"
                "testl    $0xFFFF0000, %0\n\t"
                "jz       2b\n\t"
-               "movl     %0, %%ebx\n\t"
-               "andl     $0xFFFF0000, %%ebx\n\t"
-               "shrl     $14, %%ebx\n\t"
-               "add      %%ebx, %3\n\t"
+               "movl     %0, %%edx\n\t"
+               "andl     $0xFFFF0000, %%edx\n\t"
+               "shrl     $14, %%edx\n\t"
+               "add      %%edx, %3\n\t"
                "andl     $0xFFFF, %0\n\t"
                "jmp      1b\n"
                "3:\n\t"
@@ -188,7 +188,7 @@ static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
                : "=r" (i)
                : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop),
                  "a" (gfxs->SperD), "m" (*zeros), "0" (i)
-               : "%st", "memory");
+               : "%edx", "%st", "memory");
 }
 
 static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
