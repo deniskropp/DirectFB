@@ -83,19 +83,21 @@ static void config_print_usage()
              " --graphics-vt                     "
              "Put terminal into graphics mode\n"
              " --[no-]motion-compression         "
-             "Mouse Motion Event Compression\n"
+             "Mouse motion event compression\n"
              " --mouse-protocol=<protocol>       "
-             "Mouse Protocol (serial mouse)\n"
+             "Mouse protocol (serial mouse)\n"
              " --lefty                           "
              "Swap left and right mouse buttons\n"
              " --[no-]cursor                     "
              "Show cursor on start up (default)\n"
              " --bg-none                         "
-             "Disable Background Clear\n"
+             "Disable background clear\n"
              " --bg-color=AARRGGBB               "
-             "Use Background Color (hex)\n"
+             "Use background color (hex)\n"
              " --bg-image=<filename>             "
-             "Use Background Image\n"
+             "Use background image\n"
+             " --bg-tile=<filename>              "
+             "Use tiled background image\n"
              " --disable-window-opacity          "
              "Force window opacity to be 0 or 255\n"
              " --matrox-sgram                    "
@@ -277,12 +279,13 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "bg-none" ) == 0) {
           dfb_config->layer_bg_mode = DLBM_DONTCARE;
      } else
-     if (strcmp (name, "bg-image" ) == 0) {
+     if (strcmp (name, "bg-image" ) == 0 || strcmp (name, "bg-tile" ) == 0) {
           if (value) {
                if (dfb_config->layer_bg_filename)
                     DFBFREE( dfb_config->layer_bg_filename );
                dfb_config->layer_bg_filename = DFBSTRDUP( value );
-               dfb_config->layer_bg_mode = DLBM_IMAGE;
+               dfb_config->layer_bg_mode = 
+                    strcmp (name, "bg-tile" ) ? DLBM_IMAGE : DLBM_TILE;
           }
           else {
                ERRORMSG( "DirectFB/Config: No image filename specified!\n" );

@@ -1005,7 +1005,9 @@ extern "C"
                                            clear the layer before */
           DLBM_COLOR,                   /* fill with solid color
                                            (SetBackgroundColor) */
-          DLBM_IMAGE                    /* use an image (SetBackgroundImage) */
+          DLBM_IMAGE,                   /* use an image (SetBackgroundImage) */
+          DLBM_TILE                     /* use a tiled image 
+                                           (SetBackgroundImage) */
      } DFBDisplayLayerBackgroundMode;
 
      /*

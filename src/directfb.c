@@ -278,7 +278,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      dfb_layers->shared->bg.mode  = dfb_config->layer_bg_mode;
      dfb_layers->shared->bg.color = dfb_config->layer_bg_color;
 
-     if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
+     if (dfb_config->layer_bg_mode == DLBM_IMAGE || dfb_config->layer_bg_mode == DLBM_TILE) {
           DFBSurfaceDescription   desc;
           IDirectFBImageProvider *provider;
           IDirectFBSurface       *image;
@@ -290,11 +290,16 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                return DFB_INIT;
           }
 
-          desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-          desc.width = dfb_layers->shared->width;
-          desc.height = dfb_layers->shared->height;
+          if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
+               desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT;
+               desc.width  = dfb_layers->shared->width;
+               desc.height = dfb_layers->shared->height;
+          } 
+          else {
+               provider->GetSurfaceDescription( provider, &desc );
+          }
+          desc.flags |= DSDESC_PIXELFORMAT;
           desc.pixelformat = dfb_layers->shared->surface->format;
-
 
           ret = (*interface)->CreateSurface( *interface, &desc, &image );
           if (ret) {

@@ -825,17 +825,20 @@ static void update_region( CoreWindowStack *stack, int window,
      }
      else {
           if (layer->bg.mode != DLBM_DONTCARE) {
-               DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
 
                switch (layer->bg.mode) {
-                    case DLBM_COLOR:
+                    case DLBM_COLOR: {
+                         DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
+
                          stack->state.color     = layer->bg.color;
                          stack->state.modified |= SMF_COLOR;
 
                          dfb_gfxcard_fillrectangle( &rect, &stack->state );
                          break;
+                    }
+                    case DLBM_IMAGE: {
+                         DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
 
-                    case DLBM_IMAGE:
                          if (stack->state.blittingflags != DSBLIT_NOFX) {
                               stack->state.blittingflags  = DSBLIT_NOFX;
                               stack->state.modified      |= SMF_BLITTING_FLAGS;
@@ -846,7 +849,27 @@ static void update_region( CoreWindowStack *stack, int window,
 
                          dfb_gfxcard_blit( &rect, x1, y1, &stack->state );
                          break;
+                    }
+                    case DLBM_TILE: {
+                         DFBRectangle rect = 
+                         { 0, 0, layer->bg.image->width, layer->bg.image->height };
 
+                         if (stack->state.blittingflags != DSBLIT_NOFX) {
+                              stack->state.blittingflags  = DSBLIT_NOFX;
+                              stack->state.modified      |= SMF_BLITTING_FLAGS;
+                         }
+
+                         stack->state.source    = layer->bg.image;
+                         stack->state.modified |= SMF_SOURCE;
+
+                         dfb_gfxcard_tileblit( &rect, 
+                                               (x1 / rect.w) * rect.w,
+                                               (y1 / rect.h) * rect.h, 
+                                               (x2 / rect.w + 1) * rect.w, 
+                                               (y2 / rect.h + 1) * rect.h, 
+                                               &stack->state );
+                         break;
+                    }
                     default:
                          ;
                }

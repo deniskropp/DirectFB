@@ -285,8 +285,9 @@ IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer         *thiz,
           case DLBM_DONTCARE:
           case DLBM_COLOR:
           case DLBM_IMAGE:
+          case DLBM_TILE:
                if (background_mode != data->layer->shared->bg.mode) {
-                    if (background_mode == DLBM_IMAGE && !data->layer->shared->bg.image)
+                    if ((background_mode == DLBM_IMAGE || background_mode == DLBM_TILE) && !data->layer->shared->bg.image)
                          return DFB_MISSINGIMAGE;
 
                     data->layer->shared->bg.mode = background_mode;
