@@ -24,8 +24,6 @@
 #ifndef __IDIRECTFBWINDOW_H__
 #define __IDIRECTFBWINDOW_H__
 
-#include <core/windows.h>
-
 /*
  * initializes a new window and constructs interface
  */

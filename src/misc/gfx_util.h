@@ -27,7 +27,6 @@
 #ifndef __GFX_UTIL_H__
 #define __GFX_UTIL_H__
 
-#include <core/surfaces.h>
 #include <asm/types.h>
 
 void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,

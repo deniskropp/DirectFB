@@ -33,6 +33,8 @@
 
 #include <errno.h>
 
+#include <pthread.h>
+
 #include <linux/keyboard.h>
 
 #include <termios.h>
@@ -40,11 +42,14 @@
 #include <directfb.h>
 
 #include <core/coredefs.h>
+#include <core/coretypes.h>
+
+#include <core/input.h>
+#include <core/reactor.h>
+#include <core/vt.h>
 
 #include <misc/conf.h>
 
-#include <core/vt.h>
-#include <core/input.h>
 
 static int fd = -1;
 

@@ -28,13 +28,18 @@
 
 #include <malloc.h>
 
-#include <directfb.h>
+#include <pthread.h>
+
+#include "directfb.h"
 
 #include "core.h"
 #include "coredefs.h"
-#include "surfacemanager.h"
+#include "coretypes.h"
 
 #include "gfxcard.h"
+#include "reactor.h"
+#include "surfaces.h"
+#include "surfacemanager.h"
 
 
 

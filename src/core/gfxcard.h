@@ -26,11 +26,6 @@
 
 #include <linux/fb.h>
 
-#include <directfb.h>
-
-#include "surfaces.h"
-#include "fonts.h"
-#include "state.h"
 
 typedef enum {
      CCF_CLIPPING
@@ -50,7 +45,7 @@ typedef enum {
 /*
  * stuct for graphics cards
  */
-typedef struct {
+struct _GfxCard {
      /* fbdev fixed screeninfo, contains infos about memory and type of card */
      struct fb_fix_screeninfo fix;
 
@@ -132,7 +127,7 @@ typedef struct {
 
      void (*StretchBlit) ( DFBRectangle *srect, DFBRectangle *drect );
 
-} GfxCard;
+};
 
 extern GfxCard *card;
 
@@ -186,7 +181,7 @@ void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                           CardState *state );
 
 void gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
-                         CoreFontData *font, CardState *state );
+                         CoreFont *font, CardState *state );
 
 
 static inline void gfxcard_sync()

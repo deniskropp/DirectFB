@@ -24,8 +24,6 @@
 #ifndef __CORE__FBDEV_H__
 #define __CORE__FBDEV_H__
 
-#include <directfb.h>
-
 #include <linux/fb.h>
 
 /*

@@ -28,6 +28,10 @@
 
 #include <pthread.h>
 
+#include "directfb.h"
+
+#include "core/coretypes.h"
+
 #include "tree.h"
 
 

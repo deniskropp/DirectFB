@@ -28,20 +28,21 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include <gfx/util.h>
-#include <misc/util.h>
-
-#include <directfb.h>
+#include "directfb.h"
 
 #include "core.h"
 #include "coredefs.h"
-#include "layers.h"
+#include "coretypes.h"
 
 #include "input.h"
 #include "gfxcard.h"
-
+#include "layers.h"
+#include "reactor.h"
+#include "state.h"
 #include "windows.h"
 
+#include "gfx/util.h"
+#include "misc/util.h"
 
 
 #define CURSORFILE     DATADIR"/cursor.dat"

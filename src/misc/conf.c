@@ -21,19 +21,25 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <malloc.h>
 
-#include <core/coredefs.h>
-#include <core/surfaces.h>
-#include <core/layers.h>
-#include <config.h>
+#include "directfb.h"
+
+#include "core/coredefs.h"
+#include "core/coretypes.h"
+
+#include "core/surfaces.h"
+#include "core/layers.h"
 
 #include "conf.h"
 #include "util.h"
+
 
 DFBConfig *dfb_config = NULL;
 

@@ -21,21 +21,28 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __IDIRECTFBDISPLAYLAYER_H__
-#define __IDIRECTFBDISPLAYLAYER_H__
+#ifndef __CORETYPES_H__
+#define __CORETYPES_H__
 
 
-/*
- * initializes interface struct and private data
- */
-DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
-                                           DisplayLayer *layer );
+typedef struct _CoreFont         CoreFont;
+typedef struct _CoreSurface      CoreSurface;
+typedef struct _CoreWindow       CoreWindow;
+typedef struct _CoreWindowStack  CoreWindowStack;
 
-/*
- * frees private data
- */
-void IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer * );
+typedef struct _DisplayLayer     DisplayLayer;
 
+typedef struct _SurfaceBuffer    SurfaceBuffer;
+
+typedef struct _GfxCard          GfxCard;
+typedef struct _CardState        CardState;
+
+typedef struct _Reactor          Reactor;
+
+typedef struct _Tree             Tree;
+
+typedef __u32 unichar;
 
 
 #endif
+

@@ -28,8 +28,6 @@
 #define __TREE_H__
 
 
-typedef struct _Tree Tree;
-
 Tree * tree_new     (void);
 void   tree_lock    (Tree *tree);
 void   tree_unlock  (Tree *tree);

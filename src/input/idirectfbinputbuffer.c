@@ -31,10 +31,15 @@
 
 #include <sys/time.h>
 
+#include <pthread.h>
+
 #include <directfb.h>
 
 #include <core/coredefs.h>
+#include <core/coretypes.h>
+
 #include <core/input.h>
+#include <core/reactor.h>
 
 #include "idirectfbinputbuffer.h"
 

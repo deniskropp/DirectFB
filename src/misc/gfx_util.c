@@ -25,13 +25,17 @@
 */
 
 #include <stdlib.h>
-
-#include <directfb.h>
-
-#include <core/core.h>
-#include <core/coredefs.h>
-#include <core/surfaces.h>
 #include <stdio.h>
+
+#include <pthread.h>
+
+#include "directfb.h"
+
+#include "core/core.h"
+#include "core/coredefs.h"
+#include "core/coretypes.h"
+
+#include "core/surfaces.h"
 
 #include "gfx_util.h"
 #include "util.h"

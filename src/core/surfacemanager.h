@@ -24,7 +24,6 @@
 #ifndef __SURFACEMANAGER_H__
 #define __SURFACEMANAGER_H__
 
-#include "surfaces.h"
 
 /*
  * initially there is one big free chunk,

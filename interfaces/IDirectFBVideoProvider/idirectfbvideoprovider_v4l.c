@@ -40,14 +40,19 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
-#include <misc/util.h>
-
 #include <core/coredefs.h>
-#include <core/layers.h>
+#include <core/coretypes.h>
+
+#include <core/state.h>
 #include <core/gfxcard.h>
+#include <core/layers.h>
+#include <core/surfaces.h>
 #include <core/surfacemanager.h>
 
 #include <display/idirectfbsurface.h>
+
+#include <misc/util.h>
+
 
 /*
  * private data struct of IDirectFBVideoProvider

@@ -21,6 +21,7 @@ AM_CPPFLAGS = \
 
 libdirectfb_core_la_SOURCES = \
 	coredefs.h		\
+	coretypes.h		\
 	core.c			\
 	core.h			\
 	fbdev.c			\

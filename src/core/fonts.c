@@ -25,13 +25,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <directfb.h>
+#include "directfb.h"
+
+#include "coredefs.h"
+#include "coretypes.h"
 
 #include "fonts.h"
-#include "coredefs.h"
+#include "reactor.h"
+#include "surfaces.h"
+
+#include "misc/tree.h"
 
 
-void fonts_destruct (CoreFontData *font)
+void fonts_destruct (CoreFont *font)
 {
      int i;
 
@@ -49,7 +55,7 @@ void fonts_destruct (CoreFontData *font)
      font->rows = 0;
 }
 
-DFBResult fonts_get_glyph_data (CoreFontData    *font,
+DFBResult fonts_get_glyph_data (CoreFont        *font,
                                 unichar          glyph,
                                 CoreGlyphData  **glyph_data)
 {

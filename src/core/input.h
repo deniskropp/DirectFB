@@ -24,11 +24,6 @@
 #ifndef __INPUT_H__
 #define __INPUT_H__
 
-#include <directfb.h>
-
-#include <pthread.h>
-
-#include "reactor.h"
 
 typedef struct _InputDevice InputDevice;
 

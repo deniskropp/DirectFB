@@ -27,8 +27,6 @@
 #ifndef __UTF8_H__
 #define __UTF8_H__
 
-typedef __u32 unichar;
-
 char utf8_skip[256];
 
 #define utf8_next_char(p) (char *)((p) + utf8_skip[*(unsigned char *)(p)])

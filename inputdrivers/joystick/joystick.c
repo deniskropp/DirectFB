@@ -33,12 +33,18 @@
 #include <sys/ioctl.h>
 #include <sys/vt.h>
 
+#include <pthread.h>
+
+#include <linux/joystick.h>
+
 #include <directfb.h>
 
 #include <core/coredefs.h>
-#include <core/input.h>
+#include <core/coretypes.h>
 
-#include <linux/joystick.h>
+#include <core/input.h>
+#include <core/reactor.h>
+
 
 static int  fd[8];
 static char devicename[10] ="/dev/jsX";

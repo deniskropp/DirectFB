@@ -25,9 +25,6 @@
 #define __REACTOR_H__
 
 
-
-typedef struct _Reactor Reactor;
-
 typedef enum {
      RS_OK,
      RS_REMOVE

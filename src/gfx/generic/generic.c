@@ -21,6 +21,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -29,17 +31,20 @@
 
 #include <pthread.h>
 
-#include <directfb.h>
+#include "directfb.h"
 
-#include <core/coredefs.h>
-#include <core/gfxcard.h>
-#include <misc/gfx_util.h>
-#include <misc/util.h>
-#include <misc/conf.h>
-#include <gfx/convert.h>
-#include <gfx/util.h>
+#include "core/coredefs.h"
+#include "core/coretypes.h"
 
-#include <config.h>
+#include "core/gfxcard.h"
+#include "core/state.h"
+
+#include "misc/gfx_util.h"
+#include "misc/util.h"
+#include "misc/conf.h"
+
+#include "gfx/convert.h"
+#include "gfx/util.h"
 
 #include "generic.h"
 

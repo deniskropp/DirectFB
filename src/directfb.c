@@ -31,20 +31,24 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#include <directfb.h>
+#include "directfb.h"
+#include "directfb_internals.h"
+#include "directfb_version.h"
+ 
+#include "misc/conf.h"
 
-#include <misc/conf.h>
+#include "core/core.h"
+#include "core/coredefs.h"
+#include "core/coretypes.h"
 
-#include <core/core.h>
-#include <core/coredefs.h>
-#include <core/input.h>
-#include <core/layers.h>
-#include <core/gfxcard.h>
+#include "core/input.h"
+#include "core/layers.h"
+#include "core/state.h"
+#include "core/gfxcard.h"
+#include "core/surfaces.h"
+#include "core/windows.h"
 
-#include <directfb_internals.h>
-#include <directfb_version.h>
-
-#include <display/idirectfbsurface.h>
+#include "display/idirectfbsurface.h"
 
 #include "idirectfb.h"
 

@@ -21,15 +21,17 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <directfb.h>
-
 #include <stdlib.h>
 #include <dirent.h>
 #include <dlfcn.h>
 #include <errno.h>
 
-#include "core.h"
+#include "directfb.h"
+
 #include "coredefs.h"
+#include "coretypes.h"
+
+#include "core.h"
 #include "vt.h"
 #include "sig.h"
 #include "input.h"

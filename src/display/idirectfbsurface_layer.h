@@ -24,8 +24,6 @@
 #ifndef __DIRECTFBSURFACE_LAYER_H__
 #define __DIRECTFBSURFACE_LAYER_H__
 
-#include <core/layers.h>
-
 /*
  * sets buffer mode according to capabilities, calls base classes
  * IDirectFBSurface_Construct, reallocates private data and

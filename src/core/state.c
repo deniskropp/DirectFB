@@ -21,10 +21,17 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <directfb.h>
+#include <pthread.h>
+
+#include "directfb.h"
 
 #include "core.h"
+#include "coretypes.h"
+
+#include "reactor.h"
 #include "state.h"
+#include "surfaces.h"
+
 
 static ReactionResult destination_listener( const void *msg_data,
                                             void       *ctx )

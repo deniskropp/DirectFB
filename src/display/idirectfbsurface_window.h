@@ -24,8 +24,6 @@
 #ifndef __DIRECTFBSURFACE_WINDOW_H__
 #define __DIRECTFBSURFACE_WINDOW_H__
 
-#include <core/windows.h>
-
 /*
  * calls base classes IDirectFBSurface_Construct,
  * reallocates private data and overloads functions of the interface

@@ -24,8 +24,6 @@
 #ifndef __STATE_H__
 #define __STATE_H__
 
-#include "surfaces.h"
-
 typedef enum {
      SMF_DRAWING_FLAGS   = 0x00000001,
      SMF_BLITTING_FLAGS  = 0x00000002,
@@ -42,7 +40,7 @@ typedef enum {
      SMF_ALL             = 0x000001FF
 } StateModificationFlags;
 
-typedef struct {
+struct _CardState {
      StateModificationFlags  modified;     /* indicate which fields have been
                                               modified, these flags will be
                                               cleared by the gfx drivers */
@@ -66,7 +64,7 @@ typedef struct {
                                               already checked */
      DFBAccelerationMask     set;          /* commands for which a state has
                                               been set */
-} CardState;
+};
 
 void state_set_destination( CardState *state, CoreSurface *destination );
 void state_set_source( CardState *state, CoreSurface *source );

@@ -26,13 +26,6 @@
 
 #include <asm/types.h>
 
-#include <directfb.h>
-
-#include "surfaces.h"
-#include "windows.h"
-#include "state.h"
-
-typedef struct _DisplayLayer DisplayLayer;
 
 extern DisplayLayer *layers;
 

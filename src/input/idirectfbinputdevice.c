@@ -29,14 +29,16 @@
 #include <malloc.h>
 
 #include <directfb.h>
+#include <directfb_internals.h>
 
 #include <core/coredefs.h>
+#include <core/coretypes.h>
+
+#include <core/reactor.h>
 #include <core/input.h>
 
 #include "idirectfbinputdevice.h"
 #include "idirectfbinputbuffer.h"
-
-#include <directfb_internals.h>
 
 
 /* 

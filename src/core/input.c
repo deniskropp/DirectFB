@@ -30,13 +30,17 @@
 #include <string.h>
 #include <malloc.h>
 
-#include <directfb.h>
+#include <pthread.h>
+
+#include "directfb.h"
 
 #include "core.h"
 #include "coredefs.h"
-#include "input.h"
+#include "coretypes.h"
 
+#include "reactor.h"
 #include "layers.h"
+#include "input.h"
 
 
 InputDevice *inputdevices = NULL;

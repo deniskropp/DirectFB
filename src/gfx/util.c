@@ -21,12 +21,17 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <directfb.h>
+#include <pthread.h>
 
-#include <core/state.h>
-#include <core/gfxcard.h>
+#include "directfb.h"
+
+#include "core/coretypes.h"
+
+#include "core/state.h"
+#include "core/gfxcard.h"
 
 #include "util.h"
+
 
 static CardState copy_state = { 0 };
 static CardState btf_state = { 0 };

@@ -28,6 +28,10 @@
 
 #include <pthread.h>
 
+#include "directfb.h"
+
+#include "coretypes.h"
+
 #include "reactor.h"
 
 

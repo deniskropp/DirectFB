@@ -24,8 +24,6 @@
 #ifndef __CORE_H__
 #define __CORE_H__
 
-#include <directfb.h>
-
 
 typedef enum {
      MODULE_LOADED_CONTINUE,

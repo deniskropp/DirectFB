@@ -28,20 +28,25 @@
 
 #include <malloc.h>
 
-#include <directfb.h>
-
 #include <pthread.h>
+
+#include "directfb.h"
+
+#include "coredefs.h"
+#include "coretypes.h"
+
+#include "layers.h"
+#include "gfxcard.h"
+#include "input.h"
+#include "reactor.h"
+#include "state.h"
+
+#include "windows.h"
 
 #include <misc/conf.h>
 #include <misc/util.h>
 #include <gfx/util.h>
 
-#include "coredefs.h"
-#include "windows.h"
-
-#include "layers.h"
-#include "gfxcard.h"
-#include "input.h"
 
 #define min(a,b)     ((a) < (b) ? (a) : (b))
 

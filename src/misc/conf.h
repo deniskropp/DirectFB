@@ -24,8 +24,6 @@
 #ifndef __CONF_H__
 #define __CONF_H__
 
-#include <directfb.h>
-
 typedef struct
 {
      DFBDisplayLayerBackgroundMode layer_bg_mode; /* background mode for

@@ -28,20 +28,23 @@
 #include <string.h>
 #include <malloc.h>
 
-#include <directfb.h>
+#include "directfb.h"
+#include "directfb_internals.h"
 
-#include <core/core.h>
-#include <core/gfxcard.h>
-#include <core/surfaces.h>
-#include <core/fbdev.h>
-#include <core/fonts.h>
+#include "core/core.h"
+#include "core/coretypes.h"
 
-#include <misc/util.h>
+#include "core/gfxcard.h"
+#include "core/surfaces.h"
+#include "core/fbdev.h"
+#include "core/fonts.h"
+#include "core/state.h"
+#include "core/windows.h"
 
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_window.h"
 
-#include <directfb_internals.h>
+#include "misc/util.h"
 
 
 /*

@@ -25,12 +25,6 @@
 #ifndef __FONTS_H__
 #define __FONTS_H__
 
-#include <directfb.h>
-
-#include <misc/tree.h>
-#include <misc/utf8.h>
-
-#include "surfaces.h"
 
 /*
  * glyph struct
@@ -49,9 +43,7 @@ typedef struct {
  * font struct
  */
 
-typedef struct _CoreFontData CoreFontData;
-
-struct _CoreFontData {
+struct _CoreFont {
      CoreSurface  **surfaces;           /* contain bitmaps of loaded glyphs */
      int            rows;
      int            row_width;
@@ -69,22 +61,22 @@ struct _CoreFontData {
 
      void          *impl_data;          /* a pointer used by the impl.      */
 
-     DFBResult   (* GetGlyphInfo) (CoreFontData *thiz, unichar glyph, CoreGlyphData *info);
-     DFBResult   (* RenderGlyph)  (CoreFontData *thiz, unichar glyph,
+     DFBResult   (* GetGlyphInfo) (CoreFont *thiz, unichar glyph, CoreGlyphData *info);
+     DFBResult   (* RenderGlyph)  (CoreFont *thiz, unichar glyph,
                                    CoreGlyphData *info, CoreSurface *surface);
-     DFBResult   (* GetKerning)   (CoreFontData *thiz,
+     DFBResult   (* GetKerning)   (CoreFont *thiz,
                                    unichar prev, unichar current, int *kerning);
 };
 
 /*
- * destroy all data in the CoreFontData struct
+ * destroy all data in the CoreFont struct
  */
-void fonts_destruct(CoreFontData *font);
+void fonts_destruct(CoreFont *font);
 
 /*
  * loads glyph data from font
  */
-DFBResult fonts_get_glyph_data(CoreFontData    *font,
+DFBResult fonts_get_glyph_data(CoreFont        *font,
                                unichar          glyph,
                                CoreGlyphData  **glyph_data);
 

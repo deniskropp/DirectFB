@@ -30,16 +30,24 @@
 #include <sys/time.h>
 #include <errno.h>
 
-#include <directfb.h>
+#include <pthread.h>
 
-#include <core/core.h>
-#include <core/coredefs.h>
+#include "directfb.h"
+#include "directfb_internals.h"
 
-#include <display/idirectfbsurface.h>
-#include <display/idirectfbsurface_window.h>
+#include "core/core.h"
+#include "core/coredefs.h"
+#include "core/coretypes.h"
+
+#include "core/reactor.h"
+#include "core/state.h"
+#include "core/surfaces.h"
+#include "core/windows.h"
+
+#include "display/idirectfbsurface.h"
+#include "display/idirectfbsurface_window.h"
+
 #include "idirectfbwindow.h"
-
-#include <directfb_internals.h>
 
 /* 
  * adds an window event to the event queue

@@ -31,9 +31,13 @@
 #include <sys/vt.h>
 #include <errno.h>
 
+#include "directfb.h"
+
 #include "core.h"
 #include "coredefs.h"
+
 #include "vt.h"
+
 
 VirtualTerminal     *vt = NULL;
 

@@ -31,9 +31,12 @@
 
 #include <directfb.h>
 
-#include <core/core.h>
 #include <core/coredefs.h>
+#include <core/coretypes.h>
+
 #include <core/layers.h>
+#include <core/surfaces.h>
+
 #include <misc/gfx_util.h>
 
 #include <jpeglib.h>

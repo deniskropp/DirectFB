@@ -32,16 +32,20 @@
 #include <sys/kd.h>
 #include <sys/vt.h>
 
-#include <linux/keyboard.h>
-
 #include <termios.h>
+
+#include <pthread.h>
 
 #include <directfb.h>
 
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+
+#include <core/input.h>
+#include <core/reactor.h>
+
 #include <misc/conf.h>
 
-#include <core/coredefs.h>
-#include <core/input.h>
 
 static int fd = -1;
 

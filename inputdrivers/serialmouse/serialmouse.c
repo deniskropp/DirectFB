@@ -37,12 +37,18 @@
 
 #include <linux/serial.h>
 
+#include <pthread.h>
+
 #include <directfb.h>
+
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+
+#include <core/input.h>
+#include <core/reactor.h>
 
 #include <misc/conf.h>
 
-#include <core/coredefs.h>
-#include <core/input.h>
 
 #define DEV_NAME "/dev/mouse"
 #define MIDDLE   0x08

@@ -24,10 +24,6 @@
 #ifndef __DIRECTFBSURFACE_H__
 #define __DIRECTFBSURFACE_H__
 
-#include <core/surfaces.h>
-#include <core/fonts.h>
-#include <core/state.h>
-
 /*
  * private data struct of IDirectFB
  */

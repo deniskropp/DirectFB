@@ -24,15 +24,9 @@
 #ifndef __SURFACES_H__
 #define __SURFACES_H__
 
-#include <directfb.h>
-
-#include <pthread.h>
-
-#include "reactor.h"
+#include "core/reactor.h"
 
 struct _Chunk;
-
-typedef struct _CoreSurface CoreSurface;
 
 typedef enum {
      CSNF_SIZEFORMAT  = 0x00000001,     /* width, height, format */
@@ -48,7 +42,7 @@ typedef struct {
 } CoreSurfaceNotification;
 
 
-typedef struct
+struct _SurfaceBuffer
 {
      int                 policy;        /* swapping policy for surfacemanager */
      
@@ -71,7 +65,7 @@ typedef struct
      CoreSurface        *surface;       /* always pointing to the surface this
                                            buffer belongs to, surfacemanger
                                            always depends on this! */
-} SurfaceBuffer;
+};
 
 struct _CoreSurface
 {

@@ -36,7 +36,11 @@
 #include <directfb.h>
 
 #include <core/coredefs.h>
+#include <core/coretypes.h>
+
+#include <core/state.h>
 #include <core/gfxcard.h>
+#include <core/surfaces.h>
 
 #include <gfx/convert.h>
 

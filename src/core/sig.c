@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "directfb.h"
+
 #include "coredefs.h"
 #include "core.h"
 #include "sig.h"

@@ -21,9 +21,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <config.h>
-
-#include <directfb.h>
+#include "config.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -35,16 +33,24 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
+#include <pthread.h>
 
-#include <misc/util.h>
+#include "directfb.h"
+
+#include "coredefs.h"
+#include "coretypes.h"
 
 #include "fbdev.h"
 #include "core.h"
-#include "coredefs.h"
 #include "layers.h"
 #include "gfxcard.h"
+#include "reactor.h"
+#include "surfaces.h"
 #include "surfacemanager.h"
+#include "state.h"
+#include "windows.h"
 
+#include "misc/util.h"
 
 
 FBDev   *display = NULL;

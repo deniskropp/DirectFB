@@ -24,20 +24,18 @@
 #ifndef __DIRECTFBFONT_H__
 #define __DIRECTFBFONT_H__
 
-#include <core/fonts.h>
-
 /*
  * private data struct of IDirectFBFont
  */
 typedef struct {
-     int           ref;   /* reference counter */
-     CoreFontData *font;  /* pointer to core data */
+     int        ref;   /* reference counter    */
+     CoreFont *font;   /* pointer to core font */
 } IDirectFBFont_data;
 
 /*
  * common code to construct the interface (internal usage only)
  */
-DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font );
+DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font );
 
 /*
  * deinitialize font and its surfaces

@@ -31,11 +31,18 @@
 #include <directfb.h>
 
 #include <core/coredefs.h>
+#include <core/coretypes.h>
+
 #include <core/fonts.h>
+#include <core/surfaces.h>
 
 #include <gfx/convert.h>
 
 #include <media/idirectfbfont.h>
+
+#include <misc/tree.h>
+#include <misc/utf8.h>
+
 
 #define FONTFILE DATADIR"/fonts/font.data"
 
@@ -59,7 +66,7 @@ DFBResult Construct( IDirectFBFont *thiz,
                      const char *filename,
                      DFBFontDescription *desc )
 {
-     CoreFontData *font;
+     CoreFont *font;
      CoreSurface *surface;
      FILE *f;
      __u8 *dst;
@@ -74,7 +81,7 @@ DFBResult Construct( IDirectFBFont *thiz,
           return DFB_FAILURE;
      }
 
-     font = (CoreFontData*) calloc( 1, sizeof(CoreFontData) );
+     font = (CoreFont *) calloc( 1, sizeof(CoreFont) );
 
      font->height    = 20;
      font->ascender  = 16;

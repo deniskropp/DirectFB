@@ -22,24 +22,34 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include "config.h"
+
 #include <string.h>
-
-#include <config.h>
-#include <directfb.h>
-
 #include <malloc.h>
 #include <dlfcn.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include "gfxcard.h"
+#include <pthread.h>
+
+#include "directfb.h"
+
 #include "core.h"
 #include "coredefs.h"
+#include "coretypes.h"
+
+#include "gfxcard.h"
 #include "fbdev.h"
+#include "fonts.h"
+#include "reactor.h"
+#include "state.h"
+#include "surfaces.h"
 #include "surfacemanager.h"
 
-#include <gfx/generic/generic.h>
-#include <misc/gfx_util.h>
+#include "gfx/generic/generic.h"
+
+#include "misc/gfx_util.h"
+#include "misc/utf8.h"
 
 
 GfxCard *card = NULL;
@@ -518,7 +528,7 @@ void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 
 void gfxcard_drawstring( const __u8 *text, int bytes,
                          int x, int y,
-                         CoreFontData *font, CardState *state )
+                         CoreFont *font, CardState *state )
 {
      CoreGlyphData *data;
      DFBRectangle   rect;

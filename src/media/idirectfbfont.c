@@ -28,13 +28,16 @@
 
 #include <malloc.h>
 
-#include <directfb.h>
+#include "directfb.h"
 
-#include <core/core.h>
-#include <misc/util.h>
+#include "core/coretypes.h"
+
+#include "core/fonts.h"
 
 #include "idirectfbfont.h"
 
+#include "misc/utf8.h"
+#include "misc/util.h"
 
 /*
  * increments reference count of font
@@ -151,7 +154,7 @@ DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
                                           DFBRectangle *ink_rect )
 {
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
-     CoreFontData  *font;
+     CoreFont *font;
      CoreGlyphData *glyph;
      unichar  prev = 0;
      unichar  current;
@@ -238,7 +241,7 @@ DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
      return result;
 }
 
-DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font )
+DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
 {
      IDirectFBFont_data *data;
 

@@ -29,12 +29,13 @@
 #include <errno.h>
 #include <string.h>
 
+#include <directfb.h>
+#include <directfb_internals.h>
+
 #include <core/coredefs.h>
 
 #include <misc/util.h>
 
-#include <directfb.h>
-#include <directfb_internals.h>
 
 static pthread_mutex_t              implementations_mutex = PTHREAD_MUTEX_INITIALIZER;
 

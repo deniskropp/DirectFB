@@ -34,28 +34,32 @@
 #include <malloc.h>
 #include <string.h>
 
-#include <directfb.h>
-
-#include <misc/conf.h>
-
-#include <core/core.h>
-#include <core/gfxcard.h>
-#include <core/surfacemanager.h>
-#include <core/input.h>
-#include <core/layers.h>
-#include <core/fbdev.h>
-
-#include <directfb_internals.h>
-
-#include <display/idirectfbsurface.h>
-#include <display/idirectfbsurface_layer.h>
-#include <display/idirectfbsurface_window.h>
-#include <display/idirectfbdisplaylayer.h>
-#include <input/idirectfbinputdevice.h>
-
+#include "directfb.h"
 #include "directfb_version.h"
+#include "directfb_internals.h"
+
+#include "core/core.h"
+#include "core/coretypes.h"
+
+#include "core/fbdev.h"
+#include "core/state.h"
+#include "core/gfxcard.h"
+#include "core/input.h"
+#include "core/layers.h"
+#include "core/surfaces.h"
+#include "core/surfacemanager.h"
+#include "core/windows.h"
+
+#include "display/idirectfbsurface.h"
+#include "display/idirectfbsurface_layer.h"
+#include "display/idirectfbsurface_window.h"
+#include "display/idirectfbdisplaylayer.h"
+#include "input/idirectfbinputdevice.h"
 
 #include "idirectfb.h"
+
+#include "misc/conf.h"
+
 
 typedef struct _DFBSuspendResumeHandler {
      DFBSuspendResumeFunc  func;

@@ -28,16 +28,19 @@
 
 #include <malloc.h>
 
-#include <directfb.h>
+#include <pthread.h>
 
-#include <gfx/util.h>
+#include "directfb.h"
 
 #include "core.h"
 #include "coredefs.h"
-#include "surfaces.h"
+#include "coretypes.h"
 
 #include "gfxcard.h"
+#include "surfaces.h"
 #include "surfacemanager.h"
+
+#include "gfx/util.h"
 
 
 static CoreSurface *surfaces = NULL;

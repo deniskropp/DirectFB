@@ -24,11 +24,7 @@
 #ifndef __WINDOWS_H__
 #define __WINDOWS_H__
 
-#include "surfaces.h"
-#include "state.h"
-
 #include <asm/types.h>
-#include <pthread.h>
 
 struct _DisplayLayer;
 
@@ -37,8 +33,6 @@ struct _DisplayLayer;
  * this window will be "super topmost" and cannot get focus/events etc.
  */
 #define DWHC_GHOST     0x80000000
-
-typedef struct _CoreWindowStack  CoreWindowStack;
 
 /*
  * linked list of DFBWindowEvents
@@ -53,7 +47,7 @@ typedef struct _CoreWindowEvent
 /*
  * a window
  */
-typedef struct _CoreWindow
+struct _CoreWindow
 {
      int                   x;               /* x position in pixels */
      int                   y;               /* y position in pixels */
@@ -70,14 +64,14 @@ typedef struct _CoreWindow
      CoreWindowStack      *stack;           /* window stack the window belongs */
 
      Reactor              *reactor;         /* event dispatcher */
-} CoreWindow;
+};
 
 /*
  * a window stack
  */
 struct _CoreWindowStack
 {
-     struct _DisplayLayer *layer;
+     DisplayLayer       *layer;
 
      int                 num_windows;     /* number of windows on the stack */
      CoreWindow        **windows;         /* array of windows */
