@@ -136,6 +136,9 @@ void direct_messages_warn         ( const char *func,
                                    direct_messages_warn( __FUNCTION__, __FILE__, __LINE__, x );\
                          } while (0)
 
+#define D_OOM()          (direct_messages_warn( __FUNCTION__, __FILE__, __LINE__,              \
+                                                "out of memory" ), DFB_NOSYSTEMMEMORY)
+
 
 #else
      #define D_INFO(x...)          do { } while (0)
@@ -144,9 +147,10 @@ void direct_messages_warn         ( const char *func,
      #define D_PERROR(x...)        do { } while (0)
      #define D_DLERROR(x...)       do { } while (0)
      #define D_ONCE(x...)          do { } while (0)
-     #define D_UNIMPLEMENTED(x...) do { } while (0)
+     #define D_UNIMPLEMENTED()     do { } while (0)
      #define D_BUG(x...)           do { } while (0)
      #define D_WARN(x...)          do { } while (0)
+     #define D_OOM()               (DFB_NOSYSTEMMEMORY)
 #endif
 
 
