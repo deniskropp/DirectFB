@@ -370,13 +370,23 @@ extern "C"
           /*
            * Unicode private area - DirectFB Dead keys
            */
-          DIKS_DEAD_GRAVE               = DFB_KEY( DEAD, 0x00 ),
-          DIKS_DEAD_ACUTE               = DFB_KEY( DEAD, 0x01 ),
-          DIKS_DEAD_CIRCUMFLEX          = DFB_KEY( DEAD, 0x02 ),
-          DIKS_DEAD_TILDE               = DFB_KEY( DEAD, 0x03 ),
-          DIKS_DEAD_DIAERESIS           = DFB_KEY( DEAD, 0x04 ),
+          DIKS_DEAD_ABOVEDOT            = DFB_KEY( DEAD, 0x00 ),
+          DIKS_DEAD_ABOVERING           = DFB_KEY( DEAD, 0x01 ),
+          DIKS_DEAD_ACUTE               = DFB_KEY( DEAD, 0x02 ),
+          DIKS_DEAD_BREVE               = DFB_KEY( DEAD, 0x03 ),
+          DIKS_DEAD_CARON               = DFB_KEY( DEAD, 0x04 ),
           DIKS_DEAD_CEDILLA             = DFB_KEY( DEAD, 0x05 ),
-          
+          DIKS_DEAD_CIRCUMFLEX          = DFB_KEY( DEAD, 0x06 ),
+          DIKS_DEAD_DIAERESIS           = DFB_KEY( DEAD, 0x07 ),
+          DIKS_DEAD_DOUBLEACUTE         = DFB_KEY( DEAD, 0x08 ),
+          DIKS_DEAD_GRAVE               = DFB_KEY( DEAD, 0x09 ),
+          DIKS_DEAD_IOTA                = DFB_KEY( DEAD, 0x0A ),
+          DIKS_DEAD_MACRON              = DFB_KEY( DEAD, 0x0B ),
+          DIKS_DEAD_OGONEK              = DFB_KEY( DEAD, 0x0C ),
+          DIKS_DEAD_SEMIVOICED_SOUND    = DFB_KEY( DEAD, 0x0D ),
+          DIKS_DEAD_TILDE               = DFB_KEY( DEAD, 0x0E ),
+          DIKS_DEAD_VOICED_SOUND        = DFB_KEY( DEAD, 0x0F ),
+
           /*
            * Unicode private area - DirectFB Custom keys
            *
