@@ -75,7 +75,9 @@ DFB_CFLAGS="-D_REENTRANT"
 
 dnl Test for Linux framebuffer
 LINUX_FBDEV=no
-  AC_ARG_ENABLE(fbdev, [  --enable-fbdev            build with linux fbdev support [default=auto]], enable_fbdev="$enableval", enable_fbdev=yes)
+  AC_ARG_ENABLE(fbdev,
+    [  --enable-fbdev          build with linux fbdev support [default=auto]],
+    enable_fbdev="$enableval", enable_fbdev=yes)
 
   if test x$enable_fbdev = xyes; then
     AC_CHECK_HEADER(linux/fb.h, fbdev_found=yes, fbdev_found=no)
@@ -202,13 +204,17 @@ save_ac_ext="$ac_ext"
 ac_ext=S
 
 
-AC_ARG_ENABLE(profiling, [  --enable-profiling      enable profiling support [default=no]],,enable_profiling=no)
+AC_ARG_ENABLE(profiling,
+  [  --enable-profiling      enable profiling support [default=no]],,
+  enable_profiling=no)
 if test "x$enable_profiling" = xyes; then
     DFB_CFLAGS="$DFB_CFLAGS -pg -g3"
 fi
 
 
-AC_ARG_ENABLE(debug, [  --enable-debug          enable debugging support [default=no]],,enable_debug=no)
+AC_ARG_ENABLE(debug,
+  [  --enable-debug          enable debugging support [default=no]],,
+  enable_debug=no)
 if test "x$enable_debug" = xyes; then
     AC_DEFINE(DFB_DEBUG,1,[Define to 1 if you want debugging support.])
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DDFB_DEBUG"
@@ -222,33 +228,37 @@ fi
 AM_CONDITIONAL(ENABLE_DEBUG, test "x$enable_debug" = xyes)
 
 
-AC_ARG_ENABLE(multi, [  --enable-multi          enable experimental multi application core [default=no]],,enable_multi=no)
+AC_ARG_ENABLE(multi,
+  [  --enable-multi          enable experimental multi application core [default=no]],,
+  enable_multi=no)
 if test "x$enable_multi" = xyes; then
-    AC_MSG_WARN([
+  AC_MSG_WARN([
 
 *** Multi application support is highly experimental, you have been warned. ***
 
 ])
 else
-    DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DFUSION_FAKE"
-    AC_DEFINE(FUSION_FAKE,1,
-              [Define to 1 if fusion should be faked (for single-application core).])
+  DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DFUSION_FAKE"
+  AC_DEFINE(FUSION_FAKE, 1,
+    [Define to 1 if fusion should be faked (for single-application core).])
 fi
 
 AM_CONDITIONAL(ENABLE_MULTI, test "x$enable_multi" = xyes)
 
 
-AC_ARG_ENABLE(rgb332, [  --enable-rgb332         enable RGB332 pixel format support [default=yes]],,enable_rgb332=yes)
+AC_ARG_ENABLE(rgb332,
+  [  --enable-rgb332         enable RGB332 pixel format support [default=yes]],,
+  enable_rgb332=yes)
 if test "x$enable_rgb332" = xyes; then
-    AC_DEFINE(SUPPORT_RGB332,1,
-              [Define to 1 to enable support for RGB332 surfaces.])
+  AC_DEFINE(SUPPORT_RGB332,1,
+            [Define to 1 to enable support for RGB332 surfaces.])
 fi
 AM_CONDITIONAL(ENABLE_RGB332, test "x$enable_rgb332" = xyes)
 
 
 have_mmx=$have_x86
 AC_ARG_ENABLE(mmx,
-[  --enable-mmx            enable MMX support [default=autodetect]],
+  [  --enable-mmx            enable MMX support [default=autodetect]],
   have_mmx=$enableval)
 
 MMX=no
@@ -279,221 +289,236 @@ ac_ext="$save_ac_ext"
 
 dnl Test for SDL
 SDL=no
-  AC_ARG_ENABLE(sdl, [  --enable-sdl            build with SDL support [default=auto]], enable_sdl="$enableval", enable_sdl=yes)
+AC_ARG_ENABLE(sdl,
+  [  --enable-sdl            build with SDL support [default=auto]],
+  enable_sdl="$enableval", enable_sdl=yes)
 
-  if test x$enable_sdl = xyes; then
-    AC_PATH_PROG(SDL_CONFIG, sdl-config, no)
-    if test x$SDL_CONFIG = xno; then
-      AC_MSG_WARN([
+if test x$enable_sdl = xyes; then
+  AC_PATH_PROG(SDL_CONFIG, sdl-config, no)
+  if test x$SDL_CONFIG = xno; then
+    AC_MSG_WARN([
 *** sdl-config not found -- building without SDL support.])
-    else
-      SDL=yes
-      SDL_CFLAGS=`sdl-config --cflags`
-      SDL_LIBS=`sdl-config --libs`
-    fi
+  else
+    SDL=yes
+    SDL_CFLAGS=`sdl-config --cflags`
+    SDL_LIBS=`sdl-config --libs`
   fi
+fi
 
-  AM_CONDITIONAL(SDL_CORE, test x$SDL = xyes)
+AM_CONDITIONAL(SDL_CORE, test x$SDL = xyes)
 
 
 dnl Test for Fusion Kernel Device
 linux_fusion=yes
 AC_CHECK_HEADER( [linux/fusion.h],
-  AC_DEFINE(LINUX_FUSION,1,[Define to 1 if fusion kernel device is available.]),
+  AC_DEFINE(LINUX_FUSION, 1,
+    [Define to 1 if fusion kernel device is available.]),
   linux_fusion=no)
 
 
 dnl Test for libjpeg
-  JPEG=no
+JPEG=no
 
-  AC_ARG_ENABLE(jpeg, [  --enable-jpeg           build JPEG image provider [default=yes]], enable_jpeg="$enableval", enable_jpeg=yes)
+AC_ARG_ENABLE(jpeg,
+  [  --enable-jpeg           build JPEG image provider [default=yes]],
+  enable_jpeg="$enableval", enable_jpeg=yes)
 
-  if test x$enable_jpeg = xyes; then
-    if test -z "$LIBJPEG"; then
-      AC_CHECK_LIB(jpeg, jpeg_destroy_decompress,
+if test x$enable_jpeg = xyes; then
+  if test -z "$LIBJPEG"; then
+    AC_CHECK_LIB(jpeg, jpeg_destroy_decompress,
+      jpeg_ok=yes,
+      jpeg_ok=no)
+    if test "$jpeg_ok" = yes; then
+      AC_CHECK_HEADER(jpeglib.h,
         jpeg_ok=yes,
         jpeg_ok=no)
       if test "$jpeg_ok" = yes; then
-        AC_CHECK_HEADER(jpeglib.h,
-	  jpeg_ok=yes,
-          jpeg_ok=no)
-        if test "$jpeg_ok" = yes; then
-	  JPEG=yes
-	  LIBJPEG='-ljpeg'
-        else
-	  JPEG=no
-	  AC_MSG_WARN([
-*** JPEG header files not found. JPEG image provider will not be built.])
-        fi
+	JPEG=yes
+	LIBJPEG='-ljpeg'
       else
 	JPEG=no
-        AC_MSG_WARN([
-*** JPEG library not found. JPEG image provider will not be built.])
+	AC_MSG_WARN([
+*** JPEG header files not found. JPEG image provider will not be built.])
       fi
+    else
+      JPEG=no
+      AC_MSG_WARN([
+*** JPEG library not found. JPEG image provider will not be built.])
     fi
   fi
+fi
 
-  AM_CONDITIONAL(JPEG_PROVIDER, test x$JPEG = xyes)
+AM_CONDITIONAL(JPEG_PROVIDER, test x$JPEG = xyes)
 
-  if test x$enable_jpeg != xno && test x$JPEG != xyes; then
-    jpeg_warning="
+if test x$enable_jpeg != xno && test x$JPEG != xyes; then
+  jpeg_warning="
 JPEG support is missing - many applications won't work correctly!"
-  fi
-
+fi
 
 dnl Test for libpng and libz
-  PNG=no
+PNG=no
 
-  AC_ARG_ENABLE(png, [  --enable-png            build PNG image provider [default=yes]], enable_png="$enableval", enable_png=yes)
+AC_ARG_ENABLE(png,
+  [  --enable-png            build PNG image provider [default=yes]],
+  enable_png="$enableval", enable_png=yes)
 
-  if test x$enable_png = xyes; then
-
+if test x$enable_png = xyes; then
   dnl Test for libz
-    if test -z "$LIBZ"; then
-      AC_CHECK_LIB(z, gzsetparams,
-        [
-	 AC_CHECK_HEADER(zlib.h,
+  if test -z "$LIBZ"; then
+    AC_CHECK_LIB(z, gzsetparams,
+      [
+	AC_CHECK_HEADER(zlib.h,
 	  LIBZ='-lz',
 	  AC_MSG_WARN([
 *** libz header files not found. PNG image provider will not be built.]))
-	] , [
-         AC_MSG_WARN([ *** libz not found. PNG image provider will not be built.])
-	])
-    fi
+      ],[
+        AC_MSG_WARN([ *** libz not found. PNG image provider will not be built.])
+      ])
+  fi
 
   dnl Test for libpng
-    if test -z "$LIBPNG" && test -n "$LIBZ"; then
-      AC_CHECK_LIB(png, png_read_info,
-        [
-	 AC_CHECK_HEADER(png.h,
+  if test -z "$LIBPNG" && test -n "$LIBZ"; then
+    AC_CHECK_LIB(png, png_read_info,
+      [
+	AC_CHECK_HEADER(png.h,
 	  png_ok=yes,
 	  AC_MSG_WARN([
 *** PNG header files not found. PNG image provider will not be built.]))
-	 ],[
+      ],[
         AC_MSG_WARN([
 *** PNG library not found. PNG image provider will not be built.])
 	],
-	$LIBZ -lm)
+      $LIBZ -lm)
+    if test "$png_ok" = yes; then
+      AC_MSG_CHECKING([for png_structp in png.h])
+      AC_TRY_COMPILE([#include <png.h>],
+        [png_structp pp;
+	 png_infop info;
+	 png_colorp cmap;
+	 png_create_read_struct;],
+        png_ok=yes, png_ok=no)
+      AC_MSG_RESULT($png_ok)
       if test "$png_ok" = yes; then
-        AC_MSG_CHECKING([for png_structp in png.h])
-        AC_TRY_COMPILE([#include <png.h>],
-          [png_structp pp;
-	   png_infop info;
-	   png_colorp cmap;
-	   png_create_read_struct;],
-          png_ok=yes, png_ok=no)
-        AC_MSG_RESULT($png_ok)
-        if test "$png_ok" = yes; then
-	  PNG=yes
-          LIBPNG="-lpng $LIBZ -lm"
-        else
-	  PNG=no
-          AC_MSG_WARN([
-*** PNG library is too old. PNG image provider will not be built.])
-        fi
+	PNG=yes
+        LIBPNG="-lpng $LIBZ -lm"
       else
 	PNG=no
+        AC_MSG_WARN([
+*** PNG library is too old. PNG image provider will not be built.])
       fi
+    else
+      PNG=no
     fi
   fi
+fi
 
-  AM_CONDITIONAL(PNG_PROVIDER, test x$PNG = xyes)
-  AM_CONDITIONAL(DIRECTFB_CSOURCE, test x$PNG = xyes)
+AM_CONDITIONAL(PNG_PROVIDER, test x$PNG = xyes)
+AM_CONDITIONAL(DIRECTFB_CSOURCE, test x$PNG = xyes)
 
-  if test x$enable_png != xno && test x$PNG != xyes; then
-    png_warning="
+if test x$enable_png != xno && test x$PNG != xyes; then
+  png_warning="
 PNG support is missing - many applications won't work correctly!"
-  fi
+fi
 
 
 dnl Allow to disable GIF support
-  AC_ARG_ENABLE(gif, [  --enable-gif            build GIF image provider [default=yes]], enable_gif="$enableval", enable_gif=yes)
+AC_ARG_ENABLE(gif,
+  [  --enable-gif            build GIF image provider [default=yes]],
+  enable_gif="$enableval", enable_gif=yes)
  
-  AM_CONDITIONAL(GIF_PROVIDER, test x$enable_gif = xyes)
+AM_CONDITIONAL(GIF_PROVIDER, test x$enable_gif = xyes)
 
 
 dnl Test for freetype
-  AC_ARG_ENABLE(freetype, [  --enable-freetype       build FreeType2 font provider [default=yes]], enable_freetype="$enableval", enable_freetype=yes)
+AC_ARG_ENABLE(freetype,
+  [  --enable-freetype       build FreeType2 font provider [default=yes]],
+  enable_freetype="$enableval", enable_freetype=yes)
 
-  if test x$enable_freetype = xyes; then
-    AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
-    if test "$FREETYPE_CONFIG" = no; then
-      FREETYPE=no
-      AC_MSG_WARN([
+if test x$enable_freetype = xyes; then
+  AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
+  if test "$FREETYPE_CONFIG" = no; then
+    FREETYPE=no
+    AC_MSG_WARN([
 *** freetype-config not found -- FreeType font provider will not be built.])
-    else
-      FREETYPE=yes
-      FREETYPE_CFLAGS=`freetype-config --cflags`
-      FREETYPE_LIBS=`freetype-config --libs`
-    fi
+  else
+    FREETYPE=yes
+    FREETYPE_CFLAGS=`freetype-config --cflags`
+    FREETYPE_LIBS=`freetype-config --libs`
   fi
+fi
 
-  AM_CONDITIONAL(FREETYPE_PROVIDER, test x$FREETYPE = xyes)
+AM_CONDITIONAL(FREETYPE_PROVIDER, test x$FREETYPE = xyes)
 
-  if test x$enable_freetype != xno && test x$FREETYPE != xyes; then
-    freetype_warning="
+if test x$enable_freetype != xno && test x$FREETYPE != xyes; then
+  freetype_warning="
 FreeType2 support is missing - many applications won't work correctly!"
-  fi
+fi
 
 
 dnl Test for avifile
 AVIFILE=no
-  AC_ARG_ENABLE(avifile, [  --enable-avifile        build AviFile video provider [default=yes]], enable_avifile="$enableval", enable_avifile=yes)
+AC_ARG_ENABLE(avifile,
+  [  --enable-avifile        build AviFile video provider [default=yes]],
+  enable_avifile="$enableval", enable_avifile=yes)
 
-  if test x$enable_avifile = xyes; then
-    AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
-    if test x$AVIFILE_CONFIG = xno; then
-      AC_MSG_WARN([
+if test x$enable_avifile = xyes; then
+  AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
+  if test x$AVIFILE_CONFIG = xno; then
+    AC_MSG_WARN([
 *** avifile-config not found -- AVI media provider will not be built.])
-    else
-      AC_PROG_CXX
-      AVIFILE=yes
-      AVIFILE_CFLAGS=`avifile-config --cflags`
-      AVIFILE_LIBS="`avifile-config --libs` -lstdc++"
-    fi
+  else
+    AC_PROG_CXX
+    AVIFILE=yes
+    AVIFILE_CFLAGS=`avifile-config --cflags`
+    AVIFILE_LIBS="`avifile-config --libs` -lstdc++"
   fi
+fi
 
-  AM_CONDITIONAL(AVIFILE_PROVIDER, test x$AVIFILE = xyes)
+AM_CONDITIONAL(AVIFILE_PROVIDER, test x$AVIFILE = xyes)
 
 
 dnl Test for libflash
-  FLASH=no
-  AC_ARG_ENABLE(flash, [  --enable-flash          build Flash media provider [default=yes]], enable_flash="$enableval", enable_flash=yes)
-  if test x$enable_flash = xyes; then
-     AC_CHECK_LIB(flash, FlashGetInfo, 
-       [
-	AC_CHECK_HEADER(flash.h,
+FLASH=no
+AC_ARG_ENABLE(flash,
+  [  --enable-flash          build Flash media provider [default=yes]],
+  enable_flash="$enableval", enable_flash=yes)
+if test x$enable_flash = xyes; then
+  AC_CHECK_LIB(flash, FlashGetInfo, 
+    [
+      AC_CHECK_HEADER(flash.h,
 		       [
-	FLASH=yes
-	LIBFLASH='-lflash'], [
+      FLASH=yes
+      LIBFLASH='-lflash'], [
 	AC_MSG_WARN([
 *** libflash headers not found -- Flash media provider will not be built.])])
-	] , [
+    ],[
       AC_MSG_WARN([
 *** libflash not found -- Flash media provider will not be built.])
-      ], $LIBJPEG $LIBZ -lm)
-  fi
+    ], $LIBJPEG $LIBZ -lm)
+fi
 
 AM_CONDITIONAL(FLASH_PROVIDER, test x$FLASH = xyes)
 
 
 dnl Test for libmpeg3
-  MPEG3=no
-  AC_ARG_ENABLE(libmpeg3, [  --enable-libmpeg3       build Libmpeg3 video provider [default=yes]], enable_mpeg3="$enableval", enable_mpeg3=yes)
+MPEG3=no
+AC_ARG_ENABLE(libmpeg3,
+  [  --enable-libmpeg3       build Libmpeg3 video provider [default=yes]],
+  enable_mpeg3="$enableval", enable_mpeg3=yes)
 
-  if test x$enable_mpeg3 = xyes; then
-    AC_CHECK_LIB(mpeg3, mpeg3_open,
-		 [
+if test x$enable_mpeg3 = xyes; then
+  AC_CHECK_LIB(mpeg3, mpeg3_open,
+    [
       AC_CHECK_HEADER(libmpeg3.h,
         MPEG3=yes
         LIBMPEG3='-lmpeg3',
         AC_MSG_WARN([
 *** libmpeg3 headers not found -- Libmpeg3 video provider will not be built.]))
-      ],[
+    ],[
       AC_MSG_WARN([
 *** libmpeg3 not found -- Libmpeg3 video provider will not be build.])
-      ], -lm -lpthread)
-  fi
+    ], -lm -lpthread)
+fi
 
 AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
 
@@ -505,85 +530,94 @@ tdfx=no
 savage=no
 dnl neomagic is already set
 
+
 if test x$have_linux = xyes; then
 
-dnl Test for ati framebuffer support in the kernel
-AC_EGREP_CPP(yes, [
+  dnl Test for ati framebuffer support in the kernel
+  AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
 #ifdef FB_ACCEL_ATI_RAGE128
   yes
 #endif
-], ati=yes, 
+  ],
+  ati=yes, 
   ati=no
   AC_MSG_WARN([
 *** ATI Rage 128 gfxdriver will not be built.]))
 
-dnl Test for matrox framebuffer support in the kernel
-AC_EGREP_CPP(yes, [
+  dnl Test for matrox framebuffer support in the kernel
+  AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
 #ifdef FB_ACCEL_MATROX_MGAG200
   yes
 #endif
-], matrox=yes, 
+  ],
+  matrox=yes, 
   matrox=no  
   AC_MSG_WARN([
 *** Matrox G200/400/450/550 gfxdriver will not be built.]))
 
 
-dnl Test for tdfx framebuffer support in the kernel
-AC_EGREP_CPP(yes, [
+  dnl Test for tdfx framebuffer support in the kernel
+  AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
 #ifdef FB_ACCEL_3DFX_BANSHEE
   yes
 #endif
-], tdfx=yes, 
+  ],
+  tdfx=yes, 
   tdfx=no  
   AC_MSG_WARN([
 *** 3DFX Voodoo/Banshee gfxdriver will not be built.]))
 
 
-dnl Test for nvidia framebuffer support in the kernel
-AC_EGREP_CPP(yes, [
+  dnl Test for nvidia framebuffer support in the kernel
+  AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
 #ifdef FB_ACCEL_NV4
   yes
 #endif
-], nvidia=yes, 
+  ],
+  nvidia=yes, 
   nvidia=no  
   AC_MSG_WARN([
 *** nVidia RIVA TNT gfxdriver will not be built.]))
 
 
 dnl Test for savage framebuffer support in the kernel
-AC_EGREP_CPP(yes, [
+  AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
 #ifdef FB_ACCEL_SAVAGE3D
   yes
 #endif
-], savage=yes,
+  ],
+  savage=yes,
   savage=no   
   AC_MSG_WARN([
 *** Savage gfxdriver will not be built.]))
 
-AC_ARG_ENABLE(linux-input, [  --enable-linux-input    build Linux Input driver [default=no]], enable_linux_input="$enableval", enable_linux_input=no)
 
-dnl Test for H3600 Touchscreen support
-AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no  
-  AC_MSG_WARN([
+  AC_ARG_ENABLE(linux-input,
+    [  --enable-linux-input    build Linux Input driver [default=no]],
+    enable_linux_input="$enableval", enable_linux_input=no)
+
+
+  dnl Test for H3600 Touchscreen support
+  AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no  
+    AC_MSG_WARN([
 *** H3600 Touchscreen driver will not be built.]))
 
-dnl Test for SonyPI Jogdial support
-AC_CHECK_HEADER( [linux/sonypi.h], sonypi=yes, sonypi=no  
-  AC_MSG_WARN([
+
+  dnl Test for SonyPI Jogdial support
+  AC_CHECK_HEADER( [linux/sonypi.h], sonypi=yes, sonypi=no  
+    AC_MSG_WARN([
 *** SonyPI Jogdial driver will not be built.]))
 
 
-
-dnl Test for DBox2 Remote support
-AC_CHECK_HEADER( [dbox/fp.h], dbox2remote=yes, dbox2remote=no
-  AC_MSG_WARN([
+  dnl Test for DBox2 Remote support
+  AC_CHECK_HEADER( [dbox/fp.h], dbox2remote=yes, dbox2remote=no
+    AC_MSG_WARN([
 *** DBox2 Remote driver will not be built.]))
-
 
 fi
 
@@ -619,7 +653,6 @@ ACLOCAL="$ACLOCAL $ACLOCAL_FLAGS"
 
 
 AM_CONDITIONAL(BUILD_STATIC, test x$enable_static = xyes)
-
 
 
 if test "x$enable_debug" = xyes; then
