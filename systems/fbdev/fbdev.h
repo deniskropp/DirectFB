@@ -63,6 +63,8 @@ typedef struct {
      struct fb_cmap           temp_cmap;     /* scratch */
 
      FusionCall               fbdev_ioctl;   /* ioctl rpc */
+
+     unsigned long            page_mask;     /* PAGE_SIZE - 1 */
 } FBDevShared;
 
 typedef struct {

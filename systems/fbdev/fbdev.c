@@ -314,6 +314,7 @@ system_initialize( CoreDFB *core, void **data )
 {
      DFBResult   ret;
      CoreScreen *screen;
+     long        page_size;
 
      D_ASSERT( dfb_fbdev == NULL );
 
@@ -325,6 +326,9 @@ system_initialize( CoreDFB *core, void **data )
                                     "fbdev", dfb_fbdev->shared );
 
      dfb_fbdev->core = core;
+
+     page_size = sysconf( _SC_PAGESIZE );
+     dfb_fbdev->shared->page_mask = page_size < 0 ? 0 : page_size - 1;
 
      ret = dfb_fbdev_open();
      if (ret) {
@@ -612,7 +616,8 @@ system_map_mmio( unsigned int    offset,
           return NULL;
      }
 
-     return(volatile void*) addr;
+     return(volatile void*) ((__u8*) addr + (dfb_fbdev->shared->fix.mmio_start &
+                                             dfb_fbdev->shared->page_mask));
 }
 
 static void
@@ -622,7 +627,8 @@ system_unmap_mmio( volatile void  *addr,
      if (length <= 0)
           length = dfb_fbdev->shared->fix.mmio_len;
 
-     if (munmap( (void*) addr, length ) < 0)
+     if (munmap( (void*) ((__u8*) addr - (dfb_fbdev->shared->fix.mmio_start &
+                                          dfb_fbdev->shared->page_mask)), length ) < 0)
           D_PERROR( "DirectFB/FBDev: Could not unmap MMIO region "
                      "at %p (length %d)!\n", addr, length );
 }
