@@ -545,16 +545,16 @@ system_shutdown( bool emergency )
      
      munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
      
+     ret = dfb_vt_shutdown( emergency );
+     if (ret)
+          return ret;
+     
      close( dfb_fbdev->fd );
 
      shfree( dfb_fbdev->shared );
      DFBFREE( dfb_fbdev );
      dfb_fbdev = NULL;
 
-     ret = dfb_vt_shutdown( emergency );
-     if (ret)
-          return ret;
-     
      return DFB_OK;
 }
 
