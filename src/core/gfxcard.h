@@ -33,6 +33,7 @@
 
 #include <directfb.h>
 #include <core/coretypes.h>
+#include <core/modules.h>
 
 typedef enum {
      CCF_CLIPPING = 0x00000001
@@ -59,6 +60,8 @@ typedef struct {
      unsigned int            surface_byteoffset_alignment;
      unsigned int            surface_pixelpitch_alignment;
 } CardLimitations;
+
+DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 
 /*
  * Increase this number when changes result in binary incompatibility!
@@ -180,7 +183,6 @@ typedef struct _GraphicsDeviceFuncs {
 } GraphicsDeviceFuncs;
 
 typedef struct {
-     int       (*GetAbiVersion)  ();
      int       (*Probe)          (GraphicsDevice      *device);
      void      (*GetDriverInfo)  (GraphicsDevice      *device,
                                   GraphicsDriverInfo  *driver_info);
@@ -214,8 +216,6 @@ DFBResult dfb_gfxcard_leave( bool emergency );
 DFBResult dfb_gfxcard_suspend();
 DFBResult dfb_gfxcard_resume();
 #endif
-
-void dfb_graphics_register_module( GraphicsDriverFuncs *funcs );
 
 int dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
 int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );

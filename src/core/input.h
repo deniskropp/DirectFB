@@ -84,7 +84,6 @@ typedef struct {
 } InputDeviceInfo;
 
 typedef struct {
-     int       (*GetAbiVersion)  ();
      int       (*GetAvailable)   ();
      void      (*GetDriverInfo)  (InputDriverInfo            *driver_info);
      DFBResult (*OpenDevice)     (InputDevice                *device,

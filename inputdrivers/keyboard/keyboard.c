@@ -282,12 +282,6 @@ keyboardEventThread( CoreThread *thread, void *driver_data )
 /* driver functions */
 
 static int
-driver_get_abi_version()
-{
-     return DFB_INPUT_DRIVER_ABI_VERSION;
-}
-
-static int
 driver_get_available()
 {
      if (dfb_system_type() == CORE_FBDEV)

@@ -211,18 +211,6 @@ dbox2remoteEventThread( CoreThread *thread, void *driver_data )
 /* exported symbols */
 
 /*
- * Return the version number of the 'binary interface'.
- * Called immediately after input module has been opened
- * and this function has been found.
- * Input drivers with differing compiled in version won't be used.
- */
-static int
-driver_get_abi_version()
-{
-     return DFB_INPUT_DRIVER_ABI_VERSION;
-}
-
-/*
  * Return the number of available devices.
  * Called once during initialization of DirectFB.
  */

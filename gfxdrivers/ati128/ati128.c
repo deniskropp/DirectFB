@@ -569,12 +569,6 @@ static void ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
 /* exported symbols */
 
 static int
-driver_get_abi_version()
-{
-     return DFB_GRAPHICS_DRIVER_ABI_VERSION;
-}
-
-static int
 driver_probe( GraphicsDevice *device )
 {
 #ifdef FB_ACCEL_ATI_RAGE128

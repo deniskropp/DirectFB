@@ -44,6 +44,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/modules.h>
 #include <core/gfxcard.h>
 #include <core/fonts.h>
 #include <core/state.h>
@@ -61,13 +62,8 @@
 #include <misc/mem.h>
 #include <misc/util.h>
 
-typedef struct {
-     FusionLink            link;
-
-     GraphicsDriverFuncs  *funcs;
-
-     int                   abi_version;
-} GraphicsDriver;
+DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers",
+                         DFB_GRAPHICS_DRIVER_ABI_VERSION );
 
 /*
  * struct for graphics cards
@@ -94,32 +90,31 @@ typedef struct {
 } GraphicsDeviceShared;
 
 struct _GraphicsDevice {
-     GraphicsDeviceShared *shared;
+     GraphicsDeviceShared      *shared;
 
-     GraphicsDriver       *driver;
-     void                 *driver_data;
-     void                 *device_data; /* copy of shared->device_data */
+     ModuleEntry               *module;
+     const GraphicsDriverFuncs *driver_funcs;
 
-     GraphicsDeviceFuncs   funcs;
+     void                      *driver_data;
+     void                      *device_data; /* copy of shared->device_data */
+
+     GraphicsDeviceFuncs        funcs;
 };
 
-
-static FusionLink     *graphics_drivers = NULL;
 
 static GraphicsDevice *card = NULL;
 #define Scard (card->shared)
 
 
-static GraphicsDriver *dfb_gfxcard_find_driver();
+static void dfb_gfxcard_find_driver();
 
 
 /** public **/
 
 DFBResult dfb_gfxcard_initialize()
 {
-     DFBResult       ret;
-     GraphicsDriver *driver;
-     unsigned int    videoram_length;
+     DFBResult    ret;
+     unsigned int videoram_length;
 
      card = (GraphicsDevice*) DFBCALLOC( 1, sizeof(GraphicsDevice) );
 
@@ -142,17 +137,20 @@ DFBResult dfb_gfxcard_initialize()
                Scard->videoram_length = videoram_length;
      }
 
+     /* Build a list of available drivers. */
+     dfb_modules_explore_directory( &dfb_graphics_drivers );
+
      /* Load driver */
-     driver = dfb_gfxcard_find_driver();
-     if (driver) {
+     dfb_gfxcard_find_driver();
+     if (card->driver_funcs) {
+          const GraphicsDriverFuncs *funcs = card->driver_funcs;
+          
           card->driver_data = DFBCALLOC( 1,
                                          Scard->driver_info.driver_data_size );
 
-          ret = driver->funcs->InitDriver( card,
-                                           &card->funcs, card->driver_data );
+          ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
           if (ret) {
                DFBFREE( card->driver_data );
-               DFBFREE( driver );
                DFBFREE( card );
                card = NULL;
                return ret;
@@ -161,19 +159,17 @@ DFBResult dfb_gfxcard_initialize()
           Scard->device_data = shcalloc( 1,
                                          Scard->driver_info.device_data_size );
 
-          ret = driver->funcs->InitDevice( card, &Scard->device_info,
-                                           card->driver_data, Scard->device_data );
+          ret = funcs->InitDevice( card, &Scard->device_info,
+                                   card->driver_data, Scard->device_data );
           if (ret) {
-               driver->funcs->CloseDriver( card, card->driver_data );
+               funcs->CloseDriver( card, card->driver_data );
                shfree( Scard->device_data );
                DFBFREE( card->driver_data );
-               DFBFREE( driver );
                DFBFREE( card );
                card = NULL;
                return ret;
           }
 
-          card->driver      = driver;
           card->device_data = Scard->device_data;
      }
 
@@ -208,23 +204,25 @@ DFBResult dfb_gfxcard_join()
 
      arena_get_shared_field( dfb_core->arena, (void**) &Scard, "Scard" );
 
+     /* Build a list of available drivers. */
+     dfb_modules_explore_directory( &dfb_graphics_drivers );
+
      /* load driver, FIXME: do not probe */
-     driver = dfb_gfxcard_find_driver();
-     if (driver) {
+     dfb_gfxcard_find_driver();
+     if (card->funcs) {
+          GraphicsDriverFuncs *funcs = card->funcs;
+          
           card->driver_data = DFBCALLOC( 1,
                                          Scard->driver_info.driver_data_size );
 
-          ret = driver->funcs->InitDriver( card,
-                                           &card->funcs, card->driver_data );
+          ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
           if (ret) {
                DFBFREE( card->driver_data );
-               DFBFREE( driver );
                DFBFREE( card );
                card = NULL;
                return ret;
           }
 
-          card->driver      = driver;
           card->device_data = Scard->device_data;
      }
 
@@ -254,10 +252,13 @@ DFBResult dfb_gfxcard_shutdown( bool emergency )
      else
           skirmish_prevail( &Scard->lock );
 
-     if (card->driver) {
-          card->driver->funcs->CloseDevice( card,
-                                            card->driver_data, card->device_data );
-          card->driver->funcs->CloseDriver( card, card->driver_data );
+     if (card->driver_funcs) {
+          const GraphicsDriverFuncs *funcs = card->driver_funcs;
+          
+          funcs->CloseDevice( card, card->driver_data, card->device_data );
+          funcs->CloseDriver( card, card->driver_data );
+
+          dfb_module_unref( card->module );
 
           shfree( card->device_data );
           DFBFREE( card->driver_data );
@@ -286,8 +287,10 @@ DFBResult dfb_gfxcard_leave( bool emergency )
 
      dfb_gfxcard_sync();
 
-     if (card->driver) {
-          card->driver->funcs->CloseDriver( card, card->driver_data );
+     if (card->funcs) {
+          card->funcs->CloseDriver( card, card->driver_data );
+
+          dfb_module_unref( card->module );
 
           DFBFREE( card->driver_data );
      }
@@ -312,18 +315,6 @@ DFBResult dfb_gfxcard_resume()
      return dfb_surfacemanager_resume( card->shared->surface_manager );
 }
 #endif
-
-void dfb_graphics_register_module( GraphicsDriverFuncs *funcs )
-{
-     GraphicsDriver *driver;
-
-     driver = calloc( 1, sizeof(GraphicsDriver) );
-
-     driver->funcs       = funcs;
-     driver->abi_version = funcs->GetAbiVersion();
-
-     fusion_list_prepend( &graphics_drivers, &driver->link );
-}
 
 /*
  * This function returns non zero if acceleration is available
@@ -1204,59 +1195,33 @@ dfb_gfxcard_memory_virtual( GraphicsDevice *device,
 
 /** internal **/
 
-#ifdef DFB_DYNAMIC_LINKING
-static CoreModuleLoadResult graphics_driver_handle_func( void *handle,
-                                                         char *name,
-                                                         void *ctx )
-{
-     GraphicsDriver *driver = (GraphicsDriver*) graphics_drivers;
-
-     if (!driver)
-          return MODULE_REJECTED;
-
-     if (driver->abi_version != DFB_GRAPHICS_DRIVER_ABI_VERSION) {
-          ERRORMSG( "DirectFB/core/gfxcard: '%s' "
-                    "was built for ABI version %d, but %d is required!\n", name,
-                    driver->abi_version, DFB_GRAPHICS_DRIVER_ABI_VERSION );
-
-          fusion_list_remove( &graphics_drivers, graphics_drivers );
-
-          DFBFREE( driver );
-
-          return MODULE_REJECTED;
-     }
-
-     return MODULE_LOADED_CONTINUE;
-}
-#endif
-
 /*
  * loads/probes/unloads one driver module after another until a suitable
  * driver is found and returns its symlinked functions
  */
-static GraphicsDriver* dfb_gfxcard_find_driver()
+static void dfb_gfxcard_find_driver()
 {
      FusionLink *link;
 
      if (dfb_config->software_only)
-          return NULL;
+          return;
 
-#ifdef DFB_DYNAMIC_LINKING
-     if (!graphics_drivers)
-          dfb_core_load_modules( MODULEDIR"/gfxdrivers",
-                                 graphics_driver_handle_func, NULL );
-#endif
+     fusion_list_foreach (link, dfb_graphics_drivers.entries) {
+          ModuleEntry *module = (ModuleEntry*) link;
 
-     fusion_list_foreach( link, graphics_drivers ) {
-          GraphicsDriver *driver = (GraphicsDriver*) link;
+          const GraphicsDriverFuncs *funcs = dfb_module_ref( module );
 
-          if (driver->funcs->Probe( card )) {
-               driver->funcs->GetDriverInfo( card, &Scard->driver_info );
+          if (!funcs)
+               continue;
 
-               return driver;
+          if (!card->module && funcs->Probe( card )) {
+               funcs->GetDriverInfo( card, &Scard->driver_info );
+
+               card->module       = module;
+               card->driver_funcs = funcs;
           }
+          else
+               dfb_module_unref( module );
      }
-
-     return NULL;
 }
 

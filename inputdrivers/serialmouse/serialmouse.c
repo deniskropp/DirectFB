@@ -373,12 +373,6 @@ static MouseProtocol mouse_get_protocol()
 /* exported symbols */
 
 static int
-driver_get_abi_version()
-{
-     return DFB_INPUT_DRIVER_ABI_VERSION;
-}
-
-static int
 driver_get_available()
 {
      struct serial_struct serial_info;

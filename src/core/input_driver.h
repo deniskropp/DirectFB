@@ -31,9 +31,6 @@
 
 
 static int
-driver_get_abi_version();
-
-static int
 driver_get_available();
 
 static void
@@ -54,7 +51,6 @@ static void
 driver_close_device( void *driver_data );
 
 static const InputDriverFuncs driver_funcs = {
-     GetAbiVersion:      driver_get_abi_version,
      GetAvailable:       driver_get_available,
      GetDriverInfo:      driver_get_info,
      OpenDevice:         driver_open_device,

@@ -28,10 +28,8 @@
 #define __GRAPHICS_DRIVER_H__
 
 #include <core/gfxcard.h>
+#include <core/modules.h>
 
-
-static int
-driver_get_abi_version();
 
 static int
 driver_probe( GraphicsDevice *device );
@@ -61,7 +59,6 @@ driver_close_driver( GraphicsDevice *device,
                      void           *driver_data );
 
 static GraphicsDriverFuncs driver_funcs = {
-     GetAbiVersion:      driver_get_abi_version,
      Probe:              driver_probe,
      GetDriverInfo:      driver_get_info,
      InitDriver:         driver_init_driver,
@@ -70,12 +67,14 @@ static GraphicsDriverFuncs driver_funcs = {
      CloseDriver:        driver_close_driver
 };
 
-#define DFB_GRAPHICS_DRIVER(shortname)                 \
-__attribute__((constructor))                           \
-void                                                   \
-directfb_##shortname (void)                            \
-{                                                      \
-     dfb_graphics_register_module( &driver_funcs );    \
+#define DFB_GRAPHICS_DRIVER(shortname)                      \
+__attribute__((constructor))                                \
+void                                                        \
+directfb_##shortname (void)                                 \
+{                                                           \
+     dfb_modules_register( &dfb_graphics_drivers,           \
+                           DFB_GRAPHICS_DRIVER_ABI_VERSION, \
+                           #shortname, &driver_funcs );     \
 }
 
 #endif

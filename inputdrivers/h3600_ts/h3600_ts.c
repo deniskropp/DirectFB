@@ -127,11 +127,6 @@ h3600tsEventThread( CoreThread *thread, void *driver_data )
 
 /* exported symbols */
 
-static int driver_get_abi_version()
-{
-     return DFB_INPUT_DRIVER_ABI_VERSION;
-}
-
 static int driver_get_available()
 {
      int fd;

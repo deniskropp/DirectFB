@@ -60,12 +60,6 @@ DFB_GRAPHICS_DRIVER( neomagic )
 /* exported symbols */
 
 static int
-driver_get_abi_version()
-{
-     return DFB_GRAPHICS_DRIVER_ABI_VERSION;
-}
-
-static int
 driver_probe( GraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
