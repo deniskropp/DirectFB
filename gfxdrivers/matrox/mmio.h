@@ -75,7 +75,7 @@ mga_waitfifo(volatile uint8 *mmioaddr, int space)
           do { /* not needed on a G400,
                   hardware does retries on writing if FIFO is full,
                   but results in DMA problems */
-               matrox_fifo_space = mga_in8(mmioaddr, FIFOSTATUS);
+               matrox_fifo_space = mga_in32(mmioaddr, FIFOSTATUS) & 0xff;
                matrox_fifo_waitcycles++;
           } while (matrox_fifo_space < space);
      }

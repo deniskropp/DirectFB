@@ -83,6 +83,7 @@ static void matroxEngineSync()
 
 static void matroxFlushTextureCache()
 {
+     mga_waitfifo( mmio_base, 1 );
      mga_out32( mmio_base, 0, TEXORG1 );
 }
 
