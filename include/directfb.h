@@ -150,7 +150,7 @@ extern "C"
      } DFBResult;
 
      /*
-      * Rectangle specified by a point and a dimension.
+      * Rectangle specified by point and a dimension.
       */
      typedef struct {
           int            x;   /* X coordinate of top-left point */
@@ -161,6 +161,8 @@ extern "C"
 
      /*
       * Region specified by two points.
+      *
+      * The defined region includes both endpoints.
       */
      typedef struct {
           int            x1;  /* X coordinate of top-left point */
@@ -442,6 +444,10 @@ extern "C"
 
      /*
       * Axis identifier (index) for e.g. mouse or joystick.
+      *
+      * The X, Y and Z axis are predefined. To access other axes,
+      * use DIAI_FIRST plus a zero based index, e.g. the 4th axis
+      * would be (DIAI_FIRST + 3).
       */
      typedef enum {
           DIAI_X              = 0x00000000,  /* X axis */
@@ -473,6 +479,12 @@ extern "C"
 
      /*
       * Flags describing how to load a font.
+      * 
+      * These flags describe how a font is loaded and affect how the
+      * glyphs are drawn. There is no way to change this after the font
+      * has been loaded. If you need to render a font with different
+      * attributes, you have to create multiple FontProviders of the 
+      * same font file.
       */
      typedef enum {
            DFFA_NOKERNING     = 0x00000001,  /* don't use kerning */
@@ -697,6 +709,10 @@ extern "C"
 
           /*
            * Enumerate supported video modes.
+           *
+           * Calls the given callback for all available video modes.
+           * Useful to select a certain mode to be used with
+           * IDirectFB->SetVideoMode().
            */
           DFBResult (*EnumVideoModes) (
                IDirectFB                *thiz,
@@ -721,6 +737,11 @@ extern "C"
 
           /*
            * Enumerate all existing display layers.
+           *
+           * Calls the given callback for all available display
+           * layers. The callback is passed the layer_id that
+           * can be used to retrieve an interface on a
+           * specific layer using IDirectFB->GetDisplayLayer().
            */
           DFBResult (*EnumDisplayLayers) (
                IDirectFB                *thiz,
@@ -742,6 +763,11 @@ extern "C"
 
           /*
            * Enumerate all existing input devices.
+           *
+           * Calls the given callback for all available input
+           * devices. The callback is passed the device_id that
+           * can be used to retrieve an interface on a
+           * specific device using IDirectFB->GetInputDevice().
            */
           DFBResult (*EnumInputDevices) (
                IDirectFB                *thiz,
@@ -817,8 +843,8 @@ extern "C"
         /** Misc **/
 
           /*
-           * Suspend DirectFB, no other calls to DirectFB allowed until
-           * Resume has been called.
+           * Suspend DirectFB, no other calls to DirectFB are allowed 
+           * until Resume has been called.
            */
           DFBResult (*Suspend) (
                IDirectFB                *thiz
@@ -1104,6 +1130,11 @@ extern "C"
 
           /*
            * Set the cursor opacity.
+           *
+           * This function is especially useful if you want
+           * to hide the cursor but still want windows on this 
+           * display layer to receive motion events. In this
+           * case, simply set the cursor opacity to zero. 
            */
           DFBResult (*SetCursorOpacity) (
                IDirectFBDisplayLayer              *thiz,
@@ -1209,7 +1240,7 @@ extern "C"
           );
 
           /*
-           * Get width and height in pixels.
+           * Get the surface's width and height in pixels.
            */
           DFBResult (*GetSize) (
                IDirectFBSurface         *thiz,
@@ -1222,7 +1253,8 @@ extern "C"
            * this function returns the resulting rectangle relative
            * to this surface.
            *
-           * For non sub surfaces this function returns { 0, 0, width, height }.
+           * For non sub surfaces this function returns 
+           * { 0, 0, width, height }.
            */
           DFBResult (*GetVisibleRectangle) (
                IDirectFBSurface         *thiz,
@@ -1633,7 +1665,7 @@ extern "C"
           );
 
           /*
-           * Attach an exsiting input buffer to this device.
+           * Attach an existing input buffer to this device.
            *
            * NOTE: Attaching multiple times generates multiple events.
            *
@@ -1716,7 +1748,6 @@ extern "C"
                int                           *y
           );
      )
-
 
 
      /*
@@ -1803,7 +1834,7 @@ extern "C"
           );
 
           /*
-           * Block until next event to occurs or timeout is reached.
+           * Block until next event to occur or timeout is reached.
            * Thread is idle in the meantime.
            */
           DFBResult (*WaitForEventWithTimeout) (
@@ -1813,7 +1844,7 @@ extern "C"
           );
 
           /*
-           * Get the next event and remove from the FIFO.
+           * Get the next event and remove it from the FIFO.
            */
           DFBResult (*GetEvent) (
                IDirectFBInputBuffer     *thiz,
@@ -2072,7 +2103,7 @@ extern "C"
                IDirectFBWindow     *thiz
           );
 
-      /*
+          /*
            * Block until next event to occurs or timeout is reached.
            * Thread is idle in the meantime.
            */
@@ -2081,8 +2112,6 @@ extern "C"
                long int                  seconds,
                long int                  nano_seconds
           );
-
-
 
           /*
            * Get the next event and remove from the FIFO.
@@ -2111,7 +2140,8 @@ extern "C"
         /** Retrieving information **/
 
           /*
-           * Get the distance from the baseline to the top.
+           * Get the distance from the baseline to the top of the 
+           * logical extents of this font.
            */
           DFBResult (*GetAscender) (
                IDirectFBFont       *thiz,
@@ -2119,7 +2149,8 @@ extern "C"
           );
 
           /*
-           * Get the distance from the baseline to the bottom.
+           * Get the distance from the baseline to the bottom of 
+           * the logical extents of this font.
            *
            * This is a negative value!
            */
@@ -2129,7 +2160,7 @@ extern "C"
           );
 
           /*
-           * Get the height of this font.
+           * Get the logical height of this font.
            */
           DFBResult (*GetHeight) (
                IDirectFBFont       *thiz,
@@ -2138,6 +2169,10 @@ extern "C"
 
           /*
            * Get the maximum character width.
+           *
+           * This is a somewhat dubious value. Not all fonts
+           * specify it correcly. It can give you an idea of
+           * the maximum expected width of a rendered string.
            */
           DFBResult (*GetMaxAdvance) (
                IDirectFBFont       *thiz,
@@ -2212,7 +2247,8 @@ extern "C"
            * contained in the file.
            *
            * For opaque image formats the pixel format of the
-           * primary layer is used.
+           * primary layer is used. For images with alpha channel
+           * an ARGB surface description is returned.
            */
           DFBResult (*GetSurfaceDescription) (
                IDirectFBImageProvider   *thiz,
@@ -2225,6 +2261,11 @@ extern "C"
           /*
            * Render the file contents into the destination contents
            * doing automatic scaling and color format conversion.
+           *
+           * If the image file has an alpha channel it is rendered
+           * with alpha channel if the destination surface is of the
+           * ARGB pixelformat. Otherwise, transparent areas are 
+           * blended over a black background. 
            */
           DFBResult (*RenderTo) (
                IDirectFBImageProvider   *thiz,
@@ -2271,13 +2312,15 @@ extern "C"
            * Play the video rendering it into the specified rectangle
            * of the destination surface.
            *
-           * Optionally a callback can be registered that is
-           * called for each frame.
+           * Optionally a callback can be registered that is called 
+           * for each rendered frame. This is especially important if
+           * you are playing to a flipping surface. In this case, you
+           * should flip the destination surface in your callback.
            */
           DFBResult (*PlayTo) (
                IDirectFBVideoProvider   *thiz,
                IDirectFBSurface         *destination,
-               DFBRectangle             *dstrect,
+               DFBRectangle             *destination_rect,
                DVFrameCallback           callback,
                void                     *ctx
           );
