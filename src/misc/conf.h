@@ -112,8 +112,6 @@ extern DFBConfig *dfb_config;
  * Allocate Config struct, fill with defaults and parse command line options
  * for overrides. Options identified as DirectFB options are stripped out
  * of the array.
- *
- * Exits if "--help" is passed, FIXME!
  */
 DFBResult dfb_config_init( int *argc, char **argv[] );
 
