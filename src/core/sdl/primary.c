@@ -199,8 +199,8 @@ primaryInitLayer         ( GraphicsDevice             *device,
      layer_info->desc.type = DLTF_GRAPHICS;
 
      /* set name */
-     snprintf( layer_info->name,
-               DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "Primary Layer" );
+     snprintf( layer_info->desc.name,
+               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Primary Layer" );
 
      /* fill out the default configuration */
      default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
