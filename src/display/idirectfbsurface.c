@@ -348,47 +348,42 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                        const DFBRegion     *region,
                        DFBSurfaceFlipFlags  flags )
 {
+     DFBRegion    reg;
+     CoreSurface *surface;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (!data->surface)
+     surface = data->surface;
+     if (!surface)
           return DFB_DESTROYED;
 
      if (data->locked)
           return DFB_LOCKED;
 
-     if (!(data->caps & DSCAPS_FLIPPING))
+     if (!(surface->caps & DSCAPS_FLIPPING))
           return DFB_UNSUPPORTED;
 
-     if (!data->area.current.w || !data->area.current.h)
+     if (!data->area.current.w || !data->area.current.h ||
+         (region && (region->x1 > region->x2 || region->y1 > region->y2)))
           return DFB_INVAREA;
 
 
-     if (flags & DSFLIP_BLIT  ||  region  ||  data->caps & DSCAPS_SUBSURFACE) {
-          DFBRegion reg;
+     dfb_region_from_rectangle( &reg, &data->area.current );
 
-          if (region) {
-               reg.x1 = region->x1 + data->area.wanted.x;
-               reg.x2 = region->x2 + data->area.wanted.x;
-               reg.y1 = region->y1 + data->area.wanted.y;
-               reg.y2 = region->y2 + data->area.wanted.y;
+     if (region) {
+          DFBRegion clip = DFB_REGION_INIT_TRANSLATED( region,
+                                                       data->area.wanted.x,
+                                                       data->area.wanted.y );
 
-               if (reg.x1 > reg.x2 || reg.y1 > reg.y2)
-                    return DFB_INVAREA;
-
-               if (dfb_region_rectangle_intersect( &reg, &data->area.current ))
-                    dfb_back_to_front_copy( data->surface, &reg );
-          }
-          else {
-               reg.x1 = data->area.current.x;
-               reg.x2 = data->area.current.x + data->area.current.w - 1;
-               reg.y1 = data->area.current.y;
-               reg.y2 = data->area.current.y + data->area.current.h - 1;
-
-               dfb_back_to_front_copy( data->surface, &reg );
-          }
+          if (!dfb_region_region_intersect( &reg, &clip ))
+               return DFB_INVAREA;
      }
-     else
+
+     if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
+         reg.x2 == surface->width - 1 && reg.y2 == surface->height - 1)
           dfb_surface_flip_buffers( data->surface );
+     else
+          dfb_back_to_front_copy( data->surface, &reg );
 
      return DFB_OK;
 }
