@@ -168,7 +168,7 @@ DFBResult IDirectFB_EnumVideoModes( IDirectFB *thiz,
      if (!callbackfunc)
           return DFB_INVARG;
 
-     m = display->modes;
+     m = fbdev->modes;
      while (m) {
           callbackfunc( m->xres, m->yres, m->bpp, callbackdata );
 

@@ -53,7 +53,7 @@
 #include "misc/util.h"
 
 
-FBDev   *display = NULL;
+FBDev *fbdev = NULL;
 
 /* internal functions */
 static DFBResult read_modes();
@@ -83,8 +83,8 @@ static DFBResult fbdev_set_gamma_ramp()
      
      struct fb_cmap cmap = { 0, 256, linear_gamma, linear_gamma, linear_gamma };     
 
-     if (!display) {
-          BUG( "fbdev_set_gamme_ramp() called while display == NULL!" );
+     if (!fbdev) {
+          BUG( "fbdev_set_gamme_ramp() called while fbdev == NULL!" );
 
           return DFB_BUG;
      }
@@ -93,7 +93,7 @@ static DFBResult fbdev_set_gamma_ramp()
           linear_gamma[i] = i;
      }
      
-     if (ioctl( display->fd, FBIOPUTCMAP, &cmap ) < 0) {
+     if (ioctl( fbdev->fd, FBIOPUTCMAP, &cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not set gamma ramp" );
 
@@ -112,49 +112,49 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
                           DFBDisplayLayerBufferMode buffermode );
 
 /*
- * deinitializes DirectFB display stuff and restores fbdev settings
+ * deinitializes DirectFB fbdev stuff and restores fbdev settings
  */
 void fbdev_deinit()
 {
      VideoMode *m;
 
-     if (!display) {
-          BUG( "fbdev_deinit() called while display == NULL!" );
+     if (!fbdev) {
+          BUG( "fbdev_deinit() called while fbdev == NULL!" );
           return;
      }
 
-     m = display->modes;
+     m = fbdev->modes;
      while (m) {
           VideoMode *next = m->next;
           free( m );
           m = next;
      }
 
-     if (ioctl( display->fd, FBIOPUT_VSCREENINFO, &display->orig_var ) < 0) {
+     if (ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &fbdev->orig_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not restore variable screen information!\n" );
      }
 
-     close( display->fd );
+     close( fbdev->fd );
 
-     free( display );
-     display = NULL;
+     free( fbdev );
+     fbdev = NULL;
 }
 
 DFBResult fbdev_open()
 {
-     if (display) {
+     if (fbdev) {
           BUG( "fbdev_init() already called!" );
           return DFB_BUG;
      }
 
-     display = (FBDev*) calloc( 1, sizeof(FBDev) );
+     fbdev = (FBDev*) calloc( 1, sizeof(FBDev) );
 
-     display->fd = open( "/dev/fb0", O_RDWR );
-     if (display->fd < 0) {
+     fbdev->fd = open( "/dev/fb0", O_RDWR );
+     if (fbdev->fd < 0) {
           if (errno == ENOENT) {
-               display->fd = open( "/dev/fb/0", O_RDWR );
-               if (display->fd < 0) {
+               fbdev->fd = open( "/dev/fb/0", O_RDWR );
+               if (fbdev->fd < 0) {
                     if (errno == ENOENT) {
                          PERRORMSG( "DirectFB/core/fbdev: Couldn't open "
                                     "neither `/dev/fb0' nor `/dev/fb/0'!\n" );
@@ -164,8 +164,8 @@ DFBResult fbdev_open()
                                     "Error opening `/dev/fb/0'!\n" );
                     }
 
-                    free( display );
-                    display = NULL;
+                    free( fbdev );
+                    fbdev = NULL;
 
                     return DFB_INIT;
                }
@@ -173,69 +173,69 @@ DFBResult fbdev_open()
           else {
                PERRORMSG( "DirectFB/core/fbdev: Error opening `/dev/fb0'!\n");
 
-               free( display );
-               display = NULL;
+               free( fbdev );
+               fbdev = NULL;
 
                return DFB_INIT;
           }
      }
 
-     if (ioctl( display->fd, FBIOGET_VSCREENINFO, &display->orig_var ) < 0) {
+     if (ioctl( fbdev->fd, FBIOGET_VSCREENINFO, &fbdev->orig_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not get variable screen information!\n" );
-          free( display );
-          display = NULL;
+          free( fbdev );
+          fbdev = NULL;
 
           return DFB_INIT;
      }
 
-     display->current_var = display->orig_var;
-     display->current_var.accel_flags = 0;
+     fbdev->current_var = fbdev->orig_var;
+     fbdev->current_var.accel_flags = 0;
 
-     if (ioctl( display->fd, FBIOPUT_VSCREENINFO, &display->current_var ) < 0) {
+     if (ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &fbdev->current_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not disable font acceleration!\n" );
-          free( display );
-          display = NULL;
+          free( fbdev );
+          fbdev = NULL;
 
           return DFB_INIT;
      }
 
      read_modes();
 
-     if (!display->modes) {
+     if (!fbdev->modes) {
           /* try to use current mode*/
-          display->modes = (VideoMode*) calloc( 1, sizeof(VideoMode) );
+          fbdev->modes = (VideoMode*) calloc( 1, sizeof(VideoMode) );
 
-          display->modes->xres = display->orig_var.xres;
-          display->modes->yres = display->orig_var.yres;
-          display->modes->bpp = display->orig_var.bits_per_pixel;
-          display->modes->hsync_len = display->orig_var.hsync_len;
-          display->modes->vsync_len = display->orig_var.vsync_len;
-          display->modes->left_margin = display->orig_var.left_margin;
-          display->modes->right_margin = display->orig_var.right_margin;
-          display->modes->upper_margin = display->orig_var.upper_margin;
-          display->modes->lower_margin = display->orig_var.lower_margin;
-          display->modes->pixclock = display->orig_var.pixclock;
+          fbdev->modes->xres = fbdev->orig_var.xres;
+          fbdev->modes->yres = fbdev->orig_var.yres;
+          fbdev->modes->bpp = fbdev->orig_var.bits_per_pixel;
+          fbdev->modes->hsync_len = fbdev->orig_var.hsync_len;
+          fbdev->modes->vsync_len = fbdev->orig_var.vsync_len;
+          fbdev->modes->left_margin = fbdev->orig_var.left_margin;
+          fbdev->modes->right_margin = fbdev->orig_var.right_margin;
+          fbdev->modes->upper_margin = fbdev->orig_var.upper_margin;
+          fbdev->modes->lower_margin = fbdev->orig_var.lower_margin;
+          fbdev->modes->pixclock = fbdev->orig_var.pixclock;
 
-          if (display->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
-               display->modes->hsync_high = 1;
-          if (display->orig_var.sync & FB_SYNC_VERT_HIGH_ACT)
-               display->modes->vsync_high = 1;
+          if (fbdev->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
+               fbdev->modes->hsync_high = 1;
+          if (fbdev->orig_var.sync & FB_SYNC_VERT_HIGH_ACT)
+               fbdev->modes->vsync_high = 1;
 
-          if (display->orig_var.vmode & FB_VMODE_INTERLACED)
-               display->modes->laced = 1;
-          if (display->orig_var.vmode & FB_VMODE_DOUBLE)
-               display->modes->doubled = 1;
+          if (fbdev->orig_var.vmode & FB_VMODE_INTERLACED)
+               fbdev->modes->laced = 1;
+          if (fbdev->orig_var.vmode & FB_VMODE_DOUBLE)
+               fbdev->modes->doubled = 1;
 
-          if (fbdev_set_mode(NULL, display->modes, DLBM_FRONTONLY))
+          if (fbdev_set_mode(NULL, fbdev->modes, DLBM_FRONTONLY))
           {
                ERRORMSG("DirectFB/core/fbdev: "
                         "No valid modes found in /etc/fb.modes, "
                         "current mode not suitable!\n");
 
-               free( display->modes );
-               display->modes = NULL;
+               free( fbdev->modes );
+               fbdev->modes = NULL;
 
                return DFB_INIT;
           }
@@ -312,7 +312,7 @@ DFBResult fbdev_pan( int buffer )
 {
      struct fb_var_screeninfo var;
 
-     var = display->current_var;
+     var = fbdev->current_var;
 
      if (var.yres_virtual < var.yres*(buffer+1)) {
           BUG( "panning buffer out of range" );
@@ -324,7 +324,7 @@ DFBResult fbdev_pan( int buffer )
 
      gfxcard_sync();
 
-     if (ioctl( display->fd, FBIOPAN_DISPLAY, &var ) < 0) {
+     if (ioctl( fbdev->fd, FBIOPAN_DISPLAY, &var ) < 0) {
           int erno = errno;
 
           PERRORMSG( "DirectFB/core/fbdev: Panning display failed!\n" );
@@ -332,7 +332,7 @@ DFBResult fbdev_pan( int buffer )
           return errno2dfb( erno );
      }
 
-     display->current_var = var;
+     fbdev->current_var = var;
 
      return DFB_OK;
 }
@@ -344,9 +344,9 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
      struct fb_var_screeninfo var;
 
      if (!mode)
-          mode = display->current_mode ? display->current_mode : display->modes;
+          mode = fbdev->current_mode ? fbdev->current_mode : fbdev->modes;
 
-     var = display->current_var;
+     var = fbdev->current_var;
 
      var.xoffset = 0;
      var.yoffset = 0;
@@ -408,7 +408,7 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
      if (mode->doubled)
           var.vmode |= FB_VMODE_DOUBLE;
 
-     if (ioctl( display->fd, FBIOPUT_VSCREENINFO, &var ) < 0) {
+     if (ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &var ) < 0) {
           int erno = errno;
 
           if (layer)
@@ -422,7 +422,7 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
      if (layer) {
           CoreSurface *surface = layer->surface;
 
-          ioctl( display->fd, FBIOGET_VSCREENINFO, &var );
+          ioctl( fbdev->fd, FBIOGET_VSCREENINFO, &var );
           
           fbdev_set_gamma_ramp();
 
@@ -430,7 +430,7 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
           mode->format = fbdev_get_pixelformat( &var );
           if (mode->format == DSPF_UNKNOWN) {
                /* restore mode */
-               ioctl( display->fd, FBIOPUT_VSCREENINFO, &display->current_var );
+               ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &fbdev->current_var );
                return DFB_UNSUPPORTED;
           }
 
@@ -440,8 +440,8 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
 
           surface->format = mode->format;
 
-          display->current_var = var;
-          display->current_mode = mode;
+          fbdev->current_var = var;
+          fbdev->current_mode = mode;
 
           layer->width = surface->width = mode->xres;
           layer->height = surface->height = mode->yres;
@@ -524,7 +524,7 @@ DFBResult fbdev_wait_vsync()
 #ifdef FBIO_WAITFORVSYNC
      if (!dfb_config->pollvsync_none) {
           gfxcard_sync();
-          ioctl( display->fd, FBIO_WAITFORVSYNC );
+          ioctl( fbdev->fd, FBIO_WAITFORVSYNC );
      }
 #endif
 
@@ -534,7 +534,7 @@ DFBResult fbdev_wait_vsync()
 /************ file internal helper functions *************/
 
 /*
- * parses video modes in /etc/fb.modes and stores them in display->modes
+ * parses video modes in /etc/fb.modes and stores them in fbdev->modes
  * (to be replaced by DirectFB's own config system
  */
 static DFBResult read_modes()
@@ -544,7 +544,7 @@ static DFBResult read_modes()
      int geometry=0, timings=0;
      int dummy;
      VideoMode temp_mode;
-     VideoMode *m = display->modes;
+     VideoMode *m = fbdev->modes;
 
      if (!(fp = fopen("/etc/fb.modes","r")))
           return errno2dfb( errno );
@@ -581,8 +581,8 @@ static DFBResult read_modes()
                {
 
                     if (!m) {
-                         display->modes = malloc (sizeof(VideoMode));
-                         m = display->modes;
+                         fbdev->modes = malloc (sizeof(VideoMode));
+                         m = fbdev->modes;
                     }
                     else {
                          m->next = malloc (sizeof(VideoMode));
@@ -651,7 +651,7 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
                     bpp = BYTES_PER_PIXEL(pixelformat) * 8;
           }
 
-          videomode = display->modes;
+          videomode = fbdev->modes;
           while (videomode) {
                if (videomode->xres == width  &&
                    videomode->yres == height  &&
@@ -730,13 +730,13 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
      else
           buffermode = thiz->buffermode;
 
-     if (display->current_mode->xres == width  &&
-         display->current_mode->yres == height &&
-         display->current_mode->bpp  == bpp    &&
+     if (fbdev->current_mode->xres == width  &&
+         fbdev->current_mode->yres == height &&
+         fbdev->current_mode->bpp  == bpp    &&
          thiz->buffermode            == buffermode)
           return DFB_OK;
 
-     videomode = display->modes;
+     videomode = fbdev->modes;
      while (videomode) {
           if (videomode->xres == width  &&
               videomode->yres == height  &&

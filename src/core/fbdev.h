@@ -67,7 +67,7 @@ typedef struct {
                                                 before DirectFB was started */
 } FBDev;
 
-extern FBDev *display;
+extern FBDev *fbdev;
 
 /*
  * core init function, opens /dev/fb, get fbdev screeninfo

@@ -67,7 +67,7 @@ CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
 
      driver->Probe  = dlsym( handle, "driver_probe" );
      if (driver->Probe) {
-          if ( driver->Probe( display->fd, card )) {
+          if ( driver->Probe( fbdev->fd, card )) {
                driver->Init       = dlsym( handle, "driver_init"   );
                driver->InitLayers = dlsym( handle, "driver_init_layers" );
                driver->DeInit     = dlsym( handle, "driver_deinit" );
@@ -160,7 +160,7 @@ DFBResult gfxcard_init()
      card->info.driver_version.major = 0;
      card->info.driver_version.minor = 3;
 
-     if (ioctl( display->fd, FBIOGET_FSCREENINFO, &card->fix ) < 0) {
+     if (ioctl( fbdev->fd, FBIOGET_FSCREENINFO, &card->fix ) < 0) {
           PERRORMSG( "DirectFB/core/gfxcard: "
                      "Could not get fixed screen information!\n" );
           free( card );
@@ -171,7 +171,7 @@ DFBResult gfxcard_init()
      card->framebuffer.length = card->fix.smem_len;
      card->framebuffer.base = mmap( NULL, card->fix.smem_len,
                                     PROT_READ | PROT_WRITE, MAP_SHARED,
-                                    display->fd, 0 );
+                                    fbdev->fd, 0 );
      if ((int)(card->framebuffer.base) == -1) {
           PERRORMSG( "DirectFB/core/gfxcard: "
                      "Could not mmap the framebuffer!\n");
@@ -183,10 +183,10 @@ DFBResult gfxcard_init()
      memset( card->framebuffer.base, 0, card->fix.smem_len );
 
      {
-          GfxDriver *driver = gfxcard_find_driver( display->fd );
+          GfxDriver *driver = gfxcard_find_driver( fbdev->fd );
 
           if (driver) {
-               int ret = driver->Init( display->fd, card );
+               int ret = driver->Init( fbdev->fd, card );
 
                if (ret) {
                     munmap( (char*)card->framebuffer.base,
