@@ -38,7 +38,8 @@ extern int m_color;
 extern int m_SrcKey;
 extern int m_srckey;
 
-extern int m_Blend;
+extern int m_drawBlend;
+extern int m_blitBlend;
 
 extern int src_pixelpitch;
 

@@ -48,7 +48,6 @@
 
 
 volatile __u8 *mmio_base;
-int g400 = 0;
 
 GfxCard *matrox = NULL;
 
@@ -60,6 +59,10 @@ unsigned int matrox_fifo_waitcycles = 0;
 unsigned int matrox_idle_waitcycles = 0;
 unsigned int matrox_fifo_cache_hits = 0;
 
+static __u32 atype_blk_rstr = 0;
+
+static void matroxBlit2D( DFBRectangle *rect, int dx, int dy );
+static void matroxBlit3D( DFBRectangle *rect, int dx, int dy );
 
 
 int m_Source = 0;
@@ -71,7 +74,8 @@ int m_color = 0;
 int m_SrcKey = 0;
 int m_srckey = 0;
 
-int m_Blend = 0;
+int m_drawBlend = 0;
+int m_blitBlend = 0;
 
 int src_pixelpitch = 0;
 
@@ -132,25 +136,28 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
           state->set = 0;
           matrox->state = state;
 
-          m_Source = m_source = m_Color =
-               m_color = m_SrcKey = m_srckey = m_Blend = 0;
+          m_Source = m_source = m_Color = m_color =
+               m_SrcKey = m_srckey = m_drawBlend = m_blitBlend = 0;
      }
      else {
-          if (state->modified & SMF_DESTINATION)
-               m_color = m_Source = m_source = 0;
-          else if (state->modified & SMF_SOURCE)
-               m_Source = m_source = 0;
-
-          if (state->modified & SMF_BLITTING_FLAGS)
-               m_Source = m_Blend = 0;
-          else if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
-               m_Blend = 0;
-
-          if (state->modified & SMF_COLOR)
-               m_Color = m_color = 0;
-
-          if (state->modified & SMF_SRC_COLORKEY)
-               m_SrcKey = m_srckey = 0;
+          if (state->modified) {
+               if (state->modified & SMF_DESTINATION)
+                    m_color = m_Source = m_source = 0;
+               else if (state->modified & SMF_SOURCE)
+                    m_Source = m_source = 0;
+     
+               if (state->modified & SMF_BLITTING_FLAGS)
+                    m_Source = m_blitBlend = 0;
+               
+               if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
+                    m_blitBlend = m_drawBlend = 0;
+     
+               if (state->modified & SMF_COLOR)
+                    m_Color = m_color = 0;
+     
+               if (state->modified & SMF_SRC_COLORKEY)
+                    m_SrcKey = m_srckey = 0;
+          }
      }
 
      switch (accel) {
@@ -158,21 +165,19 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
           case DFXL_FILLTRIANGLE:
-               if (state->modified & SMF_DRAWING_FLAGS)
-                    state->set = 0;
-
                if (state->drawingflags & DSDRAW_BLEND) {
                     matrox_validate_Color();
-                    matrox_validate_Blend();
+                    matrox_validate_drawBlend();
                }
                else
                     matrox_validate_color();
+
+               state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE |
+                            DFXL_DRAWLINE | DFXL_FILLTRIANGLE;
+
                break;
           case DFXL_BLIT:
           case DFXL_STRETCHBLIT:
-               if (state->modified & SMF_BLITTING_FLAGS)
-                    state->set = 0;
-
                if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                            DSBLIT_COLORIZE))
                     matrox_validate_Color();
@@ -183,27 +188,25 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
                    state->destination->format != state->source->format  ||
                    accel == DFXL_STRETCHBLIT)
                {
-                    if (matrox_tmu == 0) {
-                         matrox_tmu = 1;
-                         state->set = 0;
-                    }
+                    matrox->Blit = matroxBlit3D;
 
-                    matrox_validate_Blend();
+                    matrox_validate_blitBlend();
                     matrox_validate_Source();
 
                     if (state->blittingflags & DSBLIT_SRC_COLORKEY)
                          matrox_validate_SrcKey();
+
+                    state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
                }
                else {
-                    if (matrox_tmu == 1) {
-                         matrox_tmu = 0;
-                         state->set = 0;
-                    }
+                    matrox->Blit = matroxBlit2D;
 
                     matrox_validate_source();
 
                     if (state->blittingflags & DSBLIT_SRC_COLORKEY)
                          matrox_validate_srckey();
+
+                    state->set = DFXL_BLIT;
                }
                break;
           default:
@@ -217,24 +220,39 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
      if (state->modified & SMF_CLIP)
           matrox_set_clip();
 
-     if (state->set != accel)
-          matrox_set_dwgctl( accel );
-
      state->modified = 0;
-     state->set = accel;
 }
 
 static void matroxFillRectangle( DFBRectangle *rect )
 {
-     mga_waitfifo( mmio_base, 2 );
+     mga_waitfifo( mmio_base, 3 );
+     
+     if (matrox->state->drawingflags & DSDRAW_BLEND)
+          mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO |
+                                ARZERO | ATYPE_I | OP_TRAP,
+                     DWGCTL );
+     else
+          mga_out32( mmio_base, TRANSC | BOP_COPY | SHFTZERO | SGNZERO |
+                                ARZERO | SOLID | atype_blk_rstr | OP_TRAP,
+                     DWGCTL );
+     
      mga_out32( mmio_base, (RS16(rect->x + rect->w) << 16) | RS16(rect->x), FXBNDRY );
      mga_out32( mmio_base, (RS16(rect->y) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
 }
 
 static void matroxDrawRectangle( DFBRectangle *rect )
 {
-     mga_waitfifo( mmio_base, 5 );
+     mga_waitfifo( mmio_base, 6 );
 
+     if (matrox->state->drawingflags & DSDRAW_BLEND)
+          mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | ATYPE_I |
+                                OP_AUTOLINE_OPEN,
+                     DWGCTL );
+     else
+          mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
+                                ATYPE_RSTR | OP_AUTOLINE_OPEN,
+                     DWGCTL );
+     
      mga_out32(mmio_base, RS16(rect->x) |
                          (RS16(rect->y) << 16),
                           XYSTRT);
@@ -257,8 +275,17 @@ static void matroxDrawRectangle( DFBRectangle *rect )
 
 static void matroxDrawLine( DFBRegion *line )
 {
-     mga_waitfifo( mmio_base, 2 );
+     mga_waitfifo( mmio_base, 3 );
 
+     if (matrox->state->drawingflags & DSDRAW_BLEND)
+          mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | ATYPE_I |
+                                OP_AUTOLINE_CLOSE,
+                     DWGCTL );
+     else
+          mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
+                                ATYPE_RSTR | OP_AUTOLINE_CLOSE,
+                     DWGCTL );
+     
      mga_out32( mmio_base, RS16(line->x1) | (RS16(line->y1) << 16),
                            XYSTRT );
 
@@ -299,6 +326,16 @@ static void matroxFillTrapezoid( int Xl, int Xr, int X2l, int X2r, int Y, int dY
 
 static void matroxFillTriangle( DFBTriangle *tri )
 {
+     mga_waitfifo( mmio_base, 1 );
+     
+     if (matrox->state->drawingflags & DSDRAW_BLEND)
+          mga_out32( mmio_base, BOP_COPY | SHFTZERO | ATYPE_I | OP_TRAP,
+                     DWGCTL );
+     else
+          mga_out32( mmio_base, TRANSC | BOP_COPY | SHFTZERO |
+                                SOLID | atype_blk_rstr | OP_TRAP,
+                     DWGCTL );
+     
      sort_triangle( tri );
 
      if (tri->y2 == tri->y3) {
@@ -334,54 +371,69 @@ static void matroxFillTriangle( DFBTriangle *tri )
      }
 }
 
-static void matroxBlit( DFBRectangle *rect, int dx, int dy )
+static void matroxBlit2D( DFBRectangle *rect, int dx, int dy )
 {
-     if (matrox_tmu) {
-          __s32 startx, starty;
+     __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO |
+                    ATYPE_RSTR | OP_BITBLT;
+     __u32 start, end;
+     __u32 sgn = 0;
+     __s32 pitch = src_pixelpitch;
 
-          startx = ((rect->x << 20) | 0x80000) >> matrox_w2;
-          starty = ((rect->y << 20) | 0x80000) >> matrox_h2;
+     if (rect->x < dx)
+          sgn |= BLIT_LEFT;
+     if (rect->y < dy)
+          sgn |= BLIT_UP;
 
-          mga_waitfifo( mmio_base, 4);
-
-          mga_out32( mmio_base, startx, TMR6 );
-          mga_out32( mmio_base, starty, TMR7 );
-     }
-     else {
-          __u32 start, end;
-          __u32 sgn = 0;
-          __s32 pitch = src_pixelpitch;
-
-          if (rect->x < dx)
-               sgn |= BLIT_LEFT;
-          if (rect->y < dy)
-               sgn |= BLIT_UP;
-
-          if (sgn & BLIT_UP) {
-               rect->y += rect->h - 1;
-               dy += rect->h - 1;
-          }
-
-          start = end = rect->y * pitch + rect->x;
-
-          rect->w--;
-
-          if (sgn & BLIT_LEFT)
-               start += rect->w;
-          else
-               end += rect->w;
-
-          if (sgn & BLIT_UP)
-               pitch = -pitch;
-
-          mga_waitfifo( mmio_base, 6 );
-
-          mga_out32( mmio_base, pitch & 0x3FFFFF, AR5 );
-          mga_out32( mmio_base, start & 0xFFFFFF, AR3 );
-          mga_out32( mmio_base, end & 0x3FFFFF, AR0 );
-          mga_out32( mmio_base, sgn, SGN );
+     if (sgn & BLIT_UP) {
+          rect->y += rect->h - 1;
+          dy += rect->h - 1;
      }
 
+     start = end = rect->y * pitch + rect->x;
+
+     rect->w--;
+
+     if (sgn & BLIT_LEFT)
+          start += rect->w;
+     else
+          end += rect->w;
+
+     if (sgn & BLIT_UP)
+          pitch = -pitch;
+
+     mga_waitfifo( mmio_base, 7 );
+
+     if (matrox->state->blittingflags & DSBLIT_SRC_COLORKEY)
+          dwgctl |= TRANSC;
+
+     mga_out32( mmio_base, dwgctl, DWGCTL );
+     mga_out32( mmio_base, pitch & 0x3FFFFF, AR5 );
+     mga_out32( mmio_base, start & 0xFFFFFF, AR3 );
+     mga_out32( mmio_base, end & 0x3FFFFF, AR0 );
+     mga_out32( mmio_base, sgn, SGN );
+     mga_out32( mmio_base, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
+     mga_out32( mmio_base, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
+}
+
+static void matroxBlit3D( DFBRectangle *rect, int dx, int dy )
+{
+     __s32 startx, starty;
+
+     startx = ((rect->x << 20) | 0x80000) >> matrox_w2;
+     starty = ((rect->y << 20) | 0x80000) >> matrox_h2;
+
+     mga_waitfifo( mmio_base, 8);
+
+     
+     mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO |
+                ARZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
+
+     mga_out32( mmio_base, MAG_NRST | MIN_NRST, TEXFILTER );
+     
+     mga_out32( mmio_base, 0x100000 >> matrox_w2, TMR0 );
+     mga_out32( mmio_base, 0x100000 >> matrox_h2, TMR3 );
+     mga_out32( mmio_base, startx, TMR6 );
+     mga_out32( mmio_base, starty, TMR7 );
      mga_out32( mmio_base, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
      mga_out32( mmio_base, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
 }
@@ -390,20 +442,19 @@ static void matroxStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
 {
      __s32 startx, starty, incx, incy;
 
-     if (drect->w < 1  ||  drect->h < 1)
-          return;
-
      incx = (srect->w << (20 - matrox_w2))  /  drect->w;
      incy = (srect->h << (20 - matrox_h2))  /  drect->h;
-
-//     incx = ((srect->w << 20) >> matrox_w2) / drect->w;
-//     incy = ((srect->h << 20) >> matrox_h2) / drect->h;
 
      startx = (srect->x << 20)  >> matrox_w2;
      starty = (srect->y << 20)  >> matrox_h2;
 
-     mga_waitfifo( mmio_base, 6);
+     mga_waitfifo( mmio_base, 8);
 
+     mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
+                ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
+
+     mga_out32( mmio_base, MAG_BILIN | MIN_BILIN, TEXFILTER );
+     
      mga_out32( mmio_base, incx, TMR0 );
      mga_out32( mmio_base, incy, TMR3 );
      mga_out32( mmio_base, startx, TMR6 );
@@ -421,7 +472,6 @@ int driver_probe( int fd, GfxCard *card )
      switch (card->fix.accel) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:  /* Matrox G400                       */
-               g400 = 1;
 #endif
           case FB_ACCEL_MATROX_MGAG200:  /* Matrox G200 (Myst, Mill, ...)     */
                return 1;
@@ -444,7 +494,7 @@ int driver_init( int fd, GfxCard *card )
      sprintf( card->info.driver_vendor, "convergence integrated media GmbH" );
 
      card->info.driver_version.major = 0;
-     card->info.driver_version.minor = 3;
+     card->info.driver_version.minor = 4;
 
      card->caps.flags    = CCF_CLIPPING;
      card->caps.accel    = MATROX_SUPPORTED_FUNCTIONS;
@@ -454,10 +504,17 @@ int driver_init( int fd, GfxCard *card )
                            DSBLIT_COLORIZE |
                            DSBLIT_SRC_COLORKEY;
 
-     if (g400)
-          card->CheckState = matroxG400CheckState;
-     else
-          card->CheckState = matroxG200CheckState;
+     switch (card->fix.accel) {
+#ifdef FB_ACCEL_MATROX_MGAG400
+          case FB_ACCEL_MATROX_MGAG400:
+               card->CheckState = matroxG400CheckState;
+               break;
+#endif
+          case FB_ACCEL_MATROX_MGAG200:
+               card->CheckState = matroxG200CheckState;
+               break;
+     }
+
      card->SetState = matroxSetState;
      card->EngineSync = matroxEngineSync;
      card->FlushTextureCache = matroxFlushTextureCache;
@@ -466,9 +523,10 @@ int driver_init( int fd, GfxCard *card )
      card->DrawRectangle = matroxDrawRectangle;
      card->DrawLine = matroxDrawLine;
      card->FillTriangle = matroxFillTriangle;
-     card->Blit = matroxBlit;
      card->StretchBlit = matroxStretchBlit;
 
+     /* will be set dynamically: card->Blit */
+     
      mga_waitfifo( mmio_base, 11 );
      mga_out32( mmio_base, 0, TDUALSTAGE0 );   // multi texture registers
      mga_out32( mmio_base, 0, TDUALSTAGE1 );
@@ -482,6 +540,15 @@ int driver_init( int fd, GfxCard *card )
      mga_out32( mmio_base, 0, DR15 );
      mga_out32( mmio_base, 0, BCOL );
 
+     mga_waitfifo( mmio_base, 5 );
+     mga_out32( mmio_base, 0, TMR1 );
+     mga_out32( mmio_base, 0, TMR2 );
+     mga_out32( mmio_base, 0, TMR4 );
+     mga_out32( mmio_base, 0, TMR5 );
+     mga_out32( mmio_base, 0x10000, TMR8 );
+     
+     atype_blk_rstr = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
+     
      /* set hardware limitations */
      card->byteoffset_align = 32*4;
      card->pixelpitch_align = 32;

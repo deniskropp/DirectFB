@@ -31,6 +31,7 @@
 #include <core/surfaces.h>
 
 #include <gfx/convert.h>
+#include <misc/util.h>
 
 #include "regs.h"
 #include "mmio.h"
@@ -186,21 +187,39 @@ static __u32 matroxModulation[] = {
      ALPHACHANNEL | MODULATEDALPHA
 };
 
-inline void matrox_validate_Blend()
+inline void matrox_validate_drawBlend()
 {
-     __u32 alphactrl;
-
-     if (m_Blend)
+     if (m_drawBlend)
           return;
 
-     alphactrl = matroxSourceBlend[matrox->state->src_blend - 1] |
-                 matroxDestBlend  [matrox->state->dst_blend - 1] |
-                 matroxModulation [matrox->state->blittingflags & 3];
+     mga_waitfifo( mmio_base, 1 );
+     mga_out32( mmio_base,
+                matroxSourceBlend[matrox->state->src_blend - 1] |
+                matroxDestBlend  [matrox->state->dst_blend - 1], ALPHACTRL );
+
+     m_drawBlend = 1;
+     m_blitBlend = 0;
+}
+
+inline void matrox_validate_blitBlend()
+{
+     __u32 alphactrl = 1;
+
+     if (m_blitBlend)
+          return;
+
+     if (matrox->state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                         DSBLIT_BLEND_COLORALPHA))
+          alphactrl = matroxSourceBlend[matrox->state->src_blend - 1] |
+                      matroxDestBlend  [matrox->state->dst_blend - 1];
+                      
+     alphactrl |= matroxModulation [matrox->state->blittingflags & 3];
 
      mga_waitfifo( mmio_base, 1 );
      mga_out32( mmio_base, alphactrl, ALPHACTRL );
 
-     m_Blend = 1;
+     m_blitBlend = 1;
+     m_drawBlend = 0;
 }
 
 inline void matrox_validate_Source()
@@ -234,8 +253,6 @@ inline void matrox_validate_Source()
                texctl |= TW16;
                break;
           case DSPF_RGB32:
-               texctl |= TW32;
-               break;
           case DSPF_ARGB:
                texctl |= TW32;
                break;
@@ -254,15 +271,7 @@ inline void matrox_validate_Source()
      else
           texctl2 = DECALDIS | CKSTRANSDIS;
 
-     mga_waitfifo( mmio_base, 12);
-
-     mga_out32( mmio_base, 0x100000 >> matrox_w2, TMR0 );
-     mga_out32( mmio_base, 0, TMR1 );
-     mga_out32( mmio_base, 0, TMR2 );
-     mga_out32( mmio_base, 0x100000 >> matrox_h2, TMR3 );
-     mga_out32( mmio_base, 0, TMR4 );
-     mga_out32( mmio_base, 0, TMR5 );
-     mga_out32( mmio_base, 0x10000, TMR8 );
+     mga_waitfifo( mmio_base, 5);
 
      mga_out32( mmio_base, CLAMPUV |
                            ((src_pixelpitch&0x7ff)<<9) | PITCHEXT | texctl, TEXCTL );
@@ -287,7 +296,7 @@ inline void matrox_validate_source()
      mga_waitfifo( mmio_base, 2);
 
      mga_out32( mmio_base,
-                (1 << BITS_PER_PIXEL(surface->format)) - 1, BCOL );
+                (1 << MIN( 24, BITS_PER_PIXEL(surface->format) )) - 1, BCOL );
      mga_out32( mmio_base, buffer->video.offset, SRCORG );
 
      m_source = 1;
@@ -330,110 +339,3 @@ inline void matrox_validate_srckey()
      m_color = 0;
 }
 
-inline void matrox_set_dwgctl( DFBAccelerationMask accel )
-{
-     mga_waitfifo( mmio_base, 1 );
-
-     switch (accel) {
-          case DFXL_FILLRECTANGLE: {
-               unsigned int atype = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
-
-               if (matrox->state->drawingflags & DSDRAW_BLEND)
-                    mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO |
-                                          ARZERO | ATYPE_I | OP_TRAP,
-                               DWGCTL );
-               else
-                    mga_out32( mmio_base, TRANSC | BOP_COPY | SHFTZERO |
-                                          SGNZERO | ARZERO | SOLID |
-                                          atype | OP_TRAP,
-                               DWGCTL );
-
-               break;
-          }
-          case DFXL_DRAWRECTANGLE: {
-               if (matrox->state->drawingflags & DSDRAW_BLEND)
-                    mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | ATYPE_I |
-                                          OP_AUTOLINE_OPEN,
-                               DWGCTL );
-               else
-                    mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
-                                          ATYPE_RSTR | OP_AUTOLINE_OPEN,
-                               DWGCTL );
-
-               break;
-          }
-          case DFXL_DRAWLINE: {
-               if (matrox->state->drawingflags & DSDRAW_BLEND)
-                    mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | ATYPE_I |
-                                          OP_AUTOLINE_CLOSE,
-                               DWGCTL );
-               else
-                    mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
-                                          ATYPE_RSTR | OP_AUTOLINE_CLOSE,
-                               DWGCTL );
-
-               break;
-          }
-          case DFXL_FILLTRIANGLE: {
-               unsigned int atype = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
-
-               if (matrox->state->drawingflags & DSDRAW_BLEND)
-                    mga_out32( mmio_base, BOP_COPY | SHFTZERO | ATYPE_I | OP_TRAP,
-                               DWGCTL );
-               else
-                    mga_out32( mmio_base, TRANSC | BOP_COPY | SHFTZERO |
-                                          SOLID | atype | OP_TRAP,
-                               DWGCTL );
-
-               break;
-          }
-          case DFXL_BLIT: {
-               if (matrox_tmu) {
-                    mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
-                               ATYPE_I | OP_TEXTURE_TRAP,
-                               DWGCTL );
-
-                    mga_waitfifo( mmio_base, 3 );
-                    mga_out32( mmio_base, 0x100000 >> matrox_w2, TMR0 );
-                    mga_out32( mmio_base, 0x100000 >> matrox_h2, TMR3 );
-                    mga_out32( mmio_base, MAG_NRST | MIN_NRST, TEXFILTER );
-
-                    if (!(matrox->state->blittingflags &
-                          (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL))) {
-                         mga_waitfifo( mmio_base, 1 );
-                         mga_out32( mmio_base, 1, ALPHACTRL );
-                         m_Blend = 0;
-                    }
-               }
-               else {
-                    __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO |
-                                   ATYPE_RSTR | OP_BITBLT;
-
-                    if (matrox->state->blittingflags & DSBLIT_SRC_COLORKEY)
-                         dwgctl |= TRANSC;
-
-                    mga_out32( mmio_base, dwgctl, DWGCTL );
-               }
-               break;
-          }
-          case DFXL_STRETCHBLIT: {
-               mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
-                          ATYPE_I | OP_TEXTURE_TRAP,
-                          DWGCTL );
-
-               mga_waitfifo( mmio_base, 1 );
-               mga_out32( mmio_base, MAG_BILIN | MIN_BILIN, TEXFILTER );
-
-               if (!(matrox->state->blittingflags &
-                     (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL))) {
-                    mga_waitfifo( mmio_base, 1 );
-                    mga_out32( mmio_base, 1, ALPHACTRL );
-                    m_Blend = 0;
-               }
-               break;
-          }
-          default:
-               BUG( "unexpected drawing/blitting function!" );
-               break;
-     }
-}

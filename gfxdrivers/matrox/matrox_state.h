@@ -29,7 +29,9 @@ inline void matrox_set_clip();
 
 inline void matrox_validate_Color();
 inline void matrox_validate_color();
-inline void matrox_validate_Blend();
+
+inline void matrox_validate_drawBlend();
+inline void matrox_validate_blitBlend();
 
 inline void matrox_validate_Source();
 inline void matrox_validate_source();
@@ -37,9 +39,6 @@ inline void matrox_validate_source();
 inline void matrox_validate_SrcKey();
 inline void matrox_validate_srckey();
 
-inline void matrox_set_dwgctl( DFBAccelerationMask accel );
-
-extern int matrox_tmu;
 extern int matrox_w2;
 extern int matrox_h2;
 
