@@ -1336,9 +1336,11 @@ driver_init_device( GraphicsDevice     *device,
 
      /* soft reset to fix eventually corrupted TMU read offset on G200 */
      if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200) {
+          __u32 ien = mga_in32( mmio, IEN );
           mga_out32( mmio, 1, RST );
           usleep(10);
           mga_out32( mmio, 0, RST );
+          mga_out32( mmio, ien, IEN );
      }
 
      mga_waitfifo( mdrv, mdev, 11 );

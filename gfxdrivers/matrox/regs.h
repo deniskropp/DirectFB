@@ -341,6 +341,7 @@
 
 #define FIFOSTATUS    0x1E10
 #define STATUS        0x1E14
+#define IEN           0x1E1C
 
 #define BLIT_LEFT     1
 #define BLIT_UP       4
