@@ -34,28 +34,22 @@ extern "C"
 
 #include "fusion_types.h"
 
+typedef enum {
+     FUSION_PROPERTY_AVAILABLE,
+     FUSION_PROPERTY_LEASED,
+     FUSION_PROPERTY_PURCHASED
+} FusionPropertyState;
+
 
 #ifndef FUSION_FAKE
-     #warning Not yet fully implemented.
-     
-     #include "lock.h"
-     
-     typedef FusionSkirmish FusionProperty;
+     typedef struct {
+          int                 sem_id;
+          FusionPropertyState state;
+     } FusionProperty;
 
-     #define fusion_property_init     skirmish_init
-     #define fusion_property_lease    skirmish_prevail
-     #define fusion_property_purchase skirmish_prevail
-     #define fusion_property_cede     skirmish_dismiss
-     #define fusion_property_destroy  skirmish_destroy
 #else
 
 #include <pthread.h>
-
-     typedef enum {
-          FUSION_PROPERTY_AVAILABLE,
-          FUSION_PROPERTY_LEASED,
-          FUSION_PROPERTY_PURCHASED
-     } FusionPropertyState;
      
      typedef struct {
           pthread_mutex_t     lock;
@@ -63,48 +57,46 @@ extern "C"
           FusionPropertyState state;
      } FusionProperty;
 
-     /*
-      * Initializes the property
-      */
-     void         fusion_property_init     (FusionProperty *property);
-
-     /*
-      * Lease the property causing others to wait before leasing or purchasing.
-      *
-      * Waits as long as property is leased by another party.
-      * Returns FUSION_INUSE if property is/gets purchased by another party.
-      *
-      * Succeeds if property is available,
-      * puts the property into 'leased' state.
-      */
-     FusionResult fusion_property_lease    (FusionProperty *property);
-
-     /*
-      * Purchase the property disallowing others to lease or purchase it.
-      *
-      * Waits as long as property is leased by another party.
-      * Returns FUSION_INUSE if property is/gets purchased by another party.
-      *
-      * Succeeds if property is available,
-      * puts the property into 'purchased' state and wakes up any waiting party.
-      */
-     FusionResult fusion_property_purchase (FusionProperty *property);
-
-     /*
-      * Cede the property allowing others to lease or purchase it.
-      *
-      * Puts the property into 'available' state and wakes up one waiting party.
-      */
-     void         fusion_property_cede     (FusionProperty *property);
-     
-     /*
-      * Destroys the property
-      */
-     void         fusion_property_destroy  (FusionProperty *property);
-
 #endif
 
+/*
+ * Initializes the property
+ */
+FusionResult fusion_property_init     (FusionProperty *property);
 
+/*
+ * Lease the property causing others to wait before leasing or purchasing.
+ *
+ * Waits as long as property is leased by another party.
+ * Returns FUSION_INUSE if property is/gets purchased by another party.
+ *
+ * Succeeds if property is available,
+ * puts the property into 'leased' state.
+ */
+FusionResult fusion_property_lease    (FusionProperty *property);
+
+/*
+ * Purchase the property disallowing others to lease or purchase it.
+ *
+ * Waits as long as property is leased by another party.
+ * Returns FUSION_INUSE if property is/gets purchased by another party.
+ *
+ * Succeeds if property is available,
+ * puts the property into 'purchased' state and wakes up any waiting party.
+ */
+FusionResult fusion_property_purchase (FusionProperty *property);
+
+/*
+ * Cede the property allowing others to lease or purchase it.
+ *
+ * Puts the property into 'available' state and wakes up one waiting party.
+ */
+FusionResult fusion_property_cede     (FusionProperty *property);
+
+/*
+ * Destroys the property
+ */
+FusionResult fusion_property_destroy  (FusionProperty *property);
 
 #ifdef __cplusplus
 }

@@ -70,6 +70,8 @@ typedef struct {
      /****/
 
      DFBDisplayLayerConfig    config;  /* current configuration */
+     
+     DFBDisplayLayerConfig    last_config;  /* last 'shared' configuration */
 
      __u8                     opacity; /* if enabled this value controls
                                           blending of the whole layer */
@@ -95,8 +97,7 @@ typedef struct {
      FusionProperty           lock;    /* purchased during exclusive access,
                                           leased during window stack repaint */
 
-     bool                     exclusive; /* FIXME: workaround unimplemented
-                                            FusionProperty in multi app core */
+     bool                     exclusive; /* helps to detect dead excl. access */
 } DisplayLayerShared;  
 
 struct _DisplayLayer {
@@ -477,19 +478,18 @@ dfb_layer_lease( DisplayLayer *layer )
 {
      DFB_ASSERT( layer->shared->enabled );
 
-#ifndef FUSION_FAKE
-     /* FIXME: workaround */
-     if (layer->shared->exclusive) {
-          if (skirmish_swoop( &layer->shared->lock ))
-               return DFB_LOCKED;
-
-          dfb_layer_release( layer, true );
-     }
-#endif
-     
      if (fusion_property_lease( &layer->shared->lock ))
           return DFB_LOCKED;
 
+     /* This can only be true if process with exclusive access died. */
+     if (layer->shared->exclusive) {
+          /* Restore the last configuration for shared access. */
+          dfb_layer_set_configuration( layer, &layer->shared->last_config );
+
+          /* Clear exclusive access. */
+          layer->shared->exclusive = false;
+     }
+     
      return DFB_OK;
 }
 
@@ -501,23 +501,15 @@ dfb_layer_purchase( DisplayLayer *layer )
 {
      DFB_ASSERT( layer->shared->enabled );
      
-#ifndef FUSION_FAKE
-     /* FIXME: workaround */
-     if (layer->shared->exclusive) {
-          if (skirmish_swoop( &layer->shared->lock ))
-               return DFB_LOCKED;
-
-          dfb_layer_release( layer, true );
-     }
-#endif
-     
      if (fusion_property_purchase( &layer->shared->lock ))
           return DFB_LOCKED;
 
-#ifndef FUSION_FAKE
-     /* FIXME: workaround */
+     /* Backup configuration of shared access. */
+     if (!layer->shared->exclusive)
+          layer->shared->last_config = layer->shared->config;
+     
+     /* Indicate exclusive access. */
      layer->shared->exclusive = true;
-#endif
 
      return DFB_OK;
 }
@@ -530,12 +522,16 @@ dfb_layer_release( DisplayLayer *layer, bool repaint )
 {
      DFB_ASSERT( layer->shared->enabled );
      
-     fusion_property_cede( &layer->shared->lock );
+     /* If returning from exclusive access... */
+     if (layer->shared->exclusive) {
+          /* Restore the last configuration for shared access. */
+          dfb_layer_set_configuration( layer, &layer->shared->last_config );
+
+          /* Clear exclusive access. */
+          layer->shared->exclusive = false;
+     }
      
-#ifndef FUSION_FAKE
-     /* FIXME: workaround */
-     layer->shared->exclusive = false;
-#endif
+     fusion_property_cede( &layer->shared->lock );
      
      if (repaint)
           dfb_windowstack_repaint_all( layer->shared->stack );

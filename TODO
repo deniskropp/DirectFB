@@ -28,7 +28,6 @@ Memory Source or Streaming for Image/Video Provider.
 Rework VT handling. Readd VT switching and Suspend/Resume.
 
 Finish multi application core.
- - FusionProperty needs to be implemented
  - Reduce number of thread
  - Some messages may need to be dispatched synchronized
  - Add fork handling
