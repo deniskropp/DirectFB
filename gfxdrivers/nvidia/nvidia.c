@@ -1092,7 +1092,7 @@ driver_init_device( GraphicsDevice     *device,
                break;
      }
      
-     device_info->limits.surface_byteoffset_alignment = 128; 
+     device_info->limits.surface_byteoffset_alignment = 64; 
      device_info->limits.surface_pixelpitch_alignment = 32;
 
      dfb_config->pollvsync_after = 1;
