@@ -79,7 +79,8 @@ typedef struct {
 
      InputDeviceKeymap            keymap;
      
-     DFBInputDeviceModifierMask   modifiers;
+     DFBInputDeviceModifierMask   modifiers_l;
+     DFBInputDeviceModifierMask   modifiers_r;
      DFBInputDeviceLockState      locks;
      DFBInputDeviceLockState      locks_pressed;
      DFBInputDeviceButtonMask     buttons;
@@ -680,25 +681,11 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
      /*
       * Use cached values for modifiers/locks if they are missing.
       */
-     if (missing & DIEF_MODIFIERS) {
-          event->modifiers = shared->modifiers;
-          missing &= ~DIEF_MODIFIERS;
-     }
-     else
-          shared->modifiers = event->modifiers;
+     if (missing & DIEF_MODIFIERS)
+          event->modifiers = shared->modifiers_l | shared->modifiers_r;
 
-     if (missing & DIEF_LOCKS) {
+     if (missing & DIEF_LOCKS)
           event->locks = shared->locks;
-          missing &= ~DIEF_LOCKS;
-     }
-     else
-          shared->locks = event->locks;
-
-     /*
-      * Return if the rest is ok.
-      */
-     if (missing == DIEF_NONE)
-          return;
 
      /*
       * With translation table
@@ -742,26 +729,109 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
           event->key_symbol = DIKS_NULL;
 
      /*
-      * Update cached values for modifiers/locks, use the ones that were
-      * originally provided by the driver or compute them.
+      * Update cached values for modifiers.
       */
-     if (valid & DIEF_MODIFIERS) {
-          shared->modifiers = event->modifiers;
-     }
-     else if (DFB_KEY_TYPE(event->key_symbol) == DIKT_MODIFIER) {
-          if (event->type == DIET_KEYPRESS)
-               shared->modifiers |= event->key_symbol & 0xFFF;
-          else
-               shared->modifiers &= ~(event->key_symbol & 0xFFF);
+     if (DFB_KEY_TYPE(event->key_symbol) == DIKT_MODIFIER) {
+          if (event->type == DIET_KEYPRESS) {
+               switch (event->key_id) {
+                    case DIKI_SHIFT_L:
+                         shared->modifiers_l |= DIMM_SHIFT;
+                         break;
+                    case DIKI_SHIFT_R:
+                         shared->modifiers_r |= DIMM_SHIFT;
+                         break;
+                    case DIKI_CONTROL_L:
+                         shared->modifiers_l |= DIMM_CONTROL;
+                         break;
+                    case DIKI_CONTROL_R: 
+                         shared->modifiers_r |= DIMM_CONTROL;
+                         break;
+                    case DIKI_ALT_L:
+                         shared->modifiers_l |= DIMM_ALT;
+                         break;
+                    case DIKI_ALT_R:
+                         shared->modifiers_r |= DIMM_ALT;
+                         break;
+                    case DIKI_ALTGR:
+                         shared->modifiers_l |= DIMM_ALTGR;
+                         break;
+                    case DIKI_META_L:
+                         shared->modifiers_l |= DIMM_META;
+                         break;
+                    case DIKI_META_R:
+                         shared->modifiers_r |= DIMM_META;
+                         break;
+                    case DIKI_SUPER_L:
+                         shared->modifiers_l |= DIMM_SUPER;
+                         break;
+                    case DIKI_SUPER_R:
+                         shared->modifiers_r |= DIMM_SUPER;
+                         break;
+                    case DIKI_HYPER_L:
+                         shared->modifiers_l |= DIMM_HYPER;
+                         break;
+                    case DIKI_HYPER_R:
+                         shared->modifiers_r |= DIMM_HYPER;
+                         break;
+                    default:
+                         ;
+               }
+          }
+          else {
+               switch (event->key_id) {
+                    case DIKI_SHIFT_L:
+                         shared->modifiers_l &= ~DIMM_SHIFT;
+                         break;
+                    case DIKI_SHIFT_R:
+                         shared->modifiers_r &= ~DIMM_SHIFT;
+                         break;
+                    case DIKI_CONTROL_L:
+                         shared->modifiers_l &= ~DIMM_CONTROL;
+                         break;
+                    case DIKI_CONTROL_R: 
+                         shared->modifiers_r &= ~DIMM_CONTROL;
+                         break;
+                    case DIKI_ALT_L:
+                         shared->modifiers_l &= ~DIMM_ALT;
+                         break;
+                    case DIKI_ALT_R:
+                         shared->modifiers_r &= ~DIMM_ALT;
+                         break;
+                    case DIKI_ALTGR:
+                         shared->modifiers_l &= ~DIMM_ALTGR;
+                         break;
+                    case DIKI_META_L:
+                         shared->modifiers_l &= ~DIMM_META;
+                         break;
+                    case DIKI_META_R:
+                         shared->modifiers_r &= ~DIMM_META;
+                         break;
+                    case DIKI_SUPER_L:
+                         shared->modifiers_l &= ~DIMM_SUPER;
+                         break;
+                    case DIKI_SUPER_R:
+                         shared->modifiers_r &= ~DIMM_SUPER;
+                         break;
+                    case DIKI_HYPER_L:
+                         shared->modifiers_l &= ~DIMM_HYPER;
+                         break;
+                    case DIKI_HYPER_R:
+                         shared->modifiers_r &= ~DIMM_HYPER;
+                         break;
+                    default:
+                         ;
+               }
+          }
           
           /* write back to event */
-          event->modifiers = shared->modifiers;
+          if (missing & DIEF_MODIFIERS)
+               event->modifiers = shared->modifiers_l | shared->modifiers_r;
      }
      
-     if (valid & DIEF_LOCKS) {
-          shared->locks = event->locks;
-     }
-     else if (event->type == DIET_KEYPRESS) {
+     /*
+      * Update cached values for locks.
+      */
+     if (event->type == DIET_KEYPRESS) {
           switch (event->key_id) {
                case DIKI_CAPS_LOCK:
                     shared->locks ^= (DILS_CAPS & ~shared->locks_pressed);
@@ -780,7 +850,8 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
           }
           
           /* write back to event */
-          event->locks = shared->locks;
+          if (missing & DIEF_LOCKS)
+               event->locks = shared->locks;
      }
      else {
           switch (event->key_id) {
