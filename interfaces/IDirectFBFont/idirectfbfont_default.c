@@ -45,7 +45,7 @@
 #include <misc/mem.h>
 
 
-#define FONTFILE DATADIR"/fonts/font.data"
+#define FONTFILE DATADIR"/font.data"
 
 
 char *get_type()
