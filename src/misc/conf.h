@@ -131,6 +131,8 @@ typedef struct
      char      *wm;                               /* Window manager to use. */
 
      bool       vt;                               /* Use VT stuff at all? */
+
+     bool       decorations;                      /* Enable window decorations. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

@@ -97,12 +97,13 @@ static const char *config_usage =
      "  [no-]capslock-meta             Map the CapsLock key to Meta\n"
      "  linux-input-ir-only            Ignore all non-IR Linux Input devices\n"
      "  [no-]cursor                    Never create a cursor\n"
-     "  wm=<wm>                        Window manager module to use (default=default)\n"
+     "  wm=<wm>                        Window manager module ('default' or 'unique')\n"
      "  bg-none                        Disable background clear\n"
      "  bg-color=AARRGGBB              Use background color (hex)\n"
      "  bg-image=<filename>            Use background image\n"
      "  bg-tile=<filename>             Use tiled background image\n"
      "  [no-]translucent-windows       Allow translucent windows\n"
+     "  [no-]decorations               Enable window decorations (if supported by wm)\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
      "  disable-module=<module_name>   suppress loading this module\n"
@@ -283,6 +284,7 @@ static void config_allocate()
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
      dfb_config->wm                       = D_STRDUP( "default" );
+     dfb_config->decorations              = true;
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -631,6 +633,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-translucent-windows" ) == 0) {
           dfb_config->translucent_windows = false;
+     } else
+     if (strcmp (name, "decorations" ) == 0) {
+          dfb_config->decorations = true;
+     } else
+     if (strcmp (name, "no-decorations" ) == 0) {
+          dfb_config->decorations = false;
      } else
      if (strcmp (name, "vsync-none" ) == 0) {
           dfb_config->pollvsync_none = true;

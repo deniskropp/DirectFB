@@ -211,7 +211,7 @@ unique_window_create( CoreWindow              *window,
      uniwin->color_key = config->color_key;
      uniwin->opaque    = config->opaque;
 
-     if (! (caps & (DWCAPS_INPUTONLY | DWCAPS_NODECORATION))) {
+     if (dfb_config->decorations && ! (caps & (DWCAPS_INPUTONLY | DWCAPS_NODECORATION))) {
           uniwin->flags |= UWF_DECORATED;
           uniwin->insets = shared->insets;
      }
