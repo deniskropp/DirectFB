@@ -259,9 +259,9 @@ dfb_trace_print_stack( TraceBuffer *buffer )
           buffer = get_trace_buffer();
 
      level = buffer->level;
-     if (level > MAX_LEVEL) {
+     if (level >= MAX_LEVEL) {
           CAUTION( "only showing 100 items" );
-          return;
+          level = MAX_LEVEL - 1;
      }
 
      fprintf( stderr, "\n(-) DirectFB stack trace of %d\n", buffer->tid );
@@ -313,10 +313,14 @@ dfb_trace_print_stacks()
      if (buffer->level)
           dfb_trace_print_stack( buffer );
 
+     pthread_mutex_lock( &buffers_lock );
+
      for (i=0; i<buffers_num; i++) {
           if (buffers[i] != buffer && buffers[i]->level)
                dfb_trace_print_stack( buffers[i] );
      }
+
+     pthread_mutex_unlock( &buffers_lock );
 }
 
 
