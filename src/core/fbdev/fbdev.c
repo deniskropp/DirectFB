@@ -1514,27 +1514,30 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                PERRORMSG( "DirectFB/core/fbdev: "
                           "Could not set video mode (FBIOPUT_VSCREENINFO)!\n" );
 
-          dfb_gfxcard_unlock( true );
+          dfb_gfxcard_unlock( false, false );
 
           return errno2dfb( erno );
      }
-     else {
-          /* 
-           * the video mode was set successfully, check if there is enough
-           * video ram (for buggy framebuffer drivers)
-           */
+     
+     /* 
+      * the video mode was set successfully, check if there is enough
+      * video ram (for buggy framebuffer drivers)
+      */
 
-          if (dfb_fbdev->shared->fix.smem_len < (var.yres_virtual * 
-                                                 var.xres_virtual * 
-                                                 var.bits_per_pixel >> 3)) {
-               if (layer)
-                    PERRORMSG( "DirectFB/core/fbdev: "
-                               "Could not set video mode (not enough video ram)!\n" );
-
-               dfb_gfxcard_unlock( true );
-
-               return DFB_INVARG;
+     if (dfb_fbdev->shared->fix.smem_len < (var.yres_virtual * 
+                                            var.xres_virtual * 
+                                            var.bits_per_pixel >> 3)) {
+          if (layer) {
+               PERRORMSG( "DirectFB/core/fbdev: "
+                          "Could not set video mode (not enough video ram)!\n" );
+               
+               /* restore mode */
+               FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
           }
+          
+          dfb_gfxcard_unlock( true, true );
+
+          return DFB_INVARG;
      }
 
      /* If layer is NULL the mode was only tested, otherwise apply changes. */
@@ -1551,13 +1554,13 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                /* restore mode */
                FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
 
-               dfb_gfxcard_unlock( true );
+               dfb_gfxcard_unlock( true, true );
 
                return DFB_UNSUPPORTED;
           }
 
           if (!config) {
-               dfb_gfxcard_unlock( true );
+               dfb_gfxcard_unlock( true, true );
 
                return DFB_OK;
           }
@@ -1726,7 +1729,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                                         CSNF_VIDEO | CSNF_SYSTEM );
      }
 
-     dfb_gfxcard_unlock( true );
+     dfb_gfxcard_unlock( true, true );
 
      return DFB_OK;
 }

@@ -67,7 +67,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          14
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          15
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     60
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   80
@@ -128,7 +128,23 @@ typedef struct _GraphicsDeviceFuncs {
      void (*AfterSetVar)( void *driver_data, void *device_data );
 
      /*
-      * makes sure that graphics hardware has finished all operations
+      * Called after driver->InitDevice() and during dfb_gfxcard_unlock( true ).
+      * The driver should do the one time initialization of the engine,
+      * e.g. writing some registers that are supposed to have a fixed value.
+      *
+      * This happens after mode switching or after returning from
+      * OpenGL state (e.g. DRI driver).
+      */
+     void (*EngineReset)( void *driver_data, void *device_data );
+
+     /*
+      * Makes sure that graphics hardware has finished all operations.
+      *
+      * This method is called before the CPU accesses a surface' buffer
+      * that had been written to by the hardware after this method has been
+      * called the last time.
+      *
+      * It's also called before entering the OpenGL state (e.g. DRI driver).
       */
      void (*EngineSync)( void *driver_data, void *device_data );
 
@@ -205,7 +221,7 @@ typedef struct {
 } GraphicsDriverFuncs;
 
 void dfb_gfxcard_lock( bool sync );
-void dfb_gfxcard_unlock( bool invalidate_state );
+void dfb_gfxcard_unlock( bool invalidate_state, bool engine_reset );
 
 bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
 //bool dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );

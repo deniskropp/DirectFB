@@ -69,23 +69,6 @@ static bool matroxBlit3D    ( void *drv, void *dev,
 
 
 
-static void matroxEngineSync( void *drv, void *dev )
-{
-     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
-     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-
-     mga_waitidle( mdrv, mdev );
-}
-
-static void matroxFlushTextureCache( void *drv, void *dev )
-{
-     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
-     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-
-     mga_waitfifo( mdrv, mdev, 1 );
-     mga_out32( mdrv->mmio_base, 0, TEXORG1 );
-}
-
 /* Old cards (Mystique, Millennium, ...) */
 
 #define MATROX_OLD_DRAWING_FLAGS            (DSDRAW_NOFX)
@@ -148,6 +131,51 @@ static void matroxFlushTextureCache( void *drv, void *dev )
       (accel) == DFXL_STRETCHBLIT)
 
 
+static void matroxEngineReset( void *drv, void *dev )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     mga_waitidle( mdrv, mdev );
+     
+     mga_waitfifo( mdrv, mdev, 11 );
+     mga_out32( mmio, 0, TDUALSTAGE0 );   /* multi texture registers */
+     mga_out32( mmio, 0, TDUALSTAGE1 );
+     mga_out32( mmio, 0, ALPHAXINC );     /* alpha increments        */
+     mga_out32( mmio, 0, ALPHAYINC );
+     mga_out32( mmio, 0, DR6 );           /* red increments          */
+     mga_out32( mmio, 0, DR7 );
+     mga_out32( mmio, 0, DR10 );          /* green increments        */
+     mga_out32( mmio, 0, DR11 );
+     mga_out32( mmio, 0, DR14 );          /* blue increments         */
+     mga_out32( mmio, 0, DR15 );
+     mga_out32( mmio, 0, BCOL );
+
+     mga_waitfifo( mdrv, mdev, 5 );
+     mga_out32( mmio, 0, TMR1 );
+     mga_out32( mmio, 0, TMR2 );
+     mga_out32( mmio, 0, TMR4 );
+     mga_out32( mmio, 0, TMR5 );
+     mga_out32( mmio, 0x10000, TMR8 );
+}
+
+static void matroxEngineSync( void *drv, void *dev )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     mga_waitidle( mdrv, mdev );
+}
+
+static void matroxFlushTextureCache( void *drv, void *dev )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     mga_waitfifo( mdrv, mdev, 1 );
+     mga_out32( mdrv->mmio_base, 0, TEXORG1 );
+}
 
 static void matroxOldCheckState( void *drv, void *dev,
                                  CardState *state, DFBAccelerationMask accel )
@@ -1141,6 +1169,7 @@ driver_init_driver( GraphicsDevice      *device,
      }
 
      funcs->SetState          = matroxSetState;
+     funcs->EngineReset       = matroxEngineReset;
      funcs->EngineSync        = matroxEngineSync;
      funcs->FlushTextureCache = matroxFlushTextureCache;
 
@@ -1268,26 +1297,6 @@ driver_init_device( GraphicsDevice     *device,
           mga_out32( mmio, 0, RST );
           mga_out32( mmio, ien, IEN );
      }
-
-     mga_waitfifo( mdrv, mdev, 11 );
-     mga_out32( mmio, 0, TDUALSTAGE0 );   /* multi texture registers */
-     mga_out32( mmio, 0, TDUALSTAGE1 );
-     mga_out32( mmio, 0, ALPHAXINC );     /* alpha increments        */
-     mga_out32( mmio, 0, ALPHAYINC );
-     mga_out32( mmio, 0, DR6 );           /* red increments          */
-     mga_out32( mmio, 0, DR7 );
-     mga_out32( mmio, 0, DR10 );          /* green increments        */
-     mga_out32( mmio, 0, DR11 );
-     mga_out32( mmio, 0, DR14 );          /* blue increments         */
-     mga_out32( mmio, 0, DR15 );
-     mga_out32( mmio, 0, BCOL );
-
-     mga_waitfifo( mdrv, mdev, 5 );
-     mga_out32( mmio, 0, TMR1 );
-     mga_out32( mmio, 0, TMR2 );
-     mga_out32( mmio, 0, TMR4 );
-     mga_out32( mmio, 0, TMR5 );
-     mga_out32( mmio, 0x10000, TMR8 );
 
      mdev->atype_blk_rstr = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
 

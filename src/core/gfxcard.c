@@ -162,6 +162,9 @@ dfb_gfxcard_initialize( void *data_local, void *data_shared )
           }
 
           card->device_data = card->shared->device_data;
+
+          if (card->funcs.EngineReset)
+               card->funcs.EngineReset( card->driver_data, card->device_data );
      }
 
      INITMSG( "DirectFB/GraphicsDevice: %s %s %d.%d (%s)\n",
@@ -316,11 +319,14 @@ dfb_gfxcard_lock( bool sync )
 }
 
 void
-dfb_gfxcard_unlock( bool invalidate_state )
+dfb_gfxcard_unlock( bool invalidate_state, bool engine_reset )
 {
      if (card && card->shared) {
           if (invalidate_state)
                card->shared->state = NULL;
+
+          if (engine_reset && card->funcs.EngineReset)
+               card->funcs.EngineReset( card->driver_data, card->device_data );
 
           skirmish_dismiss( &card->shared->lock );
      }
