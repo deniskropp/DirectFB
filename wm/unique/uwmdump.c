@@ -39,10 +39,13 @@
 
 #include <directfb.h>
 
+#include <direct/util.h>
+
 #include <fusion/build.h>
 #include <fusion/vector.h>
 
 #include <core/core.h>
+#include <core/windowstack.h>
 
 #include <unique/context.h>
 #include <unique/internal.h>
@@ -97,6 +100,74 @@ parse_command_line( int argc, char *argv[] )
 }
 
 static bool
+window_callback( UniqueWindow *window )
+{
+     int           refs;
+     DirectResult  ret;
+     DFBRectangle *bounds = &window->bounds;
+
+     if (window->object.state != FOS_ACTIVE)
+          return true;
+
+     ret = fusion_ref_stat( &window->object.ref, &refs );
+     if (ret) {
+          printf( "Fusion error %d!\n", ret );
+          return false;
+     }
+
+#if FUSION_BUILD_MULTI
+     printf( "0x%08x : ", window->object.ref.id );
+#else
+     printf( "N/A        : " );
+#endif
+
+     printf( "%3d   ", refs );
+
+
+     printf( "%4d, %4d   ", bounds->x, bounds->y );
+
+     printf( "%4d x %4d    ", bounds->w, bounds->h );
+
+     printf( "0x%02x ", window->opacity );
+
+     printf( "%5d  ", dfb_window_id( window->window ) );
+
+     if (window->caps & DWHC_TOPMOST) {
+          printf( "*  " );
+     }
+     else {
+          switch (window->stacking) {
+               case DWSC_UPPER:
+                    printf( "^  " );
+                    break;
+               case DWSC_MIDDLE:
+                    printf( "-  " );
+                    break;
+               case DWSC_LOWER:
+                    printf( "v  " );
+                    break;
+               default:
+                    printf( "?  " );
+                    break;
+          }
+     }
+
+     if (D_FLAGS_IS_SET( window->flags, UWF_VISIBLE ))
+          printf( "VISIBLE    " );
+
+     if (D_FLAGS_IS_SET( window->flags, UWF_DECORATED ))
+          printf( "DECORATED  " );
+
+     if (D_FLAGS_IS_SET( window->flags, UWF_DESTROYED ))
+          printf( "DESTROYED  " );
+
+
+     printf( "\n" );
+
+     return true;
+}
+
+static bool
 context_callback( FusionObjectPool *pool,
                   FusionObject     *object,
                   void             *ctx )
@@ -114,15 +185,44 @@ context_callback( FusionObjectPool *pool,
           return false;
      }
 
+     printf( "\n"
+             "-------[ Contexts ]-------\n"
+             "Reference  . Refs  Windows\n"
+             "--------------------------\n" );
+
 #if FUSION_BUILD_MULTI
      printf( "0x%08x : ", object->ref.id );
 #else
      printf( "N/A        : " );
 #endif
 
-     printf( "%3d   ", refs );
+     printf( "%3d    ", refs );
 
      printf( "%2d   ", fusion_vector_size( &context->windows ) );
+
+     printf( "\n" );
+
+
+     ret = dfb_windowstack_lock( context->stack );
+     if (ret) {
+          D_DERROR( ret, "UniQuE/Dump: Could not lock window stack!\n" );
+          return true;
+     }
+
+     if (fusion_vector_has_elements( &context->windows )) {
+          int           index;
+          UniqueWindow *window;
+
+          printf( "\n"
+                  "-----------------------------------[ Windows ]------------------------------------\n" );
+          printf( "Reference  . Refs     X     Y   Width Height Opacity   ID     Flags\n" );
+          printf( "----------------------------------------------------------------------------------\n" );
+
+          fusion_vector_foreach_reverse( window, index, context->windows )
+               window_callback( window );
+     }
+
+     dfb_windowstack_unlock( context->stack );
 
      printf( "\n" );
 
@@ -154,17 +254,14 @@ main( int argc, char *argv[] )
      }
 
      if (!unique_wm_running()) {
-          D_ERROR( "UniQuE/Test: This session doesn't run UniQuE!\n" );
+          D_ERROR( "UniQuE/Dump: This session doesn't run UniQuE!\n" );
           dfb_core_destroy( core, false );
           return EXIT_FAILURE;
      }
 
-     printf( "\n"
-             "----------------------------[ Contexts ]----------------------------\n"
-             "Reference  . Refs  Windows\n"
-             "--------------------------------------------------------------------\n" );
 
      unique_wm_enum_contexts( context_callback, NULL );
+
 
      /* Release the super interface. */
      dfb_core_destroy( core, false );

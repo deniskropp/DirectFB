@@ -28,12 +28,18 @@
 #ifndef __UNIQUE__UNIQUEWM_H__
 #define __UNIQUE__UNIQUEWM_H__
 
+#include <direct/types.h>
 #include <unique/types.h>
+
+#include <fusion/object.h>
 
 
 bool         unique_wm_running      ();
 
 DirectResult unique_wm_enum_contexts( FusionObjectCallback  callback,
+                                      void                 *ctx );
+
+DirectResult unique_wm_enum_windows ( FusionObjectCallback  callback,
                                       void                 *ctx );
 
 

@@ -230,6 +230,18 @@ unique_wm_enum_contexts( FusionObjectCallback  callback,
      return fusion_object_pool_enum( wm_shared->context_pool, callback, ctx );
 }
 
+DirectResult
+unique_wm_enum_windows( FusionObjectCallback  callback,
+                        void                 *ctx )
+{
+     D_ASSERT( dfb_core != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( wm_shared != NULL );
+     D_ASSERT( wm_shared->context_pool != NULL );
+
+     return fusion_object_pool_enum( wm_shared->window_pool, callback, ctx );
+}
+
 /**************************************************************************************************/
 
 static DFBResult
