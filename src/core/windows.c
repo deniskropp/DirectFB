@@ -86,6 +86,13 @@ static void
 window_remove( CoreWindow *window );
 
 /*
+ * sets any of the entered/focused/pointer/keyboard window pointers
+ * to NULL that match this window
+ */
+static void
+window_withdraw( CoreWindow *window );
+
+/*
  * Called by restacking functions. If the window is visible the region
  * of the stack will be updated and the focus validated.
  */
@@ -101,6 +108,19 @@ stack_attach_devices( InputDevice *device,
 static DFBEnumerationResult
 stack_detach_devices( InputDevice *device,
                       void        *ctx );
+
+/*
+ * Sends focus lost/got events and sets stack->focused_window.
+ */
+static void
+switch_focus( CoreWindowStack *stack, CoreWindow *to );
+
+/*
+ * Tries to focus any window starting with the highest one
+ * if there's currently no focused window.
+ */
+static void
+ensure_focus( CoreWindowStack *stack );
 
 /*
  * Prohibit access to the window stack data.
@@ -595,8 +615,22 @@ dfb_window_set_opacity( CoreWindow *window,
 
           repaint_stack( stack, &region );
 
-          if ((old_opacity && !opacity) || (!old_opacity && opacity))
+          /* Check focus after window appeared or disappeared */
+          if ((!old_opacity && opacity) || !opacity)
                handle_enter_leave_focus( stack );
+          
+          /* If window disappeared... */
+          if (!opacity) {
+               /* Detract focus if it's still focused */
+               if (stack->focused_window == window)
+                    switch_focus( stack, NULL );
+               
+               /* Ungrab pointer/keyboard */
+               window_withdraw( window );
+          }
+          
+          /* Always try to have a focused window */
+          ensure_focus( stack );
           
           stack_unlock( stack );
      }
@@ -729,28 +763,15 @@ dfb_window_dispatch( CoreWindow     *window,
 void
 dfb_window_request_focus( CoreWindow *window )
 {
-     DFBWindowEvent evt;
-
-     /* FIXME: can only add locking here if this function is no longer called
-        by internal functions that already locked the window stack */
-
-     CoreWindowStack *stack   = window->stack;
-     CoreWindow      *current = stack->focused_window;
+     CoreWindowStack *stack = window->stack;
 
      DFB_ASSERT( !(window->options & DWOP_GHOST) );
 
-     if (current == window)
-          return;
-
-     if (current) {
-          evt.type = DWET_LOSTFOCUS;
-          dfb_window_dispatch( current, &evt );
-     }
-
-     evt.type = DWET_GOTFOCUS;
-     dfb_window_dispatch( window, &evt );
-
-     stack->focused_window = window;
+     stack_lock( stack );
+     
+     switch_focus( stack, window );
+     
+     stack_unlock( stack );
 }
 
 void
@@ -1355,10 +1376,10 @@ handle_enter_leave_focus( CoreWindowStack *stack )
                     dfb_window_dispatch( before, &we );
                }
 
-               /* request focus and send enter event */
+               /* switch focus and send enter event */
                if (after) {
-                    dfb_window_request_focus( after );
-
+                    switch_focus( stack, after );
+                    
                     we.type = DWET_ENTER;
                     we.x    = we.cx - after->x;
                     we.y    = we.cy - after->y;
@@ -1459,17 +1480,7 @@ window_remove( CoreWindow *window )
 
      DFB_ASSERT( window->stack != NULL );
 
-     if (stack->entered_window == window)
-          stack->entered_window = NULL;
-
-     if (stack->focused_window == window)
-          stack->focused_window = NULL;
-
-     if (stack->keyboard_window == window)
-          stack->keyboard_window = NULL;
-
-     if (stack->pointer_window == window)
-          stack->pointer_window = NULL;
+     window_withdraw( window );
 
      for (i=0; i<stack->num_windows; i++)
           if (stack->windows[i] == window)
@@ -1499,16 +1510,9 @@ window_remove( CoreWindow *window )
           
           /* Possibly change focus to window now under the cursor */
           handle_enter_leave_focus( stack );
-     }
-
-     /* Always have a focused window */
-     if (!stack->focused_window) {
-          for (i=stack->num_windows-1; i>=0; i--) {
-               if (!(stack->windows[i]->options & DWOP_GHOST)) {
-                    dfb_window_request_focus( stack->windows[i] );
-                    break;
-               }
-          }
+          
+          /* Always try to have a focused window */
+          ensure_focus( stack );
      }
 }
 
@@ -1573,6 +1577,66 @@ window_restacked( CoreWindow *window )
           repaint_stack( window->stack, &region );
 
           handle_enter_leave_focus( window->stack );
+     }
+}
+
+static void
+window_withdraw( CoreWindow *window )
+{
+     CoreWindowStack *stack = window->stack;
+
+     DFB_ASSERT( window->stack != NULL );
+
+     if (stack->entered_window == window)
+          stack->entered_window = NULL;
+
+     if (stack->focused_window == window)
+          stack->focused_window = NULL;
+
+     if (stack->keyboard_window == window)
+          stack->keyboard_window = NULL;
+
+     if (stack->pointer_window == window)
+          stack->pointer_window = NULL;
+}
+
+static void
+switch_focus( CoreWindowStack *stack, CoreWindow *to )
+{
+     DFBWindowEvent  evt;
+     CoreWindow     *from = stack->focused_window;
+
+     if (from == to)
+          return;
+
+     if (from) {
+          evt.type = DWET_LOSTFOCUS;
+          dfb_window_dispatch( from, &evt );
+     }
+
+     if (to) {
+          evt.type = DWET_GOTFOCUS;
+          dfb_window_dispatch( to, &evt );
+     }
+
+     stack->focused_window = to;
+}
+
+static void
+ensure_focus( CoreWindowStack *stack )
+{
+     int i;
+
+     if (stack->focused_window)
+          return;
+     
+     for (i=stack->num_windows-1; i>=0; i--) {
+          CoreWindow *window = stack->windows[i];
+
+          if (window->opacity && !(window->options & DWOP_GHOST)) {
+               switch_focus( stack, window );
+               break;
+          }
      }
 }
 
