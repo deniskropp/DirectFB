@@ -280,6 +280,15 @@ uc_ovl_flip_buffers(DisplayLayer         *layer,
     return DFB_OK;
 }
 
+static DFBResult
+uc_ovl_wait_vsync(DisplayLayer           *layer,                  
+                  void                   *driver_data,                  
+                  void                   *layer_data)
+{
+    // Forward the function call to the primary layer.
+    return dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
+}
+
 
 DisplayLayerFuncs ucOverlayFuncs = {
     LayerDataSize:      uc_ovl_datasize,
@@ -292,4 +301,5 @@ DisplayLayerFuncs ucOverlayFuncs = {
     SetScreenLocation:  uc_ovl_set_location,
     SetDstColorKey:     uc_ovl_set_dst_color_key,
     FlipBuffers:        uc_ovl_flip_buffers,
+    WaitVSync:          uc_ovl_wait_vsync,
 };
