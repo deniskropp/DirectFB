@@ -413,7 +413,8 @@ typedef struct {
 
      __u32                   color;
      __u8                    alpha;
-     __u32                   operation;
+     __u32                   dop;        /* drawing operation  */
+     __u32                   bop;        /* blitting operation */
      bool                    argb_src;
 
      /* 3D stuff */
