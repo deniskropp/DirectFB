@@ -392,8 +392,9 @@ typedef struct {
      __u8                    alpha;
 
      /* 3D stuff */
-     __u32                   tex_offset; /* texture buffer offset  */
-     __u32                   col_offset; /* color buffer offset    */
+     bool                    enabled_3d; /* 3d engine enabled     */
+     __u32                   tex_offset; /* texture buffer offset */
+     __u32                   col_offset; /* color buffer offset   */
      __u32                   color3d;
      
      struct {

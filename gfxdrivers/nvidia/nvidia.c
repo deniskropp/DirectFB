@@ -46,8 +46,6 @@
 #include <directfb.h>
 
 #include <direct/messages.h>
-#include <direct/memcpy.h>
-#include <direct/mem.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -94,7 +92,7 @@ DFB_GRAPHICS_DRIVER( nvidia )
 #define NV4_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)
 
-/* TNT2/GeForce(2,4) */
+/* TNT2/GeForce(1,2,4) */
 #define NV5_SUPPORTED_DRAWINGFLAGS \
                (DSDRAW_BLEND)
 
@@ -164,11 +162,16 @@ nv_set_format( NVidiaDriverData      *nvdrv,
                return;
      }
 
-     nv_waitfifo( nvdev, SubChannel0, 4 );
-     SubChannel0->SetObject    = OBJ_SURFACES2D;
-     Surfaces2D->Format        = sformat2D;
-     SubChannel0->SetObject    = OBJ_SURFACES3D;
-     Surfaces3D->Format        = sformat3D;
+     if (nvdev->enabled_3d) {
+          nv_waitfifo( nvdev, SubChannel0, 4 );
+          Surfaces2D->Format     = sformat2D;
+          SubChannel0->SetObject = OBJ_SURFACES3D;
+          Surfaces3D->Format     = sformat3D;
+          SubChannel0->SetObject = OBJ_SURFACES2D;
+     } else {
+          nv_waitfifo( nvdev, SubChannel0, 1 );
+          Surfaces2D->Format     = sformat2D;
+     }
      
      nv_waitfifo( nvdev, subchannelof(Rectangle), 1 );
      Rectangle->SetColorFormat = pformat;
@@ -238,48 +241,6 @@ nv_set_color( NVidiaDriverData *nvdrv,
                                   color->b );
 }
 
-static void
-nv_put_texture( NVidiaDriverData *nvdrv,
-                NVidiaDeviceData *nvdev,
-                SurfaceBuffer    *source )
-{
-     __u32 *tex_origin = (__u32*) dfb_system_video_memory_virtual( nvdev->tex_offset );
-     __u8  *src_origin = (__u8*) dfb_system_video_memory_virtual( source->video.offset );
-     int    src_pitch  = source->video.pitch;
-     __u8  *src_buffer;
-
-     src_buffer = D_MALLOC( src_pitch * nvdev->src_height );
-     if (!src_buffer) {
-          D_BUG( "out of system memory" );
-          return;
-     }
-     
-     direct_memcpy( src_buffer, src_origin, src_pitch * nvdev->src_height ); 
-
-     nv_waitidle( nvdrv, nvdev );
-     
-     switch (source->format) {
-          case DSPF_ARGB1555:
-               argb1555_to_tex( tex_origin, src_buffer, src_pitch,
-                                nvdev->src_width, nvdev->src_height );
-               break;
-          case DSPF_RGB16:
-               rgb16_to_tex( tex_origin, src_buffer, src_pitch,
-                             nvdev->src_width, nvdev->src_height );
-               break;
-          case DSPF_RGB32:
-          case DSPF_ARGB:
-               rgb32_to_tex( tex_origin, src_buffer, src_pitch,
-                             nvdev->src_width, nvdev->src_height );
-               break;
-          default:
-               D_BUG( "unexpected pixelformat" );
-               break;
-     }
-
-     D_FREE( src_buffer );
-}
-
 
 static void nvEngineSync( void *drv, void *dev )
 {
@@ -331,8 +292,8 @@ static void nv4CheckState( void *drv, void *dev,
                case DSPF_UYVY:
                     if (accel == DFXL_TEXTRIANGLES)
                          return;
-                    if ((destination->format == DSPF_YUY2  ||
-                         destination->format == DSPF_UYVY) &&
+                    if ((destination->format == DSPF_YUY2    ||
+                         destination->format == DSPF_UYVY)   &&
                         destination->format != source->format)
                          return;
                     break;
@@ -381,9 +342,12 @@ static void nv5CheckState( void *drv, void *dev,
                if (source->width > 512 || source->height > 512)
                     return;
           } else
-          if ((state->blittingflags & DSBLIT_COLORIZE) &&
-              (state->blittingflags & DSBLIT_BLEND_COLORALPHA))
-               return;
+          if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+               if (state->src_blend != DSBF_SRCALPHA       ||
+                   state->dst_blend != DSBF_INVSRCALPHA    ||
+                   (state->blittingflags & DSBLIT_COLORIZE))
+                    return;
+          }
           
           switch (source->format) {
                case DSPF_ARGB1555:
@@ -396,8 +360,8 @@ static void nv5CheckState( void *drv, void *dev,
                case DSPF_UYVY:
                     if (accel == DFXL_TEXTRIANGLES)
                          return;
-                    if ((destination->format == DSPF_YUY2  ||
-                         destination->format == DSPF_UYVY) &&
+                    if ((destination->format == DSPF_YUY2    ||
+                         destination->format == DSPF_UYVY)   &&
                         destination->format != source->format)
                          return;
                     break;
@@ -456,9 +420,9 @@ static void nv20CheckState( void *drv, void *dev,
                
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if ((destination->format == DSPF_YUY2  ||
-                         destination->format == DSPF_UYVY) &&
-                         destination->format != source->format)
+                    if ((destination->format == DSPF_YUY2    ||
+                         destination->format == DSPF_UYVY)   &&
+                        destination->format != source->format)
                          return;
                     break;
                
@@ -576,9 +540,6 @@ static void nv4SetState( void *drv, void *dev,
                nvdev->src_width  = state->source->width;
                nvdev->src_height = state->source->height;
 
-               if (modify & SMF_SOURCE)
-                    nvdev->reloaded |= SMF_SOURCE; // remember
-
                state->set |= DFXL_BLIT |
                              DFXL_STRETCHBLIT;
                break;
@@ -587,9 +548,7 @@ static void nv4SetState( void *drv, void *dev,
                nvdev->src_width  = state->source->width;
                nvdev->src_height = state->source->height;
 
-               if (modify & SMF_SOURCE)
-                    nv_put_texture( nvdrv, nvdev,
-                                    state->source->front_buffer );
+               nv_put_texture( nvdrv, nvdev, state->source->front_buffer );
 
                nvdev->state3d.offset = nvdev->tex_offset;
                nvdev->state3d.format = 0x119915A1; // 512x512 RGB16
@@ -740,9 +699,6 @@ static void nv5SetState( void *drv, void *dev,
                } else
                     nvdev->blitfx = 0x00000000;
 
-               if (modify & SMF_SOURCE)
-                    nvdev->reloaded |= SMF_SOURCE; // remember
-
                state->set |= DFXL_BLIT |
                              DFXL_STRETCHBLIT;
                break;
@@ -751,29 +707,29 @@ static void nv5SetState( void *drv, void *dev,
                nvdev->src_width  = state->source->width;
                nvdev->src_height = state->source->height;
 
-               if (modify & SMF_SOURCE) 
-                    nv_put_texture( nvdrv, nvdev,
-                                    state->source->front_buffer );
+               nv_put_texture( nvdrv, nvdev, state->source->front_buffer );
 
                nvdev->state3d.offset = nvdev->tex_offset;
                nvdev->state3d.format = 0x119915A1; // 512x512 RGB16
+               nvdev->state3d.blend  = (state->dst_blend << 28) |
+                                       (state->src_blend << 24);
                
                switch (state->blittingflags) {
                     case DSBLIT_MODULATE:
-                         nvdev->state3d.blend = 0x65100164;
+                         nvdev->state3d.blend |= 0x00100164;
                          break;
                     case DSBLIT_BLEND_COLORALPHA:
-                         nvdev->state3d.blend = 0x65100165;
+                         nvdev->state3d.blend |= 0x00100165;
                          break;
                     case DSBLIT_COLORIZE:
-                         nvdev->state3d.blend = 0x12000164;
+                         nvdev->state3d.blend |= 0x00000164;
                          break;
                     case DSBLIT_NOFX:
-                         nvdev->state3d.blend = 0x12000167;
+                         nvdev->state3d.blend |= 0x00000167;
                          break;
                     default:
                          D_BUG( "unexpected blitting flag" );
-                         break;
+                         return;
                }
 
                if (state->destination->caps & DSCAPS_DEPTH) {
@@ -1403,12 +1359,13 @@ driver_init_device( GraphicsDevice     *device,
                    "reserved %i bytes for 3D buffers at offset 0x%08x.\n",
                     len, offset );
 
+          nvdev->enabled_3d = true;
           nvdev->tex_offset = offset;
           nvdev->col_offset = offset + (512 * 512 * 2);
 
           /* clear color buffer */
           memset( dfb_system_video_memory_virtual( nvdev->col_offset ), 0xFF, 8 );
-
+          
           /* set default 3d state */
           nvdev->state3d.colorkey = 0;
           nvdev->state3d.filter   = 0x22000000;
@@ -1416,8 +1373,7 @@ driver_init_device( GraphicsDevice     *device,
           nvdev->state3d.fog      = 0;
      }
 
-     nvdev->reloaded = SMF_SOURCE;
-     nvdev->alpha    = 0xFF;
+     nvdev->alpha = 0xFF;
      
      /* NV_PGRAPH_ROP3 */
      nv_out32( nvdrv->PGRAPH, 0x604, 0x000000CC );

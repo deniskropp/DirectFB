@@ -28,10 +28,15 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/system.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
 
 #include <gfx/convert.h>
+
+#include <direct/messages.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 
 #include "nvidia.h"
 #include "nvidia_mmio.h"
@@ -279,4 +284,120 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
 
      return true;
 }
- 
+
+/*
+ * Surface to Texture conversion routines.
+ */
+
+#define VINC  0xAAAAAAAC
+#define VMASK 0x55555555
+#define UINC  0x55555558
+#define UMASK 0xAAAAAAAA
+
+static inline void
+argb1555_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
+{
+     int u, v, i;
+
+     for (v = 0; height--; v = (v + VINC) & VMASK) {
+          for (i = 0, u = 0; i < width/2; i++, u = (u + UINC) & UMASK) {
+               register __u32 pix0, pix1;
+               pix0 = ((__u32*) src)[i];
+               pix1 = pix0 >> 16;
+               pix0 = ARGB1555_TO_RGB16( pix0 );
+               pix1 = ARGB1555_TO_RGB16( pix1 );
+               dst[(u|v)/4] = pix0 | (pix1 << 16);
+          }
+          
+          if (width & 1) {
+               u = (u + UINC) & UMASK;
+               dst[(u|v)/4] = ARGB1555_TO_RGB16( ((__u16*) src)[width-1] );
+          }             
+               
+          src += pitch;
+     }
+}
+
+static inline void
+rgb16_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
+{
+     int u, v, i;
+
+     for (v = 0; height--; v = (v + VINC) & VMASK) {
+          for (i = 0, u = 0; i < width/2; i++, u = (u + UINC) & UMASK)
+               dst[(u|v)/4] = ((__u32*) src)[i];
+          
+          if (width & 1) {
+               u = (u + UINC) & UMASK;
+               dst[(u|v)/4] = ((__u16*) src)[width-1];
+          }             
+               
+          src += pitch;
+     }
+}
+
+static inline void
+rgb32_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
+{
+     int u, v, i;
+
+     for (v = 0; height--; v = (v + VINC) & VMASK) {
+          for (i = 0, u = 0; i < width; i += 2, u = (u + UINC) & UMASK) {
+               register __u32 pix0, pix1;
+               pix0 = ((__u32*) src)[i];
+               pix0 = RGB32_TO_RGB16( pix0 );
+               pix1 = ((__u32*) src)[i+1];
+               pix1 = RGB32_TO_RGB16( pix1 );
+               dst[(u|v)/4] = pix0 | (pix1 << 16);
+          }
+          
+          if (width & 1) {
+               u = (u + UINC) & UMASK;
+               dst[(u|v)/4] = RGB32_TO_RGB16( ((__u32*) src)[width-1] );
+          }             
+               
+          src += pitch;
+     }
+}
+
+void nv_put_texture( NVidiaDriverData *nvdrv,
+                     NVidiaDeviceData *nvdev,
+                     SurfaceBuffer    *source )
+{
+     __u32 *tex_origin = (__u32*) dfb_system_video_memory_virtual( nvdev->tex_offset );
+     __u8  *src_origin = (__u8*) dfb_system_video_memory_virtual( source->video.offset );
+     int    src_pitch  = source->video.pitch;
+     __u8  *src_buffer;
+
+     src_buffer = D_MALLOC( src_pitch * nvdev->src_height );
+     if (!src_buffer) {
+          D_BUG( "out of system memory" );
+          return;
+     }
+     
+     direct_memcpy( src_buffer, src_origin, src_pitch * nvdev->src_height ); 
+
+     nv_waitidle( nvdrv, nvdev );
+     
+     switch (source->format) {
+          case DSPF_ARGB1555:
+               argb1555_to_tex( tex_origin, src_buffer, src_pitch,
+                                nvdev->src_width, nvdev->src_height );
+               break;
+          case DSPF_RGB16:
+               rgb16_to_tex( tex_origin, src_buffer, src_pitch,
+                             nvdev->src_width, nvdev->src_height );
+               break;
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               rgb32_to_tex( tex_origin, src_buffer, src_pitch,
+                             nvdev->src_width, nvdev->src_height );
+               break;
+          default:
+               D_BUG( "unexpected pixelformat" );
+               break;
+     }
+
+     D_FREE( src_buffer );
+}
+
