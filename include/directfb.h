@@ -450,10 +450,12 @@ typedef enum {
 
      DSCCAPS_VSYNC            = 0x00000001,  /* Synchronization with the
                                                 vertical retrace supported. */
-     DSCCAPS_TV_ENCODER       = 0x00000002,  /* TV output supported. */
-     DSCCAPS_POWER_MANAGEMENT = 0x00000004,  /* Power management supported. */
+     DSCCAPS_POWER_MANAGEMENT = 0x00000002,  /* Power management supported. */
 
-     DSCCAPS_ALL              = 0x00000007
+     DSCCAPS_ENCODERS         = 0x00000010,  /* Has encoders. */
+     DSCCAPS_OUTPUTS          = 0x00000020,  /* Has outputs. */
+
+     DSCCAPS_ALL              = 0x00000033
 } DFBScreenCapabilities;
 
 /*
@@ -1012,6 +1014,11 @@ typedef struct {
                                                         the screen. */
 
      char name[DFB_SCREEN_DESC_NAME_LENGTH];         /* Rough description. */
+
+     int                                encoders;    /* Number of display
+                                                        encoders available. */
+     int                                outputs;     /* Number of output
+                                                        connectors available. */
 } DFBScreenDescription;
 
 
@@ -1656,10 +1663,88 @@ typedef enum {
 } DFBScreenPowerMode;
 
 /*
+ * Capabilities of an output.
+ */
+typedef enum {
+     DSOCAPS_NONE        = 0x00000000,
+
+     DSOCAPS_CONNECTORS  = 0x00000001,
+     DSOCAPS_SIGNALS     = 0x00000002
+} DFBScreenOutputCapabilities;
+
+/*
+ * Type of output connector.
+ */
+typedef enum {
+     DSOC_UNKNOWN        = 0x00000000,
+
+     DSOC_VGA            = 0x00000001,
+     DSOC_SCART          = 0x00000002,
+     DSOC_YC             = 0x00000004,
+     DSOC_CVBS           = 0x00000008
+} DFBScreenOutputConnectors;
+
+/*
+ * Type of output signal.
+ */
+typedef enum {
+     DSOS_UNKNOWN        = 0x00000000,
+
+     DSOS_VGA            = 0x00000001,
+     DSOS_YC             = 0x00000002,
+     DSOS_CVBS           = 0x00000004,
+     DSOS_RGB            = 0x00000008
+} DFBScreenOutputSignals;
+
+/*
  * Description of a screen output.
  */
 typedef struct {
+     DFBScreenOutputCapabilities   caps;
+
+     DFBScreenOutputConnectors     connectors;
+     DFBScreenOutputSignals        signals;
 } DFBScreenOutputDescription;
+
+/*
+ * Capabilities of a display encoder.
+ */
+typedef enum {
+     DSECAPS_NONE        = 0x00000000,
+
+     DSECAPS_TV_NORMS    = 0x00000001
+} DFBScreenEncoderCapabilities;
+
+/*
+ * Type of display encoder.
+ */
+typedef enum {
+     DSET_UNKNOWN        = 0x00000000,
+
+     DSET_CRTC           = 0x00000001,
+     DSET_TV             = 0x00000002
+} DFBScreenEncoderType;
+
+/*
+ * TV norms.
+ */
+typedef enum {
+     DSETV_UNKNOWN       = 0x00000000,
+
+     DSETV_PAL           = 0x00000001,
+     DSETV_NTSC          = 0x00000002,
+     DSETV_SECAM         = 0x00000004
+} DFBScreenEncoderTVNorms;
+
+/*
+ * Description of a display encoder.
+ */
+typedef struct {
+     DFBScreenEncoderCapabilities  caps;
+     DFBScreenEncoderType          type;
+
+     DFBScreenEncoderTVNorms       tv_norms;
+} DFBScreenEncoderDescription;
 
 /*******************
  * IDirectFBScreen *
@@ -1724,6 +1809,36 @@ DEFINE_INTERFACE(   IDirectFBScreen,
       */
      DFBResult (*WaitForSync) (
           IDirectFBScreen                    *thiz
+     );
+
+
+   /** Encoders **/
+
+     /*
+      * Get a description of available display encoders.
+      *
+      * All descriptions are written to the array pointed to by
+      * <b>descriptions</b>. The number of encoders is returned by
+      * <i>GetDescription()</i>.
+      */
+     DFBResult (*GetEncoderDescriptions) (
+          IDirectFBScreen                    *thiz,
+          DFBScreenEncoderDescription        *descriptions
+     );
+
+
+   /** Outputs **/
+
+     /*
+      * Get a description of available outputs.
+      *
+      * All descriptions are written to the array pointed to by
+      * <b>descriptions</b>. The number of outputs is returned by
+      * <i>GetDescription()</i>.
+      */
+     DFBResult (*GetOutputDescriptions) (
+          IDirectFBScreen                    *thiz,
+          DFBScreenOutputDescription         *descriptions
      );
 )
 

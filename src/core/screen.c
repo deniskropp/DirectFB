@@ -57,6 +57,38 @@ dfb_screen_get_info( CoreScreen           *screen,
 }
 
 DFBResult
+dfb_screen_get_encoder_info( CoreScreen                  *screen,
+                             int                          encoder,
+                             DFBScreenEncoderDescription *ret_desc )
+{
+     DFB_ASSERT( screen != NULL );
+     DFB_ASSERT( screen->shared != NULL );
+     DFB_ASSERT( encoder >= 0 );
+     DFB_ASSERT( encoder < screen->shared->description.encoders );
+     DFB_ASSERT( ret_desc != NULL );
+
+     *ret_desc = screen->shared->encoders[encoder].description;
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_screen_get_output_info ( CoreScreen                 *screen,
+                             int                         output,
+                             DFBScreenOutputDescription *ret_desc )
+{
+     DFB_ASSERT( screen != NULL );
+     DFB_ASSERT( screen->shared != NULL );
+     DFB_ASSERT( output >= 0 );
+     DFB_ASSERT( output < screen->shared->description.outputs );
+     DFB_ASSERT( ret_desc != NULL );
+
+     *ret_desc = screen->shared->outputs[output].description;
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_screen_suspend( CoreScreen *screen )
 {
      DFB_ASSERT( screen != NULL );

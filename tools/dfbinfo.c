@@ -47,6 +47,12 @@ static const DirectFBDisplayLayerTypeFlagsNames(layer_types);
 static const DirectFBDisplayLayerCapabilitiesNames(layer_caps);
 
 static const DirectFBScreenCapabilitiesNames(screen_caps);
+static const DirectFBScreenEncoderCapabilitiesNames(encoder_caps);
+static const DirectFBScreenEncoderTypeNames(encoder_type);
+static const DirectFBScreenEncoderTVNormsNames(tv_norms);
+static const DirectFBScreenOutputCapabilitiesNames(output_caps);
+static const DirectFBScreenOutputConnectorsNames(connectors);
+static const DirectFBScreenOutputSignalsNames(signals);
 
 /*****************************************************************************/
 
@@ -232,6 +238,110 @@ enum_display_layers( IDirectFBScreen *screen )
 
 /*****************************************************************************/
 
+static void
+dump_encoders( IDirectFBScreen *screen,
+               int              num )
+{
+     int                         i, n;
+     DFBResult                   ret;
+     DFBScreenEncoderDescription descs[num];
+
+     ret = screen->GetEncoderDescriptions( screen, descs );
+     if (ret) {
+          DirectFBError( "IDirectFBScreen::GetEncoderDescriptions", ret );
+          return;
+     }
+
+     for (i=0; i<num; i++) {
+          printf( "   Encoder (%d)  Type: ", i );
+
+          for (n=0; encoder_type[n].type; n++) {
+               if (descs[i].type == encoder_type[n].type)
+                    printf( "%s ", encoder_type[n].name );
+          }
+
+          printf( "\n" );
+
+
+          /* Caps */
+          printf( "     Caps:     " );
+
+          for (n=0; encoder_caps[n].capability; n++) {
+               if (descs[i].caps & encoder_caps[n].capability)
+                    printf( "%s ", encoder_caps[n].name );
+          }
+
+          printf( "\n" );
+
+
+          /* TV Norms */
+          printf( "     TV Norms: " );
+
+          for (n=0; tv_norms[n].norm; n++) {
+               if (descs[i].tv_norms & tv_norms[n].norm)
+                    printf( "%s ", tv_norms[n].name );
+          }
+
+          printf( "\n" );
+     }
+
+     printf( "\n" );
+}
+
+static void
+dump_outputs( IDirectFBScreen *screen,
+              int              num )
+{
+     int                        i, n;
+     DFBResult                  ret;
+     DFBScreenOutputDescription descs[num];
+
+     ret = screen->GetOutputDescriptions( screen, descs );
+     if (ret) {
+          DirectFBError( "IDirectFBScreen::GetOutputDescriptions", ret );
+          return;
+     }
+
+     for (i=0; i<num; i++) {
+          printf( "   Output (%d)\n", i );
+
+
+          /* Caps */
+          printf( "     Caps:       " );
+
+          for (n=0; output_caps[n].capability; n++) {
+               if (descs[i].caps & output_caps[n].capability)
+                    printf( "%s ", output_caps[n].name );
+          }
+
+          printf( "\n" );
+
+
+          /* Connectors */
+          printf( "     Connectors: " );
+
+          for (n=0; connectors[n].connector; n++) {
+               if (descs[i].connectors & connectors[n].connector)
+                    printf( "%s ", connectors[n].name );
+          }
+
+          printf( "\n" );
+
+
+          /* Signals */
+          printf( "     Signals:    " );
+
+          for (n=0; signals[n].signal; n++) {
+               if (descs[i].signals & signals[n].signal)
+                    printf( "%s ", signals[n].name );
+          }
+
+          printf( "\n" );
+     }
+
+     printf( "\n" );
+}
+
 static DFBEnumerationResult
 screen_callback( DFBScreenID           id,
                  DFBScreenDescription  desc,
@@ -240,6 +350,10 @@ screen_callback( DFBScreenID           id,
      int              i;
      DFBResult        ret;
      IDirectFBScreen *screen;
+
+     ret = dfb->GetScreen( dfb, id, &screen );
+     if (ret)
+          DirectFBErrorFatal( "IDirectFB::GetScreen", ret );
 
      /* Name */
      printf( "Screen (%02x) %-30s", id, desc.name );
@@ -262,15 +376,18 @@ screen_callback( DFBScreenID           id,
                printf( "%s ", screen_caps[i].name );
      }
 
-     printf( "\n" );
-
-     printf( "\n" );
+     printf( "\n\n" );
 
 
-     ret = dfb->GetScreen( dfb, id, &screen );
-     if (ret)
-          DirectFBErrorFatal( "IDirectFB::GetScreen", ret );
+     /* Encoders */
+     if (desc.encoders)
+          dump_encoders( screen, desc.encoders );
 
+     /* Outputs */
+     if (desc.outputs)
+          dump_outputs( screen, desc.outputs );
+
+     /* Display layers */
      enum_display_layers( screen );
 
      screen->Release( screen );

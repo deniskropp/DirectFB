@@ -47,11 +47,29 @@ typedef struct {
       * Called once by the master to initialize screen data and reset hardware.
       * Driver has to fill the screen description.
       */
-     DFBResult (*InitScreen)     ( CoreScreen             *screen,
-                                   GraphicsDevice         *device,
-                                   void                   *driver_data,
-                                   void                   *screen_data,
-                                   DFBScreenDescription   *description );
+     DFBResult (*InitScreen)     ( CoreScreen                  *screen,
+                                   GraphicsDevice              *device,
+                                   void                        *driver_data,
+                                   void                        *screen_data,
+                                   DFBScreenDescription        *description );
+
+     /*
+      * Called once by the master for each encoder.
+      */
+     DFBResult (*InitEncoder)    ( CoreScreen                  *screen,
+                                   void                        *driver_data,
+                                   void                        *screen_data,
+                                   int                          encoder,
+                                   DFBScreenEncoderDescription *description );
+
+     /*
+      * Called once by the master for each output.
+      */
+     DFBResult (*InitOutput)     ( CoreScreen                  *screen,
+                                   void                        *driver_data,
+                                   void                        *screen_data,
+                                   int                          output,
+                                   DFBScreenOutputDescription  *description );
 
 
    /** Power management **/

@@ -98,7 +98,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                }
           }
 
-          /* Initialize the screen and query the screen description. */
+          /* Initialize the screen and get the screen description. */
           ret = funcs->InitScreen( screen,
                                    screen->device,
                                    screen->driver_data,
@@ -116,6 +116,43 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                SHFREE( shared );
 
                return ret;
+          }
+
+          DFB_ASSERT( shared->description.encoders >= 0 );
+          DFB_ASSERT( shared->description.encoders <= 32 );
+          DFB_ASSERT( shared->description.outputs >= 0 );
+          DFB_ASSERT( shared->description.outputs <= 32 );
+
+          /* Initialize encoders. */
+          if (shared->description.encoders) {
+               int i;
+
+               DFB_ASSERT( funcs->InitEncoder != NULL );
+
+               shared->encoders = SHCALLOC( shared->description.encoders,
+                                            sizeof(CoreScreenEncoder) );
+               for (i=0; i<shared->description.encoders; i++) {
+                    funcs->InitEncoder( screen,
+                                        screen->driver_data,
+                                        shared->screen_data,
+                                        i, &shared->encoders[i].description );
+               }
+          }
+
+          /* Initialize outputs. */
+          if (shared->description.outputs) {
+               int i;
+
+               DFB_ASSERT( funcs->InitOutput != NULL );
+
+               shared->outputs = SHCALLOC( shared->description.outputs,
+                                           sizeof(CoreScreenOutput) );
+               for (i=0; i<shared->description.outputs; i++) {
+                    funcs->InitOutput( screen,
+                                       screen->driver_data,
+                                       shared->screen_data,
+                                       i, &shared->outputs[i].description );
+               }
           }
 
           /* Make a copy for faster access. */

@@ -56,5 +56,23 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	./mknames.sh DFBScreenCapabilities DSCCAPS NONE ScreenCapabilities capability directfb.h \
 	   | grep -v DSCCAPS_ALL >> $@
 
+	./mknames.sh DFBScreenEncoderCapabilities DSECAPS NONE ScreenEncoderCapabilities capability directfb.h \
+	   | grep -v DSECAPS_ALL >> $@
+
+	./mknames.sh DFBScreenEncoderType DSET UNKNOWN ScreenEncoderType type directfb.h \
+	   | grep -v DSET_ALL >> $@
+
+	./mknames.sh DFBScreenEncoderTVNorms DSETV UNKNOWN ScreenEncoderTVNorms norm directfb.h \
+	   | grep -v DSETV_ALL >> $@
+
+	./mknames.sh DFBScreenOutputCapabilities DSOCAPS NONE ScreenOutputCapabilities capability directfb.h \
+	   | grep -v DSOCAPS_ALL >> $@
+
+	./mknames.sh DFBScreenOutputConnectors DSOC UNKNOWN ScreenOutputConnectors connector directfb.h \
+	   | grep -v DSOC_ALL >> $@
+
+	./mknames.sh DFBScreenOutputSignals DSOS UNKNOWN ScreenOutputSignals signal directfb.h \
+	   | grep -v DSOS_ALL >> $@
+
 	@echo '' >> $@
 	@echo '#endif' >> $@

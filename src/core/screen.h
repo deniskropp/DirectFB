@@ -30,17 +30,25 @@
 
 #include <core/coretypes.h>
 
-DFBResult dfb_screen_get_info     ( CoreScreen           *screen,
-                                    DFBScreenID          *ret_id,
-                                    DFBScreenDescription *ret_desc );
+DFBResult dfb_screen_get_info        ( CoreScreen                  *screen,
+                                       DFBScreenID                 *ret_id,
+                                       DFBScreenDescription        *ret_desc );
 
-DFBResult dfb_screen_suspend      ( CoreScreen           *screen );
-DFBResult dfb_screen_resume       ( CoreScreen           *screen );
+DFBResult dfb_screen_get_encoder_info( CoreScreen                  *screen,
+                                       int                          encoder,
+                                       DFBScreenEncoderDescription *ret_desc );
 
-DFBResult dfb_screen_set_powermode( CoreScreen           *screen,
-                                    DFBScreenPowerMode    mode );
+DFBResult dfb_screen_get_output_info ( CoreScreen                  *screen,
+                                       int                          output,
+                                       DFBScreenOutputDescription  *ret_desc );
 
-DFBResult dfb_screen_wait_vsync   ( CoreScreen           *screen );
+DFBResult dfb_screen_suspend         ( CoreScreen                  *screen );
+DFBResult dfb_screen_resume          ( CoreScreen                  *screen );
+
+DFBResult dfb_screen_set_powermode   ( CoreScreen                  *screen,
+                                       DFBScreenPowerMode           mode );
+
+DFBResult dfb_screen_wait_vsync      ( CoreScreen                  *screen );
 
 #endif
 

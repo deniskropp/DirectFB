@@ -173,6 +173,46 @@ IDirectFBScreen_WaitForSync( IDirectFBScreen *thiz )
      return dfb_screen_wait_vsync( data->screen );
 }
 
+static DFBResult
+IDirectFBScreen_GetEncoderDescriptions( IDirectFBScreen             *thiz,
+                                        DFBScreenEncoderDescription *descriptions )
+{
+     int i;
+
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!descriptions)
+          return DFB_INVARG;
+
+     if (!data->description.caps & DSCCAPS_ENCODERS)
+          return DFB_UNSUPPORTED;
+
+     for (i=0; i<data->description.encoders; i++)
+          dfb_screen_get_encoder_info( data->screen, i, &descriptions[i] );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBScreen_GetOutputDescriptions( IDirectFBScreen            *thiz,
+                                       DFBScreenOutputDescription *descriptions )
+{
+     int i;
+
+     INTERFACE_GET_DATA(IDirectFBScreen)
+
+     if (!descriptions)
+          return DFB_INVARG;
+
+     if (!data->description.caps & DSCCAPS_OUTPUTS)
+          return DFB_UNSUPPORTED;
+
+     for (i=0; i<data->description.outputs; i++)
+          dfb_screen_get_output_info( data->screen, i, &descriptions[i] );
+
+     return DFB_OK;
+}
+
 /******************************************************************************/
 
 DFBResult
@@ -186,13 +226,15 @@ IDirectFBScreen_Construct( IDirectFBScreen *thiz,
 
      dfb_screen_get_info( screen, &data->id, &data->description );
 
-     thiz->AddRef             = IDirectFBScreen_AddRef;
-     thiz->Release            = IDirectFBScreen_Release;
-     thiz->GetID              = IDirectFBScreen_GetID;
-     thiz->GetDescription     = IDirectFBScreen_GetDescription;
-     thiz->EnumDisplayLayers  = IDirectFBScreen_EnumDisplayLayers;
-     thiz->SetPowerMode       = IDirectFBScreen_SetPowerMode;
-     thiz->WaitForSync        = IDirectFBScreen_WaitForSync;
+     thiz->AddRef                 = IDirectFBScreen_AddRef;
+     thiz->Release                = IDirectFBScreen_Release;
+     thiz->GetID                  = IDirectFBScreen_GetID;
+     thiz->GetDescription         = IDirectFBScreen_GetDescription;
+     thiz->EnumDisplayLayers      = IDirectFBScreen_EnumDisplayLayers;
+     thiz->SetPowerMode           = IDirectFBScreen_SetPowerMode;
+     thiz->WaitForSync            = IDirectFBScreen_WaitForSync;
+     thiz->GetEncoderDescriptions = IDirectFBScreen_GetEncoderDescriptions;
+     thiz->GetOutputDescriptions  = IDirectFBScreen_GetOutputDescriptions;
 
      return DFB_OK;
 }

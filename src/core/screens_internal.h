@@ -35,15 +35,25 @@
 #include <core/coretypes.h>
 #include <core/screens.h>
 
+typedef struct {
+     DFBScreenEncoderDescription   description;
+} CoreScreenEncoder;
 
 typedef struct {
+     DFBScreenOutputDescription    description;
+} CoreScreenOutput;
+
+typedef struct {
+     FusionSkirmish        lock;
+
      DFBScreenID           screen_id;
 
      DFBScreenDescription  description;
 
-     void                 *screen_data;
+     CoreScreenEncoder    *encoders;
+     CoreScreenOutput     *outputs;
 
-     FusionSkirmish        lock;
+     void                 *screen_data;
 } CoreScreenShared;
 
 struct __DFB_CoreScreen {

@@ -70,11 +70,49 @@ crtc2InitScreen( CoreScreen           *screen,
                  DFBScreenDescription *description )
 {
      /* Set the screen capabilities. */
-     description->caps = DSCCAPS_VSYNC | DSCCAPS_TV_ENCODER;
+     description->caps = DSCCAPS_VSYNC | DSCCAPS_ENCODERS | DSCCAPS_OUTPUTS;
 
      /* Set the screen name. */
      snprintf( description->name,
                DFB_SCREEN_DESC_NAME_LENGTH, "Matrox CRTC2 Screen" );
+
+     /* Set number of encoders and outputs. */
+     description->encoders = 1;
+     description->outputs  = 1;
+
+     return DFB_OK;
+}
+
+static DFBResult
+crtc2InitEncoder( CoreScreen                  *screen,
+                  void                        *driver_data,
+                  void                        *screen_data,
+                  int                          encoder,
+                  DFBScreenEncoderDescription *description )
+{
+     /* Set the encoder capabilities & type. */
+     description->caps = DSECAPS_TV_NORMS;
+     description->type = DSET_TV;
+
+     /* Set supported TV norms. */
+     description->tv_norms = DSETV_PAL | DSETV_NTSC;
+
+     return DFB_OK;
+}
+
+static DFBResult
+crtc2InitOutput( CoreScreen                 *screen,
+                 void                       *driver_data,
+                 void                       *screen_data,
+                 int                         output,
+                 DFBScreenOutputDescription *description )
+{
+     /* Set the output capabilities. */
+     description->caps = DSOCAPS_CONNECTORS | DSOCAPS_SIGNALS;
+
+     /* Set supported output connectors and signals. */
+     description->connectors = DSOC_CVBS | DSOC_YC;
+     description->signals    = DSOS_CVBS | DSOS_YC;
 
      return DFB_OK;
 }
@@ -109,6 +147,8 @@ crtc2WaitVSync( CoreScreen *screen,
 ScreenFuncs matroxCrtc2ScreenFuncs = {
      ScreenDataSize:     crtc2ScreenDataSize,
      InitScreen:         crtc2InitScreen,
+     InitEncoder:        crtc2InitEncoder,
+     InitOutput:         crtc2InitOutput,
      SetPowerMode:       crtc2SetPowerMode,
      WaitVSync:          crtc2WaitVSync
 };
