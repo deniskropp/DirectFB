@@ -214,9 +214,7 @@ DFBResult IDirectFB_SetVideoMode( IDirectFB *thiz,
 
      switch (data->level) {
           case DFSCL_NORMAL:
-               data->primary.width = width;
-               data->primary.height = height;
-               data->primary.bpp = bpp;
+               /* FIXME: resize window if already existent */
                break;
 
           case DFSCL_FULLSCREEN:
@@ -257,6 +255,10 @@ DFBResult IDirectFB_SetVideoMode( IDirectFB *thiz,
           }
      }
 
+     data->primary.width  = width;
+     data->primary.height = height;
+     data->primary.bpp    = bpp;
+
      return DFB_OK;
 }
 
@@ -264,8 +266,8 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                                    IDirectFBSurface **interface )
 {
      DFBResult ret;
-     unsigned int width = 300;
-     unsigned int height = 300;
+     unsigned int width = 256;
+     unsigned int height = 256;
      int policy = CSP_VIDEOLOW;
      DFBSurfacePixelFormat format = layers->shared->surface->format;
      DFBSurfaceCapabilities caps = 0;
@@ -304,24 +306,27 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                     or should we return an error? */
           switch (data->level) {
                case DFSCL_NORMAL: {
+                    int         x, y;
                     CoreWindow *window;
 
-                    if (!data->primary.width  ||  !data->primary.height) {
-                         data->primary.width = width;
-                         data->primary.height = height;
-                    }
+                    width  = data->primary.width;
+                    height = data->primary.height;
+
+                    x = (layers->shared->width  - width)  / 2;
+                    y = (layers->shared->height - height) / 2;
 
                     if ((desc->flags & DSDESC_PIXELFORMAT)
                         && desc->pixelformat == DSPF_ARGB)
                     {
-
-                         window = window_create( layers->shared->windowstack, 0, 0,
+                         window = window_create( layers->shared->windowstack,
+                                                 x, y,
                                                  data->primary.width,
                                                  data->primary.height,
                                                  DWCAPS_ALPHACHANNEL | DWCAPS_DOUBLEBUFFER );
                     }
                     else
-                         window = window_create( layers->shared->windowstack, 0, 0,
+                         window = window_create( layers->shared->windowstack,
+                                                 x, y,
                                                  data->primary.width,
                                                  data->primary.height,
                                                  (caps & DSCAPS_FLIPPING) ?
@@ -679,6 +684,9 @@ DFBResult IDirectFB_Construct( IDirectFB *thiz )
      data->ref = 1;
 
      data->level = DFSCL_NORMAL;
+
+     data->primary.width  = 500;
+     data->primary.height = 500;
 
 
      thiz->AddRef = IDirectFB_AddRef;

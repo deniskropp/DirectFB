@@ -56,7 +56,13 @@ typedef struct {
      IDirectFBSurface_data base;   /* base Surface implementation */
 
      CoreWindow           *window; /* pointer to core data */
+
+     pthread_t             flip_thread; /* thread for non-flipping primary
+                                           surfaces, to make changes visible */
 } IDirectFBSurface_Window_data;
+
+
+static void *Flipping_Thread( void *arg );
 
 
 void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
@@ -64,6 +70,11 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
      IDirectFBSurface_Window_data *data =
           (IDirectFBSurface_Window_data*)thiz->priv;
 
+     if (data->flip_thread != -1) {
+          pthread_cancel( data->flip_thread );
+          pthread_join( data->flip_thread, NULL );
+     }
+     
      state_set_destination( &data->base.state, NULL );
      state_set_source( &data->base.state, NULL );
 
@@ -217,7 +228,18 @@ DFBResult IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      IDirectFBSurface_Construct( thiz, wanted, granted, window->surface, caps );
 
      data = (IDirectFBSurface_Window_data*)(thiz->priv);
+
      data->window = window;
+     data->flip_thread = -1;
+
+     /*
+      * Create an auto flipping thread if the application
+      * requested a (primary) surface that doesn't need to be flipped.
+      * Window surfaces even need to be flipped when they are single buffered.
+      */
+     if (!(caps & DSCAPS_FLIPPING) && !(caps & DSCAPS_SUBSURFACE))
+          pthread_create( &data->flip_thread, NULL, Flipping_Thread, thiz );
+
 
      thiz->Release = IDirectFBSurface_Window_Release;
      thiz->Flip = IDirectFBSurface_Window_Flip;
@@ -226,3 +248,21 @@ DFBResult IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      return DFB_OK;
 }
 
+
+/* file internal */
+
+static void *Flipping_Thread( void *arg )
+{
+     IDirectFBSurface *thiz = (IDirectFBSurface*) arg;
+
+     while (1) {
+          usleep(20000);
+
+          pthread_testcancel();
+
+          /*
+           * OPTIMIZE: only call if surface has been touched in the meantime
+           */
+          thiz->Flip( thiz, NULL, 0 );
+     }
+}

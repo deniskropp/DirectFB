@@ -192,8 +192,9 @@ static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
 
           DFB_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
-          ret = IDirectFBSurface_Window_Construct( *surface, NULL, NULL,
-                                                   data->window, 0 );
+          ret = IDirectFBSurface_Window_Construct( *surface,
+                                                   NULL, NULL, data->window,
+                                                   DSCAPS_FLIPPING );
           if (ret) {
                DFBFREE( *surface );
                return ret;
