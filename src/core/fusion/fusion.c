@@ -94,6 +94,9 @@ fusion_init()
      /* Initialize local reference counter. */
      fusion_refs = 1;
 
+     /* Initialize Reactor part. */
+     _reactor_init();
+
      /* Initialize shmalloc part. */
      if (!__shmalloc_init( fusion_id == 1 )) {
           fusion_id = 0;
@@ -134,11 +137,12 @@ fusion_exit()
           skirmish_destroy( &fusion_shared->arenas_lock );
      }
 
-     fusion_id     = 0;
      fusion_shared = NULL;
 
      __shmalloc_exit( fusion_id == 1 );
 
+     fusion_id = 0;
+     
      close( fusion_fd );
 }
 

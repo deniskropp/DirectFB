@@ -171,9 +171,9 @@ reactor_attach (FusionReactor *reactor,
                }
                
                FPERROR ("FUSION_REACTOR_DETACH\n");
+
+               return FUSION_FAILURE;
           }
-          
-          return FUSION_FAILURE;
      }
      
      /* fill out callback information */
@@ -226,6 +226,8 @@ reactor_detach (FusionReactor *reactor,
                }
                
                FPERROR ("FUSION_REACTOR_DETACH\n");
+
+               return FUSION_FAILURE;
           }
      }
 
@@ -415,6 +417,8 @@ _reactor_process_message( int reactor_id, const void *msg_data )
                                    FPERROR ("FUSION_REACTOR_DETACH\n");
                                    break;
                          }
+
+                         break;
                     }
                }
           }
@@ -425,6 +429,12 @@ _reactor_process_message( int reactor_id, const void *msg_data )
      }
 
      unlock_node( node );
+}
+
+void
+_reactor_init()
+{
+     nodes = NULL;
 }
 
 static void

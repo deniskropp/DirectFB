@@ -104,6 +104,7 @@ extern FusionShared *fusion_shared;
 /*
  * from reactor.c
  */
+void _reactor_init();
 void _reactor_process_message( int reactor_id, const void *msg_data );
 
 #endif /* __FUSION_INTERNAL_H__ */
