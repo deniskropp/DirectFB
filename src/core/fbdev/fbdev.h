@@ -27,6 +27,33 @@
 #ifndef __CORE__FBDEV_H__
 #define __CORE__FBDEV_H__
 
+#include <core/system.h>
+
+typedef struct {
+     /* fbdev fixed screeninfo, contains infos about memory and type of card */
+     struct fb_fix_screeninfo fix;
+
+     VideoMode                *modes;        /* linked list of valid
+                                                video modes */
+     VideoMode                *current_mode; /* current video mode */
+
+     struct fb_var_screeninfo current_var;   /* fbdev variable screeninfo
+                                                set by DirectFB */
+     struct fb_var_screeninfo orig_var;      /* fbdev variable screeninfo
+                                                before DirectFB was started */
+     struct fb_cmap           orig_cmap;     /* original palette */
+} FBDevShared;
+
+typedef struct {
+     FBDevShared             *shared;
+
+     /* virtual framebuffer address */
+     void                    *framebuffer_base;
+     
+     int                      fd;            /* file descriptor for /dev/fb */
+} FBDev;
+
+extern FBDev *dfb_fbdev;
 
 /*
  * core init function, opens /dev/fb, get fbdev screeninfo
