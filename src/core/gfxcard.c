@@ -1080,10 +1080,10 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
                              int x, int y,
                              CoreFont *font, CardState *state )
 {
-     int            steps[bytes];
-     unichar        chars[bytes];
-     CoreGlyphData *glyphs[bytes];
-
+     int                      steps[bytes];
+     unichar                  chars[bytes];
+     CoreGlyphData           *glyphs[bytes];
+     DFBSurfaceBlittingFlags  blittingflags;
 
      unichar prev = 0;
 
@@ -1103,7 +1103,7 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
      dfb_state_lock( state );
      dfb_font_lock( font );
 
-     /* preload glyphs to avoid deadlock */
+     /* preload glyphs to avoid deadlock (FIXME: still needed or otherwise useful?) */
      for (offset = 0; offset < bytes; offset += steps[offset]) {
           steps[offset] = dfb_utf8_skip[text[offset]];
           chars[offset] = dfb_utf8_get_char (&text[offset]);
@@ -1125,16 +1125,33 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
      font->state.destination  = state->destination;
      font->state.modified    |= SMF_DESTINATION;
 
-     /* set clip and color */
-     font->state.clip         = state->clip;
-     font->state.color        = state->color;
-     font->state.color_index  = state->color_index;
-     if (state->drawingflags & DSDRAW_BLEND)
-          font->state.blittingflags |= DSBLIT_BLEND_COLORALPHA;
-     else
-          font->state.blittingflags &= ~DSBLIT_BLEND_COLORALPHA;
-     font->state.modified |= SMF_CLIP | SMF_COLOR | SMF_BLITTING_FLAGS;
+     /* set clip */
+     if (!DFB_REGION_EQUAL(font->state.clip, state->clip)) {
+          font->state.clip      = state->clip;
+          font->state.modified |= SMF_CLIP;
+     }
 
+     /* set color */
+     if (!DFB_COLOR_EQUAL(font->state.color, state->color) ||
+         font->state.color_index != state->color_index)
+     {
+          font->state.color        = state->color;
+          font->state.color_index  = state->color_index;
+          font->state.modified    |= SMF_COLOR;
+     }
+
+     /* set blitting flags */
+     if (state->drawingflags & DSDRAW_BLEND)
+          blittingflags = font->state.blittingflags | DSBLIT_BLEND_COLORALPHA;
+     else
+          blittingflags = font->state.blittingflags & ~DSBLIT_BLEND_COLORALPHA;
+
+     if (font->state.blittingflags != blittingflags) {
+          font->state.blittingflags  = blittingflags;
+          font->state.modified      |= SMF_BLITTING_FLAGS;
+     }
+
+     /* blit glyphs */
      for (offset = 0; offset < bytes; offset += steps[offset]) {
 
           unichar current = chars[offset];
