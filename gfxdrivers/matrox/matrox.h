@@ -75,29 +75,24 @@ typedef struct {
      MatroxStateBits valid;
 
      /* Stored values */
-     int dst_pixelpitch;
-     int dst_pixeloffset;
-     int dst_bytepitch;
-     int dst_byteoffset;
-     int dst_height;
-     DFBSurfacePixelFormat dst_format;
-
-     int src_pixelpitch;
-     int src_pixeloffset;
-     int src_bytepitch;
-     int src_byteoffset;
-     int src_width;
-     int src_height;
-     DFBSurfacePixelFormat src_format;
+     int dst_pitch;
+     int dst_offset;
+     int dst_cb_offset;
+     int dst_cr_offset;
+     int src_pitch;
+     int src_offset;
+     int src_cb_offset;
+     int src_cr_offset;
+     int w, h, w2, h2;
 
      int draw_blend;
      int blit_src_colorkey;
 
      int blit_deinterlace;
      int field;
+     int planar;
 
      __u32 texctl;
-     __u32 texctl2;
 
      DFBRegion clip;
 } MatroxDeviceData;
