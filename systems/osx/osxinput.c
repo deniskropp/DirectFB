@@ -116,7 +116,15 @@ translate_key( unsigned short key, DFBInputEvent *evt )
      
      if (charcode) {
           evt->flags = DIEF_KEYSYMBOL;
-          evt->key_symbol = charcode;
+          switch (charcode) {
+               case 28:  evt->key_symbol = DIKS_CURSOR_LEFT; break;
+               case 29:  evt->key_symbol = DIKS_CURSOR_RIGHT; break;
+               case 30:  evt->key_symbol = DIKS_CURSOR_UP; break;
+               case 31:  evt->key_symbol = DIKS_CURSOR_DOWN; break;
+               default:
+                   evt->key_symbol = charcode;
+                   break;
+          }
           return true;
      }
      else if (keycode) {
