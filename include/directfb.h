@@ -693,10 +693,11 @@ typedef enum {
  * same font file.
  */
 typedef enum {
-      DFFA_NOKERNING     = 0x00000001,  /* don't use kerning */
-      DFFA_NOHINTING     = 0x00000002,  /* don't use hinting */
-      DFFA_MONOCHROME    = 0x00000004,  /* don't use anti-aliasing */
-      DFFA_NOCHARMAP     = 0x00000008   /* no char map, glyph indices are
+     DFFA_NONE           = 0x00000000,  /* none of these flags */
+     DFFA_NOKERNING      = 0x00000001,  /* don't use kerning */
+     DFFA_NOHINTING      = 0x00000002,  /* don't use hinting */
+     DFFA_MONOCHROME     = 0x00000004,  /* don't use anti-aliasing */
+     DFFA_NOCHARMAP      = 0x00000008   /* no char map, glyph indices are
                                            specified directly */
 } DFBFontAttributes;
 
@@ -707,7 +708,10 @@ typedef enum {
      DFDESC_ATTRIBUTES   = 0x00000001,  /* attributes field is valid */
      DFDESC_HEIGHT       = 0x00000002,  /* height is specified */
      DFDESC_WIDTH        = 0x00000004,  /* width is specified */
-     DFDESC_INDEX        = 0x00000008   /* index is specified */
+     DFDESC_INDEX        = 0x00000008,  /* index is specified */
+     DFDESC_FIXEDADVANCE = 0x00000010   /* specify a fixed advance overriding
+                                           any character advance of fixed or
+                                           proportional fonts */
 } DFBFontDescriptionFlags;
 
 /*
@@ -730,6 +734,7 @@ typedef struct {
      unsigned int                       height;
      unsigned int                       width;
      unsigned int                       index;
+     unsigned int                       fixed_advance;
 } DFBFontDescription;
 
 /*
