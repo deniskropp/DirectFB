@@ -1,3 +1,25 @@
+2003-01-15	12:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	fb.modes (1.8) (+8 -0)
+	
+	Added 1280x1024 at 75 Hz.
+	
+2003-01-14	16:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/Makefile.am (1.28) (+2 -1)
+		patches/fusion-full-linux-2.4.21-pre3.patch.bz2 (1.1) ( )
+	
+	Added patch.
+	
+2003-01-14	16:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.38) (+12381 -8512)
+		src/core/fusion/arena.c (1.13) (+1 -0)
+		NEWS (1.44) (+3 -0)
+	
+	Updated ChangeLog and NEWS for release.
+	Added comment to arena code.
+	
 2003-01-14	15:16	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	patches/fusion-full-linux-2.4.20.patch.bz2 (1.2) (+30 -42)

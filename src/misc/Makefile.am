@@ -6,6 +6,12 @@ INCLUDES = \
 
 AM_CFLAGS = $(DFB_CFLAGS)
 
+EXTRA_DIST = \
+	ppcasm_memcpy.S			\
+	ppcasm_memcpy_cachable.S	\
+	ppcasm_memcpy.h			\
+	ppc_asm.h
+
 if BUILDPPCASM
 if HAVE_LINUX
 ppcasm_sources = ppcasm_memcpy.S \
