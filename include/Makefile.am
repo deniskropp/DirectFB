@@ -10,11 +10,11 @@ include_HEADERS = \
 	directfb.h		\
 	directfb_keyboard.h	\
 	directfb_keynames.h	\
+	directfb_version.h	\
 	dfb_types.h
 
 internalinclude_HEADERS = \
-	directfb_internals.h	\
-	directfb_version.h
+	directfb_internals.h
 
 
 directfb_keynames.h: directfb_keyboard.h
