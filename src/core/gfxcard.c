@@ -631,6 +631,9 @@ void gfxcard_drawstring( const __u8 *text, int x, int y,
           break;
      }
 
+     state->source = NULL;
+     state->modified |= SMF_SOURCE;
+
      if (restore_blittingflags) {
           state->blittingflags = original_blittingflags;
           state->modified |= SMF_BLITTING_FLAGS;
