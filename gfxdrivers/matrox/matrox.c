@@ -1198,6 +1198,7 @@ driver_init_driver( GraphicsDevice      *device,
                break;
 #endif
           case FB_ACCEL_MATROX_MGAG200:
+               dfb_config->argb_font = true;
                funcs->CheckState = matroxG200CheckState;
                break;
 
@@ -1262,7 +1263,6 @@ driver_init_device( GraphicsDevice     *device,
                break;
 #endif
           case FB_ACCEL_MATROX_MGAG200:
-               dfb_config->argb_font = true;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G200" );
                break;
