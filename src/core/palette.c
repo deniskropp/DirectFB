@@ -117,7 +117,7 @@ dfb_palette_generate_rgb332_map( CorePalette *palette )
      DFB_ASSERT( palette != NULL );
      
      for (i=0; i<palette->num_entries; i++) {
-          palette->entries[i].a = 0xff;
+          palette->entries[i].a = i ? 0xff : 0x00;
           palette->entries[i].r = lookup3to8[ (i & 0xE0) >> 5 ];
           palette->entries[i].g = lookup3to8[ (i & 0x1C) >> 2 ];
           palette->entries[i].b = lookup2to8[ (i & 0x03) ];
