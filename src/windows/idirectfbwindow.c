@@ -29,6 +29,8 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <sched.h>
+
 #include <malloc.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -683,6 +685,10 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      reactor_attach( data->window->reactor, IDirectFBWindow_React, data );
 
      dfb_window_init( data->window );
+
+     /* Wait for initial DWET_POSITION_SIZE event */
+     while (!data->position_size_event)
+          sched_yield();
 
      thiz->AddRef = IDirectFBWindow_AddRef;
      thiz->Release = IDirectFBWindow_Release;
