@@ -292,7 +292,9 @@ dfb_windowstack_resize( CoreWindowStack *stack,
 {
      DFB_ASSERT( stack != NULL );
 
-     stack_lock( stack );
+     /* FIXME: function is called during layer lease, locking the stack here
+        results in a dead lock */
+     //stack_lock( stack );
 
      /* Store the width and height of the stack */
      stack->width  = width;
@@ -304,7 +306,7 @@ dfb_windowstack_resize( CoreWindowStack *stack,
      stack->cursor.region.x2 = width - 1;
      stack->cursor.region.y2 = height - 1;
 
-     stack_unlock( stack );
+     //stack_unlock( stack );
 }
 
 DFBResult

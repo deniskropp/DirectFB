@@ -129,6 +129,45 @@ FusionResult arena_enter (const char     *name,
      /* Return the return value of the callback. */
      if (ret_error)
           *ret_error = error;
+
+     if (error) {
+        FusionLink *l = arena->fields;
+        
+        fusion_ref_down (&arena->ref, false);
+        
+        if (func == initialize) {
+           /* Destroy fields. */
+           while (l) {
+                FusionLink *next  = l->next;
+                ArenaField *field = (ArenaField*) l;
+
+                /* Free allocated memory. */
+                shfree( field->name );
+                shfree( field );
+
+                l = next;
+           }
+
+           /* Destroy reference counter. */
+           fusion_ref_destroy( &arena->ref );
+
+           /* Destroy the arena lock. This has to happen before
+              locking the list. Otherwise a dead lock with lock_arena()
+              below could occur. */
+           skirmish_destroy( &arena->lock );
+
+           /* Lock the list and remove the arena. */
+           skirmish_prevail( &fusion_shared->arenas_lock );
+           fusion_list_remove( &fusion_shared->arenas, &arena->link );
+           skirmish_dismiss( &fusion_shared->arenas_lock );
+
+           /* Free allocated memory. */
+           shfree( arena->name );
+           shfree( arena );
+
+           return FUSION_SUCCESS;
+        }
+     }
      
      /* Unlock the arena. */
      unlock_arena( arena );
