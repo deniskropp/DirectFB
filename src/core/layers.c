@@ -1328,6 +1328,10 @@ dfb_layer_set_screenlocation( DisplayLayer *layer,
 
      shared = layer->shared;
      
+     if (shared->screen.x == x     && shared->screen.y == y &&
+         shared->screen.w == width && shared->screen.h == height)
+          return DFB_OK;
+     
      if (!layer->funcs->SetScreenLocation)
           return DFB_UNSUPPORTED;
      
