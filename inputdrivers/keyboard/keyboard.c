@@ -86,6 +86,8 @@ keyboard_get_symbol( int                             code,
                          return DIKS_PRINT;
                     case 0x7f:
                          return DIKS_BACKSPACE;
+                    case 0xa4:
+                         return 0x20ac; /* euro currency sign */
                     default:
                          return index;
                }
