@@ -2562,7 +2562,7 @@ static void Bop_a8_set_alphapixel_Aop_argb1555( GenefxState *gfxs )
                register __u32  s = (a>>3)+1;\
                register __u32 t1 = (d & 0x7c1f);\
                register __u32 t2 = (d & 0x03e0);\
-               d = ((a & 0x80) << 8) | \
+               d = (((d >> 8) | (a & 0x80)) << 8) | \
                    ((((rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
                     ((( g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5;\
           }\
