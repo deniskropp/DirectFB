@@ -465,6 +465,7 @@ interfaces/IDirectFBImageProvider/Makefile
 interfaces/IDirectFBVideoProvider/Makefile
 tools/Makefile
 docs/Makefile
+docs/html/Makefile
 ], [chmod +x directfb-config])
 
 

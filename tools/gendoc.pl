@@ -33,8 +33,8 @@
 ################################################################
 
 
-html_create( INDEX, "html/index.html", "DirectFB Interfaces" );
-html_create( TYPES, "html/types.html", "DirectFB Types" );
+html_create( INDEX, "index.html", "DirectFB Interfaces" );
+html_create( TYPES, "types.html", "DirectFB Types" );
 
 print INDEX "<P>\n",
             "  <CENTER><TABLE width=90% border=0 cellpadding=2>\n";
@@ -99,7 +99,7 @@ sub parse_interface (NAME)
       $detailed = "";
       $section = "";
 
-      html_create( INTERFACE, "html/$interface.html",
+      html_create( INTERFACE, "$interface.html",
                               "<A href=\"index.html\">" .
                               "<FONT color=white>DirectFB Interfaces</FONT>" .
                               "</A>", $interface );
@@ -131,7 +131,7 @@ sub parse_interface (NAME)
                                   "      $headline\n",
                                   "    </TD></TR>\n";
 
-                  html_create( FUNCTION, "html/${interface}_$1.html",
+                  html_create( FUNCTION, "${interface}_$1.html",
                                "<A href=\"$interface.html\">" .
                                "<FONT color=white>$interface</FONT>" .
                                "</A>", $1 );
