@@ -82,6 +82,8 @@ typedef struct {
      int draw_blend;
      int blit_src_colorkey;
 
+     int blit_deinterlace;
+
      int matrox_w2;
      int matrox_h2;
 } MatroxDeviceData;

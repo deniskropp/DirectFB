@@ -505,9 +505,13 @@ typedef enum {
                                                 alpha */
      DSBLIT_DST_PREMULTIPLY    = 0x00000040, /* modulates the dest. color
                                                 with the dest. alpha */
-     DSBLIT_DEMULTIPLY         = 0x00000080  /* divides the color by the
+     DSBLIT_DEMULTIPLY         = 0x00000080, /* divides the color by the
                                                 alpha before writing the
                                                 data to the destination */
+     DSBLIT_DEINTERLACE        = 0x00000100  /* deinterlaces the source during
+                                                blitting by reading only one
+                                                field (every second line of full
+                                                image) scaling it vertically */
 } DFBSurfaceBlittingFlags;
 
 /*

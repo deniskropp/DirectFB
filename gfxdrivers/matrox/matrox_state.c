@@ -315,18 +315,30 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
-     __u32 texctl, texctl2;
+     __u32 texctl, texctl2, texorg;
 
      CoreSurface   *surface = state->source;
      SurfaceBuffer *buffer  = surface->front_buffer;
+     int            height  = surface->height;
 
      if (MGA_IS_VALID( m_Source ))
           return;
 
-     mdev->src_pixelpitch = buffer->video.pitch / DFB_BYTES_PER_PIXEL(surface->format);
+     mdev->src_pixelpitch = buffer->video.pitch /
+                            DFB_BYTES_PER_PIXEL(surface->format);
+
+     texorg = dfb_gfxcard_memory_physical( buffer->video.offset );
+     
+     if (mdev->blit_deinterlace) {
+          height >>= 1;
+          mdev->src_pixelpitch <<= 1;
+          
+          if (surface->field)
+               texorg += buffer->video.pitch;
+     }
 
      mdev->matrox_w2 = log2( surface->width );
-     mdev->matrox_h2 = log2( surface->height );
+     mdev->matrox_h2 = log2( height );
 
      if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
           texctl = TAMASK;
@@ -379,10 +391,9 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      mga_out32( mmio, texctl2, TEXCTL2 );
      mga_out32( mmio, ((surface->width -1)<<18) |
                       ((8-mdev->matrox_w2)&63)<<9 | mdev->matrox_w2, TEXWIDTH );
-     mga_out32( mmio, ((surface->height-1)<<18) |
+     mga_out32( mmio, ((height-1)<<18) |
                       ((8-mdev->matrox_h2)&63)<<9 | mdev->matrox_h2, TEXHEIGHT );
-     mga_out32( mmio, dfb_gfxcard_memory_physical( buffer->video.offset ) &
-                0x1FFFFFF, TEXORG );
+     mga_out32( mmio, texorg & 0x1FFFFFF, TEXORG );
 
      MGA_VALIDATE( m_Source );
 }

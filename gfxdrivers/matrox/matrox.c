@@ -123,7 +123,8 @@ static void matroxFlushTextureCache( void *drv, void *dev )
 #define MATROX_G200G400_BLITTING_FLAGS      (DSBLIT_SRC_COLORKEY | \
                                              DSBLIT_BLEND_ALPHACHANNEL | \
                                              DSBLIT_BLEND_COLORALPHA | \
-                                             DSBLIT_COLORIZE)
+                                             DSBLIT_COLORIZE | \
+                                             DSBLIT_DEINTERLACE)
 
 #define MATROX_G200G400_DRAWING_FUNCTIONS   (DFXL_FILLRECTANGLE | \
                                              DFXL_DRAWRECTANGLE | \
@@ -137,7 +138,8 @@ static void matroxFlushTextureCache( void *drv, void *dev )
 #define MATROX_USE_TMU(state, accel)                                     \
      ((state)->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |              \
                                 DSBLIT_BLEND_COLORALPHA   |              \
-                                DSBLIT_COLORIZE)               ||        \
+                                DSBLIT_COLORIZE           |              \
+                                DSBLIT_DEINTERLACE)            ||        \
       (state)->destination->format != (state)->source->format  ||        \
       (accel) == DFXL_STRETCHBLIT)
 
@@ -398,17 +400,14 @@ static void matroxSetState( void *drv, void *dev,
           case DFXL_STRETCHBLIT:
                mdev->blit_src_colorkey = (state->blittingflags &
                                           DSBLIT_SRC_COLORKEY) ? 1 : 0;
+               mdev->blit_deinterlace  = (state->blittingflags &
+                                          DSBLIT_DEINTERLACE) ? 1 : 0;
 
                if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                            DSBLIT_COLORIZE))
                     matrox_validate_Color( mdrv, mdev, state );
 
-               if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                           DSBLIT_BLEND_COLORALPHA   |
-                                           DSBLIT_COLORIZE)             ||
-                   state->destination->format != state->source->format  ||
-                   accel == DFXL_STRETCHBLIT)
-               {
+               if (MATROX_USE_TMU( state, accel )) {
                     funcs->Blit = matroxBlit3D;
 
                     matrox_validate_blitBlend( mdrv, mdev, state );
@@ -713,34 +712,6 @@ static void matroxBlit2D_Old( void *drv, void *dev,
      mga_out32( mmio, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
 }
 
-static void matroxBlit3D( void *drv, void *dev,
-                          DFBRectangle *rect, int dx, int dy )
-{
-     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
-     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
-
-     __s32 startx, starty;
-
-     startx = rect->x << (20 - mdev->matrox_w2);
-     starty = rect->y << (20 - mdev->matrox_h2);
-
-
-     mga_waitfifo( mdrv, mdev, 8);
-
-     mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO |
-                ARZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
-
-     mga_out32( mmio, (0x10<<21) | MAG_NRST | MIN_NRST, TEXFILTER );
-
-     mga_out32( mmio, 0x100000 >> mdev->matrox_w2, TMR0 );
-     mga_out32( mmio, 0x100000 >> mdev->matrox_h2, TMR3 );
-     mga_out32( mmio, startx, TMR6 );
-     mga_out32( mmio, starty, TMR7 );
-     mga_out32( mmio, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
-     mga_out32( mmio, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
-}
-
 static void matroxStretchBlit( void *drv, void *dev,
                                DFBRectangle *srect, DFBRectangle *drect )
 {
@@ -749,6 +720,11 @@ static void matroxStretchBlit( void *drv, void *dev,
      volatile __u8    *mmio = mdrv->mmio_base;
 
      __s32 startx, starty, incx, incy;
+
+     if (mdev->blit_deinterlace) {
+          srect->y >>= 1;
+          srect->h >>= 1;
+     }
 
      incx = (srect->w << (20 - mdev->matrox_w2))  /  drect->w;
      incy = (srect->h << (20 - mdev->matrox_h2))  /  drect->h;
@@ -771,6 +747,42 @@ static void matroxStretchBlit( void *drv, void *dev,
 
      mga_out32( mmio, (RS16(drect->x+drect->w) << 16) | RS16(drect->x), FXBNDRY );
      mga_out32( mmio, (RS16(drect->y) << 16) | RS16(drect->h), YDSTLEN | EXECUTE );
+}
+
+static void matroxBlit3D( void *drv, void *dev,
+                          DFBRectangle *rect, int dx, int dy )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     if (mdev->blit_deinterlace) {
+          DFBRectangle drect = { dx, dy, rect->w, rect->h };
+
+          matroxStretchBlit( drv, dev, rect, &drect );
+     }
+     else {
+          volatile __u8 *mmio = mdrv->mmio_base;
+          
+          __s32 startx, starty;
+
+          startx = rect->x << (20 - mdev->matrox_w2);
+          starty = rect->y << (20 - mdev->matrox_h2);
+
+
+          mga_waitfifo( mdrv, mdev, 8);
+
+          mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO |
+                     ARZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
+
+          mga_out32( mmio, (0x10<<21) | MAG_NRST | MIN_NRST, TEXFILTER );
+
+          mga_out32( mmio, 0x100000 >> mdev->matrox_w2, TMR0 );
+          mga_out32( mmio, 0x100000 >> mdev->matrox_h2, TMR3 );
+          mga_out32( mmio, startx, TMR6 );
+          mga_out32( mmio, starty, TMR7 );
+          mga_out32( mmio, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
+          mga_out32( mmio, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
+     }
 }
 
 

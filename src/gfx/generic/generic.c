@@ -2521,6 +2521,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
      DFBSurfaceLockFlags lock_flags;
 
+
      pthread_mutex_lock( &generic_lock );
 
      /* Debug checks */
