@@ -40,6 +40,7 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -67,6 +68,8 @@ typedef struct {
      pthread_t                thread;
      DVFrameCallback          callback;
      void                    *ctx;
+
+     CoreCleanup             *cleanup;
 } IDirectFBVideoProvider_V4L_data;
 
 static const unsigned int zero = 0;
@@ -79,6 +82,7 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data );
 static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data );
 static void v4l_suspend_resume( int suspend, void *ctx );
+static void v4l_cleanup( void *data, int emergency );
 
 
 static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
@@ -90,6 +94,9 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 
      v4l_deinit( data );
 
+     if (data->cleanup)
+          core_cleanup_remove( data->cleanup );
+     
      DFBFREE( data->filename );
 
      DFBFREE( thiz->priv );
@@ -517,6 +524,9 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
           }
      }
 
+     if (!data->cleanup)
+          data->cleanup = core_cleanup_add( v4l_cleanup, data, 1 );
+
      if (ioctl( data->fd, VIDIOCCAPTURE, &one ) < 0) {
           DFBResult ret = errno2dfb( errno );
 
@@ -563,12 +573,6 @@ static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data )
           return;
      }
 
-     if (data->thread != -1) {
-          pthread_cancel( data->thread );
-          pthread_join( data->thread, NULL );
-          data->thread = -1;
-     }
-
      v4l_stop( data );
 
      close( data->fd );
@@ -592,3 +596,13 @@ static void v4l_suspend_resume( int suspend, void *ctx )
      }
 }
 
+static void v4l_cleanup( void *ctx, int emergency )
+{
+     IDirectFBVideoProvider_V4L_data *data =
+          (IDirectFBVideoProvider_V4L_data*)ctx;
+
+     if (emergency)
+          v4l_stop( data );
+     else
+          v4l_deinit( data );
+}
