@@ -132,16 +132,22 @@ fs_playback_start( CorePlayback *playback )
 
      DFB_ASSERT( playback != NULL );
 
-     /* Lock playback. */
-     if (fusion_skirmish_prevail( &playback->lock ))
+     /* Lock playlist. */
+     if (fs_core_playlist_lock( playback->core ))
           return DFB_FUSION;
+
+     /* Lock playback. */
+     if (fusion_skirmish_prevail( &playback->lock )) {
+          fs_core_playlist_unlock( playback->core );
+          return DFB_FUSION;
+     }
 
      /* Start the playback if it's not running already. */
      if (!playback->running) {
-          /* FIXME: dead lock between playlist and playback */
           ret = fs_core_add_playback( playback->core, playback );
           if (ret) {
                fusion_skirmish_dismiss( &playback->lock );
+               fs_core_playlist_unlock( playback->core );
                return ret;
           }
 
@@ -152,6 +158,9 @@ fs_playback_start( CorePlayback *playback )
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
 
+     /* Unlock playlist. */
+     fs_core_playlist_unlock( playback->core );
+
      return DFB_OK;
 }
 
@@ -160,9 +169,15 @@ fs_playback_stop( CorePlayback *playback )
 {
      DFB_ASSERT( playback != NULL );
 
-     /* Lock playback. */
-     if (fusion_skirmish_prevail( &playback->lock ))
+     /* Lock playlist. */
+     if (fs_core_playlist_lock( playback->core ))
           return DFB_FUSION;
+
+     /* Lock playback. */
+     if (fusion_skirmish_prevail( &playback->lock )) {
+          fs_core_playlist_unlock( playback->core );
+          return DFB_FUSION;
+     }
 
      /* Stop the playback if it's running. */
      if (playback->running) {
@@ -174,6 +189,9 @@ fs_playback_stop( CorePlayback *playback )
 
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
+
+     /* Unlock playlist. */
+     fs_core_playlist_unlock( playback->core );
 
      return DFB_OK;
 }
