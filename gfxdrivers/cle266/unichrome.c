@@ -12,59 +12,54 @@
 
 EPIA-M benchmarks (df_dok)
 
-                              SW    v0.0.1  v0.1.0 v0.2.0 
+                              SW    v0.0.1  v0.1.0 v0.2.0     v0.3
 
-Anti-aliased Text            98.97    -       -       -     KChars/sec S
-Anti-aliased Text (blend)    28.85    -       -       -     KChars/sec S
-Fill Rectangles              25.21  443.46  437.05  432.39  Mpixel/sec *
-Fill Rectangles (blend)       5.54    -     130.12  128.42  MPixel/sec
-Fill Triangles               24.84  173.44  129.76  127.86  MPixel/sec *
-Fill Triangles (blend)        5.46    -     129.81  127.86  MPixel/sec
-Draw Rectangles              11.82  58.98    59.07   52.48  KRects/sec
-Draw Rectangles (blend)       1.98    -      32.13   22.76  KRects/sec
-Draw Lines                   42.67  283.81  292.33  193.87  KLines/sec *
-Draw Lines (blend)            8.54    -     142.62  101.23  KLines/sec
-Blit                         21.48    -     117.38  114.26  MPixel/sec
-Blit colorkeyed              22.54    -     117.34  114.26  MPixel/sec
-Blit w/ format conversion    16.22    -       -     103.41  MPixel/sec
-Blit from 32bit (blend)       4.19    -       -      87.72  MPixel/sec *
-Blit from 8bit palette       11.02    -       -     110.13  MPixel/sec
-Blit from 8bit pal. (blend)   3.78    -       -     110.20  MPixel/sec
-Stretch Blit                 23.19    -       -      99.53  MPixel/sec
-Stretch Blit colorkeyed      25.04    -       -       5.00  MPixel/sec S * 
+Anti-aliased Text            98.97    -       -       -     280.80  KChars/sec
+Anti-aliased Text (blend)    28.85    -       -       -     280.61  KChars/sec
+Fill Rectangles              25.21  443.46  437.05  432.39  435.60  Mpixel/sec
+Fill Rectangles (blend)       5.54    -     130.12  128.42  127.82  MPixel/sec
+Fill Triangles               24.84  173.44  129.76  127.86  128.63  MPixel/sec
+Fill Triangles (blend)        5.46    -     129.81  127.86  128.67  MPixel/sec
+Draw Rectangles              11.82  58.98    59.07   52.48   55.10  KRects/sec
+Draw Rectangles (blend)       1.98    -      32.13   22.76   23.50  KRects/sec
+Draw Lines                   42.67  283.81  292.33  193.87  203.20  KLines/sec
+Draw Lines (blend)            8.54    -     142.62  101.23  102.80  KLines/sec
+Blit                         21.48    -     117.38  114.26  114.41  MPixel/sec
+Blit colorkeyed              22.54    -     117.34  114.26  114.41  MPixel/sec
+Blit w/ format conversion    16.22    -       -     103.41  103.00  MPixel/sec
+Blit from 32bit (blend)       4.19    -       -      87.72   87.32  MPixel/sec
+Blit from 8bit palette       11.02    -       -     110.13  113.37  MPixel/sec
+Blit from 8bit pal. (blend)   3.78    -       -     110.20  113.40  MPixel/sec
+Stretch Blit                 23.19    -       -      99.53   99.32  MPixel/sec
+Stretch Blit colorkeyed      25.04    -       -       5.00   38.00  MPixel/sec
+
+
+Comparing M9000 and M10000
 
 v0.2.0                         M9000  M10000
 
-Anti-aliased Text               -       -     KChars/sec S
-Anti-aliased Text (blend)       -       -     KChars/sec S
-Fill Rectangles               401.82  432.39  Mpixel/sec *
+Anti-aliased Text               -       -     KChars/sec
+Anti-aliased Text (blend)       -       -     KChars/sec
+Fill Rectangles               401.82  432.39  Mpixel/sec
 Fill Rectangles (blend)       129.05  128.42  MPixel/sec
-Fill Triangles                128.46  127.86  MPixel/sec *
+Fill Triangles                128.46  127.86  MPixel/sec
 Fill Triangles (blend)        128.46  127.86  MPixel/sec
 Draw Rectangles                55.51   52.48  KRects/sec
 Draw Rectangles (blend)        26.90   22.76  KRects/sec
-Draw Lines                    225.00  193.87  KLines/sec *
+Draw Lines                    225.00  193.87  KLines/sec
 Draw Lines (blend)            121.29  101.23  KLines/sec
 Blit                          112.36  114.26  MPixel/sec
 Blit colorkeyed               112.28  114.26  MPixel/sec
 Blit w/ format conversion     103.92  103.41  MPixel/sec
-Blit from 32bit (blend)        87.89   87.72  MPixel/sec *
+Blit from 32bit (blend)        87.89   87.72  MPixel/sec
 Blit from 8bit palette        110.56  110.13  MPixel/sec
 Blit from 8bit pal. (blend)   110.56  110.20  MPixel/sec
 Stretch Blit                  108.67   99.53  MPixel/sec
-Stretch Blit colorkeyed         4.79    5.00  MPixel/sec S * 
+Stretch Blit colorkeyed         4.79    5.00  MPixel/sec
 
 
-Notes:
-
-All blits use a modified df_dok which blits from video RAM.
-The numbers for software rendering are taken from an unmodified df_dok
-since software rendering in video RAM is Very Slow.
-
-Operations marked with a an S are performed by the software renderer.
-Operations marked with an asterisk (*) could use some optimization.
-
-v0.0.1 and v0.1.0 are tested on an EPIA-M9000
+v0.0.1 and v0.1.0 are tested on an EPIA-M9000,
+later versions on an EPIA-M10000.
 
 */
 
@@ -373,7 +368,7 @@ static void driver_get_info(GraphicsDevice* device,
 
     snprintf(info->url,
         DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH,
-        "http://cle266dfb.sourceforge.net");
+        "http://www.directfb.org");
 
      snprintf(info->license,
          DFB_GRAPHICS_DRIVER_INFO_LICENSE_LENGTH,
@@ -407,9 +402,7 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
     if ((int) ucdrv->hwregs == -1) 
          return DFB_IO;
 
-    // VIA-driver interoperability - clear bit 6 in E-VGA reg 0x1a
-    VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
-    VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) & 0xbf);
+    uc_after_set_var(driver_data, device_data);
 
     ucdrv->hwrev = 3;   // FIXME: Get the real hardware revision number!!!
 
