@@ -416,6 +416,13 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           return false;
      }
 
+     D_ASSUME( state->clip.x2 >= state->clip.x1 );
+     D_ASSUME( state->clip.y2 >= state->clip.y1 );
+     D_ASSUME( state->clip.x1 >= 0 );
+     D_ASSUME( state->clip.y1 >= 0 );
+     D_ASSUME( state->clip.x2 < state->destination->width );
+     D_ASSUME( state->clip.y2 < state->destination->height );
+
      /*
       * If back_buffer policy is 'system only' there's no acceleration
       * available.
