@@ -55,7 +55,9 @@ maven_write_byte( MatroxMavenData  *mav,
                   __u8              reg,
                   __u8              val )
 {
-     if (mdrv->g450) {
+     MatroxDeviceData *mdev = mdrv->device_data;
+
+     if (mdev->g450_matrox) {
           volatile __u8 *mmio = mdrv->mmio_base;
 
           mga_out_dac( mmio, 0x87, reg );
@@ -70,7 +72,9 @@ maven_write_word( MatroxMavenData  *mav,
                   __u8              reg,
                   __u16             val )
 {
-     if (mdrv->g450) {
+     MatroxDeviceData *mdev = mdrv->device_data;
+
+     if (mdev->g450_matrox) {
           volatile __u8 *mmio = mdrv->mmio_base;
 
           mga_out_dac( mmio, 0x87, reg );
@@ -85,9 +89,11 @@ void
 maven_disable( MatroxMavenData  *mav,
                MatroxDriverData *mdrv )
 {
+     MatroxDeviceData *mdev = mdrv->device_data;
+
      maven_write_byte( mav, mdrv, 0x3E, 0x01 );
 
-     if (mdrv->g450) {
+     if (mdev->g450_matrox) {
           maven_write_byte( mav, mdrv, 0x80, 0x00 );
           return;
      }
@@ -103,7 +109,9 @@ void
 maven_enable( MatroxMavenData  *mav,
               MatroxDriverData *mdrv )
 {
-     if (mdrv->g450) {
+     MatroxDeviceData *mdev = mdrv->device_data;
+
+     if (mdev->g450_matrox) {
           if (dfb_config->matrox_cable == 1)
                /* SCART RGB */
                maven_write_byte( mav, mdrv, 0x80,
@@ -123,7 +131,9 @@ void
 maven_sync( MatroxMavenData  *mav,
             MatroxDriverData *mdrv )
 {
-     if (mdrv->g450)
+     MatroxDeviceData *mdev = mdrv->device_data;
+
+     if (mdev->g450_matrox)
           return;
 
      maven_write_byte( mav, mdrv, 0xD4, 0x01 );
@@ -139,6 +149,8 @@ maven_set_regs( MatroxMavenData       *mav,
                 CoreLayerRegionConfig *config,
                 DFBColorAdjustment    *adj )
 {
+     MatroxDeviceData *mdev = mdrv->device_data;
+
      LR(0x00);
      LR(0x01);
      LR(0x02);
@@ -190,7 +202,7 @@ maven_set_regs( MatroxMavenData       *mav,
      LR(0x37);
      LR(0x38);
 
-     if (mdrv->g450) {
+     if (mdev->g450_matrox) {
           maven_write_word( mav, mdrv, 0x82,
                             dfb_config->matrox_ntsc ? 0x0014 : 0x0017 );
           maven_write_word( mav, mdrv, 0x84, 0x0001 );
@@ -214,7 +226,7 @@ maven_set_regs( MatroxMavenData       *mav,
      maven_set_bwlevel( mav, mdrv, adj->brightness >> 8,
                         adj->contrast >> 8 );
 
-     if (!mdrv->g450) {
+     if (!mdev->g450_matrox) {
           LR(0x83);
           LR(0x84);
           LR(0x85);
@@ -265,10 +277,11 @@ maven_set_bwlevel( MatroxMavenData  *mav,
                    __u8              brightness,
                    __u8              contrast )
 {
+     MatroxDeviceData *mdev = mdrv->device_data;
      int b, c, bl, wl, wlmax, blmin, range;
      bool ntsc = dfb_config->matrox_ntsc;
 
-     if (mdrv->g450) {
+     if (mdev->g450_matrox) {
           wlmax = ntsc ? 869 : 881;
           blmin = ntsc ? 200 : 224;
      } else {
@@ -296,7 +309,9 @@ DFBResult
 maven_open( MatroxMavenData  *mav,
             MatroxDriverData *mdrv )
 {
-     if (mdrv->g450)
+     MatroxDeviceData *mdev = mdrv->device_data;
+
+     if (mdev->g450_matrox)
           return DFB_OK;
 
      if (mdrv->maven_fd != -1)
@@ -324,7 +339,9 @@ void
 maven_close( MatroxMavenData  *mav,
              MatroxDriverData *mdrv )
 {
-     if (mdrv->g450)
+     MatroxDeviceData *mdev = mdrv->device_data;
+
+     if (mdev->g450_matrox)
           return;
 
      if (mdrv->maven_fd == -1)
@@ -337,12 +354,13 @@ maven_close( MatroxMavenData  *mav,
 DFBResult maven_init( MatroxMavenData  *mav,
                       MatroxDriverData *mdrv )
 {
+     MatroxDeviceData *mdev = mdrv->device_data;
      char  line[512];
      int   fd, found;
      FILE *file;
 
      /* Locate G400 maven /dev/i2c file */
-     if (!mdrv->g450) {
+     if (!mdev->g450_matrox) {
           found = 0;
 
           file = fopen( "/proc/bus/i2c", "r" );
@@ -503,7 +521,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
           else
                dfb_memcpy( mav->regs, palregs, 64 );
 
-          if (mdrv->g450) {
+          if (mdev->g450_matrox) {
                if (dfb_config->matrox_ntsc) {
                     mav->regs[0x09] = 0x44;
                     mav->regs[0x0A] = 0x76;

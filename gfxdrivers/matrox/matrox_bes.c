@@ -175,7 +175,8 @@ besTestRegion( CoreLayer                  *layer,
                CoreLayerRegionConfigFlags *failed )
 {
      MatroxDriverData           *mdrv      = (MatroxDriverData*) driver_data;
-     int                         max_width = mdrv->g450 ? 2048 : 1024;
+     MatroxDeviceData           *mdev      = mdrv->device_data;
+     int                         max_width = mdev->g450_matrox ? 2048 : 1024;
      CoreLayerRegionConfigFlags  fail      = 0;
 
      if (config->options & ~BES_SUPPORTED_OPTIONS)
@@ -186,7 +187,7 @@ besTestRegion( CoreLayer                  *layer,
                break;
 
           case DSPF_RGB32:
-               if (!mdrv->g450)
+               if (!mdev->g450_matrox)
                     max_width = 512;
           case DSPF_ARGB1555:
           case DSPF_RGB16:
@@ -421,6 +422,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                            CoreLayerRegionConfig *config,
                            CoreSurface           *surface )
 {
+     MatroxDeviceData *mdev = mdrv->device_data;
      int cropleft, cropright, croptop, cropbot, croptop_uv;
      int field_height, pitch, tmp, hzoom, intrep;
      DFBRectangle   dest;
@@ -430,7 +432,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 
      dest = config->dest;
 
-     if (!mdrv->g450 && surface->format == DSPF_RGB32)
+     if (!mdev->g450_matrox && surface->format == DSPF_RGB32)
           dest.w = surface->width;
 
      field_height = surface->height;
@@ -473,7 +475,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
           croptop_uv = ((__u64) ((field_height/2) << 16) * croptop_uv / dest.h) & ~0x3;
 
      /* should horizontal zoom be used? */
-     if (mdrv->g450)
+     if (mdev->g450_matrox)
           hzoom = (1000000/current_mode->pixclock >= 234) ? 1 : 0;
      else
           hzoom = (1000000/current_mode->pixclock >= 135) ? 1 : 0;
@@ -588,7 +590,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
           field_height - 1 - (croptop >> 16) - (cropbot >> 16);
 
      /* horizontal scaling */
-     if (!mdrv->g450 && surface->format == DSPF_RGB32) {
+     if (!mdev->g450_matrox && surface->format == DSPF_RGB32) {
           mbes->regs.besHISCAL   = 0x20000 << hzoom;
           mbes->regs.besHSRCST  *= 2;
           mbes->regs.besHSRCEND *= 2;

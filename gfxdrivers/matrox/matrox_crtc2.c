@@ -123,6 +123,7 @@ crtc2InitLayer( CoreLayer                  *layer,
 {
      MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
      MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
+     MatroxDeviceData     *mdev   = mdrv->device_data;
      MatroxMavenData      *mav    = &mcrtc2->mav;
      bool                  ntsc   = dfb_config->matrox_ntsc;
      DFBResult             res;
@@ -156,7 +157,7 @@ crtc2InitLayer( CoreLayer                  *layer,
         only fields set in flags will be accepted from applications */
      adjustment->flags = DCAF_BRIGHTNESS | DCAF_CONTRAST |
                          DCAF_HUE | DCAF_SATURATION;
-     if (mdrv->g450) {
+     if (mdev->g450_matrox) {
           adjustment->brightness = ntsc ? 0xAA00 : 0x9E00;
           adjustment->saturation = ntsc ? 0xAE00 : 0xBB00;
      } else {
@@ -406,6 +407,8 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
                              CoreLayerRegionConfig *config,
                              CoreSurface           *surface )
 {
+     MatroxDeviceData *mdev = mdrv->device_data;
+
      mcrtc2->regs.c2CTL = 0;
 
      mcrtc2->regs.c2DATACTL  = mga_in32( mdrv->mmio_base, C2DATACTL );
@@ -413,7 +416,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
 
      /* c2pixcksel = 01 (vdoclk) */
      mcrtc2->regs.c2CTL |= (1 << 1);
-     if (mdrv->g450)
+     if (mdev->g450_matrox)
           mcrtc2->regs.c2CTL |= (1 << 14);
 
      /*
@@ -618,20 +621,21 @@ static DFBResult
 crtc2_disable_output( MatroxDriverData     *mdrv,
                       MatroxCrtc2LayerData *mcrtc2 )
 {
-     MatroxMavenData *mav = &mcrtc2->mav;
-     DFBResult        res;
+     MatroxDeviceData *mdev = mdrv->device_data;
+     MatroxMavenData  *mav  = &mcrtc2->mav;
+     DFBResult         res;
 
      if ((res = maven_open( mav, mdrv )) != DFB_OK)
           return res;
 
      maven_disable( mav, mdrv );
-     if (!mdrv->g450)
+     if (!mdev->g450_matrox)
           crtc2_set_mafc( mdrv, 0 );
      crtc2OnOff( mdrv, mcrtc2, 0 );
 
      maven_close( mav, mdrv );
 
-     if (mdrv->g450) {
+     if (mdev->g450_matrox) {
           volatile __u8 *mmio = mdrv->mmio_base;
           __u8           val;
 
@@ -656,14 +660,15 @@ static DFBResult
 crtc2_enable_output( MatroxDriverData      *mdrv,
                      MatroxCrtc2LayerData  *mcrtc2 )
 {
-     MatroxMavenData *mav  = &mcrtc2->mav;
-     volatile __u8   *mmio = mdrv->mmio_base;
-     DFBResult        res;
+     MatroxDeviceData *mdev = mdrv->device_data;
+     MatroxMavenData  *mav  = &mcrtc2->mav;
+     volatile __u8    *mmio = mdrv->mmio_base;
+     DFBResult         res;
 
      if ((res = maven_open( mav, mdrv )) != DFB_OK)
           return res;
 
-     if (mdrv->g450) {
+     if (mdev->g450_matrox) {
           volatile __u8 *mmio = mdrv->mmio_base;
           __u8           val;
 
@@ -701,14 +706,14 @@ crtc2_enable_output( MatroxDriverData      *mdrv,
      }
 
      maven_disable( mav, mdrv );
-     if (!mdrv->g450)
+     if (!mdev->g450_matrox)
           crtc2_set_mafc( mdrv, 0 );
      crtc2OnOff( mdrv, mcrtc2, 0 );
 
      crtc2_set_regs( mdrv, mcrtc2 );
      crtc2_set_buffer( mdrv, mcrtc2 );
 
-     if (!mdrv->g450)
+     if (!mdev->g450_matrox)
           crtc2_set_mafc( mdrv, 1 );
      crtc2OnOff( mdrv, mcrtc2, 1 );
 
@@ -716,7 +721,7 @@ crtc2_enable_output( MatroxDriverData      *mdrv,
 
      /* c2interlace = 1 */
      mcrtc2->regs.c2CTL |= (1 << 25);
-     if (mdrv->g450)
+     if (mdev->g450_matrox)
           mcrtc2->regs.c2CTL |= (1 << 12);
      while ((mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != 1)
           ;
@@ -726,7 +731,7 @@ crtc2_enable_output( MatroxDriverData      *mdrv,
 
      maven_enable( mav, mdrv );
 
-     if (!mdrv->g450) {
+     if (!mdev->g450_matrox) {
           while ((mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != 1)
                ;
           while ((mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != 0)

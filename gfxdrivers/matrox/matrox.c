@@ -1264,72 +1264,112 @@ static bool matroxTextureTriangles( void *drv, void *dev,
 
 /******************************************************************************/
 
-static bool
-detect_g450( void )
+static __u32 pci_config_in32( unsigned int bus,
+                              unsigned int slot,
+                              unsigned int func,
+                              __u8 reg )
 {
-     unsigned int vendor, device, devfn, bus;
-     char  line[512];
-     FILE *file;
+     char  filename[512];
+     int   fd;
+     __u32 val;
+
+     snprintf( filename, 512,
+               "/proc/bus/pci/%02x/%02x.%x",
+               bus, slot, func );
+
+     fd = open( filename, O_RDONLY );
+     if (fd < 0)
+          return 0;
+
+     if (lseek( fd, reg, SEEK_SET ) != reg) {
+          close( fd );
+          return 0;
+     }
+
+     if (read( fd, &val, 4 ) != 4) {
+          close( fd );
+          return 0;
+     }
+
+     close( fd );
+     return val;
+}
+
+static DFBResult matrox_find_pci_device( unsigned int *bus,
+                                         unsigned int *slot,
+                                         unsigned int *func )
+{
+     unsigned int   vendor, device, devfn;
+     unsigned long  addr0, addr1;
+     char           line[512];
+     FILE          *file;
 
      file = fopen( "/proc/bus/pci/devices", "r" );
      if (!file) {
           PERRORMSG( "DirectFB/Matrox: "
                      "Error opening `/proc/bus/pci/devices'!\n" );
-          return false;
+          return errno2dfb( errno );
      }
 
      while (fgets( line, 512, file )) {
-          if (sscanf( line, "%02x%02x\t%04x%04x",
-                      &bus, &devfn, &vendor, &device ) != 4)
+          if (sscanf( line, "%02x%02x\t%04x%04x\t%*x\t%lx\t%lx",
+                      bus, &devfn, &vendor, &device, &addr0, &addr1 ) != 6)
                continue;
 
-          if (vendor != 0x102B)
+          if (vendor != PCI_VENDOR_ID_MATROX)
                continue;
 
-          if (device == 0x2527) {
-               /* G550 */
-               fclose( file );
+          *slot = (devfn >> 3) & 0x1F;
+          *func = devfn & 0x07;
 
-               return true;
-          } else if (device == 0x0525) {
-               int fd;
-               __u8 rev;
+          addr0 &= ~0xFUL;
+          addr1 &= ~0xFUL;
 
-               /* G400 or G450 -> check revision */
-               snprintf( line, 512,
-                         "/proc/bus/pci/%02x/%02x.%x",
-                         bus,
-                         (devfn >> 3) & 0x1F,
-                         devfn & 0x07 );
-
-               fd = open( line, O_RDONLY );
-               if (fd < 0)
-                    continue;
-
-               if (lseek( fd, 0x08, SEEK_SET ) != 0x08) {
-                    close( fd );
-                    continue;
+          switch (device) {
+          case PCI_DEVICE_ID_MATROX_G550:
+          case PCI_DEVICE_ID_MATROX_G400:
+          case PCI_DEVICE_ID_MATROX_G200_PCI:
+          case PCI_DEVICE_ID_MATROX_G200_AGP:
+          case PCI_DEVICE_ID_MATROX_G100_MM:
+          case PCI_DEVICE_ID_MATROX_G100_AGP:
+          case PCI_DEVICE_ID_MATROX_MIL_2:
+          case PCI_DEVICE_ID_MATROX_MIL_2_AGP:
+               if (addr0 == dfb_gfxcard_memory_physical( NULL, 0 )) {
+                    fclose( file );
+                    return DFB_OK;
                }
+               break;
 
-               if (read( fd, &rev, 1 ) != 1) {
-                    close( fd );
-                    continue;
+          case PCI_DEVICE_ID_MATROX_MYS:
+               if ((pci_config_in32( *bus, *slot, *func, 0x08 ) & 0xFF) >= 0x02) {
+                    /* Mystique 220 */
+                    if (addr0 == dfb_gfxcard_memory_physical( NULL, 0 )) {
+                         fclose( file );
+                         return DFB_OK;
+                    }
+               } else {
+                    /* Mystique */
+                    if (addr1 == dfb_gfxcard_memory_physical( NULL, 0 )) {
+                         fclose( file );
+                         return DFB_OK;
+                    }
                }
+               break;
 
-               close( fd );
-
-               fclose( file );
-
-               return (rev >= 0x80);
+          case PCI_DEVICE_ID_MATROX_MIL:
+               if (addr1 == dfb_gfxcard_memory_physical( NULL, 0 )) {
+                    fclose( file );
+                    return DFB_OK;
+               }
+               break;
           }
      }
 
-     fclose( file );
-
      ERRORMSG( "DirectFB/Matrox: "
-               "Can't determine chip type from `/proc/bus/pci'!\n" );
+               "Can't find device in `/proc/bus/pci'!\n" );
 
-     return false;
+     fclose( file );
+     return DFB_INIT;
 }
 
 /* exported symbols */
@@ -1344,9 +1384,7 @@ driver_probe( GraphicsDevice *device )
           case FB_ACCEL_MATROX_MGA2164W_AGP: /* Matrox MGA2164W (Millennium II)*/
           case FB_ACCEL_MATROX_MGAG100:      /* Matrox G100                   */
           case FB_ACCEL_MATROX_MGAG200:      /* Matrox G200 (Myst, Mill, ...) */
-#ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:      /* Matrox G400                   */
-#endif
                return 1;
      }
 
@@ -1385,18 +1423,17 @@ driver_init_driver( GraphicsDevice      *device,
      if (!mdrv->mmio_base)
           return DFB_IO;
 
+     mdrv->device_data = (MatroxDeviceData*) device_data;
+
      mdrv->maven_fd = -1;
 
      mdrv->accelerator = dfb_gfxcard_get_accelerator( device );
 
      switch (mdrv->accelerator) {
-#ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
-               mdrv->g450 = detect_g450();
-
                funcs->CheckState = matroxG400CheckState;
                break;
-#endif
+
           case FB_ACCEL_MATROX_MGAG200:
                dfb_config->argb_font = true;
                funcs->CheckState = matroxG200CheckState;
@@ -1437,7 +1474,6 @@ driver_init_driver( GraphicsDevice      *device,
           dfb_layers_register( mdrv->primary, driver_data, &matroxBesFuncs );
 
      /* G400/G450/G550 CRTC2 support */
-#ifdef FB_ACCEL_MATROX_MGAG400
      if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400 &&
          dfb_config->matrox_crtc2)
      {
@@ -1447,7 +1483,6 @@ driver_init_driver( GraphicsDevice      *device,
           dfb_layers_register( mdrv->secondary, driver_data, &matroxCrtc2Funcs );
           dfb_layers_register( mdrv->secondary, driver_data, &matroxSpicFuncs );
      }
-#endif
 
      return DFB_OK;
 }
@@ -1461,36 +1496,51 @@ driver_init_device( GraphicsDevice     *device,
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
      MatroxDeviceData *mdev = (MatroxDeviceData*) device_data;
      volatile __u8    *mmio = mdrv->mmio_base;
+     unsigned int      bus, slot, func;
+     bool              g450, g550, sgram = false;
+     DFBResult         ret;
+
+     if ((ret = matrox_find_pci_device( &bus, &slot, &func )))
+          return ret;
 
      switch (mdrv->accelerator) {
-#ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
+               g550  = ((pci_config_in32( bus, slot, func, 0x00 ) >> 16) ==
+                        PCI_DEVICE_ID_MATROX_G550);
+               g450  = ((pci_config_in32( bus, slot, func, 0x08 ) & 0xFF) >= 0x80);
+               sgram = ((pci_config_in32( bus, slot, func, 0x40 ) & 0x4000) == 0x4000);
                snprintf( device_info->name,
-                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G400/G450/G550" );
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "%s",
+                         g550 ? "G550" : g450 ? "G450" : "G400" );
+               mdev->g450_matrox = g450 || g550;
                break;
-#endif
           case FB_ACCEL_MATROX_MGAG200:
+               sgram = ((pci_config_in32( bus, slot, func, 0x40 ) & 0x4000) == 0x4000);
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G200" );
                break;
           case FB_ACCEL_MATROX_MGAG100:
-               mdev->old_matrox = 1;
+               mdev->old_matrox = true;
+               sgram            = true;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G100" );
                break;
           case FB_ACCEL_MATROX_MGA2064W:
-               mdev->old_matrox = 1;
+               mdev->old_matrox = true;
+               sgram            = true;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium I" );
                break;
           case FB_ACCEL_MATROX_MGA1064SG:
-               mdev->old_matrox = 1;
+               mdev->old_matrox = true;
+               sgram            = ((pci_config_in32( bus, slot, func, 0x40 ) & 0x4000) == 0x4000);
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mystique" );
                break;
           case FB_ACCEL_MATROX_MGA2164W:
           case FB_ACCEL_MATROX_MGA2164W_AGP:
-               mdev->old_matrox = 1;
+               mdev->old_matrox = true;
+               sgram            = true;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium II" );
                break;
@@ -1504,14 +1554,13 @@ driver_init_device( GraphicsDevice     *device,
      device_info->caps.flags = CCF_CLIPPING;
 
      switch (mdrv->accelerator) {
-#ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
                device_info->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
                                             MATROX_G200G400_BLITTING_FUNCTIONS;
                device_info->caps.drawing  = MATROX_G200G400_DRAWING_FLAGS;
                device_info->caps.blitting = MATROX_G200G400_BLITTING_FLAGS;
                break;
-#endif
+
           case FB_ACCEL_MATROX_MGAG200:
                device_info->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
                                             MATROX_G200G400_BLITTING_FUNCTIONS;
@@ -1550,7 +1599,7 @@ driver_init_device( GraphicsDevice     *device,
           mga_out32( mmio, ien, IEN );
      }
 
-     mdev->atype_blk_rstr = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
+     mdev->atype_blk_rstr = (sgram || dfb_config->matrox_sgram) ? ATYPE_BLK : ATYPE_RSTR;
 
      return DFB_OK;
 }
@@ -1568,7 +1617,6 @@ driver_close_device( GraphicsDevice *device,
      mga_out32( mdrv->mmio_base, 0, DSTORG );
 
      /* make sure overlay is off */
-     mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mdrv->mmio_base, 0, BESCTL );
 
 

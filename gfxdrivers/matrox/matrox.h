@@ -33,6 +33,17 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
+#define PCI_VENDOR_ID_MATROX            0x102B
+#define PCI_DEVICE_ID_MATROX_MIL        0x0519
+#define PCI_DEVICE_ID_MATROX_MYS        0x051A
+#define PCI_DEVICE_ID_MATROX_MIL_2      0x051b
+#define PCI_DEVICE_ID_MATROX_MIL_2_AGP  0x051f
+#define PCI_DEVICE_ID_MATROX_G100_MM    0x1000
+#define PCI_DEVICE_ID_MATROX_G100_AGP   0x1001
+#define PCI_DEVICE_ID_MATROX_G200_PCI   0x0520
+#define PCI_DEVICE_ID_MATROX_G200_AGP   0x0521
+#define PCI_DEVICE_ID_MATROX_G400       0x0525
+#define PCI_DEVICE_ID_MATROX_G550       0x2527
 
 typedef enum {
      m_Source       = 0x0001,
@@ -53,19 +64,10 @@ typedef enum {
 #define MGA_IS_VALID(b)       (mdev->valid & (b))
 
 typedef struct {
-     int            accelerator;
-     int            maven_fd;
-     volatile __u8 *mmio_base;
-
-     bool           g450;
-
-     CoreScreen    *primary;
-     CoreScreen    *secondary;
-} MatroxDriverData;
-
-typedef struct {
      /* Old cards are older than G200/G400, e.g. Mystique or Millennium */
-     int old_matrox;
+     bool old_matrox;
+     /* G450/G550  */
+     bool g450_matrox;
 
      /* FIFO Monitoring */
      unsigned int fifo_space;
@@ -103,6 +105,18 @@ typedef struct {
 
      DFBRegion clip;
 } MatroxDeviceData;
+
+typedef struct {
+     int            accelerator;
+     int            maven_fd;
+     volatile __u8 *mmio_base;
+
+     CoreScreen    *primary;
+     CoreScreen    *secondary;
+
+     MatroxDeviceData *device_data;
+} MatroxDriverData;
+
 
 extern DisplayLayerFuncs matroxBesFuncs;
 extern DisplayLayerFuncs matroxCrtc2Funcs;
