@@ -558,14 +558,10 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      surface->idle_buffer = new_idle ? : surface->front_buffer;
 
 
-     if (new_depth) {
-          if (depth)
-               dfb_surface_destroy_buffer( surface, depth );
+     if (depth)
+          dfb_surface_destroy_buffer( surface, depth );
 
-          surface->depth_buffer = new_depth;
-     }
-     else
-          surface->depth_buffer = NULL;
+     surface->depth_buffer = new_depth;
 
 
      dfb_surfacemanager_unlock( surface->manager );
