@@ -71,7 +71,7 @@ AC_C_BIGENDIAN
 AC_PATH_PROGS(PERL, perl5 perl)
 
 
-DFB_CFLAGS="-D_REENTRANT"
+DFB_CFLAGS=""
 
 dnl Test for Linux framebuffer
 LINUX_FBDEV=no
@@ -145,9 +145,14 @@ case "$target_or_host" in
     ;;
 esac
 
+
 AM_CONDITIONAL(HAVE_LINUX, test x$have_linux = xyes)    
 
+
 dnl Threads
+
+THREADFLAGS="-D_REENTRANT"
+
 if test x$have_freebsd = xno; then
   AC_CHECK_LIB(pthread, pthread_attr_init, ,
     AC_MSG_ERROR([
@@ -160,8 +165,10 @@ else
   THREADLIB="-lc_r"
 fi
 
+AC_SUBST(THREADFLAGS)
 AC_SUBST(THREADLIB)
 
+DFB_CFLAGS="$THREADFLAGS $DFB_CFLAGS"
 
 dnl Dynamic Linker
 DYNLIB=""

@@ -83,9 +83,9 @@ fi
 
 if test "$echo_cflags" = "yes"; then
       if test @INCLUDEDIR@ != /usr/include ; then
-        includes=-I@INCLUDEDIR@
+        cflags="@THREADFLAGS@ -I@INCLUDEDIR@"
       fi
-      echo $includes
+      echo $cflags
 fi
 
 if test "$echo_libs" = "yes"; then
