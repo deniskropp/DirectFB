@@ -81,6 +81,7 @@ later versions on an EPIA-M10000.
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 
@@ -99,6 +100,10 @@ later versions on an EPIA-M10000.
 #endif
 
 extern DisplayLayerFuncs ucOverlayFuncs;
+extern DisplayLayerFuncs ucPrimaryFuncs;
+
+extern DisplayLayerFuncs  ucOldPrimaryFuncs;
+extern void              *ucOldPrimaryDriverData;
 
 DFB_GRAPHICS_DRIVER(cle266)
 
@@ -453,6 +458,12 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
      funcs->StretchBlit       = uc_stretch_blit;
      funcs->TextureTriangles  = uc_texture_triangles;
 
+
+     /* install primary layer hooks */
+     if ( getenv("DFB_CLE266_UNDERLAY"))
+          dfb_layers_hook_primary( device, driver_data, &ucPrimaryFuncs,
+                                    &ucOldPrimaryFuncs, &ucOldPrimaryDriverData );
+  
      dfb_layers_register( dfb_screens_at(DSCID_PRIMARY),
                           driver_data, &ucOverlayFuncs );
 

@@ -44,7 +44,7 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     description->caps = UC_OVL_CAPS;
     description->type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
     snprintf(description->name,
-        DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "VIA CLE266 Overlay");
+        DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "VIA CLE266 Video");
 
     adjustment->flags = DCAF_NONE;
 
@@ -53,16 +53,16 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     config->flags  = DLCONF_WIDTH | DLCONF_HEIGHT |
                      DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
 
-    ucovl->v1.win.w = 640;
-    ucovl->v1.win.h = 480;
+    ucovl->v1.win.w = 720;
+    ucovl->v1.win.h = 576;
     ucovl->v1.win.x = 0;
     ucovl->v1.win.y = 0;
 
 
-    config->width  = 640;
-    config->height = 480;
+    config->width  = 720;
+    config->height = 576;
 
-    config->pixelformat = DSPF_YUY2;
+    config->pixelformat = DSPF_RGB16;
     config->buffermode  = DLBM_FRONTONLY;
     config->options     = DLOP_NONE;
 
@@ -71,14 +71,11 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     ucovl->extfifo_on = false;
     ucovl->hwrev = ucdrv->hwrev;
     ucovl->scrwidth = ucovl->v1.win.w;
-    ucovl->hwregs = ucdrv->hwregs;
 
     ucovl->v1.isenabled = false;
     ucovl->v1.cfg = *config;
     ucovl->v1.ox = 0;
     ucovl->v1.oy = 0;
-    ucovl->v1.opacity = 255;
-    ucovl->v1.level = 1;
 
     uc_ovl_remove(layer, driver_data, layer_data, NULL);
 
@@ -96,6 +93,7 @@ uc_ovl_set_region( CoreLayer                  *layer,
                    CoreSurface                *surface,
                    CorePalette                *palette )
 {
+    UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
 
     /* get new destination rectangle */
@@ -114,11 +112,7 @@ uc_ovl_set_region( CoreLayer                  *layer,
     ucovl->v1.isenabled = true;
     ucovl->v1.win = win;
 
-    /* set opacity */
-    ucovl->v1.opacity = config->opacity;
-    VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(config->opacity));
-
-    return uc_ovl_update(ucovl, UC_OVL_CHANGE, surface);
+    return uc_ovl_update(ucdrv, ucovl, UC_OVL_CHANGE, surface);
 }
 
 
@@ -128,15 +122,13 @@ uc_ovl_remove(CoreLayer *layer,
               void      *layer_data,
               void      *region_data)
 {
+    UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
-    volatile __u8* vio = ucovl->hwregs;
+    volatile __u8* vio = ucdrv->hwregs;
 
     ucovl->v1.isenabled = false;
 
     uc_ovl_vcmd_wait(vio);
-
-    //VIDEO_OUT(vio, V_ALPHA_CONTROL, 0);
-    VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(255));
 
     VIDEO_OUT(vio, V_FIFO_CONTROL, UC_MAP_V1_FIFO_CONTROL(16,12,8));
     //  VIDEO_OUT(vio, ALPHA_V3_FIFO_CONTROL, 0x0407181f);
@@ -219,6 +211,7 @@ uc_ovl_flip_region( CoreLayer           *layer,
 {
     //printf("Entering %s ... \n", __PRETTY_FUNCTION__);
 
+    UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
     DFBResult    ret;
 
@@ -228,7 +221,7 @@ uc_ovl_flip_region( CoreLayer           *layer,
 
     dfb_surface_flip_buffers(surface);
 
-    ret = uc_ovl_update(ucovl, UC_OVL_FLIP, surface);
+    ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface);
     if (ret)
         return ret;
 
@@ -258,15 +251,16 @@ uc_ovl_set_level(CoreLayer    *layer,
 {
 
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
+    UcDriverData*  ucdrv = (UcDriverData*) driver_data;
 
     if (level == 0) return DFB_INVARG;
-    if (level < 0) {
+    if (level > 0) {
         // Enable underlay mode.
-        VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(-1));
+        VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(-1));
     }
     else {
         // Enable overlay mode (default)
-        VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL,
+        VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL,
             uc_ovl_map_alpha(ucovl->v1.opacity));
     }
 
@@ -284,4 +278,3 @@ DisplayLayerFuncs ucOverlayFuncs = {
     GetLevel:           uc_ovl_get_level,
     SetLevel:           uc_ovl_set_level,
 };
-

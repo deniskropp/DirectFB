@@ -19,6 +19,7 @@ libdirectfb_cle266_la_SOURCES =     \
 	uc_fifo.c       uc_fifo.h       \
 	uc_overlay.c    uc_overlay.h    \
 	uc_ovl_hwmap.c  uc_ovl_hwset.c  \
+	uc_primary.c			\
 	mmio.h          vidregs.h       \
 	regs2d.h        regs3d.h
 

@@ -76,7 +76,9 @@ void uc_ovl_vcmd_wait(volatile __u8* vio)
  * @note: Derived from ddmpeg.c, Upd_Video()
  */
 
-DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
+DFBResult uc_ovl_update(UcDriverData* ucdrv,
+                        UcOverlayData* ucovl,
+                        int action,
                         CoreSurface* surface)
 {
     int sw, sh, sp, sfmt;   // Source width, height, pitch and format
@@ -88,7 +90,7 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     bool write_buffers = false;
     bool write_settings = false;
 
-    volatile __u8* vio = ucovl->hwregs;
+    volatile __u8* vio = ucdrv->hwregs;
 
     __u32 win_start, win_end;   // Overlay register settings
     __u32 zoom, mini;
@@ -102,8 +104,8 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
 
     // Get screen size
     videomode = dfb_system_current_mode();
-    scr.w = videomode->xres;
-    scr.h = videomode->yres;
+    scr.w = videomode ? videomode->xres : 720;
+    scr.h = videomode ? videomode->yres : 576;
     scr.x = 0;
     scr.y = 0;
 

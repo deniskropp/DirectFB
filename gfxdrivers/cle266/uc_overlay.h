@@ -30,7 +30,6 @@ typedef struct _UcOverlayData {
     // TODO: initialize the variables!!!
 
     __u8                hwrev;       // CLE266 revision
-    volatile __u8*      hwregs;      // Hardware register base
     int                 scrwidth;    // Current screen width
 
     bool                extfifo_on;  // True when we're using the extended fifo.
@@ -63,7 +62,8 @@ __u32 uc_ovl_map_fifo(__u8 depth, __u8 pre_thr, __u8 thr);
 
 void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth);
 void uc_ovl_vcmd_wait(volatile __u8* vio);
-DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
+DFBResult uc_ovl_update(UcDriverData* ucdrv,
+                        UcOverlayData* ucovl, int action,
                         CoreSurface* surface);
 
 
