@@ -1450,24 +1450,30 @@ set_opacity( CoreWindow *window,
      data  = window_data->stack_data;
      stack = data->stack;
 
-     if (!dfb_config->translucent_windows && opacity)
+     if (!stack->hw_mode && !dfb_config->translucent_windows && opacity)
           opacity = 0xFF;
 
      if (old != opacity) {
+          bool show = !old && opacity;
+          bool hide = old && !opacity;
+
           window->opacity = opacity;
 
-          dfb_window_repaint( window, NULL, 0, false, true );
+          if (window->region) {
+               window_data->config.opacity = opacity;
 
-/*          if (window->window_data)
-               dfb_layer_update_window( dfb_layer_at(stack->layer_id),
-                                        window, CWUF_OPACITY );*/
+               dfb_layer_region_set_configuration( window->region, &window_data->config, CLRCF_OPACITY );
+          }
+          else
+               dfb_window_repaint( window, NULL, 0, false, true );
+
 
           /* Check focus after window appeared or disappeared */
-          if ((!old && opacity) || !opacity)
+          if (show || hide)
                update_focus( stack, data );
 
           /* If window disappeared... */
-          if (!opacity) {
+          if (hide) {
                /* Ungrab pointer/keyboard */
                withdraw_window( stack, data, window, window_data );
 

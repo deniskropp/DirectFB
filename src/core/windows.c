@@ -150,6 +150,8 @@ create_region( CoreDFB                 *core,
      D_ASSERT( ret_region != NULL );
      D_ASSERT( ret_surface != NULL );
 
+     memset( &config, 0, sizeof(CoreLayerRegionConfig) );
+
      config.width      = window->width;
      config.height     = window->height;
      config.format     = format;
@@ -157,20 +159,34 @@ create_region( CoreDFB                 *core,
      config.options    = context->config.options & DLOP_FLICKER_FILTERING;
      config.source     = (DFBRectangle) {         0,         0, window->width, window->height };
      config.dest       = (DFBRectangle) { window->x, window->y, window->width, window->height };
-     config.opacity    = 0xff;
+     config.opacity    = 0;
 
      if ((context->config.options & DLOP_ALPHACHANNEL) && DFB_PIXELFORMAT_HAS_ALPHA(format))
           config.options |= DLOP_ALPHACHANNEL;
+
+     config.options |= DLOP_OPACITY;
+
 
      ret = dfb_layer_region_create( context, &region );
      if (ret)
           return ret;
 
-     ret = dfb_layer_region_set_configuration( region, &config, CLRCF_ALL );
-     if (ret) {
-          dfb_layer_region_unref( region );
-          return ret;
-     }
+
+     do {
+          ret = dfb_layer_region_set_configuration( region, &config, CLRCF_ALL );
+          if (ret) {
+               if (config.options & DLOP_OPACITY)
+                    config.options &= ~DLOP_OPACITY;
+               else if (config.options & DLOP_ALPHACHANNEL)
+                    config.options = (config.options & ~DLOP_ALPHACHANNEL) | DLOP_OPACITY;
+               else {
+                    D_ERROR( "DirectFB/Core/Windows: Unable to set region configuration!\n" );
+                    dfb_layer_region_unref( region );
+                    return ret;
+               }
+          }
+     } while (ret);
+
 
      ret = dfb_surface_create( core, window->width, window->height, format,
                                CSP_VIDEOONLY, surface_caps | DSCAPS_DOUBLE, NULL, &surface );
