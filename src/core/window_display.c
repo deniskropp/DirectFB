@@ -32,9 +32,15 @@
 #include <core/coretypes.h>
 
 #include <core/gfxcard.h>
+#include <core/layer_context.h>
+#include <core/layer_region.h>
 #include <core/layers.h>
+#include <core/layers_internal.h>
 #include <core/palette.h>
+#include <core/state.h>
 #include <core/windows.h>
+#include <core/windows_internal.h>
+#include <core/windowstack.h>
 
 #include <misc/util.h>
 #include <gfx/util.h>
@@ -67,6 +73,7 @@ dfb_window_repaint( CoreWindow          *window,
      if (stack->hw_mode)
           return;
 
+     /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return;
 
@@ -87,8 +94,10 @@ dfb_window_repaint( CoreWindow          *window,
           repaint_stack( stack, &reg, flags );
      else
           repaint_stack_for_window( stack, &reg, flags,
-                                    dfb_windowstack_get_window_index(window) );
+                                    dfb_windowstack_get_window_index(stack,
+                                                                     window) );
 
+     /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
 }
 
@@ -102,6 +111,7 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
      if (stack->hw_mode)
           return;
 
+     /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return;
 
@@ -112,28 +122,40 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
 
      repaint_stack( stack, &region, 0 );
 
+     /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
 }
 
 void
 dfb_windowstack_sync_buffers( CoreWindowStack *stack )
 {
-     CoreLayer   *layer;
-     CoreSurface *surface;
+     CoreLayerRegion *region;
+     CoreSurface     *surface;
 
      DFB_ASSERT( stack != NULL );
 
      if (stack->hw_mode)
           return;
 
-     dfb_windowstack_lock( stack );
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return;
 
-     layer = dfb_layer_at( stack->layer_id );
-     surface = dfb_layer_surface( layer );
+     if (dfb_layer_context_get_primary_region( stack->context, &region )) {
+          dfb_windowstack_unlock( stack );
+          return;
+     }
 
-     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE))
-          dfb_gfx_copy(surface, surface, NULL);
+     if (dfb_layer_region_get_surface( region, &surface ) == DFB_OK) {
+          if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE))
+               dfb_gfx_copy( surface, surface, NULL );
 
+          dfb_surface_unref( surface );
+     }
+
+     dfb_layer_region_unref( region );
+
+     /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
 }
 
@@ -143,52 +165,64 @@ static void
 draw_window( CoreWindow *window, CardState *state,
              DFBRegion *region, bool alpha_channel )
 {
-     DFBRectangle            srect;
+     DFBRectangle            src;
      DFBSurfaceBlittingFlags flags = DSBLIT_NOFX;
 
      DFB_ASSERT( window != NULL );
      DFB_ASSERT( state != NULL );
      DFB_ASSERT( region != NULL );
 
-     srect.x = region->x1 - window->x;
-     srect.y = region->y1 - window->y;
-     srect.w = region->x2 - region->x1 + 1;
-     srect.h = region->y2 - region->y1 + 1;
+     /* Initialize source rectangle. */
+     dfb_rectangle_from_region( &src, region );
 
+     /* Subtract window offset. */
+     src.x -= window->x;
+     src.y -= window->y;
+
+     /* Use per pixel alpha blending. */
      if (alpha_channel && (window->options & DWOP_ALPHACHANNEL))
           flags |= DSBLIT_BLEND_ALPHACHANNEL;
 
+     /* Use global alpha blending. */
      if (window->opacity != 0xFF) {
           flags |= DSBLIT_BLEND_COLORALPHA;
 
+          /* Set opacity as blending factor. */
           if (state->color.a != window->opacity) {
-               state->color.a = window->opacity;
+               state->color.a   = window->opacity;
                state->modified |= SMF_COLOR;
           }
      }
 
+     /* Use source color keying. */
      if (window->options & DWOP_COLORKEYING) {
           flags |= DSBLIT_SRC_COLORKEY;
 
+          /* Set window color key. */
           if (state->src_colorkey != window->color_key) {
-               state->src_colorkey = window->color_key;
-               state->modified |= SMF_SRC_COLORKEY;
+               state->src_colorkey  = window->color_key;
+               state->modified     |= SMF_SRC_COLORKEY;
           }
      }
 
+     /* Use automatic deinterlacing. */
      if (window->surface->caps & DSCAPS_INTERLACED)
           flags |= DSBLIT_DEINTERLACE;
 
+     /* Set blitting flags. */
      if (state->blittingflags != flags) {
           state->blittingflags  = flags;
           state->modified      |= SMF_BLITTING_FLAGS;
      }
 
+     /* Set blitting source. */
      state->source    = window->surface;
      state->modified |= SMF_SOURCE;
 
-     dfb_gfxcard_blit( &srect, region->x1, region->y1, state );
+     /* Blit from the window to the region being updated. */
+     dfb_gfxcard_blit( &src, region->x1, region->y1, state );
 
+     /* Reset blitting source. */
      state->source    = NULL;
      state->modified |= SMF_SOURCE;
 }
@@ -196,88 +230,126 @@ draw_window( CoreWindow *window, CardState *state,
 static void
 draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
 {
+     DFBRectangle dst;
+
      DFB_ASSERT( stack != NULL );
      DFB_ASSERT( state != NULL );
      DFB_ASSERT( region != NULL );
 
+     DFB_ASSERT( (stack->bg.mode != DLBM_IMAGE &&
+                  stack->bg.mode != DLBM_TILE) || stack->bg.image != NULL );
+
+     /* Initialize destination rectangle. */
+     dfb_rectangle_from_region( &dst, region );
+
      switch (stack->bg.mode) {
           case DLBM_COLOR: {
-                    CoreSurface *dest  = state->destination;
-                    DFBColor    *color = &stack->bg.color;
-                    DFBRectangle rect  = { region->x1, region->y1,
-                         region->x2 - region->x1 + 1,
-                         region->y2 - region->y1 + 1};
+               CoreSurface *dest  = state->destination;
+               DFBColor    *color = &stack->bg.color;
 
-                    state->color = *color;
+               /* Set the background color. */
+               state->color     = *color;
+               state->modified |= SMF_COLOR;
 
-                    if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
-                         state->color_index = dfb_palette_search( dest->palette,
-                                                                  color->r,
-                                                                  color->g,
-                                                                  color->b,
-                                                                  color->a );
+               /* Lookup index of background color. */
+               if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
+                    state->color_index = dfb_palette_search( dest->palette,
+                                                             color->r,
+                                                             color->g,
+                                                             color->b,
+                                                             color->a );
 
-                    state->modified |= SMF_COLOR;
+               /* Simply fill the background. */
+               dfb_gfxcard_fillrectangle( &dst, state );
 
-                    dfb_gfxcard_fillrectangle( &rect, state );
-                    break;
-               }
+               break;
+          }
+
           case DLBM_IMAGE: {
-                    DFBRectangle rect = { region->x1, region->y1,
-                         region->x2 - region->x1 + 1,
-                         region->y2 - region->y1 + 1};
+               CoreSurface *bg = stack->bg.image;
 
-                    DFB_ASSERT( stack->bg.image != NULL );
+               /* Set blitting source. */
+               state->source    = bg;
+               state->modified |= SMF_SOURCE;
 
-                    if (state->blittingflags != DSBLIT_NOFX) {
-                         state->blittingflags  = DSBLIT_NOFX;
-                         state->modified      |= SMF_BLITTING_FLAGS;
-                    }
-
-                    state->source    = stack->bg.image;
-                    state->modified |= SMF_SOURCE;
-
-                    dfb_gfxcard_blit( &rect, region->x1, region->y1, state );
-
-                    state->source    = NULL;
-                    state->modified |= SMF_SOURCE;
-                    break;
+               /* Set blitting flags. */
+               if (state->blittingflags != DSBLIT_NOFX) {
+                    state->blittingflags  = DSBLIT_NOFX;
+                    state->modified      |= SMF_BLITTING_FLAGS;
                }
+
+               /* Check the size of the background image. */
+               if (bg->width == stack->width && bg->height == stack->height) {
+                    /* Simple blit for 100% fitting background image. */
+                    dfb_gfxcard_blit( &dst, dst.x, dst.y, state );
+               }
+               else {
+                    DFBRegion    clip = state->clip;
+                    DFBRectangle src  = { 0, 0, bg->width, bg->height };
+
+                    /* Change clipping region. */
+                    state->clip      = *region;
+                    state->modified |= SMF_CLIP;
+
+                    /*
+                     * Scale image to fill the whole screen
+                     * clipped to the region being updated.
+                     */
+                    dst.x = 0;
+                    dst.y = 0;
+                    dst.w = stack->width;
+                    dst.h = stack->height;
+
+                    /* Stretch blit for non fitting background images. */
+                    dfb_gfxcard_stretchblit( &src, &dst, state );
+
+                    /* Restore clipping region. */
+                    state->clip      = clip;
+                    state->modified |= SMF_CLIP;
+               }
+
+               /* Reset blitting source. */
+               state->source    = NULL;
+               state->modified |= SMF_SOURCE;
+
+               break;
+          }
+
           case DLBM_TILE: {
-                    DFBRectangle rect = { 0, 0,
-                         stack->bg.image->width,
-                         stack->bg.image->height};
+               CoreSurface  *bg   = stack->bg.image;
+               DFBRegion     clip = state->clip;
+               DFBRectangle  src  = { 0, 0, bg->width, bg->height };
 
-                    DFBRegion orig_clip = state->clip;
-
-                    DFB_ASSERT( stack->bg.image != NULL );
-
-                    if (state->blittingflags != DSBLIT_NOFX) {
-                         state->blittingflags  = DSBLIT_NOFX;
-                         state->modified      |= SMF_BLITTING_FLAGS;
-                    }
-
-                    state->source    = stack->bg.image;
-                    state->clip.x1   = region->x1;
-                    state->clip.y1   = region->y1;
-                    state->clip.x2   = region->x2;
-                    state->clip.y2   = region->y2;
-                    state->modified |= SMF_SOURCE | SMF_CLIP;
-
-                    dfb_gfxcard_tileblit( &rect,
-                                          (region->x1 / rect.w) * rect.w,
-                                          (region->y1 / rect.h) * rect.h,
-                                          (region->x2 / rect.w + 1) * rect.w,
-                                          (region->y2 / rect.h + 1) * rect.h,
-                                          state );
-
-                    state->source    = NULL;
-                    state->clip      = orig_clip;
-                    state->modified |= SMF_SOURCE | SMF_CLIP;
-                    break;
+               /* Set blitting flags. */
+               if (state->blittingflags != DSBLIT_NOFX) {
+                    state->blittingflags  = DSBLIT_NOFX;
+                    state->modified      |= SMF_BLITTING_FLAGS;
                }
+
+               /* Set blitting source and clipping region. */
+               state->source    = stack->bg.image;
+               state->clip      = *region;
+               state->modified |= SMF_SOURCE | SMF_CLIP;
+
+               /* Tiled blit (aligned). */
+               dfb_gfxcard_tileblit( &src,
+                                     (region->x1 / src.w) * src.w,
+                                     (region->y1 / src.h) * src.h,
+                                     (region->x2 / src.w + 1) * src.w,
+                                     (region->y2 / src.h + 1) * src.h,
+                                     state );
+
+               /* Reset blitting source and restore clipping region. */
+               state->source    = NULL;
+               state->clip      = clip;
+               state->modified |= SMF_SOURCE | SMF_CLIP;
+
+               break;
+          }
+
           case DLBM_DONTCARE:
                break;
+
           default:
                BUG( "unknown background mode" );
                break;
@@ -294,7 +366,7 @@ update_region( CoreWindowStack *stack,
                int              y2 )
 {
      int       i      = start;
-     DFBRegion region = { x1, y1, x2, y2};
+     DFBRegion region = { x1, y1, x2, y2 };
 
      /* check for empty region */
      DFB_ASSERT (x1 <= x2  &&  y1 <= y2);
@@ -419,56 +491,36 @@ update_region( CoreWindowStack *stack,
 
 static void
 repaint_stack( CoreWindowStack     *stack,
-               DFBRegion           *region,
+               DFBRegion           *update,
                DFBSurfaceFlipFlags  flags )
 {
-     CoreLayer   *layer   = dfb_layer_at( stack->layer_id );
-     CoreSurface *surface = dfb_layer_surface( layer );
-     CardState   *state   = dfb_layer_state( layer );
+     CoreLayer       *layer = dfb_layer_at( stack->context->layer_id );
+     CardState       *state = &layer->state;
+     CoreLayerRegion *region;
 
-     if (!surface)
+     if ((! stack->active) ||
+         (! dfb_region_intersect( update, 0, 0,
+                                  stack->width - 1, stack->height - 1 )) ||
+         (dfb_layer_context_get_primary_region( stack->context, &region ) != DFB_OK))
+     {
           return;
+     }
 
-     if (!dfb_region_intersect( region, 0, 0,
-                                surface->width - 1, surface->height - 1 ))
+     if (!region->surface) {
+          dfb_layer_region_unref( region );
           return;
+     }
 
-     if (dfb_layer_lease( layer ))
-          return;
-
-     state->destination = surface;
-     state->clip        = *region;
+     state->destination = region->surface;
+     state->clip        = *update;
      state->modified   |= SMF_DESTINATION | SMF_CLIP;
 
      update_region( stack, state, stack->num_windows - 1,
-                    region->x1, region->y1, region->x2, region->y2 );
+                    update->x1, update->y1, update->x2, update->y2 );
 
-     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)) {
-          if (region->x1 == 0 &&
-              region->y1 == 0 &&
-              region->x2 == surface->width - 1 &&
-              region->y2 == surface->height - 1) {
-               dfb_layer_flip_buffers( layer, flags );
-          }
-          else {
-               DFBRectangle rect = { region->x1, region->y1,
-                    region->x2 - region->x1 + 1,
-                    region->y2 - region->y1 + 1};
+     dfb_layer_region_flip_update( region, update, flags );
 
-               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC)
-                    dfb_layer_wait_vsync( layer );
-
-               dfb_back_to_front_copy( surface, &rect );
-               dfb_layer_update_region( layer, region, flags );
-
-               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT)
-                    dfb_layer_wait_vsync( layer );
-          }
-     }
-     else
-          dfb_layer_update_region( layer, region, flags );
-
-     dfb_layer_release( layer, false );
+     dfb_layer_region_unref( region );
 
      state->destination = NULL;
 }

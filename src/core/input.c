@@ -52,9 +52,13 @@
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
 #include <core/system.h>
+#include <core/layer_context.h>
+#include <core/layer_control.h>
+#include <core/layer_region.h>
 #include <core/layers.h>
 #include <core/input.h>
 #include <core/windows.h>
+#include <core/windows_internal.h>
 
 #include <misc/mem.h>
 #include <misc/memcpy.h>
@@ -166,7 +170,7 @@ static bool
 core_input_filter( InputDevice *device, DFBInputEvent *event );
 
 static const React dfb_input_globals[] = {
-/* 0 */   _dfb_window_stack_inputdevice_react,
+/* 0 */   _dfb_windowstack_inputdevice_listener,
           NULL
 };
 
@@ -1447,6 +1451,47 @@ flush_keys( InputDevice *device )
      }
 }
 
+static void
+dump_primary_layer_surface()
+{
+     CoreLayer        *layer = dfb_layer_at( DLID_PRIMARY );
+     CoreLayerContext *context;
+
+     /* Get the currently active context. */
+     if (dfb_layer_get_active_context( layer, &context ) == DFB_OK) {
+          CoreLayerRegion *region;
+
+          /* Get the first region. */
+          if (dfb_layer_context_get_primary_region( context,
+                                                    &region ) == DFB_OK)
+          {
+               CoreSurface *surface;
+
+               /* Lock the region to avoid tearing due to concurrent updates. */
+               dfb_layer_region_lock( region );
+
+               /* Get the surface of the region. */
+               if (dfb_layer_region_get_surface( region, &surface ) == DFB_OK) {
+                    /* Dump the surface contents. */
+                    dfb_surface_dump( surface,
+                                      dfb_config->screenshot_dir, "dfb" );
+
+                    /* Release the surface. */
+                    dfb_surface_unref( surface );
+               }
+
+               /* Unlock the region. */
+               dfb_layer_region_unlock( region );
+
+               /* Release the region. */
+               dfb_layer_region_unref( region );
+          }
+
+          /* Release the context. */
+          dfb_layer_context_unref( context );
+     }
+}
+
 static bool
 core_input_filter( InputDevice *device, DFBInputEvent *event )
 {
@@ -1457,22 +1502,33 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
           switch (event->key_symbol) {
                case DIKS_PRINT:
                     if (!event->modifiers && dfb_config->screenshot_dir) {
-                         dfb_surface_dump( dfb_layer_surface( dfb_layer_at(0) ),
-                                           dfb_config->screenshot_dir, "dfb" );
+                         dump_primary_layer_surface();
                          return true;
                     }
                     break;
 
-               case DIKS_BREAK:
-                    if ((event->modifiers & DIMM_ALT) &&
-                        (event->modifiers & DIMM_CONTROL))
-                    {
-#ifdef FUSION_FAKE
-                         kill( 0, SIGINT );
+               case DIKS_ESCAPE:
+                    if (event->modifiers == DIMM_META) {
+#ifndef FUSION_FAKE
+                         DFBResult         ret;
+                         CoreLayer        *layer = dfb_layer_at( DLID_PRIMARY );
+                         CoreLayerContext *context;
+
+                         /* Get primary (shared) context. */
+                         ret = dfb_layer_get_primary_context( layer, &context );
+                         if (ret)
+                              return false;
+
+                         /* Activate the context. */
+                         dfb_layer_activate_context( layer, context );
+
+                         /* Release the context. */
+                         dfb_layer_context_unref( context );
+
 #else
-                         dfb_gfxcard_holdup();
-                         dfb_layer_holdup( dfb_layer_at(0) );
+                         kill( 0, SIGINT );
 #endif
+
                          return true;
                     }
                     break;

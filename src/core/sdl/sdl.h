@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -31,8 +31,10 @@
 #include <core/fusion/lock.h>
 
 typedef struct {
-     FusionSkirmish lock;
-     FusionCall     call;
+     FusionSkirmish  lock;
+     FusionCall      call;
+
+     CoreSurface    *primary;
 } DFBSDL;
 
 #endif

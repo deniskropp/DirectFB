@@ -51,6 +51,11 @@ void fusion_exit();
 int fusion_id();
 
 /*
+ * Processes pending fusion messages.
+ */
+void fusion_sync();
+
+/*
  * Sends a signal to one or more fusionees and optionally waits
  * for their processes to terminate.
  *

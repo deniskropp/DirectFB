@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -23,6 +23,8 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+
+#include <config.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -47,8 +49,6 @@
 #include <misc/gfx_util.h>
 #include <misc/mem.h>
 #include <misc/util.h>
-
-#include <config.h>
 
 #include "mpeg2/mpeg2dec.h"
 
@@ -115,7 +115,7 @@ IDirectFBImageProvider_MPEG2_GetImageDescription( IDirectFBImageProvider *thiz,
 
 
 static int  mpeg2_read_func ( void *buf, int count, void *ctx );
-static void mpeg2_write_func( int x, int y, uint32_t argb, void *ctx );
+static void mpeg2_write_func( int x, int y, __u32 argb, void *ctx );
 
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
@@ -127,7 +127,7 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx )
 
      return DFB_UNSUPPORTED;
 }
-    
+
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer )
@@ -155,7 +155,7 @@ Construct( IDirectFBImageProvider *thiz,
           goto error;
 
      data->stage = STAGE_IMAGE;
-     
+
      thiz->AddRef = IDirectFBImageProvider_MPEG2_AddRef;
      thiz->Release = IDirectFBImageProvider_MPEG2_Release;
      thiz->RenderTo = IDirectFBImageProvider_MPEG2_RenderTo;
@@ -173,7 +173,7 @@ error:
      buffer->Release( buffer );
 
      DFB_DEALLOCATE_INTERFACE(thiz);
-     
+
      return ret;
 }
 
@@ -184,14 +184,14 @@ IDirectFBImageProvider_MPEG2_Destruct( IDirectFBImageProvider *thiz )
                               (IDirectFBImageProvider_MPEG2_data*)thiz->priv;
 
      MPEG2_Close(data->dec);
-     
+
      /* Decrease the data buffer reference counter. */
      data->buffer->Release( data->buffer );
 
      /* Deallocate image data. */
      if (data->image)
           DFBFREE( data->image );
-     
+
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -265,7 +265,7 @@ IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
 
           dfb_scale_linear_32( data->image, data->width, data->height,
                                dst, pitch, &rect, dst_surface );
-          
+
           destination->Unlock( destination );
      }
 
@@ -287,12 +287,12 @@ IDirectFBImageProvider_MPEG2_GetSurfaceDescription( IDirectFBImageProvider *thiz
                                                     DFBSurfaceDescription *dsc )
 {
      INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
-          
+
      dsc->flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc->width       = data->width;
      dsc->height      = data->height;
      dsc->pixelformat = dfb_primary_layer_pixelformat();
-     
+
      return DFB_OK;
 }
 
@@ -306,12 +306,12 @@ IDirectFBImageProvider_MPEG2_GetImageDescription( IDirectFBImageProvider *thiz,
           return DFB_INVARG;
 
      dsc->caps = DICAPS_NONE;
-     
+
      return DFB_OK;
 }
 
 /******************************************************************************/
-    
+
 static int
 mpeg2_read_func( void *buf, int count, void *ctx )
 {
@@ -329,7 +329,7 @@ mpeg2_read_func( void *buf, int count, void *ctx )
 }
 
 static void
-mpeg2_write_func( int x, int y, uint32_t argb, void *ctx )
+mpeg2_write_func( int x, int y, __u32 argb, void *ctx )
 {
      IDirectFBImageProvider_MPEG2_data *data =
                                        (IDirectFBImageProvider_MPEG2_data*) ctx;

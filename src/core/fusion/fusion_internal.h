@@ -79,6 +79,7 @@
               getpid(), millis/1000, millis%1000, __FUNCTION__ );              \
      fprintf( stderr, x );                                                     \
      fflush( stderr );                                                         \
+     dfb_trace_print_stack( -1 );                                              \
 } while (0)
 
 #  define FPERROR(x...) do \
@@ -90,6 +91,7 @@
      fprintf( stderr, "    --> " );                                            \
      perror("");                                                               \
      fflush( stderr );                                                         \
+     dfb_trace_print_stack( -1 );                                              \
 } while (0)
 #endif
 

@@ -28,8 +28,10 @@
 
 #include <misc/memcpy.h>
 
-#include "shmalloc.h"
-#include "vector.h"
+#include <core/fusion/object.h>
+#include <core/fusion/shmalloc.h>
+#include <core/fusion/vector.h>
+
 
 static inline bool ensure_capacity( FusionVector *vector )
 {
@@ -40,7 +42,7 @@ static inline bool ensure_capacity( FusionVector *vector )
           if (!vector->elements)
                return false;
      }
-     else if (vector->num_elements == vector->capacity) {
+     else if (vector->count == vector->capacity) {
           void *elements;
           int   capacity = vector->capacity << 1;
 
@@ -49,7 +51,7 @@ static inline bool ensure_capacity( FusionVector *vector )
                return false;
 
           dfb_memcpy( elements, vector->elements,
-                      vector->num_elements * sizeof(void*) );
+                      vector->count * sizeof(void*) );
 
           vector->elements = elements;
           vector->capacity = capacity;
@@ -64,63 +66,104 @@ fusion_vector_init( FusionVector *vector, int capacity )
      DFB_ASSERT( vector != NULL );
      DFB_ASSERT( capacity > 0 );
 
-     vector->elements     = NULL;
-     vector->num_elements = 0;
-     vector->capacity     = capacity;
+     vector->magic    = FUSION_VECTOR_MAGIC;
+     vector->elements = NULL;
+     vector->count    = 0;
+     vector->capacity = capacity;
 }
 
 void
 fusion_vector_destroy( FusionVector *vector )
 {
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->num_elements == 0 || vector->elements != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_ASSERT( vector->count == 0 || vector->elements != NULL );
 
      if (vector->elements) {
           SHFREE( vector->elements );
           vector->elements = NULL;
      }
+
+     vector->magic = 0;
 }
 
-void
+FusionResult
 fusion_vector_add( FusionVector *vector,
                    void         *element )
 {
      DFB_ASSERT( vector != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_ASSERT( element != NULL );
 
+     /* Make sure there's a free entry left. */
      if (!ensure_capacity( vector ))
-          return;
+          return FUSION_OUTOFSHAREDMEMORY;
 
-     vector->elements[ vector->num_elements++ ] = element;
+     /* Add the element to the vector. */
+     vector->elements[vector->count++] = element;
+
+     return FUSION_SUCCESS;
 }
 
-void
+FusionResult
 fusion_vector_insert( FusionVector *vector,
                       void         *element,
                       int           index )
 {
      DFB_ASSERT( vector != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_ASSERT( element != NULL );
      DFB_ASSERT( index >= 0 );
-     DFB_ASSERT( index <= vector->num_elements );
+     DFB_ASSERT( index <= vector->count );
 
+     /* Make sure there's a free entry left. */
      if (!ensure_capacity( vector ))
-          return;
+          return FUSION_OUTOFSHAREDMEMORY;
 
-     memmove( vector->elements + index, vector->elements + index + 1,
-              (vector->num_elements - index) * sizeof(void*) );
+     /* Move elements from insertion point one up. */
+     memmove( &vector->elements[ index ],
+              &vector->elements[ index + 1 ],
+              (vector->count - index) * sizeof(void*) );
 
+     /* Insert the element into the vector. */
      vector->elements[index] = element;
 
-     vector->num_elements++;
+     /* Increase the element counter. */
+     vector->count++;
+
+     return FUSION_SUCCESS;
 }
 
-void
+FusionResult
 fusion_vector_remove( FusionVector *vector,
                       int           index )
 {
      DFB_ASSERT( vector != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
      DFB_ASSERT( index >= 0 );
-     DFB_ASSERT( index < vector->num_elements );
+     DFB_ASSERT( index < vector->count );
 
+     /* Move elements after this element one down. */
+     memmove( &vector->elements[ index + 1 ],
+              &vector->elements[ index ],
+              (vector->count - index - 1) * sizeof(void*) );
 
+     /* Decrease the element counter. */
+     vector->count--;
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_vector_remove_last( FusionVector *vector )
+{
+     DFB_ASSERT( vector != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_ASSERT( vector->count > 0 );
+
+     /* Decrease the element counter. */
+     vector->count--;
+
+     return FUSION_SUCCESS;
 }
 

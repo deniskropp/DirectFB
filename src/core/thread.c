@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -104,13 +104,13 @@ dfb_thread_create( CoreThreadType  thread_type,
 
 #ifdef DFB_THREAD_WAIT_INIT
      DEBUGMSG( "DirectFB/core/threads: Waiting for thread to run...\n" );
-     
+
      /* Wait for completion of the thread's initialization. */
      while (!thread->init)
           sched_yield();
 
      DEBUGMSG( "DirectFB/core/threads: ...thread is running.\n" );
-#endif     
+#endif
 
      DEBUGMSG( "DirectFB/core/threads: ...created thread of type %d (%d).\n",
                thread_type, thread->pid );
@@ -159,7 +159,7 @@ dfb_thread_join( CoreThread *thread )
 {
      DFB_ASSERT( thread != NULL );
      DFB_ASSERT( thread->thread != -1 );
-     
+
      DFB_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
      DFB_ASSUME( !thread->joining );
      DFB_ASSUME( !thread->joined );
@@ -217,10 +217,10 @@ dfb_thread_main( void *arg )
      thread->pid = getpid();
 
      dfb_system_thread_init();
-     
+
      /* Have all signals handled by the main thread. */
      dfb_sig_block_all();
-     
+
      /* Adjust scheduling priority. */
      switch (thread->type) {
           case CTT_INPUT:
@@ -242,7 +242,7 @@ dfb_thread_main( void *arg )
           default:
                break;
      }
-     
+
 #ifdef DFB_THREAD_WAIT_INIT
      /* Indicate that our initialization has completed. */
      thread->init = true;
@@ -262,7 +262,7 @@ dfb_thread_main( void *arg )
      if (thread->thread == -1) {
           DEBUGMSG( "DirectFB/core/threads: "
                     "    (thread) Waiting for pthread_create()...\n" );
-     
+
           /* Wait for completion of pthread_create(). */
           while ((int) thread->thread == -1)
                sched_yield();
@@ -271,7 +271,7 @@ dfb_thread_main( void *arg )
                     "    (thread) ...pthread_create() finished.\n" );
      }
 #endif
-     
+
      /* Call main routine. */
      return thread->main( thread, thread->arg );
 }

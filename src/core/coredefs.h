@@ -60,12 +60,13 @@
      #define CAUTION(msg)     do { } while (0)
 #else
 #define INITMSG(x...)    if (!dfb_config->quiet) fprintf( stderr, "(*) "x );
-#define ERRORMSG(x...)   if (!dfb_config->quiet) fprintf( stderr, "(!) "x );
+#define ERRORMSG(x...)   if (!dfb_config->quiet) { fprintf( stderr, "(!) "x ); dfb_trace_print_stack( -1 ); }
 
 #define PERRORMSG(x...)  do { if (!dfb_config->quiet) {                        \
                               fprintf( stderr, "(!) "x );                      \
                               fprintf( stderr, "    --> " );                   \
                               perror("");                                      \
+                              dfb_trace_print_stack( -1 );                     \
                          } } while (0)
 
 #define DLERRORMSG(x...) do { if (!dfb_config->quiet) {                        \

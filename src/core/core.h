@@ -54,10 +54,11 @@ DFBResult dfb_core_destroy( CoreDFB  *core,
 /*
  * Object creation
  */
-CoreLayerRegion *dfb_core_create_layer_region( CoreDFB *core );
-CorePalette     *dfb_core_create_palette     ( CoreDFB *core );
-CoreSurface     *dfb_core_create_surface     ( CoreDFB *core );
-CoreWindow      *dfb_core_create_window      ( CoreDFB *core );
+CoreLayerContext *dfb_core_create_layer_context( CoreDFB *core );
+CoreLayerRegion  *dfb_core_create_layer_region ( CoreDFB *core );
+CorePalette      *dfb_core_create_palette      ( CoreDFB *core );
+CoreSurface      *dfb_core_create_surface      ( CoreDFB *core );
+CoreWindow       *dfb_core_create_window       ( CoreDFB *core );
 
 /*
  * Debug

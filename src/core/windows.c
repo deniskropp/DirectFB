@@ -48,6 +48,7 @@
 #include <core/state.h>
 #include <core/system.h>
 #include <core/windows.h>
+#include <core/windowstack.h>
 #include <core/palette.h>
 
 #include <misc/conf.h>
@@ -56,6 +57,7 @@
 #include <gfx/util.h>
 
 #include <core/layers_internal.h>
+#include <core/windows_internal.h>
 
 typedef struct {
      FusionLink       link;
@@ -73,13 +75,7 @@ typedef struct {
      CoreWindow                 *owner;
 } GrabbedKey;
 
-static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
-static int  handle_enter_leave_focus( CoreWindowStack *stack );
-static void handle_wheel( CoreWindowStack *stack, int z );
 static DFBWindowID new_window_id( CoreWindowStack *stack );
-
-static CoreWindow* get_keyboard_window( CoreWindowStack     *stack,
-                                        const DFBInputEvent *evt );
 
 
 /*
@@ -119,15 +115,6 @@ window_withdraw( CoreWindow *window );
 static void
 window_restacked( CoreWindow *window );
 
-static DFBEnumerationResult
-stack_attach_devices( InputDevice *device,
-                      void        *ctx );
-
-/*
- * Sends focus lost/got events and sets stack->focused_window.
- */
-static void
-switch_focus( CoreWindowStack *stack, CoreWindow *to );
 
 /*
  * Tries to focus any window starting with the highest one
@@ -172,126 +159,8 @@ dfb_window_pool_create()
 
 /******************************************************************************/
 
-/*
- * Allocates and initializes a window stack.
- */
-CoreWindowStack*
-dfb_windowstack_new( CoreLayer *layer, int width, int height )
-{
-     int               i;
-     CoreWindowStack  *stack;
-
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( width > 0 );
-     DFB_ASSERT( height > 0 );
-
-     /* Allocate window stack data (completely shared) */
-     stack = (CoreWindowStack*) SHCALLOC( 1, sizeof(CoreWindowStack) );
-
-     /* Remember layer id for access to it's local data later */
-     stack->layer_id = layer->shared->id;
-
-     /* Initialize the modify/update lock */
-     fusion_skirmish_init( &stack->lock );
-
-     /* Set default acceleration */
-     stack->cursor.numerator   = 2;
-     stack->cursor.denominator = 1;
-     stack->cursor.threshold   = 4;
-
-     /* Set default background mode, primary layer is handled by directfb.c */
-     stack->bg.mode = (stack->layer_id == DLID_PRIMARY) ? DLBM_DONTCARE :
-                      DLBM_COLOR;
-
-     /* Setup size and cursor clipping region */
-     dfb_windowstack_resize( stack, width, height );
-
-     for (i=0; i<8; i++)
-          stack->keys[i].code = -1;
-
-     /* Attach to all input devices */
-     dfb_input_enumerate_devices( stack_attach_devices, stack );
-
-     return stack;
-}
-
-void
-dfb_windowstack_destroy( CoreWindowStack *stack )
-{
-     FusionLink *l, *next;
-
-     DFB_ASSERT( stack != NULL );
-
-     /* Detach all input devices. */
-     l = stack->devices;
-     while (l) {
-          FusionLink  *next   = l->next;
-          StackDevice *device = (StackDevice*) l;
-
-          dfb_input_detach_global( dfb_input_device_at( device->id ),
-                                   &device->reaction );
-
-          SHFREE( device );
-
-          l = next;
-     }
-
-     /* Unlink cursor window. */
-     if (stack->cursor.window)
-          dfb_window_unlink( &stack->cursor.window );
-
-     /* Destroy the stack lock. */
-     fusion_skirmish_destroy( &stack->lock );
-
-     /* see FIXME above */
-     DFB_ASSUME( !stack->windows );
-
-     if (stack->windows) {
-          int i;
-
-          for (i=0; i<stack->num_windows; i++) {
-               CAUTION( "setting window->stack = NULL" );
-               stack->windows[i]->stack = NULL;
-          }
-
-          SHFREE( stack->windows );
-     }
-
-     /* Free grabbed keys. */
-     fusion_list_foreach_safe (l, next, stack->grabbed_keys)
-          SHFREE( l );
-
-     /* Free stack data. */
-     SHFREE( stack );
-}
-
-void
-dfb_windowstack_resize( CoreWindowStack *stack,
-                        int              width,
-                        int              height )
-{
-     DFB_ASSERT( stack != NULL );
-
-     /* FIXME: function is called during layer lease, locking the stack here
-        results in a dead lock */
-     //dfb_windowstack_lock( stack );
-
-     /* Store the width and height of the stack */
-     stack->width  = width;
-     stack->height = height;
-
-     /* Setup new cursor clipping region */
-     stack->cursor.region.x1 = 0;
-     stack->cursor.region.y1 = 0;
-     stack->cursor.region.x2 = width - 1;
-     stack->cursor.region.y2 = height - 1;
-
-     //dfb_windowstack_unlock( stack );
-}
-
 DFBResult
 dfb_window_create( CoreWindowStack        *stack,
-                   CoreLayer              *layer,
                    int                     x,
                    int                     y,
                    int                     width,
@@ -299,21 +168,24 @@ dfb_window_create( CoreWindowStack        *stack,
                    DFBWindowCapabilities   caps,
                    DFBSurfaceCapabilities  surface_caps,
                    DFBSurfacePixelFormat   pixelformat,
-                   DFBDisplayLayerConfig  *config,
                    CoreWindow            **ret_window )
 {
      DFBResult               ret;
      CoreSurface            *surface;
      CoreSurfacePolicy       surface_policy = CSP_SYSTEMONLY;
+     CoreLayer              *layer;
+     CoreLayerContext       *context;
      CoreWindow             *window;
      CardCapabilities        card_caps;
 
      DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( layer != NULL );
+     DFB_ASSERT( stack->context != NULL );
      DFB_ASSERT( width > 0 );
      DFB_ASSERT( height > 0 );
-     DFB_ASSERT( config != NULL );
      DFB_ASSERT( ret_window != NULL );
+
+     context = stack->context;
+     layer   = dfb_layer_at( context->layer_id );
 
      if (width > 4096 || height > 4096)
           return DFB_BUFFERTOOLARGE;
@@ -336,8 +208,8 @@ dfb_window_create( CoreWindowStack        *stack,
                return DFB_INVARG;
      }
      else if (pixelformat == DSPF_UNKNOWN) {
-          if (config->flags & DLCONF_PIXELFORMAT)
-               pixelformat = config->pixelformat;
+          if (context->config.flags & DLCONF_PIXELFORMAT)
+               pixelformat = context->config.pixelformat;
           else {
                CAUTION( "layer config has no pixel format, using RGB16" );
 
@@ -347,12 +219,12 @@ dfb_window_create( CoreWindowStack        *stack,
 
      /* Choose window surface policy */
      if ((surface_caps & DSCAPS_VIDEOONLY) ||
-         (config->buffermode == DLBM_WINDOWS))
+         (context->config.buffermode == DLBM_WINDOWS))
      {
           surface_policy = CSP_VIDEOONLY;
      }
      else if (!(surface_caps & DSCAPS_SYSTEMONLY) &&
-              config->buffermode != DLBM_BACKSYSTEM)
+              context->config.buffermode != DLBM_BACKSYSTEM)
      {
           if (dfb_config->window_policy != -1) {
                /* Use the explicitly specified policy. */
@@ -410,21 +282,21 @@ dfb_window_create( CoreWindowStack        *stack,
 
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
-          if (config->buffermode == DLBM_WINDOWS) {
+          if (context->config.buffermode == DLBM_WINDOWS) {
                ret = dfb_surface_create( layer->core,
                                          width, height, pixelformat,
                                          surface_policy, surface_caps,
                                          NULL, &surface );
           }
           else {
-               CoreSurface *layer_surface = dfb_layer_surface( layer );
+               //CoreSurface *layer_surface = dfb_layer_surface( layer );
 
-               DFB_ASSERT( layer_surface != NULL );
+               //DFB_ASSERT( layer_surface != NULL );
 
                ret = dfb_surface_create( layer->core,
                                          width, height, pixelformat,
                                          surface_policy, surface_caps,
-                                         layer_surface->palette, &surface );
+                                         NULL/*layer_surface->palette*/, &surface );
           }
 
           if (ret) {
@@ -435,14 +307,14 @@ dfb_window_create( CoreWindowStack        *stack,
           dfb_surface_link( &window->surface, surface );
           dfb_surface_unref( surface );
 
-          if (config->buffermode == DLBM_WINDOWS) {
+/*          if (context->config.buffermode == DLBM_WINDOWS) {
                ret = dfb_layer_add_window( layer, window );
                if (ret) {
                     dfb_surface_unlink( &window->surface );
                     fusion_object_destroy( &window->object );
                     return ret;
                }
-          }
+          }*/
 
           dfb_surface_attach_global( surface, DFB_WINDOW_SURFACE_LISTENER,
                                      window, &window->surface_reaction );
@@ -511,10 +383,16 @@ dfb_window_destroy( CoreWindow *window )
      /* Indicate destruction. */
      window->destroyed = true;
 
-     /* Remove from hardware */
-     if (window->window_data) {
-          dfb_layer_remove_window( dfb_layer_at(stack->layer_id), window );
-          window->window_data = NULL;
+     /* Hardware allocated? */
+     if (window->region) {
+          /* Disable region (removing it from hardware). */
+          dfb_layer_region_disable( window->region );
+
+          /* Throw away it's surface. */
+          dfb_layer_region_disable( window->region );
+
+          /* Unlink from structure. */
+          dfb_layer_region_unlink( &window->region );
      }
 
      /* Unlink the window's surface. */
@@ -544,7 +422,7 @@ dfb_window_change_stacking( CoreWindow             *window,
           return;
      }
 
-     index = dfb_windowstack_get_window_index( window );
+     index = dfb_windowstack_get_window_index( stack, window );
      if (index < 0) {
           dfb_windowstack_unlock( stack );
           return;
@@ -609,7 +487,7 @@ dfb_window_raise( CoreWindow *window )
 
      dfb_windowstack_lock( stack );
 
-     index = dfb_windowstack_get_window_index( window );
+     index = dfb_windowstack_get_window_index( stack, window );
      if (index < 0) {
           dfb_windowstack_unlock( stack );
           return;
@@ -632,7 +510,7 @@ dfb_window_lower( CoreWindow *window )
 
      dfb_windowstack_lock( stack );
 
-     index = dfb_windowstack_get_window_index( window );
+     index = dfb_windowstack_get_window_index( stack, window );
      if (index < 0) {
           dfb_windowstack_unlock( stack );
           return;
@@ -655,7 +533,7 @@ dfb_window_raisetotop( CoreWindow *window )
 
      dfb_windowstack_lock( stack );
 
-     index = dfb_windowstack_get_window_index( window );
+     index = dfb_windowstack_get_window_index( stack, window );
      if (index < 0) {
           dfb_windowstack_unlock( stack );
           return;
@@ -678,7 +556,7 @@ dfb_window_lowertobottom( CoreWindow *window )
 
      dfb_windowstack_lock( stack );
 
-     index = dfb_windowstack_get_window_index( window );
+     index = dfb_windowstack_get_window_index( stack, window );
      if (index < 0) {
           dfb_windowstack_unlock( stack );
           return;
@@ -703,13 +581,13 @@ dfb_window_putatop( CoreWindow *window,
 
      dfb_windowstack_lock( stack );
 
-     index = dfb_windowstack_get_window_index( window );
+     index = dfb_windowstack_get_window_index( stack, window );
      if (index < 0) {
           dfb_windowstack_unlock( stack );
           return;
      }
 
-     lower_index = dfb_windowstack_get_window_index( lower );
+     lower_index = dfb_windowstack_get_window_index( stack, lower );
      if (lower_index < 0) {
           dfb_windowstack_unlock( stack );
           return;
@@ -737,13 +615,13 @@ dfb_window_putbelow( CoreWindow *window,
 
      dfb_windowstack_lock( stack );
 
-     index = dfb_windowstack_get_window_index( window );
+     index = dfb_windowstack_get_window_index( stack, window );
      if (index < 0) {
           dfb_windowstack_unlock( stack );
           return;
      }
 
-     upper_index = dfb_windowstack_get_window_index( upper );
+     upper_index = dfb_windowstack_get_window_index( stack, upper );
      if (upper_index < 0) {
           dfb_windowstack_unlock( stack );
           return;
@@ -789,9 +667,9 @@ dfb_window_move( CoreWindow *window,
           dfb_window_repaint( window, &region, 0, false, false );
      }
 
-     if (window->window_data)
+/*     if (window->window_data)
           dfb_layer_update_window( dfb_layer_at(stack->layer_id),
-                                   window, CWUF_POSITION );
+                                   window, CWUF_POSITION );*/
 
      /* Send new position */
      evt.type = DWET_POSITION;
@@ -811,7 +689,7 @@ dfb_window_resize( CoreWindow   *window,
      CoreWindowStack *stack = window->stack;
      int              ow    = window->width;
      int              oh    = window->height;
-     CoreLayer       *layer = dfb_layer_at( stack->layer_id );
+     CoreLayer       *layer = dfb_layer_at( stack->context->layer_id );
 
      DFB_ASSERT( width > 0 );
      DFB_ASSERT( height > 0 );
@@ -855,9 +733,9 @@ dfb_window_resize( CoreWindow   *window,
           }
      }
 
-     if (window->window_data)
+/*     if (window->window_data)
           dfb_layer_update_window( dfb_layer_at(stack->layer_id),
-                                   window, CWUF_SIZE | CWUF_SURFACE );
+                                   window, CWUF_SIZE | CWUF_SURFACE );*/
 
      /* Send new size */
      evt.type = DWET_SIZE;
@@ -865,7 +743,7 @@ dfb_window_resize( CoreWindow   *window,
      evt.h = window->height;
      dfb_window_post_event( window, &evt );
 
-     handle_enter_leave_focus( stack );
+     dfb_windowstack_update_focus( stack );
 
      dfb_windowstack_unlock( stack );
 
@@ -889,13 +767,13 @@ dfb_window_set_opacity( CoreWindow *window,
 
           dfb_window_repaint( window, NULL, 0, false, true );
 
-          if (window->window_data)
+/*          if (window->window_data)
                dfb_layer_update_window( dfb_layer_at(stack->layer_id),
-                                        window, CWUF_OPACITY );
+                                        window, CWUF_OPACITY );*/
 
           /* Check focus after window appeared or disappeared */
           if ((!old_opacity && opacity) || !opacity)
-               handle_enter_leave_focus( stack );
+               dfb_windowstack_update_focus( stack );
 
           /* If window disappeared... */
           if (!opacity) {
@@ -972,7 +850,7 @@ dfb_window_ungrab_pointer( CoreWindow *window )
           stack->pointer_window = NULL;
 
           /* Possibly change focus to window now under the cursor */
-          handle_enter_leave_focus( stack );
+          dfb_windowstack_update_focus( stack );
      }
 
      dfb_windowstack_unlock( stack );
@@ -1087,7 +965,7 @@ dfb_window_request_focus( CoreWindow *window )
 
      dfb_windowstack_lock( stack );
 
-     switch_focus( stack, window );
+     dfb_windowstack_switch_focus( stack, window );
 
      if (stack->entered_window && stack->entered_window != window) {
           DFBWindowEvent  we;
@@ -1105,712 +983,33 @@ dfb_window_request_focus( CoreWindow *window )
      dfb_windowstack_unlock( stack );
 }
 
-void
-dfb_windowstack_flush_keys( CoreWindowStack *stack )
+DFBWindowID
+dfb_window_id( const CoreWindow *window )
 {
-     int i;
+     DFB_ASSERT( window != NULL );
 
-     DFB_ASSERT( stack != NULL );
-
-     dfb_windowstack_lock( stack );
-
-     for (i=0; i<8; i++) {
-          if (stack->keys[i].code != -1) {
-               DFBWindowEvent we;
-
-               we.type       = DWET_KEYUP;
-               we.key_code   = stack->keys[i].code;
-               we.key_id     = stack->keys[i].id;
-               we.key_symbol = stack->keys[i].symbol;
-
-               dfb_window_post_event( stack->keys[i].owner, &we );
-
-               stack->keys[i].code = -1;
-          }
-     }
-
-     dfb_windowstack_unlock( stack );
+     return window->id;
 }
 
-void
-dfb_windowstack_handle_motion( CoreWindowStack          *stack,
-                               int                       dx,
-                               int                       dy )
-{
-     int            new_cx, new_cy;
-     DFBWindowEvent we;
-
-     DFB_ASSERT( stack != NULL );
-
-     dfb_windowstack_lock( stack );
-
-     if (!stack->cursor.enabled) {
-          dfb_windowstack_unlock( stack );
-          return;
-     }
-
-     new_cx = MIN( stack->cursor.x + dx, stack->cursor.region.x2);
-     new_cy = MIN( stack->cursor.y + dy, stack->cursor.region.y2);
-
-     new_cx = MAX( new_cx, stack->cursor.region.x1 );
-     new_cy = MAX( new_cy, stack->cursor.region.y1 );
-
-     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y) {
-          dfb_windowstack_unlock( stack );
-          return;
-     }
-
-     dx = new_cx - stack->cursor.x;
-     dy = new_cy - stack->cursor.y;
-
-     stack->cursor.x = new_cx;
-     stack->cursor.y = new_cy;
-
-     DFB_ASSERT( stack->cursor.window != NULL );
-
-     dfb_window_move( stack->cursor.window, dx, dy );
-
-     switch (stack->wm_hack) {
-          case 3: {
-                    CoreWindow *window = stack->entered_window;
-
-                    if (window) {
-                         int opacity = window->opacity + dx;
-
-                         if (opacity < 8)
-                              opacity = 8;
-                         else if (opacity > 255)
-                              opacity = 255;
-
-                         dfb_window_set_opacity( window, opacity );
-                    }
-
-                    break;
-               }
-
-          case 2: {
-                    CoreWindow *window = stack->entered_window;
-
-                    if (window && !(window->options & DWOP_KEEP_SIZE)) {
-                         int width  = window->width  + dx;
-                         int height = window->height + dy;
-
-                         if (width  <   48) width  = 48;
-                         if (height <   48) height = 48;
-                         if (width  > 2048) width  = 2048;
-                         if (height > 2048) height = 2048;
-
-                         if (width != window->width || height != window->height)
-                              dfb_window_resize( window, width, height );
-                    }
-
-                    break;
-               }
-
-          case 1: {
-                    CoreWindow *window = stack->entered_window;
-
-                    if (window && !(window->options & DWOP_KEEP_POSITION))
-                         dfb_window_move( window, dx, dy );
-
-                    break;
-               }
-
-          case 0:
-               if (stack->pointer_window) {
-                    we.type = DWET_MOTION;
-                    we.x    = stack->cursor.x - stack->pointer_window->x;
-                    we.y    = stack->cursor.y - stack->pointer_window->y;
-
-                    dfb_window_post_event( stack->pointer_window, &we );
-               }
-               else {
-                    if (!handle_enter_leave_focus( stack )
-                        && stack->entered_window) {
-                         we.type = DWET_MOTION;
-                         we.x    = stack->cursor.x - stack->entered_window->x;
-                         we.y    = stack->cursor.y - stack->entered_window->y;
-
-                         dfb_window_post_event( stack->entered_window, &we );
-                    }
-               }
-
-               break;
-
-          default:
-               ;
-     }
-
-     HEAVYDEBUGMSG("DirectFB/windows: mouse at %d, %d\n", stack->cursor.x, stack->cursor.y);
-
-     dfb_windowstack_unlock( stack );
-}
-
-
-/*
- * internals
- */
-
-static DFBEnumerationResult
-stack_attach_devices( InputDevice *device,
-                      void        *ctx )
-{
-     StackDevice     *dev;
-     CoreWindowStack *stack = (CoreWindowStack*) ctx;
-
-     dev = SHCALLOC( 1, sizeof(StackDevice) );
-     if (!dev) {
-          ERRORMSG( "DirectFB/core/windows: Could not allocate %d bytes\n",
-                    sizeof(StackDevice) );
-          return DFENUM_CANCEL;
-     }
-
-     dev->id = dfb_input_device_id( device );
-
-     fusion_list_prepend( &stack->devices, &dev->link );
-
-     dfb_input_attach_global( device, DFB_WINDOW_STACK_INPUTDEVICE_REACT,
-                              ctx, &dev->reaction );
-
-     return DFENUM_OK;
-}
-
-static CoreWindow*
-window_at_pointer( CoreWindowStack *stack,
-                   int              x,
-                   int              y )
-{
-     int i;
-
-     if (!stack->cursor.enabled) {
-          for (i=stack->num_windows-1; i>=0; i--) {
-               CoreWindow *window = stack->windows[i];
-
-               if (window->opacity && !(window->options & DWOP_GHOST))
-                    return window;
-          }
-
-          return NULL;
-     }
-
-     if (x < 0)
-          x = stack->cursor.x;
-     if (y < 0)
-          y = stack->cursor.y;
-
-     for (i=stack->num_windows-1; i>=0; i--) {
-          CoreWindow *w = stack->windows[i];
-
-          if (!(w->options & DWOP_GHOST) && w->opacity &&
-              x >= w->x  &&  x < w->x + w->width &&
-              y >= w->y  &&  y < w->y + w->height) {
-               int wx = x - w->x;
-               int wy = y - w->y;
-
-               if ( !(w->options & DWOP_SHAPED)  ||
-                    !(w->options &(DWOP_ALPHACHANNEL|DWOP_COLORKEYING))
-                    || !w->surface ||
-                    ((w->options & DWOP_OPAQUE_REGION) &&
-                     (wx >= w->opaque.x1  &&  wx <= w->opaque.x2 &&
-                      wy >= w->opaque.y1  &&  wy <= w->opaque.y2))) {
-                    return w;
-               }
-               else {
-                    void        *data;
-                    int          pitch;
-                    CoreSurface *surface = w->surface;
-
-                    if ( dfb_surface_soft_lock( surface, DSLF_READ,
-                                                &data, &pitch, true ) == DFB_OK ) {
-                         if (w->options & DWOP_ALPHACHANNEL) {
-                              int alpha = -1;
-
-                              DFB_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) );
-
-                              switch (surface->format) {
-                                   case DSPF_ARGB:
-                                        alpha = *(__u32*)(data +
-                                                          4 * wx + pitch * wy) >> 24;
-                                        break;
-                                   case DSPF_ARGB1555:
-                                        alpha = *(__u16*)(data + 2 * wx +
-                                                          pitch * wy) & 0x8000;
-                                        alpha = alpha ? 0xff : 0x00;
-                                        break;
-                                   case DSPF_ALUT44:
-                                        alpha = *(__u8*)(data +
-                                                         wx + pitch * wy) & 0xf0;
-                                        alpha |= alpha >> 4;
-                                        break;
-                                   case DSPF_LUT8: {
-                                        CorePalette *palette = surface->palette;
-                                        __u8         pix     = *((__u8*) data + wx +
-                                                                 pitch * wy);
-
-                                        if (palette && pix < palette->num_entries) {
-                                             alpha = palette->entries[pix].a;
-                                             break;
-                                        }
-
-                                        /* fall through */
-                                   }
-
-                                   default:
-                                        break;
-                              }
-
-                              if (alpha) { /* alpha == -1 on error */
-                                   dfb_surface_unlock( surface, true );
-                                   return w;
-                              }
-
-                         }
-                         if (w->options & DWOP_COLORKEYING) {
-                              int pixel = 0;
-
-                              switch (surface->format) {
-                                   case DSPF_ARGB:
-                                   case DSPF_RGB32:
-                                        pixel = *(__u32*)(data +
-                                                          4 * wx + pitch * wy)
-                                                & 0x00ffffff;
-                                        break;
-
-                                   case DSPF_RGB24:   //endianess? boh...
-                                        pixel = (*(__u32*)(data +
-                                                           3 * wx + pitch * wy))
-                                                & 0x00ffffff;
-                                        break;
-
-                                   case DSPF_RGB16:
-                                        pixel = *(__u16*)(data + 2 * wx +
-                                                          pitch * wy);
-                                        break;
-
-                                   case DSPF_ARGB1555:
-                                        pixel = *(__u16*)(data + 2 * wx +
-                                                          pitch * wy)
-                                                & 0x7fff;
-                                        break;
-
-                                   case DSPF_RGB332:
-                                   case DSPF_LUT8:
-                                        pixel = *(__u8*)(data +
-                                                         wx + pitch * wy);
-                                        break;
-
-                                   case DSPF_ALUT44:
-                                        pixel = *(__u8*)(data +
-                                                         wx + pitch * wy)
-                                                & 0x0f;
-                                        break;
-
-                                   default:
-                                        break;
-                              }
-
-                              if ( pixel != w->color_key ) {
-                                   dfb_surface_unlock( surface, true );
-                                   return w;
-                              }
-
-                         }
-
-                         dfb_surface_unlock( surface, true );
-                    }
-               }
-          }
-     }
-
-     return NULL;
-}
-
-ReactionResult
-_dfb_window_stack_inputdevice_react( const void *msg_data,
-                                     void       *ctx )
-{
-     const DFBInputEvent *evt = msg_data;
-
-     DFBWindowEvent   we;
-     CoreWindow      *window = NULL;
-     CoreWindowStack *stack  = ctx;
-     CoreLayer       *layer  = dfb_layer_at( stack->layer_id );
-
-     /* FIXME: this is a bad check for exclusive access */
-     if (dfb_layer_lease( layer ) )
-          return RS_OK;
-
-     dfb_layer_release( layer, false );
-
-     dfb_windowstack_lock( stack );
-
-     /* FIXME: handle multiple devices */
-     if (evt->flags & DIEF_BUTTONS)
-          stack->buttons = evt->buttons;
-
-     if (evt->flags & DIEF_MODIFIERS)
-          stack->modifiers = evt->modifiers;
-
-     if (evt->flags & DIEF_LOCKS)
-          stack->locks = evt->locks;
-
-     if (stack->wm_hack) {
-          switch (evt->type) {
-               case DIET_KEYRELEASE:
-                    switch (evt->key_symbol) {
-                         case DIKS_META:
-                         case DIKS_CAPS_LOCK:
-                              stack->wm_hack = 0;
-                              stack->wm_cycle = 0;
-                              //handle_enter_leave_focus( stack );
-                              break;
-
-                         case DIKS_ALT:
-                         case DIKS_CONTROL:
-                              stack->wm_hack = 1;
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         case DIKS_SMALL_A:
-                         case DIKS_SMALL_C:
-                         case DIKS_SMALL_S:
-                         case DIKS_SMALL_X:
-                         case DIKS_SMALL_D:
-                         case DIKS_SMALL_P:
-                         case DIKS_PRINT:
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         default:
-                              ;
-                    }
-                    break;
-
-               case DIET_KEYPRESS:
-                    switch (DFB_LOWER_CASE(evt->key_symbol)) {
-                         case DIKS_ALT:
-                              stack->wm_hack = 3;
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         case DIKS_CONTROL:
-                              stack->wm_hack = 2;
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         case DIKS_SMALL_X:
-                              if (stack->wm_cycle <= 0)
-                                   stack->wm_cycle = stack->num_windows;
-
-                              if (stack->num_windows) {
-                                   int looped = 0;
-                                   int index = MIN( stack->num_windows,
-                                                    stack->wm_cycle );
-
-                                   while (index--) {
-                                        CoreWindow *window = stack->windows[index];
-
-                                        if ((window->options & (DWOP_GHOST | DWOP_KEEP_STACKING)) ||
-                                            ! VISIBLE_WINDOW(window) ||
-                                            window == stack->focused_window) {
-                                             if (index == 0 && !looped) {
-                                                  looped = 1;
-                                                  index = stack->num_windows - 1;
-                                             }
-
-                                             continue;
-                                        }
-
-                                        if (window_restack( stack, index, stack->num_windows - 1, false ))
-                                             window_restacked( window );
-
-                                        dfb_window_request_focus( window );
-
-                                        break;
-                                   }
-
-                                   stack->wm_cycle = index;
-                              }
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         case DIKS_SMALL_C:
-                              if (stack->entered_window) {
-                                   DFBWindowEvent evt;
-                                   evt.type = DWET_CLOSE;
-                                   dfb_window_post_event( stack->entered_window, &evt );
-                              }
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         case DIKS_SMALL_E:
-                              switch_focus( stack, window_at_pointer( stack, -1, -1 ) );
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         case DIKS_SMALL_A:
-                              if (stack->focused_window &&
-                                  ! (stack->focused_window->options & DWOP_KEEP_STACKING))
-                              {
-                                   dfb_window_lowertobottom( stack->focused_window );
-                                   switch_focus( stack, window_at_pointer( stack, -1, -1 ) );
-                              }
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         case DIKS_SMALL_S:
-                              if (stack->focused_window &&
-                                  ! (stack->focused_window->options & DWOP_KEEP_STACKING))
-                              {
-                                   dfb_window_raisetotop( stack->focused_window );
-                              }
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         case DIKS_SMALL_D: {
-                              CoreWindow *window = stack->entered_window;
-
-                              if (window &&
-                                  !(window->options & DWOP_INDESTRUCTIBLE))
-                              {
-                                   dfb_window_destroy( window );
-                              }
-
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-                         }
-
-                         case DIKS_SMALL_P:
-                              dfb_layer_cursor_set_opacity( layer, 0xff );
-                              dfb_layer_cursor_enable( layer, true );
-
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         case DIKS_PRINT:
-                              if (dfb_config->screenshot_dir) {
-                                   CoreWindow *window = stack->focused_window;
-
-                                   if (window && window->surface)
-                                        dfb_surface_dump( window->surface,
-                                                          dfb_config->screenshot_dir,
-                                                          "dfb_window" );
-                              }
-
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-
-                         default:
-                              ;
-                    }
-                    break;
-
-               case DIET_BUTTONRELEASE:
-                    dfb_windowstack_unlock( stack );
-                    return RS_OK;
-
-               case DIET_BUTTONPRESS:
-                    if (stack->entered_window &&
-                        !(stack->entered_window->options & DWOP_KEEP_STACKING))
-                         dfb_window_raisetotop( stack->entered_window );
-                    dfb_windowstack_unlock( stack );
-                    return RS_OK;
-
-               default:
-                    ;
-          }
-     }
-
-     switch (evt->type) {
-          case DIET_KEYPRESS:
-               if (evt->key_symbol == DIKS_CAPS_LOCK ||
-                   evt->key_symbol == DIKS_META)
-                    stack->wm_hack = 1;
-               /* fall through */
-          case DIET_KEYRELEASE:
-               window = get_keyboard_window( stack, evt );
-
-               if (window) {
-                    we.type = (evt->type == DIET_KEYPRESS) ? DWET_KEYDOWN :
-                              DWET_KEYUP;
-                    we.key_code   = evt->key_code;
-                    we.key_id     = evt->key_id;
-                    we.key_symbol = evt->key_symbol;
-
-                    dfb_window_post_event( window, &we );
-               }
-
-               break;
-
-          case DIET_BUTTONPRESS:
-          case DIET_BUTTONRELEASE:
-               if (!stack->cursor.enabled)
-                    break;
-
-               window = (stack->pointer_window ?
-                         stack->pointer_window : stack->entered_window);
-
-               if (window) {
-                    we.type = (evt->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN :
-                              DWET_BUTTONUP;
-                    we.button = evt->button;
-                    we.x      = stack->cursor.x - window->x;
-                    we.y      = stack->cursor.y - window->y;
-
-                    dfb_window_post_event( window, &we );
-               }
-
-               break;
-
-          case DIET_AXISMOTION:
-               if (evt->flags & DIEF_AXISREL) {
-                    int rel = evt->axisrel;
-
-                    /* handle cursor acceleration */
-                    if (rel > stack->cursor.threshold)
-                         rel += (rel - stack->cursor.threshold)
-                                * stack->cursor.numerator
-                                / stack->cursor.denominator;
-                    else if (rel < -stack->cursor.threshold)
-                         rel += (rel + stack->cursor.threshold)
-                                * stack->cursor.numerator
-                                / stack->cursor.denominator;
-
-                    switch (evt->axis) {
-                         case DIAI_X:
-                              dfb_windowstack_handle_motion( stack, rel, 0 );
-                              break;
-                         case DIAI_Y:
-                              dfb_windowstack_handle_motion( stack, 0, rel );
-                              break;
-                         case DIAI_Z:
-                              handle_wheel( stack, - evt->axisrel );
-                              break;
-                         default:
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-                    }
-               }
-               else if (evt->flags & DIEF_AXISABS) {
-                    switch (evt->axis) {
-                         case DIAI_X:
-                              dfb_windowstack_handle_motion( stack,
-                                                             evt->axisabs - stack->cursor.x, 0 );
-                              break;
-                         case DIAI_Y:
-                              dfb_windowstack_handle_motion( stack,
-                                                             0, evt->axisabs - stack->cursor.y );
-                              break;
-                         default:
-                              dfb_windowstack_unlock( stack );
-                              return RS_OK;
-                    }
-               }
-               break;
-          default:
-               break;
-     }
-
-     dfb_windowstack_unlock( stack );
-     return RS_OK;
-}
-
-static void
-handle_wheel( CoreWindowStack *stack, int dz )
-{
-     DFBWindowEvent we;
-     CoreWindow *window = NULL;
-
-     if (!stack->cursor.enabled)
-          return;
-
-     window = (stack->pointer_window ?
-               stack->pointer_window : stack->entered_window);
-
-
-     if (window) {
-          if (stack->wm_hack) {
-               int opacity = window->opacity + dz*7;
-
-               if (opacity < 0x01)
-                    opacity = 1;
-               if (opacity > 0xFF)
-                    opacity = 0xFF;
-
-               dfb_window_set_opacity( window, (__u8)opacity );
-          }
-          else {
-               we.type = DWET_WHEEL;
-
-               we.x      = stack->cursor.x - window->x;
-               we.y      = stack->cursor.y - window->y;
-               we.step   = dz;
-
-               dfb_window_post_event( window, &we );
-          }
-     }
-}
-
-static int
-handle_enter_leave_focus( CoreWindowStack *stack )
-{
-     /* if pointer is not grabbed */
-     if (!stack->pointer_window && !stack->wm_hack) {
-          CoreWindow    *before = stack->entered_window;
-          CoreWindow    *after = window_at_pointer( stack, -1, -1 );
-
-          /* and the window under the cursor is another one now */
-          if (before != after) {
-               DFBWindowEvent we;
-
-               /* send leave event */
-               if (before) {
-                    we.type = DWET_LEAVE;
-                    we.x    = stack->cursor.x - before->x;
-                    we.y    = stack->cursor.y - before->y;
-
-                    dfb_window_post_event( before, &we );
-               }
-
-               /* switch focus and send enter event */
-               switch_focus( stack, after );
-
-               if (after) {
-                    we.type = DWET_ENTER;
-                    we.x    = stack->cursor.x - after->x;
-                    we.y    = stack->cursor.y - after->y;
-
-                    dfb_window_post_event( after, &we );
-               }
-
-               /* update pointer to window under the cursor */
-               stack->entered_window = after;
-
-               return 1;
-          }
-     }
-
-     return 0;
-}
+/******************************************************************************/
 
 static DFBWindowID
 new_window_id( CoreWindowStack *stack )
 {
-     static DFBWindowID id_pool = 0;
-
      int i;
+
+restart:
 
      for (i=stack->num_windows-1; i>=0; i--) {
           CoreWindow *w = stack->windows[i];
 
-          if (w->id == id_pool) {
-               id_pool++;
-
-               return new_window_id( stack );
+          if (w->id == stack->id_pool) {
+               stack->id_pool++;
+               goto restart;
           }
      }
 
-     return id_pool++;
+     return stack->id_pool++;
 }
 
 static void
@@ -1853,7 +1052,7 @@ window_insert( CoreWindow *window,
      dfb_window_post_event( window, &evt );
 
      if (window->opacity)
-          handle_enter_leave_focus( stack );
+          dfb_windowstack_update_focus( stack );
 }
 
 static void
@@ -1977,7 +1176,7 @@ window_restacked( CoreWindow *window )
      dfb_window_repaint( window, NULL, 0, true, false );
 
      /* Possibly change focus to window now under the cursor */
-     handle_enter_leave_focus( stack );
+     dfb_windowstack_update_focus( stack );
 }
 
 static void
@@ -2003,6 +1202,9 @@ window_withdraw( CoreWindow *window )
      if (stack->pointer_window == window)
           stack->pointer_window = NULL;
 
+     if (stack->cursor.window == window)
+          dfb_window_unlink( &stack->cursor.window );
+
      for (i=0; i<8; i++) {
           if (stack->keys[i].code != -1 && stack->keys[i].owner == window) {
                if (!window->destroyed) {
@@ -2022,43 +1224,6 @@ window_withdraw( CoreWindow *window )
 }
 
 static void
-switch_focus( CoreWindowStack *stack, CoreWindow *to )
-{
-     DFBWindowEvent  evt;
-     CoreWindow     *from = stack->focused_window;
-
-     if (from == to)
-          return;
-
-     if (from) {
-          evt.type = DWET_LOSTFOCUS;
-          dfb_window_post_event( from, &evt );
-     }
-
-     if (to) {
-          DFB_ASSUME(! (to->options & DWOP_GHOST));
-
-          if (to->surface && to->surface->palette && !stack->hw_mode) {
-               CoreLayer *layer = dfb_layer_at( stack->layer_id );
-
-               if (dfb_layer_lease( layer ) == FUSION_SUCCESS) {
-                    CoreSurface *surface = dfb_layer_surface( layer );
-
-                    if (surface && DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
-                         dfb_surface_set_palette (surface, to->surface->palette);
-
-                    dfb_layer_release( layer, false );
-               }
-          }
-
-          evt.type = DWET_GOTFOCUS;
-          dfb_window_post_event( to, &evt );
-     }
-
-     stack->focused_window = to;
-}
-
-static void
 ensure_focus( CoreWindowStack *stack )
 {
      int i;
@@ -2070,100 +1235,23 @@ ensure_focus( CoreWindowStack *stack )
           CoreWindow *window = stack->windows[i];
 
           if (window->opacity && !(window->options & DWOP_GHOST)) {
-               switch_focus( stack, window );
+               dfb_windowstack_switch_focus( stack, window );
                break;
           }
      }
 }
 
-static CoreWindow *
-get_keyboard_window( CoreWindowStack     *stack,
-                     const DFBInputEvent *evt )
-{
-     FusionLink *l;
-
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( evt != NULL );
-     DFB_ASSERT( evt->type == DIET_KEYPRESS || evt->type == DIET_KEYRELEASE );
-
-     /* Check explicit key grabs first. */
-     fusion_list_foreach (l, stack->grabbed_keys) {
-          GrabbedKey *key = (GrabbedKey*) l;
-
-          if (key->symbol    == evt->key_symbol &&
-              key->modifiers == stack->modifiers)
-               return key->owner;
-     }
-
-     /* Don't do implicit grabs on keys without a hardware index. */
-     if (evt->key_code == -1)
-          return (stack->keyboard_window ?
-                  stack->keyboard_window : stack->focused_window);
-
-     /* Implicitly grab (press) or ungrab (release) key. */
-     if (evt->type == DIET_KEYPRESS) {
-          int         i;
-          int         free_key = -1;
-          CoreWindow *window;
-
-          /* Check active grabs. */
-          for (i=0; i<8; i++) {
-               /* Key is grabbed, send to owner (NULL if destroyed). */
-               if (stack->keys[i].code == evt->key_code)
-                    return stack->keys[i].owner;
-
-               /* Remember first free array item. */
-               if (free_key == -1 && stack->keys[i].code == -1)
-                    free_key = i;
-          }
-
-          /* Key is not grabbed, check for explicit keyboard grab or focus. */
-          window = stack->keyboard_window ?
-                   stack->keyboard_window : stack->focused_window;
-          if (!window)
-               return NULL;
-
-          /* Check if a free array item was found. */
-          if (free_key == -1) {
-               CAUTION( "maximum number of owned keys reached" );
-               return NULL;
-          }
-
-          /* Implicitly grab the key. */
-          stack->keys[free_key].symbol = evt->key_symbol;
-          stack->keys[free_key].id     = evt->key_id;
-          stack->keys[free_key].code   = evt->key_code;
-          stack->keys[free_key].owner  = window;
-
-          return window;
-     }
-     else {
-          int i;
-
-          /* Lookup owner and ungrab the key. */
-          for (i=0; i<8; i++) {
-               if (stack->keys[i].code == evt->key_code) {
-                    stack->keys[i].code = -1;
-
-                    /* Return owner (NULL if destroyed). */
-                    return stack->keys[i].owner;
-               }
-          }
-     }
-
-     /* No owner for release event found, discard it. */
-     return NULL;
-}
-
 
 /*
- * listen to the layer's surface
+ * listen to the window's surface
  */
 ReactionResult
 _dfb_window_surface_listener( const void *msg_data, void *ctx )
 {
      const CoreSurfaceNotification *notification = msg_data;
      CoreWindow                    *window       = ctx;
+
+     (void) window;
 
      DFB_ASSERT( notification != NULL );
      DFB_ASSERT( notification->surface != NULL );
@@ -2178,13 +1266,13 @@ _dfb_window_surface_listener( const void *msg_data, void *ctx )
      }
 
      if (notification->flags & (CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE)) {
-          if (window->window_data) {
+/*          if (window->window_data) {
                CoreLayer *layer = dfb_layer_at( window->stack->layer_id );
 
                DFB_ASSERT( layer != NULL );
 
                dfb_layer_update_window( layer, window, CWUF_PALETTE );
-          }
+          }*/
      }
 
      return RS_OK;

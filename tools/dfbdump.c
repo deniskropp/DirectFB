@@ -6,9 +6,14 @@
 #include <core/fusion/object.h>
 
 #include <core/core.h>
+#include <core/layer_control.h>
+#include <core/layer_context.h>
 #include <core/layers.h>
+#include <core/layers_internal.h>
 #include <core/surfaces.h>
 #include <core/windows.h>
+#include <core/windowstack.h>
+#include <core/windows_internal.h>
 
 typedef struct {
      int video;
@@ -297,13 +302,20 @@ static DFBEnumerationResult
 layer_callback( CoreLayer *layer,
                 void      *ctx)
 {
-     int              i;
-     CoreWindowStack *stack = dfb_layer_window_stack( layer );
+     int               i;
+     CoreLayerContext *context;
+     CoreWindowStack  *stack;
 
-     if (!stack)
+     if (dfb_layer_get_primary_context( layer, &context ))
           return DFENUM_OK;
 
-     fusion_skirmish_prevail( &stack->lock );
+     stack = dfb_layer_context_windowstack( context );
+     if (!stack) {
+          dfb_layer_context_unref( context );
+          return DFENUM_OK;
+     }
+
+     dfb_windowstack_lock( stack );
 
      if (stack->num_windows) {
           printf( "\n"
@@ -317,7 +329,9 @@ layer_callback( CoreLayer *layer,
           }
      }
 
-     fusion_skirmish_dismiss( &stack->lock );
+     dfb_windowstack_unlock( stack );
+
+     dfb_layer_context_unref( context );
 
      return DFENUM_OK;
 }

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -118,7 +118,7 @@ shmalloc_check_shmfs (int world)
 
                if (stat.f_blocks * stat.f_bsize < (4<<20))
                     continue;
-               
+
                if (!(name = DFBMALLOC(len))) {
                     FERROR ("malloc failed!\n");
                     fclose (mounts_handle);
@@ -130,7 +130,7 @@ shmalloc_check_shmfs (int world)
                          mount_point, SH_FILE_NAME, world);
 
                fclose (mounts_handle);
-               
+
                return name;
           }
      }
@@ -527,7 +527,7 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
           FDEBUG("called without __shmalloc_init!\n");
           return RS_REMOVE;
      }
-     
+
      /* Query size of memory. */
      if (fstat (fd, &st) < 0) {
           FPERROR( "fstating shared memory file failed!\n" );
@@ -536,7 +536,7 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
 
      if (size != st.st_size) {
           FDEBUG( "%d -> %ld\n", size, st.st_size );
-          
+
           new_mem = mremap (mem, size, st.st_size, 0);
           if (new_mem == MAP_FAILED) {
                FPERROR ("mremap on shared memory file failed!\n");
@@ -574,7 +574,7 @@ void __shmalloc_exit (bool shutdown)
                fusion_reactor_free (reactor);
 
                fusion_dbg_print_memleaks();
-               
+
                fusion_skirmish_destroy (&_sheap->lock);
           }
 
@@ -622,21 +622,21 @@ fusion_shmalloc_cure (const void *ptr)
 {
      struct stat st;
      int         offset = (int) ptr - SH_BASE;
-     
-     FDEBUG( "trying to cure segfault at address %p (%d)...\n", ptr, offset );
+
+     FDEBUG( "trying to cure segfault at address %p...\n", ptr );
 
      /* Check file descriptor. */
      if (fd < 0) {
           FDEBUG( "  won't cure, shared memory file is not opened.\n" );
           return false;
      }
-     
+
      /* Check address space. */
      if (offset < 0 || offset >= SH_MAX_SIZE) {
           FDEBUG( "  won't cure, address is outside shared address space.\n" );
           return false;
      }
-     
+
      /* Shouldn't happen, but... */
      if (offset < size) {
           FDEBUG( "  won't cure, address is inside mapped region!?\n" );
@@ -655,7 +655,7 @@ fusion_shmalloc_cure (const void *ptr)
 
           if (offset < st.st_size) {
                void *new_mem;
-               
+
                FDEBUG( "  address is inside new region, remapping...\n" );
 
                new_mem = mremap (mem, size, st.st_size, 0);
@@ -663,22 +663,22 @@ fusion_shmalloc_cure (const void *ptr)
                     FPERROR ("mremap on shared memory file failed!\n");
                     return false;
                }
-               
+
                if (new_mem != mem)
                     DFB_BREAK ("mremap returned a different address");
 
                size = st.st_size;
 
                FDEBUG( "  successfully cured ;)\n" );
-               
+
                return true;
           }
-          
+
           FDEBUG( "  address is even outside new region, cannot cure ;(\n" );
      }
      else
           FDEBUG( "  no pending remap, cannot cure ;(\n" );
-     
+
      return false;
 }
 

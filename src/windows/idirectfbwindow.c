@@ -52,6 +52,9 @@
 #include <core/state.h>
 #include <core/surfaces.h>
 #include <core/windows.h>
+#include <core/windowstack.h>
+#include <core/windows_internal.h> /* FIXME */
+#include <core/layers_internal.h> /* FIXME */
 
 #include <display/idirectfbsurface.h>
 #include <display/idirectfbsurface_window.h>
@@ -529,8 +532,8 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
           data->cursor.hot_y = hot_y;
 
           if (data->entered)
-               dfb_layer_cursor_set_shape( data->layer,
-                                           shape_surface, hot_x, hot_y );
+               dfb_windowstack_cursor_set_shape( data->window->stack,
+                                                 shape_surface, hot_x, hot_y );
      }
 
      return DFB_OK;
@@ -852,7 +855,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
 
      data->ref = 1;
      data->window = window;
-     data->layer  = dfb_layer_at( window->stack->layer_id );
+     data->layer  = dfb_layer_at( window->stack->context->layer_id );
 
      dfb_window_attach( window, IDirectFBWindow_React,
                         data, &data->reaction );
@@ -961,10 +964,10 @@ IDirectFBWindow_React( const void *msg_data,
                     if (!shape_data->surface)
                          break;
 
-                    dfb_layer_cursor_set_shape( data->layer,
-                                                shape_data->surface,
-                                                data->cursor.hot_x,
-                                                data->cursor.hot_y );
+                    dfb_windowstack_cursor_set_shape( data->window->stack,
+                                                      shape_data->surface,
+                                                      data->cursor.hot_x,
+                                                      data->cursor.hot_y );
                }
 
                break;

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -43,6 +43,7 @@
 #include "core/fonts.h"
 #include "core/state.h"
 #include "core/windows.h"
+#include "core/windows_internal.h" /* FIXME */
 
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_window.h"
@@ -81,7 +82,7 @@ IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
      }
 
      dfb_window_unref( data->window );
-     
+
      IDirectFBSurface_Destruct( thiz );
 }
 
@@ -133,15 +134,11 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      }
 
      if (data->base.surface->caps & DSCAPS_FLIPPING) {
-          DFBRectangle rect = { reg.x1, reg.y1,
-                                reg.x2 - reg.x1 + 1,
-                                reg.y2 - reg.y1 + 1 };
-
-          if ((~flags & DSFLIP_BLIT) && rect.x == 0 && rect.y == 0 &&
-              rect.w == data->window->width && rect.h == data->window->height)
+          if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
+              reg.x2 == data->window->width - 1 && reg.y2 == data->window->height - 1)
                dfb_surface_flip_buffers( data->base.surface );
           else
-               dfb_back_to_front_copy( data->base.surface, &rect );
+               dfb_back_to_front_copy( data->base.surface, &reg );
      }
 
      if (!data->window->opacity && data->base.caps & DSCAPS_PRIMARY)
@@ -157,7 +154,7 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
                                        const DFBRectangle  *rect,
                                        IDirectFBSurface   **surface )
 {
-     DFBRectangle wanted, granted;  
+     DFBRectangle wanted, granted;
 
      INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
@@ -211,7 +208,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                        window->surface, caps );
      if (ret)
           return ret;
-     
+
      if (dfb_window_ref( window ) != FUSION_SUCCESS) {
           IDirectFBSurface_Destruct( thiz );
           return DFB_FAILURE;
@@ -252,7 +249,7 @@ Flipping_Thread( void *arg )
            * OPTIMIZE: only call if surface has been touched in the meantime
            */
           thiz->Flip( thiz, NULL, 0 );
-          
+
           usleep(40000);
      }
 

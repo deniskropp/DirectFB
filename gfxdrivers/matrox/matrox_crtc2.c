@@ -54,7 +54,7 @@
 #include "matrox_maven.h"
 
 typedef struct {
-     DFBDisplayLayerConfig config;
+     CoreLayerRegionConfig config;
      DFBColorAdjustment    adj;
      int                   enabled;
      int                   field;
@@ -81,29 +81,28 @@ typedef struct {
      MatroxMavenData mav;
 } MatroxCrtc2LayerData;
 
-static void crtc2_wait_vsync         ( MatroxDriverData     *mdrv );
+static void crtc2_wait_vsync         ( MatroxDriverData      *mdrv );
 
-static void crtc2_set_regs           ( MatroxDriverData     *mdrv,
-                                       MatroxCrtc2LayerData *mcrtc2 );
+static void crtc2_set_regs           ( MatroxDriverData      *mdrv,
+                                       MatroxCrtc2LayerData  *mcrtc2 );
 
-static void crtc2_calc_regs          ( MatroxDriverData     *mdrv,
-                                       MatroxCrtc2LayerData *mcrtc2,
-                                       CoreLayer            *layer );
+static void crtc2_calc_regs          ( MatroxDriverData      *mdrv,
+                                       MatroxCrtc2LayerData  *mcrtc2,
+                                       CoreLayerRegionConfig *config,
+                                       CoreSurface           *surface );
 
-static void crtc2_calc_buffer        ( MatroxDriverData     *mdrv,
-                                       MatroxCrtc2LayerData *mcrtc2,
-                                       CoreLayer            *layer );
+static void crtc2_calc_buffer        ( MatroxDriverData      *mdrv,
+                                       MatroxCrtc2LayerData  *mcrtc2,
+                                       CoreSurface           *surface );
 
-static void crtc2_set_buffer         ( MatroxDriverData     *mdrv,
-                                       MatroxCrtc2LayerData *mcrtc2,
-                                       CoreLayer            *layer );
+static void crtc2_set_buffer         ( MatroxDriverData      *mdrv,
+                                       MatroxCrtc2LayerData  *mcrtc2 );
 
-static DFBResult crtc2_disable_output( MatroxDriverData     *mdrv,
-                                       MatroxCrtc2LayerData *mcrtc2 );
+static DFBResult crtc2_disable_output( MatroxDriverData      *mdrv,
+                                       MatroxCrtc2LayerData  *mcrtc2 );
 
-static DFBResult crtc2_enable_output ( MatroxDriverData     *mdrv,
-                                       MatroxCrtc2LayerData *mcrtc2,
-                                       CoreLayer            *layer );
+static DFBResult crtc2_enable_output ( MatroxDriverData      *mdrv,
+                                       MatroxCrtc2LayerData  *mcrtc2 );
 
 #define CRTC2_SUPPORTED_OPTIONS   (DLOP_FIELD_PARITY | DLOP_FLICKER_FILTERING)
 
@@ -116,13 +115,12 @@ crtc2LayerDataSize()
 }
 
 static DFBResult
-crtc2InitLayer( GraphicsDevice             *device,
-                CoreLayer                  *layer,
-                DisplayLayerInfo           *layer_info,
-                DFBDisplayLayerConfig      *default_config,
-                DFBColorAdjustment         *default_adj,
+crtc2InitLayer( CoreLayer                  *layer,
                 void                       *driver_data,
-                void                       *layer_data )
+                void                       *layer_data,
+                DFBDisplayLayerDescription *description,
+                DFBDisplayLayerConfig      *config,
+                DFBColorAdjustment         *adjustment )
 {
      MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
      MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
@@ -135,91 +133,59 @@ crtc2InitLayer( GraphicsDevice             *device,
 
 
      /* set capabilities and type */
-     layer_info->desc.caps = DLCAPS_SURFACE |
-                             DLCAPS_FIELD_PARITY | DLCAPS_FLICKER_FILTERING |
-                             DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
-                             DLCAPS_HUE | DLCAPS_SATURATION;
-     layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
+     description->caps = DLCAPS_SURFACE |
+                         DLCAPS_FIELD_PARITY | DLCAPS_FLICKER_FILTERING |
+                         DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
+                         DLCAPS_HUE | DLCAPS_SATURATION;
+     description->type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
-     snprintf( layer_info->desc.name,
+     snprintf( description->name,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Matrox CRTC2" );
 
      /* fill out the default configuration */
-     default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
-                                   DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
-                                   DLCONF_OPTIONS;
-     default_config->width       = 720;
-     default_config->height      = ntsc ? 480 : 576;
-     default_config->pixelformat = DSPF_YUY2;
-     default_config->buffermode  = DLBM_FRONTONLY;
-     default_config->options     = DLOP_NONE;
+     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
+                           DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
+                           DLCONF_OPTIONS;
+     config->width       = 720;
+     config->height      = ntsc ? 480 : 576;
+     config->pixelformat = DSPF_YUY2;
+     config->buffermode  = DLBM_FRONTONLY;
+     config->options     = DLOP_NONE;
 
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
-     default_adj->flags = DCAF_BRIGHTNESS | DCAF_CONTRAST |
-                          DCAF_HUE | DCAF_SATURATION;
+     adjustment->flags = DCAF_BRIGHTNESS | DCAF_CONTRAST |
+                         DCAF_HUE | DCAF_SATURATION;
      if (mav->g450) {
-          default_adj->brightness = ntsc ? 0xAA00 : 0x9E00;
-          default_adj->saturation = ntsc ? 0xAE00 : 0xBB00;
+          adjustment->brightness = ntsc ? 0xAA00 : 0x9E00;
+          adjustment->saturation = ntsc ? 0xAE00 : 0xBB00;
      } else {
-          default_adj->brightness = ntsc ? 0xB500 : 0xA800;
-          default_adj->saturation = ntsc ? 0x8E00 : 0x9500;
+          adjustment->brightness = ntsc ? 0xB500 : 0xA800;
+          adjustment->saturation = ntsc ? 0x8E00 : 0x9500;
      }
-     default_adj->contrast = ntsc ? 0xEA00 : 0xFF00;
-     default_adj->hue      = 0x0000;
+     adjustment->contrast = ntsc ? 0xEA00 : 0xFF00;
+     adjustment->hue      = 0x0000;
 
      /* remember color adjustment */
-     mcrtc2->adj = *default_adj;
+     mcrtc2->adj = *adjustment;
 
      return DFB_OK;
 }
 
 static DFBResult
-crtc2Enable( CoreLayer *layer,
-             void      *driver_data,
-             void      *layer_data )
+crtc2TestRegion( CoreLayer                  *layer,
+                 void                       *driver_data,
+                 void                       *layer_data,
+                 CoreLayerRegionConfig      *config,
+                 CoreLayerRegionConfigFlags *failed )
 {
-     MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
-     MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
-     DFBResult             res;
-
-     res = crtc2_enable_output( mdrv, mcrtc2, layer );
-     if (res == DFB_OK)
-          mcrtc2->enabled = 1;
-
-     return res;
-}
-
-static DFBResult
-crtc2Disable( CoreLayer *layer,
-              void      *driver_data,
-              void      *layer_data )
-{
-     MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
-     MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
-     DFBResult             res;
-
-     res = crtc2_disable_output( mdrv, mcrtc2 );
-     if (res == DFB_OK)
-          mcrtc2->enabled = 0;
-
-     return res;
-}
-
-static DFBResult
-crtc2TestConfiguration( CoreLayer                  *layer,
-                        void                       *driver_data,
-                        void                       *layer_data,
-                        DFBDisplayLayerConfig      *config,
-                        DFBDisplayLayerConfigFlags *failed )
-{
-     DFBDisplayLayerConfigFlags fail = 0;
+     CoreLayerRegionConfigFlags fail = 0;
 
      if (config->options & ~CRTC2_SUPPORTED_OPTIONS)
-          fail |= DLCONF_OPTIONS;
+          fail |= CLRCF_OPTIONS;
 
-     switch (config->pixelformat) {
+     switch (config->format) {
           case DSPF_ARGB:
           case DSPF_RGB32:
           case DSPF_ARGB1555:
@@ -230,14 +196,14 @@ crtc2TestConfiguration( CoreLayer                  *layer,
           case DSPF_YV12:
                break;
           default:
-               fail |= DLCONF_PIXELFORMAT;
+               fail |= CLRCF_FORMAT;
      }
 
      if (config->width != 720)
-          fail |= DLCONF_WIDTH;
+          fail |= CLRCF_WIDTH;
 
      if (config->height != (dfb_config->matrox_ntsc ? 480 : 576))
-          fail |= DLCONF_HEIGHT;
+          fail |= CLRCF_HEIGHT;
 
      if (failed)
           *failed = fail;
@@ -249,45 +215,77 @@ crtc2TestConfiguration( CoreLayer                  *layer,
 }
 
 static DFBResult
-crtc2SetConfiguration( CoreLayer             *layer,
-                       void                  *driver_data,
-                       void                  *layer_data,
-                       DFBDisplayLayerConfig *config )
+crtc2AddRegion( CoreLayer             *layer,
+                void                  *driver_data,
+                void                  *layer_data,
+                void                  *region_data,
+                CoreLayerRegionConfig *config )
 {
+     return DFB_OK;
+}
+
+static DFBResult
+crtc2SetRegion( CoreLayer                  *layer,
+                void                       *driver_data,
+                void                       *layer_data,
+                void                       *region_data,
+                CoreLayerRegionConfig      *config,
+                CoreLayerRegionConfigFlags  updated,
+                CoreSurface                *surface,
+                CorePalette                *palette )
+{
+     DFBResult             ret;
      MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
      MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
 
      /* remember configuration */
      mcrtc2->config = *config;
 
-     crtc2_calc_regs( mdrv, mcrtc2, layer );
-     crtc2_calc_buffer( mdrv, mcrtc2, layer );
+     crtc2_calc_regs( mdrv, mcrtc2, config, surface );
+     crtc2_calc_buffer( mdrv, mcrtc2, surface );
 
-     if (mcrtc2->enabled)
-          return crtc2_enable_output( mdrv, mcrtc2, layer );
+     ret = crtc2_enable_output( mdrv, mcrtc2 );
+     if (ret)
+          return ret;
+
+     mcrtc2->enabled = 1;
 
      return DFB_OK;
 }
 
 static DFBResult
-crtc2FlipBuffers( CoreLayer           *layer,
-                  void                *driver_data,
-                  void                *layer_data,
-                  DFBSurfaceFlipFlags  flags )
+crtc2RemoveRegion( CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   void      *region_data )
+{
+     MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
+     MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
+
+     crtc2_disable_output( mdrv, mcrtc2 );
+
+     mcrtc2->enabled = 0;
+
+     return DFB_OK;
+}
+
+static DFBResult
+crtc2FlipRegion( CoreLayer           *layer,
+                 void                *driver_data,
+                 void                *layer_data,
+                 void                *region_data,
+                 CoreSurface         *surface,
+                 DFBSurfaceFlipFlags  flags )
 {
      MatroxDriverData     *mdrv    = (MatroxDriverData*) driver_data;
      MatroxCrtc2LayerData *mcrtc2  = (MatroxCrtc2LayerData*) layer_data;
-     CoreSurface          *surface = dfb_layer_surface( layer );
      volatile __u8        *mmio    = mdrv->mmio_base;
 
      int                   vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 2;
      int                   line;
 
      dfb_surface_flip_buffers( surface );
-     crtc2_calc_buffer( mdrv, mcrtc2, layer );
-
-     if (!mcrtc2->enabled)
-          return DFB_OK;
+     crtc2_calc_buffer( mdrv, mcrtc2, surface );
 
      dfb_gfxcard_sync();
 
@@ -304,7 +302,7 @@ crtc2FlipBuffers( CoreLayer           *layer,
                field = (mga_in32( mmio, C2VCOUNT ) >> 24) & 0x1;
           }
      }
-     crtc2_set_buffer( mdrv, mcrtc2, layer );
+     crtc2_set_buffer( mdrv, mcrtc2 );
 
      if (flags & DSFLIP_WAIT)
           crtc2_wait_vsync( mdrv );
@@ -347,32 +345,6 @@ crtc2SetColorAdjustment( CoreLayer          *layer,
 }
 
 static DFBResult
-crtc2SetOpacity( CoreLayer *layer,
-                 void      *driver_data,
-                 void      *layer_data,
-                 __u8       opacity )
-{
-     MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
-     MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
-     DFBResult             res;
-
-     switch (opacity) {
-          case 0:
-               res = crtc2_disable_output( mdrv, mcrtc2 );
-               if (res == DFB_OK)
-                    mcrtc2->enabled = 0;
-               return res;
-          case 0xFF:
-               res = crtc2_enable_output( mdrv, mcrtc2, layer );
-               if (res == DFB_OK)
-                    mcrtc2->enabled = 1;
-               return res;
-          default:
-               return DFB_UNSUPPORTED;
-     }
-}
-
-static DFBResult
 crtc2GetCurrentOutputField( CoreLayer *layer,
                             void      *driver_data,
                             void      *layer_data,
@@ -388,6 +360,7 @@ crtc2GetCurrentOutputField( CoreLayer *layer,
      return DFB_OK;
 }
 
+#if 0
 static DFBResult
 crtc2SetFieldParity( CoreLayer *layer,
                      void      *driver_data,
@@ -400,6 +373,7 @@ crtc2SetFieldParity( CoreLayer *layer,
 
      return DFB_OK;
 }
+#endif
 
 static DFBResult
 crtc2WaitVSync( CoreLayer *layer,
@@ -416,18 +390,18 @@ crtc2WaitVSync( CoreLayer *layer,
 }
 
 DisplayLayerFuncs matroxCrtc2Funcs = {
-     LayerDataSize:      crtc2LayerDataSize,
-     InitLayer:          crtc2InitLayer,
-     Enable:             crtc2Enable,
-     Disable:            crtc2Disable,
-     TestConfiguration:  crtc2TestConfiguration,
-     SetConfiguration:   crtc2SetConfiguration,
-     FlipBuffers:        crtc2FlipBuffers,
-     SetColorAdjustment: crtc2SetColorAdjustment,
-     SetOpacity:         crtc2SetOpacity,
+     LayerDataSize:         crtc2LayerDataSize,
+     InitLayer:             crtc2InitLayer,
+
+     TestRegion:            crtc2TestRegion,
+     AddRegion:             crtc2AddRegion,
+     SetRegion:             crtc2SetRegion,
+     RemoveRegion:          crtc2RemoveRegion,
+     FlipRegion:            crtc2FlipRegion,
+
+     SetColorAdjustment:    crtc2SetColorAdjustment,
      GetCurrentOutputField: crtc2GetCurrentOutputField,
-     SetFieldParity:     crtc2SetFieldParity,
-     WaitVSync:          crtc2WaitVSync
+     WaitVSync:             crtc2WaitVSync
 };
 
 /* internal */
@@ -461,12 +435,12 @@ static void crtc2_set_regs( MatroxDriverData     *mdrv,
      mga_out32( mmio, 0,                      C2PRELOAD );
 }
 
-static void crtc2_calc_regs( MatroxDriverData     *mdrv,
-                             MatroxCrtc2LayerData *mcrtc2,
-                             CoreLayer            *layer )
+static void crtc2_calc_regs( MatroxDriverData      *mdrv,
+                             MatroxCrtc2LayerData  *mcrtc2,
+                             CoreLayerRegionConfig *config,
+                             CoreSurface           *surface )
 {
-     MatroxMavenData *mav     = &mcrtc2->mav;
-     CoreSurface     *surface = dfb_layer_surface( layer );
+     MatroxMavenData *mav = &mcrtc2->mav;
 
      mcrtc2->regs.c2CTL = 0;
      mcrtc2->regs.c2DATACTL = 0;
@@ -581,9 +555,8 @@ static void crtc2_calc_regs( MatroxDriverData     *mdrv,
 
 static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
                                MatroxCrtc2LayerData *mcrtc2,
-                               CoreLayer            *layer )
+                               CoreSurface          *surface )
 {
-     CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;
 
      mcrtc2->regs.c2STARTADD1 = front_buffer->video.offset;
@@ -610,8 +583,7 @@ static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
 }
 
 static void crtc2_set_buffer( MatroxDriverData     *mdrv,
-                              MatroxCrtc2LayerData *mcrtc2,
-                              CoreLayer            *layer )
+                              MatroxCrtc2LayerData *mcrtc2 )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
@@ -715,9 +687,8 @@ crtc2_disable_output( MatroxDriverData     *mdrv,
 }
 
 static DFBResult
-crtc2_enable_output( MatroxDriverData     *mdrv,
-                     MatroxCrtc2LayerData *mcrtc2,
-                     CoreLayer            *layer )
+crtc2_enable_output( MatroxDriverData      *mdrv,
+                     MatroxCrtc2LayerData  *mcrtc2 )
 {
      MatroxMavenData *mav  = &mcrtc2->mav;
      volatile __u8   *mmio = mdrv->mmio_base;
@@ -769,7 +740,7 @@ crtc2_enable_output( MatroxDriverData     *mdrv,
      crtc2OnOff( mdrv, mcrtc2, 0 );
 
      crtc2_set_regs( mdrv, mcrtc2 );
-     crtc2_set_buffer( mdrv, mcrtc2, layer );
+     crtc2_set_buffer( mdrv, mcrtc2 );
 
      if (!mav->g450)
           crtc2_set_mafc( mdrv, 1 );

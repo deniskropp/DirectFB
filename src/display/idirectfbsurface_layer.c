@@ -41,6 +41,7 @@
 #include <core/gfxcard.h>
 #include <core/state.h>
 #include <core/layers.h>
+#include <core/layer_region.h>
 #include <core/surfaces.h>
 #include <core/system.h>
 
@@ -57,9 +58,9 @@
  * private data struct of IDirectFBSurface_Layer
  */
 typedef struct {
-     IDirectFBSurface_data base;  /* base Surface implementation */
+     IDirectFBSurface_data  base;   /* base Surface implementation */
 
-     CoreLayer            *layer; /* pointer to layer this surface belongs to */
+     CoreLayerRegion       *region; /* the region this surface belongs to */
 } IDirectFBSurface_Layer_data;
 
 
@@ -93,51 +94,38 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
      if (data->base.locked)
           return DFB_LOCKED;
 
-     if (!(data->base.caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)))
-          return DFB_UNSUPPORTED;
-
      if (!data->base.area.current.w || !data->base.area.current.h)
           return DFB_INVAREA;
 
 
-     if (flags & DSFLIP_BLIT || region || data->base.caps & DSCAPS_SUBSURFACE) {
-          if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC)
-               dfb_layer_wait_vsync( data->layer );
+     if (region || data->base.caps & DSCAPS_SUBSURFACE) {
+          DFBRegion reg;
 
           if (region) {
-               DFBRegion    reg  = *region;
-               DFBRectangle rect = data->base.area.current;
+               reg.x1 = region->x1 + data->base.area.wanted.x;
+               reg.x2 = region->x2 + data->base.area.wanted.x;
+               reg.y1 = region->y1 + data->base.area.wanted.y;
+               reg.y2 = region->y2 + data->base.area.wanted.y;
 
-               reg.x1 += data->base.area.wanted.x;
-               reg.x2 += data->base.area.wanted.x;
-               reg.y1 += data->base.area.wanted.y;
-               reg.y2 += data->base.area.wanted.y;
+               if (reg.x1 > reg.x2 || reg.y1 > reg.y2)
+                    return DFB_INVAREA;
 
-               if (dfb_rectangle_intersect_by_unsafe_region( &rect, &reg )) {
-                    DFBRegion region = { rect.x, rect.y, rect.x + rect.w - 1,
-                                         rect.y + rect.h - 1 };
+               if (!dfb_region_rectangle_intersect( &reg, &data->base.area.current ))
+                    return DFB_INVAREA;
 
-                    dfb_back_to_front_copy( data->base.surface, &rect );
-                    dfb_layer_update_region( data->layer, &region, 0 );
-               }
+               return dfb_layer_region_flip_update( data->region, &reg, flags );
           }
           else {
-               DFBRectangle rect = data->base.area.current;
+               reg.x1 = data->base.area.current.x;
+               reg.x2 = data->base.area.current.x + data->base.area.current.w - 1;
+               reg.y1 = data->base.area.current.y;
+               reg.y2 = data->base.area.current.y + data->base.area.current.h - 1;
 
-               DFBRegion region = { rect.x, rect.y, rect.x + rect.w - 1,
-                                    rect.y + rect.h - 1 };
-
-               dfb_back_to_front_copy( data->base.surface, &rect );
-               dfb_layer_update_region( data->layer, &region, 0 );
+               return dfb_layer_region_flip_update( data->region, &reg, flags );
           }
-
-          if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT)
-               dfb_layer_wait_vsync( data->layer );
      }
-     else
-          return dfb_layer_flip_buffers( data->layer, flags );
 
-     return DFB_OK;
+     return dfb_layer_region_flip_update( data->region, NULL, flags );
 }
 
 static DFBResult
@@ -180,7 +168,7 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
      DFB_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
      return IDirectFBSurface_Layer_Construct( *surface, &wanted, &granted,
-                                              data->layer, data->base.caps |
+                                              data->region, data->base.caps |
                                               DSCAPS_SUBSURFACE );
 }
 
@@ -188,7 +176,7 @@ DFBResult
 IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                                   DFBRectangle           *wanted,
                                   DFBRectangle           *granted,
-                                  CoreLayer              *layer,
+                                  CoreLayerRegion        *region,
                                   DFBSurfaceCapabilities  caps )
 {
      DFBResult    ret;
@@ -196,20 +184,28 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Layer);
 
-     surface = dfb_layer_surface( layer );
-     if (!surface) {
+     if (dfb_layer_region_ref( region ))
+          return DFB_FUSION;
+
+     ret = dfb_layer_region_get_surface( region, &surface );
+     if (ret) {
+          dfb_layer_region_unref( region );
           DFB_DEALLOCATE_INTERFACE(thiz);
-          return DFB_UNSUPPORTED;
+          return ret;
      }
 
      ret = IDirectFBSurface_Construct( thiz, wanted, granted,
                                        surface, surface->caps | caps );
      if (ret) {
+          dfb_surface_unref( surface );
+          dfb_layer_region_unref( region );
           DFB_DEALLOCATE_INTERFACE(thiz);
           return ret;
      }
 
-     data->layer = layer;
+     dfb_surface_unref( surface );
+
+     data->region = region;
 
      thiz->Release       = IDirectFBSurface_Layer_Release;
      thiz->Flip          = IDirectFBSurface_Layer_Flip;

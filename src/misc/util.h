@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -45,6 +45,11 @@
 #define SIGN(x)  ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
 #define ABS(x)   ((x) > 0 ? (x) : -(x))
 
+#define SET_FLAG(set,flag)       do { (set) |= (flag); } while (0)
+#define CLEAR_FLAG(set,flag)     do { (set) &= ~(flag); } while (0)
+#define FLAG_IS_SET(set,flag)    (((set) & (flag)) != 0)
+#define FLAGS_ARE_SET(set,flags) (((set) & (flags)) == (flags))
+
 void dfb_trim( char **s );
 
 
@@ -75,6 +80,29 @@ int dfb_rectangle_intersect( DFBRectangle       *rectangle,
 void dfb_rectangle_union ( DFBRectangle       *rect1,
                            const DFBRectangle *rect2 );
 
+static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
+                                              const DFBRegion *region )
+{
+     DFB_ASSERT( rect != NULL );
+     DFB_ASSERT( region != NULL );
+
+     rect->x = region->x1;
+     rect->y = region->y1;
+     rect->w = region->x2 - region->x1 + 1;
+     rect->h = region->y2 - region->y1 + 1;
+}
+
+static inline void dfb_region_from_rectangle( DFBRegion          *region,
+                                              const DFBRectangle *rect )
+{
+     DFB_ASSERT( region != NULL );
+     DFB_ASSERT( rect != NULL );
+
+     region->x1 = rect->x;
+     region->y1 = rect->y;
+     region->x2 = rect->x + rect->w - 1;
+     region->y2 = rect->y + rect->h - 1;
+}
 
 /* Returns the current time after startup of DirectFB in microseconds */
 long long dfb_get_micros();

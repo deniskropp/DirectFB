@@ -44,12 +44,17 @@
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/input.h>
+#include <core/layer_context.h>
+#include <core/layer_control.h>
+#include <core/layer_region.h>
 #include <core/layers.h>
 #include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 #include <core/system.h>
 #include <core/windows.h>
+#include <core/windows_internal.h> /* FIXME */
+#include <core/windowstack.h>
 
 #include <display/idirectfbpalette.h>
 #include <display/idirectfbsurface.h>
@@ -76,24 +81,28 @@
  * private data struct of IDirectFB
  */
 typedef struct {
-     int                  ref;      /* reference counter */
-     CoreDFB             *core;
+     int                    ref;      /* reference counter */
+     CoreDFB               *core;
 
-     DFBCooperativeLevel  level;    /* current cooperative level */
+     DFBCooperativeLevel    level;    /* current cooperative level */
 
-     CoreLayer           *layer;    /* primary display layer */
+     CoreLayer             *layer;    /* primary display layer */
+     CoreLayerContext      *context;  /* shared context of primary layer */
+     CoreWindowStack       *stack;    /* window stack of primary layer */
 
      struct {
-          int             width;    /* IDirectFB stores window width    */
-          int             height;   /* and height and the pixel depth   */
-          int             bpp;      /* from SetVideoMode() parameters.  */
+          int               width;    /* IDirectFB stores window width    */
+          int               height;   /* and height and the pixel depth   */
+          int               bpp;      /* from SetVideoMode() parameters.  */
 
-          CoreWindow     *window;   /* implicitly created window */
-          Reaction        reaction; /* for the focus listener */
-          bool            focused;  /* primary's window has the focus */
-     } primary;                     /* Used for DFSCL_NORMAL's primary. */
+          CoreWindow       *window;   /* implicitly created window */
+          Reaction          reaction; /* for the focus listener */
+          bool              focused;  /* primary's window has the focus */
 
-     bool                 app_focus;
+          CoreLayerContext *context;  /* context for fullscreen primary */
+     } primary;                       /* Used for DFSCL_NORMAL's primary. */
+
+     bool                   app_focus;
 } IDirectFB_data;
 
 typedef struct {
@@ -156,8 +165,10 @@ IDirectFB_Destruct( IDirectFB *thiz )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
 
-     if (data->level != DFSCL_NORMAL)
-          dfb_layer_release( data->layer, true );
+     if (data->primary.context)
+          dfb_layer_context_unref( data->primary.context );
+
+     dfb_layer_context_unref( data->context );
 
      drop_window( data );
 
@@ -194,6 +205,9 @@ static DFBResult
 IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                                DFBCooperativeLevel  level )
 {
+     DFBResult         ret;
+     CoreLayerContext *context;
+
      INTERFACE_GET_DATA(IDirectFB)
 
      if (level == data->level)
@@ -202,7 +216,10 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
      switch (level) {
           case DFSCL_NORMAL:
                data->primary.focused = false;
-               dfb_layer_release( data->layer, true );
+
+               dfb_layer_context_unref( data->primary.context );
+
+               data->primary.context = NULL;
                break;
 
           case DFSCL_FULLSCREEN:
@@ -211,11 +228,19 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                     return DFB_ACCESSDENIED;
 
                if (data->level == DFSCL_NORMAL) {
-                    DFBResult ret = dfb_layer_purchase( data->layer );
+                    ret = dfb_layer_create_context( data->layer, &context );
                     if (ret)
                          return ret;
 
+                    ret = dfb_layer_activate_context( data->layer, context );
+                    if (ret) {
+                         dfb_layer_context_unref( context );
+                         return ret;
+                    }
+
                     drop_window( data );
+
+                    data->primary.context = context;
                }
 
                data->primary.focused = true;
@@ -311,7 +336,8 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
 
                config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT;
 
-               ret = dfb_layer_set_configuration( data->layer, &config );
+               ret = dfb_layer_context_set_configuration( data->primary.context,
+                                                          &config );
                if (ret)
                     return ret;
 
@@ -359,7 +385,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
      INTERFACE_GET_DATA(IDirectFB)
 
-     dfb_layer_get_configuration( data->layer, &config );
+     dfb_layer_context_get_configuration( data->context, &config );
 
      format = config.pixelformat;
 
@@ -442,8 +468,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
                          ret = IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
                          if (ret == DFB_OK) {
-                              dfb_layer_set_background_image( data->layer, surface );
-                              dfb_layer_set_background_mode( data->layer, DLBM_IMAGE );
+                              dfb_windowstack_set_background_image( data->stack, surface );
+                              dfb_windowstack_set_background_mode( data->stack, DLBM_IMAGE );
                          }
 
                          dfb_surface_unref( surface );
@@ -490,9 +516,9 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                          if (caps & DSCAPS_FLIPPING)
                               window_caps |= DWCAPS_DOUBLEBUFFER;
 
-                         ret = dfb_layer_create_window( data->layer, x, y,
-                                                        width, height, window_caps,
-                                                        caps, format, &window );
+                         ret = dfb_layer_context_create_window( data->context, x, y,
+                                                                width, height, window_caps,
+                                                                caps, format, &window );
                          if (ret)
                               return ret;
 
@@ -514,7 +540,10 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                                                                    caps );
                     }
                case DFSCL_FULLSCREEN:
-               case DFSCL_EXCLUSIVE:
+               case DFSCL_EXCLUSIVE: {
+                    CoreLayerRegion  *region;
+                    CoreLayerContext *context = data->primary.context;
+
                     config.flags |= DLCONF_BUFFERMODE;
 
                     if (caps & DSCAPS_TRIPLE) {
@@ -550,27 +579,40 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                               config.height = dfb_config->mode.height;
                     }
 
-                    ret = dfb_layer_set_configuration( data->layer, &config );
-                    if (ret) {
-                         if (! (caps & (DSCAPS_SYSTEMONLY|DSCAPS_VIDEOONLY))) {
-                              if (config.buffermode == DLBM_BACKVIDEO) {
-                                   config.buffermode = DLBM_BACKSYSTEM;
+                    ret = dfb_layer_context_set_configuration( context, &config );
+                    if (ret && ! (caps & (DSCAPS_SYSTEMONLY|DSCAPS_VIDEOONLY)) &&
+                        config.buffermode == DLBM_BACKVIDEO)
+                    {
+                         config.buffermode = DLBM_BACKSYSTEM;
 
-                                   ret = dfb_layer_set_configuration( data->layer, &config );
-                              }
-                         }
-
+                         ret = dfb_layer_context_set_configuration( context, &config );
                          if (ret)
                               return ret;
                     }
 
-                    init_palette( dfb_layer_surface( data->layer ), desc );
+                    ret = dfb_layer_context_get_primary_region( context,
+                                                                &region );
+                    if (ret)
+                         return ret;
+
+                    ret = dfb_layer_region_get_surface( region, &surface );
+                    if (ret) {
+                         dfb_layer_region_unref( region );
+                         return ret;
+                    }
+
+                    init_palette( surface, desc );
 
                     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
-                    return IDirectFBSurface_Layer_Construct( *interface, NULL,
-                                                             NULL, data->layer,
-                                                             caps );
+                    ret = IDirectFBSurface_Layer_Construct( *interface, NULL,
+                                                            NULL, region, caps );
+
+                    dfb_surface_unref( surface );
+                    dfb_layer_region_unref( region );
+
+                    return ret;
+               }
           }
      }
 
@@ -1083,6 +1125,8 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
 DFBResult
 IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
 {
+     DFBResult ret;
+
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFB)
 
      data->ref   = 1;
@@ -1101,7 +1145,24 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
 
      data->layer = dfb_layer_at_translated( DLID_PRIMARY );
 
-     dfb_layer_enable( data->layer );
+     ret = dfb_layer_get_primary_context( data->layer, &data->context );
+     if (ret) {
+          ERRORMSG( "IDirectFB_Construct: "
+                    "Could not get default context of primary layer!\n" );
+          DFB_DEALLOCATE_INTERFACE(thiz);
+          return ret;
+     }
+
+     ret = dfb_layer_activate_context( data->layer, data->context );
+     if (ret) {
+          ERRORMSG( "IDirectFB_Construct: "
+                    "Could not activate default context of primary layer!\n" );
+          dfb_layer_context_unref( data->context );
+          DFB_DEALLOCATE_INTERFACE(thiz);
+          return ret;
+     }
+
+     data->stack = dfb_layer_context_windowstack( data->context );
 
      thiz->AddRef = IDirectFB_AddRef;
      thiz->Release = IDirectFB_Release;
@@ -1153,7 +1214,7 @@ EnumDisplayLayers_Callback( CoreLayer *layer, void *ctx )
      DFBDisplayLayerDescription  desc;
      EnumDisplayLayers_Context  *context = (EnumDisplayLayers_Context*) ctx;
 
-     dfb_layer_description( layer, &desc );
+     dfb_layer_get_description( layer, &desc );
 
      return context->callback( dfb_layer_id_translated( layer ), desc,
                                context->callback_ctx );
@@ -1167,11 +1228,10 @@ GetDisplayLayer_Callback( CoreLayer *layer, void *ctx )
      if (dfb_layer_id_translated( layer ) != context->id)
           return DFENUM_OK;
 
-     if ((context->ret = dfb_layer_enable( layer )) == DFB_OK) {
-          DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBDisplayLayer );
+     DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBDisplayLayer );
 
-          IDirectFBDisplayLayer_Construct( *context->interface, layer );
-     }
+     context->ret = IDirectFBDisplayLayer_Construct( *context->interface,
+                                                     layer );
 
      return DFENUM_CANCEL;
 }
@@ -1263,15 +1323,15 @@ input_filter_local( DFBEvent *evt,
           switch (event->type) {
                case DIET_BUTTONPRESS:
                     if (data->primary.window)
-                         dfb_layer_cursor_enable( data->layer, false );
+                         dfb_windowstack_cursor_enable( data->stack, false );
                     break;
                case DIET_KEYPRESS:
                     if (data->primary.window)
-                         dfb_layer_cursor_enable( data->layer,
-                                                  (event->key_symbol ==
-                                                   DIKS_ESCAPE) ||
-                                                  (event->modifiers &
-                                                   DIMM_META) );
+                         dfb_windowstack_cursor_enable( data->stack,
+                                                        (event->key_symbol ==
+                                                         DIKS_ESCAPE) ||
+                                                        (event->modifiers &
+                                                         DIMM_META) );
                     break;
                default:
                     break;
@@ -1309,6 +1369,6 @@ drop_window( IDirectFB_data *data )
      data->primary.window  = NULL;
      data->primary.focused = false;
 
-     dfb_layer_cursor_enable( data->layer, true );
+     dfb_windowstack_cursor_enable( data->stack, true );
 }
 

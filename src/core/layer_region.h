@@ -27,17 +27,16 @@
 #ifndef __CORE__LAYER_REGION_H__
 #define __CORE__LAYER_REGION_H__
 
-#include <dfb_types.h>
-#include <pthread.h>
+#include <directfb.h>
 
-#include <core/fusion/lock.h>
+#include <core/coretypes.h>
+#include <core/layers.h>
+
 #include <core/fusion/object.h>
 
-#include <directfb.h>
-#include <core/coretypes.h>
 
 typedef enum {
-     CLRNF_SIZE     = 0x00000001   /* region has been resized */
+     CLRNF_NONE        = 0x00000000
 } CoreLayerRegionNotificationFlags;
 
 typedef struct {
@@ -46,7 +45,7 @@ typedef struct {
 } CoreLayerRegionNotification;
 
 /*
- * Creates a pool of region objects.
+ * Creates a pool of layer region objects.
  */
 FusionObjectPool *dfb_layer_region_pool_create();
 
@@ -55,10 +54,46 @@ FusionObjectPool *dfb_layer_region_pool_create();
  */
 FUSION_OBJECT_METHODS( CoreLayerRegion, dfb_layer_region )
 
-DFBResult dfb_layer_region_create( CoreLayer        *layer,
-                                   CoreLayerRegion **ret_region );
 
-DFBResult dfb_layer_region_set_surface( CoreLayerRegion *region,
-                                        CoreSurface     *surface );
+DFBResult dfb_layer_region_create       ( CoreLayer            *layer,
+                                          CoreLayerContext     *context,
+                                          CoreLayerRegion     **ret_region );
+
+DFBResult dfb_layer_region_activate     ( CoreLayerRegion      *region );
+
+DFBResult dfb_layer_region_deactivate   ( CoreLayerRegion      *region );
+
+DFBResult dfb_layer_region_enable       ( CoreLayerRegion      *region );
+
+DFBResult dfb_layer_region_disable      ( CoreLayerRegion      *region );
+
+DFBResult dfb_layer_region_set_surface  ( CoreLayerRegion      *region,
+                                          CoreSurface          *surface );
+
+DFBResult dfb_layer_region_get_surface  ( CoreLayerRegion      *region,
+                                          CoreSurface         **ret_surface );
+
+DFBResult dfb_layer_region_flip_update  ( CoreLayerRegion      *region,
+                                          DFBRegion            *update,
+                                          DFBSurfaceFlipFlags   flags );
+
+
+/*
+ * Configuration
+ */
+DFBResult dfb_layer_region_set_configuration( CoreLayerRegion            *region,
+                                              CoreLayerRegionConfig      *config,
+                                              CoreLayerRegionConfigFlags  flags );
+
+DFBResult dfb_layer_region_get_configuration( CoreLayerRegion       *region,
+                                              CoreLayerRegionConfig *config );
+
+
+/*
+ * Locking
+ */
+inline FusionResult dfb_layer_region_lock  ( CoreLayerRegion   *region );
+inline FusionResult dfb_layer_region_unlock( CoreLayerRegion   *region );
 
 #endif
+

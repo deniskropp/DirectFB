@@ -27,132 +27,13 @@
 #ifndef __WINDOWS_H__
 #define __WINDOWS_H__
 
-#include <dfb_types.h>
-#include <core/coretypes.h>
+#include <directfb.h>
+
 #include <core/coredefs.h>
+#include <core/coretypes.h>
 
 #include <core/fusion/object.h>
-#include <core/fusion/lock.h>
-#include <core/fusion/reactor.h>
-#include <core/fusion/list.h>
 
-#include <core/state.h>
-
-
-/*
- * Hidden capability for software cursor, window will be the "super topmost".
- */
-#define DWHC_TOPMOST     0x80000000
-
-/*
- * a window
- */
-struct _CoreWindow {
-     FusionObject            object;
-
-     DFBWindowID             id;
-
-     int                     fid;
-
-     int                     x;            /* x position in pixels */
-     int                     y;            /* y position in pixels */
-     int                     width;        /* width in pixels */
-     int                     height;       /* width in pixels */
-
-     DFBRegion               opaque;
-
-     DFBWindowCapabilities   caps;         /* window capabilities, to enable
-                                              blending etc. */
-
-     DFBWindowOptions        options;      /* flags for appearance/behaviour */
-     DFBWindowEventType      events;       /* mask of enabled events */
-
-     DFBWindowStackingClass  stacking;
-
-     __u8                    opacity;      /* global alpha factor */
-     __u32                   color_key;    /* transparent pixel */
-
-     CoreSurface            *surface;      /* backing store surface */
-
-     CoreWindowStack        *stack;        /* window stack the window belongs */
-
-     bool                    initialized;  /* window has been inserted into
-                                              the stack */
-     bool                    destroyed;    /* window is (being) destroyed */
-
-     void                   *window_data;  /* hw driver's private data */
-
-     GlobalReaction          surface_reaction;
-};
-
-/*
- * a window stack
- */
-struct _CoreWindowStack {
-     DFBDisplayLayerID   layer_id;
-
-     int                 width;
-     int                 height;
-
-     int                 num_windows;     /* number of windows on the stack */
-     CoreWindow        **windows;         /* array of windows */
-
-     CoreWindow         *pointer_window;  /* window grabbing the pointer */
-     CoreWindow         *keyboard_window; /* window grabbing the keyboard */
-     CoreWindow         *focused_window;  /* window having the focus */
-     CoreWindow         *entered_window;  /* window under the pointer */
-
-     FusionLink         *grabbed_keys;    /* List of currently grabbed keys. */
-
-     struct {
-          DFBInputDeviceKeySymbol      symbol;
-          DFBInputDeviceKeyIdentifier  id;
-          int                          code;
-          CoreWindow                  *owner;
-     } keys[8];
-
-     DFBInputDeviceButtonMask          buttons;
-     DFBInputDeviceModifierMask        modifiers;
-     DFBInputDeviceLockState           locks;
-
-     struct {
-          int            enabled;         /* is cursor enabled ? */
-          int            x, y;            /* cursor position */
-          CoreWindow    *window;          /* super-toplevel-window
-                                             for software cursor */
-          __u8           opacity;         /* cursor opacity */
-          DFBRegion      region;          /* cursor is clipped by this region */
-
-          int            numerator;       /* cursor acceleration */
-          int            denominator;
-          int            threshold;
-
-          bool           set;             /* cursor enable/disable has
-                                             been called at least one time */
-     } cursor;
-
-     FusionSkirmish      lock;            /* skirmish lock for repaints and
-                                             management functions */
-
-     int                 wm_hack;
-     int                 wm_cycle;
-
-     /* stores information on handling the background on exposure */
-     struct {
-          DFBDisplayLayerBackgroundMode mode;
-                                       /* background handling mode:
-                                          don't care, solid color or image */
-
-          DFBColor            color;   /* color for solid background mode */
-
-
-          CoreSurface        *image;   /* surface for background image mode */
-     } bg;
-
-     FusionLink         *devices;      /* input devices attached to the stack */
-
-     bool                hw_mode;      /* recompositing is done by hardware */
-};
 
 typedef enum {
      CWUF_NONE      = 0x00000000,
@@ -175,63 +56,6 @@ typedef enum {
 #define VISIBLE_WINDOW(w)     (!((w)->caps & DWCAPS_INPUTONLY) && \
                                (w)->opacity > 0 && !(w)->destroyed)
 
-/*
- * allocates a WindowStack, initializes it, registers it for input events
- */
-CoreWindowStack*
-dfb_windowstack_new( CoreLayer *layer, int width, int height );
-
-void
-dfb_windowstack_destroy( CoreWindowStack *stack );
-
-void
-dfb_windowstack_resize( CoreWindowStack *stack,
-                        int              width,
-                        int              height );
-
-/*
- * Prohibit access to the window stack data.
- * Waits until stack is accessible.
- */
-static inline FusionResult
-dfb_windowstack_lock( CoreWindowStack *stack )
-{
-     DFB_ASSERT( stack != NULL );
-
-     return fusion_skirmish_prevail( &stack->lock );
-}
-
-/*
- * Allow access to the window stack data.
- */
-static inline FusionResult
-dfb_windowstack_unlock( CoreWindowStack *stack )
-{
-     DFB_ASSERT( stack != NULL );
-
-     return fusion_skirmish_dismiss( &stack->lock );
-}
-
-/*
- * Returns the stacking index of the window within its stack
- * or -1 if not found.
- */
-static inline int
-dfb_windowstack_get_window_index( CoreWindow *window )
-{
-     int               i;
-     CoreWindowStack  *stack   = window->stack;
-     int               num     = stack->num_windows;
-     CoreWindow      **windows = stack->windows;
-
-     for (i=0; i<num; i++)
-          if (windows[i] == window)
-               return i;
-
-     CAUTION( "window not found" );
-
-     return -1;
-}
 
 /*
  * Creates a pool of window objects.
@@ -243,13 +67,11 @@ FusionObjectPool *dfb_window_pool_create();
  */
 FUSION_OBJECT_METHODS( CoreWindow, dfb_window )
 
-
 /*
  * creates a window on a given stack
  */
 DFBResult
 dfb_window_create( CoreWindowStack        *stack,
-                   CoreLayer              *layer,
                    int                     x,
                    int                     y,
                    int                     width,
@@ -257,7 +79,6 @@ dfb_window_create( CoreWindowStack        *stack,
                    DFBWindowCapabilities   caps,
                    DFBSurfaceCapabilities  surface_caps,
                    DFBSurfacePixelFormat   pixelformat,
-                   DFBDisplayLayerConfig  *config,
                    CoreWindow            **window );
 
 /*
@@ -369,31 +190,6 @@ DFBResult dfb_window_ungrab_key     ( CoreWindow                 *window,
 
 void dfb_window_post_event( CoreWindow *window, DFBWindowEvent *event );
 
-/*
- * repaints all window on a window stack
- */
-void dfb_windowstack_repaint_all( CoreWindowStack *stack );
+DFBWindowID dfb_window_id( const CoreWindow *window );
 
-/*
- * Releases pressed keys.
- */
-void dfb_windowstack_flush_keys( CoreWindowStack *stack );
-
-/*
- * Synchronize the content of the stack's front and back buffer.
- */
-void dfb_windowstack_sync_buffers( CoreWindowStack *stack );
-
-/*
- * moves the cursor and handles events
- */
-void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
-
-
-/* global reactions */
-ReactionResult _dfb_window_stack_inputdevice_react( const void *msg_data,
-                                                    void       *ctx );
-
-ReactionResult _dfb_window_surface_listener       ( const void *msg_data,
-                                                    void       *ctx );
 #endif

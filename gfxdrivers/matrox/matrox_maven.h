@@ -47,7 +47,7 @@ void maven_sync( MatroxMavenData  *mav,
 
 void maven_set_regs( MatroxMavenData       *mav,
                      MatroxDriverData      *mdrv,
-                     DFBDisplayLayerConfig *config,
+                     CoreLayerRegionConfig *config,
                      DFBColorAdjustment    *adj );
 
 void maven_set_hue( MatroxMavenData  *mav,

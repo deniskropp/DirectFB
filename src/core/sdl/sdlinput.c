@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -56,6 +56,7 @@ typedef struct {
      InputDevice *device;
      CoreThread  *thread;
      DFBSDL      *dfb_sdl;
+     int          stop;
 } SDLInputData;
 
 
@@ -78,7 +79,7 @@ motion_compress( int x, int y )
           motionX.axis    = DIAI_X;
           motionX.axisabs = x;
      }
-     
+
      if (motionY.axisabs != y) {
           motionY.type    = DIET_AXISMOTION;
           motionY.flags   = DIEF_AXISABS;
@@ -95,7 +96,7 @@ motion_realize( SDLInputData *data )
 
           motionX.type = DIET_UNKNOWN;
      }
-     
+
      if (motionY.type != DIET_UNKNOWN) {
           dfb_input_dispatch( data->device, &motionY );
 
@@ -163,47 +164,47 @@ translate_key( SDLKey key, DFBInputEvent *evt )
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_CURSOR_UP;
                break;
-          
+
           case SDLK_DOWN:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_CURSOR_DOWN;
                break;
-          
+
           case SDLK_RIGHT:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_CURSOR_RIGHT;
                break;
-          
+
           case SDLK_LEFT:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_CURSOR_LEFT;
                break;
-          
+
           case SDLK_INSERT:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_INSERT;
                break;
-          
+
           case SDLK_HOME:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_HOME;
                break;
-          
+
           case SDLK_END:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_END;
                break;
-          
+
           case SDLK_PAGEUP:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_PAGE_UP;
                break;
-          
+
           case SDLK_PAGEDOWN:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_PAGE_DOWN;
                break;
-          
+
 
           /* Key state modifier keys */
           case SDLK_NUMLOCK:
@@ -225,89 +226,89 @@ translate_key( SDLKey key, DFBInputEvent *evt )
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_SHIFT_R;
                break;
-          
+
           case SDLK_LSHIFT:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_SHIFT_L;
                break;
-          
+
           case SDLK_RCTRL:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_CONTROL_R;
                break;
-          
+
           case SDLK_LCTRL:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_CONTROL_L;
                break;
-          
+
           case SDLK_RALT:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_ALT_R;
                break;
-          
+
           case SDLK_LALT:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_ALT_L;
                break;
-          
+
           case SDLK_RMETA:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_META_R;
                break;
-          
+
           case SDLK_LMETA:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_META_L;
                break;
-          
+
           case SDLK_LSUPER:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_SUPER_L;
                break;
-          
+
           case SDLK_RSUPER:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_SUPER_R;
                break;
-          
+
           case SDLK_MODE:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_ALTGR;
                break;
-          
+
 
           /* Miscellaneous function keys */
           case SDLK_HELP:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_HELP;
                break;
-          
+
           case SDLK_PRINT:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_PRINT;
                break;
-          
+
           case SDLK_BREAK:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_BREAK;
                break;
-          
+
           case SDLK_MENU:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_MENU;
                break;
-          
+
           case SDLK_POWER:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_POWER;
                break;
-          
+
 
           default:
                return false;
      }
-     
+
      return true;
 }
 
@@ -321,16 +322,16 @@ sdlEventThread( CoreThread *thread, void *driver_data )
      SDLInputData *data    = (SDLInputData*) driver_data;
      DFBSDL       *dfb_sdl = data->dfb_sdl;
 
-     while (true) {
+     while (!data->stop) {
           DFBInputEvent evt;
           SDL_Event     event;
 
           fusion_skirmish_prevail( &dfb_sdl->lock );
-          
+
           /* Check for events */
           while ( SDL_PollEvent(&event) ) {
                fusion_skirmish_dismiss( &dfb_sdl->lock );
-               
+
                switch (event.type) {
                     case SDL_MOUSEMOTION:
                          motion_compress( event.motion.x, event.motion.y );
@@ -339,7 +340,7 @@ sdlEventThread( CoreThread *thread, void *driver_data )
                     case SDL_MOUSEBUTTONUP:
                     case SDL_MOUSEBUTTONDOWN:
                          motion_realize( data );
-                         
+
                          if (event.type == SDL_MOUSEBUTTONDOWN)
                               evt.type = DIET_BUTTONPRESS;
                          else
@@ -364,7 +365,7 @@ sdlEventThread( CoreThread *thread, void *driver_data )
 
                          dfb_input_dispatch( data->device, &evt );
                          break;
-                    
+
                     case SDL_KEYUP:
                     case SDL_KEYDOWN:
                          if (event.type == SDL_KEYDOWN)
@@ -383,37 +384,37 @@ sdlEventThread( CoreThread *thread, void *driver_data )
                          }
 
                          break;
-                    
+
                     case SDL_QUIT:
                          evt.type       = DIET_KEYPRESS;
                          evt.flags      = DIEF_KEYSYMBOL;
                          evt.key_symbol = DIKS_ESCAPE;
-                         
+
                          dfb_input_dispatch( data->device, &evt );
-                         
+
                          evt.type       = DIET_KEYRELEASE;
                          evt.flags      = DIEF_KEYSYMBOL;
                          evt.key_symbol = DIKS_ESCAPE;
-                         
+
                          dfb_input_dispatch( data->device, &evt );
                          break;
-                    
+
                     default:
                          break;
                }
-               
+
                fusion_skirmish_prevail( &dfb_sdl->lock );
           }
 
           fusion_skirmish_dismiss( &dfb_sdl->lock );
-          
+
           motion_realize( data );
 
           usleep(10000);
-     
+
           dfb_thread_testcancel( thread );
      }
-     
+
      return NULL;
 }
 
@@ -464,13 +465,13 @@ driver_open_device( InputDevice      *device,
      DFBSDL       *dfb_sdl = dfb_system_data();
 
      fusion_skirmish_prevail( &dfb_sdl->lock );
-     
+
      SDL_EnableUNICODE( true );
 
-     SDL_EnableKeyRepeat( 250, 33 );
+     SDL_EnableKeyRepeat( 250, 40 );
 
      fusion_skirmish_dismiss( &dfb_sdl->lock );
-     
+
      /* set device name */
      snprintf( info->desc.name,
                DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "SDL Input" );
@@ -524,7 +525,8 @@ driver_close_device( void *driver_data )
      SDLInputData *data = (SDLInputData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
+     data->stop = 1;
+
      dfb_thread_join( data->thread );
      dfb_thread_destroy( data->thread );
 

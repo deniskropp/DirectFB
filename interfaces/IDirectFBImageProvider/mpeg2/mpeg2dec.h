@@ -27,14 +27,14 @@
  *
  */
 
-#include <inttypes.h>
+#include <dfb_types.h>
 
 typedef int  (*MPEG2_Read)(void *buf, int count, void *ctx);
-typedef void (*MPEG2_Write)(int x, int y, uint32_t argb, void *ctx);
+typedef void (*MPEG2_Write)(int x, int y, __u32 argb, void *ctx);
 
 typedef struct {
      int Fault_Flag;
-     
+
      /* buffers for multiuse purposes */
      char Error_Text[256];
      unsigned char _Clip[1024];
@@ -63,15 +63,15 @@ typedef struct {
      int mb_width;
      int mb_height;
      double bit_rate;
-     double frame_rate; 
+     double frame_rate;
 
 
      /* headers */
 
      /* ISO/IEC 13818-2 section 6.2.2.1:  sequence_header() */
      int aspect_ratio_information;
-     int frame_rate_code; 
-     int bit_rate_value; 
+     int frame_rate_code;
+     int bit_rate_value;
      int vbv_buffer_size;
      int constrained_parameters_flag;
 
@@ -84,7 +84,7 @@ typedef struct {
      int frame_rate_extension_d;
 
      /* ISO/IEC 13818-2 section 6.2.2.4:  sequence_display_extension() */
-     int video_format;  
+     int video_format;
      int color_description;
      int color_primaries;
      int transfer_characteristics;
@@ -146,7 +146,7 @@ typedef struct {
 
      MPEG2_Write  mpeg2_write;
      void        *mpeg2_write_ctx;
-     
+
      unsigned char Rdbfr[2048];
      unsigned char *Rdptr;
      unsigned char Inbfr[16];
@@ -276,8 +276,8 @@ void MPEG2_Close(MPEG2_Decoder *dec);
 #define NO_LAYER                                0
 #define SEQUENCE_LAYER                          1
 #define PICTURE_LAYER                           2
-#define SLICE_LAYER                             3    
-#define MACROBLOCK_LAYER                        4    
+#define SLICE_LAYER                             3
+#define MACROBLOCK_LAYER                        4
 #define BLOCK_LAYER                             5
 #define EVENT_LAYER                             6
 #define ALL_LAYERS                              7

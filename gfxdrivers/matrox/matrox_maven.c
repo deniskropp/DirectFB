@@ -135,7 +135,7 @@ maven_sync( MatroxMavenData  *mav,
 void
 maven_set_regs( MatroxMavenData       *mav,
                 MatroxDriverData      *mdrv,
-                DFBDisplayLayerConfig *config,
+                CoreLayerRegionConfig *config,
                 DFBColorAdjustment    *adj )
 {
      LR(0x00);
@@ -205,7 +205,7 @@ maven_set_regs( MatroxMavenData       *mav,
 
           /*  deflicker: 0x00, 0xB1, 0xA2 */
           maven_write_byte( mav, mdrv, 0x93,
-                            config->flags & DLOP_FLICKER_FILTERING ? 0xA2 : 0x00 );
+                            config->options & DLOP_FLICKER_FILTERING ? 0xA2 : 0x00 );
      }
 
      maven_set_saturation( mav, mdrv, adj->saturation >> 8 );

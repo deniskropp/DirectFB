@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -40,26 +40,33 @@ typedef enum {
 #endif
 
 
-  typedef enum {
-    FUSION_SUCCESS   = 0,
-    FUSION_FAILURE,
-    FUSION_BUG,
-    FUSION_UNIMPLEMENTED,
-    FUSION_INVARG,
-    FUSION_DESTROYED,
-    FUSION_ACCESSDENIED,
-    FUSION_PERMISSIONDENIED,
-    FUSION_NOTEXISTENT,
-    FUSION_LIMITREACHED,
-    FUSION_INUSE,
-    FUSION_TIMEOUT
-  } FusionResult;
+typedef enum {
+     FUSION_SUCCESS   = 0,
+     FUSION_FAILURE,
+     FUSION_BUG,
+     FUSION_UNIMPLEMENTED,
+     FUSION_INVARG,
+     FUSION_DESTROYED,
+     FUSION_ACCESSDENIED,
+     FUSION_PERMISSIONDENIED,
+     FUSION_NOTEXISTENT,
+     FUSION_LIMITREACHED,
+     FUSION_INUSE,
+     FUSION_TIMEOUT,
+     FUSION_OUTOFSHAREDMEMORY
+} FusionResult;
 
-  typedef struct _FusionReactor      FusionReactor;
-  typedef struct _FusionArena        FusionArena;
-  
-  typedef struct _FusionObject       FusionObject;
-  typedef struct _FusionObjectPool   FusionObjectPool;
+typedef struct _FusionReactor      FusionReactor;
+typedef struct _FusionArena        FusionArena;
+
+typedef struct _FusionObject       FusionObject;
+typedef struct _FusionObjectPool   FusionObjectPool;
+
+
+#define FUSION_MAGIC(spell)   ( ~((spell)[0] << 24) | \
+                                ~((spell)[1] << 16) | \
+                                ~((spell)[2] <<  8) )
+
 
 #ifdef __cplusplus
 }

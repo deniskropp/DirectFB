@@ -29,9 +29,13 @@
 
 #include "fusion_types.h"
 
+#define FUSION_VECTOR_MAGIC     FUSION_MAGIC("VEC")
+
 typedef struct {
+     int    magic;
+
      void **elements;
-     int    num_elements;
+     int    count;
 
      int    capacity;
 } FusionVector;
@@ -39,15 +43,87 @@ typedef struct {
 void fusion_vector_init   ( FusionVector *vector, int capacity );
 void fusion_vector_destroy( FusionVector *vector );
 
-void fusion_vector_add    ( FusionVector *vector, void *element );
-void fusion_vector_insert ( FusionVector *vector, void *element, int index );
-void fusion_vector_remove ( FusionVector *vector, int index );
+FusionResult fusion_vector_add        ( FusionVector *vector,
+                                        void         *element );
 
-#define fusion_vector_foreach(vector, index, element)  \
-     for (index = 0;                                   \
-          index < vector->num_elements &&              \
-               element = vector->elements[index];      \
-          index++)
+FusionResult fusion_vector_insert     ( FusionVector *vector,
+                                        void         *element,
+                                        int           index );
+
+FusionResult fusion_vector_remove     ( FusionVector *vector,
+                                        int           index );
+
+FusionResult fusion_vector_remove_last( FusionVector *vector );
+
+
+static inline bool
+fusion_vector_empty( const FusionVector *vector )
+{
+     DFB_ASSERT( vector != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+
+     return vector->count == 0;
+}
+
+static inline int
+fusion_vector_size( const FusionVector *vector )
+{
+     DFB_ASSERT( vector != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+
+     return vector->count;
+}
+
+static inline void *
+fusion_vector_at( const FusionVector *vector, int index )
+{
+     DFB_ASSERT( vector != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_ASSERT( index >= 0 );
+     DFB_ASSERT( index < vector->count );
+
+     return vector->elements[index];
+}
+
+static inline bool
+fusion_vector_contains( const FusionVector *vector, void *element )
+{
+     int i;
+
+     DFB_ASSERT( vector != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_ASSERT( element != NULL );
+
+     /* Start with more recently added elements. */
+     for (i=vector->count-1; i>=0; i++)
+          if (vector->elements[i] == element)
+               return true;
+
+     return false;
+}
+
+static inline int
+fusion_vector_index_of( const FusionVector *vector, void *element )
+{
+     int i;
+
+     DFB_ASSERT( vector != NULL );
+     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_ASSERT( element != NULL );
+
+     /* Start with more recently added elements. */
+     for (i=vector->count-1; i>=0; i--)
+          if (vector->elements[i] == element)
+               return i;
+
+     return -1;
+}
+
+
+#define fusion_vector_foreach(vector, index, element)                         \
+     for ((index) = 0;                                                        \
+          (index) < (vector)->count && (element = (vector)->elements[index]); \
+          (index)++)
 
 #endif /* __FUSION__VECTOR_H__ */
 

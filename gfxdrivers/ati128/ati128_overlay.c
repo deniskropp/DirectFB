@@ -33,8 +33,7 @@
 #include "ati128.h"
 
 typedef struct {
-     DFBRectangle          dest;
-     DFBDisplayLayerConfig config;
+     CoreLayerRegionConfig config;
 
      /* overlay registers */
      struct {
@@ -63,7 +62,7 @@ typedef struct {
 
 static void ov0_set_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0 );
 static void ov0_calc_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0,
-                           CoreLayer *layer, DFBDisplayLayerConfig *config );
+                           CoreLayerRegionConfig *config, CoreSurface *surface );
 
 #define OV0_SUPPORTED_OPTIONS   (DLOP_NONE)
 
@@ -76,43 +75,37 @@ ov0LayerDataSize()
 }
 
 static DFBResult
-ov0InitLayer( GraphicsDevice             *device,
-              CoreLayer                  *layer,
-              DisplayLayerInfo           *layer_info,
-              DFBDisplayLayerConfig      *default_config,
-              DFBColorAdjustment         *default_adj,
+ov0InitLayer( CoreLayer                  *layer,
               void                       *driver_data,
-              void                       *layer_data )
+              void                       *layer_data,
+              DFBDisplayLayerDescription *description,
+              DFBDisplayLayerConfig      *config,
+              DFBColorAdjustment         *adjustment )
 {
-     ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
-     ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
-     volatile __u8       *mmio = adrv->mmio_base;
+     ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
+     volatile __u8    *mmio = adrv->mmio_base;
 
      /* set capabilities and type */
-     layer_info->desc.caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
-     layer_info->desc.type = DLTF_VIDEO | DLTF_STILL_PICTURE;
+     description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
+     description->type = DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
-     snprintf( layer_info->desc.name,
+     snprintf( description->name,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "ATI128 Overlay" );
 
      /* fill out the default configuration */
-     default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
-                                   DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
-                                   DLCONF_OPTIONS;
-     default_config->width       = 640;
-     default_config->height      = 480;
-     default_config->pixelformat = DSPF_YUY2;
-     default_config->buffermode  = DLBM_FRONTONLY;
-     default_config->options     = DLOP_NONE;
+     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
+                           DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
+                           DLCONF_OPTIONS;
+     config->width       = 640;
+     config->height      = 480;
+     config->pixelformat = DSPF_YUY2;
+     config->buffermode  = DLBM_FRONTONLY;
+     config->options     = DLOP_NONE;
 
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
-     default_adj->flags = DCAF_NONE;
-
-
-     /* initialize destination rectangle */
-     dfb_primary_layer_rectangle( 0.0f, 0.0f, 1.0f, 1.0f, &aov0->dest );
+     adjustment->flags = DCAF_NONE;
 
      /* reset overlay */
      ati128_out32( mmio, OV0_SCALE_CNTL, 0x80000000 );
@@ -143,48 +136,20 @@ ov0OnOff( ATI128DriverData    *adrv,
 }
 
 static DFBResult
-ov0Enable( CoreLayer *layer,
-           void      *driver_data,
-           void      *layer_data )
+ov0TestRegion( CoreLayer                  *layer,
+               void                       *driver_data,
+               void                       *layer_data,
+               CoreLayerRegionConfig      *config,
+               CoreLayerRegionConfigFlags *failed )
 {
-     ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
-     ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
-
-     /* enable overlay */
-     ov0OnOff( adrv, aov0, 1 );
-
-     return DFB_OK;
-}
-
-static DFBResult
-ov0Disable( CoreLayer *layer,
-            void      *driver_data,
-            void      *layer_data )
-{
-     ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
-     ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
-
-     /* disable overlay */
-     ov0OnOff( adrv, aov0, 0 );
-
-     return DFB_OK;
-}
-
-static DFBResult
-ov0TestConfiguration( CoreLayer                  *layer,
-                      void                       *driver_data,
-                      void                       *layer_data,
-                      DFBDisplayLayerConfig      *config,
-                      DFBDisplayLayerConfigFlags *failed )
-{
-     DFBDisplayLayerConfigFlags fail = 0;
+     CoreLayerRegionConfigFlags fail = 0;
 
      /* check for unsupported options */
      if (config->options & ~OV0_SUPPORTED_OPTIONS)
-          fail |= DLCONF_OPTIONS;
+          fail |= CLRCF_OPTIONS;
 
      /* check pixel format */
-     switch (config->pixelformat) {
+     switch (config->format) {
           case DSPF_YUY2:
           case DSPF_UYVY:
           case DSPF_I420:
@@ -192,16 +157,16 @@ ov0TestConfiguration( CoreLayer                  *layer,
                break;
 
           default:
-               fail |= DLCONF_PIXELFORMAT;
+               fail |= CLRCF_FORMAT;
      }
 
      /* check width */
      if (config->width > 2048 || config->width < 1)
-          fail |= DLCONF_WIDTH;
+          fail |= CLRCF_WIDTH;
 
      /* check height */
      if (config->height > 1024 || config->height < 1)
-          fail |= DLCONF_HEIGHT;
+          fail |= CLRCF_HEIGHT;
 
      /* write back failing fields */
      if (failed)
@@ -215,10 +180,14 @@ ov0TestConfiguration( CoreLayer                  *layer,
 }
 
 static DFBResult
-ov0SetConfiguration( CoreLayer             *layer,
-                     void                  *driver_data,
-                     void                  *layer_data,
-                     DFBDisplayLayerConfig *config )
+ov0SetRegion( CoreLayer                  *layer,
+              void                       *driver_data,
+              void                       *layer_data,
+              void                       *region_data,
+              CoreLayerRegionConfig      *config,
+              CoreLayerRegionConfigFlags  updated,
+              CoreSurface                *surface,
+              CorePalette                *palette )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
@@ -226,100 +195,59 @@ ov0SetConfiguration( CoreLayer             *layer,
      /* remember configuration */
      aov0->config = *config;
 
-     ov0_calc_regs( adrv, aov0, layer, config );
+     ov0_calc_regs( adrv, aov0, config, surface );
      ov0_set_regs( adrv, aov0 );
+
+     /* enable overlay */
+     ov0OnOff( adrv, aov0, 1 );
 
      return DFB_OK;
 }
 
 static DFBResult
-ov0SetOpacity( CoreLayer *layer,
-               void      *driver_data,
-               void      *layer_data,
-               __u8       opacity )
+ov0RemoveRegion( CoreLayer *layer,
+                 void      *driver_data,
+                 void      *layer_data,
+                 void      *region_data )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
 
-     switch (opacity) {
-          case 0:
-               ov0OnOff( adrv, aov0, 0 );
-               break;
-          case 0xFF:
-               ov0OnOff( adrv, aov0, 1 );
-               break;
-          default:
-               return DFB_UNSUPPORTED;
-     }
+     /* disable overlay */
+     ov0OnOff( adrv, aov0, 0 );
 
      return DFB_OK;
 }
 
 static DFBResult
-ov0SetScreenLocation( CoreLayer *layer,
-                      void      *driver_data,
-                      void      *layer_data,
-                      float      x,
-                      float      y,
-                      float      width,
-                      float      height )
+ov0FlipRegion( CoreLayer           *layer,
+               void                *driver_data,
+               void                *layer_data,
+               void                *region_data,
+               CoreSurface         *surface,
+               DFBSurfaceFlipFlags  flags )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
 
-     /* get new destination rectangle */
-     dfb_primary_layer_rectangle( x, y, width, height, &aov0->dest );
+     dfb_surface_flip_buffers( surface );
 
-     ov0_calc_regs( adrv, aov0, layer, &aov0->config );
+     ov0_calc_regs( adrv, aov0, &aov0->config, surface );
      ov0_set_regs( adrv, aov0 );
 
      return DFB_OK;
-}
-
-static DFBResult
-ov0SetDstColorKey( CoreLayer *layer,
-                   void      *driver_data,
-                   void      *layer_data,
-                   __u8       r,
-                   __u8       g,
-                   __u8       b )
-{
-     return DFB_UNIMPLEMENTED;
-}
-
-static DFBResult
-ov0FlipBuffers( CoreLayer           *layer,
-                void                *driver_data,
-                void                *layer_data,
-                DFBSurfaceFlipFlags  flags )
-{
-     return DFB_UNIMPLEMENTED;
-}
-
-static DFBResult
-ov0SetColorAdjustment( CoreLayer          *layer,
-                       void               *driver_data,
-                       void               *layer_data,
-                       DFBColorAdjustment *adj )
-{
-     return DFB_UNIMPLEMENTED;
 }
 
 
 DisplayLayerFuncs atiOverlayFuncs = {
      LayerDataSize:      ov0LayerDataSize,
      InitLayer:          ov0InitLayer,
-     Enable:             ov0Enable,
-     Disable:            ov0Disable,
-     TestConfiguration:  ov0TestConfiguration,
-     SetConfiguration:   ov0SetConfiguration,
-     SetOpacity:         ov0SetOpacity,
-     SetScreenLocation:  ov0SetScreenLocation,
-     SetDstColorKey:     ov0SetDstColorKey,
-     FlipBuffers:        ov0FlipBuffers,
-     SetColorAdjustment: ov0SetColorAdjustment
-};
 
+     TestRegion:         ov0TestRegion,
+     SetRegion:          ov0SetRegion,
+     RemoveRegion:       ov0RemoveRegion,
+     FlipRegion:         ov0FlipRegion
+};
 
 /* internal */
 
@@ -395,8 +323,8 @@ static void ov0_set_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0 )
 
 static void ov0_calc_regs( ATI128DriverData      *adrv,
                            ATIOverlayLayerData   *aov0,
-                           CoreLayer             *layer,
-                           DFBDisplayLayerConfig *config )
+                           CoreLayerRegionConfig *config,
+                           CoreSurface           *surface )
 {
      int h_inc, v_inc, step_by, tmp;
      int p1_h_accum_init, p23_h_accum_init;
@@ -407,19 +335,18 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
      int            dst_h;
      __u32          offset_u = 0, offset_v = 0;
 
-     CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;
 
 
      /* destination box */
-     dstBox.x1 = aov0->dest.x;
-     dstBox.y1 = aov0->dest.y;
-     dstBox.x2 = aov0->dest.x + aov0->dest.w;
-     dstBox.y2 = aov0->dest.y + aov0->dest.h;
+     dstBox.x1 = config->dest.x;
+     dstBox.y1 = config->dest.y;
+     dstBox.x2 = config->dest.x + config->dest.w;
+     dstBox.y2 = config->dest.y + config->dest.h;
 
      /* destination size */
-     dst_w = aov0->dest.w;
-     dst_h = aov0->dest.h;
+     dst_w = config->dest.w;
+     dst_h = config->dest.h;
 
      /* clear everything but the enable bit that may be set*/
      aov0->regs.SCALE_CNTL &= R128_SCALER_ENABLE;

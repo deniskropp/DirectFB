@@ -549,72 +549,71 @@ DisplayLayerFuncs  oldPrimaryFuncs;
 void              *oldPrimaryDriverData;
 
 static DFBResult
-osdInitLayer( GraphicsDevice        *device,
-              CoreLayer             *layer,
-              DisplayLayerInfo      *layer_info,
-              DFBDisplayLayerConfig *default_config,
-              DFBColorAdjustment    *default_adj,
-              void                  *driver_data,
-              void                  *layer_data )
+osdInitLayer( CoreLayer                  *layer,
+              void                       *driver_data,
+              void                       *layer_data,
+              DFBDisplayLayerDescription *description,
+              DFBDisplayLayerConfig      *config,
+              DFBColorAdjustment         *adjustment )
 {
      DFBResult ret;
 
      /* call the original initialization function first */
-     ret = oldPrimaryFuncs.InitLayer( device, layer, layer_info,
-                                      default_config, default_adj,
-                                      oldPrimaryDriverData, layer_data );
+     ret = oldPrimaryFuncs.InitLayer( layer,
+                                      oldPrimaryDriverData,
+                                      layer_data, description,
+                                      config, adjustment );
      if (ret)
           return ret;
 
      /* set name */
-     snprintf(layer_info->desc.name,
+     snprintf(description->name,
               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "CyberPro OSD");
 
      /* add support for options */
-     default_config->flags   |= DLCONF_OPTIONS;
-     default_config->options  = DLOP_SRC_COLORKEY | DLOP_OPACITY;
+     config->flags |= DLCONF_OPTIONS;
 
      /* add some capabilities */
-     layer_info->desc.caps |= DLCAPS_ALPHACHANNEL |
-                              DLCAPS_OPACITY | DLCAPS_SRC_COLORKEY;
+     description->caps |= DLCAPS_ALPHACHANNEL |
+                          DLCAPS_OPACITY | DLCAPS_SRC_COLORKEY;
 
      return DFB_OK;
 }
 
 static DFBResult
-osdTestConfiguration ( CoreLayer                  *layer,
-                       void                       *driver_data,
-                       void                       *layer_data,
-                       DFBDisplayLayerConfig      *config,
-                       DFBDisplayLayerConfigFlags *failed )
+osdTestRegion( CoreLayer                  *layer,
+               void                       *driver_data,
+               void                       *layer_data,
+               CoreLayerRegionConfig      *config,
+               CoreLayerRegionConfigFlags *failed )
 {
      DFBResult                  ret;
-     DFBDisplayLayerConfigFlags fail = 0;
-     DFBDisplayLayerConfigFlags options = config->flags & DLCONF_OPTIONS;
+     CoreLayerRegionConfigFlags fail = 0;
+     DFBDisplayLayerOptions     options = config->options;
 
-     /* remove flag before calling the original function */
-     config->flags &= ~DLCONF_OPTIONS;
+     /* remove options before calling the original function */
+     config->options = DLOP_NONE;
 
      /* call the original function */
-     ret = oldPrimaryFuncs.TestConfiguration( layer, oldPrimaryDriverData,
-                                              layer_data, config, &fail );
+     ret = oldPrimaryFuncs.TestRegion( layer, oldPrimaryDriverData,
+                                       layer_data, config, &fail );
 
      /* check options if specified */
      if (options) {
           /* any unsupported option wanted? */
-          if (config->options & ~OSD_OPTIONS)
-               fail |= DLCONF_OPTIONS;
+          if (options & ~OSD_OPTIONS)
+               fail |= CLRCF_OPTIONS;
 
           /* opacity and alpha channel cannot be used at once */
-          if ((config->options & (DLOP_OPACITY | DLOP_ALPHACHANNEL)) ==
+          if ((options & (DLOP_OPACITY | DLOP_ALPHACHANNEL)) ==
               (DLOP_OPACITY | DLOP_ALPHACHANNEL))
           {
-               fail |= DLCONF_OPTIONS;
+               fail |= CLRCF_OPTIONS;
           }
      }
 
-     /* readd flag */
-     config->flags |= options;
+     /* restore options */
+     config->options = options;
 
      if (failed)
           *failed = fail;
@@ -626,16 +625,22 @@ osdTestConfiguration ( CoreLayer                  *layer,
 }
 
 static DFBResult
-osdSetConfiguration( CoreLayer             *layer,
-                     void                  *driver_data,
-                     void                  *layer_data,
-                     DFBDisplayLayerConfig *config )
+osdSetRegion( CoreLayer                  *layer,
+              void                       *driver_data,
+              void                       *layer_data,
+              void                       *region_data,
+              CoreLayerRegionConfig      *config,
+              CoreLayerRegionConfigFlags  updated,
+              CoreSurface                *surface,
+              CorePalette                *palette )
 {
      DFBResult ret;
 
      /* call the original function */
-     ret = oldPrimaryFuncs.SetConfiguration( layer, oldPrimaryDriverData,
-                                             layer_data, config );
+     ret = oldPrimaryFuncs.SetRegion( layer, oldPrimaryDriverData,
+                                      layer_data, region_data,
+                                      config, updated, surface,
+                                      palette );
      if (ret)
           return ret;
 
@@ -644,6 +649,10 @@ osdSetConfiguration( CoreLayer             *layer,
           cyber_select_alpha_src( ALPHA_GRAPHICS );
      else
           cyber_select_alpha_src( ALPHA_REGISTER );
+
+     cyber_set_alpha_reg( config->opacity,
+                          config->opacity,
+                          config->opacity );
 
      /* source color keying */
      cyber_select_RAM_addr( RAM_CPU );
@@ -657,34 +666,11 @@ osdSetConfiguration( CoreLayer             *layer,
      return DFB_OK;
 }
 
-static DFBResult
-osdSetOpacity( CoreLayer *layer,
-               void      *driver_data,
-               void      *layer_data,
-               __u8       opacity )
-{
-     cyber_set_alpha_reg( opacity, opacity, opacity );
-
-     return DFB_OK;
-}
-
-static DFBResult
-osdSetSrcColorKey( CoreLayer *layer,
-                   void      *driver_data,
-                   void      *layer_data,
-                   __u8       r,
-                   __u8       g,
-                   __u8       b )
-{
-     return DFB_UNIMPLEMENTED;
-}
-
 DisplayLayerFuncs newPrimaryFuncs = {
      InitLayer:          osdInitLayer,
-     TestConfiguration:  osdTestConfiguration,
-     SetConfiguration:   osdSetConfiguration,
-     SetOpacity:         osdSetOpacity,
-     SetSrcColorKey:     osdSetSrcColorKey
+
+     TestRegion:         osdTestRegion,
+     SetRegion:          osdSetRegion
 };
 
 /* exported symbols */

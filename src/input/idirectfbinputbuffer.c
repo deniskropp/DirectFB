@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -263,7 +263,7 @@ IDirectFBEventBuffer_WakeUp( IDirectFBEventBuffer *thiz )
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      pthread_cond_broadcast( &data->wait_condition );
-     
+
      return DFB_OK;
 }
 
@@ -357,7 +357,7 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
                                 DFBEvent             *event )
 {
      IDirectFBEventBuffer_item *item;
-     
+
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      if (data->filter && data->filter( event, data->filter_ctx ))
@@ -369,7 +369,7 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
      item->evt = *event;
 
      IDirectFBEventBuffer_AddItem( data, item );
-     
+
      return DFB_OK;
 }
 
@@ -448,7 +448,7 @@ static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
           DFBFREE( item );
           return;
      }
-     
+
      pthread_mutex_lock( &data->events_mutex );
 
      if (!data->events) {
@@ -505,9 +505,9 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
           AttachedWindow *window = (AttachedWindow*) data->windows;
 
           while (window) {
-               if (window->window->id == evt->window_id) {
+               if (dfb_window_id( window->window ) == evt->window_id) {
                     fusion_list_remove( &data->windows, &window->link );
-                    
+
                     /* FIXME: free memory later, because reactor writes to it
                        after we return RS_REMOVE */
                     //DFBFREE( window );

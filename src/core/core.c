@@ -48,6 +48,7 @@
 
 #include <core/core.h>
 #include <core/core_parts.h>
+#include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/palette.h>
 #include <core/sig.h>
@@ -60,7 +61,7 @@
 #include <misc/util.h>
 
 
-#define DIRECTFB_CORE_ABI     1
+#define DIRECTFB_CORE_ABI     2
 
 /******************************************************************************/
 
@@ -77,6 +78,7 @@ struct _CoreCleanup {
 };
 
 struct __DFB_CoreDFBShared {
+     FusionObjectPool *layer_context_pool;
      FusionObjectPool *layer_region_pool;
      FusionObjectPool *palette_pool;
      FusionObjectPool *surface_pool;
@@ -200,7 +202,6 @@ dfb_core_create( CoreDFB **ret_core )
      ret = dfb_system_lookup();
      if (ret) {
           pthread_mutex_unlock( &core_dfb_lock );
-
           return ret;
      }
 
@@ -209,7 +210,6 @@ dfb_core_create( CoreDFB **ret_core )
      core = DFBCALLOC( 1, sizeof(CoreDFB) );
      if (!core) {
           pthread_mutex_unlock( &core_dfb_lock );
-
           return DFB_NOSYSTEMMEMORY;
      }
 
@@ -228,9 +228,7 @@ dfb_core_create( CoreDFB **ret_core )
                                     DIRECTFB_CORE_ABI, &world );
      if (core->fusion_id < 0) {
           DFBFREE( core );
-
           pthread_mutex_unlock( &core_dfb_lock );
-
           return DFB_FUSION;
      }
 
@@ -278,6 +276,8 @@ dfb_core_create( CoreDFB **ret_core )
      *ret_core = core;
 
      pthread_mutex_unlock( &core_dfb_lock );
+
+     DEBUGMSG( "DirectFB/Core: Core successfully created.\n" );
 
      return DFB_OK;
 }
@@ -328,6 +328,21 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      pthread_mutex_unlock( &core_dfb_lock );
 
      return DFB_OK;
+}
+
+CoreLayerContext *
+dfb_core_create_layer_context( CoreDFB *core )
+{
+     DFB_ASSUME( core != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     DFB_ASSERT( core != NULL );
+     DFB_ASSERT( core->shared != NULL );
+     DFB_ASSERT( core->shared->layer_context_pool != NULL );
+
+     return (CoreLayerContext*) fusion_object_create( core->shared->layer_context_pool );
 }
 
 CoreLayerRegion *
@@ -575,6 +590,12 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      shared = core->shared;
 
+     fusion_object_pool_destroy( shared->window_pool );
+     fusion_object_pool_destroy( shared->layer_region_pool );
+     fusion_object_pool_destroy( shared->layer_context_pool );
+     fusion_object_pool_destroy( shared->surface_pool );
+     fusion_object_pool_destroy( shared->palette_pool );
+
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
           dfb_core_part_shutdown( core, core_parts[i], emergency );
 
@@ -592,10 +613,11 @@ dfb_core_initialize( CoreDFB *core )
 
      shared = core->shared;
 
-     shared->layer_region_pool = dfb_layer_region_pool_create();
-     shared->palette_pool      = dfb_palette_pool_create();
-     shared->surface_pool      = dfb_surface_pool_create();
-     shared->window_pool       = dfb_window_pool_create();
+     shared->layer_context_pool = dfb_layer_context_pool_create();
+     shared->layer_region_pool  = dfb_layer_region_pool_create();
+     shared->palette_pool       = dfb_palette_pool_create();
+     shared->surface_pool       = dfb_surface_pool_create();
+     shared->window_pool        = dfb_window_pool_create();
 
      for (i=0; i<NUM_CORE_PARTS; i++) {
           DFBResult ret;
@@ -682,17 +704,17 @@ static int
 dfb_core_arena_join( FusionArena *arena,
                      void        *ctx )
 {
-     DFBResult      ret;
-     CoreDFB       *core = ctx;
-     CoreDFBShared *shared;
+     DFBResult  ret;
+     CoreDFB   *core = ctx;
+     void      *field;
 
      DEBUGMSG( "DirectFB/Core: Joining...\n" );
 
      /* Get shared data. */
-     if (fusion_arena_get_shared_field( arena, "Core/Shared", (void**)&shared ))
+     if (fusion_arena_get_shared_field( arena, "Core/Shared", &field ))
           return DFB_FUSION;
 
-     core->shared = shared;
+     core->shared = field;
 
      /* Join. */
      ret = dfb_core_join( core );

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -78,9 +78,23 @@ void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *
      pthread_mutex_unlock( &copy_lock );
 }
 
-void dfb_back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
+void dfb_back_to_front_copy( CoreSurface *surface, DFBRegion *region )
 {
      SurfaceBuffer *tmp;
+     DFBRectangle   rect;
+
+     if (region) {
+          rect.x = region->x1;
+          rect.y = region->y1;
+          rect.w = region->x2 - region->x1 + 1;
+          rect.h = region->y2 - region->y1 + 1;
+     }
+     else {
+          rect.x = 0;
+          rect.y = 0;
+          rect.w = surface->width;
+          rect.h = surface->height;
+     }
 
      pthread_mutex_lock( &btf_lock );
 
@@ -104,20 +118,14 @@ void dfb_back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
      surface->front_buffer = surface->back_buffer;
      surface->back_buffer = tmp;
 
-     if (rect) {
-          dfb_gfxcard_blit( rect, rect->x, rect->y, &btf_state );
-     }
-     else {
-          DFBRectangle sourcerect = { 0, 0, surface->width, surface->height };
-          dfb_gfxcard_blit( &sourcerect, 0, 0, &btf_state );
-     }
+     dfb_gfxcard_blit( &rect, rect.x, rect.y, &btf_state );
 
      tmp = surface->front_buffer;
      surface->front_buffer = surface->back_buffer;
      surface->back_buffer = tmp;
 
      dfb_surfacemanager_unlock( surface->manager );
-     
+
      pthread_mutex_unlock( &btf_lock );
 }
 
@@ -130,7 +138,7 @@ void dfb_sort_triangle( DFBTriangle *tri )
           temp = tri->x1;
           tri->x1 = tri->x2;
           tri->x2 = temp;
-          
+
           temp = tri->y1;
           tri->y1 = tri->y2;
           tri->y2 = temp;
@@ -140,7 +148,7 @@ void dfb_sort_triangle( DFBTriangle *tri )
           temp = tri->x2;
           tri->x2 = tri->x3;
           tri->x3 = temp;
-          
+
           temp = tri->y2;
           tri->y2 = tri->y3;
           tri->y3 = temp;
@@ -150,7 +158,7 @@ void dfb_sort_triangle( DFBTriangle *tri )
           temp = tri->x1;
           tri->x1 = tri->x2;
           tri->x2 = temp;
-          
+
           temp = tri->y1;
           tri->y1 = tri->y2;
           tri->y2 = temp;

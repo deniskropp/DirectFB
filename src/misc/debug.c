@@ -58,7 +58,7 @@ dfb_trace_print_stack( int pid )
      int     i;
      int     level;
 
-     if (!pid)
+     if (pid < 1)
           pid = getpid();
 
      level = threads[pid].level;
@@ -168,6 +168,7 @@ dfb_assertion_fail( const char *expression,
                     const char *function )
 {
      int       pid    = getpid();
+     int       pgrp   = getpgrp();
      long long millis = fusion_get_millis();
 
      fprintf( stderr,
@@ -179,7 +180,17 @@ dfb_assertion_fail( const char *expression,
 
      fflush( stderr );
 
-     kill( getpgrp(), SIGTRAP );
+     dfb_trace_print_stack( -1 );
+
+     DEBUGMSG( "DirectFB/Assertion: "
+               "Sending SIGTRAP to process group %d...\n", pgrp );
+
+     killpg( pgrp, SIGTRAP );
+
+     DEBUGMSG( "DirectFB/Assertion: "
+               "...didn't catch signal on my own, calling _exit(-1).\n" );
+
+     _exit( -1 );
 }
 
 void

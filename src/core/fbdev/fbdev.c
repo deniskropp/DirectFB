@@ -54,6 +54,7 @@
 #include <core/coretypes.h>
 
 #include <core/fbdev/fbdev.h>
+#include <core/layer_control.h>
 #include <core/layers.h>
 #include <core/gfxcard.h>
 #include <core/palette.h>
@@ -87,146 +88,115 @@ static int fbdev_ioctl( int request, void *arg, int arg_size );
 
 FBDev *dfb_fbdev = NULL;
 
+/******************************************************************************/
 
-static int
-primaryLayerDataSize     ();
+static int       primaryLayerDataSize ();
 
-static DFBResult
-primaryInitLayer         ( GraphicsDevice             *device,
-                           CoreLayer                  *layer,
-                           DisplayLayerInfo           *layer_info,
-                           DFBDisplayLayerConfig      *default_config,
-                           DFBColorAdjustment         *default_adj,
-                           void                       *driver_data,
-                           void                       *layer_data );
+static int       primaryRegionDataSize();
 
-static DFBResult
-primaryEnable            ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data );
+static DFBResult primaryInitLayer     ( CoreLayer                  *layer,
+                                        void                       *driver_data,
+                                        void                       *layer_data,
+                                        DFBDisplayLayerDescription *description,
+                                        DFBDisplayLayerConfig      *config,
+                                        DFBColorAdjustment         *adjustment );
 
-static DFBResult
-primaryDisable           ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data );
+static DFBResult primaryWaitVSync     ( CoreLayer                  *layer,
+                                        void                       *driver_data,
+                                        void                       *layer_data );
 
-static DFBResult
-primaryTestConfiguration ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBDisplayLayerConfig      *config,
-                           DFBDisplayLayerConfigFlags *failed );
 
-static DFBResult
-primarySetConfiguration  ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBDisplayLayerConfig      *config );
+static DFBResult primarySetScreenPowerMode( CoreLayer              *layer,
+                                            void                   *driver_data,
+                                            void                   *layer_data,
+                                            DFBScreenPowerMode      mode );
 
-static DFBResult
-primarySetOpacity        ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           __u8                        opacity );
+static DFBResult primarySetColorAdjustment( CoreLayer              *layer,
+                                            void                   *driver_data,
+                                            void                   *layer_data,
+                                            DFBColorAdjustment     *adjustment );
 
-static DFBResult
-primarySetScreenLocation ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           float                       x,
-                           float                       y,
-                           float                       width,
-                           float                       height );
+static DFBResult primaryTestRegion    ( CoreLayer                  *layer,
+                                        void                       *driver_data,
+                                        void                       *layer_data,
+                                        CoreLayerRegionConfig      *config,
+                                        CoreLayerRegionConfigFlags *failed );
 
-static DFBResult
-primarySetSrcColorKey    ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           __u8                        r,
-                           __u8                        g,
-                           __u8                        b );
+static DFBResult primaryAddRegion     ( CoreLayer                  *layer,
+                                        void                       *driver_data,
+                                        void                       *layer_data,
+                                        void                       *region_data,
+                                        CoreLayerRegionConfig      *config );
 
-static DFBResult
-primarySetDstColorKey    ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           __u8                        r,
-                           __u8                        g,
-                           __u8                        b );
+static DFBResult primarySetRegion     ( CoreLayer                  *layer,
+                                        void                       *driver_data,
+                                        void                       *layer_data,
+                                        void                       *region_data,
+                                        CoreLayerRegionConfig      *config,
+                                        CoreLayerRegionConfigFlags  updated,
+                                        CoreSurface                *surface,
+                                        CorePalette                *palette );
 
-static DFBResult
-primaryFlipBuffers       ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBSurfaceFlipFlags         flags );
+static DFBResult primaryRemoveRegion  ( CoreLayer                  *layer,
+                                        void                       *driver_data,
+                                        void                       *layer_data,
+                                        void                       *region_data );
 
-static DFBResult
-primarySetColorAdjustment( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBColorAdjustment         *adj );
+static DFBResult primaryFlipRegion    ( CoreLayer                  *layer,
+                                        void                       *driver_data,
+                                        void                       *layer_data,
+                                        void                       *region_data,
+                                        CoreSurface                *surface,
+                                        DFBSurfaceFlipFlags         flags );
 
-static DFBResult
-primarySetPalette        ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           CorePalette                *palette );
 
-static DFBResult
-primaryWaitVSync         ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data );
+static DFBResult primaryAllocateSurface  ( CoreLayer                  *layer,
+                                           void                       *driver_data,
+                                           void                       *layer_data,
+                                           void                       *region_data,
+                                           CoreLayerRegionConfig      *config,
+                                           CoreSurface               **ret_surface );
 
-static DFBResult
-primarySetScreenPowerMode( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBScreenPowerMode          mode );
-
-static DFBResult
-primaryAllocateSurface   ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBDisplayLayerConfig      *config,
-                           CoreSurface               **surface );
-
-static DFBResult
-primaryReallocateSurface ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBDisplayLayerConfig      *config,
-                           CoreSurface                *surface );
+static DFBResult primaryReallocateSurface( CoreLayer                  *layer,
+                                           void                       *driver_data,
+                                           void                       *layer_data,
+                                           void                       *region_data,
+                                           CoreLayerRegionConfig      *config,
+                                           CoreSurface                *surface );
 
 static DisplayLayerFuncs primaryLayerFuncs = {
      LayerDataSize:      primaryLayerDataSize,
+     RegionDataSize:     primaryRegionDataSize,
      InitLayer:          primaryInitLayer,
-     Enable:             primaryEnable,
-     Disable:            primaryDisable,
-     TestConfiguration:  primaryTestConfiguration,
-     SetConfiguration:   primarySetConfiguration,
-     SetOpacity:         primarySetOpacity,
-     SetScreenLocation:  primarySetScreenLocation,
-     SetSrcColorKey:     primarySetSrcColorKey,
-     SetDstColorKey:     primarySetDstColorKey,
-     FlipBuffers:        primaryFlipBuffers,
-     SetColorAdjustment: primarySetColorAdjustment,
-     SetPalette:         primarySetPalette,
+
      WaitVSync:          primaryWaitVSync,
      SetScreenPowerMode: primarySetScreenPowerMode,
+     SetColorAdjustment: primarySetColorAdjustment,
+
+     TestRegion:         primaryTestRegion,
+     AddRegion:          primaryAddRegion,
+     SetRegion:          primarySetRegion,
+     RemoveRegion:       primaryRemoveRegion,
+     FlipRegion:         primaryFlipRegion,
 
      AllocateSurface:    primaryAllocateSurface,
      ReallocateSurface:  primaryReallocateSurface,
      /* default DeallocateSurface copes with our chunkless video buffers */
 };
 
+/******************************************************************************/
+
 static DFBResult dfb_fbdev_read_modes();
 static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
+static DFBResult dfb_fbdev_set_palette( CorePalette *palette );
 static DFBResult dfb_fbdev_set_rgb332_palette();
 static DFBResult dfb_fbdev_pan( int offset, bool onsync );
 static DFBResult dfb_fbdev_blank( int level );
-static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
+static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                                      VideoMode             *mode,
-                                     DFBDisplayLayerConfig *config );
+                                     CoreLayerRegionConfig *config );
+
+/******************************************************************************/
 
 static inline
 void waitretrace (void)
@@ -258,6 +228,7 @@ void waitretrace (void)
 #endif
 }
 
+/******************************************************************************/
 
 static DFBResult dfb_fbdev_open()
 {
@@ -756,19 +727,24 @@ static DFBResult init_modes()
 /** primary layer functions **/
 
 static int
-primaryLayerDataSize     ()
+primaryLayerDataSize()
+{
+     return 0;
+}
+
+static int
+primaryRegionDataSize()
 {
      return 0;
 }
 
 static DFBResult
-primaryInitLayer         ( GraphicsDevice             *device,
-                           CoreLayer                  *layer,
-                           DisplayLayerInfo           *layer_info,
-                           DFBDisplayLayerConfig      *default_config,
-                           DFBColorAdjustment         *default_adj,
-                           void                       *driver_data,
-                           void                       *layer_data )
+primaryInitLayer( CoreLayer                  *layer,
+                  void                       *driver_data,
+                  void                       *layer_data,
+                  DFBDisplayLayerDescription *description,
+                  DFBDisplayLayerConfig      *config,
+                  DFBColorAdjustment         *adjustment )
 {
      DFBResult  ret;
      VideoMode *default_mode;
@@ -781,378 +757,54 @@ primaryInitLayer         ( GraphicsDevice             *device,
      default_mode = dfb_fbdev->shared->modes;
 
      /* set capabilities and type */
-     layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_CONTRAST | DLCAPS_SATURATION | DLCAPS_BRIGHTNESS;
-     layer_info->desc.type = DLTF_GRAPHICS;
+     description->caps = DLCAPS_SURFACE    | DLCAPS_CONTRAST |
+                         DLCAPS_SATURATION | DLCAPS_BRIGHTNESS;
+     description->type = DLTF_GRAPHICS;
 
      /* set name */
-     snprintf( layer_info->desc.name,
+     snprintf( description->name,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "FBDev Primary Layer" );
 
      /* fill out default color adjustment */
-     default_adj->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_SATURATION;
-     default_adj->brightness = 0x8000;
-     default_adj->contrast   = 0x8000;
-     default_adj->saturation = 0x8000;
+     adjustment->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_SATURATION;
+     adjustment->brightness = 0x8000;
+     adjustment->contrast   = 0x8000;
+     adjustment->saturation = 0x8000;
 
      /* fill out the default configuration */
-     default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
-                                   DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
-     default_config->buffermode  = DLBM_FRONTONLY;
+     config->flags       = DLCONF_WIDTH       | DLCONF_HEIGHT |
+                           DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
+     config->buffermode  = DLBM_FRONTONLY;
 
      if (dfb_config->mode.width)
-          default_config->width  = dfb_config->mode.width;
+          config->width  = dfb_config->mode.width;
      else
-          default_config->width  = default_mode->xres;
+          config->width  = default_mode->xres;
 
      if (dfb_config->mode.height)
-          default_config->height = dfb_config->mode.height;
+          config->height = dfb_config->mode.height;
      else
-          default_config->height = default_mode->yres;
+          config->height = default_mode->yres;
 
      if (dfb_config->mode.format != DSPF_UNKNOWN)
-          default_config->pixelformat = dfb_config->mode.format;
+          config->pixelformat = dfb_config->mode.format;
      else if (dfb_config->mode.depth > 0) {
-          default_config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
-          if (default_config->pixelformat == DSPF_UNKNOWN)
+          config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
+          if (config->pixelformat == DSPF_UNKNOWN)
                ERRORMSG("DirectFB/fbdev: Unknown depth (%d) specified!\n",
                         dfb_config->mode.depth);
      }
 
-     if (default_config->pixelformat == DSPF_UNKNOWN) {
-          default_config->pixelformat = DSPF_RGB16;
+     if (config->pixelformat == DSPF_UNKNOWN) {
+          CoreLayerRegionConfig tmp;
 
-          if (dfb_fbdev_set_mode( NULL, NULL, default_config ))
-               default_config->pixelformat = dfb_pixelformat_for_depth( dfb_fbdev->shared->orig_var.bits_per_pixel );
-     }
+          tmp.format     = DSPF_RGB16;
+          tmp.buffermode = DLBM_FRONTONLY;
 
-     return DFB_OK;
-}
-
-static DFBResult
-primaryEnable( CoreLayer *layer,
-               void      *driver_data,
-               void      *layer_data )
-{
-     /* always enabled */
-     return DFB_OK;
-}
-
-static DFBResult
-primaryDisable( CoreLayer *layer,
-                void      *driver_data,
-                void      *layer_data )
-{
-     /* cannot be disabled */
-     return DFB_UNSUPPORTED;
-}
-
-static DFBResult
-primaryTestConfiguration ( CoreLayer                  *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBDisplayLayerConfig      *config,
-                           DFBDisplayLayerConfigFlags *failed )
-{
-     VideoMode                  *videomode = NULL;
-     DFBDisplayLayerConfigFlags  fail = 0;
-
-     if (config->flags & (DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT)) {
-          videomode = dfb_fbdev->shared->modes;
-          while (videomode) {
-               if (videomode->xres == config->width  &&
-                   videomode->yres == config->height)
-                    break;
-
-               videomode = videomode->next;
-          }
-
-          if (!videomode)
-               fail |= (config->flags & (DLCONF_WIDTH | DLCONF_HEIGHT));
-     }
-     if (config->flags & DLCONF_BUFFERMODE) {
-          if (dfb_fbdev_set_mode( NULL, videomode, config ))
-               fail |= DLCONF_BUFFERMODE;
-     }
-     else if (videomode) {
-          if (dfb_fbdev_set_mode( NULL, videomode, config ))
-               fail |= (config->flags & (DLCONF_WIDTH  |
-                                         DLCONF_HEIGHT | DLCONF_PIXELFORMAT));
-     }
-
-     if (config->flags & DLCONF_OPTIONS  &&  config->options)
-          fail |= DLCONF_OPTIONS;
-
-     if (failed)
-          *failed = fail;
-
-     if (fail)
-          return DFB_UNSUPPORTED;
-
-     return DFB_OK;
-}
-
-static DFBResult
-primarySetConfiguration( CoreLayer             *layer,
-                         void                  *driver_data,
-                         void                  *layer_data,
-                         DFBDisplayLayerConfig *config )
-{
-     VideoMode *videomode;
-
-     videomode = dfb_fbdev->shared->modes;
-     while (videomode) {
-          if (videomode->xres == config->width  &&
-              videomode->yres == config->height)
-               break;
-
-          videomode = videomode->next;
-     }
-
-     if (!videomode)
-          return DFB_UNSUPPORTED;
-
-     return dfb_fbdev_set_mode( layer, videomode, config );
-}
-
-static DFBResult
-primarySetOpacity( CoreLayer *layer,
-                   void      *driver_data,
-                   void      *layer_data,
-                   __u8       opacity )
-{
-     /* opacity is not supported for normal primary layer */
-     if (opacity != 0xFF)
-          return DFB_UNSUPPORTED;
-
-     return DFB_OK;
-}
-
-static DFBResult
-primarySetScreenLocation( CoreLayer       *layer,
-                          void            *driver_data,
-                          void            *layer_data,
-                          float            x,
-                          float            y,
-                          float            width,
-                          float            height )
-{
-     /* can only be fullscreen (0, 0, 1, 1) */
-     if (x != 0  ||  y != 0  ||  width != 1  ||  height != 1)
-          return DFB_UNSUPPORTED;
-
-     return DFB_OK;
-}
-
-static DFBResult
-primarySetSrcColorKey( CoreLayer *layer,
-                       void      *driver_data,
-                       void      *layer_data,
-                       __u8       r,
-                       __u8       g,
-                       __u8       b )
-{
-     return DFB_UNSUPPORTED;
-}
-
-static DFBResult
-primarySetDstColorKey( CoreLayer *layer,
-                       void      *driver_data,
-                       void      *layer_data,
-                       __u8       r,
-                       __u8       g,
-                       __u8       b )
-{
-     return DFB_UNSUPPORTED;
-}
-
-static DFBResult
-primaryFlipBuffers( CoreLayer           *layer,
-                    void                *driver_data,
-                    void                *layer_data,
-                    DFBSurfaceFlipFlags  flags )
-{
-     DFBResult    ret;
-     CoreSurface *surface = dfb_layer_surface( layer );
-
-     if (((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) &&
-         !dfb_config->pollvsync_after)
-          dfb_layer_wait_vsync( layer );
-
-     ret = dfb_fbdev_pan( surface->back_buffer->video.offset /
-                          surface->back_buffer->video.pitch,
-                          (flags & DSFLIP_WAITFORSYNC) == DSFLIP_ONSYNC );
-     if (ret)
-          return ret;
-
-     if ((flags & DSFLIP_WAIT) &&
-         (dfb_config->pollvsync_after || !(flags & DSFLIP_ONSYNC)))
-          dfb_layer_wait_vsync( layer );
-
-     dfb_surface_flip_buffers( surface );
-
-     return DFB_OK;
-}
-
-static DFBResult
-primarySetColorAdjustment( CoreLayer          *layer,
-                           void               *driver_data,
-                           void               *layer_data,
-                           DFBColorAdjustment *adj )
-{
-     struct fb_cmap *cmap       = &dfb_fbdev->shared->current_cmap;
-     struct fb_cmap *temp       = &dfb_fbdev->shared->temp_cmap;
-     int             contrast   = adj->contrast >> 8;
-     int             brightness = (adj->brightness >> 8) - 128;
-     int             saturation = adj->saturation >> 8;
-     int             r, g, b, i;
-
-     if (dfb_fbdev->shared->fix.visual != FB_VISUAL_DIRECTCOLOR)
-          return DFB_UNIMPLEMENTED;
-
-     /* Use gamma ramp to set color attributes */
-     for (i = 0; i < (int)cmap->len; i++) {
-          r = cmap->red[i];
-          g = cmap->green[i];
-          b = cmap->blue[i];
-          r >>= 8;
-          g >>= 8;
-          b >>= 8;
-
-          /*
-        * Brightness Adjustment: Increase/Decrease each color channels
-        * by a constant amount as specified by value of brightness.
-        */
-          if (adj->flags & DCAF_BRIGHTNESS) {
-               r += brightness;
-               g += brightness;
-               b += brightness;
-
-               r = (r < 0) ? 0 : r;
-               g = (g < 0) ? 0 : g;
-               b = (b < 0) ? 0 : b;
-
-               r = (r > 255) ? 255 : r;
-               g = (g > 255) ? 255 : g;
-               b = (b > 255) ? 255 : b;
-          }
-
-          /*
-           * Contrast Adjustment:  We increase/decrease the "separation"
-           * between colors in proportion to the value specified by the
-           * contrast control. Decreasing the contrast has a side effect
-           * of decreasing the brightness.
-           */
-
-          if (adj->flags & DCAF_CONTRAST) {
-               /* Increase contrast */
-               if (contrast > 128) {
-                    int c = contrast - 128;
-
-                    r = ((r + c/2)/c) * c;
-                    g = ((g + c/2)/c) * c;
-                    b = ((b + c/2)/c) * c;
-               }
-               /* Decrease contrast */
-               else if (contrast < 127) {
-                    float c = (float)contrast/128.0;
-
-                    r = (int)((float)r * c);
-                    g = (int)((float)g * c);
-                    b = (int)((float)b * c);
-               }
-               r = (r < 0) ? 0 : r;
-               g = (g < 0) ? 0 : g;
-               b = (b < 0) ? 0 : b;
-
-               r = (r > 255) ? 255 : r;
-               g = (g > 255) ? 255 : g;
-               b = (b > 255) ? 255 : b;
-          }
-
-          /*
-           * Saturation Adjustment:  This is is a better implementation.
-           * Saturation is implemented by "mixing" a proportion of medium
-           * gray to the color value.  On the other side, "removing"
-           * a proportion of medium gray oversaturates the color.
-           */
-          if (adj->flags & DCAF_SATURATION) {
-               if (saturation > 128) {
-                    float gray = ((float)saturation - 128.0)/128.0;
-                    float color = 1.0 - gray;
-
-                    r = (int)(((float)r - 128.0 * gray)/color);
-                    g = (int)(((float)g - 128.0 * gray)/color);
-                    b = (int)(((float)b - 128.0 * gray)/color);
-               }
-               else if (saturation < 128) {
-                    float color = (float)saturation/128.0;
-                    float gray = 1.0 - color;
-
-                    r = (int)(((float) r * color) + (128.0 * gray));
-                    g = (int)(((float) g * color) + (128.0 * gray));
-                    b = (int)(((float) b * color) + (128.0 * gray));
-               }
-
-               r = (r < 0) ? 0 : r;
-               g = (g < 0) ? 0 : g;
-               b = (b < 0) ? 0 : b;
-
-               r = (r > 255) ? 255 : r;
-               g = (g > 255) ? 255 : g;
-               b = (b > 255) ? 255 : b;
-          }
-          r |= r << 8;
-          g |= g << 8;
-          b |= b << 8;
-
-          temp->red[i]   =  (unsigned short)r;
-          temp->green[i] =  (unsigned short)g;
-          temp->blue[i]  =  (unsigned short)b;
-     }
-
-     temp->len = cmap->len;
-     temp->start = cmap->start;
-     if (FBDEV_IOCTL( FBIOPUTCMAP, temp ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not set the palette!\n" );
-
-          return errno2dfb(errno);
-     }
-
-     return DFB_OK;
-}
-
-static DFBResult
-primarySetPalette( CoreLayer   *layer,
-                   void        *driver_data,
-                   void        *layer_data,
-                   CorePalette *palette )
-{
-     int            i;
-     struct fb_cmap *cmap = &dfb_fbdev->shared->current_cmap;
-
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( palette != NULL );
-
-     cmap->len = palette->num_entries <= 256 ? palette->num_entries : 256;
-
-     for (i = 0; i < (int)cmap->len; i++) {
-          cmap->red[i]     = palette->entries[i].r;
-          cmap->green[i]   = palette->entries[i].g;
-          cmap->blue[i]    = palette->entries[i].b;
-          cmap->transp[i]  = 0xff - palette->entries[i].a;
-
-          cmap->red[i]    |= cmap->red[i] << 8;
-          cmap->green[i]  |= cmap->green[i] << 8;
-          cmap->blue[i]   |= cmap->blue[i] << 8;
-          cmap->transp[i] |= cmap->transp[i] << 8;
-     }
-
-     if (FBDEV_IOCTL( FBIOPUTCMAP, cmap ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not set the palette!\n" );
-
-          return errno2dfb(errno);
+          if (dfb_fbdev_set_mode( NULL, NULL, &tmp ))
+               config->pixelformat = dfb_pixelformat_for_depth( dfb_fbdev->shared->orig_var.bits_per_pixel );
+          else
+               config->pixelformat = DSPF_RGB16;
      }
 
      return DFB_OK;
@@ -1207,10 +859,257 @@ primarySetScreenPowerMode( CoreLayer          *layer,
 }
 
 static DFBResult
+primarySetColorAdjustment( CoreLayer          *layer,
+                           void               *driver_data,
+                           void               *layer_data,
+                           DFBColorAdjustment *adjustment )
+{
+     struct fb_cmap *cmap       = &dfb_fbdev->shared->current_cmap;
+     struct fb_cmap *temp       = &dfb_fbdev->shared->temp_cmap;
+     int             contrast   = adjustment->contrast >> 8;
+     int             brightness = (adjustment->brightness >> 8) - 128;
+     int             saturation = adjustment->saturation >> 8;
+     int             r, g, b, i;
+
+     if (dfb_fbdev->shared->fix.visual != FB_VISUAL_DIRECTCOLOR)
+          return DFB_UNIMPLEMENTED;
+
+     /* Use gamma ramp to set color attributes */
+     for (i = 0; i < (int)cmap->len; i++) {
+          r = cmap->red[i];
+          g = cmap->green[i];
+          b = cmap->blue[i];
+          r >>= 8;
+          g >>= 8;
+          b >>= 8;
+
+          /*
+        * Brightness Adjustment: Increase/Decrease each color channels
+        * by a constant amount as specified by value of brightness.
+        */
+          if (adjustment->flags & DCAF_BRIGHTNESS) {
+               r += brightness;
+               g += brightness;
+               b += brightness;
+
+               r = (r < 0) ? 0 : r;
+               g = (g < 0) ? 0 : g;
+               b = (b < 0) ? 0 : b;
+
+               r = (r > 255) ? 255 : r;
+               g = (g > 255) ? 255 : g;
+               b = (b > 255) ? 255 : b;
+          }
+
+          /*
+           * Contrast Adjustment:  We increase/decrease the "separation"
+           * between colors in proportion to the value specified by the
+           * contrast control. Decreasing the contrast has a side effect
+           * of decreasing the brightness.
+           */
+
+          if (adjustment->flags & DCAF_CONTRAST) {
+               /* Increase contrast */
+               if (contrast > 128) {
+                    int c = contrast - 128;
+
+                    r = ((r + c/2)/c) * c;
+                    g = ((g + c/2)/c) * c;
+                    b = ((b + c/2)/c) * c;
+               }
+               /* Decrease contrast */
+               else if (contrast < 127) {
+                    float c = (float)contrast/128.0;
+
+                    r = (int)((float)r * c);
+                    g = (int)((float)g * c);
+                    b = (int)((float)b * c);
+               }
+               r = (r < 0) ? 0 : r;
+               g = (g < 0) ? 0 : g;
+               b = (b < 0) ? 0 : b;
+
+               r = (r > 255) ? 255 : r;
+               g = (g > 255) ? 255 : g;
+               b = (b > 255) ? 255 : b;
+          }
+
+          /*
+           * Saturation Adjustment:  This is is a better implementation.
+           * Saturation is implemented by "mixing" a proportion of medium
+           * gray to the color value.  On the other side, "removing"
+           * a proportion of medium gray oversaturates the color.
+           */
+          if (adjustment->flags & DCAF_SATURATION) {
+               if (saturation > 128) {
+                    float gray = ((float)saturation - 128.0)/128.0;
+                    float color = 1.0 - gray;
+
+                    r = (int)(((float)r - 128.0 * gray)/color);
+                    g = (int)(((float)g - 128.0 * gray)/color);
+                    b = (int)(((float)b - 128.0 * gray)/color);
+               }
+               else if (saturation < 128) {
+                    float color = (float)saturation/128.0;
+                    float gray = 1.0 - color;
+
+                    r = (int)(((float) r * color) + (128.0 * gray));
+                    g = (int)(((float) g * color) + (128.0 * gray));
+                    b = (int)(((float) b * color) + (128.0 * gray));
+               }
+
+               r = (r < 0) ? 0 : r;
+               g = (g < 0) ? 0 : g;
+               b = (b < 0) ? 0 : b;
+
+               r = (r > 255) ? 255 : r;
+               g = (g > 255) ? 255 : g;
+               b = (b > 255) ? 255 : b;
+          }
+          r |= r << 8;
+          g |= g << 8;
+          b |= b << 8;
+
+          temp->red[i]   =  (unsigned short)r;
+          temp->green[i] =  (unsigned short)g;
+          temp->blue[i]  =  (unsigned short)b;
+     }
+
+     temp->len = cmap->len;
+     temp->start = cmap->start;
+     if (FBDEV_IOCTL( FBIOPUTCMAP, temp ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not set the palette!\n" );
+
+          return errno2dfb(errno);
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryTestRegion( CoreLayer                  *layer,
+                   void                       *driver_data,
+                   void                       *layer_data,
+                   CoreLayerRegionConfig      *config,
+                   CoreLayerRegionConfigFlags *failed )
+{
+     VideoMode                  *videomode = NULL;
+     CoreLayerRegionConfigFlags  fail = 0;
+
+     videomode = dfb_fbdev->shared->modes;
+     while (videomode) {
+          if (videomode->xres == config->width  &&
+              videomode->yres == config->height)
+               break;
+
+          videomode = videomode->next;
+     }
+
+     if (!videomode || dfb_fbdev_set_mode( NULL, videomode, config ))
+          fail |= CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_BUFFERMODE;
+
+     if (config->options)
+          fail |= CLRCF_OPTIONS;
+
+     if (failed)
+          *failed = fail;
+
+     if (fail)
+          return DFB_UNSUPPORTED;
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryAddRegion( CoreLayer             *layer,
+                  void                  *driver_data,
+                  void                  *layer_data,
+                  void                  *region_data,
+                  CoreLayerRegionConfig *config )
+{
+     return DFB_OK;
+}
+
+static DFBResult
+primarySetRegion( CoreLayer                  *layer,
+                  void                       *driver_data,
+                  void                       *layer_data,
+                  void                       *region_data,
+                  CoreLayerRegionConfig      *config,
+                  CoreLayerRegionConfigFlags  updated,
+                  CoreSurface                *surface,
+                  CorePalette                *palette )
+{
+     DFBResult  ret;
+     VideoMode *videomode;
+
+     videomode = dfb_fbdev->shared->modes;
+     while (videomode) {
+          if (videomode->xres == config->width  &&
+              videomode->yres == config->height)
+               break;
+
+          videomode = videomode->next;
+     }
+
+     if (!videomode)
+          return DFB_UNSUPPORTED;
+
+     ret = dfb_fbdev_set_mode( surface, videomode, config );
+     if (ret)
+          return ret;
+
+     if (palette)
+          dfb_fbdev_set_palette( palette );
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryRemoveRegion( CoreLayer             *layer,
+                     void                  *driver_data,
+                     void                  *layer_data,
+                     void                  *region_data )
+{
+     return DFB_OK;
+}
+
+static DFBResult
+primaryFlipRegion( CoreLayer           *layer,
+                   void                *driver_data,
+                   void                *layer_data,
+                   void                *region_data,
+                   CoreSurface         *surface,
+                   DFBSurfaceFlipFlags  flags )
+{
+     DFBResult ret;
+
+     if (((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) &&
+         !dfb_config->pollvsync_after)
+          dfb_layer_wait_vsync( layer );
+
+     ret = dfb_fbdev_pan( surface->back_buffer->video.offset /
+                          surface->back_buffer->video.pitch,
+                          (flags & DSFLIP_WAITFORSYNC) == DSFLIP_ONSYNC );
+     if (ret)
+          return ret;
+
+     if ((flags & DSFLIP_WAIT) &&
+         (dfb_config->pollvsync_after || !(flags & DSFLIP_ONSYNC)))
+          dfb_layer_wait_vsync( layer );
+
+     dfb_surface_flip_buffers( surface );
+
+     return DFB_OK;
+}
+
+static DFBResult
 primaryAllocateSurface( CoreLayer              *layer,
                         void                   *driver_data,
                         void                   *layer_data,
-                        DFBDisplayLayerConfig  *config,
+                        void                   *region_data,
+                        CoreLayerRegionConfig  *config,
                         CoreSurface           **ret_surface )
 {
      DFBResult               ret;
@@ -1233,14 +1132,14 @@ primaryAllocateSurface( CoreLayer              *layer,
                             surface->front_buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
 
      if (!surface->front_buffer) {
-          SHFREE( surface );
+          fusion_object_destroy( &surface->object );
           return DFB_NOSYSTEMMEMORY;
      }
 
      /* initialize surface structure */
-     ret = dfb_surface_init( dfb_fbdev->core,
-                             surface, config->width, config->height,
-                             config->pixelformat, caps, NULL );
+     ret = dfb_surface_init( dfb_fbdev->core, surface,
+                             config->width, config->height,
+                             config->format, caps, NULL );
      if (ret) {
           SHFREE( surface );
           return ret;
@@ -1259,22 +1158,23 @@ static DFBResult
 primaryReallocateSurface( CoreLayer             *layer,
                           void                  *driver_data,
                           void                  *layer_data,
-                          DFBDisplayLayerConfig *config,
+                          void                  *region_data,
+                          CoreLayerRegionConfig *config,
                           CoreSurface           *surface )
 {
      /* reallocation is done during SetConfiguration,
         because the pitch can only be determined AFTER setting the mode */
-     if (DFB_PIXELFORMAT_IS_INDEXED(config->pixelformat) && !surface->palette) {
+     if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
           DFBResult    ret;
           CorePalette *palette;
 
           ret = dfb_palette_create( dfb_fbdev->core,
-                                    1 << DFB_BITS_PER_PIXEL( config->pixelformat ),
+                                    1 << DFB_BITS_PER_PIXEL( config->format ),
                                     &palette );
           if (ret)
                return ret;
 
-          if (config->pixelformat == DSPF_LUT8)
+          if (config->format == DSPF_LUT8)
                dfb_palette_generate_rgb332_map( palette );
 
           dfb_surface_set_palette( surface, palette );
@@ -1420,26 +1320,27 @@ static DFBResult dfb_fbdev_blank( int level )
 }
 
 /*
- * sets (if layer != NULL) or tests (if layer == NULL) video mode,
+ * sets (if surface != NULL) or tests (if surface == NULL) video mode,
  * sets virtual y-resolution according to buffermode
  */
-static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
+static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                                      VideoMode             *mode,
-                                     DFBDisplayLayerConfig *config )
+                                     CoreLayerRegionConfig *config )
 {
-     unsigned int             vyres;
-     struct fb_var_screeninfo var;
+     unsigned int              vyres;
+     struct fb_var_screeninfo  var;
+     FBDevShared              *shared = dfb_fbdev->shared;
 
-     DEBUGMSG("DirectFB/core/fbdev: dfb_fbdev_set_mode (layer: %p, "
-              "mode: %p, buffermode: %d)\n", layer, mode,
+     DEBUGMSG("DirectFB/core/fbdev: dfb_fbdev_set_mode (surface: %p, "
+              "mode: %p, buffermode: %d)\n", surface, mode,
               config ? config->buffermode : DLBM_FRONTONLY);
 
      if (!mode)
-          mode = dfb_fbdev->shared->current_mode ? dfb_fbdev->shared->current_mode : dfb_fbdev->shared->modes;
+          mode = shared->current_mode ? shared->current_mode : shared->modes;
 
      vyres = mode->yres;
 
-     var = dfb_fbdev->shared->current_var;
+     var = shared->current_var;
 
      var.xoffset = 0;
      var.yoffset = 0;
@@ -1462,11 +1363,11 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
                     return DFB_UNSUPPORTED;
           }
 
-          var.bits_per_pixel = DFB_BYTES_PER_PIXEL(config->pixelformat) * 8;
+          var.bits_per_pixel = DFB_BYTES_PER_PIXEL(config->format) * 8;
 
           var.transp.length = var.transp.offset = 0;
 
-          switch (config->pixelformat) {
+          switch (config->format) {
                case DSPF_ARGB1555:
                     var.transp.length = 1;
                     var.red.length    = 5;
@@ -1511,7 +1412,7 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
      else
           var.bits_per_pixel = mode->bpp;
 
-     var.activate = layer ? FB_ACTIVATE_NOW : FB_ACTIVATE_TEST;
+     var.activate = surface ? FB_ACTIVATE_NOW : FB_ACTIVATE_TEST;
 
      var.xres = mode->xres;
      var.yres = mode->yres;
@@ -1549,7 +1450,7 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
      if (FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &var ) < 0) {
           int erno = errno;
 
-          if (layer)
+          if (surface)
                PERRORMSG( "DirectFB/core/fbdev: "
                           "Could not set video mode (FBIOPUT_VSCREENINFO)!\n" );
 
@@ -1563,15 +1464,16 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
       * video ram (for buggy framebuffer drivers)
       */
 
-     if (dfb_fbdev->shared->fix.smem_len < (var.yres_virtual *
-                                            var.xres_virtual *
-                                            var.bits_per_pixel >> 3)) {
-          if (layer) {
+     if (shared->fix.smem_len < (var.yres_virtual *
+                                 var.xres_virtual *
+                                 var.bits_per_pixel >> 3))
+     {
+          if (surface) {
                PERRORMSG( "DirectFB/core/fbdev: "
                           "Could not set video mode (not enough video ram)!\n" );
 
                /* restore mode */
-               FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
+               FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &shared->current_var );
           }
 
           dfb_gfxcard_unlock();
@@ -1579,19 +1481,20 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
           return DFB_INVARG;
      }
 
-     /* If layer is NULL the mode was only tested, otherwise apply changes. */
-     if (layer) {
-          struct fb_fix_screeninfo  fix;
-          DFBSurfacePixelFormat     format;
-          CoreSurface              *surface = dfb_layer_surface( layer );
+     /* If surface is NULL the mode was only tested, otherwise apply changes. */
+     if (surface) {
+          struct fb_fix_screeninfo fix;
+          DFBSurfacePixelFormat    format;
 
           FBDEV_IOCTL( FBIOGET_VSCREENINFO, &var );
 
 
           format = dfb_fbdev_get_pixelformat( &var );
           if (format == DSPF_UNKNOWN || var.yres_virtual < vyres) {
+               CAUTION( "fbdev driver possibly buggy" );
+
                /* restore mode */
-               FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
+               FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &shared->current_var );
 
                dfb_gfxcard_unlock();
 
@@ -1605,17 +1508,17 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
           }
 
           /* force format for 8bit */
-          if (format != config->pixelformat && DFB_BYTES_PER_PIXEL(format) == 1) {
-               format = config->pixelformat;
+          if (format != config->format && DFB_BYTES_PER_PIXEL(format) == 1) {
+               format = config->format;
           }
 
-          if (config->pixelformat == DSPF_RGB332)
+          if (config->format == DSPF_RGB332)
                dfb_fbdev_set_rgb332_palette();
           else
-               dfb_fbdev_set_gamma_ramp( config->pixelformat );
+               dfb_fbdev_set_gamma_ramp( config->format );
 
-          dfb_fbdev->shared->current_var = var;
-          dfb_fbdev->shared->current_mode = mode;
+          shared->current_var = var;
+          shared->current_mode = mode;
 
           surface->width  = mode->xres;
           surface->height = mode->yres;
@@ -1625,7 +1528,7 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
           FBDEV_IOCTL( FBIOGET_FSCREENINFO, &fix );
 
           /* ++Tony: Other information (such as visual formats) will also change */
-          dfb_fbdev->shared->fix = fix;
+          shared->fix = fix;
 
           dfb_gfxcard_adjust_heap_offset( var.yres_virtual * fix.line_length );
 
@@ -1677,7 +1580,7 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
                     surface->back_buffer->video.health = CSH_STORED;
                     surface->back_buffer->video.pitch = fix.line_length;
                     surface->back_buffer->video.offset =
-                    surface->back_buffer->video.pitch * var.yres;
+                         surface->back_buffer->video.pitch * var.yres;
 
                     if (surface->idle_buffer != surface->front_buffer) {
                          if (surface->idle_buffer->system.addr)
@@ -1707,7 +1610,7 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
                     surface->back_buffer->video.health = CSH_STORED;
                     surface->back_buffer->video.pitch = fix.line_length;
                     surface->back_buffer->video.offset =
-                    surface->back_buffer->video.pitch * var.yres;
+                         surface->back_buffer->video.pitch * var.yres;
 
                     if (surface->idle_buffer == surface->front_buffer) {
                          surface->idle_buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
@@ -1725,7 +1628,7 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
                     surface->idle_buffer->video.health = CSH_STORED;
                     surface->idle_buffer->video.pitch = fix.line_length;
                     surface->idle_buffer->video.offset =
-                    surface->idle_buffer->video.pitch * var.yres * 2;
+                         surface->idle_buffer->video.pitch * var.yres * 2;
                     break;
                case DLBM_BACKSYSTEM:
                     surface->caps |= DSCAPS_FLIPPING;
@@ -1739,13 +1642,13 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
                     surface->back_buffer->video.health = CSH_INVALID;
                     surface->back_buffer->system.health = CSH_STORED;
                     surface->back_buffer->system.pitch =
-                    (DFB_BYTES_PER_LINE(format, var.xres) + 3) & ~3;
+                         (DFB_BYTES_PER_LINE(format, var.xres) + 3) & ~3;
 
                     if (surface->back_buffer->system.addr)
                          SHFREE( surface->back_buffer->system.addr );
 
                     surface->back_buffer->system.addr =
-                    SHMALLOC( surface->back_buffer->system.pitch * var.yres );
+                         SHMALLOC( surface->back_buffer->system.pitch * var.yres );
 
                     if (surface->idle_buffer != surface->front_buffer) {
                          if (surface->idle_buffer->system.addr)
@@ -1765,8 +1668,9 @@ static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
 
           dfb_gfxcard_after_set_var();
 
-          dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT | CSNF_FLIP |
-                                        CSNF_VIDEO | CSNF_SYSTEM );
+          dfb_surface_notify_listeners( surface,
+                                        CSNF_SIZEFORMAT | CSNF_FLIP |
+                                        CSNF_VIDEO      | CSNF_SYSTEM );
      }
 
      dfb_gfxcard_unlock();
@@ -1946,6 +1850,37 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      if (FBDEV_IOCTL( FBIOPUTCMAP, cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not set gamma ramp" );
+
+          return errno2dfb(errno);
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+dfb_fbdev_set_palette( CorePalette *palette )
+{
+     int             i;
+     struct fb_cmap *cmap = &dfb_fbdev->shared->current_cmap;
+
+     DFB_ASSERT( palette != NULL );
+
+     cmap->len = palette->num_entries <= 256 ? palette->num_entries : 256;
+
+     for (i = 0; i < (int)cmap->len; i++) {
+          cmap->red[i]     = palette->entries[i].r;
+          cmap->green[i]   = palette->entries[i].g;
+          cmap->blue[i]    = palette->entries[i].b;
+          cmap->transp[i]  = 0xff - palette->entries[i].a;
+
+          cmap->red[i]    |= cmap->red[i] << 8;
+          cmap->green[i]  |= cmap->green[i] << 8;
+          cmap->blue[i]   |= cmap->blue[i] << 8;
+          cmap->transp[i] |= cmap->transp[i] << 8;
+     }
+
+     if (FBDEV_IOCTL( FBIOPUTCMAP, cmap ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: Could not set the palette!\n" );
 
           return errno2dfb(errno);
      }

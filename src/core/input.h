@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -123,7 +123,7 @@ DFBResult dfb_input_device_get_keymap_entry( InputDevice               *device,
 /* global reactions */
 
 typedef enum {
-     DFB_WINDOW_STACK_INPUTDEVICE_REACT
+     DFB_WINDOWSTACK_INPUTDEVICE_LISTENER
 } DFB_INPUT_GLOBALS;
 
 #endif

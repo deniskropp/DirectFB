@@ -59,9 +59,132 @@ static CoreDFB    *core_dfb = NULL;
 static SigHandled  sigs_handled[NUM_SIGS_TO_HANDLE];
 
 
-#ifdef DFB_TRACE
-__attribute__((no_instrument_function))
-#endif
+static bool
+show_segv( const siginfo_t *info )
+{
+     switch (info->si_code) {
+          case SEGV_MAPERR:
+               fprintf( stderr, " (at %p, invalid address) <--\n",
+                        info->si_addr );
+               return true;
+
+          case SEGV_ACCERR:
+               fprintf( stderr, " (at %p, invalid permissions) <--\n",
+                        info->si_addr );
+               return true;
+     }
+
+     return false;
+}
+
+static bool
+show_bus( const siginfo_t *info )
+{
+     switch (info->si_code) {
+          case BUS_ADRALN:
+               fprintf( stderr, " (at %p, invalid address alignment) <--\n",
+                        info->si_addr );
+               return true;
+
+          case BUS_ADRERR:
+               fprintf( stderr, " (at %p, non-existent physical address) <--\n",
+                        info->si_addr );
+               return true;
+
+          case BUS_OBJERR:
+               fprintf( stderr, " (at %p, object specific hardware error) <--\n",
+                        info->si_addr );
+               return true;
+     }
+
+     return false;
+}
+
+static bool
+show_ill( const siginfo_t *info )
+{
+     switch (info->si_code) {
+          case ILL_ILLOPC:
+               fprintf( stderr, " (at %p, illegal opcode) <--\n",
+                        info->si_addr );
+               return true;
+
+          case ILL_ILLOPN:
+               fprintf( stderr, " (at %p, illegal operand) <--\n",
+                        info->si_addr );
+               return true;
+
+          case ILL_ILLADR:
+               fprintf( stderr, " (at %p, illegal addressing mode) <--\n",
+                        info->si_addr );
+               return true;
+
+          case ILL_ILLTRP:
+               fprintf( stderr, " (at %p, illegal trap) <--\n",
+                        info->si_addr );
+               return true;
+
+          case ILL_PRVOPC:
+               fprintf( stderr, " (at %p, privileged opcode) <--\n",
+                        info->si_addr );
+               return true;
+
+          case ILL_PRVREG:
+               fprintf( stderr, " (at %p, privileged register) <--\n",
+                        info->si_addr );
+               return true;
+
+          case ILL_COPROC:
+               fprintf( stderr, " (at %p, coprocessor error) <--\n",
+                        info->si_addr );
+               return true;
+
+          case ILL_BADSTK:
+               fprintf( stderr, " (at %p, internal stack error) <--\n",
+                        info->si_addr );
+               return true;
+     }
+
+     return false;
+}
+
+static bool
+show_fpe( const siginfo_t *info )
+{
+     switch (info->si_code) {
+          case FPE_INTDIV:
+               fprintf( stderr, " (at %p, integer divide by zero) <--\n",
+                        info->si_addr );
+               return true;
+
+          case FPE_FLTDIV:
+               fprintf( stderr, " (at %p, floating point divide by zero) <--\n",
+                        info->si_addr );
+               return true;
+     }
+
+     fprintf( stderr, " (at %p) <--\n", info->si_addr );
+
+     return true;
+}
+
+static bool
+show_any( const siginfo_t *info )
+{
+     switch (info->si_code) {
+          case SI_USER:
+               fprintf( stderr, " (sent by pid %d, uid %d) <--\n",
+                        info->si_pid, info->si_uid );
+               return true;
+
+          case SI_KERNEL:
+               fprintf( stderr, " (sent by the kernel) <--\n" );
+               return true;
+     }
+
+     return false;
+}
+
 static void
 dfb_sig_action( int num, siginfo_t *info, void *foo )
 {
@@ -70,59 +193,63 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
 
      fprintf( stderr, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
               pid, millis/1000, millis%1000, num );
-     fflush( stderr );
 
-     switch (num) {
-          case SIGILL:
-          case SIGFPE:
-          case SIGSEGV:
-          case SIGBUS:
-               switch (info->si_code) {
-                    case SEGV_MAPERR:
-                         fprintf( stderr, " (at %p, invalid address) <--\n",
-                                  info->si_addr );
-                         fflush( stderr );
+     if (info) {
+          bool shown = false;
 
-                         if (num == SIGSEGV &&
-                             fusion_shmalloc_cure( info->si_addr ))
-                         {
-                              int       pid    = getpid();
-                              long long millis = fusion_get_millis();
+          if (info->si_code > 0 && info->si_code < 0x80) {
+               switch (num) {
+                    case SIGSEGV:
+                         shown = show_segv( info );
+
+                         if (shown && fusion_shmalloc_cure( info->si_addr )) {
+                              millis = fusion_get_millis();
 
                               fprintf( stderr,
                                        "(!) [%5d: %4lld.%03lld]      -> cured!"
                                        "\n", pid, millis/1000, millis%1000 );
-                              fprintf( stderr, " cured!\n" );
                               fflush( stderr );
                               return;
                          }
 
                          break;
 
-                    case SEGV_ACCERR:
-                         fprintf( stderr, " (at %p, invalid permissions) <--\n",
-                                  info->si_addr );
+                    case SIGBUS:
+                         shown = show_bus( info );
+                         break;
+
+                    case SIGILL:
+                         shown = show_ill( info );
+                         break;
+
+                    case SIGFPE:
+                         shown = show_fpe( info );
                          break;
 
                     default:
-                         fprintf( stderr, " (unknown origin) <--\n" );
+                         fprintf( stderr, " <--\n" );
+                         shown = true;
                          break;
                }
+          }
+          else
+               shown = show_any( info );
 
-               break;
-
-          default:
-               fprintf( stderr, " <--\n" );
-               break;
+          if (!shown)
+               fprintf( stderr, " (unknown origin) <--\n" );
      }
-
-     dfb_trace_print_stacks();
+     else
+          fprintf( stderr, ", no siginfo available <--\n" );
 
      fflush( stderr );
 
+     dfb_trace_print_stacks();
+
      dfb_core_destroy( core_dfb, true );
 
-     kill( 0, num );
+     killpg( 0, num );
+
+     _exit( -1 );
 }
 
 void
@@ -146,6 +273,9 @@ dfb_sig_install_handlers( CoreDFB *core )
 
                action.sa_sigaction = dfb_sig_action;
                action.sa_flags     = SA_RESTART | SA_SIGINFO;
+
+               if (signum != SIGSEGV)
+                    action.sa_flags |= SA_RESETHAND;
 
                sigfillset( &action.sa_mask );
 

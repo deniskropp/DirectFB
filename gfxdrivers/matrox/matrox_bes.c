@@ -41,6 +41,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
+#include <core/layer_control.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
 #include <core/system.h>
@@ -54,8 +55,7 @@
 #include "matrox.h"
 
 typedef struct {
-     bool                  listener_running;
-     DFBDisplayLayerConfig config;
+     CoreLayerRegionConfig config;
 
      struct {
           float            x;
@@ -103,7 +103,7 @@ typedef struct {
 static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                           bool onsync );
 static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
-                           CoreLayer *layer, DFBDisplayLayerConfig *config );
+                           CoreLayerRegionConfig *config, CoreSurface *surface );
 
 #define BES_SUPPORTED_OPTIONS   (DLOP_DEINTERLACING | DLOP_DST_COLORKEY)
 
@@ -117,43 +117,42 @@ besLayerDataSize()
 }
 
 static DFBResult
-besInitLayer( GraphicsDevice             *device,
-              CoreLayer                  *layer,
-              DisplayLayerInfo           *layer_info,
-              DFBDisplayLayerConfig      *default_config,
-              DFBColorAdjustment         *default_adj,
+besInitLayer( CoreLayer                  *layer,
               void                       *driver_data,
-              void                       *layer_data )
+              void                       *layer_data,
+              DFBDisplayLayerDescription *description,
+              DFBDisplayLayerConfig      *config,
+              DFBColorAdjustment         *adjustment )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
      volatile __u8      *mmio = mdrv->mmio_base;
 
      /* set capabilities and type */
-     layer_info->desc.caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
-                             DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
-                             DLCAPS_DEINTERLACING | DLCAPS_DST_COLORKEY;
-     layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
+     description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
+                         DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
+                         DLCAPS_DEINTERLACING | DLCAPS_DST_COLORKEY;
+     description->type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
-     snprintf( layer_info->desc.name,
+     snprintf( description->name,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Matrox Backend Scaler" );
 
      /* fill out the default configuration */
-     default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
-                                   DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
-                                   DLCONF_OPTIONS;
-     default_config->width       = 640;
-     default_config->height      = 480;
-     default_config->pixelformat = DSPF_YUY2;
-     default_config->buffermode  = DLBM_FRONTONLY;
-     default_config->options     = DLOP_NONE;
+     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
+                           DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
+                           DLCONF_OPTIONS;
+     config->width       = 640;
+     config->height      = 480;
+     config->pixelformat = DSPF_YUY2;
+     config->buffermode  = DLBM_FRONTONLY;
+     config->options     = DLOP_NONE;
 
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
-     default_adj->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST;
-     default_adj->brightness = 0x8000;
-     default_adj->contrast   = 0x8000;
+     adjustment->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST;
+     adjustment->brightness = 0x8000;
+     adjustment->contrast   = 0x8000;
 
 
      /* initialize destination rectangle */
@@ -196,49 +195,22 @@ besOnOff( MatroxDriverData   *mdrv,
                 mbes->regs.besCTL | mbes->regs.besCTL_field, BESCTL );
 }
 
-static DFBResult
-besEnable( CoreLayer *layer,
-           void      *driver_data,
-           void      *layer_data )
-{
-     MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
-     MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
-
-     /* enable backend scaler */
-     besOnOff( mdrv, mbes, 1 );
-
-     return DFB_OK;
-}
 
 static DFBResult
-besDisable( CoreLayer *layer,
-            void      *driver_data,
-            void      *layer_data )
-{
-     MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
-     MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
-
-     /* disable backend scaler */
-     besOnOff( mdrv, mbes, 0 );
-
-     return DFB_OK;
-}
-
-static DFBResult
-besTestConfiguration( CoreLayer                  *layer,
-                      void                       *driver_data,
-                      void                       *layer_data,
-                      DFBDisplayLayerConfig      *config,
-                      DFBDisplayLayerConfigFlags *failed )
+besTestRegion( CoreLayer                  *layer,
+               void                       *driver_data,
+               void                       *layer_data,
+               CoreLayerRegionConfig      *config,
+               CoreLayerRegionConfigFlags *failed )
 {
      int                         max_width = 1024;
-     DFBDisplayLayerConfigFlags  fail      = 0;
+     CoreLayerRegionConfigFlags  fail      = 0;
      MatroxDriverData           *mdrv      = (MatroxDriverData*) driver_data;
 
      if (config->options & ~BES_SUPPORTED_OPTIONS)
-          fail |= DLCONF_OPTIONS;
+          fail |= CLRCF_OPTIONS;
 
-     switch (config->pixelformat) {
+     switch (config->format) {
           case DSPF_YUY2:
                break;
 
@@ -253,14 +225,14 @@ besTestConfiguration( CoreLayer                  *layer,
                if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG200)
                     break;
           default:
-               fail |= DLCONF_PIXELFORMAT;
+               fail |= CLRCF_FORMAT;
      }
 
      if (config->width > max_width || config->width < 1)
-          fail |= DLCONF_WIDTH;
+          fail |= CLRCF_WIDTH;
 
      if (config->height > 1024 || config->height < 1)
-          fail |= DLCONF_HEIGHT;
+          fail |= CLRCF_HEIGHT;
 
      if (failed)
           *failed = fail;
@@ -272,118 +244,101 @@ besTestConfiguration( CoreLayer                  *layer,
 }
 
 static DFBResult
-besSetConfiguration( CoreLayer             *layer,
-                     void                  *driver_data,
-                     void                  *layer_data,
-                     DFBDisplayLayerConfig *config )
+besAddRegion( CoreLayer             *layer,
+              void                  *driver_data,
+              void                  *layer_data,
+              void                  *region_data,
+              CoreLayerRegionConfig *config )
+{
+     return DFB_OK;
+}
+
+static DFBResult
+besSetRegion( CoreLayer                  *layer,
+              void                       *driver_data,
+              void                       *layer_data,
+              void                       *region_data,
+              CoreLayerRegionConfig      *config,
+              CoreLayerRegionConfigFlags  updated,
+              CoreSurface                *surface,
+              CorePalette                *palette )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
+     volatile __u8      *mmio = mdrv->mmio_base;
 
      /* remember configuration */
      mbes->config = *config;
 
-     bes_calc_regs( mdrv, mbes, layer, config );
-     bes_set_regs( mdrv, mbes, true );
+     /* set main configuration */
+     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT |
+                    CLRCF_OPTIONS | CLRCF_DEST | CLRCF_OPACITY))
+     {
+          bes_calc_regs( mdrv, mbes, config, surface );
+          bes_set_regs( mdrv, mbes, true );
+     }
+
+     /* set color key */
+     if (updated & CLRCF_DSTKEY) {
+          DFBColor key = config->dst_key;
+
+          switch (dfb_primary_layer_pixelformat()) {
+               case DSPF_ARGB1555:
+                    key.r >>= 3;
+                    key.g >>= 3;
+                    key.b >>= 3;
+                    break;
+
+               case DSPF_RGB16:
+                    key.r >>= 3;
+                    key.g >>= 2;
+                    key.b >>= 3;
+                    break;
+
+               default:
+                    ;
+          }
+
+          mga_out_dac( mmio, XCOLKEY0RED,   key.r );
+          mga_out_dac( mmio, XCOLKEY0GREEN, key.g );
+          mga_out_dac( mmio, XCOLKEY0BLUE,  key.b );
+     }
+
+     /* enable backend scaler */
+     besOnOff( mdrv, mbes, 1 );
 
      return DFB_OK;
 }
 
 static DFBResult
-besSetOpacity( CoreLayer *layer,
-               void      *driver_data,
-               void      *layer_data,
-               __u8       opacity )
+besRemoveRegion( CoreLayer *layer,
+                 void      *driver_data,
+                 void      *layer_data,
+                 void      *region_data )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
 
-     switch (opacity) {
-          case 0:
-               besOnOff( mdrv, mbes, 0 );
-               break;
-          case 0xFF:
-               besOnOff( mdrv, mbes, 1 );
-               break;
-          default:
-               return DFB_UNSUPPORTED;
-     }
+     /* disable backend scaler */
+     besOnOff( mdrv, mbes, 0 );
 
      return DFB_OK;
 }
 
 static DFBResult
-besSetScreenLocation( CoreLayer *layer,
-                      void      *driver_data,
-                      void      *layer_data,
-                      float      x,
-                      float      y,
-                      float      width,
-                      float      height )
+besFlipRegion( CoreLayer           *layer,
+               void                *driver_data,
+               void                *layer_data,
+               void                *region_data,
+               CoreSurface         *surface,
+               DFBSurfaceFlipFlags  flags )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
-
-     /* set new destination rectangle */
-     mbes->location.x = x;
-     mbes->location.y = y;
-     mbes->location.w = width;
-     mbes->location.h = height;
-
-     bes_calc_regs( mdrv, mbes, layer, &mbes->config );
-     bes_set_regs( mdrv, mbes, true );
-
-     return DFB_OK;
-}
-
-static DFBResult
-besSetDstColorKey( CoreLayer *layer,
-                   void      *driver_data,
-                   void      *layer_data,
-                   __u8       r,
-                   __u8       g,
-                   __u8       b )
-{
-     MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
-
-     switch (dfb_primary_layer_pixelformat()) {
-          case DSPF_ARGB1555:
-               r >>= 3;
-               g >>= 3;
-               b >>= 3;
-               break;
-
-          case DSPF_RGB16:
-               r >>= 3;
-               g >>= 2;
-               b >>= 3;
-               break;
-
-          default:
-               ;
-     }
-
-     mga_out_dac( mmio, XCOLKEY0RED,   r );
-     mga_out_dac( mmio, XCOLKEY0GREEN, g );
-     mga_out_dac( mmio, XCOLKEY0BLUE,  b );
-
-     return DFB_OK;
-}
-
-static DFBResult
-besFlipBuffers( CoreLayer           *layer,
-                void                *driver_data,
-                void                *layer_data,
-                DFBSurfaceFlipFlags  flags )
-{
-     MatroxDriverData   *mdrv    = (MatroxDriverData*) driver_data;
-     MatroxBesLayerData *mbes    = (MatroxBesLayerData*) layer_data;
-     CoreSurface        *surface = dfb_layer_surface( layer );
 
      dfb_surface_flip_buffers( surface );
 
-     bes_calc_regs( mdrv, mbes, layer, &mbes->config );
+     bes_calc_regs( mdrv, mbes, &mbes->config, surface );
      bes_set_regs( mdrv, mbes, flags & DSFLIP_ONSYNC );
 
      if (flags & DSFLIP_WAIT)
@@ -409,10 +364,11 @@ besSetColorAdjustment( CoreLayer          *layer,
 }
 
 static DFBResult
-besSetField( CoreLayer *layer,
-             void      *driver_data,
-             void      *layer_data,
-             int        field )
+besSetInputField( CoreLayer *layer,
+                  void      *driver_data,
+                  void      *layer_data,
+                  void      *region_data,
+                  int        field )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
@@ -425,20 +381,18 @@ besSetField( CoreLayer *layer,
      return DFB_OK;
 }
 
-
 DisplayLayerFuncs matroxBesFuncs = {
      LayerDataSize:      besLayerDataSize,
      InitLayer:          besInitLayer,
-     Enable:             besEnable,
-     Disable:            besDisable,
-     TestConfiguration:  besTestConfiguration,
-     SetConfiguration:   besSetConfiguration,
-     SetOpacity:         besSetOpacity,
-     SetScreenLocation:  besSetScreenLocation,
-     SetDstColorKey:     besSetDstColorKey,
-     FlipBuffers:        besFlipBuffers,
+
+     TestRegion:         besTestRegion,
+     AddRegion:          besAddRegion,
+     SetRegion:          besSetRegion,
+     RemoveRegion:       besRemoveRegion,
+     FlipRegion:         besFlipRegion,
+
      SetColorAdjustment: besSetColorAdjustment,
-     SetField:           besSetField
+     SetInputField:      besSetInputField
 };
 
 
@@ -496,31 +450,26 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
 
 static void bes_calc_regs( MatroxDriverData      *mdrv,
                            MatroxBesLayerData    *mbes,
-                           CoreLayer             *layer,
-                           DFBDisplayLayerConfig *config )
+                           CoreLayerRegionConfig *config,
+                           CoreSurface           *surface )
 {
      int tmp, hzoom, intrep;
 
-     DFBRectangle   dest;
      DFBRegion      dstBox;
      int            drw_w, drw_h;
      int            field_height;
-     CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;
      VideoMode     *current_mode = dfb_system_current_mode();
 
      /* destination box */
-     dfb_primary_layer_rectangle( mbes->location.x, mbes->location.y,
-                                  mbes->location.w, mbes->location.h, &dest );
-
-     dstBox.x1 = dest.x;
-     dstBox.y1 = dest.y;
-     dstBox.x2 = dest.x + dest.w;
-     dstBox.y2 = dest.y + dest.h;
+     dstBox.x1 = config->dest.x;
+     dstBox.y1 = config->dest.y;
+     dstBox.x2 = config->dest.x + config->dest.w;
+     dstBox.y2 = config->dest.y + config->dest.h;
 
      /* destination size */
-     drw_w = dest.w;
-     drw_h = dest.h;
+     drw_w = config->dest.w;
+     drw_h = config->dest.h;
 
      /* should horizontal zoom be used? */
      hzoom = (1000000/current_mode->pixclock >= 135) ? 1 : 0;
@@ -528,8 +477,8 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      /* initialize */
      mbes->regs.besGLOBCTL = 0;
 
-     /* clear everything but the enable bit that may be set */
-     mbes->regs.besCTL &= 1;
+     /* enable/disable depending on opacity */
+     mbes->regs.besCTL = config->opacity ? 1 : 0;
 
      /* pixel format settings */
      switch (surface->format) {
@@ -627,7 +576,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      else
           mbes->regs.besCTL_field = 0;
 
-     if (config->pixelformat == DSPF_RGB32)
+     if (config->format == DSPF_RGB32)
           mbes->regs.besHISCAL = 0x20000;
      else {
           intrep = ((drw_w == surface->width) || (drw_w < 2)) ? 0 : 1;

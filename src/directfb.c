@@ -43,11 +43,14 @@
 #include "core/coretypes.h"
 
 #include "core/input.h"
+#include "core/layer_context.h"
+#include "core/layer_control.h"
 #include "core/layers.h"
 #include "core/state.h"
 #include "core/gfxcard.h"
 #include "core/surfaces.h"
 #include "core/windows.h"
+#include "core/windowstack.h"
 
 #include "gfx/convert.h"
 
@@ -181,13 +184,20 @@ DirectFBCreate( IDirectFB **interface )
 
      DFB_ALLOCATE_INTERFACE( idirectfb_singleton, IDirectFB );
 
-     IDirectFB_Construct( idirectfb_singleton, core_dfb );
+     ret = IDirectFB_Construct( idirectfb_singleton, core_dfb );
+     if (ret) {
+          idirectfb_singleton = NULL;
+          dfb_core_destroy( core_dfb, false );
+          core_dfb = NULL;
+          return ret;
+     }
 
      if (dfb_core_is_master( core_dfb )) {
           ret = apply_configuration( idirectfb_singleton );
           if (ret) {
                idirectfb_singleton->Release( idirectfb_singleton );
                idirectfb_singleton = NULL;
+               dfb_core_destroy( core_dfb, false );
                core_dfb = NULL;
                return ret;
           }
@@ -269,6 +279,8 @@ DirectFBErrorString( DFBResult error )
                return "Buffer is too large!";
           case DFB_INTERRUPTED:
                return "Operation has been interrupted!";
+          case DFB_NOCONTEXT:
+               return "No context available!";
      }
 
      return "<UNKNOWN ERROR CODE>!";
@@ -290,14 +302,24 @@ apply_configuration( IDirectFB *dfb )
 {
      DFBResult              ret;
      CoreLayer             *layer;
+     CoreLayerContext      *context;
+     CoreWindowStack       *stack;
      DFBDisplayLayerConfig  layer_config;
 
      /* the primary layer */
      layer = dfb_layer_at_translated( DLID_PRIMARY );
 
-     ret = dfb_layer_enable( layer );
-     if (ret)
+     /* get the default (shared) context */
+     ret = dfb_layer_get_primary_context( layer, &context );
+     if (ret) {
+          ERRORMSG( "DirectFB/DirectFBCreate: "
+                    "Could not get default context of primary layer!\n" );
           return ret;
+     }
+
+     stack = dfb_layer_context_windowstack( context );
+
+     DFB_ASSERT( stack != NULL );
 
      /* set buffer mode for desktop */
      layer_config.flags = DLCONF_BUFFERMODE;
@@ -315,7 +337,7 @@ apply_configuration( IDirectFB *dfb )
      else
           layer_config.buffermode = dfb_config->buffer_mode;
 
-     if (dfb_layer_set_configuration( layer, &layer_config )) {
+     if (dfb_layer_context_set_configuration( context, &layer_config )) {
           ERRORMSG( "DirectFB/DirectFBCreate: "
                     "Setting desktop buffer mode failed!\n"
                     "     -> No virtual resolution support or not enough memory?\n"
@@ -323,14 +345,17 @@ apply_configuration( IDirectFB *dfb )
 
           layer_config.buffermode = DLBM_BACKSYSTEM;
 
-          if (dfb_layer_set_configuration( layer, &layer_config ))
+          if (dfb_layer_context_set_configuration( context, &layer_config ))
                ERRORMSG( "DirectFB/DirectFBCreate: "
                          "Setting system memory desktop back buffer failed!\n"
                          "     -> Using front buffer only mode.\n" );
      }
 
+     /* temporarily disable background */
+     dfb_windowstack_set_background_mode( stack, DLBM_DONTCARE );
+
      /* set desktop background color */
-     dfb_layer_set_background_color( layer, &dfb_config->layer_bg_color );
+     dfb_windowstack_set_background_color( stack, &dfb_config->layer_bg_color );
 
      /* set desktop background image */
      if (dfb_config->layer_bg_mode == DLBM_IMAGE ||
@@ -344,12 +369,13 @@ apply_configuration( IDirectFB *dfb )
           ret = dfb->CreateImageProvider( dfb, dfb_config->layer_bg_filename, &provider );
           if (ret) {
                DirectFBError( "Failed loading background image", ret );
+               dfb_layer_context_unref( context );
                return DFB_INIT;
           }
 
-          if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
-               dfb_layer_get_configuration( layer, &layer_config );
+          dfb_layer_context_get_configuration( context, &layer_config );
 
+          if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
                desc.flags  = DSDESC_WIDTH | DSDESC_HEIGHT;
                desc.width  = layer_config.width;
                desc.height = layer_config.height;
@@ -357,8 +383,9 @@ apply_configuration( IDirectFB *dfb )
           else {
                provider->GetSurfaceDescription( provider, &desc );
           }
+
           desc.flags |= DSDESC_PIXELFORMAT;
-          desc.pixelformat = dfb_primary_layer_pixelformat();
+          desc.pixelformat = layer_config.pixelformat;
 
           ret = dfb->CreateSurface( dfb, &desc, &image );
           if (ret) {
@@ -366,6 +393,7 @@ apply_configuration( IDirectFB *dfb )
 
                provider->Release( provider );
 
+               dfb_layer_context_unref( context );
                return DFB_INIT;
           }
 
@@ -376,6 +404,7 @@ apply_configuration( IDirectFB *dfb )
                image->Release( image );
                provider->Release( provider );
 
+               dfb_layer_context_unref( context );
                return DFB_INIT;
           }
 
@@ -383,13 +412,15 @@ apply_configuration( IDirectFB *dfb )
 
           image_data = (IDirectFBSurface_data*) image->priv;
 
-          dfb_layer_set_background_image( layer, image_data->surface );
+          dfb_windowstack_set_background_image( stack, image_data->surface );
 
           image->Release( image );
      }
 
      /* now set the background mode */
-     dfb_layer_set_background_mode( layer, dfb_config->layer_bg_mode );
+     dfb_windowstack_set_background_mode( stack, dfb_config->layer_bg_mode );
+
+     dfb_layer_context_unref( context );
 
      return DFB_OK;
 }

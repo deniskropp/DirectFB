@@ -52,6 +52,7 @@
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 #include <core/system.h>
+#include <core/windows_internal.h>
 
 #include <gfx/util.h>
 #include <misc/util.h>
@@ -73,7 +74,7 @@ static void video_access_by_software( SurfaceBuffer       *buffer,
 
 static const React dfb_surface_globals[] = {
 /* 0 */   _dfb_layer_region_surface_listener,
-/* 1 */   _dfb_layer_background_image_listener,
+/* 1 */   _dfb_windowstack_background_image_listener,
 /* 2 */   _dfb_window_surface_listener,
           NULL
 };

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -74,13 +74,13 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      dfb_state_set_source( &data->state, NULL );
 
      dfb_state_destroy( &data->state );
-     
-     
+
+
      if (data->surface) {
           CoreSurface *surface = data->surface;
 
           data->surface = NULL;
-          
+
           dfb_surface_detach( surface, &data->reaction );
           dfb_surface_unref( surface );
      }
@@ -347,23 +347,29 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
 
+
      if (flags & DSFLIP_BLIT  ||  region  ||  data->caps & DSCAPS_SUBSURFACE) {
+          DFBRegion reg;
+
           if (region) {
-               DFBRegion    reg  = *region;
-               DFBRectangle rect = data->area.current;
+               reg.x1 = region->x1 + data->area.wanted.x;
+               reg.x2 = region->x2 + data->area.wanted.x;
+               reg.y1 = region->y1 + data->area.wanted.y;
+               reg.y2 = region->y2 + data->area.wanted.y;
 
-               reg.x1 += data->area.wanted.x;
-               reg.x2 += data->area.wanted.x;
-               reg.y1 += data->area.wanted.y;
-               reg.y2 += data->area.wanted.y;
+               if (reg.x1 > reg.x2 || reg.y1 > reg.y2)
+                    return DFB_INVAREA;
 
-               if (dfb_rectangle_intersect_by_unsafe_region( &rect, &reg ))
-                    dfb_back_to_front_copy( data->surface, &rect );
+               if (dfb_region_rectangle_intersect( &reg, &data->area.current ))
+                    dfb_back_to_front_copy( data->surface, &reg );
           }
           else {
-               DFBRectangle rect = data->area.current;
+               reg.x1 = data->area.current.x;
+               reg.x2 = data->area.current.x + data->area.current.w - 1;
+               reg.y1 = data->area.current.y;
+               reg.y2 = data->area.current.y + data->area.current.h - 1;
 
-               dfb_back_to_front_copy( data->surface, &rect );
+               dfb_back_to_front_copy( data->surface, &reg );
           }
      }
      else
@@ -400,7 +406,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      DFBSurfaceDrawingFlags  old_flags;
      DFBRectangle            rect;
      CoreSurface            *surface;
-     
+
      INTERFACE_GET_DATA(IDirectFBSurface)
 
      surface = data->surface;
@@ -422,19 +428,19 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
           data->state.drawingflags  = DSDRAW_NOFX;
           data->state.modified     |= SMF_DRAWING_FLAGS;
      }
-     
+
      /* set color */
      data->state.color.r = r;
      data->state.color.g = g;
      data->state.color.b = b;
      data->state.color.a = a;
-     
+
      if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
           data->state.color_index = dfb_palette_search( surface->palette,
                                                         r, g, b, a );
-     
+
      data->state.modified |= SMF_COLOR;
-     
+
      /* fill the visible rectangle */
      rect = data->area.current;
      dfb_gfxcard_fillrectangle( &rect, &data->state );
@@ -448,7 +454,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      /* restore color */
      data->state.color     = old_color;
      data->state.modified |= SMF_COLOR;
-     
+
      return DFB_OK;
 }
 
@@ -501,7 +507,7 @@ IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
                            __u8 r, __u8 g, __u8 b, __u8 a )
 {
      CoreSurface *surface;
-     
+
      INTERFACE_GET_DATA(IDirectFBSurface)
 
      surface = data->surface;
@@ -693,7 +699,7 @@ IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
      data->src_key.r = r;
      data->src_key.g = g;
      data->src_key.b = b;
-     
+
      if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
           data->src_key.value = dfb_palette_search( surface->palette,
                                                     r, g, b, 0x80 );
@@ -729,11 +735,11 @@ IDirectFBSurface_SetSrcColorKeyIndex( IDirectFBSurface *thiz,
 
      if (index > palette->num_entries)
           return DFB_INVARG;
-     
+
      data->src_key.r = palette->entries[index].r;
      data->src_key.g = palette->entries[index].g;
      data->src_key.b = palette->entries[index].b;
-     
+
      data->src_key.value = index;
 
      /* The new key won't be applied to this surface's state.
@@ -797,11 +803,11 @@ IDirectFBSurface_SetDstColorKeyIndex( IDirectFBSurface *thiz,
 
      if (index > palette->num_entries)
           return DFB_INVARG;
-     
+
      data->dst_key.r = palette->entries[index].r;
      data->dst_key.g = palette->entries[index].g;
      data->dst_key.b = palette->entries[index].b;
-     
+
      data->dst_key.value = index;
 
      if (data->state.dst_colorkey != data->dst_key.value) {
@@ -1184,7 +1190,7 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
                            data->area.wanted.x + dx,
                            data->area.wanted.y + dy,
                            data->area.wanted.x + data->area.wanted.w,
-                           data->area.wanted.y + data->area.wanted.h, 
+                           data->area.wanted.y + data->area.wanted.h,
                            &data->state );
 
      return DFB_OK;
@@ -1582,7 +1588,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->GetPalette = IDirectFBSurface_GetPalette;
      thiz->SetPalette = IDirectFBSurface_SetPalette;
-     
+
      thiz->Lock = IDirectFBSurface_Lock;
      thiz->Unlock = IDirectFBSurface_Unlock;
      thiz->Flip = IDirectFBSurface_Flip;
@@ -1620,12 +1626,12 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetSubSurface = IDirectFBSurface_GetSubSurface;
 
      thiz->GetGL = IDirectFBSurface_GetGL;
-     
+
      thiz->Dump = IDirectFBSurface_Dump;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );
-     
+
      return DFB_OK;
 }
 

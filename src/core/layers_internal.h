@@ -27,54 +27,40 @@
 #ifndef __CORE__LAYERS_INTERNAL_H__
 #define __CORE__LAYERS_INTERNAL_H__
 
+#include <directfb.h>
+
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+
 #include <core/fusion/object.h>
 #include <core/fusion/property.h>
 #include <core/fusion/vector.h>
 
 #include <core/layers.h>
-
-#include <directfb.h>
+#include <core/layer_region.h>
+#include <core/state.h>
 
 typedef struct {
-     DFBDisplayLayerID        id;      /* unique id, functions as an index,
-                                          primary layer has a fixed id */
+     FusionVector      stack;
+     int               active;
 
-     DisplayLayerInfo         layer_info;
-     void                    *layer_data;
+     CoreLayerContext *primary;
+} CoreLayerContexts;
 
-     FusionVector             regions;
+typedef struct {
+     DFBDisplayLayerID           layer_id;
 
-     /****/
+     DFBDisplayLayerDescription  description;
+     DFBDisplayLayerConfig       default_config;
+     DFBColorAdjustment          default_adjustment;
 
-     DFBDisplayLayerConfig    config;  /* current configuration */
+     void                       *layer_data;
 
-     DFBDisplayLayerConfig    last_config;  /* last 'shared' configuration */
+     FusionSkirmish              lock;
 
-     __u8                     opacity; /* if enabled this value controls
-                                          blending of the whole layer */
+     CoreLayerContexts           contexts;
 
-     /* these are normalized values for stretching layers in hardware */
-     struct {
-          float     x, y;  /* 0,0 for the primary layer */
-          float     w, h;  /* 1,1 for the primary layer */
-     } screen;
-
-     DFBColorAdjustment       adjustment;
-
-     /****/
-
-     int                      enabled; /* layers can be turned on and off */
-
-     CoreWindowStack         *stack;   /* every layer has its own
-                                          windowstack as every layer has
-                                          its own pixel buffer */
-
-     FusionProperty           lock;    /* purchased during exclusive access,
-                                          leased during window stack repaint */
-
-     bool                     exclusive; /* helps to detect dead excl. access */
-
-     GlobalReaction           bgimage_reaction;
+     bool                        suspended;
 } CoreLayerShared;
 
 struct __DFB_CoreLayer {
@@ -92,22 +78,77 @@ struct __DFB_CoreLayer {
      CardState          state;
 };
 
-struct __DFB_CoreLayerRegion {
-     FusionObject       object;
+struct __DFB_CoreLayerContext {
+     FusionObject             object;
 
-     FusionSkirmish     lock;
+     DFBDisplayLayerID        layer_id;
 
-     DFBDisplayLayerID  layer_id;
+     FusionSkirmish           lock;
 
-     DFBRectangle       dst;
-     DFBRectangle       src;
+     bool                     active;
 
-     __u8               opacity;
+     FusionVector             regions;
 
-     CoreSurface       *surface;
-     GlobalReaction     surface_reaction;
+     DFBDisplayLayerConfig    config;        /* current configuration */
+
+     CoreLayerRegion         *primary;       /* region used for buffer modes
+                                                other than DLBM_WINDOWS */
+
+     __u8                     opacity;       /* if enabled this value controls
+                                                blending of the whole layer */
+
+     /* these are normalized values for stretching layers in hardware */
+     struct {
+          float               x, y;
+          float               w, h;
+     } screen;
+
+     DFBColorAdjustment       adjustment;
+
+     CoreWindowStack         *stack;         /* every layer has its own
+                                                windowstack as every layer has
+                                                its own pixel buffer */
 };
 
+typedef enum {
+     CLRSF_NONE       = 0x00000000,
+
+     CLRSF_CONFIGURED = 0x00000001,
+     CLRSF_ENABLED    = 0x00000002,
+     CLRSF_ACTIVE     = 0x00000004,
+     CLRSF_REALIZED   = 0x00000008,
+
+     CLRSF_ALL        = 0x0000000F
+} CoreLayerRegionStateFlags;
+
+struct __DFB_CoreLayerRegion {
+     FusionObject                object;
+
+     CoreLayerContext           *context;
+
+     FusionSkirmish              lock;
+
+     CoreLayerRegionStateFlags   state;
+
+     CoreLayerRegionConfig       config;
+
+     CoreSurface                *surface;
+     GlobalReaction              surface_reaction;
+
+     void                       *region_data;
+};
+
+
+/* Called at the end of dfb_layer_region_create(). */
+DFBResult dfb_layer_context_add_region( CoreLayerContext *context,
+                                        CoreLayerRegion  *region );
+
+/* Called early in the region_destructor(). */
+DFBResult dfb_layer_context_remove_region( CoreLayerContext *context,
+                                           CoreLayerRegion  *region );
+
+
+/* global reactions */
 ReactionResult _dfb_layer_region_surface_listener( const void *msg_data,
                                                    void       *ctx );
 

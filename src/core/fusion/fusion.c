@@ -276,6 +276,43 @@ fusion_id()
      return _fusion_id;
 }
 
+void
+fusion_sync()
+{
+     int            result;
+     fd_set         set;
+     struct timeval tv;
+
+     FDEBUG( "syncing with fusion device...\n" );
+
+     while (true) {
+          FD_ZERO(&set);
+          FD_SET(_fusion_fd,&set);
+
+          tv.tv_sec  = 0;
+          tv.tv_usec = 1000;
+
+          result = select (_fusion_fd+1, &set, NULL, NULL, &tv);
+
+          switch (result) {
+               case -1:
+                    if (errno == EINTR)
+                         continue;
+
+                    FPERROR("select()");
+                    return;
+
+               case 0:
+                    FDEBUG( "...synced.\n" );
+                    return;
+
+               default:
+                    FDEBUG( "...syncing...\n" );
+                    usleep( 10000 );
+          }
+     }
+}
+
 /*****************************
  *  File internal functions  *
  *****************************/
@@ -368,6 +405,11 @@ int
 fusion_id()
 {
      return 1;
+}
+
+void
+fusion_sync()
+{
 }
 
 #endif

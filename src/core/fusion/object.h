@@ -169,6 +169,7 @@ prefix##_unlink( type **link )                                                 \
      return fusion_ref_down( &((FusionObject*)object)->ref, true );            \
 }
 
+FUSION_OBJECT_METHODS( void, fusion_object );
 
 #ifdef __cplusplus
 }

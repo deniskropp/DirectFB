@@ -1,0 +1,126 @@
+/*
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#ifndef __CORE__WINDOWSTACK_H__
+#define __CORE__WINDOWSTACK_H__
+
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+
+#include <core/fusion/lock.h>
+
+/*
+ * allocates a WindowStack, initializes it, registers it for input events
+ */
+CoreWindowStack    *dfb_windowstack_create ( CoreLayerContext *context );
+
+void                dfb_windowstack_destroy( CoreWindowStack  *stack );
+
+void                dfb_windowstack_resize ( CoreWindowStack  *stack,
+                                             int               width,
+                                             int               height );
+
+inline FusionResult dfb_windowstack_lock   ( CoreWindowStack  *stack );
+
+inline FusionResult dfb_windowstack_unlock ( CoreWindowStack  *stack );
+
+
+inline int dfb_windowstack_get_window_index( CoreWindowStack *stack,
+                                             CoreWindow      *window );
+
+/*
+ * repaints all window on a window stack
+ */
+void dfb_windowstack_repaint_all( CoreWindowStack *stack );
+
+/*
+ * Releases pressed keys.
+ */
+void dfb_windowstack_flush_keys( CoreWindowStack *stack );
+
+/*
+ * Synchronize the content of the stack's front and back buffer.
+ */
+void dfb_windowstack_sync_buffers( CoreWindowStack *stack );
+
+/*
+ * moves the cursor and handles events
+ */
+void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
+
+/*
+ * sends enter/leave/focus events if appropriate and returns true if so
+ */
+bool dfb_windowstack_update_focus( CoreWindowStack *stack );
+
+/*
+ * background handling
+ */
+DFBResult dfb_windowstack_set_background_mode ( CoreWindowStack               *stack,
+                                                DFBDisplayLayerBackgroundMode  mode );
+
+DFBResult dfb_windowstack_set_background_image( CoreWindowStack               *stack,
+                                                CoreSurface                   *image);
+
+DFBResult dfb_windowstack_set_background_color( CoreWindowStack               *stack,
+                                                DFBColor                      *color);
+
+
+/*
+ * cursor control
+ */
+DFBResult dfb_windowstack_cursor_enable( CoreWindowStack *stack,
+                                         bool             enable );
+
+DFBResult dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
+                                            CoreSurface     *shape,
+                                            int              hot_x,
+                                            int              hot_y );
+
+DFBResult dfb_windowstack_cursor_set_opacity( CoreWindowStack *stack,
+                                              __u8             opacity );
+
+DFBResult dfb_windowstack_cursor_set_acceleration( CoreWindowStack *stack,
+                                                   int              numerator,
+                                                   int              denominator,
+                                                   int              threshold );
+
+DFBResult dfb_windowstack_cursor_warp( CoreWindowStack *stack,
+                                       int              x,
+                                       int              y );
+
+
+DFBResult dfb_windowstack_get_cursor_position (CoreWindowStack *stack,
+                                               int             *x,
+                                               int             *y);
+
+/*
+ * focus
+ */
+DFBResult dfb_windowstack_switch_focus( CoreWindowStack *stack,
+                                        CoreWindow      *to );
+
+#endif

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -23,6 +23,8 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+
+#include <config.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -168,7 +170,7 @@ Construct( IDirectFBImageProvider *thiz,
 
      /* Increase the data buffer reference counter. */
      buffer->AddRef( buffer );
-     
+
      /* Create the PNG read handle. */
      data->png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING,
                                              NULL, NULL, NULL );
@@ -186,7 +188,7 @@ Construct( IDirectFBImageProvider *thiz,
                                   png_row_callback,
                                   png_end_callback );
 
-     
+
      /* Read until info callback is called. */
      ret = push_data_until_stage( data, STAGE_INFO, 4 );
      if (ret)
@@ -207,10 +209,10 @@ error:
           png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
 
      buffer->Release( buffer );
-     
+
      if (data->image)
           DFBFREE( data->image );
-     
+
      DFB_DEALLOCATE_INTERFACE(thiz);
 
      return ret;
@@ -223,14 +225,14 @@ IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
                               (IDirectFBImageProvider_PNG_data*)thiz->priv;
 
      png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
-     
+
      /* Decrease the data buffer reference counter. */
      data->buffer->Release( data->buffer );
 
      /* Deallocate image data. */
      if (data->image)
           DFBFREE( data->image );
-     
+
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -296,7 +298,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
           dfb_scale_linear_32( data->image, data->width, data->height,
                                dst, pitch, &rect, dst_surface );
-          
+
           destination->Unlock( destination );
      }
 
@@ -323,7 +325,7 @@ IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                   DFBSurfaceDescription *dsc )
 {
      INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
-          
+
      dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc->width  = data->width;
      dsc->height = data->height;
@@ -332,7 +334,7 @@ IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
           dsc->pixelformat = DSPF_ARGB;
      else
           dsc->pixelformat = dfb_primary_layer_pixelformat();
-     
+
      return DFB_OK;
 }
 
@@ -346,10 +348,10 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
           return DFB_INVARG;
 
      dsc->caps = DICAPS_NONE;
-     
+
      if (data->color_type & PNG_COLOR_MASK_ALPHA)
           dsc->caps |= DICAPS_ALPHACHANNEL;
-     
+
      if (data->color_keyed) {
           dsc->caps |= DICAPS_COLORKEY;
 
@@ -385,7 +387,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
      for (i = 0; i < 3; i++) {
           dfb_memcpy( csort, cmap[i], n_colors );
           qsort( csort, n_colors, 1, SortColors );
-          
+
           for (j = 1, index = 0, d = 0; j < n_colors; j++) {
                if (csort[j] - csort[j-1] > d) {
                     d = csort[j] - csort[j-1];
@@ -399,7 +401,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
           if (0xFF - (csort[n_colors - 1]) > d) {
                index = n_colors + 1;
           }
-          
+
           if (index < n_colors)
                csort[0] = csort[index] - (d/2);
           else if (index == n_colors)
@@ -442,7 +444,7 @@ png_info_callback   (png_structp png_read_ptr,
 
      if (png_get_valid( data->png_ptr, data->info_ptr, PNG_INFO_tRNS )) {
           data->color_keyed = true;
-          
+
           /* generate color key based on palette... */
           if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
                int        i;
@@ -464,7 +466,7 @@ png_info_callback   (png_structp png_read_ptr,
                for (i=0; i<data->info_ptr->num_trans; i++) {
                     if (!trans[i]) {
                          //trans[i] = 0;
-                         
+
                          palette[i].red   = (key & 0xff0000) >> 16;
                          palette[i].green = (key & 0x00ff00) >>  8;
                          palette[i].blue  = (key & 0x0000ff);
@@ -478,7 +480,7 @@ png_info_callback   (png_structp png_read_ptr,
                png_color_16p trans = &data->info_ptr->trans_values;
 
                CAUTION("color key from non-palette source is untested");
-               
+
                data->color_key = (((trans->red & 0xff00) << 8) |
                                   ((trans->green & 0xff00)) |
                                   ((trans->blue & 0xff00) >> 8));
@@ -499,7 +501,7 @@ png_info_callback   (png_structp png_read_ptr,
 
      png_set_bgr( data->png_ptr );
 #endif
-     
+
      png_set_interlace_handling( data->png_ptr );
 
      /* Update the info to reflect our transformations */
@@ -562,7 +564,7 @@ png_end_callback   (png_structp png_read_ptr,
      /* error stage? */
      if (data->stage < 0)
           return;
-     
+
      /* set end stage */
      data->stage = STAGE_END;
 }
@@ -585,7 +587,7 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
 
           if (buffer->WaitForData( buffer, 1 ) == DFB_BUFFEREMPTY)
                return DFB_FAILURE;
-          
+
           while (buffer->HasData( buffer ) == DFB_OK) {
                ret = buffer->GetData( buffer, buffer_size, buf, &len );
                if (ret)

@@ -41,6 +41,8 @@ internalinclude_HEADERS = \
 	graphics_driver.h	\
 	input.h			\
 	input_driver.h		\
+	layer_context.h		\
+	layer_control.h		\
 	layer_region.h		\
 	layers.h		\
 	modules.h		\
@@ -51,7 +53,8 @@ internalinclude_HEADERS = \
 	surfacemanager.h	\
 	system.h		\
 	thread.h		\
-	windows.h
+	windows.h		\
+	windowstack.h
 
 
 noinst_LTLIBRARIES = libdirectfb_core.la
@@ -68,6 +71,8 @@ libdirectfb_core_la_SOURCES = \
 	fonts.c			\
 	gfxcard.c		\
 	input.c			\
+	layer_context.c		\
+	layer_control.c		\
 	layer_region.c		\
 	layers.c		\
 	layers_internal.h	\
@@ -79,5 +84,7 @@ libdirectfb_core_la_SOURCES = \
 	surfacemanager.c	\
 	system.c		\
 	thread.c		\
+	window_display.c	\
 	windows.c		\
-	window_display.c
+	windows_internal.h	\
+	windowstack.c

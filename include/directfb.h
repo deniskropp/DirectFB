@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -177,7 +177,8 @@ typedef enum {
      DFB_FUSION,         /* Internal fusion error detected, most likely
                             related to IPC resources. */
      DFB_BUFFERTOOLARGE, /* Buffer is too large. */
-     DFB_INTERRUPTED     /* The operation has been interrupted. */
+     DFB_INTERRUPTED,    /* The operation has been interrupted. */
+     DFB_NOCONTEXT       /* No context available. */
 } DFBResult;
 
 /*
@@ -394,8 +395,7 @@ typedef enum {
      DLOP_ALPHACHANNEL        = 0x00000001,  /* Make usage of alpha channel
                                                 for blending on a pixel per
                                                 pixel basis. */
-     DLOP_FLICKER_FILTERING   = 0x00000002,  /* Enable flicker
-                                                filtering. */
+     DLOP_FLICKER_FILTERING   = 0x00000002,  /* Enable flicker filtering. */
      DLOP_DEINTERLACING       = 0x00000004,  /* Enable deinterlacing of an
                                                 interlaced (video) source. */
      DLOP_SRC_COLORKEY        = 0x00000008,  /* Enable source color key. */
@@ -744,7 +744,7 @@ typedef enum {
  * a font size. Please note that the height value in the
  * FontDescription doesn't correspond to the height returned by
  * the font's GetHeight() method.
- * 
+ *
  * The index field controls which face is loaded from a font file
  * that provides a collection of faces. This is rarely needed.
  */
@@ -764,71 +764,102 @@ typedef struct {
  *
  * Format constants are encoded in the following way (bit 31 - 0):
  *
- * -hgg:ffff | eeee:dddc | bbbb:bbbb | aaaa:aaaa
+ * -jhh:gggg | ffff:eeed | cccc:bbbb | baaa:aaaa
  *
  * a) pixelformat index<br>
- * b) effective bits per pixel of format<br>
- * c) alpha channel present<br>
- * d) bytes per pixel in a row (1/8 fragment, i.e. bits)<br>
- * e) bytes per pixel in a row (decimal part, i.e. bytes)<br>
- * f) multiplier for planes minus one (1/16 fragment)<br>
- * g) multiplier for planes minus one (decimal part)<br>
- * h) indexed pixelformat (using a palette)
+ * b) effective color (or index) bits per pixel of format<br>
+ * c) effective alpha bits per pixel of format<br>
+ * d) alpha channel present<br>
+ * e) bytes per pixel in a row (1/8 fragment, i.e. bits)<br>
+ * f) bytes per pixel in a row (decimal part, i.e. bytes)<br>
+ * g) multiplier for planes minus one (1/16 fragment)<br>
+ * h) multiplier for planes minus one (decimal part)<br>
+ * j) color and/or alpha lookup table present
  */
-typedef enum {
-     DSPF_UNKNOWN        = 0x00000000,  /* no specific format,
-                                           unusual and unsupported */
-     DSPF_ARGB1555       = 0x00211001,  /* 16bit ARGB (2 bytes, alpha 1@15,
-                                           red 5@10, green 5@5, blue 5@0) */
-     DSPF_RGB16          = 0x00201002,  /* 16bit  RGB (2 bytes, red 5@11,
-                                           green 6@5, blue 5@0) */
-     DSPF_RGB24          = 0x00301803,  /* 24bit  RGB (3 bytes, red 8@16,
-                                           green 8@8, blue 8@0) */
-     DSPF_RGB32          = 0x00401804,  /* 24bit  RGB (4 bytes, nothing@24,
-                                           red 8@16, green 8@8, blue 8@0)*/
-     DSPF_ARGB           = 0x00412005,  /* 32bit ARGB (4 bytes, alpha 8@24,
-                                           red 8@16, green 8@8, blue 8@0)*/
-     DSPF_A8             = 0x00110806,  /* 8bit alpha (1 byte, alpha 8@0 ),
-                                           e.g. anti-aliased text glyphs */
-     DSPF_YUY2           = 0x00201007,  /* A macropixel (32bit / 2 pixel)
-                                           contains YUYV (starting with
-                                           the LOWEST byte on the LEFT) */
-     DSPF_RGB332         = 0x00100808,  /* 8bit true color (1 byte,
-                                           red 3@5, green 3@2, blue 2@0 */
-     DSPF_UYVY           = 0x00201009,  /* A macropixel (32bit / 2 pixel)
-                                           contains UYVY (starting with
-                                           the LOWEST byte on the LEFT) */
-     DSPF_I420           = 0x08100C0A,  /* 8 bit Y plane followed by 8 bit
-                                           2x2 subsampled U and V planes */
-     DSPF_YV12           = 0x08100C0B,  /* 8 bit Y plane followed by 8 bit
-                                           2x2 subsampled V and U planes */
-     DSPF_LUT8           = 0x4011080C,  /* 8 bit lookup table (palette) */
-     DSPF_ALUT44         = 0x4011040D,  /* 4 bit alpha + 4 bit lookup table */
 
-     DSPF_RGB15          = DSPF_ARGB1555
+#define DFB_SURFACE_PIXELFORMAT( index, color_bits, alpha_bits, has_alpha,     \
+                                 row_bits, row_bytes, mul_f, mul_d, has_lut )  \
+     ( (((index     ) & 0x7F)      ) |                                         \
+       (((color_bits) & 0x1F) <<  7) |                                         \
+       (((alpha_bits) & 0x0F) << 12) |                                         \
+       (((has_alpha ) ? 1 :0) << 16) |                                         \
+       (((row_bits  ) & 0x07) << 17) |                                         \
+       (((row_bytes ) & 0x0F) << 20) |                                         \
+       (((mul_f     ) & 0x0F) << 24) |                                         \
+       (((mul_d     ) & 0x03) << 28) |                                         \
+       (((has_lut   ) ? 1 :0) << 30) )
+
+typedef enum {
+     DSPF_UNKNOWN   = 0x00000000,  /* unknown or unspecified format */
+
+     /* 16 bit  ARGB (2 byte, alpha 1@15, red 5@10, green 5@5, blue 5@0) */
+     DSPF_ARGB1555  = DFB_SURFACE_PIXELFORMAT(  0, 15, 1, 1, 0, 2, 0, 0, 0 ),
+
+     /* 16 bit   RGB (2 byte, red 5@11, green 6@5, blue 5@0) */
+     DSPF_RGB16     = DFB_SURFACE_PIXELFORMAT(  1, 16, 0, 0, 0, 2, 0, 0, 0 ),
+
+     /* 24 bit   RGB (3 byte, red 8@16, green 8@8, blue 8@0) */
+     DSPF_RGB24     = DFB_SURFACE_PIXELFORMAT(  2, 24, 0, 0, 0, 3, 0, 0, 0 ),
+
+     /* 24 bit   RGB (4 byte, nothing@24, red 8@16, green 8@8, blue 8@0) */
+     DSPF_RGB32     = DFB_SURFACE_PIXELFORMAT(  3, 24, 0, 0, 0, 4, 0, 0, 0 ),
+
+     /* 32 bit  ARGB (4 byte, alpha 8@24, red 8@16, green 8@8, blue 8@0) */
+     DSPF_ARGB      = DFB_SURFACE_PIXELFORMAT(  4, 24, 8, 1, 0, 4, 0, 0, 0 ),
+
+     /*  8 bit alpha (1 byte, alpha 8@0), e.g. anti-aliased glyphs */
+     DSPF_A8        = DFB_SURFACE_PIXELFORMAT(  5,  0, 8, 1, 0, 1, 0, 0, 0 ),
+
+     /* 16 bit   YUV (4 byte/ 2 pixel, macropixel contains YUYV <- MSB RIGHT) */
+     DSPF_YUY2      = DFB_SURFACE_PIXELFORMAT(  6, 16, 0, 0, 0, 2, 0, 0, 0 ),
+
+     /*  8 bit   RGB (1 byte, red 3@5, green 3@2, blue 2@0 */
+     DSPF_RGB332    = DFB_SURFACE_PIXELFORMAT(  7,  8, 0, 0, 0, 1, 0, 0, 0 ),
+
+     /* 16 bit   YUV (4 byte/ 2 pixel, macropixel contains UYVY <- MSB RIGHT) */
+     DSPF_UYVY      = DFB_SURFACE_PIXELFORMAT(  8, 16, 0, 0, 0, 2, 0, 0, 0 ),
+
+     /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size U/V planes */
+     DSPF_I420      = DFB_SURFACE_PIXELFORMAT(  9, 12, 0, 0, 0, 1, 8, 0, 0 ),
+
+     /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size V/U planes */
+     DSPF_YV12      = DFB_SURFACE_PIXELFORMAT( 10, 12, 0, 0, 0, 1, 8, 0, 0 ),
+
+     /*  8 bit   LUT (8 bit color and alpha lookup from palette) */
+     DSPF_LUT8      = DFB_SURFACE_PIXELFORMAT( 11,  8, 0, 1, 0, 1, 0, 0, 1 ),
+
+     /*  8 bit  ALUT (1 byte, alpha 4@4, color lookup 4@0 */
+     DSPF_ALUT44    = DFB_SURFACE_PIXELFORMAT( 12,  4, 4, 1, 0, 1, 0, 0, 1 ),
+
+     DSPF_RGB15     = DSPF_ARGB1555     /* same as DSPF_ARGB1555 */
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
 #define DFB_NUM_PIXELFORMATS            13
 
 /* These macros extract information about the pixel format. */
-#define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000FF) - 1)
+#define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )
 
-#define DFB_BYTES_PER_PIXEL(fmt)        (((fmt) & 0xF00000) >> 20)
+#define DFB_COLOR_BITS_PER_PIXEL(fmt)   (((fmt) & 0x00000F80) >>  7)
 
-#define DFB_BITS_PER_PIXEL(fmt)         (((fmt) & 0x00FF00) >>  8)
+#define DFB_ALPHA_BITS_PER_PIXEL(fmt)   (((fmt) & 0x0000F000) >> 12)
 
-#define DFB_PIXELFORMAT_HAS_ALPHA(fmt)  ((fmt) & 0x00010000)
+#define DFB_PIXELFORMAT_HAS_ALPHA(fmt)  (((fmt) & 0x00010000) >> 16)
 
-#define DFB_PIXELFORMAT_IS_INDEXED(fmt) ((fmt) & 0x40000000)
+#define DFB_BITS_PER_PIXEL(fmt)         (((fmt) & 0x00FE0000) >> 17)
 
-#define DFB_BYTES_PER_LINE(fmt,width)   (((((fmt) & 0xFE0000) >> 17) * \
-                                          (width)) >> 3)
+#define DFB_BYTES_PER_PIXEL(fmt)        (((fmt) & 0x00F00000) >> 20)
 
-#define DFB_PLANAR_PIXELFORMAT(fmt)     ((fmt) & 0x3F000000)
+#define DFB_BYTES_PER_LINE(fmt,width)   (((((fmt) & 0x00FE0000) >> 17) * \
+                                          (width) + 7) >> 3)
 
 #define DFB_PLANE_MULTIPLY(fmt,height)  ((((((fmt) & 0x3F000000) >> 24) + \
                                            0x10) * (height)) >> 4 )
+
+#define DFB_PIXELFORMAT_IS_INDEXED(fmt) (((fmt) & 0x40000000) >> 30)
+
+#define DFB_PLANAR_PIXELFORMAT(fmt)     (((fmt) & 0x3F000000) ? 1 : 0)
+
 
 /*
  * Description of the surface that is to be created.
@@ -850,7 +881,7 @@ typedef struct {
      struct {
           DFBColor                     *entries;
           unsigned int                  size;
-     } palette;
+     } palette;                                      /* initial palette */
 } DFBSurfaceDescription;
 
 /*
@@ -877,6 +908,13 @@ typedef struct {
                                                         the display layer. */
 
      char name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];  /* Display layer name. */
+
+     int                                level;       /* Default level. */
+     int                                regions;     /* Number of concurrent
+                                                        regions supported.<br>
+                                                        -1 = unlimited,
+                                                         0 = unknown/one,
+                                                        >0 = actual number */
 } DFBDisplayLayerDescription;
 
 #define DFB_INPUT_DEVICE_DESC_NAME_LENGTH    32
@@ -906,7 +944,7 @@ typedef struct {
                                                         identifier */
      DFBInputDeviceButtonIdentifier     max_button;  /* highest button
                                                         identifier */
-     
+
      char name[DFB_INPUT_DEVICE_DESC_NAME_LENGTH];   /* Device name */
 
      char vendor[DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH]; /* Device vendor */
@@ -941,7 +979,7 @@ typedef struct {
      struct {
           const void                   *data;        /* static data pointer */
           unsigned int                  length;      /* length of buffer */
-     } memory;
+     } memory;                                       /* memory based buffers */
 } DFBDataBufferDescription;
 
 /*
@@ -1085,7 +1123,7 @@ typedef struct {
  * screen when in exclusive cooperative level. Without exclusive
  * access <i>SetVideoMode</i> sets the size of the implicitly
  * created window.
- * 
+ *
  * <b>Event buffers</b> can be created with an option to
  * automatically attach input devices matching the specified
  * capabilities. If DICAPS_NONE is passed an event buffer with
@@ -1350,7 +1388,7 @@ DEFINE_INTERFACE(   IDirectFB,
           struct timeval           *timestamp
      );
 
-     
+
    /** Misc **/
 
      /*
@@ -1450,11 +1488,14 @@ typedef enum {
  */
 typedef enum {
      DLCONF_NONE              = 0x00000000,
+
      DLCONF_WIDTH             = 0x00000001,
      DLCONF_HEIGHT            = 0x00000002,
      DLCONF_PIXELFORMAT       = 0x00000004,
      DLCONF_BUFFERMODE        = 0x00000008,
-     DLCONF_OPTIONS           = 0x00000010
+     DLCONF_OPTIONS           = 0x00000010,
+
+     DLCONF_ALL               = 0x0000001F
 } DFBDisplayLayerConfigFlags;
 
 /*
@@ -2006,8 +2047,8 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *thiz,
           IDirectFBPalette         *palette
      );
-   
-     
+
+
    /** Buffer operations **/
 
      /*
@@ -2346,9 +2387,9 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       * Draw an UTF-8 string at the specified position with the
       * given color following the specified flags.
       *
-      * If font was loaded with the DFFA_CHARMAP flag, the string 
+      * If font was loaded with the DFFA_CHARMAP flag, the string
       * specifies UTF-8 encoded raw glyph indices.
-      * 
+      *
       * Bytes specifies the number of bytes to take from the
       * string or -1 for the complete NULL-terminated string. You
       * need to set a font using the SetFont() method before
@@ -2370,7 +2411,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       *
       * If font was loaded with the DFFA_NOCHARMAP flag, index specifies
       * the raw glyph index in the font.
-      * 
+      *
       * You need to set a font using the SetFont() method before
       * calling this function.
       */
@@ -2882,7 +2923,7 @@ typedef struct {
      /* used by DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP */
      DFBInputDeviceButtonMask        buttons;    /* mask of currently
                                                     pressed buttons */
-     
+
      struct timeval                  timestamp;  /* always set */
 } DFBWindowEvent;
 
@@ -2988,7 +3029,7 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
           IDirectFBEventBuffer     *thiz,
           DFBEvent                 *event
      );
-     
+
      /*
       * Wake up any thread waiting for events in this buffer.
       *
@@ -3014,8 +3055,8 @@ typedef enum {
                                            window's alpha channel */
      DWOP_OPAQUE_REGION  = 0x00000004,  /* overrides DWOP_ALPHACHANNEL for the
                                            region set by SetOpaqueRegion() */
-     DWOP_SHAPED         = 0x00000008,  /* window doesn't receive mouse events for 
-                                           invisible regions, must be used with 
+     DWOP_SHAPED         = 0x00000008,  /* window doesn't receive mouse events for
+                                           invisible regions, must be used with
                                            DWOP_ALPHACHANNEL or DWOP_COLORKEYING */
      DWOP_KEEP_POSITION  = 0x00000010,  /* window can't be moved
                                            with the mouse */
@@ -3155,7 +3196,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz,
           DFBWindowOptions               options
      );
-     
+
      /*
       * Get options controlling appearance and behaviour of the window.
       */
@@ -3163,7 +3204,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz,
           DFBWindowOptions              *options
      );
-     
+
      /*
       * Set the window color key.
       *
@@ -3177,7 +3218,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           __u8                           g,
           __u8                           b
      );
-     
+
      /*
       * Set the window color key (indexed).
       *
@@ -3189,7 +3230,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz,
           unsigned int                   index
      );
-     
+
      /*
       * Set the window's global opacity factor.
       *
@@ -3201,7 +3242,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz,
           __u8                           opacity
      );
-     
+
      /*
       * Disable alpha channel blending for one region of the window.
       *
@@ -3305,7 +3346,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           DFBInputDeviceModifierMask     modifiers
      );
 
-   
+
    /** Position and Size **/
 
      /*
@@ -3815,7 +3856,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
       *
       * The length of a static buffer is its static size.
       * A streaming buffer has a variable length reflecting
-      * the amount of buffered data. 
+      * the amount of buffered data.
       */
      DFBResult (*GetLength) (
           IDirectFBDataBuffer      *thiz,

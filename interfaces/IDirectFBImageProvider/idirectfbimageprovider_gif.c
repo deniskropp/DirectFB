@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -23,6 +23,8 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,8 +92,8 @@ typedef struct {
      int                  ref;      /* reference counter */
 
      IDirectFBDataBuffer *buffer;
-     
-     
+
+
      unsigned int  Width;
      unsigned int  Height;
      __u8          ColorMap[3][MAXCOLORMAPSIZE];
@@ -99,8 +101,8 @@ typedef struct {
      unsigned int  ColorResolution;
      __u32         Background;
      unsigned int  AspectRatio;
-     
-     
+
+
      int GrayScale;
      int transparent;
      int delayTime;
@@ -110,8 +112,8 @@ typedef struct {
 
      __u8 buf[280];
      int curbit, lastbit, done, last_byte;
-     
-     
+
+
      int fresh;
      int code_size, set_code_size;
      int max_code, max_code_size;
@@ -178,7 +180,7 @@ Construct( IDirectFBImageProvider *thiz,
      data->GrayScale   = -1;
      data->transparent = -1;
      data->delayTime   = -1;
-     
+
      buffer->AddRef( buffer );
 
      thiz->AddRef = IDirectFBImageProvider_GIF_AddRef;
@@ -299,9 +301,9 @@ IDirectFBImageProvider_GIF_GetSurfaceDescription( IDirectFBImageProvider *thiz,
      int  width;
      int  height;
      bool transparency;
-     
+
      INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
-          
+
      ReadGIF( data, 1, &width, &height,
               &transparency, NULL, false, true );
 
@@ -321,7 +323,7 @@ IDirectFBImageProvider_GIF_GetImageDescription( IDirectFBImageProvider *thiz,
      int   height;
      bool  transparency;
      __u32 key_rgb;
-     
+
      INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
      ReadGIF( data, 1, &width, &height,
@@ -603,7 +605,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
      for (i = 0; i < 3; i++) {
           dfb_memcpy( csort, cmap[i], n_colors );
           qsort( csort, n_colors, 1, SortColors );
-          
+
           for (j = 1, index = 0, d = 0; j < n_colors; j++) {
                if (csort[j] - csort[j-1] > d) {
                     d = csort[j] - csort[j-1];
@@ -617,7 +619,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
           if (0xFF - (csort[n_colors - 1]) > d) {
                index = n_colors + 1;
           }
-          
+
           if (index < n_colors)
                csort[0] = csort[index] - (d/2);
           else if (index == n_colors)

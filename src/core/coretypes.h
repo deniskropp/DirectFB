@@ -29,37 +29,40 @@
 
 #include <dfb_types.h>
 
-typedef struct __DFB_CoreDFB            CoreDFB;
-typedef struct __DFB_CoreDFBShared      CoreDFBShared;
+typedef struct __DFB_CoreDFB               CoreDFB;
+typedef struct __DFB_CoreDFBShared         CoreDFBShared;
 
-typedef struct _CoreCleanup             CoreCleanup;
+typedef struct _CoreCleanup                CoreCleanup;
 
-typedef struct _CoreFont                CoreFont;
-typedef struct _CorePalette             CorePalette;
-typedef struct _CoreSurface             CoreSurface;
-typedef struct _CoreThread              CoreThread;
-typedef struct _CoreWindow              CoreWindow;
-typedef struct _CoreWindowStack         CoreWindowStack;
+typedef struct _CoreFont                   CoreFont;
+typedef struct _CorePalette                CorePalette;
+typedef struct _CoreSurface                CoreSurface;
+typedef struct _CoreThread                 CoreThread;
 
-typedef struct _SurfaceBuffer           SurfaceBuffer;
-typedef struct _SurfaceManager          SurfaceManager;
+typedef struct _SurfaceBuffer              SurfaceBuffer;
+typedef struct _SurfaceManager             SurfaceManager;
 
-typedef struct _CardState               CardState;
+typedef struct _CardState                  CardState;
 
-typedef struct _Tree                    Tree;
-typedef struct _Chunk                   Chunk;
+typedef struct _Tree                       Tree;
+typedef struct _Chunk                      Chunk;
 
 typedef __u32 unichar;
 
-typedef struct _ModuleEntry             ModuleEntry;
-typedef struct _ModuleDirectory         ModuleDirectory;
+typedef struct _ModuleEntry                ModuleEntry;
+typedef struct _ModuleDirectory            ModuleDirectory;
 
 
-typedef struct _InputDevice             InputDevice;
-typedef struct _GraphicsDevice          GraphicsDevice;
+typedef struct _InputDevice                InputDevice;
+typedef struct _GraphicsDevice             GraphicsDevice;
 
-typedef struct __DFB_CoreLayer          CoreLayer;
-typedef struct __DFB_CoreLayerRegion    CoreLayerRegion;
+typedef struct __DFB_CoreLayer             CoreLayer;
+typedef struct __DFB_CoreLayerContext      CoreLayerContext;
+typedef struct __DFB_CoreLayerRegion       CoreLayerRegion;
+typedef struct __DFB_CoreLayerRegionConfig CoreLayerRegionConfig;
+
+typedef struct __DFB_CoreWindow            CoreWindow;
+typedef struct __DFB_CoreWindowStack       CoreWindowStack;
 
 #endif
 

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -23,6 +23,8 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -141,7 +143,7 @@ buffer_fill_input_buffer (j_decompress_ptr cinfo)
           src->data[0] = (JOCTET) 0xFF;
           src->data[1] = (JOCTET) JPEG_EOI;
           nbytes = 2;
-          
+
           if (ret)
                DirectFBError( "(DirectFB/ImageProvider_JPEG) GetData failed", ret );
      }
@@ -182,7 +184,7 @@ jpeg_buffer_src (j_decompress_ptr cinfo, IDirectFBDataBuffer *buffer)
                                            sizeof (buffer_source_mgr));
 
      src = (buffer_src_ptr) cinfo->src;
-     
+
      src->data = (JOCTET *)
                   cinfo->mem->alloc_small ((j_common_ptr) cinfo, JPOOL_PERMANENT,
                                            JPEG_PROG_BUF_SIZE * sizeof (JOCTET));
@@ -433,7 +435,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                row_ptr = dst;
 
                dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
-               
+
                while (cinfo.output_scanline < cinfo.output_height) {
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     switch (format) {
