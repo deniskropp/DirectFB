@@ -1449,6 +1449,8 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
      /* check for blitting and report */
      if (dfb_gfxcard_state_check( &font->state, DFXL_BLIT ))
           state->accel |= DFXL_DRAWSTRING;
+     else
+          state->accel &= ~DFXL_DRAWSTRING;
 
      font->state.destination = NULL;
 
