@@ -240,7 +240,7 @@ static void Cop_toK_Aop_32()
      __u32 *D = (__u32*)Aop;
 
      while (w--) {
-          if ((__u32)Dkey != *D)
+          if ((__u32)Dkey == *D)
                *D = (__u32)Cop;
 
           D++;
