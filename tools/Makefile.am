@@ -18,7 +18,7 @@ LINUXONLY_TOOLS =	\
         fusion_bench
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbg dfbdump dfbinfo
+bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfblayer
 
 noinst_PROGRAMS = \
 	$(LINUXONLY_TOOLS)	\
@@ -26,14 +26,17 @@ noinst_PROGRAMS = \
 	raw16toraw24		\
 	raw32toraw24
 
+dfbdump_SOURCES = dfbdump.c
+dfbdump_LDADD   = ../src/libdirectfb.la
+
 dfbg_SOURCES = dfbg.c
 dfbg_LDADD   = ../src/libdirectfb.la
 
 dfbinfo_SOURCES = dfbinfo.c
 dfbinfo_LDADD   = ../src/libdirectfb.la
 
-dfbdump_SOURCES = dfbdump.c
-dfbdump_LDADD   = ../src/libdirectfb.la
+dfblayer_SOURCES = dfblayer.c
+dfblayer_LDADD   = ../src/libdirectfb.la
 
 dfbsummon_SOURCES = dfbsummon.c
 dfbsummon_LDADD   = ../src/libdirectfb.la
