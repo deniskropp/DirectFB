@@ -10,8 +10,9 @@ AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\
 	-DMODULEDIR=\"@MODULEDIR@\"
 
-
+if ENABLE_MULTI
 noinst_LTLIBRARIES = libfusion_shmalloc.la
+endif
 
 libfusion_shmalloc_la_SOURCES = \
 	shcalloc.c			\

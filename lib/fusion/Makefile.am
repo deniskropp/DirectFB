@@ -1,8 +1,6 @@
 ## Makefile.am for DirectFB/lib/fusion
 
-if ENABLE_MULTI
 SUBDIRS = shmalloc
-endif
 
 if ENABLE_MULTI
 SHMALLOC_LIB = shmalloc/libfusion_shmalloc.la
