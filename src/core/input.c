@@ -325,10 +325,15 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
           InputDriverInfo  driver_info;
 
           device = DFBCALLOC( 1, sizeof(InputDevice) );
+          device->shared = shcalloc( 1, sizeof(InputDeviceShared) );
 
           memset( &device_info, 0, sizeof(InputDeviceInfo) );
 
+          device->shared->reactor = reactor_new( sizeof(DFBInputEvent) );
+          
           if (driver->OpenDevice( device, n, &device_info, &driver_data )) {
+               reactor_free( device->shared->reactor );
+               shmfree( device->shared );
                DFBFREE( device );
                continue;
           }
@@ -336,8 +341,6 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
           memset( &driver_info, 0, sizeof(InputDriverInfo) );
 
           driver->GetDriverInfo( &driver_info );
-
-          device->shared = shcalloc( 1, sizeof(InputDeviceShared) );
 
           device->shared->id          = device_info.prefered_id;
           device->shared->driver_info = driver_info;
@@ -376,8 +379,6 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
                         device->shared->driver_info.version.minor,
                         device->shared->driver_info.vendor );
           }
-
-          device->shared->reactor = reactor_new( sizeof(DFBInputEvent) );
 
           /* add it to the list */
           input_add_device( device );
