@@ -380,10 +380,42 @@ radeonWaitVSync( CoreScreen *screen,
     return DFB_OK;
 }
 
+static DFBResult
+radeonGetScreenSize( CoreScreen *screen,
+                     void       *driver_data,
+                     void       *screen_data,
+                     int        *ret_width,
+                     int        *ret_height )
+{
+     FBDev       *fbdev = dfb_system_data();
+     FBDevShared *shared;
+
+     D_ASSERT( fbdev != NULL );
+     D_ASSERT( fbdev->shared != NULL );
+
+     shared = fbdev->shared;
+
+     if (shared->current_mode) {
+          *ret_width  = shared->current_mode->xres;
+          *ret_height = shared->current_mode->yres;
+     }
+     else if (shared->modes) {
+          *ret_width  = shared->modes->xres;
+          *ret_height = shared->modes->yres;
+     }
+     else {
+          D_WARN( "no current and no default mode" );
+          return DFB_UNSUPPORTED;
+     }
+
+     return DFB_OK;
+}
+
 static ScreenFuncs radeonScreenFuncs = {
      InitScreen:         radeonInitScreen,
      SetPowerMode:       radeonSetPowerMode,
-     WaitVSync:          radeonWaitVSync
+     WaitVSync:          radeonWaitVSync,
+     GetScreenSize:      radeonGetScreenSize
 };
 
 
