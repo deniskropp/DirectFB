@@ -124,13 +124,13 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
     // Check modified states and update hw
 
     ucdev->v_source3d = 0;
-    if (state->modified & SMF_SOURCE) {        
-        // FIXME: ucdev->v_source3d = 0 belongs here, but I always 
-        // need to invalidate source to get font rendering working        
+    if (state->modified & SMF_SOURCE) {
+        // FIXME: ucdev->v_source3d = 0 belongs here, but I always
+        // need to invalidate source to get font rendering working
         ucdev->v_source2d = 0;
     }
 
-    if (state->modified & SMF_BLITTING_FLAGS)
+    if (state->modified & (SMF_BLITTING_FLAGS | SMF_SOURCE))
         ucdev->v_texenv = 0;
 
     if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
@@ -140,9 +140,9 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
     if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
         ucdev->color = uc_map_color(state->destination->format,
             state->color);
-        
+
         ucdev->color3d = PIXEL_ARGB( state->color.a , state->color.r,
-                                     state->color.g , state->color.b );    
+                                     state->color.g , state->color.b );
     }
 
     if (state->modified & SMF_DRAWING_FLAGS)
@@ -193,7 +193,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                 uc_set_blending_fn(fifo, ucdev, state);
                 regEnable |= HC_HenABL_MASK;
             }
-            
+
             rop3d = ucdev->draw_rop3d;
 
             state->set = UC_DRAWING_FUNCTIONS_3D;
@@ -226,8 +226,8 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                     regEnable |= HC_HenABL_MASK;
                 }
             regEnable |=
-                HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK;
-            
+                HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK | HC_HenDT_MASK;
+
             state->set = UC_BLITTING_FUNCTIONS_3D;
             break;
 
@@ -247,13 +247,12 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
     UC_FIFO_ADD_3D(fifo, HC_SubA_HFBBMSKL, mask3d & 0xffffff);
     UC_FIFO_ADD_3D(fifo, HC_SubA_HROP, rop3d | ((mask3d >> 24) & 0xff));
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HPixGC, 0);  // Don't know what this does...
+//    UC_FIFO_ADD_3D(fifo, HC_SubA_HPixGC, 0);  // Don't know what this does...
                                               // ...DRI code always clears it.
     UC_FIFO_PAD_EVEN(fifo);
 #endif
 
     UC_FIFO_CHECK(fifo);
-    UC_FIFO_FLUSH(fifo);
 
   state->modified = 0;
 }

@@ -35,7 +35,7 @@ void uc_set_blending_fn(struct uc_fifo* fifo, UcDeviceData *ucdev, CardState *st
 {
     if (ucdev->v_blending_fn)
         return;
-    
+
     uc_map_blending_fn(&(ucdev->hwalpha), state->src_blend,
               state->dst_blend, DFB_BITS_PER_PIXEL(state->destination->format));
 
@@ -57,7 +57,7 @@ void uc_set_blending_fn(struct uc_fifo* fifo, UcDeviceData *ucdev, CardState *st
     UC_FIFO_PAD_EVEN(fifo);
 
     UC_FIFO_CHECK(fifo);
-    
+
     ucdev->v_blending_fn = 1;
 }
 
@@ -69,7 +69,7 @@ void uc_set_texenv(struct uc_fifo* fifo, UcDeviceData* ucdev, CardState* state)
     if (ucdev->v_texenv)
         return;
 
-    uc_map_blitflags(&(ucdev->hwtex), state->blittingflags,                      
+    uc_map_blitflags(&(ucdev->hwtex), state->blittingflags,
                      state->source->format);
 
     tex = &(ucdev->hwtex);
@@ -101,7 +101,7 @@ void uc_set_texenv(struct uc_fifo* fifo, UcDeviceData* ucdev, CardState* state)
     UC_FIFO_PAD_EVEN(fifo);
 
     UC_FIFO_CHECK(fifo);
-    
+
     ucdev->v_texenv = 1;
 }
 
@@ -198,7 +198,7 @@ void uc_set_source_2d(struct uc_fifo* fifo, UcDeviceData *ucdev,
     UC_FIFO_ADD_2D(fifo, VIA_REG_PITCH, ucdev->pitch);
 
     UC_FIFO_CHECK(fifo);
-    
+
     ucdev->v_source2d = 1;
 }
 
@@ -289,7 +289,7 @@ void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
 
         UC_FIFO_CHECK(fifo);
     }
-    
+
     ucdev->v_source3d = 1;
 }
 

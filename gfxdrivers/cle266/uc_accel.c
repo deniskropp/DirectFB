@@ -95,7 +95,7 @@ bool uc_fill_rectangle(void* drv, void* dev, DFBRectangle* r)
     UC_FIFO_ADD_2D(fifo, VIA_REG_DSTPOS, ((RS16(r->y) << 16) | RS16(r->x)));
     UC_FIFO_ADD_2D(fifo, VIA_REG_DIMENSION,
         (((RS16(r->h - 1)) << 16) | RS16((r->w - 1))));
-    UC_FIFO_ADD_2D(fifo, VIA_REG_GECMD, VIA_GEC_BLT | VIA_GEC_FIXCOLOR_PAT 
+    UC_FIFO_ADD_2D(fifo, VIA_REG_GECMD, VIA_GEC_BLT | VIA_GEC_FIXCOLOR_PAT
         | ucdev->draw_rop2d | VIA_GEC_CLIP_ENABLE);
 
     UC_ACCEL_END();
@@ -142,7 +142,7 @@ bool uc_draw_line(void* drv, void* dev, DFBRegion* line)
         | VIA_GEC_CLIP_ENABLE;
 
     dx = line->x2 - line->x1;
-    if (dx < 0) 
+    if (dx < 0)
     {
         dx = -dx;
         cmd |= VIA_GEC_DECX;        // line will be drawn from right
@@ -150,7 +150,7 @@ bool uc_draw_line(void* drv, void* dev, DFBRegion* line)
     }
 
     dy = line->y2 - line->y1;
-    if (dy < 0) 
+    if (dy < 0)
     {
         dy = -dy;
         cmd |= VIA_GEC_DECY;        // line will be drawn from bottom
@@ -198,7 +198,7 @@ bool uc_blit(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
     if (!w || !h) return true;
 
     (void) ucdev; // Kill 'unused variable' compiler warning.
-    
+
     if (sx < dx) {
         cmd |= VIA_GEC_DECX;
         sx += w - 1;
@@ -354,22 +354,22 @@ bool uc_stretch_blit(void* drv, void* dev,
     float s2 = ((float) sr->x + sr->w) / w;
     float t2 = ((float) sr->y + sr->h) / h;
 
-    int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_W
-        | HC_HVPMSK_Cd | HC_HVPMSK_S | HC_HVPMSK_T;
+    int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y |
+               HC_HVPMSK_Cd | HC_HVPMSK_S | HC_HVPMSK_T;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HVCycle_AFP |
-        HC_HVCycle_AA | HC_HVCycle_BB | HC_HVCycle_NewC | HC_HShading_FlatA;
+               HC_HVCycle_AA | HC_HVCycle_BB | HC_HVCycle_NewC | HC_HShading_FlatA;
     int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
 
-    UC_FIFO_PREPARE(fifo, 30);
+    UC_FIFO_PREPARE(fifo, 26);
 
     UC_FIFO_ADD_HDR(fifo, HC_ParaType_CmdVdata << 16);
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYWCST(fifo, dr->x, dr->y, 1.0, ucdev->color3d, s1, t1);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dr->y+dr->h, 1.0, ucdev->color3d, s2, t2);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dr->y, 1.0, ucdev->color3d, s2, t1);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x, dr->y+dr->h, 1.0, ucdev->color3d, s1, t2);
+    UC_FIFO_ADD_XYCST(fifo, dr->x, dr->y, ucdev->color3d, s1, t1);
+    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dr->y+dr->h, ucdev->color3d, s2, t2);
+    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dr->y, ucdev->color3d, s2, t1);
+    UC_FIFO_ADD_XYCST(fifo, dr->x, dr->y+dr->h, ucdev->color3d, s1, t2);
 
     UC_FIFO_ADD(fifo, cmdA_End);
     UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.
