@@ -43,30 +43,6 @@
 #include <misc/util.h>
 
 
-static struct timeval start_time = { 0, 0 };
-
-long long
-dfb_get_micros()
-{
-     struct timeval tv;
-
-     if (start_time.tv_sec == 0) {
-          gettimeofday( &start_time, NULL );
-          return 0;
-     }
-
-     gettimeofday( &tv, NULL );
-
-     return (long long)(tv.tv_sec - start_time.tv_sec) * (long long) 1000000 +
-            (long long)(tv.tv_usec - start_time.tv_usec);
-}
-
-long long
-dfb_get_millis()
-{
-     return dfb_get_micros() / (long long) 1000;
-}
-
 bool
 dfb_region_intersect( DFBRegion *region,
                       int x1, int y1, int x2, int y2 )

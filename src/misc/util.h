@@ -75,6 +75,9 @@ static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
      rect->h = region->y2 - region->y1 + 1;
 }
 
+#define DFB_RECTANGLE_VALS_FROM_REGION(r)    (r)->x1, (r)->y1, (r)->x2-(r)->x1+1, (r)->y2-(r)->y1+1
+#define DFB_RECTANGLE_INIT_FROM_REGION(r)    { DFB_RECTANGLE_VALS_FROM_REGION(r) }
+
 static inline void dfb_region_from_rectangle( DFBRegion          *region,
                                               const DFBRectangle *rect )
 {
@@ -87,11 +90,87 @@ static inline void dfb_region_from_rectangle( DFBRegion          *region,
      region->y2 = rect->y + rect->h - 1;
 }
 
-/* Returns the current time after startup of DirectFB in microseconds */
-long long dfb_get_micros();
+#define DFB_REGION_VALS_FROM_RECTANGLE(r)    (r)->x, (r)->y, (r)->x+(r)->w-1, (r)->y+(r)->h-1
+#define DFB_REGION_INIT_FROM_RECTANGLE(r)    { DFB_REGION_VALS_FROM_RECTANGLE(r) }
 
-/* Returns the current time after startup of DirectFB in milliseconds */
-long long dfb_get_millis();
+#define DFB_REGION_INIT_INTERSECTED(r,X1,Y1,X2,Y2)     { (r)->x1 > (X1) ? (r)->x1 : (X1),      \
+                                                         (r)->y1 > (Y1) ? (r)->y1 : (Y1),      \
+                                                         (r)->x2 < (X2) ? (r)->x2 : (X2),      \
+                                                         (r)->y2 < (Y2) ? (r)->y2 : (Y2) }
 
+static inline void dfb_rectangle_translate( DFBRectangle *rect,
+                                            int           dx,
+                                            int           dy )
+{
+     D_ASSERT( rect != NULL );
+
+     rect->x += dx;
+     rect->y += dy;
+}
+
+static inline void dfb_region_translate( DFBRegion *region,
+                                         int        dx,
+                                         int        dy )
+{
+     D_ASSERT( region != NULL );
+
+     region->x1 += dx;
+     region->y1 += dy;
+     region->x2 += dx;
+     region->y2 += dy;
+}
+
+static inline void dfb_rectangle_resize( DFBRectangle *rect,
+                                         int           width,
+                                         int           height )
+{
+     D_ASSERT( rect != NULL );
+
+     rect->w = width;
+     rect->h = height;
+}
+
+static inline void dfb_region_resize( DFBRegion *region,
+                                      int        width,
+                                      int        height )
+{
+     D_ASSERT( region != NULL );
+
+     region->x2 = region->x1 + width - 1;
+     region->y2 = region->y1 + height - 1;
+}
+
+static inline bool dfb_region_intersects( DFBRegion *region,
+                                          int        x1,
+                                          int        y1,
+                                          int        x2,
+                                          int        y2 )
+{
+     return (region->x1 <= x2 &&
+             region->y1 <= y2 &&
+             region->x2 >= x1 &&
+             region->y2 >= y1);
+}
+
+static inline void dfb_region_clip( DFBRegion *region,
+                                    int        x1,
+                                    int        y1,
+                                    int        x2,
+                                    int        y2 )
+{
+     D_ASSERT( dfb_region_intersects( region, x1, y1, x2, y2 ) );
+
+     if (region->x1 < x1)
+          region->x1 = x1;
+
+     if (region->y1 < y1)
+          region->y1 = y1;
+
+     if (region->x2 > x2)
+          region->x2 = x2;
+
+     if (region->y2 > y2)
+          region->y2 = y2;
+}
 
 #endif
