@@ -153,7 +153,7 @@ main (int argc, char *argv[])
 
      /* setup the labels */
      for (i=0; i<4; i++) {
-          label[i] = lite_new_label( LITE_BOX(window),
+          ret = lite_new_label( &label[i], LITE_BOX(window),
                                      10, 10 + i * 25, 85, 18 );
 
           lite_set_label_text( label[i], channels[i] );
@@ -161,7 +161,7 @@ main (int argc, char *argv[])
 
      /* setup the sliders */
      for (i=0; i<4; i++) {
-          slider[i] = lite_new_slider( LITE_BOX(window),
+          ret = lite_new_slider( &slider[i], LITE_BOX(window),
                                        100, 10 + i * 25, 220, 20 );
 
           lite_set_slider_pos( slider[i], values[i] );
