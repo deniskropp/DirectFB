@@ -50,6 +50,9 @@ Build Requirements
    - libpng2 or libpng3
    - zlib
 
+   The multi application core also requires <linux/fusion.h>, see the
+   section "Running multiple DirectFB applications" for more details.
+
    The build of the image and font providers can be disabled but we
    strongly suggest that you don't do this since the code examples and
    a lot of DirectFB applications depend on the functionality provided
@@ -78,8 +81,8 @@ Usage Requirements
    - A PS/2 or serial mouse for windowing. USB and ADB mice do also work
      via PS/2 emulation.
 
-   To access the frame buffer device and the mouse you need access to
-   /dev/tty0, /dev/fb0 and the mouse device (/dev/psaux, /dev/mouse).
+   Using the single application core you always need access to /dev/tty0,
+   /dev/fb0 and the mouse device (/dev/psaux, /dev/mouse).
    You can either run all DirectFB applications as root or allow users
    to access these devices. A reasonable way to do this is to add users
    to the group tty (or some other group) and allow this group to read
@@ -89,12 +92,56 @@ Usage Requirements
        crw-rw----    1 root     tty       10,   1  /dev/psaux
        crw-rw----    1 root     tty        4,   0  /dev/tty0
 
+   If you are using the multi application core, only the master process needs
+   access to all of these devices. Additional processes (slaves) just need
+   access to /dev/fb0, but additionally /dev/fusion/0 and the shared memory,
+   e.g. '/dev/shm/fusion.0'. You should start the master as a normal user,
+   but have the binary suid root, i.e. 'chown root' and 'chmod u+s'. This way
+   the shared memory file is created in the group of the user that started the
+   master.
 
    Some applications from the DirectFB-examples package have additional
    requirements:
 
    - A video card supported by video4linux for df_video.
    - A joystick for df_joystick.
+
+
+Running multiple DirectFB applications at the same time
+-------------------------------------------------------
+
+   With the default build of the DirectFB library, only one DirectFB
+   application may be running. However you have the option to use the
+   multi application core of DirectFB which allows multiple DirectFB
+   applications to run at the same time within a session.
+
+   DirectFB applications communicate through a layer we called Fusion.
+   This layer was previously implemented completely in user space using
+   semaphores and message queues. But since 0.9.15 the Fusion Kernel
+   Device is required which implements critical parts of Fusion and thus
+   lead to better performance and decent stability. To install this kernel
+   module (only available for Linux yet), check out the linux-fusion
+   module from our CVS repository or use the patch provided by this
+   release (in the patches directory). Note that you don't need to patch
+   your kernel using the CVS version of Fusion.
+
+   Compile DirectFB with multi-application core enabled:
+
+     ./configure --enable-multi
+
+   Make sure your Linux kernel supports tmpfs. This is explained in
+   the kernel sources in Documentation/filesystems/tmpfs.txt.
+   Mount a tmpfs filesystem as /dev/shm:
+
+     mount tmpfs /dev/shm -ttmpfs
+
+   Optionally a mount point can be specified via the "tmpfs" option,
+   see directfbrc(5). The option has to be the same for all processes.
+
+   A good way to test the multi-application core is to install the lite
+   toolkit and DFBTerm, a DirectFB terminal (both available in the
+   DirectFB CVS repository). You can then start DirectFB applications
+   from dfbterm.
 
 
 Recommendations
@@ -187,43 +234,6 @@ Configuring the Linux frame buffer device
    If you have a Matrox card you may want to try the vsync patch found in
    the patches directory that enables applications to "idle wait" for the
    vertical retrace.
-
-
-Running multiple DirectFB applications at the same time
--------------------------------------------------------
-
-   With the default build of the DirectFB library, only one DirectFB
-   application may be running. However you have the option to use the
-   multi-application core of DirectFB which allows for multiple
-   DirectFB applications to run at the same time. Please note that
-   this is still considered experimental. You have been warned!
-
-   DirectFB applications communicate through a layer we called Fusion.
-   This layer was previously implemented completely in user space using
-   semaphores and message queues. But since 0.9.15 the Fusion Kernel
-   Device is required which implements critical parts of fusion and thus
-   leads to better performance and more stability. To install this kernel
-   module (only available for Linux yet), check out the linux-fusion
-   module from our CVS repository or use the patch provided by this
-   release (in the patches directory).
-
-   Compile DirectFB with multi-application core enabled:
-
-     ./configure --enable-multi
-
-   Make sure your Linux kernel supports tmpfs. This is explained in
-   the kernel sources in Documentation/filesystems/tmpfs.txt.
-   Mount a tmpfs filesystem as /dev/shm:
-
-     mount tmpfs /dev/shm -ttmpfs
-
-   Optionally a mount point can be specified via the "tmpfs" option,
-   see directfbrc(5). The option has to be set for all processes.
-
-   A good way to test the multi-application core is to install the lite
-   toolkit and DFBTerm, a DirectFB terminal (both available in the
-   DirectFB CVS repository). You can then start DirectFB applications
-   from dfbterm.
 
 
 Using the builtin "window manager"
