@@ -15,16 +15,16 @@ endif
 if HAVE_LINUX
 LINUXONLY_TOOLS =	\
 	dfbsummon	\
-        fusion_bench
+	fusion_bench	\
+	raw15toraw24	\
+	raw16toraw24	\
+	raw32toraw24
 endif
 
 bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfblayer
 
 noinst_PROGRAMS = \
-	$(LINUXONLY_TOOLS)	\
-	raw15toraw24		\
-	raw16toraw24		\
-	raw32toraw24
+	$(LINUXONLY_TOOLS)
 
 dfbdump_SOURCES = dfbdump.c
 dfbdump_LDADD   = ../src/libdirectfb.la
