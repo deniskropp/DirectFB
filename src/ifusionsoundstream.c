@@ -222,7 +222,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
                if (data->pos_write < data->pos_read)
                     written = data->size - data->pos_read + data->pos_write;
                else
-                    written = data->pos_read - data->pos_write;
+                    written = data->pos_write - data->pos_read;
 
                if (!data->prebuffer || written >= data->prebuffer) {
                     data->playing = true;
