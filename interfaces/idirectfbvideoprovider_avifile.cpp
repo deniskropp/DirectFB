@@ -315,7 +315,9 @@ const char *get_implementation()
 DFBResult Probe( const char *filename )
 {
      if (strstr( filename, ".avi" ) ||
-         strstr( filename, ".AVI" ))
+         strstr( filename, ".AVI" ) ||
+         strstr( filename, ".asf" ) ||
+         strstr( filename, ".ASF" ))
           return DFB_OK;
 
      return DFB_UNSUPPORTED;
