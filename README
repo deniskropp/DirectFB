@@ -25,8 +25,7 @@ Supported Operating Systems
    Support for the following operating systems are in progress, but
    still have problems:
 
-      - Mac OS X (tested on Mac OS X 10.3.2, problems with SDL input and
-                  windows)
+      - Mac OS X (tested on Mac OS X 10.3.4, problems with SDL input)
 
    Please note that SDL support is experimental and incomplete. It is
    intended for developers to allow development of DirectFB applications

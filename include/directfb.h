@@ -28,6 +28,11 @@
 #ifndef __DIRECTFB_H__
 #define __DIRECTFB_H__
 
+/* this is a dirty hack to get the SDL system working under OSX */
+#ifdef __APPLE__
+#define main SDL_main
+#endif
+
 #include <dfb_types.h>
 #include <sys/time.h> /* struct timeval */
 

@@ -36,6 +36,11 @@
 
 
 #include <directfb.h>    /* FIXME: needed for DECLARE_INTERFACE and DEFINE_INTERFACE */
+/* the following hack can be removed if the above FIXME has been resolved */
+#ifdef __APPLE__
+#undef main  
+#endif
+
 
 DECLARE_INTERFACE( IAny )
 DEFINE_INTERFACE( IAny )

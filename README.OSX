@@ -1,0 +1,50 @@
+Contents
+--------
+1. Creating a build environment for DirectFB unter Mac OS X
+2. Compiling DirectFB and DirectFB-examples
+3. Running the examples
+4. Help wanted
+5. Future plans
+
+
+
+
+1. Creating a build environment for DirectFB unter Mac OS X 10.3
+
+  - install the developer cd that came with Mac OS X 10.3 (newer versions may
+    also work), make sure to install the X11 developer package which is needed
+    forfree type)
+  - install fink 0.7.0 (http://fink.sourceforce.net), fink is a distribution
+    which contains precompiled packages of many open source projects and uses
+    debian package tools (apt-get, dselect, dpkg, etc).
+       - install the following fink packages:
+        * automake1.7
+        * autoconf2.5
+        * llbtool14
+        * pkgconfig
+        * libjpeg
+        * libpng3
+        * sdl
+
+  - edit ~/.profile and add the follwing line:
+    export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+
+2. Compiling DirectFB ;)
+   cd DirectFB
+   ./autogen.sh
+   make
+   sudo make install
+   cd ../DirectFB-examples
+   ./autogen.sh
+   make
+   sudo make install
+
+3. Running the examples
+   just type df_andi
+   You will notice that input does not work, that's because - ummm - I forgot
+  
+4. Help Wanted
+   If you have an idea how to get input working, contact andi@fischlustig.de
+
+5. Future Plans
+   Bypass SDL, write a quartz system

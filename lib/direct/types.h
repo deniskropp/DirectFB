@@ -34,6 +34,13 @@
 #include <directfb.h>
 typedef DFBResult DirectResult;    /* FIXME */
 
+/* can be removed if directfb.h is no longer included */
+#ifdef __APPLE__
+#undef main
+#endif
+
+
+
 #ifndef __cplusplus
 typedef enum {
      false = 0,
