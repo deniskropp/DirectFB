@@ -344,15 +344,12 @@ DFBResult config_init( int *argc, char **argv[] )
           return ret;
 
      if (home) {
-          char *filename = malloc( strlen(home) +
-                                   strlen("/.directfbrc") + 1 );
+          char *filename = alloca( strlen(home) + strlen("/.directfbrc") + 1 );
 
           filename = strcpy( filename, home );
           filename = strcat( filename, "/.directfbrc" );
 
           ret = config_read( filename );
-
-          free( filename );
 
           if (ret  &&  ret != DFB_IO)
                return ret;

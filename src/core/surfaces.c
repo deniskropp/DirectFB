@@ -41,7 +41,7 @@
 #include "surfacemanager.h"
 
 #include "gfx/util.h"
-
+#include "misc/util.h"
 
 static CoreSurface *surfaces = NULL;
 
@@ -56,7 +56,7 @@ DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
 {
      SurfaceBuffer *b;
 
-     b = (SurfaceBuffer *) calloc( 1, sizeof(SurfaceBuffer) );
+     b = (SurfaceBuffer *) DFBCALLOC( 1, sizeof(SurfaceBuffer) );
 
      b->policy = policy;
      b->surface = surface;
@@ -72,7 +72,7 @@ DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
                if (b->system.pitch & 3)
                     b->system.pitch += 4 - (b->system.pitch & 3);
 
-               b->system.addr = malloc( surface->height * b->system.pitch );
+               b->system.addr = DFBMALLOC( surface->height * b->system.pitch );
                break;
           case CSP_VIDEOONLY: {
                DFBResult ret;
@@ -105,7 +105,7 @@ DFBResult surface_reallocate_buffer( SurfaceBuffer *buffer )
           if (buffer->system.pitch & 3)
                buffer->system.pitch += 4 - (buffer->system.pitch & 3);
 
-          buffer->system.addr = realloc( buffer->system.addr,
+          buffer->system.addr = DFBREALLOC( buffer->system.addr,
                                          surface->height*buffer->system.pitch );
 
           /* FIXME: support video instance reallocation */
@@ -147,7 +147,7 @@ DFBResult surface_create( int width, int height, int format, int policy,
           return DFB_BUG;
      }
 
-     s = (CoreSurface*) calloc( 1, sizeof(CoreSurface) );
+     s = (CoreSurface*) DFBCALLOC( 1, sizeof(CoreSurface) );
 
      s->width = width;
      s->height = height;

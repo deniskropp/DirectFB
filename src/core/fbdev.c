@@ -118,7 +118,7 @@ DFBResult fbdev_open()
           return DFB_BUG;
      }
 
-     fbdev = (FBDev*) calloc( 1, sizeof(FBDev) );
+     fbdev = (FBDev*) DFBCALLOC( 1, sizeof(FBDev) );
 
      fbdev->fd = open( "/dev/fb0", O_RDWR );
      if (fbdev->fd < 0) {
@@ -175,7 +175,7 @@ DFBResult fbdev_open()
 
      if (!fbdev->modes) {
           /* try to use current mode*/
-          fbdev->modes = (VideoMode*) calloc( 1, sizeof(VideoMode) );
+          fbdev->modes = (VideoMode*) DFBCALLOC( 1, sizeof(VideoMode) );
 
           fbdev->modes->xres = fbdev->orig_var.xres;
           fbdev->modes->yres = fbdev->orig_var.yres;
@@ -444,7 +444,7 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
                case DLBM_BACKVIDEO:
                     surface->caps |= DSCAPS_FLIPPING;
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = malloc( sizeof(SurfaceBuffer) );
+                         surface->back_buffer = DFBMALLOC( sizeof(SurfaceBuffer) );
                          memset( surface->back_buffer, 0,
                                  sizeof(SurfaceBuffer) );
                     }
@@ -464,7 +464,7 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
                case DLBM_BACKSYSTEM:
                     surface->caps |= DSCAPS_FLIPPING;
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = malloc( sizeof(SurfaceBuffer) );
+                         surface->back_buffer = DFBMALLOC( sizeof(SurfaceBuffer) );
                          memset( surface->back_buffer, 0,
                                  sizeof(SurfaceBuffer) );
                     }
@@ -473,7 +473,7 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
                     surface->back_buffer->system.health = CSH_STORED;
                     surface->back_buffer->system.pitch = var.xres *
                                                   BYTES_PER_PIXEL(mode->format);
-                    surface->back_buffer->system.addr = realloc (
+                    surface->back_buffer->system.addr = DFBREALLOC(
                          surface->back_buffer->system.addr,
                          surface->back_buffer->system.pitch * var.yres );
                     break;
@@ -553,11 +553,11 @@ static DFBResult read_modes()
                {
 
                     if (!m) {
-                         fbdev->modes = malloc (sizeof(VideoMode));
+                         fbdev->modes = DFBMALLOC(sizeof(VideoMode));
                          m = fbdev->modes;
                     }
                     else {
-                         m->next = malloc (sizeof(VideoMode));
+                         m->next = DFBMALLOC(sizeof(VideoMode));
                          m = m->next;
                     }
                     memcpy (m, &temp_mode, sizeof(VideoMode));
@@ -874,7 +874,7 @@ DFBResult primarylayer_init()
      CoreSurface *surface;
      DFBResult err;
 
-     DisplayLayer *layer = (DisplayLayer*) calloc( 1, sizeof(DisplayLayer) );
+     DisplayLayer *layer = (DisplayLayer*) DFBCALLOC( 1, sizeof(DisplayLayer) );
 
      layer->id = DLID_PRIMARY;
      layer->caps = 0;
@@ -900,7 +900,7 @@ DFBResult primarylayer_init()
      layer->FlipBuffers = primaryFlipBuffers;
 
      /* allocate the surface */
-     surface = (CoreSurface *) calloc ( 1, sizeof(CoreSurface) );
+     surface = (CoreSurface *) DFBCALLOC( 1, sizeof(CoreSurface) );
 
      pthread_mutex_init( &surface->front_lock, NULL );
      pthread_mutex_init( &surface->back_lock, NULL );
@@ -908,7 +908,7 @@ DFBResult primarylayer_init()
      surface->reactor = reactor_new();
 
      surface->front_buffer = (SurfaceBuffer *)
-          calloc( 1, sizeof(SurfaceBuffer) );
+          DFBCALLOC( 1, sizeof(SurfaceBuffer) );
 
      surface->back_buffer = surface->front_buffer;
 

@@ -48,6 +48,7 @@
 #include <core/reactor.h>
 
 #include <misc/conf.h>
+#include <misc/util.h>
 
 
 #define DEV_NAME "/dev/mouse"
@@ -421,7 +422,7 @@ int driver_init(InputDevice *device)
 
      mouse_setspeed ();
 
-     driver_name = malloc( strlen("Serial Mouse ()") +
+     driver_name = DFBMALLOC( strlen("Serial Mouse ()") +
                            strlen(protocol_names[protocol]) + 1 );
      sprintf( driver_name, "Serial Mouse (%s)", protocol_names[protocol]);
      

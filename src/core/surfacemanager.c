@@ -41,7 +41,7 @@
 #include "surfaces.h"
 #include "surfacemanager.h"
 
-
+#include "misc/util.h"
 
 static Chunk *chunks = NULL;
 
@@ -57,7 +57,7 @@ static inline Chunk* split_chunk( Chunk *c, int length )
      if (c->length == length)          /* does not need be splitted */
           return c;
 
-     newchunk = (Chunk*) calloc( 1, sizeof(Chunk) );
+     newchunk = (Chunk*) DFBCALLOC( 1, sizeof(Chunk) );
 
      /* calculate offsets and lengths of resulting chunks */
      newchunk->offset = c->offset + c->length - length;
@@ -172,7 +172,7 @@ DFBResult surfacemanager_init_heap()
           return DFB_BUG;
      }
 
-     chunks = (Chunk*) calloc( 1, sizeof(Chunk) );
+     chunks = (Chunk*) DFBCALLOC( 1, sizeof(Chunk) );
 
      chunks->offset = card->heap_offset;
 
@@ -313,7 +313,7 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
                     "for video memory surface!\n" );
 
           /*
-          tmp = malloc( card->framebuffer.length );
+          tmp = DFBMALLOC( card->framebuffer.length );
 
           memcpy( tmp, card->framebuffer.base, card->framebuffer.length );
           memset( card->framebuffer.base, 0xFF, card->framebuffer.length );

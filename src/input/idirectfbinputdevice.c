@@ -37,6 +37,8 @@
 #include <core/reactor.h>
 #include <core/input.h>
 
+#include "misc/util.h"
+
 #include "idirectfbinputdevice.h"
 #include "idirectfbinputbuffer.h"
 
@@ -232,7 +234,7 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      IDirectFBInputDevice_data *data;
 
      if (!thiz->priv)
-          thiz->priv = calloc( 1, sizeof(IDirectFBInputDevice_data) );
+          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBInputDevice_data) );
 
      data = (IDirectFBInputDevice_data*)(thiz->priv);
 

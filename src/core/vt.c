@@ -100,7 +100,7 @@ DFBResult vt_open()
           return DFB_BUG;
      }
 
-     vt = (VirtualTerminal*)malloc( sizeof(VirtualTerminal) );
+     vt = (VirtualTerminal*)DFBMALLOC( sizeof(VirtualTerminal) );
 
      setsid();
      vt->fd0 = open( "/dev/tty0", O_WRONLY );

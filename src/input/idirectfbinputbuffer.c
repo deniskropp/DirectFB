@@ -42,6 +42,8 @@
 #include <core/input.h>
 #include <core/reactor.h>
 
+#include "misc/util.h"
+
 #include "idirectfbinputbuffer.h"
 
 /*
@@ -244,7 +246,7 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
      IDirectFBInputBuffer_data *data;
 
      if (!thiz->priv)
-          thiz->priv = calloc( 1, sizeof(IDirectFBInputBuffer_data) );
+          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBInputBuffer_data) );
 
      data = (IDirectFBInputBuffer_data*)(thiz->priv);
 
@@ -288,7 +290,7 @@ static ReactionResult IDirectFBInputBuffer_React( const void *msg_data,
      IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)ctx;
 
      item = (IDirectFBInputBuffer_item*)
-          calloc( 1, sizeof(IDirectFBInputBuffer_item) );
+          DFBCALLOC( 1, sizeof(IDirectFBInputBuffer_item) );
 
      item->evt = *evt;
 

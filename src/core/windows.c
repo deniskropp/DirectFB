@@ -63,7 +63,7 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
      InputDevice *inputdevice = inputdevices;
      CoreWindowStack *stack;
 
-     stack = (CoreWindowStack*) calloc ( 1, sizeof(CoreWindowStack) );
+     stack = (CoreWindowStack*) DFBCALLOC( 1, sizeof(CoreWindowStack) );
 
      stack->layer = layer;
 
@@ -144,7 +144,7 @@ void window_insert( CoreWindow *window, int before )
 
      pthread_mutex_lock( &stack->update );
 
-     stack->windows = realloc( stack->windows,
+     stack->windows = DFBREALLOC( stack->windows,
                                sizeof(CoreWindow*) * (stack->num_windows + 1) );
 
      for (i=stack->num_windows; i>before; i--)
@@ -201,7 +201,7 @@ void window_remove( CoreWindow *window )
                stack->windows[i] = stack->windows[i+1];
 
           if (stack->num_windows)
-               stack->windows = realloc( stack->windows,
+               stack->windows = DFBREALLOC( stack->windows,
                                          sizeof(CoreWindow*) * (stack->num_windows) );
           else {
                free( stack->windows );
@@ -232,7 +232,7 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
 {
      CoreWindow* window;
 
-     window = (CoreWindow*) calloc( 1, sizeof(CoreWindow) );
+     window = (CoreWindow*) DFBCALLOC( 1, sizeof(CoreWindow) );
 
      window->x = x;
      window->y = y;

@@ -196,7 +196,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
 
      filter->n_y = n_y;
      filter->n_x = n_x;
-     filter->weights = (int *) malloc (SUBSAMPLE * SUBSAMPLE * n_x * n_y *
+     filter->weights = (int *) DFBMALLOC(SUBSAMPLE * SUBSAMPLE * n_x * n_y *
                                        sizeof (int));
      if (!filter->weights) {
           DEBUGMSG ("couldn't allocate memory for scaling\n");

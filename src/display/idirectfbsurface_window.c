@@ -178,7 +178,7 @@ DFBResult IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      IDirectFBSurface_Window_data *data;
 
      if (!thiz->priv)
-          thiz->priv = calloc( 1, sizeof(IDirectFBSurface_Window_data) );
+          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBSurface_Window_data) );
 
      IDirectFBSurface_Construct( thiz, wanted, granted, window->surface, caps );
 

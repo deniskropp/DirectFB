@@ -107,12 +107,12 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      IDirectFBImageProvider_PNG_data *data;
 
      data = (IDirectFBImageProvider_PNG_data*)
-          calloc( 1, sizeof(IDirectFBImageProvider_PNG_data) );
+          DFBCALLOC( 1, sizeof(IDirectFBImageProvider_PNG_data) );
 
      thiz->priv = data;
 
      data->ref = 1;
-     data->filename = (char*)malloc( strlen(filename)+1 );
+     data->filename = (char*)DFBMALLOC( strlen(filename)+1 );
      strcpy( data->filename, filename );
 
      DEBUGMSG( "DirectFB/Media: PNG Provider Construct '%s'\n", filename );
@@ -299,7 +299,7 @@ DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
                /* stupid libpng returns only 3 if we use the filler */
                png_rowbytes = png_width*4;
 
-               buffer = malloc( png_rowbytes * png_height );
+               buffer = alloca( png_rowbytes * png_height );
 
                while (number_of_passes--) {
                     bptr = buffer;
@@ -312,8 +312,6 @@ DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
                scale_linear_32( (__u32*)dst, (__u32*)buffer, png_width,
                                 png_height, width, height,
                                 pitch-width*BYTES_PER_PIXEL(format), format );
-
-               free( buffer );
           }
      }
 

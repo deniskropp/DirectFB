@@ -35,6 +35,7 @@
 #include "surfaces.h"
 
 #include "misc/tree.h"
+#include "misc/util.h"
 
 
 void fonts_destruct (CoreFont *font)
@@ -68,7 +69,7 @@ DFBResult fonts_get_glyph_data (CoreFont        *font,
      data = tree_lookup (font->glyph_infos, (void *)glyph);
 
      if (!data) {
-          data = (CoreGlyphData *) calloc (1, sizeof (CoreGlyphData));
+          data = (CoreGlyphData *) DFBCALLOC(1, sizeof (CoreGlyphData));
           if (!data) {
                tree_unlock (font->glyph_infos);
                return DFB_NOSYSTEMMEMORY;
@@ -87,7 +88,7 @@ DFBResult fonts_get_glyph_data (CoreFont        *font,
                     font->next_x = 0;
                     font->rows++;
 
-                    font->surfaces = realloc (font->surfaces,
+                    font->surfaces = DFBREALLOC(font->surfaces,
                                               sizeof (void *) * font->rows);
 
                     surface_create( font->row_width, font->height,

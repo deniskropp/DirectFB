@@ -34,6 +34,7 @@
 
 #include "reactor.h"
 
+#include "misc/util.h"
 
 /***************************
  *  Internal declarations  *
@@ -68,7 +69,7 @@ Reactor *reactor_new ()
 {
      Reactor           *reactor;
 
-     reactor = (Reactor*)malloc( sizeof(Reactor) );
+     reactor = (Reactor*)DFBMALLOC( sizeof(Reactor) );
 
      reactor->reactions = NULL;
      pthread_mutex_init( &reactor->reactions_lock, NULL );
@@ -82,7 +83,7 @@ void reactor_attach (Reactor *reactor,
 {
      Reaction *reaction;
 
-     reaction = (Reaction*)calloc( 1, sizeof(Reaction) );
+     reaction = (Reaction*)DFBCALLOC( 1, sizeof(Reaction) );
 
      reaction->react = react;
      reaction->ctx   = ctx;

@@ -32,6 +32,8 @@
 
 #include "core/coretypes.h"
 
+#include "misc/util.h"
+
 #include "tree.h"
 
 
@@ -75,7 +77,7 @@ Tree * tree_new (void)
 {
      Tree *tree;
 
-     tree = calloc (1, sizeof (Tree));
+     tree = DFBCALLOC(1, sizeof (Tree));
      if (tree)
           pthread_mutex_init (&tree->mutex, NULL);
 
@@ -142,7 +144,7 @@ static Node * tree_node_new (Tree *tree,
 {
      Node *node;
 
-     node = malloc (sizeof (Node));
+     node = DFBMALLOC(sizeof (Node));
 
      node->balance = 0;
      node->left    = NULL;

@@ -47,6 +47,7 @@
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_layer.h"
 
+#include "misc/util.h"
 
 /*
  * private data struct of IDirectFB
@@ -439,7 +440,7 @@ DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      IDirectFBDisplayLayer_data *data;
 
      if (!thiz->priv)
-          thiz->priv = calloc( 1, sizeof(IDirectFBDisplayLayer_data) );
+          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBDisplayLayer_data) );
 
      data = (IDirectFBDisplayLayer_data*)(thiz->priv);
 

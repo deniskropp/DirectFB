@@ -207,7 +207,7 @@ DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      }
 
      if (!thiz->priv)
-          thiz->priv = calloc( 1, sizeof(IDirectFBSurface_Layer_data) );
+          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBSurface_Layer_data) );
 
      IDirectFBSurface_Construct( thiz, wanted, granted, layer->surface, caps );
 

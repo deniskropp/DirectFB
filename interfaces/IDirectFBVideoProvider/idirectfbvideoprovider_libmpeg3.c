@@ -461,7 +461,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
     int height, width;
 
     data = (IDirectFBVideoProvider_Libmpeg3_data *)
-         calloc( 1, sizeof(IDirectFBVideoProvider_Libmpeg3_data) );
+         DFBCALLOC( 1, sizeof(IDirectFBVideoProvider_Libmpeg3_data) );
 
     thiz->priv = data;
 
@@ -495,7 +495,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
         unsigned char * buf = data->source->back_buffer->system.addr;
  
         pitch = data->source->back_buffer->system.pitch;
-        data->scans = (unsigned char **) malloc( sizeof(unsigned char *) * height );
+        data->scans = (unsigned char **) DFBMALLOC( sizeof(unsigned char *) * height );
 
         for ( i = 0; i < height; i ++ )
         {

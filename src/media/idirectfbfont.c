@@ -227,7 +227,7 @@ DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      IDirectFBFont_data *data;
 
      if (!thiz->priv)
-          thiz->priv = calloc( 1, sizeof(IDirectFBFont_data) );
+          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBFont_data) );
 
      data = (IDirectFBFont_data*)(thiz->priv);
 

@@ -42,6 +42,7 @@
 #include "layers.h"
 #include "input.h"
 
+#include "misc/util.h"
 
 InputDevice *inputdevices = NULL;
 
@@ -51,7 +52,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
                                                       void *ctx )
 {
      int n, nr_devices;
-     InputDriver *driver = malloc( sizeof(InputDriver) );
+     InputDriver *driver = DFBMALLOC( sizeof(InputDriver) );
      
      driver->Probe  = dlsym( handle, "driver_probe" );
      if (!driver->Probe) {
@@ -87,7 +88,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
      for (n=0; n<nr_devices; n++) {
           InputDevice *device;
 
-          device = (InputDevice*) calloc( 1, sizeof(InputDevice) );
+          device = (InputDevice*) DFBCALLOC( 1, sizeof(InputDevice) );
 
           device->number = n;
 

@@ -50,6 +50,7 @@
 
 #include "misc/gfx_util.h"
 #include "misc/utf8.h"
+#include "misc/util.h"
 
 
 GfxCard *card = NULL;
@@ -95,7 +96,7 @@ GfxDriver* gfxcard_find_driver()
      if (dfb_config->software_only)
           return NULL;
 
-     driver = calloc( 1, sizeof(GfxDriver) );
+     driver = DFBCALLOC( 1, sizeof(GfxDriver) );
 
      if (core_load_modules( driver_dir,
                             gfxcard_driver_handle_func, (void*)driver ))
@@ -135,7 +136,7 @@ DFBResult gfxcard_init()
           return DFB_BUG;
      }
 
-     card = (GfxCard*) calloc( 1, sizeof(GfxCard) );
+     card = (GfxCard*) DFBCALLOC( 1, sizeof(GfxCard) );
 
      sprintf( card->info.driver_name, "Generic" );
 

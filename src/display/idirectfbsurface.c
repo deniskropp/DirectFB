@@ -925,7 +925,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      DFBRectangle           rect = { 0, 0, surface->width, surface->height };
 
      if (!thiz->priv)
-          thiz->priv = calloc( 1, sizeof(IDirectFBSurface_data) );
+          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBSurface_data) );
 
      data = (IDirectFBSurface_data*)(thiz->priv);
 

@@ -88,7 +88,7 @@ readFile (const char *filename, char **buffer, long *size)
     fseek (in, 0, SEEK_END);
     length = ftell (in);
     rewind (in);
-    (int *) buf = malloc (length);
+    (int *) buf = DFBMALLOC(length);
     fread (buf, length, 1, in);
     fclose (in);
     *size = length;
@@ -425,7 +425,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      data = (IDirectFBVideoProvider_Swf_data*)
      
-     malloc( sizeof(IDirectFBVideoProvider_Swf_data) );
+     DFBMALLOC( sizeof(IDirectFBVideoProvider_Swf_data) );
      memset( data, 0, sizeof(IDirectFBVideoProvider_Swf_data) );
      thiz->priv = data;
 

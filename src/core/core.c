@@ -147,7 +147,7 @@ void core_deinit_emergency()
 
 void core_cleanup_push( void (*cleanup_func)() )
 {
-     Cleanup *cleanup = (Cleanup*)malloc( sizeof(Cleanup) );
+     Cleanup *cleanup = (Cleanup*)DFBMALLOC( sizeof(Cleanup) );
 
      cleanup->cleanup = cleanup_func;
 
@@ -163,7 +163,7 @@ void core_cleanup_push( void (*cleanup_func)() )
 
 void core_cleanup_last( void (*cleanup_func)() )
 {
-     Cleanup *cleanup = (Cleanup*)malloc( sizeof(Cleanup) );
+     Cleanup *cleanup = (Cleanup*)DFBMALLOC( sizeof(Cleanup) );
 
      cleanup->cleanup = cleanup_func;
 

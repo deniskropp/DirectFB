@@ -47,6 +47,8 @@
 #include "display/idirectfbsurface.h"
 #include "display/idirectfbsurface_window.h"
 
+#include "misc/util.h"
+
 #include "idirectfbwindow.h"
 
 /*
@@ -439,7 +441,7 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                 window->x, window->y, window->width, window->height );
 
      if (!thiz->priv)
-          thiz->priv = calloc( 1, sizeof(IDirectFBWindow_data) );
+          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBWindow_data) );
 
      data = (IDirectFBWindow_data*)(thiz->priv);
 
@@ -491,7 +493,7 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
      IDirectFBWindow_data       *data = (IDirectFBWindow_data*)ctx;
 
      item = (IDirectFBWindowBuffer_item*)
-          calloc( 1, sizeof(IDirectFBWindowBuffer_item) );
+          DFBCALLOC( 1, sizeof(IDirectFBWindowBuffer_item) );
 
      item->evt = *evt;
 

@@ -54,7 +54,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
      struct dirent              *entry;
      DFBInterfaceImplementation *impl;
 
-     interface_dir = malloc( strlen(MODULEDIR"/interfaces/") + strlen(type) + 1 );
+     interface_dir = DFBMALLOC( strlen(MODULEDIR"/interfaces/") + strlen(type) + 1 );
 
      sprintf( interface_dir, MODULEDIR"/interfaces/%s", type );
      
@@ -95,7 +95,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
           return errno2dfb( errno );
      }
 
-     impl = malloc( sizeof(DFBInterfaceImplementation) );
+     impl = DFBMALLOC( sizeof(DFBInterfaceImplementation) );
      memset( impl, 0, sizeof(DFBInterfaceImplementation) );
 
      while ( (entry = readdir(dir) ) != NULL ) {
@@ -179,14 +179,14 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                     *iimpl = impl;
 
                     impl->references = 1;
-                    impl->filename = malloc( strlen(buf) + 1 );
+                    impl->filename = DFBMALLOC( strlen(buf) + 1 );
                     strcpy( impl->filename, buf );
 
                     INITMSG( "DirectFB/Interface: "
                              "Loaded '%s' implementation of '%s'.\n",
                              impl->implementation, impl->type );
 
-                    implementations = realloc( implementations,
+                    implementations = DFBREALLOC( implementations,
                      sizeof(DFBInterfaceImplementation) * ++n_implementations );
 
                     implementations[n_implementations-1] = impl;

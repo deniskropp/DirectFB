@@ -149,12 +149,12 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      IDirectFBImageProvider_GIF_data *data;
 
      data = (IDirectFBImageProvider_GIF_data*)
-          calloc( 1, sizeof(IDirectFBImageProvider_GIF_data) );
+          DFBCALLOC( 1, sizeof(IDirectFBImageProvider_GIF_data) );
 
      thiz->priv = data;
 
      data->ref = 1;
-     data->filename = (char*)malloc( strlen(filename)+1 );
+     data->filename = (char*)DFBMALLOC( strlen(filename)+1 );
      strcpy( data->filename, filename );
 
      DEBUGMSG( "DirectFB/Media: GIF Provider Construct '%s'\n", filename );
@@ -479,7 +479,7 @@ __u32* ReadImage( FILE *fd, int len, int height,
           return NULL;
      }
 
-     if ((image = malloc(len * height * 4)) == NULL) {
+     if ((image = DFBMALLOC(len * height * 4)) == NULL) {
           GIFERRORMSG("couldn't alloc space for image" );
      }
 

@@ -351,7 +351,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      }
 
      data = (IDirectFBVideoProvider_V4L_data*)
-          calloc( 1, sizeof(IDirectFBVideoProvider_V4L_data) );
+          DFBCALLOC( 1, sizeof(IDirectFBVideoProvider_V4L_data) );
 
      thiz->priv = data;
 

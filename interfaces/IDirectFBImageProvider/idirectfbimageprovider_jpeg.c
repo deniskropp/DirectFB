@@ -39,6 +39,7 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
+#include <misc/util.h>
 
 #include <jpeglib.h>
 #include <setjmp.h>
@@ -163,12 +164,12 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      IDirectFBImageProvider_JPEG_data *data;
 
      data = (IDirectFBImageProvider_JPEG_data*)
-          calloc( 1, sizeof(IDirectFBImageProvider_JPEG_data) );
+          DFBCALLOC( 1, sizeof(IDirectFBImageProvider_JPEG_data) );
 
      thiz->priv = data;
 
      data->ref = 1;
-     data->filename = (char*)malloc( strlen(filename)+1 );
+     data->filename = (char*)DFBMALLOC( strlen(filename)+1 );
      strcpy( data->filename, filename );
 
      DEBUGMSG( "DirectFB/Media: JPEG Provider Construct '%s'\n", filename );
@@ -338,7 +339,7 @@ DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                }
           }
           else {     /* image must be scaled */
-               image_data = malloc(cinfo.output_width * cinfo.output_height*4);
+               image_data = alloca(cinfo.output_width * cinfo.output_height*4);
                row_ptr = image_data;
 
                while (cinfo.output_scanline < cinfo.output_height) {
@@ -351,7 +352,6 @@ DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                 cinfo.output_height, width, height,
                                 pitch - width * BYTES_PER_PIXEL(format),
                                 format );
-               free (image_data);
           }
 
           jpeg_finish_decompress(&cinfo);

@@ -42,6 +42,7 @@
 
 #include <misc/tree.h>
 #include <misc/utf8.h>
+#include <misc/util.h>
 
 
 #define FONTFILE DATADIR"/fonts/font.data"
@@ -81,7 +82,7 @@ DFBResult Construct( IDirectFBFont *thiz,
           return DFB_FAILURE;
      }
 
-     font = (CoreFont *) calloc( 1, sizeof(CoreFont) );
+     font = (CoreFont *) DFBCALLOC( 1, sizeof(CoreFont) );
 
      font->height    = 20;
      font->ascender  = 16;
@@ -95,7 +96,7 @@ DFBResult Construct( IDirectFBFont *thiz,
 
      font->rows = 1;
      font->row_width = 1024;
-     font->surfaces = malloc (sizeof (void *));
+     font->surfaces = DFBMALLOC(sizeof (void *));
      font->surfaces[0] = surface;
 
      {
@@ -111,7 +112,7 @@ DFBResult Construct( IDirectFBFont *thiz,
 
           for (i=0; i<1024; i++) {
                if (points[i] == 0xFF) {
-                 data = malloc (sizeof (CoreGlyphData));
+                 data = DFBMALLOC(sizeof (CoreGlyphData));
                  data->surface = surface;
                  data->start   = start;
                  data->width   = i - start;
@@ -136,7 +137,7 @@ DFBResult Construct( IDirectFBFont *thiz,
           }
 
           /*  space  */
-          data = calloc (1, sizeof (CoreGlyphData));
+          data = DFBCALLOC(1, sizeof (CoreGlyphData));
           data->advance = 5;
           tree_insert (font->glyph_infos,
                        (void *) utf8_get_char (" "), data);

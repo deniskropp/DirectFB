@@ -60,6 +60,7 @@
 #include "idirectfb.h"
 
 #include "misc/conf.h"
+#include "misc/util.h"
 
 
 typedef struct _DFBSuspendResumeHandler {
@@ -474,7 +475,7 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
      fd = open (filename, O_RDONLY);
      if (fd == -1)
           return DFB_FILENOTFOUND;
-     ctx = malloc (32);
+     ctx = DFBMALLOC(32);
      if (read (fd, ctx, 32) < 32) {
           free (ctx);
           close (fd);
@@ -657,8 +658,7 @@ DFBResult IDirectFB_Construct( IDirectFB *thiz )
 {
      IDirectFB_data *data;
 
-     data = (IDirectFB_data*)malloc( sizeof(IDirectFB_data) );
-     memset( data, 0, sizeof(IDirectFB_data) );
+     data = (IDirectFB_data*)DFBCALLOC( 1, sizeof(IDirectFB_data) );
      thiz->priv = data;
 
      data->ref = 1;
@@ -696,7 +696,7 @@ void DFBAddSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx )
 {
      DFBSuspendResumeHandler *h;
 
-     h = malloc( sizeof(DFBSuspendResumeHandler) );
+     h = DFBMALLOC( sizeof(DFBSuspendResumeHandler) );
 
      h->func = func;
      h->ctx  = ctx;
