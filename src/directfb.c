@@ -30,14 +30,6 @@
 
 #include <string.h>
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/fcntl.h>
-#include <errno.h>
-#include <signal.h>
-#include <pthread.h>
-
 #include "directfb.h"
 #include "directfb_internals.h"
 #include "directfb_version.h"
@@ -66,6 +58,8 @@
 
 IDirectFB *idirectfb_singleton = NULL;
 
+static DFBResult apply_configuration( IDirectFB *dfb );
+
 /*
  * Version checking
  */
@@ -75,9 +69,10 @@ const unsigned int directfb_micro_version = DIRECTFB_MICRO_VERSION;
 const unsigned int directfb_binary_age    = DIRECTFB_BINARY_AGE;
 const unsigned int directfb_interface_age = DIRECTFB_INTERFACE_AGE;
 
-const char * DirectFBCheckVersion( unsigned int required_major,
-                                   unsigned int required_minor,
-                                   unsigned int required_micro )
+const char *
+DirectFBCheckVersion( unsigned int required_major,
+                      unsigned int required_minor,
+                      unsigned int required_micro )
 {
      if (required_major > DIRECTFB_MAJOR_VERSION)
           return "DirectFB version too old (major mismatch)";
@@ -95,12 +90,14 @@ const char * DirectFBCheckVersion( unsigned int required_major,
      return NULL;
 }
 
-const char *DirectFBUsageString( void )
+const char *
+DirectFBUsageString( void )
 {
      return dfb_config_usage();
 }
 
-DFBResult DirectFBInit( int *argc, char **argv[] )
+DFBResult
+DirectFBInit( int *argc, char **argv[] )
 {
      DFBResult ret;
 
@@ -115,7 +112,8 @@ DFBResult DirectFBInit( int *argc, char **argv[] )
      return DFB_OK;
 }
 
-DFBResult DirectFBSetOption( const char *name, const char *value )
+DFBResult
+DirectFBSetOption( const char *name, const char *value )
 {
      DFBResult ret;
 
@@ -145,13 +143,12 @@ DFBResult DirectFBSetOption( const char *name, const char *value )
  * Programs have to call this to get the super interface
  * which is needed to access other functions
  */
-DFBResult DirectFBCreate( IDirectFB **interface )
+DFBResult
+DirectFBCreate( IDirectFB **interface )
 {
-     DFBResult              ret;
-     DisplayLayer          *layer;
-     DFBDisplayLayerConfig  layer_config;
+     DFBResult ret;
 
-     if (dfb_config == NULL) {
+     if (!dfb_config) {
           /*  don't use ERRORMSG() here, it uses dfb_config  */
           fprintf( stderr,
                    "(!) DirectFBCreate: DirectFBInit has to be "
@@ -184,112 +181,19 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
      DFB_ALLOCATE_INTERFACE( idirectfb_singleton, IDirectFB );
 
-     ret = IDirectFB_Construct( idirectfb_singleton );
-     if (ret) {
-          idirectfb_singleton = NULL;
-          return ret;
+     IDirectFB_Construct( idirectfb_singleton );
+     
+     if (dfb_core_is_master()) {
+          ret = apply_configuration( idirectfb_singleton );
+          if (ret) {
+               idirectfb_singleton->Release( idirectfb_singleton );
+               idirectfb_singleton = NULL;
+               return ret;
+          }
      }
 
      *interface = idirectfb_singleton;
-
-     if (!dfb_core_is_master())
-          return DFB_OK;
-
-     /* the primary layer */
-     layer = dfb_layer_at( DLID_PRIMARY );
      
-     /* set buffer mode for desktop */
-     layer_config.flags = DLCONF_BUFFERMODE;
-
-     if (dfb_config->buffer_mode == -1) {
-          CardCapabilities caps = dfb_gfxcard_capabilities();
-
-          if (caps.accel & DFXL_BLIT)
-               layer_config.buffermode = DLBM_BACKVIDEO;
-          else
-               layer_config.buffermode = DLBM_BACKSYSTEM;
-     }
-     else
-          layer_config.buffermode = dfb_config->buffer_mode;
-
-     if (dfb_layer_set_configuration( layer, &layer_config )) {
-          ERRORMSG( "DirectFB/DirectFBCreate: "
-                    "Setting desktop buffer mode failed!\n"
-                    "     -> No virtual resolution support or not enough memory?\n"
-                    "        Falling back to system back buffer.\n" );
-
-          layer_config.buffermode = DLBM_BACKSYSTEM;
-
-          if (dfb_layer_set_configuration( layer, &layer_config ))
-               ERRORMSG( "DirectFB/DirectFBCreate: "
-                         "Setting system memory desktop back buffer failed!\n"
-                         "     -> Using front buffer only mode.\n" );
-     }
-
-     /* set desktop background color */
-     dfb_layer_set_background_color( layer, &dfb_config->layer_bg_color );
-
-     /* set desktop background image */
-     if (dfb_config->layer_bg_mode == DLBM_IMAGE ||
-         dfb_config->layer_bg_mode == DLBM_TILE)
-     {
-          DFBSurfaceDescription   desc;
-          IDirectFBImageProvider *provider;
-          IDirectFBSurface       *image;
-          IDirectFBSurface_data  *image_data;
-
-          ret = (*interface)->CreateImageProvider( *interface, dfb_config->layer_bg_filename, &provider );
-          if (ret) {
-               DirectFBError( "Failed loading background image", ret );
-               return DFB_INIT;
-          }
-
-          if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
-               dfb_layer_get_configuration( layer, &layer_config );
-
-               desc.flags  = DSDESC_WIDTH | DSDESC_HEIGHT;
-               desc.width  = layer_config.width;
-               desc.height = layer_config.height;
-          }
-          else {
-               provider->GetSurfaceDescription( provider, &desc );
-          }
-          desc.flags |= DSDESC_PIXELFORMAT;
-          desc.pixelformat = dfb_primary_layer_pixelformat();
-
-          ret = (*interface)->CreateSurface( *interface, &desc, &image );
-          if (ret) {
-               DirectFBError( "Failed creating surface for background image", ret );
-
-               provider->Release( provider );
-
-               return DFB_INIT;
-          }
-
-          ret = provider->RenderTo( provider, image, NULL );
-          if (ret) {
-               DirectFBError( "Failed loading background image", ret );
-
-               image->Release( image );
-               provider->Release( provider );
-
-               return DFB_INIT;
-          }
-
-          provider->Release( provider );
-
-          image_data = (IDirectFBSurface_data*) image->priv;
-
-          dfb_layer_set_background_image( layer, image_data->surface );
-     }
-
-     /* now set the background mode */
-     dfb_layer_set_background_mode( layer, dfb_config->layer_bg_mode );
-
-     /* enable the cursor */
-     if (dfb_config->show_cursor)
-          dfb_layer_cursor_enable( layer, 1 );
-
      return DFB_OK;
 }
 
@@ -306,7 +210,8 @@ DirectFBError( const char *msg, DFBResult error )
      return error;
 }
 
-const char *DirectFBErrorString( DFBResult error )
+const char *
+DirectFBErrorString( DFBResult error )
 {
      switch (error) {
           case DFB_OK:
@@ -375,5 +280,110 @@ DirectFBErrorFatal( const char *msg, DFBResult error )
      dfb_core_unref();     /* for now, this dirty thing should work */
 
      exit( error );
+}
+
+static DFBResult
+apply_configuration( IDirectFB *dfb )
+{
+     DFBResult              ret;
+     DisplayLayer          *layer;
+     DFBDisplayLayerConfig  layer_config;
+     
+     /* the primary layer */
+     layer = dfb_layer_at( DLID_PRIMARY );
+     
+     /* set buffer mode for desktop */
+     layer_config.flags = DLCONF_BUFFERMODE;
+
+     if (dfb_config->buffer_mode == -1) {
+          CardCapabilities caps = dfb_gfxcard_capabilities();
+
+          if (caps.accel & DFXL_BLIT)
+               layer_config.buffermode = DLBM_BACKVIDEO;
+          else
+               layer_config.buffermode = DLBM_BACKSYSTEM;
+     }
+     else
+          layer_config.buffermode = dfb_config->buffer_mode;
+
+     if (dfb_layer_set_configuration( layer, &layer_config )) {
+          ERRORMSG( "DirectFB/DirectFBCreate: "
+                    "Setting desktop buffer mode failed!\n"
+                    "     -> No virtual resolution support or not enough memory?\n"
+                    "        Falling back to system back buffer.\n" );
+
+          layer_config.buffermode = DLBM_BACKSYSTEM;
+
+          if (dfb_layer_set_configuration( layer, &layer_config ))
+               ERRORMSG( "DirectFB/DirectFBCreate: "
+                         "Setting system memory desktop back buffer failed!\n"
+                         "     -> Using front buffer only mode.\n" );
+     }
+
+     /* set desktop background color */
+     dfb_layer_set_background_color( layer, &dfb_config->layer_bg_color );
+
+     /* set desktop background image */
+     if (dfb_config->layer_bg_mode == DLBM_IMAGE ||
+         dfb_config->layer_bg_mode == DLBM_TILE)
+     {
+          DFBSurfaceDescription   desc;
+          IDirectFBImageProvider *provider;
+          IDirectFBSurface       *image;
+          IDirectFBSurface_data  *image_data;
+
+          ret = dfb->CreateImageProvider( dfb, dfb_config->layer_bg_filename, &provider );
+          if (ret) {
+               DirectFBError( "Failed loading background image", ret );
+               return DFB_INIT;
+          }
+
+          if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
+               dfb_layer_get_configuration( layer, &layer_config );
+
+               desc.flags  = DSDESC_WIDTH | DSDESC_HEIGHT;
+               desc.width  = layer_config.width;
+               desc.height = layer_config.height;
+          }
+          else {
+               provider->GetSurfaceDescription( provider, &desc );
+          }
+          desc.flags |= DSDESC_PIXELFORMAT;
+          desc.pixelformat = dfb_primary_layer_pixelformat();
+
+          ret = dfb->CreateSurface( dfb, &desc, &image );
+          if (ret) {
+               DirectFBError( "Failed creating surface for background image", ret );
+
+               provider->Release( provider );
+
+               return DFB_INIT;
+          }
+
+          ret = provider->RenderTo( provider, image, NULL );
+          if (ret) {
+               DirectFBError( "Failed loading background image", ret );
+
+               image->Release( image );
+               provider->Release( provider );
+
+               return DFB_INIT;
+          }
+
+          provider->Release( provider );
+
+          image_data = (IDirectFBSurface_data*) image->priv;
+
+          dfb_layer_set_background_image( layer, image_data->surface );
+     }
+
+     /* now set the background mode */
+     dfb_layer_set_background_mode( layer, dfb_config->layer_bg_mode );
+
+     /* enable the cursor */
+     if (dfb_config->show_cursor)
+          dfb_layer_cursor_enable( layer, 1 );
+
+     return DFB_OK;
 }
 

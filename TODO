@@ -40,7 +40,6 @@ Drivers
 Refactoring/cleanups
 ---------------------
 
-- Extract config stuff from DirectFBCreate
 - Move layer config stuff from IDirectFBSurface_Layer_Construct to IDirectFB
 - Split up IDirectFB::CreateSurface code
 - Cleanup flipping/back_to_front_copy stuff
