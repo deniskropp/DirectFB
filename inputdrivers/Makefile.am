@@ -1,5 +1,9 @@
 ## Makefile.am for DirectFB/inputdrivers
 
+if ELO_INPUT
+ELO_INPUT_DIR = elo
+endif
+
 if LINUX_INPUT
 LINUX_INPUT_DIR = linux_input
 endif
@@ -29,7 +33,7 @@ WM97XX_TS_DIR = wm97xx_ts
 endif
 
 SUBDIRS = \
-	elo			\
+	$(ELO_INPUT_DIR)	\
 	joystick		\
 	keyboard		\
 	$(LINUX_INPUT_DIR)	\

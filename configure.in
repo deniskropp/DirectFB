@@ -813,6 +813,10 @@ AC_ARG_ENABLE(linux-input,
   [  --enable-linux-input      build Linux Input driver [default=no]],
   enable_linux_input="$enableval", enable_linux_input=no)
 
+AC_ARG_ENABLE(elo-input,
+  [  --enable-elo-input        build ELO Touchscreen input driver [default=no]],
+  enable_elo_input="$enableval", enable_elo_input=no)
+
   dnl Test for H3600 Touchscreen support
   AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no  
     AC_MSG_WARN([
@@ -873,6 +877,7 @@ AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
 AM_CONDITIONAL(GFX_SIS315, test x$sis315 = xyes)
 AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
 
+AM_CONDITIONAL(ELO_INPUT, test x$enable_elo_input = xyes)
 AM_CONDITIONAL(LINUX_INPUT, test x$enable_linux_input = xyes)
 AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
 AM_CONDITIONAL(UCB1X00_TS, test x$have_arm = xyes)
@@ -1050,6 +1055,7 @@ Building Graphics Drivers:
 
 Building Input Drivers:
   DBox2 Remote          $dbox2remote
+  ELO Touchscreen       $enable_elo_input
   Linux Input           $enable_linux_input
   H3600 Touchscreen     $h3600_ts
   MuTouch touchscreen   $enable_mutouch
