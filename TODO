@@ -1,7 +1,13 @@
-Sorted by priority (any release)
----------------------------------
+General
+--------
 
-Finish CLUT/ALUT support.
+Modularize pixel formats (eventually with dynamic extension support).
+
+Change already modularized systems to be modules (currently always builtin).
+
+Finish VT switching
+ - Save/redirect video only buffers.
+ - Handle auto video buffers being permanently locked in video memory.
 
 Finish implementation of cooperative levels.
 
@@ -11,20 +17,17 @@ Finish display layer core and driver API.
    implement an auto-disable if reference count gets zero.
 
 Finish multi application core.
- - Some messages may need to be dispatched synchronized
- - Add fork handling
+ - Some messages may need to be dispatched synchronized.
+ - Add fork handling.
+ - Add support for running multiple multi app core instances (fusion worlds).
 
 Finish surface manager.
- - Add kicking out a few smaller surfaces for a bigger one
- - Defragment free space
+ - Add kicking out a few smaller surfaces for a bigger one.
+ - Defragment free space.
 
-Module unloading.
+Finish module unloading (done for most cases).
 
 Add cooperative levels to input devices.
-
-Rework VT handling. Readd VT switching and Suspend/Resume.
-
-Add support for running multiple multi app core instances (fusion worlds).
 
 Virtual window/layer resolution with scrolling/panning.
 
@@ -34,7 +37,7 @@ Rework cursor and palette handling in the window stack.
 Drivers
 --------
 
-- CLUT support in Matrox driver
+- CLUT support in Matrox driver (tried that without success)
 
 
 Refactoring/cleanups
@@ -44,3 +47,4 @@ Refactoring/cleanups
 - Cleanup flipping/back_to_front_copy stuff
 - Surface locking (internal, rw lock?)
 - Reduce sched_yield() usage
+- Rewrite VT code
