@@ -2715,7 +2715,9 @@ extern "C"
           );
 
           /*
-           * Get the logical height of this font.
+           * Get the logical height of this font. This is the vertical
+           * distance from one baseline to the next when writing
+           * several lines of text.
            */
           DFBResult (*GetHeight) (
                IDirectFBFont       *thiz,
