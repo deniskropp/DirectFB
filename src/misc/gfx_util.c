@@ -115,7 +115,7 @@ void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
                      DFBSurfacePixelFormat dst_format )
 {
      int x, y;
-     __u32 r, g, b, a;
+     __u32 rb, a;
 
      switch (dst_format) {
           case DSPF_A8:
@@ -140,21 +140,24 @@ void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
                          a = (*src & 0xFF000000) >> 24;
                          switch (a) {
                          case 0x0:
-                              r = g = b = 0;
+                              memset ((__u8 *)dst, 0, BYTES_PER_PIXEL (dst_format));
                               break;
                          case 0xFF:
-                              r = (*src & 0x00FF0000) >> 16;
-                              g = (*src & 0x0000FF00) >> 8;
-                              b = (*src & 0x000000FF);
+                              rgba_to_dst_format ((__u8 *)dst, 
+                                                  (*src & 0x00FF0000) >> 16, 
+                                                  (*src & 0x0000FF00) >> 8,
+                                                  (*src & 0x000000FF),
+                                                  0xFF, dst_format);
                               break;
                          default:
-                              r = (((*src & 0x00FF0000) >> 16) * a) >> 8;
-                              g = (((*src & 0x0000FF00) >> 8)  * a) >> 8;
-                              b =  ((*src & 0x000000FF)        * a) >> 8;
+                              rb = (*src & 0x00FF00FF) * a;
+                              rgba_to_dst_format ((__u8 *)dst, 
+                                                  (rb & 0xFF000000) >> 24,
+                                                  ((*src & 0x0000FF00) * a) >> 16,
+                                                  (rb & 0x0000FF00) >> 8, 
+                                                  a, dst_format);
                               break;
                          }
-                         rgba_to_dst_format ((__u8 *)dst, 
-                                             r, g, b, a, dst_format);
                          (__u8 *)dst += BYTES_PER_PIXEL (dst_format);
                          src++;
                     }
