@@ -123,8 +123,8 @@ int driver_init(InputDevice *device)
           return DFB_INIT; // no joystick available
      }
 
-     sprintf( device->info.driver_name, "Joystick" );
-     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
+     device->info.driver_name = "Joystick";
+     device->info.driver_vendor = "convergence integrated media GmbH";
 
      device->info.driver_version.major = 0;
      device->info.driver_version.minor = 9;

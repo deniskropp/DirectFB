@@ -199,8 +199,8 @@ int driver_init(InputDevice *device)
           }
      }
 
-     sprintf( device->info.driver_name, "PS/2 Mouse" );
-     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
+     device->info.driver_name = "PS/2 Mouse";
+     device->info.driver_vendor = "convergence integrated media GmbH";
 
      device->info.driver_version.major = 0;
      device->info.driver_version.minor = 9;

@@ -248,6 +248,8 @@ int driver_probe()
 
 int driver_init(InputDevice *device)
 {
+     char *driver_name;
+
      fd = open( "/dev/mouse", O_RDWR | O_NONBLOCK );
      if (fd < 0) {
           PERRORMSG( "DirectFB/SerialMouse: Error opening `/dev/mouse'!\n" );
@@ -259,9 +261,12 @@ int driver_init(InputDevice *device)
 
      mouse_setspeed ();
 
-     sprintf( device->info.driver_name, 
-              "Serial Mouse (%s)", dfb_config->mouse_protocol);
-     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
+     driver_name = malloc( strlen("Serial Mouse ()") +
+                           strlen(dfb_config->mouse_protocol) + 1 );
+     sprintf( driver_name, "Serial Mouse (%s)", dfb_config->mouse_protocol );
+     
+     device->info.driver_name   = driver_name;
+     device->info.driver_vendor = "convergence integrated media GmbH";
 
      device->info.driver_version.major = 0;
      device->info.driver_version.minor = 0;
@@ -280,6 +285,8 @@ void driver_deinit(InputDevice *device)
 {
      if (device->number != 0)
           return;
+
+     free( device->info.driver_name );
 
      close( fd );
 }

@@ -480,8 +480,8 @@ int driver_init(InputDevice *device)
 
 
 
-     sprintf( device->info.driver_name, "Keyboard" );
-     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
+     device->info.driver_name = "Keyboard";
+     device->info.driver_vendor = "convergence integrated media GmbH";
 
      device->info.driver_version.major = 0;
      device->info.driver_version.minor = 9;

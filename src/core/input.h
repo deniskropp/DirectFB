@@ -43,9 +43,9 @@ struct _InputDevice {
 
      /* these must be filled by the driver */
      struct {
-          char              driver_name[20];      /* device name,
+          char             *driver_name;          /* device name,
                                                      e.g. PS/2 Mouse */
-          char              driver_vendor[40];    /* driver vendor name,
+          char             *driver_vendor;        /* driver vendor name,
                                                      e.g. convergence */
 
           struct {
