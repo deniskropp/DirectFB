@@ -24,6 +24,9 @@
 #include <directfb.h>
 
 #include <stdlib.h>
+#include <dirent.h>
+#include <dlfcn.h>
+#include <errno.h>
 
 #include "core.h"
 #include "coredefs.h"
@@ -32,6 +35,8 @@
 #include "input.h"
 #include "fbdev.h"
 #include "gfxcard.h"
+
+#include "misc/util.h"
 
 #include "inputdevices/keyboard.h"
 
@@ -168,5 +173,67 @@ void core_cleanup_last( void (*cleanup_func)() )
           cleanup_stack = cleanup;
           
      cleanup->prev = NULL;
+}
+
+
+/*
+ * module loading functions
+ */
+
+DFBResult core_load_modules( char *module_dir,
+                             CoreModuleLoadResult (*handle_func)(void *handle,
+                                                                 char *name,
+                                                                 void *ctx),
+                             void *ctx )
+{
+     DFBResult      ret = DFB_UNSUPPORTED;
+     DIR           *dir;
+     int            dir_len = strlen( module_dir );
+     struct dirent *entry;
+
+     dir = opendir( module_dir );
+
+     if (!dir) {
+          PERRORMSG( "DirectFB/core: "
+                     "Could not open module directory `%s'!\n", module_dir );
+          return errno2dfb( errno );
+     }
+
+     while ( (entry = readdir(dir) ) != NULL ) {
+          void *handle;
+          int   entry_len = strlen(entry->d_name);
+          char  buf[dir_len + entry_len + 2];
+
+          if (entry_len < 4 ||
+              entry->d_name[strlen(entry->d_name)-1] != 'o' ||
+              entry->d_name[strlen(entry->d_name)-2] != 's')
+               continue;
+
+          sprintf( buf, "%s/%s", module_dir, entry->d_name );
+
+          handle = dlopen( buf, RTLD_LAZY );
+          if (handle) {
+               switch (handle_func( handle, buf, ctx )) {
+                    case MODULE_REJECTED:
+                         dlclose( handle );
+                         break;
+
+                    case MODULE_LOADED_STOP:
+                         closedir( dir );
+                         return DFB_OK;
+
+                    case MODULE_LOADED_CONTINUE:
+                         ret = DFB_OK;
+                         break;
+               }
+          }
+          else
+               DLERRORMSG( "DirectFB/core: Unable to dlopen `%s'!\n", buf );
+
+     }
+
+     closedir( dir );
+
+     return ret;
 }
 

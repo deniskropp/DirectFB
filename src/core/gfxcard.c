@@ -28,7 +28,6 @@
 #include <directfb.h>
 
 #include <malloc.h>
-#include <dirent.h>
 #include <dlfcn.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
@@ -50,74 +49,52 @@ unsigned int intel_cpu_features();
 #endif
 
 
-GfxDriver* gfxcard_find_driver( int fd )
+CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
+                                                 char *name,
+                                                 void *ctx )
 {
-     GfxDriver *d;
-     DIR     *dir;
-     struct dirent *entry;
-     char *driver_dir = LIBDIR"/gfxdrivers";
+     GfxDriver *driver = (GfxDriver*)ctx;
+     
+     driver->Probe  = dlsym( handle, "driver_probe" );
+     if (driver->Probe) {
+          if ( driver->Probe( display->fd, card )) {
+               driver->Init       = dlsym( handle, "driver_init"   );
+               driver->InitLayers = dlsym( handle, "driver_init_layers" );
+               driver->DeInit     = dlsym( handle, "driver_deinit" );
+
+               if (driver->Init  &&  driver->DeInit)
+                    return MODULE_LOADED_STOP;
+                    
+               DLERRORMSG( "DirectFB/core/gfxcards: "
+                           "Probe succeeded but Init/DeInit "
+                           "symbols not found in `%s'!\n", name );
+          }
+     }
+     else
+          DLERRORMSG( "DirectFB/core/gfxcards: "
+                      "Could not link probe function of `%s'!\n", name );
+
+     return MODULE_REJECTED;
+}
+
+GfxDriver* gfxcard_find_driver()
+{
+     GfxDriver *driver;
+     char      *driver_dir = LIBDIR"/gfxdrivers";
 
      if (config->software_only)
           return NULL;
 
-     dir = opendir( driver_dir );
-
-     if (!dir) {
-          PERRORMSG( "DirectFB/core/gfxcards: "
-                     "Could not open driver directory `%s'!\n", driver_dir );
-          return NULL;
+     driver = calloc( 1, sizeof(GfxDriver) );
+     
+     if (core_load_modules( driver_dir,
+                            gfxcard_driver_handle_func, (void*)driver ))
+     {
+          free( driver );
+          driver = NULL;
      }
 
-     d = malloc( sizeof(GfxDriver) );
-     memset( d, 0, sizeof(GfxDriver) );
-
-     while ( (entry = readdir(dir) ) != NULL ) {
-          void *handle;
-          char buf[4096];
-
-          if (entry->d_name[strlen(entry->d_name)-1] != 'o' ||
-              entry->d_name[strlen(entry->d_name)-2] != 's')
-               continue;
-
-          sprintf( buf, "%s/%s", driver_dir, entry->d_name );
-
-          handle = dlopen( buf, RTLD_LAZY );
-          if (handle) {
-               d->Probe  = dlsym( handle, "driver_probe"  );
-               if (d->Probe) {
-                    if ( d->Probe( fd, card )) {
-                         d->Init       = dlsym( handle, "driver_init"   );
-                         d->InitLayers = dlsym( handle, "driver_init_layers" );
-                         d->DeInit     = dlsym( handle, "driver_deinit" );
-
-                         if (d->Init  &&  d->DeInit) {
-                              closedir( dir );
-                              return d;
-                         }
-                         else
-                              DLERRORMSG( "DirectFB/core/gfxcards: "
-                                          "Probe succeeded but Init/DeInit "
-                                          "symbols not found in `%s'!\n", buf );
-                    }
-               }
-               else
-                    DLERRORMSG( "DirectFB/core/gfxcards: "
-                                "Could not link probe function of `%s'!\n",
-                                buf );
-
-               dlclose( handle );
-          }
-          else
-               DLERRORMSG( "DirectFB/core/gfxcards: Unable to dlopen `%s'!\n",
-                           buf );
-
-     }
-
-     closedir( dir );
-
-     free( d );
-
-     return NULL;
+     return driver;
 }
 
 static void gfxcard_deinit()

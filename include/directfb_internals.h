@@ -43,8 +43,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                            void *probe_ctx );
 
 #define DFB_ALLOCATE_INTERFACE(p,i)     \
-     (p) = (i*)malloc( sizeof(i) ); \
-     memset( (p), 0, sizeof(i) );     \
+     (p) = (i*)calloc( 1, sizeof(i) );
      
      
 typedef void (*DFBSuspendResumeFunc)( int suspend, void *ctx );

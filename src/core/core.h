@@ -26,6 +26,20 @@
 
 #include <directfb.h>
 
+
+typedef enum {
+     MODULE_LOADED_CONTINUE,
+     MODULE_LOADED_STOP,
+     MODULE_REJECTED
+} CoreModuleLoadResult;
+
+DFBResult core_load_modules( char *module_dir,
+                             CoreModuleLoadResult (*handle_func)(void *handle,
+                                                                 char *name,
+                                                                 void *ctx),
+                             void *ctx );
+
+
 /*
  * is called by DirectFBCreate(), initializes all core parts
  */
