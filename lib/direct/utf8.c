@@ -9,7 +9,7 @@
               Sven Neumann <neo@directfb.org> and
               Ville Syrjälä <syrjala@sci.fi>.
 
-   UTF8 routines ported from glib-2.0
+   UTF8 routines ported from glib-2.0 and optimized
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -32,47 +32,4 @@
 #include <direct/utf8.h>
 
 
-/*
- *  Actually the last two fields used to be zero since they indicate an
- *  invalid UTF-8 string. Changed it to 1 to avoid endless looping on
- *  invalid input.
- */
-const char direct_utf8_skip[256] = {
-     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-     2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-     3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
-};
 
-unichar
-direct_utf8_get_char (const unsigned char *p)
-{
-     unichar result;
-     unsigned char c = *p;
-     int i, len;
-
-     if (!(c & 0x80))
-          return (unichar) c;
-
-     if (c > 0xfd)
-          return (unichar) -1;
-
-     len = direct_utf8_skip[c];
-
-     result = p[0] & (0x7c >> len);
-
-     for (i = 1; i < len; i++) {
-
-          if ((p[i] & 0xc0) != 0x80)
-               return (unichar) -1;
-
-          result <<= 6;
-          result |= p[i] & 0x3f;
-     }
-
-     return result;
-}

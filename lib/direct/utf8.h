@@ -9,7 +9,7 @@
               Sven Neumann <neo@directfb.org> and
               Ville Syrjälä <syrjala@sci.fi>.
 
-   UTF8 routines ported from glib-2.0
+   UTF8 routines ported from glib-2.0 and optimized
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -32,18 +32,48 @@
 
 #include <direct/types.h>
 
-extern const char direct_utf8_skip[256];
 
-#define direct_utf8_next_char(p) \
-     ((p) + (*(unsigned char*)(p) & 0x80) ? 1 : direct_utf8_skip[*(unsigned char*)(p)])
+#define DIRECT_UTF8_SKIP(c)     (((__u8)(c) < 0xc0) ? 1 : __direct_utf8_skip[(__u8)(c)&0x3f])
 
-static inline const char *direct_utf8_prev_char (const char *p)
+#define DIRECT_UTF8_GET_CHAR(p) (*(const __u8*)(p) < 0xc0 ? \
+                                 *(const __u8*)(p) : __direct_utf8_get_char((const __u8*)(p)))
+
+
+/*
+ *  Actually the last two fields used to be zero since they indicate an
+ *  invalid UTF-8 string. Changed it to 1 to avoid endless looping on
+ *  invalid input.
+ */
+static const char __direct_utf8_skip[64] = {
+     2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+     3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
+};
+
+static inline unichar __direct_utf8_get_char( const __u8 *p )
 {
-     while ((*(--p) & 0xc0) == 0x80)
-          ;
-     return (const char *)p;
-}
+     int              len;
+     register unichar result = p[0];
 
-unichar direct_utf8_get_char (const unsigned char *p);
+     if (result < 0xc0)
+          return result;
+
+     if (result > 0xfd)
+          return (unichar) -1;
+
+     len = __direct_utf8_skip[result & 0x3f];
+
+     result &= 0x7c >> len;
+
+     while (--len) {
+          int c = *(++p);
+
+          if ((c & 0xc0) != 0x80)
+               return (unichar) -1;
+
+          result = (result << 6) | (c & 0x3f);
+     }
+
+     return result;
+}
 
 #endif
