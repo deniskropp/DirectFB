@@ -9,6 +9,8 @@
 
 #include <directfb.h>
 
+#include <core/system.h>
+
 #include <core/fusion/lock.h>
 #include <core/fusion/property.h>
 #include <core/fusion/reactor.h>
@@ -484,6 +486,8 @@ main( int argc, char *argv[] )
      ret = DirectFBInit( &argc, &argv );
      if (ret)
           return DirectFBError( "DirectFBInit", ret );
+
+     dfb_system_lookup();
 
      if (fusion_init( -1, 0, NULL ) < 0)
           return -1;
