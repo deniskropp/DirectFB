@@ -232,7 +232,7 @@ static DFBResult IDirectFBInputBuffer_PeekEvent( IDirectFBInputBuffer *thiz,
 }
 
 DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
-                                          InputDevice *device )
+                                          InputDevice          *device )
 {
      IDirectFBInputBuffer_data *data;
 
@@ -261,6 +261,15 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
      return DFB_OK;
 }
 
+DFBResult IDirectFBInputBuffer_Attach( IDirectFBInputBuffer *thiz,
+                                       InputDevice          *device )
+{
+     INTERFACE_GET_DATA(IDirectFBInputBuffer)
+
+     reactor_attach( device->reactor, IDirectFBInputBuffer_React, data );
+
+     return DFB_OK;
+}
 
 /* internals */
 

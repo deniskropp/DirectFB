@@ -1613,11 +1613,22 @@ extern "C"
         /** Input buffers **/
 
           /*
-           * Create an input buffer for this device.
+           * Create an input buffer for this device and attach it.
            */
           DFBResult (*CreateInputBuffer) (
                IDirectFBInputDevice          *thiz,
                IDirectFBInputBuffer         **buffer
+          );
+
+          /*
+           * Attach an exsiting input buffer to this device.
+           *
+           * NOTE: Attaching multiple times generates multiple events.
+           *
+           */
+          DFBResult (*AttachInputBuffer) (
+               IDirectFBInputDevice          *thiz,
+               IDirectFBInputBuffer          *buffer
           );
 
 

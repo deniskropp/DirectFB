@@ -112,6 +112,20 @@ static DFBResult IDirectFBInputDevice_CreateInputBuffer(
      return IDirectFBInputBuffer_Construct( *buffer, data->device );
 }
 
+
+static DFBResult IDirectFBInputDevice_AttachInputBuffer(
+                                                  IDirectFBInputDevice  *thiz,
+                                                  IDirectFBInputBuffer  *buffer)
+{
+     INTERFACE_GET_DATA(IDirectFBInputDevice)
+
+     CAUTION("Releasing an IDirectFBInputBuffer does only detach "
+             "from the device it was created from, following input events "
+             "will cause a crash!");
+
+     return IDirectFBInputBuffer_Attach( buffer, data->device );
+}
+
 static DFBResult IDirectFBInputDevice_GetDescription(
                                                IDirectFBInputDevice      *thiz,
                                                DFBInputDeviceDescription *desc )
@@ -230,6 +244,7 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      thiz->AddRef = IDirectFBInputDevice_AddRef;
      thiz->Release = IDirectFBInputDevice_Release;
      thiz->CreateInputBuffer = IDirectFBInputDevice_CreateInputBuffer;
+     thiz->AttachInputBuffer = IDirectFBInputDevice_AttachInputBuffer;
      thiz->GetDescription = IDirectFBInputDevice_GetDescription;
      thiz->GetKeyState = IDirectFBInputDevice_GetKeyState;
      thiz->GetModifiers = IDirectFBInputDevice_GetModifiers;

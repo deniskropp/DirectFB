@@ -29,8 +29,11 @@
 /*
  * initializes input buffer, adds it to input listeners and initializes mutexes
  */
-DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz, 
-                                          InputDevice *buffer );
+DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
+                                          InputDevice          *device );
+
+DFBResult IDirectFBInputBuffer_Attach( IDirectFBInputBuffer *thiz,
+                                       InputDevice          *device );
 
 
 #endif
