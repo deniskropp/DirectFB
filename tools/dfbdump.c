@@ -90,9 +90,9 @@ surface_callback( FusionObjectPool *pool,
      }
 
 #ifndef FUSION_FAKE
-     printf( "0x%08x | ", object->ref.id );
+     printf( "0x%08x : ", object->ref.id );
 #else
-     printf( "N/A        | " );
+     printf( "N/A        : " );
 #endif
 
      printf( "%3d   ", refs );
@@ -191,10 +191,10 @@ dump_surfaces()
 {
      MemoryUsage mem = { 0, 0 };
 
-     printf( "\nSurfaces\n" );
-     printf( "---------\n\n" );
-
+     printf( "\n"
+             "-----------------------------[ Surfaces ]-----------------------------\n" );
      printf( "Reference  . Refs  Width Height  Format    Video  System  Capabilities\n" );
+     printf( "----------------------------------------------------------------------\n" );
 
      fusion_object_pool_enum( dfb_gfxcard_surface_pool(),
                               surface_callback, &mem );
@@ -218,16 +218,16 @@ window_callback( CoreWindow      *window,
      }
 
 #ifndef FUSION_FAKE
-     printf( "0x%08x | ", window->object.ref.id );
+     printf( "0x%08x : ", window->object.ref.id );
 #else
-     printf( "N/A        | " );
+     printf( "N/A        : " );
 #endif
 
      printf( "%3d   ", refs );
 
      printf( "%4d, %4d   ", window->x, window->y );
 
-     printf( "%4d x %4d   ", window->width, window->height );
+     printf( "%4d x %4d    ", window->width, window->height );
      
      printf( "0x%02x ", window->opacity );
 
@@ -286,14 +286,18 @@ layer_callback( DisplayLayer *layer,
      if (!stack)
           return DFENUM_OK;
      
-     printf( "\nWindows on layer %d\n", dfb_layer_id( layer ) );
-     printf( "-------------------\n\n" );
-
      fusion_skirmish_prevail( &stack->lock );
      
-     for (i=stack->num_windows - 1; i>=0; i--) {
-          if (!window_callback( stack->windows[i], stack ))
-               break;
+     if (stack->num_windows) {
+          printf( "\n"
+                  "-----------------------------------[ Windows on Layer %d ]-----------------------------------\n", dfb_layer_id( layer ) );
+          printf( "Reference  . Refs     X     Y   Width Height Opacity   ID     Capabilities   State & Options\n" );
+          printf( "--------------------------------------------------------------------------------------------\n" );
+
+          for (i=stack->num_windows - 1; i>=0; i--) {
+               if (!window_callback( stack->windows[i], stack ))
+                    break;
+          }
      }
 
      fusion_skirmish_dismiss( &stack->lock );
@@ -352,6 +356,8 @@ main( int argc, char *argv[] )
 
      dump_surfaces();
      dump_windows();
+
+     printf( "\n" );
 
 out:
      /* DirectFB deinitialization. */
