@@ -102,6 +102,7 @@ int Ostep = 0;
 int Dlength = 0;
 int SperD = 0; /* for scaled routines only */
 
+static int use_mmx = 0;
 
 static pthread_mutex_t generic_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -2190,10 +2191,11 @@ void gGetDriverInfo( GraphicsDriverInfo *info )
 
 void gGetDeviceInfo( GraphicsDeviceInfo *info )
 {
-     snprintf( info->name, DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Generic" );
+     snprintf( info->name, DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,
+               "Software Rasterizer" );
 
      snprintf( info->vendor, DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH,
-               "convergence integrated media GmbH" );
+               use_mmx ? "MMX" : "Generic" );
 
      info->caps.accel    = DFXL_NONE;
      info->caps.flags    = 0;
@@ -2786,6 +2788,8 @@ void gStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
  */
 void gInit_MMX()
 {
+     use_mmx = 1;
+
 /********************************* Sop_PFI_Sto_Dacc ***************************/
      Sop_PFI_Sto_Dacc[PIXELFORMAT_INDEX(DSPF_ARGB)] = Sop_argb_Sto_Dacc_MMX;
 /********************************* Sop_PFI_to_Dacc ****************************/
