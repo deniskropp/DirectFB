@@ -64,17 +64,9 @@ typedef struct {
 static bool
 translate_key( char key, DFBInputEvent *evt )
 {
-     if ((key >= 'a') || (key <= 'z')) {
-          evt->flags = DIEF_KEYID;
-          evt->key_id = DIKI_A + key - 'a';
-          return true;
-     }
-     if (key == 27) {
-          evt->flags = DIEF_KEYID;
-          evt->key_id = DIKI_ESCAPE;
-          return true;
-     }
-     return false;
+     evt->flags = DIEF_KEYSYMBOL;
+     evt->key_symbol = key;
+     return true;
 }
 
 /*
