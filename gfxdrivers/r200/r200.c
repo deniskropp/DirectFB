@@ -740,7 +740,7 @@ r200_probe_chipset( int *ret_index )
                                    sscanf( attr->value, "0x%04x", &chip );
                                    
                                    for (i = 0; i < sizeof(dev_table)/
-                                                   sizeof(dev_table[0]), i++) {
+                                                   sizeof(dev_table[0]); i++) {
                                         if (dev_table[i].id == chip) {
                                              found = i;
                                              break;
