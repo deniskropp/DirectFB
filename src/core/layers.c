@@ -1422,8 +1422,13 @@ load_default_cursor( DisplayLayer *layer )
      f = fopen( CURSORFILE, "rb" );
      if (!f) {
           ret = errno2dfb( errno );
-          PERRORMSG( "`" CURSORFILE "` could not be opened!\n" );
-          
+
+          /* ignore a missing cursor file */
+          if (ret == DFB_FILENOTFOUND)
+               ret = DFB_OK;
+          else
+               PERRORMSG( "`" CURSORFILE "` could not be opened!\n" );
+
           goto finish;
      }
 
