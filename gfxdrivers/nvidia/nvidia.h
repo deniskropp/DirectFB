@@ -42,392 +42,333 @@
 \***************************************************************************/
 
 /*
- * Raster OPeration. Windows style ROP3.
+ * 2D surfaces
  */
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x0BB];
-    __u32 Rop3;
-} NVRop;
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotifies;  /* 0180-0183 */
+     __u32 SetContextDmaSource;    /* 0184-0187 */
+     __u32 SetContextDmaDestin;    /* 0188-018B */
+     __u32 Reserved01[0x05D];
+     __u32 Format;                 /* 0300-0303 */
+     __u32 Pitch;                  /* 0304-0307 */
+     __u32 SourceOffset;           /* 0308-030B */
+     __u32 DestOffset;             /* 030C-030F */
+     __u32 Reserved02[0x73C];
+} NVSurfaces2D;
+
 /*
- * 8X8 Monochrome pattern.
+ * 3D surfaces
  */
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x0BD];
-    __u32 Shape;
-    __u32 reserved03[0x001];
-    __u32 Color0;
-    __u32 Color1;
-    __u32 Monochrome[2];
-} NVPattern;
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
+     __u32 SetContextDmaColor;     /* 0184-0187 */
+     __u32 SetContextDmaZeta;      /* 0188-018B */
+     __u32 Reserved01[0x05B];
+     __u32 ClipHorizontal;         /* 02F8-02FB */          
+     __u32 ClipVertical;           /* 02FC-02FF */
+     __u32 Format;                 /* 0300-0303 */
+     __u32 ClipSize;               /* 0304-0307 */
+     __u32 Pitch;                  /* 0308-030B */
+     __u32 RenderOffset;           /* 030C-030F */
+     __u32 DepthOffset;            /* 0310-0313 */
+     __u32 Reserved02[0x73B];
+} NVSurfaces3D;
+
 /*
- * Scissor clip rectangle.
+ * Scissor clip rectangle
  */
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x0BB];
-    __u32 TopLeft;
-    __u32 WidthHeight;
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
+     __u32 SetContextDmaImage;     /* 0184-0187 */
+     __u32 Reserved01[0x05E];
+     __u32 TopLeft;                /* 0300-0303 */
+     __u32 WidthHeight;            /* 0304-0307 */
+     __u32 Reserved02[0x73E];
 } NVClip;
+
 /*
- * 2D filled rectangle.
+ * 2D solid rectangle
  */
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x03B];
-
-    __u32 NoOperation;             /* ignored                          0100-0103*/
-    __u32 Notify;                  /* NV001E_NOTIFY_*                  0104-0107*/
-    __u32 reserved02[0x01e];
-    __u32 SetContextDmaNotifies;   /* NV01_CONTEXT_DMA                 0180-0183*/
-    __u32 SetContextClipRectangle; /* NV01_CONTEXT_CLIP_RECTANGLE      0184-0187*/
-    __u32 SetContextPattern;       /* NV01_CONTEXT_PATTERN             0188-018b*/
-    __u32 SetContextRop;           /* NV03_CONTEXT_ROP                 018c-018f*/
-    __u32 SetContextBeta1;         /* NV01_CONTEXT_BETA1               0190-0193*/
-    __u32 SetContextSurface;       /* NV03_CONTEXT_SURFACES_2D         0194-0197*/
-    __u32 reserved03[0x059];
-    __u32 SetOperation;            /* NV001E_SET_OPERATION_*           02fc-02ff*/
-    __u32 SetColorFormat;          /* NV001E_SET_COLOR_FORMAT_*        0300-0303*/
-
-    __u32 Color;                   /* source color                     0304-0307*/
-
-    __u32 reserved04[0x03E];
-    __u32 TopLeft;
-    __u32 WidthHeight;
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotifies;  /* 0180-0183 */
+     __u32 SetContextClip;         /* 0184-0187 */
+     __u32 SetContextPattern;      /* 0188-018B */
+     __u32 SetContextRop;          /* 018C-018F */
+     __u32 SetContextBeta1;        /* 0190-0193 */
+     __u32 SetContextSurface;      /* 0194-0197 */
+     __u32 Reserved01[0x059];
+     __u32 SetOperation;           /* 02FC-02FF */
+     __u32 SetColorFormat;         /* 0300-0303 */
+     __u32 Color;                  /* 0304-0307 */
+     __u32 Reserved02[0x03E];
+     __u32 TopLeft;                /* 0400-0403 */
+     __u32 WidthHeight;            /* 0404-0407 */
+     __u32 Reserved03[0x6FE];
 } NVRectangle;
 
-typedef struct {
-     __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-     __u32 reserved01[0x03B];
-
-     __u32 NoOperation;             /* ignored                          0100-0103*/
-     __u32 Notify;                  /* NV001D_NOTIFY_*                  0104-0107*/
-     __u32 reserved02[0x01e];
-     __u32 SetContextDmaNotifies;   /* NV01_CONTEXT_DMA                 0180-0183*/
-     __u32 SetContextClipRectangle; /* NV01_CONTEXT_CLIP_RECTANGLE      0184-0187*/
-     __u32 SetContextPattern;       /* NV01_CONTEXT_PATTERN             0188-018b*/
-     __u32 SetContextRop;           /* NV03_CONTEXT_ROP                 018c-018f*/
-     __u32 SetContextBeta1;         /* NV01_CONTEXT_BETA1               0190-0193*/
-     __u32 SetContextSurface;       /* NV03_CONTEXT_SURFACES_2D         0194-0197*/
-     __u32 reserved03[0x059];
-     __u32 SetOperation;            /* NV001D_SET_OPERATION_*           02fc-02ff*/
-     __u32 SetColorFormat;          /* NV001D_SET_COLOR_FORMAT_*        0300-0303*/
-     __u32 Color;                   /* source color                     0304-0307*/
-     __u32 reserved04[0x002];
-     __u32 TrianglePoint0;          /* y_x S16_S16 in pixels            0310-0313*/
-     __u32 TrianglePoint1;          /* y_x S16_S16 in pixels            0314-0317*/
-     __u32 TrianglePoint2;          /* y_x S16_S16 in pixels            0318-031b*/
-     __u32 reserved05[0x001];
-     __s32 Triangle32Point0X;       /* in pixels, 0 at left             0320-0323*/
-     __s32 Triangle32Point0Y;       /* in pixels, 0 at top              0324-0327*/
-     __s32 Triangle32Point1X;       /* in pixels, 0 at left             0328-032b*/
-     __s32 Triangle32Point1Y;       /* in pixels, 0 at top              032c-032f*/
-     __s32 Triangle32Point2X;       /* in pixels, 0 at left             0330-0333*/
-     __s32 Triangle32Point2Y;       /* in pixels, 0 at top              0334-0337*/
-     __u32 reserved06[0x032];
-     __u32 Trimesh[32];             /* y_x S16_S16 in pixels            0400-047f*/
-     struct {                       /* start aliased methods in array   0480-    */
-          __s32 x;                      /* in pixels, 0 at left                0-   3*/
-          __s32 y;                      /* in pixels, 0 at top                 4-   7*/
-     } Trimesh32[16];               /* end of aliased methods in array      -04ff*/
-     struct {                       /* start aliased methods in array   0500-    */
-          __u32 color;                  /* source color                        0-   3*/
-          __u32 point0;                 /* y_x S16_S16 in pixels               4-   7*/
-          __u32 point1;                 /* y_x S16_S16 in pixels               8-   b*/
-          __u32 point2;                 /* y_x S16_S16 in pixels               c-   f*/
-     } ColorTriangle[8];            /* end of aliased methods in array      -057f*/
-     struct {                       /* start aliased methods in array   0580-    */
-          __u32 color;                  /* source color                        0-   3*/
-          __u32 point;                  /* y_x S16_S16 in pixels               4-   7*/
-     } ColorTrimesh[16];            /* end of aliased methods in array      -05ff*/
+/*
+ * 2D solid triangle
+ */
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotifies;  /* 0180-0183 */
+     __u32 SetContextClip;         /* 0184-0187 */
+     __u32 SetContextPattern;      /* 0188-018B */
+     __u32 SetContextRop;          /* 018C-018F */
+     __u32 SetContextBeta1;        /* 0190-0193 */
+     __u32 SetContextSurface;      /* 0194-0197 */
+     __u32 Reserved01[0x059];
+     __u32 SetOperation;           /* 02FC-02FF */
+     __u32 SetColorFormat;         /* 0300-0303 */
+     __u32 Color;                  /* 0304-0307 */
+     __u32 Reserved02[0x002];
+     __u32 TrianglePoint0;         /* 0310-0313 */
+     __u32 TrianglePoint1;         /* 0314-0317 */
+     __u32 TrianglePoint2;         /* 0318-031B */
+     __u32 Reserved03[0x001];
+     __s32 Triangle32Point0X;      /* 0320-0323 */
+     __s32 Triangle32Point0Y;      /* 0324-0327 */
+     __s32 Triangle32Point1X;      /* 0328-032B */
+     __s32 Triangle32Point1Y;      /* 032C-032F */
+     __s32 Triangle32Point2X;      /* 0330-0333 */
+     __s32 Triangle32Point2Y;      /* 0334-0337 */
+     __u32 Reserved04[0x032];
+     __u32 Trimesh[32];            /* 0400-047F */
+     struct {                      /* 0480-     */
+          __s32 x;                 /*    0-   3 */
+          __s32 y;                 /*    4-   7 */
+     } Trimesh32[16];              /*     -04FF */
+     struct {                      /* 0500-     */
+          __u32 color;             /*    0-   3 */
+          __u32 point0;            /*    4-   7 */
+          __u32 point1;            /*    8-   B */
+          __u32 point2;            /*    C-   F */
+     } ColorTriangle[8];           /*     -057F */
+     struct {                      /* 0580-     */
+          __u32 color;             /*    0-   3 */
+          __u32 point;             /*    4-   7 */
+     } ColorTrimesh[16];           /*     -05FF */
+     __u32 Reserved05[0x680];
 } NVTriangle;
 
-typedef struct {
-     __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-     __u32 reserved01[0x03B];
-
-     __u32 NoOperation;             /* ignored                          0100-0103*/
-     __u32 Notify;                  /* NV0037_NOTIFY_*                  0104-0107*/
-     __u32 reserved02[0x01E];
-     __u32 SetContextDmaNotifies;   /* NV01_CONTEXT_DMA                 0180-0183*/
-     __u32 SetContextDmaImage;      /* NV01_CONTEXT_DMA                 0184-0187*/
-     __u32 SetContextPattern;       /* NV01_CONTEXT_PATTERN             0188-018b*/
-     __u32 SetContextRop;           /* NV03_CONTEXT_ROP                 018c-018f*/
-     __u32 SetContextBeta1;         /* NV01_CONTEXT_BETA1               0190-0193*/
-     __u32 SetContextSurface;       /* NV03_CONTEXT_SURFACES_2D         0194-0197*/
-     __u32 reserved03[0x059];
-     __u32 SetColorConversion;
-     __u32 SetColorFormat;          /* NV0037_SET_COLOR_FORMAT_*        0300-0303*/
-     __u32 SetOperation;            /* NV0037_SET_OPERATION_*           0304-0307*/
-     __u32 ClipPoint;               /* y_x S16_S16                      0308-030b*/
-     __u32 ClipSize;                /* height_width U16_U16             030c-030f*/
-     __u32 ImageOutPoint;           /* y_x S16_S16                      0310-0313*/
-     __u32 ImageOutSize;            /* height_width U16_U16             0314-0317*/
-     __u32 DuDx;                    /* S12d20 du/dx                     0318-031b*/
-     __u32 DvDy;                    /* S12d20 dv/dy                     031c-031f*/
-     __u32 reserved04[0x038];
-     __u32 ImageInSize;             /* height_width U16_U16             0400-0403*/
-     __u32 ImageInFormat;           /* pitch U32                        0404-0407*/
-     __u32 ImageInOffset;           /* byte offset of top-left texel    0408-040b*/
-     __u32 ImageInPoint;            /* v_u U12d4_U12d4                  040c-040f*/
-     __u32 reserved05[0x6fc];
-} NVScaledImage;
-
 /*
- * 2D screen-screen BLT.
+ * 2D solid line
  */
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x0BA];
-    __u32 SetOperation;
-    __u32 TopLeftSrc;
-    __u32 TopLeftDst;
-    __u32 WidthHeight;
-} NVScreenBlt;
-/*
- * 2D pixel BLT.
- */
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x0BC];
-    __u32 TopLeft;
-    __u32 WidthHeight;
-    __u32 WidthHeightIn;
-    __u32 reserved02[0x03C];
-    __u32 Pixels;
-} NVPixmap;
-/*
- * Filled rectangle combined with monochrome expand.  Useful for glyphs.
- */
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x0BB];
-    __u32 reserved02[(0x040)-1];
-    __u32 Color1A;
-    struct
-    {
-        __u32 TopLeft;
-        __u32 WidthHeight;
-    } UnclippedRectangle[64];
-    __u32 reserved03[(0x080)-3];
-    struct
-    {
-        __u32 TopLeft;
-        __u32 BottomRight;
-    } ClipB;
-    __u32 Color1B;
-    struct
-    {
-        __u32 TopLeft;
-        __u32 BottomRight;
-    } ClippedRectangle[64];
-    __u32 reserved04[(0x080)-5];
-    struct
-    {
-        __u32 TopLeft;
-        __u32 BottomRight;
-    } ClipC;
-    __u32 Color1C;
-    __u32 WidthHeightC;
-    __u32 PointC;
-    __u32 MonochromeData1C;
-    __u32 reserved05[(0x080)+121];
-    struct
-    {
-        __u32 TopLeft;
-        __u32 BottomRight;
-    } ClipD;
-    __u32 Color1D;
-    __u32 WidthHeightInD;
-    __u32 WidthHeightOutD;
-    __u32 PointD;
-    __u32 MonochromeData1D;
-    __u32 reserved06[(0x080)+120];
-    struct
-    {
-        __u32 TopLeft;
-        __u32 BottomRight;
-    } ClipE;
-    __u32 Color0E;
-    __u32 Color1E;
-    __u32 WidthHeightInE;
-    __u32 WidthHeightOutE;
-    __u32 PointE;
-    __u32 MonochromeData01E;
-} NVBitmap;
-
-/*
- * 2D line.
- */
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x0BA];
-    __u32 SetOperation;
-    __u32 SetColorFormat;
-    __u32 Color;             /* source color               0304-0307*/
-    __u32 reserved02[0x03e];
-    struct {                /* start aliased methods in array   0400-    */
-        __u32 point0;        /* y_x S16_S16 in pixels            0-   3*/
-        __u32 point1;        /* y_x S16_S16 in pixels            4-   7*/
-    } Lin[16];              /* end of aliased methods in array      -047f*/
-    struct {                /* start aliased methods in array   0480-    */
-        __u32 point0X;       /* in pixels, 0 at left                0-   3*/
-        __u32 point0Y;       /* in pixels, 0 at top                 4-   7*/
-        __u32 point1X;       /* in pixels, 0 at left                8-   b*/
-        __u32 point1Y;       /* in pixels, 0 at top                 c-   f*/
-    } Lin32[8];             /* end of aliased methods in array      -04ff*/
-    __u32 PolyLin[32];       /* y_x S16_S16 in pixels         0500-057f*/
-    struct {                /* start aliased methods in array   0580-    */
-        __u32 x;             /* in pixels, 0 at left                0-   3*/
-        __u32 y;             /* in pixels, 0 at top                 4-   7*/
-    } PolyLin32[16];        /* end of aliased methods in array      -05ff*/
-    struct {                /* start aliased methods in array   0600-    */
-        __u32 color;         /* source color                     0-   3*/
-        __u32 point;         /* y_x S16_S16 in pixels            4-   7*/
-    } ColorPolyLin[16];     /* end of aliased methods in array      -067f*/
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
+     __u32 SetContextClip;         /* 0184-0187 */
+     __u32 SetContextPattern;      /* 0188-018B */
+     __u32 SetContextRop;          /* 018C-018F */
+     __u32 SetContextBeta1;        /* 0190-0193 */
+     __u32 SetContextSurface;      /* 0194-0197 */
+     __u32 Reserved01[0x059];
+     __u32 SetOperation;           /* 02FC-02FF */
+     __u32 SetColorFormat;         /* 0300-0303 */
+     __u32 Color;                  /* 0304-0307 */
+     __u32 Reserved02[0x03E];
+     struct {                      /* 0400-     */
+          __u32 point0;            /*    0-   3 */
+          __u32 point1;            /*    4-   7 */
+     } Lin[16];                    /*     -047F */
+     struct {                      /* 0480-     */
+          __u32 point0X;           /*    0-   3 */
+          __u32 point0Y;           /*    4-   7 */
+          __u32 point1X;           /*    8-   B */
+          __u32 point1Y;           /*    C-   F */
+     } Lin32[8];                   /*     -04FF */
+     __u32 PolyLin[32];            /* 0500-057F */
+     struct {                      /* 0580-     */
+          __u32 x;                 /*    0-   3 */
+          __u32 y;                 /*    4-   7 */
+     } PolyLin32[16];              /*     -05FF */
+     struct {                      /* 0600-     */
+          __u32 color;             /*    0-   3 */
+          __u32 point;             /*    4-   7 */
+     } ColorPolyLin[16];           /*     -067F */
+     __u32 Reserved03[0x660];
 } NVLine;
 
 /*
- * 3D textured, Z buffered triangle.
+ * 2D screen-screen BLT
  */
-typedef struct {
-    __u32 reserved00[4];
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 WaitForIdle;            /* 0108-010B (NV_09F_WAIT_FOR_IDLE) */
+     __u32 WaitForSync;            /* 010C-010F (NV_09F_WAIT_FOR_CRTC) */
+     __u32 Reserved00[0x01C];
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
+     __u32 SetContextColorKey;     /* 0184-0187 */
+     __u32 SetContextClip;         /* 0188-018B */
+     __u32 SetContextPattern;      /* 018C-018F */
+     __u32 SetContextRop;          /* 0190-0193 */
+     __u32 SetContextBeta1;        /* 0194-0197 */
+     __u32 SetContextBeta4;        /* 0198-019B */
+     __u32 SetContextSurface;      /* 019C-019F */
+     __u32 Reserved01[0x057];
+     __u32 SetOperation;           /* 02FC-02FF */
+     __u32 TopLeftSrc;             /* 0300-0303 */
+     __u32 TopLeftDst;             /* 0304-0307 */
+     __u32 WidthHeight;            /* 0308-030B */
+     __u32 Reserved02[0x73D];
+} NVScreenBlt;
+
+/*
+ * 2D scaled image BLT
+ */
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotifies;  /* 0180-0183 */
+     __u32 SetContextDmaImage;     /* 0184-0187 */
+     __u32 SetContextPattern;      /* 0188-018B */
+     __u32 SetContextRop;          /* 018C-018F */
+     __u32 SetContextBeta1;        /* 0190-0193 */
+     __u32 SetContextBeta4;        /* 0194-0197 */
+     __u32 SetContextSurface;      /* 0198-019C */
+     __u32 Reserved01[0x058];
+     __u32 SetColorConversion;     /* 02FC-02FF */
+     __u32 SetColorFormat;         /* 0300-0303 */
+     __u32 SetOperation;           /* 0304-0307 */
+     __u32 ClipPoint;              /* 0308-030B */
+     __u32 ClipSize;               /* 030C-030F */
+     __u32 ImageOutPoint;          /* 0310-0313 */
+     __u32 ImageOutSize;           /* 0314-0317 */
+     __u32 DuDx;                   /* 0318-031B */
+     __u32 DvDy;                   /* 031C-031F */
+     __u32 Reserved02[0x038];
+     __u32 ImageInSize;            /* 0400-0403 */
+     __u32 ImageInFormat;          /* 0404-0407 */
+     __u32 ImageInOffset;          /* 0408-040B */
+     __u32 ImageInPoint;           /* 040C-040F */
+     __u32 Reserved03[0x6FC];
+} NVScaledImage;
+
+/*
+ * 3D textured, Z buffered triangle
+ */
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
+     __u32 SetContextDmaA;         /* 0184-0187 */
+     __u32 SetContextDmaB;         /* 0188-018B */
+     __u32 SetContextSurfaces;     /* 018C-018F */
+     __u32 Reserved01[0x05C];
+     __u32 ColorKey;               /* 0300-0303 */
+     __u32 TextureOffset;          /* 0304-0307 */
+     __u32 TextureFormat;          /* 0308-030B */
+     __u32 TextureFilter;          /* 030C-030F */
+     __u32 Blend;                  /* 0310-0313 */
+     __u32 Control;                /* 0314-0317 */
+     __u32 FogColor;               /* 0318-031B */
+     __u32 Reserved02[0x039];
+     struct {                      /* 0400-     */
+          float sx;                /*   00-  03 */
+          float sy;                /*   04-  07 */
+          float sz;                /*   08-  0B */
+          float rhw;               /*   0C-  0F */
+          __u32 color;             /*   10-  13 */
+          __u32 specular;          /*   14-  17 */
+          float ts;                /*   18-  1B */
+          float tt;                /*   1C-  1F */
+     } Tlvertex[16];               /*     -05FF */
+     __u32 DrawPrimitives[64];     /* 0600-063F */
+     __u32 Reserved03[0x640];
+} NVTexturedTriangleDx5;
+
+
+typedef volatile struct {
+     __u32 SetObject;              /* 0000-0003 */
+     __u32 Reserved00[0x003];
 #ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
+     __u32 Free;                   /* 0010-0013 */
 #else
-    __u16 FifoFree;
-    __u16 Nop;
+     __u16 Free;                   /* 0010-0011 */
+     __u16 Nop;                    /* 0012-0013 */
 #endif
-    __u32 reserved01[0x0BB];
-    __u32 ColorKey;                /* see text                         0300-0303*/
-    __u32 TextureOffset;           /* texture offset in bytes          0304-0307*/
-    __u32 TextureFormat;           /* see text                         0308-030b*/
-    __u32 TextureFilter;           /* see text                         030c-030f*/
-    __u32 Blend;                   /* see text                         0310-0313*/
-    __u32 Control;                 /* see text                         0314-0317*/
-    __u32 FogColor;                /* X8R8G8B8 fog color               0318-031b*/
-    __u32 reserved02[0x039];
-    struct {                       /* start of methods in array        0400-    */
-         float sx;                 /* screen x coordinate                00-  03*/
-         float sy;                 /* screen y coordinate                04-  07*/
-         float sz;                 /* screen z coordinate                08-  0b*/
-         float rhw;                /* reciprocal homogeneous W (1/W)     0c-  0f*/
-         __u32 color;              /* A8R8G8B8                           10-  13*/
-         __u32 specular;           /* F8R8G8B8                           14-  17*/
-         float ts;                 /* texture s coordinate               18-  1b*/
-         float tt;                 /* texture t coordinate               1c-  1f*/
-    } Tlvertex[16];                /* end of methods in array              -05ff*/
-    __u32 DrawPrimitives[64];
-} NVTexturedTriangle05;
+     __u32 Reserved01[0x00B];
+     __u32 DmaPut;                 /* 0040-0043 */
+     __u32 DmaGet;                 /* 0044-0047 */
+     __u32 Reserved02[0x02E];
+     union {
+          NVSurfaces2D          Surfaces2D;
+          NVSurfaces3D          Surfaces3D;
+          NVClip                Clip;
+          NVRectangle           Rectangle;
+          NVTriangle            Triangle;
+          NVLine                Line;
+          NVScreenBlt           Blt;
+          NVScaledImage         ScaledImage;
+          NVTexturedTriangleDx5 TexTriangle;
+     } o;
+} NVFifoSubChannel;
+
+typedef volatile struct {
+     NVFifoSubChannel sub[8];
+} NVFifoChannel;
 
 
 /*
- * 2D/3D surfaces
+ * Objects ids
+ * (used for hash key calculation and FifoSubChannel::SetObject)
  */
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x0BB];
-    __u32 SetColorFormat;
-    __u32 Pitch;
-    __u32 SourceOffset;
-    __u32 DestOffset;
-} NVSurfaces2D;
+enum {
+     OBJ_SURFACES2D   = 0x80000000,
+     OBJ_CLIP         = 0x80000001,
+     OBJ_RECTANGLE    = 0x80000002,
+     OBJ_TRIANGLE     = 0x80000010,
+     OBJ_LINE         = 0x80000011,
+     OBJ_SCREENBLT    = 0x80000012,
+     OBJ_SCALEDIMAGE  = 0x80000013,
+     OBJ_TEXTRIANGLE  = 0x80000014,
+     OBJ_SURFACES3D   = 0x80000015
+};
 
-typedef struct
-{
-    __u32 reserved00[4];
-#ifdef WORDS_BIGENDIAN
-    __u32 FifoFree;
-#else
-    __u16 FifoFree;
-    __u16 Nop;
-#endif
-    __u32 reserved01[0x0B9];
-    __u32 ClipHorizontal;
-    __u32 ClipVertical;
-    __u32 SetColorFormat;
-    __u32 ClipSize;
-    __u32 Pitch;
-    __u32 RenderOffset;
-    __u32 DepthOffset;
-} NVSurfaces3D;
+/*
+ * Objects addresses into context table
+ * (PRAMIN + (address)*16)
+ */
+enum {
+     ADDR_SURFACES2D  = 0x1142,
+     ADDR_CLIP        = 0x1143,
+     ADDR_RECTANGLE   = 0x1144,
+     ADDR_TRIANGLE    = 0x1145,
+     ADDR_LINE        = 0x1146,
+     ADDR_SCREENBLT   = 0x1147,
+     ADDR_SCALEDIMAGE = 0x1148,
+     ADDR_TEXTRIANGLE = 0x1149,
+     ADDR_SURFACES3D  = 0x114A
+};
 
+/*
+ * Engine type 
+ * (used for context calculation)
+ */
+enum {
+     ENGINE_SW        = 0,
+     ENGINE_GRAPHICS  = 1,
+     ENGINE_DVD       = 2
+};
 
 
 typedef struct {
@@ -475,42 +416,42 @@ typedef struct {
 } NVidiaDeviceData;
 
 
-typedef enum {
+enum {
      NV_ARCH_04   = 0x04,
      NV_ARCH_05   = 0x05,
      NV_ARCH_10   = 0x10,
      NV_ARCH_20   = 0x20
-} NVArch;
+};
 
 typedef struct {
-     GraphicsDevice                *device;
+     GraphicsDevice         *device;
 
-     __u32                          chip;
-     __u32                          arch; /* NVArch */
+     __u32                   chip;
+     __u32                   arch; /* NV_ARCH_* */
      
-     __u32                          fb_base;
-     __u32                          fb_mask;
+     __u32                   fb_base;
+     __u32                   fb_mask;
 
-     volatile __u8                 *mmio_base;
-     volatile __u32                *PVIDEO;
-     volatile __u32                *PFB;
-     volatile __u32                *PGRAPH;
-     volatile __u32                *PCRTC;
-     volatile __u8                 *PCIO;
-     volatile __u8                 *PVIO;
-     volatile __u32                *FIFO;
-     volatile __u32                *PRAMIN;
+     volatile __u8          *mmio_base;
+     volatile __u32         *PVIDEO;
+     volatile __u32         *PFB;
+     volatile __u32         *PGRAPH;
+     volatile __u32         *PCRTC;
+     volatile __u8          *PCIO;
+     volatile __u8          *PVIO;
+     volatile __u32         *PRAMIN;
+     volatile __u32         *PRAMHT;
 
-     volatile NVSurfaces2D         *Surfaces2D;
-     volatile NVSurfaces3D         *Surfaces3D;
-     volatile NVClip               *Clip;
-     volatile NVRectangle          *Rectangle;
-     volatile NVTriangle           *Triangle;
-     volatile NVLine               *Line;
-     volatile NVScreenBlt          *Blt;
-     volatile NVScaledImage        *ScaledImage;
-     volatile NVTexturedTriangle05 *TexTri;
-     
+     NVFifoChannel          *Fifo;
+     NVSurfaces2D           *Surfaces2D;
+     NVSurfaces3D           *Surfaces3D;
+     NVClip                 *Clip;
+     NVRectangle            *Rectangle;
+     NVTriangle             *Triangle;
+     NVLine                 *Line;
+     NVScreenBlt            *Blt;
+     NVScaledImage          *ScaledImage;
+     NVTexturedTriangleDx5  *TexTriangle;
 } NVidiaDriverData;
 
 

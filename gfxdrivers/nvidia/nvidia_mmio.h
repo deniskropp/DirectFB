@@ -49,29 +49,34 @@ nv_waitidle( NVidiaDriverData *nvdrv,
           nvdev->idle_waitcycles++;
 }
 
+static inline void
+nv_waitfifo( NVidiaDeviceData *nvdev,
+             NVFifoSubChannel *subch,
+             int               space )
+{
+     int waitcycles = 0;
 
-#define nv_waitfifo( nvdev, ptr, space )                    \
-{                                                           \
-     int waitcycles = 0;                                    \
-                                                            \
-     (nvdev)->waitfifo_sum += (space);                      \
-     (nvdev)->waitfifo_calls++;                             \
-                                                            \
-     if ((nvdev)->fifo_space < (space)) {                   \
-          do {                                              \
-               (nvdev)->fifo_space = (ptr)->FifoFree >> 2;  \
-               if (++waitcycles > 0x10000) {                \
-                    D_BREAK( "card hung" );                 \
-                    break;                                  \
-               }                                            \
-          } while ((nvdev)->fifo_space < (space));          \
-                                                            \
-          (nvdev)->fifo_waitcycles += waitcycles;           \
-     } else                                                 \
-          (nvdev)->fifo_cache_hits++;                       \
-                                                            \
-     (nvdev)->fifo_space -= (space);                        \
+     nvdev->waitfifo_sum += (space);
+     nvdev->waitfifo_calls++;
+
+     if (nvdev->fifo_space < space) {
+          do {
+               nvdev->fifo_space = subch->Free >> 2;
+               if (++waitcycles > 0x10000) {
+                    D_BREAK( "card hung" );
+                    /* avoid card crash */
+                    _exit(-1);
+               }
+          } while (nvdev->fifo_space < space);
+
+          nvdev->fifo_waitcycles += waitcycles;
+     } else
+          nvdev->fifo_cache_hits++;
+
+     nvdev->fifo_space -= space;
 }
+
+#define subchannelof( obj )  ((NVFifoSubChannel*) ((__u8*) (obj) - 256))
 
 
 #endif /* __NVIDIA_MMIO_H__ */

@@ -128,14 +128,15 @@ nv_set_format( NVidiaDriverData      *nvdrv,
                NVidiaDeviceData      *nvdev,
                DFBSurfacePixelFormat  format )
 {
-     volatile NVSurfaces2D *Surfaces2D = nvdrv->Surfaces2D;
-     volatile NVSurfaces3D *Surfaces3D = nvdrv->Surfaces3D;
-     volatile NVRectangle  *Rectangle  = nvdrv->Rectangle;
-     volatile NVTriangle   *Triangle   = nvdrv->Triangle;
-     volatile NVLine       *Line       = nvdrv->Line;
-     __u32                  sformat2D  = 0;
-     __u32                  sformat3D  = 0;
-     __u32                  pformat    = 0;
+     NVFifoSubChannel *SubChannel0 = &nvdrv->Fifo->sub[0];
+     NVSurfaces2D     *Surfaces2D  = nvdrv->Surfaces2D;
+     NVSurfaces3D     *Surfaces3D  = nvdrv->Surfaces3D;
+     NVRectangle      *Rectangle   = nvdrv->Rectangle;
+     NVTriangle       *Triangle    = nvdrv->Triangle;
+     NVLine           *Line        = nvdrv->Line;
+     __u32             sformat2D   = 0;
+     __u32             sformat3D   = 0;
+     __u32             pformat     = 0;
 
      switch (format) {
           case DSPF_ARGB1555:
@@ -163,20 +164,20 @@ nv_set_format( NVidiaDriverData      *nvdrv,
                return;
      }
 
-     nv_waitfifo( nvdev, Surfaces2D, 4 );
-     Surfaces2D->SetColorFormat = sformat2D;
-     nvdrv->FIFO[0]             = 0x80000015;
-     Surfaces3D->SetColorFormat = sformat3D;
-     nvdrv->FIFO[0]             = 0x80000000;
+     nv_waitfifo( nvdev, SubChannel0, 4 );
+     SubChannel0->SetObject    = OBJ_SURFACES2D;
+     Surfaces2D->Format        = sformat2D;
+     SubChannel0->SetObject    = OBJ_SURFACES3D;
+     Surfaces3D->Format        = sformat3D;
      
-     nv_waitfifo( nvdev, Rectangle, 1 );
-     Rectangle->SetColorFormat  = pformat;
+     nv_waitfifo( nvdev, subchannelof(Rectangle), 1 );
+     Rectangle->SetColorFormat = pformat;
 
-     nv_waitfifo( nvdev, Triangle, 1 );
-     Triangle->SetColorFormat   = pformat;
+     nv_waitfifo( nvdev, subchannelof(Triangle), 1 );
+     Triangle->SetColorFormat  = pformat;
 
-     nv_waitfifo( nvdev, Line, 1 );
-     Line->SetColorFormat       = pformat;
+     nv_waitfifo( nvdev, subchannelof(Line), 1 );
+     Line->SetColorFormat      = pformat;
 }
 
 static inline void
@@ -184,11 +185,11 @@ nv_set_clip( NVidiaDriverData *nvdrv,
              NVidiaDeviceData *nvdev,
              DFBRegion        *clip )
 {
-     volatile NVClip *Clip   = nvdrv->Clip;
-     int              width  = clip->x2 - clip->x1 + 1;
-     int              height = clip->y2 - clip->y1 + 1;
+     NVClip *Clip   = nvdrv->Clip;
+     int     width  = clip->x2 - clip->x1 + 1;
+     int     height = clip->y2 - clip->y1 + 1;
 
-     nv_waitfifo( nvdev, Clip, 2 );
+     nv_waitfifo( nvdev, subchannelof(Clip), 2 );
      Clip->TopLeft     = (clip->y1 << 16) | clip->x1;
      Clip->WidthHeight = (height   << 16) | width;
 }
@@ -328,6 +329,8 @@ static void nv4CheckState( void *drv, void *dev,
                     
                case DSPF_YUY2:
                case DSPF_UYVY:
+                    if (accel == DFXL_TEXTRIANGLES)
+                         return;
                     if ((destination->format == DSPF_YUY2  ||
                          destination->format == DSPF_UYVY) &&
                         destination->format != source->format)
@@ -391,9 +394,11 @@ static void nv5CheckState( void *drv, void *dev,
                
                case DSPF_YUY2:
                case DSPF_UYVY:
+                    if (accel == DFXL_TEXTRIANGLES)
+                         return;
                     if ((destination->format == DSPF_YUY2  ||
                          destination->format == DSPF_UYVY) &&
-                         destination->format != source->format)
+                        destination->format != source->format)
                          return;
                     break;
                
@@ -915,64 +920,149 @@ static void nv20SetState( void *drv, void *dev,
      state->modified = 0;
 }
 
+/*
+ * Objects Configuration
+ * (code based on RivaTV Developers' work)
+ */
+
+static inline int
+nv_hashkey( __u32 obj )
+{
+     __u32 key = 0;
+
+     key = ((obj >>  0) & 0x000001FF) ^
+           ((obj >>  9) & 0x000001FF) ^
+           ((obj >> 18) & 0x000001FF) ^
+           ((obj >> 27));
+     /* key should be xored with (fifo channel id << 5) too,
+      * but, since we always use channel 0, we ignore that. */
+     return (key << 3);
+}
+
+static inline void
+nv_store_object( NVidiaDriverData *nvdrv, __u32 obj,
+                 __u32 addr, __u32 class, __u32 flags,
+                 __u32 color, __u32 notify, __u32 engine )
+{
+     volatile __u32 *PRAMIN = nvdrv->PRAMIN;
+     volatile __u32 *PRAMHT = nvdrv->PRAMHT;
+     __u32           key    = nv_hashkey( obj );
+     __u32           ctx    = addr | (engine << 16) | (1 << 31);
+
+     /* NV_PRAMIN_CTX_0 */
+     nv_out32( PRAMIN, (addr << 4) +  0, class | flags );
+     /* NV_PRAMIN_CTX_1 */
+     nv_out32( PRAMIN, (addr << 4) +  4, color | (notify << 16) );
+     /* NV_PRAMIN_CTX_2 */
+     nv_out32( PRAMIN, (addr << 4) +  8, 0x11401140 );
+     /* NV_PRAMIN_CTX_3 */
+     nv_out32( PRAMIN, (addr << 4) + 12, 0x00000000 );
+
+     /* store object id and context */
+     nv_out32( PRAMHT, key + 0, obj );
+     nv_out32( PRAMHT, key + 4, ctx );
+}
+
 static void nvAfterSetVar( void *driver_data,
                            void *device_data )
 {
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) device_data;
-     volatile __u32   *PRAMIN = nvdrv->PRAMIN;
-     volatile __u32   *PGRAPH = nvdrv->PGRAPH;
-     volatile __u32   *FIFO   = nvdrv->FIFO;
-     
+     NVFifoChannel    *Fifo   = nvdrv->Fifo;
+     __u32             color  = 0;
+#ifdef WORDS_BIGENDIAN
+     const __u32       flags0 = 0x01088000;
+     const __u32       flags1 = 0x0108A000;
+     const __u32       flags2 = 0x0308A000;
+#else
+     const __u32       flags0 = 0x01008000;
+     const __u32       flags1 = 0x0100A000;
+     const __u32       flags2 = 0x0300A000;
+#endif
+    
      /* unsupported chipset */
      if (!nvdrv->arch)
           return;
 
-     /* write objects configuration */
-     NV_LOAD_STATE( PRAMIN, PRAMIN )
-
-     /* set architecture specific configuration */
-     switch (nvdrv->arch) {
-          case NV_ARCH_04:
-               NV_LOAD_STATE( PRAMIN, PRAMIN04 )
-               break;
-          case NV_ARCH_05:
-               NV_LOAD_STATE( PRAMIN, PRAMIN05 )
-               break;
-          case NV_ARCH_10:
-               NV_LOAD_STATE( PRAMIN, PRAMIN10 )
-               NV_LOAD_STATE( PGRAPH, PGRAPH10 )
-               break;
-          case NV_ARCH_20:
-               NV_LOAD_STATE( PRAMIN, PRAMIN10 )
-               break;
-          default:
-               break;
-     }
-
      switch (dfb_primary_layer_pixelformat()) {
+          case DSPF_LUT8:
+          case DSPF_RGB332:
+               color = 0x00000302;
+               break;
           case DSPF_ARGB1555:
-               NV_LOAD_STATE( PRAMIN, PRAMIN_ARGB1555 )
-               NV_LOAD_STATE( PGRAPH, PGRAPH_ARGB1555 )
+               color = 0x00000902;
                break;
           case DSPF_RGB16:
-               NV_LOAD_STATE( PRAMIN, PRAMIN_RGB16 )
-               NV_LOAD_STATE( PGRAPH, PGRAPH_RGB16 )
+               color = 0x00000C02;
                break;
           case DSPF_RGB32:
-               NV_LOAD_STATE( PRAMIN, PRAMIN_RGB32 )
-               NV_LOAD_STATE( PGRAPH, PGRAPH_RGB32 )
+               color = 0x00000E02;
                break;
           case DSPF_ARGB:
-               NV_LOAD_STATE( PRAMIN, PRAMIN_ARGB )
-               NV_LOAD_STATE( PGRAPH, PGRAPH_ARGB )
+               color = 0x00000D02;
                break;
           default:
+               D_BUG( "unexpected pixelformat" );
                break;
      }
 
+     /* write objects configuration */
+     nv_store_object( nvdrv, OBJ_SURFACES2D, ADDR_SURFACES2D,
+                      0x42, flags0, color, 0, ENGINE_GRAPHICS );
+     nv_store_object( nvdrv, OBJ_CLIP, ADDR_CLIP,
+                      0x19, flags0, color, 0, ENGINE_GRAPHICS );
+     nv_store_object( nvdrv, OBJ_RECTANGLE, ADDR_RECTANGLE,
+                      0x5E, flags1, color, 0, ENGINE_GRAPHICS );
+     nv_store_object( nvdrv, OBJ_TRIANGLE, ADDR_TRIANGLE,
+                      0x5D, flags1, color, 0, ENGINE_GRAPHICS );
+     nv_store_object( nvdrv, OBJ_LINE, ADDR_LINE,
+                      0x5C, flags1, color, 0, ENGINE_GRAPHICS );
+     nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
+                      0x1F, flags1, color, 0, ENGINE_GRAPHICS );
+
+     switch (nvdrv->arch)  {
+          case NV_ARCH_04:
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
+                                0x37, flags1, color, 0, ENGINE_GRAPHICS );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
+                                0x54, flags2, color, 0, ENGINE_GRAPHICS );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
+                                0x53, flags0, color, 0, ENGINE_GRAPHICS );
+               break;
+
+          case NV_ARCH_05:
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
+                                0x63, flags1, color, 0, ENGINE_GRAPHICS );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
+                                0x54, flags2, color, 0, ENGINE_GRAPHICS );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
+                                0x53, flags0, color, 0, ENGINE_GRAPHICS );
+               break;
+
+          case NV_ARCH_10:
+          case NV_ARCH_20:
+          default:
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
+                                0x89, flags1, color, 0, ENGINE_GRAPHICS );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
+                                0x94, flags2, color, 0, ENGINE_GRAPHICS );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
+                                0x93, flags0, color, 0, ENGINE_GRAPHICS );
+               break;
+     }
+
+     if (nvdrv->arch == NV_ARCH_10)
+          NV_LOAD_STATE( nvdrv->PGRAPH, PGRAPH10 )
+ 
      /* put objects into subchannels */
-     NV_LOAD_STATE( FIFO, FIFO )
+     Fifo->sub[0].SetObject = OBJ_SURFACES2D;
+     Fifo->sub[1].SetObject = OBJ_CLIP;
+     Fifo->sub[2].SetObject = OBJ_RECTANGLE;
+     Fifo->sub[3].SetObject = OBJ_TRIANGLE;
+     Fifo->sub[4].SetObject = OBJ_LINE;
+     Fifo->sub[5].SetObject = OBJ_SCREENBLT;
+     Fifo->sub[6].SetObject = OBJ_SCALEDIMAGE;
+     Fifo->sub[7].SetObject = OBJ_TEXTRIANGLE;
 
      nvdev->reloaded   |= SMF_DESTINATION | SMF_CLIP;
      nvdev->dst_format  = DSPF_UNKNOWN;
@@ -1002,7 +1092,7 @@ driver_get_info( GraphicsDevice     *device,
      /* fill driver info structure */
      snprintf( info->name,
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
-               "nVidia TNT/TNT2/GeForce Driver" );
+               "nVidia RIVA TNT/TNT2/GeForce Driver" );
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
@@ -1084,73 +1174,22 @@ nv_find_architecture( NVidiaDriverData *nvdrv )
           fclose( fp );
      }
      
-     switch (chip) {
-          case 0x0020: /* RIVA TNT */
-               arch = NV_ARCH_04;
+     switch (chip & 0x0FF0) {
+          case 0x0020: /* Riva TNT/TNT2 */
+               arch = (chip == 0x0020) ? NV_ARCH_04 : NV_ARCH_05;
                break;
-          case 0x0028: /* RIVA TNT2 */
-          case 0x002A: /* Unknown RIVA TNT2 */
-          case 0x002C: /* Vanta */
-          case 0x0029: /* RIVA TNT2 Ultra */
-          case 0x002D: /* RIVA TNT2 Model 64 */
-          case 0x00A0: /* Aladdin TNT2 */
-               arch = NV_ARCH_05;
-               break;
-          case 0x0100: /* GeForce 256 */
-          case 0x0101: /* GeForce DDR */
-          case 0x0102: /* Unknown GeForce2 */
-          case 0x0110: /* GeForce2 MX/MX400 */
-          case 0x0111: /* GeForce2 MX100/MX200 */
-          case 0x0112: /* GeForce2 Go */
-          case 0x0113: /* Quadro2 MXR/EX/Go */
-          case 0x0150: /* GeForce2 GTS */
-          case 0x0151: /* GeForce2 Ti */
-          case 0x0152: /* GeForce2 Ultra */
-          case 0x0153: /* Quadro2 Pro */
-          case 0x0170: /* GeForce4 MX 460 */
-          case 0x0171: /* GeForce4 MX 440 */
-          case 0x0172: /* GeForce4 MX 420 */
-          case 0x0173: /* GeForce4 MX 440-SE */
-          case 0x0174: /* GeForce4 440 Go */
-          case 0x0175: /* GeForce4 420 Go */
-          case 0x0176: /* GeForce4 420 Go 32M */
-          case 0x0177: /* GeForce4 460 Go */
-          case 0x0178: /* Quadro4 550 XGL */
-          case 0x0179: /* GeForce4 440 Go 64M / GeForce4 MX (Mac) */
-          case 0x017A: /* Quadro4 NVS */
-          case 0x017C: /* Quadro4 500 GoGL */
-          case 0x017D: /* GeForce4 410 Go 16M */
-          case 0x0181: /* GeForce4 MX 440 AGP8X */
-          case 0x0182: /* GeForce4 MX 440SE AGP8X */
-          case 0x0183: /* GeForce4 MX 420 AGP8X */
-          case 0x0186: /* GeForce4 448 Go */
-          case 0x0187: /* GeForce4 488 Go */
-          case 0x0188: /* Quadro4 580 XGL */
-          case 0x0189: /* GeForce4 MX AGP8X (Mac) */
-          case 0x018A: /* Quadro4 280 NVS */
-          case 0x018B: /* Quadro4 380 XGL */
-          case 0x01A0: /* GeForce2 Integrated GPU */
-          case 0x01F0: /* GeForce4 MX Integrated GPU */
+          case 0x0100: /* GeForce */
+          case 0x0110: /* GeForce2 MX */
+          case 0x0150: /* GeForce2 GTS/Ti/Ultra */
+          case 0x0170: /* GeForce4 MX/Go */
+          case 0x0180: /* GeForce4 MX/Go AGP8X */
+          //case 0x01A0: /* GeForce2 Integrated GPU */
+          //case 0x01F0: /* GeForce4 MX Integrated GPU */
                arch = NV_ARCH_10;
                break;
           case 0x0200: /* GeForce3 */
-          case 0x0201: /* GeForce3 Ti 200 */
-          case 0x0202: /* GeForce3 Ti 500 */
-          case 0x0203: /* Quadro DCC */
-          case 0x0250: /* GeForce4 Ti 4600 */
-          case 0x0251: /* GeForce4 Ti 4400 */
-          case 0x0252: /* Unknown GeForce4 */
-          case 0x0253: /* GeForce4 Ti 4200 */
-          case 0x0258: /* Quadro4 900 XGL */
-          case 0x0259: /* Quadro4 750 XGL */
-          case 0x025B: /* Quadro4 700 XGL */
-          case 0x0280: /* GeForce4 Ti 4800 */
-          case 0x0281: /* GeForce4 Ti 4200 AGP8X */
-          case 0x0282: /* GeForce4 Ti 4800 SE */
-          case 0x0286: /* GeForce4 4200 Go */
-          case 0x0288: /* Quadro4 980 XGL */
-          case 0x0289: /* Quadro4 780 XGL */
-          case 0x028C: /* Quadro4 700 GoGL */
+          case 0x0250: /* GeForce4 Ti */
+          case 0x0280: /* GeForce4 Ti AGP8X */
           case 0x02A0: /* GeForce3 Integrated GPU (XBox) */
                arch = NV_ARCH_20;
                break;
@@ -1166,7 +1205,7 @@ nv_find_architecture( NVidiaDriverData *nvdrv )
                   arch, chip );
      } else
           D_INFO( "DirectFB/NVidia: "
-                  "Unknown or Unsupported Chipset %04x\n",
+                  "Unknown or Unsupported Chipset %04x (acceleration disabled)\n",
                   chip );
 }
 
@@ -1198,18 +1237,19 @@ driver_init_driver( GraphicsDevice      *device,
      nvdrv->PGRAPH      = (volatile __u32*) (nvdrv->mmio_base + 0x400000);
      nvdrv->PCRTC       = (volatile __u32*) (nvdrv->mmio_base + 0x600000);
      nvdrv->PCIO        = (volatile __u8 *) (nvdrv->mmio_base + 0x601000);
-     nvdrv->PRAMIN      = (volatile __u32*) (nvdrv->mmio_base + 0x710000);
-     nvdrv->FIFO        = (volatile __u32*) (nvdrv->mmio_base + 0x800000);
+     nvdrv->PRAMIN      = (volatile __u32*) (nvdrv->mmio_base + 0x700000);
+     nvdrv->PRAMHT      = (volatile __u32*) (nvdrv->mmio_base + 0x710000);
 
-     nvdrv->Surfaces2D  = (volatile NVSurfaces2D         *) &nvdrv->FIFO[0x0000/4];
-     nvdrv->Surfaces3D  = (volatile NVSurfaces3D         *) &nvdrv->FIFO[0x0000/4];
-     nvdrv->Clip        = (volatile NVClip               *) &nvdrv->FIFO[0x2000/4];
-     nvdrv->Rectangle   = (volatile NVRectangle          *) &nvdrv->FIFO[0x4000/4];
-     nvdrv->Triangle    = (volatile NVTriangle           *) &nvdrv->FIFO[0x6000/4];
-     nvdrv->Line        = (volatile NVLine               *) &nvdrv->FIFO[0x8000/4];
-     nvdrv->Blt         = (volatile NVScreenBlt          *) &nvdrv->FIFO[0xA000/4];
-     nvdrv->ScaledImage = (volatile NVScaledImage        *) &nvdrv->FIFO[0xC000/4];
-     nvdrv->TexTri      = (volatile NVTexturedTriangle05 *) &nvdrv->FIFO[0xE000/4];
+     nvdrv->Fifo        = (NVFifoChannel*) (nvdrv->mmio_base + 0x800000);
+     nvdrv->Surfaces2D  = &nvdrv->Fifo->sub[0].o.Surfaces2D;
+     nvdrv->Surfaces3D  = &nvdrv->Fifo->sub[0].o.Surfaces3D;
+     nvdrv->Clip        = &nvdrv->Fifo->sub[1].o.Clip;
+     nvdrv->Rectangle   = &nvdrv->Fifo->sub[2].o.Rectangle;
+     nvdrv->Triangle    = &nvdrv->Fifo->sub[3].o.Triangle;
+     nvdrv->Line        = &nvdrv->Fifo->sub[4].o.Line;
+     nvdrv->Blt         = &nvdrv->Fifo->sub[5].o.Blt;
+     nvdrv->ScaledImage = &nvdrv->Fifo->sub[6].o.ScaledImage;
+     nvdrv->TexTriangle = &nvdrv->Fifo->sub[7].o.TexTriangle;
 
      funcs->AfterSetVar   = nvAfterSetVar;
      funcs->EngineSync    = nvEngineSync;
@@ -1269,7 +1309,7 @@ driver_init_device( GraphicsDevice     *device,
      volatile __u32   *PGRAPH = nvdrv->PGRAPH;
 
      snprintf( device_info->name,
-               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "TNT/TNT2/GeForce" );
+               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "RIVA TNT/TNT2/GeForce" );
 
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nVidia" );
