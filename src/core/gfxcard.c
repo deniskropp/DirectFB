@@ -1032,7 +1032,11 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      font->state.clip         = state->clip;
      font->state.color        = state->color;
      font->state.color_index  = state->color_index;
-     font->state.modified    |= SMF_CLIP | SMF_COLOR;
+     if (state->drawingflags & DSDRAW_BLEND)
+          font->state.blittingflags |= DSBLIT_BLEND_COLORALPHA;
+     else
+          font->state.blittingflags &= ~DSBLIT_BLEND_COLORALPHA;
+     font->state.modified |= SMF_CLIP | SMF_COLOR | SMF_BLITTING_FLAGS;
 
      for (offset = 0; offset < bytes; offset += steps[offset]) {
 
@@ -1152,7 +1156,11 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      font->state.clip        = state->clip;
      font->state.color       = state->color;
      font->state.color_index = state->color_index;
-     font->state.modified |= SMF_CLIP | SMF_COLOR;
+     if (state->drawingflags & DSDRAW_BLEND)
+          font->state.blittingflags |= DSBLIT_BLEND_COLORALPHA;
+     else
+          font->state.blittingflags &= ~DSBLIT_BLEND_COLORALPHA;
+     font->state.modified |= SMF_CLIP | SMF_COLOR | SMF_BLITTING_FLAGS;
 
      dfb_state_set_source( &font->state, data->surface );
 
