@@ -244,8 +244,15 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
      context->active = false;
 
      /* Suspend window stack. */
-     if (context->stack)
-          context->stack->active = false;
+     if (context->stack) {
+          CoreWindowStack *stack = context->stack;
+
+          /* Disables input and output. */
+          stack->active = false;
+
+          /* Force release of all pressed keys. */
+          dfb_windowstack_flush_keys( stack );
+     }
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
