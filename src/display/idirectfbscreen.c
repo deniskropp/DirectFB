@@ -561,6 +561,9 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
      if (patch->flags & DSECONF_SCANMODE)
           patched->scanmode = patch->scanmode;
 
+     if (patch->flags & DSECONF_ADJUSTMENT)
+          patched->adjustment = patch->adjustment;
+
      return DFB_OK;
 }
 

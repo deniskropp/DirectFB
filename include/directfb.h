@@ -1909,7 +1909,14 @@ typedef enum {
      DSECAPS_TEST_PICTURE = 0x00000002, /* Test picture generation supported. */
      DSECAPS_MIXER_SEL    = 0x00000004, /* Mixer can be selected. */
      DSECAPS_OUT_SIGNALS  = 0x00000008, /* Different output signals are supported. */
-     DSECAPS_SCANMODE     = 0x00000010  /* Can switch between interlaced and progressive output. */
+     DSECAPS_SCANMODE     = 0x00000010, /* Can switch between interlaced and progressive output. */
+
+     DSECAPS_BRIGHTNESS   = 0x00000100, /* Adjustment of brightness is supported. */
+     DSECAPS_CONTRAST     = 0x00000200, /* Adjustment of contrast is supported. */
+     DSECAPS_HUE          = 0x00000400, /* Adjustment of hue is supported. */
+     DSECAPS_SATURATION   = 0x00000800, /* Adjustment of saturation is supported. */
+
+     DSECAPS_ALL          = 0x00000f1f
 } DFBScreenEncoderCapabilities;
 
 /*
@@ -1971,8 +1978,9 @@ typedef enum {
      DSECONF_OUT_SIGNALS  = 0x00000008, /* Select generated output signal(s). */
      DSECONF_SCANMODE     = 0x00000010, /* Select interlaced or progressive output. */
      DSECONF_TEST_COLOR   = 0x00000020, /* Set color for DSETP_SINGLE. */
+     DSECONF_ADJUSTMENT   = 0x00000040, /* Set color adjustment. */
 
-     DSECONF_ALL          = 0x0000003F
+     DSECONF_ALL          = 0x0000007F
 } DFBScreenEncoderConfigFlags;
 
 /*
@@ -2007,6 +2015,8 @@ typedef struct {
      DFBScreenEncoderScanMode      scanmode;      /* Interlaced or progressive output. */
 
      DFBColor                      test_color;    /* Color for DSETP_SINGLE. */
+
+     DFBColorAdjustment            adjustment;    /* Color adjustment. */
 } DFBScreenEncoderConfig;
 
 
