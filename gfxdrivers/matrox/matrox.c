@@ -402,8 +402,10 @@ static void matroxStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
 int driver_probe( int fd, GfxCard *card )
 {
      switch (card->fix.accel) {
+#ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:  /* Matrox G400                       */
                g400 = 1;
+#endif
           case FB_ACCEL_MATROX_MGAG200:  /* Matrox G200 (Myst, Mill, ...)     */
                return 1;
      }
