@@ -25,7 +25,7 @@
 #define __GFXCARD_H__
 
 #include <linux/fb.h>
-
+#include <pthread.h>
 
 typedef enum {
      CCF_CLIPPING

@@ -25,7 +25,7 @@
 #define __LAYERS_H__
 
 #include <asm/types.h>
-
+#include <pthread.h>
 
 extern DisplayLayer *layers;
 
