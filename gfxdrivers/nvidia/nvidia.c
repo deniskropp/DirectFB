@@ -237,14 +237,12 @@ static void nvSetState( void *drv, void *dev,
           case DFXL_DRAWLINE:
           case DFXL_BLIT:
           case DFXL_STRETCHBLIT:
-          case DFXL_TEXTRIANGLES: /* doesn't work yet */
                state->set |= DFXL_FILLTRIANGLE |
                              DFXL_FILLRECTANGLE |
                              DFXL_DRAWRECTANGLE |
                              DFXL_DRAWLINE |
                              DFXL_BLIT |
-                             DFXL_STRETCHBLIT |
-                             DFXL_TEXTRIANGLES;
+                             DFXL_STRETCHBLIT;
                break;
 
           default:
@@ -278,8 +276,8 @@ static void nvSetState( void *drv, void *dev,
                          break;
 
                     case DSPF_ARGB:
-                         NV_LOAD_TABLE( PGRAPH, PGRAPH_RGB32 )
-                         NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB32 )
+                         NV_LOAD_TABLE( PGRAPH, PGRAPH_ARGB )
+                         NV_LOAD_TABLE( PRAMIN, PRAMIN_ARGB )
                          break;
 
                     case DSPF_YUY2:
@@ -350,8 +348,6 @@ static void nvSetState( void *drv, void *dev,
                     D_BUG( "unexpected pixelformat" );
                     break;
           }
- 
-          nvdev->alpha = state->color.a;
      }
 
      if (state->modified & SMF_DRAWING_FLAGS) {
@@ -370,7 +366,7 @@ static void nvSetState( void *drv, void *dev,
 
      /* set alpha value if using transparency */
      if (nvdev->drawfx || nvdev->blitfx)
-          PGRAPH[0x608/4] = nvdev->alpha << 23;
+          PGRAPH[0x608/4] = state->color.a << 23;
 
      state->modified = 0;
 }
@@ -451,15 +447,12 @@ static bool nvDrawLine( void *drv, void *dev, DFBRegion *line )
      volatile NVLine  *Line  = nvdrv->Line;
 
      if (nvdev->supported_drawingflags & DSDRAW_BLEND) {
-          NV_FIFO_FREE( nvdev, Line, 2 )
-          Line->SetOperation = nvdev->drawfx;
-          Line->Color        = nvdev->color;
-     } else {
           NV_FIFO_FREE( nvdev, Line, 1 )
-          Line->Color        = nvdev->color;
+          Line->SetOperation = nvdev->drawfx;
      }
 
-     NV_FIFO_FREE( nvdev, Line, 2 )
+     NV_FIFO_FREE( nvdev, Line, 3 )
+     Line->Color         = nvdev->color;
      Line->Lin[0].point0 = (line->y1 << 16) | line->x1;
      Line->Lin[0].point1 = (line->y2 << 16) | line->x2;
 
@@ -481,10 +474,8 @@ static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle 
                break;
           /* FIXME: RGB16 */
           case DSPF_RGB32:
-               format = 0x00000004;
-               break;
           case DSPF_ARGB:
-               format = 0x00000003;
+               format = 0x00000004;
                break;
           case DSPF_YUY2:
                format = 0x00000005;
@@ -649,8 +640,10 @@ static void nvAfterSetVar( void *drv, void *dev )
                NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB16 )
                break;
           case DSPF_RGB32:
-          case DSPF_ARGB:
                NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB32 )
+               break;
+          case DSPF_ARGB:
+               NV_LOAD_TABLE( PRAMIN, PRAMIN_ARGB )
                break;
           default:
                break;
