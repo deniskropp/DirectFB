@@ -22,9 +22,11 @@ libdirectfb_generic_la_SOURCES = \
 	generic_mmx.h	\
      yuvtbl.h
 
-yuvtbl_gen: yuvtbl-gen.c
+yuvtbl-gen: yuvtbl-gen.c
 	$(CC) -O2 yuvtbl-gen.c -o yuvtbl-gen
 
-yuvtbl.h: yuvtbl_gen
+yuvtbl.h: yuvtbl-gen
 	./yuvtbl-gen > $(srcdir)/yuvtbl.h
 
+clean-local:
+	rm -f yuvtbl-gen yuvtbl.h
