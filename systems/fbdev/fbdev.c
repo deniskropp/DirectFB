@@ -517,8 +517,10 @@ system_shutdown( bool emergency )
           m = next;
      }
 
-     dfb_fbdev->shared->orig_var.xoffset = 0;
-     dfb_fbdev->shared->orig_var.yoffset = 0;
+     if (dfb_fbdev->shared->current_mode) {
+          dfb_fbdev->shared->orig_var.xoffset = 0;
+          dfb_fbdev->shared->orig_var.yoffset = 0;
+     }
 
      if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->orig_var ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
