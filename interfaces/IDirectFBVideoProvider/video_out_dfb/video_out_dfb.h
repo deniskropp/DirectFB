@@ -33,10 +33,10 @@ typedef struct dfb_frame_s  dfb_frame_t;
 typedef struct dfb_driver_s dfb_driver_t;
 
 
-typedef void (*DVProcFunc)       ( dfb_driver_t *this,
-                                   dfb_frame_t  *frame,
-				   uint8_t      *dst,
-				   uint32_t      pitch );
+typedef void (*DVProcFunc) ( dfb_driver_t *this,
+                             dfb_frame_t  *frame,
+                             uint8_t      *dst,
+                             uint32_t      pitch );
 
 typedef const DVProcFunc* DVProcFuncs;
 
@@ -49,39 +49,39 @@ typedef void (*DVOutputCallback) ( void         *cdata,
 
 struct dfb_frame_s
 {
-	vo_frame_t   vo_frame;
-	
-	struct
-	{
-		int  cur;
-		int  prev;
-	} width;
+     vo_frame_t   vo_frame;
+     
+     struct
+     {
+          int  cur;
+          int  prev;
+     } width;
 
-	struct
-	{
-		int  cur;
-		int  prev;
-	} height;
+     struct
+     {
+          int  cur;
+          int  prev;
+     } height;
 
-	struct
-	{
-		int  cur;
-		int  prev;
-	} imgfmt;
+     struct
+     {
+          int  cur;
+          int  prev;
+     } imgfmt;
 
-	struct
-	{
-		int  cur;
-		int  prev;
-	} dstfmt;
+     struct
+     {
+          int  cur;
+          int  prev;
+     } dstfmt;
 
-	double       ratio;
+     double       ratio;
 
-	CoreSurface *surface;
-	void        *chunks[3];
-	
-	char         proc_needed;
-	DVProcFunc   procf;
+     CoreSurface *surface;
+     void        *chunks[3];
+     
+     int          proc_needed;
+     DVProcFunc   procf;
 };
 
 
@@ -95,59 +95,59 @@ struct dfb_frame_s
 
 struct dfb_driver_s
 {
-	vo_driver_t            vo_driver;
+     vo_driver_t            vo_driver;
 
-	char                   verbosity;
-	int                    max_num_frames;
+     char                   verbosity;
+     int                    max_num_frames;
 
-	CardState              state;
-	IDirectFBSurface      *dest;
-	IDirectFBSurface_data *dest_data;
+     CardState              state;
+     IDirectFBSurface      *dest;
+     IDirectFBSurface_data *dest_data;
 
-	struct
-	{
-		char           defined;
-		char           used;
-	} correction;
+     struct
+     {
+          char              defined;
+          char              used;
+     } correction;
 
-	struct
-	{
-		int            modified;
-		int            b;
-		int            c;
-		int            s;
-	} mixer;
+     struct
+     {
+          int               modified;
+          int               b;
+          int               c;
+          int               s;
+     } mixer;
 
-	struct
-	{
-		int            accel;
-	        DVProcFuncs    funcs[2];
-	} proc;
+     struct
+     {
+          int               accel;
+          DVProcFuncs       funcs[2];
+     } proc;
 
-	DVOutputCallback       output_cb;
-	void*                  output_cdata;
+     DVOutputCallback       output_cb;
+     void*                  output_cdata;
 
-	DVFrameCallback        frame_cb;
-	void*                  frame_cdata;
+     DVFrameCallback        frame_cb;
+     void*                  frame_cdata;
 };
 
 
 typedef struct
 {
-	video_driver_class_t  vo_class;
+     video_driver_class_t  vo_class;
 
-	xine_t               *xine;
+     xine_t               *xine;
 
 } dfb_driver_class_t;
 
 
 typedef struct
 {
-	IDirectFBSurface *surface;
+     IDirectFBSurface *surface;
 
-	DVOutputCallback  output_cb;
+     DVOutputCallback  output_cb;
 
-	void             *cdata;
+     void             *cdata;
 
 } dfb_visual_t;
 
@@ -171,9 +171,9 @@ typedef struct
 
 typedef struct
 {
-	DVFrameCallback  frame_cb;
+     DVFrameCallback  frame_cb;
 
-	void            *cdata;
+     void            *cdata;
 
 } dfb_frame_callback_t;
 
@@ -198,71 +198,60 @@ void  DFB_PFUNCTION_NAME( PACCEL, s, d ) ( dfb_driver_t *this,  \
                                            uint8_t      *dst,   \
                                            uint32_t      pitch )
 
-#define TEST( exp ) \
-{\
-	if (!(exp))\
-	{\
-		fprintf( stderr, THIS \
-			 ": at line %i [" #exp "] failed !!\n", \
-			 __LINE__ );\
-		goto failure;\
-	}\
-}
-
 #define SAY( fmt, ... ) \
 {\
-	if (this->verbosity)\
-		fprintf( stderr, THIS ": " fmt "\n", ## __VA_ARGS__ );\
+     if (this->verbosity)\
+          fprintf( stderr, THIS ": " fmt "\n", ## __VA_ARGS__ );\
 }
 
 #define DBUG( fmt, ... ) \
 {\
-	if (this->verbosity == XINE_VERBOSITY_DEBUG)\
-		fprintf( stderr, THIS ": " fmt "\n", ## __VA_ARGS__ );\
+     if (this->verbosity == XINE_VERBOSITY_DEBUG)\
+          fprintf( stderr, THIS ": " fmt "\n", ## __VA_ARGS__ );\
 }
 
 #define ONESHOT( fmt, ... ) \
 {\
-	if (this->verbosity)\
-	{\
-		static int one = 1;\
-		if (one)\
-		{\
-			fprintf( stderr, THIS ": " fmt "\n", ## __VA_ARGS__ );\
-			one = 0;\
-		}\
-	}\
+     if (this->verbosity)\
+     {\
+          static int one = 1;\
+          if (one)\
+          {\
+               fprintf( stderr, THIS ": " fmt "\n", ## __VA_ARGS__ );\
+               one = 0;\
+          }\
+     }\
 }
 
 #define release( ptr ) \
 {\
-	if (ptr)\
-		free( ptr );\
-	ptr = NULL;\
+     if (ptr)\
+          free( ptr );\
+     ptr = NULL;\
 }
 
 
 #ifdef DFB_DEBUG
 
-#include <direct/clock.h>
+# include <direct/clock.h>
 
-#define SPEED( f ) \
-{\
-	static int test = 15;\
-	if (test)\
-	{\
-		long long t = direct_clock_get_micros();\
-		f;\
-		t = direct_clock_get_micros() - t;\
-		fprintf( stderr, THIS ": [%lli micros.] speed test\n", t );\
-		test--;\
-	} else\
-		f;\
-}
+# define SPEED( f ) \
+  {\
+       static int test = 15;\
+       if (test)\
+       {\
+            long long t = direct_clock_get_micros();\
+            f;\
+            t = direct_clock_get_micros() - t;\
+            fprintf( stderr, THIS ": [%lli micros.] speed test\n", t );\
+            test--;\
+       } else\
+            f;\
+  }
 
 #else /* ! DFB_DEBUG */
 
-#define SPEED( f )  f;
+# define SPEED( f )  f;
 
 #endif /* DFB_DEBUG */
  
