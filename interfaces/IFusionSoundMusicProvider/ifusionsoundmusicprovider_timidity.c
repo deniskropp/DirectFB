@@ -27,8 +27,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <core/thread.h>
-
 #include <fusionsound.h>
 
 #include <media/ifusionsoundmusicprovider.h>
@@ -36,6 +34,7 @@
 #include <core/coredefs.h>
 
 #include <direct/mem.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #include "config.h"
@@ -62,7 +61,7 @@ typedef struct {
 
      void            *buffer;
      int              playing;
-     CoreThread      *thread;
+     DirectThread    *thread;
      pthread_mutex_t  lock;
 
      int              length;
@@ -148,7 +147,7 @@ IFusionSoundMusicProvider_Timidity_GetStreamDescription(
 }
 
 static void*
-TimidityThread( CoreThread *thread, void *ctx )
+TimidityThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_Timidity_data *data =
           (IFusionSoundMusicProvider_Timidity_data*) ctx;
@@ -200,9 +199,9 @@ IFusionSoundMusicProvider_Timidity_PlayTo(
      if (data->thread) {
           data->playing = 0;
           pthread_mutex_unlock( &data->lock );
-          dfb_thread_join( data->thread );
+          direct_thread_join( data->thread );
           pthread_mutex_lock( &data->lock );
-          dfb_thread_destroy( data->thread );
+          direct_thread_destroy( data->thread );
           data->thread = NULL;
 
           Timidity_Stop();
@@ -242,7 +241,7 @@ IFusionSoundMusicProvider_Timidity_PlayTo(
      data->buffer = D_MALLOC( data->length * desc.channels * 2 );
 
      /* start thread */
-     data->thread = dfb_thread_create( CTT_ANY, TimidityThread, data );
+     data->thread = direct_thread_create( DTT_DEFAULT, TimidityThread, data, "Timidity" );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -261,9 +260,9 @@ IFusionSoundMusicProvider_Timidity_Stop( IFusionSoundMusicProvider *thiz )
      if (data->thread) {
           data->playing = 0;
           pthread_mutex_unlock( &data->lock );
-          dfb_thread_join( data->thread );
+          direct_thread_join( data->thread );
           pthread_mutex_lock( &data->lock );
-          dfb_thread_destroy( data->thread );
+          direct_thread_destroy( data->thread );
           data->thread = NULL;
 
           Timidity_Stop();
