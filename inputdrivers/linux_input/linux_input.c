@@ -37,6 +37,7 @@
 #include <pthread.h>
 
 #include <linux/input.h>
+#include "input_fake.h"
 
 #include <directfb.h>
 #include <directfb_keyboard.h>
@@ -77,24 +78,6 @@ static int num_devices = 0;
 static int device_nums[MAX_LINUX_INPUT_DEVICES];
 
 #define DIKI_ DIKI_UNKNOWN
-
-#define KEY_OK          (KEY_MAX-17)
-#define KEY_LAST        (KEY_MAX-16)
-#define KEY_INFO        (KEY_MAX-15)
-#define KEY_CHANNELUP   (KEY_MAX-14)
-#define KEY_CHANNELDOWN (KEY_MAX-13)
-#define KEY_TEXT        (KEY_MAX-12)
-#define KEY_TV          (KEY_MAX-11)
-#define KEY_SUBTITLES   (KEY_MAX-10)
-#define KEY_LANGUAGE    (KEY_MAX-9)
-#define KEY_RADIO       (KEY_MAX-8)
-#define KEY_LIST        (KEY_MAX-7)
-#define KEY_RED         (KEY_MAX-6)
-#define KEY_GREEN       (KEY_MAX-5)
-#define KEY_YELLOW      (KEY_MAX-4)
-#define KEY_BLUE        (KEY_MAX-3)
-#define KEY_EPG         (KEY_MAX-2)
-#define KEY_MHP         (KEY_MAX-1)
 
 /*
  * Translates a Linux input keycode into a DirectFB keycode.
@@ -816,7 +799,7 @@ translate_key( unsigned short code, DFBInputEvent *devt )
                devt->key_symbol = DIKS_TV;
 	       break;
 
-          case KEY_SUBTITLES:
+          case KEY_SUBTITLE:
                devt->key_symbol = DIKS_SUBTITLE;
 	       break;
 
