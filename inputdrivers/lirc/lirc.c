@@ -202,7 +202,7 @@ lircEventThread( CoreThread *thread, void *driver_data )
 
           /* send the press event */
           evt.flags      = DIEF_KEYSYMBOL;
-          evt.type       = DIET_KEYRELEASE;
+          evt.type       = DIET_KEYPRESS;
           evt.key_symbol = symbol;
 
           dfb_input_dispatch( data->device, &evt );
