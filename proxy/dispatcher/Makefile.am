@@ -61,6 +61,19 @@ idirectfbsurface_LTLIBRARIES = \
 idirectfbwindow_LTLIBRARIES = \
 	libidirectfbwindow_dispatcher.la
 
+if BUILD_STATIC
+idirectfb_DATA              = libidirectfb_dispatcher.o
+idirectfbdatabuffer_DATA    = libidirectfbdatabuffer_dispatcher.o
+idirectfbdisplaylayer_DATA  = libidirectfbdisplaylayer_dispatcher.o
+idirectfbeventbuffer_DATA   = libidirectfbeventbuffer_dispatcher.o
+idirectfbfont_DATA          = libidirectfbfont_dispatcher.o
+idirectfbimageprovider_DATA = libidirectfbimageprovider_dispatcher.o
+idirectfbinputdevice_DATA   = libidirectfbinputdevice_dispatcher.o
+idirectfbpalette_DATA       = libidirectfbpalette_dispatcher.o
+idirectfbscreen_DATA        = libidirectfbscreen_dispatcher.o
+idirectfbsurface_DATA       = libidirectfbsurface_dispatcher.o
+idirectfbwindow_DATA        = libidirectfbwindow_dispatcher.o
+endif
 
 libidirectfb_dispatcher_la_SOURCES = idirectfb_dispatcher.c
 libidirectfb_dispatcher_la_LDFLAGS = -avoid-version -module
@@ -105,3 +118,6 @@ libidirectfbsurface_dispatcher_la_LIBADDD = $(LIBS)
 libidirectfbwindow_dispatcher_la_SOURCES = idirectfbwindow_dispatcher.c
 libidirectfbwindow_dispatcher_la_LDFLAGS = -avoid-version -module
 libidirectfbwindow_dispatcher_la_LIBADDD = $(LIBS)
+
+
+include $(top_srcdir)/rules/libobject.make
