@@ -502,6 +502,16 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 }
 
 DirectResult
+fusion_ref_inherit (FusionRef *ref, FusionRef *from)
+{
+     D_ASSERT( ref != NULL );
+     D_ASSERT( from != NULL );
+
+     /* FIXME */
+     return fusion_ref_up( ref, true );
+}
+
+DirectResult
 fusion_ref_destroy (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
