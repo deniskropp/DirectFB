@@ -530,18 +530,19 @@ AC_ARG_ENABLE(flash,
   [  --enable-flash          build Flash media provider [default=yes]],
   enable_flash="$enableval", enable_flash=yes)
 if test x$enable_flash = xyes; then
-  AC_CHECK_LIB(flash, FlashGetInfo, 
-    [
-      AC_CHECK_HEADER(flash.h,
-		       [
-      FLASH=yes
-      LIBFLASH='-lflash'], [
-	AC_MSG_WARN([
-*** libflash headers not found -- Flash media provider will not be built.])])
-    ],[
-      AC_MSG_WARN([
+  AC_CHECK_HEADER(flash.h,
+    [ AC_PROG_CXX
+      AC_LANG_PUSH(C++)
+      AC_CHECK_LIB(flash, FlashGetInfo, 
+        [  FLASH=yes
+           LIBFLASH='-lflash'],
+        [  AC_MSG_WARN([
 *** libflash not found -- Flash media provider will not be built.])
-    ], $LIBJPEG $LIBZ -lm)
+        ], $LIBJPEG $LIBZ -lm)
+      AC_LANG_POP(C++)
+    ],[  AC_MSG_WARN([
+*** libflash headers not found -- Flash media provider will not be built.])
+    ])
 fi
 
 AM_CONDITIONAL(FLASH_PROVIDER, test x$FLASH = xyes)

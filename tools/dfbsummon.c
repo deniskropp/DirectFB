@@ -130,9 +130,9 @@ init_application( int *argc, char **argv[] )
      //dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
 
      /* Fill the surface description. */
-     desc.flags       = DSDESC_CAPS;
-     desc.caps        = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
-     
+     desc.flags = DSDESC_CAPS;
+     desc.caps  = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
+
      /* Create the primary surface. */
      ret = dfb->CreateSurface( dfb, &desc, &primary );
      if (ret) {
@@ -220,7 +220,7 @@ chunk_callback( SurfaceBuffer *buffer,
 }
 
 static void
-update_display()
+update_display( void )
 {
      primary->GetSize( primary, &screen_width, &screen_height );
 
@@ -233,4 +233,3 @@ update_display()
 
      primary->Flip( primary, NULL, 0 );
 }
-
