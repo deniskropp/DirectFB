@@ -52,7 +52,7 @@
 
 #if FUSION_BUILD_MULTI
 
-FusionResult
+DirectResult
 fusion_property_init (FusionProperty *property)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -68,13 +68,13 @@ fusion_property_init (FusionProperty *property)
 
           D_PERROR ("FUSION_PROPERTY_NEW");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_property_lease (FusionProperty *property)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -85,23 +85,23 @@ fusion_property_lease (FusionProperty *property)
                case EINTR:
                     continue;
                case EAGAIN:
-                    return FUSION_INUSE;
+                    return DFB_BUSY;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_LEASE");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_property_purchase (FusionProperty *property)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -112,23 +112,23 @@ fusion_property_purchase (FusionProperty *property)
                case EINTR:
                     continue;
                case EAGAIN:
-                    return FUSION_INUSE;
+                    return DFB_BUSY;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_PURCHASE");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_property_cede (FusionProperty *property)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -140,20 +140,20 @@ fusion_property_cede (FusionProperty *property)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_CEDE");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_property_holdup (FusionProperty *property)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -165,20 +165,20 @@ fusion_property_holdup (FusionProperty *property)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_HOLDUP");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_property_destroy (FusionProperty *property)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -190,17 +190,17 @@ fusion_property_destroy (FusionProperty *property)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_DESTROY");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 #else
@@ -210,7 +210,7 @@ fusion_property_destroy (FusionProperty *property)
 /*
  * Initializes the property
  */
-FusionResult
+DirectResult
 fusion_property_init (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
@@ -220,16 +220,16 @@ fusion_property_init (FusionProperty *property)
 
      property->fake.state = FUSION_PROPERTY_AVAILABLE;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 /*
  * Lease the property causing others to wait before leasing or purchasing.
  */
-FusionResult
+DirectResult
 fusion_property_lease (FusionProperty *property)
 {
-     FusionResult ret = FUSION_SUCCESS;
+     DirectResult ret = DFB_OK;
 
      D_ASSERT( property != NULL );
 
@@ -241,7 +241,7 @@ fusion_property_lease (FusionProperty *property)
 
      /* Fail if purchased by another party, otherwise succeed. */
      if (property->fake.state == FUSION_PROPERTY_PURCHASED)
-          ret = FUSION_INUSE;
+          ret = DFB_BUSY;
      else
           property->fake.state = FUSION_PROPERTY_LEASED;
 
@@ -253,10 +253,10 @@ fusion_property_lease (FusionProperty *property)
 /*
  * Purchase the property disallowing others to lease or purchase it.
  */
-FusionResult
+DirectResult
 fusion_property_purchase (FusionProperty *property)
 {
-     FusionResult ret = FUSION_SUCCESS;
+     DirectResult ret = DFB_OK;
 
      D_ASSERT( property != NULL );
 
@@ -268,7 +268,7 @@ fusion_property_purchase (FusionProperty *property)
 
      /* Fail if purchased by another party, otherwise succeed. */
      if (property->fake.state == FUSION_PROPERTY_PURCHASED)
-          ret = FUSION_INUSE;
+          ret = DFB_BUSY;
      else {
           property->fake.state = FUSION_PROPERTY_PURCHASED;
 
@@ -284,7 +284,7 @@ fusion_property_purchase (FusionProperty *property)
 /*
  * Cede the property allowing others to lease or purchase it.
  */
-FusionResult
+DirectResult
 fusion_property_cede (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
@@ -302,24 +302,24 @@ fusion_property_cede (FusionProperty *property)
 
      pthread_mutex_unlock (&property->fake.lock);
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 /*
  * Does nothing to avoid killing ourself.
  */
-FusionResult
+DirectResult
 fusion_property_holdup (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 /*
  * Destroys the property
  */
-FusionResult
+DirectResult
 fusion_property_destroy (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
@@ -327,7 +327,7 @@ fusion_property_destroy (FusionProperty *property)
      pthread_cond_destroy (&property->fake.cond);
      pthread_mutex_destroy (&property->fake.lock);
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 #endif

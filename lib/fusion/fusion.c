@@ -259,7 +259,7 @@ fusion_exit( bool emergency )
      direct_shutdown();
 }
 
-FusionResult
+DirectResult
 fusion_kill( int fusion_id, int signal, int timeout_ms )
 {
      FusionKill param;
@@ -275,17 +275,17 @@ fusion_kill( int fusion_id, int signal, int timeout_ms )
                case EINTR:
                     continue;
                case ETIMEDOUT:
-                    return FUSION_TIMEOUT;
+                    return DFB_TIMEOUT;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_KILL");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 long long
@@ -441,10 +441,10 @@ fusion_exit( bool emergency )
      direct_shutdown();
 }
 
-FusionResult
+DirectResult
 fusion_kill( int fusion_id, int signal, int timeout_ms )
 {
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 long long

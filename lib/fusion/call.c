@@ -49,7 +49,7 @@
 
 #if FUSION_BUILD_MULTI
 
-FusionResult
+DirectResult
 fusion_call_init (FusionCall        *call,
                   FusionCallHandler  handler,
                   void              *ctx)
@@ -75,7 +75,7 @@ fusion_call_init (FusionCall        *call,
 
           D_PERROR ("FUSION_CALL_NEW");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
      /* Called locally. */
@@ -86,10 +86,10 @@ fusion_call_init (FusionCall        *call,
      call->call_id   = call_new.call_id;
      call->fusion_id = _fusion_id;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_call_execute (FusionCall *call,
                      int         call_arg,
                      void       *call_ptr,
@@ -99,7 +99,7 @@ fusion_call_execute (FusionCall *call,
      D_ASSERT( call != NULL );
 
      if (!call->handler)
-          return FUSION_DESTROYED;
+          return DFB_DESTROYED;
 
      if (call->fusion_id == _fusion_id) {
           int ret = call->handler( _fusion_id, call_arg, call_ptr, call->ctx );
@@ -122,24 +122,24 @@ fusion_call_execute (FusionCall *call,
                          D_ERROR ("Fusion/Call: invalid call\n");
                          /* fall through */
                     case EIDRM:
-                         return FUSION_DESTROYED;
+                         return DFB_DESTROYED;
                     default:
                          break;
                }
 
                D_PERROR ("FUSION_CALL_EXECUTE");
 
-               return FUSION_FAILURE;
+               return DFB_FAILURE;
           }
 
           if (ret_val)
                *ret_val = execute.ret_val;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_call_return (int call_id, int val)
 {
      FusionCallReturn call_ret = { call_id, val };
@@ -152,20 +152,20 @@ fusion_call_return (int call_id, int val)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Call: invalid call\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_CALL_RETURN");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -178,19 +178,19 @@ fusion_call_destroy (FusionCall *call)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Call: invalid call\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_CALL_DESTROY");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
      call->handler = NULL;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 void
@@ -209,7 +209,7 @@ _fusion_call_process( int call_id, FusionCallMessage *call )
 
 #else  /* FUSION_BUILD_MULTI */
 
-FusionResult
+DirectResult
 fusion_call_init (FusionCall        *call,
                   FusionCallHandler  handler,
                   void              *ctx)
@@ -222,10 +222,10 @@ fusion_call_init (FusionCall        *call,
      call->handler = handler;
      call->ctx     = ctx;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_call_execute (FusionCall *call,
                      int         call_arg,
                      void       *call_ptr,
@@ -236,24 +236,24 @@ fusion_call_execute (FusionCall *call,
      D_ASSERT( call != NULL );
 
      if (!call->handler)
-          return FUSION_DESTROYED;
+          return DFB_DESTROYED;
 
      ret = call->handler( 1, call_arg, call_ptr, call->ctx );
 
      if (ret_val)
           *ret_val = ret;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_call_return (int call_id,
                     int ret_val)
 {
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_ASSERT( call != NULL );
@@ -261,7 +261,7 @@ fusion_call_destroy (FusionCall *call)
 
      call->handler = NULL;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 #endif

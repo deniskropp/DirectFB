@@ -204,7 +204,7 @@ unique_wm_running()
      return false;
 }
 
-FusionResult
+DirectResult
 unique_wm_enum_contexts( FusionObjectCallback  callback,
                          void                 *ctx )
 {

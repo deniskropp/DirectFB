@@ -1720,7 +1720,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->ref = 1;
      data->caps = caps | surface->caps;
 
-     if (dfb_surface_ref( surface ) != FUSION_SUCCESS) {
+     if (dfb_surface_ref( surface )) {
           DIRECT_DEALLOCATE_INTERFACE(thiz);
           return DFB_FAILURE;
      }

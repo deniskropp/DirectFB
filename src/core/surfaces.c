@@ -293,7 +293,7 @@ DFBResult dfb_surface_create_preallocated( CoreDFB *core,
      return DFB_OK;
 }
 
-FusionResult
+DirectResult
 dfb_surface_notify_listeners( CoreSurface                  *surface,
                               CoreSurfaceNotificationFlags  flags)
 {

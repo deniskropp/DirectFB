@@ -368,7 +368,7 @@ dfb_input_enumerate_devices( InputDeviceCallback  callback,
      }
 }
 
-FusionResult
+DirectResult
 dfb_input_attach( InputDevice *device,
                   React        react,
                   void        *ctx,
@@ -381,7 +381,7 @@ dfb_input_attach( InputDevice *device,
      return fusion_reactor_attach( device->shared->reactor, react, ctx, reaction );
 }
 
-FusionResult
+DirectResult
 dfb_input_detach( InputDevice *device,
                   Reaction    *reaction )
 {
@@ -392,7 +392,7 @@ dfb_input_detach( InputDevice *device,
      return fusion_reactor_detach( device->shared->reactor, reaction );
 }
 
-FusionResult
+DirectResult
 dfb_input_attach_global( InputDevice    *device,
                          int             react_index,
                          void           *ctx,
@@ -406,7 +406,7 @@ dfb_input_attach_global( InputDevice    *device,
                                    react_index, ctx, reaction );
 }
 
-FusionResult
+DirectResult
 dfb_input_detach_global( InputDevice    *device,
                          GlobalReaction *reaction )
 {

@@ -92,8 +92,8 @@ DFBResult dfb_layer_region_get_configuration( CoreLayerRegion       *region,
 /*
  * Locking
  */
-FusionResult dfb_layer_region_lock  ( CoreLayerRegion   *region );
-FusionResult dfb_layer_region_unlock( CoreLayerRegion   *region );
+DirectResult dfb_layer_region_lock  ( CoreLayerRegion   *region );
+DirectResult dfb_layer_region_unlock( CoreLayerRegion   *region );
 
 #endif
 

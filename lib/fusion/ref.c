@@ -53,7 +53,7 @@
 
 #if FUSION_BUILD_MULTI
 
-FusionResult
+DirectResult
 fusion_ref_init (FusionRef *ref)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -69,13 +69,13 @@ fusion_ref_init (FusionRef *ref)
 
           D_PERROR ("FUSION_REF_NEW");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_up (FusionRef *ref, bool global)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -89,7 +89,7 @@ fusion_ref_up (FusionRef *ref, bool global)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
@@ -99,13 +99,13 @@ fusion_ref_up (FusionRef *ref, bool global)
           else
                D_PERROR ("FUSION_REF_UP");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -119,7 +119,7 @@ fusion_ref_down (FusionRef *ref, bool global)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
@@ -129,13 +129,13 @@ fusion_ref_down (FusionRef *ref, bool global)
           else
                D_PERROR ("FUSION_REF_DOWN");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_stat (FusionRef *ref, int *refs)
 {
      int val;
@@ -150,22 +150,22 @@ fusion_ref_stat (FusionRef *ref, int *refs)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_STAT");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
      *refs = val;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_zero_lock (FusionRef *ref)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -177,20 +177,20 @@ fusion_ref_zero_lock (FusionRef *ref)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_ZERO_LOCK");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_zero_trylock (FusionRef *ref)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -201,23 +201,23 @@ fusion_ref_zero_trylock (FusionRef *ref)
                case EINTR:
                     continue;
                case ETOOMANYREFS:
-                    return FUSION_INUSE;
+                    return DFB_BUSY;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_ZERO_TRYLOCK");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_unlock (FusionRef *ref)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -229,20 +229,20 @@ fusion_ref_unlock (FusionRef *ref)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_UNLOCK");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 {
      FusionRefWatch watch;
@@ -261,20 +261,20 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_WATCH");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_destroy (FusionRef *ref)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -286,22 +286,22 @@ fusion_ref_destroy (FusionRef *ref)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_DESTROY");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 #else /* FUSION_BUILD_MULTI */
 
-FusionResult
+DirectResult
 fusion_ref_init (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
@@ -313,20 +313,20 @@ fusion_ref_init (FusionRef *ref)
      ref->fake.destroyed = false;
      ref->fake.waiting   = 0;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_up (FusionRef *ref, bool global)
 {
-     FusionResult ret = FUSION_SUCCESS;
+     DirectResult ret = DFB_OK;
 
      D_ASSERT( ref != NULL );
 
      pthread_mutex_lock (&ref->fake.lock);
 
      if (ref->fake.destroyed)
-          ret = FUSION_DESTROYED;
+          ret = DFB_DESTROYED;
      else
           ref->fake.refs++;
 
@@ -335,7 +335,7 @@ fusion_ref_up (FusionRef *ref, bool global)
      return ret;
 }
 
-FusionResult
+DirectResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
      D_ASSERT( ref != NULL );
@@ -345,12 +345,12 @@ fusion_ref_down (FusionRef *ref, bool global)
      if (!ref->fake.refs) {
           D_BUG( "no more references" );
           pthread_mutex_unlock (&ref->fake.lock);
-          return FUSION_BUG;
+          return DFB_BUG;
      }
 
      if (ref->fake.destroyed) {
           pthread_mutex_unlock (&ref->fake.lock);
-          return FUSION_DESTROYED;
+          return DFB_DESTROYED;
      }
 
      if (! --ref->fake.refs && ref->fake.call) {
@@ -362,34 +362,34 @@ fusion_ref_down (FusionRef *ref, bool global)
 
      pthread_mutex_unlock (&ref->fake.lock);
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_stat (FusionRef *ref, int *refs)
 {
      D_ASSERT( ref != NULL );
      D_ASSERT( refs != NULL );
 
      if (ref->fake.destroyed)
-          return FUSION_DESTROYED;
+          return DFB_DESTROYED;
 
      *refs = ref->fake.refs;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_zero_lock (FusionRef *ref)
 {
-     FusionResult ret = FUSION_SUCCESS;
+     DirectResult ret = DFB_OK;
 
      D_ASSERT( ref != NULL );
 
      pthread_mutex_lock (&ref->fake.lock);
 
      if (ref->fake.destroyed)
-          ret = FUSION_DESTROYED;
+          ret = DFB_DESTROYED;
      else if (ref->fake.call)
           ret = FUSION_ACCESSDENIED;
      else while (ref->fake.refs && !ret) {
@@ -398,48 +398,48 @@ fusion_ref_zero_lock (FusionRef *ref)
           ref->fake.waiting--;
 
           if (ref->fake.destroyed)
-               ret = FUSION_DESTROYED;
+               ret = DFB_DESTROYED;
           else if (ref->fake.call)
                ret = FUSION_ACCESSDENIED;
      }
 
-     if (ret != FUSION_SUCCESS)
+     if (ret != DFB_OK)
           pthread_mutex_unlock (&ref->fake.lock);
 
      return ret;
 }
 
-FusionResult
+DirectResult
 fusion_ref_zero_trylock (FusionRef *ref)
 {
-     FusionResult ret = FUSION_SUCCESS;
+     DirectResult ret = DFB_OK;
 
      D_ASSERT( ref != NULL );
 
      pthread_mutex_lock (&ref->fake.lock);
 
      if (ref->fake.destroyed)
-          ret = FUSION_DESTROYED;
+          ret = DFB_DESTROYED;
      else if (ref->fake.refs)
-          ret = FUSION_INUSE;
+          ret = DFB_BUSY;
 
-     if (ret != FUSION_SUCCESS)
+     if (ret != DFB_OK)
           pthread_mutex_unlock (&ref->fake.lock);
 
      return ret;
 }
 
-FusionResult
+DirectResult
 fusion_ref_unlock (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
      pthread_mutex_unlock (&ref->fake.lock);
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 {
      D_ASSERT( ref != NULL );
@@ -449,17 +449,17 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 
      if (ref->fake.destroyed) {
           pthread_mutex_unlock (&ref->fake.lock);
-          return FUSION_DESTROYED;
+          return DFB_DESTROYED;
      }
 
      if (!ref->fake.refs) {
           pthread_mutex_unlock (&ref->fake.lock);
-          return FUSION_BUG;
+          return DFB_BUG;
      }
 
      if (ref->fake.call) {
           pthread_mutex_unlock (&ref->fake.lock);
-          return FUSION_INUSE;
+          return DFB_BUSY;
      }
 
      ref->fake.call     = call;
@@ -467,10 +467,10 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 
      pthread_mutex_unlock (&ref->fake.lock);
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_ref_destroy (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
@@ -483,7 +483,7 @@ fusion_ref_destroy (FusionRef *ref)
      pthread_mutex_unlock (&ref->fake.lock);
      pthread_cond_destroy (&ref->fake.cond);
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 #endif

@@ -44,9 +44,9 @@ void             dfb_windowstack_resize ( CoreWindowStack  *stack,
                                           int               width,
                                           int               height );
 
-FusionResult     dfb_windowstack_lock   ( CoreWindowStack  *stack );
+DirectResult     dfb_windowstack_lock   ( CoreWindowStack  *stack );
 
-FusionResult     dfb_windowstack_unlock ( CoreWindowStack  *stack );
+DirectResult     dfb_windowstack_unlock ( CoreWindowStack  *stack );
 
 
 /*

@@ -163,7 +163,7 @@ bench_reactor()
 static void
 bench_ref()
 {
-     FusionResult ret;
+     DirectResult ret;
      FusionRef    ref;
 
      ret = fusion_ref_init( &ref );
@@ -207,7 +207,7 @@ bench_ref()
 static void
 bench_property()
 {
-     FusionResult   ret;
+     DirectResult   ret;
      FusionProperty property;
 
      ret = fusion_property_init( &property );
@@ -238,7 +238,7 @@ bench_property()
 static void
 bench_skirmish()
 {
-     FusionResult   ret;
+     DirectResult   ret;
      FusionSkirmish skirmish;
 
      ret = fusion_skirmish_init( &skirmish );
@@ -283,7 +283,7 @@ static void
 bench_skirmish_threaded()
 {
      int            i;
-     FusionResult   ret;
+     DirectResult   ret;
      FusionSkirmish skirmish;
 
      ret = fusion_skirmish_init( &skirmish );

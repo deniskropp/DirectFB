@@ -125,7 +125,7 @@ CoreWindowStack *dfb_layer_context_windowstack( CoreLayerContext *context );
 /*
  * Locking
  */
-FusionResult dfb_layer_context_lock  ( CoreLayerContext *context );
-FusionResult dfb_layer_context_unlock( CoreLayerContext *context );
+DirectResult dfb_layer_context_lock  ( CoreLayerContext *context );
+DirectResult dfb_layer_context_unlock( CoreLayerContext *context );
 
 #endif

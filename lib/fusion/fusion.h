@@ -61,7 +61,7 @@ void fusion_sync();
  * A timeout of zero means infinite waiting while a negative value
  * means no waiting at all.
  */
-FusionResult fusion_kill( int fusion_id, int signal, int timeout_ms );
+DirectResult fusion_kill( int fusion_id, int signal, int timeout_ms );
 
 /*
  * Get the number of milliseconds passed after the start of the master.

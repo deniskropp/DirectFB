@@ -142,7 +142,7 @@ surface_callback( FusionObjectPool *pool,
                   FusionObject     *object,
                   void             *ctx )
 {
-     FusionResult ret;
+     DirectResult ret;
      int          i;
      int          refs;
      CoreSurface *surface = (CoreSurface*) object;
@@ -223,7 +223,7 @@ context_callback( FusionObjectPool *pool,
                   FusionObject     *object,
                   void             *ctx )
 {
-     FusionResult       ret;
+     DirectResult       ret;
      int                i;
      int                refs;
      int                level;
@@ -304,7 +304,7 @@ static DFBEnumerationResult
 window_callback( CoreWindow *window,
                  void       *ctx )
 {
-     FusionResult ret;
+     DirectResult ret;
      int          refs;
 
      ret = fusion_ref_stat( &window->object.ref, &refs );

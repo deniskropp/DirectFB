@@ -87,7 +87,7 @@ static void         unlock_arena( FusionArena *arena );
  *  Public API  *
  ****************/
 
-FusionResult
+DirectResult
 fusion_arena_enter (const char     *name,
                     ArenaEnterFunc  initialize,
                     ArenaEnterFunc  join,
@@ -107,10 +107,10 @@ fusion_arena_enter (const char     *name,
      /* Lookup arena and lock it. If it doesn't exist create it. */
      arena = lock_arena( name, true );
      if (!arena)
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
 
      /* Check if we are the first. */
-     if (fusion_ref_zero_trylock( &arena->ref ) == FUSION_SUCCESS) {
+     if (fusion_ref_zero_trylock( &arena->ref ) == DFB_OK) {
           D_DEBUG ("Fusion/Arena: entering arena '%s' (establishing)\n", name);
 
           /* Call 'initialize' later. */
@@ -176,17 +176,17 @@ fusion_arena_enter (const char     *name,
                SHFREE( arena->name );
                SHFREE( arena );
 
-               return FUSION_SUCCESS;
+               return DFB_OK;
           }
      }
 
      /* Unlock the arena. */
      unlock_arena( arena );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_arena_add_shared_field (FusionArena *arena,
                                const char  *name,
                                void        *data)
@@ -201,13 +201,13 @@ fusion_arena_add_shared_field (FusionArena *arena,
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
 
      /* Allocate memory for the field information. */
      field = SHCALLOC( 1, sizeof(ArenaField) );
      if (!field) {
           fusion_skirmish_dismiss( &arena->lock );
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
      /* Give it the requested name. */
@@ -222,10 +222,10 @@ fusion_arena_add_shared_field (FusionArena *arena,
      /* Unlock the arena. */
      fusion_skirmish_dismiss( &arena->lock );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_arena_get_shared_field (FusionArena  *arena,
                                const char   *name,
                                void        **data)
@@ -240,7 +240,7 @@ fusion_arena_get_shared_field (FusionArena  *arena,
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
 
      /* For each field in the arena... */
      direct_list_foreach (l, arena->fields) {
@@ -255,7 +255,7 @@ fusion_arena_get_shared_field (FusionArena  *arena,
                fusion_skirmish_dismiss( &arena->lock );
 
                /* Field has been found. */
-               return FUSION_SUCCESS;
+               return DFB_OK;
           }
      }
 
@@ -263,10 +263,10 @@ fusion_arena_get_shared_field (FusionArena  *arena,
      fusion_skirmish_dismiss( &arena->lock );
 
      /* No field by that name has been found. */
-     return FUSION_NOTEXISTENT;
+     return DFB_ITEMNOTFOUND;
 }
 
-FusionResult
+DirectResult
 fusion_arena_exit (FusionArena   *arena,
                    ArenaExitFunc  shutdown,
                    ArenaExitFunc  leave,
@@ -283,13 +283,13 @@ fusion_arena_exit (FusionArena   *arena,
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
 
      /* Decrease reference counter. */
      fusion_ref_down( &arena->ref, false );
 
      /* If we are the last... */
-     if (fusion_ref_zero_trylock( &arena->ref ) == FUSION_SUCCESS) {
+     if (fusion_ref_zero_trylock( &arena->ref ) == DFB_OK) {
           DirectLink *l = arena->fields;
 
           /* Deinitialize everything. */
@@ -330,7 +330,7 @@ fusion_arena_exit (FusionArena   *arena,
           if (!leave) {
                fusion_ref_up( &arena->ref, false );
                fusion_skirmish_dismiss( &arena->lock );
-               return FUSION_INUSE;
+               return DFB_BUSY;
           }
 
           /* Simply leave the arena. */
@@ -344,7 +344,7 @@ fusion_arena_exit (FusionArena   *arena,
      if (ret_error)
           *ret_error = error;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 
@@ -375,7 +375,7 @@ lock_arena( const char *name, bool add )
           /* Check if the name matches. */
           if (! strcmp( arena->name, name )) {
                /* Check for an orphaned arena. */
-               if (fusion_ref_zero_trylock( &arena->ref ) == FUSION_SUCCESS) {
+               if (fusion_ref_zero_trylock( &arena->ref ) == DFB_OK) {
                     D_ERROR( "Fusion/Arena: orphaned arena '%s'!\n", name );
 
                     fusion_ref_unlock( &arena->ref );
@@ -440,7 +440,7 @@ unlock_arena( FusionArena *arena )
 
 #else
 
-FusionResult
+DirectResult
 fusion_arena_enter (const char     *name,
                     ArenaEnterFunc  initialize,
                     ArenaEnterFunc  join,
@@ -462,10 +462,10 @@ fusion_arena_enter (const char     *name,
      if (ret_error)
           *ret_error = error;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_arena_add_shared_field (FusionArena *arena,
                                const char  *name,
                                void        *data)
@@ -473,10 +473,10 @@ fusion_arena_add_shared_field (FusionArena *arena,
      D_ASSERT( data != NULL );
      D_ASSERT( name != NULL );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_arena_get_shared_field (FusionArena  *arena,
                                const char   *name,
                                void        **data)
@@ -487,10 +487,10 @@ fusion_arena_get_shared_field (FusionArena  *arena,
      D_BUG( "should not call this in fake mode" );
 
      /* No field by that name has been found. */
-     return FUSION_NOTEXISTENT;
+     return DFB_ITEMNOTFOUND;
 }
 
-FusionResult
+DirectResult
 fusion_arena_exit (FusionArena   *arena,
                    ArenaExitFunc  shutdown,
                    ArenaExitFunc  leave,
@@ -509,7 +509,7 @@ fusion_arena_exit (FusionArena   *arena,
      if (ret_error)
           *ret_error = error;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 #endif

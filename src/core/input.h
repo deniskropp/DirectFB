@@ -94,20 +94,20 @@ typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,
 void dfb_input_enumerate_devices( InputDeviceCallback  callback,
                                   void                *ctx );
 
-FusionResult dfb_input_attach( InputDevice *device,
+DirectResult dfb_input_attach( InputDevice *device,
                                React        react,
                                void        *ctx,
                                Reaction    *reaction );
 
-FusionResult dfb_input_detach( InputDevice *device,
+DirectResult dfb_input_detach( InputDevice *device,
                                Reaction    *reaction );
 
-FusionResult dfb_input_attach_global( InputDevice    *device,
+DirectResult dfb_input_attach_global( InputDevice    *device,
                                       int             react_index,
                                       void           *ctx,
                                       GlobalReaction *reaction );
 
-FusionResult dfb_input_detach_global( InputDevice    *device,
+DirectResult dfb_input_detach_global( InputDevice    *device,
                                       GlobalReaction *reaction );
 
 void dfb_input_dispatch( InputDevice *device, DFBInputEvent *event );

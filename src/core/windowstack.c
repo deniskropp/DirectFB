@@ -206,7 +206,7 @@ dfb_windowstack_resize( CoreWindowStack *stack,
  * Prohibit access to the window stack data.
  * Waits until stack is accessible.
  */
-FusionResult
+DirectResult
 dfb_windowstack_lock( CoreWindowStack *stack )
 {
      D_ASSERT( stack != NULL );
@@ -218,7 +218,7 @@ dfb_windowstack_lock( CoreWindowStack *stack )
 /*
  * Allow access to the window stack data.
  */
-FusionResult
+DirectResult
 dfb_windowstack_unlock( CoreWindowStack *stack )
 {
      D_ASSERT( stack != NULL );

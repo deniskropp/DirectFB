@@ -34,22 +34,22 @@ typedef int (*ArenaEnterFunc) (FusionArena *arena, void *ctx);
 typedef int (*ArenaExitFunc) (FusionArena *arena, void *ctx, bool emergency);
 
 
-FusionResult fusion_arena_enter            (const char      *name,
+DirectResult fusion_arena_enter            (const char      *name,
                                             ArenaEnterFunc   initialize,
                                             ArenaEnterFunc   join,
                                             void            *ctx,
                                             FusionArena    **ret_arena,
                                             int             *ret_error);
 
-FusionResult fusion_arena_add_shared_field (FusionArena     *arena,
+DirectResult fusion_arena_add_shared_field (FusionArena     *arena,
                                             const char      *name,
                                             void            *data);
 
-FusionResult fusion_arena_get_shared_field (FusionArena     *arena,
+DirectResult fusion_arena_get_shared_field (FusionArena     *arena,
                                             const char      *name,
                                             void           **data);
 
-FusionResult fusion_arena_exit             (FusionArena     *arena,
+DirectResult fusion_arena_exit             (FusionArena     *arena,
                                             ArenaExitFunc    shutdown,
                                             ArenaExitFunc    leave,
                                             void            *ctx,

@@ -70,24 +70,24 @@ FusionObjectPool *fusion_object_pool_create ( const char            *name,
                                               int                    message_size,
                                               FusionObjectDestructor destructor );
 
-FusionResult      fusion_object_pool_destroy( FusionObjectPool      *pool );
+DirectResult      fusion_object_pool_destroy( FusionObjectPool      *pool );
 
 
-FusionResult      fusion_object_pool_enum   ( FusionObjectPool      *pool,
+DirectResult      fusion_object_pool_enum   ( FusionObjectPool      *pool,
                                               FusionObjectCallback   callback,
                                               void                  *ctx );
 
 
 FusionObject     *fusion_object_create  ( FusionObjectPool *pool );
 
-FusionResult      fusion_object_activate( FusionObject     *object );
+DirectResult      fusion_object_activate( FusionObject     *object );
 
-FusionResult      fusion_object_destroy ( FusionObject     *object );
+DirectResult      fusion_object_destroy ( FusionObject     *object );
 
 
 #define FUSION_OBJECT_METHODS(type, prefix)                                    \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_attach( type     *object,                                             \
                  React     react,                                              \
                  void     *ctx,                                                \
@@ -98,7 +98,7 @@ prefix##_attach( type     *object,                                             \
                                    react, ctx, reaction );                     \
 }                                                                              \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_detach( type     *object,                                             \
                  Reaction *reaction )                                          \
 {                                                                              \
@@ -107,7 +107,7 @@ prefix##_detach( type     *object,                                             \
                                    reaction );                                 \
 }                                                                              \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_attach_global( type           *object,                                \
                         int             react_index,                           \
                         void           *ctx,                                   \
@@ -118,7 +118,7 @@ prefix##_attach_global( type           *object,                                \
                                           react_index, ctx, reaction );        \
 }                                                                              \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_detach_global( type           *object,                                \
                         GlobalReaction *reaction )                             \
 {                                                                              \
@@ -127,7 +127,7 @@ prefix##_detach_global( type           *object,                                \
                                           reaction );                          \
 }                                                                              \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_dispatch( type        *object,                                        \
                    void        *message,                                       \
                    const React *globals )                                      \
@@ -137,25 +137,25 @@ prefix##_dispatch( type        *object,                                        \
                                      message, true, globals );                 \
 }                                                                              \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_ref( type *object )                                                   \
 {                                                                              \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
      return fusion_ref_up( &((FusionObject*)object)->ref, false );             \
 }                                                                              \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_unref( type *object )                                                 \
 {                                                                              \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
      return fusion_ref_down( &((FusionObject*)object)->ref, false );           \
 }                                                                              \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_link( type **link,                                                    \
                type  *object )                                                 \
 {                                                                              \
-     FusionResult ret;                                                         \
+     DirectResult ret;                                                         \
                                                                                \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
                                                                                \
@@ -165,10 +165,10 @@ prefix##_link( type **link,                                                    \
                                                                                \
      *link = object;                                                           \
                                                                                \
-     return FUSION_SUCCESS;                                                    \
+     return DFB_OK;                                                    \
 }                                                                              \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_unlink( type **link )                                                 \
 {                                                                              \
      type *object = *link;                                                     \
@@ -180,10 +180,10 @@ prefix##_unlink( type **link )                                                 \
      return fusion_ref_down( &((FusionObject*)object)->ref, true );            \
 }                                                                              \
                                                                                \
-static inline FusionResult                                                     \
+static inline DirectResult                                                     \
 prefix##_globalize( type *object )                                             \
 {                                                                              \
-     FusionResult ret;                                                         \
+     DirectResult ret;                                                         \
                                                                                \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
                                                                                \

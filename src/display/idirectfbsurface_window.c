@@ -226,7 +226,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      if (ret)
           return ret;
 
-     if (dfb_window_ref( window ) != FUSION_SUCCESS) {
+     if (dfb_window_ref( window )) {
           IDirectFBSurface_Destruct( thiz );
           return DFB_FAILURE;
      }

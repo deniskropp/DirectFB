@@ -142,7 +142,7 @@ fusion_reactor_new (int msg_size)
      return reactor;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_attach (FusionReactor *reactor,
                        React          react,
                        void          *ctx,
@@ -163,14 +163,14 @@ fusion_reactor_attach (FusionReactor *reactor,
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reactor: invalid reactor\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REACTOR_ATTACH");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
      node = lock_node( reactor->id, true );
@@ -181,17 +181,17 @@ fusion_reactor_attach (FusionReactor *reactor,
                          continue;
                     case EINVAL:
                          D_ERROR ("Fusion/Reactor: invalid reactor\n");
-                         return FUSION_DESTROYED;
+                         return DFB_DESTROYED;
                     default:
                          break;
                }
 
                D_PERROR ("FUSION_REACTOR_DETACH");
 
-               return FUSION_FAILURE;
+               return DFB_FAILURE;
           }
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
      /* fill out callback information */
@@ -204,10 +204,10 @@ fusion_reactor_attach (FusionReactor *reactor,
 
      unlock_node( node );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_detach (FusionReactor *reactor,
                        Reaction      *reaction)
 {
@@ -222,12 +222,12 @@ fusion_reactor_detach (FusionReactor *reactor,
      D_ASSUME( reaction->attached );
 
      if (!reaction->attached)
-          return FUSION_SUCCESS;
+          return DFB_OK;
 
      node = lock_node( reactor->id, false );
      if (!node) {
           D_BUG( "node not found" );
-          return FUSION_BUG;
+          return DFB_BUG;
      }
 
      if (reaction->attached) {
@@ -241,14 +241,14 @@ fusion_reactor_detach (FusionReactor *reactor,
                          continue;
                     case EINVAL:
                          D_ERROR ("Fusion/Reactor: invalid reactor\n");
-                         return FUSION_DESTROYED;
+                         return DFB_DESTROYED;
                     default:
                          break;
                }
 
                D_PERROR ("FUSION_REACTOR_DETACH");
 
-               return FUSION_FAILURE;
+               return DFB_FAILURE;
           }
      }
      else {
@@ -257,16 +257,16 @@ fusion_reactor_detach (FusionReactor *reactor,
 
      unlock_node( node );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_attach_global (FusionReactor  *reactor,
                               int             react_index,
                               void           *ctx,
                               GlobalReaction *reaction)
 {
-     FusionResult ret;
+     DirectResult ret;
 
      D_ASSERT( reactor != NULL );
      D_ASSERT( react_index >= 0 );
@@ -288,14 +288,14 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
 
      fusion_skirmish_dismiss( &reactor->globals_lock );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_detach_global (FusionReactor  *reactor,
                               GlobalReaction *reaction)
 {
-     FusionResult ret;
+     DirectResult ret;
 
      D_ASSERT( reactor != NULL );
      D_ASSERT( reaction != NULL );
@@ -305,7 +305,7 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
      D_ASSUME( reaction->attached );
 
      if (!reaction->attached)
-          return FUSION_SUCCESS;
+          return DFB_OK;
 
      ret = fusion_skirmish_prevail( &reactor->globals_lock );
      if (ret)
@@ -319,10 +319,10 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
 
      fusion_skirmish_dismiss( &reactor->globals_lock );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_dispatch (FusionReactor *reactor,
                          const void    *msg_data,
                          bool           self,
@@ -358,20 +358,20 @@ fusion_reactor_dispatch (FusionReactor *reactor,
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reactor: invalid reactor\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REACTOR_DISPATCH");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_free (FusionReactor *reactor)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -390,20 +390,20 @@ fusion_reactor_free (FusionReactor *reactor)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reactor: invalid reactor\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REACTOR_DESTROY");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
      /* free shared reactor data */
      SHFREE( reactor );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 /*******************************
@@ -667,7 +667,7 @@ fusion_reactor_new (int msg_size)
      return reactor;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_attach (FusionReactor *reactor,
                        React          react,
                        void          *ctx,
@@ -686,10 +686,10 @@ fusion_reactor_attach (FusionReactor *reactor,
 
      pthread_mutex_unlock( &reactor->reactions_lock );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_detach (FusionReactor *reactor,
                        Reaction      *reaction)
 {
@@ -702,10 +702,10 @@ fusion_reactor_detach (FusionReactor *reactor,
 
      pthread_mutex_unlock( &reactor->reactions_lock );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_attach_global (FusionReactor  *reactor,
                               int             react_index,
                               void           *ctx,
@@ -724,10 +724,10 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
 
      pthread_mutex_unlock( &reactor->globals_lock );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_detach_global (FusionReactor  *reactor,
                               GlobalReaction *reaction)
 {
@@ -740,10 +740,10 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
 
      pthread_mutex_unlock( &reactor->globals_lock );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_dispatch (FusionReactor *reactor,
                          const void    *msg_data,
                          bool           self,
@@ -763,7 +763,7 @@ fusion_reactor_dispatch (FusionReactor *reactor,
      }
 
      if (!self)
-          return FUSION_SUCCESS;
+          return DFB_OK;
 
      pthread_mutex_lock( &reactor->reactions_lock );
 
@@ -779,7 +779,7 @@ fusion_reactor_dispatch (FusionReactor *reactor,
 
                case RS_DROP:
                     pthread_mutex_unlock( &reactor->reactions_lock );
-                    return FUSION_SUCCESS;
+                    return DFB_OK;
 
                default:
                     break;
@@ -790,10 +790,10 @@ fusion_reactor_dispatch (FusionReactor *reactor,
 
      pthread_mutex_unlock( &reactor->reactions_lock );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_reactor_free (FusionReactor *reactor)
 {
      D_ASSERT( reactor != NULL );
@@ -804,7 +804,7 @@ fusion_reactor_free (FusionReactor *reactor)
 
      D_FREE( reactor );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 /******************************************************************************/

@@ -33,7 +33,7 @@
 
 bool         unique_wm_running      ();
 
-FusionResult unique_wm_enum_contexts( FusionObjectCallback  callback,
+DirectResult unique_wm_enum_contexts( FusionObjectCallback  callback,
                                       void                 *ctx );
 
 

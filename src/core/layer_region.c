@@ -631,7 +631,7 @@ dfb_layer_region_get_configuration( CoreLayerRegion       *region,
      return DFB_OK;
 }
 
-FusionResult
+DirectResult
 dfb_layer_region_lock( CoreLayerRegion *region )
 {
      D_ASSERT( region != NULL );
@@ -639,7 +639,7 @@ dfb_layer_region_lock( CoreLayerRegion *region )
      return fusion_skirmish_prevail( &region->lock );
 }
 
-FusionResult
+DirectResult
 dfb_layer_region_unlock( CoreLayerRegion *region )
 {
      D_ASSERT( region != NULL );

@@ -2101,7 +2101,7 @@ fbdev_ioctl_call_handler( int   caller,
 static int
 fbdev_ioctl( int request, void *arg, int arg_size )
 {
-     FusionResult  ret;
+     DirectResult  ret;
      int           erno;
      void         *tmp_shm = NULL;
 

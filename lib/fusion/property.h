@@ -52,36 +52,36 @@ typedef union {
 /*
  * Initializes the property
  */
-FusionResult fusion_property_init     (FusionProperty *property);
+DirectResult fusion_property_init     (FusionProperty *property);
 
 /*
  * Lease the property causing others to wait before leasing or purchasing.
  *
  * Waits as long as property is leased by another party.
- * Returns FUSION_INUSE if property is/gets purchased by another party.
+ * Returns DFB_BUSY if property is/gets purchased by another party.
  *
  * Succeeds if property is available,
  * puts the property into 'leased' state.
  */
-FusionResult fusion_property_lease    (FusionProperty *property);
+DirectResult fusion_property_lease    (FusionProperty *property);
 
 /*
  * Purchase the property disallowing others to lease or purchase it.
  *
  * Waits as long as property is leased by another party.
- * Returns FUSION_INUSE if property is/gets purchased by another party.
+ * Returns DFB_BUSY if property is/gets purchased by another party.
  *
  * Succeeds if property is available,
  * puts the property into 'purchased' state and wakes up any waiting party.
  */
-FusionResult fusion_property_purchase (FusionProperty *property);
+DirectResult fusion_property_purchase (FusionProperty *property);
 
 /*
  * Cede the property allowing others to lease or purchase it.
  *
  * Puts the property into 'available' state and wakes up one waiting party.
  */
-FusionResult fusion_property_cede     (FusionProperty *property);
+DirectResult fusion_property_cede     (FusionProperty *property);
 
 /*
  * Kills the owner of the property.
@@ -89,12 +89,12 @@ FusionResult fusion_property_cede     (FusionProperty *property);
  * Tries to make a purchased property available again by killing
  * the process that purchased it.
  */
-FusionResult fusion_property_holdup   (FusionProperty *property);
+DirectResult fusion_property_holdup   (FusionProperty *property);
 
 /*
  * Destroys the property
  */
-FusionResult fusion_property_destroy  (FusionProperty *property);
+DirectResult fusion_property_destroy  (FusionProperty *property);
 
 #endif
 

@@ -271,7 +271,7 @@ DFBResult dfb_surface_set_palette( CoreSurface *surface,
 /*
  * helper function
  */
-FusionResult
+DirectResult
 dfb_surface_notify_listeners( CoreSurface                  *surface,
                               CoreSurfaceNotificationFlags  flags);
 

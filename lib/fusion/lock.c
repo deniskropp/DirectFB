@@ -50,7 +50,7 @@
 
 #if FUSION_BUILD_MULTI
 
-FusionResult
+DirectResult
 fusion_skirmish_init (FusionSkirmish *skirmish)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -66,13 +66,13 @@ fusion_skirmish_init (FusionSkirmish *skirmish)
 
           D_PERROR ("FUSION_SKIRMISH_NEW");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -84,20 +84,20 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_SKIRMISH_PREVAIL");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -108,23 +108,23 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
                case EINTR:
                     continue;
                case EAGAIN:
-                    return FUSION_INUSE;
+                    return DFB_BUSY;
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_SKIRMISH_SWOOP");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -136,20 +136,20 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_SKIRMISH_DISMISS");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
      D_ASSERT( _fusion_fd != -1 );
@@ -161,32 +161,32 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
-                    return FUSION_DESTROYED;
+                    return DFB_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_SKIRMISH_DESTROY");
 
-          return FUSION_FAILURE;
+          return DFB_FAILURE;
      }
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
 #else  /* FUSION_BUILD_MULTI */
 
-FusionResult
+DirectResult
 fusion_skirmish_init (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
      direct_util_recursive_pthread_mutex_init( &skirmish->fake.lock );
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
@@ -194,7 +194,7 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
      return pthread_mutex_lock( &skirmish->fake.lock );
 }
 
-FusionResult
+DirectResult
 fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
@@ -202,7 +202,7 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
      return pthread_mutex_trylock( &skirmish->fake.lock );
 }
 
-FusionResult
+DirectResult
 fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
@@ -210,7 +210,7 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
      return pthread_mutex_unlock( &skirmish->fake.lock );
 }
 
-FusionResult
+DirectResult
 fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );

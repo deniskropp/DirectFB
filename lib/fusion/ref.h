@@ -51,54 +51,54 @@ typedef union {
 /*
  * Initialize.
  */
-FusionResult fusion_ref_init         (FusionRef *ref);
+DirectResult fusion_ref_init         (FusionRef *ref);
 
 /*
  * Lock, increase, unlock.
  */
-FusionResult fusion_ref_up           (FusionRef *ref, bool global);
+DirectResult fusion_ref_up           (FusionRef *ref, bool global);
 
 /*
  * Lock, decrease, unlock.
  */
-FusionResult fusion_ref_down         (FusionRef *ref, bool global);
+DirectResult fusion_ref_down         (FusionRef *ref, bool global);
 
 /*
  * Get the current reference count. Meant for debugging only.
  * This value is not reliable, because no locking will be performed
  * and the value may change after or even while returning it.
  */
-FusionResult fusion_ref_stat         (FusionRef *ref, int *refs);
+DirectResult fusion_ref_stat         (FusionRef *ref, int *refs);
 
 /*
  * Wait for zero and lock.
  */
-FusionResult fusion_ref_zero_lock    (FusionRef *ref);
+DirectResult fusion_ref_zero_lock    (FusionRef *ref);
 
 /*
  * Check for zero and lock if true.
  */
-FusionResult fusion_ref_zero_trylock (FusionRef *ref);
+DirectResult fusion_ref_zero_trylock (FusionRef *ref);
 
 /*
  * Unlock the counter.
  * Only to be called after successful zero_lock or zero_trylock.
  */
-FusionResult fusion_ref_unlock       (FusionRef *ref);
+DirectResult fusion_ref_unlock       (FusionRef *ref);
 
 /*
  * Have the call executed when reference counter reaches zero.
  */
-FusionResult fusion_ref_watch        (FusionRef  *ref,
+DirectResult fusion_ref_watch        (FusionRef  *ref,
                                       FusionCall *call,
                                       int         call_arg);
 
 /*
  * Deinitialize.
  * Can be called after successful zero_lock or zero_trylock
- * so that waiting fusion_ref_up calls return with FUSION_DESTROYED.
+ * so that waiting fusion_ref_up calls return with DFB_DESTROYED.
  */
-FusionResult fusion_ref_destroy      (FusionRef *ref);
+DirectResult fusion_ref_destroy      (FusionRef *ref);
 
 #endif
 

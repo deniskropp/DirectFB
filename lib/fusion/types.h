@@ -30,22 +30,6 @@
 
 #include <direct/types.h>
 
-typedef enum {
-     FUSION_SUCCESS   = 0,
-     FUSION_FAILURE,
-     FUSION_BUG,
-     FUSION_UNIMPLEMENTED,
-     FUSION_INVARG,
-     FUSION_DESTROYED,
-     FUSION_ACCESSDENIED,
-     FUSION_PERMISSIONDENIED,
-     FUSION_NOTEXISTENT,
-     FUSION_LIMITREACHED,
-     FUSION_INUSE,
-     FUSION_TIMEOUT,
-     FUSION_OUTOFSHAREDMEMORY
-} FusionResult;
-
 typedef struct __Fusion_FusionConfig       FusionConfig;
 
 typedef struct __Fusion_FusionReactor      FusionReactor;

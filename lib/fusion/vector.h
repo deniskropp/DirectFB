@@ -46,21 +46,21 @@ typedef struct {
 void fusion_vector_init   ( FusionVector *vector, int capacity );
 void fusion_vector_destroy( FusionVector *vector );
 
-FusionResult fusion_vector_add        ( FusionVector *vector,
+DirectResult fusion_vector_add        ( FusionVector *vector,
                                         void         *element );
 
-FusionResult fusion_vector_insert     ( FusionVector *vector,
+DirectResult fusion_vector_insert     ( FusionVector *vector,
                                         void         *element,
                                         int           index );
 
-FusionResult fusion_vector_move       ( FusionVector *vector,
+DirectResult fusion_vector_move       ( FusionVector *vector,
                                         int           from,
                                         int           to );
 
-FusionResult fusion_vector_remove     ( FusionVector *vector,
+DirectResult fusion_vector_remove     ( FusionVector *vector,
                                         int           index );
 
-FusionResult fusion_vector_remove_last( FusionVector *vector );
+DirectResult fusion_vector_remove_last( FusionVector *vector );
 
 
 static inline bool

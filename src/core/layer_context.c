@@ -1045,7 +1045,7 @@ dfb_layer_context_windowstack( CoreLayerContext *context )
      return context->stack;
 }
 
-FusionResult
+DirectResult
 dfb_layer_context_lock( CoreLayerContext *context )
 {
      D_ASSERT( context != NULL );
@@ -1053,7 +1053,7 @@ dfb_layer_context_lock( CoreLayerContext *context )
      return fusion_skirmish_prevail( &context->lock );
 }
 
-FusionResult
+DirectResult
 dfb_layer_context_unlock( CoreLayerContext *context )
 {
      D_ASSERT( context != NULL );

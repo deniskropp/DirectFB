@@ -46,27 +46,27 @@ typedef union {
 /*
  * Initialize.
  */
-FusionResult fusion_skirmish_init    (FusionSkirmish *skirmish);
+DirectResult fusion_skirmish_init    (FusionSkirmish *skirmish);
 
 /*
  * Lock.
  */
-FusionResult fusion_skirmish_prevail (FusionSkirmish *skirmish);
+DirectResult fusion_skirmish_prevail (FusionSkirmish *skirmish);
 
 /*
  * Try lock.
  */
-FusionResult fusion_skirmish_swoop   (FusionSkirmish *skirmish);
+DirectResult fusion_skirmish_swoop   (FusionSkirmish *skirmish);
 
 /*
  * Unlock.
  */
-FusionResult fusion_skirmish_dismiss (FusionSkirmish *skirmish);
+DirectResult fusion_skirmish_dismiss (FusionSkirmish *skirmish);
 
 /*
  * Deinitialize.
  */
-FusionResult fusion_skirmish_destroy (FusionSkirmish *skirmish);
+DirectResult fusion_skirmish_destroy (FusionSkirmish *skirmish);
 
 
 #endif

@@ -93,7 +93,7 @@ fusion_vector_destroy( FusionVector *vector )
      D_MAGIC_CLEAR( vector );
 }
 
-FusionResult
+DirectResult
 fusion_vector_add( FusionVector *vector,
                    void         *element )
 {
@@ -102,15 +102,15 @@ fusion_vector_add( FusionVector *vector,
 
      /* Make sure there's a free entry left. */
      if (!ensure_capacity( vector ))
-          return FUSION_OUTOFSHAREDMEMORY;
+          return DFB_NOSYSTEMMEMORY;
 
      /* Add the element to the vector. */
      vector->elements[vector->count++] = element;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_vector_insert( FusionVector *vector,
                       void         *element,
                       int           index )
@@ -122,7 +122,7 @@ fusion_vector_insert( FusionVector *vector,
 
      /* Make sure there's a free entry left. */
      if (!ensure_capacity( vector ))
-          return FUSION_OUTOFSHAREDMEMORY;
+          return DFB_NOSYSTEMMEMORY;
 
      /* Move elements from insertion point one up. */
      memmove( &vector->elements[ index + 1 ],
@@ -135,10 +135,10 @@ fusion_vector_insert( FusionVector *vector,
      /* Increase the element counter. */
      vector->count++;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_vector_move( FusionVector *vector,
                     int           from,
                     int           to )
@@ -152,7 +152,7 @@ fusion_vector_move( FusionVector *vector,
      D_ASSERT( to < vector->count );
 
      if (to == from)
-          return FUSION_SUCCESS;
+          return DFB_OK;
 
      /* Save the element. */
      element = vector->elements[from];
@@ -174,10 +174,10 @@ fusion_vector_move( FusionVector *vector,
      /* Restore the element at the new position. */
      vector->elements[to] = element;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_vector_remove( FusionVector *vector,
                       int           index )
 {
@@ -193,10 +193,10 @@ fusion_vector_remove( FusionVector *vector,
      /* Decrease the element counter. */
      vector->count--;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
-FusionResult
+DirectResult
 fusion_vector_remove_last( FusionVector *vector )
 {
      D_MAGIC_ASSERT( vector, FusionVector );
@@ -205,6 +205,6 @@ fusion_vector_remove_last( FusionVector *vector )
      /* Decrease the element counter. */
      vector->count--;
 
-     return FUSION_SUCCESS;
+     return DFB_OK;
 }
 
