@@ -130,6 +130,7 @@ if test "x$have_mmx" = xon; then
   if AC_TRY_EVAL(ac_compile); then
     AC_DEFINE(USE_MMX)
     MMX=yes
+    have_mmx=yes
     AC_MSG_RESULT(yes)
   else
     AC_MSG_RESULT(no)
@@ -137,7 +138,7 @@ if test "x$have_mmx" = xon; then
     echo 2>&1 " The installed assembler does not supports the MMX command set. "
     echo 2>&1 " Update your binutils package, if you want to compile MMX code. "
     echo 2>&1 "****************************************************************"
-    have_mmx=off
+    have_mmx=no
     MMX=no
   fi
   rm conftest*
