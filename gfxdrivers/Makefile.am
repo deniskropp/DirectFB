@@ -18,5 +18,11 @@ else
 TDFX_DIR =
 endif
 
+if GFX_NVIDIA
+NVIDIA_DIR = nvidia
+else
+NVIDIA_DIR =
+endif
 
-SUBDIRS = $(ATI_DIR) $(MATROX_DIR) $(TDFX_DIR) neomagic
+
+SUBDIRS = $(ATI_DIR) $(MATROX_DIR) $(TDFX_DIR) $(NVIDIA_DIR) neomagic

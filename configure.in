@@ -345,6 +345,19 @@ AC_EGREP_CPP(yes, [
 AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
 
 
+dnl Test for nvidia framebuffer support in the kernel
+AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_NV4
+  yes
+#endif
+], nvidia=yes, 
+  nvidia=no  
+  AC_MSG_WARN(*** nVidia RIVA TNT gfxdriver will not be built.))
+
+AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
+
+
 DFB_CFLAGS="$THREAD_CFLAGS $DFB_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
 
@@ -421,6 +434,7 @@ gfxdrivers/ati128/Makefile
 gfxdrivers/matrox/Makefile
 gfxdrivers/neomagic/Makefile
 gfxdrivers/tdfx/Makefile
+gfxdrivers/nvidia/Makefile
 inputdrivers/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
@@ -461,4 +475,5 @@ Building Graphics Drivers:
   ATI Rage 128      $ati
   NeoMagic          yes
   3Dfx Voodoo       $tdfx
+  nVidia RIVA TNT   $nvidia
 ]);
