@@ -37,6 +37,7 @@ struct _FusionObjectPool {
      FusionSkirmish          lock;
      FusionLink             *objects;
 
+     char                   *name;
      int                     object_size;
      int                     message_size;
      FusionObjectDestructor  destructor;
@@ -48,12 +49,14 @@ struct _FusionObjectPool {
 static void *bone_collector_loop( void *arg );
 
 FusionObjectPool *
-fusion_object_pool_create( int                    object_size,
-                           int                    message_size,
-                           FusionObjectDestructor destructor )
+fusion_object_pool_create( const char             *name,
+                           int                     object_size,
+                           int                     message_size,
+                           FusionObjectDestructor  destructor )
 {
      FusionObjectPool *pool;
 
+     DFB_ASSERT( name != NULL );
      DFB_ASSERT( object_size >= sizeof(FusionObject) );
      DFB_ASSERT( message_size > 0 );
      DFB_ASSERT( destructor != NULL );
@@ -67,6 +70,7 @@ fusion_object_pool_create( int                    object_size,
      skirmish_init( &pool->lock );
 
      /* Fill information. */
+     pool->name         = shstrdup( name );
      pool->object_size  = object_size;
      pool->message_size = message_size;
      pool->destructor   = destructor;
@@ -90,6 +94,7 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
      skirmish_destroy( &pool->lock );
 
      /* Deallocate shared memory. */
+     shfree( pool->name );
      shfree( pool );
 
      return FUSION_SUCCESS;
@@ -127,7 +132,7 @@ fusion_object_create( FusionObjectPool *pool )
      /* Lock the pool's object list. */
      skirmish_prevail( &pool->lock );
 
-     FDEBUG("adding %p to pool %p\n", object, pool);
+     FDEBUG("adding %p to pool %p (%s)\n", object, pool, pool->name);
      
      /* Add the object to the pool. */
      fusion_list_prepend( &pool->objects, &object->link );
@@ -232,7 +237,8 @@ bone_collector_loop( void *arg )
 
                switch (fusion_ref_zero_trylock( &object->ref )) {
                     case FUSION_SUCCESS:
-                         FDEBUG("found dead object: %p\n", object);
+                         FDEBUG("found dead object: %p in '%s'\n",
+                                object, pool->name);
 
                          /* Remove the object from the pool. */
                          fusion_list_remove( &pool->objects, &object->link );
@@ -243,7 +249,8 @@ bone_collector_loop( void *arg )
                          break;
 
                     case FUSION_DESTROYED:
-                         FDEBUG("already destroyed! removing %p\n", object);
+                         FDEBUG("already destroyed! removing %p from '%s'\n",
+                                object, pool->name);
 
                          /* Remove the object from the pool. */
                          fusion_list_remove( &pool->objects, &object->link );
@@ -265,7 +272,8 @@ bone_collector_loop( void *arg )
           FusionObject *object = (FusionObject*) l;
           FusionLink   *next   = l->next;
 
-          FDEBUG("found undestroyed object in pool: %p\n", object);
+          FDEBUG("found undestroyed object in pool: %p (%s)\n",
+                 object, pool->name);
           
           /* Remove the object from the pool. */
           fusion_list_remove( &pool->objects, &object->link );

@@ -114,7 +114,8 @@ FusionObjectPool *dfb_surface_pool_create()
 {
      FusionObjectPool *pool;
 
-     pool = fusion_object_pool_create( sizeof(CoreSurface),
+     pool = fusion_object_pool_create( "Surface Pool",
+                                       sizeof(CoreSurface),
                                        sizeof(CoreSurfaceNotification),
                                        surface_destructor );
 

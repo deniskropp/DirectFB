@@ -33,6 +33,8 @@
 
 #include <core/coredefs.h>
 
+#include <misc/memcpy.h>
+
 #include "shmalloc.h"
 
 #ifndef FUSION_FAKE
@@ -142,6 +144,27 @@ struct shmstats shmstats (void)
      skirmish_prevail( &_sheap->lock );
      
      ret = _fusion_shmstats();
+     
+     skirmish_dismiss( &_sheap->lock );
+
+     return ret;
+}
+
+char *shstrdup (const char* string)
+{
+     void *ret;
+     int   len;
+
+     DFB_ASSERT( _sheap != NULL );
+     DFB_ASSERT( string != NULL );
+
+     len = strlen( string ) + 1;
+
+     skirmish_prevail( &_sheap->lock );
+     
+     ret = _fusion_shmalloc( len );
+     if (ret)
+          dfb_memcpy( ret, string, len );
      
      skirmish_dismiss( &_sheap->lock );
 

@@ -80,6 +80,9 @@ void *shmemalign (size_t __alignment, size_t __size);
 /* Allocate SIZE bytes on a page boundary.  */
 void *shvalloc (size_t __size);
 
+/* Duplicate string in shared memory. */
+char *shstrdup (const char* string);
+
 
 /* Statistics available to the user.  */
 struct shmstats {
@@ -95,11 +98,13 @@ struct shmstats shmstats (void);
 
 #else
      #include <stdlib.h>
+     #include <string.h>
 
      #define shmalloc  malloc
      #define shrealloc realloc
      #define shcalloc  calloc
      #define shfree    free
+     #define shstrdup  strdup
 
 #endif
 

@@ -50,7 +50,8 @@ struct _FusionObject {
 };
 
 
-FusionObjectPool *fusion_object_pool_create( int                    object_size,
+FusionObjectPool *fusion_object_pool_create( const char            *name,
+                                             int                    object_size,
                                              int                    message_size,
                                              FusionObjectDestructor destructor );
 
