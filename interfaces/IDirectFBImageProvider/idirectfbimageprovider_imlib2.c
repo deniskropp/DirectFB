@@ -209,8 +209,18 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      __u32 *image_data = NULL;
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
+     IDirectFBSurface_data *dst_data;
+     CoreSurface           *dst_surface;
 
      INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
+
+     dst_data = (IDirectFBSurface_data*) destination->priv;
+     if (!dst_data)
+          return DFB_DEAD;
+
+     dst_surface = dst_data->surface;
+     if (!dst_surface)
+          return DFB_DESTROYED;
 
      imlib_context_set_image(data->im);
 
@@ -245,7 +255,7 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
 
      dfb_scale_linear_32( dst, image_data,
                           src_width, src_height, rect.w, rect.h,
-                          pitch, format );
+                          pitch, format, dst_surface->palette );
 
      destination->Unlock( destination );
      return DFB_OK;
