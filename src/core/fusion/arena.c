@@ -264,7 +264,6 @@ fusion_arena_exit (FusionArena   *arena,
 
      DFB_ASSERT( arena != NULL );
      DFB_ASSERT( shutdown != NULL );
-     DFB_ASSERT( leave != NULL );
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
@@ -310,6 +309,12 @@ fusion_arena_exit (FusionArena   *arena,
           shfree( arena );
      }
      else {
+          if (!leave) {
+               fusion_ref_up( &arena->ref, false );
+               fusion_skirmish_dismiss( &arena->lock );
+               return FUSION_INUSE;
+          }
+
           /* Simply leave the arena. */
           error = leave( arena, ctx, emergency );
 
