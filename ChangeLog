@@ -1,3 +1,37 @@
+2001-10-02	22:04	<dok@convergence.de>
+
+	Files:	examples/df_layer.c (1.3) (+14 -0)
+		src/display/idirectfbdisplaylayer.c (1.18) (+30 -1)
+		src/core/layers.h (1.8) (+21 -17)
+		include/directfb.h (1.56) (+36 -1)
+		gfxdrivers/matrox/regs.h (1.5) (+1 -0)
+		gfxdrivers/matrox/matrox_bes.c (1.2) (+33 -4)
+	
+	Added 'IDirectFBDisplayLayer::Set/GetColorAdjustment()' along with four
+	capability flags for each adjustment (brightness, contrast, hue, saturation).
+	
+	Implemented color adjustment for Matrox BES
+	(brightness and contrast supported in YUV only).
+	
+2001-10-02	20:10	<dok@convergence.de>
+
+	Files:	configure.in (1.42) (+1 -0)
+		tools/gendoc.pl (1.8) (+4 -4)
+		docs/html/Makefile.am (1.1) ( )
+		docs/html/.cvsignore (1.2) (+3 -0)
+		docs/Makefile.am (1.2) (+1 -10)
+		docs/.cvsignore (1.2) (+0 -1)
+	
+	Fixed documentation generation according to distcheck's complains.
+	
+2001-10-02	15:38	<dok@convergence.de>
+
+	Files:	ChangeLog (1.12) (+280 -0)
+		NEWS (1.20) (+25 -0)
+	
+	Updated ChangeLog and summarized changes since 0.9.5 in NEWS.
+	Changed version number to 0.9.6 by previous commit.
+	
 2001-10-02	15:35	<dok@convergence.de>
 
 	Files:	.cvsignore (1.5) (+1 -0)

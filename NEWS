@@ -6,6 +6,7 @@
   e.g. IPAQ's RGB 444 format is compatible with RGB 565.
 - Matrox Backend Scaler support as additional display layer.
 - YUY2 format added for video playback.
+- Added 'IDirectFBDisplayLayer::Set/GetColorAdjustment()'.
 - Added simple layer example which plays a video onto the second layer.
 - Added new window capability DWCAPS_DOUBLEBUFFER to create windows with
   two back buffers. This is useful for overlapping windows which both
