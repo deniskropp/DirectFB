@@ -56,10 +56,6 @@ FUSION_OBJECT_METHODS( CoreLayerContext, dfb_layer_context )
 DFBResult dfb_layer_context_create( CoreLayer         *layer,
                                     CoreLayerContext **ret_context );
 
-DFBResult dfb_layer_context_activate  ( CoreLayerContext *context );
-
-DFBResult dfb_layer_context_deactivate( CoreLayerContext *context );
-
 DFBResult dfb_layer_context_test_region( CoreLayerContext      *context,
                                          CoreLayerRegionConfig *config );
 

@@ -143,6 +143,13 @@ DFBResult dfb_layer_context_add_region( CoreLayerContext *context,
 DFBResult dfb_layer_context_remove_region( CoreLayerContext *context,
                                            CoreLayerRegion  *region );
 
+/* Called by dfb_layer_activate_context(),
+   dfb_layer_remove_context() and dfb_layer_resume(). */
+DFBResult dfb_layer_context_activate  ( CoreLayerContext *context );
+
+/* Called by dfb_layer_deactivate_context(),
+   dfb_layer_remove_context() and dfb_layer_suspend(). */
+DFBResult dfb_layer_context_deactivate( CoreLayerContext *context );
 
 /* global reactions */
 ReactionResult _dfb_layer_region_surface_listener( const void *msg_data,

@@ -90,6 +90,20 @@ dfb_layer_suspend( CoreLayer *layer )
           return DFB_OK;
      }
 
+     /* Deactivate current context. */
+     if (contexts->active >= 0) {
+          DFBResult         ret;
+          CoreLayerContext *current = fusion_vector_at( &contexts->stack,
+                                                         contexts->active );
+
+          ret = dfb_layer_context_deactivate( current );
+          if (ret) {
+               ERRORMSG("DirectFB/Core/layer: "
+                        "Could not deactivate current context of '%s'! (%s)\n",
+                        shared->description.name, DirectFBErrorString( ret ));
+          }
+     }
+
      shared->suspended = true;
 
      /* Unlock the layer. */
@@ -119,6 +133,20 @@ dfb_layer_resume( CoreLayer *layer )
      if (!shared->suspended) {
           fusion_skirmish_dismiss( &shared->lock );
           return DFB_OK;
+     }
+
+     /* (Re)Activate current context. */
+     if (contexts->active >= 0) {
+          DFBResult         ret;
+          CoreLayerContext *current = fusion_vector_at( &contexts->stack,
+                                                         contexts->active );
+
+          ret = dfb_layer_context_activate( current );
+          if (ret) {
+               ERRORMSG("DirectFB/Core/layer: "
+                        "Could not activate current context of '%s'! (%s)\n",
+                        shared->description.name, DirectFBErrorString( ret ));
+          }
      }
 
      shared->suspended = false;
@@ -308,18 +336,22 @@ dfb_layer_activate_context( CoreLayer        *layer,
                                                               ctxs->active );
 
                /* Deactivate current context. */
-               ret = dfb_layer_context_deactivate( current );
-               if (ret)
-                    goto error;
+               if (!shared->suspended) {
+                    ret = dfb_layer_context_deactivate( current );
+                    if (ret)
+                         goto error;
+               }
 
                /* No active context. */
                ctxs->active = -1;
           }
 
           /* Activate context now. */
-          ret = dfb_layer_context_activate( context );
-          if (ret)
-               goto error;
+          if (!shared->suspended) {
+               ret = dfb_layer_context_activate( context );
+               if (ret)
+                    goto error;
+          }
 
           ctxs->active = fusion_vector_index_of( &ctxs->stack, context );
      }
@@ -384,14 +416,16 @@ dfb_layer_remove_context( CoreLayer        *layer,
      /* Need to deactivate? */
      if (context->active) {
           /* Deactivate the context. */
-          dfb_layer_context_deactivate( context );
+          if (!shared->suspended)
+               dfb_layer_context_deactivate( context );
 
           /* There's no active context anymore. */
           ctxs->active = -1;
 
           /* Activate primary (shared) context. */
           if (ctxs->primary) {
-               if (dfb_layer_context_activate( ctxs->primary ) == DFB_OK)
+               if (shared->suspended ||
+                   dfb_layer_context_activate( ctxs->primary ) == DFB_OK)
                     ctxs->active = fusion_vector_index_of( &ctxs->stack,
                                                             ctxs->primary );
           }
@@ -402,7 +436,8 @@ dfb_layer_remove_context( CoreLayer        *layer,
                index = fusion_vector_size( &ctxs->stack ) - 1;
                ctx   = fusion_vector_at( &ctxs->stack, index );
 
-               if (dfb_layer_context_activate( ctx ) == DFB_OK)
+               if (shared->suspended ||
+                   dfb_layer_context_activate( ctx ) == DFB_OK)
                     ctxs->active = index;
           }
      }
