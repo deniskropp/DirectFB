@@ -41,7 +41,11 @@
 #include <direct/messages.h>
 #include <direct/mem.h>
 
+#include <gfx/convert.h>
+
+#include <misc/gfx_util.h>
 #include <misc/util.h>
+
 
 
 
@@ -85,6 +89,15 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, PNM )
 
 typedef struct __IDirectFBImageProvider_PNM_data IDirectFBImageProvider_PNM_data;
 
+
+typedef struct
+{
+	__u8 r;
+	__u8 g;
+	__u8 b;
+
+} __attribute__ ((packed)) __bgr24;
+
 typedef enum
 {
 	PHDR_MAGIC,
@@ -113,18 +126,14 @@ typedef enum
 typedef DFBResult (*PRowCallback) ( IDirectFBImageProvider_PNM_data *data,
 		                    char                            *dest );
 
+
 typedef struct
 {
-	DFBSurfacePixelFormat  fmt;
-	
-	struct
-	{
-		PRowCallback   rowcb;
-		int            chunksize;
-		
-	} img[2];
+	PRowCallback rowcb;
+	int          chunksize;
 
 } PFormatData;
+
 
 struct __IDirectFBImageProvider_PNM_data
 {
@@ -133,11 +142,10 @@ struct __IDirectFBImageProvider_PNM_data
 
 	PFormat                format;
 	PImgType               type;
-	CoreSurface           *img;
+	__u8                  *img;
 	int                    width;
 	int                    height;
 	int                    colors;
-	DFBSurfacePixelFormat  pixel;
 
 	PRowCallback           getrow;
 	__u8                  *rowbuf;     /* buffer for ascii images */
@@ -209,24 +217,19 @@ __rawpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 	DFBResult  err;
 	int        len;
 	int        i, s;
-	__u16     *d    = (__u16*) dest;
+	__u32     *d   = (__u32*) dest;
 
 	P_GET( dest, data->width / 8 );
-
-	dest += (len - 1);
 
 	/* start from end */
 	for(i = (len * 8), s = 0; --i >= 0; )
 	{
-		d[i] = (*dest & (1 << s)) 
-			? 0x0000  /* alpha:0, color:black */
-			: 0xffff; /* alpha:1, color:white */
+		d[i] = (dest[i >> 3] & (1 << s))
+			? 0x00000000  /* alpha:0x00, color:black */
+			: 0xffffffff; /* alpha:0xff, color:white */
 		
 		if(++s > 7)
-		{
 			s = 0;
-			dest--;
-		}
 	}
 
 	return( DFB_OK );
@@ -239,23 +242,16 @@ __rawpgm_getrow( IDirectFBImageProvider_PNM_data *data,
 {
 	DFBResult  err;
 	int        len;
-	__u8      *d;
+	__u32     *d   = (__u32*) dest;
 	__u8       b;
 
 	P_GET( dest, data->width );
 
-	d = (__u8*) dest + ((len - 1) * 3);
-
 	/* start from end */
 	while(--len >= 0)
 	{
-		b = dest[len];
-
-		*d       = b;
-		*(d - 1) = b;
-		*(d - 2) = b;
-
-		d -= 3;
+		b      = dest[len];
+		d[len] = PIXEL_ARGB( 0xff, b, b, b );
 	}
 
 	return( DFB_OK );
@@ -266,24 +262,17 @@ static DFBResult
 __rawppm_getrow( IDirectFBImageProvider_PNM_data *data,
                  char                            *dest )
 {
-	DFBResult err;
-	int       len;
-	int       i;
-	__u8      r;
-	__u8      b;
+	DFBResult  err;
+	int        len;
+	__u32     *d   = (__u32*)   dest;
+	__bgr24   *b   = (__bgr24*) dest;
+	int        i;
 
 	P_GET( dest, data->width * 3 );
 
-	for(i = (len / 3); i--; )
-	{
-		r = *dest;
-		b = *(dest + 2);
-
-		*dest       = b;
-		*(dest + 2) = r;
-
-		dest += 3;
-	}
+	/* start from end */
+	for(i = (len / 3); --i >= 0; )
+		d[i]  = PIXEL_ARGB( 0xff, b[i].r, b[i].g, b[i].b );
 
 	return( DFB_OK );
 }
@@ -298,7 +287,7 @@ __plainpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 	int        i;
 	int        w    = data->width;
 	__u8      *buf  = data->rowbuf;
-	__u16     *d    = (__u16*) dest;
+	__u32     *d    = (__u32*) dest;
 
 	P_LOADBUF();
 
@@ -310,11 +299,11 @@ __plainpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 		switch(buf[i])
 		{
 			case '0':
-				*d++ = 0xffff; /* alpha:1, color:white */
+				*d++ = 0xffffffff; /* alpha:0xff, color:white */
 			break;
 
 			case '1':
-				*d++ = 0x0000; /* alpha:0, color:black */
+				*d++ = 0x00000000; /* alpha:0x00, color:black */
 			break;
 
 			default:
@@ -364,11 +353,12 @@ __plainpgm_getrow( IDirectFBImageProvider_PNM_data *data,
 			*dest       = n;
 			*(dest + 1) = n;
 			*(dest + 2) = n;
-			
-			dest += 3;
+			*(dest + 3) = 0xff;
+
+			dest += 4;
 			n     = 0;
 			i++;
-			
+
 			if(!--w)
 				break;
 		}
@@ -410,14 +400,14 @@ __plainppm_getrow( IDirectFBImageProvider_PNM_data *data,
 		if(isspace( buf[i + 1] ))
 		{
 			*(dest + j) = n;
-			
 			n = 0;
 			i++;
 			
 			if(--j < 0)
 			{
+				*(dest + 3) = 0xff;
+				dest += 4;
 				j     = 2;
-				dest += 3;
 				if(!--w)
 					break;
 			}
@@ -431,13 +421,13 @@ __plainppm_getrow( IDirectFBImageProvider_PNM_data *data,
 
 
 
-
-static const PFormatData p_db[] =
+static const PFormatData p_dta[][2] =
 {
-	{ DSPF_ARGB1555, { {__rawpbm_getrow, 0}, {__plainpbm_getrow,  2} } }, /* PBM */
-	{    DSPF_RGB24, { {__rawpgm_getrow, 0}, {__plainpgm_getrow,  4} } }, /* PGM */
-	{    DSPF_RGB24, { {__rawppm_getrow, 0}, {__plainppm_getrow, 12} } }  /* PPM */
+	{ {__rawpbm_getrow, 0}, {__plainpbm_getrow,  2} }, /* PBM */
+	{ {__rawpgm_getrow, 0}, {__plainpgm_getrow,  4} }, /* PGM */
+	{ {__rawppm_getrow, 0}, {__plainppm_getrow, 12} }  /* PPM */
 };
+
 
 
 
@@ -519,11 +509,9 @@ p_init( IDirectFBImageProvider_PNM_data *data )
 					return( DFB_UNSUPPORTED );
 				}
 
-				data->type = (buf[1] > '3') ? PIMG_RAW : PIMG_PLAIN;
-
-				data->pixel     = p_db[data->format].fmt;
-				data->getrow    = p_db[data->format].img[data->type].rowcb;
-				data->chunksize = p_db[data->format].img[data->type].chunksize;
+				data->type      = (buf[1] > '3') ? PIMG_RAW : PIMG_PLAIN;
+				data->getrow    = p_dta[data->format][data->type].rowcb;
+				data->chunksize = p_dta[data->format][data->type].chunksize;
 
 				header = PHDR_WIDTH;
 			}
@@ -652,11 +640,11 @@ IDirectFBImageProvider_PNM_Destruct( IDirectFBImageProvider *thiz )
 
 	data = (IDirectFBImageProvider_PNM_data*) thiz->priv;
 
-	if(data->img)
-		dfb_surface_unref( data->img );
-	
 	if(data->buffer)
 		data->buffer->Release( data->buffer );
+	
+	if(data->img)
+		D_FREE( data->img );
 
 	DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -690,10 +678,13 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *dest,
                                      const DFBRectangle     *dest_rect )
 {
-	DFBResult              err      = DFB_OK;
-	IDirectFBSurface_data *dst_data = NULL;
-	DFBRectangle           d, s     = {0, 0, 0, 0};
-	CardState              state;
+	DFBResult              err       = DFB_OK;
+	IDirectFBSurface_data *dst_data;
+	DFBRectangle           d         = {0, 0, 0, 0};
+	__u8                  *img       = NULL;
+	int                    img_p;
+	__u8                  *dst;
+	int                    dst_p;
 
 	DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_PNM )
 
@@ -702,65 +693,36 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
 
 	dst_data = (IDirectFBSurface_data*) dest->priv;
 
-	if(!dst_data || !dst_data->surface)
+	if(!dest->priv || !dst_data->surface)
 		return( DFB_DEAD );
 
-	d = dst_data->area.wanted;
+	dest->GetSize( dest, &d.w, &d.h );
 
-	if(dest_rect)
+	if(dest_rect && !dfb_rectangle_intersect( &d, dest_rect ))
+		return( DFB_INVARG );
+
+	err = dest->Lock( dest, DSLF_READ | DSLF_WRITE, (void*) &dst, &dst_p );
+	if(err != DFB_OK)
+		return( err );
+
+	img   = data->img;
+	img_p = data->width * 4; 
+
+	if(!img)
 	{
-		if(dest_rect->w < 1 || dest_rect->h < 1)
-			return( DFB_INVARG );
+		DFBRectangle s   = {0, 0, data->width, 1};
+		int          cpy = (d.w == data->width && d.h == data->height);
 
-		d = *dest_rect;
-
-		d.x += dst_data->area.wanted.x;
-		d.y += dst_data->area.wanted.y;
-	}
-	
-	{
-		DFBRectangle drect = d;
-
-		if(!dfb_rectangle_intersect( &drect, &dst_data->area.current ))
-			return( DFB_INVARG );
-
-		memset( &state, 0, sizeof(CardState) );
+		data->img = img = (__u8*) D_MALLOC( img_p * data->height );
 		
-		state.source      = data->img;
-		state.destination = dst_data->surface;
-		state.clip.x1     = drect.x;
-		state.clip.x2     = drect.x + drect.w - 1;
-		state.clip.y1     = drect.y;
-		state.clip.y2     = drect.y + drect.h - 1;
-		state.modified    = SMF_ALL;
-
-		D_MAGIC_SET( &state, CardState );
-	}
-
-	if(!data->img)
-	{
-		__u8 *img;
-		int   pitch;
-		int   ysc   = (d.h << 16) / data->height;
-		int   y     = d.y << 16;
-
-		err = dfb_surface_create( NULL, data->width, data->height, 
-				          data->pixel, CSP_SYSTEMONLY, 
-					  DSCAPS_SYSTEMONLY, NULL, &data->img );
-		if(!data->img)
+		if(!img)
 		{
 			D_ERROR( "DirectFB/ImageProvider_PNM: "
-				 "couldn't create a surface %ix%i...\n\t-> %s\n",
-				 data->width, data->height, 
-				 DirectFBErrorString( err ) );
-			return( err );
+				 "couldn't allocate %i bytes for image.\n",
+				 img_p * data->height );
+			dest->Unlock( dest );
+			return( DFB_NOSYSTEMMEMORY );
 		}
-
-		img   = data->img->back_buffer->system.addr;
-		pitch = data->img->back_buffer->system.pitch;
-
-		state.source    = data->img;
-		state.modified |= SMF_SOURCE;
 
 		if(data->chunksize)
 		{
@@ -770,19 +732,17 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
 			if(!data->rowbuf)
 			{
 				D_ERROR( "DirectFB/ImageProvider_PNM: "
-					 "couldn't allocate %i bytes of memory.\n",
+					 "couldn't allocate %i bytes for buffering.\n",
 					 size );
+				dest->Unlock( dest );
 				return( DFB_NOSYSTEMMEMORY );
 			}
 		}
-
-		d.h = ysc >> 16;
-		if(d.h < 1)
-			d.h = 1;
 		
-		for(s.w = data->width, s.h = 1; s.y < data->height; s.y++)
+		for(; s.y < data->height; s.y++)
 		{
-			err = data->getrow( data, img );
+			err = data->getrow( data, (char*) img );
+			
 			if(err != DFB_OK )
 			{
 				D_ERROR( "DirectFB/ImageProvider_PNM: "
@@ -791,60 +751,44 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
 				break;
 			}
 
-			d.y = y >> 16;
-			
-			if(d.w != data->width || ysc != 65536)
-				dfb_gfxcard_stretchblit( &s, &d, &state );
-			else
-				dfb_gfxcard_blit( &s, d.x, d.y, &state );
+			if(cpy)
+			{
+				DFBRectangle r = s;
+				r.x  = d.x;
+				r.y += d.y;
+				dfb_copy_buffer_32( (__u32*) img, dst, dst_p, 
+						&r, dst_data->surface );
+			}
 
 			if(data->render_callback)
-				data->render_callback( &d, data->render_callback_ctx );
+				data->render_callback( &s, data->render_callback_ctx );
 			
-			img += pitch;
-			y   += ysc;
+			img += img_p;
 		}
+
+		if(!cpy)
+			dfb_scale_linear_32( (__u32*) data->img, data->width, data->height,
+			                      dst, dst_p, &d, dst_data->surface );
 
 		if(data->rowbuf)
 			D_FREE( data->rowbuf );
 		
 		data->buffer->Release( data->buffer );
 		data->buffer = NULL;
-	} else
+	
+	} else 
 	{
+		dfb_scale_linear_32( (__u32*) img, data->width, data->height,
+				      dst, dst_p, &d, dst_data->surface );
+		
 		if(data->render_callback)
 		{
-			int ysc = (d.h << 16) / data->height;
-			int y   = d.y << 16;
-
-			d.h = ysc >> 16;
-			if(d.h < 1)
-				d.h = 1;
-
-			for(s.w = data->width, s.h = 1; s.y < data->height; s.y++)
-			{
-				d.y = y >> 16;
-				
-				if(d.w != data->width || ysc != 65536)
-					dfb_gfxcard_stretchblit( &s, &d, &state );
-				else
-					dfb_gfxcard_blit( &s, d.x, d.y, &state );
-
-				data->render_callback( &d, data->render_callback_ctx );
-
-				y += ysc;
-			}
-		} else
-		{
-			s.w = data->width;
-			s.h = data->height;
-			
-			if(d.w != data->width || d.h != data->height)
-				dfb_gfxcard_stretchblit( &s, &d, &state );
-			else
-				dfb_gfxcard_blit( &s, d.x, d.y, &state );
+			DFBRectangle r = {0, 0, data->width, data->height};
+			data->render_callback( &r, data->render_callback_ctx );
 		}
 	}
+
+	dest->Unlock( dest );
 
 	return( err );
 }
@@ -873,7 +817,7 @@ IDirectFBImageProvider_PNM_GetSurfaceDescription( IDirectFBImageProvider *thiz,
 	desc->flags       = (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
 	desc->width       = data->width;
 	desc->height      = data->height;
-	desc->pixelformat = data->pixel;
+	desc->pixelformat = dfb_primary_layer_pixelformat();
 
 	return( DFB_OK );
 }
