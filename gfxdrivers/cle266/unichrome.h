@@ -96,6 +96,10 @@ typedef struct _UcDeviceData {
     unsigned int idle_waitcycles;
 
 
+    __u32           vq_start;   // VQ related
+    __u32           vq_size;
+    __u32           vq_end;
+
 } UcDeviceData;
 
 
@@ -104,11 +108,6 @@ typedef struct _UcDriverData {
     int             hwrev;      // Hardware revision
     __u8*           hwregs;     // Hardware register base
     struct uc_fifo* fifo;       // Data FIFO.
-
-    __u32           vq_start;   // VQ related
-    __u32           vq_size;
-    __u32           vq_end;
-
 } UcDriverData;
 
 

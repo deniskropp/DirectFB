@@ -102,17 +102,17 @@ DFB_GRAPHICS_DRIVER(unichrome)
 
 /** Allocate and lock a surface to be used as VQ buffer. */
 
-static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDriverData *ucdrv)
+static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
 {
-    if (ucdrv->vq_start) return DFB_OK;
+    if (ucdev->vq_start) return DFB_OK;
 
-    ucdrv->vq_size = 256*1024; // 256kb
-    ucdrv->vq_start = dfb_gfxcard_reserve_memory( device, ucdrv->vq_size );
+    ucdev->vq_size = 256*1024; // 256kb
+    ucdev->vq_start = dfb_gfxcard_reserve_memory( device, ucdev->vq_size );
 
-    if (!ucdrv->vq_start)
+    if (!ucdev->vq_start)
         return DFB_INIT;
     
-    ucdrv->vq_end = ucdrv->vq_start + ucdrv->vq_size - 1;
+    ucdev->vq_end = ucdev->vq_start + ucdev->vq_size - 1;
 
     return DFB_OK;
 }
@@ -130,13 +130,13 @@ void uc_free_vq(UcDriverData *ucdrv)
  * @param enable    enable VQ if true (else disable it.)
  */
 
-DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDriverData *ucdrv, bool enable)
+DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDeviceData *ucdev, UcDriverData *ucdrv, bool enable)
 {
     DFBResult result = DFB_OK;
     volatile __u8* hwregs = ucdrv->hwregs;
 
     if (enable) {
-        result = uc_alloc_vq(device,ucdrv);
+        result = uc_alloc_vq(device,ucdev);
         if (result != DFB_OK) {
             enable = false;
         }
@@ -178,7 +178,7 @@ DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDriverData *ucdrv, bool en
 
     if (enable) { // Enable VQ
 
-        uc_alloc_vq( device, ucdrv);
+        uc_alloc_vq(device, ucdev);
 
         VIA_OUT(hwregs, 0x43c, 0x00fe0000);
         VIA_OUT(hwregs, 0x440, 0x080003fe);
@@ -199,11 +199,11 @@ DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDriverData *ucdrv, bool en
         VIA_OUT(hwregs, 0x440, 0x46800408);
 
         VIA_OUT(hwregs, 0x440, 0x52000000 |
-            ((ucdrv->vq_start & 0xFF000000) >> 24) |
-            ((ucdrv->vq_end & 0xFF000000) >> 16));
-        VIA_OUT(hwregs, 0x440, 0x50000000 | (ucdrv->vq_start & 0xFFFFFF));
-        VIA_OUT(hwregs, 0x440, 0x51000000 | (ucdrv->vq_end & 0xFFFFFF));
-        VIA_OUT(hwregs, 0x440, 0x53000000 | (ucdrv->vq_size >> 3));
+            ((ucdev->vq_start & 0xFF000000) >> 24) |
+            ((ucdev->vq_end & 0xFF000000) >> 16));
+        VIA_OUT(hwregs, 0x440, 0x50000000 | (ucdev->vq_start & 0xFFFFFF));
+        VIA_OUT(hwregs, 0x440, 0x51000000 | (ucdev->vq_end & 0xFFFFFF));
+        VIA_OUT(hwregs, 0x440, 0x53000000 | (ucdev->vq_size >> 3));
     }
     else { // Disable VQ
 
@@ -374,7 +374,11 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
 
     ucdrv->hwregs = mmap(NULL, 0x1000000,
         PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if ((int) ucdrv->hwregs == -1) return DFB_IO;
+    if ((int) ucdrv->hwregs == -1) 
+    {
+    	printf("hahahahahhahahah!!!!!!!!!!!!\n");
+         return DFB_IO;
+    }
 
     ucdrv->hwrev = 3;   // FIXME: Get the real hardware revision number!!!
 
@@ -440,7 +444,7 @@ static DFBResult driver_init_device(GraphicsDevice* device,
     ucdev->cmd_waitcycles = 0;
     ucdev->idle_waitcycles = 0;
 
-    uc_init_2d_engine(device, ucdrv, false);    // False for now - surface allocator crashes
+    uc_init_2d_engine(device, ucdev, ucdrv, false);    // False for now - surface allocator crashes
     uc_init_3d_engine(ucdrv->hwregs, ucdrv->hwrev, 1);
 
     return DFB_OK;
@@ -450,8 +454,10 @@ static void driver_close_device(GraphicsDevice *device,
                                 void *driver_data, void *device_data)
 {
     UcDriverData* ucdrv = (UcDriverData*) driver_data;
+    UcDeviceData* ucdev = (UcDeviceData*) device_data;
+
     uc_engine_sync(driver_data, device_data);
-    uc_init_2d_engine(device, ucdrv, false);
+    uc_init_2d_engine(device, ucdev, ucdrv, false);
 }
 
 static void driver_close_driver(GraphicsDevice* device, void* driver_data)

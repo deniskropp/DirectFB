@@ -149,8 +149,11 @@ static int via_wait_idle(void)
 
 static int viadev_open(struct inode *inode, struct file *filp)
 {
+// we need to open the device more than once for multi application core
+/*
     if (di.busy) return -EBUSY;
-    di.busy = 1;
+    di.busy = 1
+*/
     return 0; 
 }
         
