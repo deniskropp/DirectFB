@@ -7,29 +7,24 @@ int
 main (int argc, char *argv[])
 {
      DFBResult                  ret;
-     IDirectFB                 *dfb;
      IFusionSound              *sound;
      IFusionSoundMusicProvider *provider;
      IFusionSoundStream        *stream;
      FSStreamDescription        desc;
 
-     ret = DirectFBInit (&argc, &argv);
+     ret = FusionSoundInit (&argc, &argv);
      if (ret)
-          DirectFBErrorFatal ("DirectFBInit", ret);
+          DirectFBErrorFatal ("FusionSoundInit", ret);
 
      if (argc != 2) {
           fprintf (stderr, "\nUsage: %s <filename>\n", argv[0]);
           return -1;
      }
 
-     ret = DirectFBCreate (&dfb);
-     if (ret)
-          DirectFBErrorFatal ("DirectFBCreate", ret);
-
      /* Retrieve the main sound interface. */
-     ret = dfb->GetInterface (dfb, "IFusionSound", NULL, NULL, (void**) &sound);
+     ret = FusionSoundCreate (&sound);
      if (ret)
-          DirectFBErrorFatal ("IDirectFB::GetInterface", ret);
+          DirectFBErrorFatal ("FusionSoundCreate", ret);
 
      /* Create a music provider for the specified file. */
      ret = sound->CreateMusicProvider (sound, argv[1], &provider);
@@ -63,7 +58,6 @@ main (int argc, char *argv[])
 
      provider->Release (provider);
      sound->Release (sound);
-     dfb->Release (dfb);
 
      return 0;
 }

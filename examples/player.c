@@ -27,19 +27,11 @@ static int                   sample_length;
 static DFBResult
 create_playback( const char *filename )
 {
-     DFBResult  ret;
-     IDirectFB *dfb;
+     DFBResult ret;
 
-     ret = DirectFBCreate( &dfb );
+     ret = FusionSoundCreate( &sound );
      if (ret) {
-          DirectFBError( "DirectFBCreate() failed", ret );
-          return ret;
-     }
-
-     ret = dfb->GetInterface( dfb, "IFusionSound", NULL, NULL, (void**)&sound );
-     if (ret) {
-          DirectFBError( "GetInterface(\"IFusionSound\") failed", ret );
-          dfb->Release( dfb );
+          DirectFBError( "FusionSoundCreate() failed", ret );
           return ret;
      }
 
@@ -59,14 +51,12 @@ create_playback( const char *filename )
           }
           else {
                playback->Start( playback, 0, -1 );
-               dfb->Release( dfb );
                return DFB_OK;
           }
      }
 
      sound->Release( sound );
-     dfb->Release( dfb );
-     
+
      return DFB_FAILURE;
 }
 
@@ -107,7 +97,7 @@ static void
 button_pressed( LiteButton *button, void *ctx )
 {
      static DFBBoolean stopped;
-     
+
      if (stopped) {
           playback->Continue( playback );
 
@@ -119,7 +109,7 @@ button_pressed( LiteButton *button, void *ctx )
           stopped = DFB_TRUE;
      }
 }
-     
+
 int
 main (int argc, char *argv[])
 {
@@ -134,11 +124,15 @@ main (int argc, char *argv[])
      if (ret)
           DirectFBErrorFatal( "DirectFBInit() failed", ret );
 
+     ret = FusionSoundInit( &argc, &argv );
+     if (ret)
+          DirectFBErrorFatal( "FusionSoundInit() failed", ret );
+
      if (argc != 2) {
           fprintf (stderr, "\nUsage: %s <filename>\n", argv[0]);
           return -1;
      }
-     
+
      /* initialize */
      if (lite_open())
           return 1;
@@ -152,7 +146,7 @@ main (int argc, char *argv[])
      /* create a window */
      window = lite_new_window( NULL, 330, 170,
                                DWCAPS_ALPHACHANNEL, basename(argv[1]) );
-     
+
      /* setup the labels */
      for (i=0; i<4; i++) {
           label[i] = lite_new_label( LITE_BOX(window),
@@ -160,7 +154,7 @@ main (int argc, char *argv[])
 
           lite_set_label_text( label[i], channels[i] );
      }
-     
+
      /* setup the sliders */
      for (i=0; i<4; i++) {
           slider[i] = lite_new_slider( LITE_BOX(window),
@@ -172,7 +166,7 @@ main (int argc, char *argv[])
      }
 
      /* setup the play/pause button */
-     playbutton = lite_new_button( LITE_BOX(window), 150, 110, 50, 50 );     
+     playbutton = lite_new_button( LITE_BOX(window), 150, 110, 50, 50 );
      lite_set_button_image( playbutton, BS_NORMAL, "stop.png" );
      lite_set_button_image( playbutton, BS_DISABLED, "stop_disabled.png" );
      lite_set_button_image( playbutton, BS_HILITE, "stop_highlighted.png" );
@@ -185,9 +179,9 @@ main (int argc, char *argv[])
      /* run the event loop with a timeout */
      while (lite_window_event_loop( window, 20 ) == DFB_OK) {
           int position = 0;
-          
+
           playback->GetStatus( playback, NULL, &position );
-          
+
           lite_set_slider_pos( slider[3], position / (float) sample_length );
      }
 

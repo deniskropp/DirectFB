@@ -36,7 +36,7 @@ feed_stream (IFusionSoundStream *stream)
                DirectFBError ("IFusionSoundStream::Write", ret);
                return;
           }
-          
+
           /* This write won't block anymore. */
           ret = stream->Write (stream, buf, 16384);
           if (ret) {
@@ -50,23 +50,18 @@ int
 main (int argc, char *argv[])
 {
      DFBResult            ret;
-     IDirectFB           *dfb;
      IFusionSound        *sound;
      IFusionSoundStream  *stream;
      FSStreamDescription  desc;
 
-     ret = DirectFBInit (&argc, &argv);
+     ret = FusionSoundInit (&argc, &argv);
      if (ret)
-          DirectFBErrorFatal ("DirectFBInit", ret);
-
-     ret = DirectFBCreate (&dfb);
-     if (ret)
-          DirectFBErrorFatal ("DirectFBCreate", ret);
+          DirectFBErrorFatal ("FusionSoundInit", ret);
 
      /* Retrieve the main sound interface. */
-     ret = dfb->GetInterface (dfb, "IFusionSound", NULL, NULL, (void**) &sound);
+     ret = FusionSoundCreate (&sound);
      if (ret)
-          DirectFBErrorFatal ("IDirectFB::GetInterface", ret);
+          DirectFBErrorFatal ("FusionSoundCreate", ret);
 
      /* Fill stream description (using defaults of 44kHz and 16bit). */
      desc.flags      = FSSDF_BUFFERSIZE | FSSDF_CHANNELS;
@@ -89,7 +84,6 @@ main (int argc, char *argv[])
      }
 
      sound->Release (sound);
-     dfb->Release (dfb);
 
      return 0;
 }
