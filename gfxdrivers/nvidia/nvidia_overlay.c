@@ -1,6 +1,6 @@
 /*
    Written by Oliver Schwartz <Oliver.Schwartz@gmx.de> and
-              Claudio Ciccani <klan82@cheapnet.it>.
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -116,7 +116,7 @@ ov0InitLayer( CoreLayer                  *layer,
      config->width       = 640;
      config->height      = 480;
      config->pixelformat = DSPF_YUY2;
-     config->buffermode  = DLBM_BACKSYSTEM;
+     config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_NONE;
 
      /* fill out default color adjustment,
@@ -274,18 +274,19 @@ ov0AllocateSurface( CoreLayer              *layer,
                     CoreLayerRegionConfig  *config,
                     CoreSurface           **surface )
 {
+     NVidiaOverlayLayerData *nvov0        = (NVidiaOverlayLayerData*) layer_data;
+     DFBSurfaceCapabilities  caps         = DSCAPS_VIDEOONLY;
+     CoreSurfacePolicy       front_policy = CSP_VIDEOONLY;
+     CoreSurfacePolicy       back_policy  = CSP_VIDEOONLY;
      DFBResult               result;
-     NVidiaOverlayLayerData *nvov0     = (NVidiaOverlayLayerData*) layer_data;
-     DFBSurfacePixelFormat   format;
-     DFBSurfaceCapabilities  caps      = DSCAPS_VIDEOONLY;
-     __u32                   dst_width;
-     __u32                   src_width;
-
+      
      switch (config->buffermode) {
           case DLBM_FRONTONLY:
-          case DLBM_BACKSYSTEM:
                break;
-
+               
+          case DLBM_BACKSYSTEM:
+               back_policy = CSP_SYSTEMONLY;
+               /* fall through */
           case DLBM_BACKVIDEO:
                caps |= DSCAPS_DOUBLE;
                break;
@@ -302,32 +303,44 @@ ov0AllocateSurface( CoreLayer              *layer,
      switch (config->format) {
           case DSPF_YUY2:
           case DSPF_UYVY:
-               format    = config->format;
-               src_width = config->width;
                break;
-
+               
           case DSPF_I420:
           case DSPF_YV12:
-               format    = DSPF_YUY2;
-               src_width = (config->width + 7) & ~7;
+               if (config->buffermode == DLBM_BACKSYSTEM)
+                    caps &= ~DSCAPS_DOUBLE;
                break;
-
+               
           default:
-               D_BUG("unexpected pixelformat");
+               D_BUG( "unexpected pixelformat" );
                return DFB_BUG;
      }
 
-     dst_width = (config->width + 31) & ~31;
+     if (DFB_PLANAR_PIXELFORMAT( config->format )) {
+          result = dfb_surface_create( NULL, config->width, config->height,
+                                       DSPF_YUY2, CSP_VIDEOONLY, caps,
+                                       NULL, &nvov0->videoSurface );
+          
+          if (result == DFB_OK) {
+               result = dfb_surface_create( NULL, config->width, config->height,
+                                            config->format, CSP_SYSTEMONLY,
+                                            DSCAPS_SYSTEMONLY, NULL, surface );
+          }
+     } else {
+          result = dfb_surface_create( NULL, config->width, config->height,
+                                       config->format, CSP_VIDEOONLY, caps, 
+                                       NULL, surface );
+          
+          if (result == DFB_OK) {
+               dfb_surface_ref( *surface );
+               nvov0->videoSurface = *surface;
 
-     result = dfb_surface_create(NULL, dst_width, config->height,
-                                 format, CSP_VIDEOONLY, caps,
-                                 NULL, &nvov0->videoSurface );
-     if (result != DFB_OK)
-          return result;
-
-     result = dfb_surface_create( NULL, src_width, config->height,
-                                  config->format, CSP_SYSTEMONLY,
-                                  DSCAPS_SYSTEMONLY, NULL, surface );
+               if (front_policy != back_policy)
+                    result = dfb_surface_reconfig( *surface,
+                                                   front_policy, back_policy );
+          }
+     }
+          
      return result;
 }
 
@@ -339,45 +352,45 @@ ov0ReallocateSurface( CoreLayer             *layer,
                       CoreLayerRegionConfig *config,
                       CoreSurface           *surface )
 {
-     DFBResult               result;
      NVidiaOverlayLayerData *nvov0        = (NVidiaOverlayLayerData*) layer_data;
-     CoreSurface            *videoSurface = nvov0->videoSurface;
-     DFBSurfacePixelFormat   format;
-     __u32                   dst_width;
-     __u32                   src_width;
+     DFBSurfaceCapabilities  caps         = DSCAPS_VIDEOONLY; 
+     CoreSurfacePolicy       front_policy = CSP_VIDEOONLY;
+     CoreSurfacePolicy       back_policy  = CSP_VIDEOONLY;
+     DFBResult               result;
 
      switch (config->buffermode) {
           case DLBM_FRONTONLY:
-          case DLBM_BACKSYSTEM:
-               videoSurface->caps &= ~DSCAPS_FLIPPING;
                break;
-
+               
+          case DLBM_BACKSYSTEM:
+               back_policy = CSP_SYSTEMONLY;
+               /* fall through */
           case DLBM_BACKVIDEO:
-               videoSurface->caps &= ~DSCAPS_FLIPPING;
-               videoSurface->caps |=  DSCAPS_DOUBLE;
+               caps |=  DSCAPS_DOUBLE;
                break;
 
           case DLBM_TRIPLE:
-               videoSurface->caps &= ~DSCAPS_FLIPPING;
-               videoSurface->caps |=  DSCAPS_TRIPLE;
+               caps |=  DSCAPS_TRIPLE;
                break;
 
           default:
                D_BUG("unknown buffermode");
                return DFB_BUG;
      }
-
+     
      switch (config->format) {
           case DSPF_YUY2:
           case DSPF_UYVY:
-               format    = config->format;
-               src_width = config->width;
+               surface->caps = caps;
                break;
-
+               
           case DSPF_I420:
           case DSPF_YV12:
-               format    = DSPF_YUY2;
-               src_width = (config->width + 7) & ~7;
+               front_policy  = CSP_SYSTEMONLY;
+               back_policy   = CSP_SYSTEMONLY;
+               surface->caps = DSCAPS_SYSTEMONLY;
+               if (config->buffermode == DLBM_BACKSYSTEM)
+                    caps &= ~DSCAPS_DOUBLE;
                break;
 
           default:
@@ -385,25 +398,25 @@ ov0ReallocateSurface( CoreLayer             *layer,
                return DFB_BUG;
      }
 
-     dst_width = (config->width + 31) & ~31;
+     dfb_surface_unref( nvov0->videoSurface );
+     nvov0->videoSurface = NULL;
 
-     D_DEBUG("DirectFB/NVidia/Overlay: Reallocate %d kBytes for video surface\n",
-                                    dst_width * config->height *
-                                    DFB_BYTES_PER_PIXEL(format) / 1024);
-
-     result = dfb_surface_reconfig( videoSurface,
-                                    CSP_VIDEOONLY, CSP_VIDEOONLY );
+     result = dfb_surface_reconfig( surface, front_policy, back_policy );
+     if (result == DFB_OK)
+          result = dfb_surface_reformat( NULL, surface, config->width,
+                                         config->height, config->format );
      if (result != DFB_OK)
           return result;
 
-     result = dfb_surface_reformat( NULL, videoSurface, dst_width,
-                                    config->height, format );
-     if (result != DFB_OK)
-          return result;
-
-     result = dfb_surface_reformat( NULL, surface, src_width,
-                                    config->height, config->format );
-
+     if (DFB_PLANAR_PIXELFORMAT( config->format )) {
+          result = dfb_surface_create( NULL, config->width, config->height,
+                                       DSPF_YUY2, CSP_VIDEOONLY, caps,
+                                       NULL, &nvov0->videoSurface );
+     } else {
+          dfb_surface_ref( surface );
+          nvov0->videoSurface = surface;
+     }
+     
      return result;
 }
 
@@ -415,37 +428,12 @@ ov0DeallocateSurface( CoreLayer   *layer,
                       CoreSurface *surface )
 {
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
-     dfb_surface_unref( nvov0->videoSurface );
+     if (nvov0->videoSurface)
+          dfb_surface_unref( nvov0->videoSurface );
      dfb_surface_unref( surface );
      return DFB_OK;
 }
 
-/*
- * CopyData
- */
-static void
-ov0CopyData422
-(
-  __u8 *src,
-  __u8 *dst,
-  int   srcPitch,
-  int   dstPitch,
-  int   h,
-  int   w
-)
-{
-    w <<= 1;
-    while(h--)
-    {
-        direct_memcpy(dst, src, w);
-        src += srcPitch;
-        dst += dstPitch;
-    }
-}
-
-/*
- * CopyMungedData
- */
 static void
 ov0CopyData420
 (
@@ -505,7 +493,6 @@ ov0CopyData420
      }
 }
 
-
 static DFBResult
 ov0FlipRegion ( CoreLayer           *layer,
                 void                *driver_data,
@@ -513,50 +500,42 @@ ov0FlipRegion ( CoreLayer           *layer,
                 void                *region_data,
                 CoreSurface         *surface,
                 DFBSurfaceFlipFlags  flags )
-
-
 {
-     NVidiaDriverData    *nvdrv = (NVidiaDriverData*) driver_data;
+     NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
-     __u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
-     __u32 width = nvov0->config.width;
-     __u32 height = nvov0->config.height;
-     __u8 *dstStart;
-     __u8 *buf;
-     SurfaceBuffer *data_buffer;
-     SurfaceBuffer *video_buffer;
-
+     
      dfb_surface_flip_buffers( nvov0->videoSurface, false );
 
-     data_buffer = surface->front_buffer;
-     video_buffer = nvov0->videoSurface->front_buffer;
+     if (DFB_PLANAR_PIXELFORMAT( nvov0->config.format )) {  
+          SurfaceBuffer *data_buffer;
+          SurfaceBuffer *video_buffer;
+          __u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
+          __u32 width = nvov0->config.width;
+          __u32 height = nvov0->config.height;
+          __u8 *dstStart;
+          __u8 *buf;
+          
+          data_buffer  = surface->front_buffer;
+          video_buffer = nvov0->videoSurface->front_buffer;
 
-     dstPitch = video_buffer->video.pitch;
-     srcPitch = data_buffer->system.pitch;
+          buf      = data_buffer->system.addr;
+          dstStart = (__u8*)dfb_system_video_memory_virtual(video_buffer->video.offset);
+          
+          dstPitch  = video_buffer->video.pitch;
+          srcPitch  = data_buffer->system.pitch;
+          srcPitch2 = srcPitch >> 1;
 
-     buf = data_buffer->system.addr;
-     dstStart = (__u8*)dfb_system_video_memory_virtual(video_buffer->video.offset);
-
-     switch(nvov0->config.format) {
-          case DSPF_YV12:
-          case DSPF_I420:
-               s2offset = srcPitch * height;
-               srcPitch2 = srcPitch >> 1;
-               s3offset = (srcPitch2 * (height >> 1)) + s2offset;
-               if(nvov0->config.format == DSPF_I420) {
-                    tmp = s2offset;
-                    s2offset = s3offset;
-                    s3offset = tmp;
-               }
-               ov0CopyData420(buf, buf + s2offset,
-                             buf + s3offset, dstStart, srcPitch, srcPitch2,
-                             dstPitch, height, width);
-               break;
-          case DSPF_UYVY:
-          case DSPF_YUY2:
-          default:
-               ov0CopyData422(buf, dstStart, srcPitch, dstPitch, height, width);
-               break;
+          s2offset = srcPitch * height;
+          s3offset = (srcPitch2 * (height >> 1)) + s2offset;
+          if (nvov0->config.format == DSPF_I420) {
+               tmp = s2offset;
+               s2offset = s3offset;
+               s3offset = tmp;
+          }
+          
+          ov0CopyData420( buf, buf + s2offset,
+                          buf + s3offset, dstStart, srcPitch, srcPitch2,
+                          dstPitch, height, width );
      }
 
      nvov0->buffer ^= 1;
@@ -565,6 +544,7 @@ ov0FlipRegion ( CoreLayer           *layer,
 
      if (flags & DSFLIP_WAIT)
           dfb_layer_wait_vsync( layer );
+     
      return DFB_OK;
 }
 
@@ -575,53 +555,42 @@ ov0UpdateRegion ( CoreLayer           *layer,
                   void                *region_data,
                   CoreSurface         *surface,
                   const DFBRegion     *update )
-
 {
-     NVidiaDriverData    *nvdrv = (NVidiaDriverData*) driver_data;
+     
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
-     __u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
-     __u32 width = nvov0->config.width;
-     __u32 height = nvov0->config.height;
-     __u8 *dstStart;
-     __u8 *buf;
-     SurfaceBuffer *data_buffer;
-     SurfaceBuffer *video_buffer;
 
-     data_buffer = surface->front_buffer;
-     video_buffer = nvov0->videoSurface->front_buffer;
+     if (DFB_PLANAR_PIXELFORMAT( nvov0->config.format )) {  
+          SurfaceBuffer *data_buffer;
+          SurfaceBuffer *video_buffer;
+          __u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
+          __u32 width = nvov0->config.width;
+          __u32 height = nvov0->config.height;
+          __u8 *dstStart;
+          __u8 *buf;
+          
+          data_buffer  = surface->front_buffer;
+          video_buffer = nvov0->videoSurface->front_buffer;
 
-     dstPitch = video_buffer->video.pitch;
-     srcPitch = data_buffer->system.pitch;
+          buf      = data_buffer->system.addr;
+          dstStart = (__u8*)dfb_system_video_memory_virtual(video_buffer->video.offset);
+          
+          dstPitch  = video_buffer->video.pitch;
+          srcPitch  = data_buffer->system.pitch;
+          srcPitch2 = srcPitch >> 1;
 
-     buf = data_buffer->system.addr;
-     dstStart = (__u8*)dfb_system_video_memory_virtual(video_buffer->video.offset);
-
-     switch(nvov0->config.format) {
-          case DSPF_YV12:
-          case DSPF_I420:
-               s2offset = srcPitch * height;
-               srcPitch2 = srcPitch >> 1;
-               s3offset = (srcPitch2 * (height >> 1)) + s2offset;
-               if(nvov0->config.format == DSPF_I420) {
-                    tmp = s2offset;
-                    s2offset = s3offset;
-                    s3offset = tmp;
-               }
-               ov0CopyData420(buf, buf + s2offset,
-                             buf + s3offset, dstStart, srcPitch, srcPitch2,
-                             dstPitch, height, width);
-               break;
-          case DSPF_UYVY:
-          case DSPF_YUY2:
-          default:
-               ov0CopyData422(buf, dstStart, srcPitch, dstPitch, height, width);
-               break;
+          s2offset = srcPitch * height;
+          s3offset = (srcPitch2 * (height >> 1)) + s2offset;
+          if(nvov0->config.format == DSPF_I420) {
+               tmp = s2offset;
+               s2offset = s3offset;
+               s3offset = tmp;
+          }
+          
+          ov0CopyData420( buf, buf + s2offset,
+                          buf + s3offset, dstStart, srcPitch, srcPitch2,
+                          dstPitch, height, width );
      }
-
-     nvov0->buffer ^= 1;
-     ov0_calc_regs( nvdrv, nvov0, layer, &nvov0->config );
-     ov0_set_regs( nvdrv, nvov0 );
-
+     
      return DFB_OK;
 }
 
@@ -700,7 +669,7 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
 {
      CoreSurface   *surface = nvov0->videoSurface;
      SurfaceBuffer *buffer  = surface->front_buffer;
-     __u32          pitch   = buffer->video.pitch;
+     __u32          pitch   = (buffer->video.pitch + 63) & ~63;
 
      nvov0->regs.NV_PVIDEO_BASE      = (buffer->video.offset + nvdrv->fb_offset) &
                                        nvdrv->fb_mask;
@@ -716,15 +685,15 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
                                        (config->dest.x & 0xffff);
      nvov0->regs.NV_PVIDEO_SIZE_OUT  = (config->dest.h << 16)   |
                                        (config->dest.w & 0xffff);
-
+      
      if(config->format != DSPF_UYVY)
           pitch |= 1 << 16;
 
      if (config->options & DLOP_DST_COLORKEY)
-          pitch |= 1 << 20;   /* use color key */
-
+          pitch |= 1 << 20;
+ 
      nvov0->regs.NV_PVIDEO_FORMAT = pitch;
-     nvov0->regs.NV_PVIDEO_BUFFER = 1 << (nvov0->buffer << 2);
+     nvov0->regs.NV_PVIDEO_BUFFER = 1 << (nvov0->buffer << 2); 
 }
 
 static void
