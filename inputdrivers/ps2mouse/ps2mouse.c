@@ -244,7 +244,7 @@ ps2WriteChar( int fd, unsigned char c, bool verbose )
      fd_set fds;
 
      tv.tv_sec = 0;
-     tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
+     tv.tv_usec = 200000;       /*  timeout 200 ms  */
 
      FD_ZERO( &fds );
      FD_SET( fd, &fds );
