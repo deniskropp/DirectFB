@@ -48,6 +48,15 @@
 #define MAX_LAYERS       100
 
 
+#if defined(DFB_NOTEXT)
+     #define INITMSG(x...)    do { } while (0)
+     #define ERRORMSG(x...)   do { } while (0)
+     #define PERRORMSG(x...)  do { } while (0)
+     #define DLERRORMSG(x...) do { } while (0)
+     #define ONCE(msg)        do { } while (0)
+     #define BUG(msg)         do { } while (0)
+     #define CAUTION(msg)     do { } while (0)
+#else
 #define INITMSG(x...)    if (!dfb_config->quiet) fprintf( stderr, "(*) "x );
 #define ERRORMSG(x...)   if (!dfb_config->quiet) fprintf( stderr, "(!) "x );
 
@@ -63,7 +72,25 @@
                                                dlerror() );                    \
                          } } while (0)
 
-#ifdef DFB_DEBUG
+#define ONCE(msg)   do {                                                       \
+                         static int print = 1;                                 \
+                         if (print) {                                          \
+                              fprintf( stderr, "(!) *** [%s] *** %s (%d)\n",   \
+                                       msg, __FILE__, __LINE__ );              \
+                              print = 0;                                       \
+                         }                                                     \
+                    } while (0)
+
+#define BUG(x)     fprintf( stderr, " (!?!)  *** BUG ALERT [%s] *** %s (%d)\n",\
+                            x, __FILE__, __LINE__ )
+
+#define CAUTION(x) fprintf( stderr, " (!!!)  *** CAUTION [%s] *** %s (%d)\n",  \
+                            x, __FILE__, __LINE__ )
+#endif
+
+
+
+#if defined(DFB_DEBUG) && !defined(DFB_NOTEXT)
 
      #include <misc/util.h>   /* for dfb_get_millis() */
      
@@ -93,26 +120,12 @@
                               }
 
 #else
-     #define HEAVYDEBUGMSG(x...)
-     #define DEBUGMSG(x...)
-     #define DFB_ASSERT(exp)
+     #define HEAVYDEBUGMSG(x...)   do { } while (0)
+     #define DEBUGMSG(x...)        do { } while (0)
+     #define DFB_ASSERT(exp)       do { } while (0)
 #endif
 
 
-#define ONCE(msg)   do {                                                       \
-                         static int print = 1;                                 \
-                         if (print) {                                          \
-                              fprintf( stderr, "(!) *** [%s] *** %s (%d)\n",   \
-                                       msg, __FILE__, __LINE__ );              \
-                              print = 0;                                       \
-                         }                                                     \
-                    } while (0)
-
-#define BUG(x)     fprintf( stderr, " (!?!)  *** BUG ALERT [%s] *** %s (%d)\n",\
-                            x, __FILE__, __LINE__ )
-
-#define CAUTION(x) fprintf( stderr, " (!!!)  *** CAUTION [%s] *** %s (%d)\n",  \
-                            x, __FILE__, __LINE__ )
 
 #endif
 

@@ -44,13 +44,13 @@
 
 
 #ifdef DFB_DEBUG
-#define FUSION_DEBUG
+#  define FUSION_DEBUG
 #endif
 
-#ifndef FUSION_DEBUG
-# define FDEBUG(x...) do {} while (0)
+#if !defined(FUSION_DEBUG) || defined(DFB_NOTEXT)
+#  define FDEBUG(x...)   do {} while (0)
 #else
-     #define FDEBUG(x...)   do { if (dfb_config->debug) {                      \
+#  define FDEBUG(x...)   do { if (dfb_config->debug) {                         \
                                  fprintf( stderr, "(-) [%d: %5lld] DirectFB/"  \
                                           "core/fusion: (%s) ", getpid(),      \
                                           fusion_get_millis(), __FUNCTION__ ); \
@@ -59,7 +59,11 @@
                             } } while (0)
 #endif
 
-#define FERROR(x...) do \
+#if defined(DFB_NOTEXT)
+#  define FERROR(x...)  do {} while (0)
+#  define FPERROR(x...) do {} while (0)
+#else
+#  define FERROR(x...) do \
 { \
      fprintf( stderr, "(!) [%d: %5lld] DirectFB/core/fusion: (%s) ",           \
               getpid(), fusion_get_millis(), __FUNCTION__ );                   \
@@ -67,7 +71,7 @@
      fflush( stderr );                                                         \
 } while (0)
 
-#define FPERROR(x...) do \
+#  define FPERROR(x...) do \
 { \
      fprintf( stderr, "(!) [%d: %5lld] DirectFB/core/fusion: (%s) ",           \
               getpid(), fusion_get_millis(), __FUNCTION__ );                   \
@@ -76,6 +80,7 @@
      perror("");                                                               \
      fflush( stderr );                                                         \
 } while (0)
+#endif
 
 
 /***************************************
