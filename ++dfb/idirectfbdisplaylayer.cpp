@@ -93,6 +93,14 @@ void IDirectFBDisplayLayer::SetScreenPosition (int x,
      DFBCHECK( iface->SetScreenPosition (iface, x, y) );
 }
 
+void IDirectFBDisplayLayer::SetScreenRectangle (int x,
+                                                int y,
+                                                int width,
+                                                int height)
+{
+     DFBCHECK( iface->SetScreenRectangle (iface, x, y, width, height) );
+}
+
 void IDirectFBDisplayLayer::SetSrcColorKey (__u8 r, __u8 g, __u8 b)
 {
      DFBCHECK( iface->SetSrcColorKey (iface, r, g, b) );

@@ -55,6 +55,10 @@ public:
                                                    float                           height);
      void                   SetScreenPosition     (int                             x,
                                                    int                             y);
+     void                   SetScreenRectangle    (int                             x,
+                                                   int                             y,
+                                                   int                             width,
+                                                   int                             height);
      void                   SetSrcColorKey        (__u8                            r,
                                                    __u8                            g,
                                                    __u8                            b);

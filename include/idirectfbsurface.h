@@ -118,8 +118,10 @@ public:
                                                  int                       y1,
                                                  int                       x2,
                                                  int                       y2);
-     void                   DrawLines           (DFBRegion                *lines,
+     void                   DrawLines           (const DFBRegion          *lines,
                                                  unsigned int              num_lines);
+     void                   FillRectangles      (const DFBRectangle       *rects,
+                                                 unsigned int              num_rects);
      void                   FillTriangle        (int                       x1,
                                                  int                       y1,
                                                  int                       x2,

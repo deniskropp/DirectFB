@@ -219,9 +219,14 @@ void IDirectFBSurface::DrawLine (int x1, int y1, int x2, int y2)
      DFBCHECK( iface->DrawLine (iface, x1, y1, x2, y2) );
 }
 
-void IDirectFBSurface::DrawLines (DFBRegion *lines, unsigned int num_lines)
+void IDirectFBSurface::DrawLines (const DFBRegion *lines, unsigned int num_lines)
 {
      DFBCHECK( iface->DrawLines (iface, lines, num_lines) );
+}
+
+void IDirectFBSurface::FillRectangles (const DFBRectangle *rects, unsigned int num_rects)
+{
+     DFBCHECK( iface->FillRectangles (iface, rects, num_rects) );
 }
 
 void IDirectFBSurface::FillTriangle (int x1, int y1,
