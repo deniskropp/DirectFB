@@ -85,7 +85,10 @@ DFBResult errno2dfb( int erno )
                return DFB_BUSY;
           case ENODEV:
           case ENXIO:
+#ifdef ENOTSUP
+          /* ENOTSUP is not defined on NetBSD */
           case ENOTSUP:
+#endif
                return DFB_UNSUPPORTED;
      }
 
