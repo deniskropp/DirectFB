@@ -44,6 +44,8 @@
 #include "video_out_dfb.h"
 
 
+
+
 static DFBResult Probe(IDirectFBVideoProvider_ProbeContext *ctx);
 
 static DFBResult Construct(IDirectFBVideoProvider *thiz, const char* filename);
@@ -553,13 +555,30 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 		xine_exit(data->xine);
 		return(DFB_FAILURE);
 	}
-
-	/* try alsa first */
-	data->ao = xine_open_audio_driver(data->xine, "alsa", NULL);
-	if(!data->ao)
+	
 	{
-		data->ao = xine_open_audio_driver(data->xine, "oss", NULL);
+		config_values_t* config    = data->xine->config;
+		const char* const* ao_list = NULL;
+		int audio_driver;
 
+		ao_list = xine_list_audio_output_plugins(data->xine);
+
+		if(ao_list)
+		{
+			audio_driver = config->register_enum(config,
+						"audio.driver", 0,
+						(char**) ao_list,
+						"Audio driver to use",
+						NULL, 0, NULL, NULL);
+
+			data->ao = xine_open_audio_driver(data->xine,
+						ao_list[audio_driver], NULL);
+		} else
+		{
+			data->ao = xine_open_audio_driver(data->xine,
+						"oss", NULL);
+		}
+		
 		if(!data->ao)
 		{
 			xine_close_video_driver(data->xine, data->vo);
@@ -567,7 +586,7 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 			return(DFB_FAILURE);
 		}
 	}
-
+	
 	data->stream = xine_stream_new(data->xine, data->ao, data->vo);
 	if(!data->stream)
 	{
@@ -601,41 +620,27 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 	/* init a post plugin if no video */
 	if(!xine_get_stream_info(data->stream, XINE_STREAM_INFO_HAS_VIDEO))
 	{
-		config_values_t* config = data->xine->config;
-		cfg_entry_t* entry      = NULL;
-		const char* post_plugin = NULL;
+		config_values_t* config      = data->xine->config;
+		const char* const* post_list = NULL;
+		int post_plugin;
 
-		entry = config->lookup_entry(config, "gui.post_audio_plugin");
+		post_list = xine_list_post_plugins_typed(data->xine,
+				XINE_POST_TYPE_AUDIO_VISUALIZATION);
 
-		if(entry)
-		{
-			post_plugin = (entry->type) ? entry->str_value
-						    : entry->unknown_value;
-		}
-
-		if(!post_plugin)
-		{
-			const char* const* post_list;
-
-			post_list = xine_list_post_plugins_typed(data->xine,
-					XINE_POST_TYPE_AUDIO_VISUALIZATION);
-
-			if(post_list)
-			{
-				post_plugin = config->register_string(config,
-						"gui.post_audio_plugin", post_list[0],
-						"Audio visualization plugin",
-						NULL, 0, NULL, NULL);
-			}
-		}
-
-		if(post_plugin)
+		if(post_list)
 		{
 			xine_audio_port_t* aos[2] = {data->ao, NULL};
 			xine_video_port_t* vos[2] = {data->vo, NULL};
-			
+
+			post_plugin = config->register_enum(config,
+						"gui.post_audio_plugin", 0,
+						(char**) post_list,
+						"Audio visualization plugin",
+						NULL, 0, NULL, NULL);
+
 			data->post = xine_post_init(data->xine,
-						post_plugin, 0, aos, vos);
+						post_list[post_plugin],
+						0, aos, vos);
 		}
 	}
 	
