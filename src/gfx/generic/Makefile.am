@@ -1,10 +1,10 @@
-## Makefile.am for DirectFB/src/gfx/gereric
+## Makefile.am for DirectFB/src/gfx/generic
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-CFLAGS = $(DFB_CFLAGS)
+CFLAGS = $(DFB_CFLAGS) $(DFB_CFLAGS_OMIT_FRAME_POINTER)
 
 noinst_LTLIBRARIES = libdirectfb_generic.la
 

@@ -123,7 +123,8 @@ if test "x$enable_debug" = xyes; then
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DDFB_DEBUG"
     DFB_CFLAGS="$DFB_CFLAGS -g3 -O0"
 else
-    DFB_CFLAGS="$DFB_CFLAGS -fomit-frame-pointer -g0 -O3"
+    DFB_CFLAGS="$DFB_CFLAGS -g0 -O3"
+    DFB_CFLAGS_OMIT_FRAME_POINTER="-fomit-frame-pointer"
 fi
 AM_CONDITIONAL(ENABLE_DEBUG, test "x$enable_debug" = xyes)
 
@@ -427,6 +428,7 @@ MODULEDIR=$libdir/directfb
 INTERNALINCLUDEDIR=$includedir/directfb-internal
 
 AC_SUBST(DFB_CFLAGS)
+AC_SUBST(DFB_CFLAGS_OMIT_FRAME_POINTER)
 AC_SUBST(DFB_LDFLAGS)
 AC_SUBST(DFB_CXXFLAGS)
 AC_SUBST(DFB_INTERNAL_CFLAGS)
