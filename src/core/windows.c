@@ -810,13 +810,9 @@ dfb_window_set_opacity( CoreWindow *window,
           
           /* If window disappeared... */
           if (!opacity) {
-               /* Detract focus if it's still focused */
-               if (stack->focused_window == window)
-                    switch_focus( stack, NULL );
-               
                /* Ungrab pointer/keyboard */
                window_withdraw( window );
-               
+
                /* Always try to have a focused window */
                ensure_focus( stack );
           }
@@ -937,6 +933,7 @@ dfb_window_ungrab_pointer( CoreWindow *window )
      if (stack->pointer_window == window) {
           stack->pointer_window = NULL;
 
+          /* Possibly change focus to window now under the cursor */
           handle_enter_leave_focus( stack );
      }
 
@@ -1368,8 +1365,16 @@ window_at_pointer( CoreWindowStack *stack,
 {
      int i;
 
-     if (!stack->cursor.enabled)
+     if (!stack->cursor.enabled) {
+          for (i=stack->num_windows-1; i>=0; i--) {
+               CoreWindow *window = stack->windows[i];
+
+               if (window->opacity && !(window->options & DWOP_GHOST))
+                    return window;
+          }
+
           return NULL;
+     }
 
      if (x < 0)
           x = stack->cursor.x;
@@ -1910,13 +1915,15 @@ static void
 window_restacked( CoreWindow *window )
 {
      if (window->opacity) {
-          DFBRegion region = { window->x, window->y,
-                               window->x + window->width - 1,
-                               window->y + window->height - 1 };
+          CoreWindowStack *stack  = window->stack;
+          DFBRegion        region = { window->x, window->y,
+                                      window->x + window->width - 1,
+                                      window->y + window->height - 1 };
 
-          repaint_stack( window->stack, &region, 0 );
+          repaint_stack( stack, &region, 0 );
 
-          handle_enter_leave_focus( window->stack );
+          /* Possibly change focus to window now under the cursor */
+          handle_enter_leave_focus( stack );
      }
 }
 

@@ -614,6 +614,8 @@ dfb_layer_enable( DisplayLayer *layer )
      if (shared->surface) {
           CoreSurface *surface = shared->surface;
 
+          dfb_surface_link( &shared->surface, surface );
+          
           /* attach palette listener and set default palette */
           if (surface->palette) {
                dfb_palette_link( &shared->palette, surface->palette );
@@ -679,11 +681,15 @@ dfb_layer_disable( DisplayLayer *layer )
      
      /* deallocate the surface */
      if (shared->surface) {
+          CoreSurface *surface = shared->surface;
+
           ret = deallocate_surface( layer );
           if (ret) {
                ERRORMSG("DirectFB/Core/layers: Surface deallocation failed!\n");
                return ret;
           }
+          
+          dfb_surface_unlink( surface );
      }
      
      shared->enabled = false;
