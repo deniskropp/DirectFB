@@ -35,6 +35,8 @@
 
 #include <termios.h>
 
+#include <sys/utsname.h>
+
 #include <directfb.h>
 
 #include <core/coredefs.h>
@@ -49,6 +51,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
+#include <direct/util.h>
 
 #include <core/input_driver.h>
 
@@ -75,8 +78,8 @@ DFB_INPUT_DRIVER( ps2mouse )
 #define PS2_ID_PS2       0
 #define PS2_ID_IMPS2     3
 
-static char *devname[3] = { "/dev/psaux", "/dev/input/mice", "/dev/misc/psaux" };
-static char *devlist[3] = { NULL, NULL, NULL };
+static int         ndev;
+static const char *devlist[8];
 
 typedef struct {
      int            fd;
@@ -368,32 +371,61 @@ init_ps2( int fd, bool verbose )
      return mouseId;
 }
 
+/**************************************************************************************************/
 
-/* exported symbols */
+static void
+check_devices( const char *devnames[], int num )
+{
+     int i, fd;
+
+     for (i=0; i<num; i++) {
+          if ((fd = open( devnames[i], O_RDWR | O_SYNC )) < 0)
+               continue;
+
+          if (init_ps2( fd, false ) < 0) {
+               close( fd );
+               continue;
+          }
+
+          devlist[ndev++] = devnames[i];
+
+          close( fd );
+
+          break;
+     }
+}
+
+#define CHECK_DEVICES(n)  check_devices( n, D_ARRAY_SIZE(n) )
+
+/**************************************************************************************************/
+
+static const char *dev_psaux[2] = { "/dev/psaux", "/dev/misc/psaux" };
+static const char *dev_input[1] = { "/dev/input/mice" };
+
+/**************************************************************************************************/
 
 static int
 driver_get_available()
 {
-     int fd;
-     int n_dev = 0;
-     int i;
+     struct utsname uts;
+     bool           check_psaux = true;
+     bool           check_input = true;
 
      if (dfb_system_type() != CORE_FBDEV)
           return 0;
 
-     for (i = 0; i < (int)(sizeof(devname) / sizeof(devname[0])); i++) {
-          fd = open( devname[i], O_RDWR | O_SYNC );
+     if (uname( &uts ) < 0)
+          D_PERROR( "DirectFB/PS2Mouse: uname() failed!\n" );
+     else if (!strncmp( uts.release, "2.6.", 4 ) || !strncmp( uts.release, "2.5.", 4 ))
+          check_psaux = false;
 
-          if (fd >= 0) {
-               if (init_ps2( fd, false ) >= 0) {
-                    devlist[n_dev] = devname[i];
-                    n_dev++;
-               }
-               close( fd );
-          }
-     }
+     if (check_psaux)
+          CHECK_DEVICES( dev_psaux );
 
-     return n_dev;
+     if (check_input)
+          CHECK_DEVICES( dev_input );
+
+     return ndev;
 }
 
 static void
@@ -405,14 +437,14 @@ driver_get_info( InputDriverInfo *info )
 
      snprintf( info->vendor,
                DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH,
-               "convergence integrated media GmbH" );
+               "Convergence GmbH" );
 
-     info->version.major = 0;
-     info->version.minor = 9;
+     info->version.major = 1;
+     info->version.minor = 0;
 }
 
 static DFBResult
-driver_open_device( CoreInputDevice      *device,
+driver_open_device( CoreInputDevice  *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
                     void            **driver_data )
