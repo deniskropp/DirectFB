@@ -48,6 +48,7 @@ extern "C" {
 
 #include <display/idirectfbsurface.h>
 
+#include <direct/messages.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
 
@@ -418,13 +419,14 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
           data->player->SetKillHandler( AviFile_KillCallback, data );
      }
      catch (FatalError e) {
-          ERRORMSG( "DirectFB/AviFile: CreateAviPlayer failed: %s\n",
+          D_ERROR( "DirectFB/AviFile: CreateAviPlayer failed: %s\n",
                     e.GetDesc() );
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 
-     ret = dfb_surface_create_preallocated( data->player->GetWidth(),
+     ret = dfb_surface_create_preallocated( NULL,
+                                            data->player->GetWidth(),
                                             data->player->GetHeight(),
                                             DSPF_RGB16, CSP_SYSTEMONLY,
                                             DSCAPS_SYSTEMONLY, NULL,
