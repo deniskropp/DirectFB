@@ -6662,7 +6662,7 @@
 		gfxdrivers/matrox/matrox_bes.c (1.3) (+6 -1)
 		gfxdrivers/matrox/matrox.h (1.4) (+5 -1)
 	
-	Added acceleration for older Matrox cards (Mystique and Millenium I & II).
+	Added acceleration for older Matrox cards (Mystique and Millennium I & II).
 	Tested on a Mystique with SGRAM
 	
 	Supported are:

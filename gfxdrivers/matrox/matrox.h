@@ -56,7 +56,7 @@ typedef struct {
 } MatroxDriverData;
 
 typedef struct {
-     /* Old cards are older than G200/G400, e.g. Mystique or Millenium */
+     /* Old cards are older than G200/G400, e.g. Mystique or Millennium */
      int old_matrox;
 
      /* FIFO Monitoring */

@@ -84,7 +84,7 @@ static void matroxFlushTextureCache( void *drv, void *dev )
      mga_out32( mdrv->mmio_base, 0, TEXORG1 );
 }
 
-/* Old cards (Mystique, Millenium, ...) */
+/* Old cards (Mystique, Millennium, ...) */
 
 #define MATROX_OLD_DRAWING_FLAGS            (DSDRAW_NOFX)
 
@@ -798,10 +798,10 @@ static int
 driver_probe( GraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
-          case FB_ACCEL_MATROX_MGA2064W:     /* Matrox MGA2064W (Millenium)   */
+          case FB_ACCEL_MATROX_MGA2064W:     /* Matrox MGA2064W (Millennium)   */
           case FB_ACCEL_MATROX_MGA1064SG:    /* Matrox MGA1064SG (Mystique)   */
-          case FB_ACCEL_MATROX_MGA2164W:     /* Matrox MGA2164W (Millenium II)*/
-          case FB_ACCEL_MATROX_MGA2164W_AGP: /* Matrox MGA2164W (Millenium II)*/
+          case FB_ACCEL_MATROX_MGA2164W:     /* Matrox MGA2164W (Millennium II)*/
+          case FB_ACCEL_MATROX_MGA2164W_AGP: /* Matrox MGA2164W (Millennium II)*/
           case FB_ACCEL_MATROX_MGAG100:      /* Matrox G100                   */
           case FB_ACCEL_MATROX_MGAG200:      /* Matrox G200 (Myst, Mill, ...) */
 #ifdef FB_ACCEL_MATROX_MGAG400
@@ -820,7 +820,7 @@ driver_get_info( GraphicsDevice     *device,
      /* fill driver info structure */
      snprintf( info->name,
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
-               "Matrox G550/G450/G400/G200/G100/Millenium/Mystique Driver" );
+               "Matrox G550/G450/G400/G200/G100/Millennium/Mystique Driver" );
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
@@ -919,7 +919,7 @@ driver_init_device( GraphicsDevice     *device,
           case FB_ACCEL_MATROX_MGA2064W:
                mdev->old_matrox = 1;
                snprintf( device_info->name,
-                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millenium I" );
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium I" );
                break;
           case FB_ACCEL_MATROX_MGA1064SG:
                mdev->old_matrox = 1;
@@ -930,7 +930,7 @@ driver_init_device( GraphicsDevice     *device,
           case FB_ACCEL_MATROX_MGA2164W_AGP:
                mdev->old_matrox = 1;
                snprintf( device_info->name,
-                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millenium II" );
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium II" );
                break;
      }
 

@@ -218,7 +218,7 @@
 
 - Added deinterlacing for interlaced video sources to Matrox Backend Scaler.
 - Added DSPF_UYVY and clarified description of both YUV formats.
-- Added acceleration for Matrox Mystique, Millenium I&II, G100.
+- Added acceleration for Matrox Mystique, Millennium I&II, G100.
 - Added support for YUV in V4L video provider.
 - Added support for deinterlacing in df_layer example.
 - Added option "--fbdev=<device>" to specify another device than "/dev/fb0".
