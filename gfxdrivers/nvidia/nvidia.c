@@ -38,6 +38,10 @@
 
 #include <linux/fb.h>
 
+#ifdef USE_SYSFS
+# include <sysfs/libsysfs.h>
+#endif
+
 #include <directfb.h>
 
 #include <direct/messages.h>
@@ -636,65 +640,99 @@ driver_get_info( GraphicsDevice     *device,
      info->device_data_size = sizeof (NVidiaDeviceData);
 }
 
-
-#define PCI_LIST  "/proc/bus/pci/devices"
-
 static void
 nv_find_architecture( NVidiaDriverData *nvdrv )
 {
-     FILE *fp;
      char  buf[512];
-     __u32 device;
-     __u32 vendor;
-     __u32 model;
-     __u32 arch = 0;
+     __u32 model = 0;
+     __u32 arch  = 0;
 
-     /* TODO: sysfs support */
+#ifdef USE_SYSFS
+     if (!sysfs_get_mnt_path( buf, 512 )) {
+          struct dlist           *devices;
+          struct sysfs_device    *dev;
+          struct sysfs_attribute *attr;
 
-     fp = fopen( PCI_LIST, "r" );
-     if (!fp) {
-          D_PERROR( "DirectFB/NVidia: couldn't access " PCI_LIST );
-          return;
+          devices = sysfs_open_bus_devices_list( "pci" );
+          if (devices) {
+               dlist_for_each_data( devices, dev, struct sysfs_device ) {
+                    dev = sysfs_open_device( "pci", dev->name );
+                    if (!dev)
+                         continue;
+
+                    attr = sysfs_get_device_attr( dev, "vendor" );
+                    if (!attr || strncasecmp( attr->value, "0x10de", 6 )) {
+                         sysfs_close_device( dev );
+                         continue;
+                    }
+
+                    attr = sysfs_get_device_attr( dev, "device" );
+                    if (attr)
+                         sscanf( attr->value, "0x%04x", &model );
+
+                    sysfs_close_device( dev );
+                    break;
+               }
+
+               sysfs_close_list( devices );
+          }
      }
+#endif /* USE_SYSFS */
 
-     while (fgets( buf, 512, fp )) {
-          if (sscanf( buf, "%04x\t%04x%04x", &device, &vendor, &model ) != 3)
-               continue;
-          if (vendor != 0x10DE )
-               continue;
+     /* try /proc interface */
+     if (!model) {
+          FILE  *fp;
+          __u32  device;
+          __u32  vendor;
 
-          switch (model) {
-               case 0x0020:
-                    arch = NV_ARCH04;
-                    break;
-               case 0x0028 ... 0x00A0:
-                    arch = NV_ARCH05;
-                    break;
-               case 0x0100 ... 0x0103:
-                    arch = NV_ARCH10;
-                    break;
-               case 0x0110 ... 0x0153:
-                    arch = NV_ARCH11;
-                    break;
-               case 0x0200 ... 0x0203:
-                    arch = NV_ARCH20;
-                    break;
-               default:
-                    break;
+          fp = fopen( "/proc/bus/pci/devices", "r" );
+          if (!fp) {
+               D_PERROR( "DirectFB/NVidia: "
+                         "couldn't access /proc/bus/pci/devices!\n" );
+               return;
           }
 
-          if (arch) {
-               nvdrv->arch = arch;
-               D_INFO( "DirectFB/NVidia: "
-                       "found nVidia Architecture %02x\n", arch );
-          } else
-               D_INFO( "DirectFB/NVidia: "
-                       "assuming nVidia Architecture 04\n" );
+          while (fgets( buf, 512, fp )) {
+               if (sscanf( buf, "%04x\t%04x%04x",
+                              &device, &vendor, &model ) != 3)
+                    continue;
 
-          break;
+               if (vendor == 0x10DE)
+                    break;
+
+               model = 0;
+          }
+
+          fclose( fp );
      }
 
-     fclose( fp );
+     switch (model) {
+          case 0x0020:
+               arch = NV_ARCH04;
+               break;
+          case 0x0028 ... 0x00A0:
+               arch = NV_ARCH05;
+               break;
+          case 0x0100 ... 0x0103:
+               arch = NV_ARCH10;
+               break;
+          case 0x0110 ... 0x0153:
+               arch = NV_ARCH11;
+               break;
+          case 0x0200 ... 0x0203:
+               arch = NV_ARCH20;
+               break;
+          default:
+               break;
+     }
+
+     if (arch) {
+          nvdrv->arch = arch;
+          D_INFO( "DirectFB/NVidia: "
+                  "found nVidia Architecture %02x\n", arch );
+     } else
+          D_INFO( "DirectFB/NVidia: "
+                  "assuming nVidia Architecture 04\n" );
 }
 
 static DFBResult

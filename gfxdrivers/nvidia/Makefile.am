@@ -17,6 +17,7 @@ libdirectfb_nvidia_la_SOURCES =	\
 	nvidia_tables.h
 
 libdirectfb_nvidia_la_LDFLAGS = \
-        -export-dynamic		\
+     $(SYSFS_LIBS)       \
+     -export-dynamic	\
 	-avoid-version		\
-        $(DFB_LDFLAGS) -lm
+     $(DFB_LDFLAGS) -lm
