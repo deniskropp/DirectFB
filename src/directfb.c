@@ -95,15 +95,6 @@ DFBResult DirectFBInit( int *argc, char **argv[] )
      if (ret)
           return ret;
      
-     if (!config->quiet && !config->no_banner) {
-          printf( "\n" );
-          printf( "       ----------------------- DirectFB v%d.%d.%d ---------------------\n",
-                  DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
-          printf( "                (c)2000  convergence integrated media GmbH  \n" );
-          printf( "        -----------------------------------------------------------\n" );
-          printf( "\n" );
-     }
-
      return DFB_OK;
 }
 
@@ -127,6 +118,15 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           return DFB_OK;
      }
 
+     if (!config->quiet && !config->no_banner) {
+          printf( "\n" );
+          printf( "       ----------------------- DirectFB v%d.%d.%d ---------------------\n",
+                  DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
+          printf( "                (c)2000  convergence integrated media GmbH  \n" );
+          printf( "        -----------------------------------------------------------\n" );
+          printf( "\n" );
+     }
+     
      ret = core_init();
      if (ret)
           return ret;
