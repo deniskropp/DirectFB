@@ -459,6 +459,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           case DSPF_UYVY:
           case DSPF_YUY2:
           case DSPF_YV12:
+          case DSPF_NV12:
+          case DSPF_NV16:
                break;
 
           default:
