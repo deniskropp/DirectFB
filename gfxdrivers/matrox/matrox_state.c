@@ -412,7 +412,10 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
 
      mga_waitfifo( mdrv, mdev, 2);
 
-     mga_out32( mmio, 0xFFFFFFFF /*mask*/, BCOL );
+     if (DFB_BYTES_PER_PIXEL(state->source->format) > 2)
+          mga_out32( mmio, mask, BCOL );
+     else
+          mga_out32( mmio, 0xFFFFFFFF, BCOL );
 
      switch (DFB_BYTES_PER_PIXEL(state->source->format)) {
           case 1:
@@ -424,8 +427,6 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
                mga_out32( mmio, key | (key << 16), FCOL );
                break;
           case 3:
-               mga_out32( mmio, key | (key << 24), FCOL );
-               break;
           case 4:
                mga_out32( mmio, key, FCOL );
                break;
