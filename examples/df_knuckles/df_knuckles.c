@@ -26,11 +26,11 @@ IDirectFBInputDevice *mouse;
 IDirectFBInputBuffer *mouse_buffer;
 
 
-Bool	BackfaceCull = True;
-Bool	DoubleBuffer = True;
-Bool	Lighting = True;
+Bool	BackfaceCull  = False;
+Bool	DoubleBuffer  = True;
+Bool	Lighting      = True;
 int	PrimitiveType = FLAT_SHADED;
-float	ScaleFactor = 1.0;
+float	ScaleFactor   = 1.0;
 
 unsigned int Width, Height;
 
@@ -179,7 +179,6 @@ static void DrawIt (void)
       current++;
       points++;
     }
-   
 
   while(first)
     {
@@ -196,9 +195,9 @@ static void DrawIt (void)
 		     (first->normal.z * Light1.z)) / length;
           light1 = CLAMP (light1, 0.0, 1.0);
 
-          light2 = -((first->normal.x * Light2.x) +
-                     (first->normal.y * Light2.y) +
-                     (first->normal.z * Light2.z)) / length;
+          light2 = abs((first->normal.x * Light2.x) +
+                       (first->normal.y * Light2.y) +
+                       (first->normal.z * Light2.z)) / length;
           light2 = CLAMP (light2, 0.0, 1.0);
 	}
       else
@@ -336,6 +335,10 @@ int main (int argc, char *argv[])
                 PrimitiveType = WIRE_FRAME;
               else
                 PrimitiveType = FLAT_SHADED;
+              break;
+
+            case DIKC_B:
+              BackfaceCull = !BackfaceCull;
               break;
 
             case DIKC_ESCAPE:
