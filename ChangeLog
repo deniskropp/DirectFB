@@ -1,3 +1,191 @@
+2005-02-23   dok	12:24:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/h3600_ts/h3600_ts.c (1.21) (+2 -2)
+	
+	Show the correct device in error messages.
+	
+2005-02-23   dok	10:57:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/mutouch/mutouch.c (1.8) (+6 -4)
+		src/misc/conf.h (1.55) (+4 -0)
+		src/misc/conf.c (1.95) (+26 -0)
+	
+	Added option "h3600-device", keeping the default of "/dev/ts".
+	
+	Added option "mut-device" which must be used to enable the driver.
+	
+2005-02-23   dok	10:57:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/h3600_ts/h3600_ts.c (1.20) (+2 -2)
+	
+	Added option "h3600-device", keeping the default of "/dev/ts".
+	
+	Added option "mut-device" which must be used to enable the driver.
+	
+2005-02-23   dok	10:09:20	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/types.h (1.12) (+1 -1)
+	
+	Put this around bool enum declaration instead of #ifndef __cplusplus:
+	
+	#if !defined(__cplusplus) && !defined(__bool_true_false_are_defined)
+	
+2005-02-23   dok	10:06:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layer_context.c (1.44) (+13 -2)
+	
+	Restore color adjustment when (re)activating a context.
+	
+2005-02-22   klan	14:13:32	
+
+	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.27) (+6 -2)
+	
+	Swap video buffers in single buffermode, too.
+	
+2005-02-22   syrjala	14:12:49	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/layer_control.c (1.12) (+2 -6)
+	
+	Activate the most recent context instead of the primary context when the current context is removed.
+	
+2005-02-22   dok	12:57:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.263) (+112 -97)
+		src/display/idirectfbdisplaylayer.c (1.77) (+40 -16)
+		src/core/layer_context.h (1.14) (+3 -0)
+		src/core/layer_context.c (1.43) (+42 -0)
+	
+	Added IDirectFBDisplayLayer::SetScreenRectangle().
+	
+	Rearranged some function pointers in IDirectFBDisplayLayer.
+	
+2005-02-22   dok	12:28:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.262) (+12 -2)
+		src/display/idirectfbscreen.c (1.8) (+3 -0)
+	
+	Added DSECAPS_BRIGHTNESS, DSECAPS_CONTRAST, DSECAPS_HUE, DSECAPS_SATURATION.
+	
+	Added DSECONF_ADJUSTMENT to DFBScreenEncoderConfigFlags.
+	Added 'DFBColorAdjustment adjustment' to DFBScreenEncoderConfig.
+	
+2005-02-22   dok	12:26:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbdisplaylayer.c (1.76) (+10 -1)
+	
+	Check capabilities in SetScreenLocation(), SetScreenPosition() and SetLevel().
+	
+2005-02-22   klan	11:40:34	
+
+	Files:	gfxdrivers/nvidia/nvidia_2d.c (1.15) (+16 -16)
+	
+	Do not round up X coordinate for 422 formats.
+	
+2005-02-22   dok	11:31:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.261) (+1 -1)
+	
+	Fixed DLCAPS_ALL.
+	
+2005-02-22   syrjala	09:53:09	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.h (1.36) (+2 -0)
+		gfxdrivers/matrox/matrox_state.c (1.52) (+37 -3)
+	
+	YUY2/UYVY FillRectangle(), Blit() and StretchBlit().
+	
+2005-02-22   syrjala	09:53:08	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.81) (+119 -17)
+	
+	YUY2/UYVY FillRectangle(), Blit() and StretchBlit().
+	
+2005-02-21   klan	21:07:03	
+
+	Files:	gfxdrivers/nvidia/nvidia.c (1.73) (+52 -24)
+		gfxdrivers/nvidia/nvidia_2d.c (1.14) (+44 -13)
+		gfxdrivers/nvidia/nvidia.h (1.34) (+2 -1)
+	
+	Removed DrawRectangle(),FillTriangle(),DrawLine() for YUY2/UYVY (don't work properly).
+	Added an hack to do StretchBlit() on YUV422 (result is almost acceptable).
+	
+2005-02-21   dok	13:36:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	wm/default/default.c (1.18) (+25 -9)
+	
+	Implemented hw window resizing.
+	
+2005-02-21   dok	12:06:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	wm/default/default.c (1.17) (+9 -4)
+	
+	Propagate error to application if window movement failed.
+	
+2005-02-21   dok	11:36:01	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	wm/default/default.c (1.16) (+11 -1)
+	
+	Handle error if dfb_layer_region_set_configuration() failed to move a hw window.
+	
+2005-02-21   klan	09:10:25	
+
+	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.26) (+146 -177)
+	
+	No longer return a surface stored in system memory for YUY2 and UYVY;
+	return directly the video surface instead
+	
+2005-02-21   klan	09:08:56	
+
+	Files:	gfxdrivers/nvidia/nvidia.c (1.72) (+63 -1)
+	
+	Added FillRectangle(),DrawRectangle(),FillTriangle(),DrawLine(),Blit()
+	(without effects) for YUY2 and UYVY.
+	
+2005-02-21   klan	09:07:09	
+
+	Files:	src/gfx/generic/generic.c (1.167) (+16 -20)
+	
+	Optimized Bop_yuy2_Sto_Aop() and Bop_uyvy_Sto_Aop().
+	
+2005-02-21   dok	00:22:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.55) (+75 -0)
+		tools/dfbdump.c (1.43) (+3 -3)
+		src/core/layers_internal.h (1.13) (+13 -1)
+		src/core/layers.c (1.148) (+7 -0)
+		src/core/layer_context.c (1.42) (+40 -16)
+		src/core/core.h (1.20) (+4 -0)
+		src/core/core.c (1.118) (+0 -2)
+		include/directfb.h (1.260) (+3 -0)
+	
+	Added DLCAPS_SCREEN_POSITION and DLCAPS_SCREEN_SIZE.
+	These are set if DLCAPS_SCREEN_LOCATION is set and vice versa.
+	
+	Unscalable layers just have DLCAPS_SCREEN_POSITION.
+	
+	
+	Store normalized and pixel based destination area
+	in a layer context.
+	
+	Added CoreLayerLayoutMode which defines incorporation of
+	configuration based size changes and destination area values.
+	
+	+     CLLM_LOCATION,      /* Keep normalized area. */
+	+     CLLM_CENTER,        /* Center layer after resizing destination area. */
+	+     CLLM_POSITION,      /* Keep pixel position, but resize area. */
+	+     CLLM_RECTANGLE      /* Keep pixel based area. */
+	
+	
+	Default for layers with DLCAPS_SCREEN_POSITION only is CENTER,
+	otherwise it's LOCATION.
+	
+	After calling SetScreenPosition(), mode is POSITION.
+	
+	After calling SetScreenLocation(), mode is LOCATION.
+	
+	
+	Moved core abi definition to header file.
+	
 2005-02-18   syrjala	22:08:40	Ville Syrjala <syrjala@sci.fi>
 
 	Files:	gfxdrivers/matrox/matrox.h (1.35) (+3 -7)
@@ -138,20 +326,20 @@
 	
 	dfb_surface_reconfig() was still leaking video memory via depth buffer.
 	
-2005-02-16   klan	08:45:31	Claudio Ciccani <klan82@cheapnet.it>
+2005-02-16   klan	08:45:31	
 
 	Files:	src/gfx/convert.h (1.28) (+15 -0)
 		src/gfx/generic/generic.c (1.166) (+203 -129)
 	
 	Fixed YUV422 handling on big-endian architectures.
 	
-2005-02-15   klan	09:16:03	Claudio Ciccani <klan82@cheapnet.it>
+2005-02-15   klan	09:16:03	
 
 	Files:	gfxdrivers/nvidia/nvidia_3d.c (1.10) (+0 -4)
 	
 	Removed macro ARGB_TO_ARGB4444.
 	
-2005-02-15   klan	09:14:48	Claudio Ciccani <klan82@cheapnet.it>
+2005-02-15   klan	09:14:48	
 
 	Files:	src/gfx/generic/generic_mmx.h (1.8) (+10 -4)
 	
@@ -653,7 +841,7 @@
 	
 	Show the layer level if supported.
 	
-2005-01-13   klan	21:01:21	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-13   klan	21:01:21	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.71) (+31 -18)
 		gfxdrivers/nvidia/nvidia_3d.c (1.9) (+17 -28)
@@ -662,13 +850,13 @@
 	
 	Additional small optimizations.
 	
-2005-01-13   klan	14:43:21	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-13   klan	14:43:21	
 
 	Files:	gfxdrivers/nvidia/nvidia_3d.c (1.8) (+20 -5)
 	
 	Further optimizations: reset drawing/blitting operation only when operation mode changes.
 	
-2005-01-13   klan	14:43:20	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-13   klan	14:43:20	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.70) (+173 -268)
 		gfxdrivers/nvidia/nvidia_2d.c (1.12) (+33 -11)
@@ -784,7 +972,7 @@
 	
 	Added clean-local rule to remove the binary and the header file.
 	
-2005-01-10   klan	19:07:35	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-10   klan	19:07:35	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.69) (+10 -6)
 		gfxdrivers/nvidia/nvidia_2d.c (1.11) (+6 -4)
@@ -792,13 +980,13 @@
 	
 	Fixed StretchBlit clipping.
 	
-2005-01-09   klan	18:50:54	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-09   klan	18:50:54	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.68) (+4 -4)
 	
 	Enable dithering by default.
 	
-2005-01-09   klan	12:05:52	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-09   klan	12:05:52	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.67) (+178 -157)
 		gfxdrivers/nvidia/nvidia_2d.c (1.10) (+24 -4)
@@ -808,25 +996,25 @@
 	Great performance improvements: it's possible to move a translucent window
 	at 32bpp while the cpu stays idle.
 	
-2005-01-09   klan	12:02:36	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-09   klan	12:02:36	
 
 	Files:	gfxdrivers/nvidia/nvidia_primary.c (1.9) (+40 -16)
 	
 	Killed a FIXME: detect screen resolution from registers.
 	
-2005-01-06   klan	20:48:04	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-06   klan	20:48:04	
 
 	Files:	src/gfx/generic/generic.c (1.161) (+16 -6)
 	
 	YUV to YUV conversion is not supported.
 	
-2005-01-06   klan	20:47:19	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-06   klan	20:47:19	
 
 	Files:	src/gfx/generic/generic_mmx.h (1.7) (+4 -5)
 	
 	Removed an unused array.
 	
-2005-01-05   klan	10:40:06	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-05   klan	10:40:06	
 
 	Files:	src/gfx/generic/Makefile.am (1.16) (+9 -1)
 		src/gfx/generic/yuvtbl.h (1.1) ( )
@@ -839,7 +1027,7 @@
 	we use four lookup tables generated at compilation time by yuvtbl-gen.
 	Make sure accumulator is aligned to 8.
 	
-2005-01-05   klan	10:40:05	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-05   klan	10:40:05	
 
 	Files:	src/gfx/convert.c (1.16) (+9 -0)
 	
@@ -853,7 +1041,7 @@
 	
 	Try to fix kerning bug on PPC using explicit type casts.
 	
-2005-01-01   klan	14:48:05	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-01   klan	14:48:05	
 
 	Files:	gfxdrivers/nvidia/nvidia_2d.c (1.9) (+1 -1)
 		patches/rivafb-nv20fix-2.6.9.patch.bz2 (1.1) ( )
@@ -869,7 +1057,7 @@
 	work on NV20 chipset:
 	it was another rivafb bug, therefore the rivafb-nv20fix-* patch is absolutely required.
 	
-2005-01-01   klan	14:48:04	Claudio Ciccani <klan82@cheapnet.it>
+2005-01-01   klan	14:48:04	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.66) (+9 -11)
 		gfxdrivers/nvidia/nvidia.h (1.29) (+1 -1)
@@ -887,7 +1075,7 @@
 	Thanks to "Mws <mws@twisted-brains.org>" for this patch that adds a
 	configure option "--with-inputdrivers=<...>"!
 	
-2004-12-29   klan	10:38:07	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-29   klan	10:38:07	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.65) (+400 -235)
 		gfxdrivers/nvidia/nvidia_primary.c (1.7) (+3 -6)
@@ -1052,7 +1240,7 @@
 	
 	Added keyboard LED support.
 	
-2004-12-14   klan	15:47:27	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-14   klan	15:47:27	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.64) (+2 -2)
 		gfxdrivers/nvidia/nvidia_3d.c (1.6) (+8 -0)
@@ -1060,7 +1248,7 @@
 	Respect endianess when converting surface to texture.
 	Fixed a typo.
 	
-2004-12-13   klan	09:58:17	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-13   klan	09:58:17	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.63) (+126 -16)
 		gfxdrivers/nvidia/nvidia.h (1.27) (+5 -4)
@@ -1085,26 +1273,26 @@
 	
 	Don't check for directfb-csource at all, if UniQuE is disabled.
 	
-2004-12-10   klan	22:21:58	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-10   klan	22:21:58	
 
 	Files:	src/gfx/generic/generic_mmx.h (1.5) (+5 -5)
 	
 	Fixed segfault in Sop_argb_Sto_Dacc_MMX() when DirectFB is compiled with trace support:
 	use edx instead of ebx.
 	
-2004-12-10   klan	11:12:55	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-10   klan	11:12:55	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.62) (+4 -0)
 	
 	Wait idle before setting alpha and color (Beta1 and Beta4).
 	
-2004-12-09   klan	21:41:51	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-09   klan	21:41:51	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.61) (+3 -3)
 	
 	Avoid division by zero during performance monitoring report.
 	
-2004-12-09   klan	20:35:44	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-09   klan	20:35:44	
 
 	Files:	gfxdrivers/nvidia/nvidia_mmio.h (1.3) (+11 -2)
 		gfxdrivers/nvidia/nvidia_tables.h (1.10) (+2 -1)
@@ -1112,19 +1300,19 @@
 	Set nv_waitidle() cycles limit to 10000000.
 	No longer compile in unsed tables.
 	
-2004-12-09   klan	16:23:00	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-09   klan	16:23:00	
 
 	Files:	src/core/surfaces.c (1.112) (+94 -26)
 	
 	Added support for A8,YUY2 and UYVY surfaces in dfb_surface_dump().
 	
-2004-12-08   klan	14:20:06	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-08   klan	14:20:06	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.60) (+1 -1)
 	
 	Use ScaledImageFromMemory 0x77 instead of 0x89 for NV10/NV20.
 	
-2004-12-08   klan	10:42:16	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-08   klan	10:42:16	
 
 	Files:	gfxdrivers/nvidia/nvidia.h (1.26) (+1 -0)
 		gfxdrivers/nvidia/nvidia_overlay.c (1.24) (+5 -5)
@@ -1137,7 +1325,7 @@
 	
 	Added Alphachannel Blend support (!!!!).
 	
-2004-12-08   klan	10:42:15	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-08   klan	10:42:15	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.59) (+271 -225)
 	
@@ -1147,27 +1335,27 @@
 	
 	Added Alphachannel Blend support (!!!!).
 	
-2004-12-05   klan	18:40:34	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-05   klan	18:40:34	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.58) (+11 -6)
 	
 	Revert to previous method in CheckState() and return if DFXL_TEXTRIANGLES is
 	passed to nv20CheckState().
 	
-2004-12-05   klan	18:15:46	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-05   klan	18:15:46	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.57) (+12 -23)
 	
 	Cleanup & some bugfixes:
 	acceleration was not set correctly in CheckState().
 	
-2004-12-05   klan	17:58:33	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-05   klan	17:58:33	
 
 	Files:	src/display/idirectfbsurface.c (1.103) (+1 -0)
 	
 	DFXL_TEXTRIANGLES was not checked in IDirectFBSurface::GetAccelerationMask().
 	
-2004-12-05   klan	11:02:41	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-05   klan	11:02:41	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.56) (+36 -80)
 		gfxdrivers/nvidia/nvidia_3d.h (1.3) (+2 -76)
@@ -1211,7 +1399,7 @@
 	
 	Added dummy functions for encoder and output configurations.
 	
-2004-12-03   klan	18:25:05	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-03   klan	18:25:05	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.55) (+50 -8)
 		patches/rivafb-smemlen-linux-2.4.26.patch.bz2 (1.2) (+0 -0)
@@ -1220,7 +1408,7 @@
 	Reserve unusable memory at the of framebuffer during device initialization;
 	kernel patches are no longer required.
 	
-2004-12-03   klan	14:26:55	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-03   klan	14:26:55	
 
 	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.23) (+10 -1)
 	
@@ -1232,7 +1420,7 @@
 	
 	Added option "-L, --level <level>".
 	
-2004-12-03   klan	09:58:30	Claudio Ciccani <klan82@cheapnet.it>
+2004-12-03   klan	09:58:30	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.54) (+176 -136)
 		gfxdrivers/nvidia/nvidia_tables.h (1.9) (+3 -151)
@@ -1373,7 +1561,7 @@
 	
 	Added layer sources to dfbinfo.
 	
-2004-11-30   klan	11:36:49	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-30   klan	11:36:49	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.53) (+13 -9)
 		gfxdrivers/nvidia/nvidia_tables.h (1.8) (+8 -8)
@@ -1388,7 +1576,7 @@
 	
 	Code lifting.
 	
-2004-11-28   klan	22:21:34	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-28   klan	22:21:34	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.52) (+2 -6)
 	
@@ -1409,13 +1597,13 @@
 	
 	Hotfix missing functions in the Matrox driver.
 	
-2004-11-28   klan	20:00:24	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-28   klan	20:00:24	
 
 	Files:	gfxdrivers/nvidia/nvidia_mmio.h (1.1) ( )
 	
 	Forgot to add nvidia_mmio.h.
 	
-2004-11-28   klan	16:40:49	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-28   klan	16:40:49	
 
 	Files:	gfxdrivers/nvidia/nvidia.h (1.22) (+39 -54)
 		gfxdrivers/nvidia/nvidia_primary.c (1.6) (+22 -20)
@@ -1431,7 +1619,7 @@
 	
 	General cleanup.
 	
-2004-11-28   klan	16:40:48	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-28   klan	16:40:48	
 
 	Files:	gfxdrivers/nvidia/Makefile.am (1.13) (+1 -0)
 		gfxdrivers/nvidia/nvidia.c (1.51) (+331 -136)
@@ -1594,7 +1782,7 @@
 	
 	Segfault should be fixed now.
 	
-2004-11-22   klan	16:16:14	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-22   klan	16:16:14	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.50) (+4 -4)
 		gfxdrivers/nvidia/nvidia_2d.c (1.4) (+1 -3)
@@ -1609,7 +1797,7 @@
 	
 	Commented out an assertion.
 	
-2004-11-21   klan	18:01:57	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-21   klan	18:01:57	
 
 	Files:	gfxdrivers/nvidia/nvidia_2d.c (1.3) (+2 -3)
 		gfxdrivers/nvidia/nvidia_tables.h (1.7) (+1 -1)
@@ -1982,19 +2170,19 @@
 	in which case the idle buffer might be still shown and should not be written
 	to.
 	
-2004-11-20   klan	17:59:20	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-20   klan	17:59:20	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.49) (+16 -3)
 	
 	Added experimental support for Colorizing.
 	
-2004-11-20   klan	10:45:28	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-20   klan	10:45:28	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.48) (+1 -1)
 	
 	Accidentally byteoffset_alignment was reset to 128.
 	
-2004-11-20   klan	10:38:24	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-20   klan	10:38:24	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.47) (+319 -272)
 		gfxdrivers/nvidia/nvidia_primary.c (1.4) (+17 -32)
@@ -2326,7 +2514,7 @@
 	about the window configuration in sync with ours.
 	This workaround will be obsolete soon.
 	
-2004-11-09   klan	18:50:10	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-09   klan	18:50:10	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.46) (+4 -3)
 	
@@ -2522,19 +2710,19 @@
 	
 	Added D_FLAGS_ARE_IN(flags,f) to check that any set flags are contained in 'f'.
 	
-2004-11-08   klan	17:39:02	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-08   klan	17:39:02	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.45) (+2 -0)
 	
 	Work around on ram amount detection on Xbox.
 	
-2004-11-08   klan	14:13:20	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-08   klan	14:13:20	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.44) (+1 -26)
 	
 	Fixed offset mask calculation.
 	
-2004-11-08   klan	13:42:05	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-08   klan	13:42:05	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.43) (+38 -11)
 		gfxdrivers/nvidia/nvidia_primary.c (1.3) (+2 -4)
@@ -2563,7 +2751,7 @@
 	
 	Fix compile error with single app core.
 	
-2004-11-07   klan	16:12:47	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-07   klan	16:12:47	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.42) (+7 -3)
 	
@@ -2942,13 +3130,13 @@
 	
 	Minor API cleanups, e.g. adding return values (DFBResult).
 	
-2004-11-06   klan	13:33:40	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-06   klan	13:33:40	
 
 	Files:	gfxdrivers/nvidia/nvidia_primary.c (1.2) (+10 -10)
 	
 	Attempt to make the driver work with GeForce3/4 and XBox.
 	
-2004-11-06   klan	13:33:39	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-06   klan	13:33:39	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.41) (+222 -62)
 		gfxdrivers/nvidia/nvidia_overlay.c (1.18) (+14 -6)
@@ -3015,7 +3203,7 @@
 	
 	Build tools before wm.
 	
-2004-11-05   klan	17:51:40	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-05   klan	17:51:40	
 
 	Files:	gfxdrivers/nvidia/nvidia_3d.h (1.1) ( )
 		gfxdrivers/nvidia/nvidia_tables.h (1.6) (+243 -21)
@@ -3029,7 +3217,7 @@
 	
 	Switch to version 0.3.
 	
-2004-11-05   klan	17:51:39	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-05   klan	17:51:39	
 
 	Files:	gfxdrivers/nvidia/Makefile.am (1.12) (+14 -9)
 		gfxdrivers/nvidia/nvidia_3d.c (1.1) ( )
@@ -3065,7 +3253,7 @@
 	
 	Use old allocation behaviour, but fix the static assignment of Sacc and Dacc.
 	
-2004-11-05   klan	11:04:08	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-05   klan	11:04:08	
 
 	Files:	src/gfx/generic/generic.c (1.157) (+51 -44)
 	
@@ -3288,7 +3476,7 @@
 	
 	Fixed author parsing (did the cvs log format change?).
 	
-2004-11-01   klan	16:57:29	Claudio Ciccani <klan82@cheapnet.it>
+2004-11-01   klan	16:57:29	
 
 	Files:	src/gfx/generic/Makefile.am (1.15) (+5 -0)
 	
@@ -3492,7 +3680,7 @@
 	
 	Added some DFB_REGION_ASSERT where appropriate.
 	
-2004-10-31   klan	14:33:51	Claudio Ciccani <klan82@cheapnet.it>
+2004-10-31   klan	14:33:51	
 
 	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.17) (+87 -80)
 	
@@ -4152,7 +4340,7 @@
 	When specified use the pixelformat of the surface description
 	to create a windowed primary surface.
 	
-2004-10-06   klan	16:51:30	Claudio Ciccani <klan82@cheapnet.it>
+2004-10-06   klan	16:51:30	
 
 	Files:	gfxdrivers/nvidia/Makefile.am (1.10) (+3 -2)
 		gfxdrivers/nvidia/nvidia.c (1.39) (+86 -48)
@@ -4190,13 +4378,13 @@
 	
 	Removed two obsolete entries.
 	
-2004-09-27   klan	08:35:15	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-27   klan	08:35:15	
 
 	Files:	gfxdrivers/nvidia/Makefile.am (1.9) (+2 -1)
 	
 	Added nvidia_tables.h.
 	
-2004-09-24   klan	07:08:33	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-24   klan	07:08:33	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.38) (+3 -2)
 	
@@ -4226,55 +4414,55 @@
 	
 	Show file descriptor debug messages only if heavy debug mode is on.
 	
-2004-09-20   klan	07:58:05	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-20   klan	07:58:05	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.36) (+60 -148)
 	
 	Always update alpha value when blitting/drawing flags are set.
 	
-2004-09-11   klan	12:00:32	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-11   klan	12:00:32	
 
 	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.15) (+12 -16)
 	
 	SetSourceRectangle works now.
 	
-2004-09-09   klan	18:00:26	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-09   klan	18:00:26	
 
 	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.14) (+6 -5)
 	
 	Small adjustments.
 	
-2004-09-09   klan	14:14:58	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-09   klan	14:14:58	
 
 	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.13) (+76 -53)
 	
 	Added support for Destination ColorKey.
 	
-2004-09-09   klan	09:15:35	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-09   klan	09:15:35	
 
 	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.12) (+103 -71)
 	
 	Many corrections.
 	
-2004-09-07   klan	12:43:29	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-07   klan	12:43:29	
 
 	Files:	patches/README.rivafb-smemlen (1.1) ( )
 	
 	Added README for rivafb-smemlen patch.
 	
-2004-09-06   klan	11:09:38	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-06   klan	11:09:38	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.35) (+1 -1)
 	
 	Still on StretchBlit source point: not the best way, but works.
 	
-2004-09-06   klan	10:29:34	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-06   klan	10:29:34	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.34) (+24 -22)
 	
 	Workaround on StretchBlit source point.
 	
-2004-09-06   klan	08:46:36	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-06   klan	08:46:36	
 
 	Files:	gfxdrivers/nvidia/nvidia.h (1.15) (+14 -15)
 	
@@ -4305,7 +4493,7 @@
 	
 	StretchBlit with color keying from ARGB1555 to ARGB1555 dropped the alpha bit!
 	
-2004-09-04   klan	11:11:59	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-04   klan	11:11:59	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.33) (+11 -18)
 		gfxdrivers/nvidia/nvidia_tables.h (1.4) (+12 -0)
@@ -4329,54 +4517,54 @@
 	Added 'Claudio Ciccani <klan82@cheapnet.it>' to "Thanks To" section
 	and "Helping Developers" for the nVidia driver. Keep up the good work ;)
 	
-2004-09-03   klan	15:19:20	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-03   klan	15:19:20	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.32) (+5 -2)
 		gfxdrivers/nvidia/nvidia.h (1.14) (+2 -1)
 	
 	Set alpha value only when using transparency.
 	
-2004-09-01   klan	17:07:58	Claudio Ciccani <klan82@cheapnet.it>
+2004-09-01   klan	17:07:58	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.31) (+210 -90)
 		gfxdrivers/nvidia/nvidia.h (1.13) (+18 -2)
 	
 	Implemented alphablending (coloralpha for blitting and srcalpha/invsrcalpha for drawing).
 	
-2004-08-31   klan	07:40:10	Claudio Ciccani <klan82@cheapnet.it>
+2004-08-31   klan	07:40:10	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.30) (+104 -161)
 		gfxdrivers/nvidia/nvidia.h (1.12) (+16 -12)
 	
 	Perform PVIDEO initialization.
 	
-2004-08-31   klan	07:39:02	Claudio Ciccani <klan82@cheapnet.it>
+2004-08-31   klan	07:39:02	
 
 	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.11) (+181 -90)
 	
 	Added UpdateRegion and support for adjusting Brightness, Contrast, Saturation and Hue.
 	
-2004-08-30   klan	15:56:46	Claudio Ciccani <klan82@cheapnet.it>
+2004-08-30   klan	15:56:46	
 
 	Files:	patches/rivafb-smemlen-linux-2.4.26.patch.bz2 (1.1) ( )
 	
 	This patch fixes a bug in rivafb:
 	the driver returns all videoram as usable memory while 128 Kb at the end are not usable.
 	
-2004-08-27   klan	06:31:45	Claudio Ciccani <klan82@cheapnet.it>
+2004-08-27   klan	06:31:45	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.29) (+1 -1)
 	
 	Disable draw/blending until we have more.
 	
-2004-08-26   klan	17:17:42	Claudio Ciccani <klan82@cheapnet.it>
+2004-08-26   klan	17:17:42	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.28) (+43 -9)
 		gfxdrivers/nvidia/nvidia_tables.h (1.3) (+14 -0)
 	
 	Added support for YUY2 and UYVY on primary layer.
 	
-2004-08-26   klan	14:13:29	Claudio Ciccani <klan82@cheapnet.it>
+2004-08-26   klan	14:13:29	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.27) (+77 -48)
 		gfxdrivers/nvidia/nvidia_tables.h (1.2) (+4 -4)
@@ -4385,7 +4573,7 @@
 	StretchBlit supports ARGB1555 now.
 	Added support for blit with conversion (ARGB1555,RGB32,ARGB to all).
 	
-2004-08-25   klan	21:24:32	Claudio Ciccani <klan82@cheapnet.it>
+2004-08-25   klan	21:24:32	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.26) (+312 -286)
 		gfxdrivers/nvidia/nvidia_tables.h (1.1) ( )
@@ -4407,13 +4595,13 @@
 	
 	Start with object ID '1' to reserve '0'.
 	
-2004-08-23   klan	08:47:28	Claudio Ciccani <klan82@cheapnet.it>
+2004-08-23   klan	08:47:28	
 
 	Files:	gfxdrivers/nvidia/nvidia.h (1.9) (+67 -69)
 	
 	Added support for ARGB1555, RGB32 and ARGB.
 	
-2004-08-23   klan	08:47:27	Claudio Ciccani <klan82@cheapnet.it>
+2004-08-23   klan	08:47:27	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.25) (+227 -107)
 	
@@ -4562,7 +4750,7 @@
 	- mouse support
 	- window mode
 	
-2004-08-17   neo	11:20:43	Sven Neumann <sven@gimp.org>
+2004-08-17   neo	11:20:43	Sven Neumann <sven@convergence.de>
 
 	Files:	README.OSX (1.4) (+1 -1)
 	
@@ -5175,13 +5363,13 @@
 	
 	Made RGB <-> YCbCr conversion use integer arithmetic.
 	
-2004-06-24   klan	08:13:35	Claudio Ciccani <klan82@cheapnet.it>
+2004-06-24   klan	08:13:35	
 
 	Files:	src/gfx/generic/generic.c (1.147) (+12 -4)
 	
 	Save some instructions in YUY2/UYVY scaling functions.
 	
-2004-06-23   klan	16:33:31	Claudio Ciccani <klan82@cheapnet.it>
+2004-06-23   klan	16:33:31	
 
 	Files:	src/gfx/generic/generic.c (1.146) (+50 -36)
 	
@@ -5226,7 +5414,7 @@
 	include <sys/signal.h> for sigset_t on non-linux systems.
 	(needed by darwin)
 	
-2004-06-17   neo	14:02:15	Sven Neumann <sven@gimp.org>
+2004-06-17   neo	14:02:15	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/unichrome/.cvsignore (1.1) ( )
 	
@@ -5278,19 +5466,19 @@
 	
 	Include C++ symbols in "nm" parsing code.
 	
-2004-06-14   andros	12:04:33	Andreas Robinson <andro134+student.liu.se>
+2004-06-14   andros	12:04:33	
 
 	Files:	configure.in (1.214) (+20 -2)
 	
 	VIA Unichrome driver added.
 	
-2004-06-14   andros	11:56:25	Andreas Robinson <andro134+student.liu.se>
+2004-06-14   andros	11:56:25	
 
 	Files:	gfxdrivers/Makefile.am (1.14) (+7 -0)
 	
 	Unichrome directory added.
 	
-2004-06-14   andros	11:53:35	Andreas Robinson <andro134+student.liu.se>
+2004-06-14   andros	11:53:35	
 
 	Files:	gfxdrivers/unichrome/Makefile.am (1.1) ( )
 		gfxdrivers/unichrome/vidregs.h (1.1) ( )
@@ -5336,13 +5524,13 @@
 	Fixed yet another alpha channel problem. Non-blended scaler/texture blits
 	didn't copy the alpha channel.
 	
-2004-06-13   klan	09:39:48	Claudio Ciccani <klan82@cheapnet.it>
+2004-06-13   klan	09:39:48	
 
 	Files:	src/gfx/generic/generic.c (1.145) (+8 -16)
 	
 	Some improvements in YUV scaling functions.
 	
-2004-06-11   klan	19:55:26	Claudio Ciccani <klan82@cheapnet.it>
+2004-06-11   klan	19:55:26	
 
 	Files:	src/gfx/generic/generic.c (1.144) (+120 -7)
 	
@@ -9226,13 +9414,13 @@
 	Fixed Bop_a8_set_alphapixel_Aop_airgb(), i.e. render opaque pixels of
 	glyphs correctly onto AiRGB surfaces.
 	
-2004-02-23   andros	09:05:14	Andreas Robinson <andro134+student.liu.se>
+2004-02-23   andros	09:05:14	
 
 	Files:	gfxdrivers/cle266/uc_ovl_hwmap.c (1.4) (+1 -1)
 	
 	Long standing I420 video bug (trashed display) fixed.
 	
-2004-02-23   andros	08:58:13	Andreas Robinson <andro134+student.liu.se>
+2004-02-23   andros	08:58:13	
 
 	Files:	gfxdrivers/cle266/uc_overlay.c (1.14) (+10 -2)
 		gfxdrivers/cle266/uc_ovl_hwset.c (1.14) (+29 -0)
@@ -9282,7 +9470,7 @@
 	
 	Bumped driver version to 0.11.
 	
-2004-02-16   neo	15:45:18	Sven Neumann <sven@gimp.org>
+2004-02-16   neo	15:45:18	Sven Neumann <sven@convergence.de>
 
 	Files:	directfb.spec.in (1.5) (+1 -1)
 	
@@ -9462,7 +9650,7 @@
 	
 	Added DLOP_DEINTERLACING support to video layer.
 	
-2004-02-06   neo	14:06:18	Sven Neumann <sven@gimp.org>
+2004-02-06   neo	14:06:18	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/mach64/.cvsignore (1.1) ( )
 	
@@ -10330,7 +10518,7 @@
 	
 	Cosmetics.
 	
-2004-01-05   neo	15:27:31	Sven Neumann <sven@gimp.org>
+2004-01-05   neo	15:27:31	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.191) (+1 -1)
 	
@@ -10922,7 +11110,7 @@
 	
 	Added call to dfb_system_lookup() to fix initialization.
 	
-2003-12-04   neo	12:32:57	Sven Neumann <sven@gimp.org>
+2003-12-04   neo	12:32:57	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.186) (+3 -3)
 	
@@ -11350,7 +11538,7 @@
 	  I don't know why, because this function is not supported anyway.
 	- added "xabre" to supported fb accel ids (SiS 330).
 	
-2003-11-24   neo	18:52:01	Sven Neumann <sven@gimp.org>
+2003-11-24   neo	18:52:01	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.25) (+1 -1)
 	
@@ -11590,13 +11778,13 @@
 	
 	added hack for forcing grab mode if environment variable DFB_VL4_GRAB is set. (this is for broken hardware with broken busmastering)
 	
-2003-11-17   neo	11:02:54	Sven Neumann <sven@gimp.org>
+2003-11-17   neo	11:02:54	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.3) (+2 -2)
 	
 	Use the recommened way to include freetype headers.
 	
-2003-11-13   andros	13:43:37	Andreas Robinson <andro134+student.liu.se>
+2003-11-13   andros	13:43:37	
 
 	Files:	gfxdrivers/cle266/Readme.txt (1.3) (+46 -18)
 		gfxdrivers/cle266/uc_overlay.h (1.2) (+3 -0)
@@ -11604,7 +11792,7 @@
 	
 	Added video underlay mode. Updated Readme.txt
 	
-2003-11-13   andros	12:41:51	Andreas Robinson <andro134+student.liu.se>
+2003-11-13   andros	12:41:51	
 
 	Files:	gfxdrivers/cle266/unichrome.c (1.15) (+10 -4)
 	
@@ -11661,7 +11849,7 @@
 	
 	new driver for SiS315 chipset with line drawing, rectangle filling in 8, 16 and 32 bpp, blit in 8 and 16 bpp, clipping
 	
-2003-11-06   neo	15:56:53	Sven Neumann <sven@gimp.org>
+2003-11-06   neo	15:56:53	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.24) (+0 -1)
 	
@@ -11680,13 +11868,13 @@
 	
 	No need to SetOpacity() before RequestFocus() for input only windows.
 	
-2003-11-05   andros	13:39:17	Andreas Robinson <andro134+student.liu.se>
+2003-11-05   andros	13:39:17	
 
 	Files:	gfxdrivers/cle266/unichrome.h (1.10) (+2 -2)
 	
 	Define UC_ENABLE_3D. (I forgot to restore it after testing.)
 	
-2003-11-05   andros	13:36:23	Andreas Robinson <andro134+student.liu.se>
+2003-11-05   andros	13:36:23	
 
 	Files:	gfxdrivers/cle266/uc_accel.h (1.3) (+1 -2)
 		gfxdrivers/cle266/unichrome.h (1.9) (+4 -0)
@@ -11701,7 +11889,7 @@
 	
 	Restore file content.
 	
-2003-11-04   andros	08:43:57	Andreas Robinson <andro134+student.liu.se>
+2003-11-04   andros	08:43:57	
 
 	Files:	gfxdrivers/cle266/cle266vgaio.c (1.5) (+55 -39)
 		gfxdrivers/cle266/cle266vgaio.mk (1.2) (+27 -4)
@@ -11800,13 +11988,13 @@
 	
 	Fixed warnings.
 	
-2003-10-29   andros	13:37:10	Andreas Robinson <andro134+student.liu.se>
+2003-10-29   andros	13:37:10	
 
 	Files:	gfxdrivers/cle266/unichrome.c (1.13) (+33 -40)
 	
 	Benchmarks updated. Minor cleanups.
 	
-2003-10-29   andros	12:44:42	Andreas Robinson <andro134+student.liu.se>
+2003-10-29   andros	12:44:42	
 
 	Files:	gfxdrivers/cle266/uc_probe.c (1.1) ( )
 		gfxdrivers/cle266/uc_probe.h (1.1) ( )
@@ -11922,25 +12110,25 @@
 	
 	Added functions for DFB_ASSERT and DFB_ASSUME to save binary size in debug mode.
 	
-2003-10-24   neo	23:38:44	Sven Neumann <sven@gimp.org>
+2003-10-24   neo	23:38:44	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.23) (+1 -0)
 	
 	Mention the multi-image functionality in the usage string.
 	
-2003-10-24   neo	18:49:53	Sven Neumann <sven@gimp.org>
+2003-10-24   neo	18:49:53	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.22) (+26 -9)
 	
 	Tweaked name mangling routines.
 	
-2003-10-24   neo	18:21:39	Sven Neumann <sven@gimp.org>
+2003-10-24   neo	18:21:39	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.21) (+2 -2)
 	
 	Do variable name translation for the case of multiple images as well.
 	
-2003-10-24   neo	16:16:35	Sven Neumann <sven@gimp.org>
+2003-10-24   neo	16:16:35	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfb-csource.1.in (1.5) (+14 -8)
 		tools/directfb-csource.c (1.20) (+189 -98)
@@ -11948,7 +12136,7 @@
 	Dump an array of names and rectangles when processing multiple images.
 	Document the new feature.
 	
-2003-10-24   neo	13:46:46	Sven Neumann <sven@gimp.org>
+2003-10-24   neo	13:46:46	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.19) (+168 -52)
 	
@@ -11994,7 +12182,7 @@
 	
 	Updated.
 	
-2003-10-23   neo	14:12:00	Sven Neumann <sven@gimp.org>
+2003-10-23   neo	14:12:00	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.18) (+10 -10)
 	
@@ -12006,7 +12194,7 @@
 	
 	added Andreas Robinson <andro134 at student.liu.se>
 	
-2003-10-21   andros	23:24:10	Andreas Robinson <andro134+student.liu.se>
+2003-10-21   andros	23:24:10	
 
 	Files:	gfxdrivers/cle266/changelog.txt (1.2) (+24 -0)
 	
@@ -12062,38 +12250,38 @@
 	
 	Added missing ranlib call.
 	
-2003-10-19   andros	22:49:56	Andreas Robinson <andro134+student.liu.se>
+2003-10-19   andros	22:49:56	
 
 	Files:	gfxdrivers/cle266/unichrome.c (1.11) (+36 -26)
 	
 	Added AfterSetVar() function. May help with VIA-drivers crash bug.
 	
-2003-10-19   andros	22:47:39	Andreas Robinson <andro134+student.liu.se>
+2003-10-19   andros	22:47:39	
 
 	Files:	gfxdrivers/cle266/uc_accel.h (1.2) (+2 -0)
 	
 	Fixed some compiler warnings.
 	
-2003-10-19   andros	22:44:20	Andreas Robinson <andro134+student.liu.se>
+2003-10-19   andros	22:44:20	
 
 	Files:	gfxdrivers/cle266/uc_accel.c (1.9) (+3 -1)
 	
 	Fixed some compiler warnings.
 	
-2003-10-19   andros	22:39:31	Andreas Robinson <andro134+student.liu.se>
+2003-10-19   andros	22:39:31	
 
 	Files:	gfxdrivers/cle266/uc_fifo.c (1.2) (+6 -4)
 	
 	Print debug msg before writing to hardware register.
 	
-2003-10-18   andros	11:51:41	Andreas Robinson <andro134+student.liu.se>
+2003-10-18   andros	11:51:41	
 
 	Files:	gfxdrivers/cle266/uc_accel.c (1.8) (+15 -8)
 		gfxdrivers/cle266/unichrome.c (1.10) (+38 -21)
 	
 	Made the driver use EmitCommands().
 	
-2003-10-18   andros	11:50:01	Andreas Robinson <andro134+student.liu.se>
+2003-10-18   andros	11:50:01	
 
 	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.5) (+0 -2)
 	
@@ -12215,7 +12403,7 @@
 	
 	Lock original state, too.
 	
-2003-10-11   andros	11:22:11	Andreas Robinson <andro134+student.liu.se>
+2003-10-11   andros	11:22:11	
 
 	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.4) (+2 -0)
 		gfxdrivers/cle266/unichrome.c (1.9) (+1 -1)
@@ -12235,14 +12423,14 @@
 	
 	Indicate locked buffers.
 	
-2003-10-10   andros	16:11:52	Andreas Robinson <andro134+student.liu.se>
+2003-10-10   andros	16:11:52	
 
 	Files:	gfxdrivers/cle266/cle266vgaio.c (1.4) (+1 -1)
 		gfxdrivers/cle266/unichrome.c (1.8) (+5 -5)
 	
 	viafb problem workaround rollback - it worked once, but not twice. :-/
 	
-2003-10-10   andros	15:26:52	Andreas Robinson <andro134+student.liu.se>
+2003-10-10   andros	15:26:52	
 
 	Files:	gfxdrivers/cle266/cle266vgaio.c (1.3) (+6 -9)
 		gfxdrivers/cle266/unichrome.h (1.5) (+3 -0)
@@ -12252,7 +12440,7 @@
 	Worked around the problem which hangs the computer hard if e.g viafb is installed.
 	I don't know why VIA's own drivers don't need the same fix ...
 	
-2003-10-09   andros	17:17:28	Andreas Robinson <andro134+student.liu.se>
+2003-10-09   andros	17:17:28	
 
 	Files:	gfxdrivers/cle266/uc_accel.c (1.7) (+4 -9)
 	
@@ -12331,14 +12519,14 @@
 	
 	fix off by one bug in uc_stretch_blit()
 	
-2003-10-08   andros	15:23:31	Andreas Robinson <andro134+student.liu.se>
+2003-10-08   andros	15:23:31	
 
 	Files:	gfxdrivers/cle266/uc_hwset.c (1.2) (+16 -6)
 	
 	Partial fix for 3D-blitting size problem. Blitting arbitrary (non 2^n) sizes
 	works much better now, but there is still a one-pixel-off error in df_window.
 	
-2003-10-08   andros	14:00:55	Andreas Robinson <andro134+student.liu.se>
+2003-10-08   andros	14:00:55	
 
 	Files:	gfxdrivers/cle266/uc_state.c (1.4) (+4 -1)
 	
@@ -12453,13 +12641,13 @@
 	
 	Added DFB_KEY_INDEX macro.
 	
-2003-10-05   andros	11:59:27	Andreas Robinson <andro134+student.liu.se>
+2003-10-05   andros	11:59:27	
 
 	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.3) (+17 -17)
 	
 	YUV planar mode bugfix. U and V planes were not set up correctly and did not look right.
 	
-2003-10-05   andros	11:33:11	Andreas Robinson <andro134+student.liu.se>
+2003-10-05   andros	11:33:11	
 
 	Files:	gfxdrivers/cle266/uc_overlay.c (1.2) (+10 -0)
 	
@@ -13818,7 +14006,7 @@
 	
 	Commented out debug message for key events.
 	
-2003-07-09   neo	14:59:09	Sven Neumann <sven@gimp.org>
+2003-07-09   neo	14:59:09	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/dfbg.1.in (1.5) (+4 -3)
 	
@@ -14002,7 +14190,7 @@
 	
 	Added "moduledirname" to pc file which is "moduledir" without libdir.
 	
-2003-07-04   neo	12:49:23	Sven Neumann <sven@gimp.org>
+2003-07-04   neo	12:49:23	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.166) (+13 -9)
 	
@@ -14298,7 +14486,7 @@
 	
 	#define _GNU_SOURCE
 	
-2003-06-27   neo	13:46:51	Sven Neumann <sven@gimp.org>
+2003-06-27   neo	13:46:51	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/raw15toraw24.c (1.5) (+5 -4)
 		tools/raw32toraw24.c (1.10) (+6 -5)
@@ -14695,7 +14883,7 @@
 	
 	Use one cpuid macro for both PIC and non-PIC.
 	
-2003-06-03   neo	00:13:01	Sven Neumann <sven@gimp.org>
+2003-06-03   neo	00:13:01	Sven Neumann <sven@convergence.de>
 
 	Files:	directfb.pc.in (1.6) (+1 -1)
 	
@@ -15741,7 +15929,7 @@
 	
 	Updated 2.4 patches.
 	
-2003-04-07   neo	12:47:20	Sven Neumann <sven@gimp.org>
+2003-04-07   neo	12:47:20	Sven Neumann <sven@convergence.de>
 
 	Files:	mkchlog (1.3) (+1 -0)
 	
@@ -15965,7 +16153,7 @@
 	
 	Added James Su <suzhe@gnuchina.org>.
 	
-2003-03-11   neo	13:30:34	Sven Neumann <sven@gimp.org>
+2003-03-11   neo	13:30:34	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/ps2mouse/ps2mouse.c (1.39) (+38 -11)
 	
@@ -15978,7 +16166,7 @@
 	
 	Reverted an optimization, just a guess.
 	
-2003-03-07   neo	12:00:28	Sven Neumann <sven@gimp.org>
+2003-03-07   neo	12:00:28	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.61) (+1 -1)
 	
@@ -16403,7 +16591,7 @@
 	
 	Added special thanks for Ville.
 	
-2003-01-29   neo	12:33:54	Sven Neumann <sven@gimp.org>
+2003-01-29   neo	12:33:54	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/mutouch/.cvsignore (1.1) ( )
 		inputdrivers/mutouch/mutouch.c (1.1) ( )
@@ -16414,7 +16602,7 @@
 	in the source code, it is not build by default. Enable it using the
 	--enable-mutouch configure option.
 	
-2003-01-29   neo	12:33:53	Sven Neumann <sven@gimp.org>
+2003-01-29   neo	12:33:53	Sven Neumann <sven@convergence.de>
 
 	Files:	AUTHORS (1.7) (+6 -4)
 		inputdrivers/Makefile.am (1.13) (+14 -19)
@@ -16439,14 +16627,14 @@
 	
 	Reverted change to use FusionLink.
 	
-2003-01-23   neo	20:11:05	Sven Neumann <sven@gimp.org>
+2003-01-23   neo	20:11:05	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/layers.c (1.93) (+7 -2)
 	
 	Return DFB_OK from load_default_cursor() if the file was missing and
 	created an empty cursor.
 	
-2003-01-23   neo	15:59:09	Sven Neumann <sven@gimp.org>
+2003-01-23   neo	15:59:09	Sven Neumann <sven@convergence.de>
 
 	Files:	data/font.data (1.2) (+0 -0)
 		interfaces/IDirectFBFont/idirectfbfont_default.c (1.24) (+32 -46)
@@ -16457,7 +16645,7 @@
 	Compile the default font into the default font provider.
 	Don't install font.data any longer.
 	
-2003-01-23   neo	15:59:08	Sven Neumann <sven@gimp.org>
+2003-01-23   neo	15:59:08	Sven Neumann <sven@convergence.de>
 
 	Files:	data/Makefile.am (1.3) (+1 -1)
 	
@@ -16472,7 +16660,7 @@
 	Hold the surface manager lock during the whole dfb_back_to_front_copy() work.
 	Use FusionLink for local list of input devices.
 	
-2003-01-23   neo	15:11:32	Sven Neumann <sven@gimp.org>
+2003-01-23   neo	15:11:32	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/layers.c (1.92) (+17 -17)
 	
@@ -16576,19 +16764,19 @@
 	
 	Updated patch.
 	
-2003-01-13   neo	19:29:05	Sven Neumann <sven@gimp.org>
+2003-01-13   neo	19:29:05	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.13) (+7 -1)
 	
 	set data to NULL in case of error to avoid a possible crash
 	
-2003-01-13   neo	13:18:42	Sven Neumann <sven@gimp.org>
+2003-01-13   neo	13:18:42	Sven Neumann <sven@convergence.de>
 
 	Files:	directfb.spec.in (1.4) (+7 -1)
 	
 	Updated the spec file (added dfbg and its man-page).
 	
-2003-01-13   neo	12:57:20	Sven Neumann <sven@gimp.org>
+2003-01-13   neo	12:57:20	Sven Neumann <sven@convergence.de>
 
 	Files:	ChangeLog (1.37) (+8558 -12143)
 		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.23) (+0 -0)
@@ -16600,20 +16788,20 @@
 	Removed the avifile and flash video providers. They are now part of
 	the DirectFB-extra package.
 	
-2003-01-10   neo	15:20:04	Sven Neumann <sven@gimp.org>
+2003-01-10   neo	15:20:04	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.141) (+11 -12)
 	
 	Reverted my latest change since they need autoconf > 2.13.
 	Will instead move this code to DirectFB-extra and do it correctly there.
 	
-2003-01-09   neo	16:46:24	Sven Neumann <sven@gimp.org>
+2003-01-09   neo	16:46:24	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.20) (+3 -2)
 	
 	Fixed a typo and separated the comon from the exotic pixel formats.
 	
-2003-01-08   neo	15:47:01	Sven Neumann <sven@gimp.org>
+2003-01-08   neo	15:47:01	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.140) (+12 -11)
 		tools/dfbsummon.c (1.2) (+4 -5)
@@ -16838,7 +17026,7 @@
 	
 	Forgot to update this one, too.
 	
-2002-12-15   neo	21:54:58	Sven Neumann <sven@gimp.org>
+2002-12-15   neo	21:54:58	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.135) (+0 -1)
 	
@@ -16940,7 +17128,7 @@
 	
 	Always default to fbdev system.
 	
-2002-12-06   neo	19:17:18	Sven Neumann <sven@gimp.org>
+2002-12-06   neo	19:17:18	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.48) (+2 -1)
 	
@@ -16952,7 +17140,7 @@
 	
 	Don't set window->stack to NULL in window_remove().
 	
-2002-12-05   neo	17:48:35	Sven Neumann <sven@gimp.org>
+2002-12-05   neo	17:48:35	Sven Neumann <sven@convergence.de>
 
 	Files:	Makefile.am (1.15) (+5 -3)
 		configure.in (1.134) (+9 -1)
@@ -17170,7 +17358,7 @@
 	
 	Minor updates.
 	
-2002-11-22   neo	11:26:13	Sven Neumann <sven@gimp.org>
+2002-11-22   neo	11:26:13	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/README (1.7) (+13 -8)
 		tools/dfbg.c (1.5) (+15 -21)
@@ -17183,13 +17371,13 @@
 	
 	Check for reactions != NULL, fixes default font.
 	
-2002-11-21   neo	15:50:54	Sven Neumann <sven@gimp.org>
+2002-11-21   neo	15:50:54	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.64) (+7 -6)
 	
 	Allow to unset a surface's font by calling SetFont() with a NULL.
 	
-2002-11-21   neo	15:50:53	Sven Neumann <sven@gimp.org>
+2002-11-21   neo	15:50:53	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.158) (+1 -0)
 	
@@ -17291,7 +17479,7 @@
 	
 	Divide squared alpha diff by 16 to have it less weighted in color decision.
 	
-2002-11-14   neo	15:34:24	Sven Neumann <sven@gimp.org>
+2002-11-14   neo	15:34:24	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/colorhash.c (1.4) (+8 -4)
 	
@@ -17471,7 +17659,7 @@
 	
 	Check layer->shared->stack before repainting.
 	
-2002-11-12   neo	15:11:16	Sven Neumann <sven@gimp.org>
+2002-11-12   neo	15:11:16	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/dfbg.1.in (1.2) (+8 -3)
 		tools/dfbg.c (1.3) (+51 -4)
@@ -17479,7 +17667,7 @@
 	
 	Added --color option to dfbg.
 	
-2002-11-12   neo	14:22:36	Sven Neumann <sven@gimp.org>
+2002-11-12   neo	14:22:36	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.131) (+2 -1)
 		docs/dfbg.1.in (1.1) ( )
@@ -17488,7 +17676,7 @@
 	
 	Added a man-page for dfbg.
 	
-2002-11-12   neo	14:08:11	Sven Neumann <sven@gimp.org>
+2002-11-12   neo	14:08:11	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/dfbg.c (1.2) (+71 -33)
 	
@@ -17512,7 +17700,7 @@
 	
 	Updated vsync irq patch from Ville Syrjala.
 	
-2002-11-11   neo	15:32:30	Sven Neumann <sven@gimp.org>
+2002-11-11   neo	15:32:30	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/conf.c (1.45) (+1 -1)
 	
@@ -17524,13 +17712,13 @@
 	
 	Made dfb_back_to_front_copy() thread safe as skirmish is now a recursive lock.
 	
-2002-11-11   neo	15:00:30	Sven Neumann <sven@gimp.org>
+2002-11-11   neo	15:00:30	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.18) (+2 -1)
 	
 	Fixed some spelling errors and documented the new behaviour of 'no-hardware'.
 	
-2002-11-11   neo	15:00:29	Sven Neumann <sven@gimp.org>
+2002-11-11   neo	15:00:29	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.52) (+20 -19)
 	
@@ -17722,7 +17910,7 @@
 	Made skirmish recursive mutex in single app core. Multi app skirmish
 	has to be made recursive, too.
 	
-2002-11-04   neo	19:19:25	Sven Neumann <sven@gimp.org>
+2002-11-04   neo	19:19:25	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/windows.c (1.115) (+1 -1)
 	
@@ -17776,7 +17964,7 @@
 	
 	Version is 0.9.15 now.
 	
-2002-11-01   neo	22:37:42	Sven Neumann <sven@gimp.org>
+2002-11-01   neo	22:37:42	Sven Neumann <sven@convergence.de>
 
 	Files:	TODO (1.43) (+2 -0)
 		src/core/windows.c (1.113) (+9 -0)
@@ -17788,13 +17976,13 @@
 	Switch the display layer palette to the one of the focused
 	window. Added TODO item since this needs more changes.
 	
-2002-11-01   neo	21:38:20	Sven Neumann <sven@gimp.org>
+2002-11-01   neo	21:38:20	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/surfaces.c (1.60) (+5 -0)
 	
 	notify listeners about a palette change in dfb_surface_set_palette()
 	
-2002-11-01   neo	21:37:44	Sven Neumann <sven@gimp.org>
+2002-11-01   neo	21:37:44	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/palette.c (1.11) (+5 -2)
 	
@@ -17863,7 +18051,7 @@
 	
 	last commit before 0.9.14 release
 	
-2002-10-29   neo	14:54:56	Sven Neumann <sven@gimp.org>
+2002-10-29   neo	14:54:56	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/README (1.5) (+3 -0)
 	
@@ -17884,7 +18072,7 @@
 	
 	Has an extra CVS module now.
 	
-2002-10-29   neo	13:57:58	Sven Neumann <sven@gimp.org>
+2002-10-29   neo	13:57:58	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.22) (+4 -1)
 	
@@ -17898,7 +18086,7 @@
 	
 	Added DFFA_NONE.
 	
-2002-10-28   neo	19:50:21	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	19:50:21	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/fonts.c (1.26) (+4 -1)
 		src/core/gfxcard.c (1.88) (+5 -9)
@@ -17920,7 +18108,7 @@
 	
 	Use CoreThread with new type CTT_MESSAGING.
 	
-2002-10-28   neo	19:19:18	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	19:19:18	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.62) (+2 -1)
 	
@@ -17932,7 +18120,7 @@
 	
 	Check x too in simple pre clipping of dfb_gfxcard_drawstring().
 	
-2002-10-28   neo	18:27:04	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	18:27:04	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.50) (+17 -0)
 	
@@ -17969,20 +18157,20 @@
 	
 	The linux-fusion module doesn't only give performance, but also more stability.
 	
-2002-10-28   neo	15:12:19	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	15:12:19	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/cpu_accel.c (1.4) (+8 -4)
 	
 	added more ifdefs around MMX and SSE code
 	
-2002-10-28   neo	13:31:57	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	13:31:57	Sven Neumann <sven@convergence.de>
 
 	Files:	ChangeLog (1.30) (+298 -0)
 		NEWS (1.39) (+4 -1)
 	
 	Updates.
 	
-2002-10-28   neo	13:20:41	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	13:20:41	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.127) (+27 -1)
 		src/misc/memcpy.c (1.7) (+93 -86)
@@ -17990,13 +18178,13 @@
 	Check if binutils support SSE assembly and compile the SSE code
 	conditionally.
 	
-2002-10-28   neo	12:39:41	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	12:39:41	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.126) (+1 -1)
 	
 	oops
 	
-2002-10-28   neo	12:35:53	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	12:35:53	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.125) (+36 -40)
 	
@@ -18005,7 +18193,7 @@
 	which sdl-config to use.
 	Use SDL_CFLAGS and SDL_LIBS in the Makefile.
 	
-2002-10-28   neo	12:07:17	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	12:07:17	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.38) (+7 -7)
 		directfb.spec.in (1.3) (+3 -3)
@@ -18016,64 +18204,64 @@
 	
 	Corrected spelling of frame buffer.
 	
-2002-10-28   neo	11:56:52	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	11:56:52	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.123) (+4 -4)
 	
 	moved some lines around
 	
-2002-10-28   neo	11:32:27	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	11:32:27	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/memcpy.c (1.6) (+6 -0)
 	
 	Don't build MMX code if MMX was disabled by configure.
 	
-2002-10-28   neo	11:13:24	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	11:13:24	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/memcpy.c (1.5) (+59 -51)
 	
 	Reformatted some comments; no changes.
 	
-2002-10-28   neo	11:03:20	Sven Neumann <sven@gimp.org>
+2002-10-28   neo	11:03:20	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.17) (+7 -0)
 		src/misc/conf.c (1.43) (+2 -0)
 	
 	Document the new pixelformat parameter in directfbrc.
 	
-2002-10-27   neo	18:17:16	Sven Neumann <sven@gimp.org>
+2002-10-27   neo	18:17:16	Sven Neumann <sven@convergence.de>
 
 	Files:	directfb.spec.in (1.2) (+19 -17)
 	
 	Improvements to the spec file by Till Adam.
 	
-2002-10-27   neo	16:56:26	Sven Neumann <sven@gimp.org>
+2002-10-27   neo	16:56:26	Sven Neumann <sven@convergence.de>
 
 	Files:	Makefile.am (1.14) (+2 -1)
 	
 	Include the generated spec file in the tarball as well to make it
 	possible to build RPMs directly from the tarball.
 	
-2002-10-27   neo	13:19:44	Sven Neumann <sven@gimp.org>
+2002-10-27   neo	13:19:44	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/ps2mouse/ps2mouse.c (1.37) (+30 -23)
 	
 	code cleanup, no changes
 	
-2002-10-27   neo	13:01:29	Sven Neumann <sven@gimp.org>
+2002-10-27   neo	13:01:29	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.46) (+34 -0)
 	
 	Explain how to use the multi-application core.
 	
-2002-10-27   neo	11:18:22	Sven Neumann <sven@gimp.org>
+2002-10-27   neo	11:18:22	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.122) (+0 -12)
 	
 	Removed cflags_set hack from configure.in. We don't need it any longer
 	since we don't touch CFLAGS.
 	
-2002-10-27   neo	11:12:02	Sven Neumann <sven@gimp.org>
+2002-10-27   neo	11:12:02	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/Makefile.am (1.6) (+1 -1)
 		tools/Makefile.am (1.9) (+1 -1)
@@ -18091,7 +18279,7 @@
 	Use AM_CFLAGS instead of CFLAGS, which is a user variable.
 	Check for C++ compiler in configure.
 	
-2002-10-27   neo	11:12:01	Sven Neumann <sven@gimp.org>
+2002-10-27   neo	11:12:01	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/savage/Makefile.am (1.3) (+1 -1)
 		src/core/Makefile.am (1.21) (+1 -1)
@@ -18119,7 +18307,7 @@
 	Use AM_CFLAGS instead of CFLAGS, which is a user variable.
 	Check for C++ compiler in configure.
 	
-2002-10-27   neo	11:12:00	Sven Neumann <sven@gimp.org>
+2002-10-27   neo	11:12:00	Sven Neumann <sven@convergence.de>
 
 	Files:	autogen.sh (1.8) (+2 -1)
 		gfxdrivers/nvidia/Makefile.am (1.3) (+1 -1)
@@ -18136,7 +18324,7 @@
 	Use AM_CFLAGS instead of CFLAGS, which is a user variable.
 	Check for C++ compiler in configure.
 	
-2002-10-27   neo	10:58:39	Sven Neumann <sven@gimp.org>
+2002-10-27   neo	10:58:39	Sven Neumann <sven@convergence.de>
 
 	Files:	.cvsignore (1.8) (+1 -0)
 		directfb.spec.in (1.1) ( )
@@ -18172,7 +18360,7 @@
 	- fixed typo, mention OpenBSD
 	- initial OpenBSD support (incomplete)
 	
-2002-10-26   neo	18:20:16	Sven Neumann <sven@gimp.org>
+2002-10-26   neo	18:20:16	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.44) (+13 -12)
 	
@@ -18253,13 +18441,13 @@
 	
 	Applied patch from Johannes Stezenbach <js@convergence.de> fixing some keys.
 	
-2002-10-24   neo	11:32:30	Sven Neumann <sven@gimp.org>
+2002-10-24   neo	11:32:30	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.42) (+26 -11)
 	
 	improved README
 	
-2002-10-23   neo	16:59:30	Sven Neumann <sven@gimp.org>
+2002-10-23   neo	16:59:30	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.41) (+32 -10)
 	
@@ -18285,7 +18473,7 @@
 	
 	YUV 4:2:0 chroma plane setup fix from Ville Syrjala <syrjala@sci.fi>.
 	
-2002-10-23   neo	14:56:19	Sven Neumann <sven@gimp.org>
+2002-10-23   neo	14:56:19	Sven Neumann <sven@convergence.de>
 
 	Files:	ChangeLog (1.29) (+1129 -0)
 		src/idirectfb.c (1.82) (+8 -12)
@@ -18309,7 +18497,7 @@
 	Don't try to destroy dead reference.
 	Default to graphics-vt only if vt-switch is disabled.
 	
-2002-10-23   neo	12:14:18	Sven Neumann <sven@gimp.org>
+2002-10-23   neo	12:14:18	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.116) (+8 -1)
 		directfb.pc.in (1.4) (+1 -1)
@@ -18318,19 +18506,19 @@
 	Defined THREADFLAGS=-D_REENTRANT and added it to the cflags given by
 	pkg-config and directfb-config.
 	
-2002-10-23   neo	11:10:50	Sven Neumann <sven@gimp.org>
+2002-10-23   neo	11:10:50	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.115) (+199 -166)
 	
 	some cleanup
 	
-2002-10-23   neo	10:55:54	Sven Neumann <sven@gimp.org>
+2002-10-23   neo	10:55:54	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.114) (+15 -17)
 	
 	beautified configure output
 	
-2002-10-23   neo	10:02:41	Sven Neumann <sven@gimp.org>
+2002-10-23   neo	10:02:41	Sven Neumann <sven@convergence.de>
 
 	Files:	src/idirectfb.c (1.81) (+3 -0)
 	
@@ -18338,7 +18526,7 @@
 	window with options set to KEEP_POSITION, KEEP_SIZE and INDESTRUCTIBLE
 	which is probably what people expect.
 	
-2002-10-23   neo	09:50:04	Sven Neumann <sven@gimp.org>
+2002-10-23   neo	09:50:04	Sven Neumann <sven@convergence.de>
 
 	Files:	src/idirectfb.c (1.80) (+9 -8)
 	
@@ -18404,7 +18592,7 @@
 	
 	Accidently committed signal change in DFB_ASSERT.
 	
-2002-10-22   neo	16:07:09	Sven Neumann <sven@gimp.org>
+2002-10-22   neo	16:07:09	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.37) (+8 -2)
 	
@@ -18431,7 +18619,7 @@
 	
 	enable RGB332 support by default.
 	
-2002-10-22   neo	15:12:33	Sven Neumann <sven@gimp.org>
+2002-10-22   neo	15:12:33	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/conf.c (1.40) (+14 -15)
 	
@@ -18443,14 +18631,14 @@
 	
 	declare ModuleDirectory as extern to fix linking problems on darwin
 	
-2002-10-22   neo	14:37:27	Sven Neumann <sven@gimp.org>
+2002-10-22   neo	14:37:27	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/conf.c (1.39) (+2 -2)
 	
 	Fixed --dfb-help output.
 	Documented the directfbrc parameter matrox-tv-standard.
 	
-2002-10-22   neo	14:37:26	Sven Neumann <sven@gimp.org>
+2002-10-22   neo	14:37:26	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.15) (+6 -2)
 	
@@ -18545,7 +18733,7 @@
 	
 	Added some safety and assertions to reactor code.
 	
-2002-10-17   neo	08:55:55	Sven Neumann <sven@gimp.org>
+2002-10-17   neo	08:55:55	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/layers.c (1.72) (+1 -1)
 		src/core/windows.h (1.36) (+2 -1)
@@ -18553,7 +18741,7 @@
 	
 	Set the button mask in DWET_MOTION events.
 	
-2002-10-17   neo	08:55:54	Sven Neumann <sven@gimp.org>
+2002-10-17   neo	08:55:54	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.151) (+1 -0)
 	
@@ -18751,7 +18939,7 @@
 	Return NULL in window_at_pointer() if cursor is disabled
 	reulting in the top most window getting focus.
 	
-2002-10-09   neo	18:28:47	Sven Neumann <sven@gimp.org>
+2002-10-09   neo	18:28:47	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.106) (+2 -2)
 		tools/Makefile.am (1.8) (+5 -5)
@@ -18767,7 +18955,7 @@
 	Fixed RequestFocus.
 	Added window opacity to dfbdump output.
 	
-2002-10-09   neo	13:09:16	Sven Neumann <sven@gimp.org>
+2002-10-09   neo	13:09:16	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/palette.c (1.10) (+1 -1)
 	
@@ -19247,7 +19435,7 @@
 	Try `ltconfig --help' for more information.
 	configure: error: libtool configure failed
 	
-2002-09-10   neo	18:18:13	Sven Neumann <sven@gimp.org>
+2002-09-10   neo	18:18:13	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/savage/savage.c (1.5) (+2 -0)
 		gfxdrivers/savage/savage_streams_old.c (1.8) (+2 -2)
@@ -19335,7 +19523,7 @@
 	
 	support for building DirectFB without fbdev support. (first sync from my OSX tree)
 	
-2002-09-10   neo	15:22:30	Sven Neumann <sven@gimp.org>
+2002-09-10   neo	15:22:30	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/surfaces.c (1.56) (+4 -4)
 	
@@ -19546,7 +19734,7 @@
 	Added Matrox CLUT as a todo item.
 	Set DSCAPS_INTERLACED in the surface description of the v4l provider.
 	
-2002-09-03   neo	11:37:19	Sven Neumann <sven@gimp.org>
+2002-09-03   neo	11:37:19	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.13) (+6 -0)
 	
@@ -19612,7 +19800,7 @@
 	
 	Fixed driver, compiles again.
 	
-2002-08-29   neo	00:45:09	Sven Neumann <sven@gimp.org>
+2002-08-29   neo	00:45:09	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.9) (+1 -1)
 	
@@ -19678,7 +19866,7 @@
 	
 	Increased version number to 0.9.14.
 	
-2002-08-26   neo	22:28:30	Sven Neumann <sven@gimp.org>
+2002-08-26   neo	22:28:30	Sven Neumann <sven@convergence.de>
 
 	Files:	autogen.sh (1.7) (+1 -1)
 	
@@ -19789,7 +19977,7 @@
 	
 	updated
 	
-2002-08-22   neo	22:20:54	Sven Neumann <sven@gimp.org>
+2002-08-22   neo	22:20:54	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.32) (+6 -1)
 		include/directfb.h (1.143) (+8 -7)
@@ -19818,7 +20006,7 @@
 	
 	Don't print an error if message queue id is removed, but print a debug message.
 	
-2002-08-22   neo	21:58:22	Sven Neumann <sven@gimp.org>
+2002-08-22   neo	21:58:22	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/savage/savage_streams_old.c (1.6) (+10 -32)
 	
@@ -19841,13 +20029,13 @@
 	
 	Fixed missing initialization of semop flags regarding global references.
 	
-2002-08-22   neo	21:06:45	Sven Neumann <sven@gimp.org>
+2002-08-22   neo	21:06:45	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.35) (+6 -6)
 	
 	Made the GIF provider less verbose.
 	
-2002-08-22   neo	20:42:37	Sven Neumann <sven@gimp.org>
+2002-08-22   neo	20:42:37	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/palette.c (1.5) (+21 -24)
 		src/misc/colorhash.h (1.1) ( )
@@ -19888,7 +20076,7 @@
 	
 	Input threads get a higher priority now.
 	
-2002-08-22   neo	12:28:11	Sven Neumann <sven@gimp.org>
+2002-08-22   neo	12:28:11	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/savage/mmio.h (1.3) (+13 -3)
 		gfxdrivers/savage/savage_streams_old.c (1.5) (+46 -20)
@@ -19982,7 +20170,7 @@
 	Currently each surface creation causes the creation of a palette object,
 	it's then linked to the surface object and unref'ed.
 	
-2002-08-19   neo	18:21:54	Sven Neumann <sven@gimp.org>
+2002-08-19   neo	18:21:54	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.93) (+7 -6)
 	
@@ -20021,7 +20209,7 @@
 	Only supported by windows with the capability DWCAPS_ALPHACHANNEL, which have
 	it enabled by default.
 	
-2002-08-19   neo	11:35:29	Sven Neumann <sven@gimp.org>
+2002-08-19   neo	11:35:29	Sven Neumann <sven@convergence.de>
 
 	Files:	autogen.sh (1.6) (+1 -1)
 	
@@ -20117,13 +20305,13 @@
 	
 	Background image is now persistent (application can exit after setting it).
 	
-2002-08-13   neo	16:43:20	Sven Neumann <sven@gimp.org>
+2002-08-13   neo	16:43:20	Sven Neumann <sven@convergence.de>
 
 	Files:	patches/Makefile.am (1.20) (+1 -1)
 	
 	Updated the Makefile accordingly.
 	
-2002-08-13   neo	16:42:23	Sven Neumann <sven@gimp.org>
+2002-08-13   neo	16:42:23	Sven Neumann <sven@convergence.de>
 
 	Files:	patches/README.savagefb (1.3) (+4 -3)
 		patches/savagefb-0.4.0-linux-2.4.19.patch.bz2 (1.1) ( )
@@ -20156,7 +20344,7 @@
 	
 	No resource leak by starting/exitting a small application.
 	
-2002-08-13   neo	11:56:04	Sven Neumann <sven@gimp.org>
+2002-08-13   neo	11:56:04	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.92) (+43 -2)
 	
@@ -20168,7 +20356,7 @@
 	
 	more compile fixes
 	
-2002-08-12   neo	23:58:50	Sven Neumann <sven@gimp.org>
+2002-08-12   neo	23:58:50	Sven Neumann <sven@convergence.de>
 
 	Files:	data/Makefile.am (1.2) (+1 -17)
 	
@@ -20263,26 +20451,26 @@
 	Each IDirectFBSurface instance increases the reference counter, so be careful
 	to release all sub surfaces.
 	
-2002-08-11   neo	14:32:37	Sven Neumann <sven@gimp.org>
+2002-08-11   neo	14:32:37	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.91) (+9 -20)
 	
 	Reverted my last change since the compiler seems to like the old code better.
 	
-2002-08-11   neo	14:26:15	Sven Neumann <sven@gimp.org>
+2002-08-11   neo	14:26:15	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.90) (+20 -9)
 	
 	Cleaned up Bop_a8_set_alphapixel_Aop_rgb24().
 	
-2002-08-11   neo	13:30:45	Sven Neumann <sven@gimp.org>
+2002-08-11   neo	13:30:45	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/tree.c (1.14) (+1 -15)
 		src/misc/tree.h (1.8) (+7 -22)
 	
 	Removed unused locking code.
 	
-2002-08-11   neo	12:52:18	Sven Neumann <sven@gimp.org>
+2002-08-11   neo	12:52:18	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.91) (+1 -1)
 		src/gfx/generic/generic.c (1.89) (+12 -27)
@@ -20290,20 +20478,20 @@
 	Aligned configure output.
 	Don't use duffs device for Bop_a8_set_alphapixel_Aop_lut8().
 	
-2002-08-09   neo	17:35:43	Sven Neumann <sven@gimp.org>
+2002-08-09   neo	17:35:43	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.88) (+56 -14)
 	
 	A better implementation of Bop_a8_set_alphapixel_Aop_lut8(). Much slower
 	but correct for AA glyphs and reasonably fast for monochrome ones.
 	
-2002-08-09   neo	14:18:34	Sven Neumann <sven@gimp.org>
+2002-08-09   neo	14:18:34	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.87) (+2 -16)
 	
 	Reuse Bop_a8_set_alphapixel_Aop_lut8() for RGB332; it's the same code.
 	
-2002-08-09   neo	13:37:08	Sven Neumann <sven@gimp.org>
+2002-08-09   neo	13:37:08	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/gfxcard.c (1.74) (+6 -4)
 		src/gfx/generic/generic.c (1.86) (+51 -36)
@@ -20312,13 +20500,13 @@
 	
 	Added a simple implementation for Bop_a8_set_alphapixel_Aop_lut8().
 	
-2002-08-09   neo	12:05:09	Sven Neumann <sven@gimp.org>
+2002-08-09   neo	12:05:09	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.12) (+7 -0)
 	
 	Document the disable-module directfbrc option.
 	
-2002-08-09   neo	10:37:10	Sven Neumann <sven@gimp.org>
+2002-08-09   neo	10:37:10	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.32) (+21 -16)
 	
@@ -20326,13 +20514,13 @@
 	Check if we reached our final stage in the inner loop of
 	push_data_until_stage(). PNG images load again :-)
 	
-2002-08-09   neo	09:46:34	Sven Neumann <sven@gimp.org>
+2002-08-09   neo	09:46:34	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.31) (+2 -1)
 	
 	Check that png_ptr is not NULL before calling png_destroy_read_struct().
 	
-2002-08-08   neo	20:02:42	Sven Neumann <sven@gimp.org>
+2002-08-08   neo	20:02:42	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfb-csource.1.in (1.3) (+4 -4)
 		tools/directfb-csource.c (1.10) (+15 -10)
@@ -20341,7 +20529,7 @@
 	Added inline function span_rgb32_to_rgb332().
 	Added support for RGB332 surfaces to directfb-csource.
 	
-2002-08-08   neo	16:56:59	Sven Neumann <sven@gimp.org>
+2002-08-08   neo	16:56:59	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/savage/savage3d.c (1.2) (+0 -1)
 		gfxdrivers/savage/savage_streams_old.c (1.4) (+1 -1)
@@ -20421,7 +20609,7 @@
 	
 	Added WaitForData() call before peeking 32 bytes.
 	
-2002-08-08   neo	14:54:22	Sven Neumann <sven@gimp.org>
+2002-08-08   neo	14:54:22	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.9) (+24 -16)
 	
@@ -20437,13 +20625,13 @@
 	
 	Added IDirectFBImageProvider::SetRenderCallback() that is not implemented yet.
 	
-2002-08-08   neo	14:20:09	Sven Neumann <sven@gimp.org>
+2002-08-08   neo	14:20:09	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.8) (+28 -23)
 	
 	the final touch
 	
-2002-08-08   neo	12:02:35	Sven Neumann <sven@gimp.org>
+2002-08-08   neo	12:02:35	Sven Neumann <sven@convergence.de>
 
 	Files:	BUGS (1.8) (+1 -0)
 		NEWS (1.31) (+5 -0)
@@ -20452,19 +20640,19 @@
 	Updated NEWS and ChangeLog.
 	Mention the current problem with EnumVideoModes() in BUGS.
 	
-2002-08-08   neo	11:45:05	Sven Neumann <sven@gimp.org>
+2002-08-08   neo	11:45:05	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.7) (+3 -1)
 	
 	Also dump the number of palette entries.
 	
-2002-08-08   neo	11:19:22	Sven Neumann <sven@gimp.org>
+2002-08-08   neo	11:19:22	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.6) (+66 -31)
 	
 	Dump palette from PNG file when the destination format is LUT8.
 	
-2002-08-08   neo	10:16:55	Sven Neumann <sven@gimp.org>
+2002-08-08   neo	10:16:55	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfb-csource.1.in (1.2) (+5 -6)
 		tools/directfb-csource.c (1.5) (+26 -17)
@@ -20472,20 +20660,20 @@
 	Allow to create LUT8 surfaces from indexed PNGs (need to add a way to
 	dump the palette).
 	
-2002-08-08   neo	08:50:30	Sven Neumann <sven@gimp.org>
+2002-08-08   neo	08:50:30	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.4) (+9 -2)
 	
 	Align the pitch to multiples of 4.
 	
-2002-08-07   neo	23:14:19	Sven Neumann <sven@gimp.org>
+2002-08-07   neo	23:14:19	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.3) (+27 -14)
 	
 	Fixed loading of grayscale PNGs into A8 and added support
 	for loading RGB PNGs w/o alpha-channel into RGB24.
 	
-2002-08-07   neo	22:23:31	Sven Neumann <sven@gimp.org>
+2002-08-07   neo	22:23:31	Sven Neumann <sven@convergence.de>
 
 	Files:	Makefile.am (1.9) (+11 -1)
 	
@@ -20494,7 +20682,7 @@
 	  'html' creates the HTML docs
 	  'directfb-csource' compiles the directfb-csource utility
 	
-2002-08-07   neo	22:00:00	Sven Neumann <sven@gimp.org>
+2002-08-07   neo	22:00:00	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.89) (+1 -0)
 		docs/directfb-csource.1.in (1.1) ( )
@@ -20503,7 +20691,7 @@
 	
 	Added a man-page for directfb-csource.
 	
-2002-08-07   neo	19:07:12	Sven Neumann <sven@gimp.org>
+2002-08-07   neo	19:07:12	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.39) (+1 -0)
 		src/gfx/convert.h (1.13) (+5 -0)
@@ -20512,14 +20700,14 @@
 	Added Tim Janik to the list of contributors since I used some of
 	his gdk-pixbuf-csource code for directfb-csource.
 	
-2002-08-07   neo	18:57:32	Sven Neumann <sven@gimp.org>
+2002-08-07   neo	18:57:32	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/Makefile.am (1.6) (+5 -1)
 		tools/directfb-csource.c (1.2) (+120 -42)
 	
 	Allow to specify the destination format on the command-line.
 	
-2002-08-07   neo	15:48:38	Sven Neumann <sven@gimp.org>
+2002-08-07   neo	15:48:38	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/.cvsignore (1.3) (+1 -0)
 		tools/directfb-csource.c (1.1) ( )
@@ -20530,7 +20718,7 @@
 	a PNG image that can included in a DirectFB application.
 	Based on gdk-pixbuf-csource.
 	
-2002-08-07   neo	15:48:37	Sven Neumann <sven@gimp.org>
+2002-08-07   neo	15:48:37	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.88) (+1 -0)
 	
@@ -20588,13 +20776,13 @@
 	
 	Added IDirectFBDataBuffer::CreateImageProvider().
 	
-2002-08-06   neo	13:27:35	Sven Neumann <sven@gimp.org>
+2002-08-06   neo	13:27:35	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/fbdev.c (1.72) (+1 -1)
 	
 	typo
 	
-2002-08-06   neo	12:24:04	Sven Neumann <sven@gimp.org>
+2002-08-06   neo	12:24:04	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.87) (+2 -1)
 	
@@ -20645,7 +20833,7 @@
 	
 	Fixed typo, fixes a crash when blitting from LUT to RGB.
 	
-2002-07-31   neo	13:13:56	Sven Neumann <sven@gimp.org>
+2002-07-31   neo	13:13:56	Sven Neumann <sven@convergence.de>
 
 	Files:	patches/Makefile.am (1.19) (+1 -1)
 		patches/README.matroxfb-vsync-irq-patch-2.4.6 (1.2) (+0 -0)
@@ -20661,7 +20849,7 @@
 	
 	Added IDirectFBPalette::FindBestMatch().
 	
-2002-07-29   neo	19:24:26	Sven Neumann <sven@gimp.org>
+2002-07-29   neo	19:24:26	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.32) (+2 -7)
 		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.26) (+4 -9)
@@ -20762,7 +20950,7 @@
 	Added IDirectFBSurface::SetColorIndex() for indexed pixel formats.
 	Enabled drawing functions for DSPF_LUT8 in the software driver.
 	
-2002-07-26   neo	13:53:46	Sven Neumann <sven@gimp.org>
+2002-07-26   neo	13:53:46	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.131) (+71 -68)
 		src/directfb.c (1.49) (+3 -3)
@@ -20770,13 +20958,13 @@
 	Declared the return value of DirectFBCheckVersion() as const.
 	Assure that directfb.h fits into 80 columns.
 	
-2002-07-26   neo	10:59:35	Sven Neumann <sven@gimp.org>
+2002-07-26   neo	10:59:35	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.38) (+17 -14)
 	
 	some smaller README updates
 	
-2002-07-26   neo	10:49:19	Sven Neumann <sven@gimp.org>
+2002-07-26   neo	10:49:19	Sven Neumann <sven@convergence.de>
 
 	Files:	ChangeLog (1.24) (+731 -3)
 		NEWS (1.30) (+29 -0)
@@ -20838,13 +21026,13 @@
 	
 	Removed IDirectFBDisplayLayer::GetCapabilities() and added GetDescription().
 	
-2002-07-25   neo	14:11:43	Sven Neumann <sven@gimp.org>
+2002-07-25   neo	14:11:43	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/windows.c (1.79) (+3 -2)
 	
 	small cleanup
 	
-2002-07-25   neo	13:35:37	Sven Neumann <sven@gimp.org>
+2002-07-25   neo	13:35:37	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.128) (+4 -1)
 		src/windows/idirectfbwindow.c (1.39) (+6 -0)
@@ -20852,7 +21040,7 @@
 	
 	Implemented input_only windows (windows w/o a surface).
 	
-2002-07-25   neo	08:24:28	Sven Neumann <sven@gimp.org>
+2002-07-25   neo	08:24:28	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.127) (+10 -10)
 		src/display/idirectfbsurface_window.c (1.23) (+4 -4)
@@ -20870,20 +21058,20 @@
 	all functions that don't change them. This documents the API better
 	and keeps us from accidentally modifying the passed structs.
 	
-2002-07-24   neo	19:12:57	Sven Neumann <sven@gimp.org>
+2002-07-24   neo	19:12:57	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.126) (+2 -2)
 		src/directfb.c (1.47) (+2 -2)
 	
 	Declared name and value parameters of DirectFBSetOption as const.
 	
-2002-07-24   neo	11:19:25	Sven Neumann <sven@gimp.org>
+2002-07-24   neo	11:19:25	Sven Neumann <sven@convergence.de>
 
 	Files:	AUTHORS (1.5) (+2 -2)
 	
 	Updated email address.
 	
-2002-07-23   neo	09:56:40	Sven Neumann <sven@gimp.org>
+2002-07-23   neo	09:56:40	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.39) (+1 -12)
 	
@@ -20908,13 +21096,13 @@
 	Applied patch from Ville Syrjala <syrjala@sci.fi> enabling acceleration
 	for the second head of a dual head Matrox.
 	
-2002-07-17   neo	15:17:08	Sven Neumann <sven@gimp.org>
+2002-07-17   neo	15:17:08	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.11) (+13 -13)
 	
 	spell checking
 	
-2002-07-17   neo	15:04:30	Sven Neumann <sven@gimp.org>
+2002-07-17   neo	15:04:30	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.36) (+1 -1)
 	
@@ -20926,7 +21114,7 @@
 	
 	Added Alex Song <alexsong@comports.com> to "Helping Developers" (Savage driver).
 	
-2002-07-17   neo	14:09:13	Sven Neumann <sven@gimp.org>
+2002-07-17   neo	14:09:13	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/savage/mmio.h (1.2) (+1 -53)
 		gfxdrivers/savage/savage_streams_old.h (1.2) (+63 -14)
@@ -20938,13 +21126,13 @@
 	Applied a patch from Alex Song <alexsong@comports.com> that completes
 	support for the old streams engine as found in the Savage4 family.
 	
-2002-07-17   neo	14:00:00	Sven Neumann <sven@gimp.org>
+2002-07-17   neo	14:00:00	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/input.c (1.49) (+2 -0)
 	
 	include <sys/time.h> for gettimeofday().
 	
-2002-07-17   neo	13:52:34	Sven Neumann <sven@gimp.org>
+2002-07-17   neo	13:52:34	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/h3600_ts/h3600_ts.c (1.11) (+4 -4)
 		src/core/input.c (1.48) (+9 -4)
@@ -20961,7 +21149,7 @@
 	Reviewed all inputdrivers once more and removed some calls to
 	gettimeofday() since dfb_input_dispatch() takes care of this now.
 	
-2002-07-17   neo	13:52:33	Sven Neumann <sven@gimp.org>
+2002-07-17   neo	13:52:33	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.125) (+1 -2)
 		inputdrivers/dbox2remote/dbox2remote.c (1.11) (+2 -3)
@@ -20972,7 +21160,7 @@
 	Reviewed all inputdrivers once more and removed some calls to
 	gettimeofday() since dfb_input_dispatch() takes care of this now.
 	
-2002-07-16   neo	14:50:43	Sven Neumann <sven@gimp.org>
+2002-07-16   neo	14:50:43	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/linux_input/linux_input.c (1.5) (+1 -1)
 		inputdrivers/serialmouse/serialmouse.c (1.20) (+15 -12)
@@ -20988,7 +21176,7 @@
 	Don't set the DIEF_BUTTONS flag in the linux_input driver, it is set
 	by the core when the buttons field is calculated by fixup_button_event().
 	
-2002-07-16   neo	14:50:42	Sven Neumann <sven@gimp.org>
+2002-07-16   neo	14:50:42	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/joystick/joystick.c (1.16) (+11 -12)
 	
@@ -21002,7 +21190,7 @@
 	Don't set the DIEF_BUTTONS flag in the linux_input driver, it is set
 	by the core when the buttons field is calculated by fixup_button_event().
 	
-2002-07-16   neo	14:46:19	Sven Neumann <sven@gimp.org>
+2002-07-16   neo	14:46:19	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/input.c (1.47) (+13 -6)
 	
@@ -21010,7 +21198,7 @@
 	Fixes the buttonmask for motion events (needs some fixes to the input
 	drivers that I'll commit next).
 	
-2002-07-16   neo	11:31:24	Sven Neumann <sven@gimp.org>
+2002-07-16   neo	11:31:24	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.81) (+1 -1)
 	
@@ -21023,7 +21211,7 @@
 	Applied patch from Mike Pieper <mike@pieper-family.de> fixing locking
 	of the surface buffers.
 	
-2002-07-15   neo	12:28:51	Sven Neumann <sven@gimp.org>
+2002-07-15   neo	12:28:51	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/fbdev.c (1.68) (+6 -2)
 		src/core/layers.h (1.29) (+3 -1)
@@ -21253,7 +21441,7 @@
 	
 	More work on grabbing support by Ville Syrjala <syrjala@sci.fi>.
 	
-2002-07-01   neo	16:46:16	Sven Neumann <sven@gimp.org>
+2002-07-01   neo	16:46:16	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/linux_input/Makefile.am (1.2) (+2 -1)
 	
@@ -21266,7 +21454,7 @@
 	
 	use <input_fake.h> for definitions missing in <linux/input.h>
 	
-2002-07-01   neo	11:51:57	Sven Neumann <sven@gimp.org>
+2002-07-01   neo	11:51:57	Sven Neumann <sven@convergence.de>
 
 	Files:	src/directfb.c (1.46) (+6 -3)
 		src/interface_implementation.h (1.2) (+6 -3)
@@ -21289,7 +21477,7 @@
 	
 	fixed a typo
 	
-2002-06-28   neo	16:57:47	Sven Neumann <sven@gimp.org>
+2002-06-28   neo	16:57:47	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.118) (+11 -9)
 		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.27) (+1 -1)
@@ -21314,19 +21502,19 @@
 	
 	Thanks to Ville Syrj\344l\344 <syrjala@sci.fi>
 	
-2002-06-27   neo	14:46:14	Sven Neumann <sven@gimp.org>
+2002-06-27   neo	14:46:14	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/gfx_util.c (1.24) (+9 -9)
 	
 	Nicer (and slightly faster) rounding code that yields the same result.
 	
-2002-06-27   neo	10:41:30	Sven Neumann <sven@gimp.org>
+2002-06-27   neo	10:41:30	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/gfx_util.c (1.23) (+13 -5)
 	
 	A better fix for the rounding errors on scaling.
 	
-2002-06-26   neo	23:04:03	Sven Neumann <sven@gimp.org>
+2002-06-26   neo	23:04:03	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.26) (+91 -107)
 	
@@ -21367,14 +21555,14 @@
 	
 	Played around with the method table grids of generated interface pages.
 	
-2002-06-26   neo	17:46:40	Sven Neumann <sven@gimp.org>
+2002-06-26   neo	17:46:40	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/gfx_util.c (1.21) (+7 -5)
 	
 	Looks as if we had a rounding error in bilinear_make_fast_weights().
 	This change seems to fix it but it needs more testing.
 	
-2002-06-26   neo	17:09:38	Sven Neumann <sven@gimp.org>
+2002-06-26   neo	17:09:38	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.25) (+91 -42)
 	
@@ -21465,7 +21653,7 @@
 	
 	Use surface listener to stop DMA when surface is destroyed or resized.
 	
-2002-06-24   neo	12:36:46	Sven Neumann <sven@gimp.org>
+2002-06-24   neo	12:36:46	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.83) (+4 -4)
 	
@@ -21491,13 +21679,13 @@
 	
 	Destroy state during destruction of font, otherwise listeners will crash.
 	
-2002-06-21   neo	00:02:03	Sven Neumann <sven@gimp.org>
+2002-06-21   neo	00:02:03	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/gendoc.pl (1.16) (+2 -2)
 	
 	Updated the copyright notice added by gendoc.
 	
-2002-06-20   neo	15:57:30	Sven Neumann <sven@gimp.org>
+2002-06-20   neo	15:57:30	Sven Neumann <sven@convergence.de>
 
 	Files:	directfb-internal.pc.in (1.6) (+1 -1)
 	
@@ -21526,20 +21714,20 @@
 	
 	Increased version number to 0.9.13.
 	
-2002-06-19   neo	21:06:27	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	21:06:27	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/savage/Makefile.am (1.2) (+1 -0)
 	
 	Added savage_bci.h to SOURCES.
 	
-2002-06-19   neo	20:58:40	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	20:58:40	Sven Neumann <sven@convergence.de>
 
 	Files:	ChangeLog (1.23) (+75 -0)
 		NEWS (1.29) (+7 -4)
 	
 	Updated ChangeLog and NEWS for 0.9.12 release.
 	
-2002-06-19   neo	20:26:44	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	20:26:44	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.114) (+11 -4)
 		src/core/gfxcard.c (1.70) (+2 -5)
@@ -21554,27 +21742,27 @@
 	provider. Users might want to use symbol fonts and should be allowed
 	to do so (they just need to know what they're doing).
 	
-2002-06-19   neo	19:49:34	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	19:49:34	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.17) (+1 -1)
 	
 	oops, one more place that needs to be adjusted
 	
-2002-06-19   neo	19:41:07	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	19:41:07	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.16) (+3 -3)
 	
 	Corrected my last commit: Set height to 24 (vertical offset to next line).
 	Fix descender as well (it's supposed to be a negative value).
 	
-2002-06-19   neo	19:37:36	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	19:37:36	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.15) (+1 -1)
 	
 	Set the font height to 24 for the default font. Font height is supposed
 	to be the vertical advance to the next line.
 	
-2002-06-19   neo	17:46:01	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	17:46:01	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.34) (+8 -8)
 	
@@ -21586,7 +21774,7 @@
 	
 	Added Alex SONG <zzaleson@uqconnect.net>.
 	
-2002-06-19   neo	16:40:06	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	16:40:06	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.14) (+40 -35)
 		src/core/gfxcard.c (1.69) (+28 -67)
@@ -21599,20 +21787,20 @@
 	control about glyph surface format and glyph blitting. This change
 	makes it for example possible to write a FontProvider for ARGB fonts.
 	
-2002-06-19   neo	14:20:52	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	14:20:52	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb_keyboard.h (1.17) (+2 -0)
 	
 	added DIKS_EXIT and DIKS_SETUP
 	
-2002-06-19   neo	12:51:50	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	12:51:50	Sven Neumann <sven@convergence.de>
 
 	Files:	ChangeLog (1.22) (+425 -0)
 		NEWS (1.28) (+22 -0)
 	
 	Updated ChangeLog. Started to summarize changes in 0.9.12.
 	
-2002-06-19   neo	12:34:39	Sven Neumann <sven@gimp.org>
+2002-06-19   neo	12:34:39	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/savage/savage4.c (1.2) (+3 -0)
 	
@@ -21632,14 +21820,14 @@
 	
 	Use diffused alpha if source format is RGB32 to force the alpha values to 0xff.
 	
-2002-06-17   neo	23:25:21	Sven Neumann <sven@gimp.org>
+2002-06-17   neo	23:25:21	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.75) (+12 -12)
 	
 	Declared some local variables in inner loops as register variables.
 	Declared local variables in SET_ALPHA_PIXEL_ARGB as __u32;
 	
-2002-06-17   neo	22:46:00	Sven Neumann <sven@gimp.org>
+2002-06-17   neo	22:46:00	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.74) (+124 -182)
 	
@@ -21650,14 +21838,14 @@
 	Undefined the SET_ALPHA_PIXEL_* macros after usage and removed lots of
 	unneeded brackets.
 	
-2002-06-17   neo	21:54:01	Sven Neumann <sven@gimp.org>
+2002-06-17   neo	21:54:01	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.73) (+23 -22)
 	
 	More work on the Bop_a8_set_alphapixel_Aop_* functions. Use Cop instead
 	of the color struct, cleanups.
 	
-2002-06-17   neo	21:32:29	Sven Neumann <sven@gimp.org>
+2002-06-17   neo	21:32:29	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.72) (+41 -41)
 	
@@ -21806,7 +21994,7 @@
 	
 	removed obsolete FIXME
 	
-2002-06-12   neo	17:53:03	Sven Neumann <sven@gimp.org>
+2002-06-12   neo	17:53:03	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/layers.c (1.38) (+2 -2)
 	
@@ -21818,7 +22006,7 @@
 	
 	Implemented besFlipBuffers() which should have been implemented in 0.9.11 ;(
 	
-2002-06-11   neo	12:18:47	Sven Neumann <sven@gimp.org>
+2002-06-11   neo	12:18:47	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/lirc/lirc.c (1.11) (+25 -138)
 	
@@ -21832,7 +22020,7 @@
 	
 	Replace currency sign (0xa4) by euro currency sign (0x20ac).
 	
-2002-06-10   neo	18:59:39	Sven Neumann <sven@gimp.org>
+2002-06-10   neo	18:59:39	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.46) (+23 -11)
 		src/media/idirectfbfont.c (1.25) (+20 -20)
@@ -21843,7 +22031,7 @@
 	Made IDirectFBFont::GetGlyphExtents() and IDirectFBFontGetKerning() fill
 	in zero values if the glyph isn't found and return DFB_OK.
 	
-2002-06-10   neo	18:59:38	Sven Neumann <sven@gimp.org>
+2002-06-10   neo	18:59:38	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.112) (+11 -5)
 	
@@ -21865,7 +22053,7 @@
 	
 	Added DIDTF_VIRTUAL for virtual input devices.
 	
-2002-06-10   neo	17:43:38	Sven Neumann <sven@gimp.org>
+2002-06-10   neo	17:43:38	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/gfxcard.c (1.68) (+73 -0)
 		src/media/idirectfbfont.c (1.24) (+88 -4)
@@ -21876,7 +22064,7 @@
 	Added IDirectFBSurface::DrawGlyph().
 	This should enable users to implement their own simple text layout engine.
 	
-2002-06-10   neo	17:43:37	Sven Neumann <sven@gimp.org>
+2002-06-10   neo	17:43:37	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.109) (+50 -3)
 	
@@ -21884,13 +22072,13 @@
 	Added IDirectFBSurface::DrawGlyph().
 	This should enable users to implement their own simple text layout engine.
 	
-2002-06-10   neo	13:04:14	Sven Neumann <sven@gimp.org>
+2002-06-10   neo	13:04:14	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.108) (+1 -1)
 	
 	fixed typo in comment
 	
-2002-06-10   neo	12:42:18	Sven Neumann <sven@gimp.org>
+2002-06-10   neo	12:42:18	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.81) (+72 -31)
 	
@@ -21944,19 +22132,19 @@
 	
 	Added a mask of currently pressed buttons to input and window events.
 	
-2002-06-07   neo	19:12:44	Sven Neumann <sven@gimp.org>
+2002-06-07   neo	19:12:44	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/utf8.h (1.9) (+1 -1)
 	
 	oops
 	
-2002-06-07   neo	18:23:21	Sven Neumann <sven@gimp.org>
+2002-06-07   neo	18:23:21	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/utf8.h (1.8) (+2 -1)
 	
 	fixed dfb_utf8_next_char() (spotted by Holger Waechtler)
 	
-2002-06-07   neo	18:05:32	Sven Neumann <sven@gimp.org>
+2002-06-07   neo	18:05:32	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/utf8.h (1.7) (+7 -0)
 	
@@ -21968,7 +22156,7 @@
 	
 	Use sigaction instead of signal.
 	
-2002-06-07   neo	16:26:08	Sven Neumann <sven@gimp.org>
+2002-06-07   neo	16:26:08	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.31) (+1 -0)
 	
@@ -21980,7 +22168,7 @@
 	
 	Updated Joachim Steiger's e-mail address.
 	
-2002-06-07   neo	15:00:33	Sven Neumann <sven@gimp.org>
+2002-06-07   neo	15:00:33	Sven Neumann <sven@convergence.de>
 
 	Files:	src/directfb.c (1.45) (+2 -1)
 	
@@ -22009,19 +22197,19 @@
 	and DSBLIT_DEMULTIPLY which can be used for complex blending operations which
 	distinguish between premultiplied and non-premultiplied alpha channels.
 	
-2002-06-06   neo	16:59:02	Sven Neumann <sven@gimp.org>
+2002-06-06   neo	16:59:02	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.104) (+179 -162)
 	
 	Forced comments into 80 columns.
 	
-2002-06-06   neo	13:38:01	Sven Neumann <sven@gimp.org>
+2002-06-06   neo	13:38:01	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.103) (+3 -1)
 	
 	Improved description of IDirectFBFont::GetHeight().
 	
-2002-06-06   neo	11:40:02	Sven Neumann <sven@gimp.org>
+2002-06-06   neo	11:40:02	Sven Neumann <sven@convergence.de>
 
 	Files:	src/input/idirectfbinputdevice.c (1.24) (+2 -2)
 	
@@ -22034,14 +22222,14 @@
 	
 	Added second windows key as META_R, made the menu key SUPER_R.
 	
-2002-06-05   neo	15:16:20	Sven Neumann <sven@gimp.org>
+2002-06-05   neo	15:16:20	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/input.c (1.42) (+9 -0)
 	
 	Bumped version number to 0.9.12.
 	Added key identifiers for the remaining keys on a PC105 keyboard layout.
 	
-2002-06-05   neo	15:16:19	Sven Neumann <sven@gimp.org>
+2002-06-05   neo	15:16:19	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb_keyboard.h (1.15) (+16 -0)
 		inputdrivers/keyboard/keyboard.c (1.36) (+17 -5)
@@ -22049,7 +22237,7 @@
 	Bumped version number to 0.9.12.
 	Added key identifiers for the remaining keys on a PC105 keyboard layout.
 	
-2002-06-05   neo	15:16:18	Sven Neumann <sven@gimp.org>
+2002-06-05   neo	15:16:18	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.80) (+1 -1)
 	
@@ -22062,7 +22250,7 @@
 	
 	Once more a fresh ChangeLog
 	
-2002-06-05   neo	02:33:06	Sven Neumann <sven@gimp.org>
+2002-06-05   neo	02:33:06	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/Makefile.am (1.4) (+5 -1)
 		tools/README (1.3) (+18 -5)
@@ -22104,7 +22292,7 @@
 	'directfb_keynames.h' will be generated and installed for applications.
 	It's a mapping from a key symbol to its name.
 	
-2002-06-04   neo	22:50:20	Sven Neumann <sven@gimp.org>
+2002-06-04   neo	22:50:20	Sven Neumann <sven@convergence.de>
 
 	Files:	README.screenshots (1.3) (+24 -13)
 		docs/directfbrc.5.in (1.10) (+2 -1)
@@ -22129,7 +22317,7 @@
 	Added option "screenshot-dir=<directory>" that enables PPM screen dumps
 	when the <Print> key is pressed.
 	
-2002-06-04   neo	19:30:35	Sven Neumann <sven@gimp.org>
+2002-06-04   neo	19:30:35	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb_keyboard.h (1.13) (+1 -1)
 	
@@ -22141,7 +22329,7 @@
 	
 	Added Meta/Super/Hyper  key_id <-> key_symbol translation.
 	
-2002-06-04   neo	19:06:39	Sven Neumann <sven@gimp.org>
+2002-06-04   neo	19:06:39	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/input.c (1.40) (+24 -23)
 		src/core/windows.c (1.72) (+2 -2)
@@ -22150,7 +22338,7 @@
 	Renamed DIKI_CTRL_* to DIKI_CONTROL_*.
 	Added left/right versions of DIKI_ALT, DIKI_META, DIKI_SUPER, DIKI_HYPER.
 	
-2002-06-04   neo	19:06:38	Sven Neumann <sven@gimp.org>
+2002-06-04   neo	19:06:38	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb_keyboard.h (1.12) (+11 -6)
 		inputdrivers/lirc/lirc.c (1.10) (+3 -3)
@@ -22160,7 +22348,7 @@
 	Renamed DIKI_CTRL_* to DIKI_CONTROL_*.
 	Added left/right versions of DIKI_ALT, DIKI_META, DIKI_SUPER, DIKI_HYPER.
 	
-2002-06-04   neo	18:40:22	Sven Neumann <sven@gimp.org>
+2002-06-04   neo	18:40:22	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/utf8.c (1.7) (+34 -59)
 		src/misc/utf8.h (1.6) (+1 -1)
@@ -22190,7 +22378,7 @@
 	Fixed warning in v4l provider with gcc 3.1.
 	Removed commented out and finally obsolete line in generic driver.
 	
-2002-06-04   neo	17:28:03	Sven Neumann <sven@gimp.org>
+2002-06-04   neo	17:28:03	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb_keyboard.h (1.10) (+16 -6)
 	
@@ -22264,7 +22452,7 @@
 	Increase buffer's video instance locking counter,
 	buffer is sticked to video memory then.
 	
-2002-06-03   neo	20:04:17	Sven Neumann <sven@gimp.org>
+2002-06-03   neo	20:04:17	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.26) (+32 -0)
 	
@@ -22290,21 +22478,21 @@
 	
 	Do some more cycles for memcpy test.
 	
-2002-06-03   neo	18:06:42	Sven Neumann <sven@gimp.org>
+2002-06-03   neo	18:06:42	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/gfxcard.c (1.67) (+37 -42)
 	
 	dfb_gfxcard_state_check(): Always check front and back buffer policies and
 	set acceleration bits accordingly.
 	
-2002-06-03   neo	11:39:22	Sven Neumann <sven@gimp.org>
+2002-06-03   neo	11:39:22	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.44) (+1 -1)
 	
 	Need to set SMF_COLOR not SMF_DRAWING_FLAGS to indicate the color change
 	in IDirectFBSurface_Clear().
 	
-2002-06-03   neo	10:32:20	Sven Neumann <sven@gimp.org>
+2002-06-03   neo	10:32:20	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.43) (+4 -2)
 		src/gfx/clip.h (1.4) (+11 -8)
@@ -22316,7 +22504,7 @@
 	Added more const statements to the internal clip API to make it easier
 	to understand what the functions do.
 	
-2002-06-03   neo	09:52:15	Sven Neumann <sven@gimp.org>
+2002-06-03   neo	09:52:15	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/util.c (1.10) (+9 -7)
 		src/misc/util.h (1.11) (+8 -8)
@@ -22324,7 +22512,7 @@
 	Declared parameters that are not changed as const. Might help the compiler,
 	definitely helps the developers.
 	
-2002-06-02   neo	14:41:33	Sven Neumann <sven@gimp.org>
+2002-06-02   neo	14:41:33	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/gfxcard.c (1.66) (+11 -4)
 	
@@ -22397,13 +22585,13 @@
 	Added IDirectFBInputDevice::GetKeymapEntry() which fetches a
 	DFBInputDeviceKeymapEntry for a specific hardware keycode.
 	
-2002-05-29   neo	11:37:40	Sven Neumann <sven@gimp.org>
+2002-05-29   neo	11:37:40	Sven Neumann <sven@convergence.de>
 
 	Files:	.cvsignore (1.7) (+6 -6)
 	
 	Added autom4te.cache to .cvsignore (for automake-2.5x).
 	
-2002-05-29   neo	11:19:17	Sven Neumann <sven@gimp.org>
+2002-05-29   neo	11:19:17	Sven Neumann <sven@convergence.de>
 
 	Files:	patches/Makefile.am (1.17) (+2 -0)
 		patches/savagefb-0.4.0-linux-2.4.17.patch.bz2 (1.1) ( )
@@ -22523,13 +22711,13 @@
 	
 	Added DFBInputDeviceKeymapEntry that will soon be useful with some API calls.
 	
-2002-05-28   neo	17:52:36	Sven Neumann <sven@gimp.org>
+2002-05-28   neo	17:52:36	Sven Neumann <sven@convergence.de>
 
 	Files:	autogen.sh (1.5) (+1 -0)
 	
 	oops, we need to call aclocal of course.
 	
-2002-05-28   neo	17:46:47	Sven Neumann <sven@gimp.org>
+2002-05-28   neo	17:46:47	Sven Neumann <sven@convergence.de>
 
 	Files:	autogen.sh (1.4) (+83 -71)
 	
@@ -22543,7 +22731,7 @@
 	Fixed directfb-config.
 	Converted debug printf to DEBUGMSG.
 	
-2002-05-28   neo	01:06:51	Sven Neumann <sven@gimp.org>
+2002-05-28   neo	01:06:51	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.77) (+13 -9)
 	
@@ -22591,7 +22779,7 @@
 	
 	DFB_LOWER/UPPER_CASE was wrong
 	
-2002-05-27   neo	17:42:13	Sven Neumann <sven@gimp.org>
+2002-05-27   neo	17:42:13	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb_keyboard.h (1.5) (+4 -47)
 		src/core/input.c (1.31) (+4 -10)
@@ -22602,7 +22790,7 @@
 	Removed DIKS_KP_* symbols and NUMPAD DeviceKeyType. The numpad keys
 	should return the same symbols as the 'normal' keys they respond to.
 	
-2002-05-27   neo	17:10:06	Sven Neumann <sven@gimp.org>
+2002-05-27   neo	17:10:06	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb_keyboard.h (1.4) (+7 -7)
 	
@@ -23141,7 +23329,7 @@
 	Applied patch from Antonino Daplas <adaplas@users.sourceforge.net> checking
 	for CGA/MDA emulation before polling for the vertical retrace.
 	
-2002-05-24   neo	11:22:47	Sven Neumann <sven@gimp.org>
+2002-05-24   neo	11:22:47	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/vt.c (1.26) (+1 -1)
 		src/misc/cpu_accel.c (1.2) (+1 -1)
@@ -23153,7 +23341,7 @@
 	Searching for '//' should now only show parts of the code that need to
 	be reviewed.
 	
-2002-05-24   neo	11:22:46	Sven Neumann <sven@gimp.org>
+2002-05-24   neo	11:22:46	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/neomagic/neomagic.c (1.11) (+24 -24)
 		src/core/surfacemanager.c (1.25) (+5 -4)
@@ -23169,7 +23357,7 @@
 	Searching for '//' should now only show parts of the code that need to
 	be reviewed.
 	
-2002-05-24   neo	11:22:45	Sven Neumann <sven@gimp.org>
+2002-05-24   neo	11:22:45	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.8) (+25 -23)
 		gfxdrivers/matrox/matrox.c (1.30) (+5 -5)
@@ -23209,13 +23397,13 @@
 	
 	Added a text to desktop-buffer-mode.
 	
-2002-05-23   neo	20:27:12	Sven Neumann <sven@gimp.org>
+2002-05-23   neo	20:27:12	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.5) (+47 -29)
 	
 	more work on the man-page
 	
-2002-05-23   neo	15:25:34	Sven Neumann <sven@gimp.org>
+2002-05-23   neo	15:25:34	Sven Neumann <sven@convergence.de>
 
 	Files:	src/directfb.c (1.42) (+1 -1)
 		src/misc/conf.h (1.20) (+23 -21)
@@ -23234,7 +23422,7 @@
 	
 	Changed the man-page accordingly.
 	
-2002-05-23   neo	15:25:33	Sven Neumann <sven@gimp.org>
+2002-05-23   neo	15:25:33	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.4) (+32 -21)
 	
@@ -23246,13 +23434,13 @@
 	
 	Changed the man-page accordingly.
 	
-2002-05-23   neo	14:22:23	Sven Neumann <sven@gimp.org>
+2002-05-23   neo	14:22:23	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.3) (+63 -22)
 	
 	described more parameters
 	
-2002-05-22   neo	16:03:28	Sven Neumann <sven@gimp.org>
+2002-05-22   neo	16:03:28	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.98) (+22 -15)
 	
@@ -23317,13 +23505,13 @@
 	
 	Align system memory back buffer pitch.
 	
-2002-05-18   neo	02:10:12	Sven Neumann <sven@gimp.org>
+2002-05-18   neo	02:10:12	Sven Neumann <sven@convergence.de>
 
 	Files:	docs/directfbrc.5.in (1.2) (+12 -7)
 	
 	documented more options
 	
-2002-05-17   neo	20:15:22	Sven Neumann <sven@gimp.org>
+2002-05-17   neo	20:15:22	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.74) (+13 -4)
 	
@@ -23331,7 +23519,7 @@
 	binary compatibility with. Use BINARY_VERSION in MODULEDIR. Don't a
 	version number in INTERNALINCLUDEDIR.
 	
-2002-05-17   neo	18:36:55	Sven Neumann <sven@gimp.org>
+2002-05-17   neo	18:36:55	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.73) (+2 -1)
 		docs/directfbrc.5.in (1.1) ( )
@@ -23580,7 +23768,7 @@
 	
 	devfs support for libmpeg3 provider (try to open /dev/sound/dsp )
 	
-2002-04-27   neo	19:09:28	Sven Neumann <sven@gimp.org>
+2002-04-27   neo	19:09:28	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.27) (+5 -10)
 		configure.in (1.70) (+10 -8)
@@ -23797,7 +23985,7 @@
 	Added temporary workaround for partly implemented FusionProperty
 	in multi application core.
 	
-2002-04-19   neo	12:10:03	Sven Neumann <sven@gimp.org>
+2002-04-19   neo	12:10:03	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/layers.c (1.26) (+3 -0)
 	
@@ -23827,7 +24015,7 @@
 	
 	Removed some unused code.
 	
-2002-04-17   neo	11:03:15	Sven Neumann <sven@gimp.org>
+2002-04-17   neo	11:03:15	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/gfx_util.c (1.18) (+13 -5)
 		src/misc/gfx_util.h (1.8) (+4 -3)
@@ -23840,7 +24028,7 @@
 	
 	Added IDirectFBEventBuffer::HasEvent().
 	
-2002-04-17   neo	11:03:14	Sven Neumann <sven@gimp.org>
+2002-04-17   neo	11:03:14	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.90) (+16 -1)
 		src/input/idirectfbinputbuffer.c (1.26) (+8 -0)
@@ -23886,7 +24074,7 @@
 	
 	Debug version compiles again.
 	
-2002-04-16   neo	10:06:09	Sven Neumann <sven@gimp.org>
+2002-04-16   neo	10:06:09	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.89) (+28 -28)
 	
@@ -23916,7 +24104,7 @@
 	
 	Let CapsLock key events through.
 	
-2002-04-15   neo	10:12:45	Sven Neumann <sven@gimp.org>
+2002-04-15   neo	10:12:45	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.19) (+2 -3)
 		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.20) (+1 -0)
@@ -24491,7 +24679,7 @@
 	
 	Moved a bit code from keyboard driver to vt handling where it belongs.
 	
-2002-03-25   neo	19:56:34	Sven Neumann <sven@gimp.org>
+2002-03-25   neo	19:56:34	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/fonts.h (1.10) (+20 -18)
 		src/media/idirectfbfont.c (1.21) (+9 -4)
@@ -24539,14 +24727,14 @@
 	
 	handle_enter_leave_focus() did not check if the pointer is grabbed.
 	
-2002-03-22   neo	19:21:25	Sven Neumann <sven@gimp.org>
+2002-03-22   neo	19:21:25	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/Makefile.am (1.4) (+3 -3)
 		interfaces/IDirectFBVideoProvider/Makefile.am (1.5) (+3 -3)
 	
 	Removed -disable-static from LIBADDs.
 	
-2002-03-22   neo	19:21:24	Sven Neumann <sven@gimp.org>
+2002-03-22   neo	19:21:24	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBFont/Makefile.am (1.4) (+2 -2)
 	
@@ -24944,7 +25132,7 @@
 	
 	removed aty128fb patch (it is included in 2.4.18)
 	
-2002-02-25   neo	14:53:09	Sven Neumann <sven@gimp.org>
+2002-02-25   neo	14:53:09	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.64) (+0 -6)
 	
@@ -25004,7 +25192,7 @@
 	
 	Updated for 0.9.9.
 	
-2002-02-19   neo	20:03:20	Sven Neumann <sven@gimp.org>
+2002-02-19   neo	20:03:20	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.22) (+6 -6)
 	
@@ -25074,7 +25262,7 @@
 	
 	Allow IDirectFB::CreateEventBuffer with DICAPS_NONE.
 	
-2002-02-15   neo	13:35:24	Sven Neumann <sven@gimp.org>
+2002-02-15   neo	13:35:24	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.78) (+9 -10)
 	
@@ -25154,7 +25342,7 @@
 	Made 'no-sighandler' and 'no-deinit-check' overrideable
 	via 'sighandler' and 'deinit-check'.
 	
-2002-02-08   neo	17:06:39	Sven Neumann <sven@gimp.org>
+2002-02-08   neo	17:06:39	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.77) (+5 -5)
 		inputdrivers/keyboard/keyboard.c (1.19) (+6 -6)
@@ -25162,7 +25350,7 @@
 	Removed special keycodes for the IPAQ and added some generic new ones.
 	Remapped IPAQ keys.
 	
-2002-02-06   neo	11:18:30	Sven Neumann <sven@gimp.org>
+2002-02-06   neo	11:18:30	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.37) (+3 -2)
 	
@@ -25185,7 +25373,7 @@
 	Wait for idle accelerator if software wants to write into a surface that
 	has been read by hardware (read access by hardware may not be completed).
 	
-2002-02-04   neo	11:51:31	Sven Neumann <sven@gimp.org>
+2002-02-04   neo	11:51:31	Sven Neumann <sven@convergence.de>
 
 	Files:	Makefile.am (1.8) (+0 -2)
 	
@@ -25280,7 +25468,7 @@
 	
 	Builds with newest version libmpeg3 (1.5).
 	
-2002-01-27   neo	20:20:58	Sven Neumann <sven@gimp.org>
+2002-01-27   neo	20:20:58	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.75) (+4 -6)
 	
@@ -25339,13 +25527,13 @@
 	
 	New version, nothing important, just added module license (GPL of course).
 	
-2002-01-23   neo	15:49:16	Sven Neumann <sven@gimp.org>
+2002-01-23   neo	15:49:16	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/conf.c (1.23) (+0 -1)
 	
 	oops, forgot to remove a debugging printf
 	
-2002-01-23   neo	15:08:39	Sven Neumann <sven@gimp.org>
+2002-01-23   neo	15:08:39	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/conf.c (1.22) (+62 -44)
 	
@@ -25354,7 +25542,7 @@
 	comma-separated list of DirectFB options. The format of the options
 	is the same as used in the directfbrc file.
 	
-2002-01-23   neo	15:08:38	Sven Neumann <sven@gimp.org>
+2002-01-23   neo	15:08:38	Sven Neumann <sven@convergence.de>
 
 	Files:	acconfig.h (1.5) (+2 -1)
 		configure.in (1.58) (+2 -0)
@@ -25400,7 +25588,7 @@
 	
 	Build libmpeg3 provider using gcc, ld did not include our constructor.
 	
-2002-01-21   neo	16:59:15	Sven Neumann <sven@gimp.org>
+2002-01-21   neo	16:59:15	Sven Neumann <sven@convergence.de>
 
 	Files:	src/idirectfb.c (1.46) (+12 -7)
 	
@@ -25444,7 +25632,7 @@
 	
 	Replaced all "sprintf" calls with "snprintf" calls.
 	
-2002-01-21   neo	12:11:03	Sven Neumann <sven@gimp.org>
+2002-01-21   neo	12:11:03	Sven Neumann <sven@convergence.de>
 
 	Files:	src/directfb.c (1.35) (+5 -1)
 		src/misc/conf.h (1.16) (+2 -0)
@@ -25460,7 +25648,7 @@
 	Output DirectFB usage information and quit if --dfb-help command-line
 	option is given.
 	
-2002-01-21   neo	12:11:02	Sven Neumann <sven@gimp.org>
+2002-01-21   neo	12:11:02	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.73) (+7 -0)
 	
@@ -25644,7 +25832,7 @@
 	
 	Fixed stoned '.c' includes.
 	
-2002-01-15   neo	21:33:49	Sven Neumann <sven@gimp.org>
+2002-01-15   neo	21:33:49	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/windows.c (1.44) (+26 -3)
 		src/misc/conf.c (1.20) (+10 -7)
@@ -25654,7 +25842,7 @@
 	but tiles the background image instead of stretching it.
 	Added new --bg-tile command line option.
 	
-2002-01-15   neo	21:33:48	Sven Neumann <sven@gimp.org>
+2002-01-15   neo	21:33:48	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.72) (+3 -1)
 		src/directfb.c (1.33) (+10 -5)
@@ -25727,7 +25915,7 @@
 	
 	Makefile.am cleanup
 	
-2002-01-14   neo	14:09:29	Sven Neumann <sven@gimp.org>
+2002-01-14   neo	14:09:29	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.35) (+81 -0)
 	
@@ -25735,7 +25923,7 @@
 	but tiles the source to the whole destination surface. Set a clipping
 	region if you want to tile only parts of the destination surface.
 	
-2002-01-14   neo	14:09:28	Sven Neumann <sven@gimp.org>
+2002-01-14   neo	14:09:28	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.71) (+16 -2)
 		src/core/gfxcard.h (1.19) (+3 -0)
@@ -25928,7 +26116,7 @@
 	If a buffer is only used for one specific event class, the macro
 	DFB_EVENT(e) can be used to pass DFBInputEvent or DFBWindowEvent directly.
 	
-2002-01-13   neo	12:36:22	Sven Neumann <sven@gimp.org>
+2002-01-13   neo	12:36:22	Sven Neumann <sven@convergence.de>
 
 	Files:	directfb-avifile.pc.in (1.2) (+0 -6)
 	
@@ -26240,13 +26428,13 @@
 	
 	Use "-fomit-frame-pointer" only for src/gfx/generic.
 	
-2002-01-08   neo	15:52:44	Sven Neumann <sven@gimp.org>
+2002-01-08   neo	15:52:44	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.49) (+31 -32)
 	
 	some code cleanup, no changes
 	
-2002-01-08   neo	13:22:44	Sven Neumann <sven@gimp.org>
+2002-01-08   neo	13:22:44	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.48) (+10 -5)
 	
@@ -26290,7 +26478,7 @@
 	
 	Pass the filename to the Probe function of image providers.
 	
-2002-01-07   neo	14:07:26	Sven Neumann <sven@gimp.org>
+2002-01-07   neo	14:07:26	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.47) (+8 -7)
 	
@@ -26974,7 +27162,7 @@
 	Added gfxcard_reserve_memory that can be called at init time by drivers
 	for special purposes, e.g. fake texture or command overflow buffer.
 	
-2001-12-06   neo	16:07:49	Sven Neumann <sven@gimp.org>
+2001-12-06   neo	16:07:49	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.32) (+1 -0)
 	
@@ -28629,7 +28817,7 @@
 	    double true
 	endmode
 	
-2001-09-02   neo	22:58:05	Sven Neumann <sven@gimp.org>
+2001-09-02   neo	22:58:05	Sven Neumann <sven@convergence.de>
 
 	Files:	src/directfb.c (1.24) (+4 -2)
 	
@@ -28834,7 +29022,7 @@
 	- Major cleanup.
 	- Blending state fixes.
 	
-2001-08-06   neo	22:54:41	Sven Neumann <sven@gimp.org>
+2001-08-06   neo	22:54:41	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.46) (+62 -19)
 	
@@ -29064,7 +29252,7 @@
 	Return DFB_INVARG if text is NULL in DrawString.
 	Unlock the surface in IDirectFBSurface_Destruct if it's locked.
 	
-2001-07-24   neo	16:29:22	Sven Neumann <sven@gimp.org>
+2001-07-24   neo	16:29:22	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.45) (+4 -4)
 		inputdrivers/keyboard/keyboard.c (1.9) (+6 -6)
@@ -29161,7 +29349,7 @@
 	
 	Tested on GeForce 256 SDRAM doing 830 MPixels/sec in FillRectangle.
 	
-2001-07-19   neo	12:09:46	Sven Neumann <sven@gimp.org>
+2001-07-19   neo	12:09:46	Sven Neumann <sven@convergence.de>
 
 	Files:	patches/Makefile.am (1.4) (+2 -2)
 	
@@ -29211,7 +29399,7 @@
 	check source and destination format in CheckState,
 	hopefully rejecting surfaces with width < 8 or height < 8 now.
 	
-2001-07-16   neo	22:46:00	Sven Neumann <sven@gimp.org>
+2001-07-16   neo	22:46:00	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.9) (+32 -92)
 		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.9) (+21 -77)
@@ -29220,7 +29408,7 @@
 	
 	use INTERFACE_GET_DATA macro (reduced codesize by 182 lines / 0.5%)
 	
-2001-07-16   neo	22:45:59	Sven Neumann <sven@gimp.org>
+2001-07-16   neo	22:45:59	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.7) (+6 -16)
 		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.4) (+6 -16)
@@ -29228,7 +29416,7 @@
 	
 	use INTERFACE_GET_DATA macro (reduced codesize by 182 lines / 0.5%)
 	
-2001-07-16   neo	22:01:13	Sven Neumann <sven@gimp.org>
+2001-07-16   neo	22:01:13	Sven Neumann <sven@convergence.de>
 
 	Files:	src/input/idirectfbinputbuffer.c (1.13) (+19 -12)
 		src/windows/idirectfbwindow.c (1.14) (+19 -12)
@@ -29238,7 +29426,7 @@
 	are pending, get current time before locking the mutex. This way the time
 	it takes to aquire the mutex is taken into account for the timeout.
 	
-2001-07-16   neo	18:49:35	Sven Neumann <sven@gimp.org>
+2001-07-16   neo	18:49:35	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.43) (+11 -0)
 		src/idirectfb.c (1.23) (+32 -0)
@@ -29250,7 +29438,7 @@
 	
 	Bumped version number to 0.9.5.
 	
-2001-07-16   neo	18:49:34	Sven Neumann <sven@gimp.org>
+2001-07-16   neo	18:49:34	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.18) (+4 -0)
 		configure.in (1.36) (+1 -1)
@@ -29262,14 +29450,14 @@
 	
 	Bumped version number to 0.9.5.
 	
-2001-07-16   neo	16:21:03	Sven Neumann <sven@gimp.org>
+2001-07-16   neo	16:21:03	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/windows.c (1.25) (+4 -6)
 	
 	Attach all inputdevices to the window stack, not only those of type
 	DIDTF_KEYBOARD and DIDTF_MOUSE. Let's see if this is a good idea...
 	
-2001-07-16   neo	15:41:11	Sven Neumann <sven@gimp.org>
+2001-07-16   neo	15:41:11	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/gendoc.pl (1.7) (+13 -9)
 	
@@ -29619,13 +29807,13 @@
 	
 	First entry in our TODO file ;)
 	
-2001-07-03   neo	12:11:52	Sven Neumann <sven@gimp.org>
+2001-07-03   neo	12:11:52	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.41) (+11 -12)
 	
 	reordered Cursor interface declarations to get nicer documentation
 	
-2001-07-02   neo	19:37:22	Sven Neumann <sven@gimp.org>
+2001-07-02   neo	19:37:22	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.23) (+26 -1)
 	
@@ -30021,13 +30209,13 @@
 	
 	in CreateWindow: return DFB_INVARG if height == 0 or width == 0
 	
-2001-06-28   neo	21:19:59	Sven Neumann <sven@gimp.org>
+2001-06-28   neo	21:19:59	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.4) (+1 -0)
 	
 	ooops, forgot to register the GetCapabilities method...
 	
-2001-06-28   neo	10:58:54	Sven Neumann <sven@gimp.org>
+2001-06-28   neo	10:58:54	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/layers.c (1.6) (+2 -1)
 	
@@ -30068,7 +30256,7 @@
 	- use other signals than SIGUSR1 and SIGUSR2 that does not collide with
 	  Kaffe's garbage collector, a bit dirty (SIGUNUSED+10/11), but works
 	
-2001-06-27   neo	22:53:32	Sven Neumann <sven@gimp.org>
+2001-06-27   neo	22:53:32	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.38) (+1 -1)
 	
@@ -30087,7 +30275,7 @@
 	
 	also did the same mode checking fix for the current mode (e.g. with vesafb)
 	
-2001-06-27   neo	17:49:32	Sven Neumann <sven@gimp.org>
+2001-06-27   neo	17:49:32	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.36) (+11 -8)
 		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.7) (+23 -20)
@@ -30170,13 +30358,13 @@
 	Cleaned 'fbdev.c' (that handles the primary layer) to follow internal display
 	layer driver API changes.
 	
-2001-06-27   neo	13:32:39	Sven Neumann <sven@gimp.org>
+2001-06-27   neo	13:32:39	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.6) (+14 -4)
 	
 	check return values of new ioctl calls
 	
-2001-06-27   neo	11:04:19	Sven Neumann <sven@gimp.org>
+2001-06-27   neo	11:04:19	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.7) (+73 -18)
 		tools/gendoc.pl (1.6) (+2 -1)
@@ -30195,7 +30383,7 @@
 	
 	Output useful error message if doc generator dies.
 	
-2001-06-27   neo	11:04:18	Sven Neumann <sven@gimp.org>
+2001-06-27   neo	11:04:18	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.34) (+63 -1)
 	
@@ -30216,7 +30404,7 @@
 	
 	don't catch SIGPOLL (a.k.a. SIGIO)
 	
-2001-06-25   neo	15:38:03	Sven Neumann <sven@gimp.org>
+2001-06-25   neo	15:38:03	Sven Neumann <sven@convergence.de>
 
 	Files:	src/directfb.c (1.17) (+3 -3)
 		src/display/idirectfbdisplaylayer.c (1.10) (+12 -0)
@@ -30233,7 +30421,7 @@
 	
 	Process key events in df_window: Cursor keys move active window.
 	
-2001-06-25   neo	15:38:02	Sven Neumann <sven@gimp.org>
+2001-06-25   neo	15:38:02	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.33) (+12 -2)
 	
@@ -30245,7 +30433,7 @@
 	
 	Process key events in df_window: Cursor keys move active window.
 	
-2001-06-24   neo	20:45:56	Sven Neumann <sven@gimp.org>
+2001-06-24   neo	20:45:56	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.6) (+2 -2)
 	
@@ -30334,19 +30522,19 @@
 	Require working frame buffer device, not only compiled in.
 	Fixed a typo.
 	
-2001-06-22   neo	20:25:52	Sven Neumann <sven@gimp.org>
+2001-06-22   neo	20:25:52	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/fbdev.c (1.8) (+1 -1)
 	
 	fixed a bug in the fb switching code that made RGB32 modes fail
 	
-2001-06-22   neo	19:34:31	Sven Neumann <sven@gimp.org>
+2001-06-22   neo	19:34:31	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/gfx_util.c (1.10) (+3 -3)
 	
 	fixed another bug in copy_buffer_32().
 	
-2001-06-22   neo	19:29:12	Sven Neumann <sven@gimp.org>
+2001-06-22   neo	19:29:12	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.5) (+4 -8)
 		src/misc/gfx_util.c (1.9) (+2 -0)
@@ -30359,13 +30547,13 @@
 	
 	The GIF provider did not take destination pitch into account.
 	
-2001-06-22   neo	19:05:42	Sven Neumann <sven@gimp.org>
+2001-06-22   neo	19:05:42	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/gfx_util.c (1.8) (+13 -10)
 	
 	optimzed copy_buffer_32()
 	
-2001-06-22   neo	17:44:17	Sven Neumann <sven@gimp.org>
+2001-06-22   neo	17:44:17	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.4) (+23 -12)
 		src/misc/gfx_util.h (1.4) (+0 -3)
@@ -30426,13 +30614,13 @@
 	Added mga_waitfifo(1) in FlushTextureCache (I forgot).
 	Problems with G200@ARM are gone now.
 	
-2001-06-21   neo	12:43:26	Sven Neumann <sven@gimp.org>
+2001-06-21   neo	12:43:26	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.2) (+4 -1)
 	
 	forgot this one when changing the headers
 	
-2001-06-21   neo	12:39:07	Sven Neumann <sven@gimp.org>
+2001-06-21   neo	12:39:07	Sven Neumann <sven@convergence.de>
 
 	Files:	src/windows/idirectfbwindow.c (1.10) (+15 -7)
 		src/windows/idirectfbwindow.h (1.3) (+0 -2)
@@ -30441,7 +30629,7 @@
 	collected typedefs in core/coretypes.h
 	removed inclusion of headers from most headers
 	
-2001-06-21   neo	12:39:06	Sven Neumann <sven@gimp.org>
+2001-06-21   neo	12:39:06	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/util.c (1.2) (+8 -3)
 		src/misc/utf8.h (1.2) (+0 -2)
@@ -30462,7 +30650,7 @@
 	collected typedefs in core/coretypes.h
 	removed inclusion of headers from most headers
 	
-2001-06-21   neo	12:39:05	Sven Neumann <sven@gimp.org>
+2001-06-21   neo	12:39:05	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/Makefile.am (1.5) (+1 -0)
 		src/display/idirectfbsurface_window.h (1.2) (+0 -2)
@@ -30504,7 +30692,7 @@
 	collected typedefs in core/coretypes.h
 	removed inclusion of headers from most headers
 	
-2001-06-21   neo	12:39:04	Sven Neumann <sven@gimp.org>
+2001-06-21   neo	12:39:04	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/serialmouse/serialmouse.c (1.10) (+8 -2)
 		src/interface.c (1.6) (+3 -2)
@@ -30522,7 +30710,7 @@
 	collected typedefs in core/coretypes.h
 	removed inclusion of headers from most headers
 	
-2001-06-21   neo	12:39:03	Sven Neumann <sven@gimp.org>
+2001-06-21   neo	12:39:03	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/matrox/matrox.c (1.10) (+4 -0)
 		inputdrivers/ps2mouse/ps2mouse.c (1.8) (+8 -4)
@@ -30537,7 +30725,7 @@
 	collected typedefs in core/coretypes.h
 	removed inclusion of headers from most headers
 	
-2001-06-21   neo	12:39:02	Sven Neumann <sven@gimp.org>
+2001-06-21   neo	12:39:02	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/ati128/ati128.c (1.3) (+5 -0)
 		gfxdrivers/ati128/ati128_state.c (1.4) (+4 -0)
@@ -30560,33 +30748,33 @@
 	
 	DIFFUSEDALPHA for BLIT_NOFX was wrong, ALPHACTRL programmed to 1 for BLIT_NOFX
 	
-2001-06-20   neo	16:05:40	Sven Neumann <sven@gimp.org>
+2001-06-20   neo	16:05:40	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.5) (+7 -4)
 	
 	fixed a braino and some compiler warnings
 	
-2001-06-20   neo	14:50:05	Sven Neumann <sven@gimp.org>
+2001-06-20   neo	14:50:05	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/Makefile.am (1.4) (+0 -4)
 	
 	Removed -fexpensive-optimization from compiler flags since -O2 already
 	has this. Added -fomit-frame-pointer unless debugging is turned on.
 	
-2001-06-20   neo	14:50:04	Sven Neumann <sven@gimp.org>
+2001-06-20   neo	14:50:04	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.30) (+2 -2)
 	
 	Removed -fexpensive-optimization from compiler flags since -O2 already
 	has this. Added -fomit-frame-pointer unless debugging is turned on.
 	
-2001-06-19   neo	17:22:28	Sven Neumann <sven@gimp.org>
+2001-06-19   neo	17:22:28	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/utf8.c (1.3) (+13 -10)
 	
 	optimized utf8_get_char() for the default case (7bit ASCII)
 	
-2001-06-19   neo	17:02:08	Sven Neumann <sven@gimp.org>
+2001-06-19   neo	17:02:08	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/tree.c (1.7) (+9 -7)
 	
@@ -30613,27 +30801,27 @@
 	
 	do not process mouse events if cursor is invisible
 	
-2001-06-18   neo	17:24:45	Sven Neumann <sven@gimp.org>
+2001-06-18   neo	17:24:45	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.4) (+11 -1)
 	
 	Install a KillHandler for AviPlay and delete the object on interface
 	destruction. Fixes the segfault in IDirectVideoProvider_AviFile_Destruct().
 	
-2001-06-18   neo	11:53:42	Sven Neumann <sven@gimp.org>
+2001-06-18   neo	11:53:42	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.29) (+0 -1)
 	
 	forgot to remove debugging output
 	
-2001-06-18   neo	11:47:47	Sven Neumann <sven@gimp.org>
+2001-06-18   neo	11:47:47	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.28) (+19 -16)
 	
 	Rewrote handling of CFLAGS and CXXFLAGS so we respect the values that have
 	been set before configure is run.
 	
-2001-06-18   neo	09:33:03	Sven Neumann <sven@gimp.org>
+2001-06-18   neo	09:33:03	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/gfxcard.c (1.21) (+2 -5)
 		src/misc/tree.c (1.6) (+14 -11)
@@ -30794,7 +30982,7 @@
 	Re-enabled and fixed two lines which close/reopen the input devices
 	on Suspend()/Resume().
 	
-2001-06-13   neo	15:26:05	Sven Neumann <sven@gimp.org>
+2001-06-13   neo	15:26:05	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.28) (+4 -4)
 		src/core/input.c (1.6) (+16 -0)
@@ -30811,7 +30999,7 @@
 	- log2 had to return ret, always
 	- optimized TMU calculations, better rounding, looks always good now
 	
-2001-06-12   neo	21:11:12	Sven Neumann <sven@gimp.org>
+2001-06-12   neo	21:11:12	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.26) (+1 -0)
 	
@@ -30823,13 +31011,13 @@
 	
 	call v4l_stop() in v4l_deinit() to eventually stop the v4l thread
 	
-2001-06-12   neo	20:50:54	Sven Neumann <sven@gimp.org>
+2001-06-12   neo	20:50:54	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.25) (+6 -6)
 	
 	use correct variables for configure result list
 	
-2001-06-12   neo	20:45:25	Sven Neumann <sven@gimp.org>
+2001-06-12   neo	20:45:25	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.9) (+5 -0)
 	
@@ -30859,7 +31047,7 @@
 	
 	added Joachim Steiger to "thanks to"
 	
-2001-06-12   neo	18:11:24	Sven Neumann <sven@gimp.org>
+2001-06-12   neo	18:11:24	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.21) (+47 -0)
 		gfxdrivers/Makefile.am (1.2) (+20 -1)
@@ -30879,13 +31067,13 @@
 	
 	updated
 	
-2001-06-12   neo	17:24:38	Sven Neumann <sven@gimp.org>
+2001-06-12   neo	17:24:38	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.7) (+2 -2)
 	
 	update
 	
-2001-06-12   neo	17:23:57	Sven Neumann <sven@gimp.org>
+2001-06-12   neo	17:23:57	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.6) (+18 -10)
 		interfaces/IDirectFBImageProvider/Makefile.am (1.2) (+21 -4)
@@ -30900,13 +31088,13 @@
 	We strongly suggest you don't disable the build of these modules
 	since the example code and most DirectFB apps depend on them.
 	
-2001-06-12   neo	14:40:36	Sven Neumann <sven@gimp.org>
+2001-06-12   neo	14:40:36	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.26) (+5 -3)
 	
 	added a few more remote control keycodes we might need
 	
-2001-06-12   neo	13:05:05	Sven Neumann <sven@gimp.org>
+2001-06-12   neo	13:05:05	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/fonts.c (1.9) (+38 -34)
 		src/misc/tree.h (1.2) (+2 -0)
@@ -30916,7 +31104,7 @@
 	way. fonts_get_glyph_data() locks and unlocks the tree so it can be called
 	from multiple threads. Unfortunately this brings down performance a little.
 	
-2001-06-12   neo	11:17:08	Sven Neumann <sven@gimp.org>
+2001-06-12   neo	11:17:08	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/serialmouse/serialmouse.c (1.9) (+3 -0)
 	
@@ -30936,14 +31124,14 @@
 	
 	fixed license, oops
 	
-2001-06-11   neo	18:36:01	Sven Neumann <sven@gimp.org>
+2001-06-11   neo	18:36:01	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/serialmouse/serialmouse.c (1.8) (+29 -26)
 	
 	The old implementation of the MouseMan protocol definitely did not
 	work, this one might do the trick...
 	
-2001-06-11   neo	18:17:26	Sven Neumann <sven@gimp.org>
+2001-06-11   neo	18:17:26	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.25) (+113 -116)
 		inputdrivers/serialmouse/serialmouse.c (1.7) (+4 -5)
@@ -30966,7 +31154,7 @@
 	events, but the reactor can only be attached to after window_create.
 	this fixes the missing initial DWET_POSITION_SIZE event.
 	
-2001-06-11   neo	10:26:58	Sven Neumann <sven@gimp.org>
+2001-06-11   neo	10:26:58	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/windows.c (1.16) (+1 -1)
 	
@@ -31059,13 +31247,13 @@
 	
 	Added IDirectFBInputBuffer->WaitForEventWithTimeout (secs, nano_secs).
 	
-2001-06-08   neo	15:48:59	Sven Neumann <sven@gimp.org>
+2001-06-08   neo	15:48:59	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/serialmouse/serialmouse.c (1.6) (+1 -0)
 	
 	fixed(?) handling of middle mouse button for MS3 protocol
 	
-2001-06-08   neo	13:37:17	Sven Neumann <sven@gimp.org>
+2001-06-08   neo	13:37:17	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/serialmouse/serialmouse.c (1.5) (+132 -15)
 	
@@ -31078,7 +31266,7 @@
 	
 	All this is highly experimental and needs more testing.
 	
-2001-06-08   neo	12:06:12	Sven Neumann <sven@gimp.org>
+2001-06-08   neo	12:06:12	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/ps2mouse/ps2mouse.c (1.7) (+1 -8)
 		inputdrivers/serialmouse/serialmouse.c (1.4) (+52 -17)
@@ -31178,13 +31366,13 @@
 	
 	InputDevice info.driver_name/vendor are now pointers
 	
-2001-06-07   neo	16:00:20	Sven Neumann <sven@gimp.org>
+2001-06-07   neo	16:00:20	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/serialmouse/Makefile.am (1.2) (+1 -1)
 	
 	s/msmouse/serialmouse/
 	
-2001-06-07   neo	15:17:57	Sven Neumann <sven@gimp.org>
+2001-06-07   neo	15:17:57	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/serialmouse/.cvsignore (1.1) ( )
 		inputdrivers/serialmouse/serialmouse.c (1.1) ( )
@@ -31193,7 +31381,7 @@
 	Renamed msmouse inputdriver to serialmouse since this beast will support
 	other more serial mouse protocols in the future.
 	
-2001-06-07   neo	15:17:56	Sven Neumann <sven@gimp.org>
+2001-06-07   neo	15:17:56	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.13) (+1 -1)
 		inputdrivers/Makefile.am (1.3) (+2 -2)
@@ -31203,7 +31391,7 @@
 	Renamed msmouse inputdriver to serialmouse since this beast will support
 	other more serial mouse protocols in the future.
 	
-2001-06-07   neo	15:06:02	Sven Neumann <sven@gimp.org>
+2001-06-07   neo	15:06:02	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.12) (+3 -0)
 		src/misc/conf.h (1.3) (+2 -0)
@@ -31249,7 +31437,7 @@
 	
 	surface listener ported to reactors
 	
-2001-06-06   neo	21:40:49	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	21:40:49	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.18) (+1 -0)
 		inputdrivers/Makefile.am (1.2) (+5 -1)
@@ -31303,13 +31491,13 @@
 	input driver code cleanup
 	removed unneeded input driver headers
 	
-2001-06-06   neo	19:36:11	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	19:36:11	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.2) (+2 -2)
 	
 	forgot to change config -> dfb_config here
 	
-2001-06-06   neo	19:27:26	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	19:27:26	Sven Neumann <sven@convergence.de>
 
 	Files:	src/directfb.c (1.9) (+8 -8)
 		src/misc/conf.h (1.2) (+3 -3)
@@ -31324,7 +31512,7 @@
 	
 	renamed global variable config to dfb_config
 	
-2001-06-06   neo	19:27:25	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	19:27:25	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/matrox/matrox_state.c (1.5) (+2 -2)
 		inputdrivers/ps2mouse/ps2mouse.c (1.3) (+2 -2)
@@ -31334,19 +31522,19 @@
 	
 	renamed global variable config to dfb_config
 	
-2001-06-06   neo	18:59:32	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	18:59:32	Sven Neumann <sven@convergence.de>
 
 	Files:	inputdrivers/ps2mouse/ps2mouse.c (1.2) (+1 -8)
 	
 	removed some unused includes
 	
-2001-06-06   neo	17:38:20	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	17:38:20	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.11) (+3 -1)
 	
 	updated NEWS
 	
-2001-06-06   neo	16:19:58	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	16:19:58	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/IDirectFBFont/.cvsignore (1.1) ( )
 		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.1) ( )
@@ -31365,7 +31553,7 @@
 	
 	restructured interfaces directory
 	
-2001-06-06   neo	16:19:57	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	16:19:57	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.17) (+3 -0)
 		interfaces/idirectfbvideoprovider_v4l.c (1.8) (+0 -0)
@@ -31382,7 +31570,7 @@
 	
 	restructured interfaces directory
 	
-2001-06-06   neo	15:50:37	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	15:50:37	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.21) (+123 -21)
 		src/gfx/generic/generic.h (1.6) (+4 -86)
@@ -31420,14 +31608,14 @@
 	
 	inputdrivers modularized
 	
-2001-06-06   neo	14:15:54	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	14:15:54	Sven Neumann <sven@convergence.de>
 
 	Files:	src/media/idirectfbfont.c (1.12) (+2 -2)
 		src/windows/idirectfbwindow.c (1.5) (+2 -2)
 	
 	use calloc() instead of malloc();memset()
 	
-2001-06-06   neo	14:15:53	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	14:15:53	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/fbdev.c (1.3) (+6 -10)
 		src/input/idirectfbinputdevice.c (1.5) (+3 -4)
@@ -31443,7 +31631,7 @@
 	
 	use calloc() instead of malloc();memset()
 	
-2001-06-06   neo	14:02:45	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	14:02:45	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbfont_default.c (1.3) (+1 -2)
 		interfaces/idirectfbvideoprovider_v4l.c (1.7) (+4 -6)
@@ -31469,7 +31657,7 @@
 	values: MODULE_LOADED_CONTINUE, MODULE_LOADED_STOP, MODULE_REJECTED
 	made usage of the new function in gfxcard.c for driver loading
 	
-2001-06-06   neo	11:28:04	Sven Neumann <sven@gimp.org>
+2001-06-06   neo	11:28:04	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.10) (+1 -1)
 	
@@ -31506,14 +31694,14 @@
 	registered functions are called in IDirectFB->Suspend/Resume
 	V4l Provider closes video device in suspend and reopens it in resume
 	
-2001-06-05   neo	18:57:27	Sven Neumann <sven@gimp.org>
+2001-06-05   neo	18:57:27	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.8) (+3 -0)
 		configure.in (1.15) (+1 -1)
 	
 	bumped version number to 0.9.3
 	
-2001-06-05   neo	18:22:10	Sven Neumann <sven@gimp.org>
+2001-06-05   neo	18:22:10	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/util.c (1.4) (+35 -9)
 		tools/gendoc.pl (1.4) (+9 -2)
@@ -31527,7 +31715,7 @@
 	
 	Modified gendoc.pl so it translates empty comment lines into paragraphs.
 	
-2001-06-05   neo	18:22:09	Sven Neumann <sven@gimp.org>
+2001-06-05   neo	18:22:09	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.21) (+37 -3)
 		src/media/idirectfbfont.c (1.11) (+67 -16)
@@ -31582,14 +31770,14 @@
 	
 	check for row_width > 0 before modulo
 	
-2001-06-02   neo	18:14:25	Sven Neumann <sven@gimp.org>
+2001-06-02   neo	18:14:25	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbimageprovider_png.c (1.4) (+18 -9)
 	
 	applied a patch provided by Johannes Zellner <johannes@zellner.org>
 	that adds support for loading interlaced PNGs
 	
-2001-06-01   neo	11:51:15	Sven Neumann <sven@gimp.org>
+2001-06-01   neo	11:51:15	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/Makefile.am (1.2) (+1 -1)
 		tools/raw32toraw24.c (1.2) (+1 -0)
@@ -31598,7 +31786,7 @@
 	fixed compiler warnings in tools
 	compile (but do not install) tools
 	
-2001-05-31   neo	09:39:47	Sven Neumann <sven@gimp.org>
+2001-05-31   neo	09:39:47	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.20) (+2 -1)
 		src/gfx/convert.h (1.3) (+14 -0)
@@ -31614,7 +31802,7 @@
 	turn off console blanking
 	do (w&1) instead of w -= 2 in loop
 	
-2001-05-29   neo	14:20:35	Sven Neumann <sven@gimp.org>
+2001-05-29   neo	14:20:35	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbfont_ft2.c (1.10) (+26 -5)
 		src/display/idirectfbsurface.c (1.15) (+25 -0)
@@ -31625,7 +31813,7 @@
 	
 	Added new function IDirectFBSurface->GetFont().
 	
-2001-05-29   neo	14:20:34	Sven Neumann <sven@gimp.org>
+2001-05-29   neo	14:20:34	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.19) (+20 -2)
 	
@@ -31634,7 +31822,7 @@
 	
 	Added new function IDirectFBSurface->GetFont().
 	
-2001-05-29   neo	13:00:57	Sven Neumann <sven@gimp.org>
+2001-05-29   neo	13:00:57	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbfont_ft2.c (1.9) (+3 -3)
 	
@@ -31752,20 +31940,20 @@
 	
 	updated ChangeLog and NEWS
 	
-2001-05-23   neo	15:17:34	Sven Neumann <sven@gimp.org>
+2001-05-23   neo	15:17:34	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbimageprovider_jpeg.c (1.7) (+1 -1)
 	
 	got it wrong last time, hopefully works now
 	
-2001-05-23   neo	14:51:56	Sven Neumann <sven@gimp.org>
+2001-05-23   neo	14:51:56	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbvideoprovider_libmpeg3.c (1.5) (+13 -7)
 	
 	Loop MPEG so it behaves like the AVI provider.
 	Timing is still badly broken if you use Stop() or SeekTo().
 	
-2001-05-23   neo	14:13:24	Sven Neumann <sven@gimp.org>
+2001-05-23   neo	14:13:24	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbimageprovider_jpeg.c (1.6) (+10 -14)
 	
@@ -31777,7 +31965,7 @@
 	
 	support von 15bpp in jpeg provider
 	
-2001-05-23   neo	00:49:33	Sven Neumann <sven@gimp.org>
+2001-05-23   neo	00:49:33	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.15) (+0 -2)
 	
@@ -31797,7 +31985,7 @@
 	Removed #ifdef, no unroll anymore, fastest result ever seen!
 	121 MPixel/sec (Celeron 533), routine before had 119 MPixel.
 	
-2001-05-22   neo	21:50:17	Sven Neumann <sven@gimp.org>
+2001-05-22   neo	21:50:17	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.h (1.5) (+50 -51)
 	
@@ -31817,13 +32005,13 @@
 	commited svens new SET_ALPHA_PIXEL_RGB16 and _RGB15 macros, performance
 	improvements in DrawString() on i386 and powerpc
 	
-2001-05-22   neo	16:19:21	Sven Neumann <sven@gimp.org>
+2001-05-22   neo	16:19:21	Sven Neumann <sven@convergence.de>
 
 	Files:	autogen.sh (1.3) (+1 -3)
 	
 	forgot to remove some lines we don't need here
 	
-2001-05-22   neo	16:16:27	Sven Neumann <sven@gimp.org>
+2001-05-22   neo	16:16:27	Sven Neumann <sven@convergence.de>
 
 	Files:	autogen.sh (1.2) (+30 -25)
 	
@@ -32058,7 +32246,7 @@
 	
 	You can use "Ctrl+Alt+Backspace" to exit DirectFB by killing it with SIGINT.
 	
-2001-05-20   neo	21:45:36	Sven Neumann <sven@gimp.org>
+2001-05-20   neo	21:45:36	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.10) (+15 -8)
 	
@@ -32071,20 +32259,20 @@
 	
 	in CreateFont: allow desc == NULL if filename == NULL for default
 	
-2001-05-19   neo	20:46:11	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	20:46:11	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.3) (+72 -49)
 		configure.in (1.13) (+1 -1)
 	
 	bumped version number to 0.9.2 and updated README
 	
-2001-05-19   neo	19:30:48	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	19:30:48	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.4) (+16 -0)
 	
 	updated NEWS
 	
-2001-05-19   neo	18:44:11	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	18:44:11	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.12) (+11 -3)
 		src/media/idirectfbfont.c (1.10) (+9 -5)
@@ -32098,7 +32286,7 @@
 	without copying the string and not NULL-terminated character arrays can
 	be drawn. Unfortunately this changes the API once again.
 	
-2001-05-19   neo	18:44:10	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	18:44:10	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.13) (+11 -5)
 		src/core/gfxcard.h (1.3) (+1 -1)
@@ -32113,7 +32301,7 @@
 	without copying the string and not NULL-terminated character arrays can
 	be drawn. Unfortunately this changes the API once again.
 	
-2001-05-19   neo	17:46:52	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	17:46:52	Sven Neumann <sven@convergence.de>
 
 	Files:	src/idirectfb.c (1.10) (+14 -5)
 		src/media/Makefile.am (1.3) (+0 -0)
@@ -32126,7 +32314,7 @@
 	- changed interface loader so you get the default font if you call
 	CreateFont() with a NULL filename
 	
-2001-05-19   neo	17:46:51	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	17:46:51	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/Makefile.am (1.5) (+7 -0)
 		interfaces/idirectfbfont_default.c (1.1) ( )
@@ -32138,7 +32326,7 @@
 	- changed interface loader so you get the default font if you call
 	CreateFont() with a NULL filename
 	
-2001-05-19   neo	17:24:22	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	17:24:22	Sven Neumann <sven@convergence.de>
 
 	Files:	src/media/.cvsignore (1.3) (+0 -0)
 		src/media/idirectfbfont.h (1.4) (+1 -1)
@@ -32150,7 +32338,7 @@
 	- made DrawString method use GetStringWidth method as provided by IDirectFBFont
 	- ditched default font completely; will add it back as a font interface
 	
-2001-05-19   neo	17:24:21	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	17:24:21	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/core.c (1.2) (+0 -2)
 		src/display/idirectfbsurface.h (1.2) (+1 -1)
@@ -32164,7 +32352,7 @@
 	- made DrawString method use GetStringWidth method as provided by IDirectFBFont
 	- ditched default font completely; will add it back as a font interface
 	
-2001-05-19   neo	17:24:20	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	17:24:20	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbfont_ft2.c (1.8) (+9 -140)
 		src/idirectfb.h (1.3) (+0 -9)
@@ -32176,7 +32364,7 @@
 	- made DrawString method use GetStringWidth method as provided by IDirectFBFont
 	- ditched default font completely; will add it back as a font interface
 	
-2001-05-19   neo	17:24:19	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	17:24:19	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.12) (+6 -3)
 	
@@ -32186,7 +32374,7 @@
 	- made DrawString method use GetStringWidth method as provided by IDirectFBFont
 	- ditched default font completely; will add it back as a font interface
 	
-2001-05-19   neo	17:24:18	Sven Neumann <sven@gimp.org>
+2001-05-19   neo	17:24:18	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.12) (+1 -0)
 	
@@ -32242,7 +32430,7 @@
 	
 	./configure --with-libmpeg3=<path>
 	
-2001-05-15   neo	22:44:38	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	22:44:38	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbfont_ft2.c (1.7) (+0 -1)
 	
@@ -32254,13 +32442,13 @@
 	
 	allow use of kerning on non-i386 machines, seems to work on my powerpc again.
 	
-2001-05-15   neo	20:01:15	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	20:01:15	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.10) (+0 -1)
 	
 	forgot to remove src/media from here
 	
-2001-05-15   neo	18:41:10	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	18:41:10	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/fonts.h (1.3) (+2 -1)
 		src/media/idirectfbfont.h (1.3) (+0 -0)
@@ -32272,7 +32460,7 @@
 	Removed media/idirectfbfont.[ch] and implemented it all in the interface.
 	Call FT_Done_Face() on freetype face object on font destruction.
 	
-2001-05-15   neo	18:41:09	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	18:41:09	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbfont_ft2.c (1.5) (+163 -3)
 		src/idirectfb.h (1.2) (+8 -0)
@@ -32294,7 +32482,7 @@
 	
 	set state->source to NULL before returning
 	
-2001-05-15   neo	15:42:52	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	15:42:52	Sven Neumann <sven@convergence.de>
 
 	Files:	src/display/idirectfbsurface.c (1.9) (+2 -3)
 		src/misc/utf8.c (1.2) (+3 -1)
@@ -32302,19 +32490,19 @@
 	
 	avoid endless looping on invalid UTF8 strings
 	
-2001-05-15   neo	14:48:57	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	14:48:57	Sven Neumann <sven@convergence.de>
 
 	Files:	src/media/idirectfbfont.c (1.6) (+2 -2)
 	
 	fixed braino in GetStringWidth() func
 	
-2001-05-15   neo	14:46:11	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	14:46:11	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/tree.c (1.3) (+1 -1)
 	
 	indentation
 	
-2001-05-15   neo	14:45:37	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	14:45:37	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbfont_ft2.c (1.4) (+0 -9)
 		src/misc/tree.c (1.2) (+13 -11)
@@ -32332,14 +32520,14 @@
 	
 	- removed resolved BUGS from BUGS
 	
-2001-05-15   neo	13:42:57	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	13:42:57	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/idirectfbfont_ft2.c (1.3) (+23 -13)
 	
 	added sanity checks so we never draw outside the surface boundaries
 	corrected handling of face metrics
 	
-2001-05-15   neo	01:48:20	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	01:48:20	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/fonts.c (1.3) (+136 -31)
 		src/misc/util.c (1.3) (+0 -3)
@@ -32371,7 +32559,7 @@
 	- Add DrawGlyph method to surface so we can use it from the GDK backend
 	or from a Pango module.
 	
-2001-05-15   neo	01:48:19	Sven Neumann <sven@gimp.org>
+2001-05-15   neo	01:48:19	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.11) (+2 -2)
 		interfaces/idirectfbfont_ft2.c (1.2) (+152 -158)
@@ -32394,7 +32582,7 @@
 	- Add DrawGlyph method to surface so we can use it from the GDK backend
 	or from a Pango module.
 	
-2001-05-14   neo	21:28:06	Sven Neumann <sven@gimp.org>
+2001-05-14   neo	21:28:06	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.9) (+1 -0)
 		src/gfx/generic/Makefile.am (1.3) (+4 -0)
@@ -32425,26 +32613,26 @@
 	  libm
 	- added -lm to Makefiles of examples that need libm.
 	
-2001-05-11   neo	19:07:21	Sven Neumann <sven@gimp.org>
+2001-05-11   neo	19:07:21	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/generic.c (1.7) (+9 -12)
 	
 	optimized gDrawLine() further  -->  5% speedup
 	
-2001-05-11   neo	18:46:12	Sven Neumann <sven@gimp.org>
+2001-05-11   neo	18:46:12	Sven Neumann <sven@convergence.de>
 
 	Files:	src/gfx/generic/Makefile.am (1.2) (+1 -1)
 		src/gfx/generic/generic.c (1.6) (+13 -17)
 	
 	some optimizations on Drawline() --> about 10% faster
 	
-2001-05-11   neo	13:14:47	Sven Neumann <sven@gimp.org>
+2001-05-11   neo	13:14:47	Sven Neumann <sven@convergence.de>
 
 	Files:	src/media/idirectfbfont.h (1.2) (+2 -11)
 	
 	removed leftover declaration of IDirectFBFont_Construct_TTF()
 	
-2001-05-10   neo	12:37:47	Sven Neumann <sven@gimp.org>
+2001-05-10   neo	12:37:47	Sven Neumann <sven@convergence.de>
 
 	Files:	src/misc/conf.c (1.2) (+1 -1)
 	
@@ -32559,14 +32747,14 @@
 	the functions are currently implemented in the avifile provider only,
 	v4l and swf providers return DFB_UNIMPLEMENTED.
 	
-2001-05-03   neo	21:47:33	Sven Neumann <sven@gimp.org>
+2001-05-03   neo	21:47:33	Sven Neumann <sven@convergence.de>
 
 	Files:	ChangeLog (1.6) (+4 -0)
 		patches/Makefile.am (1.2) (+2 -2)
 	
 	Made 0.9.1 release
 	
-2001-05-03   neo	19:17:07	Sven Neumann <sven@gimp.org>
+2001-05-03   neo	19:17:07	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/gfxcard.c (1.5) (+5 -8)
 		src/misc/gfx_util.c (1.3) (+7 -1)
@@ -32584,7 +32772,7 @@
 	
 	Regenerated ChangeLog with a nicer script.
 	
-2001-05-03   neo	17:04:11	Sven Neumann <sven@gimp.org>
+2001-05-03   neo	17:04:11	Sven Neumann <sven@convergence.de>
 
 	Files:	NOTES (1.3) (+0 -0)
 	
@@ -32612,7 +32800,7 @@
 	Wrote NEWS.
 	Made DFBInputEvent.key_unicode an __u32.
 	
-2001-05-03   neo	11:57:22	Sven Neumann <sven@gimp.org>
+2001-05-03   neo	11:57:22	Sven Neumann <sven@convergence.de>
 
 	Files:	.cvsignore (1.2) (+2 -0)
 		directfb-swf.pc.in (1.1) ( )
@@ -32638,7 +32826,7 @@
 	state of the specified button.
 	Added DFBInputDeviceButtonState.
 	
-2001-05-02   neo	10:53:51	Sven Neumann <sven@gimp.org>
+2001-05-02   neo	10:53:51	Sven Neumann <sven@convergence.de>
 
 	Files:	src/core/gfxcard.c (1.4) (+11 -9)
 		src/misc/gfx_util.h (1.2) (+3 -2)
@@ -32711,7 +32899,7 @@
 	
 	fixed accelerator ids
 	
-2001-04-26   neo	23:36:52	Sven Neumann <sven@gimp.org>
+2001-04-26   neo	23:36:52	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.7) (+10 -2)
 		src/directfb.c (1.2) (+21 -11)
@@ -32796,7 +32984,7 @@
 	Reset card state in suspend, some glitches still there.
 	Generated changelog.
 	
-2001-04-24   neo	13:14:21	Sven Neumann <sven@gimp.org>
+2001-04-24   neo	13:14:21	Sven Neumann <sven@convergence.de>
 
 	Files:	interfaces/Makefile.am (1.3) (+15 -1)
 		interfaces/idirectfbvideoprovider_swf.c (1.1) ( )
@@ -32811,7 +32999,7 @@
 	Try to build avifile videoprovider by default. Can be disabled by passing
 	--disable-avifile to configure.
 	
-2001-04-24   neo	13:14:20	Sven Neumann <sven@gimp.org>
+2001-04-24   neo	13:14:20	Sven Neumann <sven@convergence.de>
 
 	Files:	README (1.2) (+4 -1)
 		configure.in (1.3) (+16 -3)
@@ -32826,7 +33014,7 @@
 	Try to build avifile videoprovider by default. Can be disabled by passing
 	--disable-avifile to configure.
 	
-2001-04-23   neo	17:04:36	Sven Neumann <sven@gimp.org>
+2001-04-23   neo	17:04:36	Sven Neumann <sven@convergence.de>
 
 	Files:	configure.in (1.2) (+2 -2)
 		interfaces/Makefile.am (1.2) (+1 -1)
@@ -32878,7 +33066,7 @@
 	
 	removed bogus test lines from driver
 	
-2001-04-19   neo	20:57:55	Sven Neumann <sven@gimp.org>
+2001-04-19   neo	20:57:55	Sven Neumann <sven@convergence.de>
 
 	Files:	src/idirectfb.c (1.4) (+0 -2)
 	
@@ -33043,7 +33231,7 @@
 	
 	added missing files that got sorted out by .cvsignore
 	
-2001-04-06   neo	20:34:30	Sven Neumann <sven@gimp.org>
+2001-04-06   neo	20:34:30	Sven Neumann <sven@convergence.de>
 
 	Files:	ChangeLog (1.2) (+6 -2)
 	

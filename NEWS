@@ -1,3 +1,157 @@
+0.9.22
+------
+
+API
+- Added DLCAPS_ALPHA_RAMP: Alpha values for formats with one or two alpha
+  bits can be chosen, i.e. using ARGB1555 or ARGB2554 the user can define
+  the meaning of the two or four possibilities. In short, this feature
+  provides a lookup table for the alpha of these formats.
+- Added DLCAPS_PREMULTIPLIED indicating that a display layer
+  can display surfaces with premultiplied alpha.
+- Added DSCAPS_PREMULTIPLIED indicating that the surface has
+  premultiplied alpha data.
+- Added DLCONF_SURFACE_CAPS and field 'surface_caps' to DFBDisplayLayerConfig 
+  to specify any combination of the flags: DSCAPS_INTERLACED, DSCAPS_SEPARATED
+  or DSCAPS_PREMULTIPLIED.
+- Added DLCAPS_SCREEN_POSITION and DLCAPS_SCREEN_SIZE.
+  These are set if DLCAPS_SCREEN_LOCATION is set and vice versa.
+  Unscalable layers just have DLCAPS_SCREEN_POSITION.
+- Added DSECAPS_BRIGHTNESS, DSECAPS_CONTRAST, DSECAPS_HUE, DSECAPS_SATURATION.
+- Added DSECONF_ADJUSTMENT to DFBScreenEncoderConfigFlags.
+- Added 'DFBColorAdjustment adjustment' to DFBScreenEncoderConfig.
+
+API | IDirectFB
+- Cleaned up the way CreateSurface() determines the primary surface
+  pixelformat and size. Previously the behavior varied depending on
+  cooperative level and the force-desktop option. New behavior:
+  1. DSDESC_{WIDTH,HEIGTH,PIXELFORMAT}
+  2. SetVideoMode()
+  3. mode= and pixelformat= options
+  4. current layer config
+
+API | IDirectFBDisplayLayer
+- Added IDirectFBDisplayLayer::SetScreenPosition() which
+  sets the position of the layer on the screen specified in pixels.
+- Added IDirectFBDisplayLayer::SetScreenRectangle() which
+  sets the position and size of the layer on the screen specified in pixels.
+
+API | IDirectFBSurface
+- Added IDirectFBSurface::SetAlphaRamp(a0,a1,a2,a3): Either all four values
+  or the first and the last one are used, depending on the format.
+  Default values are: 0x00, 0x55, 0xaa, 0xff.
+- Added IDirectFBSurface::FillRectangles().
+
+Build Options
+- Added option "--with-inputdrivers=..." for selecting drivers to build,
+  thanks to Marcel Siegert <mws@twisted-brains.org>!
+
+Runtime Options
+- Replaced "argb-font" and "a1-font" with a more flexible "font-format" option.
+- Make "graphics-vt" the default.
+- Added "h3600-device", keeping the default of "/dev/ts".
+- Added "mut-device" which must be used to enable the driver.
+
+Pixel Formats
+- Added DSPF_ARGB2554.
+- Added DSPF_ARGB4444.
+- Added DSPF_NV21 (like NV12, but with swapped CbCr).
+
+Software Driver
+- Added support for YUY2/UYVY->RGB conversion (with src colorkeying).
+- Force alignment to even coordinates if blitting YUY2 or UYVY.
+- Added NV12/NV21/NV16 blitting and rectangle filling.
+- Made YV12<->I420 blitting possible.
+- Fixed YUV422 handling on big-endian architectures.
+- Optimized Bop_yuy2_Sto_Aop() and Bop_uyvy_Sto_Aop(),
+  these are used for StretchBlit() using YUY2 or UYVY.
+
+Display Layer Core
+- Keep a list of all realized (added) regions to remove them during
+  emergency shutdown, e.g. signal received or missing deinit of master app.
+- Added CLRCF_SURFACE_CAPS and field 'surface_caps' to CoreLayerRegionConfig
+  in the display layer driver API.
+- HW Windows created with DWDESC_SURFACE_CAPS and DSCAPS_PREMULTIPLIED
+  in 'desc.surface_caps' are created as premultiplied layer regions.
+- Store normalized and pixel based destination area in a layer context.
+- Added CoreLayerLayoutMode which defines incorporation of
+  configuration based size changes and destination area values.
+- Activate the most recent context instead of the primary (shared) context
+  when the current context is removed.
+- Restore color adjustment when (re)activating a context.
+
+Windowing Core
+- Create layer regions for hw windows in single buffered mode, unless
+  explicitly configured using DSCAPS_DOUBLE/TRIPLE or DWCAPS_DOUBLEBUFFER.
+  This is a preliminary solution, because by default a window surface should
+  require a Flip() to make changes visible.
+- Activate DWOP_ALPHACHANNEL for other non indexed alpha formats, too.
+- Implemented hw window resizing.
+
+libfusion
+- Take the largest one, if multiple tmpfs are found.
+
+Proxy Interface Implementations (Voodoo)
+- Implemented BatchBlit() in IDirectFBSurface_Requester and _Dispatcher.
+
+Fixes (excerpt)
+- Fixed a video memory leak in dfb_surface_reconfig() that happened if a  
+  surface with multiple buffers is configured to have less, e.g. switching
+  a layer from DLBM_TRIPLE/BACKVIDEO to DLBM_FRONTONLY.
+
+dfblayer
+- Show the layer level if supported.
+
+Intel
+- Added i830 driver (overlay support only) for Servision Ltd.
+  (http://www.servision.net/)
+- Note, due to unsolved conflicts regarding ring buffer usage
+  you have to load the "intelfb" module with the parameter "accel=0".
+
+Matrox
+- Added DSPF_ARGB4444 support.
+- Added DSPF_NV21 support.
+- Added support for G400 dual head add-on (disabled by default).
+- Alpha ramp support for CRTC2.
+- Added support for progressive chroma on CRTC2.
+- Added support for progressive half-height sub-picture.
+- Dropped I420/YV12 support for old chips.
+- NV12/NV21 Blit() for >= G200.
+- NV12/NV21 StretchBlit() for >= G400.
+- Accelerated I420/YV12/NV12/NV21 FillRectangle().
+- YUY2/UYVY FillRectangle(), Blit() and StretchBlit().
+
+NSC
+- Perform additional check (returned phys. fb base) before considering the
+  fb driver to be the one that it's expected to be.
+
+nVidia
+- Experimental alpha blending support for Riva TNT.
+- Fixed NV20 and GeForce3 Xbox support, Blit() should work on the latter now.
+- Added experimental support for NV30 chipsets.
+- Found the way to make NVScaledImageFromMemory (used for StretchBlit,
+  Alphablend, Color Conversion) work on NV20 chipset: it was another rivafb
+  bug, therefore the rivafb-nv20fix-* patch is absolutely required.
+- Added basic support for drawing with alphablend on NV20.
+- Great performance improvements: it's possible to move a translucent window
+  at 32bpp while the cpu stays idle.
+- No longer return a surface stored in system memory for YUY2 and UYVY;
+  return directly the video surface instead.
+- Added FillRectangle() and Blit() (without effects) for YUY2 and UYVY.
+- Added an hack to do StretchBlit() on YUV422 (result is almost acceptable).
+
+Joystick Input
+- Do not dispatch events if unknown or JS_EVENT_INIT are received.
+  Fixes crash upon initialization under some conditions.
+
+DreamBox Remote
+- Added dreamboxremote driver mainly based on dbox2remote,
+  thanks to Marcel Siegert <mws@twisted-brains.org>!
+
+Unique WM Module
+- Lots of changes that have been lying around for more than two months,
+  but this module is still not fully usable, yet.
+
+
 0.9.21
 ------
 
