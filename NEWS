@@ -6,6 +6,7 @@
 - Made image providers use the new IDirectFBDataBuffer.
 - Added DFBDisplayLayerTypeFlags for a basic layer classification.
 - Added DFBDisplayLayerDescription (changes DFBDisplayLayerCallback).
+- Added (yet unimplemented) IDirectFBImageProvider::SetRenderCallback().
 - Added input_only windows (windows w/o a surface).
 - Added support for interlaced surfaces with seperate field buffers to
   all drawing and blitting functions.
@@ -13,6 +14,10 @@
 - Changed SetSrcColorKey() to take RGB values just like SetDstColorKey().
 - Added support for color lookup tables. Added new surface type DSPF_LUT8
   and IDirectFBSurface::GetPalette() and IDirectFBSurface::SetPalette().
+- Added DSDESC_PALETTE to IDirectFBSurfaceDescription.
+- Added DSCAPS_STATIC_ALLOC to DFBSurfaceCapabilities.
+- Added DWDESC_SURFACE_CAPS to DFBWindowDescriptionFlags.
+- Added DWOP_ALPHACHANNEL to DFBWindowOptions.
 - Added IDirectFBSurface::SetColorIndex() for indexed pixel formats.
 - Added pre/demultiplication to drawing functions.
 - Added IDirectFBDisplayLayer::GetWindow().
@@ -27,7 +32,7 @@
 - Renamed DLOP_INTERLACED_VIDEO to DLOP_DEINTERLACING.
 - Enabled acceleration for the second head of a dual head Matrox card.
 - Updated Matrox vsync IRQ patch.
-- Improved S3 Savage driver.
+- Improved S3 Savage driver and framebuffer.
 - Added directfb-csource, a C code generator for inline images.
 - Lots of bug-fixes.
 

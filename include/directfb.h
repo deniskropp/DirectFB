@@ -448,13 +448,14 @@ typedef enum {
                                            in the buffer. */
      DSCAPS_STATIC_ALLOC = 0x00000100   /* The amount of video or system memory
                                            allocated for the surface is never
-                                           less than its initial value. This way
-                                           a surface can be resized (smaller and
-                                           bigger up to the initial size)
-                                           without reallocation of the buffers.
-                                           It's useful for surfaces that need
-                                           a guaranteed space in video memory
-                                           after resizing. */
+                                           less than its initial value. This
+                                           way a surface can be resized
+                                           (smaller and bigger up to the
+                                           initial size) without reallocation
+                                           of the buffers. It's useful for
+                                           surfaces that need a guaranteed
+                                           space in video memory after
+                                           resizing. */
 } DFBSurfaceCapabilities;
 
 /*
