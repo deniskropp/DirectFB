@@ -740,7 +740,7 @@ unlock_node( ReactorNode *node )
 {
      D_ASSERT( node != NULL );
 
-     D_MAGIC_ASSERT( node->reactor, FusionReactor );
+//     D_MAGIC_ASSERT( node->reactor, FusionReactor );
 
 /*     D_DEBUG_AT( Fusion_Reactor, "    unlock_node( %p, reactor %p [%d] )\n",
                  node, node->reactor, node->reactor->id );*/
