@@ -398,9 +398,9 @@ parse_enum( const AnyOption *option, const char *arg )
 static bool
 parse_ids( const AnyOption *option, const char *arg )
 {
-     unsigned long long  val  = 0;
-     int                 alen = strlen( arg );
-     char               *abuf = alloca( alen + 1 );
+     __u32  val  = 0;
+     int    alen = strlen( arg );
+     char  *abuf = alloca( alen + 1 );
 
      memcpy( abuf, arg, alen + 1 );
 
@@ -440,7 +440,7 @@ parse_ids( const AnyOption *option, const char *arg )
                abuf++;
      }
 
-     *((unsigned long long*)option->value) = val;
+     *((__u32*)option->value) = val;
 
      return true;
 }
