@@ -24,6 +24,12 @@ clean-local:
 %.html: %
 	$(MAN2HTML) $* > $@
 
+else
+
+all-local:
+
+clean-local:
+
 endif
 
 
