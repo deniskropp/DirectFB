@@ -101,8 +101,8 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      IDirectFBImageProvider_PNG_data *data;
 
      data = (IDirectFBImageProvider_PNG_data*)
-                              malloc( sizeof(IDirectFBImageProvider_PNG_data) );
-     memset( data, 0, sizeof(IDirectFBImageProvider_PNG_data) );
+          calloc( 1, sizeof(IDirectFBImageProvider_PNG_data) );
+
      thiz->priv = data;
 
      data->ref = 1;
@@ -365,9 +365,8 @@ DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
           png_get_IHDR( png_ptr, info_ptr, &png_width, &png_height, &png_bpp,
                         &png_type, NULL, NULL, NULL );
 
-          memset( dsc, 0, sizeof(DFBSurfaceDescription) );
-          dsc->flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-          dsc->width = png_width;
+          dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+          dsc->width  = png_width;
           dsc->height = png_height;
 
           if (png_type & PNG_COLOR_MASK_ALPHA) 

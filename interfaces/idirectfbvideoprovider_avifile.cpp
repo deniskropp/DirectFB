@@ -140,10 +140,9 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
      if (!data)
           return DFB_DEAD;
 
-     memset( desc, 0, sizeof(DFBSurfaceDescription) );
      desc->flags = (DFBSurfaceDescriptionFlags)
                             (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
-     desc->width = data->player->GetWidth();
+     desc->width  = data->player->GetWidth();
      desc->height = data->player->GetHeight();
      desc->pixelformat = layers->surface->format;
 
@@ -377,8 +376,8 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      IDirectFBVideoProvider_AviFile_data *data;
 
      data = (IDirectFBVideoProvider_AviFile_data*)
-                         malloc( sizeof(IDirectFBVideoProvider_AviFile_data) );
-     memset( data, 0, sizeof(IDirectFBVideoProvider_AviFile_data) );
+          calloc( 1, sizeof(IDirectFBVideoProvider_AviFile_data) );
+
      thiz->priv = data;
 
      data->ref = 1;
@@ -400,8 +399,8 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->source.height = data->player->GetHeight();
      data->source.format = DSPF_RGB16;
      
-     data->source.front_buffer = (SurfaceBuffer*)malloc( sizeof(SurfaceBuffer) );
-     memset( data->source.front_buffer, 0, sizeof(SurfaceBuffer) );
+     data->source.front_buffer = 
+          (SurfaceBuffer*) calloc( 1, sizeof(SurfaceBuffer) );
      
      data->source.front_buffer->policy = CSP_SYSTEMONLY;
      data->source.front_buffer->system.health = CSH_STORED;

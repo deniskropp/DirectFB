@@ -159,8 +159,8 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      IDirectFBImageProvider_JPEG_data *data;
 
      data = (IDirectFBImageProvider_JPEG_data*)
-                             malloc( sizeof(IDirectFBImageProvider_JPEG_data) );
-     memset( data, 0, sizeof(IDirectFBImageProvider_JPEG_data) );
+          calloc( 1, sizeof(IDirectFBImageProvider_JPEG_data) );
+
      thiz->priv = data;
 
      data->ref = 1;
@@ -412,12 +412,9 @@ DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
           jpeg_read_header(&cinfo, TRUE);
           jpeg_start_decompress(&cinfo);
 
-          memset( dsc, 0, sizeof(DFBSurfaceDescription) );
-          dsc->flags = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+          dsc->flags  = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->height = cinfo.output_height;
-          dsc->width = cinfo.output_width;
-
-
+          dsc->width  = cinfo.output_width;
           dsc->pixelformat = layers->surface->format;
 
           jpeg_destroy_decompress(&cinfo);

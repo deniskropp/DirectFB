@@ -288,8 +288,7 @@ DFBResult Construct( IDirectFBFont *thiz,
      face->generic.data = (void *) load_flags;
      face->generic.finalizer = NULL;
 
-     font = (CoreFontData*)malloc( sizeof(CoreFontData) );
-     memset( font, 0, sizeof(CoreFontData) );
+     font = (CoreFontData*) calloc( 1, sizeof(CoreFontData) );
 
      font->ascender   = face->size->metrics.ascender  >> 6;
      font->descender  = face->size->metrics.descender >> 6;

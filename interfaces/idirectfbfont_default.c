@@ -74,8 +74,7 @@ DFBResult Construct( IDirectFBFont *thiz,
           return DFB_FAILURE;
      }
 
-     font = (CoreFontData*)malloc( sizeof(CoreFontData) );
-     memset( font, 0, sizeof(CoreFontData) );
+     font = (CoreFontData*) calloc( 1, sizeof(CoreFontData) );
 
      font->height    = 20;
      font->ascender  = 16;

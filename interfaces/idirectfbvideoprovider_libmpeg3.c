@@ -141,12 +141,9 @@ IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription(
     if (!data)
         return DFB_DEAD;
 
-    memset( desc, 0, sizeof(DFBSurfaceDescription) );
-    desc->flags = (DFBSurfaceDescriptionFlags)
-        (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
-
-    desc->width       = mpeg3_video_width( data->stream, 0 );
-    desc->height      = mpeg3_video_height( data->stream, 0 );
+    desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+    desc->width  = mpeg3_video_width( data->stream, 0 );
+    desc->height = mpeg3_video_height( data->stream, 0 );
     desc->pixelformat = layers->surface->format;
 
     return DFB_OK;
@@ -434,9 +431,9 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
     IDirectFBVideoProvider_Libmpeg3_data *data;
     int height, width;
 
-    data = (IDirectFBVideoProvider_Libmpeg3_data*)
-        malloc( sizeof(IDirectFBVideoProvider_Libmpeg3_data) );
-    memset( data, 0, sizeof(IDirectFBVideoProvider_Libmpeg3_data) );
+    data = (IDirectFBVideoProvider_Libmpeg3_data *)
+         calloc( 1, sizeof(IDirectFBVideoProvider_Libmpeg3_data) );
+
     thiz->priv = data;
 
     data->ref = 1;

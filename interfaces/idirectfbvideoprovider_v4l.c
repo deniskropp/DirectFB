@@ -145,10 +145,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
      if (!data)
           return DFB_DEAD;
 
-     memset( desc, 0, sizeof(DFBSurfaceDescription) );
-     desc->flags = (DFBSurfaceDescriptionFlags)
-                            (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
-     desc->width = 768;
+     desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+     desc->width  = 768;
      desc->height = 576;
      desc->pixelformat = layers->surface->format;
 
@@ -305,8 +303,8 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      }
 
      data = (IDirectFBVideoProvider_V4L_data*)
-                         malloc( sizeof(IDirectFBVideoProvider_V4L_data) );
-     memset( data, 0, sizeof(IDirectFBVideoProvider_V4L_data) );
+          calloc( 1, sizeof(IDirectFBVideoProvider_V4L_data) );
+
      thiz->priv = data;
 
      data->ref = 1;

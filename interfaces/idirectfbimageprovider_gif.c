@@ -145,8 +145,8 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      IDirectFBImageProvider_GIF_data *data;
 
      data = (IDirectFBImageProvider_GIF_data*)
-                              malloc( sizeof(IDirectFBImageProvider_GIF_data) );
-     memset( data, 0, sizeof(IDirectFBImageProvider_GIF_data) );
+          calloc( 1, sizeof(IDirectFBImageProvider_GIF_data) );
+
      thiz->priv = data;
 
      data->ref = 1;
@@ -737,12 +737,9 @@ DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
 
           ReadGIF( f, 1, &width, &height, 1  ); // 1 = read header only
 
-          memset( dsc, 0, sizeof(DFBSurfaceDescription) );
-          dsc->flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-          dsc->width = width;
+          dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+          dsc->width  = width;
           dsc->height = height;
-
-
           dsc->pixelformat = layers->surface->format;
 
           fclose (f);
