@@ -5795,6 +5795,18 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           /* we must blit from left to right*/
           gfxs->Ostep = 1;
 
+     switch (gfxs->src_format) {
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+               rect->x &= ~1;
+               rect->w &= ~1;
+               dx &= ~1;
+               break;
+
+          default:
+               break;
+     }
+
      gDoBlit( gfxs, rect->x, rect->y, rect->w, rect->h, dx, dy,
               gfxs->src_pitch, gfxs->dst_pitch, gfxs->src_org, gfxs->dst_org );
 
