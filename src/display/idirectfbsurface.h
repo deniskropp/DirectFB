@@ -29,9 +29,14 @@
 #define __IDIRECTFBSURFACE_H__
 
 #include <directfb.h>
+
+#include <direct/types.h>
+
+#include <fusion/reactor.h>
+
 #include <core/coretypes.h>
 #include <core/state.h>
-#include <fusion/reactor.h>
+
 
 /*
  * private data struct of IDirectFBSurface
@@ -47,7 +52,7 @@ typedef struct {
          DFBRectangle       current;         /* currently available area */
      } area;
 
-     int                    clip_set;        /* fixed clip set? (SetClip called
+     bool                   clip_set;        /* fixed clip set? (SetClip called
                                                 with clip != NULL */
      DFBRegion              clip_wanted;     /* last region passed to SetClip
                                                 intersected by wanted area,

@@ -74,20 +74,16 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 {
      IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
 
+     if (data->surface)
+          dfb_surface_detach( data->surface, &data->reaction );
+
      dfb_state_set_destination( &data->state, NULL );
      dfb_state_set_source( &data->state, NULL );
 
      dfb_state_destroy( &data->state );
 
-
-     if (data->surface) {
-          CoreSurface *surface = data->surface;
-
-          data->surface = NULL;
-
-          dfb_surface_detach( surface, &data->reaction );
-          dfb_surface_unref( surface );
-     }
+     if (data->surface)
+          dfb_surface_unref( data->surface );
 
      if (data->font)
           data->font->Release (data->font);
@@ -474,30 +470,21 @@ IDirectFBSurface_SetClip( IDirectFBSurface *thiz, const DFBRegion *clip )
           return DFB_INVAREA;
 
      if (clip) {
-          newclip = *clip;
-
-          newclip.x1 += data->area.wanted.x;
-          newclip.x2 += data->area.wanted.x;
-          newclip.y1 += data->area.wanted.y;
-          newclip.y2 += data->area.wanted.y;
+          newclip = DFB_REGION_INIT_TRANSLATED( clip, data->area.wanted.x, data->area.wanted.y );
 
           if (!dfb_unsafe_region_rectangle_intersect( &newclip,
                                                       &data->area.wanted ))
                return DFB_INVARG;
 
-          data->clip_set = 1;
+          data->clip_set = true;
           data->clip_wanted = newclip;
 
           if (!dfb_region_rectangle_intersect( &newclip, &data->area.current ))
                return DFB_INVAREA;
      }
      else {
-          newclip.x1 = data->area.current.x;
-          newclip.y1 = data->area.current.y;
-          newclip.x2 = data->area.current.x + data->area.current.w - 1;
-          newclip.y2 = data->area.current.y + data->area.current.h - 1;
-
-          data->clip_set = 0;
+          dfb_region_from_rectangle( &newclip, &data->area.current );
+          data->clip_set = false;
      }
 
      dfb_state_set_clip( &data->state, &newclip );
@@ -1761,8 +1748,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      data->state.clip.x1  = data->area.current.x;
      data->state.clip.y1  = data->area.current.y;
-     data->state.clip.x2  = data->area.current.x + data->area.current.w - 1;
-     data->state.clip.y2  = data->area.current.y + data->area.current.h - 1;
+     data->state.clip.x2  = data->area.current.x + (data->area.current.w ? : 1) - 1;
+     data->state.clip.y2  = data->area.current.y + (data->area.current.h ? : 1) - 1;
+
      data->state.modified = SMF_ALL;
 
      thiz->AddRef = IDirectFBSurface_AddRef;
@@ -1851,6 +1839,7 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
 
           if (data->caps & DSCAPS_SUBSURFACE) {
                data->area.current = data->area.granted;
+
                dfb_rectangle_intersect( &data->area.current, &rect );
           }
           else

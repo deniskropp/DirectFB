@@ -155,6 +155,9 @@ static inline void dfb_region_from_rectangle( DFBRegion          *region,
 
      DFB_RECTANGLE_ASSERT( rect );
 
+     D_ASSERT( rect->w > 1 );
+     D_ASSERT( rect->h > 1 );
+
      region->x1 = rect->x;
      region->y1 = rect->y;
      region->x2 = rect->x + rect->w - 1;
