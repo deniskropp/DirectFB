@@ -24,6 +24,8 @@
 #ifndef __IDIRECTFB_H__
 #define __IDIRECTFB_H__
 
+#include <directfb.h>
+
 /*
  * private data struct of IDirectFB
  */

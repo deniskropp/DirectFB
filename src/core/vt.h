@@ -27,6 +27,8 @@
 #include <signal.h>
 #include <linux/vt.h>
 
+#include <directfb.h>
+
 typedef struct {
      int fd0;                      /* file descriptor of /dev/tty0 */
      int fd;                       /* file descriptor of /dev/ttyN

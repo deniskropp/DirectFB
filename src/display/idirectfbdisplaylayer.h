@@ -24,6 +24,8 @@
 #ifndef __IDIRECTFBDISPLAYLAYER_H__
 #define __IDIRECTFBDISPLAYLAYER_H__
 
+#include <directfb.h>
+#include <core/coretypes.h>
 
 /*
  * initializes interface struct and private data

@@ -27,7 +27,9 @@
 #ifndef __UTF8_H__
 #define __UTF8_H__
 
-char utf8_skip[256];
+#include <core/coretypes.h>
+
+extern char utf8_skip[256];
 
 #define utf8_next_char(p) (char *)((p) + utf8_skip[*(unsigned char *)(p)])
 

@@ -5,7 +5,7 @@
    Written by Denis Oliver Kropp <dok@convergence.de> and
               Andreas Hundt <andi@convergence.de>.
 
-   Balanced binary tree ported from glib by Sven Neumann 
+   Balanced binary tree ported from glib by Sven Neumann
    <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
@@ -27,6 +27,7 @@
 #ifndef __TREE_H__
 #define __TREE_H__
 
+#include <core/coretypes.h>
 
 Tree * tree_new     (void);
 void   tree_lock    (Tree *tree);

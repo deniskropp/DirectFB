@@ -24,6 +24,10 @@
 #ifndef __IDIRECTFBWINDOW_H__
 #define __IDIRECTFBWINDOW_H__
 
+#include <directfb.h>
+
+#include <core/coretypes.h>
+
 /*
  * initializes a new window and constructs interface
  */

@@ -25,7 +25,7 @@
 #define __GFX__CONVERT_H__
 
 #include <string.h>
-
+#include <directfb.h>
 #include <asm/types.h>
 
 
@@ -105,7 +105,7 @@
 
 #define RGB32_TO_ARGB(pixel)   ( 0xFF000000 | (pixel) )
 
-                                 
+
 static inline __u32 color_to_pixel( DFBSurfacePixelFormat format,
                                     __u8 r, __u8 g, __u8 b )
 {
@@ -144,7 +144,7 @@ static inline void span_a1_to_argb( __u8 *src, __u32 *dst, int width )
 {
      int i;
      for (i = 0; i < width; i++)
-          *dst++ =  PIXEL_ARGB( (src[i>>3] & (1<<(7-(i%8)))) ? 0xFF : 0x0, 
+          *dst++ =  PIXEL_ARGB( (src[i>>3] & (1<<(7-(i%8)))) ? 0xFF : 0x0,
                                 0xFF, 0xFF, 0xFF );
 }
 

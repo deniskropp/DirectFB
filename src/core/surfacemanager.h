@@ -24,7 +24,8 @@
 #ifndef __SURFACEMANAGER_H__
 #define __SURFACEMANAGER_H__
 
-#include "coredefs.h"
+#include <directfb.h>
+#include <core/coretypes.h>
 
 /*
  * initially there is one big free chunk,

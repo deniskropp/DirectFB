@@ -25,6 +25,9 @@
 #ifndef __FONTS_H__
 #define __FONTS_H__
 
+#include <directfb.h>
+
+#include <core/coretypes.h>
 
 /*
  * glyph struct

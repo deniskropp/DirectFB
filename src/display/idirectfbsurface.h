@@ -24,6 +24,10 @@
 #ifndef __DIRECTFBSURFACE_H__
 #define __DIRECTFBSURFACE_H__
 
+#include <directfb.h>
+#include <core/coretypes.h>
+#include <core/reactor.h>
+
 /*
  * private data struct of IDirectFBSurface
  */

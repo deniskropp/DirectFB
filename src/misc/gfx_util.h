@@ -5,7 +5,7 @@
    Written by Denis Oliver Kropp <dok@convergence.de> and
               Andreas Hundt <andi@convergence.de>.
 
-   Scaling routines ported from gdk_pixbuf by Sven Neumann 
+   Scaling routines ported from gdk_pixbuf by Sven Neumann
    <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
@@ -26,6 +26,8 @@
 
 #ifndef __GFX_UTIL_H__
 #define __GFX_UTIL_H__
+
+#include <directfb.h>
 
 #include <asm/types.h>
 

@@ -24,6 +24,8 @@
 #ifndef __CORE_H__
 #define __CORE_H__
 
+#include <directfb.h>
+
 #include "coretypes.h"
 
 typedef enum {

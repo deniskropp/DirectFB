@@ -23,9 +23,11 @@
 
 #ifndef __INPUT_H__
 #define __INPUT_H__
-#include <pthread.h>
 
-typedef struct _InputDevice InputDevice;
+#include <pthread.h>
+#include <directfb.h>
+
+#include <core/coretypes.h>
 
 
 typedef struct {

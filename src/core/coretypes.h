@@ -35,6 +35,8 @@ typedef struct _CoreWindowStack  CoreWindowStack;
 
 typedef struct _DisplayLayer     DisplayLayer;
 
+typedef struct _InputDevice      InputDevice;
+
 typedef struct _SurfaceBuffer    SurfaceBuffer;
 
 typedef struct _GfxCard          GfxCard;

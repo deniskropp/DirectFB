@@ -24,6 +24,10 @@
 #ifndef __DIRECTFBFONT_H__
 #define __DIRECTFBFONT_H__
 
+#include <directfb.h>
+
+#include <core/coretypes.h>
+
 /*
  * private data struct of IDirectFBFont
  */

@@ -26,6 +26,9 @@
 
 #include <pthread.h>
 
+#include <directfb.h>
+#include <core/coretypes.h>
+
 typedef enum {
      SMF_DRAWING_FLAGS   = 0x00000001,
      SMF_BLITTING_FLAGS  = 0x00000002,

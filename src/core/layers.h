@@ -27,6 +27,9 @@
 #include <asm/types.h>
 #include <pthread.h>
 
+#include <directfb.h>
+#include <core/coretypes.h>
+
 extern DisplayLayer *layers;
 
 struct _DisplayLayer

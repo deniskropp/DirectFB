@@ -26,6 +26,12 @@
 #define __GENERIC_H__
 
 #include <config.h>
+
+#include <asm/types.h>
+
+#include <directfb.h>
+#include <core/coretypes.h>
+
 /* this order is required for Intel with MMX, how about bigendian? */
 
 typedef struct

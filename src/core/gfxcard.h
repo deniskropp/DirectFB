@@ -27,6 +27,9 @@
 #include <linux/fb.h>
 #include <pthread.h>
 
+#include <directfb.h>
+#include <core/coretypes.h>
+
 typedef enum {
      CCF_CLIPPING = 0x00000001
 } CardCapabilitiesFlags;
