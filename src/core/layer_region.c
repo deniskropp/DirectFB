@@ -324,7 +324,7 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
      if (region->surface != surface) {
           /* Setup hardware for the new surface if the region is realized. */
           if (FLAG_IS_SET( region->state, CLRSF_REALIZED )) {
-               ret = set_region( region, &region->config, CLRCF_NONE, surface );
+               ret = set_region( region, &region->config, CLRCF_SURFACE | CLRCF_PALETTE, surface );
                if (ret) {
                     dfb_layer_region_unlock( region );
                     return ret;
@@ -701,7 +701,7 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
                     funcs->SetRegion( layer,
                                       layer->driver_data, layer->layer_data,
                                       region->region_data, &region->config,
-                                      CLRCF_NONE, surface, surface->palette );
+                                      CLRCF_PALETTE, surface, surface->palette );
           }
 
           if ((flags & CSNF_FIELD) && funcs->SetInputField)

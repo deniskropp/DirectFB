@@ -565,6 +565,8 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
           if (region_config.buffermode != DLBM_WINDOWS) {
                /* (Re)allocate the region's surface. */
                if (shared->description.caps & DLCAPS_SURFACE) {
+                    flags |= CLRCF_SURFACE | CLRCF_PALETTE;
+
                     if (FLAG_IS_SET( region->state, CLRSF_ENABLED ))
                          ret = reallocate_surface( layer, region, &region_config,
                                                    &context->config );

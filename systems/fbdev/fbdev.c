@@ -1167,11 +1167,13 @@ primarySetRegion( CoreLayer                  *layer,
      if (!videomode)
           return DFB_UNSUPPORTED;
 
-     ret = dfb_fbdev_set_mode( surface, videomode, config );
-     if (ret)
-          return ret;
+     if (updated & (CLRCF_BUFFERMODE | CLRCF_FORMAT | CLRCF_HEIGHT | CLRCF_SURFACE | CLRCF_WIDTH)) {
+          ret = dfb_fbdev_set_mode( surface, videomode, config );
+          if (ret)
+               return ret;
+     }
 
-     if (palette)
+     if ((updated & CLRCF_PALETTE) && palette)
           dfb_fbdev_set_palette( palette );
 
      return DFB_OK;
