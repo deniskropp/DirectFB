@@ -1293,6 +1293,9 @@ window_at_pointer( CoreWindowStack *stack,
 {
      int i;
 
+     if (!stack->cursor.enabled)
+          return NULL;
+
      if (x < 0)
           x = stack->cursor.x;
      if (y < 0)
