@@ -48,14 +48,6 @@ struct __DFB_CoreGraphicsSerial {
      unsigned int generation;
 };
 
-/*
- * return value for hardware accelerated card functions
- */
-typedef enum {
-     CR_OK = 0,
-     CR_FALLBACK
-} CardResult;
-
 typedef struct {
      CardCapabilitiesFlags   flags;
 
