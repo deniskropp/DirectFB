@@ -847,7 +847,7 @@ AC_SUBST(MODULEDIR)
 AC_SUBST(INCLUDEDIR)
 AC_SUBST(INTERNALINCLUDEDIR)
 
-CFLAGS="$CFLAGS -Werror-implicit-function-declarations"
+CFLAGS="$CFLAGS -Werror-implicit-function-declaration"
 
 AC_OUTPUT([
 directfb-config
