@@ -1221,6 +1221,9 @@ primaryAllocateSurface   ( DisplayLayer               *layer,
           return ret;
      }
 
+     /* activate object */
+     fusion_object_activate( &surface->object );
+
      /* return surface */
      *ret_surface = surface;
 
