@@ -1,6 +1,8 @@
 ## Makefile.am for DirectFB/interfaces
 
-interfacesdir = $(LIBDIR)/interfaces
+idirectfbfontdir          = $(LIBDIR)/interfaces/IDirectFBFont
+idirectfbimageproviderdir = $(LIBDIR)/interfaces/IDirectFBImageProvider
+idirectfbvideoproviderdir = $(LIBDIR)/interfaces/IDirectFBVideoProvider
 
 
 if AVIFILE_PROVIDER
@@ -23,7 +25,7 @@ all-local: libidirectfbvideoprovider_libmpeg3.so
 libidirectfbvideoprovider_libmpeg3.so: idirectfbvideoprovider_libmpeg3.o $(LIBMPEG3_DIR)/libmpeg3.a
 	$(LD) -shared -export-dynamic -o $@ $+ $(THREAD_LIBS) -lm
 
-interfaces_SCRIPTS = libidirectfbvideoprovider_libmpeg3.so
+idirectfbvideoprovider_SCRIPTS = libidirectfbvideoprovider_libmpeg3.so
 
 LIBMPEG3_INCLUDES = -I$(LIBMPEG3_DIR)
 
@@ -49,12 +51,16 @@ CFLAGS = $(DFB_CFLAGS) $(FREETYPE_CFLAGS)
 CXXFLAGS = $(DFB_CXXFLAGS) $(AVIFILE_CFLAGS)
 
 
-interfaces_LTLIBRARIES = \
+idirectfbfont_LTLIBRARIES = \
 	libidirectfbfont_default.la		\
-	libidirectfbfont_ft2.la			\
+	libidirectfbfont_ft2.la
+
+idirectfbimageprovider_LTLIBRARIES = \
 	libidirectfbimageprovider_png.la	\
 	libidirectfbimageprovider_gif.la	\
-	libidirectfbimageprovider_jpeg.la	\
+	libidirectfbimageprovider_jpeg.la
+
+idirectfbvideoprovider_LTLIBRARIES = \
 	libidirectfbvideoprovider_v4l.la	\
 	$(AVIFILE_PROVIDER_LTLIB)		\
 	$(FLASH_PROVIDER_LTLIB)

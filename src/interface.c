@@ -49,10 +49,14 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
 {
      int                         i;
      DIR                        *dir;
-     char                       *interface_dir = LIBDIR"/interfaces";
+     char                       *interface_dir;
      struct dirent              *entry;
      DFBInterfaceImplementation *impl;
 
+     interface_dir = malloc( strlen(LIBDIR"/interfaces/") + strlen(type) + 1 );
+
+     sprintf( interface_dir, LIBDIR"/interfaces/%s", type );
+     
      pthread_mutex_lock( &implementations_mutex );
 
      for (i=0; i<n_implementations; i++) {
@@ -70,6 +74,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                implementations[i]->references++;
 
                pthread_mutex_unlock( &implementations_mutex );
+               free( interface_dir );
 
                return DFB_OK;
           }
@@ -84,6 +89,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                      interface_dir );
           
           pthread_mutex_unlock( &implementations_mutex );
+          free( interface_dir );
           
           return errno2dfb( errno );
      }
@@ -184,6 +190,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                     implementations[n_implementations-1] = impl;
 
                     pthread_mutex_unlock( &implementations_mutex );
+                    free( interface_dir );
 
                     return DFB_OK;
                }
@@ -199,6 +206,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
      closedir( dir );
 
      pthread_mutex_unlock( &implementations_mutex );
+     free( interface_dir );
 
      free( impl );
 
