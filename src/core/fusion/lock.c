@@ -24,12 +24,16 @@
    Boston, MA 02111-1307, USA.
 */
 
+#define _GNU_SOURCE
+
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
+
+#ifndef FUSION_FAKE
 
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -39,6 +43,8 @@
 #if LINUX_FUSION
 #include <sys/ioctl.h>
 #include <linux/fusion.h>
+#endif
+
 #endif
 
 
@@ -62,6 +68,8 @@
 /****************
  *  Public API  *
  ****************/
+
+#ifndef FUSION_FAKE
 
 #if LINUX_FUSION
 
@@ -301,6 +309,27 @@ skirmish_destroy (FusionSkirmish *skirmish)
           FPERROR("semctl");
           return FUSION_FAILURE;
      }
+
+     return FUSION_SUCCESS;
+}
+
+#endif /* LINUX_FUSION */
+
+#else  /* !FUSION_FAKE */
+
+FusionResult
+skirmish_init (FusionSkirmish *skirmish)
+{
+     pthread_mutexattr_t attr;
+
+     DFB_ASSERT( skirmish != NULL );
+     
+     pthread_mutexattr_init( &attr );
+     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+     
+     pthread_mutex_init( skirmish, &attr );
+     
+     pthread_mutexattr_destroy( &attr );
 
      return FUSION_SUCCESS;
 }

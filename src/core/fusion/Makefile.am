@@ -5,7 +5,6 @@ SUBDIRS = shmalloc
 MULTIAPPSOURCES = \
 	arena.c			\
 	fusion.c		\
-	lock.c			\
 	util.c			\
 	fusion_shmalloc.c
 endif
@@ -43,6 +42,7 @@ libdirectfb_core_fusion_la_SOURCES = \
 	$(MULTIAPPSOURCES)	\
 	fusion_internal.h	\
 	list.c			\
+	lock.c			\
 	object.c		\
 	property.c		\
 	reactor.c		\

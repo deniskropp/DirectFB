@@ -818,10 +818,8 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
 
      /* If called with an invalid rectangle, the algorithm goes into an
         infinite loop. This should never happen but it's safer to check. */
-     if (rect->w < 1 || rect->h < 1) {
-          BUG( "invalid rectangle" );
-          return;
-     }
+     DFB_ASSERT( rect->w >= 1 );
+     DFB_ASSERT( rect->h >= 1 );
 
      odx = dx;
 

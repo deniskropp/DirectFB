@@ -73,7 +73,11 @@ extern "C"
 
   #define FusionSkirmish      pthread_mutex_t
 
-  #define skirmish_init(s)    pthread_mutex_init (s, NULL)
+     /*
+      * Initialize.
+      */
+     FusionResult skirmish_init    (FusionSkirmish *skirmish);
+
   #define skirmish_prevail(s) pthread_mutex_lock (s)
   #define skirmish_swoop(s)   pthread_mutex_trylock (s)
   #define skirmish_dismiss(s) pthread_mutex_unlock (s)
