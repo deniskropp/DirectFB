@@ -262,7 +262,7 @@ set_background_image()
           return;
      }
 
-     ret = layer->SetBackgroundMode( layer, tiled ? DLBM_IMAGE : DLBM_TILE );
+     ret = layer->SetBackgroundMode( layer, tiled ? DLBM_TILE : DLBM_IMAGE );
      if (ret)
           DirectFBError( "IDirectFBDisplayLayer::SetBackgroundMode() failed", ret );
 
