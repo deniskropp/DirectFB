@@ -45,6 +45,7 @@
 
 #include <misc/util.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
