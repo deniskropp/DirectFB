@@ -53,6 +53,16 @@ DFBResult dfb_surfacemanager_resume( SurfaceManager *manager );
 DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
                                                  unsigned int    offset );
 
+typedef DFBEnumerationResult (*SMChunkCallback)( SurfaceBuffer *buffer,
+                                                 int            offset,
+                                                 int            length,
+                                                 int            tolerations,
+                                                 void          *ctx );
+
+void dfb_surfacemanager_enumerate_chunks( SurfaceManager  *manager,
+                                          SMChunkCallback  callback,
+                                          void            *ctx );
+
 /*
  * Lock/unlock the surfacemanager for usage of the functions below.
  */
@@ -104,5 +114,6 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
  */
 DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
                                             SurfaceBuffer  *buffer );
+
 
 #endif

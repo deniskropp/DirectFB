@@ -255,6 +255,30 @@ DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
      return DFB_OK;
 }
 
+void
+dfb_surfacemanager_enumerate_chunks( SurfaceManager  *manager,
+                                     SMChunkCallback  callback,
+                                     void            *ctx )
+{
+     Chunk *c;
+
+     DFB_ASSERT( manager != NULL );
+     DFB_ASSERT( callback != NULL );
+
+     dfb_surfacemanager_lock( manager );
+
+     c = manager->chunks;
+     while (c) {
+          if (callback( c->buffer, c->offset,
+                        c->length, c->tolerations, ctx) == DFENUM_CANCEL)
+               break;
+
+          c = c->next;
+     }
+
+     dfb_surfacemanager_unlock( manager );
+}
+
 /** public functions NOT locking the surfacemanger theirself,
     to be called between lock/unlock of surfacemanager **/
 
@@ -310,17 +334,25 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
                          best_occupied = c;
 
                     c->tolerations++;
+                    if (c->tolerations > 0xff)
+                         c->tolerations = 0xff;
                } else
                if (!c->buffer) {
                     /* found a nice place to chill */
                     if (!best_free  ||  best_free->length > c->length)
                          /* first found or better one? */
                          best_free = c;
-               } else
+               } else {
                     c->tolerations++;
+                    if (c->tolerations > 0xff)
+                         c->tolerations = 0xff;
+               }
           } else
-          if (c->buffer)
+          if (c->buffer) {
                c->tolerations++;
+               if (c->tolerations > 0xff)
+                    c->tolerations = 0xff;
+          }
 
           c = c->next;
      }
@@ -519,7 +551,6 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
      BUG( "no valid surface instance" );
      return DFB_BUG;
 }
-
 
 /** internal functions NOT locking the surfacemanager **/
 

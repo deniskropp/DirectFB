@@ -2,10 +2,11 @@
 .deps
 Makefile
 Makefile.in
+dfbg
 dfbdump
+dfbsummon
 directfb-csource
 fusion_bench
 raw15toraw24
 raw16toraw24
 raw32toraw24
-dfbg
