@@ -196,7 +196,8 @@ dfb_layers_shutdown( bool emergency )
           fusion_property_destroy( &l->shared->lock );
 
           /* Free shared layer driver data */
-          shfree( l->shared->layer_data );
+          if (l->shared->layer_data)
+               shfree( l->shared->layer_data );
 
           /* Free shared layer data */
           shfree( l->shared );

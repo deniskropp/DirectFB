@@ -99,12 +99,13 @@ struct shmstats shmstats (void);
 #else
      #include <stdlib.h>
      #include <string.h>
+     #include <misc/mem.h>
 
-     #define shmalloc  malloc
-     #define shrealloc realloc
-     #define shcalloc  calloc
-     #define shfree    free
-     #define shstrdup  strdup
+     #define shmalloc  DFBMALLOC
+     #define shrealloc DFBREALLOC
+     #define shcalloc  DFBCALLOC
+     #define shfree    DFBFREE
+     #define shstrdup  DFBSTRDUP
 
 #endif
 
