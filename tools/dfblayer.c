@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <directfb.h>
 #include <directfb_strings.h>
@@ -56,6 +57,8 @@ static int                       height     = 0;
 static DFBSurfacePixelFormat     format     = DSPF_UNKNOWN;
 static DFBDisplayLayerBufferMode buffermode = -1;
 static int                       opacity    = -1;
+static int                       level      = 0;
+static DFBBoolean                set_level  = DFB_FALSE;
 
 /*****************************************************************************/
 
@@ -143,6 +146,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "   -f, --format  <pixelformat>     Change the pixel format\n");
      fprintf (stderr, "   -b, --buffer  <buffermode>      Change the buffer mode (single/video/system)\n");
      fprintf (stderr, "   -o, --opacity <opacity>         Change the layer's opacity (0-255)\n");
+     fprintf (stderr, "   -L, --level   <level>           Change the layer's level\n");
      fprintf (stderr, "   -h, --help                      Show this help message\n");
      fprintf (stderr, "   -v, --version                   Print version information\n");
      fprintf (stderr, "\n");
@@ -267,6 +271,20 @@ parse_opacity( const char *arg )
 }
 
 static DFBBoolean
+parse_level( const char *arg )
+{
+     if (sscanf( arg, "%d", &level ) != 1) {
+          fprintf (stderr, "\nInvalid level specified!\n\n");
+
+          return DFB_FALSE;
+     }
+
+     set_level = DFB_TRUE;
+
+     return DFB_TRUE;
+}
+
+static DFBBoolean
 parse_command_line( int argc, char *argv[] )
 {
      int n;
@@ -339,6 +357,18 @@ parse_command_line( int argc, char *argv[] )
                }
 
                if (!parse_opacity( argv[n] ))
+                    return DFB_FALSE;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-L") == 0 || strcmp (arg, "--level") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (!parse_level( argv[n] ))
                     return DFB_FALSE;
 
                continue;
@@ -476,6 +506,15 @@ set_configuration()
                fprintf( stderr, "Opacity value (%d) not supported!\n\n", opacity );
           else if (ret)
                DirectFBError( "IDirectFBDisplayLayer::SetOpacity() failed", ret );
+     }
+
+     /* Set the level if requested. */
+     if (set_level) {
+          ret = layer->SetLevel( layer, level );
+          if (ret == DFB_UNSUPPORTED)
+               fprintf( stderr, "Level (%d) not supported!\n\n", level );
+          else if (ret)
+               DirectFBError( "IDirectFBDisplayLayer::SetLevel() failed", ret );
      }
 }
 
