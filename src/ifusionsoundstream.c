@@ -24,24 +24,10 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-
-#include <math.h>
-
 #include <pthread.h>
-
 
 #include <fusionsound.h>
 #include <interface.h>
-
-#include <core/core.h>
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
-#include <misc/util.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
@@ -281,8 +267,6 @@ static DFBResult
 IFusionSoundStream_GetPresentationDelay( IFusionSoundStream *thiz,
                                          int                *delay )
 {
-     int filled;
-
      INTERFACE_GET_DATA(IFusionSoundStream)
 
      if (!delay)
@@ -290,14 +274,9 @@ IFusionSoundStream_GetPresentationDelay( IFusionSoundStream *thiz,
 
      pthread_mutex_lock( &data->lock );
 
-     if (data->pos_write >= data->pos_read)
-          filled = data->pos_write - data->pos_read;
-     else
-          filled = data->size - data->pos_read + data->pos_write;
+     *delay = fs_core_output_delay( data->core )  +  data->filled * 1000 / data->rate;
 
      pthread_mutex_unlock( &data->lock );
-
-     *delay = fs_core_output_delay( data->core )  +  filled * 1000 / data->rate;
 
      return DFB_OK;
 }

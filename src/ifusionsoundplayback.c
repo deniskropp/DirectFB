@@ -24,29 +24,12 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-
-#include <math.h>
-
 #include <pthread.h>
-
 
 #include <fusionsound.h>
 #include <interface.h>
 
-#include <core/core.h>
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
-#include <misc/util.h>
-
-#include <direct/mem.h>
-
-#include <gfx/convert.h>
-#include <gfx/util.h>
+#include <fusion/lock.h>
 
 #include <core/playback.h>
 
