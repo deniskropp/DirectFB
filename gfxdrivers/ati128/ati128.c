@@ -104,6 +104,14 @@ static void ati128EngineSync( void *drv, void *dev )
      ati128_waitidle( adrv, adev );
 }
 
+static bool ati128_check_blend( CardState *state )
+{
+   if (state->dst_blend == DSBF_SRCALPHASAT)
+      return false;
+
+   return true;
+}
+
 static void ati128CheckState( void *drv, void *dev,
                               CardState *state, DFBAccelerationMask accel )
 {
@@ -126,8 +134,13 @@ static void ati128CheckState( void *drv, void *dev,
 
      /* if there are no other drawing flags than the supported */
      if (!(accel & ~ATI128_SUPPORTED_DRAWINGFUNCTIONS) &&
-         !(state->drawingflags & ~ATI128_SUPPORTED_DRAWINGFLAGS))
+         !(state->drawingflags & ~ATI128_SUPPORTED_DRAWINGFLAGS)) {
+          if (state->drawingflags & DSDRAW_BLEND &&
+              !ati128_check_blend( state ))
+               return;
+
           state->accel |= ATI128_SUPPORTED_DRAWINGFUNCTIONS;
+     }
 
      /* if there are no other blitting flags than the supported
         and the source has the minimum size */
@@ -137,6 +150,10 @@ static void ati128CheckState( void *drv, void *dev,
          state->source->width  >= 8 &&
          state->source->height >= 8 )
      {
+          if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL &&
+              !ati128_check_blend( state ))
+               return;
+
           switch (state->source->format) {
                case DSPF_RGB332:
                case DSPF_ARGB1555:

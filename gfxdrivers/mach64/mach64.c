@@ -152,6 +152,28 @@ static void mach64EngineSync( void *drv, void *dev )
      mach64_waitidle( mdrv, mdev );
 }
 
+static bool mach64_check_blend( CardState *state )
+{
+     switch (state->src_blend) {
+          case DSBF_SRCCOLOR:
+          case DSBF_INVSRCCOLOR:
+               return false;
+          default:
+               break;
+     }
+
+     switch (state->dst_blend) {
+          case DSBF_DESTCOLOR:
+          case DSBF_INVDESTCOLOR:
+          case DSBF_SRCALPHASAT:
+               return false;
+          default:
+               break;
+     }
+
+     return true;
+}
+
 static void mach64CheckState( void *drv, void *dev,
                               CardState *state, DFBAccelerationMask accel )
 {
@@ -205,6 +227,10 @@ static void mach64GTCheckState( void *drv, void *dev,
           if (state->drawingflags & ~MACH64GT_SUPPORTED_DRAWINGFLAGS)
                return;
 
+          if (state->drawingflags & DSDRAW_BLEND &&
+              !mach64_check_blend( state ))
+               return;
+
           state->accel |= MACH64GT_SUPPORTED_DRAWINGFUNCTIONS;
      } else {
           switch (state->source->format) {
@@ -219,6 +245,11 @@ static void mach64GTCheckState( void *drv, void *dev,
           }
 
           if (state->blittingflags & ~MACH64GT_SUPPORTED_BLITTINGFLAGS)
+               return;
+
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                      DSBLIT_BLEND_COLORALPHA) &&
+              !mach64_check_blend( state ))
                return;
 
           /* Can't do alpha modulation. */

@@ -204,6 +204,33 @@ matroxFlushTextureCache( void *drv, void *dev )
      mga_out32( mdrv->mmio_base, 0, TEXORG1 );
 }
 
+static bool
+matrox_check_blend( MatroxDeviceData *mdev,
+                    CardState        *state )
+{
+     switch (state->src_blend) {
+          case DSBF_SRCCOLOR:
+          case DSBF_INVSRCCOLOR:
+               return false;
+          case DSBF_SRCALPHASAT:
+               if (!mdev->g550_matrox && state->dst_blend == DSBF_ZERO)
+                    return false;
+          default:
+               break;
+     }
+
+     switch (state->dst_blend) {
+          case DSBF_DESTCOLOR:
+          case DSBF_INVDESTCOLOR:
+          case DSBF_SRCALPHASAT:
+               return false;
+          default:
+               break;
+     }
+
+     return true;
+}
+
 static void
 matrox2064WCheckState( void *drv, void *dev,
                        CardState *state, DFBAccelerationMask accel )
@@ -373,6 +400,8 @@ static void
 matroxG200CheckState( void *drv, void *dev,
                       CardState *state, DFBAccelerationMask accel )
 {
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
      /* FIXME: 24bit support */
      switch (state->destination->format) {
           case DSPF_I420:
@@ -393,6 +422,10 @@ matroxG200CheckState( void *drv, void *dev,
 
      if (DFB_DRAWING_FUNCTION( accel )) {
           if (state->drawingflags & ~MATROX_G200G400_DRAWING_FLAGS)
+               return;
+
+          if (state->drawingflags & DSDRAW_BLEND &&
+              !matrox_check_blend( mdev, state ))
                return;
 
           state->accel |= MATROX_G200G400_DRAWING_FUNCTIONS;
@@ -422,6 +455,11 @@ matroxG200CheckState( void *drv, void *dev,
           if (state->blittingflags & ~MATROX_G200G400_BLITTING_FLAGS)
                return;
 
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                      DSBLIT_BLEND_COLORALPHA) &&
+              !matrox_check_blend( mdev, state ))
+               return;
+
           if (use_tmu) {
                if (state->source->width < 8 ||
                    state->source->height < 8 ||
@@ -442,6 +480,8 @@ static void
 matroxG400CheckState( void *drv, void *dev,
                       CardState *state, DFBAccelerationMask accel )
 {
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
      /* FIXME: 24bit support */
      switch (state->destination->format) {
           case DSPF_I420:
@@ -463,6 +503,10 @@ matroxG400CheckState( void *drv, void *dev,
 
      if (DFB_DRAWING_FUNCTION( accel )) {
           if (state->drawingflags & ~MATROX_G200G400_DRAWING_FLAGS)
+               return;
+
+          if (state->drawingflags & DSDRAW_BLEND &&
+              !matrox_check_blend( mdev, state ))
                return;
 
           state->accel |= MATROX_G200G400_DRAWING_FUNCTIONS;
@@ -492,6 +536,11 @@ matroxG400CheckState( void *drv, void *dev,
           }
 
           if (state->blittingflags & ~MATROX_G200G400_BLITTING_FLAGS)
+               return;
+
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                      DSBLIT_BLEND_COLORALPHA) &&
+              !matrox_check_blend( mdev, state ))
                return;
 
           if (use_tmu) {
@@ -1456,6 +1505,7 @@ driver_init_device( GraphicsDevice     *device,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "%s",
                          g550 ? "G550" : g450 ? "G450" : "G400" );
                mdev->g450_matrox = g450 || g550;
+               mdev->g550_matrox = g550;
                break;
           case FB_ACCEL_MATROX_MGAG200:
                if ((ret = matrox_find_pci_device( mdev, &bus, &slot, &func )))

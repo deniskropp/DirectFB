@@ -68,6 +68,8 @@ typedef struct {
      bool old_matrox;
      /* G450/G550  */
      bool g450_matrox;
+     /* G550  */
+     bool g550_matrox;
 
      /* FIFO Monitoring */
      unsigned int fifo_space;
