@@ -26,6 +26,7 @@
 
 #include <directfb.h>
 
+#include <core/fusion/list.h>
 #include <core/fusion/lock.h>
 #include <core/fusion/reactor.h>
 
@@ -121,12 +122,13 @@ struct _SurfaceBuffer
 
 struct _CoreSurface
 {
-     DFBSurfaceCapabilities caps;
+     FusionLink             link;
 
      /* size/format and instances */
      unsigned int           width;         /* pixel width of the surface */
      unsigned int           height;        /* pixel height of the surface */
      DFBSurfacePixelFormat  format;        /* pixel format of the surface */
+     DFBSurfaceCapabilities caps;
 
      SurfaceBuffer         *front_buffer;  /* buffer for reading
                                               (blit from or display buffer) */
@@ -139,13 +141,9 @@ struct _CoreSurface
                                               SurfaceBuffer because of flipping
                                               that just swaps the pointers */
 
-     SurfaceManager        *manager;
-
      FusionReactor         *reactor;       /* event dispatcher */
-
-     /* doubly linked list */
-     CoreSurface           *next;
-     CoreSurface           *prev;
+     
+     SurfaceManager        *manager;
 };
 
 /*

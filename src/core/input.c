@@ -158,7 +158,7 @@ DFBResult dfb_input_join()
 }
 #endif
 
-DFBResult dfb_input_shutdown()
+DFBResult dfb_input_shutdown( bool emergency )
 {
      InputDevice *d = inputdevices;
 
@@ -181,7 +181,7 @@ DFBResult dfb_input_shutdown()
 }
 
 #ifndef FUSION_FAKE
-DFBResult dfb_input_leave()
+DFBResult dfb_input_leave( bool emergency )
 {
      InputDevice *d = inputdevices;
 

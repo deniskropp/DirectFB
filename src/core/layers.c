@@ -162,7 +162,7 @@ dfb_layers_join()
 #endif
 
 DFBResult
-dfb_layers_shutdown()
+dfb_layers_shutdown( bool emergency )
 {
      int i;
 
@@ -197,7 +197,7 @@ dfb_layers_shutdown()
 
 #ifndef FUSION_FAKE
 DFBResult
-dfb_layers_leave()
+dfb_layers_leave( bool emergency )
 {
      int i;
 

@@ -44,7 +44,9 @@ void dfb_sig_remove_handlers()
      int *sigs = sigs_to_handle;
 
      while (*sigs != -1) {
-          signal( *sigs, SIG_DFL );
+          if (!sigismember( &dfb_config->dont_catch, *sigs ))
+               signal( *sigs, SIG_DFL );
+
           sigs++;
      }
 }
@@ -62,11 +64,13 @@ static void dfb_sig_handler( int num )
 
 void dfb_sig_install_handlers()
 {
-   int *sigs = sigs_to_handle;
+     int *sigs = sigs_to_handle;
 
-   while (*sigs != -1) {
-      signal( *sigs, dfb_sig_handler );
-      sigs++;
-   }
+     while (*sigs != -1) {
+          if (!sigismember( &dfb_config->dont_catch, *sigs ))
+               signal( *sigs, dfb_sig_handler );
+
+          sigs++;
+     }
 }
 

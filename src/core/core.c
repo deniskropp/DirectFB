@@ -87,20 +87,14 @@ dfb_core_initialize( FusionArena *arena, void *ctx );
 #ifndef FUSION_FAKE
 static int
 dfb_core_join( FusionArena *arena, void *ctx );
-
-static int
-dfb_core_takeover( FusionArena *arena, void *ctx );
 #endif
 
 static int
-dfb_core_shutdown( FusionArena *arena, void *ctx );
+dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency );
 
 #ifndef FUSION_FAKE
 static int
-dfb_core_leave( FusionArena *arena, void *ctx );
-
-static int
-dfb_core_transfer( FusionArena *arena, void *ctx );
+dfb_core_leave( FusionArena *arena, void *ctx, bool emergency );
 #endif
 
 /*
@@ -191,7 +185,7 @@ dfb_core_ref()
 
 #ifndef FUSION_FAKE
      arena_enter ("DirectFB/Core",
-                  dfb_core_initialize, dfb_core_join, dfb_core_takeover, NULL);
+                  dfb_core_initialize, dfb_core_join, NULL);
      if (!dfb_core)
           return DFB_INIT;
 #else
@@ -222,9 +216,9 @@ dfb_core_unref()
 
 #ifndef FUSION_FAKE
      arena_exit( dfb_core->arena,
-                 dfb_core_shutdown, dfb_core_leave, dfb_core_transfer );
+                 dfb_core_shutdown, dfb_core_leave, false );
 #else
-     dfb_core_shutdown( NULL, NULL );
+     dfb_core_shutdown( NULL, NULL, false );
 #endif
     
      fusion_exit();
@@ -298,25 +292,11 @@ dfb_core_deinit_emergency()
 
      dfb_core->refs = 0;
 
-#ifdef FUSION_FAKE
-     while (core_cleanups) {
-          CoreCleanup *cleanup = (CoreCleanup *)core_cleanups;
-
-          core_cleanups = core_cleanups->next;
-
-          if (cleanup->emergency)
-               cleanup->func( cleanup->data, true );
-
-          DFBFREE( cleanup );
-     }
-
-     dfb_layers_shutdown();
-     dfb_gfxcard_shutdown();
-     dfb_input_shutdown();
-     dfb_vt_shutdown();
-#else
+#ifndef FUSION_FAKE
      arena_exit( dfb_core->arena,
-                 dfb_core_shutdown, dfb_core_leave, dfb_core_transfer );
+                 dfb_core_shutdown, dfb_core_leave, true );
+#else
+     dfb_core_shutdown( NULL, NULL, true );
 #endif
 
      fusion_exit();
@@ -460,18 +440,10 @@ dfb_core_join( FusionArena *arena, void *ctx )
      
      return 0;
 }
-
-static int
-dfb_core_takeover( FusionArena *arena, void *ctx )
-{
-     DEBUGMSG( "DirectFB/Core: taking over mastership!\n" );
-
-     return 0;
-}
 #endif
 
 static int
-dfb_core_shutdown( FusionArena *arena, void *ctx )
+dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
 {
      DEBUGMSG( "DirectFB/Core: shutting down!\n" );
 
@@ -480,16 +452,17 @@ dfb_core_shutdown( FusionArena *arena, void *ctx )
 
           core_cleanups = core_cleanups->next;
 
-          cleanup->func( cleanup->data, false );
+          if (cleanup->emergency || !emergency)
+               cleanup->func( cleanup->data, emergency );
 
           DFBFREE( cleanup );
      }
 
-     dfb_layers_shutdown();
-     dfb_gfxcard_shutdown();
-     dfb_fbdev_shutdown();
-     dfb_input_shutdown();
-     dfb_vt_shutdown();
+     dfb_layers_shutdown( emergency );
+     dfb_gfxcard_shutdown( emergency );
+     dfb_fbdev_shutdown( emergency );
+     dfb_input_shutdown( emergency );
+     dfb_vt_shutdown( emergency );
 
 #ifdef DFB_DEBUG
      fbdebug_exit();
@@ -500,23 +473,26 @@ dfb_core_shutdown( FusionArena *arena, void *ctx )
 
 #ifndef FUSION_FAKE
 static int
-dfb_core_leave( FusionArena *arena, void *ctx )
+dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
 {
      DEBUGMSG( "DirectFB/Core: leaving!\n" );
 
-     dfb_gfxcard_leave();
-     dfb_fbdev_leave();
-     dfb_layers_leave();
-     dfb_input_leave();
-     dfb_vt_leave();
+     while (core_cleanups) {
+          CoreCleanup *cleanup = (CoreCleanup *)core_cleanups;
 
-     return 0;
-}
+          core_cleanups = core_cleanups->next;
 
-static int
-dfb_core_transfer( FusionArena *arena, void *ctx )
-{
-     DEBUGMSG( "DirectFB/Core: transferring mastership!\n" );
+          if (cleanup->emergency || !emergency)
+               cleanup->func( cleanup->data, emergency );
+
+          DFBFREE( cleanup );
+     }
+     
+     dfb_gfxcard_leave( emergency );
+     dfb_fbdev_leave( emergency );
+     dfb_layers_leave( emergency );
+     dfb_input_leave( emergency );
+     dfb_vt_leave( emergency );
 
      return 0;
 }

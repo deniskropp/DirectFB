@@ -32,7 +32,6 @@ Finish multi application core.
  - FusionProperty needs to be implemented
  - Reduce number of thread
  - Remove leaks
- - Drop feature of transferring mastership
  - Add fork handling
 
 Finish surface manager.

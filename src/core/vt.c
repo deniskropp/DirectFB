@@ -199,7 +199,7 @@ dfb_vt_join()
 }
 
 DFBResult
-dfb_vt_shutdown()
+dfb_vt_shutdown( bool emergency )
 {
      if (!dfb_vt)
           return DFB_OK;
@@ -249,7 +249,7 @@ dfb_vt_shutdown()
 }
 
 DFBResult
-dfb_vt_leave()
+dfb_vt_leave( bool emergency )
 {
      return DFB_OK;
 }

@@ -205,13 +205,8 @@ typedef struct {
 DFBResult dfb_gfxcard_initialize();
 DFBResult dfb_gfxcard_join();
 
-DFBResult dfb_gfxcard_shutdown();
-DFBResult dfb_gfxcard_leave();
-
-#ifdef FUSION_FAKE
-DFBResult dfb_gfxcard_suspend();
-DFBResult dfb_gfxcard_resume();
-#endif
+DFBResult dfb_gfxcard_shutdown( bool emergency );
+DFBResult dfb_gfxcard_leave( bool emergency );
 
 void dfb_graphics_register_module( GraphicsDriverFuncs *funcs );
 

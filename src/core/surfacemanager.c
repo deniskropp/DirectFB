@@ -30,6 +30,7 @@
 
 #include <pthread.h>
 
+#include <core/fusion/list.h>
 #include <core/fusion/shmalloc.h>
 
 #include "directfb.h"
@@ -70,7 +71,7 @@ struct _Chunk {
 struct _SurfaceManager {
      FusionSkirmish  lock;
 
-     CoreSurface    *surfaces;
+     FusionLink     *surfaces;
      Chunk          *chunks;
      int             length;
 
@@ -192,17 +193,7 @@ void dfb_surfacemanager_add_surface( SurfaceManager *manager,
 
      surface->manager = manager;
 
-     if (!manager->surfaces) {
-          surface->next = NULL;
-          surface->prev = NULL;
-          manager->surfaces = surface;
-     }
-     else {
-          surface->prev = NULL;
-          surface->next = manager->surfaces;
-          manager->surfaces->prev = surface;
-          manager->surfaces = surface;
-     }
+     fusion_list_prepend( &manager->surfaces, &surface->link );
 
      dfb_surfacemanager_unlock( manager );
 }
@@ -212,13 +203,9 @@ void dfb_surfacemanager_remove_surface( SurfaceManager *manager,
 {
      dfb_surfacemanager_lock( manager );
 
-     if (surface->prev)
-          surface->prev->next = surface->next;
-     else
-          manager->surfaces = surface->next;
+     fusion_list_remove( &manager->surfaces, &surface->link );
 
-     if (surface->next)
-          surface->next->prev = surface->prev;
+     surface->manager = NULL;
 
      dfb_surfacemanager_unlock( manager );
 }

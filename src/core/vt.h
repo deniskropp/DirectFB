@@ -66,7 +66,7 @@ DFBResult dfb_vt_join();
 /*
  * deallocates virtual terminal
  */
-DFBResult dfb_vt_shutdown();
-DFBResult dfb_vt_leave();
+DFBResult dfb_vt_shutdown( bool emergency );
+DFBResult dfb_vt_leave( bool emergency );
 
 #endif

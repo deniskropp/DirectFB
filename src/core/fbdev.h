@@ -93,8 +93,8 @@ DFBResult dfb_fbdev_join();
 /*
  * deinitializes DirectFB fbdev stuff and restores fbdev settings
  */
-DFBResult dfb_fbdev_shutdown();
-DFBResult dfb_fbdev_leave();
+DFBResult dfb_fbdev_shutdown( bool emergency );
+DFBResult dfb_fbdev_leave( bool emergency );
 
 /*
  * return when vertical retrace is reached, works with matrox kernel patch

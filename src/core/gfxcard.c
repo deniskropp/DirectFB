@@ -261,7 +261,7 @@ DFBResult dfb_gfxcard_join()
 }
 #endif
 
-DFBResult dfb_gfxcard_shutdown()
+DFBResult dfb_gfxcard_shutdown( bool emergency )
 {
      int i;
 
@@ -301,7 +301,7 @@ DFBResult dfb_gfxcard_shutdown()
 }
 
 #ifndef FUSION_FAKE
-DFBResult dfb_gfxcard_leave()
+DFBResult dfb_gfxcard_leave( bool emergency )
 {
      if (!card)
           return DFB_OK;

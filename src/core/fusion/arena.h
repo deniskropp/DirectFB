@@ -25,27 +25,27 @@
 
 #ifndef FUSION_FAKE
 
-typedef int (*ArenaFunc) (FusionArena *arena, void *ctx);
+typedef int (*ArenaEnterFunc) (FusionArena *arena, void *ctx);
+typedef int (*ArenaExitFunc) (FusionArena *arena, void *ctx, bool emergency);
 
 
-FusionArena  *arena_enter            (const char   *name,
-                                      ArenaFunc     initialize,
-                                      ArenaFunc     join,
-                                      ArenaFunc     take_over,
-                                      void         *ctx);
+FusionArena  *arena_enter            (const char     *name,
+                                      ArenaEnterFunc  initialize,
+                                      ArenaEnterFunc  join,
+                                      void           *ctx);
 
-FusionResult  arena_add_shared_field (FusionArena  *arena,
-                                      void         *data,
-                                      const char   *name);
+FusionResult  arena_add_shared_field (FusionArena    *arena,
+                                      void           *data,
+                                      const char     *name);
 
-FusionResult  arena_get_shared_field (FusionArena  *arena,
-                                      void        **data,
-                                      const char   *name);
+FusionResult  arena_get_shared_field (FusionArena    *arena,
+                                      void          **data,
+                                      const char     *name);
 
-void          arena_exit             (FusionArena  *arena,
-                                      ArenaFunc     shutdown,
-                                      ArenaFunc     leave,
-                                      ArenaFunc     transfer);
+void          arena_exit             (FusionArena    *arena,
+                                      ArenaExitFunc   shutdown,
+                                      ArenaExitFunc   leave,
+                                      bool            emergency);
 
 #endif /* !FUSION_FAKE */
 

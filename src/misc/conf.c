@@ -178,6 +178,8 @@ static void config_allocate()
      dfb_config->mouse_motion_compression =  1;
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
+
+     sigemptyset( &dfb_config->dont_catch );
 }
 
 const char *dfb_config_usage( void )
@@ -439,6 +441,38 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG( "DirectFB/Config: No background color specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "dont-catch" ) == 0) {
+          if (value) {
+               char *signals   = DFBSTRDUP( value );
+               char *p, *r, *s = signals;
+
+               while ((r = strtok_r( s, ",", &p ))) {
+                    char          *error;
+                    unsigned long  signum;
+
+                    dfb_trim( &r );
+
+                    signum = strtoul( r, &error, 10 );
+
+                    if (*error) {
+                         ERRORMSG( "DirectFB/Config: Error in dont-catch: "
+                                   "'%s'!\n", error );
+                         DFBFREE( signals );
+                         return DFB_INVARG;
+                    }
+
+                    sigaddset( &dfb_config->dont_catch, signum );
+
+                    s = NULL;
+               }
+               
+               DFBFREE( signals );
+          }
+          else {
+               ERRORMSG( "DirectFB/Config: Missing value for dont-catch!\n" );
                return DFB_INVARG;
           }
      } else

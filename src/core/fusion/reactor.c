@@ -32,6 +32,7 @@
 
 #include <pthread.h>
 
+#include <core/sig.h>
 #include <misc/mem.h>
 
 #include "fusion_types.h"
@@ -369,6 +370,8 @@ void *_reactor_receive (void *arg)
      int            index;
      void          *message;
      FusionReactor *reactor = (FusionReactor*) arg;
+
+     dfb_sig_block_all();
 
      /* find our node and return if it hasn't been found */
      index = _reactor_get_node_index (reactor);

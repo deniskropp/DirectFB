@@ -31,6 +31,8 @@
 
 #include <pthread.h>
 
+#include <misc/mem.h>
+
 #include "fusion_types.h"
 #include "lock.h"
 #include "ref.h"
@@ -79,7 +81,6 @@ struct _FusionArena {
      int          shared_shm; /* ID of shared memory segment */
 
      /* local data */
-     ArenaFunc    take_over;
      void        *ctx;
 };
 
@@ -88,31 +89,29 @@ struct _FusionArena {
  *  Public API  *
  ****************/
 
-FusionArena *arena_enter (const char *name,
-                          ArenaFunc   initialize,
-                          ArenaFunc   join,
-                          ArenaFunc   take_over,
-                          void       *ctx)
+FusionArena *arena_enter (const char     *name,
+                          ArenaEnterFunc  initialize,
+                          ArenaEnterFunc  join,
+                          void           *ctx)
 {
      key_t              key;
      FusionArena       *arena;
      ArenaShared       *shared;
-     ArenaFunc          func;
+     ArenaEnterFunc     func;
      AcquisitionStatus  as;
 
      key = keygen (name, FUSION_KEY_ARENA);
 
      /* allocate local Arena data */
-     arena = (FusionArena*)calloc (1, sizeof(FusionArena));
+     arena = (FusionArena*)DFBCALLOC (1, sizeof(FusionArena));
 
      /* store local data */
-     arena->take_over = take_over;
-     arena->ctx       = ctx;
+     arena->ctx = ctx;
 
      /* acquire shared Arena data */
      as = _shm_acquire (key, sizeof(ArenaShared), &arena->shared_shm);
      if (as == AS_Failure) {
-          free (arena);
+          DFBFREE (arena);
           return NULL;
      }
 
@@ -141,7 +140,7 @@ FusionArena *arena_enter (const char *name,
 
                skirmish_dismiss (&arena->shared->lock);
 
-               free (arena);
+               DFBFREE (arena);
                return NULL;
           }
 
@@ -229,10 +228,10 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
      return FUSION_NOTEXISTENT;
 }
 
-void arena_exit (FusionArena *arena,
-                 ArenaFunc    shutdown,
-                 ArenaFunc    leave,
-                 ArenaFunc    transfer)
+void arena_exit (FusionArena   *arena,
+                 ArenaExitFunc  shutdown,
+                 ArenaExitFunc  leave,
+                 bool           emergency)
 {
      skirmish_prevail (&arena->shared->lock);
 
@@ -252,14 +251,14 @@ void arena_exit (FusionArena *arena,
      fusion_ref_down (&arena->shared->ref);
 
      if (fusion_ref_zero_trylock (&arena->shared->ref) == FUSION_SUCCESS) {
-          shutdown (arena, arena->ctx);
+          shutdown (arena, arena->ctx, emergency);
 
           fusion_ref_destroy (&arena->shared->ref);
 
           skirmish_destroy (&arena->shared->lock);
      }
      else {
-          leave (arena, arena->ctx);
+          leave (arena, arena->ctx, emergency);
           skirmish_dismiss (&arena->shared->lock);
      }
 
@@ -268,7 +267,7 @@ void arena_exit (FusionArena *arena,
      else {
      }
 
-     free (arena);
+     DFBFREE (arena);
 }
 
 

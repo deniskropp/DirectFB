@@ -142,13 +142,8 @@ DFBResult dfb_layers_init_all();
 DFBResult dfb_layers_join_all();
 
 
-DFBResult dfb_layers_shutdown();
-DFBResult dfb_layers_leave();
-
-#ifdef FUSION_FAKE
-DFBResult dfb_layers_suspend();
-DFBResult dfb_layers_resume();
-#endif
+DFBResult dfb_layers_shutdown( bool emergency );
+DFBResult dfb_layers_leave( bool emergency );
 
 /*
  * Add a layer to a graphics device by pointing to a table

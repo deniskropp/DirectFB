@@ -96,13 +96,8 @@ DFBResult dfb_input_join();
 /*
  * cancels input threads, deinitializes drivers, deallocates device structs
  */
-DFBResult dfb_input_shutdown();
-DFBResult dfb_input_leave();
-
-#ifdef FUSION_FAKE
-DFBResult dfb_input_suspend();
-DFBResult dfb_input_resume();
-#endif
+DFBResult dfb_input_shutdown( bool emergency );
+DFBResult dfb_input_leave( bool emergency );
 
 void dfb_input_register_module( InputDriverFuncs *funcs );
 

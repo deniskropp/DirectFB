@@ -94,6 +94,8 @@ typedef struct
 
      int       videoram_limit;                    /* limit amount of video
                                                      memory used by DirectFB */
+
+     sigset_t  dont_catch;                        /* don't catch these signals */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

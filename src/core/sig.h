@@ -27,6 +27,8 @@
 #include <pthread.h>
 #include <signal.h>
 
+#include <core/coredefs.h>
+
 /*
  * installs a signal handler for all signals
  * that would cause the program to terminate

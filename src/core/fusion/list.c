@@ -45,4 +45,6 @@ void fusion_list_remove (FusionLink **list, FusionLink *link)
 
      if (link->next)
           link->next->prev = link->prev;
+
+     link->next = link->prev = NULL;
 }

@@ -434,7 +434,7 @@ DFBResult dfb_fbdev_join()
 }
 #endif
 
-DFBResult dfb_fbdev_shutdown()
+DFBResult dfb_fbdev_shutdown( bool emergency )
 {
      VideoMode *m;
 
@@ -470,7 +470,7 @@ DFBResult dfb_fbdev_shutdown()
 }
 
 #ifndef FUSION_FAKE
-DFBResult dfb_fbdev_leave()
+DFBResult dfb_fbdev_leave( bool emergency )
 {
      close( dfb_fbdev->fd );
 
