@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/kd.h>
 
 #include <linux/fb.h>
 
@@ -1488,11 +1489,13 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
           if (format == DSPF_UNKNOWN || var.yres_virtual < vyres) {
                /* restore mode */
                FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
+               
                return DFB_UNSUPPORTED;
           }
 
-          if (!config)
+          if (!config) {
                return DFB_OK;
+          }
           
           /* force format for 8bit */
           if (format != config->pixelformat && DFB_BYTES_PER_PIXEL(format) == 1) {
@@ -1832,13 +1835,17 @@ fbdev_ioctl_listener( const void *msg_data, void *ctx )
 {
      const FBDevIoctl *message = (const FBDevIoctl*) msg_data;
 
+     if (!dfb_config->kd_graphics && message->request == FBIOPUT_VSCREENINFO)
+          ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS );
+     
      if (ioctl( dfb_fbdev->fd, message->request, message->arg ))
           dfb_fbdev->shared->rpc_ret = errno;
      else
           dfb_fbdev->shared->rpc_ret = 0;
 
-     fprintf( stderr, "%d (%p)\n", message->request, message->arg );
-
+     if (!dfb_config->kd_graphics && message->request == FBIOPUT_VSCREENINFO)
+          ioctl( dfb_vt->fd, KDSETMODE, KD_TEXT );
+     
      return RS_OK;
 }
 
