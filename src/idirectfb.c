@@ -296,6 +296,8 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
 
 
      if (caps & DSCAPS_PRIMARY) {
+          if (desc->flags & DSDESC_PREALLOCATED)
+               return DFB_INVARG;
 
           /* FIXME: should we allow to create more primaries in windowed mode?
                     should the primary surface be a singleton?
@@ -351,9 +353,42 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
      else if (caps & DSCAPS_SYSTEMONLY)
           policy = CSP_SYSTEMONLY;
 
-     ret = surface_create( width, height, format, policy, caps, &surface );
-     if (ret)
-          return ret;
+     if (desc->flags & DSDESC_PREALLOCATED) {
+          int min_pitch;
+
+          if (policy == CSP_VIDEOONLY)
+               return DFB_INVARG;
+
+          min_pitch = DFB_BYTES_PER_PIXEL(format) * width;
+
+          if (!desc->preallocated[0].data ||
+               desc->preallocated[0].pitch < min_pitch)
+          {
+               return DFB_INVARG;
+          }
+
+          if ((caps & DSCAPS_FLIPPING) &&
+              (!desc->preallocated[1].data ||
+                desc->preallocated[1].pitch < min_pitch))
+          {
+               return DFB_INVARG;
+          }
+
+          ret = surface_create_preallocated( width, height,
+                                             format, policy, caps,
+                                             desc->preallocated[0].data,
+                                             desc->preallocated[1].data,
+                                             desc->preallocated[0].pitch,
+                                             desc->preallocated[1].pitch,
+                                             &surface );
+          if (ret)
+               return ret;
+     }
+     else {
+          ret = surface_create( width, height, format, policy, caps, &surface );
+          if (ret)
+               return ret;
+     }
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 

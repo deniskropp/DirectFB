@@ -344,7 +344,14 @@ extern "C"
           DSDESC_CAPS         = 0x00000001,  /* caps field is valid */
           DSDESC_WIDTH        = 0x00000002,  /* width field is valid */
           DSDESC_HEIGHT       = 0x00000004,  /* height field is valid */
-          DSDESC_PIXELFORMAT  = 0x00000008   /* pixelformat field is valid */
+          DSDESC_PIXELFORMAT  = 0x00000008,  /* pixelformat field is valid */
+          DSDESC_PREALLOCATED = 0x00000010   /* Surface uses data that has been
+                                                preallocated by the application.
+                                                The field array 'preallocated'
+                                                has to be set using the first
+                                                element for the front buffer and
+                                                eventually the second one for
+                                                the back buffer. */
      } DFBSurfaceDescriptionFlags;
 
      /*
@@ -578,6 +585,12 @@ extern "C"
           unsigned int                       width;       /* pixel width */
           unsigned int                       height;      /* pixel height */
           DFBSurfacePixelFormat              pixelformat; /* pixel format */
+
+          struct {
+               void                         *data;        /* data pointer of
+                                                             existing buffer */
+               int                           pitch;       /* pitch of buffer */
+          } preallocated[2];
      } DFBSurfaceDescription;
 
      /*
@@ -1979,11 +1992,11 @@ extern "C"
           DWET_BUTTONUP       = 0x00020000,  /* mouse button went up in
                                                 the window */
           DWET_MOTION         = 0x00040000,  /* mouse cursor changed its
-                                                position in window */                                                
+                                                position in window */
           DWET_ENTER          = 0x00080000,  /* mouse cursor entered
                                                 the window */
           DWET_LEAVE          = 0x00100000,  /* mouse cursor left the window */
-          
+
           DWET_WHEEL          = 0x00200000,  /* mouse wheel was moved while
                                                 window has focus */
 
@@ -2007,7 +2020,7 @@ extern "C"
              DWET_ENTER, DWET_LEAVE */
           int                                cx;
           int                                cy;
-          
+
           /* used by DWET_WHEEL */
           int                                step;
 

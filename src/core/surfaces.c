@@ -46,6 +46,12 @@
 #include "misc/util.h"
 #include "misc/mem.h"
 
+static DFBResult surface_init ( CoreSurface           *surface,
+                                int                    width,
+                                int                    height,
+                                DFBSurfacePixelFormat  format,
+                                DFBSurfaceCapabilities caps );
+
 static DFBResult surface_allocate_buffer  ( CoreSurface    *surface,
                                             int             policy,
                                             SurfaceBuffer **buffer );
@@ -91,17 +97,13 @@ DFBResult surface_create( int width, int height, int format, int policy,
      DFBResult    ret;
      CoreSurface *s;
 
-     if (DFB_BYTES_PER_PIXEL( format ) == 0) {
-          BUG( "unknown pixel format" );
-          return DFB_BUG;
-     }
-
      s = (CoreSurface*) shcalloc( 1, sizeof(CoreSurface) );
 
-     s->width   = width;
-     s->height  = height;
-     s->format  = format;
-     s->caps    = caps;
+     ret = surface_init( s, width, height, format, caps );
+     if (ret) {
+          shmfree( s );
+          return ret;
+     }
 
      switch (policy) {
           case CSP_SYSTEMONLY:
@@ -111,11 +113,6 @@ DFBResult surface_create( int width, int height, int format, int policy,
                s->caps |= DSCAPS_VIDEOONLY;
                break;
      }
-
-     skirmish_init( &s->front_lock );
-     skirmish_init( &s->back_lock );
-
-     s->reactor = reactor_new(sizeof(CoreSurfaceNotification));
 
      surfacemanager_add_surface( gfxcard_surface_manager(), s );
 
@@ -144,12 +141,70 @@ DFBResult surface_create( int width, int height, int format, int policy,
      return DFB_OK;
 }
 
+DFBResult surface_create_preallocated( int width, int height, int format,
+                                       int policy, DFBSurfaceCapabilities caps,
+                                       void *front_buffer, void *back_buffer,
+                                       int front_pitch, int back_pitch,
+                                       CoreSurface **surface )
+{
+     DFBResult    ret;
+     CoreSurface *s;
+
+     if (policy == CSP_VIDEOONLY)
+          return DFB_UNSUPPORTED;
+
+     s = (CoreSurface*) shcalloc( 1, sizeof(CoreSurface) );
+
+     ret = surface_init( s, width, height, format, caps );
+     if (ret) {
+          shmfree( s );
+          return ret;
+     }
+
+     if (policy == CSP_SYSTEMONLY)
+          s->caps |= DSCAPS_SYSTEMONLY;
+
+     surfacemanager_add_surface( gfxcard_surface_manager(), s );
+
+
+     s->front_buffer = (SurfaceBuffer *) shcalloc( 1, sizeof(SurfaceBuffer) );
+
+     s->front_buffer->flags   = SBF_FOREIGN_SYSTEM;
+     s->front_buffer->policy  = policy;
+     s->front_buffer->surface = s;
+
+     s->front_buffer->system.health = CSH_STORED;
+     s->front_buffer->system.pitch  = front_pitch;
+     s->front_buffer->system.addr   = front_buffer;
+
+     if (caps & DSCAPS_FLIPPING) {
+          s->back_buffer = (SurfaceBuffer *) shcalloc( 1, sizeof(SurfaceBuffer) );
+          memcpy( s->back_buffer, s->front_buffer, sizeof(SurfaceBuffer) );
+
+          s->back_buffer->system.pitch  = back_pitch;
+          s->back_buffer->system.addr   = back_buffer;
+     }
+     else
+          s->back_buffer = s->front_buffer;
+
+
+     *surface = s;
+
+     return DFB_OK;
+}
+
 DFBResult surface_reformat( CoreSurface *surface, int width, int height,
                             DFBSurfacePixelFormat format )
 {
      int old_width, old_height;
      DFBSurfacePixelFormat old_format;
      DFBResult ret;
+
+     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
+         surface->back_buffer->flags  & SBF_FOREIGN_SYSTEM)
+     {
+          return DFB_UNSUPPORTED;
+     }
 
      skirmish_prevail( &surface->front_lock );
      skirmish_prevail( &surface->back_lock );
@@ -402,6 +457,30 @@ void surface_destroy( CoreSurface *surface )
 
 /** internal **/
 
+static DFBResult surface_init ( CoreSurface           *surface,
+                                int                    width,
+                                int                    height,
+                                DFBSurfacePixelFormat  format,
+                                DFBSurfaceCapabilities caps )
+{
+     if (DFB_BYTES_PER_PIXEL( format ) == 0) {
+          BUG( "unknown pixel format" );
+          return DFB_BUG;
+     }
+
+     surface->width   = width;
+     surface->height  = height;
+     surface->format  = format;
+     surface->caps    = caps;
+
+     skirmish_init( &surface->front_lock );
+     skirmish_init( &surface->back_lock );
+
+     surface->reactor = reactor_new(sizeof(CoreSurfaceNotification));
+
+     return DFB_OK;
+}
+
 static DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
                                           SurfaceBuffer **buffer )
 {
@@ -454,6 +533,9 @@ static DFBResult surface_reallocate_buffer( CoreSurface   *surface,
 {
      DFBResult    ret;
 
+     if (buffer->flags & SBF_FOREIGN_SYSTEM)
+          return DFB_UNSUPPORTED;
+
      if (buffer->system.health) {
           buffer->system.health = CSH_STORED;
 
@@ -492,7 +574,7 @@ static DFBResult surface_reallocate_buffer( CoreSurface   *surface,
 static void surface_deallocate_buffer( CoreSurface   *surface,
                                        SurfaceBuffer *buffer )
 {
-     if (buffer->system.health)
+     if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM))
           shmfree( buffer->system.addr );
 
      surfacemanager_lock( surface->manager );

@@ -35,14 +35,14 @@
 struct _Chunk;
 
 typedef enum {
-     CSNF_SIZEFORMAT  = 0x00000001,     /* width, height, format */
-     CSNF_SYSTEM      = 0x00000002,     /* system instance information */
-     CSNF_VIDEO       = 0x00000004,     /* video instance information */
-     CSNF_DESTROY     = 0x00000008,     /* surface is about to be destroyed */
-     CSNF_FLIP        = 0x00000010,     /* surface buffer pointer swapped */
-     CSNF_SET_EVEN    = 0x00000020,     /* set the even field of an interlaced
+     CSNF_SIZEFORMAT     = 0x00000001,  /* width, height, format */
+     CSNF_SYSTEM         = 0x00000002,  /* system instance information */
+     CSNF_VIDEO          = 0x00000004,  /* video instance information */
+     CSNF_DESTROY        = 0x00000008,  /* surface is about to be destroyed */
+     CSNF_FLIP           = 0x00000010,  /* surface buffer pointer swapped */
+     CSNF_SET_EVEN       = 0x00000020,  /* set the even field of an interlaced
                                            surface buffer active */
-     CSNF_SET_ODD     = 0x00000040      /* set the odd field of an interlaced
+     CSNF_SET_ODD        = 0x00000040   /* set the odd field of an interlaced
                                            surface buffer active */
 } CoreSurfaceNotificationFlags;
 
@@ -52,14 +52,22 @@ typedef struct {
 } CoreSurfaceNotification;
 
 typedef enum {
-     VWF_NONE         = 0x00000000,     /* no write access happened since last
+     SBF_NONE            = 0x00000000,
+     SBF_FOREIGN_SYSTEM  = 0x00000001   /* system memory is preallocated by
+                                           application, won't be freed */
+} SurfaceBufferFlags;
+
+typedef enum {
+     VWF_NONE            = 0x00000000,  /* no write access happened since last
                                            clearing of all bits */
-     VWF_BY_SOFTWARE  = 0x00000001,     /* software wrote to buffer */
-     VWF_BY_HARDWARE  = 0x00000002      /* hardware wrote to buffer */
+     VWF_BY_SOFTWARE     = 0x00000001,  /* software wrote to buffer */
+     VWF_BY_HARDWARE     = 0x00000002   /* hardware wrote to buffer */
 } VideoWrittenFlags;
+
 
 struct _SurfaceBuffer
 {
+     SurfaceBufferFlags     flags;      /* additional information */
      int                    policy;     /* swapping policy for surfacemanager */
 
      struct {
@@ -141,6 +149,16 @@ DFBResult surface_create( int width, int height, int format, int policy,
                           DFBSurfaceCapabilities caps, CoreSurface **surface );
 
 /*
+ * like surface_create, but with preallocated system memory that won't be
+ * freed on surface destruction
+ */
+DFBResult surface_create_preallocated( int width, int height, int format,
+                                       int policy, DFBSurfaceCapabilities caps,
+                                       void *front_buffer, void *back_buffer,
+                                       int front_pitch, int back_pitch,
+                                       CoreSurface **surface );
+
+/*
  * reallocates data for the specified surface
  */
 DFBResult surface_reformat( CoreSurface *surface, int width, int height,
@@ -186,6 +204,5 @@ void surface_unlock( CoreSurface *surface, int front );
  */
 void surface_destroy( CoreSurface *surface );
 
-void surfaces_deinit();
 
 #endif
