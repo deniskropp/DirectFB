@@ -1070,9 +1070,9 @@ static DFBResult fbdev_set_rgb332_palette()
      for (red_val = 0; red_val  < 8 ; red_val++) {
           for (green_val = 0; green_val  < 8 ; green_val++) {
                for (blue_val = 0; blue_val  < 4 ; blue_val++) {
-                    cmap.red[i]   = red_val   << 13;
-                    cmap.green[i] = green_val << 13;
-                    cmap.blue[i]  = blue_val  << 14;
+                    cmap.red[i]   = fbdev_calc_gamma( red_val, 7 );
+                    cmap.green[i] = fbdev_calc_gamma( green_val, 7 );
+                    cmap.blue[i]  = fbdev_calc_gamma( blue_val, 3 );
                     i++;
                }
           }
