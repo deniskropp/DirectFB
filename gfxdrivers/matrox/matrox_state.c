@@ -27,6 +27,8 @@
 
 #include <directfb.h>
 
+#include <direct/messages.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 

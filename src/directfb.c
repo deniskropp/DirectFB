@@ -57,6 +57,7 @@
 
 #include <direct/conf.h>
 #include <direct/mem.h>
+#include <direct/messages.h>
 
 #include "display/idirectfbsurface.h"
 
@@ -124,13 +125,13 @@ DirectFBSetOption( const char *name, const char *value )
 
      if (dfb_config == NULL) {
           D_ERROR( "DirectFBSetOption: DirectFBInit has to be "
-                    "called before DirectFBSetOption!\n" );
+                   "called before DirectFBSetOption!\n" );
           return DFB_INIT;
      }
 
      if (idirectfb_singleton) {
           D_ERROR( "DirectFBSetOption: DirectFBSetOption has to be "
-                    "called before DirectFBCreate!\n" );
+                   "called before DirectFBCreate!\n" );
           return DFB_INIT;
      }
 

@@ -7,6 +7,8 @@
    version 2 of the License, or (at your option) any later version.
 */
 
+#include <direct/messages.h>
+
 #include "unichrome.h"
 #include "uc_overlay.h"
 #include "vidregs.h"
@@ -491,11 +493,11 @@ static float clamp(float x, float lo, float hi)
     return (x < lo) ? lo : ((x > hi) ? hi : x); /* 2 nested if's. */
 }
 
-/** 
+/**
  * uc_ovl_map_adjustment() helper - format x for the hardware.
  *
  * @param x     The value to format.
- * @param ndec  Number of binary decimals. 
+ * @param ndec  Number of binary decimals.
  * @param sbit  sign bit position.
  *              =0: use two's complement representation
  *              >0: use a sign bit + positive value.
@@ -546,7 +548,7 @@ void uc_ovl_map_adjustment(DFBColorAdjustment* adj, __u32* a1, __u32* a2)
     C3 = clamp(2.018*s, -1.25, 1.25);
     D = clamp(1.164*(bri-16), -128, 127);
 
-    *a1 = 
+    *a1 =
         fmt(A,  4, 0, 0x1f, 24) | fmt(B1, 2, 2, 0x07, 18) |
         fmt(C1, 3, 0, 0x1f,  9) | fmt(D,  0, 0, 0xff,  0);
 

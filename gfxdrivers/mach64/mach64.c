@@ -39,6 +39,8 @@
 
 #include <directfb.h>
 
+#include <direct/messages.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -648,7 +650,7 @@ static bool mach64StretchBlit( void *drv, void *dev,
 static bool mach64_detect_rage_pro( Mach64DriverData *mdrv,
                                     GraphicsDeviceInfo *device_info )
 {
-     switch (mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID ) & 0xFFFF) {  
+     switch (mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID ) & 0xFFFF) {
      case 0x4742: case 0x4744: case 0x4749: case 0x4750: case 0x4751:
           snprintf( device_info->name,
                     DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage Pro" );

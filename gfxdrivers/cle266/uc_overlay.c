@@ -12,6 +12,8 @@
 #include "vidregs.h"
 #include "mmio.h"
 
+#include <direct/messages.h>
+
 #include <core/system.h>
 
 #include <misc/conf.h>

@@ -24,6 +24,7 @@
 #include <core/system.h>
 #include <core/layer_control.h>
 #include <direct/memcpy.h>
+#include <direct/messages.h>
 
 #include "nvidia.h"
 #include "math.h"

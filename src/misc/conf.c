@@ -48,6 +48,7 @@
 
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/messages.h>
 
 
 DFBConfig *dfb_config = NULL;

@@ -49,8 +49,11 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
+
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/messages.h>
+
 #include <misc/util.h>
 
 #include "config.h"

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -54,7 +54,9 @@
 #include <core/windows.h>
 
 #include <misc/util.h>
+
 #include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <media/idirectfbdatabuffer.h>
 
@@ -188,7 +190,7 @@ IDirectFBDataBuffer_File_GetData( IDirectFBDataBuffer *thiz,
 
      if (data->pos >= data->size)
           return DFB_BUFFEREMPTY;
-     
+
      size = read( data->fd, data_buffer, length );
      if (size < 0)
           return errno2dfb( errno );
@@ -197,7 +199,7 @@ IDirectFBDataBuffer_File_GetData( IDirectFBDataBuffer *thiz,
 
      if (read_out)
           *read_out = size;
-     
+
      return DFB_OK;
 }
 
@@ -217,7 +219,7 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
 
      if (data->pos + offset >= data->size)
           return DFB_BUFFEREMPTY;
-     
+
      if (offset && lseek( data->fd, offset, SEEK_CUR ) < 0) {
           switch (errno) {
                case ESPIPE:
@@ -227,7 +229,7 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
                     return DFB_FAILURE;
           }
      }
-     
+
      size = read( data->fd, data_buffer, length );
      if (size < 0) {
           int erno = errno;
@@ -239,10 +241,10 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
 
      if (lseek( data->fd, - size - offset, SEEK_CUR ) < 0)
           return DFB_FAILURE;
-     
+
      if (read_out)
           *read_out = size;
-     
+
      return DFB_OK;
 }
 
@@ -281,28 +283,28 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
      data->fd = open( filename, O_RDONLY );
      if (data->fd < 0) {
           int erno = errno;
-          
+
           D_PERROR("DirectFB/DataBuffer: opening '%s' failed!\n", filename);
-          
+
           DFB_DEALLOCATE_INTERFACE( thiz );
-          
+
           return errno2dfb( erno );
      }
 
      if (fstat( data->fd, &status ) < 0) {
           int erno = errno;
-          
+
           D_PERROR("DirectFB/DataBuffer: fstat failed!\n");
-          
+
           close( data->fd );
-          
+
           DFB_DEALLOCATE_INTERFACE( thiz );
-          
+
           return errno2dfb( erno );
      }
 
      data->size = status.st_size;
-     
+
      thiz->Release                = IDirectFBDataBuffer_File_Release;
      thiz->Flush                  = IDirectFBDataBuffer_File_Flush;
      thiz->SeekTo                 = IDirectFBDataBuffer_File_SeekTo;

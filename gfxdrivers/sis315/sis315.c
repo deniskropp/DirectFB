@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.6 2004-03-30 18:35:19 dok Exp $
+ * $Id: sis315.c,v 1.7 2004-03-30 19:13:45 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -23,6 +23,9 @@
 #include <sys/ioctl.h>
 
 #include <directfb.h>
+
+#include <direct/messages.h>
+
 #include <core/fbdev/fbdev.h>
 #include <core/gfxcard.h>
 #include <core/graphics_driver.h>

@@ -66,8 +66,10 @@
 #include <display/idirectfbsurface.h>
 
 #include <misc/util.h>
+
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/messages.h>
 
 #ifdef HAVE_V4L2
 #include <linux/videodev2.h>

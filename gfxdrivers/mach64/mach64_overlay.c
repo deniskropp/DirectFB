@@ -25,6 +25,10 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <stdio.h>
+
+#include <direct/messages.h>
+
 #include <core/coredefs.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
@@ -429,7 +433,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
                                                                 config->dst_key.b );
                break;
 
-               
+
           default:
                D_BUG("unexpected pixelformat");
                return;

@@ -50,6 +50,7 @@
 #include <misc/gfx_util.h>
 #include <misc/util.h>
 #include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <jpeglib.h>
 #include <setjmp.h>

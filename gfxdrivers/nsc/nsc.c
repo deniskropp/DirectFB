@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.7 $
+ * $Revision: 1.8 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -14,24 +14,24 @@
  *
  * National Semiconductor Alternative GPL-BSD License
  *
- * National Semiconductor Corporation licenses this software 
+ * National Semiconductor Corporation licenses this software
  * ("Software"):
  *
  * National Xfree frame buffer driver
  *
- * under one of the two following licenses, depending on how the 
+ * under one of the two following licenses, depending on how the
  * Software is received by the Licensee.
- * 
+ *
  * If this Software is received as part of the Linux Framebuffer or
- * other GPL licensed software, then the GPL license designated 
- * NSC_LIC_GPL applies to this Software; in all other circumstances 
+ * other GPL licensed software, then the GPL license designated
+ * NSC_LIC_GPL applies to this Software; in all other circumstances
  * then the BSD-style license designated NSC_LIC_BSD shall apply.
  *
  * END_NSC_LIC_ALTERNATIVE_PREAMBLE */
 
 /* NSC_LIC_BSD
  *
- * National Semiconductor Corporation Open Source License for 
+ * National Semiconductor Corporation Open Source License for
  *
  * National Xfree frame buffer driver
  *
@@ -41,52 +41,52 @@
  * National Semiconductor Corporation.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions 
- * are met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- *   * Redistributions of source code must retain the above copyright 
- *     notice, this list of conditions and the following disclaimer. 
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
  *
- *   * Redistributions in binary form must reproduce the above 
- *     copyright notice, this list of conditions and the following 
- *     disclaimer in the documentation and/or other materials provided 
- *     with the distribution. 
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
  *
- *   * Neither the name of the National Semiconductor Corporation nor 
- *     the names of its contributors may be used to endorse or promote 
- *     products derived from this software without specific prior 
- *     written permission. 
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
- * NATIONAL SEMICONDUCTOR CORPORATION OR CONTRIBUTORS BE LIABLE FOR ANY 
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER 
+ *   * Neither the name of the National Semiconductor Corporation nor
+ *     the names of its contributors may be used to endorse or promote
+ *     products derived from this software without specific prior
+ *     written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * NATIONAL SEMICONDUCTOR CORPORATION OR CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE,
- * INTELLECTUAL PROPERTY INFRINGEMENT, OR OTHERWISE) ARISING IN ANY WAY 
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+ * INTELLECTUAL PROPERTY INFRINGEMENT, OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * EXPORT LAWS: THIS LICENSE ADDS NO RESTRICTIONS TO THE EXPORT LAWS OF 
- * YOUR JURISDICTION. It is licensee's responsibility to comply with 
- * any export regulations applicable in licensee's jurisdiction. Under 
- * CURRENT (2001) U.S. export regulations this software 
- * is eligible for export from the U.S. and can be downloaded by or 
- * otherwise exported or reexported worldwide EXCEPT to U.S. embargoed 
- * destinations which include Cuba, Iraq, Libya, North Korea, Iran, 
- * Syria, Sudan, Afghanistan and any other country to which the U.S. 
- * has embargoed goods and services. 
+ * EXPORT LAWS: THIS LICENSE ADDS NO RESTRICTIONS TO THE EXPORT LAWS OF
+ * YOUR JURISDICTION. It is licensee's responsibility to comply with
+ * any export regulations applicable in licensee's jurisdiction. Under
+ * CURRENT (2001) U.S. export regulations this software
+ * is eligible for export from the U.S. and can be downloaded by or
+ * otherwise exported or reexported worldwide EXCEPT to U.S. embargoed
+ * destinations which include Cuba, Iraq, Libya, North Korea, Iran,
+ * Syria, Sudan, Afghanistan and any other country to which the U.S.
+ * has embargoed goods and services.
  *
  * END_NSC_LIC_BSD */
 
 /* NSC_LIC_GPL
  *
- * National Semiconductor Corporation Gnu General Public License for 
+ * National Semiconductor Corporation Gnu General Public License for
  *
  * National Xfree frame buffer driver
  *
@@ -96,43 +96,43 @@
  * National Semiconductor Corporation.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted under the terms of the GNU General 
- * Public License as published by the Free Software Foundation; either 
- * version 2 of the License, or (at your option) any later version  
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted under the terms of the GNU General
+ * Public License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version
  *
- * In addition to the terms of the GNU General Public License, neither 
- * the name of the National Semiconductor Corporation nor the names of 
- * its contributors may be used to endorse or promote products derived 
- * from this software without specific prior written permission. 
+ * In addition to the terms of the GNU General Public License, neither
+ * the name of the National Semiconductor Corporation nor the names of
+ * its contributors may be used to endorse or promote products derived
+ * from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
- * NATIONAL SEMICONDUCTOR CORPORATION OR CONTRIBUTORS BE LIABLE FOR ANY 
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER 
- * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE, 
- * INTELLECTUAL PROPERTY INFRINGEMENT, OR OTHERWISE) ARISING IN ANY WAY 
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
- * OF SUCH DAMAGE. See the GNU General Public License for more details. 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * NATIONAL SEMICONDUCTOR CORPORATION OR CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE,
+ * INTELLECTUAL PROPERTY INFRINGEMENT, OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE. See the GNU General Public License for more details.
  *
- * EXPORT LAWS: THIS LICENSE ADDS NO RESTRICTIONS TO THE EXPORT LAWS OF 
- * YOUR JURISDICTION. It is licensee's responsibility to comply with 
- * any export regulations applicable in licensee's jurisdiction. Under 
- * CURRENT (2001) U.S. export regulations this software 
- * is eligible for export from the U.S. and can be downloaded by or 
- * otherwise exported or reexported worldwide EXCEPT to U.S. embargoed 
- * destinations which include Cuba, Iraq, Libya, North Korea, Iran, 
- * Syria, Sudan, Afghanistan and any other country to which the U.S. 
- * has embargoed goods and services. 
+ * EXPORT LAWS: THIS LICENSE ADDS NO RESTRICTIONS TO THE EXPORT LAWS OF
+ * YOUR JURISDICTION. It is licensee's responsibility to comply with
+ * any export regulations applicable in licensee's jurisdiction. Under
+ * CURRENT (2001) U.S. export regulations this software
+ * is eligible for export from the U.S. and can be downloaded by or
+ * otherwise exported or reexported worldwide EXCEPT to U.S. embargoed
+ * destinations which include Cuba, Iraq, Libya, North Korea, Iran,
+ * Syria, Sudan, Afghanistan and any other country to which the U.S.
+ * has embargoed goods and services.
  *
- * You should have received a copy of the GNU General Public License 
- * along with this file; if not, write to the Free Software Foundation, 
- * Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ * You should have received a copy of the GNU General Public License
+ * along with this file; if not, write to the Free Software Foundation,
+ * Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  * END_NSC_LIC_GPL */
 
@@ -155,6 +155,7 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 #include <core/graphics_driver.h>
+#include <direct/messages.h>
 
 #include "nsc_galproto.h"
 
@@ -234,7 +235,7 @@ gxCheckState(void *drv,
 	   if(state->source->format != DSPF_RGB16)
 		  return;
       /* if there are no other blitting flags than the supported
-       * and the source and destination formats are the same 
+       * and the source and destination formats are the same
        */
       if (gxdrv->cpu) {
          if (!(state->blittingflags & ~GX_SUPPORTED_BLITTINGFLAGS) &&
@@ -333,7 +334,7 @@ nscDrawLine(void *drv, void *dev, DFBRegion *line)
    ady = ABS(dy);
 
    /* Canonical Bresenham stepper.
-    * * We use hardware to draw the pixels to take care of alu modes 
+    * * We use hardware to draw the pixels to take care of alu modes
     * * and whatnot.
     */
    Gal_set_raster_operation(0xF0);
@@ -457,7 +458,7 @@ driver_init_driver(GraphicsDevice      *device,
                    void                *device_data)
 {
    NSCDriverData *gxdrv = (NSCDriverData *) driver_data;
-   
+
    gxdrv->cpu_version = sAdapterInfo.dwCPUVersion;
    gxdrv->cpu = 0;
    if ((gxdrv->cpu_version & 0xFF) == GFX_CPU_REDCLOUD) {
@@ -491,7 +492,7 @@ driver_init_device(GraphicsDevice *device,
             DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "NSC GX1/GX2 driver version");
    snprintf(device_info->vendor,
             DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nsc");
-   printf("Dependent NSC Kernel FrameBuffer driver version is 2.7.7 or later\n"); 
+   printf("Dependent NSC Kernel FrameBuffer driver version is 2.7.7 or later\n");
    device_info->caps.flags = CCF_NOTRIEMU;
    device_info->caps.accel = GX_SUPPORTED_DRAWINGFUNCTIONS;
    device_info->caps.drawing = GX_SUPPORTED_DRAWINGFLAGS;

@@ -46,6 +46,7 @@
 
 #include <direct/memcpy.h>
 #include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <misc/util.h>
 #include <misc/gfx_util.h>

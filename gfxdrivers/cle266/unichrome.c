@@ -66,6 +66,9 @@ later versions on an EPIA-M10000.
 // DirectFB headers
 
 #include <directfb.h>
+
+#include <direct/messages.h>
+
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
 #include <core/graphics_driver.h>
@@ -463,7 +466,7 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
      if ( getenv("DFB_CLE266_UNDERLAY"))
           dfb_layers_hook_primary( device, driver_data, &ucPrimaryFuncs,
                                     &ucOldPrimaryFuncs, &ucOldPrimaryDriverData );
-  
+
      dfb_layers_register( dfb_screens_at(DSCID_PRIMARY),
                           driver_data, &ucOverlayFuncs );
 

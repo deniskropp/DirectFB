@@ -39,6 +39,7 @@
 #include "i2c-dev.h"
 
 #include <direct/memcpy.h>
+#include <direct/messages.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>

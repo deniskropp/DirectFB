@@ -3,6 +3,8 @@
 #ifndef __UC_HW_H__
 #define __UC_HW_H__
 
+#include <direct/messages.h>
+
 #include <core/coredefs.h>
 
 #include "unichrome.h"

@@ -25,6 +25,10 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <stdio.h>
+
+#include <direct/messages.h>
+
 #include <core/coredefs.h>
 #include <core/layers.h>
 #include <core/surfaces.h>

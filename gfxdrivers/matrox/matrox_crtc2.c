@@ -47,6 +47,7 @@
 #include <core/windows.h>
 
 #include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>

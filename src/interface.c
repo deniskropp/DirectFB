@@ -30,6 +30,7 @@
 #include <pthread.h>
 #include <dirent.h>
 #include <dlfcn.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
@@ -41,6 +42,8 @@
 #include <direct/list.h>
 
 #include <direct/mem.h>
+#include <direct/messages.h>
+
 #include <misc/util.h>
 
 typedef struct {
