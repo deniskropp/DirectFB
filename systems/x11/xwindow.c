@@ -55,7 +55,7 @@ error_handler( Display *display, XErrorEvent *event )
 Bool
 dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight)
 {
-     XWindow* xw = (XWindow *)calloc(1, sizeof(XWindow));
+     XWindow* xw = (XWindow *)D_CALLOC(1, sizeof(XWindow));
 
      /* We set the structure as needed for our window */
      xw->width   = iWidth;
@@ -75,7 +75,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
                                  xw->visual, 0, NULL );
 
      if (!xw->window) {
-          free( xw );
+          D_FREE( xw );
           XUnlockDisplay( dfb_x11->display );
           return False;
      }
@@ -135,20 +135,18 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 
      if (dfb_x11->use_shm) {
           // Shared memory 	
-          xw->shmseginfo=(XShmSegmentInfo *)malloc(sizeof(XShmSegmentInfo));
+          xw->shmseginfo=(XShmSegmentInfo *)D_CALLOC(1, sizeof(XShmSegmentInfo));
           if (!xw->shmseginfo) {
                dfb_x11->use_shm = false;
                goto no_shm;
           }
-
-          memset(xw->shmseginfo,0, sizeof(XShmSegmentInfo));
 
           xw->ximage=XShmCreateImage(xw->display, xw->visual, xw->depth, ZPixmap,
                                      NULL,xw->shmseginfo, xw->width, xw->height * 2);
           if (!xw->ximage) {
                D_ERROR("X11: Error creating shared image (XShmCreateImage) \n");
                dfb_x11->use_shm = false;
-               free(xw->shmseginfo);
+               D_FREE(xw->shmseginfo);
                goto no_shm;
           }
 
@@ -163,7 +161,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
           if (xw->shmseginfo->shmid<0) {
                dfb_x11->use_shm = false;
                XDestroyImage(xw->ximage);
-               free(xw->shmseginfo);
+               D_FREE(xw->shmseginfo);
                goto no_shm;
           }
 
@@ -174,7 +172,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
                dfb_x11->use_shm = false;
                shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
                XDestroyImage(xw->ximage);
-               free(xw->shmseginfo);
+               D_FREE(xw->shmseginfo);
                goto no_shm;
           }
 
@@ -199,7 +197,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
                shmdt(xw->shmseginfo->shmaddr);
                shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
                XDestroyImage(xw->ximage);
-               free(xw->shmseginfo);
+               D_FREE(xw->shmseginfo);
           }
      }
 
@@ -207,21 +205,22 @@ no_shm:
      if (!dfb_x11->use_shm) {
           int pitch;
 
-          xw->bpp = xw->depth / 8;
+          xw->bpp = (xw->depth > 16) ? 4 :
+                    (xw->depth >  8) ? 2 : 1;
 
           pitch = (xw->bpp * xw->width + 3) & ~3;
 
           xw->virtualscreen = D_MALLOC( 2 * xw->height * pitch );
 
-          xw->ximage=XCreateImage(xw->display, xw->visual, xw->depth, ZPixmap, 0,
-                                  xw->virtualscreen,
-                                  xw->width, xw->height * 2, 32, pitch);
+          xw->ximage = XCreateImage( xw->display, xw->visual, xw->depth, ZPixmap, 0,
+                                     xw->virtualscreen, xw->width, xw->height * 2, 32, pitch );
           if (!xw->ximage) {
-               D_ERROR("X11: Error creating image (XCreateImage) \n");
+               D_ERROR( "X11/Window: XCreateImage( Visual %02lu, depth %d, size %dx%d, buffer %p [%d] ) failed!\n",
+                        xw->visual->visualid, xw->depth, xw->width, xw->height * 2, xw->virtualscreen, pitch );
                XFreeGC(xw->display,xw->gc);
                XDestroyWindow(xw->display,xw->window);
                XUnlockDisplay( dfb_x11->display );
-               free( xw );
+               D_FREE( xw );
                return False;
           }
      }
@@ -244,7 +243,7 @@ dfb_x11_close_window( XWindow* xw )
           XShmDetach(xw->display, xw->shmseginfo);
           shmdt(xw->shmseginfo->shmaddr);
           shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
-          free(xw->shmseginfo);
+          D_FREE(xw->shmseginfo);
      }
      else
           D_FREE( xw->virtualscreen );
@@ -256,6 +255,6 @@ dfb_x11_close_window( XWindow* xw )
 
      XUnlockDisplay( dfb_x11->display );
 
-     free(xw);
+     D_FREE(xw);
 }
 
