@@ -38,7 +38,7 @@ idirectfbimageprovider_LTLIBRARIES = \
 	$(PNG_PROVIDER_LTLIB)
 
 if BUILD_STATIC
-idirectfbimageprovider_DATA = $(idirectfbimageprovider_LTLIBRARIES:.la=.o)
+#idirectfbimageprovider_DATA = $(idirectfbimageprovider_LTLIBRARIES:.la=.o)
 endif
 
 

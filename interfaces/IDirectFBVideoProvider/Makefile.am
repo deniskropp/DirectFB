@@ -21,7 +21,7 @@ idirectfbvideoprovider_LTLIBRARIES =	\
 	$(V4L_PROVIDER_LTLIB)
 
 if BUILD_STATIC
-idirectfbvideoprovider_DATA = $(idirectfbvideoprovider_LTLIBRARIES:.la=.o)
+#idirectfbvideoprovider_DATA = $(idirectfbvideoprovider_LTLIBRARIES:.la=.o)
 endif
 
 libidirectfbvideoprovider_v4l_la_SOURCES = idirectfbvideoprovider_v4l.c
