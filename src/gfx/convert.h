@@ -34,6 +34,8 @@
 #include "misc/memcpy.h"
 
 
+/* pixel packing */
+
 #define PIXEL_RGB332(r,g,b)    ( (((r)&0xE0)     ) | \
                                  (((g)&0xE0) >> 3) | \
                                  (((b)&0xC0) >> 6) )
@@ -59,6 +61,18 @@
                                  ((g) << 8)  | \
                                   (b) )
 
+#define PIXEL_YUY2(y,u,v)      ( ((v) << 24) | \
+                                 ((y) << 16) | \
+                                 ((u) << 8)  | \
+                                  (y) )
+
+#define PIXEL_UYVY(y,u,v)      ( ((y) << 24) | \
+                                 ((v) << 16) | \
+                                 ((y) << 8)  | \
+                                  (u) )
+
+
+/* packed pixel conversions */
 
 #define RGB15_TO_RGB332(pixel) ( (((pixel) & 0x7000) >> 7) | \
                                  (((pixel) & 0x0380) >> 5) | \
@@ -119,6 +133,18 @@
 #define RGB32_TO_RGB24(pixel)  ( (pixel) & 0x00FFFFFF )
 
 #define RGB32_TO_ARGB(pixel)   ( 0xFF000000 | (pixel) )
+
+
+/* RGB to YUV */
+
+#define Y_FROM_RGB(r,g,b)      ( ( 0.2290 * r + 0.5670 * g + 0.1440 * b) * \
+                                   219 / 255 + 16 )
+
+#define CB_FROM_RGB(r,g,b)     ( (-0.1687 * r - 0.3313 * g + 0.5000 * b) * \
+                                   112 / 127 + 128)
+
+#define CR_FROM_RGB(r,g,b)     ( ( 0.5000 * r - 0.4187 * g - 0.0813 * b) * \
+                                   112 / 127 + 128)
 
 
 DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );

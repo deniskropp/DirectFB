@@ -89,6 +89,9 @@ void *Aop = NULL;
 static void *Bop = NULL;
 static __u32 Cop = 0;
 
+static __u8 CbCop = 0;
+static __u8 CrCop = 0;
+
 /*
  * color keys
  */
@@ -201,15 +204,15 @@ static GFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_to_Aop_32,
      Cop_to_Aop_32,
      Cop_to_Aop_8,
-     NULL,
+     Cop_to_Aop_32,
 #ifdef SUPPORT_RGB332
      Cop_to_Aop_8,
 #else     
      NULL,
 #endif
-     NULL,
-     NULL,
-     NULL,
+     Cop_to_Aop_32,
+     Cop_to_Aop_8,
+     Cop_to_Aop_8,
      Cop_to_Aop_8
 };
 
@@ -2580,22 +2583,32 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_A8:
                Cop = color.a;
                break;
+          case DSPF_YUY2:
+               Cop   =  Y_FROM_RGB( color.r, color.g, color.b );
+               CbCop = CB_FROM_RGB( color.r, color.g, color.b );
+               CrCop = CR_FROM_RGB( color.r, color.g, color.b );
+               Cop   = PIXEL_YUY2( Cop, CbCop, CrCop );
+               break;
 #ifdef SUPPORT_RGB332
           case DSPF_RGB332:
                Cop = PIXEL_RGB332( color.r, color.g, color.b );
                break;
 #endif
-          case DSPF_YUY2:
           case DSPF_UYVY:
+               Cop   =  Y_FROM_RGB( color.r, color.g, color.b );
+               CbCop = CB_FROM_RGB( color.r, color.g, color.b );
+               CrCop = CR_FROM_RGB( color.r, color.g, color.b );
+               Cop   = PIXEL_UYVY( Cop, CbCop, CrCop );
+               break;
           case DSPF_I420:
+               Cop   =  Y_FROM_RGB( color.r, color.g, color.b );
+               CbCop = CB_FROM_RGB( color.r, color.g, color.b );
+               CrCop = CR_FROM_RGB( color.r, color.g, color.b );
+               break;
           case DSPF_YV12:
-               if (accel != DFXL_BLIT || src_format != dst_format ||
-                   state->blittingflags != DSBLIT_NOFX)
-               {
-                    ONCE("only copying blits supported for YUV in software");
-                    pthread_mutex_unlock( &generic_lock );
-                    return 0;
-               }
+               Cop   =  Y_FROM_RGB( color.r, color.g, color.b );
+               CbCop = CR_FROM_RGB( color.r, color.g, color.b );
+               CrCop = CB_FROM_RGB( color.r, color.g, color.b );
                break;
           case DSPF_LUT8:
                Cop  = state->color_index;
@@ -3133,16 +3146,51 @@ static void Bop_prev( int pitch )
 
 void gFillRectangle( DFBRectangle *rect )
 {
+     int h;
+
      CHECK_PIPELINE();
 
      Dlength = rect->w;
 
+     if (dst_format == DSPF_YUY2 || dst_format == DSPF_UYVY)
+          Dlength /= 2;
+
      Aop_xy( dst_org, rect->x, rect->y, dst_pitch );
-     
-     while (rect->h--) {
+
+     h = rect->h;
+     while (h--) {
           RUN_PIPELINE();
 
           Aop_next( dst_pitch );
+     }
+
+     if (dst_format == DSPF_I420 || dst_format == DSPF_YV12) {
+          rect->x /= 2;
+          rect->y /= 2;
+          rect->w /= 2;
+          rect->h /= 2;
+
+          Dlength = rect->w;
+
+          Cop = CbCop;
+          Aop_xy( dst_org + dst_height * dst_pitch,
+                  rect->x, rect->y, dst_pitch/2 );
+          h = rect->h;
+          while (h--) {
+               RUN_PIPELINE();
+
+               Aop_next( dst_pitch/2 );
+          }
+
+          Cop = CrCop;
+          Aop_xy( dst_org + dst_height * dst_pitch + dst_height * dst_pitch/4,
+                  rect->x, rect->y, dst_pitch/2 );
+          h = rect->h;
+          while (h--) {
+               RUN_PIPELINE();
+
+               Aop_next( dst_pitch/2 );
+          }
      }
 }
 
