@@ -63,8 +63,8 @@ typedef struct {
      pthread_mutex_t               events_mutex;  /* mutex lock for accessing 
                                                      the event queue */
                                                      
-     pthread_mutex_t               wait;          /* mutex lock for idle waits
-                              	                     used by WaitForEvent() */
+     pthread_cond_t                wait_condition;/* condition used for idle
+                              	                     wait in WaitForEvent() */
 } IDirectFBInputBuffer_data;
 
 
@@ -74,6 +74,9 @@ static void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
      IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
 
      reactor_detach( data->device->reactor, IDirectFBInputBuffer_React, data );
+
+     pthread_cond_destroy( &data->wait_condition );
+     pthread_mutex_destroy( &data->events_mutex );
      
      free( thiz->priv );
      thiz->priv = NULL;
@@ -140,15 +143,12 @@ static DFBResult IDirectFBInputBuffer_WaitForEvent( IDirectFBInputBuffer *thiz )
      if (!data)
           return DFB_DEAD;
 
-     if (data->events)
-          return DFB_OK;
+     pthread_mutex_lock( &data->events_mutex );
+     
+     if (!data->events)
+          pthread_cond_wait( &data->wait_condition, &data->events_mutex );
 
-     /* TODO: this gap can still cause a deadlock */
-
-     pthread_mutex_lock( &data->wait );
-
-     pthread_mutex_lock( &data->wait );
-     pthread_mutex_unlock( &data->wait );
+     pthread_mutex_unlock( &data->events_mutex );
      
      return DFB_OK;
 }
@@ -163,10 +163,12 @@ static DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz,
      if (!data)
           return DFB_DEAD;
 
-     if (!data->events)
-          return DFB_BUFFEREMPTY;
-          
      pthread_mutex_lock( &data->events_mutex );
+     
+     if (!data->events) {
+          pthread_mutex_unlock( &data->events_mutex );
+          return DFB_BUFFEREMPTY;
+     }
 
      e = data->events;
      
@@ -188,10 +190,16 @@ static DFBResult IDirectFBInputBuffer_PeekEvent( IDirectFBInputBuffer *thiz,
      if (!data)
           return DFB_DEAD;
      
-     if (!data->events)
+     pthread_mutex_lock( &data->events_mutex );
+     
+     if (!data->events) {
+          pthread_mutex_unlock( &data->events_mutex );
           return DFB_BUFFEREMPTY;
-          
+     }
+
      *event = data->events->evt;
+     
+     pthread_mutex_unlock( &data->events_mutex );
      
      return DFB_OK;
 }
@@ -211,7 +219,7 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
      data->device = device;
      
      pthread_mutex_init( &data->events_mutex, NULL );
-     pthread_mutex_init( &data->wait, NULL );
+     pthread_cond_init( &data->wait_condition, NULL );
      
      reactor_attach( data->device->reactor, IDirectFBInputBuffer_React, data );
 
@@ -254,9 +262,9 @@ static ReactionResult IDirectFBInputBuffer_React( const void *msg_data,
           e->next = item;
      }
 
-     pthread_mutex_unlock( &data->events_mutex );
+     pthread_cond_broadcast( &data->wait_condition );
 
-     pthread_mutex_unlock( &data->wait );
+     pthread_mutex_unlock( &data->events_mutex );
 
      return RS_OK;
 }
