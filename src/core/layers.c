@@ -1171,31 +1171,38 @@ dfb_layer_create_window( DisplayLayer           *layer,
                          DFBWindowCapabilities   caps,
                          DFBSurfaceCapabilities  surface_caps,
                          DFBSurfacePixelFormat   pixelformat,
-                         CoreWindow            **window )
+                         CoreWindow            **ret_window )
 {
-     DFBResult           ret;
-     CoreWindow         *w;
-     DisplayLayerShared *shared;
+     DFBResult        ret;
+     CoreWindow      *window;
+     CoreWindowStack *stack;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->enabled );
      DFB_ASSERT( layer->shared->stack );
-     DFB_ASSERT( window != NULL );
+     DFB_ASSERT( ret_window != NULL );
 
-     shared = layer->shared;
+     stack = layer->shared->stack;
 
-     if (!shared->stack->cursor.set)
+     if (fusion_skirmish_prevail( &stack->lock ))
+         return DFB_FUSION;
+     
+     if (!stack->cursor.set)
           dfb_layer_cursor_enable( layer, true );
      
-     ret = dfb_window_create( shared->stack, x, y, width, height,
-                              caps, surface_caps, pixelformat, &w );
-     if (ret)
+     ret = dfb_window_create( stack, x, y, width, height,
+                              caps, surface_caps, pixelformat, &window );
+     if (ret) {
+          fusion_skirmish_dismiss( &stack->lock );
           return ret;
+     }
 
-     *window = w;
+     *ret_window = window;
 
+     fusion_skirmish_dismiss( &stack->lock );
+     
      return DFB_OK;
 }
 
@@ -1204,6 +1211,7 @@ CoreWindow *dfb_layer_find_window( DisplayLayer *layer, DFBWindowID id )
      int               i;
      CoreWindowStack  *stack;
      int               num;
+     CoreWindow       *window = NULL;
      CoreWindow      **windows;
 
      DFB_ASSERT( layersfield != NULL );
@@ -1212,18 +1220,27 @@ CoreWindow *dfb_layer_find_window( DisplayLayer *layer, DFBWindowID id )
      DFB_ASSERT( layer->shared->enabled );
      DFB_ASSERT( layer->shared->stack );
      
-     stack   = layer->shared->stack;
+     stack = layer->shared->stack;
+     
+     if (fusion_skirmish_prevail( &stack->lock ))
+         return NULL;
+     
      num     = stack->num_windows;
      windows = stack->windows;
      
+     for (i=0; i<num; i++) {
+          if (windows[i]->id == id) {
+               window = windows[i];
+               break;
+          }
+     }
      
-     /* FIXME: make thread safe */
+     if (window && dfb_window_ref( window ))
+          window = NULL;
+     
+     fusion_skirmish_dismiss( &stack->lock );
 
-     for (i=0; i<num; i++)
-          if (windows[i]->id == id)
-               return windows[i];
-     
-     return NULL;
+     return window;
 }
 
 DFBResult
@@ -1568,8 +1585,7 @@ dfb_primary_layer_rectangle( float x, float y,
 DFBResult
 dfb_layer_cursor_enable( DisplayLayer *layer, bool enable )
 {
-     DisplayLayerShared *shared;
-     CoreWindowStack    *stack;
+     CoreWindowStack *stack;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1577,21 +1593,27 @@ dfb_layer_cursor_enable( DisplayLayer *layer, bool enable )
      DFB_ASSERT( layer->shared->stack != NULL );
      DFB_ASSERT( layer->shared->enabled );
 
-     shared = layer->shared;
-     stack  = shared->stack;
+     stack = layer->shared->stack;
+     
+     if (fusion_skirmish_prevail( &stack->lock ))
+         return DFB_FUSION;
      
      stack->cursor.set = true;
      
-     if (dfb_config->no_cursor)
+     if (dfb_config->no_cursor) {
+          fusion_skirmish_dismiss( &stack->lock );
           return DFB_OK;
+     }
      
      if (enable) {
           if (!stack->cursor.window) {
                DFBResult ret;
 
                ret = load_default_cursor( layer );
-               if (ret)
+               if (ret) {
+                    fusion_skirmish_dismiss( &stack->lock );
                     return ret;
+               }
           }
 
           dfb_window_set_opacity( stack->cursor.window,
@@ -1606,14 +1628,15 @@ dfb_layer_cursor_enable( DisplayLayer *layer, bool enable )
           stack->cursor.enabled = 0;
      }
 
+     fusion_skirmish_dismiss( &stack->lock );
+     
      return DFB_OK;
 }
 
 DFBResult
 dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
 {
-     DisplayLayerShared *shared;
-     CoreWindowStack    *stack;
+     CoreWindowStack *stack;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1621,9 +1644,11 @@ dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
      DFB_ASSERT( layer->shared->stack != NULL );
      DFB_ASSERT( layer->shared->enabled );
      
-     shared = layer->shared;
-     stack  = shared->stack;
+     stack = layer->shared->stack;
 
+     if (fusion_skirmish_prevail( &stack->lock ))
+         return DFB_FUSION;
+     
      if (stack->cursor.enabled) {
           DFB_ASSERT( stack->cursor.window );
 
@@ -1632,6 +1657,8 @@ dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
 
      stack->cursor.opacity = opacity;
 
+     fusion_skirmish_dismiss( &stack->lock );
+     
      return DFB_OK;
 }
 
@@ -1641,8 +1668,9 @@ dfb_layer_cursor_set_shape( DisplayLayer *layer,
                             int           hot_x,
                             int           hot_y )
 {
-     int                 dx, dy;
-     CoreWindowStack    *stack;
+     DFBResult        ret;
+     int              dx, dy;
+     CoreWindowStack *stack;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1656,17 +1684,24 @@ dfb_layer_cursor_set_shape( DisplayLayer *layer,
      
      stack = layer->shared->stack;
 
-     if (!stack->cursor.window) {
-          DFBResult ret =
-          create_cursor_window( layer, shape->width, shape->height );
+     if (fusion_skirmish_prevail( &stack->lock ))
+         return DFB_FUSION;
 
-          if (ret)
-               return ret;
+     if (!stack->cursor.window) {
+          ret = create_cursor_window( layer, shape->width, shape->height );
+          if (ret) {
+              fusion_skirmish_dismiss( &stack->lock );
+              return ret;
+          }
      }
      else if (stack->cursor.window->width != shape->width  ||
               stack->cursor.window->height != shape->height) {
-          dfb_window_resize( stack->cursor.window,
-                             shape->width, shape->height );
+          ret = dfb_window_resize( stack->cursor.window,
+                                   shape->width, shape->height );
+          if (ret) {
+               fusion_skirmish_dismiss( &stack->lock );
+               return ret;
+          }
      }
 
      dfb_gfx_copy( shape, stack->cursor.window->surface, NULL );
@@ -1679,6 +1714,8 @@ dfb_layer_cursor_set_shape( DisplayLayer *layer,
      else
           dfb_window_repaint( stack->cursor.window, NULL, 0 );
 
+     fusion_skirmish_dismiss( &stack->lock );
+     
      return DFB_OK;
 }
 
@@ -1696,11 +1733,15 @@ dfb_layer_cursor_warp( DisplayLayer *layer, int x, int y )
 
      stack = layer->shared->stack;
      
+     fusion_skirmish_prevail( &stack->lock );
+     
      dx = x - stack->cursor.x;
      dy = y - stack->cursor.y;
 
      dfb_windowstack_handle_motion( stack, dx, dy );
 
+     fusion_skirmish_dismiss( &stack->lock );
+     
      return DFB_OK;
 }
 
