@@ -590,7 +590,7 @@ AC_ARG_WITH(gfxdrivers,
   [                          Possible gfxdrivers are: ]
   [                          ati128, cle266, cyber5k, i810, matrox, neomagic,]
   [                          nsc, nvidia, radeon, savage, sis315, tdfx],
-  gfxdrivers="$withval",[gfxdrivers="ati128,matrox,nsc,radeon,sis315,tdfx,cle266,nvidia"])
+  gfxdrivers="$withval",[gfxdrivers="ati128,cle266,matrox,nsc,nvidia,radeon,sis315,tdfx"])
 
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
