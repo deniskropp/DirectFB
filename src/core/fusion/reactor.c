@@ -398,12 +398,13 @@ void *_reactor_receive (void *arg)
 
           /* receive the next messages matching our fusion id */
           if (msgrcv (reactor->queue, message,
-                      reactor->msg_size, _fusion_id(), 0) < 0) {
-               FPERROR ("msgrcv failed");
-
+                      reactor->msg_size, _fusion_id(), 0) < 0)
+          {
                if (errno == EINTR)
                     continue;
 
+               FPERROR ("msgrcv failed");
+               
                return NULL;
           }
 
