@@ -294,9 +294,14 @@ int IDirectFBSurface::GetHeight()
      return height;
 }
 
-void IDirectFBSurface::SetColor (DFBColor &color)
+void IDirectFBSurface::SetColor (const DFBColor &color)
 {
      DFBCHECK( iface->SetColor (iface, color.r, color.g, color.b, color.a) );
+}
+
+void IDirectFBSurface::SetColor (const DFBColor *color)
+{
+     DFBCHECK( iface->SetColor (iface, color->r, color->g, color->b, color->a) );
 }
 
 void IDirectFBSurface::FillRectangle (const DFBRectangle &rect)

@@ -155,7 +155,8 @@ public:
      int                    GetWidth            ();
      int                    GetHeight           ();
 
-     void                   SetColor            (DFBColor                 &color);
+     void                   SetColor            (const DFBColor           &color);
+     void                   SetColor            (const DFBColor           *color);
 
      void                   FillRectangle       (const DFBRectangle       &rect);
      void                   DrawRectangle       (const DFBRectangle       &rect);
