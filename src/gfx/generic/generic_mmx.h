@@ -24,24 +24,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <directfb.h>
-#include <core/gfxcard.h>
-#include <core/state.h>
-#include <core/palette.h>
-
-#include "generic.h"
-
-extern DFBColor color;
-extern void *Aop;
-extern Accumulator Cacc;
-extern Accumulator *Xacc;
-extern Accumulator *Dacc;
-extern Accumulator *Sacc;
-extern void        *Sop ;
-extern int Dlength;
-extern int SperD;
-
-void Cacc_add_to_Dacc_MMX()
+static void Cacc_add_to_Dacc_MMX()
 {
      __asm__ __volatile__ (
                "    movq     %2, %%mm0\n"
@@ -59,7 +42,7 @@ void Cacc_add_to_Dacc_MMX()
                : "%st", "memory");
 }
 
-void Dacc_modulate_argb_MMX()
+static void Dacc_modulate_argb_MMX()
 {
      __asm__ __volatile__ (
                "movq     %2, %%mm0\n\t"
@@ -82,7 +65,7 @@ void Dacc_modulate_argb_MMX()
                : "%st", "memory");
 }
 
-void Sacc_add_to_Dacc_MMX()
+static void Sacc_add_to_Dacc_MMX()
 {
      __asm__ __volatile__ (
                ".align   16\n"
@@ -101,7 +84,7 @@ void Sacc_add_to_Dacc_MMX()
                : "%st", "memory");
 }
 
-void Sacc_to_Aop_rgb16_MMX()
+static void Sacc_to_Aop_rgb16_MMX()
 {
      static const long preload[] = { 0xFF00FF00, 0x0000FF00 };
      static const long mask[]    = { 0x00FC00F8, 0x000000F8 };
@@ -138,7 +121,7 @@ void Sacc_to_Aop_rgb16_MMX()
                : "%eax", "%st", "memory");
 }
 
-void Sacc_to_Aop_rgb32_MMX()
+static void Sacc_to_Aop_rgb32_MMX()
 {
      static const long preload[]  = { 0xFF00FF00, 0x0000FF00 };
      static const long postload[] = { 0x00FF00FF, 0x000000FF };
@@ -173,7 +156,7 @@ void Sacc_to_Aop_rgb32_MMX()
                : "%st", "memory");
 }
 
-void Sop_argb_Sto_Dacc_MMX()
+static void Sop_argb_Sto_Dacc_MMX()
 {
      static const long zeros[]  = { 0, 0 };
      int i = 0;
@@ -207,7 +190,7 @@ void Sop_argb_Sto_Dacc_MMX()
                : "%st", "memory");
 }
 
-void Sop_argb_to_Dacc_MMX()
+static void Sop_argb_to_Dacc_MMX()
 {
      static const long zeros[]  = { 0, 0 };
 
@@ -228,7 +211,7 @@ void Sop_argb_to_Dacc_MMX()
                : "%st", "memory");
 }
 
-void Sop_rgb16_to_Dacc_MMX()
+static void Sop_rgb16_to_Dacc_MMX()
 {
      static const long mask[]  = { 0x07E0001F, 0x0000F800 };
      static const long smul[]  = { 0x00200800, 0x00000001 };
@@ -306,7 +289,7 @@ void Sop_rgb16_to_Dacc_MMX()
                : "%st", "memory");
 }
 
-void Sop_rgb32_to_Dacc_MMX()
+static void Sop_rgb32_to_Dacc_MMX()
 {
      static const long alpha[]  = { 0, 0x00FF0000 };
      static const long zeros[]  = { 0, 0 };
@@ -331,7 +314,7 @@ void Sop_rgb32_to_Dacc_MMX()
                : "%st", "memory");
 }
 
-void Xacc_blend_invsrcalpha_MMX()
+static void Xacc_blend_invsrcalpha_MMX()
 {
      static const long einser[] = { 0x01000100, 0x01000100 };
      static const long zeros[]  = { 0, 0 };
@@ -388,7 +371,7 @@ void Xacc_blend_invsrcalpha_MMX()
                : "%st", "memory");
 }
 
-void Xacc_blend_srcalpha_MMX()
+static void Xacc_blend_srcalpha_MMX()
 {
      static const long ones[]  = { 0x00010001, 0x00010001 };
      static const long zeros[] = { 0, 0 };

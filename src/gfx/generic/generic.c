@@ -79,12 +79,12 @@ static int src_height = 0;
 static int dst_field_offset = 0;
 static int src_field_offset = 0;
 
-DFBColor color;
+static DFBColor color;
 
 /*
  * operands
  */
-void *Aop = NULL;
+static void *Aop = NULL;
 static void *Bop = NULL;
 static __u32 Cop = 0;
 
@@ -108,7 +108,7 @@ static CorePalette *Blut = NULL;
  */
 static Accumulator Aacc[ACC_WIDTH]; // FIXME: dynamically
 static Accumulator Bacc[ACC_WIDTH]; // FIXME: dynamically
-Accumulator Cacc;
+static Accumulator Cacc;
 
 /*
  * operations
@@ -118,20 +118,18 @@ static GFunc gfuncs[32];
 /*
  * dataflow control
  */
-Accumulator *Xacc = NULL;
-Accumulator *Dacc = NULL;
-Accumulator *Sacc = NULL;
+static Accumulator *Xacc = NULL;
+static Accumulator *Dacc = NULL;
+static Accumulator *Sacc = NULL;
 
-void        *Sop  = NULL;
-CorePalette *Slut = NULL;
+static void        *Sop  = NULL;
+static CorePalette *Slut = NULL;
 
 /* controls horizontal blitting direction */
-int Ostep = 0;
+static int Ostep = 0;
 
-int Dlength = 0;
-int SperD = 0; /* for scaled routines only */
-
-static int use_mmx = 0;
+static int Dlength = 0;
+static int SperD = 0; /* for scaled routines only */
 
 static pthread_mutex_t generic_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -141,7 +139,12 @@ static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xf
 static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 #endif
 
+static int use_mmx = 0;
+
+static void gInit_MMX();
+
 /********************************* Cop_to_Aop_PFI *****************************/
+
 static void Cop_to_Aop_8()
 {
      memset( Aop, (__u8)Cop, Dlength );
@@ -843,10 +846,6 @@ static GFunc Bop_PFI_SKto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /********************************* Sop_PFI_Sto_Dacc ***************************/
 
-#ifdef USE_MMX
-void Sop_argb_Sto_Dacc_MMX();
-#endif
-
 static void Sop_argb1555_Sto_Dacc()
 {
      int    w = Dlength;
@@ -1307,13 +1306,6 @@ static GFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
 };
 
 /********************************* Sop_PFI_to_Dacc ****************************/
-
-#ifdef USE_MMX
-void Sop_rgb16_to_Dacc_MMX();
-void Sop_rgb32_to_Dacc_MMX();
-void Sop_argb_to_Dacc_MMX();
-#endif
-
 
 static void Sop_argb1555_to_Dacc()
 {
@@ -1813,11 +1805,6 @@ static GFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
 };
 
 /********************************* Sacc_to_Aop_PFI ****************************/
-
-#ifdef USE_MMX
-void Sacc_to_Aop_rgb16_MMX();
-void Sacc_to_Aop_rgb32_MMX();
-#endif
 
 static void Sacc_to_Aop_argb1555()
 {
@@ -2549,11 +2536,6 @@ GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /********************************* Xacc_blend *********************************/
 
-#ifdef USE_MMX
-void Xacc_blend_srcalpha_MMX();
-void Xacc_blend_invsrcalpha_MMX();
-#endif
-
 static void Xacc_blend_zero()
 {
      int          i;
@@ -2730,10 +2712,6 @@ static GFunc Xacc_blend[] = {
 
 /********************************* Dacc_modulation ****************************/
 
-#ifdef USE_MMX
-void Dacc_modulate_argb_MMX();
-#endif
-
 static void Dacc_set_alpha()
 {
      int          w = Dlength;
@@ -2877,11 +2855,6 @@ static void Dacc_xor()
           D++;
      }
 }
-
-#ifdef USE_MMX
-void Cacc_add_to_Dacc_MMX();
-void Sacc_add_to_Dacc_MMX();
-#endif
 
 static void Cacc_to_Dacc()
 {
@@ -3871,10 +3844,12 @@ void gStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
 
 #ifdef USE_MMX
 
+#include "generic_mmx.h"
+
 /*
  * patches function pointers to MMX functions
  */
-void gInit_MMX()
+static void gInit_MMX()
 {
      use_mmx = 1;
 

@@ -49,10 +49,6 @@ typedef struct
 typedef void (*GFunc)();
 
 
-#ifdef USE_MMX
-void gInit_MMX();
-#endif
-
 void gGetDriverInfo( GraphicsDriverInfo *info );
 void gGetDeviceInfo( GraphicsDeviceInfo *info );
 
