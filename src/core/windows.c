@@ -452,7 +452,7 @@ int window_move( CoreWindow *window, int dx, int dy )
      return DFB_OK;
 }
 
-int window_resize( CoreWindow *window, int width, int height )
+int window_resize( CoreWindow *window, unsigned int width, unsigned int height )
 {
      CoreWindowStack *stack = window->stack;
      int ow = window->width;

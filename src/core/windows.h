@@ -55,25 +55,25 @@ typedef struct _CoreWindowEvent
  */
 typedef struct _CoreWindow
 {
-     int                 x;               /* x position in pixels */
-     int                 y;               /* y position in pixels */
-     int                 width;           /* width in pixels */
-     int                 height;          /* width in pixels */
+     int                   x;               /* x position in pixels */
+     int                   y;               /* y position in pixels */
+     unsigned int          width;           /* width in pixels */
+     unsigned int          height;          /* width in pixels */
 
-     __u8                opacity;         /* global alpha factor */
+     __u8                  opacity;         /* global alpha factor */
 
-     unsigned int        caps;            /* window capabilities, to enable
-                                             blending etc. */
+     DFBWindowCapabilities caps;            /* window capabilities, to enable
+                                               blending etc. */
 
-     CoreSurface        *surface;         /* backing store surface */
+     CoreSurface          *surface;         /* backing store surface */
 
-     CoreWindowStack    *stack;           /* window stack the window belongs */
+     CoreWindowStack      *stack;           /* window stack the window belongs */
 
-     CoreWindowEvent    *events;          /* event queue for the window */
-     pthread_mutex_t     events_mutex;    /* mutex lock for accessing the
-                                             event queue */
-     pthread_mutex_t     wait;            /* mutex lock for idle waits
-                                             used by WaitForEvent() */
+     CoreWindowEvent      *events;          /* event queue for the window */
+     pthread_mutex_t       events_mutex;    /* mutex lock for accessing the
+                                               event queue */
+     pthread_mutex_t       wait;            /* mutex lock for idle waits
+                                               used by WaitForEvent() */
 } CoreWindow;
 
 /*
@@ -145,7 +145,8 @@ int window_move( CoreWindow *window, int deltax, int deltay );
 /*
  * resizes a window
  */
-int window_resize( CoreWindow *window, int width, int height );
+int window_resize( CoreWindow *window,
+                   unsigned int width, unsigned int height );
 
 /*
  * move a window up one step in window stack

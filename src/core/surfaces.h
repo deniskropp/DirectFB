@@ -86,8 +86,8 @@ struct _CoreSurface
      DFBSurfaceCapabilities caps;
 
      /* size/format and instances */
-     int                 width;         /* pixel width of the surface */
-     int                 height;        /* pixel height of the surface */
+     unsigned int        width;         /* pixel width of the surface */
+     unsigned int        height;        /* pixel height of the surface */
      unsigned int        format;        /* pixel format of the surface */
 
      SurfaceBuffer      *front_buffer;  /* buffer for reading

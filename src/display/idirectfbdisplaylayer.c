@@ -64,9 +64,12 @@ void IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
 {
      IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
 
-     surface_remove_listener( data->layer->bg.image,
-                              IDirectFBDisplayLayer_bgsurface_listener,
-                              thiz );
+     /* The background may not be set by us in which case the listener
+      * isn't in the listener list, but it doesn't hurt. */
+     if (data->layer->bg.image)
+          surface_remove_listener( data->layer->bg.image,
+                                   IDirectFBDisplayLayer_bgsurface_listener,
+                                   thiz );
      
      if (data->surface)
           data->surface->Release( data->surface );
