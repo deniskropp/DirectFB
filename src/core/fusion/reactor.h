@@ -44,6 +44,7 @@ typedef struct {
      React       react;
      void       *ctx;
      int         index;  /* index to reactor nodes */
+     bool        attached;
 } Reaction;
 
 FusionReactor *reactor_new      (const int      msg_size);

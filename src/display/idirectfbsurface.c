@@ -66,15 +66,20 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 {
      IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
 
-     if (data->surface)
-          dfb_surface_detach( data->surface, &data->reaction );
-
      dfb_state_set_destination( &data->state, NULL );
      dfb_state_set_source( &data->state, NULL );
 
      dfb_state_destroy( &data->state );
+     
+     
+     if (data->surface) {
+          CoreSurface *surface = data->surface;
 
-     dfb_surface_unref( data->surface );
+          data->surface = NULL;
+          
+          dfb_surface_detach( surface, &data->reaction );
+          dfb_surface_unref( surface );
+     }
 
      if (data->font)
           data->font->Release (data->font);
@@ -1593,7 +1598,10 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
      CoreSurface             *surface      = data->surface;
 
      if (notification->flags & CSNF_DESTROY) {
-          data->surface = NULL;
+          if (data->surface) {
+               data->surface = NULL;
+               dfb_surface_unref( surface );
+          }
           return RS_REMOVE;
      }
 

@@ -174,9 +174,10 @@ reactor_attach (FusionReactor *reactor,
      }
 
      /* fill out callback information */
-     reaction->react = react;
-     reaction->ctx   = ctx;
-     reaction->index = index;
+     reaction->react    = react;
+     reaction->ctx      = ctx;
+     reaction->index    = index;
+     reaction->attached = true;
 
      /* prepend the reaction to the local reaction list */
      fusion_list_prepend (&reactor->node[index].reactions, &reaction->link);
@@ -193,6 +194,10 @@ reactor_detach (FusionReactor *reactor,
 {
      int index = reaction->index;
 
+     DFB_ASSERT( reactor != NULL );
+     DFB_ASSERT( reaction != NULL );
+     DFB_ASSERT( reaction->attached );
+
      if (reactor->node[index].id != _fusion_id())
           FDEBUG( "removing reaction %p from foreign node %d!\n",
                   reaction, reactor->node[index].id );
@@ -200,21 +205,26 @@ reactor_detach (FusionReactor *reactor,
      /* lock reactor */
      skirmish_prevail (&reactor->lock);
 
-     /* remove the reaction */
-     fusion_list_remove (&reactor->node[index].reactions, &reaction->link);
+     /* detached during concurrent dispatch in the meantime of the lock? */
+     if (reaction->attached) {
+          reaction->attached = false;
+          
+          /* remove the reaction */
+          fusion_list_remove (&reactor->node[index].reactions, &reaction->link);
 
-     /* if it was the last reaction cancel our receiver thread and free the node */
-     if (!reactor->node[index].reactions) {
-          /* if this is our node */
-          if (reactor->node[index].id == _fusion_id()) {
-               pthread_cancel (reactor->node[index].receiver);
-               pthread_join (reactor->node[index].receiver, NULL);
+          /* if it was the last reaction cancel our receiver thread and free the node */
+          if (!reactor->node[index].reactions) {
+               /* if this is our node */
+               if (reactor->node[index].id == _fusion_id()) {
+                    pthread_cancel (reactor->node[index].receiver);
+                    pthread_join (reactor->node[index].receiver, NULL);
+               }
+
+               fusion_ref_destroy (&reactor->node[index].ref);
+
+               reactor->node[index].id = 0;
+               reactor->nodes--;
           }
-
-          fusion_ref_destroy (&reactor->node[index].ref);
-
-          reactor->node[index].id = 0;
-          reactor->nodes--;
      }
 
      /* unlock reactor */
@@ -329,15 +339,20 @@ reactor_free (FusionReactor *reactor)
 
                FDEBUG ("reactor_free: fusionee '%d' still attached (reactions: %p)!\n",
                        reactor->node[i].id, reactor->node[i].reactions);
+
+               reactor->node[i].reactions = NULL;
+
+               FDEBUG ("reactor_free: doing zero lock...\n");
+
+               fusion_ref_zero_lock (&reactor->node[i].ref);
+               
+               FDEBUG ("reactor_free: zero lock done.\n");
                
                fusion_ref_destroy (&reactor->node[i].ref);
           }
-
-          //kill (getpid(), 5);
      }
 
-     /* unlock reactor and destroy the skirmish */
-     skirmish_dismiss (&reactor->lock);
+     /* destroy the skirmish */
      skirmish_destroy (&reactor->lock);
 
      /* free shared reactor data */
@@ -390,20 +405,37 @@ void *_reactor_receive (void *arg)
 
           pthread_testcancel();
 
+          /* lock reactor */
+          switch (skirmish_prevail (&reactor->lock)) {
+               case FUSION_SUCCESS:
+                    break;
+               case FUSION_DESTROYED:
+                    FDEBUG("reactor destroyed\n");
+                    return NULL;
+               default:
+                    FERROR("skirmish_prevail failed!\n");
+                    return NULL;
+          }
+
           /* dispatch the message locally */
           _reactor_process_reactions (&reactor->node[index].reactions, (void*)((long*)message+1));
-
-          pthread_testcancel();
 
           /* if there's no remaining reaction (reactions may be removed
              because of RS_REMOVE) free the node and exit this thread */
           if (!reactor->node[index].reactions) {
-               /*  skirmish_prevail (&reactor->lock);
-                   reactor->node[index] = reactor->node[ --reactor->nodes ];
-                   skirmish_dismiss (&reactor->lock);*/
+               fusion_ref_destroy (&reactor->node[index].ref);
 
+               reactor->node[index].id = 0;
+               reactor->nodes--;
+
+               /* unlock reactor */
+               skirmish_dismiss (&reactor->lock);
+               
                return NULL;
           }
+          
+          /* unlock reactor */
+          skirmish_dismiss (&reactor->lock);
      }
 
      return NULL;
@@ -411,31 +443,34 @@ void *_reactor_receive (void *arg)
 
 static void _reactor_process_reactions (FusionLink **reactions, const void *msg_data)
 {
-     FusionLink *link = *reactions;
+     FusionLink *l = *reactions;
 
      /* if any reactions (should not happen, because
         the local receiver thread is canceled after the last local detach */
-     if (!link) {
+     if (!l) {
           FDEBUG ("no reactions for dispatching locally!");
           return;
      }
 
      /* loop through local reactions */
-     do {
-          Reaction   *r   = (Reaction*) link;
-          FusionLink *del = NULL;
+     while (l) {
+          Reaction   *reaction = (Reaction*) l;
+          FusionLink *next     = l->next;
 
+          FDEBUG(" -- before react (%p)\n", reaction->react);
+          
           /* invoke reaction callback, mark deletion if it returns RS_REMOVE */
-          if (r->react (msg_data, r->ctx) == RS_REMOVE)
-               del = link;
+          if (reaction->react (msg_data, reaction->ctx) == RS_REMOVE) {
+               reaction->attached = false;
 
+               fusion_list_remove (reactions, l);
+          }
+
+          FDEBUG(" -- after react (%p)\n", reaction->react);
+          
           /* fetch the next list entry */
-          link = link->next;
-
-          /* if RS_REMOVE has been returned remove the reaction */
-          if (del)
-               fusion_list_remove (reactions, del);
-     } while (link);
+          l = next;
+     }
 }
 
 static int _reactor_get_node_index (const FusionReactor *reactor)

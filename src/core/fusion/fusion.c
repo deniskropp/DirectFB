@@ -63,8 +63,9 @@
  * shared fusion data
  */
 typedef struct {
-     long      next_fid;
-     FusionRef ref;
+     long           next_fid;
+     FusionRef      ref;
+     struct timeval start_time;
 } FusionShared;
 
 /*
@@ -224,6 +225,21 @@ fusion_exit()
      fusion = NULL;
 }
 
+long long
+fusion_get_millis()
+{
+     struct timeval tv;
+     
+     if (!fusion) {
+          FERROR("called without being initialized!\n");
+          return -1;
+     }
+     
+     gettimeofday( &tv, NULL );
+
+     return (tv.tv_sec - fusion->shared->start_time.tv_sec) * 1000 +
+            (tv.tv_usec - fusion->shared->start_time.tv_usec) / 1000;
+}
 
 /*******************************
  *  Fusion internal functions  *
@@ -359,6 +375,8 @@ initialize_shared (FusionShared *shared)
           return -2;
      }
 
+     gettimeofday( &shared->start_time, NULL );
+     
      return 0;
 }
 

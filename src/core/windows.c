@@ -421,14 +421,18 @@ dfb_window_destroy( CoreWindow *window, bool unref )
      dfb_window_dispatch( window, &evt );
 
      if (window->surface) {
+          DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) unlinking surface...\n", window);
+
           dfb_surface_unlink( window->surface );
           window->surface = NULL;
      }
 
-     if (unref)
+     if (unref) {
+          DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) unrefing window...\n", window);
           dfb_window_unref( window );
+     }
 
-     DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) exitting\n", window);
+     DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) exiting\n", window);
 }
 
 void

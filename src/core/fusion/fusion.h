@@ -36,24 +36,26 @@ extern "C"
 
 #ifndef FUSION_FAKE
 
-  /*
-   * Initializes fusion and returns the fusion id or -1 on failure.
-   */
-  int fusion_init();
+     /*
+      * Initializes fusion and returns the fusion id or -1 on failure.
+      */
+     int fusion_init();
 
-  /*
-   * Deinitializes fusion.
-   */
-  void fusion_exit();
+     /*
+      * Deinitializes fusion.
+      */
+     void fusion_exit();
+
+     /*
+      * Get the number of milliseconds passed after the start of the master.
+      */
+     long long fusion_get_millis();
 
 #else
 
-  static inline int fusion_init() {
-       return 1;
-  }
-
-  static inline void fusion_exit() {
-  }
+  #define fusion_init()       (1)
+  #define fusion_exit()       do {} while (0)
+  #define fusion_get_millis   dfb_get_millis
 
 #endif
 

@@ -81,10 +81,12 @@
                               } } while (0)
 
      #define DFB_ASSERT(exp)  if (!(exp)) {                                    \
-                                   ERRORMSG( "*** Assertion [%s] failed! "     \
-                                             "*** %s (%d)\n", #exp,            \
-                                             __FILE__, __LINE__ );             \
-                                   kill( 0, SIGTRAP );                         \
+                                   fprintf( stderr, "(!) [%d: %5lld] *** "     \
+                                                    "Assertion [%s] failed! "  \
+                                                    "*** %s (%d)\n", getpid(), \
+                                                    dfb_get_millis(), #exp,    \
+                                                    __FILE__, __LINE__ );      \
+                                   kill( 0, SIGSEGV );                         \
                               }
 
 #else

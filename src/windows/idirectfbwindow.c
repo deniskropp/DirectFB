@@ -76,6 +76,9 @@ typedef struct {
      DFBWindowEvent    *position_size_event;
 
      Reaction           reaction;
+
+     bool               detached;
+     bool               destroyed;
 } IDirectFBWindow_data;
 
 
@@ -84,13 +87,28 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 {
      IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
 
+     DEBUGMSG("IDirectFBWindow_Destruct...\n");
+     
      if (data->surface)
           data->surface->Release( data->surface );
 
-     if (data->window) {
+     if (!data->detached) {
+          DEBUGMSG("IDirectFBWindow_Destruct - detaching...\n");
+          
           dfb_window_detach( data->window, &data->reaction );
-          dfb_window_unref( data->window );
+          
+          DEBUGMSG("IDirectFBWindow_Destruct - detached.\n");
      }
+     
+     if (!data->destroyed) {
+          DEBUGMSG("IDirectFBWindow_Destruct - unrefing...\n");
+          
+          dfb_window_unref( data->window );
+          
+          DEBUGMSG("IDirectFBWindow_Destruct - unref done.\n");
+     }
+
+     DEBUGMSG("IDirectFBWindow_Destruct - done.\n");
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -124,7 +142,7 @@ IDirectFBWindow_CreateEventBuffer( IDirectFBWindow       *thiz,
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      DFB_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
@@ -150,7 +168,7 @@ IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      IDirectFBEventBuffer_AttachWindow( buffer, data->window );
@@ -170,7 +188,7 @@ IDirectFBWindow_EnableEvents( IDirectFBWindow       *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (mask & ~DWET_ALL)
@@ -187,7 +205,7 @@ IDirectFBWindow_DisableEvents( IDirectFBWindow       *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (mask & ~DWET_ALL)
@@ -204,7 +222,7 @@ IDirectFBWindow_GetID( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (!id)
@@ -222,7 +240,7 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (!x && !y)
@@ -244,7 +262,7 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (!width && !height)
@@ -265,7 +283,7 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (!surface)
@@ -304,7 +322,7 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
      INTERFACE_GET_DATA(IDirectFBWindow)
 
      /* Check arguments */
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (options & ~DWOP_ALL)
@@ -333,7 +351,7 @@ IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (!options)
@@ -354,7 +372,7 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (data->window->caps & DWCAPS_INPUTONLY)
@@ -379,7 +397,7 @@ IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (data->window->opacity != opacity)
@@ -394,7 +412,7 @@ IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (!opacity)
@@ -412,14 +430,15 @@ IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     window = data->window;
-     if (!window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
+     window = data->window;
+     
      if ((window->options & DWOP_GHOST) || !window->opacity)
           return DFB_UNSUPPORTED;
 
-     dfb_window_request_focus( data->window );
+     dfb_window_request_focus( window );
 
      return DFB_OK;
 }
@@ -429,7 +448,7 @@ IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      return dfb_window_grab_keyboard( data->window );
@@ -440,7 +459,7 @@ IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      return dfb_window_ungrab_keyboard( data->window );
@@ -451,7 +470,7 @@ IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      return dfb_window_grab_pointer( data->window );
@@ -462,7 +481,7 @@ IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      return dfb_window_ungrab_pointer( data->window );
@@ -473,7 +492,7 @@ IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (dx == 0  &&  dy == 0)
@@ -489,7 +508,7 @@ IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (data->window->x == x  &&  data->window->y == y)
@@ -508,7 +527,7 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (!width || width > 4096 || !height || height > 4096)
@@ -525,7 +544,7 @@ IDirectFBWindow_Raise( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      dfb_window_raise( data->window );
@@ -539,7 +558,7 @@ IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      switch (stacking_class) {
@@ -561,7 +580,7 @@ IDirectFBWindow_Lower( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      dfb_window_lower( data->window );
@@ -574,7 +593,7 @@ IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      dfb_window_raisetotop( data->window );
@@ -587,7 +606,7 @@ IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      dfb_window_lowertobottom( data->window );
@@ -603,7 +622,7 @@ IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (!lower)
@@ -629,7 +648,7 @@ IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      if (!upper)
@@ -654,7 +673,7 @@ IDirectFBWindow_Close( IDirectFBWindow *thiz )
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
      evt.type = DWET_CLOSE;
@@ -667,18 +686,15 @@ IDirectFBWindow_Close( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 {
-     CoreWindow *window;
-
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     window = data->window;
-     if (!window)
+     if (data->destroyed)
           return DFB_DESTROYED;
 
-     data->window = NULL;
-
-     dfb_window_deinit( window );
-     dfb_window_destroy( window, true );
+     DEBUGMSG("IDirectFBWindow_Destroy\n");
+     
+     dfb_window_deinit( data->window );
+     dfb_window_destroy( data->window, false );
 
      return DFB_OK;
 }
@@ -750,6 +766,8 @@ IDirectFBWindow_React( const void *msg_data,
      const DFBWindowEvent       *evt = (DFBWindowEvent*)msg_data;
      IDirectFBWindow_data       *data = (IDirectFBWindow_data*)ctx;
 
+     DEBUGMSG("IDirectFBWindow_React\n");
+
      if (evt->type == DWET_POSITION_SIZE) {
           if (!data->position_size_event)
                data->position_size_event = DFBMALLOC( sizeof(DFBWindowEvent) );
@@ -757,9 +775,21 @@ IDirectFBWindow_React( const void *msg_data,
           *data->position_size_event = *evt;
      }
 
-     if (data->window && evt->type == DWET_DESTROYED) {
-          dfb_window_unref( data->window );
-          data->window = NULL;
+     if (evt->type == DWET_DESTROYED) {
+          DEBUGMSG("IDirectFBWindow_React - window destroyed\n");
+
+          if (!data->destroyed) {
+               data->destroyed = true;
+               
+               DEBUGMSG("IDirectFBWindow_React - unrefing...\n");
+
+               dfb_window_unref( data->window );
+
+               DEBUGMSG("IDirectFBWindow_React - unref done.\n");
+          }
+          
+          data->detached = true;
+
           return RS_REMOVE;
      }
 
