@@ -900,8 +900,8 @@ IDirectFB_Construct( IDirectFB *thiz )
 
      data->level = DFSCL_NORMAL;
 
-     data->primary.width  = 640;
-     data->primary.height = 480;
+     data->primary.width  = dfb_config->mode.width;
+     data->primary.height = dfb_config->mode.height;
 
      data->layer = dfb_layer_at( DLID_PRIMARY );
 
