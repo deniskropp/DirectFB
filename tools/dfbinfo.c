@@ -312,7 +312,7 @@ dump_encoders( IDirectFBScreen *screen,
           printf( "   Encoder (%d)\n", i );
 
           /* Type */
-          printf( "     Type:         ", i );
+          printf( "     Type:         " );
 
           for (n=0; encoder_type[n].type; n++) {
                if (descs[i].type == encoder_type[n].type)
