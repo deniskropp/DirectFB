@@ -709,8 +709,8 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
      if (dfb_layer_region_lock( region ))
           return RS_OK;
 
-     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-          if (flags & (CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE)) {
+     if (D_FLAGS_ARE_SET( region->state, CLRSF_REALIZED | CLRSF_CONFIGURED )) {
+          if (D_FLAGS_IS_SET( flags, CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE )) {
                if (surface->palette)
                     funcs->SetRegion( layer,
                                       layer->driver_data, layer->layer_data,

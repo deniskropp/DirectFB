@@ -558,10 +558,13 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
           /* Normal buffer mode? */
           if (region_config.buffermode != DLBM_WINDOWS) {
-               bool surface = (shared->description.caps & DLCAPS_SURFACE);
+               bool                      surface    = shared->description.caps & DLCAPS_SURFACE;
+               CoreLayerRegionStateFlags configured = region->state & CLRSF_CONFIGURED;
 
                if (shared->description.caps & DLCAPS_SOURCES)
                     surface = (region_config.source_id == DLSID_SURFACE);
+
+               D_FLAGS_CLEAR( region->state, CLRSF_CONFIGURED );
 
                /* (Re)allocate the region's surface. */
                if (surface) {
@@ -582,6 +585,8 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                }
                else if (region->surface)
                     deallocate_surface( layer, region );
+
+               region->state |= configured;
 
                /* Set the new region configuration. */
                dfb_layer_region_set_configuration( region, &region_config, flags );
