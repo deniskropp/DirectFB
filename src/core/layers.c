@@ -114,6 +114,9 @@ dfb_layers_initialize()
 {
      DFBResult ret;
 
+     /* reset layer id pool so the primary layer gets 0 */
+     layer_id_pool = 0;
+
      layersfield = shcalloc( 1, sizeof (CoreLayersField) );
 
 #ifndef FUSION_FAKE
