@@ -23,7 +23,7 @@
  * @note Equivalent DRI code is in via_ioctl::viaFlushPrimsLocked()
  */
 
-static void uc_fifo_pad(struct uc_fifo* fifo)
+static void uc_fifo_pad(volatile struct uc_fifo* fifo)
 {
     switch (fifo->used & 0x7)
     {
@@ -65,7 +65,7 @@ static void uc_fifo_pad(struct uc_fifo* fifo)
  * @note Equivalent DRI code is in via_ioctl::flush_sys()
  */
 
-void uc_fifo_flush_sys(struct uc_fifo* fifo, volatile void *regs)
+void uc_fifo_flush_sys(volatile struct uc_fifo* fifo, volatile void *regs)
 {
     __u32* p;
     __u32* q;
@@ -136,7 +136,7 @@ void uc_fifo_flush_sys(struct uc_fifo* fifo, volatile void *regs)
 
 /** Use an AGP transfer to write the FIFO buffer to the hardware. Not implemented. */
 #if 0
-static void uc_fifo_flush_agp(struct uc_fifo* fifo)
+static void uc_fifo_flush_agp(volatile struct uc_fifo* fifo)
 {
     // TODO - however, there is no point in doing this, because
     // an AGP transfer can require more register writes than
@@ -153,13 +153,13 @@ static void uc_fifo_flush_agp(struct uc_fifo* fifo)
 
 /** Create a FIFO. Returns NULL on failure. */
 
-struct uc_fifo* uc_fifo_create(size_t size)
+volatile struct uc_fifo* uc_fifo_create(size_t size)
 {
-    struct uc_fifo* fifo;
+    volatile struct uc_fifo* fifo;
 
     size += 32;     // Needed for padding.
 
-    fifo = SHCALLOC(1, sizeof(struct uc_fifo));
+    fifo = SHCALLOC(1, sizeof(volatile struct uc_fifo));
     if (!fifo) return NULL;
 
     // Note: malloc won't work for DMA buffers...
@@ -184,7 +184,7 @@ struct uc_fifo* uc_fifo_create(size_t size)
 
 /** Destroy a FIFO */
 
-void uc_fifo_destroy(struct uc_fifo* fifo)
+void uc_fifo_destroy(volatile struct uc_fifo* fifo)
 {
     if (fifo) {
         if (fifo->buf) {

@@ -45,8 +45,8 @@ struct uc_fifo
     unsigned int prep;
     unsigned int used;
 
-    //void (*flush)(struct uc_fifo* fifo, volatile void *hwregs);
-    //void (*flush_sys)(struct uc_fifo* fifo, volatile void *hwregs);
+    //void (*flush)(volatile struct uc_fifo* fifo, volatile void *hwregs);
+    //void (*flush_sys)(volatile struct uc_fifo* fifo, volatile void *hwregs);
 };
 
 // Help macros ---------------------------------------------------------------
@@ -245,12 +245,12 @@ struct uc_fifo
 
 /** Create a FIFO. Returns NULL on failure. */
 
-struct uc_fifo* uc_fifo_create(size_t size);
+volatile struct uc_fifo* uc_fifo_create(size_t size);
 
 /** Destroy a FIFO */
 
-void uc_fifo_destroy(struct uc_fifo* fifo);
+void uc_fifo_destroy(volatile struct uc_fifo* fifo);
 
-void uc_fifo_flush_sys(struct uc_fifo* fifo, volatile void *regs);
+void uc_fifo_flush_sys(volatile struct uc_fifo* fifo, volatile void *regs);
 
 #endif // __UC_FIFO_H__

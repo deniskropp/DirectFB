@@ -121,7 +121,7 @@ typedef struct _UcDeviceData {
      unsigned int cmd_waitcycles;
      unsigned int idle_waitcycles;
 
-     struct uc_fifo* fifo;       // Data FIFO.
+     volatile struct uc_fifo* fifo;       // Data FIFO.
 
      __u32           vq_start;   // VQ related
      __u32           vq_size;
