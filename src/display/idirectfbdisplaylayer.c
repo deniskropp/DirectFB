@@ -55,7 +55,7 @@ typedef struct {
      IDirectFBSurface                *surface;
 } IDirectFBDisplayLayer_data;
 
-     
+
 ReactionResult IDirectFBDisplayLayer_bgsurface_listener( const void *msg_data,
                                                          void       *ctx );
 
@@ -69,7 +69,7 @@ void IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
      if (data->layer->bg.image)
           reactor_detach( data->layer->bg.image->reactor,
                           IDirectFBDisplayLayer_bgsurface_listener, thiz );
-     
+
      if (data->surface)
           data->surface->Release( data->surface );
 
@@ -139,6 +139,9 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer *thiz,
           return DFB_DEAD;
 
      if (background_mode != data->layer->bg.mode) {
+          if (background_mode == DLBM_IMAGE  &&  !data->layer->bg.image)
+               return DFB_MISSINGIMAGE;
+
           data->layer->bg.mode = background_mode;
 
           if (background_mode != DLBM_DONTCARE)
@@ -189,7 +192,7 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
 
           reactor_attach( data->layer->bg.image->reactor,
                           IDirectFBDisplayLayer_bgsurface_listener, thiz );
-          
+
           if (data->layer->bg.mode == DLBM_IMAGE)
                windowstack_repaint_all( data->layer->windowstack );
      }
@@ -463,6 +466,6 @@ ReactionResult IDirectFBDisplayLayer_bgsurface_listener( const void *msg_data,
 
      if (notification->flags & (CSNF_FLIP | CSNF_SIZEFORMAT))
           windowstack_repaint_all( data->layer->windowstack );
-     
+
      return RS_OK;
 }

@@ -142,7 +142,8 @@ extern "C"
           DFB_BUSY,           /* resource/device busy */
           DFB_NOIMPL,         /* no implementation for that interface */
           DFB_MISSINGFONT,    /* no font has been set */
-          DFB_TIMEOUT         /* operation timed out */
+          DFB_TIMEOUT,        /* operation timed out */
+          DFB_MISSINGIMAGE    /* no image has been set */
      } DFBResult;
 
      /*
