@@ -1,3 +1,428 @@
+2002-06-19	12:34	Sven Neumann <sven@convergence.de>
+
+	Files:	gfxdrivers/savage/savage4.c (1.2) (+3 -0)
+	
+	Applied a patch from Alex SONG <zzaleson@uqconnect.net> that fixes
+	savage4SetState() for src colorkeying.
+	
+2002-06-19	12:13	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.25) (+4 -0)
+	
+	Only try to fallback to latin_1 encoding for FREETYPE_MINOR > 0 so we
+	are backwards compatible with freetype-2.0.
+	
+2002-06-19	03:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.5) (+1 -3)
+	
+	Removed two bugs ;)
+	
+2002-06-19	02:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.33) (+1 -1)
+		gfxdrivers/matrox/matrox_state.c (1.31) (+20 -2)
+	
+	Use diffused alpha if source format is RGB32 to force the alpha values to 0xff.
+	
+2002-06-17	23:25	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.75) (+12 -12)
+	
+	Declared some local variables in inner loops as register variables.
+	Declared local variables in SET_ALPHA_PIXEL_ARGB as __u32;
+	
+2002-06-17	22:46	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.74) (+124 -182)
+	
+	Added macro SET_ALPHA_PIXEL_DUFFS_DEVICE() which implements Duff's
+	device with a depth of 8. Use it for all but the RGB24
+	Bop_a8_set_alphapixel_Aop_* functions.
+	
+	Undefined the SET_ALPHA_PIXEL_* macros after usage and removed lots of
+	unneeded brackets.
+	
+2002-06-17	21:54	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.73) (+23 -22)
+	
+	More work on the Bop_a8_set_alphapixel_Aop_* functions. Use Cop instead
+	of the color struct, cleanups.
+	
+2002-06-17	21:32	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.72) (+41 -41)
+	
+	Cleaned up Bop_a8_set_alphapixel_Aop_rgb[15|24|32], register variables
+	locally. Gives 7% speedup in the 32bit case.
+	
+2002-06-17	19:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/windows/idirectfbwindow.c (1.35) (+6 -0)
+	
+	Wait for initial DWET_POSITION_SIZE event in IDirectFBWindow_Construct().
+	
+2002-06-17	17:49	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.24) (+17 -10)
+	
+	Only allocate memory for the kerning cache if the font has kerning
+	information.
+	
+2002-06-17	17:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.71) (+42 -12)
+	
+	Fixed rendering pipeline setup for blended blitting for these cases:
+	- destination blend is DSBF_ZERO, but source blend needs destination
+	- destination blend is not DSBF_ONE and source blend needs destination
+	
+2002-06-17	16:07	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.23) (+18 -1)
+	
+	Select Unicode encoding for loaded face. If that fails, try Latin1.
+	If Latin1 also fails, refuse to load the font.
+	
+2002-06-17	15:25	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.22) (+6 -6)
+	
+	FT_Get_Char_Index() returns FT_UInt so use that instead of int.
+	
+2002-06-17	08:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.25) (+2 -0)
+	
+	vsync handling during flip operations needs a cleanup/rework
+	
+2002-06-17	06:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_state.c (1.30) (+31 -17)
+	
+	Fixed a bug in ALPHACTRL blitting setup, output alpha channel was wrong when
+	blending was used with destination blend function DSPF_ZERO.
+	
+	Corrected ALPHACTRL drawing setup. Use diffused instead of texture alpha
+	and select an alpha write mode other than FCOL. Doesn't fix a known bug
+	but should be correct now for drawing with DSDRAW_BLEND to surfaces with
+	an alphachannel.
+	
+2002-06-15	19:55	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.55) (+4 -1)
+	
+	Added 8 bit support to IDirectFB::SetVideoMode().
+	
+2002-06-14	14:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.70) (+50 -19)
+	
+	Brutally optimized A8 font rendering for RGB16 ;-)
+	
+	P3 800E, G450 SDRAM, no-hardware, gcc-3.1
+	
+	59 -> 67 MChars/sec (video memory)
+	275 -> 326 MChars/sec (system memory)
+	
+	
+	Can be done for other formats as well.
+	
+2002-06-14	13:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.113) (+11 -8)
+		src/gfx/generic/generic.c (1.69) (+12 -12)
+	
+	Added DFB_NUM_PIXELFORMATS macro.
+	Use it for the generic driver's function tables.
+	
+2002-06-14	13:11	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.68) (+37 -6)
+		src/misc/gfx_util.c (1.20) (+1 -1)
+	
+	Check source format in gAcquire().
+	Use ONCE in rgba_to_dst_format() to avoid tons of error messages during
+	image loading to unsupported destination formats.
+	
+2002-06-14	12:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.16) (+9 -10)
+		src/gfx/generic/generic.c (1.67) (+115 -68)
+	
+	Implemented planar YUV blitting support in software driver.
+	Minor code cleanup, better support checks and cleanup fixes in gAcquire.
+	"ONCE" messages are independent of debug mode now.
+	
+2002-06-14	03:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/lirc/lirc.c (1.12) (+10 -3)
+	
+	qsort needs an extra compare function getting two entries instead of
+	a string and an entry, works now.
+	
+2002-06-14	00:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_state.c (1.29) (+3 -0)
+	
+	Don't use videoalpha mode if dst_blend is zero.
+	
+2002-06-13	17:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/Xacc_blend_invsrcalpha_MMX.s (1.4) (+10 -8)
+		src/gfx/generic/Xacc_blend_srcalpha_MMX.s (1.4) (+1 -1)
+	
+	Fixed off by one bug in mmx version of Xacc_blend_invsrcalpha.
+	Minor optimization in setup code.
+	
+2002-06-13	15:45	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.42) (+1 -2)
+		src/core/sig.c (1.12) (+10 -6)
+	
+	Fixed warnings if sighandler is disabled.
+	
+2002-06-13	15:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.15) (+1 -0)
+		src/windows/idirectfbwindow.c (1.34) (+7 -2)
+		src/core/fusion/reactor.c (1.8) (+21 -0)
+		src/core/windows.h (1.25) (+2 -0)
+		src/core/windows.c (1.74) (+23 -5)
+		src/core/surfaces.c (1.38) (+4 -0)
+	
+	Fixed concurrent destructions of windows.
+	Added some debug output.
+	
+2002-06-13	11:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/fbdebug.c (1.3) (+7 -14)
+	
+	removed the voodoo1 workaround
+	
+2002-06-13	11:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/conf.h (1.23) (+0 -2)
+	
+	removed obsolete FIXME
+	
+2002-06-12	17:53	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/layers.c (1.38) (+2 -2)
+	
+	Fixed parameters for SetConfiguration call in dfb_layers_resume().
+	
+2002-06-12	08:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_bes.c (1.22) (+16 -5)
+	
+	Implemented besFlipBuffers() which should have been implemented in 0.9.11 ;(
+	
+2002-06-11	12:18	Sven Neumann <sven@convergence.de>
+
+	Files:	inputdrivers/lirc/lirc.c (1.11) (+25 -138)
+	
+	Include directfb_keynames.h instead of defining our own array.
+	Sort the keynames array by names on first call of lirc_parse_line(),
+	then use bsearch to lookup the name.
+	
+2002-06-10	20:18	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.38) (+2 -0)
+	
+	Replace currency sign (0xa4) by euro currency sign (0x20ac).
+	
+2002-06-10	18:59	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.112) (+11 -5)
+		src/media/idirectfbfont.c (1.25) (+20 -20)
+		src/display/idirectfbsurface.c (1.46) (+23 -11)
+	
+	Use unsigned int for Unicode glyph indices.
+	Added DSFT_BOTTOM to DFBSurfaceTextFlags.
+	Fixed bug in IDirectFBFont::GetGlyphExtents.
+	Made IDirectFBFont::GetGlyphExtents() and IDirectFBFontGetKerning() fill
+	in zero values if the glyph isn't found and return DFB_OK.
+	
+2002-06-10	18:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.111) (+5 -4)
+	
+	Added DIDID_ANY for devices not prefering a primary device id.
+	
+2002-06-10	18:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.110) (+2 -1)
+	
+	Added DIDTF_VIRTUAL for virtual input devices.
+	
+2002-06-10	17:43	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.109) (+50 -3)
+		src/media/idirectfbfont.c (1.24) (+88 -4)
+		src/display/idirectfbsurface.c (1.45) (+54 -0)
+		src/core/gfxcard.h (1.28) (+2 -1)
+		src/core/gfxcard.c (1.68) (+73 -0)
+	
+	Added IDirectFBFont::GetKerning() and IDirectFBFont::GetGlyphExtents().
+	Added IDirectFBSurface::DrawGlyph().
+	This should enable users to implement their own simple text layout engine.
+	
+2002-06-10	13:04	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.108) (+1 -1)
+	
+	fixed typo in comment
+	
+2002-06-10	12:42	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.81) (+72 -31)
+	
+	Made configure warnings more visible. Added extra warnings if PNG, JPEG
+	or FreeType2 support is missing.
+	
+2002-06-10	10:11	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.32) (+11 -0)
+	
+	Added cross compiling notes by Scott A McConnell <samcconn@cotw.com>.
+	
+2002-06-10	09:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.45) (+105 -34)
+	
+	Fixed modifier mask problems that occured if the left and right version
+	of a modifier were both pressed.
+	
+2002-06-10	08:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.44) (+2 -2)
+	
+	Check for FUSION_FAKE instead of DFB_MULTI, could have caused problems
+	with multi application core when slaves need to fetch a keymap entry.
+	
+2002-06-10	07:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.107) (+21 -5)
+	
+	Added structs DFBPoint and DFBDimension that are not used yet by DirectFB
+	but are already useful for applications and libraries.
+	
+2002-06-09	04:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.54) (+1 -0)
+	
+	Make sure DFB_IDNOTFOUND is returned if GetDisplayLayer() doesn't find the id.
+	
+2002-06-09	02:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.106) (+21 -13)
+		src/input/idirectfbinputdevice.c (1.25) (+2 -9)
+		src/core/windows.c (1.73) (+8 -7)
+		src/core/input.c (1.43) (+31 -4)
+	
+	Added a mask of currently pressed buttons to input and window events.
+	
+2002-06-07	19:12	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/utf8.h (1.9) (+1 -1)
+	
+	oops
+	
+2002-06-07	18:23	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/utf8.h (1.8) (+2 -1)
+	
+	fixed dfb_utf8_next_char() (spotted by Holger Waechtler)
+	
+2002-06-07	18:05	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/utf8.h (1.7) (+7 -0)
+	
+	Added inline function dfb_utf8_prev_char().
+	
+2002-06-07	16:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/sig.c (1.11) (+42 -12)
+	
+	Use sigaction instead of signal.
+	
+2002-06-07	16:26	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.31) (+1 -0)
+	
+	updated copyright
+	
+2002-06-07	15:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.30) (+1 -1)
+	
+	Updated Joachim Steiger's e-mail address.
+	
+2002-06-07	15:00	Sven Neumann <sven@convergence.de>
+
+	Files:	src/directfb.c (1.45) (+2 -1)
+	
+	Updated copyright notice in banner.
+	
+2002-06-07	12:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/Makefile.am (1.5) (+10 -2)
+		include/directfb_keyboard.h (1.16) (+109 -27)
+	
+	Generate DFBKeyIdentifierNames, too.
+	
+2002-06-07	10:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.105) (+8 -1)
+		src/gfx/generic/generic.c (1.66) (+57 -3)
+	
+	Added experimental blitting flags DSBLIT_SRC_PREMULTIPLY, DSBLIT_DST_PREMULTIPLY
+	and DSBLIT_DEMULTIPLY which can be used for complex blending operations which
+	distinguish between premultiplied and non-premultiplied alpha channels.
+	
+2002-06-06	16:59	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.104) (+179 -162)
+	
+	Forced comments into 80 columns.
+	
+2002-06-06	13:38	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.103) (+3 -1)
+	
+	Improved description of IDirectFBFont::GetHeight().
+	
+2002-06-06	11:40	Sven Neumann <sven@convergence.de>
+
+	Files:	src/input/idirectfbinputdevice.c (1.24) (+2 -2)
+	
+	Applied patch from Ville Syrjälä <syrjala@sci.fi> that fixes
+	IDirectFBInputDevice_GetXY().
+	
+2002-06-05	21:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.37) (+14 -1)
+	
+	Added second windows key as META_R, made the menu key SUPER_R.
+	
+2002-06-05	15:16	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.80) (+1 -1)
+		src/core/input.c (1.42) (+9 -0)
+		inputdrivers/keyboard/keyboard.c (1.36) (+17 -5)
+		include/directfb_keyboard.h (1.15) (+16 -0)
+	
+	Bumped version number to 0.9.12.
+	Added key identifiers for the remaining keys on a PC105 keyboard layout.
+	
+2002-06-05	02:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.21) (+15 -0)
+	
+	Once more a fresh ChangeLog
+	
 2002-06-05	02:33	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/Makefile.am (1.4) (+5 -1)

@@ -1,3 +1,25 @@
+0.9.12
+------
+
+- Added IDirectFBSurface::DrawGlyph().
+- Added IDirectFBFont::GetKerning().
+- Added IDirectFBFont::GetGlyphExtents().
+- Added experimental blitting flags DSBLIT_SRC_PREMULTIPLY,
+  DSBLIT_DST_PREMULTIPLY and DSBLIT_DEMULTIPLY.
+- Added dfb_utf8_prev_char() and fixed dfb_utf8_next_char().
+- Added a mask of currently pressed buttons to input and window events.
+- Added structs DFBPoint and DFBDimension.
+- Added DIDTF_VIRTUAL for virtual input devices.
+- Added DSFT_BOTTOM to DFBSurfaceTextFlags.
+= Added DFB_NUM_PIXELFORMATS macro.
+- Define DFBKeyIdentifierNames in directfb_keynames.h.
+- Some smaller fixes to the keyboard mapping.
+- Enable all keysymbols in the lirc input driver. 
+- Implemented planar YUV blitting support in software driver.
+- Optimizations in software driver.
+- Lots of bug-fixes.
+
+
 0.9.11
 ------
 
