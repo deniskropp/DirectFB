@@ -76,16 +76,29 @@ typedef struct {
      /* Stored values */
      int dst_pixelpitch;
      int dst_pixeloffset;
+     int dst_bytepitch;
+     int dst_byteoffset;
+     int dst_height;
+     DFBSurfacePixelFormat dst_format;
+
      int src_pixelpitch;
      int src_pixeloffset;
+     int src_bytepitch;
+     int src_byteoffset;
+     int src_width;
+     int src_height;
+     DFBSurfacePixelFormat src_format;
 
      int draw_blend;
      int blit_src_colorkey;
 
      int blit_deinterlace;
+     int field;
 
-     int matrox_w2;
-     int matrox_h2;
+     __u32 texctl;
+     __u32 texctl2;
+
+     DFBRegion clip;
 } MatroxDeviceData;
 
 extern DisplayLayerFuncs matroxBesFuncs;

@@ -201,13 +201,14 @@
 #define DSTORG        0x2cb8
 #define SRCORG        0x2cb4
 
-#define MACCESS       0x1C04
-#     define PW8      0x00000000
-#     define PW16     0x00000001
-#     define PW32     0x00000002
-#     define PW24     0x00000003
-#     define NODITHER 0x40000000
-#     define DIT555   0x80000000
+#define MACCESS        0x1C04
+#     define PW8       0x00000000
+#     define PW16      0x00000001
+#     define PW32      0x00000002
+#     define PW24      0x00000003
+#     define BYPASS332 0x10000000
+#     define NODITHER  0x40000000
+#     define DIT555    0x80000000
 
 
 #define EXECUTE       0x100      /* or with register to execute a programmed

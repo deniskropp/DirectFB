@@ -52,8 +52,13 @@ void matrox_set_destination( MatroxDriverData *mdrv,
      SurfaceBuffer *buffer          = destination->back_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(destination->format);
 
-     mdev->dst_pixelpitch  = buffer->video.pitch / bytes_per_pixel;
+     mdev->dst_height = destination->height;
+     mdev->dst_format = destination->format;
+
      mdev->dst_pixeloffset = buffer->video.offset / bytes_per_pixel;
+     mdev->dst_pixelpitch  = buffer->video.pitch  / bytes_per_pixel;
+     mdev->dst_byteoffset  = buffer->video.offset;
+     mdev->dst_bytepitch   = buffer->video.pitch;
 
      mga_waitfifo( mdrv, mdev, 3 );
 
@@ -82,6 +87,10 @@ void matrox_set_destination( MatroxDriverData *mdrv,
           case DSPF_RGB32:
           case DSPF_ARGB:
                mga_out32( mmio, PW32, MACCESS );
+               break;
+          case DSPF_I420:
+          case DSPF_YV12:
+               mga_out32( mmio, PW8 | BYPASS332 | NODITHER, MACCESS );
                break;
           default:
                BUG( "unexpected pixelformat!" );
@@ -313,32 +322,23 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
-
-     __u32 texctl, texctl2, texorg;
 
      CoreSurface   *surface = state->source;
      SurfaceBuffer *buffer  = surface->front_buffer;
-     int            height  = surface->height;
+     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->format);
+     __u32          texctl, texctl2;
 
      if (MGA_IS_VALID( m_Source ))
           return;
 
-     mdev->src_pixelpitch = buffer->video.pitch /
-                            DFB_BYTES_PER_PIXEL(surface->format);
+     mdev->src_pixelpitch  = buffer->video.pitch / bytes_per_pixel;
+     mdev->src_byteoffset  = buffer->video.offset;
+     mdev->src_bytepitch   = buffer->video.pitch;
 
-     texorg = dfb_gfxcard_memory_physical( NULL, buffer->video.offset );
-     
-     if (mdev->blit_deinterlace) {
-          height >>= 1;
-          mdev->src_pixelpitch <<= 1;
-          
-          if (surface->field)
-               texorg += buffer->video.pitch;
-     }
-
-     mdev->matrox_w2 = log2( surface->width );
-     mdev->matrox_h2 = log2( height );
+     mdev->src_width  = surface->width;
+     mdev->src_height = surface->height;
+     mdev->src_format = surface->format;
+     mdev->field      = surface->field;
 
      if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
           texctl = TAMASK;
@@ -352,6 +352,8 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
           case DSPF_UYVY:
                texctl |= TW422UYVY;
                break;
+          case DSPF_I420:
+          case DSPF_YV12:
           case DSPF_A8:
                texctl |= TW8A;
                break;
@@ -385,15 +387,8 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      if (surface->format == DSPF_A8)
           texctl2 |= IDECAL;
 
-     mga_waitfifo( mdrv, mdev, 5);
-
-     mga_out32( mmio, texctl, TEXCTL );
-     mga_out32( mmio, texctl2, TEXCTL2 );
-     mga_out32( mmio, ((surface->width -1)<<18) |
-                      ((8-mdev->matrox_w2)&63)<<9 | mdev->matrox_w2, TEXWIDTH );
-     mga_out32( mmio, ((height-1)<<18) |
-                      ((8-mdev->matrox_h2)&63)<<9 | mdev->matrox_h2, TEXHEIGHT );
-     mga_out32( mmio, texorg & 0x1FFFFFF, TEXORG );
+     mdev->texctl  = texctl;
+     mdev->texctl2 = texctl2;
 
      MGA_VALIDATE( m_Source );
 }
@@ -402,7 +397,6 @@ void matrox_validate_source( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CardState        *state )
 {
-     volatile __u8 *mmio            = mdrv->mmio_base;
      CoreSurface   *surface         = state->source;
      SurfaceBuffer *buffer          = surface->front_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->format);
@@ -410,15 +404,13 @@ void matrox_validate_source( MatroxDriverData *mdrv,
      if (MGA_IS_VALID( m_source ))
           return;
 
-     mdev->src_pixelpitch = buffer->video.pitch / bytes_per_pixel;
+     mdev->src_pixeloffset = buffer->video.offset / bytes_per_pixel;
+     mdev->src_pixelpitch  = buffer->video.pitch  / bytes_per_pixel;
+     mdev->src_byteoffset  = buffer->video.offset;
+     mdev->src_bytepitch   = buffer->video.pitch;
 
-     if (mdev->old_matrox)
-          mdev->src_pixeloffset = buffer->video.offset / bytes_per_pixel;
-     else {
-          mga_waitfifo( mdrv, mdev, 1);
-          mga_out32( mmio, dfb_gfxcard_memory_physical( NULL, buffer->video.offset) &
-                     0x1FFFFFF, SRCORG );
-     }
+     mdev->src_height = surface->height;
+     mdev->src_format = surface->format;
 
      MGA_VALIDATE( m_source );
 }
