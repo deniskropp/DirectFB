@@ -98,9 +98,9 @@ sonypiEventThread( void *driver_data )
 
                          if (buffer[i] == SONYPI_EVENT_JOGDIAL_DOWN ||
                              buffer[i] == SONYPI_EVENT_JOGDIAL_DOWN_PRESSED)
-                              evt.axisrel = -10;
+                              evt.axisrel = 1;
                          else
-                              evt.axisrel = 10;
+                              evt.axisrel = -1;
 
                          dfb_input_dispatch( data->device, &evt );
                          break;
