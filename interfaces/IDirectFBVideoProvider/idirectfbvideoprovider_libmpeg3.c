@@ -59,7 +59,12 @@
 #include <display/idirectfbsurface.h>
 
 #include <directfb_internals.h>
+
+#ifdef HAVE_FUSIONSOUND
 #include <fusionsound.h>
+#else
+#include <sys/soundcard.h>
+#endif
 
 #include <libmpeg3.h>
 
@@ -108,9 +113,12 @@ typedef struct {
          int               channels;
          long              length;
 
+#ifdef HAVE_FUSIONSOUND
          IFusionSoundStream *stream;
          IFusionSound     *sound;
-         
+#else
+         int               fd;
+#endif
          int               samples_per_block;
          int               block_size;
 
@@ -658,7 +666,11 @@ AudioThread( void *ctx )
 
           if (data->audio.seeked) {
                /* flush buffered audio data */
+#ifdef HAVE_FUSIONSOUND
                data->audio.stream->Wait( data->audio.stream, 0 );
+#else               
+               ioctl( data->audio.fd, SNDCTL_DSP_RESET, 0 );
+#endif
                data->audio.seeked = 0;
           }
 
@@ -671,8 +683,11 @@ AudioThread( void *ctx )
                    mpeg3_read_audio( data->file, NULL, buffer, 0,
                                      data->audio.samples_per_block, 0 ))
                     memset( buffer, 0, data->audio.block_size );
-
+#ifdef HAVE_FUSIONSOUND
                data->audio.stream->Write( data->audio.stream, buffer, data->audio.samples_per_block );
+#else
+               write( data->audio.fd, buffer, data->audio.block_size );
+#endif
           }
           else {
                long pos = mpeg3_get_sample( data->file, 0 );
@@ -694,18 +709,25 @@ AudioThread( void *ctx )
                          buffer[i*2+0] = left[i];
                          buffer[i*2+1] = right[i];
                     }
-               }               
-               data->audio.stream->Write( data->audio.stream, buffer, data->audio.samples_per_block );               
+               }
+#ifdef HAVE_FUSIONSOUND              
+               data->audio.stream->Write( data->audio.stream, buffer, data->audio.samples_per_block );
+#else
+               write( data->audio.fd, buffer, data->audio.block_size );
+#endif
           }
-
           pthread_mutex_unlock( &data->audio.lock );
      }
 
-   
+#ifdef HAVE_FUSIONSOUND
      data->audio.stream->Wait( data->audio.stream, 0 );
+#else
+     ioctl( data->audio.fd, SNDCTL_DSP_POST, 0 );
+#endif
 
      return NULL;
 }
+
 
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
@@ -1078,7 +1100,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
 
 /* fusionsound support */
-
+#ifdef HAVE_FUSIONSOUND
 static DFBResult
 OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
 {
@@ -1127,4 +1149,106 @@ CloseSound( IDirectFBVideoProvider_Libmpeg3_data *data )
 
      return DFB_OK;
 }
+
+#else
+
+/* OSS sound support */
+
+static DFBResult
+OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
+{
+     int fd;
+     int prof   = APF_NORMAL;
+     int format;
+     int bytes  = (data->audio.bits + 7) / 8;
+     int stereo = (data->audio.channels > 1) ? 1 : 0;
+     int rate   = data->audio.rate;
+
+     /* open audio device */
+     fd = open( "/dev/dsp", O_WRONLY );
+     if (fd < 0) {
+          fd = open( "/dev/sound/dsp", O_WRONLY );
+          if (fd < 0) {
+               PERRORMSG( "Libmpeg3 Provider: Opening both '/dev/dsp' and "
+                          "'/dev/sound/dsp' failed!\n" );
+               return DFB_IO;
+          }
+     }
+
+     /* set application profile */
+     ioctl( fd, SNDCTL_DSP_PROFILE, &prof );
+
+     /* set format */
+     if (data->audio.bits == 8)
+          format = AFMT_U8;
+     else if (data->audio.bits == 16) {
+#ifdef WORDS_BIGENDIAN
+          format = AFMT_S16_BE;
+#else
+          format = AFMT_S16_LE;
+#endif
+     }
+     else {
+          ERRORMSG( "Libmpeg3 Provider: "
+                    "unexpected sample format (%d bit)!\n", data->audio.bits );
+          close( fd );
+          return DFB_UNSUPPORTED;                    
+     }
+     
+     if (ioctl( fd, SNDCTL_DSP_SETFMT, &format )) {
+          ERRORMSG( "Libmpeg3 Provider: "
+                    "failed to set sample format to %d bit!\n", 
+                    data->audio.bits );
+          close( fd );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* set mono/stereo */
+     if (ioctl( fd, SNDCTL_DSP_STEREO, &stereo ) == -1) {
+          ERRORMSG( "Libmpeg3 Provider: Unable to set '%s' mode!\n",
+                    (data->audio.channels > 1) ? "stereo" : "mono");
+          close( fd );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* set sample rate */
+     if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
+          ERRORMSG( "Libmpeg3 Provider: "
+                    "Unable to set sample rate to '%ld'!\n", data->audio.rate );
+          close( fd );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* query block size */
+     ioctl( fd, SNDCTL_DSP_GETBLKSIZE, &data->audio.block_size );
+     if (data->audio.block_size < 1) {
+          ERRORMSG( "Libmpeg3 Provider: "
+                    "Unable to query block size of '/dev/dsp'!\n" );
+          close( fd );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* calculate number of samples fitting into block for each channel */
+     data->audio.samples_per_block = data->audio.block_size / bytes /
+                                     data->audio.channels;
+
+     /* store file descriptor */
+     data->audio.fd = fd;
+
+     return DFB_OK;
+}
+
+static DFBResult
+CloseSound( IDirectFBVideoProvider_Libmpeg3_data *data )
+{
+     /* flush pending sound data so we don't have to wait */
+     ioctl( data->audio.fd, SNDCTL_DSP_RESET, 0 );
+
+     /* close audio device */
+     close( data->audio.fd );
+
+     return DFB_OK;
+}
+
+#endif
 
