@@ -8,7 +8,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src
 
 
-if DIRECTFB_CSOURCE
+if BUILD_DIRECTFB_CSOURCE
 DFB_CSOURCE = directfb-csource
 
 directfb_csource_SOURCES = directfb-csource.c

@@ -2,7 +2,7 @@
 
 SUBDIRS = html
 
-if DIRECTFB_CSOURCE
+if BUILD_DIRECTFB_CSOURCE
 csource_mans = directfb-csource.1
 endif
 

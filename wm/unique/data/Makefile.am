@@ -17,5 +17,15 @@ EXTRA_DIST = \
 	foo_w.png	\
 	foo_nw.png
 
+if CROSS_COMPILING
+  directfb_csource = $(DIRECTFB_CSOURCE)
+else
+if BUILD_TOOLS
+  directfb_csource = $(top_builddir)/tools/directfb-csource
+else
+  directfb_csource = $(DIRECTFB_CSOURCE)
+endif
+endif
+
 foo.h: $(EXTRA_DIST)
-	directfb-csource --name=foo $(EXTRA_DIST) > foo.h
+	$(directfb_csource) --name=foo $(EXTRA_DIST) > foo.h

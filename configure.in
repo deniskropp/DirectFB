@@ -619,7 +619,7 @@ if test "$enable_png" = "yes"; then
 fi
 
 AM_CONDITIONAL(PNG_PROVIDER, test "$PNG" = "yes")
-AM_CONDITIONAL(DIRECTFB_CSOURCE, test "$PNG" = "yes")
+AM_CONDITIONAL(BUILD_DIRECTFB_CSOURCE, test "$PNG" = "yes")
 
 if test "$enable_png" != "no" && test "$PNG" != "yes"; then
   png_warning="
@@ -1050,6 +1050,16 @@ if test "$with_tools" != "no"; then
 fi
 
 
+dnl *** Look for directfb-csource in PATH if we are cross-compiling ***
+
+if test "$cross_compiling" = "yes" || test "$with_tools" = "no"; then
+  AC_PATH_PROG(DIRECTFB_CSOURCE, directfb-csource, no)
+  if test "x$DIRECTFB_CSOURCE" = "xno"; then
+    AC_MSG_ERROR(Could not find a directfb-csource in your PATH)
+  fi
+fi
+
+
 AM_CONDITIONAL(GFX_ATI, test "$ati" = "yes")
 AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_CLE266, test "$cle266" = "yes")
@@ -1075,6 +1085,7 @@ AM_CONDITIONAL(MUTOUCH_TS, test "$enable_mutouch" = "yes")
 AM_CONDITIONAL(WM97XX_TS, test "$wm97xx_ts" = "yes")
 
 AM_CONDITIONAL(BUILD_TOOLS, test "$with_tools" = "yes")
+AM_CONDITIONAL(CROSS_COMPILING, test "$cross_compiling" = "yes")
 
 CFLAGS="$CFLAGS $DFB_INTERNAL_CFLAGS"
 DFB_LDFLAGS="$LDFLAGS $ZLIB_LIBS"
