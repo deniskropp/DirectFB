@@ -60,7 +60,6 @@ Group:		Development/Other
 	--disable-maintainer-mode \
 	--enable-shared \
 	--disable-fast-install \
-	--disable-avifile \
 	--disable-debug \
 	--program-transform-name=""  # is this hack needed?
 
@@ -88,9 +87,11 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_bindir}/*directfb-config
 %attr(755,root,root) %{_bindir}/*directfb-csource
+%attr(755,root,root) %{_bindir}/*dfbg
 %{_includedir}/directfb
 %{_includedir}/directfb-internal
 %{_mandir}/man1/*directfb-csource.1*
+%{_mandir}/man1/*dfbg.1*
 %{_libdir}/pkgconfig/*
 %{_libdir}/*.la
 %{_libdir}/*.so
@@ -98,6 +99,11 @@ rm -rf $RPM_BUILD_ROOT
 %files doc
 %defattr(644,root,root,755)
 %doc docs/html/*
+
+%changelog
+* Mon Jan 13 2003 Sven Neumann <neo@directfb.org> 0.9.16
+- removed reference to avifile
+- added rules for dfbg and its man-page
 
 %changelog
 * Sun Oct 27 2002 Sven Neumann <neo@directfb.org> 0.9.14
