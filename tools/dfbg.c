@@ -1,5 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002       convergence GmbH.
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -28,13 +29,14 @@
    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <directfb.h>
+#include "config.h"
 
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+
+#include "directfb.h"
+
 
 #ifndef bool
 typedef enum {
@@ -43,19 +45,20 @@ typedef enum {
 } bool;
 #endif
 
-/******************************************************************************/
+/*****************************************************************************/
 
 static IDirectFB             *dfb   = NULL;
 static IDirectFBDisplayLayer *layer = NULL;
 
-static char *filename = NULL;
+static const char *filename = NULL;
+static bool        tiled    = false;
 
-/******************************************************************************/
+/*****************************************************************************/
 
 static bool parse_command_line( int argc, char *argv[] );
-static void load_background();
+static void load_background_image( void );
 
-/******************************************************************************/
+/*****************************************************************************/
 
 int
 main( int argc, char *argv[] )
@@ -89,7 +92,7 @@ main( int argc, char *argv[] )
      }
 
      /* Load and display the background image. */
-     load_background();
+     load_background_image();
 
      /* Release the display layer. */
      layer->Release( layer );
@@ -97,46 +100,71 @@ main( int argc, char *argv[] )
      /* Release the super interface. */
      dfb->Release( dfb );
      
-     return 0;
+     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
+/*****************************************************************************/
 
-static const char *usage_string = 
-"\n"
-"DirectFB Background Configuration Tool\n"
-"\n"
-"Usage: dfbg <filename>\n"
-"\n";
+static void
+print_usage (const char *prg_name)
+{
+     fprintf (stderr, "dfbg version %s\n", DIRECTFB_VERSION);
+     fprintf (stderr, "DirectFB Background Configuration Tool\n\n");
+     fprintf (stderr, "Usage: %s [options] <imagefile>\n", prg_name);
+     fprintf (stderr, "   -t, --tile      tile background with the image\n");
+     fprintf (stderr, "   -h, --help      show this help message\n");
+     fprintf (stderr, "   -v, --version   print version information\n");
+     fprintf (stderr, "\n");
+}
 
 static bool
 parse_command_line( int argc, char *argv[] )
 {
-     if (argc != 2) {
-          printf( usage_string );
-          return false;
+     int n;
+
+     for (n = 1; n < argc; n++) {
+          const char *a = argv[n];
+
+          if (*a != '-') {
+               if (!filename) {
+                    filename = a;
+                    continue;
+               }
+               else {
+                    print_usage (argv[0]);
+                    return false;
+               }
+          }
+          if (strcmp (a, "-h") == 0 || strcmp (a, "--help") == 0) {
+               print_usage (argv[0]);
+               return false;
+          }
+          if (strcmp (a, "-v") == 0 || strcmp (a, "--version") == 0) {
+               fprintf (stderr, "dfbg version %s\n", DIRECTFB_VERSION);
+               return false;
+          }
+          if (strcmp (a, "-t") == 0 || strcmp (a, "--tile") == 0) {
+               tiled = true;
+               continue;
+          }
      }
 
-     filename = argv[1];
+     if (!filename) {
+          print_usage (argv[0]);
+          return false;
+     }      
 
      return true;
 }
 
 static void
-load_background()
+load_background_image()
 {
      DFBResult               ret;
-     DFBDisplayLayerConfig   config;
      DFBSurfaceDescription   desc;
      IDirectFBSurface       *surface;
      IDirectFBImageProvider *provider;
 
-     ret = layer->GetConfiguration( layer, &config );
-     if (ret) {
-          DirectFBError( "IDirectFBDisplayLayer::GetConfiguration() failed", ret );
-          return;
-     }
-     
      ret = dfb->CreateImageProvider( dfb, filename, &provider );
      if (ret) {
           DirectFBError( "IDirectFB::CreateImageProvider() failed", ret );
@@ -150,8 +178,19 @@ load_background()
           return;
      }
 
-     desc.width  = config.width;
-     desc.height = config.height;
+     if (!tiled) {
+          DFBDisplayLayerConfig   config;
+
+          ret = layer->GetConfiguration( layer, &config );
+          if (ret) {
+               DirectFBError( "IDirectFBDisplayLayer::GetConfiguration() failed", ret );
+               provider->Release( provider );
+               return;
+          }
+
+          desc.width  = config.width;
+          desc.height = config.height;
+     }
 
      ret = dfb->CreateSurface( dfb, &desc, &surface );
      if (ret) {
@@ -176,11 +215,10 @@ load_background()
           return;
      }
 
-     ret = layer->SetBackgroundMode( layer, DLBM_IMAGE );
+     ret = layer->SetBackgroundMode( layer, tiled ? DLBM_IMAGE : DLBM_TILE );
      if (ret)
           DirectFBError( "IDirectFBDisplayLayer::SetBackgroundMode() failed", ret );
 
      surface->Release( surface );
      provider->Release( provider );
 }
-
