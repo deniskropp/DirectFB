@@ -502,9 +502,6 @@ static void tdfxDrawLine2D( DFBRegion *line )
 {
      tdfx_waitfifo( 5 );
 
-     voodoo3D->fbzColorPath = rand();
-     voodoo3D->alphaMode = rand();
-
      voodoo2D->srcXY   = ((line->y1 & 0x1FFF) << 16) | (line->x1 & 0x1FFF);
      voodoo2D->dstXY   = ((line->y2 & 0x1FFF) << 16) | (line->x2 & 0x1FFF);
      voodoo2D->command = 6 | (1 << 8) | (0xCC << 24);
