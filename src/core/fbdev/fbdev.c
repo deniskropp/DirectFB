@@ -1368,8 +1368,6 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
               "mode: %p, buffermode: %d)\n", layer, mode,
               config ? config->buffermode : DLBM_FRONTONLY);
 
-     dfb_gfxcard_lock();
-
      if (!mode)
           mode = dfb_fbdev->shared->current_mode ? dfb_fbdev->shared->current_mode : dfb_fbdev->shared->modes;
 
@@ -1419,9 +1417,15 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                     var.green.offset  = 8;
                     var.blue.offset   = 0;
                     break;
+
+               case DSPF_LUT8:
+               case DSPF_RGB24:
+               case DSPF_RGB32:
+               case DSPF_RGB332:
+                    break;
      
                default:
-                    ;
+                    return DFB_UNSUPPORTED;
           }
      }
      else
@@ -1460,6 +1464,8 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
      if (mode->doubled)
           var.vmode |= FB_VMODE_DOUBLE;
 
+     dfb_gfxcard_lock();
+     
      if (FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &var ) < 0) {
           int erno = errno;
 
