@@ -139,17 +139,13 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
 
      pthread_mutex_lock( &data->lock );
      
-     fs_playback_set_stop( data->playback, stop );
-     
-     if (!data->playing) {
-          data->playing = true;
-          data->ended   = false;
-          
-          fs_playback_start( data->playback, start );
-     }
-     
+     data->playing = true;
      data->looping = (stop < 0);
-
+     data->ended   = false;
+          
+     fs_playback_set_stop( data->playback, stop );
+     fs_playback_start( data->playback, start );
+     
      pthread_mutex_unlock( &data->lock );
      
      return DFB_OK;
