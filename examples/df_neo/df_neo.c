@@ -73,7 +73,19 @@ static IDirectFBSurface *sub;
 static DFBResult         err;
 
 static int               frame_num;
-static int               colorize;
+static int               colorize = TRUE;;
+static int               on_crack = FALSE;
+
+
+static void
+clear_screen (void)
+{
+  int width, height;  
+
+  primary->GetSize (primary, &width, &height);
+  primary->SetColor (primary, 0, 0, 0, 0xff);
+  primary->FillRectangle (primary, 0, 0, width, height);
+}
 
 
 static void
@@ -84,7 +96,7 @@ tile_screen (void)
   int width, height;
   
   primary->GetSize (primary, &width, &height);
-  
+
   sx = (width  - back_width)  / 2;
   sy = (height - back_height) / 2;
 
@@ -130,9 +142,12 @@ timeout (unsigned int cycle_len)
   int    i;
   DFBSurfaceBlittingFlags blit_flags;
 
-  sub->SetBlittingFlags (sub, DSBLIT_NOFX);
-  sub->Blit( sub, background, NULL, 0, 0 );
-  
+  if (!on_crack)
+    {
+      sub->SetBlittingFlags (sub, DSBLIT_NOFX);
+      sub->Blit( sub, background, NULL, 0, 0 );
+    }
+
   f = (double) (frame_num % cycle_len) / cycle_len;
 
   xmid = back_width / 2.0;
@@ -182,7 +197,8 @@ timeout (unsigned int cycle_len)
       sub->StretchBlit( sub, images[i], NULL, &dest);
     }
   
-  primary->Flip (primary, NULL, 0);
+  if (!on_crack)
+    primary->Flip (primary, NULL, 0);
 
   frame_num++;
 }
@@ -210,10 +226,12 @@ main (int    argc,
 
   frame_delay = delay = FRAME_DELAY;
   cycle_len   = CYCLE_LEN;
-  colorize    = TRUE;
   quit        = FALSE;
 
   DFBCHECK (DirectFBInit( &argc, &argv ));
+
+  if (argc > 1 && argv[1] && strcmp (argv[1], "--on-crack") == 0)
+    on_crack = TRUE;
 
   /* create the super interface */
   DFBCHECK (DirectFBCreate( &dfb));
@@ -237,14 +255,23 @@ main (int    argc,
   provider->Release( provider );
 
   /*  create the primary surface  */
-  dsc.flags  = DSDESC_CAPS;
-  dsc.caps   = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
+  dsc.flags = DSDESC_CAPS;
+  dsc.caps  = DSCAPS_PRIMARY;
+  if (!on_crack)
+    dsc.caps |= DSCAPS_FLIPPING;
   DFBCHECK (dfb->CreateSurface( dfb, &dsc, &primary));
 
-  /*  fill screen and backbuffer with tiled background  */
-  tile_screen ();
-  primary->Flip (primary, NULL, 0);
-  tile_screen ();
+  if (on_crack)
+    {
+      clear_screen ();
+    }
+  else
+    {
+      /*  fill screen and backbuffer with tiled background  */
+      tile_screen ();
+      primary->Flip (primary, NULL, 0);
+      tile_screen ();
+    }
 
   /*  create subsurface in the middle of the screen */
   primary->GetSize (primary, &width, &height);
