@@ -567,7 +567,7 @@ dump_mixer_config( const DFBScreenMixerConfig *config )
      }
 
      if (config->flags & DSMCONF_BACKGROUND)
-          printf( "Background:    0x%02x, 0x%02d, 0x%02d (RGB)\n",
+          printf( "Background:    0x%02x, 0x%02x, 0x%02x (RGB)\n",
                   config->background.r, config->background.g, config->background.b );
 
      printf( "\n" );
