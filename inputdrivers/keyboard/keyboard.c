@@ -46,6 +46,7 @@
 
 #include <core/input.h>
 #include <core/vt.h>
+#include <core/sig.h>
 
 #include <misc/conf.h>
 #include <misc/mem.h>
@@ -312,7 +313,10 @@ keyboardEventThread( void *driver_data )
      unsigned char  buf[256];
      KeyboardData  *data = (KeyboardData*) driver_data;
 
-     // Read keyboard data
+     /* block all signals, they must not be handled by this thread */
+     dfb_sig_block_all();
+
+     /* Read keyboard data */
      while ((readlen = read (dfb_vt->fd, buf, 256)) >= 0 || errno == EINTR) {
           int i;
 

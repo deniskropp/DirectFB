@@ -24,6 +24,9 @@
 #ifndef __SIG_H__
 #define __SIG_H__
 
+#include <pthread.h>
+#include <signal.h>
+
 /*
  * installs a signal handler for all signals
  * that would cause the program to terminate
@@ -34,5 +37,21 @@ void dfb_sig_install_handlers();
  * removes all installed handlers
  */
 void dfb_sig_remove_handlers();
+
+
+/*
+ * Modifies the current thread's signal mask to block everything.
+ * Should be called by input threads once to avoid killing themselves
+ * in the signal handler by deinitializing all input drivers.
+ */
+static inline void dfb_sig_block_all()
+{
+     sigset_t signals;
+     
+     sigfillset( &signals );
+
+     if (pthread_sigmask( SIG_BLOCK, &signals, NULL ))
+          PERRORMSG( "DirectFB/Core: Setting signal mask failed!\n" );
+}
 
 #endif

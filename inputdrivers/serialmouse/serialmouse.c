@@ -45,6 +45,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
+#include <core/sig.h>
 
 #include <misc/conf.h>
 #include <misc/mem.h>
@@ -158,6 +159,9 @@ mouseEventThread_ms( void *driver_data )
      int buttons;
      int readlen;
      int i;
+
+     /* block all signals, they must not be handled by this thread */
+     dfb_sig_block_all();
 
      mouse_motion_initialize( data );
 
@@ -275,6 +279,9 @@ mouseEventThread_mousesystems( void *driver_data )
      unsigned char last_buttons = 0;
      int i;
      int readlen;
+
+     /* block all signals, they must not be handled by this thread */
+     dfb_sig_block_all();
 
      mouse_motion_initialize( data );
 

@@ -45,6 +45,7 @@
 #include <misc/mem.h>
 
 #include <core/input.h>
+#include <core/sig.h>
 
 #include <core/input_driver.h>
 
@@ -89,6 +90,9 @@ joystickEventThread (void *driver_data)
      int              len;
      struct js_event  jse;
      JoystickData    *data = (JoystickData*) driver_data;
+
+     /* block all signals, they must not be handled by this thread */
+     dfb_sig_block_all();
 
      while ((len = read( data->fd, &jse,
                          sizeof(struct js_event) )) > 0 || errno == EINTR)

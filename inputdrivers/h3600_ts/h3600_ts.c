@@ -40,6 +40,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
+#include <core/sig.h>
 
 #include <misc/conf.h>
 #include <misc/mem.h>
@@ -66,6 +67,9 @@ static void* h3600tsEventThread( void *driver_data )
      unsigned short old_x = -1;
      unsigned short old_y = -1;
      unsigned short old_pressure = 0;
+
+     /* block all signals, they must not be handled by this thread */
+     dfb_sig_block_all();
 
      while ((readlen = read(data->fd, &ts_event, sizeof(TS_EVENT))) > 0  ||
             errno == EINTR)

@@ -40,6 +40,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/input.h>
+#include <core/sig.h>
 
 #include <misc/mem.h>
 
@@ -181,6 +182,9 @@ dbox2remoteEventThread( void *driver_data )
      __u16            rccode;
      DFBInputEvent    evt;
 
+     /* block all signals, they must not be handled by this thread */
+     dfb_sig_block_all();
+     
      /* set flags once */
      evt.flags = DIEF_KEYCODE;
 

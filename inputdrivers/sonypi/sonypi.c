@@ -40,6 +40,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/input.h>
+#include <core/sig.h>
 
 #include <misc/mem.h>
 
@@ -71,6 +72,9 @@ sonypiEventThread( void *driver_data )
      SonypiData    *data = (SonypiData*) driver_data;
      int            readlen;
      __u8           buffer[16];
+
+     /* block all signals, they must not be handled by this thread */
+     dfb_sig_block_all();
 
      /* loop until error occurs except EINTR */
      while ((readlen = read( data->fd, buffer, 16 )) > 0 || errno == EINTR) {

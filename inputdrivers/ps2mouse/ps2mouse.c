@@ -43,6 +43,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
+#include <core/sig.h>
 
 #include <misc/conf.h>
 #include <misc/mem.h>
@@ -150,6 +151,9 @@ ps2mouseEventThread( void *driver_data )
 
      int readlen;
      unsigned char buf[256];
+
+     /* block all signals, they must not be handled by this thread */
+     dfb_sig_block_all();
 
      ps2mouse_motion_initialize( data );
 

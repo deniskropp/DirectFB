@@ -37,6 +37,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
+#include <core/sig.h>
 
 #include <misc/mem.h>
 
@@ -262,6 +263,9 @@ lircEventThread( void *driver_data )
      int            readlen;
      char           buf[128];
      DFBInputEvent  evt;
+
+     /* block all signals, they must not be handled by this thread */
+     dfb_sig_block_all();
 
      memset( &evt, 0, sizeof(DFBInputEvent) );
 
