@@ -137,7 +137,6 @@ nvcrtc1WaitVSync( CoreScreen *screen,
      volatile __u8    *PCIO  = nvdrv->PCIO;
 
      if (!dfb_config->pollvsync_none) {
-          /* not the right way, use with caution */
           while (  nv_in8( PCIO, 0x3DA ) & 8 );
           while (!(nv_in8( PCIO, 0x3DA ) & 8));
           // the same but uses PCRTC
@@ -195,13 +194,11 @@ nvfb0FlipRegion( CoreLayer           *layer,
                  DFBSurfaceFlipFlags  flags )
 {
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) driver_data;
-     __u32             offset = surface->back_buffer->video.offset;
+     SurfaceBuffer    *buffer = surface->back_buffer;
+     __u32             offset = (buffer->video.offset + nvdrv->fb_offset) &
+                                 nvdrv->fb_mask;
 
      dfb_gfxcard_sync();
-
-     if (nvdrv->chip == 0x2A0)
-          offset += nvdrv->fb_base;
-     offset &= nvdrv->fb_mask;
 
      /* NV_PCRTC_START */
      nv_out32( nvdrv->PCRTC, 0x800, offset );

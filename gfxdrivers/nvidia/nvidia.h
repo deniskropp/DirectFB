@@ -96,6 +96,32 @@ typedef volatile struct {
 } NVClip;
 
 /*
+ * Fixed alpha value (Alphablend)
+ */
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
+     __u32 Reserved01[0x05F];
+     __u32 SetBeta1D31;            /* 0300-0303 */
+     __u32 Reserved02[0x73F];
+} NVBeta1;
+
+/*
+ * ARGB color (Colorizing)
+ */
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
+     __u32 Reserved01[0x05F];
+     __u32 SetBetaFactor;          /* 0300-0303 */
+     __u32 Reserved02[0x73F];
+} NVBeta4;
+
+/*
  * 2D solid rectangle
  */
 typedef volatile struct {
@@ -314,6 +340,8 @@ typedef volatile struct {
           NVSurfaces2D          Surfaces2D;
           NVSurfaces3D          Surfaces3D;
           NVClip                Clip;
+          NVBeta1               Beta1;
+          NVBeta4               Beta4;
           NVRectangle           Rectangle;
           NVTriangle            Triangle;
           NVLine                Line;
@@ -329,47 +357,42 @@ typedef volatile struct {
 
 
 /*
- * Objects ids
- * (used for hash key calculation and FifoSubChannel::SetObject)
+ * Objects IDs;
+ * used for RAMHT offset calculation
  */
 enum {
-     OBJ_SURFACES2D   = 0x80000000,
-     OBJ_CLIP         = 0x80000001,
-     OBJ_RECTANGLE    = 0x80000002,
-     OBJ_TRIANGLE     = 0x80000010,
-     OBJ_LINE         = 0x80000011,
-     OBJ_SCREENBLT    = 0x80000012,
-     OBJ_SCALEDIMAGE  = 0x80000013,
-     OBJ_TEXTRIANGLE  = 0x80000014,
-     OBJ_SURFACES3D   = 0x80000015
+     OBJ_DMA          = 0x00800000,
+     OBJ_SURFACES2D   = 0x00800001,
+     OBJ_CLIP         = 0x00800002,
+     OBJ_BETA1        = 0x00800003,
+     OBJ_BETA4        = 0x00800004,
+     OBJ_RECTANGLE    = 0x00800010,
+     OBJ_TRIANGLE     = 0x00800011,
+     OBJ_LINE         = 0x00800012,
+     OBJ_SCREENBLT    = 0x00800013,
+     OBJ_SCALEDIMAGE  = 0x00800014,
+     OBJ_TEXTRIANGLE  = 0x00800015,
+     OBJ_SURFACES3D   = 0x00800016
 };
 
 /*
- * Objects addresses into context table
- * (PRAMIN + (address)*16)
+ * Objects addresses into context table [PRAMIN + (address)*16]
  */
 enum {
-     ADDR_DMA         = 0x1140,
-     ADDR_SURFACES2D  = 0x1142,
-     ADDR_CLIP        = 0x1143,
-     ADDR_RECTANGLE   = 0x1144,
-     ADDR_TRIANGLE    = 0x1145,
-     ADDR_LINE        = 0x1146,
-     ADDR_SCREENBLT   = 0x1147,
-     ADDR_SCALEDIMAGE = 0x1148,
-     ADDR_TEXTRIANGLE = 0x1149,
-     ADDR_SURFACES3D  = 0x114A
+     ADDR_DMA         = 0x1160,
+     ADDR_SURFACES2D  = 0x1162,
+     ADDR_CLIP        = 0x1163,
+     ADDR_BETA1       = 0x1164,
+     ADDR_BETA4       = 0x1165,
+     ADDR_RECTANGLE   = 0x1166,
+     ADDR_TRIANGLE    = 0x1167,
+     ADDR_LINE        = 0x1168,
+     ADDR_SCREENBLT   = 0x1169,
+     ADDR_SCALEDIMAGE = 0x116A,
+     ADDR_TEXTRIANGLE = 0x116B,
+     ADDR_SURFACES3D  = 0x116C
 };
 
-/*
- * Engine type 
- * (used for context calculation)
- */
-enum {
-     ENGINE_SW        = 0,
-     ENGINE_GRAPHICS  = 1,
-     ENGINE_DVD       = 2
-};
 
 
 typedef struct {
@@ -389,8 +412,9 @@ typedef struct {
      __u32                   depth_pitch;
 
      __u32                   color;
-     __u32                   blitfx;
      __u8                    alpha;
+     __u32                   operation;
+     bool                    argb_src;
 
      /* 3D stuff */
      bool                    enabled_3d; /* 3d engine enabled     */
@@ -423,7 +447,7 @@ enum {
      NV_ARCH_05 = 0x05,
      NV_ARCH_10 = 0x10,
      NV_ARCH_20 = 0x20,
-     NV_ARCH_2A = 0x2A
+     NV_ARCH_30 = 0x30
 };
 
 typedef struct {
@@ -432,7 +456,7 @@ typedef struct {
      __u32                   chip;
      __u32                   arch; /* NV_ARCH_* */
      
-     __u32                   fb_base;
+     __u32                   fb_offset;
      __u32                   fb_mask;
 
      volatile __u8          *mmio_base;
@@ -449,6 +473,8 @@ typedef struct {
      NVSurfaces2D           *Surfaces2D;
      NVSurfaces3D           *Surfaces3D;
      NVClip                 *Clip;
+     NVBeta1                *Beta1;
+     NVBeta4                *Beta4;
      NVRectangle            *Rectangle;
      NVTriangle             *Triangle;
      NVLine                 *Line;

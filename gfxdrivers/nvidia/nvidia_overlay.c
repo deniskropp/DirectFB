@@ -131,10 +131,8 @@ ov0InitLayer( CoreLayer                  *layer,
      /* set video buffers start and limit */
      nvdrv->PVIDEO[0x920/4] = 0;
      nvdrv->PVIDEO[0x924/4] = 0;
-     if (nvdrv->chip != 0x02a0) {
-          nvdrv->PVIDEO[0x908/4] = vram - 1;
-          nvdrv->PVIDEO[0x90C/4] = vram - 1;
-     }
+     nvdrv->PVIDEO[0x908/4] = nvdrv->fb_offset + vram - 1;
+     nvdrv->PVIDEO[0x90C/4] = nvdrv->fb_offset + vram - 1;
  
      /* reset overlay */
      nvov0->brightness = 0;
@@ -267,7 +265,6 @@ ov0SetRegion( CoreLayer                  *layer,
 
      return DFB_OK;
 }
-
 
 static DFBResult
 ov0AllocateSurface( CoreLayer              *layer,
@@ -571,7 +568,6 @@ ov0FlipRegion ( CoreLayer           *layer,
      return DFB_OK;
 }
 
-
 static DFBResult
 ov0UpdateRegion ( CoreLayer           *layer,
                   void                *driver_data,
@@ -628,7 +624,6 @@ ov0UpdateRegion ( CoreLayer           *layer,
 
      return DFB_OK;
 }
-
 
 static DFBResult
 ov0SetColorAdjustment( CoreLayer          *layer,
@@ -707,18 +702,20 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      SurfaceBuffer *buffer  = surface->front_buffer;
      __u32          pitch   = buffer->video.pitch;
 
-     if (nvdrv->chip == 0x2a0) /* GeForce3 XBox */
-          nvov0->regs.NV_PVIDEO_BASE = (nvdrv->fb_base + buffer->video.offset)
-                                        & nvdrv->fb_mask;
-     else
-          nvov0->regs.NV_PVIDEO_BASE = buffer->video.offset & nvdrv->fb_mask;
-
-     nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->height << 16)   | (config->width & 0xffff);
-     nvov0->regs.NV_PVIDEO_POINT_IN  = (config->source.y << 20) | ((config->source.x << 4) & 0xffff);
-     nvov0->regs.NV_PVIDEO_DS_DX     = (config->source.w << 20) / config->dest.w;
-     nvov0->regs.NV_PVIDEO_DT_DY     = (config->source.h << 20) / config->dest.h;
-     nvov0->regs.NV_PVIDEO_POINT_OUT = (config->dest.y << 16)   | (config->dest.x & 0xffff);
-     nvov0->regs.NV_PVIDEO_SIZE_OUT  = (config->dest.h << 16)   | (config->dest.w & 0xffff);
+     nvov0->regs.NV_PVIDEO_BASE      = (buffer->video.offset + nvdrv->fb_offset) &
+                                       nvdrv->fb_mask;
+     nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->height << 16)   |
+                                       (config->width & 0xffff);
+     nvov0->regs.NV_PVIDEO_POINT_IN  = (config->source.y << 20) |
+                                       ((config->source.x << 4) & 0xffff);
+     nvov0->regs.NV_PVIDEO_DS_DX     = (config->source.w << 20) /
+                                        config->dest.w;
+     nvov0->regs.NV_PVIDEO_DT_DY     = (config->source.h << 20) /
+                                        config->dest.h;
+     nvov0->regs.NV_PVIDEO_POINT_OUT = (config->dest.y << 16)   |
+                                       (config->dest.x & 0xffff);
+     nvov0->regs.NV_PVIDEO_SIZE_OUT  = (config->dest.h << 16)   |
+                                       (config->dest.w & 0xffff);
 
      if(config->format != DSPF_UYVY)
           pitch |= 1 << 16;

@@ -87,12 +87,12 @@ DFB_GRAPHICS_DRIVER( nvidia )
                 DFXL_FILLTRIANGLE | DFXL_DRAWLINE)
 
 #define NV4_SUPPORTED_BLITTINGFLAGS \
-               (DSBLIT_NOFX)
+               (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL)
 
 #define NV4_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)
 
-/* TNT2/GeForce(1,2,4) */
+/* TNT2/GeForce(1,2,4MX) */
 #define NV5_SUPPORTED_DRAWINGFLAGS \
                (DSDRAW_BLEND)
 
@@ -107,7 +107,7 @@ DFB_GRAPHICS_DRIVER( nvidia )
 #define NV5_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)
 
-/* GeForce3 */
+/* GeForce(3,4Ti) */
 #define NV20_SUPPORTED_DRAWINGFLAGS \
                (DSDRAW_NOFX)
 
@@ -121,19 +121,20 @@ DFB_GRAPHICS_DRIVER( nvidia )
 #define NV20_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT)
 
-/* GeForce3 Integrated (XBox) */
-#define NV2A_SUPPORTED_DRAWINGFLAGS \
+/* GeForceFX */
+#define NV30_SUPPORTED_DRAWINGFLAGS \
                (DSDRAW_NOFX)
 
-#define NV2A_SUPPORTED_DRAWINGFUNCTIONS \
+#define NV30_SUPPORTED_DRAWINGFUNCTIONS \
                (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | \
                 DFXL_FILLTRIANGLE | DFXL_DRAWLINE)
 
-#define NV2A_SUPPORTED_BLITTINGFLAGS \
+#define NV30_SUPPORTED_BLITTINGFLAGS \
                (DSBLIT_NOFX)
 
-#define NV2A_SUPPORTED_BLITTINGFUNCTIONS \
-               (DFXL_NONE)
+#define NV30_SUPPORTED_BLITTINGFUNCTIONS \
+               (DFXL_BLIT)
+
 
 #define DSBLIT_ALPHABLEND (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL)
 #define DSBLIT_MODULATE   (DSBLIT_ALPHABLEND | DSBLIT_COLORIZE)
@@ -142,26 +143,44 @@ DFB_GRAPHICS_DRIVER( nvidia )
 static inline __u32
 nv_hashkey( __u32 obj )
 {
-     __u32 key;
-
-     key = ((obj >>  0) & 0x000001FF) ^
-           ((obj >>  9) & 0x000001FF) ^
-           ((obj >> 18) & 0x000001FF) ^
-           ((obj >> 27));
+     return ((obj >>  0) & 0x000001FF) ^
+            ((obj >>  9) & 0x000001FF) ^
+            ((obj >> 18) & 0x000001FF) ^
+            ((obj >> 27));
      /* key should be xored with (fifo channel id << 5) too,
       * but, since we always use channel 0, it can be ignored */
-     return (key << 3);
+}
+
+static inline void
+nv_store_dma( NVidiaDriverData *nvdrv, __u32 obj,
+              __u32 addr, __u32 class, __u32 flags,
+              __u32 size, __u32 frame, __u32 access )
+{ 
+     volatile __u32 *PRAMIN = nvdrv->PRAMIN;
+     volatile __u32 *PRAMHT = nvdrv->PRAMHT;
+     __u32           key    = nv_hashkey( obj );
+     __u32           ctx    = addr | (0 << 16) | (1 << 31);
+
+     /* NV_PRAMIN_RAMRO_0 */
+     nv_out32( PRAMIN, (addr << 4) +  0, class | flags );
+     nv_out32( PRAMIN, (addr << 4) +  4, size - 1 );
+     nv_out32( PRAMIN, (addr << 4) +  8, (frame & 0xFFFFF000) | access );
+     nv_out32( PRAMIN, (addr << 4) + 12, 0xFFFFFFFF );
+ 
+     /* store object id and context */
+     nv_out32( PRAMHT, (key << 3) + 0, obj );
+     nv_out32( PRAMHT, (key << 3) + 4, ctx );
 }
 
 static inline void
 nv_store_object( NVidiaDriverData *nvdrv, __u32 obj, 
                  __u32 addr, __u32 class, __u32 flags,
-                 __u32 color, __u32 dma0, __u32 dma1, __u32 engine )
+                 __u32 color, __u32 dma0, __u32 dma1 )
 {
      volatile __u32 *PRAMIN = nvdrv->PRAMIN;
      volatile __u32 *PRAMHT = nvdrv->PRAMHT;
      __u32           key    = nv_hashkey( obj );
-     __u32           ctx    = addr | (engine << 16) | (1 << 31);
+     __u32           ctx    = addr | (1 << 16) | (1 << 31);
 
      /* NV_PRAMIN_CTX_0 */
      nv_out32( PRAMIN, (addr << 4) +  0, class | flags );
@@ -173,8 +192,8 @@ nv_store_object( NVidiaDriverData *nvdrv, __u32 obj,
      nv_out32( PRAMIN, (addr << 4) + 12, 0x00000000 );
 
      /* store object id and context */
-     nv_out32( PRAMHT, key + 0, obj );
-     nv_out32( PRAMHT, key + 4, ctx );
+     nv_out32( PRAMHT, (key << 3) + 0, obj );
+     nv_out32( PRAMHT, (key << 3) + 4, ctx );
 }
 
 static inline void
@@ -182,14 +201,12 @@ nv_set_format( NVidiaDriverData      *nvdrv,
                NVidiaDeviceData      *nvdev,
                DFBSurfacePixelFormat  format )
 {
-     volatile __u32   *PRAMIN      = nvdrv->PRAMIN;
-     NVFifoChannel    *Fifo        = nvdrv->Fifo;
-     NVFifoSubChannel *SubChannel0 = &nvdrv->Fifo->sub[0];
-     NVSurfaces2D     *Surfaces2D  = nvdrv->Surfaces2D;
-     NVSurfaces3D     *Surfaces3D  = nvdrv->Surfaces3D;
-     __u32             sformat2D   = 0;
-     __u32             sformat3D   = 0;
-     __u32             cformat     = 0;
+     volatile __u32   *PRAMIN     = nvdrv->PRAMIN;
+     NVFifoChannel    *Fifo       = nvdrv->Fifo;
+     NVFifoSubChannel *SubChannel = subchannelof(nvdrv->Surfaces2D);
+     __u32             sformat2D  = 0;
+     __u32             sformat3D  = 0;
+     __u32             cformat    = 0;
 
      switch (format) {
           case DSPF_ARGB1555:
@@ -221,20 +238,21 @@ nv_set_format( NVidiaDriverData      *nvdrv,
      nv_out32( PRAMIN, (ADDR_TRIANGLE  << 4) + 4, cformat );
      nv_out32( PRAMIN, (ADDR_LINE      << 4) + 4, cformat );
 
-     nv_waitfifo( nvdev, SubChannel0, 3 );
+     nv_waitfifo( nvdev, SubChannel, 3 );
      Fifo->sub[2].SetObject = OBJ_RECTANGLE;
      Fifo->sub[3].SetObject = OBJ_TRIANGLE;
      Fifo->sub[4].SetObject = OBJ_LINE;
 
      if (nvdev->enabled_3d) {
-          nv_waitfifo( nvdev, SubChannel0, 4 );
-          SubChannel0->SetObject = OBJ_SURFACES2D;
-          Surfaces2D->Format     = sformat2D;
-          SubChannel0->SetObject = OBJ_SURFACES3D;
-          Surfaces3D->Format     = sformat3D;
+          nv_waitfifo( nvdev, SubChannel, 4 );
+          SubChannel->SetObject           = OBJ_SURFACES2D;
+          SubChannel->o.Surfaces2D.Format = sformat2D;
+          SubChannel->SetObject           = OBJ_SURFACES3D;
+          SubChannel->o.Surfaces3D.Format = sformat3D;
      } else {
-          nv_waitfifo( nvdev, SubChannel0, 1 );
-          Surfaces2D->Format     = sformat2D;
+          nv_waitfifo( nvdev, SubChannel, 2 );
+          SubChannel->SetObject           = OBJ_SURFACES2D;
+          SubChannel->o.Surfaces2D.Format = sformat2D;
      }
      
 }
@@ -298,51 +316,29 @@ nv_set_color( NVidiaDriverData *nvdrv,
 }
 
 static inline void
-nv_set_blittingflags( NVidiaDriverData        *nvdrv,
-                      NVidiaDeviceData        *nvdev,
-                      DFBSurfaceBlittingFlags  flags,
-                      DFBColor                 color )
+nv_set_beta1( NVidiaDriverData *nvdrv,
+              NVidiaDeviceData *nvdev,
+              __u8              value )
 {
-     /* we use the 5th bit of nvdev->blitfx to determine if
-      * source format can be set to ARGB */
-     switch (flags) {
-          case DSBLIT_ALPHABLEND:
-               nvdev->blitfx = 0x00000012;
-               if (nvdev->alpha != color.a) {
-                    nv_waitidle( nvdrv, nvdev );
-                    nv_out32( nvdrv->PGRAPH, 0x608, color.a << 23 );
-                    nvdev->alpha = color.a;
-               }
-               break;
-          case DSBLIT_BLEND_ALPHACHANNEL:
-               nvdev->blitfx = 0x00000012;
-               if (nvdev->alpha != 0xFF) {
-                    nv_waitidle( nvdrv, nvdev );
-                    nv_out32( nvdrv->PGRAPH, 0x608, 0x7F800000 );
-                    nvdev->alpha = 0xFF;
-               }
-               break;
-          case DSBLIT_BLEND_COLORALPHA:
-               nvdev->blitfx = 0x00000002;
-               if (nvdev->alpha != color.a) {
-                    nv_waitidle( nvdrv, nvdev );
-                    nv_out32( nvdrv->PGRAPH, 0x608, color.a << 23 );
-                    nvdev->alpha = color.a;
-               }
-               break;
-          case DSBLIT_COLORIZE:
-               nvdev->blitfx = 0x00000004;
-               nv_waitidle( nvdrv, nvdev );
-               nv_out32( nvdrv->PGRAPH, 0x60C, nvdev->color3d );
-               break;
-          case DSBLIT_NOFX:
-               nvdev->blitfx = 0x00000003;
-               break;
-          default:
-               D_BUG( "unexpected blittingflags" );
-               break;
-     }
+     NVFifoSubChannel *SubChannel = subchannelof(nvdrv->Beta1);
+
+     nv_waitfifo( nvdev, SubChannel, 2 );
+     SubChannel->SetObject           = OBJ_BETA1;
+     SubChannel->o.Beta1.SetBeta1D31 = value << 23;
 }
+
+static inline void
+nv_set_beta4( NVidiaDriverData *nvdrv,
+              NVidiaDeviceData *nvdev,
+              __u32             value )
+{
+     NVFifoSubChannel *SubChannel = subchannelof(nvdrv->Beta4);
+     
+     nv_waitfifo( nvdev, SubChannel, 2 );
+     SubChannel->SetObject             = OBJ_BETA4;
+     SubChannel->o.Beta4.SetBetaFactor = value;
+}
+
 
 
 static void nvAfterSetVar( void *driver_data,
@@ -350,100 +346,7 @@ static void nvAfterSetVar( void *driver_data,
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
-     NVFifoChannel    *Fifo  = nvdrv->Fifo;
-     __u32             color = 0;
- 
-     /* unsupported chipset */
-     if (!nvdrv->arch)
-          return;
-
-     switch (dfb_primary_layer_pixelformat()) {
-          case DSPF_LUT8:
-          case DSPF_RGB332:
-               color = 0x00000302;
-               break;
-          case DSPF_ARGB1555:
-               color = 0x00000602;
-               break;
-          case DSPF_RGB16:
-               color = 0x00000C02;
-               break;
-          case DSPF_RGB32:
-               color = 0x00000E02;
-               break;
-          case DSPF_ARGB:
-          default:
-               color = 0x00000D02;
-               break;
-     }
-
-#ifdef WORDS_BIGENDIAN
-# define ENDIAN_FLAG 0x00080000
-#else
-# define ENDIAN_FLAG 0
-#endif
-
-     /* write objects configuration */
-     nv_store_object( nvdrv, OBJ_SURFACES2D, ADDR_SURFACES2D,
-                      0x42, 0x01008000 | ENDIAN_FLAG, 0,
-                      0, 0, ENGINE_GRAPHICS );
-     nv_store_object( nvdrv, OBJ_CLIP, ADDR_CLIP,
-                      0x19, 0x01008000 | ENDIAN_FLAG, 0,
-                      0, 0, ENGINE_GRAPHICS );
-     nv_store_object( nvdrv, OBJ_RECTANGLE, ADDR_RECTANGLE,
-                      0x5E, 0x0100A000 | ENDIAN_FLAG, color,
-                      ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-     nv_store_object( nvdrv, OBJ_TRIANGLE, ADDR_TRIANGLE,
-                      0x5D, 0x0100A000 | ENDIAN_FLAG, color,
-                      ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-     nv_store_object( nvdrv, OBJ_LINE, ADDR_LINE,
-                      0x5C, 0x0100A000 | ENDIAN_FLAG, color,
-                      ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-     nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
-                      0x1F, 0x0100A000 | ENDIAN_FLAG, color,
-                      ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-
-     switch (nvdrv->arch)  {
-          case NV_ARCH_04:
-               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x37, 0x0100A000 | ENDIAN_FLAG, color,
-                                ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
-                                0x54, 0x0300A000 | ENDIAN_FLAG, color,
-                                ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
-                                0x53, 0x01008000 | ENDIAN_FLAG, 0,
-                                0, 0, ENGINE_GRAPHICS );
-               break;
-
-          case NV_ARCH_05:
-               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x63, 0x0100A000 | ENDIAN_FLAG, color,
-                                ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
-                                0x54, 0x0300A000 | ENDIAN_FLAG, color,
-                                ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
-                                0x53, 0x01008000 | ENDIAN_FLAG, 0,
-                                0, 0, ENGINE_GRAPHICS );
-               break;
-
-          case NV_ARCH_10:
-          case NV_ARCH_20:
-          default:
-               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x77, 0x0100A000 | ENDIAN_FLAG, color,
-                                ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
-                                0x94, 0x0300A000 | ENDIAN_FLAG, color,
-                                ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
-               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
-                                0x93, 0x01008000 | ENDIAN_FLAG, 0,
-                                0, 0, ENGINE_GRAPHICS );
-               break;
-     }
-     
-#undef ENDIAN_FLAG
+     NVFifoChannel    *Fifo  = nvdrv->Fifo;   
      
      if (nvdrv->arch == NV_ARCH_10)
           NV_LOAD_STATE( nvdrv->PGRAPH, PGRAPH10 )
@@ -484,29 +387,42 @@ static void nv4CheckState( void *drv, void *dev,
           case DSPF_RGB32:
           case DSPF_ARGB:
                break;
-       
+          
           default:
                return;
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          /* check unsupported blitting flags first */
+          /* check unsupported blitting flags */
           if (state->blittingflags & ~NV4_SUPPORTED_BLITTINGFLAGS)
                return;
 
-          if (accel == DFXL_TEXTRIANGLES &&
-             (source->width > 512 || source->height > 512))
-               return;
+          if (accel == DFXL_TEXTRIANGLES) {
+               if (source->width > 512 || source->height > 512)
+                    return;
+          } else
+          if (state->blittingflags & DSBLIT_ALPHABLEND) {
+               if (state->src_blend != DSBF_SRCALPHA   ||
+                   state->dst_blend != DSBF_INVSRCALPHA)
+                    return;
+          }
 
           switch (source->format) {
                case DSPF_ARGB1555:
+                    if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+                         return;
+                    break;
+                    
                case DSPF_RGB32:
                case DSPF_ARGB:
                     break;
                     
                case DSPF_RGB16:
-                    if (accel == DFXL_STRETCHBLIT || 
-                        destination->format != DSPF_RGB16)
+                    if (accel == DFXL_BLIT  && 
+                       (destination->format != DSPF_RGB16 ||
+                        state->blittingflags != DSBLIT_NOFX))
+                         return;
+                    else if (accel == DFXL_STRETCHBLIT)
                          return;
                     break;
                     
@@ -523,7 +439,7 @@ static void nv4CheckState( void *drv, void *dev,
           state->accel |= accel;
      }
      else {
-          /* check unsupported drawing flags first */
+          /* check unsupported drawing flags */
           if (state->drawingflags & ~NV4_SUPPORTED_DRAWINGFLAGS)
                return;
 
@@ -552,7 +468,7 @@ static void nv5CheckState( void *drv, void *dev,
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          /* check unsupported blitting flags first */
+          /* check unsupported blitting flags */
           if (state->blittingflags & ~NV5_SUPPORTED_BLITTINGFLAGS)
                return;
 
@@ -591,7 +507,7 @@ static void nv5CheckState( void *drv, void *dev,
           state->accel |= accel;
      }
      else {
-          /* check unsupported drawing flags first */
+          /* check unsupported drawing flags */
           if (state->drawingflags & ~NV5_SUPPORTED_DRAWINGFLAGS)
                return;
 
@@ -620,15 +536,15 @@ static void nv20CheckState( void *drv, void *dev,
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          /* check unsupported blitting flags first */
-          if (state->blittingflags & ~NV20_SUPPORTED_BLITTINGFLAGS)
+          /* check unsupported blitting functions/flags */
+          if ((accel & ~NV20_SUPPORTED_BLITTINGFUNCTIONS) ||
+              (state->blittingflags & ~NV20_SUPPORTED_BLITTINGFLAGS))
                return;
 
-          /* TextureTriangles() is disabled for precaution,
-           * we don't know if it really works on NV20 */
-          if (accel == DFXL_TEXTRIANGLES)
+          if (source->format != destination->format)
                return;
 
+#if 0
           /* can't do modulation */
           if (state->blittingflags & DSBLIT_ALPHABLEND) {
                if (state->src_blend != DSBF_SRCALPHA       ||
@@ -645,7 +561,7 @@ static void nv20CheckState( void *drv, void *dev,
                     
                case DSPF_RGB16:
                case DSPF_RGB32:
-               case DSPF_ARGB:     
+               case DSPF_ARGB:
                case DSPF_YUY2:
                case DSPF_UYVY:
                     break;
@@ -653,11 +569,11 @@ static void nv20CheckState( void *drv, void *dev,
                default:
                     return;
           }
-
+#endif
           state->accel |= accel;
      }
      else {
-          /* check unsupported drawing flags first */
+          /* check unsupported drawing flags */
           if (state->drawingflags & ~NV20_SUPPORTED_DRAWINGFLAGS)
                return;
 
@@ -665,11 +581,12 @@ static void nv20CheckState( void *drv, void *dev,
      }
 }
 
-static void nv2ACheckState( void *drv, void *dev,
+static void nv30CheckState( void *drv, void *dev,
                             CardState *state, DFBAccelerationMask accel )
 {
      NVidiaDeviceData *nvdev       = (NVidiaDeviceData*) dev;
      CoreSurface      *destination = state->destination;
+     CoreSurface      *source      = state->source;
 
      (void) nvdev;
 
@@ -684,15 +601,25 @@ static void nv2ACheckState( void *drv, void *dev,
                return;
      }
 
-     if (DFB_BLITTING_FUNCTION( accel ))
-          return;
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          /* check unsupported blitting functions/flags */
+          if ((accel & ~NV30_SUPPORTED_BLITTINGFUNCTIONS) ||
+              (state->blittingflags & ~NV30_SUPPORTED_BLITTINGFLAGS))
+               return;
 
-     if (state->drawingflags & ~NV2A_SUPPORTED_DRAWINGFLAGS)
-          return;
+          if (source->format != destination->format)
+               return;
 
-     state->accel |= accel;
+          state->accel |= accel;
+     }
+     else {
+          /* check unsupported drawing flags */
+          if (state->drawingflags & ~NV30_SUPPORTED_DRAWINGFLAGS)
+               return;
+
+          state->accel |= accel;
+     }
 }
-
 
 static void nv4SetState( void *drv, void *dev,
                          GraphicsDeviceFuncs *funcs,
@@ -792,6 +719,39 @@ static void nv4SetState( void *drv, void *dev,
 
                nvdev->src_width  = state->source->width;
                nvdev->src_height = state->source->height;
+               nvdev->argb_src   = false;
+
+               switch (state->blittingflags) {
+                    case DSBLIT_ALPHABLEND:
+                         nvdev->operation = 0x00000002;
+                         nvdev->argb_src  = true;
+                         if (nvdev->alpha != state->color.a) {
+                              nv_set_beta1( nvdrv, nvdev, state->color.a );
+                              nvdev->alpha = state->color.a;
+                         }
+                         break;
+                    case DSBLIT_BLEND_ALPHACHANNEL:
+                         nvdev->operation = 0x00000002;
+                         nvdev->argb_src  = true;
+                         if (nvdev->alpha != 0xFF) {
+                              nv_set_beta1( nvdrv, nvdev, 0xFF );
+                              nvdev->alpha = 0xFF;
+                         }
+                         break;
+                    case DSBLIT_BLEND_COLORALPHA:
+                         nvdev->operation = 0x00000002;
+                         if (nvdev->alpha != state->color.a) {
+                              nv_set_beta1( nvdrv, nvdev, state->color.a );
+                              nvdev->alpha    = state->color.a;
+                         }
+                         break;
+                    case DSBLIT_NOFX:
+                         nvdev->operation = 0;
+                         break;
+                    default:
+                         D_BUG( "unexpected blittingflags" );
+                         break;
+               }
 
                state->set |= DFXL_BLIT |
                              DFXL_STRETCHBLIT;
@@ -802,9 +762,25 @@ static void nv4SetState( void *drv, void *dev,
                nvdev->src_height = state->source->height;
 
                nvdev->state3d.offset = nvdev->tex_offset;
-               nvdev->state3d.format = 0x119915A1; // 512x512 RGB16
-               nvdev->state3d.blend  = 0x12000167;
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+                    nvdev->state3d.format = 0x119914A1; // 512x512 ARGB4444
+               else
+                    nvdev->state3d.format = 0x119915A1; // 512x512 RGB16
+               
+               if (state->blittingflags != DSBLIT_NOFX) {
+                    nvdev->state3d.blend  = (state->dst_blend << 28) |
+                                            (state->src_blend << 24);
+                    
+                    if (state->blittingflags & DSBLIT_BLEND_COLORALPHA)
+                         nvdev->state3d.blend |= 0x00000164;
+                    else
+                         nvdev->state3d.blend |= 0x00000162;
 
+                    if (state->blittingflags & DSBLIT_ALPHABLEND)
+                         nvdev->state3d.blend |= 0x00100000;
+               } else
+                    nvdev->state3d.blend = 0x12000167;
+               
                if (state->destination->caps & DSCAPS_DEPTH) {
                     buffer = state->destination->depth_buffer;
                     offset = buffer->video.offset & nvdrv->fb_mask;
@@ -827,7 +803,7 @@ static void nv4SetState( void *drv, void *dev,
 
                /* copy/convert source surface to texture buffer */
                nv_put_texture( nvdrv, nvdev, state->source->front_buffer );
-
+               
                state->set |= DFXL_TEXTRIANGLES;
                break;
 
@@ -937,9 +913,42 @@ static void nv5SetState( void *drv, void *dev,
                
                nvdev->src_width  = (state->source->width  + 1) & ~1;
                nvdev->src_height = (state->source->height + 1) & ~1;
+               nvdev->argb_src   = true;
                
-               nv_set_blittingflags( nvdrv, nvdev,
-                         state->blittingflags, state->color );
+               switch (state->blittingflags) {
+                    case DSBLIT_ALPHABLEND:
+                         nvdev->operation = 0x00000002;
+                         if (nvdev->alpha != state->color.a) {
+                              nv_set_beta1( nvdrv, nvdev, state->color.a );
+                              nvdev->alpha = state->color.a;
+                         }
+                         break;
+                    case DSBLIT_BLEND_ALPHACHANNEL:
+                         nvdev->operation = 0x00000002;
+                         if (nvdev->alpha != 0xFF) {
+                              nv_set_beta1( nvdrv, nvdev, 0xFF );
+                              nvdev->alpha = 0xFF;
+                         }
+                         break;
+                    case DSBLIT_BLEND_COLORALPHA:
+                         nvdev->operation = 0x00000002;
+                         nvdev->argb_src  = false;
+                         if (nvdev->alpha != state->color.a) {
+                              nv_set_beta1( nvdrv, nvdev, state->color.a );
+                              nvdev->alpha = state->color.a;
+                         }
+                         break;
+                    case DSBLIT_COLORIZE:
+                         nvdev->operation = 0x00000004;
+                         nv_set_beta4( nvdrv, nvdev, nvdev->color3d );
+                         break;
+                    case DSBLIT_NOFX:
+                         nvdev->operation = 0x00000003;
+                         break;
+                    default:
+                         D_BUG( "unexpected blittingflags" );
+                         break;
+               }
                
                state->set |= DFXL_BLIT |
                              DFXL_STRETCHBLIT;
@@ -1026,7 +1035,8 @@ static void nv20SetState( void *drv, void *dev,
 
      if (modify & SMF_DESTINATION) {
           buffer = state->destination->back_buffer;
-          offset = buffer->video.offset & nvdrv->fb_mask;
+          offset = (buffer->video.offset + nvdrv->fb_offset) &
+                    nvdrv->fb_mask;
 
           if (nvdev->dst_format != buffer->format     ||
               nvdev->dst_offset != offset             ||
@@ -1067,9 +1077,9 @@ static void nv20SetState( void *drv, void *dev,
                break;
 
           case DFXL_BLIT:
-          case DFXL_STRETCHBLIT:
                buffer = state->source->front_buffer;
-               offset = buffer->video.offset & nvdrv->fb_mask;
+               offset = (buffer->video.offset + nvdrv->fb_offset) &
+                         nvdrv->fb_mask;
 
                if (nvdev->src_format != buffer->format     ||
                    nvdev->src_offset != offset             ||
@@ -1087,12 +1097,46 @@ static void nv20SetState( void *drv, void *dev,
 
                nvdev->src_width  = (state->source->width  + 1) & ~1;
                nvdev->src_height = (state->source->height + 1) & ~1;
+               nvdev->argb_src   = true;
                
-               nv_set_blittingflags( nvdrv, nvdev,
-                         state->blittingflags, state->color );
+               switch (state->blittingflags) {
+#if 0
+                    case DSBLIT_ALPHABLEND:
+                         nvdev->operation = 0x00000002;
+                         if (nvdev->alpha != state->color.a) {
+                              nv_set_beta1( nvdrv, nvdev, state->color.a );
+                              nvdev->alpha = state->color.a;
+                         }
+                         break;
+                    case DSBLIT_BLEND_ALPHACHANNEL:
+                         nvdev->operation = 0x00000002;
+                         if (nvdev->alpha != 0xFF) {
+                              nv_set_beta1( nvdrv, nvdev, 0xFF );
+                              nvdev->alpha = 0xFF;
+                         }
+                         break;
+                    case DSBLIT_BLEND_COLORALPHA:
+                         nvdev->operation = 0x00000002;
+                         nvdev->argb_src  = false;
+                         if (nvdev->alpha != state->color.a) {
+                              nv_set_beta1( nvdrv, nvdev, state->color.a );
+                              nvdev->alpha = state->color.a;
+                         }
+                         break;
+                    case DSBLIT_COLORIZE:
+                         nvdev->operation = 0x00000004;
+                         nv_set_beta4( nvdrv, nvdev, nvdev->color3d );
+                         break;
+#endif
+                    case DSBLIT_NOFX:
+                         nvdev->operation = 0x00000003;
+                         break;
+                    default:
+                         D_BUG( "unexpected blittingflags" );
+                         break;
+               }
                
-               state->set |= DFXL_BLIT |
-                             DFXL_STRETCHBLIT;
+               state->set |= DFXL_BLIT;
                break;
 
           default:
@@ -1103,7 +1147,7 @@ static void nv20SetState( void *drv, void *dev,
      state->modified = 0;
 }
 
-static void nv2ASetState( void *drv, void *dev,
+static void nv30SetState( void *drv, void *dev,
                           GraphicsDeviceFuncs *funcs,
                           CardState *state, DFBAccelerationMask accel )
 {
@@ -1121,7 +1165,7 @@ static void nv2ASetState( void *drv, void *dev,
 
      if (modify & SMF_DESTINATION) {
           buffer = state->destination->back_buffer;
-          offset = (buffer->video.offset + nvdrv->fb_base) & nvdrv->fb_mask;
+          offset = buffer->video.offset & nvdrv->fb_mask;
 
           if (nvdev->dst_format != buffer->format     ||
               nvdev->dst_offset != offset             ||
@@ -1131,9 +1175,7 @@ static void nv2ASetState( void *drv, void *dev,
                nv_waitidle( nvdrv, nvdev );
 
                nv_out32( PGRAPH, 0x820, offset );
-               //nv_out32( PGRAPH, 0x828, offset );
                nv_out32( PGRAPH, 0x850, buffer->video.pitch );
-               //nv_out32( PGRAPH, 0x858, buffer->video.pitch );
 
                if (nvdev->dst_format != buffer->format)
                     nv_set_format( nvdrv, nvdev, buffer->format );
@@ -1159,6 +1201,32 @@ static void nv2ASetState( void *drv, void *dev,
                              DFXL_FILLTRIANGLE  |
                              DFXL_DRAWRECTANGLE |
                              DFXL_DRAWLINE;
+               break;
+
+          case DFXL_BLIT:
+               buffer = state->source->front_buffer;
+               offset = buffer->video.offset & nvdrv->fb_mask;
+
+               if (nvdev->src_format != buffer->format     ||
+                   nvdev->src_offset != offset             ||
+                   nvdev->src_pitch  != buffer->video.pitch)
+               {
+                    nv_waitidle( nvdrv, nvdev );
+
+                    nv_out32( PGRAPH, 0x824, offset );
+                    nv_out32( PGRAPH, 0x854, buffer->video.pitch );
+
+                    nvdev->src_format = buffer->format;
+                    nvdev->src_offset = offset;
+                    nvdev->src_pitch  = buffer->video.pitch;
+               }
+
+               nvdev->src_width  = (state->source->width  + 1) & ~1;
+               nvdev->src_height = (state->source->height + 1) & ~1;
+               nvdev->argb_src   = true;
+               nvdev->operation  = 0x00000003; 
+               
+               state->set |= DFXL_BLIT;
                break;
 
           default:
@@ -1191,7 +1259,7 @@ driver_get_info( GraphicsDevice     *device,
      /* fill driver info structure */
      snprintf( info->name,
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
-               "nVidia RIVA TNT/TNT2/GeForce Driver" );
+               "nVidia RivaTNT/RivaTNT2/GeForce Driver" );
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
@@ -1289,10 +1357,15 @@ nv_find_architecture( NVidiaDriverData *nvdrv )
           case 0x0200: /* GeForce3 */
           case 0x0250: /* GeForce4 Ti */
           case 0x0280: /* GeForce4 Ti AGP8X */
+          case 0x02A0: /* GeForce3 Integrated GPU (XBox) */
                arch = NV_ARCH_20;
                break;
-          case 0x02A0: /* GeForce3 Integrated GPU (XBox) */
-               arch = NV_ARCH_2A;
+          case 0x0300: /* GeForce FX 5800 */
+          case 0x0310: /* GeForce FX 5600 */
+          case 0x0320: /* GeForce FX 5200 */
+          case 0x0330: /* GeForce FX 5900 */
+          case 0x0340: /* GeForce FX 5700 */
+               arch = NV_ARCH_30;
                break;
           default:
                break;
@@ -1323,9 +1396,11 @@ driver_init_driver( GraphicsDevice      *device,
      
      nv_find_architecture( nvdrv );
 
-     nvdrv->fb_base = (__u32) dfb_gfxcard_memory_physical( device, 0 );
-     if (nvdrv->arch == NV_ARCH_2A)
-          vram += nvdrv->fb_base & 0x0FFFFFFF;
+     if (nvdrv->chip == 0x02A0) {
+          nvdrv->fb_offset  = (__u32) dfb_gfxcard_memory_physical( device, 0 );
+          nvdrv->fb_offset &= 0x0FFFFFFF;
+          vram             += nvdrv->fb_offset;
+     }
      nvdrv->fb_mask = ((1 << direct_log2( vram )) - 1) & ~63;
      
      nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
@@ -1344,6 +1419,8 @@ driver_init_driver( GraphicsDevice      *device,
      nvdrv->Fifo        = (NVFifoChannel*) (nvdrv->mmio_base + 0x800000);
      nvdrv->Surfaces2D  = &nvdrv->Fifo->sub[0].o.Surfaces2D;
      nvdrv->Surfaces3D  = &nvdrv->Fifo->sub[0].o.Surfaces3D;
+     nvdrv->Beta1       = &nvdrv->Fifo->sub[0].o.Beta1;
+     nvdrv->Beta4       = &nvdrv->Fifo->sub[0].o.Beta4;
      nvdrv->Clip        = &nvdrv->Fifo->sub[1].o.Clip;
      nvdrv->Rectangle   = &nvdrv->Fifo->sub[2].o.Rectangle;
      nvdrv->Triangle    = &nvdrv->Fifo->sub[3].o.Triangle;
@@ -1380,9 +1457,10 @@ driver_init_driver( GraphicsDevice      *device,
                funcs->SetState         = nv20SetState;
                funcs->Blit             = nv5Blit;
                break;
-          case NV_ARCH_2A:
-               funcs->CheckState       = nv2ACheckState;
-               funcs->SetState         = nv2ASetState;
+          case NV_ARCH_30:
+               funcs->CheckState       = nv30CheckState;
+               funcs->SetState         = nv30SetState;
+               funcs->Blit             = nv5Blit;
                break;
           default:
                break;
@@ -1415,7 +1493,7 @@ driver_init_device( GraphicsDevice     *device,
      int               ram_used;
 
      snprintf( device_info->name,
-               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "RIVA TNT/TNT2/GeForce" );
+               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "RivaTNT/RivaTNT2/GeForce" );
 
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nVidia" );
@@ -1442,11 +1520,11 @@ driver_init_device( GraphicsDevice     *device,
                device_info->caps.drawing  = NV20_SUPPORTED_DRAWINGFLAGS;
                device_info->caps.blitting = NV20_SUPPORTED_BLITTINGFLAGS;
                break;
-          case NV_ARCH_2A:
-               device_info->caps.accel    = NV2A_SUPPORTED_DRAWINGFUNCTIONS |
-                                            NV2A_SUPPORTED_BLITTINGFUNCTIONS;
-               device_info->caps.drawing  = NV2A_SUPPORTED_DRAWINGFLAGS;
-               device_info->caps.blitting = NV2A_SUPPORTED_BLITTINGFLAGS;
+          case NV_ARCH_30:
+               device_info->caps.accel    = NV30_SUPPORTED_DRAWINGFUNCTIONS |
+                                            NV30_SUPPORTED_BLITTINGFUNCTIONS;
+               device_info->caps.drawing  = NV30_SUPPORTED_DRAWINGFLAGS;
+               device_info->caps.blitting = NV30_SUPPORTED_BLITTINGFLAGS;
                break;
           default:
                device_info->caps.accel    = 0;
@@ -1471,6 +1549,7 @@ driver_init_device( GraphicsDevice     *device,
                break;
           case NV_ARCH_10:
           case NV_ARCH_20:
+          case NV_ARCH_30:
                ram_unusable = 192 * 1024;
                break;
           default:
@@ -1527,12 +1606,98 @@ driver_init_device( GraphicsDevice     *device,
           nvdev->state3d.fog      = 0;
      }
 
-     nvdev->alpha = 0xFF;
+#ifdef WORDS_BIGENDIAN
+# define ENDIAN_FLAG 0x00080000
+#else
+# define ENDIAN_FLAG 0
+#endif
+
+     /* write dma objects configuration */
+     nv_store_dma( nvdrv, OBJ_DMA, ADDR_DMA,
+                   0x00, 0x00003000, ram_used + nvdrv->fb_offset,
+                   0, 2 );
      
-     /* NV_PGRAPH_ROP3 */
-     nv_out32( nvdrv->PGRAPH, 0x604, 0x000000CC );
-     /* NV_PGRAPH_BETA_AND */
-     nv_out32( nvdrv->PGRAPH, 0x608, 0x7F800000 );
+     /* write graphics objects configuration */
+     nv_store_object( nvdrv, OBJ_SURFACES2D, ADDR_SURFACES2D,
+                      0x42, ENDIAN_FLAG, 0, 0, 0 );
+     nv_store_object( nvdrv, OBJ_CLIP, ADDR_CLIP,
+                      0x19, ENDIAN_FLAG, 0, 0, 0 );
+     nv_store_object( nvdrv, OBJ_BETA1, ADDR_BETA1,
+                      0x12, ENDIAN_FLAG, 0, 0, 0 );
+     nv_store_object( nvdrv, OBJ_BETA4, ADDR_BETA4,
+                      0x72, ENDIAN_FLAG, 0, 0, 0 );
+    
+     nv_store_object( nvdrv, OBJ_RECTANGLE, ADDR_RECTANGLE,
+                      0x5E, 0x0101A000 | ENDIAN_FLAG, 0,
+                      ADDR_DMA, ADDR_DMA );
+     nv_store_object( nvdrv, OBJ_TRIANGLE, ADDR_TRIANGLE,
+                      0x5D, 0x0101A000 | ENDIAN_FLAG, 0,
+                      ADDR_DMA, ADDR_DMA );
+     nv_store_object( nvdrv, OBJ_LINE, ADDR_LINE,
+                      0x5C, 0x0101A000 | ENDIAN_FLAG, 0,
+                      ADDR_DMA, ADDR_DMA );         
+
+     switch (nvdrv->arch)  {
+          case NV_ARCH_04:
+               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
+                                0x1F, 0x03002000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
+                                0x37, 0x03002000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
+                                0x54, 0x03002000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
+                                0x53, ENDIAN_FLAG, 0, 0, 0 );
+               break;
+
+          case NV_ARCH_05:
+               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
+                                0x5F, 0x0301A000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
+                                0x63, 0x0301A000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
+                                0x54, 0x03002000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
+                                0x53, ENDIAN_FLAG, 0, 0, 0 );
+               break;
+
+          case NV_ARCH_10:
+               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
+                                0x5F, 0x0301A000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
+                                0x89, 0x0301A000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
+                                0x94, 0x03002000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
+                                0x93, ENDIAN_FLAG, 0, 0, 0 );
+               break;
+
+          case NV_ARCH_20:
+          case NV_ARCH_30:
+          default: 
+               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
+                                0x9F, 0x0301A000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
+                                0x89, 0x0301A000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
+                                0x94, 0x03002000 | ENDIAN_FLAG, 0,
+                                ADDR_DMA, ADDR_DMA );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
+                                0x93, ENDIAN_FLAG, 0, 0, 0 );
+               break;
+     }
+     
+#undef ENDIAN_FLAG
 
      return DFB_OK;
 }
