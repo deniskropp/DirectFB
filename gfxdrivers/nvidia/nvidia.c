@@ -1446,13 +1446,13 @@ driver_close_device( GraphicsDevice *device,
      D_DEBUG( "DirectFB/NVidia: Conclusion:\n" );
      D_DEBUG( "DirectFB/NVidia:  Average register writes/nvidia_waitfifo"
                " call:%.2f\n",
-               nvdev->waitfifo_sum/(float)(nvdev->waitfifo_calls) );
+               nvdev->waitfifo_sum/(float)(nvdev->waitfifo_calls ? : 1) );
      D_DEBUG( "DirectFB/NVidia:  Average wait cycles/nvidia_waitfifo call:"
                " %.2f\n",
-               nvdev->fifo_waitcycles/(float)(nvdev->waitfifo_calls) );
+               nvdev->fifo_waitcycles/(float)(nvdev->waitfifo_calls ? : 1) );
      D_DEBUG( "DirectFB/NVidia:  Average fifo space cache hits: %02d%%\n",
                (int)(100 * nvdev->fifo_cache_hits/
-               (float)(nvdev->waitfifo_calls)) );
+               (float)(nvdev->waitfifo_calls ? : 1)) );
 }
 
 static void
