@@ -34,6 +34,7 @@
 #include <errno.h>
 
 #include <sys/time.h>
+#include <sys/socket.h>
 
 #include <pthread.h>
 
@@ -407,7 +408,7 @@ IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
      if (data->pipe_fds[0])
           return DFB_BUSY;
 
-     if (pipe( data->pipe_fds ))
+     if (socketpair( PF_LOCAL, SOCK_STREAM, 0, data->pipe_fds ))
           return errno2result( errno );
 
      *fd = data->pipe_fds[0];
