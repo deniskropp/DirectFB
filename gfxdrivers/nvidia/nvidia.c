@@ -568,8 +568,8 @@ static void nv5SetState( void *drv, void *dev,
                     nvdev->src_pitch  = buffer->video.pitch;
                }
 
-               nvdev->src_width  = state->source->width;
-               nvdev->src_height = state->source->height;
+               nvdev->src_width  = (state->source->width  + 1) & ~1;
+               nvdev->src_height = (state->source->height + 1) & ~1;
 
                if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
                     nvdev->blitfx = 0x00000002;
@@ -697,8 +697,8 @@ static void nv20SetState( void *drv, void *dev,
                     nvdev->src_pitch  = buffer->video.pitch;
                }
 
-               nvdev->src_width  = state->source->width;
-               nvdev->src_height = state->source->height;
+               nvdev->src_width  = (state->source->width  + 1) & ~1;
+               nvdev->src_height = (state->source->height + 1) & ~1;
                
                if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
                     nvdev->blitfx = 0x00000002;

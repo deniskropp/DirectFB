@@ -204,8 +204,6 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      NVidiaDriverData       *nvdrv       = (NVidiaDriverData*) drv;
      NVidiaDeviceData       *nvdev       = (NVidiaDeviceData*) dev;
      volatile NVScaledImage *ScaledImage = nvdrv->ScaledImage;
-     __u32                   srcw        = (nvdev->src_width  + 1) & ~1;
-     __u32                   srch        = (nvdev->src_height + 1) & ~1;
      __u32                   format      = 0;
      
      switch (nvdev->src_format) {
@@ -243,7 +241,7 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      ScaledImage->DvDy          = (sr->h << 20) / dr->h;
 
      nv_waitfifo( nvdev, ScaledImage, 4 );
-     ScaledImage->ImageInSize   = (srch << 16) | srcw;
+     ScaledImage->ImageInSize   = (nvdev->src_height << 16) | nvdev->src_width;
      ScaledImage->ImageInFormat = nvdev->src_pitch | 0x01010000;
      ScaledImage->ImageInOffset = nvdev->src_offset;
      ScaledImage->ImageInPoint  = (sr->y << 20) | (sr->x << 4);

@@ -517,18 +517,23 @@ extern DisplayLayerFuncs  nvidiaOverlayFuncs;
 
 #define nv_waitfifo( nvdev, ptr, space )                    \
 {                                                           \
+     int waitcycles = 0;                                    \
+                                                            \
      (nvdev)->waitfifo_sum += (space);                      \
      (nvdev)->waitfifo_calls++;                             \
                                                             \
      if ((nvdev)->fifo_space < (space)) {                   \
           do {                                              \
                (nvdev)->fifo_space = (ptr)->FifoFree >> 2;  \
-               (nvdev)->fifo_waitcycles++;                  \
+               if (++waitcycles > 0x10000) {                \
+                    D_BREAK( "card hung" );                 \
+                    break;                                  \
+               }                                            \
           } while ((nvdev)->fifo_space < (space));          \
-     }                                                      \
-     else {                                                 \
+                                                            \
+          (nvdev)->fifo_waitcycles += waitcycles;           \
+     } else                                                 \
           (nvdev)->fifo_cache_hits++;                       \
-     }                                                      \
                                                             \
      (nvdev)->fifo_space -= (space);                        \
 }
