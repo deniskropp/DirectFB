@@ -587,6 +587,9 @@ void fill_tri( DFBTriangle *tri, CardState *state )
      DFBRectangle rect;
 
      dy = tri->y3 - tri->y1;
+     if (dy == 0)
+        return;
+
      y = MIN(tri->y1, tri->y3);
 
      if (y < state->clip.y1)
@@ -639,7 +642,11 @@ void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 
           gAquire( state, DFXL_FILLTRIANGLE );
 
-          split_x = tri->x1 + (tri->x3 - tri->x1) * (tri->y2 - tri->y1) / (tri->y3 - tri->y1);
+          if (tri->y3 - tri->y1 != 0)
+               split_x = tri->x1 + (tri->x3 - tri->x1) * (tri->y2 - tri->y1) / (tri->y3 - tri->y1);
+          else
+               split_x = (tri->x3 + tri->x1) / 2;
+
           split_y = tri->y2;
 
           t1.x1 = tri->x1; t1.y1 = tri->y1;
