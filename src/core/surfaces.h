@@ -164,12 +164,12 @@ dfb_surface_data_offset( const CoreSurface *surface,
                          int                y )
 {
      DFB_ASSERT( surface != NULL );
-     DFB_ASSUME( data != NULL );
-     DFB_ASSUME( pitch > 0 );
-     DFB_ASSUME( x > 0 );
-     DFB_ASSUME( x < surface->width );
-     DFB_ASSUME( y > 0 );
-     DFB_ASSUME( y < surface->height );
+     DFB_ASSERT( data != NULL );
+     DFB_ASSERT( pitch > 0 );
+     DFB_ASSERT( x >= 0 );
+     DFB_ASSERT( x < surface->width );
+     DFB_ASSERT( y >= 0 );
+     DFB_ASSERT( y < surface->height );
 
      if (surface->caps & DSCAPS_SEPARATED) {
           if (y & 1)
