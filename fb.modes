@@ -15,6 +15,19 @@ mode "640x480 75Hz 32bit"
 endmode
  
 
+mode "768x576 75Hz 16bit"
+    # D: 49.188 MHz, H: 46.580 kHz, V: 75.008 Hz
+    geometry 768 576 768 576 16
+    timings 20330 128 32 32 8 128 5
+endmode
+
+mode "768x576 75Hz 32bit"
+    # D: 49.188 MHz, H: 46.580 kHz, V: 75.008 Hz
+    geometry 768 576 768 576 32
+    timings 20330 128 32 32 8 128 5
+endmode
+
+
 mode "800x600 75Hz 16bit"
     # D: 49.50 MHz, H: 46.875 kHz, V: 75.00 Hz
     geometry 800 600 800 600 16
