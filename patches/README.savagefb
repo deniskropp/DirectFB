@@ -1,0 +1,12 @@
+The Savage frame buffer driver is highly experimental. Use at your own risk.
+
+There are two alternative patches:
+
+ savagefb-0.3.2-linux-2.4.19-pre7.patch  adds basic frame buffer support for
+                                         S3 Savage cards
+
+ savagefb-0.4.0-linux-2.4.17.patch       contains the features of the 0.3.2
+                                         version plus support for accelerated
+                                         fills and blits. Unfortunately it
+                                         doesn't work. Use 'fbset accel -false'
+                                         to turn off acceleration.
