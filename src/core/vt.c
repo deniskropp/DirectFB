@@ -88,12 +88,19 @@ void vt_close()
 
      if (!dfb_config->no_vt_switch) {
           DEBUGMSG( "switching back...\n" );
-          ioctl( vt->fd0, VT_ACTIVATE, vt->prev );
-          ioctl( vt->fd0, VT_WAITACTIVE, vt->prev );
-          DEBUGMSG( "switched back...\n" );
-          ioctl( vt->fd0, VT_DISALLOCATE, vt->num );
+          
+          if (ioctl( vt->fd0, VT_ACTIVATE, vt->prev ) < 0)
+               PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE" );
 
+          if (ioctl( vt->fd0, VT_WAITACTIVE, vt->prev ) < 0)
+               PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE" );
+          
+          DEBUGMSG( "switched back...\n" );
+          
           close( vt->fd );
+          
+          if (ioctl( vt->fd0, VT_DISALLOCATE, vt->num ) < 0)
+               PERRORMSG( "DirectFB/core/vt: Unable to disallocate VT!\n" );
      }
 
      close( vt->fd0 );
