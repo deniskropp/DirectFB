@@ -33,14 +33,15 @@ Xacc_blend_invsrcalpha_MMX:
         movl    Dlength@GOT(%ebx), %eax
         movl    (%eax), %ecx
 
+	movq	einser@GOTOFF(%ebx), %mm7
+        
         cmpl    $0, %esi
         jnz     .blend_from_Sacc
         
-	movl	color@GOT(%ebx), %eax
-	movd	(%eax), %mm0
-
 	movq	zeros@GOTOFF(%ebx), %mm6
-	movq	einser@GOTOFF(%ebx), %mm7
+	
+        movl	color@GOT(%ebx), %eax
+	movd	(%eax), %mm0
 
 
 	punpcklbw %mm6, %mm0		# mm0 = 00aa 00rr 00gg 00bb
@@ -86,13 +87,14 @@ Xacc_blend_invsrcalpha_MMX:
         movq	(%edi), %mm0
         
 	punpckhwd %mm2, %mm2		# mm2 = 00aa 00aa xxxx xxxx
+        movq	  %mm7, %mm1
         punpckhdq %mm2, %mm2		# mm2 = 00aa 00aa 00aa 00aa
         
-        pmullw  %mm0, %mm2
-        psrlw   $8, %mm2
+        psubw   %mm2, %mm1
         
-        psubw   %mm2, %mm0
-	
+        pmullw  %mm1, %mm0
+        psrlw   $8, %mm0
+        
         movq    %mm0, (%edi)
 	
 .SKIP2:

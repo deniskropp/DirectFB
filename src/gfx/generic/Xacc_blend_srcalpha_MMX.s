@@ -33,12 +33,12 @@ Xacc_blend_srcalpha_MMX:
 	movl	Dlength@GOT(%ebx), %eax
 	movl	(%eax), %ecx
 
-	movq	zeros@GOTOFF(%ebx), %mm6
 	movq	ones@GOTOFF(%ebx), %mm7
 
         cmpl    $0, %esi
         jnz     .blend_from_Sacc
 
+	movq	zeros@GOTOFF(%ebx), %mm6
 
 	movl	color@GOT(%ebx), %eax
 	movd	(%eax), %mm0
