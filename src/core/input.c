@@ -890,6 +890,15 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
           case DIKS_PAUSE:
                return DIKI_PAUSE;
 
+          case DIKS_BACKSLASH:
+               return DIKI_BACKSLASH;
+
+          case DIKS_PERIOD:
+               return DIKI_PERIOD;
+
+          case DIKS_COMMA:
+               return DIKI_COMMA;
+
           default:
                ;
      }

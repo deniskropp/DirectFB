@@ -61,6 +61,22 @@ extern "C"
           DIKI_PAGE_UP, DIKI_PAGE_DOWN,
           DIKI_PRINT, DIKI_PAUSE,
 
+          /*  The labels on these keys depend on the type of keyboard.
+           *  We've choosen the names from a US keyboard layout. The
+           *  comments refer to the ISO 9995 terminology.
+           */
+          DIKI_QUOTE_LEFT,    /*  TLDE  */
+          DIKI_MINUS_SIGN,    /*  AE11  */
+          DIKI_EQUALS_SIGN,   /*  AE12  */
+          DIKI_BRACKET_LEFT,  /*  AD11  */
+          DIKI_BRACKET_RIGHT, /*  AD12  */
+          DIKI_BACKSLASH,     /*  BKSL  */
+          DIKI_SEMICOLON,     /*  AC10  */
+          DIKI_QUOTE_RIGHT,   /*  AC11  */
+          DIKI_COMMA,         /*  AB08  */
+          DIKI_PERIOD,        /*  AB09  */
+          DIKI_SLASH,         /*  AB10  */
+
           DIKI_KP_DIV, DIKI_KP_MULT, DIKI_KP_MINUS, DIKI_KP_PLUS,
           DIKI_KP_ENTER, DIKI_KP_SPACE, DIKI_KP_TAB, DIKI_KP_F1,
           DIKI_KP_F2, DIKI_KP_F3, DIKI_KP_F4, DIKI_KP_EQUAL, DIKI_KP_SEPARATOR,

@@ -185,11 +185,23 @@ keyboard_get_identifier( int code, unsigned short value )
      }
 
      /* Looks like a hack, but don't know a better way yet. */
-     if (code == 97)
-          return DIKI_CONTROL_R;
-
-     if (code == 54)
-          return DIKI_SHIFT_R;
+     switch (code) {
+          case 12: return DIKI_MINUS_SIGN;
+          case 13: return DIKI_EQUALS_SIGN;
+          case 26: return DIKI_BRACKET_LEFT;
+          case 27: return DIKI_BRACKET_RIGHT;
+          case 39: return DIKI_SEMICOLON;
+          case 40: return DIKI_QUOTE_RIGHT;
+          case 41: return DIKI_QUOTE_LEFT;
+          case 43: return DIKI_BACKSLASH;
+          case 51: return DIKI_COMMA;
+          case 52: return DIKI_PERIOD;
+          case 53: return DIKI_SLASH;
+          case 54: return DIKI_SHIFT_R;
+          case 97: return DIKI_CONTROL_R;
+          default:
+               ;
+     }
 
      return DIKI_UNKNOWN;
 }
