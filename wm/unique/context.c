@@ -1117,10 +1117,9 @@ handle_motion( UniqueContext *context,
                int            dx,
                int            dy )
 {
-     int               new_cx, new_cy;
-     DFBWindowEvent    we;
-     CoreWindowStack  *stack;
-     CoreWindowConfig  config;
+     int              new_cx, new_cy;
+     DFBWindowEvent   we;
+     CoreWindowStack *stack;
 
      D_MAGIC_ASSERT( context, UniqueContext );
 
@@ -1171,9 +1170,7 @@ handle_motion( UniqueContext *context,
                          else if (opacity > 255)
                               opacity = 255;
 
-                         config.opacity = opacity;
-
-                         unique_window_set_config( window, &config, CWCF_OPACITY );
+                         dfb_window_set_opacity( window->window, opacity );
                     }
 
                     break;
@@ -1192,12 +1189,7 @@ handle_motion( UniqueContext *context,
                          if (width  > 2048) width  = 2048;
                          if (height > 2048) height = 2048;
 
-                         if (width != window->bounds.w || height != window->bounds.h) {
-                              config.bounds.w = width;
-                              config.bounds.h = height;
-
-                              unique_window_set_config( window, &config, CWCF_SIZE );
-                         }
+                         dfb_window_resize( window->window, width, height );
                     }
 
                     break;
@@ -1206,12 +1198,8 @@ handle_motion( UniqueContext *context,
           case 1: {
                     UniqueWindow *window = context->entered_window;
 
-                    if (window && !(window->options & DWOP_KEEP_POSITION)) {
-                         config.bounds.x = window->bounds.x + dx;
-                         config.bounds.y = window->bounds.y + dy;
-
-                         unique_window_set_config( window, &config, CWCF_POSITION );
-                    }
+                    if (window && !(window->options & DWOP_KEEP_POSITION))
+                         dfb_window_move( window->window, dx, dy, true );
 
                     break;
                }
