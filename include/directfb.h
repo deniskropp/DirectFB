@@ -791,6 +791,26 @@ extern "C"
       * devices or display layers can be retrieved by passing the device or
       * layer ID to the corresponding method.
       *
+      * <b>Surfaces</b> for general purpose use can be created via
+      * <i>CreateSurface</i>. These surfaces are so called "offscreen surfaces"
+      * and could be used for sprites or icons.
+      *
+      * The <b>primary surface</b> is an abstraction and API shortcut for
+      * getting a surface for visual output. Fullscreen games for example have
+      * the whole screen as their primary surface. Alternatively fullscreen
+      * applications can be forced to run in a window. The primary surface is
+      * also created via <i>CreateSurface</i> but with the special capability
+      * DSCAPS_PRIMARY.
+      *
+      * The <b>cooperative level</b> selects the type of the primary surface.
+      * With a call to <i>SetCooperativeLevel</i> the application can choose
+      * between the surface of an implicitly created window and the surface
+      * of the primary layer (deactivating the window stack). The application
+      * doesn't need to have any extra functionality to run in a window. If
+      * the application is forced to run in a window the call to
+      * <i>SetCooperativeLevel</i> fails with DFB_ACCESSDENIED. Applications
+      * that want to be "window aware" shouldn't exit on this error.
+      *
       * <i>To be continued...</i>
       */
      DEFINE_INTERFACE(   IDirectFB,
@@ -1069,6 +1089,9 @@ extern "C"
       * IDirectFBDisplayLayer *
       *************************/
 
+     /*
+      * <i>No summary yet...</i>
+      */
      DEFINE_INTERFACE(   IDirectFBDisplayLayer,
 
         /** Retrieving information **/
@@ -1416,6 +1439,9 @@ extern "C"
       * IDirectFBSurface *
       ********************/
 
+     /*
+      * <i>No summary yet...</i>
+      */
      DEFINE_INTERFACE(   IDirectFBSurface,
 
         /** Retrieving information **/
@@ -1891,6 +1917,9 @@ extern "C"
       * IDirectFBInputDevice *
       ************************/
 
+     /*
+      * <i>No summary yet...</i>
+      */
      DEFINE_INTERFACE(   IDirectFBInputDevice,
 
         /** Retrieving information **/
@@ -2181,6 +2210,9 @@ extern "C"
       * IDirectFBEventBuffer *
       ************************/
 
+     /*
+      * <i>No summary yet...</i>
+      */
      DEFINE_INTERFACE(   IDirectFBEventBuffer,
 
 
@@ -2280,6 +2312,9 @@ extern "C"
       * IDirectFBWindow *
       *******************/
 
+     /*
+      * <i>No summary yet...</i>
+      */
      DEFINE_INTERFACE(   IDirectFBWindow,
 
         /** Retrieving information **/
@@ -2546,6 +2581,9 @@ extern "C"
       * IDirectFBFont *
       *****************/
 
+     /*
+      * <i>No summary yet...</i>
+      */
      DEFINE_INTERFACE(   IDirectFBFont,
 
         /** Retrieving information **/
@@ -2672,6 +2710,9 @@ extern "C"
       * IDirectFBImageProvider *
       **************************/
 
+     /*
+      * <i>No summary yet...</i>
+      */
      DEFINE_INTERFACE(   IDirectFBImageProvider,
 
         /** Retrieving information **/
@@ -2734,6 +2775,9 @@ extern "C"
       * IDirectFBVideoProvider *
       **************************/
 
+     /*
+      * <i>No summary yet...</i>
+      */
      DEFINE_INTERFACE(   IDirectFBVideoProvider,
 
         /** Retrieving information **/
