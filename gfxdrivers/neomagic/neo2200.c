@@ -281,16 +281,22 @@ static void neo2200CheckState( void *drv, void *dev,
 
   if (DFB_DRAWING_FUNCTION(accel))
     {
-      /* if there are no other drawing flags than the supported */
-      if (!(state->drawingflags & ~NEO_SUPPORTED_DRAWINGFLAGS))
+      /* if the function is supported and there are no other
+         drawing flags than the supported */
+      if (!(accel & ~NEO_SUPPORTED_DRAWINGFUNCTIONS) &&
+          !(state->drawingflags & ~NEO_SUPPORTED_DRAWINGFLAGS))
         state->accel |= accel;
     }
   else
     {
-      /* if there are no other blitting flags than the supported
-         and the source and destination formats are the same */
-      if (!(state->blittingflags & ~NEO_SUPPORTED_BLITTINGFLAGS)  &&
-          state->source  &&  state->source->format == state->destination->format)
+      /* if the function is supported, there are no other
+         blitting flags than the supported, the source and
+         destination formats are the same and the source and dest.
+         are different due to a blitting bug */
+      if (!(accel & ~NEO_SUPPORTED_BLITTINGFUNCTIONS)             &&
+          !(state->blittingflags & ~NEO_SUPPORTED_BLITTINGFLAGS)  &&
+          state->source != state->destination                     &&
+          state->source->format == state->destination->format)
         state->accel |= accel;
     }
 }
@@ -413,7 +419,7 @@ static void neo2200Blit( void *drv, void *dev,
      __u32 src_start, dst_start;
      __u32 bltCntl = ndev->bltCntl;
 
-     if (rect->x < dx) {
+/*     if (rect->x < dx) {
           rect->x += rect->w - 1;
           dx      += rect->w - 1;
      }
@@ -422,7 +428,7 @@ static void neo2200Blit( void *drv, void *dev,
           rect->y += rect->h - 1;
           dy      += rect->h - 1;
      }
-
+*/
      src_start = rect->y * ndev->srcPitch + rect->x * ndev->srcPixelWidth;
      dst_start = dy * ndev->dstPitch + dx * ndev->dstPixelWidth;
 
