@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.4 $
+ * $Revision: 1.5 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -299,9 +299,10 @@ gxSetState(void *drv, void *dev,
       case DSPF_A8:
          gxdev->Color = state->color.a;
          break;
-      case DSPF_RGB15:
+      case DSPF_ARGB1555:
          gxdev->Color =
-               PIXEL_RGB15(state->color.r, state->color.g, state->color.b);
+               PIXEL_ARGB1555(state->color.a, state->color.r,
+                              state->color.g, state->color.b);
          break;
       case DSPF_RGB16:
          gxdev->Color =

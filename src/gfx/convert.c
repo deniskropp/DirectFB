@@ -26,11 +26,6 @@
 
 #include <directfb.h>
 
-#include <core/core.h>
-#include <core/coredefs.h>
-
-#include <misc/memcpy.h>
-
 #include "convert.h"
 
 
@@ -64,7 +59,7 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
                pixel = PIXEL_RGB332( r, g, b );
                break;
           case DSPF_ARGB1555:
-               pixel = PIXEL_RGB15( r, g, b );
+               pixel = PIXEL_ARGB1555( 0, r, g, b );
                break;
           case DSPF_RGB16:
                pixel = PIXEL_RGB16( r, g, b );
@@ -72,7 +67,7 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
           case DSPF_RGB24:
           case DSPF_RGB32:
           case DSPF_ARGB:
-               pixel = PIXEL_RGB24( r, g, b );
+               pixel = PIXEL_RGB32( r, g, b );
                break;
           default:
                pixel = 0;
@@ -80,161 +75,4 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
 
      return pixel;
 }
-
-
-/* Totally unused yet, not even declared */
-
-#if 0
-
-void dfb_convert_buffer( void                 *src,
-                         void                 *dst,
-                         int                   width,
-                         int                   height,
-                         int                   src_pitch,
-                         int                   dst_pitch,
-                         DFBSurfacePixelFormat src_format,
-                         DFBSurfacePixelFormat dst_format )
-{
-     switch (src_format) {
-          case DSPF_RGB15:
-               switch (dst_format) {
-                    case DSPF_RGB15:
-                         while (height--) {
-                              dfb_memcpy( dst, src, width*2 );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_RGB16:
-                         while (height--) {
-                              span_rgb15_to_rgb16( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_RGB32:
-                         while (height--) {
-                              span_rgb15_to_rgb32( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_ARGB:
-                         while (height--) {
-                              span_rgb15_to_argb( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    default:
-                         ERRORMSG( "DirectFB/gfx: unimplemented conversion!\n");
-                         break;
-               }
-               break;
-          case DSPF_RGB16:
-               switch (dst_format) {
-                    case DSPF_RGB15:
-                         while (height--) {
-                              span_rgb16_to_rgb15( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_RGB16:
-                         while (height--) {
-                              dfb_memcpy( dst, src, width*2 );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_RGB32:
-                         while (height--) {
-                              span_rgb16_to_rgb32( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_ARGB:
-                         while (height--) {
-                              span_rgb16_to_argb( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    default:
-                         ERRORMSG( "DirectFB/gfx: unimplemented conversion!\n");
-                         break;
-               }
-               break;
-          case DSPF_RGB32:
-               switch (dst_format) {
-                    case DSPF_RGB15:
-                         while (height--) {
-                              span_rgb32_to_rgb15( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_RGB16:
-                         while (height--) {
-                              span_rgb32_to_rgb16( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_RGB32:
-                         while (height--) {
-                              dfb_memcpy( dst, src, width*4 );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_ARGB:
-                         while (height--) {
-                              span_rgb32_to_argb( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    default:
-                         ERRORMSG( "DirectFB/gfx: unimplemented conversion!\n");
-                         break;
-               }
-               break;
-          case DSPF_ARGB:
-               switch (dst_format) {
-                    case DSPF_RGB15:
-                         while (height--) {
-                              span_rgb32_to_rgb15( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_RGB16:
-                         while (height--) {
-                              span_rgb32_to_rgb16( src, dst, width );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    case DSPF_RGB32:
-                    case DSPF_ARGB:
-                         while (height--) {
-                              dfb_memcpy( dst, src, width*4 );
-                              ((__u8*)src) += src_pitch;
-                              ((__u8*)dst) += dst_pitch;
-                         }
-                         break;
-                    default:
-                         ERRORMSG( "DirectFB/gfx: unimplemented conversion!\n");
-                         break;
-               }
-               break;
-          default:
-               ERRORMSG( "DirectFB/gfx: unimplemented conversion!\n");
-               break;
-     }
-}
-
-#endif
 

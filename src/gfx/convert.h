@@ -27,11 +27,7 @@
 #ifndef __GFX__CONVERT_H__
 #define __GFX__CONVERT_H__
 
-#include <string.h>
 #include <directfb.h>
-#include <dfb_types.h>
-
-#include <misc/memcpy.h>
 
 
 /* pixel packing */
@@ -45,17 +41,9 @@
                                  (((g)&0xF8) << 2) | \
                                  (((b)&0xF8) >> 3) )
 
-#define PIXEL_RGB15(r,g,b)     ( (((r)&0xF8) << 7) | \
-                                 (((g)&0xF8) << 2) | \
-                                 (((b)&0xF8) >> 3) )
-
 #define PIXEL_RGB16(r,g,b)     ( (((r)&0xF8) << 8) | \
                                  (((g)&0xFC) << 3) | \
                                  (((b)&0xF8) >> 3) )
-
-#define PIXEL_RGB24(r,g,b)     ( ((r) << 16) | \
-                                 ((g) <<  8) | \
-                                  (b) )
 
 #define PIXEL_RGB32(r,g,b)     ( ((r) << 16) | \
                                  ((g) <<  8) | \
@@ -79,39 +67,32 @@
 
 /* packed pixel conversions */
 
-#define RGB15_TO_RGB332(pixel) ( (((pixel) & 0x7000) >> 7) | \
-                                 (((pixel) & 0x0380) >> 5) | \
-                                 (((pixel) & 0x0018) >> 3) )
+#define ARGB1555_TO_RGB332(pixel) ( (((pixel) & 0x7000) >> 7) | \
+                                    (((pixel) & 0x0380) >> 5) | \
+                                    (((pixel) & 0x0018) >> 3) )
 
-#define RGB15_TO_RGB16(pixel)  ( (((pixel) & 0x7C00) << 1) | \
-                                 (((pixel) & 0x03E0) << 1) | \
-                                 (((pixel) & 0x001F)) )
+#define ARGB1555_TO_RGB16(pixel)  ( (((pixel) & 0x7C00) << 1) | \
+                                    (((pixel) & 0x03E0) << 1) | \
+                                    (((pixel) & 0x001F)) )
 
-#define RGB15_TO_RGB24(pixel)  ( (((pixel) & 0x7C00) << 9) | \
-                                 (((pixel) & 0x03E0) << 6) | \
-                                 (((pixel) & 0x001F) << 3) )
+#define ARGB1555_TO_RGB32(pixel)  ( (((pixel) & 0x7C00) << 9) | \
+                                    (((pixel) & 0x03E0) << 6) | \
+                                    (((pixel) & 0x001F) << 3) )
 
-#define RGB15_TO_RGB32(pixel)  ( (((pixel) & 0x7C00) << 9) | \
-                                 (((pixel) & 0x03E0) << 6) | \
-                                 (((pixel) & 0x001F) << 3) )
-
-#define RGB15_TO_ARGB(pixel)   ( 0xFF000000 |                \
-                                 (((pixel) & 0x7C00) << 9) | \
-                                 (((pixel) & 0x03E0) << 6) | \
-                                 (((pixel) & 0x001F) << 3) )
+#define ARGB1555_TO_ARGB(pixel)   ( (((pixel) & 0x8000) ? 0xFF000000 : 0) | \
+                                    (((pixel) & 0x7C00) << 9) | \
+                                    (((pixel) & 0x03E0) << 6) | \
+                                    (((pixel) & 0x001F) << 3) )
 
 
 #define RGB16_TO_RGB332(pixel) ( (((pixel) & 0xE000) >> 8) | \
                                  (((pixel) & 0x0700) >> 6) | \
                                  (((pixel) & 0x0018) >> 3) )
 
-#define RGB16_TO_RGB15(pixel)  ( (((pixel) & 0xF800) >> 1) | \
-                                 (((pixel) & 0x07C0) >> 1) | \
-                                 (((pixel) & 0x001F)) )
-
-#define RGB16_TO_RGB24(pixel)  ( (((pixel) & 0xF800) << 8) | \
-                                 (((pixel) & 0x07E0) << 5) | \
-                                 (((pixel) & 0x001F) << 3) )
+#define RGB16_TO_ARGB1555(pixel)  ( 0x8000 | \
+                                    (((pixel) & 0xF800) >> 1) | \
+                                    (((pixel) & 0x07C0) >> 1) | \
+                                    (((pixel) & 0x001F)) )
 
 #define RGB16_TO_RGB32(pixel)  ( (((pixel) & 0xF800) << 8) | \
                                  (((pixel) & 0x07E0) << 5) | \
@@ -127,15 +108,14 @@
                                  (((pixel) & 0x00E000) >> 11) | \
                                  (((pixel) & 0x0000C0) >> 6) )
 
-#define RGB32_TO_RGB15(pixel)  ( (((pixel) & 0xF80000) >> 9) | \
-                                 (((pixel) & 0x00F800) >> 6) | \
-                                 (((pixel) & 0x0000F8) >> 3) )
+#define RGB32_TO_ARGB1555(pixel)  ( 0x8000 | \
+                                    (((pixel) & 0xF80000) >> 9) | \
+                                    (((pixel) & 0x00F800) >> 6) | \
+                                    (((pixel) & 0x0000F8) >> 3) )
 
 #define RGB32_TO_RGB16(pixel)  ( (((pixel) & 0xF80000) >> 8) | \
                                  (((pixel) & 0x00FC00) >> 5) | \
                                  (((pixel) & 0x0000F8) >> 3) )
-
-#define RGB32_TO_RGB24(pixel)  ( (pixel) & 0x00FFFFFF )
 
 #define RGB32_TO_ARGB1555(pixel) ( 0x8000 | \
                                    (((pixel) & 0xF80000) >> 9) | \
@@ -143,6 +123,12 @@
                                    (((pixel) & 0x0000F8) >> 3) )
 
 #define RGB32_TO_ARGB(pixel)   ( 0xFF000000 | (pixel) )
+
+
+#define ARGB_TO_ARGB1555(pixel)  ( (((pixel) & 0x80000000) >> 16) | \
+                                   (((pixel) & 0x00F80000) >>  9) | \
+                                   (((pixel) & 0x0000F800) >>  6) | \
+                                   (((pixel) & 0x000000F8) >>  3) )
 
 
 /* RGB to YUV */
@@ -162,104 +148,49 @@ DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );
 __u32 dfb_color_to_pixel( DFBSurfacePixelFormat format,
                           __u8 r, __u8 g, __u8 b );
 
-static inline void span_a1_to_argb( __u8 *src, __u32 *dst, int width )
+static inline void
+dfb_argb_to_rgb332( __u32 *src, __u8 *dst, int len )
 {
      int i;
-     for (i = 0; i < width; i++)
-          *dst++ =  PIXEL_ARGB( (src[i>>3] & (1<<(7-(i%8)))) ? 0xFF : 0x0,
-                                0xFF, 0xFF, 0xFF );
+
+     for (i=0; i<len; i++) {
+          register __u32 argb = src[i];
+
+          dst[i] = RGB32_TO_RGB332( argb );
+     }
 }
 
-static inline void span_a1_to_a8( __u8 *src, __u8 *dst, int width )
+static inline void
+dfb_argb_to_argb1555( __u32 *src, __u16 *dst, int len )
 {
      int i;
-     for (i = 0; i < width; i++)
-          *dst++ = (src[i>>3] & (1<<(7-(i%8)))) ? 0xFF : 0x0;
+
+     for (i=0; i<len; i++) {
+          register __u32 argb = src[i];
+
+          dst[i] = ARGB_TO_ARGB1555( argb );
+     }
 }
 
-
-static inline void span_a8_to_argb( __u8 *src, __u32 *dst, int width )
+static inline void
+dfb_argb_to_rgb16( __u32 *src, __u16 *dst, int len )
 {
-     while (width--) *dst++ = PIXEL_ARGB( *src++, 0xFF, 0xFF, 0xFF );
+     int i;
+
+     for (i=0; i<len; i++) {
+          register __u32 argb = src[i];
+
+          dst[i] = RGB32_TO_RGB16( argb );
+     }
 }
 
-
-static inline void span_rgb15_to_rgb16( __u16 *src, __u16 *dst, int width )
+static inline void
+dfb_argb_to_a8( __u32 *src, __u8 *dst, int len )
 {
-     while (width--) *dst++ = RGB15_TO_RGB16( *src ), src++;
-}
+     int i;
 
-static inline void span_rgb15_to_rgb32( __u16 *src, __u32 *dst, int width )
-{
-     while (width--) *dst++ = RGB15_TO_RGB32( *src ), src++;
-}
-
-static inline void span_rgb15_to_argb( __u16 *src, __u32 *dst, int width )
-{
-     while (width--) *dst++ = RGB15_TO_ARGB( *src ), src++;
-}
-
-
-static inline void span_rgb16_to_rgb15( __u16 *src, __u16 *dst, int width )
-{
-     while (width--) *dst++ = RGB16_TO_RGB15( *src ), src++;
-}
-
-static inline void span_rgb16_to_rgb32( __u16 *src, __u32 *dst, int width )
-{
-     while (width--) *dst++ = RGB16_TO_RGB32( *src ), src++;
-}
-
-static inline void span_rgb16_to_argb( __u16 *src, __u32 *dst, int width )
-{
-     while (width--) *dst++ = RGB16_TO_ARGB( *src ), src++;
-}
-
-
-static inline void span_rgb32_to_rgb332( __u32 *src, __u8 *dst, int width )
-{
-     while (width--) *dst++ = RGB32_TO_RGB332( *src ), src++;
-}
-
-static inline void span_rgb32_to_rgb15( __u32 *src, __u16 *dst, int width )
-{
-     while (width--) *dst++ = RGB32_TO_RGB15( *src ), src++;
-}
-
-static inline void span_rgb32_to_argb1555( __u32 *src, __u16 *dst, int width )
-{
-     while (width--) *dst++ = RGB32_TO_ARGB1555( *src ), src++;
-}
-
-static inline void span_rgb32_to_rgb16( __u32 *src, __u16 *dst, int width )
-{
-     while (width--) *dst++ = RGB32_TO_RGB16( *src ), src++;
-}
-
-static inline void span_rgb32_to_argb( __u32 *src, __u32 *dst, int width )
-{
-     while (width--) *dst++ = RGB32_TO_ARGB( *src ), src++;
-}
-
-
-static inline void span_argb_to_a8( __u32 *src, __u8 *dst, int width )
-{
-     while (width--) *dst++ = *src >> 24, src++;
-}
-
-static inline void span_argb_to_rgb15( __u32 *src, __u16 *dst, int width )
-{
-     while (width--) *dst++ = RGB32_TO_RGB15( *src ), src++;
-}
-
-static inline void span_argb_to_rgb16( __u32 *src, __u16 *dst, int width )
-{
-     while (width--) *dst++ = RGB32_TO_RGB16( *src ), src++;
-}
-
-static inline void span_argb_to_rgb32( __u32 *src, __u32 *dst, int width )
-{
-     dfb_memcpy( dst, src, width*4 );
+     for (i=0; i<len; i++)
+          dst[i] = src[i] >> 24;
 }
 
 #endif

@@ -1438,19 +1438,42 @@ dump_screen( const char *directory )
      write( fd, head, strlen(head) );
 
      for (i=0; i<surface->height; i++) {
-          __u32 buf32[surface->width];
-          __u8  buf24[surface->width * 3];
+          int    n3;
+          __u8  *data8  = data;
+          __u16 *data16 = data;
+          __u32 *data32 = data;
 
+          __u8 buf[surface->width * 3];
+          
           switch (surface->format) {
                case DSPF_ARGB1555:
-                    span_rgb15_to_rgb32( data, buf32, surface->width );
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf[n3+0] = (data16[n] & 0x7C00) >> 7;
+                         buf[n3+1] = (data16[n] & 0x03E0) >> 2;
+                         buf[n3+2] = (data16[n] & 0x001F) << 3;
+                    }
                     break;
                case DSPF_RGB16:
-                    span_rgb16_to_rgb32( data, buf32, surface->width );
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf[n3+0] = (data16[n] & 0xF800) >> 8;
+                         buf[n3+1] = (data16[n] & 0x07E0) >> 3;
+                         buf[n3+2] = (data16[n] & 0x001F) << 3;
+                    }
+                    break;
+               case DSPF_RGB24:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf[n3+0] = data8[n3+2];
+                         buf[n3+1] = data8[n3+1];
+                         buf[n3+2] = data8[n3+0];
+                    }
                     break;
                case DSPF_RGB32:
                case DSPF_ARGB:
-                    dfb_memcpy( buf32, data, surface->width * 4 );
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf[n3+0] = (data32[n] & 0xFF0000) >> 16;
+                         buf[n3+1] = (data32[n] & 0x00FF00) >>  8;
+                         buf[n3+2] = (data32[n] & 0x0000FF);
+                    }
                     break;
                default:
                     ONCE( "screendump for this format not yet implemented" );
@@ -1459,13 +1482,7 @@ dump_screen( const char *directory )
                     return;
           }
 
-          for (n=0; n<surface->width; n++) {
-               buf24[n*3+0] = (buf32[n] >> 16) & 0xff;
-               buf24[n*3+1] = (buf32[n] >>  8) & 0xff;
-               buf24[n*3+2] = (buf32[n]      ) & 0xff;
-          }
-
-          write( fd, buf24, surface->width * 3 );
+          write( fd, buf, surface->width * 3 );
 
           data += pitch;
      }

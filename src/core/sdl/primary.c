@@ -41,6 +41,7 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
+#include <misc/memcpy.h>
 
 #include <SDL.h>
 

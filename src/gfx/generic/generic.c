@@ -3068,7 +3068,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                gfxs->Cop = PIXEL_RGB16( color.r, color.g, color.b );
                break;
           case DSPF_RGB24:
-               gfxs->Cop = PIXEL_RGB24( color.r, color.g, color.b );
+               gfxs->Cop = PIXEL_RGB32( color.r, color.g, color.b );
                break;
           case DSPF_RGB32:
                gfxs->Cop = PIXEL_RGB32( color.r, color.g, color.b );

@@ -69,6 +69,7 @@
 
 #include <misc/conf.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 #include <misc/util.h>
 
 /*

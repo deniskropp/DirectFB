@@ -274,9 +274,10 @@ i810_set_color(I810DriverData *i810drv,
 		i810drv->color_value = state->color_index;
 		break;
 	case DSPF_ARGB1555:
-		i810drv->color_value = PIXEL_RGB15(state->color.r,
-						   state->color.g,
-						   state->color.b);
+		i810drv->color_value = PIXEL_ARGB1555(state->color.a,
+                                                      state->color.r,
+						      state->color.g,
+						      state->color.b);
 		break;
 	case DSPF_RGB16:
 		i810drv->color_value = PIXEL_RGB16(state->color.r,

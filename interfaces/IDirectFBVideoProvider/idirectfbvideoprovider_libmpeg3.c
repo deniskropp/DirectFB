@@ -242,7 +242,7 @@ RGB888_to_ARGB1555( void *d, void *s, int len )
      __u8  *src = (__u8*) s;
 
      for (i=0; i<len; i++) {
-          dst[i] = 0x8000 | PIXEL_RGB15( src[0], src[1], src[2] );
+          dst[i] = PIXEL_ARGB1555( 0xff, src[0], src[1], src[2] );
 
           src += 3;
      }

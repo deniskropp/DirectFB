@@ -188,7 +188,7 @@ void matrox_validate_color( MatroxDriverData *mdrv,
                color |= color << 16;
                break;
           case DSPF_RGB24:
-               color = PIXEL_RGB24( state->color.r,
+               color = PIXEL_RGB32( state->color.r,
                                     state->color.g,
                                     state->color.b );
                color |= color << 24;

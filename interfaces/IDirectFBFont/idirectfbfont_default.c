@@ -38,6 +38,7 @@
 #include <misc/tree.h>
 #include <misc/utf8.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 
 #include "default_font.h"
 
@@ -74,12 +75,12 @@ Construct( IDirectFBFont      *thiz,
            const char         *filename,
            DFBFontDescription *desc )
 {
-     CoreFont      *font;
-     CoreSurface   *surface;
-     void          *dst;
-     unsigned char *pixels;
-     int            pitch;
-     int            i;
+     CoreFont    *font;
+     CoreSurface *surface;
+     void        *dst;
+     __u8        *pixels;
+     int          pitch;
+     int          i;
 
      HEAVYDEBUGMSG( "DirectFB/FontDefault: Construct default font");
 
@@ -170,10 +171,14 @@ Construct( IDirectFBFont      *thiz,
      dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );
 
      for (i = 1; i < font_desc.height; i++) {
+          int    n;
+          __u32 *dst32 = dst;
+
           pixels += font_desc.preallocated[0].pitch;
           switch (surface->format) {
                case DSPF_ARGB:
-                    span_a8_to_argb(pixels, dst, font_desc.width);
+                    for (n=0; n<font_desc.width; n++)
+                         dst32[n] = (pixels[n] << 24) | 0xFFFFFF;
                     break;
                case DSPF_A8:
                     dfb_memcpy(dst, pixels, font_desc.width);

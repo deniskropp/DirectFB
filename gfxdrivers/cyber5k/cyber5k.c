@@ -216,10 +216,6 @@ cyber5k_validate_color( CyberDriverData *cdrv,
                                          state->color.b );
                break;
           case DSPF_RGB24:
-               fill_color = PIXEL_RGB24( state->color.r,
-                                         state->color.g,
-                                         state->color.b );
-               break;
           case DSPF_RGB32:
                fill_color = PIXEL_RGB32( state->color.r,
                                          state->color.g,

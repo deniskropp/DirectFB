@@ -385,7 +385,7 @@ ovlSetDstColorKey( DisplayLayer *layer,
 	
 	switch(dfb_primary_layer_pixelformat()) {
 	case DSPF_ARGB1555:
-		i810ovl->regs->dclrkv = PIXEL_RGB15(r, g, b);
+		i810ovl->regs->dclrkv = PIXEL_ARGB1555(0, r, g, b);
 		break;
 	case DSPF_RGB16:
 		i810ovl->regs->dclrkv = PIXEL_RGB16(r, g, b);
