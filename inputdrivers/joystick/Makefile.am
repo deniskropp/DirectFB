@@ -11,8 +11,7 @@ joystick_LTLIBRARIES = libdirectfb_joystick.la
 joystickdir = $(LIBDIR)/inputdrivers
 
 libdirectfb_joystick_la_SOURCES =	\
-	joystick.c	\
-	joystick.h
+	joystick.c
 
 libdirectfb_joystick_la_LDFLAGS = \
         -export-dynamic		\

@@ -28,21 +28,10 @@
 
 #include <pthread.h>
 
+#include "reactor.h"
+
 typedef struct _InputDevice InputDevice;
 
-/*
- * callback function for input device listener
- */
-typedef void (*InputDeviceNotify)( DFBInputEvent *evt, void *ctx );
-
-typedef struct _InputDeviceListener {
-     InputDeviceNotify             notify;   /* called when an input event
-                                                arrives */
-     void                          *ctx;     /* passed to notify callback,
-                                                for listener specific data */
-
-     struct _InputDeviceListener   *next;
-} InputDeviceListener;
 
 typedef struct {
      int  (*Probe)();
@@ -80,12 +69,7 @@ struct _InputDevice {
      int                           number;             /* for drivers providing
                                                           multiple devices */
 
-
-     /* these are private input core fields */
-     pthread_mutex_t               listeners_mutex;    /* for synchronized
-                                                          access to listeners */
-     InputDeviceListener           *listeners;         /* list of input event
-                                                          listeners */
+     Reactor                      *reactor;            /* event dispatcher */
 
      pthread_t                     event_thread;       /* EventThread handle */
 
@@ -100,23 +84,6 @@ extern InputDevice *inputdevices;
  * core init function, probes all input drivers and creates devices of them
  */
 DFBResult input_init_devices();
-
-/*
- * adds a listener to the device's listeners
- */
-DFBResult input_add_listener( InputDevice *device,
-                               InputDeviceNotify notify, void *ctx );
-
-/*
- * removes a listener from the device's listeners
- */
-DFBResult input_remove_listener( InputDevice *device, void *ctx );
-
-/*
- * called by input threads to post an event, notifies all listeners
- */
-void input_dispatch( InputDevice *device, DFBInputEvent event );
-
 
 DFBResult input_suspend();
 DFBResult input_resume();

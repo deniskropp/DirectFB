@@ -21,17 +21,27 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __JOYSTICK_H__
-#define __JOYSTICK_H__
+#ifndef __REACTOR_H__
+#define __REACTOR_H__
 
-#include "core/input.h"
 
-/* driver functions */
-int  joystick_probe();
-int  joystick_init(InputDevice *device);
-void joystick_deinit(InputDevice *device);
 
-/* device functions */
-void* joystickEventThread(void *device);
+typedef struct _Reactor Reactor;
+
+typedef void (*React) (const void *msg_data, void *ctx);
+
+Reactor *reactor_new      ();
+void     reactor_free     (Reactor    *reactor);
+void     reactor_attach   (Reactor    *reactor,
+                           React       react,
+                           void       *ctx);
+void     reactor_detach   (Reactor    *reactor,
+                           React       react,
+                           void       *ctx);
+void     reactor_dispatch (Reactor    *reactor,
+                           const void *msg_data);
+
+
 
 #endif
+

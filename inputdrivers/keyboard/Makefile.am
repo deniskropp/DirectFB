@@ -11,8 +11,7 @@ keyboard_LTLIBRARIES = libdirectfb_keyboard.la
 keyboarddir = $(LIBDIR)/inputdrivers
 
 libdirectfb_keyboard_la_SOURCES =	\
-	keyboard.c	\
-	keyboard.h
+	keyboard.c
 
 libdirectfb_keyboard_la_LDFLAGS = \
         -export-dynamic		\

@@ -48,7 +48,7 @@
 static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
                                  int width, int height, int erase );
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
-static void windowstack_input_notify( DFBInputEvent *evt, void *ctx );
+static void windowstack_inputdevice_react( const void *msg_data, void *ctx );
 static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack );
 
 
@@ -79,8 +79,8 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
           switch (DIDID_TYPE(inputdevice->id)) {
                case DIDT_KEYBOARD:
                case DIDT_MOUSE:
-                    input_add_listener( inputdevice,
-                                        windowstack_input_notify, stack );
+                    reactor_attach( inputdevice->reactor,
+                                    windowstack_inputdevice_react, stack );
                     break;
                default:
                     break;
@@ -106,7 +106,8 @@ void windowstack_destroy( CoreWindowStack *stack )
           switch (DIDID_TYPE(inputdevice->id)) {
                case DIDT_KEYBOARD:
                case DIDT_MOUSE:
-                    input_remove_listener( inputdevice, stack );
+                    reactor_detach( inputdevice->reactor,
+                                    windowstack_inputdevice_react, stack );
                     break;
                default:
                     break;
@@ -826,11 +827,13 @@ static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y )
      return NULL;
 }
 
-static void windowstack_input_notify( DFBInputEvent *evt, void *ctx )
+static void windowstack_inputdevice_react( const void *msg_data, void *ctx )
 {
-     CoreWindow *window = NULL;
-     DFBWindowEvent we;
-     CoreWindowStack *stack = (CoreWindowStack*)ctx;
+     const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
+
+     DFBWindowEvent   we;
+     CoreWindow      *window = NULL;
+     CoreWindowStack *stack  = (CoreWindowStack*)ctx;
 
      switch (evt->type) {
           case DIET_KEYPRESS:

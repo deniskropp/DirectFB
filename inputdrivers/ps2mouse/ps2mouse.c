@@ -28,67 +28,24 @@
 #include <errno.h>
 
 #include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/kd.h>
+#include <sys/vt.h>
+
+#include <linux/keyboard.h>
+
+#include <termios.h>
 
 #include <directfb.h>
 
 #include <misc/conf.h>
 
 #include <core/coredefs.h>
-#include <core/vt.h>
+#include <core/input.h>
 
-#include "ps2mouse.h"
 
 static int fd = -1;
 
-
-int driver_probe()
-{
-     fd = open( "/dev/psaux", O_RDONLY );
-     if (fd < 0) {
-          fd = open( "/dev/input/mice", O_RDONLY );
-          if (fd < 0) {
-               return 0;
-          }
-     }
-     close( fd );
-
-     return 1;
-}
-
-int driver_init(InputDevice *device)
-{
-     fd = open( "/dev/psaux", O_RDONLY );
-     if (fd < 0) {
-          fd = open( "/dev/input/mice", O_RDONLY );
-          if (fd < 0) {
-               PERRORMSG( "DirectFB/PS2Mouse: Error opening `/dev/psaux' or `/dev/input/mice' !\n" );
-               return DFB_INIT;
-          }
-     }
-
-     sprintf( device->info.driver_name, "PS/2 Mouse" );
-     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
-
-     device->info.driver_version.major = 0;
-     device->info.driver_version.minor = 9;
-
-     device->id = DIDID_MOUSE;
-     device->desc.caps = DICAPS_AXIS | DICAPS_BUTTONS;
-     device->desc.max_axis = DIAI_Y;
-     device->desc.max_button = DIBI_MIDDLE;     /* TODO: probe!? */
-
-     device->EventThread = ps2mouseEventThread;
-
-     return DFB_OK;
-}
-
-void driver_deinit(InputDevice *device)
-{
-     if (device->number != 0)
-          return;
-
-     close( fd );
-}
 
 static DFBInputEvent x_motion;
 static DFBInputEvent y_motion;
@@ -109,19 +66,20 @@ static inline void ps2mouse_motion_compress( int dx, int dy )
      y_motion.axisrel += dy;
 }
 
-static inline void ps2mouse_motion_realize(void* device)
+static inline void ps2mouse_motion_realize( InputDevice *ps2mouse )
 {
      if (x_motion.axisrel) {
-          input_dispatch( device, x_motion );
+          reactor_dispatch( ps2mouse->reactor, &x_motion );
           x_motion.axisrel = 0;
      }
+
      if (y_motion.axisrel) {
-          input_dispatch( device, y_motion );
+          reactor_dispatch( ps2mouse->reactor, &y_motion );
           y_motion.axisrel = 0;
      }
 }
 
-void* ps2mouseEventThread(void *device)
+static void* ps2mouseEventThread(void *device)
 {
      InputDevice *ps2mouse = (InputDevice*)device;
 
@@ -177,19 +135,19 @@ void* ps2mouseEventThread(void *device)
                               evt.type = (buttons & 0x01) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_LEFT;
-                              input_dispatch( ps2mouse, evt );
+                              reactor_dispatch( ps2mouse->reactor, &evt );
                          }
                          if (changed_buttons & 0x02) {
                               evt.type = (buttons & 0x02) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_RIGHT;
-                              input_dispatch( ps2mouse, evt );
+                              reactor_dispatch( ps2mouse->reactor, &evt );
                          }
                          if (changed_buttons & 0x04) {
                               evt.type = (buttons & 0x04) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_MIDDLE;
-                              input_dispatch( ps2mouse, evt );
+                              reactor_dispatch( ps2mouse->reactor, &evt );
                          }
 
                          last_buttons = buttons;
@@ -206,9 +164,62 @@ void* ps2mouseEventThread(void *device)
      }
 
      if (readlen <= 0 && errno != EINTR)
-          PERRORMSG ("ps2mouse thread died\n");
+          PERRORMSG ("psmouse thread died\n");
 
      pthread_testcancel();
 
      return NULL;
 }
+
+
+/* exported symbols */
+
+int driver_probe()
+{
+     fd = open( "/dev/psaux", O_RDONLY );
+     if (fd < 0) {
+          fd = open( "/dev/input/mice", O_RDONLY );
+          if (fd < 0) {
+               return 0;
+          }
+     }
+     close( fd );
+
+     return 1;
+}
+
+int driver_init(InputDevice *device)
+{
+     fd = open( "/dev/psaux", O_RDONLY );
+     if (fd < 0) {
+          fd = open( "/dev/input/mice", O_RDONLY );
+          if (fd < 0) {
+               PERRORMSG( "DirectFB/PS2Mouse: Error opening `/dev/psaux' or `/dev/input/mice' !\n" );
+               return DFB_INIT;
+          }
+     }
+
+     sprintf( device->info.driver_name, "PS/2 Mouse" );
+     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
+
+     device->info.driver_version.major = 0;
+     device->info.driver_version.minor = 9;
+
+     device->id = DIDID_MOUSE;
+     device->desc.caps = DICAPS_AXIS | DICAPS_BUTTONS;
+     device->desc.max_axis = DIAI_Y;
+     device->desc.max_button = DIBI_MIDDLE;     /* TODO: probe!? */
+
+     device->EventThread = ps2mouseEventThread;
+
+     return DFB_OK;
+}
+
+void driver_deinit(InputDevice *device)
+{
+     if (device->number != 0)
+          return;
+
+     close( fd );
+}
+

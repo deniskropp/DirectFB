@@ -44,7 +44,7 @@
 #include <misc/conf.h>
 
 #include <core/vt.h>
-#include "keyboard.h"
+#include <core/input.h>
 
 static int fd = -1;
 
@@ -58,104 +58,15 @@ static unsigned char lshift = 0;
 static unsigned char rshift = 0;
 #endif
 
-DFBInputDeviceModifierKeys modifier_state = 0;
+static DFBInputDeviceModifierKeys modifier_state = 0;
 
-DFBInputEvent keyboard_handle_code(char code);
-char keyboard_translate(int kb_value);
-char keyboard_get_ascii(int kb_value);
-
-
-int driver_probe()
-{
-     return 1;
-}
-
-int driver_init(InputDevice *device)
-{
-     char buf[32];
-     struct termios ts;
-     const char cursoroff_str[] = "\033[?1;0;0c";
-     const char blankoff_str[] = "\033[9;0]";
-
-     sprintf(buf, "/dev/tty%d", vt->num);
-     fd = open( buf, O_RDWR );
-     if (fd < 0) {
-          if (errno == ENOENT) {
-               sprintf(buf, "/dev/vc/%d", vt->num);
-               fd = open( buf, O_RDWR );
-               if (fd < 0) {
-                    if (errno == ENOENT) {
-                         PERRORMSG( "DirectFB/Keyboard: Couldn't open neither `/dev/tty%d' nor `/dev/vc/%d'!\n", vt->num, vt->num );
-                    }
-                    else {
-                         PERRORMSG( "DirectFB/Keyboard: Error opening `%s'!\n", buf );
-                    }
-
-                    return DFB_INIT;
-               }
-          }
-          else {
-               PERRORMSG( "DirectFB/Keyboard: Error opening `%s'!\n", buf );
-               return DFB_INIT;
-          }
-     }
-     
-     if (dfb_config->kd_graphics) {
-          if (ioctl( fd, KDSETMODE, KD_GRAPHICS ) < 0) {
-               PERRORMSG( "DirectFB/Keyboard: KD_GRAPHICS failed!\n" );
-               return DFB_INIT;
-          }
-     }
-
-     if (ioctl( fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
-          PERRORMSG( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
-          return DFB_INIT;
-     }
-
-     ioctl( 0, TIOCNOTTY, 0 );
-     ioctl( fd, TIOCSCTTY, 0 );
-
-     tcgetattr( fd, &ts );
-     ts.c_cc[VTIME] = 0;
-     ts.c_cc[VMIN] = 1;
-     ts.c_lflag &= ~(ICANON|ECHO|ISIG);
-     ts.c_iflag = 0;
-     tcsetattr( fd, TCSAFLUSH, &ts );
-
-     tcsetpgrp( fd, getpgrp() );
-
-     write( fd, cursoroff_str, strlen(cursoroff_str) );
-     write( fd, blankoff_str, strlen(blankoff_str) );
+static DFBInputEvent keyboard_handle_code(char code);
+static char keyboard_translate(int kb_value);
+static char keyboard_get_ascii(int kb_value);
 
 
 
-     sprintf( device->info.driver_name, "Keyboard" );
-     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
-
-     device->info.driver_version.major = 0;
-     device->info.driver_version.minor = 9;
-     
-     device->id = DIDID_KEYBOARD;
-     device->desc.caps = DICAPS_KEYS;
-     
-     device->EventThread = keyboardEventThread;
-     
-     return DFB_OK;
-}
-
-void driver_deinit(InputDevice *device)
-{
-     if (fd < 0)
-          return;
-
-     ioctl( fd, KDSKBMODE, K_XLATE );
-     ioctl( fd, KDSETMODE, KD_TEXT );
-     close( fd );
-
-     fd = -1;
-}
-
-void* keyboardEventThread(void *device)
+static void* keyboardEventThread(void *device)
 {
      InputDevice *keyboard = (InputDevice*)device;
      
@@ -169,7 +80,12 @@ void* keyboardEventThread(void *device)
           pthread_testcancel();
           
           for (i = 0; i < readlen; i++) {
-               input_dispatch( keyboard, keyboard_handle_code( buf[i] ) );
+               DFBInputEvent evt;
+
+               pthread_testcancel();
+
+               evt = keyboard_handle_code( buf[i] );
+               reactor_dispatch( keyboard->reactor, &evt );
           }
      }
      
@@ -181,7 +97,7 @@ void* keyboardEventThread(void *device)
      return NULL;
 }
 
-DFBInputEvent keyboard_handle_code(char code)
+static DFBInputEvent keyboard_handle_code(char code)
 {
      int keydown;
      struct kbentry entry;
@@ -281,7 +197,7 @@ DFBInputEvent keyboard_handle_code(char code)
      }
 }
 
-char keyboard_get_ascii(int kb_value)
+static char keyboard_get_ascii(int kb_value)
 {
      unsigned char key_type = (kb_value & 0xFF00) >> 8;
      unsigned char key_index = kb_value & 0xFF;
@@ -304,7 +220,7 @@ char keyboard_get_ascii(int kb_value)
      }
 }
 
-char keyboard_translate(int kb_value)
+static char keyboard_translate(int kb_value)
 {
      unsigned char key_type = (kb_value & 0xFF00) >> 8;
      unsigned char key_index = kb_value & 0xFF;
@@ -496,3 +412,97 @@ char keyboard_translate(int kb_value)
 
      return DIKC_UNKNOWN;
 }
+
+
+/* exported symbols */
+
+int driver_probe()
+{
+     return 1;
+}
+
+int driver_init(InputDevice *device)
+{
+     char buf[32];
+     struct termios ts;
+     const char cursoroff_str[] = "\033[?1;0;0c";
+     const char blankoff_str[] = "\033[9;0]";
+
+     sprintf(buf, "/dev/tty%d", vt->num);
+     fd = open( buf, O_RDWR );
+     if (fd < 0) {
+          if (errno == ENOENT) {
+               sprintf(buf, "/dev/vc/%d", vt->num);
+               fd = open( buf, O_RDWR );
+               if (fd < 0) {
+                    if (errno == ENOENT) {
+                         PERRORMSG( "DirectFB/Keyboard: Couldn't open neither `/dev/tty%d' nor `/dev/vc/%d'!\n", vt->num, vt->num );
+                    }
+                    else {
+                         PERRORMSG( "DirectFB/Keyboard: Error opening `%s'!\n", buf );
+                    }
+
+                    return DFB_INIT;
+               }
+          }
+          else {
+               PERRORMSG( "DirectFB/Keyboard: Error opening `%s'!\n", buf );
+               return DFB_INIT;
+          }
+     }
+     
+     if (dfb_config->kd_graphics) {
+          if (ioctl( fd, KDSETMODE, KD_GRAPHICS ) < 0) {
+               PERRORMSG( "DirectFB/Keyboard: KD_GRAPHICS failed!\n" );
+               return DFB_INIT;
+          }
+     }
+
+     if (ioctl( fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
+          PERRORMSG( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
+          return DFB_INIT;
+     }
+
+     ioctl( 0, TIOCNOTTY, 0 );
+     ioctl( fd, TIOCSCTTY, 0 );
+
+     tcgetattr( fd, &ts );
+     ts.c_cc[VTIME] = 0;
+     ts.c_cc[VMIN] = 1;
+     ts.c_lflag &= ~(ICANON|ECHO|ISIG);
+     ts.c_iflag = 0;
+     tcsetattr( fd, TCSAFLUSH, &ts );
+
+     tcsetpgrp( fd, getpgrp() );
+
+     write( fd, cursoroff_str, strlen(cursoroff_str) );
+     write( fd, blankoff_str, strlen(blankoff_str) );
+
+
+
+     sprintf( device->info.driver_name, "Keyboard" );
+     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
+
+     device->info.driver_version.major = 0;
+     device->info.driver_version.minor = 9;
+     
+     device->id = DIDID_KEYBOARD;
+     device->desc.caps = DICAPS_KEYS;
+     
+     device->EventThread = keyboardEventThread;
+     
+     return DFB_OK;
+}
+
+void driver_deinit(InputDevice *device)
+{
+     if (fd < 0)
+          return;
+
+     ioctl( fd, KDSKBMODE, K_XLATE );
+     ioctl( fd, KDSETMODE, KD_TEXT );
+     close( fd );
+
+     fd = -1;
+}
+

@@ -43,7 +43,7 @@
  * processes an event, updates device state 
  * (funcion is added to the event listeners)
  */  
-void IDirectFBInputDevice_Receive( DFBInputEvent *evt, void *ctx );
+static void IDirectFBInputDevice_React( const void *msg_data, void *ctx );
 
 /*
  * private data struct of IDirectFBInputDevice
@@ -65,11 +65,11 @@ typedef struct {
 
 
 
-void IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
+static void IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
 
-     input_remove_listener( data->device, data );
+     reactor_detach( data->device->reactor, IDirectFBInputDevice_React, data );
 
      free( thiz->priv );
      thiz->priv = NULL;
@@ -79,7 +79,7 @@ void IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 #endif
 }
 
-DFBResult IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz )
+static DFBResult IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
 
@@ -91,7 +91,7 @@ DFBResult IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputDevice_Release( IDirectFBInputDevice *thiz )
+static DFBResult IDirectFBInputDevice_Release( IDirectFBInputDevice *thiz )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
 
@@ -105,7 +105,8 @@ DFBResult IDirectFBInputDevice_Release( IDirectFBInputDevice *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputDevice_CreateInputBuffer( IDirectFBInputDevice *thiz,
+static DFBResult IDirectFBInputDevice_CreateInputBuffer(
+                                                  IDirectFBInputDevice  *thiz,
                                                   IDirectFBInputBuffer **buffer)
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
@@ -118,7 +119,8 @@ DFBResult IDirectFBInputDevice_CreateInputBuffer( IDirectFBInputDevice *thiz,
      return IDirectFBInputBuffer_Construct( *buffer, data->device );
 }
 
-DFBResult IDirectFBInputDevice_GetDescription( IDirectFBInputDevice *thiz,
+static DFBResult IDirectFBInputDevice_GetDescription(
+                                               IDirectFBInputDevice      *thiz,
                                                DFBInputDeviceDescription *desc )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
@@ -134,7 +136,7 @@ DFBResult IDirectFBInputDevice_GetDescription( IDirectFBInputDevice *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputDevice_GetKeyState( IDirectFBInputDevice *thiz, 
+static DFBResult IDirectFBInputDevice_GetKeyState( IDirectFBInputDevice *thiz, 
                                             DFBInputDeviceKeyIdentifier keycode,
                                             DFBInputDeviceKeyState *state )
 {
@@ -151,7 +153,7 @@ DFBResult IDirectFBInputDevice_GetKeyState( IDirectFBInputDevice *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputDevice_GetModifiers( IDirectFBInputDevice *thiz, 
+static DFBResult IDirectFBInputDevice_GetModifiers( IDirectFBInputDevice *thiz, 
                                              DFBInputDeviceModifierKeys *modifiers )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
@@ -167,7 +169,7 @@ DFBResult IDirectFBInputDevice_GetModifiers( IDirectFBInputDevice *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputDevice_GetButtons( IDirectFBInputDevice *thiz,
+static DFBResult IDirectFBInputDevice_GetButtons( IDirectFBInputDevice *thiz,
                                            DFBInputDeviceButtonMask *buttons )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
@@ -184,9 +186,10 @@ DFBResult IDirectFBInputDevice_GetButtons( IDirectFBInputDevice *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputDevice_GetButtonState( IDirectFBInputDevice *thiz,
-                                     DFBInputDeviceButtonIdentifier  button,
-                                     DFBInputDeviceButtonState      *state)
+static DFBResult IDirectFBInputDevice_GetButtonState(
+                                         IDirectFBInputDevice           *thiz,
+                                         DFBInputDeviceButtonIdentifier  button,
+                                         DFBInputDeviceButtonState      *state)
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
 
@@ -202,9 +205,9 @@ DFBResult IDirectFBInputDevice_GetButtonState( IDirectFBInputDevice *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputDevice_GetAxis( IDirectFBInputDevice *thiz, 
-                                        DFBInputDeviceAxisIdentifier axis,
-                                        int *pos )
+static DFBResult IDirectFBInputDevice_GetAxis(IDirectFBInputDevice        *thiz, 
+                                              DFBInputDeviceAxisIdentifier axis,
+                                              int                         *pos )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
 
@@ -219,8 +222,8 @@ DFBResult IDirectFBInputDevice_GetAxis( IDirectFBInputDevice *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputDevice_GetXY( IDirectFBInputDevice *thiz, 
-                                      int *x, int *y )
+static DFBResult IDirectFBInputDevice_GetXY( IDirectFBInputDevice *thiz, 
+                                             int *x, int *y )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
 
@@ -252,7 +255,7 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      data->ref = 1;
      data->device = device;
 
-     input_add_listener( device, IDirectFBInputDevice_Receive, data );
+     reactor_attach( data->device->reactor, IDirectFBInputDevice_React, data );
 
      thiz->AddRef = IDirectFBInputDevice_AddRef;
      thiz->Release = IDirectFBInputDevice_Release;
@@ -268,8 +271,12 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      return DFB_OK;
 }
 
-void IDirectFBInputDevice_Receive( DFBInputEvent *evt, void *ctx )
+
+/* internals */
+
+static void IDirectFBInputDevice_React( const void *msg_data, void *ctx )
 {
+     const DFBInputEvent       *evt  = (DFBInputEvent*)msg_data;
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)ctx;
 
      switch (evt->type) {

@@ -36,15 +36,66 @@
 #include <directfb.h>
 
 #include <core/coredefs.h>
+#include <core/input.h>
 
 #include <linux/joystick.h>
-#include "joystick.h"
 
-static int fd[8];
-char devicename[10] ="/dev/jsX";
+static int  fd[8];
+static char devicename[10] ="/dev/jsX";
 
-DFBInputEvent joystick_handle_event(struct js_event jse);
 
+static DFBInputEvent joystick_handle_event(struct js_event jse)
+{     
+     DFBInputEvent event;
+
+     switch (jse.type) {
+          case JS_EVENT_BUTTON:
+               if (jse.value)
+                    event.type = DIET_BUTTONPRESS;                    
+               else 
+                    event.type = DIET_BUTTONRELEASE;
+               
+               event.flags = DIEF_BUTTON;
+               event.button = jse.number;
+               break;
+          case JS_EVENT_AXIS:
+               event.type = DIET_AXISMOTION;
+               event.flags = DIEF_AXISABS;
+               event.axis = jse.number;
+               event.axisabs = jse.value;
+               break;
+     }
+
+     return event;
+}
+
+static void* joystickEventThread(void *device)
+{
+     int readlen;
+     InputDevice *joystick = (InputDevice*)device;
+
+     struct js_event jse;
+
+     while ((readlen = read( fd[((InputDevice*)device)->number], &jse,
+                             sizeof(struct js_event) )) > 0)
+     {
+          DFBInputEvent evt;
+
+          pthread_testcancel();
+
+          evt = joystick_handle_event(jse);
+          reactor_dispatch( joystick->reactor, &evt );
+     }
+
+     if (readlen <= 0 && errno != EINTR)
+          PERRORMSG ("joystick thread died\n");
+     
+     pthread_testcancel();
+     
+     return NULL;
+}
+
+/* exported symbols */
 
 int driver_probe()
 {
@@ -91,53 +142,8 @@ int driver_init(InputDevice *device)
      return DFB_OK;
 }
 
-void* joystickEventThread(void *device)
-{
-     int readlen;
-     InputDevice *joystick = (InputDevice*)device;
-
-     struct js_event jse;
-
-     while ((readlen = read( fd[((InputDevice*)device)->number], &jse,
-                             sizeof(struct js_event) )) > 0)
-     {
-          pthread_testcancel();
-          input_dispatch( joystick, joystick_handle_event(jse) );
-     }
-
-     if (readlen <= 0 && errno != EINTR)
-          PERRORMSG ("joystick thread died\n");
-     
-     pthread_testcancel();
-     
-     return NULL;
-}
-
-DFBInputEvent joystick_handle_event(struct js_event jse)
-{     
-     DFBInputEvent event;
-     switch (jse.type) {
-          case JS_EVENT_BUTTON:
-               if (jse.value)
-                    event.type = DIET_BUTTONPRESS;                    
-               else 
-                    event.type = DIET_BUTTONRELEASE;
-               
-               event.flags = DIEF_BUTTON;
-               event.button = jse.number;
-               break;
-          case JS_EVENT_AXIS:
-               event.type = DIET_AXISMOTION;
-               event.flags = DIEF_AXISABS;
-               event.axis = jse.number;
-               event.axisabs = jse.value;
-               break;
-     }
-     return event;
-}
-
-
 void driver_deinit(InputDevice *device)
 {
      close( fd[device->number] );
 }
+

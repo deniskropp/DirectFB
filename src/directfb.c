@@ -80,8 +80,10 @@ char * DirectFBCheckVersion (unsigned int required_major,
      return NULL;
 }
 
-void keyboard_handler( DFBInputEvent *evt, void *ctx )
+static void keyboard_handler( const void *msg_data, void *ctx )
 {
+     const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
+
      if (evt->type == DIET_KEYPRESS &&
          evt->keycode == DIKC_BACKSPACE &&
          (evt->modifiers & (DIMK_CTRL|DIMK_ALT)) == (DIMK_CTRL|DIMK_ALT))
@@ -137,7 +139,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
           while (d) {
                if (d->id == DIDID_KEYBOARD)
-                    input_add_listener( d, keyboard_handler, NULL );
+                    reactor_attach( d->reactor, keyboard_handler, NULL );
 
                d = d->next;
           }

@@ -33,15 +33,17 @@ libdirectfb_core_la_SOURCES = \
 	input.h			\
 	layers.c		\
 	layers.h		\
+	reactor.c		\
+	reactor.h		\
 	state.c			\
 	state.h			\
 	surfaces.c		\
 	surfaces.h		\
 	surfacemanager.c	\
 	surfacemanager.h	\
-	vt.c			\
-	vt.h			\
 	sig.c			\
 	sig.h			\
 	windows.c		\
-	windows.h
+	windows.h		\
+	vt.c			\
+	vt.h

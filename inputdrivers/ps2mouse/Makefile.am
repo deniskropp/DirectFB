@@ -11,8 +11,7 @@ ps2mouse_LTLIBRARIES = libdirectfb_ps2mouse.la
 ps2mousedir = $(LIBDIR)/inputdrivers
 
 libdirectfb_ps2mouse_la_SOURCES =	\
-	ps2mouse.c	\
-	ps2mouse.h
+	ps2mouse.c
 
 libdirectfb_ps2mouse_la_LDFLAGS = \
         -export-dynamic		\

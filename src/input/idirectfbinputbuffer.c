@@ -35,40 +35,10 @@
 
 #include "idirectfbinputbuffer.h"
 
-/*
- * increments reference count of input buffer
- */
-DFBResult IDirectFBInputBuffer_AddRef( IDirectFBInputBuffer *thiz );
-
-/*
- * decrements reference count, destructs buffer if reference count is 0
- */
-DFBResult IDirectFBInputBuffer_Release( IDirectFBInputBuffer *thiz );
-
-/*
- * flushes the buffer's event queue
- */
-DFBResult IDirectFBInputBuffer_Reset( IDirectFBInputBuffer *thiz );
-
-/*
- * waits until an event is added to buffer's event queue
- */
-DFBResult IDirectFBInputBuffer_WaitForEvent( IDirectFBInputBuffer *thiz );
-
-/*
- * gets and removes next event from buffer's event queue
- */
-DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz, 
-                                         DFBInputEvent *event );
-/*
- * gets next event from buffers's event queue without removing it
- */
-DFBResult IDirectFBInputBuffer_PeekEvent( IDirectFBInputBuffer *thiz, 
-                                          DFBInputEvent *event );
 /* 
- * adds an event to the event queue (funcion is added to the event listeners)
+ * adds an event to the event queue (function is added to the event listeners)
  */
-void IDirectFBInputBuffer_Receive( DFBInputEvent *evt, void *ctx );
+static void IDirectFBInputBuffer_React( const void *msg_data, void *ctx );
 
 
 typedef struct _InputBufferItem
@@ -97,40 +67,12 @@ typedef struct {
 } IDirectFBInputBuffer_data;
 
 
-DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
-                                          InputDevice *device )
-{
-     IDirectFBInputBuffer_data *data;
 
-     data = (IDirectFBInputBuffer_data*)
-         calloc( 1, sizeof(IDirectFBInputBuffer_data) );
-
-     thiz->priv = data;
-     
-     data->ref = 1;
-     
-     input_add_listener( device, IDirectFBInputBuffer_Receive, data );
-     
-     pthread_mutex_init( &data->events_mutex, NULL );
-     pthread_mutex_init( &data->wait, NULL );
-     
-     data->device = device;
-
-     thiz->AddRef = IDirectFBInputBuffer_AddRef;
-     thiz->Release = IDirectFBInputBuffer_Release;
-     thiz->Reset = IDirectFBInputBuffer_Reset;
-     thiz->WaitForEvent = IDirectFBInputBuffer_WaitForEvent;
-     thiz->GetEvent = IDirectFBInputBuffer_GetEvent;
-     thiz->PeekEvent = IDirectFBInputBuffer_PeekEvent;
-     
-     return DFB_OK;
-}
-
-void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
+static void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
 {
      IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
 
-     input_remove_listener( data->device, data );
+     reactor_detach( data->device->reactor, IDirectFBInputBuffer_React, data );
      
      free( thiz->priv );
      thiz->priv = NULL;
@@ -140,7 +82,7 @@ void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
 #endif
 }
 
-DFBResult IDirectFBInputBuffer_AddRef( IDirectFBInputBuffer *thiz )
+static DFBResult IDirectFBInputBuffer_AddRef( IDirectFBInputBuffer *thiz )
 {
      IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
      
@@ -152,7 +94,7 @@ DFBResult IDirectFBInputBuffer_AddRef( IDirectFBInputBuffer *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputBuffer_Release( IDirectFBInputBuffer *thiz )
+static DFBResult IDirectFBInputBuffer_Release( IDirectFBInputBuffer *thiz )
 {
      IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
 
@@ -166,7 +108,7 @@ DFBResult IDirectFBInputBuffer_Release( IDirectFBInputBuffer *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputBuffer_Reset( IDirectFBInputBuffer *thiz )
+static DFBResult IDirectFBInputBuffer_Reset( IDirectFBInputBuffer *thiz )
 {
      IDirectFBInputBuffer_item     *e;
      IDirectFBInputBuffer_data     *data = 
@@ -190,7 +132,7 @@ DFBResult IDirectFBInputBuffer_Reset( IDirectFBInputBuffer *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputBuffer_WaitForEvent( IDirectFBInputBuffer *thiz )
+static DFBResult IDirectFBInputBuffer_WaitForEvent( IDirectFBInputBuffer *thiz )
 {
      IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
 
@@ -210,8 +152,8 @@ DFBResult IDirectFBInputBuffer_WaitForEvent( IDirectFBInputBuffer *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz, 
-                                         DFBInputEvent *event )
+static DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz, 
+                                                DFBInputEvent *event )
 {
      IDirectFBInputBuffer_item     *e;
      IDirectFBInputBuffer_data     *data 
@@ -237,8 +179,8 @@ DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputBuffer_PeekEvent( IDirectFBInputBuffer *thiz,
-                                          DFBInputEvent *event )
+static DFBResult IDirectFBInputBuffer_PeekEvent( IDirectFBInputBuffer *thiz,
+                                                 DFBInputEvent *event )
 {
      IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
 
@@ -253,10 +195,43 @@ DFBResult IDirectFBInputBuffer_PeekEvent( IDirectFBInputBuffer *thiz,
      return DFB_OK;
 }
 
-void IDirectFBInputBuffer_Receive( DFBInputEvent *evt, void *ctx )
+DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
+                                          InputDevice *device )
 {
-     IDirectFBInputBuffer_item     *item;
-     IDirectFBInputBuffer_data     *data = (IDirectFBInputBuffer_data*)ctx;
+     IDirectFBInputBuffer_data *data;
+
+     data = (IDirectFBInputBuffer_data*)
+         calloc( 1, sizeof(IDirectFBInputBuffer_data) );
+
+     thiz->priv = data;
+     
+     data->ref = 1;
+     
+     data->device = device;
+     
+     pthread_mutex_init( &data->events_mutex, NULL );
+     pthread_mutex_init( &data->wait, NULL );
+     
+     reactor_attach( data->device->reactor, IDirectFBInputBuffer_React, data );
+
+     thiz->AddRef = IDirectFBInputBuffer_AddRef;
+     thiz->Release = IDirectFBInputBuffer_Release;
+     thiz->Reset = IDirectFBInputBuffer_Reset;
+     thiz->WaitForEvent = IDirectFBInputBuffer_WaitForEvent;
+     thiz->GetEvent = IDirectFBInputBuffer_GetEvent;
+     thiz->PeekEvent = IDirectFBInputBuffer_PeekEvent;
+     
+     return DFB_OK;
+}
+
+
+/* internals */
+
+static void IDirectFBInputBuffer_React( const void *msg_data, void *ctx )
+{
+     const DFBInputEvent       *evt = (DFBInputEvent*)msg_data;
+     IDirectFBInputBuffer_item *item;
+     IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)ctx;
      
      item = (IDirectFBInputBuffer_item*)
           calloc( 1, sizeof(IDirectFBInputBuffer_item) );

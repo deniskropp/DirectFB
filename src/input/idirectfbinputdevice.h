@@ -31,9 +31,5 @@
  */
 DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
                                           InputDevice *device );
-/*
- * removes input listener and frees private data
- */
-void IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz );
 
 #endif

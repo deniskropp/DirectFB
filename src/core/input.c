@@ -100,6 +100,8 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
                    device->info.driver_version.minor,
                    device->info.driver_vendor );
 
+          device->reactor = reactor_new();
+          
           /* start input thread */
           if (device->EventThread) {
 #ifdef KRANK
@@ -148,16 +150,10 @@ void input_deinit()
      while (d) {
           InputDevice *next = d->next;
 
-          pthread_mutex_lock( &d->listeners_mutex );
-          while (d->listeners) {
-               InputDeviceListener *l = d->listeners;
-               d->listeners = l->next;
-               free( l );
-          }
-          pthread_mutex_unlock( &d->listeners_mutex );
-          
           pthread_cancel( d->event_thread );
           pthread_join( d->event_thread, NULL );
+
+          reactor_free( d->reactor );
 
           d->info.driver->DeInit( d );
 
@@ -216,78 +212,5 @@ DFBResult input_resume()
      DEBUGMSG( "DirectFB/core/input: ...resumed\n" );
      
      return DFB_OK;
-}
-
-DFBResult input_add_listener( InputDevice *device,
-                               InputDeviceNotify notify, void *ctx )
-{
-     InputDeviceListener *listener;
-
-     listener = (InputDeviceListener*) 
-          calloc( 1, sizeof(InputDeviceListener) );
-
-     listener->notify = notify;
-     listener->ctx = ctx;     
-
-     pthread_mutex_lock( &device->listeners_mutex );
-
-     if (!device->listeners) {
-          device->listeners = listener;
-     }
-     else {
-          InputDeviceListener *l = device->listeners;
-
-          while (l->next)
-               l = l->next;
-
-          l->next = listener;
-     }
-
-     pthread_mutex_unlock( &device->listeners_mutex );
-
-     return DFB_OK;
-}
-
-DFBResult input_remove_listener( InputDevice *device, void *ctx )
-{
-     pthread_mutex_lock( &device->listeners_mutex );
-
-     if (device->listeners) {
-          InputDeviceListener *prev = NULL;
-          InputDeviceListener *l = device->listeners;
-
-          while (l) {
-               if (l->ctx == ctx) {
-                    if (prev)
-                         prev->next = l->next;
-                    else
-                         device->listeners = NULL;
-
-                    free( l );
-                    pthread_mutex_unlock( &device->listeners_mutex );
-                    return DFB_OK;
-               }
-               prev = l;
-               l = l->next;
-          }
-     }
-
-     pthread_mutex_unlock( &device->listeners_mutex );
-
-     return DFB_BUG;
-}
-
-void input_dispatch( InputDevice *device, DFBInputEvent event )
-{
-     pthread_mutex_lock( &device->listeners_mutex );
-     {
-          InputDeviceListener *l = device->listeners;
-
-          while (l) {
-               l->notify( &event, l->ctx );
-               l = l->next;
-          }
-     }
-     pthread_mutex_unlock( &device->listeners_mutex );
 }
 
