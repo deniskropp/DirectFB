@@ -607,23 +607,19 @@ static void tdfxFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
      voodoo2D->srcXY = ((tri->y1 & 0x1FFF) << 16) | (tri->x1 & 0x1FFF);
      voodoo2D->command = 8 | (1 << 8) | (0xCC << 24);
 
-     if (tri->y2 == tri->y3) {
-          if (tri->x2 < tri->x3) {
-               voodoo2D->launchArea[0] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
-               voodoo2D->launchArea[1] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
-               voodoo2D->launchArea[2] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
-          }
-          else {
-               voodoo2D->launchArea[0] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
-               voodoo2D->launchArea[1] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
-               voodoo2D->launchArea[2] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
-          }
+     if (tri->x2 < tri->x3) {
+        voodoo2D->launchArea[0] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+        voodoo2D->launchArea[1] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+        voodoo2D->launchArea[2] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+
      }
      else {
-          voodoo2D->launchArea[0] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
-          voodoo2D->launchArea[1] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
-          voodoo2D->launchArea[2] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
-     }
+        voodoo2D->launchArea[0] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+        voodoo2D->launchArea[1] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+        voodoo2D->launchArea[2] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+
+    }
+
 }
 
 static void tdfxFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
@@ -646,6 +642,8 @@ static void tdfxFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
      voodoo3D->vertexCy = S12_4(tri->y3);
 
      voodoo3D->triangleCMD = (1 << 31);
+
+     voodoo3D->triangleCMD = 0;
 }
 
 static void tdfxBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
