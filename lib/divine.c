@@ -128,11 +128,12 @@ divine_send_vt102( DiVine *divine, int size, const char *ansistr )
                case 27:
                     if (ansistr[i+1] == '[' || ansistr[i+1] == 'O') {
                          switch (ansistr[i+2]) {
-                              case 'F':  event.key_symbol = DIKS_END; f = 1; break;
-                              case 'P':  event.key_symbol = DIKS_F1;  f = 1; break;
-                              case 'Q':  event.key_symbol = DIKS_F2;  f = 1; break;
-                              case 'R':  event.key_symbol = DIKS_F3;  f = 1; break;
-                              case 'S':  event.key_symbol = DIKS_F4;  f = 1; break;
+                              case 'F':  event.key_symbol = DIKS_END;  f = 1; break;
+                              case 'H':  event.key_symbol = DIKS_HOME; f = 1; break;
+                              case 'P':  event.key_symbol = DIKS_F1;   f = 1; break;
+                              case 'Q':  event.key_symbol = DIKS_F2;   f = 1; break;
+                              case 'R':  event.key_symbol = DIKS_F3;   f = 1; break;
+                              case 'S':  event.key_symbol = DIKS_F4;   f = 1; break;
                               case '1':  switch (ansistr[i+3]) {
                                         case '6':  event.key_symbol = DIKS_F5;   break;
                                         case '7':  event.key_symbol = DIKS_F6;   break;
