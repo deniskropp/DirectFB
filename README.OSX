@@ -3,10 +3,7 @@ Contents
 1. Creating a build environment for DirectFB unter Mac OS X
 2. Compiling DirectFB and DirectFB-examples
 3. Running the examples
-4. Help wanted
-5. Future plans
-
-
+4. Future plans
 
 
 1. Creating a build environment for DirectFB unter Mac OS X 10.3
@@ -41,10 +38,11 @@ Contents
 
 3. Running the examples
    just type df_andi
-   You will notice that input does not work, that's because - ummm - I forgot
+   You will notice that input does not work, that's because it seems to be
+   neccessary to process input events in the thread that set the video mode.
+   (under linux it works anyway but we seem to violate the specs)
+   
+   see http://www.libsdl.org/pipermail/sdl/2004-February/060190.html
   
-4. Help Wanted
-   If you have an idea how to get input working, contact andi@fischlustig.de
-
-5. Future Plans
+4. Future Plans
    Bypass SDL, write a quartz system
