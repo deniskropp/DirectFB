@@ -307,6 +307,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
                             CoreFont *font, CardState *state );
 
 void dfb_gfxcard_sync();
+void dfb_gfxcard_invalidate_state();
 void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
 void dfb_gfxcard_flush_texture_cache();
 void dfb_gfxcard_after_set_var();

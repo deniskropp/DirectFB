@@ -1641,6 +1641,14 @@ void dfb_gfxcard_sync()
           card->funcs.EngineSync( card->driver_data, card->device_data );
 }
 
+void dfb_gfxcard_invalidate_state()
+{
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+
+     card->shared->state = NULL;
+}
+
 void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
 {
      D_ASSERT( serial != NULL );
