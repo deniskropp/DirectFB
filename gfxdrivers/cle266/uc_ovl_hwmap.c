@@ -460,7 +460,7 @@ void uc_ovl_map_v1_control(DFBSurfacePixelFormat format, int sw,
         }
     }
 
-    if (format == DSPF_YV12) { // Test for DSPF_I420 too? V4L does not.
+    if ((format == DSPF_YV12) || (format == DSPF_I420)) {
         //Minified video will be skewed without this workaround.
         if (sw <= 80) { //Fetch count <= 5
             *fifo = UC_MAP_V1_FIFO_CONTROL(16,0,0);
