@@ -67,6 +67,13 @@ static int keynames_compare (const void *key,
                  ((const struct DFBKeySymbolName *) base)->name);
 }
 
+static int keynames_sort_compare (const void *d1,
+                                  const void *d2)
+{
+  return strcmp (((const struct DFBKeySymbolName *) d1)->name,
+                 ((const struct DFBKeySymbolName *) d2)->name);
+}
+
 static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
 {
      struct DFBKeySymbolName *symbol_name;
@@ -74,9 +81,9 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
 
      if (!keynames_sorted) {
           qsort ( keynames,
-                  sizeof(keynames) / sizeof(keynames[0]) - 1,
+                  sizeof(keynames) / sizeof(keynames[0]),
                   sizeof(keynames[0]),
-                  keynames_compare );
+                  keynames_sort_compare );
           keynames_sorted = true;
      }
 
@@ -101,7 +108,7 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
                return (DFBInputDeviceKeySymbol) name[0];
           default:
                symbol_name = bsearch( name, keynames,
-                                      sizeof(keynames)/sizeof(keynames[0]) - 1,
+                                      sizeof(keynames)/sizeof(keynames[0]),
                                       sizeof(keynames[0]), keynames_compare );
                if (symbol_name)
                     return symbol_name->symbol;
