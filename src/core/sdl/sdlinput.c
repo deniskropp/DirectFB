@@ -132,6 +132,8 @@ sdlEventThread( CoreThread *thread, void *driver_data )
 
                     case SDL_MOUSEBUTTONUP:
                     case SDL_MOUSEBUTTONDOWN:
+                         motion_realize( data );
+                         
                          if (event.type == SDL_MOUSEBUTTONDOWN)
                               evt.type = DIET_BUTTONPRESS;
                          else
@@ -159,8 +161,6 @@ sdlEventThread( CoreThread *thread, void *driver_data )
                     
                     case SDL_KEYUP:
                     case SDL_KEYDOWN:
-                         motion_realize( data );
-                         
                          if (event.type == SDL_KEYDOWN)
                               evt.type = DIET_KEYPRESS;
                          else

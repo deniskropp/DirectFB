@@ -943,9 +943,10 @@ dfb_layer_update_region( DisplayLayer        *layer,
                          DFBRegion           *region,
                          DFBSurfaceFlipFlags  flags )
 {
-     DisplayLayerShared *shared = layer->shared;
-
-     DFB_ASSERT( shared->enabled );
+     DFB_ASSERT( layer );
+     DFB_ASSERT( layer->funcs );
+     DFB_ASSERT( layer->shared );
+     DFB_ASSERT( layer->shared->enabled );
      
      if (layer->funcs->UpdateRegion)
           return layer->funcs->UpdateRegion( layer,
