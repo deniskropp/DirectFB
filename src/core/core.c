@@ -265,42 +265,20 @@ void dfb_core_deinit_emergency()
      dfb_core->refs = 0;
 
 #ifdef FUSION_FAKE
-     if (dfb_core->master) {
-          while (core_cleanups) {
-               CoreCleanup *cleanup = core_cleanups;
+     while (core_cleanups) {
+          CoreCleanup *cleanup = core_cleanups;
 
-               core_cleanups = core_cleanups->prev;
+          core_cleanups = core_cleanups->prev;
 
-               if (cleanup->emergency)
-                    cleanup->cleanup( cleanup->data, 1 );
+          if (cleanup->emergency)
+               cleanup->cleanup( cleanup->data, 1 );
 
-               DFBFREE( cleanup );
-          }
-
-#if 0
-          if (card) {
-               int i;
-
-               /* try to prohibit graphics hardware access,
-                  this may fail if the current thread locked it */
-               for (i=0; i<100; i++) {
-                    dfb_gfxcard_sync();
-
-                    if (skirmish_swoop( &Scard->lock ) != EBUSY)
-                         break;
-
-                    sched_yield();
-               }
-
-               if (card->driver && card->driver->DeInit)
-                    card->driver->DeInit();
-          }
-
-#endif
-          dfb_input_shutdown();
-          if (dfb_vt)
-               dfb_vt_shutdown();
+          DFBFREE( cleanup );
      }
+
+     dfb_gfxcard_shutdown();
+     dfb_input_shutdown();
+     dfb_vt_shutdown();
 #else
      arena_exit( dfb_core->arena,
                  dfb_core_shutdown, dfb_core_leave, dfb_core_transfer );

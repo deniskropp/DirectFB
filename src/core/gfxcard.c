@@ -258,7 +258,21 @@ DFBResult dfb_gfxcard_join()
 
 DFBResult dfb_gfxcard_shutdown()
 {
-     dfb_gfxcard_sync();
+     int i;
+
+     if (!card)
+          return DFB_OK;
+
+     /* try to prohibit graphics hardware access,
+        this may fail if the current thread locked it */
+     for (i=0; i<100; i++) {
+          dfb_gfxcard_sync();
+
+          if (skirmish_swoop( &Scard->lock ) != EBUSY)
+               break;
+
+          sched_yield();
+     }
 
      if (card->driver) {
           card->driver->funcs->CloseDevice( card,

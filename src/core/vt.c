@@ -127,7 +127,7 @@ dfb_vt_initialize()
      if (dfb_config->no_vt_switch) {
           dfb_vt->fd   = dfb_vt->fd0;
           Sdfb_vt->num = Sdfb_vt->prev;
-          
+
           /* move vt to framebuffer */
           Sdfb_vt->old_fb = vt_get_fb( Sdfb_vt->num );
           vt_set_fb( Sdfb_vt->num, -1 );
@@ -198,6 +198,9 @@ dfb_vt_join()
 DFBResult
 dfb_vt_shutdown()
 {
+     if (!dfb_vt)
+          return DFB_OK;
+
      if (dfb_config->vt_switching) {
           if (ioctl( dfb_vt->fd, VT_SETMODE, &Sdfb_vt->vt_mode ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
@@ -219,7 +222,7 @@ dfb_vt_shutdown()
 
           /* restore con2fbmap */
           vt_set_fb( Sdfb_vt->num, Sdfb_vt->old_fb );
-          
+
           if (close( dfb_vt->fd ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to "
                           "close file descriptor of allocated VT!\n" );
@@ -290,12 +293,12 @@ vt_get_fb( int vt )
      int                  fd;
      struct fb_con2fbmap  c2m;
      const char          *fbpath = "/dev/fb0";
-     
+
      if (dfb_config->fb_device)
           fbpath = dfb_config->fb_device;
 
      c2m.console = vt;
-     
+
      fd = open( fbpath, O_RDWR );
      if (fd != -1) {
           if (ioctl( fd, FBIOGET_CON2FBMAP, &c2m ) < 0) {
@@ -305,7 +308,7 @@ vt_get_fb( int vt )
 
           close( fd );
      }
-     
+
      return c2m.framebuffer;
 }
 
@@ -315,7 +318,7 @@ vt_set_fb( int vt, int fb )
      int                  fd;
      struct fb_con2fbmap  c2m;
      const char          *fbpath = "/dev/fb0";
-     
+
      if (dfb_config->fb_device) {
           struct stat sbf;
 
@@ -331,7 +334,7 @@ vt_set_fb( int vt, int fb )
           c2m.framebuffer = fb;
 
      c2m.console = vt;
-     
+
      fd = open( fbpath, O_RDWR );
      if (fd != -1) {
           if (ioctl( fd, FBIOPUT_CON2FBMAP, &c2m ) < 0) {
