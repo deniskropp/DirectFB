@@ -76,6 +76,8 @@ struct dfb_frame_s
      } dstfmt;
 
      double       ratio;
+     
+     int          interlaced;
 
      CoreSurface *surface;
      void        *chunks[3];
@@ -99,6 +101,7 @@ struct dfb_driver_s
 
      char                   verbosity;
      int                    max_num_frames;
+     int                    deinterlace;
 
      CardState              state;
      IDirectFBSurface      *dest;

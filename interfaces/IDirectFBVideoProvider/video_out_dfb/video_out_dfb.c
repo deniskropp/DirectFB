@@ -1197,6 +1197,37 @@ dfb_proc_frame( vo_frame_t *vo_frame )
 
 
 static void
+dfb_frame_field( vo_frame_t *vo_frame,
+                 int         which_field )
+{
+     dfb_driver_t *this  = (dfb_driver_t*) vo_frame->driver;
+     dfb_frame_t  *frame = (dfb_frame_t*)  vo_frame;
+     int           field = which_field;
+
+     if (this->deinterlace)
+          field = (this->deinterlace == 2)
+                  ? VO_BOTTOM_FIELD : VO_TOP_FIELD;
+
+     switch (field) {
+          case VO_TOP_FIELD:
+               frame->interlaced = 1;
+               dfb_surface_set_field( frame->surface, 0 );
+               break;
+          case VO_BOTTOM_FIELD:
+               frame->interlaced = 1;
+               dfb_surface_set_field( frame->surface, 1 );
+               break;
+          case VO_BOTH_FIELDS:
+               frame->interlaced = 0;
+               break;
+          default:
+               DBUG( "unknown field %i", field );
+               break;
+     }
+}
+
+
+static void
 dfb_frame_dispose( vo_frame_t *vo_frame )
 {
      dfb_frame_t *frame = (dfb_frame_t*) vo_frame;
@@ -1226,7 +1257,7 @@ dfb_alloc_frame( vo_driver_t *vo_driver )
 
      frame->vo_frame.proc_slice = NULL;
      frame->vo_frame.proc_frame = dfb_proc_frame;
-     frame->vo_frame.field      = NULL;
+     frame->vo_frame.field      = dfb_frame_field;
      frame->vo_frame.dispose    = dfb_frame_dispose;
      frame->vo_frame.driver     = vo_driver;
 
@@ -1369,6 +1400,8 @@ dfb_update_frame_format( vo_driver_t *vo_driver,
      dfmt         = DFB_PIXELFORMAT_INDEX( frame->dstfmt.cur );
      frame->procf = this->proc.funcs[sfmt][dfmt];
 
+     dfb_frame_field( vo_frame, flags & VO_BOTH_FIELDS );
+     
      return;
 
 failure:
@@ -1464,6 +1497,10 @@ dfb_display_frame( vo_driver_t *vo_driver,
      this->state.clip.y2   = dst_rect.y + dst_rect.h - 1;
      this->state.source    = frame->surface;
      this->state.modified |= (SMF_CLIP | SMF_SOURCE);
+
+     dfb_state_set_blitting_flags( &this->state,
+                                   (frame->interlaced)
+                                   ? DSBLIT_DEINTERLACE : DSBLIT_NOFX );
 
      if (dst_rect.w == src_rect.w && dst_rect.h == src_rect.h)
           dfb_gfxcard_blit( &src_rect, dst_rect.x,
@@ -1575,16 +1612,8 @@ dfb_get_property( vo_driver_t *vo_driver,
      {
           case VO_PROP_INTERLACED:
           {
-               if (this->state.blittingflags & DSBLIT_DEINTERLACE)
-               {
-                    DBUG( "deinterlacing enabled (fieldparity: %s)",
-                          this->dest_data->surface->field ? "bottom" : "top" );
-                    return (this->dest_data->surface->field + 1);
-               } else
-               {
-                    DBUG( "deinterlacing disabled" );
-                    return 0;
-               }
+               DBUG( "deinterlacing is %i", this->deinterlace ); 
+               return this->deinterlace;
           }
           break;
           
@@ -1638,19 +1667,8 @@ dfb_set_property( vo_driver_t *vo_driver,
           {
                if (value >= 0 && value <= 2)
                {
-                    if (value)
-                    {
-                         DBUG( "deinterlacing (fieldparity: %s)",
-                               (value == 1) ? "top" : "bottom" );
-                         this->state.blittingflags |= DSBLIT_DEINTERLACE;
-                         this->dest->SetField( this->dest, value-1 );
-                    } else
-                    {
-                         DBUG( "deinterlacing disabled" );
-                         this->state.blittingflags &= ~DSBLIT_DEINTERLACE;
-                    }
-
-                    this->state.modified |= SMF_BLITTING_FLAGS;
+                    DBUG( "setting deinterlacing to %i", value ); 
+                    this->deinterlace = value;
                }
           }
           break;
