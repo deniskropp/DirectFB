@@ -213,7 +213,7 @@ IDirectFBVideoProvider_OpenQuicktime_GetSurfaceDescription(
 }
 
 static void
-RGBA_to_RGB332( void *d, void *s, int len )
+RGB888_to_RGB332( void *d, void *s, int len )
 {
      int    i;
      __u8 *dst = (__u8*) d;
@@ -222,12 +222,12 @@ RGBA_to_RGB332( void *d, void *s, int len )
      for (i=0; i<len; i++) {
           dst[i] = PIXEL_RGB332( src[0], src[1], src[2] );
 
-          src += 4;
+          src += 3;
      }
 }
 
 static void
-RGBA_to_RGB15( void *d, void *s, int len )
+RGB888_to_RGB15( void *d, void *s, int len )
 {
      int    i;
      __u16 *dst = (__u16*) d;
@@ -236,12 +236,12 @@ RGBA_to_RGB15( void *d, void *s, int len )
      for (i=0; i<len; i++) {
           dst[i] = PIXEL_RGB15( src[0], src[1], src[2] );
 
-          src += 4;
+          src += 3;
      }
 }
 
 static void
-RGBA_to_RGB16( void *d, void *s, int len )
+RGB888_to_RGB16( void *d, void *s, int len )
 {
      int    i;
      __u16 *dst = (__u16*) d;
@@ -250,28 +250,26 @@ RGBA_to_RGB16( void *d, void *s, int len )
      for (i=0; i<len; i++) {
           dst[i] = PIXEL_RGB16( src[0], src[1], src[2] );
 
-          src += 4;
+          src += 3;
      }
 }
 
 static void
-RGBA_to_RGB24( void *d, void *s, int len )
+RGB888_to_RGB24( void *d, void *s, int len )
 {
      int   i;
      __u8 *dst = (__u8*) d;
      __u8 *src = (__u8*) s;
 
      for (i=0; i<len*3; i+=3) {
-          dst[i+0] = src[2];
-          dst[i+1] = src[1];
-          dst[i+2] = src[0];
-
-          src += 4;
+          dst[i+0] = src[i+2];
+          dst[i+1] = src[i+1];
+          dst[i+2] = src[i+0];
      }
 }
 
 static void
-RGBA_to_RGB32( void *d, void *s, int len )
+RGB888_to_RGB32( void *d, void *s, int len )
 {
      int    i;
      __u32 *dst = (__u32*) d;
@@ -280,21 +278,21 @@ RGBA_to_RGB32( void *d, void *s, int len )
      for (i=0; i<len; i++) {
           dst[i] = PIXEL_RGB32( src[0], src[1], src[2] );
 
-          src += 4;
+          src += 3;
      }
 }
 
 static void
-RGBA_to_ARGB( void *d, void *s, int len )
+RGB888_to_ARGB( void *d, void *s, int len )
 {
      int    i;
      __u32 *dst = (__u32*) d;
      __u8  *src = (__u8*) s;
 
      for (i=0; i<len; i++) {
-          dst[i] = PIXEL_ARGB( src[3], src[0], src[1], src[2] );
+          dst[i] = PIXEL_ARGB( 0xff, src[0], src[1], src[2] );
 
-          src += 4;
+          src += 3;
      }
 }
 
@@ -321,8 +319,8 @@ WriteRGBFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
      switch (surface->format) {
           case DSPF_RGB332:
                for (i=off_y; i<data->dest_clip.h; i++) {
-                    RGBA_to_RGB332( ptr, data->rgb.lines[i] + off_x * 4,
-                                    data->dest_clip.w );
+                    RGB888_to_RGB332( ptr, data->rgb.lines[i] + off_x * 4,
+                                      data->dest_clip.w );
 
                     ptr += pitch;
                }
@@ -330,8 +328,8 @@ WriteRGBFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
 
           case DSPF_RGB15:
                for (i=off_y; i<data->dest_clip.h; i++) {
-                    RGBA_to_RGB15( ptr, data->rgb.lines[i] + off_x * 4,
-                                   data->dest_clip.w );
+                    RGB888_to_RGB15( ptr, data->rgb.lines[i] + off_x * 4,
+                                     data->dest_clip.w );
 
                     ptr += pitch;
                }
@@ -339,8 +337,8 @@ WriteRGBFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
 
           case DSPF_RGB16:
                for (i=off_y; i<data->dest_clip.h; i++) {
-                    RGBA_to_RGB16( ptr, data->rgb.lines[i] + off_x * 4,
-                                   data->dest_clip.w );
+                    RGB888_to_RGB16( ptr, data->rgb.lines[i] + off_x * 4,
+                                     data->dest_clip.w );
 
                     ptr += pitch;
                }
@@ -348,8 +346,8 @@ WriteRGBFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
 
           case DSPF_RGB24:
                for (i=off_y; i<data->dest_clip.h; i++) {
-                    RGBA_to_RGB24( ptr, data->rgb.lines[i] + off_x * 4,
-                                   data->dest_clip.w );
+                    RGB888_to_RGB24( ptr, data->rgb.lines[i] + off_x * 4,
+                                     data->dest_clip.w );
 
                     ptr += pitch;
                }
@@ -357,8 +355,8 @@ WriteRGBFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
 
           case DSPF_RGB32:
                for (i=off_y; i<data->dest_clip.h; i++) {
-                    RGBA_to_RGB32( ptr, data->rgb.lines[i] + off_x * 4,
-                                   data->dest_clip.w );
+                    RGB888_to_RGB32( ptr, data->rgb.lines[i] + off_x * 4,
+                                     data->dest_clip.w );
 
                     ptr += pitch;
                }
@@ -366,8 +364,8 @@ WriteRGBFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
 
           case DSPF_ARGB:
                for (i=off_y; i<data->dest_clip.h; i++) {
-                    RGBA_to_ARGB( ptr, data->rgb.lines[i] + off_x * 4,
-                                  data->dest_clip.w );
+                    RGB888_to_ARGB( ptr, data->rgb.lines[i] + off_x * 4,
+                                    data->dest_clip.w );
 
                     ptr += pitch;
                }
@@ -511,7 +509,7 @@ VideoThread( void *ctx )
                     ret = quicktime_decode_video( data->file, BC_YUV420P,
                                                   data->yuv.lines, 0 );
                else
-                    ret = quicktime_decode_video( data->file, BC_RGBA8888,
+                    ret = quicktime_decode_video( data->file, BC_RGB888,
                                                   data->rgb.lines, 0 );
 
                if (ret) {
@@ -537,7 +535,7 @@ VideoThread( void *ctx )
                long cframe = (long) (delay * rate) + start_frame;
 
                if ( frame < cframe ) {
-                    drop = cframe - frame;
+                    drop = cframe - frame - 1;
                     pthread_mutex_unlock( &data->video.lock );
                     continue;
                }
@@ -597,6 +595,7 @@ AudioThread( void *ctx )
           }
 
           if (data->audio.seeked) {
+               /* flush buffered audio data */
                ioctl( data->audio.fd, SNDCTL_DSP_RESET, 0 );
                data->audio.seeked = 0;
           }
@@ -629,6 +628,7 @@ AudioThread( void *ctx )
                     quicktime_decode_audio( data->file, right, NULL,
                                             data->audio.samples_per_block, 0 );
 
+                    /* produce interleaved buffer */
                     for (i=0; i<data->audio.samples_per_block; i++) {
                          buffer[i*2+0] = left[i];
                          buffer[i*2+1] = right[i];
@@ -652,7 +652,7 @@ IDirectFBVideoProvider_OpenQuicktime_PlayTo( IDirectFBVideoProvider *thiz,
                                         void                   *ctx )
 {
      int                    yuv_mode = 0;
-     DFBRectangle           rect;
+     DFBRectangle           rect, dest_rect, dest_clip;
      IDirectFBSurface_data *dst_data;
 
      INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
@@ -704,26 +704,29 @@ IDirectFBVideoProvider_OpenQuicktime_PlayTo( IDirectFBVideoProvider *thiz,
      if (rect.w != data->video.width || rect.h != data->video.height)
           return DFB_UNSUPPORTED;
 
-     pthread_mutex_lock( &data->video.lock );
-
-     data->dest_rect = rect;
+     dest_rect = rect;
 
      /* build the clip rectangle */
-     if (!rectangle_intersect( &rect, &dst_data->area.current )) {
-          pthread_mutex_unlock( &data->video.lock );
+     if (!rectangle_intersect( &rect, &dst_data->area.current ))
           return DFB_INVARG;
-     }
 
-     data->dest_clip = rect;
+     dest_clip = rect;
 
+     pthread_mutex_lock( &data->video.lock );
+
+     /* release previous destination surface */
      if (data->destination) {
           data->destination->Release( data->destination );
           data->destination = NULL;     /* FIXME: remove listener */
      }
 
+     /* reference destination surface */
      destination->AddRef( destination );
      data->destination = destination;   /* FIXME: install listener */
 
+     /* store video playback information */
+     data->dest_rect      = dest_rect;
+     data->dest_clip      = dest_clip;
      data->callback       = callback;
      data->ctx            = ctx;
      data->video.yuv      = yuv_mode;
@@ -936,10 +939,10 @@ DFBResult Probe( const char *filename )
           return DFB_UNSUPPORTED;
      }
 
-     if (!quicktime_reads_cmodel( q, BC_RGBA8888, 0 ) &&
+     if (!quicktime_reads_cmodel( q, BC_RGB888, 0 ) &&
          !quicktime_reads_cmodel( q, BC_YUV420P, 0 )) {
           ERRORMSG( "OpenQuicktime Provider: Only codecs reading "
-                    "RGBA8888 and/or YUV420P are supported yet!\n" );
+                    "RGB888 and/or YUV420P are supported yet!\n" );
           quicktime_close( q );
           return DFB_UNSUPPORTED;
      }
@@ -984,7 +987,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      /* check codec format support */
      data->yuv.supported = quicktime_reads_cmodel( data->file, BC_YUV420P, 0 );
-     data->rgb.supported = quicktime_reads_cmodel( data->file, BC_RGBA8888, 0 );
+     data->rgb.supported = quicktime_reads_cmodel( data->file, BC_RGB888, 0 );
 
      /* allocate video decoding buffer */
      data->video.buffer  = DFBMALLOC( data->video.height *
