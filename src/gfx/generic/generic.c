@@ -2380,7 +2380,7 @@ void gGetDriverInfo( GraphicsDriverInfo *info )
                "convergence integrated media GmbH" );
 
      info->version.major = 0;
-     info->version.minor = 5;
+     info->version.minor = 6;
 }
 
 void gGetDeviceInfo( GraphicsDeviceInfo *info )
@@ -2688,12 +2688,29 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     int modulation = state->blittingflags & MODULATION_FLAGS;
 
                     if (modulation) {
+                         bool read_destination = false;
+                         bool source_needs_destination = false;
+                          
+                         /* check if destination has to be read */
+                         if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                                     DSBLIT_BLEND_COLORALPHA))
+                         {
+                              switch (state->src_blend) {
+                                   case DSBF_DESTALPHA:
+                                   case DSBF_DESTCOLOR:
+                                   case DSBF_INVDESTALPHA:
+                                   case DSBF_INVDESTCOLOR:
+                                        source_needs_destination = true;
+                                   default:
+                                        ;
+                              }
+                              
+                              read_destination = source_needs_destination ||
+                                                 (state->dst_blend != DSBF_ZERO);
+                         }
 
                          /* read the destination if needed */
-                         if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                                     DSBLIT_BLEND_COLORALPHA) &&
-                             state->dst_blend != DSBF_ZERO)
-                         {
+                         if (read_destination) {
                               *funcs++ = Sop_is_Aop;
                               *funcs++ = Dacc_is_Aacc;
                               *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
@@ -2743,18 +2760,31 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Sacc_is_Bacc;
                               *funcs++ = Dacc_is_Aacc;
 
-                              /* blend the destination if needed */
-                              if (state->dst_blend != DSBF_ZERO) {
+                              if (source_needs_destination &&
+                                  state->dst_blend != DSBF_ONE)
+                              {
+                                   /* blend the source */
+                                   *funcs++ = Xacc_is_Bacc;
+                                   *funcs++ = Xacc_blend[state->src_blend - 1];
+                                   
+                                   /* blend the destination */
                                    *funcs++ = Xacc_is_Aacc;
                                    *funcs++ = Xacc_blend[state->dst_blend - 1];
                               }
+                              else {
+                                   /* blend the destination if needed */
+                                   if (read_destination) {
+                                        *funcs++ = Xacc_is_Aacc;
+                                        *funcs++ = Xacc_blend[state->dst_blend - 1];
+                                   }
 
-                              /* blend the source */
-                              *funcs++ = Xacc_is_Bacc;
-                              *funcs++ = Xacc_blend[state->src_blend - 1];
+                                   /* blend the source */
+                                   *funcs++ = Xacc_is_Bacc;
+                                   *funcs++ = Xacc_blend[state->src_blend - 1];
+                              }
 
                               /* add the destination to the source */
-                              if (state->dst_blend != DSBF_ZERO) {
+                              if (read_destination) {
                                    *funcs++ = Sacc_is_Aacc;
                                    *funcs++ = Dacc_is_Bacc;
                                    *funcs++ = Sacc_add_to_Dacc;
