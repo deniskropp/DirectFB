@@ -94,6 +94,14 @@ FusionResult fusion_property_purchase (FusionProperty *property);
 FusionResult fusion_property_cede     (FusionProperty *property);
 
 /*
+ * Kills the owner of the property.
+ *
+ * Tries to make a purchased property available again by killing
+ * the process that purchased it.
+ */
+FusionResult fusion_property_holdup   (FusionProperty *property);
+
+/*
  * Destroys the property
  */
 FusionResult fusion_property_destroy  (FusionProperty *property);

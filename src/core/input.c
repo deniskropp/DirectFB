@@ -1322,7 +1322,11 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
                          if ((event->modifiers & DIMM_ALT) &&
                              (event->modifiers & DIMM_CONTROL))
                          {
+#ifdef FUSION_FAKE
                               kill( 0, SIGINT );
+#else
+                              dfb_layer_holdup( dfb_layer_at(0) );
+#endif
                               return false;
                          }
                          break;

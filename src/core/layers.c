@@ -536,6 +536,21 @@ dfb_layer_purchase( DisplayLayer *layer )
 }
 
 /*
+ * Kill the process that purchased the layer.
+ */
+DFBResult
+dfb_layer_holdup( DisplayLayer *layer )
+{
+     DFB_ASSERT( layer->shared->enabled );
+     
+     if (layer->shared->exclusive)
+          if (fusion_property_holdup( &layer->shared->lock ))
+               return DFB_FUSION;
+
+     return DFB_OK;
+}
+
+/*
  * Release layer after lease/purchase.
  */
 void

@@ -145,6 +145,30 @@ fusion_property_cede (FusionProperty *property)
 }
 
 FusionResult
+fusion_property_holdup (FusionProperty *property)
+{
+     DFB_ASSERT( property != NULL );
+     
+     while (ioctl (fusion_fd, FUSION_PROPERTY_HOLDUP, &property->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid property\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
+          FPERROR ("FUSION_PROPERTY_HOLDUP");
+          
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
 fusion_property_destroy (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
@@ -260,6 +284,15 @@ fusion_property_cede (FusionProperty *property)
      pthread_mutex_unlock (&property->lock);
      
      return FUSION_SUCCESS;
+}
+
+/*
+ * Does nothing to avoid killing ourself.
+ */
+FusionResult
+fusion_property_holdup (FusionProperty *property)
+{
+     return FUSION_FAILURE;
 }
 
 /*

@@ -239,6 +239,11 @@ DFBResult dfb_layer_lease( DisplayLayer *layer );
 DFBResult dfb_layer_purchase( DisplayLayer *layer );
 
 /*
+ * Kill the process that purchased the layer.
+ */
+DFBResult dfb_layer_holdup( DisplayLayer *layer );
+
+/*
  * Release layer after lease/purchase.
  * Repaints the window stack if 'repaint' is true.
  */
