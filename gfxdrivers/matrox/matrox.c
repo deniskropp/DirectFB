@@ -354,22 +354,25 @@ static void matroxSetState( void *drv, void *dev,
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
 
-     if (state->modified) {
+     if (state->modified == SMF_ALL) {
+          mdev->valid = 0;
+     }
+     else if (state->modified) {
           if (state->modified & SMF_COLOR)
-               mdev->m_Color = mdev->m_color = 0;
+               MGA_INVALIDATE( m_Color | m_color );
           else if (state->modified & SMF_DESTINATION)
-               mdev->m_color = 0;
+               MGA_INVALIDATE( m_color );
 
           if (state->modified & SMF_SOURCE)
-               mdev->m_Source = mdev->m_source = mdev->m_SrcKey = mdev->m_srckey = mdev->m_blitBlend = 0;
+               MGA_INVALIDATE( m_Source | m_source | m_SrcKey | m_srckey | m_blitBlend );
           else if (state->modified & SMF_SRC_COLORKEY)
-               mdev->m_SrcKey = mdev->m_srckey = 0;
+               MGA_INVALIDATE( m_SrcKey | m_srckey );
 
           if (state->modified & SMF_BLITTING_FLAGS)
-               mdev->m_Source = mdev->m_blitBlend = 0;
+               MGA_INVALIDATE( m_Source | m_blitBlend );
 
           if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
-               mdev->m_blitBlend = mdev->m_drawBlend = 0;
+               MGA_INVALIDATE( m_blitBlend | m_drawBlend );
      }
 
      switch (accel) {

@@ -117,7 +117,7 @@ void matrox_validate_Color( MatroxDriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
-     if (mdev->m_Color)
+     if (MGA_IS_VALID( m_Color ))
           return;
 
      mga_waitfifo( mdrv, mdev, 4 );
@@ -127,8 +127,8 @@ void matrox_validate_Color( MatroxDriverData *mdrv,
      mga_out32( mmio, U8_TO_F0915(state->color.g), DR8 );
      mga_out32( mmio, U8_TO_F0915(state->color.b), DR12 );
 
-     mdev->m_Color = 1;
-     mdev->m_blitBlend = 0;
+     MGA_VALIDATE( m_Color );
+     MGA_INVALIDATE( m_blitBlend );
 }
 
 void matrox_validate_color( MatroxDriverData *mdrv,
@@ -139,7 +139,7 @@ void matrox_validate_color( MatroxDriverData *mdrv,
 
      __u32 color;
 
-     if (mdev->m_color)
+     if (MGA_IS_VALID( m_color ))
           return;
 
      switch (state->destination->format) {
@@ -192,8 +192,8 @@ void matrox_validate_color( MatroxDriverData *mdrv,
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mmio, color, FCOL );
 
-     mdev->m_color = 1;
-     mdev->m_srckey = 0;
+     MGA_VALIDATE( m_color );
+     MGA_INVALIDATE( m_srckey );
 }
 
 static __u32 matroxSourceBlend[] = {
@@ -232,7 +232,7 @@ void matrox_validate_drawBlend( MatroxDriverData *mdrv,
 
      __u32 alphactrl;
 
-     if (mdev->m_drawBlend)
+     if (MGA_IS_VALID( m_drawBlend ))
           return;
      
      alphactrl = matroxSourceBlend[state->src_blend - 1] |
@@ -246,8 +246,8 @@ void matrox_validate_drawBlend( MatroxDriverData *mdrv,
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mmio, alphactrl, ALPHACTRL );
 
-     mdev->m_drawBlend = 1;
-     mdev->m_blitBlend = 0;
+     MGA_VALIDATE( m_drawBlend );
+     MGA_INVALIDATE( m_blitBlend );
 }
 
 static __u32 matroxAlphaSelect[] = {
@@ -265,7 +265,7 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
 
      __u32 alphactrl;
 
-     if (mdev->m_blitBlend)
+     if (MGA_IS_VALID( m_blitBlend ))
           return;
 
      if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
@@ -279,7 +279,7 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
 
                if (! (state->blittingflags & DSBLIT_BLEND_COLORALPHA)) {
                     mga_out32( mmio, U8_TO_F0915(0xff), ALPHASTART );
-                    mdev->m_Color = 0;
+                    MGA_INVALIDATE( m_Color );
                }
           }
           else
@@ -297,15 +297,15 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
                alphactrl |= DIFFUSEDALPHA;
 
                mga_out32( mmio, U8_TO_F0915(0xff), ALPHASTART );
-               mdev->m_Color = 0;
+               MGA_INVALIDATE( m_Color );
           }
      }
 
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mmio, alphactrl, ALPHACTRL );
 
-     mdev->m_blitBlend = 1;
-     mdev->m_drawBlend = 0;
+     MGA_VALIDATE( m_blitBlend );
+     MGA_INVALIDATE( m_drawBlend );
 }
 
 void matrox_validate_Source( MatroxDriverData *mdrv,
@@ -319,7 +319,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      CoreSurface   *surface = state->source;
      SurfaceBuffer *buffer  = surface->front_buffer;
 
-     if (mdev->m_Source)
+     if (MGA_IS_VALID( m_Source ))
           return;
 
      mdev->src_pixelpitch = buffer->video.pitch / DFB_BYTES_PER_PIXEL(surface->format);
@@ -382,7 +382,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
                       ((8-mdev->matrox_h2)&63)<<9 | mdev->matrox_h2, TEXHEIGHT );
      mga_out32( mmio, buffer->video.offset, TEXORG );
 
-     mdev->m_Source = 1;
+     MGA_VALIDATE( m_Source );
 }
 
 void matrox_validate_source( MatroxDriverData *mdrv,
@@ -394,7 +394,7 @@ void matrox_validate_source( MatroxDriverData *mdrv,
      SurfaceBuffer *buffer          = surface->front_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->format);
 
-     if (mdev->m_source)
+     if (MGA_IS_VALID( m_source ))
           return;
 
      mdev->src_pixelpitch = buffer->video.pitch / bytes_per_pixel;
@@ -406,7 +406,7 @@ void matrox_validate_source( MatroxDriverData *mdrv,
           mga_out32( mmio, buffer->video.offset, SRCORG );
      }
 
-     mdev->m_source = 1;
+     MGA_VALIDATE( m_source );
 }
 
 void matrox_validate_SrcKey( MatroxDriverData *mdrv,
@@ -418,7 +418,7 @@ void matrox_validate_SrcKey( MatroxDriverData *mdrv,
      __u32          key;
      __u32          mask;
 
-     if (mdev->m_SrcKey)
+     if (MGA_IS_VALID( m_SrcKey ))
           return;
 
      mask = MGA_KEYMASK(surface->format);
@@ -429,7 +429,7 @@ void matrox_validate_SrcKey( MatroxDriverData *mdrv,
      mga_out32( mmio, ((mask & 0xFFFF) << 16) | (key & 0xFFFF), TEXTRANS );
      mga_out32( mmio, (mask & 0xFFFF0000) | (key >> 16), TEXTRANSHIGH );
 
-     mdev->m_SrcKey = 1;
+     MGA_VALIDATE( m_SrcKey );
 }
 
 void matrox_validate_srckey( MatroxDriverData *mdrv,
@@ -441,7 +441,7 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
      __u32          key;
      __u32          mask;
 
-     if (mdev->m_srckey)
+     if (MGA_IS_VALID( m_srckey ))
           return;
 
      mask = MGA_KEYMASK(surface->format);
@@ -472,7 +472,7 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
                break;
      }
 
-     mdev->m_srckey = 1;
-     mdev->m_color = 0;
+     MGA_VALIDATE( m_srckey );
+     MGA_INVALIDATE( m_color );
 }
 

@@ -31,6 +31,25 @@
 
 #include <core/layers.h>
 
+
+typedef enum {
+     m_Source       = 0x0001,
+     m_source       = 0x0002,
+
+     m_Color        = 0x0004,
+     m_color        = 0x0008,
+
+     m_SrcKey       = 0x0010,
+     m_srckey       = 0x0020,
+
+     m_drawBlend    = 0x0040,
+     m_blitBlend    = 0x0080
+} MatroxStateBits;
+
+#define MGA_VALIDATE(b)       (mdev->valid |= (b))
+#define MGA_INVALIDATE(b)     (mdev->valid &= ~(b))
+#define MGA_IS_VALID(b)       (mdev->valid & (b))
+
 typedef struct {
      int            accelerator;
      volatile __u8 *mmio_base;
@@ -52,17 +71,7 @@ typedef struct {
      __u32 atype_blk_rstr;
 
      /* State handling */
-     int m_Source;
-     int m_source;
-
-     int m_Color;
-     int m_color;
-
-     int m_SrcKey;
-     int m_srckey;
-
-     int m_drawBlend;
-     int m_blitBlend;
+     MatroxStateBits valid;
 
      /* Stored values */
      int dst_pixelpitch;
