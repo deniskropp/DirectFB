@@ -6,10 +6,18 @@ else
 H3600_TS_DIR =
 endif
 
+if DBOX2REMOTE
+DBOX2REMOTE_DIR = dbox2remote
+else
+DBOX2REMOTE_DIR =
+endif
+
 SUBDIRS = \
 	joystick	\
 	keyboard	\
 	lirc		\
+	dbox2remote	\
 	ps2mouse	\
 	serialmouse	\
-	$(H3600_TS_DIR)
+	$(H3600_TS_DIR) \
+	$(DBOX2REMOTE_DIR)

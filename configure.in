@@ -397,6 +397,13 @@ AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no
 AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
 
 
+dnl Test for DBox2 Remote support
+AC_CHECK_HEADER( [dbox/fp.h], dbox2remote=yes, dbox2remote=no
+  AC_MSG_WARN(*** DBox2 Remote driver will not be built.))
+
+AM_CONDITIONAL(DBOX2REMOTE, test x$dbox2remote = xyes)
+
+
 DFB_CFLAGS="$THREAD_CFLAGS $DFB_CFLAGS $DFB_INTERNAL_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
 
@@ -477,6 +484,7 @@ inputdrivers/h3600_ts/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
 inputdrivers/lirc/Makefile
+inputdrivers/dbox2remote/Makefile
 inputdrivers/ps2mouse/Makefile
 inputdrivers/serialmouse/Makefile
 interfaces/Makefile
@@ -522,4 +530,5 @@ Building Graphics Drivers:
 
 Building Input Drivers:
   H3600 Touchscreen   $h3600_ts
+  DBox2 Remote        $dbox2remote
 ]);
