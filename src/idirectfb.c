@@ -321,7 +321,9 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                     else
                          window = window_create( layers->shared->windowstack, 0, 0,
                                                  data->primary.width,
-                                                 data->primary.height, DWCAPS_DOUBLEBUFFER );
+                                                 data->primary.height,
+                                                 (caps & DSCAPS_FLIPPING) ?
+                                                 DWCAPS_DOUBLEBUFFER : 0 );
 
                     window_init( window );
 
