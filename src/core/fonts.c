@@ -122,10 +122,14 @@ dfb_font_get_glyph_data( CoreFont        *font,
                     if (font->row_width == 0) {
                          int width = 8192 / font->height;
 
+                         if (width > 2048)
+                              width = 2048;
+                         
                          if (width < font->maxadvance)
                               width = font->maxadvance;
-                         else if (width > 2048)
-                              width = 2048;
+                         
+                         if (width < 4)
+                              width = 4;
 
                          font->row_width = width;
                     }
@@ -158,7 +162,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                {
                     data->surface = font->surfaces[font->rows - 1];
                     data->start   = font->next_x;
-                    font->next_x += data->width;
+                    font->next_x += (data->width + 3) & ~3;
 
                     dfb_gfxcard_flush_texture_cache();
                }
