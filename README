@@ -4,8 +4,8 @@ DirectFB README
    This is a developers release of DirectFB.
 
    DirectFB is a graphics library which was designed with embedded systems 
-   in mind. It offers maximum hardware accelerated performance at a minimum 
-   of resource usage and overhead. 
+   in mind. It offers maximum hardware accelerated performance at a
+   minimum of resource usage and overhead. 
 
    Check http://www.directfb.org/ for more and uptodate infos.
 
@@ -13,22 +13,23 @@ DirectFB README
 Requirements
 ------------
 
-   - Linux kernel 2.2.x with working framebuffer device (check /proc/fb).
+   - Linux kernel 2.2.x or newer with working frame buffer device
+     (check /proc/fb).
 
    - freetype (version >= 2.0.1)
    - libpng2
    - libjpeg62
    - zlib
 
-   The build of the image and font providers can be disabled but we strongly
-   suggest that you don't do this since the code examples and a lot of
-   DirectFB apps depend on the functionality provided by them.
+   The build of the image and font providers can be disabled but we
+   strongly suggest that you don't do this since the code examples and a
+   lot of DirectFB apps depend on the functionality provided by them.
 
    The video providers require some libraries (avifile, libflash and
-   libmpeg3) that are not commonly installed. We have provided packages on
-   our web-site at http://www.directfb.org/download/contrib/. If for some
-   reason the build of one of the video providers fails, you can disable
-   it explicitely. Check the output of 'configure --help'.
+   libmpeg3) that are not commonly installed. We have provided packages
+   on our web-site at http://www.directfb.org/download/contrib/. If for
+   some reason the build of one of the video providers fails, you can
+   disable it explicitely. Check the output of 'configure --help'.
 
 
 Additional Requirements for some Demos
@@ -65,9 +66,9 @@ Installation
    2) Make sure that /usr/local/lib is listed in your /etc/ld.so.conf.
       If you added it you have to run 'ldconfig' as superuser.
 
-   3) Copy fb.modes to /etc or merge it with your existing /etc/fb.modes file. 
-      The first entry will be used by default - copy other entries you may 
-      need.
+   3) Copy fb.modes to /etc or merge it with your existing /etc/fb.modes
+      file. The first entry will be used by default - copy other entries
+      you may need.
 
    4) If you want to use a serial mouse, create a link called /dev/mouse
       that points to serial device (e.g. /dev/ttyS0). Then add a line
@@ -125,7 +126,9 @@ Documentation
 -------------
 
    A complete API reference documentation in HTML format is created during 
-   the build in the docs directory.
+   the build in the docs directory. You may also access the API reference
+   as well as a concepts overview, tutorials and the FAQ online at
+   http://www.directfb.org/documentation/. 
 
 
 Thanks to
