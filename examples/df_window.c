@@ -109,7 +109,6 @@ int SW, SH;
           DFBCHECK(dfb->CreateImageProvider( dfb,
                                              DATADIR"/examples/desktop.png",
                                              &provider ));
-          DFBCHECK (provider->GetSurfaceDescription (provider, &desc));
 
           desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT;
           desc.width = SW;
