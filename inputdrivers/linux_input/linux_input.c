@@ -30,13 +30,6 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include <dfb_types.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-
-
 #include <linux/input.h>
 #ifndef KEY_OK
 /* Linux kernel 2.5.42+ defines additional keys in linux/input.h */
@@ -46,6 +39,13 @@
 #ifndef EVIOCGRAB
 #define EVIOCGRAB _IOW('E', 0x90, int)
 #endif
+
+#include <dfb_types.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+
 
 #include <directfb.h>
 #include <directfb_keyboard.h>

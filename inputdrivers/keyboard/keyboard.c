@@ -37,6 +37,8 @@
 
 #include <errno.h>
 
+#include <fbdev/fbdev.h>
+
 #include <linux/keyboard.h>
 
 #include <termios.h>
@@ -58,7 +60,6 @@
 
 #include <core/input_driver.h>
 
-#include <fbdev/fbdev.h>
 
 
 DFB_INPUT_DRIVER( keyboard )
