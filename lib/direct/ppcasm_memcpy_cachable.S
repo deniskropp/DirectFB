@@ -9,13 +9,11 @@
  * 2 of the License, or (at your option) any later version.
  */
 
-#define __KERNEL__
 #define __ASSEMBLY__
 
 #include <linux/config.h>
-#include <asm/processor.h>
+#define __KERNEL__
 #include <asm/cache.h>
-#include <asm/errno.h>
 
 #include "ppc_asm.h"
 
