@@ -30,8 +30,6 @@
 #include <direct/build.h>
 
 
-#if DIRECT_BUILD_DEBUG
-
 #include <stdarg.h>
 #include <unistd.h>
 #include <signal.h>
@@ -148,6 +146,4 @@ direct_assumption( const char *exp,
 
      direct_trace_print_stack( NULL );
 }
-
-#endif
 

@@ -30,8 +30,6 @@
 
 #include <direct/build.h>
 
-#if DIRECT_BUILD_DEBUG
-
 #include <stdio.h>
 #include <errno.h>
 
@@ -56,6 +54,9 @@ void direct_assumption( const char *exp,
                         const char *func,
                         const char *file,
                         int         line );
+
+
+#if DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG)
 
 #ifdef HEAVYDEBUG
      #define D_HEAVYDEBUG(x...)    if (!direct_config || direct_config->debug) {\
