@@ -86,7 +86,7 @@ joystick_handle_event( JoystickData *data, struct js_event jse )
           case JS_EVENT_INIT | JS_EVENT_BUTTON:
           case JS_EVENT_INIT | JS_EVENT_AXIS:
                D_ONCE( "Joystick sends JS_EVENT_INIT events, " \
-                       "make sure it has been calibratted using 'jscal -c'\n");
+                       "make sure it has been calibrated using 'jscal -c'");
                break;
           default:
                D_PERROR ("unknown joystick event type\n");
