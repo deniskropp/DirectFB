@@ -6,4 +6,5 @@ EXTRA_DIST = \
 	README.neofb				\
 	aty128fb-2.4.16_to_benh.patch.bz2	\
 	matroxfb-vsync-irq-patch-2.4.6.bz2	\
-	neofb-0.3-linux-2.4.17.patch.bz2
+	neofb-0.3.1-linux-2.4.18-pre6.patch.bz2	\
+	neofb-0.3.1-linux-2.5.3-pre3.patch.bz2

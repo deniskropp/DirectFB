@@ -6,10 +6,12 @@ Chdir to the linux source tree and apply the patch with:
 	patch -p1 < thepatch
 
 
+0.3.1
+ - added module license (dok)
 
 0.3
- - hardware accelerated clear and move for 2200 and above
- - maximum allowed dotclock is handled now
+ - hardware accelerated clear and move for 2200 and above (dok)
+ - maximum allowed dotclock is handled now (dok)
 
 0.2.1
  - correct panning after X usage (dok)
@@ -24,7 +26,7 @@ TODO
 - ioctl for internal/external switching
 - blanking
 - 32bit depth support, maybe impossible
-- disable automatic pan on sync, need specs
+- disable pan-on-sync, need specs
 
 BUGS
 - white margin on bootup (colormap problem?)
