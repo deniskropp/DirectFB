@@ -175,7 +175,7 @@ DFBResult fbdev_open()
      if (!display->modes) {
           /* try to use current mode*/
           display->modes = (VideoMode*) calloc( 1, sizeof(VideoMode) );
-     
+
           display->modes->xres = display->orig_var.xres;
           display->modes->yres = display->orig_var.yres;
           display->modes->bpp = display->orig_var.bits_per_pixel;
@@ -186,17 +186,17 @@ DFBResult fbdev_open()
           display->modes->upper_margin = display->orig_var.upper_margin;
           display->modes->lower_margin = display->orig_var.lower_margin;
           display->modes->pixclock = display->orig_var.pixclock;
-     
+
           if (display->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
                display->modes->hsync_high = 1;
           if (display->orig_var.sync & FB_SYNC_VERT_HIGH_ACT)
                display->modes->vsync_high = 1;
-     
+
           if (display->orig_var.vmode & FB_VMODE_INTERLACED)
                display->modes->laced = 1;
           if (display->orig_var.vmode & FB_VMODE_DOUBLE)
                display->modes->doubled = 1;
-     
+
           if (fbdev_set_mode(NULL, display->modes, DLBM_FRONTONLY))
           {
                ERRORMSG("DirectFB/core/fbdev: "
@@ -231,14 +231,14 @@ DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *var )
                    var->green.length  == 5 && var->green.offset  ==  5 &&
                    var->blue.length   == 5 && var->blue.offset   ==  0)
                     return DSPF_RGB15;
-               
+
                if (var->red.length    == 5 && var->red.offset    == 11 &&
                    var->green.length  == 6 && var->green.offset  ==  5 &&
                    var->blue.length   == 5 && var->blue.offset   ==  0)
                     return DSPF_RGB16;
 
                break;
-          
+
           case 24:
                if (var->red.length    == 8 && var->red.offset    == 16 &&
                    var->green.length  == 8 && var->green.offset  ==  8 &&
@@ -253,7 +253,7 @@ DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *var )
                    var->green.length  == 8 && var->green.offset  ==  8 &&
                    var->blue.length   == 8 && var->blue.offset   ==  0)
                     return DSPF_RGB32;
-               
+
                if (var->transp.length == 8 && var->transp.offset == 24 &&
                    var->red.length    == 8 && var->red.offset    == 16 &&
                    var->green.length  == 8 && var->green.offset  ==  8 &&
@@ -262,7 +262,7 @@ DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *var )
 
                break;
      }
-     
+
      ERRORMSG( "DirectFB/core/fbdev: Unsupported pixelformat: "
                "rgba %d/%d, %d/%d, %d/%d, %d/%d (%dbit)\n",
                 var->red.length,    var->red.offset,
@@ -316,13 +316,13 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
           mode = display->current_mode ? display->current_mode : display->modes;
 
      var = display->current_var;
-          
+
      var.bits_per_pixel = mode->bpp;
 
-     /* 
+     /*
       * since parsing of the argb parameter in fbset is broken, DirectFB
       * sets RGB555 mode, when 15bpp is is given in an /etc/fb.modes entry
-      */ 
+      */
      switch (mode->bpp) {
           case 15:
                var.bits_per_pixel = 16;
@@ -385,14 +385,20 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
           return errno2dfb( erno );
      }
 
+     /* If layer is NULL the mode was only tested, otherwise apply changes. */
      if (layer) {
           CoreSurface *surface = layer->surface;
 
           ioctl( display->fd, FBIOGET_VSCREENINFO, &var );
 
-          surface->format = mode->format = fbdev_get_pixelformat( &var );
-          if (mode->format == DSPF_UNKNOWN)
+          mode->format = fbdev_get_pixelformat( &var );
+          if (mode->format == DSPF_UNKNOWN) {
+               /* restore mode */
+               ioctl( display->fd, FBIOPUT_VSCREENINFO, &display->current_var );
                return DFB_UNSUPPORTED;
+          }
+
+          surface->format = mode->format;
 
           display->current_var = var;
           display->current_mode = mode;
@@ -410,7 +416,7 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
           surface->front_buffer->video.pitch = var.xres_virtual *
                                                BYTES_PER_PIXEL(mode->format);
           surface->front_buffer->video.offset = 0;
-           
+
           switch (buffermode) {
                case DLBM_FRONTONLY:
                     surface->caps &= ~DSCAPS_FLIPPING;
@@ -465,7 +471,7 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
 
           if (card->AfterSetVar)
                card->AfterSetVar();
-          
+
           surface_notify_listeners( surface, CSNF_SIZEFORMAT | CSNF_FLIP |
                                              CSNF_VIDEO | CSNF_SYSTEM );
      }
@@ -574,25 +580,35 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
 {
      VideoMode                  *videomode = NULL;
      DFBDisplayLayerConfigFlags  fail = 0;
-     
+
      if (config->flags & (DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT)) {
-          unsigned int  width, height, bpp;
+          DFBSurfacePixelFormat pixelformat;
+          unsigned int          width, height, bpp;
 
           if (config->flags & DLCONF_WIDTH)
                width = config->width;
           else
                width = thiz->width;
-          
+
           if (config->flags & DLCONF_HEIGHT)
                height = config->height;
           else
                height = thiz->height;
-          
+
           if (config->flags & DLCONF_PIXELFORMAT)
-               bpp = BYTES_PER_PIXEL(config->pixelformat) * 8;
+               pixelformat = config->pixelformat;
           else
-               bpp = BYTES_PER_PIXEL(thiz->surface->format) * 8;
-          
+               pixelformat = thiz->surface->format;
+
+          switch (pixelformat) {
+               case DSPF_RGB15:  /* special case where VideoMode->bpp = 15 */
+                    bpp = 15;
+                    break;
+
+               default:
+                    bpp = BYTES_PER_PIXEL(pixelformat) * 8;
+          }
+
           videomode = display->modes;
           while (videomode) {
                if (videomode->xres == width  &&
@@ -609,7 +625,7 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
                fail |= (config->flags & (DLCONF_WIDTH  |
                                          DLCONF_HEIGHT | DLCONF_PIXELFORMAT));
      }
-     
+
      if (config->flags & DLCONF_BUFFERMODE) {
           if (fbdev_set_mode( NULL, videomode, config->buffermode ))
                fail |= DLCONF_BUFFERMODE;
@@ -619,11 +635,11 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
                fail |= (config->flags & (DLCONF_WIDTH  |
                                          DLCONF_HEIGHT | DLCONF_PIXELFORMAT));
      }
-     
+
      if (config->flags & DLCONF_OPTIONS  &&  config->options)
           fail |= DLCONF_OPTIONS;
 
-     
+
      if (failed)
           *failed = fail;
 
@@ -636,10 +652,11 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
 static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
                                           DFBDisplayLayerConfig *config )
 {
-     VideoMode                 *videomode = display->modes;
+     VideoMode                 *videomode;
      DFBDisplayLayerBufferMode  buffermode;
+     DFBSurfacePixelFormat      pixelformat;
      unsigned int               width, height, bpp;
-     
+
      if (config->flags & DLCONF_OPTIONS  &&  config->options)
           return DFB_UNSUPPORTED;
 
@@ -654,21 +671,31 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
           height = thiz->height;
 
      if (config->flags & DLCONF_PIXELFORMAT)
-          bpp = BYTES_PER_PIXEL(config->pixelformat) * 8;
+          pixelformat = config->pixelformat;
      else
-          bpp = BYTES_PER_PIXEL(thiz->surface->format) * 8;
+          pixelformat = thiz->surface->format;
+
+     switch (pixelformat) {
+          case DSPF_RGB15:  /* special case where VideoMode->bpp = 15 */
+               bpp = 15;
+               break;
+
+          default:
+               bpp = BYTES_PER_PIXEL(pixelformat) * 8;
+     }
 
      if (config->flags & DLCONF_BUFFERMODE)
           buffermode = config->buffermode;
      else
           buffermode = thiz->buffermode;
-     
+
      if (display->current_mode->xres == width  &&
          display->current_mode->yres == height &&
          display->current_mode->bpp  == bpp    &&
          thiz->buffermode            == buffermode)
           return DFB_OK;
 
+     videomode = display->modes;
      while (videomode) {
           if (videomode->xres == width  &&
               videomode->yres == height  &&
@@ -717,10 +744,10 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
 
      /* FIXME: has to be done "during" pan */
      surface_flip_buffers( thiz->surface );
-     
+
      if (thiz->buffermode == DLBM_BACKVIDEO) {
           DFBResult ret;
-           
+
           ret = fbdev_pan( thiz->surface->front_buffer->video.offset ? 1 : 0 );
           if (ret) {
                surface_flip_buffers( thiz->surface ); /* FIXME */
@@ -789,7 +816,7 @@ DFBResult primarylayer_init()
 
      surface->reactor = reactor_new();
 
-     surface->front_buffer = (SurfaceBuffer *) 
+     surface->front_buffer = (SurfaceBuffer *)
           calloc( 1, sizeof(SurfaceBuffer) );
 
      surface->back_buffer = surface->front_buffer;

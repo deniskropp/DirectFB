@@ -220,7 +220,7 @@ DFBResult IDirectFB_SetVideoMode( IDirectFB *thiz,
                config.buffermode = DLBM_FRONTONLY;
                config.options    = 0;
 
-               config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_BUFFERMODE |
+               config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | /*DLCONF_BUFFERMODE |*/
                               DLCONF_PIXELFORMAT | DLCONF_OPTIONS;
 
                ret = layers->SetConfiguration( layers, &config );
