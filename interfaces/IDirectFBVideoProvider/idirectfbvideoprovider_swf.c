@@ -468,6 +468,8 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->state.source   = data->source;
      data->state.modified = SMF_ALL;
 
+     D_MAGIC_SET (&data->state, CardState);
+
      FlashGraphicInit (data->flashHandle, &data->flashDisplay);
 //     FlashSoundInit(data->flashHandle, "/dev/dsp");
      FlashSetGetUrlMethod (data->flashHandle, showUrl, 0);
