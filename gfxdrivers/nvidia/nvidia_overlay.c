@@ -29,8 +29,7 @@
 #include "math.h"
 
 typedef struct {
-     GraphicsDevice*       device;
-     DFBRectangle          dest;
+     //GraphicsDevice*       device;
      CoreLayerRegionConfig config;
      CoreSurface*          videoSurface;
      short                 brightness;
@@ -91,7 +90,6 @@ ov0InitLayer( CoreLayer                  *layer,
      
      __s32                  satSine, satCosine;
      double                 angle;
-     VideoMode             *videomode;
 
      /* set capabilities and type */
      description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
@@ -114,14 +112,7 @@ ov0InitLayer( CoreLayer                  *layer,
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
      adjustment->flags = DCAF_NONE;
-
-     /* initialize destination rectangle */
-     videomode = dfb_system_current_mode();
-     nvov0->dest.x = 0;
-     nvov0->dest.y = 0;
-     nvov0->dest.w = videomode->xres;
-     nvov0->dest.h = videomode->yres;
-
+     
      /* reset overlay */
      nvov0->brightness           = 0;
      nvov0->contrast             = 4096;
@@ -578,16 +569,16 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      CoreSurface   *surface      = nvov0->videoSurface;
      SurfaceBuffer *front_buffer = surface->front_buffer;
 
-     // nvov0->regs.NV_PVIDEO_BASE = front_buffer->video.offset & 0x07fffff0;
+     nvov0->regs.NV_PVIDEO_BASE = front_buffer->video.offset & 0x07fffff0;
      // XBOX-specific: add nvov0->fbstart
-     nvov0->regs.NV_PVIDEO_BASE = (nvov0->fbstart + front_buffer->video.offset) & 0x03fffff0;
+     // nvov0->regs.NV_PVIDEO_BASE = (nvov0->fbstart + front_buffer->video.offset) & 0x03fffff0;
      nvov0->regs.NV_PVIDEO_LIMIT = 0x07ffffff;
      nvov0->regs.NV_PVIDEO_SIZE_IN = (config->height << 16) | pitch;
      nvov0->regs.NV_PVIDEO_POINT_IN = 0;
-     nvov0->regs.NV_PVIDEO_DS_DX = (config->width << 20) / nvov0->dest.w;
-     nvov0->regs.NV_PVIDEO_DT_DY = (config->height << 20) / nvov0->dest.h;
-     nvov0->regs.NV_PVIDEO_POINT_OUT = (nvov0->dest.y << 16) | nvov0->dest.x;
-     nvov0->regs.NV_PVIDEO_SIZE_OUT = ((nvov0->dest.h << 16) | nvov0->dest.w);
+     nvov0->regs.NV_PVIDEO_DS_DX = (config->width << 20) / config->dest.w;
+     nvov0->regs.NV_PVIDEO_DT_DY = (config->height << 20) / config->dest.h;
+     nvov0->regs.NV_PVIDEO_POINT_OUT = (config->dest.y << 16) | config->dest.x;
+     nvov0->regs.NV_PVIDEO_SIZE_OUT = ((config->dest.h << 16) | config->dest.w);
 
      // pitch |= 1 << 20;   /* use color key */
 
