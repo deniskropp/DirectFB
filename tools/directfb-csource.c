@@ -478,7 +478,9 @@ static DFBResult dump_image (const char            *name,
                         "  { 0x%02x, 0x%02x, 0x%02x, 0x%02x }%c\n",
                         palette[i].a, palette[i].r, palette[i].g, palette[i].b,
                         i+1 < palette_size ? ',' : ' ');
-          fprintf (csource.fp, "};\n\n");
+          fprintf (csource.fp, "};\n");
+          fprintf (csource.fp,
+                   "static int %s_palette_size = %d;\n\n", name, palette_size);
      }
 
      /* dump description */
