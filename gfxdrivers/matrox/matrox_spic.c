@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -69,8 +69,9 @@ typedef struct {
      } regs;
 } MatroxSpicLayerData;
 
-static void spic_set_buffer( MatroxDriverData *mdrv, MatroxSpicLayerData *mspic,
-                             DisplayLayer *layer );
+static void spic_set_buffer( MatroxDriverData    *mdrv,
+                             MatroxSpicLayerData *mspic,
+                             CoreLayer           *layer );
 
 #define SPIC_SUPPORTED_OPTIONS   (DLOP_ALPHACHANNEL | DLOP_OPACITY)
 
@@ -81,10 +82,10 @@ spicLayerDataSize()
 {
      return sizeof(MatroxSpicLayerData);
 }
-     
+
 static DFBResult
 spicInitLayer( GraphicsDevice        *device,
-               DisplayLayer          *layer,
+               CoreLayer             *layer,
                DisplayLayerInfo      *layer_info,
                DFBDisplayLayerConfig *default_config,
                DFBColorAdjustment    *default_adj,
@@ -131,9 +132,9 @@ spicOnOff( MatroxDriverData    *mdrv,
 }
 
 static DFBResult
-spicEnable( DisplayLayer *layer,
-            void         *driver_data,
-            void         *layer_data )
+spicEnable( CoreLayer *layer,
+            void      *driver_data,
+            void      *layer_data )
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
@@ -145,9 +146,9 @@ spicEnable( DisplayLayer *layer,
 }
 
 static DFBResult
-spicDisable( DisplayLayer *layer,
-             void         *driver_data,
-             void         *layer_data )
+spicDisable( CoreLayer *layer,
+             void      *driver_data,
+             void      *layer_data )
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
@@ -159,7 +160,7 @@ spicDisable( DisplayLayer *layer,
 }
 
 static DFBResult
-spicTestConfiguration( DisplayLayer               *layer,
+spicTestConfiguration( CoreLayer                  *layer,
                        void                       *driver_data,
                        void                       *layer_data,
                        DFBDisplayLayerConfig      *config,
@@ -198,7 +199,7 @@ spicTestConfiguration( DisplayLayer               *layer,
 }
 
 static DFBResult
-spicSetConfiguration( DisplayLayer          *layer,
+spicSetConfiguration( CoreLayer             *layer,
                       void                  *driver_data,
                       void                  *layer_data,
                       DFBDisplayLayerConfig *config )
@@ -215,10 +216,10 @@ spicSetConfiguration( DisplayLayer          *layer,
 }
 
 static DFBResult
-spicSetPalette( DisplayLayer *layer,
-                void         *driver_data,
-                void         *layer_data,
-                CorePalette  *palette )
+spicSetPalette( CoreLayer   *layer,
+                void        *driver_data,
+                void        *layer_data,
+                CorePalette *palette )
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
@@ -245,10 +246,10 @@ spicSetPalette( DisplayLayer *layer,
 }
 
 static DFBResult
-spicSetOpacity( DisplayLayer *layer,
-                void         *driver_data,
-                void         *layer_data,
-                __u8          opacity )
+spicSetOpacity( CoreLayer *layer,
+                void      *driver_data,
+                void      *layer_data,
+                __u8       opacity )
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
@@ -290,7 +291,7 @@ spicSetOpacity( DisplayLayer *layer,
 }
 
 static DFBResult
-spicFlipBuffers( DisplayLayer        *layer,
+spicFlipBuffers( CoreLayer           *layer,
                  void                *driver_data,
                  void                *layer_data,
                  DFBSurfaceFlipFlags  flags )
@@ -322,7 +323,7 @@ DisplayLayerFuncs matroxSpicFuncs = {
 
 static void spic_set_buffer( MatroxDriverData    *mdrv,
                              MatroxSpicLayerData *mspic,
-                             DisplayLayer        *layer )
+                             CoreLayer           *layer )
 {
      CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;

@@ -77,19 +77,19 @@ typedef struct {
      bool                     exclusive; /* helps to detect dead excl. access */
 
      GlobalReaction           bgimage_reaction;
-} CoreLayerShared, DisplayLayerShared;
+} CoreLayerShared;
 
 struct __DFB_CoreLayer {
-     DisplayLayerShared *shared;
+     CoreLayerShared   *shared;
 
-     GraphicsDevice     *device;
+     GraphicsDevice    *device;
 
-     void               *driver_data;
-     void               *layer_data;   /* copy of shared->layer_data */
+     void              *driver_data;
+     void              *layer_data;   /* copy of shared->layer_data */
 
-     DisplayLayerFuncs  *funcs;
+     DisplayLayerFuncs *funcs;
 
-     CardState           state;
+     CardState          state;
 };
 
 struct __DFB_CoreLayerRegion {

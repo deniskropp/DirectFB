@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -297,9 +297,9 @@ static bool radeonBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
 
 
 static DFBResult
-radeonWaitVSync( DisplayLayer *layer,
-		 void         *driver_data,
-		 void         *layer_data )
+radeonWaitVSync( CoreLayer *layer,
+		 void      *driver_data,
+		 void      *layer_data )
 {
     RADEONDriverData	*rdrv	= ( RADEONDriverData* ) driver_data;
     int			i;

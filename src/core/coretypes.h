@@ -55,7 +55,6 @@ typedef struct _ModuleDirectory         ModuleDirectory;
 typedef struct _InputDevice             InputDevice;
 typedef struct _GraphicsDevice          GraphicsDevice;
 
-typedef struct __DFB_CoreLayer          DisplayLayer;
 typedef struct __DFB_CoreLayer          CoreLayer;
 typedef struct __DFB_CoreLayerRegion    CoreLayerRegion;
 

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -92,7 +92,7 @@ static void cyber5kEngineSync( void *drv, void *dev )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
-     
+
      cyber_waitidle( cdrv, cdev );
 }
 
@@ -116,7 +116,7 @@ static void cyber5kCheckState( void *drv, void *dev,
                return;
 
           state->accel |= CYBER5K_DRAWING_FUNCTIONS;
-     
+
           /* no line drawing in 24bit mode */
           if (state->destination->format == DSPF_RGB24)
                state->accel &= ~DFXL_DRAWLINE;
@@ -175,7 +175,7 @@ cyber5k_validate_dst( CyberDriverData *cdrv, CyberDeviceData *cdev,
                BUG( "unexpected pixelformat!" );
                break;
      }
-     
+
      cdev->v_dst = 1;
 }
 
@@ -185,7 +185,7 @@ cyber5k_validate_src( CyberDriverData *cdrv,
 {
      CoreSurface   *source = state->source;
      SurfaceBuffer *buffer = source->front_buffer;
-     
+
      if (cdev->v_src)
           return;
 
@@ -196,7 +196,7 @@ cyber5k_validate_src( CyberDriverData *cdrv,
 
      cyber_out16( cdrv->mmio_base, SRC1WIDTH,
                   buffer->video.pitch /DFB_BYTES_PER_PIXEL(source->format) - 1);
-     
+
      cdev->v_src = 1;
 }
 
@@ -205,7 +205,7 @@ cyber5k_validate_color( CyberDriverData *cdrv,
                         CyberDeviceData *cdev, CardState *state )
 {
      __u32 fill_color = 0;
-     
+
      if (cdev->v_color)
           return;
 
@@ -233,9 +233,9 @@ cyber5k_validate_color( CyberDriverData *cdrv,
      }
 
      cyber_out32( cdrv->mmio_base, FCOLOR, fill_color );
-     
+
      cdev->v_src_colorkey = 0;
-     
+
      cdev->v_color = 1;
 }
 
@@ -248,7 +248,7 @@ cyber5k_validate_src_colorkey( CyberDriverData *cdrv,
 
      cyber_out32( cdrv->mmio_base, FCOLOR, state->src_colorkey );
      cyber_out32( cdrv->mmio_base, BCOLOR, state->src_colorkey );
-     
+
      cdev->v_color = 0;
 
      cdev->v_src_colorkey = 1;
@@ -265,7 +265,7 @@ cyber5k_validate_blitting_cmd( CyberDriverData *cdrv,
 
      if (state->blittingflags & DSBLIT_SRC_COLORKEY)
           cdev->blitting_cmd |= TRANS_ENABLE | TRANS_IS_SRC1 | TRANS_INVERT;
-     
+
      cdev->v_blitting_cmd = 1;
 }
 
@@ -274,7 +274,7 @@ static void cyber5kSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
-     
+
      if (state->modified) {
           if (state->modified & SMF_DESTINATION)
                cdev->v_dst = cdev->v_color = 0;
@@ -291,7 +291,7 @@ static void cyber5kSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      }
 
      cyber5k_validate_dst( cdrv, cdev, state, funcs );
-     
+
      switch (accel) {
           case DFXL_DRAWLINE:
           case DFXL_DRAWRECTANGLE:
@@ -324,7 +324,7 @@ static bool cyber5kFillRectangle( void *drv, void *dev, DFBRectangle *rect )
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
      volatile __u8   *mmio = cdrv->mmio_base;
-     
+
      cyber_waitidle( cdrv, cdev );
 
      cyber_out32( mmio, DSTPTR, cdev->dst_pixeloffset +
@@ -342,7 +342,7 @@ static bool cyber5kFillRectangle24( void *drv, void *dev, DFBRectangle *rect )
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
      volatile __u8   *mmio = cdrv->mmio_base;
-     
+
      cyber_waitidle( cdrv, cdev );
 
      cyber_out32( mmio, DSTPTR, (cdev->dst_pixeloffset +
@@ -361,7 +361,7 @@ static bool cyber5kDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
      volatile __u8   *mmio = cdrv->mmio_base;
-     
+
      __u32 dst = cdev->dst_pixeloffset +
                  rect->y * cdev->dst_pixelpitch + rect->x;
 
@@ -393,7 +393,7 @@ static bool cyber5kDrawRectangle24( void *drv, void *dev, DFBRectangle *rect )
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
      volatile __u8   *mmio = cdrv->mmio_base;
-     
+
      __u32 dst = cdev->dst_pixeloffset +
                 (rect->y * cdev->dst_pixelpitch + rect->x) * 3;
 
@@ -427,7 +427,7 @@ static bool cyber5kDrawLine( void *drv, void *dev, DFBRegion *line )
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
      volatile __u8   *mmio = cdrv->mmio_base;
-     
+
      __u32 cmd = COP_LINE_DRAW | PAT_FIXFGD;
 
      int dx;
@@ -471,7 +471,7 @@ static bool cyber5kBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int d
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
      volatile __u8   *mmio = cdrv->mmio_base;
-     
+
      __u32 cmd = cdev->blitting_cmd;
 
      cyber_waitidle( cdrv, cdev );
@@ -506,7 +506,7 @@ static bool cyber5kBlit24( void *drv, void *dev, DFBRectangle *rect, int dx, int
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
      volatile __u8   *mmio = cdrv->mmio_base;
-     
+
      __u32 cmd = cdev->blitting_cmd;
      __u32 src = 0;
      __u32 dst = 0;
@@ -549,13 +549,13 @@ DisplayLayerFuncs  oldPrimaryFuncs;
 void              *oldPrimaryDriverData;
 
 static DFBResult
-osdInitLayer( GraphicsDevice             *device,
-              DisplayLayer               *layer,
-              DisplayLayerInfo           *layer_info,
-              DFBDisplayLayerConfig      *default_config,
-              DFBColorAdjustment         *default_adj,
-              void                       *driver_data,
-              void                       *layer_data )
+osdInitLayer( GraphicsDevice        *device,
+              CoreLayer             *layer,
+              DisplayLayerInfo      *layer_info,
+              DFBDisplayLayerConfig *default_config,
+              DFBColorAdjustment    *default_adj,
+              void                  *driver_data,
+              void                  *layer_data )
 {
      DFBResult ret;
 
@@ -582,7 +582,7 @@ osdInitLayer( GraphicsDevice             *device,
 }
 
 static DFBResult
-osdTestConfiguration ( DisplayLayer               *layer,
+osdTestConfiguration ( CoreLayer                  *layer,
                        void                       *driver_data,
                        void                       *layer_data,
                        DFBDisplayLayerConfig      *config,
@@ -591,7 +591,7 @@ osdTestConfiguration ( DisplayLayer               *layer,
      DFBResult                  ret;
      DFBDisplayLayerConfigFlags fail = 0;
      DFBDisplayLayerConfigFlags options = config->flags & DLCONF_OPTIONS;
-       
+
      /* remove flag before calling the original function */
      config->flags &= ~DLCONF_OPTIONS;
 
@@ -612,10 +612,10 @@ osdTestConfiguration ( DisplayLayer               *layer,
                fail |= DLCONF_OPTIONS;
           }
      }
-     
+
      /* readd flag */
      config->flags |= options;
-     
+
      if (failed)
           *failed = fail;
 
@@ -626,10 +626,10 @@ osdTestConfiguration ( DisplayLayer               *layer,
 }
 
 static DFBResult
-osdSetConfiguration  ( DisplayLayer               *layer,
-                       void                       *driver_data,
-                       void                       *layer_data,
-                       DFBDisplayLayerConfig      *config )
+osdSetConfiguration( CoreLayer             *layer,
+                     void                  *driver_data,
+                     void                  *layer_data,
+                     DFBDisplayLayerConfig *config )
 {
      DFBResult ret;
 
@@ -638,7 +638,7 @@ osdSetConfiguration  ( DisplayLayer               *layer,
                                              layer_data, config );
      if (ret)
           return ret;
-     
+
      /* select pixel based or global alpha */
      if (config->options & DLOP_ALPHACHANNEL)
           cyber_select_alpha_src( ALPHA_GRAPHICS );
@@ -650,7 +650,7 @@ osdSetConfiguration  ( DisplayLayer               *layer,
      cyber_set_alpha_RAM_reg( 0, 0x00, 0x00, 0x00 );
      cyber_select_magic_alpha_src( ALPHA_LOOKUP );
      cyber_enable_magic_alpha_blend( config->options & DLOP_SRC_COLORKEY );
-          
+
      /* FIXME: hardcoded black color key */
      cyber_set_magic_match_reg( 0, 0, 0 );
 
@@ -658,23 +658,23 @@ osdSetConfiguration  ( DisplayLayer               *layer,
 }
 
 static DFBResult
-osdSetOpacity        ( DisplayLayer               *layer,
-                       void                       *driver_data,
-                       void                       *layer_data,
-                       __u8                        opacity )
+osdSetOpacity( CoreLayer *layer,
+               void      *driver_data,
+               void      *layer_data,
+               __u8       opacity )
 {
      cyber_set_alpha_reg( opacity, opacity, opacity );
-     
+
      return DFB_OK;
 }
-     
+
 static DFBResult
-osdSetSrcColorKey    ( DisplayLayer               *layer,
-                       void                       *driver_data,
-                       void                       *layer_data,
-                       __u8                        r,
-                       __u8                        g,
-                       __u8                        b )
+osdSetSrcColorKey( CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   __u8       r,
+                   __u8       g,
+                   __u8       b )
 {
      return DFB_UNIMPLEMENTED;
 }
@@ -754,7 +754,7 @@ driver_init_driver( GraphicsDevice      *device,
      /* install primary layer hooks */
      dfb_layers_hook_primary( device, driver_data, &newPrimaryFuncs,
                               &oldPrimaryFuncs, &oldPrimaryDriverData );
-     
+
      /* add the video underlay */
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_IGS_CYBER5000:

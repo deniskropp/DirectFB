@@ -46,7 +46,7 @@ typedef struct {
      int       (*LayerDataSize)     ();
 
      DFBResult (*InitLayer)         ( GraphicsDevice             *device,
-                                      DisplayLayer               *layer,
+                                      CoreLayer                  *layer,
                                       DisplayLayerInfo           *layer_info,
                                       DFBDisplayLayerConfig      *default_config,
                                       DFBColorAdjustment         *default_adj,
@@ -57,45 +57,45 @@ typedef struct {
       * internal layer driver API
       */
 
-     DFBResult (*Enable)            ( DisplayLayer               *layer,
+     DFBResult (*Enable)            ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data );
 
-     DFBResult (*Disable)           ( DisplayLayer               *layer,
+     DFBResult (*Disable)           ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data );
 
-     DFBResult (*TestConfiguration) ( DisplayLayer               *layer,
+     DFBResult (*TestConfiguration) ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       DFBDisplayLayerConfig      *config,
                                       DFBDisplayLayerConfigFlags *failed );
 
-     DFBResult (*SetConfiguration)  ( DisplayLayer               *layer,
+     DFBResult (*SetConfiguration)  ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       DFBDisplayLayerConfig      *config );
 
-     DFBResult (*SetOpacity)        ( DisplayLayer               *layer,
+     DFBResult (*SetOpacity)        ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       __u8                        opacity );
 
-     DFBResult (*GetCurrentOutputField) ( DisplayLayer           *layer,
+     DFBResult (*GetCurrentOutputField) ( CoreLayer              *layer,
                                           void                   *driver_data,
                                           void                   *layer_data,
                                           int                    *field );
 
-     DFBResult (*SetFieldParity)    ( DisplayLayer               *layer,
+     DFBResult (*SetFieldParity)    ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       int                         field );
 
-     DFBResult (*WaitVSync)         ( DisplayLayer               *layer,
+     DFBResult (*WaitVSync)         ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data );
 
-     DFBResult (*SetScreenLocation) ( DisplayLayer               *layer,
+     DFBResult (*SetScreenLocation) ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       float                       x,
@@ -103,57 +103,57 @@ typedef struct {
                                       float                       width,
                                       float                       height );
 
-     DFBResult (*SetSrcColorKey)    ( DisplayLayer               *layer,
+     DFBResult (*SetSrcColorKey)    ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       __u8                        r,
                                       __u8                        g,
                                       __u8                        b );
 
-     DFBResult (*SetDstColorKey)    ( DisplayLayer               *layer,
+     DFBResult (*SetDstColorKey)    ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       __u8                        r,
                                       __u8                        g,
                                       __u8                        b );
 
-     DFBResult (*GetLevel)          ( DisplayLayer               *layer,
+     DFBResult (*GetLevel)          ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       int                        *level );
 
-     DFBResult (*SetLevel)          ( DisplayLayer               *layer,
+     DFBResult (*SetLevel)          ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       int                         level );
 
-     DFBResult (*FlipBuffers)       ( DisplayLayer               *layer,
+     DFBResult (*FlipBuffers)       ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       DFBSurfaceFlipFlags         flags );
 
-     DFBResult (*UpdateRegion)      ( DisplayLayer               *layer,
+     DFBResult (*UpdateRegion)      ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       DFBRegion                  *region,
                                       DFBSurfaceFlipFlags         flags );
 
-     DFBResult (*SetColorAdjustment)( DisplayLayer               *layer,
+     DFBResult (*SetColorAdjustment)( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       DFBColorAdjustment         *adj );
 
-     DFBResult (*SetPalette)        ( DisplayLayer               *layer,
+     DFBResult (*SetPalette)        ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       CorePalette                *palette );
 
-     DFBResult (*SetField)          ( DisplayLayer               *layer,
+     DFBResult (*SetField)          ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       int                         field );
 
-     DFBResult (*SetScreenPowerMode)( DisplayLayer               *layer,
+     DFBResult (*SetScreenPowerMode)( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       DFBScreenPowerMode          mode );
@@ -162,19 +162,19 @@ typedef struct {
       * optional to override default surface (re)allocation
       */
 
-     DFBResult (*AllocateSurface) ( DisplayLayer               *layer,
+     DFBResult (*AllocateSurface) ( CoreLayer                  *layer,
                                     void                       *driver_data,
                                     void                       *layer_data,
                                     DFBDisplayLayerConfig      *config,
                                     CoreSurface               **surface );
 
-     DFBResult (*ReallocateSurface) ( DisplayLayer               *layer,
+     DFBResult (*ReallocateSurface) ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       DFBDisplayLayerConfig      *config,
                                       CoreSurface                *surface );
 
-     DFBResult (*DeallocateSurface) ( DisplayLayer               *layer,
+     DFBResult (*DeallocateSurface) ( CoreLayer                  *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       CoreSurface                *surface );
@@ -185,20 +185,20 @@ typedef struct {
       */
      int       (*WindowDataSize)     ();
 
-     DFBResult (*AddWindow)    ( DisplayLayer               *layer,
+     DFBResult (*AddWindow)    ( CoreLayer                  *layer,
                                  void                       *driver_data,
                                  void                       *layer_data,
                                  void                       *window_data,
                                  CoreWindow                 *window );
 
-     DFBResult (*UpdateWindow) ( DisplayLayer               *layer,
+     DFBResult (*UpdateWindow) ( CoreLayer                  *layer,
                                  void                       *driver_data,
                                  void                       *layer_data,
                                  void                       *window_data,
                                  CoreWindow                 *window,
                                  CoreWindowUpdateFlags       flags );
 
-     DFBResult (*RemoveWindow) ( DisplayLayer               *layer,
+     DFBResult (*RemoveWindow) ( CoreLayer                  *layer,
                                  void                       *driver_data,
                                  void                       *layer_data,
                                  void                       *window_data,
@@ -236,112 +236,117 @@ void dfb_layers_replace_primary( GraphicsDevice     *device,
                                  void               *driver_data,
                                  DisplayLayerFuncs  *funcs );
 
-typedef DFBEnumerationResult (*DisplayLayerCallback) (DisplayLayer *layer,
-                                                      void         *ctx);
+typedef DFBEnumerationResult (*DisplayLayerCallback) (CoreLayer *layer,
+                                                      void      *ctx);
 
 void dfb_layers_enumerate( DisplayLayerCallback  callback,
                            void                 *ctx );
 
-DisplayLayer *dfb_layer_at( DFBDisplayLayerID id );
-DisplayLayer *dfb_layer_at_translated( DFBDisplayLayerID id );
+CoreLayer *dfb_layer_at( DFBDisplayLayerID id );
+CoreLayer *dfb_layer_at_translated( DFBDisplayLayerID id );
 
 /*
  * Lease layer during window stack repaints.
  */
-DFBResult dfb_layer_lease( DisplayLayer *layer );
+DFBResult dfb_layer_lease( CoreLayer *layer );
 
 /*
  * Purchase layer for exclusive access.
  */
-DFBResult dfb_layer_purchase( DisplayLayer *layer );
+DFBResult dfb_layer_purchase( CoreLayer *layer );
 
 /*
  * Kill the process that purchased the layer.
  */
-DFBResult dfb_layer_holdup( DisplayLayer *layer );
+DFBResult dfb_layer_holdup( CoreLayer *layer );
 
 /*
  * Release layer after lease/purchase.
  * Repaints the window stack if 'repaint' is true.
  */
-void dfb_layer_release( DisplayLayer *layer, bool repaint );
+void dfb_layer_release( CoreLayer *layer, bool repaint );
 
 
 /*
  * enable/disable layer
  */
-DFBResult dfb_layer_enable( DisplayLayer *layer );
-DFBResult dfb_layer_disable( DisplayLayer *layer );
+DFBResult dfb_layer_enable( CoreLayer *layer );
+DFBResult dfb_layer_disable( CoreLayer *layer );
 
 /*
  * configuration testing/setting/getting
  */
-DFBResult dfb_layer_test_configuration( DisplayLayer               *layer,
+DFBResult dfb_layer_test_configuration( CoreLayer                  *layer,
                                         DFBDisplayLayerConfig      *config,
                                         DFBDisplayLayerConfigFlags *failed );
 
-DFBResult dfb_layer_set_configuration( DisplayLayer          *layer,
+DFBResult dfb_layer_set_configuration( CoreLayer             *layer,
                                        DFBDisplayLayerConfig *config );
 
-DFBResult dfb_layer_get_configuration( DisplayLayer          *layer,
+DFBResult dfb_layer_get_configuration( CoreLayer             *layer,
                                        DFBDisplayLayerConfig *config );
 
 /*
  * background handling
  */
-DFBResult dfb_layer_set_background_mode ( DisplayLayer                  *layer,
+DFBResult dfb_layer_set_background_mode ( CoreLayer                     *layer,
                                           DFBDisplayLayerBackgroundMode  mode );
 
-DFBResult dfb_layer_set_background_image( DisplayLayer                  *layer,
+DFBResult dfb_layer_set_background_image( CoreLayer                     *layer,
                                           CoreSurface                   *image);
 
-DFBResult dfb_layer_set_background_color( DisplayLayer                  *layer,
+DFBResult dfb_layer_set_background_color( CoreLayer                     *layer,
                                           DFBColor                      *color);
 
 /*
  * various functions
  */
-CoreSurface       *dfb_layer_surface( const DisplayLayer *layer );
-CardState         *dfb_layer_state( DisplayLayer *layer );
-void               dfb_layer_description( const DisplayLayer         *layer,
-                                          DFBDisplayLayerDescription *desc );
-DFBDisplayLayerID  dfb_layer_id( const DisplayLayer *layer );
-DFBDisplayLayerID  dfb_layer_id_translated( const DisplayLayer *layer );
+CoreSurface       *dfb_layer_surface      ( const CoreLayer            *layer );
 
-DFBResult          dfb_layer_flip_buffers ( DisplayLayer        *layer,
-                                            DFBSurfaceFlipFlags  flags );
-DFBResult          dfb_layer_update_region( DisplayLayer        *layer,
-                                            DFBRegion           *region,
-                                            DFBSurfaceFlipFlags  flags );
+CardState         *dfb_layer_state        ( CoreLayer                  *layer );
 
-DFBResult dfb_layer_set_src_colorkey( DisplayLayer *layer,
+void               dfb_layer_description  ( const CoreLayer            *layer,
+                                            DFBDisplayLayerDescription *desc );
+
+DFBDisplayLayerID  dfb_layer_id           ( const CoreLayer            *layer );
+
+DFBDisplayLayerID  dfb_layer_id_translated( const CoreLayer            *layer );
+
+DFBResult          dfb_layer_flip_buffers ( CoreLayer                  *layer,
+                                            DFBSurfaceFlipFlags         flags );
+
+DFBResult          dfb_layer_update_region( CoreLayer                  *layer,
+                                            DFBRegion                  *region,
+                                            DFBSurfaceFlipFlags         flags );
+
+DFBResult dfb_layer_set_src_colorkey( CoreLayer *layer,
                                       __u8 r, __u8 g, __u8 b );
 
-DFBResult dfb_layer_set_dst_colorkey( DisplayLayer *layer,
+DFBResult dfb_layer_set_dst_colorkey( CoreLayer *layer,
                                       __u8 r, __u8 g, __u8 b );
 
-DFBResult dfb_layer_get_level( DisplayLayer *layer, int *level );
-DFBResult dfb_layer_set_level( DisplayLayer *layer, int level );
+DFBResult dfb_layer_get_level( CoreLayer *layer, int *level );
+DFBResult dfb_layer_set_level( CoreLayer *layer, int level );
 
-DFBResult dfb_layer_set_screenlocation( DisplayLayer *layer,
+DFBResult dfb_layer_set_screenlocation( CoreLayer *layer,
                                         float x, float y,
                                         float width, float height );
 
-DFBResult dfb_layer_set_opacity (DisplayLayer *layer, __u8 opacity);
+DFBResult dfb_layer_set_opacity (CoreLayer *layer, __u8 opacity);
 
-DFBResult dfb_layer_get_current_output_field( DisplayLayer *layer, int *field );
+DFBResult dfb_layer_get_current_output_field( CoreLayer *layer, int *field );
 
-DFBResult dfb_layer_set_field_parity( DisplayLayer *layer, int field );
+DFBResult dfb_layer_set_field_parity( CoreLayer *layer, int field );
 
-DFBResult dfb_layer_wait_vsync( DisplayLayer *layer );
+DFBResult dfb_layer_wait_vsync( CoreLayer *layer );
 
-DFBResult dfb_layer_set_screen_power_mode( DisplayLayer *layer,
-                                           DFBScreenPowerMode mode );
+DFBResult dfb_layer_set_screen_power_mode( CoreLayer          *layer,
+                                           DFBScreenPowerMode  mode );
 
-DFBResult dfb_layer_set_coloradjustment (DisplayLayer       *layer,
+DFBResult dfb_layer_set_coloradjustment (CoreLayer          *layer,
                                          DFBColorAdjustment *adj);
 
-DFBResult dfb_layer_get_coloradjustment (DisplayLayer       *layer,
+DFBResult dfb_layer_get_coloradjustment (CoreLayer          *layer,
                                          DFBColorAdjustment *adj);
 
 DFBSurfacePixelFormat dfb_primary_layer_pixelformat();
@@ -352,20 +357,20 @@ void                  dfb_primary_layer_rectangle( float x, float y,
 /*
  * hardware window support
  */
-DFBResult dfb_layer_add_window   ( DisplayLayer          *layer,
+DFBResult dfb_layer_add_window   ( CoreLayer             *layer,
                                    CoreWindow            *window );
 
-DFBResult dfb_layer_update_window( DisplayLayer          *layer,
+DFBResult dfb_layer_update_window( CoreLayer             *layer,
                                    CoreWindow            *window,
                                    CoreWindowUpdateFlags  flags );
 
-DFBResult dfb_layer_remove_window( DisplayLayer          *layer,
+DFBResult dfb_layer_remove_window( CoreLayer             *layer,
                                    CoreWindow            *window );
 
 /*
  * window control
  */
-DFBResult dfb_layer_create_window( DisplayLayer           *layer,
+DFBResult dfb_layer_create_window( CoreLayer              *layer,
                                    int                     x,
                                    int                     y,
                                    int                     width,
@@ -375,38 +380,38 @@ DFBResult dfb_layer_create_window( DisplayLayer           *layer,
                                    DFBSurfacePixelFormat   pixelformat,
                                    CoreWindow            **window );
 
-CoreWindow *dfb_layer_find_window( DisplayLayer           *layer,
+CoreWindow *dfb_layer_find_window( CoreLayer              *layer,
                                    DFBWindowID             id );
 
-CoreWindowStack *dfb_layer_window_stack( DisplayLayer *layer );
+CoreWindowStack *dfb_layer_window_stack( const CoreLayer *layer );
 
 /*
  * cursor control
  */
-DFBResult dfb_layer_cursor_enable( DisplayLayer *layer,
+DFBResult dfb_layer_cursor_enable( CoreLayer    *layer,
                                    bool          enable );
 
-DFBResult dfb_layer_cursor_set_shape( DisplayLayer *layer,
-                                      CoreSurface  *shape,
-                                      int           hot_x,
-                                      int           hot_y );
+DFBResult dfb_layer_cursor_set_shape( CoreLayer   *layer,
+                                      CoreSurface *shape,
+                                      int          hot_x,
+                                      int          hot_y );
 
-DFBResult dfb_layer_cursor_set_opacity( DisplayLayer *layer,
-                                        __u8          opacity );
+DFBResult dfb_layer_cursor_set_opacity( CoreLayer *layer,
+                                        __u8       opacity );
 
-DFBResult dfb_layer_cursor_set_acceleration( DisplayLayer *layer,
-                                             int           numerator,
-                                             int           denominator,
-                                             int           threshold );
+DFBResult dfb_layer_cursor_set_acceleration( CoreLayer *layer,
+                                             int        numerator,
+                                             int        denominator,
+                                             int        threshold );
 
-DFBResult dfb_layer_cursor_warp( DisplayLayer *layer,
-                                 int           x,
-                                 int           y );
+DFBResult dfb_layer_cursor_warp( CoreLayer *layer,
+                                 int        x,
+                                 int        y );
 
 
-DFBResult dfb_layer_get_cursor_position (DisplayLayer       *layer,
-                                         int                *x,
-                                         int                *y);
+DFBResult dfb_layer_get_cursor_position (CoreLayer *layer,
+                                         int       *x,
+                                         int       *y);
 
 
 

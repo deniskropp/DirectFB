@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -38,7 +38,7 @@
 DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                                             DFBRectangle           *req_rect,
                                             DFBRectangle           *clip_rect,
-                                            DisplayLayer           *layer,
+                                            CoreLayer              *layer,
                                             DFBSurfaceCapabilities  caps );
 
 #endif

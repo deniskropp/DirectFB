@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -151,9 +151,9 @@ window_destructor( FusionObject *object, bool zombie )
               window->width, window->height, zombie ? " ZOMBIE" : "");
 
      dfb_window_destroy( window );
-     
+
      window_remove( window );
-     
+
      fusion_object_destroy( object );
 }
 
@@ -161,7 +161,7 @@ window_destructor( FusionObject *object, bool zombie )
  * Allocates and initializes a window stack.
  */
 CoreWindowStack*
-dfb_windowstack_new( DisplayLayer *layer, int width, int height )
+dfb_windowstack_new( CoreLayer *layer, int width, int height )
 {
      int               i;
      CoreWindowStack  *stack;
@@ -243,7 +243,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
 
      /* see FIXME above */
      DFB_ASSUME( !stack->windows );
-     
+
      if (stack->windows) {
           int i;
 
@@ -289,7 +289,7 @@ dfb_windowstack_resize( CoreWindowStack *stack,
 
 DFBResult
 dfb_window_create( CoreWindowStack        *stack,
-                   DisplayLayer           *layer,
+                   CoreLayer              *layer,
                    int                     x,
                    int                     y,
                    int                     width,
@@ -312,10 +312,10 @@ dfb_window_create( CoreWindowStack        *stack,
      DFB_ASSERT( height > 0 );
      DFB_ASSERT( config != NULL );
      DFB_ASSERT( ret_window != NULL );
-     
+
      if (width > 4096 || height > 4096)
           return DFB_BUFFERTOOLARGE;
-     
+
      surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED |
                      DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
 
@@ -401,7 +401,7 @@ dfb_window_create( CoreWindowStack        *stack,
 
      window->stack   = stack;
      window->events  = DWET_ALL;
-     
+
      /* Auto enable blending for ARGB only, not LUT8. */
      if ((caps & DWCAPS_ALPHACHANNEL) && pixelformat == DSPF_ARGB)
           window->options = DWOP_ALPHACHANNEL;
@@ -422,7 +422,7 @@ dfb_window_create( CoreWindowStack        *stack,
                                          surface_policy, surface_caps,
                                          layer_surface->palette, &surface );
           }
-          
+
           if (ret) {
                fusion_object_destroy( &window->object );
                return ret;
@@ -430,7 +430,7 @@ dfb_window_create( CoreWindowStack        *stack,
 
           dfb_surface_link( &window->surface, surface );
           dfb_surface_unref( surface );
-          
+
           if (config->buffermode == DLBM_WINDOWS) {
                ret = dfb_layer_add_window( layer, window );
                if (ret) {
@@ -503,7 +503,7 @@ dfb_window_destroy( CoreWindow *window )
      /* Notify listeners. */
      evt.type = DWET_DESTROYED;
      dfb_window_post_event( window, &evt );
-     
+
      /* Indicate destruction. */
      window->destroyed = true;
 
@@ -517,9 +517,9 @@ dfb_window_destroy( CoreWindow *window )
      if (window->surface) {
           dfb_surface_detach_global( window->surface,
                                      &window->surface_reaction );
-          
+
           dfb_surface_unlink( window->surface );
-          
+
           window->surface = NULL;
      }
 
@@ -854,7 +854,7 @@ dfb_window_resize( CoreWindow   *window,
      if (window->window_data)
           dfb_layer_update_window( dfb_layer_at(stack->layer_id),
                                    window, CWUF_SIZE | CWUF_SURFACE );
-     
+
      /* Send new size */
      evt.type = DWET_SIZE;
      evt.w = window->width;
@@ -888,7 +888,7 @@ dfb_window_set_opacity( CoreWindow *window,
           if (window->window_data)
                dfb_layer_update_window( dfb_layer_at(stack->layer_id),
                                         window, CWUF_OPACITY );
-          
+
           /* Check focus after window appeared or disappeared */
           if ((!old_opacity && opacity) || !opacity)
                handle_enter_leave_focus( stack );
@@ -1049,7 +1049,7 @@ dfb_window_post_event( CoreWindow     *window,
      DFB_ASSERT( event != NULL );
 
      DFB_ASSUME( !window->destroyed );
-     
+
      if (! (event->type & window->events))
           return;
 
@@ -1059,7 +1059,7 @@ dfb_window_post_event( CoreWindow     *window,
      event->window_id = window->id;
 
      DFB_ASSUME( window->stack != NULL );
-     
+
      if (window->stack) {
           CoreWindowStack *stack = window->stack;
 
@@ -1430,7 +1430,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
      DFBWindowEvent   we;
      CoreWindow      *window = NULL;
      CoreWindowStack *stack  = ctx;
-     DisplayLayer    *layer  = dfb_layer_at( stack->layer_id );
+     CoreLayer       *layer  = dfb_layer_at( stack->layer_id );
 
      /* FIXME: this is a bad check for exclusive access */
      if (dfb_layer_lease( layer ) )
@@ -1545,7 +1545,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               return RS_OK;
 
                          case DIKS_SMALL_A:
-                              if (stack->focused_window && 
+                              if (stack->focused_window &&
                                   ! (stack->focused_window->options & DWOP_KEEP_STACKING))
                               {
                                    dfb_window_lowertobottom( stack->focused_window );
@@ -1555,7 +1555,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               return RS_OK;
 
                          case DIKS_SMALL_S:
-                              if (stack->focused_window && 
+                              if (stack->focused_window &&
                                   ! (stack->focused_window->options & DWOP_KEEP_STACKING))
                               {
                                    dfb_window_raisetotop( stack->focused_window );
@@ -1586,7 +1586,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                          case DIKS_PRINT:
                               if (dfb_config->screenshot_dir) {
                                    CoreWindow *window = stack->focused_window;
-     
+
                                    if (window && window->surface)
                                         dfb_surface_dump( window->surface,
                                                           dfb_config->screenshot_dir,
@@ -1826,7 +1826,7 @@ window_insert( CoreWindow *window,
           return;
 
      window->initialized = true;
-     
+
      if (before < 0  ||  before > stack->num_windows)
           before = stack->num_windows;
 
@@ -2035,8 +2035,8 @@ switch_focus( CoreWindowStack *stack, CoreWindow *to )
           DFB_ASSUME(! (to->options & DWOP_GHOST));
 
           if (to->surface && to->surface->palette && !stack->hw_mode) {
-               DisplayLayer *layer = dfb_layer_at( stack->layer_id );
-               
+               CoreLayer *layer = dfb_layer_at( stack->layer_id );
+
                if (dfb_layer_lease( layer ) == FUSION_SUCCESS) {
                     CoreSurface *surface = dfb_layer_surface( layer );
 
@@ -2140,7 +2140,7 @@ get_keyboard_window( CoreWindowStack     *stack,
           for (i=0; i<8; i++) {
                if (stack->keys[i].code == evt->key_code) {
                     stack->keys[i].code = -1;
-                    
+
                     /* Return owner (NULL if destroyed). */
                     return stack->keys[i].owner;
                }
@@ -2167,7 +2167,7 @@ _dfb_window_surface_listener( const void *msg_data, void *ctx )
      DFB_ASSERT( window != NULL );
      DFB_ASSERT( window->stack != NULL );
      DFB_ASSERT( window->surface == notification->surface );
-     
+
      if (notification->flags & CSNF_DESTROY) {
           CAUTION( "window surface destroyed" );
           return RS_REMOVE;
@@ -2175,7 +2175,7 @@ _dfb_window_surface_listener( const void *msg_data, void *ctx )
 
      if (notification->flags & (CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE)) {
           if (window->window_data) {
-               DisplayLayer *layer = dfb_layer_at( window->stack->layer_id );
+               CoreLayer *layer = dfb_layer_at( window->stack->layer_id );
 
                DFB_ASSERT( layer != NULL );
 

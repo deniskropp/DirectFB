@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -76,10 +76,10 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
 typedef struct {
      int                ref;
      CoreWindow        *window;
-     DisplayLayer      *layer;
+     CoreLayer         *layer;
 
      IDirectFBSurface  *surface;
-     
+
      DFBWindowEvent    *position_size_event;
 
      struct {
@@ -103,20 +103,20 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
 
      DEBUGMSG("IDirectFBWindow_Destruct...\n");
-     
+
      if (!data->detached) {
           DEBUGMSG("IDirectFBWindow_Destruct - detaching...\n");
-          
+
           dfb_window_detach( data->window, &data->reaction );
-          
+
           DEBUGMSG("IDirectFBWindow_Destruct - detached.\n");
      }
-     
+
      if (!data->destroyed) {
           DEBUGMSG("IDirectFBWindow_Destruct - unrefing...\n");
-          
+
           dfb_window_unref( data->window );
-          
+
           DEBUGMSG("IDirectFBWindow_Destruct - unref done.\n");
      }
 
@@ -125,10 +125,10 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 
      if (data->cursor.shape)
           data->cursor.shape->Release( data->cursor.shape );
-     
+
      if (data->position_size_event)
           DFBFREE( data->position_size_event );
-     
+
      DEBUGMSG("IDirectFBWindow_Destruct - done.\n");
 
      DFB_DEALLOCATE_INTERFACE( thiz );
@@ -449,7 +449,7 @@ IDirectFBWindow_SetOpaqueRegion( IDirectFBWindow *thiz,
           return DFB_INVAREA;
 
      window = data->window;
-     
+
      window->opaque.x1 = x1;
      window->opaque.y1 = y1;
      window->opaque.x2 = x2;
@@ -511,7 +511,7 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
      if (shape) {
           IDirectFBSurface_data *shape_data;
           CoreSurface           *shape_surface;
-          
+
           shape_data = (IDirectFBSurface_data*) shape->priv;
           if (!shape_data)
                return DFB_DEAD;
@@ -547,7 +547,7 @@ IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
           return DFB_DESTROYED;
 
      window = data->window;
-     
+
      if ((window->options & DWOP_GHOST) || !window->opacity)
           return DFB_UNSUPPORTED;
 
@@ -671,7 +671,7 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
 
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
-     
+
      if (data->window->width == width  &&  data->window->height == height)
           return DFB_OK;
 
@@ -831,7 +831,7 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
           return DFB_DESTROYED;
 
      DEBUGMSG("IDirectFBWindow_Destroy\n");
-     
+
      dfb_window_destroy( data->window );
 
      return DFB_OK;

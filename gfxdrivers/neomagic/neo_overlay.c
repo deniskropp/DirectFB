@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -48,9 +48,12 @@ typedef struct {
      } regs;
 } NeoOverlayLayerData;
 
-static void ovl_set_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl );
-static void ovl_calc_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl,
-                           DisplayLayer *layer, DFBDisplayLayerConfig *config );
+static void ovl_set_regs ( NeoDriverData         *ndrv,
+                           NeoOverlayLayerData   *novl );
+static void ovl_calc_regs( NeoDriverData         *ndrv,
+                           NeoOverlayLayerData   *novl,
+                           CoreLayer             *layer,
+                           DFBDisplayLayerConfig *config );
 
 #define NEO_OVERLAY_SUPPORTED_OPTIONS   (DLOP_NONE)
 
@@ -61,10 +64,10 @@ ovlLayerDataSize()
 {
      return sizeof(NeoOverlayLayerData);
 }
-     
+
 static DFBResult
 ovlInitLayer( GraphicsDevice             *device,
-              DisplayLayer               *layer,
+              CoreLayer                  *layer,
               DisplayLayerInfo           *layer_info,
               DFBDisplayLayerConfig      *default_config,
               DFBColorAdjustment         *default_adj,
@@ -72,7 +75,7 @@ ovlInitLayer( GraphicsDevice             *device,
               void                       *layer_data )
 {
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
-     
+
      /* set capabilities and type */
      layer_info->desc.caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
                              DLCAPS_BRIGHTNESS;
@@ -96,12 +99,12 @@ ovlInitLayer( GraphicsDevice             *device,
         only fields set in flags will be accepted from applications */
      default_adj->flags      = DCAF_BRIGHTNESS;
      default_adj->brightness = 0x8000;
-     
-     
+
+
      /* initialize destination rectangle */
      dfb_primary_layer_rectangle( 0.0f, 0.0f, 1.0f, 1.0f, &novl->dest );
-     
-     
+
+
      /* FIXME: use mmio */
      iopl(3);
 
@@ -119,7 +122,7 @@ ovlInitLayer( GraphicsDevice             *device,
      OUTGR(0x0a, 0x01);
 
      neo_lock();
-     
+
      return DFB_OK;
 }
 
@@ -142,13 +145,13 @@ ovlOnOff( NeoDriverData       *ndrv,
 }
 
 static DFBResult
-ovlEnable( DisplayLayer *layer,
-           void         *driver_data,
-           void         *layer_data )
+ovlEnable( CoreLayer *layer,
+           void      *driver_data,
+           void      *layer_data )
 {
      NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
-     
+
      /* enable overlay */
      ovlOnOff( ndrv, novl, 1 );
 
@@ -156,9 +159,9 @@ ovlEnable( DisplayLayer *layer,
 }
 
 static DFBResult
-ovlDisable( DisplayLayer *layer,
-            void         *driver_data,
-            void         *layer_data )
+ovlDisable( CoreLayer *layer,
+            void      *driver_data,
+            void      *layer_data )
 {
      NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
@@ -170,7 +173,7 @@ ovlDisable( DisplayLayer *layer,
 }
 
 static DFBResult
-ovlTestConfiguration( DisplayLayer               *layer,
+ovlTestConfiguration( CoreLayer                  *layer,
                       void                       *driver_data,
                       void                       *layer_data,
                       DFBDisplayLayerConfig      *config,
@@ -211,7 +214,7 @@ ovlTestConfiguration( DisplayLayer               *layer,
 }
 
 static DFBResult
-ovlSetConfiguration( DisplayLayer          *layer,
+ovlSetConfiguration( CoreLayer             *layer,
                      void                  *driver_data,
                      void                  *layer_data,
                      DFBDisplayLayerConfig *config )
@@ -221,7 +224,7 @@ ovlSetConfiguration( DisplayLayer          *layer,
 
      /* remember configuration */
      novl->config = *config;
-     
+
      ovl_calc_regs( ndrv, novl, layer, config );
      ovl_set_regs( ndrv, novl );
 
@@ -229,14 +232,14 @@ ovlSetConfiguration( DisplayLayer          *layer,
 }
 
 static DFBResult
-ovlSetOpacity( DisplayLayer *layer,
-               void         *driver_data,
-               void         *layer_data,
-               __u8          opacity )
+ovlSetOpacity( CoreLayer *layer,
+               void      *driver_data,
+               void      *layer_data,
+               __u8       opacity )
 {
      NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
-     
+
      switch (opacity) {
           case 0:
                ovlOnOff( ndrv, novl, 0 );
@@ -252,39 +255,39 @@ ovlSetOpacity( DisplayLayer *layer,
 }
 
 static DFBResult
-ovlSetScreenLocation( DisplayLayer *layer,
-                      void         *driver_data,
-                      void         *layer_data,
-                      float         x,
-                      float         y,
-                      float         width,
-                      float         height )
+ovlSetScreenLocation( CoreLayer *layer,
+                      void      *driver_data,
+                      void      *layer_data,
+                      float      x,
+                      float      y,
+                      float      width,
+                      float      height )
 {
      NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
-     
+
      /* get new destination rectangle */
      dfb_primary_layer_rectangle( x, y, width, height, &novl->dest );
 
      ovl_calc_regs( ndrv, novl, layer, &novl->config );
      ovl_set_regs( ndrv, novl );
-     
+
      return DFB_OK;
 }
 
 static DFBResult
-ovlSetDstColorKey( DisplayLayer *layer,
-                   void         *driver_data,
-                   void         *layer_data,
-                   __u8          r,
-                   __u8          g,
-                   __u8          b )
+ovlSetDstColorKey( CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   __u8       r,
+                   __u8       g,
+                   __u8       b )
 {
      return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
-ovlFlipBuffers( DisplayLayer        *layer,
+ovlFlipBuffers( CoreLayer           *layer,
                 void                *driver_data,
                 void                *layer_data,
                 DFBSurfaceFlipFlags  flags )
@@ -294,13 +297,13 @@ ovlFlipBuffers( DisplayLayer        *layer,
      CoreSurface         *surface = dfb_layer_surface( layer );
 #if 0
      bool                 onsync  = (flags & DSFLIP_WAITFORSYNC);
-     
+
      if (onsync)
           dfb_fbdev_wait_vsync();
 #endif
-     
+
      dfb_surface_flip_buffers( surface );
-     
+
      ovl_calc_regs( ndrv, novl, layer, &novl->config );
      ovl_set_regs( ndrv, novl );
 
@@ -308,7 +311,7 @@ ovlFlipBuffers( DisplayLayer        *layer,
 }
 
 static DFBResult
-ovlSetColorAdjustment( DisplayLayer       *layer,
+ovlSetColorAdjustment( CoreLayer          *layer,
                        void               *driver_data,
                        void               *layer_data,
                        DFBColorAdjustment *adj )
@@ -366,8 +369,10 @@ static void ovl_set_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl )
      neo_lock();
 }
 
-static void ovl_calc_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl,
-                           DisplayLayer *layer, DFBDisplayLayerConfig *config )
+static void ovl_calc_regs( NeoDriverData         *ndrv,
+                           NeoOverlayLayerData   *novl,
+                           CoreLayer             *layer,
+                           DFBDisplayLayerConfig *config )
 {
      CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;

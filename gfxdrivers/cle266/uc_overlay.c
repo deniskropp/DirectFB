@@ -15,9 +15,9 @@
 
 // Forward declaration
 static DFBResult
-uc_ovl_disable(DisplayLayer *layer,
-               void         *driver_data,
-               void         *layer_data);
+uc_ovl_disable(CoreLayer *layer,
+               void      *driver_data,
+               void      *layer_data);
 
 
 static int uc_ovl_datasize()
@@ -27,13 +27,13 @@ static int uc_ovl_datasize()
 
 
 static DFBResult
-uc_ovl_init_layer(GraphicsDevice             *device,
-                  DisplayLayer               *layer,
-                  DisplayLayerInfo           *layer_info,
-                  DFBDisplayLayerConfig      *default_config,
-                  DFBColorAdjustment         *default_adj,
-                  void                       *driver_data,
-                  void                       *layer_data)
+uc_ovl_init_layer(GraphicsDevice        *device,
+                  CoreLayer             *layer,
+                  DisplayLayerInfo      *layer_info,
+                  DFBDisplayLayerConfig *default_config,
+                  DFBColorAdjustment    *default_adj,
+                  void                  *driver_data,
+                  void                  *layer_data)
 {
     UcDriverData* ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
@@ -80,9 +80,9 @@ uc_ovl_init_layer(GraphicsDevice             *device,
 
 
 static DFBResult
-uc_ovl_enable(DisplayLayer  *layer,
-              void          *driver_data,
-              void          *layer_data)
+uc_ovl_enable(CoreLayer *layer,
+              void      *driver_data,
+              void      *layer_data)
 {
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
 
@@ -92,9 +92,9 @@ uc_ovl_enable(DisplayLayer  *layer,
 
 
 static DFBResult
-uc_ovl_disable(DisplayLayer *layer,
-               void         *driver_data,
-               void         *layer_data)
+uc_ovl_disable(CoreLayer *layer,
+               void      *driver_data,
+               void      *layer_data)
 {
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
     __u8* vio = ucovl->hwregs;
@@ -130,7 +130,7 @@ uc_ovl_disable(DisplayLayer *layer,
 
 
 static DFBResult
-uc_ovl_test_configuration(DisplayLayer               *layer,
+uc_ovl_test_configuration(CoreLayer                  *layer,
                           void                       *driver_data,
                           void                       *layer_data,
                           DFBDisplayLayerConfig      *config,
@@ -185,7 +185,7 @@ uc_ovl_test_configuration(DisplayLayer               *layer,
 
 
 static DFBResult
-uc_ovl_set_configuration(DisplayLayer          *layer,
+uc_ovl_set_configuration(CoreLayer             *layer,
                          void                  *driver_data,
                          void                  *layer_data,
                          DFBDisplayLayerConfig *config )
@@ -199,10 +199,10 @@ uc_ovl_set_configuration(DisplayLayer          *layer,
 
 
 static DFBResult
-uc_ovl_set_opacity(DisplayLayer *layer,
-                   void         *driver_data,
-                   void         *layer_data,
-                   __u8         opacity)
+uc_ovl_set_opacity(CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   __u8       opacity)
 {
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
     VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(opacity));
@@ -211,13 +211,13 @@ uc_ovl_set_opacity(DisplayLayer *layer,
 
 
 static DFBResult
-uc_ovl_set_location(DisplayLayer *layer,
-                    void         *driver_data,
-                    void         *layer_data,
-                    float         x,
-                    float         y,
-                    float         width,
-                    float         height)
+uc_ovl_set_location(CoreLayer *layer,
+                    void      *driver_data,
+                    void      *layer_data,
+                    float      x,
+                    float      y,
+                    float      width,
+                    float      height)
 {
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
     DFBRectangle win;
@@ -229,7 +229,7 @@ uc_ovl_set_location(DisplayLayer *layer,
     if ((win.x < -8192) || (win.x > 8192) ||
         (win.y < -8192) || (win.y > 8192) ||
         (win.w < 32) || (win.w > 4096) ||
-        (win.h < 32) || (win.h > 4096)) 
+        (win.h < 32) || (win.h > 4096))
     {
         DEBUGMSG("Layer size or position is out of bounds.");
         return DFB_INVAREA;
@@ -242,19 +242,21 @@ uc_ovl_set_location(DisplayLayer *layer,
 
 
 static DFBResult
-uc_ovl_set_dst_color_key(DisplayLayer *layer,
-                         void         *driver_data,
-                         void         *layer_data,
-                         __u8 r, __u8 g, __u8 b)
+uc_ovl_set_dst_color_key(CoreLayer *layer,
+                         void      *driver_data,
+                         void      *layer_data,
+                         __u8       r,
+                         __u8       g,
+                         __u8       b)
 {
     return DFB_UNIMPLEMENTED;
 }
 
 
 static DFBResult
-uc_ovl_flip_buffers(DisplayLayer         *layer,
-                    void                 *driver_data,
-                    void                 *layer_data,
+uc_ovl_flip_buffers(CoreLayer           *layer,
+                    void                *driver_data,
+                    void                *layer_data,
                     DFBSurfaceFlipFlags  flags)
 {
     //printf("Entering %s ... \n", __PRETTY_FUNCTION__);
@@ -281,9 +283,9 @@ uc_ovl_flip_buffers(DisplayLayer         *layer,
 }
 
 static DFBResult
-uc_ovl_wait_vsync(DisplayLayer           *layer,                  
-                  void                   *driver_data,                  
-                  void                   *layer_data)
+uc_ovl_wait_vsync(CoreLayer *layer,
+                  void      *driver_data,
+                  void      *layer_data)
 {
     // Forward the function call to the primary layer.
     return dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));

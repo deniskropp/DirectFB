@@ -1,5 +1,5 @@
 /*
-   i810_overlay.c -- Video Overlay Support (based partly from 
+   i810_overlay.c -- Video Overlay Support (based partly from
                      XFree86 i810_video.c)
 
    (c) Copyright 2000-2002  convergence integrated media GmbH.
@@ -129,18 +129,18 @@ typedef struct {
 #define SRC_CONSTANT_ALPHA_BLEND  1 << 31
 #define MINUV_SCALE	        0x1
 
-#define I810FB_IOC_UPDATEOVERLAY       _IOW ('F', 0xF7, struct i810_ovl_regs)  
+#define I810FB_IOC_UPDATEOVERLAY       _IOW ('F', 0xF7, struct i810_ovl_regs)
 #define I810FB_IOC_UPDATEOVERLAYCMD    _IOW ('F', 0xF6, int)
 
-extern u32 i810_wait_for_space(I810DriverData *i810drv, 
+extern u32 i810_wait_for_space(I810DriverData *i810drv,
 			       I810DeviceData *i810dev,
 			       u32             space   );
 
 #define I810_OVERLAY_SUPPORTED_OPTIONS (DLOP_DST_COLORKEY | DLOP_DEINTERLACING)
 
-static void ovl_calc_regs (I810DriverData        *i810drv, 
+static void ovl_calc_regs (I810DriverData        *i810drv,
 			   I810OverlayLayerData  *i810ovl,
-			   DisplayLayer          *layer,
+			   CoreLayer             *layer,
 			   DFBDisplayLayerConfig *config  );
 
 static void update_overlay(I810DriverData       *i810drv,
@@ -156,13 +156,13 @@ ovlLayerDataSize()
 }
 
 static DFBResult
-ovlInitLayer( GraphicsDevice             *device,
-              DisplayLayer               *layer,
-              DisplayLayerInfo           *layer_info,
-              DFBDisplayLayerConfig      *default_config,
-              DFBColorAdjustment         *default_adj,
-              void                       *driver_data,
-              void                       *layer_data )
+ovlInitLayer( GraphicsDevice        *device,
+              CoreLayer             *layer,
+              DisplayLayerInfo      *layer_info,
+              DFBDisplayLayerConfig *default_config,
+              DFBColorAdjustment    *default_adj,
+              void                  *driver_data,
+              void                  *layer_data )
 {
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
 	I810DriverData *i810drv = (I810DriverData *) driver_data;
@@ -172,7 +172,7 @@ ovlInitLayer( GraphicsDevice             *device,
 	/* set_capabilities */
 	layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION |
 		DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST | DLCAPS_SATURATION |
-		DLCAPS_DST_COLORKEY | DLCAPS_OPACITY | DLCAPS_DEINTERLACING; 
+		DLCAPS_DST_COLORKEY | DLCAPS_OPACITY | DLCAPS_DEINTERLACING;
 
 	layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
 	/* set name */
@@ -194,17 +194,17 @@ ovlInitLayer( GraphicsDevice             *device,
 	default_adj->brightness = 0x8000;
 	default_adj->contrast   = 0x8000;
 	default_adj->saturation = 0x8000;
-     
+
 	/* initialize destination rectangle */
 	dfb_primary_layer_rectangle( 0.0f, 0.0f, 1.0f, 1.0f, &i810ovl->dest );
-     
+
 	i810ovl->regs->yrgb_vph  = 0;
 	i810ovl->regs->uv_vph    = 0;
 	i810ovl->regs->horz_ph   = 0;
 	i810ovl->regs->init_ph   = 0;
 	i810ovl->regs->dwinpos   = 0;
-	i810ovl->regs->dwinsz    = (640 << 16) | 480; 
-	i810ovl->regs->swid      = 640 | (640 << 15);       
+	i810ovl->regs->dwinsz    = (640 << 16) | 480;
+	i810ovl->regs->swid      = 640 | (640 << 15);
 	i810ovl->regs->swidqw    = (640 >> 3) | (640 << 12);
 	i810ovl->regs->sheight   = 480 | (480 << 15);
 	i810ovl->regs->yrgbscale = 0x80004000; /* scale factor 1 */
@@ -215,18 +215,18 @@ ovlInitLayer( GraphicsDevice             *device,
 	i810ovl->regs->sclrkvh = 0;
 	i810ovl->regs->sclrkvl = 0;
 	i810ovl->regs->sclrkm  = 0; /* source color key disable */
-	i810ovl->regs->ov0conf = 0; /* two 720 pixel line buffers */ 
+	i810ovl->regs->ov0conf = 0; /* two 720 pixel line buffers */
 	
 	i810ovl->regs->ov0cmd = VC_UP_INTERPOLATION | HC_UP_INTERPOLATION | Y_ADJUST |
 		YUV_420;
 	
 	update_overlay(i810drv, i810ovl);
 	
-	/* 
+	/*
 	 * FIXME: If the fence registers are enabled, then the buffer pointers
-	 *        require specific alignment.  This is a problem with planar formats 
+	 *        require specific alignment.  This is a problem with planar formats
 	 *        which have separate pointers for each of the U and V planes.  Packed
-	 *        formats should not be a problem. 
+	 *        formats should not be a problem.
 	 */
 	i810ovl->planar_bug = 0;
 	if (i810_readl(i810drv->mmio_base, FENCE) & 1)
@@ -236,9 +236,9 @@ ovlInitLayer( GraphicsDevice             *device,
 }
 
 static DFBResult
-ovlEnable( DisplayLayer *layer,
-	   void         *driver_data,
-	   void         *layer_data   )
+ovlEnable( CoreLayer *layer,
+	   void      *driver_data,
+	   void      *layer_data   )
 {
 	I810DriverData       *i810drv = (I810DriverData *) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
@@ -250,9 +250,9 @@ ovlEnable( DisplayLayer *layer,
 }
 
 static DFBResult
-ovlDisable( DisplayLayer *layer,
-	    void         *driver_data,
-	    void         *layer_data   )
+ovlDisable( CoreLayer *layer,
+	    void      *driver_data,
+	    void      *layer_data   )
 {
 	I810DriverData       *i810drv = (I810DriverData *) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
@@ -264,7 +264,7 @@ ovlDisable( DisplayLayer *layer,
 }
 
 static DFBResult
-ovlTestConfiguration( DisplayLayer               *layer,
+ovlTestConfiguration( CoreLayer                  *layer,
                       void                       *driver_data,
                       void                       *layer_data,
                       DFBDisplayLayerConfig      *config,
@@ -308,7 +308,7 @@ ovlTestConfiguration( DisplayLayer               *layer,
 }
 
 static DFBResult
-ovlSetConfiguration( DisplayLayer          *layer,
+ovlSetConfiguration( CoreLayer             *layer,
 		     void                  *driver_data,
 		     void                  *layer_data,
 		     DFBDisplayLayerConfig *config      )
@@ -324,10 +324,10 @@ ovlSetConfiguration( DisplayLayer          *layer,
 	return DFB_OK;
 }
 static DFBResult
-ovlSetOpacity( DisplayLayer *layer,
-               void         *driver_data,
-               void         *layer_data,
-               __u8          opacity )
+ovlSetOpacity( CoreLayer *layer,
+               void      *driver_data,
+               void      *layer_data,
+               __u8       opacity )
 {
 	I810DriverData       *i810drv = (I810DriverData *) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
@@ -352,17 +352,17 @@ ovlSetOpacity( DisplayLayer *layer,
 }
 
 static DFBResult
-ovlSetScreenLocation( DisplayLayer *layer,
-                      void         *driver_data,
-                      void         *layer_data,
-                      float         x,
-                      float         y,
-                      float         width,
-                      float         height )
+ovlSetScreenLocation( CoreLayer *layer,
+                      void      *driver_data,
+                      void      *layer_data,
+                      float      x,
+                      float      y,
+                      float      width,
+                      float      height )
 {
 	I810DriverData       *i810drv = (I810DriverData*) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData*) layer_data;
-     
+
 	/* get new destination rectangle */
 	dfb_primary_layer_rectangle( x, y, width, height, &i810ovl->dest );
 	
@@ -373,12 +373,12 @@ ovlSetScreenLocation( DisplayLayer *layer,
 }
 
 static DFBResult
-ovlSetDstColorKey( DisplayLayer *layer,
-                   void         *driver_data,
-                   void         *layer_data,
-                   __u8          r,
-                   __u8          g,
-                   __u8          b )
+ovlSetDstColorKey( CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   __u8       r,
+                   __u8       g,
+                   __u8       b )
 {
 	I810DriverData       *i810drv = (I810DriverData*) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData*) layer_data;
@@ -405,7 +405,7 @@ ovlSetDstColorKey( DisplayLayer *layer,
 }
 
 static DFBResult
-ovlFlipBuffers( DisplayLayer        *layer,
+ovlFlipBuffers( CoreLayer           *layer,
                 void                *driver_data,
                 void                *layer_data,
 		DFBSurfaceFlipFlags  flags)
@@ -428,7 +428,7 @@ ovlFlipBuffers( DisplayLayer        *layer,
 		i810ovl->regs->ov0cmd |= 4;
 	}
 
-	ovl_calc_regs (i810drv, i810ovl, layer, &i810ovl->config); 
+	ovl_calc_regs (i810drv, i810ovl, layer, &i810ovl->config);
 	update_overlay(i810drv, i810ovl);
 	
 	if (flags & DSFLIP_WAIT)
@@ -439,7 +439,7 @@ ovlFlipBuffers( DisplayLayer        *layer,
 
 
 static DFBResult
-ovlSetColorAdjustment( DisplayLayer       *layer,
+ovlSetColorAdjustment( CoreLayer          *layer,
                        void               *driver_data,
                        void               *layer_data,
                        DFBColorAdjustment *adj )
@@ -447,7 +447,7 @@ ovlSetColorAdjustment( DisplayLayer       *layer,
 	I810DriverData       *i810drv = (I810DriverData*) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData*) layer_data;
 	
-	i810ovl->regs->ov0clrc0 = (((adj->brightness >> 8) - 128) & 0xFF) | 
+	i810ovl->regs->ov0clrc0 = (((adj->brightness >> 8) - 128) & 0xFF) |
 		                  ((adj->contrast >> 9) << 8);
 	i810ovl->regs->ov0clrc1 = (adj->saturation >> 8) & 0xFF;
 
@@ -456,10 +456,10 @@ ovlSetColorAdjustment( DisplayLayer       *layer,
 }
 	
 static DFBResult
-ovlSetField( DisplayLayer *layer,
-	     void         *driver_data,
-	     void         *layer_data,
-	     int           field )
+ovlSetField( CoreLayer *layer,
+	     void      *driver_data,
+	     void      *layer_data,
+	     int        field )
 {
 	I810DriverData       *i810drv = (I810DriverData*) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData*) layer_data;
@@ -487,9 +487,9 @@ DisplayLayerFuncs i810OverlayFuncs = {
 };
 
 
-static void ovl_calc_regs (I810DriverData        *i810drv, 
+static void ovl_calc_regs (I810DriverData        *i810drv,
 			   I810OverlayLayerData  *i810ovl,
-			   DisplayLayer          *layer,
+			   CoreLayer             *layer,
 			   DFBDisplayLayerConfig *config  )
 {
 	u32 swidth = 0, y_offset, v_offset = 0, u_offset = 0;
@@ -504,11 +504,11 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	src_w = surface->width;
 	src_h = surface->height;
 
-	if (config->options & DLOP_DEINTERLACING) 
-		src_h >>= 1; 
+	if (config->options & DLOP_DEINTERLACING)
+		src_h >>= 1;
 
         /* reset command register except the enable bit and buffer select bits */
-	i810ovl->regs->ov0cmd &= 7; 
+	i810ovl->regs->ov0cmd &= 7;
 
 	/* Set source dimension in bytes */
 	switch (surface->format) {
@@ -540,7 +540,7 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	i810ovl->regs->dwinsz = (drw_h << 16) | drw_w;
 
 	/* Set buffer pointers */
-	y_offset = (dfb_gfxcard_memory_physical(NULL, front_buffer->video.offset)); 
+	y_offset = (dfb_gfxcard_memory_physical(NULL, front_buffer->video.offset));
 
 	switch (surface->format) {
 	case DSPF_I420:
@@ -570,46 +570,46 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	i810ovl->regs->yrgbscale = 0x80004000;
 	i810ovl->regs->uvscale = 0x80004000;
 
-	i810ovl->regs->ov0cmd |= VC_UP_INTERPOLATION | HC_UP_INTERPOLATION | Y_ADJUST | FRAME_MODE; 
+	i810ovl->regs->ov0cmd |= VC_UP_INTERPOLATION | HC_UP_INTERPOLATION | Y_ADJUST | FRAME_MODE;
 
-	if (config->options & DLOP_DEINTERLACING) 
+	if (config->options & DLOP_DEINTERLACING)
 		i810ovl->regs->ov0cmd |= FIELD_MODE;
 
-	if ((drw_w != src_w) || (drw_h != src_h)) 
+	if ((drw_w != src_w) || (drw_h != src_h))
 	{
 		xscaleInt = (src_w / drw_w) & 0x3;
 		xscaleFract = (src_w << 12) / drw_w;
 		yscaleInt = (src_h / drw_h) & 0x3;
 		yscaleFract = (src_h << 12) / drw_h;
 
-		i810ovl->regs->yrgbscale = (xscaleInt << 15) | 
+		i810ovl->regs->yrgbscale = (xscaleInt << 15) |
 			((xscaleFract & 0xFFF) << 3) |
 			(yscaleInt) |
 			((yscaleFract & 0xFFF) << 20);
 
-		if (drw_w > src_w) 
+		if (drw_w > src_w)
 		{
 			i810ovl->regs->ov0cmd &= ~HORIZONTAL_CHROMINANCE_FILTER;
 			i810ovl->regs->ov0cmd &= ~HORIZONTAL_LUMINANCE_FILTER;
 			i810ovl->regs->ov0cmd |= (HC_UP_INTERPOLATION | HL_UP_INTERPOLATION);
 		}
 
-		if (drw_h > src_h) 
-		{ 
+		if (drw_h > src_h)
+		{
 			i810ovl->regs->ov0cmd &= ~VERTICAL_CHROMINANCE_FILTER;
 			i810ovl->regs->ov0cmd &= ~VERTICAL_LUMINANCE_FILTER;
 			i810ovl->regs->ov0cmd |= (VC_UP_INTERPOLATION | VL_UP_INTERPOLATION);
 		}
 
-		if (drw_w < src_w) 
-		{ 
+		if (drw_w < src_w)
+		{
 			i810ovl->regs->ov0cmd &= ~HORIZONTAL_CHROMINANCE_FILTER;
 			i810ovl->regs->ov0cmd &= ~HORIZONTAL_LUMINANCE_FILTER;
 			i810ovl->regs->ov0cmd |= (HC_DOWN_INTERPOLATION | HL_DOWN_INTERPOLATION);
 		}
 		
-		if (drw_h < src_h) 
-		{ 
+		if (drw_h < src_h)
+		{
 			i810ovl->regs->ov0cmd &= ~VERTICAL_CHROMINANCE_FILTER;
 			i810ovl->regs->ov0cmd &= ~VERTICAL_LUMINANCE_FILTER;
 			i810ovl->regs->ov0cmd |= (VC_DOWN_INTERPOLATION | VL_DOWN_INTERPOLATION);

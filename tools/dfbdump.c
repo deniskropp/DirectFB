@@ -21,7 +21,7 @@ static DFBResult
 init_directfb( int *argc, char **argv[] )
 {
      DFBResult ret;
-     
+
      /* Initialize DirectFB. */
      ret = DirectFBInit( argc, argv );
      if (ret)
@@ -64,7 +64,7 @@ buffer_sizes( CoreSurface *surface, bool video )
 
      if (surface->caps & DSCAPS_TRIPLE)
           mem += buffer_size( surface, surface->idle_buffer, video );
-     
+
      return (mem + 0x3ff) & ~0x3ff;
 }
 
@@ -82,7 +82,7 @@ buffer_locks( CoreSurface *surface, bool video )
 
      if (surface->caps & DSCAPS_TRIPLE)
           locks += video ? idle->video.locked : idle->system.locked;
-     
+
      return locks;
 }
 
@@ -114,7 +114,7 @@ surface_callback( FusionObjectPool *pool,
 #endif
 
      printf( "%3d   ", refs );
-     
+
      printf( "%4d x %4d   ", surface->width, surface->height );
 
      switch (surface->format) {
@@ -246,7 +246,7 @@ window_callback( CoreWindow      *window,
      printf( "%4d, %4d   ", window->x, window->y );
 
      printf( "%4d x %4d    ", window->width, window->height );
-     
+
      printf( "0x%02x ", window->opacity );
 
      printf( "%5d  ", window->id );
@@ -282,30 +282,30 @@ window_callback( CoreWindow      *window,
 
      if (window->options & DWOP_GHOST)
           printf( "GHOST          " );
-     
+
      if (stack->focused_window == window)
           printf( "FOCUSED        " );
 
      if (window->destroyed)
           printf( "DESTROYED      " );
-     
+
      printf( "\n" );
 
      return true;
 }
 
 static DFBEnumerationResult
-layer_callback( DisplayLayer *layer,
-                void         *ctx)
+layer_callback( CoreLayer *layer,
+                void      *ctx)
 {
      int              i;
      CoreWindowStack *stack = dfb_layer_window_stack( layer );
 
      if (!stack)
           return DFENUM_OK;
-     
+
      fusion_skirmish_prevail( &stack->lock );
-     
+
      if (stack->num_windows) {
           printf( "\n"
                   "-----------------------------------[ Windows on Layer %d ]-----------------------------------\n", dfb_layer_id( layer ) );
@@ -319,7 +319,7 @@ layer_callback( DisplayLayer *layer,
      }
 
      fusion_skirmish_dismiss( &stack->lock );
-     
+
      return DFENUM_OK;
 }
 
@@ -360,7 +360,7 @@ main( int argc, char *argv[] )
                printf( "\nDirectFB uptime: %02ld:%02ld:%02ld\n",
                        hours, minutes, seconds );
                break;
-          
+
           case 1:
                printf( "\nDirectFB uptime: %ld day, %02ld:%02ld:%02ld\n",
                        days, hours, minutes, seconds );

@@ -57,9 +57,12 @@ typedef struct {
      } regs;
 } NVidiaOverlayLayerData;
 
-static void ov0_set_regs( NVidiaDriverData *nvdrv, NVidiaOverlayLayerData *nvov0 );
-static void ov0_calc_regs( NVidiaDriverData *nvdrv, NVidiaOverlayLayerData *nvov0,
-                           DisplayLayer *layer, DFBDisplayLayerConfig *config );
+static void ov0_set_regs ( NVidiaDriverData       *nvdrv,
+                           NVidiaOverlayLayerData *nvov0 );
+static void ov0_calc_regs( NVidiaDriverData       *nvdrv,
+                           NVidiaOverlayLayerData *nvov0,
+                           CoreLayer              *layer,
+                           DFBDisplayLayerConfig  *config );
 
 #define OV0_SUPPORTED_OPTIONS   (DLOP_NONE)
 
@@ -75,7 +78,7 @@ ov0LayerDataSize()
 
 static DFBResult
 ov0InitLayer( GraphicsDevice             *device,
-              DisplayLayer               *layer,
+              CoreLayer                  *layer,
               DisplayLayerInfo           *layer_info,
               DFBDisplayLayerConfig      *default_config,
               DFBColorAdjustment         *default_adj,
@@ -152,9 +155,9 @@ ov0OnOff( NVidiaDriverData       *nvdrv,
 
 
 static DFBResult
-ov0Enable( DisplayLayer *layer,
-           void         *driver_data,
-           void         *layer_data )
+ov0Enable( CoreLayer *layer,
+           void      *driver_data,
+           void      *layer_data )
 {
      NVidiaDriverData    *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
@@ -166,9 +169,9 @@ ov0Enable( DisplayLayer *layer,
 }
 
 static DFBResult
-ov0Disable( DisplayLayer *layer,
-            void         *driver_data,
-            void         *layer_data )
+ov0Disable( CoreLayer *layer,
+            void      *driver_data,
+            void      *layer_data )
 {
      NVidiaDriverData    *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
@@ -180,7 +183,7 @@ ov0Disable( DisplayLayer *layer,
 }
 
 static DFBResult
-ov0TestConfiguration( DisplayLayer               *layer,
+ov0TestConfiguration( CoreLayer                  *layer,
                       void                       *driver_data,
                       void                       *layer_data,
                       DFBDisplayLayerConfig      *config,
@@ -224,7 +227,7 @@ ov0TestConfiguration( DisplayLayer               *layer,
 }
 
 static DFBResult
-ov0SetConfiguration( DisplayLayer          *layer,
+ov0SetConfiguration( CoreLayer             *layer,
                      void                  *driver_data,
                      void                  *layer_data,
                      DFBDisplayLayerConfig *config )
@@ -242,10 +245,10 @@ ov0SetConfiguration( DisplayLayer          *layer,
 }
 
 static DFBResult
-ov0SetOpacity( DisplayLayer *layer,
-               void         *driver_data,
-               void         *layer_data,
-               __u8          opacity )
+ov0SetOpacity( CoreLayer *layer,
+               void      *driver_data,
+               void      *layer_data,
+               __u8       opacity )
 {
      NVidiaDriverData    *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
@@ -265,13 +268,13 @@ ov0SetOpacity( DisplayLayer *layer,
 }
 
 static DFBResult
-ov0SetScreenLocation( DisplayLayer *layer,
-                      void         *driver_data,
-                      void         *layer_data,
-                      float         x,
-                      float         y,
-                      float         width,
-                      float         height )
+ov0SetScreenLocation( CoreLayer *layer,
+                      void      *driver_data,
+                      void      *layer_data,
+                      float      x,
+                      float      y,
+                      float      width,
+                      float      height )
 {
      NVidiaDriverData    *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
@@ -286,22 +289,22 @@ ov0SetScreenLocation( DisplayLayer *layer,
 }
 
 static DFBResult
-ov0SetDstColorKey( DisplayLayer *layer,
-                   void         *driver_data,
-                   void         *layer_data,
-                   __u8          r,
-                   __u8          g,
-                   __u8          b )
+ov0SetDstColorKey( CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   __u8       r,
+                   __u8       g,
+                   __u8       b )
 {
      return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
-ov0AllocateSurface( DisplayLayer               *layer,
-                    void                       *driver_data,
-                    void                       *layer_data,
-                    DFBDisplayLayerConfig      *config,
-                    CoreSurface               **surface )
+ov0AllocateSurface( CoreLayer              *layer,
+                    void                   *driver_data,
+                    void                   *layer_data,
+                    DFBDisplayLayerConfig  *config,
+                    CoreSurface           **surface )
 {
      DFBResult result;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
@@ -342,11 +345,11 @@ ov0AllocateSurface( DisplayLayer               *layer,
 }
 
 static DFBResult
-ov0ReallocateSurface( DisplayLayer               *layer,
-                      void                       *driver_data,
-                      void                       *layer_data,
-                      DFBDisplayLayerConfig      *config,
-                      CoreSurface                *surface )
+ov0ReallocateSurface( CoreLayer             *layer,
+                      void                  *driver_data,
+                      void                  *layer_data,
+                      DFBDisplayLayerConfig *config,
+                      CoreSurface           *surface )
 {
      DFBResult result;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
@@ -401,10 +404,10 @@ ov0ReallocateSurface( DisplayLayer               *layer,
 }
 
 static DFBResult
-ov0DeallocateSurface( DisplayLayer               *layer,
-                      void                       *driver_data,
-                      void                       *layer_data,
-                      CoreSurface                *surface )
+ov0DeallocateSurface( CoreLayer   *layer,
+                      void        *driver_data,
+                      void        *layer_data,
+                      CoreSurface *surface )
 {
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
      dfb_surface_unref( nvov0->videoSurface );
@@ -498,7 +501,7 @@ ov0CopyData420
 
 
 static DFBResult
-ov0FlipBuffers( DisplayLayer        *layer,
+ov0FlipBuffers( CoreLayer           *layer,
                 void                *driver_data,
                 void                *layer_data,
                 DFBSurfaceFlipFlags  flags )
@@ -558,7 +561,7 @@ ov0FlipBuffers( DisplayLayer        *layer,
 }
 
 static DFBResult
-ov0SetColorAdjustment( DisplayLayer       *layer,
+ov0SetColorAdjustment( CoreLayer          *layer,
                        void               *driver_data,
                        void               *layer_data,
                        DFBColorAdjustment *adj )
@@ -607,8 +610,10 @@ static void ov0_set_regs( NVidiaDriverData *nvdrv, NVidiaOverlayLayerData *nvov0
 }
 
 static void
-ov0_calc_regs( NVidiaDriverData *nvdrv, NVidiaOverlayLayerData *nvov0,
-               DisplayLayer *layer, DFBDisplayLayerConfig *config )
+ov0_calc_regs( NVidiaDriverData       *nvdrv,
+               NVidiaOverlayLayerData *nvov0,
+               CoreLayer              *layer,
+               DFBDisplayLayerConfig  *config )
 {
      __u32         pitch = ((config->width << 1) + 63) & ~63;
      CoreSurface   *surface      = nvov0->videoSurface;

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -59,7 +59,7 @@
 typedef struct {
      IDirectFBSurface_data base;  /* base Surface implementation */
 
-     DisplayLayer         *layer; /* pointer to layer this surface belongs to */
+     CoreLayer            *layer; /* pointer to layer this surface belongs to */
 } IDirectFBSurface_Layer_data;
 
 
@@ -103,7 +103,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
      if (flags & DSFLIP_BLIT || region || data->base.caps & DSCAPS_SUBSURFACE) {
           if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC)
                dfb_layer_wait_vsync( data->layer );
-          
+
           if (region) {
                DFBRegion    reg  = *region;
                DFBRectangle rect = data->base.area.current;
@@ -145,7 +145,7 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
                                       const DFBRectangle  *rect,
                                       IDirectFBSurface   **surface )
 {
-     DFBRectangle wanted, granted;  
+     DFBRectangle wanted, granted;
 
      INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
@@ -162,7 +162,7 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
 
           wanted.x += data->base.area.wanted.x;
           wanted.y += data->base.area.wanted.y;
- 
+
           if (wanted.w <= 0 || wanted.h <= 0) {
                wanted.w = 0;
                wanted.h = 0;
@@ -188,14 +188,14 @@ DFBResult
 IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                                   DFBRectangle           *wanted,
                                   DFBRectangle           *granted,
-                                  DisplayLayer           *layer,
+                                  CoreLayer              *layer,
                                   DFBSurfaceCapabilities  caps )
 {
      DFBResult    ret;
      CoreSurface *surface;
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Layer);
-     
+
      surface = dfb_layer_surface( layer );
      if (!surface) {
           DFB_DEALLOCATE_INTERFACE(thiz);

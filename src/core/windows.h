@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -63,7 +63,7 @@ struct _CoreWindow {
 
      DFBWindowCapabilities   caps;         /* window capabilities, to enable
                                               blending etc. */
-     
+
      DFBWindowOptions        options;      /* flags for appearance/behaviour */
      DFBWindowEventType      events;       /* mask of enabled events */
 
@@ -81,7 +81,7 @@ struct _CoreWindow {
      bool                    destroyed;    /* window is (being) destroyed */
 
      void                   *window_data;  /* hw driver's private data */
-     
+
      GlobalReaction          surface_reaction;
 };
 
@@ -105,7 +105,7 @@ struct _CoreWindowStack {
      CoreWindow         *entered_window;  /* window under the pointer */
 
      FusionLink         *grabbed_keys;    /* List of currently grabbed keys. */
-     
+
      struct {
           DFBInputDeviceKeySymbol      symbol;
           DFBInputDeviceKeyIdentifier  id;
@@ -141,7 +141,7 @@ struct _CoreWindowStack {
 
      /* stores information on handling the background on exposure */
      struct {
-          DFBDisplayLayerBackgroundMode mode;    
+          DFBDisplayLayerBackgroundMode mode;
                                        /* background handling mode:
                                           don't care, solid color or image */
 
@@ -149,7 +149,7 @@ struct _CoreWindowStack {
 
 
           CoreSurface        *image;   /* surface for background image mode */
-     } bg;    
+     } bg;
 
      FusionLink         *devices;      /* input devices attached to the stack */
 
@@ -158,7 +158,7 @@ struct _CoreWindowStack {
 
 typedef enum {
      CWUF_NONE      = 0x00000000,
-     
+
      CWUF_SURFACE   = 0x00000001,
      CWUF_POSITION  = 0x00000002,
      CWUF_SIZE      = 0x00000004,
@@ -166,7 +166,7 @@ typedef enum {
      CWUF_OPACITY   = 0x00000010,
      CWUF_COLORKEY  = 0x00000020,
      CWUF_PALETTE   = 0x00000040,
-     
+
      CWUF_ALL       = 0x0000003F
 } CoreWindowUpdateFlags;
 
@@ -181,7 +181,7 @@ typedef enum {
  * allocates a WindowStack, initializes it, registers it for input events
  */
 CoreWindowStack*
-dfb_windowstack_new( DisplayLayer *layer, int width, int height );
+dfb_windowstack_new( CoreLayer *layer, int width, int height );
 
 void
 dfb_windowstack_destroy( CoreWindowStack *stack );
@@ -247,7 +247,7 @@ FUSION_OBJECT_METHODS( CoreWindow, dfb_window )
  */
 DFBResult
 dfb_window_create( CoreWindowStack        *stack,
-                   DisplayLayer           *layer,
+                   CoreLayer              *layer,
                    int                     x,
                    int                     y,
                    int                     width,

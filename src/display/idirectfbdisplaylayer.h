@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -34,7 +34,7 @@
  * initializes interface struct and private data
  */
 DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
-                                           DisplayLayer          *layer );
+                                           CoreLayer             *layer );
 
 
 #endif

@@ -156,9 +156,9 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
 {
      CoreSurfaceNotificationFlags   flags;
      CoreSurface                   *surface;
-     DisplayLayer                  *layer;
+     CoreLayer                     *layer;
+     CoreLayerShared               *shared;
      DisplayLayerFuncs             *funcs;
-     DisplayLayerShared            *shared;
      const CoreSurfaceNotification *notification = msg_data;
      CoreLayerRegion               *region       = ctx;
 

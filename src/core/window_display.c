@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -40,7 +40,7 @@
 #include <gfx/util.h>
 
 
-static void repaint_stack_for_window( CoreWindowStack     *stack, 
+static void repaint_stack_for_window( CoreWindowStack     *stack,
                                       DFBRegion           *region,
                                       DFBSurfaceFlipFlags  flags,
                                       int                  window );
@@ -96,9 +96,9 @@ void
 dfb_windowstack_repaint_all( CoreWindowStack *stack )
 {
      DFBRegion region;
-     
+
      DFB_ASSERT( stack != NULL );
-     
+
      if (stack->hw_mode)
           return;
 
@@ -109,23 +109,23 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
      region.y1 = 0;
      region.x2 = stack->width  - 1;
      region.y2 = stack->height - 1;
-     
+
      repaint_stack( stack, &region, 0 );
-          
+
      dfb_windowstack_unlock( stack );
 }
 
 void
 dfb_windowstack_sync_buffers( CoreWindowStack *stack )
 {
-     DisplayLayer *layer;
-     CoreSurface  *surface;
+     CoreLayer   *layer;
+     CoreSurface *surface;
 
      DFB_ASSERT( stack != NULL );
 
      if (stack->hw_mode)
           return;
-     
+
      dfb_windowstack_lock( stack );
 
      layer = dfb_layer_at( stack->layer_id );
@@ -422,13 +422,13 @@ repaint_stack( CoreWindowStack     *stack,
                DFBRegion           *region,
                DFBSurfaceFlipFlags  flags )
 {
-     DisplayLayer *layer   = dfb_layer_at( stack->layer_id );
-     CoreSurface  *surface = dfb_layer_surface( layer );
-     CardState    *state   = dfb_layer_state( layer );
+     CoreLayer   *layer   = dfb_layer_at( stack->layer_id );
+     CoreSurface *surface = dfb_layer_surface( layer );
+     CardState   *state   = dfb_layer_state( layer );
 
      if (!surface)
           return;
-     
+
      if (!dfb_region_intersect( region, 0, 0,
                                 surface->width - 1, surface->height - 1 ))
           return;
@@ -506,7 +506,7 @@ wind_of_change( CoreWindowStack     *stack,
               (opaque=*region,dfb_region_intersect( &opaque,
                                                     window->x, window->y,
                                                     window->x + window->width - 1,
-                                                    window->y + window->height -1 ) ) 
+                                                    window->y + window->height -1 ) )
               )||(
                  //can skip opaque region?
                  (window->options & DWOP_ALPHACHANNEL) &&
@@ -517,7 +517,7 @@ wind_of_change( CoreWindowStack     *stack,
                                                        window->x + window->opaque.x1,
                                                        window->y + window->opaque.y1,
                                                        window->x + window->opaque.x2,
-                                                       window->y + window->opaque.y2 )) 
+                                                       window->y + window->opaque.y2 ))
                  )) {
                /* left */
                if (opaque.x1 != region->x1) {
@@ -557,9 +557,9 @@ repaint_stack_for_window( CoreWindowStack     *stack,
      if (stack->num_windows && window >= 0) {
           DFB_ASSERT(window < stack->num_windows);
 
-          wind_of_change( stack, region, flags, stack->num_windows - 1, window ); 
+          wind_of_change( stack, region, flags, stack->num_windows - 1, window );
      }
      else
-          repaint_stack( stack, region, flags );     
+          repaint_stack( stack, region, flags );
 }
 

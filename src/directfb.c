@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -184,7 +184,7 @@ DirectFBCreate( IDirectFB **interface )
      DFB_ALLOCATE_INTERFACE( idirectfb_singleton, IDirectFB );
 
      IDirectFB_Construct( idirectfb_singleton );
-     
+
      if (dfb_core_is_master()) {
           ret = apply_configuration( idirectfb_singleton );
           if (ret) {
@@ -195,7 +195,7 @@ DirectFBCreate( IDirectFB **interface )
      }
 
      *interface = idirectfb_singleton;
-     
+
      return DFB_OK;
 }
 
@@ -292,22 +292,22 @@ static DFBResult
 apply_configuration( IDirectFB *dfb )
 {
      DFBResult              ret;
-     DisplayLayer          *layer;
+     CoreLayer             *layer;
      DFBDisplayLayerConfig  layer_config;
-     
+
      /* the primary layer */
      layer = dfb_layer_at_translated( DLID_PRIMARY );
 
      ret = dfb_layer_enable( layer );
      if (ret)
           return ret;
-     
+
      /* set buffer mode for desktop */
      layer_config.flags = DLCONF_BUFFERMODE;
 
      if (dfb_config->buffer_mode == -1) {
           CardCapabilities caps;
-           
+
           dfb_gfxcard_get_capabilities( &caps );
 
           if (caps.accel & DFXL_BLIT)
@@ -387,7 +387,7 @@ apply_configuration( IDirectFB *dfb )
           image_data = (IDirectFBSurface_data*) image->priv;
 
           dfb_layer_set_background_image( layer, image_data->surface );
-          
+
           image->Release( image );
      }
 

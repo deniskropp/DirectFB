@@ -103,7 +103,7 @@ typedef struct {
 static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                           bool onsync );
 static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
-                           DisplayLayer *layer, DFBDisplayLayerConfig *config );
+                           CoreLayer *layer, DFBDisplayLayerConfig *config );
 
 #define BES_SUPPORTED_OPTIONS   (DLOP_DEINTERLACING | DLOP_DST_COLORKEY)
 
@@ -118,7 +118,7 @@ besLayerDataSize()
 
 static DFBResult
 besInitLayer( GraphicsDevice             *device,
-              DisplayLayer               *layer,
+              CoreLayer                  *layer,
               DisplayLayerInfo           *layer_info,
               DFBDisplayLayerConfig      *default_config,
               DFBColorAdjustment         *default_adj,
@@ -197,9 +197,9 @@ besOnOff( MatroxDriverData   *mdrv,
 }
 
 static DFBResult
-besEnable( DisplayLayer *layer,
-           void         *driver_data,
-           void         *layer_data )
+besEnable( CoreLayer *layer,
+           void      *driver_data,
+           void      *layer_data )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
@@ -211,9 +211,9 @@ besEnable( DisplayLayer *layer,
 }
 
 static DFBResult
-besDisable( DisplayLayer *layer,
-            void         *driver_data,
-            void         *layer_data )
+besDisable( CoreLayer *layer,
+            void      *driver_data,
+            void      *layer_data )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
@@ -225,7 +225,7 @@ besDisable( DisplayLayer *layer,
 }
 
 static DFBResult
-besTestConfiguration( DisplayLayer               *layer,
+besTestConfiguration( CoreLayer                  *layer,
                       void                       *driver_data,
                       void                       *layer_data,
                       DFBDisplayLayerConfig      *config,
@@ -272,7 +272,7 @@ besTestConfiguration( DisplayLayer               *layer,
 }
 
 static DFBResult
-besSetConfiguration( DisplayLayer          *layer,
+besSetConfiguration( CoreLayer             *layer,
                      void                  *driver_data,
                      void                  *layer_data,
                      DFBDisplayLayerConfig *config )
@@ -290,10 +290,10 @@ besSetConfiguration( DisplayLayer          *layer,
 }
 
 static DFBResult
-besSetOpacity( DisplayLayer *layer,
-               void         *driver_data,
-               void         *layer_data,
-               __u8          opacity )
+besSetOpacity( CoreLayer *layer,
+               void      *driver_data,
+               void      *layer_data,
+               __u8       opacity )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
@@ -313,13 +313,13 @@ besSetOpacity( DisplayLayer *layer,
 }
 
 static DFBResult
-besSetScreenLocation( DisplayLayer *layer,
-                      void         *driver_data,
-                      void         *layer_data,
-                      float         x,
-                      float         y,
-                      float         width,
-                      float         height )
+besSetScreenLocation( CoreLayer *layer,
+                      void      *driver_data,
+                      void      *layer_data,
+                      float      x,
+                      float      y,
+                      float      width,
+                      float      height )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
@@ -337,12 +337,12 @@ besSetScreenLocation( DisplayLayer *layer,
 }
 
 static DFBResult
-besSetDstColorKey( DisplayLayer *layer,
-                   void         *driver_data,
-                   void         *layer_data,
-                   __u8          r,
-                   __u8          g,
-                   __u8          b )
+besSetDstColorKey( CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   __u8       r,
+                   __u8       g,
+                   __u8       b )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
      volatile __u8    *mmio = mdrv->mmio_base;
@@ -372,7 +372,7 @@ besSetDstColorKey( DisplayLayer *layer,
 }
 
 static DFBResult
-besFlipBuffers( DisplayLayer        *layer,
+besFlipBuffers( CoreLayer           *layer,
                 void                *driver_data,
                 void                *layer_data,
                 DFBSurfaceFlipFlags  flags )
@@ -393,7 +393,7 @@ besFlipBuffers( DisplayLayer        *layer,
 }
 
 static DFBResult
-besSetColorAdjustment( DisplayLayer       *layer,
+besSetColorAdjustment( CoreLayer          *layer,
                        void               *driver_data,
                        void               *layer_data,
                        DFBColorAdjustment *adj )
@@ -409,10 +409,10 @@ besSetColorAdjustment( DisplayLayer       *layer,
 }
 
 static DFBResult
-besSetField( DisplayLayer *layer,
-             void         *driver_data,
-             void         *layer_data,
-             int           field )
+besSetField( CoreLayer *layer,
+             void      *driver_data,
+             void      *layer_data,
+             int        field )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
@@ -494,8 +494,10 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      mga_out_dac( mmio, XKEYOPMODE, mbes->regs.xKEYOPMODE );
 }
 
-static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
-                           DisplayLayer *layer, DFBDisplayLayerConfig *config )
+static void bes_calc_regs( MatroxDriverData      *mdrv,
+                           MatroxBesLayerData    *mbes,
+                           CoreLayer             *layer,
+                           DFBDisplayLayerConfig *config )
 {
      int tmp, hzoom, intrep;
 

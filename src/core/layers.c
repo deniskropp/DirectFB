@@ -66,32 +66,32 @@
 
 
 typedef struct {
-     int                 num;
-     DisplayLayerShared *layers[MAX_LAYERS];
+     int              num;
+     CoreLayerShared *layers[MAX_LAYERS];
 } CoreLayersField;
 
 static CoreLayersField *layersfield = NULL;
 
-static int           dfb_num_layers = 0;
-static DisplayLayer *dfb_layers[MAX_LAYERS] = { NULL };
+static int        dfb_num_layers = 0;
+static CoreLayer *dfb_layers[MAX_LAYERS] = { NULL };
 
 
 DFB_CORE_PART( layers, 0, sizeof(CoreLayersField) )
 
 
-static DFBResult load_default_cursor ( DisplayLayer          *layer );
+static DFBResult load_default_cursor ( CoreLayer             *layer );
 
-static DFBResult create_cursor_window( DisplayLayer          *layer,
+static DFBResult create_cursor_window( CoreLayer             *layer,
                                        int                    width,
                                        int                    height );
 
-static DFBResult allocate_surface    ( DisplayLayer          *layer,
+static DFBResult allocate_surface    ( CoreLayer             *layer,
                                        CoreLayerRegion       *region,
                                        DFBDisplayLayerConfig *config );
-static DFBResult reallocate_surface  ( DisplayLayer          *layer,
+static DFBResult reallocate_surface  ( CoreLayer             *layer,
                                        CoreLayerRegion       *region,
                                        DFBDisplayLayerConfig *config );
-static DFBResult deallocate_surface  ( DisplayLayer          *layer,
+static DFBResult deallocate_surface  ( CoreLayer             *layer,
                                        CoreLayerRegion       *region );
 
 
@@ -109,12 +109,12 @@ dfb_layers_initialize( void *data_local, void *data_shared )
      layersfield = data_shared;
 
      for (i=0; i<dfb_num_layers; i++) {
-          int                 layer_data_size;
-          DisplayLayerShared *shared;
-          DisplayLayer       *layer = dfb_layers[i];
+          int              layer_data_size;
+          CoreLayerShared *shared;
+          CoreLayer       *layer = dfb_layers[i];
 
           /* allocate shared data */
-          shared = SHCALLOC( 1, sizeof(DisplayLayerShared) );
+          shared = SHCALLOC( 1, sizeof(CoreLayerShared) );
 
           /* zero based counting */
           shared->id = i;
@@ -198,8 +198,8 @@ dfb_layers_join( void *data_local, void *data_shared )
           CAUTION("Number of layers does not match!");
 
      for (i=0; i<dfb_num_layers; i++) {
-          DisplayLayer       *layer  = dfb_layers[i];
-          DisplayLayerShared *shared = layersfield->layers[i];
+          CoreLayer       *layer  = dfb_layers[i];
+          CoreLayerShared *shared = layersfield->layers[i];
 
           /* make a copy for faster access */
           layer->layer_data = shared->layer_data;
@@ -220,8 +220,8 @@ dfb_layers_shutdown( bool emergency )
 
      /* Begin with the most recently added */
      for (i=layersfield->num-1; i>=0; i--) {
-          DisplayLayer       *l      = dfb_layers[i];
-          DisplayLayerShared *shared = l->shared;
+          CoreLayer       *l      = dfb_layers[i];
+          CoreLayerShared *shared = l->shared;
 
 #if 0 /* FIXME: always need to detach global reactions */
           if (emergency && l->shared->enabled) {
@@ -277,7 +277,7 @@ dfb_layers_leave( bool emergency )
 
      /* Free all local data */
      for (i=0; i<layersfield->num; i++) {
-          DisplayLayer *layer = dfb_layers[i];
+          CoreLayer *layer = dfb_layers[i];
 
           /* Deinit state for stack repaints. */
           dfb_state_set_destination( &layer->state, NULL );
@@ -315,7 +315,7 @@ dfb_layers_suspend()
      }
 
      for (i=layersfield->num-1; i>=0; i--) {
-          DisplayLayer *layer = dfb_layers[i];
+          CoreLayer *layer = dfb_layers[i];
 
           /* Flush pressed keys. */
           if (layer->shared->stack)
@@ -343,7 +343,7 @@ dfb_layers_resume()
      DEBUGMSG( "DirectFB/core/layers: resuming...\n" );
 
      for (i=0; i<layersfield->num; i++) {
-          DisplayLayer *layer = dfb_layers[i];
+          CoreLayer *layer = dfb_layers[i];
 
           if (layer->shared->enabled) {
                layer->funcs->Enable( layer,
@@ -376,7 +376,7 @@ dfb_layers_register( GraphicsDevice    *device,
                      void              *driver_data,
                      DisplayLayerFuncs *funcs )
 {
-     DisplayLayer *layer;
+     CoreLayer *layer;
 
      DFB_ASSERT( funcs != NULL );
 
@@ -387,7 +387,7 @@ dfb_layers_register( GraphicsDevice    *device,
      }
 
      /* allocate local data */
-     layer = DFBCALLOC( 1, sizeof(DisplayLayer) );
+     layer = DFBCALLOC( 1, sizeof(CoreLayer) );
 
      /* assign local pointers */
      layer->device      = device;
@@ -410,9 +410,9 @@ dfb_layers_hook_primary( GraphicsDevice     *device,
                          DisplayLayerFuncs  *primary_funcs,
                          void              **primary_driver_data )
 {
-     int           i;
-     int           entries;
-     DisplayLayer *primary = dfb_layers[0];
+     int        i;
+     int        entries;
+     CoreLayer *primary = dfb_layers[0];
 
      DFB_ASSERT( primary != NULL );
      DFB_ASSERT( funcs != NULL );
@@ -445,7 +445,7 @@ dfb_layers_replace_primary( GraphicsDevice     *device,
                             void               *driver_data,
                             DisplayLayerFuncs  *funcs )
 {
-     DisplayLayer *primary = dfb_layers[0];
+     CoreLayer *primary = dfb_layers[0];
 
      DFB_ASSERT( primary != NULL );
      DFB_ASSERT( funcs != NULL );
@@ -471,7 +471,7 @@ dfb_layers_enumerate( DisplayLayerCallback  callback,
      }
 }
 
-DisplayLayer *
+CoreLayer *
 dfb_layer_at( DFBDisplayLayerID id )
 {
      DFB_ASSERT( layersfield != NULL );
@@ -481,7 +481,7 @@ dfb_layer_at( DFBDisplayLayerID id )
      return dfb_layers[id];
 }
 
-DisplayLayer *
+CoreLayer *
 dfb_layer_at_translated( DFBDisplayLayerID id )
 {
      DFB_ASSERT( layersfield != NULL );
@@ -503,7 +503,7 @@ dfb_layer_at_translated( DFBDisplayLayerID id )
  * Lease layer during window stack repaints.
  */
 DFBResult
-dfb_layer_lease( DisplayLayer *layer )
+dfb_layer_lease( CoreLayer *layer )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -537,7 +537,7 @@ dfb_layer_lease( DisplayLayer *layer )
  * Purchase layer for exclusive access.
  */
 DFBResult
-dfb_layer_purchase( DisplayLayer *layer )
+dfb_layer_purchase( CoreLayer *layer )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -564,7 +564,7 @@ dfb_layer_purchase( DisplayLayer *layer )
  * Kill the process that purchased the layer.
  */
 DFBResult
-dfb_layer_holdup( DisplayLayer *layer )
+dfb_layer_holdup( CoreLayer *layer )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -582,7 +582,7 @@ dfb_layer_holdup( DisplayLayer *layer )
  * Release layer after lease/purchase.
  */
 void
-dfb_layer_release( DisplayLayer *layer, bool repaint )
+dfb_layer_release( CoreLayer *layer, bool repaint )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -606,12 +606,12 @@ dfb_layer_release( DisplayLayer *layer, bool repaint )
 
 
 DFBResult
-dfb_layer_enable( DisplayLayer *layer )
+dfb_layer_enable( CoreLayer *layer )
 {
-     DFBResult           ret;
-     DisplayLayerShared *shared;
-     DisplayLayerFuncs  *funcs;
-     CoreLayerRegion    *region;
+     DFBResult          ret;
+     CoreLayerShared   *shared;
+     DisplayLayerFuncs *funcs;
+     CoreLayerRegion   *region;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -698,11 +698,11 @@ dfb_layer_enable( DisplayLayer *layer )
 }
 
 DFBResult
-dfb_layer_disable( DisplayLayer *layer )
+dfb_layer_disable( CoreLayer *layer )
 {
-     DFBResult           ret;
-     DisplayLayerShared *shared;
-     CoreLayerRegion    *region;
+     DFBResult        ret;
+     CoreLayerShared *shared;
+     CoreLayerRegion *region;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -763,12 +763,12 @@ dfb_layer_disable( DisplayLayer *layer )
  */
 
 DFBResult
-dfb_layer_test_configuration( DisplayLayer               *layer,
+dfb_layer_test_configuration( CoreLayer                  *layer,
                               DFBDisplayLayerConfig      *config,
                               DFBDisplayLayerConfigFlags *failed )
 {
      DFBDisplayLayerConfigFlags  unchanged;
-     DisplayLayerShared         *shared;
+     CoreLayerShared            *shared;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -812,12 +812,12 @@ dfb_layer_test_configuration( DisplayLayer               *layer,
 }
 
 DFBResult
-dfb_layer_set_configuration( DisplayLayer          *layer,
+dfb_layer_set_configuration( CoreLayer             *layer,
                              DFBDisplayLayerConfig *config )
 {
-     DFBResult           ret;
-     DisplayLayerShared *shared;
-     CoreLayerRegion    *region;
+     DFBResult        ret;
+     CoreLayerShared *shared;
+     CoreLayerRegion *region;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -902,7 +902,7 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
 }
 
 DFBResult
-dfb_layer_get_configuration( DisplayLayer          *layer,
+dfb_layer_get_configuration( CoreLayer             *layer,
                              DFBDisplayLayerConfig *config )
 {
      DFB_ASSERT( layersfield != NULL );
@@ -921,11 +921,11 @@ dfb_layer_get_configuration( DisplayLayer          *layer,
  */
 
 DFBResult
-dfb_layer_set_background_mode ( DisplayLayer                  *layer,
+dfb_layer_set_background_mode ( CoreLayer                     *layer,
                                 DFBDisplayLayerBackgroundMode  mode )
 {
-     DisplayLayerShared *shared;
-     CoreWindowStack    *stack;
+     CoreLayerShared *shared;
+     CoreWindowStack *stack;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -954,11 +954,11 @@ dfb_layer_set_background_mode ( DisplayLayer                  *layer,
 }
 
 DFBResult
-dfb_layer_set_background_image( DisplayLayer *layer,
-                                CoreSurface  *image )
+dfb_layer_set_background_image( CoreLayer   *layer,
+                                CoreSurface *image )
 {
-     DisplayLayerShared *shared;
-     CoreWindowStack    *stack;
+     CoreLayerShared *shared;
+     CoreWindowStack *stack;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -996,11 +996,11 @@ dfb_layer_set_background_image( DisplayLayer *layer,
 }
 
 DFBResult
-dfb_layer_set_background_color( DisplayLayer *layer,
-                                DFBColor     *color )
+dfb_layer_set_background_color( CoreLayer *layer,
+                                DFBColor  *color )
 {
-     DisplayLayerShared *shared;
-     CoreWindowStack    *stack;
+     CoreLayerShared *shared;
+     CoreWindowStack *stack;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1031,10 +1031,10 @@ dfb_layer_set_background_color( DisplayLayer *layer,
  */
 
 CoreSurface *
-dfb_layer_surface( const DisplayLayer *layer )
+dfb_layer_surface( const CoreLayer *layer )
 {
-     DisplayLayerShared *shared;
-     CoreLayerRegion    *region;
+     CoreLayerShared *shared;
+     CoreLayerRegion *region;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1055,7 +1055,7 @@ dfb_layer_surface( const DisplayLayer *layer )
 }
 
 CardState *
-dfb_layer_state( DisplayLayer *layer )
+dfb_layer_state( CoreLayer *layer )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1066,7 +1066,7 @@ dfb_layer_state( DisplayLayer *layer )
 }
 
 void
-dfb_layer_description( const DisplayLayer         *layer,
+dfb_layer_description( const CoreLayer            *layer,
                        DFBDisplayLayerDescription *desc )
 {
      DFB_ASSERT( layersfield != NULL );
@@ -1078,7 +1078,7 @@ dfb_layer_description( const DisplayLayer         *layer,
 }
 
 DFBDisplayLayerID
-dfb_layer_id( const DisplayLayer *layer )
+dfb_layer_id( const CoreLayer *layer )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1088,7 +1088,7 @@ dfb_layer_id( const DisplayLayer *layer )
 }
 
 DFBDisplayLayerID
-dfb_layer_id_translated( const DisplayLayer *layer )
+dfb_layer_id_translated( const CoreLayer *layer )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1108,10 +1108,10 @@ dfb_layer_id_translated( const DisplayLayer *layer )
 }
 
 DFBResult
-dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
+dfb_layer_flip_buffers( CoreLayer *layer, DFBSurfaceFlipFlags flags )
 {
-     DisplayLayerShared *shared;
-     CoreLayerRegion    *region;
+     CoreLayerShared *shared;
+     CoreLayerRegion *region;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1155,7 +1155,7 @@ dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
 }
 
 DFBResult
-dfb_layer_update_region( DisplayLayer        *layer,
+dfb_layer_update_region( CoreLayer           *layer,
                          DFBRegion           *region,
                          DFBSurfaceFlipFlags  flags )
 {
@@ -1174,7 +1174,7 @@ dfb_layer_update_region( DisplayLayer        *layer,
 }
 
 DFBResult
-dfb_layer_create_window( DisplayLayer           *layer,
+dfb_layer_create_window( CoreLayer              *layer,
                          int                     x,
                          int                     y,
                          int                     width,
@@ -1218,7 +1218,7 @@ dfb_layer_create_window( DisplayLayer           *layer,
      return DFB_OK;
 }
 
-CoreWindow *dfb_layer_find_window( DisplayLayer *layer, DFBWindowID id )
+CoreWindow *dfb_layer_find_window( CoreLayer *layer, DFBWindowID id )
 {
      int               i;
      CoreWindowStack  *stack;
@@ -1256,7 +1256,7 @@ CoreWindow *dfb_layer_find_window( DisplayLayer *layer, DFBWindowID id )
 }
 
 DFBResult
-dfb_layer_set_src_colorkey( DisplayLayer *layer,
+dfb_layer_set_src_colorkey( CoreLayer *layer,
                             __u8 r, __u8 g, __u8 b )
 {
      DFB_ASSERT( layersfield != NULL );
@@ -1273,7 +1273,7 @@ dfb_layer_set_src_colorkey( DisplayLayer *layer,
 }
 
 DFBResult
-dfb_layer_set_dst_colorkey( DisplayLayer *layer,
+dfb_layer_set_dst_colorkey( CoreLayer *layer,
                             __u8 r, __u8 g, __u8 b )
 {
      DFB_ASSERT( layersfield != NULL );
@@ -1290,7 +1290,7 @@ dfb_layer_set_dst_colorkey( DisplayLayer *layer,
 }
 
 DFBResult
-dfb_layer_get_level( DisplayLayer *layer, int *level )
+dfb_layer_get_level( CoreLayer *layer, int *level )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1307,7 +1307,7 @@ dfb_layer_get_level( DisplayLayer *layer, int *level )
 }
 
 DFBResult
-dfb_layer_set_level( DisplayLayer *layer, int level )
+dfb_layer_set_level( CoreLayer *layer, int level )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1323,12 +1323,12 @@ dfb_layer_set_level( DisplayLayer *layer, int level )
 }
 
 DFBResult
-dfb_layer_set_screenlocation( DisplayLayer *layer,
+dfb_layer_set_screenlocation( CoreLayer *layer,
                               float x, float y,
                               float width, float height )
 {
-     DFBResult           ret;
-     DisplayLayerShared *shared;
+     DFBResult        ret;
+     CoreLayerShared *shared;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1360,10 +1360,10 @@ dfb_layer_set_screenlocation( DisplayLayer *layer,
 }
 
 DFBResult
-dfb_layer_set_opacity (DisplayLayer *layer, __u8 opacity)
+dfb_layer_set_opacity (CoreLayer *layer, __u8 opacity)
 {
-     DFBResult           ret;
-     DisplayLayerShared *shared;
+     DFBResult        ret;
+     CoreLayerShared *shared;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1390,7 +1390,7 @@ dfb_layer_set_opacity (DisplayLayer *layer, __u8 opacity)
 }
 
 DFBResult
-dfb_layer_get_current_output_field( DisplayLayer *layer, int *field )
+dfb_layer_get_current_output_field( CoreLayer *layer, int *field )
 {
      DFBResult ret;
 
@@ -1413,7 +1413,7 @@ dfb_layer_get_current_output_field( DisplayLayer *layer, int *field )
 }
 
 DFBResult
-dfb_layer_set_field_parity( DisplayLayer *layer, int field )
+dfb_layer_set_field_parity( CoreLayer *layer, int field )
 {
      DFBResult ret;
 
@@ -1435,7 +1435,7 @@ dfb_layer_set_field_parity( DisplayLayer *layer, int field )
 }
 
 DFBResult
-dfb_layer_wait_vsync( DisplayLayer *layer )
+dfb_layer_wait_vsync( CoreLayer *layer )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1451,7 +1451,7 @@ dfb_layer_wait_vsync( DisplayLayer *layer )
 }
 
 DFBResult
-dfb_layer_set_screen_power_mode( DisplayLayer       *layer,
+dfb_layer_set_screen_power_mode( CoreLayer          *layer,
                                  DFBScreenPowerMode  mode )
 {
      DFB_ASSERT( layersfield != NULL );
@@ -1469,11 +1469,11 @@ dfb_layer_set_screen_power_mode( DisplayLayer       *layer,
 
 
 DFBResult
-dfb_layer_set_coloradjustment (DisplayLayer       *layer,
+dfb_layer_set_coloradjustment (CoreLayer          *layer,
                                DFBColorAdjustment *adj)
 {
      DFBResult                ret;
-     DisplayLayerShared      *shared;
+     CoreLayerShared         *shared;
      DFBColorAdjustmentFlags  unchanged;
 
      DFB_ASSERT( layersfield != NULL );
@@ -1529,7 +1529,7 @@ dfb_layer_set_coloradjustment (DisplayLayer       *layer,
 }
 
 DFBResult
-dfb_layer_get_coloradjustment (DisplayLayer       *layer,
+dfb_layer_get_coloradjustment (CoreLayer          *layer,
                                DFBColorAdjustment *adj)
 {
      DFB_ASSERT( layersfield != NULL );
@@ -1543,11 +1543,11 @@ dfb_layer_get_coloradjustment (DisplayLayer       *layer,
 }
 
 DFBResult
-dfb_layer_get_cursor_position (DisplayLayer       *layer,
-                               int                *x,
-                               int                *y)
+dfb_layer_get_cursor_position (CoreLayer *layer,
+                               int       *x,
+                               int       *y)
 {
-     DisplayLayerShared *shared;
+     CoreLayerShared *shared;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1568,7 +1568,7 @@ dfb_layer_get_cursor_position (DisplayLayer       *layer,
 DFBSurfacePixelFormat
 dfb_primary_layer_pixelformat()
 {
-     DisplayLayer *layer = dfb_layer_at_translated(DLID_PRIMARY);
+     CoreLayer *layer = dfb_layer_at_translated(DLID_PRIMARY);
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1582,8 +1582,8 @@ dfb_primary_layer_rectangle( float x, float y,
                              float w, float h,
                              DFBRectangle *rect )
 {
-     DisplayLayer       *layer  = dfb_layers[0];
-     DisplayLayerShared *shared;
+     CoreLayer       *layer  = dfb_layers[0];
+     CoreLayerShared *shared;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1601,8 +1601,8 @@ dfb_primary_layer_rectangle( float x, float y,
  * hardware window support
  */
 DFBResult
-dfb_layer_add_window( DisplayLayer *layer,
-                      CoreWindow   *window )
+dfb_layer_add_window( CoreLayer  *layer,
+                      CoreWindow *window )
 {
      DFBResult          ret;
      DisplayLayerFuncs *funcs;
@@ -1643,7 +1643,7 @@ dfb_layer_add_window( DisplayLayer *layer,
 }
 
 DFBResult
-dfb_layer_update_window( DisplayLayer          *layer,
+dfb_layer_update_window( CoreLayer             *layer,
                          CoreWindow            *window,
                          CoreWindowUpdateFlags  flags )
 {
@@ -1676,8 +1676,8 @@ dfb_layer_update_window( DisplayLayer          *layer,
 }
 
 DFBResult
-dfb_layer_remove_window( DisplayLayer *layer,
-                         CoreWindow   *window )
+dfb_layer_remove_window( CoreLayer  *layer,
+                         CoreWindow *window )
 {
      DFBResult          ret;
      DisplayLayerFuncs *funcs;
@@ -1715,7 +1715,7 @@ dfb_layer_remove_window( DisplayLayer *layer,
  */
 
 DFBResult
-dfb_layer_cursor_enable( DisplayLayer *layer, bool enable )
+dfb_layer_cursor_enable( CoreLayer *layer, bool enable )
 {
      CoreWindowStack *stack;
 
@@ -1766,7 +1766,7 @@ dfb_layer_cursor_enable( DisplayLayer *layer, bool enable )
 }
 
 DFBResult
-dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
+dfb_layer_cursor_set_opacity( CoreLayer *layer, __u8 opacity )
 {
      CoreWindowStack *stack;
 
@@ -1795,10 +1795,10 @@ dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
 }
 
 DFBResult
-dfb_layer_cursor_set_shape( DisplayLayer *layer,
-                            CoreSurface  *shape,
-                            int           hot_x,
-                            int           hot_y )
+dfb_layer_cursor_set_shape( CoreLayer   *layer,
+                            CoreSurface *shape,
+                            int          hot_x,
+                            int          hot_y )
 {
      DFBResult        ret;
      int              dx, dy;
@@ -1852,7 +1852,7 @@ dfb_layer_cursor_set_shape( DisplayLayer *layer,
 }
 
 DFBResult
-dfb_layer_cursor_warp( DisplayLayer *layer, int x, int y )
+dfb_layer_cursor_warp( CoreLayer *layer, int x, int y )
 {
      int              dx, dy;
      CoreWindowStack *stack;
@@ -1879,10 +1879,10 @@ dfb_layer_cursor_warp( DisplayLayer *layer, int x, int y )
 }
 
 DFBResult
-dfb_layer_cursor_set_acceleration( DisplayLayer *layer,
-                                   int           numerator,
-                                   int           denominator,
-                                   int           threshold )
+dfb_layer_cursor_set_acceleration( CoreLayer *layer,
+                                   int        numerator,
+                                   int        denominator,
+                                   int        threshold )
 {
      CoreWindowStack *stack;
 
@@ -1902,7 +1902,7 @@ dfb_layer_cursor_set_acceleration( DisplayLayer *layer,
 }
 
 CoreWindowStack *
-dfb_layer_window_stack( DisplayLayer *layer )
+dfb_layer_window_stack( const CoreLayer *layer )
 {
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -1920,15 +1920,15 @@ dfb_layer_window_stack( DisplayLayer *layer )
  * and fills it with data from 'cursor.dat'
  */
 static DFBResult
-load_default_cursor( DisplayLayer *layer )
+load_default_cursor( CoreLayer *layer )
 {
-     DFBResult           ret;
-     int                 i;
-     int                 pitch;
-     void               *data;
-     FILE               *f      = NULL;
-     DisplayLayerShared *shared;
-     CoreWindowStack    *stack;
+     DFBResult        ret;
+     int              i;
+     int              pitch;
+     void            *data;
+     FILE            *f      = NULL;
+     CoreLayerShared *shared;
+     CoreWindowStack *stack;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -2008,14 +2008,14 @@ load_default_cursor( DisplayLayer *layer )
 }
 
 static DFBResult
-create_cursor_window( DisplayLayer *layer,
-                      int           width,
-                      int           height )
+create_cursor_window( CoreLayer *layer,
+                      int        width,
+                      int        height )
 {
-     DFBResult           ret;
-     CoreWindow         *cursor;
-     DisplayLayerShared *shared;
-     CoreWindowStack    *stack;
+     DFBResult        ret;
+     CoreWindow      *cursor;
+     CoreLayerShared *shared;
+     CoreWindowStack *stack;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -2068,13 +2068,13 @@ create_cursor_window( DisplayLayer *layer,
  */
 
 static DFBResult
-allocate_surface( DisplayLayer          *layer,
+allocate_surface( CoreLayer             *layer,
                   CoreLayerRegion       *region,
                   DFBDisplayLayerConfig *config )
 {
      DFBResult               ret;
      DFBSurfaceCapabilities  caps   = DSCAPS_VIDEOONLY;
-     DisplayLayerShared     *shared;
+     CoreLayerShared        *shared;
      DisplayLayerFuncs      *funcs;
      CoreSurface            *surface = NULL;
 
@@ -2141,12 +2141,12 @@ allocate_surface( DisplayLayer          *layer,
 }
 
 static DFBResult
-reallocate_surface( DisplayLayer          *layer,
+reallocate_surface( CoreLayer             *layer,
                     CoreLayerRegion       *region,
                     DFBDisplayLayerConfig *config )
 {
-     DFBResult           ret;
-     DisplayLayerShared *shared;
+     DFBResult        ret;
+     CoreLayerShared *shared;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -2222,11 +2222,11 @@ reallocate_surface( DisplayLayer          *layer,
 }
 
 static DFBResult
-deallocate_surface( DisplayLayer *layer, CoreLayerRegion *region )
+deallocate_surface( CoreLayer *layer, CoreLayerRegion *region )
 {
-     DisplayLayerShared *shared;
-     DisplayLayerFuncs  *funcs;
-     CoreSurface        *surface;
+     CoreLayerShared   *shared;
+     DisplayLayerFuncs *funcs;
+     CoreSurface       *surface;
 
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
@@ -2260,7 +2260,7 @@ _dfb_layer_background_image_listener( const void *msg_data,
 {
      const CoreSurfaceNotification *notification = msg_data;
      DFBDisplayLayerID              layer_id     = (DFBDisplayLayerID) ctx;
-     DisplayLayer                  *layer        = dfb_layer_at( layer_id );
+     CoreLayer                     *layer        = dfb_layer_at( layer_id );
      CoreWindowStack               *stack        = layer->shared->stack;
 
      if (!stack)

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -118,15 +118,21 @@ void *savage_pdriver_data;
 
 /* function prototypes */
 static void
-secondary_set_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay);
+secondary_set_regs (SavageDriverData         *sdrv,
+                    SavageSecondaryLayerData *slay);
 static void
-secondary_calc_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay,
-                    DisplayLayer *layer, DFBDisplayLayerConfig *config);
+secondary_calc_regs(SavageDriverData         *sdrv,
+                    SavageSecondaryLayerData *slay,
+                    CoreLayer                *layer,
+                    DFBDisplayLayerConfig    *config);
 static void
-primary_set_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play);
+primary_set_regs   (SavageDriverData         *sdrv,
+                    SavagePrimaryLayerData   *play);
 static void
-primary_calc_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play,
-                  DisplayLayer *layer, DFBDisplayLayerConfig *config);
+primary_calc_regs  (SavageDriverData         *sdrv,
+                    SavagePrimaryLayerData   *play,
+                    CoreLayer                *layer,
+                    DFBDisplayLayerConfig    *config);
 
 static inline
 void waitretrace (void)
@@ -151,13 +157,13 @@ streamOnOff(SavageDriverData * sdrv, int on)
           vga_out8( mmio, 0x3d5, 0x00 );
 
           vga_out8( mmio, 0x3d4, 0x26 );
-          vga_out8( mmio, 0x3d5, 0x00 ); 
+          vga_out8( mmio, 0x3d5, 0x00 );
 
           /* turn on stream operation */
           vga_out8( mmio, 0x3d4, 0x67 );
           vga_out8( mmio, 0x3d5, 0x0c );
      }
-     else { 
+     else {
           /* turn off stream operation */
           vga_out8( mmio, 0x3d4, 0x67 );
           vga_out8( mmio, 0x3d5, vga_in8( mmio, 0x3d5 ) & ~0x0c );
@@ -173,13 +179,13 @@ savageSecondaryLayerDataSize()
 }
 
 static DFBResult
-savageSecondaryInitLayer( GraphicsDevice             *device,
-                          DisplayLayer               *layer,
-                          DisplayLayerInfo           *layer_info,
-                          DFBDisplayLayerConfig      *default_config,
-                          DFBColorAdjustment         *default_adj,
-                          void                       *driver_data,
-                          void                       *layer_data )
+savageSecondaryInitLayer( GraphicsDevice        *device,
+                          CoreLayer             *layer,
+                          DisplayLayerInfo      *layer_info,
+                          DFBDisplayLayerConfig *default_config,
+                          DFBColorAdjustment    *default_adj,
+                          void                  *driver_data,
+                          void                  *layer_data )
 {
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
 
@@ -222,9 +228,9 @@ savageSecondaryInitLayer( GraphicsDevice             *device,
      return DFB_OK;
 }
 
-static DFBResult savageSecondaryEnable( DisplayLayer *layer,
-                                        void         *driver_data,
-                                        void         *layer_data )
+static DFBResult savageSecondaryEnable( CoreLayer *layer,
+                                        void      *driver_data,
+                                        void      *layer_data )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      volatile __u8 *mmio = sdrv->mmio_base;
@@ -238,9 +244,9 @@ static DFBResult savageSecondaryEnable( DisplayLayer *layer,
      return DFB_OK;
 }
 
-static DFBResult savageSecondaryDisable( DisplayLayer *layer,
-                                         void         *driver_data,
-                                         void         *layer_data )
+static DFBResult savageSecondaryDisable( CoreLayer *layer,
+                                         void      *driver_data,
+                                         void      *layer_data )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      volatile __u8 *mmio = sdrv->mmio_base;
@@ -255,7 +261,7 @@ static DFBResult savageSecondaryDisable( DisplayLayer *layer,
 }
 
 static DFBResult
-savageSecondaryTestConfiguration( DisplayLayer               *layer,
+savageSecondaryTestConfiguration( CoreLayer                  *layer,
                                   void                       *driver_data,
                                   void                       *layer_data,
                                   DFBDisplayLayerConfig      *config,
@@ -314,7 +320,7 @@ savageSecondaryTestConfiguration( DisplayLayer               *layer,
 }
 
 static DFBResult
-savageSecondarySetConfiguration( DisplayLayer          *layer,
+savageSecondarySetConfiguration( CoreLayer             *layer,
                                  void                  *driver_data,
                                  void                  *layer_data,
                                  DFBDisplayLayerConfig *config)
@@ -336,10 +342,10 @@ savageSecondarySetConfiguration( DisplayLayer          *layer,
 }
 
 static DFBResult
-savageSecondarySetOpacity( DisplayLayer *layer,
-                           void         *driver_data,
-                           void         *layer_data,
-                           __u8          opacity )
+savageSecondarySetOpacity( CoreLayer *layer,
+                           void      *driver_data,
+                           void      *layer_data,
+                           __u8       opacity )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
@@ -380,13 +386,13 @@ savageSecondarySetOpacity( DisplayLayer *layer,
 }
 
 static DFBResult
-savageSecondarySetScreenLocation( DisplayLayer *layer,
-                                  void         *driver_data,
-                                  void         *layer_data,
-                                  float         x,
-                                  float         y,
-                                  float         width,
-                                  float         height )
+savageSecondarySetScreenLocation( CoreLayer *layer,
+                                  void      *driver_data,
+                                  void      *layer_data,
+                                  float      x,
+                                  float      y,
+                                  float      width,
+                                  float      height )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
@@ -425,12 +431,12 @@ savageSecondarySetScreenLocation( DisplayLayer *layer,
 }
 
 static DFBResult
-savageSecondarySetSrcColorKey( DisplayLayer *layer,
-                               void         *driver_data,
-                               void         *layer_data,
-                               __u8          r,
-                               __u8          g,
-                               __u8          b )
+savageSecondarySetSrcColorKey( CoreLayer *layer,
+                               void      *driver_data,
+                               void      *layer_data,
+                               __u8       r,
+                               __u8       g,
+                               __u8       b )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
@@ -467,12 +473,12 @@ savageSecondarySetSrcColorKey( DisplayLayer *layer,
 }
 
 static DFBResult
-savageSecondarySetDstColorKey( DisplayLayer *layer,
-                               void         *driver_data,
-                               void         *layer_data,
-                               __u8          r,
-                               __u8          g,
-                               __u8          b )
+savageSecondarySetDstColorKey( CoreLayer *layer,
+                               void      *driver_data,
+                               void      *layer_data,
+                               __u8       r,
+                               __u8       g,
+                               __u8       b )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
@@ -508,10 +514,10 @@ savageSecondarySetDstColorKey( DisplayLayer *layer,
 }
 
 static DFBResult
-savageSecondaryFlipBuffers(  DisplayLayer        *layer,
-                             void                *driver_data,
-                             void                *layer_data,
-                             DFBSurfaceFlipFlags flags )
+savageSecondaryFlipBuffers( CoreLayer           *layer,
+                            void                *driver_data,
+                            void                *layer_data,
+                            DFBSurfaceFlipFlags flags )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
@@ -532,7 +538,7 @@ savageSecondaryFlipBuffers(  DisplayLayer        *layer,
 
 
 static DFBResult
-savageSecondarySetColorAdjustment( DisplayLayer       *layer,
+savageSecondarySetColorAdjustment( CoreLayer          *layer,
                                    void               *driver_data,
                                    void               *layer_data,
                                    DFBColorAdjustment *adj )
@@ -645,8 +651,10 @@ secondary_set_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay)
 }
 
 static void
-secondary_calc_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay,
-                    DisplayLayer *layer, DFBDisplayLayerConfig *config)
+secondary_calc_regs(SavageDriverData         *sdrv,
+                    SavageSecondaryLayerData *slay,
+                    CoreLayer                *layer,
+                    DFBDisplayLayerConfig    *config)
 {
      CoreSurface * surface = dfb_layer_surface(layer);
      SurfaceBuffer * front_buffer = surface->front_buffer;
@@ -772,13 +780,13 @@ savagePrimaryLayerDataSize()
 }
 
 static DFBResult
-savagePrimaryInitLayer( GraphicsDevice             *device,
-                        DisplayLayer               *layer,
-                        DisplayLayerInfo           *layer_info,
-                        DFBDisplayLayerConfig      *default_config,
-                        DFBColorAdjustment         *default_adj,
-                        void                       *driver_data,
-                        void                       *layer_data )
+savagePrimaryInitLayer( GraphicsDevice        *device,
+                        CoreLayer             *layer,
+                        DisplayLayerInfo      *layer_info,
+                        DFBDisplayLayerConfig *default_config,
+                        DFBColorAdjustment    *default_adj,
+                        void                  *driver_data,
+                        void                  *layer_data )
 {
      SavagePrimaryLayerData *play = (SavagePrimaryLayerData*) layer_data;
      DFBResult ret;
@@ -813,7 +821,7 @@ savagePrimaryInitLayer( GraphicsDevice             *device,
 }
 
 static DFBResult
-savagePrimarySetConfiguration( DisplayLayer          *layer,
+savagePrimarySetConfiguration( CoreLayer             *layer,
                                void                  *driver_data,
                                void                  *layer_data,
                                DFBDisplayLayerConfig *config )
@@ -841,13 +849,13 @@ savagePrimarySetConfiguration( DisplayLayer          *layer,
 }
 
 static DFBResult
-savagePrimarySetScreenLocation( DisplayLayer *layer,
-                                void         *driver_data,
-                                void         *layer_data,
-                                float         x,
-                                float         y,
-                                float         width,
-                                float         height )
+savagePrimarySetScreenLocation( CoreLayer *layer,
+                                void      *driver_data,
+                                void      *layer_data,
+                                float      x,
+                                float      y,
+                                float      width,
+                                float      height )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavagePrimaryLayerData *play = (SavagePrimaryLayerData*) layer_data;
@@ -971,8 +979,10 @@ primary_set_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play)
 }
 
 static void
-primary_calc_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play,
-                  DisplayLayer *layer, DFBDisplayLayerConfig *config)
+primary_calc_regs(SavageDriverData       *sdrv,
+                  SavagePrimaryLayerData *play,
+                  CoreLayer              *layer,
+                  DFBDisplayLayerConfig  *config)
 {
      CoreSurface * surface = dfb_layer_surface(layer);
      SurfaceBuffer * front_buffer = surface->front_buffer;

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -63,7 +63,7 @@ typedef struct {
 
 static void ov0_set_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0 );
 static void ov0_calc_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0,
-                           DisplayLayer *layer, DFBDisplayLayerConfig *config );
+                           CoreLayer *layer, DFBDisplayLayerConfig *config );
 
 #define OV0_SUPPORTED_OPTIONS   (DLOP_NONE)
 
@@ -74,10 +74,10 @@ ov0LayerDataSize()
 {
      return sizeof(ATIOverlayLayerData);
 }
-     
+
 static DFBResult
 ov0InitLayer( GraphicsDevice             *device,
-              DisplayLayer               *layer,
+              CoreLayer                  *layer,
               DisplayLayerInfo           *layer_info,
               DFBDisplayLayerConfig      *default_config,
               DFBColorAdjustment         *default_adj,
@@ -87,7 +87,7 @@ ov0InitLayer( GraphicsDevice             *device,
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
      volatile __u8       *mmio = adrv->mmio_base;
-     
+
      /* set capabilities and type */
      layer_info->desc.caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
      layer_info->desc.type = DLTF_VIDEO | DLTF_STILL_PICTURE;
@@ -109,11 +109,11 @@ ov0InitLayer( GraphicsDevice             *device,
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
      default_adj->flags = DCAF_NONE;
-     
-     
+
+
      /* initialize destination rectangle */
      dfb_primary_layer_rectangle( 0.0f, 0.0f, 1.0f, 1.0f, &aov0->dest );
-     
+
      /* reset overlay */
      ati128_out32( mmio, OV0_SCALE_CNTL, 0x80000000 );
      ati128_out32( mmio, OV0_EXCLUSIVE_HORZ, 0 );
@@ -122,7 +122,7 @@ ov0InitLayer( GraphicsDevice             *device,
      ati128_out32( mmio, OV0_COLOR_CNTL, 0x00101000 );
      ati128_out32( mmio, OV0_KEY_CNTL, 0x10 );
      ati128_out32( mmio, OV0_TEST, 0 );
-     
+
      return DFB_OK;
 }
 
@@ -143,13 +143,13 @@ ov0OnOff( ATI128DriverData    *adrv,
 }
 
 static DFBResult
-ov0Enable( DisplayLayer *layer,
-           void         *driver_data,
-           void         *layer_data )
+ov0Enable( CoreLayer *layer,
+           void      *driver_data,
+           void      *layer_data )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
-     
+
      /* enable overlay */
      ov0OnOff( adrv, aov0, 1 );
 
@@ -157,9 +157,9 @@ ov0Enable( DisplayLayer *layer,
 }
 
 static DFBResult
-ov0Disable( DisplayLayer *layer,
-            void         *driver_data,
-            void         *layer_data )
+ov0Disable( CoreLayer *layer,
+            void      *driver_data,
+            void      *layer_data )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
@@ -171,7 +171,7 @@ ov0Disable( DisplayLayer *layer,
 }
 
 static DFBResult
-ov0TestConfiguration( DisplayLayer               *layer,
+ov0TestConfiguration( CoreLayer                  *layer,
                       void                       *driver_data,
                       void                       *layer_data,
                       DFBDisplayLayerConfig      *config,
@@ -215,7 +215,7 @@ ov0TestConfiguration( DisplayLayer               *layer,
 }
 
 static DFBResult
-ov0SetConfiguration( DisplayLayer          *layer,
+ov0SetConfiguration( CoreLayer             *layer,
                      void                  *driver_data,
                      void                  *layer_data,
                      DFBDisplayLayerConfig *config )
@@ -225,7 +225,7 @@ ov0SetConfiguration( DisplayLayer          *layer,
 
      /* remember configuration */
      aov0->config = *config;
-     
+
      ov0_calc_regs( adrv, aov0, layer, config );
      ov0_set_regs( adrv, aov0 );
 
@@ -233,14 +233,14 @@ ov0SetConfiguration( DisplayLayer          *layer,
 }
 
 static DFBResult
-ov0SetOpacity( DisplayLayer *layer,
-               void         *driver_data,
-               void         *layer_data,
-               __u8          opacity )
+ov0SetOpacity( CoreLayer *layer,
+               void      *driver_data,
+               void      *layer_data,
+               __u8       opacity )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
-     
+
      switch (opacity) {
           case 0:
                ov0OnOff( adrv, aov0, 0 );
@@ -256,39 +256,39 @@ ov0SetOpacity( DisplayLayer *layer,
 }
 
 static DFBResult
-ov0SetScreenLocation( DisplayLayer *layer,
-                      void         *driver_data,
-                      void         *layer_data,
-                      float         x,
-                      float         y,
-                      float         width,
-                      float         height )
+ov0SetScreenLocation( CoreLayer *layer,
+                      void      *driver_data,
+                      void      *layer_data,
+                      float      x,
+                      float      y,
+                      float      width,
+                      float      height )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
-     
+
      /* get new destination rectangle */
      dfb_primary_layer_rectangle( x, y, width, height, &aov0->dest );
 
      ov0_calc_regs( adrv, aov0, layer, &aov0->config );
      ov0_set_regs( adrv, aov0 );
-     
+
      return DFB_OK;
 }
 
 static DFBResult
-ov0SetDstColorKey( DisplayLayer *layer,
-                   void         *driver_data,
-                   void         *layer_data,
-                   __u8          r,
-                   __u8          g,
-                   __u8          b )
+ov0SetDstColorKey( CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   __u8       r,
+                   __u8       g,
+                   __u8       b )
 {
      return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
-ov0FlipBuffers( DisplayLayer        *layer,
+ov0FlipBuffers( CoreLayer           *layer,
                 void                *driver_data,
                 void                *layer_data,
                 DFBSurfaceFlipFlags  flags )
@@ -297,7 +297,7 @@ ov0FlipBuffers( DisplayLayer        *layer,
 }
 
 static DFBResult
-ov0SetColorAdjustment( DisplayLayer       *layer,
+ov0SetColorAdjustment( CoreLayer          *layer,
                        void               *driver_data,
                        void               *layer_data,
                        DFBColorAdjustment *adj )
@@ -393,8 +393,10 @@ static void ov0_set_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0 )
      ati128_out32( mmio, OV0_REG_LOAD_CNTL, 0 );
 }
 
-static void ov0_calc_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0,
-                           DisplayLayer *layer, DFBDisplayLayerConfig *config )
+static void ov0_calc_regs( ATI128DriverData      *adrv,
+                           ATIOverlayLayerData   *aov0,
+                           CoreLayer             *layer,
+                           DFBDisplayLayerConfig *config )
 {
      int h_inc, v_inc, step_by, tmp;
      int p1_h_accum_init, p23_h_accum_init;
@@ -404,11 +406,11 @@ static void ov0_calc_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0,
      int            dst_w;
      int            dst_h;
      __u32          offset_u = 0, offset_v = 0;
-     
+
      CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;
 
-     
+
      /* destination box */
      dstBox.x1 = aov0->dest.x;
      dstBox.y1 = aov0->dest.y;
@@ -418,7 +420,7 @@ static void ov0_calc_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0,
      /* destination size */
      dst_w = aov0->dest.w;
      dst_h = aov0->dest.h;
-     
+
      /* clear everything but the enable bit that may be set*/
      aov0->regs.SCALE_CNTL &= R128_SCALER_ENABLE;
 

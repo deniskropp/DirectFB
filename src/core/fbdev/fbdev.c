@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -93,7 +93,7 @@ primaryLayerDataSize     ();
 
 static DFBResult
 primaryInitLayer         ( GraphicsDevice             *device,
-                           DisplayLayer               *layer,
+                           CoreLayer                  *layer,
                            DisplayLayerInfo           *layer_info,
                            DFBDisplayLayerConfig      *default_config,
                            DFBColorAdjustment         *default_adj,
@@ -101,36 +101,36 @@ primaryInitLayer         ( GraphicsDevice             *device,
                            void                       *layer_data );
 
 static DFBResult
-primaryEnable            ( DisplayLayer               *layer,
+primaryEnable            ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data );
 
 static DFBResult
-primaryDisable           ( DisplayLayer               *layer,
+primaryDisable           ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data );
 
 static DFBResult
-primaryTestConfiguration ( DisplayLayer               *layer,
+primaryTestConfiguration ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            DFBDisplayLayerConfig      *config,
                            DFBDisplayLayerConfigFlags *failed );
 
 static DFBResult
-primarySetConfiguration  ( DisplayLayer               *layer,
+primarySetConfiguration  ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            DFBDisplayLayerConfig      *config );
 
 static DFBResult
-primarySetOpacity        ( DisplayLayer               *layer,
+primarySetOpacity        ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            __u8                        opacity );
 
 static DFBResult
-primarySetScreenLocation ( DisplayLayer               *layer,
+primarySetScreenLocation ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            float                       x,
@@ -139,7 +139,7 @@ primarySetScreenLocation ( DisplayLayer               *layer,
                            float                       height );
 
 static DFBResult
-primarySetSrcColorKey    ( DisplayLayer               *layer,
+primarySetSrcColorKey    ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            __u8                        r,
@@ -147,7 +147,7 @@ primarySetSrcColorKey    ( DisplayLayer               *layer,
                            __u8                        b );
 
 static DFBResult
-primarySetDstColorKey    ( DisplayLayer               *layer,
+primarySetDstColorKey    ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            __u8                        r,
@@ -155,43 +155,43 @@ primarySetDstColorKey    ( DisplayLayer               *layer,
                            __u8                        b );
 
 static DFBResult
-primaryFlipBuffers       ( DisplayLayer               *layer,
+primaryFlipBuffers       ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            DFBSurfaceFlipFlags         flags );
 
 static DFBResult
-primarySetColorAdjustment( DisplayLayer               *layer,
+primarySetColorAdjustment( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            DFBColorAdjustment         *adj );
 
 static DFBResult
-primarySetPalette        ( DisplayLayer               *layer,
+primarySetPalette        ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            CorePalette                *palette );
 
 static DFBResult
-primaryWaitVSync         ( DisplayLayer               *layer,
+primaryWaitVSync         ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data );
 
 static DFBResult
-primarySetScreenPowerMode( DisplayLayer               *layer,
+primarySetScreenPowerMode( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            DFBScreenPowerMode          mode );
 
 static DFBResult
-primaryAllocateSurface   ( DisplayLayer               *layer,
+primaryAllocateSurface   ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            DFBDisplayLayerConfig      *config,
                            CoreSurface               **surface );
 
 static DFBResult
-primaryReallocateSurface ( DisplayLayer               *layer,
+primaryReallocateSurface ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            DFBDisplayLayerConfig      *config,
@@ -224,7 +224,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
 static DFBResult dfb_fbdev_set_rgb332_palette();
 static DFBResult dfb_fbdev_pan( int offset, bool onsync );
 static DFBResult dfb_fbdev_blank( int level );
-static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
+static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
                                      VideoMode             *mode,
                                      DFBDisplayLayerConfig *config );
 
@@ -757,7 +757,7 @@ primaryLayerDataSize     ()
 
 static DFBResult
 primaryInitLayer         ( GraphicsDevice             *device,
-                           DisplayLayer               *layer,
+                           CoreLayer                  *layer,
                            DisplayLayerInfo           *layer_info,
                            DFBDisplayLayerConfig      *default_config,
                            DFBColorAdjustment         *default_adj,
@@ -823,25 +823,25 @@ primaryInitLayer         ( GraphicsDevice             *device,
 }
 
 static DFBResult
-primaryEnable            ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data )
+primaryEnable( CoreLayer *layer,
+               void      *driver_data,
+               void      *layer_data )
 {
      /* always enabled */
      return DFB_OK;
 }
 
 static DFBResult
-primaryDisable           ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data )
+primaryDisable( CoreLayer *layer,
+                void      *driver_data,
+                void      *layer_data )
 {
      /* cannot be disabled */
      return DFB_UNSUPPORTED;
 }
 
 static DFBResult
-primaryTestConfiguration ( DisplayLayer               *layer,
+primaryTestConfiguration ( CoreLayer                  *layer,
                            void                       *driver_data,
                            void                       *layer_data,
                            DFBDisplayLayerConfig      *config,
@@ -886,10 +886,10 @@ primaryTestConfiguration ( DisplayLayer               *layer,
 }
 
 static DFBResult
-primarySetConfiguration  ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBDisplayLayerConfig      *config )
+primarySetConfiguration( CoreLayer             *layer,
+                         void                  *driver_data,
+                         void                  *layer_data,
+                         DFBDisplayLayerConfig *config )
 {
      VideoMode *videomode;
 
@@ -909,10 +909,10 @@ primarySetConfiguration  ( DisplayLayer               *layer,
 }
 
 static DFBResult
-primarySetOpacity        ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           __u8                        opacity )
+primarySetOpacity( CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   __u8       opacity )
 {
      /* opacity is not supported for normal primary layer */
      if (opacity != 0xFF)
@@ -922,13 +922,13 @@ primarySetOpacity        ( DisplayLayer               *layer,
 }
 
 static DFBResult
-primarySetScreenLocation ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           float                       x,
-                           float                       y,
-                           float                       width,
-                           float                       height )
+primarySetScreenLocation( CoreLayer       *layer,
+                          void            *driver_data,
+                          void            *layer_data,
+                          float            x,
+                          float            y,
+                          float            width,
+                          float            height )
 {
      /* can only be fullscreen (0, 0, 1, 1) */
      if (x != 0  ||  y != 0  ||  width != 1  ||  height != 1)
@@ -938,32 +938,32 @@ primarySetScreenLocation ( DisplayLayer               *layer,
 }
 
 static DFBResult
-primarySetSrcColorKey    ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           __u8                        r,
-                           __u8                        g,
-                           __u8                        b )
+primarySetSrcColorKey( CoreLayer *layer,
+                       void      *driver_data,
+                       void      *layer_data,
+                       __u8       r,
+                       __u8       g,
+                       __u8       b )
 {
      return DFB_UNSUPPORTED;
 }
 
 static DFBResult
-primarySetDstColorKey    ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           __u8                        r,
-                           __u8                        g,
-                           __u8                        b )
+primarySetDstColorKey( CoreLayer *layer,
+                       void      *driver_data,
+                       void      *layer_data,
+                       __u8       r,
+                       __u8       g,
+                       __u8       b )
 {
      return DFB_UNSUPPORTED;
 }
 
 static DFBResult
-primaryFlipBuffers       ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBSurfaceFlipFlags         flags )
+primaryFlipBuffers( CoreLayer           *layer,
+                    void                *driver_data,
+                    void                *layer_data,
+                    DFBSurfaceFlipFlags  flags )
 {
      DFBResult    ret;
      CoreSurface *surface = dfb_layer_surface( layer );
@@ -988,13 +988,13 @@ primaryFlipBuffers       ( DisplayLayer               *layer,
 }
 
 static DFBResult
-primarySetColorAdjustment( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBColorAdjustment         *adj )
+primarySetColorAdjustment( CoreLayer          *layer,
+                           void               *driver_data,
+                           void               *layer_data,
+                           DFBColorAdjustment *adj )
 {
      struct fb_cmap *cmap       = &dfb_fbdev->shared->current_cmap;
-     struct fb_cmap *temp       = &dfb_fbdev->shared->temp_cmap;  
+     struct fb_cmap *temp       = &dfb_fbdev->shared->temp_cmap;
      int             contrast   = adj->contrast >> 8;
      int             brightness = (adj->brightness >> 8) - 128;
      int             saturation = adj->saturation >> 8;
@@ -1012,22 +1012,22 @@ primarySetColorAdjustment( DisplayLayer               *layer,
           g >>= 8;
           b >>= 8;
 
-          /* 
+          /*
         * Brightness Adjustment: Increase/Decrease each color channels
         * by a constant amount as specified by value of brightness.
         */
           if (adj->flags & DCAF_BRIGHTNESS) {
                r += brightness;
-               g += brightness; 
+               g += brightness;
                b += brightness;
 
-               r = (r < 0) ? 0 : r;      
-               g = (g < 0) ? 0 : g;      
-               b = (b < 0) ? 0 : b;      
+               r = (r < 0) ? 0 : r;
+               g = (g < 0) ? 0 : g;
+               b = (b < 0) ? 0 : b;
 
-               r = (r > 255) ? 255 : r;  
-               g = (g > 255) ? 255 : g;  
-               b = (b > 255) ? 255 : b; 
+               r = (r > 255) ? 255 : r;
+               g = (g > 255) ? 255 : g;
+               b = (b > 255) ? 255 : b;
           }
 
           /*
@@ -1054,24 +1054,24 @@ primarySetColorAdjustment( DisplayLayer               *layer,
                     g = (int)((float)g * c);
                     b = (int)((float)b * c);
                }
-               r = (r < 0) ? 0 : r;      
-               g = (g < 0) ? 0 : g;      
-               b = (b < 0) ? 0 : b;      
+               r = (r < 0) ? 0 : r;
+               g = (g < 0) ? 0 : g;
+               b = (b < 0) ? 0 : b;
 
-               r = (r > 255) ? 255 : r;  
-               g = (g > 255) ? 255 : g;  
-               b = (b > 255) ? 255 : b; 
+               r = (r > 255) ? 255 : r;
+               g = (g > 255) ? 255 : g;
+               b = (b > 255) ? 255 : b;
           }
 
           /*
            * Saturation Adjustment:  This is is a better implementation.
            * Saturation is implemented by "mixing" a proportion of medium
            * gray to the color value.  On the other side, "removing"
-           * a proportion of medium gray oversaturates the color.  
+           * a proportion of medium gray oversaturates the color.
            */
           if (adj->flags & DCAF_SATURATION) {
                if (saturation > 128) {
-                    float gray = ((float)saturation - 128.0)/128.0; 
+                    float gray = ((float)saturation - 128.0)/128.0;
                     float color = 1.0 - gray;
 
                     r = (int)(((float)r - 128.0 * gray)/color);
@@ -1079,7 +1079,7 @@ primarySetColorAdjustment( DisplayLayer               *layer,
                     b = (int)(((float)b - 128.0 * gray)/color);
                }
                else if (saturation < 128) {
-                    float color = (float)saturation/128.0; 
+                    float color = (float)saturation/128.0;
                     float gray = 1.0 - color;
 
                     r = (int)(((float) r * color) + (128.0 * gray));
@@ -1087,13 +1087,13 @@ primarySetColorAdjustment( DisplayLayer               *layer,
                     b = (int)(((float) b * color) + (128.0 * gray));
                }
 
-               r = (r < 0) ? 0 : r;      
-               g = (g < 0) ? 0 : g;      
-               b = (b < 0) ? 0 : b;      
+               r = (r < 0) ? 0 : r;
+               g = (g < 0) ? 0 : g;
+               b = (b < 0) ? 0 : b;
 
-               r = (r > 255) ? 255 : r;  
-               g = (g > 255) ? 255 : g;  
-               b = (b > 255) ? 255 : b; 
+               r = (r > 255) ? 255 : r;
+               g = (g > 255) ? 255 : g;
+               b = (b > 255) ? 255 : b;
           }
           r |= r << 8;
           g |= g << 8;
@@ -1117,10 +1117,10 @@ primarySetColorAdjustment( DisplayLayer               *layer,
 }
 
 static DFBResult
-primarySetPalette ( DisplayLayer               *layer,
-                    void                       *driver_data,
-                    void                       *layer_data,
-                    CorePalette                *palette )
+primarySetPalette( CoreLayer   *layer,
+                   void        *driver_data,
+                   void        *layer_data,
+                   CorePalette *palette )
 {
      int            i;
      struct fb_cmap *cmap = &dfb_fbdev->shared->current_cmap;
@@ -1153,9 +1153,9 @@ primarySetPalette ( DisplayLayer               *layer,
 }
 
 static DFBResult
-primaryWaitVSync( DisplayLayer *layer,
-                  void         *driver_data,
-                  void         *layer_data )
+primaryWaitVSync( CoreLayer *layer,
+                  void      *driver_data,
+                  void      *layer_data )
 {
 #ifdef FBIO_WAITFORVSYNC
      static const int zero = 0;
@@ -1173,7 +1173,7 @@ primaryWaitVSync( DisplayLayer *layer,
 }
 
 static DFBResult
-primarySetScreenPowerMode( DisplayLayer       *layer,
+primarySetScreenPowerMode( CoreLayer          *layer,
                            void               *driver_data,
                            void               *layer_data,
                            DFBScreenPowerMode  mode )
@@ -1201,11 +1201,11 @@ primarySetScreenPowerMode( DisplayLayer       *layer,
 }
 
 static DFBResult
-primaryAllocateSurface   ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBDisplayLayerConfig      *config,
-                           CoreSurface               **ret_surface )
+primaryAllocateSurface( CoreLayer              *layer,
+                        void                   *driver_data,
+                        void                   *layer_data,
+                        DFBDisplayLayerConfig  *config,
+                        CoreSurface           **ret_surface )
 {
      DFBResult               ret;
      CoreSurface            *surface;
@@ -1249,11 +1249,11 @@ primaryAllocateSurface   ( DisplayLayer               *layer,
 }
 
 static DFBResult
-primaryReallocateSurface ( DisplayLayer               *layer,
-                           void                       *driver_data,
-                           void                       *layer_data,
-                           DFBDisplayLayerConfig      *config,
-                           CoreSurface                *surface )
+primaryReallocateSurface( CoreLayer             *layer,
+                          void                  *driver_data,
+                          void                  *layer_data,
+                          DFBDisplayLayerConfig *config,
+                          CoreSurface           *surface )
 {
      /* reallocation is done during SetConfiguration,
         because the pitch can only be determined AFTER setting the mode */
@@ -1309,7 +1309,7 @@ static int dfb_fbdev_compatible_format( struct fb_var_screeninfo *var,
 static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo *var )
 {
      switch (var->bits_per_pixel) {
-          
+
           case 8:
 /*
                This check is omitted, since we want to use RGB332 even if the
@@ -1415,7 +1415,7 @@ static DFBResult dfb_fbdev_blank( int level )
  * sets (if layer != NULL) or tests (if layer == NULL) video mode,
  * sets virtual y-resolution according to buffermode
  */
-static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
+static DFBResult dfb_fbdev_set_mode( CoreLayer             *layer,
                                      VideoMode             *mode,
                                      DFBDisplayLayerConfig *config )
 {
@@ -1549,23 +1549,23 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
 
           return errno2dfb( erno );
      }
-     
-     /* 
+
+     /*
       * the video mode was set successfully, check if there is enough
       * video ram (for buggy framebuffer drivers)
       */
 
-     if (dfb_fbdev->shared->fix.smem_len < (var.yres_virtual * 
-                                            var.xres_virtual * 
+     if (dfb_fbdev->shared->fix.smem_len < (var.yres_virtual *
+                                            var.xres_virtual *
                                             var.bits_per_pixel >> 3)) {
           if (layer) {
                PERRORMSG( "DirectFB/core/fbdev: "
                           "Could not set video mode (not enough video ram)!\n" );
-               
+
                /* restore mode */
                FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
           }
-          
+
           dfb_gfxcard_unlock();
 
           return DFB_INVARG;
@@ -2018,7 +2018,7 @@ fbdev_ioctl_call_handler( int   caller,
      if (call_arg == FBIOPUT_VSCREENINFO) {
           if (!dfb_config->kd_graphics)
                ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_TEXT );
-        
+
           write( dfb_fbdev->vt->fd, cursoroff_str, strlen(cursoroff_str) );
           write( dfb_fbdev->vt->fd, blankoff_str, strlen(blankoff_str) );
      }
