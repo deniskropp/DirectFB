@@ -1,6 +1,6 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.6 $
+ * $Revision: 1.7 $
  * $Author: dok $
  *
  * File Contents: This file contains the main functions of the Geode 
@@ -153,6 +153,8 @@
 
 #include <core/fbdev/fbdev.h>
 
+static FBDev *dfb_fbdev = NULL;
+
 #include "nsc_galproto.h"
 
 /*
@@ -219,6 +221,7 @@ BOOLEAN
 Gal_initialize_interface()
 {
 /*	create_devicenode();  */
+     dfb_fbdev = dfb_system_data();
 
    return 1;
 }

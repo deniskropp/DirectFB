@@ -49,7 +49,7 @@
 #include <core/system.h>
 #include <core/thread.h>
 
-#include <core/fbdev/vt.h> /* FIXME! */
+#include <core/fbdev/fbdev.h>
 
 #include <misc/conf.h>
 #include <misc/mem.h>
@@ -64,6 +64,8 @@ typedef struct {
      CoreThread                 *thread;
      
      struct termios              old_ts;
+
+     VirtualTerminal            *vt;
 } KeyboardData;
 
 static DFBInputDeviceKeySymbol
@@ -224,7 +226,8 @@ keyboard_get_identifier( int code, unsigned short value )
 }
 
 static unsigned short
-keyboard_read_value( unsigned char table, unsigned char index )
+keyboard_read_value( KeyboardData *data,
+                     unsigned char table, unsigned char index )
 {
      struct kbentry entry;
      
@@ -232,7 +235,7 @@ keyboard_read_value( unsigned char table, unsigned char index )
      entry.kb_index = index;
      entry.kb_value = 0;
 
-     if (ioctl( dfb_vt->fd, KDGKBENT, &entry )) {
+     if (ioctl( data->vt->fd, KDGKBENT, &entry )) {
           PERRORMSG("DirectFB/keyboard: KDGKBENT (table: %d, index: %d) "
                     "failed!\n", table, index);
           return 0;
@@ -242,9 +245,9 @@ keyboard_read_value( unsigned char table, unsigned char index )
 }
 
 static void
-keyboard_set_lights( DFBInputDeviceLockState locks )
+keyboard_set_lights( KeyboardData *data, DFBInputDeviceLockState locks )
 {
-     ioctl( dfb_vt->fd, KDSKBLED, locks );
+     ioctl( data->vt->fd, KDSKBLED, locks );
 }
 
 static void*
@@ -255,7 +258,7 @@ keyboardEventThread( CoreThread *thread, void *driver_data )
      KeyboardData  *data = (KeyboardData*) driver_data;
 
      /* Read keyboard data */
-     while ((readlen = read (dfb_vt->fd, buf, 64)) >= 0 || errno == EINTR) {
+     while ((readlen = read (data->vt->fd, buf, 64)) >= 0 || errno == EINTR) {
           int i;
 
           dfb_thread_testcancel( thread );
@@ -270,7 +273,7 @@ keyboardEventThread( CoreThread *thread, void *driver_data )
 
                dfb_input_dispatch( data->device, &evt );
 
-               keyboard_set_lights( evt.locks );
+               keyboard_set_lights( data, evt.locks );
           }
      }
 
@@ -312,11 +315,12 @@ driver_open_device( InputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-     KeyboardData   *data;
      struct termios  ts;
+     KeyboardData   *data;
+     FBDev          *dfb_fbdev = dfb_system_data();
 
      /* put keyboard into medium raw mode */
-     if (ioctl( dfb_vt->fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
+     if (ioctl( dfb_fbdev->vt->fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
           PERRORMSG( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
           return DFB_INIT;
      }
@@ -325,17 +329,18 @@ driver_open_device( InputDevice      *device,
      data = DFBCALLOC( 1, sizeof(KeyboardData) );
 
      data->device = device;
+     data->vt     = dfb_fbdev->vt;
 
-     tcgetattr( dfb_vt->fd, &data->old_ts );
+     tcgetattr( data->vt->fd, &data->old_ts );
 
      ts = data->old_ts;
      ts.c_cc[VTIME] = 0;
      ts.c_cc[VMIN] = 1;
      ts.c_lflag &= ~(ICANON|ECHO|ISIG);
      ts.c_iflag = 0;
-     tcsetattr( dfb_vt->fd, TCSAFLUSH, &ts );
+     tcsetattr( data->vt->fd, TCSAFLUSH, &ts );
 
-     tcsetpgrp( dfb_vt->fd, getpgrp() );
+     tcsetpgrp( data->vt->fd, getpgrp() );
 
      /* fill device info structure */
      snprintf( info->desc.name,
@@ -377,7 +382,7 @@ driver_get_keymap_entry( InputDevice               *device,
      DFBInputDeviceKeyIdentifier identifier;
 
      /* fetch the base level */
-     value = keyboard_read_value( K_NORMTAB, code );
+     value = keyboard_read_value( driver_data, K_NORMTAB, code );
 
      /* get the identifier for basic mapping */
      identifier = keyboard_get_identifier( code, value );
@@ -398,7 +403,7 @@ driver_get_keymap_entry( InputDevice               *device,
      
      
      /* fetch the shifted base level */
-     value = keyboard_read_value( K_SHIFTTAB, entry->code );
+     value = keyboard_read_value( driver_data, K_SHIFTTAB, entry->code );
      
      /* write shifted base level symbol to entry */
      entry->symbols[DIKSI_BASE_SHIFT] = keyboard_get_symbol( code, value,
@@ -406,14 +411,14 @@ driver_get_keymap_entry( InputDevice               *device,
      
      
      /* fetch the alternative level */
-     value = keyboard_read_value( K_ALTTAB, entry->code );
+     value = keyboard_read_value( driver_data, K_ALTTAB, entry->code );
      
      /* write alternative level symbol to entry */
      entry->symbols[DIKSI_ALT] = keyboard_get_symbol( code, value, DIKSI_ALT );
      
      
      /* fetch the shifted alternative level */
-     value = keyboard_read_value( K_ALTSHIFTTAB, entry->code );
+     value = keyboard_read_value( driver_data, K_ALTSHIFTTAB, entry->code );
      
      /* write shifted alternative level symbol to entry */
      entry->symbols[DIKSI_ALT_SHIFT] = keyboard_get_symbol( code, value,
@@ -434,15 +439,15 @@ driver_close_device( void *driver_data )
      dfb_thread_join( data->thread );
      dfb_thread_destroy( data->thread );
 
-     write( dfb_vt->fd, cursoron_str, strlen(cursoron_str) );
-     write( dfb_vt->fd, blankon_str, strlen(blankon_str) );
+     write( data->vt->fd, cursoron_str, strlen(cursoron_str) );
+     write( data->vt->fd, blankon_str, strlen(blankon_str) );
 
-     if (tcsetattr( dfb_vt->fd, TCSAFLUSH, &data->old_ts ) < 0)
+     if (tcsetattr( data->vt->fd, TCSAFLUSH, &data->old_ts ) < 0)
           PERRORMSG("DirectFB/keyboard: tcsetattr for original values failed!\n");
 
-     if (ioctl( dfb_vt->fd, KDSKBMODE, K_XLATE ) < 0)
+     if (ioctl( data->vt->fd, KDSKBMODE, K_XLATE ) < 0)
           PERRORMSG("DirectFB/keyboard: Could not set mode to XLATE!\n");
-     if (ioctl( dfb_vt->fd, KDSETMODE, KD_TEXT ) < 0)
+     if (ioctl( data->vt->fd, KDSETMODE, KD_TEXT ) < 0)
           PERRORMSG("DirectFB/keyboard: Could not set terminal mode to text!\n");
 
      /* free private data */

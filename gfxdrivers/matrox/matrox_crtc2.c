@@ -426,6 +426,7 @@ static void crtc2_wait_vsync( MatroxDriverData *mdrv )
 
 #ifdef FBIO_WAITFORVSYNC
      static const int one = 1;
+     FBDev *dfb_fbdev = dfb_system_data();
      if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &one ))
 #endif
           while ((int)(mga_in32( mdrv->mmio_base, C2VCOUNT ) & 0x00000FFF) != vdisplay)

@@ -59,6 +59,7 @@ static CoreSystemField *system_field  = NULL;
 static ModuleEntry     *system_module = NULL;
 static CoreSystemFuncs *system_funcs  = NULL;
 static CoreSystemInfo   system_info;
+static void            *system_data   = NULL;
 
 
 DFBResult
@@ -110,7 +111,7 @@ dfb_system_initialize( void *data_local, void *data_shared )
 
      system_field->system_info = system_info;
 
-     return system_funcs->Initialize();
+     return system_funcs->Initialize( &system_data );
 }
 
 static DFBResult
@@ -148,7 +149,7 @@ dfb_system_join( void *data_local, void *data_shared )
           return DFB_UNSUPPORTED;
      }
      
-     return system_funcs->Join();
+     return system_funcs->Join( &system_data );
 }
 
 static DFBResult
@@ -166,6 +167,7 @@ dfb_system_shutdown( bool emergency )
      system_module = NULL;
      system_funcs  = NULL;
      system_field  = NULL;
+     system_data   = NULL;
 
      return ret;
 }
@@ -185,6 +187,7 @@ dfb_system_leave( bool emergency )
      system_module = NULL;
      system_funcs  = NULL;
      system_field  = NULL;
+     system_data   = NULL;
 
      return ret;
 }
@@ -211,6 +214,12 @@ CoreSystemType
 dfb_system_type()
 {
      return system_info.type;
+}
+
+void *
+dfb_system_data()
+{
+     return system_data;
 }
 
 volatile void *

@@ -59,6 +59,7 @@ DFB_INPUT_DRIVER( sdlinput )
 typedef struct {
      InputDevice *device;
      CoreThread  *thread;
+     DFBSDL      *dfb_sdl;
 } SDLInputData;
 
 
@@ -321,7 +322,8 @@ translate_key( SDLKey key, DFBInputEvent *evt )
 static void*
 sdlEventThread( CoreThread *thread, void *driver_data )
 {
-     SDLInputData *data = (SDLInputData*) driver_data;
+     SDLInputData *data    = (SDLInputData*) driver_data;
+     DFBSDL       *dfb_sdl = data->dfb_sdl;
 
      while (true) {
           DFBInputEvent evt;
@@ -463,6 +465,7 @@ driver_open_device( InputDevice      *device,
                     void            **driver_data )
 {
      SDLInputData *data;
+     DFBSDL       *dfb_sdl = dfb_system_data();
 
      fusion_skirmish_prevail( &dfb_sdl->lock );
      
@@ -491,7 +494,8 @@ driver_open_device( InputDevice      *device,
      /* allocate and fill private data */
      data = DFBCALLOC( 1, sizeof(SDLInputData) );
 
-     data->device = device;
+     data->device  = device;
+     data->dfb_sdl = dfb_sdl;
 
      /* start input thread */
      data->thread = dfb_thread_create( CTT_INPUT, sdlEventThread, data );

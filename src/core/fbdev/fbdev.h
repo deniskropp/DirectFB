@@ -34,6 +34,8 @@
 #include <core/fusion/call.h>
 #include <core/fusion/reactor.h>
 
+#include "vt.h"
+
 typedef struct {
      /* fbdev fixed screeninfo, contains infos about memory and type of card */
      struct fb_fix_screeninfo fix;
@@ -62,9 +64,9 @@ typedef struct {
      void                    *framebuffer_base;
      
      int                      fd;            /* file descriptor for /dev/fb */
-} FBDev;
 
-extern FBDev *dfb_fbdev;
+     VirtualTerminal         *vt;
+} FBDev;
 
 /*
  * core init function, opens /dev/fb, get fbdev screeninfo

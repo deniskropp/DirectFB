@@ -84,7 +84,6 @@ static int fbdev_ioctl( int request, void *arg, int arg_size );
 
 #define FBDEV_IOCTL(request,arg)   fbdev_ioctl( request, arg, sizeof(*(arg)) )
 
-/* FIXME: should not be exported */
 FBDev *dfb_fbdev = NULL;
 
 
@@ -321,7 +320,7 @@ system_get_info( CoreSystemInfo *info )
 }
 
 static DFBResult
-system_initialize()
+system_initialize( void **data )
 {
      DFBResult ret;
 
@@ -444,11 +443,13 @@ system_initialize()
      /* Register primary layer functions */
      dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
 
+     *data = dfb_fbdev;
+
      return DFB_OK;
 }
 
 static DFBResult
-system_join()
+system_join( void **data )
 {
 #ifndef FUSION_FAKE
      DFBResult ret;
@@ -487,6 +488,8 @@ system_join()
 
      /* Register primary layer functions */
      dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
+
+     *data = dfb_fbdev;
 
 #endif
      return DFB_OK;
@@ -2010,16 +2013,16 @@ fbdev_ioctl_call_handler( int   caller,
      const char blankoff_str[] = "\033[9;0]";
 
      if (!dfb_config->kd_graphics && call_arg == FBIOPUT_VSCREENINFO)
-          ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS );
+          ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_GRAPHICS );
 
      ret = ioctl( dfb_fbdev->fd, call_arg, call_ptr );
 
      if (call_arg == FBIOPUT_VSCREENINFO) {
           if (!dfb_config->kd_graphics)
-               ioctl( dfb_vt->fd, KDSETMODE, KD_TEXT );
+               ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_TEXT );
         
-          write( dfb_vt->fd, cursoroff_str, strlen(cursoroff_str) );
-          write( dfb_vt->fd, blankoff_str, strlen(blankoff_str) );
+          write( dfb_fbdev->vt->fd, cursoroff_str, strlen(cursoroff_str) );
+          write( dfb_fbdev->vt->fd, blankoff_str, strlen(blankoff_str) );
      }
 
      return ret;

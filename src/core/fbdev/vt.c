@@ -73,7 +73,9 @@
 #endif
 
 
-VirtualTerminal *dfb_vt = NULL;
+extern FBDev *dfb_fbdev;
+
+static VirtualTerminal *dfb_vt = NULL;
 
 static DFBResult vt_init_switching();
 static int       vt_get_fb( int vt );
@@ -194,6 +196,8 @@ dfb_vt_initialize()
           return ret;
      }
 
+     dfb_fbdev->vt = dfb_vt;
+
      return DFB_OK;
 }
 
@@ -264,7 +268,7 @@ dfb_vt_shutdown( bool emergency )
                      "close file descriptor of tty0!\n" );
 
      DFBFREE( dfb_vt );
-     dfb_vt = NULL;
+     dfb_vt = dfb_fbdev->vt = NULL;
 
      return DFB_OK;
 }

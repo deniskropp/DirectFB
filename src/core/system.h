@@ -74,7 +74,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_systems );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_SYSTEM_ABI_VERSION           3
+#define DFB_CORE_SYSTEM_ABI_VERSION           4
 
 #define DFB_CORE_SYSTEM_INFO_NAME_LENGTH     60
 #define DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH   80
@@ -110,8 +110,8 @@ typedef struct {
 typedef struct {
      void           (*GetSystemInfo)( CoreSystemInfo *info );
 
-     DFBResult      (*Initialize)();
-     DFBResult      (*Join)();
+     DFBResult      (*Initialize)( void **data );
+     DFBResult      (*Join)( void **data );
 
      DFBResult      (*Shutdown)( bool emergency );
      DFBResult      (*Leave)( bool emergency );
@@ -171,6 +171,9 @@ dfb_system_lookup();
 
 CoreSystemType
 dfb_system_type();
+
+void *
+dfb_system_data();
 
 volatile void *
 dfb_system_map_mmio( unsigned int    offset,

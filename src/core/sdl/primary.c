@@ -46,6 +46,7 @@
 
 #include "sdl.h"
 
+extern DFBSDL *dfb_sdl;
 
 static DFBResult dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config );
 static DFBResult dfb_sdl_update_screen( DFBRegion *region );

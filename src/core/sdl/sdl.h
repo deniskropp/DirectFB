@@ -35,7 +35,5 @@ typedef struct {
      FusionCall     call;
 } DFBSDL;
 
-extern DFBSDL *dfb_sdl;
-
 #endif
 

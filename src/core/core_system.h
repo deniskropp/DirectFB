@@ -33,10 +33,10 @@ static void
 system_get_info( CoreSystemInfo *info );
 
 static DFBResult
-system_initialize();
+system_initialize( void **data );
 
 static DFBResult
-system_join();
+system_join( void **data );
 
 static DFBResult
 system_shutdown( bool emergency );

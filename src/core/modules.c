@@ -329,7 +329,7 @@ open_module( ModuleEntry *module )
 
      DEBUGMSG( "DirectFB/core/modules: Loading '%s'...\n", buf );
 
-     handle = dlopen( buf, RTLD_LAZY | RTLD_GLOBAL );
+     handle = dlopen( buf, RTLD_LAZY );
      if (!handle)
           DLERRORMSG( "DirectFB/core/modules: Unable to dlopen `%s'!\n", buf );
 

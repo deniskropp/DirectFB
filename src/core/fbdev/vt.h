@@ -56,8 +56,6 @@ typedef struct {
      int              vt_sig;
 } VirtualTerminal;
 
-extern VirtualTerminal *dfb_vt;
-
 /*
  * allocates and switches to a new virtual terminal
  */

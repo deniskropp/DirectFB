@@ -65,7 +65,7 @@ system_get_info( CoreSystemInfo *info )
 }
 
 static DFBResult
-system_initialize()
+system_initialize( void **data )
 {
      DFB_ASSERT( dfb_sdl == NULL );
 
@@ -95,12 +95,14 @@ system_initialize()
 #ifndef FUSION_FAKE
      fusion_arena_add_shared_field( dfb_core->arena, "sdl", dfb_sdl );
 #endif
+
+     *data = dfb_sdl;
      
      return DFB_OK;
 }
 
 static DFBResult
-system_join()
+system_join( void **data )
 {
 #ifndef FUSION_FAKE
      void *ret;
@@ -112,6 +114,8 @@ system_join()
      dfb_sdl = ret;
      
      dfb_layers_register( NULL, NULL, &sdlPrimaryLayerFuncs );
+
+     *data = dfb_sdl;
 
 #endif     
      return DFB_OK;
