@@ -1286,7 +1286,7 @@ driver_init_device( GraphicsDevice     *device,
      }
 
      /* set hardware limitations */
-     device_info->limits.surface_byteoffset_alignment = 32 * 4;
+     device_info->limits.surface_byteoffset_alignment = 512;
      device_info->limits.surface_pixelpitch_alignment = 64;
 
      /* soft reset to fix eventually corrupted TMU read offset on G200 */
