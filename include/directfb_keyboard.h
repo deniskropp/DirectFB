@@ -51,6 +51,8 @@ extern "C"
      
      #define DFB_KEY_TYPE(symbol)       ((symbol) & 0xFF00)
      
+     #define DFB_KEY_IS_ASCII(symbol)   ((symbol) < 128)
+     
      #define DFB_FUNCTION_KEY(n)        (DFB_KEY( FUNCTION, n ))
      #define DFB_MODIFIER_KEY(i)        (DFB_KEY( MODIFIER, (1 << i) ))
      #define DFB_CUSTOM_KEY(n)          (DFB_KEY( CUSTOM, n ))

@@ -314,8 +314,6 @@ driver_open_device( InputDevice      *device,
 {
      KeyboardData   *data;
      struct termios  ts;
-     const char      cursoroff_str[] = "\033[?1;0;0c";
-     const char      blankoff_str[] = "\033[9;0]";
 
      /* put keyboard into medium raw mode */
      if (ioctl( dfb_vt->fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
@@ -338,9 +336,6 @@ driver_open_device( InputDevice      *device,
      tcsetattr( dfb_vt->fd, TCSAFLUSH, &ts );
 
      tcsetpgrp( dfb_vt->fd, getpgrp() );
-
-     write( dfb_vt->fd, cursoroff_str, strlen(cursoroff_str) );
-     write( dfb_vt->fd, blankoff_str, strlen(blankoff_str) );
 
      /* fill device info structure */
      snprintf( info->desc.name,

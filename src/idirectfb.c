@@ -1164,10 +1164,12 @@ input_filter_local( DFBEvent *evt,
                          dfb_layer_cursor_enable( data->layer, false );
                     break;
                case DIET_KEYPRESS:
-                    if (data->primary.window &&
-                        event->key_symbol != DIKS_ESCAPE)
+                    if (data->primary.window)
                          dfb_layer_cursor_enable( data->layer,
-                                                  event->modifiers & DIMM_META );
+                                                  (event->key_symbol ==
+                                                   DIKS_ESCAPE) ||
+                                                  (event->modifiers &
+                                                   DIMM_META) );
                     break;
                default:
                     break;

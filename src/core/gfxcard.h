@@ -223,6 +223,7 @@ typedef struct {
 DFBResult dfb_gfxcard_lock( bool wait, bool sync,
                             bool invalidate_state, bool engine_reset );
 void dfb_gfxcard_unlock();
+void dfb_gfxcard_holdup();
 
 bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
 //bool dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );

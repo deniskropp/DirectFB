@@ -366,6 +366,14 @@ dfb_gfxcard_unlock()
      }
 }
 
+void
+dfb_gfxcard_holdup()
+{
+     if (card && card->shared) {
+          fusion_property_holdup( &card->shared->lock );
+     }
+}
+
 /*
  * This function returns non zero if acceleration is available
  * for the specific function using the given state.

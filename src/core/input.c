@@ -47,6 +47,7 @@
 
 #include <core/modules.h>
 
+#include <core/gfxcard.h>
 #include <core/surfaces.h>
 #include <core/layers.h>
 #include <core/input.h>
@@ -1382,6 +1383,7 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
 #ifdef FUSION_FAKE
                               kill( 0, SIGINT );
 #else
+                              dfb_gfxcard_holdup();
                               dfb_layer_holdup( dfb_layer_at(0) );
 #endif
                               return false;
