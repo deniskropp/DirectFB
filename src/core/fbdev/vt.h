@@ -68,4 +68,6 @@ DFBResult dfb_vt_join();
 DFBResult dfb_vt_shutdown( bool emergency );
 DFBResult dfb_vt_leave( bool emergency );
 
+DFBResult dfb_vt_detach( bool force );
+
 #endif

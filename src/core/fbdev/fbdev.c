@@ -642,35 +642,7 @@ system_get_current_mode()
 static DFBResult
 system_thread_init()
 {
-     if (dfb_config->vt_switch) {
-          struct vt_stat vt_state;
-
-          int fd = open( "/dev/tty", O_RDONLY );
-
-          if (fd < 0) {
-               if (errno == ENXIO)
-                    return DFB_OK;
-
-               PERRORMSG( "DirectFB/core/fbdev: opening /dev/tty failed\n" );
-               return errno2dfb( errno );
-          }
-
-          if (ioctl( fd, VT_GETSTATE, &vt_state )) {
-               close( fd );
-               return DFB_OK;
-          }
-
-          if (ioctl( fd, TIOCNOTTY, 0 )) {
-               PERRORMSG( "DirectFB/core/fbdev: "
-                          "TIOCNOTTY on /dev/tty failed\n" );
-               close( fd );
-               return errno2dfb( errno );
-          }
-
-          close( fd );
-     }
-     
-     return DFB_OK;
+     return dfb_vt_detach( false );
 }
 
 static DFBResult
