@@ -66,6 +66,8 @@ typedef struct {
 struct _FusionArena {
      FusionLink      link;
 
+     int             magic;
+
      FusionSkirmish  lock;
      FusionRef       ref;
 
@@ -165,6 +167,8 @@ fusion_arena_enter (const char     *name,
                fusion_list_remove( &_fusion_shared->arenas, &arena->link );
                fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
 
+               DFB_MAGIC_CLEAR( arena );
+
                /* Free allocated memory. */
                SHFREE( arena->name );
                SHFREE( arena );
@@ -189,6 +193,8 @@ fusion_arena_add_shared_field (FusionArena *arena,
      DFB_ASSERT( arena != NULL );
      DFB_ASSERT( data != NULL );
      DFB_ASSERT( name != NULL );
+
+     DFB_MAGIC_ASSERT( arena, FusionArena );
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
@@ -226,6 +232,8 @@ fusion_arena_get_shared_field (FusionArena  *arena,
      DFB_ASSERT( arena != NULL );
      DFB_ASSERT( data != NULL );
      DFB_ASSERT( name != NULL );
+
+     DFB_MAGIC_ASSERT( arena, FusionArena );
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
@@ -268,6 +276,8 @@ fusion_arena_exit (FusionArena   *arena,
      DFB_ASSERT( arena != NULL );
      DFB_ASSERT( shutdown != NULL );
 
+     DFB_MAGIC_ASSERT( arena, FusionArena );
+
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
           return FUSION_FAILURE;
@@ -306,6 +316,8 @@ fusion_arena_exit (FusionArena   *arena,
           fusion_skirmish_prevail( &_fusion_shared->arenas_lock );
           fusion_list_remove( &_fusion_shared->arenas, &arena->link );
           fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
+
+          DFB_MAGIC_CLEAR( arena );
 
           /* Free allocated memory. */
           SHFREE( arena->name );
@@ -355,6 +367,8 @@ lock_arena( const char *name, bool add )
           if (fusion_skirmish_prevail( &arena->lock ))
                continue;
 
+          DFB_MAGIC_ASSERT( arena, FusionArena );
+
           /* Check if the name matches. */
           if (! strcmp( arena->name, name )) {
                /* Check for an orphaned arena. */
@@ -398,6 +412,8 @@ lock_arena( const char *name, bool add )
           /* Unlock the list. */
           fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
 
+          DFB_MAGIC_SET( arena, FusionArena );
+
           /* Returned locked new arena. */
           return arena;
      }
@@ -412,6 +428,8 @@ static void
 unlock_arena( FusionArena *arena )
 {
      DFB_ASSERT( arena != NULL );
+
+     DFB_MAGIC_ASSERT( arena, FusionArena );
 
      /* Unlock the arena. */
      fusion_skirmish_dismiss( &arena->lock );
