@@ -509,6 +509,7 @@ IDirectFB_GetDisplayLayer( IDirectFB              *thiz,
 
      context.interface = interface;
      context.id        = id;
+     context.ret       = DFB_IDNOTFOUND;
 
      dfb_layers_enumerate( GetDisplayLayer_Callback, &context );
 
