@@ -820,6 +820,9 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                break;
           case DIET_BUTTONPRESS:
           case DIET_BUTTONRELEASE:
+               if (!stack->cursor || !stack->cursor->opacity)
+                    break;
+          
                window         = stack->pointer_window ?
                                 stack->pointer_window : stack->focused_window;
 
