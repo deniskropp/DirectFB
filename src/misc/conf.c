@@ -119,6 +119,8 @@ static const char *config_usage =
     "Swap left and right mouse buttons\n"
     "  [no-]capslock-meta             "
     "Map the CapsLock key to Meta\n"
+    "  linux-input-ir-only            "
+    "Ignore all non-IR Linux Input devices\n"
     "  [no-]cursor                    "
     "Never create a cursor\n"
     "  bg-none                        "
@@ -577,6 +579,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-cursor" ) == 0) {
           dfb_config->no_cursor = true;
      } else
+     if (strcmp (name, "linux-input-ir-only" ) == 0) {
+          dfb_config->linux_input_ir_only = true;
+     } else
      if (strcmp (name, "motion-compression" ) == 0) {
           dfb_config->mouse_motion_compression = true;
      } else
@@ -594,7 +599,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "mouse-source" ) == 0) {
           if (value) {
-               DFBFREE( dfb_config->mouse_source );	  
+               DFBFREE( dfb_config->mouse_source );	
                dfb_config->mouse_source = DFBSTRDUP( value );
           }
           else {

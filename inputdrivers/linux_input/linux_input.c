@@ -527,8 +527,15 @@ driver_get_available()
                   break;
           }
           else {
+               InputDeviceInfo info;
+
+               get_device_info( fd, &info );
+
                close( fd );
-               device_nums[num_devices++] = i;
+
+               if (!dfb_config->linux_input_ir_only ||
+                   (info.desc.type & DIDTF_REMOTE))
+                    device_nums[num_devices++] = i;
           }
      }
 

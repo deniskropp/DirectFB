@@ -135,6 +135,8 @@ typedef struct
 
      bool      a1_font;                           /* whether to load fontmap
                                                      as a1 and not a8 */
+
+     bool      linux_input_ir_only;               /* Ignore non-IR devices. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
