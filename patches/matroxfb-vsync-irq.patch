@@ -55,7 +55,7 @@ diff -u -r1.1.1.1 matroxfb_base.c
 +					if (mga_vsync)
 +						break;
 +					if (signal_pending(current)) {
-+						retval = -ERESTARTSYS;
++						retval = -EINTR;
 +						break;
 +					}
 +					schedule();
