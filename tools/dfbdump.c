@@ -471,6 +471,7 @@ main( int argc, char *argv[] )
 
      if (argc > 1 && !strcmp( argv[1], "-s" )) {
           unsigned int i;
+          unsigned int total = 0;
 
           DFB_ASSERT( _sheap != NULL );
 
@@ -482,9 +483,13 @@ main( int argc, char *argv[] )
                for (i=0; i<_sheap->alloc_count; i++) {
                     SHMemDesc *d = &_sheap->alloc_list[i];
 
-                    printf( "   %7d bytes at %p allocated in %s (%s: %u)\n",
+                    printf( " %9d bytes at %p allocated in %s (%s: %u)\n",
                             d->bytes, d->mem, d->func, d->file, d->line );
+
+                    total += d->bytes;
                }
+
+               printf( "   -------\n  %7dk total\n", total >> 10 );
           }
 
           fusion_skirmish_dismiss( &_sheap->lock );
