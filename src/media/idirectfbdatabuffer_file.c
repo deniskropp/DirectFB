@@ -217,6 +217,12 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
      if (!data || !length)
           return DFB_INVARG;
 
+     if (data->pos + offset >= data->size)
+          return DFB_BUFFEREMPTY;
+     
+     if (data->pos + offset < 0)
+          return DFB_INVARG;
+     
      if (offset && lseek( data->fd, offset, SEEK_CUR ) < 0) {
           switch (errno) {
                case ESPIPE:

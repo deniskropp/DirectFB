@@ -204,7 +204,7 @@ IDirectFBDataBuffer_Memory_PeekData( IDirectFBDataBuffer *thiz,
           return DFB_INVARG;
 
      if (data->pos + offset >= data->length)
-          return DFB_INVARG;
+          return DFB_BUFFEREMPTY;
      
      if (data->pos + offset < 0)
           return DFB_INVARG;
