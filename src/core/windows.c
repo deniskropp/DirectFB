@@ -1071,9 +1071,8 @@ update_region( CoreWindowStack *stack,
                int              x2,
                int              y2 )
 {
-     int                 i      = start;
-     unsigned int        edges  = 0;
-     DFBRegion           region = { x1, y1, x2, y2 };
+     int       i      = start;
+     DFBRegion region = { x1, y1, x2, y2 };
 
      /* check for empty region */
      DFB_ASSERT (x1 <= x2  &&  y1 <= y2);
@@ -1094,32 +1093,23 @@ update_region( CoreWindowStack *stack,
      }
 
      if (i >= 0) {
-          if (region.x1 != x1)
-               edges |= 0x1;
-          if (region.y1 != y1)
-               edges |= 0x2;
-          if (region.x2 != x2)
-               edges |= 0x4;
-          if (region.y2 != y2)
-               edges |= 0x8;
-
           if (TRANSLUCENT_WINDOW(stack->windows[i]))
                update_region( stack, state, i-1, x1, y1, x2, y2 );
-          else if (edges) {
+          else {
                /* left */
-               if (edges & 0x1)
+               if (region.x1 != x1)
                     update_region( stack, state, i-1, x1, region.y1, region.x1-1, region.y2 );
 
                /* upper */
-               if (edges & 0x2)
+               if (region.y1 != y1)
                     update_region( stack, state, i-1, x1, y1, x2, region.y1-1 );
 
                /* right */
-               if (edges & 0x4)
+               if (region.x2 != x2)
                     update_region( stack, state, i-1, region.x2+1, region.y1, x2, region.y2 );
 
                /* lower */
-               if (edges & 0x8)
+               if (region.y2 != y2)
                     update_region( stack, state, i-1, x1, region.y2+1, x2, y2 );
           }
 
