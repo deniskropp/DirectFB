@@ -27,13 +27,22 @@
 #ifndef __COLORHASH_H__
 #define __COLORHASH_H__
 
-void          colorhash_attach     (CorePalette *palette);
-void          colorhash_detach     (CorePalette *palette);
-unsigned int  colorhash_lookup     (CorePalette *palette,
-                                    __u8         r,
-                                    __u8         g,
-                                    __u8         b,
-                                    __u8         a);
-void          colorhash_invalidate (CorePalette *palette);
+#include <directfb.h>
+
+#include <core/fusion/fusion_types.h>
+
+DFBResult dfb_colorhash_initialize();
+DFBResult dfb_colorhash_join();
+DFBResult dfb_colorhash_shutdown( bool emergency );
+DFBResult dfb_colorhash_leave( bool emergency );
+
+void          dfb_colorhash_attach     (CorePalette *palette);
+void          dfb_colorhash_detach     (CorePalette *palette);
+unsigned int  dfb_colorhash_lookup     (CorePalette *palette,
+                                        __u8         r,
+                                        __u8         g,
+                                        __u8         b,
+                                        __u8         a);
+void          dfb_colorhash_invalidate (CorePalette *palette);
 
 #endif

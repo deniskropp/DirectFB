@@ -55,8 +55,8 @@ static void palette_destructor( FusionObject *object, bool zombie )
      fusion_object_dispatch( &palette->object, &notification );
 
      if (palette->hash_attached) {
-          colorhash_invalidate( palette );
-          colorhash_detach( palette );
+          dfb_colorhash_invalidate( palette );
+          dfb_colorhash_detach( palette );
      }
 
      shfree( palette->entries );
@@ -145,11 +145,11 @@ dfb_palette_search( CorePalette *palette,
 
      /* check the global color hash table, returns the closest match */
      if (!palette->hash_attached) {
-          colorhash_attach( palette );
+          dfb_colorhash_attach( palette );
           palette->hash_attached = true;
      }
 
-     index = colorhash_lookup( palette, r, g, b, a );
+     index = dfb_colorhash_lookup( palette, r, g, b, a );
 
      /* write into local cache */
      palette->search_cache.index = index;
@@ -185,7 +185,7 @@ dfb_palette_update( CorePalette *palette, int first, int last )
      
      /* invalidate entries in colorhash */
      if (palette->hash_attached)
-          colorhash_invalidate( palette );
+          dfb_colorhash_invalidate( palette );
 
      /* post message about palette update */
      fusion_object_dispatch( &palette->object, &notification );

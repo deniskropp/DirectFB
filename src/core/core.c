@@ -54,6 +54,7 @@
 #include <misc/memcpy.h>
 #include <misc/util.h>
 #include <misc/fbdebug.h>
+#include <misc/colorhash.h>
 
 /*
  * one entry in the cleanup stack
@@ -438,6 +439,8 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
      fbdebug_init();
 #endif
 
+     INITCHECK( dfb_colorhash_initialize() );
+     
      INITCHECK( dfb_system_initialize() );
      
      INITCHECK( dfb_input_initialize() );
@@ -463,6 +466,8 @@ dfb_core_join( FusionArena *arena, void *ctx )
      
      dfb_core->arena  = arena;
 
+     INITCHECK( dfb_colorhash_join() );
+     
      INITCHECK( dfb_system_join() );
      
      INITCHECK( dfb_input_join() );
@@ -497,6 +502,8 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
      
      dfb_system_shutdown( emergency );
 
+     dfb_colorhash_shutdown( emergency );
+
 #ifdef DFB_DEBUG
      fbdebug_exit();
 #endif
@@ -526,6 +533,8 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
      dfb_gfxcard_leave( emergency );
      
      dfb_system_leave( emergency );
+
+     dfb_colorhash_leave( emergency );
 
      return 0;
 }

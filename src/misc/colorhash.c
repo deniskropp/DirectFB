@@ -26,13 +26,14 @@
 
 #include "config.h"
 
-#include <pthread.h>
+#include <core/fusion/arena.h>
+#include <core/fusion/shmalloc.h>
 
-#include "core/palette.h"
+#include <core/core.h>
+#include <core/palette.h>
 
-#include "misc/mem.h"
-#include "misc/util.h"
-#include "gfx/convert.h"
+#include <misc/util.h>
+#include <gfx/convert.h>
 
 #include "colorhash.h"
 
@@ -45,64 +46,131 @@ typedef struct
   CorePalette  *palette;
 } Colorhash;
 
-static Colorhash       *hash       = NULL;
-static unsigned int     hash_users = 0;
-static pthread_mutex_t  hash_mutex = PTHREAD_MUTEX_INITIALIZER;
+typedef struct {
+     Colorhash             *hash;
+     unsigned int           hash_users;
+     FusionSkirmish         hash_lock;
+} ColorhashField;
+
+static ColorhashField *hash_field = NULL;
+
+
+DFBResult
+dfb_colorhash_initialize()
+{
+     DFB_ASSERT( hash_field == NULL );
+
+     hash_field = shcalloc( 1, sizeof(ColorhashField) );
+     if (!hash_field)
+          return DFB_NOSYSTEMMEMORY;
+
+     skirmish_init( &hash_field->hash_lock );
+
+#ifndef FUSION_FAKE
+     arena_add_shared_field( dfb_core->arena, hash_field, "Colorhash" );
+#endif
+
+     return DFB_OK;
+}
+
+#ifndef FUSION_FAKE
+DFBResult
+dfb_colorhash_join()
+{
+     DFB_ASSERT( hash_field == NULL );
+     
+     if (arena_get_shared_field( dfb_core->arena,
+                                 (void**) &hash_field, "Colorhash" ))
+          return DFB_INIT;
+
+     return DFB_OK;
+}
+#endif
+
+DFBResult
+dfb_colorhash_shutdown( bool emergency )
+{
+     if (!hash_field)
+          return DFB_OK;
+
+     skirmish_destroy( &hash_field->hash_lock );
+     
+     shfree( hash_field );
+     hash_field = NULL;
+
+     return DFB_OK;
+}
+
+#ifndef FUSION_FAKE
+DFBResult
+dfb_colorhash_leave( bool emergency )
+{
+     if (!hash_field)
+          return DFB_OK;
+
+     hash_field = NULL;
+
+     return DFB_OK;
+}
+#endif
 
 
 static inline void colorhash_lock( void )
 {
-     pthread_mutex_lock( &hash_mutex );
+     skirmish_prevail( &hash_field->hash_lock );
 }
 
 static inline void colorhash_unlock( void )
 {
-     pthread_mutex_unlock( &hash_mutex );
+     skirmish_dismiss( &hash_field->hash_lock );
 }
 
-void colorhash_attach( CorePalette *palette ) {
+void dfb_colorhash_attach( CorePalette *palette ) {
      colorhash_lock();
 
-     if (!hash) {
-          DFB_ASSERT( !hash_users );
+     if (!hash_field->hash) {
+          DFB_ASSERT( !hash_field->hash_users );
 
-          hash = DFBCALLOC( HASH_SIZE, sizeof (Colorhash) );
+          hash_field->hash = shcalloc( HASH_SIZE, sizeof (Colorhash) );
      }
 
-     hash_users++;
+     hash_field->hash_users++;
 
      colorhash_unlock();
 }
 
-void colorhash_detach( CorePalette *palette ) {
+void dfb_colorhash_detach( CorePalette *palette ) {
      colorhash_lock();
 
-     DFB_ASSERT( hash_users > 0 );
-     DFB_ASSERT( hash != NULL );
+     DFB_ASSERT( hash_field->hash_users > 0 );
+     DFB_ASSERT( hash_field->hash != NULL );
      
-     hash_users--;
+     hash_field->hash_users--;
 
-     if (!hash_users) {
+     if (!hash_field->hash_users) {
           /* no more users, free allocated resources */
-          DFBFREE( hash );
-          hash = NULL;
+          shfree( hash_field->hash );
+          hash_field->hash = NULL;
      }
 
      colorhash_unlock();
 }
 
-unsigned int colorhash_lookup( CorePalette *palette,
-                               __u8         r,
-                               __u8         g,
-                               __u8         b,
-                               __u8         a )
+unsigned int dfb_colorhash_lookup( CorePalette *palette,
+                                   __u8         r,
+                                   __u8         g,
+                                   __u8         b,
+                                   __u8         a )
 {
-     unsigned int pixel = PIXEL_ARGB(a, r, g, b);
-     unsigned int index = (pixel ^ (unsigned int) palette) % HASH_SIZE;
+     Colorhash    *hash;
+     unsigned int  pixel = PIXEL_ARGB(a, r, g, b);
+     unsigned int  index = (pixel ^ (unsigned int) palette) % HASH_SIZE;
+
+     DFB_ASSERT( hash_field->hash != NULL );
+
+     hash = hash_field->hash;
 
      colorhash_lock();
-
-     DFB_ASSERT( hash != NULL );
 
      /* try a lookup in the hash table */
      if (hash[index].palette == palette && hash[index].pixel == pixel) {
@@ -144,13 +212,16 @@ unsigned int colorhash_lookup( CorePalette *palette,
 }
 
 
-void colorhash_invalidate( CorePalette *palette )
+void dfb_colorhash_invalidate( CorePalette *palette )
 {
-     unsigned int index = HASH_SIZE - 1;
+     Colorhash    *hash;
+     unsigned int  index = HASH_SIZE - 1;
+
+     DFB_ASSERT( hash_field->hash != NULL );
+
+     hash = hash_field->hash;
 
      colorhash_lock();
-
-     DFB_ASSERT( hash != NULL );
 
      /* invalidate all entries owned by this palette */
      do {
@@ -160,3 +231,4 @@ void colorhash_invalidate( CorePalette *palette )
      
      colorhash_unlock();
 }
+
