@@ -366,7 +366,8 @@ DFBResult dfb_primarylayer_initialize()
 
      layer->shared->id = DLID_PRIMARY;
      layer->shared->caps = DLCAPS_SURFACE;
-     sprintf( layer->shared->description, "Primary Layer" );
+     snprintf( layer->shared->description,
+               DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "Primary Layer" );
 
      layer->deinit = dfb_primarylayer_deinit;
 

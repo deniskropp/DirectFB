@@ -309,11 +309,11 @@ driver_open_device( InputDevice      *device,
      const char      cursoroff_str[] = "\033[?1;0;0c";
      const char      blankoff_str[] = "\033[9;0]";
 
-/*     sprintf(buf, "/dev/tty%d", dfb_vt->num);
+/*     snprintf(buf, 32, "/dev/tty%d", dfb_vt->num);
      fd = open( buf, O_RDWR );
      if (fd < 0) {
           if (errno == ENOENT) {
-               sprintf(buf, "/dev/vc/%d", dfb_vt->num);
+               snprintf(buf, 32, "/dev/vc/%d", dfb_vt->num);
                fd = open( buf, O_RDWR );
                if (fd < 0) {
                     if (errno == ENOENT) {

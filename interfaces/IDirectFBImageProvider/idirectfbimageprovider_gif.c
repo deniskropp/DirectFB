@@ -445,7 +445,7 @@ static int DoExtension( FILE *fd, int label )
                return FALSE;
           default:
                str = buf;
-               sprintf(buf, "UNKNOWN (0x%02x)", label);
+               snprintf(buf, 256, "UNKNOWN (0x%02x)", label);
           break;
      }
 

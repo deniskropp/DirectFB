@@ -377,14 +377,15 @@ DFBResult dfb_core_load_modules( char *module_dir,
      while ( (entry = readdir(dir) ) != NULL ) {
           void *handle;
           int   entry_len = strlen(entry->d_name);
-          char  buf[dir_len + entry_len + 2];
+          int   buf_len   = dir_len + entry_len + 2;
+          char  buf[buf_len];
 
           if (entry_len < 4 ||
               entry->d_name[strlen(entry->d_name)-1] != 'o' ||
               entry->d_name[strlen(entry->d_name)-2] != 's')
                continue;
 
-          sprintf( buf, "%s/%s", module_dir, entry->d_name );
+          snprintf( buf, buf_len, "%s/%s", module_dir, entry->d_name );
 
           handle = dlopen( buf, RTLD_LAZY );
           if (handle) {

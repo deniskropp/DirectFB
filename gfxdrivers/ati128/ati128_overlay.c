@@ -284,7 +284,8 @@ ati128_init_layers( void *drv, void *dev )
 
      layer->shared->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
 
-     sprintf( layer->shared->description, "ATI128 Overlay" );
+     snprintf( layer->shared->description,
+               DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "ATI128 Overlay" );
 
      layer->shared->enabled    = 0;
 

@@ -32,6 +32,7 @@
 #include <directfb.h>
 #include <core/coretypes.h>
 
+#define DFB_DISPLAY_LAYER_INFO_NAME_LENGTH   30
 
 struct _DisplayLayerShared
 {
@@ -39,7 +40,9 @@ struct _DisplayLayerShared
                                            primary layer has a fixed id */
      unsigned int   caps;               /* capabilities such as pixelbased
                                            alphablending */
-     char           description[20];    /* description set by driver */
+
+     char           description[DFB_DISPLAY_LAYER_INFO_NAME_LENGTH];
+                                        /* description set by driver */
 
      int            enabled;            /* layers can be turned on and off */
 

@@ -369,7 +369,8 @@ void matrox_init_bes( void *drv, void *dev )
      layer->shared->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE | DLCAPS_BRIGHTNESS |
                    DLCAPS_CONTRAST | DLCAPS_INTERLACED_VIDEO;
 
-     sprintf( layer->shared->description, "Matrox Backend Scaler" );
+     snprintf( layer->shared->description,
+               DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "Matrox Backend Scaler" );
 
      layer->shared->enabled = 0;
 

@@ -128,7 +128,7 @@ driver_get_available()
      char devicename[20];
 
      for (i=0; i<8; i++) {
-          sprintf( devicename, "/dev/js%d", i );
+          snprintf( devicename, 20, "/dev/js%d", i );
 
           fd = open( devicename, O_RDONLY );
           if (fd < 0)
@@ -143,7 +143,7 @@ driver_get_available()
           /* try new-style device names */
 
           for (i=0; i<8; i++) {
-               sprintf( devicename, "/dev/input/js%d", i );
+               snprintf( devicename, 20, "/dev/input/js%d", i );
 
                fd = open( devicename, O_RDONLY );
                if (fd < 0)
@@ -184,15 +184,15 @@ driver_open_device( InputDevice      *device,
      char          devicename[20];
 
      /* open the right device */
-     sprintf( devicename, "/dev/js%d", number );
+     snprintf( devicename, 20, "/dev/js%d", number );
 
      fd = open( devicename, O_RDONLY );
      if (fd < 0) {
           /* try new-style device names */
-          sprintf( devicename, "/dev/input/js%d", number );
+          snprintf( devicename, 20, "/dev/input/js%d", number );
 
           fd = open( devicename, O_RDONLY );
-      if (fd < 0) {
+          if (fd < 0) {
                PERRORMSG( "DirectFB/Joystick: Could not open `%s'!\n", devicename );
                return DFB_INIT; // no joystick available
           }

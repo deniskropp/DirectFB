@@ -255,11 +255,11 @@ vt_init_switching()
 
      /* FIXME: Opening the device should be moved out of this function. */
 
-     sprintf(buf, "/dev/tty%d", Sdfb_vt->num);
+     snprintf(buf, 32, "/dev/tty%d", Sdfb_vt->num);
      dfb_vt->fd = open( buf, O_RDWR );
      if (dfb_vt->fd < 0) {
           if (errno == ENOENT) {
-               sprintf(buf, "/dev/vc/%d", Sdfb_vt->num);
+               snprintf(buf, 32, "/dev/vc/%d", Sdfb_vt->num);
                dfb_vt->fd = open( buf, O_RDWR );
                if (dfb_vt->fd < 0) {
                     if (errno == ENOENT) {
