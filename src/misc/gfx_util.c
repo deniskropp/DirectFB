@@ -277,12 +277,14 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
                     }
                }
 
-               for (i = 0; i < n_y; i++)
+               for (i = 0; i < n_y; i++) {
                     for (j = 0; j < n_x; j++) {
                          *(pixel_weights + n_x * i + j) =
                                            65536 * x_weights[j] * x_scale
-                                                 * y_weights[i] * y_scale;
+                                                 * y_weights[i] * y_scale
+                                           + 127;
                     }
+               }
           }
 
      return 1;
@@ -349,9 +351,9 @@ static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
 
                     ta = ((*q & 0xFF000000) >> 24) * line_weights[j];
 
-                    b+= ta * ((*q & 0xFF));
-                    g+= ta * ((*q & 0xFF00) >> 8);
-                    r+= ta * ((*q & 0xFF0000) >> 16);
+                    b += ta * ((*q & 0xFF));
+                    g += ta * ((*q & 0xFF00) >> 8);
+                    r += ta * ((*q & 0xFF0000) >> 16);
                     a += ta;
 
                     q++;
