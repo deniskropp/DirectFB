@@ -106,6 +106,7 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
      int            count = 0;
 
      DFB_ASSERT( directory != NULL );
+     DFB_ASSERT( directory->path != NULL );
      
      dir_len = strlen( directory->path );
      dir     = opendir( directory->path );
