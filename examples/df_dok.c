@@ -331,7 +331,7 @@ static unsigned long long draw_string( long t )
                                rand()%(SH-fontheight),
                                DSTF_TOPLEFT );
      }
-     return 36*i*1000;
+     return 36*(unsigned long long)i*1000;
 }
 
 static unsigned long long fill_rect( long t )
@@ -345,7 +345,7 @@ static unsigned long long fill_rect( long t )
           primary->FillRectangle( primary,
                                   rand()%(SW-SX), rand()%(SH-SY), SX, SY );
      }
-     return SX*SY*i;
+     return SX*SY*(unsigned long long)i;
 }
 
 static unsigned long long fill_rect_blend( long t )
@@ -360,7 +360,7 @@ static unsigned long long fill_rect_blend( long t )
           primary->FillRectangle( primary,
                                   rand()%(SW-SX), rand()%(SH-SY), SX, SY );
      }
-     return SX*SY*i;
+     return SX*SY*(unsigned long long)i;
 }
 
 static unsigned long long fill_triangle( long t )          
@@ -376,7 +376,7 @@ static unsigned long long fill_triangle( long t )
                              rand()%0xFF, rand()%0xFF, rand()%0xFF, 0xFF );
           primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
      }
-     return SX*SY*i/2;
+     return SX*SY*(unsigned long long)i/2;
 }
 
 static unsigned long long fill_triangle_blend( long t )
@@ -393,7 +393,7 @@ static unsigned long long fill_triangle_blend( long t )
                              rand()%0x64 );
           primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
      }
-     return SX*SY*i/2;
+     return SX*SY*(unsigned long long)i/2;
 }
 
 static unsigned long long draw_rect( long t )
@@ -407,7 +407,7 @@ static unsigned long long draw_rect( long t )
           primary->DrawRectangle( primary, 
                                   rand()%(SW-SX), rand()%(SH-SY), SX, SY );
      }
-     return (SX*2+SY*2-4)*i;
+     return (SX*2+SY*2-4)*(unsigned long long)i;
 }
 
 static unsigned long long draw_rect_blend( long t )
@@ -422,7 +422,7 @@ static unsigned long long draw_rect_blend( long t )
           primary->DrawRectangle( primary, 
                                   rand()%(SW-SX), rand()%(SH-SY), SX, SY );
      }
-     return (SX*2+SY*2-4)*i;
+     return (SX*2+SY*2-4)*(unsigned long long)i;
 }
 
 static unsigned long long draw_lines( long t )
@@ -477,7 +477,7 @@ static unsigned long long blit( long t )
                       (SW!=SX) ? rand()%(SW-SX) : 0,
                       (SH-SY) ? rand()%(SH-SY) : 0 );
      }
-     return SX*SY*i;
+     return SX*SY*(unsigned long long)i;
 }
 
 static unsigned long long blit_colorkeyed( long t )
@@ -491,7 +491,7 @@ static unsigned long long blit_colorkeyed( long t )
                       (SW!=SX) ? rand()%(SW-SX) : 0,
                       (SY-SH)  ? rand()%(SH-SY) : 0 );
      }
-     return SX*SY*i;
+     return SX*SY*(unsigned long long)i;
 }
 
 static unsigned long long blit_convert( long t )
@@ -504,7 +504,7 @@ static unsigned long long blit_convert( long t )
                       (SW!=SX) ? rand()%(SW-SX) : 0,
                       (SY-SH) ? rand()%(SH-SY) : 0 );
      }
-     return SX*SY*i;
+     return SX*SY*(unsigned long long)i;
 }
 
 static unsigned long long blit_blend( long t )
@@ -517,7 +517,7 @@ static unsigned long long blit_blend( long t )
                       (SW!=SX) ? rand()%(SW-SX) : 0,
                       (SY-SH)  ? rand()%(SH-SY) : 0 );
      }
-     return SX*SY*i;
+     return SX*SY*(unsigned long long)i;
 }
 
 static unsigned long long stretch_blit( long t )
@@ -710,7 +710,7 @@ int main( int argc, char *argv[] )
            pixels = (* demos[i].func)(t);
            dfb->WaitIdle( dfb );
            dt = myclock() - t;
-           demos[i].result = pixels / dt;
+           demos[i].result = pixels / (unsigned long long)dt;
            printf( "%-36s %6.2f secs (%8.2f %s)\n", 
                    demos[i].desc, 
                    dt / 1000.0, demos[i].result / 1000.0, demos[i].unit);
