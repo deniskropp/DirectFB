@@ -22,6 +22,13 @@ AM_CPPFLAGS = \
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = fusion.pc
 
+
+# If the old location isn't cleared, builds of external modules fail
+install-exec-local:
+	rm -rf $(INTERNALINCLUDEDIR)/core/fusion
+	rm -rf $(INTERNALINCLUDEDIR)/fusion
+
+
 includedir = @INCLUDEDIR@/fusion
 
 include_HEADERS = \

@@ -36,6 +36,12 @@ endif
 ppcasm_headers = ppcasm_memcpy.h ppc_asm.h
 endif
 
+
+# If the old location isn't cleared, builds of external modules fail
+install-exec-local:
+	rm -rf $(INTERNALINCLUDEDIR)/direct
+
+
 includedir = @INCLUDEDIR@/direct
 
 include_HEADERS = \

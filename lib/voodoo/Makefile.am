@@ -11,9 +11,14 @@ AM_CPPFLAGS = \
 	-DMODULEDIR=\"@MODULEDIR@\"
 
 
-internalincludedir = $(INTERNALINCLUDEDIR)/voodoo
+# If the old location isn't cleared, builds of external modules fail
+install-exec-local:
+	rm -rf $(INTERNALINCLUDEDIR)/voodoo
 
-internalinclude_HEADERS = \
+
+includedir = @INCLUDEDIR@/voodoo
+
+include_HEADERS = \
 	build.h			\
 	client.h		\
 	conf.h			\
