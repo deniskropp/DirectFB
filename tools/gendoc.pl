@@ -45,13 +45,27 @@ while (<>)
 
       if ( /^\s*\/\*\s*$/ )
          {
+           $comment = "<p>\n";
+
             while (<>)
                {
                   chomp;
                   last if ( /^\s*\*\/\s*$/ );
 
-                  $comment .= " $1" if /^\s*\*?\s*(.+)$/;
+                  if (/^\s*\*\s*(.*)$/)
+                    {
+                      if ($1 eq "")
+                        {
+                          $comment .= "</p><p>\n";
+                        }
+                      else
+                        {
+                          $comment .= "   $1\n";
+                        }
+                    }
                }
+
+           $comment .= "</p>\n";
          }
       elsif ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ )
          {
@@ -104,9 +118,12 @@ sub parse_interface (NAME)
                               "<FONT color=white>DirectFB Interfaces</FONT>" .
                               "</A>", $interface );
 
-      print INTERFACE "<P align=center>\n",
-                      "  $interface_abstracts{$interface}\n",
-                      "</P>";
+#      print INTERFACE "<P align=center>\n",
+#                      "  $interface_abstracts{$interface}\n",
+#                      "</P>";
+
+      $comment =~ s/\<p\>/\<p style=\"margin\-left:3%; margin\-right:17%;\"\>/g;
+      print INTERFACE "$comment";
 
       print INTERFACE "<P>\n",
                       "  <CENTER><TABLE width=90% border=0 cellpadding=2>\n";
@@ -308,9 +325,8 @@ sub parse_enum
             print TYPES "<br><br>",
                         "<a name=$enum>",
                         "<font color=#D07070 size=+2>$enum</font>\n";
-            print TYPES "<p style=\"margin-left:3mm;\" >",
-                        "  $comment",
-                        "</p>\n";
+
+            print TYPES "$comment";
          }
 
       foreach $key (sort keys %entries)
@@ -458,6 +474,8 @@ sub parse_struct
 
             print TYPES "  </TABLE>\n",
                         "</P>\n";
+
+            print TYPES "$comment";
          }
    }
 

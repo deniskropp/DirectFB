@@ -298,12 +298,12 @@ extern "C"
                                                      interlaced video data. */
           DLCAPS_COLORKEYING       = 0x00000040,  /* A specific color can be
                                                      declared as transparent. */
-          DLCAPS_BRIGHTNESS        = 0x00000080,  /* supports Brightness 
+          DLCAPS_BRIGHTNESS        = 0x00000080,  /* supports Brightness
                                                      adjustment */
-          DLCAPS_CONTRAST          = 0x00000100,  /* supports Contrast 
+          DLCAPS_CONTRAST          = 0x00000100,  /* supports Contrast
                                                      adjustment   */
           DLCAPS_HUE               = 0x00000200,  /* supports Hue adjustment */
-          DLCAPS_SATURATION        = 0x00000400   /* supports Saturation 
+          DLCAPS_SATURATION        = 0x00000400   /* supports Saturation
                                                      adjustment */
      } DFBDisplayLayerCapabilities;
 
@@ -689,10 +689,12 @@ extern "C"
      } DFBColorAdjustment;
 
 
-     /*************
-      * IDirectFB *
-      *************/
-
+     /*
+      * IDirectFB is the main interface. It can be retrieved by a call to
+      * DirectFBCreate. It's the only interface with a global creation
+      * facility. Other interfaces are created by this interface or
+      * interfaces created by it.
+      */
      DEFINE_INTERFACE(   IDirectFB,
 
         /** Cooperative level, video mode **/
@@ -1114,8 +1116,8 @@ extern "C"
            *
            * Only available in exclusive or administrative mode.
            *
-           * This function only has an effect if the underlying 
-           * hardware supports this operation. Check the layers 
+           * This function only has an effect if the underlying
+           * hardware supports this operation. Check the layers
            * capabilities to find out if this is the case.
            */
           DFBResult (*SetColorAdjustment) (
@@ -2486,8 +2488,8 @@ extern "C"
            * Adjusts the video colors.
            *
            * This function only has an effect if the video
-           * provider supports this operation. Check the 
-           * providers capabilities to find out if this 
+           * provider supports this operation. Check the
+           * providers capabilities to find out if this
            * is the case.
            */
           DFBResult (*SetColorAdjustment) (
