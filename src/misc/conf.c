@@ -106,7 +106,7 @@ static const char *config_usage =
     "  [no-]capslock-meta             "
     "Map the CapsLock key to Meta\n"
     "  [no-]cursor                    "
-    "Show cursor on start up (default)\n"
+    "Never create a cursor\n"
     "  bg-none                        "
     "Disable background clear\n"
     "  bg-color=AARRGGBB              "
@@ -243,7 +243,6 @@ static void config_allocate()
      dfb_config->mmx                      = true;
      dfb_config->sighandler               = true;
      dfb_config->vt_switch                = true;
-     dfb_config->show_cursor              = true;
      dfb_config->translucent_windows      = true;
      dfb_config->mouse_motion_compression = true;
      dfb_config->window_policy            = -1;
@@ -442,10 +441,10 @@ DFBResult dfb_config_set( const char *name, const char *value )
           dfb_config->deinit_check = false;
      } else
      if (strcmp (name, "cursor" ) == 0) {
-          dfb_config->show_cursor = true;
+          dfb_config->no_cursor = false;
      } else
      if (strcmp (name, "no-cursor" ) == 0) {
-          dfb_config->show_cursor = false;
+          dfb_config->no_cursor = true;
      } else
      if (strcmp (name, "motion-compression" ) == 0) {
           dfb_config->mouse_motion_compression = true;

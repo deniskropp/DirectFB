@@ -382,10 +382,6 @@ apply_configuration( IDirectFB *dfb )
      /* now set the background mode */
      dfb_layer_set_background_mode( layer, dfb_config->layer_bg_mode );
 
-     /* enable the cursor */
-     if (dfb_config->show_cursor)
-          dfb_layer_cursor_enable( layer, 1 );
-
      return DFB_OK;
 }
 

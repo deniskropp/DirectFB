@@ -1686,8 +1686,8 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                          }
 
                          case DIKS_SMALL_P:
-                              dfb_layer_cursor_enable( layer, true );
                               dfb_layer_cursor_set_opacity( layer, 0xff );
+                              dfb_layer_cursor_enable( layer, true );
                               
                               stack_unlock( stack );
                               return RS_OK;

@@ -122,6 +122,9 @@ struct _CoreWindowStack {
           int            numerator;       /* cursor acceleration */
           int            denominator;
           int            threshold;
+
+          bool           set;             /* cursor enable/disable has
+                                             been called at least one time */
      } cursor;
 
      FusionSkirmish      lock;            /* skirmish lock for repaints and

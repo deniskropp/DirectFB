@@ -343,7 +343,7 @@ CoreWindowStack *dfb_layer_window_stack( DisplayLayer *layer );
  * cursor control
  */
 DFBResult dfb_layer_cursor_enable( DisplayLayer *layer,
-                                   int           enable );
+                                   bool          enable );
 
 DFBResult dfb_layer_cursor_set_shape( DisplayLayer *layer,
                                       CoreSurface  *shape,

@@ -87,8 +87,7 @@ typedef struct
 
      bool      lefty;                             /* Left handed mouse, swaps
                                                      left/right mouse buttons */
-     bool      show_cursor;                       /* Show default mouse cursor
-                                                     on start up */
+     bool      no_cursor;                         /* Never create a cursor */
      bool      translucent_windows;               /* Allow translucent
                                                      windows */
 

@@ -213,8 +213,8 @@ without a Meta key on the keyboard (e.g. Window key).
 .TP
 .BI [no-]cursor
 By default DirectFB shows a mouse cursor when an application makes use
-of windows. This options allows to switch the cursor off. Note that
-applications may nevertheless switch it on explicitly.
+of windows. This option allows to switch the cursor off permanently.
+Applications cannot enable it explicitly.
 
 .TP
 .BI disable-module=<modulename>

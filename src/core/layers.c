@@ -1110,6 +1110,9 @@ dfb_layer_create_window( DisplayLayer           *layer,
      DFB_ASSERT( window != NULL );
 
      shared = layer->shared;
+
+     if (!shared->stack->cursor.set)
+          dfb_layer_cursor_enable( layer, true );
      
      ret = dfb_window_create( shared->stack, x, y, width, height,
                               caps, surface_caps, pixelformat, &w );
@@ -1488,7 +1491,7 @@ dfb_primary_layer_rectangle( float x, float y,
  */
 
 DFBResult
-dfb_layer_cursor_enable( DisplayLayer *layer, int enable )
+dfb_layer_cursor_enable( DisplayLayer *layer, bool enable )
 {
      DisplayLayerShared *shared;
      CoreWindowStack    *stack;
@@ -1498,9 +1501,14 @@ dfb_layer_cursor_enable( DisplayLayer *layer, int enable )
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->shared->stack != NULL );
      DFB_ASSERT( layer->shared->enabled );
-     
+
      shared = layer->shared;
      stack  = shared->stack;
+     
+     stack->cursor.set = true;
+     
+     if (dfb_config->no_cursor)
+          return DFB_OK;
      
      if (enable) {
           if (!stack->cursor.window) {
@@ -1567,6 +1575,9 @@ dfb_layer_cursor_set_shape( DisplayLayer *layer,
      DFB_ASSERT( layer->shared->stack != NULL );
      DFB_ASSERT( layer->shared->enabled );
      DFB_ASSERT( shape != NULL );
+     
+     if (dfb_config->no_cursor)
+          return DFB_OK;
      
      stack = layer->shared->stack;
 
