@@ -123,6 +123,7 @@ AC_ARG_ENABLE(mmx,
 [  --enable-mmx            enable MMX support [default=autodetect]],
   have_mmx=$enableval)
 
+MMX=no
 
 if test "x$have_mmx" = xon; then
   AC_MSG_CHECKING(whether the binutils support MMX)
@@ -138,7 +139,6 @@ if test "x$have_mmx" = xon; then
     echo 2>&1 " The installed assembler does not supports the MMX command set. "
     echo 2>&1 " Update your binutils package, if you want to compile MMX code. "
     echo 2>&1 "****************************************************************"
-    have_mmx=no
     MMX=no
   fi
   rm conftest*
@@ -149,6 +149,8 @@ ac_ext="$save_ac_ext"
 
 
 dnl Test for libjpeg
+  JPEG=no
+
   AC_ARG_ENABLE(jpeg, [  --enable-jpeg           build JPEG image provider [default=yes]], enable_jpeg="$enableval", enable_jpeg=yes)
 
   if test x$enable_jpeg = xyes; then
@@ -178,6 +180,8 @@ dnl Test for libjpeg
 
 
 dnl Test for libpng and libz
+  PNG=no
+
   AC_ARG_ENABLE(png, [  --enable-png            build PNG image provider [default=yes]], enable_png="$enableval", enable_png=yes)
 
   if test x$enable_png = xyes; then
@@ -422,12 +426,12 @@ docs/Makefile
 
 AC_MSG_RESULT([
 Build options: 
-  MMX support       $have_mmx
+  MMX support       $MMX
   Debug mode        $enable_debug
 
 Building Image Providers:
-  libjpeg Provider  $enable_jpeg
-  libpng Provider   $enable_png 
+  libjpeg Provider  $JPEG
+  libpng Provider   $PNG
   GIF Provider      $enable_gif 
 
 Building Video Providers:
