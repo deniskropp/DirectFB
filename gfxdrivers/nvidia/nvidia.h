@@ -312,8 +312,12 @@ typedef struct
 typedef struct
 {
     __u32 reserved00[4];
+#ifdef WORD_BIGENDIAN
+    __u32 FifoFree;
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x0BC];
     __u32 TextureOffset;
     __u32 TextureFormat;
@@ -331,51 +335,15 @@ typedef struct
     float TextureS;
     float TextureT;
 } RivaTexturedTriangle03;
-/*
- * 2D/3D surfaces
- */
-typedef struct
-{
-/*
-     __u32 Synchronize;
-     __u32 Reserved00[3];
-     __u16 FifoFree;
-     __u16 Nop;
-     __u32 Reserved01[0x05e];
-     __u32 SetContextDmaNotifies;
-     __u32 SetContextDmaSource;
-     __u32 SetContextDmaDestin;
-     __u32 Reserved02[0x05d];
-     __u32 SetFormat;
-     __u32 SetPitch;
-     __u32 SetOffsetSource;
-     __u32 SetOffsetDestin;
-     __u32 Reserved03[0x73c];
-*/
-    __u32 reserved00[4];
-    __u16 FifoFree;
-    __u16 Nop;
-    __u32 reserved01[0x0BC];
-    __u32 Pitch;
-    __u32 SourceOffset;
-    __u32 DestOffset;
-} RivaSurface;
-
-typedef struct
-{
-    __u32 reserved00[4];
-    __u16 FifoFree;
-    __u16 Nop;
-    __u32 reserved01[0x0BD];
-    __u32 Pitch;
-    __u32 RenderBufferOffset;
-    __u32 ZBufferOffset;
-} RivaSurface3D;
 
 typedef struct {
     __u32 reserved00[4];
+#ifdef WORD_BIGENDIAN
+    __u32 FifoFree
+#else
     __u16 FifoFree;
     __u16 Nop;
+#endif
     __u32 reserved01[0x014];
 
     __u32 NoOperation;             /* ignored                          0100-0103*/
@@ -401,12 +369,38 @@ typedef struct {
      float rhw;                    /* reciprocal homogeneous W (1/W)     0c-  0f*/
      __u32 color;                  /* A8R8G8B8                           10-  13*/
      __u32 specular;               /* F8R8G8B8                           14-  17*/
-     float tu;                     /* texture u coordinate               18-  1b*/
-     float tv;                     /* texture v coordinate               1c-  1f*/
- } Tlvertex[16];                /* end of methods in array              -05ff*/
-    __u32 DrawPrimitive[64];       /* see text                         0600-06ff*/
-    __u32 Reserved03[0x640];
-} RivaDx5Triangle;
+     float ts;                     /* texture s coordinate               18-  1b*/
+     float tt;                     /* texture t coordinate               1c-  1f*/
+ } Vertex[16];                     /* end of methods in array              -05ff*/
+    __u32 DrawTriangle3D;
+} RivaTexturedTriangle05;
+
+
+/*
+ * 2D/3D surfaces
+ */
+typedef struct
+{
+    __u32 reserved00[4];
+    __u16 FifoFree;
+    __u16 Nop;
+    __u32 reserved01[0x0BC];
+    __u32 Pitch;
+    __u32 SourceOffset;
+    __u32 DestOffset;
+} RivaSurface;
+
+typedef struct
+{
+    __u32 reserved00[4];
+    __u16 FifoFree;
+    __u16 Nop;
+    __u32 reserved01[0x0BD];
+    __u32 Pitch;
+    __u32 RenderBufferOffset;
+    __u32 ZBufferOffset;
+} RivaSurface3D;
+
 
 #define  NV01_RENDER_SOLID_RECTANGLE                               (0x0000001E)
 
@@ -429,34 +423,38 @@ typedef struct
 
 typedef struct {
      /* for fifo/performance monitoring */
-     unsigned int fifo_space;
-     unsigned int waitfifo_sum;
-     unsigned int waitfifo_calls;
-     unsigned int fifo_waitcycles;
-     unsigned int idle_waitcycles;
-     unsigned int fifo_cache_hits;
+     unsigned int  fifo_space;
+     unsigned int  waitfifo_sum;
+     unsigned int  waitfifo_calls;
+     unsigned int  fifo_waitcycles;
+     unsigned int  idle_waitcycles;
+     unsigned int  fifo_cache_hits;
 
-     __u32        Color;
+     __u32         Color;
+
+     CardState    *state;
 } NVidiaDeviceData;
 
 typedef struct {
-     GraphicsDevice *device;
+     GraphicsDevice                  *device;
 
-     volatile __u8             *mmio_base;
-     volatile __u32            *PGRAPH;
-     volatile __u32            *FIFO;
-     volatile __u32            *PRAMIN;
-     volatile __u32            *PMC;
+     volatile __u8                   *mmio_base;
+     volatile __u32                  *PGRAPH;
+     volatile __u32                  *FIFO;
+     volatile __u32                  *PRAMIN;
+     volatile __u32                  *PMC;
 
-     volatile RivaRop          *Rop;
-     volatile RivaClip         *Clip;
-     volatile RivaPattern      *Pattern;
-     volatile RivaScreenBlt    *Blt;
-     volatile RivaTriangle     *Triangle;
-     volatile RivaScaledImage  *ScaledImage;
-     volatile RivaRectangle    *Rectangle;
-     volatile RivaLine         *Line;
-     volatile RivaSurface      *Surface;
+     volatile RivaRop                *Rop;
+     volatile RivaClip               *Clip;
+     volatile RivaPattern            *Pattern;
+     volatile RivaScreenBlt          *Blt;
+     volatile RivaTriangle           *Triangle;
+     volatile RivaRectangle          *Rectangle;
+     volatile RivaLine               *Line;
+     volatile RivaSurface            *Surface;
+     volatile RivaScaledImage        *ScaledImage;
+     volatile RivaTexturedTriangle05 *TexTri;
+     
 } NVidiaDriverData;
 
 extern DisplayLayerFuncs nvidiaOverlayFuncs;
