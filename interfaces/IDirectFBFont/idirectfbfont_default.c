@@ -83,7 +83,7 @@ DFBResult Construct( IDirectFBFont *thiz,
      font->glyph_infos = tree_new ();
 
      surface_create( 1024, font->height,
-                     config->argb_font ? DSPF_ARGB : DSPF_A8, 
+                     dfb_config->argb_font ? DSPF_ARGB : DSPF_A8, 
                      CSP_VIDEOHIGH, DSCAPS_NONE, &surface );
 
      font->rows = 1;
@@ -137,7 +137,7 @@ DFBResult Construct( IDirectFBFont *thiz,
      surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
      
      for (i = 0; i < font->height; i++) {
-          if (config->argb_font) {
+          if (dfb_config->argb_font) {
                char buf[1024];
 
                fread( buf, 1024, 1, f);
