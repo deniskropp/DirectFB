@@ -23,47 +23,47 @@
 
 void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth)
 {
-    __u8* mclk_save = ucovl->mclk_save;
+     __u8* mclk_save = ucovl->mclk_save;
 
-    if (!iopl(3)) {
-        if (scrwidth <= 1024) { // Disable
-            if (ucovl->extfifo_on) {
+     if (!iopl(3)) {
+          if (scrwidth <= 1024) { // Disable
+               if (ucovl->extfifo_on) {
 
-                dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
+                    dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
 
-                outb(0x16, 0x3c4); outb(mclk_save[0], 0x3c5);
-                outb(0x17, 0x3c4); outb(mclk_save[1], 0x3c5);
-                outb(0x18, 0x3c4); outb(mclk_save[2], 0x3c5);
-                ucovl->extfifo_on = false;
-            }
-        }
-        else { // Enable
-            if (!ucovl->extfifo_on) {
+                    outb(0x16, 0x3c4); outb(mclk_save[0], 0x3c5);
+                    outb(0x17, 0x3c4); outb(mclk_save[1], 0x3c5);
+                    outb(0x18, 0x3c4); outb(mclk_save[2], 0x3c5);
+                    ucovl->extfifo_on = false;
+               }
+          }
+          else { // Enable
+               if (!ucovl->extfifo_on) {
 
-                dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
+                    dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
 
-                // Save current setting
-                outb(0x16, 0x3c4); mclk_save[0] = inb(0x3c5);
-                outb(0x17, 0x3c4); mclk_save[1] = inb(0x3c5);
-                outb(0x18, 0x3c4); mclk_save[2] = inb(0x3c5);
-                // Enable extended FIFO
-                outb(0x17, 0x3c4); outb(0x2f, 0x3c5);
-                outb(0x16, 0x3c4); outb((mclk_save[0] & 0xf0) | 0x14, 0x3c5);
-                outb(0x18, 0x3c4); outb(0x56, 0x3c5);
-                ucovl->extfifo_on = true;
-            }
-        }
-    }
-    else {
-         printf("cle266: could set io perissons\n");
-    }
-    ucovl->scrwidth = scrwidth;
+                    // Save current setting
+                    outb(0x16, 0x3c4); mclk_save[0] = inb(0x3c5);
+                    outb(0x17, 0x3c4); mclk_save[1] = inb(0x3c5);
+                    outb(0x18, 0x3c4); mclk_save[2] = inb(0x3c5);
+                    // Enable extended FIFO
+                    outb(0x17, 0x3c4); outb(0x2f, 0x3c5);
+                    outb(0x16, 0x3c4); outb((mclk_save[0] & 0xf0) | 0x14, 0x3c5);
+                    outb(0x18, 0x3c4); outb(0x56, 0x3c5);
+                    ucovl->extfifo_on = true;
+               }
+          }
+     }
+     else {
+          printf("cle266: could set io perissons\n");
+     }
+     ucovl->scrwidth = scrwidth;
 }
 
 void uc_ovl_vcmd_wait(volatile __u8* vio)
 {
-    while ((VIDEO_IN(vio, V_COMPOSE_MODE)
-        & (V1_COMMAND_FIRE | V3_COMMAND_FIRE)));
+     while ((VIDEO_IN(vio, V_COMPOSE_MODE)
+             & (V1_COMMAND_FIRE | V3_COMMAND_FIRE)));
 }
 
 /**
@@ -81,153 +81,152 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
                         int action,
                         CoreSurface* surface)
 {
-    int sw, sh, sp, sfmt;   // Source width, height, pitch and format
-    int dx, dy;             // Destination position
-    int dw, dh;             // Destination width and height
-    VideoMode *videomode;
-    DFBRectangle scr;       // Screen size
+     int sw, sh, sp, sfmt;   // Source width, height, pitch and format
+     int dx, dy;             // Destination position
+     int dw, dh;             // Destination width and height
+     VideoMode *videomode;
+     DFBRectangle scr;       // Screen size
 
-    bool write_buffers = false;
-    bool write_settings = false;
+     bool write_buffers = false;
+     bool write_settings = false;
 
-    volatile __u8* vio = ucdrv->hwregs;
+     volatile __u8* vio = ucdrv->hwregs;
 
-    __u32 win_start, win_end;   // Overlay register settings
-    __u32 zoom, mini;
-    __u32 dcount, falign, qwpitch;
-    __u32 y_start, u_start, v_start;
-    __u32 v_ctrl, fifo_ctrl;
+     __u32 win_start, win_end;   // Overlay register settings
+     __u32 zoom, mini;
+     __u32 dcount, falign, qwpitch;
+     __u32 y_start, u_start, v_start;
+     __u32 v_ctrl, fifo_ctrl;
 
-    int offset = surface->front_buffer->video.offset;
+     int offset = surface->front_buffer->video.offset;
 
 
-    if (!ucovl->v1.isenabled) return DFB_OK;
+     if (!ucovl->v1.isenabled) return DFB_OK;
 
-    qwpitch = 0;
+     qwpitch = 0;
 
-    // Get screen size
-    videomode = dfb_system_current_mode();
-    scr.w = videomode ? videomode->xres : 720;
-    scr.h = videomode ? videomode->yres : 576;
-    scr.x = 0;
-    scr.y = 0;
+     // Get screen size
+     videomode = dfb_system_current_mode();
+     scr.w = videomode ? videomode->xres : 720;
+     scr.h = videomode ? videomode->yres : 576;
+     scr.x = 0;
+     scr.y = 0;
 
-    if (ucovl->scrwidth != scr.w) {
-    // FIXME: fix uc_ovl_setup_fifo()
-    //    uc_ovl_setup_fifo(ucovl, scr.w);
-        action |= UC_OVL_CHANGE;
-    }
+     if (ucovl->scrwidth != scr.w) {
+          // FIXME: fix uc_ovl_setup_fifo()
+          //    uc_ovl_setup_fifo(ucovl, scr.w);
+          action |= UC_OVL_CHANGE;
+     }
 
-    DFB_ASSERT(surface);
+     DFB_ASSERT(surface);
 
-    sw = surface->width;
-    sh = surface->height;
-    sp = surface->front_buffer->video.pitch;
-    sfmt = surface->format;
+     sw = surface->width;
+     sh = surface->height;
+     sp = surface->front_buffer->video.pitch;
+     sfmt = surface->format;
 
-    if (ucovl->deinterlace) {
-         /*if (ucovl->field)
-              offset += sp;*/
+     if (ucovl->deinterlace) {
+          /*if (ucovl->field)
+               offset += sp;*/
 
-         sh /= 2;
-         //sp *= 2;
-    }
+          sh /= 2;
+          //sp *= 2;
+     }
 
-    if (action & UC_OVL_CHANGE) {
+     if (action & UC_OVL_CHANGE) {
 
-        if ((sw > 4096) || (sh > 4096) ||
-            (sw < 32) || (sh < 1) || (sp > 0x1fff))
-        {
-            DEBUGMSG("Layer surface size is out of bounds.");
-            return DFB_INVAREA;
-        }
+          if ((sw > 4096) || (sh > 4096) ||
+              (sw < 32) || (sh < 1) || (sp > 0x1fff)) {
+               DEBUGMSG("Layer surface size is out of bounds.");
+               return DFB_INVAREA;
+          }
 
-        dx = ucovl->v1.win.x;
-        dy = ucovl->v1.win.y;
-        dw = ucovl->v1.win.w;
-        dh = ucovl->v1.win.h;
+          dx = ucovl->v1.win.x;
+          dy = ucovl->v1.win.y;
+          dw = ucovl->v1.win.w;
+          dh = ucovl->v1.win.h;
 
-        // Get image format, FIFO size, etc.
+          // Get image format, FIFO size, etc.
 
-        uc_ovl_map_v1_control(sfmt, sw, ucovl->hwrev, ucovl->extfifo_on,
-            &v_ctrl, &fifo_ctrl);
+          uc_ovl_map_v1_control(sfmt, sw, ucovl->hwrev, ucovl->extfifo_on,
+                                &v_ctrl, &fifo_ctrl);
 
-        if (ucovl->deinterlace) {
-             v_ctrl |= /*V1_BOB_ENABLE |*/ V1_FRAME_BASE;
-        }
+          if (ucovl->deinterlace) {
+               v_ctrl |= /*V1_BOB_ENABLE |*/ V1_FRAME_BASE;
+          }
 
-        // Get layer window.
-        // The parts that fall outside the screen are clipped.
+          // Get layer window.
+          // The parts that fall outside the screen are clipped.
 
-        uc_ovl_map_window(scr.w, scr.h, &(ucovl->v1.win), sw, sh,
-            &win_start, &win_end, &ucovl->v1.ox, &ucovl->v1.oy);
+          uc_ovl_map_window(scr.w, scr.h, &(ucovl->v1.win), sw, sh,
+                            &win_start, &win_end, &ucovl->v1.ox, &ucovl->v1.oy);
 
-        // Get scaling and data-fetch parameters
+          // Get scaling and data-fetch parameters
 
-        // Note: the *_map_?zoom() functions return false if the scaling
-        // is out of bounds. We don't act on it for now, because it only
-        // makes the display look strange.
+          // Note: the *_map_?zoom() functions return false if the scaling
+          // is out of bounds. We don't act on it for now, because it only
+          // makes the display look strange.
 
-        zoom = 0;
-        mini = 0;
+          zoom = 0;
+          mini = 0;
 
-        uc_ovl_map_vzoom(sh-1, dh, &zoom, &mini);
-        uc_ovl_map_hzoom(sw, dw, &zoom, &mini, &falign, &dcount);
-        qwpitch = uc_ovl_map_qwpitch(falign, sfmt, sw);
+          uc_ovl_map_vzoom(sh, dh, &zoom, &mini);
+          uc_ovl_map_hzoom(sw, dw, &zoom, &mini, &falign, &dcount);
+          qwpitch = uc_ovl_map_qwpitch(falign, sfmt, sw);
 
-        write_settings = true;
-    }
+          write_settings = true;
+     }
 
-    if (action & (UC_OVL_FIELD | UC_OVL_FLIP | UC_OVL_CHANGE)) {
-         int field = 0;
-        // Update the buffer pointers
+     if (action & (UC_OVL_FIELD | UC_OVL_FLIP | UC_OVL_CHANGE)) {
+          int field = 0;
+          // Update the buffer pointers
 
-         if (ucovl->deinterlace) {
-              field = ucovl->field;
-         }
+          if (ucovl->deinterlace) {
+               field = ucovl->field;
+          }
 
-        uc_ovl_map_buffer(sfmt, offset,
-            ucovl->v1.ox, ucovl->v1.oy, sw, surface->height, sp, 0/*field*/, &y_start,
-            &u_start, &v_start);
+          uc_ovl_map_buffer(sfmt, offset,
+                            ucovl->v1.ox, ucovl->v1.oy, sw, surface->height, sp, 0/*field*/, &y_start,
+                            &u_start, &v_start);
 
-        if (field) {
-             y_start |= 0x08000000;
-        }
+          if (field) {
+               y_start |= 0x08000000;
+          }
 
-        write_buffers = true;
-    }
+          write_buffers = true;
+     }
 
-    // Write to the hardware
+     // Write to the hardware
 
-    if (write_settings || write_buffers)
-        uc_ovl_vcmd_wait(vio);
+/*    if (write_settings || write_buffers)
+        uc_ovl_vcmd_wait(vio);*/
 
-    if (write_settings) {
+     if (write_settings) {
 
-        VIDEO_OUT(vio, V1_CONTROL, v_ctrl);
-        VIDEO_OUT(vio, V_FIFO_CONTROL, fifo_ctrl);
+          VIDEO_OUT(vio, V1_CONTROL, v_ctrl);
+          VIDEO_OUT(vio, V_FIFO_CONTROL, fifo_ctrl);
 
-        VIDEO_OUT(vio, V1_WIN_START_Y, win_start);
-        VIDEO_OUT(vio, V1_WIN_END_Y, win_end);
+          VIDEO_OUT(vio, V1_WIN_START_Y, win_start);
+          VIDEO_OUT(vio, V1_WIN_END_Y, win_end);
 
-        VIDEO_OUT(vio, V1_SOURCE_HEIGHT, (sh << 16) | dcount);
-        VIDEO_OUT(vio, V12_QWORD_PER_LINE, qwpitch);
-        VIDEO_OUT(vio, V1_STRIDE, sp | ((sp >> 1) << 16));
+          VIDEO_OUT(vio, V1_SOURCE_HEIGHT, (sh << 16) | dcount);
+          VIDEO_OUT(vio, V12_QWORD_PER_LINE, qwpitch);
+          VIDEO_OUT(vio, V1_STRIDE, sp | ((sp >> 1) << 16));
 
-        VIDEO_OUT(vio, V1_MINI_CONTROL, mini);
-        VIDEO_OUT(vio, V1_ZOOM_CONTROL, zoom);
-    }
+          VIDEO_OUT(vio, V1_MINI_CONTROL, mini);
+          VIDEO_OUT(vio, V1_ZOOM_CONTROL, zoom);
+     }
 
-    if (write_buffers) {
+     if (write_buffers) {
 
-        VIDEO_OUT(vio, V1_STARTADDR_0, y_start);
-        VIDEO_OUT(vio, V1_STARTADDR_CB0, u_start);
-        VIDEO_OUT(vio, V1_STARTADDR_CR0, v_start);
-    }
+          VIDEO_OUT(vio, V1_STARTADDR_0, y_start);
+          VIDEO_OUT(vio, V1_STARTADDR_CB0, u_start);
+          VIDEO_OUT(vio, V1_STARTADDR_CR0, v_start);
+     }
 
-    if (write_settings || write_buffers) {
-        VIDEO_OUT(vio, V_COMPOSE_MODE, V1_COMMAND_FIRE);
-    }
+     if (write_settings || write_buffers) {
+          VIDEO_OUT(vio, V_COMPOSE_MODE, V1_COMMAND_FIRE);
+     }
 
-    return DFB_OK;
+     return DFB_OK;
 }

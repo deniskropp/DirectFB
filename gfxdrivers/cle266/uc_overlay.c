@@ -226,6 +226,8 @@ uc_ovl_flip_region( CoreLayer           *layer,
 
     dfb_surface_flip_buffers(surface);
 
+    ucovl->field = 0;
+
     ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface);
     if (ret)
         return ret;
