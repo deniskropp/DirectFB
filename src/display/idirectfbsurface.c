@@ -48,6 +48,7 @@
 
 #include "misc/util.h"
 #include "misc/mem.h"
+#include "gfx/convert.h"
 #include "gfx/util.h"
 
 
@@ -467,25 +468,41 @@ DFBResult IDirectFBSurface_SetPorterDuff( IDirectFBSurface *thiz,
 }
 
 DFBResult IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
-                                           unsigned int key )
+                                           __u8              r,
+                                           __u8              g,
+                                           __u8              b )
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (data->state.src_colorkey != key) {
-          data->state.src_colorkey = key;
+     data->src_key.r = r;
+     data->src_key.g = g;
+     data->src_key.b = b;
+     data->src_key.value = color_to_pixel( data->surface->format, r, g, b );
+     
+/*
+     if (data->state.src_colorkey != data->src_key.value) {
+          data->state.src_colorkey = data->src_key.value;
           data->state.modified |= SMF_SRC_COLORKEY;
      }
+*/
 
      return DFB_OK;
 }
 
 DFBResult IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
-                                           unsigned int key )
+                                           __u8              r,
+                                           __u8              g,
+                                           __u8              b )
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (data->state.dst_colorkey != key) {
-          data->state.dst_colorkey = key;
+     data->dst_key.r = r;
+     data->dst_key.g = g;
+     data->dst_key.b = b;
+     data->dst_key.value = color_to_pixel( data->surface->format, r, g, b );
+     
+     if (data->state.dst_colorkey != data->dst_key.value) {
+          data->state.dst_colorkey = data->dst_key.value;
           data->state.modified |= SMF_DST_COLORKEY;
      }
 
@@ -760,6 +777,14 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
 
      state_set_source( &data->state, src_data->surface );
 
+     /* fetch the source color key from the source if necessary */
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
+          if (data->state.src_colorkey != src_data->src_key.value) {
+               data->state.src_colorkey = src_data->src_key.value;
+               data->state.modified |= SMF_SRC_COLORKEY;
+          }
+     }
+
      gfxcard_blit( &srect,
                    data->area.wanted.x + dx,
                    data->area.wanted.y + dy, &data->state );
@@ -847,6 +872,14 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
 
      state_set_source( &data->state, src_data->surface );
 
+     /* fetch the source color key from the source if necessary */
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
+          if (data->state.src_colorkey != src_data->src_key.value) {
+               data->state.src_colorkey = src_data->src_key.value;
+               data->state.modified |= SMF_SRC_COLORKEY;
+          }
+     }
+     
      gfxcard_stretchblit( &srect, &drect, &data->state );
 
      return DFB_OK;

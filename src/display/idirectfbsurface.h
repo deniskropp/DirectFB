@@ -48,6 +48,22 @@ typedef struct {
      CoreSurface            *surface;        /* buffer to show */
      IDirectFBFont          *font;           /* font to use */
      CardState              state;           /* render state to use */
+
+     struct {
+          __u8              r;               /* red component */
+          __u8              g;               /* green component */
+          __u8              b;               /* blue component */
+          __u32             value;           /* r/g/b in surface's format */
+     } src_key;                              /* src key for blitting from
+                                                this surface */
+     
+     struct {
+          __u8              r;               /* red component */
+          __u8              g;               /* green component */
+          __u8              b;               /* blue component */
+          __u32             value;           /* r/g/b in surface's format */
+     } dst_key;                              /* dst key for blitting to
+                                                this surface */
 } IDirectFBSurface_data;
 
 /*

@@ -1438,21 +1438,27 @@ extern "C"
           );
 
           /*
-           * Set the source colorkey, i.e. the pixel value that is
-           * excluded from the source when blitting to this surface.
+           * Set the source color key, i.e. the color that is excluded
+           * when blitting FROM this surface TO another that has
+           * source color keying enabled.
            */
           DFBResult (*SetSrcColorKey) (
                IDirectFBSurface         *thiz,
-               __u32                     key
+               __u8                      r,
+               __u8                      g,
+               __u8                      b
           );
 
           /*
-           * Set the destination color key, i.e. the only pixel value
-           * that gets overwritten by drawing, blitting and text functions.
+           * Set the destination color key, i.e. the only color
+           * that gets overwritten by drawing and blitting to this surface
+           * when destination color keying is enabled.
            */
           DFBResult (*SetDstColorKey) (
                IDirectFBSurface         *thiz,
-               __u32                     key
+               __u8                      r,
+               __u8                      g,
+               __u8                      b
           );
 
 
