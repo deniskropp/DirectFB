@@ -138,13 +138,12 @@ bool nv5Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      NVidiaDeviceData     *nvdev = (NVidiaDeviceData*) dev;
      volatile NVScreenBlt *Blt   = nvdrv->Blt;
      
-     if (nvdev->src_format != nvdev->dst_format) {
+     if (nvdev->blitfx || nvdev->src_format != nvdev->dst_format) {
           DFBRectangle dr = { dx, dy, rect->w, rect->h };
           return nv5StretchBlit( drv, dev, rect, &dr );
      }
 
-     nv_waitfifo( nvdev, Blt, 4 );
-     Blt->SetOperation = nvdev->blitfx;
+     nv_waitfifo( nvdev, Blt, 3 );
      Blt->TopLeftSrc   = (rect->y << 16) | rect->x;
      Blt->TopLeftDst   = (dy << 16) | dx;
      Blt->WidthHeight  = (rect->h << 16) | rect->w;
