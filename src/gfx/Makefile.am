@@ -12,6 +12,7 @@ CFLAGS = $(DFB_CFLAGS)
 internalincludedir = $(INTERNALINCLUDEDIR)/gfx
 
 internalinclude_HEADERS = \
+	clip.h			\
 	convert.h		\
 	util.h
 
@@ -19,6 +20,7 @@ internalinclude_HEADERS = \
 noinst_LTLIBRARIES = libdirectfb_gfx.la
 
 libdirectfb_gfx_la_SOURCES = \
+	clip.c			\
 	convert.c		\
 	util.c
 

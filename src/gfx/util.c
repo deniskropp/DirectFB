@@ -112,3 +112,39 @@ void back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
      pthread_mutex_unlock( &btf_lock );
 }
 
+
+void sort_triangle( DFBTriangle *tri )
+{
+     int temp;
+
+     if (tri->y1 > tri->y2) {
+          temp = tri->x1;
+          tri->x1 = tri->x2;
+          tri->x2 = temp;
+          
+          temp = tri->y1;
+          tri->y1 = tri->y2;
+          tri->y2 = temp;
+     }
+
+     if (tri->y2 > tri->y3) {
+          temp = tri->x2;
+          tri->x2 = tri->x3;
+          tri->x3 = temp;
+          
+          temp = tri->y2;
+          tri->y2 = tri->y3;
+          tri->y3 = temp;
+     }
+
+     if (tri->y1 > tri->y2) {
+          temp = tri->x1;
+          tri->x1 = tri->x2;
+          tri->x2 = temp;
+          
+          temp = tri->y1;
+          tri->y1 = tri->y2;
+          tri->y2 = temp;
+     }
+}
+

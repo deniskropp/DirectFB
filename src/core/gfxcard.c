@@ -49,6 +49,7 @@
 #include "surfacemanager.h"
 
 #include "gfx/generic/generic.h"
+#include "gfx/clip.h"
 #include "gfx/util.h"
 
 #include "misc/gfx_util.h"
@@ -592,7 +593,7 @@ void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      else {
           unsigned int edges = clip_rectangle (&state->clip, rect);
 
-          if (edges) {
+          if (edges & 0xF) {
                if (gAquire( state, DFXL_DRAWLINE)) {
                     DFBRegion line;
 
