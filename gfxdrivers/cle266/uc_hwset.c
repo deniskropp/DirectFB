@@ -158,6 +158,9 @@ void uc_set_source_2d(struct uc_fifo* fifo, UcDeviceData *ucdev,
 {
     SurfaceBuffer* buf = state->source->front_buffer;
 
+    if (ucdev->v_source2d)
+        return;
+
     ucdev->pitch = (ucdev->pitch & 0xffff0000)
         | ((buf->video.pitch >> 3) & 0xffff) | VIA_PITCH_ENABLE;
 
@@ -168,6 +171,8 @@ void uc_set_source_2d(struct uc_fifo* fifo, UcDeviceData *ucdev,
     UC_FIFO_ADD_2D(fifo, VIA_REG_PITCH, ucdev->pitch);
 
     UC_FIFO_CHECK(fifo);
+    
+    ucdev->v_source2d = 1;
 }
 
 /// Set new source (3D)
@@ -176,6 +181,9 @@ void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
 {
     struct uc_hw_texture* tex;
     CoreSurface* src;
+
+    if (ucdev->v_source3d)
+        return;
 
     tex = &(ucdev->hwtex);
     src = state->source;
@@ -254,6 +262,8 @@ void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
 
         UC_FIFO_CHECK(fifo);
     }
+    
+    ucdev->v_source3d = 1;
 }
 
 /// Set either destination color key, or fill color, as needed. (2D)

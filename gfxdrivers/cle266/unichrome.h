@@ -100,6 +100,10 @@ typedef struct _UcDeviceData {
     __u32           vq_size;
     __u32           vq_end;
 
+    /*state validation*/
+    int v_source2d;
+    int v_source3d;
+
 } UcDeviceData;
 
 

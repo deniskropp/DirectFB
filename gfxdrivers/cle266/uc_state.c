@@ -125,6 +125,11 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
     // Check modified states and update hw
 
+    if (state->modified & SMF_SOURCE) {
+        ucdev->v_source2d = 0;
+        ucdev->v_source3d = 0;
+    }
+
     if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
         ucdev->color = uc_map_color(state->destination->format,
             state->color);
@@ -198,15 +203,10 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
         }
     }
     else { // DFB_BLITTING_FUNCTION(accel)
-
-        if (state->modified & SMF_SOURCE) {
-            uc_set_source_2d(fifo, ucdev, state);
-            uc_set_source_3d(fifo, ucdev, state);
-        }
-
         switch (uc_select_blittype(state, accel))
         {
         case UC_TYPE_2D:
+            uc_set_source_2d(fifo, ucdev, state);
             funcs->Blit = uc_blit;
 
             uc_set_blitting_colorkey_2d(fifo, state, ucdev);
@@ -214,6 +214,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
             break;
 
         case UC_TYPE_3D:
+            uc_set_source_3d(fifo, ucdev, state);
             funcs->Blit = uc_blit_3d;
 
             if (state->modified & SMF_BLITTING_FLAGS) {
