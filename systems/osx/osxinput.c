@@ -238,7 +238,7 @@ driver_get_info( InputDriverInfo *info )
 static DFBResult
 driver_open_device( CoreInputDevice      *device,
                     unsigned int      number,
-                    CoreInputDeviceInfo  *info,
+                    InputDeviceInfo  *info,
                     void            **driver_data )
 {
      OSXInputData *data;
@@ -284,9 +284,9 @@ driver_open_device( CoreInputDevice      *device,
  * Fetch one entry from the device's keymap if supported.
  */
 static DFBResult
-driver_get_keymap_entry( CoreInputDevice               *device,
+driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
-                         DFBCoreInputDeviceKeymapEntry *entry )
+                         DFBInputDeviceKeymapEntry *entry )
 {
      return DFB_UNSUPPORTED;
 }

@@ -36,6 +36,8 @@
 #include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
+#include <Carbon/Carbon.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -49,8 +51,6 @@
 #include <misc/conf.h>
 
 #include <direct/messages.h>
-
-#include <Carbon/Carbon.h>
 
 #include "osx.h"
 #include "primary.h"
