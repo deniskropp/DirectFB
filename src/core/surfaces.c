@@ -355,7 +355,7 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
           CorePalette *palette;
 
           ret = dfb_palette_create( core,
-                                    1 << DFB_BITS_PER_PIXEL( format ),
+                                    1 << DFB_COLOR_BITS_PER_PIXEL( format ),
                                     &palette );
           if (ret)
                return ret;
@@ -728,7 +728,8 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
           DFBResult    ret;
           CorePalette *palette;
 
-          ret = dfb_palette_create( core, 1 << DFB_BITS_PER_PIXEL( format ),
+          ret = dfb_palette_create( core,
+                                    1 << DFB_COLOR_BITS_PER_PIXEL( format ),
                                     &palette );
           if (ret)
                return ret;

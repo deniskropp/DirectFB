@@ -309,7 +309,7 @@ primaryReallocateSurface( CoreLayer             *layer,
           CorePalette *palette;
 
           ret = dfb_palette_create( NULL,    /* FIXME */
-                                    1 << DFB_BITS_PER_PIXEL( config->format ),
+                                    1 << DFB_COLOR_BITS_PER_PIXEL( config->format ),
                                     &palette );
           if (ret)
                return ret;
