@@ -99,7 +99,7 @@ later versions on an EPIA-M10000.
 
 extern DisplayLayerFuncs ucOverlayFuncs;
 
-DFB_GRAPHICS_DRIVER(unichrome)
+DFB_GRAPHICS_DRIVER(cle266)
 
 //----------
 
