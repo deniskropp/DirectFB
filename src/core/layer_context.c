@@ -52,7 +52,8 @@
 static void      init_region_config  ( CoreLayerContext            *context,
                                        CoreLayerRegionConfig       *config );
 
-static void      build_updated_config( CoreLayerContext            *context,
+static void      build_updated_config( CoreLayer                   *layer,
+                                       CoreLayerContext            *context,
                                        const DFBDisplayLayerConfig *update,
                                        CoreLayerRegionConfig       *ret_config,
                                        CoreLayerRegionConfigFlags  *ret_flags );
@@ -439,7 +440,7 @@ dfb_layer_context_test_configuration( CoreLayerContext            *context,
      funcs = layer->funcs;
 
      /* Build a new region configuration with the changes. */
-     build_updated_config( context, config, &region_config, NULL );
+     build_updated_config( layer, context, config, &region_config, NULL );
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -521,7 +522,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
      funcs  = layer->funcs;
 
      /* Build a new region configuration with the changes. */
-     build_updated_config( context, config, &region_config, &flags );
+     build_updated_config( layer, context, config, &region_config, &flags );
 
      /* Test the region configuration first. */
      if (region_config.buffermode == DLBM_WINDOWS) {
@@ -1115,13 +1116,15 @@ init_region_config( CoreLayerContext      *context,
 }
 
 static void
-build_updated_config( CoreLayerContext            *context,
+build_updated_config( CoreLayer                   *layer,
+                      CoreLayerContext            *context,
                       const DFBDisplayLayerConfig *update,
                       CoreLayerRegionConfig       *ret_config,
                       CoreLayerRegionConfigFlags  *ret_flags )
 {
      CoreLayerRegionConfigFlags flags = CLRCF_NONE;
 
+     D_ASSERT( layer != NULL );
      D_ASSERT( context != NULL );
      D_ASSERT( update != NULL );
      D_ASSERT( ret_config != NULL );
@@ -1129,27 +1132,35 @@ build_updated_config( CoreLayerContext            *context,
      /* Get the current region configuration. */
      *ret_config = context->primary.config;
 
-     /* Reset source rectangle. */
-     if (update->flags & (DLCONF_WIDTH | DLCONF_HEIGHT)) {
-          flags |= CLRCF_SOURCE;
-          ret_config->source.x = 0;
-          ret_config->source.y = 0;
-          ret_config->source.w = ret_config->width;
-          ret_config->source.h = ret_config->height;
-     }
-
      /* Change width. */
      if (update->flags & DLCONF_WIDTH) {
           flags |= CLRCF_WIDTH;
-          ret_config->width    = update->width;
-          ret_config->source.w = update->width;
+          ret_config->width  = update->width;
      }
 
      /* Change height. */
      if (update->flags & DLCONF_HEIGHT) {
           flags |= CLRCF_HEIGHT;
-          ret_config->height   = update->height;
-          ret_config->source.h = update->height;
+          ret_config->height = update->height;
+     }
+
+     /* Reset source and destination rectangle. */
+     if (update->flags & (DLCONF_WIDTH | DLCONF_HEIGHT)) {
+          int width, height;
+
+          flags |= CLRCF_SOURCE | CLRCF_DEST;
+
+          ret_config->source.x = 0;
+          ret_config->source.y = 0;
+          ret_config->source.w = ret_config->width;
+          ret_config->source.h = ret_config->height;
+
+          dfb_screen_get_screen_size( layer->screen, &width, &height );
+
+          ret_config->dest.x = (width  - ret_config->width)  / 2;
+          ret_config->dest.y = (height - ret_config->height) / 2;
+          ret_config->dest.w = ret_config->width;
+          ret_config->dest.h = ret_config->height;
      }
 
      /* Change pixel format. */
