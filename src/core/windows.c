@@ -115,11 +115,8 @@ window_destructor( FusionObject *object, bool zombie )
           dfb_window_destroy( window );
 
           /* Unlink the primary region of the context. */
-          if (window->primary_region) {
+          if (window->primary_region)
                dfb_layer_region_unlink( &window->primary_region );
-          }
-          else
-               D_ASSUME( window->caps & DWCAPS_INPUTONLY );
 
           dfb_windowstack_unlock( stack );
      }
