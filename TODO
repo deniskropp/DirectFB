@@ -5,8 +5,6 @@ Allow software driven interlaced video field switches
 
 Changing window capabilities after creation.
 
-Enable/disable events at a window.
-
 Add cooperative levels to input devices and implement
 a grabbing mechanism for fullscreen apps running in
 windowed mode.

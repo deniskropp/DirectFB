@@ -2183,9 +2183,11 @@ extern "C"
           DWET_WHEEL          = 0x00200000,  /* mouse wheel was moved while
                                                 window has focus */
 
-          DWET_POSITION_SIZE  = DWET_POSITION | DWET_SIZE /* initially sent to
+          DWET_POSITION_SIZE  = DWET_POSITION | DWET_SIZE,/* initially sent to
                                                              window when it's
                                                              created */
+
+          DWET_ALL            = 0x003F033F   /* all event types */
      } DFBWindowEventType;
 
      /*
@@ -2405,7 +2407,7 @@ extern "C"
           );
 
 
-        /** Event buffers **/
+        /** Event handling **/
 
           /*
            * Create an event buffer for this window and attach it.
@@ -2424,6 +2426,28 @@ extern "C"
           DFBResult (*AttachEventBuffer) (
                IDirectFBWindow          *thiz,
                IDirectFBEventBuffer     *buffer
+          );
+
+          /*
+           * Enable specific events to be sent to the window.
+           *
+           * The argument is a mask of events that will be set in the
+           * window's event mask. The default event mask is DWET_ALL.
+           */
+          DFBResult (*EnableEvents) (
+               IDirectFBWindow          *thiz,
+               DFBWindowEventType        mask
+          );
+
+          /*
+           * Disable specific events from being sent to the window.
+           *
+           * The argument is a mask of events that will be cleared in the
+           * window's event mask. The default event mask is DWET_ALL.
+           */
+          DFBResult (*DisableEvents) (
+               IDirectFBWindow          *thiz,
+               DFBWindowEventType        mask
           );
 
 

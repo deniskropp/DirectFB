@@ -162,6 +162,40 @@ IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
 }
 
 static DFBResult
+IDirectFBWindow_EnableEvents( IDirectFBWindow       *thiz,
+                              DFBWindowEventType     mask )
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     if (mask & ~DWET_ALL)
+          return DFB_INVARG;
+
+     data->window->events |= mask;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBWindow_DisableEvents( IDirectFBWindow       *thiz,
+                               DFBWindowEventType     mask )
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     if (mask & ~DWET_ALL)
+          return DFB_INVARG;
+
+     data->window->events &= ~mask;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBWindow_GetID( IDirectFBWindow *thiz,
                        DFBWindowID     *id )
 {
@@ -646,6 +680,8 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->Release = IDirectFBWindow_Release;
      thiz->CreateEventBuffer = IDirectFBWindow_CreateEventBuffer;
      thiz->AttachEventBuffer = IDirectFBWindow_AttachEventBuffer;
+     thiz->EnableEvents = IDirectFBWindow_EnableEvents;
+     thiz->DisableEvents = IDirectFBWindow_DisableEvents;
      thiz->GetID = IDirectFBWindow_GetID;
      thiz->GetPosition = IDirectFBWindow_GetPosition;
      thiz->GetSize = IDirectFBWindow_GetSize;

@@ -53,6 +53,7 @@ struct _CoreWindow {
                                               blending etc. */
      
      DFBWindowOptions        options;      /* flags for appearance/behaviour */
+     DFBWindowEventType      events;       /* mask of enabled events */
 
      DFBWindowStackingClass  stacking;
 

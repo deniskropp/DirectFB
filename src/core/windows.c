@@ -294,6 +294,8 @@ dfb_window_create( CoreWindowStack        *stack,
 
      w->stack   = stack;
 
+     w->events  = DWET_ALL;
+
      w->reactor = reactor_new(sizeof(DFBWindowEvent));
 
      *window = w;
@@ -829,6 +831,9 @@ void
 dfb_window_dispatch( CoreWindow     *window,
                      DFBWindowEvent *event )
 {
+     if (! (event->type & window->events))
+          return;
+
      event->clazz     = DFEC_WINDOW;
      event->window_id = window->id;
 
