@@ -49,14 +49,15 @@ typedef enum {
      m_Source       = 0x0001,
      m_source       = 0x0002,
 
-     m_Color        = 0x0004,
-     m_color        = 0x0008,
+     m_drawColor    = 0x0010,
+     m_blitColor    = 0x0020,
+     m_color        = 0x0040,
 
-     m_SrcKey       = 0x0010,
-     m_srckey       = 0x0020,
+     m_SrcKey       = 0x0100,
+     m_srckey       = 0x0200,
 
-     m_drawBlend    = 0x0040,
-     m_blitBlend    = 0x0080
+     m_drawBlend    = 0x1000,
+     m_blitBlend    = 0x2000
 } MatroxStateBits;
 
 #define MGA_VALIDATE(b)       (mdev->valid |= (b))

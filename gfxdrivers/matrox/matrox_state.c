@@ -155,13 +155,13 @@ void matrox_set_clip( MatroxDriverData *mdrv,
           mga_out32( mmio, ((clip->x2 & 0x0FFF) << 16) | (clip->x1 & 0x0FFF), CXBNDRY );
 }
 
-void matrox_validate_Color( MatroxDriverData *mdrv,
-                            MatroxDeviceData *mdev,
-                            CardState        *state )
+void matrox_validate_drawColor( MatroxDriverData *mdrv,
+                                MatroxDeviceData *mdev,
+                                CardState        *state )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
-     if (MGA_IS_VALID( m_Color ))
+     if (MGA_IS_VALID( m_drawColor ))
           return;
 
      mga_waitfifo( mdrv, mdev, 4 );
@@ -171,7 +171,44 @@ void matrox_validate_Color( MatroxDriverData *mdrv,
      mga_out32( mmio, U8_TO_F0915(state->color.g), DR8 );
      mga_out32( mmio, U8_TO_F0915(state->color.b), DR12 );
 
-     MGA_VALIDATE( m_Color );
+     MGA_VALIDATE( m_drawColor );
+     MGA_INVALIDATE( m_blitColor );
+     MGA_INVALIDATE( m_blitBlend );
+}
+
+void matrox_validate_blitColor( MatroxDriverData *mdrv,
+                                MatroxDeviceData *mdev,
+                                CardState        *state )
+{
+     DFBColor       color = state->color;
+     volatile __u8 *mmio  = mdrv->mmio_base;
+
+     if (MGA_IS_VALID( m_blitColor ))
+          return;
+
+     if (state->blittingflags & DSBLIT_COLORIZE) {
+          if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
+               color.r = (color.r * (color.a + 1)) >> 8;
+               color.g = (color.g * (color.a + 1)) >> 8;
+               color.b = (color.b * (color.a + 1)) >> 8;
+          }
+     }
+     else {
+          if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR)
+               color.r = color.g = color.b = color.a;
+          else
+               color.r = color.g = color.b = 0xff;
+     }
+
+     mga_waitfifo( mdrv, mdev, 4 );
+
+     mga_out32( mmio, U8_TO_F0915(color.a), ALPHASTART );
+     mga_out32( mmio, U8_TO_F0915(color.r), DR4 );
+     mga_out32( mmio, U8_TO_F0915(color.g), DR8 );
+     mga_out32( mmio, U8_TO_F0915(color.b), DR12 );
+
+     MGA_VALIDATE( m_blitColor );
+     MGA_INVALIDATE( m_drawColor );
      MGA_INVALIDATE( m_blitBlend );
 }
 
@@ -385,7 +422,7 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
 
                if (! (state->blittingflags & DSBLIT_BLEND_COLORALPHA)) {
                     mga_out32( mmio, U8_TO_F0915(0xff), ALPHASTART );
-                    MGA_INVALIDATE( m_Color );
+                    MGA_INVALIDATE( m_drawColor | m_blitColor );
                }
           }
           else
@@ -398,7 +435,7 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
                alphactrl |= DIFFUSEDALPHA;
 
                mga_out32( mmio, U8_TO_F0915(0xff), ALPHASTART );
-               MGA_INVALIDATE( m_Color );
+               MGA_INVALIDATE( m_drawColor | m_blitColor );
           }
      }
 
@@ -452,7 +489,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      CoreSurface   *surface         = state->source;
      SurfaceBuffer *buffer          = surface->front_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->format);
-     __u32          texctl, texctl2;
+     __u32          texctl = 0, texctl2 = 0;
 
      if (MGA_IS_VALID( m_Source ))
           return;
@@ -563,20 +600,20 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      if (1 << mdev->w2 != mdev->w  ||  1 << mdev->h2 != mdev->h)
           texctl |= CLAMPUV;
 
-     if (state->blittingflags & DSBLIT_COLORIZE)
+     if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
           texctl |= TMODULATE;
-
-     if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-          texctl |= DECALCKEY | STRANS;
-          texctl2 = DECALDIS;
-     }
      else
-          texctl2 = DECALDIS | CKSTRANSDIS;
+          texctl2 |= DECALDIS;
+
+     if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+          texctl |= DECALCKEY | STRANS;
+     else
+          texctl2 |= CKSTRANSDIS;
 
      if (surface->format == DSPF_A8)
           texctl2 |= IDECAL;
 
-     mdev->texctl  = texctl;
+     mdev->texctl = texctl;
 
      mga_waitfifo( mdrv, mdev, 5 );
      mga_out32( mmio, texctl,  TEXCTL );

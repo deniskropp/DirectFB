@@ -35,9 +35,12 @@ void matrox_set_clip( MatroxDriverData *mdrv,
                       MatroxDeviceData *mdev,
                       DFBRegion        *clip );
 
-void matrox_validate_Color( MatroxDriverData *mdrv,
-                            MatroxDeviceData *mdev,
-                            CardState        *state );
+void matrox_validate_drawColor( MatroxDriverData *mdrv,
+                                MatroxDeviceData *mdev,
+                                CardState        *state );
+void matrox_validate_blitColor( MatroxDriverData *mdrv,
+                                MatroxDeviceData *mdev,
+                                CardState        *state );
 void matrox_validate_color( MatroxDriverData *mdrv,
                             MatroxDeviceData *mdev,
                             CardState        *state );

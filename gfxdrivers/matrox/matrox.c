@@ -139,7 +139,8 @@ static bool matroxStretchBlit_422( void *drv, void *dev,
 #define MATROX_G100_BLITTING_FLAGS          (DSBLIT_SRC_COLORKEY | \
                                            /*DSBLIT_BLEND_ALPHACHANNEL |*/ \
                                            /*DSBLIT_BLEND_COLORALPHA |*/ \
-                                             DSBLIT_COLORIZE)
+                                             DSBLIT_COLORIZE | \
+                                             DSBLIT_SRC_PREMULTCOLOR)
 
 #define MATROX_G100_DRAWING_FUNCTIONS       (DFXL_FILLRECTANGLE | \
                                              DFXL_DRAWRECTANGLE | \
@@ -158,7 +159,8 @@ static bool matroxStretchBlit_422( void *drv, void *dev,
                                              DSBLIT_BLEND_ALPHACHANNEL | \
                                              DSBLIT_BLEND_COLORALPHA | \
                                              DSBLIT_COLORIZE | \
-                                             DSBLIT_DEINTERLACE)
+                                             DSBLIT_DEINTERLACE | \
+                                             DSBLIT_SRC_PREMULTCOLOR)
 
 #define MATROX_G200G400_DRAWING_FUNCTIONS   (DFXL_FILLRECTANGLE | \
                                              DFXL_DRAWRECTANGLE | \
@@ -174,7 +176,8 @@ static bool matroxStretchBlit_422( void *drv, void *dev,
      ((state)->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |              \
                                 DSBLIT_BLEND_COLORALPHA   |              \
                                 DSBLIT_COLORIZE           |              \
-                                DSBLIT_DEINTERLACE)            ||        \
+                                DSBLIT_DEINTERLACE        |              \
+                                DSBLIT_SRC_PREMULTCOLOR)       ||        \
       ((state)->destination->format != (state)->source->format &&        \
        (state)->destination->format != DSPF_I420               &&        \
        (state)->destination->format != DSPF_YV12)              ||        \
@@ -628,7 +631,7 @@ matroxSetState( void *drv, void *dev,
      }
      else if (state->modified) {
           if (state->modified & SMF_COLOR)
-               MGA_INVALIDATE( m_Color | m_color );
+               MGA_INVALIDATE( m_drawColor | m_blitColor | m_color );
           else if (state->modified & SMF_DESTINATION)
                MGA_INVALIDATE( m_color );
 
@@ -638,7 +641,7 @@ matroxSetState( void *drv, void *dev,
                MGA_INVALIDATE( m_SrcKey | m_srckey );
 
           if (state->modified & SMF_BLITTING_FLAGS)
-               MGA_INVALIDATE( m_Source | m_blitBlend );
+               MGA_INVALIDATE( m_Source | m_blitBlend | m_blitColor );
 
           if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
                MGA_INVALIDATE( m_blitBlend | m_drawBlend );
@@ -660,7 +663,7 @@ matroxSetState( void *drv, void *dev,
           case DFXL_FILLTRIANGLE:
                if (state->drawingflags & DSDRAW_BLEND) {
                     mdev->draw_blend = 1;
-                    matrox_validate_Color( mdrv, mdev, state );
+                    matrox_validate_drawColor( mdrv, mdev, state );
                     matrox_validate_drawBlend( mdrv, mdev, state );
                }
                else {
@@ -699,8 +702,10 @@ matroxSetState( void *drv, void *dev,
                mdev->blit_deinterlace  = flags & DSBLIT_DEINTERLACE;
 
                if (MATROX_USE_TMU( state, accel )) {
-                    if (flags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE))
-                         matrox_validate_Color( mdrv, mdev, state );
+                    if (flags & (DSBLIT_BLEND_COLORALPHA |
+                                 DSBLIT_COLORIZE |
+                                 DSBLIT_SRC_PREMULTCOLOR))
+                         matrox_validate_blitColor( mdrv, mdev, state );
 
                     switch (state->destination->format) {
                          case DSPF_YUY2:
