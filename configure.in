@@ -89,26 +89,6 @@ LINUX_FBDEV=no
   
   AM_CONDITIONAL(FBDEV_CORE, test x$LINUX_FBDEV = xyes)    
 
-dnl Threads
-if test x$have_freebsd = xno; then
-  AC_CHECK_LIB(pthread, pthread_attr_init, ,
-    AC_MSG_ERROR([
-*** DirectFB requires libpthread.]))
-else
-  AC_CHECK_LIB(c_r, pthread_attr_init, ,
-    AC_MSG_ERROR([
-*** DirectFB requires phtreads in libc_r.]))
-fi
-
-
-dnl Dynamic Linker
-if test x$have_freebsd = xno; then
-  if test x$enable_shared = xyes; then
-    AC_CHECK_LIB(dl, dlopen, ,
-      AC_MSG_ERROR([
-*** DirectFB requires libdl.]))
-  fi
-fi
 
 if test "x$GCC" = xyes; then
   DFB_CFLAGS="$DFB_CFLAGS -ffast-math -Wall"
@@ -159,6 +139,27 @@ case "$target_or_host" in
 esac
 
 AM_CONDITIONAL(HAVE_LINUX, test x$have_linux = xyes)    
+
+dnl Threads
+if test x$have_freebsd = xno; then
+  AC_CHECK_LIB(pthread, pthread_attr_init, ,
+    AC_MSG_ERROR([
+*** DirectFB requires libpthread.]))
+else
+  AC_CHECK_LIB(c_r, pthread_attr_init, ,
+    AC_MSG_ERROR([
+*** DirectFB requires phtreads in libc_r.]))
+fi
+
+
+dnl Dynamic Linker
+if test x$have_freebsd = xno; then
+  if test x$enable_shared = xyes; then
+    AC_CHECK_LIB(dl, dlopen, ,
+      AC_MSG_ERROR([
+*** DirectFB requires libdl.]))
+  fi
+fi
 
 
 if test "x$have_x86" = xyes; then
