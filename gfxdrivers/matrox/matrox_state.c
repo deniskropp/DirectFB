@@ -115,16 +115,19 @@ inline void matrox_validate_color()
                color = PIXEL_RGB15( matrox->state->color.r,
                                     matrox->state->color.g,
                                     matrox->state->color.b );
+               color |= color << 16;
                break;
           case DSPF_RGB16:
                color = PIXEL_RGB16( matrox->state->color.r,
                                     matrox->state->color.g,
                                     matrox->state->color.b );
+               color |= color << 16;
                break;
           case DSPF_RGB24:
                color = PIXEL_RGB24( matrox->state->color.r,
                                     matrox->state->color.g,
                                     matrox->state->color.b );
+               color |= color << 24;
                break;
           case DSPF_RGB32:
                color = PIXEL_RGB32( matrox->state->color.r,
@@ -139,6 +142,7 @@ inline void matrox_validate_color()
                break;
           case DSPF_A8:
                color = matrox->state->color.a;
+               color |= color << 24 | color << 16 | color << 8;
                break;
           default:
                BUG( "unexpected pixelformat!" );
@@ -212,7 +216,7 @@ inline void matrox_validate_blitBlend()
                                          DSBLIT_BLEND_COLORALPHA))
           alphactrl = matroxSourceBlend[matrox->state->src_blend - 1] |
                       matroxDestBlend  [matrox->state->dst_blend - 1];
-                      
+
      alphactrl |= matroxModulation [matrox->state->blittingflags & 3];
 
      mga_waitfifo( mmio_base, 1 );
