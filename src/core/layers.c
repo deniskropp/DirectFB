@@ -501,9 +501,14 @@ dfb_layer_lease( DisplayLayer *layer )
 
           /* Clear exclusive access. */
           layer->shared->exclusive = false;
+          
+          if (layer->shared->stack) {
+               fusion_property_cede( &layer->shared->lock );
 
-          if (layer->shared->stack)
                dfb_windowstack_repaint_all( layer->shared->stack );
+
+               return dfb_layer_lease( layer );
+          }
      }
      
      return DFB_OK;
