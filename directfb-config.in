@@ -201,7 +201,9 @@ if test "$echo_cflags" = "yes"; then
 fi
 
 if test -n "$echo_static"; then
-	echo -static -L$moduledir/systems -Wl,-udirectfb_fbdev -ldirectfb_fbdev
+	echo -static
+	echo -L$moduledir/systems -Wl,-udirectfb_fbdev -ldirectfb_fbdev
+	echo -L$moduledir/wm -Wl,-udirectfbwm_default -ldirectfbwm_default
 fi
 
 if test -n "$echo_input"; then

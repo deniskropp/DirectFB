@@ -63,16 +63,6 @@ void dfb_windowstack_repaint_all( CoreWindowStack *stack );
 void dfb_windowstack_flush_keys( CoreWindowStack *stack );
 
 /*
- * moves the cursor and handles events
- */
-void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
-
-/*
- * sends enter/leave/focus events if appropriate and returns true if so
- */
-bool dfb_windowstack_update_focus( CoreWindowStack *stack );
-
-/*
  * background handling
  */
 DFBResult dfb_windowstack_set_background_mode ( CoreWindowStack               *stack,

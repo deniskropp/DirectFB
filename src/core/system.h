@@ -165,8 +165,6 @@ typedef struct {
      unsigned int   (*VideoRamLength)();
 } CoreSystemFuncs;
 
-void dfb_system_register_module( CoreSystemFuncs *funcs );
-
 
 
 DFBResult

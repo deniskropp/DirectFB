@@ -128,6 +128,8 @@ static const char *config_usage =
     "Ignore all non-IR Linux Input devices\n"
     "  [no-]cursor                    "
     "Never create a cursor\n"
+    "  wm=<wm>                        "
+    "Window manager module to use (default=default)\n"
     "  bg-none                        "
     "Disable background clear\n"
     "  bg-color=AARRGGBB              "
@@ -320,6 +322,7 @@ static void config_allocate()
      dfb_config->mouse_source             = D_STRDUP( DEV_NAME );
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
+     dfb_config->wm                       = D_STRDUP( "default" );
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -363,6 +366,17 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("DirectFB/Config 'system': No system specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "wm" ) == 0) {
+          if (value) {
+               if (dfb_config->wm)
+                    D_FREE( dfb_config->wm );
+               dfb_config->wm = D_STRDUP( value );
+          }
+          else {
+               D_ERROR("DirectFB/Config 'wm': No window manager specified!\n");
                return DFB_INVARG;
           }
      } else

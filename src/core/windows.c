@@ -47,11 +47,12 @@
 #include <core/layer_context.h>
 #include <core/gfxcard.h>
 #include <core/input.h>
+#include <core/palette.h>
 #include <core/state.h>
 #include <core/system.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
-#include <core/palette.h>
+#include <core/wm.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
@@ -754,7 +755,7 @@ dfb_window_resize( CoreWindow   *window,
      evt.h = window->height;
      dfb_window_post_event( window, &evt );
 
-     dfb_windowstack_update_focus( stack );
+     dfb_wm_update_focus( stack );
 
      dfb_windowstack_unlock( stack );
 
@@ -784,7 +785,7 @@ dfb_window_set_opacity( CoreWindow *window,
 
           /* Check focus after window appeared or disappeared */
           if ((!old_opacity && opacity) || !opacity)
-               dfb_windowstack_update_focus( stack );
+               dfb_wm_update_focus( stack );
 
           /* If window disappeared... */
           if (!opacity) {
@@ -861,7 +862,7 @@ dfb_window_ungrab_pointer( CoreWindow *window )
           stack->pointer_window = NULL;
 
           /* Possibly change focus to window now under the cursor */
-          dfb_windowstack_update_focus( stack );
+          dfb_wm_update_focus( stack );
      }
 
      dfb_windowstack_unlock( stack );
@@ -956,12 +957,8 @@ dfb_window_post_event( CoreWindow     *window,
      if (window->stack) {
           CoreWindowStack *stack = window->stack;
 
-          event->buttons   = stack->buttons;
-          event->modifiers = stack->modifiers;
-          event->locks     = stack->locks;
-
-          event->cx        = stack->cursor.x;
-          event->cy        = stack->cursor.y;
+          event->cx = stack->cursor.x;
+          event->cy = stack->cursor.y;
      }
 
      dfb_window_dispatch( window, event, dfb_window_globals );
@@ -1063,7 +1060,7 @@ window_insert( CoreWindow *window,
      dfb_window_post_event( window, &evt );
 
      if (window->opacity)
-          dfb_windowstack_update_focus( stack );
+          dfb_wm_update_focus( stack );
 }
 
 static void
@@ -1194,7 +1191,7 @@ window_restacked( CoreWindow *window )
      dfb_window_repaint( window, NULL, 0, true, false );
 
      /* Possibly change focus to window now under the cursor */
-     dfb_windowstack_update_focus( stack );
+     dfb_wm_update_focus( stack );
 }
 
 static void

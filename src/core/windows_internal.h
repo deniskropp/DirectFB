@@ -115,10 +115,6 @@ struct __DFB_CoreWindowStack {
           CoreWindow                  *owner;
      } keys[8];
 
-     DFBInputDeviceButtonMask          buttons;
-     DFBInputDeviceModifierMask        modifiers;
-     DFBInputDeviceLockState           locks;
-
      struct {
           int            enabled;         /* is cursor enabled ? */
           int            x, y;            /* cursor position */
@@ -134,9 +130,6 @@ struct __DFB_CoreWindowStack {
           bool           set;             /* cursor enable/disable has
                                              been called at least one time */
      } cursor;
-
-     int                 wm_hack;
-     int                 wm_cycle;
 
      /* stores information on handling the background on exposure */
      struct {
@@ -155,6 +148,8 @@ struct __DFB_CoreWindowStack {
      DirectLink         *devices;      /* input devices attached to the stack */
 
      bool                hw_mode;      /* recompositing is done by hardware */
+
+     void               *stack_data;    /* private data of window manager */
 };
 
 

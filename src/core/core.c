@@ -70,7 +70,7 @@
 #include <misc/util.h>
 
 
-#define DIRECTFB_CORE_ABI     17
+#define DIRECTFB_CORE_ABI     18
 
 extern CorePart dfb_core_clipboard;
 extern CorePart dfb_core_colorhash;
@@ -79,6 +79,7 @@ extern CorePart dfb_core_input;
 extern CorePart dfb_core_layers;
 extern CorePart dfb_core_screens;
 extern CorePart dfb_core_system;
+extern CorePart dfb_core_wm;
 
 /******************************************************************************/
 
@@ -157,6 +158,7 @@ static CorePart *core_parts[] = {
      &dfb_core_input,
      &dfb_core_gfxcard,
      &dfb_core_screens,
+     &dfb_core_wm,
      &dfb_core_layers
 };
 

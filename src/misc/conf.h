@@ -127,6 +127,8 @@ typedef struct
           char *host;                             /* Remote host to connect to. */
           int   session;                          /* Remote session number. */
      } remote;
+
+     char      *wm;                               /* Window manager to use. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

@@ -1097,6 +1097,9 @@ systems/Makefile
 systems/fbdev/Makefile
 systems/sdl/Makefile
 
+wm/Makefile
+wm/default/Makefile
+
 gfxdrivers/Makefile
 gfxdrivers/ati128/Makefile
 gfxdrivers/cle266/Makefile

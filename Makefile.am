@@ -19,6 +19,7 @@ SUBDIRS = \
 	lib			\
 	src 			\
 	systems			\
+	wm			\
 	interfaces 		\
 	$(PROXY_DIR)		\
 	$(LINUXONLY_DIRS)	\
