@@ -3015,7 +3015,10 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          *funcs++ = Sacc_is_Bacc;
                          *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
                     }
-                    else if (src_format == dst_format) {
+                    else if (src_format == dst_format &&
+                             (!DFB_PIXELFORMAT_IS_INDEXED(src_format) ||
+                              Alut == Blut))
+                    {
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    Skey = state->src_colorkey;
