@@ -44,6 +44,10 @@ if DBOX2REMOTE
 DBOX2REMOTE_DIR = dbox2remote
 endif
 
+if DREAMBOXREMOTE
+DREAMBOXREMOTE_DIR = dreamboxremote
+endif
+
 if MUTOUCH_TS
 MUTOUCH_TS_DIR = mutouch
 endif
@@ -65,4 +69,5 @@ SUBDIRS = \
 	$(MUTOUCH_TS_DIR)	\
 	$(SONYPI_DIR)		\
 	$(DBOX2REMOTE_DIR)	\
+	$(DREAMBOXREMOTE_DIR)	\
 	$(WM97XX_TS_DIR)
