@@ -464,12 +464,18 @@ static void* OverlayThread( CoreThread *thread, void *ctx )
           tv.tv_usec = 20000;
           select( 0, 0, 0, 0, &tv );
 
+          if (!data->running)
+               break;
+
           if (data->destination &&
               data->destination->caps & DSCAPS_INTERLACED) {
                dfb_surface_set_field( data->destination, field );
 
                field = !field;
           }
+
+          if (!data->running)
+               break;
 
           if (data->callback)
                data->callback( data->ctx );
@@ -557,13 +563,14 @@ static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx
      IDirectFBVideoProvider_V4L_data *data         = ctx;
      CoreSurface                     *surface      = notification->surface;
 
-     DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
+     DEBUGMSG( "DirectFB/v4l: %s (%p, 0x%08x)\n", __FUNCTION__,
+               surface, notification->flags );
 
-     if (notification->flags & CSNF_VIDEO) {
-          if (surface && surface->back_buffer->video.health == CSH_INVALID) {
-               v4l_stop( data, false );
-               return RS_REMOVE;
-          }
+     if ((notification->flags & CSNF_SIZEFORMAT) ||
+         (surface->back_buffer->video.health != CSH_STORED))
+     {
+          v4l_stop( data, false );
+          return RS_REMOVE;
      }
 
      return RS_OK;
@@ -577,11 +584,11 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
 
      DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
-     if (notification->flags & CSNF_SYSTEM) {
-          if (surface && surface->back_buffer->system.health == CSH_INVALID) {
-               v4l_stop( data, false );
-               return RS_REMOVE;
-          }
+     if ((notification->flags & CSNF_SIZEFORMAT) ||
+         (surface->back_buffer->system.health != CSH_STORED))
+     {
+          v4l_stop( data, false );
+          return RS_REMOVE;
      }
 
      return RS_OK;
@@ -596,7 +603,8 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
      int bpp, palette;
      SurfaceBuffer *buffer = surface->back_buffer;
 
-     DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
+     DEBUGMSG( "DirectFB/v4l: %s (%p, %d,%d - %dx%d)\n", __FUNCTION__,
+               surface, rect->x, rect->y, rect->w, rect->h );
 
      /*
       * Sanity check. Overlay to system surface isn't possible.
@@ -804,13 +812,6 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 {
      DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
-     if (data->thread) {
-          data->running = false;
-          dfb_thread_join( data->thread );
-          dfb_thread_destroy( data->thread );
-          data->thread = NULL;
-     }
-
      if (VID_TYPE_OVERLAY & data->vcap.type) {
           if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0) {
                DFBResult ret = errno2dfb( errno );
@@ -820,6 +821,13 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 
                return ret;
           }
+     }
+
+     if (data->thread) {
+          data->running = false;
+          dfb_thread_join( data->thread );
+          dfb_thread_destroy( data->thread );
+          data->thread = NULL;
      }
 
      if (!data->destination)
