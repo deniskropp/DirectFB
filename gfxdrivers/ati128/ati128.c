@@ -653,6 +653,29 @@ void driver_deinit()
                (int)(100 * ati128_fifo_cache_hits/
                (float)(ati128_waitfifo_calls)) );
 
+     /* clean up, make sure that aty128fb does not hang in kernel space
+        afterwards  */
+     ati128_waitfifo( mmio_base, 3 );
+
+     ati128_out32( mmio_base, DP_GUI_MASTER_CNTL,
+                              GMC_SRC_PITCH_OFFSET_DEFAULT |
+                              GMC_DST_PITCH_OFFSET_DEFAULT |
+                              GMC_SRC_CLIP_DEFAULT         |
+                              GMC_DST_CLIP_DEFAULT         |
+                              GMC_BRUSH_SOLIDCOLOR         |
+                              GMC_SRC_DSTCOLOR             |
+                              GMC_BYTE_ORDER_MSB_TO_LSB    |
+                              GMC_DP_CONVERSION_TEMP_6500  |
+                              ROP3_PATCOPY                 |
+                              GMC_DP_SRC_RECT              |
+                              GMC_3D_FCN_EN_CLR            |
+                              GMC_DST_CLR_CMP_FCN_CLEAR    |
+                              GMC_AUX_CLIP_CLEAR           |
+                              GMC_WRITE_MASK_SET);
+
+     ati128_out32( mmio_base, SCALE_3D_CNTL, 0x00000000 );
+     ati128_out32( mmio_base, TEX_CNTL, 0x00000000 );
+
      munmap( (void*)mmio_base, ati->fix.mmio_len);
 }
 
