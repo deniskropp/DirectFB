@@ -531,6 +531,11 @@ init_devices()
                continue;
           }
 
+          funcs->GetDriverInfo( &driver->info );
+          
+          DEBUGMSG( "DirectFB/Core/Input: Probing '%s'...\n",
+                    driver->info.name );
+          
           driver->nr_devices = funcs->GetAvailable();
           if (!driver->nr_devices) {
                dfb_module_unref( module );
@@ -541,8 +546,6 @@ init_devices()
           driver->module = module;
           driver->funcs  = funcs;
           
-          funcs->GetDriverInfo( &driver->info );
-
           fusion_list_prepend( &input_drivers, &driver->link );
 
           

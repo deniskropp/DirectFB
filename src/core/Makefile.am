@@ -71,6 +71,7 @@ libdirectfb_core_la_SOURCES = \
 	clipboard.c		\
 	colorhash.c		\
 	core.c			\
+	core_parts.c		\
 	fonts.c			\
 	gfxcard.c		\
 	input.c			\

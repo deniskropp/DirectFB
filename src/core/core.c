@@ -367,48 +367,18 @@ dfb_core_cleanup_remove( CoreCleanup *cleanup )
 static int
 dfb_core_initialize( FusionArena *arena, void *ctx )
 {
-     int i;
+     int       i;
+     DFBResult ret;
 
      DEBUGMSG( "DirectFB/Core: we are the master, initializing...\n" );
 
-     dfb_sig_install_handlers();
-     
      dfb_core->master = true;
 
-     for (i=0; i<NUM_CORE_PARTS; i++) {
-          DFBResult  ret;
-          void      *local  = NULL;
-          void      *shared = NULL;
-
-          if (core_parts[i]->size_local)
-               local = DFBCALLOC( 1, core_parts[i]->size_local );
-
-          if (core_parts[i]->size_shared)
-               shared = shcalloc( 1, core_parts[i]->size_shared );
-
-          ret = core_parts[i]->Initialize( local, shared );
-          if (ret) {
-               ERRORMSG( "DirectFB/Core: Could not initialize '%s' core!\n"
-                         "    --> %s\n", core_parts[i]->name,
-                         DirectFBErrorString( ret ) );
-               
-               if (shared)
-                    shfree( shared );
-               
-               if (local)
-                    DFBFREE( local );
-
+     dfb_sig_install_handlers();
+     
+     for (i=0; i<NUM_CORE_PARTS; i++)
+          if ((ret = dfb_core_part_initialize( core_parts[i] )))
                return ret;
-          }
-
-#ifndef FUSION_FAKE
-          if (shared)
-               arena_add_shared_field( arena, core_parts[i]->name, shared );
-#endif
-
-          core_parts[i]->data_local  = local;
-          core_parts[i]->data_shared = shared;
-     }
 
      return 0;
 }
@@ -417,41 +387,17 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
 static int
 dfb_core_join( FusionArena *arena, void *ctx )
 {
-     int i;
+     int       i;
+     DFBResult ret;
 
      DEBUGMSG( "DirectFB/Core: we are a slave, joining...\n" );
 
      dfb_config->sighandler = false;
-
      dfb_sig_install_handlers();
      
-     for (i=0; i<NUM_CORE_PARTS; i++) {
-          DFBResult  ret;
-          void      *local  = NULL;
-          void      *shared = NULL;
-
-          if (core_parts[i]->size_shared &&
-              arena_get_shared_field( arena, core_parts[i]->name, &shared ))
-               return DFB_FUSION;
-
-          if (core_parts[i]->size_local)
-               local = DFBCALLOC( 1, core_parts[i]->size_local );
-
-          ret = core_parts[i]->Join( local, shared );
-          if (ret) {
-               ERRORMSG( "DirectFB/Core: Could not join '%s' core!\n"
-                         "    --> %s\n", core_parts[i]->name,
-                         DirectFBErrorString( ret ) );
-               
-               if (local)
-                    DFBFREE( local );
-
+     for (i=0; i<NUM_CORE_PARTS; i++)
+          if ((ret = dfb_core_part_join( core_parts[i] )))
                return ret;
-          }
-
-          core_parts[i]->data_local  = local;
-          core_parts[i]->data_shared = shared;
-     }
      
      return 0;
 }
@@ -475,24 +421,8 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
           DFBFREE( cleanup );
      }
 
-     for (i=NUM_CORE_PARTS-1; i>=0; i--) {
-          DFBResult ret;
-
-          ret = core_parts[i]->Shutdown( emergency );
-          if (ret)
-               ERRORMSG( "DirectFB/Core: Could not shutdown '%s' core!\n"
-                         "    --> %s\n", core_parts[i]->name,
-                         DirectFBErrorString( ret ) );
-          
-          if (core_parts[i]->data_shared)
-               shfree( core_parts[i]->data_shared );
-
-          if (core_parts[i]->data_local)
-               DFBFREE( core_parts[i]->data_local );
-
-          core_parts[i]->data_local  = NULL;
-          core_parts[i]->data_shared = NULL;
-     }
+     for (i=NUM_CORE_PARTS-1; i>=0; i--)
+          dfb_core_part_shutdown( core_parts[i], emergency );
 
      return 0;
 }
@@ -516,21 +446,8 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
           DFBFREE( cleanup );
      }
      
-     for (i=NUM_CORE_PARTS-1; i>=0; i--) {
-          DFBResult ret;
-
-          ret = core_parts[i]->Leave( emergency );
-          if (ret)
-               ERRORMSG( "DirectFB/Core: Could not shutdown '%s' core!\n"
-                         "    --> %s\n", core_parts[i]->name,
-                         DirectFBErrorString( ret ) );
-          
-          if (core_parts[i]->data_local)
-               DFBFREE( core_parts[i]->data_local );
-
-          core_parts[i]->data_local  = NULL;
-          core_parts[i]->data_shared = NULL;
-     }
+     for (i=NUM_CORE_PARTS-1; i>=0; i--)
+          dfb_core_part_leave( core_parts[i], emergency );
 
      return 0;
 }
