@@ -1,3 +1,7 @@
-2001-04-06  Michael Natterer  <mitch@convergence.de>
+2001-04-06 Andreas Hundt <andi@convergence>
+	   Denis Oliver Kropp <dok@convergence.de>
+	   Michael Natterer  <mitch@convergence.de>
+	   Sven Neumann <sven@convergence.de>
 
-	* initial CVS import.
+	* Released version 0.9.0, the first public release.
+	  Initial import into public CVS.
