@@ -1,8 +1,8 @@
 .\" Hey Emacs! This file is -*- nroff -*- source.
 .\"
-.\" This man page is Copyright (C) 2002 Sven Neumann <neo@directfb.org>
+.\" This man page is Copyright (C) 2002-2003 Sven Neumann <neo@directfb.org>
 
-.TH DFBG 1 "11 Jun 2003" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
+.TH DFBG 1 "9 Jul 2003" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
 
 .SH NAME
 dfbg \- DirectFB background configuration tool
@@ -13,7 +13,8 @@ dfbg \- DirectFB background configuration tool
 .SH DESCRIPTION
 \fBdfbg\fP is a small utility to configure the background of the DirectFB
 desktop. It loads the specified image and sets it as background image.
-\fBdfbg\f requires DirectFB with the multi-application core enabled.
+
+\fBdfbg\fP requires DirectFB with the multi-application core enabled.
 
 .SH OPTIONS
 .TP
