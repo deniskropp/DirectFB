@@ -56,8 +56,10 @@
 #include <fusion/shmalloc.h>
 
 
-
 #if FUSION_BUILD_MULTI
+
+D_DEBUG_DOMAIN( Fusion_Main, "Fusion/Main", "Fusion - High level IPC" );
+
 
 #include <linux/fusion.h>
 
@@ -91,7 +93,8 @@ int _fusion_id = 0;  /* non-zero if Fusion is initialized */
 int
 fusion_init( int world, int abi_version, int *world_ret )
 {
-     char buf[20];
+     char        buf[20];
+     FusionEnter enter;
 
      /* Check against multiple initialization. */
      if (_fusion_id) {
@@ -132,14 +135,29 @@ fusion_init( int world, int abi_version, int *world_ret )
           }
      }
 
+     enter.api.major = FUSION_API_MAJOR;
+     enter.api.minor = FUSION_API_MINOR;
+     enter.fusion_id = 0;
+
      /* Get our Fusion ID. */
-     if (ioctl( _fusion_fd, FUSION_GET_ID, &_fusion_id )) {
-          D_PERROR( "Fusion/Init: FUSION_GET_ID failed!\n" );
+     if (ioctl( _fusion_fd, FUSION_ENTER, &enter )) {
+          D_PERROR( "Fusion/Init: FUSION_ENTER failed!\n" );
           close( _fusion_fd );
           _fusion_fd = -1;
           direct_shutdown();
           return -1;
      }
+
+     if (!enter.fusion_id) {
+          D_ERROR( "Fusion/Init: Got no ID from FUSION_ENTER! Kernel module might be too old.\n" );
+          close( _fusion_fd );
+          _fusion_fd = -1;
+          direct_shutdown();
+          return -1;
+     }
+
+     _fusion_id = enter.fusion_id;
+
 
      /* Initialize local reference counter. */
      fusion_refs = 1;
@@ -316,7 +334,7 @@ fusion_sync()
      struct timeval tv;
      int            loops = 100;
 
-     D_DEBUG( "Fusion/Sync: syncing with fusion device...\n" );
+     D_DEBUG_AT( Fusion_Main, "syncing with fusion device...\n" );
 
      while (loops--) {
           FD_ZERO(&set);
@@ -336,18 +354,17 @@ fusion_sync()
                     return;
 
                case 0:
-                    D_DEBUG( "Fusion/Sync: ...synced.\n");
+                    D_DEBUG_AT( Fusion_Main, "  -> synced.\n");
                     return;
 
                default:
-                    D_DEBUG( "Fusion/Sync: ...syncing...\n");
                     usleep( 10000 );
           }
      }
 
-     D_ERROR( "Fusion/Sync: timeout waiting for empty read buffer\n" );
+     D_DEBUG_AT( Fusion_Main, "  -> timeout!\n");
 
-     direct_trace_print_stacks();
+     D_ERROR( "Fusion/Main: Timeout waiting for empty message queue!\n" );
 }
 
 /*****************************
@@ -363,8 +380,6 @@ fusion_read_loop( DirectThread *thread, void *arg )
 
      FD_ZERO(&set);
      FD_SET(_fusion_fd,&set);
-
-     D_DEBUG( "Fusion/Receiver: entering loop...\n" );
 
      while ((result = select (_fusion_fd+1, &set, NULL, NULL, NULL)) >= 0 ||
             errno == EINTR)

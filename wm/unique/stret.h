@@ -79,11 +79,13 @@ DFBResult stret_region_create ( StretRegionClassID   class_id,
                                 void                *data,
                                 unsigned long        arg,
                                 StretRegionFlags     flags,
+                                int                  levels,
                                 int                  x,
                                 int                  y,
                                 int                  width,
                                 int                  height,
                                 StretRegion         *parent,
+                                int                  level,
                                 StretRegion        **ret_region );
 
 DFBResult stret_region_destroy( StretRegion         *region );
@@ -130,7 +132,7 @@ StretRegion *stret_region_at  ( StretRegion         *region,
                                 int                  y,
                                 StretRegionFlags     flags );
 
-void        *stret_region_data( const StretRegion   *region )    D_CONST_FUNC;
+void        *stret_region_data( const StretRegion   *region );
 
 #endif
 

@@ -157,10 +157,10 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      }
 
      /* Unlink cursor window. */
-     if (stack->cursor.window)
-          dfb_window_unlink( &stack->cursor.window );
+     /*if (stack->cursor.window)
+          dfb_window_unlink( &stack->cursor.window );*/
 
-     dfb_wm_close_stack( stack );
+     dfb_wm_close_stack( stack, true );
 
      /* detach listener from background surface and unlink it */
      if (stack->bg.image) {
@@ -377,13 +377,20 @@ dfb_windowstack_cursor_enable( CoreWindowStack *stack, bool enable )
 
      if (enable) {
           if (!stack->cursor.window) {
-               DFBResult ret;
+               DFBResult        ret;
+               CoreWindowConfig config;
 
                ret = load_default_cursor( stack );
                if (ret) {
                     dfb_windowstack_unlock( stack );
                     return ret;
                }
+
+               config.events  = 0;
+               config.options = DWOP_ALPHACHANNEL | DWOP_GHOST;
+
+               dfb_wm_set_window_config( stack->cursor.window, &config,
+                                         CWCF_EVENTS | CWCF_OPTIONS );
           }
 
           dfb_window_set_opacity( stack->cursor.window,
@@ -433,9 +440,11 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
                                   int              hot_x,
                                   int              hot_y )
 {
-     DFBResult   ret;
-     int         dx, dy;
-     CoreWindow *cursor;
+     DFBResult              ret;
+     int                    dx, dy;
+     CoreWindow            *cursor;
+     CoreWindowConfig       config;
+     CoreWindowConfigFlags  flags = CWCF_NONE;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( shape != NULL );
@@ -455,33 +464,69 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
                return ret;
           }
           cursor = stack->cursor.window;
+
+          config.events  = 0;
+          config.options = DWOP_ALPHACHANNEL | DWOP_GHOST;
+          config.opacity = stack->cursor.opacity;
+
+          flags |= CWCF_EVENTS | CWCF_OPTIONS | CWCF_OPACITY;
      }
-     else if (cursor->width != shape->width || cursor->height != shape->height) {
-          ret = dfb_window_resize( cursor, shape->width, shape->height );
+     else if (cursor->config.bounds.w != shape->width || cursor->config.bounds.h != shape->height) {
+          config.bounds.w = shape->width;
+          config.bounds.h = shape->height;
+
+          ret = dfb_wm_set_window_config( cursor, &config, CWCF_SIZE );
           if (ret) {
-               dfb_windowstack_unlock( stack );
+               D_DERROR( ret, "DirectFB/Core/WindowStack: Could not "
+                         "resize the cursor window (%dx%d!\n", shape->width, shape->height );
                return ret;
           }
      }
 
-     dfb_gfx_copy( shape, cursor->surface, NULL );
-
      if (DFB_PIXELFORMAT_HAS_ALPHA( shape->format ) && dfb_config->translucent_windows) {
-          dfb_window_set_options( cursor, (cursor->options & ~DWOP_COLORKEYING) | DWOP_ALPHACHANNEL );
+          if (cursor->config.options & DWOP_COLORKEYING) {
+               config.options = (cursor->config.options & ~DWOP_COLORKEYING) | DWOP_ALPHACHANNEL;
+               flags |= CWCF_OPTIONS;
+          }
      }
      else {
-          dfb_window_set_options( cursor, (cursor->options & ~DWOP_ALPHACHANNEL) | DWOP_COLORKEYING );
+          __u32 key = dfb_color_to_pixel( cursor->surface->format, 0xff, 0x00, 0xff );
 
-          cursor->color_key = dfb_color_to_pixel( cursor->surface->format, 0xff, 0x00, 0xff );
+          if (config.color_key != key) {
+               config.color_key = key;
+               flags |= CWCF_COLOR_KEY;
+          }
+
+          if (cursor->config.options & DWOP_ALPHACHANNEL) {
+               config.options = (cursor->config.options & ~DWOP_ALPHACHANNEL) | DWOP_COLORKEYING;
+               flags |= CWCF_OPTIONS;
+          }
      }
 
-     dx = stack->cursor.x - hot_x - cursor->x;
-     dy = stack->cursor.y - hot_y - cursor->y;
+     dx = stack->cursor.x - hot_x - cursor->config.bounds.x;
+     dy = stack->cursor.y - hot_y - cursor->config.bounds.y;
 
-     if (dx || dy)
-          dfb_window_move( stack->cursor.window, dx, dy );
+     if (dx || dy) {
+          config.bounds.x = cursor->config.bounds.x + dx;
+          config.bounds.y = cursor->config.bounds.y + dy;
+          flags |= CWCF_POSITION;
+     }
+
+
+     dfb_gfx_copy( shape, cursor->surface, NULL );
+
+
+     if (flags) {
+          ret = dfb_wm_set_window_config( cursor, &config, flags );
+          if (ret) {
+               D_DERROR( ret, "DirectFB/Core/WindowStack: "
+                         "Could not set window configuration (flags 0x%08x)!\n", flags );
+               return ret;
+          }
+     }
      else
           dfb_window_repaint( stack->cursor.window, NULL, DSFLIP_NONE );
+
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -566,7 +611,7 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
           return RS_REMOVE;
 
      /* Call the window manager to dispatch the event. */
-     if (stack->active)
+     if (dfb_layer_context_active( stack->context ))
           dfb_wm_process_input( stack, event );
 
      /* Unlock the window stack. */
@@ -750,15 +795,11 @@ create_cursor_window( CoreWindowStack *stack,
           return ret;
      }
 
-     window->events = 0;
+     stack->cursor.window = window;
 
-     dfb_window_set_options( window, window->options | DWOP_GHOST );
-
-     dfb_window_link( &stack->cursor.window, window );
+     dfb_window_inherit( window, stack->context );
 
      dfb_window_unref( window );
-
-     dfb_window_set_opacity( window, stack->cursor.opacity );
 
      return DFB_OK;
 }

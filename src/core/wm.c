@@ -399,7 +399,7 @@ dfb_wm_init_stack( CoreWindowStack *stack )
 }
 
 DFBResult
-dfb_wm_close_stack( CoreWindowStack *stack )
+dfb_wm_close_stack( CoreWindowStack *stack, bool final )
 {
      DFBResult ret;
 
@@ -413,10 +413,23 @@ dfb_wm_close_stack( CoreWindowStack *stack )
      ret = wm_local->funcs->CloseStack( stack, wm_local->data, stack->stack_data );
 
      /* Deallocate shared stack data. */
-     if (stack->stack_data)
+     if (final && stack->stack_data)
           SHFREE( stack->stack_data );
 
      return ret;
+}
+
+DFBResult
+dfb_wm_set_active( CoreWindowStack *stack,
+                   bool             active )
+{
+     D_ASSERT( wm_local != NULL );
+     D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->SetActive != NULL );
+
+     D_ASSERT( stack != NULL );
+
+     return wm_local->funcs->SetActive( stack, wm_local->data, stack->stack_data, active );
 }
 
 DFBResult
@@ -593,40 +606,25 @@ dfb_wm_remove_window( CoreWindowStack *stack,
 }
 
 DFBResult
-dfb_wm_move_window( CoreWindow *window,
-                    int         dx,
-                    int         dy )
+dfb_wm_set_window_config( CoreWindow             *window,
+                          const CoreWindowConfig *config,
+                          CoreWindowConfigFlags   flags )
 {
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->MoveWindow != NULL );
+     D_ASSERT( wm_local->funcs->SetWindowConfig != NULL );
 
      D_ASSERT( window != NULL );
+     D_ASSERT( config != NULL );
 
-     return wm_local->funcs->MoveWindow( window, wm_local->data,
-                                         window->window_data, dx, dy );
+     return wm_local->funcs->SetWindowConfig( window, wm_local->data,
+                                              window->window_data, config, flags );
 }
 
 DFBResult
-dfb_wm_resize_window( CoreWindow *window,
-                      int         width,
-                      int         height )
-{
-     D_ASSERT( wm_local != NULL );
-     D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->ResizeWindow != NULL );
-
-     D_ASSERT( window != NULL );
-
-     return wm_local->funcs->ResizeWindow( window, wm_local->data,
-                                           window->window_data, width, height );
-}
-
-DFBResult
-dfb_wm_restack_window( CoreWindow             *window,
-                       CoreWindow             *relative,
-                       int                     relation,
-                       DFBWindowStackingClass  stacking )
+dfb_wm_restack_window( CoreWindow *window,
+                       CoreWindow *relative,
+                       int         relation )
 {
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
@@ -636,35 +634,8 @@ dfb_wm_restack_window( CoreWindow             *window,
 
      D_ASSERT( relative == NULL || relative == window || relation != 0);
 
-     return wm_local->funcs->RestackWindow( window, wm_local->data, window->window_data,
-                                            relative, relative ? relative->window_data : NULL,
-                                            relation, stacking );
-}
-
-DFBResult
-dfb_wm_set_opacity( CoreWindow *window,
-                    __u8        opacity )
-{
-     D_ASSERT( wm_local != NULL );
-     D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->SetOpacity != NULL );
-
-     D_ASSERT( window != NULL );
-
-     return wm_local->funcs->SetOpacity( window, wm_local->data, window->window_data, opacity );
-}
-
-DFBResult
-dfb_wm_set_options( CoreWindow       *window,
-                    DFBWindowOptions  options )
-{
-     D_ASSERT( wm_local != NULL );
-     D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->SetOptions != NULL );
-
-     D_ASSERT( window != NULL );
-
-     return wm_local->funcs->SetOptions( window, wm_local->data, window->window_data, options );
+     return wm_local->funcs->RestackWindow( window, wm_local->data, window->window_data, relative,
+                                            relative ? relative->window_data : NULL, relation );
 }
 
 DFBResult
@@ -711,7 +682,7 @@ dfb_wm_request_focus( CoreWindow *window )
 
 DFBResult
 dfb_wm_update_stack( CoreWindowStack     *stack,
-                     DFBRegion           *region,
+                     const DFBRegion     *region,
                      DFBSurfaceFlipFlags  flags )
 {
      D_ASSERT( wm_local != NULL );
@@ -728,7 +699,7 @@ dfb_wm_update_stack( CoreWindowStack     *stack,
 
 DFBResult
 dfb_wm_update_window( CoreWindow          *window,
-                      DFBRegion           *region,
+                      const DFBRegion     *region,
                       DFBSurfaceFlipFlags  flags )
 {
      D_ASSERT( wm_local != NULL );

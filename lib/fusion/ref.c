@@ -275,6 +275,37 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 }
 
 DirectResult
+fusion_ref_inherit (FusionRef *ref, FusionRef *from)
+{
+     FusionRefInherit inherit;
+
+     D_ASSERT( _fusion_fd != -1 );
+     D_ASSERT( ref != NULL );
+     D_ASSERT( from != NULL );
+
+     inherit.id   = ref->id;
+     inherit.from = from->id;
+
+     while (ioctl (_fusion_fd, FUSION_REF_INHERIT, &inherit)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    D_ERROR ("Fusion/Reference: invalid reference\n");
+                    return DFB_DESTROYED;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_REF_INHERIT");
+
+          return DFB_FAILURE;
+     }
+
+     return DFB_OK;
+}
+
+DirectResult
 fusion_ref_destroy (FusionRef *ref)
 {
      D_ASSERT( _fusion_fd != -1 );

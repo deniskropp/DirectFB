@@ -35,6 +35,11 @@
 
 #include <fusion/object.h>
 
+/*
+ * Hidden capability for software cursor, window will be the "super topmost".
+ */
+#define DWHC_TOPMOST   0x80000000
+
 
 typedef enum {
      CWUF_NONE      = 0x00000000,
@@ -50,11 +55,39 @@ typedef enum {
      CWUF_ALL       = 0x0000003F
 } CoreWindowUpdateFlags;
 
-#define TRANSLUCENT_WINDOW(w) ((w)->opacity < 0xff || \
-                               (w)->options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING))
+typedef enum {
+     CWCF_NONE      = 0x00000000,
+
+     CWCF_POSITION  = 0x00000001,
+     CWCF_SIZE      = 0x00000002,
+     CWCF_OPACITY   = 0x00000004,
+     CWCF_STACKING  = 0x00000008,
+
+     CWCF_OPTIONS   = 0x00000010,
+     CWCF_EVENTS    = 0x00000020,
+
+     CWCF_COLOR_KEY = 0x00000100,
+     CWCF_OPAQUE    = 0x00000200,
+
+     CWCF_ALL       = 0x0000033F
+} CoreWindowConfigFlags;
+
+struct __DFB_CoreWindowConfig {
+     DFBRectangle            bounds;         /* position and size */
+     int                     opacity;        /* global alpha factor */
+     DFBWindowStackingClass  stacking;       /* level boundaries */
+     DFBWindowOptions        options;        /* flags for appearance/behaviour */
+     DFBWindowEventType      events;         /* mask of enabled events */
+     __u32                   color_key;      /* transparent pixel */
+     DFBRegion               opaque;         /* region of the window forced to be opaque */
+};
+
+
+#define TRANSLUCENT_WINDOW(w) ((w)->config.opacity < 0xff || \
+                               (w)->config.options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING))
 
 #define VISIBLE_WINDOW(w)     (!((w)->caps & DWCAPS_INPUTONLY) && \
-                               (w)->opacity > 0 && !DFB_WINDOW_DESTROYED((w)))
+                               (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED((w)))
 
 
 /*
@@ -90,10 +123,11 @@ dfb_window_destroy( CoreWindow *window );
 /*
  * moves a window relative to its current position
  */
-void
+DFBResult
 dfb_window_move( CoreWindow *window,
-                 int         deltax,
-                 int         deltay );
+                 int         x,
+                 int         y,
+                 bool        relative );
 
 /*
  * resizes a window
@@ -106,61 +140,84 @@ dfb_window_resize( CoreWindow   *window,
 /*
  * changes stacking class
  */
-void
+DFBResult
 dfb_window_change_stacking( CoreWindow             *window,
                             DFBWindowStackingClass  stacking );
 
 /*
  * move a window up one step in window stack
  */
-void
+DFBResult
 dfb_window_raise( CoreWindow *window );
 
 /*
  * move a window down one step in window stack
  */
-void
+DFBResult
 dfb_window_lower( CoreWindow *window );
 
 /*
  * makes a window the first (topmost) window in the window stack
  */
-void
+DFBResult
 dfb_window_raisetotop( CoreWindow *window );
 
 /*
  * makes a window the last (downmost) window in the window stack
  */
-void
+DFBResult
 dfb_window_lowertobottom( CoreWindow *window );
 
 /*
  * stacks the window on top of another one
  */
-void
+DFBResult
 dfb_window_putatop( CoreWindow *window,
                     CoreWindow *lower );
 
 /*
  * stacks the window below another one
  */
-void
+DFBResult
 dfb_window_putbelow( CoreWindow *window,
                      CoreWindow *upper );
 
 /*
- * sets the global alpha factor of a window
+ * sets the source color key
  */
-void
+DFBResult
+dfb_window_set_colorkey( CoreWindow *window,
+                         __u32       color_key );
+
+/*
+ * sets the global alpha factor
+ */
+DFBResult
 dfb_window_set_opacity( CoreWindow *window,
                         __u8        opacity );
 
 /*
  * sets the window options
  */
-void
-dfb_window_set_options( CoreWindow       *window,
-                        DFBWindowOptions  options );
+DFBResult
+dfb_window_change_options( CoreWindow       *window,
+                           DFBWindowOptions  disable,
+                           DFBWindowOptions  enable );
+
+/*
+ * sets the window options
+ */
+DFBResult
+dfb_window_set_opaque( CoreWindow      *window,
+                       const DFBRegion *region );
+
+/*
+ * manipulates the event mask
+ */
+DFBResult
+dfb_window_change_events( CoreWindow         *window,
+                          DFBWindowEventType  disable,
+                          DFBWindowEventType  enable );
 
 /*
  * repaints part of a window, if region is NULL the whole window is repainted
@@ -173,7 +230,7 @@ dfb_window_repaint( CoreWindow          *window,
 /*
  * request a window to gain focus
  */
-void
+DFBResult
 dfb_window_request_focus( CoreWindow *window );
 
 DFBResult dfb_window_grab_keyboard  ( CoreWindow                 *window );
@@ -192,5 +249,7 @@ void dfb_window_post_event( CoreWindow *window, DFBWindowEvent *event );
 DFBResult dfb_window_send_configuration( CoreWindow *window );
 
 DFBWindowID dfb_window_id( const CoreWindow *window );
+
+CoreSurface *dfb_window_surface( const CoreWindow *window );
 
 #endif

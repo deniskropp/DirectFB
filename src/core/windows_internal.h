@@ -34,16 +34,12 @@
 #include <core/coretypes.h>
 
 #include <core/gfxcard.h>
+#include <core/windows.h>
 
 #include <direct/list.h>
 #include <fusion/lock.h>
 #include <fusion/object.h>
 
-
-/*
- * Hidden capability for software cursor, window will be the "super topmost".
- */
-#define DWHC_TOPMOST   0x80000000
 
 typedef enum {
      CWF_NONE        = 0x00000000,
@@ -69,24 +65,11 @@ struct __DFB_CoreWindow {
 
      DFBWindowID             id;
 
-     int                     x;              /* x position in pixels */
-     int                     y;              /* y position in pixels */
-     int                     width;          /* width in pixels */
-     int                     height;         /* width in pixels */
-
      CoreWindowFlags         flags;
-
-     DFBRegion               opaque;
 
      DFBWindowCapabilities   caps;           /* window capabilities, to enable blending etc. */
 
-     DFBWindowOptions        options;        /* flags for appearance/behaviour */
-     DFBWindowEventType      events;         /* mask of enabled events */
-
-     DFBWindowStackingClass  stacking;       /* level boundaries */
-
-     __u8                    opacity;        /* global alpha factor */
-     __u32                   color_key;      /* transparent pixel */
+     CoreWindowConfig        config;
 
      CoreSurface            *surface;        /* backing store surface */
      GlobalReaction          surface_reaction;
@@ -108,8 +91,6 @@ struct __DFB_CoreWindow {
  */
 struct __DFB_CoreWindowStack {
      CoreLayerContext   *context;
-
-     bool                active;          /* true while context is active */
 
      int                 width;
      int                 height;

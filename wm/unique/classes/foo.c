@@ -35,13 +35,13 @@
 
 #include <core/gfxcard.h>
 #include <core/state.h>
-#include <core/windows_internal.h>
 
 #include <misc/util.h>
 
 #include <unique/context.h>
-#include <unique/stret.h>
 #include <unique/internal.h>
+#include <unique/stret.h>
+#include <unique/window.h>
 
 
 D_DEBUG_DOMAIN( UniQuE_Foo, "UniQuE/Foo", "UniQuE's Foo Region Class" );
@@ -60,28 +60,28 @@ foo_update( StretRegion     *region,
      int           i;
      DFBRegion     clip;
      DFBDimension  size;
-     WindowData   *data  = region_data;
-     CardState    *state = update_data;
+     bool          visible;
      WMShared     *shared;
-     CoreWindow   *window;
+     UniqueWindow *window = region_data;
+     CardState    *state  = update_data;
 
      D_ASSERT( region != NULL );
      D_ASSERT( region_data != NULL );
      D_ASSERT( update_data != NULL );
      D_ASSERT( updates != NULL );
 
-     D_MAGIC_ASSERT( data, WindowData );
+     D_MAGIC_ASSERT( window, UniqueWindow );
      D_MAGIC_ASSERT( state, CardState );
 
-     window = data->window;
-     shared = data->shared;
+     shared = window->shared;
 
-     D_ASSERT( window != NULL );
      D_ASSERT( shared != NULL );
      D_ASSERT( shared->foo_surface != NULL );
 
-     D_DEBUG_AT( UniQuE_Foo, "foo_update( region %p, window %p, opacity %d, num %d )\n",
-                 region, window, window->opacity, num );
+     visible = D_FLAGS_IS_SET( window->flags, UWF_VISIBLE );
+
+     D_DEBUG_AT( UniQuE_Foo, "foo_update( region %p, window %p, visible %s, num %d )\n",
+                 region, window, visible ? "yes" : "no", num );
 #if DIRECT_BUILD_DEBUG
      for (i=0; i<num; i++) {
           D_DEBUG_AT( UniQuE_Foo, "    (%d)  %4d,%4d - %4dx%4d\n",
@@ -89,7 +89,7 @@ foo_update( StretRegion     *region,
      }
 #endif
 
-     if (!window->opacity)
+     if (!visible)
           return;
 
      stret_region_get_size( region, &size );

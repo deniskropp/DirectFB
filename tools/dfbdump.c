@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <directfb.h>
 #include <directfb_strings.h>
@@ -304,8 +305,10 @@ static DFBEnumerationResult
 window_callback( CoreWindow *window,
                  void       *ctx )
 {
-     DirectResult ret;
-     int          refs;
+     DirectResult      ret;
+     int               refs;
+     CoreWindowConfig *config = &window->config;
+     DFBRectangle     *bounds = &config->bounds;
 
      ret = fusion_ref_stat( &window->object.ref, &refs );
      if (ret) {
@@ -321,11 +324,11 @@ window_callback( CoreWindow *window,
 
      printf( "%3d   ", refs );
 
-     printf( "%4d, %4d   ", window->x, window->y );
+     printf( "%4d, %4d   ", bounds->x, bounds->y );
 
-     printf( "%4d x %4d    ", window->width, window->height );
+     printf( "%4d x %4d    ", bounds->w, bounds->h );
 
-     printf( "0x%02x ", window->opacity );
+     printf( "0x%02x ", config->opacity );
 
      printf( "%5d  ", window->id );
 
@@ -333,7 +336,7 @@ window_callback( CoreWindow *window,
           printf( "*  " );
      }
      else {
-          switch (window->stacking) {
+          switch (config->stacking) {
                case DWSC_UPPER:
                     printf( "^  " );
                     break;
@@ -358,7 +361,7 @@ window_callback( CoreWindow *window,
      if (window->caps & DWCAPS_DOUBLEBUFFER)
           printf( "double buffer  " );
 
-     if (window->options & DWOP_GHOST)
+     if (config->options & DWOP_GHOST)
           printf( "GHOST          " );
 
      if (DFB_WINDOW_FOCUSED( window ))

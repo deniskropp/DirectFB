@@ -42,8 +42,8 @@
 #include <misc/util.h>
 
 #include <unique/context.h>
-#include <unique/stret.h>
 #include <unique/internal.h>
+#include <unique/stret.h>
 
 
 D_DEBUG_DOMAIN( UniQuE_Root, "UniQuE/Root", "UniQuE's Root Region Class" );
@@ -61,8 +61,8 @@ root_update( StretRegion     *region,
 {
      int              i;
      CoreWindowStack *stack;
-     StackData       *data  = region_data;
-     CardState       *state = update_data;
+     UniqueContext   *context = region_data;
+     CardState       *state   = update_data;
 
      D_ASSERT( region != NULL );
      D_ASSERT( region_data != NULL );
@@ -72,10 +72,10 @@ root_update( StretRegion     *region,
      D_ASSERT( x == 0 );
      D_ASSERT( y == 0 );
 
-     D_MAGIC_ASSERT( data, StackData );
+     D_MAGIC_ASSERT( context, UniqueContext );
      D_MAGIC_ASSERT( state, CardState );
 
-     stack = data->stack;
+     stack = context->stack;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( stack->bg.image != NULL || (stack->bg.mode != DLBM_IMAGE &&

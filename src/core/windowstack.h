@@ -48,7 +48,6 @@ DirectResult     dfb_windowstack_lock   ( CoreWindowStack  *stack );
 
 DirectResult     dfb_windowstack_unlock ( CoreWindowStack  *stack );
 
-
 /*
  * repaints all window on a window stack
  */

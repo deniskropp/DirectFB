@@ -68,6 +68,11 @@ static DFBResult wm_close_stack    ( CoreWindowStack        *stack,
                                      void                   *wm_data,
                                      void                   *stack_data );
 
+static DFBResult wm_set_active     ( CoreWindowStack        *stack,
+                                     void                   *wm_data,
+                                     void                   *stack_data,
+                                     bool                    active );
+
 static DFBResult wm_resize_stack   ( CoreWindowStack        *stack,
                                      void                   *wm_data,
                                      void                   *stack_data,
@@ -122,35 +127,18 @@ static DFBResult wm_remove_window  ( CoreWindowStack        *stack,
                                      CoreWindow             *window,
                                      void                   *window_data );
 
-static DFBResult wm_move_window    ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     int                     dx,
-                                     int                     dy );
-
-static DFBResult wm_resize_window  ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     int                     width,
-                                     int                     height );
+static DFBResult wm_set_window_config( CoreWindow             *window,
+                                       void                   *wm_data,
+                                       void                   *window_data,
+                                       const CoreWindowConfig *config,
+                                       CoreWindowConfigFlags   flags );
 
 static DFBResult wm_restack_window ( CoreWindow             *window,
                                      void                   *wm_data,
                                      void                   *window_data,
                                      CoreWindow             *relative,
                                      void                   *relative_data,
-                                     int                     relation,
-                                     DFBWindowStackingClass  stacking );
-
-static DFBResult wm_set_opacity    ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     __u8                    opacity );
-
-static DFBResult wm_set_options    ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     DFBWindowOptions        options );
+                                     int                     relation );
 
 static DFBResult wm_grab           ( CoreWindow             *window,
                                      void                   *wm_data,
@@ -171,13 +159,13 @@ static DFBResult wm_request_focus  ( CoreWindow             *window,
 static DFBResult wm_update_stack   ( CoreWindowStack        *stack,
                                      void                   *wm_data,
                                      void                   *stack_data,
-                                     DFBRegion              *region,
+                                     const DFBRegion        *region,
                                      DFBSurfaceFlipFlags     flags );
 
 static DFBResult wm_update_window  ( CoreWindow             *window,
                                      void                   *wm_data,
                                      void                   *window_data,
-                                     DFBRegion              *region,
+                                     const DFBRegion        *region,
                                      DFBSurfaceFlipFlags     flags );
 
 
@@ -193,6 +181,7 @@ static CoreWMFuncs wm_funcs = {
 
      InitStack:           wm_init_stack,
      CloseStack:          wm_close_stack,
+     SetActive:           wm_set_active,
      ResizeStack:         wm_resize_stack,
      ProcessInput:        wm_process_input,
      FlushKeys:           wm_flush_keys,
@@ -203,11 +192,8 @@ static CoreWMFuncs wm_funcs = {
 
      AddWindow:           wm_add_window,
      RemoveWindow:        wm_remove_window,
-     MoveWindow:          wm_move_window,
-     ResizeWindow:        wm_resize_window,
+     SetWindowConfig:     wm_set_window_config,
      RestackWindow:       wm_restack_window,
-     SetOpacity:          wm_set_opacity,
-     SetOptions:          wm_set_options,
      Grab:                wm_grab,
      Ungrab:              wm_ungrab,
      RequestFocus:        wm_request_focus,

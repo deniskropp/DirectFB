@@ -33,6 +33,7 @@
 #include <direct/modules.h>
 
 #include <core/coretypes.h>
+#include <core/windows.h>
 
 
 DECLARE_MODULE_DIRECTORY( dfb_core_wm_modules );
@@ -41,7 +42,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_wm_modules );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_WM_ABI_VERSION           4
+#define DFB_CORE_WM_ABI_VERSION           6
 
 #define DFB_CORE_WM_INFO_NAME_LENGTH     60
 #define DFB_CORE_WM_INFO_VENDOR_LENGTH   80
@@ -126,6 +127,11 @@ typedef struct {
                                      void                   *wm_data,
                                      void                   *stack_data );
 
+     DFBResult (*SetActive)        ( CoreWindowStack        *stack,
+                                     void                   *wm_data,
+                                     void                   *stack_data,
+                                     bool                    active );
+
      DFBResult (*ResizeStack)      ( CoreWindowStack        *stack,
                                      void                   *wm_data,
                                      void                   *stack_data,
@@ -181,35 +187,18 @@ typedef struct {
                                      CoreWindow             *window,
                                      void                   *window_data );
 
-     DFBResult (*MoveWindow)       ( CoreWindow             *window,
+     DFBResult (*SetWindowConfig)  ( CoreWindow             *window,
                                      void                   *wm_data,
                                      void                   *window_data,
-                                     int                     dx,
-                                     int                     dy );
-
-     DFBResult (*ResizeWindow)     ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     int                     width,
-                                     int                     height );
+                                     const CoreWindowConfig *config,
+                                     CoreWindowConfigFlags   flags );
 
      DFBResult (*RestackWindow)    ( CoreWindow             *window,
                                      void                   *wm_data,
                                      void                   *window_data,
                                      CoreWindow             *relative,
                                      void                   *relative_data,
-                                     int                     relation,
-                                     DFBWindowStackingClass  stacking );
-
-     DFBResult (*SetOpacity)       ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     __u8                    opacity );
-
-     DFBResult (*SetOptions)       ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     DFBWindowOptions        options );
+                                     int                     relation );
 
      DFBResult (*Grab)             ( CoreWindow             *window,
                                      void                   *wm_data,
@@ -231,13 +220,13 @@ typedef struct {
      DFBResult (*UpdateStack)      ( CoreWindowStack        *stack,
                                      void                   *wm_data,
                                      void                   *stack_data,
-                                     DFBRegion              *region,
+                                     const DFBRegion        *region,
                                      DFBSurfaceFlipFlags     flags );
 
      DFBResult (*UpdateWindow)     ( CoreWindow             *window,
                                      void                   *wm_data,
                                      void                   *window_data,
-                                     DFBRegion              *region,
+                                     const DFBRegion        *region,
                                      DFBSurfaceFlipFlags     flags );
 } CoreWMFuncs;
 
@@ -247,7 +236,11 @@ void dfb_wm_get_info( CoreWMInfo *info );
 
 DFBResult dfb_wm_init_stack    ( CoreWindowStack        *stack );
 
-DFBResult dfb_wm_close_stack   ( CoreWindowStack        *stack );
+DFBResult dfb_wm_close_stack   ( CoreWindowStack        *stack,
+                                 bool                    final );
+
+DFBResult dfb_wm_set_active    ( CoreWindowStack        *stack,
+                                 bool                    active );
 
 DFBResult dfb_wm_resize_stack  ( CoreWindowStack        *stack,
                                  int                     width,
@@ -282,24 +275,13 @@ DFBResult dfb_wm_add_window    ( CoreWindowStack        *stack,
 DFBResult dfb_wm_remove_window ( CoreWindowStack        *stack,
                                  CoreWindow             *window );
 
-DFBResult dfb_wm_move_window   ( CoreWindow             *window,
-                                 int                     dx,
-                                 int                     dy );
-
-DFBResult dfb_wm_resize_window ( CoreWindow             *window,
-                                 int                     width,
-                                 int                     height );
+DFBResult dfb_wm_set_window_config( CoreWindow             *window,
+                                    const CoreWindowConfig *config,
+                                    CoreWindowConfigFlags   flags );
 
 DFBResult dfb_wm_restack_window( CoreWindow             *window,
                                  CoreWindow             *relative,
-                                 int                     relation,
-                                 DFBWindowStackingClass  stacking );
-
-DFBResult dfb_wm_set_opacity   ( CoreWindow             *window,
-                                 __u8                    opacity );
-
-DFBResult dfb_wm_set_options   ( CoreWindow             *window,
-                                 DFBWindowOptions        options );
+                                 int                     relation );
 
 DFBResult dfb_wm_grab          ( CoreWindow             *window,
                                  CoreWMGrab             *grab );
@@ -311,11 +293,11 @@ DFBResult dfb_wm_request_focus ( CoreWindow             *window );
 
 
 DFBResult dfb_wm_update_stack  ( CoreWindowStack        *stack,
-                                 DFBRegion              *region,
+                                 const DFBRegion        *region,
                                  DFBSurfaceFlipFlags     flags );
 
 DFBResult dfb_wm_update_window ( CoreWindow             *window,
-                                 DFBRegion              *region,
+                                 const DFBRegion        *region,
                                  DFBSurfaceFlipFlags     flags );
 
 #endif

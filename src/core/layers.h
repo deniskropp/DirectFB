@@ -291,6 +291,8 @@ void dfb_layer_get_description( const CoreLayer            *layer,
 
 CoreScreen *dfb_layer_screen( const CoreLayer *layer );
 
+CardState  *dfb_layer_state( CoreLayer *layer );
+
 DFBDisplayLayerID dfb_layer_id( const CoreLayer *layer );
 
 DFBDisplayLayerID dfb_layer_id_translated( const CoreLayer *layer );

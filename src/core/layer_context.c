@@ -216,15 +216,8 @@ dfb_layer_context_activate( CoreLayerContext *context )
      context->active = true;
 
      /* Resume window stack. */
-     if (context->stack) {
-          CoreWindowStack *stack = context->stack;
-
-          /* Enables input and output. */
-          stack->active = true;
-
-          /* FIXME: call only if really needed */
-          dfb_windowstack_repaint_all( stack );
-     }
+     if (context->stack)
+          dfb_wm_set_active( context->stack, true );
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -262,15 +255,8 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
      context->active = false;
 
      /* Suspend window stack. */
-     if (context->stack) {
-          CoreWindowStack *stack = context->stack;
-
-          /* Disables input and output. */
-          stack->active = false;
-
-          /* Force release of all pressed keys. */
-          dfb_wm_flush_keys( stack );
-     }
+     if (context->stack)
+          dfb_wm_set_active( context->stack, false );
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -1038,11 +1024,19 @@ dfb_layer_context_find_window( CoreLayerContext *context, DFBWindowID id )
 }
 
 CoreWindowStack *
-dfb_layer_context_windowstack( CoreLayerContext *context )
+dfb_layer_context_windowstack( const CoreLayerContext *context )
 {
      D_ASSERT( context != NULL );
 
      return context->stack;
+}
+
+bool
+dfb_layer_context_active( const CoreLayerContext *context )
+{
+     D_ASSERT( context != NULL );
+
+     return context->active;
 }
 
 DirectResult

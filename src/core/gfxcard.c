@@ -1032,7 +1032,7 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 
                     dfb_gfxcard_state_release( state );
                }
-               else if (gAcquire( state, DFXL_FILLTRIANGLE )) {
+               else if (gAcquire( state, DFXL_FILLRECTANGLE )) {
                     fill_tri( tri, state, false );
 
                     gRelease( state );

@@ -36,13 +36,14 @@
 #include <fusion/vector.h>
 
 #include <core/coretypes.h>
-#include <core/layers.h>
+#include <core/windows.h>
 
 #include <unique/types.h>
 #include <unique/stret.h>
+#include <unique/window.h>
 
 
-#define UNIQUE_WM_ABI_VERSION 3
+#define UNIQUE_WM_ABI_VERSION 4
 
 
 extern const StretRegionClass unique_root_region_class;
@@ -83,6 +84,7 @@ struct __UniQuE_WMData {
 
 struct __UniQuE_WMShared {
      FusionObjectPool             *context_pool;
+     FusionObjectPool             *window_pool;
 
      StretRegionClassID            classes[_UCI_NUM];
 
@@ -93,12 +95,54 @@ struct __UniQuE_WMShared {
      CoreSurface                  *foo_surface;
 };
 
-struct __UniQuE_StackData {
-     int                           magic;
 
-     CoreWindowStack              *stack;
+typedef enum {
+     UNRL_DESKTOP,       /* Icons, redirected fullscreen apps (force-desktop) */
+     UNRL_USER,          /* User windows (all currently available stacking classes) */
+     UNRL_SYSTEM,        /* Dock/Panel, Glass, Expos?, Clipboard, Virtual Keyboard, IMs */
+     UNRL_CURSOR,        /* Cursor shape and attached objects, e.g. Drag'N'Drop */
+     UNRL_SCREEN,        /* Display Locking, Screensaver */
 
-     UniqueContext                *context;
+     _UNRL_NUM
+} UniqueRootLevel;
+
+typedef enum {
+     UNFL_BACKGROUND,    /* Background for blended content, effects, decorations */
+     UNFL_CONTENT,       /* The actual DirectFB Window, i.e. its content */
+     UNFL_FOREGROUND,    /* Decorations, effects, any other content overlay */
+
+     _UNFL_NUM
+} UniqueFrameLevel;
+
+typedef struct {
+     DirectLink                    link;
+
+     DFBInputDeviceKeySymbol       symbol;
+     DFBInputDeviceModifierMask    modifiers;
+
+     UniqueWindow                 *owner;
+} GrabbedKey;
+
+
+struct __UniQuE_UniqueContext {
+     FusionObject        object;
+
+     int                 magic;
+
+     CoreWindowStack    *stack;
+     WMShared           *shared;
+
+     CoreLayerRegion    *region;
+     CoreSurface        *surface;
+
+     DFBDisplayLayerID   layer_id;
+
+     bool                active;
+
+     DFBColor            color;
+
+     int                           width;
+     int                           height;
 
      StretRegion                  *root;
 
@@ -106,15 +150,17 @@ struct __UniQuE_StackData {
      DFBInputDeviceModifierMask    modifiers;
      DFBInputDeviceLockState       locks;
 
+     DFBPoint                      cursor;
+
      int                           wm_level;
      int                           wm_cycle;
 
      FusionVector                  windows;
 
-     CoreWindow                   *pointer_window;     /* window grabbing the pointer */
-     CoreWindow                   *keyboard_window;    /* window grabbing the keyboard */
-     CoreWindow                   *focused_window;     /* window having the focus */
-     CoreWindow                   *entered_window;     /* window under the pointer */
+     UniqueWindow                 *pointer_window;     /* window grabbing the pointer */
+     UniqueWindow                 *keyboard_window;    /* window grabbing the keyboard */
+     UniqueWindow                 *focused_window;     /* window having the focus */
+     UniqueWindow                 *entered_window;     /* window under the pointer */
 
      DirectLink                   *grabbed_keys;       /* List of currently grabbed keys. */
 
@@ -122,58 +168,66 @@ struct __UniQuE_StackData {
           DFBInputDeviceKeySymbol      symbol;
           DFBInputDeviceKeyIdentifier  id;
           int                          code;
-          CoreWindow                  *owner;
+          UniqueWindow                *owner;
      } keys[8];
 };
 
-struct __UniQuE_WindowData {
-     int                           magic;
+struct __UniQuE_UniqueWindow {
+     FusionObject             object;
 
-     CoreWindow                   *window;
+     int                      magic;
 
-     WMShared                     *shared;
+     CoreWindow              *window;
+     UniqueContext           *context;
+     WMShared                *shared;
 
-     StretRegion                  *frame;
-     StretRegion                  *region;
+     CoreSurface             *surface;
 
-     StretRegion                  *foos[8];
 
-     DFBInsets                     insets;
-     bool                          has_frame;
+     DFBWindowCapabilities    caps;
 
-     StackData                    *stack_data;
+     UniqueWindowFlags        flags;
 
-     int                           priority;           /* derived from stacking class */
+     StretRegion             *frame;
+     StretRegion             *region;
+     StretRegion             *foos[8];
 
-     CoreLayerRegionConfig         config;
-};
+     DFBInsets                insets;
 
-struct __UniQuE_UniqueContext {
-     FusionObject    object;
+     DFBRectangle             bounds;         /* absolute bounds of the content */
+     DFBRectangle             full;           /* absolute bounds of the full frame */
 
-     int             magic;
+     int                      opacity;        /* global alpha factor */
 
-     StackData      *stack_data;
+     DFBWindowStackingClass   stacking;       /* level boundaries */
+     int                      priority;       /* derived from stacking class */
 
-     DFBColor        color;
+     DFBWindowOptions         options;        /* flags for appearance/behaviour */
+     DFBWindowEventType       events;         /* mask of enabled events */
+
+     __u32                    color_key;      /* transparent pixel */
+     DFBRegion                opaque;         /* region of the window forced to be opaque */
 };
 
 struct __UniQuE_StretRegion {
      int                 magic;
 
-     int                 index;
+     StretRegion        *parent;        /* Is NULL for the root region. */
 
-     StretRegion        *parent;
-     FusionVector        children;
+     int                 level;         /* Level within the parent. */
+     int                 index;         /* Index within the level. */
 
-     StretRegionFlags    flags;
+     int                 levels;        /* Number of levels provided. */
+     FusionVector       *children;      /* Children of each level. */
 
-     DFBRegion           bounds;
+     StretRegionFlags    flags;         /* Control appearance and activity. */
 
-     StretRegionClassID  clazz;
+     DFBRegion           bounds;        /* Relative to its parent. */
 
-     void               *data;
-     unsigned long       arg;
+     StretRegionClassID  clazz;         /* Region class (implementation) used for rendering etc. */
+
+     void               *data;          /* Optional private data of region class. */
+     unsigned long       arg;           /* Optional argument for region class instance. */
 };
 
 
@@ -186,6 +240,7 @@ void      unique_wm_module_deinit( bool      master,
                                    bool      emergency );
 
 UniqueContext *unique_wm_create_context();
+UniqueWindow  *unique_wm_create_window();
 
 
 #endif

@@ -41,8 +41,9 @@
 #include <misc/util.h>
 
 #include <unique/context.h>
-#include <unique/stret.h>
 #include <unique/internal.h>
+#include <unique/stret.h>
+#include <unique/window.h>
 
 
 D_DEBUG_DOMAIN( UniQuE_Window, "UniQuE/Window", "UniQuE's Window Region Class" );
@@ -59,24 +60,26 @@ window_update( StretRegion     *region,
                int              num )
 {
      int                      i;
-     DFBSurfaceBlittingFlags  flags = DSBLIT_NOFX;
-     WindowData              *data  = region_data;
-     CardState               *state = update_data;
-     bool                     alpha = arg;
-     CoreWindow              *window;
+     DFBSurfaceBlittingFlags  flags  = DSBLIT_NOFX;
+     UniqueWindow            *window = region_data;
+     CardState               *state  = update_data;
+     bool                     alpha  = arg;
+     bool                     visible;
 
      D_ASSERT( region != NULL );
      D_ASSERT( region_data != NULL );
      D_ASSERT( update_data != NULL );
      D_ASSERT( updates != NULL );
 
-     D_MAGIC_ASSERT( data, WindowData );
+     D_MAGIC_ASSERT( window, UniqueWindow );
      D_MAGIC_ASSERT( state, CardState );
 
-     window = data->window;
+     D_ASSERT( window->surface != NULL );
 
-     D_DEBUG_AT( UniQuE_Window, "window_update( region %p, window %p, opacity %d, num %d )\n",
-                 region, window, window->opacity, num );
+     visible = D_FLAGS_IS_SET( window->flags, UWF_VISIBLE );
+
+     D_DEBUG_AT( UniQuE_Window, "window_update( region %p, window %p, visible %s, num %d )\n",
+                 region, window, visible ? "yes" : "no", num );
 #if DIRECT_BUILD_DEBUG
      for (i=0; i<num; i++) {
           D_DEBUG_AT( UniQuE_Window, "    (%d)  %4d,%4d - %4dx%4d\n",
@@ -84,7 +87,7 @@ window_update( StretRegion     *region,
      }
 #endif
 
-     if (!window->opacity)
+     if (!visible)
           return;
 
      /* Use per pixel alpha blending. */

@@ -460,6 +460,14 @@ dfb_layer_screen( const CoreLayer *layer )
      return layer->screen;
 }
 
+CardState *
+dfb_layer_state( CoreLayer *layer )
+{
+     D_ASSERT( layer != NULL );
+
+     return &layer->state;
+}
+
 DFBDisplayLayerID
 dfb_layer_id( const CoreLayer *layer )
 {

@@ -94,6 +94,8 @@ typedef struct {
      DFBInputDeviceModifierMask    modifiers;
      DFBInputDeviceLockState       locks;
 
+     bool                          active;
+
      int                           wm_level;
      int                           wm_cycle;
 
@@ -176,8 +178,8 @@ send_button_event( CoreWindow          *window,
      D_ASSERT( event != NULL );
 
      we.type   = (event->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN : DWET_BUTTONUP;
-     we.x      = window->stack->cursor.x - window->x;
-     we.y      = window->stack->cursor.y - window->y;
+     we.x      = window->stack->cursor.x - window->config.bounds.x;
+     we.y      = window->stack->cursor.y - window->config.bounds.y;
      we.button = (data->wm_level & 2) ? (event->button + 2) : event->button;
 
      post_event( window, data, &we );
@@ -193,7 +195,7 @@ get_priority( const CoreWindow *window )
      if (window->caps & DWHC_TOPMOST)
           return 2;
 
-     switch (window->stacking) {
+     switch (window->config.stacking) {
           case DWSC_UPPER:
                return  1;
 
@@ -318,7 +320,7 @@ window_at_pointer( CoreWindowStack *stack,
 
      if (!stack->cursor.enabled) {
           fusion_vector_foreach_reverse (window, i, data->windows)
-               if (window->opacity && !(window->options & DWOP_GHOST))
+               if (window->config.opacity && !(window->config.options & DWOP_GHOST))
                     return window;
 
           return NULL;
@@ -330,19 +332,23 @@ window_at_pointer( CoreWindowStack *stack,
           y = stack->cursor.y;
 
      fusion_vector_foreach_reverse (window, i, data->windows) {
-          if (!(window->options & DWOP_GHOST) && window->opacity &&
-              x >= window->x  &&  x < window->x + window->width &&
-              y >= window->y  &&  y < window->y + window->height)
-          {
-               int wx = x - window->x;
-               int wy = y - window->y;
+          CoreWindowConfig *config  = &window->config;
+          DFBRectangle     *bounds  = &config->bounds;
+          DFBWindowOptions  options = config->options;
 
-               if ( !(window->options & DWOP_SHAPED)  ||
-                    !(window->options &(DWOP_ALPHACHANNEL|DWOP_COLORKEYING))
+          if (!(options & DWOP_GHOST) && config->opacity &&
+              x >= bounds->x  &&  x < bounds->x + bounds->w &&
+              y >= bounds->y  &&  y < bounds->y + bounds->h)
+          {
+               int wx = x - bounds->x;
+               int wy = y - bounds->y;
+
+               if ( !(options & DWOP_SHAPED)  ||
+                    !(options &(DWOP_ALPHACHANNEL|DWOP_COLORKEYING))
                     || !window->surface ||
-                    ((window->options & DWOP_OPAQUE_REGION) &&
-                     (wx >= window->opaque.x1  &&  wx <= window->opaque.x2 &&
-                      wy >= window->opaque.y1  &&  wy <= window->opaque.y2)))
+                    ((options & DWOP_OPAQUE_REGION) &&
+                     (wx >= config->opaque.x1  &&  wx <= config->opaque.x2 &&
+                      wy >= config->opaque.y1  &&  wy <= config->opaque.y2)))
                {
                     return window;
                }
@@ -353,7 +359,7 @@ window_at_pointer( CoreWindowStack *stack,
 
                     if ( dfb_surface_soft_lock( surface, DSLF_READ,
                                                 &data, &pitch, true ) == DFB_OK ) {
-                         if (window->options & DWOP_ALPHACHANNEL) {
+                         if (options & DWOP_ALPHACHANNEL) {
                               int alpha = -1;
 
                               D_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) );
@@ -400,7 +406,7 @@ window_at_pointer( CoreWindowStack *stack,
                               }
 
                          }
-                         if (window->options & DWOP_COLORKEYING) {
+                         if (options & DWOP_COLORKEYING) {
                               int pixel = 0;
 
                               switch (surface->format) {
@@ -445,7 +451,7 @@ window_at_pointer( CoreWindowStack *stack,
                                         break;
                               }
 
-                              if ( pixel != window->color_key ) {
+                              if ( pixel != config->color_key ) {
                                    dfb_surface_unlock( surface, true );
                                    return window;
                               }
@@ -524,8 +530,8 @@ update_focus( CoreWindowStack *stack,
                /* send leave event */
                if (before) {
                     we.type = DWET_LEAVE;
-                    we.x    = stack->cursor.x - before->x;
-                    we.y    = stack->cursor.y - before->y;
+                    we.x    = stack->cursor.x - before->config.bounds.x;
+                    we.y    = stack->cursor.y - before->config.bounds.y;
 
                     post_event( before, data, &we );
                }
@@ -535,8 +541,8 @@ update_focus( CoreWindowStack *stack,
 
                if (after) {
                     we.type = DWET_ENTER;
-                    we.x    = stack->cursor.x - after->x;
-                    we.y    = stack->cursor.y - after->y;
+                    we.x    = stack->cursor.x - after->config.bounds.x;
+                    we.y    = stack->cursor.y - after->config.bounds.y;
 
                     post_event( after, data, &we );
                }
@@ -562,7 +568,7 @@ ensure_focus( CoreWindowStack *stack,
           return;
 
      fusion_vector_foreach_reverse (window, i, data->windows) {
-          if (window->opacity && !(window->options & DWOP_GHOST)) {
+          if (window->config.opacity && !(window->config.options & DWOP_GHOST)) {
                switch_focus( stack, data, window );
                break;
           }
@@ -576,41 +582,44 @@ static void
 draw_window( CoreWindow *window, CardState *state,
              DFBRegion *region, bool alpha_channel )
 {
-     DFBRectangle            src;
-     DFBSurfaceBlittingFlags flags = DSBLIT_NOFX;
+     DFBRectangle             src;
+     DFBSurfaceBlittingFlags  flags = DSBLIT_NOFX;
+     CoreWindowConfig        *config;
 
      D_ASSERT( window != NULL );
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( region );
 
+     config = &window->config;
+
      /* Initialize source rectangle. */
      dfb_rectangle_from_region( &src, region );
 
      /* Subtract window offset. */
-     src.x -= window->x;
-     src.y -= window->y;
+     src.x -= config->bounds.x;
+     src.y -= config->bounds.y;
 
      /* Use per pixel alpha blending. */
-     if (alpha_channel && (window->options & DWOP_ALPHACHANNEL))
+     if (alpha_channel && (config->options & DWOP_ALPHACHANNEL))
           flags |= DSBLIT_BLEND_ALPHACHANNEL;
 
      /* Use global alpha blending. */
-     if (window->opacity != 0xFF) {
+     if (config->opacity != 0xFF) {
           flags |= DSBLIT_BLEND_COLORALPHA;
 
           /* Set opacity as blending factor. */
-          if (state->color.a != window->opacity) {
-               state->color.a   = window->opacity;
+          if (state->color.a != config->opacity) {
+               state->color.a   = config->opacity;
                state->modified |= SMF_COLOR;
           }
      }
 
      /* Use source color keying. */
-     if (window->options & DWOP_COLORKEYING) {
+     if (config->options & DWOP_COLORKEYING) {
           flags |= DSBLIT_SRC_COLORKEY;
 
           /* Set window color key. */
-          dfb_state_set_src_colorkey( state, window->color_key );
+          dfb_state_set_src_colorkey( state, config->color_key );
      }
 
      /* Use automatic deinterlacing. */
@@ -778,10 +787,8 @@ update_region( CoreWindowStack *stack,
           CoreWindow *window = fusion_vector_at( &data->windows, i );
 
           if (VISIBLE_WINDOW( window )) {
-               int wx2 = window->x + window->width  - 1;
-               int wy2 = window->y + window->height - 1;
-
-               if (dfb_region_intersect( &region, window->x, window->y, wx2, wy2 ))
+               if (dfb_region_intersect( &region,
+                                         DFB_REGION_VALS_FROM_RECTANGLE( &window->config.bounds )))
                     break;
           }
 
@@ -790,15 +797,13 @@ update_region( CoreWindowStack *stack,
 
      /* Intersecting window found? */
      if (i >= 0) {
-          CoreWindow *window = fusion_vector_at( &data->windows, i );
+          CoreWindow       *window = fusion_vector_at( &data->windows, i );
+          CoreWindowConfig *config = &window->config;
 
-          if (D_FLAGS_ARE_SET( window->options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
-               DFBRegion opaque;
-
-               opaque.x1 = window->x + window->opaque.x1;
-               opaque.y1 = window->y + window->opaque.y1;
-               opaque.x2 = window->x + window->opaque.x2;
-               opaque.y2 = window->y + window->opaque.y2;
+          if (D_FLAGS_ARE_SET( config->options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
+               DFBRegion opaque = DFB_REGION_INIT_TRANSLATED( &config->opaque,
+                                                              config->bounds.x,
+                                                              config->bounds.y );
 
                if (!dfb_region_region_intersect( &opaque, &region )) {
                     update_region( stack, data, state, i-1, x1, y1, x2, y2 );
@@ -806,7 +811,7 @@ update_region( CoreWindowStack *stack,
                     draw_window( window, state, &region, true );
                }
                else {
-                    if ((window->opacity < 0xff) || (window->options & DWOP_COLORKEYING)) {
+                    if ((config->opacity < 0xff) || (config->options & DWOP_COLORKEYING)) {
                          /* draw everything below */
                          update_region( stack, data, state, i-1, x1, y1, x2, y2 );
                     }
@@ -909,7 +914,7 @@ repaint_stack( CoreWindowStack     *stack,
      layer = dfb_layer_at( stack->context->layer_id );
      state = &layer->state;
 
-     if (!stack->active || !region->surface)
+     if (!data->active || !region->surface)
           return;
 
 /*     D_DEBUG_AT( WM_Default, "repaint_stack( %d, %d - %dx%d, flags 0x%08x )\n",
@@ -964,31 +969,34 @@ wind_of_change( CoreWindowStack     *stack,
      if (current == changed)
           repaint_stack( stack, data, region, update, flags );
      else {
-          DFBRegion   opaque;
-          CoreWindow *window = fusion_vector_at( &data->windows, current );
+          DFBRegion         opaque;
+          CoreWindow       *window  = fusion_vector_at( &data->windows, current );
+          CoreWindowConfig *config  = &window->config;
+          DFBRectangle     *bounds  = &config->bounds;
+          DFBWindowOptions  options = config->options;
 
           /*
                can skip opaque region
           */
           if ((
               //can skip all opaque window?
-              (window->opacity == 0xff) &&
-              !(window->options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL)) &&
+              (config->opacity == 0xff) &&
+              !(options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL)) &&
               (opaque=*update,dfb_region_intersect( &opaque,
-                                                    window->x, window->y,
-                                                    window->x + window->width - 1,
-                                                    window->y + window->height -1 ) )
+                                                    bounds->x, bounds->y,
+                                                    bounds->x + bounds->w - 1,
+                                                    bounds->y + bounds->h -1 ) )
               )||(
                  //can skip opaque region?
-                 (window->options & DWOP_ALPHACHANNEL) &&
-                 (window->options & DWOP_OPAQUE_REGION) &&
-                 (window->opacity == 0xff) &&
-                 !(window->options & DWOP_COLORKEYING) &&
+                 (options & DWOP_ALPHACHANNEL) &&
+                 (options & DWOP_OPAQUE_REGION) &&
+                 (config->opacity == 0xff) &&
+                 !(options & DWOP_COLORKEYING) &&
                  (opaque=*update,dfb_region_intersect( &opaque,
-                                                       window->x + window->opaque.x1,
-                                                       window->y + window->opaque.y1,
-                                                       window->x + window->opaque.x2,
-                                                       window->y + window->opaque.y2 ))
+                                                       bounds->x + config->opaque.x1,
+                                                       bounds->y + config->opaque.y1,
+                                                       bounds->x + config->opaque.x2,
+                                                       bounds->y + config->opaque.y2 ))
                  )) {
                /* left */
                if (opaque.x1 != update->x1) {
@@ -1050,10 +1058,11 @@ repaint_stack_for_window( CoreWindowStack     *stack,
 static DFBResult
 update_stack( CoreWindowStack     *stack,
               StackData           *data,
-              DFBRegion           *region,
+              const DFBRegion     *region,
               DFBSurfaceFlipFlags  flags )
 {
      DFBResult        ret;
+     DFBRegion        area;
      CoreLayerRegion *primary;
 
      D_ASSERT( stack != NULL );
@@ -1064,7 +1073,9 @@ update_stack( CoreWindowStack     *stack,
      if (stack->hw_mode)
           return DFB_OK;
 
-     if (!dfb_unsafe_region_intersect( region, 0, 0, stack->width - 1, stack->height - 1 ))
+     area = *region;
+
+     if (!dfb_region_intersect( &area, 0, 0, stack->width - 1, stack->height - 1 ))
           return DFB_OK;
 
      /* Get the primary region. */
@@ -1072,7 +1083,7 @@ update_stack( CoreWindowStack     *stack,
      if (ret)
           return ret;
 
-     repaint_stack( stack, data, primary, region, flags );
+     repaint_stack( stack, data, primary, &area, flags );
 
      /* Unref primary region. */
      dfb_layer_region_unref( primary );
@@ -1091,6 +1102,7 @@ update_window( CoreWindow          *window,
      DFBRegion        area;
      StackData       *data;
      CoreWindowStack *stack;
+     DFBRectangle    *bounds;
 
      D_ASSERT( window != NULL );
      D_ASSERT( window_data != NULL );
@@ -1108,17 +1120,12 @@ update_window( CoreWindow          *window,
      if (stack->hw_mode)
           return DFB_OK;
 
-     if (region) {
-          area = (DFBRegion) DFB_REGION_INIT_TRANSLATED( region,
-                                                         window->x,
-                                                         window->y );
-     }
-     else {
-          area.x1 = window->x;
-          area.y1 = window->y;
-          area.x2 = window->x + window->width  - 1;
-          area.y2 = window->y + window->height - 1;
-     }
+     bounds = &window->config.bounds;
+
+     if (region)
+          area = DFB_REGION_INIT_TRANSLATED( region, bounds->x, bounds->y );
+     else
+          area = DFB_REGION_INIT_FROM_RECTANGLE( bounds );
 
      if (!dfb_unsafe_region_intersect( &area, 0, 0, stack->width - 1, stack->height - 1 ))
           return DFB_OK;
@@ -1232,7 +1239,7 @@ remove_window( CoreWindowStack *stack,
      D_ASSERT( window != NULL );
      D_ASSERT( window_data != NULL );
 
-     D_ASSERT( window->opacity == 0 );
+     D_ASSERT( window->config.opacity == 0 );
      D_ASSERT( DFB_WINDOW_INITIALIZED( window ) );
 
      D_ASSERT( fusion_vector_contains( &data->windows, window ) );
@@ -1261,10 +1268,11 @@ move_window( CoreWindow *window,
              int         dx,
              int         dy )
 {
-     DFBWindowEvent evt;
+     DFBWindowEvent  evt;
+     DFBRectangle   *bounds = &window->config.bounds;
 
-     window->x += dx;
-     window->y += dy;
+     bounds->x += dx;
+     bounds->y += dy;
 
      if (window->region) {
           data->config.dest.x += dx;
@@ -1273,7 +1281,7 @@ move_window( CoreWindow *window,
           dfb_layer_region_set_configuration( window->region, &data->config, CLRCF_DEST );
      }
      else if (VISIBLE_WINDOW(window)) {
-          DFBRegion region = { 0, 0, window->width - 1, window->height - 1 };
+          DFBRegion region = { 0, 0, bounds->w - 1, bounds->h - 1 };
 
           if (dx > 0)
                region.x1 -= dx;
@@ -1290,8 +1298,8 @@ move_window( CoreWindow *window,
 
      /* Send new position */
      evt.type = DWET_POSITION;
-     evt.x    = window->x;
-     evt.y    = window->y;
+     evt.x    = bounds->x;
+     evt.y    = bounds->y;
 
      post_event( window, data->stack_data, &evt );
 
@@ -1307,9 +1315,10 @@ resize_window( CoreWindow *window,
 {
      DFBResult        ret;
      DFBWindowEvent   evt;
-     CoreWindowStack *stack = window->stack;
-     int              ow    = window->width;
-     int              oh    = window->height;
+     CoreWindowStack *stack  = window->stack;
+     DFBRectangle    *bounds = &window->config.bounds;
+     int              ow     = bounds->w;
+     int              oh     = bounds->h;
 
      D_DEBUG_AT( WM_Default, "resize_window( %d, %d )\n", width, height );
 
@@ -1330,20 +1339,20 @@ resize_window( CoreWindow *window,
                return ret;
      }
 
-     window->width  = width;
-     window->height = height;
+     bounds->w = width;
+     bounds->h = height;
 
-     dfb_region_intersect( &window->opaque, 0, 0, width - 1, height - 1 );
+     dfb_region_intersect( &window->config.opaque, 0, 0, width - 1, height - 1 );
 
      if (VISIBLE_WINDOW (window)) {
-          if (ow > window->width) {
-               DFBRegion region = { window->width, 0, ow - 1, MIN(window->height, oh) - 1 };
+          if (ow > bounds->w) {
+               DFBRegion region = { bounds->w, 0, ow - 1, MIN(bounds->h, oh) - 1 };
 
                update_window( window, data, &region, 0, false, false );
           }
 
-          if (oh > window->height) {
-               DFBRegion region = { 0, window->height, MAX(window->width, ow) - 1, oh - 1 };
+          if (oh > bounds->h) {
+               DFBRegion region = { 0, bounds->h, MAX(bounds->w, ow) - 1, oh - 1 };
 
                update_window( window, data, &region, 0, false, false );
           }
@@ -1351,8 +1360,8 @@ resize_window( CoreWindow *window,
 
      /* Send new size */
      evt.type = DWET_SIZE;
-     evt.w    = window->width;
-     evt.h    = window->height;
+     evt.w    = bounds->w;
+     evt.h    = bounds->h;
 
      post_event( window, data->stack_data, &evt );
 
@@ -1385,8 +1394,9 @@ restack_window( CoreWindow             *window,
      data = window_data->stack_data;
 
      /* Change stacking class. */
-     if (stacking != window->stacking) {
-          window->stacking      = stacking;
+     if (stacking != window->config.stacking) {
+          window->config.stacking = stacking;
+
           window_data->priority = get_priority( window );
      }
 
@@ -1475,7 +1485,7 @@ set_opacity( CoreWindow *window,
      D_ASSERT( window_data->stack_data != NULL );
      D_ASSERT( window_data->stack_data->stack != NULL );
 
-     old   = window->opacity;
+     old   = window->config.opacity;
      data  = window_data->stack_data;
      stack = data->stack;
 
@@ -1486,7 +1496,7 @@ set_opacity( CoreWindow *window,
           bool show = !old && opacity;
           bool hide = old && !opacity;
 
-          window->opacity = opacity;
+          window->config.opacity = opacity;
 
           if (window->region) {
                window_data->config.opacity = opacity;
@@ -1671,7 +1681,7 @@ request_focus( CoreWindow *window,
      CoreWindow      *entered;
 
      D_ASSERT( window != NULL );
-     D_ASSERT( !(window->options & DWOP_GHOST) );
+     D_ASSERT( !(window->config.options & DWOP_GHOST) );
      D_ASSERT( window_data != NULL );
      D_ASSERT( window_data->stack_data != NULL );
 
@@ -1683,12 +1693,11 @@ request_focus( CoreWindow *window,
      entered = data->entered_window;
 
      if (entered && entered != window) {
-          DFBWindowEvent  we;
-          CoreWindow     *entered = data->entered_window;
+          DFBWindowEvent we;
 
           we.type = DWET_LEAVE;
-          we.x    = stack->cursor.x - entered->x;
-          we.y    = stack->cursor.y - entered->y;
+          we.x    = stack->cursor.x - entered->config.bounds.x;
+          we.y    = stack->cursor.y - entered->config.bounds.y;
 
           post_event( entered, data, &we );
 
@@ -1734,7 +1743,7 @@ handle_wm_key( CoreWindowStack     *stack,
                     while (index--) {
                          CoreWindow *window = fusion_vector_at( &data->windows, index );
 
-                         if ((window->options & (DWOP_GHOST | DWOP_KEEP_STACKING)) ||
+                         if ((window->config.options & (DWOP_GHOST | DWOP_KEEP_STACKING)) ||
                              ! VISIBLE_WINDOW(window) || window == data->focused_window)
                          {
                               if (index == 0 && !looped) {
@@ -1746,7 +1755,7 @@ handle_wm_key( CoreWindowStack     *stack,
                          }
 
                          restack_window( window, window->window_data,
-                                         NULL, NULL, 1, window->stacking );
+                                         NULL, NULL, 1, window->config.stacking );
                          request_focus( window, window->window_data );
 
                          break;
@@ -1758,11 +1767,11 @@ handle_wm_key( CoreWindowStack     *stack,
 
           case DIKS_SMALL_S:
                fusion_vector_foreach (window, i, data->windows) {
-                    if (VISIBLE_WINDOW(window) && window->stacking == DWSC_MIDDLE &&
-                       ! (window->options & (DWOP_GHOST | DWOP_KEEP_STACKING)))
+                    if (VISIBLE_WINDOW(window) && window->config.stacking == DWSC_MIDDLE &&
+                       ! (window->config.options & (DWOP_GHOST | DWOP_KEEP_STACKING)))
                     {
                          restack_window( window, window->window_data,
-                                         NULL, NULL, 1, window->stacking );
+                                         NULL, NULL, 1, window->config.stacking );
                          request_focus( window, window->window_data );
 
                          break;
@@ -1785,21 +1794,21 @@ handle_wm_key( CoreWindowStack     *stack,
                break;
 
           case DIKS_SMALL_A:
-               if (focused && !(focused->options & DWOP_KEEP_STACKING)) {
+               if (focused && !(focused->config.options & DWOP_KEEP_STACKING)) {
                     restack_window( focused, focused->window_data,
-                                    NULL, NULL, 0, focused->stacking );
+                                    NULL, NULL, 0, focused->config.stacking );
                     update_focus( stack, data );
                }
                break;
 
           case DIKS_SMALL_W:
-               if (focused && !(focused->options & DWOP_KEEP_STACKING))
+               if (focused && !(focused->config.options & DWOP_KEEP_STACKING))
                     restack_window( focused, focused->window_data,
-                                    NULL, NULL, 1, focused->stacking );
+                                    NULL, NULL, 1, focused->config.stacking );
                break;
 
           case DIKS_SMALL_D:
-               if (entered && !(entered->options & DWOP_INDESTRUCTIBLE))
+               if (entered && !(entered->config.options & DWOP_INDESTRUCTIBLE))
                     dfb_window_destroy( entered );
 
                break;
@@ -1959,7 +1968,7 @@ handle_button_press( CoreWindowStack     *stack,
      switch (data->wm_level) {
           case 1:
                window = data->entered_window;
-               if (window && !(window->options & DWOP_KEEP_STACKING))
+               if (window && !(window->config.options & DWOP_KEEP_STACKING))
                     dfb_window_raisetotop( data->entered_window );
 
                break;
@@ -2013,8 +2022,10 @@ handle_motion( CoreWindowStack *stack,
                int              dx,
                int              dy )
 {
-     int            new_cx, new_cy;
-     DFBWindowEvent we;
+     int               new_cx, new_cy;
+     DFBWindowEvent    we;
+     CoreWindow       *entered;
+     CoreWindowConfig *config = NULL;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
@@ -2039,65 +2050,59 @@ handle_motion( CoreWindowStack *stack,
 
      D_ASSERT( stack->cursor.window != NULL );
 
-     dfb_window_move( stack->cursor.window, dx, dy );
+     dfb_window_move( stack->cursor.window, dx, dy, true );
+
+     entered = data->entered_window;
+     if (entered)
+          config = &entered->config;
 
      switch (data->wm_level) {
           case 7:
           case 6:
           case 5:
-          case 4: {
-                    CoreWindow *window = data->entered_window;
+          case 4:
+               if (entered) {
+                    int opacity = config->opacity + dx;
 
-                    if (window) {
-                         int opacity = window->opacity + dx;
+                    if (opacity < 8)
+                         opacity = 8;
+                    else if (opacity > 255)
+                         opacity = 255;
 
-                         if (opacity < 8)
-                              opacity = 8;
-                         else if (opacity > 255)
-                              opacity = 255;
-
-                         dfb_window_set_opacity( window, opacity );
-                    }
-
-                    break;
+                    dfb_window_set_opacity( entered, opacity );
                }
+
+               break;
 
           case 3:
-          case 2: {
-                    CoreWindow *window = data->entered_window;
+          case 2:
+               if (entered && !(config->options & DWOP_KEEP_SIZE)) {
+                    int width  = config->bounds.w + dx;
+                    int height = config->bounds.h + dy;
 
-                    if (window && !(window->options & DWOP_KEEP_SIZE)) {
-                         int width  = window->width  + dx;
-                         int height = window->height + dy;
+                    if (width  <   48) width  = 48;
+                    if (height <   48) height = 48;
+                    if (width  > 2048) width  = 2048;
+                    if (height > 2048) height = 2048;
 
-                         if (width  <   48) width  = 48;
-                         if (height <   48) height = 48;
-                         if (width  > 2048) width  = 2048;
-                         if (height > 2048) height = 2048;
-
-                         if (width != window->width || height != window->height)
-                              dfb_window_resize( window, width, height );
-                    }
-
-                    break;
+                    dfb_window_resize( entered, width, height );
                }
 
-          case 1: {
-                    CoreWindow *window = data->entered_window;
+               break;
 
-                    if (window && !(window->options & DWOP_KEEP_POSITION))
-                         dfb_window_move( window, dx, dy );
+          case 1:
+               if (entered && !(config->options & DWOP_KEEP_POSITION))
+                    dfb_window_move( entered, dx, dy, true );
 
-                    break;
-               }
+               break;
 
           case 0:
                if (data->pointer_window) {
                     CoreWindow *window = data->pointer_window;
 
                     we.type = DWET_MOTION;
-                    we.x    = stack->cursor.x - window->x;
-                    we.y    = stack->cursor.y - window->y;
+                    we.x    = stack->cursor.x - window->config.bounds.x;
+                    we.y    = stack->cursor.y - window->config.bounds.y;
 
                     post_event( window, data, &we );
                }
@@ -2106,8 +2111,8 @@ handle_motion( CoreWindowStack *stack,
                          CoreWindow *window = data->entered_window;
 
                          we.type = DWET_MOTION;
-                         we.x    = stack->cursor.x - window->x;
-                         we.y    = stack->cursor.y - window->y;
+                         we.x    = stack->cursor.x - window->config.bounds.x;
+                         we.y    = stack->cursor.y - window->config.bounds.y;
 
                          post_event( window, data, &we );
                     }
@@ -2138,7 +2143,7 @@ handle_wheel( CoreWindowStack *stack,
 
      if (window) {
           if (data->wm_level) {
-               int opacity = window->opacity + dz*7;
+               int opacity = window->config.opacity + dz*7;
 
                if (opacity < 0x01)
                     opacity = 1;
@@ -2149,8 +2154,8 @@ handle_wheel( CoreWindowStack *stack,
           }
           else {
                we.type = DWET_WHEEL;
-               we.x    = stack->cursor.x - window->x;
-               we.y    = stack->cursor.y - window->y;
+               we.x    = stack->cursor.x - window->config.bounds.x;
+               we.y    = stack->cursor.y - window->config.bounds.y;
                we.step = dz;
 
                post_event( window, data, &we );
@@ -2333,6 +2338,34 @@ wm_close_stack( CoreWindowStack *stack,
           SHFREE( l );
 
      return DFB_OK;
+}
+
+static DFBResult
+wm_set_active( CoreWindowStack *stack,
+               void            *wm_data,
+               void            *stack_data,
+               bool             active )
+{
+     StackData *data = stack_data;
+
+     D_ASSERT( stack != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( stack_data != NULL );
+
+     D_MAGIC_ASSERT( data, StackData );
+
+     D_ASSUME( data->active != active );
+
+     if (data->active == active)
+          return DFB_OK;
+
+     data->active = active;
+
+     if (active)
+          return dfb_windowstack_repaint_all( stack );
+
+     /* Force release of all pressed keys. */
+     return wm_flush_keys( stack, wm_data, stack_data );
 }
 
 static DFBResult
@@ -2603,31 +2636,47 @@ wm_remove_window( CoreWindowStack *stack,
 }
 
 static DFBResult
-wm_move_window( CoreWindow *window,
-                void       *wm_data,
-                void       *window_data,
-                int         dx,
-                int         dy )
+wm_set_window_config( CoreWindow             *window,
+                      void                   *wm_data,
+                      void                   *window_data,
+                      const CoreWindowConfig *config,
+                      CoreWindowConfigFlags   flags )
 {
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
+     D_ASSERT( config != NULL );
 
-     return move_window( window, window_data, dx, dy );
-}
+     if (flags & CWCF_OPTIONS)
+          window->config.options = config->options;
 
-static DFBResult
-wm_resize_window( CoreWindow *window,
-                  void       *wm_data,
-                  void       *window_data,
-                  int         width,
-                  int         height )
-{
-     D_ASSERT( window != NULL );
-     D_ASSERT( wm_data != NULL );
-     D_ASSERT( window_data != NULL );
+     if (flags & CWCF_EVENTS)
+          window->config.events = config->events;
 
-     return resize_window( window, wm_data, window_data, width, height );
+     if (flags & CWCF_COLOR_KEY)
+          window->config.color_key = config->color_key;
+
+     if (flags & CWCF_OPAQUE)
+          window->config.opaque = config->opaque;
+
+     if (flags & CWCF_OPACITY && !config->opacity)
+          set_opacity( window, window_data, config->opacity );
+
+     if (flags & CWCF_POSITION)
+          move_window( window, window_data,
+                       config->bounds.x - window->config.bounds.x,
+                       config->bounds.y - window->config.bounds.y );
+
+     if (flags & CWCF_STACKING)
+          restack_window( window, window_data, window, window_data, 0, config->stacking );
+
+     if (flags & CWCF_OPACITY && config->opacity)
+          set_opacity( window, window_data, config->opacity );
+
+     if (flags & CWCF_SIZE)
+          return resize_window( window, wm_data, window_data, config->bounds.w, config->bounds.h );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -2636,8 +2685,7 @@ wm_restack_window( CoreWindow             *window,
                    void                   *window_data,
                    CoreWindow             *relative,
                    void                   *relative_data,
-                   int                     relation,
-                   DFBWindowStackingClass  stacking )
+                   int                     relation )
 {
      DFBResult   ret;
      WindowData *data = window_data;
@@ -2655,42 +2703,13 @@ wm_restack_window( CoreWindow             *window,
      D_ASSERT( data->stack_data != NULL );
      D_ASSERT( data->stack_data->stack != NULL );
 
-     ret = restack_window( window, window_data, relative, relative_data, relation, stacking );
+     ret = restack_window( window, window_data, relative,
+                           relative_data, relation, window->config.stacking );
      if (ret)
           return ret;
 
      /* Possibly switch focus to window now under the cursor */
      update_focus( data->stack_data->stack, data->stack_data );
-
-     return DFB_OK;
-}
-
-static DFBResult
-wm_set_opacity( CoreWindow *window,
-                void       *wm_data,
-                void       *window_data,
-                __u8        opacity )
-{
-     D_ASSERT( window != NULL );
-     D_ASSERT( wm_data != NULL );
-     D_ASSERT( window_data != NULL );
-
-     set_opacity( window, window_data, opacity );
-
-     return DFB_OK;
-}
-
-static DFBResult
-wm_set_options( CoreWindow       *window,
-                void             *wm_data,
-                void             *window_data,
-                DFBWindowOptions  options )
-{
-     D_ASSERT( window != NULL );
-     D_ASSERT( wm_data != NULL );
-     D_ASSERT( window_data != NULL );
-
-     window->options = options;
 
      return DFB_OK;
 }
@@ -2771,7 +2790,7 @@ static DFBResult
 wm_update_stack( CoreWindowStack     *stack,
                  void                *wm_data,
                  void                *stack_data,
-                 DFBRegion           *region,
+                 const DFBRegion     *region,
                  DFBSurfaceFlipFlags  flags )
 {
      StackData *data = stack_data;
@@ -2790,7 +2809,7 @@ static DFBResult
 wm_update_window( CoreWindow          *window,
                   void                *wm_data,
                   void                *window_data,
-                  DFBRegion           *region,
+                  const DFBRegion     *region,
                   DFBSurfaceFlipFlags  flags )
 {
      D_ASSERT( window != NULL );

@@ -138,6 +138,7 @@ unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool maste
           }
 
           shared->context_pool = unique_context_pool_create();
+          shared->window_pool  = unique_window_pool_create();
 
           shared->insets.l = foo[UFI_W].rect.w;
           shared->insets.t = foo[UFI_N].rect.h;
@@ -166,8 +167,10 @@ unique_wm_module_deinit( bool master, bool emergency )
      D_ASSERT( wm_data != NULL );
      D_ASSERT( wm_shared != NULL );
 
-     if (master)
+     if (master) {
+          fusion_object_pool_destroy( wm_shared->window_pool );
           fusion_object_pool_destroy( wm_shared->context_pool );
+     }
 
      unregister_classes( wm_shared );
 
@@ -185,6 +188,17 @@ unique_wm_create_context()
      D_ASSERT( wm_shared->context_pool != NULL );
 
      return (UniqueContext*) fusion_object_create( wm_shared->context_pool );
+}
+
+UniqueWindow *
+unique_wm_create_window()
+{
+     D_ASSERT( dfb_core != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( wm_shared != NULL );
+     D_ASSERT( wm_shared->window_pool != NULL );
+
+     return (UniqueWindow*) fusion_object_create( wm_shared->window_pool );
 }
 
 /**************************************************************************************************/

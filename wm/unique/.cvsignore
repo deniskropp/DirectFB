@@ -6,3 +6,4 @@ Makefile.in
 *.la
 stret_test
 test_color
+uwmdump

@@ -1,0 +1,127 @@
+
+This file contains visualizations of the references used
+for life cycle determination.
+
+The job of a reference is to keep a relevant object alive
+as long as it's required to implement a certain functionality.
+
+There are different types of references:
+
+*      Global reference, for Objects using other Objects
+|      (removed during destruction of the using object)
+
+--{    Local reference, for Applications using Objects
+       (removed by the application or by release() in the kernel)
+
+|      Inherit locals, e.g. for "Extensions" to other Objects
+^      (added/removed by adding/removing to/from the other object)
+
+One requirement is that local references should be removable in
+any order without disturbing "functional groups". However, such
+an object group should be destroyed if the last local reference to
+any object of the group is removed.
+
+Cyclic global references are not detected! Inheritance has been
+introduced to solve problems that would have required cyclic globals.
+
+
+
+With Default WM
+----------------
+
+
+  1. DirectFBCreate()
+
+---------{  Layer Context (primary)
+
+
+  2. GetDisplayLayer()
+
+--------{{  Layer Context (primary)
+                     *
+                     |
+                   Layer Region  }---------
+
+
+  3a. EnableCursor()
+
+--------{{  Layer Context (primary)
+              |      *
+              |      |
+              |    Layer Region  }---------
+              |      *
+              ^      |
+            Cursor Window
+
+
+  3b. CreateWindow()
+
+--------{{  Layer Context (primary)
+                     *
+                     |
+                   Layer Region  }---------
+                            *
+                            |
+                          Window  }---------
+
+
+
+
+With Unique WM
+---------------
+
+
+  1. DirectFBCreate()
+
+---------{  Layer Context (primary)
+              |      *
+              |      |
+              |    Layer Region
+              |      *
+              ^      |
+            Unique Context
+
+
+  2. GetDisplayLayer()
+
+--------{{  Layer Context (primary)
+              |      *
+              |      |
+              |    Layer Region  }---------
+              |      *
+              ^      |
+            Unique Context
+
+
+  3a. EnableCursor()
+
+--------{{  Layer Context (primary)
+              |      *       |........
+              |      |               |
+              |    Layer Region  }-- | -------
+              |      *      *        |
+              |      |      |        ^
+              |      |    Cursor Window
+              |      |      *
+              ^      |      |
+            Unique Context  |
+                     *      |
+                     |      ^
+                   Unique Window
+
+
+  3b. CreateWindow()
+
+--------{{  Layer Context (primary)
+              |      *
+              |      |
+              |    Layer Region  }---------
+              |      *      *
+              |      |      |
+              |      |    Window  }---------
+              |      |      *
+              ^      |      |
+            Unique Context  |
+                     *      |
+                     |      ^
+                   Unique Window

@@ -158,8 +158,8 @@ static CorePart *core_parts[] = {
      &dfb_core_input,
      &dfb_core_gfxcard,
      &dfb_core_screens,
-     &dfb_core_wm,
-     &dfb_core_layers
+     &dfb_core_layers,
+     &dfb_core_wm
 };
 
 #define NUM_CORE_PARTS ((int)(sizeof(core_parts)/sizeof(CorePart*)))

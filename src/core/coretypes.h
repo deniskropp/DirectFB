@@ -60,6 +60,7 @@ typedef struct __DFB_CoreLayerRegion       CoreLayerRegion;
 typedef struct __DFB_CoreLayerRegionConfig CoreLayerRegionConfig;
 
 typedef struct __DFB_CoreWindow            CoreWindow;
+typedef struct __DFB_CoreWindowConfig      CoreWindowConfig;
 typedef struct __DFB_CoreWindowStack       CoreWindowStack;
 
 #endif

@@ -11,8 +11,19 @@ INCLUDES = \
 	-I$(top_srcdir)/wm		\
 	-I$(top_builddir)/wm
 
+bin_PROGRAMS = uwmdump
 
 noinst_PROGRAMS = test_color stret_test
+
+
+uwmdump_SOURCES = uwmdump.c
+
+uwmdump_LDADD = \
+	libuniquewm.la					\
+	$(top_builddir)/lib/direct/libdirect.la		\
+	$(top_builddir)/lib/fusion/libfusion.la		\
+	$(top_builddir)/src/libdirectfb.la
+
 
 test_color_SOURCES = test_color.c
 
@@ -21,6 +32,7 @@ test_color_LDADD = \
 	$(top_builddir)/lib/direct/libdirect.la		\
 	$(top_builddir)/lib/fusion/libfusion.la		\
 	$(top_builddir)/src/libdirectfb.la
+
 
 stret_test_SOURCES = stret_test.c
 
@@ -59,7 +71,8 @@ include_HEADERS = \
 	stret.h			\
 	stret_iteration.h	\
 	types.h			\
-	uniquewm.h
+	uniquewm.h		\
+	window.h
 
 # Build uniquewm library
 lib_LTLIBRARIES = libuniquewm.la
@@ -69,7 +82,8 @@ libuniquewm_la_SOURCES = \
 	internal.h		\
 	stret.c			\
 	stret_iteration.c	\
-	uniquewm.c
+	uniquewm.c		\
+	window.c
 	
 libuniquewm_la_LIBADD = \
 	classes/libunique_classes.la			\

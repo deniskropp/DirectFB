@@ -165,7 +165,7 @@ prefix##_link( type **link,                                                    \
                                                                                \
      *link = object;                                                           \
                                                                                \
-     return DFB_OK;                                                    \
+     return DFB_OK;                                                            \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \
@@ -178,6 +178,17 @@ prefix##_unlink( type **link )                                                 \
      *link = NULL;                                                             \
                                                                                \
      return fusion_ref_down( &((FusionObject*)object)->ref, true );            \
+}                                                                              \
+                                                                               \
+static inline DirectResult                                                     \
+prefix##_inherit( type *object,                                                \
+                  void *from )                                                 \
+{                                                                              \
+     D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
+     D_MAGIC_ASSERT( (FusionObject*) from, FusionObject );                     \
+                                                                               \
+     return fusion_ref_inherit( &((FusionObject*)object)->ref,                 \
+                                &((FusionObject*)from)->ref );                 \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \

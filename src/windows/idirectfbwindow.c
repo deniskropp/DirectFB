@@ -205,9 +205,7 @@ IDirectFBWindow_EnableEvents( IDirectFBWindow       *thiz,
      if (mask & ~DWET_ALL)
           return DFB_INVARG;
 
-     data->window->events |= mask;
-
-     return DFB_OK;
+     return dfb_window_change_events( data->window, DWET_NONE, mask );
 }
 
 static DFBResult
@@ -222,9 +220,7 @@ IDirectFBWindow_DisableEvents( IDirectFBWindow       *thiz,
      if (mask & ~DWET_ALL)
           return DFB_INVARG;
 
-     data->window->events &= ~mask;
-
-     return DFB_OK;
+     return dfb_window_change_events( data->window, mask, DWET_NONE );
 }
 
 static DFBResult
@@ -258,10 +254,10 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
           return DFB_INVARG;
 
      if (x)
-          *x = data->window->x;
+          *x = data->window->config.bounds.x;
 
      if (y)
-          *y = data->window->y;
+          *y = data->window->config.bounds.y;
 
      return DFB_OK;
 }
@@ -280,10 +276,10 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
           return DFB_INVARG;
 
      if (width)
-          *width = data->window->width;
+          *width = data->window->config.bounds.w;
 
      if (height)
-          *height = data->window->height;
+          *height = data->window->config.bounds.h;
 
      return DFB_OK;
 }
@@ -341,24 +337,22 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
           options &= ~DWOP_ALPHACHANNEL;
 
      /* Set new options */
-     dfb_window_set_options( data->window, options );
-
-     return DFB_OK;
+     return dfb_window_change_options( data->window, DWET_ALL, options );
 }
 
 static DFBResult
 IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
-                            DFBWindowOptions *options )
+                            DFBWindowOptions *ret_options )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     if (!options)
+     if (!ret_options)
           return DFB_INVARG;
 
-     *options = data->window->options;
+     *ret_options = data->window->config.options;
 
      return DFB_OK;
 }
@@ -387,14 +381,7 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
      else
           key = dfb_color_to_pixel( surface->format, r, g, b );
 
-     if (data->window->color_key != key) {
-          data->window->color_key = key;
-
-          if (data->window->options & DWOP_COLORKEYING)
-               dfb_window_repaint( data->window, NULL, DSFLIP_NONE );
-     }
-
-     return DFB_OK;
+     return dfb_window_set_colorkey( data->window, key );
 }
 
 static DFBResult
@@ -411,14 +398,7 @@ IDirectFBWindow_SetColorKeyIndex( IDirectFBWindow *thiz,
      if (data->window->caps & DWCAPS_INPUTONLY)
           return DFB_UNSUPPORTED;
 
-     if (data->window->color_key != key) {
-          data->window->color_key = key;
-
-          if (data->window->options & DWOP_COLORKEYING)
-               dfb_window_repaint( data->window, NULL, DSFLIP_NONE );
-     }
-
-     return DFB_OK;
+     return dfb_window_set_colorkey( data->window, key );
 }
 
 static DFBResult
@@ -428,7 +408,7 @@ IDirectFBWindow_SetOpaqueRegion( IDirectFBWindow *thiz,
                                  int              x2,
                                  int              y2 )
 {
-     CoreWindow *window;
+     DFBRegion region;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -438,17 +418,9 @@ IDirectFBWindow_SetOpaqueRegion( IDirectFBWindow *thiz,
      if (x1 > x2 || y1 > y2)
           return DFB_INVAREA;
 
-     window = data->window;
+     region = (DFBRegion) { x1, y1, x2, y2 };
 
-     window->opaque.x1 = x1;
-     window->opaque.y1 = y1;
-     window->opaque.x2 = x2;
-     window->opaque.y2 = y2;
-
-     dfb_region_intersect( &window->opaque,
-                           0, 0, window->width - 1, window->height - 1 );
-
-     return DFB_OK;
+     return dfb_window_set_opaque( data->window, &region );
 }
 
 static DFBResult
@@ -460,10 +432,7 @@ IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     if (data->window->opacity != opacity)
-          dfb_window_set_opacity( data->window, opacity );
-
-     return DFB_OK;
+     return dfb_window_set_opacity( data->window, opacity );
 }
 
 static DFBResult
@@ -478,7 +447,7 @@ IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
      if (!opacity)
           return DFB_INVARG;
 
-     *opacity = data->window->opacity;
+     *opacity = data->window->config.opacity;
 
      return DFB_OK;
 }
@@ -522,8 +491,8 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
           data->cursor.hot_y = hot_y;
 
           if (data->entered)
-               dfb_windowstack_cursor_set_shape( data->window->stack,
-                                                 shape_surface, hot_x, hot_y );
+               return dfb_windowstack_cursor_set_shape( data->window->stack,
+                                                        shape_surface, hot_x, hot_y );
      }
 
      return DFB_OK;
@@ -541,15 +510,13 @@ IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 
      window = data->window;
 
-     if (window->options & DWOP_GHOST)
+     if (window->config.options & DWOP_GHOST)
           return DFB_UNSUPPORTED;
 
-     if (!window->opacity && !(window->caps & DWCAPS_INPUTONLY))
+     if (!window->config.opacity && !(window->caps & DWCAPS_INPUTONLY))
           return DFB_UNSUPPORTED;
 
-     dfb_window_request_focus( window );
-
-     return DFB_OK;
+     return dfb_window_request_focus( window );
 }
 
 static DFBResult
@@ -633,9 +600,7 @@ IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
      if (dx == 0  &&  dy == 0)
           return DFB_OK;
 
-     dfb_window_move( data->window, dx, dy );
-
-     return DFB_OK;
+     return dfb_window_move( data->window, dx, dy, true );
 }
 
 static DFBResult
@@ -646,13 +611,7 @@ IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     if (data->window->x == x  &&  data->window->y == y)
-          return DFB_OK;
-
-     dfb_window_move( data->window,
-                      x - data->window->x, y - data->window->y );
-
-     return DFB_OK;
+     return dfb_window_move( data->window, x, y, false );
 }
 
 static DFBResult
@@ -668,9 +627,6 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
 
-     if (data->window->width == width  &&  data->window->height == height)
-          return DFB_OK;
-
      return dfb_window_resize( data->window, width, height );
 }
 
@@ -682,9 +638,7 @@ IDirectFBWindow_Raise( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     dfb_window_raise( data->window );
-
-     return DFB_OK;
+     return dfb_window_raise( data->window );
 }
 
 static DFBResult
@@ -705,9 +659,7 @@ IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
                return DFB_INVARG;
      }
 
-     dfb_window_change_stacking( data->window, stacking_class );
-
-     return DFB_OK;
+     return dfb_window_change_stacking( data->window, stacking_class );
 }
 
 static DFBResult
@@ -718,9 +670,7 @@ IDirectFBWindow_Lower( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     dfb_window_lower( data->window );
-
-     return DFB_OK;
+     return dfb_window_lower( data->window );
 }
 
 static DFBResult
@@ -731,9 +681,7 @@ IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     dfb_window_raisetotop( data->window );
-
-     return DFB_OK;
+     return dfb_window_raisetotop( data->window );
 }
 
 static DFBResult
@@ -744,9 +692,7 @@ IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     dfb_window_lowertobottom( data->window );
-
-     return DFB_OK;
+     return dfb_window_lowertobottom( data->window );
 }
 
 static DFBResult
@@ -770,9 +716,7 @@ IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
      if (!lower_data->window)
           return DFB_DESTROYED;
 
-     dfb_window_putatop( data->window, lower_data->window );
-
-     return DFB_OK;
+     return dfb_window_putatop( data->window, lower_data->window );
 }
 
 static DFBResult
@@ -796,9 +740,7 @@ IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
      if (!upper_data->window)
           return DFB_DESTROYED;
 
-     dfb_window_putbelow( data->window, upper_data->window );
-
-     return DFB_OK;
+     return dfb_window_putbelow( data->window, upper_data->window );
 }
 
 static DFBResult
@@ -841,7 +783,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
      D_DEBUG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
-                window->x, window->y, window->width, window->height );
+              DFB_RECTANGLE_VALS( &window->config.bounds ) );
 
      data->ref    = 1;
      data->window = window;

@@ -32,17 +32,20 @@
 
 #include <fusion/object.h>
 
+#include <core/wm.h>
+
 #include <unique/types.h>
 
 
 typedef enum {
      UCNF_NONE           = 0x00000000,
 
-     UCNF_CLOSE          = 0x00000001,
-     UCNF_WINDOW_ADDED   = 0x00000002,
-     UCNF_WINDOW_REMOVED = 0x00000004,
+     UCNF_DESTROYED      = 0x00000001,
 
-     UCNF_ALL            = 0x00000007
+     UCNF_WINDOW_ADDED   = 0x00000010,
+     UCNF_WINDOW_REMOVED = 0x00000020,
+
+     UCNF_ALL            = 0x00000031
 } UniqueContextNotificationFlags;
 
 typedef struct {
@@ -51,13 +54,59 @@ typedef struct {
 } UniqueContextNotification;
 
 
-DFBResult unique_context_create   ( StackData      *data,
-                                    UniqueContext **ret_context );
 
-DFBResult unique_context_close    ( UniqueContext  *context );
+DFBResult unique_context_create       ( CoreWindowStack                 *stack,
+                                        CoreLayerRegion                 *region,
+                                        DFBDisplayLayerID                layer_id,
+                                        WMShared                        *shared,
+                                        UniqueContext                  **ret_context );
 
-DFBResult unique_context_set_color( UniqueContext  *context,
-                                    const DFBColor *color );
+DFBResult unique_context_notify       ( UniqueContext                   *context,
+                                        UniqueContextNotificationFlags   flags );
+
+DFBResult unique_context_set_active   ( UniqueContext                   *context,
+                                        bool                             active );
+
+DFBResult unique_context_set_color    ( UniqueContext                   *context,
+                                        const DFBColor                  *color );
+
+
+DFBResult unique_context_update       ( UniqueContext                   *context,
+                                        const DFBRegion                 *updates,
+                                        int                              num,
+                                        DFBSurfaceFlipFlags              flags );
+
+DFBResult unique_context_resize       ( UniqueContext                   *context,
+                                        int                              width,
+                                        int                              height );
+
+DFBResult unique_context_process_input( UniqueContext                   *context,
+                                        const DFBInputEvent             *event );
+
+DFBResult unique_context_flush_keys   ( UniqueContext                   *context );
+
+DFBResult unique_context_update_focus ( UniqueContext                   *context );
+
+DFBResult unique_context_switch_focus ( UniqueContext                   *context,
+                                        UniqueWindow                    *to );
+
+DFBResult unique_context_window_at    ( UniqueContext                   *context,
+                                        int                              x,
+                                        int                              y,
+                                        UniqueWindow                   **ret_window );
+
+DFBResult unique_context_lookup_window( UniqueContext                   *context,
+                                        DFBWindowID                      window_id,
+                                        UniqueWindow                   **ret_window );
+
+DFBResult unique_context_enum_windows ( UniqueContext                   *context,
+                                        CoreWMWindowCallback             callback,
+                                        void                            *callback_ctx );
+
+DFBResult unique_context_warp_cursor  ( UniqueContext                   *context,
+                                        int                              x,
+                                        int                              y );
+
 
 
 /*

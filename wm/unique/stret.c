@@ -142,17 +142,21 @@ stret_region_create( StretRegionClassID   class_id,
                      void                *data,
                      unsigned long        arg,
                      StretRegionFlags     flags,
+                     int                  levels,
                      int                  x,
                      int                  y,
                      int                  width,
                      int                  height,
                      StretRegion         *parent,
+                     int                  level,
                      StretRegion        **ret_region )
 {
+     int          i;
      StretRegion *region;
 
-     D_DEBUG_AT( UniQuE_StReT, "stret_region_create( class %d, flags 0x%08x, "
-                 "%d,%d - %dx%d, parent %p )\n", class_id, flags, x, y, width, height, parent );
+     D_DEBUG_AT( UniQuE_StReT, "stret_region_create( class %d, flags 0x%08x, %d,%d - %dx%d (%d), "
+                 "parent %p [%d/%d] )\n", class_id, flags, x, y, width, height, levels, parent,
+                 level, parent ? parent->levels-1 : 0 );
 
      D_ASSERT( class_id >= 0 );
      D_ASSERT( class_id < MAX_CLASSES );
@@ -160,38 +164,53 @@ stret_region_create( StretRegionClassID   class_id,
 
      D_ASSERT( ! (flags & ~SRF_ALL) );
 
+     D_ASSERT( levels > 0 );
      D_ASSERT( width > 0 );
      D_ASSERT( height > 0 );
 
+     D_MAGIC_ASSERT_IF( parent, StretRegion );
+
      if (parent)
-          D_MAGIC_ASSERT( parent, StretRegion );
+          D_ASSERT( level < parent->levels );
 
      D_ASSERT( ret_region != NULL );
 
-     region = SHCALLOC( 1, sizeof(StretRegion) );
+     /* Allocate region data. */
+     region = SHCALLOC( 1, sizeof(StretRegion) + sizeof(FusionVector) * levels );
      if (!region) {
           D_WARN( "out of (shared) memory" );
           return DFB_NOSYSTEMMEMORY;
      }
 
-     region->parent = parent;
-     region->flags  = flags;
-     region->bounds = (DFBRegion) { x, y, x + width - 1, y + height - 1 };
-     region->clazz  = class_id;
-     region->data   = data;
-     region->arg    = arg;
+     /* Initialize region data. */
+     region->parent   = parent;
+     region->level    = level;
+     region->levels   = levels;
+     region->children = (FusionVector*)(region + 1);
+     region->flags    = flags;
+     region->bounds   = (DFBRegion) { x, y, x + width - 1, y + height - 1 };
+     region->clazz    = class_id;
+     region->data     = data;
+     region->arg      = arg;
 
-     fusion_vector_init( &region->children, parent ? 10 : 32 );
+     /* Initialize levels. */
+     for (i=0; i<levels; i++)
+          fusion_vector_init( &region->children[i], 4 );
 
+
+     /* Add the region to its parent. */
      if (parent) {
-          if (fusion_vector_add( &parent->children, region )) {
+          FusionVector *children = &parent->children[level];
+
+          region->index = fusion_vector_size( children );
+
+          if (fusion_vector_add( children, region )) {
                D_WARN( "out of (shared) memory" );
                SHFREE( region );
                return DFB_NOSYSTEMMEMORY;
           }
-
-          region->index = fusion_vector_size( &parent->children ) - 1;
      }
+
 
      D_MAGIC_SET( region, StretRegion );
 
@@ -214,42 +233,51 @@ stret_region_create( StretRegionClassID   class_id,
 DFBResult
 stret_region_destroy( StretRegion *region )
 {
+     int          i;
      int          index;
      StretRegion *parent;
      StretRegion *child;
 
      D_MAGIC_ASSERT( region, StretRegion );
 
-     D_ASSUME( ! fusion_vector_has_elements( &region->children ) );
+     D_DEBUG_AT( UniQuE_StReT,
+                 "stret_region_destroy( %d, %d - %dx%d, level %d, index %d )\n",
+                 DFB_RECTANGLE_VALS_FROM_REGION( &region->bounds ), region->level, region->index );
 
      parent = region->parent;
      if (parent) {
-          int index;
+          FusionVector *children = &parent->children[region->level];
 
           D_MAGIC_ASSERT( parent, StretRegion );
 
           index = region->index;
 
           D_ASSERT( index >= 0 );
-          D_ASSERT( index == fusion_vector_index_of( &parent->children, region ) );
+          D_ASSERT( index == fusion_vector_index_of( children, region ) );
 
-          fusion_vector_remove( &parent->children, index );
+          fusion_vector_remove( children, index );
 
-          for (; index<fusion_vector_size(&parent->children); index++) {
-               StretRegion *child = fusion_vector_at( &parent->children, index );
+          for (; index<fusion_vector_size(children); index++) {
+               StretRegion *child = fusion_vector_at( children, index );
 
                child->index = index;
           }
      }
 
-     fusion_vector_foreach( child, index, region->children ) {
-          D_MAGIC_ASSERT( child, StretRegion );
-          D_ASSERT( child->parent == region );
+     for (i=0; i<region->levels; i++) {
+          FusionVector *children = &region->children[i];
 
-          child->parent = NULL;
+          D_ASSUME( ! fusion_vector_has_elements( children ) );
+
+          fusion_vector_foreach( child, index, *children ) {
+               D_MAGIC_ASSERT( child, StretRegion );
+               D_ASSERT( child->parent == region );
+
+               child->parent = NULL;
+          }
+
+          fusion_vector_destroy( children );
      }
-
-     fusion_vector_destroy( &region->children );
 
      D_MAGIC_CLEAR( region );
 
@@ -318,19 +346,20 @@ stret_region_restack( StretRegion *region,
 
      parent = region->parent;
      if (parent) {
-          int old;
+          int           old;
+          FusionVector *children = &parent->children[region->level];
 
           D_MAGIC_ASSERT( parent, StretRegion );
 
           old = region->index;
 
           D_ASSERT( old >= 0 );
-          D_ASSERT( old == fusion_vector_index_of( &parent->children, region ) );
+          D_ASSERT( old == fusion_vector_index_of( children, region ) );
 
-          fusion_vector_move( &parent->children, old, index );
+          fusion_vector_move( children, old, index );
 
-          for (index = MIN(index,old); index<fusion_vector_size(&parent->children); index++) {
-               StretRegion *child = fusion_vector_at( &parent->children, index );
+          for (index = MIN(index,old); index<fusion_vector_size(children); index++) {
+               StretRegion *child = fusion_vector_at( children, index );
 
                child->index = index;
           }

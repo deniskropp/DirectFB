@@ -37,6 +37,7 @@
 
 typedef struct {
      StretRegion *region;
+     int          level;
      int          index;
 } StretIterationStackFrame;
 

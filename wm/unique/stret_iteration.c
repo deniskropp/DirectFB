@@ -35,6 +35,7 @@
 #include <unique/stret_iteration.h>
 #include <unique/internal.h>
 
+D_DEBUG_DOMAIN( UniQuE_StReT, "UniQuE/StReT", "UniQuE's Stack Region Tree" );
 
 static inline bool
 accept_region( StretRegion *region, int x0, int y0, const DFBRegion *clip )
@@ -66,12 +67,15 @@ stret_iteration_init( StretIteration *iteration, StretRegion *region )
 
      D_MAGIC_ASSERT( region, StretRegion );
 
+     D_DEBUG_AT( UniQuE_StReT, "stret_iteration_init()\n" );
+
      iteration->frame = -1;
      iteration->x0    = 0;
      iteration->y0    = 0;
 
      do {
-          int last_child = region->children.count - 1;
+          int last_level = region->levels - 1;
+          int last_child = region->children[last_level].count - 1;
 
           iteration->frame++;
 
@@ -79,14 +83,20 @@ stret_iteration_init( StretIteration *iteration, StretRegion *region )
           iteration->y0 += region->bounds.y1;
 
           iteration->stack[iteration->frame].region = region;
-          iteration->stack[iteration->frame].index  = last_child;
+          iteration->stack[iteration->frame].level  = last_level;
+          iteration->stack[iteration->frame].index  = last_child - 1;
+
+          D_DEBUG_AT( UniQuE_StReT, "  -> (%d) %p, last level %d, last index %d\n",
+                      iteration->frame, region, last_level, last_child );
 
           if (last_child >= 0) {
-               region = fusion_vector_at( &region->children, last_child );
+               region = fusion_vector_at( &region->children[last_level], last_child );
 
                D_MAGIC_ASSERT( region, StretRegion );
           }
-     } while (region->children.count && check_depth( iteration->frame + 1 ));
+     } while (region->children[region->levels - 1].count && check_depth( iteration->frame + 1 ));
+
+     iteration->stack[iteration->frame].index++;
 
      D_MAGIC_SET( iteration, StretIteration );
 }
@@ -96,43 +106,71 @@ stret_iteration_next( StretIteration  *iteration,
                       const DFBRegion *clip )
 {
      int          index;
+     int          level;
      StretRegion *region;
 
      D_MAGIC_ASSERT( iteration, StretIteration );
 
      DFB_REGION_ASSERT_IF( clip );
 
+     if (clip)
+          D_DEBUG_AT( UniQuE_StReT, "stret_iteration_next( %d, %d - %dx%d )\n",
+                      DFB_RECTANGLE_VALS_FROM_REGION( clip ) );
+     else
+          D_DEBUG_AT( UniQuE_StReT, "stret_iteration_next()\n" );
+
      while (iteration->frame >= 0) {
           StretIterationStackFrame *frame = &iteration->stack[iteration->frame];
 
           region = frame->region;
+          level  = frame->level;
           index  = frame->index--;
 
           D_MAGIC_ASSERT( region, StretRegion );
 
+          D_DEBUG_AT( UniQuE_StReT, "  -> (%d) %p, level [%d/%d], index %d\n",
+                      iteration->frame, region, level, region->levels - 1, index );
+
           if (index < 0) {
-               iteration->frame--;
+               level = --frame->level;
 
-               iteration->x0 -= region->bounds.x1;
-               iteration->y0 -= region->bounds.y1;
+               if (level < 0) {
+                    iteration->frame--;
 
-               if (accept_region( region, iteration->x0, iteration->y0, clip ))
-                   return region;
+                    iteration->x0 -= region->bounds.x1;
+                    iteration->y0 -= region->bounds.y1;
+
+                    if (accept_region( region, iteration->x0, iteration->y0, clip ))
+                        return region;
+               }
+               else {
+                    frame->index = region->children[level].count - 1;
+               }
           }
           else {
-               region = fusion_vector_at( &region->children, index );
+               region = fusion_vector_at( &region->children[level], index );
 
                D_MAGIC_ASSERT( region, StretRegion );
 
                if (accept_region( region, iteration->x0, iteration->y0, clip )) {
-                    if (region->children.count && check_depth( iteration->frame + 1 )) {
+                    level = region->levels - 1;
+
+                    while (!region->children[level].count) {
+                         if (level)
+                              level--;
+                         else
+                              return region;
+                    }
+
+                    if (check_depth( iteration->frame + 1 )) {
                          frame = &iteration->stack[++iteration->frame];
 
                          iteration->x0 += region->bounds.x1;
                          iteration->y0 += region->bounds.y1;
 
                          frame->region = region;
-                         frame->index  = region->children.count - 1;
+                         frame->level  = level;
+                         frame->index  = region->children[level].count - 1;
 
                          continue;
                     }

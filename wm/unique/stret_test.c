@@ -31,37 +31,37 @@ main( int argc, char *argv[] )
      D_INFO( "StReT/Test: Starting...\n" );
 
 
-     ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 0, 0, 1000, 1000, NULL, &root );
+     ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 2, 0, 0, 1000, 1000, NULL, 0, &root );
      if (ret) {
           D_DERROR( ret, "StReT/Test: Could not create root region!\n" );
           goto error_root;
      }
      else {
-          ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 10, 10, 100, 100, root, &child[child_num++] );
+          ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 10, 10, 100, 100, root, 1, &child[child_num++] );
           if (ret) {
                D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                goto error_child;
           }
           else {
-               ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 50, 50, 30, 30, child[0], &child[child_num++] );
+               ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 50, 50, 30, 30, child[0], 0, &child[child_num++] );
                if (ret) {
                     D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                     goto error_child;
                }
 
-               ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 20, 20, 30, 30, child[0], &child[child_num++] );
+               ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 20, 20, 30, 30, child[0], 0, &child[child_num++] );
                if (ret) {
                     D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                     goto error_child;
                }
                else {
-                    ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 10, 10, 10, 10, child[2], &child[child_num++] );
+                    ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 10, 10, 10, 10, child[2], 0, &child[child_num++] );
                     if (ret) {
                          D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                          goto error_child;
                     }
 
-                    ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 20, 20, 10, 10, child[2], &child[child_num++] );
+                    ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 20, 20, 10, 10, child[2], 0, &child[child_num++] );
                     if (ret) {
                          D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                          goto error_child;
@@ -69,7 +69,7 @@ main( int argc, char *argv[] )
                }
           }
 
-          ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 200, 10, 200, 200, root, &child[child_num++] );
+          ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 200, 10, 200, 200, root, 0, &child[child_num++] );
           if (ret) {
                D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                goto error_child;
@@ -83,12 +83,12 @@ main( int argc, char *argv[] )
 
      clip = (DFBRegion) { 50, 50, 200, 59 };
 
-     D_ASSERT( stret_iteration_next( &iteration, &clip ) == child[5] );
      D_ASSERT( stret_iteration_next( &iteration, &clip ) == child[4] );
      //D_ASSERT( stret_iteration_next( &iteration, &clip ) == child[3] );
      D_ASSERT( stret_iteration_next( &iteration, &clip ) == child[2] );
      //D_ASSERT( stret_iteration_next( &iteration, &clip ) == child[1] );
      D_ASSERT( stret_iteration_next( &iteration, &clip ) == child[0] );
+     D_ASSERT( stret_iteration_next( &iteration, &clip ) == child[5] );
      D_ASSERT( stret_iteration_next( &iteration, &clip ) == root );
      D_ASSERT( stret_iteration_next( &iteration, &clip ) == NULL );
 

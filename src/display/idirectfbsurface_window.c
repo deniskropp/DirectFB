@@ -151,7 +151,8 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      else {
           if (data->base.surface->caps & DSCAPS_FLIPPING) {
                if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
-                   reg.x2 == data->window->width - 1 && reg.y2 == data->window->height - 1)
+                   reg.x2 == data->window->config.bounds.w - 1 &&
+                   reg.y2 == data->window->config.bounds.h - 1)
                     dfb_surface_flip_buffers( data->base.surface );
                else
                     dfb_back_to_front_copy( data->base.surface, &reg );
@@ -160,7 +161,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
           dfb_window_repaint( data->window, &reg, flags );
      }
 
-     if (!data->window->opacity && data->base.caps & DSCAPS_PRIMARY)
+     if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY)
           dfb_window_set_opacity( data->window, 0xff );
 
      return DFB_OK;

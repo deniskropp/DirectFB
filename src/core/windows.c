@@ -59,6 +59,7 @@
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/trace.h>
 #include <direct/util.h>
 
 #include <gfx/util.h>
@@ -96,8 +97,8 @@ window_destructor( FusionObject *object, bool zombie )
      CoreWindow      *window = (CoreWindow*) object;
      CoreWindowStack *stack  = window->stack;
 
-     D_DEBUG("DirectFB/core/windows: destroying %p (%dx%d%s)\n", window,
-              window->width, window->height, zombie ? " ZOMBIE" : "");
+     D_DEBUG("DirectFB/core/windows: destroying %p (%d,%d - %dx%d%s)\n", window,
+              DFB_RECTANGLE_VALS( &window->config.bounds ), zombie ? " ZOMBIE" : "");
 
      D_ASSUME( window->stack != NULL );
 
@@ -152,13 +153,13 @@ create_region( CoreDFB                 *core,
 
      memset( &config, 0, sizeof(CoreLayerRegionConfig) );
 
-     config.width      = window->width;
-     config.height     = window->height;
+     config.width      = window->config.bounds.w;
+     config.height     = window->config.bounds.h;
      config.format     = format;
      config.buffermode = DLBM_BACKVIDEO;
      config.options    = context->config.options & DLOP_FLICKER_FILTERING;
-     config.source     = (DFBRectangle) {         0,         0, window->width, window->height };
-     config.dest       = (DFBRectangle) { window->x, window->y, window->width, window->height };
+     config.source     = (DFBRectangle) { 0, 0, config.width, config.height };
+     config.dest       = window->config.bounds;
      config.opacity    = 0;
 
      if ((context->config.options & DLOP_ALPHACHANNEL) && DFB_PIXELFORMAT_HAS_ALPHA(format))
@@ -188,7 +189,7 @@ create_region( CoreDFB                 *core,
      } while (ret);
 
 
-     ret = dfb_surface_create( core, window->width, window->height, format,
+     ret = dfb_surface_create( core, config.width, config.height, format,
                                CSP_VIDEOONLY, surface_caps | DSCAPS_DOUBLE, NULL, &surface );
      if (ret) {
           dfb_layer_region_unref( region );
@@ -233,6 +234,7 @@ dfb_window_create( CoreWindowStack        *stack,
      CoreLayerContext  *context;
      CoreWindow        *window;
      CardCapabilities   card_caps;
+     CoreWindowConfig   config;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( stack->context != NULL );
@@ -322,25 +324,26 @@ dfb_window_create( CoreWindowStack        *stack,
      if (caps & DWCAPS_DOUBLEBUFFER)
           surface_caps |= DSCAPS_DOUBLE;
 
-     /* Create the window object. */
-     window = dfb_core_create_window( layer->core );
+     memset( &config, 0, sizeof(CoreWindowConfig) );
 
-     window->id      = ++stack->id_pool;
+     config.bounds.x = x;
+     config.bounds.y = y;
+     config.bounds.w = width;
+     config.bounds.h = height;
 
-     window->x       = x;
-     window->y       = y;
-     window->width   = width;
-     window->height  = height;
-
-     window->caps    = caps;
-     window->opacity = 0;
-
-     window->stack   = stack;
-     window->events  = DWET_ALL;
+     config.events   = DWET_ALL;
 
      /* Auto enable blending for ARGB only, not LUT8. */
      if ((caps & DWCAPS_ALPHACHANNEL) && pixelformat == DSPF_ARGB)
-          window->options = DWOP_ALPHACHANNEL;
+          config.options |= DWOP_ALPHACHANNEL;
+
+     /* Create the window object. */
+     window = dfb_core_create_window( layer->core );
+
+     window->id     = ++stack->id_pool;
+     window->caps   = caps;
+     window->stack  = stack;
+     window->config = config;
 
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
@@ -454,7 +457,7 @@ dfb_window_destroy( CoreWindow *window )
 
      D_DEBUG( "DirectFB/core/windows: "
               "dfb_window_destroy (%p) [%4d,%4d - %4dx%4d]\n",
-              window, window->x, window->y, window->width, window->height );
+              window, DFB_RECTANGLE_VALS( &window->config.bounds ) );
 
      D_ASSUME( window->stack != NULL );
 
@@ -515,11 +518,13 @@ dfb_window_destroy( CoreWindow *window )
      dfb_window_post_event( window, &evt );
 }
 
-void
+DFBResult
 dfb_window_change_stacking( CoreWindow             *window,
                             DFBWindowStackingClass  stacking )
 {
-     CoreWindowStack *stack;
+     DFBResult         ret;
+     CoreWindowStack  *stack;
+     CoreWindowConfig  config;
 
      D_ASSERT( window != NULL );
      D_ASSERT( window->stack != NULL );
@@ -528,18 +533,23 @@ dfb_window_change_stacking( CoreWindow             *window,
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
+
+     config.stacking = stacking;
 
      /* Let the window manager do its work. */
-     dfb_wm_restack_window( window, window, 0, stacking );
+     ret = dfb_wm_set_window_config( window, &config, CWCF_STACKING );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
-void
+DFBResult
 dfb_window_raise( CoreWindow *window )
 {
+     DFBResult        ret;
      CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
@@ -549,18 +559,21 @@ dfb_window_raise( CoreWindow *window )
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
      /* Let the window manager do its work. */
-     dfb_wm_restack_window( window, window, 1, window->stacking );
+     ret = dfb_wm_restack_window( window, window, 1 );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
-void
+DFBResult
 dfb_window_lower( CoreWindow *window )
 {
+     DFBResult        ret;
      CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
@@ -570,18 +583,21 @@ dfb_window_lower( CoreWindow *window )
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
      /* Let the window manager do its work. */
-     dfb_wm_restack_window( window, window, -1, window->stacking );
+     ret = dfb_wm_restack_window( window, window, -1 );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
-void
+DFBResult
 dfb_window_raisetotop( CoreWindow *window )
 {
+     DFBResult        ret;
      CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
@@ -591,18 +607,21 @@ dfb_window_raisetotop( CoreWindow *window )
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
      /* Let the window manager do its work. */
-     dfb_wm_restack_window( window, NULL, 1, window->stacking );
+     ret = dfb_wm_restack_window( window, NULL, 1 );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
-void
+DFBResult
 dfb_window_lowertobottom( CoreWindow *window )
 {
+     DFBResult        ret;
      CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
@@ -612,19 +631,22 @@ dfb_window_lowertobottom( CoreWindow *window )
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
      /* Let the window manager do its work. */
-     dfb_wm_restack_window( window, NULL, 0, window->stacking );
+     ret = dfb_wm_restack_window( window, NULL, 0 );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
-void
+DFBResult
 dfb_window_putatop( CoreWindow *window,
                     CoreWindow *lower )
 {
+     DFBResult        ret;
      CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
@@ -634,19 +656,22 @@ dfb_window_putatop( CoreWindow *window,
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
      /* Let the window manager do its work. */
-     dfb_wm_restack_window( window, lower, 1, window->stacking );
+     ret = dfb_wm_restack_window( window, lower, 1 );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
-void
+DFBResult
 dfb_window_putbelow( CoreWindow *window,
                      CoreWindow *upper )
 {
+     DFBResult        ret;
      CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
@@ -656,30 +681,51 @@ dfb_window_putbelow( CoreWindow *window,
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
      /* Let the window manager do its work. */
-     dfb_wm_restack_window( window, upper, -1, window->stacking );
+     ret = dfb_wm_restack_window( window, upper, -1 );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
-void
+DFBResult
 dfb_window_move( CoreWindow *window,
-                 int         dx,
-                 int         dy )
+                 int         x,
+                 int         y,
+                 bool        relative )
 {
-     CoreWindowStack *stack = window->stack;
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindowStack  *stack = window->stack;
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
-     dfb_wm_move_window( window, dx, dy );
+     if (relative) {
+          config.bounds.x = window->config.bounds.x + x;
+          config.bounds.y = window->config.bounds.y + y;
+     }
+     else {
+          config.bounds.x = x;
+          config.bounds.y = y;
+     }
+
+     if (config.bounds.x == window->config.bounds.x && config.bounds.y == window->config.bounds.y) {
+          dfb_windowstack_unlock( stack );
+          return DFB_OK;
+     }
+
+     ret = dfb_wm_set_window_config( window, &config, CWCF_POSITION );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
 DFBResult
@@ -687,8 +733,9 @@ dfb_window_resize( CoreWindow   *window,
                    int           width,
                    int           height )
 {
-     DFBResult        ret;
-     CoreWindowStack *stack = window->stack;
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindowStack  *stack = window->stack;
 
      D_ASSERT( width > 0 );
      D_ASSERT( height > 0 );
@@ -700,7 +747,15 @@ dfb_window_resize( CoreWindow   *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     ret = dfb_wm_resize_window( window, width, height );
+     if (window->config.bounds.w == width && window->config.bounds.h == height) {
+          dfb_windowstack_unlock( stack );
+          return DFB_OK;
+     }
+
+     config.bounds.w = width;
+     config.bounds.h = height;
+
+     ret = dfb_wm_set_window_config( window, &config, CWCF_SIZE );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -708,36 +763,144 @@ dfb_window_resize( CoreWindow   *window,
      return ret;
 }
 
-void
+DFBResult
+dfb_window_set_colorkey( CoreWindow *window,
+                         __u32       color_key )
+{
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindowStack  *stack = window->stack;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     if (window->config.color_key == color_key) {
+          dfb_windowstack_unlock( stack );
+          return DFB_OK;
+     }
+
+     config.color_key = color_key;
+
+     ret = dfb_wm_set_window_config( window, &config, CWCF_COLOR_KEY );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+
+DFBResult
 dfb_window_set_opacity( CoreWindow *window,
                         __u8        opacity )
 {
-     CoreWindowStack *stack = window->stack;
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindowStack  *stack = window->stack;
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
-     dfb_wm_set_opacity( window, opacity );
+     if (window->config.opacity == opacity) {
+          dfb_windowstack_unlock( stack );
+          return DFB_OK;
+     }
+
+     config.opacity = opacity;
+
+     ret = dfb_wm_set_window_config( window, &config, CWCF_OPACITY );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
-void
-dfb_window_set_options( CoreWindow       *window,
-                        DFBWindowOptions  options )
+DFBResult
+dfb_window_change_options( CoreWindow       *window,
+                           DFBWindowOptions  disable,
+                           DFBWindowOptions  enable )
 {
-     CoreWindowStack *stack = window->stack;
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindowStack  *stack = window->stack;
+
+     D_ASSUME( disable | enable );
+
+     if (!disable && !enable)
+          return DFB_OK;
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
-     dfb_wm_set_options( window, options );
+     config.options = (window->config.options & ~disable) | enable;
+
+     ret = dfb_wm_set_window_config( window, &config, CWCF_OPTIONS );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+
+DFBResult
+dfb_window_set_opaque( CoreWindow      *window,
+                       const DFBRegion *region )
+{
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindowStack  *stack = window->stack;
+
+     DFB_REGION_ASSERT_IF( region );
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     config.opaque.x1 = 0;
+     config.opaque.y1 = 0;
+     config.opaque.x2 = window->config.bounds.w - 1;
+     config.opaque.y1 = window->config.bounds.h - 1;
+
+     if (region && !dfb_region_region_intersect( &config.opaque, region ))
+          ret = DFB_INVAREA;
+     else
+          ret = dfb_wm_set_window_config( window, &config, CWCF_OPAQUE );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+
+DFBResult
+dfb_window_change_events( CoreWindow         *window,
+                          DFBWindowEventType  disable,
+                          DFBWindowEventType  enable )
+{
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindowStack  *stack = window->stack;
+
+     D_ASSUME( disable | enable );
+
+     if (!disable && !enable)
+          return DFB_OK;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     config.events = (window->config.events & ~disable) | enable;
+
+     ret = dfb_wm_set_window_config( window, &config, CWCF_EVENTS );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
 DFBResult
@@ -908,7 +1071,7 @@ dfb_window_post_event( CoreWindow     *window,
 
      D_ASSUME( !DFB_WINDOW_DESTROYED( window ) || event->type == DWET_DESTROYED );
 
-     if (! (event->type & window->events))
+     if (! (event->type & window->config.events))
           return;
 
      gettimeofday( &event->timestamp, NULL );
@@ -935,29 +1098,32 @@ dfb_window_send_configuration( CoreWindow *window )
      DFBWindowEvent event;
 
      event.type = DWET_POSITION_SIZE;
-     event.x    = window->x;
-     event.y    = window->y;
-     event.w    = window->width;
-     event.h    = window->height;
+     event.x    = window->config.bounds.x;
+     event.y    = window->config.bounds.y;
+     event.w    = window->config.bounds.w;
+     event.h    = window->config.bounds.h;
 
      dfb_window_post_event( window, &event );
 
      return DFB_OK;
 }
 
-void
+DFBResult
 dfb_window_request_focus( CoreWindow *window )
 {
+     DFBResult        ret;
      CoreWindowStack *stack = window->stack;
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return;
+          return DFB_FUSION;
 
-     dfb_wm_request_focus( window );
+     ret = dfb_wm_request_focus( window );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     return ret;
 }
 
 DFBWindowID
@@ -966,6 +1132,14 @@ dfb_window_id( const CoreWindow *window )
      D_ASSERT( window != NULL );
 
      return window->id;
+}
+
+CoreSurface *
+dfb_window_surface( const CoreWindow *window )
+{
+     D_ASSERT( window != NULL );
+
+     return window->surface;
 }
 
 /******************************************************************************/

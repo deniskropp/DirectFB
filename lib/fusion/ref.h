@@ -94,6 +94,14 @@ DirectResult fusion_ref_watch        (FusionRef  *ref,
                                       int         call_arg);
 
 /*
+ * Inherit local reference count from another reference.
+ *
+ * The local count of the other reference (and its inherited references) is added to this reference.
+ */
+DirectResult fusion_ref_inherit      (FusionRef *ref,
+                                      FusionRef *from);
+
+/*
  * Deinitialize.
  * Can be called after successful zero_lock or zero_trylock
  * so that waiting fusion_ref_up calls return with DFB_DESTROYED.
