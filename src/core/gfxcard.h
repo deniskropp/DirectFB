@@ -197,6 +197,10 @@ typedef struct _GraphicsDeviceFuncs {
      bool (*StretchBlit)   ( void *driver_data, void *device_data,
                              DFBRectangle *srect, DFBRectangle *drect );
 
+     /*
+      * emit any buffered commands, i.e. trigger processing
+      */
+     void (*EmitCommands)  ( void *driver_data, void *device_data );
 } GraphicsDeviceFuncs;
 
 typedef struct {

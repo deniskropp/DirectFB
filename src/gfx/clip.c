@@ -203,20 +203,6 @@ dfb_clip_triangle_precheck( const DFBRegion *clip, const DFBTriangle *tri )
     return DFB_TRUE;
 }
 
-DFBBoolean
-dfb_clip_blit_precheck( const DFBRegion *clip,
-                        int w, int h, int dx, int dy )
-{
-     if (w < 1 || h < 1 ||
-         (clip->x1 >= dx + w) ||
-         (clip->x2 < dx) ||
-         (clip->y1 >= dy + h) ||
-         (clip->y2 < dy))
-          return DFB_FALSE;
-
-     return DFB_TRUE;
-}
-
 void
 dfb_clip_blit( const DFBRegion *clip,
                DFBRectangle *srect, int *dx, int *dy )

@@ -610,6 +610,10 @@ dfb_gfxcard_state_release( CardState *state )
      DFB_ASSERT( card != NULL );
      DFB_ASSERT( card->shared != NULL );
      DFB_ASSERT( state != NULL );
+
+     /* start command processing if not already running */
+     if (card->funcs.EmitCommands)
+          card->funcs.EmitCommands( card->driver_data, card->device_data );
      
      /* destination always gets locked during acquisition */
      dfb_surface_unlock( state->destination, false );
