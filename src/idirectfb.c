@@ -91,28 +91,28 @@
  * private data struct of IDirectFB
  */
 typedef struct {
-     int                    ref;      /* reference counter */
-     CoreDFB               *core;
+     int                         ref;      /* reference counter */
+     CoreDFB                    *core;
 
-     DFBCooperativeLevel    level;    /* current cooperative level */
+     DFBCooperativeLevel         level;    /* current cooperative level */
 
-     CoreLayer             *layer;    /* primary display layer */
-     CoreLayerContext      *context;  /* shared context of primary layer */
-     CoreWindowStack       *stack;    /* window stack of primary layer */
+     CoreLayer                  *layer;    /* primary display layer */
+     CoreLayerContext           *context;  /* shared context of primary layer */
+     CoreWindowStack            *stack;    /* window stack of primary layer */
 
      struct {
-          int               width;    /* IDirectFB stores window width    */
-          int               height;   /* and height and the pixel depth   */
-          int               bpp;      /* from SetVideoMode() parameters.  */
+          int                    width;    /* IDirectFB stores window width    */
+          int                    height;   /* and height and the pixel depth   */
+          DFBSurfacePixelFormat  format;   /* from SetVideoMode() parameters.  */
 
-          CoreWindow       *window;   /* implicitly created window */
-          Reaction          reaction; /* for the focus listener */
-          bool              focused;  /* primary's window has the focus */
+          CoreWindow            *window;   /* implicitly created window */
+          Reaction               reaction; /* for the focus listener */
+          bool                   focused;  /* primary's window has the focus */
 
-          CoreLayerContext *context;  /* context for fullscreen primary */
-     } primary;                       /* Used for DFSCL_NORMAL's primary. */
+          CoreLayerContext      *context;  /* context for fullscreen primary */
+     } primary;                            /* Used for DFSCL_NORMAL's primary. */
 
-     bool                   app_focus;
+     bool                        app_focus;
 } IDirectFB_data;
 
 typedef struct {
@@ -335,10 +335,15 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                         int           bpp )
 {
      DFBResult ret;
+     DFBSurfacePixelFormat format;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (width < 1 || height < 1 || bpp < 1)
+          return DFB_INVARG;
+
+     format = dfb_pixelformat_for_depth( bpp );
+     if (format == DSPF_UNKNOWN)
           return DFB_INVARG;
 
      switch (data->level) {
@@ -359,10 +364,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                                     DLCONF_PIXELFORMAT;
                config.width       = width;
                config.height      = height;
-               config.pixelformat = dfb_pixelformat_for_depth( bpp );
-
-               if (config.pixelformat == DSPF_UNKNOWN)
-                    return DFB_INVARG;
+               config.pixelformat = format;
 
                ret = dfb_layer_context_set_configuration( data->primary.context,
                                                           &config );
@@ -375,7 +377,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
 
      data->primary.width  = width;
      data->primary.height = height;
-     data->primary.bpp    = bpp;
+     data->primary.format = format;
 
      return DFB_OK;
 }
@@ -477,6 +479,33 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           if (desc->flags & DSDESC_PREALLOCATED)
                return DFB_INVARG;
 
+          if (desc->flags & DSDESC_PIXELFORMAT)
+               format = desc->pixelformat;
+          else if (data->primary.format)
+               format = data->primary.format;
+          else if (dfb_config->mode.format)
+               format = dfb_config->mode.format;
+          else
+               format = config.pixelformat;
+
+          if (desc->flags & DSDESC_WIDTH)
+               width = desc->width;
+          else if (data->primary.format)
+               width = data->primary.width;
+          else if (dfb_config->mode.width)
+               width = dfb_config->mode.width;
+          else
+               width = config.width;
+
+          if (desc->flags & DSDESC_HEIGHT)
+               height = desc->height;
+          else if (data->primary.format)
+               height = data->primary.height;
+          else if (dfb_config->mode.height)
+               height = dfb_config->mode.height;
+          else
+               height = config.height;
+
           /* FIXME: should we allow to create more primaries in windowed mode?
                     should the primary surface be a singleton?
                     or should we return an error? */
@@ -490,26 +519,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          else if (caps & DSCAPS_SYSTEMONLY)
                               policy = CSP_SYSTEMONLY;
 
-                         if (desc->flags & DSDESC_PIXELFORMAT)
-                              format = desc->pixelformat;
-                         else if (dfb_config->mode.format)
-                              format = dfb_config->mode.format;
-
-                         if (!data->primary.bpp) {
-                              if (dfb_config->mode.width)
-                                   data->primary.width = dfb_config->mode.width;
-                              else
-                                   data->primary.width = config.width;
-
-                              if (dfb_config->mode.height)
-                                   data->primary.height = dfb_config->mode.height;
-                              else
-                                   data->primary.height = config.height;
-                         }
-
                          ret = dfb_surface_create( data->core,
-                                                   data->primary.width,
-                                                   data->primary.height,
+                                                   width, height,
                                                    format, policy, caps, NULL,
                                                    &surface );
                          if (ret)
@@ -537,19 +548,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if (caps & DSCAPS_TRIPLE)
                               return DFB_UNSUPPORTED;
 
-                         if (! (desc->flags & DSDESC_WIDTH))
-                              width = data->primary.width;
-
-                         if (! (desc->flags & DSDESC_HEIGHT))
-                              height = data->primary.height;
-
                          x = (config.width  - width)  / 2;
                          y = (config.height - height) / 2;
-
-                         if (desc->flags & DSDESC_PIXELFORMAT)
-                              format = desc->pixelformat;
-                         else
-                              format = dfb_config->mode.format;
 
                          switch (format) {
                               case DSPF_ARGB:
@@ -590,7 +590,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     CoreLayerRegion  *region;
                     CoreLayerContext *context = data->primary.context;
 
-                    config.flags |= DLCONF_BUFFERMODE;
+                    config.flags |= DLCONF_BUFFERMODE | DLCONF_PIXELFORMAT |
+                                    DLCONF_WIDTH | DLCONF_HEIGHT;
 
                     if (caps & DSCAPS_TRIPLE) {
                          if (caps & DSCAPS_SYSTEMONLY)
@@ -605,25 +606,9 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     else
                          config.buffermode = DLBM_FRONTONLY;
 
-                    if (desc->flags & DSDESC_PIXELFORMAT) {
-                         config.flags       |= DLCONF_PIXELFORMAT;
-                         config.pixelformat  = format;
-                    }
-                    else if (!data->primary.bpp && dfb_config->mode.format) {
-                         config.pixelformat = dfb_config->mode.format;
-                    }
-
-                    /*
-                     * If SetVideoMode hasn't been called,
-                     * check if the user ran the app with the 'mode=' option.
-                     */
-                    if (!data->primary.bpp) {
-                         if (dfb_config->mode.width)
-                              config.width = dfb_config->mode.width;
-
-                         if (dfb_config->mode.height)
-                              config.height = dfb_config->mode.height;
-                    }
+                    config.pixelformat = format;
+                    config.width       = width;
+                    config.height      = height;
 
                     ret = dfb_layer_context_set_configuration( context, &config );
                     if (ret && ! (caps & (DSCAPS_SYSTEMONLY|DSCAPS_VIDEOONLY)) &&
@@ -1226,16 +1211,6 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      data->ref   = 1;
      data->core  = core;
      data->level = DFSCL_NORMAL;
-
-     if (dfb_config->mode.width)
-          data->primary.width  = dfb_config->mode.width;
-     else
-          data->primary.width  = 640;
-
-     if (dfb_config->mode.height)
-          data->primary.height = dfb_config->mode.height;
-     else
-          data->primary.height = 480;
 
      data->layer = dfb_layer_at_translated( DLID_PRIMARY );
 
