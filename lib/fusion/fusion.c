@@ -46,6 +46,7 @@
 #include <direct/messages.h>
 #include <direct/signals.h>
 #include <direct/thread.h>
+#include <direct/trace.h>
 
 #include <fusion/build.h>
 #include <fusion/types.h>
@@ -345,6 +346,8 @@ fusion_sync()
      }
 
      D_ERROR( "Fusion/Sync: timeout waiting for empty read buffer\n" );
+
+     direct_trace_print_stacks();
 }
 
 /*****************************
