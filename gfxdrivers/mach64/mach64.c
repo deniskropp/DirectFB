@@ -138,6 +138,31 @@ static void mach64SetState( void *drv, void *dev,
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
 
+     if (state->modified == SMF_ALL) {
+          mdev->valid = 0;
+     } else if (state->modified) {
+          if (state->modified & SMF_SOURCE)
+               MACH64_INVALIDATE( m_source | m_srckey );
+
+          if (state->modified & SMF_SRC_COLORKEY)
+               MACH64_INVALIDATE( m_srckey );
+
+          if (state->modified & SMF_DESTINATION)
+               MACH64_INVALIDATE( m_color | m_dstkey );
+
+          if (state->modified & SMF_COLOR)
+               MACH64_INVALIDATE( m_color );
+
+          if (state->modified & SMF_DST_COLORKEY)
+               MACH64_INVALIDATE( m_dstkey );
+
+          if (state->modified & SMF_BLITTING_FLAGS)
+               MACH64_INVALIDATE( m_srckey | m_dstkey | m_disable_key );
+
+          if (state->modified & SMF_DRAWING_FLAGS)
+               MACH64_INVALIDATE( m_dstkey | m_disable_key );
+     }
+
      if (state->modified & SMF_DESTINATION)
           mach64_set_destination( mdrv, mdev, state );
 
@@ -145,30 +170,24 @@ static void mach64SetState( void *drv, void *dev,
      case DFXL_FILLRECTANGLE:
      case DFXL_DRAWRECTANGLE:
      case DFXL_DRAWLINE:
-          if (state->modified & SMF_COLOR)
-               mach64_set_color( mdrv, mdev, state );
+          mach64_set_color( mdrv, mdev, state );
 
-          if (state->modified & (SMF_DST_COLORKEY | SMF_DRAWING_FLAGS)) {
-               if (state->drawingflags & DSDRAW_DST_COLORKEY)
-                    mach64_set_dst_colorkey( mdrv, mdev, state );
-               else
-                    mach64_disable_colorkey( mdrv, mdev );
-          }
+          if (state->drawingflags & DSDRAW_DST_COLORKEY)
+               mach64_set_dst_colorkey( mdrv, mdev, state );
+          else
+               mach64_disable_colorkey( mdrv, mdev );
 
           state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE;
           break;
      case DFXL_BLIT:
-          if (state->modified & SMF_SOURCE)
-               mach64_set_source( mdrv, mdev, state );
+          mach64_set_source( mdrv, mdev, state );
 
-          if (state->modified & (SMF_DST_COLORKEY | SMF_SRC_COLORKEY | SMF_BLITTING_FLAGS)) {
-               if (state->blittingflags & DSBLIT_DST_COLORKEY)
-                    mach64_set_dst_colorkey( mdrv, mdev, state );
-               else if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                    mach64_set_src_colorkey( mdrv, mdev, state );
-               else
-                    mach64_disable_colorkey( mdrv, mdev );
-          }
+          if (state->blittingflags & DSBLIT_DST_COLORKEY)
+               mach64_set_dst_colorkey( mdrv, mdev, state );
+          else if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+               mach64_set_src_colorkey( mdrv, mdev, state );
+          else
+               mach64_disable_colorkey( mdrv, mdev );
 
           state->set = DFXL_BLIT;
           break;
@@ -357,7 +376,7 @@ driver_get_info( GraphicsDevice     *device,
                "Ville Syrjala" );
 
      info->version.major = 0;
-     info->version.minor = 1;
+     info->version.minor = 2;
 
      info->driver_data_size = sizeof (Mach64DriverData);
      info->device_data_size = sizeof (Mach64DeviceData);

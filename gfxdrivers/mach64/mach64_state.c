@@ -79,8 +79,6 @@ void mach64_set_destination( Mach64DriverData *mdrv,
      mdev->dst_key_mask = (1 << DFB_BITS_PER_PIXEL( destination->format )) - 1;
 
      mach64_out32( mmio, DST_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
-
-     mdev->destination = destination;
 }
 
 void mach64_set_source( Mach64DriverData *mdrv,
@@ -91,6 +89,9 @@ void mach64_set_source( Mach64DriverData *mdrv,
      CoreSurface   *source = state->source;
      SurfaceBuffer *buffer = source->front_buffer;
      int            pitch  = buffer->video.pitch / DFB_BYTES_PER_PIXEL( source->format );
+
+     if (MACH64_IS_VALID( m_source ))
+          return;
 
      switch (source->format) {
           case DSPF_RGB332:
@@ -115,6 +116,8 @@ void mach64_set_source( Mach64DriverData *mdrv,
      mach64_waitfifo( mdrv, mdev, 1 );
 
      mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
+
+     MACH64_VALIDATE( m_source );
 }
 
 void mach64_set_clip( Mach64DriverData *mdrv,
@@ -135,6 +138,9 @@ void mach64_set_color( Mach64DriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
      __u32          color = 0;
+
+     if (MACH64_IS_VALID( m_color ))
+          return;
 
      switch (state->destination->format) {
           case DSPF_RGB332:
@@ -180,6 +186,8 @@ void mach64_set_color( Mach64DriverData *mdrv,
 
      mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, DP_FRGD_CLR, color );
+
+     MACH64_VALIDATE( m_color );
 }
 
 void mach64_set_src_colorkey( Mach64DriverData *mdrv,
@@ -188,10 +196,16 @@ void mach64_set_src_colorkey( Mach64DriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
+     if (MACH64_IS_VALID( m_srckey ))
+          return;
+
      mach64_waitfifo( mdrv, mdev, 3 );
      mach64_out32( mmio, CLR_CMP_MASK, mdev->src_key_mask );
      mach64_out32( mmio, CLR_CMP_CLR, state->src_colorkey );
      mach64_out32( mmio, CLR_CMP_CNTL, COMPARE_EQUAL | COMPARE_SOURCE );
+
+     MACH64_VALIDATE( m_srckey );
+     MACH64_INVALIDATE( m_dstkey | m_disable_key );
 }
 
 void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
@@ -200,10 +214,16 @@ void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
+     if (MACH64_IS_VALID( m_dstkey ))
+          return;
+
      mach64_waitfifo( mdrv, mdev, 3 );
      mach64_out32( mmio, CLR_CMP_MASK, mdev->dst_key_mask );
      mach64_out32( mmio, CLR_CMP_CLR, state->dst_colorkey );
      mach64_out32( mmio, CLR_CMP_CNTL, COMPARE_EQUAL | COMPARE_DESTINATION );
+
+     MACH64_VALIDATE( m_dstkey );
+     MACH64_INVALIDATE( m_srckey | m_disable_key );
 }
 
 void mach64_disable_colorkey( Mach64DriverData *mdrv,
@@ -211,6 +231,12 @@ void mach64_disable_colorkey( Mach64DriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
+     if (MACH64_IS_VALID( m_disable_key ))
+          return;
+
      mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, CLR_CMP_CNTL, COMPARE_FALSE );
+
+     MACH64_VALIDATE( m_disable_key );
+     MACH64_INVALIDATE( m_srckey | m_dstkey );
 }

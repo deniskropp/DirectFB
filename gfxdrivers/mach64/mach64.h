@@ -32,6 +32,18 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 
+typedef enum {
+     m_source      = 0x01,
+     m_color       = 0x02,
+     m_srckey      = 0x04,
+     m_dstkey      = 0x08,
+     m_disable_key = 0x10
+} Mach64StateBits;
+
+#define MACH64_VALIDATE(b)      (mdev->valid |= (b))
+#define MACH64_INVALIDATE(b)    (mdev->valid &= ~(b))
+#define MACH64_IS_VALID(b)      (mdev->valid & (b))
+     
 typedef struct {
      int accelerator;
      volatile __u8 *mmio_base;
@@ -46,13 +58,13 @@ typedef struct {
      unsigned int idle_waitcycles;
      unsigned int fifo_cache_hits;
 
+     Mach64StateBits valid;
+
      __u32 src_bpp;
      __u32 dst_bpp;
 
      __u32 src_key_mask;
      __u32 dst_key_mask;
-
-     CoreSurface *destination;
 } Mach64DeviceData;
 
 #endif
