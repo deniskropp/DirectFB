@@ -47,7 +47,7 @@ while (<>)
 
       if ( /^\s*\/\*\s*$/ )
          {
-           $comment = "<p>\n";
+           $comment = "\n";
 
             while (<>)
                {
@@ -58,7 +58,7 @@ while (<>)
                     {
                       if ($1 eq "")
                         {
-                          $comment .= "</p><p>\n";
+                          $comment .= "<br>\n";
                         }
                       else
                         {
@@ -67,7 +67,7 @@ while (<>)
                     }
                }
 
-           $comment .= "</p>\n";
+           $comment .= "\n";
          }
       elsif ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ )
          {
@@ -90,6 +90,10 @@ while (<>)
          {
             parse_struct();
          }
+      elsif ( /^\s*#define\s+(\S+)\s*\(?([^\)]*)\)/ )
+         {
+            parse_macro( $1 );
+         }
       else
          {
             $comment = "";
@@ -104,7 +108,7 @@ html_close( TYPES );
 
 #
 # Reads stdin until the end of the interface is reached.
-# Writes formatted HTML to stdout.
+# Writes formatted HTML to one file for the interface and one file per method.
 # Parameter is the interface name.
 #
 sub parse_interface (NAME)
@@ -257,7 +261,7 @@ sub parse_interface (NAME)
 
 #
 # Reads stdin until the end of the enum is reached.
-# Writes formatted HTML to stdout.
+# Writes formatted HTML to "types.html".
 #
 sub parse_enum
    {
@@ -388,26 +392,33 @@ sub parse_enum
 
       if (scalar @list > 0)
          {
-            print TYPES "<br><br>",
-                        "<a name=$enum>",
-                        "<font color=#D07070 size=+2>$enum</font>\n";
+            print TYPES "<p>\n",
+                        "  <a name=$enum>\n",
+                        "  <font color=#D07070 size=+1>$enum</font>\n";
 
-            print TYPES "$comment";
+            print TYPES "  <br>\n",
+                        "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#F0F0F0>\n";
 
             foreach $key (@list)
                {
-                  print TYPES "<p style=\"margin-left:6mm;\" >",
-                              "  <font color=#40A040 size=+1>$key</font><br>",
-                              "  <font color=#404040>$entries{$key}</font>",
-                              "</p>\n";
+                  print TYPES "    <TR><TD width=32>&nbsp;</TD><TD valign=top>\n",
+                              "      <font color=#40A040>$key</font>\n",
+                              "    </TD><TD valign=top>\n",
+                              "      <font color=#404040>$entries{$key}</font>\n",
+                              "    </TD></TR>\n";
                }
+
+            print TYPES "  </TABLE>\n",
+                        "  $comment\n",
+                        "  <br>\n",
+                        "</p>\n";
          }
    }
 
 
 #
 # Reads stdin until the end of the enum is reached.
-# Writes formatted HTML to stdout.
+# Writes formatted HTML to "types.html".
 #
 sub parse_struct
    {
@@ -520,16 +531,16 @@ sub parse_struct
 
       if (scalar @entries > 0)
          {
-            print TYPES "<br><br>",
-                        "<a name=$struct>",
-                        "<font color=#70D070 size=+2>$struct</font>\n";
+            print TYPES "<p>",
+                        "  <a name=$struct>",
+                        "  <font color=#70D070 size=+1>$struct</font>\n";
 
-            print TYPES "<P>\n",
+            print TYPES "  <br>\n",
                         "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#E0E0E0>\n";
 
             foreach $key (@entries)
                {
-                  print TYPES "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",
+                  print TYPES "    <TR><TD width=32>&nbsp;</TD><TD valign=top>\n",
                               "      $entries_types{$key}\n",
                               "    </TD><TD valign=top>\n",
                               "      <FONT color=black><B>$key</B></FONT>\n",
@@ -539,12 +550,37 @@ sub parse_struct
                }
 
             print TYPES "  </TABLE>\n",
-                        "</P>\n";
+                        "  $comment\n",
+                        "  <br>\n",
+                        "</p>\n";
 
-            print TYPES "$comment";
          }
    }
 
+#
+# Reads stdin until the end of the macro is reached.
+# Writes formatted HTML to "types.html".
+# Parameter is the macro name.
+#
+sub parse_macro (NAME)
+   {
+      my $macro = shift(@_);
+
+      while (<>)
+         {
+            chomp;
+
+            last unless /\\$/;
+         }
+
+      print TYPES "<p>\n",
+                  "  <a name=$macro>\n",
+                  "  <font color=#7070D0 size=+1>$macro</font>\n",
+                  "  <br>\n",
+                  "  $comment\n",
+                  "  <br>\n",
+                  "</p>\n";
+   }
 
 
 sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE)
