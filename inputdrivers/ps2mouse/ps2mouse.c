@@ -28,21 +28,14 @@
 #include <errno.h>
 
 #include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/kd.h>
-#include <sys/vt.h>
-
-#include <linux/keyboard.h>
-
-#include <termios.h>
 
 #include <directfb.h>
 
 #include <misc/conf.h>
 
 #include <core/coredefs.h>
-
 #include <core/vt.h>
+
 #include "ps2mouse.h"
 
 static int fd = -1;
