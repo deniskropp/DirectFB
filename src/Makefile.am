@@ -49,6 +49,8 @@ EXTRA_DIST = export_list.sym
 #
 ## and now rebuild the static version with the *correct* object files
 #
+if BUILD_STATIC
+
 clean-local:
 	rm -f libdirectfb_fixed.a
 
@@ -60,3 +62,11 @@ libdirectfb_fixed.a: .libs/libdirectfb.a
 	cp -af libdirectfb_fixed.a .libs/libdirectfb.a
 
 .libs/libdirectfb.a:
+
+else
+
+clean-local:
+
+all-local:
+
+endif
