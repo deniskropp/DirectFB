@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/wm/unique
 
-SUBDIRS = classes data
+SUBDIRS = classes data devices
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\
@@ -69,6 +69,7 @@ includedir = @INCLUDEDIR@/unique
 # Install uniquewm's library header files
 include_HEADERS = \
 	context.h		\
+	device.h		\
 	stret.h			\
 	stret_iteration.h	\
 	types.h			\
@@ -80,6 +81,7 @@ lib_LTLIBRARIES = libuniquewm.la
 
 libuniquewm_la_SOURCES = \
 	context.c		\
+	device.c		\
 	internal.h		\
 	stret.c			\
 	stret_iteration.c	\
@@ -88,6 +90,7 @@ libuniquewm_la_SOURCES = \
 
 libuniquewm_la_LIBADD = \
 	classes/libunique_classes.la			\
+	devices/libunique_devices.la			\
 	$(top_builddir)/lib/direct/libdirect.la		\
 	$(top_builddir)/lib/fusion/libfusion.la		\
 	$(top_builddir)/src/libdirectfb.la

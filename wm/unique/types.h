@@ -28,14 +28,20 @@
 #ifndef __UNIQUE__TYPES_H__
 #define __UNIQUE__TYPES_H__
 
-typedef struct __UniQuE_UniqueContext   UniqueContext;
-typedef struct __UniQuE_UniqueWindow    UniqueWindow;
 
-typedef struct __UniQuE_StretRegion     StretRegion;
+typedef struct __UniQuE_UniqueContext        UniqueContext;
+typedef struct __UniQuE_UniqueDevice         UniqueDevice;
+typedef struct __UniQuE_UniqueWindow         UniqueWindow;
+
+typedef struct __UniQuE_UniqueInputChannel   UniqueInputChannel;
+typedef struct __UniQuE_UniqueInputSwitch    UniqueInputSwitch;
 
 
-typedef struct __UniQuE_WMData          WMData;
-typedef struct __UniQuE_WMShared        WMShared;
+typedef struct __UniQuE_StretRegion          StretRegion;
+
+
+typedef struct __UniQuE_WMData               WMData;
+typedef struct __UniQuE_WMShared             WMShared;
 
 #endif
 

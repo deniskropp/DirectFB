@@ -1,0 +1,42 @@
+UniqueContext object
+- core stack functionality
+- manage parts like dnd, input event and cursor handling
+  without knowing any detail about the different parts
+- reactor for unique context events
+
+UniqueWindow object
+- core window functionality
+- decorations (window borders, overlays)
+- properties (title, type, icon)
+- constraints (min/max size, resize step)
+- options (keep position, size, stacking)
+- state (iconified, maximized, minimized, shaded)
+- window groups and relationships
+- reactor for unique window events
+
+
+UniqueDevice
+- listents to input events
+- dispatches events to one or more UniqueInputSwitch
+- fixed sink selection (grab) for whole device or selected events
++ currently there's one instance for each these device classes
+  - pointer     motion and button events, cursor acceleration
+  - wheel       wheel events
+  - keyboard    key events
+
+
+UniqueCursor part
+- shape switching and updating
+- manage cursor region
+
+UniqueCursorShape object
+- one global fallback shape
+- optionally one shape per window
+- builtin cursor animation
+
+
+UniqueDND part
+- dnd context manager
+
+UniqueDNDContext object
+- created by application starting the drag

@@ -33,6 +33,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+#include <core/input.h>
 #include <core/surfaces.h>
 
 #include <unique/context.h>
@@ -52,17 +53,30 @@ static WMShared *wm_shared;
 
 /**************************************************************************************************/
 
-static const StretRegionClass *region_classes[_UCI_NUM] = {
+static const StretRegionClass *region_classes[_URCI_NUM] = {
      &unique_root_region_class,
      &unique_frame_region_class,
      &unique_window_region_class,
      &unique_foo_region_class
 };
 
-static DFBResult register_classes( WMShared *shared,
-                                   bool      master );
+static DFBResult register_region_classes  ( WMShared *shared,
+                                            bool      master );
 
-static DFBResult unregister_classes( WMShared *shared );
+static DFBResult unregister_region_classes( WMShared *shared );
+
+/**************************************************************************************************/
+
+static const UniqueDeviceClass *device_classes[_UDCI_NUM] = {
+     &unique_pointer_device_class,
+     &unique_wheel_device_class,
+     &unique_keyboard_device_class
+};
+
+static DFBResult register_device_classes  ( WMShared *shared,
+                                            bool      master );
+
+static DFBResult unregister_device_classes( WMShared *shared );
 
 /**************************************************************************************************/
 
@@ -73,6 +87,9 @@ load_foo( CoreDFB *core, WMShared *shared )
      DFBResult  ret;
      void      *data;
      int        pitch;
+
+     D_ASSERT( core != NULL );
+     D_ASSERT( shared != NULL );
 
      ret = dfb_surface_create( core, foo_desc.width, foo_desc.height, foo_desc.pixelformat,
                                CSP_VIDEOHIGH, DSCAPS_NONE, NULL, &shared->foo_surface );
@@ -102,6 +119,16 @@ load_foo( CoreDFB *core, WMShared *shared )
      return DFB_OK;
 }
 
+static void
+unload_foo( WMShared *shared )
+{
+     D_ASSERT( shared != NULL );
+
+     dfb_surface_unlink( &shared->foo_surface );
+}
+
+/**************************************************************************************************/
+
 DFBResult
 unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool master )
 {
@@ -126,18 +153,24 @@ unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool maste
           return DFB_VERSIONMISMATCH;
      }
 
-     ret = register_classes( shared, master );
+     ret = register_region_classes( shared, master );
      if (ret)
           return ret;
+
+     ret = register_device_classes( shared, master );
+     if (ret)
+          goto error_device;
 
      if (master) {
           int i;
 
           ret = load_foo( core, shared );
-          if (ret) {
-               unregister_classes( wm_shared );
-               return ret;
-          }
+          if (ret)
+               goto error_foo;
+
+          ret = dfb_input_add_global( _unique_device_listener, &shared->device_listener );
+          if (ret)
+               goto error_global;
 
           shared->context_pool = unique_context_pool_create();
           shared->window_pool  = unique_window_pool_create();
@@ -150,12 +183,25 @@ unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool maste
           for (i=0; i<8; i++)
                shared->foo_rects[i] = foo[i].rect;
      }
+     else
+          dfb_input_set_global( _unique_device_listener, shared->device_listener );
 
      dfb_core  = core;
      wm_data   = data;
      wm_shared = shared;
 
      return DFB_OK;
+
+error_global:
+     unload_foo( shared );
+
+error_foo:
+     unregister_device_classes( shared );
+
+error_device:
+     unregister_region_classes( shared );
+
+     return ret;
 }
 
 void
@@ -174,7 +220,10 @@ unique_wm_module_deinit( bool master, bool emergency )
           fusion_object_pool_destroy( wm_shared->context_pool );
      }
 
-     unregister_classes( wm_shared );
+     unregister_device_classes( wm_shared );
+     unregister_region_classes( wm_shared );
+
+//FIXME     unload_foo( wm_shared );
 
      dfb_core  = NULL;
      wm_data   = NULL;
@@ -285,8 +334,8 @@ unique_wm_enum_windows( FusionObjectCallback  callback,
 /**************************************************************************************************/
 
 static DFBResult
-register_classes( WMShared *shared,
-                  bool      master )
+register_region_classes( WMShared *shared,
+                         bool      master )
 {
      int                i;
      DFBResult          ret;
@@ -294,7 +343,7 @@ register_classes( WMShared *shared,
 
      D_ASSERT( shared != NULL );
 
-     for (i=0; i<_UCI_NUM; i++) {
+     for (i=0; i<_URCI_NUM; i++) {
           ret = stret_class_register( region_classes[i], &class_id );
           if (ret) {
                D_DERROR( ret, "UniQuE/WM: Failed to register region class %d!\n", i );
@@ -303,9 +352,10 @@ register_classes( WMShared *shared,
           }
 
           if (master)
-               shared->classes[i] = class_id;
-          else if (shared->classes[i] != class_id) {
-               D_ERROR( "UniQuE/WM: Class IDs mismatch (%d/%d)!\n", class_id, shared->classes[i] );
+               shared->region_classes[i] = class_id;
+          else if (shared->region_classes[i] != class_id) {
+               D_ERROR( "UniQuE/WM: Class IDs mismatch (%d/%d)!\n",
+                        class_id, shared->region_classes[i] );
 
                stret_class_unregister( class_id );
 
@@ -318,20 +368,73 @@ register_classes( WMShared *shared,
 
 error:
      while (--i >= 0)
-          stret_class_unregister( shared->classes[i] );
+          stret_class_unregister( shared->region_classes[i] );
 
      return ret;
 }
 
 static DFBResult
-unregister_classes( WMShared *shared )
+unregister_region_classes( WMShared *shared )
 {
      int i;
 
      D_ASSERT( shared != NULL );
 
-     for (i=_UCI_NUM-1; i>=0; i--)
-          stret_class_unregister( shared->classes[i] );
+     for (i=_URCI_NUM-1; i>=0; i--)
+          stret_class_unregister( shared->region_classes[i] );
+
+     return DFB_OK;
+}
+
+static DFBResult
+register_device_classes( WMShared *shared,
+                         bool      master )
+{
+     int                 i;
+     DFBResult           ret;
+     UniqueDeviceClassID class_id;
+
+     D_ASSERT( shared != NULL );
+
+     for (i=0; i<_UDCI_NUM; i++) {
+          ret = unique_device_class_register( device_classes[i], &class_id );
+          if (ret) {
+               D_DERROR( ret, "UniQuE/WM: Failed to register device class %d!\n", i );
+
+               goto error;
+          }
+
+          if (master)
+               shared->device_classes[i] = class_id;
+          else if (shared->device_classes[i] != class_id) {
+               D_ERROR( "UniQuE/WM: Class IDs mismatch (%d/%d)!\n",
+                        class_id, shared->device_classes[i] );
+
+               unique_device_class_unregister( class_id );
+
+               ret = DFB_VERSIONMISMATCH;
+               goto error;
+          }
+     }
+
+     return DFB_OK;
+
+error:
+     while (--i >= 0)
+          unique_device_class_unregister( shared->device_classes[i] );
+
+     return ret;
+}
+
+static DFBResult
+unregister_device_classes( WMShared *shared )
+{
+     int i;
+
+     D_ASSERT( shared != NULL );
+
+     for (i=_UDCI_NUM-1; i>=0; i--)
+          unique_device_class_unregister( shared->device_classes[i] );
 
      return DFB_OK;
 }

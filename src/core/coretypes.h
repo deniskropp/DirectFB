@@ -48,7 +48,10 @@ typedef struct _Chunk                      Chunk;
 
 
 typedef struct _InputDevice                InputDevice;
+typedef struct _InputDevice                CoreInputDevice;
+
 typedef struct _GraphicsDevice             GraphicsDevice;
+typedef struct _GraphicsDevice             CoreGraphicsDevice;
 
 typedef struct __DFB_CoreGraphicsSerial    CoreGraphicsSerial;
 

@@ -1,0 +1,15 @@
+
+
+Input event handling
+---------------------
+
+                                   UniqueCursor
+                                        |
+                                        |
+CoreInputDevice  )---  UniquePointer  )-')-.
+                                           |
+                                   UniqueInputSwitch  -->  UniqueInputChannel  )---  UniqueWindow  -->  CoreWindow
+                                           |
+CoreInputDevice  )-.-  UniqueKeyboard  )---'
+                   |
+CoreInputDevice  )-'

@@ -39,12 +39,13 @@
 #include <core/windows.h>
 
 #include <unique/context.h>
-#include <unique/types.h>
+#include <unique/device.h>
 #include <unique/stret.h>
+#include <unique/types.h>
 #include <unique/window.h>
 
 
-#define UNIQUE_WM_ABI_VERSION 5
+#define UNIQUE_WM_ABI_VERSION 6
 
 
 extern const StretRegionClass unique_root_region_class;
@@ -52,16 +53,26 @@ extern const StretRegionClass unique_frame_region_class;
 extern const StretRegionClass unique_window_region_class;
 extern const StretRegionClass unique_foo_region_class;
 
+extern const UniqueDeviceClass unique_pointer_device_class;
+extern const UniqueDeviceClass unique_wheel_device_class;
+extern const UniqueDeviceClass unique_keyboard_device_class;
 
 typedef enum {
-     UCI_ROOT,
-     UCI_FRAME,
-     UCI_WINDOW,
-     UCI_FOO,
+     URCI_ROOT,
+     URCI_FRAME,
+     URCI_WINDOW,
+     URCI_FOO,
 
-     _UCI_NUM
-} UniqueClassIndex;
+     _URCI_NUM
+} UniqueRegionClassIndex;
 
+typedef enum {
+     UDCI_POINTER,
+     UDCI_WHEEL,
+     UDCI_KEYBOARD,
+
+     _UDCI_NUM
+} UniqueDeviceClassIndex;
 
 typedef enum {
      UFI_N,
@@ -98,7 +109,10 @@ struct __UniQuE_WMShared {
      FusionObjectPool             *context_pool;
      FusionObjectPool             *window_pool;
 
-     StretRegionClassID            classes[_UCI_NUM];
+     StretRegionClassID            region_classes[_URCI_NUM];
+     UniqueDeviceClassID           device_classes[_UDCI_NUM];
+
+     int                           device_listener;    /* react index of the registered global */
 
      DFBInsets                     insets;
 
@@ -158,16 +172,24 @@ struct __UniQuE_UniqueContext {
 
      StretRegion                  *root;
 
+     FusionVector                  windows;
+
+
+     UniqueDevice                 *devices[_UDCI_NUM];
+
+
+
      DFBInputDeviceButtonMask      buttons;
      DFBInputDeviceModifierMask    modifiers;
      DFBInputDeviceLockState       locks;
 
+
+
      DFBPoint                      cursor;
+
 
      int                           wm_level;
      int                           wm_cycle;
-
-     FusionVector                  windows;
 
      UniqueWindow                 *pointer_window;     /* window grabbing the pointer */
      UniqueWindow                 *keyboard_window;    /* window grabbing the keyboard */
@@ -222,24 +244,69 @@ struct __UniQuE_UniqueWindow {
 };
 
 struct __UniQuE_StretRegion {
-     int                 magic;
+     int                  magic;
 
-     StretRegion        *parent;        /* Is NULL for the root region. */
+     StretRegion         *parent;       /* Is NULL for the root region. */
 
-     int                 level;         /* Level within the parent. */
-     int                 index;         /* Index within the level. */
+     int                  level;        /* Level within the parent. */
+     int                  index;        /* Index within the level. */
 
-     int                 levels;        /* Number of levels provided. */
-     FusionVector       *children;      /* Children of each level. */
+     int                  levels;       /* Number of levels provided. */
+     FusionVector        *children;     /* Children of each level. */
 
-     StretRegionFlags    flags;         /* Control appearance and activity. */
+     StretRegionFlags     flags;        /* Control appearance and activity. */
 
-     DFBRegion           bounds;        /* Relative to its parent. */
+     DFBRegion            bounds;       /* Relative to its parent. */
 
-     StretRegionClassID  clazz;         /* Region class (implementation) used for rendering etc. */
+     StretRegionClassID   clazz;        /* Region class (implementation) used for rendering etc. */
 
-     void               *data;          /* Optional private data of region class. */
-     unsigned long       arg;           /* Optional argument for region class instance. */
+     void                *data;         /* Optional private data of region class. */
+     unsigned long        arg;          /* Optional argument for region class instance. */
+};
+
+struct __UniQuE_UniqueDevice {
+     DirectLink           link;
+
+     int                  magic;
+
+     UniqueContext       *context;
+
+     UniqueDeviceClassID  clazz;        /* Device class (implementation) used for processing etc. */
+
+     void                *data;         /* Optional private data of device class. */
+     unsigned long        arg;          /* Optional argument for device class instance. */
+
+     FusionReactor       *reactor;      /* UniqueInputEvent deployment */
+
+     DirectLink          *connections;
+};
+
+
+typedef struct {
+     DirectLink           link;
+
+     int                  magic;
+
+     UniqueInputChannel  *channel;
+
+     UniqueInputEvent     filter;
+} UniqueInputTargetFilter;
+
+typedef struct {
+     UniqueInputChannel  *normal;
+     UniqueInputChannel  *fixed;
+
+     DirectLink          *filters;
+} UniqueInputTarget;
+
+struct __UniQuE_UniqueInputSwitch {
+     DirectLink           link;
+
+     int                  magic;
+
+     DirectLink          *devices;
+
+     UniqueInputTarget    targets[_UDCI_NUM];
 };
 
 
@@ -261,6 +328,9 @@ ReactionResult _unique_wm_module_context_listener( const void *msg_data,
 
 ReactionResult _unique_wm_module_window_listener ( const void *msg_data,
                                                    void       *ctx );
+
+ReactionResult _unique_device_listener ( const void *msg_data,
+                                         void       *ctx );
 
 #endif
 

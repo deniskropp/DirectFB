@@ -37,6 +37,7 @@
 #include <fusion/shmalloc.h>
 
 #include <core/coretypes.h>
+#include <core/input.h>
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/layers.h>
@@ -49,6 +50,7 @@
 #include <misc/util.h>
 
 #include <unique/context.h>
+#include <unique/device.h>
 #include <unique/internal.h>
 
 
@@ -172,7 +174,7 @@ unique_context_create( CoreWindowStack    *stack,
           context->keys[i].code = -1;
 
      /* Create Root Region. */
-     ret = stret_region_create( shared->classes[UCI_ROOT], context, 0,
+     ret = stret_region_create( shared->region_classes[URCI_ROOT], context, 0,
                                 SRF_ACTIVE | SRF_OUTPUT, _UNRL_NUM,
                                 0, 0, INT_MAX, INT_MAX,
                                 NULL, 0, &context->root );
@@ -198,6 +200,19 @@ unique_context_create( CoreWindowStack    *stack,
 
 
      D_MAGIC_SET( context, UniqueContext );
+
+     ret = unique_device_create( context, shared->device_classes[UDCI_POINTER],
+                                 NULL, 0, &context->devices[UDCI_POINTER] );
+     if (ret == DFB_OK) {
+          unique_device_connect( context->devices[UDCI_POINTER], dfb_input_device_at(1) );
+     }
+
+     ret = unique_device_create( context, shared->device_classes[UDCI_KEYBOARD],
+                                 NULL, 0, &context->devices[UDCI_KEYBOARD] );
+     if (ret == DFB_OK) {
+          unique_device_connect( context->devices[UDCI_KEYBOARD], dfb_input_device_at(0) );
+     }
+
 
      /* Activate Object. */
      fusion_object_activate( &context->object );
@@ -524,8 +539,8 @@ unique_context_window_at( UniqueContext  *context,
                y = stack->cursor.y;
 
           region = stret_region_at( context->root, x, y, SRF_INPUT, SRCID_UNKNOWN );
-          if (region && (region->clazz == shared->classes[UCI_FOO] ||
-                         region->clazz == shared->classes[UCI_WINDOW]))
+          if (region && (region->clazz == shared->region_classes[URCI_FOO] ||
+                         region->clazz == shared->region_classes[URCI_WINDOW]))
           {
                window = stret_region_data( region );
 

@@ -1352,7 +1352,7 @@ create_foos( UniqueWindow  *window,
           flags |= SRF_INPUT;
 
      for (i=0; i<8; i++) {
-          ret = stret_region_create( shared->classes[UCI_FOO], window, i, flags, 1,
+          ret = stret_region_create( shared->region_classes[URCI_FOO], window, i, flags, 1,
                                      DFB_RECTANGLE_VALS( &rects[i] ),
                                      window->frame, UNFL_FOREGROUND, &window->foos[i] );
           if (ret)
@@ -1396,14 +1396,14 @@ create_regions( UniqueWindow *window )
           flags |= SRF_SHAPED;
 
      /* Frame */
-     ret = stret_region_create( shared->classes[UCI_FRAME], window, 0, SRF_NONE, _UNFL_NUM,
+     ret = stret_region_create( shared->region_classes[URCI_FRAME], window, 0, SRF_NONE, _UNFL_NUM,
                                 DFB_RECTANGLE_VALS( &window->full ),
                                 context->root, UNRL_USER, &window->frame );
      if (ret)
           return ret;
 
      /* Content */
-     ret = stret_region_create( shared->classes[UCI_WINDOW], window, true, flags, 1,
+     ret = stret_region_create( shared->region_classes[URCI_WINDOW], window, true, flags, 1,
                                 window->insets.l, window->insets.t,
                                 window->bounds.w, window->bounds.h,
                                 window->frame, UNFL_CONTENT, &window->region );

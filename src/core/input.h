@@ -110,6 +110,9 @@ DirectResult dfb_input_attach_global( InputDevice    *device,
 DirectResult dfb_input_detach_global( InputDevice    *device,
                                       GlobalReaction *reaction );
 
+DFBResult dfb_input_add_global( React react, int *ret_index );
+DFBResult dfb_input_set_global( React react, int index );
+
 void dfb_input_dispatch( InputDevice *device, DFBInputEvent *event );
 
 void dfb_input_device_description( const InputDevice         *device,

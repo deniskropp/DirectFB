@@ -175,10 +175,48 @@ flush_keys( InputDevice *device );
 static bool
 core_input_filter( InputDevice *device, DFBInputEvent *event );
 
-static const React dfb_input_globals[] = {
+
+#define MAX_GLOBALS 8
+
+static React dfb_input_globals[MAX_GLOBALS+1] = {
 /* 0 */   _dfb_windowstack_inputdevice_listener,
           NULL
 };
+
+DFBResult
+dfb_input_add_global( React react, int *ret_index )
+{
+     int i;
+
+     D_ASSERT( react != NULL );
+     D_ASSERT( ret_index != NULL );
+
+     for (i=0; i<MAX_GLOBALS; i++) {
+          if (!dfb_input_globals[i]) {
+               dfb_input_globals[i] = react;
+
+               *ret_index = i;
+
+               return DFB_OK;
+          }
+     }
+
+     return DFB_LIMITEXCEEDED;
+}
+
+DFBResult
+dfb_input_set_global( React react, int index )
+{
+     D_ASSERT( react != NULL );
+     D_ASSERT( index >= 0 );
+     D_ASSERT( index < MAX_GLOBALS );
+
+     D_ASSUME( dfb_input_globals[index] == NULL );
+
+     dfb_input_globals[index] = react;
+
+     return DFB_OK;
+}
 
 /** public **/
 
@@ -1525,7 +1563,7 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
                case DIKS_BACKSPACE:
                     if (event->modifiers == DIMM_META)
                          direct_trace_print_stacks();
-                    
+
                     break;
 
                case DIKS_ESCAPE:
