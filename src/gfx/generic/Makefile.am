@@ -9,6 +9,11 @@ INCLUDES = \
 AM_CFLAGS = $(DFB_CFLAGS_OMIT_FRAME_POINTER)
 
 
+internalincludedir = $(INTERNALINCLUDEDIR)/gfx/generic
+
+internalinclude_HEADERS = \
+     generic.h
+
 noinst_LTLIBRARIES = libdirectfb_generic.la
 
 libdirectfb_generic_la_SOURCES = \
