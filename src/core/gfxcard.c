@@ -262,19 +262,21 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                                                DSDRAW_DST_COLORKEY ) ?
                        DSLF_READ | DSLF_WRITE : DSLF_WRITE;
 
-     if (surface_hard_lock( state->destination, lock_flags, 0 ))
-          return 0;
-
      if (accel & 0xFFFF0000) {
-          if (surface_hard_lock( state->source, DSLF_READ, 1 )) {
-               surface_unlock( state->destination, 0 );
+          if (surface_hard_lock( state->source, DSLF_READ, 1 ))
                return 0;
-          }
 
           state->source_locked = 1;
      }
      else
           state->source_locked = 0;
+
+     if (surface_hard_lock( state->destination, lock_flags, 0 )) {
+          if (accel & 0xFFFF0000)
+               surface_unlock( state->source, 1 );
+
+          return 0;
+     }
 
      pthread_mutex_lock( &card->lock );
 

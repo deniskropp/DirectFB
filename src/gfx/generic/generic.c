@@ -2068,16 +2068,9 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                return 0;
      }
 
-     if (surface_soft_lock( state->destination,
-                            lock_flags, &dst_org, &dst_pitch, 0 )) {
-          pthread_mutex_unlock( &generic_lock );
-          return 0;
-     }
-
      if (accel & 0xFFFF0000) {
           if (surface_soft_lock( state->source,
                                  DSLF_READ, &src_org, &src_pitch, 1 )) {
-               surface_unlock( state->destination, 0 );
                pthread_mutex_unlock( &generic_lock );
                return 0;
           }
@@ -2086,6 +2079,16 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      }
      else
           state->source_locked = 0;
+
+     if (surface_soft_lock( state->destination,
+                            lock_flags, &dst_org, &dst_pitch, 0 )) {
+
+          if (accel & 0xFFFF0000)
+                    surface_unlock( state->source, 1 );
+
+          pthread_mutex_unlock( &generic_lock );
+          return 0;
+     }
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
