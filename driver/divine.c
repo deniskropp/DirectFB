@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -23,6 +23,8 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+
+#include "config.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -135,8 +137,8 @@ driver_get_info( InputDriverInfo *info )
      snprintf( info->vendor,
                DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "Convergence GmbH" );
 
-     info->version.major = 0;
-     info->version.minor = 1;
+     info->version.major = DIVINE_MAJOR_VERSION;
+     info->version.minor = DIVINE_MINOR_VERSION;
 }
 
 /*
