@@ -120,13 +120,18 @@ fs_core_create( CoreSound **ret_core )
 
      DEBUGMSG( "FusionSound/core: %s...\n", __FUNCTION__ );
 
+     /* Lock the core singleton mutex. */
      pthread_mutex_lock( &core_sound_lock );
 
+     /* Core already created? */
      if (core_sound) {
+          /* Increase its references. */
           core_sound->refs++;
 
+          /* Return the core. */
           *ret_core = core_sound;
 
+          /* Unlock the core singleton mutex. */
           pthread_mutex_unlock( &core_sound_lock );
 
           return DFB_OK;
@@ -136,25 +141,26 @@ fs_core_create( CoreSound **ret_core )
      core = DFBCALLOC( 1, sizeof(CoreSound) );
      if (!core) {
           pthread_mutex_unlock( &core_sound_lock );
-
           return DFB_NOSYSTEMMEMORY;
      }
 
+     /* Initialize the references. */
      core->refs = 1;
 
+     /* Enter the FusionSound core arena. */
      if (fusion_arena_enter( "FusionSound/Core",
                              fs_core_arena_initialize, fs_core_arena_join,
                              core, &core->arena, &ret ) || ret)
      {
           DFBFREE( core );
-
           pthread_mutex_unlock( &core_sound_lock );
-
           return ret ? ret : DFB_FUSION;
      }
 
+     /* Return the core and store the singleton. */
      *ret_core = core_sound = core;
 
+     /* Unlock the core singleton mutex. */
      pthread_mutex_unlock( &core_sound_lock );
 
      return DFB_OK;
@@ -168,29 +174,34 @@ fs_core_destroy( CoreSound *core )
 
      DEBUGMSG( "FusionSound/Core: %s...\n", __FUNCTION__ );
 
+     /* Lock the core singleton mutex. */
      pthread_mutex_lock( &core_sound_lock );
 
+     /* Decrement and check references. */
      if (--core->refs) {
+          /* Unlock the core singleton mutex. */
           pthread_mutex_unlock( &core_sound_lock );
 
           return DFB_OK;
      }
 
+     /* Exit the FusionSound core arena. */
      while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
                                core->master ? NULL : fs_core_arena_leave,
                                core, false, NULL ) == FUSION_INUSE)
      {
           /* FIXME: quick hack to solve the dfb-slave-but-fs-master problem. */
-
           ONCE( "waiting for sound slaves to terminate" );
-
           usleep( 100000 );
      }
 
+     /* Deallocate local core structure. */
      DFBFREE( core );
 
+     /* Clear the singleton. */
      core_sound = NULL;
 
+     /* Unlock the core singleton mutex. */
      pthread_mutex_unlock( &core_sound_lock );
 
      return DFB_OK;
@@ -203,7 +214,8 @@ fs_core_create_buffer( CoreSound *core )
      DFB_ASSERT( core->shared != NULL );
      DFB_ASSERT( core->shared->buffer_pool != NULL );
 
-     return (CoreSoundBuffer*)fusion_object_create( core->shared->buffer_pool );
+     /* Create a new object in the buffer pool. */
+     return (CoreSoundBuffer*) fusion_object_create( core->shared->buffer_pool );
 }
 
 CorePlayback *
@@ -213,6 +225,7 @@ fs_core_create_playback( CoreSound *core )
      DFB_ASSERT( core->shared != NULL );
      DFB_ASSERT( core->shared->playback_pool != NULL );
 
+     /* Create a new object in the playback pool. */
      return (CorePlayback*) fusion_object_create( core->shared->playback_pool );
 }
 
@@ -229,6 +242,8 @@ fs_core_add_playback( CoreSound    *core,
 
      DEBUGMSG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, playback );
 
+     shared = core->shared;
+
      /* Allocate playlist entry. */
      entry = SHCALLOC( 1, sizeof(CorePlaylistEntry) );
      if (!entry)
@@ -240,9 +255,7 @@ fs_core_add_playback( CoreSound    *core,
           return DFB_FUSION;
      }
 
-     /* Add it to the list. */
-     shared = core->shared;
-
+     /* Add it to the playback list. */
      fusion_skirmish_prevail( &shared->playlist.lock );
      fusion_list_prepend( &shared->playlist.entries, &entry->link );
      fusion_skirmish_dismiss( &shared->playlist.lock );
@@ -265,6 +278,7 @@ fs_core_remove_playback( CoreSound    *core,
 
      shared = core->shared;
 
+     /* Lock the playlist. */
      fusion_skirmish_prevail( &shared->playlist.lock );
 
      /* Lookup playback in the list. */
@@ -281,6 +295,7 @@ fs_core_remove_playback( CoreSound    *core,
           }
      }
 
+     /* Unlock the playlist. */
      fusion_skirmish_dismiss( &shared->playlist.lock );
 
      return DFB_OK;
@@ -292,6 +307,7 @@ fs_core_output_delay( CoreSound *core )
      DFB_ASSERT( core != NULL );
      DFB_ASSERT( core->shared != NULL );
 
+     /* Return the delay produced by the device buffer. */
      return core->shared->output_delay;
 }
 
