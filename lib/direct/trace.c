@@ -199,20 +199,22 @@ load_symbols( const char *filename )
 {
      SymbolTable *table;
      FILE        *pipe;
-     char         line[1024];
      char         file[1024];
-     char         command[ strlen(filename) + 32 ];
+     char         line[1024];
+     int          command_len;
+     char        *command;
+     const char  *full_path = filename;
 
      if (access( filename, R_OK ) < 0 && errno == ENOENT) {
-          char  buf[32];
+          int   len;
           char *tmp;
 
-          snprintf( buf, sizeof(buf), "/proc/self/exe" );
-
-          if (readlink( buf, file, sizeof(file) ) < 0) {
-               D_PERROR( "Direct/Trace: readlink( \"%s\" ) failed!\n", buf );
+          if ((len = readlink( "/proc/self/exe", file, sizeof(file) - 1 )) < 0) {
+               D_PERROR( "Direct/Trace: readlink( \"/proc/self/exe\" ) failed!\n" );
                return NULL;
           }
+
+          file[len] = 0;
 
           tmp = strrchr( file, '/' ) + 1;
           if (!tmp)
@@ -221,10 +223,13 @@ load_symbols( const char *filename )
           if (strcmp( filename, tmp ))
                return NULL;
 
-          filename = file;
+          full_path = file;
      }
 
-     snprintf( command, sizeof(command), "nm -n %s", filename );
+     command_len = strlen( full_path ) + 32;
+     command     = alloca( command_len );
+
+     snprintf( command, command_len, "nm -n %s", full_path );
 
      pipe = popen( command, "r" );
      if (!pipe) {
@@ -293,11 +298,9 @@ __attribute__((no_instrument_function))
 static SymbolTable *
 find_table( const char *filename )
 {
-     DirectLink *l;
+     SymbolTable *table;
 
-     direct_list_foreach (l, tables) {
-          SymbolTable *table = (SymbolTable*) l;
-
+     direct_list_foreach (table, tables) {
           if (!strcmp( filename, table->filename ))
                return table;
      }
