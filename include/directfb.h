@@ -497,7 +497,8 @@ extern "C"
       */
      typedef enum {
           DFDESC_ATTRIBUTES   = 0x00000001,  /* attributes field is valid */
-          DFDESC_HEIGHT       = 0x00000002   /* height is specified */
+          DFDESC_HEIGHT       = 0x00000002,  /* height is specified */
+          DFDESC_WIDTH        = 0x00000004   /* width is specified */
      } DFBFontDescriptionFlags;
 
      /* Pixel format of a surface.
@@ -618,6 +619,7 @@ extern "C"
 
           DFBFontAttributes                  attributes;
           unsigned int                       height;
+          unsigned int                       width;
      } DFBFontDescription;
 
      /*
