@@ -2212,9 +2212,6 @@ static GenefxFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
 
-#define DUFF_SHIFT 2                    /* 1 - 4 are allowed */
-#define DUFF_SIZE (1 << DUFF_SHIFT)
-
 #define DUFF_1(format) \
                case 1:\
                     SET_ALPHA_PIXEL_##format( D[0], S[0] );
@@ -2471,10 +2468,11 @@ static void Bop_a8_set_alphapixel_Aop_lut8( GenefxState *gfxs )
      __u8  *D   = gfxs->Aop;
      __u32  Cop = gfxs->Cop;
 
+#if 0
      DFBColor  color   = gfxs->color;
      DFBColor *entries = gfxs->Alut->entries;
 
-#define SET_ALPHA_PIXEL_LUT8(d,alpha) \
+# define SET_ALPHA_PIXEL_LUT8(d,alpha) \
      switch (alpha) {\
           case 0xff: d = Cop;\
           case 0: break; \
@@ -2489,12 +2487,13 @@ static void Bop_a8_set_alphapixel_Aop_lut8( GenefxState *gfxs )
                                        sa & 0xff00 ? 0xff : sa );\
           }\
      }
+#else
+# define SET_ALPHA_PIXEL_LUT8(d,a) \
+     if (a & 0x80) \
+          d = Cop;
+#endif
 
-     while (w--) {
-          SET_ALPHA_PIXEL_LUT8( *D, *S );
-          D++, S++;
-     }
-
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, LUT8 );
 #undef SET_ALPHA_PIXEL_LUT8
 }
 
