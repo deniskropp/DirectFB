@@ -24,6 +24,7 @@ internalincludedir = $(INTERNALINCLUDEDIR)/core/fusion
 
 internalinclude_HEADERS = \
 	arena.h		\
+	call.h		\
 	fusion.h	\
 	list.h		\
 	lock.h		\
@@ -39,6 +40,7 @@ noinst_LTLIBRARIES = libdirectfb_core_fusion.la
 
 libdirectfb_core_fusion_la_SOURCES = \
 	$(MULTIAPPSOURCES)	\
+	call.c			\
 	fusion_internal.h	\
 	list.c			\
 	lock.c			\

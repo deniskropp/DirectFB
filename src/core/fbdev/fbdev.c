@@ -75,14 +75,10 @@
 DFB_CORE_SYSTEM( fbdev )
 
 
-typedef struct {
-     int   request;
-     void *arg;
-} FBDevIoctl;
-
-static ReactionResult fbdev_ioctl_listener( const void *msg_data, void *ctx );
-
-static Reaction fbdev_ioctl_reaction;
+static int fbdev_ioctl_call_handler( int   caller,
+                                     int   call_arg,
+                                     void *call_ptr,
+                                     void *ctx );
 
 static int fbdev_ioctl( int request, void *arg, int arg_size );
 
@@ -440,12 +436,8 @@ system_initialize()
      dfb_fbdev->shared->current_cmap.blue   = shcalloc( 256, 2 );
      dfb_fbdev->shared->current_cmap.transp = shcalloc( 256, 2 );
 
-     skirmish_init( &dfb_fbdev->shared->rpc_lock );
-     
-     dfb_fbdev->shared->rpc_reactor = reactor_new( sizeof(FBDevIoctl) );
-
-     reactor_attach( dfb_fbdev->shared->rpc_reactor,
-                     fbdev_ioctl_listener, NULL, &fbdev_ioctl_reaction );
+     fusion_call_init( &dfb_fbdev->shared->fbdev_ioctl,
+                       fbdev_ioctl_call_handler, NULL );
 
      /* Register primary layer functions */
      dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
@@ -543,11 +535,7 @@ system_shutdown( bool emergency )
      shfree( dfb_fbdev->shared->current_cmap.blue );
      shfree( dfb_fbdev->shared->current_cmap.transp );
 
-     reactor_detach( dfb_fbdev->shared->rpc_reactor, &fbdev_ioctl_reaction );
-
-     reactor_free( dfb_fbdev->shared->rpc_reactor );
-
-     skirmish_destroy( &dfb_fbdev->shared->rpc_lock );
+     fusion_call_destroy( &dfb_fbdev->shared->fbdev_ioctl );
      
      munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
      
@@ -1332,31 +1320,29 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
  */
 static DFBResult dfb_fbdev_pan( int offset )
 {
-     struct fb_var_screeninfo var;
+     struct fb_var_screeninfo *var;
 
-     var = dfb_fbdev->shared->current_var;
+     var = &dfb_fbdev->shared->current_var;
 
-     if (var.yres_virtual < offset + var.yres) {
+     if (var->yres_virtual < offset + var->yres) {
           ERRORMSG( "DirectFB/core/fbdev: yres %d, vyres %d, offset %d\n",
-                    var.yres, var.yres_virtual, offset );
+                    var->yres, var->yres_virtual, offset );
           BUG( "panning buffer out of range" );
           return DFB_BUG;
      }
 
-     var.xoffset = 0;
-     var.yoffset = offset;
+     var->xoffset = 0;
+     var->yoffset = offset;
 
      dfb_gfxcard_sync();
 
-     if (FBDEV_IOCTL( FBIOPAN_DISPLAY, &var ) < 0) {
+     if (FBDEV_IOCTL( FBIOPAN_DISPLAY, var ) < 0) {
           int erno = errno;
 
           PERRORMSG( "DirectFB/core/fbdev: Panning display failed!\n" );
 
           return errno2dfb( erno );
      }
-
-     dfb_fbdev->shared->current_var = var;
 
      return DFB_OK;
 }
@@ -1938,32 +1924,31 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
 }
 #endif
 
-static ReactionResult
-fbdev_ioctl_listener( const void *msg_data, void *ctx )
+static int
+fbdev_ioctl_call_handler( int   caller,
+                          int   call_arg,
+                          void *call_ptr,
+                          void *ctx )
 {
-     const FBDevIoctl *message = (const FBDevIoctl*) msg_data;
+     int ret;
 
-     if (!dfb_config->kd_graphics && message->request == FBIOPUT_VSCREENINFO)
+     if (!dfb_config->kd_graphics && call_arg == FBIOPUT_VSCREENINFO)
           ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS );
      
-     if (ioctl( dfb_fbdev->fd, message->request, message->arg ))
-          dfb_fbdev->shared->rpc_ret = errno;
-     else
-          dfb_fbdev->shared->rpc_ret = 0;
+     ret = ioctl( dfb_fbdev->fd, call_arg, call_ptr );
 
-     if (!dfb_config->kd_graphics && message->request == FBIOPUT_VSCREENINFO)
+     if (!dfb_config->kd_graphics && call_arg == FBIOPUT_VSCREENINFO)
           ioctl( dfb_vt->fd, KDSETMODE, KD_TEXT );
-     
-     return RS_OK;
+
+     return ret;
 }
 
 static int
 fbdev_ioctl( int request, void *arg, int arg_size )
 {
-     int         timeout = 100000;
-     void       *tmp_shm = NULL;
-     int         erno;
-     FBDevIoctl  message;
+     FusionResult  ret;
+     int           erno;
+     void         *tmp_shm = NULL;
 
      DFB_ASSERT( dfb_fbdev != NULL );
      DFB_ASSERT( dfb_fbdev->shared != NULL );
@@ -1971,45 +1956,21 @@ fbdev_ioctl( int request, void *arg, int arg_size )
      if (dfb_core_is_master())
           return ioctl( dfb_fbdev->fd, request, arg );
      
-
-     message.request = request;
-     
      if (arg) {
-          if (fusion_is_shared( arg ))
-               message.arg = arg;
-          else {
-               message.arg = tmp_shm = shmalloc( arg_size );
-               dfb_memcpy( message.arg, arg, arg_size );
+          if (!fusion_is_shared( arg )) {
+               tmp_shm = shmalloc( arg_size );
+               if (!tmp_shm) {
+                    errno = ENOMEM;
+                    return -1;
+               }
+               
+               dfb_memcpy( tmp_shm, arg, arg_size );
           }
      }
-     else
-          message.arg = NULL;
 
-     
-     skirmish_prevail( &dfb_fbdev->shared->rpc_lock );
+     ret = fusion_call_execute( &dfb_fbdev->shared->fbdev_ioctl,
+                                request, tmp_shm ? : arg, &erno );
 
-     dfb_fbdev->shared->rpc_ret = -1;
-     
-     reactor_dispatch( dfb_fbdev->shared->rpc_reactor, &message, false, NULL );
-
-     while (dfb_fbdev->shared->rpc_ret == -1) {
-          if (! --timeout) {
-               ERRORMSG( "DirectFB/core/fbdev: Timeout "
-                         "while waiting for completion of rpc ioctl!\n" );
-
-               dfb_fbdev->shared->rpc_ret = ETIMEDOUT;
-
-               break;
-          }
-          
-          sched_yield();
-     }
-
-     erno = dfb_fbdev->shared->rpc_ret;
-     
-     skirmish_dismiss( &dfb_fbdev->shared->rpc_lock );
-
-     
      if (tmp_shm) {
           dfb_memcpy( arg, tmp_shm, arg_size );
           shfree( tmp_shm );

@@ -205,6 +205,9 @@ fusion_read_loop( CoreThread *thread, void *arg )
                void              *data   = buf_p + sizeof(FusionReadMessage);
 
                switch (header->msg_type) {
+                    case FMT_CALL:
+                         _fusion_call_process( header->msg_id, data );
+                         break;
                     case FMT_REACTOR:
                          _reactor_process_message( header->msg_id, data );
                          break;

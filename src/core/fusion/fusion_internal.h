@@ -31,6 +31,11 @@
 #include <sys/param.h>
 #include <sys/user.h>
 
+#ifndef FUSION_FAKE
+#include <sys/ioctl.h>
+#include <linux/fusion.h>
+#endif
+
 #include <string.h>
 
 #include <config.h>
@@ -111,6 +116,13 @@ extern FusionShared *fusion_shared;
  */
 void _reactor_free_all();
 void _reactor_process_message( int reactor_id, const void *msg_data );
+
+/*
+ * from call.c
+ */
+#ifndef FUSION_FAKE
+void _fusion_call_process( int call_id, FusionCallMessage *call );
+#endif
 
 #endif /* __FUSION_INTERNAL_H__ */
 

@@ -31,6 +31,7 @@
 
 #include <core/system.h>
 
+#include <core/fusion/call.h>
 #include <core/fusion/reactor.h>
 
 typedef struct {
@@ -51,9 +52,7 @@ typedef struct {
 
      struct fb_cmap           temp_cmap;     /* scratch */
 
-     FusionReactor           *rpc_reactor;   /* ioctl rpc */
-     FusionSkirmish           rpc_lock;      /* lock rpc "channel" */
-     int                      rpc_ret;       /* return value of ioctl */
+     FusionCall               fbdev_ioctl;   /* ioctl rpc */
 } FBDevShared;
 
 typedef struct {
