@@ -157,7 +157,7 @@ Construct( IDirectFBFont      *thiz,
 
      dfb_surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
 
-     for (i = 0; i < font->height; i++) {
+     for (i = 0; i < 20; i++) {
           switch (surface->format) {
                case DSPF_ARGB:
                     {
