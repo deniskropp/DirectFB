@@ -2293,7 +2293,7 @@ window_insert( CoreWindow *window,
      DFB_ASSERT( window->stack != NULL );
      DFB_ASSERT( !window->destroyed );
 
-     DFB_ASSUME( !window->initialized );
+     /* FIXME: this is a normal case currently  DFB_ASSUME( !window->initialized );*/
 
      if (!window->initialized) {
           if (before < 0  ||  before > stack->num_windows)
