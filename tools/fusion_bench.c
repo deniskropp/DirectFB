@@ -422,7 +422,7 @@ static void
 bench_mutex_threaded()
 {
      int             i;
-     pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+     pthread_mutex_t lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
 
      /* mutex lock/unlock (2-5 threads) */
@@ -441,7 +441,7 @@ bench_mutex_threaded()
 
           t2 = dfb_get_millis();
 
-          printf( "mutex lock/unlock (%d threads)         -> %8.2f k/sec\n",
+          printf( "mutex lock/unlock (rec., %d threads)   -> %8.2f k/sec\n",
                   i, (double)i * (double)1000000 / (double)(t2 - t1) );
      }
 
