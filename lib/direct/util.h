@@ -40,8 +40,13 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
+#ifndef SIGN
 #define SIGN(x)  ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
+#endif
+
+#ifndef ABS
 #define ABS(x)   ((x) > 0 ? (x) : -(x))
+#endif
 
 #define SET_FLAG(set,flag)       do { (set) |= (flag); } while (0)
 #define CLEAR_FLAG(set,flag)     do { (set) &= ~(flag); } while (0)
