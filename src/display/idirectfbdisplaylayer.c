@@ -267,7 +267,7 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer *thiz,
                     if (background_mode != DLBM_DONTCARE)
                          windowstack_repaint_all( data->layer->windowstack );
                }
-               break;
+               return DFB_OK;
      }
 
      return DFB_INVARG;
