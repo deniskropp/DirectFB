@@ -154,7 +154,10 @@ keyboard_get_symbol( int                             code,
      }
 
      /* special keys not in the map, hack? */
-     if (code == 125)         /* windows key */
+     if (code == 125)         /* left windows key */
+          return DIKS_META;
+     
+     if (code == 126)         /* right windows key */
           return DIKS_META;
      
      if (code == 127)         /* context menu key */
@@ -203,6 +206,16 @@ keyboard_get_identifier( int code, unsigned short value )
                ;
      }
 
+     /* special keys not in the map, hack? */
+     if (code == 125)         /* left windows key */
+          return DIKI_META_L;
+     
+     if (code == 126)         /* right windows key */
+          return DIKI_META_R;
+     
+     if (code == 127)         /* context menu key */
+          return DIKI_SUPER_R;
+     
      return DIKI_UNKNOWN;
 }
 
