@@ -74,6 +74,16 @@ Installation
       describing your mouse-protocol to /etc/directfbrc or ~/.directfbrc:
       "mouse-protocol=[ms|ms3|mouseman|mousesystems]".
 
+   5) If you are cross compiling and have installed the required libraries
+      someplace other than /usr/local/lib be sure to add the bin directory
+      for those libraries to the front of your 'PATH'.
+
+        For instance if you configured using:
+          --prefix=/dfb/usr/local
+        then be sure to
+          export PATH=/dfb/usr/local/bin:$PATH
+        before compiling and installing.
+
 
 Configuring the Linux framebuffer device
 ----------------------------------------
@@ -142,6 +152,7 @@ Thanks to
    Sebastian Klemke <packet@convergence.de>
    Fredrik Hallenberg <hallon@lysator.liu.se>
    Antonino Daplas <adaplas@users.sourceforge.net>
+   Scott A McConnell <samcconn@cotw.com>
 
 
 Legal stuff
