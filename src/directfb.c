@@ -166,13 +166,13 @@ DirectFBCreate( IDirectFB **interface )
      }
 
      if (!dfb_config->quiet && dfb_config->banner) {
-          printf( "\n" );
-          printf( "       ---------------------- DirectFB v%d.%d.%d ---------------------\n",
-                  DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
-          printf( "             (c) 2000-2002  convergence integrated media GmbH  \n" );
-          printf( "             (c) 2002       convergence GmbH                   \n" );
-          printf( "        -----------------------------------------------------------\n" );
-          printf( "\n" );
+          fprintf( stderr, "\n" );
+          fprintf( stderr, "       ---------------------- DirectFB v%d.%d.%d ---------------------\n",
+                           DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
+          fprintf( stderr, "             (c) 2000-2002  convergence integrated media GmbH  \n" );
+          fprintf( stderr, "             (c) 2002       convergence GmbH                   \n" );
+          fprintf( stderr, "        -----------------------------------------------------------\n" );
+          fprintf( stderr, "\n" );
      }
 
      ret = dfb_core_ref();
