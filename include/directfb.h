@@ -1049,17 +1049,6 @@ extern "C"
         /** Cursor handling **/
 
           /*
-           * Move cursor to specified position.
-           *
-           * Handles movement like a real one, i.e. generates events.
-           */
-          DFBResult (*WarpCursor) (
-               IDirectFBDisplayLayer              *thiz,
-               int                                 x,
-               int                                 y
-          );
-
-          /*
            * Enable/disable the mouse cursor for this layer.
            *
            * Windows on a layer will only receive motion events if
@@ -1081,6 +1070,17 @@ extern "C"
           );
 
           /*
+           * Move cursor to specified position.
+           *
+           * Handles movement like a real one, i.e. generates events.
+           */
+          DFBResult (*WarpCursor) (
+               IDirectFBDisplayLayer              *thiz,
+               int                                 x,
+               int                                 y
+          );
+
+          /*
            * Set the cursor shape and the hotspot.
            */
           DFBResult (*SetCursorShape) (
@@ -1098,7 +1098,6 @@ extern "C"
                __u8                                opacity
           );
      )
-
 
 
      /*
