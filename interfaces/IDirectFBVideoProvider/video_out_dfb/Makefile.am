@@ -11,7 +11,7 @@ video_out_dfb_LTLIBRARIES = xineplug_vo_out_dfb.la
 
 xineplug_vo_out_dfb_la_SOURCES = video_out_dfb.c
 
-xineplug_vo_out_dfb_la_LIBADD = $(XINE_LIBS)
+xineplug_vo_out_dfb_la_LIBADD = $(XINE_LIBS) $(DFB_LIBS)
 
 xineplug_vo_out_dfb_la_LDFLAGS = -avoid-version -module -disable-static
 
