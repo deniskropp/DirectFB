@@ -29,6 +29,7 @@
 
 #include <pthread.h>
 
+#include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
 
@@ -37,6 +38,8 @@
 #include <fusion/shmalloc.h>
 
 #include "fusion_internal.h"
+
+D_DEBUG_DOMAIN( Fusion_Object, "Fusion/Object", "Fusion Objects and Pools" );
 
 struct __Fusion_FusionObjectPool {
      FusionSkirmish          lock;
@@ -91,7 +94,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
                          return 0;
                }
 
-               D_DEBUG("Fusion/ObjectPool: {%s} dead object: %d (%p)\n", pool->name, call_arg, object);
+               D_DEBUG_AT( Fusion_Object, "{%s} dead object: %d (%p)\n", pool->name, call_arg, object);
 
                if (object->state == FOS_INIT) {
                     D_BUG( "{%s} incomplete object: %d (%p)", pool->name, call_arg, object );
@@ -185,8 +188,8 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
 
           fusion_ref_stat( &object->ref, &refs );
 
-          D_DEBUG( "Fusion/ObjectPool: {%s} undestroyed object: %p (refs: %d)\n",
-                   pool->name, object, refs );
+          D_DEBUG_AT( Fusion_Object, "{%s} undestroyed object: %p (refs: %d)\n",
+                      pool->name, object, refs );
 
           /* Set "deinitializing" state. */
           object->state = FOS_DEINIT;
@@ -296,9 +299,9 @@ fusion_object_create( FusionObjectPool *pool )
      direct_list_prepend( &pool->objects, &object->link );
 
 #if FUSION_BUILD_MULTI
-     D_DEBUG("Fusion/ObjectPool: {%s} added %p with ref 0x%08x\n", pool->name, object, object->ref.id);
+     D_DEBUG_AT( Fusion_Object, "{%s} added %p with ref 0x%08x\n", pool->name, object, object->ref.id);
 #else
-     D_DEBUG("Fusion/ObjectPool: {%s} added %p\n", pool->name, object);
+     D_DEBUG_AT( Fusion_Object, "{%s} added %p\n", pool->name, object);
 #endif
 
      D_MAGIC_SET( object, FusionObject );
