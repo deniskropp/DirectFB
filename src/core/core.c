@@ -172,8 +172,7 @@ dfb_core_ref()
      }
 
 #ifndef FUSION_FAKE
-     if (dfb_config->vt_switch)
-          dfb_system_thread_init();
+     dfb_system_thread_init();
 #endif
 
      dfb_find_best_memcpy();

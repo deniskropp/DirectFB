@@ -72,6 +72,19 @@
 DFB_CORE_SYSTEM( fbdev )
 
 
+typedef struct {
+     int   request;
+     void *arg;
+} FBDevIoctl;
+
+static ReactionResult fbdev_ioctl_listener( const void *msg_data, void *ctx );
+
+static Reaction fbdev_ioctl_reaction;
+
+static int fbdev_ioctl( int request, void *arg, int arg_size );
+
+#define FBDEV_IOCTL(request,arg)   fbdev_ioctl( request, arg, sizeof(*(arg)) )
+
 /* FIXME: should not be exported */
 FBDev *dfb_fbdev = NULL;
 
@@ -411,6 +424,13 @@ system_initialize()
      /* Register primary layer functions */
      dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
 
+     skirmish_init( &dfb_fbdev->shared->rpc_lock );
+     
+     dfb_fbdev->shared->rpc_reactor = reactor_new( sizeof(FBDevIoctl) );
+
+     reactor_attach( dfb_fbdev->shared->rpc_reactor,
+                     fbdev_ioctl_listener, NULL, &fbdev_ioctl_reaction );
+
 #ifndef FUSION_FAKE
      arena_add_shared_field( dfb_core->arena, "fbdev", dfb_fbdev->shared );
 #endif
@@ -508,6 +528,12 @@ system_shutdown( bool emergency )
      shfree( dfb_fbdev->shared->current_cmap.blue );
      shfree( dfb_fbdev->shared->current_cmap.transp );
 
+     reactor_detach( dfb_fbdev->shared->rpc_reactor, &fbdev_ioctl_reaction );
+
+     reactor_free( dfb_fbdev->shared->rpc_reactor );
+
+     skirmish_destroy( &dfb_fbdev->shared->rpc_lock );
+     
      munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
      
      close( dfb_fbdev->fd );
@@ -615,11 +641,34 @@ system_get_current_mode()
 static DFBResult
 system_thread_init()
 {
-     if (dfb_vt)
-          ioctl( dfb_vt->fd0, TIOCNOTTY, 0 );
-     else
-          ioctl( 0, TIOCNOTTY, 0 );
+     if (dfb_config->vt_switch) {
+          struct vt_stat vt_state;
 
+          int fd = open( "/dev/tty", O_RDONLY );
+
+          if (fd < 0) {
+               if (errno == ENXIO)
+                    return DFB_OK;
+
+               PERRORMSG( "DirectFB/core/fbdev: opening /dev/tty failed\n" );
+               return errno2dfb( errno );
+          }
+
+          if (ioctl( fd, VT_GETSTATE, &vt_state )) {
+               close( fd );
+               return DFB_OK;
+          }
+
+          if (ioctl( fd, TIOCNOTTY, 0 )) {
+               PERRORMSG( "DirectFB/core/fbdev: "
+                          "TIOCNOTTY on /dev/tty failed\n" );
+               close( fd );
+               return errno2dfb( errno );
+          }
+
+          close( fd );
+     }
+     
      return DFB_OK;
 }
 
@@ -1072,7 +1121,7 @@ primarySetColorAdjustment( DisplayLayer               *layer,
 
      temp->len = cmap->len;
      temp->start = cmap->start;
-     if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, temp ) < 0) {
+     if (FBDEV_IOCTL( FBIOPUTCMAP, temp ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not set the palette!\n" );
 
@@ -1106,7 +1155,7 @@ primarySetPalette ( DisplayLayer               *layer,
           cmap->transp[i] |= cmap->transp[i] << 8;
      }
 
-     if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, cmap ) < 0) {
+     if (FBDEV_IOCTL( FBIOPUTCMAP, cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not set the palette!\n" );
 
@@ -1296,7 +1345,7 @@ static DFBResult dfb_fbdev_pan( int buffer )
 
      dfb_gfxcard_sync();
 
-     if (ioctl( dfb_fbdev->fd, FBIOPAN_DISPLAY, &var ) < 0) {
+     if (FBDEV_IOCTL( FBIOPAN_DISPLAY, &var ) < 0) {
           int erno = errno;
 
           PERRORMSG( "DirectFB/core/fbdev: Panning display failed!\n" );
@@ -1399,7 +1448,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
      if (mode->doubled)
           var.vmode |= FB_VMODE_DOUBLE;
 
-     if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &var ) < 0) {
+     if (FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &var ) < 0) {
           int erno = errno;
 
           if (layer)
@@ -1432,13 +1481,13 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
           DFBSurfacePixelFormat     format;
           CoreSurface              *surface = dfb_layer_surface( layer );
 
-          ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &var );
+          FBDEV_IOCTL( FBIOGET_VSCREENINFO, &var );
 
 
           format = dfb_fbdev_get_pixelformat( &var );
           if (format == DSPF_UNKNOWN || var.yres_virtual < vyres) {
                /* restore mode */
-               ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
+               FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
                return DFB_UNSUPPORTED;
           }
 
@@ -1465,7 +1514,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
           surface->format = format;
           
           /* To get the new pitch */
-          ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &fix );
+          FBDEV_IOCTL( FBIOGET_FSCREENINFO, &fix );
           
 	  /* ++Tony: Other information (such as visual formats) will also change */
           dfb_fbdev->shared->fix = fix;
@@ -1711,7 +1760,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
              cmap->blue[i] |= cmap->blue[i] << 8;
      }
 
-     if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, cmap ) < 0) {
+     if (FBDEV_IOCTL( FBIOPUTCMAP, cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not set gamma ramp" );
 
@@ -1739,10 +1788,10 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
 
      cmap.start  = 0;
      cmap.len    = 256;
-     cmap.red    = (__u16*)alloca( 2 * 256 );
-     cmap.green  = (__u16*)alloca( 2 * 256 );
-     cmap.blue   = (__u16*)alloca( 2 * 256 );
-     cmap.transp = (__u16*)alloca( 2 * 256 );
+     cmap.red    = (__u16*)shmalloc( 2 * 256 );
+     cmap.green  = (__u16*)shmalloc( 2 * 256 );
+     cmap.blue   = (__u16*)shmalloc( 2 * 256 );
+     cmap.transp = (__u16*)shmalloc( 2 * 256 );
 
 
      for (red_val = 0; red_val  < 8 ; red_val++) {
@@ -1757,13 +1806,102 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
           }
      }
 
-     if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &cmap ) < 0) {
+     if (FBDEV_IOCTL( FBIOPUTCMAP, &cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not set rgb332 palette" );
+
+          shfree( cmap.red );
+          shfree( cmap.green );
+          shfree( cmap.blue );
+          shfree( cmap.transp );
 
           return errno2dfb(errno);
      }
 
+     shfree( cmap.red );
+     shfree( cmap.green );
+     shfree( cmap.blue );
+     shfree( cmap.transp );
+
      return DFB_OK;
 }
 #endif
+
+static ReactionResult
+fbdev_ioctl_listener( const void *msg_data, void *ctx )
+{
+     const FBDevIoctl *message = (const FBDevIoctl*) msg_data;
+
+     if (ioctl( dfb_fbdev->fd, message->request, message->arg ))
+          dfb_fbdev->shared->rpc_ret = errno;
+     else
+          dfb_fbdev->shared->rpc_ret = 0;
+
+     fprintf( stderr, "%d (%p)\n", message->request, message->arg );
+
+     return RS_OK;
+}
+
+static int
+fbdev_ioctl( int request, void *arg, int arg_size )
+{
+     int         timeout = 100000;
+     void       *tmp_shm = NULL;
+     int         erno;
+     FBDevIoctl  message;
+
+     DFB_ASSERT( dfb_fbdev != NULL );
+     DFB_ASSERT( dfb_fbdev->shared != NULL );
+
+     if (dfb_core_is_master())
+          return ioctl( dfb_fbdev->fd, request, arg );
+     
+
+     message.request = request;
+     
+     if (arg) {
+          if (fusion_is_shared( arg ))
+               message.arg = arg;
+          else {
+               message.arg = tmp_shm = shmalloc( arg_size );
+               dfb_memcpy( message.arg, arg, arg_size );
+          }
+     }
+     else
+          message.arg = NULL;
+
+     
+     skirmish_prevail( &dfb_fbdev->shared->rpc_lock );
+
+     dfb_fbdev->shared->rpc_ret = -1;
+     
+     reactor_dispatch( dfb_fbdev->shared->rpc_reactor, &message, false, NULL );
+
+     while (dfb_fbdev->shared->rpc_ret == -1) {
+          if (! --timeout) {
+               ERRORMSG( "DirectFB/core/fbdev: Timeout "
+                         "while waiting for completion of rpc ioctl!\n" );
+
+               dfb_fbdev->shared->rpc_ret = ETIMEDOUT;
+
+               break;
+          }
+          
+          sched_yield();
+     }
+
+     erno = dfb_fbdev->shared->rpc_ret;
+     
+     skirmish_dismiss( &dfb_fbdev->shared->rpc_lock );
+
+     
+     if (tmp_shm) {
+          dfb_memcpy( arg, tmp_shm, arg_size );
+          shfree( tmp_shm );
+     }
+
+     errno = erno;
+
+     return errno ? -1 : 0;
+}
+

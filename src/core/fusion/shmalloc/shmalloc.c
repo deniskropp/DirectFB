@@ -548,3 +548,8 @@ void *__shmalloc_get_root()
      return _sheap->root_node;
 }
 
+bool fusion_is_shared (const void *ptr)
+{
+     return ((unsigned int) ptr >= SH_BASE &&
+             (unsigned int) ptr <  SH_BASE + SH_MAX_SIZE);
+}

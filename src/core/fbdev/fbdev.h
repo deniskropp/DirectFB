@@ -31,6 +31,8 @@
 
 #include <core/system.h>
 
+#include <core/fusion/reactor.h>
+
 typedef struct {
      /* fbdev fixed screeninfo, contains infos about memory and type of card */
      struct fb_fix_screeninfo fix;
@@ -48,6 +50,10 @@ typedef struct {
      struct fb_cmap           current_cmap;  /* our copy of the cmap */
 
      struct fb_cmap           temp_cmap;     /* scratch */
+
+     FusionReactor           *rpc_reactor;   /* ioctl rpc */
+     FusionSkirmish           rpc_lock;      /* lock rpc "channel" */
+     int                      rpc_ret;       /* return value of ioctl */
 } FBDevShared;
 
 typedef struct {

@@ -1,3 +1,369 @@
+2002-11-29	12:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/Makefile.am (1.26) (+1 -1)
+		patches/vmwarefb-0.6.0-linux-2.4.20.patch.bz2 (1.1) ( )
+		patches/vmwarefb-0.6.0-linux-2.4.19-pre8.patch.bz2 (1.2) (+0 -0)
+	
+	Updated vmwarefb patch.
+	
+2002-11-29	12:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.84) (+3 -0)
+	
+	Clear a layer (dfb_windowstack_repaint_all) after enabling it.
+	
+2002-11-27	19:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/vt.c (1.9) (+1 -0)
+	
+	Added setsid() call, to slave init.
+	
+2002-11-27	17:20	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.6) (+33 -11)
+	
+	Added output of stacking class.
+	Window order is now the real one.
+	
+2002-11-27	17:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.123) (+25 -16)
+	
+	Fixed three bugs related to stacking class.
+	
+2002-11-27	01:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/directfb.c (1.59) (+2 -2)
+		src/core/thread.c (1.7) (+8 -0)
+		src/core/core.c (1.57) (+6 -4)
+	
+	Moved dfb_system_lookup() call to dfb_core_init(), fixes fusion_bench segfault.
+	Wait for a thread's initialization to be completed after creating it.
+	
+2002-11-27	00:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.56) (+9 -0)
+		src/core/fbdev/vt.c (1.8) (+2 -0)
+		src/core/fbdev/fbdev.c (1.28) (+2 -28)
+		src/core/system.h (1.4) (+3 -0)
+		src/core/system.c (1.6) (+33 -15)
+	
+	Detach slaves from their terminal, too. Disabling console acceleration
+	(which resulted in a kernel side card programming) in slaves is not necessary
+	anymore. Also fbdev ioctls are ensured to act directly on the global state
+	instead of the tty bound one. Not all threads get detached yet, if the
+	application created a thread before initializing DirectFB.
+	
+2002-11-26	22:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.30) (+10 -3)
+	
+	Modified the glyph surface width calculation to use 8192/font->height.
+	
+2002-11-25	15:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/interface.c (1.20) (+6 -3)
+	
+	Made dynamic code safe for binaries with statically linked in interfaces.
+	
+2002-11-22	21:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.48) (+2 -3)
+		src/core/windows.h (1.40) (+5 -0)
+		src/core/windows.c (1.122) (+9 -11)
+		src/core/input.h (1.25) (+8 -0)
+		src/core/input.c (1.64) (+20 -1)
+	
+	Input device listeners installed by the windowstack construction code
+	are global reactions now. Additional layers can now be used in windowed
+	mode even after the process that enabled the layer exits.
+	Remaining TODO is to auto-disable layers via reference counting.
+	
+2002-11-22	21:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/reactor.c (1.32) (+0 -2)
+	
+	Fixed warning.
+	
+2002-11-22	21:18	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.47) (+0 -9)
+		tools/fusion_bench.c (1.10) (+1 -1)
+		src/core/fusion/shmalloc/shmalloc.c (1.10) (+1 -1)
+		src/core/fusion/reactor.h (1.8) (+25 -11)
+		src/core/fusion/reactor.c (1.31) (+238 -5)
+		src/core/fusion/object.h (1.5) (+16 -9)
+		src/core/fusion/object.c (1.8) (+20 -2)
+		src/core/fbdev/fbdev.c (1.27) (+33 -21)
+		src/core/windows.c (1.121) (+5 -1)
+		src/core/surfaces.h (1.35) (+24 -11)
+		src/core/surfaces.c (1.62) (+65 -42)
+		src/core/palette.h (1.9) (+17 -0)
+		src/core/palette.c (1.12) (+9 -2)
+		src/core/layers.h (1.41) (+8 -0)
+		src/core/layers.c (1.83) (+28 -85)
+		src/core/input.c (1.63) (+6 -1)
+	
+	Implemented the ability to attach "global reactions" to a reactor.
+	A global reaction will always be called directly by reactor_dispatch().
+	Global reactions can be attached/detached by any process. Global reactions
+	don't die if the process that attached it exits.
+	Made layer_surface_listener, layer_bgsurface_listener and
+	surface_palette_listener global reactions.
+	
+	Removed layer palette workaround removal TODO.
+	
+2002-11-22	18:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.46) (+4 -4)
+	
+	Minor updates.
+	
+2002-11-22	11:26	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/README (1.7) (+13 -8)
+		tools/dfbg.c (1.5) (+15 -21)
+	
+	Use DFBBoolean instead of defining true and false. Updated tools README.
+	
+2002-11-21	21:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.26) (+7 -0)
+	
+	Minor fix by Antonino.
+	
+2002-11-21	19:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.h (1.9) (+4 -0)
+	
+	Color adjustment support on primary layer (via gamma ramp in direct color mode)
+	by Antonino Daplas <adaplas@pol.net>.
+	
+2002-11-21	19:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.25) (+144 -28)
+	
+	Color adjustment support on primary layer (via gamma ramp in direct color mode)
+	by Antonino Daplas <adaplas@pol.net>.
+	
+2002-11-21	18:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.29) (+5 -3)
+	
+	Check for reactions != NULL, fixes default font.
+	
+2002-11-21	15:50	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.158) (+1 -0)
+		src/display/idirectfbsurface.c (1.64) (+7 -6)
+	
+	Allow to unset a surface's font by calling SetFont() with a NULL.
+	
+2002-11-20	20:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.5) (+16 -6)
+	
+	Dump windows of all layers.
+	
+2002-11-20	17:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.24) (+36 -3)
+	
+	Support direct color visual, thanks to Antonino Daplas <adaplas@pol.net>.
+	
+2002-11-20	17:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	directfb-config.in (1.7) (+1 -1)
+	
+	Forgot "-Wl,-udirectfb_fbdev".
+	
+2002-11-19	18:03	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.82) (+6 -0)
+		src/core/windows.c (1.120) (+18 -11)
+	
+	Some focus behaviour fixes, especially for non-cursor mode.
+	Link layer surface to layer while layer is enabled.
+	
+2002-11-19	16:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.119) (+3 -0)
+	
+	Default background mode of new layers is DLBM_COLOR (0, 0, 0, 0) now.
+	
+2002-11-18	21:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.157) (+2 -0)
+		src/windows/idirectfbwindow.c (1.54) (+28 -23)
+	
+	Allow passing NULL to unbind a shape and release its surface.
+	
+2002-11-18	21:46	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.156) (+13 -0)
+		src/windows/idirectfbwindow.c (1.53) (+104 -18)
+	
+	Added IDirectFBWindow::SetCursorShape(), untested.
+	
+2002-11-18	20:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	directfb-config.in (1.6) (+119 -2)
+	
+	Added options "--input=foo,bar", "--graphics=foo,bar" etc. that will output
+	all required flags for statically linking the specified drivers or modules.
+	
+2002-11-18	18:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_crtc2.c (1.5) (+15 -1)
+		src/display/idirectfbsurface_layer.c (1.29) (+1 -1)
+		src/display/idirectfbdisplaylayer.c (1.43) (+9 -0)
+		src/core/windows.c (1.118) (+1 -1)
+		src/core/layers.h (1.40) (+6 -1)
+		src/core/layers.c (1.81) (+18 -2)
+		include/directfb.h (1.155) (+7 -0)
+	
+	IDirectFBDisplayLayer::WaitForSync() added by Ville Syrjala.
+	
+2002-11-14	22:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.132) (+1 -1)
+		src/windows/idirectfbwindow.c (1.52) (+49 -18)
+		src/core/fusion/reactor.c (1.30) (+3 -4)
+		include/directfb.h (1.154) (+12 -0)
+	
+	Added IDirectFBWindow::SetColorKeyIndex().
+	Made IDirectFBWindow::SetColorKey() lookup the index if the format is indexed.
+	Fixed warnings.
+	
+	Bumped version number to 0.9.16.
+	
+2002-11-14	22:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.9) (+8 -34)
+	
+	No need to do DirectFBCreate(), just DirectFBInit() and fusion_init() ;)
+	
+2002-11-14	22:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/mem.c (1.8) (+6 -6)
+	
+	Made memory allocation messages a HEAVYDEBUGMSG.
+	
+2002-11-14	19:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/Makefile.am (1.25) (+1 -0)
+		patches/matroxfb-32mb.diff.bz2 (1.1) ( )
+	
+	Patch for using the whole 32MB of Matrox G400 etc.
+	
+2002-11-14	18:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/colorhash.c (1.5) (+1 -1)
+	
+	Divide squared alpha diff by 16 to have it less weighted in color decision.
+	
+2002-11-14	15:34	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/colorhash.c (1.4) (+8 -4)
+	
+	a more reasonable algorithm to find a good color match
+	
+2002-11-14	03:55	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.91) (+2 -1)
+	
+	Don't do cursor magic if app is not running windowed.
+	
+2002-11-14	03:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.90) (+3 -2)
+	
+	Don't disable cursor on escape.
+	
+2002-11-14	03:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.89) (+18 -2)
+	
+	Pressing a button or a key while a windowed primary is focused
+	disables the cursor to achieve a vmware-like grabbing for fullscreen
+	apps running windowed that need raw mouse events (e.g. df_knuckles).
+	The cursor is released (shown) if Meta is pressed.
+	
+2002-11-14	01:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	fb.modes (1.7) (+5 -0)
+	
+	Added 640x400 mode.
+	
+2002-11-14	01:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.93) (+20 -12)
+	
+	Minor speed improvement.
+	
+2002-11-14	00:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	fb.modes (1.6) (+8 -2)
+	
+	Added 320x200 mode, fixed 320x240 mode.
+	
+2002-11-14	00:28	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.92) (+5 -0)
+	
+	Pre render glyphs before rendering string to avoid a rare deadlock.
+	
+2002-11-13	23:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfacemanager.c (1.36) (+34 -3)
+		tools/dfbsummon.c (1.1) ( )
+		tools/Makefile.am (1.13) (+4 -0)
+		tools/.cvsignore (1.7) (+2 -1)
+		src/core/surfacemanager.h (1.12) (+11 -0)
+	
+	Added dfbsummon, a surface manager debugging monitor.
+	
+2002-11-13	21:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.45) (+12 -0)
+	
+	Added some layer palette/surface related TODOs.
+	
+2002-11-13	21:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.15) (+0 -1)
+		src/core/surfaces.h (1.34) (+2 -1)
+		src/core/surfaces.c (1.61) (+4 -6)
+		src/core/state.c (1.17) (+4 -2)
+		src/core/layers.c (1.80) (+65 -11)
+	
+	Fixed layer palette updates in multi app core (a bit workaroundish).
+	
+2002-11-13	19:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.102) (+2 -2)
+	
+	Commented out last change.
+	
+2002-11-13	16:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.101) (+4 -1)
+	
+	Correctly blit from LUT8 to LUT8 even if source and destination palette are
+	different.
+	
+2002-11-13	01:26	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	.cvsignore (1.9) (+1 -0)
+	
+	Added *.diff.
+	
+2002-11-13	00:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.34) (+24 -0)
+	
+	regenerated
+	
 2002-11-12	23:59	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	README (1.54) (+2 -2)

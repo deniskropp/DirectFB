@@ -60,6 +60,8 @@ extern "C"
 
 #include <stddef.h>
 
+#include "fusion_types.h"
+
 
 /* Allocate SIZE bytes of memory.  */
 void *shmalloc (size_t __size);
@@ -84,6 +86,10 @@ void *shvalloc (size_t __size);
 char *shstrdup (const char* string);
 
 
+/* Check if a pointer points to the shared memory. */
+bool fusion_is_shared (const void *ptr);
+
+
 /* Statistics available to the user.  */
 struct shmstats {
     size_t bytes_total;         /* Total size of the heap. */
@@ -106,6 +112,8 @@ struct shmstats shmstats (void);
      #define shcalloc  DFBCALLOC
      #define shfree    DFBFREE
      #define shstrdup  DFBSTRDUP
+     
+     #define fusion_is_shared(ptr) true
 
 #endif
 

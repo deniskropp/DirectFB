@@ -201,9 +201,6 @@ dfb_vt_initialize()
 DFBResult
 dfb_vt_join()
 {
-     setsid();
-     ioctl( 0, TIOCNOTTY, 0 );
-
      return DFB_OK;
 }
 
