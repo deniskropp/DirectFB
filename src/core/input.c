@@ -347,7 +347,8 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
                     else if (event->button == DIBI_RIGHT)
                          event->button = DIBI_LEFT;
                }
-
+               /* fallthru */
+          case DIET_AXISMOTION:
                fixup_button_event( device, event );
                break;
 
@@ -879,11 +880,17 @@ fixup_button_event( InputDevice *device, DFBInputEvent *event )
           shared->buttons = event->buttons;
      }
      else {
-          if (event->type == DIET_BUTTONPRESS)
-               shared->buttons |= (1 << event->button);
-          else
-               shared->buttons &= ~(1 << event->button);
-     
+          switch (event->type) {
+               case DIET_BUTTONPRESS:
+                    shared->buttons |= (1 << event->button);
+                    break;
+               case DIET_BUTTONRELEASE:
+                    shared->buttons &= ~(1 << event->button);
+                    break;
+               default:
+                    ;
+          }
+
           /* Add missing flag */
           event->flags |= DIEF_BUTTONS;
 
