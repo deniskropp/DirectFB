@@ -79,6 +79,7 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
           }                                  \
      } while (0)
 
+#define DFB_RECTANGLE_VALS(r)                (r)->x, (r)->y, (r)->w, (r)->h
 #define DFB_RECTANGLE_VALS_FROM_REGION(r)    (r)->x1, (r)->y1, (r)->x2-(r)->x1+1, (r)->y2-(r)->y1+1
 #define DFB_RECTANGLE_INIT_FROM_REGION(r)    (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_REGION(r) }
 
@@ -99,8 +100,13 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
      } while (0)
 
 
+#define DFB_REGION_VALS(r)                   (r)->x1, (r)->y1, (r)->x2, (r)->y2
+
 #define DFB_REGION_VALS_FROM_RECTANGLE(r)    (r)->x, (r)->y, (r)->x+(r)->w-1, (r)->y+(r)->h-1
 #define DFB_REGION_INIT_FROM_RECTANGLE(r)    (DFBRegion){ DFB_REGION_VALS_FROM_RECTANGLE(r) }
+
+#define DFB_REGION_VALS_FROM_RECTANGLE_VALS(x,y,w,h)   (x), (y), (x)+(w)-1, (y)+(h)-1
+#define DFB_REGION_INIT_FROM_RECTANGLE_VALS(x,y,w,h)   (DFBRegion){ DFB_REGION_VALS_FROM_RECTANGLE_VALS(x,y,w,h) }
 
 #define DFB_REGION_VALS_TRANSLATED(r,x,y)    (r)->x1 + x, (r)->y1 + y, (r)->x2 + x, (r)->y2 + y
 #define DFB_REGION_INIT_TRANSLATED(r,x,y)    (DFBRegion){ DFB_REGION_VALS_TRANSLATED(r,x,y) }
@@ -123,6 +129,22 @@ static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
      rect->y = region->y1;
      rect->w = region->x2 - region->x1 + 1;
      rect->h = region->y2 - region->y1 + 1;
+}
+
+
+static inline void dfb_rectangle_from_rectangle_plus_insets( DFBRectangle       *rect,
+                                                             const DFBRectangle *inner,
+                                                             const DFBInsets    *insets )
+{
+     D_ASSERT( rect != NULL );
+     D_ASSERT( insets != NULL );
+
+     DFB_RECTANGLE_ASSERT( inner );
+
+     rect->x = inner->x - insets->l;
+     rect->y = inner->y - insets->t;
+     rect->w = inner->w + insets->l + insets->r;
+     rect->h = inner->h + insets->t + insets->b;
 }
 
 
@@ -203,6 +225,18 @@ static inline bool dfb_region_intersects( const DFBRegion *region,
              region->y1 <= y2 &&
              region->x2 >= x1 &&
              region->y2 >= y1);
+}
+
+static inline bool dfb_region_region_intersects( const DFBRegion *region,
+                                                 const DFBRegion *other )
+{
+     DFB_REGION_ASSERT( region );
+     DFB_REGION_ASSERT( other );
+
+     return (region->x1 <= other->x2 &&
+             region->y1 <= other->y2 &&
+             region->x2 >= other->x1 &&
+             region->y2 >= other->y1);
 }
 
 static inline bool dfb_rectangle_region_intersects( const DFBRectangle *rect,
