@@ -80,7 +80,7 @@ dfb_debug_print_stack()
                if (info.dli_sname)
                     fprintf( stderr, "%s()\n", info.dli_sname );
                else if (info.dli_fname)
-                    fprintf( stderr, "%p (%p) from %s (%p)\n", fn, fn -
+                    fprintf( stderr, "%p (%x) from %s (%p)\n", fn, fn -
                              info.dli_fbase, info.dli_fname, info.dli_fbase );
                else
                     fprintf( stderr, "%p\n", fn );
@@ -97,8 +97,8 @@ dfb_debug_print_stack()
 
 __attribute__((no_instrument_function))
 void
-__cyg_profile_func_enter (char *this_fn,
-                          char *call_site)
+__cyg_profile_func_enter (void *this_fn,
+                          void *call_site)
 {
      int pid   = getpid();
      int level = threads[pid].level++;
@@ -111,8 +111,8 @@ __cyg_profile_func_enter (char *this_fn,
 
 __attribute__((no_instrument_function))
 void
-__cyg_profile_func_exit (char *this_fn,
-                         char *call_site)
+__cyg_profile_func_exit (void *this_fn,
+                         void *call_site)
 {
      int pid   = getpid();
      int level = --threads[pid].level;
