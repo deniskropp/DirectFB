@@ -60,92 +60,81 @@
 #ifdef ARCH_X86
 static __u32 arch_accel (void)
 {
-  __u32 eax, ebx, ecx, edx;
-  int AMD;
-  __u32 caps = 0;
+     __u32 eax, ebx, ecx, edx;
+     int AMD;
+     __u32 caps = 0;
 
-#ifndef PIC
-#define cpuid(op,eax,ebx,ecx,edx)       \
-    asm ("cpuid"                        \
-         : "=a" (eax),                  \
-           "=b" (ebx),                  \
-           "=c" (ecx),                  \
-           "=d" (edx)                   \
-         : "a" (op)                     \
-         : "cc")
-#else   /* PIC version : save ebx */
-#define cpuid(op,eax,ebx,ecx,edx)       \
-    asm ("pushl %%ebx\n\t"              \
-         "cpuid\n\t"                    \
-         "movl %%ebx,%1\n\t"            \
-         "popl %%ebx"                   \
-         : "=a" (eax),                  \
-           "=r" (ebx),                  \
-           "=c" (ecx),                  \
-           "=d" (edx)                   \
-         : "a" (op)                     \
-         : "cc")
-#endif
+#define cpuid(op,eax,ebx,ecx,edx)  \
+     asm ("pushl %%ebx\n\t"        \
+          "cpuid\n\t"              \
+          "movl %%ebx,%1\n\t"      \
+          "popl %%ebx"             \
+          : "=a" (eax),            \
+            "=r" (ebx),            \
+            "=c" (ecx),            \
+            "=d" (edx)             \
+          : "a" (op)               \
+          : "cc")
 
-  asm ("pushfl\n\t"
-       "pushfl\n\t"
-       "popl %0\n\t"
-       "movl %0,%1\n\t"
-       "xorl $0x200000,%0\n\t"
-       "pushl %0\n\t"
-       "popfl\n\t"
-       "pushfl\n\t"
-       "popl %0\n\t"
-       "popfl"
-       : "=r" (eax),
-       "=r" (ebx)
-       :
-       : "cc");
+     asm ("pushfl\n\t"
+          "pushfl\n\t"
+          "popl %0\n\t"
+          "movl %0,%1\n\t"
+          "xorl $0x200000,%0\n\t"
+          "pushl %0\n\t"
+          "popfl\n\t"
+          "pushfl\n\t"
+          "popl %0\n\t"
+          "popfl"
+          : "=r" (eax),
+            "=r" (ebx)
+          :
+          : "cc");
 
-  if (eax == ebx)             /* no cpuid */
-    return 0;
+     if (eax == ebx)             /* no cpuid */
+          return 0;
 
-  cpuid (0x00000000, eax, ebx, ecx, edx);
-  if (!eax)                   /* vendor string only */
-    return 0;
+     cpuid (0x00000000, eax, ebx, ecx, edx);
+     if (!eax)                   /* vendor string only */
+          return 0;
 
-  AMD = (ebx == 0x68747541) && (ecx == 0x444d4163) && (edx == 0x69746e65);
+     AMD = (ebx == 0x68747541) && (ecx == 0x444d4163) && (edx == 0x69746e65);
 
-  cpuid (0x00000001, eax, ebx, ecx, edx);
-  if (! (edx & 0x00800000))   /* no MMX */
-    return 0;
+     cpuid (0x00000001, eax, ebx, ecx, edx);
+     if (! (edx & 0x00800000))   /* no MMX */
+          return 0;
 
 #ifdef USE_MMX
-  caps = MM_ACCEL_X86_MMX;
+     caps = MM_ACCEL_X86_MMX;
 #ifdef USE_SSE
-  if (edx & 0x02000000)       /* SSE - identical to AMD MMX extensions */
-    caps |= MM_ACCEL_X86_SSE | MM_ACCEL_X86_MMXEXT;
+     if (edx & 0x02000000)       /* SSE - identical to AMD MMX extensions */
+          caps |= MM_ACCEL_X86_SSE | MM_ACCEL_X86_MMXEXT;
 
-  if (edx & 0x04000000)       /* SSE2 */
-    caps |= MM_ACCEL_X86_SSE2;
+     if (edx & 0x04000000)       /* SSE2 */
+          caps |= MM_ACCEL_X86_SSE2;
 
-  cpuid (0x80000000, eax, ebx, ecx, edx);
-  if (eax < 0x80000001)       /* no extended capabilities */
-    return caps;
+     cpuid (0x80000000, eax, ebx, ecx, edx);
+     if (eax < 0x80000001)       /* no extended capabilities */
+          return caps;
 
-  cpuid (0x80000001, eax, ebx, ecx, edx);
+     cpuid (0x80000001, eax, ebx, ecx, edx);
 
-  if (edx & 0x80000000)
-    caps |= MM_ACCEL_X86_3DNOW;
+     if (edx & 0x80000000)
+          caps |= MM_ACCEL_X86_3DNOW;
 
-  if (AMD && (edx & 0x00400000))      /* AMD MMX extensions */
-    caps |= MM_ACCEL_X86_MMXEXT;
+     if (AMD && (edx & 0x00400000))      /* AMD MMX extensions */
+          caps |= MM_ACCEL_X86_MMXEXT;
 #endif /* USE_SSE */
 #endif /* USE_MMX */
 
-  return caps;
+     return caps;
 }
 
 static jmp_buf sigill_return;
 
 static void sigill_handler (int n) {
-  DEBUGMSG ("DirectFB/misc/cpu_accel: OS doesn't support SSE instructions.\n");
-  longjmp(sigill_return, 1);
+     DEBUGMSG ("DirectFB/misc/cpu_accel: OS doesn't support SSE instructions.\n");
+     longjmp(sigill_return, 1);
 }
 #endif /* ARCH_X86 */
 
@@ -155,65 +144,67 @@ static volatile sig_atomic_t canjump = 0;
 
 static void sigill_handler (int sig)
 {
-    if (!canjump) {
-        signal (sig, SIG_DFL);
-        raise (sig);
-    }
+     if (!canjump) {
+          signal (sig, SIG_DFL);
+          raise (sig);
+     }
 
-    canjump = 0;
-    siglongjmp (jmpbuf, 1);
+     canjump = 0;
+     siglongjmp (jmpbuf, 1);
 }
 
 static __u32 arch_accel (void)
 {
-    signal (SIGILL, sigill_handler);
-    if (sigsetjmp (jmpbuf, 1)) {
-        signal (SIGILL, SIG_DFL);
-        return 0;
-    }
+     signal (SIGILL, sigill_handler);
+     if (sigsetjmp (jmpbuf, 1)) {
+          signal (SIGILL, SIG_DFL);
+          return 0;
+     }
 
-    canjump = 1;
+     canjump = 1;
 
-    asm volatile ("mtspr 256, %0\n\t"
-                  "vand %%v0, %%v0, %%v0"
-                  :
-                  : "r" (-1));
+     asm volatile ("mtspr 256, %0\n\t"
+                   "vand %%v0, %%v0, %%v0"
+                   :
+                   : "r" (-1));
 
-    signal (SIGILL, SIG_DFL);
-    return MM_ACCEL_PPC_ALTIVEC;
+     signal (SIGILL, SIG_DFL);
+     return MM_ACCEL_PPC_ALTIVEC;
 }
 #endif /* ARCH_PPC */
 
 __u32 dfb_mm_accel (void)
 {
 #if defined (ARCH_X86) || (defined (ARCH_PPC) && defined (ENABLE_ALTIVEC))
-  static __u32 accel = ~0U;
+     static __u32 accel = ~0U;
 
-  if (accel != ~0U)
-       return accel;
+     if (accel != ~0U)
+          return accel;
 
-  accel = arch_accel ();
+     accel = arch_accel ();
 
 #ifdef USE_SSE
-  /* test OS support for SSE */
-  if (accel & MM_ACCEL_X86_SSE) {
-    if (setjmp(sigill_return)) {
-      accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
-    } else {
-      signal (SIGILL, sigill_handler);
-      __asm __volatile ("xorps %xmm0, %xmm0");
-      signal (SIGILL, SIG_DFL);
-    }
-  }
+
+     /* test OS support for SSE */
+     if (accel & MM_ACCEL_X86_SSE) {
+          if (setjmp(sigill_return)) {
+               accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
+          }
+          else {
+               signal (SIGILL, sigill_handler);
+               __asm __volatile ("xorps %xmm0, %xmm0");
+               signal (SIGILL, SIG_DFL);
+          }
+     }
 #endif /* USE_SSE */
 
-  return accel;
+     return accel;
 
 #else /* !ARCH_X86 && !ARCH_PPC/ENABLE_ALTIVEC */
 #ifdef HAVE_MLIB
-  return MM_ACCEL_MLIB;
+     return MM_ACCEL_MLIB;
 #else
-  return 0;
+     return 0;
 #endif
 #endif /* !ARCH_X86 && !ARCH_PPC/ENABLE_ALTIVEC */
 }
