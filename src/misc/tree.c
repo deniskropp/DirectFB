@@ -36,7 +36,6 @@ typedef struct _Node Node;
 struct _Tree
 {
      Node            *root;
-
      void            *fast_keys[128];
 
      pthread_mutex_t  mutex;
@@ -91,7 +90,14 @@ void tree_unlock (Tree *tree)
 
 void tree_destroy (Tree *tree)
 {
+     unsigned int i;
+
      pthread_mutex_destroy (&tree->mutex);
+
+     for (i = 0; i < 128; i++) {
+          if (tree->fast_keys[i])
+               free (tree->fast_keys[i]);
+     }
      tree_node_destroy (tree, tree->root);
      free (tree);
 }
@@ -102,10 +108,13 @@ void tree_insert (Tree *tree,
 {
      int inserted = 0;
 
-     tree->root = tree_node_insert (tree,
-                                    tree->root,
-                                    key, value,
-                                    &inserted);
+     if ((unsigned int) key < 128)
+          tree->fast_keys[(unsigned int) key] = value;
+     else
+          tree->root = tree_node_insert (tree,
+                                         tree->root,
+                                         key, value,
+                                         &inserted);
 }
 
 void * tree_lookup (Tree *tree,
@@ -135,9 +144,6 @@ static Node * tree_node_new (Tree *tree,
      node->key     = key;
      node->value   = value;
 
-     if ((unsigned int) key < 128)
-          tree->fast_keys[(unsigned int) key] = value;
-
      return node;
 }
 
@@ -147,9 +153,6 @@ static void tree_node_destroy (Tree *tree,
      if (node) {
           tree_node_destroy (tree, node->left);
           tree_node_destroy (tree, node->right);
-
-          if ((unsigned int) node->key < 128)
-               tree->fast_keys[(unsigned int) node->key] = NULL;
 
           if (node->value)
                free (node->value);

@@ -549,12 +549,9 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
           state->modified |= SMF_BLITTING_FLAGS;
      }
 
-     for (offset = 0; offset < bytes; offset += (text[offset] & 0x80) ?
-                                                 utf8_skip[text[offset]] : 1) {
-          current = text[offset];
+     for (offset = 0; offset < bytes; offset += utf8_skip[text[offset]]) {
 
-          if (current & 0x80)
-               current = utf8_get_char (&text[offset]);
+          current = utf8_get_char (&text[offset]);
 
           if (fonts_get_glyph_data (font, current, &data) == DFB_OK) {
                if (prev && font->GetKerning &&
