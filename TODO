@@ -16,6 +16,7 @@ Virtual window/layer resolution with scrolling/panning.
 Finish implementation of cooperative levels.
 
 Finish display layer core and driver API.
+ - Finish reallocate_surface() in src/core/layers.c
 
 Clean up key codes.
 
