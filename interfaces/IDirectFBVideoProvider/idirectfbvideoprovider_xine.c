@@ -62,11 +62,13 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, Xine )
 
 /************************** Driver Specific Data ******************************/
 
-typedef void (*DVOutputCallback) ( void         *cdata,
-                                   int           width,
-                                   int           height,
-                                   double        ratio,
-                                   DFBRectangle *dest_rect );
+
+typedef void (*DVOutputCallback) ( void                  *cdata,
+                                   int                    width,
+                                   int                    height,
+                                   double                 ratio,
+                                   DFBSurfacePixelFormat  format,
+                                   DFBRectangle          *dest_rect );
 
 typedef struct {
      IDirectFBSurface *destination;
@@ -97,10 +99,11 @@ typedef struct {
      xine_event_queue_t    *queue;
 
      dfb_visual_t           visual;
-     
-     int                    width;  /* video width */
-     int                    height; /* video height */
-     int                    length; /* duration */
+    
+     DFBSurfacePixelFormat  format; // video format
+     int                    width;  // video width
+     int                    height; // video height
+     int                    length; // duration
 
      bool                   is_playing;
      bool                   is_paused;
@@ -118,8 +121,8 @@ static void
 get_stream_error( IDirectFBVideoProvider_Xine_data *data );
 
 static void
-frame_output( void *cdata, int width, int height,
-              double ratio, DFBRectangle *dest_rect );
+frame_output( void *cdata, int width, int height, double ratio,
+              DFBSurfacePixelFormat format, DFBRectangle *dest_rect );
 
 static void
 event_listner( void *cdata, const xine_event_t *event );
@@ -236,7 +239,7 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
      desc->flags       = (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
      desc->width       = data->width;
      desc->height      = data->height;
-     desc->pixelformat = dfb_primary_layer_pixelformat();
+     desc->pixelformat = data->format;
 
      return DFB_OK;
 }
@@ -549,9 +552,10 @@ Construct( IDirectFBVideoProvider *thiz,
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Xine )
 
-     data->ref = 1;
-     data->err = DFB_FAILURE;
-     data->mrl = D_STRDUP( filename );
+     data->ref    = 1;
+     data->err    = DFB_FAILURE;
+     data->mrl    = D_STRDUP( filename );
+     data->format = dfb_primary_layer_pixelformat();
      
      data->xine = xine_new();
      if (!data->xine) {
@@ -677,6 +681,7 @@ Construct( IDirectFBVideoProvider *thiz,
                audio_source = xine_get_audio_source( data->stream );
                xine_post_wire_audio_port( audio_source,
                                           data->post->audio_input[0] );
+               data->format = DSPF_YUY2;
           }
      }
 
@@ -744,8 +749,8 @@ get_stream_error( IDirectFBVideoProvider_Xine_data *data )
 }
 
 static void
-frame_output( void *cdata, int width, int height,
-          double ratio, DFBRectangle *dest_rect )
+frame_output( void *cdata, int width, int height, double ratio,
+              DFBSurfacePixelFormat format, DFBRectangle *dest_rect )
 {
      IDirectFBVideoProvider_Xine_data *data;
      IDirectFBSurface                 *surface;
@@ -755,6 +760,7 @@ frame_output( void *cdata, int width, int height,
      if (!data)
           return;
 
+     data->format = format;
      data->width  = width;
      data->height = height;
 
