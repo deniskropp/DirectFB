@@ -3853,7 +3853,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                break;
           case DSPF_YUY2:
                RGB_TO_YCBCR( color.r, color.g, color.b,
-                             gfxs->Cop, gfxs->CbCop gfxs->CrCop );
+                             gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                gfxs->Cop = PIXEL_YUY2( gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                break;
           case DSPF_RGB332:
@@ -3861,16 +3861,16 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                break;
           case DSPF_UYVY:
                RGB_TO_YCBCR( color.r, color.g, color.b,
-                             gfxs->Cop, gfxs->CbCop gfxs->CrCop );
-               gfxs->Cop   = PIXEL_UYVY( gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
+                             gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
+               gfxs->Cop = PIXEL_UYVY( gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                break;
           case DSPF_I420:
                RGB_TO_YCBCR( color.r, color.g, color.b,
-                             gfxs->Cop, gfxs->CbCop gfxs->CrCop );
+                             gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                break;
           case DSPF_YV12:
                RGB_TO_YCBCR( color.r, color.g, color.b,
-                             gfxs->Cop, gfxs->CrCop gfxs->CbCop );
+                             gfxs->Cop, gfxs->CrCop, gfxs->CbCop );
                break;
           case DSPF_LUT8:
                gfxs->Cop  = state->color_index;
