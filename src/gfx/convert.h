@@ -168,10 +168,29 @@
 
 DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );
 
-__u32 dfb_color_to_aycbcr( const DFBColor *color );
-
 __u32 dfb_color_to_pixel( DFBSurfacePixelFormat format,
                           __u8 r, __u8 g, __u8 b );
+
+static inline __u32
+dfb_color_to_argb( const DFBColor *color )
+{
+     return (color->a << 24) | (color->r << 16) | (color->g << 8) | color->b;
+}
+
+static inline __u32
+dfb_color_to_aycbcr( const DFBColor *color )
+{
+     unsigned int red   = color->r;
+     unsigned int green = color->g;
+     unsigned int blue  = color->b;
+
+     __u8 y  = (__u8)(((66 * red + 129 * green + 25 * blue) / 256) + 16);
+
+     __u8 cb = (__u8)((128 * 256 -  38 * red   - 74 * green + 112 * blue) / 256);
+     __u8 cr = (__u8)((128 * 256 + 112 * red   - 94 * green -  18 * blue) / 256);
+
+     return (color->a << 24) | (y << 16) | (cb << 8) | cr;
+}
 
 static inline void
 dfb_argb_to_rgb332( __u32 *src, __u8 *dst, int len )
