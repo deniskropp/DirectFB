@@ -412,6 +412,7 @@ dfb_layer_context_set_configuration( CoreLayerContext      *context,
 {
      DFBResult                   ret;
      CoreLayer                  *layer;
+     CoreLayerShared            *shared;
      CoreLayerRegion            *region;
      CoreLayerRegionConfig       region_config;
      CoreLayerRegionConfigFlags  flags;
@@ -425,12 +426,14 @@ dfb_layer_context_set_configuration( CoreLayerContext      *context,
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
-     layer = dfb_layer_at( context->layer_id );
+     layer  = dfb_layer_at( context->layer_id );
 
      DFB_ASSERT( layer != NULL );
+     DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->funcs->TestRegion != NULL );
 
+     shared = layer->shared;
      funcs  = layer->funcs;
      region = context->primary;
 
@@ -448,7 +451,9 @@ dfb_layer_context_set_configuration( CoreLayerContext      *context,
           /* Disable and deallocate the primary region. */
           if (FLAG_IS_SET( region->state, CLRSF_ENABLED )) {
                dfb_layer_region_disable( region );
-               deallocate_surface( layer, region );
+
+               if (shared->description.caps & DLCAPS_SURFACE)
+                    deallocate_surface( layer, region );
           }
 
           /* Remember configuration. */
@@ -465,16 +470,18 @@ dfb_layer_context_set_configuration( CoreLayerContext      *context,
           }
 
           /* (Re)allocate the region's surface. */
-          if (FLAG_IS_SET( region->state, CLRSF_ENABLED ))
-               ret = reallocate_surface( layer, region,
-                                         &region_config, &context->config );
-          else
-               ret = allocate_surface( layer, region, &region_config );
+          if (shared->description.caps & DLCAPS_SURFACE) {
+               if (FLAG_IS_SET( region->state, CLRSF_ENABLED ))
+                    ret = reallocate_surface( layer, region, &region_config,
+                                              &context->config );
+               else
+                    ret = allocate_surface( layer, region, &region_config );
 
-          if (ret) {
-               dfb_layer_region_unlock( region );
-               dfb_layer_context_unlock( context );
-               return ret;
+               if (ret) {
+                    dfb_layer_region_unlock( region );
+                    dfb_layer_context_unlock( context );
+                    return ret;
+               }
           }
 
           /* Set the new region configuration. */
