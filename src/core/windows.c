@@ -102,7 +102,7 @@ void windowstack_destroy( CoreWindowStack *stack )
      InputDevice *inputdevice = inputdevices;
 
      state_set_destination( &stack->state, NULL );
-     
+
      while (inputdevice) {
           switch (DIDID_TYPE(inputdevice->id)) {
                case DIDT_KEYBOARD:
@@ -165,7 +165,7 @@ void window_insert( CoreWindow *window, int before )
           evt.h = window->height;
           window_append_event( window, &evt );
      }
-     
+
      if (window->opacity)
           windowstack_handle_enter_leave_focus( stack );
 }
@@ -726,13 +726,13 @@ static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
 
      if (layer->exclusive)
           return;
-     
+
      if (!region_intersect( &update_region, 0, 0, surface->width - 1,
                                                   surface->height - 1 ))
           return;
 
      pthread_mutex_lock( &stack->update );
-     
+
      stack->state.clip = update_region;
      stack->state.src_blend = DSBF_SRCALPHA;
      stack->state.dst_blend = DSBF_INVSRCALPHA;
@@ -779,8 +779,10 @@ static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
           if (window->opacity != 0xFF) {
                stack->state.blittingflags |= DSBLIT_BLEND_COLORALPHA;
 
-               stack->state.color.a = window->opacity;
-               stack->state.modified |= SMF_COLOR;
+               if (stack->state.color.a != window->opacity) {
+                    stack->state.color.a = window->opacity;
+                    stack->state.modified |= SMF_COLOR;
+               }
           }
 
           gfxcard_blit( &sr, window->x, window->y, &stack->state );
@@ -802,7 +804,7 @@ static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
                back_to_front_copy( surface, &rect );
           }
      }
-     
+
      pthread_mutex_unlock( &stack->update );
 }
 
@@ -896,13 +898,13 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
 
      if (!stack->cursor)
           return;
-     
+
      stack->cx += dx;
      stack->cy += dy;
-     
+
      window_move( stack->cursor, dx, dy );
-     
-     
+
+
      we.cx   = stack->cx;
      we.cy   = stack->cy;
 

@@ -90,24 +90,24 @@ static inline Chunk* free_chunk( Chunk *chunk )
           DEBUGMSG( "  merging with previous chunk at %d\n", prev->offset );
 
           prev->length += chunk->length;
-          
+
           prev->next = chunk->next;
           if (prev->next)
                prev->next->prev = prev;
 
           DEBUGMSG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
-          
+
           free( chunk );
           chunk = prev;
      }
-     
+
      if (chunk->next  &&  !chunk->next->buffer) {
           Chunk *next = chunk->next;
 
           DEBUGMSG( "  merging with next chunk at %d\n", next->offset );
-          
+
           chunk->length += next->length;
-          
+
           chunk->next = next->next;
           if (chunk->next)
                chunk->next->prev = chunk;
@@ -129,7 +129,7 @@ void occupy_chunk( Chunk *chunk, SurfaceBuffer *buffer, int length )
      chunk->buffer = buffer;
 
      //min_toleration++;
-     
+
      DEBUGMSG( "DirectFB/core/surfacemanager: "
                "Allocated %d bytes at offset %d.\n",
                chunk->length, chunk->offset );
@@ -140,7 +140,7 @@ DFBResult surfacemanager_suspend()
      Chunk *c = chunks;
 
      DEBUGMSG( "DirectFB/core/surfacemanager: suspending...\n" );
-     
+
      while (c) {
           if (c->buffer &&
               c->buffer->policy != CSP_VIDEOONLY &&
@@ -153,7 +153,7 @@ DFBResult surfacemanager_suspend()
      }
 
      DEBUGMSG( "DirectFB/core/surfacemanager: ...suspended\n" );
-     
+
      return DFB_OK;
 }
 
@@ -171,7 +171,7 @@ DFBResult surfacemanager_init_heap()
      memset( chunks, 0, sizeof(Chunk) );
 
      chunks->offset = card->heap_offset;
-     
+
      /* make sure it's a multiple of the offset alignment,
         easier for further chunk splitting */
      if (card->byteoffset_align > 1) {
@@ -179,7 +179,7 @@ DFBResult surfacemanager_init_heap()
           chunks->offset -= chunks->offset % card->byteoffset_align;
      }
 
-     
+
      chunks->length = card->framebuffer.length - chunks->offset;
 
      /* make sure it's a multiple of the offset alignment,
@@ -224,12 +224,12 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
      int pitch;
      int length;
      Chunk *c;
-     
+
      Chunk *best_free = NULL;
      Chunk *best_occupied = NULL;
 
      CoreSurface *surface = buffer->surface;
-     
+
      /* calculate the required length depending on limitations */
      pitch = surface->width;
      if (card->pixelpitch_align > 1) {
@@ -253,7 +253,7 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
           if (c->length >= length) {
                if (c->buffer  &&
                    c->buffer->policy != CSP_VIDEOONLY  &&
-                   ((c->tolerations > min_toleration) || 
+                   ((c->tolerations > min_toleration) ||
                    buffer->policy == CSP_VIDEOONLY))
                {
                     /* found a nice place to chill */
@@ -269,10 +269,9 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
                          /* first found or better one? */
                          best_free = c;
                } else
-               //if (c->surface)
                     c->tolerations++;
           }
-          
+
           c = c->next;
      }
 
@@ -291,15 +290,15 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
 
           best_occupied->buffer->video.health = CSH_INVALID;
           surface_notify_listeners( kicked, CSN_VIDEO );
-          
+
           best_occupied = free_chunk( best_occupied );
 
           pthread_mutex_unlock( &kicked->front_lock );
           pthread_mutex_unlock( &kicked->back_lock );
-          
+
           DEBUGMSG( "kicked out.\n" );
-          
-          
+
+
           occupy_chunk( best_occupied, buffer, length );
      }
      else {
@@ -318,11 +317,11 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
 
           free( tmp );
           */
-          
+
           /* no luck */
           return DFB_NOVIDEOMEMORY;
      }
-     
+
      return DFB_OK;
 }
 
@@ -337,13 +336,13 @@ DFBResult surfacemanager_deallocate( SurfaceBuffer *buffer )
 
      buffer->video.health = CSH_INVALID;
      buffer->video.chunk = NULL;
-     
+
      surface_notify_listeners( buffer->surface, CSN_VIDEO );
-     
+
      free_chunk( chunk );
-     
+
      DEBUGMSG( "deallocated.\n" );
-     
+
      return DFB_OK;
 }
 
@@ -392,7 +391,7 @@ DFBResult surfacemanager_assure_video( SurfaceBuffer *buffer )
 DFBResult surfacemanager_assure_system( SurfaceBuffer *buffer )
 {
      CoreSurface *surface = buffer->surface;
-     
+
      if (buffer->policy == CSP_VIDEOONLY) {
           BUG( "surface_manager_assure_system() called on video only surface" );
           return DFB_BUG;

@@ -103,7 +103,10 @@ DFBResult surface_reallocate_buffer( SurfaceBuffer *buffer )
      }
      else {
           /* FIXME: support video instance reallocation */
-          return DFB_UNSUPPORTED;
+          surfacemanager_deallocate( buffer );
+          surfacemanager_allocate( buffer );
+
+          buffer->video.health = CSH_STORED;
      }
 
      return DFB_OK;
@@ -113,7 +116,7 @@ void surface_destroy_buffer( SurfaceBuffer *buffer )
 {
      if (buffer->system.health)
           free( buffer->system.addr );
-     
+
      if (buffer->video.health)
           surfacemanager_deallocate( buffer );
 
@@ -159,7 +162,7 @@ DFBResult surface_create( int width, int height, int format, int policy,
      }
      else
           s->back_buffer = s->front_buffer;
-     
+
      pthread_mutex_init( &s->front_lock, NULL );
      pthread_mutex_init( &s->back_lock, NULL );
      pthread_mutex_init( &s->listeners_mutex, NULL );
@@ -196,20 +199,20 @@ DFBResult surface_reformat( CoreSurface *surface, int width, int height,
      old_width  = surface->width;
      old_height = surface->height;
      old_format = surface->format;
-     
+
      surface->width = width;
      surface->height = height;
      surface->format = format;
-     
+
      ret = surface_reallocate_buffer( surface->front_buffer );
      if (ret) {
           surface->width  = old_width;
           surface->height = old_height;
           surface->format = old_format;
-          
+
           pthread_mutex_unlock( &surface->front_lock );
           pthread_mutex_unlock( &surface->back_lock );
-          
+
           return ret;
      }
 
@@ -219,9 +222,9 @@ DFBResult surface_reformat( CoreSurface *surface, int width, int height,
                surface->width  = old_width;
                surface->height = old_height;
                surface->format = old_format;
-               
+
                surface_reallocate_buffer( surface->front_buffer );
-               
+
                pthread_mutex_unlock( &surface->front_lock );
                pthread_mutex_unlock( &surface->back_lock );
 
@@ -488,7 +491,7 @@ void surface_destroy( CoreSurface *surface )
 
      pthread_mutex_unlock( &surface->front_lock );
      pthread_mutex_destroy( &surface->front_lock );
-     
+
      pthread_mutex_unlock( &surface->back_lock );
      pthread_mutex_destroy( &surface->back_lock );
 
