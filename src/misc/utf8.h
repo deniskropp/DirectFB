@@ -38,7 +38,7 @@ extern const char dfb_utf8_skip[256];
 
 static inline char *dfb_utf8_prev_char (const char *p)
 {
-     while ((*(--p) & 0xc0) != 0x80)
+     while ((*(--p) & 0xc0) == 0x80)
           ;
      return (char *)p;
 }
