@@ -599,6 +599,8 @@ static void mach64_fill_trapezoid( Mach64DriverData *mdrv,
      __u32 dst_cntl;
      int dXl, dXr;
 
+     X1r++; X2r++;
+
      dst_cntl = DST_Y_TOP_TO_BOTTOM | TRAP_FILL_LEFT_TO_RIGHT;
 
      dXl = X2l - X1l;
