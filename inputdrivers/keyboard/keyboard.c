@@ -91,7 +91,7 @@ keyboard_translate( unsigned short kb_value )
                break;
           case KT_PAD:
                if (key_index <= 9)
-                    return DIKS_KP_0 + key_index;
+                    return DIKS_0 + key_index;
                break;
           case 0xe: /* special IPAQ H3600 case - AH */
                switch (key_index) {
@@ -123,12 +123,13 @@ keyboard_translate( unsigned short kb_value )
           case K_REMOVE: return DIKS_DELETE;
           case K_FIND:   return DIKS_HOME;
           case K_SELECT: return DIKS_END;
-          case K_PGUP:   return DIKS_PAGEUP;
-          case K_PGDN:   return DIKS_PAGEDOWN;
+          case K_PGUP:   return DIKS_PAGE_UP;
+          case K_PGDN:   return DIKS_PAGE_DOWN;
           case K_CAPS:   return DIKS_CAPSLOCK;
           case K_NUM:    return DIKS_NUMLOCK;
           case K_HOLD:   return DIKS_SCROLLLOCK;
           case K(1,29):  return DIKS_PAUSE;
+#if 0
           case K_PSLASH: return DIKS_KP_DIV;
           case K_PSTAR:  return DIKS_KP_MULT;
           case K_PMINUS: return DIKS_KP_MINUS;
@@ -136,6 +137,7 @@ keyboard_translate( unsigned short kb_value )
           case K_PENTER: return DIKS_KP_ENTER;
           case K_PCOMMA:
           case K_PDOT:   return DIKS_KP_DECIMAL;
+#endif
      }
 
      return DIKS_NULL;
@@ -144,6 +146,7 @@ keyboard_translate( unsigned short kb_value )
 static DFBInputDeviceKeySymbol
 adjust_pad_keys( DFBInputDeviceKeySymbol symbol )
 {
+#if 0
      switch (symbol) {
           case DIKS_KP_DECIMAL: return DIKS_KP_DELETE;
           case DIKS_KP_0:       return DIKS_KP_INSERT;
@@ -159,6 +162,7 @@ adjust_pad_keys( DFBInputDeviceKeySymbol symbol )
           default:
                ;
      }
+#endif
 
      return symbol;
 }

@@ -78,11 +78,10 @@ extern "C"
                                                 (compatible to Latin-1) */
           DIKT_SPECIAL        = 0xF0000,     /* Special key (e.g. EPG) */
           DIKT_FUNCTION       = 0xF1000,     /* Function key (F1 - Fn) */
-          DIKT_NUMPAD         = 0xF2000,     /* Numeric pad key */
-          DIKT_MODIFIER       = 0xF3000,     /* Modifier key */
-          DIKT_LOCK           = 0xF4000,     /* Lock key (e.g. CapsLock) */
-          DIKT_DEAD           = 0xF5000,     /* Dead key (e.g. dead grave) */
-          DIKT_CUSTOM         = 0xF6000      /* Custom key (vendor specific) */
+          DIKT_MODIFIER       = 0xF2000,     /* Modifier key */
+          DIKT_LOCK           = 0xF3000,     /* Lock key (e.g. CapsLock) */
+          DIKT_DEAD           = 0xF4000,     /* Dead key (e.g. dead grave) */
+          DIKT_CUSTOM         = 0xF8000      /* Custom key (vendor specific) */
      } DFBInputDeviceKeyType;
 
      #define DFB_KEY(type,index)        ((DIKT_##type) | (index))
@@ -349,48 +348,6 @@ extern "C"
           DIKS_F10                      = DFB_FUNCTION_KEY( 10 ),
           DIKS_F11                      = DFB_FUNCTION_KEY( 11 ),
           DIKS_F12                      = DFB_FUNCTION_KEY( 12 ),
-          
-          /*
-           * Unicode private area - DirectFB Numeric Pad keys
-           */
-          DIKS_KP_0                     = DFB_KEY( NUMPAD, 0x00 ),
-          DIKS_KP_1                     = DFB_KEY( NUMPAD, 0x01 ),
-          DIKS_KP_2                     = DFB_KEY( NUMPAD, 0x02 ),
-          DIKS_KP_3                     = DFB_KEY( NUMPAD, 0x03 ),
-          DIKS_KP_4                     = DFB_KEY( NUMPAD, 0x04 ),
-          DIKS_KP_5                     = DFB_KEY( NUMPAD, 0x05 ),
-          DIKS_KP_6                     = DFB_KEY( NUMPAD, 0x06 ),
-          DIKS_KP_7                     = DFB_KEY( NUMPAD, 0x07 ),
-          DIKS_KP_8                     = DFB_KEY( NUMPAD, 0x08 ),
-          DIKS_KP_9                     = DFB_KEY( NUMPAD, 0x09 ),
-          
-          DIKS_KP_DIV                   = DFB_KEY( NUMPAD, 0x0A ),
-          DIKS_KP_MULT                  = DFB_KEY( NUMPAD, 0x0B ),
-          DIKS_KP_MINUS                 = DFB_KEY( NUMPAD, 0x0C ),
-          DIKS_KP_PLUS                  = DFB_KEY( NUMPAD, 0x0D ),
-          DIKS_KP_ENTER                 = DFB_KEY( NUMPAD, 0x0E ),
-          DIKS_KP_SPACE                 = DFB_KEY( NUMPAD, 0x0F ),
-          DIKS_KP_TAB                   = DFB_KEY( NUMPAD, 0x10 ),
-          DIKS_KP_F1                    = DFB_KEY( NUMPAD, 0x11 ),
-          DIKS_KP_F2                    = DFB_KEY( NUMPAD, 0x12 ),
-          DIKS_KP_F3                    = DFB_KEY( NUMPAD, 0x13 ),
-          DIKS_KP_F4                    = DFB_KEY( NUMPAD, 0x14 ),
-          DIKS_KP_HOME                  = DFB_KEY( NUMPAD, 0x15 ),
-          DIKS_KP_LEFT                  = DFB_KEY( NUMPAD, 0x16 ),
-          DIKS_KP_UP                    = DFB_KEY( NUMPAD, 0x17 ),
-          DIKS_KP_RIGHT                 = DFB_KEY( NUMPAD, 0x18 ),
-          DIKS_KP_DOWN                  = DFB_KEY( NUMPAD, 0x19 ),
-          DIKS_KP_PRIOR                 = DFB_KEY( NUMPAD, 0x1A ),
-          DIKS_KP_PAGE_UP               = DFB_KEY( NUMPAD, 0x1B ),
-          DIKS_KP_NEXT                  = DFB_KEY( NUMPAD, 0x1C ),
-          DIKS_KP_PAGE_DOWN             = DFB_KEY( NUMPAD, 0x1D ),
-          DIKS_KP_END                   = DFB_KEY( NUMPAD, 0x1E ),
-          DIKS_KP_BEGIN                 = DFB_KEY( NUMPAD, 0x1F ),
-          DIKS_KP_INSERT                = DFB_KEY( NUMPAD, 0x20 ),
-          DIKS_KP_DELETE                = DFB_KEY( NUMPAD, 0x21 ),
-          DIKS_KP_EQUAL                 = DFB_KEY( NUMPAD, 0x22 ),
-          DIKS_KP_DECIMAL               = DFB_KEY( NUMPAD, 0x23 ),
-          DIKS_KP_SEPARATOR             = DFB_KEY( NUMPAD, 0x24 ),
           
           /*
            * Unicode private area - DirectFB Modifier keys

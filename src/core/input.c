@@ -555,12 +555,6 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
 
      if (symbol >= DIKS_F1 && symbol <= DIKS_F12)
           return DIKI_F1 + symbol - DIKS_F1;
-     
-     if (symbol >= DIKS_KP_DIV && symbol <= DIKS_KP_SEPARATOR)
-          return DIKI_KP_DIV + symbol - DIKS_KP_DIV;
-     
-     if (symbol >= DIKS_KP_0 && symbol <= DIKS_KP_9)
-          return DIKI_KP_0 + symbol - DIKS_KP_0;
 
      switch (symbol) {
           case DIKS_ESCAPE:
@@ -614,11 +608,11 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
           case DIKS_END:
                return DIKI_END;
           
-          case DIKS_PAGEUP:
-               return DIKI_PAGEUP;
+          case DIKS_PAGE_UP:
+               return DIKI_PAGE_UP;
           
-          case DIKS_PAGEDOWN:
-               return DIKI_PAGEDOWN;
+          case DIKS_PAGE_DOWN:
+               return DIKI_PAGE_DOWN;
           
           case DIKS_CAPSLOCK:
                return DIKI_CAPSLOCK;
