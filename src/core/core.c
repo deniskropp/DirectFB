@@ -22,6 +22,7 @@
 */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <dirent.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -96,6 +97,11 @@ DFBResult core_init()
           atexit( core_deinit_check );
 
      INITMSG( "Single Application Core.%s\n", mmx_string );
+
+     if (dfb_config->sync) {
+          INITMSG( "DirectFB/core: doing sync()...\n" );
+          sync();
+     }
 
      INITCHECK( vt_open() );
      INITCHECK( input_init_devices() );

@@ -68,7 +68,8 @@ typedef struct
      int       argb_font;                         /* whether to load fontmap
                                                      as argb and not a8 */
 
-     int       matrox_sgram;                      /* Use Matrox SGRAM features */
+     int       matrox_sgram;                      /* Use Matrox SGRAM features*/
+     int       sync;                              /* Do sync() in core_init() */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

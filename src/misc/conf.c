@@ -61,6 +61,8 @@ static void config_print_usage()
              "Primary surface always is a window\n"
              " --[no-]hardware                   "
              "Hardware acceleration\n"
+             " --[no-]sync                       "
+             "Do `sync()' (default=no)\n"
 #ifdef USE_MMX
              " --no-mmx                          "
              "Disable mmx support\n"
@@ -305,6 +307,12 @@ DFBResult config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "matrox-sgram" ) == 0) {
           dfb_config->matrox_sgram = 1;
+     } else
+     if (strcmp (name, "sync" ) == 0) {
+          dfb_config->sync = 1;
+     } else
+     if (strcmp (name, "no-sync" ) == 0) {
+          dfb_config->sync = 0;
      }
      else
           return DFB_UNSUPPORTED;
