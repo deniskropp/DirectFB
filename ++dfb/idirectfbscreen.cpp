@@ -59,3 +59,77 @@ void IDirectFBScreen::SetPowerMode (DFBScreenPowerMode mode)
      DFBCHECK( iface->SetPowerMode (iface, mode) );
 }
 
+void IDirectFBScreen::GetMixerDescriptions (DFBScreenMixerDescription *descriptions)
+{
+     DFBCHECK( iface->GetMixerDescriptions (iface, descriptions) );
+}
+
+void IDirectFBScreen::GetMixerConfiguration (int                   mixer,
+                                             DFBScreenMixerConfig *config)
+{
+     DFBCHECK( iface->GetMixerConfiguration (iface, mixer, config) );
+}
+
+void IDirectFBScreen::TestMixerConfiguration (int                         mixer,
+                                              const DFBScreenMixerConfig &config,
+                                              DFBScreenMixerConfigFlags  *failed)
+{
+     DFBCHECK( iface->TestMixerConfiguration (iface, mixer, &config, failed) );
+}
+
+void IDirectFBScreen::SetMixerConfiguration (int                         mixer,
+                                             const DFBScreenMixerConfig &config)
+{
+     DFBCHECK( iface->SetMixerConfiguration (iface, mixer, &config) );
+}
+
+
+void IDirectFBScreen::GetEncoderDescriptions (DFBScreenEncoderDescription *descriptions)
+{
+     DFBCHECK( iface->GetEncoderDescriptions (iface, descriptions) );
+}
+
+void IDirectFBScreen::GetEncoderConfiguration (int                     encoder,
+                                               DFBScreenEncoderConfig *config)
+{
+     DFBCHECK( iface->GetEncoderConfiguration (iface, encoder, config) );
+}
+
+void IDirectFBScreen::TestEncoderConfiguration (int                           encoder,
+                                                const DFBScreenEncoderConfig &config,
+                                                DFBScreenEncoderConfigFlags  *failed)
+{
+     DFBCHECK( iface->TestEncoderConfiguration (iface, encoder, &config, failed) );
+}
+
+void IDirectFBScreen::SetEncoderConfiguration (int                           encoder,
+                                               const DFBScreenEncoderConfig &config)
+{
+     DFBCHECK( iface->SetEncoderConfiguration (iface, encoder, &config) );
+}
+
+
+void IDirectFBScreen::GetOutputDescriptions (DFBScreenOutputDescription *descriptions)
+{
+     DFBCHECK( iface->GetOutputDescriptions (iface, descriptions) );
+}
+
+void IDirectFBScreen::GetOutputConfiguration (int                    output,
+                                              DFBScreenOutputConfig *config)
+{
+     DFBCHECK( iface->GetOutputConfiguration (iface, output, config) );
+}
+
+void IDirectFBScreen::TestOutputConfiguration (int                          output,
+                                               const DFBScreenOutputConfig &config,
+                                               DFBScreenOutputConfigFlags  *failed)
+{
+     DFBCHECK( iface->TestOutputConfiguration (iface, output, &config, failed) );
+}
+
+void IDirectFBScreen::SetOutputConfiguration (int                          output,
+                                              const DFBScreenOutputConfig &config)
+{
+     DFBCHECK( iface->SetOutputConfiguration (iface, output, &config) );
+}
+

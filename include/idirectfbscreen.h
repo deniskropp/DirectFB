@@ -48,6 +48,45 @@ public:
      void                   WaitForSync           ();
 
 
+     void                   GetMixerDescriptions     (DFBScreenMixerDescription    *descriptions);
+
+     void                   GetMixerConfiguration    (int                           mixer,
+                                                      DFBScreenMixerConfig         *config);
+
+     void                   TestMixerConfiguration   (int                           mixer,
+                                                      const DFBScreenMixerConfig   &config,
+                                                      DFBScreenMixerConfigFlags    *failed);
+
+     void                   SetMixerConfiguration    (int                           mixer,
+                                                      const DFBScreenMixerConfig   &config);
+
+
+     void                   GetEncoderDescriptions   (DFBScreenEncoderDescription  *descriptions);
+
+     void                   GetEncoderConfiguration  (int                           encoder,
+                                                      DFBScreenEncoderConfig       *config);
+
+     void                   TestEncoderConfiguration (int                           encoder,
+                                                      const DFBScreenEncoderConfig &config,
+                                                      DFBScreenEncoderConfigFlags  *failed);
+
+     void                   SetEncoderConfiguration  (int                           encoder,
+                                                      const DFBScreenEncoderConfig &config);
+
+
+     void                   GetOutputDescriptions    (DFBScreenOutputDescription   *descriptions);
+
+     void                   GetOutputConfiguration   (int                           output,
+                                                      DFBScreenOutputConfig        *config);
+
+     void                   TestOutputConfiguration  (int                           output,
+                                                      const DFBScreenOutputConfig  &config,
+                                                      DFBScreenOutputConfigFlags   *failed);
+
+     void                   SetOutputConfiguration   (int                           output,
+                                                      const DFBScreenOutputConfig  &config);
+
+
      __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBScreen );
 };
 
