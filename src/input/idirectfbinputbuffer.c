@@ -50,16 +50,6 @@
 
 #include "idirectfbinputbuffer.h"
 
-/*
- * adds an event to the event queue (function is added to the event listeners)
- */
-static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
-                                                       void       *ctx );
-
-static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
-                                                        void       *ctx );
-
-
 typedef struct _EventBufferItem
 {
      DFBEvent                 evt;
@@ -97,6 +87,18 @@ typedef struct {
      pthread_cond_t                wait_condition;/* condition used for idle
                                                      wait in WaitForEvent() */
 } IDirectFBEventBuffer_data;
+
+/*
+ * adds an event to the event queue
+ */
+static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
+                                          IDirectFBEventBuffer_item *item );
+
+static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
+                                                       void       *ctx );
+
+static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
+                                                        void       *ctx );
 
 
 
@@ -302,6 +304,23 @@ static DFBResult IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
 
      pthread_mutex_unlock( &data->events_mutex );
 
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
+                                                 DFBEvent             *event )
+{
+     IDirectFBEventBuffer_item *item;
+     
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     item = (IDirectFBEventBuffer_item*)
+          DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
+
+     item->evt = *event;
+
+     IDirectFBEventBuffer_AddItem( data, item );
+     
      return DFB_OK;
 }
 

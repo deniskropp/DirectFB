@@ -1961,7 +1961,9 @@ extern "C"
      typedef enum {
           DFEC_NONE           = 0x00,   /* none of these */
           DFEC_INPUT          = 0x01,   /* raw input event */
-          DFEC_WINDOW         = 0x02    /* windowing event */
+          DFEC_WINDOW         = 0x02,   /* windowing event */
+          DFEC_USER           = 0x03    /* custom events for
+                                           the user of this library */
      } DFBEventClass;
 
      /*
@@ -2104,12 +2106,23 @@ extern "C"
      } DFBWindowEvent;
 
      /*
-      * General DirectFB Event.
+      * Event for usage by the user of this library.
+      */
+     typedef struct {
+          DFBEventClass                      clazz;      /* clazz of event */  
+
+          unsigned int                       type;       /* custom type */
+          void                              *data;       /* custom data */
+     } DFBUserEvent;
+     
+     /*
+      * General container for a DirectFB Event.
       */
      typedef union {
           DFBEventClass            clazz;    /* clazz of event */
           DFBInputEvent            input;    /* field for input events */
           DFBWindowEvent           window;   /* field for window events */
+          DFBUserEvent             user;     /* field for user-defined events */
      } DFBEvent;
 
      #define DFB_EVENT(e)          ((DFBEvent *) (e))
@@ -2131,7 +2144,7 @@ extern "C"
           );
 
 
-        /** Event handling **/
+        /** Waiting for events **/
 
           /*
            * Wait for the next event to occur.
@@ -2151,6 +2164,9 @@ extern "C"
                unsigned int              milli_seconds
           );
 
+
+        /** Fetching events **/
+
           /*
            * Get the next event and remove it from the FIFO.
            */
@@ -2163,6 +2179,19 @@ extern "C"
            * Get the next event but leave it there, i.e. do a preview.
            */
           DFBResult (*PeekEvent) (
+               IDirectFBEventBuffer     *thiz,
+               DFBEvent                 *event
+          );
+
+
+        /** Sending events **/
+
+          /*
+           * Put an event into the FIFO.
+           *
+           * This function does not wait until the event got fetched.
+           */
+          DFBResult (*PostEvent) (
                IDirectFBEventBuffer     *thiz,
                DFBEvent                 *event
           );
