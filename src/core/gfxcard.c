@@ -298,6 +298,9 @@ DFBResult dfb_gfxcard_shutdown()
 #ifndef FUSION_FAKE
 DFBResult dfb_gfxcard_leave()
 {
+     if (!card)
+          return DFB_OK;
+
      dfb_gfxcard_sync();
 
      if (card->driver) {

@@ -192,12 +192,8 @@ dfb_core_ref()
 #ifndef FUSION_FAKE
      arena_enter ("DirectFB/Core",
                   dfb_core_initialize, dfb_core_join, dfb_core_takeover, NULL);
-     if (!dfb_core->arena) {
-          DFBFREE( dfb_core );
-          dfb_core = NULL;
-          fusion_exit();
+     if (!dfb_core)
           return DFB_INIT;
-     }
 #else
      if (dfb_core_initialize( NULL, NULL ))
           return DFB_INIT;
@@ -297,7 +293,7 @@ dfb_core_resume()
 void
 dfb_core_deinit_emergency()
 {
-     if (!dfb_core->refs)
+     if (!dfb_core || !dfb_core->refs)
           return;
 
      dfb_core->refs = 0;

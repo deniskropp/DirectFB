@@ -201,14 +201,16 @@ void __shmalloc_exit (bool shutdown)
      if (!mem)
           return;
      
-     /* Detach from reactor */
-     reactor_detach (_sheap->reactor, __shmalloc_react, NULL);
+     if (_sheap) {
+          /* Detach from reactor */
+          reactor_detach (_sheap->reactor, __shmalloc_react, NULL);
      
-     /* Destroy reactor */
-     if (shutdown)
-          reactor_free (_sheap->reactor);
+          /* Destroy reactor */
+          if (shutdown)
+               reactor_free (_sheap->reactor);
 
-     _sheap = NULL;
+          _sheap = NULL;
+     }
      
      munmap (mem, size);
      mem = NULL;
