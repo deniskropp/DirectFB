@@ -483,12 +483,12 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                }
           }
           else {     /* image must be scaled */
+               int y = 0;
+
                image_data = malloc(cinfo.output_width * cinfo.output_height*4);
                row_ptr = image_data;
 
                while (cinfo.output_scanline < cinfo.output_height) {
-                    int y = 0;
-
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     copy_line32( (__u32*)row_ptr, *buffer, cinfo.output_width);
                     row_ptr += cinfo.output_width * 4;
