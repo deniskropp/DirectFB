@@ -35,7 +35,7 @@
 
 void dfb_find_best_memcpy();
 
-void *(*dfb_memcpy)( void *to, const void *from, size_t len );
+extern void *(*dfb_memcpy)( void *to, const void *from, size_t len );
 
 static inline void *dfb_memmove( void *to, const void *from, size_t len )
 {

@@ -29,7 +29,11 @@
 
 #include <config.h>
 
+#ifdef __linux__
 #include <asm/page.h>
+#else
+#define PAGE_SIZE 4096 // FIXME: dont assume
+#endif
 
 #include <stdlib.h>
 #include <string.h>

@@ -35,9 +35,12 @@
 
 #include <core/coredefs.h>
 
-
+#ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
 
 #define SIGN(x)  ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
 #define ABS(x)   ((x) > 0 ? (x) : -(x))
