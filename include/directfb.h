@@ -1860,6 +1860,18 @@ extern "C"
                IDirectFBWindow     *thiz
           );
 
+	  /*
+           * Block until next event to occurs or timeout is reached.
+           * Thread is idle in the meantime.
+           */
+          DFBResult (*WaitForEventWithTimeout) (
+               IDirectFBWindow     *thiz,
+               long int                  seconds,
+               long int                  nano_seconds
+          );
+
+
+
           /*
            * Get the next event and remove from the FIFO.
            */

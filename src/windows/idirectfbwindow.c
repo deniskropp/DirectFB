@@ -27,6 +27,8 @@
 #include <string.h>
 
 #include <malloc.h>
+#include <sys/time.h>
+#include <errno.h>
 
 #include <directfb.h>
 
@@ -390,6 +392,42 @@ static DFBResult IDirectFBWindow_WaitForEvent( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
+static DFBResult IDirectFBWindow_WaitForEventWithTimeout(
+                                                  IDirectFBWindow *thiz,
+                                                  long int             seconds,
+                                                  long int        nano_seconds )
+{
+     DFBResult                  ret  = DFB_OK;
+     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     pthread_mutex_lock( &data->events_mutex );
+     
+     if (!data->events) {
+          struct timeval  now;
+          struct timespec timeout;
+
+          gettimeofday( &now, NULL );
+
+          timeout.tv_sec  = now.tv_sec + seconds;
+          timeout.tv_nsec = (now.tv_usec * 1000) + nano_seconds;
+          
+          timeout.tv_sec  += timeout.tv_nsec / 1000000000;
+          timeout.tv_nsec %= 1000000000;
+          
+          if (pthread_cond_timedwait( &data->wait_condition,
+                                      &data->events_mutex,
+                                      &timeout ) == ETIMEDOUT)
+               ret = DFB_TIMEOUT;
+     }
+
+     pthread_mutex_unlock( &data->events_mutex );
+     
+     return ret;
+}
+
 static DFBResult IDirectFBWindow_GetEvent( IDirectFBWindow *thiz,
                                            DFBWindowEvent  *event )
 {
@@ -405,7 +443,6 @@ static DFBResult IDirectFBWindow_GetEvent( IDirectFBWindow *thiz,
           pthread_mutex_unlock( &data->events_mutex );
           return DFB_BUFFEREMPTY;
      }
-
      e = data->events;
      
      *event = e->evt;
@@ -482,6 +519,7 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->RaiseToTop = IDirectFBWindow_RaiseToTop;
      thiz->LowerToBottom = IDirectFBWindow_LowerToBottom;
      thiz->WaitForEvent = IDirectFBWindow_WaitForEvent;
+     thiz->WaitForEventWithTimeout = IDirectFBWindow_WaitForEventWithTimeout;
      thiz->GetEvent = IDirectFBWindow_GetEvent;
      thiz->PeekEvent = IDirectFBWindow_PeekEvent;
 
