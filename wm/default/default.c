@@ -1265,6 +1265,7 @@ move_window( CoreWindow *window,
              int         dx,
              int         dy )
 {
+     DFBResult       ret;
      DFBWindowEvent  evt;
      DFBRectangle   *bounds = &window->config.bounds;
 
@@ -1275,7 +1276,16 @@ move_window( CoreWindow *window,
           data->config.dest.x += dx;
           data->config.dest.y += dy;
 
-          dfb_layer_region_set_configuration( window->region, &data->config, CLRCF_DEST );
+          ret = dfb_layer_region_set_configuration( window->region, &data->config, CLRCF_DEST );
+          if (ret) {
+               bounds->x -= dx;
+               bounds->y -= dy;
+
+               data->config.dest.x -= dx;
+               data->config.dest.y -= dy;
+
+               return ret;
+          }
      }
      else if (VISIBLE_WINDOW(window)) {
           DFBRegion region = { 0, 0, bounds->w - 1, bounds->h - 1 };
