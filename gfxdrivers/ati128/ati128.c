@@ -34,6 +34,8 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
+#include <linux/fb.h>
+
 #include <directfb.h>
 
 #include <core/coredefs.h>
@@ -571,12 +573,11 @@ static void ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
 static int
 driver_probe( GraphicsDevice *device )
 {
-#ifdef FB_ACCEL_ATI_RAGE128
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_ATI_RAGE128:          /* ATI Rage 128 */
                return 1;
      }
-#endif
+
      return 0;
 }
 

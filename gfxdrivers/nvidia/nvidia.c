@@ -34,6 +34,8 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
+#include <linux/fb.h>
+
 #include <directfb.h>
 
 #include <core/coredefs.h>
@@ -482,13 +484,11 @@ static void nvAfterSetVar( void *drv, void *dev )
 static int
 driver_probe( GraphicsDevice *device )
 {
-#ifdef FB_ACCEL_NV4
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_NV4:
           case FB_ACCEL_NV5:
                return 1;
      }
-#endif
 
      return 0;
 }

@@ -34,6 +34,8 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
+#include <linux/fb.h>
+
 #include <directfb.h>
 
 #include <core/coredefs.h>
@@ -701,12 +703,11 @@ static void tdfxStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangl
 static int
 driver_probe( GraphicsDevice *device )
 {
-#ifdef FB_ACCEL_3DFX_BANSHEE
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_3DFX_BANSHEE:          /* Banshee/Voodoo3 */
                return 1;
      }
-#endif
+
      return 0;
 }
 
