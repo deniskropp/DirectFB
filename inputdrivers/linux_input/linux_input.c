@@ -505,8 +505,10 @@ get_device_info( int              fd,
           info->prefered_id = DIDID_REMOTE;
      else if (info->desc.type & DIDTF_JOYSTICK)
           info->prefered_id = DIDID_JOYSTICK;
-     else
+     else if (info->desc.type & DIDTF_MOUSE)
           info->prefered_id = DIDID_MOUSE;
+     else
+          info->prefered_id = DIDID_ANY;
 }
 
 /* exported symbols */
