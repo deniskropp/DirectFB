@@ -16,6 +16,7 @@ stamp-h1
 directfb-config
 directfb.pc
 directfb-internal.pc
+directfb.spec
 DirectFB.vpj
 DirectFB.vpw
 DirectFB.vtg

@@ -733,6 +733,7 @@ AC_OUTPUT([
 directfb-config
 directfb.pc
 directfb-internal.pc
+directfb.spec
 Makefile
 include/Makefile
 include/directfb_version.h

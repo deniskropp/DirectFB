@@ -8,7 +8,6 @@ else
 LINUXONLY_DIRS =
 endif
 
-   
 SUBDIRS = \
 	patches 		\
 	include 		\
@@ -26,12 +25,11 @@ pkgconfig_DATA = directfb.pc directfb-internal.pc
 
 EXTRA_DIST = \
 	README.screenshots	\
-	fb.modes \
-	directfb.spec
-	
+	fb.modes 		\
+	directfb.spec.in
+
 
 ## Some special rules that may be useful ...
-.PHONY: html directfb-csource
 
 # Generate the HTML API documentation:
 html:
@@ -40,3 +38,6 @@ html:
 # Compile the directfb-csource utility:
 directfb-csource:
 	make -C tools directfb-csource
+
+
+.PHONY: html directfb-csource
