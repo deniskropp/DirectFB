@@ -29,7 +29,6 @@
 #include <unistd.h>
 
 #include <string.h>
-#include <malloc.h>
 
 #include <core/fusion/reactor.h>
 

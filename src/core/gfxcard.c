@@ -27,7 +27,6 @@
 #include "config.h"
 
 #include <string.h>
-#include <malloc.h>
 #include <dlfcn.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>

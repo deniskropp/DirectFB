@@ -27,7 +27,6 @@
 #include <pthread.h>
 #include <dirent.h>
 #include <dlfcn.h>
-#include <malloc.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>

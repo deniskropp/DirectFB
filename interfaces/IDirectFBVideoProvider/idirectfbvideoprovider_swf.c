@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <malloc.h>
 
 #include <pthread.h>
 

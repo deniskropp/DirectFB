@@ -31,7 +31,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <malloc.h>
 #include <string.h>
 
 #include <directfb.h>

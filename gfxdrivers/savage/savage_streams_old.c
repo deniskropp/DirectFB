@@ -35,7 +35,6 @@
 #include <sys/io.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <malloc.h>
 #include <math.h>
 
 #include <directfb.h>

@@ -31,7 +31,6 @@
 
 #include <math.h>
 
-#include <malloc.h>
 
 #include <directfb.h>
 #include <directfb_internals.h>

@@ -31,7 +31,6 @@
 
 #include <sched.h>
 
-#include <malloc.h>
 #include <sys/time.h>
 #include <errno.h>
 

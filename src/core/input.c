@@ -30,7 +30,6 @@
 #include <dlfcn.h>
 
 #include <string.h>
-#include <malloc.h>
 
 #include <sys/time.h>
 

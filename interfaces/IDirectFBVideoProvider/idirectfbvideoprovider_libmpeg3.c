@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <malloc.h>
 #include <endian.h>
 
 #include <sys/types.h>
