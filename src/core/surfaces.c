@@ -500,7 +500,6 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
           if (idle != front && idle != back)
                dfb_surface_destroy_buffer( surface, idle );
 
-          dfb_surface_destroy_buffer( surface, idle );
           surface->idle_buffer = new_idle;
      }
      else
