@@ -277,6 +277,8 @@ dfb_windowstack_resize( CoreWindowStack *stack,
 {
      DFB_ASSERT( stack != NULL );
 
+     stack_lock( stack );
+     
      /* Store the width and height of the stack */
      stack->width  = width;
      stack->height = height;
@@ -286,6 +288,8 @@ dfb_windowstack_resize( CoreWindowStack *stack,
      stack->cursor.region.y1 = 0;
      stack->cursor.region.x2 = width - 1;
      stack->cursor.region.y2 = height - 1;
+     
+     stack_unlock( stack );
 }
 
 DFBResult
@@ -418,11 +422,15 @@ dfb_window_deinit( CoreWindow *window )
 void
 dfb_window_destroy( CoreWindow *window, bool unref )
 {
-     DFBWindowEvent evt;
+     DFBWindowEvent   evt;
+     CoreWindowStack *stack = window->stack;
 
+     stack_lock( stack );
+     
      if (window->destroyed) {
           DEBUGMSG("DirectFB/core/windows: in dfb_window_destroy (%p), "
                    "already destroyed!\n", window);
+          stack_unlock( stack );
           return;
      }
 
@@ -449,6 +457,8 @@ dfb_window_destroy( CoreWindow *window, bool unref )
      }
 
      DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) exiting\n", window);
+     
+     stack_unlock( stack );
 }
 
 void
@@ -1035,17 +1045,23 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
 
      DFB_ASSERT( stack != NULL );
 
-     if (!stack->cursor.enabled)
+     stack_lock( stack );
+     
+     if (!stack->cursor.enabled) {
+          stack_unlock( stack );
           return;
-
+     }
+     
      new_cx = MIN( stack->cursor.x + dx, stack->cursor.region.x2);
      new_cy = MIN( stack->cursor.y + dy, stack->cursor.region.y2);
 
      new_cx = MAX( new_cx, stack->cursor.region.x1 );
      new_cy = MAX( new_cy, stack->cursor.region.y1 );
 
-     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y)
+     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y) {
+          stack_unlock( stack );
           return;
+     }
 
      dx = new_cx - stack->cursor.x;
      dy = new_cy - stack->cursor.y;
@@ -1104,8 +1120,6 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
           }
 
           case 0:
-               stack_lock( stack );
-
                if (stack->pointer_window) {
                     we.type = DWET_MOTION;
                     we.x    = stack->cursor.x - stack->pointer_window->x;
@@ -1125,8 +1139,6 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
                     }
                }
 
-               stack_unlock( stack );
-
                break;
 
           default:
@@ -1134,6 +1146,8 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
      }
 
      HEAVYDEBUGMSG("DirectFB/windows: mouse at %d, %d\n", stack->cursor.x, stack->cursor.y);
+     
+     stack_unlock( stack );
 }
 
 
@@ -1416,6 +1430,8 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
 
      dfb_layer_release( layer, false );
 
+     stack_lock( stack );
+     
      /* FIXME: handle multiple devices */
      if (evt->flags & DIEF_BUTTONS)
           stack->buttons = evt->buttons;
@@ -1434,14 +1450,13 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                          case DIKS_CAPS_LOCK:
                               stack->wm_hack = 0;
                               stack->wm_cycle = 0;
-                              stack_lock( stack );
                               handle_enter_leave_focus( stack );
-                              stack_unlock( stack );
                               break;
 
                          case DIKS_ALT:
                          case DIKS_CONTROL:
                               stack->wm_hack = 1;
+                              stack_unlock( stack );
                               return RS_OK;
 
                          case DIKS_SMALL_A:
@@ -1449,6 +1464,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                          case DIKS_SMALL_S:
                          case DIKS_SMALL_X:
                          case DIKS_SMALL_D:
+                              stack_unlock( stack );
                               return RS_OK;
                          
                          default:
@@ -1460,14 +1476,15 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                     switch (DFB_LOWER_CASE(evt->key_symbol)) {
                          case DIKS_ALT:
                               stack->wm_hack = 3;
+                              stack_unlock( stack );
                               return RS_OK;
 
                          case DIKS_CONTROL:
                               stack->wm_hack = 2;
+                              stack_unlock( stack );
                               return RS_OK;
 
                          case DIKS_SMALL_X:
-                              stack_lock( stack );
                               if (stack->wm_cycle <= 0)
                                    stack->wm_cycle = stack->num_windows;
                               
@@ -1510,6 +1527,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                                    evt.type = DWET_CLOSE;
                                    dfb_window_dispatch( stack->entered_window, &evt );
                               }
+                              stack_unlock( stack );
                               return RS_OK;
 
                          case DIKS_SMALL_A:
@@ -1518,6 +1536,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               {
                                    dfb_window_lowertobottom( stack->focused_window );
                               }
+                              stack_unlock( stack );
                               return RS_OK;
 
                          case DIKS_SMALL_S:
@@ -1526,6 +1545,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               {
                                    dfb_window_raisetotop( stack->focused_window );
                               }
+                              stack_unlock( stack );
                               return RS_OK;
 
                          case DIKS_SMALL_D: {
@@ -1538,6 +1558,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                                    dfb_window_destroy( window, false );
                               }
 
+                              stack_unlock( stack );
                               return RS_OK;
                          }
 
@@ -1547,12 +1568,14 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                     break;
 
                case DIET_BUTTONRELEASE:
+                    stack_unlock( stack );
                     return RS_OK;
 
                case DIET_BUTTONPRESS:
                     if (stack->entered_window &&
                         !(stack->entered_window->options & DWOP_KEEP_STACKING))
                          dfb_window_raisetotop( stack->entered_window );
+                    stack_unlock( stack );
                     return RS_OK;
 
                default:
@@ -1567,8 +1590,6 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                     stack->wm_hack = 1;
                /* fall through */
           case DIET_KEYRELEASE:
-               stack_lock( stack );
-               
                window = get_keyboard_window( stack, evt );
 
                if (window) {
@@ -1580,17 +1601,14 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
 
                     dfb_window_dispatch( window, &we );
                }
-               
-               stack_unlock( stack );
 
                break;
+          
           case DIET_BUTTONPRESS:
           case DIET_BUTTONRELEASE:
                if (!stack->cursor.enabled)
                     break;
 
-               stack_lock( stack );
-               
                window = (stack->pointer_window ?
                          stack->pointer_window : stack->entered_window);
 
@@ -1603,10 +1621,9 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
 
                     dfb_window_dispatch( window, &we );
                }
-
-               stack_unlock( stack );
                
                break;
+          
           case DIET_AXISMOTION:
                if (evt->flags & DIEF_AXISREL) {
                     int rel = evt->axisrel;
@@ -1632,6 +1649,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               handle_wheel( stack, - evt->axisrel );
                               break;
                          default:
+                              stack_unlock( stack );
                               return RS_OK;
                     }
                }
@@ -1646,6 +1664,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                                                              0, evt->axisabs - stack->cursor.y );
                               break;
                          default:
+                              stack_unlock( stack );
                               return RS_OK;
                     }
                }
@@ -1654,6 +1673,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                break;
      }
 
+     stack_unlock( stack );
      return RS_OK;
 }
 
