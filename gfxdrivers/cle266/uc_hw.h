@@ -23,7 +23,7 @@ void uc_map_blitflags(struct uc_hw_texture* tex,
 // GPU - setting functions (uc_hwset.c)
 
 void uc_set_blending_fn(struct uc_fifo* fifo, UcDeviceData *ucdev);
-void uc_set_texenv(struct uc_fifo* fifo, UcDeviceData* ucdev);
+void uc_set_texenv(struct uc_fifo* fifo, UcDeviceData* ucdev, CardState *state);
 void uc_set_clip(struct uc_fifo* fifo, CardState* state);
 void uc_set_destination(struct uc_fifo* fifo, UcDeviceData *ucdev,
                                CardState* state);

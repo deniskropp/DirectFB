@@ -130,6 +130,10 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
         ucdev->v_source3d = 0;
     }
 
+
+    if (state->modified & SMF_BLITTING_FLAGS)
+        ucdev->v_texenv = 0;
+
     if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
         ucdev->color = uc_map_color(state->destination->format,
             state->color);
@@ -216,12 +220,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
         case UC_TYPE_3D:
             uc_set_source_3d(fifo, ucdev, state);
             funcs->Blit = uc_blit_3d;
-
-            if (state->modified & SMF_BLITTING_FLAGS) {
-                uc_map_blitflags(&(ucdev->hwtex), state->blittingflags,
-                    state->source->format);
-                uc_set_texenv(fifo, ucdev);
-            }
+            uc_set_texenv(fifo, ucdev, state);
 
             if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                 DSBLIT_BLEND_COLORALPHA)) {

@@ -54,9 +54,18 @@ void uc_set_blending_fn(struct uc_fifo* fifo, UcDeviceData *ucdev)
 }
 
 /// Set texture environment (3D)
-void uc_set_texenv(struct uc_fifo* fifo, UcDeviceData* ucdev)
+void uc_set_texenv(struct uc_fifo* fifo, UcDeviceData* ucdev, CardState* state)
 {
-    struct uc_hw_texture* tex = &(ucdev->hwtex);
+    struct uc_hw_texture* tex;
+
+    if (ucdev->v_texenv)
+        return;
+
+    uc_map_blitflags(&(ucdev->hwtex), state->blittingflags,                      
+                     state->source->format);
+
+    tex = &(ucdev->hwtex);
+
 
     // Texture mapping method
     tex->regHTXnTB = HC_HTXnFLSs_Linear | HC_HTXnFLTs_Linear |
@@ -84,6 +93,8 @@ void uc_set_texenv(struct uc_fifo* fifo, UcDeviceData* ucdev)
     UC_FIFO_PAD_EVEN(fifo);
 
     UC_FIFO_CHECK(fifo);
+    
+    ucdev->v_texenv = 1;
 }
 
 /// Set clipping rectangle (2D and 3D)

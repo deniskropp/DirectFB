@@ -103,6 +103,7 @@ typedef struct _UcDeviceData {
     /*state validation*/
     int v_source2d;
     int v_source3d;
+    int v_texenv;
 
 } UcDeviceData;
 
