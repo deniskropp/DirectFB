@@ -221,15 +221,6 @@ DFBResult Construct( IDirectFBFont *thiz,
           }
      }
 
-     if (!library) {
-          err = FT_Init_FreeType( &library );
-          if (err) {
-               ERRORMSG( "DirectFB/FontFT2: "
-                         "Initializing the FreeType Library failed!\n" );
-               return DFB_FAILURE;
-          }
-     }
-
      err = FT_New_Face( library, filename, 0, &face );
      if (err) {
           ERRORMSG( "DirectFB/FontFT2: "

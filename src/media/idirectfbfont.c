@@ -95,12 +95,6 @@ DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font )
      return DFB_OK;
 }
 
-static void fonts_glyph_info_free(void *key,
-                                  void *value)
-{
-  free (value);
-}
-
 void IDirectFBFont_Destruct( IDirectFBFont *thiz )
 {
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;

@@ -73,8 +73,10 @@ Tree * tree_new (void)
 
 void tree_destroy (Tree *tree)
 {
-     tree_node_destroy (tree->root);
-     free (tree);
+     if (tree) {
+          tree_node_destroy (tree->root);
+          free (tree);
+     }
 }
 
 void tree_insert (Tree *tree,
@@ -119,14 +121,14 @@ tree_node_new (void *key,
 static void
 tree_node_destroy (Node *node)
 {
-     if (!node)
-          return;
+     if (node) {
+          tree_node_destroy (node->left);
+          tree_node_destroy (node->right);
 
-     tree_node_destroy (node->left);
-     tree_node_destroy (node->right);
-
-     free (node->value);
-     free (node);
+          if (node->value)
+               free (node->value);
+          free (node);
+     }
 }
 
 static Node *
@@ -181,7 +183,7 @@ tree_node_insert (Tree *tree,
           }
      }
 
-     if (*inserted && (node->balance < -1) || (node->balance > 1))
+     if (*inserted && (node->balance < -1 || node->balance > 1))
        node = tree_node_balance (node);
 
      return node;
