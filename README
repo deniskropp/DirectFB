@@ -186,6 +186,39 @@ Configuring the Linux framebuffer device
    vertical retrace.
 
 
+Running multiple DirectFB applications at the same time
+-------------------------------------------------------
+
+   With the default build of the DirectFB library, only one DirectFB
+   application may be running. However you have the option to use the
+   multi-application core of DirectFB which allows for multiple
+   DirectFB applications to run at the same time. Please note that
+   this is still considered experimental. You have been warned!
+
+   Compile DirectFB with multi-application core enabled:
+
+     ./configure --enable-multi
+
+   Make sure your Linux kernel supports tmpfs. This is explained in
+   the kernel sources in Documentation/filesystems/tmpfs.txt. Mount a
+   tmpfs filesystem as /dev/shm:
+
+     mount shm /dev/shm -tshm 
+
+   A good way to test the multi-application core is to install the lite
+   toolkit and DFBTerm, a DirectFB terminal (both available in the
+   DirectFB CVS repository). You can then start DirectFB applications
+   from dfbterm.
+
+   DirectFB applications communicate thru a layer we called fusion. This
+   layer is implemented in user space using semaphores and message queues.
+   If you are brave you can try the fusion kernel module which takes a
+   different approach and might gain better performance. To do so, check
+   out the linux-fusion module from our CVS repository. DirectFB will 
+   use the kernel module if the linux/fusion.h header file is found by
+   configure.
+
+
 Documentation
 -------------
 
@@ -225,6 +258,7 @@ Thanks to
    Brian J. Murrell <a40e8119bbddbe7b3d281db117f19b32@interlinx.bc.ca>
    Tim Janik <timj@gtk.org>
    Billy Biggs <vektor@dumbterm.net>
+   Andreas Oberritter <obi@tuxbox.org>
 
 
 Legal stuff
