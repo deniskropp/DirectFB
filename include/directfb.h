@@ -894,10 +894,12 @@ extern "C"
           );
 
           /*
-           * Create an event buffer for specific input events.
+           * Create a buffer for events.
            *
            * Creates an event buffer and attaches all input devices
-           * with matching capabilities.
+           * with matching capabilities. If no input devices match,
+           * e.g. by specifying DICAPS_NONE, a buffer will be returned
+           * that has no event sources connected to it.
            */
           DFBResult (*CreateEventBuffer) (
                IDirectFB                   *thiz,

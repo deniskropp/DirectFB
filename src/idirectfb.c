@@ -559,14 +559,15 @@ IDirectFB_CreateEventBuffer( IDirectFB                   *thiz,
      if (!interface)
           return DFB_INVARG;
 
-     *interface = NULL;
+     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
+     IDirectFBEventBuffer_Construct( *interface );
 
      context.caps      = caps;
      context.interface = interface;
 
      dfb_input_enumerate_devices( CreateEventBuffer_Callback, &context );
 
-     return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
+     return DFB_OK;
 }
 
 static int
@@ -831,12 +832,6 @@ CreateEventBuffer_Callback( InputDevice *device, void *ctx )
 
      if (! (desc.caps & context->caps))
           return DFENUM_OK;
-
-     if (! *context->interface) {
-          DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBEventBuffer );
-
-          IDirectFBEventBuffer_Construct( *context->interface );
-     }
 
      IDirectFBEventBuffer_AttachInputDevice( *context->interface, device );
 
