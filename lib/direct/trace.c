@@ -266,7 +266,7 @@ load_symbols( const char *filename )
           if (length < 13 || line[length-1] != '\n')
                continue;
 
-          if (line[9] != 't' && line[9] != 'T')
+          if (line[9] != 't' && line[9] != 'T' && line[9] != 'W')
                continue;
 
           if (line[8] != ' ' || line[10] != ' ' || line[11] == '.')
