@@ -1386,8 +1386,26 @@ static void Sop_a8_Kto_Dacc()
 #ifdef SUPPORT_RGB332
 static void Sop_rgb332_Kto_Dacc()
 {
-     ONCE( "Sop_rgb332_Kto_Dacc() unimplemented" );
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     while (w--) {
+          __u8 s = *S++;
+
+          if (s != (__u8)Skey) {
+               D->a = 0xFF;
+               D->r = (s & 0xE0);
+               D->g = (s & 0x1C) << 3;
+               D->b = (s & 0x03) << 6;
+          }
+          else
+               D->a = 0xF000;
+
+          D++;
+     }
 }
+
 #endif
 
 static GFunc Sop_PFI_Kto_Dacc[] = {

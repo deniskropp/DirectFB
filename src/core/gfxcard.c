@@ -98,7 +98,7 @@ DFBResult gfxcard_init()
      sprintf( card->info.driver_vendor, "convergence integrated media GmbH" );
 
      card->info.driver_version.major = 0;
-     card->info.driver_version.minor = 3;
+     card->info.driver_version.minor = 5;
 
      if (ioctl( fbdev->fd, FBIOGET_FSCREENINFO, &card->fix ) < 0) {
           PERRORMSG( "DirectFB/core/gfxcard: "
