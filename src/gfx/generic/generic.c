@@ -1678,6 +1678,34 @@ static void Sop_alut44_SKto_Dacc( GenefxState *gfxs )
      }
 }
 
+static void Sop_rgb332_SKto_Dacc( GenefxState *gfxs )
+{
+     int w     = gfxs->length;
+     int i     = 0;
+     int SperD = gfxs->SperD;
+
+     GenefxAccumulator *D    = gfxs->Dacc;
+     __u8              *S    = gfxs->Sop;
+     __u8               Skey = gfxs->Skey;
+
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          if (s != Skey) {
+               D->a = 0xFF;
+               D->r = lookup3to8[s >> 5];
+               D->g = lookup3to8[(s & 0x1C) >> 2];
+               D->b = lookup2to8[s & 0x03];
+          }
+          else
+               D->a = 0xF000;
+
+          i += SperD;
+
+          D++;
+     }
+}
+
 static GenefxFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_SKto_Dacc,
      Sop_rgb16_SKto_Dacc,
@@ -1686,7 +1714,7 @@ static GenefxFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb_SKto_Dacc,
      Sop_a8_SKto_Dacc,
      NULL,
-     NULL,     /* FIXME: RGB332 */
+     Sop_rgb332_SKto_Dacc,
      NULL,
      NULL,
      NULL,
