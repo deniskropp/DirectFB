@@ -346,7 +346,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      int                    err;
      void                  *dst;
      int                    pitch;
-     int                    direct;
+     int                    direct = 0;
      DFBRectangle           rect = { 0, 0, 0, 0};
      DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
@@ -373,7 +373,8 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           case DSPF_RGB24:
           case DSPF_RGB32:
           case DSPF_ARGB:
-               direct = 1;
+               if (! (dst_surface->caps & DSCAPS_SEPARATED))
+                    direct = 1;
                break;
 
           case DSPF_LUT8:
