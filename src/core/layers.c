@@ -107,7 +107,9 @@ struct _DisplayLayer {
      void               *driver_data;
      void               *layer_data;   /* copy of shared->layer_data */
 
-     DisplayLayerFuncs  *funcs;  
+     DisplayLayerFuncs  *funcs;
+
+     CardState           state;
 };  
 
 typedef struct {
@@ -198,6 +200,10 @@ dfb_layers_shutdown( bool emergency )
           /* Free shared layer data */
           shfree( l->shared );
 
+          /* Deinit state for stack repaints. */
+          dfb_state_set_destination( &l->state, NULL );
+          dfb_state_destroy( &l->state );
+          
           /* Free local layer data */
           DFBFREE( l );
      }
@@ -216,7 +222,14 @@ dfb_layers_leave( bool emergency )
 
      /* Free all local data */
      for (i=0; i<layersfield->num; i++) {
-          DFBFREE( dfb_layers[i] );
+          DisplayLayer *layer = dfb_layers[i];
+
+          /* Deinit state for stack repaints. */
+          dfb_state_set_destination( &layer->state, NULL );
+          dfb_state_destroy( &layer->state );
+
+          /* Free local layer data */
+          DFBFREE( layer );
      }
 
      return DFB_OK;
@@ -282,6 +295,9 @@ dfb_layers_register( GraphicsDevice    *device,
      layer->device      = device;
      layer->driver_data = driver_data;
      layer->funcs       = funcs;
+
+     /* Initialize the state for window stack repaints */
+     dfb_state_init( &layer->state );
 
      /* add it to the local list */
      dfb_layers[dfb_num_layers++] = layer;
@@ -738,12 +754,11 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
           shared->config.width = config->width;
 
      /*
-      * Update the valid region for the cursor.
+      * Tell the windowing core about the new size.
       */
-     shared->stack->cursor.region.x1 = 0;
-     shared->stack->cursor.region.y1 = 0;
-     shared->stack->cursor.region.x2 = config->width - 1;
-     shared->stack->cursor.region.y2 = config->height - 1;
+     if (shared->stack)
+          dfb_windowstack_resize( shared->stack,
+                                  config->width, config->height );
 
      return DFB_OK;
 }
@@ -855,6 +870,18 @@ dfb_layer_surface( const DisplayLayer *layer )
      DFB_ASSERT( shared->surface );
      
      return shared->surface;
+}
+
+CardState *
+dfb_layer_state( DisplayLayer *layer )
+{
+     DFB_ASSERT( layer != NULL );
+     DFB_ASSERT( layer->shared != NULL );
+     DFB_ASSERT( layer->shared->surface != NULL );
+
+     dfb_state_set_destination( &layer->state, layer->shared->surface );
+     
+     return &layer->state;
 }
 
 void

@@ -30,7 +30,6 @@ Rework VT handling. Readd VT switching and Suspend/Resume.
 Finish multi application core.
  - FusionProperty needs to be implemented
  - Reduce number of thread
- - Restrict CardState to be local and use a mutex instead of a skirmish
  - Some messages may need to be dispatched synchronized
  - Add fork handling
 

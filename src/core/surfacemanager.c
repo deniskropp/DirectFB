@@ -110,9 +110,10 @@ static void debug_pause( SurfaceManager *manager );
 #endif
 
 
-SurfaceManager *dfb_surfacemanager_create( unsigned int length,
-                                           unsigned int byteoffset_align,
-                                           unsigned int pixelpitch_align )
+SurfaceManager *
+dfb_surfacemanager_create( unsigned int length,
+                           unsigned int byteoffset_align,
+                           unsigned int pixelpitch_align )
 {
      Chunk          *chunk;
      SurfaceManager *manager;
@@ -142,6 +143,35 @@ SurfaceManager *dfb_surfacemanager_create( unsigned int length,
 #endif
 
      return manager;
+}
+
+void
+dfb_surfacemanager_destroy( SurfaceManager *manager )
+{
+     Chunk *chunk;
+
+     DFB_ASSERT( manager != NULL );
+     DFB_ASSERT( manager->chunks != NULL );
+
+#ifdef DFB_DEBUG
+     debug_exit( manager );
+#endif
+     
+     /* Deallocate all chunks. */
+     chunk = manager->chunks;
+     while (chunk) {
+          Chunk *next = chunk->next;
+
+          shfree( chunk );
+
+          chunk = next;
+     }
+
+     /* Destroy manager lock. */
+     skirmish_destroy( &manager->lock );
+     
+     /* Deallocate manager struct. */
+     shfree( manager );
 }
 
 #ifdef FUSION_FAKE

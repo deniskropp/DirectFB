@@ -24,6 +24,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <string.h>
+
 #include <pthread.h>
 
 #include <core/fusion/reactor.h>
@@ -44,18 +46,33 @@ static ReactionResult source_listener     ( const void *msg_data,
 
 
 
-int dfb_state_init( CardState *state )
+int
+dfb_state_init( CardState *state )
 {
-     return skirmish_init( &state->lock );
+     DFB_ASSERT( state != NULL );
+     
+     memset( state, 0, sizeof(CardState) );
+     
+     state->modified  = SMF_ALL;
+     state->src_blend = DSBF_SRCALPHA;
+     state->dst_blend = DSBF_INVSRCALPHA;
+     
+     return pthread_mutex_init( &state->lock, NULL );
 }
 
-void dfb_state_destroy( CardState *state )
+void
+dfb_state_destroy( CardState *state )
 {
-     skirmish_destroy( &state->lock );
+     DFB_ASSERT( state != NULL );
+     
+     pthread_mutex_destroy( &state->lock );
 }
 
-void dfb_state_set_destination( CardState *state, CoreSurface *destination )
+void
+dfb_state_set_destination( CardState *state, CoreSurface *destination )
 {
+     DFB_ASSERT( state != NULL );
+
      if (state->destination != destination) {
           if (state->destination)
                dfb_surface_detach( state->destination,
@@ -70,8 +87,11 @@ void dfb_state_set_destination( CardState *state, CoreSurface *destination )
      }
 }
 
-void dfb_state_set_source( CardState *state, CoreSurface *source )
+void
+dfb_state_set_source( CardState *state, CoreSurface *source )
 {
+     DFB_ASSERT( state != NULL );
+
      if (state->source != source) {
           if (state->source)
                dfb_surface_detach( state->source, source_listener, state );
@@ -86,8 +106,9 @@ void dfb_state_set_source( CardState *state, CoreSurface *source )
 
 /**********************/
 
-static ReactionResult destination_listener( const void *msg_data,
-                                            void       *ctx )
+static ReactionResult
+destination_listener( const void *msg_data,
+                      void       *ctx )
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      CardState               *state        = (CardState*)ctx;
@@ -124,7 +145,9 @@ static ReactionResult destination_listener( const void *msg_data,
      return RS_OK;
 }
 
-static ReactionResult source_listener( const void *msg_data, void *ctx )
+static ReactionResult
+source_listener( const void *msg_data,
+                 void       *ctx )
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      CardState               *state        = (CardState*)ctx;

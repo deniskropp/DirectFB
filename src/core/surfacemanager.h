@@ -39,6 +39,8 @@ SurfaceManager *dfb_surfacemanager_create( unsigned int length,
                                            unsigned int byteoffset_align,
                                            unsigned int pixelpitch_align );
 
+void dfb_surfacemanager_destroy( SurfaceManager *manager );
+
 #ifdef FUSION_FAKE
 DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager );
 DFBResult dfb_surfacemanager_resume( SurfaceManager *manager );

@@ -81,7 +81,8 @@ struct _CoreWindow {
 struct _CoreWindowStack {
      DFBDisplayLayerID   layer_id;
 
-     CoreSurface        *surface;
+     int                 width;
+     int                 height;
 
      FusionObjectPool   *pool;            /* window pool */
 
@@ -105,8 +106,6 @@ struct _CoreWindowStack {
           int            denominator;
           int            threshold;
      } cursor;
-
-     CardState           state;           /* state for windowstack repaints */
 
      FusionSkirmish      lock;            /* skirmish lock for repaints and
                                              management functions */
@@ -138,6 +137,11 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height );
 
 void
 dfb_windowstack_destroy( CoreWindowStack *stack );
+
+void
+dfb_windowstack_resize( CoreWindowStack *stack,
+                        int              width,
+                        int              height );
 
 /*
  * creates a window on a given stack

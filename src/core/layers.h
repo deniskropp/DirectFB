@@ -264,6 +264,7 @@ DFBResult dfb_layer_set_background_color( DisplayLayer                  *layer,
  * various functions
  */
 CoreSurface       *dfb_layer_surface( const DisplayLayer *layer );
+CardState         *dfb_layer_state( DisplayLayer *layer );
 void               dfb_layer_description( const DisplayLayer         *layer,
                                           DFBDisplayLayerDescription *desc );
 DFBDisplayLayerID  dfb_layer_id( const DisplayLayer *layer );

@@ -212,26 +212,16 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
      /* Initialize the modify/update lock */
      skirmish_init( &stack->lock );
 
-     /* Initialize cursor clipping */
-     stack->cursor.region.x1 = 0;
-     stack->cursor.region.y1 = 0;
-     stack->cursor.region.x2 = width - 1;
-     stack->cursor.region.y2 = height - 1;
-
      /* Set default acceleration */
      stack->cursor.numerator   = 2;
      stack->cursor.denominator = 1;
      stack->cursor.threshold   = 4;
 
+     /* Setup size and cursor clipping region */
+     dfb_windowstack_resize( stack, width, height );
+
      /* Attach to all input devices */
      dfb_input_enumerate_devices( stack_attach_devices, stack );
-
-     /* Initialize state for stack updates */
-     dfb_state_init( &stack->state );
-     stack->state.modified  = SMF_ALL;
-     stack->state.src_blend = DSBF_SRCALPHA;
-     stack->state.dst_blend = DSBF_INVSRCALPHA;
-     dfb_state_set_destination( &stack->state, dfb_layer_surface( layer ) );
 
      return stack;
 }
@@ -247,8 +237,6 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
 
      fusion_object_pool_destroy( stack->pool );
 
-     dfb_state_set_destination( &stack->state, NULL );
-
      skirmish_destroy( &stack->lock );
 
 /*     for (i=0; i<stack->num_windows; i++)
@@ -257,9 +245,25 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      if (stack->windows)
           shfree( stack->windows );
 
-     dfb_state_destroy( &stack->state );
-
      shfree( stack );
+}
+
+void
+dfb_windowstack_resize( CoreWindowStack *stack,
+                        int              width,
+                        int              height )
+{
+     DFB_ASSERT( stack != NULL );
+
+     /* Store the width and height of the stack */
+     stack->width  = width;
+     stack->height = height;
+     
+     /* Setup new cursor clipping region */
+     stack->cursor.region.x1 = 0;
+     stack->cursor.region.y1 = 0;
+     stack->cursor.region.x2 = width - 1;
+     stack->cursor.region.y2 = height - 1;
 }
 
 DFBResult
@@ -292,7 +296,7 @@ dfb_window_create( CoreWindowStack        *stack,
           surface_policy = stack->wsp_opaque;
 
           if (pixelformat == DSPF_UNKNOWN)
-               pixelformat = stack->state.destination->format;
+               pixelformat = layer_surface->format;
      }
 
      if (layer_surface->back_buffer->policy == CSP_SYSTEMONLY)
@@ -924,13 +928,10 @@ dfb_window_request_focus( CoreWindow *window )
 void
 dfb_windowstack_repaint_all( CoreWindowStack *stack )
 {
-     CoreSurface *surface = stack->state.destination;
-     DFBRegion    region  = { 0, 0, surface->width - 1, surface->height - 1 };
+     DFBRegion region = { 0, 0, stack->width - 1, stack->height - 1 };
 
      stack_lock( stack );
-     
      repaint_stack( stack, &region, 0 );
-     
      stack_unlock( stack );
 }
 
@@ -1058,6 +1059,7 @@ stack_detach_devices( InputDevice *device,
 
 static void
 update_region( CoreWindowStack *stack,
+               CardState       *state,
                int              start,
                int              x1,
                int              y1,
@@ -1097,23 +1099,23 @@ update_region( CoreWindowStack *stack,
                edges |= 0x8;
 
           if (TRANSLUCENT_WINDOW(stack->windows[i]))
-               update_region( stack, i-1, x1, y1, x2, y2 );
+               update_region( stack, state, i-1, x1, y1, x2, y2 );
           else if (edges) {
                /* left */
                if (edges & 0x1)
-                    update_region( stack, i-1, x1, region.y1, region.x1-1, region.y2 );
+                    update_region( stack, state, i-1, x1, region.y1, region.x1-1, region.y2 );
 
                /* upper */
                if (edges & 0x2)
-                    update_region( stack, i-1, x1, y1, x2, region.y1-1 );
+                    update_region( stack, state, i-1, x1, y1, x2, region.y1-1 );
 
                /* right */
                if (edges & 0x4)
-                    update_region( stack, i-1, region.x2+1, region.y1, x2, region.y2 );
+                    update_region( stack, state, i-1, region.x2+1, region.y1, x2, region.y2 );
 
                /* lower */
                if (edges & 0x8)
-                    update_region( stack, i-1, x1, region.y2+1, x2, y2 );
+                    update_region( stack, state, i-1, x1, region.y2+1, x2, y2 );
           }
 
           {
@@ -1130,32 +1132,32 @@ update_region( CoreWindowStack *stack,
                if (window->opacity != 0xFF) {
                     flags |= DSBLIT_BLEND_COLORALPHA;
 
-                    if (stack->state.color.a != window->opacity) {
-                         stack->state.color.a = window->opacity;
-                         stack->state.modified |= SMF_COLOR;
+                    if (state->color.a != window->opacity) {
+                         state->color.a = window->opacity;
+                         state->modified |= SMF_COLOR;
                     }
                }
 
                if (window->options & DWOP_COLORKEYING) {
                     flags |= DSBLIT_SRC_COLORKEY;
 
-                    if (stack->state.src_colorkey != window->color_key) {
-                         stack->state.src_colorkey = window->color_key;
-                         stack->state.modified |= SMF_SRC_COLORKEY;
+                    if (state->src_colorkey != window->color_key) {
+                         state->src_colorkey = window->color_key;
+                         state->modified |= SMF_SRC_COLORKEY;
                     }
                }
 
-               if (stack->state.blittingflags != flags) {
-                    stack->state.blittingflags  = flags;
-                    stack->state.modified      |= SMF_BLITTING_FLAGS;
+               if (state->blittingflags != flags) {
+                    state->blittingflags  = flags;
+                    state->modified      |= SMF_BLITTING_FLAGS;
                }
 
-               stack->state.source    = window->surface;
-               stack->state.modified |= SMF_SOURCE;
+               state->source    = window->surface;
+               state->modified |= SMF_SOURCE;
 
-               dfb_gfxcard_blit( &srect, region.x1, region.y1, &stack->state );
+               dfb_gfxcard_blit( &srect, region.x1, region.y1, state );
 
-               stack->state.source = NULL;
+               state->source = NULL;
           }
      }
      else {
@@ -1163,26 +1165,26 @@ update_region( CoreWindowStack *stack,
                case DLBM_COLOR: {
                     DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
 
-                    stack->state.color     = stack->bg.color;
-                    stack->state.modified |= SMF_COLOR;
+                    state->color     = stack->bg.color;
+                    state->modified |= SMF_COLOR;
 
-                    dfb_gfxcard_fillrectangle( &rect, &stack->state );
+                    dfb_gfxcard_fillrectangle( &rect, state );
                     break;
                }
                case DLBM_IMAGE: {
                     DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
 
-                    if (stack->state.blittingflags != DSBLIT_NOFX) {
-                         stack->state.blittingflags  = DSBLIT_NOFX;
-                         stack->state.modified      |= SMF_BLITTING_FLAGS;
+                    if (state->blittingflags != DSBLIT_NOFX) {
+                         state->blittingflags  = DSBLIT_NOFX;
+                         state->modified      |= SMF_BLITTING_FLAGS;
                     }
 
-                    stack->state.source    = stack->bg.image;
-                    stack->state.modified |= SMF_SOURCE;
+                    state->source    = stack->bg.image;
+                    state->modified |= SMF_SOURCE;
 
-                    dfb_gfxcard_blit( &rect, x1, y1, &stack->state );
+                    dfb_gfxcard_blit( &rect, x1, y1, state );
                     
-                    stack->state.source = NULL;
+                    state->source = NULL;
                     break;
                }
                case DLBM_TILE: {
@@ -1190,22 +1192,22 @@ update_region( CoreWindowStack *stack,
                                           stack->bg.image->width,
                                           stack->bg.image->height };
 
-                    if (stack->state.blittingflags != DSBLIT_NOFX) {
-                         stack->state.blittingflags  = DSBLIT_NOFX;
-                         stack->state.modified      |= SMF_BLITTING_FLAGS;
+                    if (state->blittingflags != DSBLIT_NOFX) {
+                         state->blittingflags  = DSBLIT_NOFX;
+                         state->modified      |= SMF_BLITTING_FLAGS;
                     }
 
-                    stack->state.source    = stack->bg.image;
-                    stack->state.modified |= SMF_SOURCE;
+                    state->source    = stack->bg.image;
+                    state->modified |= SMF_SOURCE;
 
                     dfb_gfxcard_tileblit( &rect,
                                           (x1 / rect.w) * rect.w,
                                           (y1 / rect.h) * rect.h,
                                           (x2 / rect.w + 1) * rect.w,
                                           (y2 / rect.h + 1) * rect.h,
-                                          &stack->state );
+                                          state );
                     
-                    stack->state.source = NULL;
+                    state->source = NULL;
                     break;
                }
                default:
@@ -1221,6 +1223,7 @@ repaint_stack( CoreWindowStack     *stack,
 {
      DisplayLayer *layer   = dfb_layer_at( stack->layer_id );
      CoreSurface  *surface = dfb_layer_surface( layer );
+     CardState    *state   = dfb_layer_state( layer );
 
      if (!dfb_region_intersect( region, 0, 0,
                                 surface->width - 1, surface->height - 1 ))
@@ -1229,10 +1232,10 @@ repaint_stack( CoreWindowStack     *stack,
      if (dfb_layer_lease( layer ))
           return;
 
-     stack->state.clip      = *region;
-     stack->state.modified |= SMF_CLIP;
+     state->clip      = *region;
+     state->modified |= SMF_CLIP;
 
-     update_region( stack, stack->num_windows - 1,
+     update_region( stack, state, stack->num_windows - 1,
                     region->x1, region->y1, region->x2, region->y2 );
 
      if (surface->caps & DSCAPS_FLIPPING) {

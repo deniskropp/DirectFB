@@ -297,6 +297,8 @@ DFBResult dfb_gfxcard_shutdown( bool emergency )
 
      dfb_surface_pool_destroy( Scard->surface_pool );
 
+     dfb_surfacemanager_destroy( Scard->surface_manager );
+
      munmap( (char*)card->framebuffer_base, Scard->fix.smem_len );
 
      skirmish_destroy( &Scard->lock );
