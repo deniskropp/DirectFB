@@ -152,6 +152,8 @@ window_destructor( FusionObject *object, bool zombie )
 
      dfb_window_destroy( window );
      
+     window_remove( window );
+     
      fusion_object_destroy( object );
 }
 
@@ -504,9 +506,6 @@ dfb_window_destroy( CoreWindow *window )
      
      /* Indicate destruction. */
      window->destroyed = true;
-
-     /* Ungrab, unfocus, hide etc. */
-     window_remove( window );
 
      /* Remove from hardware */
      if (window->window_data) {
@@ -1905,7 +1904,7 @@ window_remove( CoreWindow *window )
 
      window->initialized = false;
 
-     //     window->stack = NULL;
+     window->stack = NULL;
 }
 
 static bool
@@ -2033,6 +2032,8 @@ switch_focus( CoreWindowStack *stack, CoreWindow *to )
      }
 
      if (to) {
+          DFB_ASSUME(! (to->options & DWOP_GHOST));
+
           if (to->surface && to->surface->palette && !stack->hw_mode) {
                DisplayLayer *layer = dfb_layer_at( stack->layer_id );
                
