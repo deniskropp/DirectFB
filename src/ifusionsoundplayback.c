@@ -227,6 +227,24 @@ IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
 }
 
 static DFBResult
+IFusionSoundPlayback_GetStatus( IFusionSoundPlayback *thiz,
+                                DFBBoolean           *playing,
+                                int                  *position )
+{
+     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     
+     DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
+     
+     if (playing)
+          *playing = data->playing;
+     
+     if (position)
+          *position = data->position;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IFusionSoundPlayback_SetVolume( IFusionSoundPlayback *thiz,
                                 float                 level )
 {
@@ -318,6 +336,9 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      thiz->Stop      = IFusionSoundPlayback_Stop;
      thiz->Continue  = IFusionSoundPlayback_Continue;
      thiz->Wait      = IFusionSoundPlayback_Wait;
+     
+     thiz->GetStatus = IFusionSoundPlayback_GetStatus;
+     
      thiz->SetVolume = IFusionSoundPlayback_SetVolume;
      thiz->SetPan    = IFusionSoundPlayback_SetPan;
      thiz->SetPitch  = IFusionSoundPlayback_SetPitch;

@@ -146,7 +146,7 @@ DEFINE_INTERFACE( IFusionSound,
      /*
       * Create a streaming sound buffer.
       *
-      * If <i>desc</i> is NULL, all default values will be used.
+      * If <b>desc</b> is NULL, all default values will be used.
       * Defaults are 44kHz, stereo, 16 bit (FSSF_S16) with a ring buffer
       * size that holds enough samples for one second of playback.
       */
@@ -212,7 +212,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
      /*
       * Set panning value.
       *
-      * The <i>value</i> ranges from -1.0f (left) to 1.0f (right).
+      * The <b>value</b> ranges from -1.0f (left) to 1.0f (right).
       */
      DFBResult (*SetPan) (
           IFusionSoundBuffer       *thiz,
@@ -263,8 +263,8 @@ DEFINE_INTERFACE( IFusionSoundStream,
      /*
       * Fill the ring buffer with data.
       *
-      * Writes the sample <i>data</i> into the ring buffer.
-      * The <i>length</i> specifies the number of samples per channel.
+      * Writes the sample <b>data</b> into the ring buffer.
+      * The <b>length</b> specifies the number of samples per channel.
       *
       * If the ring buffer is full the method blocks until there's enough
       * space. If this method returns successfully, all data has been written.
@@ -279,9 +279,9 @@ DEFINE_INTERFACE( IFusionSoundStream,
       * Wait for a specified amount of free ring buffer space.
       *
       * This method blocks until there's enough space in the ring buffer
-      * so that writing data of the specified <i>length</i> wouldn't block.
+      * so that writing data of the specified <b>length</b> wouldn't block.
       *
-      * Specifying a <i>length</i> of zero waits until playback has finished.
+      * Specifying a <b>length</b> of zero waits until playback has finished.
       */
      DFBResult (*Wait) (
           IFusionSoundStream       *thiz,
@@ -291,9 +291,9 @@ DEFINE_INTERFACE( IFusionSoundStream,
      /*
       * Query ring buffer status.
       *
-      * Returns the number of samples the ring buffer is <i>filled</i> with,
-      * the <i>total</i> number of samples that can be stored (buffer size),
-      * current <i>read_position</i> and current <i>write_position</i>.
+      * Returns the number of samples the ring buffer is <b>filled</b> with,
+      * the <b>total</b> number of samples that can be stored (buffer size),
+      * current <b>read_position</b> and current <b>write_position</b>.
       *
       * Simply pass NULL for values that are not of interest.
       */
@@ -313,10 +313,10 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      /*
       * Start playback of the buffer.
       *
-      * The <i>start</i> position specifies the sample at which the playback
+      * The <b>start</b> position specifies the sample at which the playback
       * is going to start.
       *
-      * The <i>stop</i> position specifies the sample after the last sample
+      * The <b>stop</b> position specifies the sample after the last sample
       * being played. The default value of zero causes the playback to stop
       * after the last sample in the buffer, i.e. upon completion. A negative
       * value means unlimited playback (looping).
@@ -364,12 +364,29 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      );
 
 
+   /** Information **/
+
+     /*
+      * Get the current playback status.
+      *
+      * This method can be used to check if the playback is <b>running</b>.
+      *
+      * It also returns the current playback <b>position</b> or the position
+      * where <i>Continue()</i> would start to play.
+      */
+     DFBResult (*GetStatus) (
+          IFusionSoundPlayback     *thiz,
+          DFBBoolean               *running,
+          int                      *position
+     );
+
+
    /** Parameters **/
 
      /*
       * Set volume level.
       *
-      * The <i>level</i> is a linear factor being 1.0f by default, currently
+      * The <b>level</b> is a linear factor being 1.0f by default, currently
       * ranges from 0.0f to 256.0f due to internal mixing limitations.
       */
      DFBResult (*SetVolume) (
@@ -380,7 +397,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      /*
       * Set panning value.
       *
-      * The <i>value</i> ranges from -1.0f (left) to 1.0f (right).
+      * The <b>value</b> ranges from -1.0f (left) to 1.0f (right).
       */
      DFBResult (*SetPan) (
           IFusionSoundPlayback     *thiz,
@@ -390,7 +407,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      /*
       * Set pitch value.
       *
-      * The <i>value</i> is a linear factor being 1.0f by default, currently
+      * The <b>value</b> is a linear factor being 1.0f by default, currently
       * ranges from 0.0f to 256.0f due to internal mixing limitations.
       */
      DFBResult (*SetPitch) (
