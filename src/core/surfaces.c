@@ -42,9 +42,16 @@
 #include <zlib.h>
 #endif
 
-#include <fusion/shmalloc.h>
-
 #include <directfb.h>
+#include <directfb_strings.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+#include <direct/util.h>
+
+#include <fusion/shmalloc.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -61,10 +68,30 @@
 
 #include <gfx/util.h>
 
-#include <direct/mem.h>
-#include <direct/memcpy.h>
-#include <direct/messages.h>
-#include <direct/util.h>
+
+D_DEBUG_DOMAIN( Core_Surface, "Core/Surface", "DirectFB Surface Core" );
+
+#if D_DEBUG_ENABLED
+
+static const DirectFBPixelFormatNames(format_names);
+
+D_CONST_FUNC
+static const char *
+pixelformat_name( DFBSurfacePixelFormat format )
+{
+     int i;
+
+     for (i=0; i<D_ARRAY_SIZE(format_names); i++) {
+          if (format_names[i].format == format)
+               return format_names[i].name;
+     }
+
+     return "INVALID";
+}
+
+#endif
+
+/**************************************************************************************************/
 
 static DFBResult dfb_surface_allocate_buffer  ( CoreSurface            *surface,
                                                 CoreSurfacePolicy       policy,
@@ -81,6 +108,8 @@ static void video_access_by_hardware( SurfaceBuffer       *buffer,
 static void video_access_by_software( SurfaceBuffer       *buffer,
                                       DFBSurfaceLockFlags  flags );
 
+/**************************************************************************************************/
+
 static const React dfb_surface_globals[] = {
 /* 0 */   _dfb_layer_region_surface_listener,
 /* 1 */   _dfb_windowstack_background_image_listener,
@@ -92,8 +121,8 @@ static void surface_destructor( FusionObject *object, bool zombie )
 {
      CoreSurface *surface = (CoreSurface*) object;
 
-     D_DEBUG("DirectFB/core/surfaces: destroying %p (%dx%d%s)\n", surface,
-              surface->width, surface->height, zombie ? " ZOMBIE" : "");
+     D_DEBUG_AT( Core_Surface, "destroying %p (%dx%d%s)\n", surface,
+                 surface->width, surface->height, zombie ? " ZOMBIE" : "");
 
      /* announce surface destruction */
      dfb_surface_notify_listeners( surface, CSNF_DESTROY );
@@ -126,8 +155,6 @@ static void surface_destructor( FusionObject *object, bool zombie )
      fusion_object_destroy( object );
 }
 
-/** public **/
-
 FusionObjectPool *dfb_surface_pool_create()
 {
      FusionObjectPool *pool;
@@ -139,6 +166,8 @@ FusionObjectPool *dfb_surface_pool_create()
 
      return pool;
 }
+
+/**************************************************************************************************/
 
 DFBResult dfb_surface_create( CoreDFB *core,
                               int width, int height,
@@ -152,6 +181,9 @@ DFBResult dfb_surface_create( CoreDFB *core,
 
      D_ASSERT( width > 0 );
      D_ASSERT( height > 0 );
+
+     D_DEBUG_AT( Core_Surface, "dfb_surface_create( core %p, size %dx%d, format %s )\n",
+                 core, width, height, pixelformat_name( format ) );
 
      if (width * (long long) height > 4096*4096)
           return DFB_LIMITEXCEEDED;
@@ -1110,7 +1142,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      return DFB_OK;
 }
 
-/** internal **/
+/**************************************************************************************************/
 
 static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
                                               CoreSurfacePolicy       policy,
