@@ -1794,7 +1794,7 @@ typedef enum {
 
      DSECAPS_TV_STANDARDS = 0x00000001, /* TV standards can be selected. */
      DSECAPS_TEST_PICTURE = 0x00000002, /* Test picture generation supported. */
-     DSOCAPS_MIXER_SEL    = 0x00000004  /* Mixer can be selected. */
+     DSECAPS_MIXER_SEL    = 0x00000004  /* Mixer can be selected. */
 } DFBScreenEncoderCapabilities;
 
 /*
