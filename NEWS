@@ -24,6 +24,7 @@
   functions of DirectFB unless you compile your code with that option, too.
 - Optimized auto-video surface handling, speeding up Create/Clear a lot.
 - Switching single/multi between builds doesn't require "make clean" anymore.
+- Enhanced stability and fixed some bugs.
 
 
 0.9.19
