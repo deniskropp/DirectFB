@@ -533,6 +533,7 @@ fusion_ref_init (FusionRef *ref)
 
      ref->refs      = 0;
      ref->destroyed = false;
+     ref->waiting   = 0;
 
      return FUSION_SUCCESS;
 }
