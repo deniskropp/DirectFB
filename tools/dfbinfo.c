@@ -316,7 +316,7 @@ dump_encoders( IDirectFBScreen *screen,
           printf( "   Encoder (%d)\n", i );
 
           /* Type */
-          printf( "     Type:         " );
+          printf( "     Type:           " );
 
           for (n=0; encoder_type[n].type; n++) {
                if (descs[i].type == encoder_type[n].type)
@@ -327,7 +327,7 @@ dump_encoders( IDirectFBScreen *screen,
 
 
           /* Caps */
-          printf( "     Caps:         " );
+          printf( "     Caps:           " );
 
           for (n=0; encoder_caps[n].capability; n++) {
                if (descs[i].caps & encoder_caps[n].capability)
@@ -339,11 +339,24 @@ dump_encoders( IDirectFBScreen *screen,
 
           /* TV Norms */
           if (descs[i].caps & DSECAPS_TV_STANDARDS) {
-               printf( "     TV Standards: " );
+               printf( "     TV Standards:   " );
 
                for (n=0; tv_standards[n].standard; n++) {
                     if (descs[i].tv_standards & tv_standards[n].standard)
                          printf( "%s ", tv_standards[n].name );
+               }
+
+               printf( "\n" );
+          }
+
+
+          /* Output signals */
+          if (descs[i].caps & DSECAPS_OUT_SIGNALS) {
+               printf( "     Output Signals: " );
+
+               for (n=0; signals[n].signal; n++) {
+                    if (descs[i].out_signals & signals[n].signal)
+                         printf( "%s ", signals[n].name );
                }
 
                printf( "\n" );

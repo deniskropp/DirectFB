@@ -1842,7 +1842,8 @@ typedef enum {
      DSOS_VGA            = 0x00000001, /* VGA signal */
      DSOS_YC             = 0x00000002, /* Y/C signal */
      DSOS_CVBS           = 0x00000004, /* CVBS signal */
-     DSOS_RGB            = 0x00000008  /* RGB signal */
+     DSOS_RGB            = 0x00000008, /* R/G/B signal */
+     DSOS_YCBCR          = 0x00000010  /* Y/Cb/Cr signal */
 } DFBScreenOutputSignals;
 
 /*
@@ -1888,7 +1889,8 @@ typedef enum {
 
      DSECAPS_TV_STANDARDS = 0x00000001, /* TV standards can be selected. */
      DSECAPS_TEST_PICTURE = 0x00000002, /* Test picture generation supported. */
-     DSECAPS_MIXER_SEL    = 0x00000004  /* Mixer can be selected. */
+     DSECAPS_MIXER_SEL    = 0x00000004, /* Mixer can be selected. */
+     DSECAPS_OUT_SIGNALS  = 0x00000008  /* Different output signals are supported. */
 } DFBScreenEncoderCapabilities;
 
 /*
@@ -1932,8 +1934,9 @@ typedef enum {
      DSECONF_TV_STANDARD  = 0x00000001, /* Set TV standard. */
      DSECONF_TEST_PICTURE = 0x00000002, /* Set test picture mode. */
      DSECONF_MIXER        = 0x00000004, /* Select mixer. */
+     DSECONF_OUT_SIGNALS  = 0x00000008, /* Select generated output signal(s). */
 
-     DSECONF_ALL          = 0x00000007
+     DSECONF_ALL          = 0x0000000F
 } DFBScreenEncoderConfigFlags;
 
 /*
@@ -1958,11 +1961,12 @@ typedef enum {
  * Configuration of a display encoder.
  */
 typedef struct {
-     DFBScreenEncoderConfigFlags   flags;        /* Validates struct members. */
+     DFBScreenEncoderConfigFlags   flags;         /* Validates struct members. */
 
-     DFBScreenEncoderTVStandards   tv_standard;  /* TV standard. */
-     DFBScreenEncoderTestPicture   test_picture; /* Test picture mode. */
-     int                           mixer;        /* Selected mixer. */
+     DFBScreenEncoderTVStandards   tv_standard;   /* TV standard. */
+     DFBScreenEncoderTestPicture   test_picture;  /* Test picture mode. */
+     int                           mixer;         /* Selected mixer. */
+     DFBScreenOutputSignals        out_signals;   /* Generated output signals. */
 } DFBScreenEncoderConfig;
 
 
