@@ -8,7 +8,7 @@ SUBDIRS = \
 	gfxdrivers	\
 	inputdrivers	\
 	interfaces 	\
-	examples 	\
+	data		\
 	docs
 
 bin_SCRIPTS = directfb-config

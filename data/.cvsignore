@@ -1,5 +1,2 @@
 Makefile
 Makefile.in
-.deps
-.libs
-df_neo
