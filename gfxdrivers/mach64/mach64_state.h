@@ -30,31 +30,31 @@
 
 #include "mach64.h"
 
-void mach64_set_destination( Mach64DriverData *adrv,
-                             Mach64DeviceData *adev,
+void mach64_set_destination( Mach64DriverData *mdrv,
+                             Mach64DeviceData *mdev,
                              CardState        *state );
 
-void mach64_set_source( Mach64DriverData *adrv,
-                        Mach64DeviceData *adev,
+void mach64_set_source( Mach64DriverData *mdrv,
+                        Mach64DeviceData *mdev,
                         CardState        *state );
 
-void mach64_set_clip( Mach64DriverData *adrv,
-                      Mach64DeviceData *adev,
+void mach64_set_clip( Mach64DriverData *mdrv,
+                      Mach64DeviceData *mdev,
                       CardState        *state );
 
-void mach64_set_color( Mach64DriverData *adrv,
-                       Mach64DeviceData *adev,
+void mach64_set_color( Mach64DriverData *mdrv,
+                       Mach64DeviceData *mdev,
                        CardState        *state );
 
-void mach64_set_src_colorkey( Mach64DriverData *adrv,
-                              Mach64DeviceData *adev,
+void mach64_set_src_colorkey( Mach64DriverData *mdrv,
+                              Mach64DeviceData *mdev,
                               CardState        *state );
 
-void mach64_set_dst_colorkey( Mach64DriverData *adrv,
-                              Mach64DeviceData *adev,
+void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
+                              Mach64DeviceData *mdev,
                               CardState        *state );
 
-void mach64_disable_colorkey( Mach64DriverData *adrv,
-                              Mach64DeviceData *adev );
+void mach64_disable_colorkey( Mach64DriverData *mdrv,
+                              Mach64DeviceData *mdev );
 
 #endif
