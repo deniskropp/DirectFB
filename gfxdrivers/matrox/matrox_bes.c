@@ -376,6 +376,10 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      if (!onsync) {
           VideoMode *current_mode = dfb_system_current_mode();
 
+          /* FIXME: I don't think this should be NULL ever. */
+          if (!current_mode)
+               return;
+
           line = mga_in32( mmio, MGAREG_VCOUNT ) + 48;
 
           if (line > current_mode->yres)
@@ -429,6 +433,10 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      DFBRegion      dstBox;
      SurfaceBuffer *front_buffer = surface->front_buffer;
      VideoMode     *current_mode = dfb_system_current_mode();
+
+     /* FIXME: I don't think this should be NULL ever. */
+     if (!current_mode)
+          return;
 
      dest = config->dest;
 
