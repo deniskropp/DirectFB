@@ -1,3 +1,733 @@
+2002-07-26	10:32	Holger Waechtler <holger@convergence.de>
+
+	Files:	include/directfb.h (1.130) (+8 -1)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.28) (+54 -35)
+		interfaces/IDirectFBFont/idirectfbfont_default.c (1.19) (+27 -9)
+	
+	implemented direct glyph mapping without charmap, toggled by the DFFA_NOCHARMAP flag
+	
+2002-07-26	04:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.h (1.30) (+1 -1)
+	
+	Forgot to increase the ABI version.
+	
+2002-07-26	04:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_bes.c (1.27) (+21 -52)
+		src/core/layers.h (1.31) (+6 -1)
+		src/core/layers.c (1.46) (+9 -6)
+	
+	Added SetField() to layer driver API, removed surface listener stuff
+	from Matrox driver and implemented SetField().
+	
+2002-07-25	15:33	Holger Waechtler <holger@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.18) (+4 -4)
+	
+	fixed nasty off-by-one bug
+	
+2002-07-25	14:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/ati128/ati128_overlay.c (1.14) (+3 -2)
+		src/input/idirectfbinputdevice.c (1.28) (+2 -1)
+		src/display/idirectfbdisplaylayer.c (1.36) (+9 -5)
+		src/core/layers.h (1.30) (+8 -7)
+		src/core/layers.c (1.45) (+8 -7)
+		src/core/input.h (1.21) (+4 -2)
+		src/core/input.c (1.50) (+4 -3)
+		src/core/fbdev.c (1.69) (+3 -2)
+		src/idirectfb.c (1.59) (+13 -7)
+		src/directfb.c (1.48) (+5 -1)
+		include/directfb.h (1.129) (+38 -10)
+		gfxdrivers/savage/savage_streams_old.c (1.3) (+10 -7)
+		gfxdrivers/neomagic/neo_overlay.c (1.8) (+4 -3)
+		gfxdrivers/matrox/matrox_bes.c (1.26) (+5 -4)
+	
+	Added DFBDisplayLayerTypeFlags for a basic classification of the layers'
+	purpose a la DFBInputDeviceTypeFlags. Classification includes graphics,
+	video, still picture and background usage.
+	
+	Added DFBDisplayLayerDescription containing capabilities and type for now.
+	
+	Display layer enumeration callback gets the layer's description now.
+	
+	Removed IDirectFBDisplayLayer::GetCapabilities() and added GetDescription().
+	
+2002-07-25	14:11	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/windows.c (1.79) (+3 -2)
+	
+	small cleanup
+	
+2002-07-25	13:35	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.128) (+4 -1)
+		src/windows/idirectfbwindow.c (1.39) (+6 -0)
+		src/core/windows.c (1.78) (+29 -20)
+	
+	Implemented input_only windows (windows w/o a surface).
+	
+2002-07-25	08:24	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.127) (+10 -10)
+		src/display/idirectfbsurface_window.c (1.23) (+4 -4)
+		src/display/idirectfbsurface_layer.c (1.24) (+4 -4)
+		src/display/idirectfbsurface.c (1.50) (+20 -18)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.40) (+1 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.19) (+1 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.22) (+1 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.23) (+1 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.24) (+3 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.21) (+2 -2)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.30) (+3 -3)
+	
+	Declared DFBRectangle and DFBRegion as const function parameters for
+	all functions that don't change them. This documents the API better
+	and keeps us from accidentally modifying the passed structs.
+	
+2002-07-24	19:12	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.126) (+2 -2)
+		src/directfb.c (1.47) (+2 -2)
+	
+	Declared name and value parameters of DirectFBSetOption as const.
+	
+2002-07-24	11:19	Sven Neumann <sven@convergence.de>
+
+	Files:	AUTHORS (1.5) (+2 -2)
+	
+	Updated email address.
+	
+2002-07-23	09:56	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.39) (+1 -12)
+	
+	Applied a patch from Ville Syrjala <syrjala@sci.fi> that removes
+	the unneeded call to dfb_surfacemanager_assure_system().
+	
+2002-07-19	00:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.37) (+1 -0)
+		patches/matroxfb-vsync-irq-patch-2.4.6.bz2 (1.2) (+0 -0)
+		patches/matroxfb-vsync-irq-patch-2.4.19.bz2 (1.1) ( )
+		patches/Makefile.am (1.18) (+1 -1)
+	
+	New patch for 2.4.19,
+	thanks to Brian J. Murrell <a40e8119bbddbe7b3d281db117f19b32@interlinx.bc.ca>.
+	
+2002-07-18	17:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_state.c (1.33) (+6 -3)
+		src/core/gfxcard.c (1.71) (+4 -0)
+	
+	Applied patch from Ville Syrjala <syrjala@sci.fi> enabling acceleration
+	for the second head of a dual head Matrox.
+	
+2002-07-17	15:17	Sven Neumann <sven@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.11) (+13 -13)
+	
+	spell checking
+	
+2002-07-17	15:04	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.36) (+1 -1)
+	
+	Replaced '\344' in Ville's name with a plain 'a' as he requested.
+	
+2002-07-17	14:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	AUTHORS (1.4) (+1 -1)
+	
+	Added Alex Song <alexsong@comports.com> to "Helping Developers" (Savage driver).
+	
+2002-07-17	14:09	Sven Neumann <sven@convergence.de>
+
+	Files:	gfxdrivers/savage/mmio.h (1.2) (+1 -53)
+		gfxdrivers/savage/savage_streams_old.h (1.2) (+63 -14)
+		gfxdrivers/savage/savage_streams_old.c (1.2) (+826 -167)
+		gfxdrivers/savage/savage4.c (1.3) (+39 -9)
+		gfxdrivers/savage/savage.h (1.2) (+0 -3)
+		gfxdrivers/savage/savage.c (1.2) (+16 -7)
+	
+	Applied a patch from Alex Song <alexsong@comports.com> that completes
+	support for the old streams engine as found in the Savage4 family.
+	
+2002-07-17	14:00	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/input.c (1.49) (+2 -0)
+	
+	include <sys/time.h> for gettimeofday().
+	
+2002-07-17	13:52	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.125) (+1 -2)
+		src/core/input.c (1.48) (+9 -4)
+		inputdrivers/serialmouse/serialmouse.c (1.21) (+5 -10)
+		inputdrivers/ps2mouse/ps2mouse.c (1.32) (+6 -12)
+		inputdrivers/lirc/lirc.c (1.13) (+3 -2)
+		inputdrivers/linux_input/linux_input.c (1.6) (+0 -2)
+		inputdrivers/keyboard/keyboard.c (1.39) (+2 -1)
+		inputdrivers/joystick/joystick.c (1.17) (+2 -0)
+		inputdrivers/h3600_ts/h3600_ts.c (1.11) (+4 -4)
+		inputdrivers/dbox2remote/dbox2remote.c (1.11) (+2 -3)
+	
+	Made the core fill in the InputEvent's timestamp field if it hasn't
+	been set by the inputdriver.
+	
+	Reviewed all inputdrivers once more and removed some calls to
+	gettimeofday() since dfb_input_dispatch() takes care of this now.
+	
+2002-07-16	14:50	Sven Neumann <sven@convergence.de>
+
+	Files:	inputdrivers/joystick/joystick.c (1.16) (+11 -12)
+		inputdrivers/serialmouse/serialmouse.c (1.20) (+15 -12)
+		inputdrivers/ps2mouse/ps2mouse.c (1.31) (+12 -9)
+		inputdrivers/linux_input/linux_input.c (1.5) (+1 -1)
+	
+	Always set the flags field of the InputEvent before dispatching it.
+	This is needed since the core modifies it, so we can't reuse the
+	flags next time we use the event struct.
+	
+	Also made sure that all inputdrivers either always or never set the
+	timestamp.
+	
+	Don't set the DIEF_BUTTONS flag in the linux_input driver, it is set
+	by the core when the buttons field is calculated by fixup_button_event().
+	
+2002-07-16	14:46	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/input.c (1.47) (+13 -6)
+	
+	Also call fixup_button_event() for events of type DIET_AXISMOTION.
+	Fixes the buttonmask for motion events (needs some fixes to the input
+	drivers that I'll commit next).
+	
+2002-07-16	11:31	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.81) (+1 -1)
+	
+	converted a C++ style comment to /* ... */
+	
+2002-07-15	13:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.38) (+24 -31)
+	
+	Applied patch from Mike Pieper <mike@pieper-family.de> fixing locking
+	of the surface buffers.
+	
+2002-07-15	12:28	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/fbdev.c (1.68) (+6 -2)
+		src/core/layers.h (1.29) (+3 -1)
+		src/core/layers.c (1.44) (+5 -11)
+	
+	Applied a patch from Alex Song that changes SetSrcColorKey() to
+	accept r g b values instead of a 32bit key and sets the device pointer
+	in dfb_layers_hook_primary() and dfb_layers_replace_primary().
+	
+2002-07-12	16:20	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.80) (+143 -32)
+	
+	Added support for interlaced surfaces with seperate field buffers to all
+	drawing and blitting functions.
+	
+2002-07-12	13:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.124) (+4 -1)
+		src/gfx/generic/generic.c (1.79) (+94 -71)
+	
+	Added DSDRAW_XOR ;)
+	
+2002-07-10	15:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.43) (+19 -1)
+		src/core/layers.h (1.28) (+8 -0)
+	
+	Added "dfb_layers_replace_primary" which acts like "dfb_layers_hook_primary",
+	but replaces the complete function table allowing drivers to use the default
+	methods for surface allocation by setting function pointers to NULL.
+	
+2002-07-10	13:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.123) (+4 -5)
+	
+	Added DLOP_OPACITY which enables usage of the global alpha factor specified
+	by SetOpacity(). This way drivers have the chance to forbid opacity changes
+	during usage of the alpha channel or color keying.
+	
+2002-07-10	10:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.37) (+75 -53)
+	
+	Automatic grabbing mode for grab-only devices or flipped surfaces
+	by Mike Pieper <mike@pieper-family.de>.
+	
+2002-07-10	10:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.36) (+15 -10)
+	
+	Some cleanups by Ville Syrjala <syrjala@sci.fi>.
+	
+2002-07-09	14:33	Holger Waechtler <holger@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.21) (+11 -9)
+		inputdrivers/linux_input/linux_input.c (1.4) (+8 -13)
+	
+	some more keydefinitions, use 16bit only for all keycodes
+	
+2002-07-09	11:23	Holger Waechtler <holger@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.20) (+45 -42)
+		src/input/idirectfbinputdevice.c (1.27) (+11 -6)
+	
+	- DIKI_XXXX are now Unicode keys in the private area
+	- fixed GetKeyState table lookup
+	
+2002-07-08	14:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb_keyboard.h (1.19) (+41 -42)
+	
+	Reverted Holger's change, because it breaks IDirectFBInputDevice::GetKeyState()
+	and other things.
+	
+2002-07-08	08:50	Holger Waechtler <holger@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.18) (+42 -41)
+		src/core/input.c (1.46) (+3 -3)
+		inputdrivers/linux_input/linux_input.c (1.3) (+124 -737)
+	
+	Rewrote the linux input keyboard driver, key mapping is done
+	via table lookup now. You can distinguish DIKI_XXX codes by
+	testing (DFB_KEY_TYPE(key) == DIKT_IDENTIFIER). We still have
+	to implement keymap handling...
+	
+2002-07-06	20:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.78) (+1 -1)
+	
+	32bit destination color keying fills fixed by Ville Syrjala <syrjala@sci.fi>.
+	
+2002-07-05	16:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.35) (+53 -23)
+	
+	Another set of patches from Ville Syrj\344l\344 <syrjala@sci.fi> adding
+	planar YUV support and some fixes to the grabbing code. Thanks.
+	
+2002-07-04	13:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.77) (+6 -0)
+	
+	Reset source surface pointer in window stack rendering state after blitting.
+	
+2002-07-03	19:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_bes.c (1.25) (+3 -3)
+		src/core/layers.c (1.42) (+1 -1)
+		include/directfb.h (1.122) (+96 -84)
+	
+	Enhanced documentation of DFBResult and DFBDisplayLayerCapabilities.
+	Renamed DLCAPS_INTERLACED_VIDEO to DLCAPS_DEINTERLACING.
+	Renamed DLOP_INTERLACED_VIDEO to DLOP_DEINTERLACING.
+	
+2002-07-03	16:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.121) (+3124 -3120)
+		src/core/fusion/reactor.c (1.10) (+0 -2)
+	
+	Added new surface capability DSCAPS_SEPERATED for usage with DSCAPS_INTERLACED.
+	
+	Removed top level indention of directfb.h which looks strange but saves five
+	characters that can be used for documentation of enum or struct entries.
+	
+	Minor documentation beautifications, started to write complete sentences with
+	a capital letter at the beginning and a full stop at the end ;-P
+	
+	Removed "universe has collapsed..." print after "while(true)" loop.
+	
+2002-07-03	13:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/reactor.c (1.9) (+4 -3)
+	
+	Don't print an error message for EINTR.
+	
+2002-07-02	17:03	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb_internals.h (1.18) (+19 -1)
+		src/windows/idirectfbwindow.c (1.38) (+1 -9)
+		src/media/idirectfbfont.c (1.26) (+11 -18)
+		src/input/idirectfbinputdevice.c (1.26) (+1 -9)
+		src/input/idirectfbinputbuffer.c (1.28) (+4 -10)
+		src/display/idirectfbsurface_window.c (1.22) (+1 -4)
+		src/display/idirectfbsurface_layer.c (1.23) (+2 -5)
+		src/display/idirectfbsurface.h (1.13) (+1 -1)
+		src/display/idirectfbsurface.c (1.49) (+2 -9)
+		src/display/idirectfbpalette.c (1.3) (+1 -9)
+		src/display/idirectfbdisplaylayer.c (1.35) (+1 -9)
+		src/idirectfb.c (1.58) (+3 -9)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.34) (+4 -11)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.18) (+139 -155)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.21) (+2 -11)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.22) (+1 -9)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.23) (+1 -9)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.20) (+1 -9)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.29) (+1 -9)
+	
+	Added macro DFB_ALLOCATE_INTERFACE_DATA saving 4-6 lines per file.
+	Added freeing "thiz->priv" to DFB_DEALLOCATE_INTERFACE saving 2 lines per file.
+	
+2002-07-02	16:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/shmalloc/shmalloc.c (1.6) (+26 -10)
+	
+	Unlink shared memory file during shutdown.
+	
+2002-07-02	15:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev.c (1.67) (+4 -3)
+	
+	Debug version compile fixes.
+	
+2002-07-02	15:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev.c (1.66) (+1 -1)
+	
+	Small fix for compiling without rgb332.
+	
+2002-07-02	15:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev.c (1.65) (+2 -2)
+	
+	If no depth is specified use 16bit if supported or keep current.
+	
+2002-07-02	15:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_bes.c (1.24) (+1 -1)
+		src/gfx/convert.h (1.12) (+4 -0)
+		src/display/idirectfbpalette.c (1.2) (+2 -0)
+		src/core/surfaces.h (1.25) (+2 -1)
+		src/core/surfaces.c (1.40) (+2 -3)
+		src/core/state.c (1.9) (+2 -2)
+		src/core/layers.h (1.27) (+4 -0)
+		src/core/layers.c (1.41) (+29 -0)
+		src/core/gfxcard.h (1.29) (+1 -1)
+		src/core/fbdev.h (1.13) (+0 -3)
+		src/core/fbdev.c (1.64) (+122 -97)
+		src/idirectfb.c (1.57) (+29 -48)
+	
+	Added surface notification for palette updates.
+	Added display layer driver function "SetPalette" called by the surface
+	listener of the display layer core listening to the layer's surface.
+	
+2002-07-02	14:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.120) (+1 -1)
+	
+	s/id/window_id/
+	
+2002-07-02	13:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.26) (+0 -2)
+		src/windows/idirectfbwindow.c (1.37) (+2 -2)
+		src/display/idirectfbsurface_window.c (1.21) (+1 -8)
+		src/display/idirectfbsurface_layer.c (1.22) (+5 -6)
+		src/display/idirectfbsurface.c (1.48) (+0 -3)
+		src/core/windows.h (1.27) (+3 -2)
+		src/core/windows.c (1.76) (+22 -15)
+		src/core/layers.h (1.26) (+4 -2)
+		src/core/layers.c (1.40) (+6 -4)
+		src/core/fbdev.c (1.63) (+9 -5)
+		include/directfb.h (1.119) (+3 -3)
+		gfxdrivers/neomagic/neo_overlay.c (1.7) (+4 -3)
+		gfxdrivers/matrox/matrox_bes.c (1.23) (+24 -9)
+		gfxdrivers/ati128/ati128_overlay.c (1.13) (+4 -3)
+	
+	Cleaned up vertical retrace handling by passing the flipping flags to the
+	driver (with DSFLIP_WAITFORSYNC eventually set).
+	
+2002-07-02	09:45	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.33) (+185 -118)
+	
+	More work on grabbing support by Ville Syrjala <syrjala@sci.fi>.
+	
+2002-07-01	16:46	Sven Neumann <sven@convergence.de>
+
+	Files:	inputdrivers/linux_input/Makefile.am (1.2) (+2 -1)
+	
+	Added input_fake.h to libdirectfb_linux_input_la_SOURCES.
+	
+2002-07-01	14:44	Holger Waechtler <holger@convergence.de>
+
+	Files:	inputdrivers/linux_input/input_fake.h (1.1) ( )
+		inputdrivers/linux_input/linux_input.c (1.2) (+2 -19)
+	
+	use <input_fake.h> for definitions missing in <linux/input.h>
+	
+2002-07-01	11:51	Sven Neumann <sven@convergence.de>
+
+	Files:	src/directfb.c (1.46) (+6 -3)
+		src/interface_implementation.h (1.2) (+6 -3)
+		src/interface.c (1.15) (+6 -3)
+		src/idirectfb.h (1.6) (+6 -3)
+	
+	updated copyright headers
+	
+2002-06-30	22:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.34) (+10 -7)
+		gfxdrivers/matrox/matrox_state.c (1.32) (+23 -23)
+		gfxdrivers/matrox/matrox.h (1.14) (+20 -11)
+	
+	Use flags instead of booleans for each state entity.
+	
+2002-06-29	23:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.28) (+1 -1)
+	
+	fixed a typo
+	
+2002-06-28	16:57	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.118) (+11 -9)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.27) (+1 -1)
+	
+	Use one bit of DFBSurfacePixelFormat to indicate if the format has
+	an alpha channel. Added new macro DFB_PIXEL_FORMAT_HAS_ALPHA().
+	
+	Use the new macro from the GIF ImageProvider.
+	
+2002-06-27	21:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.32) (+67 -56)
+	
+	An own FrameThread implementation for each capturing method, thanks again.
+	
+2002-06-27	19:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.35) (+1 -0)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.31) (+135 -44)
+	
+	Video provider now detects system only surfaces and does grabbing.
+	
+	Thanks to Ville Syrj\344l\344 <syrjala@sci.fi>
+	
+2002-06-27	14:46	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/gfx_util.c (1.24) (+9 -9)
+	
+	Nicer (and slightly faster) rounding code that yields the same result.
+	
+2002-06-27	10:41	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/gfx_util.c (1.23) (+13 -5)
+	
+	A better fix for the rounding errors on scaling.
+	
+2002-06-26	23:04	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.26) (+91 -107)
+	
+	Do the right thing when rendering to surfaces with alpha channel.
+	More code cleanup.
+	
+2002-06-26	18:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.117) (+72 -2)
+		tools/gendoc.pl (1.17) (+11 -5)
+		src/misc/gfx_util.c (1.22) (+1 -1)
+		src/gfx/generic/generic.c (1.77) (+68 -11)
+		src/display/idirectfbsurface.h (1.12) (+0 -1)
+		src/display/idirectfbsurface.c (1.47) (+29 -0)
+		src/display/idirectfbpalette.h (1.1) ( )
+		src/display/idirectfbpalette.c (1.1) ( )
+		src/display/Makefile.am (1.5) (+2 -0)
+		src/core/fusion/shmalloc.h (1.8) (+1 -0)
+		src/core/surfaces.h (1.24) (+2 -0)
+		src/core/surfaces.c (1.39) (+13 -4)
+		src/core/palette.h (1.1) ( )
+		src/core/palette.c (1.1) ( )
+		src/core/coretypes.h (1.9) (+1 -0)
+		src/core/Makefile.am (1.14) (+2 -0)
+		src/idirectfb.c (1.56) (+1 -0)
+	
+	Initial version of color lookup table support.
+	
+	Added DSPF_LUT8.
+	
+	Added IDirectFBSurface::GetPalette().
+	
+	Added IDirectFBPalette with
+	- GetSize()
+	- SetEntries()
+	- GetEntries()
+	
+	Support by the software driver is in a very early stage.
+	
+	Played around with the method table grids of generated interface pages.
+	
+2002-06-26	17:46	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/gfx_util.c (1.21) (+7 -5)
+	
+	Looks as if we had a rounding error in bilinear_make_fast_weights().
+	This change seems to fix it but it needs more testing.
+	
+2002-06-26	17:09	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.25) (+91 -42)
+	
+	Added a function that searches for a color that is not in the colormap
+	and tries to pick one that is far from all used colors. Use it to find
+	a suitable colorkey to use for the transparent pixels.
+	
+2002-06-26	15:27	Holger Waechtler <holger@convergence.de>
+
+	Files:	configure.in (1.85) (+4 -0)
+		inputdrivers/Makefile.am (1.11) (+7 -1)
+	
+	build linux_input driver only when ./configure was called with --enable-linux-input
+	
+2002-06-26	15:14	Holger Waechtler <holger@convergence.de>
+
+	Files:	configure.in (1.84) (+1 -0)
+	
+	arrgh!
+	
+2002-06-26	15:07	Holger Waechtler <holger@convergence.de>
+
+	Files:	inputdrivers/Makefile.am (1.10) (+1 -0)
+		inputdrivers/linux_input/linux_input.c (1.1) ( )
+		inputdrivers/linux_input/Makefile.am (1.1) ( )
+		inputdrivers/linux_input/.cvsignore (1.1) ( )
+	
+	- input driver for /dev/input/eventX devices
+	- you have to explicitly disable old keyboard and mouse input drivers
+	  using the disable-module option if you don't want to get these events twice...
+	
+2002-06-26	14:18	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/ipc_cleanup (1.2) (+4 -4)
+	
+	Applied patch from Daniel Mack <daniel@convergence.de> to avoid usage
+	information printed out.
+	
+2002-06-26	13:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	acconfig.h (1.6) (+0 -0)
+		patches/vmwarefb-0.5.0-linux-2.4.19-pre8.patch.gz (1.2) (+0 -0)
+	
+	reremoved
+	
+2002-06-26	12:29	Holger Waechtler <holger@convergence.de>
+
+	Files:	src/core/core.c (1.43) (+28 -0)
+		src/misc/conf.h (1.24) (+2 -0)
+		src/misc/conf.c (1.33) (+22 -0)
+	
+	You can disable modules now by specifying disable-module=<modulename>.
+	We need this for the generic linux /dev/input/eventX driver
+	
+2002-06-26	02:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbsurface_window.c (1.20) (+2 -3)
+	
+	Handling DSFLIP_BLIT now.
+	
+2002-06-24	18:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.30) (+1 -1)
+	
+	last try...
+	
+2002-06-24	17:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.29) (+13 -3)
+		src/core/surfacemanager.c (1.27) (+7 -3)
+	
+	Trying to synchronize buffer deallocation and stopping of DMA.
+	
+2002-06-24	17:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.28) (+1 -1)
+	
+	Removed CSNF_VIDEO from flags causing the video to stop.
+	
+2002-06-24	17:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.27) (+9 -6)
+	
+	Use surface listener to stop DMA when surface is destroyed or resized.
+	
+2002-06-24	12:36	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.83) (+4 -4)
+	
+	Use the values yes or no for $have_x86 in order to get $have_mmx
+	defined correcly. Problem spotted by Wout Mertens <wmertens@cisco.com>.
+	
+2002-06-23	22:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/windows/idirectfbwindow.c (1.36) (+3 -0)
+	
+	Added sanity check to Resize().
+	
+2002-06-23	20:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.116) (+22 -8)
+		src/gfx/generic/generic.c (1.76) (+26 -2)
+	
+	Added pre/demultiplication to drawing functions.
+	
+2002-06-23	18:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.22) (+4 -0)
+	
+	Destroy state during destruction of font, otherwise listeners will crash.
+	
+2002-06-21	00:02	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/gendoc.pl (1.16) (+2 -2)
+	
+	Updated the copyright notice added by gendoc.
+	
+2002-06-20	15:57	Sven Neumann <sven@convergence.de>
+
+	Files:	directfb-internal.pc.in (1.6) (+1 -1)
+	
+	Made DirectFB-Internal require the exact same version of DirectFB.
+	
+2002-06-20	15:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.82) (+1 -1)
+		src/display/idirectfbdisplaylayer.c (1.34) (+23 -1)
+		src/core/windows.h (1.26) (+2 -0)
+		src/core/windows.c (1.75) (+14 -8)
+		src/core/layers.h (1.25) (+3 -0)
+		src/core/layers.c (1.39) (+17 -0)
+		include/directfb.h (1.115) (+11 -0)
+	
+	Added IDirectFBDisplayLayer::GetWindow() returning an interface to an existing
+	window identified by its window id.
+	
+	Increased version number to 0.9.13.
+	
+2002-06-19	21:06	Sven Neumann <sven@convergence.de>
+
+	Files:	gfxdrivers/savage/Makefile.am (1.2) (+1 -0)
+	
+	Added savage_bci.h to SOURCES.
+	
+2002-06-19	20:58	Sven Neumann <sven@convergence.de>
+
+	Files:	ChangeLog (1.23) (+75 -0)
+		NEWS (1.29) (+7 -4)
+	
+	Updated ChangeLog and NEWS for 0.9.12 release.
+	
 2002-06-19	20:26	Sven Neumann <sven@convergence.de>
 
 	Files:	include/directfb.h (1.114) (+11 -4)
@@ -926,8 +1656,7 @@
 	
 2002-05-28	01:06	Sven Neumann <sven@convergence.de>
 
-	Files:	acconfig.h (1.6) (+0 -0)
-		configure.in (1.77) (+13 -9)
+	Files:	configure.in (1.77) (+13 -9)
 	
 	Use the third argument of AC_DEFINE to pass descriptions for our defines.
 	Removed unneeded acconfig.h. Works without warnings with autoconf versions
@@ -1422,7 +2151,6 @@
 
 	Files:	patches/Makefile.am (1.15) (+1 -1)
 		patches/vmwarefb-0.5.2-linux-2.4.19-pre8.patch.bz2 (1.1) ( )
-		patches/vmwarefb-0.5.0-linux-2.4.19-pre8.patch.gz (1.2) (+0 -0)
 		patches/Makefile.am (1.14) (+1 -1)
 	
 	s/gz/bz2/
