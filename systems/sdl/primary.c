@@ -85,8 +85,37 @@ primaryInitScreen( CoreScreen           *screen,
      return DFB_OK;
 }
 
+static DFBResult
+primaryGetScreenSize( CoreScreen *screen,
+                      void       *driver_data,
+                      void       *screen_data,
+                      int        *ret_width,
+                      int        *ret_height )
+{
+     D_ASSERT( dfb_sdl != NULL );
+
+     if (dfb_sdl->primary) {
+          *ret_width  = dfb_sdl->primary->width;
+          *ret_height = dfb_sdl->primary->height;
+     }
+     else {
+          if (dfb_config->mode.width)
+               *ret_width  = dfb_config->mode.width;
+          else
+               *ret_width  = 640;
+
+          if (dfb_config->mode.height)
+               *ret_height = dfb_config->mode.height;
+          else
+               *ret_height = 480;
+     }
+
+     return DFB_OK;
+}
+
 ScreenFuncs sdlPrimaryScreenFuncs = {
-     .InitScreen   = primaryInitScreen
+     .InitScreen    = primaryInitScreen,
+     .GetScreenSize = primaryGetScreenSize
 };
 
 /******************************************************************************/

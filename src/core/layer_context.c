@@ -34,6 +34,7 @@
 #include <core/layer_context.h>
 #include <core/layer_control.h>
 #include <core/layer_region.h>
+#include <core/screen.h>
 #include <core/surfaces.h>
 #include <core/system.h>
 #include <core/windows.h>
@@ -67,6 +68,10 @@ static DFBResult reallocate_surface  ( CoreLayer                   *layer,
 
 static DFBResult deallocate_surface  ( CoreLayer                   *layer,
                                        CoreLayerRegion             *region );
+
+static void      screen_rectangle    ( CoreLayerContext            *context,
+                                       const DFBLocation           *location,
+                                       DFBRectangle                *rect );
 
 /******************************************************************************/
 
@@ -813,7 +818,7 @@ dfb_layer_context_set_screenlocation( CoreLayerContext *context,
      config = context->primary.config;
 
      /* Calculate new absolute screen coordinates. */
-     dfb_screen_rectangle( location, &config.dest );
+     screen_rectangle( context, location, &config.dest );
 
      /* Try to set the new configuration. */
      ret = update_primary_region_config( context, &config, CLRCF_DEST );
@@ -1080,7 +1085,7 @@ init_region_config( CoreLayerContext      *context,
      config->source.h   = config->height;
 
      /* Initialize screen rectangle. */
-     dfb_screen_rectangle( &context->screen, &config->dest );
+     screen_rectangle( context, &context->screen, &config->dest );
 
      /* Set default opacity. */
      config->opacity = 0xff;
@@ -1351,5 +1356,38 @@ deallocate_surface( CoreLayer *layer, CoreLayerRegion *region )
      }
 
      return DFB_OK;
+}
+
+static void
+screen_rectangle( CoreLayerContext  *context,
+                  const DFBLocation *location,
+                  DFBRectangle      *rect )
+{
+     DFBResult  ret;
+     int        width;
+     int        height;
+     CoreLayer *layer;
+
+     D_ASSERT( context != NULL );
+
+     layer = dfb_layer_at( context->layer_id );
+
+     D_ASSERT( layer->screen != NULL );
+
+     ret = dfb_screen_get_screen_size( layer->screen, &width, &height );
+     if (ret) {
+          D_WARN( "could not determine screen size" );
+
+          rect->x = location->x * 720;
+          rect->y = location->y * 576;
+          rect->w = location->w * 720;
+          rect->h = location->h * 576;
+     }
+     else {
+          rect->x = location->x * width;
+          rect->y = location->y * height;
+          rect->w = location->w * width;
+          rect->h = location->h * height;
+     }
 }
 

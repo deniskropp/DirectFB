@@ -445,3 +445,20 @@ dfb_screen_set_output_config( CoreScreen                  *screen,
      return DFB_OK;
 }
 
+DFBResult
+dfb_screen_get_screen_size( CoreScreen *screen,
+                            int        *ret_width,
+                            int        *ret_height )
+{
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->funcs != NULL );
+     D_ASSERT( screen->funcs->GetScreenSize != NULL );
+     D_ASSERT( ret_width != NULL );
+     D_ASSERT( ret_height != NULL );
+
+     /* Test the mixer configuration. */
+     return screen->funcs->GetScreenSize( screen,
+                                          screen->driver_data, screen->screen_data,
+                                          ret_width, ret_height );
+}
+

@@ -105,5 +105,12 @@ DFBResult dfb_screen_set_output_config ( CoreScreen                  *screen,
                                          int                          output,
                                          const DFBScreenOutputConfig *config );
 
+
+/* Screen configuration */
+
+DFBResult dfb_screen_get_screen_size   ( CoreScreen                  *screen,
+                                         int                         *ret_width,
+                                         int                         *ret_height );
+
 #endif
 

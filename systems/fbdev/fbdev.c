@@ -197,10 +197,17 @@ static DFBResult primaryWaitVSync   ( CoreScreen           *screen,
                                       void                 *driver_data,
                                       void                 *layer_data );
 
+static DFBResult primaryGetScreenSize( CoreScreen           *screen,
+                                       void                 *driver_data,
+                                       void                 *screen_data,
+                                       int                  *ret_width,
+                                       int                  *ret_height );
+
 static ScreenFuncs primaryScreenFuncs = {
-     .InitScreen   = primaryInitScreen,
-     .SetPowerMode = primarySetPowerMode,
-     .WaitVSync    = primaryWaitVSync
+     .InitScreen    = primaryInitScreen,
+     .SetPowerMode  = primarySetPowerMode,
+     .WaitVSync     = primaryWaitVSync,
+     .GetScreenSize = primaryGetScreenSize
 };
 
 /******************************************************************************/
@@ -807,7 +814,7 @@ primarySetPowerMode( CoreScreen         *screen,
 static DFBResult
 primaryWaitVSync( CoreScreen *screen,
                   void       *driver_data,
-                  void       *layer_data )
+                  void       *screen_data )
 {
      static const int zero = 0;
 
@@ -816,6 +823,36 @@ primaryWaitVSync( CoreScreen *screen,
 
      if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ))
           waitretrace();
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryGetScreenSize( CoreScreen *screen,
+                      void       *driver_data,
+                      void       *screen_data,
+                      int        *ret_width,
+                      int        *ret_height )
+{
+     FBDevShared *shared;
+
+     D_ASSERT( dfb_fbdev != NULL );
+     D_ASSERT( dfb_fbdev->shared != NULL );
+
+     shared = dfb_fbdev->shared;
+
+     if (shared->current_mode) {
+          *ret_width  = shared->current_mode->xres;
+          *ret_height = shared->current_mode->yres;
+     }
+     else if (shared->modes) {
+          *ret_width  = shared->modes->xres;
+          *ret_height = shared->modes->yres;
+     }
+     else {
+          D_WARN( "no current and no default mode" );
+          return DFB_UNSUPPORTED;
+     }
 
      return DFB_OK;
 }

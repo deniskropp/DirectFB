@@ -294,6 +294,4 @@ DFBDisplayLayerID dfb_layer_id_translated( const CoreLayer *layer );
 
 DFBSurfacePixelFormat dfb_primary_layer_pixelformat();
 
-void dfb_screen_rectangle( const DFBLocation *location, DFBRectangle *rect );
-
 #endif

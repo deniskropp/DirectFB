@@ -172,6 +172,20 @@ typedef struct {
                                     void                        *screen_data,
                                     int                          output,
                                     const DFBScreenOutputConfig *config );
+
+
+   /** Screen configuration **/
+
+     /*
+      * Return the screen size, e.g. as a basis for positioning a layer.
+      *
+      * This function might be replaced soon.
+      */
+     DFBResult (*GetScreenSize)   ( CoreScreen                  *screen,
+                                    void                        *driver_data,
+                                    void                        *screen_data,
+                                    int                         *ret_width,
+                                    int                         *ret_height );
 } ScreenFuncs;
 
 
