@@ -786,8 +786,9 @@ static void nvEngineReset( void *driver_data,
                            void *device_data )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     
+
      /* set screen type (0=vga; 2=hsync) */
+     /* NOTE: this should be set at kernel level, the first time the screen is initialized */
 #ifdef WORDS_BIGENDIAN
      nvdrv->PCRTC[0x804/4] = 0x80000002;
 #else
@@ -953,7 +954,7 @@ driver_init_driver( GraphicsDevice      *device,
 
      nvdrv->fb_base = (__u32) dfb_gfxcard_memory_physical( device, 0 );
      if (nvdrv->chip == 0x2A0) /* GeForce3 Xbox */
-          vram += nvdrv->fb_base & 0x7fffff; /* FIXME: detect ram amount correctly */
+          vram += nvdrv->fb_base & 0x0FFFFFFF;
      nvdrv->fb_mask = ((1 << direct_log2( vram )) - 0x100000) | 0x000FFFC0;
      
      nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
@@ -1097,7 +1098,7 @@ driver_close_device( GraphicsDevice *device,
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
 
      (void) nvdev;
-
+     
      D_DEBUG( "DirectFB/NVidia: FIFO Performance Monitoring:\n" );
      D_DEBUG( "DirectFB/NVidia:  %9d nv_waitfifo calls\n",
                nvdev->waitfifo_calls );
