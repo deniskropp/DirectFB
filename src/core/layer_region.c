@@ -592,6 +592,9 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
           if (flags & CLRCF_FORMAT)
                new_config.format = config->format;
 
+          if (flags & CLRCF_SURFACE_CAPS)
+               new_config.surface_caps = config->surface_caps;
+
           if (flags & CLRCF_BUFFERMODE)
                new_config.buffermode = config->buffermode;
 

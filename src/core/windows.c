@@ -182,6 +182,9 @@ create_region( CoreDFB                 *core,
 
      config.options |= DLOP_OPACITY;
 
+     config.surface_caps = surface_caps & (DSCAPS_INTERLACED |
+                                           DSCAPS_SEPARATED  |
+                                           DSCAPS_PREMULTIPLIED);
 
      ret = dfb_layer_region_create( context, &region );
      if (ret)
@@ -267,8 +270,8 @@ dfb_window_create( CoreWindowStack        *stack,
      context = stack->context;
      layer   = dfb_layer_at( context->layer_id );
 
-     surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_DEPTH |
-                     DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
+     surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED |
+                     DSCAPS_DEPTH | DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
 
      if (!dfb_config->translucent_windows) {
           caps &= ~DWCAPS_ALPHACHANNEL;

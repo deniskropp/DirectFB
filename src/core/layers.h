@@ -35,7 +35,8 @@
 struct __DFB_CoreLayerRegionConfig {
      int                       width;             /* width of the source in pixels */
      int                       height;            /* height of the source in pixels */
-     DFBSurfacePixelFormat     format;            /* pixel format of the source */
+     DFBSurfacePixelFormat     format;            /* pixel format of the source surface */
+     DFBSurfaceCapabilities    surface_caps;      /* capabilities of the source surface */
      DFBDisplayLayerBufferMode buffermode;        /* surface buffer configuration */
 
      DFBDisplayLayerOptions    options;           /* various configuration options */
@@ -56,32 +57,32 @@ struct __DFB_CoreLayerRegionConfig {
 };
 
 typedef enum {
-     CLRCF_NONE       = 0x00000000,
+     CLRCF_NONE         = 0x00000000,
 
-     CLRCF_WIDTH      = 0x00000001,
-     CLRCF_HEIGHT     = 0x00000002,
-     CLRCF_FORMAT     = 0x00000004,
-     CLRCF_BUFFERMODE = 0x00000008,
+     CLRCF_WIDTH        = 0x00000001,
+     CLRCF_HEIGHT       = 0x00000002,
+     CLRCF_FORMAT       = 0x00000004,
+     CLRCF_SURFACE_CAPS = 0x00000008,
 
-     CLRCF_OPTIONS    = 0x00000010,
+     CLRCF_BUFFERMODE   = 0x00000010,
+     CLRCF_OPTIONS      = 0x00000020,
+     CLRCF_SOURCE_ID    = 0x00000040,
 
-     CLRCF_SOURCE_ID  = 0x00000020,
+     CLRCF_SOURCE       = 0x00000100,
+     CLRCF_DEST         = 0x00000200,
 
-     CLRCF_SOURCE     = 0x00000100,
-     CLRCF_DEST       = 0x00000200,
+     CLRCF_OPACITY      = 0x00001000,
+     CLRCF_ALPHA_RAMP   = 0x00002000,
 
-     CLRCF_OPACITY    = 0x00001000,
-     CLRCF_ALPHA_RAMP = 0x00002000,
+     CLRCF_SRCKEY       = 0x00010000,
+     CLRCF_DSTKEY       = 0x00020000,
 
-     CLRCF_SRCKEY     = 0x00010000,
-     CLRCF_DSTKEY     = 0x00020000,
+     CLRCF_PARITY       = 0x00100000,
 
-     CLRCF_PARITY     = 0x00100000,
+     CLRCF_SURFACE      = 0x10000000,
+     CLRCF_PALETTE      = 0x20000000,
 
-     CLRCF_SURFACE    = 0x10000000,
-     CLRCF_PALETTE    = 0x20000000,
-
-     CLRCF_ALL        = 0x3013333F
+     CLRCF_ALL          = 0x3013337F
 } CoreLayerRegionConfigFlags;
 
 typedef struct {

@@ -25,6 +25,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <string.h>
+
 #include <directfb.h>
 
 #include <core/coredefs.h>
@@ -486,6 +488,9 @@ dfb_layer_context_test_configuration( CoreLayerContext            *context,
 
                if (failed & CLRCF_SOURCE_ID)
                     flags |= DLCONF_SOURCE;
+
+               if (failed & CLRCF_SURFACE_CAPS)
+                    flags |= DLCONF_SURFACE_CAPS;
           }
 
           *ret_failed = flags;
@@ -651,6 +656,9 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
      if (config->flags & DLCONF_SOURCE)
           context->config.source = config->source;
+
+     if (config->flags & DLCONF_SURFACE_CAPS)
+          context->config.surface_caps = config->surface_caps;
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -1127,6 +1135,8 @@ init_region_config( CoreLayerContext      *context,
      D_ASSERT( context != NULL );
      D_ASSERT( config  != NULL );
 
+     memset( config, 0, sizeof(CoreLayerRegionConfig) );
+
      /* Initialize values from layer config. */
      config->width      = context->config.width;
      config->height     = context->config.height;
@@ -1226,6 +1236,12 @@ build_updated_config( CoreLayer                   *layer,
           ret_config->source_id = update->source;
      }
 
+     /* Change surface caps. */
+     if (update->flags & DLCONF_SURFACE_CAPS) {
+          flags |= CLRCF_SURFACE_CAPS;
+          ret_config->surface_caps = update->surface_caps;
+     }
+
      /* Return translated flags. */
      if (ret_flags)
           *ret_flags = flags;
@@ -1290,8 +1306,14 @@ allocate_surface( CoreLayer             *layer,
                     break;
           }
 
+          /* FIXME: remove this? */
           if (config->options & DLOP_DEINTERLACING)
                caps |= DSCAPS_INTERLACED;
+
+          /* Add available surface capabilities. */
+          caps |= config->surface_caps & (DSCAPS_INTERLACED |
+                                          DSCAPS_SEPARATED  |
+                                          DSCAPS_PREMULTIPLIED);
 
           /* Use the default surface creation. */
           ret = dfb_surface_create( layer->core,
@@ -1393,10 +1415,17 @@ reallocate_surface( CoreLayer             *layer,
                return ret;
      }
 
+     /* FIXME: remove this? */
      if (config->options & DLOP_DEINTERLACING)
           surface->caps |= DSCAPS_INTERLACED;
      else
           surface->caps &= ~DSCAPS_INTERLACED;
+
+     /* Add available surface capabilities. */
+     surface->caps &= ~(DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED);
+     surface->caps |= config->surface_caps & (DSCAPS_INTERLACED |
+                                              DSCAPS_SEPARATED  |
+                                              DSCAPS_PREMULTIPLIED);
 
      return DFB_OK;
 }

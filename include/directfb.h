@@ -485,8 +485,9 @@ typedef enum {
                                                 possibilities. In short, this feature provides a
                                                 lookup table for the alpha bits of these formats.
                                                 See also IDirectFBSurface::SetAlphaRamp(). */
+     DLCAPS_PREMULTIPLIED     = 0x00020000,  /* Surfaces with premultiplied alpha are supported. */
 
-     DLCAPS_ALL               = 0x0001FFFF
+     DLCAPS_ALL               = 0x0003FFFF
 } DFBDisplayLayerCapabilities;
 
 /*
@@ -573,49 +574,41 @@ typedef enum {
  * The surface capabilities.
  */
 typedef enum {
-     DSCAPS_NONE         = 0x00000000,  /* None of these. */
+     DSCAPS_NONE          = 0x00000000,  /* None of these. */
 
-     DSCAPS_PRIMARY      = 0x00000001,  /* It's the primary surface. */
-     DSCAPS_SYSTEMONLY   = 0x00000002,  /* Surface data is permanently stored
-                                           in system memory. <br>There's no
-                                           video memory allocation/storage. */
-     DSCAPS_VIDEOONLY    = 0x00000004,  /* Surface data is permanently stored
-                                           in video memory. <br>There's no
-                                           system memory allocation/storage. */
-     DSCAPS_DOUBLE       = 0x00000010,  /* Surface is double buffered */
-     DSCAPS_SUBSURFACE   = 0x00000020,  /* Surface is just a sub area of
-                                           another one sharing the surface
-                                           data. */
-     DSCAPS_INTERLACED   = 0x00000040,  /* Each buffer contains interlaced
-                                           video (or graphics) data consisting
-                                           of two fields. <br>Their lines are
-                                           stored interleaved. One field's
-                                           height is a half of the surface's
-                                           height. */
-     DSCAPS_SEPARATED    = 0x00000080,  /* For usage with DSCAPS_INTERLACED.
-                                           <br> DSCAPS_SEPARATED specifies that
-                                           the fields are NOT interleaved line
-                                           by line in the buffer. <br>The first
-                                           field is followed by the second one
-                                           in the buffer. */
-     DSCAPS_STATIC_ALLOC = 0x00000100,  /* The amount of video or system memory
-                                           allocated for the surface is never
-                                           less than its initial value. This
-                                           way a surface can be resized
-                                           (smaller and bigger up to the
-                                           initial size) without reallocation
-                                           of the buffers. It's useful for
-                                           surfaces that need a guaranteed
-                                           space in video memory after
-                                           resizing. */
-     DSCAPS_TRIPLE       = 0x00000200,  /* Surface is triple buffered */
+     DSCAPS_PRIMARY       = 0x00000001,  /* It's the primary surface. */
+     DSCAPS_SYSTEMONLY    = 0x00000002,  /* Surface data is permanently stored in system memory.<br>
+                                            There's no video memory allocation/storage. */
+     DSCAPS_VIDEOONLY     = 0x00000004,  /* Surface data is permanently stored in video memory.<br>
+                                            There's no system memory allocation/storage. */
+     DSCAPS_DOUBLE        = 0x00000010,  /* Surface is double buffered */
+     DSCAPS_SUBSURFACE    = 0x00000020,  /* Surface is just a sub area of another
+                                            one sharing the surface data. */
+     DSCAPS_INTERLACED    = 0x00000040,  /* Each buffer contains interlaced video (or graphics)
+                                            data consisting of two fields.<br>
+                                            Their lines are stored interleaved. One field's height
+                                            is a half of the surface's height. */
+     DSCAPS_SEPARATED     = 0x00000080,  /* For usage with DSCAPS_INTERLACED.<br>
+                                            DSCAPS_SEPARATED specifies that the fields are NOT
+                                            interleaved line by line in the buffer.<br>
+                                            The first field is followed by the second one. */
+     DSCAPS_STATIC_ALLOC  = 0x00000100,  /* The amount of video or system memory allocated for the
+                                            surface is never less than its initial value. This way
+                                            a surface can be resized (smaller and bigger up to the
+                                            initial size) without reallocation of the buffers. It's
+                                            useful for surfaces that need a guaranteed space in
+                                            video memory after resizing. */
+     DSCAPS_TRIPLE        = 0x00000200,  /* Surface is triple buffered. */
 
-     DSCAPS_DEPTH        = 0x00010000,  /* A depth buffer is allocated */
+     DSCAPS_PREMULTIPLIED = 0x00001000,  /* Surface stores data with premultiplied alpha. */
 
-     DSCAPS_FLIPPING     = DSCAPS_DOUBLE | DSCAPS_TRIPLE /* Surface needs Flip()
-                                                            calls to make
-                                                            updates/changes
-                                                            visible/usable. */
+     DSCAPS_DEPTH         = 0x00010000,  /* A depth buffer is allocated. */
+
+     DSCAPS_ALL           = 0x000113F7,  /* All of these. */
+
+
+     DSCAPS_FLIPPING      = DSCAPS_DOUBLE | DSCAPS_TRIPLE /* Surface needs Flip() calls to make
+                                                             updates/changes visible/usable. */
 } DFBSurfaceCapabilities;
 
 /*
@@ -1715,6 +1708,7 @@ typedef enum {
      DLCONF_BUFFERMODE        = 0x00000008,
      DLCONF_OPTIONS           = 0x00000010,
      DLCONF_SOURCE            = 0x00000020,
+     DLCONF_SURFACE_CAPS      = 0x00000040,
 
      DLCONF_ALL               = 0x0000007F
 } DFBDisplayLayerConfigFlags;
@@ -1723,8 +1717,7 @@ typedef enum {
  * Layer configuration
  */
 typedef struct {
-     DFBDisplayLayerConfigFlags    flags;         /* Which fields of the
-                                                     configuration are set */
+     DFBDisplayLayerConfigFlags    flags;         /* Which fields of the configuration are set */
 
      int                           width;         /* Pixel width */
      int                           height;        /* Pixel height */
@@ -1732,6 +1725,9 @@ typedef struct {
      DFBDisplayLayerBufferMode     buffermode;    /* Buffer mode */
      DFBDisplayLayerOptions        options;       /* Enable capabilities */
      DFBDisplayLayerSourceID       source;        /* Selected layer source */
+
+     DFBSurfaceCapabilities        surface_caps;  /* Choose surface capabilities, available:
+                                                     INTERLACED, SEPARATED, PREMULTIPLIED. */
 } DFBDisplayLayerConfig;
 
 /*
@@ -1751,11 +1747,10 @@ typedef enum {
 typedef enum {
      DSMCAPS_NONE         = 0x00000000, /* None of these. */
 
-     DSMCAPS_FULL         = 0x00000001, /* Can mix full tree as
-                                           specified in the description. */
+     DSMCAPS_FULL         = 0x00000001, /* Can mix full tree as specified in the description. */
      DSMCAPS_SUB_LEVEL    = 0x00000002, /* Can set a maximum layer level, e.g.
                                            to exclude an OSD from VCR output. */
-     DSMCAPS_SUB_LAYERS   = 0x00000004, /* Can select a number of layers as
+     DSMCAPS_SUB_LAYERS   = 0x00000004, /* Can select a number of layers individually as
                                            specified in the description. */
      DSMCAPS_BACKGROUND   = 0x00000008  /* Background color is configurable. */
 } DFBScreenMixerCapabilities;
