@@ -38,6 +38,8 @@
 #include <core/coretypes.h>
 #include <core/coredefs.h>
 
+#include <core/gfxcard.h>
+
 
 struct _Chunk;
 
@@ -117,6 +119,7 @@ struct _SurfaceBuffer
 
           VideoAccessFlags   access;    /* information about recent read/write
                                            accesses to video buffer memory */
+          CoreGraphicsSerial serial;    /* serial of last write operation */
 
           int                pitch;     /* number of bytes til next line */
           int                offset;    /* byte offset from the beginning

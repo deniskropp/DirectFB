@@ -449,7 +449,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                          D_ASSUME( funcs->FlipRegion != NULL );
 
                          if (buffer->video.access & VAF_HARDWARE_WRITE) {
-                              dfb_gfxcard_sync();
+                              dfb_gfxcard_wait_serial( &buffer->video.serial );
+
                               buffer->video.access &= ~VAF_HARDWARE_WRITE;
                          }
 

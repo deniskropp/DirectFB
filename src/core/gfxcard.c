@@ -581,7 +581,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      }
 
      /*
-      * If function hasn't been set or state is modified
+      * If function hasn't been set or state is modified,
       * call the driver function to propagate the state changes.
       */
      if (state->modified || !(state->set & accel))
@@ -600,14 +600,19 @@ dfb_gfxcard_state_release( CardState *state )
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_ASSERT( state != NULL );
+     D_ASSERT( state->destination != NULL );
+     D_ASSERT( state->destination->back_buffer != NULL );
 
      /* start command processing if not already running */
      if (card->funcs.EmitCommands)
           card->funcs.EmitCommands( card->driver_data, card->device_data );
 
      /* Store the serial of the operation. */
-     if (card->funcs.GetSerial)
+     if (card->funcs.GetSerial) {
           card->funcs.GetSerial( card->driver_data, card->device_data, &state->serial );
+
+          state->destination->back_buffer->video.serial = state->serial;
+     }
 
      /* allow others to use the hardware */
      dfb_gfxcard_unlock();
@@ -1515,11 +1520,16 @@ void dfb_gfxcard_sync()
 
 void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
 {
-     D_ASSUME( card != NULL );
      D_ASSERT( serial != NULL );
+     D_ASSUME( card != NULL );
 
-     if (card && card->funcs.WaitSerial)
+     if (!card)
+          return;
+
+     if (card->funcs.WaitSerial)
           card->funcs.WaitSerial( card->driver_data, card->device_data, serial );
+     else if (card->funcs.EngineSync)
+          card->funcs.EngineSync( card->driver_data, card->device_data );
 }
 
 void dfb_gfxcard_flush_texture_cache()
