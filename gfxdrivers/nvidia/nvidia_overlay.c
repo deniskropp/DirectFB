@@ -555,8 +555,8 @@ ov0UpdateRegion ( CoreLayer           *layer,
                   void                *region_data,
                   CoreSurface         *surface,
                   const DFBRegion     *update )
-{
-     
+{ 
+     NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
 
      if (DFB_PLANAR_PIXELFORMAT( nvov0->config.format )) {  
@@ -590,6 +590,10 @@ ov0UpdateRegion ( CoreLayer           *layer,
                           buf + s3offset, dstStart, srcPitch, srcPitch2,
                           dstPitch, height, width );
      }
+
+     nvov0->buffer ^= 1;
+     ov0_calc_regs( nvdrv, nvov0, layer, &nvov0->config );
+     ov0_set_regs( nvdrv, nvov0 );
      
      return DFB_OK;
 }
