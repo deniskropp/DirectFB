@@ -36,8 +36,10 @@
 
 #include <core/layers.h>
 #include <core/surfaces.h>
+
 #include <display/idirectfbsurface.h>
 
+#include <direct/conf.h>
 #include <direct/interface.h>
 
 #include <xine.h>
@@ -45,26 +47,25 @@
 #include <xine/video_out.h>
 
 
-#ifdef DFB_DEBUG
-  #define VERBOSITY  XINE_VERBOSITY_DEBUG
-#else
-  #define VERBOSITY  XINE_VERBOSITY_LOG
-#endif
 
+static DFBResult 
+Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
-static DFBResult Probe(IDirectFBVideoProvider_ProbeContext *ctx);
-
-static DFBResult Construct(IDirectFBVideoProvider *thiz, const char* filename);
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz,
+           const char             *filename );
 
 
 #include <direct/interface_implementation.h>
 
-DIRECT_INTERFACE_IMPLEMENTATION(IDirectFBVideoProvider, Xine)
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, Xine )
 
 
 typedef struct
 {
 	int                 ref;
+	DFBResult           err;
+	
 	char               *mrl;
 	char               *cfg;
 
@@ -77,7 +78,7 @@ typedef struct
 
 	int                 width; /* video width */
 	int                 height; /* video height */
-	int                 lenght; /* duration */
+	int                 length; /* duration */
 
 	char                is_playing;
 	char                is_paused;
@@ -107,7 +108,10 @@ typedef struct
 } dfb_frame_callback_t;
 
 
-	
+
+
+static void
+get_error( IDirectFBVideoProvider_Xine_data *data );
 
 static void
 frame_output( void *cdata, int width, int height,
@@ -222,9 +226,9 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
 	if (!data->width || !data->height)
 	{
 		data->width  = xine_get_stream_info( data->stream,
-				XINE_STREAM_INFO_VIDEO_WIDTH );
+					XINE_STREAM_INFO_VIDEO_WIDTH );
 		data->height = xine_get_stream_info( data->stream,
-				XINE_STREAM_INFO_VIDEO_HEIGHT );
+					XINE_STREAM_INFO_VIDEO_HEIGHT );
 
 		if (data->width < 1 || data->height < 1)
 		{
@@ -266,7 +270,7 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
 
 	dest_data = (IDirectFBSurface_data*) dest->priv;
 	if (!dest_data)
-		return DFB_DEAD;
+		return DFB_DESTROYED;
 
 	data->dest = dest;
 
@@ -286,7 +290,7 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
 
 	if (!xine_port_send_gui_data( data->vo, XINE_GUI_SEND_DRAWABLE_CHANGED,
 					(void*) data->dest ))
-		return DFB_FAILURE;
+		return DFB_UNSUPPORTED;
 
 	frame_callback.frame_cb = callback;
 	frame_callback.cdata    = ctx;
@@ -305,7 +309,13 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
 	if (!data->is_playing)
 	{	
 		xine_set_param( data->stream, XINE_PARAM_AUDIO_MUTE, 0 );
-		xine_play( data->stream, 0, 0 );
+		
+		if(!xine_play( data->stream, 0, 0 ))
+		{
+			get_error( data );
+			return data->err;
+		}
+		
 		data->is_playing = 1;
 	}
 	
@@ -351,8 +361,8 @@ IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
 
 		if (offset < 0)
 			offset = 0;
-		if (data->lenght > 0 && offset > data->lenght)
-			offset = data->lenght;
+		if (data->length > 0 && offset > data->length)
+			offset = data->length;
 
 		xine_play( data->stream, 0, offset );
 		
@@ -383,8 +393,10 @@ IDirectFBVideoProvider_Xine_GetPos( IDirectFBVideoProvider *thiz,
 
 		for (try = 5; try--; )
 		{
-			if (xine_get_pos_length( data->stream, NULL, &pos, NULL ))
+			if (xine_get_pos_length( data->stream, NULL,
+						 &pos, NULL ))
 				break;
+			
 			usleep( 1000 );
 		}
 
@@ -408,9 +420,9 @@ IDirectFBVideoProvider_Xine_GetLength( IDirectFBVideoProvider *thiz,
 		return DFB_INVARG;
 
 	if (xine_get_pos_length( data->stream, NULL,
-				NULL, &data->lenght ))
+				NULL, &data->length ))
 	{
-		*seconds = (double) data->lenght / 1000.0;
+		*seconds = (double) data->length / 1000.0;
 		return DFB_OK;
 	}
 
@@ -470,37 +482,33 @@ IDirectFBVideoProvider_Xine_SetColorAdjustment( IDirectFBVideoProvider *thiz,
 
 
 static DFBResult
-Probe(IDirectFBVideoProvider_ProbeContext *ctx)
+Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
+	char              *xinerc = NULL;
 	xine_t            *xine;
 	xine_video_port_t *vo;
 	xine_audio_port_t *ao;
 	xine_stream_t     *stream;
 	dfb_visual_t       visual = {NULL, frame_output};
-	char              *cfg;
 	DFBResult          result;
-
-
+	
 	xine = xine_new();
 	if (!xine)
-		return DFB_FAILURE;
+		return DFB_INIT;
 
-	if (getenv( "XINERC" ))
+	xinerc = getenv( "XINERC" );
+
+	if (!xinerc || !*xinerc)
 	{
-		cfg = strdup( getenv( "XINERC" ) );
+		asprintf( &xinerc, "%s/.xine/config", xine_get_homedir() );
+		
+		if(xinerc)
+		{
+			xine_config_load( xine, xinerc );
+			free( xinerc );
+		}
 	} else
-	{
-		const char* home;
-		home = xine_get_homedir();
-		if (home)
-			asprintf( &cfg, "%s/.xine/config", home );
-	}
-
-	if (cfg)
-	{
-		xine_config_load( xine, cfg );
-		free( cfg );
-	}
+		xine_config_load( xine, xinerc );
 
 	xine_init( xine );
 
@@ -533,88 +541,92 @@ Probe(IDirectFBVideoProvider_ProbeContext *ctx)
 
 
 static DFBResult
-Construct(IDirectFBVideoProvider *thiz, const char *filename)
+Construct( IDirectFBVideoProvider *thiz,
+           const char             *filename )
 {
+	const char        *xinerc;
+	int                verbosity    = XINE_VERBOSITY_LOG;
+	const char* const *plug_list;
+	int                audio_driver;
+	dfb_visual_t       visual;
+	
 	DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Xine )
 
 	data->ref = 1;
+	data->err = DFB_FAILURE;
 	data->mrl = D_STRDUP( filename );
-
+	
 	data->xine = xine_new();
 	if (!data->xine)
-		return DFB_FAILURE;
+		return DFB_INIT;
 
-	if (getenv( "XINERC" ))
+	xinerc = getenv( "XINERC" );
+	
+	if (!xinerc || !*xinerc)
 	{
-		data->cfg = strdup( getenv( "XINERC" ) );
+		char *xined;
+		asprintf( &xined, "%s/.xine", xine_get_homedir() );
+		mkdir( xined , 755 );
+		asprintf( &data->cfg, "%s/config", xined );
+		free( xined );
 	} else
-	{
-		const char *home;
-		home = xine_get_homedir();
-		if (home)
-		{
-			char *xined;
-			asprintf( &xined, "%s/.xine", home );
-			mkdir( xined , 755 );
-			asprintf( &data->cfg, "%s/config", xined );
-			free( xined );
-		}
-	}
+		data->cfg = strdup( xinerc );
 
 	if (data->cfg)
 		xine_config_load( data->xine, data->cfg );
 
 	xine_init( data->xine );
-	xine_engine_set_param( data->xine, XINE_ENGINE_PARAM_VERBOSITY, VERBOSITY );
 
-	{
-		dfb_visual_t visual;
-		
-		visual.surface   = NULL;
-		visual.output_cb = frame_output;
-		visual.cdata     = (void*) data;
+	if(direct_config->quiet)
+		verbosity = XINE_VERBOSITY_NONE;
+
+	if(direct_config->debug)
+		verbosity = XINE_VERBOSITY_DEBUG;
 	
-		data->vo = xine_open_video_driver( data->xine, "DFB",
-					XINE_VISUAL_TYPE_DFB, (void*) &visual );
-		if (!data->vo)
-		{
-			xine_exit( data->xine );
-			return DFB_FAILURE;
-		}
+	xine_engine_set_param( data->xine, XINE_ENGINE_PARAM_VERBOSITY, verbosity );
+
+	/* setup visual */
+	visual.surface   = NULL;
+	visual.output_cb = frame_output;
+	visual.cdata     = (void*) data;
+	
+	data->vo = xine_open_video_driver( data->xine, "DFB",
+				XINE_VISUAL_TYPE_DFB, (void*) &visual );
+	if (!data->vo)
+	{
+		get_error( data );
+		xine_exit( data->xine );
+		return data->err;
 	}
+
+	plug_list = xine_list_audio_output_plugins( data->xine );
+
+	audio_driver = xine_config_register_enum( data->xine, "audio.driver",
+				0, (char**) plug_list, "Audio driver to use",
+				NULL, 0, NULL, NULL );	
 	
+	data->ao = xine_open_audio_driver( data->xine,
+				plug_list[audio_driver], NULL );
+
+	if (!data->ao)
 	{
-		const char* const *ao_list;
-		int                audio_driver;
-
-		ao_list = xine_list_audio_output_plugins( data->xine );
-
-		audio_driver = xine_config_register_enum( data->xine,
-					"audio.driver", 0, (char**) ao_list,
-					"Audio driver to use", NULL, 0,
-					 NULL, NULL );
-
-		data->ao = xine_open_audio_driver( data->xine,
-					ao_list[audio_driver], NULL );
-
-		if (!data->ao)
-		{
-			xine_close_video_driver( data->xine, data->vo );
-			xine_exit( data->xine );
-			return DFB_FAILURE;
-		}
+		get_error( data );
+		xine_close_video_driver( data->xine, data->vo );
+		xine_exit( data->xine );
+		return data->err;
 	}
 	
 	data->stream = xine_stream_new( data->xine, data->ao, data->vo );
 	if (!data->stream)
 	{
+		get_error( data );
 		xine_close_video_driver( data->xine, data->vo );
 		xine_close_audio_driver( data->xine, data->ao );
 		xine_exit( data->xine );
-		return DFB_FAILURE;
+		return data->err;
 	}
 
-	xine_set_param( data->stream, XINE_PARAM_VERBOSITY, VERBOSITY );
+	xine_set_param( data->stream, XINE_PARAM_VERBOSITY, verbosity );
 	xine_set_param( data->stream, XINE_PARAM_AUDIO_CHANNEL_LOGICAL, -1 );
 
 	data->queue = xine_event_new_queue( data->stream );
@@ -624,31 +636,34 @@ Construct(IDirectFBVideoProvider *thiz, const char *filename)
 
 	if (!xine_open( data->stream, data->mrl ))
 	{
+		get_error( data );
 		if (data->queue)
 			xine_event_dispose_queue( data->queue );
 		xine_dispose( data->stream );
 		xine_close_video_driver( data->xine, data->vo );
 		xine_close_audio_driver( data->xine, data->ao );
 		xine_exit( data->xine );
-		return DFB_FAILURE;
+		return data->err;
 	}
+
+	xine_get_pos_length( data->stream, NULL, NULL, &data->length );
 
 	/* init a post plugin if no video */
 	if (!xine_get_stream_info( data->stream, XINE_STREAM_INFO_HAS_VIDEO ))
 	{
-		const char* const *post_list;
-		int                post_plugin;
-		xine_post_out_t   *audio_source;
+		int              post_plugin;
+		xine_post_out_t *audio_source;
 
-		post_list = xine_list_post_plugins_typed( data->xine,
-				XINE_POST_TYPE_AUDIO_VISUALIZATION );
+		plug_list = xine_list_post_plugins_typed( data->xine,
+					XINE_POST_TYPE_AUDIO_VISUALIZATION );
 
 		post_plugin = xine_config_register_enum( data->xine,
-					"gui.post_audio_plugin", 0, (char**) post_list,
-					"Audio visualization plugin", NULL, 0,
-					 NULL, NULL );
+					"gui.post_audio_plugin", 0,
+					(char**) plug_list, 
+					"Audio visualization plugin",
+					NULL, 0, NULL, NULL );
 
-		data->post = xine_post_init( data->xine, post_list[post_plugin],
+		data->post = xine_post_init( data->xine, plug_list[post_plugin],
 						0, &data->ao, &data->vo );
 		if (data->post)
 		{
@@ -657,7 +672,6 @@ Construct(IDirectFBVideoProvider *thiz, const char *filename)
 						   data->post->audio_input[0] );
 		}
 	}
-
 
 	thiz->AddRef                = IDirectFBVideoProvider_Xine_AddRef;
 	thiz->Release               = IDirectFBVideoProvider_Xine_Release;
@@ -672,6 +686,60 @@ Construct(IDirectFBVideoProvider *thiz, const char *filename)
 	thiz->SetColorAdjustment    = IDirectFBVideoProvider_Xine_SetColorAdjustment;
 
 	return DFB_OK;
+}
+
+
+static void
+get_error( IDirectFBVideoProvider_Xine_data *data )
+{
+	int err = xine_get_error( data->stream );
+
+	switch (err)
+	{
+		case XINE_ERROR_NO_INPUT_PLUGIN:
+		{
+			D_ERROR( "DirectFB/VideoProvider_Xine: "
+				 "there is no input plugin to handle '%s'.\n", 
+				 data->mrl );
+			data->err = DFB_UNSUPPORTED;
+		}
+		break;
+
+		case XINE_ERROR_NO_DEMUX_PLUGIN:
+		{
+			D_ERROR( "DirectFB/VideoProvider_Xine: "
+				 "there is no demuxer plugin to decode '%s'.\n",
+				 data->mrl );
+			data->err = DFB_UNSUPPORTED;
+		}
+		break;
+
+		case XINE_ERROR_DEMUX_FAILED:
+		{
+			D_ERROR( "DirectFB/VideoProvider_Xine: "
+				 "demuxer plugin failed; probably '%s' is corrupted.\n",
+				 data->mrl );
+			data->err = DFB_FAILURE;
+		}
+		break;
+
+		case XINE_ERROR_MALFORMED_MRL:
+		{
+			D_ERROR( "DirectFB/VideoProvider_Xine: "
+				 "mrl '%s' is corrupted.\n",
+				 data->mrl );
+			data->err = DFB_FAILURE;
+		}
+		break;
+
+		default:
+		{
+			D_ERROR( "DirectFB/VideoProvider_Xine: "
+				 "xine engine generic error !!\n" );
+			data->err = DFB_FAILURE;
+		}
+		break;
+	}
 }
 
 
