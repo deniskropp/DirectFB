@@ -173,7 +173,12 @@ void core_deinit_emergency()
 
                if (pthread_mutex_trylock( &card->lock ) != EBUSY)
                     break;
+
+               sched_yield();
           }
+          
+          if (card->info.driver && card->info.driver->DeInit)
+               card->info.driver->DeInit();
      }
 
      if (vt)
