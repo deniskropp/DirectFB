@@ -1733,7 +1733,8 @@ dfb_layer_cursor_warp( DisplayLayer *layer, int x, int y )
 
      stack = layer->shared->stack;
      
-     fusion_skirmish_prevail( &stack->lock );
+     if (fusion_skirmish_prevail( &stack->lock ))
+         return DFB_FUSION;
      
      dx = x - stack->cursor.x;
      dy = y - stack->cursor.y;
