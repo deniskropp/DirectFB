@@ -17,11 +17,11 @@
  *
  *  video_out_dfb: unofficial xine video output driver using DirectFB
  *
- *
+ * 
  *  NOTE: adjusting contrast is disabled in __dummy_* when output is RGB
  *
- *
- *  TODO: we really need to speed up at 24bpp and 32bpp
+ * 
+ *  TODO: speed up at 24bpp and 32bpp, add support for overlays
  *
  */
 
@@ -143,7 +143,7 @@ rdtsc(void)
 
 /*
  * This formula seems to work properly:
- *
+ * 
  *  R = Y + (1.40200 * (V - 128))
  *  G = Y - (0.71414 * (V - 128)) - (0.34414 * (U - 128))
  *  B = Y + (1.77200 * (U - 128))
@@ -161,14 +161,7 @@ static const int16_t yuv_factors[] =
 };
 
 
-/* Should Y be normalized? Assume yes */
-#define Y_OFFSET  16
-
-
-static const uint16_t lm_sub[] = {Y_OFFSET, Y_OFFSET, Y_OFFSET, Y_OFFSET};
-
-static const uint16_t cr_sub[] = {128, 128, 128, 128};
-
+static const uint16_t chroma_sub[] = {128, 128, 128, 128};
 
 static const uint32_t lmask[]   = {0x000000ff, 0x000000ff};
 static const uint32_t wmask[]   = {0x00ff00ff, 0x00ff00ff};
@@ -183,11 +176,11 @@ static const uint32_t b6_mask[] = {0xfcfcfcfc, 0xfcfcfcfc};
 
 static void
 __mmx_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	if(!this->brightness.l_val && this->contrast.l_val == 0x4000)
 	{
-		
+
 		xine_fast_memcpy(data, frame->vo_frame.base[0],
 					pitch * frame->height);
 
@@ -195,7 +188,7 @@ __mmx_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 	{
 		uint8_t* yuv_data = frame->vo_frame.base[0];
 		uint32_t n = (frame->width * frame->height) >> 2;
-		
+
 		__asm__ __volatile__(
 
 			"movq (wmask), %%mm2\n\t" /* mm2 = [0 0xff 0 0xff 0 0xff 0 0xff] */
@@ -228,7 +221,7 @@ __mmx_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __dummy_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	int32_t bright = this->brightness.l_val;
 	int32_t ctr    = this->contrast.l_val;
@@ -272,7 +265,7 @@ __dummy_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint32_t n = (frame->width * frame->height) >> 2;
@@ -309,7 +302,7 @@ __mmx_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* dest     = (uint8_t*) data;
 	uint8_t* yuv_data = frame->vo_frame.base[0];
@@ -381,15 +374,15 @@ __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 /* NOT TESTED */
 static void
 __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint8_t* y_off    = (uint8_t*) data;
-	uint8_t* u_off    = (this->main_data->surface->format == DSPF_YV12)
+	uint8_t* u_off    = (frame->tmp->format == DSPF_YV12)
 			     ? data + (pitch * frame->height)
 			     : data + (pitch * frame->height) +
 			       ((pitch * frame->height) >> 2);
-	uint8_t* v_off    = (this->main_data->surface->format == DSPF_YV12)
+	uint8_t* v_off    = (frame->tmp->format == DSPF_YV12)
 			    ? data + (pitch * frame->height) +
 			      ((pitch * frame->height) >> 2)
 			    : data + (pitch * frame->height);
@@ -469,7 +462,7 @@ __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint32_t n = (frame->width * frame->height) >> 2;
@@ -477,9 +470,6 @@ __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 
 	__asm__ __volatile__(
 
-		"movq %3, %%mm0\n\t" /* mm0 = brightness */
-		"psubw (lm_sub), %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"movq %%mm0, %3\n\t"
 		"pxor %%mm7, %%mm7\n\t"
 		".align 16\n"
 		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
@@ -493,12 +483,12 @@ __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 		"pand (lmask), %%mm1\n\t" /* mm1 = [0 0 0 u2 0 0 0 u0] */
 		"packssdw %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u0 0 u2 0 u0] */
 		"punpcklwd %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u2 0 u0 0 u0] */
-		"psubw (cr_sub), %%mm1\n\t" /* u -= 128 */
+		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
 		"psllw $2, %%mm1\n\t" /* u << 2 */
 		"psrld $24, %%mm0\n\t" /* mm0 = [0 0 0 v2 0 0 0 v0] */
 		"packssdw %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v0 0 v2 0 v0] */
 		"punpcklwd %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v2 0 v0 0 v0] */
-		"psubw (cr_sub), %%mm0\n\t" /* v -= 128 */
+		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
 		"psllw $2, %%mm0\n\t" /* v << 2 */
 		"movq %%mm0, %%mm3\n\t"
 		"pmulhw (yuv_factors), %%mm3\n\t" /* chroma_r */
@@ -528,9 +518,6 @@ __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 		"addl $8, %1\n\t"
 		"decl %2\n\t"
 		"jnz 1b\n\t"
-		"movq %3, %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"paddw (lm_sub), %%mm0\n\t" /* mm0 = brightness */
-		"movq %%mm0, %3\n\t"
 		"emms\n\t"
 
 		:: "r" (data), "r" (yuv_data), "q" (n),
@@ -542,12 +529,12 @@ __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __dummy_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint16_t* dest    = (uint16_t*) data;
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint32_t n     = (frame->width * frame->height) >> 1;
-	int32_t bright = this->brightness.l_val - Y_OFFSET;
+	int32_t bright = this->brightness.l_val;
 
 	do
 	{
@@ -590,7 +577,7 @@ __dummy_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 
 		*(dest++) = ((r << 10) | (g << 5) | b);
 
-
+		
 		yuv_data += 4;
 
 	} while(--n);
@@ -600,7 +587,7 @@ __dummy_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint32_t n = (frame->width * frame->height) >> 2;
@@ -608,9 +595,6 @@ __mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 
 	__asm__ __volatile__(
 
-		"movq %3, %%mm0\n\t" /* mm0 = brightness */
-		"psubw (lm_sub), %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"movq %%mm0, %3\n\t"
 		"pxor %%mm7, %%mm7\n\t"
 		".align 16\n"
 		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
@@ -624,12 +608,12 @@ __mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 		"pand (lmask), %%mm1\n\t" /* mm1 = [0 0 0 u2 0 0 0 u0] */
 		"packssdw %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u0 0 u2 0 u0] */
 		"punpcklwd %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u2 0 u0 0 u0] */
-		"psubw (cr_sub), %%mm1\n\t" /* u -= 128 */
+		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
 		"psllw $2, %%mm1\n\t" /* u << 2 */
 		"psrld $24, %%mm0\n\t" /* mm0 = [0 0 0 v2 0 0 0 v0] */
 		"packssdw %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v0 0 v2 0 v0] */
 		"punpcklwd %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v2 0 v0 0 v0] */
-		"psubw (cr_sub), %%mm0\n\t" /* v -= 128 */
+		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
 		"psllw $2, %%mm0\n\t" /* v << 2 */
 		"movq %%mm0, %%mm3\n\t"
 		"pmulhw (yuv_factors), %%mm3\n\t" /* chroma_r */
@@ -659,9 +643,6 @@ __mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 		"addl $8, %1\n\t"
 		"decl %2\n\t"
 		"jnz 1b\n\t"
-		"movq %3, %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"paddw (lm_sub), %%mm0\n\t" /* mm0 = brightness */
-		"movq %%mm0, %3\n\t"
 		"emms\n\t"
 
 		:: "r" (data), "r" (yuv_data), "q" (n),
@@ -673,12 +654,12 @@ __mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __dummy_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint16_t* dest    = (uint16_t*) data;
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint32_t n     = (frame->width * frame->height) >> 1;
-	int32_t bright = this->brightness.l_val - Y_OFFSET;
+	int32_t bright = this->brightness.l_val;
 
 
 	do
@@ -732,7 +713,7 @@ __dummy_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint32_t n = (frame->width * frame->height) >> 2;
@@ -740,9 +721,6 @@ __mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 
 	__asm__ __volatile__(
 
-		"movq %3, %%mm0\n\t" /* mm0 = brightness */
-		"psubw (lm_sub), %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"movq %%mm0, %3\n\t"
 		"pxor %%mm7, %%mm7\n\t"
 		".align 16\n"
 		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
@@ -756,12 +734,12 @@ __mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 		"pand (lmask), %%mm1\n\t" /* mm1 = [0 0 0 u2 0 0 0 u0] */
 		"packssdw %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u0 0 u2 0 u0] */
 		"punpcklwd %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u2 0 u0 0 u0] */
-		"psubw (cr_sub), %%mm1\n\t" /* u -= 128 */
+		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
 		"psllw $2, %%mm1\n\t" /* u << 2 */
 		"psrld $24, %%mm0\n\t" /* mm0 = [0 0 0 v2 0 0 0 v0] */
 		"packssdw %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v0 0 v2 0 v0] */
 		"punpcklwd %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v2 0 v0 0 v0] */
-		"psubw (cr_sub), %%mm0\n\t" /* v -= 128 */
+		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
 		"psllw $2, %%mm0\n\t" /* v << 2 */
 		"movq %%mm0, %%mm3\n\t"
 		"pmulhw (yuv_factors), %%mm3\n\t" /* chroma_r */
@@ -796,9 +774,6 @@ __mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 		"addl $8, %1\n\t"
 		"decl %2\n\t"
 		"jnz 1b\n\t"
-		"movq %3, %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"paddw (lm_sub), %%mm0\n\t" /* mm0 = brightness */
-		"movq %%mm0, %3\n\t"
 		"emms\n\t"
 
 		:: "r" (data), "r" (yuv_data), "q" (n),
@@ -811,11 +786,11 @@ __mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 /* unrolling here seems to speed up */
 static void
 __dummy_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data  = frame->vo_frame.base[0];
 	uint32_t n     = (frame->width * frame->height) >> 2;
-	int32_t bright = this->brightness.l_val - Y_OFFSET;
+	int32_t bright = this->brightness.l_val;
 
 
 	do
@@ -896,7 +871,7 @@ __dummy_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint32_t n = (frame->width * frame->height) >> 2;
@@ -904,9 +879,6 @@ __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 
 	__asm__ __volatile__(
 
-		"movq %3, %%mm0\n\t" /* mm0 = brightness */
-		"psubw (lm_sub), %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"movq %%mm0, %3\n\t"
 		"pxor %%mm7, %%mm7\n\t"
 		".align 16\n"
 		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
@@ -920,12 +892,12 @@ __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 		"pand (lmask), %%mm1\n\t" /* mm1 = [0 0 0 u2 0 0 0 u0] */
 		"packssdw %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u0 0 u2 0 u0] */
 		"punpcklwd %%mm1, %%mm1\n\t" /* mm1 = [0 u2 0 u2 0 u0 0 u0] */
-		"psubw (cr_sub), %%mm1\n\t" /* u -= 128 */
+		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
 		"psllw $2, %%mm1\n\t" /* u << 2 */
 		"psrld $24, %%mm0\n\t" /* mm0 = [0 0 0 v2 0 0 0 v0] */
 		"packssdw %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v0 0 v2 0 v0] */
 		"punpcklwd %%mm0, %%mm0\n\t" /* mm0 = [0 v2 0 v2 0 v0 0 v0] */
-		"psubw (cr_sub), %%mm0\n\t" /* v -= 128 */
+		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
 		"psllw $2, %%mm0\n\t" /* v << 2 */
 		"movq %%mm0, %%mm3\n\t"
 		"pmulhw (yuv_factors), %%mm3\n\t" /* chroma_r */
@@ -951,9 +923,6 @@ __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 		"addl $8, %1\n\t"
 		"decl %2\n\t"
 		"jnz 1b\n\t"
-		"movq %3, %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"paddw (lm_sub), %%mm0\n\t" /* mm0 = brightness */
-		"movq %%mm0, %3\n\t"
 		"emms\n\t"
 
 		:: "r" (data), "r" (yuv_data), "q" (n),
@@ -966,11 +935,11 @@ __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 /* unrolling here seems to speed up */
 static void
 __dummy_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data  = frame->vo_frame.base[0];
 	uint32_t n     = (frame->width * frame->height) >> 2;
-	int32_t bright = this->brightness.l_val - Y_OFFSET;
+	int32_t bright = this->brightness.l_val;
 
 
 	do
@@ -1070,7 +1039,7 @@ static yuv_render_t yuy2_cc =
 
 static void
 __mmx_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
@@ -1133,7 +1102,7 @@ __mmx_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 
  static void
 __dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
@@ -1213,7 +1182,7 @@ __dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
@@ -1276,7 +1245,7 @@ __mmx_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
@@ -1358,9 +1327,8 @@ __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 /* NOT TESTED */
 static void
 __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
-	DFBSurfacePixelFormat format = this->main_data->surface->format;
 	int32_t bright = this->brightness.l_val;
 	int32_t ctr    = this->contrast.l_val;
 
@@ -1398,14 +1366,14 @@ __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 	}
 
 	xine_fast_memcpy(data,
-			(format == DSPF_YV12)
+			(frame->tmp->format == DSPF_YV12)
 				? frame->vo_frame.base[1]
 				: frame->vo_frame.base[2],
 			frame->vo_frame.pitches[1] * (frame->height >> 1));
 	data += (pitch * frame->height) >> 2;
 
 	xine_fast_memcpy(data,
-			(format == DSPF_YV12)
+			(frame->tmp->format == DSPF_YV12)
 				? frame->vo_frame.base[2]
 				: frame->vo_frame.base[1],
 			frame->vo_frame.pitches[2] * (frame->height >> 1));
@@ -1414,7 +1382,7 @@ __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
@@ -1425,9 +1393,6 @@ __mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 	
 	__asm__ __volatile__(
 
-		"movq %8, %%mm0\n\t" /* mm0 = brightness */
-		"psubw (lm_sub), %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"movq %%mm0, %8\n\t"
 		"pxor %%mm7, %%mm7\n\t"
 		".align 16\n"
 		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
@@ -1443,12 +1408,12 @@ __mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
 		"punpcklbw %%mm1, %%mm1\n\t" /* mm1 = [u3 u3 u2 u2 u1 u1 u0 u0] */
 		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 u1 0 u1 0 u0 0 u0] */
-		"psubw (cr_sub), %%mm1\n\t" /* u -= 128 */
+		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
 		"psllw $2, %%mm1\n\t" /* u << 2 */
 		"movd (%3), %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
 		"punpcklbw %%mm0, %%mm0\n\t" /* mm0 = [v3 v3 v2 v2 v1 v1 v0 v0] */
 		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 v1 0 v1 0 v0 0 v0] */
-		"psubw (cr_sub), %%mm0\n\t" /* v -= 128 */
+		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
 		"psllw $2, %%mm0\n\t" /* v << 2 */
 		"movq %%mm0, %%mm4\n\t" /* mm4 = [0 v1 0 v1 0 v0 0 v0] */
 		"pmulhw (yuv_factors), %%mm4\n\t" /* chroma_r */
@@ -1504,9 +1469,6 @@ __mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 		".align 16\n"
 		"2:\tdecl %7\n\t"
 		"jnz 1b\n\t"
-		"movq %8, %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"paddw (lm_sub), %%mm0\n\t" /* mm0 = brightness */
-		"movq %%mm0, %8\n\t"
 		"emms\n\t"
 
 		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
@@ -1519,7 +1481,7 @@ __mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint16_t* dest  = (uint16_t*) data;
 	uint8_t* y_data = frame->vo_frame.base[0];
@@ -1528,7 +1490,7 @@ __dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 	uint32_t line  = frame->width >> 1;
 	uint32_t n     = (frame->width * frame->height) >> 2;
 	uint32_t dp    = 0;
-	int32_t bright = this->brightness.l_val - Y_OFFSET;
+	int32_t bright = this->brightness.l_val;
 
 
 	do
@@ -1614,7 +1576,7 @@ __dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
@@ -1625,9 +1587,6 @@ __mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 
 	__asm__ __volatile__(
 
-		"movq %8, %%mm0\n\t" /* mm0 = brightness */
-		"psubw (lm_sub), %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"movq %%mm0, %8\n\t"
 		"pxor %%mm7, %%mm7\n\t"
 		".align 16\n"
 		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
@@ -1643,12 +1602,12 @@ __mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
 		"punpcklbw %%mm1, %%mm1\n\t" /* mm1 = [u3 u3 u2 u2 u1 u1 u0 u0] */
 		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 u1 0 u1 0 u0 0 u0] */
-		"psubw (cr_sub), %%mm1\n\t" /* u -= 128 */
+		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
 		"psllw $2, %%mm1\n\t" /* u << 2 */
 		"movd (%3), %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
 		"punpcklbw %%mm0, %%mm0\n\t" /* mm0 = [v3 v3 v2 v2 v1 v1 v0 v0] */
 		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 v1 0 v1 0 v0 0 v0] */
-		"psubw (cr_sub), %%mm0\n\t" /* v -= 128 */
+		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
 		"psllw $2, %%mm0\n\t" /* v << 2 */
 		"movq %%mm0, %%mm4\n\t" /* mm4 = [0 v1 0 v1 0 v0 0 v0] */
 		"pmulhw (yuv_factors), %%mm4\n\t" /* chroma_r*/
@@ -1704,9 +1663,6 @@ __mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 		".align 16\n"
 		"2:\tdecl %7\n\t"
 		"jnz 1b\n\t"
-		"movq %8, %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"paddw (lm_sub), %%mm0\n\t" /* mm0 = brightness */
-		"movq %%mm0, %8\n\t"
 		"emms\n\t"
 
 		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
@@ -1719,7 +1675,7 @@ __mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __dummy_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint16_t* dest  = (uint16_t*) data;
 	uint8_t* y_data = frame->vo_frame.base[0];
@@ -1728,7 +1684,7 @@ __dummy_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 	uint32_t line  = frame->width >> 1;
 	uint32_t n     = (frame->width * frame->height) >> 2;
 	uint32_t dp    = 0;
-	int32_t bright = this->brightness.l_val - Y_OFFSET;
+	int32_t bright = this->brightness.l_val;
 
 
 	do
@@ -1815,7 +1771,7 @@ __dummy_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
@@ -1826,9 +1782,6 @@ __mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 
 	__asm__ __volatile__(
 
-		"movq %8, %%mm0\n\t" /* mm0 = brightness */
-		"psubw (lm_sub), %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"movq %%mm0, %8\n\t"
 		"pxor %%mm7, %%mm7\n\t"
 		".align 16\n"
 		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
@@ -1844,12 +1797,12 @@ __mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
 		"punpcklbw %%mm1, %%mm1\n\t" /* mm1 = [u3 u3 u2 u2 u1 u1 u0 u0] */
 		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 u1 0 u1 0 u0 0 u0] */
-		"psubw (cr_sub), %%mm1\n\t" /* u -= 128 */
+		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
 		"psllw $2, %%mm1\n\t" /* u << 2 */
 		"movd (%3), %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
 		"punpcklbw %%mm0, %%mm0\n\t" /* mm0 = [v3 v3 v2 v2 v1 v1 v0 v0] */
 		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 v1 0 v1 0 v0 0 v0] */
-		"psubw (cr_sub), %%mm0\n\t" /* v -= 128 */
+		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
 		"psllw $2, %%mm0\n\t" /* v << 2 */
 		"movq %%mm0, %%mm4\n\t" /* mm4 = [0 v1 0 v1 0 v0 0 v0] */
 		"pmulhw (yuv_factors), %%mm4\n\t" /* chroma_r*/
@@ -1915,9 +1868,6 @@ __mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 		".align 16\n"
 		"2:\tdecl %7\n\t"
 		"jnz 1b\n\t"
-		"movq %8, %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"paddw (lm_sub), %%mm0\n\t" /* mm0 = brightness */
-		"movq %%mm0, %8\n\t"
 		"emms\n\t"
 
 		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
@@ -1930,14 +1880,14 @@ __mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __dummy_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
 	uint8_t* v_data = frame->vo_frame.base[2];
 	uint32_t line  = frame->width >> 1;
 	uint32_t n     = (frame->width * frame->height) >> 2;
-	int32_t bright = this->brightness.l_val - Y_OFFSET;
+	int32_t bright = this->brightness.l_val;
 
 
 	do
@@ -2016,7 +1966,7 @@ __dummy_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
@@ -2027,9 +1977,6 @@ __mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 
 	__asm__ __volatile__(
 
-		"movq %8, %%mm0\n\t" /* mm0 = brightness */
-		"psubw (lm_sub), %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"movq %%mm0, %8\n\t"
 		"pxor %%mm7, %%mm7\n\t"
 		".align 16\n"
 		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
@@ -2045,12 +1992,12 @@ __mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
 		"punpcklbw %%mm1, %%mm1\n\t" /* mm1 = [u3 u3 u2 u2 u1 u1 u0 u0] */
 		"punpcklbw %%mm7, %%mm1\n\t" /* mm1 = [0 u1 0 u1 0 u0 0 u0] */
-		"psubw (cr_sub), %%mm1\n\t" /* u -= 128 */
+		"psubw (chroma_sub), %%mm1\n\t" /* u -= 128 */
 		"psllw $2, %%mm1\n\t" /* u << 2 */
 		"movd (%3), %%mm0\n\t" /* mm0 = [0 0 0 0 v3 v2 v1 v0] */
 		"punpcklbw %%mm0, %%mm0\n\t" /* mm0 = [v3 v3 v2 v2 v1 v1 v0 v0] */
 		"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 v1 0 v1 0 v0 0 v0] */
-		"psubw (cr_sub), %%mm0\n\t" /* v -= 128 */
+		"psubw (chroma_sub), %%mm0\n\t" /* v -= 128 */
 		"psllw $2, %%mm0\n\t" /* v << 2 */
 		"movq %%mm0, %%mm4\n\t" /* mm4 = [0 v1 0 v1 0 v0 0 v0] */
 		"pmulhw (yuv_factors), %%mm4\n\t" /* chroma_r*/
@@ -2099,9 +2046,6 @@ __mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 		".align 16\n"
 		"2:\tdecl %7\n\t"
 		"jnz 1b\n\t"
-		"movq %8, %%mm0\n\t" /* mm0 = brightness - Y_OFFSET */
-		"paddw (lm_sub), %%mm0\n\t" /* mm0 = brightness */
-		"movq %%mm0, %8\n\t"
 		"emms\n\t"
 
 		:: "r" (data), "r" (y_data), "r" (u_data), "r" (v_data),
@@ -2114,14 +2058,14 @@ __mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 
 static void
 __dummy_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch)
+				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* y_data = frame->vo_frame.base[0];
 	uint8_t* u_data = frame->vo_frame.base[1];
 	uint8_t* v_data = frame->vo_frame.base[2];
 	uint32_t line  = frame->width >> 1;
 	uint32_t n     = (frame->width * frame->height) >> 2;
-	int32_t bright = this->brightness.l_val - Y_OFFSET;
+	int32_t bright = this->brightness.l_val;
 	
 
 	do
@@ -2225,9 +2169,29 @@ dfb_get_capabilities(vo_driver_t* vo_driver)
 
 
 static void
-dfb_frame_field(vo_frame_t* vo_frame, int flags)
+dfb_proc_frame(vo_frame_t* vo_frame)
 {
-	/* nothing */
+	dfb_driver_t* this  = NULL;
+	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
+	uint8_t* data;
+	uint32_t pitch;
+#ifdef DEBUG
+	static int test = 8;
+#endif
+	
+	TEST(vo_frame   != NULL);
+	TEST(frame->tmp != NULL);
+
+	vo_frame->proc_called = 1;
+
+	this  = (dfb_driver_t*) vo_frame->driver;
+	data  = (uint8_t*) frame->tmp->back_buffer->system.addr;
+	pitch = (uint32_t) frame->tmp->back_buffer->system.pitch;
+	
+	SPEED(frame->render(this, frame, data, pitch));
+
+FAILURE:
+	return;
 }
 
 
@@ -2251,19 +2215,17 @@ dfb_frame_dispose(vo_frame_t* vo_frame)
 static vo_frame_t*
 dfb_alloc_frame(vo_driver_t* vo_driver)
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
 	dfb_frame_t* frame = NULL;
 
 	TEST(vo_driver != NULL);
 
 	TEST(frame = (dfb_frame_t*) calloc(1, sizeof(dfb_frame_t)));
-	this->frame = frame;
 
 	pthread_mutex_init(&(frame->vo_frame.mutex), NULL);
 
 	frame->vo_frame.proc_slice = NULL;
- 	frame->vo_frame.proc_frame = NULL;
-	frame->vo_frame.field      = dfb_frame_field;
+ 	frame->vo_frame.proc_frame = dfb_proc_frame;
+	frame->vo_frame.field      = NULL;
 	frame->vo_frame.dispose    = dfb_frame_dispose;
 	frame->vo_frame.driver     = vo_driver;
 
@@ -2279,8 +2241,9 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 		uint32_t width, uint32_t height, double ratio,
 		int format, int flags)
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
-	dfb_frame_t* frame  = (dfb_frame_t*) vo_frame;
+	dfb_driver_t* this   = (dfb_driver_t*) vo_driver;
+	dfb_frame_t* frame   = (dfb_frame_t*) vo_frame;
+	yuv_render_t* yuv_cc;
 
 	TEST(vo_driver  != NULL);
 	TEST(vo_frame   != NULL);
@@ -2291,7 +2254,6 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	frame->width  = width + ((width & 3) ? (4 - (width & 3)) : 0);
 	/* height must be a multiple of 2 */
 	frame->height = height + (height & 1);
-	frame->ratio  = ratio;
 	frame->format = format;
 	
 	if(frame->tmp)
@@ -2309,7 +2271,7 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	frame->state.destination = this->main_data->surface;
 	frame->state.modified    = SMF_ALL;
 	
-	this->output_cb(this->output_cdata, frame->width,
+	this->output_cb(this->output_cdata, frame->width, 
 			frame->height, &(frame->dest_rect));
 	
 	if(frame->dest_rect.x < 0)
@@ -2370,7 +2332,7 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 		case XINE_IMGFMT_YUY2:
 		{
 			ONESHOT("video frame format is YUY2");
-			this->yuv_cc = &yuy2_cc;
+			yuv_cc = &yuy2_cc;
 			frame->vo_frame.pitches[0] = frame->width << 1;
 			frame->vo_frame.base[0] = (uint8_t*) xine_xmalloc_aligned(16,
 							frame->vo_frame.pitches[0] * frame->height,
@@ -2383,7 +2345,7 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 		default:
 		{
 			ONESHOT("video frame format is YV12");
-			this->yuv_cc = &yv12_cc;
+			yuv_cc = &yv12_cc;
 			frame->vo_frame.pitches[0] = frame->width;
 			frame->vo_frame.pitches[1] = frame->width >> 1;
 			frame->vo_frame.pitches[2] = frame->width >> 1;
@@ -2403,7 +2365,43 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 		break;
 	}
 
+	switch(frame->tmp->format)
+	{
+		case DSPF_YUY2:
+			frame->render = yuv_cc->yuy2;
+		break;
+
+		case DSPF_UYVY:
+			frame->render = yuv_cc->uyvy;
+		break;
+
+		case DSPF_YV12:
+		case DSPF_I420:
+			frame->render = yuv_cc->yv12;
+		break;
+
+		case DSPF_ARGB1555:
+			frame->render = yuv_cc->rgb15;
+		break;
+
+		case DSPF_RGB16:
+			frame->render = yuv_cc->rgb16;
+		break;
+
+		case DSPF_RGB24:
+			frame->render = yuv_cc->rgb24;
+		break;
+
+		case DSPF_RGB32:
+		case DSPF_ARGB:
+		case DSPF_AiRGB:
+			frame->render = yuv_cc->rgb32;
+		break;
 	
+		default:
+		break;
+	}
+
 	return;
 	
 FAILURE:
@@ -2420,62 +2418,11 @@ dfb_display_frame(vo_driver_t* vo_driver, vo_frame_t* vo_frame)
 {
 	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
 	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
-	uint8_t* data  = NULL;
-	uint32_t pitch = 0;
-#ifdef DEBUG
-	static char test = 8;
-#endif
-
+		
 	TEST(vo_driver  != NULL);
 	TEST(vo_frame   != NULL);
-	TEST(this->main != NULL);
-	TEST(this->main_data != NULL);
 	TEST(frame->tmp != NULL);
-
-	data  = (uint8_t*) frame->tmp->back_buffer->system.addr;
-	pitch = (uint32_t) frame->tmp->back_buffer->system.pitch;
-
-	switch(this->main_data->surface->format)
-	{
-		case DSPF_YUY2:
-			SPEED(this->yuv_cc->yuy2(this, frame, data, pitch));
-		break;
-
-		case DSPF_UYVY:
-			SPEED(this->yuv_cc->uyvy(this, frame, data, pitch));
-		break;
-
-		case DSPF_YV12:
-			SPEED(this->yuv_cc->yv12(this, frame, data, pitch));
-		break;
-
-		case DSPF_I420:
-			SPEED(this->yuv_cc->i420(this, frame, data, pitch));
-		break;
-
-		case DSPF_ARGB1555:
-			SPEED(this->yuv_cc->rgb15(this, frame, data, pitch));
-		break;
-
-		case DSPF_RGB16:
-			SPEED(this->yuv_cc->rgb16(this, frame, data, pitch));
-		break;
-
-		case DSPF_RGB24:
-			SPEED(this->yuv_cc->rgb24(this, frame, data, pitch));
-		break;
-
-		case DSPF_RGB32:
-		case DSPF_ARGB:
-		case DSPF_AiRGB:
-			SPEED(this->yuv_cc->rgb32(this, frame, data, pitch));
-		break;
-
-		default:
-		break;
-	}
-
-
+	
 	if(frame->dest_rect.w != frame->width ||
 		frame->dest_rect.h != frame->height)
 	{
@@ -2491,12 +2438,11 @@ dfb_display_frame(vo_driver_t* vo_driver, vo_frame_t* vo_frame)
 				frame->dest_rect.y, &(frame->state));
 	}
 
-
 	if(this->frame_cb)
 	{
 		this->frame_cb(this->frame_cdata);
 
-	} else
+	} else 
 	if(this->main_data->caps & DSCAPS_DOUBLE)
 	{
 		this->main->Flip(this->main, &(frame->used_area), 0);
@@ -2504,7 +2450,8 @@ dfb_display_frame(vo_driver_t* vo_driver, vo_frame_t* vo_frame)
 
 
 FAILURE:
-	frame->vo_frame.free(&(frame->vo_frame));
+	if(vo_frame)
+		vo_frame->free(vo_frame);
 }
 
 
@@ -2519,8 +2466,9 @@ dfb_get_property(vo_driver_t* vo_driver, int property)
 	{
 		case VO_PROP_BRIGHTNESS:
 		{
-			DBUG("brightness is %i", this->brightness.l_val);
-			return(this->brightness.l_val);
+			DBUG("brightness is %i", this->brightness.l_val -
+						this->correction.used);
+			return(this->brightness.l_val - this->correction.used);
 		}
 		break;
 
@@ -2528,6 +2476,13 @@ dfb_get_property(vo_driver_t* vo_driver, int property)
 		{
 			DBUG("contrast is %i", this->contrast.l_val);
 			return(this->contrast.l_val);
+		}
+		break;
+
+		case VO_PROP_MAX_NUM_FRAMES:
+		{
+			DBUG("maximum number of frames is %i", this->max_num_frames);
+			return(this->max_num_frames);
 		}
 		break;
 
@@ -2554,15 +2509,14 @@ dfb_set_property(vo_driver_t* vo_driver, int property, int value)
 		{
 			if(value > -129 && value < 128)
 			{
+				int brightness = value + this->correction.used;
+
 				DBUG("setting brightness to %i", value);
-			
-				this->brightness.l_val     = value;
-				this->brightness.mm_val[0] = value;
-				this->brightness.mm_val[1] = value;
-				this->brightness.mm_val[2] = value;
-				this->brightness.mm_val[3] = value;
-			
-				return(1);
+				this->brightness.l_val     = brightness;
+				this->brightness.mm_val[0] = brightness;
+				this->brightness.mm_val[1] = brightness;
+				this->brightness.mm_val[2] = brightness;
+				this->brightness.mm_val[3] = brightness;
 			}
 		}
 		break;
@@ -2572,14 +2526,11 @@ dfb_set_property(vo_driver_t* vo_driver, int property, int value)
 			if(value > -1 && value < 32768)
 			{				
 				DBUG("setting contrast to %i", value);
-
 				this->contrast.l_val     = value;
 				this->contrast.mm_val[0] = value;
 				this->contrast.mm_val[1] = value;
 				this->contrast.mm_val[2] = value;
 				this->contrast.mm_val[3] = value;
-
-				return(1);
 			}
 		}
 		break;
@@ -2588,6 +2539,8 @@ dfb_set_property(vo_driver_t* vo_driver, int property, int value)
 			DBUG("tryed to set unsupported property %i", property);
 		break;
 	}
+
+	return(value);
 	
 FAILURE:
 	return(0);
@@ -2659,19 +2612,37 @@ dfb_gui_data_exchange(vo_driver_t* vo_driver,
 			this->main      = surface;
 			this->main_data = (IDirectFBSurface_data*) surface->priv;
 
+			/* reset brightness value */
+			this->brightness.l_val     -= this->correction.used;
+			this->brightness.mm_val[0] -= this->correction.used;
+			this->brightness.mm_val[1] -= this->correction.used;
+			this->brightness.mm_val[2] -= this->correction.used;
+			this->brightness.mm_val[3] -= this->correction.used;
+
 			switch(this->main_data->surface->format)
 			{
 				case DSPF_YUY2:
 				case DSPF_UYVY:
 				case DSPF_YV12:
 				case DSPF_I420:
+				{
+					DBUG("we have a new surface [format: YUV(%#x)]",
+						this->main_data->surface->format);
+					this->correction.used = 0;
+				}
+				break;
+
 				case DSPF_ARGB1555:
 				case DSPF_RGB16:
 				case DSPF_RGB24:
 				case DSPF_RGB32:
 				case DSPF_ARGB:
 				case DSPF_AiRGB:
-					DBUG("destination surface updated");
+				{
+					DBUG("we have a new surface [format: RGB(%#x)]",
+						this->main_data->surface->format);
+					this->correction.used = this->correction.defined;
+				}
 				break;
 
 				default:
@@ -2683,6 +2654,12 @@ dfb_gui_data_exchange(vo_driver_t* vo_driver,
 					return(0);
 				}
 			}
+
+			this->brightness.l_val     += this->correction.used;
+			this->brightness.mm_val[0] += this->correction.used;
+			this->brightness.mm_val[1] += this->correction.used;
+			this->brightness.mm_val[2] += this->correction.used;
+			this->brightness.mm_val[3] += this->correction.used;
 
 			this->main->AddRef(this->main);
 
@@ -2790,11 +2767,25 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 			yv12_cc.rgb32 = __mmx_yv12_be_rgb32;
 		}
 
-		this->yuv_cc = &yv12_cc; /* default */
 	}
 
-	this->output_cb    = visual->output_cb;
-	this->output_cdata = visual->cdata;
+	{
+		config_values_t* config = class->xine->config;
+
+		if(config)
+		{
+			this->max_num_frames = config->register_num(config,
+						"video.dfb.max_num_frames", 15,
+						"Maximum number of allocated frames (at least 5)",
+						NULL, 10, NULL, NULL);
+
+			this->correction.defined = config->register_range(config,
+						"video.dfb.gamma_correction", -16,
+						-128, 127, "RGB gamma correction",
+						NULL, 10, NULL, NULL);
+		}
+	}
+
 
 	if(visual->surface)
 	{
@@ -2813,14 +2804,24 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 			case DSPF_UYVY:
 			case DSPF_YV12:
 			case DSPF_I420:
+			{
+				DBUG("surface format is YUV [%#x]",
+					this->main_data->surface->format);
+				this->correction.used = 0;
+			}
+			break;
+
 			case DSPF_ARGB1555:
 			case DSPF_RGB16:
 			case DSPF_RGB24:
 			case DSPF_RGB32:
 			case DSPF_ARGB:
 			case DSPF_AiRGB:
-				DBUG("surface format is %#x",
+			{
+				DBUG("surface format is RGB [%#x]",
 					this->main_data->surface->format);
+				this->correction.used = this->correction.defined;
+			}
 			break;
 
 			default:
@@ -2834,12 +2835,22 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 
 		this->main->AddRef(this->main);
 	}
-	
+
+	this->brightness.l_val     += this->correction.used;
+	this->brightness.mm_val[0] += this->correction.used;
+	this->brightness.mm_val[1] += this->correction.used;
+	this->brightness.mm_val[2] += this->correction.used;
+	this->brightness.mm_val[3] += this->correction.used;
+
 	this->contrast.l_val     = 0x4000;
 	this->contrast.mm_val[0] = 0x4000;
 	this->contrast.mm_val[1] = 0x4000;
 	this->contrast.mm_val[2] = 0x4000;
 	this->contrast.mm_val[3] = 0x4000;
+
+	this->output_cb    = visual->output_cb;
+	this->output_cdata = visual->cdata;
+
 
 	return(&(this->vo_driver));
 
@@ -2883,7 +2894,7 @@ init_class(xine_t* xine, void* vo_visual)
 	class->vo_class.get_identifier  = get_identifier;
 	class->vo_class.get_description = get_description;
 	class->vo_class.dispose         = dispose_class;
-	class->xine                     = xine;
+	class->xine                     = xine; 
 
 	return(class);
 
