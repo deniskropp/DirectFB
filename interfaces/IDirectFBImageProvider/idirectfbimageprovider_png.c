@@ -489,6 +489,9 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
                     return ret;
 
                png_process_data( data->png_ptr, data->info_ptr, buf, len );
+
+               if (data->stage < 0)
+                    break;
           }
 #if 0
           if (data->stage >= 2 && data->render_callback) {
