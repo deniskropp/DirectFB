@@ -55,8 +55,10 @@ typedef struct {
      int             size_local;
      int             size_shared;
 
-     void          **data_local;
-     void          **data_shared;
+     void           *data_local;
+     void           *data_shared;
+
+     bool            initialized;
      
      CoreInitialize  Initialize;
      CoreJoin        Join;
@@ -99,7 +101,7 @@ static DFBResult dfb_##part##_resume    (  );                                  \
                                                                                \
 CorePart dfb_core_##part = {                                                   \
      #part,                                                                    \
-     sl, ss, NULL, NULL,                                                       \
+     sl, ss, NULL, NULL, false,                                                \
                                                                                \
      dfb_##part##_initialize,                                                  \
      dfb_##part##_join,                                                        \

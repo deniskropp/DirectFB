@@ -45,6 +45,11 @@ dfb_core_part_initialize( CorePart *core_part )
      void      *local  = NULL;
      void      *shared = NULL;
 
+     if (core_part->initialized) {
+          BUG( core_part->name );
+          return DFB_BUG;
+     }
+     
      DEBUGMSG( "DirectFB/CoreParts: "
                "Going to initialize '%s' core...\n", core_part->name );
 
@@ -76,6 +81,7 @@ dfb_core_part_initialize( CorePart *core_part )
 
      core_part->data_local  = local;
      core_part->data_shared = shared;
+     core_part->initialized = true;
 
      return DFB_OK;
 }
@@ -87,6 +93,11 @@ dfb_core_part_join( CorePart *core_part )
      DFBResult  ret;
      void      *local  = NULL;
      void      *shared = NULL;
+     
+     if (core_part->initialized) {
+          BUG( core_part->name );
+          return DFB_BUG;
+     }
      
      DEBUGMSG( "DirectFB/CoreParts: "
                "Going to join '%s' core...\n", core_part->name );
@@ -112,6 +123,7 @@ dfb_core_part_join( CorePart *core_part )
 
      core_part->data_local  = local;
      core_part->data_shared = shared;
+     core_part->initialized = true;
      
      return DFB_OK;
 }
@@ -122,6 +134,9 @@ dfb_core_part_shutdown( CorePart *core_part, bool emergency )
 {
      DFBResult ret;
 
+     if (!core_part->initialized)
+          return DFB_OK;
+     
      DEBUGMSG( "DirectFB/CoreParts: "
                "Going to shutdown '%s' core...\n", core_part->name );
 
@@ -139,6 +154,7 @@ dfb_core_part_shutdown( CorePart *core_part, bool emergency )
 
      core_part->data_local  = NULL;
      core_part->data_shared = NULL;
+     core_part->initialized = false;
 
      return DFB_OK;
 }
@@ -148,6 +164,9 @@ DFBResult
 dfb_core_part_leave( CorePart *core_part, bool emergency )
 {
      DFBResult ret;
+
+     if (!core_part->initialized)
+          return DFB_OK;
 
      DEBUGMSG( "DirectFB/CoreParts: "
                "Going to leave '%s' core...\n", core_part->name );
@@ -163,6 +182,7 @@ dfb_core_part_leave( CorePart *core_part, bool emergency )
 
      core_part->data_local  = NULL;
      core_part->data_shared = NULL;
+     core_part->initialized = false;
 
      return DFB_OK;
 }

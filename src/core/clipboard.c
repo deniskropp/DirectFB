@@ -54,6 +54,8 @@ DFB_CORE_PART( clipboard, 0, sizeof(CoreClip) );
 static DFBResult
 dfb_clipboard_initialize( void *data_local, void *data_shared )
 {
+     DFB_ASSERT( core_clip == NULL );
+
      core_clip = data_shared;
 
      skirmish_init( &core_clip->lock );
@@ -64,6 +66,8 @@ dfb_clipboard_initialize( void *data_local, void *data_shared )
 static DFBResult
 dfb_clipboard_join( void *data_local, void *data_shared )
 {
+     DFB_ASSERT( core_clip == NULL );
+
      core_clip = data_shared;
 
      return DFB_OK;
@@ -72,8 +76,7 @@ dfb_clipboard_join( void *data_local, void *data_shared )
 static DFBResult
 dfb_clipboard_shutdown( bool emergency )
 {
-     if (!core_clip)
-          return DFB_OK;
+     DFB_ASSERT( core_clip != NULL );
 
      skirmish_destroy( &core_clip->lock );
 
@@ -91,8 +94,7 @@ dfb_clipboard_shutdown( bool emergency )
 static DFBResult
 dfb_clipboard_leave( bool emergency )
 {
-     if (!core_clip)
-          return DFB_OK;
+     DFB_ASSERT( core_clip != NULL );
 
      core_clip = NULL;
 
@@ -102,12 +104,16 @@ dfb_clipboard_leave( bool emergency )
 static DFBResult
 dfb_clipboard_suspend()
 {
+     DFB_ASSERT( core_clip != NULL );
+
      return DFB_OK;
 }
 
 static DFBResult
 dfb_clipboard_resume()
 {
+     DFB_ASSERT( core_clip != NULL );
+
      return DFB_OK;
 }
 
@@ -117,6 +123,12 @@ dfb_clipboard_set( const char *mime_type, const void *data, unsigned int size )
 {
      char *new_mime;
      void *new_data;
+
+     DFB_ASSERT( core_clip != NULL );
+     
+     DFB_ASSERT( mime_type != NULL );
+     DFB_ASSERT( data != NULL );
+     DFB_ASSERT( size > 0 );
 
      new_mime = shstrdup( mime_type );
      if (!new_mime)
@@ -154,6 +166,8 @@ dfb_clipboard_set( const char *mime_type, const void *data, unsigned int size )
 DFBResult
 dfb_clipboard_get( char **mime_type, void **data, unsigned int *size )
 {
+     DFB_ASSERT( core_clip != NULL );
+     
      if (skirmish_prevail( &core_clip->lock ))
           return DFB_FUSION;
 
