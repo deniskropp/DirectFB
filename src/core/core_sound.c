@@ -325,9 +325,9 @@ sound_thread( CoreThread *thread, void *arg )
                else
                     last_time = this_time;
 
-               /* do not buffer more than 60 ms */
-               if (written > total_rate * 60 / 1000)
-                    usleep( 20000 );
+               /* do not buffer more than 40 ms */
+               if (written > total_rate * 40 / 1000)
+                    usleep( 10000 );
                
                dfb_thread_testcancel( thread );
           }
