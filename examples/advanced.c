@@ -371,8 +371,8 @@ test_pitch_value (IFusionSoundBuffer *buffer)
 
      TEST(playback->Start (playback, 0, -1));
      
-     for (i=0; i<500; i++) {
-          TEST(playback->SetPitch (playback, i*i/25000.0f ));
+     for (i=500; i<1500; i++) {
+          TEST(playback->SetPitch (playback, i/1000.0f));
           
           usleep (20000);
      }
