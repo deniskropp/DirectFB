@@ -29,8 +29,8 @@ generic.c: yuvtbl.h
 yuvtbl-gen: yuvtbl-gen.c
 	$(CC) -O2 yuvtbl-gen.c -o yuvtbl-gen
 
-yuvtbl.h: yuvtbl-gen
-	./yuvtbl-gen > $(srcdir)/yuvtbl.h
+#yuvtbl.h: yuvtbl-gen
+#	./yuvtbl-gen > $(srcdir)/yuvtbl.h
 
 clean-local:
 	rm -f yuvtbl-gen
