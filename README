@@ -249,8 +249,8 @@ Using the builtin "window manager"
      - Drag and press <Alt> to change the opacity of the focused window.
      - Press C to close the focused window.
      - Press A to lower the focused window to the bottom.
-     - Press S to raise the focused window to the top.
      - Press X to cycle the focus through the windows.
+     - Press S to raise the lowest window to the top.
      - Press P to enable and show the mouse cursor.
      - Press E to focus the window currently under the mouse cursor,
        useful in conjunction with 'X'.
