@@ -96,6 +96,8 @@ struct _GraphicsDevice {
      void                      *driver_data;
      void                      *device_data; /* copy of shared->device_data */
 
+     CardCapabilities           caps;        /* local caps */
+     
      GraphicsDeviceFuncs        funcs;
 };
 
@@ -189,6 +191,8 @@ dfb_gfxcard_initialize( void *data_local, void *data_shared )
                         "acceleration disabled (by 'no-hardware')\n" );
           }
      }
+     else
+          card->caps = card->shared->device_info.caps;
      
      card->shared->surface_manager = dfb_surfacemanager_create( card->shared->videoram_length,
                 card->shared->device_info.limits.surface_byteoffset_alignment,
@@ -239,6 +243,8 @@ dfb_gfxcard_join( void *data_local, void *data_shared )
           INITMSG( "DirectFB/GraphicsDevice: "
                    "acceleration disabled (by 'no-hardware')\n" );
      }
+     else
+          card->caps = card->shared->device_info.caps;
      
      return DFB_OK;
 }
@@ -586,7 +592,7 @@ void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
            * Either hardware has clipping support or the software clipping
            * routine returned that there's something to do.
            */
-          if ((card->shared->device_info.caps.flags & CCF_CLIPPING) ||
+          if ((card->caps.flags & CCF_CLIPPING) ||
               dfb_clip_rectangle( &state->clip, rect ))
           {
                /*
@@ -632,7 +638,7 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      if (dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE ))
      {
-          if (card->shared->device_info.caps.flags & CCF_CLIPPING  ||
+          if (card->caps.flags & CCF_CLIPPING  ||
               dfb_clip_rectangle( &state->clip, rect ))
           {
                /* FIXME: correct clipping like below */
@@ -698,7 +704,7 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      if (dfb_gfxcard_state_check( state, DFXL_DRAWLINE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_DRAWLINE ))
      {
-          if (card->shared->device_info.caps.flags & CCF_CLIPPING)
+          if (card->caps.flags & CCF_CLIPPING)
                for (i=0; i<num_lines; i++)
                     card->funcs.DrawLine( card->driver_data,
                                           card->device_data, &lines[i] );
@@ -832,7 +838,7 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
      dfb_state_lock( state );
 
      /* if hardware has clipping try directly accelerated triangle filling */
-     if ((card->shared->device_info.caps.flags & CCF_CLIPPING) &&
+     if ((card->caps.flags & CCF_CLIPPING) &&
           dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
           dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
      {
@@ -848,7 +854,7 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 
           if (tri->y3 - tri->y1 > 0) {
                /* try hardware accelerated rectangle filling */
-               if (! (card->shared->device_info.caps.flags & CCF_NOTRIEMU) &&
+               if (! (card->caps.flags & CCF_NOTRIEMU) &&
                    dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
                    dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
                {
@@ -888,7 +894,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
      {
-          if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
+          if (!(card->caps.flags & CCF_CLIPPING))
                dfb_clip_blit( &state->clip, rect, &dx, &dy );
 
           hw = card->funcs.Blit( card->driver_data, card->device_data,
@@ -943,7 +949,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
                     y = dy;
                     srect = *rect;
 
-                    if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
+                    if (!(card->caps.flags & CCF_CLIPPING))
                          dfb_clip_blit( &state->clip, &srect, &x, &y );
 
                     card->funcs.Blit( card->driver_data, card->device_data,
@@ -1002,7 +1008,7 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      if (dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_STRETCHBLIT ))
      {
-          if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
+          if (!(card->caps.flags & CCF_CLIPPING))
                dfb_clip_stretchblit( &state->clip, srect, drect );
 
           hw = card->funcs.StretchBlit( card->driver_data,
@@ -1033,7 +1039,7 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
 
      unichar prev = 0;
 
-     int hw_clipping = (card->shared->device_info.caps.flags & CCF_CLIPPING);
+     int hw_clipping = (card->caps.flags & CCF_CLIPPING);
      int kern_x;
      int kern_y;
      int offset;
@@ -1211,7 +1217,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      if (dfb_gfxcard_state_check( &font->state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( &font->state, DFXL_BLIT )) {
 
-          if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
+          if (!(card->caps.flags & CCF_CLIPPING))
                dfb_clip_blit( &font->state.clip, &rect, &x, &y );
 
           card->funcs.Blit( card->driver_data, card->device_data, &rect, x, y);
@@ -1289,9 +1295,8 @@ CardCapabilities
 dfb_gfxcard_capabilities()
 {
      DFB_ASSERT( card != NULL );
-     DFB_ASSERT( card->shared != NULL );
      
-     return card->shared->device_info.caps;
+     return card->caps;
 }
 
 int

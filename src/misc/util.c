@@ -126,21 +126,21 @@ DFBResult errno2dfb( int erno )
      return DFB_FAILURE;
 }
 
-int dfb_region_intersect( DFBRegion *region,
-                          int x1, int y1, int x2, int y2 )
+bool dfb_region_intersect( DFBRegion *region,
+                           int x1, int y1, int x2, int y2 )
 {
      if (region->x2 < x1 ||
          region->y2 < y1 ||
          region->x1 > x2 ||
          region->y1 > y2)
-          return 0;
+          return false;
 
      region->x1 = MAX( region->x1, x1 );
      region->y1 = MAX( region->y1, y1 );
      region->x2 = MIN( region->x2, x2 );
      region->y2 = MIN( region->y2, y2 );
 
-     return 1;
+     return true;
 }
 
 int dfb_region_rectangle_intersect( DFBRegion          *region,

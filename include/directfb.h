@@ -2928,6 +2928,8 @@ typedef enum {
      DWOP_COLORKEYING    = 0x00000001,  /* enable color key */
      DWOP_ALPHACHANNEL   = 0x00000002,  /* enable alpha blending using the
                                            window's alpha channel */
+     DWOP_OPAQUE_REGION  = 0x00000004,  /* overrides DWOP_ALPHACHANNEL for the
+                                           region set by SetOpaqueRegion() */
      DWOP_KEEP_POSITION  = 0x00000010,  /* window can't be moved
                                            with the mouse */
      DWOP_KEEP_SIZE      = 0x00000020,  /* window can't be resized
@@ -2939,7 +2941,7 @@ typedef enum {
                                            implies DWOP_KEEP... */
      DWOP_INDESTRUCTIBLE = 0x00002000,  /* window can't be destroyed
                                            by internal shortcut */
-     DWOP_ALL            = 0x00003073   /* all possible options */
+     DWOP_ALL            = 0x00003077   /* all possible options */
 } DFBWindowOptions;
 
 /*
@@ -3111,6 +3113,24 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*SetOpacity) (
           IDirectFBWindow               *thiz,
           __u8                           opacity
+     );
+     
+     /*
+      * Disable alpha channel blending for one region of the window.
+      *
+      * If DWOP_ALPHACHANNEL and DWOP_OPAQUE_REGION are set but not DWOP_COLORKEYING
+      * and the opacity of the window is 255 the window gets rendered
+      * without alpha blending within the specified region.
+      *
+      * This is extremely useful for alpha blended window decorations while
+      * the main content stays opaque and gets rendered faster.
+      */
+     DFBResult (*SetOpaqueRegion) (
+          IDirectFBWindow               *thiz,
+          int                            x1,
+          int                            y1,
+          int                            x2,
+          int                            y2
      );
 
      /*

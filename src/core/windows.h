@@ -59,6 +59,8 @@ struct _CoreWindow {
      int                     width;        /* width in pixels */
      int                     height;       /* width in pixels */
 
+     DFBRegion               opaque;
+
      DFBWindowCapabilities   caps;         /* window capabilities, to enable
                                               blending etc. */
      
@@ -133,10 +135,6 @@ struct _CoreWindowStack {
      int                 wm_hack;
      int                 wm_cycle;
 
-     int                 wsp_opaque;      /* surface policy for opaque windows */
-     int                 wsp_alpha;       /* surface policy for windows with
-                                             an alphachannel */
-     
      /* stores information on handling the background on exposure */
      struct {
           DFBDisplayLayerBackgroundMode mode;    

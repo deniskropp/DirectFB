@@ -53,8 +53,8 @@ void dfb_trim( char **s );
  */
 DFBResult errno2dfb( int erno );
 
-int dfb_region_intersect( DFBRegion *region,
-                          int x1, int y1, int x2, int y2 );
+bool dfb_region_intersect( DFBRegion *region,
+                           int x1, int y1, int x2, int y2 );
 
 int dfb_region_rectangle_intersect( DFBRegion          *region,
                                     const DFBRectangle *rect );

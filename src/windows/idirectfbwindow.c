@@ -440,6 +440,33 @@ IDirectFBWindow_SetColorKeyIndex( IDirectFBWindow *thiz,
 }
 
 static DFBResult
+IDirectFBWindow_SetOpaqueRegion( IDirectFBWindow *thiz,
+                                 int              x1,
+                                 int              y1,
+                                 int              x2,
+                                 int              y2 )
+{
+     CoreWindow *window;
+
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (x1 > x2 || y1 > y2)
+          return DFB_INVAREA;
+
+     window = data->window;
+     
+     window->opaque.x1 = x1;
+     window->opaque.y1 = y1;
+     window->opaque.x2 = x2;
+     window->opaque.y2 = y2;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
                             __u8             opacity )
 {
@@ -862,6 +889,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->GetOptions = IDirectFBWindow_GetOptions;
      thiz->SetColorKey = IDirectFBWindow_SetColorKey;
      thiz->SetColorKeyIndex = IDirectFBWindow_SetColorKeyIndex;
+     thiz->SetOpaqueRegion = IDirectFBWindow_SetOpaqueRegion;
      thiz->SetOpacity = IDirectFBWindow_SetOpacity;
      thiz->GetOpacity = IDirectFBWindow_GetOpacity;
      thiz->SetCursorShape = IDirectFBWindow_SetCursorShape;
