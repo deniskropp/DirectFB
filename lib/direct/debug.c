@@ -183,7 +183,7 @@ direct_debug_at( DirectDebugDomain *domain,
           len = snprintf( dom, sizeof(dom), "%s:", domain->name );
 
 
-          fprintf( stderr, len < 16 ? "(-) [%-15s %3lld.%03lld] (%5d) %-16s %s" :
+          fprintf( stderr, len < 18 ? "(-) [%-15s %3lld.%03lld] (%5d) %-18s %s" :
                    "(-) [%-15s %3lld.%03lld] (%5d) %-28s %s", name ? name : "  NO NAME  ",
                    millis / 1000LL, millis % 1000LL, direct_gettid(), dom, buf );
 
