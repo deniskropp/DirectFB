@@ -231,7 +231,7 @@ if test "x$have_x86" = xyes; then
   AC_DEFINE(HAVE_INB_OUTB_IOPL,1,
             [Define to 1 if inb, outb and iopl are available.])
   AC_MSG_CHECKING([for sysio.h])
-  AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0);], 
+  AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0); (void)x;], 
     AC_DEFINE(HAVE_SYSIO,1,
               [Define to 1 if you have the <sys/io.h> header file.])
     have_sysio=yes
@@ -458,7 +458,7 @@ if test x$enable_png = xyes; then
         [png_structp pp;
 	 png_infop info;
 	 png_colorp cmap;
-	 png_create_read_struct;],
+	 (void)png_create_read_struct; (void)pp; (void)info; (void)cmap;],
         png_ok=yes, png_ok=no)
       AC_MSG_RESULT($png_ok)
       if test "$png_ok" = yes; then
