@@ -576,7 +576,7 @@ VideoThread( void *ctx )
                long cframe = (long) (delay * rate) + start_frame;
 
                if ( frame < cframe ) {
-                    drop = cframe - frame - 1;
+                    drop = cframe - frame;
                     pthread_mutex_unlock( &data->video.lock );
                     continue;
                }
@@ -667,7 +667,7 @@ AudioThread( void *ctx )
 
                     quicktime_set_audio_position( data->file, pos, 0 );
                     quicktime_decode_audio( data->file, right, NULL,
-                                            data->audio.samples_per_block, 0 );
+                                            data->audio.samples_per_block, 1 );
 
                     /* produce interleaved buffer */
                     for (i=0; i<data->audio.samples_per_block; i++) {
