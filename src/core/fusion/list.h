@@ -46,10 +46,10 @@ extern "C"
 #define fusion_list_foreach(link, list) \
      for (link = list; link; link = link->next)
 
-#define fusion_list_foreach_safe(link, next, list)          \
-     for (link = list, next = (link ? link->next : NULL);   \
-          link;                                             \
-          link = next, next = (link ? link->next : NULL))
+#define fusion_list_foreach_safe(link, temp, list)          \
+     for (link = list, temp = (link ? link->next : NULL);   \
+          link;                                            \
+          link = temp, temp = (link ? link->next : NULL))
 
 #ifdef __cplusplus
 }

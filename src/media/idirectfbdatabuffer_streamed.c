@@ -385,25 +385,17 @@ IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz )
 static void
 DestroyAllChunks( IDirectFBDataBuffer_Streamed_data *data )
 {
-     FusionLink *l;
+     FusionLink *l, *n;
 
      DFB_ASSERT( data != NULL );
 
-     /* Fetch first link. */
-     l = data->chunks;
-
-     /* Loop through links. */
-     while (l) {
-          DataChunk *chunk = (DataChunk*) l;
-
-          /* Fetch next link. */
-          l = l->next;
-
+     /* Loop through list. */
+     fusion_list_foreach_safe (l, n, data->chunks) {
           /* Deallocate chunk. */
-          destroy_chunk( chunk );
+          destroy_chunk( (DataChunk*) l );
      }
 
-     /* Clear links. */
+     /* Clear lists. */
      data->last = data->chunks = NULL;
 }
 
