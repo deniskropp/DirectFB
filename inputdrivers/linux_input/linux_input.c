@@ -81,10 +81,14 @@ DFB_INPUT_DRIVER( linux_input )
  * declaration of private data
  */
 typedef struct {
-     CoreInputDevice  *device;
-     DirectThread *thread;
+     CoreInputDevice         *device;
+     DirectThread            *thread;
 
-     int           fd;
+     int                      fd;
+
+     bool                     has_leds;
+     unsigned long            led_state[NBITS(LED_MAX)];
+     DFBInputDeviceLockState  locks;
 } LinuxInputData;
 
 
@@ -367,6 +371,18 @@ translate_event( struct input_event *levt,
      return 0;
 }
 
+static void
+set_led( LinuxInputData *data, int led, int state )
+{
+     struct input_event levt;
+
+     levt.type = EV_LED;
+     levt.code = led;
+     levt.value = !!state;
+
+     write( data->fd, &levt, sizeof(levt) );
+}
+
 /*
  * Input thread reading from device.
  * Generates events on incoming data.
@@ -387,8 +403,16 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
           if (readlen <= 0)
                continue;
 
-          if (translate_event( &levt, &devt))
+          if (translate_event( &levt, &devt)) {
                dfb_input_dispatch( data->device, &devt );
+
+               if (data->has_leds && (devt.locks != data->locks)) {
+                    set_led( data, LED_SCROLLL, devt.locks & DILS_SCROLL );
+                    set_led( data, LED_NUML, devt.locks & DILS_NUM );
+                    set_led( data, LED_CAPSL, devt.locks & DILS_CAPS );
+                    data->locks = devt.locks;
+               }
+          }
      }
 
      if (readlen <= 0)
@@ -532,7 +556,7 @@ driver_get_available()
           snprintf( buf, 32, "/dev/input/event%d", i );
 
           /* Check if we are able to open the device */
-          fd = open( buf, O_RDONLY );
+          fd = open( buf, O_RDWR );
           if (fd < 0) {
              if (errno == ENODEV)
                   break;
@@ -586,12 +610,13 @@ driver_open_device( CoreInputDevice      *device,
 {
      int              fd, ret;
      char             buf[32];
+     unsigned long    ledbit[NBITS(LED_MAX)];
      LinuxInputData  *data;
 
      snprintf( buf, 32, "/dev/input/event%d", device_nums[number] );
 
      /* open device */
-     fd = open( buf, O_RDONLY );
+     fd = open( buf, O_RDWR );
      if (fd < 0) {
           D_PERROR( "DirectFB/linux_input: could not open device" );
           return DFB_INIT;
@@ -614,6 +639,37 @@ driver_open_device( CoreInputDevice      *device,
 
      data->fd     = fd;
      data->device = device;
+
+     /* check if the device has LEDs */
+     ret = ioctl( fd, EVIOCGBIT(EV_LED, LED_MAX), ledbit );
+     if (ret < 0) {
+          D_PERROR( "DirectFB/linux_input: could not get LED bits" );
+          ioctl( fd, EVIOCGRAB, 0 );
+          close( fd );
+          D_FREE( data );
+          return DFB_INIT;
+     }
+
+     data->has_leds = test_bit( LED_SCROLLL, ledbit ) ||
+                      test_bit( LED_NUML, ledbit ) ||
+                      test_bit( LED_CAPSL, ledbit );
+
+     if (data->has_leds) {
+          /* get LED state */
+          ret = ioctl( fd, EVIOCGLED(LED_MAX), data->led_state );
+          if (ret < 0) {
+               D_PERROR( "DirectFB/linux_input: could not get LED state" );
+               ioctl( fd, EVIOCGRAB, 0 );
+               close( fd );
+               D_FREE( data );
+               return DFB_INIT;
+          }
+
+          /* turn off LEDs */
+          set_led( data, LED_SCROLLL, 0 );
+          set_led( data, LED_NUML, 0 );
+          set_led( data, LED_CAPSL, 0 );
+     }
 
      /* start input thread */
      data->thread = direct_thread_create( DTT_INPUT, linux_input_EventThread, data, "Linux Input" );
@@ -651,6 +707,13 @@ driver_close_device( void *driver_data )
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );
 
+     if (data->has_leds) {
+          /* restore LED state */
+          set_led( data, LED_SCROLLL, test_bit( LED_SCROLLL, data->led_state ) );
+          set_led( data, LED_NUML, test_bit( LED_NUML, data->led_state ) );
+          set_led( data, LED_CAPSL, test_bit( LED_CAPSL, data->led_state ) );
+     }
+
      /* release device */
      ioctl( data->fd, EVIOCGRAB, 0 );
 
@@ -660,4 +723,3 @@ driver_close_device( void *driver_data )
      /* free private data */
      D_FREE ( data );
 }
-
