@@ -22,5 +22,6 @@ int main()
           byt = (wrd & 0x001F) << 3;
           fwrite (&byt, 1, 1, stdout);
      } while (!feof(stdin));
-     
+
+     return 0;     
 }

@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/tools
 
-EXTRA_PROGRAMS = \
+noinst_PROGRAMS = \
 	raw16toraw24	\
 	raw32toraw24
 
