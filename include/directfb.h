@@ -379,7 +379,12 @@ typedef unsigned int DFBDisplayLayerID;
 typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
 
-typedef unsigned long DFBDisplayLayerIDs;
+typedef __u32 DFBDisplayLayerIDs;
+
+/*
+ * Maximum number of layer ids.
+ */
+#define DFB_DISPLAYLAYER_IDS_MAX             32
 
 /*
  * Adds the id to the bitmask of layer ids.
