@@ -395,9 +395,9 @@ bool uc_stretch_blit(void* drv, void* dev,
          t2 *= 0.5f;
 
          if (ucdev->field)
-             dy += 0.6f;
+             dy += 0.5f;
          else
-             dy -= 0.6f;
+             dy -= 0.5f;
     }
 
     UC_FIFO_PREPARE(fifo, 30);
