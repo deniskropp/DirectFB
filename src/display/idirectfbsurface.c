@@ -1112,6 +1112,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->FillTriangle = IDirectFBSurface_FillTriangle;
 
      thiz->SetFont = IDirectFBSurface_SetFont;
+     thiz->GetFont = IDirectFBSurface_GetFont;
      thiz->DrawString = IDirectFBSurface_DrawString;
 
      thiz->GetSubSurface = IDirectFBSurface_GetSubSurface;
