@@ -45,9 +45,7 @@
 #include <misc/mem.h>
 #include <misc/memcpy.h>
 
-#include <gfx/convert.h>
-#include <gfx/util.h>
-
+#include <core/core_sound.h>
 #include <core/playback.h>
 #include <core/sound_buffer.h>
 
@@ -308,6 +306,31 @@ IFusionSoundStream_GetStatus( IFusionSoundStream *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IFusionSoundStream_GetPresentationDelay( IFusionSoundStream *thiz,
+                                         int                *delay )
+{
+     int filled;
+
+     INTERFACE_GET_DATA(IFusionSoundStream)
+
+     if (!delay)
+          return DFB_INVARG;
+
+     pthread_mutex_lock( &data->lock );
+
+     if (data->pos_write >= data->pos_read)
+          filled = data->pos_write - data->pos_read;
+     else
+          filled = data->size - data->pos_read + data->pos_write;
+
+     pthread_mutex_unlock( &data->lock );
+
+     *delay = fs_core_output_delay( data->core )  +  filled * 1000 / data->rate;
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult
@@ -369,14 +392,16 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      pthread_cond_init( &data->wait, NULL );
 
      /* Initialize method table. */
-     thiz->AddRef    = IFusionSoundStream_AddRef;
-     thiz->Release   = IFusionSoundStream_Release;
+     thiz->AddRef               = IFusionSoundStream_AddRef;
+     thiz->Release              = IFusionSoundStream_Release;
 
-     thiz->GetDescription = IFusionSoundStream_GetDescription;
+     thiz->GetDescription       = IFusionSoundStream_GetDescription;
 
-     thiz->Write     = IFusionSoundStream_Write;
-     thiz->Wait      = IFusionSoundStream_Wait;
-     thiz->GetStatus = IFusionSoundStream_GetStatus;
+     thiz->Write                = IFusionSoundStream_Write;
+     thiz->Wait                 = IFusionSoundStream_Wait;
+     thiz->GetStatus            = IFusionSoundStream_GetStatus;
+
+     thiz->GetPresentationDelay = IFusionSoundStream_GetPresentationDelay;
 
      return DFB_OK;
 }

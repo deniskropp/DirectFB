@@ -354,6 +354,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
           FSStreamDescription      *desc
      );
 
+
    /** Ring buffer **/
 
      /*
@@ -401,6 +402,20 @@ DEFINE_INTERFACE( IFusionSoundStream,
           int                      *total,
           int                      *read_position,
           int                      *write_position
+     );
+
+
+   /** Timing **/
+
+     /*
+      * Query the presentation delay.
+      *
+      * Returns the amount of time in milli seconds that passes
+      * until the last sample stored in the buffer is audible.
+      */
+     DFBResult (*GetPresentationDelay) (
+          IFusionSoundStream       *thiz,
+          int                      *delay
      );
 )
 

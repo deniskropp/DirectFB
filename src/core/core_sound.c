@@ -76,6 +76,8 @@ struct __FS_CoreSoundShared {
           int             block_size;        /* hack */
           int             samples_per_block; /* hack */
      } config;
+
+     int                  output_delay;      /* output buffer size in ms */
 };
 
 struct __FS_CoreSound {
@@ -284,6 +286,15 @@ fs_core_remove_playback( CoreSound    *core,
      return DFB_OK;
 }
 
+int
+fs_core_output_delay( CoreSound *core )
+{
+     DFB_ASSERT( core != NULL );
+     DFB_ASSERT( core->shared != NULL );
+
+     return core->shared->output_delay;
+}
+
 /******************************************************************************/
 
 static void *
@@ -307,19 +318,24 @@ sound_thread( CoreThread *thread, void *arg )
 
           dfb_thread_testcancel( thread );
 
-          if (!shared->playlist.entries) {
-               usleep( 20000 );
-               continue;
-          }
-
           if (! ioctl( core->fd, SNDCTL_DSP_GETOSPACE, &info )) {
                int buffered = info.fragsize * info.fragstotal - info.bytes;
+
+               /* calculate output delay (ms) */
+               shared->output_delay = buffered * 1000 / byte_rate;
 
                /* do not buffer more than 40 ms */
                if (buffered > byte_rate * 40 / 1000) {
                     usleep( 10000 );
                     continue;
                }
+          }
+          else
+               ONCE( "SNDCTL_DSP_GETOSPACE failed!" );
+
+          if (!shared->playlist.entries) {
+               usleep( 20000 );
+               continue;
           }
 
           /* Clear mixing buffer. */

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -51,6 +51,11 @@ DFBResult fs_core_add_playback( CoreSound    *core,
 
 DFBResult fs_core_remove_playback( CoreSound    *core,
                                    CorePlayback *playback );
+
+/*
+ * Returns the amount of audio data buffered by the device in ms.
+ */
+int fs_core_output_delay( CoreSound *core );
 
 #endif
 
