@@ -1071,14 +1071,18 @@ build_updated_config( CoreLayerContext           *context,
 
      /* Change width. */
      if (update->flags & DLCONF_WIDTH) {
-          flags |= CLRCF_WIDTH;
-          ret_config->width = update->width;
+          flags |= CLRCF_WIDTH | CLRCF_SOURCE;
+
+          ret_config->width    = update->width;
+          ret_config->source.w = update->width;
      }
 
      /* Change height. */
      if (update->flags & DLCONF_HEIGHT) {
-          flags |= CLRCF_HEIGHT;
-          ret_config->height = update->height;
+          flags |= CLRCF_HEIGHT | CLRCF_SOURCE;
+
+          ret_config->height   = update->height;
+          ret_config->source.h = update->width;
      }
 
      /* Change pixel format. */
