@@ -502,6 +502,7 @@ unique_context_window_at( UniqueContext  *context,
 {
      int              i;
      CoreWindowStack *stack;
+     WMShared        *shared;
      UniqueWindow    *window = NULL;
 
      D_MAGIC_ASSERT( context, UniqueContext );
@@ -509,8 +510,10 @@ unique_context_window_at( UniqueContext  *context,
      D_ASSERT( ret_window != NULL );
 
      stack = context->stack;
+     shared = context->shared;
 
      D_ASSERT( stack != NULL );
+     D_ASSERT( shared != NULL );
 
      if (stack->cursor.enabled) {
           StretRegion *region;
@@ -520,9 +523,14 @@ unique_context_window_at( UniqueContext  *context,
           if (y < 0)
                y = stack->cursor.y;
 
-          region = stret_region_at( context->root, x, y, SRF_INPUT );
-          if (region)
+          region = stret_region_at( context->root, x, y, SRF_INPUT, SRCID_UNKNOWN );
+          if (region && (region->clazz == shared->classes[UCI_FOO] ||
+                         region->clazz == shared->classes[UCI_WINDOW]))
+          {
                window = stret_region_data( region );
+
+               D_MAGIC_ASSERT( window, UniqueWindow );
+          }
      }
      else {
           fusion_vector_foreach_reverse (window, i, context->windows)

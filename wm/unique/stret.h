@@ -130,7 +130,8 @@ DFBResult stret_region_update ( StretRegion         *region,
 StretRegion *stret_region_at  ( StretRegion         *region,
                                 int                  x,
                                 int                  y,
-                                StretRegionFlags     flags );
+                                StretRegionFlags     flags,
+                                StretRegionClassID   class_id );
 
 void        *stret_region_data( const StretRegion   *region );
 

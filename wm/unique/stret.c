@@ -764,10 +764,11 @@ stret_region_update( StretRegion     *region,
 }
 
 StretRegion *
-stret_region_at( StretRegion      *region,
-                 int               x,
-                 int               y,
-                 StretRegionFlags  flags )
+stret_region_at( StretRegion        *region,
+                 int                 x,
+                 int                 y,
+                 StretRegionFlags    flags,
+                 StretRegionClassID  class_id )
 {
      StretIteration iteration;
      DFBRegion      area = { x, y, x, y };
@@ -786,6 +787,9 @@ stret_region_at( StretRegion      *region,
 
      while ((region = stret_iteration_next( &iteration, &area )) != NULL) {
           if (! D_FLAGS_ARE_SET( region->flags, flags ))
+               continue;
+
+          if (class_id != SRCID_UNKNOWN && region->clazz != class_id)
                continue;
 
           return region;
