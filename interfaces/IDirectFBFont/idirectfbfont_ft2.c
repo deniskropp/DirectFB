@@ -87,15 +87,16 @@ typedef struct {
      int          fixed_advance;
 } FT2ImplData;
 
+typedef struct {
+     int  x   : 16;
+     int  y   : 15;
+     bool got : 1;
+} KerningCacheEntry;
 
 typedef struct {
      FT2ImplData base;
 
-     struct {
-          int  x   : 16;
-          int  y   : 15;
-          bool got : 1;
-     } kerning[KERNING_CACHE_SIZE][KERNING_CACHE_SIZE];
+     KerningCacheEntry kerning[KERNING_CACHE_SIZE][KERNING_CACHE_SIZE];
 } FT2ImplKerningData;
 
 
@@ -291,16 +292,21 @@ get_kerning( CoreFont *thiz,
 
      FT2ImplKerningData *data = (FT2ImplKerningData*) thiz->impl_data;
 
+     KerningCacheEntry *cache = NULL;
+
      /*
       * Use cached values if characters are in the
       * cachable range and the cache entry is already filled.
       */
-     if (KERNING_DO_CACHE (prev, current) &&
-         KERNING_CACHE_ENTRY (prev, current).got) {
-          *kern_x = KERNING_CACHE_ENTRY (prev, current).x;
-          *kern_y = KERNING_CACHE_ENTRY (prev, current).y;
+     if (KERNING_DO_CACHE (prev, current)) {
+          cache = &KERNING_CACHE_ENTRY (prev, current);
 
-          return DFB_OK;
+          if (cache->got) {
+               *kern_x = cache->x;
+               *kern_y = cache->y;
+
+               return DFB_OK;
+          }
      }
 
      pthread_mutex_lock ( &library_mutex );
@@ -322,10 +328,10 @@ get_kerning( CoreFont *thiz,
      /*
       * Fill cache entry if characters are in the cachable range.
       */
-     if (KERNING_DO_CACHE (prev, current)) {
-          KERNING_CACHE_ENTRY (prev, current).x   = *kern_x;
-          KERNING_CACHE_ENTRY (prev, current).y   = *kern_y;
-          KERNING_CACHE_ENTRY (prev, current).got = true;
+     if (cache) {
+          cache->x   = vector.x >> 6;
+          cache->y   = vector.y >> 6;
+          cache->got = true;
      }
 
      return DFB_OK;
