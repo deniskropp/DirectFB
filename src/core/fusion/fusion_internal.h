@@ -35,6 +35,7 @@
 #include <config.h>
 
 #include <misc/conf.h>
+#include <misc/util.h>
 
 #define MAX_SHMALLOC_SEGMENTS       2000
 #define MAX_REACTOR_NODES            100

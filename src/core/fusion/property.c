@@ -122,15 +122,15 @@ fusion_property_lease (FusionProperty *property)
 
           SEMOP (property->sem_id, op, 2);
           
-          /* wait */
-          op[0].sem_num = 2;
-          op[0].sem_op  = -1;
-          op[0].sem_flg = 0;
-          
           /* lock */
-          op[1].sem_num = 0;
+          op[0].sem_num = 0;
+          op[0].sem_op  = -1;
+          op[0].sem_flg = SEM_UNDO;
+          
+          /* wait */
+          op[1].sem_num = 2;
           op[1].sem_op  = -1;
-          op[1].sem_flg = SEM_UNDO;
+          op[1].sem_flg = 0;
           
           /* decrement wait counter */
           op[2].sem_num = 1;
@@ -183,15 +183,15 @@ fusion_property_purchase (FusionProperty *property)
 
           SEMOP (property->sem_id, op, 2);
           
-          /* wait */
-          op[0].sem_num = 2;
-          op[0].sem_op  = -1;
-          op[0].sem_flg = 0;
-          
           /* lock */
-          op[1].sem_num = 0;
+          op[0].sem_num = 0;
+          op[0].sem_op  = -1;
+          op[0].sem_flg = SEM_UNDO;
+          
+          /* wait */
+          op[1].sem_num = 2;
           op[1].sem_op  = -1;
-          op[1].sem_flg = SEM_UNDO;
+          op[1].sem_flg = 0;
           
           /* decrement wait counter */
           op[2].sem_num = 1;
@@ -222,17 +222,17 @@ fusion_property_purchase (FusionProperty *property)
                return FUSION_FAILURE;
           }
 
-          /* awake waiters */
-          op[0].sem_num = 2;
-          op[0].sem_op  = waiters;
-          op[0].sem_flg = 0;
-
           /* unlock */
-          op[1].sem_num = 0;
-          op[1].sem_op  = 1;
-          op[1].sem_flg = SEM_UNDO;
+          op[0].sem_num = 0;
+          op[0].sem_op  = 1;
+          op[0].sem_flg = SEM_UNDO;
 
-          SEMOP (property->sem_id, op, 2);
+          /* awake waiters */
+          op[1].sem_num = 2;
+          op[1].sem_op  = waiters;
+          op[1].sem_flg = 0;
+
+          SEMOP (property->sem_id, op, waiters ? 2 : 1);
 
           return FUSION_SUCCESS;
      }
@@ -286,17 +286,17 @@ fusion_property_cede (FusionProperty *property)
           return FUSION_FAILURE;
      }
 
-     /* awake waiters */
-     op[0].sem_num = 2;
-     op[0].sem_op  = waiters;
-     op[0].sem_flg = 0;
-
      /* unlock */
-     op[1].sem_num = 0;
-     op[1].sem_op  = 1;
-     op[1].sem_flg = SEM_UNDO;
+     op[0].sem_num = 0;
+     op[0].sem_op  = 1;
+     op[0].sem_flg = SEM_UNDO;
 
-     SEMOP (property->sem_id, op, 2);
+     /* awake waiters */
+     op[1].sem_num = 2;
+     op[1].sem_op  = waiters;
+     op[1].sem_flg = 0;
+
+     SEMOP (property->sem_id, op, waiters ? 2 : 1);
 
      return FUSION_SUCCESS;
 }
