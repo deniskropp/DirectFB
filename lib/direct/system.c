@@ -28,10 +28,15 @@
 #include <config.h>
 
 #include <errno.h>
+#include <unistd.h>
 
 #include <direct/system.h>
 
-
+#if HAVE_ASM_PAGE_H
+#include <asm/page.h>
+#else
+#define PAGE_SIZE   sysconf( _SC_PAGESIZE )
+#endif
 
 
 #ifdef HAVE_LINUX_UNISTD_H
@@ -57,5 +62,11 @@ pid_t
 direct_gettid()
 {
      return gettid();
+}
+
+long
+direct_pagesize()
+{
+     return PAGE_SIZE;
 }
 

@@ -31,6 +31,7 @@
 #include <sys/types.h>
 
 pid_t direct_gettid();
+long  direct_pagesize();
 
 #endif
 

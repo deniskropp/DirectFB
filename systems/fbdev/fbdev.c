@@ -72,6 +72,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/signals.h>
+#include <direct/system.h>
 #include <direct/util.h>
 
 #include <misc/conf.h>
@@ -327,7 +328,7 @@ system_initialize( CoreDFB *core, void **data )
 
      dfb_fbdev->core = core;
 
-     page_size = sysconf( _SC_PAGESIZE );
+     page_size = direct_pagesize();
      dfb_fbdev->shared->page_mask = page_size < 0 ? 0 : (page_size - 1);
 
      ret = dfb_fbdev_open();
@@ -618,8 +619,8 @@ system_map_mmio( unsigned int    offset,
 
      printf( "0x%08lx 0x%08lx\n", dfb_fbdev->shared->fix.mmio_start, dfb_fbdev->shared->page_mask );
 
-     return(volatile void*) ((__u8*) addr /*+ (dfb_fbdev->shared->fix.mmio_start &
-                                             dfb_fbdev->shared->page_mask)*/);
+     return(volatile void*) ((__u8*) addr + (dfb_fbdev->shared->fix.mmio_start &
+                                             dfb_fbdev->shared->page_mask));
 }
 
 static void
@@ -629,8 +630,8 @@ system_unmap_mmio( volatile void  *addr,
      if (length <= 0)
           length = dfb_fbdev->shared->fix.mmio_len;
 
-     if (munmap( (void*) ((__u8*) addr /*- (dfb_fbdev->shared->fix.mmio_start &
-                                          dfb_fbdev->shared->page_mask)*/), length ) < 0)
+     if (munmap( (void*) ((__u8*) addr - (dfb_fbdev->shared->fix.mmio_start &
+                                          dfb_fbdev->shared->page_mask)), length ) < 0)
           D_PERROR( "DirectFB/FBDev: Could not unmap MMIO region "
                      "at %p (length %d)!\n", addr, length );
 }
