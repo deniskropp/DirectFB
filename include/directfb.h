@@ -308,14 +308,16 @@ extern "C"
                                                      enabled for this layer. */
           DLCAPS_INTERLACED_VIDEO  = 0x00000020,  /* The layer can display
                                                      interlaced video data. */
-          DLCAPS_COLORKEYING       = 0x00000040,  /* A specific color can be
+          DLCAPS_SRC_COLORKEY      = 0x00000040,  /* A specific color can be
                                                      declared as transparent. */
-          DLCAPS_BRIGHTNESS        = 0x00000080,  /* supports Brightness
+          DLCAPS_DST_COLORKEY      = 0x00000080,  /* A specific color can be
+                                                     declared as transparent. */
+          DLCAPS_BRIGHTNESS        = 0x00000100,  /* supports Brightness
                                                      adjustment */
-          DLCAPS_CONTRAST          = 0x00000100,  /* supports Contrast
+          DLCAPS_CONTRAST          = 0x00000200,  /* supports Contrast
                                                      adjustment   */
-          DLCAPS_HUE               = 0x00000200,  /* supports Hue adjustment */
-          DLCAPS_SATURATION        = 0x00000400   /* supports Saturation
+          DLCAPS_HUE               = 0x00000400,  /* supports Hue adjustment */
+          DLCAPS_SATURATION        = 0x00000800   /* supports Saturation
                                                      adjustment */
      } DFBDisplayLayerCapabilities;
 
@@ -332,7 +334,8 @@ extern "C"
           DLOP_FLICKER_FILTERING   = 0x00000002,  /* Enable flicker
                                                      filtering. */
           DLOP_INTERLACED_VIDEO    = 0x00000004,  /* Source is interlaced. */
-          DLOP_COLORKEYING         = 0x00000008   /* Enable colorkeying. */
+          DLOP_SRC_COLORKEY        = 0x00000008,  /* Enable source color key. */
+          DLOP_DST_COLORKEY        = 0x00000010   /* Enable dest. color key. */
      } DFBDisplayLayerOptions;
 
      /*
@@ -1116,13 +1119,29 @@ extern "C"
           );
 
           /*
-           * Set color key, i.e. the color that makes a pixel transparent.
+           * Set the source color key.
            *
-           * Note: Parameters are subject to change.
+           * If a pixel of the layer matches this color the underlying pixel
+           * is visible at this point.
            */
-          DFBResult (*SetColorKey) (
+          DFBResult (*SetSrcColorKey) (
                IDirectFBDisplayLayer              *thiz,
-               __u32                               key
+               __u8                                r,
+               __u8                                g,
+               __u8                                b
+          );
+
+          /*
+           * Set the destination color key.
+           *
+           * The layer is only visible at points where the underlying
+           * pixel matches this color.
+           */
+          DFBResult (*SetDstColorKey) (
+               IDirectFBDisplayLayer              *thiz,
+               __u8                                r,
+               __u8                                g,
+               __u8                                b
           );
 
 

@@ -47,6 +47,8 @@
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_layer.h"
 
+#include "gfx/convert.h"
+
 #include "misc/mem.h"
 
 /*
@@ -222,12 +224,34 @@ IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
-IDirectFBDisplayLayer_SetColorKey( IDirectFBDisplayLayer *thiz,
-                                   __u32                  key )
+IDirectFBDisplayLayer_SetSrcColorKey( IDirectFBDisplayLayer *thiz,
+                                      __u8                   r,
+                                      __u8                   g,
+                                      __u8                   b )
 {
+     __u32 key;
+
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     return data->layer->SetColorKey( data->layer, key );
+     key = color_to_pixel( data->layer->shared->surface->format, r, g, b );
+     
+     return data->layer->SetSrcColorKey( data->layer, key );
+}
+
+static DFBResult
+IDirectFBDisplayLayer_SetDstColorKey( IDirectFBDisplayLayer *thiz,
+                                      __u8                   r,
+                                      __u8                   g,
+                                      __u8                   b )
+{
+     __u32 key;
+
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     /* FIXME: which format should be used? */
+     key = color_to_pixel( data->layer->shared->surface->format, r, g, b );
+     
+     return data->layer->SetDstColorKey( data->layer, key );
 }
 
 static DFBResult
@@ -520,7 +544,8 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetCooperativeLevel = IDirectFBDisplayLayer_SetCooperativeLevel;
      thiz->SetOpacity = IDirectFBDisplayLayer_SetOpacity;
      thiz->SetScreenLocation = IDirectFBDisplayLayer_SetScreenLocation;
-     thiz->SetColorKey = IDirectFBDisplayLayer_SetColorKey;
+     thiz->SetSrcColorKey = IDirectFBDisplayLayer_SetSrcColorKey;
+     thiz->SetDstColorKey = IDirectFBDisplayLayer_SetDstColorKey;
      thiz->GetConfiguration = IDirectFBDisplayLayer_GetConfiguration;
      thiz->TestConfiguration = IDirectFBDisplayLayer_TestConfiguration;
      thiz->SetConfiguration = IDirectFBDisplayLayer_SetConfiguration;

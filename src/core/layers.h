@@ -112,7 +112,9 @@ struct _DisplayLayer
                                       float                       y,
                                       float                       width,
                                       float                       height );
-     DFBResult (*SetColorKey)       ( DisplayLayer               *thiz,
+     DFBResult (*SetSrcColorKey)    ( DisplayLayer               *thiz,
+                                      __u32                       key );
+     DFBResult (*SetDstColorKey)    ( DisplayLayer               *thiz,
                                       __u32                       key );
      DFBResult (*FlipBuffers)       ( DisplayLayer *thiz );
      DFBResult (*SetColorAdjustment)( DisplayLayer               *thiz,

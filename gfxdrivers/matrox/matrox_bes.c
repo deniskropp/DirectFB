@@ -242,10 +242,17 @@ besSetScreenLocation( DisplayLayer *layer,
 }
 
 static DFBResult
-besSetColorKey( DisplayLayer *layer,
-                __u32         key )
+besSetSrcColorKey( DisplayLayer *layer,
+                   __u32         key )
 {
      return DFB_UNSUPPORTED;
+}
+
+static DFBResult
+besSetDstColorKey( DisplayLayer *layer,
+                   __u32         key )
+{
+     return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
@@ -331,7 +338,8 @@ void matrox_init_bes( void *drv, void *dev )
      layer->SetConfiguration = besSetConfiguration;
      layer->SetOpacity = besSetOpacity;
      layer->SetScreenLocation = besSetScreenLocation;
-     layer->SetColorKey = besSetColorKey;
+     layer->SetSrcColorKey = besSetSrcColorKey;
+     layer->SetDstColorKey = besSetDstColorKey;
      layer->FlipBuffers = besFlipBuffers;
      layer->SetColorAdjustment = besSetColorAdjustment;
 

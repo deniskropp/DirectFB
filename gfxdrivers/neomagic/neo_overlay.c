@@ -194,10 +194,17 @@ neoOverlaySetScreenLocation( DisplayLayer *layer,
 }
 
 static DFBResult
-neoOverlaySetColorKey( DisplayLayer *layer,
-                       __u32         key )
+neoOverlaySetSrcColorKey( DisplayLayer *layer,
+                          __u32         key )
 {
      return DFB_UNSUPPORTED;
+}
+
+static DFBResult
+neoOverlaySetDstColorKey( DisplayLayer *layer,
+                          __u32         key )
+{
+     return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
@@ -265,7 +272,8 @@ neo_init_overlay( void *driver_data,
      layer->SetConfiguration   = neoOverlaySetConfiguration;
      layer->SetOpacity         = neoOverlaySetOpacity;
      layer->SetScreenLocation  = neoOverlaySetScreenLocation;
-     layer->SetColorKey        = neoOverlaySetColorKey;
+     layer->SetSrcColorKey     = neoOverlaySetSrcColorKey;
+     layer->SetDstColorKey     = neoOverlaySetDstColorKey;
      layer->FlipBuffers        = neoOverlayFlipBuffers;
      layer->SetColorAdjustment = neoOverlaySetColorAdjustment;
 

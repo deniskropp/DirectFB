@@ -179,8 +179,14 @@ static DFBResult ov0SetScreenLocation( DisplayLayer *layer,
      return DFB_OK;
 }
 
-static DFBResult ov0SetColorKey( DisplayLayer *layer,
-                                 __u32         key )
+static DFBResult ov0SetSrcColorKey( DisplayLayer *layer,
+                                    __u32         key )
+{
+     return DFB_UNSUPPORTED;
+}
+
+static DFBResult ov0SetDstColorKey( DisplayLayer *layer,
+                                    __u32         key )
 {
      return DFB_UNSUPPORTED;
 }
@@ -247,7 +253,8 @@ ati128_init_layers( void *drv, void *dev )
      layer->SetConfiguration   = ov0SetConfiguration;
      layer->SetOpacity         = ov0SetOpacity;
      layer->SetScreenLocation  = ov0SetScreenLocation;
-     layer->SetColorKey        = ov0SetColorKey;
+     layer->SetSrcColorKey     = ov0SetSrcColorKey;
+     layer->SetDstColorKey     = ov0SetDstColorKey;
      layer->FlipBuffers        = ov0FlipBuffers;
      layer->SetColorAdjustment = ov0SetColorAdjustment;
 

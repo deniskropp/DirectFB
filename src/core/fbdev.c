@@ -71,7 +71,8 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
 static DFBResult primarySetOpacity( DisplayLayer *thiz, __u8 opacity );
 static DFBResult primarySetScreenLocation( DisplayLayer *thiz, float x, float y,
                                      float w, float h );
-static DFBResult primarySetColorKey( DisplayLayer *thiz, __u32 key );
+static DFBResult primarySetSrcColorKey( DisplayLayer *thiz, __u32 key );
+static DFBResult primarySetDstColorKey( DisplayLayer *thiz, __u32 key );
 static DFBResult primaryFlipBuffers( DisplayLayer *thiz );
 static void dfb_primarylayer_deinit( DisplayLayer *layer );
 
@@ -397,7 +398,8 @@ DFBResult dfb_primarylayer_initialize()
      layer->SetConfiguration = primarySetConfiguration;
      layer->SetScreenLocation = primarySetScreenLocation;
      layer->SetOpacity = primarySetOpacity;
-     layer->SetColorKey = primarySetColorKey;
+     layer->SetSrcColorKey = primarySetSrcColorKey;
+     layer->SetDstColorKey = primarySetDstColorKey;
      layer->FlipBuffers = primaryFlipBuffers;
 
      /* allocate the surface */
@@ -591,7 +593,12 @@ static DFBResult primarySetScreenLocation( DisplayLayer *thiz, float x, float y,
      return DFB_OK;
 }
 
-static DFBResult primarySetColorKey( DisplayLayer *thiz, __u32 key )
+static DFBResult primarySetSrcColorKey( DisplayLayer *thiz, __u32 key )
+{
+     return DFB_UNSUPPORTED;
+}
+
+static DFBResult primarySetDstColorKey( DisplayLayer *thiz, __u32 key )
 {
      return DFB_UNSUPPORTED;
 }
