@@ -278,7 +278,6 @@ static void Sop_yuy2_to_Dacc_MMX( GenefxState *gfxs )
 
 static void Sop_uyvy_to_Dacc_MMX( GenefxState *gfxs )
 {
-     static __u16 __aligned(8) mask[]  = {  0xFFFF,       0,  0xFFFF,       0 };
      static __u16 __aligned(8) sub[]   = {     128,      16,     128,      16 };   
      static __s16 __aligned(8) mul0[]  = {  0x3312,  0x253F,  0x4093,  0x253F };
      static __s16 __aligned(8) mul1[]  = { -0x0C83, -0x1A04, -0x0C83, -0x1A04 };
@@ -294,7 +293,7 @@ static void Sop_uyvy_to_Dacc_MMX( GenefxState *gfxs )
                "psllw        $3, %%mm0\n\t" // precision
                "movq      %%mm0, %%mm1\n\t" // save
                 
-               "pmulhw       %5, %%mm0\n\t" // 00 y1 00 vr 00 y0 00 ub
+               "pmulhw       %4, %%mm0\n\t" // 00 y1 00 vr 00 y0 00 ub
                "movq      %%mm0, %%mm2\n\t"
                "psrad       $16, %%mm2\n\t" // 00 00 00 y1 00 00 00 y0
                "packssdw  %%mm2, %%mm2\n\t" // 00 y1 00 y0 00 y1 00 y0
@@ -308,13 +307,13 @@ static void Sop_uyvy_to_Dacc_MMX( GenefxState *gfxs )
                "pslld       $16, %%mm1\n\t" // 00 cr 00 00 00 cb 00 00
                "psrad       $16, %%mm1\n\t" // 00 00 00 cr 00 00 00 cb (sign extend)
                "packssdw  %%mm1, %%mm1\n\t" // 00 cr 00 cb 00 cr 00 cb
-               "pmulhw       %6, %%mm1\n\t" // 00 vg 00 ug 00 vg 00 ug
+               "pmulhw       %5, %%mm1\n\t" // 00 vg 00 ug 00 vg 00 ug
                "movq      %%mm1, %%mm3\n\t"
                "psrld       $16, %%mm3\n\t" // 00 00 00 vg 00 00 00 vg
                "paddw     %%mm3, %%mm1\n\t"
                "paddw     %%mm1, %%mm2\n\t" // 00 XX 00 g1 00 XX 00 g0
                "packuswb  %%mm2, %%mm2\n\t" // XX g1 XX g0 XX g1 XX g0
-               "por          %7, %%mm2\n\t" // FF g1 FF g0 FF g1 FF g0
+               "por          %6, %%mm2\n\t" // FF g1 FF g0 FF g1 FF g0
                
                "punpcklbw %%mm2, %%mm0\n\t" // FF r1 g1 b1 FF r0 g0 b0
                "movq      %%mm0, %%mm1\n\t"
@@ -329,7 +328,7 @@ static void Sop_uyvy_to_Dacc_MMX( GenefxState *gfxs )
                "emms"
                : /* no outputs */
                : "D" (gfxs->Dacc), "c" (gfxs->length/2), "S" (gfxs->Sop),
-                 "m" (*sub), "m" (*mask), "m" (*mul0), "m" (*mul1), "m" (*alpha)
+                 "m" (*sub), "m" (*mul0), "m" (*mul1), "m" (*alpha)
                : "memory" );
 }
 
