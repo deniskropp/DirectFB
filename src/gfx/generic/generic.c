@@ -1489,9 +1489,34 @@ static void Sop_a8_set_alphapixel_Dop_argb()
      }
 }
 
+#define SET_ALPHA_PIXEL_A8(d,a)\
+     switch (a) {\
+     case 0xff: *(d) = 0xff;\
+     case 0: break; \
+     default: {\
+          __u16 pixel = *(d);\
+          __u16 s = (a)+1;\
+     	  __u16 s1 = 256-s;\
+          *(d) = (pixel * s1 + s) >> 8;\
+          }\
+     }
+
 static void Sop_a8_set_alphapixel_Dop_a8()
 {
-     ONCE( "Sop_a8_set_alphapixel_Dop_a8() unimplemented" );
+     int    w = Dlength;
+     __u8  *S = Sop;
+     __u8  *D = Dop;
+
+     while (w>4) {          
+          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
+          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
+          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
+          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
+          w -= 4;
+     }
+     while (w--) {          
+          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
+     }
 }
 
 GFunc Sop_a8_set_alphapixel_Dop_PFI[] = {
