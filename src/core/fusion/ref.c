@@ -99,7 +99,7 @@ fusion_ref_up (FusionRef *ref, bool global)
 
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
-     
+
      /* lock/increase */
      op[0].sem_num = 0;
      op[0].sem_op  = -1;
@@ -112,17 +112,18 @@ fusion_ref_up (FusionRef *ref, bool global)
           op[1].sem_flg = SEM_UNDO;
 
      while (semop (ref->sem_id, op, 2)) {
-          FPERROR ("semop");
-
           switch (errno) {
                case EINTR:
                     continue;
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
+                    FERROR ("reference already destroyed");
                     return FUSION_DESTROYED;
           }
 
+          FPERROR ("semop");
+          
           return FUSION_FAILURE;
      }
 
@@ -138,6 +139,7 @@ fusion_ref_up (FusionRef *ref, bool global)
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
+                    FERROR ("reference destroyed while being locked");
                     return FUSION_DESTROYED;
           }
 
@@ -161,23 +163,26 @@ fusion_ref_down (FusionRef *ref, bool global)
      op[0].sem_flg = SEM_UNDO;
      op[1].sem_num = 1;
      op[1].sem_op  = -1;
-     if (global)
-          op[1].sem_flg = 0;
-     else
-          op[1].sem_flg = SEM_UNDO;
+     op[1].sem_flg = IPC_NOWAIT;
+     if (!global)
+          op[1].sem_flg |= SEM_UNDO;
 
      while (semop (ref->sem_id, op, 2)) {
-          FPERROR ("semop");
-
           switch (errno) {
                case EINTR:
                     continue;
+               case EAGAIN:
+                    FERROR( "no more references!\n" );
+                    return FUSION_BUG;
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
+                    FERROR ("reference already destroyed");
                     return FUSION_DESTROYED;
           }
 
+          FPERROR ("semop");
+          
           return FUSION_FAILURE;
      }
 
@@ -185,17 +190,18 @@ fusion_ref_down (FusionRef *ref, bool global)
      op[0].sem_op  = 1;
 
      while (semop (ref->sem_id, op, 1)) {
-          FPERROR ("semop");
-
           switch (errno) {
                case EINTR:
                     continue;
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
+                    FERROR ("reference destroyed while being locked");
                     return FUSION_DESTROYED;
           }
 
+          FPERROR ("semop");
+          
           return FUSION_FAILURE;
      }
 
@@ -212,17 +218,18 @@ fusion_ref_stat (FusionRef *ref, int *refs)
      DFB_ASSERT( ref->magic == 0x12345678 );
 
      while ((val = semctl( ref->sem_id, 1, GETVAL )) < 0) {
-          FPERROR ("semctl");
-          
           switch (errno) {
                case EINTR:
                     continue;
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
+                    FERROR ("reference already destroyed");
                     return FUSION_DESTROYED;
           }
 
+          FPERROR ("semctl");
+          
           return FUSION_FAILURE;
      }
 
@@ -239,26 +246,27 @@ fusion_ref_zero_lock (FusionRef *ref)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
      
-     /* wait for zero / lock */
-     op[0].sem_num = 1;
-     op[0].sem_op  = 0;
-     op[0].sem_flg = 0;
-     op[1].sem_num = 0;
-     op[1].sem_op  = -1;
-     op[1].sem_flg = SEM_UNDO;
+     /* lock / wait for zero */
+     op[0].sem_num = 0;
+     op[0].sem_op  = -1;
+     op[0].sem_flg = SEM_UNDO;
+     op[1].sem_num = 1;
+     op[1].sem_op  = 0;
+     op[1].sem_flg = 0;
 
      while (semop (ref->sem_id, op, 2)) {
-          FPERROR ("semop");
-
           switch (errno) {
                case EINTR:
                     continue;
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
+                    FERROR ("reference already destroyed");
                     return FUSION_DESTROYED;
           }
 
+          FPERROR ("semop");
+          
           return FUSION_FAILURE;
      }
 
@@ -273,18 +281,15 @@ fusion_ref_zero_trylock (FusionRef *ref)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
      
-     /* check for zero / lock */
-     op[0].sem_num = 1;
-     op[0].sem_op  = 0;
-     op[0].sem_flg = IPC_NOWAIT;
-     op[1].sem_num = 0;
-     op[1].sem_op  = -1;
-     op[1].sem_flg = SEM_UNDO;
+     /* lock / check for zero */
+     op[0].sem_num = 0;
+     op[0].sem_op  = -1;
+     op[0].sem_flg = SEM_UNDO;
+     op[1].sem_num = 1;
+     op[1].sem_op  = 0;
+     op[1].sem_flg = IPC_NOWAIT;
 
      while (semop (ref->sem_id, op, 2)) {
-          if (errno != EAGAIN)
-               FPERROR ("semop");
-
           switch (errno) {
                case EINTR:
                     continue;
@@ -292,11 +297,13 @@ fusion_ref_zero_trylock (FusionRef *ref)
                     return FUSION_INUSE;
                case EACCES:
                     return FUSION_ACCESSDENIED;
-               case EINVAL:
                case EIDRM:
+                    FERROR ("reference already destroyed");
                     return FUSION_DESTROYED;
           }
 
+          FPERROR ("semop");
+          
           return FUSION_FAILURE;
      }
 
@@ -317,20 +324,21 @@ fusion_ref_unlock (FusionRef *ref)
      op.sem_flg = SEM_UNDO;
 
      while (semop (ref->sem_id, &op, 1)) {
-          FPERROR ("semop");
-
           switch (errno) {
                case EINTR:
                     continue;
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EIDRM:
+                    FERROR ("reference already destroyed");
                     return FUSION_DESTROYED;
           }
 
+          FPERROR ("semop");
+          
           return FUSION_FAILURE;
      }
-
+     
      return FUSION_SUCCESS;
 }
 
@@ -342,22 +350,25 @@ fusion_ref_destroy (FusionRef *ref)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
      
-     if (semctl (ref->sem_id, 0, IPC_RMID, semopts)) {
-          FPERROR ("semctl");
+     ref->magic = 0x87654321;
 
+     /* remove semaphore set */
+     if (semctl (ref->sem_id, 0, IPC_RMID, semopts)) {
           switch (errno) {
                case EACCES:
                     return FUSION_ACCESSDENIED;
                case EPERM:
+                    FPERROR ("semctl");
                     return FUSION_PERMISSIONDENIED;
                case EIDRM:
+                    FERROR ("reference already destroyed");
                     return FUSION_DESTROYED;
           }
 
+          FPERROR ("semctl");
+          
           return FUSION_FAILURE;
      }
-
-     ref->magic = 0x87654321;
 
      return FUSION_SUCCESS;
 }
