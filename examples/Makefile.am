@@ -51,7 +51,7 @@ df_fire_SOURCES = df_fire.c
 df_fire_LDADD = $(LIBADDS)
 
 df_layer_SOURCES = df_layer.c
-df_layer_LDADD = $(LIBADDS)
+df_layer_LDADD = $(LIBADDS) $(AVIFILE_LIBS)
 
 df_window_SOURCES = df_window.c 
 df_window_LDADD  = $(LIBADDS) $(AVIFILE_LIBS) -lm
