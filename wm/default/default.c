@@ -651,16 +651,14 @@ draw_window( CoreWindow *window, CardState *state,
                 *
                 * cx = cd * (1-As*Ac) + cs * Ac
                 * ax = Ad * (1-As*Ac) + As * Ac
-                *
-                *
-                * NOTE: The color alpha (Ac) doesn't work correctly, yet. It has a different
-                *       meaning here than the 'color alpha' had before.
                 */
                dfb_state_set_src_blend( state, DSBF_ONE );
 
-               /* Need to premultiply source? */
+               /* Need to premultiply source with As*Ac or only with Ac? */
                if (! (window->surface->caps & DSCAPS_PREMULTIPLIED))
                     flags |= DSBLIT_SRC_PREMULTIPLY;
+               else if (flags & DSBLIT_BLEND_COLORALPHA)
+                    flags |= DSBLIT_SRC_PREMULTCOLOR;
 
                /* Need to premultiply/demultiply destination? */
                if (! (state->destination->caps & DSCAPS_PREMULTIPLIED))
@@ -681,14 +679,14 @@ draw_window( CoreWindow *window, CardState *state,
                 *
                 * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
                 * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
-                *
-                *
-                * NOTE: If the source is premultiplied, the color alpha (Ac) doesn't
-                *       work correctly, yet. That's because using DSBF_ONE for the source
-                *       doesn't only remove the As coefficient, but also Ac ;-(
                 */
-               if (window->surface->caps & DSCAPS_PREMULTIPLIED)
+               if (window->surface->caps & DSCAPS_PREMULTIPLIED) {
+                    /* Need to premultiply source with Ac? */
+                    if (flags & DSBLIT_BLEND_COLORALPHA)
+                         flags |= DSBLIT_SRC_PREMULTCOLOR;
+
                     dfb_state_set_src_blend( state, DSBF_ONE );
+               }
                else
                     dfb_state_set_src_blend( state, DSBF_SRCALPHA );
           }
