@@ -223,15 +223,15 @@ sub parse_interface (NAME)
                                  }
                            }
                         else
-                           {  
-			      if (/^\s*\*?\s*$/)
-			         {
-        			    $detailed .= " </P><P>";
-				 }
-			      elsif (/^\s*\*?\s*(.+)$/)
-				 {
-				    $detailed .= " $1";
-				 }
+                           {
+                              if (/^\s*\*?\s*$/)
+                                 {
+                                    $detailed .= " </P><P>";
+                                 }
+                              elsif (/^\s*\*?\s*(.+)$/)
+                                 {
+                                    $detailed .= " $1";
+                                 }
                            }
                      }
                }
@@ -251,15 +251,19 @@ sub parse_interface (NAME)
 sub parse_enum
    {
       %entries = ();
+      @list = ();
 
       while (<>)
          {
             chomp;
 
+            $entry = "";
+
             # complete one line entry with assignment
             if ( /^\s*(\w+)\s*=\s*([\w\d]+)\s*,?\s*\/\*\s*(.+)\*\/\s*$/ )
                {
-                  $entries{ $1 } = $3;
+                  $entry = $1;
+                  $entries{ $entry } = $3;
                }
             # with comment opening
             elsif ( /^\s*(\w+)\s*=\s*([\w\d]+)\s*,?\s*\/\*\s*(.+)\s*$/ )
@@ -286,7 +290,8 @@ sub parse_enum
             # complete one line entry
             elsif ( /^\s*(\w+)\s*,?\s*\/\*\s*(.+)\*\/\s*$/ )
                {
-                  $entries{ $1 } = $2;
+                  $entry = $1;
+                  $entries{ $entry } = $2;
                }
             # with comment opening
             elsif ( /^\s*(\w+)\s*,?\s*\/\*\s*(.+)\s*$/ )
@@ -318,23 +323,28 @@ sub parse_enum
 
                   last;
                }
+
+            if ($entry ne "")
+               {
+                  push (@list, $entry);
+               }
          }
 
-      if (keys %entries)
+      if (scalar @list > 0)
          {
             print TYPES "<br><br>",
                         "<a name=$enum>",
                         "<font color=#D07070 size=+2>$enum</font>\n";
 
             print TYPES "$comment";
-         }
 
-      foreach $key (sort keys %entries)
-         {
-            print TYPES "<p style=\"margin-left:6mm;\" >",
-                        "  <font color=#40A040 size=+1>$key</font><br>",
-                        "  <font color=#404040>$entries{$key}</font>",
-                        "</p>\n";
+            foreach $key (@list)
+               {
+                  print TYPES "<p style=\"margin-left:6mm;\" >",
+                              "  <font color=#40A040 size=+1>$key</font><br>",
+                              "  <font color=#404040>$entries{$key}</font>",
+                              "</p>\n";
+               }
          }
    }
 
@@ -345,7 +355,7 @@ sub parse_enum
 #
 sub parse_struct
    {
-      @entries = (); 
+      @entries = ();
       %entries_params = ();
       %entries_types = ();
 
@@ -374,7 +384,7 @@ sub parse_struct
                         $entries_types{$entry} = "$type";
                      }
 
-		  push (@entries, $entry);
+                  push (@entries, $entry);
                   $entries_params{ $entry } = "";
                }
             # complete one line entry
@@ -399,7 +409,7 @@ sub parse_struct
                         $entries_types{$entry} = "$type";
                      }
 
-		  push (@entries, $entry);
+                  push (@entries, $entry);
                   $entries_params{ $entry } = $text;
                }
             # with comment opening
@@ -424,7 +434,7 @@ sub parse_struct
                         $entries_types{$entry} = "$type";
                      }
 
-		  push (@entries, $entry);
+                  push (@entries, $entry);
                   $entries_params{ $entry } = $text;
 
                   while (<>)
@@ -488,8 +498,8 @@ sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE)
       my $title = shift(@_);
       my $subtitle = shift(@_);
 
-      open( $FILE, ">$filename" ) 
-	  or die ("*** Can not open '$filename' for writing:\n*** $!");
+      open( $FILE, ">$filename" )
+          or die ("*** Can not open '$filename' for writing:\n*** $!");
 
       print $FILE "<HTML>\n",
                   "<STYLE>\n",

@@ -252,8 +252,8 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
           pitch -= pitch % manager->pixelpitch_align;
      }
 
-     pitch *= DFB_BYTES_PER_PIXEL(surface->format);
-     length = pitch * surface->height;
+     pitch = DFB_BYTES_PER_LINE(surface->format, pitch);
+     length = pitch * DFB_PLANE_MULTIPLY(surface->format, surface->height);
 
      if (manager->byteoffset_align > 1) {
           length += manager->byteoffset_align - 1;
@@ -411,7 +411,7 @@ DFBResult surfacemanager_assure_video( SurfaceManager *manager,
                   the surface health is CSH_RESTORE */
           }
           case CSH_RESTORE: {
-               int h = surface->height;
+               int   h   = DFB_PLANE_MULTIPLY(surface->format, surface->height);
                char *src = buffer->system.addr;
                char *dst = gfxcard_memory_virtual( buffer->video.offset );
 
@@ -419,8 +419,8 @@ DFBResult surfacemanager_assure_video( SurfaceManager *manager,
                     BUG( "system/video instances both not stored!" );
 
                while (h--) {
-                    memcpy( dst, src,
-                            surface->width * DFB_BYTES_PER_PIXEL(surface->format) );
+                    memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
+                                                         surface->width) );
                     src += buffer->system.pitch;
                     dst += buffer->video.pitch;
                }
@@ -453,13 +453,13 @@ DFBResult surfacemanager_assure_system( SurfaceManager *manager,
      if (buffer->system.health == CSH_STORED)
           return DFB_OK;
      else if (buffer->video.health == CSH_STORED) {
-          int h = surface->height;
+          int   h   = DFB_PLANE_MULTIPLY(surface->format, surface->height);
           char *src = gfxcard_memory_virtual( buffer->video.offset );
           char *dst = buffer->system.addr;
 
           while (h--) {
-               memcpy( dst, src,
-                       surface->width * DFB_BYTES_PER_PIXEL(surface->format) );
+               memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
+                                                    surface->width) );
                src += buffer->video.pitch;
                dst += buffer->system.pitch;
           }

@@ -463,7 +463,7 @@ static DFBResult surface_init ( CoreSurface           *surface,
                                 DFBSurfacePixelFormat  format,
                                 DFBSurfaceCapabilities caps )
 {
-     if (DFB_BYTES_PER_PIXEL( format ) == 0) {
+     if (DFB_PIXELFORMAT_INDEX( format ) == 0) {
           BUG( "unknown pixel format" );
           return DFB_BUG;
      }
@@ -497,12 +497,14 @@ static DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
           case CSP_VIDEOHIGH:
                b->system.health = CSH_STORED;
 
-               b->system.pitch = surface->width *
-                                 DFB_BYTES_PER_PIXEL(surface->format);
+               b->system.pitch = DFB_BYTES_PER_LINE(surface->format,
+                                                    surface->width);
                if (b->system.pitch & 3)
                     b->system.pitch += 4 - (b->system.pitch & 3);
 
-               b->system.addr = shmalloc( surface->height * b->system.pitch );
+               b->system.addr = shmalloc( DFB_PLANE_MULTIPLY(surface->format,
+                                                             surface->height) *
+                                          b->system.pitch );
                break;
           case CSP_VIDEOONLY: {
                DFBResult ret;
@@ -539,14 +541,16 @@ static DFBResult surface_reallocate_buffer( CoreSurface   *surface,
      if (buffer->system.health) {
           buffer->system.health = CSH_STORED;
 
-          buffer->system.pitch = surface->width *
-                                 DFB_BYTES_PER_PIXEL(surface->format);
+          buffer->system.pitch = DFB_BYTES_PER_LINE(surface->format,
+                                                    surface->width);
           if (buffer->system.pitch & 3)
                buffer->system.pitch += 4 - (buffer->system.pitch & 3);
 
           /* HACK HACK HACK */
           shmfree( buffer->system.addr );
-          buffer->system.addr = shmalloc( surface->height*buffer->system.pitch );
+          buffer->system.addr = shmalloc( DFB_PLANE_MULTIPLY(surface->format,
+                                                             surface->height) *
+                                          buffer->system.pitch );
 
           /* FIXME: better support video instance reallocation */
           surfacemanager_lock( surface->manager );

@@ -34,22 +34,28 @@
 #define OPMODE           0x1E54
 
 /* Backend scaler registers */
-#define BESA1C3ORG       0x3D60
-#define BESA1CORG        0x3D10
 #define BESA1ORG         0x3D00
 #define BESA2ORG         0x3D04
+#define BESA1CORG        0x3D10
+#define BESA2CORG        0x3D14
+#define BESA1C3ORG       0x3D60
+#define BESA2C3ORG       0x3D64
 
 #define BESCTL           0x3D20
-#define BESCTL_BESEN     0x00000001
-#define BESCTL_BESHFEN   0x00000400
-#define BESCTL_BESVFEN   0x00000800
-#define BESCTL_BESCUPS   0x00010000
+#    define BESEN             0x00000001
+#    define BESHFEN           0x00000400
+#    define BESVFEN           0x00000800
+#    define BESCUPS           0x00010000
+#    define BES420PL          0x00020000
 
 #define BESGLOBCTL       0x3DC0
-#     define     BESRGB15     0x00000100
-#     define     BESRGB16     0x00000200
-#     define     BESRGB32     0x00000300
-#     define     BESPROCAMP   0x00000080
+#    define BESCORDER         0x00000008
+#    define BES3PLANE         0x00000020
+#    define BESUYVYFMT        0x00000040
+#    define BESPROCAMP        0x00000080
+#    define BESRGB15          0x00000100
+#    define BESRGB16          0x00000200
+#    define BESRGB32          0x00000300
 
 #define BESHCOORD        0x3D28
 #define BESHISCAL        0x3D30

@@ -247,7 +247,7 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
 
                scale_linear_32( dst, image_data,
                                 src_width, src_height, width, height,
-                                pitch - width * DFB_BYTES_PER_PIXEL(format),
+                                pitch - DFB_BYTES_PER_LINE(format, width),
                                 format );
 
                destination->Unlock( destination );

@@ -2266,6 +2266,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                break;
           case DSPF_YUY2:
           case DSPF_UYVY:
+          case DSPF_I420:
+          case DSPF_YV12:
                break;
           default:
                ONCE("unsupported pixelformat");
@@ -2612,7 +2614,7 @@ void gDrawLine( DFBRegion *line )
      int i,dx,dy,sdy,dxabs,dyabs,x,y,px,py;
 
      CHECK_PIPELINE();
-     
+
      /* the horizontal distance of the line */
      dx = line->x2 - line->x1;
      dxabs = abs(dx);
@@ -2681,7 +2683,7 @@ void gDrawLine( DFBRegion *line )
 void gBlit( DFBRectangle *rect, int dx, int dy )
 {
      CHECK_PIPELINE();
-     
+
      if (dx > rect->x)
           /* we must blit from right to left */
           Ostep = -1;
@@ -2724,7 +2726,7 @@ void gStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
      int i = 0;
 
      CHECK_PIPELINE();
-     
+
      Aop = dst_org  +  drect->y * dst_pitch  +  drect->x * dst_bpp;
      Bop = src_org  +  srect->y * src_pitch  +  srect->x * src_bpp;
 

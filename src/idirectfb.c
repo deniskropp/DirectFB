@@ -364,7 +364,7 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
           if (policy == CSP_VIDEOONLY)
                return DFB_INVARG;
 
-          min_pitch = DFB_BYTES_PER_PIXEL(format) * width;
+          min_pitch = DFB_BYTES_PER_LINE(format, width);
 
           if (!desc->preallocated[0].data ||
                desc->preallocated[0].pitch < min_pitch)

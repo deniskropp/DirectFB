@@ -921,8 +921,8 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
 
           surface->front_buffer->policy = CSP_VIDEOONLY;
           surface->front_buffer->video.health = CSH_STORED;
-          surface->front_buffer->video.pitch = var.xres_virtual *
-                                               DFB_BYTES_PER_PIXEL(mode->format);
+          surface->front_buffer->video.pitch = DFB_BYTES_PER_LINE(mode->format,
+                                                                  var.xres_virtual);
           surface->front_buffer->video.offset = 0;
 
           switch (buffermode) {
@@ -950,8 +950,8 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                     }
                     surface->back_buffer->policy = CSP_VIDEOONLY;
                     surface->back_buffer->video.health = CSH_STORED;
-                    surface->back_buffer->video.pitch = var.xres_virtual *
-                                                  DFB_BYTES_PER_PIXEL(mode->format);
+                    surface->back_buffer->video.pitch = DFB_BYTES_PER_LINE(mode->format,
+                                                                           var.xres_virtual);
                     surface->back_buffer->video.offset =
                                    surface->back_buffer->video.pitch * var.yres;
                     break;
@@ -963,8 +963,8 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                     surface->back_buffer->policy = CSP_SYSTEMONLY;
                     surface->back_buffer->video.health = CSH_INVALID;
                     surface->back_buffer->system.health = CSH_STORED;
-                    surface->back_buffer->system.pitch = var.xres *
-                                                  DFB_BYTES_PER_PIXEL(mode->format);
+                    surface->back_buffer->system.pitch = DFB_BYTES_PER_LINE(mode->format,
+                                                                            var.xres_virtual);
 
                     if (surface->back_buffer->system.addr)
                          shmfree( surface->back_buffer->system.addr );

@@ -31,6 +31,8 @@ typedef struct {
 } MatroxDriverData;
 
 typedef struct {
+     int accelerator;
+
      /* Old cards are older than G200/G400, e.g. Mystique or Millenium */
      int old_matrox;
 
@@ -76,6 +78,10 @@ typedef struct {
           __u32 besGLOBCTL;
           __u32 besA1ORG;
           __u32 besA2ORG;
+          __u32 besA1CORG;
+          __u32 besA2CORG;
+          __u32 besA1C3ORG;
+          __u32 besA2C3ORG;
           __u32 besCTL;
 
           __u32 besCTL_field;

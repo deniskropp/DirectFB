@@ -145,13 +145,19 @@ DFBResult besTestConfiguration( DisplayLayer               *layer,
 
      if (config->flags & DLCONF_PIXELFORMAT)
           switch (config->pixelformat) {
+               case DSPF_YUY2:
+                    break;
+
                case DSPF_RGB32:
                     max_width = 512;
                case DSPF_RGB15:
                case DSPF_RGB16:
-               case DSPF_YUY2:
-               case DSPF_UYVY: /* FIXME: not supported on G200 */
-                    break;
+               case DSPF_UYVY:
+               case DSPF_I420:
+               case DSPF_YV12:
+                    /* these formats are not supported by G200 */
+                    if (mdev->accelerator != FB_ACCEL_MATROX_MGAG200)
+                         break;
                default:
                     fail |= DLCONF_PIXELFORMAT;
           }
@@ -415,6 +421,13 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev )
 
      mga_out32( mmio, mdev->regs.besA1ORG, BESA1ORG );
      mga_out32( mmio, mdev->regs.besA2ORG, BESA2ORG );
+     mga_out32( mmio, mdev->regs.besA1CORG, BESA1CORG );
+     mga_out32( mmio, mdev->regs.besA2CORG, BESA2CORG );
+
+     if (mdev->accelerator != FB_ACCEL_MATROX_MGAG200) {
+          mga_out32( mmio, mdev->regs.besA1C3ORG, BESA1C3ORG );
+          mga_out32( mmio, mdev->regs.besA2C3ORG, BESA2C3ORG );
+     }
 
      mga_out32( mmio, mdev->regs.besCTL | mdev->regs.besCTL_field, BESCTL );
 
@@ -460,30 +473,45 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
 
      hzoom = (1000000/Sfbdev->current_var.pixclock >= 135) ? 1 : 0;
 
-     mdev->regs.besCTL = BESCTL_BESEN;
+     mdev->regs.besGLOBCTL = 0;
+     mdev->regs.besCTL     = BESEN;
 
      switch (surface->format) {
-          case DSPF_YUY2:
-               mdev->regs.besGLOBCTL = BESPROCAMP;
-               mdev->regs.besCTL    |= BESCTL_BESHFEN |
-                                       BESCTL_BESVFEN | BESCTL_BESCUPS;
+          case DSPF_I420:
+          case DSPF_YV12:
+               mdev->regs.besGLOBCTL |= BESPROCAMP | BES3PLANE;
+               mdev->regs.besCTL     |= BESHFEN | BESVFEN | BESCUPS | BES420PL;
+               mdev->regs.besPITCH    = surface->width * 2;
                break;
+
           case DSPF_UYVY:
-               mdev->regs.besGLOBCTL = BESPROCAMP | 0x40;
-               mdev->regs.besCTL    |= BESCTL_BESHFEN |
-                                       BESCTL_BESVFEN | BESCTL_BESCUPS;
+               mdev->regs.besGLOBCTL |= BESUYVYFMT;
+               /* fall through */
+
+          case DSPF_YUY2:
+               mdev->regs.besGLOBCTL |= BESPROCAMP;
+               mdev->regs.besCTL     |= BESHFEN | BESVFEN | BESCUPS;
+               mdev->regs.besPITCH    = surface->width * 2;
                break;
+
           case DSPF_RGB15:
-               mdev->regs.besGLOBCTL = BESRGB15;
+               mdev->regs.besGLOBCTL |= BESRGB15;
+               mdev->regs.besPITCH    = surface->front_buffer->video.pitch;
                break;
+
           case DSPF_RGB16:
-               mdev->regs.besGLOBCTL = BESRGB16;
+               mdev->regs.besGLOBCTL |= BESRGB16;
+               mdev->regs.besPITCH    = surface->front_buffer->video.pitch;
                break;
+
           case DSPF_RGB32:
+               mdev->regs.besGLOBCTL |= BESRGB32;
+               mdev->regs.besPITCH    = surface->front_buffer->video.pitch;
+
                drw_w = layer->shared->width;
                dstBox.x2 = dstBox.x1 + layer->shared->width;
-               mdev->regs.besGLOBCTL = BESRGB32;
                break;
+
           default:
                BUG( "unexpected pixelformat" );
                return;
@@ -493,6 +521,33 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      mdev->regs.besA1ORG    = surface->front_buffer->video.offset;
      mdev->regs.besA2ORG    = surface->front_buffer->video.offset +
                               surface->front_buffer->video.pitch;
+
+     switch (surface->format) {
+          case DSPF_I420:
+               mdev->regs.besA1CORG  = mdev->regs.besA1ORG + surface->height *
+                                       surface->front_buffer->video.pitch;
+               mdev->regs.besA1C3ORG = mdev->regs.besA1CORG + surface->height/2 *
+                                       surface->front_buffer->video.pitch/2;
+               mdev->regs.besA2CORG  = mdev->regs.besA2ORG + surface->height *
+                                       surface->front_buffer->video.pitch;
+               mdev->regs.besA2C3ORG = mdev->regs.besA2CORG + surface->height/2 *
+                                       surface->front_buffer->video.pitch/2;
+               break;
+
+          case DSPF_YV12:
+               mdev->regs.besA1C3ORG = mdev->regs.besA1ORG + surface->height *
+                                       surface->front_buffer->video.pitch;
+               mdev->regs.besA1CORG  = mdev->regs.besA1C3ORG + surface->height/2 *
+                                       surface->front_buffer->video.pitch/2;
+               mdev->regs.besA2C3ORG = mdev->regs.besA2ORG + surface->height *
+                                       surface->front_buffer->video.pitch;
+               mdev->regs.besA2CORG  = mdev->regs.besA2C3ORG + surface->height/2 *
+                                       surface->front_buffer->video.pitch/2;
+               break;
+
+          default:
+               ;
+     }
 
      mdev->regs.besHCOORD   = (dstBox.x1 << 16) | (dstBox.x2 - 1);
      mdev->regs.besVCOORD   = (dstBox.y1 << 16) | (dstBox.y2 - 1);
@@ -510,8 +565,6 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
 
      mdev->regs.besV1SRCLST = layer->shared->height - 1;
      mdev->regs.besV2SRCLST = layer->shared->height - 2;
-
-     mdev->regs.besPITCH    = surface->front_buffer->video.pitch;
 
      field_height           = layer->shared->height;
 

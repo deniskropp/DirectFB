@@ -366,9 +366,9 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
                }
                scale_linear_32( dst, image_data, cinfo.output_width,
                                 cinfo.output_height, width, height,
-                                pitch - width * DFB_BYTES_PER_PIXEL(format),
+                                pitch - DFB_BYTES_PER_LINE(format, width),
                                 format );
-               
+
                free( image_data );
           }
 

@@ -541,39 +541,64 @@ extern "C"
           DFDESC_WIDTH        = 0x00000004   /* width is specified */
      } DFBFontDescriptionFlags;
 
-     /* Pixel format of a surface.
-      * Contains information about the format (see following macros).
+     /*
+      * Pixel format of a surface.
+      * Contains information about the format (see following definition).
+      *
+      * Format constants are encoded in the following way (bit 31 - 0):
+      *
+      * --ff:eeee | dddd:ccc- | bbbb:bbbb | aaaa:aaaa
+      *
+      * a) pixelformat index<br>
+      * b) effective bits per pixel of format<br>
+      * c) bytes per pixel in a row (1/8 fragment, i.e. bits)<br>
+      * d) bytes per pixel in a row (decimal part, i.e. bytes)<br>
+      * e) multiplier for planes minus one (1/16 fragment)<br>
+      * f) multiplier for planes minus one (decimal part)
       */
      typedef enum {
           DSPF_UNKNOWN        = 0x00000000,  /* no specific format,
                                                 unusual and unsupported */
-          DSPF_RGB15          = 0x00020F01,  /* 15bit  RGB (2 bytes, red 5@10,
+          DSPF_RGB15          = 0x00200F01,  /* 15bit  RGB (2 bytes, red 5@10,
                                                 green 5@5, blue 5@0) */
-          DSPF_RGB16          = 0x00021002,  /* 16bit  RGB (2 bytes, red 5@11,
+          DSPF_RGB16          = 0x00201002,  /* 16bit  RGB (2 bytes, red 5@11,
                                                 green 6@5, blue 5@0) */
-          DSPF_RGB24          = 0x00031803,  /* 24bit  RGB (3 bytes, red 8@16,
+          DSPF_RGB24          = 0x00301803,  /* 24bit  RGB (3 bytes, red 8@16,
                                                 green 8@8, blue 8@0) */
-          DSPF_RGB32          = 0x00041804,  /* 24bit  RGB (4 bytes, nothing@24,
+          DSPF_RGB32          = 0x00401804,  /* 24bit  RGB (4 bytes, nothing@24,
                                                 red 8@16, green 8@8, blue 8@0)*/
-          DSPF_ARGB           = 0x00042005,  /* 32bit ARGB (4 bytes, alpha 8@24,
+          DSPF_ARGB           = 0x00402005,  /* 32bit ARGB (4 bytes, alpha 8@24,
                                                 red 8@16, green 8@8, blue 8@0)*/
-          DSPF_A8             = 0x00010806,  /* 8bit alpha (1 byte, alpha 8@0 ),
+          DSPF_A8             = 0x00100806,  /* 8bit alpha (1 byte, alpha 8@0 ),
                                                 e.g. anti-aliased text glyphs */
-          DSPF_YUY2           = 0x00021007,  /* A macropixel (32bit / 2 pixel)
+          DSPF_YUY2           = 0x00201007,  /* A macropixel (32bit / 2 pixel)
                                                 contains YUYV (starting with
                                                 the LOWEST byte on the LEFT) */
-          DSPF_RGB332         = 0x00010808,  /* 8bit true color (1 byte,
+          DSPF_RGB332         = 0x00100808,  /* 8bit true color (1 byte,
                                                 red 3@5, green 3@2, blue 2@0 */
-          DSPF_UYVY           = 0x00021009   /* A macropixel (32bit / 2 pixel)
+          DSPF_UYVY           = 0x00201009,  /* A macropixel (32bit / 2 pixel)
                                                 contains UYVY (starting with
                                                 the LOWEST byte on the LEFT) */
-          /* YVYU could be the next */
+          DSPF_I420           = 0x08100C0A,  /* 8 bit Y plane followed by 8 bit
+                                                2x2 subsampled U and V planes */
+          DSPF_YV12           = 0x08100C0B   /* 8 bit Y plane followed by 8 bit
+                                                2x2 subsampled V and U planes */
      } DFBSurfacePixelFormat;
 
      /* These macros extract information about the pixel format. */
-     #define DFB_BYTES_PER_PIXEL(format)    (((format) & 0xFF0000) >> 16)
-     #define DFB_BITS_PER_PIXEL(format)     (((format) & 0x00FF00) >>  8)
-     #define DFB_PIXELFORMAT_INDEX(format)  (((format) & 0x0000FF) - 1)
+     #define DFB_BYTES_PER_PIXEL(fmt)       (((fmt) & 0xF00000) >> 20)
+
+     #define DFB_BITS_PER_PIXEL(fmt)        (((fmt) & 0x00FF00) >>  8)
+
+     #define DFB_PIXELFORMAT_INDEX(fmt)     (((fmt) & 0x0000FF) - 1)
+
+     #define DFB_BYTES_PER_LINE(fmt,width)  (((((fmt) & 0xFE0000) >> 17) * \
+                                              (width)) >> 3)
+
+     #define DFB_PLANAR_PIXELFORMAT(fmt)    ((fmt) & 0x3F000000)
+
+     #define DFB_PLANE_MULTIPLY(fmt,height) ((((((fmt) & 0x3F000000) >> 24) + \
+                                               0x10) * (height)) >> 4 )
 
      /*
       * Description of the surface that is to be created.

@@ -866,7 +866,9 @@ driver_init_device( GraphicsDevice     *device,
      MatroxDeviceData *mdev = (MatroxDeviceData*) device_data;
      volatile __u8    *mmio = mdrv->mmio_base;
 
-     switch (gfxcard_get_accelerator( device )) {
+     mdev->accelerator = gfxcard_get_accelerator( device );
+
+     switch (mdev->accelerator) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
                snprintf( device_info->name,
@@ -907,7 +909,7 @@ driver_init_device( GraphicsDevice     *device,
      /* set hardware capabilities */
      device_info->caps.flags = CCF_CLIPPING;
 
-     switch (gfxcard_get_accelerator( device )) {
+     switch (mdev->accelerator) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
                device_info->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
