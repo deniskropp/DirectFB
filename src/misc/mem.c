@@ -154,7 +154,7 @@ void* dfb_dbg_realloc( char *file, int line, char *func, char *what,
      pthread_mutex_unlock( &alloc_lock );
 
      if (mem != NULL) {
-          DEBUGMSG ( "%s: trying to reallocate unknown chunk %p (%s)\n"
+          ERRORMSG ( "%s: trying to reallocate unknown chunk %p (%s)\n"
                      "          in %s (%s: %u) !!!\n",
                      __FUNCTION__, mem, what, func, file, line);
           kill( 0, SIGTRAP );
@@ -214,7 +214,7 @@ void dfb_dbg_free( char *file, int line, char *func, char *what, void *mem )
 
      pthread_mutex_unlock( &alloc_lock );
 
-     DEBUGMSG( "%s: trying to free unknown chunk %p (%s)\n"
+     ERRORMSG( "%s: trying to free unknown chunk %p (%s)\n"
                "          in %s (%s: %u) !!!\n",
                __FUNCTION__, mem, what, func, file, line);
 
