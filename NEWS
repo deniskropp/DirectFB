@@ -1,3 +1,7 @@
+- 15bpp support for jpeg provider
+- v4l provider support for devfs (/dev/v4l/video*)
+- API change for DFBSurfaceDescription (pixelformat field instead of bpp
+  field, removed DSCAPS_ALPHA.) 
 - DrawString() and GetStringWidth() support UTF-8 encoded strings now. They
   take an additional parameter that specifies the number of bytes to use from 
   the passed string or -1 for the complete string.
@@ -7,8 +11,8 @@
 - Removed default font from the core and made it a IDirectFBFont interface.
   Pass NULL as filename to CreateFont() to get the default font.
 - Added MPEG video provider based on libmpeg3 written by Kim JeongHoe.
-- Performance improvements in the software functions for DrawLine, 16 bit
-  drawing/blitting and 32 bit blending.
+- Performance improvements in the software functions for DrawLine(), 16 bit
+  drawing functions and DrawString() in all depth.
 - Added GetPos() and GetLength() functions to the video provider API.
 - Use /dev/tty0 or /dev/vc/0 (for devfs) instead of /dev/console so DirectFB 
   works on machines with serial consoles.
