@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: Fusion IPC
 Description: High Level IPC Mechanisms
 Version: @VERSION@
-Depends: direct
+Requires: direct
 Libs: -L${libdir} -lfusion @THREADLIB@ @DYNLIB@
 Cflags: @THREADFLAGS@ -I@INCLUDEDIR@
