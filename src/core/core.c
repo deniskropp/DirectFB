@@ -55,6 +55,7 @@
 #include <core/windows.h>
 
 #include <direct/build.h>
+#include <direct/debug.h>
 #include <direct/direct.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
@@ -69,6 +70,7 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
+D_DEBUG_DOMAIN( DirectFB_Core, "DirectFB/Core", "DirectFB Core" );
 
 extern CorePart dfb_core_clipboard;
 extern CorePart dfb_core_colorhash;
@@ -189,7 +191,7 @@ dfb_core_create( CoreDFB **ret_core )
      D_ASSERT( ret_core != NULL );
      D_ASSERT( dfb_config != NULL );
 
-     D_DEBUG( "DirectFB/Core: %s...\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Core, "%s...\n", __FUNCTION__ );
 
      pthread_mutex_lock( &core_dfb_lock );
 
@@ -271,7 +273,7 @@ dfb_core_create( CoreDFB **ret_core )
      }
 
 #if FUSION_BUILD_MULTI
-     D_DEBUG( "DirectFB/Core: world %d, fusion id %d\n", world, core->fusion_id );
+     D_DEBUG_AT( DirectFB_Core, "world %d, fusion id %d\n", world, core->fusion_id );
 
      snprintf( buf, sizeof(buf), "%d", world );
 
@@ -314,7 +316,7 @@ dfb_core_create( CoreDFB **ret_core )
 
      pthread_mutex_unlock( &core_dfb_lock );
 
-     D_DEBUG( "DirectFB/Core: Core successfully created.\n" );
+     D_DEBUG_AT( DirectFB_Core, "Core successfully created.\n" );
 
      return DFB_OK;
 }
@@ -326,7 +328,7 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      D_ASSERT( core->refs > 0 );
      D_ASSERT( core == core_dfb );
 
-     D_DEBUG( "DirectFB/Core: %s...\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Core, "%s...\n", __FUNCTION__ );
 
      pthread_mutex_lock( &core_dfb_lock );
 
@@ -769,7 +771,7 @@ dfb_core_arena_initialize( FusionArena *arena,
      CoreDFB       *core = ctx;
      CoreDFBShared *shared;
 
-     D_DEBUG( "DirectFB/Core: Initializing...\n" );
+     D_DEBUG_AT( DirectFB_Core, "Initializing...\n" );
 
      /* Allocate shared structure. */
      shared = SHCALLOC( 1, sizeof(CoreDFBShared) );
@@ -802,7 +804,7 @@ dfb_core_arena_join( FusionArena *arena,
      CoreDFB   *core = ctx;
      void      *field;
 
-     D_DEBUG( "DirectFB/Core: Joining...\n" );
+     D_DEBUG_AT( DirectFB_Core, "Joining...\n" );
 
      /* Get shared data. */
      if (fusion_arena_get_shared_field( arena, "Core/Shared", &field ))
@@ -826,7 +828,7 @@ dfb_core_arena_leave( FusionArena *arena,
      DFBResult  ret;
      CoreDFB   *core = ctx;
 
-     D_DEBUG( "DirectFB/Core: Leaving...\n" );
+     D_DEBUG_AT( DirectFB_Core, "Leaving...\n" );
 
      /* Leave. */
      ret = dfb_core_leave( core, emergency );
@@ -844,7 +846,7 @@ dfb_core_arena_shutdown( FusionArena *arena,
      DFBResult  ret;
      CoreDFB   *core = ctx;
 
-     D_DEBUG( "DirectFB/Core: Shutting down...\n" );
+     D_DEBUG_AT( DirectFB_Core, "Shutting down...\n" );
 
      if (!core->master) {
           D_WARN( "refusing shutdown in slave" );
