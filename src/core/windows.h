@@ -61,10 +61,13 @@ struct _CoreWindow
      unsigned int          width;           /* width in pixels */
      unsigned int          height;          /* width in pixels */
 
-     __u8                  opacity;         /* global alpha factor */
-
      DFBWindowCapabilities caps;            /* window capabilities, to enable
                                                blending etc. */
+     
+     DFBWindowOptions      options;         /* flags for appearance/behaviour */
+
+     __u8                  opacity;         /* global alpha factor */
+     __u32                 color_key;       /* transparent pixel */
 
      CoreSurface          *surface;         /* backing store surface */
 

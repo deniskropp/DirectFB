@@ -51,6 +51,8 @@
 #include "misc/util.h"
 #include "misc/mem.h"
 
+#include "gfx/convert.h"
+
 #include "idirectfbwindow.h"
 
 /*
@@ -242,6 +244,50 @@ static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
           *surface = data->surface;
 
      data->surface->AddRef( data->surface );
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
+                                             DFBWindowOptions  options )
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     if (options & ~DWOP_ALL)
+          return DFB_INVARG;
+
+     if (data->window->options != options) {
+          data->window->options = options;
+
+          dfb_window_repaint( data->window, NULL );
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
+                                              __u8             r,
+                                              __u8             g,
+                                              __u8             b )
+{
+     __u32 key;
+
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     key = color_to_pixel( data->window->surface->format, r, g, b );
+
+     if (data->window->color_key != key) {
+          data->window->color_key = key;
+
+          if (data->window->options & DWOP_COLORKEYING)
+               dfb_window_repaint( data->window, NULL );
+     }
 
      return DFB_OK;
 }
@@ -529,6 +575,8 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->GetPosition = IDirectFBWindow_GetPosition;
      thiz->GetSize = IDirectFBWindow_GetSize;
      thiz->GetSurface = IDirectFBWindow_GetSurface;
+     thiz->SetOptions = IDirectFBWindow_SetOptions;
+     thiz->SetColorKey = IDirectFBWindow_SetColorKey;
      thiz->SetOpacity = IDirectFBWindow_SetOpacity;
      thiz->GetOpacity = IDirectFBWindow_GetOpacity;
      thiz->RequestFocus = IDirectFBWindow_RequestFocus;

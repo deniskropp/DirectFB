@@ -867,6 +867,15 @@ update_region( CoreWindowStack *stack,
                     }
                }
 
+               if (window->options & DWOP_COLORKEYING) {
+                    flags |= DSBLIT_SRC_COLORKEY;
+
+                    if (stack->state.src_colorkey != window->color_key) {
+                         stack->state.src_colorkey = window->color_key;
+                         stack->state.modified |= SMF_SRC_COLORKEY;
+                    }
+               }
+
                if (stack->state.blittingflags != flags) {
                     stack->state.blittingflags  = flags;
                     stack->state.modified      |= SMF_BLITTING_FLAGS;

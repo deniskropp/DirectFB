@@ -2216,6 +2216,14 @@ extern "C"
           );
      )
 
+     /*
+      * Flags controlling the appearance and behaviour of the window.
+      */
+     typedef enum {
+          DWOP_NONE           = 0x00000000,  /* none of these */
+          DWOP_COLORKEYING    = 0x00000001,  /* enable color key */
+          DWOP_ALL            = 0x00000001   /* all possible options */
+     } DFBWindowOptions;
 
      /*******************
       * IDirectFBWindow *
@@ -2288,8 +2296,29 @@ extern "C"
           );
 
 
-        /** Appearance **/
+        /** Appearance and Behaviour **/
 
+          /*
+           * Set options controlling appearance and behaviour of the window.
+           */
+          DFBResult (*SetOptions) (
+               IDirectFBWindow     *thiz,
+               DFBWindowOptions     options
+          );
+          
+          /*
+           * Set the window color key.
+           *
+           * If a pixel of the window matches this color the underlying window
+           * or the background is visible at this point.
+           */
+          DFBResult (*SetColorKey) (
+               IDirectFBWindow     *thiz,
+               __u8                 r,
+               __u8                 g,
+               __u8                 b
+          );
+          
           /*
            * Set the window's global opacity factor.
            *
@@ -2350,7 +2379,8 @@ extern "C"
                IDirectFBWindow     *thiz
           );
 
-        /** Positioning **/
+        
+        /** Position and Size **/
 
           /*
            * Move the window by the specified distance.
