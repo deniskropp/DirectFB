@@ -334,6 +334,9 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      else
           texctl2 = DECALDIS | CKSTRANSDIS;
 
+     if (surface->format == DSPF_A8)
+          texctl2 |= IDECAL;
+
      mga_waitfifo( mdrv, mdev, 5);
 
      mga_out32( mmio, texctl, TEXCTL );

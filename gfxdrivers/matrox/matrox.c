@@ -728,7 +728,7 @@ static void matroxBlit3D( void *drv, void *dev,
      mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO |
                 ARZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
 
-     mga_out32( mmio, MAG_NRST | MIN_NRST, TEXFILTER );
+     mga_out32( mmio, (0x10<<21) | MAG_NRST | MIN_NRST, TEXFILTER );
 
      mga_out32( mmio, 0x100000 >> mdev->matrox_w2, TMR0 );
      mga_out32( mmio, 0x100000 >> mdev->matrox_h2, TMR3 );
@@ -759,7 +759,7 @@ static void matroxStretchBlit( void *drv, void *dev,
      mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
                       ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
 
-     mga_out32( mmio, MAG_BILIN | MIN_BILIN, TEXFILTER );
+     mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_BILIN, TEXFILTER );
 
      mga_out32( mmio, incx, TMR0 );
      mga_out32( mmio, incy, TMR3 );
@@ -892,6 +892,7 @@ driver_init_device( GraphicsDevice     *device,
                break;
 #endif
           case FB_ACCEL_MATROX_MGAG200:
+               dfb_config->argb_font = true;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G200" );
                break;

@@ -164,6 +164,7 @@
 
 
 /* TEXTCTL2 */
+#define IDECAL        0x00000002
 #define DECALDIS      0x00000004
 #define CKSTRANSDIS   0x00000010
 
@@ -171,6 +172,7 @@
 /* TEXFILTER */
 #define MIN_NRST      0x00000000
 #define MIN_BILIN     0x00000002
+#define MIN_ANISO     0x0000000D
 #define MAG_NRST      0x00000000
 #define MAG_BILIN     0x00000020
 

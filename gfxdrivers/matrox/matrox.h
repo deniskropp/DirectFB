@@ -83,10 +83,10 @@ static inline unsigned int log2( unsigned int val )
 {
      unsigned int ret = 0;
 
-     while (val >>= 1)
+     while (val >> ret)
           ret++;
 
-     return ret;
+     return ((1 << (ret-1)) == val) ? (ret-1) : ret;
 }
 
 #endif
