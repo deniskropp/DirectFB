@@ -6,13 +6,13 @@ INCLUDES = \
 
 CFLAGS = $(DFB_CFLAGS)
 
-msmouse_LTLIBRARIES = libdirectfb_msmouse.la
+serialmouse_LTLIBRARIES = libdirectfb_serialmouse.la
 
-msmousedir = $(LIBDIR)/inputdrivers
+serialmousedir = $(LIBDIR)/inputdrivers
 
-libdirectfb_msmouse_la_SOURCES = msmouse.c
+libdirectfb_serialmouse_la_SOURCES = serialmouse.c
 
-libdirectfb_msmouse_la_LDFLAGS = \
+libdirectfb_serialmouse_la_LDFLAGS = \
         -export-dynamic		\
 	-disable-static		\
 	-avoid-version		\

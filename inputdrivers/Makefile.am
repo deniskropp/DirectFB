@@ -3,5 +3,5 @@
 SUBDIRS = \
 	joystick	\
 	keyboard 	\
-	msmouse		\
-	ps2mouse
+	ps2mouse	\
+	serialmouse

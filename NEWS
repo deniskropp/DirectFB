@@ -1,4 +1,4 @@
-- Added inputdriver for MS serial mouse. 
+- Added inputdriver for serial mouse. 
 - Modularized inputdrivers.
 - Even faster DrawString() software implementations.
 - 32 bit aligning in the software driver resulting in a major speedup.

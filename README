@@ -33,7 +33,8 @@ Requirements
 Additional Requirements for some Demos
 --------------------------------------
 
-   - PS/2 mouse for windowing, USB and ADB mice also work via PS/2 emulation.
+   - PS/2 or serial mouse (MS protocol) for windowing, USB and ADB mice also 
+     work via PS/2 emulation.
      Please stop gpm before using the mouse in DirectFB.
    - Video card supported by video4linux for df_video.
    - A joystick for df_joystick.
