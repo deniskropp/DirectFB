@@ -97,7 +97,6 @@ void direct_assumption( const char *exp,
           direct_debug_at( &d, x );                                                  \
      } while (0)
 
-
 #define D_ASSERT(exp)                                                                \
      do {                                                                            \
           if (!(exp))                                                                \
@@ -117,6 +116,21 @@ void direct_assumption( const char *exp,
           direct_break( __FUNCTION__, __FILE__, __LINE__, x );                       \
      } while (0)
 
+#else
+
+#define D_HEAVYDEBUG(x...)    do {} while (0)
+#define D_DEBUG_DOMAIN(i,n,d)
+#define D_DEBUG(x...)         do {} while (0)
+#define D_DEBUG_AT(d,x...)    do {} while (0)
+#define D_ASSERT(exp)         do {} while (0)
+#define D_ASSUME(exp)         do {} while (0)
+#define D_BREAK(x...)         do {} while (0)
+
+#endif
+
+
+
+#if DIRECT_BUILD_DEBUG
 
 #define D_MAGIC(spell)        ( (((spell)[sizeof(spell)*8/9] << 24) | \
                                  ((spell)[sizeof(spell)*7/9] << 16) | \
@@ -151,14 +165,6 @@ void direct_assumption( const char *exp,
 #define D_MAGIC_CLEAR(o)      do {} while (0)
 #define D_MAGIC_SET(o,m)      do {} while (0)
 #define D_MAGIC_ASSERT(o,m)   do {} while (0)
-
-#define D_HEAVYDEBUG(x...)    do {} while (0)
-#define D_DEBUG_DOMAIN(i,n,d)
-#define D_DEBUG(x...)         do {} while (0)
-#define D_DEBUG_AT(d,x...)    do {} while (0)
-#define D_ASSERT(exp)         do {} while (0)
-#define D_ASSUME(exp)         do {} while (0)
-#define D_BREAK(x...)         do {} while (0)
 
 #endif
 
