@@ -572,9 +572,17 @@ extern "C"
      } DFBWindowDescription;
 
      /*
+      * Return value of callback function of enumerations.
+      */
+     typedef enum {
+          DFENUM_OK           = 0x00000000,  /* Proceed with enumeration */
+          DFENUM_CANCEL       = 0x00000001   /* Cancel enumeration */
+     } DFBEnumerationResult;
+
+     /*
       * Called for each supported video mode.
       */
-     typedef int (*DFBVideoModeCallback) (
+     typedef DFBEnumerationResult (*DFBVideoModeCallback) (
           unsigned int                       width,
           unsigned int                       height,
           unsigned int                       bpp,
@@ -585,7 +593,7 @@ extern "C"
       * Called for each existing display layer.
       * "layer_id" can be used to get an interface to the layer.
       */
-     typedef int (*DFBDisplayLayerCallback) (
+     typedef DFBEnumerationResult (*DFBDisplayLayerCallback) (
           unsigned int                       layer_id,
           DFBDisplayLayerCapabilities        caps,
           void                              *callbackdata
@@ -595,7 +603,7 @@ extern "C"
       * Called for each existing input device.
       * "device_id" can be used to get an interface to the device.
       */
-     typedef int (*DFBInputDeviceCallback) (
+     typedef DFBEnumerationResult (*DFBInputDeviceCallback) (
           unsigned int                       device_id,
           DFBInputDeviceDescription          desc,
           void                              *callbackdata

@@ -159,9 +159,9 @@ DFBResult IDirectFB_GetCardCapabilities( IDirectFB               *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFB_EnumVideoModes( IDirectFB *thiz,
-                                    DFBVideoModeCallback callbackfunc,
-                                    void *callbackdata )
+DFBResult IDirectFB_EnumVideoModes( IDirectFB            *thiz,
+                                    DFBVideoModeCallback  callbackfunc,
+                                    void                 *callbackdata )
 {
      VideoMode *m;
 
@@ -172,7 +172,9 @@ DFBResult IDirectFB_EnumVideoModes( IDirectFB *thiz,
 
      m = fbdev->modes;
      while (m) {
-          callbackfunc( m->xres, m->yres, m->bpp, callbackdata );
+          if (callbackfunc( m->xres, m->yres,
+                            m->bpp, callbackdata ) == DFENUM_CANCEL)
+               break;
 
           m = m->next;
      }
@@ -347,8 +349,8 @@ DFBResult IDirectFB_EnumDisplayLayers( IDirectFB *thiz,
           return DFB_INVARG;
 
      while (dl) {
-          if (callbackfunc( dl->id, dl->caps, callbackdata ))
-           return DFB_OK;
+          if (callbackfunc( dl->id, dl->caps, callbackdata ) == DFENUM_CANCEL)
+               break;
 
           dl = dl->next;
      }
@@ -392,7 +394,9 @@ DFBResult IDirectFB_EnumInputDevices( IDirectFB *thiz,
           return DFB_INVARG;
 
      while (d) {
-          callbackfunc( d->id, d->desc, callbackdata );
+          if (callbackfunc( d->id, d->desc, callbackdata ) == DFENUM_CANCEL)
+               break;
+
           d = d->next;
      }
 
