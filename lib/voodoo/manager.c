@@ -52,9 +52,9 @@
 #include <voodoo/manager.h>
 
 
-#define IN_BUF_MAX   (42 * 1024)
-#define OUT_BUF_MAX  (23 * 1024)
-#define MAX_MSG_SIZE (17 * 1024)
+#define IN_BUF_MAX   (96 * 1024)
+#define OUT_BUF_MAX  (64 * 1024)
+#define MAX_MSG_SIZE (32 * 1024)
 
 
 typedef struct {
@@ -931,14 +931,16 @@ handle_response( VoodooManager         *manager,
 
      pthread_mutex_lock( &manager->response.lock );
 
-     D_ASSERT( manager->response.current == NULL );
-
-     manager->response.current = response;
-
-     pthread_cond_broadcast( &manager->response.wait );
-
      while (manager->response.current && !manager->quit)
           pthread_cond_wait( &manager->response.wait, &manager->response.lock );
+
+     if (!manager->quit) {
+          D_ASSERT( manager->response.current == NULL );
+
+          manager->response.current = response;
+
+          pthread_cond_broadcast( &manager->response.wait );
+     }
 
      pthread_mutex_unlock( &manager->response.lock );
 }
