@@ -383,7 +383,7 @@ bool uc_stretch_blit(void* drv, void* dev,
     float s2 = (sr->x + sr->w) / w;
     float t2 = (sr->y + sr->h) / h;
 
-    int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y |
+    int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_W |
                HC_HVPMSK_Cd  | HC_HVPMSK_S | HC_HVPMSK_T;
 
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HShading_FlatC |
@@ -401,16 +401,16 @@ bool uc_stretch_blit(void* drv, void* dev,
              dy -= 0.6f;
     }
 
-    UC_FIFO_PREPARE(fifo, 26);
+    UC_FIFO_PREPARE(fifo, 30);
 
     UC_FIFO_ADD_HDR(fifo, HC_ParaType_CmdVdata << 16);
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYCST(fifo, dr->x,       dy,       0,              s1, t1);
-    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dy+dr->h, 0,              s2, t2);
-    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dy,       ucdev->color3d, s2, t1);
-    UC_FIFO_ADD_XYCST(fifo, dr->x,       dy+dr->h, ucdev->color3d, s1, t2);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x,       dy,       1, 0,              s1, t1);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dy+dr->h, 1, 0,              s2, t2);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dy,       1, ucdev->color3d, s2, t1);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x,       dy+dr->h, 1, ucdev->color3d, s1, t2);
 
     UC_FIFO_ADD(fifo, cmdA_End);
 
