@@ -1445,6 +1445,7 @@ typedef enum {
  * Layer configuration flags
  */
 typedef enum {
+     DLCONF_NONE              = 0x00000000,
      DLCONF_WIDTH             = 0x00000001,
      DLCONF_HEIGHT            = 0x00000002,
      DLCONF_PIXELFORMAT       = 0x00000004,
