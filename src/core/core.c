@@ -367,7 +367,7 @@ static int core_initialize( FusionArena *arena, void *ctx )
 {
      DFBResult ret;
 
-     DEBUGMSG( "DirectFB/Core: we are the master, initializeing...\n" );
+     DEBUGMSG( "DirectFB/Core: we are the master, initializing...\n" );
 
      dfb_core->arena  = arena;
      dfb_core->master = 1;
