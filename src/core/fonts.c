@@ -115,7 +115,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                return DFB_NOSYSTEMMEMORY;
 
           if (font->GetGlyphInfo &&
-              (* font->GetGlyphInfo) (font, glyph, data) == DFB_OK &&
+              font->GetGlyphInfo (font, glyph, data) == DFB_OK &&
               data->width > 0 && data->height > 0)
           {
                if (font->next_x + data->width > font->row_width) {
@@ -130,10 +130,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                          if (width < font->maxadvance)
                               width = font->maxadvance;
 
-                         if (width < 4)
-                              width = 4;
-
-                         font->row_width = width;
+                         font->row_width = (width + 7) & ~7;
                     }
 
                     ret = dfb_surface_create( font->core,
