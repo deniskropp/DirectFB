@@ -333,59 +333,100 @@ DFBResult gfxcard_init_layers()
      return DFB_OK;
 }
 
+/*
+ * This function returns non zero if acceleration is available
+ * for the specific function using the given state.
+ */
 int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 {
+     /*
+      * If there's no CheckState function there's no acceleration at all.
+      */
      if (!card->funcs.CheckState)
           return 0;
 
+     /* If destination has been changed... */
      if (state->modified & SMF_DESTINATION) {
+          /* ...force rechecking for all functions. */
           state->checked = 0;
+          
+          /* Debug check */
           if (!state->destination) {
                BUG("state check: no destination");
                return 0;
           }
 
+          /*
+           * If policy is 'system only' there's no acceleration available.
+           */
           if (state->destination->back_buffer->policy == CSP_SYSTEMONLY) {
+               /* unset 'destination modified' bit */
                state->modified &= ~SMF_DESTINATION;
+
+               /* clear 'accelerated functions' */
                state->accel = 0;
+
+               /* return immediately */
                return 0;
           }
      }
+
+     /* If source has been changed... */
      if (state->modified & SMF_SOURCE) {
+          /* ...force rechecking for all blitting functions. */
           state->checked &= 0xFFFF;
+          
+          /* Debug check */
           if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
                BUG("state check: no source");
                return 0;
           }
 
-          if (state->source &&
-              state->source->front_buffer->policy == CSP_SYSTEMONLY) {
+          /*
+           * If policy is 'system only' there's no accelerated blitting
+           * available.
+           */
+          if (state->source->front_buffer->policy == CSP_SYSTEMONLY) {
+               /* unset 'destination modified' bit */
                state->modified &= ~SMF_SOURCE;
+              
+               /* clear 'accelerated blitting functions' */
                state->accel &= 0xFFFF;
+
+               /* return if blitting function was requested */
                if (DFB_BLITTING_FUNCTION( accel ))
                     return 0;
           }
      }
 
+     /* If blend functions have been changed force recheck. */
      if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND)) {
           state->checked = 0;
      }
      else {
+          /* If drawing flags have been changed recheck drawing functions. */
           if (state->modified & SMF_DRAWING_FLAGS)
                state->checked &= 0xFFFF0000;
 
+          /* If blitting flags have been changed recheck blitting functions. */
           if (state->modified & SMF_BLITTING_FLAGS)
                state->checked &= 0xFFFF;
      }
 
+     /* If function needs to be checked... */
      if (!(state->checked & accel)) {
+          /* unset function */
           state->accel &= ~accel;
+
+          /* call driver function that sets the bit if supported */
           card->funcs.CheckState( card->driver_data,
                                   card->device_data, state, accel );
+          
+          /* add function to 'checked functions' */
           state->checked |= accel;
      }
 
-     return(state->accel & accel);
+     return (state->accel & accel);
 }
 
 int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
