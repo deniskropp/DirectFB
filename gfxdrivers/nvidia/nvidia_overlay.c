@@ -269,7 +269,7 @@ ov0AllocateSurface( CoreLayer              *layer,
                break;
 
           case DLBM_BACKVIDEO:
-               caps |= DSCAPS_FLIPPING;
+               caps |= DSCAPS_DOUBLE;
                break;
 
           case DLBM_BACKSYSTEM:
@@ -309,18 +309,18 @@ ov0ReallocateSurface( CoreLayer             *layer,
      switch (config->buffermode) {
           case DLBM_BACKVIDEO:
                DEBUGMSG("Reallocate: BACKVIDEO\n");
-               surface->caps |= DSCAPS_FLIPPING;
-               nvov0->videoSurface->caps |= DSCAPS_FLIPPING;
+               surface->caps |= DSCAPS_DOUBLE;
+               nvov0->videoSurface->caps |= DSCAPS_DOUBLE;
                break;
           case DLBM_BACKSYSTEM:
                DEBUGMSG("Reallocate: BACKSYTEM\n");
-               surface->caps |= DSCAPS_FLIPPING;
-               nvov0->videoSurface->caps |= DSCAPS_FLIPPING;
+               surface->caps |= DSCAPS_DOUBLE;
+               nvov0->videoSurface->caps |= DSCAPS_DOUBLE;
                break;
           case DLBM_FRONTONLY:
                DEBUGMSG("Reallocate: FRONTONLY\n");
-               surface->caps &= ~DSCAPS_FLIPPING;
-               nvov0->videoSurface->caps &= ~DSCAPS_FLIPPING;
+               surface->caps &= ~DSCAPS_DOUBLE;
+               nvov0->videoSurface->caps &= ~DSCAPS_DOUBLE;
                break;
 
           default:

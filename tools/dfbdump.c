@@ -119,7 +119,7 @@ buffer_locks( CoreSurface *surface, bool video )
 
      int locks = video ? front->video.locked : front->system.locked;
 
-     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE))
+     if (surface->caps & DSCAPS_FLIPPING)
           locks += video ? back->video.locked : back->system.locked;
 
      if (surface->caps & DSCAPS_TRIPLE)
@@ -180,8 +180,8 @@ surface_callback( FusionObjectPool *pool,
      if (surface->caps & DSCAPS_VIDEOONLY)
           printf( "video only   " );
 
-     if (surface->caps & DSCAPS_FLIPPING)
-          printf( "flipping     " );
+     if (surface->caps & DSCAPS_DOUBLE)
+          printf( "double       " );
 
      if (surface->caps & DSCAPS_TRIPLE)
           printf( "triple       " );

@@ -1152,7 +1152,7 @@ primaryAllocateSurface( CoreLayer              *layer,
      if (config->buffermode == DLBM_TRIPLE)
           caps |= DSCAPS_TRIPLE;
      else if (config->buffermode != DLBM_FRONTONLY)
-          caps |= DSCAPS_FLIPPING;
+          caps |= DSCAPS_DOUBLE;
 
      /* allocate surface object */
      surface = dfb_core_create_surface( dfb_fbdev->core );
@@ -1577,7 +1577,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
           switch (config->buffermode) {
                case DLBM_FRONTONLY:
-                    surface->caps &= ~(DSCAPS_FLIPPING | DSCAPS_TRIPLE);
+                    surface->caps &= ~DSCAPS_FLIPPING;
 
                     if (surface->back_buffer != surface->front_buffer) {
                          if (surface->back_buffer->system.addr)
@@ -1598,7 +1598,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     }
                     break;
                case DLBM_BACKVIDEO:
-                    surface->caps |= DSCAPS_FLIPPING;
+                    surface->caps |= DSCAPS_DOUBLE;
                     surface->caps &= ~DSCAPS_TRIPLE;
 
                     if (surface->back_buffer == surface->front_buffer) {
@@ -1629,7 +1629,8 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     }
                     break;
                case DLBM_TRIPLE:
-                    surface->caps |= DSCAPS_FLIPPING | DSCAPS_TRIPLE;
+                    surface->caps |= DSCAPS_TRIPLE;
+                    surface->caps &= ~DSCAPS_DOUBLE;
 
                     if (surface->back_buffer == surface->front_buffer) {
                          surface->back_buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
@@ -1668,7 +1669,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                          surface->idle_buffer->video.pitch * var.yres * 2;
                     break;
                case DLBM_BACKSYSTEM:
-                    surface->caps |= DSCAPS_FLIPPING;
+                    surface->caps |= DSCAPS_DOUBLE;
                     surface->caps &= ~DSCAPS_TRIPLE;
 
                     if (surface->back_buffer == surface->front_buffer) {

@@ -268,7 +268,7 @@ dfb_window_create( CoreWindowStack        *stack,
      }
 
      if (caps & DWCAPS_DOUBLEBUFFER)
-          surface_caps |= DSCAPS_FLIPPING;
+          surface_caps |= DSCAPS_DOUBLE;
 
      /* Create the window object. */
      window = dfb_core_create_window( layer->core );

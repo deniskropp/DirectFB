@@ -1163,7 +1163,7 @@ allocate_surface( CoreLayer             *layer,
                     break;
 
                case DLBM_BACKVIDEO:
-                    caps |= DSCAPS_FLIPPING;
+                    caps |= DSCAPS_DOUBLE;
                     break;
 
                case DLBM_BACKSYSTEM:
@@ -1235,24 +1235,24 @@ reallocate_surface( CoreLayer             *layer,
           switch (config->buffermode) {
                case DLBM_TRIPLE:
                     surface->caps |=  DSCAPS_TRIPLE;
-                    surface->caps &= ~DSCAPS_FLIPPING;
+                    surface->caps &= ~DSCAPS_DOUBLE;
                     ret = dfb_surface_reconfig( surface,
                                                 CSP_VIDEOONLY, CSP_VIDEOONLY );
                     break;
                case DLBM_BACKVIDEO:
-                    surface->caps |=  DSCAPS_FLIPPING;
+                    surface->caps |=  DSCAPS_DOUBLE;
                     surface->caps &= ~DSCAPS_TRIPLE;
                     ret = dfb_surface_reconfig( surface,
                                                 CSP_VIDEOONLY, CSP_VIDEOONLY );
                     break;
                case DLBM_BACKSYSTEM:
-                    surface->caps |=  DSCAPS_FLIPPING;
+                    surface->caps |=  DSCAPS_DOUBLE;
                     surface->caps &= ~DSCAPS_TRIPLE;
                     ret = dfb_surface_reconfig( surface,
                                                 CSP_VIDEOONLY, CSP_SYSTEMONLY );
                     break;
                case DLBM_FRONTONLY:
-                    surface->caps &= ~(DSCAPS_FLIPPING | DSCAPS_TRIPLE);
+                    surface->caps &= ~DSCAPS_FLIPPING;
                     ret = dfb_surface_reconfig( surface,
                                                 CSP_VIDEOONLY, CSP_VIDEOONLY );
                     break;

@@ -543,9 +543,7 @@ typedef enum {
      DSCAPS_VIDEOONLY    = 0x00000004,  /* Surface data is permanently stored
                                            in video memory. <br>There's no
                                            system memory allocation/storage. */
-     DSCAPS_FLIPPING     = 0x00000010,  /* Surface is double buffered or needs
-                                           Flip() calls to make updates/changes
-                                           visible/usable. */
+     DSCAPS_DOUBLE       = 0x00000010,  /* Surface is double buffered */
      DSCAPS_SUBSURFACE   = 0x00000020,  /* Surface is just a sub area of
                                            another one sharing the surface
                                            data. */
@@ -571,7 +569,11 @@ typedef enum {
                                            surfaces that need a guaranteed
                                            space in video memory after
                                            resizing. */
-     DSCAPS_TRIPLE       = 0x00000200   /* Surface is triple buffered */
+     DSCAPS_TRIPLE       = 0x00000200,  /* Surface is triple buffered */
+     DSCAPS_FLIPPING     = DSCAPS_DOUBLE | DSCAPS_TRIPLE /* Surface needs Flip()
+                                                            calls to make
+                                                            updates/changes
+                                                            visible/usable. */
 } DFBSurfaceCapabilities;
 
 /*

@@ -324,7 +324,7 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
 
           ret = IDirectFBSurface_Window_Construct( *surface,
                                                    NULL, NULL, data->window,
-                                                   DSCAPS_FLIPPING );
+                                                   DSCAPS_DOUBLE );
           if (ret)
                return ret;
 

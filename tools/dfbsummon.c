@@ -134,7 +134,7 @@ init_application( int *argc, char **argv[] )
 
      /* Fill the surface description. */
      desc.flags = DSDESC_CAPS;
-     desc.caps  = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
+     desc.caps  = DSCAPS_PRIMARY | DSCAPS_DOUBLE;
 
      /* Create the primary surface. */
      ret = dfb->CreateSurface( dfb, &desc, &primary );

@@ -171,7 +171,7 @@ DFBResult dfb_surface_create( CoreDFB *core,
           return ret;
      }
 
-     if (caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)) {
+     if (caps & DSCAPS_FLIPPING) {
           ret = dfb_surface_allocate_buffer( s, policy, &s->back_buffer );
           if (ret) {
                dfb_surface_deallocate_buffer( s, s->front_buffer );
@@ -325,7 +325,7 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
           return ret;
      }
 
-     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)) {
+     if (surface->caps & DSCAPS_FLIPPING) {
           ret = dfb_surface_reallocate_buffer( surface, surface->back_buffer );
           if (ret) {
                surface->width  = old_width;
@@ -407,7 +407,7 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
           }
      }
 
-     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)) {
+     if (surface->caps & DSCAPS_FLIPPING) {
           ret = dfb_surface_allocate_buffer( surface, back_policy, &surface->back_buffer );
           if (ret) {
                if (new_front) {

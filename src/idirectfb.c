@@ -463,6 +463,10 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                return DFB_INVARG;
      }
 
+     /* Source compatibility with older programs */
+     if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
+          caps &= ~DSCAPS_TRIPLE;
+
      if (caps & DSCAPS_PRIMARY) {
           if (desc->flags & DSDESC_PREALLOCATED)
                return DFB_INVARG;
@@ -558,7 +562,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                               }
                          }
 
-                         if (caps & DSCAPS_FLIPPING)
+                         if (caps & DSCAPS_DOUBLE)
                               window_caps |= DWCAPS_DOUBLEBUFFER;
 
                          ret = dfb_layer_context_create_window( data->context, x, y,
@@ -595,7 +599,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                          if (caps & DSCAPS_SYSTEMONLY)
                               return DFB_UNSUPPORTED;
                          config.buffermode = DLBM_TRIPLE;
-                    } else if (caps & DSCAPS_FLIPPING) {
+                    } else if (caps & DSCAPS_DOUBLE) {
                          if (caps & DSCAPS_SYSTEMONLY)
                               config.buffermode = DLBM_BACKSYSTEM;
                          else
@@ -683,7 +687,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                return DFB_INVARG;
           }
 
-          if ((caps & DSCAPS_FLIPPING) &&
+          if ((caps & DSCAPS_DOUBLE) &&
               (!desc->preallocated[1].data ||
                 desc->preallocated[1].pitch < min_pitch))
           {

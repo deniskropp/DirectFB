@@ -255,7 +255,7 @@ primaryAllocateSurface( CoreLayer              *layer,
      DFBSurfaceCapabilities caps = DSCAPS_SYSTEMONLY;
 
      if (config->buffermode != DLBM_FRONTONLY)
-          caps |= DSCAPS_FLIPPING;
+          caps |= DSCAPS_DOUBLE;
 
      return dfb_surface_create( NULL, config->width, config->height,
                                 config->format, CSP_SYSTEMONLY,
@@ -278,14 +278,14 @@ primaryReallocateSurface( CoreLayer             *layer,
      switch (config->buffermode) {
           case DLBM_BACKVIDEO:
           case DLBM_BACKSYSTEM:
-               surface->caps |= DSCAPS_FLIPPING;
+               surface->caps |= DSCAPS_DOUBLE;
 
                ret = dfb_surface_reconfig( surface,
                                            CSP_SYSTEMONLY, CSP_SYSTEMONLY );
                break;
 
           case DLBM_FRONTONLY:
-               surface->caps &= ~DSCAPS_FLIPPING;
+               surface->caps &= ~DSCAPS_DOUBLE;
 
                ret = dfb_surface_reconfig( surface,
                                            CSP_SYSTEMONLY, CSP_SYSTEMONLY );
