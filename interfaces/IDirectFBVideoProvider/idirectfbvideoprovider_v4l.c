@@ -123,8 +123,6 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
      IDirectFBVideoProvider_V4L_data *data =
      (IDirectFBVideoProvider_V4L_data*)thiz->priv;
 
-     pthread_mutex_lock( &data->lock );
-     
      if (data->cleanup)
           dfb_core_cleanup_remove( data->cleanup );
 
@@ -132,7 +130,6 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 
      DFBFREE( data->filename );
 
-     pthread_mutex_unlock( &data->lock );
      pthread_mutex_destroy( &data->lock );
      
      DFB_DEALLOCATE_INTERFACE( thiz );
@@ -243,10 +240,10 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      if (!dfb_rectangle_intersect( &rect, &dst_data->area.current ))
           return DFB_INVAREA;
 
-     pthread_mutex_lock( &data->lock );
-     
      v4l_stop( data, true );
 
+     pthread_mutex_lock( &data->lock );
+     
      data->callback = callback;
      data->ctx      = ctx;
 
@@ -294,17 +291,9 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 static DFBResult IDirectFBVideoProvider_V4L_Stop(
                                                 IDirectFBVideoProvider *thiz )
 {
-     DFBResult ret;
-
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
-     pthread_mutex_lock( &data->lock );
-
-     ret = v4l_stop( data, true );
-
-     pthread_mutex_unlock( &data->lock );
-
-     return ret;
+     return v4l_stop( data, true );
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_SeekTo(
@@ -582,9 +571,7 @@ static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx
      if ((notification->flags & CSNF_SIZEFORMAT) ||
          (surface->back_buffer->video.health != CSH_STORED))
      {
-          pthread_mutex_lock( &data->lock );
           v4l_stop( data, false );
-          pthread_mutex_unlock( &data->lock );
           return RS_REMOVE;
      }
 
@@ -602,9 +589,7 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
      if ((notification->flags & CSNF_SIZEFORMAT) ||
          (surface->back_buffer->system.health != CSH_STORED))
      {
-          pthread_mutex_lock( &data->lock );
           v4l_stop( data, false );
-          pthread_mutex_unlock( &data->lock );
           return RS_REMOVE;
      }
 
@@ -827,20 +812,21 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 {
+     CoreSurface *destination;
+
      DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
-     if (!data->running)
+     pthread_mutex_lock( &data->lock );
+     
+     if (!data->running) {
+          pthread_mutex_unlock( &data->lock );
           return DFB_OK;
+     }
      
      if (!data->grab_mode) {
-          if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0) {
-               DFBResult ret = errno2dfb( errno );
-
+          if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0)
                PERRORMSG( "DirectFB/v4l: "
                           "Could not stop capturing (VIDIOCCAPTURE failed)!\n" );
-
-               return ret;
-          }
      }
 
      if (data->thread) {
@@ -850,16 +836,22 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
           data->thread = NULL;
      }
 
-     if (!data->destination)
-          return DFB_OK;
+     destination = data->destination;
 
-     if (detach)
-          dfb_surface_detach( data->destination, &data->reaction );
+     if (!destination) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_OK;
+     }
 
      if (!data->grab_mode)
-          data->destination->back_buffer->video.locked--;
+          destination->back_buffer->video.locked--;
 
      data->destination = NULL;
+     
+     pthread_mutex_unlock( &data->lock );
+     
+     if (detach)
+          dfb_surface_detach( destination, &data->reaction );
 
      return DFB_OK;
 }
@@ -885,9 +877,6 @@ static void v4l_cleanup( void *ctx, int emergency )
 
      if (emergency)
           v4l_stop( data, false );
-     else {
-          pthread_mutex_lock( &data->lock );
+     else
           v4l_deinit( data );
-          pthread_mutex_unlock( &data->lock );
-     }
 }
