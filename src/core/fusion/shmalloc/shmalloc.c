@@ -57,6 +57,7 @@ Cambridge, MA 02139, USA.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/vfs.h>
 #include <fcntl.h>
 #include <signal.h>
 
@@ -103,21 +104,35 @@ shmalloc_check_shmfs (int world)
           if (mount_fs && mount_point &&
               (!strcmp (mount_fs, "tmpfs") || !strcmp (mount_fs, "shmfs")))
           {
-               int len = strlen (mount_point) + strlen (SH_FILE_NAME) + 11;
+               char          *name;
+               struct statfs  stat;
+               int            len = strlen (mount_point) +
+                                    strlen (SH_FILE_NAME) + 11;
 
-               if (!(pointer = DFBMALLOC(len))) {
+               if (!(name = DFBMALLOC(len))) {
                     FERROR ("malloc failed!\n");
                     fclose (mounts_handle);
 
                     return NULL;
                }
 
-               fclose (mounts_handle);
-
-               snprintf (pointer, len, "%s%s%d",
+               snprintf (name, len, "%s%s%d",
                          mount_point, SH_FILE_NAME, world);
 
-               return pointer;
+               if (statfs (name, &stat)) {
+                    FPERROR ("statfs on tmpfs mount point failed!\n");
+                    DFBFREE (name);
+                    continue;
+               }
+
+               if (stat.f_blocks * stat.f_bsize < (4<<20)) {
+                    DFBFREE (name);
+                    continue;
+               }
+               
+               fclose (mounts_handle);
+               
+               return name;
           }
      }
 
@@ -177,8 +192,8 @@ morecore (size_t size)
           oldinfo = _sheap->heapinfo;
 
           newinfo[BLOCK (oldinfo)].busy.type = 0;
-          newinfo[BLOCK (oldinfo)].busy.info.size
-          = BLOCKIFY (_sheap->heapsize * sizeof (shmalloc_info));
+          newinfo[BLOCK (oldinfo)].busy.info.size =
+               BLOCKIFY (_sheap->heapsize * sizeof (shmalloc_info));
 
           _sheap->heapinfo = newinfo;
 
@@ -371,7 +386,7 @@ void *__shmalloc_init (int world, bool initialize)
      else
           fd = open (sh_name, O_RDWR);
      if (fd < 0) {
-          perror ("opening shared memory file");
+          FPERROR ("opening shared memory file failed!\n");
           DFBFREE( sh_name );
           return NULL;
      }
@@ -386,7 +401,7 @@ void *__shmalloc_init (int world, bool initialize)
      else {
           /* query size of memory */
           if (fstat (fd, &st) < 0) {
-               perror ("fstating shared memory file");
+               FPERROR ("fstating shared memory file failed!\n");
                close (fd);
                fd = -1;
                DFBFREE( sh_name );
@@ -402,7 +417,7 @@ void *__shmalloc_init (int world, bool initialize)
      mem = mmap ((void*) SH_BASE, size,
                  PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
      if (mem == MAP_FAILED) {
-          perror ("mmapping shared memory file");
+          FPERROR ("mmapping shared memory file failed!\n");
           close (fd);
           fd  = -1;
           mem = NULL;
@@ -455,18 +470,18 @@ void *__shmalloc_brk (int increment)
           int   new_size = size + increment;
 
           if (new_size > SH_MAX_SIZE) {
-               printf ("WARNING: maximum shared size exceeded!\n");
+               CAUTION ("maximum shared memory size reached!\n");
                return NULL;
           }
 
           if (ftruncate (fd, new_size) < 0) {
-               perror ("ftruncating shared memory file");
+               FPERROR ("ftruncating shared memory file failed!\n");
                return NULL;
           }
 
           new_mem = mremap (mem, size, new_size, 0);
           if (new_mem == MAP_FAILED) {
-               perror ("mremapping shared memory file");
+               FPERROR ("mremapping shared memory file failed!\n");
                ftruncate (fd, size);
                return NULL;
           }
@@ -490,12 +505,12 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
 
      new_mem = mremap (mem, size, new_size, 0);
      if (new_mem == MAP_FAILED) {
-          perror ("FATAL: mremap in __shmalloc_react failed on shared memory file");
+          FPERROR ("mremap on shared memory file failed!\n");
           return RS_OK;
      }
 
      if (new_mem != mem)
-          printf ("FATAL: mremap returned a different address!\n");
+          DFB_BREAK ("mremap returned a different address");
 
      size = new_size;
 

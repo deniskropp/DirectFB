@@ -121,10 +121,12 @@ fusion_init( int world, int *world_ret )
 
      /* Initialize shmalloc part. */
      if (!__shmalloc_init( world, _fusion_id == 1 )) {
-          fprintf( stderr, "\nShared memory initialization failed.\n" );
-          fprintf( stderr, "Please make sure that tmpfs is properly mounted "
-                           "and writable, \n" );
-          fprintf( stderr, "see the DirectFB README for more instructions.\n" );
+          fprintf( stderr, "\n"
+                           "Shared memory initialization failed.\n"
+                           "Please make sure that a tmpfs mount point with "
+                             "at least 4MB of free space\n"
+                           "is writable, see the DirectFB README "
+                             "for more instructions.\n" );
           
           _fusion_id = 0;
 
