@@ -583,7 +583,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
      int                    posx         = 0;
      int                    posy         = 0;
      DFBWindowCapabilities  caps         = 0;
-     DFBSurfaceCapabilities surface_caps = 0;
+     DFBSurfaceCapabilities surface_caps = DSCAPS_NONE;
      DFBSurfacePixelFormat  format       = DSPF_UNKNOWN;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)

@@ -408,7 +408,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      int height = 256;
      int policy = CSP_VIDEOLOW;
      DFBSurfacePixelFormat format;
-     DFBSurfaceCapabilities caps = 0;
+     DFBSurfaceCapabilities caps = DSCAPS_NONE;
      DFBDisplayLayerConfig  config;
      CoreSurface *surface = NULL;
 
