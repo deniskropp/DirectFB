@@ -150,6 +150,12 @@ int main( int argc, char *argv[] )
      if (DirectFBCreate( &argc, &argv, &dfb )  !=  DFB_OK)
           return 1;
 
+     if (argc < 2)
+     {
+          fprintf(stderr, "%s: you must specify a video source\n", argv[0]);
+          return 1;
+     }
+
      err = dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard );
      if (err != DFB_OK) {
           DirectFBError( "CreateInputDevice for keyboard failed", err );

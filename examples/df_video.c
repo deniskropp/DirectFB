@@ -75,6 +75,12 @@ int main( int argc, char *argv[] )
 
      DFBCHECK(DirectFBCreate( &argc, &argv, &dfb ));
 
+     if (argc < 2)
+     {
+          fprintf(stderr, "%s: you must specify a video source\n", argv[0]);
+          return 1;
+     }
+
      DFBCHECK(dfb->GetInputDevice( dfb, DIDID_MOUSE, &mouse ));
      DFBCHECK(dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard ));
 
@@ -195,6 +201,7 @@ int main( int argc, char *argv[] )
                dfbwindow->Move( dfbwindow, movx, movy );
      }
 
+     videoprovider->Release( videoprovider );
      dfbwindow->Release( dfbwindow );
      layer->Release( layer );
      dfb->Release( dfb );

@@ -88,6 +88,14 @@ int main( int argc, char *argv[] )
 
      DFBCHECK(DirectFBCreate( &argc, &argv, &dfb ));
 
+#ifdef VIDEO
+     if (argc < 2)
+     {
+          fprintf(stderr, "%s: you must specify a video source\n", argv[0]);
+          return 1;
+     }
+#endif
+
      dfb->GetCardCapabilities( dfb, &caps );
 
      DFBCHECK(dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard));
@@ -188,7 +196,7 @@ int main( int argc, char *argv[] )
           window_surface2->SetColor( window_surface2, 0x00, 0x00, 0x00, 0xB0 );
           window_surface2->FillRectangle( window_surface2, 0, 0,
                                           desc.width, desc.height );
-          DFBCHECK(dfb->CreateVideoProvider( dfb, "/home/dok/Wargames.avi",
+          DFBCHECK(dfb->CreateVideoProvider( dfb, argv[1],
                                              &videoprovider ));
           DFBCHECK(videoprovider->PlayTo( videoprovider, window_surface2,
                                           NULL, NULL, NULL ));
@@ -363,6 +371,10 @@ int main( int argc, char *argv[] )
 //          usleep(20000);
 #endif
      }
+
+#ifdef VIDEO
+     videoprovider->Release( videoprovider );
+#endif
 
      bgsurface->Release( bgsurface );
 
