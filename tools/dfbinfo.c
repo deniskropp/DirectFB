@@ -46,6 +46,7 @@ static IDirectFB *dfb = NULL;
 
 static DFBBoolean parse_command_line ( int argc, char *argv[] );
 static void       enum_input_devices ();
+static void       enum_display_layers ();
 
 /*****************************************************************************/
 
@@ -75,6 +76,7 @@ main( int argc, char *argv[] )
           return -3;
      }
 
+     enum_display_layers();
      enum_input_devices();
 
      /* Release the super interface. */
@@ -88,14 +90,7 @@ main( int argc, char *argv[] )
 static void
 print_usage (const char *prg_name)
 {
-     fprintf (stderr, "dfbg version %s\n", DIRECTFB_VERSION);
-     fprintf (stderr, "DirectFB Background Configuration Tool\n\n");
-     fprintf (stderr, "Usage: %s [options] <imagefile>\n", prg_name);
-     fprintf (stderr, "   -c, --color     interpret the filename as a color (AARRGGBB)\n");
-     fprintf (stderr, "   -t, --tile      tile background with the image\n");
-     fprintf (stderr, "   -h, --help      show this help message\n");
-     fprintf (stderr, "   -v, --version   print version information\n");
-     fprintf (stderr, "\n");
+     fprintf (stderr, "dfbinfo version %s\n", DIRECTFB_VERSION);
 }
 
 static DFBBoolean
@@ -103,6 +98,8 @@ parse_command_line( int argc, char *argv[] )
 {
      return DFB_TRUE;
 }
+
+/*****************************************************************************/
 
 static DFBEnumerationResult
 input_device_callback( DFBInputDeviceID           id,
@@ -180,5 +177,103 @@ enum_input_devices()
      ret = dfb->EnumInputDevices( dfb, input_device_callback, NULL );
      if (ret)
           DirectFBError( "IDirectFB::EnumInputDevices", ret );
+}
+
+/*****************************************************************************/
+
+static DFBEnumerationResult
+display_layer_callback( DFBDisplayLayerID           id,
+                        DFBDisplayLayerDescription  desc,
+                        void                       *arg )
+{
+     /* Name */
+     printf( "(%02x) %-30s", id, desc.name );
+
+     switch (id) {
+          case DLID_PRIMARY:
+               printf( "  (primary layer)" );
+               break;
+          default:
+               break;
+     }
+
+     printf( "\n" );
+
+     /* Type */
+     printf( "        Type: " );
+
+     if (desc.type & DLTF_BACKGROUND)
+          printf( "background " );
+
+     if (desc.type & DLTF_GRAPHICS)
+          printf( "graphics " );
+
+     if (desc.type & DLTF_STILL_PICTURE)
+          printf( "picture " );
+
+     if (desc.type & DLTF_VIDEO)
+          printf( "video " );
+
+     printf( "\n" );
+
+     /* Caps */
+     printf( "        Caps: " );
+
+     if (desc.caps & DLCAPS_ALPHACHANNEL)
+          printf( "alphachannel " );
+
+     if (desc.caps & DLCAPS_BRIGHTNESS)
+          printf( "brightness " );
+
+     if (desc.caps & DLCAPS_CONTRAST)
+          printf( "contrast " );
+
+     if (desc.caps & DLCAPS_DEINTERLACING)
+          printf( "deinterlacing " );
+
+     if (desc.caps & DLCAPS_DST_COLORKEY)
+          printf( "dst_colorkey " );
+
+     if (desc.caps & DLCAPS_FLICKER_FILTERING)
+          printf( "flicker_filtering " );
+
+     if (desc.caps & DLCAPS_HUE)
+          printf( "hue " );
+
+     if (desc.caps & DLCAPS_LEVELS)
+          printf( "levels " );
+
+     if (desc.caps & DLCAPS_OPACITY)
+          printf( "opacity " );
+
+     if (desc.caps & DLCAPS_SATURATION)
+          printf( "saturation " );
+
+     if (desc.caps & DLCAPS_SCREEN_LOCATION)
+          printf( "screen_location " );
+
+     if (desc.caps & DLCAPS_SRC_COLORKEY)
+          printf( "src_colorkey " );
+
+     if (desc.caps & DLCAPS_SURFACE)
+          printf( "surface " );
+
+     printf( "\n" );
+
+     printf( "\n" );
+
+     return DFB_OK;
+}
+
+static void
+enum_display_layers()
+{
+     DFBResult ret;
+
+     printf( "\nDisplay Layers\n\n" );
+
+     ret = dfb->EnumDisplayLayers( dfb, display_layer_callback, NULL );
+     if (ret)
+          DirectFBError( "IDirectFB::EnumDisplayLayers", ret );
 }
 
