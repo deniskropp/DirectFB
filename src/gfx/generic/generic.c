@@ -1136,37 +1136,35 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
      int    w2;
      int    w     = gfxs->length;
      int    i     = 0;
-     int    j     = 0;
      __u16 *D     = gfxs->Aop;
      __u16 *S     = gfxs->Bop;
      int    SperD = gfxs->SperD;
 
      if ((__u32)D & 2) {
           *D++ = *S;
-          j = i = SperD;
+          i = SperD;
           w--;
      }
      
      for (w2 = w/2; w2--;) {
           register __u32 Dpix;
 
-          Dpix  = ((__u32*)S)[i>>16] & 0xff00ff00;
+          Dpix  = ((__u32*)S)[i>>17] & 0xff00ff00;
 #ifdef WORDS_BIGENDIAN
-          Dpix |= (S[j>>16]          & 0x00ff) << 16;
-          Dpix |= (S[(j+SperD)>>16]  & 0x00ff);
+          Dpix |= (S[i>>16]          & 0x00ff) << 16;
+          Dpix |= (S[(i+SperD)>>16]  & 0x00ff);
 #else
-          Dpix |= (S[j>>16]          & 0x00ff);
-          Dpix |= (S[(j+SperD)>>16]  & 0x00ff) << 16;
+          Dpix |= (S[i>>16]          & 0x00ff);
+          Dpix |= (S[(i+SperD)>>16]  & 0x00ff) << 16;
 #endif
           *((__u32*)D) = Dpix;
           D += 2;
           
-          i += SperD;
-          j += SperD << 1;
+          i += SperD << 1;
      }
 
      if (w & 1)
-          *D = *S;
+          *D = S[i>>16];
 }
 
 static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
@@ -1174,37 +1172,35 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
      int    w2;
      int    w     = gfxs->length;
      int    i     = 0;
-     int    j     = 0;
      __u16 *D     = gfxs->Aop;
      __u16 *S     = gfxs->Bop;
      int    SperD = gfxs->SperD;
 
      if ((__u32)D & 2) {
           *D++ = *S;
-          j = i = SperD;
+          i = SperD;
           w--;
      }
      
      for (w2 = w/2; w2--;) {
           register __u32 Dpix;
 
-          Dpix  = ((__u32*)S)[i>>16] & 0x00ff00ff;
+          Dpix  = ((__u32*)S)[i>>17] & 0x00ff00ff;
 #ifdef WORDS_BIGENDIAN
-          Dpix |= (S[j>>16]          & 0xff00) << 16;
-          Dpix |= (S[(j+SperD)>>16]  & 0xff00);
+          Dpix |= (S[i>>16]          & 0xff00) << 16;
+          Dpix |= (S[(i+SperD)>>16]  & 0xff00);
 #else
-          Dpix |= (S[j>>16]          & 0xff00);
-          Dpix |= (S[(j+SperD)>>16]  & 0xff00) << 16;
+          Dpix |= (S[i>>16]          & 0xff00);
+          Dpix |= (S[(i+SperD)>>16]  & 0xff00) << 16;
 #endif
           *((__u32*)D) = Dpix;
           D += 2;
 	
-          i += SperD;
-          j += SperD << 1;
+          i += SperD << 1;
      }
 
      if (w & 1)
-          *D = *S;
+          *D = S[i>>16];
 }
 
 static void Bop_NV_Sto_Aop( GenefxState *gfxs )
