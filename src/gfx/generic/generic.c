@@ -3170,14 +3170,15 @@ void gDrawLine( DFBRegion *line )
      }
 
      sdy = SIGN(dy) * SIGN(dx);
-     x   = dyabs >> 1;
-     y   = dxabs >> 1;
+     x = dyabs >> 1;
+     y = dxabs >> 1;
+
      if (dx > 0) {
-       px  = line->x1;
-       py  = line->y1;
+          px  = line->x1;
+          py  = line->y1;
      } else {
-       px  = line->x2;
-       py  = line->y2;
+          px  = line->x2;
+          py  = line->y2;
      }
 
      if (dxabs >= dyabs) { /* the line is more horizontal than vertical */
