@@ -27,7 +27,6 @@
 #include <stdio.h>    /* for `fprintf()'  */
 #include <stdlib.h>   /* for `rand()'     */
 #include <unistd.h>   /* for `sleep()'    */
-#include <math.h>     /* for `sqrt()'     */
 #include <string.h>   /* for `memset()'   */
 
 /* the super interface */
@@ -35,9 +34,6 @@ IDirectFB *dfb;
 
 /* the primary surface (surface of primary layer) */
 IDirectFBSurface *primary;
-
-/* pixelformat of the primary surface */
-DFBSurfacePixelFormat pixelformat;
 
 /* our "Press any key..." screen */
 IDirectFBSurface *intro;
@@ -49,8 +45,9 @@ IDirectFBSurface *image32;
 IDirectFBSurface *image32a;
 
 IDirectFBDisplayLayer *layer;
-IDirectFBFont *font;
-static int fontheight;
+IDirectFBFont         *font;
+int stringwidth;
+int fontheight;
 
 /* Media super interface and the provider for our images/font */
 IDirectFBImageProvider *provider;
@@ -59,10 +56,15 @@ IDirectFBImageProvider *provider;
 IDirectFBInputDevice *keyboard;
 IDirectFBInputBuffer *key_events;
 
+int SW, SH;
+
+int with_intro  = 0;
+int selfrunning = 0;
+
+
 /* some defines for benchmark test size and duration */
 #define SX 256
 #define SY 256
-#define SL sqrt(SX*SX+SY*SY)
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 #define DEMOTIME    3
@@ -76,30 +78,95 @@ IDirectFBInputBuffer *key_events;
                     DirectFBErrorFatal( #x, err );                         \
                }
 
-int SW, SH;
 
-int quit = 0;
-int with_intro = 0;
-int selfrunning = 0;
+/* the benchmarks */
 
-struct {
-     float drawstring;
-     float fillrectangle;
-     float fillrectangle_blend;
-     float filltriangle;
-     float filltriangle_blend;
-     float drawrectangle;
-     float drawrectangle_blend;
-     float drawline;
-     float drawline_blend;
-     float blit;
-     float blit_colorkey;
-     float blit_32;
-     float blit_alpha;
-     float stretchblit;
-} result;
+static int  draw_string          (unsigned long);
+static int  fill_rect            (unsigned long);
+static int  fill_rect_blend      (unsigned long);
+static int  fill_triangle        (unsigned long);
+static int  fill_triangle_blend  (unsigned long);
+static int  draw_rect            (unsigned long);
+static int  draw_rect_blend      (unsigned long);
+static int  draw_lines           (unsigned long);
+static int  draw_lines_blend     (unsigned long);
+static int  blit                 (unsigned long);
+static int  blit_colorkeyed      (unsigned long);
+static int  blit_convert         (unsigned long);
+static int  blit_blend           (unsigned long);
+static int  blit_stretch         (unsigned long);
 
-void shutdown()
+
+typedef struct {
+     char    * desc;
+     char    * message;
+     char    * status;
+     float     result;
+     char    * unit;
+     int    (* func) (unsigned long);  
+} Demo;
+
+static Demo demos[] = {
+  { "Anti-aliased Text", 
+    "This is the DirectFB benchmarking tool, let's start with some text!",
+    "Anti-aliased Text", 
+    0.0, "KChars/sec",  draw_string },
+  { "Fill Rectangles",
+    "Ok, we'll go on with some opaque filled rectangles!",
+    "Rectangle Filling", 
+    0.0, "MPixel/sec", fill_rect },
+  { "Fill Rectangles (blend)",
+    "What about alpha blended rectangles?",
+    "Alpha Blended Rectangle Filling", 
+    0.0, "MPixel/sec", fill_rect_blend },
+  { "Fill Triangles", 
+    "Ok, we'll go on with some opaque filled triangles!",
+    "Triangle Filling", 
+    0.0, "MPixel/sec", fill_triangle },
+  { "Fill Triangles (blend)",  
+    "What about alpha blended triangles?", 
+    "Alpha Blended Triangle Filling", 
+    0.0, "MPixel/sec", fill_triangle_blend },
+  { "Draw Rectangles", 
+    "Now pass over to non filled rectangles!", 
+    "Rectangle Outlines", 
+    0.0, "MPixel/sec", draw_rect },
+  { "Draw Rectangles (blend)",
+    "Again, we want it with alpha blending!",
+    "Alpha Blended Rectangle Outlines",
+    0.0, "MPixel/sec", draw_rect_blend },
+  { "Draw Lines",
+    "Can we have some opaque lines, please?",
+    "Line Drawing",
+    0.0, "MPixel/sec", draw_lines },
+  { "Draw Lines (blend)",
+    "So what? Where's the blending?",
+    "Alpha Blended Line Drawing",
+    0.0, "MPixel/sec", draw_lines_blend },
+  { "Blit",
+    "Now lead to some blitting demos! The simplest one comes first...",
+    "Simple BitBlt",
+    0.0, "MPixel/sec", blit },
+  { "Blit colorkeyed",
+    "Color keying would be nice...",
+    "BitBlt with Color Keying",
+    0.0, "MPixel/sec", blit_colorkeyed },
+  { "Blit with format conversion",
+    "What if the source surface has another format?",
+    "BitBlt with on-the-fly format conversion",
+    0.0, "MPixel/sec", blit_convert },
+  { "Blit from 32bit (alphachannel blend)", 
+    "Here we go with alpha again!",
+    "BitBlt with Alpha Channel",
+    0.0, "MPixel/sec", blit_blend },
+  { "Stretched Blit", 
+    "Stretching!!!!!",
+    "Stretched Blit",
+    0.0, "MPixel/sec", blit_stretch },
+  { NULL, NULL, NULL, 0.0, NULL, NULL }
+};
+
+static void shutdown()
 {
      /* release our interfaces to shutdown DirectFB */
      intro->Release( intro );
@@ -114,7 +181,7 @@ void shutdown()
      dfb->Release( dfb );
 }
 
-void showMessage( const char *msg )
+static void showMessage( const char *msg )
 {
      DFBInputEvent ev;
      int err;
@@ -148,17 +215,19 @@ void showMessage( const char *msg )
      primary->FillRectangle( primary, 0, 0, SW, SH+fontheight );
 }
 
-void showResult()
+static void showResult()
 {
      IDirectFBSurface       *meter;
      IDirectFBImageProvider *provider;
      DFBSurfaceDescription   dsc;
      DFBRectangle            dest;
-     int   i;
+     int   i, y;
      char  rate[32];
+     char  format[32];
      float factor = (SW-80) / 500.0f;
 
-     if (dfb->CreateImageProvider( dfb, DATADIR"/examples/meter.png", &provider ))
+     if (dfb->CreateImageProvider( dfb, 
+                                   DATADIR"/examples/meter.png", &provider ))
          return;
 
      provider->GetSurfaceDescription( provider, &dsc );
@@ -175,123 +244,38 @@ void showResult()
      primary->DrawString( primary, "Results", -1, SW/2, 10, DSTF_TOPCENTER );
 
      dest.x = 40; dest.y = 70; dest.h = dsc.height;
+     primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0x40 );
+     primary->SetDrawingFlags( primary, DSDRAW_BLEND );
 
-     dest.w = (int)( result.drawstring * factor );
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.fillrectangle * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.fillrectangle_blend * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.filltriangle * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.filltriangle_blend * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.drawrectangle * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.drawrectangle_blend * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.drawline * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.drawline_blend * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.blit * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.blit_colorkey * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.blit_32 * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.blit_alpha * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
-
-     dest.w = (int)( result.stretchblit * factor ); 
-     dest.y += 40;
-     primary->StretchBlit( primary, meter, NULL, &dest );
+     for (i = 0; demos[i].desc != NULL; i++)
+       {
+         dest.w = (int)( demos[i].result * factor );
+         primary->StretchBlit( primary, meter, NULL, &dest );
+         primary->DrawLine( primary, 40, dest.y + 19, SW-40, dest.y + 19 );
+         dest.y += 40;
+       }
 
      meter->Release( meter );
-
-
-     primary->SetDrawingFlags( primary, DSDRAW_BLEND );
-     primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0x40 );
-     for (i=0; i<13; i++) {
-          primary->DrawLine( primary, 40, 89 + 40*i, SW-40, 89 + 40*i );
-     }
+    
+     y = 75;
+     for (i = 0; demos[i].desc != NULL; i++)
+       {
+         primary->SetColor( primary, 0xCC, 0xCC, 0xCC, 0xFF );
+         primary->DrawString( primary, demos[i].desc, -1, 20, y, DSTF_LEFT );
      
-     primary->SetColor( primary, 0xCC, 0xCC, 0xCC, 0xFF );
-     primary->DrawString( primary, "Anti-aliased Text", -1, 20, 75, DSTF_LEFT );
-     primary->DrawString( primary, "Fill Rectangles", -1, 20, 115, DSTF_LEFT );
-     primary->DrawString( primary, "Fill Rectangles (blend)", -1, 20, 155, DSTF_LEFT );
-     primary->DrawString( primary, "Fill Triangles", -1, 20, 195, DSTF_LEFT );
-     primary->DrawString( primary, "Fill Triangles (blend)", -1, 20, 235, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Rectangles", -1, 20, 275, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Rectangles (blend)", -1, 20, 315, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Lines", -1, 20, 355, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Lines (blend)", -1, 20, 395, DSTF_LEFT );
-     primary->DrawString( primary, "Blit", -1, 20, 435, DSTF_LEFT );
-     primary->DrawString( primary, "Blit colorkeyed", -1, 20, 475, DSTF_LEFT );
-     primary->DrawString( primary, "Blit with format conversion", -1, 20, 515, DSTF_LEFT );
-     primary->DrawString( primary, "Blit from 32bit (alphachannel blend)", -1, 20, 555, DSTF_LEFT );
-     primary->DrawString( primary, "Stretched Blit", -1, 20, 595, DSTF_LEFT );
+         sprintf( format, "%%.2f %s", demos[i].unit );
+         sprintf( rate, format, demos[i].result );
+         primary->SetColor( primary, 0xAA, 0xAA, 0xAA, 0xFF );
+         primary->DrawString( primary, rate, -1, SW-40, y + 5, DSTF_RIGHT );
+
+         y += 40;
+       }
      
-     primary->SetColor( primary, 0xAA, 0xAA, 0xAA, 0xFF );
-     sprintf( rate, "%.2f KChar/sec", result.drawstring );
-     primary->DrawString( primary, rate, -1, SW-40, 80, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.fillrectangle );
-     primary->DrawString( primary, rate, -1, SW-40, 120, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.fillrectangle_blend );
-     primary->DrawString( primary, rate, -1, SW-40, 160, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.filltriangle );
-     primary->DrawString( primary, rate, -1, SW-40, 200, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.filltriangle_blend );
-     primary->DrawString( primary, rate, -1, SW-40, 240, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.drawrectangle );
-     primary->DrawString( primary, rate, -1, SW-40, 280, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.drawrectangle_blend );
-     primary->DrawString( primary, rate, -1, SW-40, 320, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.drawline );
-     primary->DrawString( primary, rate, -1, SW-40, 360, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.drawline_blend );
-     primary->DrawString( primary, rate, -1, SW-40, 400, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.blit );
-     primary->DrawString( primary, rate, -1, SW-40, 440, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.blit_colorkey );
-     primary->DrawString( primary, rate, -1, SW-40, 480, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.blit_32 );
-     primary->DrawString( primary, rate, -1, SW-40, 520, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.blit_alpha );
-     primary->DrawString( primary, rate, -1, SW-40, 560, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.stretchblit );
-     primary->DrawString( primary, rate, -1, SW-40, 600, DSTF_RIGHT );
-
-
      key_events->Reset( key_events );
      key_events->WaitForEvent( key_events );
 }
 
-void showStatus( const char *msg )
+static void showStatus( const char *msg )
 {
      int err;
 
@@ -303,10 +287,235 @@ void showStatus( const char *msg )
      DFBCHECK(primary->DrawString( primary, msg, -1, SW-1, SH, DSTF_TOPRIGHT ));
 }
 
+static int draw_string(unsigned long t)
+{
+     int i;
+
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+          primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
+                             rand()%0xFF, 0xFF );
+          primary->DrawString( primary, 
+                               "DirectX is dead, this is DirectFB", -1,
+                               rand()%(SW-stringwidth),
+                               rand()%(SH-fontheight),
+                               DSTF_TOPLEFT );
+     }
+     return 36*i*1000;
+}
+
+static int fill_rect(unsigned long t)
+{
+     int i;
+
+     primary->SetDrawingFlags( primary, DSDRAW_NOFX );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+          primary->SetColor( primary, 
+                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 0xFF );
+          primary->FillRectangle( primary,
+                                  rand()%(SW-SX), rand()%(SH-SY), SX, SY );
+     }
+     return SX*SY*i;
+}
+
+static int fill_rect_blend(unsigned long t)
+{
+     int i;
+
+     primary->SetDrawingFlags( primary, DSDRAW_BLEND );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+          primary->SetColor( primary, 
+                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 
+                             rand()%0x64 );
+          primary->FillRectangle( primary,
+                                  rand()%(SW-SX), rand()%(SH-SY), SX, SY );
+     }
+     return SX*SY*i;
+}
+
+static int fill_triangle(unsigned long t)          
+{
+     int i, x, y;
+
+     primary->SetDrawingFlags( primary, DSDRAW_NOFX );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+          x = rand()%(SW-SX);
+          y = rand()%(SH-SY);
+
+          primary->SetColor( primary, 
+                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 0xFF );
+          primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
+     }
+     return SX*SY*i/2;
+}
+
+static int fill_triangle_blend(unsigned long t)
+{
+     int i, x, y;
+
+     primary->SetDrawingFlags( primary, DSDRAW_BLEND );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+          x = rand()%(SW-SX);
+          y = rand()%(SH-SY);
+
+          primary->SetColor( primary, 
+                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 
+                             rand()%0x64 );
+          primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
+     }
+     return SX*SY*i/2;
+}
+
+static int draw_rect(unsigned long t)
+{
+     int i;
+     
+     primary->SetDrawingFlags( primary, DSDRAW_NOFX );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+          primary->SetColor( primary, 
+                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 0xFF );
+          primary->DrawRectangle( primary, 
+                                  rand()%(SW-SX), rand()%(SH-SY), SX, SY );
+     }
+     return (SX*2+SY*2-4)*i;
+}
+
+static int draw_rect_blend(unsigned long t)
+{
+     int i;
+
+     primary->SetDrawingFlags( primary, DSDRAW_BLEND );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+          primary->SetColor( primary, 
+                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 
+                             rand()%0x64 );
+          primary->DrawRectangle( primary, 
+                                  rand()%(SW-SX), rand()%(SH-SY), SX, SY );
+     }
+     return (SX*2+SY*2-4)*i;
+}
+
+static int draw_lines(unsigned long t)
+{
+     int i, x, y, dx, dy;
+     int pixels = 0;
+
+     primary->SetDrawingFlags( primary, DSDRAW_NOFX );
+     for (i=0; i<i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+          x = rand()%(SW-SX) + SX/2;
+          y = rand()%(SH-SY) + SY/2;
+          dx = rand()%(2*SX) - SX;
+          dy = rand()%(2*SY) - SY;
+          primary->SetColor( primary, 
+                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 0xFF );
+          primary->DrawLine( primary, 
+                             x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
+          pixels += MAX( abs (dx), abs (dy) );
+     }
+     return pixels;
+}
+
+static int draw_lines_blend(unsigned long t)
+{
+     int i, x, y, dx, dy;
+     int pixels = 0;
+
+     primary->SetDrawingFlags( primary, DSDRAW_BLEND );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+          x = rand()%(SW-SX) + SX/2;
+          y = rand()%(SH-SY) + SY/2;
+          dx = rand()%(2*SX) - SX;
+          dy = rand()%(2*SY) - SY;
+    
+          primary->SetColor( primary, 
+                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 
+                             rand()%0x64 );
+          primary->DrawLine( primary, 
+                             x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
+          pixels += MAX( abs (dx), abs (dy) );
+     }
+     return pixels;
+}
+
+static int blit(unsigned long t)
+{
+     int i;
+
+     primary->SetBlittingFlags( primary, DSBLIT_NOFX );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+       primary->Blit( primary, simple, NULL,
+                      (SW!=SX) ? rand()%(SW-SX) : 0,
+                      (SH-SY) ? rand()%(SH-SY) : 0 );
+     }
+     return SX*SY*i;
+}
+
+static int blit_colorkeyed(unsigned long t)
+{
+     int i;
+
+     primary->SetSrcColorKey( primary, 0);
+     primary->SetBlittingFlags( primary, DSBLIT_SRC_COLORKEY );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+       primary->Blit( primary, colorkeyed, NULL,
+                      (SW!=SX) ? rand()%(SW-SX) : 0,
+                      (SY-SH)  ? rand()%(SH-SY) : 0 );
+     }
+     return SX*SY*i;
+}
+
+static int blit_convert(unsigned long t)
+{
+     int i;
+
+     primary->SetBlittingFlags( primary, DSBLIT_NOFX );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+       primary->Blit( primary, image32, NULL,
+                      (SW!=SX) ? rand()%(SW-SX) : 0,
+                      (SY-SH) ? rand()%(SH-SY) : 0 );
+     }
+     return SX*SY*i;
+}
+
+static int blit_blend(unsigned long t)
+{
+     int i;
+
+     primary->SetBlittingFlags( primary, DSBLIT_BLEND_ALPHACHANNEL );
+     for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+       primary->Blit( primary, image32a, NULL,
+                      (SW!=SX) ? rand()%(SW-SX) : 0,
+                      (SY-SH)  ? rand()%(SH-SY) : 0 );
+     }
+     return SX*SY*i;
+}
+
+static int blit_stretch(unsigned long t)
+{
+     int i, j;
+     int pixels = 0;
+
+     primary->SetBlittingFlags( primary, DSBLIT_NOFX );
+     for (j=1; j%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); j++) {
+          if (j>SH) {
+               j = 10;
+          }
+          for (i=10; i<SH; i+=j) {
+            DFBRectangle dr = { SW/2-i/2, SH/2-i/2, i, i };
+            
+            primary->StretchBlit( primary, simple, NULL, &dr );
+            
+            pixels += dr.w * dr.h;
+          }
+     }
+     return pixels;
+}
+
 int main( int argc, char *argv[] )
 {
      DFBResult err;
+     DFBSurfacePixelFormat pixelformat;
      DFBSurfaceDescription dsc;
+     int i;
 
      DFBCHECK(DirectFBInit( &argc, &argv ));
 
@@ -344,8 +553,10 @@ int main( int argc, char *argv[] )
           desc.height = 22;
 
           DFBCHECK(dfb->CreateFont( dfb, FONT, &desc, &font ));
-          DFBCHECK(font->GetHeight( font, &fontheight ));
-          DFBCHECK(primary->SetFont( primary, font ));
+          font->GetHeight( font, &fontheight );
+          primary->SetFont( primary, font );
+          font->GetStringWidth( font, "DirectX is dead, this is DirectFB", -1,
+                                &stringwidth );
      }
 
      primary->FillRectangle( primary, 0, 0, SW, SH );
@@ -426,346 +637,32 @@ int main( int argc, char *argv[] )
 
      sync();
      sleep(2);
-
-     {
-          int i, j;
-          unsigned long t, pixels;
-          float dt;
-          unsigned int stringwidth;
-
-          font->GetStringWidth( font, "DirectX is dead, this is DirectFB", -1,
-                                &stringwidth );
+     
+     for (i = 0; demos[i].desc != NULL; i++) {
+           unsigned long t;
+           float dt;
+           int pixels;
           
-          
-          showMessage( "This is the DirectFB benchmarking tool, "
-                       "let's start with some text!" );
+           showMessage( demos[i].message );
+           showStatus( demos[i].status );
 
-          showStatus( "Anti-aliased Text" );
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                                  rand()%0xFF, 0xFF );
-               primary->DrawString( primary, "DirectX is dead, this is DirectFB", -1,
-                                    rand()%(SW-stringwidth),
-                                    rand()%(SH-fontheight),
-                                    DSTF_TOPLEFT );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.drawstring = 36*(i/dt)/1000.0f;
-          printf( "DrawString:             %6.2f secs (%6.2f KChars/sec)\n",
-                  dt, result.drawstring );
+           sync();
+           dfb->WaitIdle( dfb );
+           t = clock();
+           pixels = (* demos[i].func)(t);
+           dfb->WaitIdle( dfb );
+           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
+           demos[i].result = (float)pixels / (dt*1000000.0f);
+           printf( "%-36s %6.2f secs (%6.2f %s)\n", 
+                   demos[i].desc, dt, demos[i].result, demos[i].unit);
+     }          
 
-          
-          
-          showMessage( "Ok, we'll go on with some opaque filled rectangles!" );
-
-          showStatus( "Rectangle Filling" );
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                                  rand()%0xFF, 0xFF );
-	       primary->FillRectangle( primary,
-				       rand()%(SW-SX), rand()%(SH-SY), SX, SY );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.fillrectangle = SX*SY*(i/dt)/1000000.0f;
-          printf( "FillRectangle:          %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.fillrectangle );
-          
-          
-          
-          showMessage( "What about alpha blended rectangles?" );
-
-          showStatus( "Alpha Blended Rectangle Filling" );
-
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          primary->SetDrawingFlags( primary, DSDRAW_BLEND );
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                                  rand()%0xFF, rand()%0x64 );
-	       primary->FillRectangle( primary,
-				       rand()%(SW-SX), rand()%(SH-SY), SX, SY );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.fillrectangle_blend = SX*SY*(i/dt)/1000000.0f;
-          printf( "FillRectangle (blend):  %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.fillrectangle_blend );
-
-
-
-          showMessage( "Ok, we'll go on with some opaque filled triangles!" );
-
-          showStatus( "Triangle Filling" );
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               int x = rand()%(SW-SX);
-               int y = rand()%(SH-SY);
-
-               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                                  rand()%0xFF, 0xFF );
-	       primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.filltriangle = SX*SY*(i/dt)/1000000.0f / 2.0f;
-          printf( "FillTriangle:           %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.filltriangle );
-          
-          
-          
-          showMessage( "What about alpha blended triangles?" );
-
-          showStatus( "Alpha Blended Triangle Filling" );
-
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          primary->SetDrawingFlags( primary, DSDRAW_BLEND );
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               int x = rand()%(SW-SX);
-               int y = rand()%(SH-SY);
-
-               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                                  rand()%0xFF, rand()%0x64 );
-	       primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.filltriangle_blend = SX*SY*(i/dt)/1000000.0f / 2.0f;
-          printf( "FillTriangle (blend):   %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.filltriangle_blend );
-
-
-          
-          showMessage( "Now pass over to non filled rectangles!" );
-
-          showStatus( "Rectangle Outlines" );
-
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                                  rand()%0xFF, 0xFF );
-               primary->DrawRectangle( primary, rand()%(SW-SX), rand()%(SH-SY),
-                                       SX, SY );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.drawrectangle = (SX*2+SY*2-4)*(i/dt)/1000000.0f;
-          printf( "DrawRectangle:          %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.drawrectangle );
-
-          
-          
-          showMessage( "Again, we want it with alpha blending!" );
-
-          showStatus( "Alpha Blended Rectangle Outlines" );
-
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          primary->SetDrawingFlags( primary, DSDRAW_BLEND );
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                                  rand()%0xFF, rand()%0x64 );
-               primary->DrawRectangle( primary, rand()%(SW-SX), rand()%(SH-SY),
-                                       SX, SY );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.drawrectangle_blend = (SX*2+SY*2-4)*(i/dt)/1000000.0f;
-          printf( "DrawRectangle (blend):  %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.drawrectangle_blend );
-
-
-          
-          showMessage( "Can we have some opaque lines, please?" );
-
-          showStatus( "Line Drawing" );
-
-          sync();
-          pixels = 0;
-          dfb->WaitIdle( dfb );
-          t = clock();
-          for (i=0; i<i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               int x = rand()%(SW-SX) + SX/2;
-               int y = rand()%(SH-SY) + SY/2;
-               int dx = rand()%(2*SX) - SX;
-               int dy = rand()%(2*SY) - SY;
-               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                                  rand()%0xFF, 0xFF );
-               primary->DrawLine( primary, 
-                                  x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
-               pixels += MAX( abs (dx), abs (dy) );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.drawline = (pixels/dt)/1000000.0f;
-          printf( "DrawLine:               %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.drawline );
-
-          
-          
-          showMessage( "So what? Where's the blending?" );
-
-          showStatus( "Alpha Blended Line Drawing" );
-
-          sync();
-          pixels = 0;
-          dfb->WaitIdle( dfb );
-          t = clock();
-          primary->SetDrawingFlags( primary, DSDRAW_BLEND );
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               int x = rand()%(SW-SX) + SX/2;
-               int y = rand()%(SH-SY) + SY/2;
-               int dx = rand()%(2*SX) - SX;
-               int dy = rand()%(2*SY) - SY;
-               
-               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                                  rand()%0xFF, rand()%0x64 );
-               primary->DrawLine( primary, 
-                                  x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
-               pixels += MAX( abs (dx), abs (dy) );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.drawline_blend = (pixels/dt) / 1000000.0f;
-          printf( "DrawLine (blend):       %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.drawline_blend );
-
-
-          
-          showMessage( "Now lead to some blitting demos! "
-                       "The simplest one comes first..." );
-
-          showStatus( "Simple BitBlt" );
-
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               primary->Blit( primary, simple, NULL,
-                              (SW!=SX) ? rand()%(SW-SX) : 0,
-                              (SH-SY) ? rand()%(SH-SY) : 0 );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.blit = SX*SY*(i/dt)/1000000.0f;
-          printf( "Blit %dbit:             %6.2f secs (%6.2f MPixel/sec)\n",
-                  BYTES_PER_PIXEL(pixelformat)*8, dt, result.blit );
-
-          
-          
-          showMessage( "Color keying would be nice..." );
-
-          showStatus( "BitBlt with Color Keying" );
-
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          primary->SetBlittingFlags( primary, DSBLIT_SRC_COLORKEY );
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               primary->Blit( primary, colorkeyed, NULL,
-                              (SW!=SX) ? rand()%(SW-SX) : 0,
-                              (SY-SH) ? rand()%(SH-SY) : 0 );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.blit_colorkey = SX*SY*(i/dt)/1000000.0f;
-          printf( "Blit %dbit (colorkey):  %6.2f secs (%6.2f MPixel/sec)\n",
-                  BYTES_PER_PIXEL(pixelformat)*8, dt, result.blit_colorkey );
-
-          
-          showMessage( "What if the source surface has another format?" );
-
-          showStatus( "BitBlt with on-the-fly format conversion" );
-
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          primary->SetBlittingFlags( primary, DSBLIT_NOFX );
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               primary->Blit( primary, image32, NULL,
-                              (SW!=SX) ? rand()%(SW-SX) : 0,
-                              (SY-SH) ? rand()%(SH-SY) : 0 );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.blit_32 = SX*SY*(i/dt)/1000000.0f;
-          printf( "Blit %dbit:             %6.2f secs (%6.2f MPixel/sec)\n",
-                  BYTES_PER_PIXEL(pixelformat) == 2 ? 32 : 16, dt, result.blit_32 );
-
-          
-          
-          showMessage( "Here we go with alpha again!" );
-
-          showStatus( "BitBlt with Alpha Channel" );
-
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          primary->SetBlittingFlags( primary, DSBLIT_BLEND_ALPHACHANNEL );
-          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               primary->Blit( primary, image32a, NULL,
-                              (SW!=SX) ? rand()%(SW-SX) : 0,
-                              (SY-SH) ? rand()%(SH-SY) : 0 );
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.blit_alpha = SX*SY*(i/dt)/1000000.0f;
-          printf( "Blit 32bit with alpha:  %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.blit_alpha );
-
-          
-          
-          showMessage( "Stretching!!!!!" );
-
-          showStatus( "Stretched Blit" );
-
-          pixels = 0;
-          sync();
-          dfb->WaitIdle( dfb );
-          t = clock();
-          primary->SetBlittingFlags( primary, DSBLIT_NOFX );
-          for (j=1; j%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); j++) {
-               if (j>SH) {
-                    j = 10;
-               }
-               for (i=10; i<SH; i+=j) {
-                    DFBRectangle dr = { SW/2-i/2, SH/2-i/2, i, i };
-
-                    primary->StretchBlit( primary, simple, NULL, &dr );
-
-                    pixels += dr.w * dr.h;
-               }
-          }
-          dfb->WaitIdle( dfb );
-          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
-          result.stretchblit = (pixels/dt)/1000000.0f;
-          printf( "StretchBlit:            %6.2f secs (%6.2f MPixel/sec)\n",
-                  dt, result.stretchblit );
-
-          
-          
-          showResult();
-     }
+     showResult();
 
      printf( "\n" );
-
+     
      shutdown();
-
+     
      return 0;
 }
 
