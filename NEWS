@@ -1,6 +1,8 @@
 0.9.1
 ------
 
+- pkg-config files are available for optionally installed interfaces
+  like IDirectFBVideoProvider_AviFile, so apps can test for their existence.
 - Added IDirectFBInputDevice->GetButtonState() which returns the
   state of the specified button. GetButtons() is also still available.
 - New demo called "df_knuckles" draws a three dimensional lighted skull
