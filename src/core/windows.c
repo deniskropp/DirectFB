@@ -154,10 +154,13 @@ create_region( CoreDFB                 *core,
      config.height     = window->height;
      config.format     = format;
      config.buffermode = DLBM_BACKVIDEO;
-     config.options    = context->config.options & (DLOP_ALPHACHANNEL | DLOP_FLICKER_FILTERING);
+     config.options    = context->config.options & DLOP_FLICKER_FILTERING;
      config.source     = (DFBRectangle) {         0,         0, window->width, window->height };
      config.dest       = (DFBRectangle) { window->x, window->y, window->width, window->height };
      config.opacity    = 0xff;
+
+     if ((context->config.options & DLOP_ALPHACHANNEL) && DFB_PIXELFORMAT_HAS_ALPHA(format))
+          config.options |= DLOP_ALPHACHANNEL;
 
      ret = dfb_layer_region_create( context, &region );
      if (ret)
