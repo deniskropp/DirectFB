@@ -58,6 +58,18 @@
 #define X_DISPLAY_MISSING
 #include <Imlib2.h>
 
+
+static DFBResult
+Probe( const char *head, const char *filename);
+
+static DFBResult
+Construct( IDirectFBImageProvider *thiz,
+           const char             *filename );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, IMLIB2 )
+
 /*
  * private data struct of IDirectFBImageProvider_IMLIB2
  */
@@ -88,17 +100,8 @@ IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
                                                 DFBImageDescription    *dsc );
 
 
-char *get_type()
-{
-     return "IDirectFBImageProvider";
-}
-
-char *get_implementation()
-{
-     return "IMLIB2";
-}
-
-DFBResult Probe( const char *head, const char *filename)
+static DFBResult
+Probe( const char *head, const char *filename)
 {
    Imlib_Image im;
    Imlib_Load_Error err;
@@ -129,8 +132,9 @@ DFBResult Probe( const char *head, const char *filename)
    return DFB_UNSUPPORTED;
 }
 
-DFBResult Construct( IDirectFBImageProvider *thiz,
-                     const char *filename )
+static DFBResult
+Construct( IDirectFBImageProvider *thiz,
+           const char             *filename )
 {
      IDirectFBImageProvider_IMLIB2_data *data;
 
@@ -161,7 +165,7 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
 }
 
 
-   static DFBResult
+static DFBResult
 IDirectFBImageProvider_IMLIB2_AddRef  ( IDirectFBImageProvider *thiz )
 {
    INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
