@@ -154,6 +154,9 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
           case DSPF_NV12:
                return "NV12";
 
+          case DSPF_NV21:
+               return "NV21";
+
           case DSPF_NV16:
                return "NV16";
 

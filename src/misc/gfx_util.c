@@ -154,6 +154,7 @@ static void rgba_to_dst_format (__u8 *dst,
           case DSPF_YV12:
           case DSPF_I420:
           case DSPF_NV12:
+          case DSPF_NV21:
           case DSPF_NV16:
                D_ONCE( "format not fully supported (only luma plane, yet)" );
 
