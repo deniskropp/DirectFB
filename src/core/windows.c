@@ -2539,8 +2539,6 @@ get_keyboard_window( CoreWindowStack     *stack,
           }
      }
 
-     CAUTION( "no owner for key release" );
-     
      /* No owner for release event found, discard it. */
      return NULL;
 }
