@@ -86,6 +86,8 @@ static void config_print_usage()
              "Mouse Motion Event Compression\n"
              " --mouse-protocol=<protocol>       "
              "Mouse Protocol (serial mouse)\n"
+             " --lefty                           "
+             "Swap left and right mouse buttons\n"
              " --bg-none                         "
              "Disable Background Clear\n"
              " --bg-color=AARRGGBB               "
@@ -339,6 +341,9 @@ DFBResult config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "sync" ) == 0) {
           dfb_config->sync = 1;
+     } else
+     if (strcmp (name, "lefty" ) == 0) {
+          dfb_config->lefty = 1;
      } else
      if (strcmp (name, "no-sync" ) == 0) {
           dfb_config->sync = 0;

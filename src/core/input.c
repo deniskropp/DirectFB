@@ -221,8 +221,24 @@ input_detach( InputDevice *device, React react, void *ctx )
 }
 
 void
-input_dispatch( InputDevice *device, const DFBInputEvent *event )
+input_dispatch( InputDevice *device, DFBInputEvent *event )
 {
+     switch (event->type) {
+          case DIET_BUTTONPRESS:
+          case DIET_BUTTONRELEASE:
+               if (dfb_config->lefty) {
+                    if (event->button == DIBI_LEFT)
+                         event->button = DIBI_RIGHT;
+                    else if (event->button == DIBI_RIGHT)
+                         event->button = DIBI_LEFT;
+               }
+
+               break;
+
+          default:
+               ;
+     }
+     
      reactor_dispatch( device->shared->reactor, event, true );
 }
 

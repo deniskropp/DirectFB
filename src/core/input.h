@@ -97,7 +97,7 @@ void input_enumerate_devices( InputDeviceCallback  callback,
 
 void input_attach( InputDevice *device, React react, void *ctx );
 void input_detach( InputDevice *device, React react, void *ctx );
-void input_dispatch( InputDevice *device, const DFBInputEvent *event );
+void input_dispatch( InputDevice *device, DFBInputEvent *event );
 
 DFBInputDeviceDescription input_device_description( const InputDevice *device );
 unsigned int              input_device_id( const InputDevice *device );

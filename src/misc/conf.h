@@ -75,6 +75,9 @@ typedef struct
 
      char     *fb_device;                         /* Used framebuffer device,
                                                      e.g. "/dev/fb0" */
+
+     int       lefty;                             /* Left handed mouse, swaps
+                                                     left/right mouse buttons */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
