@@ -92,8 +92,12 @@ mga_waitidle(MatroxDriverData *mdrv, MatroxDeviceData *mdev)
      }
 }
 
-#define outMGAdac(mmio, reg, val) \
-        (mga_out8(mmio, reg, DAC_INDEX), mga_out8(mmio, val, DAC_DATA))
+static inline void
+mga_out_dac( volatile uint8 *mmioaddr, uint8 reg, uint8 val )
+{
+     mga_out8( mmioaddr, reg, DAC_INDEX );
+     mga_out8( mmioaddr, val, DAC_DATA );
+}
 
 #endif
 

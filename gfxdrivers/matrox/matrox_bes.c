@@ -336,6 +336,8 @@ void driver_init_layers( void *drv, void *dev )
      mdrv = (MatroxDriverData*) drv;
      mdev = (MatroxDeviceData*) dev;
 
+     mmio = mdrv->mmio_base;
+
      if (mdev->old_matrox)
           return;
 
@@ -380,13 +382,20 @@ void driver_init_layers( void *drv, void *dev )
 
      layer->deinit = matrox_bes_deinit;
 
+     mga_out_dac( mmio, 0x51, 0x00 ); /* keying off */
 
-     mmio = mdrv->mmio_base;
-
-     outMGAdac( mmio, 0x51, 0x00 ); /* keying off */
-     outMGAdac( mmio, 0x52, 0xFF ); /* full mask */
-     outMGAdac( mmio, 0x53, 0xFF );
-     outMGAdac( mmio, 0x54, 0xFF );
+     /*
+      * The following lines are disabled because of
+      * some nasty things by hardware or gcc that disturb
+      * the mga_out_dac above. Using usleep between writes
+      * helped but is evil. And we don't need the following
+      * lines anyway.
+      */
+#ifdef NASTY_CACHING_OR_COMPILER_STUFF
+     mga_out_dac( mmio, 0x52, 0xFF ); /* full mask */
+     mga_out_dac( mmio, 0x53, 0xFF );
+     mga_out_dac( mmio, 0x54, 0xFF );
+#endif
 
      mga_out32( mmio, 0x80, BESLUMACTL );
 
