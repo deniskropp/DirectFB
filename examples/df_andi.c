@@ -462,6 +462,9 @@ void init_resources( int argc, char *argv[] )
      DFBCHECK(provider->RenderTo( provider, tuximage ));
      provider->Release( provider );
 
+     /* set the colorkey to green */
+     tuximage->SetSrcColorKey( tuximage, 0x00, 0xFF, 0x00 );
+     
      /* load the background image */
      DFBCHECK(dfb->CreateImageProvider( dfb, DATADIR"/examples/wood_andi.jpg",
                                         &provider ));
