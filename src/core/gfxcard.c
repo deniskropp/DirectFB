@@ -622,7 +622,7 @@ typedef struct {
  *  render a triangle using two parallel DDA's
  */
 static
-void fill_tri( DFBTriangle *tri, CardState *state )
+void fill_tri( DFBTriangle *tri, CardState *state, int accelerated )
 {
      int y, yend;
      DDA dda1, dda2;
@@ -662,7 +662,11 @@ void fill_tri( DFBTriangle *tri, CardState *state )
                rect.y = y;
                rect.h = 1;
 
-               gFillRectangle (&rect);
+               if (accelerated)
+                    card->funcs.FillRectangle( card->driver_data,
+                                               card->device_data, &rect );
+               else
+                    gFillRectangle (&rect);
           }
 
           INC_DDA(dda1);
@@ -677,21 +681,35 @@ void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
      state_lock( state );
 
+     /* if hardware has clipping try directly accelerated triangle filling */
      if ((Scard->device_info.caps.flags & CCF_CLIPPING) &&
-         gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
-         gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
+          gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
+          gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
      {
           card->funcs.FillTriangle( card->driver_data,
                                     card->device_data, tri );
           gfxcard_state_release( state );
      }
      else {
+          /* otherwise use the spanline rasterizer (fill_tri)
+             and fill the triangle using a rectangle for each spanline */
+
           sort_triangle( tri );
 
           if (tri->y3 - tri->y1 > 0) {
-               gAquire( state, DFXL_FILLTRIANGLE );
-               fill_tri( tri, state );
-               gRelease( state );
+               /* try hardware accelerated rectangle filling */
+               if (gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+                   gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+               {
+                    fill_tri( tri, state, 1 );
+
+                    gfxcard_state_release( state );
+               }
+               else if (gAquire( state, DFXL_FILLTRIANGLE )) {
+                    fill_tri( tri, state, 0 );
+
+                    gRelease( state );
+               }
           }
      }
 
