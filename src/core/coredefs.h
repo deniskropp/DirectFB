@@ -89,7 +89,7 @@
                                                     fusion_get_millis(), #exp, \
                                                     __FILE__, __LINE__ );      \
                                    fflush( stderr );                           \
-                                   kill( 0, SIGSEGV );                         \
+                                   kill( 0, SIGTRAP );                         \
                               }
 
 #else
