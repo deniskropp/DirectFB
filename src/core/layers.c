@@ -1042,6 +1042,7 @@ dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
           case DLBM_FRONTONLY:
                return DFB_UNSUPPORTED;
 
+          case DLBM_TRIPLE:
           case DLBM_BACKVIDEO:
                return layer->funcs->FlipBuffers( layer,
                                                  layer->driver_data,
@@ -1808,6 +1809,10 @@ allocate_surface( DisplayLayer *layer )
                case DLBM_FRONTONLY:
                     break;
 
+               case DLBM_TRIPLE:
+                    caps |= DSCAPS_TRIPLE;
+                    break;
+
                case DLBM_BACKVIDEO:
                     caps |= DSCAPS_FLIPPING;
                     break;
@@ -1851,18 +1856,26 @@ reallocate_surface( DisplayLayer *layer, DFBDisplayLayerConfig *config )
      
      if (shared->config.buffermode != config->buffermode) {
           switch (config->buffermode) {
+               case DLBM_TRIPLE:
+                    shared->surface->caps |= DSCAPS_TRIPLE;
+                    shared->surface->caps &= ~DSCAPS_FLIPPING;
+                    ret = dfb_surface_reconfig( shared->surface,
+                                                CSP_VIDEOONLY, CSP_VIDEOONLY );
+                    break;
                case DLBM_BACKVIDEO:
                     shared->surface->caps |= DSCAPS_FLIPPING;
+                    shared->surface->caps &= ~DSCAPS_TRIPLE;
                     ret = dfb_surface_reconfig( shared->surface,
                                                 CSP_VIDEOONLY, CSP_VIDEOONLY );
                     break;
                case DLBM_BACKSYSTEM:
                     shared->surface->caps |= DSCAPS_FLIPPING;
+                    shared->surface->caps &= ~DSCAPS_TRIPLE;
                     ret = dfb_surface_reconfig( shared->surface,
                                                 CSP_VIDEOONLY, CSP_SYSTEMONLY );
                     break;
                case DLBM_FRONTONLY:
-                    shared->surface->caps &= ~DSCAPS_FLIPPING;
+                    shared->surface->caps &= ~(DSCAPS_FLIPPING | DSCAPS_TRIPLE);
                     ret = dfb_surface_reconfig( shared->surface,
                                                 CSP_VIDEOONLY, CSP_VIDEOONLY );
                     break;

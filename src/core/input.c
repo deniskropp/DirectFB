@@ -1315,7 +1315,7 @@ dump_screen( const char *directory )
      } while (errno == EEXIST);
 
      if (dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch,
-                                (surface->caps & DSCAPS_FLIPPING) )) {
+                                surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE) )) {
           close( fd );
           return;
      }
@@ -1356,7 +1356,8 @@ dump_screen( const char *directory )
           ((__u8*)data) += pitch;
      }
 
-     dfb_surface_unlock( surface, (surface->caps & DSCAPS_FLIPPING) );
+     dfb_surface_unlock( surface,
+                         surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE) );
 
      close( fd );
 }

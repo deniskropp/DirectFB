@@ -224,7 +224,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
 #ifdef SUPPORT_RGB332
 static DFBResult dfb_fbdev_set_rgb332_palette();
 #endif
-static DFBResult dfb_fbdev_pan( int buffer );
+static DFBResult dfb_fbdev_pan( int offset );
 static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                                      VideoMode             *mode,
                                      DFBDisplayLayerConfig *config );
@@ -967,8 +967,8 @@ primaryFlipBuffers       ( DisplayLayer               *layer,
 
      if ((flags & DSFLIP_WAITFORSYNC) && !dfb_config->pollvsync_after)
           dfb_layer_wait_vsync( layer );
-     
-     ret = dfb_fbdev_pan( surface->back_buffer->video.offset ? 1 : 0 );
+
+     ret = dfb_fbdev_pan( surface->back_buffer->video.offset );
      if (ret)
           return ret;
 
@@ -1172,7 +1172,9 @@ primaryAllocateSurface   ( DisplayLayer               *layer,
      DFBSurfaceCapabilities  caps = DSCAPS_VIDEOONLY;
 
      /* determine further capabilities */
-     if (config->buffermode != DLBM_FRONTONLY)
+     if (config->buffermode == DLBM_TRIPLE)
+          caps |= DSCAPS_TRIPLE;
+     else if (config->buffermode != DLBM_FRONTONLY)
           caps |= DSCAPS_FLIPPING;
 
      /* allocate surface object */
@@ -1181,7 +1183,7 @@ primaryAllocateSurface   ( DisplayLayer               *layer,
           return DFB_FAILURE;
 
      /* reallocation just needs an allocated buffer structure */
-     surface->back_buffer  =
+     surface->idle_buffer = surface->back_buffer =
      surface->front_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
 
      if (!surface->front_buffer) {
@@ -1325,19 +1327,19 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
 /*
  * pans display (flips buffer) using fbdev ioctl
  */
-static DFBResult dfb_fbdev_pan( int buffer )
+static DFBResult dfb_fbdev_pan( int offset )
 {
      struct fb_var_screeninfo var;
 
      var = dfb_fbdev->shared->current_var;
 
-     if (var.yres_virtual < var.yres*(buffer+1)) {
+     if (var.yres_virtual < offset + var.yres) {
           BUG( "panning buffer out of range" );
           return DFB_BUG;
      }
 
      var.xoffset = 0;
-     var.yoffset = var.yres * buffer;
+     var.yoffset = offset;
 
      dfb_gfxcard_sync();
 
@@ -1380,8 +1382,10 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
      var.yoffset = 0;
 
      if (config) {
-          if (config->buffermode == DLBM_BACKVIDEO)
-               vyres <<= 1;
+          if (config->buffermode == DLBM_TRIPLE)
+               vyres *= 3;
+          else if (config->buffermode == DLBM_BACKVIDEO)
+               vyres *= 2;
 
           var.bits_per_pixel = DFB_BYTES_PER_PIXEL(config->pixelformat) * 8;
 
@@ -1558,7 +1562,8 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
 
           switch (config->buffermode) {
                case DLBM_FRONTONLY:
-                    surface->caps &= ~DSCAPS_FLIPPING;
+                    surface->caps &= ~(DSCAPS_FLIPPING | DSCAPS_TRIPLE);
+
                     if (surface->back_buffer != surface->front_buffer) {
                          if (surface->back_buffer->system.addr)
                               shfree( surface->back_buffer->system.addr );
@@ -1567,9 +1572,20 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
 
                          surface->back_buffer = surface->front_buffer;
                     }
+
+                    if (surface->idle_buffer != surface->front_buffer) {
+                         if (surface->idle_buffer->system.addr)
+                              shfree( surface->idle_buffer->system.addr );
+
+                         shfree( surface->idle_buffer );
+
+                         surface->idle_buffer = surface->front_buffer;
+                    }
                     break;
                case DLBM_BACKVIDEO:
                     surface->caps |= DSCAPS_FLIPPING;
+                    surface->caps &= ~DSCAPS_TRIPLE;
+
                     if (surface->back_buffer == surface->front_buffer) {
                          surface->back_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
                     }
@@ -1587,9 +1603,59 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                     surface->back_buffer->video.pitch = fix.line_length;
                     surface->back_buffer->video.offset =
                                    surface->back_buffer->video.pitch * var.yres;
+
+                    if (surface->idle_buffer != surface->front_buffer) {
+                         if (surface->idle_buffer->system.addr)
+                              shfree( surface->idle_buffer->system.addr );
+
+                         shfree( surface->idle_buffer );
+
+                         surface->idle_buffer = surface->front_buffer;
+                    }
+                    break;
+               case DLBM_TRIPLE:
+                    surface->caps |= DSCAPS_FLIPPING | DSCAPS_TRIPLE;
+
+                    if (surface->back_buffer == surface->front_buffer) {
+                         surface->back_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
+                    }
+                    else {
+                         if (surface->back_buffer->system.addr) {
+                              shfree( surface->back_buffer->system.addr );
+                              surface->back_buffer->system.addr = NULL;
+                         }
+
+                         surface->back_buffer->system.health = CSH_INVALID;
+                    }
+                    surface->back_buffer->surface = surface;
+                    surface->back_buffer->policy = CSP_VIDEOONLY;
+                    surface->back_buffer->video.health = CSH_STORED;
+                    surface->back_buffer->video.pitch = fix.line_length;
+                    surface->back_buffer->video.offset =
+                                   surface->back_buffer->video.pitch * var.yres;
+
+                    if (surface->idle_buffer == surface->front_buffer) {
+                         surface->idle_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
+                    }
+                    else {
+                         if (surface->idle_buffer->system.addr) {
+                              shfree( surface->idle_buffer->system.addr );
+                              surface->idle_buffer->system.addr = NULL;
+                         }
+
+                         surface->idle_buffer->system.health = CSH_INVALID;
+                    }
+                    surface->idle_buffer->surface = surface;
+                    surface->idle_buffer->policy = CSP_VIDEOONLY;
+                    surface->idle_buffer->video.health = CSH_STORED;
+                    surface->idle_buffer->video.pitch = fix.line_length;
+                    surface->idle_buffer->video.offset =
+                                   surface->idle_buffer->video.pitch * var.yres * 2;
                     break;
                case DLBM_BACKSYSTEM:
                     surface->caps |= DSCAPS_FLIPPING;
+                    surface->caps &= ~DSCAPS_TRIPLE;
+
                     if (surface->back_buffer == surface->front_buffer) {
                          surface->back_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
                     }
@@ -1605,6 +1671,15 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
 
                     surface->back_buffer->system.addr =
                          shmalloc( surface->back_buffer->system.pitch * var.yres );
+
+                    if (surface->idle_buffer != surface->front_buffer) {
+                         if (surface->idle_buffer->system.addr)
+                              shfree( surface->idle_buffer->system.addr );
+
+                         shfree( surface->idle_buffer );
+
+                         surface->idle_buffer = surface->front_buffer;
+                    }
                     break;
           }
 

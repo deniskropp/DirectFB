@@ -121,7 +121,8 @@ surface_callback( FusionObjectPool *pool,
      }
 
      mem = DFB_BYTES_PER_LINE( surface->format, surface->width ) *
-           surface->height * ((surface->caps & DSCAPS_FLIPPING) ? 2 : 1);
+           surface->height * ((surface->caps & DSCAPS_TRIPLE) ? 3 :
+                              (surface->caps & DSCAPS_FLIPPING) ? 2 : 1);
 
      if (mem < 1024)
           mem = 1024;
@@ -138,6 +139,9 @@ surface_callback( FusionObjectPool *pool,
 
      if (surface->caps & DSCAPS_FLIPPING)
           printf( "flipping     " );
+
+     if (surface->caps & DSCAPS_TRIPLE)
+          printf( "triple       " );
 
      if (surface->caps & DSCAPS_INTERLACED)
           printf( "interlaced   " );

@@ -154,6 +154,7 @@ struct _CoreSurface
                                               mutexes are outside of
                                               SurfaceBuffer because of flipping
                                               that just swaps the pointers */
+     SurfaceBuffer         *idle_buffer;   /* triple buffering */
 
      SurfaceManager        *manager;
 };

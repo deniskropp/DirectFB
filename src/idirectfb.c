@@ -419,6 +419,9 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     CoreWindow            *window;
                     DFBWindowCapabilities  window_caps = DWCAPS_NONE;
 
+                    if (caps & DSCAPS_TRIPLE)
+                         return DFB_UNSUPPORTED;
+
                     if (! (desc->flags & DSDESC_WIDTH))
                          width = data->primary.width;
 
@@ -478,7 +481,11 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                case DFSCL_EXCLUSIVE:
                     config.flags |= DLCONF_BUFFERMODE;
 
-                    if (caps & DSCAPS_FLIPPING) {
+                    if (caps & DSCAPS_TRIPLE) {
+                         if (caps & DSCAPS_SYSTEMONLY)
+                              return DFB_UNSUPPORTED;
+                         config.buffermode = DLBM_TRIPLE;
+                    } else if (caps & DSCAPS_FLIPPING) {
                          if (caps & DSCAPS_SYSTEMONLY)
                               config.buffermode = DLBM_BACKSYSTEM;
                          else
@@ -531,6 +538,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
           }
      }
 
+     if (caps & DSCAPS_TRIPLE)
+          return DFB_UNSUPPORTED;
 
      if (caps & DSCAPS_VIDEOONLY)
           policy = CSP_VIDEOONLY;

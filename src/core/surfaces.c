@@ -132,7 +132,7 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
           return ret;
      }
 
-     if (caps & DSCAPS_FLIPPING) {
+     if (caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)) {
           ret = dfb_surface_allocate_buffer( s, policy, &s->back_buffer );
           if (ret) {
                dfb_surface_deallocate_buffer( s, s->front_buffer );
@@ -144,6 +144,18 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
      else
           s->back_buffer = s->front_buffer;
 
+     if (caps & DSCAPS_TRIPLE) {
+          ret = dfb_surface_allocate_buffer( s, policy, &s->idle_buffer );
+          if (ret) {
+               dfb_surface_deallocate_buffer( s, s->back_buffer );
+               dfb_surface_deallocate_buffer( s, s->front_buffer );
+
+               fusion_object_destroy( &s->object );
+               return ret;
+          }
+     }
+     else
+          s->idle_buffer = s->front_buffer;
 
      fusion_object_activate( &s->object );
      
@@ -198,6 +210,8 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
      else
           s->back_buffer = s->front_buffer;
 
+     /* No triple buffering */
+     s->idle_buffer = s->front_buffer;
 
      fusion_object_activate( &s->object );
      
@@ -268,13 +282,31 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
           return ret;
      }
 
-     if (surface->caps & DSCAPS_FLIPPING) {
+     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)) {
           ret = dfb_surface_reallocate_buffer( surface, surface->back_buffer );
           if (ret) {
                surface->width  = old_width;
                surface->height = old_height;
                surface->format = old_format;
 
+               dfb_surface_reallocate_buffer( surface, surface->front_buffer );
+
+               skirmish_dismiss( &surface->front_lock );
+               skirmish_dismiss( &surface->back_lock );
+
+               dfb_surfacemanager_unlock( surface->manager );
+               return ret;
+          }
+     }
+
+     if (surface->caps & DSCAPS_TRIPLE) {
+          ret = dfb_surface_reallocate_buffer( surface, surface->idle_buffer );
+          if (ret) {
+               surface->width  = old_width;
+               surface->height = old_height;
+               surface->format = old_format;
+
+               dfb_surface_reallocate_buffer( surface, surface->back_buffer );
                dfb_surface_reallocate_buffer( surface, surface->front_buffer );
 
                skirmish_dismiss( &surface->front_lock );
@@ -317,6 +349,7 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      DFBResult      ret;
      SurfaceBuffer *old_front;
      SurfaceBuffer *old_back;
+     SurfaceBuffer *old_idle;
      bool           new_front = surface->front_buffer->policy != front_policy;
 
      if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
@@ -332,6 +365,7 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
 
      old_front = surface->front_buffer;
      old_back = surface->back_buffer;
+     old_idle = surface->idle_buffer;
 
      if (new_front) {
           ret = dfb_surface_allocate_buffer( surface, front_policy, &surface->front_buffer );
@@ -342,7 +376,7 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
           }
      }
 
-     if (surface->caps & DSCAPS_FLIPPING) {
+     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)) {
           ret = dfb_surface_allocate_buffer( surface, back_policy, &surface->back_buffer );
           if (ret) {
                if (new_front) {
@@ -355,15 +389,36 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
                return ret;
           }
      }
-     else {
+     else
           surface->back_buffer = surface->front_buffer;
+
+     if (surface->caps & DSCAPS_TRIPLE) {
+          ret = dfb_surface_allocate_buffer( surface, back_policy, &surface->idle_buffer );
+          if (ret) {
+               dfb_surface_deallocate_buffer( surface, surface->back_buffer );
+               surface->back_buffer = old_back;
+
+               if (new_front) {
+                    dfb_surface_deallocate_buffer( surface, surface->front_buffer );
+                    surface->front_buffer = old_front;
+               }
+
+               skirmish_dismiss( &surface->front_lock );
+               skirmish_dismiss( &surface->back_lock );
+               return ret;
+          }
      }
+     else
+          surface->idle_buffer = surface->front_buffer;
 
      if (new_front)
           dfb_surface_deallocate_buffer( surface, old_front );
 
      if (old_front != old_back)
           dfb_surface_deallocate_buffer ( surface, old_back );
+
+     if (old_front != old_idle)
+          dfb_surface_deallocate_buffer ( surface, old_idle );
 
      dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
                                    CSNF_SYSTEM | CSNF_VIDEO );
@@ -414,9 +469,19 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
      skirmish_prevail( &surface->front_lock );
      skirmish_prevail( &surface->back_lock );
 
-     tmp = surface->front_buffer;
-     surface->front_buffer = surface->back_buffer;
-     surface->back_buffer = tmp;
+     if (surface->caps & DSCAPS_TRIPLE) {
+          tmp = surface->front_buffer;
+          surface->front_buffer = surface->back_buffer;
+          surface->back_buffer = surface->idle_buffer;
+          surface->idle_buffer = tmp;
+     } else {
+          tmp = surface->front_buffer;
+          surface->front_buffer = surface->back_buffer;
+          surface->back_buffer = tmp;
+
+          /* To avoid problems with buffer deallocation */
+          surface->idle_buffer = surface->front_buffer;
+     }
 
      dfb_surfacemanager_unlock( surface->manager );
 
@@ -647,6 +712,10 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
      /* deallocate second buffer if it's another one */
      if (surface->back_buffer != surface->front_buffer)
           dfb_surface_deallocate_buffer( surface, surface->back_buffer );
+
+     /* deallocate third buffer if it's another one */
+     if (surface->idle_buffer != surface->front_buffer)
+          dfb_surface_deallocate_buffer( surface, surface->idle_buffer );
 
      /* destroy the locks */
      skirmish_destroy( &surface->front_lock );

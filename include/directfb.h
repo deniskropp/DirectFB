@@ -409,7 +409,8 @@ typedef enum {
 typedef enum {
      DLBM_FRONTONLY  = 0x00000000,      /* no backbuffer */
      DLBM_BACKVIDEO  = 0x00000001,      /* backbuffer in video memory */
-     DLBM_BACKSYSTEM = 0x00000002       /* backbuffer in system memory */
+     DLBM_BACKSYSTEM = 0x00000002,      /* backbuffer in system memory */
+     DLBM_TRIPLE     = 0x00000004       /* triple buffering */
 } DFBDisplayLayerBufferMode;
 
 /*
@@ -474,7 +475,7 @@ typedef enum {
                                            by line in the buffer. <br>The first
                                            field is followed by the second one
                                            in the buffer. */
-     DSCAPS_STATIC_ALLOC = 0x00000100   /* The amount of video or system memory
+     DSCAPS_STATIC_ALLOC = 0x00000100,  /* The amount of video or system memory
                                            allocated for the surface is never
                                            less than its initial value. This
                                            way a surface can be resized
@@ -484,6 +485,7 @@ typedef enum {
                                            surfaces that need a guaranteed
                                            space in video memory after
                                            resizing. */
+     DSCAPS_TRIPLE       = 0x00000200   /* Surface is triple buffered */
 } DFBSurfaceCapabilities;
 
 /*

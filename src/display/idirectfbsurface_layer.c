@@ -91,7 +91,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
      if (data->base.locked)
           return DFB_LOCKED;
 
-     if (!(data->base.caps & DSCAPS_FLIPPING))
+     if (!(data->base.caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)))
           return DFB_UNSUPPORTED;
 
      if (!data->base.area.current.w || !data->base.area.current.h)

@@ -273,6 +273,9 @@ primaryTestConfiguration ( DisplayLayer               *layer,
 /*     if (config->buffermode == DLBM_FRONTONLY)
           fail |= DLCONF_BUFFERMODE;*/
 
+     if (config->buffermode == DLBM_TRIPLE)
+          fail |= DLCONF_BUFFERMODE;
+
      if (failed)
           *failed = fail;
 
@@ -292,6 +295,9 @@ primarySetConfiguration  ( DisplayLayer               *layer,
      CoreSurface *surface = dfb_layer_surface( layer );
 
      flags = SDL_HWSURFACE;
+
+     if (config->buffermode == DLBM_TRIPLE)
+          return DFB_UNSUPPORTED;
 
      if (config->buffermode != DLBM_FRONTONLY)
           flags |= SDL_DOUBLEBUF;

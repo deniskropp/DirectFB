@@ -1461,7 +1461,7 @@ repaint_stack( CoreWindowStack     *stack,
      update_region( stack, state, stack->num_windows - 1,
                     region->x1, region->y1, region->x2, region->y2 );
 
-     if (surface->caps & DSCAPS_FLIPPING) {
+     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)) {
           if (region->x1 == 0 &&
               region->y1 == 0 &&
               region->x2 == surface->width - 1 &&
