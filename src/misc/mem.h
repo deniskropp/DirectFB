@@ -34,12 +34,21 @@
 
 void  dfb_dbg_print_memleaks();
 
-void  dfb_dbg_free( char *file, int line, char *func, char *what, void *mem );
-void *dfb_dbg_malloc( char *file, int line, char *func, size_t bytes );
-void *dfb_dbg_calloc( char *file, int line, char *func, size_t count, size_t bytes);
-void *dfb_dbg_realloc( char *file, int line, char *func, char *what, void *mem,
+void  dfb_dbg_free   ( char *file, int line,
+                       char *func, char *what, void *mem );
+
+void *dfb_dbg_malloc ( char *file, int line,
+                       char *func, size_t bytes );
+
+void *dfb_dbg_calloc ( char *file, int line,
+                       char *func, size_t count, size_t bytes);
+
+void *dfb_dbg_realloc( char *file, int line,
+                       char *func, char *what, void *mem,
                        size_t bytes );
-char *dfb_dbg_strdup( char *file, int line, char *func, const char *string );
+
+char *dfb_dbg_strdup ( char *file, int line,
+                       char *func, const char *string );
 
 #define DFBFREE(mem)           dfb_dbg_free( __FILE__, __LINE__, __FUNCTION__, \
                                          #mem,mem )
@@ -54,63 +63,13 @@ char *dfb_dbg_strdup( char *file, int line, char *func, const char *string );
 
 #else
 
-#define DFBFREE free
-#define DFBMALLOC malloc
-#define DFBCALLOC calloc
-#define DFBREALLOC realloc
-#define DFBSTRDUP strdup
+#define DFBFREE     free
+#define DFBMALLOC   malloc
+#define DFBCALLOC   calloc
+#define DFBREALLOC  realloc
+#define DFBSTRDUP   strdup
 
 #endif
-
-
-
-
-/** old code **/
-
-#if 0
-#ifdef DFB_DEBUG
-
-static inline void *dfbmalloc( int n, const char *function,
-                               const char *file, int line )
-{
-     DEBUGMSG( "DirectFB/malloc: %9d bytes in %s (%s, %d)\n",
-               n, function, file, line );
-
-     return malloc( n );
-}
-
-static inline void *dfbcalloc( int i, int n, const char *function,
-                               const char *file, int line )
-{
-     DEBUGMSG( "DirectFB/calloc: %9d bytes (%d*%d) in %s (%s, %d)\n",
-               i*n, i, n, function, file, line );
-
-     return calloc( i, n );
-}
-
-static inline void *dfbrealloc( void *p, int n, const char *name,
-                                const char *function, const char *file,
-                                int line )
-{
-     DEBUGMSG( "DirectFB/realloc: %9d bytes (%s) in %s (%s, %d)\n",
-               n, name, function, file, line );
-
-     return realloc( p, n );
-}
-
-#define DFBMALLOC(n)     dfbmalloc( n, __FUNCTION__, __FILE__, __LINE__ )
-#define DFBCALLOC(i, n)  dfbcalloc( i, n, __FUNCTION__, __FILE__, __LINE__ )
-#define DFBREALLOC(p, n) dfbrealloc( p, n, #p, __FUNCTION__, __FILE__, __LINE__)
-
-#else
-
-#define DFBMALLOC(n)     malloc( n )
-#define DFBCALLOC(i, n)  calloc( i, n )
-#define DFBREALLOC(p, n) realloc( p, n )
-
-#endif
-#endif
-
 
 
 #endif

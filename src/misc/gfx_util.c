@@ -5,7 +5,7 @@
    Written by Denis Oliver Kropp <dok@convergence.de> and
               Andreas Hundt <andi@convergence.de>.
 
-   Scaling routines ported from gdk_pixbuf by Sven Neumann 
+   Scaling routines ported from gdk_pixbuf by Sven Neumann
    <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
@@ -37,9 +37,11 @@
 
 #include "core/surfaces.h"
 
+#include "misc/memcpy.h"
+#include "misc/util.h"
+#include "misc/mem.h"
+
 #include "gfx_util.h"
-#include "util.h"
-#include "mem.h"
 
 #include <gfx/convert.h>
 
@@ -61,7 +63,7 @@ struct _PixopsFilter {
 };
 
 
-static inline void rgba_to_dst_format (__u8 *dst, 
+static inline void rgba_to_dst_format (__u8 *dst,
                                        __u32 r, __u32 g, __u32 b, __u32 a,
                                        DFBSurfacePixelFormat dst_format)
 {
@@ -72,7 +74,7 @@ static inline void rgba_to_dst_format (__u8 *dst,
 #ifdef SUPPORT_RGB332
      case DSPF_RGB332:
            *((__u8*)dst) = PIXEL_RGB332( r, g, b );
-          break;     
+          break;
 #endif
 
      case DSPF_A8:
@@ -132,7 +134,7 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
 
           case DSPF_ARGB:
                for (y = 0; y < h; y++) {
-                    memcpy (dst, src, w * 4);
+                    dfb_memcpy (dst, src, w * 4);
                     (__u8 *)dst += w * 4 + dskip;
                     src += w;
                }
@@ -147,18 +149,18 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
                               memset ((__u8 *)dst, 0, DFB_BYTES_PER_PIXEL (dst_format));
                               break;
                          case 0xFF:
-                              rgba_to_dst_format ((__u8 *)dst, 
-                                                  (*src & 0x00FF0000) >> 16, 
+                              rgba_to_dst_format ((__u8 *)dst,
+                                                  (*src & 0x00FF0000) >> 16,
                                                   (*src & 0x0000FF00) >> 8,
                                                   (*src & 0x000000FF),
                                                   0xFF, dst_format);
                               break;
                          default:
                               rb = (*src & 0x00FF00FF) * a;
-                              rgba_to_dst_format ((__u8 *)dst, 
+                              rgba_to_dst_format ((__u8 *)dst,
                                                   rb >> 24,
                                                   ((*src & 0x0000FF00) * a) >> 16,
-                                                  (rb & 0x0000FF00) >> 8, 
+                                                  (rb & 0x0000FF00) >> 8,
                                                   a, dst_format);
                               break;
                          }
@@ -339,17 +341,17 @@ static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
                     __u32 ta;
 
                     ta = ((*q & 0xFF000000) >> 24) * line_weights[j];
-                    
+
                     b+= ta * ((*q & 0xFF));
                     g+= ta * ((*q & 0xFF00) >> 8);
                     r+= ta * ((*q & 0xFF0000) >> 16);
                     a += ta;
-                    
+
                     q++;
                }
           }
-  
-          rgba_to_dst_format( dst, 
+
+          rgba_to_dst_format( dst,
                               r >> 24, g >> 24, b >> 24, a >> 16, dst_format );
 
           dst += DFB_BYTES_PER_PIXEL (dst_format);

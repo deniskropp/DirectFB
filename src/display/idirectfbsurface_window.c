@@ -74,7 +74,7 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
           pthread_cancel( data->flip_thread );
           pthread_join( data->flip_thread, NULL );
      }
-     
+
      dfb_state_set_destination( &data->base.state, NULL );
      dfb_state_set_source( &data->base.state, NULL );
 
@@ -127,9 +127,11 @@ DFBResult IDirectFBSurface_Window_Flip( IDirectFBSurface *thiz,
      if (data->base.locked)
           return DFB_LOCKED;
 
+//     if (!(data->base.caps & DSCAPS_FLIPPING))
+//          return DFB_UNSUPPORTED;
+
      if (!data->base.area.current.w || !data->base.area.current.h)
           return DFB_INVAREA;
-
 
      if (region) {
           reg = *region;
@@ -256,7 +258,7 @@ static void *Flipping_Thread( void *arg )
      IDirectFBSurface *thiz = (IDirectFBSurface*) arg;
 
      while (1) {
-          usleep(20000);
+          usleep(40000);
 
           pthread_testcancel();
 

@@ -26,6 +26,8 @@
 #include <core/core.h>
 #include <core/coredefs.h>
 
+#include "misc/memcpy.h"
+
 #include "convert.h"
 
 
@@ -47,7 +49,7 @@ void dfb_convert_buffer( void                 *src,
                switch (dst_format) {
                     case DSPF_RGB15:
                          while (height--) {
-                              memcpy( dst, src, width*2 );
+                              dfb_memcpy( dst, src, width*2 );
                               ((__u8*)src) += src_pitch;
                               ((__u8*)dst) += dst_pitch;
                          }
@@ -89,7 +91,7 @@ void dfb_convert_buffer( void                 *src,
                          break;
                     case DSPF_RGB16:
                          while (height--) {
-                              memcpy( dst, src, width*2 );
+                              dfb_memcpy( dst, src, width*2 );
                               ((__u8*)src) += src_pitch;
                               ((__u8*)dst) += dst_pitch;
                          }
@@ -131,7 +133,7 @@ void dfb_convert_buffer( void                 *src,
                          break;
                     case DSPF_RGB32:
                          while (height--) {
-                              memcpy( dst, src, width*4 );
+                              dfb_memcpy( dst, src, width*4 );
                               ((__u8*)src) += src_pitch;
                               ((__u8*)dst) += dst_pitch;
                          }
@@ -167,7 +169,7 @@ void dfb_convert_buffer( void                 *src,
                     case DSPF_RGB32:
                     case DSPF_ARGB:
                          while (height--) {
-                              memcpy( dst, src, width*4 );
+                              dfb_memcpy( dst, src, width*4 );
                               ((__u8*)src) += src_pitch;
                               ((__u8*)dst) += dst_pitch;
                          }

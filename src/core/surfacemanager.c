@@ -44,6 +44,7 @@
 
 #include "misc/util.h"
 #include "misc/mem.h"
+#include "misc/memcpy.h"
 #include "misc/fbdebug.h"
 
 /*
@@ -450,8 +451,8 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                     BUG( "system/video instances both not stored!" );
 
                while (h--) {
-                    memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
-                                                         surface->width) );
+                    dfb_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
+                                                             surface->width) );
                     src += buffer->system.pitch;
                     dst += buffer->video.pitch;
                }
@@ -489,8 +490,8 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
           char *dst = buffer->system.addr;
 
           while (h--) {
-               memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
-                                                    surface->width) );
+               dfb_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
+                                                        surface->width) );
                src += buffer->video.pitch;
                dst += buffer->system.pitch;
           }

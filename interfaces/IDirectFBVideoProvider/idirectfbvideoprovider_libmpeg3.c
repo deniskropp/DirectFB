@@ -53,6 +53,7 @@
 #include <core/gfxcard.h>
 
 #include <gfx/convert.h>
+#include <misc/memcpy.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -426,7 +427,7 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                }
 
                for (y=0; y<data->dest_clip.h; y++) {
-                    memcpy( dst_y, src_y, data->dest_clip.w );
+                    dfb_memcpy( dst_y, src_y, data->dest_clip.w );
 
                     src_y += data->video.width;
                     dst_y += pitch;
@@ -438,8 +439,8 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                          dst_v += pitch/2;
                     }
                     else {
-                         memcpy( dst_u, src_u, data->dest_clip.w/2 );
-                         memcpy( dst_v, src_v, data->dest_clip.w/2 );
+                         dfb_memcpy( dst_u, src_u, data->dest_clip.w/2 );
+                         dfb_memcpy( dst_v, src_v, data->dest_clip.w/2 );
                     }
                }
                break;

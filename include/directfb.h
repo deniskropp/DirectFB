@@ -416,13 +416,12 @@ extern "C"
           DFXL_FILLRECTANGLE  = 0x00000001,  /* FillRectangle */
           DFXL_DRAWRECTANGLE  = 0x00000002,  /* DrawRectangle */
           DFXL_DRAWLINE       = 0x00000004,  /* DrawLine */
-          DFXL_DRAWSTRING     = 0x00000008,  /* DrawString */
-          DFXL_FILLTRIANGLE   = 0x00000010,  /* FillTriangle */
+          DFXL_FILLTRIANGLE   = 0x00000008,  /* FillTriangle */
 
           DFXL_BLIT           = 0x00010000,  /* Blit */
           DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit */
 
-          DFXL_ALL            = 0x0003001F   /* all drawing/blitting
+          DFXL_ALL            = 0x0003000F   /* all drawing/blitting
                                                 functions */
      } DFBAccelerationMask;
 
@@ -449,7 +448,9 @@ extern "C"
           DIDTF_KEYBOARD      = 0x00000001,  /* can act as a keyboard */
           DIDTF_MOUSE         = 0x00000002,  /* can be used as a mouse */
           DIDTF_JOYSTICK      = 0x00000004,  /* can be used as a joystick */
-          DIDTF_REMOTE        = 0x00000008   /* device is a remote control */
+          DIDTF_REMOTE        = 0x00000008,  /* device is a remote control */
+
+          DIDTF_ALL           = 0x0000000F   /* all type flags */
      } DFBInputDeviceTypeFlags;
 
      /*
@@ -457,8 +458,10 @@ extern "C"
       */
      typedef enum {
           DICAPS_KEYS         = 0x00000001,  /* device supports key events */
-          DICAPS_AXIS         = 0x00000002,  /* device supports axis events */
-          DICAPS_BUTTONS      = 0x00000004   /* device supports button events */
+          DICAPS_AXES         = 0x00000002,  /* device supports axis events */
+          DICAPS_BUTTONS      = 0x00000004,  /* device supports button events */
+
+          DICAPS_ALL          = 0x00000007   /* all capabilities */
      } DFBInputDeviceCapabilities;
 
      /*

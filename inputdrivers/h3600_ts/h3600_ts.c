@@ -180,7 +180,7 @@ driver_open_device( InputDevice      *device,
      info->prefered_id     = DIDID_MOUSE;
 
      info->desc.type       = DIDTF_MOUSE;
-     info->desc.caps       = DICAPS_AXIS | DICAPS_BUTTONS;
+     info->desc.caps       = DICAPS_AXES | DICAPS_BUTTONS;
      info->desc.max_axis   = DIAI_Y;
      info->desc.max_button = DIBI_LEFT;
 

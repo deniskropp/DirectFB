@@ -45,6 +45,7 @@
 #include "misc/gfx_util.h"
 #include "misc/util.h"
 #include "misc/conf.h"
+#include "misc/memcpy.h"
 
 #include "gfx/convert.h"
 #include "gfx/util.h"
@@ -240,22 +241,22 @@ static GFunc Cop_toK_Aop_PFI[] = {
 
 static void Bop_8_to_Aop()
 {
-     memmove( Aop, Bop, Dlength );
+     dfb_memmove( Aop, Bop, Dlength );
 }
 
 static void Bop_16_to_Aop()
 {
-     memmove( Aop, Bop, Dlength*2 );
+     dfb_memmove( Aop, Bop, Dlength*2 );
 }
 
 static void Bop_24_to_Aop()
 {
-     memmove( Aop, Bop, Dlength*3 );
+     dfb_memmove( Aop, Bop, Dlength*3 );
 }
 
 static void Bop_32_to_Aop()
 {
-     memmove( Aop, Bop, Dlength*4 );
+     dfb_memmove( Aop, Bop, Dlength*4 );
 }
 
 static GFunc Bop_PFI_to_Aop_PFI[] = {

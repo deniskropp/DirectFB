@@ -122,10 +122,10 @@ driver_get_available()
      int  i, fd;
      int  joy_count = 0;
      char devicename[20];
-     
+
      for (i=0; i<8; i++) {
           sprintf( devicename, "/dev/js%d", i );
-          
+
           fd = open( devicename, O_RDONLY );
           if (fd < 0)
                break;
@@ -134,13 +134,13 @@ driver_get_available()
 
           joy_count++;
      }
-     
+
      if (!joy_count) {
           /* try new-style device names */
 
           for (i=0; i<8; i++) {
                sprintf( devicename, "/dev/input/js%d", i );
-          
+
                fd = open( devicename, O_RDONLY );
                if (fd < 0)
                     break;
@@ -178,7 +178,7 @@ driver_open_device( InputDevice      *device,
      int           fd, buttons, axes;
      JoystickData *data;
      char          devicename[20];
-     
+
      /* open the right device */
      sprintf( devicename, "/dev/js%d", number );
 
@@ -188,7 +188,7 @@ driver_open_device( InputDevice      *device,
           sprintf( devicename, "/dev/input/js%d", number );
 
           fd = open( devicename, O_RDONLY );
-	  if (fd < 0) {
+      if (fd < 0) {
                PERRORMSG( "DirectFB/Joystick: Could not open `%s'!\n", devicename );
                return DFB_INIT; // no joystick available
           }
@@ -197,25 +197,25 @@ driver_open_device( InputDevice      *device,
      /* query number of buttons and axes */
      ioctl( fd, JSIOCGBUTTONS, &buttons );
      ioctl( fd, JSIOCGAXES, &axes );
-     
+
      /* fill device info structure */
      snprintf( info->name,
                DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "Joystick" );
 
      snprintf( info->vendor,
                DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
-     
+
      info->prefered_id     = DIDID_JOYSTICK;
-     
+
      info->desc.type       = DIDTF_JOYSTICK;
-     info->desc.caps       = DICAPS_AXIS | DICAPS_BUTTONS;
+     info->desc.caps       = DICAPS_AXES | DICAPS_BUTTONS;
      info->desc.max_button = buttons - 1;
      info->desc.max_axis   = axes - 1;
 
-     
+
      /* allocate and fill private data */
      data = DFBCALLOC( 1, sizeof(JoystickData) );
-     
+
      data->fd     = fd;
      data->device = device;
 
@@ -236,7 +236,7 @@ driver_close_device( void *driver_data )
      /* stop input thread */
      pthread_cancel( data->thread );
      pthread_join( data->thread, NULL );
-     
+
      /* close device */
      close( data->fd );
 

@@ -62,20 +62,20 @@ void matrox_set_destination( MatroxDriverData *mdrv,
      switch (destination->format) {
           case DSPF_A8:
           case DSPF_RGB332:
-               mga_out32( mmio, PW8  | NODITHER, MACCESS );
+               mga_out32( mmio, PW8, MACCESS );
                break;
           case DSPF_RGB15:
-               mga_out32( mmio, PW16 | NODITHER | DIT555, MACCESS );
+               mga_out32( mmio, PW16 | DIT555, MACCESS );
                break;
           case DSPF_RGB16:
-               mga_out32( mmio, PW16 | NODITHER, MACCESS );
+               mga_out32( mmio, PW16, MACCESS );
                break;
           case DSPF_RGB24:
-               mga_out32( mmio, PW24 | NODITHER, MACCESS );
+               mga_out32( mmio, PW24, MACCESS );
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
-               mga_out32( mmio, PW32 | NODITHER, MACCESS );
+               mga_out32( mmio, PW32, MACCESS );
                break;
           default:
                BUG( "unexpected pixelformat!" );

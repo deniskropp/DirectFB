@@ -28,6 +28,8 @@
 #include <directfb.h>
 #include <asm/types.h>
 
+#include "misc/memcpy.h"
+
 
 #define PIXEL_RGB332(r,g,b)    ( (((r)&0xE0)     ) | \
                                  (((g)&0xE0) >> 3) | \
@@ -213,7 +215,7 @@ static inline void span_argb_to_rgb16( __u32 *src, __u16 *dst, int width )
 
 static inline void span_argb_to_rgb32( __u32 *src, __u32 *dst, int width )
 {
-     memcpy( dst, src, width*4 );
+     dfb_memcpy( dst, src, width*4 );
 }
 
 #endif

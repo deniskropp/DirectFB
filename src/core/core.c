@@ -48,6 +48,7 @@
 #include "surfacemanager.h"
 
 #include "misc/mem.h"
+#include "misc/memcpy.h"
 #include "misc/util.h"
 #include "misc/fbdebug.h"
 
@@ -145,6 +146,8 @@ DFBResult dfb_core_ref()
           INITMSG( "DirectFB/core: doing sync()...\n" );
           sync();
      }
+
+     dfb_find_best_memcpy();
 
      fid = fusion_init();
      if (fid < 0)

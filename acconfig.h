@@ -14,6 +14,9 @@
 #undef SUPPORT_RGB332
 #undef USE_MMX
 
+#undef ARCH_X86
+#undef ARCH_PPC
+
 #undef DFB_DEBUG
 
 #undef FUSION_FAKE

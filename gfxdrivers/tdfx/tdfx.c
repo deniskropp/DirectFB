@@ -481,9 +481,6 @@ static void tdfxSetState( void *drv, void *dev,
                state->set |= DFXL_BLIT | DFXL_STRETCHBLIT;
                break;
 
-          case DFXL_DRAWSTRING:
-          case DFXL_ALL:
-               /* these are phony acceleration functions */
           default:
                BUG( "unexpected drawing/blitting function" );
                break;

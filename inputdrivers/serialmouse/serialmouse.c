@@ -76,7 +76,7 @@ typedef struct {
      pthread_t      thread;
 
      MouseProtocol  protocol;
-     
+
      DFBInputEvent  x_motion;
      DFBInputEvent  y_motion;
 } SerialMouseData;
@@ -352,7 +352,7 @@ mouseEventThread_mousesystems( void *driver_data )
 static MouseProtocol mouse_get_protocol()
 {
      MouseProtocol protocol;
-     
+
      if (!dfb_config->mouse_protocol)
           return LAST_PROTOCOL;
 
@@ -361,7 +361,7 @@ static MouseProtocol mouse_get_protocol()
                           protocol_names[protocol]) == 0)
                break;
      }
-     
+
      return protocol;
 }
 
@@ -460,7 +460,7 @@ driver_open_device( InputDevice      *device,
      protocol = mouse_get_protocol();
      if (protocol == LAST_PROTOCOL) /* shouldn't happen */
           return DFB_BUG;
-     
+
      /* open device */
      fd = open( DEV_NAME, O_RDWR | O_NONBLOCK );
      if (fd < 0) {
@@ -473,26 +473,26 @@ driver_open_device( InputDevice      *device,
 
      /* allocate and fill private data */
      data = DFBCALLOC( 1, sizeof(SerialMouseData) );
-     
+
      data->fd       = fd;
      data->device   = device;
      data->protocol = protocol;
 
      mouse_setspeed( data );
-     
+
      /* fill device info structure */
      snprintf( info->name, DFB_INPUT_DEVICE_INFO_NAME_LENGTH,
                "Serial Mouse (%s)", protocol_names[protocol] );
 
      snprintf( info->vendor, DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
-     
+
      info->prefered_id     = DIDID_MOUSE;
-     
+
      info->desc.type       = DIDTF_MOUSE;
-     info->desc.caps       = DICAPS_AXIS | DICAPS_BUTTONS;
+     info->desc.caps       = DICAPS_AXES | DICAPS_BUTTONS;
      info->desc.max_axis   = DIAI_Y;
      info->desc.max_button = (protocol > PROTOCOL_MS) ? DIBI_MIDDLE : DIBI_RIGHT;
-     
+
      /* start input thread */
      if (protocol == PROTOCOL_MOUSESYSTEMS)
           pthread_create( &data->thread, NULL,
@@ -514,7 +514,7 @@ driver_close_device( void *driver_data )
      /* stop input thread */
      pthread_cancel( data->thread );
      pthread_join( data->thread, NULL );
-     
+
      /* close device */
      close( data->fd );
 

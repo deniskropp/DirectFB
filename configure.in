@@ -82,15 +82,30 @@ if test "x$GCC" = xyes; then
 fi
 
 
-dnl compiling for x86, asm checks and inb/outb/iopl
+#
+# check target architecture
+#
+have_x86=off
+
 case x"$target" in
-xNONE | x)
-  case "$host" in
-    i*86-*-*) have_x86=on ;;
-    *) have_x86=off ;;
-  esac ;;
-xi*86-*-*) have_x86=on ;;
-*) have_x86=off ;;
+  xNONE | x)
+    target_or_host="$host" ;;
+  *)
+    target_or_host="$target" ;;
+esac
+
+case "$target_or_host" in
+  i*86-*-*)
+    have_x86=on
+    AC_DEFINE(ARCH_X86)
+    ;;
+
+  ppc-*-linux* | powerpc-*)
+    AC_DEFINE(ARCH_PPC)
+    ;;
+
+  *)
+    ;;
 esac
 
 
