@@ -70,6 +70,8 @@ typedef struct {
      __u32 draw_blend;
      __u32 blit_blend;
 
+     __u32 src_cntl;
+
      CoreSurface *source;
 } Mach64DeviceData;
 

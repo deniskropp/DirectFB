@@ -82,6 +82,9 @@ typedef struct
      int       matrox_cable;                      /* Matrox cable type */
      bool      matrox_sgram;                      /* Use Matrox SGRAM features */
      bool      matrox_crtc2;                      /* Experimental CRTC2 stuff */
+
+     bool      mach64_sgram;                      /* Use Mach64 SGRAM features */
+
      bool      sync;                              /* Do sync() in core_init() */
      bool      vt_switching;                      /* Allow VT switching by
                                                      pressing Ctrl+Alt+<F?> */

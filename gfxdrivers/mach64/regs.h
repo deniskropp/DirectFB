@@ -321,6 +321,9 @@
 #define SRC_BYTE_ALIGN                  0x8
 #define SRC_LINE_X_RIGHT_TO_LEFT        0x00
 #define SRC_LINE_X_LEFT_TO_RIGHT        0x10
+#define FAST_FILL_EN                    0x40
+#define COLOR_REG_WRITE_EN              0x2000
+#define BLOCK_WRITE_EN                  0x4000
 
 /* DST_BRES_LNTH */
 #define DRAW_TRAP               0x8000

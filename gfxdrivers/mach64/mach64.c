@@ -277,8 +277,9 @@ static void mach64SetState( void *drv, void *dev,
      case DFXL_DRAWLINE:
      case DFXL_FILLTRIANGLE:
           if (state->drawingflags & DSDRAW_BLEND) {
-               mach64_waitfifo( mdrv, mdev, 2 );
+               mach64_waitfifo( mdrv, mdev, 3 );
                mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
+               mach64_out32( mmio, SRC_CNTL, 0 );
                /* Some 3D registers aren't accessible without this. */
                mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SHADE );
 
@@ -288,8 +289,12 @@ static void mach64SetState( void *drv, void *dev,
                mach64_waitfifo( mdrv, mdev, 1 );
                mach64_out32( mmio, SCALE_3D_CNTL, mdev->draw_blend );
           } else {
-               mach64_waitfifo( mdrv, mdev, 2 );
+               mach64_waitfifo( mdrv, mdev, 3 );
                mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
+               if (accel == DFXL_FILLRECTANGLE || accel == DFXL_FILLTRIANGLE)
+                    mach64_out32( mmio, SRC_CNTL, mdev->src_cntl );
+               else
+                    mach64_out32( mmio, SRC_CNTL, 0 );
                mach64_out32( mmio, SCALE_3D_CNTL, 0 );
 
                mach64_set_color( mdrv, mdev, state );
@@ -307,8 +312,9 @@ static void mach64SetState( void *drv, void *dev,
           mach64_set_source( mdrv, mdev, state );
 
           if (USE_SCALER( state, accel )) {
-               mach64_waitfifo( mdrv, mdev, 2 );
+               mach64_waitfifo( mdrv, mdev, 3 );
                mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
+               mach64_out32( mmio, SRC_CNTL, 0 );
                /* Some 3D registers aren't accessible without this. */
                mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SCALE );
 
@@ -332,8 +338,9 @@ static void mach64SetState( void *drv, void *dev,
 
                state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
           } else {
-               mach64_waitfifo( mdrv, mdev, 2 );
+               mach64_waitfifo( mdrv, mdev, 3 );
                mach64_out32( mmio, DP_SRC, FRGD_SRC_BLIT );
+               mach64_out32( mmio, SRC_CNTL, 0 );
                mach64_out32( mmio, SCALE_3D_CNTL, 0 );
 
                if (state->blittingflags & DSBLIT_DST_COLORKEY)
@@ -697,7 +704,7 @@ driver_get_info( GraphicsDevice     *device,
                "Ville Syrjala" );
 
      info->version.major = 0;
-     info->version.minor = 11;
+     info->version.minor = 12;
 
      info->driver_data_size = sizeof (Mach64DriverData);
      info->device_data_size = sizeof (Mach64DeviceData);
@@ -800,6 +807,8 @@ driver_init_device( GraphicsDevice     *device,
      device_info->limits.surface_byteoffset_alignment = 64;
      device_info->limits.surface_bytepitch_alignment  = 16;
      device_info->limits.surface_pixelpitch_alignment = 8;
+
+     mdev->src_cntl = dfb_config->mach64_sgram ? FAST_FILL_EN | BLOCK_WRITE_EN : 0;
 
      return DFB_OK;
 }
