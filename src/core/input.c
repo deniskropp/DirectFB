@@ -61,6 +61,7 @@ typedef struct {
                                   InputDeviceInfo  *device_info,
                                   void            **driver_data);
      void      (*CloseDevice)    (void             *driver_data);
+     int                         nr_devices;
 } InputDriverModule;
 
 typedef struct {
@@ -158,10 +159,13 @@ DFBResult input_shutdown()
           InputDevice *next = d->next;
 
           d->driver->CloseDevice( d->driver_data );
+          d->driver->nr_devices--;
 
           reactor_free( d->shared->reactor );
 
-          DFBFREE( d->driver );
+          if (d->driver->nr_devices == 0)
+               DFBFREE( d->driver );
+
           DFBFREE( d );
 
           d = next;
@@ -261,7 +265,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
                                                       char *name,
                                                       void *ctx )
 {
-     int n, nr_devices;
+     int n;
      InputDriverModule *driver = DFBCALLOC( 1, sizeof(InputDriverModule) );
 
      driver->GetAbiVersion = dlsym( handle, "driver_get_abi_version" );
@@ -312,13 +316,13 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
           return MODULE_REJECTED;
      }
 
-     nr_devices = driver->GetAvailable();
-     if (!nr_devices) {
+     driver->nr_devices = driver->GetAvailable();
+     if (!driver->nr_devices) {
           DFBFREE( driver );
           return MODULE_REJECTED;
      }
 
-     for (n=0; n<nr_devices; n++) {
+     for (n=0; n<driver->nr_devices; n++) {
           InputDevice     *device;
           InputDeviceInfo  device_info;
           void            *driver_data;
@@ -365,7 +369,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
                } while ((dev = dev->next) != NULL);
           }
 
-          if (nr_devices > 1) {
+          if (driver->nr_devices > 1) {
                INITMSG( "DirectFB/InputDevice: %s(%d) %d.%d (%s)\n",
                         device->shared->driver_info.name, n+1,
                         device->shared->driver_info.version.major,

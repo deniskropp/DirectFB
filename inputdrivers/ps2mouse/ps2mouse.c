@@ -315,22 +315,19 @@ int init_ps2( int fd, int verbose )
           return -1;
      }
 
+     ps2Write( fd, ps2_init, sizeof (ps2_init), verbose );
+
+     if (ps2Write(fd, imps2_init, sizeof (imps2_init), verbose) != 0) {
+          if (verbose)
+               ERRORMSG ("DirectFB/PS2Mouse: mouse failed IMPS/2 init\n");
+          return -2;
+     }
+
      if ((mouseId = ps2GetId( fd, verbose )) < 0)
           return mouseId;
 
-
      if ( mouseId != PS2_ID_IMPS2 )   /*  unknown id, assume PS/2  */
           mouseId = PS2_ID_PS2;
-
-     ps2Write( fd, ps2_init, sizeof (ps2_init), verbose );
-
-     if ( mouseId == PS2_ID_IMPS2 ) {
-          if (ps2Write(fd, imps2_init, sizeof (imps2_init), verbose) != 0) {
-               if (verbose)
-                    ERRORMSG ("DirectFB/PS2Mouse: mouse failed IMPS/2 init\n");
-               return -2;
-          }
-     }
 
      return mouseId;
 }
@@ -344,32 +341,30 @@ driver_get_abi_version()
      return DFB_INPUT_DRIVER_ABI_VERSION;
 }
 
+static char *devname[] = { "/dev/psaux", "/dev/input/mice" };
+static char *devlist [2] = { NULL, NULL };
+
 
 int
 driver_get_available()
 {
      int fd;
+     int n_dev = 0;
+     int i;
 
-     fd = open( "/dev/psaux", O_RDWR | O_SYNC );
+     for (i=0; i<sizeof(devname)/sizeof(char*); i++) {
+          fd = open( devname[i], O_RDWR | O_SYNC );
 
-     if (fd < 0)
-          return 0;
-
-     if (init_ps2 (fd, 0) < 0) {
-          close( fd );
-          fd = open( "/dev/input/mice", O_RDWR | O_SYNC );
-
-          if (fd < 0)
-               return 0;
-
-          if (init_ps2 (fd, 0) < 0) {
+          if (fd >= 0) {
+               if (init_ps2 (fd, 0) >= 0) {
+                    devlist[n_dev] = devname[i];
+                    n_dev++;
+               }
                close( fd );
-               return 0;
           }
      }
 
-     close( fd );
-     return 1;
+     return n_dev;
 }
 
 
@@ -388,6 +383,7 @@ driver_get_info( InputDriverInfo *info )
      info->version.minor = 9;
 }
 
+static int n_dev = 0;
 
 DFBResult
 driver_open_device( InputDevice      *device,
@@ -399,23 +395,29 @@ driver_open_device( InputDevice      *device,
      PS2MouseData *data;
 
      /* open device */
-     fd = open( "/dev/psaux", O_RDWR | O_SYNC );
-     if (fd < 0 || (mouseId = init_ps2(fd, 1)) < 0) {
-          fd = open( "/dev/input/mice", O_RDWR | O_SYNC );
-          if (fd < 0 || (mouseId = init_ps2(fd, 1)) < 0) {
-               PERRORMSG( "DirectFB/PS2Mouse: could not initialize mouse on"
-                          " `/dev/psaux' or `/dev/input/mice' !\n" );
-               return DFB_INIT;
-          }
+
+     fd = open( devlist[n_dev], O_RDWR | O_SYNC );
+     if (fd < 0) {
+          PERRORMSG( "DirectFB/PS2Mouse: failed opening `%s' !\n",
+                     devlist[n_dev] );
+          close( fd );
+          return DFB_INIT;
      }
 
+     if ((mouseId = init_ps2(fd, 1)) < 0) {
+          PERRORMSG( "DirectFB/PS2Mouse: could not initialize mouse on `%s'!\n",
+                     devlist[n_dev] );
+          close( fd );
+          return DFB_INIT;
+     }
+
+     n_dev++;
+
      /* fill device info structure */
-     snprintf( info->name,
-               DFB_INPUT_DEVICE_INFO_NAME_LENGTH,
+     snprintf( info->name, DFB_INPUT_DEVICE_INFO_NAME_LENGTH,
                (mouseId == PS2_ID_IMPS2) ? "IMPS/2 Mouse" : "PS/2 Mouse" );
 
-     snprintf( info->vendor,
-               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
+     snprintf( info->vendor, DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
 
      info->prefered_id     = DIDID_MOUSE;
      info->desc.type       = DIDTF_MOUSE;
