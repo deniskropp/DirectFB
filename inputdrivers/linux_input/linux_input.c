@@ -765,10 +765,18 @@ driver_get_available()
           else {
                InputDeviceInfo info;
 
+               /* try to grab the device */
+               /* 2.4 kernels don't have EVIOCGRAB so ignore EINVAL */
+               if (ioctl( fd, EVIOCGRAB, 1 ) && errno != EINVAL) {
+                    close( fd );
+                    continue;
+               }
+
                memset( &info, 0, sizeof(InputDeviceInfo) );
 
                get_device_info( fd, &info );
 
+               ioctl( fd, EVIOCGRAB, 0 );
                close( fd );
 
                if (!dfb_config->linux_input_ir_only ||
