@@ -231,7 +231,7 @@ dfb_core_unref()
 
 #ifndef FUSION_FAKE
      arena_exit( dfb_core->arena,
-                 dfb_core_shutdown, dfb_core_leave, false, NULL );
+                 dfb_core_shutdown, dfb_core_leave, NULL, false, NULL );
 #else
      dfb_core_shutdown( NULL, NULL, false );
 #endif
@@ -309,7 +309,7 @@ dfb_core_deinit_emergency()
 
 #ifndef FUSION_FAKE
      arena_exit( dfb_core->arena,
-                 dfb_core_shutdown, dfb_core_leave, true, NULL );
+                 dfb_core_shutdown, dfb_core_leave, NULL, true, NULL );
 #else
      dfb_core_shutdown( NULL, NULL, true );
 #endif

@@ -152,7 +152,7 @@ dfb_layers_initialize()
      layersfield = shcalloc( 1, sizeof (CoreLayersField) );
 
 #ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, layersfield, "Core/Layers" );
+     arena_add_shared_field( dfb_core->arena, "Core/Layers", layersfield );
 #endif
 
      return DFB_OK;
@@ -164,8 +164,8 @@ dfb_layers_join()
 {
      DFB_ASSERT( layersfield == NULL );
      
-     if (arena_get_shared_field( dfb_core->arena,
-                                 (void**) &layersfield, "Core/Layers" ))
+     if (arena_get_shared_field( dfb_core->arena, "Core/Layers",
+                                 (void**) &layersfield ))
           return DFB_INIT;
 
      return DFB_OK;

@@ -86,6 +86,9 @@ void *__shmalloc_init (bool initialize);
 void *__shmalloc_brk  (int increment);
 void  __shmalloc_exit (bool shutdown);
 
+void *__shmalloc_allocate_root (size_t size);
+void *__shmalloc_get_root();
+
 ReactionResult __shmalloc_react (const void *msg_data, void *ctx);
 
 /* Internal version of `shfree' used in `morecore' (shmalloc.c). */
@@ -196,6 +199,8 @@ typedef struct {
      size_t bytes_used;
      size_t chunks_free;
      size_t bytes_free;
+
+     void *root_node;
 } shmalloc_heap;
 
 /* global data at beginning of shared memory */

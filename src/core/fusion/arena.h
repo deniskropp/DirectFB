@@ -43,16 +43,17 @@ FusionResult  arena_enter            (const char      *name,
                                       int             *ret_error);
 
 FusionResult  arena_add_shared_field (FusionArena     *arena,
-                                      void            *data,
-                                      const char      *name);
+                                      const char      *name,
+                                      void            *data);
 
 FusionResult  arena_get_shared_field (FusionArena     *arena,
-                                      void           **data,
-                                      const char      *name);
+                                      const char      *name,
+                                      void           **data);
 
 FusionResult  arena_exit             (FusionArena     *arena,
                                       ArenaExitFunc    shutdown,
                                       ArenaExitFunc    leave,
+                                      void            *ctx,
                                       bool             emergency,
                                       int             *ret_error);
 

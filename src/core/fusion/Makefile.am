@@ -5,7 +5,6 @@ SUBDIRS = shmalloc
 MULTIAPPSOURCES = \
 	arena.c			\
 	fusion.c		\
-	util.c			\
 	fusion_shmalloc.c
 endif
 

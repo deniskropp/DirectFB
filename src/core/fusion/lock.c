@@ -34,15 +34,8 @@
 #include <signal.h>
 
 #ifndef FUSION_FAKE
-
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/sem.h>
-
 #include <sys/ioctl.h>
 #include <linux/fusion.h>
-
 #endif
 
 

@@ -63,6 +63,7 @@ Cambridge, MA 02139, USA.
 #include <misc/mem.h>
 
 #include "../fusion_internal.h"
+#include "../shmalloc.h"
 
 #define SH_BASE          0x20000000
 #define SH_MAX_SIZE      0x20000000
@@ -528,5 +529,22 @@ void __shmalloc_exit (bool shutdown)
 
      DFBFREE (sh_name);
      sh_name = NULL;
+}
+
+void *__shmalloc_allocate_root (size_t size)
+{
+     DFB_ASSERT( _sheap != NULL );
+     DFB_ASSERT( _sheap->root_node == NULL );
+
+     _sheap->root_node = shcalloc( 1, size );
+
+     return _sheap->root_node;
+}
+
+void *__shmalloc_get_root()
+{
+     DFB_ASSERT( _sheap != NULL );
+
+     return _sheap->root_node;
 }
 

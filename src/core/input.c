@@ -166,7 +166,7 @@ dfb_input_initialize()
      inputfield = shcalloc( 1, sizeof (CoreInputField) );
 
 #ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, inputfield, "Core/Input" );
+     arena_add_shared_field( dfb_core->arena, "Core/Input", inputfield );
 #endif
 
      dfb_modules_explore_directory( &dfb_input_modules );
@@ -185,8 +185,8 @@ dfb_input_join()
 
      DFB_ASSERT( inputfield == NULL );
 
-     ret = arena_get_shared_field( dfb_core->arena,
-                                  (void**) &inputfield, "Core/Input" );
+     ret = arena_get_shared_field( dfb_core->arena, "Core/Input",
+                                  (void**) &inputfield );
      if (ret) {
           return DFB_INIT;
      }

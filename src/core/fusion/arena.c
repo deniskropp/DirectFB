@@ -31,15 +31,13 @@
 #include <errno.h>
 
 #include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/shm.h>
 
 #include <pthread.h>
 
 #include <misc/mem.h>
 
 #include "fusion_types.h"
+#include "list.h"
 #include "lock.h"
 #include "ref.h"
 #include "arena.h"
@@ -52,42 +50,30 @@
  *  Internal declarations  *
  ***************************/
 
-/*
- *
- */
 typedef struct {
-     int  num;
-     long ids[MAX_ARENA_NODES];
-} ArenaNodes;
+     FusionLink  link;
 
-typedef struct {
-     char  name[MAX_ARENA_FIELD_NAME_LENGTH+1];
-     void *data;
+     char       *name;
+     void       *data;
 } ArenaField;
 
 /*
  *
  */
-typedef struct {
+struct _FusionArena {
+     FusionLink      link;
+
      FusionSkirmish  lock;
      FusionRef       ref;
 
-     ArenaField      fields[MAX_ARENA_FIELDS];
-     ArenaNodes      nodes;       /* list of attached nodes           */
-} ArenaShared;
+     char           *name;
 
-/*
- *
- */
-struct _FusionArena {
-     /* shared data */
-     ArenaShared *shared;     /* FusionArena internal shared data  */
-     int          shared_shm; /* ID of shared memory segment */
-
-     /* local data */
-     void        *ctx;
+     FusionLink     *fields;
 };
 
+static FusionArena *lock_arena( const char *name, bool add );
+
+static void         unlock_arena( FusionArena *arena );
 
 /****************
  *  Public API  *
@@ -100,149 +86,102 @@ FusionResult arena_enter (const char     *name,
                           FusionArena   **ret_arena,
                           int            *ret_error)
 {
-     key_t              key;
-     FusionArena       *arena;
-     ArenaShared       *shared;
-     ArenaEnterFunc     func;
-     AcquisitionStatus  as;
-     int                error = 0;
+     FusionArena    *arena;
+     ArenaEnterFunc  func;
+     int             error = 0;
 
      DFB_ASSERT( name != NULL );
      DFB_ASSERT( initialize != NULL );
      DFB_ASSERT( join != NULL );
      DFB_ASSERT( ret_arena != NULL );
 
-     key = keygen (name, FUSION_KEY_ARENA);
-
-     /* allocate local Arena data */
-     arena = (FusionArena*)DFBCALLOC (1, sizeof(FusionArena));
-
-     /* store local data */
-     arena->ctx = ctx;
-
-     /* acquire shared Arena data */
-     as = _shm_acquire (key, sizeof(ArenaShared), &arena->shared_shm);
-     if (as == AS_Failure) {
-          DFBFREE (arena);
+     arena = lock_arena( name, true );
+     if (!arena)
           return FUSION_FAILURE;
-     }
 
-     arena->shared = shared = shmat (arena->shared_shm, NULL, 0);
-
-     if (as == AS_Initialize) {
-          memset (shared, 0, sizeof (ArenaShared));
-
-          skirmish_init (&shared->lock);
-          skirmish_prevail (&shared->lock);
-
-          fusion_ref_init (&shared->ref);
-          fusion_ref_up (&shared->ref, false);
-
-          FDEBUG ("entered arena `%s´ (establishing)\n", name);
-
+     if (fusion_ref_zero_trylock( &arena->ref ) == FUSION_SUCCESS) {
+          FDEBUG ("entering arena `%s´ (establishing)\n", name);
+          
           func = initialize;
+
+          fusion_ref_unlock( &arena->ref );
      }
      else {
-          skirmish_prevail (&arena->shared->lock);
-
-          if (arena->shared->nodes.num == MAX_ARENA_NODES) {
-               FERROR ("maximum number of nodes reached (%d)\n", MAX_ARENA_NODES);
-
-               shmdt (arena->shared);
-
-               skirmish_dismiss (&arena->shared->lock);
-
-               DFBFREE (arena);
-               return FUSION_LIMITREACHED;
-          }
-
-          fusion_ref_up (&shared->ref, false);
-
-          FDEBUG ("entered arena `%s´ (joining)\n", name);
-
+          FDEBUG ("entering arena `%s´ (joining)\n", name);
+          
           func = join;
      }
-
-     arena->shared->nodes.ids[arena->shared->nodes.num++] = fusion_id;
-
-     FDEBUG ("added fid %x to arena nodes (%d)\n", fusion_id, arena->shared->nodes.num);
-
+     
+     fusion_ref_up (&arena->ref, false);
+     
+     
      *ret_arena = arena;
      
-     if (func)
-          error = func (arena, ctx);
+     error = func (arena, ctx);
      
      if (ret_error)
           *ret_error = error;
      
-     skirmish_dismiss (&arena->shared->lock);
+     unlock_arena( arena );
 
      return FUSION_SUCCESS;
 }
 
 FusionResult arena_add_shared_field (FusionArena *arena,
-                                     void        *data,
-                                     const char  *name)
+                                     const char  *name,
+                                     void        *data)
 {
-     int          i;
-     ArenaShared *shared;
+     ArenaField *field;
 
      DFB_ASSERT( arena != NULL );
      DFB_ASSERT( data != NULL );
      DFB_ASSERT( name != NULL );
 
-     if (strlen (name) > MAX_ARENA_FIELD_NAME_LENGTH)
-          return FUSION_TOOLONG;
+     if (skirmish_prevail( &arena->lock ))
+          return FUSION_FAILURE;
 
-     skirmish_prevail (&arena->shared->lock);
-
-     shared = arena->shared;
-
-     for (i=0; i<MAX_ARENA_FIELDS; i++) {
-          if (shared->fields[i].data == NULL) {
-               shared->fields[i].data = data;
-               strcpy (shared->fields[i].name, name);
-
-               skirmish_dismiss (&shared->lock);
-
-               return FUSION_SUCCESS;
-          }
+     field = shcalloc( 1, sizeof(ArenaField) );
+     if (!field) {
+          skirmish_dismiss( &arena->lock );
+          return FUSION_FAILURE;
      }
 
-     skirmish_dismiss (&shared->lock);
+     field->name = shstrdup( name );
+     field->data = data;
 
-     return FUSION_LIMITREACHED;
+     fusion_list_prepend( &arena->fields, &field->link );
+
+     skirmish_dismiss( &arena->lock );
+
+     return FUSION_SUCCESS;
 }
 
 FusionResult arena_get_shared_field (FusionArena  *arena,
-                                     void        **data,
-                                     const char   *name)
+                                     const char   *name,
+                                     void        **data)
 {
-     int          i;
-     ArenaShared *shared;
+     FusionLink *l;
 
      DFB_ASSERT( arena != NULL );
      DFB_ASSERT( data != NULL );
      DFB_ASSERT( name != NULL );
+     
+     if (skirmish_prevail( &arena->lock ))
+          return FUSION_FAILURE;
 
-     if (strlen (name) > MAX_ARENA_FIELD_NAME_LENGTH)
-          return FUSION_TOOLONG;
+     fusion_list_foreach (l, arena->fields) {
+          ArenaField *field = (ArenaField*) l;
 
-     skirmish_prevail (&arena->shared->lock);
+          if (! strcmp( field->name, name )) {
+               skirmish_dismiss( &arena->lock );
 
-     shared = arena->shared;
-
-     for (i=0; i<MAX_ARENA_FIELDS; i++) {
-          if (strcmp (shared->fields[i].name, name) == 0) {
-               *data = shared->fields[i].data;
-
-               skirmish_dismiss (&shared->lock);
+               *data = field->data;
 
                return FUSION_SUCCESS;
           }
      }
-
-     skirmish_dismiss (&shared->lock);
+     
+     skirmish_dismiss( &arena->lock );
 
      return FUSION_NOTEXISTENT;
 }
@@ -250,6 +189,7 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
 FusionResult arena_exit (FusionArena   *arena,
                          ArenaExitFunc  shutdown,
                          ArenaExitFunc  leave,
+                         void          *ctx,
                          bool           emergency,
                          int           *ret_error)
 {
@@ -259,42 +199,40 @@ FusionResult arena_exit (FusionArena   *arena,
      DFB_ASSERT( shutdown != NULL );
      DFB_ASSERT( leave != NULL );
      
-     skirmish_prevail (&arena->shared->lock);
+     if (skirmish_prevail( &arena->lock ))
+          return FUSION_FAILURE;
 
-     if (arena->shared->nodes.num > 1) {
-          int i;
+     fusion_ref_down( &arena->ref, false );
 
-          for (i = 0; i < arena->shared->nodes.num; i++) {
-               if (arena->shared->nodes.ids[i] == fusion_id) {
-                    arena->shared->nodes.ids[i] =
-                    arena->shared->nodes.ids[arena->shared->nodes.num - 1];
+     if (fusion_ref_zero_trylock( &arena->ref ) == FUSION_SUCCESS) {
+          FusionLink *l = arena->fields;
 
-                    arena->shared->nodes.num--;
-               }
+          error = shutdown( arena, ctx, emergency );
+
+          while (l) {
+               FusionLink *next  = l->next;
+               ArenaField *field = (ArenaField*) l;
+
+               shfree( field->name );
+               shfree( field );
+
+               l = next;
           }
-     }
 
-     fusion_ref_down (&arena->shared->ref, false);
-
-     if (fusion_ref_zero_trylock (&arena->shared->ref) == FUSION_SUCCESS) {
-          error = shutdown (arena, arena->ctx, emergency);
-
-          fusion_ref_destroy (&arena->shared->ref);
-
-          skirmish_destroy (&arena->shared->lock);
+          fusion_ref_destroy( &arena->ref );
+          skirmish_destroy( &arena->lock );
+          
+          skirmish_prevail( &fusion_shared->arenas_lock );
+          fusion_list_remove( &fusion_shared->arenas, &arena->link );
+          skirmish_dismiss( &fusion_shared->arenas_lock );
      }
      else {
-          error = leave (arena, arena->ctx, emergency);
+          error = leave( arena, ctx, emergency );
 
-          skirmish_dismiss (&arena->shared->lock);
+          skirmish_dismiss( &arena->lock );
      }
 
-     if (_shm_abolish (arena->shared_shm, arena->shared) == AB_Destroyed) {
-     }
-     else {
-     }
-
-     DFBFREE (arena);
+     shfree( arena );
 
      if (ret_error)
           *ret_error = error;
@@ -306,4 +244,53 @@ FusionResult arena_exit (FusionArena   *arena,
 /*****************************
  *  File internal functions  *
  *****************************/
+
+static FusionArena *
+lock_arena( const char *name, bool add )
+{
+     FusionLink *l;
+
+     skirmish_prevail( &fusion_shared->arenas_lock );
+
+     fusion_list_foreach (l, fusion_shared->arenas) {
+          FusionArena *arena = (FusionArena*) l;
+
+          if (! strcmp( arena->name, name )) {
+               if (skirmish_prevail( &arena->lock ))
+                    arena = NULL;
+
+               skirmish_dismiss( &fusion_shared->arenas_lock );
+
+               return arena;
+          }
+     }
+
+     if (add) {
+          FusionArena *arena = shcalloc( 1, sizeof(FusionArena) );
+
+          skirmish_init( &arena->lock );
+          fusion_ref_init( &arena->ref );
+
+          arena->name = shstrdup( name );
+
+          fusion_list_prepend( &fusion_shared->arenas, &arena->link );
+          
+          skirmish_prevail( &arena->lock );
+          skirmish_dismiss( &fusion_shared->arenas_lock );
+
+          return arena;
+     }
+     
+     skirmish_dismiss( &fusion_shared->arenas_lock );
+
+     return NULL;
+}
+
+static void
+unlock_arena( FusionArena *arena )
+{
+     DFB_ASSERT( arena != NULL );
+
+     skirmish_dismiss( &arena->lock );
+}
 

@@ -199,7 +199,7 @@ DFBResult dfb_gfxcard_initialize()
      skirmish_init( &Scard->lock );
 
 #ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, Scard, "Scard" );
+     arena_add_shared_field( dfb_core->arena, "Scard", Scard );
 #endif
 
      return DFB_OK;
@@ -212,7 +212,7 @@ DFBResult dfb_gfxcard_join()
 
      card = (GraphicsDevice*)DFBCALLOC( 1, sizeof(GraphicsDevice) );
 
-     arena_get_shared_field( dfb_core->arena, (void**) &Scard, "Scard" );
+     arena_get_shared_field( dfb_core->arena, "Scard", (void**) &Scard );
 
      /* Build a list of available drivers. */
      dfb_modules_explore_directory( &dfb_graphics_drivers );

@@ -67,7 +67,7 @@ dfb_colorhash_initialize()
      skirmish_init( &hash_field->hash_lock );
 
 #ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, hash_field, "Colorhash" );
+     arena_add_shared_field( dfb_core->arena, "Colorhash", hash_field );
 #endif
 
      return DFB_OK;
@@ -79,8 +79,8 @@ dfb_colorhash_join()
 {
      DFB_ASSERT( hash_field == NULL );
      
-     if (arena_get_shared_field( dfb_core->arena,
-                                 (void**) &hash_field, "Colorhash" ))
+     if (arena_get_shared_field( dfb_core->arena, "Colorhash",
+                                 (void**) &hash_field ))
           return DFB_INIT;
 
      return DFB_OK;
