@@ -425,6 +425,9 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     if (ret)
                          return ret;
 
+                    window->options = (DWOP_KEEP_POSITION | DWOP_KEEP_SIZE |
+                                       DWOP_INDESTRUCTIBLE);
+
                     drop_window( data );
                     
                     data->primary.window = window;
