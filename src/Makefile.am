@@ -7,7 +7,7 @@ INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/src
 
-CFLAGS = $(DFB_CFLAGS)
+AM_CFLAGS = $(DFB_CFLAGS)
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\

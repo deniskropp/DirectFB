@@ -4,7 +4,7 @@ INCLUDES = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src
 
-CFLAGS = $(DFB_CFLAGS)
+AM_CFLAGS = $(DFB_CFLAGS)
 
 cyber5k_LTLIBRARIES = libdirectfb_cyber5k.la
 

@@ -5,7 +5,7 @@ INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/src
 
-CFLAGS = $(DFB_CFLAGS) `sdl-config --cflags`
+AM_CFLAGS = $(DFB_CFLAGS) `sdl-config --cflags`
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"		\
