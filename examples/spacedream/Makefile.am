@@ -27,7 +27,7 @@ AM_CPPFLAGS = \
 
 bin_PROGRAMS = spacedream
 
-spacedream_SOURCES = main.c
+spacedream_SOURCES = main.c math3d.c math3d.h
 spacedream_LDADD   = $(LIBADDS)
 
 .PHONY: files

@@ -32,6 +32,8 @@
 #include <unistd.h>
 #include <math.h>
 
+#include "math3d.h"
+
 /* macro for a safe call to DirectFB functions */
 #define DFBCHECK(x...)                                                    \
      {                                                                    \
@@ -57,13 +59,13 @@ int xres;
 int yres;
 
 typedef struct {
-     float x;
-     float y;
-     float z;
+     Vector pos;
 } Star;
 
+Matrix *projection;
+Matrix *camera;
 
-#define STARFIELD_SIZE 500
+#define STARFIELD_SIZE 5000
 
 static Star starfield[STARFIELD_SIZE];
 static Star t_starfield[STARFIELD_SIZE];
@@ -106,16 +108,17 @@ static void* render_loop (void *arg)
           view->FillRectangle( view, 0, 0, xres, yres );
 
           for (i=0; i<STARFIELD_SIZE; i++) {
-               int map = (int)t_starfield[i].z >> 6;
-          //     int light = 0xFF - ((t_starfield[i].z & 0xF) << 3);
+               int map = (int)(t_starfield[i].pos.v[Z]) >> 8;
+          //     int light = 0xFF - ((t_starfield[i].pos[Z] & 0xF) << 3);
 
                if (map >= 0) {
                     if (map >= NUM_STARS)
                          map = NUM_STARS - 1;
 
                //     view->SetColor( view, light, light, light, 0xff );
-                    view->Blit( view, stars[map],
-                                NULL, (int)t_starfield[i].x, (int)t_starfield[i].y );
+                    view->Blit( view, stars[map], NULL,
+                                (int)(t_starfield[i].pos.v[X]),
+                                (int)(t_starfield[i].pos.v[Y]) );
                }
           }
 
@@ -155,52 +158,32 @@ void generate_starfield()
      int i;
 
      for (i=0; i<STARFIELD_SIZE; i++) {
-          starfield[i].x = rand()%xres - xres/2;
-          starfield[i].y = rand()%yres - yres/2;
-          starfield[i].z = (rand()%(NUM_STARS<<7)) - (NUM_STARS<<6);
-
-          starfield[i].x *= 2;
-          starfield[i].y *= 2;
-          starfield[i].z *= 2;
-     }
-}
-
-void move_starfield()
-{
-     int i;
-     int dx, dy, dz;
-
-     dx = rand()%3-1;
-     dy = rand()%3-1;
-     dz = rand()%3-1;
-
-     for (i=0; i<STARFIELD_SIZE; i++) {
-          starfield[i].x += dx;
-          starfield[i].y += dy;
-          starfield[i].z += dz;
+          starfield[i].pos.v[X] = rand()%3001 - 1500;
+          starfield[i].pos.v[Y] = rand()%3001 - 1500;
+          starfield[i].pos.v[Z] = rand()%3001 - 1500;
+          starfield[i].pos.v[W] = 1;
      }
 }
 
 void transform_starfield()
 {
-     static float rot = 0;
-     int i;
+     int    i;
+     Matrix m;
+
+     memcpy( &m, camera, sizeof(Matrix) );
+     matrix_multiply( &m, projection );
 
      for (i=0; i<STARFIELD_SIZE; i++) {
-          t_starfield[i].x = starfield[i].x * cos(rot) + starfield[i].z * sin(rot);
-          t_starfield[i].y = starfield[i].y;
-          t_starfield[i].z = starfield[i].x * -sin(rot) + starfield[i].z * cos(rot);
+          matrix_transform( &m, &starfield[i].pos, &t_starfield[i].pos );
 
-          if (t_starfield[i].z >= 0) {
-               t_starfield[i].x /= (t_starfield[i].z / 300.0f) + 1.0f;
-               t_starfield[i].y /= (t_starfield[i].z / 400.0f) + 1.0f;
+          if (t_starfield[i].pos.v[W]) {
+               t_starfield[i].pos.v[X] /= t_starfield[i].pos.v[W];
+               t_starfield[i].pos.v[Y] /= t_starfield[i].pos.v[W];
           }
 
-          t_starfield[i].x += xres/2;
-          t_starfield[i].y += yres/2;
+          t_starfield[i].pos.v[X] += xres/2;
+          t_starfield[i].pos.v[Y] += yres/2;
      }
-
-     rot += 0.01f;
 }
 
 void unload_stars()
@@ -219,6 +202,8 @@ int main( int argc, char *argv[] )
      IDirectFBSurface     *primary;
      IDirectFBInputDevice *keyboard;
      IDirectFBInputBuffer *keybuffer;
+     IDirectFBInputDevice *mouse;
+     IDirectFBInputBuffer *mousebuffer;
 
      DFBCardCapabilities   caps;
      DFBSurfaceDescription dsc;
@@ -239,6 +224,11 @@ int main( int argc, char *argv[] )
      DFBCHECK(dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard ));
      DFBCHECK(keyboard->CreateInputBuffer( keyboard, &keybuffer ));
 
+     /* get an interface to the primary mouse and create an
+        input buffer for it */
+     DFBCHECK(dfb->GetInputDevice( dfb, DIDID_MOUSE, &mouse ));
+     DFBCHECK(mouse->CreateInputBuffer( mouse, &mousebuffer ));
+
      /* set our cooperative level to DFSCL_FULLSCREEN for exclusive access to
         the primary layer */
      DFBCHECK(dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN ));
@@ -250,7 +240,6 @@ int main( int argc, char *argv[] )
 
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &primary ));
 
-     /* set our desired video mode */
      DFBCHECK(primary->GetSize( primary, &xres, &yres ));
 
      /* load font */
@@ -264,6 +253,9 @@ int main( int argc, char *argv[] )
           DFBCHECK(primary->SetFont( primary, font ));
      }
 
+     projection = matrix_new_perspective( 400 );
+     camera = matrix_new_identity();
+
      load_stars();
 
      generate_starfield();
@@ -274,6 +266,7 @@ int main( int argc, char *argv[] )
 
      /* main loop */
      while (!quit) {
+          static float  translation[3] = { 0, 0, 0 };
           DFBInputEvent evt;
 
           /* transform world to screen coordinates */
@@ -294,14 +287,64 @@ int main( int argc, char *argv[] )
                               quit = 1;
                               break;
 
+                         case DIKC_LEFT:
+                              translation[0] =  10;
+                              break;
+
+                         case DIKC_RIGHT:
+                              translation[0] = -10;
+                              break;
+
+                         case DIKC_UP:
+                              translation[2] = -10;
+                              break;
+
+                         case DIKC_DOWN:
+                              translation[2] =  10;
+                              break;
+
                          default:
-                              move_starfield();
+                              break;
+                    }
+               } else
+               if (evt.type == DIET_KEYRELEASE) {
+                    switch (evt.keycode) {
+                         case DIKC_LEFT:
+                         case DIKC_RIGHT:
+                              translation[0] = 0;
+                              break;
+
+                         case DIKC_UP:
+                         case DIKC_DOWN:
+                              translation[2] = 0;
+                              break;
+
+                         default:
                               break;
                     }
                }
           }
 
-//          move_starfield();
+          /* process mousebuffer */
+          while (mousebuffer->GetEvent( mousebuffer, &evt) == DFB_OK) {
+               if (evt.type == DIET_AXISMOTION  && (evt.flags & DIEF_AXISREL)) {
+                    switch (evt.axis) {
+                         case DIAI_X:
+                              matrix_rotate( camera, Y, -evt.axisrel/80.0f );
+                              break;
+
+                         case DIAI_Y:
+                              matrix_rotate( camera, X,  evt.axisrel/80.0f );
+                              break;
+
+                         default:
+                              break;
+                    }
+               }
+          }
+
+          matrix_translate( camera,
+                            translation[0], translation[1], translation[2] );
 
           /* finish rendering before retransforming the world */
           finish_rendering();
@@ -314,6 +357,9 @@ int main( int argc, char *argv[] )
 
 
      unload_stars();
+
+     free( camera );
+     free( projection );
 
      keybuffer->Release( keybuffer );
      keyboard->Release( keyboard );
