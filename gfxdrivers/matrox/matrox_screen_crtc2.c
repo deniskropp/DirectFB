@@ -55,7 +55,7 @@ typedef struct {
 
 static void crtc2_wait_vsync( MatroxDriverData *mdrv );
 
-/******************************************************************************/
+/**************************************************************************************************/
 
 static int
 crtc2ScreenDataSize()
@@ -78,11 +78,13 @@ crtc2InitScreen( CoreScreen           *screen,
                DFB_SCREEN_DESC_NAME_LENGTH, "Matrox CRTC2 Screen" );
 
      /* Set number of encoders and outputs. */
-     description->encoders = 0;
-     description->outputs  = 0;
+     description->encoders = 1;
+     description->outputs  = 1;
 
      return DFB_OK;
 }
+
+/**************************************************************************************************/
 
 static DFBResult
 crtc2InitEncoder( CoreScreen                  *screen,
@@ -146,6 +148,8 @@ crtc2InitOutput( CoreScreen                 *screen,
      return DFB_OK;
 }
 
+/**************************************************************************************************/
+
 static DFBResult
 crtc2SetPowerMode( CoreScreen         *screen,
                    void               *driver_data,
@@ -173,6 +177,62 @@ crtc2WaitVSync( CoreScreen *screen,
      return DFB_OK;
 }
 
+/**************************************************************************************************/
+
+static DFBResult
+crtc2TestEncoderConfig( CoreScreen                   *screen,
+                        void                         *driver_data,
+                        void                         *screen_data,
+                        int                           encoder,
+                        const DFBScreenEncoderConfig *config,
+                        DFBScreenEncoderConfigFlags  *failed )
+{
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+crtc2SetEncoderConfig( CoreScreen                   *screen,
+                       void                         *driver_data,
+                       void                         *screen_data,
+                       int                           encoder,
+                       const DFBScreenEncoderConfig *config )
+{
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+/**************************************************************************************************/
+
+static DFBResult
+crtc2TestOutputConfig( CoreScreen                  *screen,
+                       void                        *driver_data,
+                       void                        *screen_data,
+                       int                          output,
+                       const DFBScreenOutputConfig *config,
+                       DFBScreenOutputConfigFlags  *failed )
+{
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+crtc2SetOutputConfig( CoreScreen                  *screen,
+                      void                        *driver_data,
+                      void                        *screen_data,
+                      int                          output,
+                      const DFBScreenOutputConfig *config )
+{
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+/**************************************************************************************************/
+
 static DFBResult
 crtc2GetScreenSize( CoreScreen *screen,
                     void       *driver_data,
@@ -193,10 +253,14 @@ ScreenFuncs matroxCrtc2ScreenFuncs = {
      InitOutput:         crtc2InitOutput,
      SetPowerMode:       crtc2SetPowerMode,
      WaitVSync:          crtc2WaitVSync,
+     TestEncoderConfig:  crtc2TestEncoderConfig,
+     SetEncoderConfig:   crtc2SetEncoderConfig,
+     TestOutputConfig:   crtc2TestOutputConfig,
+     SetOutputConfig:    crtc2SetOutputConfig,
      GetScreenSize:      crtc2GetScreenSize
 };
 
-/******************************************************************************/
+/**************************************************************************************************/
 
 static void crtc2_wait_vsync( MatroxDriverData *mdrv )
 {
