@@ -326,7 +326,7 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
 
           prev = current;
 
-          string += DIRECT_UTF8_SKIP( current );
+          string += DIRECT_UTF8_SKIP( string[0] );
      } while (string < end);
 
      dfb_font_unlock( font );
