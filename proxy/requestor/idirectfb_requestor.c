@@ -215,8 +215,11 @@ IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
-     if (!ret_interface)
+     if (!desc || !ret_interface)
           return DFB_INVARG;
+
+     if (desc->flags & (DSDESC_PALETTE | DSDESC_PREALLOCATED))
+          D_ONCE( "DSDESC_PALETTE and DSDESC_PREALLOCATED not supported yet" );
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IDIRECTFB_METHOD_ID_CreateSurface, VREQ_RESPOND, &response,
