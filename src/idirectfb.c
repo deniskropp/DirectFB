@@ -421,6 +421,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
           format = desc->pixelformat;
 
      switch (format) {
+          case DSPF_A1:
           case DSPF_A8:
           case DSPF_ARGB:
           case DSPF_ARGB1555:

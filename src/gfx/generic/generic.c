@@ -2851,6 +2851,301 @@ static GenefxFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_a8_set_alphapixel_Aop_airgb
 };
 
+/************** Bop_a1_set_alphapixel_Aop_PFI *********************************/
+
+static void Bop_a1_set_alphapixel_Aop_argb1555( GenefxState *gfxs )
+{
+     int    w   = gfxs->length;
+     __u8  *S   = gfxs->Bop;
+     __u16 *D   = gfxs->Aop;
+     __u32  Cop = gfxs->Cop;
+     __u32  rb  = Cop & 0x7c1f;
+     __u32  g   = Cop & 0x03e0;
+
+#define SET_ALPHA_PIXEL_ARGB1555(d,a) \
+     switch (a) {\
+          case 0xff: d = Cop;\
+          case 0: break;\
+          default: {\
+               register __u32  s = (a>>3)+1;\
+               register __u32 t1 = (d & 0x7c1f);\
+               register __u32 t2 = (d & 0x03e0);\
+               d = ((a & 0x80) << 8) | \
+                   ((((rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
+                    ((( g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5;\
+          }\
+     }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, ARGB1555 );
+
+#undef SET_ALPHA_PIXEL_ARGB1555
+}
+
+
+static void Bop_a1_set_alphapixel_Aop_rgb16( GenefxState *gfxs )
+{
+     int    i;
+     int    w   = gfxs->length;
+     __u8  *S   = gfxs->Bop;
+     __u16 *D   = gfxs->Aop;
+     __u16  Cop = gfxs->Cop;
+
+     for (i=0; i<w; i++) {
+          if (S[i>>3] & (0x80 >> (i&7)))
+               D[i] = Cop;
+     }
+}
+
+static void Bop_a1_set_alphapixel_Aop_rgb24( GenefxState *gfxs )
+{
+     int       w     = gfxs->length;
+     __u8     *S     = gfxs->Bop;
+     __u8     *D     = gfxs->Aop;
+     DFBColor  color = gfxs->color;
+
+#define SET_ALPHA_PIXEL_RGB24(d,r,g,b,a)\
+     switch (a) {\
+         case 0xff:\
+               d[0] = b;\
+               d[1] = g;\
+               d[2] = r;\
+          case 0: break;\
+          default: {\
+               register __u16 s = a+1;\
+               d[0] = ((b-d[0]) * s + (d[0] << 8)) >> 8;\
+               d[1] = ((g-d[1]) * s + (d[1] << 8)) >> 8;\
+               d[2] = ((r-d[2]) * s + (d[2] << 8)) >> 8;\
+          }\
+     }
+
+     while (w>4) {
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
+          w-=4;
+     }
+     while (w--) {
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3, S++;
+     }
+
+#undef SET_ALPHA_PIXEL_RGB24
+}
+
+static void Bop_a1_set_alphapixel_Aop_rgb32( GenefxState *gfxs )
+{
+     int    w   = gfxs->length;
+     __u8  *S   = gfxs->Bop;
+     __u32 *D   = gfxs->Aop;
+     __u32  Cop = gfxs->Cop;
+     __u32  rb  = Cop & 0xff00ff;
+     __u32  g   = Cop & 0x00ff00;
+
+#define SET_ALPHA_PIXEL_RGB32(d,a)\
+     switch (a) {\
+          case 0xff: d = Cop;\
+          case 0: break;\
+          default: {\
+               register __u32  s = a+1;\
+               register __u32 t1 = (d & 0x00ff00ff);\
+               register __u32 t2 = (d & 0x0000ff00);\
+               d = ((((rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
+                    ((( g-t2)*s+(t2<<8)) & 0x00ff0000)) >> 8;\
+          }\
+     }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB32 );
+
+#undef SET_ALPHA_PIXEL_RGB32
+}
+
+
+/* saturating alpha blend */
+
+static void Bop_a1_set_alphapixel_Aop_argb( GenefxState *gfxs )
+{
+     int    w   = gfxs->length;
+     __u8  *S   = gfxs->Bop;
+     __u32 *D   = gfxs->Aop;
+     __u32  Cop = gfxs->Cop | 0xff000000;
+     __u32  rb  = Cop & 0x00ff00ff;
+     __u32  g   = gfxs->color.g;
+
+#define SET_ALPHA_PIXEL_ARGB(d,a)\
+     switch (a) {\
+          case 0xff: d = Cop;\
+          case 0: break;\
+          default: {\
+               register __u32  s = a+1;\
+               register __u32 s1 = 256-s;\
+               register __u32 sa = (d >> 24) + a;\
+               if (sa & 0xff00) sa = 0xff;\
+               d = (sa << 24) + \
+                    (((((d & 0x00ff00ff)       * s1) + (rb  * s)) >> 8) & 0x00ff00ff) + \
+                    (((((d & 0x0000ff00) >> 8) * s1) + ((g) * s))       & 0x0000ff00);  \
+          }\
+     }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, ARGB );
+
+#undef SET_ALPHA_PIXEL_ARGB
+}
+
+static void Bop_a1_set_alphapixel_Aop_airgb( GenefxState *gfxs )
+{
+     int    w   = gfxs->length;
+     __u8  *S   = gfxs->Bop;
+     __u32 *D   = gfxs->Aop;
+     __u32  Cop = gfxs->Cop | 0xff000000;
+     __u32  rb  = Cop & 0x00ff00ff;
+     __u32  g   = gfxs->color.g;
+
+#define SET_ALPHA_PIXEL_ARGB(d,a)\
+     switch (a) {\
+          case 0xff: d = Cop;\
+          case 0: break;\
+          default: {\
+               register __u32  s = a+1;\
+               register __u32 s1 = 256-s;\
+               register __s32 sa = (d >> 24) - a;\
+               if (sa < 0) sa = 0;\
+               d = (sa << 24) + \
+                    (((((d & 0x00ff00ff)       * s1) + (rb  * s)) >> 8) & 0x00ff00ff) + \
+                    (((((d & 0x0000ff00) >> 8) * s1) + ((g) * s))       & 0x0000ff00);  \
+          }\
+     }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, ARGB );
+
+#undef SET_ALPHA_PIXEL_ARGB
+}
+
+static void Bop_a1_set_alphapixel_Aop_a8( GenefxState *gfxs )
+{
+     int    w = gfxs->length;
+     __u8  *S = gfxs->Bop;
+     __u8  *D = gfxs->Aop;
+
+#define SET_ALPHA_PIXEL_A8(d,a)\
+     switch (a) {\
+          case 0xff: d = 0xff;\
+          case 0: break; \
+          default: {\
+               register __u16 s  = (a)+1;\
+               register __u16 s1 = 256-s;\
+               d = (d * s1 + s) >> 8;\
+          }\
+     }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, A8 );
+
+#undef SET_ALPHA_PIXEL_A8
+}
+
+static void Bop_a1_set_alphapixel_Aop_rgb332( GenefxState *gfxs )
+{
+     int    w   = gfxs->length;
+     __u8  *S   = gfxs->Bop;
+     __u8  *D   = gfxs->Aop;
+     __u32  Cop = gfxs->Cop;
+
+/* FIXME: implement correctly! */
+#define SET_ALPHA_PIXEL_RGB332(d,a) \
+     if (a & 0x80) \
+          d = Cop;
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB332 );
+#undef SET_ALPHA_PIXEL_RGB332
+}
+
+static void Bop_a1_set_alphapixel_Aop_lut8( GenefxState *gfxs )
+{
+     int    w   = gfxs->length;
+     __u8  *S   = gfxs->Bop;
+     __u8  *D   = gfxs->Aop;
+     __u32  Cop = gfxs->Cop;
+
+#if 0
+     DFBColor  color   = gfxs->color;
+     DFBColor *entries = gfxs->Alut->entries;
+
+# define SET_ALPHA_PIXEL_LUT8(d,alpha) \
+     switch (alpha) {\
+          case 0xff: d = Cop;\
+          case 0: break; \
+          default: {\
+               register __u16 s = alpha+1;\
+               DFBColor      dc = entries[d];\
+               __u16         sa = alpha + dc.a;\
+               dc.r = ((color.r - dc.r) * s + (dc.r << 8)) >> 8;\
+               dc.g = ((color.g - dc.g) * s + (dc.g << 8)) >> 8;\
+               dc.b = ((color.b - dc.b) * s + (dc.b << 8)) >> 8;\
+               d = dfb_palette_search( gfxs->Alut, dc.r, dc.g, dc.b,\
+                                       sa & 0xff00 ? 0xff : sa );\
+          }\
+     }
+#else
+# define SET_ALPHA_PIXEL_LUT8(d,a) \
+     if (a & 0x80) \
+          d = Cop;
+#endif
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, LUT8 );
+#undef SET_ALPHA_PIXEL_LUT8
+}
+
+static void Bop_a1_set_alphapixel_Aop_alut44( GenefxState *gfxs )
+{
+     int    w   = gfxs->length;
+     __u8  *S   = gfxs->Bop;
+     __u8  *D   = gfxs->Aop;
+     __u32  Cop = gfxs->Cop;
+
+     DFBColor  color   = gfxs->color;
+     DFBColor *entries = gfxs->Alut->entries;
+
+#define SET_ALPHA_PIXEL_ALUT44(d,alpha) \
+     switch (alpha) {\
+          case 0xff: d = Cop;\
+          case 0: break; \
+          default: {\
+               register __u16 s = alpha+1;\
+               DFBColor      dc = entries[d & 0x0f];\
+               __u16         sa = (d & 0xf0) + alpha;\
+               dc.r = ((color.r - dc.r) * s + (dc.r << 8)) >> 8;\
+               dc.g = ((color.g - dc.g) * s + (dc.g << 8)) >> 8;\
+               dc.b = ((color.b - dc.b) * s + (dc.b << 8)) >> 8;\
+               if (sa & 0xff00) sa = 0xf0;\
+               d = (sa & 0xf0) + \
+                    dfb_palette_search( gfxs->Alut, dc.r, dc.g, dc.b, 0x80 );\
+          }\
+     }
+
+     while (w--) {
+          SET_ALPHA_PIXEL_ALUT44( *D, *S );
+          D++, S++;
+     }
+
+#undef SET_ALPHA_PIXEL_ALUT44
+}
+
+static GenefxFunc Bop_a1_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+     Bop_a1_set_alphapixel_Aop_argb1555,
+     Bop_a1_set_alphapixel_Aop_rgb16,
+     Bop_a1_set_alphapixel_Aop_rgb24,
+     Bop_a1_set_alphapixel_Aop_rgb32,
+     Bop_a1_set_alphapixel_Aop_argb,
+     Bop_a1_set_alphapixel_Aop_a8,
+     NULL,
+     Bop_a1_set_alphapixel_Aop_rgb332,
+     NULL,
+     NULL,
+     NULL,
+     Bop_a1_set_alphapixel_Aop_lut8,
+     Bop_a1_set_alphapixel_Aop_alut44,
+     Bop_a1_set_alphapixel_Aop_airgb
+};
+
 
 /********************************* Xacc_blend *********************************/
 
@@ -3383,6 +3678,9 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_AiRGB:
                gfxs->Cop = PIXEL_AiRGB( color.a, color.r, color.g, color.b );
                break;
+          case DSPF_A1:
+               gfxs->Cop = color.a >> 7;
+               break;
           case DSPF_A8:
                gfxs->Cop = color.a;
                break;
@@ -3432,6 +3730,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_RGB32:
                case DSPF_ARGB:
                case DSPF_AiRGB:
+               case DSPF_A1:
                case DSPF_A8:
                case DSPF_RGB332:
                     break;
@@ -3642,14 +3941,23 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                }
                break;
           case DFXL_BLIT:
-               if ((gfxs->src_format == DSPF_A8) &&
-                   (state->blittingflags ==
-                    (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)) &&
-                   (state->src_blend == DSBF_SRCALPHA) &&
-                   (state->dst_blend == DSBF_INVSRCALPHA) &&
-                   Bop_a8_set_alphapixel_Aop_PFI[dst_pfi]) {
-                    *funcs++ = Bop_a8_set_alphapixel_Aop_PFI[dst_pfi];
-                    break;
+               if (state->blittingflags == (DSBLIT_COLORIZE |
+                                            DSBLIT_BLEND_ALPHACHANNEL) &&
+                   state->src_blend == DSBF_SRCALPHA &&
+                   state->dst_blend == DSBF_INVSRCALPHA)
+               {
+                    if (gfxs->src_format == DSPF_A8 &&
+                        Bop_a8_set_alphapixel_Aop_PFI[dst_pfi])
+                    {
+                         *funcs++ = Bop_a8_set_alphapixel_Aop_PFI[dst_pfi];
+                         break;
+                    }
+                    if (gfxs->src_format == DSPF_A1 &&
+                        Bop_a1_set_alphapixel_Aop_PFI[dst_pfi])
+                    {
+                         *funcs++ = Bop_a1_set_alphapixel_Aop_PFI[dst_pfi];
+                         break;
+                    }
                }
                /* fallthru */
           case DFXL_STRETCHBLIT: {
@@ -3868,7 +4176,9 @@ static inline void Aop_xy( GenefxState *gfxs,
           y /= 2;
      }
 
-     gfxs->Aop += y * pitch  +  x * gfxs->dst_bpp;
+     DFB_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->dst_format)) );
+
+     gfxs->Aop += y * pitch  +  DFB_BYTES_PER_LINE( gfxs->dst_format, x );
 }
 
 static inline void Aop_next( GenefxState *gfxs, int pitch )
@@ -3913,7 +4223,9 @@ static inline void Bop_xy( GenefxState *gfxs,
           y /= 2;
      }
 
-     gfxs->Bop += y * pitch  +  x * gfxs->src_bpp;
+     DFB_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->src_format)) );
+
+     gfxs->Bop += y * pitch  +  DFB_BYTES_PER_LINE( gfxs->src_format, x );
 }
 
 static inline void Bop_next( GenefxState *gfxs, int pitch )

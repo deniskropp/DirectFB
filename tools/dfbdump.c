@@ -157,6 +157,10 @@ surface_callback( FusionObjectPool *pool,
      printf( "%4d x %4d   ", surface->width, surface->height );
 
      switch (surface->format) {
+          case DSPF_A1:
+               printf( "A1       " );
+               break;
+
           case DSPF_A8:
                printf( "A8       " );
                break;

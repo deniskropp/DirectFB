@@ -1118,7 +1118,10 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
                chars[offset] = dfb_utf8_get_char( &text[offset] );
           }
 
-          glyphs[offset] = dfb_tree_lookup( font->glyph_infos, (void *)chars[offset] );
+          if (c >= 32 && c < 128)
+               glyphs[offset] = font->glyph_infos->fast_keys[c-32];
+          else
+               glyphs[offset] = dfb_tree_lookup( font->glyph_infos, (void *)chars[offset] );
 
           if (!glyphs[offset]) {
                if (dfb_font_get_glyph_data (font, chars[offset],

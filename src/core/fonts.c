@@ -160,12 +160,14 @@ dfb_font_get_glyph_data( CoreFont        *font,
                     font->surfaces[font->rows - 1] = surface;
                }
 
-               if ((* font->RenderGlyph)
-                   (font, glyph, data, font->surfaces[font->rows - 1]) == DFB_OK)
+               if (font->RenderGlyph(font, glyph, data,
+                                     font->surfaces[font->rows - 1]) == DFB_OK)
                {
+                    int align = DFB_PIXELFORMAT_ALIGNMENT(font->pixel_format);
+
                     data->surface = font->surfaces[font->rows - 1];
                     data->start   = font->next_x;
-                    font->next_x += (data->width + 3) & ~3;
+                    font->next_x += (data->width + align) & ~align;
 
                     dfb_gfxcard_flush_texture_cache();
                }
