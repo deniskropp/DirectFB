@@ -580,8 +580,8 @@ draw_window( CoreWindow *window, CardState *state,
      DFBSurfaceBlittingFlags flags = DSBLIT_NOFX;
 
      D_ASSERT( window != NULL );
-     D_ASSERT( state != NULL );
-     D_ASSERT( region != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
 
      /* Initialize source rectangle. */
      dfb_rectangle_from_region( &src, region );
@@ -638,8 +638,8 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
      DFBRectangle dst;
 
      D_ASSERT( stack != NULL );
-     D_ASSERT( state != NULL );
-     D_ASSERT( region != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
 
      D_ASSERT( stack->bg.image != NULL || (stack->bg.mode != DLBM_IMAGE &&
                                            stack->bg.mode != DLBM_TILE) );
@@ -661,7 +661,7 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                     dfb_state_set_color( state, color );
 
                /* Simply fill the background. */
-               dfb_gfxcard_fillrectangle( &dst, state );
+               dfb_gfxcard_fillrectangles( &dst, 1, state );
 
                break;
           }
@@ -768,7 +768,7 @@ update_region( CoreWindowStack *stack,
 
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( start < fusion_vector_size( &data->windows ) );
      D_ASSERT( x1 <= x2 );
      D_ASSERT( y1 <= y2 );
@@ -1096,7 +1096,7 @@ update_window( CoreWindow          *window,
      D_ASSERT( window_data != NULL );
      D_ASSERT( window_data->stack_data != NULL );
      D_ASSERT( window_data->stack_data->stack != NULL );
-     
+
      DFB_REGION_ASSERT_IF( region );
 
      data  = window_data->stack_data;
@@ -1310,7 +1310,7 @@ resize_window( CoreWindow *window,
      CoreWindowStack *stack = window->stack;
      int              ow    = window->width;
      int              oh    = window->height;
-     
+
      D_DEBUG_AT( WM_Default, "resize_window( %d, %d )\n", width, height );
 
      D_ASSERT( wm_data != NULL );

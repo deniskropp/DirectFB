@@ -413,7 +413,6 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      DFBColor                old_color;
      unsigned int            old_index;
      DFBSurfaceDrawingFlags  old_flags;
-     DFBRectangle            rect;
      CoreSurface            *surface;
      DFBColor                color = { a, r, g, b };
 
@@ -445,8 +444,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
           dfb_state_set_color( &data->state, &color );
 
      /* fill the visible rectangle */
-     rect = data->area.current;
-     dfb_gfxcard_fillrectangle( &rect, &data->state );
+     dfb_gfxcard_fillrectangles( &data->area.current, 1, &data->state );
 
      /* clear the depth buffer */
      if (data->caps & DSCAPS_DEPTH)
@@ -870,7 +868,7 @@ IDirectFBSurface_FillRectangle( IDirectFBSurface *thiz,
      rect.x += data->area.wanted.x;
      rect.y += data->area.wanted.y;
 
-     dfb_gfxcard_fillrectangle( &rect, &data->state );
+     dfb_gfxcard_fillrectangles( &rect, 1, &data->state );
 
      return DFB_OK;
 }

@@ -274,7 +274,7 @@ bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
  * drawing functions, lock source and destination surfaces,
  * handle clipping and drawing method (hardware/software)
  */
-void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state );
+void dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state );
 
 void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state );
 

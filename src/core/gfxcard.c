@@ -637,51 +637,67 @@ dfb_gfxcard_state_release( CardState *state )
 
 /** DRAWING FUNCTIONS **/
 
-void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
+void
+dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state )
 {
-     bool hw = false;
-
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_ASSERT( state != NULL );
-     D_ASSERT( rect != NULL );
+     D_ASSERT( rects != NULL );
+     D_ASSERT( num > 0 );
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
-     /* Check for acceleration and setup execution. */
-     if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
-     {
-          /*
-           * Either hardware has clipping support or the software clipping
-           * routine returned that there's something to do.
-           */
-          if ((card->caps.flags & CCF_CLIPPING) ||
-              dfb_clip_rectangle( &state->clip, rect ))
+     while (num > 0) {
+          if (dfb_rectangle_region_intersects( rects, &state->clip ))
+               break;
+
+          rects++;
+          num--;
+     }
+
+     if (num > 0) {
+          int          i = 0;
+          DFBRectangle rect;
+
+          /* Check for acceleration and setup execution. */
+          if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+              dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
           {
                /*
                 * Now everything is prepared for execution of the
                 * FillRectangle driver function.
                 */
-               hw = card->funcs.FillRectangle( card->driver_data,
-                                               card->device_data, rect );
+               for (; i<num; i++) {
+                    if (!dfb_rectangle_region_intersects( &rects[i], &state->clip ))
+                         continue;
+
+                    rect = rects[i];
+
+                    if (!FLAG_IS_SET( card->caps.flags, CCF_CLIPPING ))
+                         dfb_clip_rectangle( &state->clip, &rect );
+
+                    if (!card->funcs.FillRectangle( card->driver_data, card->device_data, &rect ))
+                         break;
+               }
+
+               /* Release after state acquisition. */
+               dfb_gfxcard_state_release( state );
           }
 
-          /* Release after state acquisition. */
-          dfb_gfxcard_state_release( state );
-     }
+          if (i < num) {
+               /* Use software fallback. */
+               if (gAcquire( state, DFXL_FILLRECTANGLE )) {
+                    for (; i<num; i++) {
+                         rect = rects[i];
 
-     if (!hw) {
-          /*
-           * Otherwise use the software clipping routine and execute the
-           * software fallback if the rectangle isn't completely clipped.
-           */
-          if (dfb_clip_rectangle( &state->clip, rect ) &&
-              gAcquire( state, DFXL_FILLRECTANGLE ))
-          {
-               gFillRectangle( state, rect );
-               gRelease( state );
+                         if (dfb_clip_rectangle( &state->clip, &rect ))
+                              gFillRectangle( state, &rect );
+                    }
+
+                    gRelease( state );
+               }
           }
      }
 

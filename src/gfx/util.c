@@ -168,7 +168,7 @@ dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
      tmp = surface->back_buffer;
      surface->back_buffer = surface->depth_buffer;
 
-     dfb_gfxcard_fillrectangle( &rect, &cd_state );
+     dfb_gfxcard_fillrectangles( &rect, 1, &cd_state );
 
      surface->back_buffer = tmp;
 
