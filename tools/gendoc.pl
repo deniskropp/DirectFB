@@ -482,12 +482,16 @@ sub parse_enum
 
             foreach $key (@list)
                {
+                  substitute_method_links (\$entries{$key});
+
                   print TYPES "    <TR><TD width=32>&nbsp;</TD><TD valign=top>\n",
                               "      <font color=#40A040>$key</font>\n",
                               "    </TD><TD valign=top>\n",
                               "      <font color=#404040>$entries{$key}</font>\n",
                               "    </TD></TR>\n";
                }
+
+            substitute_method_links (\$comment);
 
             print TYPES "  </TABLE>\n",
                         "  $comment\n",
@@ -621,6 +625,8 @@ sub parse_struct
 
             foreach $key (@entries)
                {
+                  substitute_method_links (\$entries_params{$key});
+
                   print TYPES "    <TR><TD width=32>&nbsp;</TD><TD valign=top>\n",
                               "      $entries_types{$key}\n",
                               "    </TD><TD valign=top>\n",
@@ -629,6 +635,8 @@ sub parse_struct
                               "      <font color=#404040>$entries_params{$key}</font>\n",
                               "    </TD></TR>\n";
                }
+
+            substitute_method_links (\$comment);
 
             print TYPES "  </TABLE>\n",
                         "  $comment\n",
