@@ -437,6 +437,9 @@ DFBResult dfb_fbdev_join()
 DFBResult dfb_fbdev_shutdown( bool emergency )
 {
      VideoMode *m;
+     
+     if (!dfb_fbdev)
+          return DFB_OK;
 
      m = Sfbdev->modes;
      while (m) {
