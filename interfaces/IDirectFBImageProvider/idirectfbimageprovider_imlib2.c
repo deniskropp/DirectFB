@@ -37,13 +37,14 @@
 #include <pthread.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <media/idirectfbimageprovider.h>
 
 #include <misc/util.h>
 #include <misc/gfx_util.h>
-#include <misc/mem.h>
+
+#include <direct/mem.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -160,22 +161,20 @@ Construct( IDirectFBImageProvider *thiz,
      }
 
      data->ref = 1;
-     data->filename = DFBSTRDUP( buffer_data->filename );
+     data->filename = D_STRDUP( buffer_data->filename );
 
      /* The image is already loaded and in cache at this point.
       * Any errors should have been caught in Probe */
      data->im = imlib_load_image (data->filename);
 
-     DEBUGMSG( "DirectFB/Media: IMLIB2 Provider Construct '%s'\n", data->filename );
+     D_DEBUG( "DirectFB/Media: IMLIB2 Provider Construct '%s'\n", data->filename );
 
      thiz->AddRef = IDirectFBImageProvider_IMLIB2_AddRef;
      thiz->Release = IDirectFBImageProvider_IMLIB2_Release;
      thiz->RenderTo = IDirectFBImageProvider_IMLIB2_RenderTo;
      thiz->SetRenderCallback = IDirectFBImageProvider_IMLIB2_SetRenderCallback;
-     thiz->GetImageDescription =
-                         IDirectFBImageProvider_IMLIB2_GetImageDescription;
-     thiz->GetSurfaceDescription =
-                         IDirectFBImageProvider_IMLIB2_GetSurfaceDescription;
+     thiz->GetImageDescription = IDirectFBImageProvider_IMLIB2_GetImageDescription;
+     thiz->GetSurfaceDescription = IDirectFBImageProvider_IMLIB2_GetSurfaceDescription;
 
      return DFB_OK;
 }
@@ -198,9 +197,9 @@ IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz )
      INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
 
      if (--data->ref == 0) {
-          DFBFREE( data->filename );
+          D_FREE( data->filename );
           imlib_free_image();
-          DFBFREE( thiz->priv );
+          D_FREE( thiz->priv );
           thiz->priv = NULL;
      }
 #ifndef DFB_DEBUG
@@ -306,6 +305,6 @@ IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
      else {
           dsc->caps = DICAPS_NONE;
      }
-     
+
      return DFB_OK;
 }
