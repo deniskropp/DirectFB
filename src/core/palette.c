@@ -35,6 +35,7 @@
 #include <core/gfxcard.h>
 #include <core/palette.h>
 
+#include <misc/colorhash.h>
 #include <misc/util.h>
 
 static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
@@ -52,6 +53,9 @@ static void palette_destructor( FusionObject *object, bool zombie )
      notification.palette = palette;
 
      fusion_object_dispatch( &palette->object, &notification );
+
+     if (palette->hash_attached)
+          colorhash_invalidate( palette );
 
      shfree( palette->entries );
 
@@ -95,6 +99,8 @@ dfb_palette_create( unsigned int size )
      /* reset cache */
      palette->search_cache.index = -1;
 
+     palette->hash_attached = false;
+
      return palette;
 }
 
@@ -120,12 +126,9 @@ dfb_palette_search( CorePalette *palette,
                     __u8         b,
                     __u8         a )
 {
-     int       i;
-     int       min_diff  = 0;
-     int       min_index = 0;
-     DFBColor *entries   = palette->entries;
+     unsigned int index;
 
-     /* check cache first */
+     /* check local cache first */
      if (palette->search_cache.index != -1 &&
          palette->search_cache.color.a == a &&
          palette->search_cache.color.r == r &&
@@ -133,32 +136,22 @@ dfb_palette_search( CorePalette *palette,
          palette->search_cache.color.b == b)
           return palette->search_cache.index;
 
-     /* find closest match */
-     for (i=0; i<palette->num_entries; i++) {
-          int diff = ((ABS((int) entries[i].r - (int) r) +
-                       ABS((int) entries[i].g - (int) g) +
-                       ABS((int) entries[i].b - (int) b)) << 3) +
-                     ABS((int) entries[i].a - (int) a);
-
-          if (diff < min_diff || i == 0) {
-               min_diff  = diff;
-               min_index = i;
-          }
-          
-          if (!diff)
-               break;
+     /* check the global color hash table, returns the closest match */
+     if (!palette->hash_attached) {
+          colorhash_attach( palette );
+          palette->hash_attached = true;
      }
 
-     /* write into cache */
+     index = colorhash_lookup( palette, r, g, b, a );
+
+     /* write into local cache */
+     palette->search_cache.index = index;
      palette->search_cache.color.a = a;
      palette->search_cache.color.r = r;
      palette->search_cache.color.g = g;
      palette->search_cache.color.b = b;
-     
-     palette->search_cache.index = min_index;
 
-     /* return best match */
-     return min_index;
+     return index;
 }
 
 void
@@ -183,6 +176,10 @@ dfb_palette_update( CorePalette *palette, int first, int last )
          palette->search_cache.index <= last)
           palette->search_cache.index = -1;
      
+     /* invalidate entries in colorhash */
+     if (palette->hash_attached)
+          colorhash_invalidate( palette );
+
      /* post message about palette update */
      fusion_object_dispatch( &palette->object, &notification );
 }

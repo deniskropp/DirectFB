@@ -41,6 +41,8 @@ struct _CorePalette {
           int      index;
           DFBColor color;
      } search_cache;
+  
+     bool          hash_attached;
 };
 
 typedef enum {
