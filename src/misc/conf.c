@@ -95,6 +95,8 @@ static const char *config_usage =
 #endif
     "  [no-]argb-font                 "
     "Load glyphs into ARGB surfaces\n"
+    "  [no-]a1-font                   "
+    "Load glyphs into A1 surfaces\n"
     "  dont-catch=<num>[[,<num>]...]  "
     "Don't catch these signals\n"
     "  [no-]sighandler                "
@@ -541,6 +543,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-argb-font" ) == 0) {
           dfb_config->argb_font    = false;
           dfb_config->no_argb_font = true;
+     } else
+     if (strcmp (name, "a1-font" ) == 0) {
+          dfb_config->a1_font = true;
+     } else
+     if (strcmp (name, "no-a1-font" ) == 0) {
+          dfb_config->a1_font = false;
      } else
      if (strcmp (name, "sighandler" ) == 0) {
           dfb_config->sighandler = true;

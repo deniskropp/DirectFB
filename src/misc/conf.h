@@ -130,6 +130,9 @@ typedef struct
 
      bool      force_desktop;                     /* Desktop background is
                                                      the primary surface. */
+
+     bool      a1_font;                           /* whether to load fontmap
+                                                     as a1 and not a8 */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

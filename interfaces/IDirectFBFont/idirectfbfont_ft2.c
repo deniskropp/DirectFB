@@ -448,13 +448,14 @@ Construct( IDirectFBFont      *thiz,
            const char         *filename,
            DFBFontDescription *desc )
 {
-     CoreFont    *font;
-     FT_Face      face;
-     FT_Error     err;
-     FT_Int       load_flags = FT_LOAD_DEFAULT;
-     FT2ImplData *data;
-     bool         disable_charmap = false;
-     bool         disable_kerning = false;
+     CoreFont              *font;
+     FT_Face                face;
+     FT_Error               err;
+     FT_Int                 load_flags = FT_LOAD_DEFAULT;
+     FT2ImplData           *data;
+     bool                   disable_charmap = false;
+     bool                   disable_kerning = false;
+     DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
 
      HEAVYDEBUGMSG( "DirectFB/FontFT2: "
                     "Construct font from file `%s' (index %d) at pixel size %d x %d.\n",
@@ -498,12 +499,15 @@ Construct( IDirectFBFont      *thiz,
           if (desc->attributes & DFFA_NOKERNING)
                disable_kerning = true;
 
-          if (desc->attributes & DFFA_MONOCHROME)
+          if ((desc->attributes & DFFA_MONOCHROME) || dfb_config->a1_font) {
 #ifdef FT_LOAD_TARGET_MONO  /* added in FreeType-2.1.3 */
                load_flags |= FT_LOAD_TARGET_MONO;
 #else
                load_flags |= FT_LOAD_MONOCHROME;
 #endif
+
+               format = DSPF_A1;
+          }
      }
 
      if (!disable_charmap) {
@@ -565,8 +569,8 @@ Construct( IDirectFBFont      *thiz,
                  font->pixel_format == DSPF_A8   ||
                  font->pixel_format == DSPF_A1 );
 
-     if (desc->attributes & DFFA_MONOCHROME)
-          font->pixel_format = DSPF_A1;
+     if (format != DSPF_UNKNOWN)
+          font->pixel_format = format;
 
      font->ascender   = face->size->metrics.ascender >> 6;
      font->descender  = face->size->metrics.descender >> 6;
