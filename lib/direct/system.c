@@ -44,6 +44,7 @@
 static inline _syscall0(pid_t,gettid)
 
 #else
+#include <unistd.h>
 #define gettid getpid
 #endif
 
