@@ -7,8 +7,14 @@ INCLUDES = \
 AM_CFLAGS = $(DFB_CFLAGS)
 
 if BUILDPPCASM
-ppcasm_sources = ppcasm_string.S
-ppcasm_headers = ppcasm_string.h  \
+if HAVE_LINUX
+ppcasm_sources = ppcasm_memcpy.S \
+                 ppcasm_memcpy_cachable.S
+else
+ppcasm_sources = ppcasm_memcpy.S
+endif
+
+ppcasm_headers = ppcasm_memcpy.h  \
                  ppc_asm.h
 endif
 
