@@ -41,13 +41,14 @@
 #include <pthread.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+
+#include <direct/messages.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 
 #include <media/idirectfbvideoprovider.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -156,19 +157,19 @@ IDirectFBVideoProvider_OpenQuicktime_Destruct( IDirectFBVideoProvider *thiz )
     quicktime_close( data->file );
 #endif
 
-    DFBFREE( data->video.buffer );
-    DFBFREE( data->rgb.lines );
+    D_FREE( data->video.buffer );
+    D_FREE( data->rgb.lines );
 
     pthread_mutex_destroy( &data->video.lock );
     pthread_mutex_destroy( &data->audio.lock );
 
-    DFBFREE( data->filename );
+    D_FREE( data->filename );
 
-    DFBFREE( thiz->priv );
+    D_FREE( thiz->priv );
     thiz->priv = NULL;
 
 #ifndef DFB_DEBUG
-    DFBFREE( thiz );
+    D_FREE( thiz );
 #endif
 }
 
@@ -444,7 +445,7 @@ WriteYUVFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
                }
 
                for (y=0; y<data->dest_clip.h; y++) {
-                    dfb_memcpy( dst_y, src_y, data->dest_clip.w );
+                    direct_memcpy( dst_y, src_y, data->dest_clip.w );
 
                     src_y += data->video.width;
                     dst_y += pitch;
@@ -456,8 +457,8 @@ WriteYUVFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
                          dst_v += pitch/2;
                     }
                     else {
-                         dfb_memcpy( dst_u, src_u, data->dest_clip.w/2 );
-                         dfb_memcpy( dst_v, src_v, data->dest_clip.w/2 );
+                         direct_memcpy( dst_u, src_u, data->dest_clip.w/2 );
+                         direct_memcpy( dst_v, src_v, data->dest_clip.w/2 );
                     }
                }
                break;
@@ -977,23 +978,23 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
           return DFB_UNSUPPORTED;
 
      if (!quicktime_has_video( q )) {
-          ERRORMSG( "OpenQuicktime Provider: "
-                    "File doesn't contain a video track!\n" );
+          D_ERROR( "OpenQuicktime Provider: "
+                   "File doesn't contain a video track!\n" );
           quicktime_close( q );
           return DFB_UNSUPPORTED;
      }
 
      if (!quicktime_supported_video( q, 0 )) {
-          ERRORMSG( "OpenQuicktime Provider: "
-                    "Video Codec not supported by OpenQuicktime!\n" );
+          D_ERROR( "OpenQuicktime Provider: "
+                   "Video Codec not supported by OpenQuicktime!\n" );
           quicktime_close( q );
           return DFB_UNSUPPORTED;
      }
 
      if (!quicktime_reads_cmodel( q, BC_RGB888, 0 ) &&
          !quicktime_reads_cmodel( q, BC_YUV420P, 0 )) {
-          ERRORMSG( "OpenQuicktime Provider: Only codecs reading "
-                    "RGB888 and/or YUV420P are supported yet!\n" );
+          D_ERROR( "OpenQuicktime Provider: Only codecs reading "
+                   "RGB888 and/or YUV420P are supported yet!\n" );
           quicktime_close( q );
           return DFB_UNSUPPORTED;
      }
@@ -1011,14 +1012,14 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      /* allocate private data */
      data = (IDirectFBVideoProvider_OpenQuicktime_data *)
-          DFBCALLOC( 1, sizeof(IDirectFBVideoProvider_OpenQuicktime_data) );
+          D_CALLOC( 1, sizeof(IDirectFBVideoProvider_OpenQuicktime_data) );
 
      thiz->priv = data;
 
 
      /* initialize private data */
      data->ref           = 1;
-     data->filename      = DFBSTRDUP( filename );
+     data->filename      = D_STRDUP( filename );
 
      data->video.thread  = -1;
      data->audio.thread  = -1;
@@ -1042,11 +1043,11 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->rgb.supported = quicktime_reads_cmodel( data->file, BC_RGB888, 0 );
 
      /* allocate video decoding buffer */
-     data->video.buffer  = DFBMALLOC( data->video.height *
-                                      data->video.width * 4 );
+     data->video.buffer  = D_MALLOC( data->video.height *
+                                     data->video.width * 4 );
 
-     data->rgb.lines     = DFBMALLOC( data->video.height *
-                                      sizeof(unsigned char*) );
+     data->rgb.lines     = D_MALLOC( data->video.height *
+                                     sizeof(unsigned char*) );
 
      for (i=0; i<data->video.height; i++)
           data->rgb.lines[i] = data->video.buffer + data->video.width * 4 * i;
@@ -1105,7 +1106,7 @@ OpenSound( IDirectFBVideoProvider_OpenQuicktime_data *data )
      /* open audio device */
      fd = open( "/dev/dsp", O_WRONLY );
      if (fd < 0) {
-          PERRORMSG( "OpenQuicktime Provider: Opening '/dev/dsp' failed!\n" );
+          D_PERROR( "OpenQuicktime Provider: Opening '/dev/dsp' failed!\n" );
           return DFB_IO;
      }
 
@@ -1115,7 +1116,7 @@ OpenSound( IDirectFBVideoProvider_OpenQuicktime_data *data )
      /* set bits per sample */
      ioctl( fd, SNDCTL_DSP_SAMPLESIZE, &bits );
      if (bits != data->audio.bits) {
-          ERRORMSG( "OpenQuicktime Provider: "
+          D_ERROR( "OpenQuicktime Provider: "
                     "Unable to set audio bits to '%d'!\n", data->audio.bits );
           close( fd );
           return DFB_UNSUPPORTED;
@@ -1123,7 +1124,7 @@ OpenSound( IDirectFBVideoProvider_OpenQuicktime_data *data )
 
      /* set mono/stereo */
      if (ioctl( fd, SNDCTL_DSP_STEREO, &stereo ) == -1) {
-          ERRORMSG( "OpenQuicktime Provider: Unable to set '%s' mode!\n",
+          D_ERROR( "OpenQuicktime Provider: Unable to set '%s' mode!\n",
                     (data->audio.channels > 1) ? "stereo" : "mono");
           close( fd );
           return DFB_UNSUPPORTED;
@@ -1131,8 +1132,8 @@ OpenSound( IDirectFBVideoProvider_OpenQuicktime_data *data )
 
      /* set sample rate */
      if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
-          ERRORMSG( "OpenQuicktime Provider: "
-                    "Unable to set sample rate to '%ld'!\n", data->audio.rate );
+          D_ERROR( "OpenQuicktime Provider: "
+                   "Unable to set sample rate to '%ld'!\n", data->audio.rate );
           close( fd );
           return DFB_UNSUPPORTED;
      }
@@ -1140,8 +1141,8 @@ OpenSound( IDirectFBVideoProvider_OpenQuicktime_data *data )
      /* query block size */
      ioctl( fd, SNDCTL_DSP_GETBLKSIZE, &data->audio.block_size );
      if (data->audio.block_size < 1) {
-          ERRORMSG( "OpenQuicktime Provider: "
-                    "Unable to query block size of '/dev/dsp'!\n" );
+          D_ERROR( "OpenQuicktime Provider: "
+                   "Unable to query block size of '/dev/dsp'!\n" );
           close( fd );
           return DFB_UNSUPPORTED;
      }
