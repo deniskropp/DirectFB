@@ -63,11 +63,15 @@ typedef struct {
           __u32 Y_X_END;
           __u32 V_INC;
           __u32 P1_BLANK_LINES_AT_TOP;
+          __u32 P23_BLANK_LINES_AT_TOP;
           __u32 VID_BUF_PITCH0_VALUE;
+          __u32 VID_BUF_PITCH1_VALUE;
           __u32 P1_X_START_END;
           __u32 P2_X_START_END;
           __u32 P3_X_START_END;
           __u32 VID_BUF0_BASE_ADRS;
+          __u32 VID_BUF1_BASE_ADRS;
+          __u32 VID_BUF2_BASE_ADRS;
           __u32 P1_V_ACCUM_INIT;
           __u32 P23_V_ACCUM_INIT;
           __u32 P1_H_ACCUM_INIT;

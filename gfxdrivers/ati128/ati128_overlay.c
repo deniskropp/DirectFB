@@ -104,8 +104,8 @@ static DFBResult ov0TestConfiguration( DisplayLayer               *layer,
           switch (config->pixelformat) {
                case DSPF_YUY2:
                case DSPF_UYVY:
-               //case DSPF_I420:
-               //case DSPF_YV12:
+               case DSPF_I420:
+               case DSPF_YV12:
                     break;
 
                default:
@@ -351,8 +351,14 @@ static void ov0_set_regs( ATI128DriverData *adrv, ATI128DeviceData *adev )
      ati128_out32( mmio, OV0_P1_BLANK_LINES_AT_TOP,
                    adev->ov0.P1_BLANK_LINES_AT_TOP );
 
+     ati128_out32( mmio, OV0_P23_BLANK_LINES_AT_TOP,
+                   adev->ov0.P23_BLANK_LINES_AT_TOP );
+
      ati128_out32( mmio, OV0_VID_BUF_PITCH0_VALUE,
                    adev->ov0.VID_BUF_PITCH0_VALUE );
+
+     ati128_out32( mmio, OV0_VID_BUF_PITCH1_VALUE,
+                   adev->ov0.VID_BUF_PITCH1_VALUE );
 
      ati128_out32( mmio, OV0_P1_X_START_END,
                    adev->ov0.P1_X_START_END );
@@ -365,6 +371,12 @@ static void ov0_set_regs( ATI128DriverData *adrv, ATI128DeviceData *adev )
 
      ati128_out32( mmio, OV0_VID_BUF0_BASE_ADRS,
                    adev->ov0.VID_BUF0_BASE_ADRS );
+
+     ati128_out32( mmio, OV0_VID_BUF1_BASE_ADRS,
+                   adev->ov0.VID_BUF1_BASE_ADRS );
+
+     ati128_out32( mmio, OV0_VID_BUF2_BASE_ADRS,
+                   adev->ov0.VID_BUF2_BASE_ADRS );
 
      ati128_out32( mmio, OV0_P1_V_ACCUM_INIT,
                    adev->ov0.P1_V_ACCUM_INIT );
@@ -389,25 +401,29 @@ static void ov0_calc_regs( ATI128DriverData *adrv, ATI128DeviceData *adev,
 {
      int h_inc, v_inc, step_by, tmp;
      int p1_h_accum_init, p23_h_accum_init;
-     int p1_v_accum_init;
+     int p1_v_accum_init, p23_v_accum_init;
 
-     DFBRegion    dstBox;
-     int          drw_w;
-     int          drw_h;
-     CoreSurface *surface = layer->shared->surface;
+     DFBRegion      dstBox;
+     int            dst_w;
+     int            dst_h;
+     __u32          offset_u = 0, offset_v = 0;
+     CoreSurface   *surface = layer->shared->surface;
+     SurfaceBuffer *front = surface->front_buffer;
 
 
-     drw_w = (int)(layer->shared->screen.w * (float)Sfbdev->current_mode->xres + 0.5f);
-     drw_h = (int)(layer->shared->screen.h * (float)Sfbdev->current_mode->yres + 0.5f);
+     /* calculate destination size */
+     dst_w = (int)(layer->shared->screen.w * (float)Sfbdev->current_mode->xres + 0.5f);
+     dst_h = (int)(layer->shared->screen.h * (float)Sfbdev->current_mode->yres + 0.5f);
 
+     /* calculate destination region */
      dstBox.x1 = (int)(layer->shared->screen.x * (float)Sfbdev->current_mode->xres + 0.5f);
      dstBox.y1 = (int)(layer->shared->screen.y * (float)Sfbdev->current_mode->yres + 0.5f);
      dstBox.x2 = (int)((layer->shared->screen.x + layer->shared->screen.w) * (float)Sfbdev->current_mode->xres + 0.5f);
      dstBox.y2 = (int)((layer->shared->screen.y + layer->shared->screen.h) * (float)Sfbdev->current_mode->yres + 0.5f);
 
-
-     h_inc   = (surface->width  << 12) / drw_w;
-     v_inc   = (surface->height << 20) / drw_h;
+     /* calculate incrementors */
+     h_inc   = (surface->width  << 12) / dst_w;
+     v_inc   = (surface->height << 20) / dst_h;
      step_by = 1;
 
      while (h_inc >= (2 << 12)) {
@@ -415,44 +431,78 @@ static void ov0_calc_regs( ATI128DriverData *adrv, ATI128DeviceData *adev,
           h_inc >>= 1;
      }
 
+     /* calculate values for horizontal accumulators */
      tmp = 0x00028000 + (h_inc << 3);
      p1_h_accum_init = ((tmp <<  4) & 0x000f8000) | ((tmp << 12) & 0xf0000000);
 
      tmp = 0x00028000 + (h_inc << 2);
-     p23_h_accum_init = ((tmp <<  4) & 0x000f8000) |
-                        ((tmp << 12) & 0x70000000);
+     p23_h_accum_init = ((tmp <<  4) & 0x000f8000) | ((tmp << 12) & 0x70000000);
 
+     /* calculate values for vertical accumulators */
      tmp = 0x00018000;
      p1_v_accum_init = ((tmp << 4) & 0x03ff8000) | 0x00000001;
 
+     tmp = 0x00018000;
+     p23_v_accum_init = ((tmp << 4) & 0x01ff8000) | 0x00000001;
 
-     adev->ov0.H_INC                 = h_inc | ((h_inc >> 1) << 16);
-     adev->ov0.V_INC                 = v_inc;
-     adev->ov0.STEP_BY               = step_by | (step_by << 8);
-     adev->ov0.Y_X_START             = dstBox.x1 | (dstBox.y1 << 16);
-     adev->ov0.Y_X_END               = dstBox.x2 | (dstBox.y2 << 16);
-     adev->ov0.P1_BLANK_LINES_AT_TOP = 0x00000fff | ((surface->height - 1) << 16);
-     adev->ov0.VID_BUF_PITCH0_VALUE  = surface->front_buffer->video.pitch;
-     adev->ov0.P1_X_START_END        = surface->width - 1;
-     adev->ov0.P2_X_START_END        = surface->width/2 - 1;
-     adev->ov0.P3_X_START_END        = surface->width/2 - 1;
-     adev->ov0.VID_BUF0_BASE_ADRS    = surface->front_buffer->video.offset & 0x03fffff0;
-     adev->ov0.P1_H_ACCUM_INIT       = p1_h_accum_init;
-     adev->ov0.P23_H_ACCUM_INIT      = p23_h_accum_init;
-     adev->ov0.P1_V_ACCUM_INIT       = p1_v_accum_init;
-     adev->ov0.P23_V_ACCUM_INIT      = 0;
-
+     /* choose pixel format and calculate buffer offsets for planar modes */
      switch (surface->format) {
           case DSPF_UYVY:
-               adev->ov0.SCALE_CNTL = 0x41FF8C03;
+               adev->ov0.SCALE_CNTL = R128_SCALER_SOURCE_YVYU422;
                break;
 
           case DSPF_YUY2:
-               adev->ov0.SCALE_CNTL = 0x41FF8B03;
+               adev->ov0.SCALE_CNTL = R128_SCALER_SOURCE_VYUY422;
+               break;
+
+          case DSPF_I420:
+               adev->ov0.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
+
+               offset_u = front->video.offset +
+                          surface->height * front->video.pitch;
+               offset_v = offset_u +
+                          (surface->height >> 1) * (front->video.pitch >> 1);
+               break;
+
+          case DSPF_YV12:
+               adev->ov0.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
+
+               offset_v = front->video.offset +
+                          surface->height * front->video.pitch;
+               offset_u = offset_v +
+                          (surface->height >> 1) * (front->video.pitch >> 1);
                break;
 
           default:
+               BUG("unexpected pixelformat");
                adev->ov0.SCALE_CNTL = 0;
+               return;
      }
+
+     adev->ov0.SCALE_CNTL            |= R128_SCALER_ENABLE |
+                                        R128_SCALER_DOUBLE_BUFFER |
+                                        R128_SCALER_BURST_PER_PLANE |
+                                        R128_SCALER_Y2R_TEMP |
+                                        R128_SCALER_PIX_EXPAND;
+
+     adev->ov0.H_INC                  = h_inc | ((h_inc >> 1) << 16);
+     adev->ov0.V_INC                  = v_inc;
+     adev->ov0.STEP_BY                = step_by | (step_by << 8);
+     adev->ov0.Y_X_START              = dstBox.x1 | (dstBox.y1 << 16);
+     adev->ov0.Y_X_END                = dstBox.x2 | (dstBox.y2 << 16);
+     adev->ov0.P1_BLANK_LINES_AT_TOP  = 0x00000fff | ((surface->height - 1) << 16);
+     adev->ov0.P23_BLANK_LINES_AT_TOP = 0x000007ff | ((((surface->height + 1) >> 1) - 1) << 16);
+     adev->ov0.VID_BUF_PITCH0_VALUE   = front->video.pitch;
+     adev->ov0.VID_BUF_PITCH1_VALUE   = front->video.pitch >> 1;
+     adev->ov0.P1_X_START_END         = surface->width - 1;
+     adev->ov0.P2_X_START_END         = (surface->width >> 1) - 1;
+     adev->ov0.P3_X_START_END         = (surface->width >> 1) - 1;
+     adev->ov0.VID_BUF0_BASE_ADRS     = front->video.offset & 0x03fffff0;
+     adev->ov0.VID_BUF1_BASE_ADRS     = (offset_u & 0x03fffff0) | 1;
+     adev->ov0.VID_BUF2_BASE_ADRS     = (offset_v & 0x03fffff0) | 1;
+     adev->ov0.P1_H_ACCUM_INIT        = p1_h_accum_init;
+     adev->ov0.P23_H_ACCUM_INIT       = p23_h_accum_init;
+     adev->ov0.P1_V_ACCUM_INIT        = p1_v_accum_init;
+     adev->ov0.P23_V_ACCUM_INIT       = p23_v_accum_init;
 }
 

@@ -820,54 +820,123 @@
 #define TEX_CNTL                                   0x1800
 #define CLR_CMP_CLR_3D 0x1A24
 
+
+/* first overlay unit (there is only one) */
+
+#define OV0_Y_X_START                0x0400
+#define OV0_Y_X_END                  0x0404
+#define OV0_EXCLUSIVE_HORZ           0x0408
+#       define  R128_EXCL_HORZ_START_MASK        0x000000ff
+#       define  R128_EXCL_HORZ_END_MASK          0x0000ff00
+#       define  R128_EXCL_HORZ_BACK_PORCH_MASK   0x00ff0000
+#       define  R128_EXCL_HORZ_EXCLUSIVE_EN      0x80000000
+#define OV0_EXCLUSIVE_VERT           0x040C
+#       define  R128_EXCL_VERT_START_MASK        0x000003ff
+#       define  R128_EXCL_VERT_END_MASK          0x03ff0000
+#define OV0_REG_LOAD_CNTL            0x0410
+#       define  R128_REG_LD_CTL_LOCK                 0x00000001L
+#       define  R128_REG_LD_CTL_VBLANK_DURING_LOCK   0x00000002L
+#       define  R128_REG_LD_CTL_STALL_GUI_UNTIL_FLIP 0x00000004L
+#       define  R128_REG_LD_CTL_LOCK_READBACK        0x00000008L
+#define OV0_SCALE_CNTL               0x0420
+#       define  R128_SCALER_PIX_EXPAND           0x00000001L
+#       define  R128_SCALER_Y2R_TEMP             0x00000002L
+#       define  R128_SCALER_HORZ_PICK_NEAREST    0x00000003L
+#       define  R128_SCALER_VERT_PICK_NEAREST    0x00000004L
+#       define  R128_SCALER_SIGNED_UV            0x00000010L
+#       define  R128_SCALER_GAMMA_SEL_MASK       0x00000060L
+#       define  R128_SCALER_GAMMA_SEL_BRIGHT     0x00000000L
+#       define  R128_SCALER_GAMMA_SEL_G22        0x00000020L
+#       define  R128_SCALER_GAMMA_SEL_G18        0x00000040L
+#       define  R128_SCALER_GAMMA_SEL_G14        0x00000060L
+#       define  R128_SCALER_COMCORE_SHIFT_UP_ONE 0x00000080L
+#       define  R128_SCALER_SURFAC_FORMAT        0x00000f00L
+#       define  R128_SCALER_SOURCE_15BPP         0x00000300L
+#       define  R128_SCALER_SOURCE_16BPP         0x00000400L
+#       define  R128_SCALER_SOURCE_32BPP         0x00000600L
+#       define  R128_SCALER_SOURCE_YUV9          0x00000900L
+#       define  R128_SCALER_SOURCE_YUV12         0x00000A00L
+#       define  R128_SCALER_SOURCE_VYUY422       0x00000B00L
+#       define  R128_SCALER_SOURCE_YVYU422       0x00000C00L
+#       define  R128_SCALER_SMART_SWITCH         0x00008000L
+#       define  R128_SCALER_BURST_PER_PLANE      0x00ff0000L
+#       define  R128_SCALER_DOUBLE_BUFFER        0x01000000L
+#       define  R128_SCALER_DIS_LIMIT            0x08000000L
+#       define  R128_SCALER_PRG_LOAD_START       0x10000000L
+#       define  R128_SCALER_INT_EMU              0x20000000L
+#       define  R128_SCALER_ENABLE               0x40000000L
+#       define  R128_SCALER_SOFT_RESET           0x80000000L
+#define OV0_V_INC                    0x0424
+#define OV0_P1_V_ACCUM_INIT          0x0428
+#       define  OV0_P1_MAX_LN_IN_PER_LN_OUT        0x00000003L
+#       define  OV0_P1_V_ACCUM_INIT_MASK           0x01ff8000L
+#define OV0_P23_V_ACCUM_INIT         0x042C
+#define OV0_P1_BLANK_LINES_AT_TOP    0x0430
+#       define  R128_P1_BLNK_LN_AT_TOP_M1_MASK   0x00000fffL
+#       define  R128_P1_ACTIVE_LINES_M1          0x0fff0000L
+#define OV0_P23_BLANK_LINES_AT_TOP   0x0434
+#       define  R128_P23_BLNK_LN_AT_TOP_M1_MASK  0x000007ffL
+#       define  R128_P23_ACTIVE_LINES_M1         0x07ff0000L
+#define OV0_VID_BUF0_BASE_ADRS       0x0440
+#       define  R128_VIF_BUF0_PITCH_SEL          0x00000001L
+#       define  R128_VIF_BUF0_TILE_ADRS          0x00000002L
+#       define  R128_VIF_BUF0_BASE_ADRS_MASK     0x03fffff0L
+#       define  R128_VIF_BUF0_1ST_LINE_LSBS_MASK 0x48000000L
+#define OV0_VID_BUF1_BASE_ADRS       0x0444
+#       define  R128_VIF_BUF1_PITCH_SEL          0x00000001L
+#       define  R128_VIF_BUF1_TILE_ADRS          0x00000002L
+#       define  R128_VIF_BUF1_BASE_ADRS_MASK     0x03fffff0L
+#       define  R128_VIF_BUF1_1ST_LINE_LSBS_MASK 0x48000000L
+#define OV0_VID_BUF2_BASE_ADRS       0x0448
+#       define  R128_VIF_BUF2_PITCH_SEL          0x00000001L
+#       define  R128_VIF_BUF2_TILE_ADRS          0x00000002L
+#       define  R128_VIF_BUF2_BASE_ADRS_MASK     0x03fffff0L
+#       define  R128_VIF_BUF2_1ST_LINE_LSBS_MASK 0x48000000L
+#define OV0_VID_BUF3_BASE_ADRS       0x044C
+#define OV0_VID_BUF4_BASE_ADRS       0x0450
+#define OV0_VID_BUF5_BASE_ADRS       0x0454
+#define OV0_VID_BUF_PITCH0_VALUE     0x0460
+#define OV0_VID_BUF_PITCH1_VALUE     0x0464
+#define OV0_AUTO_FLIP_CNTL           0x0470
+#define OV0_DEINTERLACE_PATTERN      0x0474
+#define OV0_H_INC                    0x0480
+#define OV0_STEP_BY                  0x0484
+#define OV0_P1_H_ACCUM_INIT          0x0488
+#define OV0_P23_H_ACCUM_INIT         0x048C
+#define OV0_P1_X_START_END           0x0494
+#define OV0_P2_X_START_END           0x0498
+#define OV0_P3_X_START_END           0x049C
+#define OV0_FILTER_CNTL              0x04A0
+#define OV0_FOUR_TAP_COEF_0          0x04B0
+#define OV0_FOUR_TAP_COEF_1          0x04B4
+#define OV0_FOUR_TAP_COEF_2          0x04B8
+#define OV0_FOUR_TAP_COEF_3          0x04BC
+#define OV0_FOUR_TAP_COEF_4          0x04C0
+#define OV0_COLOR_CNTL               0x04E0
+#define OV0_VIDEO_KEY_CLR            0x04E4
+#define OV0_VIDEO_KEY_MSK            0x04E8
+#define OV0_GRAPHICS_KEY_CLR         0x04EC
+#define OV0_GRAPHICS_KEY_MSK         0x04F0
+#define OV0_KEY_CNTL                 0x04F4
+#       define  R128_VIDEO_KEY_FN_MASK           0x00000007L
+#       define  R128_VIDEO_KEY_FN_FALSE          0x00000000L
+#       define  R128_VIDEO_KEY_FN_TRUE           0x00000001L
+#       define  R128_VIDEO_KEY_FN_EQ             0x00000004L
+#       define  R128_VIDEO_KEY_FN_NE             0x00000005L
+#       define  R128_GRAPHIC_KEY_FN_MASK         0x00000070L
+#       define  R128_GRAPHIC_KEY_FN_FALSE        0x00000000L
+#       define  R128_GRAPHIC_KEY_FN_TRUE         0x00000010L
+#       define  R128_GRAPHIC_KEY_FN_EQ           0x00000040L
+#       define  R128_GRAPHIC_KEY_FN_NE           0x00000050L
+#       define  R128_CMP_MIX_MASK                0x00000100L
+#       define  R128_CMP_MIX_OR                  0x00000000L
+#       define  R128_CMP_MIX_AND                 0x00000100L
+#define OV0_TEST                     0x04F8
+
+
 /* added by DirectFB programmers */
 #define CRTC_OFFSET_FLIP_CNTL                      0x00010000
 #define MEM_ADDR_CONFIG                            0x0148
-
-
-/* overlay registers */
-#define OV0_Y_X_START                              0x0400
-#define OV0_Y_X_END                                0x0404
-#define OV0_EXCLUSIVE_HORZ                         0x0408
-#define OV0_EXCLUSIVE_VERT                         0x040c
-#define OV0_REG_LOAD_CNTL                          0x0410
-#define OV0_SCALE_CNTL                             0x0420
-#define OV0_V_INC                                  0x0424
-#define OV0_P1_V_ACCUM_INIT                        0x0428
-#define OV0_P23_V_ACCUM_INIT                       0x042c
-#define OV0_P1_BLANK_LINES_AT_TOP                  0x0430
-#define OV0_P23_BLANK_LINES_AT_TOP                 0x0434
-#define OV0_VID_BUF0_BASE_ADRS                     0x0440
-#define OV0_VID_BUF1_BASE_ADRS                     0x0444
-#define OV0_VID_BUF2_BASE_ADRS                     0x0448
-#define OV0_VID_BUF3_BASE_ADRS                     0x044c
-#define OV0_VID_BUF4_BASE_ADRS                     0x0450
-#define OV0_VID_BUF5_BASE_ADRS                     0x0454
-#define OV0_VID_BUF_PITCH0_VALUE                   0x0460
-#define OV0_VID_BUF_PITCH1_VALUE                   0x0464
-#define OV0_OCTWORDS_PER_LINE_M1                   0x046c
-#define OV0_AUTO_FLIP_CNTL                         0x0470
-#define OV0_DEINTERLACE_PATTERN                    0x0474
-#define OV0_H_INC                                  0x0480
-#define OV0_STEP_BY                                0x0484
-#define OV0_P1_H_ACCUM_INIT                        0x0488
-#define OV0_P23_H_ACCUM_INIT                       0x048c
-#define OV0_P1_X_START_END                         0x0494
-#define OV0_P2_X_START_END                         0x0498
-#define OV0_P3_X_START_END                         0x049c
-#define OV0_FILTER_CNTL                            0x04a0
-#define OV0_FOUR_TAP_COEF_0                        0x04b0
-#define OV0_FOUR_TAP_COEF_1                        0x04b4
-#define OV0_FOUR_TAP_COEF_2                        0x04b8
-#define OV0_FOUR_TAP_COEF_3                        0x04bc
-#define OV0_FOUR_TAP_COEF_4                        0x04c0
-#define OV0_COLOR_CNTL                             0x04e0
-#define OV0_VIDEO_KEY_CLR                          0x04e4
-#define OV0_VIDEO_KEY_MASK                         0x04e8
-#define OV0_GRAPHICS_KEY_CLR                       0x04ec
-#define OV0_GRAPHICS_KEY_MASK                      0x04f0
-#define OV0_KEY_CNTL                               0x04f4
-#define OV0_TEST                                   0x04f8
 
 #endif
 
