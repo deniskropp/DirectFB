@@ -1813,7 +1813,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb32()
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u16  s = (a)+1;\
+               register __u16  s = a+1;\
                register __u32 t1 = (d & 0x00ff00ff);\
                register __u32 t2 = (d & 0x0000ff00);\
                d = ((((rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
@@ -1843,8 +1843,8 @@ static void Bop_a8_set_alphapixel_Aop_argb()
           case 0: break;\
           default: {\
                register __u16  s = a+1;\
-               register __u16 s1 = 256-s;\
-               register __u16 sa = (d >> 24) + a;\
+               register __u32 s1 = 256-s;\
+               register __u32 sa = (d >> 24) + a;\
                if (sa & 0xff00) sa = 0xff;\
                d = (sa << 24) + \
                     (((((d & 0x00ff00ff)       * s1) + (rb  * s)) >> 8) & 0x00ff00ff) + \
@@ -1953,8 +1953,8 @@ static void Xacc_blend_srcalpha()
 
           while (w--) {
                if (!(X->a & 0xF000)) {
-                    __u16 Sa = S->a + 1;
-
+                    register __u16 Sa = S->a + 1;
+                    
                     X->r = (Sa * X->r) >> 8;
                     X->g = (Sa * X->g) >> 8;
                     X->b = (Sa * X->b) >> 8;
@@ -1966,7 +1966,7 @@ static void Xacc_blend_srcalpha()
           }
      }
      else {
-          __u16 Sa = color.a + 1;
+          register __u16 Sa = color.a + 1;
 
           while (w--) {
                if (!(X->a & 0xF000)) {
@@ -1993,7 +1993,7 @@ static void Xacc_blend_invsrcalpha()
 
           while (w--) {
                if (!(X->a & 0xF000)) {
-                    __u16 Sa = 0x100 - S->a;
+                    register __u16 Sa = 0x100 - S->a;
 
                     X->r = (Sa * X->r) >> 8;
                     X->g = (Sa * X->g) >> 8;
@@ -2006,7 +2006,7 @@ static void Xacc_blend_invsrcalpha()
           }
      }
      else {
-          __u16 Sa = 0x100 - color.a;
+          register __u16 Sa = 0x100 - color.a;
 
           while (w--) {
                if (!(X->a & 0xF000)) {
@@ -2029,7 +2029,7 @@ static void Xacc_blend_dstalpha()
 
      while (w--) {
           if (!(X->a & 0xF000)) {
-               __u16 Da = D->a + 1;
+               register __u16 Da = D->a + 1;
 
                X->r = (Da * X->r) >> 8;
                X->g = (Da * X->g) >> 8;
@@ -2050,7 +2050,7 @@ static void Xacc_blend_invdstalpha()
 
      while (w--) {
           if (!(X->a & 0xF000)) {
-               __u16 Da = 0x100 - D->a;
+               register __u16 Da = 0x100 - D->a;
 
                X->r = (Da * X->r) >> 8;
                X->g = (Da * X->g) >> 8;
@@ -2196,7 +2196,7 @@ static void Dacc_premultiply()
 
      while (w--) {
           if (!(D->a & 0xF000)) {
-               __u16 Da = D->a + 1;
+               register __u16 Da = D->a + 1;
                
                D->r = (Da * D->r) >> 8;
                D->g = (Da * D->g) >> 8;
@@ -2214,7 +2214,7 @@ static void Dacc_demultiply()
 
      while (w--) {
           if (!(D->a & 0xF000)) {
-               __u16 Da = D->a + 1;
+               register __u16 Da = D->a + 1;
                
                D->r = (D->r << 8) / Da;
                D->g = (D->g << 8) / Da;
