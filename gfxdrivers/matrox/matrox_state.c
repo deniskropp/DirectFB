@@ -266,6 +266,9 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
 
      alphactrl |= matroxModulation [state->blittingflags & 3];
 
+     if (state->dst_blend == DSBF_ZERO)
+          alphactrl &= ~VIDEOALPHA;
+
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mmio, alphactrl, ALPHACTRL );
 
