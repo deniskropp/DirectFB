@@ -31,10 +31,11 @@
 #include <pthread.h>
 #include <directfb.h>
 
+#include <direct/modules.h>
+
 #include <fusion/reactor.h>
 
 #include <core/coretypes.h>
-#include <core/modules.h>
 
 
 DECLARE_MODULE_DIRECTORY( dfb_input_modules );

@@ -30,11 +30,12 @@
 
 #include <pthread.h>
 
+#include <direct/modules.h>
+
 #include <fusion/lock.h>
 
 #include <directfb.h>
 #include <core/coretypes.h>
-#include <core/modules.h>
 
 typedef enum {
      CCF_CLIPPING = 0x00000001,

@@ -343,15 +343,15 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
 	       int n = 0;
 
-	       while (dfb_config->disable_module &&
-		      dfb_config->disable_module[n])
+	       while (direct_config->disable_module &&
+		      direct_config->disable_module[n])
 		    n++;
 
-	       dfb_config->disable_module = D_REALLOC( dfb_config->disable_module,
-                                                       sizeof(char*) * (n + 2) );
+	       direct_config->disable_module = D_REALLOC( direct_config->disable_module,
+                                                          sizeof(char*) * (n + 2) );
 
-	       dfb_config->disable_module[n] = D_STRDUP( value );
-               dfb_config->disable_module[n+1] = NULL;
+	       direct_config->disable_module[n] = D_STRDUP( value );
+               direct_config->disable_module[n+1] = NULL;
           }
           else {
                D_ERROR("DirectFB/Config 'disable_module': No module name specified!\n");

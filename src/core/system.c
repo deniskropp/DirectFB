@@ -38,7 +38,6 @@
 #include <core/coretypes.h>
 #include <core/core_parts.h>
 #include <core/layers.h>
-#include <core/modules.h>
 #include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/system.h>
@@ -49,6 +48,7 @@
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/modules.h>
 
 DEFINE_MODULE_DIRECTORY( dfb_core_systems, "systems",
                          DFB_CORE_SYSTEM_ABI_VERSION );
@@ -61,7 +61,7 @@ DFB_CORE_PART( system, 0, sizeof(CoreSystemField) )
 
 static CoreSystemField       *system_field  = NULL;
 
-static ModuleEntry           *system_module = NULL;
+static DirectModuleEntry     *system_module = NULL;
 static const CoreSystemFuncs *system_funcs  = NULL;
 static CoreSystemInfo         system_info;
 static void                  *system_data   = NULL;
@@ -72,13 +72,13 @@ dfb_system_lookup()
 {
      DirectLink *l;
 
-     dfb_modules_explore_directory( &dfb_core_systems );
+     direct_modules_explore_directory( &dfb_core_systems );
 
      direct_list_foreach( l, dfb_core_systems.entries ) {
-          ModuleEntry           *module = (ModuleEntry*) l;
+          DirectModuleEntry     *module = (DirectModuleEntry*) l;
           const CoreSystemFuncs *funcs;
 
-          funcs = dfb_module_ref( module );
+          funcs = direct_module_ref( module );
           if (!funcs)
                continue;
 
@@ -86,7 +86,7 @@ dfb_system_lookup()
               !strcasecmp( dfb_config->system, module->name )))
           {
                if (system_module)
-                    dfb_module_unref( system_module );
+                    direct_module_unref( system_module );
 
                system_module = module;
                system_funcs  = funcs;
@@ -94,7 +94,7 @@ dfb_system_lookup()
                funcs->GetSystemInfo( &system_info );
           }
           else
-               dfb_module_unref( module );
+               direct_module_unref( module );
      }
 
      if (!system_module) {
@@ -167,7 +167,7 @@ dfb_system_shutdown( CoreDFB *core, bool emergency )
 
      ret = system_funcs->Shutdown( emergency );
 
-     dfb_module_unref( system_module );
+     direct_module_unref( system_module );
 
      system_module = NULL;
      system_funcs  = NULL;
@@ -187,7 +187,7 @@ dfb_system_leave( CoreDFB *core, bool emergency )
 
      ret = system_funcs->Leave( emergency );
 
-     dfb_module_unref( system_module );
+     direct_module_unref( system_module );
 
      system_module = NULL;
      system_funcs  = NULL;

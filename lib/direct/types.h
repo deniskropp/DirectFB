@@ -46,6 +46,8 @@ typedef __u32 unichar;
 typedef struct __D_DirectConfig              DirectConfig;
 typedef struct __D_DirectHash                DirectHash;
 typedef struct __D_DirectLink                DirectLink;
+typedef struct __D_DirectModuleDir           DirectModuleDir;
+typedef struct __D_DirectModuleEntry         DirectModuleEntry;
 typedef struct __D_DirectTraceBuffer         DirectTraceBuffer;
 typedef struct __D_DirectTree                DirectTree;
 typedef struct __D_DirectThread              DirectThread;

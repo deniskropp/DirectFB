@@ -50,6 +50,7 @@ internalinclude_HEADERS = \
 	mem.h				\
 	memcpy.h			\
 	messages.h			\
+	modules.h			\
 	signals.h			\
 	system.h			\
 	thread.h			\
@@ -74,6 +75,7 @@ libdirect_la_SOURCES = \
 	mem.c			\
 	memcpy.c		\
 	messages.c		\
+	modules.c		\
 	signals.c		\
 	system.c		\
 	trace.c			\

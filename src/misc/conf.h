@@ -107,8 +107,6 @@ typedef struct
      char     *screenshot_dir;                    /* dump screen content into
                                                      this directory */
 
-     char    **disable_module;                    /* don't load these modules */
-
      char     *system;                            /* FBDev, SDL, etc. */
 
      bool      capslock_meta;                     /* map CapsLock -> Meta */

@@ -48,8 +48,6 @@
 
 #include <core/core_parts.h>
 
-#include <core/modules.h>
-
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
 #include <core/system.h>
@@ -64,6 +62,7 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/modules.h>
 
 #include <fusion/build.h>
 
@@ -82,7 +81,7 @@ DEFINE_MODULE_DIRECTORY( dfb_input_modules, "inputdrivers",
 typedef struct {
      DirectLink               link;
 
-     ModuleEntry             *module;
+     DirectModuleEntry       *module;
 
      const InputDriverFuncs  *funcs;
 
@@ -189,7 +188,7 @@ dfb_input_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      inputfield = data_shared;
 
-     dfb_modules_explore_directory( &dfb_input_modules );
+     direct_modules_explore_directory( &dfb_input_modules );
 
      init_devices();
 
@@ -244,7 +243,7 @@ dfb_input_shutdown( CoreDFB *core, bool emergency )
           driver->funcs->CloseDevice( d->driver_data );
 
           if (!--driver->nr_devices) {
-               dfb_module_unref( driver->module );
+               direct_module_unref( driver->module );
                D_FREE( driver );
           }
 
@@ -609,15 +608,15 @@ init_devices()
           int                     n;
           InputDriver            *driver;
           const InputDriverFuncs *funcs;
-          ModuleEntry            *module = (ModuleEntry*) link;
+          DirectModuleEntry      *module = (DirectModuleEntry*) link;
 
-          funcs = dfb_module_ref( module );
+          funcs = direct_module_ref( module );
           if (!funcs)
                continue;
 
           driver = D_CALLOC( 1, sizeof(InputDriver) );
           if (!driver) {
-               dfb_module_unref( module );
+               direct_module_unref( module );
                continue;
           }
 
@@ -630,7 +629,7 @@ init_devices()
 
           driver->nr_devices = funcs->GetAvailable();
           if (!driver->nr_devices) {
-               dfb_module_unref( module );
+               direct_module_unref( module );
                D_FREE( driver );
                continue;
           }

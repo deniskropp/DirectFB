@@ -41,7 +41,6 @@
 #include <core/coretypes.h>
 
 #include <core/core_parts.h>
-#include <core/modules.h>
 #include <core/gfxcard.h>
 #include <core/fonts.h>
 #include <core/state.h>
@@ -56,6 +55,7 @@
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/modules.h>
 #include <direct/tree.h>
 #include <direct/utf8.h>
 #include <direct/util.h>
@@ -63,8 +63,7 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
-DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers",
-                         DFB_GRAPHICS_DRIVER_ABI_VERSION );
+DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER_ABI_VERSION );
 
 /*
  * struct for graphics cards
@@ -94,7 +93,7 @@ typedef struct {
 struct _GraphicsDevice {
      GraphicsDeviceShared      *shared;
 
-     ModuleEntry               *module;
+     DirectModuleEntry         *module;
      const GraphicsDriverFuncs *driver_funcs;
 
      void                      *driver_data;
@@ -148,7 +147,7 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      }
 
      /* Build a list of available drivers. */
-     dfb_modules_explore_directory( &dfb_graphics_drivers );
+     direct_modules_explore_directory( &dfb_graphics_drivers );
 
      /* Load driver */
      dfb_gfxcard_find_driver();
@@ -224,7 +223,7 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
      shared = card->shared;
 
      /* Build a list of available drivers. */
-     dfb_modules_explore_directory( &dfb_graphics_drivers );
+     direct_modules_explore_directory( &dfb_graphics_drivers );
 
      /* Load driver. */
      dfb_gfxcard_load_driver();
@@ -280,7 +279,7 @@ dfb_gfxcard_shutdown( CoreDFB *core, bool emergency )
           funcs->CloseDevice( card, card->driver_data, card->device_data );
           funcs->CloseDriver( card, card->driver_data );
 
-          dfb_module_unref( card->module );
+          direct_module_unref( card->module );
 
           SHFREE( card->device_data );
           D_FREE( card->driver_data );
@@ -308,7 +307,7 @@ dfb_gfxcard_leave( CoreDFB *core, bool emergency )
      if (card->driver_funcs) {
           card->driver_funcs->CloseDriver( card, card->driver_data );
 
-          dfb_module_unref( card->module );
+          direct_module_unref( card->module );
 
           D_FREE( card->driver_data );
      }
@@ -1539,9 +1538,9 @@ static void dfb_gfxcard_find_driver()
           return;
 
      direct_list_foreach (link, dfb_graphics_drivers.entries) {
-          ModuleEntry *module = (ModuleEntry*) link;
+          DirectModuleEntry *module = (DirectModuleEntry*) link;
 
-          const GraphicsDriverFuncs *funcs = dfb_module_ref( module );
+          const GraphicsDriverFuncs *funcs = direct_module_ref( module );
 
           if (!funcs)
                continue;
@@ -1555,7 +1554,7 @@ static void dfb_gfxcard_find_driver()
                card->shared->module_name = SHSTRDUP( module->name );
           }
           else
-               dfb_module_unref( module );
+               direct_module_unref( module );
      }
 }
 
@@ -1573,9 +1572,9 @@ static void dfb_gfxcard_load_driver()
           return;
 
      direct_list_foreach (link, dfb_graphics_drivers.entries) {
-          ModuleEntry *module = (ModuleEntry*) link;
+          DirectModuleEntry *module = (DirectModuleEntry*) link;
 
-          const GraphicsDriverFuncs *funcs = dfb_module_ref( module );
+          const GraphicsDriverFuncs *funcs = direct_module_ref( module );
 
           if (!funcs)
                continue;
@@ -1587,7 +1586,7 @@ static void dfb_gfxcard_load_driver()
                card->driver_funcs = funcs;
           }
           else
-               dfb_module_unref( module );
+               direct_module_unref( module );
      }
 }
 

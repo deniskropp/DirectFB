@@ -28,8 +28,9 @@
 #ifndef __GRAPHICS_DRIVER_H__
 #define __GRAPHICS_DRIVER_H__
 
+#include <direct/modules.h>
+
 #include <core/gfxcard.h>
-#include <core/modules.h>
 
 
 static int
@@ -69,15 +70,15 @@ static GraphicsDriverFuncs driver_funcs = {
      CloseDriver:        driver_close_driver
 };
 
-#define DFB_GRAPHICS_DRIVER(shortname)                      \
-__attribute__((constructor)) void directfb_##shortname();   \
-                                                            \
-void                                                        \
-directfb_##shortname()                                      \
-{                                                           \
-     dfb_modules_register( &dfb_graphics_drivers,           \
-                           DFB_GRAPHICS_DRIVER_ABI_VERSION, \
-                           #shortname, &driver_funcs );     \
+#define DFB_GRAPHICS_DRIVER(shortname)                           \
+__attribute__((constructor)) void directfb_##shortname();        \
+                                                                 \
+void                                                             \
+directfb_##shortname()                                           \
+{                                                                \
+     direct_modules_register( &dfb_graphics_drivers,             \
+                              DFB_GRAPHICS_DRIVER_ABI_VERSION,   \
+                              #shortname, &driver_funcs );       \
 }
 
 #endif

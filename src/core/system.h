@@ -31,9 +31,10 @@
 #include <directfb.h>
 
 #include <core/coretypes.h>
-#include <fusion/types.h>
 
-#include <core/modules.h>
+#include <direct/modules.h>
+
+#include <fusion/types.h>
 
 typedef enum {
      CORE_ANY,

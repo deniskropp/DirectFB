@@ -46,9 +46,6 @@ typedef struct _CardState                  CardState;
 
 typedef struct _Chunk                      Chunk;
 
-typedef struct _ModuleEntry                ModuleEntry;
-typedef struct _ModuleDirectory            ModuleDirectory;
-
 
 typedef struct _InputDevice                InputDevice;
 typedef struct _GraphicsDevice             GraphicsDevice;

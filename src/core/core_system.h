@@ -111,9 +111,9 @@ __attribute__((constructor)) void directfb_##shortname();   \
 void                                                        \
 directfb_##shortname()                                      \
 {                                                           \
-     dfb_modules_register( &dfb_core_systems,               \
-                           DFB_CORE_SYSTEM_ABI_VERSION,     \
-                           #shortname, &system_funcs );     \
+     direct_modules_register( &dfb_core_systems,            \
+                              DFB_CORE_SYSTEM_ABI_VERSION,  \
+                              #shortname, &system_funcs );  \
 }
 
 #endif
