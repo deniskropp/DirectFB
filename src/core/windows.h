@@ -90,6 +90,7 @@ struct _CoreWindowStack
      int                 cx, cy;          /* cursor position */
      CoreWindow         *cursor;          /* super-toplevel-window for
                                              software cursor */
+     DFBRegion           cursor_region;   /* cursor is clipped by this region */
 
      CardState           state;           /* state for windowstack repaints */
 
@@ -98,9 +99,6 @@ struct _CoreWindowStack
 
      int                 wsp_opaque;
      int                 wsp_alpha;
-
-     int                 movemode;
-     CoreWindow         *movewin;
 };
 
 /*

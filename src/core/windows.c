@@ -80,12 +80,17 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
           if (inputdevice->desc.type & (DIDTF_KEYBOARD | DIDTF_MOUSE))
                reactor_attach( inputdevice->reactor,
                                windowstack_inputdevice_react, stack );
-          
+
           inputdevice = inputdevice->next;
      }
 
+     stack->cursor_region.x1 = 0;
+     stack->cursor_region.y1 = 0;
+     stack->cursor_region.x2 = layer->width - 1;
+     stack->cursor_region.y2 = layer->height - 1;
+
      /* initialize state for repaints */
-     stack->state.modified = SMF_ALL;
+     stack->state.modified  = SMF_ALL;
      stack->state.src_blend = DSBF_SRCALPHA;
      stack->state.dst_blend = DSBF_INVSRCALPHA;
      state_set_destination( &stack->state, layer->surface );
@@ -104,7 +109,7 @@ void windowstack_destroy( CoreWindowStack *stack )
           if (inputdevice->desc.type & (DIDTF_KEYBOARD | DIDTF_KEYBOARD))
                reactor_detach( inputdevice->reactor,
                                windowstack_inputdevice_react, stack );
-          
+
           inputdevice = inputdevice->next;
      }
 
@@ -741,10 +746,10 @@ static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
 
 /*     stack->state.clip      = region;
      stack->state.modified |= SMF_CLIP;*/
-    
+
      update_region( stack, stack->num_windows - 1,
                     region.x1, region.y1, region.x2, region.y2 );
-     
+
      if (surface->caps & DSCAPS_FLIPPING) {
           if (region.x1 == 0 &&
               region.y1 == 0 &&
@@ -856,13 +861,27 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
 
 void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
 {
+     int new_cx, new_cy;
      DFBWindowEvent we;
 
      if (!stack->cursor)
           return;
 
-     stack->cx += dx;
-     stack->cy += dy;
+     new_cx = MIN( stack->cx + dx, stack->cursor_region.x2);
+     new_cy = MIN( stack->cy + dy, stack->cursor_region.y2);
+
+     new_cx = MAX( new_cx, stack->cursor_region.x1 );
+     new_cy = MAX( new_cy, stack->cursor_region.y1 );
+
+     if (new_cx == stack->cx  &&  new_cy == stack->cy)
+          return;
+
+     dx = new_cx - stack->cx;
+     dy = new_cy - stack->cy;
+
+     stack->cx = new_cx;
+     stack->cy = new_cy;
+
 
      window_move( stack->cursor, dx, dy );
 
