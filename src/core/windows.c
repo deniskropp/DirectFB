@@ -172,7 +172,8 @@ create_region( CoreDFB                 *core,
      else
           config.buffermode = DLBM_FRONTONLY;
 
-     if ((context->config.options & DLOP_ALPHACHANNEL) && DFB_PIXELFORMAT_HAS_ALPHA(format))
+     if (((context->config.options & DLOP_ALPHACHANNEL) ||
+          (window->caps & DWCAPS_ALPHACHANNEL)) && DFB_PIXELFORMAT_HAS_ALPHA(format))
           config.options |= DLOP_ALPHACHANNEL;
 
      config.options |= DLOP_OPACITY;
