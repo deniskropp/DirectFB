@@ -755,6 +755,7 @@ driver_init_device( GraphicsDevice     *device,
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
+     __u32             vram  = dfb_system_videoram_length();
 
      snprintf( device_info->name,
                DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "TNT/TNT2/GeForce" );
@@ -788,8 +789,8 @@ driver_init_device( GraphicsDevice     *device,
      /* set video memory start and limit */
      nvdrv->PVIDEO[0x920/4] = 0;
      nvdrv->PVIDEO[0x924/4] = 0;
-     nvdrv->PVIDEO[0x908/4] = dfb_system_videoram_length() - 1;
-     nvdrv->PVIDEO[0x90C/4] = dfb_system_videoram_length() - 1;
+     nvdrv->PVIDEO[0x908/4] = (vram - 1) & 0x07FFFFC0;
+     nvdrv->PVIDEO[0x90C/4] = (vram - 1) & 0x07FFFFC0;
 
      /* set default Rop3 */
      nvdrv->PGRAPH[0x604/4] = 0x000000CC; /* copy */
