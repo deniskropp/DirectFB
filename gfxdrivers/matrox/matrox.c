@@ -646,6 +646,7 @@ int driver_probe( int fd, GfxCard *card )
           case FB_ACCEL_MATROX_MGA1064SG:    /* Matrox MGA1064SG (Mystique)   */
           case FB_ACCEL_MATROX_MGA2164W:     /* Matrox MGA2164W (Millenium II)*/
           case FB_ACCEL_MATROX_MGA2164W_AGP: /* Matrox MGA2164W (Millenium II)*/
+          case FB_ACCEL_MATROX_MGAG100:      /* Matrox G100                   */
                old_matrox = 1;
 
                /* fall through */
@@ -678,6 +679,9 @@ int driver_init( int fd, GfxCard *card )
 #endif
           case FB_ACCEL_MATROX_MGAG200:
                sprintf( card->info.driver_name, "Matrox G200" );
+               break;
+          case FB_ACCEL_MATROX_MGAG100:
+               sprintf( card->info.driver_name, "Matrox G100" );
                break;
           case FB_ACCEL_MATROX_MGA2064W:
                sprintf( card->info.driver_name, "Matrox Millenium I" );
@@ -726,6 +730,7 @@ int driver_init( int fd, GfxCard *card )
           case FB_ACCEL_MATROX_MGA1064SG:
           case FB_ACCEL_MATROX_MGA2164W:
           case FB_ACCEL_MATROX_MGA2164W_AGP:
+          case FB_ACCEL_MATROX_MGAG100:
                card->caps.accel    = MATROX_OLD_DRAWING_FUNCTIONS |
                                      MATROX_OLD_BLITTING_FUNCTIONS;
                card->caps.drawing  = MATROX_OLD_DRAWING_FLAGS;
