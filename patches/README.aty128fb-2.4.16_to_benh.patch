@@ -1,3 +1,11 @@
+---------
+NOTE:
+
+This patch is now obsolete, since it was merged in 2.4.18-pre3,
+I will remove this patch as soon as 2.4.18-final has been released.
+
+----------
+
 This patch patches the aty128fb driver in the "official" 2.4 kernel tree to
 the version included in Benjamin Herrenschmidt's kernel tree.
 
