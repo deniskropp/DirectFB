@@ -428,6 +428,9 @@ static void ati128StretchBlit( DFBRectangle *sr, DFBRectangle *dr )
                else
                     ati128_out32( mmio_base, TEX_CNTL, 0 );
                break;
+          default:
+               BUG( "unexpected pixelformat!" );
+               return;
      }
     
      ati128_out32( mmio_base, DP_DATATYPE, ATI_dst_bpp | SRC_DSTCOLOR );
