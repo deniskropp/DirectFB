@@ -501,6 +501,9 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
      if (!data->window)
           return DFB_DESTROYED;
 
+     if (!width || width > 4096 || !height || height > 4096)
+          return DFB_INVARG;
+     
      if (data->window->width == width  &&  data->window->height == height)
           return DFB_OK;
 
