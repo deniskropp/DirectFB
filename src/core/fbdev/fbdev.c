@@ -532,6 +532,7 @@ static DFBResult init_modes()
 
           Sfbdev->modes->xres = Sfbdev->orig_var.xres;
           Sfbdev->modes->yres = Sfbdev->orig_var.yres;
+          Sfbdev->modes->bpp  = Sfbdev->orig_var.bits_per_pixel;
           Sfbdev->modes->hsync_len = Sfbdev->orig_var.hsync_len;
           Sfbdev->modes->vsync_len = Sfbdev->orig_var.vsync_len;
           Sfbdev->modes->left_margin = Sfbdev->orig_var.left_margin;
