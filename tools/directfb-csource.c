@@ -61,15 +61,15 @@ static struct {
 static int n_pixelformats = sizeof (pixelformats) / sizeof (pixelformats[0]);
 
 
-static DFBResult  load_image  (const char             *filename,
-                               DFBSurfaceDescription  *desc,
-                               DFBColor              **palette,
-                               int                    *palette_size);
-static DFBResult  dump_image  (const char             *name,
-                               DFBSurfaceDescription  *desc,
-                               DFBColor               *palette,
-                               int                     palette_size);
-static void       print_usage (const char             *prg_name);
+static DFBResult  load_image  (const char            *filename,
+                               DFBSurfaceDescription *desc,
+                               DFBColor              *palette,
+                               int                   *palette_size);
+static DFBResult  dump_image  (const char            *name,
+                               DFBSurfaceDescription *desc,
+                               DFBColor              *palette,
+                               int                    palette_size);
+static void       print_usage (const char            *prg_name);
 
 
 int main (int         argc,
@@ -77,7 +77,7 @@ int main (int         argc,
 {
      DFBSurfaceDescription  desc    = { 0 };
      DFBSurfacePixelFormat  format  = DSPF_UNKNOWN;
-     DFBColor   *palette      = NULL;
+     DFBColor    palette[256];
      int         palette_size = 0;
      const char *name         = NULL;
      const char *filename     = NULL;
@@ -144,7 +144,7 @@ int main (int         argc,
           desc.pixelformat = format;
      }
 
-     if (load_image (filename, &desc, &palette, &palette_size) != DFB_OK)
+     if (load_image (filename, &desc, palette, &palette_size) != DFB_OK)
           return EXIT_FAILURE;
 
      return dump_image (vname, &desc, palette, palette_size);
@@ -163,7 +163,7 @@ static void print_usage (const char *prg_name)
 
 static DFBResult load_image (const char            *filename,
                              DFBSurfaceDescription *desc,
-                             DFBColor              *palette[],
+                             DFBColor              *palette,
                              int                   *palette_size)
 {
      DFBSurfacePixelFormat dest_format;
@@ -184,7 +184,7 @@ static DFBResult load_image (const char            *filename,
      desc->preallocated[0].data = NULL;
 
      if (!(fp = fopen (filename, "rb"))) {
-          fprintf (stderr, "Couldn't open file '%s': %s.\n",
+          fprintf (stderr, "Failed to open file '%s': %s.\n",
                    filename, strerror (errno));
           goto cleanup;
      }
@@ -260,22 +260,21 @@ static DFBResult load_image (const char            *filename,
 
      switch (src_format) {
           case DSPF_LUT8:
-               *palette_size = info_ptr->num_palette;
-               if (*palette_size) {
+               if (info_ptr->num_palette) {
                     png_byte *alpha;
                     int       i, num;
 
-                    *palette = malloc (sizeof (DFBColor) * *palette_size);
+                    *palette_size = MIN (info_ptr->num_palette, 256);
                     for (i = 0; i < *palette_size; i++) {
-                         (*palette)[i].a = 0xFF;
-                         (*palette)[i].r = info_ptr->palette[i].red;
-                         (*palette)[i].g = info_ptr->palette[i].green;
-                         (*palette)[i].b = info_ptr->palette[i].blue;
+                         palette[i].a = 0xFF;
+                         palette[i].r = info_ptr->palette[i].red;
+                         palette[i].g = info_ptr->palette[i].green;
+                         palette[i].b = info_ptr->palette[i].blue;
                     }
                     if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS)) {
                          png_get_tRNS (png_ptr, info_ptr, &alpha, &num, NULL);
                          for (i = 0; i < MIN (num, *palette_size); i++)
-                              (*palette)[i].a = alpha[i];
+                              palette[i].a = alpha[i];
                     }
                }
                break;
@@ -302,8 +301,11 @@ static DFBResult load_image (const char            *filename,
           pitch += 4 - (pitch & 3);
 
      data  = malloc (height * pitch);
-     if (!data)
+     if (!data) {
+          fprintf (stderr, "Failed to allocate %ld bytes.\n",
+                   height * pitch);
           goto cleanup;
+     }
 
      {
           int i;
@@ -329,8 +331,11 @@ static DFBResult load_image (const char            *filename,
                d_pitch += 4 - (d_pitch & 3);
 
           dest = malloc (height * d_pitch);
-          if (!dest)
+          if (!dest) {
+               fprintf (stderr, "Failed to allocate %ld bytes.\n",
+                        height * d_pitch);
                goto cleanup;
+          }
 
           h = height;
           switch (dest_format) {
