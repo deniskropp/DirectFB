@@ -970,8 +970,8 @@ static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
           if (mdev->field)
                src_offset += mdev->src_bytepitch;
      }
-     w2 = log2( w );
-     h2 = log2( h );
+     w2 = mga_log2( w );
+     h2 = mga_log2( h );
      texctl = mdev->texctl & ~(0x7ff << 9);
      texctl |= (pitch & 0x7ff) << 9;
 
@@ -1018,8 +1018,8 @@ static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                src_cr_offset += mdev->src_bytepitch/2;
           }
      }
-     w2 = log2( w );
-     h2 = log2( h );
+     w2 = mga_log2( w );
+     h2 = mga_log2( h );
 
      texctl  = mdev->texctl & ~(0x7ff << 9);
      texctl |= (pitch & 0x7ff) << 9;
