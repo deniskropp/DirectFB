@@ -156,6 +156,9 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
               DFBInputDeviceModifierMask  modifiers,
               DFBInputDeviceLockState     locks );
 
+static void
+flush_keys( InputDevice *device );
+
 static bool
 core_input_filter( InputDevice *device, DFBInputEvent *event );
 
@@ -288,9 +291,11 @@ dfb_input_suspend()
                     d->driver->info.version.major,
                     d->driver->info.version.minor,
                     d->driver->info.vendor );
-          
+
           d->driver->funcs->CloseDevice( d->driver_data );
 
+          flush_keys( d );
+          
           d = d->next;
      }
 
@@ -777,6 +782,29 @@ lookup_from_table( InputDevice        *device,
      return true;
 }
 
+static int
+find_key_code( InputDevice                 *device,
+               DFBInputDeviceKeyIdentifier  id )
+{
+     int                i;
+     InputDeviceKeymap *map;
+     
+     DFB_ASSERT( inputfield != NULL );
+     DFB_ASSERT( device != NULL );
+     DFB_ASSERT( device->shared != NULL );
+     
+     map = &device->shared->keymap;
+     
+     for (i=0; i<map->num_entries; i++) {
+          DFBInputDeviceKeymapEntry *entry = &map->entries[i];
+
+          if (entry->identifier == id)
+               return entry->code;
+     }
+
+     return -1;
+}
+
 #define FIXUP_KEY_FIELDS     (DIEF_MODIFIERS | DIEF_LOCKS | \
                               DIEF_KEYCODE | DIEF_KEYID | DIEF_KEYSYMBOL)
 
@@ -832,6 +860,22 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
                lookup_from_table( device, event, missing );
 
                missing &= ~(DIEF_KEYID | DIEF_KEYSYMBOL);
+          }
+          else if (valid & DIEF_KEYID) {
+               if (missing & DIEF_KEYCODE)
+                    event->key_code = find_key_code( device, event->key_id );
+
+               if (event->key_code != -1) {
+                    lookup_from_table( device, event, missing );
+                    
+                    missing &= ~(DIEF_KEYCODE | DIEF_KEYSYMBOL);
+               }
+               else if (missing & DIEF_KEYSYMBOL) {
+                    event->key_symbol = id_to_symbol( event->key_id,
+                                                      event->modifiers,
+                                                      event->locks );
+                    missing &= ~DIEF_KEYSYMBOL;
+               }
           }
      }
      else {
@@ -1385,6 +1429,65 @@ dump_screen( const char *directory )
                          surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE) );
 
      close( fd );
+}
+
+static void
+release_key( InputDevice *device, DFBInputDeviceKeyIdentifier id )
+{
+     DFBInputEvent evt;
+
+     evt.type   = DIET_KEYRELEASE;
+     evt.flags  = DIEF_KEYID;
+     evt.key_id = id;
+
+     dfb_input_dispatch( device, &evt );
+}
+
+static void
+flush_keys( InputDevice *device )
+{
+     if (device->shared->modifiers_l) {
+          if (device->shared->modifiers_l & DIMM_ALT)
+               release_key( device, DIKI_ALT_L );
+          
+          if (device->shared->modifiers_l & DIMM_ALTGR)
+               release_key( device, DIKI_ALTGR );
+          
+          if (device->shared->modifiers_l & DIMM_CONTROL)
+               release_key( device, DIKI_CONTROL_L );
+          
+          if (device->shared->modifiers_l & DIMM_HYPER)
+               release_key( device, DIKI_HYPER_L );
+          
+          if (device->shared->modifiers_l & DIMM_META)
+               release_key( device, DIKI_META_L );
+          
+          if (device->shared->modifiers_l & DIMM_SHIFT)
+               release_key( device, DIKI_SHIFT_L );
+          
+          if (device->shared->modifiers_l & DIMM_SUPER)
+               release_key( device, DIKI_SUPER_L );
+     }
+
+     if (device->shared->modifiers_r) {
+          if (device->shared->modifiers_r & DIMM_ALT)
+               release_key( device, DIKI_ALT_R );
+          
+          if (device->shared->modifiers_r & DIMM_CONTROL)
+               release_key( device, DIKI_CONTROL_R );
+          
+          if (device->shared->modifiers_r & DIMM_HYPER)
+               release_key( device, DIKI_HYPER_R );
+          
+          if (device->shared->modifiers_r & DIMM_META)
+               release_key( device, DIKI_META_R );
+          
+          if (device->shared->modifiers_r & DIMM_SHIFT)
+               release_key( device, DIKI_SHIFT_R );
+          
+          if (device->shared->modifiers_r & DIMM_SUPER)
+               release_key( device, DIKI_SUPER_R );
+     }
 }
 
 static bool
