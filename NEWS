@@ -1,3 +1,24 @@
+0.9.19
+------
+
+- Added VT switching support which has to be enabled via option "vt-switching".
+  Already pretty well working, though there are some minor issues left.
+- Added support for multiple multi application worlds with new option
+  "session=<num>" selecting the multi application world being joined or created.
+  VT switching between multiple DirectFB sessions rocks!
+- Added IDirectFB::GetInterface() to load interface modules like "IFusionSound".
+- Added time stamp to DFBWindowEvent.
+- Quitting the master (first multi app process) sends SIGTERM to all slaves
+  and waits for them to quit (with a timeout).
+- Core systems (currently FBDev and SDL) are dynamically loaded as modules,
+  which prevents DirectFB from being linked against SDL if support is enabled.
+- Added window manager key 'E' to focus the window under the mouse cursor.
+- Moved all global variables of the software driver to a new struct resulting
+  in a major increase of primitive throughput, e.g. FillRectangle(1x1) by 16%.
+- Enhanced tmpfs detection and added option "tmpfs=<dir>" to set it explicitly.
+- Many bug fixes and cleanups.
+
+
 0.9.18
 ------
 
