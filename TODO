@@ -16,8 +16,6 @@ Finish implementation of cooperative levels.
 Finish display layer core and driver API.
  - Finish reallocate_surface() in src/core/layers.c
 
-Clean up key codes.
-
 SetVideoMode should resize the window for the primary surface
 when in normal cooperative level and it already exists.
 
