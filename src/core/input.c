@@ -292,6 +292,7 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
                ;
      }
 
+     event->clazz     = DFEC_INPUT;
      event->device_id = device->shared->id;
 
      reactor_dispatch( device->shared->reactor, event, true );

@@ -829,6 +829,7 @@ void
 dfb_window_dispatch( CoreWindow     *window,
                      DFBWindowEvent *event )
 {
+     event->clazz     = DFEC_WINDOW;
      event->window_id = window->id;
 
      reactor_dispatch( window->reactor, event, true );
