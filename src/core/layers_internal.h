@@ -82,31 +82,36 @@ struct __DFB_CoreLayer {
 };
 
 struct __DFB_CoreLayerContext {
-     FusionObject             object;
+     FusionObject                object;
 
-     DFBDisplayLayerID        layer_id;
+     DFBDisplayLayerID           layer_id;
 
-     FusionSkirmish           lock;
+     FusionSkirmish              lock;
 
-     bool                     active;
+     bool                        active;     /* Is this the active context? */
 
-     FusionVector             regions;
+     DFBDisplayLayerConfig       config;     /* Current layer configuration. */
 
-     DFBDisplayLayerConfig    config;        /* current configuration */
+     FusionVector                regions;    /* All regions created within
+                                                this context. */
 
-     CoreLayerRegion         *primary;       /* region used for buffer modes
-                                                other than DLBM_WINDOWS */
+     struct {
+          CoreLayerRegion       *region;     /* Region of layer config if buffer
+                                                mode is not DLBM_WINDOWS. */
+          CoreLayerRegionConfig  config;     /* Region config used to implement
+                                                layer config and settings. */
+     } primary;
 
-     __u8                     opacity;       /* if enabled this value controls
-                                                blending of the whole layer */
+     __u8                        opacity;    /* If enabled this value controls
+                                                blending of the whole layer. */
 
-     DFBLocation              screen;        /* normalized screen coordinates */
+     DFBLocation                 screen;     /* Screen location of the layer. */
 
-     DFBColorAdjustment       adjustment;
+     DFBColorAdjustment          adjustment; /* Color adjustment of the layer.*/
 
-     CoreWindowStack         *stack;         /* every layer has its own
+     CoreWindowStack            *stack;      /* Every layer has its own
                                                 windowstack as every layer has
-                                                its own pixel buffer */
+                                                its own pixel buffer. */
 };
 
 typedef enum {

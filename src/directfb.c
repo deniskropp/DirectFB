@@ -282,6 +282,8 @@ DirectFBErrorString( DFBResult error )
                return "Operation has been interrupted!";
           case DFB_NOCONTEXT:
                return "No context available!";
+          case DFB_TEMPUNAVAIL:
+               return "Temporarily unavailable!";
      }
 
      return "<UNKNOWN ERROR CODE>!";

@@ -1464,7 +1464,7 @@ dump_primary_layer_surface()
 
           /* Get the first region. */
           if (dfb_layer_context_get_primary_region( context,
-                                                    &region ) == DFB_OK)
+                                                    false, &region ) == DFB_OK)
           {
                CoreSurface *surface;
 

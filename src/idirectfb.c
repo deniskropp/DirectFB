@@ -635,7 +635,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                               return ret;
                     }
 
-                    ret = dfb_layer_context_get_primary_region( context,
+                    ret = dfb_layer_context_get_primary_region( context, true,
                                                                 &region );
                     if (ret)
                          return ret;

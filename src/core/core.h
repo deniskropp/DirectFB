@@ -64,9 +64,15 @@ CoreWindow       *dfb_core_create_window       ( CoreDFB *core );
 /*
  * Debug
  */
-FusionResult     dfb_core_enum_surfaces      ( CoreDFB               *core,
-                                               FusionObjectCallback   callback,
-                                               void                  *ctx );
+FusionResult dfb_core_enum_surfaces      ( CoreDFB               *core,
+                                           FusionObjectCallback   callback,
+                                           void                  *ctx );
+FusionResult dfb_core_enum_layer_contexts( CoreDFB               *core,
+                                           FusionObjectCallback   callback,
+                                           void                  *ctx );
+FusionResult dfb_core_enum_layer_regions ( CoreDFB               *core,
+                                           FusionObjectCallback   callback,
+                                           void                  *ctx );
 
 
 /*

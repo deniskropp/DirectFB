@@ -124,19 +124,16 @@ dfb_layer_region_pool_create()
 /******************************************************************************/
 
 DFBResult
-dfb_layer_region_create( CoreLayer         *layer,
-                         CoreLayerContext  *context,
+dfb_layer_region_create( CoreLayerContext  *context,
                          CoreLayerRegion  **ret_region )
 {
-     CoreLayerRegion   *region;
-     DisplayLayerFuncs *funcs;
+     CoreLayer       *layer;
+     CoreLayerRegion *region;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( context != NULL );
      DFB_ASSERT( ret_region != NULL );
 
-     funcs = layer->funcs;
+     layer = dfb_layer_at( context->layer_id );
 
      /* Create the object. */
      region = dfb_core_create_layer_region( layer->core );

@@ -48,7 +48,7 @@
 static void      init_region_config  ( CoreLayerContext           *context,
                                        CoreLayerRegionConfig      *config );
 
-static void      build_updated_config( CoreLayerRegion            *region,
+static void      build_updated_config( CoreLayerContext           *context,
                                        DFBDisplayLayerConfig      *update,
                                        CoreLayerRegionConfig      *ret_config,
                                        CoreLayerRegionConfigFlags *ret_flags );
@@ -116,9 +116,8 @@ DFBResult
 dfb_layer_context_create( CoreLayer         *layer,
                           CoreLayerContext **ret_context )
 {
-     CoreLayerShared       *shared;
-     CoreLayerContext      *context;
-     CoreLayerRegionConfig  config;
+     CoreLayerShared  *shared;
+     CoreLayerContext *context;
 
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
@@ -130,6 +129,8 @@ dfb_layer_context_create( CoreLayer         *layer,
      context = dfb_core_create_layer_context( layer->core );
      if (!context)
           return DFB_FUSION;
+
+     DEBUGMSG( "DirectFB/core/layers: %s -> %p\n", __FUNCTION__, context );
 
      /* Initialize the lock. */
      if (fusion_skirmish_init( &context->lock )) {
@@ -151,21 +152,24 @@ dfb_layer_context_create( CoreLayer         *layer,
      context->screen.w = 1.0f;
      context->screen.h = 1.0f;
 
+     /* Initialize the primary region's configuration. */
+     init_region_config( context, &context->primary.config );
+
      /* Activate the object. */
      fusion_object_activate( &context->object );
 
-     /* Create the primary region. */
-     dfb_layer_region_create( layer, context, &context->primary );
-
-     /* Set the primary region's default configuration. */
-     init_region_config( context, &config );
-     dfb_layer_region_set_configuration( context->primary, &config, CLRCF_ALL );
 
      /* Create the window stack. */
      context->stack = dfb_windowstack_create( context );
+     if (!context->stack) {
+          dfb_layer_context_unref( context );
+          return DFB_NOSYSTEMMEMORY;
+     }
 
-     /* Set the context's default configuration. */
-     dfb_layer_context_set_configuration( context, &context->config );
+     /* Tell the window stack about its size. */
+     dfb_windowstack_resize( context->stack,
+                             context->config.width,
+                             context->config.height );
 
      /* Return the new context. */
      *ret_context = context;
@@ -185,6 +189,8 @@ dfb_layer_context_activate( CoreLayerContext *context )
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
+     DEBUGMSG( "DirectFB/core/layers: %s (%p)\n", __FUNCTION__, context );
+
      DFB_ASSUME( !context->active );
 
      if (context->active) {
@@ -195,7 +201,8 @@ dfb_layer_context_activate( CoreLayerContext *context )
      /* Iterate through all regions. */
      fusion_vector_foreach (&context->regions, index, region) {
           /* Activate each region. */
-          dfb_layer_region_activate( region );
+          if (dfb_layer_region_activate( region ))
+               CAUTION( "could not activate region!" );
      }
 
      context->active = true;
@@ -228,6 +235,8 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
+
+     DEBUGMSG( "DirectFB/core/layers: %s (%p)\n", __FUNCTION__, context );
 
      DFB_ASSUME( context->active );
 
@@ -319,6 +328,10 @@ dfb_layer_context_remove_region( CoreLayerContext *context,
      if (index >= 0) {
           /* Remove region from vector. */
           fusion_vector_remove( &context->regions, index );
+
+          /* Check if the primary region is removed. */
+          if (region == context->primary.region)
+               context->primary.region = NULL;
      }
 
      /* Unlock the context. */
@@ -329,8 +342,11 @@ dfb_layer_context_remove_region( CoreLayerContext *context,
 
 DFBResult
 dfb_layer_context_get_primary_region( CoreLayerContext  *context,
+                                      bool               create,
                                       CoreLayerRegion  **ret_region )
 {
+     DFBResult ret;
+
      DFB_ASSERT( context != NULL );
      DFB_ASSERT( ret_region != NULL );
 
@@ -338,14 +354,58 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
-     /* Increase the primary region's reference counter. */
-     if (dfb_layer_region_ref( context->primary )) {
+     if (context->primary.region) {
+          /* Increase the primary region's reference counter. */
+          if (dfb_layer_region_ref( context->primary.region )) {
+               dfb_layer_context_unlock( context );
+               return DFB_FUSION;
+          }
+     }
+     else if (create) {
+          CoreLayerRegion *region;
+
+          /* Create the primary region. */
+          ret = dfb_layer_region_create( context, &region );
+          if (ret) {
+               ERRORMSG( "DirectFB/core/layers: Could not create primary region!\n" );
+               dfb_layer_context_unlock( context );
+               return ret;
+          }
+
+          /* Set the region configuration. */
+          ret = dfb_layer_region_set_configuration( region,
+                                                    &context->primary.config,
+                                                    CLRCF_ALL );
+          if (ret) {
+               ERRORMSG( "DirectFB/core/layers: "
+                         "Could not initialize primary region config!\n" );
+               dfb_layer_region_unref( region );
+               dfb_layer_context_unlock( context );
+               return ret;
+          }
+
+          /* Remember the primary region. */
+          context->primary.region = region;
+
+          /* Allocate surface, enable region etc. */
+          ret = dfb_layer_context_set_configuration( context,
+                                                     &context->config );
+          if (ret) {
+               ERRORMSG( "DirectFB/core/layers: "
+                         "Could not apply layer configuration!\n" );
+               context->primary.region = NULL;
+               dfb_layer_region_unref( region );
+               dfb_layer_context_unlock( context );
+               return ret;
+          }
+     }
+     else {
           dfb_layer_context_unlock( context );
-          return DFB_FUSION;
+          return DFB_TEMPUNAVAIL;
      }
 
      /* Return region. */
-     *ret_region = context->primary;
+     *ret_region = context->primary.region;
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -361,14 +421,13 @@ dfb_layer_context_test_configuration( CoreLayerContext           *context,
                                       DFBDisplayLayerConfig      *config,
                                       DFBDisplayLayerConfigFlags *ret_failed )
 {
-     DFBResult                   ret;
+     DFBResult                   ret = DFB_OK;
      CoreLayer                  *layer;
      CoreLayerRegionConfig       region_config;
      CoreLayerRegionConfigFlags  failed;
      DisplayLayerFuncs          *funcs;
 
      DFB_ASSERT( context != NULL );
-     DFB_ASSERT( context->primary != NULL );
      DFB_ASSERT( config != NULL );
 
      /* Lock the context. */
@@ -378,22 +437,31 @@ dfb_layer_context_test_configuration( CoreLayerContext           *context,
      layer = dfb_layer_at( context->layer_id );
 
      DFB_ASSERT( layer != NULL );
+     DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( layer->funcs != NULL );
+     DFB_ASSERT( layer->funcs->TestRegion != NULL );
 
      funcs = layer->funcs;
 
-     /* Build region configuration to be tested. */
-     build_updated_config( context->primary, config, &region_config, NULL );
+     /* Build a new region configuration with the changes. */
+     build_updated_config( context, config, &region_config, NULL );
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
 
 
-     DFB_ASSERT( funcs->TestRegion != NULL );
-
-     /* Let the driver examine the modified configuration. */
-     ret = funcs->TestRegion( layer, layer->driver_data, layer->layer_data,
-                              &region_config, &failed );
+     /* Test the region configuration. */
+     if (region_config.buffermode == DLBM_WINDOWS) {
+          if (! FLAG_IS_SET( layer->shared->description.caps, DLCAPS_WINDOWS )) {
+               failed = CLRCF_BUFFERMODE;
+               ret = DFB_UNSUPPORTED;
+          }
+     }
+     else {
+          /* Let the driver examine the modified configuration. */
+          ret = funcs->TestRegion( layer, layer->driver_data, layer->layer_data,
+                                   &region_config, &failed );
+     }
 
      /* Return flags for failing entries. */
      if (ret_failed) {
@@ -430,13 +498,11 @@ dfb_layer_context_set_configuration( CoreLayerContext      *context,
      DFBResult                   ret;
      CoreLayer                  *layer;
      CoreLayerShared            *shared;
-     CoreLayerRegion            *region;
      CoreLayerRegionConfig       region_config;
      CoreLayerRegionConfigFlags  flags;
      DisplayLayerFuncs          *funcs;
 
      DFB_ASSERT( context != NULL );
-     DFB_ASSERT( context->primary != NULL );
      DFB_ASSERT( config != NULL );
 
      /* Lock the context. */
@@ -452,65 +518,101 @@ dfb_layer_context_set_configuration( CoreLayerContext      *context,
 
      shared = layer->shared;
      funcs  = layer->funcs;
-     region = context->primary;
 
-     /* Lock the region. */
-     if (dfb_layer_region_lock( region )) {
-          dfb_layer_context_unlock( context );
-          return DFB_FUSION;
-     }
+     /* Build a new region configuration with the changes. */
+     build_updated_config( context, config, &region_config, &flags );
 
-     /* Build region configuration to be set. */
-     build_updated_config( context->primary, config, &region_config, &flags );
-
-     /* Special hardware window mode? */
+     /* Test the region configuration first. */
      if (region_config.buffermode == DLBM_WINDOWS) {
-          /* Disable and deallocate the primary region. */
-          if (FLAG_IS_SET( region->state, CLRSF_ENABLED )) {
-               dfb_layer_region_disable( region );
-
-               if (shared->description.caps & DLCAPS_SURFACE)
-                    deallocate_surface( layer, region );
+          if (! FLAG_IS_SET( shared->description.caps, DLCAPS_WINDOWS )) {
+               dfb_layer_context_unlock( context );
+               return DFB_UNSUPPORTED;
           }
-
-          /* Remember configuration. */
-          region->config = region_config;
      }
      else {
-          /* Test new configuration first. */
           ret = funcs->TestRegion( layer, layer->driver_data, layer->layer_data,
                                    &region_config, NULL );
           if (ret) {
-               dfb_layer_region_unlock( region );
                dfb_layer_context_unlock( context );
                return ret;
           }
+     }
 
-          /* (Re)allocate the region's surface. */
-          if (shared->description.caps & DLCAPS_SURFACE) {
-               if (FLAG_IS_SET( region->state, CLRSF_ENABLED ))
-                    ret = reallocate_surface( layer, region, &region_config,
-                                              &context->config );
-               else
-                    ret = allocate_surface( layer, region, &region_config );
+     /* Set the region configuration. */
+     if (context->primary.region) {
+          CoreLayerRegion *region = context->primary.region;
 
-               if (ret) {
-                    dfb_layer_region_unlock( region );
-                    dfb_layer_context_unlock( context );
-                    return ret;
+          /* Add local reference. */
+          if (dfb_layer_region_ref( region )) {
+               dfb_layer_context_unlock( context );
+               return DFB_FUSION;
+          }
+
+          /* Lock the region. */
+          if (dfb_layer_region_lock( region )) {
+               dfb_layer_region_unref( region );
+               dfb_layer_context_unlock( context );
+               return DFB_FUSION;
+          }
+
+          /* Normal buffer mode? */
+          if (region_config.buffermode != DLBM_WINDOWS) {
+               /* (Re)allocate the region's surface. */
+               if (shared->description.caps & DLCAPS_SURFACE) {
+                    if (FLAG_IS_SET( region->state, CLRSF_ENABLED ))
+                         ret = reallocate_surface( layer, region, &region_config,
+                                                   &context->config );
+                    else
+                         ret = allocate_surface( layer, region, &region_config );
+
+                    if (ret) {
+                         dfb_layer_region_unlock( region );
+                         dfb_layer_region_unref( region );
+                         dfb_layer_context_unlock( context );
+                         return ret;
+                    }
+               }
+
+               /* Set the new region configuration. */
+               dfb_layer_region_set_configuration( region, &region_config, flags );
+
+               /* Enable the primary region. */
+               if (! FLAG_IS_SET( region->state, CLRSF_ENABLED ))
+                    dfb_layer_region_enable( region );
+          }
+          else {
+               /* Disable and deallocate the primary region. */
+               if (FLAG_IS_SET( region->state, CLRSF_ENABLED )) {
+                    dfb_layer_region_disable( region );
+
+                    if (shared->description.caps & DLCAPS_SURFACE)
+                         deallocate_surface( layer, region );
                }
           }
 
-          /* Set the new region configuration. */
-          dfb_layer_region_set_configuration( region, &region_config, flags );
+          /* Update the window stack. */
+          if (context->stack) {
+               CoreWindowStack *stack = context->stack;
 
-          /* Enable the primary region. */
-          if (! FLAG_IS_SET( region->state, CLRSF_ENABLED ))
-               dfb_layer_region_enable( region );
+               /* Update hardware flag. */
+               stack->hw_mode = (context->config.buffermode == DLBM_WINDOWS);
+
+               /* Tell the windowing core about the new size. */
+               dfb_windowstack_resize( stack,
+                                       context->config.width,
+                                       context->config.height );
+
+               /* FIXME: call only if really needed */
+               dfb_windowstack_repaint_all( stack );
+          }
+
+          /* Unlock the region and give up the local reference. */
+          dfb_layer_region_unlock( region );
+          dfb_layer_region_unref( region );
      }
 
-     /* Unlock the region. */
-     dfb_layer_region_unlock( region );
+     /* Remember new region config. */
+     context->primary.config = region_config;
 
      /*
       * Write back modified entries.
@@ -530,22 +632,6 @@ dfb_layer_context_set_configuration( CoreLayerContext      *context,
      if (config->flags & DLCONF_OPTIONS)
           context->config.options = config->options;
 
-     /* Update the window stack. */
-     if (context->stack) {
-          CoreWindowStack *stack = context->stack;
-
-          /* Update hardware flag. */
-          stack->hw_mode = (context->config.buffermode == DLBM_WINDOWS);
-
-          /* Tell the windowing core about the new size. */
-          dfb_windowstack_resize( stack,
-                                  context->config.width,
-                                  context->config.height );
-
-          /* FIXME: call only if really needed */
-          dfb_windowstack_repaint_all( stack );
-     }
-
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
 
@@ -564,6 +650,41 @@ dfb_layer_context_get_configuration( CoreLayerContext      *context,
      return DFB_OK;
 }
 
+static DFBResult
+update_primary_region_config( CoreLayerContext           *context,
+                              CoreLayerRegionConfig      *config,
+                              CoreLayerRegionConfigFlags  flags )
+{
+     DFBResult ret = DFB_OK;
+
+     DFB_ASSERT( context != NULL );
+     DFB_ASSERT( config != NULL );
+
+     if (context->primary.region) {
+          /* Set the new configuration. */
+          ret = dfb_layer_region_set_configuration( context->primary.region,
+                                                    config, flags );
+     }
+     else {
+          CoreLayer *layer = dfb_layer_at( context->layer_id );
+
+          DFB_ASSERT( layer->funcs != NULL );
+          DFB_ASSERT( layer->funcs->TestRegion != NULL );
+
+          /* Just test the new configuration. */
+          ret = layer->funcs->TestRegion( layer, layer->driver_data,
+                                          layer->layer_data, config, NULL );
+     }
+
+     if (ret)
+          return ret;
+
+     /* Remember the configuration. */
+     context->primary.config = *config;
+
+     return DFB_OK;
+}
+
 DFBResult
 dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
                                     __u8 r, __u8 g, __u8 b )
@@ -572,18 +693,21 @@ dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
      CoreLayerRegionConfig config;
 
      DFB_ASSERT( context != NULL );
-     DFB_ASSERT( context->primary != NULL );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
+     /* Take the current configuration. */
+     config = context->primary.config;
+
+     /* Change the color key. */
      config.src_key.r = r;
      config.src_key.g = g;
      config.src_key.b = b;
 
-     ret = dfb_layer_region_set_configuration( context->primary,
-                                               &config, CLRCF_SRCKEY );
+     /* Try to set the new configuration. */
+     ret = update_primary_region_config( context, &config, CLRCF_SRCKEY );
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -599,18 +723,21 @@ dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
      CoreLayerRegionConfig config;
 
      DFB_ASSERT( context != NULL );
-     DFB_ASSERT( context->primary != NULL );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
+     /* Take the current configuration. */
+     config = context->primary.config;
+
+     /* Change the color key. */
      config.dst_key.r = r;
      config.dst_key.g = g;
      config.dst_key.b = b;
 
-     ret = dfb_layer_region_set_configuration( context->primary,
-                                               &config, CLRCF_DSTKEY );
+     /* Try to set the new configuration. */
+     ret = update_primary_region_config( context, &config, CLRCF_DSTKEY );
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -626,7 +753,6 @@ dfb_layer_context_set_screenlocation( CoreLayerContext *context,
      CoreLayerRegionConfig config;
 
      DFB_ASSERT( context != NULL );
-     DFB_ASSERT( context->primary != NULL );
      DFB_ASSERT( location != NULL );
 
      /* Lock the context. */
@@ -639,12 +765,14 @@ dfb_layer_context_set_screenlocation( CoreLayerContext *context,
           return DFB_OK;
      }
 
+     /* Take the current configuration. */
+     config = context->primary.config;
+
      /* Calculate new absolute screen coordinates. */
      dfb_screen_rectangle( location, &config.dest );
 
-     /* Set the modified configuration. */
-     ret = dfb_layer_region_set_configuration( context->primary,
-                                               &config, CLRCF_DEST );
+     /* Try to set the new configuration. */
+     ret = update_primary_region_config( context, &config, CLRCF_DEST );
      if (ret == DFB_OK)
           context->screen = *location;
 
@@ -661,28 +789,32 @@ dfb_layer_context_set_opacity (CoreLayerContext *context, __u8 opacity)
      CoreLayerRegionConfig config;
 
      DFB_ASSERT( context != NULL );
-     DFB_ASSERT( context->primary != NULL );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
+     /* Do nothing if the opacity didn't change. */
      if (context->opacity == opacity) {
           dfb_layer_context_unlock( context );
           return DFB_OK;
      }
 
+     /* Take the current configuration. */
+     config = context->primary.config;
+
+     /* Change the opacity. */
      config.opacity = opacity;
 
-     ret = dfb_layer_region_set_configuration( context->primary,
-                                               &config, CLRCF_OPACITY );
+     /* Try to set the new configuration. */
+     ret = update_primary_region_config( context, &config, CLRCF_OPACITY );
      if (ret == DFB_OK)
           context->opacity = opacity;
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
 
-     return DFB_OK;
+     return ret;
 }
 
 DFBResult
@@ -765,21 +897,30 @@ dfb_layer_context_set_field_parity( CoreLayerContext *context, int field )
      CoreLayerRegionConfig config;
 
      DFB_ASSERT( context != NULL );
-     DFB_ASSERT( context->primary != NULL );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
+     /* Do nothing if the parity didn't change. */
+     if (context->primary.config.parity == field) {
+          dfb_layer_context_unlock( context );
+          return DFB_OK;
+     }
+
+     /* Take the current configuration. */
+     config = context->primary.config;
+
+     /* Change the parity. */
      config.parity = field;
 
-     ret = dfb_layer_region_set_configuration( context->primary,
-                                               &config, CLRCF_PARITY );
+     /* Try to set the new configuration. */
+     ret = update_primary_region_config( context, &config, CLRCF_PARITY );
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
 
-     return DFB_OK;
+     return ret;
 }
 
 DFBResult
@@ -797,10 +938,8 @@ dfb_layer_context_create_window( CoreLayerContext       *context,
      CoreWindow      *window;
      CoreWindowStack *stack;
      CoreLayer       *layer;
-     CoreSurface     *surface;
 
      DFB_ASSERT( context != NULL );
-     DFB_ASSERT( context->primary != NULL );
      DFB_ASSERT( context->stack != NULL );
      DFB_ASSERT( ret_window != NULL );
 
@@ -812,29 +951,25 @@ dfb_layer_context_create_window( CoreLayerContext       *context,
      if (dfb_layer_context_lock( context ))
          return DFB_FUSION;
 
-     if (dfb_layer_region_lock( context->primary )) {
-          dfb_layer_context_unlock( context );
-          return DFB_FUSION;
+     stack = context->stack;
+
+     if (!stack->cursor.set) {
+          ret = dfb_windowstack_cursor_enable( stack, true );
+          if (ret) {
+               dfb_layer_context_unlock( context );
+               return ret;
+          }
      }
 
-     stack   = context->stack;
-     surface = context->primary->surface;
-
-     if (!stack->cursor.set)
-          dfb_windowstack_cursor_enable( stack, true );
-
-     ret = dfb_window_create( stack, x, y, width, height, caps, surface_caps,
-                              pixelformat, surface ? surface->palette : NULL,
-                              &window );
+     ret = dfb_window_create( stack, x, y, width, height, caps,
+                              surface_caps, pixelformat, &window );
      if (ret) {
-          dfb_layer_region_unlock( context->primary );
           dfb_layer_context_unlock( context );
           return ret;
      }
 
      *ret_window = window;
 
-     dfb_layer_region_unlock( context->primary );
      dfb_layer_context_unlock( context );
 
      return DFB_OK;
@@ -932,19 +1067,19 @@ init_region_config( CoreLayerContext      *context,
 }
 
 static void
-build_updated_config( CoreLayerRegion            *region,
+build_updated_config( CoreLayerContext           *context,
                       DFBDisplayLayerConfig      *update,
                       CoreLayerRegionConfig      *ret_config,
                       CoreLayerRegionConfigFlags *ret_flags )
 {
      CoreLayerRegionConfigFlags flags = CLRCF_NONE;
 
-     DFB_ASSERT( region != NULL );
+     DFB_ASSERT( context != NULL );
      DFB_ASSERT( update != NULL );
      DFB_ASSERT( ret_config != NULL );
 
      /* Get the current region configuration. */
-     dfb_layer_region_get_configuration( region, ret_config );
+     *ret_config = context->primary.config;
 
      /* Change width. */
      if (update->flags & DLCONF_WIDTH) {

@@ -62,7 +62,7 @@
 #include <misc/util.h>
 
 
-#define DIRECTFB_CORE_ABI     12
+#define DIRECTFB_CORE_ABI     13
 
 extern CorePart dfb_core_clipboard;
 extern CorePart dfb_core_colorhash;
@@ -434,6 +434,34 @@ dfb_core_enum_surfaces( CoreDFB               *core,
           core = core_dfb;
 
      return fusion_object_pool_enum( core->shared->surface_pool,
+                                     callback, ctx );
+}
+
+FusionResult
+dfb_core_enum_layer_contexts( CoreDFB               *core,
+                              FusionObjectCallback   callback,
+                              void                  *ctx )
+{
+     DFB_ASSERT( core != NULL || core_dfb != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     return fusion_object_pool_enum( core->shared->layer_context_pool,
+                                     callback, ctx );
+}
+
+FusionResult
+dfb_core_enum_layer_regions( CoreDFB               *core,
+                             FusionObjectCallback   callback,
+                             void                  *ctx )
+{
+     DFB_ASSERT( core != NULL || core_dfb != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     return fusion_object_pool_enum( core->shared->layer_region_pool,
                                      callback, ctx );
 }
 

@@ -174,7 +174,6 @@ dfb_window_create( CoreWindowStack        *stack,
                    DFBWindowCapabilities   caps,
                    DFBSurfaceCapabilities  surface_caps,
                    DFBSurfacePixelFormat   pixelformat,
-                   CorePalette            *palette,
                    CoreWindow            **ret_window )
 {
      DFBResult          ret;
@@ -287,40 +286,43 @@ dfb_window_create( CoreWindowStack        *stack,
      if ((caps & DWCAPS_ALPHACHANNEL) && pixelformat == DSPF_ARGB)
           window->options = DWOP_ALPHACHANNEL;
 
-     /* Link the primary region into the window structure. */
-     if (dfb_layer_region_link( &window->primary_region, stack->region )) {
-          fusion_object_destroy( &window->object );
-          return DFB_FUSION;
-     }
-
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
+          CoreLayerRegion *region;
+
+          /* Get the primary region of the layer context. */
+          ret = dfb_layer_context_get_primary_region( context, true, &region );
+          if (ret) {
+               fusion_object_destroy( &window->object );
+               return ret;
+          }
+
+          /* Link the primary region into the window structure. */
+          dfb_layer_region_link( &window->primary_region, region );
+          dfb_layer_region_unref( region );
+
+          /* Create the surface for the window. */
           ret = dfb_surface_create( layer->core,
                                     width, height, pixelformat,
                                     surface_policy, surface_caps,
-                                    palette, &surface );
+                                    region->surface ?
+                                    region->surface->palette : NULL, &surface );
           if (ret) {
                dfb_layer_region_unlink( &window->primary_region );
                fusion_object_destroy( &window->object );
                return ret;
           }
 
+          /* Link the surface into the window structure. */
           dfb_surface_link( &window->surface, surface );
           dfb_surface_unref( surface );
 
-/*          if (context->config.buffermode == DLBM_WINDOWS) {
-               ret = dfb_layer_add_window( layer, window );
-               if (ret) {
-                    dfb_surface_unlink( &window->surface );
-                    fusion_object_destroy( &window->object );
-                    return ret;
-               }
-          }*/
-
+          /* Attach our global listener to the surface. */
           dfb_surface_attach_global( surface, DFB_WINDOW_SURFACE_LISTENER,
                                      window, &window->surface_reaction );
      }
 
+     /* Finally activate the object. */
      fusion_object_activate( &window->object );
 
      *ret_window = window;

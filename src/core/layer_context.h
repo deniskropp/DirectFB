@@ -61,6 +61,7 @@ DFBResult dfb_layer_context_test_region( CoreLayerContext      *context,
                                          CoreLayerRegionConfig *config );
 
 DFBResult dfb_layer_context_get_primary_region( CoreLayerContext  *context,
+                                                bool               create,
                                                 CoreLayerRegion  **ret_region );
 
 /*

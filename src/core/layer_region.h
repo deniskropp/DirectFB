@@ -56,8 +56,7 @@ FusionObjectPool *dfb_layer_region_pool_create();
 FUSION_OBJECT_METHODS( CoreLayerRegion, dfb_layer_region )
 
 
-DFBResult dfb_layer_region_create       ( CoreLayer            *layer,
-                                          CoreLayerContext     *context,
+DFBResult dfb_layer_region_create       ( CoreLayerContext     *context,
                                           CoreLayerRegion     **ret_region );
 
 DFBResult dfb_layer_region_activate     ( CoreLayerRegion      *region );

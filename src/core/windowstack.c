@@ -116,12 +116,11 @@ dfb_windowstack_create( CoreLayerContext *context )
 
      /* Allocate window stack data (completely shared) */
      stack = (CoreWindowStack*) SHCALLOC( 1, sizeof(CoreWindowStack) );
+     if (!stack)
+          return NULL;
 
      /* Store context which we belong to. */
      stack->context = context;
-
-     /* Store the context's primary region. */
-     stack->region = context->primary;
 
      /* Set default acceleration */
      stack->cursor.numerator   = 2;
@@ -802,8 +801,7 @@ dfb_windowstack_switch_focus( CoreWindowStack *stack, CoreWindow *to )
 
      if (to) {
           if (to->surface && to->surface->palette && !stack->hw_mode) {
-               CoreLayerRegion *region  = stack->region;
-               CoreSurface     *surface = region->surface;
+               CoreSurface *surface = to->primary_region->surface;
 
                if (surface && DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
                     dfb_surface_set_palette (surface, to->surface->palette);
@@ -1296,7 +1294,7 @@ create_cursor_window( CoreWindowStack *stack,
      /* create a super-top-most event-and-focus-less window */
      ret = dfb_window_create( stack, stack->cursor.x, stack->cursor.y,
                               width, height, DWHC_TOPMOST | DWCAPS_ALPHACHANNEL,
-                              DSCAPS_NONE, DSPF_UNKNOWN, NULL, &window );
+                              DSCAPS_NONE, DSPF_UNKNOWN, &window );
      if (ret) {
           ERRORMSG( "DirectFB/Core/layers: "
                     "Failed creating a window for software cursor!\n" );

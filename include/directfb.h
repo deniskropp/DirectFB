@@ -186,7 +186,8 @@ typedef enum {
                             related to IPC resources. */
      DFB_BUFFERTOOLARGE, /* Buffer is too large. */
      DFB_INTERRUPTED,    /* The operation has been interrupted. */
-     DFB_NOCONTEXT       /* No context available. */
+     DFB_NOCONTEXT,      /* No context available. */
+     DFB_TEMPUNAVAIL     /* Temporarily unavailable. */
 } DFBResult;
 
 /*

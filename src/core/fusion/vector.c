@@ -126,8 +126,8 @@ fusion_vector_insert( FusionVector *vector,
           return FUSION_OUTOFSHAREDMEMORY;
 
      /* Move elements from insertion point one up. */
-     memmove( &vector->elements[ index ],
-              &vector->elements[ index + 1 ],
+     memmove( &vector->elements[ index + 1 ],
+              &vector->elements[ index ],
               (vector->count - index) * sizeof(void*) );
 
      /* Insert the element into the vector. */
@@ -149,8 +149,8 @@ fusion_vector_remove( FusionVector *vector,
      DFB_ASSERT( index < vector->count );
 
      /* Move elements after this element one down. */
-     memmove( &vector->elements[ index + 1 ],
-              &vector->elements[ index ],
+     memmove( &vector->elements[ index ],
+              &vector->elements[ index + 1 ],
               (vector->count - index - 1) * sizeof(void*) );
 
      /* Decrease the element counter. */

@@ -70,7 +70,6 @@ typedef struct {
      CoreScreen                      *screen;  /* layer's screen */
      CoreLayer                       *layer;   /* core layer data */
      CoreLayerContext                *context; /* shared or exclusive context */
-     CoreLayerRegion                 *region;  /* primary region (shared ctx) */
      CoreWindowStack                 *stack;   /* stack of shared context */
 } IDirectFBDisplayLayer_data;
 
@@ -80,8 +79,6 @@ static void
 IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
 {
      IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
-
-     dfb_layer_region_unref( data->region );
 
      dfb_layer_context_unref( data->context );
 
@@ -159,7 +156,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
                    "call pass until cooperative level handling is finished" );
      }
 
-     ret = dfb_layer_context_get_primary_region( data->context, &region );
+     ret = dfb_layer_context_get_primary_region( data->context, true, &region );
      if (ret)
           return ret;
 
@@ -691,13 +688,6 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
 
      ret = dfb_layer_get_primary_context( layer, true, &context );
      if (ret) {
-          DFB_DEALLOCATE_INTERFACE( thiz )
-          return ret;
-     }
-
-     ret = dfb_layer_context_get_primary_region( context, &data->region );
-     if (ret) {
-          dfb_layer_context_unref( context );
           DFB_DEALLOCATE_INTERFACE( thiz )
           return ret;
      }

@@ -179,6 +179,9 @@ dfb_layer_create_context( CoreLayer         *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
+     DEBUGMSG( "DirectFB/core/layers: %s (%s)\n",
+               __FUNCTION__, shared->description.name );
+
      /* Create a new context. */
      ret = dfb_layer_context_create( layer, &context );
      if (ret) {
@@ -265,6 +268,10 @@ dfb_layer_get_primary_context( CoreLayer         *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
+     DEBUGMSG( "DirectFB/core/layers: %s (%s, %sactivate) <- active: %d\n",
+               __FUNCTION__, shared->description.name,
+               activate ? "" : "don't ", contexts->active );
+
      /* Check for primary context. */
      if (contexts->primary) {
           /* Increase the context's reference counter. */
@@ -320,6 +327,9 @@ dfb_layer_activate_context( CoreLayer        *layer,
      /* Lock the layer. */
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
+
+     DEBUGMSG( "DirectFB/core/layers: %s (%s, %p)\n",
+               __FUNCTION__, shared->description.name, context );
 
      DFB_ASSERT( fusion_vector_contains( &ctxs->stack, context ) );
 
@@ -397,6 +407,9 @@ dfb_layer_remove_context( CoreLayer        *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
+     DEBUGMSG( "DirectFB/core/layers: %s (%s, %p)\n",
+               __FUNCTION__, shared->description.name, context );
+
      DFB_ASSUME( fusion_vector_contains( &ctxs->stack, context ) );
 
      /* Lookup the context in the context stack. */
@@ -446,6 +459,10 @@ dfb_layer_remove_context( CoreLayer        *layer,
                    dfb_layer_context_activate( ctx ) == DFB_OK)
                     ctxs->active = index;
           }
+     }
+     else if (ctxs->active > index) {
+          /* Adjust index of active context due to the removed context. */
+          ctxs->active--;
      }
 
      /* Unlock the context. */
