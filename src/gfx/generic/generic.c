@@ -2563,10 +2563,12 @@ static void Sacc_toK_Aop_rgb24( GenefxState *gfxs )
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
      __u8              *D = gfxs->Aop;
+     __u8               r = (gfxs->Dkey >> 16);
+     __u8               g = (gfxs->Dkey >>  8) & 0xff;
+     __u8               b = (gfxs->Dkey      ) & 0xff;
 
-     /* FIXME: implement keying */
      while (w--) {
-          if (!(S->a & 0xF000)) {
+          if (!(S->a & 0xF000) && D[0] == b && D[1] == g && D[2] == r) {
                *D++ = (S->b & 0xFF00) ? 0xFF : S->b;
                *D++ = (S->g & 0xFF00) ? 0xFF : S->g;
                *D++ = (S->r & 0xFF00) ? 0xFF : S->r;
