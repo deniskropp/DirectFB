@@ -593,7 +593,7 @@ fusion_ref_init (FusionRef         *ref,
 
      ref->single.refs      = 0;
      ref->single.destroyed = false;
-     ref->single.waiting   = 0;
+     ref->single.locked    = 0;
 
      return DR_OK;
 }
@@ -609,6 +609,8 @@ fusion_ref_up (FusionRef *ref, bool global)
 
      if (ref->single.destroyed)
           ret = DR_DESTROYED;
+     else if (ref->single.locked)
+          ret = DR_LOCKED;
      else
           ref->single.refs++;
 
@@ -635,15 +637,19 @@ fusion_ref_down (FusionRef *ref, bool global)
           return DR_DESTROYED;
      }
 
-     if (! --ref->single.refs && ref->single.call) {
-          FusionCall *call = ref->single.call;
+     if (! --ref->single.refs) {
+          if (ref->single.call) {
+               FusionCall *call = ref->single.call;
 
-          if (call->handler) {
-               int ret;
-               pthread_mutex_unlock (&ref->single.lock);
-               call->handler( 0, ref->single.call_arg, NULL, call->ctx, 0, &ret );
-               return DR_OK;
+               if (call->handler) {
+                    int ret;
+                    pthread_mutex_unlock (&ref->single.lock);
+                    call->handler( 0, ref->single.call_arg, NULL, call->ctx, 0, &ret );
+                    return DR_OK;
+               }
           }
+          else
+               pthread_cond_broadcast (&ref->single.cond);
      }
 
      pthread_mutex_unlock (&ref->single.lock);
@@ -674,23 +680,20 @@ fusion_ref_zero_lock (FusionRef *ref)
 
      pthread_mutex_lock (&ref->single.lock);
 
-     if (ref->single.destroyed)
-          ret = DR_DESTROYED;
-     else if (ref->single.call)
-          ret = DR_ACCESSDENIED;
-     else while (ref->single.refs && !ret) {
-          ref->single.waiting++;
-          pthread_cond_wait (&ref->single.cond, &ref->single.lock);
-          ref->single.waiting--;
-
+     do {
           if (ref->single.destroyed)
                ret = DR_DESTROYED;
-          else if (ref->single.call)
-               ret = DR_ACCESSDENIED;
-     }
+          else if (ref->single.locked)
+               ret = DR_LOCKED;
+          else if (ref->single.refs)
+               pthread_cond_wait (&ref->single.cond, &ref->single.lock);
+          else {
+               ref->single.locked = direct_gettid();
+               break;
+          }
+     } while (ret == DR_OK);
 
-     if (ret != DR_OK)
-          pthread_mutex_unlock (&ref->single.lock);
+     pthread_mutex_unlock (&ref->single.lock);
 
      return ret;
 }
@@ -706,11 +709,14 @@ fusion_ref_zero_trylock (FusionRef *ref)
 
      if (ref->single.destroyed)
           ret = DR_DESTROYED;
+     else if (ref->single.locked)
+          ret = DR_LOCKED;
      else if (ref->single.refs)
           ret = DR_BUSY;
+     else
+          ref->single.locked = direct_gettid();
 
-     if (ret != DR_OK)
-          pthread_mutex_unlock (&ref->single.lock);
+     pthread_mutex_unlock (&ref->single.lock);
 
      return ret;
 }
@@ -718,42 +724,49 @@ fusion_ref_zero_trylock (FusionRef *ref)
 DirectResult
 fusion_ref_unlock (FusionRef *ref)
 {
+     DirectResult ret = DR_OK;
+
      D_ASSERT( ref != NULL );
+
+     pthread_mutex_lock (&ref->single.lock);
+
+     if (ref->single.locked == direct_gettid()) {
+          ref->single.locked = 0;
+
+          pthread_cond_broadcast (&ref->single.cond);
+     }
+     else
+          ret = DR_ACCESSDENIED;
 
      pthread_mutex_unlock (&ref->single.lock);
 
-     return DR_OK;
+     return ret;
 }
 
 DirectResult
 fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 {
+     DirectResult ret = DR_OK;
+
      D_ASSERT( ref != NULL );
      D_ASSERT( call != NULL );
 
      pthread_mutex_lock (&ref->single.lock);
 
-     if (ref->single.destroyed) {
-          pthread_mutex_unlock (&ref->single.lock);
-          return DR_DESTROYED;
+     if (ref->single.destroyed)
+          ret = DR_DESTROYED;
+     else if (!ref->single.refs)
+          ret = DR_BUG;
+     else if (ref->single.call)
+          ret = DR_BUSY;
+     else {
+          ref->single.call     = call;
+          ref->single.call_arg = call_arg;
      }
-
-     if (!ref->single.refs) {
-          pthread_mutex_unlock (&ref->single.lock);
-          return DR_BUG;
-     }
-
-     if (ref->single.call) {
-          pthread_mutex_unlock (&ref->single.lock);
-          return DR_BUSY;
-     }
-
-     ref->single.call     = call;
-     ref->single.call_arg = call_arg;
 
      pthread_mutex_unlock (&ref->single.lock);
 
-     return DR_OK;
+     return ret;
 }
 
 DirectResult
@@ -775,10 +788,9 @@ fusion_ref_destroy (FusionRef *ref)
 
      ref->single.destroyed = true;
 
-     if (ref->single.waiting)
-          pthread_cond_broadcast (&ref->single.cond);
+     pthread_cond_broadcast (&ref->single.cond);
 
-     pthread_mutex_unlock (&ref->single.lock);
+     pthread_mutex_destroy (&ref->single.lock);
      pthread_cond_destroy (&ref->single.cond);
 
      return DR_OK;

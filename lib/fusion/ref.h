@@ -58,7 +58,7 @@ typedef union {
           pthread_cond_t           cond;
           pthread_mutex_t          lock;
           bool                     destroyed;
-          int                      waiting;
+          int                      locked;
 
           FusionCall              *call;
           int                      call_arg;
