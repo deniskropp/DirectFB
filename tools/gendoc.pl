@@ -104,7 +104,8 @@ sub parse_interface (NAME)
    {
       my $interface = shift(@_);
 
-      $comment = "";
+      $headline = "";
+      $detailed = "";
       $section = "";
 
       html_create( INTERFACE, "html/$interface.html",
@@ -136,7 +137,7 @@ sub parse_interface (NAME)
                                   "      <A href=\"${interface}_$1.html\">",
                                          "<B>$1</B></A>\n",
                                   "    </TD><TD valign=top>\n",
-                                  "      $comment\n",
+                                  "      $headline\n",
                                   "    </TD></TR>\n";
 
                   html_create( FUNCTION, "html/${interface}_$1.html",
@@ -182,23 +183,41 @@ sub parse_interface (NAME)
                                  "  </TABLE>\n",
                                  "</P>\n";
 
-                  print FUNCTION "<P>$comment</P>\n";
+                  print FUNCTION "<P>$headline</P><P>$detailed</P>\n";
 
-                  $comment = "";
+                  $headline = "";
+                  $detailed = "";
                   $section = "";
 
                   html_close( FUNCTION );
                }
             elsif ( /^\s*\/\*\s*$/ )
                {
-                  $comment = "";
+                  $headline = "";
+                  $detailed = "";
+
+                  $headline_mode = 1;
 
                   while (<>)
                      {
                         chomp;
                         last if /^\s*\*\/\s*$/;
 
-                        $comment .= " $1" if /^\s*\*?\s*(.+)$/;
+                        if ($headline_mode == 1)
+                           {
+                              if (/^\s*\*?\s*$/)
+                                 {
+                                    $headline_mode = 0;
+                                 }
+                              elsif (/^\s*\*?\s*(.+)$/)
+                                 {
+                                    $headline .= " $1";
+                                 }
+                           }
+                        else
+                           {
+                              $detailed .= " $1" if /^\s*\*?\s*(.+)$/;
+                           }
                      }
                }
          }
@@ -326,7 +345,7 @@ sub parse_struct
                   $entry = $2;
 
                   $type =~ s/\ *$//;
-                  
+
                   if ($types{$type})
                      {
                         $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
@@ -339,7 +358,7 @@ sub parse_struct
                      {
                         $entries_types{$entry} = "$type";
                      }
-                  
+
                   $entries{ $entry } = "";
                }
             # complete one line entry
@@ -348,9 +367,9 @@ sub parse_struct
                   $type = $1;
                   $entry = $2;
                   $text = $3;
-   
+
                   $type =~ s/\ *$//;
-   
+
                   if ($types{$type})
                      {
                         $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
@@ -363,7 +382,7 @@ sub parse_struct
                      {
                         $entries_types{$entry} = "$type";
                      }
-   
+
                   $entries{ $entry } = $text;
                }
             # with comment opening
@@ -372,9 +391,9 @@ sub parse_struct
                   $type = $1;
                   $entry = $2;
                   $text = $3;
-   
+
                   $type =~ s/\ *$//;
-   
+
                   if ($types{$type})
                      {
                         $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
@@ -387,9 +406,9 @@ sub parse_struct
                      {
                         $entries_types{$entry} = "$type";
                      }
-   
+
                   $entries{ $entry } = $text;
-                  
+
                   while (<>)
                      {
                         chomp;
@@ -423,7 +442,7 @@ sub parse_struct
 
             print TYPES "<P>\n",
                         "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#E0E0E0>\n";
-      
+
             foreach $key (sort keys %entries)
                {
                   print TYPES "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",

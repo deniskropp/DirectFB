@@ -419,7 +419,7 @@ extern "C"
           DFDESC_ATTRIBUTES   = 0x00000001,  /* attributes field is valid */
           DFDESC_HEIGHT       = 0x00000002   /* height is specified */
      } DFBFontDescriptionFlags;
-      
+
      /* Pixel format of a surface.
       * Contains information about the format (see following macros).
       */
@@ -442,7 +442,7 @@ extern "C"
                                                 e.g. bitmap text glyphs */
      } DFBSurfacePixelFormat;
 
-     
+
      /*
       * Description of the surface that is to be created.
       */
@@ -535,6 +535,7 @@ extern "C"
 
           /*
            * Puts the interface into the specified cooperative level.
+           *
            * Function fails with DFB_LOCKED if another instance already
            * is in a cooperative level other than DFSCL_NORMAL.
            */
@@ -545,6 +546,7 @@ extern "C"
 
           /*
            * Switch the current video mode (primary layer).
+           *
            * If in shared cooperative level this function sets the resolution
            * of the window that is created implicitly for the primary surface.
            */
@@ -561,6 +563,7 @@ extern "C"
           /*
            * Get a rough description of all drawing/blitting functions
            * along with drawing/blitting flags supported by the hardware.
+           *
            * For more detailed information use
            * IDirectFBSurface->GetAccelerationMask().
            */
@@ -761,6 +764,7 @@ extern "C"
 
           /*
            * Get an interface to layer's surface.
+           *
            * Only available in exclusive mode.
            */
           DFBResult (*GetSurface) (
@@ -804,6 +808,7 @@ extern "C"
 
           /*
            * Set the erase behaviour for windowstack repaints.
+           *
            * Only available in exclusive/administrative mode.
            */
           DFBResult (*SetBackgroundMode) (
@@ -813,6 +818,7 @@ extern "C"
 
           /*
            * Set the background image for the imaged background mode.
+           *
            * Only available in exclusive/administrative mode.
            */
           DFBResult (*SetBackgroundImage) (
@@ -822,6 +828,7 @@ extern "C"
 
           /*
            * Set the color for solid colored background fills.
+           *
            * Only available in exclusive/administrative mode.
            */
           DFBResult (*SetBackgroundColor) (
@@ -850,6 +857,7 @@ extern "C"
 
           /*
            * Move cursor to specified position.
+           *
            * Handles movement like a real one, i.e. generates events.
            */
           DFBResult (*WarpCursor) (
@@ -860,6 +868,7 @@ extern "C"
 
           /*
            * Enable/disable the mouse cursor for this layer.
+           *
            * Only available in exclusive/administrative mode.
            */
           DFBResult (*EnableCursor) (
@@ -999,6 +1008,7 @@ extern "C"
            * Created sub surfaces might be clipped by their parents,
            * this function returns the resulting rectangle relative
            * to this surface.
+           *
            * For non sub surfaces this function returns { 0, 0, width, height }.
            */
           DFBResult (*GetVisibleRectangle) (
@@ -1017,6 +1027,7 @@ extern "C"
           /*
            * Get a mask of drawing functions that are
            * hardware accelerated with the current settings.
+           *
            * If a source surface is specified the mask will
            * also contain accelerated blitting functions.
            * Note that there is no guarantee that these will
@@ -1035,6 +1046,7 @@ extern "C"
 
           /*
            * Lock the surface for the access type specified.
+           *
            * Returns a data pointer and the line pitch of it.
            */
           DFBResult (*Lock) (
@@ -1053,6 +1065,7 @@ extern "C"
 
           /*
            * Flip the two buffers of the surface.
+           *
            * If no region is specified the whole surface is flipped,
            * otherwise blitting is used to update the region.
            * This function fails if the surfaces capabilities don't
@@ -1144,6 +1157,7 @@ extern "C"
 
           /*
            * Blit an area from the source to this surface.
+           *
            * Pass a NULL rectangle to use the whole surface.
            * Source may be the same surface.
            */
@@ -1157,6 +1171,7 @@ extern "C"
 
           /*
            * Blit an area scaled from the source to the destination rectangle.
+           *
            * Pass a NULL rectangle to use the whole surface.
            */
           DFBResult (*StretchBlit) (
@@ -1239,10 +1254,11 @@ extern "C"
 
           /*
            * Draw an UTF-8 string at the specified position with the
-           * given color following the specified flags. Bytes specifies
-           * the number of bytes to take from the string or -1 for the
-           * complete NULL-terminated string. You need to set a font
-           * using the SetFont() method before calling this function.
+           * given color following the specified flags.
+           *
+           * Bytes specifies the number of bytes to take from the string
+           * or -1 for the complete NULL-terminated string. You need to set
+           * a font using the SetFont() method before calling this function.
            */
           DFBResult (*DrawString) (
                IDirectFBSurface         *thiz,
@@ -1257,7 +1273,8 @@ extern "C"
         /** Leightweight helpers **/
 
           /*
-           * Get an interface to an area of this surface.
+           * Get an interface to a sub area of this surface.
+           *
            * No image data is duplicated, this is a clipped graphics within the
            * original surface. This is very helpful for leightweight components
            * in a GUI toolkit.
@@ -1408,6 +1425,7 @@ extern "C"
 
           /*
            * Get a mask of currently pressed buttons.
+           *
            * The first button corrensponds to the right most bit.
            */
           DFBResult (*GetButtons) (
@@ -1438,6 +1456,7 @@ extern "C"
 
           /*
            * Utility function combining two calls to GetAxis().
+           *
            * You may leave one of the x/y arguments NULL.
            */
           DFBResult (*GetXY) (
@@ -1646,6 +1665,7 @@ extern "C"
 
           /*
            * Get an interface to the backing store surface.
+           *
            * This surface has to be flipped to make previous drawing
            * commands visible, i.e. to repaint the windowstack for that region.
            */
@@ -1659,6 +1679,7 @@ extern "C"
 
           /*
            * Set the window's global opacity factor.
+           *
            * Set it to "0" to hide a window.
            * Setting it to "0xFF" makes the window opaque if
            * it has no alpha channel.
@@ -1823,6 +1844,7 @@ extern "C"
 
           /*
            * Get the distance from the baseline to the bottom.
+           *
            * This is a negative value!
            */
           DFBResult (*GetDescender) (
@@ -1853,6 +1875,7 @@ extern "C"
            * Get the logical width of the specified UTF-8 string
            * as if it were drawn with this font. The actual
            * pixel width may slightly extend this value.
+           *
            * Bytes specifies the number of bytes to take from
            * the string or -1 for the complete NULL-terminated
            * string.
@@ -1876,8 +1899,10 @@ extern "C"
 
           /*
            * Get a surface description that best matches the image
-           * contained in the file. For opaque image formats the
-           * pixel format of the primary layer is used.
+           * contained in the file.
+           *
+           * For opaque image formats the pixel format of the
+           * primary layer is used.
            */
           DFBResult (*GetSurfaceDescription) (
                IDirectFBImageProvider   *thiz,
@@ -1926,7 +1951,9 @@ extern "C"
           /*
            * Play the video rendering it into the specified rectangle
            * of the destination surface.
-           * Optionally a callback can be registered.
+           *
+           * Optionally a callback can be registered that is
+           * called for each frame.
            */
           DFBResult (*PlayTo) (
                IDirectFBVideoProvider   *thiz,
