@@ -39,7 +39,8 @@ stret_test_SOURCES = stret_test.c
 stret_test_LDADD = \
 	libuniquewm.la					\
 	$(top_builddir)/lib/fusion/libfusion.la		\
-	$(top_builddir)/lib/direct/libdirect.la
+	$(top_builddir)/lib/direct/libdirect.la		\
+	$(top_builddir)/src/libdirectfb.la
 
 
 # Set module installation directory
@@ -84,7 +85,7 @@ libuniquewm_la_SOURCES = \
 	stret_iteration.c	\
 	uniquewm.c		\
 	window.c
-	
+
 libuniquewm_la_LIBADD = \
 	classes/libunique_classes.la			\
 	$(top_builddir)/lib/direct/libdirect.la		\
@@ -96,7 +97,7 @@ libuniquewm_la_LDFLAGS = \
 	-release $(LT_RELEASE)					\
 	$(DFB_LDFLAGS)
 
-                        
+
 include $(top_srcdir)/rules/libobject.make
 
 #
