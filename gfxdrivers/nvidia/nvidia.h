@@ -478,7 +478,8 @@ typedef struct
 typedef struct {
      CoreSurface           *destination;
      CoreSurface           *source;
-     
+
+     __u8                   alpha;
      __u32                  color;
      __u32                  drawfx;
      __u32                  blitfx;

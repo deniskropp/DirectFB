@@ -351,8 +351,7 @@ static void nvSetState( void *drv, void *dev,
                     break;
           }
  
-          /* set Beta (alpha) value */
-          PGRAPH[0x608/4] = state->color.a << 23;
+          nvdev->alpha = state->color.a;
      }
 
      if (state->modified & SMF_DRAWING_FLAGS) {
@@ -368,6 +367,10 @@ static void nvSetState( void *drv, void *dev,
           else
                nvdev->blitfx = 0x00000000;
      }
+
+     /* set alpha value if using transparency */
+     if (nvdev->drawfx || nvdev->blitfx)
+          PGRAPH[0x608/4] = nvdev->alpha << 23;
 
      state->modified = 0;
 }
