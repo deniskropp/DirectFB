@@ -32,6 +32,8 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <media/idirectfbimageprovider.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -43,7 +45,7 @@
 #include <misc/util.h>
 
 static DFBResult
-Probe( const char *head, const char *filename );
+Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
@@ -135,9 +137,9 @@ IDirectFBImageProvider_GIF_GetImageDescription( IDirectFBImageProvider *thiz,
 
 
 static DFBResult
-Probe( const char *head, const char *filename )
+Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
-     if (strncmp (head, "GIF8", 4) == 0)
+     if (strncmp (ctx->header, "GIF8", 4) == 0)
           return DFB_OK;
 
      return DFB_UNSUPPORTED;

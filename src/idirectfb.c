@@ -56,6 +56,9 @@
 #include "display/idirectfbdisplaylayer.h"
 #include "input/idirectfbinputbuffer.h"
 #include "input/idirectfbinputdevice.h"
+#include "media/idirectfbfont.h"
+#include "media/idirectfbimageprovider.h"
+#include "media/idirectfbvideoprovider.h"
 
 #include "idirectfb.h"
 
@@ -105,10 +108,6 @@ typedef struct {
      DFBInputDeviceCapabilities   caps;
 } CreateEventBuffer_Context;
 
-typedef struct {
-     char        header[32];
-     const char *filename;
-} CreateImageProvider_Context;
 
 static DFBEnumerationResult EnumDisplayLayers_Callback( DisplayLayer *layer,
                                                         void         *ctx );
@@ -579,70 +578,52 @@ IDirectFB_CreateEventBuffer( IDirectFB                   *thiz,
      return DFB_OK;
 }
 
-static int
-image_probe( DFBInterfaceFuncs *funcs, void *ctx )
-{
-     CreateImageProvider_Context *context = (CreateImageProvider_Context*) ctx;
-
-     if (funcs->Probe( context->header, context->filename ) == DFB_OK)
-          return 1;
-
-     return 0;
-}
-
 static DFBResult
 IDirectFB_CreateImageProvider( IDirectFB               *thiz,
                                const char              *filename,
                                IDirectFBImageProvider **interface )
 {
-     int                          fd;
-     DFBResult                    ret;
-     CreateImageProvider_Context  ctx;
-     DFBInterfaceFuncs           *funcs = NULL;
+     int                                  fd;
+     DFBResult                            ret;
+     DFBInterfaceFuncs                   *funcs = NULL;
+     IDirectFBImageProvider              *imageprovider;
+     IDirectFBImageProvider_ProbeContext  ctx;
 
      INTERFACE_GET_DATA(IDirectFB)
 
+     /* Check arguments */
      if (!filename || !interface)
           return DFB_INVARG;
 
-     /*  read the first 32 bytes  */
-     fd = open( filename, O_RDONLY | O_NONBLOCK );
-     if (fd == -1)
-          return errno2dfb( errno );
+     /* Fill out probe context */
+     ctx.filename = filename;
 
+     /*  read the first 32 bytes  */
+     if ((fd = open( filename, O_RDONLY | O_NONBLOCK )) == -1)
+          return errno2dfb( errno );
      if (read( fd, ctx.header, 32 ) < 32) {
           close( fd );
           return DFB_IO;
      }
      close( fd );
-
-     ctx.filename = filename;
-
-     ret = DFBGetInterface( &funcs, "IDirectFBImageProvider", NULL,
-                            image_probe, (void*)&ctx );
+     
+     /* Find a suitable implemenation */
+     ret = DFBGetInterface( &funcs,
+                            "IDirectFBImageProvider", NULL,
+                            DFBProbeInterface, &ctx );
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBImageProvider );
+     DFB_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
 
-     ret = funcs->Construct( *interface, filename );
+     /* Construct the interface */
+     ret = funcs->Construct( imageprovider, filename );
+     if (ret)
+          return ret;
+        
+     *interface = imageprovider;
 
-     if (ret) {
-        free( *interface );
-        *interface = NULL;
-     }
-
-     return ret;
-}
-
-
-static int
-video_probe( DFBInterfaceFuncs *funcs, void *ctx )
-{
-     if (funcs->Probe( (char*)ctx ) == DFB_OK)
-          return 1;
-
-     return 0;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -650,33 +631,40 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
                                const char              *filename,
                                IDirectFBVideoProvider **interface )
 {
-     DFBResult          ret;
-     DFBInterfaceFuncs *funcs = NULL;
+     DFBResult                            ret;
+     DFBInterfaceFuncs                   *funcs = NULL;
+     IDirectFBVideoProvider              *videoprovider;
+     IDirectFBVideoProvider_ProbeContext  ctx;
 
      INTERFACE_GET_DATA(IDirectFB)
 
+     /* Check arguments */
      if (!interface || !filename)
           return DFB_INVARG;
 
      if (access( filename, R_OK ) != 0)
           return errno2dfb( errno );
 
+     /* Fill out probe context */
+     ctx.filename = filename;
+     
+     /* Find a suitable implemenation */
      ret = DFBGetInterface( &funcs,
                             "IDirectFBVideoProvider", NULL,
-                            video_probe, (void*)filename );
+                            DFBProbeInterface, &ctx );
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBVideoProvider );
+     DFB_ALLOCATE_INTERFACE( videoprovider, IDirectFBVideoProvider );
 
-     ret = funcs->Construct( *interface, filename );
+     /* Construct the interface */
+     ret = funcs->Construct( videoprovider, filename );
+     if (ret)
+          return ret;
 
-     if (ret) {
-        free(*interface);
-        *interface = NULL;
-     }
+     *interface = videoprovider;
 
-     return ret;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -685,47 +673,45 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
                       DFBFontDescription  *desc,
                       IDirectFBFont      **interface )
 {
-     DFBResult          ret;
-     DFBInterfaceFuncs *funcs = NULL;
+     DFBResult                   ret;
+     DFBInterfaceFuncs          *funcs = NULL;
+     IDirectFBFont              *font;
+     IDirectFBFont_ProbeContext  ctx;
 
      INTERFACE_GET_DATA(IDirectFB)
 
+     /* Check arguments */
      if (!interface)
           return DFB_INVARG;
 
-     /* TODO: FIXME: Probe Font Loaders! */
      if (filename) {
           if (!desc)
                return DFB_INVARG;
-
+     
           if (access( filename, R_OK ) != 0)
                return errno2dfb( errno );
-
-          /* the only supported real font format yet. */
-          ret = DFBGetInterface( &funcs,
-                                 "IDirectFBFont", "FT2",
-                                 NULL, NULL );
-     }
-     else {
-          /* use the default bitmap font */
-          ret = DFBGetInterface( &funcs,
-                                 "IDirectFBFont", "Default",
-                                 NULL, NULL );
      }
 
+     /* Fill out probe context */
+     ctx.filename = filename;
+     
+     /* Find a suitable implemenation */
+     ret = DFBGetInterface( &funcs,
+                            "IDirectFBFont", NULL,
+                            DFBProbeInterface, &ctx );
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBFont );
+     DFB_ALLOCATE_INTERFACE( font, IDirectFBFont );
 
-     ret = funcs->Construct( *interface, filename, desc );
+     /* Construct the interface */
+     ret = funcs->Construct( font, filename, desc );
+     if (ret)
+          return ret;
 
-     if (ret) {
-          free(*interface);
-          *interface = NULL;
-     }
-
-     return ret;
+     *interface = font;
+     
+     return DFB_OK;
 }
 
 static DFBResult

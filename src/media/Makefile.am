@@ -10,7 +10,9 @@ CFLAGS = $(DFB_CFLAGS)
 internalincludedir = $(INTERNALINCLUDEDIR)/media
 
 internalinclude_HEADERS = \
-	idirectfbfont.h
+	idirectfbfont.h			\
+	idirectfbimageprovider.h	\
+	idirectfbvideoprovider.h
 
 
 noinst_LTLIBRARIES = libdirectfb_media.la

@@ -68,6 +68,11 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs )
      fusion_list_prepend( &implementations, &impl->link );
 }
 
+int DFBProbeInterface( DFBInterfaceFuncs *funcs, void *ctx )
+{
+     return (funcs->Probe( ctx ) == DFB_OK);
+}
+
 DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                            char *type,
                            char *implementation,

@@ -47,7 +47,7 @@
 #include <misc/mem.h>
 
 static DFBResult
-Probe( void *data );
+Probe( IDirectFBFont_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBFont      *thiz,
@@ -63,8 +63,12 @@ DFB_INTERFACE_IMPLEMENTATION( IDirectFBFont, Default )
 
 
 static DFBResult
-Probe( void *data )
+Probe( IDirectFBFont_ProbeContext *ctx )
 {
+     /* default font is created with a NULL filename */
+     if (ctx->filename)
+          return DFB_UNSUPPORTED;
+
      return DFB_OK;
 }
 

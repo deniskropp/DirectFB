@@ -33,6 +33,8 @@ extern "C" {
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <media/idirectfbvideoprovider.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -46,7 +48,7 @@ extern "C" {
 #include <misc/util.h>
 
 static DFBResult
-Probe( const char *filename );
+Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
@@ -387,12 +389,12 @@ static void AviFile_DrawCallback( const CImage *image, void *p )
 extern "C" {
 
 static DFBResult
-Probe( const char *filename )
+Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-     if (strstr( filename, ".avi" ) ||
-         strstr( filename, ".AVI" ) ||
-         strstr( filename, ".asf" ) ||
-         strstr( filename, ".ASF" ))
+     if (strstr( ctx->filename, ".avi" ) ||
+         strstr( ctx->filename, ".AVI" ) ||
+         strstr( ctx->filename, ".asf" ) ||
+         strstr( ctx->filename, ".ASF" ))
           return DFB_OK;
 
      return DFB_UNSUPPORTED;

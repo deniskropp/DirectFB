@@ -21,36 +21,14 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __IDIRECTFBFONT_H__
-#define __IDIRECTFBFONT_H__
-
-#include <directfb.h>
-
-#include <core/coretypes.h>
+#ifndef __IDIRECTFBVIDEOPROVIDER_H__
+#define __IDIRECTFBVIDEOPROVIDER_H__
 
 /*
  * probing context
  */
 typedef struct {
      const char *filename;
-} IDirectFBFont_ProbeContext;
-
-/*
- * private data struct of IDirectFBFont
- */
-typedef struct {
-     int        ref;   /* reference counter    */
-     CoreFont  *font;  /* pointer to core font */
-} IDirectFBFont_data;
-
-/*
- * common code to construct the interface (internal usage only)
- */
-DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font );
-
-/*
- * deinitialize font and its surfaces
- */
-void IDirectFBFont_Destruct( IDirectFBFont *thiz );
+} IDirectFBVideoProvider_ProbeContext;
 
 #endif

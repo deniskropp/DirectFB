@@ -40,6 +40,8 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <media/idirectfbvideoprovider.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -56,7 +58,7 @@
 #include <misc/mem.h>
 
 static DFBResult
-Probe( const char *filename );
+Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
@@ -331,12 +333,12 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
 /* exported symbols */
 
 static DFBResult
-Probe( const char *filename )
+Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-     if (strncmp( filename, "/dev/video", 10 ) == 0)
+     if (strncmp( ctx->filename, "/dev/video", 10 ) == 0)
           return DFB_OK;
 
-     if (strncmp( filename, "/dev/v4l/video", 14 ) == 0)
+     if (strncmp( ctx->filename, "/dev/v4l/video", 14 ) == 0)
           return DFB_OK;
 
      return DFB_UNSUPPORTED;

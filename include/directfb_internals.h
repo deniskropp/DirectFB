@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@convergence.de> and
@@ -31,16 +31,34 @@ typedef struct {
      const char * (*GetType)();
      const char * (*GetImplementation)();
      DFBResult    (*Allocate)( void **interface );
-     DFBResult    (*Probe)( void *data, ... );
+     DFBResult    (*Probe)( void *ctx, ... );
      DFBResult    (*Construct)( void *interface, ... );
 } DFBInterfaceFuncs;
 
+/*
+ * Loads an interface of a specific 'type'.
+ * Optionally an 'implementation' can be chosen.
+ * A 'probe' function can be used to check available implementations.
+ *
+ * After success 'funcs' is set.
+ */
 DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                            char *type,
                            char *implementation,
                            int (*probe)( DFBInterfaceFuncs *impl, void *ctx ),
                            void *probe_ctx );
 
+/*
+ * Default probe function. Calls "funcs->Probe(ctx)".
+ * Can be used as the 'probe' argument to DFBGetInterface.
+ * 'probe_ctx' should then be set to the interface specific probe context.
+ */
+int DFBProbeInterface( DFBInterfaceFuncs *funcs, void *ctx );
+
+/*
+ * Called by implementation modules during 'dlopen'ing or at startup if linked
+ * into the executable.
+ */
 void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
 
 #define DFB_ALLOCATE_INTERFACE(p,i)     \

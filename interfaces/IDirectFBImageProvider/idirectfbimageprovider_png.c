@@ -37,6 +37,8 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <media/idirectfbimageprovider.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -46,7 +48,7 @@
 #include <misc/gfx_util.h>
 
 static DFBResult
-Probe( const char *head, const char *filename );
+Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
@@ -89,9 +91,9 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
 
 
 static DFBResult
-Probe( const char *head, const char *filename )
+Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
-     if (strncmp (head, "\211PNG\r\n\032\n", 8) == 0)
+     if (strncmp (ctx->header, "\211PNG\r\n\032\n", 8) == 0)
           return DFB_OK;
 
      return DFB_UNSUPPORTED;

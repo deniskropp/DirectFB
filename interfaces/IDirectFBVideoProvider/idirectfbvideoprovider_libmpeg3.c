@@ -41,6 +41,8 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <media/idirectfbvideoprovider.h>
+
 #include <misc/util.h>
 #include <misc/mem.h>
 
@@ -60,7 +62,7 @@
 #include <libmpeg3.h>
 
 static DFBResult
-Probe( const char *filename );
+Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
@@ -957,14 +959,14 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment(
 /* exported symbols */
 
 static DFBResult
-Probe( const char *filename )
+Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
      mpeg3_t *q;
 
-     if (!mpeg3_check_sig( (char *) filename ))
+     if (!mpeg3_check_sig( (char *) ctx->filename ))
           return DFB_UNSUPPORTED;
 
-     q = mpeg3_open( (char*) filename );
+     q = mpeg3_open( (char*) ctx->filename );
      if (!q)
           return DFB_UNSUPPORTED;
 

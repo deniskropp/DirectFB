@@ -37,6 +37,8 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <media/idirectfbvideoprovider.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -51,7 +53,7 @@
 #include <misc/mem.h>
 
 static DFBResult
-Probe( const char *filename );
+Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
@@ -402,10 +404,10 @@ static DFBResult IDirectFBVideoProvider_Swf_SetColorAdjustment(
 /* exported symbols */
 
 static DFBResult
-Probe( const char *filename )
+Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-    if (strstr( filename, ".swf" ) ||
-        strstr( filename, ".SWF" ))
+    if (strstr( ctx->filename, ".swf" ) ||
+        strstr( ctx->filename, ".SWF" ))
       return DFB_OK;
      
     return DFB_UNSUPPORTED;
