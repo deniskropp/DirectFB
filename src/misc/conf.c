@@ -76,6 +76,8 @@ static const char *config_usage =
 #endif
     "  argb-font                      "
     "Load glyphs into ARGB surfaces\n"
+    "  dont-catch=<num>[[,<num>]...]  "
+    "Don't catch these signals\n"
     "  no-sighandler                  "
     "Disable signal handler\n"
     "  no-deinit-check                "
