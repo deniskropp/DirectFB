@@ -196,6 +196,7 @@ besTestRegion( CoreLayer                  *layer,
           case DSPF_UYVY:
           case DSPF_I420:
           case DSPF_YV12:
+          case DSPF_NV12:
                /* these formats are not supported by G200 */
                if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG200)
                     break;
@@ -493,7 +494,11 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      switch (surface->format) {
           case DSPF_I420:
           case DSPF_YV12:
-               mbes->regs.besGLOBCTL |= BESPROCAMP | BES3PLANE;
+               mbes->regs.besGLOBCTL |= BES3PLANE;
+               /* fall through */
+
+          case DSPF_NV12:
+               mbes->regs.besGLOBCTL |= BESPROCAMP;
                mbes->regs.besCTL     |= BESHFEN | BESVFEN | BESCUPS | BES420PL;
                break;
 
@@ -534,6 +539,14 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                            front_buffer->video.pitch;
 
      switch (surface->format) {
+          case DSPF_NV12:
+               mbes->regs.besA1CORG  = front_buffer->video.offset +
+                                       surface->height * front_buffer->video.pitch +
+                                       pitch * (source.y/2 + (croptop_uv >> 16));
+               mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
+                                       front_buffer->video.pitch;
+               break;
+
           case DSPF_I420:
                mbes->regs.besA1CORG  = front_buffer->video.offset +
                                        surface->height * front_buffer->video.pitch +
