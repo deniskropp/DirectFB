@@ -128,8 +128,7 @@ ov0InitLayer( CoreLayer                  *layer,
      description->caps = DLCAPS_SURFACE       | DLCAPS_SCREEN_LOCATION |
                          DLCAPS_BRIGHTNESS    | DLCAPS_CONTRAST        |
                          DLCAPS_SATURATION    | DLCAPS_HUE             |
-                         DLCAPS_SRC_COLORKEY  | DLCAPS_DST_COLORKEY    |
-                         DLCAPS_DEINTERLACING;
+                         DLCAPS_DST_COLORKEY;
 
      snprintf( description->name,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Radeon200 Overlay" );
