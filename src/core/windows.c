@@ -1621,6 +1621,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                                   ! (stack->focused_window->options & DWOP_KEEP_STACKING))
                               {
                                    dfb_window_lowertobottom( stack->focused_window );
+                                   switch_focus( stack, window_at_pointer( stack, -1, -1 ) );
                               }
                               stack_unlock( stack );
                               return RS_OK;
