@@ -173,13 +173,27 @@ crtc2WaitVSync( CoreScreen *screen,
      return DFB_OK;
 }
 
+static DFBResult
+crtc2GetScreenSize( CoreScreen *screen,
+                    void       *driver_data,
+                    void       *screen_data,
+                    int        *ret_width,
+                    int        *ret_height )
+{
+     *ret_width  = 720;
+     *ret_height = dfb_config->matrox_ntsc ? 480 : 576;
+
+     return DFB_OK;
+}
+
 ScreenFuncs matroxCrtc2ScreenFuncs = {
      ScreenDataSize:     crtc2ScreenDataSize,
      InitScreen:         crtc2InitScreen,
      InitEncoder:        crtc2InitEncoder,
      InitOutput:         crtc2InitOutput,
      SetPowerMode:       crtc2SetPowerMode,
-     WaitVSync:          crtc2WaitVSync
+     WaitVSync:          crtc2WaitVSync,
+     GetScreenSize:      crtc2GetScreenSize
 };
 
 /******************************************************************************/
