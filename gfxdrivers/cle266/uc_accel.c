@@ -75,7 +75,7 @@ inline void uc_draw_hv_line(struct uc_fifo* fifo,
 
 bool uc_fill_rectangle(void* drv, void* dev, DFBRectangle* r)
 {
-    UC_ACCEL_BEGIN();
+    UC_ACCEL_BEGIN()
 
     //printf("%s: r = {%d, %d, %d, %d}, c = 0x%08x\n", __PRETTY_FUNCTION__,
     //  r->x, r->y, r->w, r->h, ucdev->color);
@@ -98,7 +98,7 @@ bool uc_fill_rectangle(void* drv, void* dev, DFBRectangle* r)
 
 bool uc_draw_rectangle(void* drv, void* dev, DFBRectangle* r)
 {
-    UC_ACCEL_BEGIN();
+    UC_ACCEL_BEGIN()
 
     //printf("%s: r = {%d, %d, %d, %d}, c = 0x%08x\n", __PRETTY_FUNCTION__,
     //  r->x, r->y, r->w, r->h, ucdev->color);
@@ -122,7 +122,7 @@ bool uc_draw_rectangle(void* drv, void* dev, DFBRectangle* r)
 
 bool uc_draw_line(void* drv, void* dev, DFBRegion* line)
 {
-    UC_ACCEL_BEGIN();
+    UC_ACCEL_BEGIN()
 
     //printf("%s: l = (%d, %d) - (%d, %d), c = 0x%08x\n", __PRETTY_FUNCTION__,
     //  line->x1, line->y1, line->x2, line->y2, ucdev->color);
@@ -177,7 +177,7 @@ bool uc_draw_line(void* drv, void* dev, DFBRegion* line)
 
 bool uc_blit(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
 {
-    UC_ACCEL_BEGIN();
+    UC_ACCEL_BEGIN()
 
     //printf("%s: r = (%d, %d, %d, %d) -> (%d, %d)\n", __PRETTY_FUNCTION__,
     //  rect->x, rect->y, rect->h, rect->w, dx, dy);
@@ -220,17 +220,17 @@ bool uc_blit(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
 
 bool uc_fill_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
 {
-    UC_ACCEL_BEGIN();
+    UC_ACCEL_BEGIN()
 
     //printf("%s: r = {%d, %d, %d, %d}, c = 0x%08x\n", __PRETTY_FUNCTION__,
     //  r->x, r->y, r->w, r->h, ucdev->color);
-
-    if (r->w == 0 || r->h == 0) return true;
 
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_Cd;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HVCycle_AFP |
         HC_HVCycle_AA | HC_HVCycle_NewB | HC_HVCycle_CC | HC_HShading_FlatA;
     int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
+
+    if (r->w == 0 || r->h == 0) return true;
 
     UC_FIFO_PREPARE(fifo, 18);
 
@@ -252,7 +252,7 @@ bool uc_fill_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
 
 bool uc_draw_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
 {
-    UC_ACCEL_BEGIN();
+    UC_ACCEL_BEGIN()
 
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_Cd;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Line | HC_HVCycle_AFP | HC_HShading_FlatA;
@@ -278,7 +278,7 @@ bool uc_draw_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
 
 bool uc_draw_line_3d(void* drv, void* dev, DFBRegion* line)
 {
-    UC_ACCEL_BEGIN();
+    UC_ACCEL_BEGIN()
 
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_Cd;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Line | HC_HVCycle_Full | HC_HShading_FlatA;
@@ -302,7 +302,7 @@ bool uc_draw_line_3d(void* drv, void* dev, DFBRegion* line)
 
 bool uc_fill_triangle(void* drv, void* dev, DFBTriangle* tri)
 {
-    UC_ACCEL_BEGIN();
+    UC_ACCEL_BEGIN()
 
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_Cd;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HVCycle_Full | HC_HShading_FlatA;
@@ -336,7 +336,7 @@ bool uc_blit_3d(void* drv, void* dev,
 bool uc_stretch_blit(void* drv, void* dev,
                      DFBRectangle* sr, DFBRectangle* dr)
 {
-    UC_ACCEL_BEGIN();
+    UC_ACCEL_BEGIN()
 
     float w = ucdev->hwtex.l2w;
     float h = ucdev->hwtex.l2h;
@@ -348,8 +348,6 @@ bool uc_stretch_blit(void* drv, void* dev,
 
     __u32 c = 0xffffffff; // Not really needed.
 
-    UC_FIFO_PREPARE(fifo, 100);
-
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_W
         | HC_HVPMSK_Cd | HC_HVPMSK_S | HC_HVPMSK_T;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HVCycle_AFP |
@@ -358,6 +356,8 @@ bool uc_stretch_blit(void* drv, void* dev,
 
     int regEnable = HC_HenCW_MASK;
     regEnable |= HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK;
+
+    UC_FIFO_PREPARE(fifo, 100);
 
     UC_FIFO_ADD_HDR(fifo, HC_ParaType_CmdVdata << 16);
     UC_FIFO_ADD(fifo, cmdB);
