@@ -68,6 +68,9 @@ typedef struct {
 static void
 IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 {
+     IDirectFBSurface_Layer_data *data = (IDirectFBSurface_Layer_data*) thiz->priv;
+
+     dfb_layer_region_unref( data->region );
      IDirectFBSurface_Destruct( thiz );
 }
 
