@@ -62,6 +62,8 @@
 
 #include "idirectfb.h"
 
+#include "gfx/convert.h"
+
 #include "misc/conf.h"
 #include "misc/mem.h"
 #include "misc/util.h"
@@ -235,7 +237,7 @@ IDirectFB_EnumVideoModes( IDirectFB            *thiz,
      m = dfb_fbdev_modes();
      while (m) {
           if (callbackfunc( m->xres, m->yres,
-                            m->bpp, callbackdata ) == DFENUM_CANCEL)
+                            0, callbackdata ) == DFENUM_CANCEL)
                break;
 
           m = m->next;
@@ -265,33 +267,14 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                DFBResult ret;
                DFBDisplayLayerConfig config;
 
-               switch (bpp) {
-                    case 8:
-                         config.pixelformat = DSPF_RGB332;
-                         break;
-                    case 15:
-                         config.pixelformat = DSPF_RGB15;
-                         break;
-                    case 16:
-                         config.pixelformat = DSPF_RGB16;
-                         break;
-                    case 24:
-                         config.pixelformat = DSPF_RGB24;
-                         break;
-                    case 32:
-                         config.pixelformat = DSPF_RGB32;
-                         break;
-                    default:
-                         return DFB_INVARG;
-               }
+               config.width       = width;
+               config.height      = height;
+               config.pixelformat = dfb_pixelformat_for_depth( bpp );
 
-               config.width      = width;
-               config.height     = height;
-               config.buffermode = DLBM_FRONTONLY;
-               config.options    = 0;
+               if (config.pixelformat == DSPF_UNKNOWN)
+                    return DFB_INVARG;
 
-               config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | /*DLCONF_BUFFERMODE |*/
-                              DLCONF_PIXELFORMAT | DLCONF_OPTIONS;
+               config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT;
 
                ret = dfb_layer_set_configuration( data->layer, &config );
                if (ret)
@@ -376,8 +359,9 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     or should we return an error? */
           switch (data->level) {
                case DFSCL_NORMAL: {
-                    int         x, y;
-                    CoreWindow *window;
+                    int                    x, y;
+                    CoreWindow            *window;
+                    DFBWindowCapabilities  window_caps = DWCAPS_NONE;
 
                     width  = data->primary.width;
                     height = data->primary.height;
@@ -387,26 +371,14 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
                     if ((desc->flags & DSDESC_PIXELFORMAT)
                         && desc->pixelformat == DSPF_ARGB)
-                    {
-                         ret = dfb_layer_create_window( data->layer,
-                                                        x, y,
-                                                        data->primary.width,
-                                                        data->primary.height,
-                                                        DWCAPS_ALPHACHANNEL |
-                                                        DWCAPS_DOUBLEBUFFER,
-                                                        DSPF_UNKNOWN,
-                                                        &window );
-                    }
-                    else
-                         ret = dfb_layer_create_window( data->layer,
-                                                        x, y,
-                                                        data->primary.width,
-                                                        data->primary.height,
-                                                        (caps & DSCAPS_FLIPPING) ?
-                                                        DWCAPS_DOUBLEBUFFER : 0,
-                                                        format,
-                                                        &window );
+                         window_caps |= DWCAPS_ALPHACHANNEL;
 
+                    if (caps & DSCAPS_FLIPPING)
+                         window_caps |= DWCAPS_DOUBLEBUFFER;
+
+                    ret = dfb_layer_create_window( data->layer, x, y,
+                                                   width, height, window_caps,
+                                                   format, &window );
                     if (ret)
                          return ret;
 
@@ -422,8 +394,17 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                }
                case DFSCL_FULLSCREEN:
                case DFSCL_EXCLUSIVE:
-                    DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+                    if (format != config.pixelformat) {
+                         config.pixelformat = format;
 
+                         ret = dfb_layer_set_configuration( data->layer,
+                                                            &config );
+                         if (ret)
+                              return ret;
+                    }
+
+                    DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+                    
                     return IDirectFBSurface_Layer_Construct( *interface, NULL,
                                                              NULL, data->layer,
                                                              caps );

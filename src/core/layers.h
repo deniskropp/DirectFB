@@ -125,6 +125,10 @@ typedef struct {
                                       void                       *layer_data,
                                       DFBColorAdjustment         *adj );
 
+     DFBResult (*SetPalette)        ( DisplayLayer               *layer,
+                                      void                       *driver_data,
+                                      void                       *layer_data,
+                                      CorePalette                *palette );
      
      /*
       * optional to override default surface (re)allocation

@@ -131,6 +131,8 @@ static DFBResult reallocate_surface  ( DisplayLayer          *layer,
                                        DFBDisplayLayerConfig *config );
 static DFBResult deallocate_surface  ( DisplayLayer          *layer );
 
+static ReactionResult layer_surface_listener   ( const void *msg_data,
+                                                 void       *ctx );
 static ReactionResult background_image_listener( const void *msg_data,
                                                  void       *ctx );
 
@@ -544,6 +546,8 @@ dfb_layer_enable( DisplayLayer *layer )
      }
 
      shared->enabled = true;
+
+     reactor_attach( shared->surface->reactor, layer_surface_listener, layer );
      
      /* create a window stack on layers with a surface */
      if (shared->layer_info.caps & DLCAPS_SURFACE) {
@@ -571,6 +575,8 @@ dfb_layer_disable( DisplayLayer *layer )
           return ret;
 
      shared->enabled = false;
+     
+     reactor_detach( shared->surface->reactor, layer_surface_listener, layer );
      
      /* destroy the window stack if there is one */
      if (shared->stack) {
@@ -1475,6 +1481,29 @@ background_image_listener( const void *msg_data,
 
      if (notification->flags & (CSNF_FLIP | CSNF_SIZEFORMAT))
           dfb_windowstack_repaint_all( stack );
+
+     return RS_OK;
+}
+
+/*
+ * listen to the layer's surface
+ */
+static ReactionResult
+layer_surface_listener( const void *msg_data,
+                        void       *ctx )
+{
+     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
+     DisplayLayer            *layer        = (DisplayLayer*) ctx;
+     CoreSurface             *surface      = notification->surface;
+     DisplayLayerFuncs       *funcs        = layer->funcs;
+
+     if (notification->flags & CSNF_DESTROY)
+          return RS_REMOVE;
+
+     if (notification->flags & CSNF_PALETTE  &&  surface->palette)
+          if (funcs->SetPalette)
+               funcs->SetPalette( layer, layer->driver_data,
+                                  layer->layer_data, surface->palette );
 
      return RS_OK;
 }

@@ -38,7 +38,6 @@
 typedef struct _VideoMode {
      int xres;
      int yres;
-     int bpp;
 
      int pixclock;
      int left_margin;
@@ -56,8 +55,6 @@ typedef struct _VideoMode {
 
      int sync_on_green;
      int external_sync;
-
-     DFBSurfacePixelFormat format; /* to be evaluated after mode switch */
 
      struct _VideoMode *next;
 } VideoMode;

@@ -118,7 +118,7 @@ static ReactionResult destination_listener( const void *msg_data,
      }
 
      if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
-                                CSNF_VIDEO | CSNF_FLIP))
+                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
           state->modified |= SMF_DESTINATION;
 
      return RS_OK;
@@ -137,7 +137,7 @@ static ReactionResult source_listener( const void *msg_data, void *ctx )
      }
 
      if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
-                                CSNF_VIDEO | CSNF_FLIP))
+                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
           state->modified |= SMF_SOURCE;
 
      return RS_OK;

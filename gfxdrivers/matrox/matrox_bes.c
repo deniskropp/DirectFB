@@ -381,7 +381,7 @@ besSetDstColorKey( DisplayLayer *layer,
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
      volatile __u8    *mmio = mdrv->mmio_base;
      
-     switch (Sfbdev->current_mode->format) {
+     switch (dfb_primary_layer_pixelformat()) {
           case DSPF_RGB15:
                r >>= 3;
                g >>= 3;

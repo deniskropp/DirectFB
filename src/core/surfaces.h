@@ -46,8 +46,9 @@ typedef enum {
      CSNF_FLIP           = 0x00000010,  /* surface buffer pointer swapped */
      CSNF_SET_EVEN       = 0x00000020,  /* set the even field of an interlaced
                                            surface buffer active */
-     CSNF_SET_ODD        = 0x00000040   /* set the odd field of an interlaced
+     CSNF_SET_ODD        = 0x00000040,  /* set the odd field of an interlaced
                                            surface buffer active */
+     CSNF_PALETTE        = 0x00000080   /* surface palette has been altered */
 } CoreSurfaceNotificationFlags;
 
 typedef struct {

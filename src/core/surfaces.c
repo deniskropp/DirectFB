@@ -539,10 +539,7 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
           case DSPF_UYVY:
           case DSPF_YUY2:
           case DSPF_YV12:
-               break;
-          
           case DSPF_LUT8:
-               surface->palette = dfb_palette_allocate( 256 );
                break;
 
           default:
@@ -558,6 +555,8 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
      skirmish_init( &surface->front_lock );
      skirmish_init( &surface->back_lock );
 
+     surface->palette = dfb_palette_allocate( 256 );
+     
      surface->reactor = reactor_new(sizeof(CoreSurfaceNotification));
 
      return DFB_OK;

@@ -135,6 +135,8 @@ IDirectFBPalette_SetEntries( IDirectFBPalette *thiz,
           return DFB_INVARG;
 
      memcpy( palette->entries + offset, entries, num_entries * sizeof(DFBColor));
+
+     dfb_surface_notify_listeners( surface, CSNF_PALETTE );
      
      return DFB_OK;
 }
