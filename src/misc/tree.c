@@ -3,7 +3,7 @@
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@convergence.de>,
-              Andreas Hundt <andi@convergence.de> and 
+              Andreas Hundt <andi@convergence.de> and
               Sven Neumann <sven@convergence.de>
 
    Balanced binary tree ported from glib-2.0.
@@ -36,6 +36,9 @@ typedef struct _Node Node;
 struct _Tree
 {
      Node            *root;
+
+     void            *fast_keys[128];
+
      pthread_mutex_t  mutex;
 };
 
@@ -48,15 +51,17 @@ struct _Node
      void *value;
 };
 
-static Node * tree_node_new          (void  *key,
+static Node * tree_node_new          (Tree  *tree,
+                                      void  *key,
                                       void  *value);
-static void   tree_node_destroy      (Node  *node);
+static void   tree_node_destroy      (Tree *tree,
+                                      Node *node);
 static Node * tree_node_insert       (Tree  *tree,
                                       Node  *node,
                                       void  *key,
                                       void  *value,
                                       int   *inserted);
-static Node * tree_node_lookup       (Node  *node, 
+static Node * tree_node_lookup       (Node  *node,
                                       void  *key);
 static Node * tree_node_balance      (Node  *node);
 static Node * tree_node_rotate_left  (Node  *node);
@@ -67,11 +72,10 @@ Tree * tree_new (void)
 {
      Tree *tree;
 
-     tree = malloc (sizeof (Tree));
-     if (tree) {
-          tree->root = NULL;
+     tree = calloc (1, sizeof (Tree));
+     if (tree)
           pthread_mutex_init (&tree->mutex, NULL);
-     }
+
      return tree;
 }
 
@@ -88,7 +92,7 @@ void tree_unlock (Tree *tree)
 void tree_destroy (Tree *tree)
 {
      pthread_mutex_destroy (&tree->mutex);
-     tree_node_destroy (tree->root);
+     tree_node_destroy (tree, tree->root);
      free (tree);
 }
 
@@ -100,7 +104,7 @@ void tree_insert (Tree *tree,
 
      tree->root = tree_node_insert (tree,
                                     tree->root,
-                                    key, value, 
+                                    key, value,
                                     &inserted);
 }
 
@@ -109,12 +113,16 @@ void * tree_lookup (Tree *tree,
 {
      Node *node;
 
+     if ((unsigned int) key < 128)
+          return tree->fast_keys[(unsigned int) key];
+
      node = tree_node_lookup (tree->root, key);
 
      return (node ? node->value : NULL);
 }
 
-static Node * tree_node_new (void *key,
+static Node * tree_node_new (Tree *tree,
+                             void *key,
                              void *value)
 {
      Node *node;
@@ -127,14 +135,21 @@ static Node * tree_node_new (void *key,
      node->key     = key;
      node->value   = value;
 
+     if ((unsigned int) key < 128)
+          tree->fast_keys[(unsigned int) key] = value;
+
      return node;
 }
 
-static void tree_node_destroy (Node *node)
+static void tree_node_destroy (Tree *tree,
+                               Node *node)
 {
      if (node) {
-          tree_node_destroy (node->left);
-          tree_node_destroy (node->right);
+          tree_node_destroy (tree, node->left);
+          tree_node_destroy (tree, node->right);
+
+          if ((unsigned int) node->key < 128)
+               tree->fast_keys[(unsigned int) node->key] = NULL;
 
           if (node->value)
                free (node->value);
@@ -153,19 +168,19 @@ static Node * tree_node_insert (Tree *tree,
 
      if (!node) {
           *inserted = 1;
-          return tree_node_new (key, value);
+          return tree_node_new (tree, key, value);
      }
-  
+
      cmp = key - node->key;
      if (cmp == 0) {
           node->value = value;
           return node;
      }
-  
+
      if (cmp < 0) {
           if (node->left) {
                old_balance = node->left->balance;
-	       node->left = tree_node_insert (tree, node->left,
+           node->left = tree_node_insert (tree, node->left,
                                               key, value, inserted);
 
                if ((old_balance != node->left->balance) && node->left->balance)
@@ -173,7 +188,7 @@ static Node * tree_node_insert (Tree *tree,
           }
           else {
                *inserted = 1;
-               node->left = tree_node_new (key, value);
+               node->left = tree_node_new (tree, key, value);
                node->balance -= 1;
           }
      }
@@ -182,13 +197,13 @@ static Node * tree_node_insert (Tree *tree,
                old_balance = node->right->balance;
                node->right = tree_node_insert (tree, node->right,
                                                key, value, inserted);
-               
+
                if ((old_balance != node->right->balance) && node->right->balance)
                     node->balance += 1;
           }
           else {
                *inserted = 1;
-               node->right = tree_node_new (key, value);
+               node->right = tree_node_new (tree, key, value);
                node->balance += 1;
           }
      }
@@ -199,7 +214,7 @@ static Node * tree_node_insert (Tree *tree,
      return node;
 }
 
-static Node * tree_node_lookup (Node *node, 
+static Node * tree_node_lookup (Node *node,
                                 void *key)
 {
      int cmp;

@@ -54,7 +54,7 @@ CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
                                                  void *ctx )
 {
      GfxDriver *driver = (GfxDriver*)ctx;
-     
+
      driver->Probe  = dlsym( handle, "driver_probe" );
      if (driver->Probe) {
           if ( driver->Probe( display->fd, card )) {
@@ -64,7 +64,7 @@ CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
 
                if (driver->Init  &&  driver->DeInit)
                     return MODULE_LOADED_STOP;
-                    
+
                DLERRORMSG( "DirectFB/core/gfxcards: "
                            "Probe succeeded but Init/DeInit "
                            "symbols not found in `%s'!\n", name );
@@ -86,7 +86,7 @@ GfxDriver* gfxcard_find_driver()
           return NULL;
 
      driver = calloc( 1, sizeof(GfxDriver) );
-     
+
      if (core_load_modules( driver_dir,
                             gfxcard_driver_handle_func, (void*)driver ))
      {
@@ -113,7 +113,7 @@ static void gfxcard_deinit()
 
      if (card->info.driver)
           free( card->info.driver );
-     
+
      free( card );
      card = NULL;
 }
@@ -210,7 +210,7 @@ DFBResult gfxcard_init_layers()
 {
      if (card->info.driver && card->info.driver->InitLayers)
           card->info.driver->InitLayers();
-     
+
      return DFB_OK;
 }
 
@@ -281,7 +281,7 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           BUG("state check: no source");
           return 0;
      }
-     
+
      if (accel & 0xFFFF0000)
           lock_flags = state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
                                                 DSBLIT_BLEND_COLORALPHA   |
@@ -300,7 +300,7 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                surface_unlock( state->destination, 0 );
                return 0;
           }
-          
+
           source_locked = 1;
      }
      else
@@ -510,17 +510,17 @@ void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 
 #define FONT_BLITTINGFLAGS   (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)
 
-void gfxcard_drawstring( const __u8 *text, int bytes, 
+void gfxcard_drawstring( const __u8 *text, int bytes,
                          int x, int y,
                          CoreFontData *font, CardState *state )
 {
      CoreGlyphData *data;
      CoreSurface   *surface;
      DFBRectangle   rect;
-     
+
      unichar prev = 0;
      unichar current;
-     
+
      int hw_clipping = (card->caps.flags & CCF_CLIPPING);
      int kerning;
      int offset;
@@ -536,19 +536,23 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
           return;
 
      state_set_source( state, NULL );
-     
+
      if (state->blittingflags != FONT_BLITTINGFLAGS) {
           restore_blittingflags = 1;
           original_blittingflags = state->blittingflags;
           state->blittingflags = FONT_BLITTINGFLAGS;
           state->modified |= SMF_BLITTING_FLAGS;
      }
-     
-     for (offset = 0; offset < bytes; offset += utf8_skip[text[offset]]) {
-          current = utf8_get_char (&text[offset]);
+
+     for (offset = 0; offset < bytes; offset += (text[offset] & 0x80) ?
+                                                 utf8_skip[text[offset]] : 1) {
+          current = text[offset];
+
+          if (current & 0x80)
+               current = utf8_get_char (&text[offset]);
 
           if (fonts_get_glyph_data (font, current, &data) == DFB_OK) {
-               if (prev && font->GetKerning && 
+               if (prev && font->GetKerning &&
                    (* font->GetKerning) (font, prev, current, &kerning) == DFB_OK) {
                     x += kerning;
                }
@@ -560,13 +564,13 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                rect.y = 0;
                rect.w = data->width;
                rect.h = data->height;
-         
+
                if (rect.w > 0) {
                     int xx = x + data->left;
                     int yy = y + data->top;
-           
+
                     surface = font->surfaces[data->start / font->row_width];
-           
+
                     if (state->source != surface) {
                          switch (blit) {
                          case 1:
@@ -605,7 +609,7 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                          default:
                               break;
                          }
-                    } 
+                    }
                }
                x += data->advance;
                prev = current;
