@@ -1569,9 +1569,9 @@ handle_enter_leave_focus( CoreWindowStack *stack )
                }
 
                /* switch focus and send enter event */
+               switch_focus( stack, after );
+               
                if (after) {
-                    switch_focus( stack, after );
-                    
                     we.type = DWET_ENTER;
                     we.x    = we.cx - after->x;
                     we.y    = we.cy - after->y;
