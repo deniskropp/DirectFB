@@ -1966,7 +1966,7 @@ typedef enum {
      DSECONF_SCANMODE     = 0x00000010, /* Select interlaced or progressive output. */
      DSECONF_TEST_COLOR   = 0x00000020, /* Set color for DSETP_SINGLE. */
 
-     DSECONF_ALL          = 0x0000001F
+     DSECONF_ALL          = 0x0000003F
 } DFBScreenEncoderConfigFlags;
 
 /*
