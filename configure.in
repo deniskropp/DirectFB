@@ -267,9 +267,10 @@ dnl Dynamic Linker
 DYNLIB=""
 if test "$need_libdl" = "yes"; then
   if test "$enable_shared" = "yes"; then
-    AC_CHECK_LIB(dl, dlopen, DYNLIB="-ldl",
+    AC_CHECK_LIB(dl, dlopen, ,
       AC_MSG_ERROR([
 *** DirectFB requires libdl.]))
+    DYNLIB="-ldl"
   fi
 fi
 
