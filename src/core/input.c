@@ -159,8 +159,9 @@ dfb_input_initialize()
 #endif
 
 #ifdef DFB_DYNAMIC_LINKING
-     dfb_core_load_modules( MODULEDIR"/inputdrivers",
-                            input_driver_handle_func, NULL );
+     if (!input_drivers)
+          dfb_core_load_modules( MODULEDIR"/inputdrivers",
+                                 input_driver_handle_func, NULL );
 #endif
 
      init_devices();
@@ -219,8 +220,8 @@ dfb_input_shutdown( bool emergency )
 
           driver->funcs->CloseDevice( d->driver_data );
           
-          if (!--driver->nr_devices)
-               DFBFREE( driver );
+/*          if (!--driver->nr_devices)
+               DFBFREE( driver );*/
 
           reactor_free( shared->reactor );
 

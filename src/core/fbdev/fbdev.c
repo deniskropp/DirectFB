@@ -480,6 +480,7 @@ DFBResult dfb_fbdev_shutdown( bool emergency )
      
      close( dfb_fbdev->fd );
 
+     shfree( dfb_fbdev->shared );
      DFBFREE( dfb_fbdev );
      dfb_fbdev = NULL;
 

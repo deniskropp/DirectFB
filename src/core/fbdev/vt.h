@@ -56,9 +56,7 @@ struct _VirtualTerminal {
                                       is disabled by "--no-vt-switch" */
 };
 
-extern VirtualTerminal   *dfb_vt;
-
-#define Sdfb_vt (dfb_vt->shared)
+extern VirtualTerminal *dfb_vt;
 
 /*
  * allocates and switches to a new virtual terminal

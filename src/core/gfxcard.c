@@ -1256,8 +1256,9 @@ static GraphicsDriver* dfb_gfxcard_find_driver()
           return NULL;
 
 #ifdef DFB_DYNAMIC_LINKING
-     dfb_core_load_modules( MODULEDIR"/gfxdrivers",
-                            graphics_driver_handle_func, NULL );
+     if (!graphics_drivers)
+          dfb_core_load_modules( MODULEDIR"/gfxdrivers",
+                                 graphics_driver_handle_func, NULL );
 #endif
 
      fusion_list_foreach( link, graphics_drivers ) {
