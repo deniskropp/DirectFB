@@ -366,8 +366,6 @@ int main( int argc, char *argv[] )
 
      bgsurface->Release( bgsurface );
 
-     sleep(2);
-
      window_surface2->Release( window_surface2 );
      window_surface1->Release( window_surface1 );
      window2->Release( window2 );

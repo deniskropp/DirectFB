@@ -53,8 +53,6 @@ static int src_pitch = 0;
 static int dst_bpp   = 0;
 static int src_bpp   = 0;
 
-static DFBRegion *clip = NULL;
-
 DFBColor color;
 
 /*
@@ -1709,8 +1707,6 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                ONCE("");
      }
 
-     clip = &state->clip;
-
      switch (accel) {
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWRECTANGLE:
@@ -2074,8 +2070,6 @@ void gDrawLine( DFBRegion *line )
 
 void gBlit( DFBRectangle *rect, int dx, int dy )
 {
-     clip_blit( clip, rect, &dx, &dy );
-
      if (dx > rect->x)
           /* we must blit from right to left */
           Ostep = -1;
@@ -2116,12 +2110,6 @@ void gStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
 {
      int f;
      int i = 0;
-
-     if (srect->w < 1  ||  srect->h < 1  ||  drect->w < 1  ||  drect->h < 1)
-          return;
-
-     /*  URGENT: write proper clipping code for stretched blits  */
-     /*     clip_blit( clip, srect, &drect->x, &drect->y );      */
 
      Aop = dst_org  +  drect->y * dst_pitch  +  drect->x * dst_bpp;
      Bop = src_org  +  srect->y * src_pitch  +  srect->x * src_bpp;
