@@ -205,6 +205,11 @@ static DFBResult load_image (const char            *filename,
                free (desc->preallocated[0].data);
                desc->preallocated[0].data = NULL;
           }
+
+          /* data might have been clobbered,
+             set it to NULL and leak instead of crashing */
+          data = NULL;
+
           goto cleanup;
      }
 
@@ -355,7 +360,8 @@ static DFBResult load_image (const char            *filename,
                          span_argb_to_a8 ((__u32 *) s, (__u8 *) d, width);
                     break;
                default:
-                    fprintf (stderr, "Sorry, unsupported format conversion.\n");
+                    fprintf (stderr,
+                             "Sorry, unsupported format conversion.\n");
                     goto cleanup;
           }
 
