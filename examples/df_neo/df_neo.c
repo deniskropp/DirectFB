@@ -322,6 +322,9 @@ main (int    argc,
                   colorize    = TRUE;
                   break;
                 case DIKC_ESCAPE:
+                case DIKC_Q:
+                case DIKC_BACK:
+                case DIKC_STOP:
                   quit = TRUE;
                   break;
                 default:

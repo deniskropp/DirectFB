@@ -223,9 +223,18 @@ static void showMessage( const char *msg )
      int err;
 
      while (key_events->GetEvent( key_events, &ev ) == DFB_OK) {
-          if (ev.type == DIET_KEYPRESS  &&  ev.keycode == DIKC_ESCAPE) {
-               shutdown();
-               exit( 42 );
+          if (ev.type == DIET_KEYPRESS) {
+               switch (ev.keycode) {
+                    case DIKC_ESCAPE:
+                    case DIKC_Q:
+                    case DIKC_BACK:
+                    case DIKC_STOP:
+                         shutdown();
+                         exit( 42 );
+                         break;
+                    default:
+                         break;
+               }
           }
      }
 

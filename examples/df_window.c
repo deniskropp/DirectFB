@@ -56,26 +56,21 @@ int main( int argc, char *argv[] )
      IDirectFBSurface       *window_surface1;
      IDirectFBSurface       *window_surface2;
 
-     IDirectFBInputDevice   *keyboard;
-
      IDirectFBFont          *font;
 
      DFBDisplayLayerConfig  layer_config;
      DFBCardCapabilities    caps;
-     DFBInputDeviceKeyState quit = DIKS_UP;
      IDirectFBWindow*       upper;
 
      int fontheight;
      int err;
+     int quit = 0;
 
      
      DFBCHECK(DirectFBInit( &argc, &argv ));
-
      DFBCHECK(DirectFBCreate( &dfb ));
 
      dfb->GetCardCapabilities( dfb, &caps );
-
-     DFBCHECK(dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard));
 
      dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer );
 
@@ -225,7 +220,7 @@ int main( int argc, char *argv[] )
      window1->RaiseToTop( window1 );
      upper = window1;
 
-     while (quit == DIKS_UP) {
+     while (!quit) {
 
           static IDirectFBWindow* active = NULL;
           static IDirectFBWindow* window = NULL;
@@ -236,13 +231,11 @@ int main( int argc, char *argv[] )
           static int endy = 0;
           DFBWindowEvent evt;
 
-          keyboard->GetKeyState( keyboard, DIKC_ESCAPE, &quit );
-
           if (!window)
                window = active ? active : window1;
 
-          while (window->GetEvent( window, &evt ) == DFB_OK)
-          {
+          while (window->GetEvent( window, &evt ) == DFB_OK) {
+
                if (active) {
                     switch (evt.type) {
 
@@ -309,9 +302,28 @@ int main( int argc, char *argv[] )
                else if (evt.type == DWET_GOTFOCUS)
                     active = window;
 
-               if (evt.type == DWET_MOTION) {
+               switch (evt.type) {
+
+               case DWET_MOTION:
                     endx = evt.cx;
                     endy = evt.cy;
+                    break;
+
+               case DWET_KEYDOWN:
+                    switch (evt.keycode) {
+                    case DIKC_ESCAPE:
+                    case DIKC_Q:
+                    case DIKC_BACK:
+                    case DIKC_STOP:
+                         quit = 1;
+                         break;
+                    default:
+                         break;
+                    }
+                    break;
+
+               default:
+                    break;
                }
           }
 

@@ -580,6 +580,9 @@ int main( int argc, char *argv[] )
                if (evt.type == DIET_KEYPRESS) {
                     switch (evt.keycode) {
                          case DIKC_ESCAPE:
+                         case DIKC_Q:
+                         case DIKC_BACK:
+                         case DIKC_STOP:
                               /* quit main loop */
                               quit = 1;
                               break;
@@ -604,7 +607,8 @@ int main( int argc, char *argv[] )
                               /*toggle clipping*/
                               clipping=!clipping;
                               if (clipping) {
-                                   DFBRegion clipregion = { 100,100, xres-100, yres-100 };
+                                   DFBRegion clipregion = 
+                                       { 100,100, xres-100, yres-100 };
                                    primary->SetClip( primary, &clipregion );
                               }
                               else
