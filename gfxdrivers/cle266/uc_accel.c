@@ -239,9 +239,9 @@ bool uc_fill_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
     UC_FIFO_ADD(fifo, cmdA);
 
     UC_FIFO_ADD_XYC(fifo, r->x, r->y, ucdev->color3d);
-    UC_FIFO_ADD_XYC(fifo, r->x + r->w - 1, r->y, ucdev->color3d);
-    UC_FIFO_ADD_XYC(fifo, r->x + r->w - 1, r->y + r->h - 1, 0);
-    UC_FIFO_ADD_XYC(fifo, r->x, r->y + r->h - 1, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, r->x + r->w, r->y, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, r->x + r->w, r->y + r->h, 0);
+    UC_FIFO_ADD_XYC(fifo, r->x, r->y + r->h, ucdev->color3d);
 
     UC_FIFO_ADD(fifo, cmdA_End);
     UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.
