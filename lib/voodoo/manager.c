@@ -1107,7 +1107,7 @@ manager_input_loop( DirectThread *thread, void *arg )
           pf.fd     = manager->fd;
           pf.events = POLLIN;
 
-          switch (poll( &pf, 1, 1000 )) {
+          switch (poll( &pf, 1, 100 )) {
                case -1:
                     if (errno != EINTR) {
                          D_PERROR( "Voodoo/Input: Could not poll() the socket!\n" );
@@ -1171,7 +1171,7 @@ manager_output_loop( DirectThread *thread, void *arg )
           pf.fd     = manager->fd;
           pf.events = POLLOUT;
 
-          switch (poll( &pf, 1, 1000 )) {
+          switch (poll( &pf, 1, 100 )) {
                case -1:
                     if (errno != EINTR) {
                          D_PERROR( "Voodoo/Output: Could not poll() the socket!\n" );

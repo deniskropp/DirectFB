@@ -249,9 +249,8 @@ voodoo_server_run( VoodooServer *server )
 
                     D_FREE( connection );
 
-                    if (!server->connections) {
+                    if (!server->connections)
                          return DFB_OK;
-                    }
                }
           }
 

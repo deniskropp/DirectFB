@@ -51,10 +51,4 @@ DirectResult voodoo_manager_destroy     ( VoodooManager        *manager );
 bool         voodoo_manager_is_closed   ( const VoodooManager  *manager );
 
 
-
-DirectResult voodoo_puppetmaster_create ( int                   socket_fd,
-                                          VoodooClient         *client, /* Either client ... */
-                                          VoodooServer         *server, /* ... or server is valid. */
-                                          VoodooManager       **ret_manager );
-
 #endif
