@@ -658,7 +658,7 @@ dfb_layer_disable( DisplayLayer *layer )
           
           /* detach listener from background surface and unlink it */
           if (stack->bg.image) {
-          //     dfb_surface_detach( stack->bg.image, &shared->bgimage_reaction );
+               dfb_surface_detach_global( stack->bg.image, &shared->bgimage_reaction );
                dfb_surface_unlink( stack->bg.image );
           }
      }
