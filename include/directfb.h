@@ -216,6 +216,18 @@ typedef struct {
 } DFBRectangle;
 
 /*
+ * A rectangle specified by normalized coordinates.
+ *
+ * E.g. using 0.0, 0.0, 1.0, 1.0 would specify the whole screen.
+ */
+typedef struct {
+     float          x;   /* normalized X coordinate */
+     float          y;   /* normalized Y coordinate */
+     float          w;   /* normalized width */
+     float          h;   /* normalized height */
+} DFBLocation;
+
+/*
  * A region specified by two points.
  *
  * The defined region includes both endpoints.
@@ -249,6 +261,33 @@ typedef struct {
      __u8           b;   /* blue channel */
 } DFBColor;
 
+/*
+ * Macro to compare two rectangles.
+ */
+#define DFB_RECTANGLE_EQUAL(a,b)  ((a).x == (b).x &&  \
+                                   (a).y == (b).y &&  \
+                                   (a).w == (b).w &&  \
+                                   (a).h == (b).h)
+
+/*
+ * Macro to compare two locations.
+ */
+#define DFB_LOCATION_EQUAL(a,b)  ((a).x == (b).x &&  \
+                                  (a).y == (b).y &&  \
+                                  (a).w == (b).w &&  \
+                                  (a).h == (b).h)
+
+/*
+ * Macro to compare two regions.
+ */
+#define DFB_REGION_EQUAL(a,b)  ((a).x1 == (b).x1 &&  \
+                                (a).y1 == (b).y1 &&  \
+                                (a).x2 == (b).x2 &&  \
+                                (a).y2 == (b).y2)
+
+/*
+ * Macro to compare two colors.
+ */
 #define DFB_COLOR_EQUAL(x,y)  ((x).a == (y).a &&  \
                                (x).r == (y).r &&  \
                                (x).g == (y).g &&  \

@@ -497,3 +497,23 @@ dfb_primary_layer_pixelformat()
      return format;
 }
 
+void
+dfb_screen_rectangle( const DFBLocation *location,
+                      DFBRectangle      *rect )
+{
+     VideoMode *mode = dfb_system_current_mode();
+
+     if (mode) {
+          rect->x = location->x * mode->xres;
+          rect->y = location->y * mode->yres;
+          rect->w = location->w * mode->xres;
+          rect->h = location->h * mode->yres;
+     }
+     else {
+          /* This hack will be removed upon introduction of screens. */
+          rect->x = location->x * 720;
+          rect->y = location->y * 576;
+          rect->w = location->w * 720;
+          rect->h = location->h * 576;
+     }
+}

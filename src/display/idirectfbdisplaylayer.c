@@ -280,6 +280,8 @@ IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
                                          float                  width,
                                          float                  height )
 {
+     DFBLocation location = { x, y, width, height };
+
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
      if (width <= 0 || height <= 0)
@@ -288,8 +290,7 @@ IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_screenlocation( data->context,
-                                                  x, y, width, height );
+     return dfb_layer_context_set_screenlocation( data->context, &location );
 }
 
 static DFBResult

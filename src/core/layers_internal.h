@@ -97,11 +97,7 @@ struct __DFB_CoreLayerContext {
      __u8                     opacity;       /* if enabled this value controls
                                                 blending of the whole layer */
 
-     /* these are normalized values for stretching layers in hardware */
-     struct {
-          float               x, y;
-          float               w, h;
-     } screen;
+     DFBLocation              screen;        /* normalized screen coordinates */
 
      DFBColorAdjustment       adjustment;
 

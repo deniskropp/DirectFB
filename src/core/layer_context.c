@@ -44,7 +44,7 @@
 #include <misc/util.h>
 
 
-static void      init_region_config  ( DFBDisplayLayerConfig      *init,
+static void      init_region_config  ( CoreLayerContext           *context,
                                        CoreLayerRegionConfig      *config );
 
 static void      build_updated_config( CoreLayerRegion            *region,
@@ -141,6 +141,12 @@ dfb_layer_context_create( CoreLayer         *layer,
      context->layer_id = shared->layer_id;
      context->config   = shared->default_config;
 
+     /* Initialize screen location. */
+     context->screen.x = 0.0f;
+     context->screen.y = 0.0f;
+     context->screen.w = 1.0f;
+     context->screen.h = 1.0f;
+
      /* Activate the object. */
      fusion_object_activate( &context->object );
 
@@ -148,7 +154,7 @@ dfb_layer_context_create( CoreLayer         *layer,
      dfb_layer_region_create( layer, context, &context->primary );
 
      /* Set the primary region's default configuration. */
-     init_region_config( &context->config, &config );
+     init_region_config( context, &config );
      dfb_layer_region_set_configuration( context->primary, &config, CLRCF_ALL );
 
      /* Create the window stack. */
@@ -603,46 +609,33 @@ dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
 
 DFBResult
 dfb_layer_context_set_screenlocation( CoreLayerContext *context,
-                                      float x, float y,
-                                      float width, float height )
+                                      DFBLocation      *location )
 {
-     DFBResult              ret;
-     VideoMode             *mode;
-     CoreLayerRegionConfig  config;
+     DFBResult             ret;
+     CoreLayerRegionConfig config;
 
      DFB_ASSERT( context != NULL );
      DFB_ASSERT( context->primary != NULL );
+     DFB_ASSERT( location != NULL );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
-     if (context->screen.x == x     && context->screen.y == y &&
-         context->screen.w == width && context->screen.h == height)
-     {
+     /* Do nothing if the location didn't change. */
+     if (DFB_LOCATION_EQUAL( context->screen, *location )) {
           dfb_layer_context_unlock( context );
           return DFB_OK;
      }
 
-     mode = dfb_system_current_mode();
-     if (!mode) {
-          dfb_layer_context_unlock( context );
-          return DFB_UNIMPLEMENTED;
-     }
+     /* Calculate new absolute screen coordinates. */
+     dfb_screen_rectangle( &context->screen, &config.dest );
 
-     config.dest.x = x * mode->xres;
-     config.dest.y = y * mode->yres;
-     config.dest.w = width * mode->xres;
-     config.dest.h = height * mode->yres;
-
+     /* Set the modified configuration. */
      ret = dfb_layer_region_set_configuration( context->primary,
                                                &config, CLRCF_DEST );
-     if (ret == DFB_OK) {
-          context->screen.x = x;
-          context->screen.y = y;
-          context->screen.w = width;
-          context->screen.h = height;
-     }
+     if (ret == DFB_OK)
+          context->screen = *location;
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -901,30 +894,27 @@ dfb_layer_context_unlock( CoreLayerContext *context )
  * region config construction
  */
 static void
-init_region_config( DFBDisplayLayerConfig *init,
+init_region_config( CoreLayerContext      *context,
                     CoreLayerRegionConfig *config )
 {
-     DFB_ASSERT( init   != NULL );
-     DFB_ASSERT( config != NULL );
+     DFB_ASSERT( context != NULL );
+     DFB_ASSERT( config  != NULL );
 
      /* Initialize values from layer config. */
-     config->width      = init->width;
-     config->height     = init->height;
-     config->format     = init->pixelformat;
-     config->buffermode = init->buffermode;
-     config->options    = init->options;
+     config->width      = context->config.width;
+     config->height     = context->config.height;
+     config->format     = context->config.pixelformat;
+     config->buffermode = context->config.buffermode;
+     config->options    = context->config.options;
 
      /* Initialize source rectangle. */
-     config->source.x = 0;
-     config->source.y = 0;
-     config->source.w = config->width;
-     config->source.h = config->height;
+     config->source.x   = 0;
+     config->source.y   = 0;
+     config->source.w   = config->width;
+     config->source.h   = config->height;
 
-     /* FIXME */
-     config->dest.x = 0;
-     config->dest.y = 0;
-     config->dest.w = config->width;
-     config->dest.h = config->height;
+     /* Initialize screen rectangle. */
+     dfb_screen_rectangle( &context->screen, &config->dest );
 
      /* Set default opacity. */
      config->opacity = 0xff;

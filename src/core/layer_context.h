@@ -90,8 +90,7 @@ DFBResult dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
                                               __u8 r, __u8 g, __u8 b );
 
 DFBResult dfb_layer_context_set_screenlocation( CoreLayerContext *context,
-                                                float x,     float y,
-                                                float width, float height );
+                                                DFBLocation      *location );
 
 DFBResult dfb_layer_context_set_opacity (CoreLayerContext *context, __u8 opacity);
 

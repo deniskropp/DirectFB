@@ -567,7 +567,7 @@ dfb_windowstack_set_background_color( CoreWindowStack *stack,
           return DFB_FUSION;
 
      /* do nothing if color didn't change */
-     if (!dfb_colors_equal( &stack->bg.color, color )) {
+     if (!DFB_COLOR_EQUAL( stack->bg.color, *color )) {
           /* set new color */
           stack->bg.color = *color;
 
