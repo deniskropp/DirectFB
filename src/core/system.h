@@ -39,6 +39,7 @@
 typedef enum {
      CORE_ANY,
      CORE_FBDEV,
+     CORE_OSX,
      CORE_SDL
 } CoreSystemType;
 

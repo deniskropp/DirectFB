@@ -80,6 +80,23 @@ AC_SUBST(MAN2HTML)
 AM_CONDITIONAL(HAVE_MAN2HTML, test "$MAN2HTML" != "no")
 
 
+dnl Test for OSX
+AC_ARG_ENABLE(osx,
+  [  --enable-osx            build with linux osx support
+[default=auto]],,
+  enable_osx=yes)
+
+if test "$enable_osx" = "yes"; then
+  AC_CHECK_HEADER(Carbon/Carbon.h, osx_found=yes, osx_found=no)
+  if test "$osx_found" = no; then
+    enable_osx=no
+    AC_MSG_WARN([
+*** no Carbon/Carbon.h found -- building without OSX support.])
+  fi
+fi
+
+AM_CONDITIONAL(OSX_CORE, test "$enable_osx" = "yes")
+
 dnl Test for Linux frame buffer device
 AC_ARG_ENABLE(fbdev,
   [  --enable-fbdev            build with linux fbdev support [default=auto]],,
@@ -416,7 +433,9 @@ if test "$enable_sdl" = "yes"; then
     SDL_CFLAGS=`$SDL_CONFIG --cflags`
     SDL_LIBS=`$SDL_CONFIG --libs`
     if test "$need_sdlhack" = "yes"; then
-      OSX_LIBS="-L/sw/lib/ -lSDLmain -lSDL -framework Cocoa"
+      if test "$enable_osx" = "no"; then
+        OSX_LIBS="-L/sw/lib/ -lSDLmain -lSDL -framework Cocoa"
+      fi
     fi
   fi
 fi
@@ -1116,6 +1135,7 @@ src/windows/Makefile
 
 systems/Makefile
 systems/fbdev/Makefile
+systems/osx/Makefile
 systems/sdl/Makefile
 
 wm/Makefile
@@ -1197,6 +1217,7 @@ Misc options:
 
 Building Core Systems:
   Linux FBDev support       $enable_fbdev
+  OSX support               $enable_osx
   SDL support               $enable_sdl
 
 Building Tools              $with_tools

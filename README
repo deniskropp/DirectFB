@@ -21,15 +21,17 @@ Supported Operating Systems
       - NetBSD  (tested on NetBSD 1.6)
       - OpenBSD (tested on OpenBSD 3.2)
            (If you have problems, try ./configure --disable-mmx)
-
-   Support for the following operating systems are in progress, but
-   still have problems:
-
-      - Mac OS X (tested on Mac OS X 10.3.4, problems with SDL input)
-
+      - Mac OS X (tested on Mac OS X 10.3.5, only works with
+                  major workarounds, see README.OSX and consider using the
+                  native osx system)
+   
    Please note that SDL support is experimental and incomplete. It is
    intended for developers to allow development of DirectFB applications
    in various environments.
+
+   Native (non SDL) support for the following operating systems is in progress:
+
+   - Mac OS X (tested on Mac OS X 10.3.5)
 
    We do not have the resources to ensure that every release of
    DirectFB works on all supported platforms. If you are a user of one
