@@ -15,9 +15,10 @@
 
 // Forward declaration
 static DFBResult
-uc_ovl_disable(CoreLayer *layer,
-               void      *driver_data,
-               void      *layer_data);
+uc_ovl_remove(CoreLayer *layer,
+              void      *driver_data,
+              void      *layer_data,
+              void      *region_data);
 
 
 static int uc_ovl_datasize()
@@ -72,7 +73,7 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     ucovl->v1.opacity = 255;
     ucovl->v1.level = 1;
 
-    uc_ovl_disable(layer, driver_data, layer_data);
+    uc_ovl_remove(layer, driver_data, layer_data, NULL);
 
     return DFB_OK;
 }
@@ -115,9 +116,10 @@ uc_ovl_set_region( CoreLayer                  *layer,
 
 
 static DFBResult
-uc_ovl_disable(CoreLayer *layer,
-               void      *driver_data,
-               void      *layer_data)
+uc_ovl_remove(CoreLayer *layer,
+              void      *driver_data,
+              void      *layer_data,
+              void      *region_data)
 {
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
     __u8* vio = ucovl->hwregs;
@@ -278,6 +280,7 @@ DisplayLayerFuncs ucOverlayFuncs = {
     LayerDataSize:      uc_ovl_datasize,
     InitLayer:          uc_ovl_init_layer,
     SetRegion:          uc_ovl_set_region,
+    RemoveRegion:       uc_ovl_remove,
     TestRegion:         uc_ovl_test_region,
     FlipRegion:         uc_ovl_flip_region,
     WaitVSync:          uc_ovl_wait_vsync,
