@@ -1,11 +1,16 @@
 0.9.19
 ------
 
+- Initial version of a Radeon DirectFB driver featuring solid drawing/filling
+  and simple blitting with or without key by Michel Dänzer <michel@daenzer.net>.
 - Added VT switching support which has to be enabled via option "vt-switching".
   It's pretty well working already, though there are some minor issues left.
 - Added support for multiple multi application worlds with new option
   "session=<num>" selecting the multi application world being joined or created.
   VT switching between multiple DirectFB sessions rocks!
+- Added option "primary-layer=<id>" to swap the primary with the specified one,
+  this way all applications can be started on the second head (Matrox).
+- Added "dfblayer", a display layer configuration tool (for multi app).
 - Added IDirectFB::GetInterface() to load interface modules like "IFusionSound".
 - Added time stamp to DFBWindowEvent.
 - Quitting the master (first multi app process) sends SIGTERM to all slaves
@@ -16,7 +21,12 @@
 - Moved all global variables of the software driver to a new struct resulting
   in a major increase of primitive throughput, e.g. FillRectangle(1x1) by 16%.
 - Enhanced tmpfs detection and added option "tmpfs=<dir>" to set it explicitly.
-- Many bug fixes and cleanups.
+- Enhanced locking and safety in v4l video provider.
+- Improved graphics primitive throughput up to 100% by saving locks.
+- Added shared memory allocation tracking like for local memory.
+- Modules and drivers are now binary compatible with single/multi app library.
+- No more bone collector threads (3/master), almost instant object destruction.
+- Other bug fixes and cleanups.
 
 
 0.9.18
