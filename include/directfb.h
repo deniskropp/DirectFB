@@ -3749,7 +3749,8 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
       * In general only non-threaded applications which already use select() or poll() need it.
       *
       * <b>Note:</b> This method flushes the event buffer. After calling this method all other
-      * methods will return DFB_UNSUPPORTED. Calling this method again will return DFB_BUSY.
+      * methods except IDirectFBEventBuffer::PostEvent() will return DFB_UNSUPPORTED.
+      * Calling this method again will return DFB_BUSY.
       */
      DFBResult (*CreateFileDescriptor) (
           IDirectFBEventBuffer     *thiz,
