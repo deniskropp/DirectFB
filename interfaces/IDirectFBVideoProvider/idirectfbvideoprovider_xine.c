@@ -92,7 +92,7 @@ typedef struct
 
 
 static void DFBxine_frame_output(void* cdata, int width, int height,
-					DFBRectangle* dest_rect);
+					double ratio, DFBRectangle* dest_rect);
 
 static void DFBxine_event_listner(void* cdata, const xine_event_t* event);
 
@@ -654,7 +654,7 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 
 static void
 DFBxine_frame_output(void* cdata, int width, int height,
-			DFBRectangle* dest_rect)
+			double ratio, DFBRectangle* dest_rect)
 {
 	IDirectFBVideoProvider_Xine_data* data;
 

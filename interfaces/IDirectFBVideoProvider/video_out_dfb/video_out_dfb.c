@@ -1561,6 +1561,7 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	frame->width  = width + ((width & 3) ? (4 - (width & 3)) : 0);
 	/* height must be a multiple of 2 */
 	frame->height = height + (height & 1);
+	frame->ratio  = ratio;
 
 	frame->proc_needed = 1;
 
@@ -1761,8 +1762,8 @@ dfb_display_frame(vo_driver_t* vo_driver, vo_frame_t* vo_frame)
 	TEST(vo_frame   != NULL);
 	TEST(frame->surface != NULL);
 
-	this->output_cb(this->output_cdata, frame->width,
-			frame->height, &dest_rect);
+	this->output_cb(this->output_cdata, frame->width, frame->height,
+				frame->ratio, &dest_rect);
 
 	used_area.x1 = dest_rect.x;
 	used_area.y1 = dest_rect.y;

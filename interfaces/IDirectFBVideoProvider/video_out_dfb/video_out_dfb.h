@@ -37,6 +37,7 @@ struct dfb_frame_s
 
 	int            width;
 	int            height;
+	double         ratio;
 
 	char           proc_needed;
 	
@@ -80,8 +81,9 @@ typedef struct
 } yuv_render_t;
 
 
+
 typedef void (*DVOutputCallback) (void* cdata, int width, int height,
-					DFBRectangle* dest_rect);
+				  double ratio, DFBRectangle* dest_rect);
 
 
 struct dfb_driver_s
@@ -153,6 +155,7 @@ typedef struct
  *                . cdata is your private data
  *                . width is video width
  *                . height is video height
+ *                . ratio is video aspect ratio
  *                . dest_rect is used to set video rendering size and 
  *                  position (the driver expects that you fill this)
  *  -> cdata: your private data (can be NULL)
