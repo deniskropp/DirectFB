@@ -137,6 +137,8 @@ DirectResultString( DirectResult result )
                return "Appropriate item not found!";
           case DFB_VERSIONMISMATCH:
                return "Some versions didn't match!";
+          case DFB_NOSHAREDMEMORY:
+               return "Out of shared memory!";
      }
 
      return "UNKNOWN RESULT CODE!";
