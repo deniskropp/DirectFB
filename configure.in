@@ -129,8 +129,8 @@ case "$target_or_host" in
 esac
 
 have_linux=no
-have_freebsd=no
-need_ldl=yes
+need_libdl=yes
+need_libc_r=no
 
 case "$target_or_host" in
   *-linux*)
@@ -138,11 +138,21 @@ case "$target_or_host" in
     ;;
 
   *-freebsd*)
-    have_freebsd=yes
-    need_ldl=no
+    need_libc_r=yes
+    CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+    LDFLAGS="$LDFLAGS -L/usr/local/lib"
+    need_libdl=no
     ;;
+
+  *-openbsd*)
+    need_libc_r=yes
+    need_libdl=no
+    CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+    LDFLAGS="$LDFLAGS -L/usr/local/lib"
+    ;;
+
   *-netbsd*)
-    need_ldl=no
+    need_libdl=no
     CPPFLAGS="$CPPFLAGS -I/usr/pkg/include"
     LDFLAGS="$LDFLAGS -L/usr/pkg/lib"
     ;;
@@ -156,16 +166,16 @@ dnl Threads
 
 THREADFLAGS="-D_REENTRANT"
 
-if test x$have_freebsd = xno; then
-  AC_CHECK_LIB(pthread, pthread_attr_init, ,
-    AC_MSG_ERROR([
-*** DirectFB requires libpthread.]))
-  THREADLIB="-lpthread"
-else
+if test x$need_libc_r = xyes; then
   AC_CHECK_LIB(c_r, pthread_attr_init, ,
     AC_MSG_ERROR([
 *** DirectFB requires phtreads in libc_r.]))
   THREADLIB="-lc_r"
+else
+  AC_CHECK_LIB(pthread, pthread_attr_init, ,
+    AC_MSG_ERROR([
+*** DirectFB requires libpthread.]))
+  THREADLIB="-lpthread"
 fi
 
 AC_SUBST(THREADFLAGS)
@@ -175,7 +185,7 @@ DFB_CFLAGS="$THREADFLAGS $DFB_CFLAGS"
 
 dnl Dynamic Linker
 DYNLIB=""
-if test x$need_ldl = xyes; then
+if test x$need_libdl = xyes; then
   if test x$enable_shared = xyes; then
     AC_CHECK_LIB(dl, dlopen, ,
       AC_MSG_ERROR([

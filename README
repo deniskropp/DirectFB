@@ -15,7 +15,7 @@ Supported Operating Systems
    - GNU/Linux
 
    Using SDL (without acceleration support), DirectFB also supports
-   the following operatiog systems:
+   the following operating systems:
 
       - FreeBSD (tested on FreeBSD 4.7)
       - NetBSD (tested on NetBSD 1.6)
@@ -23,11 +23,13 @@ Supported Operating Systems
    Ports to the following operationg systems are in progress, but
    still have problems:
 
-      - Mac OS X (tested on Mac OS X 10.2.1)
+      - Mac OS X (tested on Mac OS X 10.2.1, problems with SDL input and
+                  windows)
+      - OpenBSD (tested on OpenBSD 3.2, problems with x86 assembler)
 
    Please note that SDL support is experimental and incomplete. It is
    intended for developers to allow developement of DirectFB applications
-   in various enviroments.
+   in various environments.
 
    We do not have the resources to ensure that every release of
    DirectFB works on all supported platforms. If you are a user of one
