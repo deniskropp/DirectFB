@@ -902,7 +902,8 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
 }
 
 DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
-                                       const char *text, int x, int y,
+                                       const char *text, int bytes, 
+                                       int x, int y,
                                        DFBSurfaceTextFlags flags )
 {
      IDirectFBSurface_data *data;
@@ -923,6 +924,12 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      if (!data->font)
           return DFB_NOIMPL;
 
+     if (bytes < 0)
+          bytes = strlen (text);
+
+     if (bytes == 0)
+          return DFB_OK;
+
      if (!(flags & DSTF_TOP)) {
           int ascender = 0;
        
@@ -933,7 +940,7 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
           int width = 0;
 
-          if (data->font->GetStringWidth (data->font, text, &width) == DFB_OK) {
+          if (data->font->GetStringWidth (data->font, text, bytes, &width) == DFB_OK) {
                if (flags & DSTF_RIGHT) {
                     x -= width;
                }
@@ -945,7 +952,8 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      font_data = (IDirectFBFont_data *)data->font->priv;
 
-     gfxcard_drawstring( text, data->req_rect.x + x, data->req_rect.y + y,
+     gfxcard_drawstring( text, bytes, 
+                         data->req_rect.x + x, data->req_rect.y + y,
                          font_data->font, &data->state );
 
      return DFB_OK;

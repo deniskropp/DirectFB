@@ -145,12 +145,14 @@ DFBResult IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
  * with this font. The pixel width may slightly extend this value.
  */
 DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
-                                        const char *string, int *width )
+                                        const char *text, int bytes,
+                                        int *width )
 {
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
      CoreGlyphData *glyph;
      unichar  prev = 0;
      unichar  current;
+     int      offset;
      int      kerning;
 
 
@@ -160,13 +162,16 @@ DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
      if (!width)
           return DFB_INVARG;
 
-     if (!string)
+     if (!text)
           return DFB_INVARG;
 
      *width = 0;
 
-     while (*string) {
-          current = utf8_get_char (string);
+     if (bytes < 0)
+          bytes = strlen (text);
+
+     for (offset = 0; offset < bytes; offset += utf8_skip[(__u8)text[offset]]) {
+          current = utf8_get_char (&text[offset]);
                
           if (fonts_get_glyph_data (data->font, current, &glyph) == DFB_OK) {
             
@@ -178,7 +183,6 @@ DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
           }
 
           prev = current;
-          string = utf8_next_char (string);
      }
 
      return DFB_OK;

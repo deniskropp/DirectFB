@@ -149,24 +149,24 @@ int main( int argc, char *argv[] )
 
           bgsurface->SetColor( bgsurface, 0xCF, 0xCF, 0xFF, 0xFF );
           DFBCHECK(bgsurface->DrawString( bgsurface,
-                            "Move the mouse and the active window will follow!",
+                             "Move the mouse and the active window will follow!", -1,
                              0, 0, DSTF_LEFT | DSTF_TOP ));
 
           bgsurface->SetColor( bgsurface, 0xCF, 0xDF, 0xCF, 0xFF );
           DFBCHECK(bgsurface->DrawString( bgsurface,
-                            "Press left mouse button for switching the active"
-                            " window and raising it!", 0, fontheight,
+                            "Press left mouse button for switching the active "
+                            "window and raising it!", -1, 0, fontheight,
                             DSTF_LEFT | DSTF_TOP ));
 
           bgsurface->SetColor( bgsurface, 0xCF, 0xEF, 0x9F, 0xFF );
           DFBCHECK(bgsurface->DrawString( bgsurface,
-                            "Press middle mouse button to switch only!",
+                             "Press middle mouse button to switch only!", -1,
                              0, fontheight*2,
                              DSTF_LEFT | DSTF_TOP ));
 
           bgsurface->SetColor( bgsurface, 0xCF, 0xFF, 0x6F, 0xFF );
           DFBCHECK(bgsurface->DrawString( bgsurface,
-                            "Press right mouse button when you are done!",
+                             "Press right mouse button when you are done!", -1,
                              0, fontheight*3,
                              DSTF_LEFT | DSTF_TOP ));
 

@@ -179,7 +179,7 @@ void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state );
 void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                           CardState *state );
 
-void gfxcard_drawstring( const __u8 *text, int x, int y,
+void gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
                          CoreFontData *font, CardState *state );
 
 

@@ -102,7 +102,7 @@ int main( int argc, char *argv[] )
           DFBCHECK(dfb->CreateFont( dfb, FONT, &desc, &font ));
           DFBCHECK(primary->SetFont( primary, font ));
           DFBCHECK(primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0xFF ));
-          DFBCHECK(primary->DrawString( primary, "Porter/Duff Demo",
+          DFBCHECK(primary->DrawString( primary, "Porter/Duff Demo", -1,
                                         screen_width/2, 50, DSTF_CENTER ));
           DFBCHECK(font->Release( font ));
 
@@ -125,7 +125,7 @@ int main( int argc, char *argv[] )
 
           DFBCHECK(primary->SetPorterDuff( primary, DSPD_NONE ));
           DFBCHECK(primary->SetColor( primary, i*0x1F, i*0x10+0x7f, 0xFF, 0xFF ));
-          DFBCHECK(primary->DrawString( primary, rules[i],
+          DFBCHECK(primary->DrawString( primary, rules[i], -1,
                                         i*(screen_width-40)/num_rules + 65, 220,
                                         DSTF_CENTER | DSTF_TOP ));
      }

@@ -131,7 +131,7 @@ void showMessage( const char *msg )
           DFBCHECK(primary->Blit( primary, intro, NULL, 0, 0 ));
 
           primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0xFF );
-          DFBCHECK(primary->DrawString( primary, msg, SW/2, SH/2, DSTF_CENTER ));
+          DFBCHECK(primary->DrawString( primary, msg, -1, SW/2, SH/2, DSTF_CENTER ));
 
 
           if (selfrunning) {
@@ -172,7 +172,7 @@ void showResult()
      primary->FillRectangle( primary, 0, 0, SW, SH+fontheight );
      
      primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0xFF );
-     primary->DrawString( primary, "Results", SW/2, 10, DSTF_TOPCENTER );
+     primary->DrawString( primary, "Results", -1, SW/2, 10, DSTF_TOPCENTER );
 
      dest.x = 40; dest.y = 70; dest.h = dsc.height;
 
@@ -241,50 +241,50 @@ void showResult()
      }
      
      primary->SetColor( primary, 0xCC, 0xCC, 0xCC, 0xFF );
-     primary->DrawString( primary, "Anti-aliased Text", 20, 75, DSTF_LEFT );
-     primary->DrawString( primary, "Fill Rectangles", 20, 115, DSTF_LEFT );
-     primary->DrawString( primary, "Fill Rectangles (blend)", 20, 155, DSTF_LEFT );
-     primary->DrawString( primary, "Fill Triangles", 20, 195, DSTF_LEFT );
-     primary->DrawString( primary, "Fill Triangles (blend)", 20, 235, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Rectangles", 20, 275, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Rectangles (blend)", 20, 315, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Lines", 20, 355, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Lines (blend)", 20, 395, DSTF_LEFT );
-     primary->DrawString( primary, "Blit", 20, 435, DSTF_LEFT );
-     primary->DrawString( primary, "Blit colorkeyed", 20, 475, DSTF_LEFT );
-     primary->DrawString( primary, "Blit with format conversion", 20, 515, DSTF_LEFT );
-     primary->DrawString( primary, "Blit from 32bit (alphachannel blend)", 20, 555, DSTF_LEFT );
-     primary->DrawString( primary, "Stretched Blit", 20, 595, DSTF_LEFT );
+     primary->DrawString( primary, "Anti-aliased Text", -1, 20, 75, DSTF_LEFT );
+     primary->DrawString( primary, "Fill Rectangles", -1, 20, 115, DSTF_LEFT );
+     primary->DrawString( primary, "Fill Rectangles (blend)", -1, 20, 155, DSTF_LEFT );
+     primary->DrawString( primary, "Fill Triangles", -1, 20, 195, DSTF_LEFT );
+     primary->DrawString( primary, "Fill Triangles (blend)", -1, 20, 235, DSTF_LEFT );
+     primary->DrawString( primary, "Draw Rectangles", -1, 20, 275, DSTF_LEFT );
+     primary->DrawString( primary, "Draw Rectangles (blend)", -1, 20, 315, DSTF_LEFT );
+     primary->DrawString( primary, "Draw Lines", -1, 20, 355, DSTF_LEFT );
+     primary->DrawString( primary, "Draw Lines (blend)", -1, 20, 395, DSTF_LEFT );
+     primary->DrawString( primary, "Blit", -1, 20, 435, DSTF_LEFT );
+     primary->DrawString( primary, "Blit colorkeyed", -1, 20, 475, DSTF_LEFT );
+     primary->DrawString( primary, "Blit with format conversion", -1, 20, 515, DSTF_LEFT );
+     primary->DrawString( primary, "Blit from 32bit (alphachannel blend)", -1, 20, 555, DSTF_LEFT );
+     primary->DrawString( primary, "Stretched Blit", -1, 20, 595, DSTF_LEFT );
      
      primary->SetColor( primary, 0xAA, 0xAA, 0xAA, 0xFF );
      sprintf( rate, "%.2f KChar/sec", result.drawstring );
-     primary->DrawString( primary, rate, SW-40, 80, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 80, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.fillrectangle );
-     primary->DrawString( primary, rate, SW-40, 120, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 120, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.fillrectangle_blend );
-     primary->DrawString( primary, rate, SW-40, 160, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 160, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.filltriangle );
-     primary->DrawString( primary, rate, SW-40, 200, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 200, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.filltriangle_blend );
-     primary->DrawString( primary, rate, SW-40, 240, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 240, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.drawrectangle );
-     primary->DrawString( primary, rate, SW-40, 280, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 280, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.drawrectangle_blend );
-     primary->DrawString( primary, rate, SW-40, 320, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 320, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.drawline );
-     primary->DrawString( primary, rate, SW-40, 360, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 360, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.drawline_blend );
-     primary->DrawString( primary, rate, SW-40, 400, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 400, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.blit );
-     primary->DrawString( primary, rate, SW-40, 440, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 440, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.blit_colorkey );
-     primary->DrawString( primary, rate, SW-40, 480, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 480, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.blit_32 );
-     primary->DrawString( primary, rate, SW-40, 520, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 520, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.blit_alpha );
-     primary->DrawString( primary, rate, SW-40, 560, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 560, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.stretchblit );
-     primary->DrawString( primary, rate, SW-40, 600, DSTF_RIGHT );
+     primary->DrawString( primary, rate, -1, SW-40, 600, DSTF_RIGHT );
 
 
      key_events->Reset( key_events );
@@ -296,11 +296,11 @@ void showStatus( const char *msg )
      int err;
 
      primary->SetColor( primary, 0x40, 0x80, 0xFF, 0xFF );
-     DFBCHECK(primary->DrawString( primary, "DirectFB Benchmarking Demo:",
+     DFBCHECK(primary->DrawString( primary, "DirectFB Benchmarking Demo:", -1,
                                    0, SH, DSTF_TOP ));
 
      primary->SetColor( primary, 0xFF, 0x00, 0x00, 0xFF );
-     DFBCHECK(primary->DrawString( primary, msg, SW-1, SH, DSTF_TOPRIGHT ));
+     DFBCHECK(primary->DrawString( primary, msg, -1, SW-1, SH, DSTF_TOPRIGHT ));
 }
 
 int main( int argc, char *argv[] )
@@ -350,7 +350,7 @@ int main( int argc, char *argv[] )
 
      primary->FillRectangle( primary, 0, 0, SW, SH );
      primary->SetColor( primary, 0xA0, 0xA0, 0xA0, 0xFF );
-     primary->DrawString( primary, "Preparing...", SW/2, SH/2, DSTF_CENTER );
+     primary->DrawString( primary, "Preparing...", -1, SW/2, SH/2, DSTF_CENTER );
 
      /* create a surface and render an image to it */
      DFBCHECK(dfb->CreateImageProvider( dfb, DATADIR"/examples/melted.png",
@@ -433,7 +433,7 @@ int main( int argc, char *argv[] )
           float dt;
           unsigned int stringwidth;
 
-          font->GetStringWidth( font, "DirectX is dead, this is DirectFB",
+          font->GetStringWidth( font, "DirectX is dead, this is DirectFB", -1,
                                 &stringwidth );
           
           
@@ -446,7 +446,7 @@ int main( int argc, char *argv[] )
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
                primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
                                   rand()%0xFF, 0xFF );
-               primary->DrawString( primary, "DirectX is dead, this is DirectFB",
+               primary->DrawString( primary, "DirectX is dead, this is DirectFB", -1,
                                     rand()%(SW-stringwidth),
                                     rand()%(SH-fontheight),
                                     DSTF_TOPLEFT );

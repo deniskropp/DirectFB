@@ -529,7 +529,8 @@ void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 
 #define FONT_BLITTINGFLAGS   (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)
 
-void gfxcard_drawstring( const __u8 *text, int x, int y,
+void gfxcard_drawstring( const __u8 *text, int bytes, 
+                         int x, int y,
                          CoreFontData *font, CardState *state )
 {
      CoreGlyphData *data;
@@ -541,12 +542,13 @@ void gfxcard_drawstring( const __u8 *text, int x, int y,
      
      int hw_clipping = (card->caps.flags & CCF_CLIPPING);
      int kerning;
+     int offset;
      int blit = 0;
 
      int restore_blittingflags = 0;
      DFBSurfaceBlittingFlags original_blittingflags = 0;
 
-     /* simple precheck */
+     /* simple prechecks */
      if (y + font->height <= state->clip.y1)
           return;
      if (y > state->clip.y2)
@@ -561,69 +563,69 @@ void gfxcard_drawstring( const __u8 *text, int x, int y,
           state->modified |= SMF_BLITTING_FLAGS;
      }
      
-     while (*text) {
-       current = utf8_get_char (text);
-       
-       if (fonts_get_glyph_data (font, current, &data) == DFB_OK) {
-            if (prev && font->GetKerning && 
-                (* font->GetKerning) (font, prev, current, &kerning) == DFB_OK) {
-                 x += kerning;
-            }
-            rect.x = data->start % font->row_width;
-            rect.y = 0;
-            rect.w = data->width;
-            rect.h = data->height;
+     for (offset = 0; offset < bytes; offset += utf8_skip[text[offset]]) {
+          current = utf8_get_char (&text[offset]);
+
+          if (fonts_get_glyph_data (font, current, &data) == DFB_OK) {
+               if (prev && font->GetKerning && 
+                   (* font->GetKerning) (font, prev, current, &kerning) == DFB_OK) {
+                    x += kerning;
+               }
+
+               rect.x = data->start % font->row_width;
+               rect.y = 0;
+               rect.w = data->width;
+               rect.h = data->height;
          
-            if (rect.w > 0) {
-                 int xx = x + data->left;
-                 int yy = y + data->top;
+               if (rect.w > 0) {
+                    int xx = x + data->left;
+                    int yy = y + data->top;
            
-                 surface = font->surfaces[data->start / font->row_width];
+                    surface = font->surfaces[data->start / font->row_width];
            
-                 if (state->source != surface) {
-                      switch (blit) {
-                      case 1:
-                           gfxcard_state_release( state );
-                           break;
-                      case 2:
-                           gRelease( state );
-                           break;
-                      default:
-                           break;
-                      }
-                      state->source = surface;
-                      state->modified |= SMF_SOURCE;
+                    if (state->source != surface) {
+                         switch (blit) {
+                         case 1:
+                              gfxcard_state_release( state );
+                              break;
+                         case 2:
+                              gRelease( state );
+                              break;
+                         default:
+                              break;
+                         }
+                         state->source = surface;
+                         state->modified |= SMF_SOURCE;
 
-                      if (gfxcard_state_check( state, DFXL_BLIT ) &&
-                          gfxcard_state_acquire( state, DFXL_BLIT ))
-                           blit = 1;
-                      else if (gAquire( state, DFXL_BLIT ))
-                           blit = 2;
-                      else
-                           blit = 0;
-                 }
+                         if (gfxcard_state_check( state, DFXL_BLIT ) &&
+                             gfxcard_state_acquire( state, DFXL_BLIT ))
+                              blit = 1;
+                         else if (gAquire( state, DFXL_BLIT ))
+                              blit = 2;
+                         else
+                              blit = 0;
+                    }
 
-                 if (clip_blit_precheck( &state->clip,
-                                         rect.w, rect.h, xx, yy )) {
-                      switch (blit) {
-                      case 1:
-                           if (!hw_clipping)
-                                clip_blit( &state->clip, &rect, &xx, &yy );
-                           card->Blit( &rect, xx, yy );
-                           break;
-                      case 2:
-                           clip_blit( &state->clip, &rect, &xx, &yy );
-                           gBlit( &rect, xx, yy );
-                           break;
-                      default:
-                           break;
-                      }
-                 } 
-            }
-            x += data->advance;
-            prev = current;
-            text = utf8_next_char (text);
-       }
+                    if (clip_blit_precheck( &state->clip,
+                                            rect.w, rect.h, xx, yy )) {
+                         switch (blit) {
+                         case 1:
+                              if (!hw_clipping)
+                                   clip_blit( &state->clip, &rect, &xx, &yy );
+                              card->Blit( &rect, xx, yy );
+                              break;
+                         case 2:
+                              clip_blit( &state->clip, &rect, &xx, &yy );
+                              gBlit( &rect, xx, yy );
+                              break;
+                         default:
+                              break;
+                         }
+                    } 
+               }
+               x += data->advance;
+               prev = current;
+          }
      }
 
      switch (blit) {

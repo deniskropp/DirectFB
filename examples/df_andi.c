@@ -564,12 +564,12 @@ int main( int argc, char *argv[] )
           primary->FillRectangle( primary, 0, 0, 300, fontheight+5 );
 
           primary->SetColor( primary, 200, 200, 255, 0xFF );
-          primary->DrawString( primary, "Penguin Population:",
+          primary->DrawString( primary, "Penguin Population:", -1,
                                10, 0, DSTF_LEFT | DSTF_TOP );
 
           sprintf( population_string, "%d",population );
 
-          primary->DrawString( primary, population_string,
+          primary->DrawString( primary, population_string, -1,
                                290, 0, DSTF_RIGHT | DSTF_TOP );
 
           /* flip display */
