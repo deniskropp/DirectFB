@@ -4,7 +4,9 @@ includedir = @INCLUDEDIR@
 
 internalincludedir = $(INTERNALINCLUDEDIR)
 
-MAINTAINERCLEANFILES = directfb_keynames.h
+MAINTAINERCLEANFILES = directfb_keynames.h directfb_strings.h
+
+EXTRA_DIST = mknames.sh
 
 include_HEADERS = \
 	directfb.h		\
@@ -18,38 +20,25 @@ internalinclude_HEADERS = \
 	directfb_internals.h
 
 
-directfb_keynames.h: directfb_keyboard.h
+directfb_keynames.h: directfb_keyboard.h mknames.sh
 	@echo '#ifndef __DIRECTFB_KEYNAMES_H__' > $@
 	@echo '#define __DIRECTFB_KEYNAMES_H__' >> $@
-	@echo '' >> $@
-	@echo '#define DirectFBKeySymbolNames(Identifier) struct DFBKeySymbolName { \' >> $@
-	@echo '     DFBInputDeviceKeySymbol  symbol; \' >> $@
-	@echo '     const char              *name; \' >> $@
-	@echo '} Identifier[] = { \' >> $@
-	@grep DIKS_ $< | grep -v DIKS_NULL | grep -v DIKS_ENTER | $(PERL) -p -e 's/.*(DIKS_)([\w_]+) .*/     \{ \1\2, \"\2\" \}, \\/' >> $@
-	@echo '     { DIKS_NULL, "NULL" } \' >> $@
-	@echo '};' >> $@
-	@echo '' >> $@
-	@echo '#define DirectFBKeyIdentifierNames(Identifier) struct DFBKeyIdentifierName { \' >> $@
-	@echo '     DFBInputDeviceKeyIdentifier  identifier; \' >> $@
-	@echo '     const char                  *name; \' >> $@
-	@echo '} Identifier[] = { \' >> $@
-	@grep DIKI_ $< | grep -v DIKI_UNKNOWN | grep -v DIKI_NUMBER_OF_KEYS | $(PERL) -p -e 's/.*(DIKI_)([\w_]+),.*/     \{ \1\2, \"\2\" \}, \\/' >> $@
-	@echo '     { DIKI_UNKNOWN, "unkown" } \' >> $@
-	@echo '};' >> $@
+
+	./mknames.sh DFBInputDeviceKeySymbol DIKS NULL KeySymbol symbol directfb_keyboard.h \
+	   | grep -v DIKS_ENTER >> $@
+
+	./mknames.sh DFBInputDeviceKeyIdentifier DIKI UNKNOWN KeyIdentifier identifier directfb_keyboard.h \
+	   | grep -v DIKI_NUMBER_OF_KEYS | grep -v DIKI_KEYDEF_END >> $@
+
 	@echo '' >> $@
 	@echo '#endif' >> $@
 
-directfb_strings.h: directfb.h
+
+directfb_strings.h: directfb.h mknames.sh
 	@echo '#ifndef __DIRECTFB_STRINGS_H__' > $@
 	@echo '#define __DIRECTFB_STRINGS_H__' >> $@
-	@echo '' >> $@
-	@echo '#define DirectFBPixelFormatNames(Identifier) struct DFBPixelFormatName { \' >> $@
-	@echo '     DFBSurfacePixelFormat  format; \' >> $@
-	@echo '     const char            *name; \' >> $@
-	@echo '} Identifier[] = { \' >> $@
-	@egrep 'DSPF_[0-9A-Z_]+ .*=.*0x' $< | grep -v DSPF_UNKNOWN | $(PERL) -p -e 's/.*(DSPF_)([\w_]+) .*/     \{ \1\2, \"\2\" \}, \\/' >> $@
-	@echo '     { DSPF_UNKNOWN, "unknown" } \' >> $@
-	@echo '};' >> $@
+
+	./mknames.sh DFBSurfacePixelFormat DSPF UNKNOWN PixelFormat format directfb.h >> $@
+
 	@echo '' >> $@
 	@echo '#endif' >> $@
