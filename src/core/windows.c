@@ -50,8 +50,8 @@
 
 #define min(a,b)     ((a) < (b) ? (a) : (b))
 
-static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
-                                 int width, int height, int erase );
+static void windowstack_repaint( CoreWindowStack *stack,
+                                 int x, int y, int width, int height );
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
 static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack );
 static ReactionResult windowstack_inputdevice_react( const void *msg_data,
@@ -214,7 +214,7 @@ void window_remove( CoreWindow *window )
      pthread_mutex_unlock( &stack->update );
 
      windowstack_repaint( stack, window->x, window->y,
-                          window->width, window->height, 1 );
+                          window->width, window->height );
 
      {
           DFBWindowEvent evt;
@@ -307,7 +307,7 @@ int window_raise( CoreWindow *window )
 
      if (update && window->opacity) {
           windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height, 1 /*FIXME*/);
+                               window->width, window->height );
 
           windowstack_handle_enter_leave_focus( stack );
      }
@@ -339,7 +339,7 @@ int window_lower( CoreWindow *window )
 
      if (update && window->opacity) {
           windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height, 1 /*FIXME*/);
+                               window->width, window->height );
 
           windowstack_handle_enter_leave_focus( stack );
      }
@@ -375,7 +375,7 @@ int window_raisetotop( CoreWindow *window )
 
      if (update && window->opacity) {
           windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height, 1 /*FIXME*/);
+                               window->width, window->height );
 
           windowstack_handle_enter_leave_focus( stack );
      }
@@ -407,7 +407,7 @@ int window_lowertobottom( CoreWindow *window )
 
      if (update && window->opacity) {
           windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height, 1 /*FIXME*/);
+                               window->width, window->height );
 
           windowstack_handle_enter_leave_focus( stack );
      }
@@ -442,7 +442,7 @@ int window_move( CoreWindow *window, int dx, int dy )
                ry += dy;
           }
 
-          windowstack_repaint( stack, rx, ry, rw, rh, 1 );
+          windowstack_repaint( stack, rx, ry, rw, rh );
      }
 
      if (!(window->caps & DWHC_GHOST)) {
@@ -471,7 +471,7 @@ int window_resize( CoreWindow *window, unsigned int width, unsigned int height )
 
      if (window->opacity) {
           windowstack_repaint( stack, window->x, window->y,
-                               MAX(ow, width), MAX(oh, height), 1 );
+                               MAX(ow, width), MAX(oh, height) );
      }
 
      if (!(window->caps & DWHC_GHOST)) {
@@ -492,16 +492,12 @@ int window_set_opacity( CoreWindow *window, __u8 opacity )
      CoreWindowStack *stack = window->stack;
 
      if (old_opacity != opacity) {
-          int erase = 0;
 
           window->opacity = opacity;
 
-          if ((window->caps & DWCAPS_ALPHACHANNEL) || opacity != 0xFF)
-               erase = 1;
-
           /* window_repaint() refuses repainting invisible windows */
           windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height, erase );
+                               window->width, window->height );
 
           if ((old_opacity && !opacity) || (!old_opacity && opacity))
                windowstack_handle_enter_leave_focus( stack );
@@ -513,19 +509,14 @@ int window_set_opacity( CoreWindow *window, __u8 opacity )
 int window_repaint( CoreWindow *window, DFBRectangle *rect )
 {
      if (window->opacity) {
-          int erase = 0;
           CoreWindowStack *stack = window->stack;
-
-          if ((window->caps & DWCAPS_ALPHACHANNEL) || window->opacity != 0xFF)
-               erase = 1;
 
           if (!rect)
                windowstack_repaint( stack, window->x, window->y,
-                                    window->width, window->height, erase );
+                                    window->width, window->height );
           else
                windowstack_repaint( stack, rect->x + window->x,
-                                    rect->y + window->y, rect->w, rect->h,
-                                    erase );
+                                    rect->y + window->y, rect->w, rect->h );
      }
 
      return DFB_OK;
@@ -626,7 +617,7 @@ void windowstack_repaint_all( CoreWindowStack *stack )
 {
      CoreSurface *surface = stack->layer->surface;
 
-     windowstack_repaint( stack, 0, 0, surface->width, surface->height, 1 );
+     windowstack_repaint( stack, 0, 0, surface->width, surface->height );
 }
 
 /*
@@ -734,7 +725,7 @@ static void update_region( CoreWindowStack *stack, int window,
 }
 
 static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
-                                 int width, int height, int erase )
+                                 int width, int height )
 {
      DisplayLayer *layer   = stack->layer;
      CoreSurface  *surface = layer->surface;
@@ -748,9 +739,6 @@ static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
           return;
 
      pthread_mutex_lock( &stack->update );
-
-/*     stack->state.clip      = region;
-     stack->state.modified |= SMF_CLIP;*/
 
      update_region( stack, stack->num_windows - 1,
                     region.x1, region.y1, region.x2, region.y2 );
