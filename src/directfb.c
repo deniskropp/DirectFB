@@ -254,7 +254,7 @@ DFBResult DirectFBInit( int *argc, char **argv[] )
      return DFB_OK;
 }
 
-DFBResult DirectFBSetOption( char *name, char *value )
+DFBResult DirectFBSetOption( const char *name, const char *value )
 {
      DFBResult ret;
 
@@ -273,7 +273,7 @@ DFBResult DirectFBSetOption( char *name, char *value )
      if (!name)
           return DFB_INVARG;
 
-     ret = dfb_config_set(name, value);
+     ret = dfb_config_set( name, value );
      if (ret)
           return ret;
 
