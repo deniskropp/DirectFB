@@ -19,11 +19,11 @@ SUBDIRS = \
 	lib			\
 	src 			\
 	systems			\
+	$(TOOLS_DIR)		\
 	wm			\
 	interfaces 		\
 	$(PROXY_DIR)		\
 	$(LINUXONLY_DIRS)	\
-	$(TOOLS_DIR)		\
 	patches
 
 bin_SCRIPTS = directfb-config
