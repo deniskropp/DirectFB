@@ -31,8 +31,14 @@
 #define ILOG2_X86(x,y)  // TODO - use BSR (bit scan reverse) instruction
 
 /// Set alpha blending function (3D)
-void uc_set_blending_fn(struct uc_fifo* fifo, UcDeviceData *ucdev)
+void uc_set_blending_fn(struct uc_fifo* fifo, UcDeviceData *ucdev, CardState *state)
 {
+    if (ucdev->v_blending_fn)
+        return;
+    
+    uc_map_blending_fn(&(ucdev->hwalpha), state->src_blend,
+              state->dst_blend, DFB_BITS_PER_PIXEL(state->destination->format));
+
     UC_FIFO_PREPARE(fifo, 14);
     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
 
@@ -51,6 +57,8 @@ void uc_set_blending_fn(struct uc_fifo* fifo, UcDeviceData *ucdev)
     UC_FIFO_PAD_EVEN(fifo);
 
     UC_FIFO_CHECK(fifo);
+    
+    ucdev->v_blending_fn = 1;
 }
 
 /// Set texture environment (3D)

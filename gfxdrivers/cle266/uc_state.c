@@ -61,8 +61,6 @@ inline enum uc_state_type uc_select_blittype(CardState* state,
             !(accel & DFXL_STRETCHBLIT)) return UC_TYPE_2D;
     }
 
-// 3d blitting is broken
-
     if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
         if ((uc_map_src_format_3d(state->source->format) >= 0) &&
             (uc_map_dst_format(state->destination->format, &tmp, &tmp) >= 0))
@@ -125,14 +123,19 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
     // Check modified states and update hw
 
-    if (state->modified & SMF_SOURCE) {
+    ucdev->v_source3d = 0;
+    if (state->modified & SMF_SOURCE) {        
+        // FIXME: ucdev->v_source3d = 0 belongs here, but I always 
+        // need to invalidate source to get font rendering working        
         ucdev->v_source2d = 0;
-        ucdev->v_source3d = 0;
     }
-
 
     if (state->modified & SMF_BLITTING_FLAGS)
         ucdev->v_texenv = 0;
+
+    if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
+        ucdev->v_blending_fn = 0;
+
 
     if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
         ucdev->color = uc_map_color(state->destination->format,
@@ -158,18 +161,12 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
         uc_set_clip(fifo, state);
     }
 
-    if (state->modified & SMF_DESTINATION) {
+    if (state->modified & SMF_DESTINATION)
         uc_set_destination(fifo, ucdev, state);
-    }
 
     // if (state->modified & SMF_SRC_COLORKEY) { }
     // if (state->modified & SMF_DST_COLORKEY) { }
 
-    if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND)) {
-        uc_map_blending_fn(&(ucdev->hwalpha), state->src_blend,
-            state->dst_blend, DFB_BITS_PER_PIXEL(state->destination->format));
-        uc_set_blending_fn(fifo, ucdev);
-    }
 
     // Select GPU and check remaining states
 
@@ -193,9 +190,10 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
             funcs->DrawLine = uc_draw_line_3d;
 
             if (state->drawingflags & DSDRAW_BLEND) {
+                uc_set_blending_fn(fifo, ucdev, state);
                 regEnable |= HC_HenABL_MASK;
             }
-
+            
             rop3d = ucdev->draw_rop3d;
 
             state->set = UC_DRAWING_FUNCTIONS_3D;
@@ -218,18 +216,20 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
             break;
 
         case UC_TYPE_3D:
-            uc_set_source_3d(fifo, ucdev, state);
             funcs->Blit = uc_blit_3d;
+            uc_set_source_3d(fifo, ucdev, state);
             uc_set_texenv(fifo, ucdev, state);
+            uc_set_blending_fn(fifo, ucdev, state);
 
             if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                 DSBLIT_BLEND_COLORALPHA)) {
                     regEnable |= HC_HenABL_MASK;
                 }
-                regEnable |=
-                    HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK;
-                state->set = UC_BLITTING_FUNCTIONS_3D;
-                break;
+            regEnable |=
+                HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK;
+            
+            state->set = UC_BLITTING_FUNCTIONS_3D;
+            break;
 
         case UC_TYPE_UNSUPPORTED:
             BUG("Unsupported drawing function!");
@@ -253,5 +253,6 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
     UC_FIFO_CHECK(fifo);
     UC_FIFO_FLUSH(fifo);
 
-    state->modified = 0;
+  state->modified = 0;
 }
+

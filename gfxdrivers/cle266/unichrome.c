@@ -380,7 +380,7 @@ static void driver_get_info(GraphicsDevice* device,
          "LGPL");
 
     info->version.major = 0;
-    info->version.minor = 2;
+    info->version.minor = 3;
 
     info->driver_data_size = sizeof (UcDriverData);
     info->device_data_size = sizeof (UcDeviceData);

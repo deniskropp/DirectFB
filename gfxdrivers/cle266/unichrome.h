@@ -104,6 +104,7 @@ typedef struct _UcDeviceData {
     int v_source2d;
     int v_source3d;
     int v_texenv;
+    int v_blending_fn;
 
 } UcDeviceData;
 
