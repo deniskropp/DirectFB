@@ -32,6 +32,8 @@
 
 #include <directfb.h>
 
+#include <gfx/generic/generic.h>
+
 #include <misc/util.h>
 
 #include <core/coredefs.h>
@@ -100,7 +102,7 @@ struct _CardState {
 
      /* software driver */
 
-     void                   *gfxs;
+     GenefxState            *gfxs;
 };
 
 int dfb_state_init( CardState *state );

@@ -79,8 +79,14 @@ dfb_state_destroy( CardState *state )
 
      D_MAGIC_CLEAR( state );
 
-     if (state->gfxs)
-          D_FREE( state->gfxs );
+     if (state->gfxs) {
+          GenefxState *gfxs = state->gfxs;
+
+          if (gfxs->Aacc)
+               D_FREE( gfxs->Aacc );
+
+          D_FREE( gfxs );
+     }
 
      pthread_mutex_destroy( &state->lock );
 }

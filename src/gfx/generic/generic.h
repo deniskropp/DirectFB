@@ -32,6 +32,7 @@
 
 #include <directfb.h>
 #include <core/coretypes.h>
+#include <core/gfxcard.h>
 
 /* this order is required for Intel with MMX, how about bigendian? */
 
@@ -43,7 +44,6 @@ typedef struct
      __u16 a;
 } GenefxAccumulator;
 
-#define ACC_WIDTH 1600
 
 typedef struct _GenefxState GenefxState;
 
@@ -110,10 +110,11 @@ struct _GenefxState {
      /*
       * accumulators
       */
-     GenefxAccumulator Aacc[ACC_WIDTH]; // FIXME: dynamically
-     GenefxAccumulator Bacc[ACC_WIDTH]; // FIXME: dynamically
-     GenefxAccumulator Cacc;
-     GenefxAccumulator SCacc;
+     int                ABsize;
+     GenefxAccumulator *Aacc;
+     GenefxAccumulator *Bacc;
+     GenefxAccumulator  Cacc;
+     GenefxAccumulator  SCacc;
 
      /*
       * dataflow control

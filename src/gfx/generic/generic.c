@@ -4525,6 +4525,29 @@ static inline void Bop_prev( GenefxState *gfxs, int pitch )
           gfxs->Bop -= pitch;
 }
 
+static bool
+ABacc_prepare( GenefxState *gfxs, int size )
+{
+     size = (size < 256) ? 256 : (1 << direct_log2(size));
+
+     if (gfxs->ABsize < size) {
+          GenefxAccumulator *ABacc = D_MALLOC( size * sizeof(GenefxAccumulator) * 2 );
+
+          if (!ABacc) {
+               D_WARN( "out of memory" );
+               return false;
+          }
+
+          if (gfxs->Aacc)
+               D_FREE( gfxs->Aacc );
+
+          gfxs->ABsize = size;
+          gfxs->Aacc   = ABacc;
+          gfxs->Bacc   = ABacc + size;
+     }
+
+     return true;
+}
 
 void gFillRectangle( CardState *state, DFBRectangle *rect )
 {
@@ -4534,6 +4557,9 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
      D_ASSERT( gfxs != NULL );
 
      CHECK_PIPELINE();
+
+     if (!ABacc_prepare( gfxs, rect->w ))
+          return;
 
      gfxs->length = rect->w;
 
@@ -4599,6 +4625,9 @@ void gDrawLine( CardState *state, DFBRegion *line )
      /* the horizontal distance of the line */
      dx = line->x2 - line->x1;
      dxabs = abs(dx);
+
+     if (!ABacc_prepare( gfxs, dxabs ))
+          return;
 
      /* the vertical distance of the line */
      dy = line->y2 - line->y1;
@@ -4708,6 +4737,9 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
      CHECK_PIPELINE();
 
+     if (!ABacc_prepare( gfxs, rect->w ))
+          return;
+
      if (state->blittingflags & DSBLIT_DEINTERLACE) {
           int i;
           int height = rect->h;
@@ -4786,6 +4818,9 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      D_ASSERT( gfxs != NULL );
 
      CHECK_PIPELINE();
+
+     if (!ABacc_prepare( gfxs, drect->w ))
+          return;
 
      gfxs->length = drect->w;
      gfxs->SperD  = (srect->w << 16) / drect->w;
