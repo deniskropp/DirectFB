@@ -258,12 +258,16 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
      if (DFB_BYTES_PER_PIXEL (src_format) == 4 && !(type & PNG_COLOR_MASK_ALPHA))
           png_set_filler (png_ptr, 0xFF,
 #if __BYTE_ORDER == __BIG_ENDIAN
-                          PNG_FILLER_BEFORE);
+                          PNG_FILLER_BEFORE
 #else
-                          PNG_FILLER_AFTER);
+                          PNG_FILLER_AFTER
 #endif
+                          );
 
      pitch = width * DFB_BYTES_PER_PIXEL (src_format);
+     if (pitch & 3)
+          pitch += 4 - (pitch & 3);
+
      data  = malloc (height * pitch);
      if (!data)
           goto cleanup;
@@ -288,6 +292,9 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
           assert (DFB_BYTES_PER_PIXEL (src_format) == 4);
           
           d_pitch = width * DFB_BYTES_PER_PIXEL (dest_format);
+          if (d_pitch & 3)
+               d_pitch += 4 - (d_pitch & 3);
+
           dest = malloc (height * d_pitch);
           if (!dest)
                goto cleanup;
