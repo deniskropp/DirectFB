@@ -181,12 +181,22 @@ void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
     src = state->source;
     tex->surface = src;
 
-    ILOG2(src->width, tex->we);     // This recalculates
-    //tex->we = tex->we << 1;           // the width and height
-    ILOG2(src->height, tex->he);    // of the surface so
-    //tex->he = tex->he << 1;           // that it becomes
-    tex->l2w = 1 << tex->we;        // evenly divisible by
-    tex->l2h = 1 << tex->he;        // 2^n.
+    // Round texture size up to nearest
+    // value evenly divisible by 2^n
+
+    ILOG2(src->width, tex->we);
+    tex->l2w = 1 << tex->we;
+    if (tex->l2w < src->width) {
+        tex->we++;
+        tex->l2w <<= 1;
+    }
+
+    ILOG2(src->height, tex->he);
+    tex->l2h = 1 << tex->he;
+    if (tex->l2h < src->height) {
+        tex->he++;
+        tex->l2h <<= 1;
+    }
 
     tex->format = uc_map_src_format_3d(src->format);
 
