@@ -72,6 +72,7 @@ typedef struct {
      IDirectFBDataBuffer *buffer;
 
      int                  stage;
+     int                  rows;
 
      png_structp          png_ptr;
      png_infop            info_ptr;
@@ -82,6 +83,9 @@ typedef struct {
      int                  color_type;
 
      __u32               *image;
+
+     DIRenderCallback     render_callback;
+     void                *render_callback_context;
 } IDirectFBImageProvider_PNG_data;
 
 static DFBResult
@@ -94,6 +98,11 @@ static DFBResult
 IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *destination,
                                      const DFBRectangle     *destination_rect );
+
+static DFBResult
+IDirectFBImageProvider_PNG_SetRenderCallback( IDirectFBImageProvider *thiz,
+                                              DIRenderCallback        callback,
+                                              void                   *context );
 
 static DFBResult
 IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
@@ -176,6 +185,7 @@ Construct( IDirectFBImageProvider *thiz,
      thiz->AddRef = IDirectFBImageProvider_PNG_AddRef;
      thiz->Release = IDirectFBImageProvider_PNG_Release;
      thiz->RenderTo = IDirectFBImageProvider_PNG_RenderTo;
+     thiz->SetRenderCallback = IDirectFBImageProvider_PNG_SetRenderCallback;
      thiz->GetImageDescription = IDirectFBImageProvider_PNG_GetImageDescription;
      thiz->GetSurfaceDescription =
                               IDirectFBImageProvider_PNG_GetSurfaceDescription;
@@ -203,7 +213,7 @@ IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
 
      png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
      
-     /* Release the data buffer reference counter. */
+     /* Decrease the data buffer reference counter. */
      data->buffer->Release( data->buffer );
 
      /* Deallocate image data. */
@@ -243,7 +253,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      DFBResult              ret;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
-     DFBRectangle           rect = { 0, 0, 0, 0};
+     DFBRectangle           rect = { 0, 0, 0, 0 };
 
      INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
@@ -285,6 +295,18 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBImageProvider_PNG_SetRenderCallback( IDirectFBImageProvider *thiz,
+                                              DIRenderCallback        callback,
+                                              void                   *context )
+{
+     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
+
+     data->render_callback         = callback;
+     data->render_callback_context = context;
+
+     return DFB_OK;
+}
 
 /* Loading routines */
 
@@ -410,12 +432,17 @@ png_row_callback   (png_structp png_read_ptr,
 
                /* set error stage */
                data->stage = -1;
+
+               return;
           }
      }
 
      /* write to image data */
      png_progressive_combine_row( data->png_ptr, (png_bytep) (data->image +
                                   row_num * data->width), new_row );
+
+     /* increase row counter, FIXME: interlaced? */
+     data->rows++;
 }
 
 /* Called after reading the entire image */
@@ -442,7 +469,8 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
                        int                              buffer_size)
 {
      DFBResult            ret;
-     IDirectFBDataBuffer *buffer = data->buffer;
+     int                  last_row;
+     IDirectFBDataBuffer *buffer   = data->buffer;
 
      while (data->stage < stage) {
           unsigned int  len;
@@ -451,14 +479,27 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
           if (data->stage < 0)
                return DFB_FAILURE;
 
+          last_row = data->rows;
+          
           buffer->WaitForData( buffer, 1 );
+          
+          while (buffer->HasData( buffer ) == DFB_OK) {
+               ret = buffer->GetData( buffer, buffer_size, buf, &len );
+               if (ret)
+                    return ret;
 
-          ret = buffer->GetData( buffer, buffer_size, buf, &len );
-          if (ret)
-               return ret;
+               png_process_data( data->png_ptr, data->info_ptr, buf, len );
+          }
+#if 0
+          if (data->stage >= 2 && data->render_callback) {
+               DFBRectangle rect = { 0, last_row, data->width,
+                                     data->rows - last_row };
 
-          png_process_data( data->png_ptr, data->info_ptr, buf, len );
+               data->render_callback( &rect, data->render_callback_context );
+          }
+#endif
      }
      
      return DFB_OK;
 }
+

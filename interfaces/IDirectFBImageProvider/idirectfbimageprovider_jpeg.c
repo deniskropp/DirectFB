@@ -85,6 +85,11 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                       const DFBRectangle     *destination_rect );
 
 static DFBResult
+IDirectFBImageProvider_JPEG_SetRenderCallback( IDirectFBImageProvider *thiz,
+                                               DIRenderCallback        callback,
+                                               void                   *context );
+
+static DFBResult
 IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                    DFBSurfaceDescription  *dsc);
 
@@ -295,6 +300,7 @@ Construct( IDirectFBImageProvider *thiz,
      thiz->AddRef = IDirectFBImageProvider_JPEG_AddRef;
      thiz->Release = IDirectFBImageProvider_JPEG_Release;
      thiz->RenderTo = IDirectFBImageProvider_JPEG_RenderTo;
+     thiz->SetRenderCallback = IDirectFBImageProvider_JPEG_SetRenderCallback;
      thiz->GetImageDescription =IDirectFBImageProvider_JPEG_GetImageDescription;
      thiz->GetSurfaceDescription =
      IDirectFBImageProvider_JPEG_GetSurfaceDescription;
@@ -487,6 +493,14 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           return err;
 
      return DFB_OK;
+}
+
+static DFBResult
+IDirectFBImageProvider_JPEG_SetRenderCallback( IDirectFBImageProvider *thiz,
+                                               DIRenderCallback        callback,
+                                               void                   *context )
+{
+     return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
