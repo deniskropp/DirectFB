@@ -82,15 +82,15 @@ dfb_font_destroy( CoreFont *font )
 {
      int i;
 
-     D_ASSERT( font != NULL );
-
      D_MAGIC_ASSERT( font, CoreFont );
 
      D_MAGIC_CLEAR( font );
 
      pthread_mutex_lock( &font->lock );
 
+     dfb_state_set_destination( &font->state, NULL );
      dfb_state_set_source( &font->state, NULL );
+
      dfb_state_destroy( &font->state );
 
      direct_tree_destroy( font->glyph_infos );
@@ -108,93 +108,107 @@ dfb_font_destroy( CoreFont *font )
      D_FREE( font );
 }
 
+void
+dfb_font_drop_destination( CoreFont    *font,
+                           CoreSurface *surface )
+{
+     D_MAGIC_ASSERT( font, CoreFont );
+
+     D_ASSERT( surface != NULL );
+
+     pthread_mutex_lock( &font->lock );
+
+     if (font->state.destination == surface)
+          dfb_state_set_destination( &font->state, NULL );
+
+     pthread_mutex_unlock( &font->lock );
+}
+
 DFBResult
 dfb_font_get_glyph_data( CoreFont        *font,
                          unichar          glyph,
-                         CoreGlyphData  **glyph_data )
+                         CoreGlyphData  **ret_data )
 {
      DFBResult      ret;
      CoreGlyphData *data;
 
-     D_ASSERT( font != NULL );
-
      D_MAGIC_ASSERT( font, CoreFont );
 
+     D_ASSERT( ret_data != NULL );
+
      if ((data = direct_tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
-          *glyph_data = data;
+          *ret_data = data;
           return DFB_OK;
      }
 
-     if (!data) {
-          data = (CoreGlyphData *) D_CALLOC(1, sizeof (CoreGlyphData));
-          if (!data)
-               return DFB_NOSYSTEMMEMORY;
+     data = (CoreGlyphData *) D_CALLOC(1, sizeof (CoreGlyphData));
+     if (!data)
+          return DFB_NOSYSTEMMEMORY;
 
-          if (font->GetGlyphInfo &&
-              font->GetGlyphInfo (font, glyph, data) == DFB_OK &&
-              data->width > 0 && data->height > 0)
+     if (font->GetGlyphInfo &&
+         font->GetGlyphInfo (font, glyph, data) == DFB_OK &&
+         data->width > 0 && data->height > 0)
+     {
+          if (font->next_x + data->width > font->row_width) {
+               CoreSurface *surface;
+
+               if (font->row_width == 0) {
+                    int width = 8192 / font->height;
+
+                    if (width > 2048)
+                         width = 2048;
+
+                    if (width < font->maxadvance)
+                         width = font->maxadvance;
+
+                    font->row_width = (width + 7) & ~7;
+               }
+
+               ret = dfb_surface_create( font->core,
+                                         font->row_width,
+                                         MAX( font->height + 1, 8 ),
+                                         font->pixel_format,
+                                         CSP_VIDEOLOW, DSCAPS_NONE, NULL,
+                                         &surface );
+               if (ret) {
+                    D_ERROR( "DirectFB/core/fonts: "
+                              "Could not create glyph surface! (%s)\n",
+                              DirectFBErrorString( ret ) );
+
+                    D_FREE( data );
+                    return ret;
+               }
+
+               font->next_x = 0;
+               font->rows++;
+
+               font->surfaces = D_REALLOC( font->surfaces, sizeof(void *) * font->rows );
+
+               font->surfaces[font->rows - 1] = surface;
+          }
+
+          if (font->RenderGlyph(font, glyph, data,
+                                font->surfaces[font->rows - 1]) == DFB_OK)
           {
-               if (font->next_x + data->width > font->row_width) {
-                    CoreSurface *surface;
+               int align = DFB_PIXELFORMAT_ALIGNMENT(font->pixel_format);
 
-                    if (font->row_width == 0) {
-                         int width = 8192 / font->height;
+               data->surface = font->surfaces[font->rows - 1];
+               data->start   = font->next_x;
+               font->next_x += (data->width + align) & ~align;
 
-                         if (width > 2048)
-                              width = 2048;
-
-                         if (width < font->maxadvance)
-                              width = font->maxadvance;
-
-                         font->row_width = (width + 7) & ~7;
-                    }
-
-                    ret = dfb_surface_create( font->core,
-                                              font->row_width,
-                                              MAX( font->height + 1, 8 ),
-                                              font->pixel_format,
-                                              CSP_VIDEOLOW, DSCAPS_NONE, NULL,
-                                              &surface );
-                    if (ret) {
-                         D_ERROR( "DirectFB/core/fonts: "
-                                   "Could not create glyph surface! (%s)\n",
-                                   DirectFBErrorString( ret ) );
-
-                         D_FREE( data );
-                         return ret;
-                    }
-
-                    font->next_x = 0;
-                    font->rows++;
-
-                    font->surfaces = D_REALLOC( font->surfaces, sizeof(void *) * font->rows );
-
-                    font->surfaces[font->rows - 1] = surface;
-               }
-
-               if (font->RenderGlyph(font, glyph, data,
-                                     font->surfaces[font->rows - 1]) == DFB_OK)
-               {
-                    int align = DFB_PIXELFORMAT_ALIGNMENT(font->pixel_format);
-
-                    data->surface = font->surfaces[font->rows - 1];
-                    data->start   = font->next_x;
-                    font->next_x += (data->width + align) & ~align;
-
-                    dfb_gfxcard_flush_texture_cache();
-               }
-               else {
-                    data->start = data->width = data->height = 0;
-               }
+               dfb_gfxcard_flush_texture_cache();
           }
           else {
                data->start = data->width = data->height = 0;
           }
-
-          direct_tree_insert (font->glyph_infos, (void *) glyph, data);
+     }
+     else {
+          data->start = data->width = data->height = 0;
      }
 
-     *glyph_data = data;
+     direct_tree_insert (font->glyph_infos, (void *) glyph, data);
+
+     *ret_data = data;
 
      return DFB_OK;
 }

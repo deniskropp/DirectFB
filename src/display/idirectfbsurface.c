@@ -798,14 +798,27 @@ static DFBResult
 IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
                           IDirectFBFont    *font )
 {
+     DFBResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->font != font) {
-         if (font)
-              font->AddRef (font);
+         if (font) {
+              ret = font->AddRef( font );
+              if (ret)
+                   return ret;
+         }
 
-         if (data->font)
-              data->font->Release (data->font);
+         if (data->font) {
+              IDirectFBFont_data *old_data;
+              IDirectFBFont      *old = data->font;
+
+              DIRECT_INTERFACE_GET_DATA_FROM( old, old_data, IDirectFBFont );
+
+              dfb_font_drop_destination( old_data->font, data->surface );
+
+              old->Release( old );
+         }
 
          data->font = font;
      }

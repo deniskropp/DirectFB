@@ -78,7 +78,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          25
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          26
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     60
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   80
@@ -179,6 +179,11 @@ typedef struct _GraphicsDeviceFuncs {
      void (*WaitSerial)( void *driver_data, void *device_data, const CoreGraphicsSerial *serial );
 
      /*
+      * emit any buffered commands, i.e. trigger processing
+      */
+     void (*EmitCommands)  ( void *driver_data, void *device_data );
+
+     /*
       * Check if the function 'accel' can be accelerated with the 'state'.
       * If that's true, the function sets the 'accel' bit in 'state->accel'.
       * Otherwise the function just returns, no need to clear the bit.
@@ -224,11 +229,6 @@ typedef struct _GraphicsDeviceFuncs {
      bool (*TextureTriangles)( void *driver_data, void *device_data,
                                DFBVertex *vertices, int num,
                                DFBTriangleFormation formation );
-
-     /*
-      * emit any buffered commands, i.e. trigger processing
-      */
-     void (*EmitCommands)  ( void *driver_data, void *device_data );
 } GraphicsDeviceFuncs;
 
 typedef struct {

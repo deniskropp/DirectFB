@@ -4010,35 +4010,35 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      }
 
 
-     dfb_surfacemanager_lock( dfb_gfxcard_surface_manager() );
+     dfb_surfacemanager_lock( destination->manager );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           if (dfb_surface_software_lock( source, DSLF_READ, &gfxs->src_org,
-                                         &gfxs->src_pitch, 1 )) {
-               dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
+                                         &gfxs->src_pitch, true )) {
+               dfb_surfacemanager_unlock( destination->manager );
                return false;
           }
 
           gfxs->src_field_offset = gfxs->src_height/2 * gfxs->src_pitch;
 
-          state->source_locked = 1;
+          state->flags |= CSF_SOURCE_LOCKED;
      }
-     else
-          state->source_locked = 0;
 
      if (dfb_surface_software_lock( state->destination, lock_flags,
-                                    &gfxs->dst_org, &gfxs->dst_pitch, 0 )) {
+                                    &gfxs->dst_org, &gfxs->dst_pitch, false ))
+     {
+          if (state->flags & CSF_SOURCE_LOCKED) {
+               dfb_surface_unlock( source, true );
+               state->flags &= ~CSF_SOURCE_LOCKED;
+          }
 
-          if (state->source_locked)
-               dfb_surface_unlock( source, 1 );
-
-          dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
+          dfb_surfacemanager_unlock( destination->manager );
           return false;
      }
 
      gfxs->dst_field_offset = gfxs->dst_height/2 * gfxs->dst_pitch;
 
-     dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
+     dfb_surfacemanager_unlock( destination->manager );
 
 
      switch (accel) {
@@ -4406,6 +4406,8 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      *funcs = NULL;
 
+     dfb_state_update( state, state->flags & CSF_SOURCE_LOCKED );
+
      return true;
 }
 
@@ -4413,8 +4415,10 @@ void gRelease( CardState *state )
 {
      dfb_surface_unlock( state->destination, 0 );
 
-     if (state->source_locked)
-          dfb_surface_unlock( state->source, 1 );
+     if (state->flags & CSF_SOURCE_LOCKED) {
+          dfb_surface_unlock( state->source, true );
+          state->flags &= ~CSF_SOURCE_LOCKED;
+     }
 }
 
 #define CHECK_PIPELINE()           \

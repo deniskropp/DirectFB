@@ -78,7 +78,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_systems );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_SYSTEM_ABI_VERSION           6
+#define DFB_CORE_SYSTEM_ABI_VERSION           7
 
 #define DFB_CORE_SYSTEM_INFO_NAME_LENGTH     60
 #define DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH   80

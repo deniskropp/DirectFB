@@ -121,6 +121,8 @@ static void surface_destructor( FusionObject *object, bool zombie )
           dfb_palette_unlink( &surface->palette );
      }
 
+     direct_serial_deinit( &surface->serial );
+
      fusion_object_destroy( object );
 }
 
@@ -225,6 +227,7 @@ DFBResult dfb_surface_create( CoreDFB *core,
           }
      }
 
+
      fusion_object_activate( &surface->object );
 
      *ret_surface = surface;
@@ -301,6 +304,8 @@ dfb_surface_notify_listeners( CoreSurface                  *surface,
 
      notification.flags   = flags;
      notification.surface = surface;
+
+     direct_serial_increase( &surface->serial );
 
      return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
 }
@@ -845,6 +850,8 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
                D_BUG( "unknown pixel format" );
                return DFB_BUG;
      }
+
+     direct_serial_init( &surface->serial );
 
      surface->width  = width;
      surface->height = height;

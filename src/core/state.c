@@ -45,12 +45,35 @@
 #include <direct/util.h>
 
 
-static ReactionResult destination_listener( const void *msg_data,
-                                            void       *ctx );
-static ReactionResult source_listener     ( const void *msg_data,
-                                            void       *ctx );
+static inline void
+validate_clip( CardState *state,
+               int        xmax,
+               int        ymax )
+{
+     D_MAGIC_ASSERT( state, CardState );
 
+     DFB_REGION_ASSERT( &state->clip );
 
+     if (state->clip.x1 <= xmax &&
+         state->clip.y1 <= ymax &&
+         state->clip.x2 <= xmax &&
+         state->clip.y2 <= ymax)
+          return;
+
+     if (state->clip.x1 > xmax)
+          state->clip.x1 = xmax;
+
+     if (state->clip.y1 > ymax)
+          state->clip.y1 = ymax;
+
+     if (state->clip.x2 > xmax)
+          state->clip.x2 = xmax;
+
+     if (state->clip.y2 > ymax)
+          state->clip.y2 = ymax;
+
+     state->modified |= SMF_CLIP;
+}
 
 int
 dfb_state_init( CardState *state )
@@ -65,6 +88,9 @@ dfb_state_init( CardState *state )
 
      direct_util_recursive_pthread_mutex_init( &state->lock );
 
+     direct_serial_init( &state->dst_serial );
+     direct_serial_init( &state->src_serial );
+
      D_MAGIC_SET( state, CardState );
 
      return 0;
@@ -73,11 +99,15 @@ dfb_state_init( CardState *state )
 void
 dfb_state_destroy( CardState *state )
 {
-     D_ASSERT( state != NULL );
-
      D_MAGIC_ASSERT( state, CardState );
 
      D_MAGIC_CLEAR( state );
+
+     D_ASSUME( state->destination == NULL );
+     D_ASSUME( state->source == NULL );
+
+     direct_serial_deinit( &state->dst_serial );
+     direct_serial_deinit( &state->src_serial );
 
      if (state->gfxs) {
           GenefxState *gfxs = state->gfxs;
@@ -94,16 +124,22 @@ dfb_state_destroy( CardState *state )
 void
 dfb_state_set_destination( CardState *state, CoreSurface *destination )
 {
-     D_ASSERT( state != NULL );
-
      D_MAGIC_ASSERT( state, CardState );
 
      dfb_state_lock( state );
 
      if (state->destination != destination) {
+          if (destination) {
+               if (dfb_surface_ref( destination )) {
+                    D_WARN( "could not ref() destination" );
+                    return;
+               }
+
+               validate_clip( state, destination->width - 1, destination->height - 1 );
+          }
+
           if (state->destination) {
-               dfb_surface_detach( state->destination,
-                                   &state->destination_reaction );
+               D_ASSERT( D_FLAGS_IS_SET( state->flags, CSF_DESTINATION ) );
                dfb_surface_unref( state->destination );
           }
 
@@ -111,10 +147,12 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
           state->modified    |= SMF_DESTINATION;
 
           if (destination) {
-               dfb_surface_ref( destination );
-               dfb_surface_attach( destination, destination_listener,
-                                   state, &state->destination_reaction );
+               direct_serial_copy( &state->dst_serial, &destination->serial );
+
+               D_FLAGS_SET( state->flags, CSF_DESTINATION );
           }
+          else
+               D_FLAGS_CLEAR( state->flags, CSF_DESTINATION );
      }
 
      dfb_state_unlock( state );
@@ -123,16 +161,18 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
 void
 dfb_state_set_source( CardState *state, CoreSurface *source )
 {
-     D_ASSERT( state != NULL );
-
      D_MAGIC_ASSERT( state, CardState );
 
      dfb_state_lock( state );
 
      if (state->source != source) {
+          if (source && dfb_surface_ref( source )) {
+               D_WARN( "could not ref() source" );
+               return;
+          }
+
           if (state->source) {
-               dfb_surface_detach( state->source,
-                                   &state->source_reaction );
+               D_ASSERT( D_FLAGS_IS_SET( state->flags, CSF_SOURCE ) );
                dfb_surface_unref( state->source );
           }
 
@@ -140,92 +180,43 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
           state->modified |= SMF_SOURCE;
 
           if (source) {
-               dfb_surface_ref( source );
-               dfb_surface_attach( source, source_listener,
-                                   state, &state->source_reaction );
+               direct_serial_copy( &state->src_serial, &source->serial );
+
+               D_FLAGS_SET( state->flags, CSF_SOURCE );
           }
+          else
+               D_FLAGS_CLEAR( state->flags, CSF_SOURCE );
      }
 
      dfb_state_unlock( state );
 }
 
-/**********************/
-
-static ReactionResult
-destination_listener( const void *msg_data,
-                      void       *ctx )
+void
+dfb_state_update( CardState *state, bool update_source )
 {
-     const CoreSurfaceNotification *notification = msg_data;
-     CardState                     *state        = ctx;
-
      D_MAGIC_ASSERT( state, CardState );
 
-//     dfb_state_lock( state );
+     DFB_REGION_ASSERT( &state->clip );
 
-     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
-                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE_CHANGE |
-                                CSNF_PALETTE_UPDATE))
-          state->modified |= SMF_DESTINATION;
+     if (D_FLAGS_IS_SET( state->flags, CSF_DESTINATION )) {
+          CoreSurface *destination = state->destination;
 
-     if (notification->flags & CSNF_DESTROY) {
-          dfb_surface_unref( state->destination );
-          state->destination = NULL;
+          D_ASSERT( destination != NULL );
 
-//          dfb_state_unlock( state );
+          if (direct_serial_update( &state->dst_serial, &destination->serial )) {
+               validate_clip( state, destination->width - 1, destination->height - 1 );
 
-          return RS_REMOVE;
+               state->modified |= SMF_DESTINATION;
+          }
      }
 
-     if (notification->flags & CSNF_SIZEFORMAT) {
-          CoreSurface *surface = notification->surface;
+     if (update_source && D_FLAGS_IS_SET( state->flags, CSF_SOURCE )) {
+          CoreSurface *source = state->source;
 
-          /* if this really happens everything should be clipped */
-          if (surface->width <= state->clip.x1)
-               state->clip.x1 = surface->width - 1;
-          if (surface->height <= state->clip.y1)
-               state->clip.y1 = surface->height - 1;
+          D_ASSERT( source != NULL );
 
-
-          if (surface->width <= state->clip.x2)
-               state->clip.x2 = surface->width - 1;
-          if (surface->height <= state->clip.y2)
-               state->clip.y2 = surface->height - 1;
-
-          state->modified |= SMF_CLIP;
+          if (direct_serial_update( &state->src_serial, &source->serial ))
+               state->modified |= SMF_SOURCE;
      }
-
-//     dfb_state_unlock( state );
-
-     return RS_OK;
-}
-
-static ReactionResult
-source_listener( const void *msg_data,
-                 void       *ctx )
-{
-     const CoreSurfaceNotification *notification = msg_data;
-     CardState                     *state        = ctx;
-
-     D_MAGIC_ASSERT( state, CardState );
-
-//     dfb_state_lock( state );
-
-     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT | CSNF_FIELD |
-                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE_CHANGE |
-                                CSNF_PALETTE_UPDATE))
-          state->modified |= SMF_SOURCE;
-
-     if (notification->flags & CSNF_DESTROY) {
-          dfb_surface_unref( state->source );
-          state->source = NULL;
-
-//          dfb_state_unlock( state );
-
-          return RS_REMOVE;
-     }
-
-//     dfb_state_unlock( state );
-
-     return RS_OK;
 }
 

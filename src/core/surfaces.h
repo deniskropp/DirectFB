@@ -30,8 +30,10 @@
 
 #include <directfb.h>
 
-#include <fusion/object.h>
 #include <direct/list.h>
+#include <direct/serial.h>
+
+#include <fusion/object.h>
 #include <fusion/lock.h>
 #include <fusion/reactor.h>
 
@@ -135,6 +137,8 @@ struct _SurfaceBuffer
 struct _CoreSurface
 {
      FusionObject           object;
+
+     DirectSerial           serial;        /* notification serial */
 
      /* size/format and instances */
      int                    width;         /* pixel width of the surface */

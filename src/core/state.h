@@ -25,23 +25,24 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __STATE_H__
-#define __STATE_H__
+#ifndef __CORE__STATE_H__
+#define __CORE__STATE_H__
 
 #include <pthread.h>
 
 #include <directfb.h>
 
-#include <gfx/generic/generic.h>
+#include <direct/serial.h>
 
-#include <misc/util.h>
+#include <fusion/reactor.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
-
 #include <core/gfxcard.h>
 
-#include <fusion/reactor.h>
+#include <gfx/generic/generic.h>
+
+#include <misc/util.h>
 
 
 typedef enum {
@@ -60,49 +61,62 @@ typedef enum {
      SMF_ALL             = 0x000003FF
 } StateModificationFlags;
 
-struct _CardState {
-     int                     magic;
+typedef enum {
+     CSF_NONE            = 0x00000000,
 
-     StateModificationFlags  modified;     /* indicate which fields have been
-                                              modified, these flags will be
-                                              cleared by the gfx drivers */
+     CSF_DESTINATION     = 0x00000001,  /* destination is set using dfb_state_set_destination() */
+     CSF_SOURCE          = 0x00000002,  /* source is set using dfb_state_set_source() */
+
+     CSF_SOURCE_LOCKED   = 0x00000010,  /* source surface is locked */
+
+     CSF_ALL             = 0x00000013
+} CardStateFlags;
+
+struct _CardState {
+     int                      magic;
+
+     pthread_mutex_t          lock;          /* lock for state handling */
+
+     CardStateFlags           flags;
+
+     StateModificationFlags   modified;      /* indicate which fields have been
+                                                modified, these flags will be
+                                                cleared by the gfx drivers */
 
      /* values forming the state for graphics operations */
 
-     DFBSurfaceDrawingFlags  drawingflags; /* drawing flags */
-     DFBSurfaceBlittingFlags blittingflags;/* blitting flags */
+     DFBSurfaceDrawingFlags   drawingflags;  /* drawing flags */
+     DFBSurfaceBlittingFlags  blittingflags; /* blitting flags */
 
-     DFBRegion               clip;         /* clipping rectangle */
-     DFBColor                color;        /* color for drawing or modulation */
-     unsigned int            color_index;  /* index to color in palette */
-     DFBSurfaceBlendFunction src_blend;    /* blend function for source */
-     DFBSurfaceBlendFunction dst_blend;    /* blend function for destination */
-     __u32                   src_colorkey; /* colorkey for source */
-     __u32                   dst_colorkey; /* colorkey for destination */
+     DFBRegion                clip;          /* clipping rectangle */
+     DFBColor                 color;         /* color for drawing or modulation */
+     unsigned int             color_index;   /* index to color in palette */
+     DFBSurfaceBlendFunction  src_blend;     /* blend function for source */
+     DFBSurfaceBlendFunction  dst_blend;     /* blend function for destination */
+     __u32                    src_colorkey;  /* colorkey for source */
+     __u32                    dst_colorkey;  /* colorkey for destination */
 
-     CoreSurface             *destination; /* destination surface */
-     CoreSurface             *source;      /* source surface */
+     CoreSurface             *destination;   /* destination surface */
+     CoreSurface             *source;        /* source surface */
+
+     DirectSerial             dst_serial;    /* last destination surface serial */
+     DirectSerial             src_serial;    /* last source surface serial */
 
 
      /* hardware abstraction and state handling helpers */
 
-     DFBAccelerationMask     accel;        /* cache for checked commands if they are accelerated */
-     DFBAccelerationMask     checked;      /* commands for which a state has already been checked */
-     DFBAccelerationMask     set;          /* commands for which a state is valid */
+     DFBAccelerationMask      accel;         /* remember checked commands if they are accelerated */
+     DFBAccelerationMask      checked;       /* commands for which a state has been checked */
+     DFBAccelerationMask      set;           /* commands for which a state is valid */
 
-     int                     source_locked;/* when state is acquired for a blit mark that the
-                                              source needs to be unlocked when state is released */
+     Reaction                 destination_reaction;
+     Reaction                 source_reaction;
 
-     pthread_mutex_t         lock;         /* lock for state handling */
-
-     Reaction                destination_reaction;
-     Reaction                source_reaction;
-
-     CoreGraphicsSerial      serial;       /* hardware serial of the last operation */
+     CoreGraphicsSerial       serial;        /* hardware serial of the last operation */
 
      /* software driver */
 
-     GenefxState            *gfxs;
+     GenefxState             *gfxs;
 };
 
 int dfb_state_init( CardState *state );
@@ -110,6 +124,8 @@ void dfb_state_destroy( CardState *state );
 
 void dfb_state_set_destination( CardState *state, CoreSurface *destination );
 void dfb_state_set_source( CardState *state, CoreSurface *source );
+
+void dfb_state_update( CardState *state, bool update_source );
 
 static inline void
 dfb_state_get_serial( const CardState *state, CoreGraphicsSerial *ret_serial )
@@ -120,21 +136,25 @@ dfb_state_get_serial( const CardState *state, CoreGraphicsSerial *ret_serial )
      *ret_serial = state->serial;
 }
 
+static inline void
+dfb_state_lock( CardState *state )
+{
+     D_MAGIC_ASSERT( state, CardState );
 
-#define dfb_state_lock(state)                               \
-do {                                                        \
-     D_MAGIC_ASSERT( state, CardState );                    \
-                                                            \
-     pthread_mutex_lock( &(state)->lock );                  \
-} while (0)
+     DFB_REGION_ASSERT( &state->clip );
 
-#define dfb_state_unlock(state)                             \
-do {                                                        \
-     D_MAGIC_ASSERT( state, CardState );                    \
-                                                            \
-     pthread_mutex_unlock( &(state)->lock );                \
-} while (0)
+     pthread_mutex_lock( &state->lock );
+}
 
+static inline void
+dfb_state_unlock( CardState *state )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     DFB_REGION_ASSERT( &state->clip );
+
+     pthread_mutex_unlock( &state->lock );
+}
 
 
 #define _dfb_state_set_checked(member,flag,state,value)     \

@@ -101,23 +101,33 @@ CoreFont *dfb_font_create( CoreDFB *core );
  */
 void dfb_font_destroy( CoreFont *font );
 
+void dfb_font_drop_destination( CoreFont *font, CoreSurface *surface );
+
 /*
  * lock the font before accessing it
  */
-#define dfb_font_lock(font)                  \
-do {                                         \
-     pthread_mutex_lock( &(font)->lock );    \
-     dfb_state_lock( &(font)->state );       \
-} while (0)
+static inline void
+dfb_font_lock( CoreFont *font )
+{
+     D_MAGIC_ASSERT( font, CoreFont );
+
+     pthread_mutex_lock( &font->lock );
+
+     dfb_state_lock( &font->state );
+}
 
 /*
  * unlock the font after access
  */
-#define dfb_font_unlock(font)                \
-do {                                         \
-     dfb_state_unlock( &(font)->state );     \
-     pthread_mutex_unlock( &(font)->lock );  \
-} while (0)
+static inline void
+dfb_font_unlock( CoreFont *font )
+{
+     D_MAGIC_ASSERT( font, CoreFont );
+
+     dfb_state_unlock( &font->state );
+
+     pthread_mutex_unlock( &font->lock );
+}
 
 /*
  * loads glyph data from font

@@ -542,20 +542,20 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
-          if (dfb_surface_hardware_lock( state->source, DSLF_READ, 1 )) {
+          if (dfb_surface_hardware_lock( state->source, DSLF_READ, true )) {
                dfb_surfacemanager_unlock( shared->surface_manager );
                return false;
           }
 
-          state->source_locked = 1;
+          state->flags |= CSF_SOURCE_LOCKED;
      }
-     else
-          state->source_locked = 0;
 
      /* lock destination */
-     if (dfb_surface_hardware_lock( state->destination, lock_flags, 0 )) {
-          if (state->source_locked)
-               dfb_surface_unlock( state->source, 1 );
+     if (dfb_surface_hardware_lock( state->destination, lock_flags, false )) {
+          if (state->flags & CSF_SOURCE_LOCKED) {
+               dfb_surface_unlock( state->source, true );
+               state->flags &= ~CSF_SOURCE_LOCKED;
+          }
 
           dfb_surfacemanager_unlock( shared->surface_manager );
           return false;
@@ -574,8 +574,10 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      if (dfb_gfxcard_lock( GDLF_NONE )) {
           dfb_surface_unlock( state->destination, false );
 
-          if (state->source_locked)
+          if (state->flags & CSF_SOURCE_LOCKED) {
                dfb_surface_unlock( state->source, true );
+               state->flags &= ~CSF_SOURCE_LOCKED;
+          }
 
           return false;
      }
@@ -589,6 +591,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           shared->state  = state;
           shared->holder = fid;
      }
+
+     dfb_state_update( state, state->flags & CSF_SOURCE_LOCKED );
 
      /*
       * If function hasn't been set or state is modified,
@@ -631,8 +635,11 @@ dfb_gfxcard_state_release( CardState *state )
      dfb_surface_unlock( state->destination, false );
 
      /* if source got locked this value is true */
-     if (state->source_locked)
+     if (state->flags & CSF_SOURCE_LOCKED) {
           dfb_surface_unlock( state->source, true );
+
+          state->flags &= ~CSF_SOURCE_LOCKED;
+     }
 }
 
 /** DRAWING FUNCTIONS **/
@@ -1199,7 +1206,6 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
           dy2 -= outer - (outer % rect->h);
      }
 
-
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
 
@@ -1385,8 +1391,7 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      }
 
      /* set destination */
-     font->state.destination  = state->destination;
-     font->state.modified    |= SMF_DESTINATION;
+     dfb_state_set_destination( &font->state, state->destination );
 
      /* set clip */
      dfb_state_set_clip( &font->state, &state->clip );
@@ -1486,8 +1491,6 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                break;
      }
 
-     font->state.destination = NULL;
-
      dfb_font_unlock( font );
      dfb_state_unlock( state );
 }
@@ -1523,8 +1526,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      }
 
      /* set destination */
-     font->state.destination  = state->destination;
-     font->state.modified    |= SMF_DESTINATION;
+     dfb_state_set_destination( &font->state, state->destination );
 
      /* set clip */
      dfb_state_set_clip( &font->state, &state->clip );
@@ -1566,8 +1568,6 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
           gBlit( &font->state, &rect, x, y );
           gRelease( &font->state );
      }
-
-     font->state.destination = NULL;
 
      dfb_font_unlock( font );
      dfb_state_unlock( state );
