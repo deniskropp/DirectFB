@@ -491,8 +491,9 @@ extern "C"
           DIDTF_MOUSE         = 0x00000002,  /* can be used as a mouse */
           DIDTF_JOYSTICK      = 0x00000004,  /* can be used as a joystick */
           DIDTF_REMOTE        = 0x00000008,  /* device is a remote control */
+          DIDTF_VIRTUAL       = 0x00000010,  /* virtual input device */
 
-          DIDTF_ALL           = 0x0000000F   /* all type flags */
+          DIDTF_ALL           = 0x0000001F   /* all type flags */
      } DFBInputDeviceTypeFlags;
 
      /*
