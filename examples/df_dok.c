@@ -104,7 +104,7 @@ typedef struct {
      char    * status;
      char    * option;
      int       requested;
-     float     result;
+     long      result;
      char    * unit;
      unsigned long long (* func) ( long );  
 } Demo;
@@ -113,59 +113,59 @@ static Demo demos[] = {
   { "Anti-aliased Text", 
     "This is the DirectFB benchmarking tool, let's start with some text!",
     "Anti-aliased Text", "draw-string", 
-    0, 0.0, "KChars/sec",  draw_string },
+    0, 0, "KChars/sec",  draw_string },
   { "Fill Rectangles",
     "Ok, we'll go on with some opaque filled rectangles!",
     "Rectangle Filling", "fill-rect",
-    0, 0.0, "MPixel/sec", fill_rect },
+    0, 0, "MPixel/sec", fill_rect },
   { "Fill Rectangles (blend)",
     "What about alpha blended rectangles?",
     "Alpha Blended Rectangle Filling", "fill-rect-blend",
-    0, 0.0, "MPixel/sec", fill_rect_blend },
+    0, 0, "MPixel/sec", fill_rect_blend },
   { "Fill Triangles",
     "Ok, we'll go on with some opaque filled triangles!",
     "Triangle Filling", "fill-triangle",
-    0, 0.0, "MPixel/sec", fill_triangle },
+    0, 0, "MPixel/sec", fill_triangle },
   { "Fill Triangles (blend)",  
     "What about alpha blended triangles?", 
     "Alpha Blended Triangle Filling", "fill-triangle-blend",
-    0, 0.0, "MPixel/sec", fill_triangle_blend },
+    0, 0, "MPixel/sec", fill_triangle_blend },
   { "Draw Rectangles", 
     "Now pass over to non filled rectangles!", 
     "Rectangle Outlines", "draw-rect",
-    0, 0.0, "MPixel/sec", draw_rect },
+    0, 0, "MPixel/sec", draw_rect },
   { "Draw Rectangles (blend)",
     "Again, we want it with alpha blending!",
     "Alpha Blended Rectangle Outlines", "draw-rect-blend",
-    0, 0.0, "MPixel/sec", draw_rect_blend },
+    0, 0, "MPixel/sec", draw_rect_blend },
   { "Draw Lines",
     "Can we have some opaque lines, please?",
     "Line Drawing", "draw-line",
-    0, 0.0, "MPixel/sec", draw_lines },
+    0, 0, "MPixel/sec", draw_lines },
   { "Draw Lines (blend)",
     "So what? Where's the blending?",
     "Alpha Blended Line Drawing", "draw-line-blend",
-    0, 0.0, "MPixel/sec", draw_lines_blend },
+    0, 0, "MPixel/sec", draw_lines_blend },
   { "Blit",
     "Now lead to some blitting demos! The simplest one comes first...",
     "Simple BitBlt", "blit",
-    0, 0.0, "MPixel/sec", blit },
+    0, 0, "MPixel/sec", blit },
   { "Blit colorkeyed",
     "Color keying would be nice...",
     "BitBlt with Color Keying", "blit-colorkeyed",
-    0, 0.0, "MPixel/sec", blit_colorkeyed },
+    0, 0, "MPixel/sec", blit_colorkeyed },
   { "Blit with format conversion",
     "What if the source surface has another format?",
     "BitBlt with on-the-fly format conversion", "blit-convert",
-    0, 0.0, "MPixel/sec", blit_convert },
+    0, 0, "MPixel/sec", blit_convert },
   { "Blit from 32bit (alphachannel blend)", 
     "Here we go with alpha again!",
     "BitBlt with Alpha Channel", "blit-blend",
-    0, 0.0, "MPixel/sec", blit_blend },
+    0, 0, "MPixel/sec", blit_blend },
   { "Stretch Blit", 
     "Stretching!!!!!",
     "Stretch Blit", "stretch-blit",
-    0, 0.0, "MPixel/sec", stretch_blit }
+    0, 0, "MPixel/sec", stretch_blit }
 };
 static int num_demos = sizeof( demos ) / sizeof (demos[0]);
 
@@ -249,7 +249,7 @@ static void showResult()
      int   i, y;
      char  rate[32];
      char  format[32];
-     float factor = (SW-80) / 500.0f;
+     double factor = (SW-80) / 500000.0;
 
      if (dfb->CreateImageProvider( dfb, 
                                    DATADIR"/examples/meter.png", &provider ))
@@ -275,7 +275,7 @@ static void showResult()
           if (!demos[i].requested)
                continue;
 
-          dest.w = (int)( demos[i].result * factor );
+          dest.w = (double) demos[i].result * factor;
           primary->StretchBlit( primary, meter, NULL, &dest );
           if (dest.w < SW-80)
                primary->DrawLine( primary, 
@@ -295,7 +295,7 @@ static void showResult()
           primary->DrawString( primary, demos[i].desc, -1, 20, y, DSTF_LEFT );
      
           sprintf( format, "%%.2f %s", demos[i].unit );
-          sprintf( rate, format, demos[i].result );
+          sprintf( rate, format, (double) demos[i].result / 1000.0);
           primary->SetColor( primary, 0xAA, 0xAA, 0xAA, 0xFF );
           primary->DrawString( primary, rate, -1, SW-40, y + 5, DSTF_RIGHT );
 
@@ -696,7 +696,7 @@ int main( int argc, char *argv[] )
      
      for (i = 0; i < num_demos; i++) {
            long t, dt;
-           long long pixels;
+           unsigned long long pixels;
           
            if (!demos[i].requested)
                 continue;
@@ -710,10 +710,10 @@ int main( int argc, char *argv[] )
            pixels = (* demos[i].func)(t);
            dfb->WaitIdle( dfb );
            dt = myclock() - t;
-           demos[i].result = (float)pixels / (float)(dt * 1000);
+           demos[i].result = pixels / dt;
            printf( "%-36s %6.2f secs (%8.2f %s)\n", 
                    demos[i].desc, 
-                   dt / 1000.0, demos[i].result, demos[i].unit);
+                   dt / 1000.0, demos[i].result / 1000.0, demos[i].unit);
      }          
 
      showResult();
