@@ -2,23 +2,23 @@
 .data
 
 .extern Sacc
-.extern Dop
+.extern Aop
 .extern Dlength
 
 preload: .long  0xFF00FF00,     0x0000FF00
 postload:.long  0x00FF00FF,     0x000000FF
 pm:      .long  0x01000001,     0x00000001
 
-.globl Sacc_to_Dop_rgb32_MMX
+.globl Sacc_to_Aop_rgb32_MMX
 
 .text
 
 .align 8
-Sacc_to_Dop_rgb32_MMX: 
+Sacc_to_Aop_rgb32_MMX: 
 	pushal
 
 	movl	Sacc, %esi
-	movl	Dop, %edi
+	movl	Aop, %edi
         movl    Dlength, %ecx
         
         movq    preload, %mm1

@@ -64,7 +64,7 @@ DFBColor color;
 /*
  * operands
  */
-static void *Aop = NULL;
+void *Aop = NULL;
 static void *Bop = NULL;
 static __u32 Cop = 0;
 
@@ -92,7 +92,6 @@ static GFunc gfuncs[32];
 Accumulator *Xacc = NULL;
 Accumulator *Dacc = NULL;
 Accumulator *Sacc = NULL;
-void        *Dop  = NULL;
 void        *Sop  = NULL;
 
 /* controls horizontal blitting direction */
@@ -106,21 +105,21 @@ static pthread_mutex_t generic_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int source_locked = 0;
 
-/********************************* Cop_to_Dop_PFI *****************************/
-static void Cop_to_Dop_8()
+/********************************* Cop_to_Aop_PFI *****************************/
+static void Cop_to_Aop_8()
 {
-     memset( Dop, (__u8)Cop, Dlength );
+     memset( Aop, (__u8)Cop, Dlength );
 }
 
-static void Cop_to_Dop_16()
+static void Cop_to_Aop_16()
 {
      int    w, l = Dlength;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
 
      __u32 DCop = ((Cop << 16) | Cop);
 
      if (((long)D)&2) {         /* align */
-          unsigned short* tmp=Dop;
+          unsigned short* tmp=Aop;
           --l;
           *tmp = Cop;
           D = (__u32*)(tmp+1);
@@ -137,10 +136,10 @@ static void Cop_to_Dop_16()
           *((__u16*)D) = (__u16)Cop;
 }
 
-static void Cop_to_Dop_24()
+static void Cop_to_Aop_24()
 {
      int   w = Dlength;
-     __u8 *D = (__u8*)Dop;
+     __u8 *D = (__u8*)Aop;
 
      while (w) {
           D[0] = color.b;
@@ -152,30 +151,30 @@ static void Cop_to_Dop_24()
      }
 }
 
-static void Cop_to_Dop_32()
+static void Cop_to_Aop_32()
 {
      int    w = Dlength;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
 
      while (w--)
           *D++ = (__u32)Cop;
 }
 
-static GFunc Cop_to_Dop_PFI[] = {
-     Cop_to_Dop_16,
-     Cop_to_Dop_16,
-     Cop_to_Dop_24,
-     Cop_to_Dop_32,
-     Cop_to_Dop_32,
-     Cop_to_Dop_8
+static GFunc Cop_to_Aop_PFI[] = {
+     Cop_to_Aop_16,
+     Cop_to_Aop_16,
+     Cop_to_Aop_24,
+     Cop_to_Aop_32,
+     Cop_to_Aop_32,
+     Cop_to_Aop_8
 };
 
-/********************************* Cop_toK_Dop_PFI ****************************/
+/********************************* Cop_toK_Aop_PFI ****************************/
 
-static void Cop_toK_Dop_8()
+static void Cop_toK_Aop_8()
 {
      int   w = Dlength;
-     __u8 *D = (__u8*)Dop;
+     __u8 *D = (__u8*)Aop;
 
      while (w--) {
           if ((__u8)Dkey == *D)
@@ -185,10 +184,10 @@ static void Cop_toK_Dop_8()
      }
 }
 
-static void Cop_toK_Dop_16()
+static void Cop_toK_Aop_16()
 {
      int    w = Dlength;
-     __u16 *D = (__u16*)Dop;
+     __u16 *D = (__u16*)Aop;
 
      while (w--) {
           if ((__u16)Dkey == *D)
@@ -198,15 +197,15 @@ static void Cop_toK_Dop_16()
      }
 }
 
-static void Cop_toK_Dop_24()
+static void Cop_toK_Aop_24()
 {
-     ONCE("Cop_toK_Dop_24() unimplemented");
+     ONCE("Cop_toK_Aop_24() unimplemented");
 }
 
-static void Cop_toK_Dop_32()
+static void Cop_toK_Aop_32()
 {
      int    w = Dlength;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
 
      while (w--) {
           if ((__u32)Dkey != *D)
@@ -216,52 +215,52 @@ static void Cop_toK_Dop_32()
      }
 }
 
-static GFunc Cop_toK_Dop_PFI[] = {
-     Cop_toK_Dop_16,
-     Cop_toK_Dop_16,
-     Cop_toK_Dop_24,
-     Cop_toK_Dop_32,
-     Cop_toK_Dop_32,
-     Cop_toK_Dop_8
+static GFunc Cop_toK_Aop_PFI[] = {
+     Cop_toK_Aop_16,
+     Cop_toK_Aop_16,
+     Cop_toK_Aop_24,
+     Cop_toK_Aop_32,
+     Cop_toK_Aop_32,
+     Cop_toK_Aop_8
 };
 
-/********************************* Sop_PFI_to_Dop_PFI *************************/
+/********************************* Sop_PFI_to_Aop_PFI *************************/
 
-static void Sop_8_to_Dop()
+static void Sop_8_to_Aop()
 {
-     memmove( Dop, Sop, Dlength );
+     memmove( Aop, Sop, Dlength );
 }
 
-static void Sop_16_to_Dop()
+static void Sop_16_to_Aop()
 {
-     memmove( Dop, Sop, Dlength*2 );
+     memmove( Aop, Sop, Dlength*2 );
 }
 
-static void Sop_24_to_Dop()
+static void Sop_24_to_Aop()
 {
-     memmove( Dop, Sop, Dlength*3 );
+     memmove( Aop, Sop, Dlength*3 );
 }
 
-static void Sop_32_to_Dop()
+static void Sop_32_to_Aop()
 {
-     memmove( Dop, Sop, Dlength*4 );
+     memmove( Aop, Sop, Dlength*4 );
 }
 
-static GFunc Sop_PFI_to_Dop_PFI[] = {
-     Sop_16_to_Dop,
-     Sop_16_to_Dop,
-     Sop_24_to_Dop,
-     Sop_32_to_Dop,
-     Sop_32_to_Dop,
-     Sop_8_to_Dop
+static GFunc Sop_PFI_to_Aop_PFI[] = {
+     Sop_16_to_Aop,
+     Sop_16_to_Aop,
+     Sop_24_to_Aop,
+     Sop_32_to_Aop,
+     Sop_32_to_Aop,
+     Sop_8_to_Aop
 };
 
-/********************************* Sop_PFI_Kto_Dop_PFI ************************/
+/********************************* Sop_PFI_Kto_Aop_PFI ************************/
 
-static void Sop_rgb15_Kto_Dop()
+static void Sop_rgb15_Kto_Aop()
 {
      int    w = Dlength;
-     __u16 *D = (__u16*)Dop;
+     __u16 *D = (__u16*)Aop;
      __u16 *S = (__u16*)Sop;
 
      if (Ostep < 0) {
@@ -280,10 +279,10 @@ static void Sop_rgb15_Kto_Dop()
      }
 }
 
-static void Sop_rgb16_Kto_Dop()
+static void Sop_rgb16_Kto_Aop()
 {
      int    w = Dlength;
-     __u16 *D = (__u16*)Dop;
+     __u16 *D = (__u16*)Aop;
      __u16 *S = (__u16*)Sop;
 
      if (Ostep < 0) {
@@ -302,10 +301,10 @@ static void Sop_rgb16_Kto_Dop()
      }
 }
 
-static void Sop_rgb24_Kto_Dop()
+static void Sop_rgb24_Kto_Aop()
 {
      int    w = Dlength;
-     __u8 *D = (__u8*)Dop;
+     __u8 *D = (__u8*)Aop;
      __u8 *S = (__u8*)Sop;
 
      if (Ostep < 0) {
@@ -330,10 +329,10 @@ static void Sop_rgb24_Kto_Dop()
      }
 }
 
-static void Sop_rgb32_Kto_Dop()
+static void Sop_rgb32_Kto_Aop()
 {
      int    w = Dlength;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
      __u32 *S = (__u32*)Sop;
 
      if (Ostep < 0) {
@@ -352,10 +351,10 @@ static void Sop_rgb32_Kto_Dop()
      }
 }
 
-static void Sop_argb_Kto_Dop()
+static void Sop_argb_Kto_Aop()
 {
      int    w = Dlength;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
      __u32 *S = (__u32*)Sop;
 
      if (Ostep < 0) {
@@ -374,27 +373,27 @@ static void Sop_argb_Kto_Dop()
      }
 }
 
-static void Sop_a8_Kto_Dop()
+static void Sop_a8_Kto_Aop()
 {
-     ONCE( "Sop_a8_Kto_Dop() unimplemented");
+     ONCE( "Sop_a8_Kto_Aop() unimplemented");
 }
 
-static GFunc Sop_PFI_Kto_Dop_PFI[] = {
-     Sop_rgb15_Kto_Dop,
-     Sop_rgb16_Kto_Dop,
-     Sop_rgb24_Kto_Dop,
-     Sop_rgb32_Kto_Dop,
-     Sop_argb_Kto_Dop,
-     Sop_a8_Kto_Dop
+static GFunc Sop_PFI_Kto_Aop_PFI[] = {
+     Sop_rgb15_Kto_Aop,
+     Sop_rgb16_Kto_Aop,
+     Sop_rgb24_Kto_Aop,
+     Sop_rgb32_Kto_Aop,
+     Sop_argb_Kto_Aop,
+     Sop_a8_Kto_Aop
 };
 
-/********************************* Sop_PFI_Sto_Dop ****************************/
+/********************************* Sop_PFI_Sto_Aop ****************************/
 
-static void Sop_16_Sto_Dop()
+static void Sop_16_Sto_Aop()
 {
      int    w = Dlength;
      int    i = 0;
-     __u16 *D = (__u16*)Dop;
+     __u16 *D = (__u16*)Aop;
      __u16 *S = (__u16*)Sop;
 
      while (w--) {
@@ -404,11 +403,11 @@ static void Sop_16_Sto_Dop()
      }
 }
 
-static void Sop_24_Sto_Dop()
+static void Sop_24_Sto_Aop()
 {
      int    w = Dlength;
      int    i = 0;
-     __u8 *D = (__u8*)Dop;
+     __u8 *D = (__u8*)Aop;
      __u8 *S = (__u8*)Sop;
 
      while (w--) {
@@ -422,11 +421,11 @@ static void Sop_24_Sto_Dop()
      }
 }
 
-static void Sop_32_Sto_Dop()
+static void Sop_32_Sto_Aop()
 {
      int    w = Dlength;
      int    i = 0;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
      __u32 *S = (__u32*)Sop;
 
      while (w--) {
@@ -436,27 +435,27 @@ static void Sop_32_Sto_Dop()
      }
 }
 
-static void Sop_8_Sto_Dop()
+static void Sop_8_Sto_Aop()
 {
-     ONCE( "Sop_8_Sto_Dop() unimplemented");
+     ONCE( "Sop_8_Sto_Aop() unimplemented");
 }
 
-static GFunc Sop_PFI_Sto_Dop[] = {
-     Sop_16_Sto_Dop,
-     Sop_16_Sto_Dop,
-     Sop_24_Sto_Dop,
-     Sop_32_Sto_Dop,
-     Sop_32_Sto_Dop,
-     Sop_8_Sto_Dop
+static GFunc Sop_PFI_Sto_Aop[] = {
+     Sop_16_Sto_Aop,
+     Sop_16_Sto_Aop,
+     Sop_24_Sto_Aop,
+     Sop_32_Sto_Aop,
+     Sop_32_Sto_Aop,
+     Sop_8_Sto_Aop
 };
 
-/********************************* Sop_PFI_SKto_Dop ***************************/
+/********************************* Sop_PFI_SKto_Aop ***************************/
 
-static void Sop_rgb15_SKto_Dop()
+static void Sop_rgb15_SKto_Aop()
 {
      int    w = Dlength;
      int    i = 0;
-     __u16 *D = (__u16*)Dop;
+     __u16 *D = (__u16*)Aop;
      __u16 *S = (__u16*)Sop;
 
      while (w--) {
@@ -470,11 +469,11 @@ static void Sop_rgb15_SKto_Dop()
      }
 }
 
-static void Sop_rgb16_SKto_Dop()
+static void Sop_rgb16_SKto_Aop()
 {
      int    w = Dlength;
      int    i = 0;
-     __u16 *D = (__u16*)Dop;
+     __u16 *D = (__u16*)Aop;
      __u16 *S = (__u16*)Sop;
 
      while (w--) {
@@ -488,11 +487,11 @@ static void Sop_rgb16_SKto_Dop()
      }
 }
 
-static void Sop_rgb24_SKto_Dop()
+static void Sop_rgb24_SKto_Aop()
 {
      int    w = Dlength;
      int    i = 0;
-     __u8 *D = (__u8*)Dop;
+     __u8 *D = (__u8*)Aop;
      __u8 *S = (__u8*)Sop;
 
      while (w--) {
@@ -514,11 +513,11 @@ static void Sop_rgb24_SKto_Dop()
      }
 }
 
-static void Sop_rgb32_SKto_Dop()
+static void Sop_rgb32_SKto_Aop()
 {
      int    w = Dlength;
      int    i = 0;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
      __u32 *S = (__u32*)Sop;
 
      while (w--) {
@@ -532,11 +531,11 @@ static void Sop_rgb32_SKto_Dop()
      }
 }
 
-static void Sop_argb_SKto_Dop()
+static void Sop_argb_SKto_Aop()
 {
      int    w = Dlength;
      int    i = 0;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
      __u32 *S = (__u32*)Sop;
 
      while (w--) {
@@ -550,18 +549,18 @@ static void Sop_argb_SKto_Dop()
      }
 }
 
-static void Sop_a8_SKto_Dop()
+static void Sop_a8_SKto_Aop()
 {
-     ONCE( "Sop_a8_SKto_Dop() unimplemented" );
+     ONCE( "Sop_a8_SKto_Aop() unimplemented" );
 }
 
-static GFunc Sop_PFI_SKto_Dop[] = {
-     Sop_rgb15_SKto_Dop,
-     Sop_rgb16_SKto_Dop,
-     Sop_rgb24_SKto_Dop,
-     Sop_rgb32_SKto_Dop,
-     Sop_argb_SKto_Dop,
-     Sop_a8_SKto_Dop
+static GFunc Sop_PFI_SKto_Aop[] = {
+     Sop_rgb15_SKto_Aop,
+     Sop_rgb16_SKto_Aop,
+     Sop_rgb24_SKto_Aop,
+     Sop_rgb32_SKto_Aop,
+     Sop_argb_SKto_Aop,
+     Sop_a8_SKto_Aop
 };
 
 /********************************* Sop_PFI_Sto_Dacc ***************************/
@@ -1201,18 +1200,18 @@ static GFunc Sop_PFI_Kto_Dacc[] = {
      Sop_a8_Kto_Dacc
 };
 
-/********************************* Sacc_to_Dop_PFI ****************************/
+/********************************* Sacc_to_Aop_PFI ****************************/
 
 #ifdef USE_MMX
-void Sacc_to_Dop_rgb16_MMX();
-void Sacc_to_Dop_rgb32_MMX();
+void Sacc_to_Aop_rgb16_MMX();
+void Sacc_to_Aop_rgb32_MMX();
 #endif
 
-static void Sacc_to_Dop_rgb15()
+static void Sacc_to_Aop_rgb15()
 {
      int          w = Dlength;
      Accumulator *S = Sacc;
-     __u16       *D = (__u16*)Dop;
+     __u16       *D = (__u16*)Aop;
 
      while (w--) {
           if (!(S->a & 0xF000)) {
@@ -1226,11 +1225,11 @@ static void Sacc_to_Dop_rgb15()
      }
 }
 
-static void Sacc_to_Dop_rgb16()
+static void Sacc_to_Aop_rgb16()
 {
      int          w = Dlength;
      Accumulator *S = Sacc;
-     __u16       *D = (__u16*)Dop;
+     __u16       *D = (__u16*)Aop;
 
      while (w--) {
           if (!(S->a & 0xF000)) {
@@ -1244,11 +1243,11 @@ static void Sacc_to_Dop_rgb16()
      }
 }
 
-static void Sacc_to_Dop_rgb24()
+static void Sacc_to_Aop_rgb24()
 {
      int          w = Dlength;
      Accumulator *S = Sacc;
-     __u8        *D = (__u8*)Dop;
+     __u8        *D = (__u8*)Aop;
 
      while (w--) {
           if (!(S->a & 0xF000)) {
@@ -1263,11 +1262,11 @@ static void Sacc_to_Dop_rgb24()
      }
 }
 
-static void Sacc_to_Dop_rgb32()
+static void Sacc_to_Aop_rgb32()
 {
      int          w = Dlength;
      Accumulator *S = Sacc;
-     __u32       *D = (__u32*)Dop;
+     __u32       *D = (__u32*)Aop;
 
      while (w--) {
           if (!(S->a & 0xF000)) {
@@ -1281,11 +1280,11 @@ static void Sacc_to_Dop_rgb32()
      }
 }
 
-static void Sacc_to_Dop_argb()
+static void Sacc_to_Aop_argb()
 {
      int          w = Dlength;
      Accumulator *S = Sacc;
-     __u32       *D = (__u32*)Dop;
+     __u32       *D = (__u32*)Aop;
 
      while (w--) {
           if (!(S->a & 0xF000)) {
@@ -1300,21 +1299,21 @@ static void Sacc_to_Dop_argb()
      }
 }
 
-static void Sacc_to_Dop_a8()
+static void Sacc_to_Aop_a8()
 {
-     ONCE( "Sacc_to_Dop_a8() unimplemented" );
+     ONCE( "Sacc_to_Aop_a8() unimplemented" );
 }
 
-GFunc Sacc_to_Dop_PFI[] = {
-     Sacc_to_Dop_rgb15,
-     Sacc_to_Dop_rgb16,
-     Sacc_to_Dop_rgb24,
-     Sacc_to_Dop_rgb32,
-     Sacc_to_Dop_argb,
-     Sacc_to_Dop_a8
+GFunc Sacc_to_Aop_PFI[] = {
+     Sacc_to_Aop_rgb15,
+     Sacc_to_Aop_rgb16,
+     Sacc_to_Aop_rgb24,
+     Sacc_to_Aop_rgb32,
+     Sacc_to_Aop_argb,
+     Sacc_to_Aop_a8
 };
 
-/************** Sop_a8_set_alphapixel_Dop_PFI *********************************/
+/************** Sop_a8_set_alphapixel_Aop_PFI *********************************/
 
 #define SET_ALPHA_PIXEL_RGB15(d,a) \
      switch (a) {\
@@ -1331,11 +1330,11 @@ GFunc Sacc_to_Dop_PFI[] = {
           }\
      }
 
-static void Sop_a8_set_alphapixel_Dop_rgb15()
+static void Sop_a8_set_alphapixel_Aop_rgb15()
 {
      int    w = Dlength;
      __u8  *S = Sop;
-     __u16 *D = (__u16*)Dop;
+     __u16 *D = (__u16*)Aop;
      __u32 __rb = (((color.r&0xf8)<<7) | ((color.b&0xf8)>>3));
      __u32 __g  =  ((color.g&0xf8)<<2);
 
@@ -1366,11 +1365,11 @@ static void Sop_a8_set_alphapixel_Dop_rgb15()
           }\
      }
 
-static void Sop_a8_set_alphapixel_Dop_rgb16()
+static void Sop_a8_set_alphapixel_Aop_rgb16()
 {
      int    w = Dlength;
      __u8  *S = Sop;
-     __u16 *D = (__u16*)Dop;
+     __u16 *D = (__u16*)Aop;
      __u32 __rb = (((color.r&0xf8)<<8) | ((color.b&0xf8)>>3));
      __u32 __g  =  ((color.g&0xfc)<<3);
 
@@ -1404,11 +1403,11 @@ static void Sop_a8_set_alphapixel_Dop_rgb16()
           }\
      }
 
-static void Sop_a8_set_alphapixel_Dop_rgb24()
+static void Sop_a8_set_alphapixel_Aop_rgb24()
 {
      int    w = Dlength;
      __u8  *S = Sop;
-     __u8  *D = (__u8*)Dop;
+     __u8  *D = (__u8*)Aop;
 
      while (w>4) {
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
@@ -1437,11 +1436,11 @@ static void Sop_a8_set_alphapixel_Dop_rgb24()
           }\
      }
 
-static void Sop_a8_set_alphapixel_Dop_rgb32()
+static void Sop_a8_set_alphapixel_Aop_rgb32()
 {
      int    w = Dlength;
      __u8  *S = Sop;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
      __u32 __rb = (((color.r)<<16) | (color.b));
      __u32 __g  =  ((color.g)<<8);
 
@@ -1470,11 +1469,11 @@ static void Sop_a8_set_alphapixel_Dop_rgb32()
           }\
      }
 
-static void Sop_a8_set_alphapixel_Dop_argb()
+static void Sop_a8_set_alphapixel_Aop_argb()
 {
      int    w = Dlength;
      __u8  *S = Sop;
-     __u32 *D = (__u32*)Dop;
+     __u32 *D = (__u32*)Aop;
      __u32 __rb = (((color.r)<<16) | (color.b));
 
      while (w>4) {
@@ -1501,11 +1500,11 @@ static void Sop_a8_set_alphapixel_Dop_argb()
           }\
      }
 
-static void Sop_a8_set_alphapixel_Dop_a8()
+static void Sop_a8_set_alphapixel_Aop_a8()
 {
      int    w = Dlength;
      __u8  *S = Sop;
-     __u8  *D = Dop;
+     __u8  *D = Aop;
 
      while (w>4) {          
           SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
@@ -1519,13 +1518,13 @@ static void Sop_a8_set_alphapixel_Dop_a8()
      }
 }
 
-GFunc Sop_a8_set_alphapixel_Dop_PFI[] = {
-     Sop_a8_set_alphapixel_Dop_rgb15,
-     Sop_a8_set_alphapixel_Dop_rgb16,
-     Sop_a8_set_alphapixel_Dop_rgb24,
-     Sop_a8_set_alphapixel_Dop_rgb32,
-     Sop_a8_set_alphapixel_Dop_argb,
-     Sop_a8_set_alphapixel_Dop_a8
+GFunc Sop_a8_set_alphapixel_Aop_PFI[] = {
+     Sop_a8_set_alphapixel_Aop_rgb15,
+     Sop_a8_set_alphapixel_Aop_rgb16,
+     Sop_a8_set_alphapixel_Aop_rgb24,
+     Sop_a8_set_alphapixel_Aop_rgb32,
+     Sop_a8_set_alphapixel_Aop_argb,
+     Sop_a8_set_alphapixel_Aop_a8
 };
 
 /********************************* Xacc_blend *********************************/
@@ -1860,9 +1859,6 @@ GFunc Sacc_add_to_Dacc = Sacc_add_to_Dacc_C;
 static void Sop_is_Aop() { Sop = Aop;}
 static void Sop_is_Bop() { Sop = Bop;}
 
-static void Dop_is_Aop() { Dop = Aop;}
-static void Dop_is_Bop() { Dop = Bop;}
-
 static void Sacc_is_NULL() { Sacc = NULL;}
 static void Sacc_is_Aacc() { Sacc = Aacc;}
 static void Sacc_is_Bacc() { Sacc = Bacc;}
@@ -1955,13 +1951,12 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     if (state->src_blend == DSBF_ZERO) {
                          if (state->dst_blend == DSBF_ZERO) {
                               Cop = 0;
-                              *funcs++ = Dop_is_Aop;
                               if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                                    Dkey = state->dst_colorkey;
-                                   *funcs++ = Cop_toK_Dop_PFI[pindex];
+                                   *funcs++ = Cop_toK_Aop_PFI[pindex];
                               }
                               else
-                                   *funcs++ = Cop_to_Dop_PFI[pindex];
+                                   *funcs++ = Cop_to_Aop_PFI[pindex];
                               break;
                          }
                          else if (state->dst_blend == DSBF_ONE) {
@@ -2057,18 +2052,15 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
                     /* write to destination */
                     *funcs++ = Sacc_is_Aacc;
-                    *funcs++ = Dop_is_Aop;
-                    *funcs++ = Sacc_to_Dop_PFI[pindex];
+                    *funcs++ = Sacc_to_Aop_PFI[pindex];
                }
                else {
-                    *funcs++ = Dop_is_Aop;
-
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                          Dkey = state->dst_colorkey;
-                         *funcs++ = Cop_toK_Dop_PFI[pindex];
+                         *funcs++ = Cop_toK_Aop_PFI[pindex];
                     }
                     else
-                         *funcs++ = Cop_to_Dop_PFI[pindex];
+                         *funcs++ = Cop_to_Aop_PFI[pindex];
                }
                break;
           case DFXL_BLIT:
@@ -2079,8 +2071,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                    (state->dst_blend == DSBF_INVSRCALPHA))
                {
                     *funcs++ = Sop_is_Bop;
-                    *funcs++ = Dop_is_Aop;
-                    *funcs++ = Sop_a8_set_alphapixel_Dop_PFI[pindex];
+                    *funcs++ = Sop_a8_set_alphapixel_Aop_PFI[pindex];
 
                     break;
                }
@@ -2142,28 +2133,26 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Sacc_is_Bacc;
                          }
 
-                         *funcs++ = Dop_is_Aop;
-                         *funcs++ = Sacc_to_Dop_PFI[pindex];
+                         *funcs++ = Sacc_to_Aop_PFI[pindex];
                     }
                     else if (state->source->format == state->destination->format) {
                          *funcs++ = Sop_is_Bop;
-                         *funcs++ = Dop_is_Aop;
 
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    Skey = state->src_colorkey;
-                                   *funcs++ = Sop_PFI_Kto_Dop_PFI[pindex];
+                                   *funcs++ = Sop_PFI_Kto_Aop_PFI[pindex];
                               }
                               else
-                                   *funcs++ = Sop_PFI_to_Dop_PFI[pindex];
+                                   *funcs++ = Sop_PFI_to_Aop_PFI[pindex];
                          }
                          else {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    Skey = state->src_colorkey;
-                                   *funcs++ = Sop_PFI_SKto_Dop[pindex];
+                                   *funcs++ = Sop_PFI_SKto_Aop[pindex];
                               }
                               else
-                                   *funcs++ = Sop_PFI_Sto_Dop[pindex];
+                                   *funcs++ = Sop_PFI_Sto_Aop[pindex];
                          }
                     }
                     else {
@@ -2171,7 +2160,6 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          Sacc = Dacc = Aacc;
 
                          *funcs++ = Sop_is_Bop;
-                         *funcs++ = Dop_is_Aop;
 
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
@@ -2192,7 +2180,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
                          }
 
-                         *funcs++ = Sacc_to_Dop_PFI[pindex];
+                         *funcs++ = Sacc_to_Aop_PFI[pindex];
                     }
                     break;
                }
@@ -2224,8 +2212,9 @@ void gUpload( int offset, void *data, int len )
      {                             \
           GFunc *funcs = gfuncs;   \
                                    \
-          while (*funcs)           \
+          do {                     \
                (*funcs++)();       \
+          } while (*funcs);        \
      }                             \
 
 void gFillRectangle( DFBRectangle *rect )
@@ -2446,9 +2435,9 @@ void gInit_MMX()
      Sop_PFI_to_Dacc[PIXELFORMAT_INDEX(DSPF_RGB16)] = Sop_rgb16_to_Dacc_MMX;
      Sop_PFI_to_Dacc[PIXELFORMAT_INDEX(DSPF_RGB32)] = Sop_rgb32_to_Dacc_MMX;
      Sop_PFI_to_Dacc[PIXELFORMAT_INDEX(DSPF_ARGB )] = Sop_argb_to_Dacc_MMX;
-/********************************* Sacc_to_Dop_PFI ****************************/
-     Sacc_to_Dop_PFI[PIXELFORMAT_INDEX(DSPF_RGB16)] = Sacc_to_Dop_rgb16_MMX;
-     Sacc_to_Dop_PFI[PIXELFORMAT_INDEX(DSPF_RGB32)] = Sacc_to_Dop_rgb32_MMX;
+/********************************* Sacc_to_Aop_PFI ****************************/
+     Sacc_to_Aop_PFI[PIXELFORMAT_INDEX(DSPF_RGB16)] = Sacc_to_Aop_rgb16_MMX;
+     Sacc_to_Aop_PFI[PIXELFORMAT_INDEX(DSPF_RGB32)] = Sacc_to_Aop_rgb32_MMX;
 /********************************* Xacc_blend *********************************/
      Xacc_blend[DSBF_SRCALPHA-1] = Xacc_blend_srcalpha_MMX;
      Xacc_blend[DSBF_INVSRCALPHA-1] = Xacc_blend_invsrcalpha_MMX;
