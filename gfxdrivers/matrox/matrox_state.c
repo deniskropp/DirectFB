@@ -416,7 +416,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
                break;
      }
 
-     texctl |= CLAMPUV | ((mdev->src_pitch&0x7ff)<<9) | PITCHEXT | NOPERSPECTIVE;
+     texctl |= CLAMPUV | ((mdev->src_pitch&0x7ff)<<9) | PITCHEXT;
 
      if (state->blittingflags & DSBLIT_COLORIZE)
           texctl |= TMODULATE;
@@ -436,8 +436,8 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      mga_waitfifo( mdrv, mdev, 5 );
      mga_out32( mmio, texctl, TEXCTL );
      mga_out32( mmio, texctl2, TEXCTL2 );
-     mga_out32( mmio, (mdev->w-1)<<18 | ((8-mdev->w2)&63)<<9 | mdev->w2, TEXWIDTH );
-     mga_out32( mmio, (mdev->h-1)<<18 | ((8-mdev->h2)&63)<<9 | mdev->h2, TEXHEIGHT );
+     mga_out32( mmio, (mdev->w-1)<<18 | ((__u32)(8-mdev->w2)&63)<<9 | mdev->w2, TEXWIDTH );
+     mga_out32( mmio, (mdev->h-1)<<18 | ((__u32)(8-mdev->h2)&63)<<9 | mdev->h2, TEXHEIGHT );
      mga_out32( mmio, mdev->src_offset, TEXORG );
 
      MGA_VALIDATE( m_Source );

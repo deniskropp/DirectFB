@@ -1624,12 +1624,12 @@ static bool matroxTextureTriangles( void *drv, void *dev,
      mga_waitfifo( mdrv, mdev, 2 );
 
      mga_out32( mmio, BOP_COPY | SHFTZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
-     mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_BILIN, TEXFILTER );
+     mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_ANISO, TEXFILTER );
 
      for (i=0; i<num; i++) {
-          vertices[i].s *= 0x100000;
-          vertices[i].t *= 0x100000;
-          vertices[i].w *= 0x10000;
+          vertices[i].s *= 1 << 20;
+          vertices[i].t *= 1 << 20;
+          vertices[i].w *= 1 << 16;
      }
 
      switch (formation) {

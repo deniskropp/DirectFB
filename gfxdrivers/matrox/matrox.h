@@ -133,7 +133,7 @@ static inline int mga_log2( int val )
      while (val >> ret)
           ret++;
 
-     return ((1 << (ret-1)) == val) ? (ret-1) : ret;
+     return ((1 << ret) >= val) ? ret : (ret + 1);
 }
 
 #endif
