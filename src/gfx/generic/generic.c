@@ -3876,6 +3876,15 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                return false;
           }
 
+          gfxs->Aacc = D_MALLOC( 512 * sizeof(GenefxAccumulator) );
+          if (!gfxs->Aacc) {
+               D_WARN( "out of memory" );
+               return false;
+          }
+
+          gfxs->ABsize = 256;
+          gfxs->Bacc   = gfxs->Aacc + 256;
+
           state->gfxs = gfxs;
      }
 
@@ -4531,19 +4540,17 @@ ABacc_prepare( GenefxState *gfxs, int size )
      size = (size < 256) ? 256 : (1 << direct_log2(size));
 
      if (gfxs->ABsize < size) {
-          GenefxAccumulator *ABacc = D_MALLOC( size * sizeof(GenefxAccumulator) * 2 );
+          /* gfxs->Sacc or gfxs->Dacc may point to gfxs->Aacc; 
+           * we need to use realloc therefore */
+          gfxs->Aacc = D_REALLOC( gfxs->Aacc, size * sizeof(GenefxAccumulator) * 2 );
 
-          if (!ABacc) {
+          if (!gfxs->Aacc) {
                D_WARN( "out of memory" );
                return false;
           }
 
-          if (gfxs->Aacc)
-               D_FREE( gfxs->Aacc );
-
           gfxs->ABsize = size;
-          gfxs->Aacc   = ABacc;
-          gfxs->Bacc   = ABacc + size;
+          gfxs->Bacc   = gfxs->Aacc + size;
      }
 
      return true;
@@ -4846,56 +4853,56 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      /* scale other planes */
      if (gfxs->src_format == DSPF_YV12 || gfxs->src_format == DSPF_I420) {
-	  void *sorg   = gfxs->src_org + (gfxs->src_pitch * gfxs->src_height);
-	  void *dorg   = gfxs->dst_org + (gfxs->dst_pitch * gfxs->dst_height);
-	  int spitch   = gfxs->src_pitch / 2;
-	  int dpitch   = gfxs->dst_pitch / 2;
-	  int dfo_save = gfxs->dst_field_offset;
-	  int sfo_save = gfxs->src_field_offset;
+          void *sorg   = gfxs->src_org + (gfxs->src_pitch * gfxs->src_height);
+          void *dorg   = gfxs->dst_org + (gfxs->dst_pitch * gfxs->dst_height);
+          int spitch   = gfxs->src_pitch / 2;
+          int dpitch   = gfxs->dst_pitch / 2;
+          int dfo_save = gfxs->dst_field_offset;
+          int sfo_save = gfxs->src_field_offset;
 	
-	  gfxs->length = drect->w / 2;
-	  gfxs->dst_field_offset /= 4;
-	  gfxs->src_field_offset /= 4;
+          gfxs->length = drect->w / 2;
+          gfxs->dst_field_offset /= 4;
+          gfxs->src_field_offset /= 4;
 
-	  Aop_xy( gfxs, dorg, drect->x / 2, drect->y / 2, dpitch );
-	  Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
+          Aop_xy( gfxs, dorg, drect->x / 2, drect->y / 2, dpitch );
+          Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
 
-	  /* scale first plane */
-	  for (h = (drect->h / 2), i = 0; h--; ) {
-	       RUN_PIPELINE();
+          /* scale first plane */
+          for (h = (drect->h / 2), i = 0; h--; ) {
+               RUN_PIPELINE();
 
-	       Aop_next( gfxs, dpitch );
+               Aop_next( gfxs, dpitch );
 
-	       i += f;
+               i += f;
 
-	       while (i > 0xFFFF) {
-		    i -= 0x10000;
-		    Bop_next( gfxs, spitch );
-	       }
-	  }
+               while (i > 0xFFFF) {
+                    i -= 0x10000;
+                    Bop_next( gfxs, spitch );
+               }
+          }
 
-	  sorg += (spitch * gfxs->src_height) / 2;
-	  dorg += (dpitch * gfxs->dst_height) / 2;
+          sorg += (spitch * gfxs->src_height) / 2;
+          dorg += (dpitch * gfxs->dst_height) / 2;
 
-	  Aop_xy( gfxs, dorg, drect->x / 2, drect->y / 2, dpitch );
-	  Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
+          Aop_xy( gfxs, dorg, drect->x / 2, drect->y / 2, dpitch );
+          Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
 
-	  /* scale second plane */
-	  for (h = (drect->h / 2), i = 0; h--; ) {
-	       RUN_PIPELINE();
+          /* scale second plane */
+          for (h = (drect->h / 2), i = 0; h--; ) {
+               RUN_PIPELINE();
 
-	       Aop_next( gfxs, dpitch );
+               Aop_next( gfxs, dpitch );
 
-	       i += f;
+               i += f;
 
-	       while (i > 0xFFFF) {
-		    i -= 0x10000;
-		    Bop_next( gfxs, spitch );
-	       }
-	  }
+               while (i > 0xFFFF) {
+                    i -= 0x10000;
+                    Bop_next( gfxs, spitch );
+               }
+          }
 
-	  gfxs->dst_field_offset = dfo_save;
-	  gfxs->src_field_offset = sfo_save;
+          gfxs->dst_field_offset = dfo_save;
+          gfxs->src_field_offset = sfo_save;
      }
 }
 
