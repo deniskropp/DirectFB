@@ -125,7 +125,7 @@ typedef struct {
 } FSStreamDescription;
 
 /*
- * Information about an IDirectFBVideoProvider.
+ * Information about an IFusionSoundMusicProvider.
  */
 typedef enum {
      FMCAPS_BASIC      = 0x00000000,  /* basic ops (PlayTo, Stop)       */
@@ -184,7 +184,7 @@ DEFINE_INTERFACE( IFusionSound,
      );
 
      /*
-      * Create a video provider.
+      * Create a music provider.
       */
      DFBResult (*CreateMusicProvider) (
           IFusionSound               *thiz,
@@ -534,7 +534,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
  * <i>No summary yet...</i>
  */
 DEFINE_INTERFACE(   IFusionSoundMusicProvider,
-     /** Retrieving information **/
+   /** Retrieving information **/
 
      /*
       * Retrieve information about the music provider's
@@ -554,7 +554,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
           FSStreamDescription       *desc
      );
 
-     /** Playback **/
+   /** Playback **/
 
      /*
       * Play music rendering it into the destination stream.
@@ -571,7 +571,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
           IFusionSoundMusicProvider *thiz
      );
 
-     /** Media Control **/
+   /** Media Control **/
 
      /*
       * Seeks to a position within the stream.
