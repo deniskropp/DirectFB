@@ -43,6 +43,7 @@
 #include <misc/debug.h>
 
 #include <pthread.h>
+#include <errno.h>
 
 #ifdef HAVE_LINUX_UNISTD_H
 #include <linux/unistd.h>
