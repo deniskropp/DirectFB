@@ -187,9 +187,11 @@ static void ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
      volatile __u8    *mmio = adrv->mmio_base;
 
-     ati128_waitfifo( adrv, adev, 4 );
+     ati128_waitfifo( adrv, adev, 5 );
      /* set the destination datatype */
      ati128_out32( mmio, DP_DATATYPE, adev->ATI_dst_bpp | BRUSH_SOLIDCOLOR );
+     /* set direction */
+     ati128_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM);
      /* set the drawing command */
      ati128_out32( mmio, DP_MIX, ROP3_PATCOPY | DP_SRC_RECT );
      /* set parameters */
@@ -243,9 +245,11 @@ static void ati128DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
      volatile __u8    *mmio = adrv->mmio_base;
 
-     ati128_waitfifo( adrv, adev, 2 );
+     ati128_waitfifo( adrv, adev, 3 );
      /* set the destination datatype */
      ati128_out32( mmio, DP_DATATYPE, adev->ATI_dst_bpp | BRUSH_SOLIDCOLOR );
+     /* set direction */
+     ati128_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM);
      /* set the drawing command */
      ati128_out32( mmio, DP_MIX, ROP3_PATCOPY | DP_SRC_RECT );
 
