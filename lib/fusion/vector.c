@@ -47,7 +47,8 @@ static inline bool ensure_capacity( FusionVector *vector )
      }
      else if (vector->count == vector->capacity) {
           void *elements;
-          int   capacity = vector->capacity << 1;
+          void *oldelements = vector->elements;
+          int   capacity    = vector->capacity << 1;
 
           elements = SHMALLOC( capacity * sizeof(void*) );
           if (!elements)
@@ -58,6 +59,8 @@ static inline bool ensure_capacity( FusionVector *vector )
 
           vector->elements = elements;
           vector->capacity = capacity;
+
+          SHFREE( oldelements );
      }
 
      return true;
