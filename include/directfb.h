@@ -1042,10 +1042,10 @@ extern "C"
            */
           DFBResult (*SetColor) (
                IDirectFBSurface         *thiz,
-               __u8                     a,
                __u8                     r,
                __u8                     g,
-               __u8                     b
+               __u8                     b,
+               __u8                     a
           );
 
           /*
