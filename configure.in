@@ -64,6 +64,11 @@ AC_PROG_MAKE_SET
 AC_HEADER_STDC
 AC_C_CONST
 
+
+dnl Linux framebuffer
+AC_CHECK_HEADER(linux/fb.h,,
+  AC_MSG_ERROR([*** DirectFB requires Linux with framebuffer support.]))
+
 dnl Threads
 AC_CHECK_LIB(pthread, pthread_attr_init,
   THREAD_LIBS="$LIBS -lpthread"
@@ -298,6 +303,45 @@ else
 fi
 
 
+dnl Test for ati framebuffer support in the kernel
+AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_ATI_RAGE128
+  yes
+#endif
+], ati=yes, 
+  ati=no
+  AC_MSG_WARN(*** ATI Rage 128 gfxdriver will not be built.))
+
+AM_CONDITIONAL(GFX_ATI, test x$ati = xyes)
+
+
+dnl Test for matrox framebuffer support in the kernel
+AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_MATROX_MGAG200
+  yes
+#endif
+], matrox=yes, 
+  matrox=no  
+  AC_MSG_WARN(*** Matrox G200/400 gfxdriver will not be built.))
+
+AM_CONDITIONAL(GFX_MATROX, test x$matrox = xyes)
+
+
+dnl Test for tdfx framebuffer support in the kernel
+AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_3DFX_BANSHEE
+  yes
+#endif
+], tdfx=yes, 
+  tdfx=no  
+  AC_MSG_WARN(*** 3DFX Voodoo/Banshee gfxdriver will not be built.))
+
+AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
+
+
 DFB_CFLAGS="$CFLAGS"
 DFB_CXXFLAGS="$CXXFLAGS"
 DFB_LDFLAGS="$LDFLAGS"
@@ -329,6 +373,9 @@ AC_SUBST(AVIFILE_CFLAGS)
 AC_SUBST(AVIFILE_LIBS)
 AC_SUBST(LIBMPEG3_LIBS)
 AC_SUBST(LIBFLASH)
+AC_SUBST(GFX_ATI)
+AC_SUBST(GFX_MATROX)
+AC_SUBST(GFX_TDFX)
 
 AC_SUBST(DATADIR)
 AC_SUBST(LIBDIR)
