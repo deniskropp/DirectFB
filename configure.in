@@ -546,6 +546,7 @@ cyber5k=no
 i810=no
 matrox=no
 neomagic=no
+nsc=no
 nvidia=no
 tdfx=no
 savage=no
@@ -558,8 +559,8 @@ AC_ARG_WITH(gfxdrivers,
   [                        gfxdrivers may be comma separated ]
   [                        'all' builds all drivers, 'none' builds none ]
   [                        Possible gfxdrivers are: ]
-  [                        ati128, cyber5k, i810, matrox, neomagic, nvidia,]
-  [                        savage, tdfx],
+  [                        ati128, cyber5k, i810, matrox, neomagic, nsc,]
+  [                        nvidia, savage, tdfx],
   gfxdrivers="$withval", gfxdrivers="all")
 
 if test "$gfxdrivers" = "all"; then
@@ -568,6 +569,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_i810=yes
   checkfor_matrox=yes
   checkfor_neomagic=yes
+  checkfor_nsc=yes
   checkfor_nvidia=yes
   checkfor_savage=yes
   checkfor_tdfx=yes
@@ -592,6 +594,9 @@ else
                   ;;
           neomagic)
                   checkfor_neomagic=yes
+                  ;;
+          nsc)
+                  checkfor_nsc=yes
                   ;;
           nvidia)
                   checkfor_nvidia=yes
@@ -725,14 +730,14 @@ if test x$checkfor_i810 = xyes && test x$have_sysio = xyes; then
 fi
 
 dnl Test for nsc framebuffer support in the kernel
+if test x$checkfor_nsc = xyes; then
 AC_EGREP_CPP(yes, [
   yes
 ], nsc=yes, 
   nsc=no  
   AC_MSG_WARN([
 *** NSC Geode gfxdriver will not be built.]))
-
-AM_CONDITIONAL(GFX_NSC, test x$nsc = xyes)  
+fi
 
 
   AC_ARG_ENABLE(linux-input,
@@ -777,6 +782,7 @@ AM_CONDITIONAL(GFX_CYBER5K, test x$cyber5k = xyes)
 AM_CONDITIONAL(GFX_I810, test x$i810 = xyes)
 AM_CONDITIONAL(GFX_MATROX, test x$matrox = xyes)
 AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
+AM_CONDITIONAL(GFX_NSC, test x$nsc = xyes)
 AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
 AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
 AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
