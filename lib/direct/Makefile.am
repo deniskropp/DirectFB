@@ -112,7 +112,7 @@ all-local: libdirect_fixed.a
 
 libdirect_fixed.a: .libs/libdirect.a
 	rm -f libdirect_fixed.a
-	${AR} cru libdirect_fixed.a `find -name "*.o"`
+	${AR} cru libdirect_fixed.a `find -name "*.o" | grep -v '.libs'`
 	${RANLIB} libdirect_fixed.a
 	cp -af libdirect_fixed.a .libs/libdirect.a
 
