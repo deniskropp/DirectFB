@@ -191,13 +191,18 @@ lircEventThread( CoreThread *thread, void *driver_data )
                if (++repeats < 3)
                     continue;
           }
-          else if (last != DIKS_NULL) {
-               /* release last key first */
-               evt.flags      = DIEF_KEYSYMBOL;
-               evt.type       = DIET_KEYRELEASE;
-               evt.key_symbol = last;
+          else {
+               /* reset repeat counter */
+               repeats = 0;
 
-               dfb_input_dispatch( data->device, &evt );
+               /* release previous key if not released yet */
+               if (last != DIKS_NULL) {
+                    evt.flags      = DIEF_KEYSYMBOL;
+                    evt.type       = DIET_KEYRELEASE;
+                    evt.key_symbol = last;
+
+                    dfb_input_dispatch( data->device, &evt );
+               }
           }
 
           /* send the press event */
@@ -207,9 +212,8 @@ lircEventThread( CoreThread *thread, void *driver_data )
 
           dfb_input_dispatch( data->device, &evt );
 
-          /* remember last key and reset repeat counter*/
-          last    = symbol;
-          repeats = 0;
+          /* remember last key */
+          last = symbol;
      }
 
      return NULL;
