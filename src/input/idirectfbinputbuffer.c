@@ -538,14 +538,21 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
 static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
                                           EventBufferItem           *item )
 {
+     int ret;
+
      if (data->filter && data->filter( &item->evt, data->filter_ctx )) {
           D_FREE( item );
           return;
      }
 
      if (data->pipe) {
-          if (data->pipe_fds[1])
-               write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
+          D_HEAVYDEBUG( "DirectFB/EventBuffer: Going to write %d bytes to file descriptor %d...\n",
+                        sizeof(DFBEvent), data->pipe_fds[1] );
+
+          ret = write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
+
+          D_HEAVYDEBUG( "DirectFB/EventBuffer: ...wrote %d bytes to file descriptor %d.\n",
+                        ret, data->pipe_fds[1] );
 
           D_FREE( item );
      }
