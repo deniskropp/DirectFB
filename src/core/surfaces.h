@@ -35,6 +35,7 @@
 #include <core/fusion/reactor.h>
 
 #include <core/coretypes.h>
+#include <core/coredefs.h>
 
 
 struct _Chunk;
@@ -153,6 +154,31 @@ struct _CoreSurface
 
      SurfaceManager        *manager;
 };
+
+static inline void *
+dfb_surface_data_offset( const CoreSurface *surface,
+                         void              *data,
+                         int                pitch,
+                         int                x,
+                         int                y )
+{
+     DFB_ASSERT( surface != NULL );
+     DFB_ASSUME( data != NULL );
+     DFB_ASSUME( pitch > 0 );
+     DFB_ASSUME( x > 0 );
+     DFB_ASSUME( x < surface->width );
+     DFB_ASSUME( y > 0 );
+     DFB_ASSUME( y < surface->height );
+
+     if (surface->caps & DSCAPS_SEPARATED) {
+          if (y & 1)
+               y += surface->height;
+          
+          y >>= 1;
+     }
+          
+     return data + pitch * y + DFB_BYTES_PER_LINE( surface->format, x );
+}
 
 /*
  * Creates a pool of surface objects.
