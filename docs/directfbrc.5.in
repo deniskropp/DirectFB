@@ -48,6 +48,12 @@ The following parameters may be specified in the
 file:
 
 .TP
+.BI system=<system>
+Specifies the graphics system to use. The default is to use the Linux
+frame buffer (fbdev) but you can also run DirectFB applications on
+SDL (sdl). Other systems might be added in the future.
+
+.TP
 .BI fbdev=<device>
 Opens the given frame buffer device instead of /dev/fb0.
 
