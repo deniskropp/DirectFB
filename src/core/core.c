@@ -137,7 +137,8 @@ DFBResult
 dfb_core_init( int *argc, char **argv[] )
 {
 #ifdef DFB_DYNAMIC_LINKING
-    dfb_lib_handle = dlopen(SOPATH, RTLD_GLOBAL|RTLD_LAZY);
+     if (!dfb_lib_handle)
+          dfb_lib_handle = dlopen(SOPATH, RTLD_GLOBAL|RTLD_LAZY);
 #endif
     
      return DFB_OK;
