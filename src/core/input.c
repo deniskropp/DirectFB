@@ -110,6 +110,18 @@ static void
 init_devices();
 
 static void
+allocate_device_keymap( InputDevice *device );
+
+static DFBInputDeviceKeymapEntry *
+get_keymap_entry( InputDevice *device,
+                  int          code );
+
+static bool
+lookup_from_table( InputDevice        *device,
+                   DFBInputEvent      *event,
+                   DFBInputEventFlags  lookup );
+
+static void
 fixup_key_event( InputDevice   *device,
                  DFBInputEvent *event );
 
@@ -122,15 +134,15 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
               DFBInputDeviceLockState     locks );
 
 #ifdef DFB_DYNAMIC_LINKING
-static CoreModuleLoadResult input_driver_handle_func( void *handle,
-                                                      char *name,
-                                                      void *ctx );
+static CoreModuleLoadResult
+input_driver_handle_func( void *handle, char *name, void *ctx );
 #endif
 
 
 /** public **/
 
-DFBResult dfb_input_initialize()
+DFBResult
+dfb_input_initialize()
 {
      inputfield = shcalloc( 1, sizeof (CoreInputField) );
 
@@ -149,7 +161,8 @@ DFBResult dfb_input_initialize()
 }
 
 #ifndef FUSION_FAKE
-DFBResult dfb_input_join()
+DFBResult
+dfb_input_join()
 {
      int          i;
      FusionResult ret;
@@ -186,7 +199,8 @@ DFBResult dfb_input_join()
 }
 #endif
 
-DFBResult dfb_input_shutdown( bool emergency )
+DFBResult
+dfb_input_shutdown( bool emergency )
 {
      InputDevice *d = inputdevices;
 
@@ -218,7 +232,8 @@ DFBResult dfb_input_shutdown( bool emergency )
 }
 
 #ifndef FUSION_FAKE
-DFBResult dfb_input_leave( bool emergency )
+DFBResult
+dfb_input_leave( bool emergency )
 {
      InputDevice *d = inputdevices;
 
@@ -237,7 +252,8 @@ DFBResult dfb_input_leave( bool emergency )
 #endif
 
 #ifdef FUSION_FAKE
-DFBResult dfb_input_suspend()
+DFBResult
+dfb_input_suspend()
 {
      InputDevice *d = inputdevices;
 
@@ -250,7 +266,8 @@ DFBResult dfb_input_suspend()
      return DFB_OK;
 }
 
-DFBResult dfb_input_resume()
+DFBResult
+dfb_input_resume()
 {
      InputDevice *d = inputdevices;
 
@@ -273,7 +290,8 @@ DFBResult dfb_input_resume()
 }
 #endif
 
-void dfb_input_register_module( InputDriverFuncs *funcs )
+void
+dfb_input_register_module( InputDriverFuncs *funcs )
 {
      InputDriver *driver;
 
@@ -285,8 +303,9 @@ void dfb_input_register_module( InputDriverFuncs *funcs )
      fusion_list_prepend( &input_drivers, &driver->link );
 }
 
-void dfb_input_enumerate_devices( InputDeviceCallback  callback,
-                                  void                *ctx )
+void
+dfb_input_enumerate_devices( InputDeviceCallback  callback,
+                             void                *ctx )
 {
      InputDevice *d = inputdevices;
 
@@ -342,19 +361,22 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
      reactor_dispatch( device->shared->reactor, event, true );
 }
 
-DFBInputDeviceID dfb_input_device_id( const InputDevice *device )
+DFBInputDeviceID
+dfb_input_device_id( const InputDevice *device )
 {
      return device->shared->id;
 }
 
-DFBInputDeviceDescription dfb_input_device_description( const InputDevice *device )
+DFBInputDeviceDescription
+dfb_input_device_description( const InputDevice *device )
 {
      return device->shared->device_info.desc;
 }
 
 /** internal **/
 
-static void input_add_device( InputDevice *device )
+static void
+input_add_device( InputDevice *device )
 {
      if (inputfield->num == MAX_INPUT_DEVICES) {
           ERRORMSG( "DirectFB/Core/Input: "
@@ -378,9 +400,8 @@ static void input_add_device( InputDevice *device )
 }
 
 #ifdef DFB_DYNAMIC_LINKING
-static CoreModuleLoadResult input_driver_handle_func( void *handle,
-                                                      char *name,
-                                                      void *ctx )
+static CoreModuleLoadResult
+input_driver_handle_func( void *handle, char *name, void *ctx )
 {
      InputDriver *driver = (InputDriver*) input_drivers;
 
@@ -403,7 +424,8 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
 }
 #endif
 
-static void allocate_device_keymap( InputDevice *device )
+static void
+allocate_device_keymap( InputDevice *device )
 {
      int                        i;
      DFBInputDeviceKeymapEntry *entries;
@@ -430,7 +452,8 @@ static void allocate_device_keymap( InputDevice *device )
 #endif
 }
 
-static void init_devices()
+static void
+init_devices()
 {
      FusionLink *link;
 
