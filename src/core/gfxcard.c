@@ -1158,7 +1158,7 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
      dfb_state_unlock( state );
 }
 
-void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
+void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                              int x, int y,
                              CoreFont *font, CardState *state )
 {
@@ -1185,17 +1185,17 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
      dfb_state_lock( state );
      dfb_font_lock( font );
 
-     /* preload glyphs to avoid deadlock (FIXME: still needed or otherwise useful?) */
+     /* Prepare glyphs data. */
      for (offset = 0; offset < bytes; offset += steps[offset]) {
-          unsigned char c = text[offset];
+          unsigned int c = text[offset];
 
           if (c < 128) {
                steps[offset] = 1;
                chars[offset] = c;
           }
           else {
-               steps[offset] = direct_utf8_skip[c];
-               chars[offset] = direct_utf8_get_char( &text[offset] );
+               steps[offset] = DIRECT_UTF8_SKIP(c);
+               chars[offset] = DIRECT_UTF8_GET_CHAR( &text[offset] );
           }
 
           if (c >= 32 && c < 128)
@@ -1204,8 +1204,7 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
                glyphs[offset] = direct_tree_lookup( font->glyph_infos, (void *)chars[offset] );
 
           if (!glyphs[offset]) {
-               if (dfb_font_get_glyph_data (font, chars[offset],
-                                            &glyphs[offset]) != DFB_OK)
+               if (dfb_font_get_glyph_data (font, chars[offset], &glyphs[offset]) != DFB_OK)
                     glyphs[offset] = NULL;
           }
      }
