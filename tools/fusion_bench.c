@@ -44,10 +44,12 @@
 
 #include <core/system.h>
 
-#include <core/fusion/lock.h>
-#include <core/fusion/property.h>
-#include <core/fusion/reactor.h>
-#include <core/fusion/ref.h>
+#include <fusion/build.h>
+#include <fusion/fusion.h>
+#include <fusion/lock.h>
+#include <fusion/property.h>
+#include <fusion/reactor.h>
+#include <fusion/ref.h>
 
 #include <misc/util.h>
 
@@ -447,10 +449,10 @@ main( int argc, char *argv[] )
 
      printf( "\n" );
 
-#ifdef FUSION_FAKE
-     printf( "Fusion Benchmark (Fusion fake mode!)\n" );
+#if FUSION_BUILD_MULTI
+     printf( "Fusion Benchmark (Multi Application Core)\n" );
 #else
-     printf( "Fusion Benchmark\n" );
+     printf( "Fusion Benchmark (Single Application Core)\n" );
 #endif
 
      printf( "\n" );

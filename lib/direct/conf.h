@@ -34,7 +34,9 @@
 struct __D_DirectConfig {
      bool  quiet;
      bool  debug;
-     char *memcpy;
+
+     char *memcpy;       /* Don't probe for memcpy routines to save a lot of
+                            startup time. Use this one instead if it's set. */
 };
 
 extern DirectConfig *direct_config;

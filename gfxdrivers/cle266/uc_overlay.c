@@ -14,6 +14,8 @@
 
 #include <core/system.h>
 
+#include <misc/conf.h>
+
 // Forward declaration
 static DFBResult
 uc_ovl_remove(CoreLayer *layer,
@@ -112,7 +114,7 @@ uc_ovl_set_region( CoreLayer                  *layer,
         (win.w < 32) || (win.w > 4096) ||
         (win.h < 32) || (win.h > 4096))
     {
-        DEBUGMSG("Layer size or position is out of bounds.");
+        D_DEBUG("Layer size or position is out of bounds.");
         return DFB_INVAREA;
     }
 

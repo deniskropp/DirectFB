@@ -33,18 +33,21 @@
 #include <string.h>
 
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core/coredefs.h"
-#include "core/coretypes.h"
+#include <core/coretypes.h>
 
-#include "core/surfaces.h"
-#include "core/layers.h"
+#include <core/surfaces.h>
+#include <core/layers.h>
 
-#include "conf.h"
-#include "util.h"
-#include "mem.h"
-#include "memcpy.h"
+#include <direct/conf.h>
+#include <fusion/conf.h>
+#include <misc/conf.h>
+
+#include <misc/util.h>
+
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 
 
 DFBConfig *dfb_config = NULL;
@@ -240,7 +243,7 @@ parse_args( const char *args )
           }
 
           if (strcmp (buf, "memcpy=help") == 0) {
-               dfb_print_memcpy_routines();
+               direct_print_memcpy_routines();
                exit(1);
           }
 
@@ -252,7 +255,7 @@ parse_args( const char *args )
                case DFB_OK:
                     break;
                case DFB_UNSUPPORTED:
-                    ERRORMSG( "DirectFB/Config: Unknown option '%s'!\n", buf );
+                    D_ERROR( "DirectFB/Config: Unknown option '%s'!\n", buf );
                     break;
                default:
                     return ret;
@@ -274,17 +277,17 @@ parse_args( const char *args )
 static void config_cleanup()
 {
      if (!dfb_config) {
-          BUG("config_cleanup() called with no config allocated!");
+          D_BUG("config_cleanup() called with no config allocated!");
           return;
      }
 
      if (dfb_config->fb_device)
-          DFBFREE( dfb_config->fb_device );
+          D_FREE( dfb_config->fb_device );
 
      if (dfb_config->layer_bg_filename)
-          DFBFREE( dfb_config->layer_bg_filename );
+          D_FREE( dfb_config->layer_bg_filename );
 
-     DFBFREE( dfb_config );
+     D_FREE( dfb_config );
      dfb_config = NULL;
 }
 #endif
@@ -306,7 +309,6 @@ static void config_allocate()
      dfb_config->layer_bg_mode            = DLBM_COLOR;
 
      dfb_config->banner                   = true;
-     dfb_config->debug                    = true;
      dfb_config->deinit_check             = true;
      dfb_config->mmx                      = true;
      dfb_config->sighandler               = true;
@@ -314,14 +316,14 @@ static void config_allocate()
      dfb_config->translucent_windows      = true;
      dfb_config->mouse_motion_compression = true;
      dfb_config->mouse_gpm_source         = false;
-     dfb_config->mouse_source             = DFBSTRDUP( DEV_NAME );
+     dfb_config->mouse_source             = D_STRDUP( DEV_NAME );
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
 
      sigemptyset( &dfb_config->dont_catch );
 
      /* default to fbdev */
-     dfb_config->system = DFBSTRDUP( "FBDev" );
+     dfb_config->system = D_STRDUP( "FBDev" );
 
      /* default to no-vt-switch if we don't have root privileges */
      if (geteuid())
@@ -343,70 +345,69 @@ DFBResult dfb_config_set( const char *name, const char *value )
 		      dfb_config->disable_module[n])
 		    n++;
 
-	       dfb_config->disable_module =
-		    DFBREALLOC( dfb_config->disable_module,
-                                sizeof(char*) * (n + 2) );
+	       dfb_config->disable_module = D_REALLOC( dfb_config->disable_module,
+                                                       sizeof(char*) * (n + 2) );
 
-	       dfb_config->disable_module[n] = DFBSTRDUP( value );
+	       dfb_config->disable_module[n] = D_STRDUP( value );
                dfb_config->disable_module[n+1] = NULL;
           }
           else {
-               ERRORMSG("DirectFB/Config 'disable_module': expect module name\n");
+               D_ERROR("DirectFB/Config 'disable_module': expect module name\n");
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "system" ) == 0) {
           if (value) {
                if (dfb_config->system)
-                    DFBFREE( dfb_config->system );
-               dfb_config->system = DFBSTRDUP( value );
+                    D_FREE( dfb_config->system );
+               dfb_config->system = D_STRDUP( value );
           }
           else {
-               ERRORMSG("DirectFB/Config 'system': No system specified!\n");
+               D_ERROR("DirectFB/Config 'system': No system specified!\n");
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "fbdev" ) == 0) {
           if (value) {
                if (dfb_config->fb_device)
-                    DFBFREE( dfb_config->fb_device );
-               dfb_config->fb_device = DFBSTRDUP( value );
+                    D_FREE( dfb_config->fb_device );
+               dfb_config->fb_device = D_STRDUP( value );
           }
           else {
-               ERRORMSG("DirectFB/Config 'fbdev': No device name specified!\n");
+               D_ERROR("DirectFB/Config 'fbdev': No device name specified!\n");
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "tmpfs" ) == 0) {
           if (value) {
-               if (dfb_config->tmpfs)
-                    DFBFREE( dfb_config->tmpfs );
-               dfb_config->tmpfs = DFBSTRDUP( value );
+               if (fusion_config->tmpfs)
+                    D_FREE( fusion_config->tmpfs );
+               fusion_config->tmpfs = D_STRDUP( value );
           }
           else {
-               ERRORMSG("DirectFB/Config 'tmpfs': No directory specified!\n");
+               D_ERROR("DirectFB/Config 'tmpfs': No directory specified!\n");
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "memcpy" ) == 0) {
           if (value) {
-               if (dfb_config->memcpy)
-                    DFBFREE( dfb_config->memcpy );
-               dfb_config->memcpy = DFBSTRDUP( value );
+               if (direct_config->memcpy)
+                    D_FREE( direct_config->memcpy );
+               direct_config->memcpy = D_STRDUP( value );
           }
           else {
-               ERRORMSG("DirectFB/Config 'memcpy': No method specified!\n");
+               D_ERROR("DirectFB/Config 'memcpy': No method specified!\n");
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "screenshot-dir" ) == 0) {
           if (value) {
                if (dfb_config->screenshot_dir)
-                    DFBFREE( dfb_config->screenshot_dir );
-               dfb_config->screenshot_dir = DFBSTRDUP( value );
+                    D_FREE( dfb_config->screenshot_dir );
+               dfb_config->screenshot_dir = D_STRDUP( value );
           }
           else {
-               ERRORMSG("DirectFB/Config 'screenshot-dir': No directory name specified!\n");
+               D_ERROR("DirectFB/Config 'screenshot-dir': No directory name specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -415,7 +416,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                int width, height;
 
                if (sscanf( value, "%dx%d", &width, &height ) < 2) {
-                    ERRORMSG("DirectFB/Config 'mode': Could not parse mode!\n");
+                    D_ERROR("DirectFB/Config 'mode': Could not parse mode!\n");
                     return DFB_INVARG;
                }
 
@@ -423,7 +424,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->mode.height = height;
           }
           else {
-               ERRORMSG("DirectFB/Config 'mode': No mode specified!\n");
+               D_ERROR("DirectFB/Config 'mode': No mode specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -432,14 +433,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
                int depth;
 
                if (sscanf( value, "%d", &depth ) < 1) {
-                    ERRORMSG("DirectFB/Config 'depth': Could not parse value!\n");
+                    D_ERROR("DirectFB/Config 'depth': Could not parse value!\n");
                     return DFB_INVARG;
                }
 
                dfb_config->mode.depth = depth;
           }
           else {
-               ERRORMSG("DirectFB/Config 'depth': No value specified!\n");
+               D_ERROR("DirectFB/Config 'depth': No value specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -448,14 +449,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
                int id;
 
                if (sscanf( value, "%d", &id ) < 1) {
-                    ERRORMSG("DirectFB/Config 'primary-layer': Could not parse id!\n");
+                    D_ERROR("DirectFB/Config 'primary-layer': Could not parse id!\n");
                     return DFB_INVARG;
                }
 
                dfb_config->primary_layer = id;
           }
           else {
-               ERRORMSG("DirectFB/Config 'primary-layer': No id specified!\n");
+               D_ERROR("DirectFB/Config 'primary-layer': No id specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -465,14 +466,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
 
                format = parse_pixelformat( value );
                if (format == DSPF_UNKNOWN) {
-                    ERRORMSG("DirectFB/Config 'pixelformat': Could not parse format!\n");
+                    D_ERROR("DirectFB/Config 'pixelformat': Could not parse format!\n");
                     return DFB_INVARG;
                }
 
                dfb_config->mode.format = format;
           }
           else {
-               ERRORMSG("DirectFB/Config 'pixelformat': No format specified!\n");
+               D_ERROR("DirectFB/Config 'pixelformat': No format specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -481,14 +482,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
                int session;
 
                if (sscanf( value, "%d", &session ) < 1) {
-                    ERRORMSG("DirectFB/Config 'session': Could not parse value!\n");
+                    D_ERROR("DirectFB/Config 'session': Could not parse value!\n");
                     return DFB_INVARG;
                }
 
                dfb_config->session = session;
           }
           else {
-               ERRORMSG("DirectFB/Config 'session': No value specified!\n");
+               D_ERROR("DirectFB/Config 'session': No value specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -497,7 +498,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                int limit;
 
                if (sscanf( value, "%d", &limit ) < 1) {
-                    ERRORMSG("DirectFB/Config 'videoram-limit': Could not parse value!\n");
+                    D_ERROR("DirectFB/Config 'videoram-limit': Could not parse value!\n");
                     return DFB_INVARG;
                }
 
@@ -507,12 +508,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->videoram_limit = limit << 10;
           }
           else {
-               ERRORMSG("DirectFB/Config 'videoram-limit': No value specified!\n");
+               D_ERROR("DirectFB/Config 'videoram-limit': No value specified!\n");
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "quiet" ) == 0) {
-          dfb_config->quiet = true;
+          direct_config->quiet = true;
      } else
      if (strcmp (name, "banner" ) == 0) {
           dfb_config->banner = true;
@@ -521,10 +522,10 @@ DFBResult dfb_config_set( const char *name, const char *value )
           dfb_config->banner = false;
      } else
      if (strcmp (name, "debug" ) == 0) {
-          dfb_config->debug = true;
+          direct_config->debug = true;
      } else
      if (strcmp (name, "no-debug" ) == 0) {
-          dfb_config->debug = false;
+          direct_config->debug = false;
      } else
      if (strcmp (name, "force-windowed" ) == 0) {
           dfb_config->force_windowed = true;
@@ -590,27 +591,27 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "mouse-protocol" ) == 0) {
           if (value) {
-               dfb_config->mouse_protocol = DFBSTRDUP( value );
+               dfb_config->mouse_protocol = D_STRDUP( value );
           }
           else {
-               ERRORMSG( "DirectFB/Config: No mouse protocol specified!\n" );
+               D_ERROR( "DirectFB/Config: No mouse protocol specified!\n" );
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "mouse-source" ) == 0) {
           if (value) {
-               DFBFREE( dfb_config->mouse_source );	
-               dfb_config->mouse_source = DFBSTRDUP( value );
+               D_FREE( dfb_config->mouse_source );	
+               dfb_config->mouse_source = D_STRDUP( value );
           }
           else {
-               ERRORMSG( "DirectFB/Config: No mouse source specified!\n" );
+               D_ERROR( "DirectFB/Config: No mouse source specified!\n" );
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "mouse-gpm-source" ) == 0) {
           dfb_config->mouse_gpm_source = true;
-	  DFBFREE( dfb_config->mouse_source );
-	  dfb_config->mouse_source = DFBSTRDUP( DEV_NAME_GPM );
+	  D_FREE( dfb_config->mouse_source );
+	  dfb_config->mouse_source = D_STRDUP( DEV_NAME_GPM );
      } else
      if (strcmp (name, "translucent-windows" ) == 0) {
           dfb_config->translucent_windows = true;
@@ -648,13 +649,13 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "bg-image" ) == 0 || strcmp (name, "bg-tile" ) == 0) {
           if (value) {
                if (dfb_config->layer_bg_filename)
-                    DFBFREE( dfb_config->layer_bg_filename );
-               dfb_config->layer_bg_filename = DFBSTRDUP( value );
+                    D_FREE( dfb_config->layer_bg_filename );
+               dfb_config->layer_bg_filename = D_STRDUP( value );
                dfb_config->layer_bg_mode =
                     strcmp (name, "bg-tile" ) ? DLBM_IMAGE : DLBM_TILE;
           }
           else {
-               ERRORMSG( "DirectFB/Config: No image filename specified!\n" );
+               D_ERROR( "DirectFB/Config: No image filename specified!\n" );
                return DFB_INVARG;
           }
      } else
@@ -676,14 +677,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
                     dfb_config->window_policy = CSP_VIDEOONLY;
                }
                else {
-                    ERRORMSG( "DirectFB/Config: "
-                              "Unknown window surface policy `%s'!\n", value );
+                    D_ERROR( "DirectFB/Config: "
+                             "Unknown window surface policy `%s'!\n", value );
                     return DFB_INVARG;
                }
           }
           else {
-               ERRORMSG( "DirectFB/Config: "
-                         "No window surface policy specified!\n" );
+               D_ERROR( "DirectFB/Config: "
+                        "No window surface policy specified!\n" );
                return DFB_INVARG;
           }
      } else
@@ -707,14 +708,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
                if (strcmp( value, "windows" ) == 0) {
                     dfb_config->buffer_mode = DLBM_WINDOWS;
                } else {
-                    ERRORMSG( "DirectFB/Config: Unknown buffer mode "
-                              "'%s'!\n", value );
+                    D_ERROR( "DirectFB/Config: Unknown buffer mode "
+                             "'%s'!\n", value );
                     return DFB_INVARG;
                }
           }
           else {
-               ERRORMSG( "DirectFB/Config: "
-                         "No desktop buffer mode specified!\n" );
+               D_ERROR( "DirectFB/Config: "
+                        "No desktop buffer mode specified!\n" );
                return DFB_INVARG;
           }
      } else
@@ -726,8 +727,8 @@ DFBResult dfb_config_set( const char *name, const char *value )
                argb = strtoul( value, &error, 16 );
 
                if (*error) {
-                    ERRORMSG( "DirectFB/Config: Error in bg-color: "
-                              "'%s'!\n", error );
+                    D_ERROR( "DirectFB/Config: Error in bg-color: "
+                             "'%s'!\n", error );
                     return DFB_INVARG;
                }
 
@@ -742,13 +743,13 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->layer_bg_mode = DLBM_COLOR;
           }
           else {
-               ERRORMSG( "DirectFB/Config: No background color specified!\n" );
+               D_ERROR( "DirectFB/Config: No background color specified!\n" );
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "dont-catch" ) == 0) {
           if (value) {
-               char *signals   = DFBSTRDUP( value );
+               char *signals   = D_STRDUP( value );
                char *p, *r, *s = signals;
 
                while ((r = strtok_r( s, ",", &p ))) {
@@ -760,9 +761,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
                     signum = strtoul( r, &error, 10 );
 
                     if (*error) {
-                         ERRORMSG( "DirectFB/Config: Error in dont-catch: "
-                                   "'%s'!\n", error );
-                         DFBFREE( signals );
+                         D_ERROR( "DirectFB/Config: Error in dont-catch: "
+                                  "'%s'!\n", error );
+                         D_FREE( signals );
                          return DFB_INVARG;
                     }
 
@@ -771,10 +772,10 @@ DFBResult dfb_config_set( const char *name, const char *value )
                     s = NULL;
                }
 
-               DFBFREE( signals );
+               D_FREE( signals );
           }
           else {
-               ERRORMSG( "DirectFB/Config: Missing value for dont-catch!\n" );
+               D_ERROR( "DirectFB/Config: Missing value for dont-catch!\n" );
                return DFB_INVARG;
           }
      } else
@@ -786,14 +787,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
                if (strcmp( value, "ntsc" ) == 0) {
                     dfb_config->matrox_ntsc = true;
                } else {
-                    ERRORMSG( "DirectFB/Config: Unknown TV standard "
-                              "'%s'!\n", value );
+                    D_ERROR( "DirectFB/Config: Unknown TV standard "
+                             "'%s'!\n", value );
                     return DFB_INVARG;
                }
           }
           else {
-               ERRORMSG( "DirectFB/Config: "
-                         "No TV standard specified!\n" );
+               D_ERROR( "DirectFB/Config: "
+                        "No TV standard specified!\n" );
                return DFB_INVARG;
           }
      } else
@@ -808,14 +809,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
                if (strcmp( value, "scart-composite" ) == 0) {
                     dfb_config->matrox_cable = 2;
                } else {
-                    ERRORMSG( "DirectFB/Config: Unknown cable type "
-                              "'%s'!\n", value );
+                    D_ERROR( "DirectFB/Config: Unknown cable type "
+                             "'%s'!\n", value );
                     return DFB_INVARG;
                }
           }
           else {
-               ERRORMSG( "DirectFB/Config: "
-                         "No cable type specified!\n" );
+               D_ERROR( "DirectFB/Config: "
+                        "No cable type specified!\n" );
                return DFB_INVARG;
           }
      } else
@@ -987,11 +988,10 @@ DFBResult dfb_config_read( const char *filename )
 
      f = fopen( filename, "r" );
      if (!f) {
-          DEBUGMSG( "DirectFB/Config: "
-                    "Unable to open config file `%s'!\n", filename );
+          D_DEBUG( "DirectFB/Config: Unable to open config file `%s'!\n", filename );
           return DFB_IO;
      } else {
-          INITMSG( "parsing config file '%s'.\n", filename );
+          D_INFO( "DirectFB/Config: parsing config file '%s'.\n", filename );
      }
 
      while (fgets( line, 400, f )) {
@@ -1011,8 +1011,8 @@ DFBResult dfb_config_read( const char *filename )
           ret = dfb_config_set( name, value );
           if (ret) {
                if (ret == DFB_UNSUPPORTED)
-                    ERRORMSG( "DirectFB/Config: In config file `%s': "
-                              "Invalid option `%s'!\n", filename, name );
+                    D_ERROR( "DirectFB/Config: In config file `%s': "
+                             "Invalid option `%s'!\n", filename, name );
                break;
           }
      }

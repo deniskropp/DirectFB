@@ -28,8 +28,8 @@
 #ifndef __CORE_PARTS_H__
 #define __CORE_PARTS_H__
 
-#include <core/fusion/fusion_types.h>
-#include <core/fusion/lock.h>
+#include <fusion/types.h>
+#include <fusion/lock.h>
 
 #include <directfb.h>
 

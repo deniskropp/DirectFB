@@ -206,7 +206,7 @@ static void ati128SetState( void *drv, void *dev,
                break;
 
           default:
-               BUG( "unexpected drawing/blitting function" );
+               D_BUG( "unexpected drawing/blitting function" );
                break;
      }
 
@@ -529,7 +529,7 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
                     ati128_out32( mmio, TEX_CNTL, 0 );
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                return false;
      }
 
@@ -761,25 +761,25 @@ driver_close_device( GraphicsDevice *device,
      ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
      volatile __u8    *mmio = adrv->mmio_base;
 
-     DEBUGMSG( "DirectFB/ATI128: FIFO Performance Monitoring:\n" );
-     DEBUGMSG( "DirectFB/ATI128:  %9d ati128_waitfifo calls\n",
+     D_DEBUG( "DirectFB/ATI128: FIFO Performance Monitoring:\n" );
+     D_DEBUG( "DirectFB/ATI128:  %9d ati128_waitfifo calls\n",
                adev->waitfifo_calls );
-     DEBUGMSG( "DirectFB/ATI128:  %9d register writes (ati128_waitfifo sum)\n",
+     D_DEBUG( "DirectFB/ATI128:  %9d register writes (ati128_waitfifo sum)\n",
                adev->waitfifo_sum );
-     DEBUGMSG( "DirectFB/ATI128:  %9d FIFO wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/ATI128:  %9d FIFO wait cycles (depends on CPU)\n",
                adev->fifo_waitcycles );
-     DEBUGMSG( "DirectFB/ATI128:  %9d IDLE wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/ATI128:  %9d IDLE wait cycles (depends on CPU)\n",
                adev->idle_waitcycles );
-     DEBUGMSG( "DirectFB/ATI128:  %9d FIFO space cache hits(depends on CPU)\n",
+     D_DEBUG( "DirectFB/ATI128:  %9d FIFO space cache hits(depends on CPU)\n",
                adev->fifo_cache_hits );
-     DEBUGMSG( "DirectFB/ATI128: Conclusion:\n" );
-     DEBUGMSG( "DirectFB/ATI128:  Average register writes/ati128_waitfifo"
+     D_DEBUG( "DirectFB/ATI128: Conclusion:\n" );
+     D_DEBUG( "DirectFB/ATI128:  Average register writes/ati128_waitfifo"
                "call:%.2f\n",
                adev->waitfifo_sum/(float)(adev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/ATI128:  Average wait cycles/ati128_waitfifo call:"
+     D_DEBUG( "DirectFB/ATI128:  Average wait cycles/ati128_waitfifo call:"
                " %.2f\n",
                adev->fifo_waitcycles/(float)(adev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/ATI128:  Average fifo space cache hits: %02d%%\n",
+     D_DEBUG( "DirectFB/ATI128:  Average fifo space cache hits: %02d%%\n",
                (int)(100 * adev->fifo_cache_hits/
                (float)(adev->waitfifo_calls)) );
 

@@ -35,7 +35,7 @@
 
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -48,8 +48,8 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <misc/util.h>
 
 static DFBResult
@@ -272,7 +272,7 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
           if (image_data) {
                err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
                if (err) {
-                    DFBFREE( image_data );
+                    D_FREE( image_data );
                     return err;
                }
 
@@ -280,7 +280,7 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
                                     dst, pitch, &rect, dst_surface );
 
                destination->Unlock( destination );
-               DFBFREE(image_data);
+               D_FREE(image_data);
           }
      }
 
@@ -601,10 +601,10 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
      if (n_colors < 1)
           return color;
 
-     DFB_ASSERT( n_colors <= MAXCOLORMAPSIZE );
+     D_ASSERT( n_colors <= MAXCOLORMAPSIZE );
 
      for (i = 0; i < 3; i++) {
-          dfb_memcpy( csort, cmap[i], n_colors );
+          direct_memcpy( csort, cmap[i], n_colors );
           qsort( csort, n_colors, 1, SortColors );
 
           for (j = 1, index = 0, d = 0; j < n_colors; j++) {
@@ -664,7 +664,7 @@ static __u32* ReadImage( IDirectFBImageProvider_GIF_data *data, int width, int h
           return NULL;
      }
 
-     if ((image = DFBMALLOC(width * height * 4)) == NULL) {
+     if ((image = D_MALLOC(width * height * 4)) == NULL) {
           GIFERRORMSG("couldn't alloc space for image" );
      }
 

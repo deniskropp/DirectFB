@@ -41,11 +41,11 @@
 
 #include <pthread.h>
 
-#include <core/fusion/reactor.h>
-#include <core/fusion/list.h>
+#include <fusion/reactor.h>
+#include <direct/list.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -54,7 +54,7 @@
 #include <core/windows.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include <media/idirectfbdatabuffer.h>
 
@@ -282,7 +282,7 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
      if (data->fd < 0) {
           int erno = errno;
           
-          PERRORMSG("DirectFB/DataBuffer: opening '%s' failed!\n", filename);
+          D_PERROR("DirectFB/DataBuffer: opening '%s' failed!\n", filename);
           
           DFB_DEALLOCATE_INTERFACE( thiz );
           
@@ -292,7 +292,7 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
      if (fstat( data->fd, &status ) < 0) {
           int erno = errno;
           
-          PERRORMSG("DirectFB/DataBuffer: fstat failed!\n");
+          D_PERROR("DirectFB/DataBuffer: fstat failed!\n");
           
           close( data->fd );
           

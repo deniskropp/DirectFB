@@ -27,8 +27,8 @@
 
 #include <config.h>
 
-#include <core/fusion/arena.h>
-#include <core/fusion/shmalloc.h>
+#include <fusion/arena.h>
+#include <fusion/shmalloc.h>
 
 #include <directfb.h>
 
@@ -38,7 +38,8 @@
 #include <core/core.h>
 #include <core/core_parts.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 
 DFBResult
@@ -50,22 +51,22 @@ dfb_core_part_initialize( CoreDFB  *core,
      void      *shared = NULL;
 
      if (core_part->initialized) {
-          BUG( core_part->name );
+          D_BUG( core_part->name );
           return DFB_BUG;
      }
 
-     DEBUGMSG( "DirectFB/CoreParts: "
+     D_DEBUG( "DirectFB/CoreParts: "
                "Going to initialize '%s' core...\n", core_part->name );
 
      if (core_part->size_local)
-          local = DFBCALLOC( 1, core_part->size_local );
+          local = D_CALLOC( 1, core_part->size_local );
 
      if (core_part->size_shared)
           shared = SHCALLOC( 1, core_part->size_shared );
 
      ret = core_part->Initialize( core, local, shared );
      if (ret) {
-          ERRORMSG( "DirectFB/Core: Could not initialize '%s' core!\n"
+          D_ERROR( "DirectFB/Core: Could not initialize '%s' core!\n"
                     "    --> %s\n", core_part->name,
                     DirectFBErrorString( ret ) );
 
@@ -73,7 +74,7 @@ dfb_core_part_initialize( CoreDFB  *core,
                SHFREE( shared );
 
           if (local)
-               DFBFREE( local );
+               D_FREE( local );
 
           return ret;
      }
@@ -98,11 +99,11 @@ dfb_core_part_join( CoreDFB  *core,
      void      *shared = NULL;
 
      if (core_part->initialized) {
-          BUG( core_part->name );
+          D_BUG( core_part->name );
           return DFB_BUG;
      }
 
-     DEBUGMSG( "DirectFB/CoreParts: "
+     D_DEBUG( "DirectFB/CoreParts: "
                "Going to join '%s' core...\n", core_part->name );
 
      if (core_part->size_shared &&
@@ -111,16 +112,16 @@ dfb_core_part_join( CoreDFB  *core,
           return DFB_FUSION;
 
      if (core_part->size_local)
-          local = DFBCALLOC( 1, core_part->size_local );
+          local = D_CALLOC( 1, core_part->size_local );
 
      ret = core_part->Join( core, local, shared );
      if (ret) {
-          ERRORMSG( "DirectFB/Core: Could not join '%s' core!\n"
+          D_ERROR( "DirectFB/Core: Could not join '%s' core!\n"
                     "    --> %s\n", core_part->name,
                     DirectFBErrorString( ret ) );
 
           if (local)
-               DFBFREE( local );
+               D_FREE( local );
 
           return ret;
      }
@@ -142,12 +143,12 @@ dfb_core_part_shutdown( CoreDFB  *core,
      if (!core_part->initialized)
           return DFB_OK;
 
-     DEBUGMSG( "DirectFB/CoreParts: "
+     D_DEBUG( "DirectFB/CoreParts: "
                "Going to shutdown '%s' core...\n", core_part->name );
 
      ret = core_part->Shutdown( core, emergency );
      if (ret)
-          ERRORMSG( "DirectFB/Core: Could not shutdown '%s' core!\n"
+          D_ERROR( "DirectFB/Core: Could not shutdown '%s' core!\n"
                     "    --> %s\n", core_part->name,
                     DirectFBErrorString( ret ) );
 
@@ -155,7 +156,7 @@ dfb_core_part_shutdown( CoreDFB  *core,
           SHFREE( core_part->data_shared );
 
      if (core_part->data_local)
-          DFBFREE( core_part->data_local );
+          D_FREE( core_part->data_local );
 
      core_part->data_local  = NULL;
      core_part->data_shared = NULL;
@@ -174,17 +175,17 @@ dfb_core_part_leave( CoreDFB  *core,
      if (!core_part->initialized)
           return DFB_OK;
 
-     DEBUGMSG( "DirectFB/CoreParts: "
+     D_DEBUG( "DirectFB/CoreParts: "
                "Going to leave '%s' core...\n", core_part->name );
 
      ret = core_part->Leave( core, emergency );
      if (ret)
-          ERRORMSG( "DirectFB/Core: Could not leave '%s' core!\n"
+          D_ERROR( "DirectFB/Core: Could not leave '%s' core!\n"
                     "    --> %s\n", core_part->name,
                     DirectFBErrorString( ret ) );
 
      if (core_part->data_local)
-          DFBFREE( core_part->data_local );
+          D_FREE( core_part->data_local );
 
      core_part->data_local  = NULL;
      core_part->data_shared = NULL;

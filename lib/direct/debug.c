@@ -74,8 +74,8 @@ direct_break( const char *func,
      vsnprintf( buf, sizeof(buf), format, ap );
 
      fprintf( stderr,
-              "(!) [%5d: %4lld.%03lld] *** Break! *** [%s:%d in %s()] %s",
-              direct_gettid(), millis / 1000LL, millis % 1000LL, file, line, func, buf );
+              "(!) [%5d: %4lld.%03lld] *** Break [%s] *** [%s:%d in %s()]\n",
+              direct_gettid(), millis / 1000LL, millis % 1000LL, buf, file, line, func );
 
      fflush( stderr );
 
@@ -101,7 +101,7 @@ direct_assertion( const char *exp,
      long long millis = direct_clock_get_millis();
 
      fprintf( stderr,
-              "(!) [%5d: %4lld.%03lld] *** Assertion '%s' failed! *** [%s:%d in %s()]\n",
+              "(!) [%5d: %4lld.%03lld] *** Assertion [%s] failed *** [%s:%d in %s()]\n",
               direct_gettid(), millis / 1000LL, millis % 1000LL, exp, file, line, func );
 
      fflush( stderr );
@@ -128,7 +128,7 @@ direct_assumption( const char *exp,
      long long millis = direct_clock_get_millis();
 
      fprintf( stderr,
-              "(!) [%5d: %4lld.%03lld] *** Assumption '%s' failed *** [%s:%d in %s()]\n",
+              "(!) [%5d: %4lld.%03lld] *** Assumption [%s] failed *** [%s:%d in %s()]\n",
               direct_gettid(), millis / 1000LL, millis % 1000LL, exp, file, line, func );
 
      fflush( stderr );

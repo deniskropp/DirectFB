@@ -39,7 +39,7 @@ static inline void uc_waitcmd(UcDriverData* ucdrv, UcDeviceData* ucdev)
 
     while (VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & VIA_CMD_RGTR_BUSY) {
         if (++loop > MAXLOOP) {
-            ERRORMSG("DirectFB/VIA: Timeout waiting for idle command regulator!\n");
+            D_ERROR("DirectFB/VIA: Timeout waiting for idle command regulator!\n");
             break;
         }
     }
@@ -66,6 +66,8 @@ void uc_emit_commands(void* drv, void* dev)
 void uc_flush_texture_cache(void* drv, void* dev)
 {
     UC_ACCEL_BEGIN()
+
+    (void) ucdev;
 
     UC_FIFO_PREPARE(fifo, 4);
 
@@ -453,7 +455,7 @@ bool uc_texture_triangles( void *drv, void *dev,
                cmdA |= HC_HVCycle_AA | HC_HVCycle_BC | HC_HVCycle_NewC;
                break;
           default:
-               ONCE( "unknown triangle formation" );
+               D_ONCE( "unknown triangle formation" );
                return false;
      }
 

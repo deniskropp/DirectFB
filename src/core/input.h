@@ -31,7 +31,7 @@
 #include <pthread.h>
 #include <directfb.h>
 
-#include <core/fusion/reactor.h>
+#include <fusion/reactor.h>
 
 #include <core/coretypes.h>
 #include <core/modules.h>

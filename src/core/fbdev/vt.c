@@ -27,6 +27,7 @@
 
 #include <config.h>
 
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 
@@ -42,10 +43,13 @@
 #include <linux/fb.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
+#include <misc/conf.h>
 #include <misc/util.h>
-#include <misc/mem.h>
+
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -92,7 +96,7 @@ dfb_vt_initialize()
      DFBResult ret;
      struct vt_stat vs;
 
-     dfb_vt = DFBCALLOC( 1, sizeof(VirtualTerminal) );
+     dfb_vt = D_CALLOC( 1, sizeof(VirtualTerminal) );
 
      setsid();
      dfb_vt->fd0 = open( "/dev/tty0", O_WRONLY );
@@ -101,24 +105,24 @@ dfb_vt_initialize()
                dfb_vt->fd0 = open( "/dev/vc/0", O_RDWR );
                if (dfb_vt->fd0 < 0) {
                     if (errno == ENOENT) {
-                         PERRORMSG( "DirectFB/core/vt: Couldn't open "
+                         D_PERROR( "DirectFB/core/vt: Couldn't open "
                                     "neither `/dev/tty0' nor `/dev/vc/0'!\n" );
                     }
                     else {
-                         PERRORMSG( "DirectFB/core/vt: "
+                         D_PERROR( "DirectFB/core/vt: "
                                     "Error opening `/dev/vc/0'!\n" );
                     }
 
-                    DFBFREE( dfb_vt );
+                    D_FREE( dfb_vt );
                     dfb_vt = NULL;
 
                     return DFB_INIT;
                }
           }
           else {
-               PERRORMSG( "DirectFB/core/vt: Error opening `/dev/tty0'!\n");
+               D_PERROR( "DirectFB/core/vt: Error opening `/dev/tty0'!\n");
 
-               DFBFREE( dfb_vt );
+               D_FREE( dfb_vt );
                dfb_vt = NULL;
 
                return DFB_INIT;
@@ -126,9 +130,9 @@ dfb_vt_initialize()
      }
 
      if (ioctl( dfb_vt->fd0, VT_GETSTATE, &vs ) < 0) {
-          PERRORMSG( "DirectFB/core/vt: VT_GETSTATE failed!\n" );
+          D_PERROR( "DirectFB/core/vt: VT_GETSTATE failed!\n" );
           close( dfb_vt->fd0 );
-          DFBFREE( dfb_vt );
+          D_FREE( dfb_vt );
           dfb_vt = NULL;
           return DFB_INIT;
      }
@@ -149,9 +153,9 @@ dfb_vt_initialize()
 
           n = ioctl( dfb_vt->fd0, VT_OPENQRY, &dfb_vt->num );
           if (n < 0 || dfb_vt->num == -1) {
-               PERRORMSG( "DirectFB/core/vt: Cannot allocate VT!\n" );
+               D_PERROR( "DirectFB/core/vt: Cannot allocate VT!\n" );
                close( dfb_vt->fd0 );
-               DFBFREE( dfb_vt );
+               D_FREE( dfb_vt );
                dfb_vt = NULL;
                return DFB_INIT;
           }
@@ -164,9 +168,9 @@ dfb_vt_initialize()
           while (ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->num ) < 0) {
                if (errno == EINTR)
                     continue;
-               PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE failed!\n" );
+               D_PERROR( "DirectFB/core/vt: VT_ACTIVATE failed!\n" );
                close( dfb_vt->fd0 );
-               DFBFREE( dfb_vt );
+               D_FREE( dfb_vt );
                dfb_vt = NULL;
                return DFB_INIT;
           }
@@ -174,9 +178,9 @@ dfb_vt_initialize()
           while (ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->num ) < 0) {
                if (errno == EINTR)
                     continue;
-               PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE failed!\n" );
+               D_PERROR( "DirectFB/core/vt: VT_WAITACTIVE failed!\n" );
                close( dfb_vt->fd0 );
-               DFBFREE( dfb_vt );
+               D_FREE( dfb_vt );
                dfb_vt = NULL;
                return DFB_INIT;
           }
@@ -187,15 +191,15 @@ dfb_vt_initialize()
      ret = vt_init_switching();
      if (ret) {
           if (dfb_config->vt_switch) {
-               DEBUGMSG( "switching back...\n" );
+               D_DEBUG( "switching back...\n" );
                ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->prev );
                ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->prev );
-               DEBUGMSG( "...switched back\n" );
+               D_DEBUG( "...switched back\n" );
                ioctl( dfb_vt->fd0, VT_DISALLOCATE, dfb_vt->num );
           }
 
           close( dfb_vt->fd0 );
-          DFBFREE( dfb_vt );
+          D_FREE( dfb_vt );
           dfb_vt = NULL;
           return ret;
      }
@@ -227,7 +231,7 @@ dfb_vt_shutdown( bool emergency )
 
      if (dfb_config->vt_switching) {
           if (ioctl( dfb_vt->fd, VT_SETMODE, &dfb_vt->vt_mode ) < 0)
-               PERRORMSG( "DirectFB/fbdev/vt: Unable to restore VT mode!!!\n" );
+               D_PERROR( "DirectFB/fbdev/vt: Unable to restore VT mode!!!\n" );
 
           sigaction( SIGUSR1, &dfb_vt->sig_usr1, NULL );
           sigaction( SIGUSR2, &dfb_vt->sig_usr2, NULL );
@@ -242,19 +246,19 @@ dfb_vt_shutdown( bool emergency )
 
      if (dfb_config->kd_graphics) {
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_TEXT ) < 0)
-               PERRORMSG( "DirectFB/Keyboard: KD_TEXT failed!\n" );
+               D_PERROR( "DirectFB/Keyboard: KD_TEXT failed!\n" );
      }
 
      if (dfb_config->vt_switch) {
-          DEBUGMSG( "switching back...\n" );
+          D_DEBUG( "switching back...\n" );
 
           if (ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->prev ) < 0)
-               PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE" );
+               D_PERROR( "DirectFB/core/vt: VT_ACTIVATE" );
 
           if (ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->prev ) < 0)
-               PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE" );
+               D_PERROR( "DirectFB/core/vt: VT_WAITACTIVE" );
 
-          DEBUGMSG( "switched back...\n" );
+          D_DEBUG( "switched back...\n" );
 
           usleep( 40000 );
 
@@ -262,11 +266,11 @@ dfb_vt_shutdown( bool emergency )
           vt_set_fb( dfb_vt->num, dfb_vt->old_fb );
 
           if (close( dfb_vt->fd ) < 0)
-               PERRORMSG( "DirectFB/core/vt: Unable to "
+               D_PERROR( "DirectFB/core/vt: Unable to "
                           "close file descriptor of allocated VT!\n" );
 
           if (ioctl( dfb_vt->fd0, VT_DISALLOCATE, dfb_vt->num ) < 0)
-               PERRORMSG( "DirectFB/core/vt: Unable to disallocate VT!\n" );
+               D_PERROR( "DirectFB/core/vt: Unable to disallocate VT!\n" );
      }
      else {
           /* restore con2fbmap */
@@ -274,10 +278,10 @@ dfb_vt_shutdown( bool emergency )
      }
 
      if (close( dfb_vt->fd0 ) < 0)
-          PERRORMSG( "DirectFB/core/vt: Unable to "
+          D_PERROR( "DirectFB/core/vt: Unable to "
                      "close file descriptor of tty0!\n" );
 
-     DFBFREE( dfb_vt );
+     D_FREE( dfb_vt );
      dfb_vt = dfb_fbdev->vt = NULL;
 
      return DFB_OK;
@@ -301,7 +305,7 @@ dfb_vt_detach( bool force )
                if (errno == ENXIO)
                     return DFB_OK;
 
-               PERRORMSG( "DirectFB/core/fbdev: opening /dev/tty failed\n" );
+               D_PERROR( "DirectFB/core/fbdev: opening /dev/tty failed\n" );
                return errno2dfb( errno );
           }
 
@@ -311,7 +315,7 @@ dfb_vt_detach( bool force )
           }
 
           if (ioctl( fd, TIOCNOTTY, 0 )) {
-               PERRORMSG( "DirectFB/core/fbdev: "
+               D_PERROR( "DirectFB/core/fbdev: "
                           "TIOCNOTTY on /dev/tty failed\n" );
                close( fd );
                return errno2dfb( errno );
@@ -329,10 +333,10 @@ dfb_vt_switch( int num )
      if (!dfb_config->vt_switching)
           return false;
 
-     DEBUGMSG( "DirectFB/fbdev/vt: switching to vt %d...\n", num );
+     D_DEBUG( "DirectFB/fbdev/vt: switching to vt %d...\n", num );
 
      if (ioctl( dfb_vt->fd0, VT_ACTIVATE, num ) < 0)
-          PERRORMSG( "DirectFB/fbdev/vt: VT_ACTIVATE failed\n" );
+          D_PERROR( "DirectFB/fbdev/vt: VT_ACTIVATE failed\n" );
 
      return true;
 }
@@ -345,12 +349,12 @@ vt_thread( CoreThread *thread, void *arg )
      while (true) {
           dfb_thread_testcancel( thread );
 
-          DEBUGMSG( "DirectFB/fbdev/vt: %s (%d)\n",
+          D_DEBUG( "DirectFB/fbdev/vt: %s (%d)\n",
                     __FUNCTION__, dfb_vt->vt_sig);
 
           switch (dfb_vt->vt_sig) {
                default:
-                    BUG( "unexpected vt_sig" );
+                    D_BUG( "unexpected vt_sig" );
                     /* fall through */
 
                case -1:
@@ -360,7 +364,7 @@ vt_thread( CoreThread *thread, void *arg )
                case SIGUSR1:
                     if (ioctl( dfb_vt->fd, VT_RELDISP,
                                dfb_core_suspend( NULL ) == DFB_OK ? 1 : 0 ) < 0)
-                         PERRORMSG( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
+                         D_PERROR( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
 
                     break;
 
@@ -368,11 +372,11 @@ vt_thread( CoreThread *thread, void *arg )
                     dfb_core_resume( NULL );
 
                     if (ioctl( dfb_vt->fd, VT_RELDISP, 2 ) < 0)
-                         PERRORMSG( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
+                         D_PERROR( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
 
                     if (dfb_config->kd_graphics) {
                          if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0)
-                              PERRORMSG( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
+                              D_PERROR( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
                     }
 
                     break;
@@ -387,7 +391,7 @@ vt_thread( CoreThread *thread, void *arg )
 static void
 vt_switch_handler( int signum )
 {
-     DEBUGMSG( "DirectFB/fbdev/vt: %s (%d)\n", __FUNCTION__, signum);
+     D_DEBUG( "DirectFB/fbdev/vt: %s (%d)\n", __FUNCTION__, signum);
 
      pthread_mutex_lock( &dfb_vt->lock );
 
@@ -413,12 +417,12 @@ vt_init_switching()
                dfb_vt->fd = open( buf, O_RDWR );
                if (dfb_vt->fd < 0) {
                     if (errno == ENOENT) {
-                         PERRORMSG( "DirectFB/core/vt: Couldn't open "
+                         D_PERROR( "DirectFB/core/vt: Couldn't open "
                                     "neither `/dev/tty%d' nor `/dev/vc/%d'!\n",
                                     dfb_vt->num, dfb_vt->num );
                     }
                     else {
-                         PERRORMSG( "DirectFB/core/vt: "
+                         D_PERROR( "DirectFB/core/vt: "
                                     "Error opening `%s'!\n", buf );
                     }
 
@@ -426,14 +430,14 @@ vt_init_switching()
                }
           }
           else {
-               PERRORMSG( "DirectFB/core/vt: Error opening `%s'!\n", buf );
+               D_PERROR( "DirectFB/core/vt: Error opening `%s'!\n", buf );
                return errno2dfb( errno );
           }
      }
 
      if (dfb_config->kd_graphics) {
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
-               PERRORMSG( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
+               D_PERROR( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
                close( dfb_vt->fd );
                return DFB_INIT;
           }
@@ -454,7 +458,7 @@ vt_init_switching()
 
           if (sigaction( SIGUSR1, &sig_tty, &dfb_vt->sig_usr1 ) ||
               sigaction( SIGUSR2, &sig_tty, &dfb_vt->sig_usr2 )) {
-               PERRORMSG( "DirectFB/fbdev/vt: sigaction failed!\n" );
+               D_PERROR( "DirectFB/fbdev/vt: sigaction failed!\n" );
                close( dfb_vt->fd );
                return DFB_INIT;
           }
@@ -466,7 +470,7 @@ vt_init_switching()
           vt.acqsig = SIGUSR2;
 
           if (ioctl( dfb_vt->fd, VT_SETMODE, &vt ) < 0) {
-               PERRORMSG( "DirectFB/fbdev/vt: VT_SETMODE failed!\n" );
+               D_PERROR( "DirectFB/fbdev/vt: VT_SETMODE failed!\n" );
 
                sigaction( SIGUSR1, &dfb_vt->sig_usr1, NULL );
                sigaction( SIGUSR2, &dfb_vt->sig_usr2, NULL );
@@ -495,7 +499,7 @@ vt_get_fb( int vt )
      c2m.console = vt;
 
      if (ioctl( dfb_fbdev->fd, FBIOGET_CON2FBMAP, &c2m )) {
-          PERRORMSG( "DirectFB/FBDev/vt: "
+          D_PERROR( "DirectFB/FBDev/vt: "
                      "FBIOGET_CON2FBMAP failed!\n" );
           return 0;
      }
@@ -510,7 +514,7 @@ vt_set_fb( int vt, int fb )
      struct stat         sbf;
 
      if (fstat( dfb_fbdev->fd, &sbf )) {
-          PERRORMSG( "DirectFB/FBDev/vt: Could not fstat fb device!\n" );
+          D_PERROR( "DirectFB/FBDev/vt: Could not fstat fb device!\n" );
           return;
      }
 
@@ -522,7 +526,7 @@ vt_set_fb( int vt, int fb )
      c2m.console = vt;
 
      if (ioctl( dfb_fbdev->fd, FBIOPUT_CON2FBMAP, &c2m ) < 0) {
-          PERRORMSG( "DirectFB/FBDev/vt: "
+          D_PERROR( "DirectFB/FBDev/vt: "
                      "FBIOPUT_CON2FBMAP failed!\n" );
      }
 }

@@ -33,7 +33,7 @@
 
 
 #include "directfb.h"
-#include "directfb_internals.h"
+#include "interface.h"
 
 #include "core/coretypes.h"
 
@@ -42,7 +42,7 @@
 #include "idirectfbfont.h"
 
 #include "misc/utf8.h"
-#include "misc/mem.h"
+#include "direct/mem.h"
 #include "misc/util.h"
 
 void

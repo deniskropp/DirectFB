@@ -34,7 +34,7 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/core.h>
 #include <core/coretypes.h>
@@ -50,7 +50,7 @@
 #include <idirectfbsurface_layer.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
+#include <direct/mem.h>
 #include <gfx/util.h>
 
 

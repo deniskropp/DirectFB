@@ -37,24 +37,24 @@
 
 #include <pthread.h>
 
-#include <core/fusion/reactor.h>
-#include <core/fusion/list.h>
-#include <core/fusion/lock.h>
+#include <fusion/reactor.h>
+#include <direct/list.h>
+#include <fusion/lock.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 
 #include <media/idirectfbdatabuffer.h>
 
 typedef struct {
-     FusionLink    link;
+     DirectLink    link;
 
      void         *data;   /* actual data hold */
      unsigned int  length; /* length of chunk */
@@ -74,8 +74,8 @@ destroy_chunk( DataChunk *chunk );
 typedef struct {
      IDirectFBDataBuffer_data  base;
 
-     FusionLink               *chunks;          /* data chunks */
-     FusionLink               *last;            /* last chunk is the
+     DirectLink               *chunks;          /* data chunks */
+     DirectLink               *last;            /* last chunk is the
                                                    first to read */
 
      unsigned int              length;          /* total length of all chunks */
@@ -338,7 +338,7 @@ IDirectFBDataBuffer_Streamed_PutData( IDirectFBDataBuffer *thiz,
      pthread_mutex_lock( &data->chunks_mutex );
 
      /* Prepend new chunk. */
-     fusion_list_prepend( &data->chunks, &chunk->link );
+     direct_list_prepend( &data->chunks, &chunk->link );
 
      /* If no chunk has been there before it's the last one. */
      if (!data->last)
@@ -388,12 +388,12 @@ IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz )
 static void
 DestroyAllChunks( IDirectFBDataBuffer_Streamed_data *data )
 {
-     FusionLink *l, *n;
+     DirectLink *l, *n;
 
-     DFB_ASSERT( data != NULL );
+     D_ASSERT( data != NULL );
 
      /* Loop through list. */
-     fusion_list_foreach_safe (l, n, data->chunks) {
+     direct_list_foreach_safe (l, n, data->chunks) {
           /* Deallocate chunk. */
           destroy_chunk( (DataChunk*) l );
      }
@@ -409,10 +409,10 @@ ReadChunkData( IDirectFBDataBuffer_Streamed_data *data,
                unsigned int                       length,
                bool                               flush )
 {
-     FusionLink *l;
+     DirectLink *l;
 
-     DFB_ASSERT( data != NULL );
-     DFB_ASSERT( buffer != NULL );
+     D_ASSERT( data != NULL );
+     D_ASSERT( buffer != NULL );
 
      /* Fetch last link (the first to read). */
      l = data->last;
@@ -422,7 +422,7 @@ ReadChunkData( IDirectFBDataBuffer_Streamed_data *data,
           unsigned int  len;
           unsigned int  off   = 0;
           DataChunk    *chunk = (DataChunk*) l;
-          FusionLink   *prev  = l->prev;
+          DirectLink   *prev  = l->prev;
 
           /* Is there data to be skipped? */
           if (offset) {
@@ -439,7 +439,7 @@ ReadChunkData( IDirectFBDataBuffer_Streamed_data *data,
           /* Can we read from this chunk? */
           if (len) {
                /* Copy as many bytes as possible. */
-               dfb_memcpy( buffer, chunk->data + chunk->done + off, len );
+               direct_memcpy( buffer, chunk->data + chunk->done + off, len );
 
                /* Increase write pointer. */
                buffer += len;
@@ -461,7 +461,7 @@ ReadChunkData( IDirectFBDataBuffer_Streamed_data *data,
                          data->last = prev;
 
                     /* Remove the chunk from the list. */
-                    fusion_list_remove( &data->chunks, l );
+                    direct_list_remove( &data->chunks, l );
 
                     /* Deallocate chunk. */
                     destroy_chunk( chunk );
@@ -472,8 +472,8 @@ ReadChunkData( IDirectFBDataBuffer_Streamed_data *data,
           l = prev;
      }
 
-     DFB_ASSERT( length == 0 );
-     DFB_ASSERT( offset == 0 );
+     D_ASSERT( length == 0 );
+     D_ASSERT( offset == 0 );
 }
 
 /******************************************************************************/
@@ -483,23 +483,23 @@ create_chunk( const void *data, int length )
 {
      DataChunk *chunk;
 
-     DFB_ASSERT( data != NULL );
-     DFB_ASSERT( length > 0 );
+     D_ASSERT( data != NULL );
+     D_ASSERT( length > 0 );
 
      /* Allocate chunk information. */
-     chunk = DFBCALLOC( 1, sizeof(DataChunk) );
+     chunk = D_CALLOC( 1, sizeof(DataChunk) );
      if (!chunk)
           return NULL;
 
      /* Allocate chunk data. */
-     chunk->data = DFBMALLOC( length );
+     chunk->data = D_MALLOC( length );
      if (!chunk->data) {
-          DFBFREE( chunk );
+          D_FREE( chunk );
           return NULL;
      }
 
      /* Fill chunk data. */
-     dfb_memcpy( chunk->data, data, length );
+     direct_memcpy( chunk->data, data, length );
 
      /* Remember chunk length. */
      chunk->length = length;
@@ -510,13 +510,13 @@ create_chunk( const void *data, int length )
 static void
 destroy_chunk( DataChunk *chunk )
 {
-     DFB_ASSERT( chunk != NULL );
-     DFB_ASSERT( chunk->data != NULL );
+     D_ASSERT( chunk != NULL );
+     D_ASSERT( chunk->data != NULL );
 
      /* Deallocate chunk data. */
-     DFBFREE( chunk->data );
+     D_FREE( chunk->data );
 
      /* Deallocate chunk information. */
-     DFBFREE( chunk );
+     D_FREE( chunk );
 }
 

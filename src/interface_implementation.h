@@ -30,7 +30,7 @@
 
 #include <core/input.h>
 
-#include <directfb_internals.h>
+#include <interface.h>
 
 
 static const char *

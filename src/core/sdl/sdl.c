@@ -33,8 +33,8 @@
 
 #include <directfb.h>
 
-#include <core/fusion/arena.h>
-#include <core/fusion/shmalloc.h>
+#include <fusion/arena.h>
+#include <fusion/shmalloc.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -47,6 +47,8 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
+
+#include <direct/messages.h>
 
 #include <SDL.h>
 
@@ -75,25 +77,23 @@ system_initialize( CoreDFB *core, void **data )
      char       *driver;
      CoreScreen *screen;
 
-     DFB_ASSERT( dfb_sdl == NULL );
+     D_ASSERT( dfb_sdl == NULL );
 
      dfb_sdl = (DFBSDL*) SHCALLOC( 1, sizeof(DFBSDL) );
      if (!dfb_sdl) {
-          ERRORMSG( "DirectFB/SDL: Couldn't allocate shared memory!\n" );
+          D_ERROR( "DirectFB/SDL: Couldn't allocate shared memory!\n" );
           return DFB_NOSYSTEMMEMORY;
      }
 
      driver = getenv( "SDL_VIDEODRIVER" );
      if (driver && !strcasecmp( driver, "directfb" )) {
-          INITMSG( "DirectFB/SDL: "
-                   "SDL_VIDEODRIVER is 'directfb', unsetting it.\n" );
+          D_INFO( "DirectFB/SDL: SDL_VIDEODRIVER is 'directfb', unsetting it.\n" );
           unsetenv( "SDL_VIDEODRIVER" );
      }
 
      /* Initialize SDL */
      if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
-          ERRORMSG( "DirectFB/SDL: Couldn't initialize SDL: %s\n",
-                    SDL_GetError() );
+          D_ERROR( "DirectFB/SDL: Couldn't initialize SDL: %s\n", SDL_GetError() );
 
           SHFREE( dfb_sdl );
           dfb_sdl = NULL;
@@ -121,7 +121,7 @@ system_join( CoreDFB *core, void **data )
 {
      void *ret;
 
-     DFB_ASSERT( dfb_sdl == NULL );
+     D_ASSERT( dfb_sdl == NULL );
 
      fusion_arena_get_shared_field( dfb_core_arena( core ), "sdl", &ret );
 
@@ -137,7 +137,7 @@ system_join( CoreDFB *core, void **data )
 static DFBResult
 system_shutdown( bool emergency )
 {
-     DFB_ASSERT( dfb_sdl != NULL );
+     D_ASSERT( dfb_sdl != NULL );
 
      fusion_call_destroy( &dfb_sdl->call );
 
@@ -156,7 +156,7 @@ system_shutdown( bool emergency )
 static DFBResult
 system_leave( bool emergency )
 {
-     DFB_ASSERT( dfb_sdl != NULL );
+     D_ASSERT( dfb_sdl != NULL );
 
      dfb_sdl = NULL;
 

@@ -45,7 +45,10 @@
 #include <core/thread.h>
 
 #include <misc/conf.h>
-#include <misc/mem.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <core/input_driver.h>
 
@@ -232,7 +235,7 @@ ps2mouseEventThread( CoreThread *thread, void *driver_data )
      }
 
      if ( readlen <= 0 && errno != EINTR )
-          PERRORMSG ("psmouse thread died\n");
+          D_PERROR ("psmouse thread died\n");
 
      return NULL;
 }
@@ -254,7 +257,7 @@ ps2WriteChar( int fd, unsigned char c, bool verbose )
 
      if ( select(fd+1, &fds, NULL, NULL, &tv) == 0 ) {
           if ( verbose )
-               ERRORMSG( "DirectFB/PS2Mouse: timeout waiting for ack!!\n" );
+               D_ERROR( "DirectFB/PS2Mouse: timeout waiting for ack!!\n" );
           return -1;
      }
 
@@ -290,13 +293,13 @@ ps2Write( int fd, const unsigned char *data, size_t len, bool verbose)
      for ( i = 0; i < len; i++ ) {
           if ( ps2WriteChar(fd, data[i], verbose) < 0 ) {
                if ( verbose )
-                    ERRORMSG( "DirectFB/PS2Mouse: error @byte %i\n", i );
+                    D_ERROR( "DirectFB/PS2Mouse: error @byte %i\n", i );
                error++;
           }
      }
 
      if ( error && verbose )
-          ERRORMSG( "DirectFB/PS2Mouse: missed %i ack's!\n", error);
+          D_ERROR( "DirectFB/PS2Mouse: missed %i ack's!\n", error);
 
      return( error );
 }
@@ -333,7 +336,7 @@ init_ps2( int fd, bool verbose )
                break;
 
           if (! --count) {
-               ERRORMSG( "DirectFB/PS2Mouse: "
+               D_ERROR( "DirectFB/PS2Mouse: "
                          "PS/2 mouse keeps sending data, "
                          "initialization failed\n" );
                return -1;
@@ -344,7 +347,7 @@ init_ps2( int fd, bool verbose )
      /* Do a basic init in case the mouse is confused */
      if (ps2Write( fd, basic_init, sizeof (basic_init), verbose ) != 0) {
           if (verbose)
-               ERRORMSG( "DirectFB/PS2Mouse: PS/2 mouse failed init\n" );
+               D_ERROR( "DirectFB/PS2Mouse: PS/2 mouse failed init\n" );
           return -1;
      }
 
@@ -352,7 +355,7 @@ init_ps2( int fd, bool verbose )
 
      if (ps2Write(fd, imps2_init, sizeof (imps2_init), verbose) != 0) {
           if (verbose)
-               ERRORMSG ("DirectFB/PS2Mouse: mouse failed IMPS/2 init\n");
+               D_ERROR ("DirectFB/PS2Mouse: mouse failed IMPS/2 init\n");
           return -2;
      }
 
@@ -421,14 +424,14 @@ driver_open_device( InputDevice      *device,
 
      fd = open( devlist[number], O_RDWR | O_SYNC | O_EXCL );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/PS2Mouse: failed opening `%s' !\n",
+          D_PERROR( "DirectFB/PS2Mouse: failed opening `%s' !\n",
                      devlist[number] );
           close( fd );
           return DFB_INIT;
      }
 
      if ((mouseId = init_ps2(fd, true)) < 0) {
-          PERRORMSG( "DirectFB/PS2Mouse: could not initialize mouse on `%s'!\n",
+          D_PERROR( "DirectFB/PS2Mouse: could not initialize mouse on `%s'!\n",
                      devlist[number] );
           close( fd );
           return DFB_INIT;
@@ -448,7 +451,7 @@ driver_open_device( InputDevice      *device,
      info->desc.max_button = DIBI_MIDDLE;     /* TODO: probe!? */
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(PS2MouseData) );
+     data = D_CALLOC( 1, sizeof(PS2MouseData) );
 
      data->fd           = fd;
      data->device       = device;
@@ -489,5 +492,5 @@ driver_close_device( void *driver_data )
      close( data->fd );
 
      /* free private data */
-     DFBFREE( data );
+     D_FREE( data );
 }

@@ -356,7 +356,7 @@ static void mach64SetState( void *drv, void *dev,
           }
           break;
      default:
-          BUG( "unexpected drawing/blitting function" );
+          D_BUG( "unexpected drawing/blitting function" );
           break;
      }
 
@@ -827,25 +827,25 @@ driver_close_device( GraphicsDevice *device,
      Mach64DeviceData *mdev = (Mach64DeviceData*) device_data;
      volatile __u8    *mmio = mdrv->mmio_base;
 
-     DEBUGMSG( "DirectFB/Mach64: FIFO Performance Monitoring:\n" );
-     DEBUGMSG( "DirectFB/Mach64:  %9d mach64_waitfifo calls\n",
+     D_DEBUG( "DirectFB/Mach64: FIFO Performance Monitoring:\n" );
+     D_DEBUG( "DirectFB/Mach64:  %9d mach64_waitfifo calls\n",
                mdev->waitfifo_calls );
-     DEBUGMSG( "DirectFB/Mach64:  %9d register writes (mach64_waitfifo sum)\n",
+     D_DEBUG( "DirectFB/Mach64:  %9d register writes (mach64_waitfifo sum)\n",
                mdev->waitfifo_sum );
-     DEBUGMSG( "DirectFB/Mach64:  %9d FIFO wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/Mach64:  %9d FIFO wait cycles (depends on CPU)\n",
                mdev->fifo_waitcycles );
-     DEBUGMSG( "DirectFB/Mach64:  %9d IDLE wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/Mach64:  %9d IDLE wait cycles (depends on CPU)\n",
                mdev->idle_waitcycles );
-     DEBUGMSG( "DirectFB/Mach64:  %9d FIFO space cache hits(depends on CPU)\n",
+     D_DEBUG( "DirectFB/Mach64:  %9d FIFO space cache hits(depends on CPU)\n",
                mdev->fifo_cache_hits );
-     DEBUGMSG( "DirectFB/Mach64: Conclusion:\n" );
-     DEBUGMSG( "DirectFB/Mach64:  Average register writes/mach64_waitfifo"
+     D_DEBUG( "DirectFB/Mach64: Conclusion:\n" );
+     D_DEBUG( "DirectFB/Mach64:  Average register writes/mach64_waitfifo"
                "call:%.2f\n",
                mdev->waitfifo_sum/(float)(mdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/Mach64:  Average wait cycles/mach64_waitfifo call:"
+     D_DEBUG( "DirectFB/Mach64:  Average wait cycles/mach64_waitfifo call:"
                " %.2f\n",
                mdev->fifo_waitcycles/(float)(mdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/Mach64:  Average fifo space cache hits: %02d%%\n",
+     D_DEBUG( "DirectFB/Mach64:  Average fifo space cache hits: %02d%%\n",
                (int)(100 * mdev->fifo_cache_hits/
                (float)(mdev->waitfifo_calls)) );
 

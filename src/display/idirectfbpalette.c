@@ -36,14 +36,14 @@
 
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/surfaces.h>
 #include <core/palette.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -143,8 +143,7 @@ IDirectFBPalette_SetEntries( IDirectFBPalette *thiz,
           return DFB_INVARG;
 
      if (num_entries) {
-          dfb_memcpy( palette->entries + offset,
-                      entries, num_entries * sizeof(DFBColor));
+          direct_memcpy( palette->entries + offset, entries, num_entries * sizeof(DFBColor));
 
           dfb_palette_update( palette, offset, offset + num_entries - 1 );
      }
@@ -169,7 +168,7 @@ IDirectFBPalette_GetEntries( IDirectFBPalette *thiz,
      if (!entries  ||  offset + num_entries > palette->num_entries)
           return DFB_INVARG;
 
-     dfb_memcpy( entries, palette->entries + offset, num_entries * sizeof(DFBColor));
+     direct_memcpy( entries, palette->entries + offset, num_entries * sizeof(DFBColor));
 
      return DFB_OK;
 }
@@ -219,8 +218,8 @@ IDirectFBPalette_CreateCopy( IDirectFBPalette  *thiz,
      if (ret)
           return ret;
 
-     dfb_memcpy( palette->entries, data->palette->entries,
-                 palette->num_entries * sizeof(DFBColor));
+     direct_memcpy( palette->entries, data->palette->entries,
+                    palette->num_entries * sizeof(DFBColor));
 
      dfb_palette_update( palette, 0, palette->num_entries - 1 );
 

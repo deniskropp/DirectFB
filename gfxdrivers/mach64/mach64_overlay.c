@@ -385,7 +385,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
                break;
 
           default:
-               BUG("unexpected pixelformat");
+               D_BUG("unexpected pixelformat");
                return;
      }
 
@@ -431,7 +431,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
 
                
           default:
-               BUG("unexpected pixelformat");
+               D_BUG("unexpected pixelformat");
                return;
      }
      mov->regs.overlay_GRAPHICS_KEY_MSK = (1 << DFB_COLOR_BITS_PER_PIXEL( primary_format )) - 1;

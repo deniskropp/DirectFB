@@ -29,7 +29,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <core/core_parts.h>
 
@@ -37,7 +37,9 @@
 #include <core/screens.h>
 #include <core/screens_internal.h>
 
-#include <misc/mem.h>
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 
 typedef struct {
@@ -61,8 +63,8 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
      int       i;
      DFBResult ret;
 
-     DFB_ASSERT( core_screens == NULL );
-     DFB_ASSERT( data_shared  != NULL );
+     D_ASSERT( core_screens == NULL );
+     D_ASSERT( data_shared  != NULL );
 
      core_screens = data_shared;
 
@@ -105,7 +107,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                                    shared->screen_data,
                                    &shared->description );
           if (ret) {
-               ERRORMSG("DirectFB/Core/screens: "
+               D_ERROR("DirectFB/Core/screens: "
                         "Failed to initialize screen %d!\n", shared->screen_id);
 
                fusion_skirmish_destroy( &shared->lock );
@@ -118,16 +120,16 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                return ret;
           }
 
-          DFB_ASSERT( shared->description.encoders >= 0 );
-          DFB_ASSERT( shared->description.encoders <= 32 );
-          DFB_ASSERT( shared->description.outputs >= 0 );
-          DFB_ASSERT( shared->description.outputs <= 32 );
+          D_ASSERT( shared->description.encoders >= 0 );
+          D_ASSERT( shared->description.encoders <= 32 );
+          D_ASSERT( shared->description.outputs >= 0 );
+          D_ASSERT( shared->description.outputs <= 32 );
 
           /* Initialize mixers. */
           if (shared->description.mixers) {
                int i;
 
-               DFB_ASSERT( funcs->InitMixer != NULL );
+               D_ASSERT( funcs->InitMixer != NULL );
 
                shared->mixers = SHCALLOC( shared->description.mixers,
                                           sizeof(CoreScreenMixer) );
@@ -144,7 +146,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
           if (shared->description.encoders) {
                int i;
 
-               DFB_ASSERT( funcs->InitEncoder != NULL );
+               D_ASSERT( funcs->InitEncoder != NULL );
 
                shared->encoders = SHCALLOC( shared->description.encoders,
                                             sizeof(CoreScreenEncoder) );
@@ -161,7 +163,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
           if (shared->description.outputs) {
                int i;
 
-               DFB_ASSERT( funcs->InitOutput != NULL );
+               D_ASSERT( funcs->InitOutput != NULL );
 
                shared->outputs = SHCALLOC( shared->description.outputs,
                                            sizeof(CoreScreenOutput) );
@@ -193,13 +195,13 @@ dfb_screens_join( CoreDFB *core, void *data_local, void *data_shared )
 {
      int i;
 
-     DFB_ASSERT( core_screens == NULL );
-     DFB_ASSERT( data_shared  != NULL );
+     D_ASSERT( core_screens == NULL );
+     D_ASSERT( data_shared  != NULL );
 
      core_screens = data_shared;
 
      if (num_screens != core_screens->num) {
-          ERRORMSG("DirectFB/core/screens: Number of screens does not match!\n");
+          D_ERROR("DirectFB/core/screens: Number of screens does not match!\n");
           return DFB_BUG;
      }
 
@@ -223,7 +225,7 @@ dfb_screens_shutdown( CoreDFB *core, bool emergency )
 {
      int i;
 
-     DFB_ASSERT( core_screens != NULL );
+     D_ASSERT( core_screens != NULL );
 
      /* Begin with the most recently added screen. */
      for (i=num_screens-1; i>=0; i--) {
@@ -253,7 +255,7 @@ dfb_screens_shutdown( CoreDFB *core, bool emergency )
           SHFREE( shared );
 
           /* Free the local screen data. */
-          DFBFREE( screen );
+          D_FREE( screen );
      }
 
      core_screens = NULL;
@@ -267,14 +269,14 @@ dfb_screens_leave( CoreDFB *core, bool emergency )
 {
      int i;
 
-     DFB_ASSERT( core_screens != NULL );
+     D_ASSERT( core_screens != NULL );
 
      /* Deinitialize all local stuff only. */
      for (i=0; i<num_screens; i++) {
           CoreScreen *screen = screens[i];
 
           /* Free local screen data. */
-          DFBFREE( screen );
+          D_FREE( screen );
      }
 
      core_screens = NULL;
@@ -288,14 +290,14 @@ dfb_screens_suspend( CoreDFB *core )
 {
      int i;
 
-     DFB_ASSERT( core_screens != NULL );
+     D_ASSERT( core_screens != NULL );
 
-     DEBUGMSG( "DirectFB/core/screens: suspending...\n" );
+     D_DEBUG( "DirectFB/core/screens: suspending...\n" );
 
      for (i=num_screens-1; i>=0; i--)
           dfb_screen_suspend( screens[i] );
 
-     DEBUGMSG( "DirectFB/core/screens: suspended.\n" );
+     D_DEBUG( "DirectFB/core/screens: suspended.\n" );
 
      return DFB_OK;
 }
@@ -305,14 +307,14 @@ dfb_screens_resume( CoreDFB *core )
 {
      int i;
 
-     DFB_ASSERT( core_screens != NULL );
+     D_ASSERT( core_screens != NULL );
 
-     DEBUGMSG( "DirectFB/core/screens: resuming...\n" );
+     D_DEBUG( "DirectFB/core/screens: resuming...\n" );
 
      for (i=0; i<num_screens; i++)
           dfb_screen_resume( screens[i] );
 
-     DEBUGMSG( "DirectFB/core/screens: resumed.\n" );
+     D_DEBUG( "DirectFB/core/screens: resumed.\n" );
 
      return DFB_OK;
 }
@@ -324,16 +326,16 @@ dfb_screens_register( GraphicsDevice *device,
 {
      CoreScreen *screen;
 
-     DFB_ASSERT( funcs != NULL );
+     D_ASSERT( funcs != NULL );
 
      if (num_screens == MAX_SCREENS) {
-          ERRORMSG( "DirectFB/Core/screen: "
+          D_ERROR( "DirectFB/Core/screen: "
                     "Maximum number of screens reached!\n" );
           return NULL;
      }
 
      /* allocate local data */
-     screen = DFBCALLOC( 1, sizeof(CoreScreen) );
+     screen = D_CALLOC( 1, sizeof(CoreScreen) );
 
      /* assign local pointers */
      screen->device      = device;
@@ -353,8 +355,8 @@ dfb_screens_register_primary( GraphicsDevice *device,
 {
      CoreScreen *primary = screens[0];
 
-     DFB_ASSERT( primary != NULL );
-     DFB_ASSERT( funcs != NULL );
+     D_ASSERT( primary != NULL );
+     D_ASSERT( funcs != NULL );
 
      /* replace device, function table and driver data pointer */
      primary->device      = device;
@@ -370,8 +372,8 @@ dfb_screens_enumerate( CoreScreenCallback  callback,
 {
      int i;
 
-     DFB_ASSERT( core_screens != NULL );
-     DFB_ASSERT( callback != NULL );
+     D_ASSERT( core_screens != NULL );
+     D_ASSERT( callback != NULL );
 
      for (i=0; i<num_screens; i++) {
           if (callback( screens[i], ctx ) == DFENUM_CANCEL)
@@ -382,8 +384,8 @@ dfb_screens_enumerate( CoreScreenCallback  callback,
 CoreScreen *
 dfb_screens_at( DFBScreenID screen_id )
 {
-     DFB_ASSERT( screen_id >= 0);
-     DFB_ASSERT( screen_id < num_screens);
+     D_ASSERT( screen_id >= 0);
+     D_ASSERT( screen_id < num_screens);
 
      return screens[screen_id];
 }

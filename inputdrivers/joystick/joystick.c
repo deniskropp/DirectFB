@@ -44,7 +44,9 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <misc/mem.h>
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <core/input.h>
 #include <core/thread.h>
@@ -81,7 +83,7 @@ joystick_handle_event( JoystickData *data, struct js_event jse )
                event.axisabs = jse.value;
                break;
           default:
-               PERRORMSG ("unknown joystick event type\n");
+               D_PERROR ("unknown joystick event type\n");
      }
 
      dfb_input_dispatch( data->device, &event );
@@ -106,7 +108,7 @@ joystickEventThread( CoreThread *thread, void *driver_data )
      }
 
      if (len <= 0 && errno != EINTR)
-          PERRORMSG ("joystick thread died\n");
+          D_PERROR ("joystick thread died\n");
 
      return NULL;
 }
@@ -186,7 +188,7 @@ driver_open_device( InputDevice      *device,
 
           fd = open( devicename, O_RDONLY );
           if (fd < 0) {
-               PERRORMSG( "DirectFB/Joystick: Could not open `%s'!\n",
+               D_PERROR( "DirectFB/Joystick: Could not open `%s'!\n",
                           devicename );
                return DFB_INIT; /* no joystick available */
           }
@@ -212,7 +214,7 @@ driver_open_device( InputDevice      *device,
 
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(JoystickData) );
+     data = D_CALLOC( 1, sizeof(JoystickData) );
 
      data->fd     = fd;
      data->device = device;
@@ -251,6 +253,6 @@ driver_close_device( void *driver_data )
      close( data->fd );
 
      /* free private data */
-     DFBFREE( data );
+     D_FREE( data );
 }
 

@@ -33,7 +33,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <core/fusion/object.h>
+#include <fusion/object.h>
 
 
 typedef enum {

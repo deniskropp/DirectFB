@@ -31,7 +31,7 @@
 #include <directfb.h>
 
 #include <core/coretypes.h>
-#include <core/fusion/fusion_types.h>
+#include <fusion/types.h>
 
 #include <core/modules.h>
 

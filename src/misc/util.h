@@ -34,7 +34,8 @@
 
 #include <directfb.h>
 
-#include <core/coredefs.h>
+#include <direct/types.h>
+#include <direct/debug.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -87,8 +88,8 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
 static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
                                               const DFBRegion *region )
 {
-     DFB_ASSERT( rect != NULL );
-     DFB_ASSERT( region != NULL );
+     D_ASSERT( rect != NULL );
+     D_ASSERT( region != NULL );
 
      rect->x = region->x1;
      rect->y = region->y1;
@@ -99,8 +100,8 @@ static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
 static inline void dfb_region_from_rectangle( DFBRegion          *region,
                                               const DFBRectangle *rect )
 {
-     DFB_ASSERT( region != NULL );
-     DFB_ASSERT( rect != NULL );
+     D_ASSERT( region != NULL );
+     D_ASSERT( rect != NULL );
 
      region->x1 = rect->x;
      region->y1 = rect->y;

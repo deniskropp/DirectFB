@@ -39,7 +39,7 @@
 
 #include <directfb.h>
 #include <directfb_version.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/core.h>
 #include <core/coretypes.h>
@@ -80,8 +80,8 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <misc/util.h>
 
 /*
@@ -388,8 +388,7 @@ init_palette( CoreSurface *surface, DFBSurfaceDescription *desc )
 
      num = MIN( desc->palette.size, palette->num_entries );
 
-     dfb_memcpy( palette->entries,
-                 desc->palette.entries, num * sizeof(DFBColor));
+     direct_memcpy( palette->entries, desc->palette.entries, num * sizeof(DFBColor));
 
      dfb_palette_update( palette, 0, num - 1 );
 }
@@ -751,7 +750,7 @@ IDirectFB_CreatePalette( IDirectFB              *thiz,
           return ret;
 
      if (desc && desc->flags & DPDESC_ENTRIES) {
-          dfb_memcpy( palette->entries, desc->entries, size * sizeof(DFBColor));
+          direct_memcpy( palette->entries, desc->entries, size * sizeof(DFBColor));
 
           dfb_palette_update( palette, 0, size - 1 );
      }
@@ -1186,7 +1185,7 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
           return DFB_INVARG;
 
      if (!strncmp( type, "IDirectFB", 9 )) {
-          ERRORMSG( "IDirectFB::GetInterface() "
+          D_ERROR( "IDirectFB::GetInterface() "
                     "is not allowed for \"IDirectFB*\"!\n" );
           return DFB_ACCESSDENIED;
      }
@@ -1237,7 +1236,7 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
 
      ret = dfb_layer_get_primary_context( data->layer, true, &data->context );
      if (ret) {
-          ERRORMSG( "IDirectFB_Construct: "
+          D_ERROR( "IDirectFB_Construct: "
                     "Could not get default context of primary layer!\n" );
           DFB_DEALLOCATE_INTERFACE(thiz);
           return ret;

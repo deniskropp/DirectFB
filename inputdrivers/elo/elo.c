@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2003  Commercial Timesharing Inc.
-   
+
    All rights reserved.
 
    Written by Byron Stanoszek <bstanoszek@comtime.com> and
@@ -48,8 +48,11 @@
 #include <core/thread.h>
 
 #include <misc/conf.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
+#include <direct/memcpy.h>
 
 #include <core/input_driver.h>
 
@@ -289,11 +292,11 @@ static int eloOpenDevice(unsigned char *device)
   int fd;
   int res;
 
-  if((fd = open(device, O_RDWR|O_NOCTTY)) == -1) 
+  if((fd = open(device, O_RDWR|O_NOCTTY)) == -1)
     return -1;
 
   if((flock(fd, LOCK_EX|LOCK_NB)) == -1) {
-    PERRORMSG("DirectFB/elo: Error locking '%s'!\n",device);
+    D_PERROR("DirectFB/elo: Error locking '%s'!\n",device);
     close(fd);
     return -1;
   }
@@ -330,7 +333,7 @@ static int eloGetEvent(eloData *event)
     elo_reset_touch(event->fd);
     return -1;
   }
-  
+
   event->action = ptr[1];
 
   return 0; // valid touch
@@ -415,11 +418,11 @@ static DFBResult driver_open_device(InputDevice *device,
   /* open device */
   fd = eloOpenDevice(elo_DEVICE);
   if(fd < 0) {
-    PERRORMSG("DirectFB/elo: Error opening '"elo_DEVICE"'!\n");
+    D_PERROR("DirectFB/elo: Error opening '"elo_DEVICE"'!\n");
     return DFB_INIT;
   }
 
-  data = DFBCALLOC(1, sizeof(eloData));
+  data = D_CALLOC(1, sizeof(eloData));
 
   data->fd     = fd;
   data->device = device;
@@ -481,5 +484,5 @@ static void driver_close_device(void *driver_data)
   close(data->fd);
 
   /* free private data */
-  DFBFREE(data);
+  D_FREE(data);
 }

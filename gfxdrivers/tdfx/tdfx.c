@@ -118,7 +118,7 @@ static inline void tdfx_waitfifo( TDFXDriverData *tdrv,
      tdev->fifo_space -= space;
 
      if (!timeout)
-          CAUTION( "timeout during waitfifo!" );
+          D_WARN( "timeout during waitfifo!" );
 }
 
 static inline void tdfx_waitidle( TDFXDriverData *tdrv,
@@ -140,7 +140,7 @@ static inline void tdfx_waitidle( TDFXDriverData *tdrv,
 
      }
 
-     BUG( "timeout during waitidle!\n");
+     D_BUG( "timeout during waitidle!\n");
 }
 
 
@@ -222,7 +222,7 @@ static inline void tdfx_validate_destination3D( TDFXDriverData *tdrv,
                lfbmode |= TDFX_LFBMODE_ARGB8888;
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
 
@@ -290,7 +290,7 @@ static inline void tdfx_validate_colorFore( TDFXDriverData *tdrv,
                                                         state->color.b );
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
 
@@ -492,7 +492,7 @@ static void tdfxSetState( void *drv, void *dev,
                break;
 
           default:
-               BUG( "unexpected drawing/blitting function" );
+               D_BUG( "unexpected drawing/blitting function" );
                break;
      }
 
@@ -842,30 +842,30 @@ driver_close_device( GraphicsDevice *device,
      (void) tdev;
      (void) tdrv;
 
-     DEBUGMSG( "DirectFB/TDFX: FIFO Performance Monitoring:\n" );
-     DEBUGMSG( "DirectFB/TDFX:  %9d tdfx_waitfifo calls\n",
+     D_DEBUG( "DirectFB/TDFX: FIFO Performance Monitoring:\n" );
+     D_DEBUG( "DirectFB/TDFX:  %9d tdfx_waitfifo calls\n",
                tdev->waitfifo_calls );
-     DEBUGMSG( "DirectFB/TDFX:  %9d register writes (tdfx_waitfifo sum)\n",
+     D_DEBUG( "DirectFB/TDFX:  %9d register writes (tdfx_waitfifo sum)\n",
                tdev->waitfifo_sum );
-     DEBUGMSG( "DirectFB/TDFX:  %9d FIFO wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/TDFX:  %9d FIFO wait cycles (depends on CPU)\n",
                tdev->fifo_waitcycles );
-     DEBUGMSG( "DirectFB/TDFX:  %9d IDLE wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/TDFX:  %9d IDLE wait cycles (depends on CPU)\n",
                tdev->idle_waitcycles );
-     DEBUGMSG( "DirectFB/TDFX:  %9d FIFO space cache hits(depends on CPU)\n",
+     D_DEBUG( "DirectFB/TDFX:  %9d FIFO space cache hits(depends on CPU)\n",
                tdev->fifo_cache_hits );
-     DEBUGMSG( "DirectFB/TDFX: Conclusion:\n" );
-     DEBUGMSG( "DirectFB/TDFX:  Average register writes/tdfx_waitfifo"
+     D_DEBUG( "DirectFB/TDFX: Conclusion:\n" );
+     D_DEBUG( "DirectFB/TDFX:  Average register writes/tdfx_waitfifo"
                "call:%.2f\n",
                tdev->waitfifo_sum/(float)(tdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/TDFX:  Average wait cycles/tdfx_waitfifo call:"
+     D_DEBUG( "DirectFB/TDFX:  Average wait cycles/tdfx_waitfifo call:"
                " %.2f\n",
                tdev->fifo_waitcycles/(float)(tdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/TDFX:  Average fifo space cache hits: %02d%%\n",
+     D_DEBUG( "DirectFB/TDFX:  Average fifo space cache hits: %02d%%\n",
                (int)(100 * tdev->fifo_cache_hits/
                      (float)(tdev->waitfifo_calls)) );
 
-     DEBUGMSG( "DirectFB/TDFX:  Pixels Out: %d\n", tdrv->voodoo3D->fbiPixelsOut );
-     DEBUGMSG( "DirectFB/TDFX:  Triangles Out: %d\n", tdrv->voodoo3D->fbiTrianglesOut );
+     D_DEBUG( "DirectFB/TDFX:  Pixels Out: %d\n", tdrv->voodoo3D->fbiPixelsOut );
+     D_DEBUG( "DirectFB/TDFX:  Triangles Out: %d\n", tdrv->voodoo3D->fbiTrianglesOut );
 }
 
 static void

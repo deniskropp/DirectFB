@@ -331,7 +331,7 @@ uc_map_blitflags( struct uc_hw_texture    *tex,
           else { // !gotalpha
                // Av0 = 1.0
 
-               // BUG warning: I'm guessing where values should go,
+               // D_BUG warning: I'm guessing where values should go,
                // and how big (0xff = 1.0 ?) it should be.
 
                // Hw setting:

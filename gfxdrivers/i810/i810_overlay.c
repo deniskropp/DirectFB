@@ -30,7 +30,7 @@
 #include <core/surfaces.h>
 #include <core/fbdev/fbdev.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include <gfx/convert.h>
 
@@ -287,7 +287,7 @@ ovlTestConfiguration( CoreLayer                  *layer,
 	}
 	if (i810ovl->planar_bug && (config->pixelformat == DSPF_I420 ||
 				    config->pixelformat == DSPF_YV12    )) {
-		DEBUGMSG("Sorry, planar formats will not work when memory tiling "
+		D_DEBUG("Sorry, planar formats will not work when memory tiling "
 			 "is enabled\n");
 		fail |= DLCONF_PIXELFORMAT;
 	}
@@ -394,7 +394,7 @@ ovlSetDstColorKey( CoreLayer *layer,
 		i810ovl->regs->dclrkv = PIXEL_RGB32(r, g, b);
 		break;
 	default:
-		BUG("unexpected pixelformat");
+		D_BUG("unexpected pixelformat");
 		return DFB_UNIMPLEMENTED;
 	}
 	i810ovl->regs->dclrkm = 0x80000000;
@@ -674,7 +674,7 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 			i810ovl->regs->ov0cmd |= Y_SWAP;
 		break;
 	default:
-		BUG("unexpected pixelformat");
+		D_BUG("unexpected pixelformat");
 		break;
 	}
 

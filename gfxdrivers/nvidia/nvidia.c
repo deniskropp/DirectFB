@@ -202,7 +202,7 @@ static void nvSetState( void *drv, void *dev,
                break;
 
           default:
-               BUG( "unexpected drawing/blitting function" );
+               D_BUG( "unexpected drawing/blitting function" );
                break;
      }
 
@@ -240,7 +240,7 @@ static void nvSetState( void *drv, void *dev,
                                                 state->color.b );
                     break;
                default:
-                    BUG( "unexpected pixelformat" );
+                    D_BUG( "unexpected pixelformat" );
                     break;
           }
      }
@@ -600,25 +600,25 @@ driver_close_device( GraphicsDevice *device,
 
      (void) nvdev;
 
-     DEBUGMSG( "DirectFB/nvidia: FIFO Performance Monitoring:\n" );
-     DEBUGMSG( "DirectFB/nvidia:  %9d nv_waitfifo calls\n",
+     D_DEBUG( "DirectFB/nvidia: FIFO Performance Monitoring:\n" );
+     D_DEBUG( "DirectFB/nvidia:  %9d nv_waitfifo calls\n",
                nvdev->waitfifo_calls );
-     DEBUGMSG( "DirectFB/nvidia:  %9d register writes (nv_waitfifo sum)\n",
+     D_DEBUG( "DirectFB/nvidia:  %9d register writes (nv_waitfifo sum)\n",
                nvdev->waitfifo_sum );
-     DEBUGMSG( "DirectFB/nvidia:  %9d FIFO wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/nvidia:  %9d FIFO wait cycles (depends on CPU)\n",
                nvdev->fifo_waitcycles );
-     DEBUGMSG( "DirectFB/nvidia:  %9d IDLE wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/nvidia:  %9d IDLE wait cycles (depends on CPU)\n",
                nvdev->idle_waitcycles );
-     DEBUGMSG( "DirectFB/nvidia:  %9d FIFO space cache hits(depends on CPU)\n",
+     D_DEBUG( "DirectFB/nvidia:  %9d FIFO space cache hits(depends on CPU)\n",
                nvdev->fifo_cache_hits );
-     DEBUGMSG( "DirectFB/nvidia: Conclusion:\n" );
-     DEBUGMSG( "DirectFB/nvidia:  Average register writes/nvidia_waitfifo"
+     D_DEBUG( "DirectFB/nvidia: Conclusion:\n" );
+     D_DEBUG( "DirectFB/nvidia:  Average register writes/nvidia_waitfifo"
                "call:%.2f\n",
                nvdev->waitfifo_sum/(float)(nvdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/nvidia:  Average wait cycles/nvidia_waitfifo call:"
+     D_DEBUG( "DirectFB/nvidia:  Average wait cycles/nvidia_waitfifo call:"
                " %.2f\n",
                nvdev->fifo_waitcycles/(float)(nvdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/nvidia:  Average fifo space cache hits: %02d%%\n",
+     D_DEBUG( "DirectFB/nvidia:  Average fifo space cache hits: %02d%%\n",
                (int)(100 * nvdev->fifo_cache_hits/
                (float)(nvdev->waitfifo_calls)) );
 }

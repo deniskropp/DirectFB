@@ -35,7 +35,7 @@
 
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -49,7 +49,7 @@
 
 #include <misc/gfx_util.h>
 #include <misc/util.h>
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include <jpeglib.h>
 #include <setjmp.h>
@@ -462,7 +462,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                            cinfo.output_width);
                               break;
                          default:
-                              BUG("unsupported format not filtered before");
+                              D_BUG("unsupported format not filtered before");
                               return DFB_BUG;
                     }
                     row_ptr += pitch;

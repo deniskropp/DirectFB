@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.5 2003-11-25 10:53:48 oberritter Exp $
+ * $Id: sis315.c,v 1.6 2004-03-30 18:35:19 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -146,7 +146,7 @@ static void sis_set_state(void *driver_data, void *device_data,
 		state->set = SIS_SUPPORTED_BLITTING_FUNCTIONS;
 		break;
 	default:
-		BUG("unexpected drawing or blitting function");
+		D_BUG("unexpected drawing or blitting function");
 		break;
 	}
 

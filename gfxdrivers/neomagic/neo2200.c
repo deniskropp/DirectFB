@@ -164,7 +164,7 @@ static inline void neo2200_validate_bltMode_dst( Neo2200DriverData *ndrv,
       bltMode |= NEO_MODE1_DEPTH16;
       break;
     default:
-      BUG( "unexpected pixelformat!" );
+      D_BUG( "unexpected pixelformat!" );
       break;
     }
 
@@ -235,7 +235,7 @@ static inline void neo2200_validate_fgColor( Neo2200DriverData *ndrv,
                                             state->color.b );
       break;
     default:
-      BUG( "unexpected pixelformat!" );
+      D_BUG( "unexpected pixelformat!" );
       break;
     }
 
@@ -363,7 +363,7 @@ static void neo2200SetState( void *drv, void *dev,
                break;
 
           default:
-               BUG( "unexpected drawing/blitting function!" );
+               D_BUG( "unexpected drawing/blitting function!" );
                break;
      }
 

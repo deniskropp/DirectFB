@@ -23,7 +23,7 @@
 #include <core/gfxcard.h>
 #include <core/system.h>
 #include <core/layer_control.h>
-#include <misc/memcpy.h>
+#include <direct/memcpy.h>
 
 #include "nvidia.h"
 #include "math.h"
@@ -87,7 +87,7 @@ ov0InitLayer( CoreLayer                  *layer,
 {
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
-     
+
      __s32                  satSine, satCosine;
      double                 angle;
 
@@ -112,7 +112,7 @@ ov0InitLayer( CoreLayer                  *layer,
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
      adjustment->flags = DCAF_NONE;
-     
+
      /* reset overlay */
      nvov0->brightness           = 0;
      nvov0->contrast             = 4096;
@@ -229,16 +229,16 @@ ov0SetRegion( CoreLayer                  *layer,
      nvov0->config = *config;
 
      ov0_calc_regs( nvdrv, nvov0, layer, config );
-     ov0_set_regs( nvdrv, nvov0 );     
-     
-     switch (config->opacity) {     
+     ov0_set_regs( nvdrv, nvov0 );
+
+     switch (config->opacity) {
           case 0:
                ov0OnOff( nvdrv, nvov0, 0 );
           break;
           case 0xFF:
                ov0OnOff( nvdrv, nvov0, 1 );
           break;
-          
+
           default:
                return DFB_UNSUPPORTED;
      }
@@ -246,7 +246,7 @@ ov0SetRegion( CoreLayer                  *layer,
      /* enable overlay */
      ov0OnOff(nvdrv, nvov0, 1);
 
-     
+
      return DFB_OK;
 }
 
@@ -273,11 +273,11 @@ ov0AllocateSurface( CoreLayer              *layer,
                break;
 
           case DLBM_BACKSYSTEM:
-               ONCE("DLBM_BACKSYSTEM in default config is unimplemented");
+               D_ONCE("DLBM_BACKSYSTEM in default config is unimplemented");
                break;
 
           default:
-               BUG("unknown buffermode");
+               D_BUG("unknown buffermode");
                break;
      }
 
@@ -308,23 +308,23 @@ ov0ReallocateSurface( CoreLayer             *layer,
 
      switch (config->buffermode) {
           case DLBM_BACKVIDEO:
-               DEBUGMSG("Reallocate: BACKVIDEO\n");
+               D_DEBUG("Reallocate: BACKVIDEO\n");
                surface->caps |= DSCAPS_DOUBLE;
                nvov0->videoSurface->caps |= DSCAPS_DOUBLE;
                break;
           case DLBM_BACKSYSTEM:
-               DEBUGMSG("Reallocate: BACKSYTEM\n");
+               D_DEBUG("Reallocate: BACKSYTEM\n");
                surface->caps |= DSCAPS_DOUBLE;
                nvov0->videoSurface->caps |= DSCAPS_DOUBLE;
                break;
           case DLBM_FRONTONLY:
-               DEBUGMSG("Reallocate: FRONTONLY\n");
+               D_DEBUG("Reallocate: FRONTONLY\n");
                surface->caps &= ~DSCAPS_DOUBLE;
                nvov0->videoSurface->caps &= ~DSCAPS_DOUBLE;
                break;
 
           default:
-               BUG("unknown buffermode");
+               D_BUG("unknown buffermode");
                return DFB_BUG;
      }
 
@@ -340,7 +340,7 @@ ov0ReallocateSurface( CoreLayer             *layer,
 
 
      dstPitch = ((config->width << 1) + 63) & ~63;
-     DEBUGMSG("Reallocate: %d kBytes\n", dstPitch * config->height *
+     D_DEBUG("Reallocate: %d kBytes\n", dstPitch * config->height *
                                          DFB_BYTES_PER_PIXEL(config->format) /
                                          1024);
      result = dfb_surface_reformat( NULL, nvov0->videoSurface, dstPitch,
@@ -383,7 +383,7 @@ ov0CopyData422
     w <<= 1;
     while(h--)
     {
-        dfb_memcpy(dst, src, w);
+        direct_memcpy(dst, src, w);
         src += srcPitch;
         dst += dstPitch;
     }

@@ -2,8 +2,6 @@
 
 includedir = @INCLUDEDIR@
 
-internalincludedir = $(INTERNALINCLUDEDIR)
-
 MAINTAINERCLEANFILES = directfb_keynames.h directfb_strings.h
 
 EXTRA_DIST = mknames.sh
@@ -15,9 +13,6 @@ include_HEADERS = \
 	directfb_strings.h	\
 	directfb_version.h	\
 	dfb_types.h
-
-internalinclude_HEADERS = \
-	directfb_internals.h
 
 MKNAMES = $(top_srcdir)/include/mknames.sh
 

@@ -35,7 +35,7 @@
 
 #include <pthread.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <directfb.h>
 
@@ -55,21 +55,24 @@
 
 #include <misc/conf.h>
 #include <misc/util.h>
-#include <misc/mem.h>
+
+#include <direct/mem.h>
+#include <direct/messages.h>
+
 #include <gfx/util.h>
 
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
 
 typedef struct {
-     FusionLink       link;
+     DirectLink       link;
 
      DFBInputDeviceID id;
      GlobalReaction   reaction;
 } StackDevice;
 
 typedef struct {
-     FusionLink                  link;
+     DirectLink                  link;
 
      DFBInputDeviceKeySymbol     symbol;
      DFBInputDeviceModifierMask  modifiers;
@@ -139,7 +142,7 @@ window_destructor( FusionObject *object, bool zombie )
      CoreWindow      *window = (CoreWindow*) object;
      CoreWindowStack *stack  = window->stack;
 
-     DEBUGMSG("DirectFB/core/windows: destroying %p (%dx%d%s)\n", window,
+     D_DEBUG("DirectFB/core/windows: destroying %p (%dx%d%s)\n", window,
               window->width, window->height, zombie ? " ZOMBIE" : "");
 
      dfb_windowstack_lock( stack );
@@ -188,11 +191,11 @@ dfb_window_create( CoreWindowStack        *stack,
      CoreWindow        *window;
      CardCapabilities   card_caps;
 
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( stack->context != NULL );
-     DFB_ASSERT( width > 0 );
-     DFB_ASSERT( height > 0 );
-     DFB_ASSERT( ret_window != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( stack->context != NULL );
+     D_ASSERT( width > 0 );
+     D_ASSERT( height > 0 );
+     D_ASSERT( ret_window != NULL );
 
      context = stack->context;
      layer   = dfb_layer_at( context->layer_id );
@@ -221,7 +224,7 @@ dfb_window_create( CoreWindowStack        *stack,
           if (context->config.flags & DLCONF_PIXELFORMAT)
                pixelformat = context->config.pixelformat;
           else {
-               CAUTION( "layer config has no pixel format, using RGB16" );
+               D_WARN( "layer config has no pixel format, using RGB16" );
 
                pixelformat = DSPF_RGB16;
           }
@@ -358,13 +361,13 @@ dfb_window_destroy( CoreWindow *window )
      DFBWindowEvent   evt;
      CoreWindowStack *stack;
 
-     DFB_ASSERT( window != NULL );
+     D_ASSERT( window != NULL );
 
-     DEBUGMSG( "DirectFB/core/windows: "
+     D_DEBUG( "DirectFB/core/windows: "
                "dfb_window_destroy (%p) [%4d,%4d - %4dx%4d]\n",
                window, window->x, window->y, window->width, window->height );
 
-     DFB_ASSUME( window->stack != NULL );
+     D_ASSUME( window->stack != NULL );
 
      stack = window->stack;
      if (!stack)
@@ -468,7 +471,7 @@ dfb_window_change_stacking( CoreWindow             *window,
                break;
 
           default:
-               BUG("unknown stacking class");
+               D_BUG("unknown stacking class");
                dfb_windowstack_unlock( stack );
                return;
      }
@@ -696,8 +699,8 @@ dfb_window_resize( CoreWindow   *window,
      int              oh    = window->height;
      CoreLayer       *layer = dfb_layer_at( stack->context->layer_id );
 
-     DFB_ASSERT( width > 0 );
-     DFB_ASSERT( height > 0 );
+     D_ASSERT( width > 0 );
+     D_ASSERT( height > 0 );
 
      if (width > 4096 || height > 4096)
           return DFB_BUFFERTOOLARGE;
@@ -871,13 +874,13 @@ dfb_window_grab_key( CoreWindow                 *window,
                      DFBInputDeviceModifierMask  modifiers )
 {
      int              i;
-     FusionLink      *l;
+     DirectLink      *l;
      GrabbedKey      *grab;
      CoreWindowStack *stack = window->stack;
 
      dfb_windowstack_lock( stack );
 
-     fusion_list_foreach (l, stack->grabbed_keys) {
+     direct_list_foreach (l, stack->grabbed_keys) {
           GrabbedKey *key = (GrabbedKey*) l;
 
           if (key->symbol == symbol && key->modifiers == modifiers) {
@@ -892,7 +895,7 @@ dfb_window_grab_key( CoreWindow                 *window,
      grab->modifiers = modifiers;
      grab->owner     = window;
 
-     fusion_list_prepend( &stack->grabbed_keys, &grab->link );
+     direct_list_prepend( &stack->grabbed_keys, &grab->link );
 
      for (i=0; i<8; i++)
           if (stack->keys[i].code != -1 && stack->keys[i].symbol == symbol)
@@ -908,18 +911,18 @@ dfb_window_ungrab_key( CoreWindow                 *window,
                        DFBInputDeviceKeySymbol     symbol,
                        DFBInputDeviceModifierMask  modifiers )
 {
-     FusionLink      *l;
+     DirectLink      *l;
      CoreWindowStack *stack = window->stack;
 
      dfb_windowstack_lock( stack );
 
-     fusion_list_foreach (l, stack->grabbed_keys) {
+     direct_list_foreach (l, stack->grabbed_keys) {
           GrabbedKey *key = (GrabbedKey*) l;
 
           if (key->symbol    == symbol &&
               key->modifiers == modifiers &&
               key->owner     == window) {
-               fusion_list_remove( &stack->grabbed_keys, &key->link );
+               direct_list_remove( &stack->grabbed_keys, &key->link );
                SHFREE( key );
                break;
           }
@@ -934,10 +937,10 @@ void
 dfb_window_post_event( CoreWindow     *window,
                        DFBWindowEvent *event )
 {
-     DFB_ASSERT( window != NULL );
-     DFB_ASSERT( event != NULL );
+     D_ASSERT( window != NULL );
+     D_ASSERT( event != NULL );
 
-     DFB_ASSUME( !window->destroyed || event->type == DWET_DESTROYED );
+     D_ASSUME( !window->destroyed || event->type == DWET_DESTROYED );
 
      if (! (event->type & window->events))
           return;
@@ -947,7 +950,7 @@ dfb_window_post_event( CoreWindow     *window,
      event->clazz     = DFEC_WINDOW;
      event->window_id = window->id;
 
-     DFB_ASSUME( window->stack != NULL );
+     D_ASSUME( window->stack != NULL );
 
      if (window->stack) {
           CoreWindowStack *stack = window->stack;
@@ -968,7 +971,7 @@ dfb_window_request_focus( CoreWindow *window )
 {
      CoreWindowStack *stack = window->stack;
 
-     DFB_ASSERT( !(window->options & DWOP_GHOST) );
+     D_ASSERT( !(window->options & DWOP_GHOST) );
 
      dfb_windowstack_lock( stack );
 
@@ -993,7 +996,7 @@ dfb_window_request_focus( CoreWindow *window )
 DFBWindowID
 dfb_window_id( const CoreWindow *window )
 {
-     DFB_ASSERT( window != NULL );
+     D_ASSERT( window != NULL );
 
      return window->id;
 }
@@ -1027,10 +1030,10 @@ window_insert( CoreWindow *window,
      DFBWindowEvent   evt;
      CoreWindowStack *stack = window->stack;
 
-     DFB_ASSERT( window->stack != NULL );
-     DFB_ASSERT( !window->destroyed );
+     D_ASSERT( window->stack != NULL );
+     D_ASSERT( !window->destroyed );
 
-     DFB_ASSUME( !window->initialized );
+     D_ASSUME( !window->initialized );
 
      if (window->initialized)
           return;
@@ -1067,23 +1070,23 @@ window_remove( CoreWindow *window )
 {
      int              i;
      int              index;
-     FusionLink      *l;
+     DirectLink      *l;
      CoreWindowStack *stack = window->stack;
 
-     DFB_ASSERT( window->stack != NULL );
-     DFB_ASSERT( window->opacity == 0 );
+     D_ASSERT( window->stack != NULL );
+     D_ASSERT( window->opacity == 0 );
 
-     DFB_ASSUME( window->initialized );
+     D_ASSUME( window->initialized );
 
      window_withdraw( window );
 
      l = stack->grabbed_keys;
      while (l) {
-          FusionLink *next = l->next;
+          DirectLink *next = l->next;
           GrabbedKey *key  = (GrabbedKey*) l;
 
           if (key->owner == window) {
-               fusion_list_remove( &stack->grabbed_keys, &key->link );
+               direct_list_remove( &stack->grabbed_keys, &key->link );
                SHFREE( key );
           }
 
@@ -1119,7 +1122,7 @@ window_remove( CoreWindow *window )
           dfb_layer_region_unlink( &window->primary_region );
      }
      else
-          DFB_ASSUME( window->caps & DWCAPS_INPUTONLY );
+          D_ASSUME( window->caps & DWCAPS_INPUTONLY );
 
      window->stack = NULL;
 }
@@ -1199,8 +1202,8 @@ window_withdraw( CoreWindow *window )
      int              i;
      CoreWindowStack *stack;
 
-     DFB_ASSERT( window != NULL );
-     DFB_ASSERT( window->stack != NULL );
+     D_ASSERT( window != NULL );
+     D_ASSERT( window->stack != NULL );
 
      stack = window->stack;
 
@@ -1265,15 +1268,15 @@ _dfb_window_surface_listener( const void *msg_data, void *ctx )
 
      (void) window;
 
-     DFB_ASSERT( notification != NULL );
-     DFB_ASSERT( notification->surface != NULL );
+     D_ASSERT( notification != NULL );
+     D_ASSERT( notification->surface != NULL );
 
-     DFB_ASSERT( window != NULL );
-     DFB_ASSERT( window->stack != NULL );
-     DFB_ASSERT( window->surface == notification->surface );
+     D_ASSERT( window != NULL );
+     D_ASSERT( window->stack != NULL );
+     D_ASSERT( window->surface == notification->surface );
 
      if (notification->flags & CSNF_DESTROY) {
-          CAUTION( "window surface destroyed" );
+          D_WARN( "window surface destroyed" );
           return RS_REMOVE;
      }
 
@@ -1281,7 +1284,7 @@ _dfb_window_surface_listener( const void *msg_data, void *ctx )
 /*          if (window->window_data) {
                CoreLayer *layer = dfb_layer_at( window->stack->layer_id );
 
-               DFB_ASSERT( layer != NULL );
+               D_ASSERT( layer != NULL );
 
                dfb_layer_update_window( layer, window, CWUF_PALETTE );
           }*/

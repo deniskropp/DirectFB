@@ -35,8 +35,8 @@
 
 #include <pthread.h>
 
-#include <core/fusion/list.h>
-#include <core/fusion/shmalloc.h>
+#include <direct/list.h>
+#include <fusion/shmalloc.h>
 
 #include <directfb.h>
 
@@ -50,8 +50,10 @@
 #include <core/system.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
 
 /*
  * initially there is one big free chunk,
@@ -132,9 +134,9 @@ dfb_surfacemanager_create( unsigned int     length,
 
      fusion_skirmish_init( &manager->lock );
 
-     DFB_MAGIC_SET( chunk, _Chunk_ );
+     D_MAGIC_SET( chunk, _Chunk_ );
 
-     DFB_MAGIC_SET( manager, SurfaceManager );
+     D_MAGIC_SET( manager, SurfaceManager );
 
      return manager;
 }
@@ -144,19 +146,19 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
 {
      Chunk *chunk;
 
-     DFB_ASSERT( manager != NULL );
-     DFB_ASSERT( manager->chunks != NULL );
+     D_ASSERT( manager != NULL );
+     D_ASSERT( manager->chunks != NULL );
 
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
-     DFB_MAGIC_CLEAR( manager );
+     D_MAGIC_CLEAR( manager );
 
      /* Deallocate all chunks. */
      chunk = manager->chunks;
      while (chunk) {
           Chunk *next = chunk->next;
 
-          DFB_MAGIC_CLEAR( chunk );
+          D_MAGIC_CLEAR( chunk );
 
           SHFREE( chunk );
 
@@ -174,7 +176,7 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 {
      Chunk *c;
 
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      dfb_surfacemanager_lock( manager );
 
@@ -200,7 +202,7 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 
 DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 {
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      dfb_surfacemanager_lock( manager );
 
@@ -213,14 +215,14 @@ DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 
 void dfb_surfacemanager_lock( SurfaceManager *manager )
 {
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      fusion_skirmish_prevail( &manager->lock );
 }
 
 void dfb_surfacemanager_unlock( SurfaceManager *manager )
 {
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      fusion_skirmish_dismiss( &manager->lock );
 }
@@ -228,9 +230,9 @@ void dfb_surfacemanager_unlock( SurfaceManager *manager )
 DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
                                                  int             offset )
 {
-     DFB_ASSERT( offset >= 0 );
+     D_ASSERT( offset >= 0 );
 
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      dfb_surfacemanager_lock( manager );
 
@@ -247,13 +249,13 @@ DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
                manager->chunks->offset = offset;
           }
           else {
-               CAUTION("unable to adjust heap offset");
+               D_WARN("unable to adjust heap offset");
                /* more space needed than free at the beginning */
                /* TODO: move/destroy instances */
           }
      }
      else {
-          CAUTION("unable to adjust heap offset");
+          D_WARN("unable to adjust heap offset");
           /* very rare case that the first chunk is occupied */
           /* TODO: move/destroy instances */
      }
@@ -272,10 +274,10 @@ dfb_surfacemanager_enumerate_chunks( SurfaceManager  *manager,
 {
      Chunk *c;
 
-     DFB_ASSERT( manager != NULL );
-     DFB_ASSERT( callback != NULL );
+     D_ASSERT( manager != NULL );
+     D_ASSERT( callback != NULL );
 
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      dfb_surfacemanager_lock( manager );
 
@@ -306,7 +308,7 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
 
      CoreSurface *surface = buffer->surface;
 
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      if (!manager->length || manager->suspended)
           return DFB_NOVIDEOMEMORY;
@@ -385,7 +387,7 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      if (best_occupied) {
           CoreSurface *kicked = best_occupied->buffer->surface;
 
-          DEBUGMSG( "DirectFB/core/surfacemanager: Kicking out buffer at %d (%d) with tolerations %d...\n",
+          D_DEBUG( "DirectFB/core/surfacemanager: Kicking out buffer at %d (%d) with tolerations %d...\n",
                     best_occupied->offset,
                     best_occupied->length, best_occupied->tolerations );
 
@@ -405,7 +407,7 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      }
 
 
-     DEBUGMSG( "DirectFB/core/surfacemanager: "
+     D_DEBUG( "DirectFB/core/surfacemanager: "
                "Couldn't allocate enough heap space "
                "for video memory surface!\n" );
 
@@ -419,14 +421,14 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
      int    loops = 0;
      Chunk *chunk = buffer->video.chunk;
 
-     DFB_ASSERT( buffer->surface );
+     D_ASSERT( buffer->surface );
 
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      if (buffer->video.health == CSH_INVALID)
           return DFB_OK;
 
-     //DEBUGMSG( "deallocating...\n" );
+     //D_DEBUG( "deallocating...\n" );
 
      buffer->video.health = CSH_INVALID;
      buffer->video.chunk = NULL;
@@ -441,12 +443,12 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
      }
 
      if (buffer->video.locked)
-          CAUTION( "Freeing chunk with a non-zero lock counter" );
+          D_WARN( "Freeing chunk with a non-zero lock counter" );
 
      if (chunk)
           free_chunk( manager, chunk );
 
-     //DEBUGMSG( "deallocated.\n" );
+     //D_DEBUG( "deallocated.\n" );
 
      return DFB_OK;
 }
@@ -457,7 +459,7 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
      DFBResult    ret;
      CoreSurface *surface = buffer->surface;
 
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      if (manager->suspended)
           return DFB_NOVIDEOMEMORY;
@@ -479,7 +481,7 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
 
           case CSH_RESTORE:
                if (buffer->system.health != CSH_STORED)
-                    BUG( "system/video instances both not stored!" );
+                    D_BUG( "system/video instances both not stored!" );
 
                if (buffer->flags & SBF_WRITTEN) {
                     int   i;
@@ -487,18 +489,16 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                     char *dst = dfb_system_video_memory_virtual( buffer->video.offset );
 
                     for (i=0; i<surface->height; i++) {
-                         dfb_memcpy( dst, src,
-                                     DFB_BYTES_PER_LINE(surface->format,
-                                                        surface->width) );
+                         direct_memcpy( dst, src,
+                                        DFB_BYTES_PER_LINE(surface->format, surface->width) );
                          src += buffer->system.pitch;
                          dst += buffer->video.pitch;
                     }
 
                     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
                          for (i=0; i<surface->height; i++) {
-                              dfb_memcpy( dst, src,
-                                          DFB_BYTES_PER_LINE(surface->format,
-                                                             surface->width / 2) );
+                              direct_memcpy( dst, src,
+                                             DFB_BYTES_PER_LINE(surface->format, surface->width / 2) );
                               src += buffer->system.pitch / 2;
                               dst += buffer->video.pitch  / 2;
                          }
@@ -516,7 +516,7 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                break;
      }
 
-     BUG( "unknown video instance health" );
+     D_BUG( "unknown video instance health" );
      return DFB_BUG;
 }
 
@@ -525,10 +525,10 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
 {
      CoreSurface *surface = buffer->surface;
 
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
 
      if (buffer->policy == CSP_VIDEOONLY) {
-          BUG( "surface_manager_assure_system() called on video only surface" );
+          D_BUG( "surface_manager_assure_system() called on video only surface" );
           return DFB_BUG;
      }
 
@@ -547,16 +547,14 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
           buffer->video.access |= VAF_SOFTWARE_READ;
 
           while (h--) {
-               dfb_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
-                                                        surface->width) );
+               direct_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format, surface->width) );
                src += buffer->video.pitch;
                dst += buffer->system.pitch;
           }
           if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
                h = surface->height;
                while (h--) {
-                    dfb_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
-                                                             surface->width / 2) );
+                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format, surface->width / 2) );
                     src += buffer->video.pitch  / 2;
                     dst += buffer->system.pitch / 2;
                }
@@ -568,7 +566,7 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
           return DFB_OK;
      }
 
-     BUG( "no valid surface instance" );
+     D_BUG( "no valid surface instance" );
      return DFB_BUG;
 }
 
@@ -578,7 +576,7 @@ static Chunk* split_chunk( Chunk *c, int length )
 {
      Chunk *newchunk;
 
-     DFB_MAGIC_ASSERT( c, _Chunk_ );
+     D_MAGIC_ASSERT( c, _Chunk_ );
 
      if (c->length == length)          /* does not need be splitted */
           return c;
@@ -597,7 +595,7 @@ static Chunk* split_chunk( Chunk *c, int length )
           c->next->prev = newchunk;
      c->next = newchunk;
 
-     DFB_MAGIC_SET( newchunk, _Chunk_ );
+     D_MAGIC_SET( newchunk, _Chunk_ );
 
      return newchunk;
 }
@@ -605,15 +603,15 @@ static Chunk* split_chunk( Chunk *c, int length )
 static Chunk*
 free_chunk( SurfaceManager *manager, Chunk *chunk )
 {
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
-     DFB_MAGIC_ASSERT( chunk, _Chunk_ );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( chunk, _Chunk_ );
 
      if (!chunk->buffer) {
-          BUG( "freeing free chunk" );
+          D_BUG( "freeing free chunk" );
           return chunk;
      }
      else {
-          DEBUGMSG( "DirectFB/core/surfacemanager: "
+          D_DEBUG( "DirectFB/core/surfacemanager: "
                     "Deallocating %d bytes at offset %d.\n",
                     chunk->length, chunk->offset );
      }
@@ -628,7 +626,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
      if (chunk->prev  &&  !chunk->prev->buffer) {
           Chunk *prev = chunk->prev;
 
-          //DEBUGMSG( "  merging with previous chunk at %d\n", prev->offset );
+          //D_DEBUG( "  merging with previous chunk at %d\n", prev->offset );
 
           prev->length += chunk->length;
 
@@ -636,9 +634,9 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
           if (prev->next)
                prev->next->prev = prev;
 
-          //DEBUGMSG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
+          //D_DEBUG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
 
-          DFB_MAGIC_CLEAR( chunk );
+          D_MAGIC_CLEAR( chunk );
 
           SHFREE( chunk );
           chunk = prev;
@@ -647,7 +645,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
      if (chunk->next  &&  !chunk->next->buffer) {
           Chunk *next = chunk->next;
 
-          //DEBUGMSG( "  merging with next chunk at %d\n", next->offset );
+          //D_DEBUG( "  merging with next chunk at %d\n", next->offset );
 
           chunk->length += next->length;
 
@@ -655,7 +653,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
           if (chunk->next)
                chunk->next->prev = chunk;
 
-          DFB_MAGIC_CLEAR( next );
+          D_MAGIC_CLEAR( next );
 
           SHFREE( next );
      }
@@ -666,15 +664,15 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
 static void
 occupy_chunk( SurfaceManager *manager, Chunk *chunk, SurfaceBuffer *buffer, int length )
 {
-     DFB_MAGIC_ASSERT( manager, SurfaceManager );
-     DFB_MAGIC_ASSERT( chunk, _Chunk_ );
+     D_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( chunk, _Chunk_ );
 
      if (buffer->policy == CSP_VIDEOONLY)
           manager->available -= length;
 
      chunk = split_chunk( chunk, length );
 
-     DEBUGMSG( "DirectFB/core/surfacemanager: "
+     D_DEBUG( "DirectFB/core/surfacemanager: "
                "Allocating %d bytes at offset %d.\n",
                chunk->length, chunk->offset );
 

@@ -37,7 +37,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -49,7 +49,7 @@
 #include <core/system.h>
 #include <core/windows.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 
 #include "regs.h"
@@ -524,7 +524,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                break;
 
           default:
-               BUG( "unexpected pixelformat" );
+               D_BUG( "unexpected pixelformat" );
                return;
      }
 

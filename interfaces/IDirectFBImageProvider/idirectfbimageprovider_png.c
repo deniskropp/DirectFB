@@ -35,7 +35,7 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -49,8 +49,8 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <misc/util.h>
 
 #include "config.h"
@@ -212,7 +212,7 @@ error:
      buffer->Release( buffer );
 
      if (data->image)
-          DFBFREE( data->image );
+          D_FREE( data->image );
 
      DFB_DEALLOCATE_INTERFACE(thiz);
 
@@ -232,7 +232,7 @@ IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
 
      /* Deallocate image data. */
      if (data->image)
-          DFBFREE( data->image );
+          D_FREE( data->image );
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -383,10 +383,10 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
      if (n_colors < 1)
           return color;
 
-     DFB_ASSERT( n_colors <= MAXCOLORMAPSIZE );
+     D_ASSERT( n_colors <= MAXCOLORMAPSIZE );
 
      for (i = 0; i < 3; i++) {
-          dfb_memcpy( csort, cmap[i], n_colors );
+          direct_memcpy( csort, cmap[i], n_colors );
           qsort( csort, n_colors, 1, SortColors );
 
           for (j = 1, index = 0, d = 0; j < n_colors; j++) {
@@ -480,7 +480,7 @@ png_info_callback   (png_structp png_read_ptr,
                /* ...or based on trans rgb value */
                png_color_16p trans = &data->info_ptr->trans_values;
 
-               CAUTION("color key from non-palette source is untested");
+               D_WARN("color key from non-palette source is untested");
 
                data->color_key = (((trans->red & 0xff00) << 8) |
                                   ((trans->green & 0xff00)) |
@@ -533,9 +533,9 @@ png_row_callback   (png_structp png_read_ptr,
           int size = data->width * data->height * 4;
 
           /* allocate image data */
-          data->image = DFBMALLOC( size );
+          data->image = D_MALLOC( size );
           if (!data->image) {
-               ERRORMSG("DirectFB/ImageProvider_PNG: Could not "
+               D_ERROR("DirectFB/ImageProvider_PNG: Could not "
                         "allocate %d bytes of system memory!\n", size);
 
                /* set error stage */

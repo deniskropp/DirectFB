@@ -29,9 +29,9 @@
 #include <stddef.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include <media/idirectfbimageprovider.h>
 #include <media/idirectfbdatabuffer.h>

@@ -27,8 +27,8 @@
 
 #include <config.h>
 
-#include <core/fusion/arena.h>
-#include <core/fusion/shmalloc.h>
+#include <fusion/arena.h>
+#include <fusion/shmalloc.h>
 
 #include <core/core.h>
 #include <core/core_parts.h>
@@ -61,7 +61,7 @@ DFB_CORE_PART( colorhash, 0, sizeof(ColorhashField) )
 static DFBResult
 dfb_colorhash_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
-     DFB_ASSERT( hash_field == NULL );
+     D_ASSERT( hash_field == NULL );
 
      hash_field = data_shared;
 
@@ -73,7 +73,7 @@ dfb_colorhash_initialize( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_colorhash_join( CoreDFB *core, void *data_local, void *data_shared )
 {
-     DFB_ASSERT( hash_field == NULL );
+     D_ASSERT( hash_field == NULL );
 
      hash_field = data_shared;
 
@@ -83,7 +83,7 @@ dfb_colorhash_join( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_colorhash_shutdown( CoreDFB *core, bool emergency )
 {
-     DFB_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field != NULL );
 
      fusion_skirmish_destroy( &hash_field->hash_lock );
 
@@ -95,7 +95,7 @@ dfb_colorhash_shutdown( CoreDFB *core, bool emergency )
 static DFBResult
 dfb_colorhash_leave( CoreDFB *core, bool emergency )
 {
-     DFB_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field != NULL );
 
      hash_field = NULL;
 
@@ -105,7 +105,7 @@ dfb_colorhash_leave( CoreDFB *core, bool emergency )
 static DFBResult
 dfb_colorhash_suspend( CoreDFB *core )
 {
-     DFB_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field != NULL );
 
      return DFB_OK;
 }
@@ -113,7 +113,7 @@ dfb_colorhash_suspend( CoreDFB *core )
 static DFBResult
 dfb_colorhash_resume( CoreDFB *core )
 {
-     DFB_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field != NULL );
 
      return DFB_OK;
 }
@@ -122,7 +122,7 @@ dfb_colorhash_resume( CoreDFB *core )
 static inline void
 colorhash_lock( void )
 {
-     DFB_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field != NULL );
 
      fusion_skirmish_prevail( &hash_field->hash_lock );
 }
@@ -130,7 +130,7 @@ colorhash_lock( void )
 static inline void
 colorhash_unlock( void )
 {
-     DFB_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field != NULL );
 
      fusion_skirmish_dismiss( &hash_field->hash_lock );
 }
@@ -138,12 +138,12 @@ colorhash_unlock( void )
 void
 dfb_colorhash_attach( CorePalette *palette )
 {
-     DFB_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field != NULL );
 
      colorhash_lock();
 
      if (!hash_field->hash) {
-          DFB_ASSERT( !hash_field->hash_users );
+          D_ASSERT( !hash_field->hash_users );
 
           hash_field->hash = SHCALLOC( HASH_SIZE, sizeof (Colorhash) );
      }
@@ -156,12 +156,12 @@ dfb_colorhash_attach( CorePalette *palette )
 void
 dfb_colorhash_detach( CorePalette *palette )
 {
-     DFB_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field != NULL );
 
      colorhash_lock();
 
-     DFB_ASSERT( hash_field->hash_users > 0 );
-     DFB_ASSERT( hash_field->hash != NULL );
+     D_ASSERT( hash_field->hash_users > 0 );
+     D_ASSERT( hash_field->hash != NULL );
 
      hash_field->hash_users--;
 
@@ -185,8 +185,8 @@ dfb_colorhash_lookup( CorePalette *palette,
      unsigned int  pixel = PIXEL_ARGB(a, r, g, b);
      unsigned int  index = (pixel ^ (unsigned int) palette) % HASH_SIZE;
 
-     DFB_ASSERT( hash_field != NULL );
-     DFB_ASSERT( hash_field->hash != NULL );
+     D_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field->hash != NULL );
 
      colorhash_lock();
 
@@ -246,8 +246,8 @@ dfb_colorhash_invalidate( CorePalette *palette )
      Colorhash    *hash;
      unsigned int  index = HASH_SIZE - 1;
 
-     DFB_ASSERT( hash_field != NULL );
-     DFB_ASSERT( hash_field->hash != NULL );
+     D_ASSERT( hash_field != NULL );
+     D_ASSERT( hash_field->hash != NULL );
 
      hash = hash_field->hash;
 

@@ -32,7 +32,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/list.h>
+#include <direct/list.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -46,7 +46,9 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
-#include <misc/mem.h>
+
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 DEFINE_MODULE_DIRECTORY( dfb_core_systems, "systems",
                          DFB_CORE_SYSTEM_ABI_VERSION );
@@ -68,11 +70,11 @@ static void                  *system_data   = NULL;
 DFBResult
 dfb_system_lookup()
 {
-     FusionLink *l;
+     DirectLink *l;
 
      dfb_modules_explore_directory( &dfb_core_systems );
 
-     fusion_list_foreach( l, dfb_core_systems.entries ) {
+     direct_list_foreach( l, dfb_core_systems.entries ) {
           ModuleEntry           *module = (ModuleEntry*) l;
           const CoreSystemFuncs *funcs;
 
@@ -96,7 +98,7 @@ dfb_system_lookup()
      }
 
      if (!system_module) {
-          ERRORMSG("DirectFB/core/system: No system found!\n");
+          D_ERROR("DirectFB/core/system: No system found!\n");
 
           return DFB_NOIMPL;
      }
@@ -107,8 +109,8 @@ dfb_system_lookup()
 static DFBResult
 dfb_system_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
-     DFB_ASSERT( system_funcs != NULL );
-     DFB_ASSERT( system_field == NULL );
+     D_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_field == NULL );
 
      system_field = data_shared;
 
@@ -120,15 +122,15 @@ dfb_system_initialize( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_system_join( CoreDFB *core, void *data_local, void *data_shared )
 {
-     DFB_ASSERT( system_funcs != NULL );
-     DFB_ASSERT( system_field == NULL );
+     D_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_field == NULL );
 
      system_field = data_shared;
 
      if (system_field->system_info.type != system_info.type ||
          strcmp( system_field->system_info.name, system_info.name ))
      {
-          ERRORMSG( "DirectFB/core/system: "
+          D_ERROR( "DirectFB/core/system: "
                     "running system '%s' doesn't match system '%s'!\n",
                     system_field->system_info.name, system_info.name );
 
@@ -140,7 +142,7 @@ dfb_system_join( CoreDFB *core, void *data_local, void *data_shared )
      if (system_field->system_info.version.major != system_info.version.major ||
          system_field->system_info.version.minor != system_info.version.minor)
      {
-          ERRORMSG( "DirectFB/core/system: running system version '%d.%d' "
+          D_ERROR( "DirectFB/core/system: running system version '%d.%d' "
                     "doesn't match version '%d.%d'!\n",
                     system_field->system_info.version.major,
                     system_field->system_info.version.minor,
@@ -160,8 +162,8 @@ dfb_system_shutdown( CoreDFB *core, bool emergency )
 {
      DFBResult ret;
 
-     DFB_ASSERT( system_field != NULL );
-     DFB_ASSERT( system_module != NULL );
+     D_ASSERT( system_field != NULL );
+     D_ASSERT( system_module != NULL );
 
      ret = system_funcs->Shutdown( emergency );
 
@@ -180,8 +182,8 @@ dfb_system_leave( CoreDFB *core, bool emergency )
 {
      DFBResult ret;
 
-     DFB_ASSERT( system_field != NULL );
-     DFB_ASSERT( system_module != NULL );
+     D_ASSERT( system_field != NULL );
+     D_ASSERT( system_module != NULL );
 
      ret = system_funcs->Leave( emergency );
 
@@ -198,8 +200,8 @@ dfb_system_leave( CoreDFB *core, bool emergency )
 static DFBResult
 dfb_system_suspend( CoreDFB *core )
 {
-     DFB_ASSERT( system_funcs != NULL );
-     DFB_ASSERT( system_field != NULL );
+     D_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_field != NULL );
 
      return system_funcs->Suspend();
 }
@@ -207,8 +209,8 @@ dfb_system_suspend( CoreDFB *core )
 static DFBResult
 dfb_system_resume( CoreDFB *core )
 {
-     DFB_ASSERT( system_funcs != NULL );
-     DFB_ASSERT( system_field != NULL );
+     D_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_field != NULL );
 
      return system_funcs->Resume();
 }
@@ -229,7 +231,7 @@ volatile void *
 dfb_system_map_mmio( unsigned int    offset,
                      int             length )
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      return system_funcs->MapMMIO( offset, length );
 }
@@ -238,7 +240,7 @@ void
 dfb_system_unmap_mmio( volatile void  *addr,
                        int             length )
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      system_funcs->UnmapMMIO( addr, length );
 }
@@ -246,7 +248,7 @@ dfb_system_unmap_mmio( volatile void  *addr,
 int
 dfb_system_get_accelerator()
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      return system_funcs->GetAccelerator();
 }
@@ -254,7 +256,7 @@ dfb_system_get_accelerator()
 VideoMode *
 dfb_system_modes()
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      return system_funcs->GetModes();
 }
@@ -262,7 +264,7 @@ dfb_system_modes()
 VideoMode *
 dfb_system_current_mode()
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      return system_funcs->GetCurrentMode();
 }
@@ -270,7 +272,7 @@ dfb_system_current_mode()
 DFBResult
 dfb_system_thread_init()
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      return system_funcs->ThreadInit();
 }
@@ -279,7 +281,7 @@ bool
 dfb_system_input_filter( InputDevice   *device,
                          DFBInputEvent *event )
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      return system_funcs->InputFilter( device, event );
 }
@@ -287,7 +289,7 @@ dfb_system_input_filter( InputDevice   *device,
 unsigned long
 dfb_system_video_memory_physical( unsigned int offset )
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      return system_funcs->VideoMemoryPhysical( offset );
 }
@@ -295,7 +297,7 @@ dfb_system_video_memory_physical( unsigned int offset )
 void *
 dfb_system_video_memory_virtual( unsigned int offset )
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      return system_funcs->VideoMemoryVirtual( offset );
 }
@@ -303,7 +305,7 @@ dfb_system_video_memory_virtual( unsigned int offset )
 unsigned int
 dfb_system_videoram_length()
 {
-     DFB_ASSERT( system_funcs != NULL );
+     D_ASSERT( system_funcs != NULL );
 
      return system_funcs->VideoRamLength();
 }

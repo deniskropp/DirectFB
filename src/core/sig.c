@@ -31,17 +31,23 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include <directfb.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/fusion.h>
+#include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
 #include <core/core.h>
 #include <core/sig.h>
 
 #include <misc/conf.h>
-#include <misc/debug.h>
+
+#include <direct/debug.h>
+#include <direct/messages.h>
+#include <direct/system.h>
+#include <direct/trace.h>
 
 typedef struct {
      int              signum;
@@ -209,7 +215,7 @@ show_any( const siginfo_t *info )
 static void
 dfb_sig_action( int num, siginfo_t *info, void *foo )
 {
-     int       pid    = gettid();
+     int       pid    = direct_gettid();
      long long millis = fusion_get_millis();
 
      fprintf( stderr, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
@@ -264,7 +270,7 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
 
      fflush( stderr );
 
-     dfb_trace_print_stacks();
+     direct_trace_print_stacks();
 
      dfb_core_destroy( core_dfb, true );
 
@@ -278,8 +284,8 @@ dfb_sig_install_handlers( CoreDFB *core )
 {
      int i;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core_dfb == NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core_dfb == NULL );
 
      core_dfb = core;
 
@@ -301,7 +307,7 @@ dfb_sig_install_handlers( CoreDFB *core )
                sigfillset( &action.sa_mask );
 
                if (sigaction( signum, &action, &sigs_handled[i].old_action )) {
-                    PERRORMSG("DirectFB/core/sig: Unable to install signal "
+                    D_PERROR("DirectFB/core/sig: Unable to install signal "
                               "handler for signal %d!\n", signum);
                     continue;
                }
@@ -316,8 +322,8 @@ dfb_sig_remove_handlers( CoreDFB *core )
 {
      int i;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core_dfb == core );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core_dfb == core );
 
      core_dfb = NULL;
 
@@ -326,7 +332,7 @@ dfb_sig_remove_handlers( CoreDFB *core )
                int signum = sigs_handled[i].signum;
 
                if (sigaction( signum, &sigs_handled[i].old_action, NULL )) {
-                    PERRORMSG("DirectFB/core/sig: Unable to restore previous "
+                    D_PERROR("DirectFB/core/sig: Unable to restore previous "
                               "handler for signal %d!\n", signum);
                }
 
@@ -335,13 +341,3 @@ dfb_sig_remove_handlers( CoreDFB *core )
      }
 }
 
-void
-dfb_sig_block_all()
-{
-     sigset_t signals;
-
-     sigfillset( &signals );
-
-     if (pthread_sigmask( SIG_BLOCK, &signals, NULL ))
-          PERRORMSG( "DirectFB/Core: Setting signal mask failed!\n" );
-}

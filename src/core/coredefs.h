@@ -28,29 +28,6 @@
 #ifndef __COREDEFS_H__
 #define __COREDEFS_H__
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <unistd.h>
-
-#include <config.h>
-
-#include <core/fusion/fusion.h>
-
-/* #define HEAVYDEBUG */
-
-#include <misc/conf.h>
-#include <misc/debug.h>
-
-#include <pthread.h>
-#include <errno.h>
-
-#ifdef HAVE_LINUX_UNISTD_H
-#include <linux/unistd.h>
-static inline _syscall0(pid_t,gettid)
-#else
-#define gettid getpid
-#endif
 
 #ifdef PIC
 #define DFB_DYNAMIC_LINKING
@@ -59,107 +36,6 @@ static inline _syscall0(pid_t,gettid)
 #define MAX_INPUTDEVICES 30
 #define MAX_LAYERS       40
 #define MAX_SCREENS      20
-
-
-#if defined(DFB_NOTEXT)
-     #define INITMSG(x...)    do { } while (0)
-     #define ERRORMSG(x...)   do { } while (0)
-     #define PERRORMSG(x...)  do { } while (0)
-     #define DLERRORMSG(x...) do { } while (0)
-     #define ONCE(msg)        do { } while (0)
-     #define BUG(msg)         do { } while (0)
-     #define CAUTION(msg)     do { } while (0)
-#else
-#define INITMSG(x...)    if (!dfb_config->quiet) fprintf( stderr, "(*) "x );
-#define ERRORMSG(x...)   if (!dfb_config->quiet) { fprintf( stderr, "(!) "x ); dfb_trace_print_stack( NULL ); }
-
-#define PERRORMSG(x...)  do { if (!dfb_config->quiet) {                        \
-                              fprintf( stderr, "(!) "x );                      \
-                              fprintf( stderr, "    --> " );                   \
-                              perror("");                                      \
-                              dfb_trace_print_stack( NULL );                   \
-                         } } while (0)
-
-#define DLERRORMSG(x...) do { if (!dfb_config->quiet) {                        \
-                              fprintf( stderr, "(!) "x );                      \
-                              fprintf( stderr, "    --> %s\n",                 \
-                                               dlerror() );                    \
-                         } } while (0)
-
-#define ONCE(msg)   do {                                                       \
-                         static int print = 1;                                 \
-                         if (print) {                                          \
-                              fprintf( stderr, "(!) *** [%s] *** %s (%d)\n",   \
-                                       msg, __FILE__, __LINE__ );              \
-                              print = 0;                                       \
-                         }                                                     \
-                    } while (0)
-
-#define BUG(x)     fprintf( stderr, " (!?!)  *** BUG ALERT [%s] *** %s (%d)\n",\
-                            x, __FILE__, __LINE__ )
-
-#define CAUTION(x) fprintf( stderr, " (!!!)  *** CAUTION [%s] *** %s (%d)\n",  \
-                            x, __FILE__, __LINE__ )
-#endif
-
-
-#define DFB_BREAK(msg)   do {                                                  \
-                              int       pid    = gettid();                     \
-                              long long millis = fusion_get_millis();          \
-                                                                               \
-                              fprintf( stderr,                                 \
-                                       "(!) [%5d: %4lld.%03lld] *** "          \
-                                       "Break! [%s] *** %s:%d in %s()\n",      \
-                                       pid, millis/1000, millis%1000,          \
-                                       msg, __FILE__, __LINE__, __FUNCTION__ );\
-                              fflush( stderr );                                \
-                              kill( getpgrp(), SIGTRAP );                      \
-                              pause();                                         \
-                         } while (0)
-
-#if (defined(DFB_DEBUG) && !defined(DFB_NOTEXT)) || defined(DFB_FORCE_DEBUG)
-
-     #ifdef HEAVYDEBUG
-          #define HEAVYDEBUGMSG(x...)   if (!dfb_config || dfb_config->debug) {\
-                                                  fprintf( stderr, "(=) "x );  \
-                                        }
-     #else
-          #define HEAVYDEBUGMSG(x...)
-     #endif
-
-     #define DEBUGMSG(x...)   do { if (!dfb_config || dfb_config->debug) {     \
-                                   long long millis = fusion_get_millis();     \
-                                   fprintf( stderr, "(-) [%5d: %4lld.%03lld] ",\
-                                            gettid(),millis/1000,millis%1000 );\
-                                   fprintf( stderr, x );                       \
-                                   fflush( stderr );                           \
-                              } } while (0)
-
-     #define DFB_ASSERT(exp)  do {                                             \
-                                   if (!(exp)) {                               \
-                                        dfb_assertion_fail( #exp,              \
-                                                            __FILE__,          \
-                                                            __LINE__,          \
-                                                            __FUNCTION__ );    \
-                                   }                                           \
-                              } while (0)
-
-     #define DFB_ASSUME(exp)  do {                                             \
-                                   if (!(exp)) {                               \
-                                        dfb_assumption_fail( #exp,             \
-                                                             __FILE__,         \
-                                                             __LINE__,         \
-                                                             __FUNCTION__ );   \
-                                   }                                           \
-                              } while (0)
-
-#else
-     #define HEAVYDEBUGMSG(x...)   do { } while (0)
-     #define DEBUGMSG(x...)        do { } while (0)
-     #define DFB_ASSERT(exp)       do { } while (0)
-     #define DFB_ASSUME(exp)       do { } while (0)
-#endif
-
 
 
 #endif

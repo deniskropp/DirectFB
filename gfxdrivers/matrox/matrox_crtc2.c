@@ -35,7 +35,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -46,7 +46,9 @@
 #include <core/surfaces.h>
 #include <core/windows.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
+
+#include <misc/conf.h>
 #include <misc/util.h>
 
 
@@ -491,7 +493,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
                break;
 
           default:
-               BUG( "unexpected pixelformat" );
+               D_BUG( "unexpected pixelformat" );
                return;
      }
 

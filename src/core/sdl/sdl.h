@@ -28,8 +28,8 @@
 #ifndef __SDL__SDL_H__
 #define __SDL__SDL_H__
 
-#include <core/fusion/call.h>
-#include <core/fusion/lock.h>
+#include <fusion/call.h>
+#include <fusion/lock.h>
 
 typedef struct {
      FusionSkirmish  lock;

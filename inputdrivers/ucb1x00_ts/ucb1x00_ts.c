@@ -43,8 +43,11 @@
 #include <core/thread.h>
 
 #include <misc/conf.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
+#include <direct/memcpy.h>
 
 #include <core/input_driver.h>
 
@@ -123,7 +126,7 @@ filter_event(TS_EVENT *ts_event)
      } else lastb = 0;
 
      /* Store this event in the circular buffer. */
-     dfb_memcpy(&event_buffer[event_index], ts_event, sizeof(TS_EVENT));
+     direct_memcpy(&event_buffer[event_index], ts_event, sizeof(TS_EVENT));
 
      /* Don't try to average and filter if we only have one reading. */
      if(evcnt > 1) {
@@ -236,7 +239,7 @@ ucb1x00tsEventThread( CoreThread *thread, void *driver_data )
      }
 
      if (readlen <= 0)
-          PERRORMSG ("ucb1x00 Touchscreen thread died\n");
+          D_PERROR ("ucb1x00 Touchscreen thread died\n");
 
      return NULL;
 }
@@ -285,7 +288,7 @@ driver_open_device( InputDevice      *device,
      /* open device */
      fd = open( "/dev/ucb1x00-ts", O_RDONLY | O_NOCTTY );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/ucb1x00: Error opening `/dev/ucb1x00-ts'!\n" );
+          D_PERROR( "DirectFB/ucb1x00: Error opening `/dev/ucb1x00-ts'!\n" );
           return DFB_INIT;
      }
 
@@ -304,7 +307,7 @@ driver_open_device( InputDevice      *device,
      info->desc.max_button = DIBI_LEFT;
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(ucb1x00TSData) );
+     data = D_CALLOC( 1, sizeof(ucb1x00TSData) );
 
      data->fd     = fd;
      data->device = device;
@@ -343,11 +346,11 @@ driver_close_device( void *driver_data )
 
      /* close device */
      if (close( data->fd ) < 0)
-          PERRORMSG( "DirectFB/ucb1x00: Error closing `/dev/ucb1x00-ts'!\n" );
+          D_PERROR( "DirectFB/ucb1x00: Error closing `/dev/ucb1x00-ts'!\n" );
 
      if (event_buffer)
           free( event_buffer );
 
      /* free private data */
-     DFBFREE( data );
+     D_FREE( data );
 }

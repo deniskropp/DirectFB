@@ -31,7 +31,7 @@
 #include <directfb.h>
 #include <core/coretypes.h>
 #include <core/state.h>
-#include <core/fusion/reactor.h>
+#include <fusion/reactor.h>
 
 /*
  * private data struct of IDirectFBSurface

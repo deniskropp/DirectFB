@@ -30,11 +30,16 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <core/coredefs.h>
 #include <core/modules.h>
 
-#include <misc/mem.h>
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
+
+#include <misc/conf.h>
 
 #ifdef DFB_DYNAMIC_LINKING
 #include <dlfcn.h>
@@ -68,8 +73,7 @@ int suppress_module (const char *name)
 
      while (dfb_config->disable_module[i]) {
           if (strcmp (dfb_config->disable_module[i], name) == 0) {
-               INITMSG( "DirectFB/Core: suppress module '%s'\n",
-			dfb_config->disable_module[i] );
+               D_INFO( "DirectFB/Modules: suppress module '%s'\n", dfb_config->disable_module[i] );
                return 1;
 	  }
 
@@ -87,11 +91,11 @@ dfb_modules_register( ModuleDirectory *directory,
 {
      ModuleEntry *entry;
 
-     DFB_ASSERT( directory != NULL );
-     DFB_ASSERT( name != NULL );
-     DFB_ASSERT( funcs != NULL );
+     D_ASSERT( directory != NULL );
+     D_ASSERT( name != NULL );
+     D_ASSERT( funcs != NULL );
 
-     DEBUGMSG( "DirectFB/core/modules: Registering '%s' ('%s')\n",
+     D_DEBUG( "DirectFB/core/modules: Registering '%s' ('%s')\n",
                name, directory->path );
 
 #ifdef DFB_DYNAMIC_LINKING
@@ -105,27 +109,27 @@ dfb_modules_register( ModuleDirectory *directory,
 
      if (directory->loading)
           entry = directory->loading;
-     else if (! (entry = DFBCALLOC( 1, sizeof(ModuleEntry) )))
+     else if (! (entry = D_CALLOC( 1, sizeof(ModuleEntry) )))
           return;
 
      entry->directory = directory;
      entry->loaded    = true;
-     entry->name      = DFBSTRDUP( name );
+     entry->name      = D_STRDUP( name );
      entry->funcs     = funcs;
 
      entry->disabled  = suppress_module( name );
 
      if (abi_version != directory->abi_version) {
-          ERRORMSG( "DirectFB/core/modules: "
+          D_ERROR( "DirectFB/core/modules: "
                     "ABI version of '%s' (%d) does not match %d!\n",
                     entry->file, abi_version, directory->abi_version );
 
           entry->disabled = true;
      }
 
-     fusion_list_prepend( &directory->entries, &entry->link );
+     direct_list_prepend( &directory->entries, &entry->link );
 
-     DEBUGMSG( "DirectFB/core/modules: ...registered.\n" );
+     D_DEBUG( "DirectFB/core/modules: ...registered.\n" );
 }
 
 int
@@ -137,14 +141,14 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
      struct dirent *entry;
      int            count = 0;
 
-     DFB_ASSERT( directory != NULL );
-     DFB_ASSERT( directory->path != NULL );
+     D_ASSERT( directory != NULL );
+     D_ASSERT( directory->path != NULL );
 
      dir_len = strlen( directory->path );
      dir     = opendir( directory->path );
 
      if (!dir) {
-          PERRORMSG( "DirectFB/core/modules: Could not open "
+          D_PERROR( "DirectFB/core/modules: Could not open "
                      "module directory `%s'!\n", directory->path );
           return 0;
      }
@@ -163,13 +167,13 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
                continue;
 
 
-          module = DFBCALLOC( 1, sizeof(ModuleEntry) );
+          module = D_CALLOC( 1, sizeof(ModuleEntry) );
           if (!module)
                continue;
 
           module->directory = directory;
           module->dynamic   = true;
-          module->file      = DFBSTRDUP( entry->d_name );
+          module->file      = D_STRDUP( entry->d_name );
 
 
           directory->loading = module;
@@ -179,7 +183,7 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
                     int    len;
                     void (*func)();
 
-                    ERRORMSG( "DirectFB/core/modules: Module '%s' did not "
+                    D_ERROR( "DirectFB/core/modules: Module '%s' did not "
                               "register itself after loading! Trying default "
                               "module constructor...\n", entry->d_name );
 
@@ -192,20 +196,20 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
                          func();
 
                          if (!module->loaded) {
-                              ERRORMSG( "DirectFB/core/modules: ... even "
+                              D_ERROR( "DirectFB/core/modules: ... even "
                                         "did not register after explicitly "
                                         "calling the module constructor!\n" );
                          }
                     }
                     else {
-                         ERRORMSG( "DirectFB/core/modules: ... "
+                         D_ERROR( "DirectFB/core/modules: ... "
                                    "default contructor not found!\n" );
                     }
 
                     if (!module->loaded) {
                          module->disabled = true;
 
-                         fusion_list_prepend( &directory->entries,
+                         direct_list_prepend( &directory->entries,
                                               &module->link );
                     }
                }
@@ -224,7 +228,7 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
           else {
                module->disabled = true;
 
-               fusion_list_prepend( &directory->entries, &module->link );
+               direct_list_prepend( &directory->entries, &module->link );
           }
 
           directory->loading = NULL;
@@ -241,7 +245,7 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
 const void *
 dfb_module_ref( ModuleEntry *module )
 {
-     DFB_ASSERT( module != NULL );
+     D_ASSERT( module != NULL );
 
      if (module->disabled)
           return NULL;
@@ -259,8 +263,8 @@ dfb_module_ref( ModuleEntry *module )
 void
 dfb_module_unref( ModuleEntry *module )
 {
-     DFB_ASSERT( module != NULL );
-     DFB_ASSERT( module->refs > 0 );
+     D_ASSERT( module != NULL );
+     D_ASSERT( module->refs > 0 );
 
      if (--module->refs)
           return;
@@ -279,12 +283,12 @@ static ModuleEntry *
 lookup_by_name( const ModuleDirectory *directory,
                 const char            *name )
 {
-     FusionLink *l;
+     DirectLink *l;
 
-     DFB_ASSERT( directory != NULL );
-     DFB_ASSERT( name != NULL );
+     D_ASSERT( directory != NULL );
+     D_ASSERT( name != NULL );
 
-     fusion_list_foreach (l, directory->entries) {
+     direct_list_foreach (l, directory->entries) {
           ModuleEntry *entry = (ModuleEntry*) l;
 
           if (!entry->name)
@@ -301,12 +305,12 @@ static ModuleEntry *
 lookup_by_file( const ModuleDirectory *directory,
                 const char            *file )
 {
-     FusionLink *l;
+     DirectLink *l;
 
-     DFB_ASSERT( directory != NULL );
-     DFB_ASSERT( file != NULL );
+     D_ASSERT( directory != NULL );
+     D_ASSERT( file != NULL );
 
-     fusion_list_foreach (l, directory->entries) {
+     direct_list_foreach (l, directory->entries) {
           ModuleEntry *entry = (ModuleEntry*) l;
 
           if (!entry->file)
@@ -322,11 +326,11 @@ lookup_by_file( const ModuleDirectory *directory,
 static bool
 load_module( ModuleEntry *module )
 {
-     DFB_ASSERT( module != NULL );
-     DFB_ASSERT( module->dynamic == true );
-     DFB_ASSERT( module->file != NULL );
-     DFB_ASSERT( module->loaded == false );
-     DFB_ASSERT( module->disabled == false );
+     D_ASSERT( module != NULL );
+     D_ASSERT( module->dynamic == true );
+     D_ASSERT( module->file != NULL );
+     D_ASSERT( module->loaded == false );
+     D_ASSERT( module->disabled == false );
 
      module->handle = open_module( module );
 
@@ -336,10 +340,10 @@ load_module( ModuleEntry *module )
 static void
 unload_module( ModuleEntry *module )
 {
-     DFB_ASSERT( module != NULL );
-     DFB_ASSERT( module->dynamic == true );
-     DFB_ASSERT( module->handle != NULL );
-     DFB_ASSERT( module->loaded == true );
+     D_ASSERT( module != NULL );
+     D_ASSERT( module->dynamic == true );
+     D_ASSERT( module->handle != NULL );
+     D_ASSERT( module->loaded == true );
 
      dlclose( module->handle );
 
@@ -358,11 +362,11 @@ open_module( ModuleEntry *module )
 
      snprintf( buf, buf_len, "%s/%s", directory->path, module->file );
 
-     DEBUGMSG( "DirectFB/core/modules: Loading '%s'...\n", buf );
+     D_DEBUG( "DirectFB/core/modules: Loading '%s'...\n", buf );
 
      handle = dlopen( buf, RTLD_LAZY );
      if (!handle)
-          DLERRORMSG( "DirectFB/core/modules: Unable to dlopen `%s'!\n", buf );
+          D_DLERROR( "DirectFB/core/modules: Unable to dlopen `%s'!\n", buf );
 
      return handle;
 }

@@ -28,6 +28,7 @@
 #include <config.h>
 
 #include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
@@ -44,9 +45,9 @@
 
 #include <pthread.h>
 
-#include <core/fusion/shmalloc.h>
-#include <core/fusion/reactor.h>
-#include <core/fusion/arena.h>
+#include <fusion/shmalloc.h>
+#include <fusion/reactor.h>
+#include <fusion/arena.h>
 
 #include <directfb.h>
 
@@ -69,8 +70,12 @@
 
 #include <gfx/convert.h>
 
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+#include <direct/signals.h>
+
+#include <misc/conf.h>
 #include <misc/util.h>
 
 #include "vt.h"
@@ -243,8 +248,8 @@ static DFBResult dfb_fbdev_open()
      if (dfb_config->fb_device) {
           dfb_fbdev->fd = open( dfb_config->fb_device, O_RDWR );
           if (dfb_fbdev->fd < 0) {
-               PERRORMSG( "DirectFB/core/fbdev: Error opening `%s'!\n",
-                          dfb_config->fb_device);
+               D_PERROR( "DirectFB/Core/FBDev: Error opening `%s'!\n",
+                         dfb_config->fb_device);
 
                return errno2dfb( errno );
           }
@@ -252,7 +257,7 @@ static DFBResult dfb_fbdev_open()
      else if (getenv( "FRAMEBUFFER" ) && *getenv( "FRAMEBUFFER" ) != '\0') {
           dfb_fbdev->fd = open( getenv ("FRAMEBUFFER"), O_RDWR );
           if (dfb_fbdev->fd < 0) {
-               PERRORMSG( "DirectFB/core/fbdev: Error opening `%s'!\n",
+               D_PERROR( "DirectFB/Core/FBDev: Error opening `%s'!\n",
                           getenv ("FRAMEBUFFER"));
 
                return errno2dfb( errno );
@@ -265,11 +270,11 @@ static DFBResult dfb_fbdev_open()
                     dfb_fbdev->fd = open( "/dev/fb/0", O_RDWR );
                     if (dfb_fbdev->fd < 0) {
                          if (errno == ENOENT) {
-                              PERRORMSG( "DirectFB/core/fbdev: Couldn't open "
+                              D_PERROR( "DirectFB/Core/FBDev: Couldn't open "
                                          "neither `/dev/fb0' nor `/dev/fb/0'!\n" );
                          }
                          else {
-                              PERRORMSG( "DirectFB/core/fbdev: "
+                              D_PERROR( "DirectFB/Core/FBDev: "
                                          "Error opening `/dev/fb/0'!\n" );
                          }
 
@@ -277,7 +282,7 @@ static DFBResult dfb_fbdev_open()
                     }
                }
                else {
-                    PERRORMSG( "DirectFB/core/fbdev: Error opening `/dev/fb0'!\n");
+                    D_PERROR( "DirectFB/Core/FBDev: Error opening `/dev/fb0'!\n");
 
                     return errno2dfb( errno );
                }
@@ -303,9 +308,9 @@ system_initialize( CoreDFB *core, void **data )
      DFBResult   ret;
      CoreScreen *screen;
 
-     DFB_ASSERT( dfb_fbdev == NULL );
+     D_ASSERT( dfb_fbdev == NULL );
 
-     dfb_fbdev = (FBDev*) DFBCALLOC( 1, sizeof(FBDev) );
+     dfb_fbdev = D_CALLOC( 1, sizeof(FBDev) );
 
      dfb_fbdev->shared = (FBDevShared*) SHCALLOC( 1, sizeof(FBDevShared) );
 
@@ -317,7 +322,7 @@ system_initialize( CoreDFB *core, void **data )
      ret = dfb_fbdev_open();
      if (ret) {
           SHFREE( dfb_fbdev->shared );
-          DFBFREE( dfb_fbdev );
+          D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
           return ret;
@@ -327,7 +332,7 @@ system_initialize( CoreDFB *core, void **data )
      ret = dfb_vt_initialize();
      if (ret) {
           SHFREE( dfb_fbdev->shared );
-          DFBFREE( dfb_fbdev );
+          D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
           return ret;
@@ -336,11 +341,11 @@ system_initialize( CoreDFB *core, void **data )
 
      /* Retrieve fixed informations like video ram size */
      if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &dfb_fbdev->shared->fix ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not get fixed screen information!\n" );
+          D_PERROR( "DirectFB/Core/FBDev: "
+                    "Could not get fixed screen information!\n" );
           SHFREE( dfb_fbdev->shared );
           close( dfb_fbdev->fd );
-          DFBFREE( dfb_fbdev );
+          D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
           return DFB_INIT;
@@ -351,23 +356,23 @@ system_initialize( CoreDFB *core, void **data )
                                          PROT_READ | PROT_WRITE, MAP_SHARED,
                                          dfb_fbdev->fd, 0 );
      if ((int)(dfb_fbdev->framebuffer_base) == -1) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not mmap the framebuffer!\n");
+          D_PERROR( "DirectFB/Core/FBDev: "
+                    "Could not mmap the framebuffer!\n");
           SHFREE( dfb_fbdev->shared );
           close( dfb_fbdev->fd );
-          DFBFREE( dfb_fbdev );
+          D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
           return DFB_INIT;
      }
 
      if (ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &dfb_fbdev->shared->orig_var ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not get variable screen information!\n" );
+          D_PERROR( "DirectFB/Core/FBDev: "
+                    "Could not get variable screen information!\n" );
           SHFREE( dfb_fbdev->shared );
           munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
           close( dfb_fbdev->fd );
-          DFBFREE( dfb_fbdev );
+          D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
           return DFB_INIT;
@@ -377,12 +382,12 @@ system_initialize( CoreDFB *core, void **data )
      dfb_fbdev->shared->current_var.accel_flags = 0;
 
      if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not disable console acceleration!\n" );
+          D_PERROR( "DirectFB/Core/FBDev: "
+                    "Could not disable console acceleration!\n" );
           SHFREE( dfb_fbdev->shared );
           munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
           close( dfb_fbdev->fd );
-          DFBFREE( dfb_fbdev );
+          D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
           return DFB_INIT;
@@ -396,8 +401,8 @@ system_initialize( CoreDFB *core, void **data )
      dfb_fbdev->shared->orig_cmap.transp = (__u16*)SHMALLOC( 2 * 256 );
 
      if (ioctl( dfb_fbdev->fd, FBIOGETCMAP, &dfb_fbdev->shared->orig_cmap ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not retrieve palette for backup!\n" );
+          D_PERROR( "DirectFB/Core/FBDev: "
+                    "Could not retrieve palette for backup!\n" );
           SHFREE( dfb_fbdev->shared->orig_cmap.red );
           SHFREE( dfb_fbdev->shared->orig_cmap.green );
           SHFREE( dfb_fbdev->shared->orig_cmap.blue );
@@ -437,13 +442,13 @@ system_join( CoreDFB *core, void **data )
      DFBResult   ret;
      CoreScreen *screen;
 
-     DFB_ASSERT( dfb_fbdev == NULL );
+     D_ASSERT( dfb_fbdev == NULL );
 
      ret = dfb_vt_join();
      if (ret)
           return ret;
 
-     dfb_fbdev = (FBDev*)DFBCALLOC( 1, sizeof(FBDev) );
+     dfb_fbdev = D_CALLOC( 1, sizeof(FBDev) );
 
      fusion_arena_get_shared_field( dfb_core_arena( core ),
                                     "fbdev", (void**) &dfb_fbdev->shared );
@@ -453,7 +458,7 @@ system_join( CoreDFB *core, void **data )
      /* Open framebuffer device */
      ret = dfb_fbdev_open();
      if (ret) {
-          DFBFREE( dfb_fbdev );
+          D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
           return ret;
      }
@@ -463,10 +468,10 @@ system_join( CoreDFB *core, void **data )
                                          PROT_READ | PROT_WRITE, MAP_SHARED,
                                          dfb_fbdev->fd, 0 );
      if ((int)(dfb_fbdev->framebuffer_base) == -1) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not mmap the framebuffer!\n");
+          D_PERROR( "DirectFB/Core/FBDev: "
+                    "Could not mmap the framebuffer!\n");
           close( dfb_fbdev->fd );
-          DFBFREE( dfb_fbdev );
+          D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
           return DFB_INIT;
@@ -489,7 +494,7 @@ system_shutdown( bool emergency )
      DFBResult  ret;
      VideoMode *m;
 
-     DFB_ASSERT( dfb_fbdev != NULL );
+     D_ASSERT( dfb_fbdev != NULL );
 
      m = dfb_fbdev->shared->modes;
      while (m) {
@@ -499,13 +504,13 @@ system_shutdown( bool emergency )
      }
 
      if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->orig_var ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
+          D_PERROR( "DirectFB/Core/FBDev: "
                      "Could not restore variable screen information!\n" );
      }
 
      if (dfb_fbdev->shared->orig_cmap.len) {
           if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &dfb_fbdev->shared->orig_cmap ) < 0)
-               PERRORMSG( "DirectFB/core/fbdev: "
+               D_PERROR( "DirectFB/Core/FBDev: "
                           "Could not restore palette!\n" );
 
           SHFREE( dfb_fbdev->shared->orig_cmap.red );
@@ -535,7 +540,7 @@ system_shutdown( bool emergency )
      close( dfb_fbdev->fd );
 
      SHFREE( dfb_fbdev->shared );
-     DFBFREE( dfb_fbdev );
+     D_FREE( dfb_fbdev );
      dfb_fbdev = NULL;
 
      return DFB_OK;
@@ -546,7 +551,7 @@ system_leave( bool emergency )
 {
      DFBResult ret;
 
-     DFB_ASSERT( dfb_fbdev != NULL );
+     D_ASSERT( dfb_fbdev != NULL );
 
      munmap( dfb_fbdev->framebuffer_base,
              dfb_fbdev->shared->fix.smem_len );
@@ -557,7 +562,7 @@ system_leave( bool emergency )
 
      close( dfb_fbdev->fd );
 
-     DFBFREE( dfb_fbdev );
+     D_FREE( dfb_fbdev );
      dfb_fbdev = NULL;
 
      return DFB_OK;
@@ -589,7 +594,7 @@ system_map_mmio( unsigned int    offset,
      addr = mmap( NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED,
                   dfb_fbdev->fd, dfb_fbdev->shared->fix.smem_len + offset );
      if ((int)(addr) == -1) {
-          PERRORMSG( "DirectFB/core/gfxcard: Could not mmap MMIO region "
+          D_PERROR( "DirectFB/core/gfxcard: Could not mmap MMIO region "
                      "(offset %d, length %d)!\n", offset, length );
           return NULL;
      }
@@ -605,7 +610,7 @@ system_unmap_mmio( volatile void  *addr,
           length = dfb_fbdev->shared->fix.mmio_len;
 
      if (munmap( (void*) addr, length ) < 0)
-          PERRORMSG( "DirectFB/core/gfxcard: Could not unmap MMIO region "
+          D_PERROR( "DirectFB/core/gfxcard: Could not unmap MMIO region "
                      "at %p (length %d)!\n", addr, length );
 }
 
@@ -635,7 +640,7 @@ static DFBResult
 system_thread_init()
 {
      if (dfb_config->block_all_signals)
-          dfb_sig_block_all();
+          direct_signals_block_all();
 
      return dfb_vt_detach( false );
 }
@@ -718,11 +723,11 @@ init_modes()
                dfb_fbdev->shared->modes->doubled = 1;
 
           if (dfb_fbdev_set_mode(NULL, dfb_fbdev->shared->modes, NULL)) {
-               ERRORMSG("DirectFB/core/fbdev: "
+               D_ERROR("DirectFB/Core/FBDev: "
                         "No supported modes found in /etc/fb.modes and "
                         "current mode not supported!\n");
 
-               ERRORMSG( "DirectFB/core/fbdev: Current mode's pixelformat: "
+               D_ERROR( "DirectFB/Core/FBDev: Current mode's pixelformat: "
                          "rgba %d/%d, %d/%d, %d/%d, %d/%d (%dbit)\n",
                          dfb_fbdev->shared->orig_var.red.length,
                          dfb_fbdev->shared->orig_var.red.offset,
@@ -871,7 +876,7 @@ primaryInitLayer( CoreLayer                  *layer,
      else if (dfb_config->mode.depth > 0) {
           config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
           if (config->pixelformat == DSPF_UNKNOWN)
-               ERRORMSG("DirectFB/fbdev: Unknown depth (%d) specified!\n",
+               D_ERROR("DirectFB/fbdev: Unknown depth (%d) specified!\n",
                         dfb_config->mode.depth);
      }
 
@@ -1010,7 +1015,7 @@ primarySetColorAdjustment( CoreLayer          *layer,
      temp->len = cmap->len;
      temp->start = cmap->start;
      if (FBDEV_IOCTL( FBIOPUTCMAP, temp ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
+          D_PERROR( "DirectFB/Core/FBDev: "
                      "Could not set the palette!\n" );
 
           return errno2dfb(errno);
@@ -1294,7 +1299,7 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
                break;
      }
 
-     ERRORMSG( "DirectFB/core/fbdev: Unsupported pixelformat: "
+     D_ERROR( "DirectFB/Core/FBDev: Unsupported pixelformat: "
                "rgba %d/%d, %d/%d, %d/%d, %d/%d (%dbit)\n",
                var->red.length,    var->red.offset,
                var->green.length,  var->green.offset,
@@ -1315,9 +1320,9 @@ static DFBResult dfb_fbdev_pan( int offset, bool onsync )
      var = &dfb_fbdev->shared->current_var;
 
      if (var->yres_virtual < offset + var->yres) {
-          ERRORMSG( "DirectFB/core/fbdev: yres %d, vyres %d, offset %d\n",
+          D_ERROR( "DirectFB/Core/FBDev: yres %d, vyres %d, offset %d\n",
                     var->yres, var->yres_virtual, offset );
-          BUG( "panning buffer out of range" );
+          D_BUG( "panning buffer out of range" );
           return DFB_BUG;
      }
 
@@ -1330,7 +1335,7 @@ static DFBResult dfb_fbdev_pan( int offset, bool onsync )
      if (FBDEV_IOCTL( FBIOPAN_DISPLAY, var ) < 0) {
           int erno = errno;
 
-          PERRORMSG( "DirectFB/core/fbdev: Panning display failed!\n" );
+          D_PERROR( "DirectFB/Core/FBDev: Panning display failed!\n" );
 
           return errno2dfb( erno );
      }
@@ -1344,7 +1349,7 @@ static DFBResult dfb_fbdev_pan( int offset, bool onsync )
 static DFBResult dfb_fbdev_blank( int level )
 {
      if (ioctl( dfb_fbdev->fd, FBIOBLANK, level ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: Display blanking failed!\n" );
+          D_PERROR( "DirectFB/Core/FBDev: Display blanking failed!\n" );
 
           return errno2dfb( errno );
      }
@@ -1364,7 +1369,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
      struct fb_var_screeninfo  var;
      FBDevShared              *shared = dfb_fbdev->shared;
 
-     DEBUGMSG("DirectFB/core/fbdev: dfb_fbdev_set_mode (surface: %p, "
+     D_DEBUG("DirectFB/Core/FBDev: dfb_fbdev_set_mode (surface: %p, "
               "mode: %p, buffermode: %d)\n", surface, mode,
               config ? config->buffermode : DLBM_FRONTONLY);
 
@@ -1487,7 +1492,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
           int erno = errno;
 
           if (surface)
-               PERRORMSG( "DirectFB/core/fbdev: "
+               D_PERROR( "DirectFB/Core/FBDev: "
                           "Could not set video mode (FBIOPUT_VSCREENINFO)!\n" );
 
           dfb_gfxcard_unlock();
@@ -1505,7 +1510,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                                  var.bits_per_pixel >> 3))
      {
           if (surface) {
-               PERRORMSG( "DirectFB/core/fbdev: "
+               D_PERROR( "DirectFB/Core/FBDev: "
                           "Could not set video mode (not enough video ram)!\n" );
 
                /* restore mode */
@@ -1527,7 +1532,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
           format = dfb_fbdev_get_pixelformat( &var );
           if (format == DSPF_UNKNOWN || var.yres_virtual < vyres) {
-               CAUTION( "fbdev driver possibly buggy" );
+               D_WARN( "fbdev driver possibly buggy" );
 
                /* restore mode */
                FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &shared->current_var );
@@ -1698,7 +1703,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     }
                     break;
                default:
-                    BUG( "unexpected buffer mode" );
+                    D_BUG( "unexpected buffer mode" );
                     break;
           }
 
@@ -1781,8 +1786,8 @@ static DFBResult dfb_fbdev_read_modes()
                          m->next = SHCALLOC(1, sizeof(VideoMode));
                          m = m->next;
                     }
-                    dfb_memcpy (m, &temp_mode, sizeof(VideoMode));
-                    DEBUGMSG( "DirectFB/core/fbdev: %20s %4dx%4d  %s%s\n", label, temp_mode.xres, temp_mode.yres,
+                    direct_memcpy (m, &temp_mode, sizeof(VideoMode));
+                    D_DEBUG( "DirectFB/Core/FBDev: %20s %4dx%4d  %s%s\n", label, temp_mode.xres, temp_mode.yres,
                               temp_mode.laced ? "interlaced " : "", temp_mode.doubled ? "doublescan" : "" );
                }
           }
@@ -1820,7 +1825,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      struct fb_cmap *cmap;
 
      if (!dfb_fbdev) {
-          BUG( "dfb_fbdev_set_gamma_ramp() called while dfb_fbdev == NULL!" );
+          D_BUG( "dfb_fbdev_set_gamma_ramp() called while dfb_fbdev == NULL!" );
 
           return DFB_BUG;
      }
@@ -1889,7 +1894,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      }
 
      if (FBDEV_IOCTL( FBIOPUTCMAP, cmap ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
+          D_PERROR( "DirectFB/Core/FBDev: "
                      "Could not set gamma ramp" );
 
           return errno2dfb(errno);
@@ -1904,7 +1909,7 @@ dfb_fbdev_set_palette( CorePalette *palette )
      int             i;
      struct fb_cmap *cmap = &dfb_fbdev->shared->current_cmap;
 
-     DFB_ASSERT( palette != NULL );
+     D_ASSERT( palette != NULL );
 
      cmap->len = palette->num_entries <= 256 ? palette->num_entries : 256;
 
@@ -1921,7 +1926,7 @@ dfb_fbdev_set_palette( CorePalette *palette )
      }
 
      if (FBDEV_IOCTL( FBIOPUTCMAP, cmap ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: Could not set the palette!\n" );
+          D_PERROR( "DirectFB/Core/FBDev: Could not set the palette!\n" );
 
           return errno2dfb(errno);
      }
@@ -1939,7 +1944,7 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
      struct fb_cmap cmap;
 
      if (!dfb_fbdev) {
-          BUG( "dfb_fbdev_set_rgb332_palette() called while dfb_fbdev == NULL!" );
+          D_BUG( "dfb_fbdev_set_rgb332_palette() called while dfb_fbdev == NULL!" );
 
           return DFB_BUG;
      }
@@ -1965,7 +1970,7 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
      }
 
      if (FBDEV_IOCTL( FBIOPUTCMAP, &cmap ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
+          D_PERROR( "DirectFB/Core/FBDev: "
                      "Could not set rgb332 palette" );
 
           SHFREE( cmap.red );
@@ -2017,8 +2022,8 @@ fbdev_ioctl( int request, void *arg, int arg_size )
      int           erno;
      void         *tmp_shm = NULL;
 
-     DFB_ASSERT( dfb_fbdev != NULL );
-     DFB_ASSERT( dfb_fbdev->shared != NULL );
+     D_ASSERT( dfb_fbdev != NULL );
+     D_ASSERT( dfb_fbdev->shared != NULL );
 
      if (dfb_core_is_master( dfb_fbdev->core ))
           return fbdev_ioctl_call_handler( 1, request, arg, NULL );
@@ -2031,7 +2036,7 @@ fbdev_ioctl( int request, void *arg, int arg_size )
                     return -1;
                }
 
-               dfb_memcpy( tmp_shm, arg, arg_size );
+               direct_memcpy( tmp_shm, arg, arg_size );
           }
      }
 
@@ -2039,7 +2044,7 @@ fbdev_ioctl( int request, void *arg, int arg_size )
                                 request, tmp_shm ? tmp_shm : arg, &erno );
 
      if (tmp_shm) {
-          dfb_memcpy( arg, tmp_shm, arg_size );
+          direct_memcpy( arg, tmp_shm, arg_size );
           SHFREE( tmp_shm );
      }
 

@@ -39,7 +39,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -173,7 +173,7 @@ cyber5k_validate_dst( CyberDriverData *cdrv, CyberDeviceData *cdev,
                cyber_out8( cdrv->mmio_base, COPFMT, 3 );
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
 
@@ -229,7 +229,7 @@ cyber5k_validate_color( CyberDriverData *cdrv,
                                         state->color.b );
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
 
@@ -313,7 +313,7 @@ static void cyber5kSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                break;
 
           default:
-               BUG( "unexpected drawing/blitting function!" );
+               D_BUG( "unexpected drawing/blitting function!" );
                break;
      }
 

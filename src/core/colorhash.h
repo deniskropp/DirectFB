@@ -30,7 +30,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/fusion_types.h>
+#include <core/coretypes.h>
 
 void          dfb_colorhash_attach     (CorePalette *palette);
 void          dfb_colorhash_detach     (CorePalette *palette);

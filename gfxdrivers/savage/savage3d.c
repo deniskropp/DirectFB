@@ -185,7 +185,7 @@ static inline void savage3D_validate_color( Savage3DDriverData *sdrv,
                                     state->color.b) );
                break;
           default:
-               ONCE( "unsupported destination format" );
+               D_ONCE( "unsupported destination format" );
                break;
      }
 
@@ -272,7 +272,7 @@ static void savage3DSetState( void *drv, void *dev,
                break;
 
           default:
-               BUG( "unexpected drawing/blitting function!" );
+               D_BUG( "unexpected drawing/blitting function!" );
                return;
      }
 

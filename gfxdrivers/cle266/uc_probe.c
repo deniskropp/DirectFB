@@ -95,7 +95,7 @@ DFBResult uc_probe_vga_device(__u16 vendor, __u16 device, char* name,
 
     file = fopen("/proc/bus/pci/devices", "r");
     if (!file) {
-        ERRORMSG("Can not open /proc/bus/pci/devices. "
+        D_ERROR("Can not open /proc/bus/pci/devices. "
             "Will not probe for %s.\n", name);
         return DFB_FAILURE;
     }
@@ -108,7 +108,7 @@ DFBResult uc_probe_vga_device(__u16 vendor, __u16 device, char* name,
         s = fgets(fbuf, 256, file);
         if (s == NULL) {
             if (errno > 0) {
-                ERRORMSG("Error reading /proc/bus/pci/devices. "
+                D_ERROR("Error reading /proc/bus/pci/devices. "
                     "Probing for %s failed.\n", name);
             }
             fclose(file);
@@ -126,7 +126,7 @@ DFBResult uc_probe_vga_device(__u16 vendor, __u16 device, char* name,
             }
         }
         else if (r == -1) {
-            ERRORMSG("Error parsing /proc/bus/pci/devices on line %d. "
+            D_ERROR("Error parsing /proc/bus/pci/devices on line %d. "
                 "Probing for %s failed.\n", n, name);
             fclose(file);
             return DFB_FAILURE;
@@ -150,7 +150,7 @@ DFBResult uc_mmap_vga_device(struct uc_vga_device* devinfo, char* name)
 
     fd = open("/dev/mem", O_RDWR);
     if (fd < 0) {
-        ERRORMSG("Cannot open /dev/mem: %s.\n", strerror(errno));
+        D_ERROR("Cannot open /dev/mem: %s.\n", strerror(errno));
         return DFB_FAILURE;
     }
 
@@ -160,7 +160,7 @@ DFBResult uc_mmap_vga_device(struct uc_vga_device* devinfo, char* name)
     close(fd);  
     
     if (result == MAP_FAILED) {
-        ERRORMSG("Cannot mmap %s hardware registers. "
+        D_ERROR("Cannot mmap %s hardware registers. "
             "Initialization failed.\n", name);
         return DFB_FAILURE;
     }

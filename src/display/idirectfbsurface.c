@@ -36,7 +36,7 @@
 
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -55,8 +55,10 @@
 #include <display/idirectfbpalette.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -964,7 +966,7 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
      }
      else
           /* clipping may modify lines, so we copy them */
-          dfb_memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
+          direct_memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
 
      dfb_gfxcard_drawlines( local_lines, num_lines, &data->state );
 
@@ -1237,8 +1239,8 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
      rects  = alloca( sizeof(DFBRectangle) * num );
      points = alloca( sizeof(DFBPoint) * num );
 
-     dfb_memcpy( rects, source_rects, sizeof(DFBRectangle) * num );
-     dfb_memcpy( points, dest_points, sizeof(DFBPoint) * num );
+     direct_memcpy( rects, source_rects, sizeof(DFBRectangle) * num );
+     direct_memcpy( points, dest_points, sizeof(DFBPoint) * num );
 
      for (i=0; i<num; i++) {
           rects[i].x += sx;
@@ -1412,7 +1414,7 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
      if (!translated)
           return DFB_NOSYSTEMMEMORY;
 
-     dfb_memcpy( translated, vertices, num * sizeof(DFBVertex) );
+     direct_memcpy( translated, vertices, num * sizeof(DFBVertex) );
 
      for (i=0; i<num; i++) {
           translated[i].x += data->area.wanted.x;
@@ -1625,7 +1627,7 @@ IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
           return DFB_INVAREA;
 
      if (data->caps & DSCAPS_SUBSURFACE) {
-          ONCE( "GL on sub surface not supported yet" );
+          D_ONCE( "GL on sub surface not supported yet" );
           return DFB_UNSUPPORTED;
      }
 
@@ -1661,7 +1663,7 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
           return DFB_INVAREA;
 
      if (data->caps & DSCAPS_SUBSURFACE) {
-          ONCE( "sub surface dumping not supported yet" );
+          D_ONCE( "sub surface dumping not supported yet" );
           return DFB_UNSUPPORTED;
      }
 

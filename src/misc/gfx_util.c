@@ -44,10 +44,10 @@
 #include <core/palette.h>
 #include <core/surfaces.h>
 
-#include <misc/memcpy.h>
-#include <misc/util.h>
-#include <misc/mem.h>
+#include <direct/memcpy.h>
+#include <direct/mem.h>
 
+#include <misc/util.h>
 #include <misc/gfx_util.h>
 
 #include <gfx/convert.h>
@@ -122,7 +122,7 @@ static void rgba_to_dst_format (__u8 *dst,
                break;
 
           default:
-               ONCE( "unimplemented destination format" );
+               D_ONCE( "unimplemented destination format (0x%08x)", dst_format );
                break;
      }
 }
@@ -158,7 +158,7 @@ void dfb_copy_buffer_32( __u32 *src,
                     void *d = LINE_PTR( dst, dst_surface->caps,
                                         y, dst_surface->height, dpitch );
 
-                    dfb_memcpy (d + drect->x * 4, src, drect->w * 4);
+                    direct_memcpy (d + drect->x * 4, src, drect->w * 4);
 
                     src += drect->w;
                }
@@ -216,10 +216,10 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
 
      filter->n_y = n_y;
      filter->n_x = n_x;
-     filter->weights = (int *) DFBMALLOC(SUBSAMPLE * SUBSAMPLE * n_x * n_y *
-                                         sizeof (int));
+     filter->weights = (int *) D_MALLOC( SUBSAMPLE * SUBSAMPLE * n_x * n_y *
+                                         sizeof (int) );
      if (!filter->weights) {
-          DEBUGMSG ("couldn't allocate memory for scaling\n");
+          D_WARN ("couldn't allocate memory for scaling");
           return 0;
      }
 
@@ -227,9 +227,9 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
      y_weights = (double *) alloca (n_y * sizeof (double));
 
      if (!x_weights || !y_weights) {
-          DFBFREE( filter->weights );
+          D_FREE( filter->weights );
 
-          DEBUGMSG ("couldn't allocate memory for scaling\n");
+          D_WARN ("couldn't allocate memory for scaling");
           return 0;
      }
 
@@ -493,6 +493,6 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
           sy += y_step;
      }
 
-     DFBFREE(filter.weights);
+     D_FREE(filter.weights);
 }
 

@@ -31,7 +31,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <core/fusion/lock.h>
+#include <fusion/lock.h>
 
 /*
  * allocates a WindowStack, initializes it, registers it for input events

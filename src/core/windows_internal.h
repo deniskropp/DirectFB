@@ -33,9 +33,9 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <core/fusion/list.h>
-#include <core/fusion/lock.h>
-#include <core/fusion/object.h>
+#include <direct/list.h>
+#include <fusion/lock.h>
+#include <fusion/object.h>
 
 
 /*
@@ -106,7 +106,7 @@ struct __DFB_CoreWindowStack {
      CoreWindow         *focused_window;  /* window having the focus */
      CoreWindow         *entered_window;  /* window under the pointer */
 
-     FusionLink         *grabbed_keys;    /* List of currently grabbed keys. */
+     DirectLink         *grabbed_keys;    /* List of currently grabbed keys. */
 
      struct {
           DFBInputDeviceKeySymbol      symbol;
@@ -152,7 +152,7 @@ struct __DFB_CoreWindowStack {
           GlobalReaction      image_reaction;
      } bg;
 
-     FusionLink         *devices;      /* input devices attached to the stack */
+     DirectLink         *devices;      /* input devices attached to the stack */
 
      bool                hw_mode;      /* recompositing is done by hardware */
 };

@@ -30,7 +30,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/lock.h>
+#include <fusion/lock.h>
 
 #include <core/coretypes.h>
 #include <core/screens.h>

@@ -49,9 +49,11 @@
 #include <misc/gfx_util.h>
 #include <misc/util.h>
 #include <misc/conf.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
-#include <misc/cpu_accel.h>
+
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+#include <direct/cpu_accel.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -178,7 +180,7 @@ static void Cop_toK_Aop_16( GenefxState *gfxs )
 
 static void Cop_toK_Aop_24( GenefxState *gfxs )
 {
-     ONCE("Cop_toK_Aop_24() unimplemented");
+     D_ONCE("Cop_toK_Aop_24() unimplemented");
 }
 
 static void Cop_toK_Aop_32( GenefxState *gfxs )
@@ -232,22 +234,22 @@ static GenefxFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 static void Bop_8_to_Aop( GenefxState *gfxs )
 {
-     dfb_memmove( gfxs->Aop, gfxs->Bop, gfxs->length );
+     direct_memmove( gfxs->Aop, gfxs->Bop, gfxs->length );
 }
 
 static void Bop_16_to_Aop( GenefxState *gfxs )
 {
-     dfb_memmove( gfxs->Aop, gfxs->Bop, gfxs->length*2 );
+     direct_memmove( gfxs->Aop, gfxs->Bop, gfxs->length*2 );
 }
 
 static void Bop_24_to_Aop( GenefxState *gfxs )
 {
-     dfb_memmove( gfxs->Aop, gfxs->Bop, gfxs->length*3 );
+     direct_memmove( gfxs->Aop, gfxs->Bop, gfxs->length*3 );
 }
 
 static void Bop_32_to_Aop( GenefxState *gfxs )
 {
-     dfb_memmove( gfxs->Aop, gfxs->Bop, gfxs->length*4 );
+     direct_memmove( gfxs->Aop, gfxs->Bop, gfxs->length*4 );
 }
 
 static GenefxFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
@@ -440,7 +442,7 @@ static void Bop_rgb32_Kto_Aop( GenefxState *gfxs )
 static void Bop_a8_Kto_Aop( GenefxState *gfxs )
 {
      /* no color to key */
-     dfb_memmove( gfxs->Aop, gfxs->Bop, gfxs->length );
+     direct_memmove( gfxs->Aop, gfxs->Bop, gfxs->length );
 }
 
 static void Bop_8_Kto_Aop( GenefxState *gfxs )
@@ -3036,12 +3038,12 @@ static void Xacc_blend_one( GenefxState *gfxs )
 
 static void Xacc_blend_srccolor( GenefxState *gfxs )
 {
-     ONCE( "Xacc_blend_srccolor() unimplemented" );
+     D_ONCE( "Xacc_blend_srccolor() unimplemented" );
 }
 
 static void Xacc_blend_invsrccolor( GenefxState *gfxs )
 {
-     ONCE( "Xacc_blend_invsrccolor() unimplemented" );
+     D_ONCE( "Xacc_blend_invsrccolor() unimplemented" );
 }
 
 static void Xacc_blend_srcalpha( GenefxState *gfxs )
@@ -3166,17 +3168,17 @@ static void Xacc_blend_invdstalpha( GenefxState *gfxs )
 
 static void Xacc_blend_destcolor( GenefxState *gfxs )
 {
-     ONCE( "Xacc_blend_destcolor() unimplemented" );
+     D_ONCE( "Xacc_blend_destcolor() unimplemented" );
 }
 
 static void Xacc_blend_invdestcolor( GenefxState *gfxs )
 {
-     ONCE( "Xacc_blend_invdestcolor() unimplemented" );
+     D_ONCE( "Xacc_blend_invdestcolor() unimplemented" );
 }
 
 static void Xacc_blend_srcalphasat( GenefxState *gfxs )
 {
-     ONCE( "Xacc_blend_srcalphasat() unimplemented" );
+     D_ONCE( "Xacc_blend_srcalphasat() unimplemented" );
 }
 
 static GenefxFunc Xacc_blend[] = {
@@ -3422,9 +3424,9 @@ void gGetDriverInfo( GraphicsDriverInfo *info )
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH, "Software Driver" );
 
 #ifdef USE_MMX
-     if (dfb_mm_accel() & MM_MMX) {
+     if (direct_mm_accel() & MM_MMX) {
           if (!dfb_config->mmx) {
-               INITMSG( "MMX detected, but disabled by --no-mmx \n");
+               D_INFO( "DirectFB/Genefx: MMX detected, but disabled by option 'no-mmx'\n");
           }
           else {
                gInit_MMX();
@@ -3432,11 +3434,11 @@ void gGetDriverInfo( GraphicsDriverInfo *info )
                snprintf( info->name, DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
                          "MMX Software Driver" );
 
-               INITMSG( "MMX detected and enabled\n");
+               D_INFO( "DirectFB/Genefx: MMX detected and enabled\n");
           }
      }
      else {
-          INITMSG( "No MMX detected\n" );
+          D_INFO( "DirectFB/Genefx: No MMX detected\n" );
      }
 #endif
 
@@ -3481,9 +3483,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      DFBSurfaceLockFlags lock_flags;
 
      if (!state->gfxs) {
-          gfxs = DFBCALLOC( 1, sizeof(GenefxState) );
+          gfxs = D_CALLOC( 1, sizeof(GenefxState) );
           if (!gfxs) {
-               ERRORMSG( "DirectFB/Genefx: Couldn't allocate state struct!\n" );
+               D_ERROR( "DirectFB/Genefx: Couldn't allocate state struct!\n" );
                return false;
           }
 
@@ -3587,7 +3589,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                gfxs->Alut = destination->palette;
                break;
           default:
-               ONCE("unsupported destination format");
+               D_ONCE("unsupported destination format");
                return false;
      }
 
@@ -3610,7 +3612,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     if (accel != DFXL_BLIT ||
                         gfxs->src_format != gfxs->dst_format ||
                         state->blittingflags != DSBLIT_NOFX) {
-                         ONCE("only copying blits supported for YUV in software");
+                         D_ONCE("only copying blits supported for YUV in software");
                          return false;
                     }
                     break;
@@ -3619,7 +3621,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     gfxs->Blut = source->palette;
                     break;
                default:
-                    ONCE("unsupported source format");
+                    D_ONCE("unsupported source format");
                     return false;
           }
      }
@@ -3752,7 +3754,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               case DSBF_SRCCOLOR:
                               case DSBF_INVSRCCOLOR:
                               case DSBF_SRCALPHASAT:
-                                   ONCE("unimplemented src blend function");
+                                   D_ONCE("unimplemented src blend function");
                          }
 
                          /* destination blending */
@@ -3780,7 +3782,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               case DSBF_SRCCOLOR:
                               case DSBF_INVSRCCOLOR:
                               case DSBF_SRCALPHASAT:
-                                   ONCE("unimplemented src blend function");
+                                   D_ONCE("unimplemented src blend function");
                          }
                     }
 
@@ -3998,7 +4000,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     break;
                }
           default:
-               ONCE("unimplemented drawing/blitting function");
+               D_ONCE("unimplemented drawing/blitting function");
                gRelease( state );
                return false;
      }
@@ -4045,7 +4047,7 @@ static inline void Aop_xy( GenefxState *gfxs,
           y /= 2;
      }
 
-     DFB_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->dst_format)) );
+     D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->dst_format)) );
 
      gfxs->Aop += y * pitch  +  DFB_BYTES_PER_LINE( gfxs->dst_format, x );
 }
@@ -4092,7 +4094,7 @@ static inline void Bop_xy( GenefxState *gfxs,
           y /= 2;
      }
 
-     DFB_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->src_format)) );
+     D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->src_format)) );
 
      gfxs->Bop += y * pitch  +  DFB_BYTES_PER_LINE( gfxs->src_format, x );
 }
@@ -4131,7 +4133,7 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
      int          h;
      GenefxState *gfxs = state->gfxs;
 
-     DFB_ASSERT( gfxs != NULL );
+     D_ASSERT( gfxs != NULL );
 
      CHECK_PIPELINE();
 
@@ -4192,7 +4194,7 @@ void gDrawLine( CardState *state, DFBRegion *line )
 
      int i,dx,dy,sdy,dxabs,dyabs,x,y,px,py;
 
-     DFB_ASSERT( gfxs != NULL );
+     D_ASSERT( gfxs != NULL );
 
      CHECK_PIPELINE();
 
@@ -4304,7 +4306,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 {
      GenefxState *gfxs = state->gfxs;
 
-     DFB_ASSERT( gfxs != NULL );
+     D_ASSERT( gfxs != NULL );
 
      CHECK_PIPELINE();
 
@@ -4382,7 +4384,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      int f;
      int i = 0;
 
-     DFB_ASSERT( gfxs != NULL );
+     D_ASSERT( gfxs != NULL );
 
      CHECK_PIPELINE();
 

@@ -213,7 +213,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                     break;
 
                case UC_TYPE_UNSUPPORTED:
-                    BUG("Unsupported drawing function!");
+                    D_BUG("Unsupported drawing function!");
                     break;
           }
      }
@@ -243,7 +243,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                     break;
 
                case UC_TYPE_UNSUPPORTED:
-                    BUG("Unsupported drawing function!");
+                    D_BUG("Unsupported drawing function!");
                     break;
           }
      }

@@ -30,7 +30,14 @@
 #include <direct/build.h>
 
 
-#if DIRECT_BUILD_DEBUG
+#if !DIRECT_BUILD_DEBUG
+
+void
+direct_print_memleaks()
+{
+}
+
+#else
 
 #include <stdlib.h>
 #include <string.h>
@@ -67,7 +74,7 @@ direct_print_memleaks()
 
      pthread_mutex_lock( &alloc_lock );
 
-     if (alloc_count) {
+     if (alloc_count && (!direct_config || direct_config->debug)) {
           D_DEBUG( "Local memory allocations remaining (%d): \n", alloc_count );
 
           for (i=0; i<alloc_count; i++) {

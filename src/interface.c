@@ -35,16 +35,16 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/coredefs.h>
-#include <core/fusion/list.h>
+#include <direct/list.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 #include <misc/util.h>
 
 typedef struct {
-     FusionLink         link;
+     DirectLink         link;
 
      char              *filename;
      void              *module_handle;
@@ -58,7 +58,7 @@ typedef struct {
 } DFBInterfaceImplementation;
 
 static pthread_mutex_t  implementations_mutex = PTHREAD_MUTEX_INITIALIZER;
-static FusionLink      *implementations       = NULL;
+static DirectLink      *implementations       = NULL;
 
 void DFBRegisterInterface( DFBInterfaceFuncs *funcs )
 {
@@ -70,7 +70,7 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs )
      impl->type           = funcs->GetType();
      impl->implementation = funcs->GetImplementation();
 
-     fusion_list_prepend( &implementations, &impl->link );
+     direct_list_prepend( &implementations, &impl->link );
 }
 
 int DFBProbeInterface( DFBInterfaceFuncs *funcs, void *ctx )
@@ -91,14 +91,14 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
      struct dirent              *entry;
 #endif
 
-     FusionLink *link;
+     DirectLink *link;
 
      pthread_mutex_lock( &implementations_mutex );
 
      /*
       * Check existing implementations first.
       */
-     fusion_list_foreach( link, implementations ) {
+     direct_list_foreach( link, implementations ) {
           DFBInterfaceImplementation *impl = (DFBInterfaceImplementation*) link;
 
           if (type && strcmp( type, impl->type ))
@@ -111,9 +111,8 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                continue;
           else {
                if (!impl->references) {
-                    INITMSG( "DirectFB/Interface: "
-                             "Using '%s' implementation of '%s'.\n",
-                             impl->implementation, impl->type );
+                    D_INFO( "DirectFB/Interface: Using '%s' implementation of '%s'.\n",
+                            impl->implementation, impl->type );
                }
 
                *funcs = impl->funcs;
@@ -135,7 +134,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
 
      dir = opendir( interface_dir );
      if (!dir) {
-          PERRORMSG( "DirectFB/interfaces: "
+          D_PERROR( "DirectFB/interfaces: "
                      "Could not open interface directory `%s'!\n",
                      interface_dir );
 
@@ -164,7 +163,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
           /*
            * Check if it got already loaded.
            */
-          fusion_list_foreach( link, implementations ) {
+          direct_list_foreach( link, implementations ) {
                DFBInterfaceImplementation *impl =
                     (DFBInterfaceImplementation*) link;
 
@@ -201,13 +200,13 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                     continue;
                }
 
-               HEAVYDEBUGMSG( "DirectFB/interface: Found `%s_%s'.\n",
+               D_HEAVYDEBUG( "DirectFB/interface: Found `%s_%s'.\n",
                               impl->type, impl->implementation );
 
                /*
                 * Keep filename and module handle.
                 */
-               impl->filename      = DFBSTRDUP( buf );
+               impl->filename      = D_STRDUP( buf );
                impl->module_handle = handle;
 
                /*
@@ -224,9 +223,8 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                     continue;
                }
                else {
-                    INITMSG( "DirectFB/Interface: "
-                             "Loaded '%s' implementation of '%s'.\n",
-                             impl->implementation, impl->type );
+                    D_INFO( "DirectFB/Interface: Loaded '%s' implementation of '%s'.\n",
+                            impl->implementation, impl->type );
 
                     *funcs = impl->funcs;
                     impl->references++;
@@ -239,7 +237,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                }
           }
           else
-               DLERRORMSG( "DirectFB/core/gfxcards: Unable to dlopen `%s'!\n",
+               D_DLERROR( "DirectFB/core/gfxcards: Unable to dlopen `%s'!\n",
                            buf );
 
      }

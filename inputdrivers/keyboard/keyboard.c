@@ -53,7 +53,10 @@
 #include <core/fbdev/fbdev.h>
 
 #include <misc/conf.h>
-#include <misc/mem.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <core/input_driver.h>
 
@@ -237,7 +240,7 @@ keyboard_read_value( KeyboardData *data,
      entry.kb_value = 0;
 
      if (ioctl( data->vt->fd, KDGKBENT, &entry )) {
-          PERRORMSG("DirectFB/keyboard: KDGKBENT (table: %d, index: %d) "
+          D_PERROR("DirectFB/keyboard: KDGKBENT (table: %d, index: %d) "
                     "failed!\n", table, index);
           return 0;
      }
@@ -279,7 +282,7 @@ keyboardEventThread( CoreThread *thread, void *driver_data )
      }
 
      if (readlen <= 0 && errno != EINTR)
-          PERRORMSG ("keyboard thread died\n");
+          D_PERROR ("keyboard thread died\n");
 
      return NULL;
 }
@@ -322,12 +325,12 @@ driver_open_device( InputDevice      *device,
 
      /* put keyboard into medium raw mode */
      if (ioctl( dfb_fbdev->vt->fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
-          PERRORMSG( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
+          D_PERROR( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
           return DFB_INIT;
      }
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(KeyboardData) );
+     data = D_CALLOC( 1, sizeof(KeyboardData) );
 
      data->device = device;
      data->vt     = dfb_fbdev->vt;
@@ -439,14 +442,14 @@ driver_close_device( void *driver_data )
      dfb_thread_destroy( data->thread );
 
      if (tcsetattr( data->vt->fd, TCSAFLUSH, &data->old_ts ) < 0)
-          PERRORMSG("DirectFB/keyboard: tcsetattr for original values failed!\n");
+          D_PERROR("DirectFB/keyboard: tcsetattr for original values failed!\n");
 
      if (ioctl( data->vt->fd, KDSKBMODE, K_XLATE ) < 0)
-          PERRORMSG("DirectFB/keyboard: Could not set mode to XLATE!\n");
+          D_PERROR("DirectFB/keyboard: Could not set mode to XLATE!\n");
      if (ioctl( data->vt->fd, KDSETMODE, KD_TEXT ) < 0)
-          PERRORMSG("DirectFB/keyboard: Could not set terminal mode to text!\n");
+          D_PERROR("DirectFB/keyboard: Could not set terminal mode to text!\n");
 
      /* free private data */
-     DFBFREE( data );
+     D_FREE( data );
 }
 

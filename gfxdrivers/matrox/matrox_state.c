@@ -108,7 +108,7 @@ void matrox_set_destination( MatroxDriverData *mdrv,
                mga_out32( mmio, PW8 | BYPASS332 | NODITHER, MACCESS );
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
 }
@@ -211,7 +211,7 @@ void matrox_validate_color( MatroxDriverData *mdrv,
                color |= color << 16;
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                return;
      }
 
@@ -409,7 +409,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
                texctl |= TW32;
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
 
@@ -538,7 +538,7 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
                mga_out32( mmio, key, FCOL );
                break;
           default:
-               BUG( "unexpected bytes per pixel" );
+               D_BUG( "unexpected bytes per pixel" );
                break;
      }
 

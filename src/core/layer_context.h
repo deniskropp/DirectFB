@@ -31,7 +31,7 @@
 #include <directfb.h>
 
 #include <core/coretypes.h>
-#include <core/fusion/object.h>
+#include <fusion/object.h>
 
 typedef enum {
      CLCNF_ACTIVATED   = 0x00000001,

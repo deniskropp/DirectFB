@@ -52,6 +52,8 @@
 #include <core/fbdev/fbdev.h>
 
 #include <gfx/convert.h>
+
+#include <misc/conf.h>
 #include <misc/util.h>
 
 #include <core/graphics_driver.h>
@@ -187,7 +189,7 @@ static void radeonSetState( void *drv, void *dev,
 	break;
 
     default:
-	BUG( "unexpected drawing/blitting function" );
+	D_BUG( "unexpected drawing/blitting function" );
 	break;
     }
 
@@ -265,7 +267,7 @@ static bool radeonBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
     __u32 dir_cmd = 0;
 
     if ( adev->source->format != adev->destination->format ) {
-	BUG( "blitting source/destination format mismatch" );
+	D_BUG( "blitting source/destination format mismatch" );
     }
 
     /* check which blitting direction should be used */
@@ -343,7 +345,7 @@ radeonSetPowerMode( CoreScreen         *screen,
      }
 
      if (ioctl( fbdev->fd, FBIOBLANK, level ) < 0) {
-          PERRORMSG( "DirectFB/matrox: Display blanking failed!\n" );
+          D_PERROR( "DirectFB/matrox: Display blanking failed!\n" );
 
           return errno2dfb( errno );
      }
@@ -504,25 +506,25 @@ driver_close_device( GraphicsDevice *device,
     RADEONDriverData *adrv = ( RADEONDriverData* ) driver_data;
     volatile __u8    *mmio = adrv->mmio_base;
 
-    DEBUGMSG( "DirectFB/RADEON: FIFO Performance Monitoring:\n" );
-    DEBUGMSG( "DirectFB/RADEON:  %9d radeon_waitfifo calls\n",
+    D_DEBUG( "DirectFB/RADEON: FIFO Performance Monitoring:\n" );
+    D_DEBUG( "DirectFB/RADEON:  %9d radeon_waitfifo calls\n",
                adev->waitfifo_calls );
-    DEBUGMSG( "DirectFB/RADEON:  %9d register writes (radeon_waitfifo sum)\n",
+    D_DEBUG( "DirectFB/RADEON:  %9d register writes (radeon_waitfifo sum)\n",
 	      adev->waitfifo_sum );
-    DEBUGMSG( "DirectFB/RADEON:  %9d FIFO wait cycles (depends on CPU)\n",
+    D_DEBUG( "DirectFB/RADEON:  %9d FIFO wait cycles (depends on CPU)\n",
 	      adev->fifo_waitcycles );
-    DEBUGMSG( "DirectFB/RADEON:  %9d IDLE wait cycles (depends on CPU)\n",
+    D_DEBUG( "DirectFB/RADEON:  %9d IDLE wait cycles (depends on CPU)\n",
 	      adev->idle_waitcycles );
-    DEBUGMSG( "DirectFB/RADEON:  %9d FIFO space cache hits(depends on CPU)\n",
+    D_DEBUG( "DirectFB/RADEON:  %9d FIFO space cache hits(depends on CPU)\n",
 	      adev->fifo_cache_hits );
-    DEBUGMSG( "DirectFB/RADEON: Conclusion:\n" );
-    DEBUGMSG( "DirectFB/RADEON:  Average register writes/radeon_waitfifo"
+    D_DEBUG( "DirectFB/RADEON: Conclusion:\n" );
+    D_DEBUG( "DirectFB/RADEON:  Average register writes/radeon_waitfifo"
 	      "call:%.2f\n",
 	      adev->waitfifo_sum / ( float )( adev->waitfifo_calls ) );
-    DEBUGMSG( "DirectFB/RADEON:  Average wait cycles/radeon_waitfifo call:"
+    D_DEBUG( "DirectFB/RADEON:  Average wait cycles/radeon_waitfifo call:"
 	      " %.2f\n",
 	      adev->fifo_waitcycles / ( float )( adev->waitfifo_calls ) );
-    DEBUGMSG( "DirectFB/RADEON:  Average fifo space cache hits: %02d%%\n",
+    D_DEBUG( "DirectFB/RADEON:  Average fifo space cache hits: %02d%%\n",
 	      ( int )( 100 * adev->fifo_cache_hits /
 		       ( float )( adev->waitfifo_calls ) ) );
 

@@ -37,11 +37,11 @@
 
 #include <pthread.h>
 
-#include <core/fusion/reactor.h>
-#include <core/fusion/list.h>
+#include <fusion/reactor.h>
+#include <direct/list.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -50,7 +50,9 @@
 #include <core/windows.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
+
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include "idirectfbinputbuffer.h"
 
@@ -61,14 +63,14 @@ typedef struct _EventBufferItem
 } IDirectFBEventBuffer_item;
 
 typedef struct {
-     FusionLink   link;
+     DirectLink   link;
 
      InputDevice *device;       /* pointer to input core device struct */
      Reaction     reaction;
 } AttachedDevice;
 
 typedef struct {
-     FusionLink   link;
+     DirectLink   link;
 
      CoreWindow  *window;       /* pointer to core window struct */
      Reaction     reaction;
@@ -83,9 +85,9 @@ typedef struct {
      EventBufferFilterCallback     filter;
      void                         *filter_ctx;
 
-     FusionLink                   *devices;       /* attached devices */
+     DirectLink                   *devices;       /* attached devices */
 
-     FusionLink                   *windows;       /* attached windows */
+     DirectLink                   *windows;       /* attached windows */
 
      IDirectFBEventBuffer_item    *events;        /* linked list containing
                                                      events */
@@ -122,8 +124,8 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
           AttachedDevice *device = (AttachedDevice*) data->devices;
 
           dfb_input_detach( device->device, &device->reaction );
-          fusion_list_remove( &data->devices, data->devices );
-          DFBFREE( device );
+          direct_list_remove( &data->devices, data->devices );
+          D_FREE( device );
      }
 
      while (data->windows) {
@@ -132,14 +134,14 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
           if (window->window) {
                dfb_window_detach( window->window, &window->reaction );
           }
-          fusion_list_remove( &data->windows, data->windows );
-          DFBFREE( window );
+          direct_list_remove( &data->windows, data->windows );
+          D_FREE( window );
      }
 
      while (data->events) {
           IDirectFBEventBuffer_item *next = data->events->next;
 
-          DFBFREE( data->events );
+          D_FREE( data->events );
 
           data->events = next;
      }
@@ -190,7 +192,7 @@ IDirectFBEventBuffer_Reset( IDirectFBEventBuffer *thiz )
      e = data->events;
      while (e) {
           IDirectFBEventBuffer_item *next = e->next;
-          DFBFREE( e );
+          D_FREE( e );
           e = next;
      }
      data->events = NULL;
@@ -306,11 +308,11 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
                break;
 
           default:
-               BUG("unknown event class");
+               D_BUG("unknown event class");
      }
 
      data->events = e->next;
-     DFBFREE( e );
+     D_FREE( e );
 
      pthread_mutex_unlock( &data->events_mutex );
 
@@ -344,7 +346,7 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
                break;
 
           default:
-               BUG("unknown event class");
+               D_BUG("unknown event class");
      }
 
      pthread_mutex_unlock( &data->events_mutex );
@@ -371,8 +373,7 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
      if (data->filter && data->filter( event, data->filter_ctx ))
           return DFB_OK;
 
-     item = (IDirectFBEventBuffer_item*)
-          DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
+     item = D_CALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
 
      item->evt = *event;
 
@@ -439,10 +440,10 @@ DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
 
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
-     attached = DFBCALLOC( 1, sizeof(AttachedDevice) );
+     attached = D_CALLOC( 1, sizeof(AttachedDevice) );
      attached->device = device;
 
-     fusion_list_prepend( &data->devices, &attached->link );
+     direct_list_prepend( &data->devices, &attached->link );
 
      dfb_input_attach( device, IDirectFBEventBuffer_InputReact,
                        data, &attached->reaction );
@@ -457,10 +458,10 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
 
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
-     attached = DFBCALLOC( 1, sizeof(AttachedWindow) );
+     attached = D_CALLOC( 1, sizeof(AttachedWindow) );
      attached->window = window;
 
-     fusion_list_prepend( &data->windows, &attached->link );
+     direct_list_prepend( &data->windows, &attached->link );
 
      dfb_window_attach( window, IDirectFBEventBuffer_WindowReact,
                         data, &attached->reaction );
@@ -474,7 +475,7 @@ static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
                                           IDirectFBEventBuffer_item *item )
 {
      if (data->filter && data->filter( &item->evt, data->filter_ctx )) {
-          DFBFREE( item );
+          D_FREE( item );
           return;
      }
 
@@ -507,8 +508,7 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
      IDirectFBEventBuffer_data *data = ctx;
      IDirectFBEventBuffer_item *item;
 
-     item = (IDirectFBEventBuffer_item*)
-          DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
+     item = D_CALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
 
      item->evt.input = *evt;
      item->evt.clazz = DFEC_INPUT;
@@ -525,8 +525,7 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
      IDirectFBEventBuffer_data *data = ctx;
      IDirectFBEventBuffer_item *item;
 
-     item = (IDirectFBEventBuffer_item*)
-          DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
+     item = D_CALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
 
      item->evt.window = *evt;
      item->evt.clazz  = DFEC_WINDOW;
@@ -538,11 +537,11 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
 
           while (window) {
                if (dfb_window_id( window->window ) == evt->window_id) {
-                    fusion_list_remove( &data->windows, &window->link );
+                    direct_list_remove( &data->windows, &window->link );
 
                     /* FIXME: free memory later, because reactor writes to it
                        after we return RS_REMOVE */
-                    //DFBFREE( window );
+                    //D_FREE( window );
                     window->window = NULL;
 
                     break;

@@ -33,10 +33,10 @@
 
 #include <string.h>
 
-#include <core/fusion/reactor.h>
+#include <fusion/reactor.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -44,7 +44,7 @@
 #include <core/input.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include "idirectfbinputdevice.h"
 #include "idirectfbinputbuffer.h"
@@ -370,7 +370,7 @@ IDirectFBInputDevice_React( const void *msg_data,
                break;
 
           default:
-               DEBUGMSG( "DirectFB/IDirectFBInputDevice: Unknown event type detected (0x%x), skipping!\n", evt->type );
+               D_DEBUG( "DirectFB/IDirectFBInputDevice: Unknown event type detected (0x%x), skipping!\n", evt->type );
      }
 
      return RS_OK;

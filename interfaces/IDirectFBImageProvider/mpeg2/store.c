@@ -33,7 +33,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include "global.h"
 
@@ -98,20 +98,20 @@ int offset, int incr, int height)
      }
      else {
           if (dec->chroma_format==CHROMA420) {
-               if (!(u422 = (unsigned char *)DFBMALLOC((dec->Coded_Picture_Width>>1)
-                                                       *dec->Coded_Picture_Height)))
+               if (!(u422 = (unsigned char *)D_MALLOC((dec->Coded_Picture_Width>>1)
+                                                      *dec->Coded_Picture_Height)))
                     MPEG2_Error(dec, "malloc failed");
-               if (!(v422 = (unsigned char *)DFBMALLOC((dec->Coded_Picture_Width>>1)
-                                                       *dec->Coded_Picture_Height)))
+               if (!(v422 = (unsigned char *)D_MALLOC((dec->Coded_Picture_Width>>1)
+                                                      *dec->Coded_Picture_Height)))
                     MPEG2_Error(dec, "malloc failed");
           }
 
-          if (!(u444 = (unsigned char *)DFBMALLOC(dec->Coded_Picture_Width
-                                                  *dec->Coded_Picture_Height)))
+          if (!(u444 = (unsigned char *)D_MALLOC(dec->Coded_Picture_Width
+                                                 *dec->Coded_Picture_Height)))
                MPEG2_Error(dec, "malloc failed");
 
-          if (!(v444 = (unsigned char *)DFBMALLOC(dec->Coded_Picture_Width
-                                                  *dec->Coded_Picture_Height)))
+          if (!(v444 = (unsigned char *)D_MALLOC(dec->Coded_Picture_Width
+                                                 *dec->Coded_Picture_Height)))
                MPEG2_Error(dec, "malloc failed");
 
           if (dec->chroma_format==CHROMA420) {
@@ -153,16 +153,16 @@ int offset, int incr, int height)
 
      if (dec->chroma_format!=CHROMA444) {
           if (u422)
-               DFBFREE( u422 );
-     
+               D_FREE( u422 );
+
           if (v422)
-               DFBFREE( v422 );
-     
+               D_FREE( v422 );
+
           if (u444)
-               DFBFREE( u444 );
-     
+               D_FREE( u444 );
+
           if (v444)
-               DFBFREE( v444 );
+               D_FREE( v444 );
      }
 }
 
@@ -189,7 +189,7 @@ static void conv422to444(MPEG2_Decoder *dec, unsigned char *src, unsigned char *
 
                     /* odd samples (21 -52 159 159 -52 21) */
                     dst[i2+1] = dec->Clip[(int)(21*(src[im2]+src[ip3])
-                                                 -52*(src[im1]+src[ip2]) 
+                                                 -52*(src[im1]+src[ip2])
                                                  +159*(src[i]+src[ip1])+128)>>8];
                }
                src+= w;

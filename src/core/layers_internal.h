@@ -33,9 +33,9 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <core/fusion/object.h>
-#include <core/fusion/property.h>
-#include <core/fusion/vector.h>
+#include <fusion/object.h>
+#include <fusion/property.h>
+#include <fusion/vector.h>
 
 #include <core/layers.h>
 #include <core/layer_region.h>

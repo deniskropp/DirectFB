@@ -286,7 +286,7 @@ static void udl_set_all( CyberDriverData        *cdrv,
                break;
 
           default:
-               BUG("unexpected pixelformat");
+               D_BUG("unexpected pixelformat");
                break;
      }
 

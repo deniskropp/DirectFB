@@ -20,7 +20,7 @@ static inline int uc_map_dst_format( DFBSurfacePixelFormat format )
           case DSPF_ARGB:     return HC_HDBFM_ARGB8888;
 
           default:
-               BUG( "unexpected pixel format" );
+               D_BUG( "unexpected pixel format" );
      }
 
      return 0;
@@ -38,7 +38,7 @@ static inline int uc_map_src_format_3d( DFBSurfacePixelFormat format )
           case DSPF_LUT8:     return HC_HTXnFM_Index8;
 
           default:
-               BUG( "unexpected pixel format" );
+               D_BUG( "unexpected pixel format" );
      }
 
      return 0;

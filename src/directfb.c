@@ -34,7 +34,7 @@
 #include <string.h>
 
 #include "directfb.h"
-#include "directfb_internals.h"
+#include "interface.h"
 #include "directfb_version.h"
 
 #include "misc/conf.h"
@@ -55,7 +55,8 @@
 
 #include "gfx/convert.h"
 
-#include "misc/mem.h"
+#include <direct/conf.h>
+#include <direct/mem.h>
 
 #include "display/idirectfbsurface.h"
 
@@ -122,13 +123,13 @@ DirectFBSetOption( const char *name, const char *value )
      DFBResult ret;
 
      if (dfb_config == NULL) {
-          ERRORMSG( "DirectFBSetOption: DirectFBInit has to be "
+          D_ERROR( "DirectFBSetOption: DirectFBInit has to be "
                     "called before DirectFBSetOption!\n" );
           return DFB_INIT;
      }
 
      if (idirectfb_singleton) {
-          ERRORMSG( "DirectFBSetOption: DirectFBSetOption has to be "
+          D_ERROR( "DirectFBSetOption: DirectFBSetOption has to be "
                     "called before DirectFBCreate!\n" );
           return DFB_INIT;
      }
@@ -153,7 +154,7 @@ DirectFBCreate( IDirectFB **interface )
      DFBResult ret;
 
      if (!dfb_config) {
-          /*  don't use ERRORMSG() here, it uses dfb_config  */
+          /*  don't use D_ERROR() here, it uses dfb_config  */
           fprintf( stderr,
                    "(!) DirectFBCreate: DirectFBInit has to be "
                    "called before DirectFBCreate!\n" );
@@ -169,12 +170,12 @@ DirectFBCreate( IDirectFB **interface )
           return DFB_OK;
      }
 
-     if (!dfb_config->quiet && dfb_config->banner) {
+     if (!direct_config->quiet && dfb_config->banner) {
           fprintf( stderr, "\n" );
           fprintf( stderr, "       ---------------------- DirectFB v%d.%d.%d ---------------------\n",
                            DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
           fprintf( stderr, "             (c) 2000-2002  convergence integrated media GmbH  \n" );
-          fprintf( stderr, "             (c) 2002-2003  convergence GmbH                   \n" );
+          fprintf( stderr, "             (c) 2002-2004  convergence GmbH                   \n" );
           fprintf( stderr, "        -----------------------------------------------------------\n" );
           fprintf( stderr, "\n" );
      }
@@ -315,14 +316,14 @@ apply_configuration( IDirectFB *dfb )
      /* get the default (shared) context */
      ret = dfb_layer_get_primary_context( layer, true, &context );
      if (ret) {
-          ERRORMSG( "DirectFB/DirectFBCreate: "
+          D_ERROR( "DirectFB/DirectFBCreate: "
                     "Could not get default context of primary layer!\n" );
           return ret;
      }
 
      stack = dfb_layer_context_windowstack( context );
 
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* set buffer mode for desktop */
      layer_config.flags = DLCONF_BUFFERMODE;
@@ -341,7 +342,7 @@ apply_configuration( IDirectFB *dfb )
           layer_config.buffermode = dfb_config->buffer_mode;
 
      if (dfb_layer_context_set_configuration( context, &layer_config )) {
-          ERRORMSG( "DirectFB/DirectFBCreate: "
+          D_ERROR( "DirectFB/DirectFBCreate: "
                     "Setting desktop buffer mode failed!\n"
                     "     -> No virtual resolution support or not enough memory?\n"
                     "        Falling back to system back buffer.\n" );
@@ -349,7 +350,7 @@ apply_configuration( IDirectFB *dfb )
           layer_config.buffermode = DLBM_BACKSYSTEM;
 
           if (dfb_layer_context_set_configuration( context, &layer_config ))
-               ERRORMSG( "DirectFB/DirectFBCreate: "
+               D_ERROR( "DirectFB/DirectFBCreate: "
                          "Setting system memory desktop back buffer failed!\n"
                          "     -> Using front buffer only mode.\n" );
      }

@@ -37,7 +37,9 @@
 #include <sys/time.h>
 #include <time.h>
 
-#include "util.h"
+#include <direct/messages.h>
+
+#include <misc/util.h>
 
 
 static struct timeval start_time = { 0, 0 };
@@ -74,7 +76,7 @@ dfb_try_open( const char *name1, const char *name2, int flags )
           return fd;
 
      if (errno != ENOENT) {
-          PERRORMSG( "opening '%s' failed\n", name1 );
+          D_PERROR( "DirectFB/Util: opening '%s' failed\n", name1 );
           return -1;
      }
 
@@ -83,9 +85,9 @@ dfb_try_open( const char *name1, const char *name2, int flags )
           return fd;
 
      if (errno == ENOENT)
-          PERRORMSG( "opening '%s' and '%s' failed\n", name1, name2 );
+          D_PERROR( "DirectFB/Util: opening '%s' and '%s' failed\n", name1, name2 );
      else
-          PERRORMSG( "opening '%s' failed\n", name2 );
+          D_PERROR( "DirectFB/Util: opening '%s' failed\n", name2 );
 
      return -1;
 }

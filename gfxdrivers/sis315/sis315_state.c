@@ -1,5 +1,5 @@
 /*
- * $Id: sis315_state.c,v 1.1 2003-11-25 10:53:48 oberritter Exp $
+ * $Id: sis315_state.c,v 1.2 2004-03-30 18:35:19 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -87,7 +87,7 @@ void sis_validate_color(SiSDriverData *drv, SiSDeviceData *dev, CardState *state
 					state->color.b);
 		break;
 	default:
-		BUG("unexpected pixelformat");
+		D_BUG("unexpected pixelformat");
 		return;
 	}
 

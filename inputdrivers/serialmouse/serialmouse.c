@@ -49,7 +49,10 @@
 #include <core/thread.h>
 
 #include <misc/conf.h>
-#include <misc/mem.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <core/input_driver.h>
 
@@ -258,7 +261,7 @@ mouseEventThread_ms( CoreThread *thread, void *driver_data )
           dfb_thread_testcancel( thread );
      }
 
-     PERRORMSG ("serial mouse thread died\n");
+     D_PERROR ("serial mouse thread died\n");
 
      return NULL;
 }
@@ -348,7 +351,7 @@ mouseEventThread_mousesystems( CoreThread *thread, void *driver_data )
           dfb_thread_testcancel( thread );
      }
 
-     PERRORMSG ("serial mouse thread died\n");
+     D_PERROR ("serial mouse thread died\n");
 
      return NULL;
 }
@@ -394,12 +397,12 @@ driver_get_available()
      /* initialize source device name to read from */
      /* initialize flags to open device with */
      flags = O_NONBLOCK;
-     INITMSG( "mouse detection: device '%s'...", dfb_config->mouse_source );
+     D_INFO( "DirectFB/SerialMouse: mouse detection on device '%s'...", dfb_config->mouse_source );
 
      /* open device to read from */
      fd = open( dfb_config->mouse_source, flags );
      if (fd < 0) {
-	  INITMSG( "could not open device!\n" );
+	  D_INFO( "DirectFB/SerialMouse: could not open device '%s'!\n", dfb_config->mouse_source );
           return 0;
      }
 
@@ -448,12 +451,12 @@ driver_get_available()
     }
 
  success:
-     INITMSG("OK\n");
+     D_INFO("DirectFB/SerialMouse: OK\n");
      close (fd);
      return 1;
 
  error:
-     INITMSG("Failed\n");
+     D_INFO("DirectFB/SerialMouse: Failed\n");
      close (fd);
      return 0;
 }
@@ -492,7 +495,7 @@ driver_open_device( InputDevice      *device,
      flags = O_NONBLOCK | (dfb_config->mouse_gpm_source ? O_RDONLY : O_RDWR);
      fd = open( dfb_config->mouse_source, flags );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/SerialMouse: Error opening '%s'!\n", dfb_config->mouse_source );
+          D_PERROR( "DirectFB/SerialMouse: Error opening '%s'!\n", dfb_config->mouse_source );
           return DFB_INIT;
      }
 
@@ -500,7 +503,7 @@ driver_open_device( InputDevice      *device,
      fcntl (fd, F_SETFL, fcntl (fd, F_GETFL) & ~O_NONBLOCK);
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(SerialMouseData) );
+     data = D_CALLOC( 1, sizeof(SerialMouseData) );
 
      data->fd       = fd;
      data->device   = device;
@@ -558,6 +561,6 @@ driver_close_device( void *driver_data )
      close( data->fd );
 
      /* free private data */
-     DFBFREE( data );
+     D_FREE( data );
 }
 

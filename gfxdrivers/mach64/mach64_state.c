@@ -73,7 +73,7 @@ void mach64_set_destination( Mach64DriverData *mdrv,
                mach64_out32( mmio, DP_CHAIN_MASK, DP_CHAIN_32BPP | BYTE_ORDER_LSB_TO_MSB );
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
      mdev->dst_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( destination->format )) - 1;
@@ -109,7 +109,7 @@ void mach64_set_source( Mach64DriverData *mdrv,
                mdev->src_pix_width = SRC_32BPP | SCALE_32BPP;
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
      mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
@@ -174,7 +174,7 @@ void mach64_set_color( Mach64DriverData *mdrv,
                                    state->color.b );
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
 

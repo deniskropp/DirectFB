@@ -42,7 +42,10 @@
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
+
+#include <misc/conf.h>
 #include <misc/tree.h>
 #include <misc/util.h>
 
@@ -51,7 +54,7 @@ dfb_font_create( CoreDFB *core )
 {
      CoreFont *font;
 
-     font = (CoreFont *) DFBCALLOC( 1, sizeof(CoreFont) );
+     font = (CoreFont *) D_CALLOC( 1, sizeof(CoreFont) );
 
      font->core = core;
 
@@ -68,7 +71,7 @@ dfb_font_create( CoreDFB *core )
 
      font->glyph_infos = dfb_tree_new ();
 
-     DFB_MAGIC_SET( font, CoreFont );
+     D_MAGIC_SET( font, CoreFont );
 
      return font;
 }
@@ -78,11 +81,11 @@ dfb_font_destroy( CoreFont *font )
 {
      int i;
 
-     DFB_ASSERT( font != NULL );
+     D_ASSERT( font != NULL );
 
-     DFB_MAGIC_ASSERT( font, CoreFont );
+     D_MAGIC_ASSERT( font, CoreFont );
 
-     DFB_MAGIC_CLEAR( font );
+     D_MAGIC_CLEAR( font );
 
      pthread_mutex_lock( &font->lock );
 
@@ -95,13 +98,13 @@ dfb_font_destroy( CoreFont *font )
           for (i = 0; i < font->rows; i++)
                dfb_surface_unref( font->surfaces[i] );
 
-          DFBFREE( font->surfaces );
+          D_FREE( font->surfaces );
      }
 
      pthread_mutex_unlock( &font->lock );
      pthread_mutex_destroy( &font->lock );
 
-     DFBFREE( font );
+     D_FREE( font );
 }
 
 DFBResult
@@ -112,9 +115,9 @@ dfb_font_get_glyph_data( CoreFont        *font,
      DFBResult      ret;
      CoreGlyphData *data;
 
-     DFB_ASSERT( font != NULL );
+     D_ASSERT( font != NULL );
 
-     DFB_MAGIC_ASSERT( font, CoreFont );
+     D_MAGIC_ASSERT( font, CoreFont );
 
      if ((data = dfb_tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
           *glyph_data = data;
@@ -122,7 +125,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
      }
 
      if (!data) {
-          data = (CoreGlyphData *) DFBCALLOC(1, sizeof (CoreGlyphData));
+          data = (CoreGlyphData *) D_CALLOC(1, sizeof (CoreGlyphData));
           if (!data)
                return DFB_NOSYSTEMMEMORY;
 
@@ -152,19 +155,18 @@ dfb_font_get_glyph_data( CoreFont        *font,
                                               CSP_VIDEOLOW, DSCAPS_NONE, NULL,
                                               &surface );
                     if (ret) {
-                         ERRORMSG( "DirectFB/core/fonts: "
+                         D_ERROR( "DirectFB/core/fonts: "
                                    "Could not create glyph surface! (%s)\n",
                                    DirectFBErrorString( ret ) );
 
-                         DFBFREE( data );
+                         D_FREE( data );
                          return ret;
                     }
 
                     font->next_x = 0;
                     font->rows++;
 
-                    font->surfaces = DFBREALLOC( font->surfaces,
-                                                 sizeof(void *) * font->rows );
+                    font->surfaces = D_REALLOC( font->surfaces, sizeof(void *) * font->rows );
 
                     font->surfaces[font->rows - 1] = surface;
                }

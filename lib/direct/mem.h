@@ -31,10 +31,10 @@
 
 #include <direct/build.h>
 
+void direct_print_memleaks();
+
 
 #if DIRECT_BUILD_DEBUG
-
-void  direct_print_memleaks();
 
 void  direct_free   ( char *file, int line,
                       char *func, char *what, void *mem );

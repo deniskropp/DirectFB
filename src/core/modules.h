@@ -30,11 +30,11 @@
 
 #include <core/coretypes.h>
 
-#include <core/fusion/fusion_types.h>
-#include <core/fusion/list.h>
+#include <fusion/types.h>
+#include <direct/list.h>
 
 struct _ModuleEntry {
-     FusionLink       link;
+     DirectLink       link;
 
      ModuleDirectory *directory;
 
@@ -54,7 +54,7 @@ struct _ModuleDirectory {
      const char   *path;
      unsigned int  abi_version;
 
-     FusionLink   *entries;
+     DirectLink   *entries;
 
      ModuleEntry  *loading;
 };

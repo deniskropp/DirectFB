@@ -120,7 +120,7 @@ void ati128_set_destination( ATI128DriverData *adrv,
                adev->ATI_dst_bpp = DST_32BPP;
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
      adev->destination = destination;
@@ -171,7 +171,7 @@ void ati128_set_source( ATI128DriverData *adrv,
                ati128_out32( adrv->mmio_base, CLR_CMP_MASK, 0x00FFFFFF );
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
 
@@ -245,7 +245,7 @@ void ati128_set_color( ATI128DriverData *adrv,
                                         state->color.b );
                break;
           default:
-               BUG( "unexpected pixelformat!" );
+               D_BUG( "unexpected pixelformat!" );
                break;
      }
 

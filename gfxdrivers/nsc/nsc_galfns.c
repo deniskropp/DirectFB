@@ -1,9 +1,9 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.9 $
+ * $Revision: 1.10 $
  * $Author: dok $
  *
- * File Contents: This file contains the main functions of the Geode 
+ * File Contents: This file contains the main functions of the Geode
  *                frame buffer device drivers GAL function definitions.
  *
  * Project:       Geode Frame buffer device driver
@@ -16,24 +16,24 @@
  *
  * National Semiconductor Alternative GPL-BSD License
  *
- * National Semiconductor Corporation licenses this software 
+ * National Semiconductor Corporation licenses this software
  * ("Software"):
  *
  * National Xfree frame buffer driver
  *
- * under one of the two following licenses, depending on how the 
+ * under one of the two following licenses, depending on how the
  * Software is received by the Licensee.
- * 
+ *
  * If this Software is received as part of the Linux Framebuffer or
- * other GPL licensed software, then the GPL license designated 
- * NSC_LIC_GPL applies to this Software; in all other circumstances 
+ * other GPL licensed software, then the GPL license designated
+ * NSC_LIC_GPL applies to this Software; in all other circumstances
  * then the BSD-style license designated NSC_LIC_BSD shall apply.
  *
  * END_NSC_LIC_ALTERNATIVE_PREAMBLE */
 
 /* NSC_LIC_BSD
  *
- * National Semiconductor Corporation Open Source License for 
+ * National Semiconductor Corporation Open Source License for
  *
  * National Xfree frame buffer driver
  *
@@ -43,52 +43,52 @@
  * National Semiconductor Corporation.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions 
- * are met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- *   * Redistributions of source code must retain the above copyright 
- *     notice, this list of conditions and the following disclaimer. 
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
  *
- *   * Redistributions in binary form must reproduce the above 
- *     copyright notice, this list of conditions and the following 
- *     disclaimer in the documentation and/or other materials provided 
- *     with the distribution. 
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
  *
- *   * Neither the name of the National Semiconductor Corporation nor 
- *     the names of its contributors may be used to endorse or promote 
- *     products derived from this software without specific prior 
- *     written permission. 
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
- * NATIONAL SEMICONDUCTOR CORPORATION OR CONTRIBUTORS BE LIABLE FOR ANY 
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER 
+ *   * Neither the name of the National Semiconductor Corporation nor
+ *     the names of its contributors may be used to endorse or promote
+ *     products derived from this software without specific prior
+ *     written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * NATIONAL SEMICONDUCTOR CORPORATION OR CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE,
- * INTELLECTUAL PROPERTY INFRINGEMENT, OR OTHERWISE) ARISING IN ANY WAY 
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+ * INTELLECTUAL PROPERTY INFRINGEMENT, OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * EXPORT LAWS: THIS LICENSE ADDS NO RESTRICTIONS TO THE EXPORT LAWS OF 
- * YOUR JURISDICTION. It is licensee's responsibility to comply with 
- * any export regulations applicable in licensee's jurisdiction. Under 
- * CURRENT (2001) U.S. export regulations this software 
- * is eligible for export from the U.S. and can be downloaded by or 
- * otherwise exported or reexported worldwide EXCEPT to U.S. embargoed 
- * destinations which include Cuba, Iraq, Libya, North Korea, Iran, 
- * Syria, Sudan, Afghanistan and any other country to which the U.S. 
- * has embargoed goods and services. 
+ * EXPORT LAWS: THIS LICENSE ADDS NO RESTRICTIONS TO THE EXPORT LAWS OF
+ * YOUR JURISDICTION. It is licensee's responsibility to comply with
+ * any export regulations applicable in licensee's jurisdiction. Under
+ * CURRENT (2001) U.S. export regulations this software
+ * is eligible for export from the U.S. and can be downloaded by or
+ * otherwise exported or reexported worldwide EXCEPT to U.S. embargoed
+ * destinations which include Cuba, Iraq, Libya, North Korea, Iran,
+ * Syria, Sudan, Afghanistan and any other country to which the U.S.
+ * has embargoed goods and services.
  *
  * END_NSC_LIC_BSD */
 
 /* NSC_LIC_GPL
  *
- * National Semiconductor Corporation Gnu General Public License for 
+ * National Semiconductor Corporation Gnu General Public License for
  *
  * National Xfree frame buffer driver
  *
@@ -98,43 +98,43 @@
  * National Semiconductor Corporation.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted under the terms of the GNU General 
- * Public License as published by the Free Software Foundation; either 
- * version 2 of the License, or (at your option) any later version  
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted under the terms of the GNU General
+ * Public License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version
  *
- * In addition to the terms of the GNU General Public License, neither 
- * the name of the National Semiconductor Corporation nor the names of 
- * its contributors may be used to endorse or promote products derived 
- * from this software without specific prior written permission. 
+ * In addition to the terms of the GNU General Public License, neither
+ * the name of the National Semiconductor Corporation nor the names of
+ * its contributors may be used to endorse or promote products derived
+ * from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
- * NATIONAL SEMICONDUCTOR CORPORATION OR CONTRIBUTORS BE LIABLE FOR ANY 
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER 
- * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE, 
- * INTELLECTUAL PROPERTY INFRINGEMENT, OR OTHERWISE) ARISING IN ANY WAY 
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
- * OF SUCH DAMAGE. See the GNU General Public License for more details. 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * NATIONAL SEMICONDUCTOR CORPORATION OR CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE,
+ * INTELLECTUAL PROPERTY INFRINGEMENT, OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE. See the GNU General Public License for more details.
  *
- * EXPORT LAWS: THIS LICENSE ADDS NO RESTRICTIONS TO THE EXPORT LAWS OF 
- * YOUR JURISDICTION. It is licensee's responsibility to comply with 
- * any export regulations applicable in licensee's jurisdiction. Under 
- * CURRENT (2001) U.S. export regulations this software 
- * is eligible for export from the U.S. and can be downloaded by or 
- * otherwise exported or reexported worldwide EXCEPT to U.S. embargoed 
- * destinations which include Cuba, Iraq, Libya, North Korea, Iran, 
- * Syria, Sudan, Afghanistan and any other country to which the U.S. 
- * has embargoed goods and services. 
+ * EXPORT LAWS: THIS LICENSE ADDS NO RESTRICTIONS TO THE EXPORT LAWS OF
+ * YOUR JURISDICTION. It is licensee's responsibility to comply with
+ * any export regulations applicable in licensee's jurisdiction. Under
+ * CURRENT (2001) U.S. export regulations this software
+ * is eligible for export from the U.S. and can be downloaded by or
+ * otherwise exported or reexported worldwide EXCEPT to U.S. embargoed
+ * destinations which include Cuba, Iraq, Libya, North Korea, Iran,
+ * Syria, Sudan, Afghanistan and any other country to which the U.S.
+ * has embargoed goods and services.
  *
- * You should have received a copy of the GNU General Public License 
- * along with this file; if not, write to the Free Software Foundation, 
- * Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ * You should have received a copy of the GNU General Public License
+ * along with this file; if not, write to the Free Software Foundation,
+ * Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  * END_NSC_LIC_GPL */
 
@@ -151,7 +151,7 @@
 #include <sys/ioctl.h>
 #endif
 
-#include <misc/memcpy.h>
+#include <direct/memcpy.h>
 
 #include <core/fbdev/fbdev.h>
 
@@ -211,12 +211,12 @@ create_devicenode()
 #endif
 
 /*------------------------------------------------------------------------
- * Gal_initialize_interface 
+ * Gal_initialize_interface
  *
  * Description:	This function intializes the  nscgal device .
  * parameters :	none
  *	
- *	return:	 '1' was returned on intialization of the galdevice 
+ *	return:	 '1' was returned on intialization of the galdevice
  *					otherwise '0' was returned on failure.
  *----------------------------------------------------------------------*/
 BOOLEAN
@@ -251,7 +251,7 @@ Gal_cleanup_interface()
  *        type:	It specifies the hardware access type.
  *      offset: It specifies the offset address the register to be accessed.
  *       value:	It specifies the data value to be written into the register.
- *        size: It specifies the size of the data to be written. 
+ *        size: It specifies the size of the data to be written.
  *	
  *	return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
@@ -314,7 +314,7 @@ Gal_read_register(int type, unsigned long offset, unsigned long *value,
  * Description:	This function gets the adapter information of the
  *					nscgal device .
  *  parameters:	
- *pAdapterInfo: It specifies the adapter information structure.     
+ *pAdapterInfo: It specifies the adapter information structure.
  *	
  *	return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
@@ -333,11 +333,11 @@ Gal_get_adapter_info(PGAL_ADAPTERINFO pAdapterInfo)
 }
 
 /*---------------------------------------------------------------------------
- * Gal_set_softvga_state 
+ * Gal_set_softvga_state
  *
  * Description:	This function sets the softvga state of the platform device .
  *  parameters:	
- *     bEnable:	It specifies the softvga state enable state.    
+ *     bEnable:	It specifies the softvga state enable state.
  *	return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -355,11 +355,11 @@ Gal_set_softvga_state(BOOLEAN bEnable)
 }
 
 /*---------------------------------------------------------------------------
- * Gal_get_softvga_state 
+ * Gal_get_softvga_state
  *
  * Description:	This function gets the softvga state of the platform device .
  *  parameters:	
- *     bEnable:	get the softvga state.    
+ *     bEnable:	get the softvga state.
  *	return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -382,7 +382,7 @@ Gal_get_softvga_state(int *bState)
  *
  * Description:	This function tests the vga pci.
  *  parameters:	
- *     softvga:	It is pointer to the softvga state.    
+ *     softvga:	It is pointer to the softvga state.
  *	return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -405,7 +405,7 @@ Gal_vga_test_pci(int *softvga)
  *
  * Description:	This function gets the vga pci command.
  *  parameters:	
- *       value:	It is pointer to pci command value.    
+ *       value:	It is pointer to pci command value.
  *	return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -428,7 +428,7 @@ Gal_vga_get_pci_command(unsigned char *value)
  *
  * Description:	This function resets the vga seq.
  *  parameters:	
- *       reset:	It gives the reset value.    
+ *       reset:	It gives the reset value.
  *	return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -452,7 +452,7 @@ Gal_vga_seq_reset(int reset)
  *
  * Description:	This function resets the vga seq.
  *  parameters:	None.
- *        
+ *
  *	return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -493,12 +493,12 @@ Gal_set_crt_enable(int crtEnable)
 }
 
 /*---------------------------------------------------------------------------
- * Gal_is_display_mode_supported 
+ * Gal_is_display_mode_supported
  *
  * Description:	This function checks the display mode is supported or not.
  *  parameters:	
  *        xres:	It specifies x co-ordinate resolution.
- *        Yres:	It specifies y co-ordinate resolution.  
+ *        Yres:	It specifies y co-ordinate resolution.
  *	   bpp:	It specifies the bits per pixel (8/16 bits).
  *	    hz:	It specifies the frequency of the display mode.
  *	return:	'1' was returned on success otherwise '0' was returned.
@@ -531,7 +531,7 @@ Gal_is_display_mode_supported(int xres, int yres, int bpp, int hz,
  * Description:	This function sets the display mode of the galdevice.
  *  parameters:	
  *        xres:	It specifies x co-ordinate resolution.
- *        Yres:	It specifies y co-ordinate resolution.  
+ *        Yres:	It specifies y co-ordinate resolution.
  *	   bpp:	It specifies the bits per pixel (8/16 bits).
  *	    hz:	It specifies the frequency of the display mode.
  *	return:	'1' was returned on success otherwise '0' was returned.
@@ -560,7 +560,7 @@ Gal_set_display_mode(int xres, int yres, int bpp, int hz)
  * Description:	This function gets the display mode of the galdevice.
  *  parameters:	
  *        xres:	It specifies x co-ordinate resolution.
- *        Yres:	It specifies y co-ordinate resolution.  
+ *        Yres:	It specifies y co-ordinate resolution.
  *	   bpp:	It specifies the bits per pixel (8/16 bits).
  *	    hz:	It specifies the frequency of the display mode.
  *	return:	'1' was returned on success otherwise '0' was returned.
@@ -755,7 +755,7 @@ Gal_get_display_offset(unsigned long *offset)
  * Description:	This function gets the refreshrate from dotclock.
  *  parameters:	
  *        xres:	It specifies x co-ordinate resolution.
- *        Yres:	It specifies y co-ordinate resolution.  
+ *        Yres:	It specifies y co-ordinate resolution.
  *	   bpp:	It specifies the bits per pixel (8/16 bits).
  *	    hz:	It is a pointer which holds the refresh rate of the display.
  *   frequency:	It spcifies the frequency of the dotclock.
@@ -805,7 +805,7 @@ Gal_get_display_timing(PGAL_DISPLAYTIMING pDisplayTiming)
 /*---------------------------------------------------------------------------
  * Gal_set_display_timing
  *
- *    Description:	This function sets the display timing of the galdevice. 
+ *    Description:	This function sets the display timing of the galdevice.
  *     parameters:	
  * pDisplayTiming:	It specifies the display timing of the galdevice.
  *	   return:	'1' was returned on success otherwise '0' was returned.
@@ -825,12 +825,12 @@ Gal_set_display_timing(PGAL_DISPLAYTIMING pDisplayTiming)
 /*---------------------------------------------------------------------------
  * Gal_set_fixed_timings
  *
- *    Description:	This function sets the fixed display timings of the 
- *						galdevice. 
+ *    Description:	This function sets the fixed display timings of the
+ *						galdevice.
  *     parameters:
  *	  pnlXres:	It specifies the panel X resolution.
  *	  pnlYres:	It specifies the panel Y resolution.
- *        totXres:  It specifies the total X resolution.  
+ *        totXres:  It specifies the total X resolution.
  *        totYres:  It specifies the total Y resolution.
  *	      bpp:	It specifies the bits per pixel (8/16 bits).
  *	   return:	'1' was returned on success otherwise '0' was returned.
@@ -858,11 +858,11 @@ Gal_set_fixed_timings(int pnlXres, int pnlYres, int totXres,
 /*---------------------------------------------------------------------------
  * Gal_set_display_palette_entry
  *
- *    Description:	This function sets the display palette entry of the 
- *						galdevice. 
+ *    Description:	This function sets the display palette entry of the
+ *						galdevice.
  *     parameters:
  *	    index:	It specifies the palette index,
- *        palette:	It specifies the palette of the galdevice. 
+ *        palette:	It specifies the palette of the galdevice.
  *	   return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -884,11 +884,11 @@ Gal_set_display_palette_entry(unsigned long index, unsigned long palette)
 /*---------------------------------------------------------------------------
  * Gal_get_display_palette_entry
  *
- *    Description:	This function gets the display palette entry of the 
- *						galdevice. 
+ *    Description:	This function gets the display palette entry of the
+ *						galdevice.
  *     parameters:
  *          index:	It specifies the palette index,
- *        palette:	It is a pointer to the palette of the galdevice. 
+ *        palette:	It is a pointer to the palette of the galdevice.
  *	   return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -911,10 +911,10 @@ Gal_get_display_palette_entry(unsigned long index, unsigned long *palette)
 /*---------------------------------------------------------------------------
  * Gal_set_display_palette_entry
  *
- *    Description:	This function sets the display palette entry of the 
- *						galdevice. 
+ *    Description:	This function sets the display palette entry of the
+ *						galdevice.
  *     parameters:
- *       pPalette:	It specifies the palette structure of the galdevice. 
+ *       pPalette:	It specifies the palette structure of the galdevice.
  *	   return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -932,10 +932,10 @@ Gal_set_display_palette(PGAL_PALETTE pPalette)
 /*---------------------------------------------------------------------------
  * Gal_get_display_palette_entry
  *
- *    Description:	This function gets the display palette entry of the 
- *						galdevice. 
+ *    Description:	This function gets the display palette entry of the
+ *						galdevice.
  *     parameters:
- *       pPalette:	It specifies the palette structure of the galdevice. 
+ *       pPalette:	It specifies the palette structure of the galdevice.
  *	   return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -954,7 +954,7 @@ Gal_get_display_palette(PGAL_PALETTE pPalette)
 /*---------------------------------------------------------------------------
  * Gal_wait_until_idle
  *
- *    Description:	This function waits until the graphics engine is idle. 
+ *    Description:	This function waits until the graphics engine is idle.
  *     parameters:	none.
  *	   return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
@@ -1024,7 +1024,7 @@ Gal_set_cursor_enable(int enable)
  *        xpos: It specifies the X co-ordinate position of the cursor.
  *        ypos: It specifies the Y co-ordinate position of the cursor.
  *    xhotspot: It specifies the X hotspot location for current cursor shape.
- *    yhotspot: It specifies the Y hotspot location for current cursor shape. 
+ *    yhotspot: It specifies the Y hotspot location for current cursor shape.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -1056,7 +1056,7 @@ Gal_set_cursor_position(unsigned long memoffset,
  *        xpos: It points the X co-ordinate position of the cursor.
  *        ypos: It points  the Y co-ordinate position of the cursor.
  *    xhotspot: It points the X hotspot location for current cursor shape.
- *    yhotspot: It points  the Y hotspot location for current cursor shape. 
+ *    yhotspot: It points  the Y hotspot location for current cursor shape.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
 BOOLEAN
@@ -1100,9 +1100,9 @@ Gal_set_cursor_shape32(unsigned long memoffset,
    sCursorShape.dwSubfunction = GALFN_SETCURSORSHAPE;
    sCursorShape.dwMemOffset = memoffset;
 
-   dfb_memcpy(sCursorShape.dwAndMask, andmask, sizeof(sCursorShape.dwAndMask));
+   direct_memcpy(sCursorShape.dwAndMask, andmask, sizeof(sCursorShape.dwAndMask));
 
-   dfb_memcpy(sCursorShape.dwXorMask, xormask, sizeof(sCursorShape.dwXorMask));
+   direct_memcpy(sCursorShape.dwXorMask, xormask, sizeof(sCursorShape.dwXorMask));
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &sCursorShape))
       return 0;
@@ -1129,9 +1129,9 @@ Gal_set_cursor_shape64(unsigned long memoffset,
    sCursorShape.dwSubfunction = GALFN_SETCURSORSHAPE_RCLD;
    sCursorShape.dwMemOffset = memoffset;
 
-   dfb_memcpy(sCursorShape.dwAndMask, andmask, sizeof(sCursorShape.dwAndMask));
+   direct_memcpy(sCursorShape.dwAndMask, andmask, sizeof(sCursorShape.dwAndMask));
 
-   dfb_memcpy(sCursorShape.dwXorMask, xormask, sizeof(sCursorShape.dwXorMask));
+   direct_memcpy(sCursorShape.dwXorMask, xormask, sizeof(sCursorShape.dwXorMask));
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &sCursorShape))
       return 0;
@@ -1195,7 +1195,7 @@ Gal_get_cursor_colors(unsigned long *bkcolor, unsigned long *fgcolor)
  *
  * Description:	This function sets a solid pattern color for future rendering.
  *  parameters:
- *       color:	It specifies the pattern color in proper format for current 
+ *       color:	It specifies the pattern color in proper format for current
  *					display mode.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *-------------------------------------------------------------------------*/
@@ -1217,8 +1217,8 @@ Gal_set_solid_pattern(unsigned long color)
 /*--------------------------------------------------------------------------
  * Gal_set_solid_source
  *
- * Description:	This function specifies a constant source data value for 
- *				raster operations that use both pattern 
+ * Description:	This function specifies a constant source data value for
+ *				raster operations that use both pattern
  *				and source data.
  *  parameters:
  *       color:	It specifies the source color.
@@ -1268,7 +1268,7 @@ Gal_set_mono_source(unsigned long bgcolor, unsigned long fgcolor,
 /*--------------------------------------------------------------------------
  * Gal_set_mono_pattern
  *
- * Description:	This function specifies an 8x8 monochrome pattern 
+ * Description:	This function specifies an 8x8 monochrome pattern
  *				used in future rendering operations.
  *  parameters:
  *     bkcolor: It specifies the background color.
@@ -1301,8 +1301,8 @@ Gal_set_mono_pattern(unsigned long bgcolor, unsigned long fgcolor,
 /*--------------------------------------------------------------------------
  * Gal_set_raster_operation
  *
- * Description:	This function specifies the raster operation for 
- *					future rendering.  
+ * Description:	This function specifies the raster operation for
+ *					future rendering.
  *  parameters:
  *         rop: It specifies the ternary raster operation
  *					(pattern/source/destination).
@@ -1326,8 +1326,8 @@ Gal_set_raster_operation(unsigned char rop)
 /*--------------------------------------------------------------------------
  * Gal_pattern_fill
  *
- * Description:	This function renders pattern data to a rectangular 
- *					region. 
+ * Description:	This function renders pattern data to a rectangular
+ *					region.
  *  parameters:
  *           x:	It specifies the screen X position, in pixels.
  *           y:	It specifies the screen Y position, in pixels.
@@ -1357,8 +1357,8 @@ Gal_pattern_fill(unsigned short x, unsigned short y,
 /*--------------------------------------------------------------------------
  * Gal_screen_to_screen_blt
  *
- * Description:	This function is used to perform a screen to screen 
- *				BLT operation. 
+ * Description:	This function is used to perform a screen to screen
+ *				BLT operation.
  *  parameters:
  *        srcx:	It specifies the source X position.
  *        srcy:	It specifies the source Y position.
@@ -1393,8 +1393,8 @@ Gal_screen_to_screen_blt(unsigned short srcx, unsigned short srcy,
 /*--------------------------------------------------------------------------
  * Gal_screen_to_screen_xblt
  *
- * Description:	This function is used to perform a screen to screen 
- *				BLT operation using a transparency color. 
+ * Description:	This function is used to perform a screen to screen
+ *				BLT operation using a transparency color.
  *  parameters:
  *        srcx:	It specifies the source X position.
  *        srcy:	It specifies the source Y position.
@@ -1433,7 +1433,7 @@ Gal_screen_to_screen_xblt(unsigned short srcx, unsigned short srcy,
  * Gal_bresenham_line
  *
  * Description:	This function is used to draw a single pixel line
- *					using the specified Bresenham parameters. 
+ *					using the specified Bresenham parameters.
  *  parameters:
  *           x:	It specifies the starting X position.
  *           y:	It specifies the starting Y position.
@@ -1591,11 +1591,11 @@ Gal_text_blt(unsigned short dstx, unsigned short dsty, unsigned short width,
 /*------------------------------------------------------------------------
  * Gal_set_compression_enable
  *
- *       Description:	This function enables or disables display 
+ *       Description:	This function enables or disables display
  * 			compression.
  *	  parameters:
- * bCompressionState:	It specifies the display compression state.  
- *  	      return:	'1' was returned on success otherwise 
+ * bCompressionState:	It specifies the display compression state.
+ *  	      return:	'1' was returned on success otherwise
  *			'0' was returned.
  *----------------------------------------------------------------------*/
 BOOLEAN
@@ -1619,8 +1619,8 @@ Gal_set_compression_enable(BOOLEAN bCompressionState)
  * 	Description:	This function gets the compression state.
  *
  *	  parameters:
- * bCompressionState:	gets the display compression state.  
- *	      return:	'1' was returned on success otherwise 
+ * bCompressionState:	gets the display compression state.
+ *	      return:	'1' was returned on success otherwise
  *			'0' was returned.
  *----------------------------------------------------------------------*/
 BOOLEAN
@@ -1646,7 +1646,7 @@ Gal_get_compression_enable(int *bCompressionState)
  * 			frame buffer device.
  *  parameters:
  *       flags:	It specifies the flag.
- *      offset:	It specifies the base offset in graphics memory for the 
+ *      offset:	It specifies the base offset in graphics memory for the
  *			compression buffer.
  *	 pitch:	It specifies the pitch of compression buffer, in bytes.
  *        size:	It specifies the maximum line size of the compression buffer
@@ -1680,7 +1680,7 @@ Gal_set_compression_parameters(unsigned long flags,
  *				frame buffer device.
  *  parameters:
  *       flags:	It specifies the flag.
- *      offset:	gets the base offset in graphics memory for the 
+ *      offset:	gets the base offset in graphics memory for the
  *					compression buffer.
  *		 pitch:	gets the pitch of compression buffer, in bytes.
  *        size:	gets the maximum line size of the compression buffer
@@ -1711,8 +1711,8 @@ Gal_get_compression_parameters(unsigned long flags,
 /*--------------------------------------------------------------------------
  * Gal_vga_mode_switch
  *
- * Description:This function signals the beginning or end of a 
- *				mode switch.  
+ * Description:This function signals the beginning or end of a
+ *				mode switch.
  *  parameters:
  *      active:	It specifies the mode switch.
  *      return:	'1' was returned on success otherwise '0' was returned.
@@ -1756,8 +1756,8 @@ Gal_vga_clear_extended(void)
 /*--------------------------------------------------------------------------
  * Gal_vga_pitch
  *
- * Description:	This function sets VGA register values in VGA 
- *					structure for specified pitch. 
+ * Description:	This function sets VGA register values in VGA
+ *					structure for specified pitch.
  *  parameters:
  *    pVgaData: It specifies the vga structure.
  *		 pitch:	It specifies the number of bytes between scanlines.
@@ -1781,7 +1781,7 @@ Gal_vga_pitch(PGAL_VGAMODEDATA pVgaData, unsigned short pitch)
  * Gal_vga_restore
  *
  * Description:	This function sets the VGA state to the values in the
- *				VGA structure.  
+ *				VGA structure.
  *  parameters:
  *    pVgaData: It specifies the vga structure.
  *      return:	'1' was returned on success otherwise '0' was returned.
@@ -1802,7 +1802,7 @@ Gal_vga_restore(PGAL_VGAMODEDATA pVgaData)
  * Gal_vga_save
  *
  * Description:	This function saves the current VGA state in the
- *					VGA structure.  
+ *					VGA structure.
  *  parameters:
  *    pVgaData: It specifies the vga structure.
  *      return:	'1' was returned on success otherwise '0' was returned.
@@ -1823,8 +1823,8 @@ Gal_vga_save(PGAL_VGAMODEDATA pVgaData)
 /*--------------------------------------------------------------------------
  * Gal_vga_mode
  *
- * Description:	This function sets VGA register values in VGA 
- *					structure for specified mode. 
+ * Description:	This function sets VGA register values in VGA
+ *					structure for specified mode.
  *  parameters:
  *    pVgaData: It specifies the vga structure.
  *      return:	'1' was returned on success otherwise '0' was returned.
@@ -1898,9 +1898,9 @@ Gal_pnl_info_from_bios(int *xres, int *yres, int *bpp, int *hz)
 /*--------------------------------------------------------------------------
  * Gal_pnl_set_params
  *
- * Description:	This function sets the panel parameters. 
+ * Description:	This function sets the panel parameters.
  *  parameters:
- *       flags: 
+ *       flags:
  *	pParam:	It specifies the panel parameters structure.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
@@ -1912,7 +1912,7 @@ Gal_pnl_set_params(unsigned long flags, PPnl_PanelParams pParam)
    INIT_GAL(&pStat);
    pStat.dwSubfunction = GALFN_PNLSETPARAMS;
    pParam->Flags = flags;
-   dfb_memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
+   direct_memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &pStat))
       return 0;
@@ -1924,7 +1924,7 @@ Gal_pnl_set_params(unsigned long flags, PPnl_PanelParams pParam)
 /*--------------------------------------------------------------------------
  * Gal_pnl_get_params
  *
- * Description:	This function gets the panel parameters. 
+ * Description:	This function gets the panel parameters.
  *  parameters:
  *       flags:
  *	pParam:	It specifies the panel parameters structure.
@@ -1937,13 +1937,13 @@ Gal_pnl_get_params(unsigned long flags, PPnl_PanelParams pParam)
 
    INIT_GAL(&pStat);
    pStat.dwSubfunction = GALFN_PNLGETPARAMS;
-   dfb_memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
+   direct_memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
    pStat.PanelParams.Flags = flags;
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &pStat))
       return 0;
    else {
-      dfb_memcpy(pParam, &(pStat.PanelParams), sizeof(Pnl_PanelParams));
+      direct_memcpy(pParam, &(pStat.PanelParams), sizeof(Pnl_PanelParams));
       return 1;
    }
 }
@@ -1951,7 +1951,7 @@ Gal_pnl_get_params(unsigned long flags, PPnl_PanelParams pParam)
 /*--------------------------------------------------------------------------
  * Gal_pnl_init
  *
- * Description:	This function initializes the panel parameters. 
+ * Description:	This function initializes the panel parameters.
  *  parameters:
  *	pParam:	It specifies the panel parameters structure.
  *      return:	'1' was returned on success otherwise '0' was returned.
@@ -1963,7 +1963,7 @@ Gal_pnl_init(PPnl_PanelParams pParam)
 
    INIT_GAL(&pStat);
    pStat.dwSubfunction = GALFN_PNLINITPANEL;
-   dfb_memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
+   direct_memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &pStat))
       return 0;
@@ -1975,7 +1975,7 @@ Gal_pnl_init(PPnl_PanelParams pParam)
 /*--------------------------------------------------------------------------
  * Gal_pnl_save
  *
- * Description:	This function saves the current panel parameters. 
+ * Description:	This function saves the current panel parameters.
  *  parameters:	none.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
@@ -1997,7 +1997,7 @@ Gal_pnl_save(void)
 /*--------------------------------------------------------------------------
  * Gal_pnl_restore
  *
- * Description:	This function restores the current panel parameters. 
+ * Description:	This function restores the current panel parameters.
  *  parameters:	none.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
@@ -2019,7 +2019,7 @@ Gal_pnl_restore(void)
 /*--------------------------------------------------------------------------
  * Gal_pnl_powerup
  *
- * Description:	This function powers up the panel. 
+ * Description:	This function powers up the panel.
  *  parameters:	none.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
@@ -2041,7 +2041,7 @@ Gal_pnl_powerup(void)
 /*--------------------------------------------------------------------------
  * Gal_pnl_powerdown
  *
- * Description:	This function powers down the panel. 
+ * Description:	This function powers down the panel.
  *  parameters:	none.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
@@ -2093,7 +2093,7 @@ Gal_enable_panning(int x, int y)
  * Gal_tv_set_params
  *
  * Description:	This function sets the tv parameters of
- *					tvparameters structure. 
+ *					tvparameters structure.
  *  parameters:
  *       flags:
  *	   pTV:	It specifies the tv parameters structure.
@@ -2117,7 +2117,7 @@ Gal_tv_set_params(unsigned long flags, PGAL_TVPARAMS pTV)
  * Gal_tv_get_params
  *
  * Description:	This function gets the tv parameters of
- *					tvparameters structure. 
+ *					tvparameters structure.
  *  parameters:
  *       flags: Dummy flag
  *	   pTV:	It specifies the tv parameters structure.
@@ -2187,7 +2187,7 @@ Gal_tv_get_timings(unsigned long flags, PGAL_TVTIMING pTV)
  * Gal_set_tv_enable
  *
  * Description:	This function sets the tv state of the device .
- *  parameters: 
+ *  parameters:
  *     bState : set the tv state.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
@@ -2211,7 +2211,7 @@ Gal_set_tv_enable(int bState)
  * Gal_get_tv_enable
  *
  * Description:	This function gets the tv state of the device .
- *  parameters: 
+ *  parameters:
  *     bState : get the tv state.
  *      return:	'1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
@@ -2536,7 +2536,7 @@ Gal_set_video_downscale_coefficients(unsigned short coef1,
  * Gal_set_video_source.
  *
  * Description:	This function sets the video source to either memory or Direct
- *				VIP  
+ *				VIP
  *  parameters:
  *	    source: Video source.
  *      return:	'1' was returned on success otherwise '0' was returned.
@@ -2558,7 +2558,7 @@ Gal_set_video_source(int source)
 /*--------------------------------------------------------------------------
  * Gal_set_video_interlaced
  *
- * Description:	This function configures the Video processor video overlay mode 
+ * Description:	This function configures the Video processor video overlay mode
  *				to be interlaced YUV.
  *  parameters:
  *	    enable: Value used to enable or disalbe the Video interlaced.
@@ -2582,8 +2582,8 @@ Gal_set_video_interlaced(int enable)
 /*--------------------------------------------------------------------------
  * Gal_set_video_color_space
  *
- * Description:	This function configures the Video processor to prcoess 
- *				graphics and video in either YUV or RGB color space. 
+ * Description:	This function configures the Video processor to prcoess
+ *				graphics and video in either YUV or RGB color space.
  *				
  *  parameters:
  *	    enable: Value used to enable or disalbe the Video color space.
@@ -2607,7 +2607,7 @@ Gal_set_color_space_YUV(int colorspace)
  * Gal_set_video_cursor.
  *
  *  Description: This function configures the Video Hardware cursor.
- *	     		 
+ *	     		
  *				
  *   parameters:
  *          key: color key.
@@ -2641,9 +2641,9 @@ Gal_set_video_cursor(unsigned long key,
 /*--------------------------------------------------------------------------
  * Gal_set_video_request.
  *
- *  Description: This function sets the horizontal(pixel) and vertical(line) 
+ *  Description: This function sets the horizontal(pixel) and vertical(line)
  *				 video request values.
- *	     		 
+ *	     		
  *   parameters:
  *            x: X video request value.
  *		      y: Y video request value.
@@ -2667,9 +2667,9 @@ Gal_set_video_request(short x, short y)
 /*--------------------------------------------------------------------------
  * Gal_set_alpha_enable.
  *
- *  Description: This function enables or disables the currently selected 
+ *  Description: This function enables or disables the currently selected
  *				 alpha region.
- *	     		 
+ *	     		
  *   parameters:
  *       enable: Value to enalbe or disable alha region.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -2692,7 +2692,7 @@ Gal_set_alpha_enable(int enable)
  * Gal_get_alpha_enable.
  *
  *  Description: This function gets the alpha enable state.
- *	     		 
+ *	     		
  *   parameters:
  *       enable: Pointer to get the enable state.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -2716,8 +2716,8 @@ Gal_get_alpha_enable(int *enable)
 /*--------------------------------------------------------------------------
  * Gal_set_alpha_window
  *
- *  Description: This function sets the size of the currently selected 
- *				 alpha region.  		 
+ *  Description: This function sets the size of the currently selected
+ *				 alpha region.  		
  *   parameters:
  *			  x: X co-ordinate of the alpha region.
  *			  y: Y co-ordinate of the alpha region.
@@ -2746,8 +2746,8 @@ Gal_set_alpha_window(short x, short y,
 /*--------------------------------------------------------------------------
  * Gal_get_alpha_size
  *
- *  Description: This function gets the size of the currently selected 
- *				 alpha region.  		 
+ *  Description: This function gets the size of the currently selected
+ *				 alpha region.  		
  *   parameters:
  *			  x: X co-ordinate of the alpha region.
  *			  y: Y co-ordinate of the alpha region.
@@ -2832,7 +2832,7 @@ Gal_get_alpha_value(unsigned char *alpha, char *delta)
  * Gal_set_alpha_priority
  *
  *  Description: This function sets the priority of the selected alpha
- *				 region. 
+ *				 region.
  *   parameters:
  *	   priority: Gives the priority value.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -2855,7 +2855,7 @@ Gal_set_alpha_priority(int priority)
  * Gal_get_alpha_priority
  *
  *  Description: This function gets the priority of the selected alpha
- *				 region. 
+ *				 region.
  *   parameters:
  *	   priority: Gives the priority value.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -2878,8 +2878,8 @@ Gal_get_alpha_priority(int *priority)
 /*--------------------------------------------------------------------------
  * Gal_set_alpha_color
  *
- *  Description: This function sets the color to be displayed inside the 
- *				 currently of the selected alpha window. 
+ *  Description: This function sets the color to be displayed inside the
+ *				 currently of the selected alpha window.
  *   parameters:
  *	      color: Gives the color value to be displayed.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -2901,8 +2901,8 @@ Gal_set_alpha_color(unsigned long color)
 /*--------------------------------------------------------------------------
  * Gal_get_alpha_color
  *
- *  Description: This function gets the color to be displayed inside the 
- *				 currently of the selected alpha window. 
+ *  Description: This function gets the color to be displayed inside the
+ *				 currently of the selected alpha window.
  *   parameters:
  *	      color: Gives the color value to be displayed.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -2926,8 +2926,8 @@ Gal_get_alpha_color(unsigned long *color)
 /*--------------------------------------------------------------------------
  * Gal_select_alpha_region
  *
- *  Description: This function selects the alpha region should be used for 
- *				 future updates. 
+ *  Description: This function selects the alpha region should be used for
+ *				 future updates.
  *   parameters:
  *	     region: Gives the alpha window number.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -2949,7 +2949,7 @@ Gal_select_alpha_region(int region)
 /*--------------------------------------------------------------------------
  * Gal_set_video_outside_alpha
  *
- *  Description: This function enable/disable the video outside alpha region. 
+ *  Description: This function enable/disable the video outside alpha region.
  *   parameters:
  *	     enable: Gives the value for enable/disable.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -2971,7 +2971,7 @@ Gal_set_video_outside_alpha(int enable)
 /*--------------------------------------------------------------------------
  * Gal_set_video_palette
  *
- *  Description: This function loads the video hardware palette. 
+ *  Description: This function loads the video hardware palette.
  *   parameters:
  *	     palette: Gives value for hardware palette.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -2988,7 +2988,7 @@ Gal_set_video_palette(unsigned long *palette)
       sSetVideo.identity = 1;
    } else {
       sSetVideo.identity = 0;
-      dfb_memcpy(sSetVideo.palette, palette, 256 * sizeof(*palette));
+      direct_memcpy(sSetVideo.palette, palette, 256 * sizeof(*palette));
    }
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &sSetVideo))
@@ -3002,9 +3002,9 @@ Gal_set_video_palette(unsigned long *palette)
 /*--------------------------------------------------------------------------
  * Gal_set_icon_enable
  *
- *  Description: This function enable/disables the hardware icon. The icon 
- *				 position and colors should be programmed prior to calling 
- *				 this routine. 
+ *  Description: This function enable/disables the hardware icon. The icon
+ *				 position and colors should be programmed prior to calling
+ *				 this routine.
  *   parameters:
  *	     enable: Gives value for enable state.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3080,7 +3080,7 @@ Gal_set_icon_position(unsigned long memoffset, unsigned short xpos)
 /*--------------------------------------------------------------------------
  * Gal_set_icon_shape64.
  *
- *  Description: This function initializes the icon buffer according to 
+ *  Description: This function initializes the icon buffer according to
  *				  the current mode.
  *	 parameters:
  *	  memoffset: Memory offset of the icon buffer.
@@ -3114,10 +3114,10 @@ Gal_set_icon_shape64(unsigned long memoffset, unsigned long *andmask,
 /*--------------------------------------------------------------------------
  * Gal_set_vip_enable
  *
- *  Description: This function enable/disables the writes to memory from the 
- *				 video port. 
- *				 position and colors should be programmed prior to calling 
- *				 this routine. 
+ *  Description: This function enable/disables the writes to memory from the
+ *				 video port.
+ *				 position and colors should be programmed prior to calling
+ *				 this routine.
  *   parameters:
  *	     enable: Gives value for enable state.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3140,8 +3140,8 @@ Gal_set_vip_enable(int enable)
 /*--------------------------------------------------------------------------
  * Gal_get_vip_enable
  *
- *  Description: This function gets the enable state of the 
- *				 video port. 
+ *  Description: This function gets the enable state of the
+ *				 video port.
  *   parameters:
  *	     enable: Gives value for enable state.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3190,7 +3190,7 @@ Gal_set_vip_capture_run_mode(int mode)
 /*--------------------------------------------------------------------------
  * Gal_set_vip_base
  *
- *  Description: This routine sets the odd and even base address values for 
+ *  Description: This routine sets the odd and even base address values for
  *				 the VIP memory buffer.
  *   parameters:
  *	       even: Even base address.
@@ -3217,7 +3217,7 @@ Gal_set_vip_base(unsigned long even, unsigned long odd)
 /*--------------------------------------------------------------------------
  * Gal_get_vip_base
  *
- *  Description: This routine gets the  base address value for 
+ *  Description: This routine gets the  base address value for
  *				 the VIP memory buffer.
  *   parameters:
  *	    address: VIP base address.
@@ -3244,7 +3244,7 @@ Gal_get_vip_base(unsigned long *address, int odd)
 /*--------------------------------------------------------------------------
  * Gal_set_vip_pitch
  *
- *  Description: This routine sets the  number of bytes between scanlines 
+ *  Description: This routine sets the  number of bytes between scanlines
  *				 for the VIP data.
  *   parameters:
  *	      pitch: VIP pitch.
@@ -3269,7 +3269,7 @@ Gal_set_vip_pitch(unsigned long pitch)
 /*--------------------------------------------------------------------------
  * Gal_get_vip_pitch
  *
- *  Description: This routine gets the  number of bytes between scanlines 
+ *  Description: This routine gets the  number of bytes between scanlines
  *				 for the VIP data.
  *   parameters:
  *	      pitch: VIP pitch.
@@ -3295,7 +3295,7 @@ Gal_get_vip_pitch(unsigned long *pitch)
 /*--------------------------------------------------------------------------
  * Gal_set_vip_mode
  *
- *  Description: This routine sets the  VIP operating mode. 
+ *  Description: This routine sets the  VIP operating mode.
  *   parameters:
  *	       mode: VIP operating mode.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3319,7 +3319,7 @@ Gal_set_vip_mode(int mode)
 /*--------------------------------------------------------------------------
  * Gal_get_vip_mode
  *
- *  Description: This routine gets the  VIP operating mode. 
+ *  Description: This routine gets the  VIP operating mode.
  *   parameters:
  *	       mode: VIP operating mode.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3345,7 +3345,7 @@ Gal_get_vip_mode(int *mode)
  * Gal_set_vip_bus_request_threshold_high
  *
  *  Description: This function sets the VIP FIFO bus request threshold.
- *	     		 
+ *	     		
  *   parameters:
  *       enable: Enable state.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3370,7 +3370,7 @@ Gal_set_vip_bus_request_threshold_high(int enable)
  * Gal_get_vip_bus_request_threshold_high
  *
  *  Description: This function gets the VIP FIFO bus request threshold.
- *	     		 
+ *	     		
  *   parameters:
  *       enable: Enable state.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3395,9 +3395,9 @@ Gal_get_vip_bus_request_threshold_high(int *enable)
 /*--------------------------------------------------------------------------
  * Gal_set_vip_last_line
  *
- *  Description: This function sets the maximum number of lines captured 
+ *  Description: This function sets the maximum number of lines captured
  *				 in each field.
- *	     		 
+ *	     		
  *   parameters:
  *    last_line: Maximum number of lines captured in each field.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3423,7 +3423,7 @@ Gal_set_vip_last_line(int last_line)
  *
  *  Description: This function gets the number of the current video line being
  *				 recieved by the VIP interface.
- *	     		 
+ *	     		
  *   parameters:
  *     vip_line: Number of the current video line.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3448,7 +3448,7 @@ Gal_get_vip_line(int *vip_line)
  * Gal_test_vip_odd_field
  *
  *  Description: This function tests the VIP odd field.
- *	     		 
+ *	     		
  *   parameters:
  *       status: Status of the odd field.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3473,7 +3473,7 @@ Gal_test_vip_odd_field(int *status)
  * Gal_test_vip_bases_updated
  *
  *  Description: This function tests the VIP bases updated.
- *	     		 
+ *	     		
  *   parameters:
  *       status: Status of the VIP bases updated.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3498,7 +3498,7 @@ Gal_test_vip_bases_updated(int *status)
  * Gal_test_vip_fifo_overflow
  *
  *  Description: This function tests the VIP FIFO overflow.
- *	     		 
+ *	     		
  *   parameters:
  *       status: Status of the VIP FIFO overflow.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3523,7 +3523,7 @@ Gal_test_vip_fifo_overflow(int *status)
  * Gal_set_vbi_enable
  *
  *  Description: This function enable/disables the VBI data capture.
- *	     		 
+ *	     		
  *   parameters:
  *       enable: VBI enable state.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3547,7 +3547,7 @@ Gal_set_vbi_enable(int enable)
  * Gal_get_vbi_enable
  *
  *  Description: This function gets the enable state of the VBI data capture.
- *	     		 
+ *	     		
  *   parameters:
  *       enable: VBI enable state.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3572,7 +3572,7 @@ Gal_get_vbi_enable(int *enable)
  * Gal_set_vbi_base
  *
  *  Description: This function sets the VBI base addresses.
- *	     		 
+ *	     		
  *   parameters:
  *         even: Even base address.
  *          odd: Odd base address.
@@ -3599,7 +3599,7 @@ Gal_set_vbi_base(unsigned long even, unsigned long odd)
  * Gal_get_vbi_base
  *
  *  Description: This function gets the VBI base address.
- *	     		 
+ *	     		
  *   parameters:
  *      address: VBI base address.
  *          odd: Odd base address.
@@ -3625,9 +3625,9 @@ Gal_get_vbi_base(unsigned long *address, int odd)
 /*--------------------------------------------------------------------------
  * Gal_set_vbi_pitch
  *
- *  Description: This function sets the number of bytes between scanlines for 
+ *  Description: This function sets the number of bytes between scanlines for
  *				 VBI capture.
- *	     		 
+ *	     		
  *   parameters:
  *        pitch: VBI pitch.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3651,9 +3651,9 @@ Gal_set_vbi_pitch(unsigned long pitch)
 /*--------------------------------------------------------------------------
  * Gal_get_vbi_pitch
  *
- *  Description: This function gets the number of bytes between scanlines for 
+ *  Description: This function gets the number of bytes between scanlines for
  *				 VBI capture.
- *	     		 
+ *	     		
  *   parameters:
  *        pitch: VBI pitch.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3678,8 +3678,8 @@ Gal_get_vbi_pitch(unsigned long *pitch)
 /*--------------------------------------------------------------------------
  * Gal_set_vbi_mode
  *
- *  Description: This function sets the VBI data types captured to memory. 
- *	     		 
+ *  Description: This function sets the VBI data types captured to memory.
+ *	     		
  *   parameters:
  *         mode: VBI mode.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3703,8 +3703,8 @@ Gal_set_vbi_mode(int mode)
 /*--------------------------------------------------------------------------
  * Gal_get_vbi_mode
  *
- *  Description: This function gets the VBI data types captured to memory. 
- *	     		 
+ *  Description: This function gets the VBI data types captured to memory.
+ *	     		
  *   parameters:
  *         mode: VBI mode.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3729,9 +3729,9 @@ Gal_get_vbi_mode(int *mode)
 /*--------------------------------------------------------------------------
  * Gal_set_vbi_direct
  *
- *  Description: This function sets the VBI lines to be passed to the 
- *				 Direct VIP. 
- *	     		 
+ *  Description: This function sets the VBI lines to be passed to the
+ *				 Direct VIP.
+ *	     		
  *   parameters:
  *   even_lines: VBI even lines.
  *    odd_lines: VBI odd lines.
@@ -3787,9 +3787,9 @@ Gal2_set_pattern_origin(int x, int y)
 /*--------------------------------------------------------------------------
  * Gal_set_vbi_direct
  *
- *  Description: This function gets the VBI lines to be passed to the 
- *				 Direct VIP. 
- *	     		 
+ *  Description: This function gets the VBI lines to be passed to the
+ *				 Direct VIP.
+ *	     		
  *   parameters:
  *          odd: VBI odd lines.
  * direct_lines: VBI direct lines.
@@ -3816,7 +3816,7 @@ Gal_get_vbi_direct(int odd, unsigned long *direct_lines)
  * Gal_set_vbi_interrupt
  *
  *  Description: This function enable/disables the VBI field interrupt.
- *	     		 
+ *	     		
  *   parameters:
  *       enable: Value to enable/disable VBI interrupt.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3840,7 +3840,7 @@ Gal_set_vbi_interrupt(int enable)
  * Gal_get_vbi_interrupt
  *
  *  Description: This function gets the VBI field interrupt.
- *	     		 
+ *	     		
  *   parameters:
  *       enable: Value of enable/disable VBI interrupt.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3866,7 +3866,7 @@ Gal_get_vbi_interrupt(int *enable)
  *
  *  Description: This function sets the stride to be used in successive screen
  *				 to screen BLTs.
- *	     		 
+ *	     		
  *   parameters:
  *       enable: Value of enable/disable VBI interrupt.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3891,10 +3891,10 @@ Gal2_set_source_stride(unsigned short stride)
 /*--------------------------------------------------------------------------
  * Gal_set_source_transparency
  *
- *  Description: This function sets the source transparency color and 
+ *  Description: This function sets the source transparency color and
  *				 mask to be used in future rendering routines.
  *				 to screen BLTs.
- *	     		 
+ *	     		
  *   parameters:
  *        color: Source color.
  *		   mask: Source mask.
@@ -3921,7 +3921,7 @@ Gal2_set_source_transparency(unsigned long color, unsigned long mask)
 /*--------------------------------------------------------------------------
  * Gal_set_alpha_mode
  *
- *  Description: This function sets the alpha blending mode. 
+ *  Description: This function sets the alpha blending mode.
  *   parameters:
  *         mode: Alpha blending mode.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3945,8 +3945,8 @@ Gal2_set_alpha_mode(int mode)
 /*--------------------------------------------------------------------------
  * Gal_gfx2_set_alpha_value
  *
- *  Description: This function sets the alpha value to be used with certain 
- *				 alpha blending modes. 
+ *  Description: This function sets the alpha value to be used with certain
+ *				 alpha blending modes.
  *   parameters:
  *        value: Alpha blending value.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -3970,9 +3970,9 @@ Gal2_set_alpha_value(unsigned char value)
 /*--------------------------------------------------------------------------
  * Gal2_pattern_fill
  *
- *  Description: This function used to fill the pattern of GX2. 
- *				 It allows the arbitary destination stride. The rendering 
- *				 position is also specified as an offset instead of (x,y) 
+ *  Description: This function used to fill the pattern of GX2.
+ *				 It allows the arbitary destination stride. The rendering
+ *				 position is also specified as an offset instead of (x,y)
  *				 position.
  *   parameters:
  *    dstoffset: Rendering offset.
@@ -4002,9 +4002,9 @@ Gal2_pattern_fill(unsigned long dstoffset, unsigned short width,
 /*--------------------------------------------------------------------------
  * Gal_gfx2_screen_to_screen_blt
  *
- *  Description: This function used for screen to screen BLTs of GX2. 
- *				 It allows the arbitary source and destination strides and 
- *				 alpha blending. 
+ *  Description: This function used for screen to screen BLTs of GX2.
+ *				 It allows the arbitary source and destination strides and
+ *				 alpha blending.
  *   parameters:
  *    srcoffset: Source Rendering offset.
  *    dstoffset: Destination Rendering offset.
@@ -4038,8 +4038,8 @@ Gal2_screen_to_screen_blt(unsigned long srcoffset,
 /*--------------------------------------------------------------------------
  * Gal2_mono_expand_blt
  *
- *  Description: This function used to expand monochrome data stored in 
- *				 graphics memory for screen to screen BLTs. 
+ *  Description: This function used to expand monochrome data stored in
+ *				 graphics memory for screen to screen BLTs.
  *   parameters:
  *      srcbase: Source Rendering base address.
  *         srcx: Source X offset.
@@ -4078,7 +4078,7 @@ Gal2_mono_expand_blt(unsigned long srcbase, unsigned short srcx,
 /*--------------------------------------------------------------------------
  * Gal2_color_bitmap_to_screen_blt
  *
- *  Description: This function used for color bmp to screen BLTs. 
+ *  Description: This function used for color bmp to screen BLTs.
  *   parameters:
  *         srcx: Source X offset.
  *         srcy: Source Y offset.
@@ -4119,7 +4119,7 @@ Gal2_color_bitmap_to_screen_blt(unsigned short srcx,
 /*--------------------------------------------------------------------------
  * Gal2_mono_bitmap_to_screen_blt
  *
- *  Description: This function used for mono bmp to screen BLTs. 
+ *  Description: This function used for mono bmp to screen BLTs.
  *   parameters:
  *         srcx: Source X offset.
  *         srcy: Source Y offset.
@@ -4160,14 +4160,14 @@ Gal2_mono_bitmap_to_screen_blt(unsigned short srcx,
 /*--------------------------------------------------------------------------
  * Gal2_bresenham_line
  *
- *  Description: This function used to draw bresenham line. It allows the 
- *				 arbitary destination stride. 
+ *  Description: This function used to draw bresenham line. It allows the
+ *				 arbitary destination stride.
  *   parameters:
  *    dstoffset: Destination  offset.
  *		 length: Length of the line.
  *      initerr: Intial error.
- *	   axialerr: 
- *	    diagerr: 
+ *	   axialerr:
+ *	    diagerr:
  *		  flags:
  *       return: '1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
@@ -4197,8 +4197,8 @@ Gal2_bresenham_line(unsigned long dstoffset, unsigned short length,
 /*--------------------------------------------------------------------------
  * Gal2_sync_to_vblank
  *
- *  Description: This function sets the a flag to synchronize the next 
- *				 rendering routine to VBLANK. 
+ *  Description: This function sets the a flag to synchronize the next
+ *				 rendering routine to VBLANK.
  *   parameters: none.
  *       return: '1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
@@ -4222,8 +4222,8 @@ Gal2_sync_to_vblank(void)
 /*--------------------------------------------------------------------------
  * Gal_set_video_yuv_pitch
  *
- *  Description: This function sets the Video YUV pitch. 
- *				 
+ *  Description: This function sets the Video YUV pitch.
+ *				
  *   parameters:
  *       y_pitch: Y pitch.
  *	    uv_pitch: UV pitch.
@@ -4249,8 +4249,8 @@ Gal_set_video_yuv_pitch(unsigned long y_pitch, unsigned long uv_pitch)
 /*--------------------------------------------------------------------------
  * Gal_get_video_yuv_pitch
  *
- *  Description: This function gets the Video YUV pitch. 
- *				 
+ *  Description: This function gets the Video YUV pitch.
+ *				
  *   parameters:
  *       y_pitch: Y pitch.
  *	    uv_pitch: UV pitch.
@@ -4277,8 +4277,8 @@ Gal_get_video_yuv_pitch(unsigned long *y_pitch, unsigned long *uv_pitch)
 /*--------------------------------------------------------------------------
  * Gal_set_video_yuv_offsets
  *
- *  Description: This function sets the Video YUV offsets. 
- *				 
+ *  Description: This function sets the Video YUV offsets.
+ *				
  *   parameters:
  *      y_offset: Y offset.
  *		u_offset: U offset.
@@ -4307,8 +4307,8 @@ Gal_set_video_yuv_offsets(unsigned long y_offset, unsigned long u_offset,
 /*--------------------------------------------------------------------------
  * Gal_get_video_yuv_offsets
  *
- *  Description: This function gets the Video YUV offsets. 
- *				 
+ *  Description: This function gets the Video YUV offsets.
+ *				
  *   parameters:
  *      y_offset: Y offset.
  *		u_offset: U offset.
@@ -4337,10 +4337,10 @@ Gal_get_video_yuv_offsets(unsigned long *y_offset,
  * Gal_set_video_left_crop
  *
  *  Description: This function sets the number of pixels which will be cropped
- *				 from the beginning of each video line. 
- *				 
+ *				 from the beginning of each video line.
+ *				
  *   parameters:
- *			  x: 
+ *			  x:
  *       return: '1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/ BOOLEAN
 Gal_set_video_left_crop(unsigned short x)
@@ -4361,9 +4361,9 @@ Gal_set_video_left_crop(unsigned short x)
 /*--------------------------------------------------------------------------
  * Gal_set_video_vertical_downscale
  *
- *  Description: This function sets the vertical downscale factor for the video 
+ *  Description: This function sets the vertical downscale factor for the video
  *				 overlay window.	
- *				 
+ *				
  *   parameters:
  *		   srch: Height of the source.
  *		   dsth: Height of the destination.
@@ -4389,7 +4389,7 @@ Gal_set_video_vertical_downscale(unsigned short srch, unsigned short dsth)
  * Gal_set_vbi_source
  *
  *  Description: This function sets the VBI source.	
- *				 
+ *				
  *   parameters:
  *		 source: VBI Source type.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -4413,7 +4413,7 @@ Gal_set_vbi_source(VbiSourceType source)
  * Gal_get_vbi_source
  *
  *  Description: This function gets the VBI source.	
- *				 
+ *				
  *   parameters:
  *		 source: VBI Source type.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -4439,7 +4439,7 @@ Gal_get_vbi_source(VbiSourceType * source)
  * Gal_set_vbi_lines
  *
  *  Description: This function sets the VBI lines.	
- *				 
+ *				
  *   parameters:
  *		   even: VBI even lines.
  *			odd: VBI odd lines.
@@ -4466,7 +4466,7 @@ Gal_set_vbi_lines(unsigned long even, unsigned long odd)
  * Gal_get_vbi_lines
  *
  *  Description: This function gets the VBI lines.	
- *				 
+ *				
  *   parameters:
  *	      lines: VBI lines.
  *			odd: VBI odd lines.
@@ -4491,12 +4491,12 @@ Gal_get_vbi_lines(int odd, unsigned long *lines)
 /*--------------------------------------------------------------------------
  * Gal_set_vbi_total
  *
- *  Description: This function sets the total number of VBI bytes for each 
+ *  Description: This function sets the total number of VBI bytes for each
  *				 field.	
- *				 
+ *				
  *   parameters:
  *	       even:
- *			odd: 
+ *			odd:
  *       return: '1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/
 BOOLEAN
@@ -4521,10 +4521,10 @@ Gal_set_vbi_total(unsigned long even, unsigned long odd)
  *
  *  Description: This function gets the total number of VBI bytes in the
  *				 field.	
- *				 
+ *				
  *   parameters:
  *	       even:
- *			odd: 
+ *			odd:
  *       return: '1' was returned on success otherwise '0' was returned.
  *------------------------------------------------------------------------*/ BOOLEAN
 Gal_get_vbi_total(int odd, unsigned long *total)
@@ -4547,7 +4547,7 @@ Gal_get_vbi_total(int odd, unsigned long *total)
  * Gal_set_vertical_scaler_offset
  *
  *  Description: This function sets the Video vertical scaler offset.	
- *				 
+ *				
  *   parameters:
  *	     offset: Vertical Scaler offset.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -4571,7 +4571,7 @@ Gal_set_vertical_scaler_offset(char offset)
  * Gal_get_vertical_scaler_offset
  *
  *  Description: This function gets the Video vertical scaler offset.	
- *				 
+ *				
  *   parameters:
  *	     offset: Vertical Scaler offset.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -4692,7 +4692,7 @@ Gal_set_genlock_enable(int enable)
 /*--------------------------------------------------------------------------
  * Gal_get_genlock_delay
  *
- *  Description: This function gets the genlock delay. 
+ *  Description: This function gets the genlock delay.
  *   parameters:
  *        delay:  Ptr to the genlock delay.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -4716,7 +4716,7 @@ Gal_get_genlock_delay(unsigned long *delay)
 /*--------------------------------------------------------------------------
  * Gal_set_genlock_delay
  *
- *  Description: This function sets the genlock delay. 
+ *  Description: This function sets the genlock delay.
  *   parameters:
  *        delay:  genlock delay.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -4819,9 +4819,9 @@ Gal_read_crc(unsigned long *crc)
  *
  *  Description: This function reads the hardware CRC value for a subsection
  *				 of the display.
- *				 
+ *				
  *   parameters:
- *       source: 
+ *       source:
  *			  x:
  *			  y:
  *	      width:
@@ -4856,7 +4856,7 @@ Gal_read_window_crc(int source, unsigned short x, unsigned short y,
  * Gal_get_macrovision_enable.
  *
  *  Description: This function gets the enable state of the macrovision.
- *				 
+ *				
  *   parameters:
  *       enable: ptr holds the macrovision enable state.
  *       return: '1' was returned on success otherwise '0' was returned.
@@ -4881,7 +4881,7 @@ Gal_get_macrovision_enable(int *enable)
  * Gal_set_macrovision_enable.
  *
  *  Description: This function gets the enable state of the macrovision.
- *				 
+ *				
  *   parameters:
  *       enable: macrovision enable state.
  *       return: '1' was returned on success otherwise '0' was returned.

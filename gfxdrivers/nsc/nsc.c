@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.6 $
+ * $Revision: 1.7 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -276,7 +276,7 @@ gxSetState(void *drv, void *dev,
       break;
 
    default:
-      BUG("unexpected drawing/blitting function");
+      D_BUG("unexpected drawing/blitting function");
       break;
    }
 
@@ -310,7 +310,7 @@ gxSetState(void *drv, void *dev,
          break;
 
       default:
-         BUG("unexpected pixelformat");
+         D_BUG("unexpected pixelformat");
          break;
       }
    }
@@ -463,7 +463,7 @@ driver_init_driver(GraphicsDevice      *device,
    if ((gxdrv->cpu_version & 0xFF) == GFX_CPU_REDCLOUD) {
       gxdrv->cpu = 1;
    }
-   DEBUGMSG("CPU is GX%d", gxdrv->cpu);
+   D_DEBUG("CPU is GX%d", gxdrv->cpu);
 
 #if NSC_ACCEL
    funcs->CheckState = gxCheckState;
@@ -509,11 +509,11 @@ driver_close_device(GraphicsDevice * device,
    NSCDeviceData *gxdev = (NSCDeviceData *) device_data;
 
    (void)gxdev;
-   DEBUGMSG("DirectFB/nsc: 5");
+   D_DEBUG("DirectFB/nsc: 5");
 }
 
 static void
 driver_close_driver(GraphicsDevice *device, void *driver_data)
 {
-   DEBUGMSG("DirectFB/nsc: 6");
+   D_DEBUG("DirectFB/nsc: 6");
 }

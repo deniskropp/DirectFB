@@ -31,7 +31,7 @@
 
 #include <pthread.h>
 
-#include <core/fusion/reactor.h>
+#include <fusion/reactor.h>
 
 #include <directfb.h>
 
@@ -41,7 +41,7 @@
 #include <core/state.h>
 #include <core/surfaces.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 
 static ReactionResult destination_listener( const void *msg_data,
@@ -54,7 +54,7 @@ static ReactionResult source_listener     ( const void *msg_data,
 int
 dfb_state_init( CardState *state )
 {
-     DFB_ASSERT( state != NULL );
+     D_ASSERT( state != NULL );
 
      memset( state, 0, sizeof(CardState) );
 
@@ -64,7 +64,7 @@ dfb_state_init( CardState *state )
 
      fusion_pthread_recursive_mutex_init( &state->lock );
 
-     DFB_MAGIC_SET( state, CardState );
+     D_MAGIC_SET( state, CardState );
 
      return 0;
 }
@@ -72,14 +72,14 @@ dfb_state_init( CardState *state )
 void
 dfb_state_destroy( CardState *state )
 {
-     DFB_ASSERT( state != NULL );
+     D_ASSERT( state != NULL );
 
-     DFB_MAGIC_ASSERT( state, CardState );
+     D_MAGIC_ASSERT( state, CardState );
 
-     DFB_MAGIC_CLEAR( state );
+     D_MAGIC_CLEAR( state );
 
      if (state->gfxs)
-          DFBFREE( state->gfxs );
+          D_FREE( state->gfxs );
 
      pthread_mutex_destroy( &state->lock );
 }
@@ -87,9 +87,9 @@ dfb_state_destroy( CardState *state )
 void
 dfb_state_set_destination( CardState *state, CoreSurface *destination )
 {
-     DFB_ASSERT( state != NULL );
+     D_ASSERT( state != NULL );
 
-     DFB_MAGIC_ASSERT( state, CardState );
+     D_MAGIC_ASSERT( state, CardState );
 
      dfb_state_lock( state );
 
@@ -116,9 +116,9 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
 void
 dfb_state_set_source( CardState *state, CoreSurface *source )
 {
-     DFB_ASSERT( state != NULL );
+     D_ASSERT( state != NULL );
 
-     DFB_MAGIC_ASSERT( state, CardState );
+     D_MAGIC_ASSERT( state, CardState );
 
      dfb_state_lock( state );
 
@@ -151,7 +151,7 @@ destination_listener( const void *msg_data,
      const CoreSurfaceNotification *notification = msg_data;
      CardState                     *state        = ctx;
 
-     DFB_MAGIC_ASSERT( state, CardState );
+     D_MAGIC_ASSERT( state, CardState );
 
 //     dfb_state_lock( state );
 
@@ -199,7 +199,7 @@ source_listener( const void *msg_data,
      const CoreSurfaceNotification *notification = msg_data;
      CardState                     *state        = ctx;
 
-     DFB_MAGIC_ASSERT( state, CardState );
+     D_MAGIC_ASSERT( state, CardState );
 
 //     dfb_state_lock( state );
 

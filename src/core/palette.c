@@ -29,7 +29,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -55,7 +55,7 @@ static void palette_destructor( FusionObject *object, bool zombie )
      CorePaletteNotification  notification;
      CorePalette             *palette = (CorePalette*) object;
 
-     DEBUGMSG("DirectFB/core/palette: destroying %p (%d)%s\n", palette,
+     D_DEBUG("DirectFB/core/palette: destroying %p (%d)%s\n", palette,
               palette->num_entries, zombie ? " (ZOMBIE)" : "");
 
      notification.flags   = CPNF_DESTROY;
@@ -95,7 +95,7 @@ dfb_palette_create( CoreDFB       *core,
 {
      CorePalette *palette;
 
-     DFB_ASSERT( ret_palette );
+     D_ASSERT( ret_palette );
 
      palette = dfb_core_create_palette( core );
      if (!palette)
@@ -128,7 +128,7 @@ dfb_palette_generate_rgb332_map( CorePalette *palette )
 {
      unsigned int i;
 
-     DFB_ASSERT( palette != NULL );
+     D_ASSERT( palette != NULL );
 
      if (!palette->num_entries)
           return;
@@ -148,7 +148,7 @@ dfb_palette_generate_rgb121_map( CorePalette *palette )
 {
      unsigned int i;
 
-     DFB_ASSERT( palette != NULL );
+     D_ASSERT( palette != NULL );
 
      if (!palette->num_entries)
           return;
@@ -172,7 +172,7 @@ dfb_palette_search( CorePalette *palette,
 {
      unsigned int index;
 
-     DFB_ASSERT( palette != NULL );
+     D_ASSERT( palette != NULL );
 
      /* check local cache first */
      if (palette->search_cache.index != -1 &&
@@ -205,12 +205,12 @@ dfb_palette_update( CorePalette *palette, int first, int last )
 {
      CorePaletteNotification notification;
 
-     DFB_ASSERT( palette != NULL );
-     DFB_ASSERT( first >= 0 );
-     DFB_ASSERT( first < palette->num_entries );
-     DFB_ASSERT( last >= 0 );
-     DFB_ASSERT( last < palette->num_entries );
-     DFB_ASSERT( first <= last );
+     D_ASSERT( palette != NULL );
+     D_ASSERT( first >= 0 );
+     D_ASSERT( first < palette->num_entries );
+     D_ASSERT( last >= 0 );
+     D_ASSERT( last < palette->num_entries );
+     D_ASSERT( first <= last );
 
      notification.flags   = CPNF_ENTRIES;
      notification.palette = palette;

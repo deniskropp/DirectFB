@@ -406,7 +406,7 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
                break;
 
           default:
-               BUG("unexpected pixelformat");
+               D_BUG("unexpected pixelformat");
                aov0->regs.SCALE_CNTL = 0;
                return;
      }

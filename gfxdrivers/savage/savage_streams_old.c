@@ -39,7 +39,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -54,7 +54,7 @@
 #include <gfx/convert.h>
 #include <gfx/util.h>
 #include <misc/conf.h>
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include "savage.h"
 #include "savage_streams_old.h"
@@ -727,7 +727,7 @@ secondary_calc_regs(SavageDriverData         *sdrv,
                                                  & 0x00001fff);
                break;
           default:
-               BUG("unexpected secondary pixelformat");
+               D_BUG("unexpected secondary pixelformat");
                return;
      }
 
@@ -1017,7 +1017,7 @@ primary_calc_regs(SavageDriverData       *sdrv,
                play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_CLUT;
                break;
           default:
-               BUG("unexpected primary pixelformat");
+               D_BUG("unexpected primary pixelformat");
                return;
      }
 

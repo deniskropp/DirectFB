@@ -30,13 +30,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <core/core.h>
 #include <core/core_parts.h>
 #include <core/clipboard.h>
 
-#include <misc/memcpy.h>
+#include <direct/memcpy.h>
 
 
 typedef struct {
@@ -56,7 +56,7 @@ DFB_CORE_PART( clipboard, 0, sizeof(CoreClip) )
 static DFBResult
 dfb_clipboard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
-     DFB_ASSERT( core_clip == NULL );
+     D_ASSERT( core_clip == NULL );
 
      core_clip = data_shared;
 
@@ -68,7 +68,7 @@ dfb_clipboard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_clipboard_join( CoreDFB *core, void *data_local, void *data_shared )
 {
-     DFB_ASSERT( core_clip == NULL );
+     D_ASSERT( core_clip == NULL );
 
      core_clip = data_shared;
 
@@ -78,7 +78,7 @@ dfb_clipboard_join( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_clipboard_shutdown( CoreDFB *core, bool emergency )
 {
-     DFB_ASSERT( core_clip != NULL );
+     D_ASSERT( core_clip != NULL );
 
      fusion_skirmish_destroy( &core_clip->lock );
 
@@ -96,7 +96,7 @@ dfb_clipboard_shutdown( CoreDFB *core, bool emergency )
 static DFBResult
 dfb_clipboard_leave( CoreDFB *core, bool emergency )
 {
-     DFB_ASSERT( core_clip != NULL );
+     D_ASSERT( core_clip != NULL );
 
      core_clip = NULL;
 
@@ -106,7 +106,7 @@ dfb_clipboard_leave( CoreDFB *core, bool emergency )
 static DFBResult
 dfb_clipboard_suspend( CoreDFB *core )
 {
-     DFB_ASSERT( core_clip != NULL );
+     D_ASSERT( core_clip != NULL );
 
      return DFB_OK;
 }
@@ -114,7 +114,7 @@ dfb_clipboard_suspend( CoreDFB *core )
 static DFBResult
 dfb_clipboard_resume( CoreDFB *core )
 {
-     DFB_ASSERT( core_clip != NULL );
+     D_ASSERT( core_clip != NULL );
 
      return DFB_OK;
 }
@@ -129,11 +129,11 @@ dfb_clipboard_set( const char     *mime_type,
      char *new_mime;
      void *new_data;
 
-     DFB_ASSERT( core_clip != NULL );
+     D_ASSERT( core_clip != NULL );
 
-     DFB_ASSERT( mime_type != NULL );
-     DFB_ASSERT( data != NULL );
-     DFB_ASSERT( size > 0 );
+     D_ASSERT( mime_type != NULL );
+     D_ASSERT( data != NULL );
+     D_ASSERT( size > 0 );
 
      new_mime = SHSTRDUP( mime_type );
      if (!new_mime)
@@ -145,7 +145,7 @@ dfb_clipboard_set( const char     *mime_type,
           return DFB_NOSYSTEMMEMORY;
      }
 
-     dfb_memcpy( new_data, data, size );
+     direct_memcpy( new_data, data, size );
 
      if (fusion_skirmish_prevail( &core_clip->lock )) {
           SHFREE( new_data );
@@ -176,7 +176,7 @@ dfb_clipboard_set( const char     *mime_type,
 DFBResult
 dfb_clipboard_get( char **mime_type, void **data, unsigned int *size )
 {
-     DFB_ASSERT( core_clip != NULL );
+     D_ASSERT( core_clip != NULL );
 
      if (fusion_skirmish_prevail( &core_clip->lock ))
           return DFB_FUSION;
@@ -191,7 +191,7 @@ dfb_clipboard_get( char **mime_type, void **data, unsigned int *size )
 
      if (data) {
           *data = malloc( core_clip->size );
-          dfb_memcpy( *data, core_clip->data, core_clip->size );
+          direct_memcpy( *data, core_clip->data, core_clip->size );
      }
 
      if (size)
@@ -205,8 +205,8 @@ dfb_clipboard_get( char **mime_type, void **data, unsigned int *size )
 DFBResult
 dfb_clipboard_get_timestamp( struct timeval *timestamp )
 {
-     DFB_ASSERT( core_clip != NULL );
-     DFB_ASSERT( timestamp != NULL );
+     D_ASSERT( core_clip != NULL );
+     D_ASSERT( timestamp != NULL );
 
      if (fusion_skirmish_prevail( &core_clip->lock ))
           return DFB_FUSION;

@@ -30,7 +30,7 @@
 
 #include <pthread.h>
 
-#include <core/fusion/lock.h>
+#include <fusion/lock.h>
 
 #include <directfb.h>
 #include <core/coretypes.h>

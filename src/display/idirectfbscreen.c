@@ -34,7 +34,7 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/layers.h>
 #include <core/screen.h>

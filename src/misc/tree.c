@@ -31,11 +31,11 @@
 
 #include <stdlib.h>
 
-#include "core/coretypes.h"
+#include <core/coretypes.h>
 
-#include "misc/mem.h"
+#include <direct/mem.h>
 
-#include "tree.h"
+#include <misc/tree.h>
 
 
 static Node * tree_node_new          (Tree  *tree,
@@ -57,7 +57,7 @@ static Node * tree_node_rotate_right (Node  *node);
 
 Tree * dfb_tree_new (void)
 {
-     return (Tree *) DFBCALLOC(1, sizeof (Tree));
+     return (Tree *) D_CALLOC(1, sizeof (Tree));
 }
 
 void dfb_tree_destroy (Tree *tree)
@@ -66,10 +66,10 @@ void dfb_tree_destroy (Tree *tree)
 
      for (i = 0; i < 96; i++) {
           if (tree->fast_keys[i])
-               DFBFREE(tree->fast_keys[i]);
+               D_FREE(tree->fast_keys[i]);
      }
      tree_node_destroy (tree, tree->root);
-     DFBFREE(tree);
+     D_FREE(tree);
 }
 
 void dfb_tree_insert (Tree *tree,
@@ -108,7 +108,7 @@ static Node * tree_node_new (Tree *tree,
 {
      Node *node;
 
-     node = DFBMALLOC(sizeof (Node));
+     node = D_MALLOC(sizeof (Node));
 
      node->balance = 0;
      node->left    = NULL;
@@ -127,8 +127,8 @@ static void tree_node_destroy (Tree *tree,
           tree_node_destroy (tree, node->right);
 
           if (node->value)
-               DFBFREE(node->value);
-          DFBFREE(node);
+               D_FREE(node->value);
+          D_FREE(node);
      }
 }
 

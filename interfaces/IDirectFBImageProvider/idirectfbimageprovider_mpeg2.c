@@ -34,7 +34,7 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -48,7 +48,7 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
-#include <misc/mem.h>
+#include <direct/mem.h>
 #include <misc/util.h>
 
 #include "mpeg2/mpeg2dec.h"
@@ -151,7 +151,7 @@ Construct( IDirectFBImageProvider *thiz,
      data->stage = STAGE_INFO;
 
      /* Allocate image data. */
-     data->image = DFBMALLOC( data->width * data->height * 4 );
+     data->image = D_MALLOC( data->width * data->height * 4 );
      if (!data->image)
           goto error;
 
@@ -191,7 +191,7 @@ IDirectFBImageProvider_MPEG2_Destruct( IDirectFBImageProvider *thiz )
 
      /* Deallocate image data. */
      if (data->image)
-          DFBFREE( data->image );
+          D_FREE( data->image );
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }

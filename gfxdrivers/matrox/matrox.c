@@ -45,6 +45,8 @@
 #include <core/surfaces.h>
 
 #include <gfx/util.h>
+
+#include <misc/conf.h>
 #include <misc/util.h>
 
 #include <core/graphics_driver.h>
@@ -588,7 +590,7 @@ static void matroxSetState( void *drv, void *dev,
                break;
           }
           default:
-               BUG( "unexpected drawing/blitting function!" );
+               D_BUG( "unexpected drawing/blitting function!" );
                break;
      }
 
@@ -1318,6 +1320,9 @@ static bool matroxTextureTriangles( void *drv, void *dev,
                                       &vertices[i-1], &vertices[i] );
 
                break;
+
+          default:
+               break;
      }
 
      return true;
@@ -1367,7 +1372,7 @@ static DFBResult matrox_find_pci_device( unsigned int *bus,
 
      file = fopen( "/proc/bus/pci/devices", "r" );
      if (!file) {
-          PERRORMSG( "DirectFB/Matrox: "
+          D_PERROR( "DirectFB/Matrox: "
                      "Error opening `/proc/bus/pci/devices'!\n" );
           return errno2dfb( errno );
      }
@@ -1426,7 +1431,7 @@ static DFBResult matrox_find_pci_device( unsigned int *bus,
           }
      }
 
-     ERRORMSG( "DirectFB/Matrox: "
+     D_ERROR( "DirectFB/Matrox: "
                "Can't find device in `/proc/bus/pci'!\n" );
 
      fclose( file );
@@ -1701,23 +1706,23 @@ driver_close_device( GraphicsDevice *device,
      mga_out32( mdrv->mmio_base, 0, BESCTL );
 
 
-     DEBUGMSG( "DirectFB/Matrox: FIFO Performance Monitoring:\n" );
-     DEBUGMSG( "DirectFB/Matrox:  %9d matrox_waitfifo calls\n",
+     D_DEBUG( "DirectFB/Matrox: FIFO Performance Monitoring:\n" );
+     D_DEBUG( "DirectFB/Matrox:  %9d matrox_waitfifo calls\n",
                mdev->waitfifo_calls );
-     DEBUGMSG( "DirectFB/Matrox:  %9d register writes (matrox_waitfifo sum)\n",
+     D_DEBUG( "DirectFB/Matrox:  %9d register writes (matrox_waitfifo sum)\n",
                mdev->waitfifo_sum );
-     DEBUGMSG( "DirectFB/Matrox:  %9d FIFO wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/Matrox:  %9d FIFO wait cycles (depends on CPU)\n",
                mdev->fifo_waitcycles );
-     DEBUGMSG( "DirectFB/Matrox:  %9d IDLE wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/Matrox:  %9d IDLE wait cycles (depends on CPU)\n",
                mdev->idle_waitcycles );
-     DEBUGMSG( "DirectFB/Matrox:  %9d FIFO space cache hits (depends on CPU)\n",
+     D_DEBUG( "DirectFB/Matrox:  %9d FIFO space cache hits (depends on CPU)\n",
                mdev->fifo_cache_hits );
-     DEBUGMSG( "DirectFB/Matrox: Conclusion:\n" );
-     DEBUGMSG( "DirectFB/Matrox:  Average register writes/matrox_waitfifo call: %.2f\n",
+     D_DEBUG( "DirectFB/Matrox: Conclusion:\n" );
+     D_DEBUG( "DirectFB/Matrox:  Average register writes/matrox_waitfifo call: %.2f\n",
                mdev->waitfifo_sum/(float)(mdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/Matrox:  Average wait cycles/matrox_waitfifo call:     %.2f\n",
+     D_DEBUG( "DirectFB/Matrox:  Average wait cycles/matrox_waitfifo call:     %.2f\n",
                mdev->fifo_waitcycles/(float)(mdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/Matrox:  Average fifo space cache hits:                %02d%%\n",
+     D_DEBUG( "DirectFB/Matrox:  Average fifo space cache hits:                %02d%%\n",
                (int)(100 * mdev->fifo_cache_hits/(float)(mdev->waitfifo_calls)) );
 }
 

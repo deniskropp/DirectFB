@@ -28,7 +28,7 @@
 #ifndef __IDIRECTFBEVENTBUFFER_H__
 #define __IDIRECTFBEVENTBUFFER_H__
 
-#include <core/fusion/fusion_types.h>
+#include <fusion/types.h>
 #include <core/input.h>
 
 typedef bool (*EventBufferFilterCallback)( DFBEvent             *evt,

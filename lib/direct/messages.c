@@ -31,6 +31,7 @@
 
 #include <direct/build.h>
 #include <direct/messages.h>
+#include <direct/trace.h>
 
 
 #if !DIRECT_BUILD_NOTEXT
@@ -65,6 +66,8 @@ direct_messages_error( const char *format, ... )
      fprintf( stderr, "(!) %s", buf );
 
      fflush( stderr );
+
+     direct_trace_print_stack( NULL );
 }
 
 void
@@ -81,6 +84,8 @@ direct_messages_perror( int erno, const char *format, ... )
      fprintf( stderr, "(!) %s    --> %s\n", buf, strerror( erno ) );
 
      fflush( stderr );
+
+     direct_trace_print_stack( NULL );
 }
 
 void
@@ -97,6 +102,8 @@ direct_messages_dlerror( const char *dlerr, const char *format, ... )
      fprintf( stderr, "(!) %s    --> %s\n", buf, dlerr );
 
      fflush( stderr );
+
+     direct_trace_print_stack( NULL );
 }
 
 void
@@ -116,6 +123,8 @@ direct_messages_once( const char *func,
      fprintf( stderr, " (!!!)  *** ONCE [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      fflush( stderr );
+
+     direct_trace_print_stack( NULL );
 }
 
 void
@@ -135,6 +144,8 @@ direct_messages_bug( const char *func,
      fprintf( stderr, " (!?!)  *** BUG [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      fflush( stderr );
+
+     direct_trace_print_stack( NULL );
 }
 
 void
@@ -154,6 +165,8 @@ direct_messages_warn( const char *func,
      fprintf( stderr, " (!!!)  *** WARNING [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      fflush( stderr );
+
+     direct_trace_print_stack( NULL );
 }
 
 #endif

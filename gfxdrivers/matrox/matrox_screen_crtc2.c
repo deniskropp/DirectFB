@@ -39,6 +39,7 @@
 #include <core/coretypes.h>
 #include <core/fbdev/fbdev.h>
 
+#include <misc/conf.h>
 #include <misc/util.h>
 
 

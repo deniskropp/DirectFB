@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -37,11 +37,11 @@
 
 #include <pthread.h>
 
-#include <core/fusion/reactor.h>
-#include <core/fusion/list.h>
+#include <fusion/reactor.h>
+#include <direct/list.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -50,7 +50,7 @@
 #include <core/windows.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include <media/idirectfbdatabuffer.h>
 #include <media/idirectfbimageprovider.h>
@@ -60,10 +60,10 @@ void
 IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz )
 {
      IDirectFBDataBuffer_data *data = (IDirectFBDataBuffer_data*) thiz->priv;
-     
+
      if (data->filename)
-          DFBFREE( data->filename );
-     
+          D_FREE( data->filename );
+
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -185,7 +185,7 @@ IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz, const char *filename )
      data->ref = 1;
 
      if (filename)
-          data->filename = DFBSTRDUP( filename );
+          data->filename = D_STRDUP( filename );
 
      thiz->AddRef                 = IDirectFBDataBuffer_AddRef;
      thiz->Release                = IDirectFBDataBuffer_Release;

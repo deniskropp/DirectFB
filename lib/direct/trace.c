@@ -322,6 +322,9 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           D_WARN( "only showing %d of %d items", MAX_LEVEL, level );
           level = MAX_LEVEL;
      }
+     else if (level == 0) {
+          return;
+     }
 
      fprintf( stderr, "(-) [%5d: -STACK- ]\n", buffer->tid );
 
@@ -409,7 +412,6 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
      }
 
      direct_memcpy( copy->trace, buffer->trace, level * sizeof(void*) );
-     direct_memcpy( copy, buffer, sizeof(DirectTraceBuffer) );
 
      return copy;
 }

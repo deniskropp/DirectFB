@@ -66,7 +66,7 @@ void radeon_set_destination( RADEONDriverData *adrv,
 	adev->RADEON_dp_gui_master_cntl = GMC_DST_32BPP;
 	break;
     default:
-	BUG( "unexpected pixelformat!" );
+	D_BUG( "unexpected pixelformat!" );
 	break;
     }
 
@@ -111,7 +111,7 @@ void radeon_set_source( RADEONDriverData *adrv,
 	radeon_out32( adrv->mmio_base, CLR_CMP_MASK, 0xFFFFFFFF );
 	break;
     default:
-	BUG( "unexpected pixelformat!" );
+	D_BUG( "unexpected pixelformat!" );
 	break;
     }
 
@@ -176,7 +176,7 @@ void radeon_set_color( RADEONDriverData *adrv,
 				 state->color.b );
 	break;
     default:
-	BUG( "unexpected pixelformat!" );
+	D_BUG( "unexpected pixelformat!" );
 	break;
     }
 

@@ -45,12 +45,4 @@ void dfb_sig_install_handlers( CoreDFB *core );
  */
 void dfb_sig_remove_handlers( CoreDFB *core );
 
-
-/*
- * Modifies the current thread's signal mask to block everything.
- * Should be called by input threads once to avoid killing themselves
- * in the signal handler by deinitializing all input drivers.
- */
-void dfb_sig_block_all();
-
 #endif

@@ -30,10 +30,10 @@
 
 #include <directfb.h>
 
-#include <core/fusion/object.h>
-#include <core/fusion/list.h>
-#include <core/fusion/lock.h>
-#include <core/fusion/reactor.h>
+#include <fusion/object.h>
+#include <direct/list.h>
+#include <fusion/lock.h>
+#include <fusion/reactor.h>
 
 #include <core/coretypes.h>
 #include <core/coredefs.h>
@@ -163,13 +163,13 @@ dfb_surface_data_offset( const CoreSurface *surface,
                          int                x,
                          int                y )
 {
-     DFB_ASSERT( surface != NULL );
-     DFB_ASSERT( data != NULL );
-     DFB_ASSERT( pitch > 0 );
-     DFB_ASSERT( x >= 0 );
-     DFB_ASSERT( x < surface->width );
-     DFB_ASSERT( y >= 0 );
-     DFB_ASSERT( y < surface->height );
+     D_ASSERT( surface != NULL );
+     D_ASSERT( data != NULL );
+     D_ASSERT( pitch > 0 );
+     D_ASSERT( x >= 0 );
+     D_ASSERT( x < surface->width );
+     D_ASSERT( y >= 0 );
+     D_ASSERT( y < surface->height );
 
      if (surface->caps & DSCAPS_SEPARATED) {
           if (y & 1)

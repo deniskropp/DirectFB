@@ -28,9 +28,9 @@
 #ifndef __CORE_H__
 #define __CORE_H__
 
-#include <core/fusion/fusion_types.h>
-#include <core/fusion/lock.h>
-#include <core/fusion/object.h>
+#include <fusion/types.h>
+#include <fusion/lock.h>
+#include <fusion/object.h>
 
 #include <directfb.h>
 

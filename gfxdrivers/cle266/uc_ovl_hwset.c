@@ -118,7 +118,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
           action |= UC_OVL_CHANGE;
      }
 
-     DFB_ASSERT(surface);
+     D_ASSERT(surface);
 
      sw = surface->width;
      sh = surface->height;
@@ -137,7 +137,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
 
           if ((sw > 4096) || (sh > 4096) ||
               (sw < 32) || (sh < 1) || (sp > 0x1fff)) {
-               DEBUGMSG("Layer surface size is out of bounds.");
+               D_DEBUG("Layer surface size is out of bounds.");
                return DFB_INVAREA;
           }
 

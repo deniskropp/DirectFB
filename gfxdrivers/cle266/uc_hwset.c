@@ -361,7 +361,7 @@ uc_set_color_2d( UcDriverData *ucdrv,
                break;
 
           default:
-               BUG( "unexpected pixel format" );
+               D_BUG( "unexpected pixel format" );
      }
 
 

@@ -35,10 +35,10 @@
 
 #include <pthread.h>
 
-#include <core/fusion/fusion.h>
-#include <core/fusion/arena.h>
-#include <core/fusion/list.h>
-#include <core/fusion/shmalloc.h>
+#include <fusion/fusion.h>
+#include <fusion/arena.h>
+#include <direct/list.h>
+#include <fusion/shmalloc.h>
 
 #include <directfb.h>
 
@@ -55,12 +55,19 @@
 #include <core/system.h>
 #include <core/windows.h>
 
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/build.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+#include <direct/signals.h>
+
+#include <fusion/build.h>
+
+#include <misc/conf.h>
 #include <misc/util.h>
 
 
-#define DIRECTFB_CORE_ABI     15
+#define DIRECTFB_CORE_ABI     16
 
 extern CorePart dfb_core_clipboard;
 extern CorePart dfb_core_colorhash;
@@ -76,7 +83,7 @@ extern CorePart dfb_core_system;
  * one entry in the cleanup stack
  */
 struct _CoreCleanup {
-     FusionLink       link;
+     DirectLink       link;
 
      CoreCleanupFunc  func;        /* the cleanup function to be called */
      void            *data;        /* context of the cleanup function */
@@ -103,7 +110,7 @@ struct __DFB_CoreDFB {
 
      bool              master;
 
-     FusionLink       *cleanups;
+     DirectLink       *cleanups;
 };
 
 /******************************************************************************/
@@ -169,19 +176,19 @@ dfb_core_create( CoreDFB **ret_core )
 #endif
      int      ret;
      int      world;
-#ifndef FUSION_FAKE
+#if FUSION_BUILD_MULTI
      char     buf[16];
 #endif
      CoreDFB *core;
 
-     DFB_ASSERT( ret_core != NULL );
-     DFB_ASSERT( dfb_config != NULL );
+     D_ASSERT( ret_core != NULL );
+     D_ASSERT( dfb_config != NULL );
 
-     DEBUGMSG( "DirectFB/Core: %s...\n", __FUNCTION__ );
+     D_DEBUG( "DirectFB/Core: %s...\n", __FUNCTION__ );
 
      pthread_mutex_lock( &core_dfb_lock );
 
-     DFB_ASSERT( core_dfb == NULL || core_dfb->refs > 0 );
+     D_ASSERT( core_dfb == NULL || core_dfb->refs > 0 );
 
      if (core_dfb) {
           core_dfb->refs++;
@@ -194,10 +201,10 @@ dfb_core_create( CoreDFB **ret_core )
      }
 
 
-#ifdef FUSION_FAKE
-     INITMSG( "Single Application Core.%s ("BUILDTIME")\n", mmx_string );
+#if FUSION_BUILD_MULTI
+     D_INFO( "DirectFB/Core: Multi Application Core.%s ("BUILDTIME")\n", mmx_string );
 #else
-     INITMSG( "Multi Application Core.%s ("BUILDTIME")\n", mmx_string );
+     D_INFO( "DirectFB/Core: Single Application Core.%s ("BUILDTIME")\n", mmx_string );
 #endif
 
 #ifdef DFB_DYNAMIC_LINKING
@@ -218,7 +225,7 @@ dfb_core_create( CoreDFB **ret_core )
 
 
      /* Allocate local core structure. */
-     core = DFBCALLOC( 1, sizeof(CoreDFB) );
+     core = D_CALLOC( 1, sizeof(CoreDFB) );
      if (!core) {
           pthread_mutex_unlock( &core_dfb_lock );
           return DFB_NOSYSTEMMEMORY;
@@ -227,30 +234,29 @@ dfb_core_create( CoreDFB **ret_core )
      core->refs = 1;
 
 
-#ifndef FUSION_FAKE
+#if FUSION_BUILD_MULTI
      dfb_system_thread_init();
 #endif
 
-     dfb_find_best_memcpy();
+     direct_find_best_memcpy();
 
      setpgid( 0, 0 );
 
      core->fusion_id = fusion_init( dfb_config->session,
-#ifdef DFB_DEBUG
+#if DIRECT_BUILD_DEBUG
                                     -DIRECTFB_CORE_ABI,
 #else
                                     DIRECTFB_CORE_ABI,
 #endif
                                     &world );
      if (core->fusion_id < 0) {
-          DFBFREE( core );
+          D_FREE( core );
           pthread_mutex_unlock( &core_dfb_lock );
           return DFB_FUSION;
      }
 
-#ifndef FUSION_FAKE
-     DEBUGMSG( "DirectFB/core: world %d, fusion id %d\n",
-               world, core->fusion_id );
+#if FUSION_BUILD_MULTI
+     D_DEBUG( "DirectFB/Core: world %d, fusion id %d\n", world, core->fusion_id );
 
      snprintf( buf, sizeof(buf), "%d", world );
 
@@ -258,7 +264,7 @@ dfb_core_create( CoreDFB **ret_core )
 #endif
 
      if (dfb_config->sync) {
-          INITMSG( "DirectFB/core: doing sync()...\n" );
+          D_INFO( "DirectFB/Core: doing sync()...\n" );
           sync();
      }
 
@@ -271,7 +277,7 @@ dfb_core_create( CoreDFB **ret_core )
                              dfb_core_arena_initialize, dfb_core_arena_join,
                              core, &core->arena, &ret ) || ret)
      {
-          DFBFREE( core );
+          D_FREE( core );
           core_dfb = NULL;
 
           dfb_sig_remove_handlers( core );
@@ -283,7 +289,7 @@ dfb_core_create( CoreDFB **ret_core )
 
 
      if (dfb_config->block_all_signals)
-          dfb_sig_block_all();
+          direct_signals_block_all();
 
      if (dfb_config->deinit_check)
           atexit( dfb_core_deinit_check );
@@ -293,7 +299,7 @@ dfb_core_create( CoreDFB **ret_core )
 
      pthread_mutex_unlock( &core_dfb_lock );
 
-     DEBUGMSG( "DirectFB/Core: Core successfully created.\n" );
+     D_DEBUG( "DirectFB/Core: Core successfully created.\n" );
 
      return DFB_OK;
 }
@@ -301,11 +307,11 @@ dfb_core_create( CoreDFB **ret_core )
 DFBResult
 dfb_core_destroy( CoreDFB *core, bool emergency )
 {
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->refs > 0 );
-     DFB_ASSERT( core == core_dfb );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->refs > 0 );
+     D_ASSERT( core == core_dfb );
 
-     DEBUGMSG( "DirectFB/Core: %s...\n", __FUNCTION__ );
+     D_DEBUG( "DirectFB/Core: %s...\n", __FUNCTION__ );
 
      pthread_mutex_lock( &core_dfb_lock );
 
@@ -332,13 +338,13 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
                                core->master ? NULL : dfb_core_arena_leave,
                                core, emergency, NULL ) == FUSION_INUSE)
      {
-          ONCE( "waiting for DirectFB slaves to terminate" );
+          D_ONCE( "waiting for DirectFB slaves to terminate" );
           usleep( 100000 );
      }
 
      fusion_exit();
 
-     DFBFREE( core );
+     D_FREE( core );
      core_dfb = NULL;
 
      pthread_mutex_unlock( &core_dfb_lock );
@@ -349,14 +355,14 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 CoreLayerContext *
 dfb_core_create_layer_context( CoreDFB *core )
 {
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( core->shared->layer_context_pool != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     D_ASSERT( core->shared->layer_context_pool != NULL );
 
      return (CoreLayerContext*) fusion_object_create( core->shared->layer_context_pool );
 }
@@ -364,14 +370,14 @@ dfb_core_create_layer_context( CoreDFB *core )
 CoreLayerRegion *
 dfb_core_create_layer_region( CoreDFB *core )
 {
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( core->shared->layer_region_pool != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     D_ASSERT( core->shared->layer_region_pool != NULL );
 
      return (CoreLayerRegion*) fusion_object_create( core->shared->layer_region_pool );
 }
@@ -379,14 +385,14 @@ dfb_core_create_layer_region( CoreDFB *core )
 CorePalette *
 dfb_core_create_palette( CoreDFB *core )
 {
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( core->shared->palette_pool != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     D_ASSERT( core->shared->palette_pool != NULL );
 
      return (CorePalette*) fusion_object_create( core->shared->palette_pool );
 }
@@ -394,14 +400,14 @@ dfb_core_create_palette( CoreDFB *core )
 CoreSurface *
 dfb_core_create_surface( CoreDFB *core )
 {
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( core->shared->surface_pool != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     D_ASSERT( core->shared->surface_pool != NULL );
 
      return (CoreSurface*) fusion_object_create( core->shared->surface_pool );
 }
@@ -409,14 +415,14 @@ dfb_core_create_surface( CoreDFB *core )
 CoreWindow *
 dfb_core_create_window( CoreDFB *core )
 {
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( core->shared->window_pool != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     D_ASSERT( core->shared->window_pool != NULL );
 
      return (CoreWindow*) fusion_object_create( core->shared->window_pool );
 }
@@ -426,7 +432,7 @@ dfb_core_enum_surfaces( CoreDFB               *core,
                         FusionObjectCallback   callback,
                         void                  *ctx )
 {
-     DFB_ASSERT( core != NULL || core_dfb != NULL );
+     D_ASSERT( core != NULL || core_dfb != NULL );
 
      if (!core)
           core = core_dfb;
@@ -440,7 +446,7 @@ dfb_core_enum_layer_contexts( CoreDFB               *core,
                               FusionObjectCallback   callback,
                               void                  *ctx )
 {
-     DFB_ASSERT( core != NULL || core_dfb != NULL );
+     D_ASSERT( core != NULL || core_dfb != NULL );
 
      if (!core)
           core = core_dfb;
@@ -454,7 +460,7 @@ dfb_core_enum_layer_regions( CoreDFB               *core,
                              FusionObjectCallback   callback,
                              void                  *ctx )
 {
-     DFB_ASSERT( core != NULL || core_dfb != NULL );
+     D_ASSERT( core != NULL || core_dfb != NULL );
 
      if (!core)
           core = core_dfb;
@@ -466,8 +472,8 @@ dfb_core_enum_layer_regions( CoreDFB               *core,
 bool
 dfb_core_is_master( CoreDFB *core )
 {
-//FIXME     DFB_ASSUME( core != NULL );
-     DFB_ASSERT( core_dfb != NULL );
+//FIXME     D_ASSUME( core != NULL );
+     D_ASSERT( core_dfb != NULL );
 
      if (!core)
           core = core_dfb;
@@ -478,12 +484,12 @@ dfb_core_is_master( CoreDFB *core )
 FusionArena *
 dfb_core_arena( CoreDFB *core )
 {
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
+     D_ASSERT( core != NULL );
 
      return core->arena;
 }
@@ -493,12 +499,12 @@ dfb_core_suspend( CoreDFB *core )
 {
      DFBResult ret;
 
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
+     D_ASSERT( core != NULL );
 
      if (!core->master)
           return DFB_ACCESSDENIED;
@@ -527,12 +533,12 @@ dfb_core_resume( CoreDFB *core )
 {
      DFBResult ret;
 
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
+     D_ASSERT( core != NULL );
 
      if (!core->master)
           return DFB_ACCESSDENIED;
@@ -564,20 +570,20 @@ dfb_core_cleanup_add( CoreDFB         *core,
 {
      CoreCleanup *cleanup;
 
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
+     D_ASSERT( core != NULL );
 
-     cleanup = DFBCALLOC( 1, sizeof(CoreCleanup) );
+     cleanup = D_CALLOC( 1, sizeof(CoreCleanup) );
 
      cleanup->func      = func;
      cleanup->data      = data;
      cleanup->emergency = emergency;
 
-     fusion_list_prepend( &core->cleanups, &cleanup->link );
+     direct_list_prepend( &core->cleanups, &cleanup->link );
 
      return cleanup;
 }
@@ -586,16 +592,16 @@ void
 dfb_core_cleanup_remove( CoreDFB     *core,
                          CoreCleanup *cleanup )
 {
-     DFB_ASSUME( core != NULL );
+     D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     DFB_ASSERT( core != NULL );
+     D_ASSERT( core != NULL );
 
-     fusion_list_remove( &core->cleanups, &cleanup->link );
+     direct_list_remove( &core->cleanups, &cleanup->link );
 
-     DFBFREE( cleanup );
+     D_FREE( cleanup );
 }
 
 /******************************************************************************/
@@ -604,14 +610,11 @@ static void
 dfb_core_deinit_check()
 {
      if (core_dfb && core_dfb->refs) {
-          DEBUGMSG( "DirectFB/core: WARNING - Application "
-                    "exitted without deinitialization of DirectFB!\n" );
+          D_WARN( "Application exited without deinitialization of DirectFB!" );
           dfb_core_destroy( core_dfb, true );
      }
 
-#ifdef DFB_DEBUG
-     dfb_dbg_print_memleaks();
-#endif
+     direct_print_memleaks();
 }
 
 static void
@@ -625,7 +628,7 @@ dfb_core_process_cleanups( CoreDFB *core, bool emergency )
           if (cleanup->emergency || !emergency)
                cleanup->func( cleanup->data, emergency );
 
-          DFBFREE( cleanup );
+          D_FREE( cleanup );
      }
 }
 
@@ -637,8 +640,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      int            i;
      CoreDFBShared *shared;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
 
      shared = core->shared;
 
@@ -662,8 +665,8 @@ dfb_core_initialize( CoreDFB *core )
      int            i;
      CoreDFBShared *shared;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
 
      shared = core->shared;
 
@@ -690,8 +693,8 @@ dfb_core_leave( CoreDFB *core, bool emergency )
 {
      int i;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
 
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
           dfb_core_part_leave( core, core_parts[i], emergency );
@@ -704,8 +707,8 @@ dfb_core_join( CoreDFB *core )
 {
      int i;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
 
      for (i=0; i<NUM_CORE_PARTS; i++) {
           DFBResult ret;
@@ -729,12 +732,12 @@ dfb_core_arena_initialize( FusionArena *arena,
      CoreDFB       *core = ctx;
      CoreDFBShared *shared;
 
-     DEBUGMSG( "DirectFB/Core: Initializing...\n" );
+     D_DEBUG( "DirectFB/Core: Initializing...\n" );
 
      /* Allocate shared structure. */
      shared = SHCALLOC( 1, sizeof(CoreDFBShared) );
      if (!shared) {
-          ERRORMSG( "DirectFB/Core: Could not allocate (shared) memory!\n" );
+          D_ERROR( "DirectFB/Core: Could not allocate (shared) memory!\n" );
           return DFB_NOSYSTEMMEMORY;
      }
 
@@ -762,7 +765,7 @@ dfb_core_arena_join( FusionArena *arena,
      CoreDFB   *core = ctx;
      void      *field;
 
-     DEBUGMSG( "DirectFB/Core: Joining...\n" );
+     D_DEBUG( "DirectFB/Core: Joining...\n" );
 
      /* Get shared data. */
      if (fusion_arena_get_shared_field( arena, "Core/Shared", &field ))
@@ -786,7 +789,7 @@ dfb_core_arena_leave( FusionArena *arena,
      DFBResult  ret;
      CoreDFB   *core = ctx;
 
-     DEBUGMSG( "DirectFB/Core: Leaving...\n" );
+     D_DEBUG( "DirectFB/Core: Leaving...\n" );
 
      /* Leave. */
      ret = dfb_core_leave( core, emergency );
@@ -804,10 +807,10 @@ dfb_core_arena_shutdown( FusionArena *arena,
      DFBResult  ret;
      CoreDFB   *core = ctx;
 
-     DEBUGMSG( "DirectFB/Core: Shutting down...\n" );
+     D_DEBUG( "DirectFB/Core: Shutting down...\n" );
 
      if (!core->master) {
-          CAUTION( "refusing shutdown in slave" );
+          D_WARN( "refusing shutdown in slave" );
           return dfb_core_leave( core, emergency );
      }
 

@@ -193,7 +193,7 @@ static inline void savage4_validate_color( Savage4DeviceData *sdev,
                                                state->color.b);
                break;
           default:
-               BUG( "unexpected destination format" );
+               D_BUG( "unexpected destination format" );
                break;
      }
 
@@ -284,7 +284,7 @@ static void savage4SetState( void *drv, void *dev,
                break;
 
           default:
-               BUG( "unexpected drawing/blitting function!" );
+               D_BUG( "unexpected drawing/blitting function!" );
                return;
      }
 

@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  Fulgid Technology Co., Ltd.
-   
+
    All rights reserved.
 
    Written by Simon Ueng <simon@ftech.com.tw>
@@ -66,8 +66,11 @@
 #include <core/thread.h>
 
 #include <misc/conf.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
+#include <direct/memcpy.h>
 
 #include <core/input_driver.h>
 
@@ -161,7 +164,7 @@ static inline void MuTSendPacket(int file, unsigned char *packet, unsigned char 
 {
      unsigned char tmp_packet[MuT_PACKET_SIZE];
 
-     dfb_memcpy (&tmp_packet[1], packet, len);
+     direct_memcpy (&tmp_packet[1], packet, len);
      *tmp_packet = MuT_LEAD_BYTE;
      tmp_packet[len + 1] = MuT_TRAIL_BYTE;
      write (file, tmp_packet, len + 2);
@@ -424,11 +427,11 @@ static DFBResult driver_open_device(InputDevice *device,
      /* open device */
      fd = MuTOpenDevice (MuT_DEVICE);
      if (fd < 0) {
-          PERRORMSG("DirectFB/MuTouch: Error opening '"MuT_DEVICE"'!\n");
+          D_PERROR("DirectFB/MuTouch: Error opening '"MuT_DEVICE"'!\n");
           return DFB_INIT;
      }
 
-     data = DFBCALLOC (1, sizeof(MuTData));
+     data = D_CALLOC (1, sizeof(MuTData));
 
      data->fd     = fd;
      data->device = device;
@@ -487,6 +490,6 @@ static void driver_close_device(void *driver_data)
      close (data->fd);
 
      /* free private data */
-     DFBFREE (data);
+     D_FREE (data);
 }
 

@@ -35,7 +35,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <core/fusion/reactor.h>
+#include <fusion/reactor.h>
 
 
 typedef enum {
@@ -110,16 +110,16 @@ void dfb_state_set_source( CardState *state, CoreSurface *source );
 
 #define dfb_state_lock(state)                \
 do {                                         \
-     DFB_ASSERT( (state) != NULL );          \
-     DFB_MAGIC_ASSERT( (state), CardState ); \
+     D_ASSERT( (state) != NULL );          \
+     D_MAGIC_ASSERT( (state), CardState ); \
                                              \
      pthread_mutex_lock( &(state)->lock );   \
 } while (0)
 
 #define dfb_state_unlock(state)              \
 do {                                         \
-     DFB_ASSERT( (state) != NULL );          \
-     DFB_MAGIC_ASSERT( (state), CardState ); \
+     D_ASSERT( (state) != NULL );          \
+     D_MAGIC_ASSERT( (state), CardState ); \
                                              \
      pthread_mutex_unlock( &(state)->lock ); \
 } while (0)

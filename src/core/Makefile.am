@@ -12,7 +12,7 @@ else
 FBDEV_DIR =
 endif
 
-SUBDIRS = fusion $(FBDEV_DIR) $(SDL_DIR)
+SUBDIRS = $(FBDEV_DIR) $(SDL_DIR)
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\
@@ -62,9 +62,6 @@ internalinclude_HEADERS = \
 
 noinst_LTLIBRARIES = libdirectfb_core.la
 
-
-libdirectfb_core_la_LIBADD = \
-	fusion/libdirectfb_core_fusion.la
 
 libdirectfb_core_la_SOURCES = \
 	clipboard.c		\

@@ -32,6 +32,8 @@
 
 #include <core/layers.h>
 
+#include <misc/conf.h>
+
 #include "unichrome.h"
 #include "uc_overlay.h"
 #include "vidregs.h"
@@ -157,7 +159,7 @@ osdSetRegion( CoreLayer                  *layer,
           VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(0xff));
 
      VIDEO_OUT(ucdrv->hwregs, V_COMPOSE_MODE, V1_COMMAND_FIRE);
-     
+
      return DFB_OK;
 }
 

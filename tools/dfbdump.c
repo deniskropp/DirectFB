@@ -38,10 +38,12 @@
 #include <directfb.h>
 #include <directfb_strings.h>
 
-#include <core/fusion/object.h>
-#include <core/fusion/ref.h>
-#include <core/fusion/shmalloc.h>
-#include <core/fusion/shmalloc/shmalloc_internal.h>
+#include <fusion/build.h>
+#include <fusion/fusion.h>
+#include <fusion/object.h>
+#include <fusion/ref.h>
+#include <fusion/shmalloc.h>
+#include <fusion/shmalloc/shmalloc_internal.h>
 
 #include <core/core.h>
 #include <core/layer_control.h>
@@ -153,7 +155,7 @@ surface_callback( FusionObjectPool *pool,
           return false;
      }
 
-#ifndef FUSION_FAKE
+#if FUSION_BUILD_MULTI
      printf( "0x%08x : ", object->ref.id );
 #else
      printf( "N/A        : " );
@@ -238,7 +240,7 @@ context_callback( FusionObjectPool *pool,
           return false;
      }
 
-#ifndef FUSION_FAKE
+#if FUSION_BUILD_MULTI
      printf( "0x%08x : ", object->ref.id );
 #else
      printf( "N/A        : " );
@@ -309,7 +311,7 @@ window_callback( CoreWindow      *window,
           return false;
      }
 
-#ifndef FUSION_FAKE
+#if FUSION_BUILD_MULTI
      printf( "0x%08x : ", window->object.ref.id );
 #else
      printf( "N/A        : " );
@@ -473,7 +475,7 @@ main( int argc, char *argv[] )
           unsigned int i;
           unsigned int total = 0;
 
-          DFB_ASSERT( _sheap != NULL );
+          D_ASSERT( _sheap != NULL );
 
           fusion_skirmish_prevail( &_sheap->lock );
 

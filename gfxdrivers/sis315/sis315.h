@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.h,v 1.1 2003-11-25 10:53:48 oberritter Exp $
+ * $Id: sis315.h,v 1.2 2004-03-30 18:35:19 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -21,6 +21,8 @@
 
 #ifndef _SIS315_H
 #define _SIS315_H
+
+#include <direct/types.h>
 
 typedef struct {
 	volatile __u8 *mmio_base;

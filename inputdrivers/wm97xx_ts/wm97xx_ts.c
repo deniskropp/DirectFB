@@ -2,19 +2,19 @@
 
    Driver for Wolfson WM9705/WM9712 touchscreen controllers as
    found in the Dell Axim and Toshiba e740.
-   
+
    liam.girdwood@wolfsonmicro.com
-   
-   NOTE: Please make sure that pressure measurement is enable in the 
-         kernel driver. (i.e. pil != 0) Please read 
+
+   NOTE: Please make sure that pressure measurement is enable in the
+         kernel driver. (i.e. pil != 0) Please read
 		  wolfson-touchscreen.txt in your kernel documentation for
 		  details.
-   
+
    Based on the h3600_ts.c driver by convergence GmbH.
 
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -57,7 +57,10 @@
 #include <core/thread.h>
 
 #include <misc/conf.h>
-#include <misc/mem.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <core/input_driver.h>
 
@@ -132,7 +135,7 @@ wm97xxtsEventThread( CoreThread *thread, void *driver_data )
      }
 
      if (readlen <= 0)
-          PERRORMSG ("WM97xx Touchscreen thread died\n");
+          D_PERROR ("WM97xx Touchscreen thread died\n");
 
      return NULL;
 }
@@ -180,7 +183,7 @@ driver_open_device( InputDevice      *device,
      /* open device */
      fd = open( "/dev/touchscreen/wm97xx", O_RDONLY | O_NOCTTY );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/WM97xx: Error opening `/dev/touchscreen/wm97xx'!\n" );
+          D_PERROR( "DirectFB/WM97xx: Error opening `/dev/touchscreen/wm97xx'!\n" );
           return DFB_INIT;
      }
 
@@ -199,7 +202,7 @@ driver_open_device( InputDevice      *device,
      info->desc.max_button = DIBI_LEFT;
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(WM97xxTSData) );
+     data = D_CALLOC( 1, sizeof(WM97xxTSData) );
 
      data->fd     = fd;
      data->device = device;
@@ -236,8 +239,8 @@ driver_close_device( void *driver_data )
 
      /* close device */
      if (close( data->fd ) < 0)
-          PERRORMSG( "DirectFB/WM97xx: Error closing `/dev/touchscreen/wm97xx'!\n" );
+          D_PERROR( "DirectFB/WM97xx: Error closing `/dev/touchscreen/wm97xx'!\n" );
 
      /* free private data */
-     DFBFREE( data );
+     D_FREE( data );
 }

@@ -34,7 +34,7 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -54,7 +54,8 @@
 
 #include <gfx/convert.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include "idirectfbdisplaylayer.h"
 #include "idirectfbscreen.h"
@@ -154,7 +155,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
           return DFB_INVARG;
 
      if (data->level == DLSCL_SHARED) {
-          CAUTION( "letting unprivileged IDirectFBDisplayLayer::GetSurface() "
+          D_WARN( "letting unprivileged IDirectFBDisplayLayer::GetSurface() "
                    "call pass until cooperative level handling is finished" );
      }
 

@@ -34,8 +34,8 @@
 
 #include <core/system.h>
 
-#include <core/fusion/call.h>
-#include <core/fusion/reactor.h>
+#include <fusion/call.h>
+#include <fusion/reactor.h>
 
 #include "vt.h"
 

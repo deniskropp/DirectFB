@@ -40,7 +40,7 @@
 #include <pthread.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <idirectfb.h>
 
@@ -63,7 +63,7 @@
 #include <input/idirectfbinputbuffer.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include <gfx/convert.h>
 
@@ -106,22 +106,22 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 {
      IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
 
-     DEBUGMSG("IDirectFBWindow_Destruct...\n");
+     D_DEBUG("IDirectFBWindow_Destruct...\n");
 
      if (!data->detached) {
-          DEBUGMSG("IDirectFBWindow_Destruct - detaching...\n");
+          D_DEBUG("IDirectFBWindow_Destruct - detaching...\n");
 
           dfb_window_detach( data->window, &data->reaction );
 
-          DEBUGMSG("IDirectFBWindow_Destruct - detached.\n");
+          D_DEBUG("IDirectFBWindow_Destruct - detached.\n");
      }
 
      if (!data->destroyed) {
-          DEBUGMSG("IDirectFBWindow_Destruct - unrefing...\n");
+          D_DEBUG("IDirectFBWindow_Destruct - unrefing...\n");
 
           dfb_window_unref( data->window );
 
-          DEBUGMSG("IDirectFBWindow_Destruct - unref done.\n");
+          D_DEBUG("IDirectFBWindow_Destruct - unref done.\n");
      }
 
      if (data->surface)
@@ -131,9 +131,9 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           data->cursor.shape->Release( data->cursor.shape );
 
      if (data->position_size_event)
-          DFBFREE( data->position_size_event );
+          D_FREE( data->position_size_event );
 
-     DEBUGMSG("IDirectFBWindow_Destruct - done.\n");
+     D_DEBUG("IDirectFBWindow_Destruct - done.\n");
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -178,7 +178,7 @@ IDirectFBWindow_CreateEventBuffer( IDirectFBWindow       *thiz,
 
      if (data->position_size_event) {
           dfb_window_post_event( data->window, data->position_size_event );
-          DFBFREE( data->position_size_event );
+          D_FREE( data->position_size_event );
           data->position_size_event = NULL;
      }
 
@@ -200,7 +200,7 @@ IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
 
      if (data->position_size_event) {
           dfb_window_post_event( data->window, data->position_size_event );
-          DFBFREE( data->position_size_event );
+          D_FREE( data->position_size_event );
           data->position_size_event = NULL;
      }
 
@@ -840,7 +840,7 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     DEBUGMSG("IDirectFBWindow_Destroy\n");
+     D_DEBUG("IDirectFBWindow_Destroy\n");
 
      dfb_window_destroy( data->window );
 
@@ -854,7 +854,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
 {
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
-     DEBUGMSG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
+     D_DEBUG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
                 window->x, window->y, window->width, window->height );
 
      data->ref = 1;
@@ -923,28 +923,28 @@ IDirectFBWindow_React( const void *msg_data,
      const DFBWindowEvent *evt  = msg_data;
      IDirectFBWindow_data *data = ctx;
 
-     HEAVYDEBUGMSG("IDirectFBWindow_React\n");
+     D_HEAVYDEBUG("IDirectFBWindow_React\n");
 
      switch (evt->type) {
           case DWET_POSITION_SIZE:
                if (!data->position_size_event)
-                    data->position_size_event = DFBMALLOC( sizeof(DFBWindowEvent) );
+                    data->position_size_event = D_MALLOC( sizeof(DFBWindowEvent) );
 
                *data->position_size_event = *evt;
 
                break;
 
           case DWET_DESTROYED:
-               DEBUGMSG("IDirectFBWindow_React - window destroyed\n");
+               D_DEBUG("IDirectFBWindow_React - window destroyed\n");
 
                if (!data->destroyed) {
                     data->destroyed = true;
 
-                    DEBUGMSG("IDirectFBWindow_React - unrefing...\n");
+                    D_DEBUG("IDirectFBWindow_React - unrefing...\n");
 
                     dfb_window_unref( data->window );
 
-                    DEBUGMSG("IDirectFBWindow_React - unref done.\n");
+                    D_DEBUG("IDirectFBWindow_React - unref done.\n");
                }
 
                data->detached = true;

@@ -45,8 +45,10 @@
 
 #include <media/idirectfbfont.h>
 
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+
+#include <misc/conf.h>
 #include <misc/tree.h>
 #include <misc/util.h>
 
@@ -129,7 +131,7 @@ render_glyph( CoreFont      *thiz,
      load_flags |= FT_LOAD_RENDER;
 
      if ((err = FT_Load_Glyph( face, index, load_flags ))) {
-          HEAVYDEBUGMSG( "DirectFB/FontFT2: "
+          D_HEAVYDEBUG( "DirectFB/FontFT2: "
                          "Could not render glyph for character #%d!\n", glyph );
           pthread_mutex_unlock ( &library_mutex );
           return DFB_FAILURE;
@@ -140,7 +142,7 @@ render_glyph( CoreFont      *thiz,
      err = dfb_surface_soft_lock( surface, DSLF_WRITE,
                                   &dst, &pitch, 0 );
      if (err) {
-          ERRORMSG( "DirectB/FontFT2: Unable to lock surface!\n" );
+          D_ERROR( "DirectB/FontFT2: Unable to lock surface!\n" );
           return err;
      }
 
@@ -171,7 +173,7 @@ render_glyph( CoreFont      *thiz,
                                    dst32[i] = (src[i] << 24) | 0xFFFFFF;
                               break;
                          case DSPF_A8:
-                              dfb_memcpy( dst, src, info->width );
+                              direct_memcpy( dst, src, info->width );
                               break;
                          case DSPF_A1:
                               for (i=0, j=0; i < info->width; ++j) {
@@ -201,9 +203,7 @@ render_glyph( CoreFont      *thiz,
                                               (1<<(7-(i%8)))) ? 0xFF : 0x00;
                               break;
                          case DSPF_A1:
-                              dfb_memcpy( dst, src,
-                                          DFB_BYTES_PER_LINE(DSPF_A1,
-                                                             info->width) );
+                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE(DSPF_A1, info->width) );
                               break;
                          default:
                               break;
@@ -248,7 +248,7 @@ get_glyph_info( CoreFont      *thiz,
      load_flags = (FT_Int) face->generic.data;
 
      if ((err = FT_Load_Glyph( face, index, load_flags ))) {
-          HEAVYDEBUGMSG( "DirectB/FontFT2: "
+          D_HEAVYDEBUG( "DirectB/FontFT2: "
                          "Could not load glyph for character #%d!\n", glyph );
 
           pthread_mutex_unlock ( &library_mutex );
@@ -259,7 +259,7 @@ get_glyph_info( CoreFont      *thiz,
      if (face->glyph->format != ft_glyph_format_bitmap) {
           err = FT_Render_Glyph( face->glyph, ft_render_mode_normal );
           if (err) {
-               ERRORMSG( "DirectFB/FontFT2: Could not "
+               D_ERROR( "DirectFB/FontFT2: Could not "
                          "render glyph for character #%d!\n", glyph );
 
                pthread_mutex_unlock ( &library_mutex );
@@ -346,11 +346,11 @@ init_freetype( void )
      pthread_mutex_lock ( &library_mutex );
 
      if (!library) {
-          HEAVYDEBUGMSG( "DirectFB/FontFT2: "
+          D_HEAVYDEBUG( "DirectFB/FontFT2: "
                          "Initializing the FreeType2 library.\n" );
           err = FT_Init_FreeType( &library );
           if (err) {
-               ERRORMSG( "DirectFB/FontFT2: "
+               D_ERROR( "DirectFB/FontFT2: "
                          "Initialization of the FreeType2 library failed!\n" );
                library = NULL;
                pthread_mutex_unlock( &library_mutex );
@@ -371,7 +371,7 @@ release_freetype( void )
      pthread_mutex_lock( &library_mutex );
 
      if (library && --library_ref_count == 0) {
-          HEAVYDEBUGMSG( "DirectFB/FontFT2: "
+          D_HEAVYDEBUG( "DirectFB/FontFT2: "
                          "Releasing the FreeType2 library.\n" );
           FT_Done_FreeType( library );
           library = NULL;
@@ -393,7 +393,7 @@ IDirectFBFont_FT2_Destruct( IDirectFBFont *thiz )
           FT_Done_Face( impl_data->face );
           pthread_mutex_unlock ( &library_mutex );
 
-          DFBFREE( impl_data );
+          D_FREE( impl_data );
 
           data->font->impl_data = NULL;
      }
@@ -423,7 +423,7 @@ Probe( IDirectFBFont_ProbeContext *ctx )
      FT_Error err;
      FT_Face  face;
 
-     HEAVYDEBUGMSG( "DirectFB/FontFT2: Probe font `%s'.\n", ctx->filename );
+     D_HEAVYDEBUG( "DirectFB/FontFT2: Probe font `%s'.\n", ctx->filename );
 
      if (!ctx->filename)
           return DFB_UNSUPPORTED;
@@ -457,7 +457,7 @@ Construct( IDirectFBFont      *thiz,
      bool                   disable_kerning = false;
      DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
 
-     HEAVYDEBUGMSG( "DirectFB/FontFT2: "
+     D_HEAVYDEBUG( "DirectFB/FontFT2: "
                     "Construct font from file `%s' (index %d) at pixel size %d x %d.\n",
                     filename,
                     (desc->flags & DFDESC_INDEX)  ? desc->index  : 0,
@@ -477,11 +477,11 @@ Construct( IDirectFBFont      *thiz,
      if (err) {
           switch (err) {
                case FT_Err_Unknown_File_Format:
-                    ERRORMSG( "DirectFB/FontFT2: "
+                    D_ERROR( "DirectFB/FontFT2: "
                               "Unsupported font format in file `%s'!\n", filename );
                     break;
                default:
-                    ERRORMSG( "DirectFB/FontFT2: "
+                    D_ERROR( "DirectFB/FontFT2: "
                               "Failed loading face %d from font file `%s'!\n",
                               (desc->flags & DFDESC_INDEX) ? desc->index : 0,
                               filename );
@@ -522,7 +522,7 @@ Construct( IDirectFBFont      *thiz,
 
           /* ft_encoding_latin_1 has been introduced in freetype-2.1 */
           if (err) {
-               HEAVYDEBUGMSG( "DirectFB/FontFT2: "
+               D_HEAVYDEBUG( "DirectFB/FontFT2: "
                               "Couldn't select Unicode encoding, "
                               "falling back to Latin1.\n");
                pthread_mutex_lock ( &library_mutex );
@@ -534,7 +534,7 @@ Construct( IDirectFBFont      *thiz,
 
 #if 0
      if (err) {
-          ERRORMSG( "DirectFB/FontFT2: "
+          D_ERROR( "DirectFB/FontFT2: "
                     "Couldn't select a suitable encoding for face %d from font file `%s'!\n", (desc->flags & DFDESC_INDEX) ? desc->index : 0, filename );
           pthread_mutex_lock ( &library_mutex );
           FT_Done_Face( face );
@@ -551,7 +551,7 @@ Construct( IDirectFBFont      *thiz,
                                     (desc->flags & DFDESC_HEIGHT) ? desc->height : 0 );
           pthread_mutex_unlock ( &library_mutex );
           if (err) {
-               ERRORMSG( "DirectB/FontFT2: "
+               D_ERROR( "DirectB/FontFT2: "
                          "Could not set pixel size to %d x %d!\n",
                          (desc->flags & DFDESC_WIDTH)  ? desc->width  : 0,
                          (desc->flags & DFDESC_HEIGHT) ? desc->height : 0 );
@@ -568,7 +568,7 @@ Construct( IDirectFBFont      *thiz,
 
      font = dfb_font_create( core );
 
-     DFB_ASSERT( font->pixel_format == DSPF_ARGB ||
+     D_ASSERT( font->pixel_format == DSPF_ARGB ||
                  font->pixel_format == DSPF_A8   ||
                  font->pixel_format == DSPF_A1 );
 
@@ -580,19 +580,19 @@ Construct( IDirectFBFont      *thiz,
      font->height     = font->ascender + ABS(font->descender) + 1;
      font->maxadvance = face->size->metrics.max_advance >> 6;
 
-     HEAVYDEBUGMSG( "DirectFB/FontFT2: font->height = %d\n", font->height );
-     HEAVYDEBUGMSG( "DirectFB/FontFT2: font->ascender = %d\n", font->ascender );
-     HEAVYDEBUGMSG( "DirectFB/FontFT2: font->descender = %d\n",font->descender );
+     D_HEAVYDEBUG( "DirectFB/FontFT2: font->height = %d\n", font->height );
+     D_HEAVYDEBUG( "DirectFB/FontFT2: font->ascender = %d\n", font->ascender );
+     D_HEAVYDEBUG( "DirectFB/FontFT2: font->descender = %d\n",font->descender );
 
      font->GetGlyphInfo = get_glyph_info;
      font->RenderGlyph  = render_glyph;
 
      if (FT_HAS_KERNING(face) && !disable_kerning) {
           font->GetKerning = get_kerning;
-          data = DFBCALLOC( 1, sizeof(FT2ImplKerningData) );
+          data = D_CALLOC( 1, sizeof(FT2ImplKerningData) );
      }
      else
-          data = DFBCALLOC( 1, sizeof(FT2ImplData) );
+          data = D_CALLOC( 1, sizeof(FT2ImplData) );
 
      data->face            = face;
      data->disable_charmap = disable_charmap;

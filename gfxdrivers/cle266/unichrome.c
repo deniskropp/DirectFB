@@ -346,7 +346,7 @@ static void uc_engine_sync(void* drv, void* dev)
 
      while ((VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & 0xfffeffff) != 0x00020000) {
           if (++loop > MAXLOOP) {
-               ERRORMSG("DirectFB/VIA: Timeout waiting for idle engine!\n");
+               D_ERROR("DirectFB/VIA: Timeout waiting for idle engine!\n");
                break;
           }
      }
@@ -421,7 +421,7 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
 
           fd = open(UNICHROME_DEVICE, O_RDWR | O_SYNC, 0);
           if (fd < 0) {
-               ERRORMSG("Could not access %s. "
+               D_ERROR("Could not access %s. "
                         "Is the cle266vgaio module installed?\n", UNICHROME_DEVICE);
                return DFB_IO;
           }

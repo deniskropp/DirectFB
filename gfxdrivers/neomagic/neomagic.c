@@ -170,25 +170,25 @@ driver_close_device( GraphicsDevice *device,
                neo2200_close_device( device, driver_data, device_data );
      }
 
-     DEBUGMSG( "DirectFB/NEO: FIFO Performance Monitoring:\n" );
-     DEBUGMSG( "DirectFB/NEO:  %9d neo_waitfifo calls\n",
+     D_DEBUG( "DirectFB/NEO: FIFO Performance Monitoring:\n" );
+     D_DEBUG( "DirectFB/NEO:  %9d neo_waitfifo calls\n",
                ndev->waitfifo_calls );
-     DEBUGMSG( "DirectFB/NEO:  %9d register writes (neo_waitfifo sum)\n",
+     D_DEBUG( "DirectFB/NEO:  %9d register writes (neo_waitfifo sum)\n",
                ndev->waitfifo_sum );
-     DEBUGMSG( "DirectFB/NEO:  %9d FIFO wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/NEO:  %9d FIFO wait cycles (depends on CPU)\n",
                ndev->fifo_waitcycles );
-     DEBUGMSG( "DirectFB/NEO:  %9d IDLE wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFB/NEO:  %9d IDLE wait cycles (depends on CPU)\n",
                ndev->idle_waitcycles );
-     DEBUGMSG( "DirectFB/NEO:  %9d FIFO space cache hits(depends on CPU)\n",
+     D_DEBUG( "DirectFB/NEO:  %9d FIFO space cache hits(depends on CPU)\n",
                ndev->fifo_cache_hits );
-     DEBUGMSG( "DirectFB/NEO: Conclusion:\n" );
-     DEBUGMSG( "DirectFB/NEO:  Average register writes/neo_waitfifo"
+     D_DEBUG( "DirectFB/NEO: Conclusion:\n" );
+     D_DEBUG( "DirectFB/NEO:  Average register writes/neo_waitfifo"
                "call:%.2f\n",
                ndev->waitfifo_sum/(float)(ndev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/NEO:  Average wait cycles/neo_waitfifo call:"
+     D_DEBUG( "DirectFB/NEO:  Average wait cycles/neo_waitfifo call:"
                " %.2f\n",
                ndev->fifo_waitcycles/(float)(ndev->waitfifo_calls) );
-     DEBUGMSG( "DirectFB/NEO:  Average fifo space cache hits: %02d%%\n",
+     D_DEBUG( "DirectFB/NEO:  Average fifo space cache hits: %02d%%\n",
                (int)(100 * ndev->fifo_cache_hits/
                (float)(ndev->waitfifo_calls)) );
 }

@@ -30,7 +30,7 @@
 
 #include <directfb.h>
 #include <core/coretypes.h>
-#include <core/fusion/object.h>
+#include <fusion/object.h>
 
 struct _CorePalette {
      FusionObject  object;

@@ -13,7 +13,8 @@
 // Note to self: remove when added to makefile as -DUC_DEBUG.
 #define UC_DEBUG 1
 
-#include <core/coredefs.h>
+#include <dfb_types.h>
+
 #include "regs2d.h"
 #include "regs3d.h"
 #include "mmio.h"
@@ -89,11 +90,11 @@ struct uc_fifo
 #define UC_FIFO_PREPARE(fifo, dwsize)                       \
     do {                                                    \
         if ((fifo)->used + dwsize + 32 > (fifo)->size) {    \
-            DEBUGMSG("CLE266: FIFO full - flushing it.");   \
+            D_DEBUG("CLE266: FIFO full - flushing it.");   \
             UC_FIFO_FLUSH(fifo);                            \
         }                                                   \
         if (dwsize + (fifo)->prep + 32 > (fifo)->size) {    \
-            BUG("CLE266: FIFO too small for allocation.");  \
+            D_BUG("CLE266: FIFO too small for allocation.");  \
         }                                                   \
         (fifo)->prep += dwsize;                             \
     } while(0)
@@ -238,10 +239,10 @@ struct uc_fifo
 #define UC_FIFO_CHECK(fifo)                         \
     do {                                            \
         if ((fifo)->used > ((fifo)->size) - 32) {   \
-            BUG("CLE266: FIFO overrun.");           \
+            D_BUG("CLE266: FIFO overrun.");           \
         }                                           \
         if ((fifo)->used > (fifo)->prep) {          \
-            BUG("CLE266: FIFO allocation error.");  \
+            D_BUG("CLE266: FIFO allocation error.");  \
         }                                           \
     } while(0)
 

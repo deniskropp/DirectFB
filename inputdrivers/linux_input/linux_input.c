@@ -52,7 +52,10 @@
 #include <core/system.h>
 #include <core/thread.h>
 
-#include <misc/mem.h>
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
+
 #include <misc/util.h>
 
 #include <core/input_driver.h>
@@ -383,7 +386,7 @@ linux_input_EventThread( CoreThread *thread, void *driver_data )
      }
 
      if (readlen <= 0)
-          PERRORMSG ("linux_input thread died\n");
+          D_PERROR ("linux_input thread died\n");
 
      return NULL;
 }
@@ -582,7 +585,7 @@ driver_open_device( InputDevice      *device,
      /* open device */
      fd = open( buf, O_RDONLY );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/linux_input: could not open device" );
+          D_PERROR( "DirectFB/linux_input: could not open device" );
           return DFB_INIT;
      }
 
@@ -590,7 +593,7 @@ driver_open_device( InputDevice      *device,
      get_device_info( fd, info );
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(LinuxInputData) );
+     data = D_CALLOC( 1, sizeof(LinuxInputData) );
 
      data->fd     = fd;
      data->device = device;
@@ -636,6 +639,6 @@ driver_close_device( void *driver_data )
      close( data->fd );
 
      /* free private data */
-     DFBFREE ( data );
+     D_FREE ( data );
 }
 

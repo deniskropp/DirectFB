@@ -28,7 +28,7 @@
 #ifndef __SURFACEMANAGER_H__
 #define __SURFACEMANAGER_H__
 
-#include <core/fusion/lock.h>
+#include <fusion/lock.h>
 
 #include <directfb.h>
 #include <core/core.h>

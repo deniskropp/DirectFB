@@ -31,7 +31,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -44,7 +44,9 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
-#include <misc/memcpy.h>
+
+#include <direct/memcpy.h>
+#include <direct/messages.h>
 
 #include <SDL.h>
 
@@ -292,7 +294,7 @@ primaryReallocateSurface( CoreLayer             *layer,
                break;
 
           default:
-               BUG("unknown buffermode");
+               D_BUG("unknown buffermode");
                return DFB_BUG;
      }
      if (ret)
@@ -352,18 +354,18 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      int          pitch;
      DFBResult    ret;
 
-     DFB_ASSERT( surface != NULL );
+     D_ASSERT( surface != NULL );
 
      if (SDL_LockSurface( screen ) < 0) {
-          ERRORMSG( "DirectFB/SDL: "
-                    "Couldn't lock the display surface: %s\n", SDL_GetError() );
+          D_ERROR( "DirectFB/SDL: "
+                   "Couldn't lock the display surface: %s\n", SDL_GetError() );
           return DFB_FAILURE;
      }
 
      ret = dfb_surface_soft_lock( surface, DSLF_READ, &src, &pitch, true );
      if (ret) {
-          ERRORMSG( "DirectFB/SDL: Couldn't lock layer surface: %s\n",
-                    DirectFBErrorString( ret ) );
+          D_ERROR( "DirectFB/SDL: Couldn't lock layer surface: %s\n",
+                   DirectFBErrorString( ret ) );
           SDL_UnlockSurface(screen);
           return ret;
      }
@@ -374,8 +376,7 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      dst += DFB_BYTES_PER_LINE( surface->format, x ) + y * screen->pitch;
 
      for (i=0; i<h; ++i) {
-          dfb_memcpy( dst, src,
-                      DFB_BYTES_PER_LINE( surface->format, w ) );
+          direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
 
           src += pitch;
           dst += screen->pitch;
@@ -408,7 +409,7 @@ dfb_sdl_set_video_mode_handler( CoreLayerRegionConfig *config )
                                    DFB_BITS_PER_PIXEL(config->format),
                                    SDL_HWSURFACE)) == NULL )
      {
-             ERRORMSG("Couldn't set %dx%dx%d video mode: %s\n",
+             D_ERROR( "DirectFB/SDL: Couldn't set %dx%dx%d video mode: %s\n",
                       config->width, config->height,
                       DFB_COLOR_BITS_PER_PIXEL(config->format), SDL_GetError());
 
@@ -481,7 +482,7 @@ dfb_sdl_call_handler( int   caller,
                return dfb_sdl_set_palette_handler( call_ptr );
 
           default:
-               BUG( "unknown call" );
+               D_BUG( "unknown call" );
                break;
      }
 
@@ -494,7 +495,7 @@ dfb_sdl_set_video_mode( CoreLayerRegionConfig *config )
      int                    ret;
      CoreLayerRegionConfig *tmp = NULL;
 
-     DFB_ASSERT( config != NULL );
+     D_ASSERT( config != NULL );
 
      if (dfb_core_is_master( NULL ))
           return dfb_sdl_set_video_mode_handler( config );
@@ -504,7 +505,7 @@ dfb_sdl_set_video_mode( CoreLayerRegionConfig *config )
           if (!tmp)
                return DFB_NOSYSTEMMEMORY;
 
-          dfb_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
+          direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
      }
 
      fusion_call_execute( &dfb_sdl->call, SDL_SET_VIDEO_MODE,
@@ -531,7 +532,7 @@ dfb_sdl_update_screen( DFBRegion *region )
                if (!tmp)
                     return DFB_NOSYSTEMMEMORY;
 
-               dfb_memcpy( tmp, region, sizeof(DFBRegion) );
+               direct_memcpy( tmp, region, sizeof(DFBRegion) );
           }
      }
 

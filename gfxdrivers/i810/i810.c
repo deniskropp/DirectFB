@@ -101,7 +101,7 @@ i810_wait_for_blit_idle(I810DriverData *i810drv,
 	if (count >= TIMER_LOOP) {
 		if (i810dev != NULL)
 			i810dev->idle_timeoutsum++;
-		BUG("warning: idle timeout exceeded");
+		D_BUG("warning: idle timeout exceeded");
 	}
 }
 
@@ -156,7 +156,7 @@ i810_wait_for_space(I810DriverData *i810drv,
 		}
 		tries++;
 	}
-	BUG("warning: buffer space timout error");
+	D_BUG("warning: buffer space timout error");
 	return 1;
 }
 
@@ -236,7 +236,7 @@ i810_set_dest(I810DriverData *i810drv,
 		i810drv->blit_color = BPP24;
 		break;
 	default:
-		BUG("unexpected pixelformat~");
+		D_BUG("unexpected pixelformat~");
 	}
 	i810dev->i_dst = 1;
 }
@@ -291,7 +291,7 @@ i810_set_color(I810DriverData *i810drv,
 						   state->color.b);
 		break;
 	default:
-		BUG("unexpected pixelformat~");
+		D_BUG("unexpected pixelformat~");
 	}
 	i810dev->i_color = 1;
 }
@@ -380,7 +380,7 @@ i810SetState( void *drv, void *dev,
 		state->set |= DFXL_BLIT;
 		break;
 	default:
-		BUG("unexpected drawing/blitting function");
+		D_BUG("unexpected drawing/blitting function");
 	}
 	state->modified = 0;
 }
@@ -632,7 +632,7 @@ i810fill_tri( DFBTriangle    *tri,
 	
 	total = (yend - y) * 5;
 	if (total + BUFFER_PADDING > RINGBUFFER_SIZE/4) {
-		BUG("fill_triangle: buffer size is too small\n"); 
+		D_BUG("fill_triangle: buffer size is too small\n"); 
 		return false;
 	}
 	
@@ -913,36 +913,36 @@ driver_close_device( GraphicsDevice *device,
 	(void) i810dev;
 	(void) i810drv;
 
-	DEBUGMSG( "DirectFB/I810: DMA Buffer Performance Monitoring:\n"); 
-	DEBUGMSG( "DirectFB/I810:  %9d DMA buffer size in KB\n",
+	D_DEBUG( "DirectFB/I810: DMA Buffer Performance Monitoring:\n"); 
+	D_DEBUG( "DirectFB/I810:  %9d DMA buffer size in KB\n",
 		  RINGBUFFER_SIZE/1024 );
-	DEBUGMSG( "DirectFB/I810:  %9d i810_wait_for_blit_idle calls\n",
+	D_DEBUG( "DirectFB/I810:  %9d i810_wait_for_blit_idle calls\n",
 		  i810dev->idle_calls );
-	DEBUGMSG( "DirectFB/I810:  %9d i810_wait_for_space calls\n",
+	D_DEBUG( "DirectFB/I810:  %9d i810_wait_for_space calls\n",
 		  i810dev->waitfifo_calls );
-	DEBUGMSG( "DirectFB/I810:  %9d BUFFER transfers (i810_wait_for_space sum)\n",
+	D_DEBUG( "DirectFB/I810:  %9d BUFFER transfers (i810_wait_for_space sum)\n",
 		  i810dev->waitfifo_sum );
-	DEBUGMSG( "DirectFB/I810:  %9d BUFFER wait cycles (depends on CPU)\n",
+	D_DEBUG( "DirectFB/I810:  %9d BUFFER wait cycles (depends on CPU)\n",
 		  i810dev->fifo_waitcycles );
-	DEBUGMSG( "DirectFB/I810:  %9d IDLE wait cycles (depends on CPU)\n",
+	D_DEBUG( "DirectFB/I810:  %9d IDLE wait cycles (depends on CPU)\n",
 		  i810dev->idle_waitcycles );
-	DEBUGMSG( "DirectFB/I810:  %9d BUFFER space cache hits(depends on CPU)\n",
+	D_DEBUG( "DirectFB/I810:  %9d BUFFER space cache hits(depends on CPU)\n",
 		  i810dev->fifo_cache_hits );
-	DEBUGMSG( "DirectFB/I810:  %9d BUFFER timeout sum (possible hardware crash)\n", 
+	D_DEBUG( "DirectFB/I810:  %9d BUFFER timeout sum (possible hardware crash)\n", 
 		  i810dev->fifo_timeoutsum );
-	DEBUGMSG( "DirectFB/I810:  %9d IDLE timeout sum (possible hardware crash)\n",
+	D_DEBUG( "DirectFB/I810:  %9d IDLE timeout sum (possible hardware crash)\n",
 		  i810dev->idle_timeoutsum );
-	DEBUGMSG( "DirectFB/I810: Conclusion:\n" );
-	DEBUGMSG( "DirectFB/I810:  Average buffer transfers per i810_wait_for_space "
+	D_DEBUG( "DirectFB/I810: Conclusion:\n" );
+	D_DEBUG( "DirectFB/I810:  Average buffer transfers per i810_wait_for_space "
 		  "call: %.2f\n",
 		  i810dev->waitfifo_sum/(float)(i810dev->waitfifo_calls) );
-	DEBUGMSG( "DirectFB/I810:  Average wait cycles per i810_wait_for_space call:"
+	D_DEBUG( "DirectFB/I810:  Average wait cycles per i810_wait_for_space call:"
 		  " %.2f\n",
 		  i810dev->fifo_waitcycles/(float)(i810dev->waitfifo_calls) );
-	DEBUGMSG( "DirectFB/I810:  Average wait cycles per i810_wait_for_blit_idle call:"	       
+	D_DEBUG( "DirectFB/I810:  Average wait cycles per i810_wait_for_blit_idle call:"	       
 		  " %.2f\n",
 		  i810dev->idle_waitcycles/(float)(i810dev->idle_calls) );
-	DEBUGMSG( "DirectFB/I810:  Average buffer space cache hits: %02d%%\n",
+	D_DEBUG( "DirectFB/I810:  Average buffer space cache hits: %02d%%\n",
 		  (int)(100 * i810dev->fifo_cache_hits/
 			(float)(i810dev->waitfifo_calls)) );
 

@@ -38,7 +38,9 @@
 
 #include "i2c-dev.h"
 
-#include <misc/memcpy.h>
+#include <direct/memcpy.h>
+
+#include <misc/conf.h>
 #include <misc/util.h>
 
 #include "matrox.h"
@@ -321,17 +323,17 @@ maven_open( MatroxMavenData  *mav,
           return DFB_OK;
 
      if (mdrv->maven_fd != -1)
-          BUG( "DirectFB/Matrox/Maven: Device already open!\n" );
+          D_BUG( "DirectFB/Matrox/Maven: Device already open!\n" );
 
      if ((mdrv->maven_fd = open( mav->dev, O_RDWR )) < 0) {
-          PERRORMSG( "DirectFB/Matrox/Maven: Error opening `%s'!\n",
+          D_PERROR( "DirectFB/Matrox/Maven: Error opening `%s'!\n",
                      mav->dev );
           mdrv->maven_fd = -1;
           return errno2dfb( errno );
      }
 
      if (ioctl( mdrv->maven_fd, I2C_SLAVE, MAVEN_I2CID ) < 0) {
-          PERRORMSG( "DirectFB/Matrox/Maven: Error controlling `%s'!\n",
+          D_PERROR( "DirectFB/Matrox/Maven: Error controlling `%s'!\n",
                      mav->dev );
           close( mdrv->maven_fd );
           mdrv->maven_fd = -1;
@@ -351,7 +353,7 @@ maven_close( MatroxMavenData  *mav,
           return;
 
      if (mdrv->maven_fd == -1)
-          BUG( "DirectFB/Matrox/Maven: Device not open!\n" );
+          D_BUG( "DirectFB/Matrox/Maven: Device not open!\n" );
 
      close( mdrv->maven_fd );
      mdrv->maven_fd = -1;
@@ -378,14 +380,14 @@ DFBResult maven_init( MatroxMavenData  *mav,
 
           class = sysfs_open_class( "i2c-dev" );
           if (!class) {
-               PERRORMSG( "DirectFB/Matrox/Maven: "
+               D_PERROR( "DirectFB/Matrox/Maven: "
                           "Error opening sysfs class `i2c-dev'!\n" );
                return errno2dfb( errno );
           }
 
           class_devices = sysfs_get_class_devices( class );
           if (!class_devices) {
-               PERRORMSG( "DirectFB/Matrox/Maven: "
+               D_PERROR( "DirectFB/Matrox/Maven: "
                           "Error reading sysfs class devices!\n" );
                sysfs_close_class( class );
                return errno2dfb( errno );
@@ -413,7 +415,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
      if (!mdev->g450_matrox && !found) {
           file = fopen( "/proc/bus/i2c", "r" );
           if (!file) {
-               PERRORMSG( "DirectFB/Matrox/Maven: "
+               D_PERROR( "DirectFB/Matrox/Maven: "
                           "Error opening `/proc/bus/i2c'!\n" );
                return errno2dfb( errno );
           }
@@ -434,20 +436,20 @@ DFBResult maven_init( MatroxMavenData  *mav,
 
      if (!mdev->g450_matrox) {
           if (!found) {
-               ERRORMSG( "DirectFB/Matrox/Maven: "
+               D_ERROR( "DirectFB/Matrox/Maven: "
                          "Can't find MAVEN i2c device file!\n" );
                return DFB_UNSUPPORTED;
           }
 
           /* Try to use it */
           if ((fd = open( mav->dev, O_RDWR )) < 0) {
-               PERRORMSG( "DirectFB/Matrox/Maven: Error opening `%s'!\n",
+               D_PERROR( "DirectFB/Matrox/Maven: Error opening `%s'!\n",
                           mav->dev );
                return errno2dfb( errno );
           }
 
           if (ioctl( fd, I2C_SLAVE, MAVEN_I2CID ) < 0) {
-               PERRORMSG( "DirectFB/Matrox/Maven: Error controlling `%s'!\n",
+               D_PERROR( "DirectFB/Matrox/Maven: Error controlling `%s'!\n",
                           mav->dev );
                close( fd );
                return errno2dfb( errno );
@@ -567,9 +569,9 @@ DFBResult maven_init( MatroxMavenData  *mav,
           };
 
           if (dfb_config->matrox_ntsc)
-               dfb_memcpy( mav->regs, ntscregs, 64 );
+               direct_memcpy( mav->regs, ntscregs, 64 );
           else
-               dfb_memcpy( mav->regs, palregs, 64 );
+               direct_memcpy( mav->regs, palregs, 64 );
 
           if (mdev->g450_matrox) {
                if (dfb_config->matrox_ntsc) {

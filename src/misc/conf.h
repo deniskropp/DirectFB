@@ -31,7 +31,7 @@
 #include <signal.h>
 
 #include <directfb.h>
-#include <core/fusion/fusion_types.h>
+#include <fusion/types.h>
 
 typedef struct
 {
@@ -60,10 +60,6 @@ typedef struct
      bool      mmx;                               /* mmx support */
 
      bool      banner;                            /* startup banner */
-     bool      quiet;                             /* no output at all
-                                                     except debugging */
-
-     bool      debug;                             /* debug output */
 
      bool      force_windowed;                    /* prohibit exclusive modes */
 
@@ -121,15 +117,8 @@ typedef struct
 
      int       session;                           /* select multi app world */
 
-     char     *tmpfs;                             /* location of shm file */
-
      int       primary_layer;                     /* select alternative primary
                                                      display layer */
-
-     char     *memcpy;                            /* Don't probe for memcpy
-                                                     routines to save a lot of
-                                                     startup time. Use this one
-                                                     instead if it's set. */
 
      bool      force_desktop;                     /* Desktop background is
                                                      the primary surface. */

@@ -25,6 +25,7 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -44,7 +45,9 @@
 #include <core/input.h>
 #include <core/thread.h>
 
-#include <misc/mem.h>
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <core/input_driver.h>
 
@@ -152,7 +155,7 @@ lircEventThread( CoreThread *thread, void *driver_data )
                     if (errno == EINTR)
                          continue;
 
-                    PERRORMSG("DirectFB/LIRC: select() failed\n");
+                    D_PERROR("DirectFB/LIRC: select() failed\n");
                     return NULL;
 
                case 0:
@@ -275,13 +278,13 @@ driver_open_device( InputDevice      *device,
 
      fd = socket( PF_UNIX, SOCK_STREAM, 0 );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/LIRC: socket" );
+          D_PERROR( "DirectFB/LIRC: socket" );
           return DFB_INIT;
      }
 
      /* initiate connection */
      if (connect( fd, (struct sockaddr*)&sa, sizeof(sa) ) < 0) {
-          PERRORMSG( "DirectFB/LIRC: connect" );
+          D_PERROR( "DirectFB/LIRC: connect" );
           close( fd );
           return DFB_INIT;
      }
@@ -299,7 +302,7 @@ driver_open_device( InputDevice      *device,
      info->desc.caps   = DICAPS_KEYS;
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(LircData) );
+     data = D_CALLOC( 1, sizeof(LircData) );
 
      data->fd     = fd;
      data->device = device;
@@ -338,6 +341,6 @@ driver_close_device( void *driver_data )
      close( data->fd );
 
      /* free private data */
-     DFBFREE( data );
+     D_FREE( data );
 }
 

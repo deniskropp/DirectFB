@@ -44,7 +44,9 @@
 #include <core/input.h>
 #include <core/thread.h>
 
-#include <misc/mem.h>
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <core/input_driver.h>
 
@@ -125,7 +127,7 @@ sonypiEventThread( CoreThread *thread, void *driver_data )
      }
 
      if (readlen < 0)
-          PERRORMSG ("sonypi thread died\n");
+          D_PERROR ("sonypi thread died\n");
 
      return NULL;
 }
@@ -184,7 +186,7 @@ driver_open_device( InputDevice      *device,
      /* open device */
      fd = open( DEVICE, O_RDONLY);
      if (fd < 0) {
-          PERRORMSG( "DirectFB/sonypi: could not open device" );
+          D_PERROR( "DirectFB/sonypi: could not open device" );
           return DFB_INIT;
      }
 
@@ -209,7 +211,7 @@ driver_open_device( InputDevice      *device,
 
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(SonypiData) );
+     data = D_CALLOC( 1, sizeof(SonypiData) );
 
      data->fd     = fd;
      data->device = device;
@@ -251,6 +253,6 @@ driver_close_device( void *driver_data )
      close( data->fd );
 
      /* free private data */
-     DFBFREE ( data );
+     D_FREE ( data );
 }
 

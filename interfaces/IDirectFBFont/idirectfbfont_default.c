@@ -40,8 +40,8 @@
 
 #include <misc/tree.h>
 #include <misc/utf8.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 
 #include "default_font.h"
 
@@ -87,11 +87,11 @@ Construct( IDirectFBFont      *thiz,
      int          pitch;
      int          i;
 
-     HEAVYDEBUGMSG( "DirectFB/FontDefault: Construct default font");
+     D_HEAVYDEBUG( "DirectFB/FontDefault: Construct default font");
 
      font = dfb_font_create( core );
 
-     DFB_ASSERT( font->pixel_format == DSPF_ARGB ||
+     D_ASSERT( font->pixel_format == DSPF_ARGB ||
                  font->pixel_format == DSPF_A8 );
 
      font->height    = DEFAULT_FONT_HEIGHT;
@@ -104,7 +104,7 @@ Construct( IDirectFBFont      *thiz,
 
      font->rows = 1;
      font->row_width = font_desc.width;
-     font->surfaces = DFBMALLOC(sizeof (void *));
+     font->surfaces = D_MALLOC(sizeof (void *));
      font->surfaces[0] = surface;
 
      pixels = font_data;
@@ -129,7 +129,7 @@ Construct( IDirectFBFont      *thiz,
 
           for (i = 0; i < font_desc.width; i++) {
                if (pixels[i] == 0xFF) {
-                    data = DFBMALLOC(sizeof (CoreGlyphData));
+                    data = D_MALLOC(sizeof (CoreGlyphData));
                     data->surface = surface;
                     data->start   = start;
                     data->width   = i - start + 1;
@@ -141,7 +141,7 @@ Construct( IDirectFBFont      *thiz,
                                      desc->fixed_advance :
                                      data->width + 1);
 
-                    HEAVYDEBUGMSG( "DirectFB/core/fonts: "
+                    D_HEAVYDEBUG( "DirectFB/core/fonts: "
                                    "glyph '%c' at %d, width %d\n",
                                    glyphs[index], start, i-start );
 
@@ -163,7 +163,7 @@ Construct( IDirectFBFont      *thiz,
           }
 
           /*  space  */
-          data = DFBCALLOC(1, sizeof (CoreGlyphData));
+          data = D_CALLOC(1, sizeof (CoreGlyphData));
           data->advance = 5;
 
           if (use_unicode)
@@ -187,7 +187,7 @@ Construct( IDirectFBFont      *thiz,
                          dst32[n] = (pixels[n] << 24) | 0xFFFFFF;
                     break;
                case DSPF_A8:
-                    dfb_memcpy(dst, pixels, font_desc.width);
+                    direct_memcpy(dst, pixels, font_desc.width);
                     break;
                default:
                     break;

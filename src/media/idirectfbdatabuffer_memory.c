@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -37,11 +37,11 @@
 
 #include <pthread.h>
 
-#include <core/fusion/reactor.h>
-#include <core/fusion/list.h>
+#include <fusion/reactor.h>
+#include <direct/list.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -50,8 +50,8 @@
 #include <core/windows.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 
 #include <media/idirectfbdatabuffer.h>
 
@@ -174,16 +174,16 @@ IDirectFBDataBuffer_Memory_GetData( IDirectFBDataBuffer *thiz,
 
      if (data->pos >= data->length)
           return DFB_BUFFEREMPTY;
-     
+
      size = MIN( length, data->length - data->pos );
-     
-     dfb_memcpy( data_buffer, data->buffer + data->pos, size );
+
+     direct_memcpy( data_buffer, data->buffer + data->pos, size );
 
      data->pos += size;
 
      if (read_out)
           *read_out = size;
-     
+
      return DFB_OK;
 }
 
@@ -203,14 +203,14 @@ IDirectFBDataBuffer_Memory_PeekData( IDirectFBDataBuffer *thiz,
 
      if (data->pos + offset >= data->length)
           return DFB_BUFFEREMPTY;
-     
+
      size = MIN( length, data->length - data->pos - offset );
-     
-     dfb_memcpy( data_buffer, data->buffer + data->pos + offset, size );
+
+     direct_memcpy( data_buffer, data->buffer + data->pos + offset, size );
 
      if (read_out)
           *read_out = size;
-     
+
      return DFB_OK;
 }
 

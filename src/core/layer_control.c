@@ -32,9 +32,9 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <core/fusion/shmalloc.h>
-#include <core/fusion/arena.h>
-#include <core/fusion/property.h>
+#include <fusion/shmalloc.h>
+#include <fusion/arena.h>
+#include <fusion/property.h>
 
 #include <directfb.h>
 
@@ -59,9 +59,12 @@
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+
 #include <misc/util.h>
+
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
 
 #include <core/layers_internal.h>
 
@@ -75,8 +78,8 @@ dfb_layer_suspend( CoreLayer *layer )
      CoreLayerShared   *shared;
      CoreLayerContexts *contexts;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->shared != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
 
      shared   = layer->shared;
      contexts = &shared->contexts;
@@ -85,7 +88,7 @@ dfb_layer_suspend( CoreLayer *layer )
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     DFB_ASSUME( !shared->suspended );
+     D_ASSUME( !shared->suspended );
 
      if (shared->suspended) {
           fusion_skirmish_dismiss( &shared->lock );
@@ -100,7 +103,7 @@ dfb_layer_suspend( CoreLayer *layer )
 
           ret = dfb_layer_context_deactivate( current );
           if (ret) {
-               ERRORMSG("DirectFB/Core/layer: "
+               D_ERROR("DirectFB/Core/layer: "
                         "Could not deactivate current context of '%s'! (%s)\n",
                         shared->description.name, DirectFBErrorString( ret ));
           }
@@ -120,8 +123,8 @@ dfb_layer_resume( CoreLayer *layer )
      CoreLayerShared   *shared;
      CoreLayerContexts *contexts;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->shared != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
 
      shared   = layer->shared;
      contexts = &shared->contexts;
@@ -130,7 +133,7 @@ dfb_layer_resume( CoreLayer *layer )
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     DFB_ASSUME( shared->suspended );
+     D_ASSUME( shared->suspended );
 
      if (!shared->suspended) {
           fusion_skirmish_dismiss( &shared->lock );
@@ -145,7 +148,7 @@ dfb_layer_resume( CoreLayer *layer )
 
           ret = dfb_layer_context_activate( current );
           if (ret) {
-               ERRORMSG("DirectFB/Core/layer: "
+               D_ERROR("DirectFB/Core/layer: "
                         "Could not activate current context of '%s'! (%s)\n",
                         shared->description.name, DirectFBErrorString( ret ));
           }
@@ -168,9 +171,9 @@ dfb_layer_create_context( CoreLayer         *layer,
      CoreLayerContexts *contexts;
      CoreLayerContext  *context = NULL;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( ret_context != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
+     D_ASSERT( ret_context != NULL );
 
      shared   = layer->shared;
      contexts = &shared->contexts;
@@ -179,7 +182,7 @@ dfb_layer_create_context( CoreLayer         *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     DEBUGMSG( "DirectFB/core/layers: %s (%s)\n",
+     D_DEBUG( "DirectFB/core/layers: %s (%s)\n",
                __FUNCTION__, shared->description.name );
 
      /* Create a new context. */
@@ -213,9 +216,9 @@ dfb_layer_get_active_context( CoreLayer         *layer,
      CoreLayerContexts *contexts;
      CoreLayerContext  *context;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( ret_context != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
+     D_ASSERT( ret_context != NULL );
 
      shared   = layer->shared;
      contexts = &shared->contexts;
@@ -257,9 +260,9 @@ dfb_layer_get_primary_context( CoreLayer         *layer,
      CoreLayerShared   *shared;
      CoreLayerContexts *contexts;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( ret_context != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
+     D_ASSERT( ret_context != NULL );
 
      shared   = layer->shared;
      contexts = &shared->contexts;
@@ -268,7 +271,7 @@ dfb_layer_get_primary_context( CoreLayer         *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     DEBUGMSG( "DirectFB/core/layers: %s (%s, %sactivate) <- active: %d\n",
+     D_DEBUG( "DirectFB/core/layers: %s (%s, %sactivate) <- active: %d\n",
                __FUNCTION__, shared->description.name,
                activate ? "" : "don't ", contexts->active );
 
@@ -317,9 +320,9 @@ dfb_layer_activate_context( CoreLayer        *layer,
      CoreLayerShared   *shared;
      CoreLayerContexts *ctxs;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( context != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
+     D_ASSERT( context != NULL );
 
      shared = layer->shared;
      ctxs   = &shared->contexts;
@@ -328,10 +331,10 @@ dfb_layer_activate_context( CoreLayer        *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     DEBUGMSG( "DirectFB/core/layers: %s (%s, %p)\n",
+     D_DEBUG( "DirectFB/core/layers: %s (%s, %p)\n",
                __FUNCTION__, shared->description.name, context );
 
-     DFB_ASSERT( fusion_vector_contains( &ctxs->stack, context ) );
+     D_ASSERT( fusion_vector_contains( &ctxs->stack, context ) );
 
      /* Lookup the context in the context stack. */
      index = fusion_vector_index_of( &ctxs->stack, context );
@@ -396,9 +399,9 @@ dfb_layer_remove_context( CoreLayer        *layer,
      CoreLayerShared   *shared;
      CoreLayerContexts *ctxs;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( context != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
+     D_ASSERT( context != NULL );
 
      shared = layer->shared;
      ctxs   = &shared->contexts;
@@ -407,10 +410,10 @@ dfb_layer_remove_context( CoreLayer        *layer,
      if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     DEBUGMSG( "DirectFB/core/layers: %s (%s, %p)\n",
+     D_DEBUG( "DirectFB/core/layers: %s (%s, %p)\n",
                __FUNCTION__, shared->description.name, context );
 
-     DFB_ASSUME( fusion_vector_contains( &ctxs->stack, context ) );
+     D_ASSUME( fusion_vector_contains( &ctxs->stack, context ) );
 
      /* Lookup the context in the context stack. */
      index = fusion_vector_index_of( &ctxs->stack, context );
@@ -479,9 +482,9 @@ dfb_layer_get_current_output_field( CoreLayer *layer, int *field )
 {
      DFBResult ret;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->funcs != NULL );
-     DFB_ASSERT( field != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->funcs != NULL );
+     D_ASSERT( field != NULL );
 
      if (!layer->funcs->GetCurrentOutputField)
           return DFB_UNSUPPORTED;
@@ -499,9 +502,9 @@ dfb_layer_get_level( CoreLayer *layer, int *ret_level )
 {
      DisplayLayerFuncs *funcs;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->funcs != NULL );
-     DFB_ASSERT( ret_level != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->funcs != NULL );
+     D_ASSERT( ret_level != NULL );
 
      funcs = layer->funcs;
 
@@ -517,8 +520,8 @@ dfb_layer_set_level( CoreLayer *layer, int level )
 {
      DisplayLayerFuncs *funcs;
 
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->funcs != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->funcs != NULL );
 
      funcs = layer->funcs;
 
@@ -532,7 +535,7 @@ dfb_layer_set_level( CoreLayer *layer, int level )
 DFBResult
 dfb_layer_wait_vsync( CoreLayer *layer )
 {
-     DFB_ASSERT( layer != NULL );
+     D_ASSERT( layer != NULL );
 
      return dfb_screen_wait_vsync( layer->screen );
 }

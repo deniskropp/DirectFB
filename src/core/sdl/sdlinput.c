@@ -41,7 +41,7 @@
 #include <core/system.h>
 #include <core/thread.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include "sdl.h"
 
@@ -492,7 +492,7 @@ driver_open_device( InputDevice      *device,
 
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(SDLInputData) );
+     data = D_CALLOC( 1, sizeof(SDLInputData) );
 
      data->device  = device;
      data->dfb_sdl = dfb_sdl;
@@ -532,6 +532,6 @@ driver_close_device( void *driver_data )
      dfb_thread_destroy( data->thread );
 
      /* free private data */
-     DFBFREE ( data );
+     D_FREE ( data );
 }
 

@@ -29,6 +29,8 @@
 
 #include <directfb.h>
 
+#include <direct/messages.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -110,7 +112,7 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
      DFBRegion        region;
      CoreLayerRegion *primary;
 
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      if (stack->hw_mode)
           return;
@@ -150,9 +152,9 @@ draw_window( CoreWindow *window, CardState *state,
      DFBRectangle            src;
      DFBSurfaceBlittingFlags flags = DSBLIT_NOFX;
 
-     DFB_ASSERT( window != NULL );
-     DFB_ASSERT( state != NULL );
-     DFB_ASSERT( region != NULL );
+     D_ASSERT( window != NULL );
+     D_ASSERT( state != NULL );
+     D_ASSERT( region != NULL );
 
      /* Initialize source rectangle. */
      dfb_rectangle_from_region( &src, region );
@@ -214,11 +216,11 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
 {
      DFBRectangle dst;
 
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( state != NULL );
-     DFB_ASSERT( region != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( state != NULL );
+     D_ASSERT( region != NULL );
 
-     DFB_ASSERT( (stack->bg.mode != DLBM_IMAGE &&
+     D_ASSERT( (stack->bg.mode != DLBM_IMAGE &&
                   stack->bg.mode != DLBM_TILE) || stack->bg.image != NULL );
 
      /* Initialize destination rectangle. */
@@ -333,7 +335,7 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                break;
 
           default:
-               BUG( "unknown background mode" );
+               D_BUG( "unknown background mode" );
                break;
      }
 }
@@ -351,7 +353,7 @@ update_region( CoreWindowStack *stack,
      DFBRegion region = { x1, y1, x2, y2 };
 
      /* check for empty region */
-     DFB_ASSERT (x1 <= x2  &&  y1 <= y2);
+     D_ASSERT (x1 <= x2  &&  y1 <= y2);
 
      while (i >= 0) {
           if (VISIBLE_WINDOW(stack->windows[i])) {
@@ -482,9 +484,9 @@ repaint_stack( CoreWindowStack     *stack,
      CoreLayer *layer;
      CardState *state;
 
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( stack->context != NULL );
-     DFB_ASSERT( region != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( stack->context != NULL );
+     D_ASSERT( region != NULL );
 
      layer = dfb_layer_at( stack->context->layer_id );
      state = &layer->state;
@@ -524,7 +526,7 @@ wind_of_change( CoreWindowStack     *stack,
                 int                  current,
                 int                  changed )
 {
-     DFB_ASSERT(current>=changed);
+     D_ASSERT(current>=changed);
 
      /*
           got to the window that changed, redraw.
@@ -595,7 +597,7 @@ repaint_stack_for_window( CoreWindowStack     *stack,
                           int                  window )
 {
      if (stack->num_windows && window >= 0) {
-          DFB_ASSERT(window < stack->num_windows);
+          D_ASSERT(window < stack->num_windows);
 
           wind_of_change( stack, region, update, flags, stack->num_windows - 1, window );
      }

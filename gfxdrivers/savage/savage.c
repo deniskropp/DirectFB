@@ -210,7 +210,7 @@ driver_init_device( GraphicsDevice     *device,
                                        driver_data, device_data );
                break;
           default:
-               BUG("unexpected accelerator id");
+               D_BUG("unexpected accelerator id");
                return DFB_BUG;
      }
 
@@ -274,30 +274,30 @@ driver_close_device( GraphicsDevice *device,
                break;
      }
 
-     DEBUGMSG( "DirectFBSavage: FIFO Performance Monitoring:\n" );
-     DEBUGMSG( "DirectFBSavage:  %9d savage_waitfifo calls\n",
+     D_DEBUG( "DirectFBSavage: FIFO Performance Monitoring:\n" );
+     D_DEBUG( "DirectFBSavage:  %9d savage_waitfifo calls\n",
                sdev->waitfifo_calls );
-     DEBUGMSG( "DirectFBSavage:  %9d savage_waitidle calls\n",
+     D_DEBUG( "DirectFBSavage:  %9d savage_waitidle calls\n",
                sdev->waitidle_calls );
-     DEBUGMSG( "DirectFBSavage:  %9d register writes (savage_waitfifo sum)\n",
+     D_DEBUG( "DirectFBSavage:  %9d register writes (savage_waitfifo sum)\n",
                sdev->waitfifo_sum );
-     DEBUGMSG( "DirectFBSavage:  %9d FIFO wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFBSavage:  %9d FIFO wait cycles (depends on CPU)\n",
                sdev->fifo_waitcycles );
-     DEBUGMSG( "DirectFBSavage:  %9d IDLE wait cycles (depends on CPU)\n",
+     D_DEBUG( "DirectFBSavage:  %9d IDLE wait cycles (depends on CPU)\n",
                sdev->idle_waitcycles );
-     DEBUGMSG( "DirectFBSavage:  %9d FIFO space cache hits(depends on CPU)\n",
+     D_DEBUG( "DirectFBSavage:  %9d FIFO space cache hits(depends on CPU)\n",
                sdev->fifo_cache_hits );
-     DEBUGMSG( "DirectFBSavage: Conclusion:\n" );
-     DEBUGMSG( "DirectFBSavage:  Average register writes/savage_waitfifo "
+     D_DEBUG( "DirectFBSavage: Conclusion:\n" );
+     D_DEBUG( "DirectFBSavage:  Average register writes/savage_waitfifo "
                "call: %.2f\n",
                sdev->waitfifo_sum/(float)(sdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFBSavage:  Average wait cycles/savage_waitfifo call:"
+     D_DEBUG( "DirectFBSavage:  Average wait cycles/savage_waitfifo call:"
                " %.2f\n",
                sdev->fifo_waitcycles/(float)(sdev->waitfifo_calls) );
-     DEBUGMSG( "DirectFBSavage:  Average wait cycles/savage_waitidle call:"
+     D_DEBUG( "DirectFBSavage:  Average wait cycles/savage_waitidle call:"
                " %.2f\n",
                sdev->idle_waitcycles/(float)(sdev->waitidle_calls) );
-     DEBUGMSG( "DirectFBSavage:  Average fifo space cache hits: %02d%%\n",
+     D_DEBUG( "DirectFBSavage:  Average fifo space cache hits: %02d%%\n",
                (int)(100 * sdev->fifo_cache_hits/
                (float)(sdev->waitfifo_calls)) );
 }

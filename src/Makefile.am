@@ -17,6 +17,7 @@ internalincludedir = $(INTERNALINCLUDEDIR)
 
 internalinclude_HEADERS = \
 	idirectfb.h			\
+	interface.h			\
 	interface_implementation.h
 
 
@@ -39,8 +40,9 @@ libdirectfb_la_LIBADD = \
 	input/libdirectfb_input.la	\
 	misc/libdirectfb_misc.la	\
 	gfx/libdirectfb_gfx.la		\
-	core/libdirectfb_core.la
-#	../lib/direct/libdirect.la
+	core/libdirectfb_core.la	\
+	../lib/direct/libdirect.la	\
+	../lib/fusion/libfusion.la
 
 
 #

@@ -29,7 +29,7 @@
 
 #include <directfb.h>
 
-#include <core/coredefs.h>
+#include <direct/debug.h>
 
 #include <core/screen.h>
 #include <core/screens_internal.h>
@@ -42,8 +42,8 @@ dfb_screen_get_info( CoreScreen           *screen,
 {
      CoreScreenShared *shared;
 
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
 
      shared = screen->shared;
 
@@ -59,7 +59,7 @@ dfb_screen_get_info( CoreScreen           *screen,
 DFBResult
 dfb_screen_suspend( CoreScreen *screen )
 {
-     DFB_ASSERT( screen != NULL );
+     D_ASSERT( screen != NULL );
 
      return DFB_OK;
 }
@@ -67,7 +67,7 @@ dfb_screen_suspend( CoreScreen *screen )
 DFBResult
 dfb_screen_resume( CoreScreen *screen )
 {
-     DFB_ASSERT( screen != NULL );
+     D_ASSERT( screen != NULL );
 
      return DFB_OK;
 }
@@ -78,8 +78,8 @@ dfb_screen_set_powermode( CoreScreen         *screen,
 {
      ScreenFuncs *funcs;
 
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->funcs != NULL );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->funcs != NULL );
 
      funcs = screen->funcs;
 
@@ -97,8 +97,8 @@ dfb_screen_wait_vsync( CoreScreen *screen )
 {
      ScreenFuncs *funcs;
 
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->funcs != NULL );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->funcs != NULL );
 
      funcs = screen->funcs;
 
@@ -117,11 +117,11 @@ dfb_screen_get_mixer_info( CoreScreen                *screen,
                            int                        mixer,
                            DFBScreenMixerDescription *ret_desc )
 {
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( mixer >= 0 );
-     DFB_ASSERT( mixer < screen->shared->description.mixers );
-     DFB_ASSERT( ret_desc != NULL );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( mixer >= 0 );
+     D_ASSERT( mixer < screen->shared->description.mixers );
+     D_ASSERT( ret_desc != NULL );
 
      /* Return mixer description. */
      *ret_desc = screen->shared->mixers[mixer].description;
@@ -134,11 +134,11 @@ dfb_screen_get_mixer_config( CoreScreen           *screen,
                              int                   mixer,
                              DFBScreenMixerConfig *ret_config )
 {
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( mixer >= 0 );
-     DFB_ASSERT( mixer < screen->shared->description.mixers );
-     DFB_ASSERT( ret_config != NULL );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( mixer >= 0 );
+     D_ASSERT( mixer < screen->shared->description.mixers );
+     D_ASSERT( ret_config != NULL );
 
      /* Return current mixer configuration. */
      *ret_config = screen->shared->mixers[mixer].configuration;
@@ -155,14 +155,14 @@ dfb_screen_test_mixer_config( CoreScreen                 *screen,
      DFBResult                 ret;
      DFBScreenMixerConfigFlags failed = DSMCONF_NONE;
 
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( screen->funcs != NULL );
-     DFB_ASSERT( screen->funcs->TestMixerConfig != NULL );
-     DFB_ASSERT( mixer >= 0 );
-     DFB_ASSERT( mixer < screen->shared->description.mixers );
-     DFB_ASSERT( config != NULL );
-     DFB_ASSERT( config->flags == screen->shared->mixers[mixer].configuration.flags );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( screen->funcs != NULL );
+     D_ASSERT( screen->funcs->TestMixerConfig != NULL );
+     D_ASSERT( mixer >= 0 );
+     D_ASSERT( mixer < screen->shared->description.mixers );
+     D_ASSERT( config != NULL );
+     D_ASSERT( config->flags == screen->shared->mixers[mixer].configuration.flags );
 
      /* Test the mixer configuration. */
      ret = screen->funcs->TestMixerConfig( screen,
@@ -170,7 +170,7 @@ dfb_screen_test_mixer_config( CoreScreen                 *screen,
                                            screen->screen_data,
                                            mixer, config, &failed );
 
-     DFB_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK) );
+     D_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK) );
 
      if (ret_failed)
           *ret_failed = failed;
@@ -186,15 +186,15 @@ dfb_screen_set_mixer_config( CoreScreen                 *screen,
      DFBResult                 ret;
      DFBScreenMixerConfigFlags failed = DSOCONF_NONE;
 
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( screen->funcs != NULL );
-     DFB_ASSERT( screen->funcs->TestMixerConfig != NULL );
-     DFB_ASSERT( screen->funcs->SetMixerConfig != NULL );
-     DFB_ASSERT( mixer >= 0 );
-     DFB_ASSERT( mixer < screen->shared->description.mixers );
-     DFB_ASSERT( config != NULL );
-     DFB_ASSERT( config->flags == screen->shared->mixers[mixer].configuration.flags );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( screen->funcs != NULL );
+     D_ASSERT( screen->funcs->TestMixerConfig != NULL );
+     D_ASSERT( screen->funcs->SetMixerConfig != NULL );
+     D_ASSERT( mixer >= 0 );
+     D_ASSERT( mixer < screen->shared->description.mixers );
+     D_ASSERT( config != NULL );
+     D_ASSERT( config->flags == screen->shared->mixers[mixer].configuration.flags );
 
      /* Test configuration first. */
      ret = screen->funcs->TestMixerConfig( screen,
@@ -202,7 +202,7 @@ dfb_screen_set_mixer_config( CoreScreen                 *screen,
                                            screen->screen_data,
                                            mixer, config, &failed );
 
-     DFB_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
+     D_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
 
      if (ret)
           return ret;
@@ -229,11 +229,11 @@ dfb_screen_get_encoder_info( CoreScreen                  *screen,
                              int                          encoder,
                              DFBScreenEncoderDescription *ret_desc )
 {
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( encoder >= 0 );
-     DFB_ASSERT( encoder < screen->shared->description.encoders );
-     DFB_ASSERT( ret_desc != NULL );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( encoder >= 0 );
+     D_ASSERT( encoder < screen->shared->description.encoders );
+     D_ASSERT( ret_desc != NULL );
 
      /* Return encoder description. */
      *ret_desc = screen->shared->encoders[encoder].description;
@@ -246,11 +246,11 @@ dfb_screen_get_encoder_config( CoreScreen             *screen,
                                int                     encoder,
                                DFBScreenEncoderConfig *ret_config )
 {
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( encoder >= 0 );
-     DFB_ASSERT( encoder < screen->shared->description.encoders );
-     DFB_ASSERT( ret_config != NULL );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( encoder >= 0 );
+     D_ASSERT( encoder < screen->shared->description.encoders );
+     D_ASSERT( ret_config != NULL );
 
      /* Return current encoder configuration. */
      *ret_config = screen->shared->encoders[encoder].configuration;
@@ -267,14 +267,14 @@ dfb_screen_test_encoder_config( CoreScreen                   *screen,
      DFBResult                   ret;
      DFBScreenEncoderConfigFlags failed = DSECONF_NONE;
 
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( screen->funcs != NULL );
-     DFB_ASSERT( screen->funcs->TestEncoderConfig != NULL );
-     DFB_ASSERT( encoder >= 0 );
-     DFB_ASSERT( encoder < screen->shared->description.encoders );
-     DFB_ASSERT( config != NULL );
-     DFB_ASSERT( config->flags == screen->shared->encoders[encoder].configuration.flags );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( screen->funcs != NULL );
+     D_ASSERT( screen->funcs->TestEncoderConfig != NULL );
+     D_ASSERT( encoder >= 0 );
+     D_ASSERT( encoder < screen->shared->description.encoders );
+     D_ASSERT( config != NULL );
+     D_ASSERT( config->flags == screen->shared->encoders[encoder].configuration.flags );
 
      /* Test the encoder configuration. */
      ret = screen->funcs->TestEncoderConfig( screen,
@@ -282,7 +282,7 @@ dfb_screen_test_encoder_config( CoreScreen                   *screen,
                                              screen->screen_data,
                                              encoder, config, &failed );
 
-     DFB_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
+     D_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
 
      if (ret_failed)
           *ret_failed = failed;
@@ -298,15 +298,15 @@ dfb_screen_set_encoder_config( CoreScreen                   *screen,
      DFBResult                   ret;
      DFBScreenEncoderConfigFlags failed = DSECONF_NONE;
 
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( screen->funcs != NULL );
-     DFB_ASSERT( screen->funcs->TestEncoderConfig != NULL );
-     DFB_ASSERT( screen->funcs->SetEncoderConfig != NULL );
-     DFB_ASSERT( encoder >= 0 );
-     DFB_ASSERT( encoder < screen->shared->description.encoders );
-     DFB_ASSERT( config != NULL );
-     DFB_ASSERT( config->flags == screen->shared->encoders[encoder].configuration.flags );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( screen->funcs != NULL );
+     D_ASSERT( screen->funcs->TestEncoderConfig != NULL );
+     D_ASSERT( screen->funcs->SetEncoderConfig != NULL );
+     D_ASSERT( encoder >= 0 );
+     D_ASSERT( encoder < screen->shared->description.encoders );
+     D_ASSERT( config != NULL );
+     D_ASSERT( config->flags == screen->shared->encoders[encoder].configuration.flags );
 
      /* Test configuration first. */
      ret = screen->funcs->TestEncoderConfig( screen,
@@ -314,7 +314,7 @@ dfb_screen_set_encoder_config( CoreScreen                   *screen,
                                              screen->screen_data,
                                              encoder, config, &failed );
 
-     DFB_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
+     D_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
 
      if (ret)
           return ret;
@@ -341,11 +341,11 @@ dfb_screen_get_output_info( CoreScreen                 *screen,
                             int                         output,
                             DFBScreenOutputDescription *ret_desc )
 {
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( output >= 0 );
-     DFB_ASSERT( output < screen->shared->description.outputs );
-     DFB_ASSERT( ret_desc != NULL );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( output >= 0 );
+     D_ASSERT( output < screen->shared->description.outputs );
+     D_ASSERT( ret_desc != NULL );
 
      /* Return output description. */
      *ret_desc = screen->shared->outputs[output].description;
@@ -358,11 +358,11 @@ dfb_screen_get_output_config( CoreScreen            *screen,
                               int                    output,
                               DFBScreenOutputConfig *ret_config )
 {
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( output >= 0 );
-     DFB_ASSERT( output < screen->shared->description.outputs );
-     DFB_ASSERT( ret_config != NULL );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( output >= 0 );
+     D_ASSERT( output < screen->shared->description.outputs );
+     D_ASSERT( ret_config != NULL );
 
      /* Return current output configuration. */
      *ret_config = screen->shared->outputs[output].configuration;
@@ -379,14 +379,14 @@ dfb_screen_test_output_config( CoreScreen                  *screen,
      DFBResult                  ret;
      DFBScreenOutputConfigFlags failed = DSOCONF_NONE;
 
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( screen->funcs != NULL );
-     DFB_ASSERT( screen->funcs->TestOutputConfig != NULL );
-     DFB_ASSERT( output >= 0 );
-     DFB_ASSERT( output < screen->shared->description.outputs );
-     DFB_ASSERT( config != NULL );
-     DFB_ASSERT( config->flags == screen->shared->outputs[output].configuration.flags );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( screen->funcs != NULL );
+     D_ASSERT( screen->funcs->TestOutputConfig != NULL );
+     D_ASSERT( output >= 0 );
+     D_ASSERT( output < screen->shared->description.outputs );
+     D_ASSERT( config != NULL );
+     D_ASSERT( config->flags == screen->shared->outputs[output].configuration.flags );
 
      /* Test the output configuration. */
      ret = screen->funcs->TestOutputConfig( screen,
@@ -394,7 +394,7 @@ dfb_screen_test_output_config( CoreScreen                  *screen,
                                             screen->screen_data,
                                             output, config, &failed );
 
-     DFB_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
+     D_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
 
      if (ret_failed)
           *ret_failed = failed;
@@ -410,15 +410,15 @@ dfb_screen_set_output_config( CoreScreen                  *screen,
      DFBResult                  ret;
      DFBScreenOutputConfigFlags failed = DSOCONF_NONE;
 
-     DFB_ASSERT( screen != NULL );
-     DFB_ASSERT( screen->shared != NULL );
-     DFB_ASSERT( screen->funcs != NULL );
-     DFB_ASSERT( screen->funcs->TestOutputConfig != NULL );
-     DFB_ASSERT( screen->funcs->SetOutputConfig != NULL );
-     DFB_ASSERT( output >= 0 );
-     DFB_ASSERT( output < screen->shared->description.outputs );
-     DFB_ASSERT( config != NULL );
-     DFB_ASSERT( config->flags == screen->shared->outputs[output].configuration.flags );
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( screen->funcs != NULL );
+     D_ASSERT( screen->funcs->TestOutputConfig != NULL );
+     D_ASSERT( screen->funcs->SetOutputConfig != NULL );
+     D_ASSERT( output >= 0 );
+     D_ASSERT( output < screen->shared->description.outputs );
+     D_ASSERT( config != NULL );
+     D_ASSERT( config->flags == screen->shared->outputs[output].configuration.flags );
 
      /* Test configuration first. */
      ret = screen->funcs->TestOutputConfig( screen,
@@ -426,7 +426,7 @@ dfb_screen_set_output_config( CoreScreen                  *screen,
                                             screen->screen_data,
                                             output, config, &failed );
 
-     DFB_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
+     D_ASSUME( (ret == DFB_OK && !failed) || (ret != DFB_OK && failed) );
 
      if (ret)
           return ret;

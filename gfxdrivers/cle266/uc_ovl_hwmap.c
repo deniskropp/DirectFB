@@ -180,7 +180,7 @@ __u32 uc_ovl_map_qwpitch(int falign, DFBSurfacePixelFormat format, int sw)
         fetch = (ALIGN_TO(sw << 2, 16) >> 4) + 1;
         break;
     default:
-        BUG("Unexpected pixelformat!");
+        D_BUG("Unexpected pixelformat!");
         break;
     }
 
@@ -214,7 +214,7 @@ __u32 uc_ovl_map_format(DFBSurfacePixelFormat format)
     case DSPF_ARGB:
         return V1_RGB32;
     default :
-        BUG("Unexpected pixelformat!");
+        D_BUG("Unexpected pixelformat!");
         return V1_YUV422;
     }
 }
@@ -374,7 +374,7 @@ void uc_ovl_map_buffer(DFBSurfacePixelFormat format, __u32 buf,
     default:
         y_offset = 0;
         uv_offset = 0;
-        BUG("Unexpected pixelformat!");
+        D_BUG("Unexpected pixelformat!");
     }
 
     if (field) {

@@ -35,7 +35,7 @@
 
 #include <directfb.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -46,10 +46,11 @@
 #include <core/surfaces.h>
 #include <core/windows.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include <gfx/convert.h>
 
+#include <misc/conf.h>
 
 #include "regs.h"
 #include "mmio.h"

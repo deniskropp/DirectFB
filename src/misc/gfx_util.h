@@ -33,7 +33,7 @@
 
 #include <directfb.h>
 
-#include <dfb_types.h>
+#include <core/coretypes.h>
 
 void dfb_copy_buffer_32( __u32 *src,
                          void  *dst, int dpitch, DFBRectangle *drect,

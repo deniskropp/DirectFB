@@ -35,7 +35,7 @@
 
 #include <pthread.h>
 
-#include <core/fusion/shmalloc.h>
+#include <fusion/shmalloc.h>
 
 #include <directfb.h>
 
@@ -56,7 +56,10 @@
 
 #include <misc/conf.h>
 #include <misc/util.h>
-#include <misc/mem.h>
+
+#include <direct/mem.h>
+#include <direct/messages.h>
+
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
@@ -68,14 +71,14 @@
 
 
 typedef struct {
-     FusionLink       link;
+     DirectLink       link;
 
      DFBInputDeviceID id;
      GlobalReaction   reaction;
 } StackDevice;
 
 typedef struct {
-     FusionLink                  link;
+     DirectLink                  link;
 
      DFBInputDeviceKeySymbol     symbol;
      DFBInputDeviceModifierMask  modifiers;
@@ -113,7 +116,7 @@ dfb_windowstack_create( CoreLayerContext *context )
      int               i;
      CoreWindowStack  *stack;
 
-     DFB_ASSERT( context != NULL );
+     D_ASSERT( context != NULL );
 
      /* Allocate window stack data (completely shared) */
      stack = (CoreWindowStack*) SHCALLOC( 1, sizeof(CoreWindowStack) );
@@ -143,14 +146,14 @@ dfb_windowstack_create( CoreLayerContext *context )
 void
 dfb_windowstack_destroy( CoreWindowStack *stack )
 {
-     FusionLink *l, *next;
+     DirectLink *l, *next;
 
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Detach all input devices. */
      l = stack->devices;
      while (l) {
-          FusionLink  *next   = l->next;
+          DirectLink  *next   = l->next;
           StackDevice *device = (StackDevice*) l;
 
           dfb_input_detach_global( dfb_input_device_at( device->id ),
@@ -165,13 +168,13 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      if (stack->cursor.window)
           dfb_window_unlink( &stack->cursor.window );
 
-     DFB_ASSUME( !stack->windows );
+     D_ASSUME( !stack->windows );
 
      if (stack->windows) {
           int i;
 
           for (i=0; i<stack->num_windows; i++) {
-               CAUTION( "setting window->stack = NULL" );
+               D_WARN( "setting window->stack = NULL" );
                stack->windows[i]->stack = NULL;
           }
 
@@ -187,7 +190,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      }
 
      /* Free grabbed keys. */
-     fusion_list_foreach_safe (l, next, stack->grabbed_keys)
+     direct_list_foreach_safe (l, next, stack->grabbed_keys)
           SHFREE( l );
 
      /* Free stack data. */
@@ -199,7 +202,7 @@ dfb_windowstack_resize( CoreWindowStack *stack,
                         int              width,
                         int              height )
 {
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -226,8 +229,8 @@ dfb_windowstack_resize( CoreWindowStack *stack,
 FusionResult
 dfb_windowstack_lock( CoreWindowStack *stack )
 {
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( stack->context != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( stack->context != NULL );
 
      return dfb_layer_context_lock( stack->context );
 }
@@ -238,8 +241,8 @@ dfb_windowstack_lock( CoreWindowStack *stack )
 FusionResult
 dfb_windowstack_unlock( CoreWindowStack *stack )
 {
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( stack->context != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( stack->context != NULL );
 
      return dfb_layer_context_unlock( stack->context );
 }
@@ -256,7 +259,7 @@ dfb_windowstack_get_window_index( CoreWindowStack *stack,
      int          num;
      CoreWindow **windows;
 
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -276,7 +279,7 @@ dfb_windowstack_get_window_index( CoreWindowStack *stack,
           }
      }
 
-     CAUTION( "window not found" );
+     D_WARN( "window not found" );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -289,7 +292,7 @@ dfb_windowstack_flush_keys( CoreWindowStack *stack )
 {
      int i;
 
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -322,7 +325,7 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
      int            new_cx, new_cy;
      DFBWindowEvent we;
 
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -350,7 +353,7 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
      stack->cursor.x = new_cx;
      stack->cursor.y = new_cy;
 
-     DFB_ASSERT( stack->cursor.window != NULL );
+     D_ASSERT( stack->cursor.window != NULL );
 
      dfb_window_move( stack->cursor.window, dx, dy );
 
@@ -425,7 +428,7 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
                ;
      }
 
-     HEAVYDEBUGMSG("DirectFB/windows: mouse at %d, %d\n", stack->cursor.x, stack->cursor.y);
+     D_HEAVYDEBUG("DirectFB/windows: mouse at %d, %d\n", stack->cursor.x, stack->cursor.y);
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -491,7 +494,7 @@ DFBResult
 dfb_windowstack_set_background_mode ( CoreWindowStack               *stack,
                                       DFBDisplayLayerBackgroundMode  mode )
 {
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -523,8 +526,8 @@ DFBResult
 dfb_windowstack_set_background_image( CoreWindowStack *stack,
                                       CoreSurface     *image )
 {
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( image != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( image != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -563,8 +566,8 @@ DFBResult
 dfb_windowstack_set_background_color( CoreWindowStack *stack,
                                       DFBColor        *color )
 {
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( color != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( color != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -593,7 +596,7 @@ dfb_windowstack_set_background_color( CoreWindowStack *stack,
 DFBResult
 dfb_windowstack_cursor_enable( CoreWindowStack *stack, bool enable )
 {
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -638,14 +641,14 @@ dfb_windowstack_cursor_enable( CoreWindowStack *stack, bool enable )
 DFBResult
 dfb_windowstack_cursor_set_opacity( CoreWindowStack *stack, __u8 opacity )
 {
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
      if (stack->cursor.enabled) {
-          DFB_ASSERT( stack->cursor.window );
+          D_ASSERT( stack->cursor.window );
 
           dfb_window_set_opacity( stack->cursor.window, opacity );
      }
@@ -668,8 +671,8 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
      int         dx, dy;
      CoreWindow *cursor;
 
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( shape != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( shape != NULL );
 
      if (dfb_config->no_cursor)
           return DFB_OK;
@@ -725,7 +728,7 @@ dfb_windowstack_cursor_warp( CoreWindowStack *stack, int x, int y )
 {
      int dx, dy;
 
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -748,7 +751,7 @@ dfb_windowstack_cursor_set_acceleration( CoreWindowStack *stack,
                                          int              denominator,
                                          int              threshold )
 {
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -767,7 +770,7 @@ dfb_windowstack_cursor_set_acceleration( CoreWindowStack *stack,
 DFBResult
 dfb_windowstack_get_cursor_position( CoreWindowStack *stack, int *x, int *y )
 {
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -791,7 +794,7 @@ dfb_windowstack_switch_focus( CoreWindowStack *stack, CoreWindow *to )
      DFBWindowEvent  evt;
      CoreWindow     *from;
 
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -842,8 +845,8 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
      CoreWindowStack                *stack  = ctx;
      DFBInputDeviceButtonIdentifier  button = evt->button;
 
-     DFB_ASSERT( evt != NULL );
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( evt != NULL );
+     D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -1146,12 +1149,12 @@ _dfb_windowstack_background_image_listener( const void *msg_data,
      const CoreSurfaceNotification *notification = msg_data;
      CoreWindowStack               *stack        = ctx;
 
-     DFB_ASSERT( notification != NULL );
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( notification != NULL );
+     D_ASSERT( stack != NULL );
 
      if (notification->flags & CSNF_DESTROY) {
           if (stack->bg.image == notification->surface) {
-               ERRORMSG("DirectFB/core/layers: Surface for background vanished.\n");
+               D_ERROR("DirectFB/core/layers: Surface for background vanished.\n");
 
                stack->bg.mode  = DLBM_COLOR;
                stack->bg.image = NULL;
@@ -1183,14 +1186,14 @@ stack_attach_devices( InputDevice *device,
 
      dev = SHCALLOC( 1, sizeof(StackDevice) );
      if (!dev) {
-          ERRORMSG( "DirectFB/core/windows: Could not allocate %d bytes\n",
+          D_ERROR( "DirectFB/core/windows: Could not allocate %d bytes\n",
                     sizeof(StackDevice) );
           return DFENUM_CANCEL;
      }
 
      dev->id = dfb_input_device_id( device );
 
-     fusion_list_prepend( &stack->devices, &dev->link );
+     direct_list_prepend( &stack->devices, &dev->link );
 
      dfb_input_attach_global( device, DFB_WINDOWSTACK_INPUTDEVICE_LISTENER,
                               ctx, &dev->reaction );
@@ -1212,7 +1215,7 @@ load_default_cursor( CoreWindowStack *stack )
      FILE            *f;
      CoreWindow      *window;
 
-     DFB_ASSERT( stack != NULL );
+     D_ASSERT( stack != NULL );
 
      if (!stack->cursor.window) {
           ret = create_cursor_window( stack, 40, 40 );
@@ -1226,7 +1229,7 @@ load_default_cursor( CoreWindowStack *stack )
      ret = dfb_surface_soft_lock( window->surface,
                                   DSLF_WRITE, &data, &pitch, 0 );
      if (ret) {
-          ERRORMSG( "DirectFB/core/layers: "
+          D_ERROR( "DirectFB/core/layers: "
                     "cannot lock the surface for cursor window data!\n" );
           return ret;
      }
@@ -1243,7 +1246,7 @@ load_default_cursor( CoreWindowStack *stack )
           if (ret == DFB_FILENOTFOUND)
                ret = DFB_OK;
           else
-               PERRORMSG( "`" CURSORFILE "` could not be opened!\n" );
+               D_PERROR( "`" CURSORFILE "` could not be opened!\n" );
 
           goto finish;
      }
@@ -1253,7 +1256,7 @@ load_default_cursor( CoreWindowStack *stack )
           if (fread( data, MIN (40*4, pitch), 1, f ) != 1) {
                ret = errno2dfb( errno );
 
-               ERRORMSG( "DirectFB/core/layers: "
+               D_ERROR( "DirectFB/core/layers: "
                          "unexpected end or read error of cursor data!\n" );
 
                goto finish;
@@ -1294,8 +1297,8 @@ create_cursor_window( CoreWindowStack *stack,
      DFBResult   ret;
      CoreWindow *window;
 
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( stack->cursor.window == NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( stack->cursor.window == NULL );
 
      stack->cursor.x       = stack->width  / 2;
      stack->cursor.y       = stack->height / 2;
@@ -1306,7 +1309,7 @@ create_cursor_window( CoreWindowStack *stack,
                               width, height, DWHC_TOPMOST | DWCAPS_ALPHACHANNEL,
                               DSCAPS_NONE, DSPF_UNKNOWN, &window );
      if (ret) {
-          ERRORMSG( "DirectFB/Core/layers: "
+          D_ERROR( "DirectFB/Core/layers: "
                     "Failed creating a window for software cursor!\n" );
           return ret;
      }
@@ -1374,7 +1377,7 @@ window_at_pointer( CoreWindowStack *stack,
                          if (w->options & DWOP_ALPHACHANNEL) {
                               int alpha = -1;
 
-                              DFB_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) );
+                              D_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) );
 
                               switch (surface->format) {
                                    case DSPF_AiRGB:
@@ -1519,14 +1522,14 @@ static CoreWindow *
 get_keyboard_window( CoreWindowStack     *stack,
                      const DFBInputEvent *evt )
 {
-     FusionLink *l;
+     DirectLink *l;
 
-     DFB_ASSERT( stack != NULL );
-     DFB_ASSERT( evt != NULL );
-     DFB_ASSERT( evt->type == DIET_KEYPRESS || evt->type == DIET_KEYRELEASE );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( evt != NULL );
+     D_ASSERT( evt->type == DIET_KEYPRESS || evt->type == DIET_KEYRELEASE );
 
      /* Check explicit key grabs first. */
-     fusion_list_foreach (l, stack->grabbed_keys) {
+     direct_list_foreach (l, stack->grabbed_keys) {
           GrabbedKey *key = (GrabbedKey*) l;
 
           if (key->symbol    == evt->key_symbol &&
@@ -1564,7 +1567,7 @@ get_keyboard_window( CoreWindowStack     *stack,
 
           /* Check if a free array item was found. */
           if (free_key == -1) {
-               CAUTION( "maximum number of owned keys reached" );
+               D_WARN( "maximum number of owned keys reached" );
                return NULL;
           }
 
