@@ -813,6 +813,7 @@ dfb_window_repaint( CoreWindow          *window,
                     DFBRegion           *region,
                     DFBSurfaceFlipFlags  flags )
 {
+     int              i;
      CoreWindowStack *stack = window->stack;
 
      if (!VISIBLE_WINDOW(window))
@@ -825,16 +826,35 @@ dfb_window_repaint( CoreWindow          *window,
           region->x2 += window->x;
           region->y1 += window->y;
           region->y2 += window->y;
-
-          repaint_stack( stack, region, flags );
      }
      else {
-          DFBRegion reg = { window->x, window->y,
-                            window->x + window->width - 1,
-                            window->y + window->height - 1 };
+          region = alloca( sizeof(DFBRegion) );
 
-          repaint_stack( stack, &reg, flags );
+          region->x1 = window->x;
+          region->y1 = window->y;
+          region->x2 = window->x + window->width - 1;
+          region->y2 = window->y + window->height - 1;
      }
+
+     /* simple check if update is necessary */
+     for (i = get_window_index(window) + 1; i < stack->num_windows; i++) {
+          CoreWindow *upper = stack->windows[i];
+
+          if (!VISIBLE_WINDOW(upper) || TRANSLUCENT_WINDOW(upper))
+               continue;
+
+          /* if the update region completely obscured by an opaque window */
+          if (upper->x <= region->x1 && upper->y <= region->y1 &&
+              upper->x + upper->width - 1 >= region->x2 &&
+              upper->y + upper->height - 1 >= region->y2)
+          {
+               /* discard the update */
+               stack_unlock( stack );
+               return;
+          }
+     }
+     
+     repaint_stack( stack, region, flags );
      
      stack_unlock( stack );
 }
