@@ -2557,13 +2557,13 @@ typedef enum {
  * Transformed vertex of a textured triangle.
  */
 typedef struct {
-     int  x;   /* Destination X coordinate (in pixels) */
-     int  y;   /* Destination Y coordinate (in pixels) */
-     int  z;   /* Z coordinate (not used yet) */
-     int  w;   /* W coordinate (fixed point 16.16) */
+     float x;   /* Destination X coordinate (in pixels) */
+     float y;   /* Destination Y coordinate (in pixels) */
+     float z;   /* Z coordinate */
+     float w;   /* Reciprocal of the W coordinate */
 
-     int  s;   /* Texture S coordinate (normalized fixed point 12.20) */
-     int  t;   /* Texture T coordinate (normalized fixed point 12.20) */
+     float s;   /* Texture S coordinate */
+     float t;   /* Texture T coordinate */
 } DFBVertex;
 
 /*

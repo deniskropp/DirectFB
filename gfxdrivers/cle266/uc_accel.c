@@ -7,6 +7,8 @@
    version 2 of the License, or (at your option) any later version.
 */
 
+#include <gfx/convert.h>
+
 #include "unichrome.h"
 #include "uc_accel.h"
 #include "uc_fifo.h"
@@ -420,6 +422,8 @@ bool uc_stretch_blit(void* drv, void* dev,
     return true;
 }
 
+#define DFBCOLOR_TO_ARGB(c)   PIXEL_ARGB( (c).a, (c).r, (c).g, (c).b )
+
 bool uc_texture_triangles( void *drv, void *dev,
                            DFBVertex *vertices, int num,
                            DFBTriangleFormation formation )
@@ -428,11 +432,12 @@ bool uc_texture_triangles( void *drv, void *dev,
 
      int i;
 
-     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_W |
+     int cmdB = HC_ACMD_HCmdB |
+                HC_HVPMSK_X   | HC_HVPMSK_Y | HC_HVPMSK_Z | HC_HVPMSK_W |
                 HC_HVPMSK_Cd  | HC_HVPMSK_S | HC_HVPMSK_T;
 
-     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HShading_FlatC |
-                HC_HVCycle_AFP;
+     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HShading_Gouraud |
+                HC_HVCycle_Full;
 
      int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
 
@@ -452,19 +457,17 @@ bool uc_texture_triangles( void *drv, void *dev,
                return false;
      }
 
-
-     UC_FIFO_PREPARE(fifo, 6 + num * 6);
+     UC_FIFO_PREPARE(fifo, 6 + num * 7);
 
      UC_FIFO_ADD_HDR(fifo, HC_ParaType_CmdVdata << 16);
      UC_FIFO_ADD(fifo, cmdB);
      UC_FIFO_ADD(fifo, cmdA);
 
      for (i=0; i<num; i++) {
-          UC_FIFO_ADD_XYWCST(fifo,
-                             vertices[i].x, vertices[i].y,
-                             vertices[i].w / (float) 0x10000, ucdev->color3d,
-                             vertices[i].s / (float) 0x100000,
-                             vertices[i].t / (float) 0x100000);
+          UC_FIFO_ADD_XYZWCST(fifo,
+                              vertices[i].x, vertices[i].y,
+                              vertices[i].z, vertices[i].w, ucdev->color3d,
+                              vertices[i].s, vertices[i].t);
      }
 
      UC_FIFO_ADD(fifo, cmdA_End);

@@ -175,6 +175,17 @@ struct uc_fifo
         UC_FIFO_ADD_FLOAT(fifo, t);                     \
     } while(0)
 
+#define UC_FIFO_ADD_XYZWCST(fifo, x, y, z, w, color, s, t)  \
+    do {                                                \
+        UC_FIFO_ADD_FLOAT(fifo, x);                     \
+        UC_FIFO_ADD_FLOAT(fifo, y);                     \
+        UC_FIFO_ADD_FLOAT(fifo, z);                     \
+        UC_FIFO_ADD_FLOAT(fifo, w);                     \
+        UC_FIFO_ADD(fifo, color);                       \
+        UC_FIFO_ADD_FLOAT(fifo, s);                     \
+        UC_FIFO_ADD_FLOAT(fifo, t);                     \
+    } while(0)
+
 #define UC_FIFO_ADD_XYCST(fifo, x, y, color, s, t)      \
     do {                                                \
         UC_FIFO_ADD_FLOAT(fifo, x);                     \
