@@ -324,13 +324,17 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
 
      switch (buffer->policy) {
           case CSP_SYSTEMONLY:
+               buffer->system.locked = 1;
                *data = buffer->system.addr;
                *pitch = buffer->system.pitch;
                break;
           case CSP_VIDEOLOW:
                /* read access or no video instance? system lock! */
-               if (flags & DSLF_READ  ||  buffer->video.health != CSH_STORED) {
+               if ((/*flags & DSLF_READ  ||*/
+                    buffer->video.health != CSH_STORED) && !buffer->video.locked)
+               {
                     dfb_surfacemanager_assure_system( surface->manager, buffer );
+                    buffer->system.locked = 1;
                     *data = buffer->system.addr;
                     *pitch = buffer->system.pitch;
                     if (flags & DSLF_WRITE &&
@@ -342,7 +346,8 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                     buffer->video.locked = 1;
                     *data = dfb_gfxcard_memory_virtual( buffer->video.offset );
                     *pitch = buffer->video.pitch;
-                    buffer->system.health = CSH_RESTORE;
+                    if (flags & DSLF_WRITE)
+                         buffer->system.health = CSH_RESTORE;
                     video_access_by_software( buffer, flags );
                }
                break;
@@ -350,6 +355,7 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                /* no video instance yet? system lock! */
                if (buffer->video.health != CSH_STORED) {
                     /* no video health, no fetch */
+                    buffer->system.locked = 1;
                     *data = buffer->system.addr;
                     *pitch = buffer->system.pitch;
                     break;
@@ -405,6 +411,9 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
 
           case CSP_VIDEOHIGH:
           case CSP_VIDEOLOW:
+               /* avoid inconsistency, could be optimized (read/write) */
+               if (buffer->system.locked)
+                    break;
                /* no reading? no force? no video instance? no success! ;-) */
                if (!(flags & (DSLF_READ|CSLF_FORCE)) && buffer->video.health != CSH_STORED)
                     break;
@@ -441,11 +450,13 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
 void dfb_surface_unlock( CoreSurface *surface, int front )
 {
      if (front) {
-          surface->front_buffer->video.locked = 0;
+          surface->front_buffer->system.locked = 0;
+          surface->front_buffer->video.locked  = 0;
           skirmish_dismiss( &surface->front_lock );
      }
      else {
-          surface->back_buffer->video.locked = 0;
+          surface->back_buffer->system.locked = 0;
+          surface->back_buffer->video.locked  = 0;
           skirmish_dismiss( &surface->back_lock );
      }
 }
@@ -573,8 +584,6 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           return DFB_UNSUPPORTED;
 
      if (buffer->system.health) {
-          buffer->system.health = CSH_STORED;
-
           buffer->system.pitch = DFB_BYTES_PER_LINE(surface->format,
                                                     surface->width);
           if (buffer->system.pitch & 3)
@@ -584,11 +593,9 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           buffer->system.addr = shmalloc(
                DFB_PLANE_MULTIPLY(surface->format,
                                   surface->height * buffer->system.pitch) );
-
-          /* FIXME: better support video instance reallocation */
-          dfb_surfacemanager_deallocate( surface->manager, buffer );
      }
-     else {
+     
+     if (buffer->video.health) {
           /* FIXME: better support video instance reallocation */
           dfb_surfacemanager_deallocate( surface->manager, buffer );
           ret = dfb_surfacemanager_allocate( surface->manager, buffer );

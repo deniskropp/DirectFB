@@ -93,6 +93,8 @@ struct _SurfaceBuffer
 
      struct {
           CoreSurfaceHealth  health;    /* currently stored in system memory? */
+          int                locked;    /* system instance is locked,
+                                           stick to it */
 
           int                pitch;     /* number of bytes til next line */
           void              *addr;      /* address pointing to surface data */
