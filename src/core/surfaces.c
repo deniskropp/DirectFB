@@ -482,13 +482,18 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      }
 
      if (new_back) {
-          dfb_surface_destroy_buffer( surface, back );
+          if (back != front)
+               dfb_surface_destroy_buffer( surface, back );
+
           surface->back_buffer = new_back;
      }
      else
           surface->back_buffer = surface->front_buffer;
 
      if (new_idle) {
+          if (idle != front && idle != back)
+               dfb_surface_destroy_buffer( surface, idle );
+
           dfb_surface_destroy_buffer( surface, idle );
           surface->idle_buffer = new_idle;
      }
@@ -496,7 +501,9 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
           surface->idle_buffer = surface->front_buffer;
 
      if (new_depth) {
-          dfb_surface_destroy_buffer( surface, depth );
+          if (depth)
+               dfb_surface_destroy_buffer( surface, depth );
+
           surface->depth_buffer = new_depth;
      }
      else
