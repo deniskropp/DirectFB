@@ -501,7 +501,6 @@ static void* GrabThread( CoreThread *thread, void *ctx )
 
      frame = 0;
      while (1) {
-          printf("v4l: frame\n");
           ioctl( data->fd, VIDIOCSYNC, &frame );
 
           dfb_thread_testcancel( thread );
@@ -604,8 +603,6 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
      int bpp, palette;
      SurfaceBuffer *buffer = surface->back_buffer;
 
-     printf("v4l: overlay\n");
-     
      /*
       * Sanity check. Overlay to system surface isn't possible.
       */
@@ -736,8 +733,6 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 {
      int bpp, palette;
 
-     printf("v4l: grab\n");
-     
      if (!data->vmbuf.frames)
           return DFB_UNSUPPORTED;
 
