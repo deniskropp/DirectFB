@@ -62,8 +62,9 @@ int selfrunning = 0;
 
 
 /* some defines for benchmark test size and duration */
-#define SX 256
-#define SY 256
+int SX = 256;
+int SY = 256;
+
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 
@@ -720,7 +721,12 @@ int main( int argc, char *argv[] )
 
      SH -= fontheight;
 
-     printf( "\nBenchmarking in %dbit mode... (%dbit)\n\n",
+     if (SX > SW - 10)
+          SX = SW - 10;
+     if (SY > SH - 10)
+          SY = SH - 10;
+
+     printf( "\nBenchmarking with %dx%d in %dbit mode... (%dbit)\n\n", SX, SY,
              BITS_PER_PIXEL(pixelformat), BYTES_PER_PIXEL(pixelformat)*8 );
 
      sync();
