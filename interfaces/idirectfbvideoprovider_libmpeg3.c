@@ -340,7 +340,57 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_SeekTo(
         return DFB_DEAD;
 
     rate = mpeg3_frame_rate( data->stream, 0 );
-    mpeg3_set_frame( data->stream, (long) (seconds / rate), 0 );
+    mpeg3_set_frame( data->stream, (long) (seconds * rate), 0 );
+
+    return DFB_OK;
+}
+
+
+static DFBResult IDirectFBVideoProvider_Libmpeg3_GetPos(
+                                                  IDirectFBVideoProvider *thiz,
+                                                  double              *seconds )
+{
+    IDirectFBVideoProvider_Libmpeg3_data *data;
+    double rate;
+
+    if (!thiz)
+        return DFB_INVARG;
+
+    data = (IDirectFBVideoProvider_Libmpeg3_data*)thiz->priv;
+
+    if (!data)
+        return DFB_DEAD;
+
+    rate = mpeg3_frame_rate( data->stream, 0 );
+    *seconds = mpeg3_get_frame( data->stream, 0 ) / rate;
+
+    return DFB_OK;
+}
+
+
+static DFBResult IDirectFBVideoProvider_Libmpeg3_GetLength(
+                                                  IDirectFBVideoProvider *thiz,
+                                                  double              *seconds )
+{
+    IDirectFBVideoProvider_Libmpeg3_data *data;
+    double rate;
+    long frames;
+
+    if (!thiz)
+        return DFB_INVARG;
+
+    data = (IDirectFBVideoProvider_Libmpeg3_data*)thiz->priv;
+
+    if (!data)
+        return DFB_DEAD;
+
+    frames = mpeg3_video_frames( data->stream, 0 );
+    if (frames <= 1)
+         return DFB_UNSUPPORTED;
+    
+    rate = mpeg3_frame_rate( data->stream, 0 );
+    *seconds = frames / rate;
+    
     return DFB_OK;
 }
 
@@ -431,6 +481,8 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
     thiz->PlayTo = IDirectFBVideoProvider_Libmpeg3_PlayTo;
     thiz->Stop = IDirectFBVideoProvider_Libmpeg3_Stop;
     thiz->SeekTo = IDirectFBVideoProvider_Libmpeg3_SeekTo;
+    thiz->GetPos = IDirectFBVideoProvider_Libmpeg3_GetPos;
+    thiz->GetLength = IDirectFBVideoProvider_Libmpeg3_GetLength;
 
     return DFB_OK;
 }
