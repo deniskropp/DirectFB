@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -23,6 +23,8 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,7 +69,6 @@ typedef struct {
      pthread_cond_t         wait;
      bool                   playing;
      bool                   looping;
-     bool                   ended;
      int                    position;
 } IFusionSoundPlayback_data;
 
@@ -89,14 +90,14 @@ IFusionSoundPlayback_Destruct( IFusionSoundPlayback *thiz )
      DFB_ASSERT( data->playback != NULL );
 
      fs_playback_detach( data->playback, &data->reaction );
-     
+
      fs_playback_stop( data->playback );
-     
+
      fs_playback_unref( data->playback );
 
      pthread_cond_destroy( &data->wait );
      pthread_mutex_destroy( &data->lock );
-     
+
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -127,9 +128,12 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
                             int                   stop )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
-     
+
      DEBUGMSG( "%s (%p, %d -> %d)\n",
                __FUNCTION__, data->playback, start, stop );
+
+     if (data->length < 0)
+          return DFB_UNSUPPORTED;
 
      if (start < 0 || start >= data->length)
           return DFB_INVARG;
@@ -137,17 +141,15 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
      if (stop >= data->length)
           return DFB_INVARG;
 
+     /* FIXME: dead lock with our listener */
      pthread_mutex_lock( &data->lock );
-     
-     data->playing = true;
-     data->looping = (stop < 0);
-     data->ended   = false;
-          
+
+     fs_playback_set_position( data->playback, start );
      fs_playback_set_stop( data->playback, stop );
-     fs_playback_start( data->playback, start );
-     
+     fs_playback_start( data->playback );
+
      pthread_mutex_unlock( &data->lock );
-     
+
      return DFB_OK;
 }
 
@@ -155,52 +157,29 @@ static DFBResult
 IFusionSoundPlayback_Stop( IFusionSoundPlayback *thiz )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
-     
+
      DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
-     
-     pthread_mutex_lock( &data->lock );
-     
-     if (data->playing) {
-          fs_playback_stop( data->playback );
-          
-          data->playing = false;
-     }
-     
-     pthread_mutex_unlock( &data->lock );
-     
-     return DFB_OK;
+
+     return fs_playback_stop( data->playback );
 }
 
 static DFBResult
 IFusionSoundPlayback_Continue( IFusionSoundPlayback *thiz )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
-     
-     DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
-     
-     pthread_mutex_lock( &data->lock );
-     
-     if (data->playing) {
-          pthread_mutex_unlock( &data->lock );
-          return DFB_OK;
-     }
-     
-     data->playing = true;
-     
-     fs_playback_start( data->playback, data->position );
 
-     pthread_mutex_unlock( &data->lock );
-     
-     return DFB_OK;
+     DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
+
+     return fs_playback_start( data->playback );
 }
 
 static DFBResult
 IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
-     
+
      DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
-     
+
      pthread_mutex_lock( &data->lock );
 
      while (data->playing) {
@@ -211,9 +190,9 @@ IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
 
           pthread_cond_wait( &data->wait, &data->lock );
      }
-     
+
      pthread_mutex_unlock( &data->lock );
-     
+
      return DFB_OK;
 }
 
@@ -223,12 +202,12 @@ IFusionSoundPlayback_GetStatus( IFusionSoundPlayback *thiz,
                                 int                  *position )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
-     
+
      DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
-     
+
      if (playing)
           *playing = data->playing;
-     
+
      if (position)
           *position = data->position;
 
@@ -240,14 +219,14 @@ IFusionSoundPlayback_SetVolume( IFusionSoundPlayback *thiz,
                                 float                 level )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
-     
+
      DEBUGMSG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, level );
-     
+
      if (level < 0.0f || level > 256.0f)
           return DFB_INVARG;
 
      data->volume = level;
-     
+
      return IFusionSoundPlayback_UpdateVolume( data );
 }
 
@@ -256,9 +235,9 @@ IFusionSoundPlayback_SetPan( IFusionSoundPlayback *thiz,
                              float                 value )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
-     
+
      DEBUGMSG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
-     
+
      if (value < -1.0f || value > 1.0f)
           return DFB_INVARG;
 
@@ -272,14 +251,14 @@ IFusionSoundPlayback_SetPitch( IFusionSoundPlayback *thiz,
                                float                 value )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
-     
+
      DEBUGMSG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
 
      if (value < 0.0f || value > 256.0f)
           return DFB_INVARG;
 
      fs_playback_set_pitch( data->playback, 0xffff * value / 256.0f );
-     
+
      return DFB_OK;
 }
 
@@ -290,6 +269,8 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
                                 CorePlayback         *playback,
                                 int                   length )
 {
+     pthread_mutexattr_t attr;
+
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundPlayback)
 
      /* Increase reference counter of the playback. */
@@ -304,19 +285,26 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
                              data, &data->reaction ))
      {
           fs_playback_unref( playback );
-          
+
           DFB_DEALLOCATE_INTERFACE( thiz );
 
           return DFB_FUSION;
      }
-     
+
      /* Initialize private data. */
      data->ref      = 1;
      data->playback = playback;
      data->length   = length;
      data->volume   = 1.0f;
 
+     /* Initialize lock and condition. */
+     pthread_mutexattr_init( &attr );
+     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+
      pthread_mutex_init( &data->lock, NULL );
+
+     pthread_mutexattr_destroy( &attr );
+
      pthread_cond_init( &data->wait, NULL );
 
      /* Initialize method table. */
@@ -327,13 +315,13 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      thiz->Stop      = IFusionSoundPlayback_Stop;
      thiz->Continue  = IFusionSoundPlayback_Continue;
      thiz->Wait      = IFusionSoundPlayback_Wait;
-     
+
      thiz->GetStatus = IFusionSoundPlayback_GetStatus;
-     
+
      thiz->SetVolume = IFusionSoundPlayback_SetVolume;
      thiz->SetPan    = IFusionSoundPlayback_SetPan;
      thiz->SetPitch  = IFusionSoundPlayback_SetPitch;
-     
+
      return DFB_OK;
 }
 
@@ -346,27 +334,33 @@ IFusionSoundPlayback_React( const void *msg_data,
      const CorePlaybackNotification *notification = msg_data;
      IFusionSoundPlayback_data      *data         = ctx;
 
-     if (notification->flags & CPNF_ADVANCED)
-          DEBUGMSG( "%s: playback advanced, next read at position %d\n",
-                    __FUNCTION__, notification->pos );
+     if (notification->flags & CPNF_START)
+          DEBUGMSG( "%s: playback started at position %d\n", __FUNCTION__, notification->pos );
 
-     if (notification->flags & CPNF_ENDED)
-          DEBUGMSG( "%s: playback ended at position %d!\n",
-                    __FUNCTION__, notification->pos );
-     
-     pthread_mutex_lock( &data->lock );
-     
+     if (notification->flags & CPNF_STOP)
+          DEBUGMSG( "%s: playback stopped at position %d!\n", __FUNCTION__, notification->pos );
+
+     if (notification->flags & CPNF_ADVANCE)
+          DEBUGMSG( "%s: playback advanced to position %d\n", __FUNCTION__, notification->pos );
+
+//     pthread_mutex_lock( &data->lock );
+
      data->position = notification->pos;
 
-     if (notification->flags & CPNF_ENDED) {
-          data->ended   = true;
+     if (notification->flags & (CPNF_START | CPNF_ADVANCE)) {
+          data->playing = true;
+          data->looping = notification->stop < 0 ? true : false;
+     }
+
+     if (notification->flags & CPNF_STOP) {
           data->playing = false;
+          data->looping = false;
      }
 
      pthread_cond_broadcast( &data->wait );
-     
-     pthread_mutex_unlock( &data->lock );
-     
+
+//     pthread_mutex_unlock( &data->lock );
+
      return RS_OK;
 }
 
@@ -382,12 +376,12 @@ IFusionSoundPlayback_UpdateVolume( IFusionSoundPlayback_data* data )
           else if (data->pan > 0.0f)
                left = (1.0f - data->pan) * 0x100;
      }
-     
+
      if (data->volume != 1.0f) {
           left *= data->volume;
           if (left > 0xffff)
                left = 0xffff;
-          
+
           right *= data->volume;
           if (right > 0xffff)
                right = 0xffff;

@@ -424,6 +424,21 @@ DEFINE_INTERFACE( IFusionSoundStream,
           IFusionSoundStream       *thiz,
           int                      *delay
      );
+
+
+   /** Playback control **/
+
+     /*
+      * Retrieve advanced playback control interface.
+      *
+      * The returned <b>interface</b> provides advanced control over the playback of the stream.
+      * This includes volume, pitch and pan settings as well as manual starting, pausing or
+      * stopping of the playback.
+      */
+     DFBResult (*GetPlayback) (
+          IFusionSoundBuffer       *thiz,
+          IFusionSoundPlayback    **interface
+     );
 )
 
 /*
@@ -450,6 +465,9 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
 
      /*
       * Start playback of the buffer.
+      *
+      * This method is only supported for playback of a buffer.
+      * For stream playbacks use <i>Continue()</i>.
       *
       * The <b>start</b> position specifies the sample at which the playback
       * is going to start.
@@ -478,7 +496,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      );
 
      /*
-      * Continue playback of the buffer.
+      * Continue playback of the buffer or start playback of a stream.
       *
       * This method is used to continue a playback that isn't running (anymore).
       *
@@ -489,7 +507,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * stop position which means non-looping playback from the beginning
       * to the end.
       *
-      * It returns without an error if the playback is running.
+      * It returns WITHOUT an error if the playback is running.
       *
       * This method can be used to trigger one-at-a-time playback without having
       * to check if it's already running. It's similar to simple playback via

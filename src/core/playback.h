@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -34,18 +34,20 @@
 #include <core/types_sound.h>
 
 typedef enum {
-     CPNF_ADVANCED  = 0x00000001,
-     CPNF_ENDED     = 0x00000002
+     CPNF_START   = 0x00000001,
+     CPNF_STOP    = 0x00000002,
+     CPNF_ADVANCE = 0x00000004
 } CorePlaybackNotificationFlags;
 
 typedef struct {
      CorePlaybackNotificationFlags   flags;
      CorePlayback                   *playback;
 
-     int                             pos;      /* Next sample to read in case of
-                                                  CPNF_ADVANCED, or next sample
-                                                  that would have been read in
-                                                  case of CPNF_ENDED. */
+     int                             pos;      /* Next sample to read in case of CPNF_ADVANCE or
+                                                  start position in case of CPNF_START. */
+     int                             stop;     /* Position at which the playback will stop or has
+                                                  stopped. A negative value indicates looping
+                                                  playback in case of CPNF_START or CPNF_ADVANCE. */
 } CorePlaybackNotification;
 
 /*
@@ -64,13 +66,15 @@ DFBResult fs_playback_create      ( CoreSound        *core,
                                     bool              notify,
                                     CorePlayback    **ret_playback );
 
-DFBResult fs_playback_start       ( CorePlayback     *playback,
-                                    int               position );
+DFBResult fs_playback_start       ( CorePlayback     *playback );
 
 DFBResult fs_playback_stop        ( CorePlayback     *playback );
 
 DFBResult fs_playback_set_stop    ( CorePlayback     *playback,
                                     int               stop );
+
+DFBResult fs_playback_set_position( CorePlayback     *playback,
+                                    int               position );
 
 DFBResult fs_playback_set_volume  ( CorePlayback     *playback,
                                     int               left,

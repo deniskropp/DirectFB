@@ -53,8 +53,7 @@ struct __FS_CorePlayback {
 };
 
 static void fs_playback_notify( CorePlayback                  *playback,
-                                CorePlaybackNotificationFlags  flags,
-                                int                            pos );
+                                CorePlaybackNotificationFlags  flags );
 
 /******************************************************************************/
 
@@ -127,30 +126,27 @@ fs_playback_create( CoreSound        *core,
 }
 
 DFBResult
-fs_playback_start( CorePlayback *playback,
-                   int           position )
+fs_playback_start( CorePlayback *playback )
 {
      DFBResult ret;
 
      DFB_ASSERT( playback != NULL );
-     DFB_ASSERT( playback->buffer != NULL );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
 
-     /* Set new position. */
-     playback->position = position;
-
      /* Start the playback if it's not running already. */
      if (!playback->running) {
+          /* FIXME: dead lock between playlist and playback */
           ret = fs_core_add_playback( playback->core, playback );
           if (ret) {
                fusion_skirmish_dismiss( &playback->lock );
                return ret;
           }
 
-          playback->running = true;
+          /* Notify listeners about the start of the playback. */
+          fs_playback_notify( playback, CPNF_START );
      }
 
      /* Unlock playback. */
@@ -172,7 +168,8 @@ fs_playback_stop( CorePlayback *playback )
      if (playback->running) {
           fs_core_remove_playback( playback->core, playback );
 
-          playback->running = false;
+          /* Notify listeners about the end of the playback. */
+          fs_playback_notify( playback, CPNF_STOP );
      }
 
      /* Unlock playback. */
@@ -186,6 +183,8 @@ fs_playback_set_stop( CorePlayback *playback,
                       int           stop )
 {
      DFB_ASSERT( playback != NULL );
+     DFB_ASSERT( playback->buffer != NULL );
+     DFB_ASSERT( stop < playback->buffer->length );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
@@ -193,6 +192,28 @@ fs_playback_set_stop( CorePlayback *playback,
 
      /* Adjust stop position. */
      playback->stop = stop;
+
+     /* Unlock playback. */
+     fusion_skirmish_dismiss( &playback->lock );
+
+     return DFB_OK;
+}
+
+DFBResult
+fs_playback_set_position( CorePlayback *playback,
+                          int           position )
+{
+     DFB_ASSERT( playback != NULL );
+     DFB_ASSERT( playback->buffer != NULL );
+     DFB_ASSERT( position >= 0 );
+     DFB_ASSERT( position < playback->buffer->length );
+
+     /* Lock playback. */
+     if (fusion_skirmish_prevail( &playback->lock ))
+          return DFB_FUSION;
+
+     /* Adjust the playback position. */
+     playback->position = position;
 
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
@@ -280,7 +301,7 @@ fs_playback_mixto( CorePlayback *playback,
      fusion_skirmish_dismiss( &playback->lock );
 
      /* Notify listeners about the new position and a possible end. */
-     fs_playback_notify( playback, ret ? CPNF_ENDED : CPNF_ADVANCED, pos );
+     fs_playback_notify( playback, ret ? CPNF_STOP : CPNF_ADVANCE );
 
      return ret;
 }
@@ -289,16 +310,18 @@ fs_playback_mixto( CorePlayback *playback,
 
 static void
 fs_playback_notify( CorePlayback                  *playback,
-                    CorePlaybackNotificationFlags  flags,
-                    int                            pos )
+                    CorePlaybackNotificationFlags  flags )
 {
      CorePlaybackNotification notification;
 
      DFB_ASSERT( playback != NULL );
-     DFB_ASSERT( flags == CPNF_ADVANCED || flags == CPNF_ENDED );
-     DFB_ASSERT( pos >= 0 );
+     DFB_ASSERT( playback->buffer != NULL );
+     DFB_ASSERT( flags == CPNF_START || flags == CPNF_STOP || flags == CPNF_ADVANCE );
 
-     if (flags & CPNF_ENDED)
+     if (flags & CPNF_START)
+          playback->running = true;
+
+     if (flags & CPNF_STOP)
           playback->running = false;
 
      if (!playback->notify)
@@ -306,7 +329,8 @@ fs_playback_notify( CorePlayback                  *playback,
 
      notification.flags    = flags;
      notification.playback = playback;
-     notification.pos      = pos;
+     notification.pos      = playback->position;
+     notification.stop     = playback->running ? playback->stop : playback->position;
 
      fs_playback_dispatch( playback, &notification, NULL );
 }

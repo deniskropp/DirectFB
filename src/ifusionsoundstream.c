@@ -24,6 +24,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -49,6 +51,7 @@
 #include <core/playback.h>
 #include <core/sound_buffer.h>
 
+#include "ifusionsoundplayback.h"
 #include "ifusionsoundstream.h"
 
 /******/
@@ -225,7 +228,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
                if (!data->prebuffer || written >= data->prebuffer) {
                     data->playing = true;
 
-                    fs_playback_start( data->playback, data->pos_read );
+                    fs_playback_start( data->playback );
                }
           }
 
@@ -335,6 +338,29 @@ IFusionSoundStream_GetPresentationDelay( IFusionSoundStream *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IFusionSoundStream_GetPlayback( IFusionSoundBuffer    *thiz,
+                                IFusionSoundPlayback **ret_interface )
+{
+     DFBResult             ret;
+     IFusionSoundPlayback *interface;
+
+     INTERFACE_GET_DATA(IFusionSoundStream)
+
+     if (!ret_interface)
+          return DFB_INVARG;
+
+     DFB_ALLOCATE_INTERFACE( interface, IFusionSoundPlayback );
+
+     ret = IFusionSoundPlayback_Construct( interface, data->playback, -1 );
+     if (ret)
+          *ret_interface = NULL;
+     else
+          *ret_interface = interface;
+
+     return ret;
+}
+
 /******/
 
 DFBResult
@@ -347,8 +373,9 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
                               int                 rate,
                               int                 prebuffer )
 {
-     DFBResult     ret;
-     CorePlayback *playback;
+     DFBResult            ret;
+     pthread_mutexattr_t  attr;
+     CorePlayback        *playback;
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundStream)
 
@@ -392,7 +419,14 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      data->rate      = rate;
      data->prebuffer = prebuffer;
 
+     /* Initialize lock and condition. */
+     pthread_mutexattr_init( &attr );
+     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+
      pthread_mutex_init( &data->lock, NULL );
+
+     pthread_mutexattr_destroy( &attr );
+
      pthread_cond_init( &data->wait, NULL );
 
      /* Initialize method table. */
@@ -407,6 +441,8 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
 
      thiz->GetPresentationDelay = IFusionSoundStream_GetPresentationDelay;
 
+     thiz->GetPlayback          = IFusionSoundStream_GetPlayback;
+
      return DFB_OK;
 }
 
@@ -419,24 +455,28 @@ IFusionSoundStream_React( const void *msg_data,
      const CorePlaybackNotification *notification = msg_data;
      IFusionSoundStream_data        *data         = ctx;
 
-     if (notification->flags & CPNF_ADVANCED)
-          DEBUGMSG( "%s: playback advanced, next read at position %d\n",
-                    __FUNCTION__, notification->pos );
+     if (notification->flags & CPNF_START)
+          DEBUGMSG( "%s: playback started at position %d\n", __FUNCTION__, notification->pos );
 
-     if (notification->flags & CPNF_ENDED)
-          DEBUGMSG( "%s: playback ended at position %d!\n",
-                    __FUNCTION__, notification->pos );
+     if (notification->flags & CPNF_STOP)
+          DEBUGMSG( "%s: playback stopped at position %d!\n", __FUNCTION__, notification->pos );
 
-     pthread_mutex_lock( &data->lock );
+     if (notification->flags & CPNF_ADVANCE)
+          DEBUGMSG( "%s: playback advanced to position %d\n", __FUNCTION__, notification->pos );
+
+//     pthread_mutex_lock( &data->lock );
 
      data->pos_read = notification->pos;
 
-     if (notification->flags & CPNF_ENDED)
+     if (notification->flags & CPNF_START)
+          data->playing = true;
+
+     if (notification->flags & CPNF_STOP)
           data->playing = false;
 
      pthread_cond_broadcast( &data->wait );
 
-     pthread_mutex_unlock( &data->lock );
+//     pthread_mutex_unlock( &data->lock );
 
      return RS_OK;
 }

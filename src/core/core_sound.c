@@ -326,6 +326,7 @@ sound_thread( CoreThread *thread, void *arg )
 
                /* do not buffer more than 40 ms */
                if (buffered > byte_rate * 40 / 1000) {
+                    DEBUGMSG( "FusionSound/Core: %s sleeping...\n", __FUNCTION__ );
                     usleep( 10000 );
                     continue;
                }

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -60,7 +60,7 @@ typedef struct {
 
      CoreSound             *core;
      CoreSoundBuffer       *buffer;
-     
+
      int                    size;
      int                    channels;
      FSSampleFormat         format;
@@ -70,7 +70,7 @@ typedef struct {
 
      int                    left;
      int                    right;
-     
+
      CorePlayback          *looping;
      pthread_mutex_t        lock;
 } IFusionSoundBuffer_data;
@@ -91,11 +91,11 @@ IFusionSoundBuffer_Destruct( IFusionSoundBuffer *thiz )
           fs_playback_stop( data->looping );
           fs_playback_unref( data->looping );
      }
-          
+
      fs_buffer_unref( data->buffer );
 
      pthread_mutex_destroy( &data->lock );
-     
+
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -204,7 +204,7 @@ IFusionSoundBuffer_SetPan( IFusionSoundBuffer *thiz,
 
      data->left  = left;
      data->right = right;
-          
+
      return DFB_OK;
 }
 
@@ -231,17 +231,17 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
           left  = 0x100;
           right = 0x100;
      }
-     
+
      /* Choose looping playback mode. */
      if (flags & FSPLAY_LOOPING) {
           pthread_mutex_lock( &data->lock );
-          
+
           /* Return error if already running a looping playing. */
           if (data->looping) {
                pthread_mutex_unlock( &data->lock );
                return DFB_BUSY;
           }
-          
+
           /* Create a playback object. */
           ret = fs_playback_create( data->core,
                                     data->buffer, false, &playback );
@@ -249,15 +249,15 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                pthread_mutex_unlock( &data->lock );
                return ret;
           }
-          
+
           /* Set values produced by SetPan(). */
           fs_playback_set_volume( playback, data->left, data->right );
 
           /* Set looping playback. */
           fs_playback_set_stop( playback, -1 );
-          
+
           /* Start the playback. */
-          ret = fs_playback_start( playback, 0 );
+          ret = fs_playback_start( playback );
           if (ret) {
                fs_playback_unref( playback );
                pthread_mutex_unlock( &data->lock );
@@ -266,7 +266,7 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
 
           /* Keep looping playback. */
           data->looping = playback;
-          
+
           pthread_mutex_unlock( &data->lock );
      }
      else {
@@ -277,12 +277,12 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                pthread_mutex_unlock( &data->lock );
                return ret;
           }
-          
+
           /* Set values produced by SetPan(). */
           fs_playback_set_volume( playback, data->left, data->right );
 
           /* Start the playback. */
-          ret = fs_playback_start( playback, 0 );
+          ret = fs_playback_start( playback );
 
           /*
            * Already throw away playback object. It has a global reference while
@@ -290,7 +290,7 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
            */
           fs_playback_unref( playback );
      }
-     
+
      return ret;
 }
 
@@ -300,7 +300,7 @@ IFusionSoundBuffer_Stop( IFusionSoundBuffer *thiz )
      INTERFACE_GET_DATA(IFusionSoundBuffer)
 
      pthread_mutex_lock( &data->lock );
-     
+
      /* Stop and throw away looping playback. */
      if (data->looping) {
           fs_playback_stop( data->looping );
@@ -310,7 +310,7 @@ IFusionSoundBuffer_Stop( IFusionSoundBuffer *thiz )
      }
 
      pthread_mutex_unlock( &data->lock );
-     
+
      return DFB_OK;
 }
 
@@ -363,7 +363,7 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
 
           return DFB_FUSION;
      }
-     
+
      /* Initialize private data. */
      data->ref      = 1;
      data->core     = core;
@@ -376,7 +376,7 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
      data->right    = 0x100;
 
      pthread_mutex_init( &data->lock, NULL );
-     
+
      /* Initialize method table. */
      thiz->AddRef         = IFusionSoundBuffer_AddRef;
      thiz->Release        = IFusionSoundBuffer_Release;
@@ -389,9 +389,9 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
      thiz->SetPan         = IFusionSoundBuffer_SetPan;
      thiz->Play           = IFusionSoundBuffer_Play;
      thiz->Stop           = IFusionSoundBuffer_Stop;
-     
+
      thiz->CreatePlayback = IFusionSoundBuffer_CreatePlayback;
-     
+
      return DFB_OK;
 }
 
