@@ -867,7 +867,11 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
      int    crsc   = 0;
      __u32 *D      = (__u32*) gfxs->Aop;
      __u32 *S      = (__u32*) gfxs->Bop;
+#ifdef WORDS_BIGENDIAN
+     __u16 *S2     = (__u16*) (gfxs->Bop+1);
+#else
      __u16 *S2     = (__u16*) gfxs->Bop;
+#endif
      int    SperD  = gfxs->SperD;
      int    SperD2 = gfxs->SperD << 1;
 
@@ -876,8 +880,8 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
 
 #ifdef WORDS_BIGENDIAN
 	  Dpix  = S[crsc>>16] & 0x00ff00ff;              /* chroma samples */
-	  Dpix |= (S2[ysc>>16] & 0xff00) << 16;          /* first y sample */
-	  Dpix |= S2[(ysc+SperD)>>16] & 0xff00;          /* second y sample */
+	  Dpix |= *((__u8*) &S2[ysc>>16]) << 24;         /* first y sample */
+	  Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]) << 8;  /* second y sample */
 #else
 	  Dpix  = S[crsc>>16] & 0xff00ff00;              /* chroma samples */
 	  Dpix |= *((__u8*) &S2[ysc>>16]);               /* first y sample */
@@ -898,7 +902,11 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
      int    crsc   = 0;
      __u32 *D      = (__u32*) gfxs->Aop;
      __u32 *S      = (__u32*) gfxs->Bop;
+#ifdef WORDS_BIGENDIAN
      __u16 *S2     = (__u16*) gfxs->Bop;
+#else
+     __u16 *S2     = (__u16*) (gfxs->Bop+1);
+#endif
      int    SperD  = gfxs->SperD;
      int    SperD2 = gfxs->SperD << 1;
 
@@ -911,8 +919,8 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
 	  Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]);       /* second y sample */
 #else
 	  Dpix  = S[crsc>>16] & 0x00ff00ff;              /* chroma samples */
-	  Dpix |= S2[ysc>>16] & 0xff00;                  /* first y sample */
-	  Dpix |= (S2[(ysc+SperD)>>16] & 0xff00) << 16;  /* second y sample */
+	  Dpix |= *((__u8*) &S2[ysc>>16]) << 8;          /* first y sample */
+	  Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]) << 24; /* second y sample */
 #endif
 	  
 	  *D++ = Dpix;
