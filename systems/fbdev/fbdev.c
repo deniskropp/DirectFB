@@ -1238,6 +1238,8 @@ primaryAllocateSurface( CoreLayer              *layer,
      else if (config->buffermode != DLBM_FRONTONLY)
           caps |= DSCAPS_DOUBLE;
 
+     caps |= config->surface_caps & DSCAPS_PREMULTIPLIED;
+
      /* allocate surface object */
      surface = dfb_core_create_surface( dfb_fbdev->core );
      if (!surface)
@@ -1298,6 +1300,11 @@ primaryReallocateSurface( CoreLayer             *layer,
 
           dfb_palette_unref( palette );
      }
+
+     if (config->surface_caps & DSCAPS_PREMULTIPLIED)
+          surface->caps |= DSCAPS_PREMULTIPLIED;
+     else
+          surface->caps &= ~DSCAPS_PREMULTIPLIED;
 
      return DFB_OK;
 }
