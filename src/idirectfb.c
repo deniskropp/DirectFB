@@ -1160,6 +1160,9 @@ input_filter_local( DFBEvent *evt,
 
           switch (event->type) {
                case DIET_BUTTONPRESS:
+                    if (data->primary.window)
+                         dfb_layer_cursor_enable( data->layer, 0 );
+                    break;
                case DIET_KEYPRESS:
                     if (data->primary.window &&
                         event->key_symbol != DIKS_ESCAPE)
