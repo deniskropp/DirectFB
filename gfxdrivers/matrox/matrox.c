@@ -149,7 +149,7 @@ static bool matroxBlit3D    ( void *drv, void *dev,
       ((state)->destination->format != (state)->source->format &&        \
        (state)->destination->format != DSPF_I420               &&        \
        (state)->destination->format != DSPF_YV12)              ||        \
-      (accel) == DFXL_STRETCHBLIT)
+      (accel) & (DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES))
 
 
 static void matroxEngineReset( void *drv, void *dev )
@@ -1168,6 +1168,7 @@ static bool matroxBlit3D( void *drv, void *dev,
 
 /******************************************************************************/
 
+#if 0
 static void
 texture_trap( MatroxDriverData *mdrv,
               MatroxDeviceData *mdev,
@@ -1216,85 +1217,397 @@ texture_trap( MatroxDriverData *mdrv,
      mga_out32( mmio, (RS16(X1r) << 16) | RS16(X1l), FXBNDRY );
      mga_out32( mmio, (RS16(Y1) << 16) | RS16(dY), YDSTLEN | EXECUTE );
 }
+#endif
 
-#define SWAP(a,b)   do { void *tmp = a; a = b; b = tmp; } while (0)
+typedef struct {
+     DFBVertex *v0, *v1;  /* Y(v0) < Y(v1) */
+     float      dx;          /* X(v1) - X(v0) */
+     float      dy;          /* Y(v1) - Y(v0) */
+     float      dxOOA;          /* dx * oneOverArea */
+     float      dyOOA;          /* dy * oneOverArea */
+
+     float      adjx,adjy; /* subpixel offset after rounding to integer */
+     int        err;        /* error term ready for hardware */
+     int        idx,idy;    /* delta-x & delta-y ready for hardware */
+     int        sx,sy;          /* first sample point x,y coord */
+     int        lines;      /* number of lines to be sampled on this edge */
+} EdgeT;
+
+#define RINT(x)  ((int)(x+0.5f))
+#define F2COL(x) (RINT(x) & 0x00ffffff)
+
+#define mgaF1800(x) (((__s32) (x)) & 0x0003ffff)
+#define mgaF2400(x) (((__s32) (x)) & 0x00ffffff)
+#define mgaF2200(x) (((__s32) (x)) & 0x003fffff)
+
+#define OUTREG(r,d)  do { mga_out32( mmio, d, r ); } while (0)
+
+#define MGA_S(start,xinc,yinc) do {		\
+    OUTREG(TMR6,start);			\
+    OUTREG(TMR0,xinc);			\
+    OUTREG(TMR1,yinc);			\
+  } while (0)
+#define MGA_T(start,xinc,yinc) do {		\
+    OUTREG(TMR7,start);			\
+    OUTREG(TMR2,xinc);			\
+    OUTREG(TMR3,yinc);			\
+  } while (0)
+#define MGA_Q(start,xinc,yinc) do {		\
+    OUTREG(TMR8,start);			\
+    OUTREG(TMR4,xinc);			\
+    OUTREG(TMR5,yinc);			\
+  } while (0)
+
+
+#define MGA_LSLOPE(dx,dy,sgn,err) do {			\
+    OUTREG(AR0,mgaF1800(dy));			\
+    if ((dx) >= 0) {					\
+      OUTREG(AR1,mgaF2400(-(dx)+(err)));		\
+      OUTREG(AR2,mgaF1800(-(dx)));		\
+      sgn &= ~SDXL;                                     \
+    } else {						\
+      OUTREG(AR1,mgaF2400((dx)+(dy)-(err)-1) );	\
+      OUTREG(AR2,mgaF1800(dx));			\
+      sgn |= SDXL;                                      \
+    }							\
+  } while(0)
+
+
+#define MGA_G400_LSLOPE(dx,dy,sgn,err) do {                        \
+     OUTREG(AR0,mgaF2200(dy));                  \
+     if ((dx) >= 0) {                                  \
+      OUTREG(AR1,mgaF2400(-(dx)+(err)));               \
+      OUTREG(AR2,mgaF2200(-(dx)));             \
+      sgn &= ~SDXL;                                     \
+     } else {                                          \
+      OUTREG(AR1,mgaF2400((dx)+(dy)-(err)-1) );        \
+      OUTREG(AR2,mgaF2200(dx));                        \
+      sgn |= SDXL;                                      \
+   }                                                 \
+  } while(0)
+
+#define MGA_RSLOPE(dx,dy,sgn,err) do {			\
+    OUTREG(AR6,mgaF1800(dy));			\
+    if ((dx) >= 0) {					\
+      OUTREG(AR4,mgaF1800(-(dx)+(err)));		\
+      OUTREG(AR5,mgaF1800(-(dx)));		\
+      sgn &= ~SDXR;                                      \
+    } else {						\
+      OUTREG(AR4,mgaF1800((dx)+(dy)-(err)-1));		\
+      OUTREG(AR5,mgaF1800(dx));			\
+      sgn |= SDXR;                                      \
+    }							\
+  } while(0)
+
+#define MGA_G400_RSLOPE(dx,dy,sgn,err) do {                     \
+     OUTREG(AR6,mgaF2200(dy));                       \
+     if ((dx) >= 0) {                                  \
+       OUTREG(AR4,mgaF2200(-(dx)+(err)));            \
+       OUTREG(AR5,mgaF2200(-(dx)));          \
+       sgn &= ~SDXR;                                      \
+     } else {                                          \
+       OUTREG(AR4,mgaF2200((dx)+(dy)-(err)-1));              \
+       OUTREG(AR5,mgaF2200(dx));                     \
+       sgn |= SDXR;                                      \
+     }                                                 \
+   } while(0)
 
 static void
 texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
-                  DFBVertex *v1, DFBVertex *v2, DFBVertex *v3 )
+                  DFBVertex *v0, DFBVertex *v1, DFBVertex *v2 )
 {
-     if (v1->y > v3->y)
-          SWAP( v1, v3 );
+     EdgeT       eMaj, eTop, eBot;
+     float       oneOverArea;
+     DFBVertex  *vMin, *vMid, *vMax; /* Y(vMin)<=Y(vMid)<=Y(vMax) */
+     int         Shape; /* 1 = Top half, 2 = bottom half, 3 = top+bottom */
+//     float       bf = mga_bf_sign;
 
-     if (v2->y > v3->y)
-          SWAP( v2, v3 );
-     else if (v2->y < v1->y)
-          SWAP( v2, v1 );
+     volatile __u8 *mmio = mdrv->mmio_base;
 
-     if (v2->y == v3->y) {
-          if (v2->x > v3->x)
-               SWAP( v2, v3 );
+/* find the order of the 3 vertices along the Y axis */
+     {
+          float y0 = v0->y;
+          float y1 = v1->y;
+          float y2 = v2->y;
 
-          texture_trap( mdrv, mdev,
-                        v1->x, v1->x,
-                        v2->x, v3->x,
-                        v1->y, v2->y,
-                        v1->s, v1->s, v2->s, v3->s,
-                        v1->t, v1->t, v2->t, v3->t );
-     }
-     else if (v1->y == v2->y) {
-          if (v1->x > v2->x)
-               SWAP( v1, v2 );
-
-          texture_trap( mdrv, mdev,
-                        v1->x, v2->x,
-                        v3->x, v3->x,
-                        v2->y, v3->y,
-                        v1->s, v2->s, v3->s, v3->s,
-                        v1->t, v2->t, v3->t, v3->t );
-     }
-     else {
-          int Dx = v3->x - v1->x;
-          int Dy = v3->y - v1->y;
-          int Ds = v3->s - v1->s;
-          int Dt = v3->t - v1->t;
-
-          int Ty = v2->y - v1->y;
-
-          int Mx = v1->x + Dx * Ty / Dy;
-
-          int Ms = v1->s + Ds / Dy * Ty;
-          int Mt = v1->t + Dt / Dy * Ty;
-
-          if (Mx < v2->x) {
-               texture_trap( mdrv, mdev,
-                             v1->x, v1->x,
-                             Mx, v2->x,
-                             v1->y, v2->y,
-                             v1->s, v1->s, Ms, v2->s,
-                             v1->t, v1->t, Mt, v2->t );
-
-               texture_trap( mdrv, mdev,
-                             Mx, v2->x,
-                             v3->x, v3->x,
-                             v2->y, v3->y,
-                             Ms, v2->s, v3->s, v3->s,
-                             Mt, v2->t, v3->t, v3->t );
+          if (y0<=y1) {
+               if (y1<=y2) {
+                    vMin = v0;   vMid = v1;   vMax = v2;   /* y0<=y1<=y2 */
+               }
+               else if (y2<=y0) {
+                    vMin = v2;   vMid = v0;   vMax = v1;   /* y2<=y0<=y1 */
+               }
+               else {
+                    vMin = v0;   vMid = v2;   vMax = v1; /*bf = -bf;*/  /* y0<=y2<=y1 */
+               }
           }
           else {
-               texture_trap( mdrv, mdev,
-                             v1->x, v1->x,
-                             v2->x, Mx,
-                             v1->y, v2->y,
-                             v1->s, v1->s, v2->s, Ms,
-                             v1->t, v1->t, v2->t, Mt );
+               if (y0<=y2) {
+                    vMin = v1;   vMid = v0;   vMax = v2; /*bf = -bf;*/  /* y1<=y0<=y2 */
+               }
+               else if (y2<=y1) {
+                    vMin = v2;   vMid = v1;   vMax = v0; /*bf = -bf;*/  /* y2<=y1<=y0 */
+               }
+               else {
+                    vMin = v1;   vMid = v2;   vMax = v0;   /* y1<=y2<=y0 */
+               }
+          }
+     }
 
-               texture_trap( mdrv, mdev,
-                             v2->x, Mx,
-                             v3->x, v3->x,
-                             v2->y, v3->y,
-                             v2->s, Ms, v3->s, v3->s,
-                             v2->t, Mt, v3->t, v3->t );
+/* vertex/edge relationship */
+     eMaj.v0 = vMin;   eMaj.v1 = vMax;
+     eTop.v0 = vMin;   eTop.v1 = vMid;
+     eBot.v0 = vMid;   eBot.v1 = vMax;
+
+/* compute deltas for each edge:  vertex[v1] - vertex[v0] */
+     eMaj.dx = vMax->x - vMin->x;
+     eMaj.dy = vMax->y - vMin->y;
+     eTop.dx = vMid->x - vMin->x;
+     eTop.dy = vMid->y - vMin->y;
+     eBot.dx = vMax->x - vMid->x;
+     eBot.dy = vMax->y - vMid->y;
+
+
+/* compute oneOverArea */
+     {
+          float area = eMaj.dx * eBot.dy - eBot.dx * eMaj.dy;
+
+          /* Do backface culling
+           */
+          //if ( area * bf < 0 || area == 0 )
+               //return;
+
+          oneOverArea = 1.0F / area;
+     }
+
+/* Edge setup.  For a triangle strip these could be reused... */
+     {
+
+#define DELTASCALE 16 /* Scaling factor for idx and idy. Note that idx and
+                         idy are 18 bits signed, so don't choose too big
+                         value. */
+
+          int   ivMax_y;
+          float temp;
+
+          ivMax_y = D_ICEIL(vMax->y);
+          eTop.sy = eMaj.sy = D_ICEIL(vMin->y);
+          eBot.sy = D_ICEIL(vMid->y);
+
+          eMaj.lines = ivMax_y - eMaj.sy;
+          if (eMaj.lines > 0) {
+               float dxdy = eMaj.dx / eMaj.dy;
+               eMaj.adjy = (float) eMaj.sy - vMin->y;
+               temp = vMin->x + eMaj.adjy*dxdy;
+               eMaj.sx = D_ICEIL(temp);
+               eMaj.adjx = (float) eMaj.sx - vMin->x;
+               if (eMaj.lines == 1) {
+                    eMaj.idy = 1;
+                    eMaj.idx = 0;
+                    eMaj.err = 0;
+               }
+               else {
+                    eMaj.idy = RINT(eMaj.dy * DELTASCALE);
+                    eMaj.idx = D_IFLOOR(eMaj.idy * dxdy);
+                    eMaj.err = RINT(((float) eMaj.sx - temp) * (float)eMaj.idy);
+               }
+          }
+          else {
+               return; /* CULLED */
+          }
+
+          Shape = 3;
+
+          eBot.lines = ivMax_y - eBot.sy;
+          if (eBot.lines > 0) {
+               float dxdy = eBot.dx / eBot.dy;
+               eBot.adjy = (float) eBot.sy - vMid->y;
+               temp = vMid->x + eBot.adjy*dxdy;
+               eBot.sx = D_ICEIL(temp);
+               eBot.adjx = (float) eBot.sx - vMid->x;
+               if (eBot.lines == 1) {
+                    eBot.idy = 1;
+                    eBot.idx = 0;
+                    eBot.err = 0;
+               }
+               else {
+                    eBot.idy = RINT(eBot.dy * DELTASCALE);
+                    eBot.idx = D_IFLOOR(eBot.idy * dxdy);
+                    eBot.err = RINT(((float) eBot.sx - temp) * (float)eBot.idy);
+               }
+          }
+          else {
+               Shape = 1;
+          }
+
+          eTop.lines = eBot.sy - eTop.sy;
+          if (eTop.lines > 0) {
+               float dxdy = eTop.dx / eTop.dy;
+               eTop.adjy = eMaj.adjy;
+               temp = vMin->x + eTop.adjy*dxdy;
+               eTop.sx = D_ICEIL(temp);
+               eTop.adjx = (float) eTop.sx - vMin->x;
+               if (eTop.lines == 1) {
+                    eTop.idy = 1;
+                    if (eBot.lines > 0) {
+                         eTop.idx = eBot.sx - eTop.sx; /* needed for bottom half */
+                    }
+                    else {
+                         eTop.idx = 0;
+                    }
+                    eTop.err = 0;
+               }
+               else {
+                    eTop.idy = RINT(eTop.dy * DELTASCALE);
+                    eTop.idx = D_IFLOOR(eTop.idy * dxdy);
+                    eTop.err = RINT(((float) eTop.sx - temp) * (float)eTop.idy);
+               }
+          }
+          else {
+               Shape = 2;
+          }
+     }
+
+     {
+          int ltor;        /* true if scanning left-to-right */
+          EdgeT *eLeft, *eRight;
+          int lines;
+          DFBVertex *vTL;      /* Top left vertex */
+          float adjx, adjy;
+
+          /*
+           * Execute user-supplied setup code
+           */
+#ifdef SETUP_CODE
+          SETUP_CODE
+#endif
+
+          ltor = (oneOverArea > 0.0F);
+
+          if (Shape == 2) {
+               /* bottom half triangle */
+               if (ltor) {
+                    eLeft = &eMaj;
+                    eRight = &eBot;
+               }
+               else {
+                    eLeft = &eBot;
+                    eRight = &eMaj;
+               }
+               lines = eBot.lines;
+          }
+          else {
+               /* top half triangle */
+               if (ltor) {
+                    eLeft = &eMaj;
+                    eRight = &eTop;
+               }
+               else {
+                    eLeft = &eTop;
+                    eRight = &eMaj;
+               }
+               lines = eTop.lines;
+          }
+
+          vTL = eLeft->v0;
+          adjx = eLeft->adjx; adjy = eLeft->adjy;
+
+
+          /* setup derivatives */
+/* compute d?/dx and d?/dy derivatives */
+          eBot.dxOOA = eBot.dx * oneOverArea;
+          eBot.dyOOA = eBot.dy * oneOverArea;
+          eMaj.dxOOA = eMaj.dx * oneOverArea;
+          eMaj.dyOOA = eMaj.dy * oneOverArea;
+
+#define DERIV( DZ, COMP) \
+  { \
+    float eMaj_DZ, eBot_DZ; \
+    eMaj_DZ = vMax->COMP - vMin->COMP; \
+    eBot_DZ = vMax->COMP - vMid->COMP; \
+    DZ ## dx = eMaj_DZ * eBot.dyOOA - eMaj.dyOOA * eBot_DZ;    \
+    DZ ## dy = eMaj.dxOOA * eBot_DZ - eMaj_DZ * eBot.dxOOA;    \
+  }
+
+          {
+               float dsdx, dsdy;
+               float dtdx, dtdy;
+               float dvdx, dvdy;
+
+               DERIV(ds,s);
+#if 0
+               MGA_S(RINT( (vTL->s+dsdx*adjx+dsdy*adjy) * 0x100000 ),
+                     RINT( dsdx * 0x100000 ), RINT( dsdy * 0x100000 ));
+
+               DERIV(dt,t);
+
+               MGA_T(RINT( (vTL->t+dtdx*adjx+dtdy*adjy) * 0x100000),
+                     RINT( dtdx * 0x100000 ), RINT( dtdy * 0x100000 ));
+
+               DERIV(dv,w);
+               {
+                    int sq = RINT( (vTL->w+dvdx*adjx+dvdy*adjy) * 0x10000 );
+                    MGA_Q((sq == 0) ? 1 : sq,RINT(dvdx*0x10000),RINT(dvdy*0x10000));
+               }
+#else
+               MGA_S(RINT( (vTL->s+dsdx*adjx+dsdy*adjy) ),
+                     RINT( dsdx ), RINT( dsdy ));
+
+               DERIV(dt,t);
+
+               MGA_T(RINT( (vTL->t+dtdx*adjx+dtdy*adjy) ),
+                     RINT( dtdx ), RINT( dtdy ));
+
+               DERIV(dv,w);
+               {
+                    int sq = RINT( (vTL->w+dvdx*adjx+dvdy*adjy) );
+                    MGA_Q((sq == 0) ? 1 : sq,RINT(dvdx),RINT(dvdy));
+               }
+#endif
+          }
+
+          {
+               __u32 sgn = 0;
+
+               /* Draw part #1 */
+               if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400) {
+                    MGA_G400_LSLOPE(eLeft->idx,eLeft->idy,sgn,eLeft->err);
+                    MGA_G400_RSLOPE(eRight->idx,eRight->idy,sgn,eRight->err);
+               }
+               else {
+                    MGA_LSLOPE(eLeft->idx,eLeft->idy,sgn,eLeft->err);
+                    MGA_RSLOPE(eRight->idx,eRight->idy,sgn,eRight->err);
+               }
+
+               mga_out32( mmio, sgn,                            SGN );
+               mga_out32( mmio, eLeft->sx | (eRight->sx << 16), FXBNDRY );
+               mga_out32( mmio, lines     | (eLeft->sy  << 16), YDSTLEN | EXECUTE );
+
+               if (Shape != 3) { /* has only one half? */
+                    return;
+               }
+
+               /* Draw part #2 */
+               if (ltor) {
+                    if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400)
+                         MGA_G400_RSLOPE(eBot.idx,eBot.idy,sgn,eBot.err);
+                    else
+                         MGA_RSLOPE(eBot.idx,eBot.idy,sgn,eBot.err);
+
+                    mga_out32( mmio, eBot.sx, FXRIGHT );
+               }
+               else {
+                    sgn |= SGN_BRKLEFT;
+                    mga_out32( mmio, eBot.sx, FXLEFT );
+                    if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400)
+                         MGA_G400_LSLOPE(eBot.idx,eBot.idy,sgn,eBot.err);
+                    else
+                         MGA_LSLOPE(eBot.idx,eBot.idy,sgn,eBot.err);
+
+               }
+
+               mga_out32( mmio, sgn,        SGN );
+               mga_out32( mmio, eBot.lines, LEN | EXECUTE );
           }
      }
 }
@@ -1313,7 +1626,29 @@ static bool matroxTextureTriangles( void *drv, void *dev,
      mga_out32( mmio, BOP_COPY | SHFTZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
      mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_BILIN, TEXFILTER );
 
+     for (i=0; i<num; i++) {
+          vertices[i].s *= 0x100000;
+          vertices[i].t *= 0x100000;
+          vertices[i].w *= 0x10000;
+     }
+
      switch (formation) {
+          case DTTF_LIST:
+               for (i=0; i<num; i+=3)
+                    texture_triangle( mdrv, mdev, &vertices[i], &vertices[i+1], &vertices[i+2] );
+
+               break;
+
+          case DTTF_STRIP:
+               texture_triangle( mdrv, mdev, &vertices[0],
+                                 &vertices[1], &vertices[2] );
+
+               for (i=3; i<num; i++)
+                    texture_triangle( mdrv, mdev, &vertices[i-2],
+                                      &vertices[i-1], &vertices[i] );
+
+               break;
+
           case DTTF_FAN:
                texture_triangle( mdrv, mdev, &vertices[0],
                                  &vertices[1], &vertices[2] );
@@ -1325,8 +1660,16 @@ static bool matroxTextureTriangles( void *drv, void *dev,
                break;
 
           default:
-               break;
+               D_ONCE( "unknown formation" );
+               return false;
      }
+
+     mga_waitfifo( mdrv, mdev, 5 );
+     mga_out32( mmio, 0, TMR1 );
+     mga_out32( mmio, 0, TMR2 );
+     mga_out32( mmio, 0, TMR4 );
+     mga_out32( mmio, 0, TMR5 );
+     mga_out32( mmio, 0x10000, TMR8 );
 
      return true;
 }

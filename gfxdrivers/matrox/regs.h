@@ -207,6 +207,8 @@
 #define MAG_NRST      0x00000000
 #define MAG_BILIN     0x00000020
 
+/* SGN */
+#define SGN_BRKLEFT   0x00000100
 
 #define DSTORG        0x2cb8
 #define SRCORG        0x2cb4
