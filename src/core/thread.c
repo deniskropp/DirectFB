@@ -67,6 +67,9 @@ dfb_thread_create( CoreThreadType  thread_type,
 
      DFB_ASSERT( thread_main != NULL );
 
+     DEBUGMSG( "DirectFB/core/threads: Creating new thread of type %d...\n",
+               thread_type );
+
      /* Allocate core thread structure. */
      thread = DFBCALLOC( 1, sizeof(CoreThread) );
      if (!thread)
@@ -83,10 +86,14 @@ dfb_thread_create( CoreThreadType  thread_type,
      /* Create and run the thread. */
      pthread_create( &thread->thread, NULL, dfb_thread_main, thread );
 
+     DEBUGMSG( "DirectFB/core/threads: Waiting for thread to run...\n" );
+     
      /* Wait for completion of the thread's initialization. */
      while (!thread->init)
           sched_yield();
 
+     DEBUGMSG( "DirectFB/core/threads: Thread is running.\n" );
+     
      return thread;
 }
 
@@ -115,9 +122,13 @@ dfb_thread_testcancel( CoreThread *thread )
 
      DFB_ASSERT( pthread_equal( thread->thread, pthread_self() ) );
 
+     DEBUGMSG( "DirectFB/core/threads: dfb_thread_testcancel...\n" );
+
      /* Quick check before calling the pthread function. */
      if (thread->cancel)
           pthread_testcancel();
+     
+     DEBUGMSG( "DirectFB/core/threads: still alive.\n" );
 }
 
 void
@@ -164,6 +175,9 @@ dfb_thread_main( void *arg )
 
      dfb_system_thread_init();
      
+     DEBUGMSG( "DirectFB/core/threads:"
+               "  (thread) Waiting for pthread_create completion...\n" );
+     
      /* Wait for completion of pthread_create(). */
      while (thread->thread == -1)
           sched_yield();
@@ -171,7 +185,7 @@ dfb_thread_main( void *arg )
      /* Have all signals handled by the main thread. */
      if (dfb_core && dfb_core->master)
           dfb_sig_block_all();
-
+     
      /* Adjust scheduling priority. */
      switch (thread->type) {
           case CTT_INPUT:
@@ -193,9 +207,13 @@ dfb_thread_main( void *arg )
           default:
                break;
      }
-
+     
      /* Indicate that our initialization has completed. */
      thread->init = true;
+
+     DEBUGMSG( "DirectFB/core/threads:  (thread) Initialization done.\n" );
+
+     sched_yield();
 
      /* Call main routine. */
      return thread->main( thread, thread->arg );

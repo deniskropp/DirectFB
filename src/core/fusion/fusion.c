@@ -170,6 +170,8 @@ fusion_read_loop( CoreThread *thread, void *arg )
      int  len;
      char buf[1024];
 
+     FDEBUG( "entering loop...\n" );
+
      while ((len = read (fusion_fd, buf, 1024)) > 0 || errno == EINTR) {
           char *buf_p = buf;
 

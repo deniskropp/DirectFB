@@ -393,6 +393,8 @@ void *__shmalloc_init (bool initialize)
           size = st.st_size;
      }
 
+     FDEBUG("mmaping shared memory file...\n");
+     
      /* map it shared */
      mem = mmap ((void*) SH_BASE, size,
                  PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
@@ -403,6 +405,8 @@ void *__shmalloc_init (bool initialize)
           mem = NULL;
      }
 
+     FDEBUG("mmapped shared memory file.\n");
+     
      _sheap = mem;
      
      if (initialize) {
