@@ -84,7 +84,7 @@ typedef struct {
      void             *ctx;
 
      CardState         state;
-     CoreSurface       source;
+     CoreSurface      *source;
 } IDirectFBVideoProvider_AviFile_data;
 
 
@@ -105,7 +105,7 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
           data->destination = NULL;     /* FIXME: remove listener */
      }
 
-     reactor_free( data->source.reactor );
+     dfb_surface_unref( data->source );
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -363,8 +363,8 @@ static void AviFile_DrawCallback( const CImage *image, void *p )
      IDirectFBVideoProvider_AviFile_data *data =
           (IDirectFBVideoProvider_AviFile_data*)p;
 
-     data->source.front_buffer->system.addr   = (void*)(image->Data());
-     data->source.front_buffer->system.pitch  = image->Bpl();
+     data->source->front_buffer->system.addr   = (void*)(image->Data());
+     data->source->front_buffer->system.pitch  = image->Bpl();
 
 
      DFBRectangle rect = { 0, 0, image->Width(), image->Height() };
@@ -403,6 +403,8 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
+     DFBResult ret;
+
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_AviFile)
 
      data->ref = 1;
@@ -416,28 +418,20 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      catch (FatalError e) {
           ERRORMSG( "DirectFB/AviFile: CreateAviPlayer failed: %s\n",
                     e.GetDesc() );
-          DFBFREE( data );
           DFB_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 
-
-     data->source.width  = data->player->GetWidth();
-     data->source.height = data->player->GetHeight();
-     data->source.format = DSPF_RGB16;
-
-     data->source.front_buffer =
-          (SurfaceBuffer*) calloc( 1, sizeof(SurfaceBuffer) );
-
-     data->source.front_buffer->policy = CSP_SYSTEMONLY;
-     data->source.front_buffer->system.health = CSH_STORED;
-
-     data->source.back_buffer = data->source.front_buffer;
-
-     skirmish_init( &data->source.front_lock );
-     skirmish_init( &data->source.back_lock );
-
-     data->source.reactor = reactor_new(sizeof(CoreSurfaceNotification));
+     ret = dfb_surface_create_preallocated( data->player->GetWidth(),
+                                            data->player->GetHeight(),
+                                            DSPF_RGB16, CSP_SYSTEMONLY,
+                                            DSCAPS_SYSTEMONLY, NULL, NULL, 0, 0,
+                                            &data->source );
+     if (ret) {
+          delete data->player;
+          DFB_DEALLOCATE_INTERFACE(thiz);
+          return ret;
+     }
 
      data->state.source   = &data->source;
      data->state.modified = SMF_ALL;
