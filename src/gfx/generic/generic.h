@@ -29,7 +29,7 @@
 
 #include <config.h>
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 #include <directfb.h>
 #include <core/coretypes.h>

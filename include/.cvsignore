@@ -2,3 +2,4 @@ Makefile
 Makefile.in
 directfb_keynames.h
 directfb_version.h
+dfb_types.h

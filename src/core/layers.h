@@ -27,7 +27,7 @@
 #ifndef __LAYERS_H__
 #define __LAYERS_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 #include <pthread.h>
 
 #include <core/fusion/lock.h>

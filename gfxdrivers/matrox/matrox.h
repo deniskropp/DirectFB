@@ -27,7 +27,7 @@
 #ifndef ___MATROX_H__
 #define ___MATROX_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 #include <core/layers.h>
 

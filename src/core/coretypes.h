@@ -27,7 +27,7 @@
 #ifndef __CORETYPES_H__
 #define __CORETYPES_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 typedef struct _CoreCleanup             CoreCleanup;
 

@@ -27,7 +27,7 @@
 #ifndef __NEOMAGIC_H__
 #define __NEOMAGIC_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 #include <sys/io.h>
 
 #include <core/gfxcard.h>

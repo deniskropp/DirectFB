@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <asm/types.h>
+#include <dfb_types.h>
 
 #include <pthread.h>
 

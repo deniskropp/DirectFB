@@ -50,7 +50,7 @@
 #ifndef __CPU_ACCEL_H__
 #define __CPU_ACCEL_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
                         /* CPU Acceleration */
 

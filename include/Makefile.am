@@ -9,7 +9,8 @@ MAINTAINERCLEANFILES = directfb_keynames.h
 include_HEADERS = \
 	directfb.h		\
 	directfb_keyboard.h	\
-	directfb_keynames.h
+	directfb_keynames.h	\
+	dfb_types.h
 
 internalinclude_HEADERS = \
 	directfb_internals.h	\

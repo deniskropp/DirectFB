@@ -125,7 +125,7 @@ quote of the day:
 #include <stdlib.h>
 #include <string.h>
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 #include "core/coredefs.h"
 

@@ -27,7 +27,7 @@
 #ifndef ___ATI128_H__
 #define ___ATI128_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 #include <core/coretypes.h>
 #include <core/layers.h>
 

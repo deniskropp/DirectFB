@@ -28,7 +28,7 @@
 #ifndef ___ATI128_MMIO_H__
 #define ___ATI128_MMIO_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 #include "ati128.h"
 

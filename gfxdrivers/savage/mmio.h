@@ -27,7 +27,7 @@
 #ifndef __SAVAGE__MMIO_H__
 #define __SAVAGE__MMIO_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 typedef __u8 uint8;
 typedef __u16 uint16;

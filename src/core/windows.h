@@ -27,7 +27,7 @@
 #ifndef __WINDOWS_H__
 #define __WINDOWS_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 #include <core/coretypes.h>
 
 #include <core/fusion/object.h>

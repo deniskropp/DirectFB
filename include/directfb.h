@@ -27,7 +27,7 @@
 #ifndef __DIRECTFB_H__
 #define __DIRECTFB_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 #include <sys/time.h> /* struct timeval */
 
 #include <directfb_keyboard.h>

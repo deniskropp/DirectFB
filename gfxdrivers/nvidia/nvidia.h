@@ -27,7 +27,7 @@
 #ifndef __NVIDIA_H__
 #define __NVIDIA_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 /***************************************************************************\
 *                                                                           *

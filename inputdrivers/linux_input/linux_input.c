@@ -27,7 +27,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>

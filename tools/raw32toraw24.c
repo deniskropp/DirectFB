@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 #include <asm/byteorder.h>

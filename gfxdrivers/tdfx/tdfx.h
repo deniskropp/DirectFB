@@ -27,7 +27,7 @@
 #ifndef __TDFX_H__
 #define __TDFX_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 
 #define S12_4(val)    (((__u32)((__s32)((val) << 4))) & 0xffff)

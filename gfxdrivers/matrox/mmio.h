@@ -27,7 +27,7 @@
 #ifndef __MATROX_MMIO_H__
 #define __MATROX_MMIO_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 #include "matrox.h"
 

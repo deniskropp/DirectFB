@@ -29,7 +29,7 @@
 
 #include <string.h>
 #include <directfb.h>
-#include <asm/types.h>
+#include <dfb_types.h>
 
 #include "misc/memcpy.h"
 
