@@ -37,6 +37,7 @@
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
+#include <core/screens.h>
 
 #include <core/state.h>
 #include <core/gfxcard.h>
@@ -686,12 +687,6 @@ i810FillTriangle( void *drv, void *dev, DFBTriangle *tri)
 }
 
 static int
-driver_get_abi_version()
-{
-     return DFB_GRAPHICS_DRIVER_ABI_VERSION;
-}
-
-static int
 driver_probe( GraphicsDevice *device )
 {
 #ifdef FB_ACCEL_I810
@@ -785,7 +780,7 @@ driver_init_driver( GraphicsDevice      *device,
 	     return DFB_IO;
 
      i810drv->agpgart = open("/dev/agpgart", O_RDWR);
-     if (!i810drv->agpgart)
+     if (i810drv->agpgart == -1)
 	     return DFB_IO;
      i810drv->flags |= I810RES_GART;
 
@@ -870,7 +865,7 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->Blit               = i810Blit;
      funcs->FillTriangle       = i810FillTriangle;
 
-     dfb_layers_register( device, driver_data, &i810OverlayFuncs );
+     dfb_layers_register( dfb_screens_at(DSCID_PRIMARY), driver_data, &i810OverlayFuncs );
 
      return DFB_OK;
 }
@@ -922,11 +917,11 @@ driver_close_device( GraphicsDevice *device,
 		  i810dev->waitfifo_calls );
 	D_DEBUG( "DirectFB/I810:  %9d BUFFER transfers (i810_wait_for_space sum)\n",
 		  i810dev->waitfifo_sum );
-	D_DEBUG( "DirectFB/I810:  %9d BUFFER wait cycles (depends on CPU)\n",
+	D_DEBUG( "DirectFB/I810:  %9d BUFFER wait cycles (depends on GPU/CPU)\n",
 		  i810dev->fifo_waitcycles );
-	D_DEBUG( "DirectFB/I810:  %9d IDLE wait cycles (depends on CPU)\n",
+	D_DEBUG( "DirectFB/I810:  %9d IDLE wait cycles (depends on GPU/CPU)\n",
 		  i810dev->idle_waitcycles );
-	D_DEBUG( "DirectFB/I810:  %9d BUFFER space cache hits(depends on CPU)\n",
+	D_DEBUG( "DirectFB/I810:  %9d BUFFER space cache hits(depends on BUFFER size)\n",
 		  i810dev->fifo_cache_hits );
 	D_DEBUG( "DirectFB/I810:  %9d BUFFER timeout sum (possible hardware crash)\n",
 		  i810dev->fifo_timeoutsum );
