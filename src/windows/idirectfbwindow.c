@@ -87,12 +87,12 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           data->surface->Release( data->surface );
 
      if (data->window) {
-          reactor_detach( data->window->reactor, IDirectFBWindow_React, data );
+          dfb_window_detach( data->window, IDirectFBWindow_React, data );
           
           /* recheck, threading... */
           if (data->window) {
                dfb_window_deinit( data->window );
-               dfb_window_destroy( data->window );
+               dfb_window_destroy( data->window, true );
           }
      }
 
@@ -666,7 +666,7 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
           return DFB_DESTROYED;
 
      dfb_window_deinit( data->window );
-     dfb_window_destroy( data->window );
+     dfb_window_destroy( data->window, true );
 
      return DFB_OK;
 }
@@ -683,7 +683,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      data->ref = 1;
      data->window = window;
 
-     reactor_attach( data->window->reactor, IDirectFBWindow_React, data );
+     dfb_window_attach( data->window, IDirectFBWindow_React, data );
 
      dfb_window_init( data->window );
 

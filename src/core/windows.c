@@ -147,6 +147,23 @@ stack_unlock( CoreWindowStack *stack )
 }
 
 /*
+ * Window destructor.
+ */
+static void
+window_destructor( FusionObject *object, bool zombie )
+{
+     CoreWindow *window = (CoreWindow*) object;
+
+     DEBUGMSG("DirectFB/core/windows: destroying %p (%dx%d)%s\n", window,
+              window->width, window->height, zombie ? " (ZOMBIE)" : "");
+
+     dfb_window_deinit( window );
+     dfb_window_destroy( window, false );
+
+     fusion_object_destroy( object );
+}
+
+/*
  * Allocates and initializes a window stack.
  */
 CoreWindowStack*
@@ -186,6 +203,12 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
           }
      }
 
+     /* Create the pool of windows. */
+     stack->pool = fusion_object_pool_create( "Window Pool",
+                                              sizeof(CoreWindow),
+                                              sizeof(DFBWindowEvent),
+                                              window_destructor );
+
      /* Initialize the modify/update lock */
      skirmish_init( &stack->lock );
 
@@ -216,16 +239,20 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
 void
 dfb_windowstack_destroy( CoreWindowStack *stack )
 {
-     int i;
+/*     int i;*/
+
+     DFB_ASSERT( stack != NULL );
+     
+     dfb_input_enumerate_devices( stack_detach_devices, stack );
+
+     fusion_object_pool_destroy( stack->pool );
 
      dfb_state_set_destination( &stack->state, NULL );
 
-     dfb_input_enumerate_devices( stack_detach_devices, stack );
-
      skirmish_destroy( &stack->lock );
 
-     for (i=0; i<stack->num_windows; i++)
-          dfb_window_destroy( stack->windows[i] );
+/*     for (i=0; i<stack->num_windows; i++)
+          dfb_window_destroy( stack->windows[i] );*/
 
      if (stack->windows)
           shfree( stack->windows );
@@ -276,14 +303,20 @@ dfb_window_create( CoreWindowStack        *stack,
      else
           surface_caps = DSCAPS_NONE;
 
-     ret = dfb_surface_create( width, height, pixelformat, surface_policy,
-                               surface_caps, &surface );
-     if (ret)
-          return ret;
+     /* Create the window object. */
+     w = (CoreWindow*) fusion_object_create( stack->pool );
 
-     w = (CoreWindow*) shcalloc( 1, sizeof(CoreWindow) );
+     /* Create the window's surface. */
+     if (! (caps & DWCAPS_INPUTONLY)) {
+          ret = dfb_surface_create( width, height, pixelformat, surface_policy,
+                                    surface_caps, &surface );
+          if (ret) {
+               fusion_object_destroy( &w->object );
+               return ret;
+          }
 
-     dfb_surface_link( &w->surface, surface );
+          dfb_surface_link( &w->surface, surface );
+     }
 
      w->id      = new_window_id( stack );
 
@@ -298,8 +331,6 @@ dfb_window_create( CoreWindowStack        *stack,
      w->stack   = stack;
 
      w->events  = DWET_ALL;
-
-     w->reactor = reactor_new(sizeof(DFBWindowEvent));
 
      *window = w;
 
@@ -341,7 +372,7 @@ dfb_window_deinit( CoreWindow *window )
 }
 
 void
-dfb_window_destroy( CoreWindow *window )
+dfb_window_destroy( CoreWindow *window, bool unref )
 {
      DFBWindowEvent evt;
 
@@ -361,12 +392,12 @@ dfb_window_destroy( CoreWindow *window )
      if (window->surface) {
           dfb_surface_unlink( window->surface );
           dfb_surface_unref( window->surface );
+          window->surface = NULL;
      }
 
-     reactor_free( window->reactor );
+     if (unref)
+          fusion_object_unref( &window->object );
 
-     shfree( window );
-     
      DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) exitting\n", window);
 }
 
@@ -852,7 +883,7 @@ dfb_window_attach( CoreWindow *window,
                    React       react,
                    void       *ctx )
 {
-     reactor_attach( window->reactor, react, ctx );
+     fusion_object_attach( &window->object, react, ctx );
 }
 
 void
@@ -860,7 +891,7 @@ dfb_window_detach( CoreWindow *window,
                    React       react,
                    void       *ctx )
 {
-     reactor_detach( window->reactor, react, ctx );
+     fusion_object_detach( &window->object, react, ctx );
 }
 
 void
@@ -873,7 +904,7 @@ dfb_window_dispatch( CoreWindow     *window,
      event->clazz     = DFEC_WINDOW;
      event->window_id = window->id;
 
-     reactor_dispatch( window->reactor, event, true );
+     fusion_object_dispatch( &window->object, event );
 }
 
 void
@@ -1309,7 +1340,7 @@ stack_inputdevice_react( const void *msg_data,
                                   !(window->options & DWOP_INDESTRUCTIBLE))
                               {
                                    dfb_window_deinit( window );
-                                   dfb_window_destroy( window );
+                                   dfb_window_destroy( window, true );
                               }
 
                               return RS_OK;

@@ -607,8 +607,6 @@ dfb_layer_disable( DisplayLayer *layer )
      if (ret && ret != DFB_UNSUPPORTED)
           return ret;
 
-     shared->enabled = false;
-     
      if (shared->surface)
           dfb_surface_detach( shared->surface, layer_surface_listener, layer );
      
@@ -616,14 +614,14 @@ dfb_layer_disable( DisplayLayer *layer )
      if (shared->stack) {
           CoreWindowStack *stack = shared->stack;
           
+          dfb_windowstack_destroy( stack );
+
+          shared->stack = NULL;
+          
           /* detach listener from background surface */
           if (stack->bg.image)
                dfb_surface_detach( stack->bg.image,
                                    background_image_listener, layer );
-
-          dfb_windowstack_destroy( stack );
-
-          shared->stack = NULL;
      }
      
      /* deallocate the surface */
@@ -634,6 +632,8 @@ dfb_layer_disable( DisplayLayer *layer )
                return ret;
           }
      }
+     
+     shared->enabled = false;
      
      return DFB_OK;
 }
@@ -1513,6 +1513,9 @@ background_image_listener( const void *msg_data,
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      DisplayLayer            *layer        = (DisplayLayer*) ctx;
      CoreWindowStack         *stack        = layer->shared->stack;
+
+     if (!stack)
+          return RS_REMOVE;
 
      if (notification->flags & CSNF_DESTROY) {
           DEBUGMSG("DirectFB/core/layers: Surface for background vanished.\n");

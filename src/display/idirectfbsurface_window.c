@@ -84,7 +84,7 @@ IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
                data->base.caps & DSCAPS_PRIMARY)
           {
                dfb_window_deinit( data->window );
-               dfb_window_destroy( data->window );
+               dfb_window_destroy( data->window, true );
           }
      }
 

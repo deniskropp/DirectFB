@@ -30,10 +30,11 @@
 #include <asm/types.h>
 #include <core/coretypes.h>
 
+#include <core/fusion/object.h>
 #include <core/fusion/lock.h>
 #include <core/fusion/reactor.h>
 
-#include "state.h"
+#include <core/state.h>
 
 
 /*
@@ -45,6 +46,8 @@
  * a window
  */
 struct _CoreWindow {
+     FusionObject            object;
+
      DFBWindowID             id;
 
      int                     x;            /* x position in pixels */
@@ -67,8 +70,6 @@ struct _CoreWindow {
 
      CoreWindowStack        *stack;        /* window stack the window belongs */
 
-     FusionReactor          *reactor;      /* event dispatcher */
-
      bool                    initialized;  /* window has been inserted into
                                               the stack */
      bool                    destroyed;    /* window is (being) destroyed */
@@ -81,6 +82,8 @@ struct _CoreWindowStack {
      DFBDisplayLayerID   layer_id;
 
      CoreSurface        *surface;
+
+     FusionObjectPool   *pool;            /* window pool */
 
      int                 num_windows;     /* number of windows on the stack */
      CoreWindow        **windows;         /* array of windows */
@@ -165,7 +168,7 @@ dfb_window_deinit( CoreWindow *window );
  * deinitializes a window and removes it from the window stack
  */
 void
-dfb_window_destroy( CoreWindow *window );
+dfb_window_destroy( CoreWindow *window, bool unref );
 
 /*
  * moves a window relative to its current position
