@@ -307,6 +307,15 @@ sound_thread( CoreThread *thread, void *arg )
           FusionLink *l, *next;
 
           dfb_thread_testcancel( thread );
+
+          if (!shared->playlist.entries) {
+               written   = 0;
+               last_time = 0;
+
+               usleep( 40000 );
+
+               continue;
+          }
           
           if (last_time) {
                int       played;
