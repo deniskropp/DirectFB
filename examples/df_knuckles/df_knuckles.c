@@ -17,6 +17,7 @@
 IDirectFB            *dfb;
 IDirectFBSurface     *primary;
 IDirectFBInputDevice *keyboard;
+IDirectFBInputBuffer *key_buffer;
 IDirectFBInputDevice *mouse;
 IDirectFBInputBuffer *mouse_buffer;
 
@@ -60,17 +61,21 @@ static void DrawTriangle (float color, Tri3D* tri)
 			     tri->b->x + X, tri->b->y + Y,
 			     tri->c->x + X, tri->c->y + Y);
       break;
-      /*    case WIRE_FRAME:
-	    Points[3].x = Points[0].x;
-	    Points[3].y = Points[0].y;
-	    
-	    XDrawLines(TheDisplay, TheDrawable, SolidContext, Points, 4,
-	    CoordModeOrigin);
-	    break;
-	    case AS_POINTS:
-	    XDrawPoints(TheDisplay, TheDrawable, SolidContext, Points, 3,
-	    CoordModeOrigin);
-	    break;*/
+     
+    case WIRE_FRAME:
+      primary->DrawLine (primary,
+                         tri->a->x + X, tri->a->y + Y,
+                         tri->b->x + X, tri->b->y + Y);
+      primary->DrawLine (primary,
+                         tri->b->x + X, tri->b->y + Y,
+                         tri->c->x + X, tri->c->y + Y);
+      primary->DrawLine (primary,
+                         tri->c->x + X, tri->c->y + Y,
+                         tri->a->x + X, tri->a->y + Y);
+      break;
+
+    default:
+      break;
     }
 }
 
@@ -224,13 +229,23 @@ static int SetupDirectFB (int argc, char *argv[])
       return -3;
     }
 
+  ret = keyboard->CreateInputBuffer (keyboard, &key_buffer);
+  if (ret)
+    {
+      DirectFBError ("CreateInputBuffer for keyboard failed", ret);
+      keyboard->Release (keyboard);
+      dfb->Release (dfb);
+      return -4;
+    }
+
   ret = dfb->GetInputDevice (dfb, DIDID_MOUSE, &mouse);
   if (ret)
     {
       DirectFBError ("GetInputDevice for mouse failed", ret);
       keyboard->Release (keyboard);
+      key_buffer->Release (key_buffer);
       dfb->Release (dfb);
-      return -4;
+      return -5;
     }
 
   ret = mouse->CreateInputBuffer (mouse, &mouse_buffer);
@@ -238,9 +253,10 @@ static int SetupDirectFB (int argc, char *argv[])
     {
       DirectFBError ("CreateInputBuffer for mouse failed", ret);
       mouse->Release (mouse);
+      key_buffer->Release (key_buffer);
       keyboard->Release (keyboard);
       dfb->Release (dfb);
-      return -5;
+      return -6;
     }
 
   dsc.flags = DSDESC_CAPS;
@@ -252,9 +268,10 @@ static int SetupDirectFB (int argc, char *argv[])
       DirectFBError ("CreateSurface for primary failed", ret);
       mouse_buffer->Release (mouse_buffer);
       mouse->Release (mouse);
+      key_buffer->Release (key_buffer);
       keyboard->Release (keyboard);
       dfb->Release (dfb);
-      return -5;
+      return -7;
     }
 
   primary->GetSize (primary, &Width, &Height);
@@ -267,13 +284,14 @@ static void ClosedownDirectFB (void)
   primary->Release (primary);
   mouse_buffer->Release (mouse_buffer);
   mouse->Release (mouse);
+  key_buffer->Release (key_buffer);
   keyboard->Release (keyboard);
   dfb->Release (dfb);
 }
 
 int main (int argc, char *argv[])
 {
-  DFBInputDeviceKeyState Quit = DIKS_UP;
+  int quit = False;
   int dxL, dyL;
 
   if(SetupDirectFB (argc, argv))
@@ -291,11 +309,30 @@ int main (int argc, char *argv[])
   dxL = 11;
   dyL = 7;
 
-  while(Quit == DIKS_UP)
+  while(!quit)
     {
       DFBInputEvent evt;
 
-      keyboard->GetKeyState (keyboard, DIKC_ESCAPE, &Quit);
+      if (key_buffer->GetEvent (key_buffer, &evt) == DFB_OK && 
+          evt.type == DIET_KEYPRESS)
+        {
+          switch (evt.keycode)
+            {
+            case DIKC_SPACE:
+              if (PrimitiveType == FLAT_SHADED)
+                PrimitiveType = WIRE_FRAME;
+              else
+                PrimitiveType = FLAT_SHADED;
+              break;
+
+            case DIKC_ESCAPE:
+              quit = True;
+              break;
+
+            default:
+              break;
+            }
+        }
 
       while (mouse_buffer->GetEvent (mouse_buffer, &evt) == DFB_OK)
 	{
