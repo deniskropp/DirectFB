@@ -342,7 +342,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     if (!(data->caps & DSCAPS_FLIPPING))
+     if (!(data->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE)))
           return DFB_UNSUPPORTED;
 
      if (!data->area.current.w || !data->area.current.h)
