@@ -164,17 +164,24 @@ dfb_layers_shutdown()
 {
      int i;
 
+     /* Begin with the most recently added */
      for (i=layersfield->num-1; i>=0; i--) {
           DisplayLayer *l = dfb_layers[i];
 
-          if (l->shared->enabled)
-               l->funcs->Disable( l, l->driver_data, l->layer_data );
+          /* Disable layer, destroy surface and window stack */
+          dfb_layer_disable( l );
           
+          /* Destroy property */
           fusion_property_destroy( &l->shared->lock );
 
+          /* Free shared layer data */
+          shfree( l->shared );
+
+          /* Free local layer data */
           DFBFREE( l );
      }
 
+     /* Free shared layer field */
      shfree( layersfield );
 
      return DFB_OK;
@@ -186,6 +193,7 @@ dfb_layers_leave()
 {
      int i;
 
+     /* Free all local data */
      for (i=0; i<layersfield->num; i++) {
           DFBFREE( dfb_layers[i] );
      }
@@ -470,9 +478,10 @@ dfb_layer_disable( DisplayLayer *layer )
      if (!shared->enabled)
           return DFB_OK;
 
+     /* call driver's disable function */
      ret = layer->funcs->Disable( layer,
                                   layer->driver_data, layer->layer_data );
-     if (ret)
+     if (ret && ret != DFB_UNSUPPORTED)
           return ret;
 
      shared->enabled = false;

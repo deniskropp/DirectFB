@@ -394,6 +394,8 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
 {
      Chunk *chunk = buffer->video.chunk;
 
+     DFB_ASSERT( buffer->surface );
+
      if (buffer->video.health == CSH_INVALID)
           return DFB_OK;
 

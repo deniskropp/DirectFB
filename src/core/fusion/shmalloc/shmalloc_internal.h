@@ -53,6 +53,7 @@ Cambridge, MA 02139, USA.
 
 void *__shmalloc_init (bool initialize);
 void *__shmalloc_brk  (int increment);
+void  __shmalloc_exit (bool shutdown);
 
 ReactionResult __shmalloc_react (const void *msg_data, void *ctx);
 

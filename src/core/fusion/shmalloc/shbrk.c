@@ -52,22 +52,21 @@ shmalloc_check_shmfs (void)
 
      char   buffer[SH_BUFSIZE];
 
-     //fprintf (stderr, "default-shmfs-name: %s\n", default_name);
-
-     if (!(mounts_handle = fopen (SH_MOUNTS_FILE, "r"))) {
+     if (!(mounts_handle = fopen (SH_MOUNTS_FILE, "r")))
           return(default_name);
-     }
 
      while (fgets (buffer, SH_BUFSIZE, mounts_handle)) {
           pointer = buffer;
           strsep (&pointer, " ");
           mount_point = strsep (&pointer, " ");
           mount_fs = strsep (&pointer, " ");
-          if (mount_fs && mount_point \
-              && (strlen (mount_fs) == strlen (SH_SHMFS_TYPE)) \
-              && (!(strcmp (mount_fs, SH_SHMFS_TYPE)))) {
-               if (!(pointer = (char *) malloc (strlen (mount_point) \
-                                                + strlen (SH_FILE_NAME) + 1))) {
+          if (mount_fs && mount_point
+              && (strlen (mount_fs) == strlen (SH_SHMFS_TYPE))
+              && (!(strcmp (mount_fs, SH_SHMFS_TYPE))))
+          {
+               if (!(pointer = malloc(strlen (mount_point)
+                                      + strlen (SH_FILE_NAME) + 1)))
+               {
                     fclose (mounts_handle);
                     return(default_name);
                }
@@ -87,15 +86,11 @@ void *__shmalloc_init (bool initialize)
      struct stat   st;
      char        * sh_name = NULL;
 
-     if (mem) {
-          //fprintf (stderr, __FUNCTION__ " called more than once!\n");
+     if (mem)
           return mem;
-     }
 
      /* try to find out where the shmfs is actually mounted */
-
      sh_name = shmalloc_check_shmfs ();
-     //fprintf (stderr, "shmfs-filename: %s\n", sh_name);
 
      /* open the virtual file */
      if (initialize)
@@ -198,3 +193,25 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
      return RS_OK;
 }
 
+void __shmalloc_exit (bool shutdown)
+{
+     if (!mem)
+          return;
+     
+     /* Detach from reactor */
+     reactor_detach (_sheap->reactor, __shmalloc_react, NULL);
+     
+     /* Destroy reactor */
+     if (shutdown)
+          reactor_free (_sheap->reactor);
+
+     _sheap = NULL;
+     
+     munmap (mem, size);
+     mem = NULL;
+
+     close (fd);
+     fd = -1;
+
+     /* FIXME: unlink file, free sh_name */
+}

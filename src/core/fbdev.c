@@ -1032,6 +1032,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
                                           var.xres_virtual *
                                           ((var.bits_per_pixel + 7) / 8) );
 
+          surface->front_buffer->surface = surface;
           surface->front_buffer->policy = CSP_VIDEOONLY;
           surface->front_buffer->video.health = CSH_STORED;
           surface->front_buffer->video.pitch = DFB_BYTES_PER_LINE(mode->format,
@@ -1061,6 +1062,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
 
                          surface->back_buffer->system.health = CSH_INVALID;
                     }
+                    surface->back_buffer->surface = surface;
                     surface->back_buffer->policy = CSP_VIDEOONLY;
                     surface->back_buffer->video.health = CSH_STORED;
                     surface->back_buffer->video.pitch = DFB_BYTES_PER_LINE(mode->format,
@@ -1073,6 +1075,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
                     if (surface->back_buffer == surface->front_buffer) {
                          surface->back_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
                     }
+                    surface->back_buffer->surface = surface;
                     surface->back_buffer->policy = CSP_SYSTEMONLY;
                     surface->back_buffer->video.health = CSH_INVALID;
                     surface->back_buffer->system.health = CSH_STORED;

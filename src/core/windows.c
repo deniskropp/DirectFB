@@ -93,39 +93,55 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
      CardCapabilities  caps;
      CoreWindowStack  *stack;
 
+     DFB_ASSERT( layer != NULL );
+     DFB_ASSERT( width > 0 );
+     DFB_ASSERT( height > 0 );
+
+     /* Allocate window stack data (completely shared) */
      stack = (CoreWindowStack*) shcalloc( 1, sizeof(CoreWindowStack) );
 
+     /* Remember layer id for access to it's local data later */
      stack->layer_id = dfb_layer_id( layer );
 
-     stack->wsp_opaque = stack->wsp_alpha = CSP_SYSTEMONLY;
-
-     caps = dfb_gfxcard_capabilities();
-
-     if (caps.accel & DFXL_BLIT) {
-          stack->wsp_opaque = CSP_VIDEOHIGH;
-          if (caps.blitting & DSBLIT_BLEND_ALPHACHANNEL)
-               stack->wsp_alpha = CSP_VIDEOHIGH;
-     }
-
+     /* Choose window surface policy */
      if (dfb_config->window_policy != -1) {
+          /* From configuration */
           stack->wsp_opaque = stack->wsp_alpha = dfb_config->window_policy;
      }
+     else {
+          /* Examine hardware capabilities */
+          caps = dfb_gfxcard_capabilities();
 
+          /* If blitting is supported... */
+          if (caps.accel & DFXL_BLIT) {
+               /* Auto video policy for opaque windows */
+               stack->wsp_opaque = CSP_VIDEOHIGH;
+
+               /* If blending is supported,
+                  then use auto video policy for alpha windows */
+               if (caps.blitting & DSBLIT_BLEND_ALPHACHANNEL)
+                    stack->wsp_alpha = CSP_VIDEOHIGH;
+          }
+     }
+
+     /* Initialize the modify/update lock */
      skirmish_init( &stack->update );
 
+     /* Initialize cursor clipping */
      stack->cursor.region.x1 = 0;
      stack->cursor.region.y1 = 0;
      stack->cursor.region.x2 = width - 1;
      stack->cursor.region.y2 = height - 1;
 
-     /* set default acceleration */
+     /* Set default acceleration */
      stack->cursor.numerator   = 2;
      stack->cursor.denominator = 1;
      stack->cursor.threshold   = 4;
 
+     /* Attach to all input devices */
      dfb_input_enumerate_devices( stack_attach_devices, stack );
 
-     /* initialize state for repaints */
+     /* Initialize state for stack updates */
      dfb_state_init( &stack->state );
      stack->state.modified  = SMF_ALL;
      stack->state.src_blend = DSBF_SRCALPHA;
@@ -165,6 +181,8 @@ dfb_window_insert( CoreWindow *window,
      DFBWindowEvent   evt;
      CoreWindowStack *stack = window->stack;
 
+     DFB_ASSERT( window->stack != NULL );
+     
      if (before < 0  ||  before > stack->num_windows)
           before = stack->num_windows;
 

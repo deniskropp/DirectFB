@@ -136,10 +136,12 @@ void fusion_exit()
      switch (_shm_abolish (fusion->shared_shm, fusion->shared)) {
           case AB_Destroyed:
                FDEBUG ("I'VE BEEN THE LAST\n");
+               __shmalloc_exit (true);
                break;
 
           case AB_Detached:
                FDEBUG ("OTHERS LEFT\n");
+               __shmalloc_exit (false);
                break;
 
           case AB_Failure:
