@@ -1,3 +1,78 @@
+2002-06-19	20:26	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.114) (+11 -4)
+		src/core/gfxcard.c (1.70) (+2 -5)
+		src/core/fonts.c (1.21) (+4 -3)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.27) (+2 -0)
+	
+	Slightly improved description of IDirectFBFont API.
+	
+	Create glyph surfaces with with a height of ascender - descender
+	instead of using font->height.
+	
+	Don't bail out if setting the encoding failed in the FreeType2 font
+	provider. Users might want to use symbol fonts and should be allowed
+	to do so (they just need to know what they're doing).
+	
+2002-06-19	19:49	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.17) (+1 -1)
+	
+	oops, one more place that needs to be adjusted
+	
+2002-06-19	19:41	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.16) (+3 -3)
+	
+	Corrected my last commit: Set height to 24 (vertical offset to next line).
+	Fix descender as well (it's supposed to be a negative value).
+	
+2002-06-19	19:37	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.15) (+1 -1)
+	
+	Set the font height to 24 for the default font. Font height is supposed
+	to be the vertical advance to the next line.
+	
+2002-06-19	17:46	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.34) (+8 -8)
+	
+	Some smaller updates to the README.
+	
+2002-06-19	16:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.33) (+1 -0)
+	
+	Added Alex SONG <zzaleson@uqconnect.net>.
+	
+2002-06-19	16:40	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.14) (+40 -35)
+		src/core/gfxcard.c (1.69) (+28 -67)
+		src/core/fonts.h (1.12) (+7 -0)
+		src/core/fonts.c (1.20) (+15 -2)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.26) (+29 -27)
+	
+	Removed global font_state and added state and pixel_format to the
+	CoreFont.  Both are initialized to default values by dfb_font_create()
+	but may be altered by the FontProvider. This gives the FontProviders
+	control about glyph surface format and glyph blitting. This change
+	makes it for example possible to write a FontProvider for ARGB fonts.
+	
+2002-06-19	14:20	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.17) (+2 -0)
+	
+	added DIKS_EXIT and DIKS_SETUP
+	
+2002-06-19	12:51	Sven Neumann <sven@convergence.de>
+
+	Files:	ChangeLog (1.22) (+425 -0)
+		NEWS (1.28) (+22 -0)
+	
+	Updated ChangeLog. Started to summarize changes in 0.9.12.
+	
 2002-06-19	12:34	Sven Neumann <sven@convergence.de>
 
 	Files:	gfxdrivers/savage/savage4.c (1.2) (+3 -0)

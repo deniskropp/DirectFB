@@ -11,12 +11,15 @@
 - Added structs DFBPoint and DFBDimension.
 - Added DIDTF_VIRTUAL for virtual input devices.
 - Added DSFT_BOTTOM to DFBSurfaceTextFlags.
-= Added DFB_NUM_PIXELFORMATS macro.
+- Added DFB_NUM_PIXELFORMATS macro.
+- Give font providers control over pixel format and blending function.
 - Define DFBKeyIdentifierNames in directfb_keynames.h.
 - Some smaller fixes to the keyboard mapping.
-- Enable all keysymbols in the lirc input driver. 
-- Implemented planar YUV blitting support in software driver.
-- Optimizations in software driver.
+- Support all keysymbols in the lirc input driver. 
+- Implemented planar YUV blitting in software driver.
+- Optimizations in the software driver.
+- Fixed blitting and drawing to ARGB in matrox driver.
+- Implemented missing BES flipping in matrox driver.
 - Lots of bug-fixes.
 
 
