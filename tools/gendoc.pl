@@ -86,6 +86,9 @@ while (<>) {
    elsif ( /^\s*typedef\s+(struct|union)\s*\{?\s*$/ ) {
       parse_struct();
    }
+   elsif ( /^\s*typedef\s+(\w+)\s+\(\*(\w+)\)\s*\(\s*$/ ) {
+      parse_func( $1, $2 );
+   }
    elsif ( /^\s*#define\s+([^\(\s]+)\s*(\([^\)]*\))?/ ) {
       $macro  = $1;
       $params = $2;
@@ -129,8 +132,7 @@ sub parse_interface (NAME)
 #                      "  $interface_abstracts{$interface}\n",
 #                      "</P>";
 
-      $comment =~ s/\<p\>/\<p style=\"margin\-left:3%; margin\-right:3%;\"\>/g;
-      print INTERFACE "$comment";
+      print INTERFACE "<p style=\"margin\-left:3%; margin\-right:3%;\"\>$comment</p>";
 
       print INTERFACE "<P>\n",
                       "  <CENTER><TABLE width=93% border=1 rules=groups cellpadding=2 cellspacing=0>\n";
@@ -558,6 +560,152 @@ sub parse_struct
          }
    }
 
+
+sub parse_func (TYPE, NAME)
+   {
+      my $rtype = shift(@_);
+      my $name  = shift(@_);
+
+      @entries = ();
+      %entries_params = ();
+      %entries_types = ();
+
+      while (<>)
+         {
+            chomp;
+
+            # without comment
+            if ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+,?)\s*$/ )
+               {
+                  $type = $1;
+                  $entry = $2;
+
+                  $type =~ s/\ *$//;
+
+                  if ($types{$type})
+                     {
+                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
+                     }
+                  elsif ($interface_abstracts{$type})
+                     {
+                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
+                     }
+                  else
+                     {
+                        $entries_types{$entry} = "$type";
+                     }
+
+                  push (@entries, $entry);
+                  $entries_params{ $entry } = "";
+               }
+            # complete one line entry
+            elsif ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+,?)\s*\/\*\s*(.+)\*\/\s*$/ )
+               {
+                  $type = $1;
+                  $entry = $2;
+                  $text = $3;
+
+                  $type =~ s/\ *$//;
+
+                  if ($types{$type})
+                     {
+                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
+                     }
+                  elsif ($interface_abstracts{$type})
+                     {
+                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
+                     }
+                  else
+                     {
+                        $entries_types{$entry} = "$type";
+                     }
+
+                  push (@entries, $entry);
+                  $entries_params{ $entry } = $text;
+               }
+            # with comment opening
+            elsif ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+,?)\s*\/\*\s*(.+)\s*$/ )
+               {
+                  $type = $1;
+                  $entry = $2;
+                  $text = $3;
+
+                  $type =~ s/\ *$//;
+
+                  if ($types{$type})
+                     {
+                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
+                     }
+                  elsif ($interface_abstracts{$type})
+                     {
+                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
+                     }
+                  else
+                     {
+                        $entries_types{$entry} = "$type";
+                     }
+
+                  push (@entries, $entry);
+                  $entries_params{ $entry } = $text;
+
+                  while (<>)
+                     {
+                        chomp;
+
+                        if ( /^\s*(.+)\*\/\s*$/ )
+                           {
+                              $entries_params{ $entry } .= " $1";
+                              last;
+                           }
+                        elsif ( /^\s*(.+)\s*$/ )
+                           {
+                              $entries_params{ $entry } .= " $1";
+                           }
+                     }
+               }
+            elsif ( /^\s*\)\;\s*$/ )
+               {
+                  $types{$name} = 1;
+
+                  last;
+               }
+         }
+
+      if ($types{$rtype})
+         {
+            $rtype = "<A href=\"types.html#$rtype\">$rtype</A>";
+         }
+
+      if (scalar @entries > 0)
+         {
+            print TYPES "<p>",
+                        "  <a name=$name>",
+                        "  <font color=#40A0F0 size=+1>$name</font>\n",
+                        "  <br>\n",
+                        "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#E0E0E0>\n",
+                        "    <TR><TD colspan=4>\n",
+                        "         <I><FONT color=black>$rtype (*$name) (</FONT></I>\n",
+                        "    </TD></TR>\n";
+
+            foreach $key (@entries)
+               {
+                  print TYPES "    <TR><TD width=32>&nbsp;</TD><TD valign=top>\n",
+                              "      $entries_types{$key}\n",
+                              "    </TD><TD valign=top>\n",
+                              "      <FONT color=black><B>$key</B></FONT>\n",
+                              "    </TD><TD valign=top>\n",
+                              "      <font color=#404040>$entries_params{$key}</font>\n",
+                              "    </TD></TR>\n";
+               }
+
+            print TYPES "    <TR><TD colspan=3><I><FONT color=black>);</FONT></I></TD></TR>\n",
+                        "  </TABLE>\n",
+                        "  $comment\n",
+                        "</p>\n";
+
+         }
+   }
+
 #
 # Reads stdin until the end of the macro is reached.
 # Writes formatted HTML to "types.html".
@@ -600,6 +748,9 @@ sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE)
                   "  <!--\n",
                   "    A{textdecoration:none}\n",
                   "  -->\n",
+                  "</STYLE>\n",
+                  "<STYLE type=\"text/css\">\n",
+                  "  A:link, A:visited, A:active { text-decoration: none; }\n",
                   "</STYLE>\n",
                   "<HEAD>\n",
                   "  <TITLE>DirectFB Reference Manual</TITLE>\n",
