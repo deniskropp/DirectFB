@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004 Claudio "KLaN" Ciccani <klan82@cheapnet.it>
+ * Copyright (C) 2004-2005 Claudio "KLaN" Ciccani <klan82@cheapnet.it>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
