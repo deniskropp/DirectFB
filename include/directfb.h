@@ -1426,7 +1426,7 @@ extern "C"
            */
           DFBResult (*GetWindow) (
                IDirectFBDisplayLayer              *thiz,
-               DFBWindowID                         id,
+               DFBWindowID                         window_id,
                IDirectFBWindow                   **interface
           );
 
