@@ -55,8 +55,14 @@ mode "400x300 100Hz 16bit"
 endmode
 
 
-mode "320x240 70Hz 16bit"
+mode "320x240 85Hz 16bit"
     geometry 320 240 320 240 16
-    timings 82440 30 16 20 4 48 1
+    timings 51383 32 32 20 4 48 1
+    double true
+endmode
+
+mode "320x200 85Hz 16bit"
+    geometry 320 200 320 200 16
+    timings 60440 32 32 20 4 48 1
     double true
 endmode
