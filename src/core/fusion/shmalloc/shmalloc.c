@@ -64,7 +64,7 @@ Cambridge, MA 02139, USA.
 
 #include "../fusion_internal.h"
 
-#define SH_BASE          0x70000000
+#define SH_BASE          0x20000000
 #define SH_MAX_SIZE      0x20000000
 #define SH_FILE_NAME     "/fusion.shm"
 #define SH_DEFAULT_NAME  "/dev/shm" SH_FILE_NAME
