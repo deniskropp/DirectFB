@@ -110,7 +110,8 @@ static int   _reactor_get_free_index (const FusionReactor *reactor);
  *  Public API  *
  ****************/
 
-FusionReactor *reactor_new (const int msg_size)
+FusionReactor *
+reactor_new (const int msg_size)
 {
      FusionReactor *reactor;
 
@@ -134,9 +135,10 @@ FusionReactor *reactor_new (const int msg_size)
      return reactor;
 }
 
-void reactor_attach (FusionReactor *reactor,
-                     React          react,
-                     void          *ctx)
+FusionResult
+reactor_attach (FusionReactor *reactor,
+                React          react,
+                void          *ctx)
 {
      int       index;
      Reaction *reaction;
@@ -154,7 +156,7 @@ void reactor_attach (FusionReactor *reactor,
                FERROR ("maximum number of reactor nodes (%d) reached!\n",
                        MAX_REACTOR_NODES);
                skirmish_dismiss (&reactor->lock);
-               return;
+               return FUSION_LIMITREACHED;
           }
 
           /* increase the number of nodes and
@@ -163,7 +165,7 @@ void reactor_attach (FusionReactor *reactor,
           if (index < 0) {
                FERROR ("something went wrong, couldn't find a free node!\n");
                skirmish_dismiss (&reactor->lock);
-               return;
+               return FUSION_BUG;
           }
 
           reactor->node[index].id = _fusion_id();
@@ -196,11 +198,14 @@ void reactor_attach (FusionReactor *reactor,
 
      /* unlock reactor */
      skirmish_dismiss (&reactor->lock);
+
+     return FUSION_SUCCESS;
 }
 
-void reactor_detach (FusionReactor *reactor,
-                     React    react,
-                     void    *ctx)
+FusionResult
+reactor_detach (FusionReactor *reactor,
+                React          react,
+                void          *ctx)
 {
      int         index;
      FusionLink *link;
@@ -209,16 +214,15 @@ void reactor_detach (FusionReactor *reactor,
      /* lock reactor */
      skirmish_prevail (&reactor->lock);
 
-     /* find our node and return if it hasn't been found, should return an error (TODO) */
+     /* find our node and return if it hasn't been found */
      index = _reactor_get_node_index (reactor);
      if (index < 0) {
           skirmish_dismiss (&reactor->lock);
-          return;
+          return FUSION_BUG;
      }
 
      /* find the reaction to remove */
-     fusion_list_foreach (link, reactor->node[index].reactions)
-     {
+     fusion_list_foreach (link, reactor->node[index].reactions) {
           Reaction *reaction = (Reaction*) link;
 
           /* found if reaction callback and context match */
@@ -247,11 +251,14 @@ void reactor_detach (FusionReactor *reactor,
 
      /* unlock reactor */
      skirmish_dismiss (&reactor->lock);
+
+     return FUSION_SUCCESS;
 }
 
-void reactor_dispatch (FusionReactor *reactor,
-                       const void    *msg_data,
-                       bool           self)
+FusionResult
+reactor_dispatch (FusionReactor *reactor,
+                  const void    *msg_data,
+                  bool           self)
 {
      int   i;
      void *message;
@@ -332,9 +339,12 @@ void reactor_dispatch (FusionReactor *reactor,
 
      /* unlock reactor */
      skirmish_dismiss (&reactor->lock);
+
+     return FUSION_SUCCESS;
 }
 
-void reactor_free (FusionReactor *reactor)
+FusionResult
+reactor_free (FusionReactor *reactor)
 {
      int i;
 
@@ -364,6 +374,8 @@ void reactor_free (FusionReactor *reactor)
 
      /* free shared reactor data */
      shfree (reactor);
+
+     return FUSION_SUCCESS;
 }
 
 
@@ -530,7 +542,8 @@ struct _FusionReactor {
  *  Public API  *
  ****************/
 
-FusionReactor *reactor_new (int msg_size)
+FusionReactor *
+reactor_new (int msg_size)
 {
      FusionReactor           *reactor;
 
@@ -542,9 +555,10 @@ FusionReactor *reactor_new (int msg_size)
      return reactor;
 }
 
-void reactor_attach (FusionReactor *reactor,
-                     React    react,
-                     void    *ctx)
+FusionResult
+reactor_attach (FusionReactor *reactor,
+                React          react,
+                void          *ctx)
 {
      Reaction *reaction;
 
@@ -569,11 +583,14 @@ void reactor_attach (FusionReactor *reactor,
      
 //     DEBUGMSG("DirectFB/core/fusion: reactor_attach (%p, %p, %p) exitting\n",
 //              reactor, react, ctx);
+
+     return FUSION_SUCCESS;
 }
 
-void reactor_detach (FusionReactor *reactor,
-                     React    react,
-                     void    *ctx)
+FusionResult
+reactor_detach (FusionReactor *reactor,
+                React          react,
+                void          *ctx)
 {
      Reaction *r;
 
@@ -606,16 +623,19 @@ void reactor_detach (FusionReactor *reactor,
 
 //     DEBUGMSG("DirectFB/core/fusion: reactor_detach (%p, %p, %p) exitting\n",
 //              reactor, react, ctx);
+
+     return FUSION_SUCCESS;
 }
 
-void reactor_dispatch (FusionReactor *reactor,
-                       const void    *msg_data,
-                       bool           self)
+FusionResult
+reactor_dispatch (FusionReactor *reactor,
+                  const void    *msg_data,
+                  bool           self)
 {
      Reaction *r, *to_free = NULL;
 
      if (!self)
-          return;
+          return FUSION_SUCCESS;
 
 //     DEBUGMSG("DirectFB/core/fusion: reactor_dispatch (%p) entered\n", reactor);
      
@@ -640,7 +660,7 @@ void reactor_dispatch (FusionReactor *reactor,
                case RS_DROP:
                     pthread_mutex_unlock( &reactor->reactions_lock );
 //                    DEBUGMSG("DirectFB/core/fusion: reactor_dispatch (%p) exitting\n", reactor);
-                    return;
+                    return FUSION_SUCCESS;
 
                case RS_OK:
                     ;
@@ -657,9 +677,12 @@ void reactor_dispatch (FusionReactor *reactor,
      pthread_mutex_unlock( &reactor->reactions_lock );
      
 //     DEBUGMSG("DirectFB/core/fusion: reactor_dispatch (%p) exitting\n", reactor);
+
+     return FUSION_SUCCESS;
 }
 
-void reactor_free (FusionReactor *reactor)
+FusionResult
+reactor_free (FusionReactor *reactor)
 {
 //     DEBUGMSG("DirectFB/core/fusion: reactor_free (%p) entered\n", reactor);
      
@@ -678,6 +701,8 @@ void reactor_free (FusionReactor *reactor)
      DFBFREE( reactor );
      
 //     DEBUGMSG("DirectFB/core/fusion: reactor_free (%p) exitting\n", reactor);
+
+     return FUSION_SUCCESS;
 }
 
 

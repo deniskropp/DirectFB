@@ -717,7 +717,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 
      data->destination = surface;
 
-     reactor_attach( surface->reactor, v4l_videosurface_listener, data );
+     dfb_surface_attach( surface, v4l_videosurface_listener, data );
 
      if (data->callback || surface->caps & DSCAPS_INTERLACED)
           pthread_create( &data->thread, NULL, OverlayThread, data );
@@ -790,7 +790,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
      data->destination = surface;
 
-     reactor_attach( surface->reactor, v4l_systemsurface_listener, data );
+     dfb_surface_attach( surface, v4l_systemsurface_listener, data );
 
      pthread_create( &data->thread, NULL, GrabThread, data );
 

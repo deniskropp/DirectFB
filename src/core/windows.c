@@ -283,9 +283,9 @@ dfb_window_create( CoreWindowStack        *stack,
 
      w = (CoreWindow*) shcalloc( 1, sizeof(CoreWindow) );
 
-     w->id      = new_window_id( stack );
+     dfb_surface_link( &w->surface, surface );
 
-     w->surface = surface;
+     w->id      = new_window_id( stack );
 
      w->x       = x;
      w->y       = y;
@@ -358,8 +358,10 @@ dfb_window_destroy( CoreWindow *window )
      evt.type = DWET_DESTROYED;
      dfb_window_dispatch( window, &evt );
 
-     if (window->surface)
-          dfb_surface_destroy( window->surface );
+     if (window->surface) {
+          dfb_surface_unlink( window->surface );
+          dfb_surface_unref( window->surface );
+     }
 
      reactor_free( window->reactor );
 

@@ -32,6 +32,8 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include <config.h>
+
 /* #define HEAVYDEBUG */
 
 #include <misc/conf.h>

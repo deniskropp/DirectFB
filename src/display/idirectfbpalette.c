@@ -57,8 +57,8 @@ IDirectFBPalette_Destruct( IDirectFBPalette *thiz )
      IDirectFBPalette_data *data = (IDirectFBPalette_data*)thiz->priv;
 
      if (data->surface)
-          reactor_detach( data->surface->reactor,
-                          IDirectFBPalette_listener, thiz );
+          dfb_surface_detach( data->surface,
+                              IDirectFBPalette_listener, thiz );
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -207,7 +207,7 @@ DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
      data->ref     = 1;
      data->surface = surface;
 
-     reactor_attach( surface->reactor, IDirectFBPalette_listener, thiz );
+     dfb_surface_attach( surface, IDirectFBPalette_listener, thiz );
 
      thiz->AddRef        = IDirectFBPalette_AddRef;
      thiz->Release       = IDirectFBPalette_Release;

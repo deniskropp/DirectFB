@@ -210,8 +210,6 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
 
      IDirectFBSurface_Construct( thiz, wanted, granted, window->surface, caps );
 
-     data = (IDirectFBSurface_Window_data*)(thiz->priv);
-
      data->window = window;
      data->flip_thread = -1;
 

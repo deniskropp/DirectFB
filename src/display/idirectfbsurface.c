@@ -68,13 +68,15 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
 
      if (data->surface)
-          reactor_detach( data->surface->reactor,
-                          IDirectFBSurface_listener, thiz );
+          dfb_surface_detach( data->surface,
+                              IDirectFBSurface_listener, thiz );
 
      dfb_state_set_destination( &data->state, NULL );
      dfb_state_set_source( &data->state, NULL );
 
      dfb_state_destroy( &data->state );
+
+     dfb_surface_unref( data->surface );
 
      if (data->font)
           data->font->Release (data->font);
@@ -97,12 +99,8 @@ IDirectFBSurface_Release( IDirectFBSurface *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (--data->ref == 0) {
-          if (!(data->caps & DSCAPS_SUBSURFACE))
-               dfb_surface_destroy( data->surface );
-
+     if (--data->ref == 0)
           IDirectFBSurface_Destruct( thiz );
-     }
 
      return DFB_OK;
 }
@@ -1366,6 +1364,11 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->ref = 1;
      data->caps = caps;
 
+     if (dfb_surface_ref( surface ) != FUSION_SUCCESS) {
+          DFB_DEALLOCATE_INTERFACE(thiz);
+          return DFB_FAILURE;
+     }
+
      /* The area that was requested */
      if (wanted)
           data->area.wanted = *wanted;
@@ -1387,7 +1390,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      dfb_state_init( &data->state );
      dfb_state_set_destination( &data->state, surface );
 
-     reactor_attach( surface->reactor, IDirectFBSurface_listener, thiz );
+     dfb_surface_attach( surface, IDirectFBSurface_listener, thiz );
 
      data->state.clip.x1 = data->area.current.x;
      data->state.clip.y1 = data->area.current.y;

@@ -74,7 +74,6 @@ struct _Chunk {
 struct _SurfaceManager {
      FusionSkirmish  lock;
 
-     FusionLink     *surfaces;
      Chunk          *chunks;
      int             length;
 
@@ -185,34 +184,6 @@ void dfb_surfacemanager_unlock( SurfaceManager *manager )
 {
      skirmish_dismiss( &manager->lock );
 }
-
-/** public functions locking the surfacemanger theirself,
-    NOT to be called between lock/unlock of surfacemanager **/
-
-void dfb_surfacemanager_add_surface( SurfaceManager *manager,
-                                     CoreSurface    *surface )
-{
-     dfb_surfacemanager_lock( manager );
-
-     surface->manager = manager;
-
-     fusion_list_prepend( &manager->surfaces, &surface->link );
-
-     dfb_surfacemanager_unlock( manager );
-}
-
-void dfb_surfacemanager_remove_surface( SurfaceManager *manager,
-                                        CoreSurface    *surface )
-{
-     dfb_surfacemanager_lock( manager );
-
-     fusion_list_remove( &manager->surfaces, &surface->link );
-
-     surface->manager = NULL;
-
-     dfb_surfacemanager_unlock( manager );
-}
-
 
 DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
                                                  unsigned int    offset )

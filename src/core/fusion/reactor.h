@@ -40,14 +40,14 @@ typedef ReactionResult (*React) (const void    *msg_data,
                                  void          *ctx);
 
 FusionReactor *reactor_new      (const int      msg_size);
-void           reactor_free     (FusionReactor *reactor);
-void           reactor_attach   (FusionReactor *reactor,
+FusionResult   reactor_free     (FusionReactor *reactor);
+FusionResult   reactor_attach   (FusionReactor *reactor,
                                  React          react,
                                  void          *ctx);
-void           reactor_detach   (FusionReactor *reactor,
+FusionResult   reactor_detach   (FusionReactor *reactor,
                                  React          react,
                                  void          *ctx);
-void           reactor_dispatch (FusionReactor *reactor,
+FusionResult   reactor_dispatch (FusionReactor *reactor,
                                  const void    *msg_data,
                                  bool           self);
 

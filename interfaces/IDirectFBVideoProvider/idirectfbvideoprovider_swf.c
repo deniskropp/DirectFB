@@ -196,6 +196,8 @@ void IDirectFBVideoProvider_Swf_Destruct(IDirectFBVideoProvider *thiz )
 
      FlashClose(data->flashHandle);
 
+     dfb_surface_unref( data->source );
+
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 

@@ -35,7 +35,7 @@
 #include <config.h>
 
 #define MAX_SHMALLOC_SEGMENTS       2000
-#define MAX_REACTOR_NODES            500
+#define MAX_REACTOR_NODES            100
 
 #define MAX_ARENA_NODES              200
 #define MAX_ARENA_FIELDS             100
@@ -64,7 +64,9 @@ static inline key_t keygen (const char *name, const long type)
   return (FUSION_KEY_PREFIX | type | key);
 }
 
-/* #define FUSION_DEBUG */
+#ifdef DFB_DEBUG
+#define FUSION_DEBUG
+#endif
 
 #ifndef FUSION_DEBUG
 # define FDEBUG(x...) do {} while (0)

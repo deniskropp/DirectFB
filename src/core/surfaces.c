@@ -94,7 +94,32 @@ static inline void video_access_by_software( SurfaceBuffer       *buffer,
      }
 }
 
+static void surface_destructor( FusionObject *object, bool zombie )
+{
+     CoreSurface *surface = (CoreSurface*) object;
+
+     DEBUGMSG("DirectFB/core/surfaces: destroying %p (%dx%d)%s\n", surface,
+              surface->width, surface->height, zombie ? " (ZOMBIE)" : "");
+
+     dfb_surface_destroy( surface, false );
+
+     skirmish_destroy( &surface->lock );
+
+     fusion_object_destroy( object );
+}
+
 /** public **/
+
+FusionObjectPool *dfb_surface_pool_create()
+{
+     FusionObjectPool *pool;
+
+     pool = fusion_object_pool_create( sizeof(CoreSurface),
+                                       sizeof(CoreSurfaceNotification),
+                                       surface_destructor );
+
+     return pool;
+}
 
 DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat format,
                               CoreSurfacePolicy policy,
@@ -103,11 +128,11 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
      DFBResult    ret;
      CoreSurface *s;
 
-     s = (CoreSurface*) shcalloc( 1, sizeof(CoreSurface) );
+     s = (CoreSurface*) fusion_object_create( dfb_gfxcard_surface_pool() );
 
      ret = dfb_surface_init( s, width, height, format, caps );
      if (ret) {
-          shfree( s );
+          fusion_object_destroy( &s->object );
           return ret;
      }
 
@@ -122,12 +147,10 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
                ;
      }
 
-     dfb_surfacemanager_add_surface( dfb_gfxcard_surface_manager(), s );
-
 
      ret = dfb_surface_allocate_buffer( s, policy, &s->front_buffer );
      if (ret) {
-          shfree( s );
+          fusion_object_destroy( &s->object );
           return ret;
      }
 
@@ -136,7 +159,7 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
           if (ret) {
                dfb_surface_deallocate_buffer( s, s->front_buffer );
 
-               shfree( s );
+               fusion_object_destroy( &s->object );
                return ret;
           }
      }
@@ -162,18 +185,16 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
      if (policy == CSP_VIDEOONLY)
           return DFB_UNSUPPORTED;
 
-     s = (CoreSurface*) shcalloc( 1, sizeof(CoreSurface) );
+     s = (CoreSurface*) fusion_object_create( dfb_gfxcard_surface_pool() );
 
      ret = dfb_surface_init( s, width, height, format, caps );
      if (ret) {
-          shfree( s );
+          fusion_object_destroy( &s->object );
           return ret;
      }
 
      if (policy == CSP_SYSTEMONLY)
           s->caps |= DSCAPS_SYSTEMONLY;
-
-     dfb_surfacemanager_add_surface( dfb_gfxcard_surface_manager(), s );
 
 
      s->front_buffer = (SurfaceBuffer *) shcalloc( 1, sizeof(SurfaceBuffer) );
@@ -477,9 +498,18 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
      }
 }
 
-void dfb_surface_destroy( CoreSurface *surface )
+void dfb_surface_destroy( CoreSurface *surface, bool unref )
 {
      DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) entered\n", surface);
+
+     skirmish_prevail( &surface->lock );
+
+     if (surface->destroyed) {
+          skirmish_dismiss( &surface->lock );
+          return;
+     }
+
+     surface->destroyed = true;
      
      /* acquire a lock for both buffers first */
      dfb_surfacemanager_lock( surface->manager );
@@ -497,9 +527,6 @@ void dfb_surface_destroy( CoreSurface *surface )
      /* anounce surface destruction */
      dfb_surface_notify_listeners( surface, CSNF_DESTROY );
 
-     /* destroy the reactor */
-     reactor_free( surface->reactor );
-
      /* unlock and destroy the locks */
      dfb_surfacemanager_lock( surface->manager );
      skirmish_dismiss( &surface->front_lock );
@@ -508,15 +535,15 @@ void dfb_surface_destroy( CoreSurface *surface )
      skirmish_destroy( &surface->back_lock );
      dfb_surfacemanager_unlock( surface->manager );
 
-     /* remove it from the surface list */
-     dfb_surfacemanager_remove_surface( surface->manager, surface );
-
      /* deallocate palette */
      if (surface->palette)
           dfb_palette_deallocate( surface->palette );
 
-     /* deallocate structure */
-     shfree( surface );
+     skirmish_dismiss( &surface->lock );
+     
+     /* unref surface object */
+     if (unref)
+          dfb_surface_unref( surface );
      
      DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) exitting\n", surface);
 }
@@ -552,6 +579,8 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
      surface->format = format;
      surface->caps   = caps;
 
+     skirmish_init( &surface->lock );
+     
      skirmish_init( &surface->front_lock );
      skirmish_init( &surface->back_lock );
 
@@ -559,9 +588,9 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
 
      if (format == DSPF_LUT8)
           dfb_palette_generate_rgb332_map( surface->palette );
-     
-     surface->reactor = reactor_new(sizeof(CoreSurfaceNotification));
 
+     surface->manager = dfb_gfxcard_surface_manager();
+     
      return DFB_OK;
 }
 

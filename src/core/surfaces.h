@@ -29,6 +29,7 @@
 
 #include <directfb.h>
 
+#include <core/fusion/object.h>
 #include <core/fusion/list.h>
 #include <core/fusion/lock.h>
 #include <core/fusion/reactor.h>
@@ -126,7 +127,10 @@ struct _SurfaceBuffer
 
 struct _CoreSurface
 {
-     FusionLink             link;
+     FusionObject           object;
+
+     FusionSkirmish         lock;
+     bool                   destroyed;
 
      /* size/format and instances */
      int                    width;         /* pixel width of the surface */
@@ -147,10 +151,20 @@ struct _CoreSurface
                                               SurfaceBuffer because of flipping
                                               that just swaps the pointers */
 
-     FusionReactor         *reactor;       /* event dispatcher */
-     
      SurfaceManager        *manager;
 };
+
+/*
+ * creates a surface pool
+ */
+FusionObjectPool *
+dfb_surface_pool_create();
+
+static inline void
+dfb_surface_pool_destroy( FusionObjectPool *pool )
+{
+     fusion_object_pool_destroy( pool );
+}
 
 /*
  * creates a surface with specified width and height in the specified
@@ -205,15 +219,57 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
 /*
  * helper function
  */
-static inline void dfb_surface_notify_listeners( CoreSurface *surface,
-                                                 CoreSurfaceNotificationFlags flags)
+static inline FusionResult
+dfb_surface_notify_listeners( CoreSurface                  *surface,
+                              CoreSurfaceNotificationFlags  flags)
 {
      CoreSurfaceNotification notification;
 
      notification.flags   = flags;
      notification.surface = surface;
 
-     reactor_dispatch( surface->reactor, &notification, true );
+     return fusion_object_dispatch( &surface->object, &notification );
+}
+
+static inline FusionResult
+dfb_surface_attach( CoreSurface *surface,
+                    React        react,
+                    void        *ctx )
+{
+     return fusion_object_attach( &surface->object, react, ctx );
+}
+
+static inline FusionResult
+dfb_surface_detach( CoreSurface *surface,
+                    React        react,
+                    void        *ctx )
+{
+     return fusion_object_detach( &surface->object, react, ctx );
+}
+
+static inline FusionResult
+dfb_surface_ref( CoreSurface *surface )
+{
+     return fusion_object_ref( &surface->object );
+}
+
+static inline FusionResult
+dfb_surface_unref( CoreSurface *surface )
+{
+     return fusion_object_unref( &surface->object );
+}
+
+static inline FusionResult
+dfb_surface_link( CoreSurface **link,
+                  CoreSurface  *surface )
+{
+     return fusion_object_link( (FusionObject**) link, &surface->object );
+}
+
+static inline FusionResult
+dfb_surface_unlink( CoreSurface *surface )
+{
+     return fusion_object_unlink( &surface->object );
 }
 
 /*
@@ -243,7 +299,7 @@ void dfb_surface_unlock( CoreSurface *surface, int front );
 /*
  * destroy the surface and free its instances
  */
-void dfb_surface_destroy( CoreSurface *surface );
+void dfb_surface_destroy( CoreSurface *surface, bool unref );
 
 
 #endif

@@ -821,10 +821,10 @@ primaryAllocateSurface   ( DisplayLayer               *layer,
      if (config->buffermode != DLBM_FRONTONLY)
           caps |= DSCAPS_FLIPPING;
 
-     /* allocate surface structure */
-     surface = (CoreSurface*) shcalloc( 1, sizeof(CoreSurface) );
+     /* allocate surface object */
+     surface = (CoreSurface*) fusion_object_create( dfb_gfxcard_surface_pool() );
      if (!surface)
-          return DFB_NOSYSTEMMEMORY;
+          return DFB_FAILURE;
 
      /* reallocation just needs an allocated buffer structure */
      surface->back_buffer  =
@@ -842,9 +842,6 @@ primaryAllocateSurface   ( DisplayLayer               *layer,
           shfree( surface );
           return ret;
      }
-
-     /* add it to the surface list */
-     dfb_surfacemanager_add_surface( dfb_gfxcard_surface_manager(), surface );
 
      /* return surface */
      *ret_surface = surface;

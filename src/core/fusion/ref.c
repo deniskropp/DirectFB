@@ -236,6 +236,7 @@ FusionResult fusion_ref_zero_trylock (FusionRef *ref)
                     return FUSION_INUSE;
                case EACCES:
                     return FUSION_ACCESSDENIED;
+               case EINVAL:
                case EIDRM:
                     return FUSION_DESTROYED;
           }

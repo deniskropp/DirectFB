@@ -484,7 +484,11 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
      
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
-     return IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
+     ret = IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
+
+     dfb_surface_unref( surface );
+
+     return ret;
 }
 
 static DFBResult

@@ -76,9 +76,8 @@ void dfb_font_destroy( CoreFont *font )
 
      dfb_tree_destroy (font->glyph_infos);
 
-     for (i = 0; i < font->rows; i++) {
-          dfb_surface_destroy (font->surfaces[i]);
-     }
+     for (i = 0; i < font->rows; i++)
+          dfb_surface_unref (font->surfaces[i]);
 
      if (font->surfaces)
           DFBFREE( font->surfaces );

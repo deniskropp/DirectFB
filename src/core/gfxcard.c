@@ -87,6 +87,8 @@ typedef struct {
 
      SurfaceManager       *surface_manager;
 
+     FusionObjectPool     *surface_pool;
+
      /*
       * Points to the current state of the graphics card.
       */
@@ -208,6 +210,8 @@ DFBResult dfb_gfxcard_initialize()
                 card->shared->device_info.limits.surface_byteoffset_alignment,
                 card->shared->device_info.limits.surface_pixelpitch_alignment );
 
+     Scard->surface_pool = dfb_surface_pool_create();
+
      skirmish_init( &Scard->lock );
 
 #ifndef FUSION_FAKE
@@ -290,6 +294,8 @@ DFBResult dfb_gfxcard_shutdown( bool emergency )
           shfree( card->device_data );
           DFBFREE( card->driver_data );
      }
+
+     dfb_surface_pool_destroy( Scard->surface_pool );
 
      munmap( (char*)card->framebuffer_base, Scard->fix.smem_len );
 
@@ -1189,6 +1195,12 @@ SurfaceManager *
 dfb_gfxcard_surface_manager()
 {
      return Scard->surface_manager;
+}
+
+FusionObjectPool *
+dfb_gfxcard_surface_pool()
+{
+     return Scard->surface_pool;
 }
 
 CardCapabilities

@@ -51,12 +51,6 @@ DFBResult dfb_surfacemanager_resume( SurfaceManager *manager );
 DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
                                                  unsigned int    offset );
 
-void dfb_surfacemanager_add_surface( SurfaceManager *manager,
-                                     CoreSurface    *surface );
-
-void dfb_surfacemanager_remove_surface( SurfaceManager *manager,
-                                        CoreSurface    *surface );
-
 /*
  * Lock/unlock the surfacemanager for usage of the functions below.
  */

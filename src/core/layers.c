@@ -569,11 +569,11 @@ dfb_layer_enable( DisplayLayer *layer )
 
      shared->enabled = true;
 
-     if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
+     if (shared->surface) {
           CoreSurface *surface = shared->surface;
 
           /* attach surface listener for palette and field switches */
-          reactor_attach( surface->reactor, layer_surface_listener, layer );
+          dfb_surface_attach( surface, layer_surface_listener, layer );
 
           /* set default palette */
           if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ) &&
@@ -582,16 +582,13 @@ dfb_layer_enable( DisplayLayer *layer )
                layer->funcs->SetPalette( layer, layer->driver_data,
                                          layer->layer_data, surface->palette );
           }
-     }
-
-     
-     /* create a window stack on layers with a surface */
-     if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
+          
+          /* create a window stack on layers with a surface */
           shared->stack = dfb_windowstack_new( layer,
                                                shared->config.width,
                                                shared->config.height );
      }
-     
+
      return DFB_OK;
 }
 
@@ -612,17 +609,25 @@ dfb_layer_disable( DisplayLayer *layer )
 
      shared->enabled = false;
      
-     reactor_detach( shared->surface->reactor, layer_surface_listener, layer );
+     if (shared->surface)
+          dfb_surface_detach( shared->surface, layer_surface_listener, layer );
      
      /* destroy the window stack if there is one */
      if (shared->stack) {
-          dfb_windowstack_destroy( shared->stack );
+          CoreWindowStack *stack = shared->stack;
+          
+          /* detach listener from background surface */
+          if (stack->bg.image)
+               dfb_surface_detach( stack->bg.image,
+                                   background_image_listener, layer );
+
+          dfb_windowstack_destroy( stack );
 
           shared->stack = NULL;
      }
      
      /* deallocate the surface */
-     if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
+     if (shared->surface) {
           ret = deallocate_surface( layer );
           if (ret) {
                ERRORMSG("DirectFB/Core/layers: Surface deallocation failed!\n");
@@ -797,14 +802,14 @@ dfb_layer_set_background_image( DisplayLayer *layer,
      if (stack->bg.image != image) {
           /* detach listener from old surface */
           if (stack->bg.image)
-               reactor_detach( stack->bg.image->reactor,
-                               background_image_listener, layer );
+               dfb_surface_detach( stack->bg.image,
+                                   background_image_listener, layer );
 
           /* set new surface */
           stack->bg.image = image;
 
           /* attach listener to new surface */
-          reactor_attach( image->reactor, background_image_listener, layer );
+          dfb_surface_attach( image, background_image_listener, layer );
      }
 
      /* force an update of the window stack */
@@ -1492,7 +1497,7 @@ deallocate_surface( DisplayLayer *layer )
           return layer->funcs->DeallocateSurface( layer, layer->driver_data,
                                                   layer->layer_data, surface );
 
-     dfb_surface_destroy( surface );
+     dfb_surface_unref( surface );
      
      return DFB_OK;
 }
