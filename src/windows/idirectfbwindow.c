@@ -349,12 +349,8 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
      if (options & ~DWOP_ALL)
           return DFB_INVARG;
 
-     if ((options & DWOP_ALPHACHANNEL) &&
-         !(data->window->caps & DWCAPS_ALPHACHANNEL))
-          return DFB_UNSUPPORTED;
-
-     /* Examine toggled options */
-     changed = data->window->options ^ options;
+     if (!(data->window->caps & DWCAPS_ALPHACHANNEL))
+          options &= ~DWOP_ALPHACHANNEL;
 
      /* Set new options */
      data->window->options = options;
