@@ -48,6 +48,9 @@
 #include <core/surfaces.h>
 
 #include <gfx/convert.h>
+#include <gfx/util.h>
+
+#include <misc/util.h>
 
 #include <core/graphics_driver.h>
 
@@ -69,6 +72,9 @@ DFB_GRAPHICS_DRIVER( mach64 )
 
 #define MACH64_SUPPORTED_DRAWINGFUNCTIONS \
                (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE)
+
+#define MACH64GT_SUPPORTED_DRAWINGFUNCTIONS \
+               (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE | DFXL_FILLTRIANGLE)
 
 #define MACH64_SUPPORTED_BLITTINGFLAGS \
                (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)
@@ -109,7 +115,10 @@ static void mach64CheckState( void *drv, void *dev,
           if (state->drawingflags & ~MACH64_SUPPORTED_DRAWINGFLAGS)
                return;
 
-          state->accel |= MACH64_SUPPORTED_DRAWINGFUNCTIONS;
+          if (mdrv->accelerator == FB_ACCEL_ATI_MACH64GT)
+               state->accel |= MACH64GT_SUPPORTED_DRAWINGFUNCTIONS;
+          else
+               state->accel |= MACH64_SUPPORTED_DRAWINGFUNCTIONS;
      } else {
           switch (state->source->format) {
           case DSPF_RGB332:
@@ -178,6 +187,7 @@ static void mach64SetState( void *drv, void *dev,
      case DFXL_FILLRECTANGLE:
      case DFXL_DRAWRECTANGLE:
      case DFXL_DRAWLINE:
+     case DFXL_FILLTRIANGLE:
           mach64_set_color( mdrv, mdev, state );
 
           if (state->drawingflags & DSDRAW_DST_COLORKEY)
@@ -185,7 +195,7 @@ static void mach64SetState( void *drv, void *dev,
           else
                mach64_disable_colorkey( mdrv, mdev );
 
-          state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE;
+          state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE | DFXL_FILLTRIANGLE;
           break;
      case DFXL_BLIT:
           mach64_set_source( mdrv, mdev, state );
@@ -329,6 +339,94 @@ static bool mach64DrawLine( void *drv, void *dev, DFBRegion *line )
      return true;
 }
 
+static void mach64_fill_trapezoid( Mach64DriverData *mdrv,
+                                   Mach64DeviceData *mdev,
+                                   int X1l, int X1r,
+                                   int X2l, int X2r,
+                                   int Y, int dY )
+{
+     volatile __u8 *mmio = mdrv->mmio_base;
+     __u32 dst_cntl;
+     int dXl, dXr;
+
+     dst_cntl = DST_Y_TOP_TO_BOTTOM | TRAP_FILL_LEFT_TO_RIGHT;
+
+     dXl = X2l - X1l;
+     if (dXl < 0) {
+          dXl = -dXl;
+          dst_cntl |= DST_X_RIGHT_TO_LEFT;
+     } else
+          dst_cntl |= DST_X_LEFT_TO_RIGHT;
+
+     dXr = X2r - X1r;
+     if (dXr < 0) {
+          dXr = -dXr;
+          dst_cntl |= TRAIL_X_RIGHT_TO_LEFT;
+     } else
+          dst_cntl |= TRAIL_X_LEFT_TO_RIGHT;
+
+     mach64_waitfifo( mdrv, mdev, 9 );
+
+     mach64_out32( mmio, DST_CNTL, dst_cntl );
+     mach64_out32( mmio, DST_Y_X, (X1l << 16) | Y );
+
+     mach64_out32( mmio, TRAIL_BRES_ERR, -dY );
+     mach64_out32( mmio, TRAIL_BRES_INC,  2*dXr );
+     mach64_out32( mmio, TRAIL_BRES_DEC, -2*dY );
+
+     mach64_out32( mmio, DST_BRES_ERR, -dY );
+     mach64_out32( mmio, DST_BRES_INC,  2*dXl );
+     mach64_out32( mmio, DST_BRES_DEC, -2*dY );
+     mach64_out32( mmio, DST_BRES_LNTH, (X1r << 16) | (dY+1) | DRAW_TRAP | LINE_DIS );
+}
+
+static bool mach64FillTriangle( void *drv, void *dev, DFBTriangle *tri )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     mach64_waitfifo( mdrv, mdev, 2 );
+
+     mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
+     mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
+
+     dfb_sort_triangle( tri );
+
+     if (tri->y2 == tri->y3) {
+          mach64_fill_trapezoid( mdrv, mdev, tri->x1, tri->x1,
+                                 MIN( tri->x2, tri->x3), MAX( tri->x2, tri->x3 ),
+                                 tri->y1, tri->y3 - tri->y1 );
+     } else if (tri->y1 == tri->y2) {
+          mach64_fill_trapezoid( mdrv, mdev,
+                                 MIN( tri->x1, tri->x2), MAX( tri->x1, tri->x2 ),
+                                 tri->x3, tri->x3,
+                                 tri->y1, tri->y3 - tri->y1 );
+     } else {
+          int majDx = tri->x3 - tri->x1;
+          int majDy = tri->y3 - tri->y1;
+          int topDx = tri->x2 - tri->x1;
+          int topDy = tri->y2 - tri->y1;
+          int botDy = tri->y3 - tri->y2;
+
+          int topXperY = (topDx << 20) / topDy;
+          int X2a = tri->x1 + (((topXperY * topDy) + (1<<19)) >> 20);
+
+          int majXperY = (majDx << 20) / majDy;
+          int majX2  = tri->x1 + (((majXperY * topDy) + (1<<19)) >> 20);
+          int majX2a = majX2 - ((majXperY + (1<<19)) >> 20);
+
+          mach64_fill_trapezoid( mdrv, mdev, tri->x1, tri->x1,
+                                 MIN( X2a, majX2a ), MAX( X2a, majX2a ),
+                                 tri->y1, topDy );
+          mach64_fill_trapezoid( mdrv, mdev,
+                                 MIN( tri->x2, majX2 ), MAX( tri->x2, majX2 ),
+                                 tri->x3, tri->x3, tri->y2, botDy );
+     }
+
+     return true;
+}
+
 static bool mach64Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
@@ -461,6 +559,7 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->FillRectangle = mach64FillRectangle;
      funcs->DrawRectangle = mach64DrawRectangle;
      funcs->DrawLine      = mach64DrawLine;
+     funcs->FillTriangle  = mach64FillTriangle;
      funcs->Blit          = mach64Blit;
      funcs->StretchBlit   = mach64StretchBlit;
 
@@ -487,28 +586,31 @@ driver_init_device( GraphicsDevice     *device,
 
      /* fill device info */
      device_info->caps.flags    = CCF_CLIPPING;
-     device_info->caps.accel    = MACH64_SUPPORTED_DRAWINGFUNCTIONS;
      device_info->caps.drawing  = MACH64_SUPPORTED_DRAWINGFLAGS;
      device_info->caps.blitting = MACH64_SUPPORTED_BLITTINGFLAGS;
 
      switch (mdrv->accelerator) {
           case FB_ACCEL_ATI_MACH64GX:
-               device_info->caps.accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
+               device_info->caps.accel = MACH64_SUPPORTED_DRAWINGFUNCTIONS |
+                                         MACH64_SUPPORTED_BLITTINGFUNCTIONS;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GX" );
                break;
           case FB_ACCEL_ATI_MACH64CT:
-               device_info->caps.accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
+               device_info->caps.accel = MACH64_SUPPORTED_DRAWINGFUNCTIONS |
+                                         MACH64_SUPPORTED_BLITTINGFUNCTIONS;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 CT" );
                break;
           case FB_ACCEL_ATI_MACH64VT:
-               device_info->caps.accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
+               device_info->caps.accel = MACH64_SUPPORTED_DRAWINGFUNCTIONS |
+                                         MACH64_SUPPORTED_BLITTINGFUNCTIONS;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 VT" );
                break;
           case FB_ACCEL_ATI_MACH64GT:
-               device_info->caps.accel |= MACH64GT_SUPPORTED_BLITTINGFUNCTIONS;
+               device_info->caps.accel = MACH64GT_SUPPORTED_DRAWINGFUNCTIONS |
+                                         MACH64GT_SUPPORTED_BLITTINGFUNCTIONS;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GT" );
                break;

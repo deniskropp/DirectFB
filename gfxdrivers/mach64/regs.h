@@ -320,6 +320,10 @@
 #define SRC_LINE_X_RIGHT_TO_LEFT        0x00
 #define SRC_LINE_X_LEFT_TO_RIGHT        0x10
 
+/* DST_BRES_LNTH */
+#define DRAW_TRAP               0x8000
+#define LINE_DIS                0x80000000
+
 /* DST_CNTL */
 #define DST_X_RIGHT_TO_LEFT     0x0
 #define DST_X_LEFT_TO_RIGHT     0x1
@@ -332,6 +336,10 @@
 #define DST_LAST_PEL            0x20
 #define DST_POLYGON_EN          0x40
 #define DST_24_ROTATION_EN      0x80
+#define TRAIL_X_RIGHT_TO_LEFT   0x0000
+#define TRAIL_X_LEFT_TO_RIGHT   0x2000
+#define TRAP_FILL_RIGHT_TO_LEFT 0x0000
+#define TRAP_FILL_LEFT_TO_RIGHT 0x4000
 
 /* DP_CHAIN_MASK */
 #define DP_CHAIN_1BPP		0x0000
