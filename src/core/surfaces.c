@@ -239,6 +239,7 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
           skirmish_dismiss( &surface->front_lock );
           skirmish_dismiss( &surface->back_lock );
 
+          dfb_surfacemanager_unlock( surface->manager );
           return ret;
      }
 
@@ -254,6 +255,7 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
                skirmish_dismiss( &surface->front_lock );
                skirmish_dismiss( &surface->back_lock );
 
+               dfb_surfacemanager_unlock( surface->manager );
                return ret;
           }
      }
@@ -604,8 +606,10 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           if (ret) {
                if (!buffer->system.health)
                     CAUTION( "reallocation of video instance failed" );
-               else
+               else {
                     buffer->system.health = CSH_STORED;
+                    return DFB_OK;
+               }
 
                return ret;
           }
