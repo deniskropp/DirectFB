@@ -306,16 +306,9 @@ extern "C"
                                                      the color's r/g/b values */
           DSBLIT_SRC_COLORKEY       = 0x00000008, /* only blit pixels matching
                                                      the source color key */
-          DSBLIT_DST_COLORKEY       = 0x00000010, /* write to destination only
+          DSBLIT_DST_COLORKEY       = 0x00000010  /* write to destination only
                                                      if destination color
                                                      key matches */
-
-          /* FIXME: are these terms right? */
-          DSBLIT_DECAL    = DSBLIT_BLEND_ALPHACHANNEL,
-          DSBLIT_MODULATE = DSBLIT_BLEND_COLORALPHA
-                            | DSBLIT_BLEND_ALPHACHANNEL
-                            | DSBLIT_COLORIZE,
-          DSBLIT_DIFFUSE  = DSBLIT_BLEND_COLORALPHA
      } DFBSurfaceBlittingFlags;
 
      /*

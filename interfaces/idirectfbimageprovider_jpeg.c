@@ -222,15 +222,25 @@ DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (!data)
           return DFB_DEAD;
 
+     err = destination->GetPixelFormat( destination, &format );
+     if (err)
+          return err;
+
+     switch (format) {
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
+     
      err = destination->GetCapabilities( destination, &caps );
      if (err)
           return err;
 
      err = destination->GetSize( destination, &width, &height );
-     if (err)
-          return err;
-
-     err = destination->GetPixelFormat( destination, &format );
      if (err)
           return err;
 
@@ -312,11 +322,8 @@ DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                               (__u32*)row_ptr += cinfo.output_width;
                               break;
                          default:
-                              /* FIXME: better deinit here */
-                              jpeg_destroy_decompress(&cinfo);
-                              fclose(f);
-                              destination->Unlock( destination );
-                              return DFB_UNSUPPORTED;
+                              BUG("unsupported format not filtered before");
+                              return DFB_BUG;
                     }
                }
           }
