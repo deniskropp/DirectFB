@@ -197,8 +197,7 @@ DFBResult dfb_gfxcard_initialize()
 #ifndef FUSION_FAKE
 DFBResult dfb_gfxcard_join()
 {
-     DFBResult       ret;
-     GraphicsDriver *driver;
+     DFBResult ret;
 
      card = (GraphicsDevice*)DFBCALLOC( 1, sizeof(GraphicsDevice) );
 
@@ -209,8 +208,8 @@ DFBResult dfb_gfxcard_join()
 
      /* load driver, FIXME: do not probe */
      dfb_gfxcard_find_driver();
-     if (card->funcs) {
-          GraphicsDriverFuncs *funcs = card->funcs;
+     if (card->driver_funcs) {
+          const GraphicsDriverFuncs *funcs = card->driver_funcs;
           
           card->driver_data = DFBCALLOC( 1,
                                          Scard->driver_info.driver_data_size );
@@ -287,8 +286,8 @@ DFBResult dfb_gfxcard_leave( bool emergency )
 
      dfb_gfxcard_sync();
 
-     if (card->funcs) {
-          card->funcs->CloseDriver( card, card->driver_data );
+     if (card->driver_funcs) {
+          card->driver_funcs->CloseDriver( card, card->driver_data );
 
           dfb_module_unref( card->module );
 
