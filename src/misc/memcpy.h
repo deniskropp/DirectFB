@@ -34,6 +34,7 @@
 
 
 void dfb_find_best_memcpy();
+void dfb_print_memcpy_routines();
 
 extern void *(*dfb_memcpy)( void *to, const void *from, size_t len );
 

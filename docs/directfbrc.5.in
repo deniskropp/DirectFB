@@ -104,6 +104,12 @@ useful if the automatic detection fails or if non-tmpfs storage
 is desired.
 
 .TP
+.BI memcpy=<method>
+With this option the probing of memcpy() routines can be skipped
+saving a lot of startup time. Pass "help" for a list of possible
+values.
+
+.TP
 .BI quiet
 Suppresses console output from DirectFB. Only error messages will be
 displayed.

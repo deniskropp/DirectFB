@@ -43,6 +43,7 @@
 #include "conf.h"
 #include "util.h"
 #include "mem.h"
+#include "memcpy.h"
 
 
 DFBConfig *dfb_config = NULL;
@@ -69,6 +70,8 @@ static const char *config_usage =
     "Select multi app world (zero based, -1 = new)\n"
     "  tmpfs=<directory>              "
     "Location of shared memory file\n"
+    "  memcpy=<method>                "
+    "Skip memcpy() probing (help = show list)\n"
     "  primary-layer=<id>             "
     "Select an alternative primary layer\n"
     "  quiet                          "
@@ -323,6 +326,17 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG("DirectFB/Config 'tmpfs': No directory specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "memcpy" ) == 0) {
+          if (value) {
+               if (dfb_config->memcpy)
+                    DFBFREE( dfb_config->memcpy );
+               dfb_config->memcpy = DFBSTRDUP( value );
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'memcpy': No method specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -833,6 +847,11 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
 
                          if (strcmp (arg, "help") == 0) {
                               fprintf( stderr, config_usage );
+                              exit(1);
+                         }
+
+                         if (strcmp (arg, "memcpy=help") == 0) {
+                              dfb_print_memcpy_routines();
                               exit(1);
                          }
 

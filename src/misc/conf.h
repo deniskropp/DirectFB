@@ -121,6 +121,11 @@ typedef struct
 
      int       primary_layer;                     /* select alternative primary
                                                      display layer */
+
+     char     *memcpy;                            /* Don't probe for memcpy
+                                                     routines to save a lot of
+                                                     startup time. Use this one
+                                                     instead if it's set. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

@@ -400,30 +400,31 @@ static void *linux_kernel_memcpy(void *to, const void *from, size_t len) {
 #if defined (ARCH_X86) || defined (ARCH_PPC)
 static struct {
      char                 *name;
+     char                 *desc;
      void               *(*function)(void *to, const void *from, size_t len);
      unsigned long long    time;
      __u32                 cpu_require;
 } memcpy_method[] =
 {
-     { NULL, NULL, 0, 0},
-     { "glibc memcpy()",            memcpy, 0, 0},
+     { NULL, NULL, NULL, 0, 0},
+     { "libc",     "libc memcpy()",             memcpy, 0, 0},
 #ifdef ARCH_X86
-     { "linux kernel memcpy()",     linux_kernel_memcpy, 0, 0},
+     { "linux",    "linux kernel memcpy()",     linux_kernel_memcpy, 0, 0},
 #ifdef USE_MMX
-     { "MMX optimized memcpy()",    mmx_memcpy, 0, MM_MMX},
+     { "mmx",      "MMX optimized memcpy()",    mmx_memcpy, 0, MM_MMX},
 #ifdef USE_SSE
-     { "MMXEXT optimized memcpy()", mmx2_memcpy, 0, MM_MMXEXT},
-     { "SSE optimized memcpy()",    sse_memcpy, 0, MM_MMXEXT|MM_SSE},
+     { "mmxext",   "MMXEXT optimized memcpy()", mmx2_memcpy, 0, MM_MMXEXT},
+     { "sse",      "SSE optimized memcpy()",    sse_memcpy, 0, MM_MMXEXT|MM_SSE},
 #endif /* USE_SSE  */
 #endif /* USE_MMX  */
 #endif /* ARCH_X86 */
 #ifdef USE_PPCASM
-     { "ppcasm_memcpy()",            dfb_ppcasm_memcpy, 0, 0},
+     { "ppc",      "ppcasm_memcpy()",            dfb_ppcasm_memcpy, 0, 0},
 #ifdef __LINUX__
-     { "ppcasm_cacheable_memcpy()",  dfb_ppcasm_cacheable_memcpy, 0, 0},
+     { "ppccache", "ppcasm_cacheable_memcpy()",  dfb_ppcasm_cacheable_memcpy, 0, 0},
 #endif /* __LINUX__ */
 #endif /* USE_PPCASM */
-     { NULL, NULL, 0, 0}
+     { NULL, NULL, NULL, 0, 0}
 };
 #endif
 
@@ -450,15 +451,33 @@ void *(* dfb_memcpy)(void *to, const void *from, size_t len) = memcpy;
 
 #define BUFSIZE 1024
 
-void dfb_find_best_memcpy()
+void
+dfb_find_best_memcpy()
 {
-     /* save library size on platforms without special memcpy impl. */
+     /* Save library size and startup time
+        on platforms without a special memcpy() implementation. */
 
 #if defined (ARCH_X86) || defined (ARCH_PPC)
      unsigned long long t;
      char *buf1, *buf2;
      int i, j, best = 0;
      __u32 config_flags = dfb_mm_accel();
+
+     if (dfb_config->memcpy) {
+          for (i=1; memcpy_method[i].name; i++) {
+               if (!strcmp( dfb_config->memcpy, memcpy_method[i].name )) {
+                    if (memcpy_method[i].cpu_require & ~config_flags)
+                         break;
+
+                    dfb_memcpy = memcpy_method[i].function;
+                    
+                    INITMSG( "DirectFB/misc/memcpy: forced to use %s\n",
+                             memcpy_method[i].desc );
+
+                    return;
+               }
+          }
+     }
 
      if (!(buf1 = DFBMALLOC( BUFSIZE * 2000 )))
           return;
@@ -487,7 +506,7 @@ void dfb_find_best_memcpy()
           t = rdtsc() - t;
           memcpy_method[i].time = t;
 
-          DEBUGMSG( "DirectFB/misc/memcpy: \t%s : %lld\n",
+          DEBUGMSG( "DirectFB/misc/memcpy: \t%-10s  %20lld\n",
                     memcpy_method[i].name, t );
 
           if (best == 0 || t < memcpy_method[best].time)
@@ -495,14 +514,31 @@ void dfb_find_best_memcpy()
      }
 
      if (best) {
-          INITMSG("DirectFB/misc/memcpy: using %s\n",
-                  memcpy_method[best].name);
-
           dfb_memcpy = memcpy_method[best].function;
+          
+          INITMSG( "DirectFB/misc/memcpy: using %s\n",
+                   memcpy_method[best].desc );
      }
 
      DFBFREE( buf1 );
      DFBFREE( buf2 );
 #endif
+}
+
+void
+dfb_print_memcpy_routines() {
+     int   i;
+     __u32 config_flags = dfb_mm_accel();
+
+     fprintf( stderr, "\nPossible values for memcpy option are:\n\n" );
+
+     for (i=1; memcpy_method[i].name; i++) {
+          bool unsupported = (memcpy_method[i].cpu_require & ~config_flags);
+
+          fprintf( stderr, "  %-10s  %-27s  %s\n", memcpy_method[i].name,
+                   memcpy_method[i].desc, unsupported ? "" : "supported" );
+     }
+     
+     fprintf( stderr, "\n" );
 }
 
