@@ -202,14 +202,8 @@ static inline
 void waitretrace (void)
 {
 #if defined(HAVE_INB_OUTB_IOPL)
-     static int iopl_done = 0;
-
-     if (!iopl_done) {
-          if (iopl(3))
-               return;
-
-          iopl_done = 1;
-     }
+     if (iopl(3))
+          return;
 
      if (!(inb (0x3cc) & 1)) {
           while ((inb (0x3ba) & 0x8))
