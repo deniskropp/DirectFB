@@ -16,7 +16,6 @@ SUBDIRS = \
 	joystick	\
 	keyboard	\
 	lirc		\
-	dbox2remote	\
 	ps2mouse	\
 	serialmouse	\
 	$(H3600_TS_DIR) \
