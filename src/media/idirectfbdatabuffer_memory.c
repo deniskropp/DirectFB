@@ -133,7 +133,7 @@ IDirectFBDataBuffer_Memory_GetData( IDirectFBDataBuffer *thiz,
 static DFBResult
 IDirectFBDataBuffer_Memory_PeekData( IDirectFBDataBuffer *thiz,
                                      unsigned int         length,
-                                     unsigned int         offset,
+                                     int                  offset,
                                      void                *data,
                                      unsigned int        *read )
 {

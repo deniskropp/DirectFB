@@ -203,11 +203,43 @@ IDirectFBDataBuffer_File_GetData( IDirectFBDataBuffer *thiz,
 static DFBResult
 IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
                                    unsigned int         length,
-                                   unsigned int         offset,
+                                   int                  offset,
                                    void                *data_buffer,
                                    unsigned int        *read_out )
 {
-     return DFB_UNIMPLEMENTED;
+     ssize_t size;
+
+     INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
+
+     if (!data || !length)
+          return DFB_INVARG;
+
+     if (offset && lseek( data->fd, offset, SEEK_CUR ) < 0) {
+          switch (errno) {
+               case ESPIPE:
+                    return DFB_UNSUPPORTED;
+
+               default:
+                    return DFB_FAILURE;
+          }
+     }
+     
+     size = read( data->fd, data_buffer, length );
+     if (size < 0) {
+          int erno = errno;
+
+          lseek( data->fd, - offset, SEEK_CUR );
+
+          return errno2dfb( erno );
+     }
+
+     if (offset && lseek( data->fd, - size - offset, SEEK_CUR ) < 0)
+          return DFB_FAILURE;
+     
+     if (read_out)
+          *read_out = size;
+     
+     return DFB_OK;
 }
 
 static DFBResult

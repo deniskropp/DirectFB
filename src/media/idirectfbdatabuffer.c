@@ -57,8 +57,6 @@
 void
 IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz )
 {
-/*     IDirectFBDataBuffer_data *data = (IDirectFBDataBuffer_data*)thiz->priv;
-*/
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -138,7 +136,7 @@ IDirectFBDataBuffer_GetData( IDirectFBDataBuffer *thiz,
 static DFBResult
 IDirectFBDataBuffer_PeekData( IDirectFBDataBuffer *thiz,
                               unsigned int         length,
-                              unsigned int         offset,
+                              int                  offset,
                               void                *data,
                               unsigned int        *read )
 {

@@ -3341,7 +3341,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
      );
 
      /*
-      * Seeks to a given position.
+      * Seeks to a given byte position.
       *
       * This method only applies to static buffers.
       */
@@ -3351,7 +3351,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
      );
 
      /*
-      * Get the current position within a static buffer.
+      * Get the current byte position within a static buffer.
       *
       * This method only applies to static buffers.
       */
@@ -3361,7 +3361,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
      );
 
      /*
-      * Get the length of a static or streaming buffer.
+      * Get the length of a static or streaming buffer in bytes.
       *
       * The length of a static buffer is its static size.
       * A streaming buffer has a variable length reflecting
@@ -3426,7 +3426,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
       * Unlike GetData() this method won't increase the data
       * pointer or flush any portions of the data held.
       *
-      * Additionally an offset from the current data pointer
+      * Additionally an offset relative to the current data pointer
       * or beginning of the streaming buffer can be specified.
       *
       * The maximum number of bytes to peek is specified by "length",
@@ -3435,7 +3435,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
      DFBResult (*PeekData) (
           IDirectFBDataBuffer      *thiz,
           unsigned int              length,
-          unsigned int              offset,
+          int                       offset,
           void                     *data,
           unsigned int             *read
      );
