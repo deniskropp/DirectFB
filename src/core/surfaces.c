@@ -621,11 +621,14 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
                /* avoid inconsistency, could be optimized (read/write) */
                if (buffer->system.locked)
                     break;
+               
                /* no reading? no force? no video instance? no success! ;-) */
                if (!(flags & (DSLF_READ|CSLF_FORCE)) && buffer->video.health != CSH_STORED)
                     break;
+               
                if (dfb_surfacemanager_assure_video( surface->manager, buffer ))
                     break;
+               
                if (flags & DSLF_WRITE)
                     buffer->system.health = CSH_RESTORE;
                /* fall through */
@@ -633,8 +636,14 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
           case CSP_VIDEOONLY:
                if (dfb_surfacemanager_assure_video( surface->manager, buffer ))
                     break;
+               
                buffer->video.locked++;
+               
                video_access_by_hardware( buffer, flags );
+               
+               if (flags & DSLF_WRITE)
+                    buffer->flags |= SBF_WRITTEN;
+               
                return DFB_OK;
 
           default:
