@@ -121,7 +121,7 @@ dfb_palette_create( unsigned int size, CorePalette **ret_palette )
 void
 dfb_palette_generate_rgb332_map( CorePalette *palette )
 {
-     int i;
+     unsigned int i;
 
      DFB_ASSERT( palette != NULL );
 
@@ -141,7 +141,7 @@ dfb_palette_generate_rgb332_map( CorePalette *palette )
 void
 dfb_palette_generate_rgb121_map( CorePalette *palette )
 {
-     int i;
+     unsigned int i;
 
      DFB_ASSERT( palette != NULL );
 

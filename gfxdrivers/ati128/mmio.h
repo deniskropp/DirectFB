@@ -94,7 +94,7 @@ static inline void ati128_waitidle( ATI128DriverData *adrv,
 
 static inline void ati128_waitfifo( ATI128DriverData *adrv,
                                     ATI128DeviceData *adev,
-                                    int requested_fifo_space)
+                                    unsigned int requested_fifo_space)
 {
      int timeout = 1000000;
 

@@ -312,7 +312,7 @@ static DFBResult load_image (const char            *filename,
      }
 
      {
-          int i;
+          unsigned int i;
           png_bytep bptrs[height];
           
           for (i = 0; i < height; i++)
@@ -447,7 +447,7 @@ static DFBResult dump_image (const char            *name,
      const char    *format  = NULL;
      unsigned char *data;
      unsigned long  len;
-     unsigned int   i;
+     int            i;
 
      if (desc->flags != (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |
                          DSDESC_PREALLOCATED))

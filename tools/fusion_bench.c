@@ -97,7 +97,7 @@ bench_reactor()
 #if 1
      if (react_counter < N_DISPATCH) {
           while (react_counter < N_DISPATCH) {
-               int old_counter = react_counter;
+               unsigned int old_counter = react_counter;
 
                sched_yield();
 
@@ -199,6 +199,7 @@ bench_property()
      printf( "\n" );
 }
 
+#if 0
 static void
 bench_skirmish()
 {
@@ -231,6 +232,7 @@ bench_skirmish()
 
      printf( "\n" );
 }
+#endif
 
 static void *
 prevail_dismiss_loop( void *arg )
@@ -250,7 +252,7 @@ static void
 bench_skirmish_threaded()
 {
      FusionResult   ret;
-     unsigned int   i;
+     int            i;
      FusionSkirmish skirmish;
 
      ret = skirmish_init( &skirmish );
@@ -289,7 +291,7 @@ bench_skirmish_threaded()
 static void *
 spin_lock_unlock_loop( void *arg )
 {
-     unsigned int        i;
+     int                 i;
      pthread_spinlock_t *lock = (pthread_spinlock_t *) arg;
 
      for (i=0; i<2000000; i++) {
@@ -304,7 +306,7 @@ static void
 bench_spinlock_threaded()
 {
      FusionResult       ret;
-     unsigned int       i;
+     int                i;
      pthread_spinlock_t lock;
 
      ret = pthread_spin_init( &lock, true );
@@ -343,7 +345,7 @@ bench_spinlock_threaded()
 static void *
 mutex_lock_unlock_loop( void *arg )
 {
-     unsigned int     i;
+     int              i;
      pthread_mutex_t *lock = (pthread_mutex_t *) arg;
 
      for (i=0; i<2000000; i++) {
@@ -358,7 +360,7 @@ static void
 bench_mutex_threaded()
 {
      FusionResult    ret;
-     unsigned int    i;
+     int             i;
      pthread_mutex_t lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
      ret = pthread_mutex_init( &lock, NULL );
@@ -394,10 +396,11 @@ bench_mutex_threaded()
      printf( "\n" );
 }
 
+#if 0
 static void
 bench_pthread_mutex()
 {
-     unsigned int    i;
+     int             i;
      long long       t1, t2;
      pthread_mutex_t mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
@@ -419,6 +422,7 @@ bench_pthread_mutex()
 
      printf( "\n" );
 }
+#endif
 
 int
 main( int argc, char *argv[] )
@@ -443,7 +447,7 @@ main( int argc, char *argv[] )
 
      printf( "\n" );
      
-#if 0     
+#if 0
      bench_pthread_mutex();
 
      bench_skirmish();

@@ -81,8 +81,6 @@ typedef struct {
      MatroxMavenData mav;
 } MatroxCrtc2LayerData;
 
-static const int one = 1;
-
 static void crtc2_wait_vsync( MatroxDriverData *mdrv );
 static void crtc2_set_regs( MatroxDriverData *mdrv, MatroxCrtc2LayerData *mcrtc2 );
 static void crtc2_calc_regs( MatroxDriverData *mdrv, MatroxCrtc2LayerData *mcrtc2,
@@ -283,7 +281,7 @@ crtc2FlipBuffers( DisplayLayer        *layer,
      
      line = mga_in32( mmio, C2VCOUNT ) & 0x00000FFF;
      if (line + 6 > vdisplay && line < vdisplay)
-          while ((mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != vdisplay)
+          while ((int)(mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != vdisplay)
                ;
 
      if (mcrtc2->config.options & DLOP_FIELD_PARITY) {
@@ -427,9 +425,10 @@ static void crtc2_wait_vsync( MatroxDriverData *mdrv )
      int vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 2;
 
 #ifdef FBIO_WAITFORVSYNC
+     static const int one = 1;
      if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &one ))
 #endif
-          while ((mga_in32( mdrv->mmio_base, C2VCOUNT ) & 0x00000FFF) != vdisplay)
+          while ((int)(mga_in32( mdrv->mmio_base, C2VCOUNT ) & 0x00000FFF) != vdisplay)
                ;
 }
 

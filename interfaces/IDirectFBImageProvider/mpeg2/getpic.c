@@ -37,7 +37,6 @@ static void macroblock_modes (MPEG2_Decoder *dec, int *pmacroblock_type, int *ps
                               int *pstwclass, int *pmotion_type, int *pmotion_vector_count, int *pmv_format, int *pdmv,
                               int *pmvscale, int *pdct_type);
 static void Clear_Block (MPEG2_Decoder *dec, int comp);
-static void Saturate (MPEG2_Decoder *dec, short *bp);
 static void Add_Block (MPEG2_Decoder *dec, int comp, int bx, int by,
                        int dct_type, int addflag);
 static void Update_Picture_Buffers (MPEG2_Decoder *dec);
@@ -391,35 +390,6 @@ Clear_Block(MPEG2_Decoder *dec, int comp)
 
      for (i=0; i<64; i++)
           *Block_Ptr++ = 0;
-}
-
-
-/* limit coefficients to -2048..2047 */
-/* ISO/IEC 13818-2 section 7.4.3 and 7.4.4: Saturation and Mismatch control */
-static void
-Saturate(MPEG2_Decoder *dec, short *Block_Ptr)
-{
-     int i, sum, val;
-
-     sum = 0;
-
-     /* ISO/IEC 13818-2 section 7.4.3: Saturation */
-     for (i=0; i<64; i++) {
-          val = Block_Ptr[i];
-
-          if (val>2047)
-               val = 2047;
-          else if (val<-2048)
-               val = -2048;
-
-          Block_Ptr[i] = val;
-          sum+= val;
-     }
-
-     /* ISO/IEC 13818-2 section 7.4.4: Mismatch control */
-     if ((sum&1)==0)
-          Block_Ptr[63]^= 1;
-
 }
 
 

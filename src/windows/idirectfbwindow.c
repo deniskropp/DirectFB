@@ -276,8 +276,8 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
 
 static DFBResult
 IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
-                         unsigned int    *width,
-                         unsigned int    *height )
+                         int             *width,
+                         int             *height )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -642,15 +642,15 @@ IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 
 static DFBResult
 IDirectFBWindow_Resize( IDirectFBWindow *thiz,
-                        unsigned int     width,
-                        unsigned int     height )
+                        int              width,
+                        int              height )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     if (!width || width > 4096 || !height || height > 4096)
+     if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
      
      if (data->window->width == width  &&  data->window->height == height)

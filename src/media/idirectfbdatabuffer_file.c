@@ -62,9 +62,9 @@
 typedef struct {
      IDirectFBDataBuffer_data base;
 
-     int   fd;
-     off_t pos;
-     off_t size;
+     int          fd;
+     unsigned int pos;
+     unsigned int size;
 } IDirectFBDataBuffer_File_data;
 
 

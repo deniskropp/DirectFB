@@ -162,8 +162,8 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
 
 static DFBResult
 IDirectFBSurface_GetSize( IDirectFBSurface *thiz,
-                          unsigned int     *width,
-                          unsigned int     *height )
+                          int              *width,
+                          int              *height )
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
 

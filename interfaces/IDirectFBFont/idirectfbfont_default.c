@@ -76,7 +76,7 @@ Construct( IDirectFBFont      *thiz,
 {
      CoreFont      *font;
      CoreSurface   *surface;
-     __u8          *dst;
+     void          *dst;
      unsigned char *pixels;
      int            pitch;
      int            i;
@@ -106,20 +106,20 @@ Construct( IDirectFBFont      *thiz,
           CoreGlyphData *data;
           int use_unicode;
           int start = 0;
-	  int index = 0;
+          int index = 0;
           int key;
           const char *glyphs =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "abcdefghijklmnopqrstuvwxyz"
-            "01234567890!\"$\%&/()=?^<>"
-            "|,;.:-_{[]}\\`+*~#'";
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+          "abcdefghijklmnopqrstuvwxyz"
+          "01234567890!\"$\%&/()=?^<>"
+          "|,;.:-_{[]}\\`+*~#'";
 
-	  if (desc && (desc->flags & DFDESC_ATTRIBUTES) &&
-	      (desc->attributes & DFFA_NOCHARMAP))
+          if (desc && (desc->flags & DFDESC_ATTRIBUTES) &&
+              (desc->attributes & DFFA_NOCHARMAP))
                use_unicode = 0;
-	  else
-	       use_unicode = 1;
-	  
+          else
+               use_unicode = 1;
+
           for (i = 0; i < font_desc.width; i++) {
                if (pixels[i] == 0xFF) {
                     data = DFBMALLOC(sizeof (CoreGlyphData));
@@ -135,21 +135,21 @@ Construct( IDirectFBFont      *thiz,
                                      data->width + 1);
 
                     HEAVYDEBUGMSG( "DirectFB/core/fonts: "
-				   "glyph '%c' at %d, width %d\n",
+                                   "glyph '%c' at %d, width %d\n",
                                    glyphs[index], start, i-start );
 
                     if (font->maxadvance < data->advance)
                          font->maxadvance = data->advance;
 
-		    if (use_unicode)
+                    if (use_unicode)
                          key = dfb_utf8_get_char (glyphs+index);
-		    else
+                    else
                          key = index;
-		    
+
                     dfb_tree_insert (font->glyph_infos, (void*) key, data);
 
                     start = i + 1;
-		    index++;
+                    index++;
                }
                if (glyphs[index] == '\0')
                     break;
@@ -159,28 +159,29 @@ Construct( IDirectFBFont      *thiz,
           data = DFBCALLOC(1, sizeof (CoreGlyphData));
           data->advance = 5;
 
-	  if (use_unicode)
+          if (use_unicode)
                key = dfb_utf8_get_char (" ");
           else
                key = index;
-	    
+
           dfb_tree_insert (font->glyph_infos, (void*) key, data);
      }
 
-     dfb_surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
+     dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );
 
      for (i = 1; i < font_desc.height; i++) {
           pixels += font_desc.preallocated[0].pitch;
           switch (surface->format) {
                case DSPF_ARGB:
-                    span_a8_to_argb(pixels, (__u32*)dst, font_desc.width);
+                    span_a8_to_argb(pixels, dst, font_desc.width);
                     break;
                case DSPF_A8:
-                 dfb_memcpy(dst, pixels, font_desc.width);
+                    dfb_memcpy(dst, pixels, font_desc.width);
                     break;
                default:
                     break;
           }
+
           dst += pitch;
      }
 

@@ -93,7 +93,8 @@ typedef struct {
 
 
 static inline void tdfx_waitfifo( TDFXDriverData *tdrv,
-                                  TDFXDeviceData *tdev, int space )
+                                  TDFXDeviceData *tdev,
+                                  unsigned int space )
 {
      int timeout = 1000000;
 
@@ -824,13 +825,6 @@ driver_init_device( GraphicsDevice     *device,
 
      dfb_config->pollvsync_after = 1;
 
-     return DFB_OK;
-}
-
-static DFBResult
-driver_init_layers( void *driver_data,
-                    void *device_data )
-{
      return DFB_OK;
 }
 

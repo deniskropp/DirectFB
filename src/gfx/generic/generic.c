@@ -461,8 +461,7 @@ static void Bop_rgb24_Kto_Aop()
           __u8 g = *(S+1);
           __u8 r = *(S+2);
 
-          if (Skey != (r<<16 | g<<8 | b ))
-          {
+          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
                *D     = b;
                *(D+1) = g;
                *(D+2) = r;
@@ -728,7 +727,7 @@ static void Bop_rgb24_SKto_Aop()
           __u8 g = S[pixelstart+1];
           __u8 r = S[pixelstart+2];
 
-          if (Skey != (r<<16 | g<<8 | b )) {
+          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
                *D     = b;
                *(D+1) = g;
                *(D+2) = r;
@@ -810,15 +809,15 @@ static void Bop_8_SKto_Aop()
 
 static void Bop_alut44_SKto_Aop()
 {
-     int    w = Dlength;
-     int    i = 0;
+     int   w = Dlength;
+     int   i = 0;
      __u8 *D = (__u8*)Aop;
      __u8 *S = (__u8*)Bop;
 
      while (w--) {
-          __u8 s = S[i>>16];
+          __u8 s = S[i>>16] & 0x0F;
 
-          if ((s & 0x0F) != Skey)
+          if (s != Skey)
                *D = s;
 
           D++;
@@ -1085,9 +1084,9 @@ static void Sop_argb1555_SKto_Dacc()
      __u16       *S = (__u16*)Sop;
 
      while (w--) {
-          __u16 s = S[i>>16];
+          __u16 s = S[i>>16] & 0x7FFF;
 
-          if ((s & 0x7FFF) != Skey) {
+          if (s != Skey) {
                D->a = (s & 0x8000) ? 0xff : 0;
                D->r = (s & 0x7C00) >> 7;
                D->g = (s & 0x03E0) >> 2;
@@ -1143,7 +1142,7 @@ static void Sop_rgb24_SKto_Dacc()
           __u8 g = S[pixelstart+1];
           __u8 r = S[pixelstart+2];
 
-          if (Skey != (r<<16 | g<<8 | b )) {
+          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
                D->a = 0xFF;
                D->r = r;
                D->g = g;
@@ -1273,9 +1272,9 @@ static void Sop_alut44_SKto_Dacc()
      DFBColor *entries = Slut->entries;
 
      while (w--) {
-          __u8 s = S[i>>16];
+          __u8 s = S[i>>16] & 0x0F;
 
-          if ((s & 0x0F) != Skey) {
+          if (s != Skey) {
                D->a = s & 0xF0;
                s &= 0x0F;
                D->r = entries[s].r;
@@ -1596,9 +1595,9 @@ static void Sop_argb1555_Kto_Dacc()
      __u16       *S = (__u16*)Sop;
 
      while (w--) {
-          __u16 s = *S++;
+          __u16 s = *S++ & 0x7FFF;
 
-          if ((s & 0x7FFF) != Skey) {
+          if (s != Skey) {
                D->a = (s & 0x8000) ? 0xff : 0;
                D->r = (s & 0x7C00) >> 7;
                D->g = (s & 0x03E0) >> 2;
@@ -1644,7 +1643,7 @@ static void Sop_rgb24_Kto_Dacc()
           __u8 g = *S++;
           __u8 r = *S++;
 
-          if (Skey != (r<<16 | g<<8 | b ))
+          if (Skey != (__u32)(r<<16 | g<<8 | b ))
           {
                D->a = 0xFF;
                D->r = r;

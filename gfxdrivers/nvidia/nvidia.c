@@ -610,13 +610,6 @@ driver_init_device( GraphicsDevice     *device,
      return DFB_OK;
 }
 
-static DFBResult
-driver_init_layers( void *driver_data,
-                    void *device_data )
-{
-     return DFB_OK;
-}
-
 static void
 driver_close_device( GraphicsDevice *device,
                      void           *driver_data,

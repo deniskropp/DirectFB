@@ -73,7 +73,7 @@ IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
      IDirectFBSurface_Window_data *data =
           (IDirectFBSurface_Window_data*)thiz->priv;
 
-     if (data->flip_thread != -1) {
+     if ((int) data->flip_thread != -1) {
           pthread_cancel( data->flip_thread );
           pthread_join( data->flip_thread, NULL );
      }
@@ -208,7 +208,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      IDirectFBSurface_Construct( thiz, wanted, granted, window->surface, caps );
 
      data->window = window;
-     data->flip_thread = -1;
+     data->flip_thread = (pthread_t) -1;
 
      /*
       * Create an auto flipping thread if the application

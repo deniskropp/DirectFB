@@ -274,15 +274,15 @@ IDirectFB_EnumVideoModes( IDirectFB            *thiz,
 
 static DFBResult
 IDirectFB_SetVideoMode( IDirectFB    *thiz,
-                        unsigned int  width,
-                        unsigned int  height,
-                        unsigned int  bpp )
+                        int           width,
+                        int           height,
+                        int           bpp )
 {
      DFBResult ret;
 
      INTERFACE_GET_DATA(IDirectFB)
 
-     if (!width || !height || !bpp)
+     if (width < 1 || height < 1 || bpp < 1)
           return DFB_INVARG;
 
      switch (data->level) {
@@ -346,8 +346,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                          IDirectFBSurface      **interface )
 {
      DFBResult ret;
-     unsigned int width = 256;
-     unsigned int height = 256;
+     int width = 256;
+     int height = 256;
      int policy = CSP_VIDEOLOW;
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps = 0;
@@ -365,12 +365,12 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
      if (desc->flags & DSDESC_WIDTH) {
           width = desc->width;
-          if (!width)
+          if (width < 1)
                return DFB_INVARG;
      }
      if (desc->flags & DSDESC_HEIGHT) {
           height = desc->height;
-          if (!height)
+          if (height < 1)
                return DFB_INVARG;
      }
 
@@ -428,8 +428,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     if (! (desc->flags & DSDESC_HEIGHT))
                          height = data->primary.height;
 
-                    x = ((int)config.width  - (int)width)  / 2;
-                    y = ((int)config.height - (int)height) / 2;
+                    x = (config.width  - width)  / 2;
+                    y = (config.height - height) / 2;
 
                     if (desc->flags & DSDESC_PIXELFORMAT) {
                          if (desc->pixelformat == DSPF_ARGB)

@@ -81,7 +81,7 @@ dfb_thread_create( CoreThreadType  thread_type,
      thread->arg  = arg;
 
      /* Initialize to -1 for synchronization. */
-     thread->thread = -1;
+     thread->thread = (pthread_t) -1;
 
      /* Create and run the thread. */
      pthread_create( &thread->thread, NULL, dfb_thread_main, thread );
@@ -175,7 +175,7 @@ dfb_thread_main( void *arg )
                "  (thread) Waiting for pthread_create completion...\n" );
      
      /* Wait for completion of pthread_create(). */
-     while (thread->thread == -1)
+     while ((int) thread->thread == -1)
           sched_yield();
 
      /* Have all signals handled by the main thread. */

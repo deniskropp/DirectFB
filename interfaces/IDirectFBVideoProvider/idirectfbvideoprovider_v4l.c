@@ -487,7 +487,7 @@ static void* GrabThread( CoreThread *thread, void *ctx )
      IDirectFBVideoProvider_V4L_data *data =
      (IDirectFBVideoProvider_V4L_data*)ctx;
      CoreSurface *surface = data->destination;
-     __u8 *src, *dst;
+     void *src, *dst;
      int dst_pitch, src_pitch, h;
      int frame = 0;
 
@@ -506,8 +506,8 @@ static void* GrabThread( CoreThread *thread, void *ctx )
           dfb_thread_testcancel( thread );
 
           h = surface->height;
-          src = (__u8 *) data->buffer + data->vmbuf.offsets[frame];
-          dfb_surface_soft_lock( surface, DSLF_WRITE, (void**)&dst, &dst_pitch, 0 );
+          src = data->buffer + data->vmbuf.offsets[frame];
+          dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &dst_pitch, 0 );
           while (h--) {
                dfb_memcpy( dst, src, src_pitch );
                dst += dst_pitch;

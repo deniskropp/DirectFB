@@ -75,7 +75,7 @@ mga_waitidle(MatroxDriverData *mdrv, MatroxDeviceData *mdev)
 
 /* Wait for fifo space */
 static inline void
-mga_waitfifo(MatroxDriverData *mdrv, MatroxDeviceData *mdev, int space)
+mga_waitfifo(MatroxDriverData *mdrv, MatroxDeviceData *mdev, unsigned int space)
 {
      mdev->waitfifo_sum += space;
      mdev->waitfifo_calls++;

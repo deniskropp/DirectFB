@@ -87,12 +87,6 @@ main( int argc, char *argv[] )
 
 /*****************************************************************************/
 
-static void
-print_usage (const char *prg_name)
-{
-     fprintf (stderr, "dfbinfo version %s\n", DIRECTFB_VERSION);
-}
-
 static DFBBoolean
 parse_command_line( int argc, char *argv[] )
 {

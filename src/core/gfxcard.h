@@ -240,7 +240,7 @@ void dfb_gfxcard_sync();
 void dfb_gfxcard_flush_texture_cache();
 void dfb_gfxcard_after_set_var();
 
-DFBResult dfb_gfxcard_adjust_heap_offset( unsigned int offset );
+DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 
 SurfaceManager   *dfb_gfxcard_surface_manager();
 FusionObjectPool *dfb_gfxcard_surface_pool();

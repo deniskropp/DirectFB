@@ -106,9 +106,9 @@ extern DisplayLayerFuncs matroxBesFuncs;
 extern DisplayLayerFuncs matroxCrtc2Funcs;
 extern DisplayLayerFuncs matroxSpicFuncs;
 
-static inline unsigned int mga_log2( unsigned int val )
+static inline int mga_log2( int val )
 {
-     unsigned int ret = 0;
+     int ret = 0;
 
      while (val >> ret)
           ret++;

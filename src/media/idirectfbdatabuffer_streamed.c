@@ -274,12 +274,12 @@ IDirectFBDataBuffer_Streamed_PeekData( IDirectFBDataBuffer *thiz,
 
      INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
-     if (!data_buffer || !length)
+     if (!data_buffer || !length || offset < 0)
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->chunks_mutex );
      
-     if (!data->chunks || offset >= data->length) {
+     if (!data->chunks || (unsigned int) offset >= data->length) {
           pthread_mutex_unlock( &data->chunks_mutex );
           return DFB_BUFFEREMPTY;
      }

@@ -283,8 +283,8 @@ ps2GetId( int fd, bool verbose )
 static int
 ps2Write( int fd, const unsigned char *data, size_t len, bool verbose)
 {
-     int i;
-     int error = 0;
+     size_t i;
+     int    error = 0;
 
      for ( i = 0; i < len; i++ ) {
           if ( ps2WriteChar(fd, data[i], verbose) < 0 ) {
@@ -377,7 +377,7 @@ driver_get_available()
      if (dfb_system_type() != CORE_FBDEV)
           return 0;
 
-     for (i = 0; i < sizeof(devname) / sizeof(devname[0]); i++) {
+     for (i = 0; i < (int)(sizeof(devname) / sizeof(devname[0])); i++) {
           fd = open( devname[i], O_RDWR | O_SYNC );
 
           if (fd >= 0) {

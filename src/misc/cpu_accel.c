@@ -187,9 +187,9 @@ static __u32 arch_accel (void)
 __u32 dfb_mm_accel (void)
 {
 #if defined (ARCH_X86) || (defined (ARCH_PPC) && defined (ENABLE_ALTIVEC))
-  static __u32 accel = ~0;
+  static __u32 accel = ~0U;
 
-  if (accel != ~0)
+  if (accel != ~0U)
        return accel;
 
   accel = arch_accel ();

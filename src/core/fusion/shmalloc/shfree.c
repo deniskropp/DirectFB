@@ -145,10 +145,10 @@ _fusion_shfree_internal (void *ptr)
                                        (_sheap->heapinfo[block].busy.info.frag.first << type));
 
 #if 1   /* Adapted from Mike */
-               if (_sheap->heapinfo[block].busy.info.frag.nfree == (BLOCKSIZE >> type) - 1
+               if ((int)_sheap->heapinfo[block].busy.info.frag.nfree == (BLOCKSIZE >> type) - 1
                    && _sheap->fragblocks[type] > 1)
 #else
-               if (_sheap->heapinfo[block].busy.info.frag.nfree == (BLOCKSIZE >> type) - 1)
+               if ((int)_sheap->heapinfo[block].busy.info.frag.nfree == (BLOCKSIZE >> type) - 1)
 #endif
                {
                     /* If all fragments of this block are free, remove them

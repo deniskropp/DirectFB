@@ -430,7 +430,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo,
                                               JPOOL_IMAGE, row_stride, 1);
 
-          if (rect.w == cinfo.output_width && rect.h == cinfo.output_height && direct) {
+          if (rect.w == (int)cinfo.output_width &&
+              rect.h == (int)cinfo.output_height &&
+              direct)
+          {
                /* image must not be scaled */
                row_ptr = dst;
 

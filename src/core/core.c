@@ -87,7 +87,7 @@ static CorePart *core_parts[] = {
      &dfb_core_layers
 };
 
-#define NUM_CORE_PARTS (sizeof(core_parts)/sizeof(CorePart*))
+#define NUM_CORE_PARTS ((int)(sizeof(core_parts)/sizeof(CorePart*)))
 
 static int
 dfb_core_initialize( FusionArena *arena, void *ctx );

@@ -106,8 +106,8 @@ DFB_CORE_PART( gfxcard, sizeof(GraphicsDevice), sizeof(GraphicsDeviceShared) );
 static DFBResult
 dfb_gfxcard_initialize( void *data_local, void *data_shared )
 {
-     DFBResult    ret;
-     unsigned int videoram_length;
+     DFBResult ret;
+     int       videoram_length;
 
      DFB_ASSERT( card == NULL );
 
@@ -1212,7 +1212,7 @@ void dfb_gfxcard_after_set_var()
 }
 
 DFBResult
-dfb_gfxcard_adjust_heap_offset( unsigned int offset )
+dfb_gfxcard_adjust_heap_offset( int offset )
 {
      DFB_ASSERT( card != NULL );
      DFB_ASSERT( card->shared != NULL );

@@ -188,8 +188,10 @@ void dfb_surfacemanager_unlock( SurfaceManager *manager )
 }
 
 DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
-                                                 unsigned int    offset )
+                                                 int             offset )
 {
+     DFB_ASSERT( offset >= 0 );
+
      dfb_surfacemanager_lock( manager );
 
      if (manager->byteoffset_align > 1) {

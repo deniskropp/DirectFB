@@ -307,7 +307,7 @@ RGB888_to_ARGB( void *d, void *s, int len )
 static void
 WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
 {
-     unsigned char         *ptr;
+     void                  *ptr;
      unsigned int           pitch;
      CoreSurface           *surface;
      IDirectFBSurface_data *dst_data;
@@ -316,7 +316,7 @@ WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     dfb_surface_soft_lock( surface, DSLF_WRITE, (void**)&ptr, &pitch, 0 );
+     dfb_surface_soft_lock( surface, DSLF_WRITE, &ptr, &pitch, 0 );
 
      ptr += data->dest_clip.y * pitch +
             data->dest_clip.x * DFB_BYTES_PER_PIXEL (surface->format);
@@ -389,7 +389,8 @@ WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
 static void
 WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
 {
-     __u16                 *dst;
+     void                  *dst;
+     __u16                 *dst16;
      unsigned int           pitch;
      CoreSurface           *surface;
      IDirectFBSurface_data *dst_data;
@@ -400,7 +401,7 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     dfb_surface_soft_lock( surface, DSLF_WRITE, (void**)&dst, &pitch, 0 );
+     dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );
 
      src_y  = data->yuv.lines[0];
      src_u  = data->yuv.lines[1];
@@ -418,18 +419,18 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
      switch (surface->format) {
           case DSPF_I420:
           case DSPF_YV12:
-               dst_y  = (__u8*) dst;
+               dst_y  = dst;
                dst_y += data->dest_clip.y * pitch + data->dest_clip.x;
 
                if (surface->format == DSPF_I420) {
-                    dst_u = (__u8*) dst + pitch * data->video.height;
+                    dst_u = dst + pitch * data->video.height;
                     dst_v = dst_u + pitch/2 * data->video.height / 2;
 
                     dst_u += data->dest_clip.y/2 * pitch/2 + data->dest_clip.x/2;
                     dst_v += data->dest_clip.y/2 * pitch/2 + data->dest_clip.x/2;
                }
                else {
-                    dst_v = (__u8*) dst + pitch * data->video.height;
+                    dst_v = dst + pitch * data->video.height;
                     dst_u = dst_v + pitch/2 * data->video.height / 2;
 
                     dst_u += data->dest_clip.y/2 * pitch/2 + data->dest_clip.x/2;
@@ -456,14 +457,14 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                break;
 
           case DSPF_YUY2:
-               dst += data->dest_clip.y * pitch + data->dest_clip.x;
+               dst16 = dst + data->dest_clip.y * pitch + data->dest_clip.x * 2;
 
                for (y=0; y<data->dest_clip.h; y++) {
                     for (x=0; x<data->dest_clip.w; x++) {
                          if (x & 1)
-                              dst[x] = (src_v[x/2] << 8) | src_y[x];
+                              dst16[x] = (src_v[x/2] << 8) | src_y[x];
                          else
-                              dst[x] = (src_u[x/2] << 8) | src_y[x];
+                              dst16[x] = (src_u[x/2] << 8) | src_y[x];
                     }
 
                     src_y += data->video.width;
@@ -473,19 +474,19 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                          src_v += data->video.width/2;
                     }
 
-                    dst += pitch/2;
+                    dst16 += pitch/2;
                }
                break;
 
           case DSPF_UYVY:
-               dst += data->dest_clip.y * pitch + data->dest_clip.x;
+               dst16 = dst + data->dest_clip.y * pitch + data->dest_clip.x * 2;
 
                for (y=0; y<data->dest_clip.h; y++) {
                     for (x=0; x<data->dest_clip.w; x++) {
                          if (x & 1)
-                              dst[x] = (src_y[x] << 8) | src_v[x/2];
+                              dst16[x] = (src_y[x] << 8) | src_v[x/2];
                          else
-                              dst[x] = (src_y[x] << 8) | src_u[x/2];
+                              dst16[x] = (src_y[x] << 8) | src_u[x/2];
                     }
 
                     src_y += data->video.width;
@@ -495,7 +496,7 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                          src_v += data->video.width/2;
                     }
 
-                    dst += pitch/2;
+                    dst16 += pitch/2;
                }
                break;
 
@@ -795,7 +796,7 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
      data->video.playing  = 1;
 
      /* start audio playback thread */
-     if (data->audio.thread == -1 && data->audio.available) {
+     if ((int) data->audio.thread == -1 && data->audio.available) {
           if (OpenSound( data ) == DFB_OK) {
                pthread_mutex_lock( &data->audio.lock );
 
@@ -808,7 +809,7 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
      }
 
      /* start video playback thread */
-     if (data->video.thread == -1)
+     if ((int) data->video.thread == -1)
           pthread_create( &data->video.thread, NULL, VideoThread, data );
 
      pthread_mutex_unlock( &data->video.lock );
@@ -826,26 +827,26 @@ IDirectFBVideoProvider_Libmpeg3_Stop( IDirectFBVideoProvider *thiz )
      pthread_mutex_lock( &data->audio.lock );
 
      /* stop audio thread and close device */
-     if (data->audio.thread != -1) {
+     if ((int) data->audio.thread != -1) {
           data->audio.playing = 0;
 
           pthread_mutex_unlock( &data->audio.lock );
           pthread_join( data->audio.thread, NULL );
           pthread_mutex_lock( &data->audio.lock );
 
-          data->audio.thread = -1;
+          data->audio.thread = (pthread_t) -1;
           CloseSound( data );
      }
 
      /* stop video thread */
-     if (data->video.thread != -1) {
+     if ((int) data->video.thread != -1) {
           data->video.playing = 0;
 
           pthread_mutex_unlock( &data->video.lock );
           pthread_join( data->video.thread, NULL );
           pthread_mutex_lock( &data->video.lock );
 
-          data->video.thread = -1;
+          data->video.thread = (pthread_t) -1;
      }
 
      /* release destination surface */
@@ -993,8 +994,8 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->ref           = 1;
      data->filename      = DFBSTRDUP( filename );
 
-     data->video.thread  = -1;
-     data->audio.thread  = -1;
+     data->video.thread  = (pthread_t) -1;
+     data->audio.thread  = (pthread_t) -1;
 
      pthread_mutex_init( &data->video.lock, NULL );
      pthread_mutex_init( &data->audio.lock, NULL );

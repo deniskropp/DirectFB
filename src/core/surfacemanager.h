@@ -49,7 +49,7 @@ DFBResult dfb_surfacemanager_resume( SurfaceManager *manager );
  * needs to be called after a resolution switch
  */
 DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
-                                                 unsigned int    offset );
+                                                 int             offset );
 
 typedef DFBEnumerationResult (*SMChunkCallback)( SurfaceBuffer *buffer,
                                                  int            offset,

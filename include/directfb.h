@@ -748,10 +748,10 @@ typedef struct {
      DFBFontDescriptionFlags            flags;
 
      DFBFontAttributes                  attributes;
-     unsigned int                       height;
-     unsigned int                       width;
+     int                                height;
+     int                                width;
      unsigned int                       index;
-     unsigned int                       fixed_advance;
+     int                                fixed_advance;
 } DFBFontDescription;
 
 /*
@@ -833,8 +833,8 @@ typedef struct {
      DFBSurfaceDescriptionFlags         flags;       /* field validation */
 
      DFBSurfaceCapabilities             caps;        /* capabilities */
-     unsigned int                       width;       /* pixel width */
-     unsigned int                       height;      /* pixel height */
+     int                                width;       /* pixel width */
+     int                                height;      /* pixel height */
      DFBSurfacePixelFormat              pixelformat; /* pixel format */
 
      struct {
@@ -915,8 +915,8 @@ typedef struct {
      DFBWindowDescriptionFlags          flags;        /* field validation */
 
      DFBWindowCapabilities              caps;         /* capabilities */
-     unsigned int                       width;        /* pixel width */
-     unsigned int                       height;       /* pixel height */
+     int                                width;        /* pixel width */
+     int                                height;       /* pixel height */
      DFBSurfacePixelFormat              pixelformat;  /* pixel format */
      int                                posx;         /* distance from left
                                                          layer border */
@@ -956,10 +956,10 @@ typedef unsigned int DFBInputDeviceID;
  * Called for each supported video mode.
  */
 typedef DFBEnumerationResult (*DFBVideoModeCallback) (
-     unsigned int                       width,
-     unsigned int                       height,
-     unsigned int                       bpp,
-     void                              *callbackdata
+     int                       width,
+     int                       height,
+     int                       bpp,
+     void                     *callbackdata
 );
 
 /*
@@ -1117,9 +1117,9 @@ DEFINE_INTERFACE(   IDirectFB,
       */
      DFBResult (*SetVideoMode) (
           IDirectFB                *thiz,
-          unsigned int              width,
-          unsigned int              height,
-          unsigned int              bpp
+          int                       width,
+          int                       height,
+          int                       bpp
      );
 
 
@@ -1418,8 +1418,8 @@ typedef struct {
      DFBDisplayLayerConfigFlags    flags;       /* Which fields of the
                                                    configuration are set */
 
-     unsigned int                  width;       /* Pixel width */
-     unsigned int                  height;      /* Pixel height */
+     int                           width;       /* Pixel width */
+     int                           height;      /* Pixel height */
      DFBSurfacePixelFormat         pixelformat; /* Pixel format */
      DFBDisplayLayerBufferMode     buffermode;  /* Buffer mode */
      DFBDisplayLayerOptions        options;     /* Enable capabilities */
@@ -1898,8 +1898,8 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*GetSize) (
           IDirectFBSurface         *thiz,
-          unsigned int             *width,
-          unsigned int             *height
+          int                      *width,
+          int                      *height
      );
 
      /*
@@ -2792,8 +2792,8 @@ typedef struct {
      int                             step;       /* wheel step */
 
      /* used by DWET_RESIZE */
-     unsigned int                    w;          /* width of window */
-     unsigned int                    h;          /* height of window */
+     int                             w;          /* width of window */
+     int                             h;          /* height of window */
 
      /* used by DWET_KEYDOWN, DWET_KEYUP */
      int                             key_code;   /* hardware keycode, no
@@ -2993,8 +2993,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*GetSize) (
           IDirectFBWindow               *thiz,
-          unsigned int                  *width,
-          unsigned int                  *height
+          int                           *width,
+          int                           *height
      );
 
 
@@ -3224,8 +3224,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*Resize) (
           IDirectFBWindow               *thiz,
-          unsigned int                   width,
-          unsigned int                   height
+          int                            width,
+          int                            height
      );
 
 

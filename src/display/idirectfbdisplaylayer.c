@@ -344,6 +344,10 @@ IDirectFBDisplayLayer_TestConfiguration( IDirectFBDisplayLayer      *thiz,
      if (!config)
           return DFB_INVARG;
 
+     if (((config->flags & DLCONF_WIDTH) && (config->width < 0)) ||
+         ((config->flags & DLCONF_HEIGHT) && (config->height < 0)))
+          return DFB_INVARG;
+     
      return dfb_layer_test_configuration( data->layer, config, failed );
 }
 
@@ -356,6 +360,10 @@ IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer *thiz,
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
      if (!config)
+          return DFB_INVARG;
+
+     if (((config->flags & DLCONF_WIDTH) && (config->width < 0)) ||
+         ((config->flags & DLCONF_HEIGHT) && (config->height < 0)))
           return DFB_INVARG;
 
      switch (data->level) {
@@ -478,7 +486,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
      if ((caps & ~DWCAPS_ALL) || !window)
           return DFB_INVARG;
 
-     if (!width || width > 4096 || !height || height > 4096)
+     if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
 
      ret = dfb_layer_create_window( data->layer, posx, posy, width, height,

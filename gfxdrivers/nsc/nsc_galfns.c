@@ -1,6 +1,6 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.2 $
+ * $Revision: 1.3 $
  * $Author: dok $
  *
  * File Contents: This file contains the main functions of the Geode 
@@ -162,9 +162,9 @@
  * Cool Macros to access the structures
  */
 #define INIT_GAL(x) \
-		((GAL_BASE *)(x))->dwSignature = FBGAL_SIGNATURE;\
-		((GAL_BASE *)(x))->dwSize = sizeof(x);\
-		((GAL_BASE *)(x))->dwVersion = FBGAL_VERSION;
+		(x)->dwSignature = FBGAL_SIGNATURE;\
+		(x)->dwSize = sizeof(*x);\
+		(x)->dwVersion = FBGAL_VERSION;
 /*
  * Variables public for this file
  */
