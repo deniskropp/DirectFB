@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -73,7 +73,7 @@ IFusionSound_Destruct( IFusionSound *thiz )
      IFusionSound_data *data = (IFusionSound_data*)thiz->priv;
 
      fs_core_destroy( data->core );
-     
+
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -184,11 +184,12 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
                            IFusionSoundStream  **ret_interface )
 {
      DFBResult                 ret;
-     int                       channels = 2;
-     FSSampleFormat            format   = FSSF_S16;
-     int                       rate     = 44100;
-     int                       size     = rate;   /* space for one second */
-     FSStreamDescriptionFlags  flags    = FSSDF_NONE;
+     int                       channels  = 2;
+     FSSampleFormat            format    = FSSF_S16;
+     int                       rate      = 44100;
+     int                       size      = rate;   /* space for one second */
+     int                       prebuffer = 0;      /* no prebuffer by default */
+     FSStreamDescriptionFlags  flags     = FSSDF_NONE;
      CoreSoundBuffer          *buffer;
      IFusionSoundStream       *interface;
 
@@ -214,9 +215,12 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
 
           if (flags & FSSDF_SAMPLERATE)
                rate = desc->samplerate;
+
+          if (flags & FSSDF_PREBUFFER)
+               prebuffer = desc->prebuffer;
      }
 
-     if (size < 1)
+     if (size < 1 || rate < 1 || prebuffer < 0 || prebuffer >= size)
           return DFB_INVARG;
 
      /* Limit ring buffer size to five seconds. */
@@ -241,9 +245,6 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
                return DFB_INVARG;
      }
 
-     if (rate < 1)
-          return DFB_INVARG;
-
      ret = fs_buffer_create( data->core,
                              size, channels, format, rate, &buffer );
      if (ret)
@@ -251,8 +252,8 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
 
      DFB_ALLOCATE_INTERFACE( interface, IFusionSoundStream );
 
-     ret = IFusionSoundStream_Construct( interface, data->core, buffer,
-                                         size, channels, format, rate );
+     ret = IFusionSoundStream_Construct( interface, data->core, buffer, size,
+                                         channels, format, rate, prebuffer );
      if (ret)
           *ret_interface = NULL;
      else
@@ -321,7 +322,7 @@ Construct( IFusionSound *thiz,
 
      /* Allocate interface data. */
      DFB_ALLOCATE_INTERFACE_DATA( thiz, IFusionSound );
-     
+
      /* Initialize interface data. */
      data->ref = 1;
 
@@ -334,7 +335,7 @@ Construct( IFusionSound *thiz,
 
           return ret;
      }
-     
+
      /* Assign interface pointers. */
      thiz->AddRef        = IFusionSound_AddRef;
      thiz->Release       = IFusionSound_Release;

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -44,6 +44,7 @@ typedef struct {
      int                    channels;
      FSSampleFormat         format;
      int                    rate;
+     int                    prebuffer;
 
      Reaction               reaction;
 
@@ -63,7 +64,8 @@ DFBResult IFusionSoundStream_Construct( IFusionSoundStream *thiz,
                                         int                 size,
                                         int                 channels,
                                         FSSampleFormat      format,
-                                        int                 rate );
+                                        int                 rate,
+                                        int                 prebuffer );
 
 
 #endif

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -108,6 +108,7 @@ typedef enum {
      FSSDF_CHANNELS      = 0x00000002,      /* Number of channels is set. */
      FSSDF_SAMPLEFORMAT  = 0x00000004,      /* Sample format is set. */
      FSSDF_SAMPLERATE    = 0x00000008,      /* Sample rate is set. */
+     FSSDF_PREBUFFER     = 0x00000010,      /* Prebuffer amount is set. */
      FSSDF_ALL           = 0x0000000F       /* All of these. */
 } FSStreamDescriptionFlags;
 
@@ -122,6 +123,8 @@ typedef struct {
      int                      channels;     /* Number of channels. */
      FSSampleFormat           sampleformat; /* Format of each sample. */
      int                      samplerate;   /* Number of samples per second. */
+     int                      prebuffer;    /* Number of samples to pre-buffer
+                                               before starting the playback. */
 } FSStreamDescription;
 
 /*
@@ -264,7 +267,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
      DFBResult (*Unlock) (
           IFusionSoundBuffer       *thiz
      );
-     
+
 
    /** Simple playback **/
 
