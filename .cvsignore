@@ -3,6 +3,7 @@ config.h
 config.h.in
 config.cache
 libtool
+ltconfig
 config.status
 stamp-h
 Makefile
