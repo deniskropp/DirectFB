@@ -323,10 +323,10 @@ static void matroxFillTriangle( DFBTriangle *tri )
 static void matroxBlit( DFBRectangle *rect, int dx, int dy )
 {
      if (matrox_tmu) {
-          __u32 startx, starty;
+          __s32 startx, starty;
           
-          startx = ((rect->x << 20) + 0x7FFFF)  /  (1 << matrox_w2);
-          starty = ((rect->y << 20) + 0x7FFFF)  /  (1 << matrox_h2);
+          startx = ((rect->x << 20) | 0x80000) >> matrox_w2;
+          starty = ((rect->y << 20) | 0x80000) >> matrox_h2;
           
           mga_waitfifo( mmio_base, 4);
 
@@ -374,16 +374,19 @@ static void matroxBlit( DFBRectangle *rect, int dx, int dy )
 
 static void matroxStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
 {
-     __u32 startx, starty, incx, incy;
+     __s32 startx, starty, incx, incy;
 
      if (drect->w < 1  ||  drect->h < 1)
           return;
 
-     incx = (((srect->w-1) << 20) / (1 << matrox_w2))  /  drect->w;
-     incy = (((srect->h-1) << 20) / (1 << matrox_h2))  /  drect->h;
+//     incx = (srect->w << (20 - matrox_w2))  /  drect->w;
+//     incy = (srect->h << (20 - matrox_h2))  /  drect->h;
 
-     startx = ((srect->x << 20) + 0x7FFFF)  /  (1 << matrox_w2);
-     starty = ((srect->y << 20) + 0x7FFFF)  /  (1 << matrox_h2);
+     incx = (((srect->w << 20) | 0x80000) >> matrox_w2) / drect->w;
+     incy = (((srect->h << 20) | 0x80000) >> matrox_h2) / drect->h;
+
+     startx = ((srect->x << 20) | 0x80000) >> matrox_w2;
+     starty = ((srect->y << 20) | 0x80000) >> matrox_h2;
      
      mga_waitfifo( mmio_base, 6);
      

@@ -45,13 +45,12 @@ extern int src_pixelpitch;
 
 static inline unsigned int log2( unsigned int val )
 {
-     unsigned int tmp = val;
      unsigned int ret = 0;
 
-     while (tmp >>= 1)
+     while (val >>= 1)
           ret++;
 
-     return (1<<ret) == val ? ret : ret+1;
+     return ret;
 }
 
 #endif

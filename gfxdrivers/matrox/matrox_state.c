@@ -386,8 +386,8 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                                DWGCTL );
                     
                     mga_waitfifo( mmio_base, 3 );
-                    mga_out32( mmio_base, 0x100000 / (1<<matrox_w2), TMR0 );
-                    mga_out32( mmio_base, 0x100000 / (1<<matrox_h2), TMR3 );
+                    mga_out32( mmio_base, 0x100000 >> matrox_w2, TMR0 );
+                    mga_out32( mmio_base, 0x100000 >> matrox_h2, TMR3 );
                     mga_out32( mmio_base, MAG_NRST | MIN_NRST, TEXFILTER );
                }
                else {
