@@ -604,6 +604,25 @@ Dispatch_SetOpacity( IDirectFBWindow *thiz, IDirectFBWindow *real,
 }
 
 static DirectResult
+Dispatch_GetOpacity( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                     VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult     ret;
+     __u8             opacity;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     ret = real->GetOpacity( real, &opacity );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_UINT, opacity,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_SetCursorShape( IDirectFBWindow *thiz, IDirectFBWindow *real,
                          VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -846,6 +865,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBWINDOW_METHOD_ID_SetOpacity:
                return Dispatch_SetOpacity( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_GetOpacity:
+               return Dispatch_GetOpacity( dispatcher, real, manager, msg );
 
           case IDIRECTFBWINDOW_METHOD_ID_SetCursorShape:
                return Dispatch_SetCursorShape( dispatcher, real, manager, msg );

@@ -362,13 +362,39 @@ IDirectFBWindow_Requestor_SetOpacity( IDirectFBWindow *thiz,
 
 static DFBResult
 IDirectFBWindow_Requestor_GetOpacity( IDirectFBWindow *thiz,
-                                      __u8            *opacity )
+                                      __u8            *ret_opacity )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     __u8                   opacity;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!ret_opacity)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBWINDOW_METHOD_ID_GetOpacity, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_UINT( parser, opacity );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_opacity = opacity;
+
+     return ret;
 }
 
 static DFBResult
