@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -74,14 +74,14 @@ static void       print_usage (const char            *prg_name);
 int main (int         argc,
           const char *argv[])
 {
-     DFBSurfaceDescription  desc    = { flags: 0 };
-     DFBSurfacePixelFormat  format  = DSPF_UNKNOWN;
+     DFBSurfaceDescription  desc   = { flags: 0 };
+     DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
      DFBColor    palette[256];
      int         palette_size = 0;
      const char *name         = NULL;
      const char *filename     = NULL;
-     char *vname;
-     int   i, j, n;
+     char       *vname;
+     int         i, j, n;
 
      /* parse command line */
      for (n = 1; n < argc; n++) {
@@ -221,7 +221,7 @@ static DFBResult load_image (const char            *filename,
      png_set_sig_bytes (png_ptr, bytes);
 
      png_read_info (png_ptr, info_ptr);
- 
+
      png_get_IHDR (png_ptr, info_ptr,
                    &width, &height, &bytes, &type, NULL, NULL, NULL);
 
@@ -314,7 +314,7 @@ static DFBResult load_image (const char            *filename,
      {
           unsigned int i;
           png_bytep bptrs[height];
-          
+
           for (i = 0; i < height; i++)
                bptrs[i] = data + i * pitch;
 
@@ -329,7 +329,7 @@ static DFBResult load_image (const char            *filename,
           int            d_pitch, h;
 
           assert (DFB_BYTES_PER_PIXEL (src_format) == 4);
-          
+
           d_pitch = width * DFB_BYTES_PER_PIXEL (dest_format);
           if (d_pitch & 3)
                d_pitch += 4 - (d_pitch & 3);
@@ -377,7 +377,7 @@ static DFBResult load_image (const char            *filename,
      desc->pixelformat = dest_format;
      desc->preallocated[0].pitch = pitch;
      desc->preallocated[0].data  = data;
-     
+
      data = NULL;
 
  cleanup:
@@ -503,7 +503,7 @@ static DFBResult dump_image (const char            *name,
               "                            DSDESC_PREALLOCATED");
      if (palette_size > 0)
           fprintf (csource.fp, " | DSDESC_PALETTE");
-     fprintf (csource.fp, ",\n");     
+     fprintf (csource.fp, ",\n");
      fprintf (csource.fp,
               "  width                   : %d,\n", desc->width);
      fprintf (csource.fp,
