@@ -32,14 +32,10 @@
 #include <fusionsound.h>
 
 #include <media/ifusionsoundmusicprovider.h>
-#include <media/ifusionsoundmusicprovider.h>
 
 #include <core/coredefs.h>
-#include <core/sound_buffer.h>
 
 #include <misc/mem.h>
-
-#include <ifusionsoundstream.h>
 
 #include "config.h"
 
@@ -68,7 +64,6 @@ typedef struct {
      CoreThread      *thread;
      pthread_mutex_t  lock;
 
-     int              bytes;
      int              length;
 
      MidiSong        *song;
@@ -165,7 +160,6 @@ TimidityThread( CoreThread *thread, void *ctx )
                break;
           }
 
-          memset( data->buffer, data->length, data->bytes );
           Timidity_PlaySome( data->buffer, data->length );
 
           pthread_mutex_unlock( &data->lock );
@@ -182,19 +176,17 @@ IFusionSoundMusicProvider_Timidity_PlayTo(
                                        IFusionSoundMusicProvider *thiz,
                                        IFusionSoundStream        *destination )
 {
-     IFusionSoundStream_data *dst_data;
+     FSStreamDescription desc;
 
      INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
      if (!destination)
           return DFB_INVARG;
 
-     dst_data = (IFusionSoundStream_data*)destination->priv;
-     if (!dst_data)
-          return DFB_DEAD;
+     destination->GetDescription( destination, &desc );
 
      /* check if destination format is supported */
-     switch (dst_data->buffer->format) {
+     switch (desc.sampleformat) {
           case FSSF_S16:
                break;
           default:
@@ -203,28 +195,50 @@ IFusionSoundMusicProvider_Timidity_PlayTo(
 
      pthread_mutex_lock( &data->lock );
 
+     /* stop thread */
+     if (data->thread) {
+          data->playing = 0;
+          pthread_mutex_unlock( &data->lock );
+          dfb_thread_join( data->thread );
+          pthread_mutex_lock( &data->lock );
+          dfb_thread_destroy( data->thread );
+          data->thread = NULL;
+
+          Timidity_Stop();
+          Timidity_FreeSong( data->song );
+
+          DFBFREE( data->buffer );
+     }
+
      /* release previous destination stream */
      if (data->destination) {
           data->destination->Release( data->destination );
           data->destination = NULL;
      }
 
+     data->length = desc.buffersize / 2;
+
+     if (Timidity_Init( desc.samplerate,
+                        desc.channels,
+                        data->length )) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_FAILURE;
+     }
+
+     /* load song */
+     data->song = Timidity_LoadSong( data->filename );
+     if (!data->song) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_FAILURE;
+     }
+     Timidity_Start( data->song );
+
      /* reference destination stream */
      destination->AddRef( destination );
      data->destination = destination;
 
      data->playing  = 1;
-     data->length = dst_data->buffer->length / 2;
-     data->bytes = dst_data->buffer->bytes;
-     data->buffer = DFBMALLOC( data->length * data->bytes );
-
-     Timidity_Init( dst_data->buffer->rate,
-                    dst_data->buffer->channels,
-                    data->length );
-
-     /* load song */
-     data->song = Timidity_LoadSong( data->filename );
-     Timidity_Start( data->song );
+     data->buffer = DFBMALLOC( data->length * desc.channels * 2 );
 
      /* start thread */
      data->thread = dfb_thread_create( CTT_ANY, TimidityThread, data );
@@ -253,6 +267,8 @@ IFusionSoundMusicProvider_Timidity_Stop( IFusionSoundMusicProvider *thiz )
 
           Timidity_Stop();
           Timidity_FreeSong( data->song );
+
+          DFBFREE( data->buffer );
      }
 
      /* release destination stream */
