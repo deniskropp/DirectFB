@@ -851,9 +851,6 @@ primaryTestConfiguration ( DisplayLayer               *layer,
      DFBDisplayLayerConfigFlags  fail = 0;
 
      if (config->flags & (DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT)) {
-          if (config->pixelformat == DSPF_RGB332)
-               fail |= DLCONF_PIXELFORMAT;
-
           videomode = dfb_fbdev->shared->modes;
           while (videomode) {
                if (videomode->xres == config->width  &&
