@@ -621,6 +621,9 @@ dfb_layer_enable( DisplayLayer *layer )
           shared->stack = dfb_windowstack_new( layer,
                                                shared->config.width,
                                                shared->config.height );
+
+          /* clear the layer's surface */
+          dfb_windowstack_repaint_all( shared->stack );
      }
 
      return DFB_OK;
