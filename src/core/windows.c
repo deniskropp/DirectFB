@@ -1986,7 +1986,7 @@ static int
 handle_enter_leave_focus( CoreWindowStack *stack )
 {
      /* if pointer is not grabbed */
-     if (!stack->pointer_window) {
+     if (!stack->pointer_window && !stack->wm_hack) {
           CoreWindow    *before = stack->entered_window;
           CoreWindow    *after = window_at_pointer( stack, -1, -1 );
 
