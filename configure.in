@@ -558,7 +558,7 @@ AC_ARG_WITH(gfxdrivers,
   [                        gfxdrivers may be comma separated ]
   [                        'all' builds all drivers, 'none' builds none ]
   [                        Possible gfxdrivers are: ]
-  [                        ati128, cyber5k, i810, matox, neomagic, nvidia,]
+  [                        ati128, cyber5k, i810, matrox, neomagic, nvidia,]
   [                        savage, tdfx],
   gfxdrivers="$withval", gfxdrivers="all")
 
