@@ -39,7 +39,8 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int sw, int sh, int dpitch,
 
 void dfb_scale_linear_32( void *dst, __u32 *src, int sw, int sh,
                           int dw, int dh, int dpitch,
-                          DFBSurfacePixelFormat dst_format, CorePalette *palette );
+                          DFBSurfacePixelFormat dst_format,
+                          CorePalette *palette, DFBSurfaceCapabilities caps );
 
 
 #endif

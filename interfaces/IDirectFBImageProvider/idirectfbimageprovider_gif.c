@@ -277,7 +277,8 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
 
                dfb_scale_linear_32( dst, image_data,
                                     src_width, src_height, rect.w, rect.h,
-                                    pitch, format, dst_surface->palette );
+                                    pitch, format, dst_surface->palette,
+                                    dst_surface->caps );
 
                destination->Unlock( destination );
                DFBFREE(image_data);

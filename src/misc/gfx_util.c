@@ -391,7 +391,7 @@ static void *scale_line( int *weights, int n_x, int n_y, void *dst,
 void dfb_scale_linear_32( void *dst, __u32 *src, int sw, int sh,
                           int dw, int dh, int dpitch,
                           DFBSurfacePixelFormat dst_format,
-                          CorePalette *palette )
+                          CorePalette *palette, DFBSurfaceCapabilities caps )
 {
      double scale_x, scale_y;
      int i, j;
@@ -451,8 +451,16 @@ void dfb_scale_linear_32( void *dst, __u32 *src, int sw, int sh,
                y_start++;
           }
 
-          outbuf = dst + i * (DFB_BYTES_PER_PIXEL (dst_format) * dw + dskip);
-          outbuf_end = outbuf + DFB_BYTES_PER_PIXEL (dst_format) * dw;
+          if (caps & DSCAPS_SEPARATED) {
+               outbuf = dst + i/2 * dpitch;
+               
+               if (i%2)
+                    outbuf += dh / 2 * dpitch;
+          }
+          else
+               outbuf = dst + i * dpitch;
+
+          outbuf_end = outbuf + DFB_BYTES_PER_LINE( dst_format, dw );
           x = scaled_x_offset;
           x_start = x >> SCALE_SHIFT;
           dest_x = 0;

@@ -475,7 +475,8 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                }
                dfb_scale_linear_32( dst, image_data, cinfo.output_width,
                                     cinfo.output_height, rect.w, rect.h,
-                                    pitch, format, dst_surface->palette );
+                                    pitch, format, dst_surface->palette,
+                                    dst_surface->caps );
 
                free( image_data );
           }
