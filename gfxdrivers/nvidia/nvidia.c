@@ -298,14 +298,14 @@ static void nv4CheckState( void *drv, void *dev,
                     return;
           }
 
-          state->accel |= NV4_SUPPORTED_BLITTINGFUNCTIONS;
+          state->accel |= accel;
      }
      else {
           /* check unsupported drawing flags first */
           if (state->drawingflags & ~NV4_SUPPORTED_DRAWINGFLAGS)
                return;
 
-          state->accel |= NV4_SUPPORTED_DRAWINGFUNCTIONS;
+          state->accel |= accel;
      }
 }
 
@@ -362,14 +362,14 @@ static void nv5CheckState( void *drv, void *dev,
                     return;
           }
 
-          state->accel |= NV5_SUPPORTED_BLITTINGFUNCTIONS;
+          state->accel |= accel;
      }
      else {
           /* check unsupported drawing flags first */
           if (state->drawingflags & ~NV5_SUPPORTED_DRAWINGFLAGS)
                return;
 
-          state->accel |= NV5_SUPPORTED_DRAWINGFUNCTIONS;
+          state->accel |= accel;
      }
 }
 
@@ -398,6 +398,11 @@ static void nv20CheckState( void *drv, void *dev,
           if (state->blittingflags & ~NV20_SUPPORTED_BLITTINGFLAGS)
                return;
 
+          /* TextureTriangles() is disabled for precaution,
+           * we don't know if it really works on NV20 */
+          if (accel == DFXL_TEXTRIANGLES)
+               return;
+
           /* can't do modulation */
           if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
                if (state->src_blend != DSBF_SRCALPHA       ||
@@ -419,14 +424,14 @@ static void nv20CheckState( void *drv, void *dev,
                     return;
           }
 
-          state->accel |= NV20_SUPPORTED_BLITTINGFUNCTIONS;
+          state->accel |= accel;
      }
      else {
           /* check unsupported drawing flags first */
           if (state->drawingflags & ~NV20_SUPPORTED_DRAWINGFLAGS)
                return;
 
-          state->accel |= NV20_SUPPORTED_DRAWINGFUNCTIONS;
+          state->accel |= accel;
      }
 }
 
