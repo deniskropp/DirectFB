@@ -215,7 +215,7 @@ struct __AnyOption {
      const char   *arg_name;
      const char   *arg_desc;
 
-     unsigned int *value;
+     void         *value;
 
      unsigned int *flags;
      unsigned int  flag;
@@ -231,11 +231,17 @@ typedef struct {
 
 /**************************************************************************************************/
 
-static bool parse_int ( const AnyOption *option,
-                        const char      *arg );
+static bool parse_int  ( const AnyOption *option,
+                         const char      *arg );
 
-static bool parse_enum( const AnyOption *option,
-                        const char      *arg );
+static bool parse_enum ( const AnyOption *option,
+                         const char      *arg );
+
+static bool parse_ids  ( const AnyOption *option,
+                         const char      *arg );
+
+static bool parse_color( const AnyOption *option,
+                         const char      *arg );
 
 /**************************************************************************************************/
 
@@ -246,6 +252,22 @@ static const AnyOption options[] = {
 
      { "-m",  "--mixer",        "<index>",    "Index of mixer to use",
        &mixer,   NULL, 0, parse_int, NULL },
+
+     { "-mt", "--tree",         "<mode>",     "Set (sub) tree mode",
+       &mixer_config.tree, &mixer_config.flags,
+       DSMCONF_TREE, parse_enum, tree_names },
+
+     { "-mm", "--max-level",    "<level>",    "Set maximum level for SUB_LEVEL mode",
+       &mixer_config.level, &mixer_config.flags,
+       DSMCONF_LEVEL, parse_int, NULL },
+
+     { "-ml", "--layers",       "<layers>",   "Select layers for SUB_LAYERS mode",
+       &mixer_config.layers, &mixer_config.flags,
+       DSMCONF_LAYERS, parse_ids, NULL },
+
+     { "-mb", "--background",   "<rgb>",      "Set background color (hex)",
+       &mixer_config.background, &mixer_config.flags,
+       DSMCONF_BACKGROUND, parse_color, NULL },
 
 
      { "-e",  "--encoder",      "<index>",    "Index of encoder to use",
@@ -303,7 +325,7 @@ parse_int( const AnyOption *option, const char *arg )
      int   ret;
      char *end;
 
-     ret = strtoul( arg, &end, 10 );
+     ret = strtoul( arg, &end, option->data ? (int) option->data : 10 );
 
      if (*end || ret < 0) {
           fprintf( stderr, "\nInvalid argument to '%s' or '%s' specified!\n\n",
@@ -312,7 +334,7 @@ parse_int( const AnyOption *option, const char *arg )
           return false;
      }
 
-     *option->value = ret;
+     *((int*)option->value) = ret;
 
      return true;
 }
@@ -365,12 +387,86 @@ parse_enum( const AnyOption *option, const char *arg )
      }
 
      if (ok)
-          *option->value = val;
+          *((int*)option->value) = val;
      else
           fprintf( stderr, "\nInvalid argument to '%s' or '%s' specified, pass 'help' for a list!\n\n",
                    option->short_name, option->long_name );
 
      return ok;
+}
+
+static bool
+parse_ids( const AnyOption *option, const char *arg )
+{
+     unsigned long long  val  = 0;
+     int                 alen = strlen( arg );
+     char               *abuf = alloca( alen + 1 );
+
+     memcpy( abuf, arg, alen + 1 );
+
+     if (! strcasecmp( arg, "help" )) {
+          fprintf( stderr, "\nCheck 'dfbinfo' for valid values.\n\n" );
+          return false;
+     }
+
+     while (abuf[0]) {
+          char *p;
+          int   len;
+          int   ret;
+
+          p = strchr( abuf, ',' );
+          if (p) {
+               len = p - abuf;
+
+               abuf[len++] = 0;
+          }
+          else
+               len = strlen( abuf );
+
+          ret = strtoul( abuf, &p, 10 );
+
+          if (*p || ret < 0) {
+               fprintf( stderr, "\nInvalid argument (%s) to '%s' or '%s' specified!\n\n",
+                        p, option->short_name, option->long_name );
+
+               return false;
+          }
+
+          val |= (1 << ret);
+
+          abuf += len;
+
+          while (abuf[0] == ',')
+               abuf++;
+     }
+
+     *((unsigned long long*)option->value) = val;
+
+     return true;
+}
+
+static bool
+parse_color( const AnyOption *option, const char *arg )
+{
+     unsigned long  ret;
+     char          *end;
+     DFBColor      *color = option->value;
+
+     ret = strtoul( arg, &end, 16 );
+
+     if (*end) {
+          fprintf( stderr, "\nInvalid argument (%s) to '%s' or '%s' specified!\n\n",
+                   end, option->short_name, option->long_name );
+
+          return false;
+     }
+
+     color->a = (ret >> 24) & 0xff;
+     color->r = (ret >> 16) & 0xff;
+     color->g = (ret >>  8) & 0xff;
+     color->b = (ret      ) & 0xff;
+
+     return true;
 }
 
 static bool
