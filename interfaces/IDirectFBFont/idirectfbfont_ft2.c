@@ -69,7 +69,7 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBFont, FT2 )
 
 static FT_Library      library           = NULL;
 static int             library_ref_count = 0;
-static pthread_mutex_t library_mutex     = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t library_mutex     = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 
 #define KERNING_CACHE_MIN   32
 #define KERNING_CACHE_MAX  127

@@ -247,8 +247,12 @@ instance_iterator( DirectHash *hash,
 
      D_ASSERT( instance != NULL );
 
-     if (instance->super != super)
+     if (instance->super != super) {
+          if (super)
+               D_FREE( instance );
+
           return true;
+     }
 
 
      D_DEBUG( "Voodoo/Manager: Releasing dispatcher interface %p %s(instance %lu)...\n",
@@ -267,6 +271,9 @@ instance_iterator( DirectHash *hash,
      D_ASSERT( instance->real->Release != NULL );
 
      instance->real->Release( instance->real );
+
+     if (super)
+          D_FREE( instance );
 
      return true;
 }

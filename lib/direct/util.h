@@ -79,6 +79,13 @@ static inline int direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mut
      return ret;
 }
 
+#ifdef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+#define DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER  PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+#else
+#warning PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP is not defined, be aware of dead locks
+#define DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER  PTHREAD_MUTEX_INITIALIZER
+#endif
+
 /* floor and ceil implementation to get rid of libm */
 
 /*

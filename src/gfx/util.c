@@ -29,15 +29,17 @@
 
 #include <pthread.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core/coretypes.h"
+#include <direct/util.h>
 
-#include "core/state.h"
-#include "core/gfxcard.h"
-#include "core/surfacemanager.h"
+#include <core/coretypes.h>
 
-#include "util.h"
+#include <core/state.h>
+#include <core/gfxcard.h>
+#include <core/surfacemanager.h>
+
+#include <gfx/util.h>
 
 
 static int       copy_state_inited = 0;
@@ -46,8 +48,8 @@ static CardState copy_state;
 static int       btf_state_inited = 0;
 static CardState btf_state;
 
-static pthread_mutex_t copy_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t btf_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t copy_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t btf_lock  = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 
 
 void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect )

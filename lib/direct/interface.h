@@ -28,6 +28,7 @@
 #ifndef __DIRECT__INTERFACE_H__
 #define __DIRECT__INTERFACE_H__
 
+#include <direct/build.h>
 #include <direct/types.h>
 
 #include <direct/debug.h>
@@ -76,58 +77,87 @@ DirectResult DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx );
  */
 void DirectRegisterInterface( DirectInterfaceFuncs *funcs );
 
-#define DIRECT_ALLOCATE_INTERFACE(p,i)                           \
-     do {                                                        \
-          (p) = D_CALLOC( 1, sizeof(i) );                        \
-                                                                 \
-          D_MAGIC_SET( (IAny*)(p), DirectInterface );            \
+
+void direct_print_interface_leaks();
+
+
+#if DIRECT_BUILD_DEBUG
+void direct_dbg_interface_add   ( const char *func,
+                                  const char *file,
+                                  int         line,
+                                  const char *what,
+                                  const void *interface,
+                                  const char *name );
+
+void direct_dbg_interface_remove( const char *func,
+                                  const char *file,
+                                  int         line,
+                                  const char *what,
+                                  const void *interface );
+#else
+#define direct_dbg_interface_add(func,file,line,what,interface,name)  do {} while (0)
+#define direct_dbg_interface_remove(func,file,line,what,interface)    do {} while (0)
+#endif
+
+
+#define DIRECT_ALLOCATE_INTERFACE(p,i)                                               \
+     do {                                                                            \
+          (p) = D_CALLOC( 1, sizeof(i) );                                            \
+                                                                                     \
+          D_MAGIC_SET( (IAny*)(p), DirectInterface );                                \
+                                                                                     \
+          direct_dbg_interface_add( __FUNCTION__, __FILE__, __LINE__, #p, p, #i );   \
      } while (0)
 
 
-#define DIRECT_ALLOCATE_INTERFACE_DATA(p,i)                      \
-     i##_data *data;                                             \
-                                                                 \
-     D_MAGIC_ASSERT( (IAny*)(p), DirectInterface );              \
-                                                                 \
-     if (!(p)->priv)                                             \
-          (p)->priv = D_CALLOC( 1, sizeof(i##_data) );           \
-                                                                 \
+#define DIRECT_ALLOCATE_INTERFACE_DATA(p,i)                                          \
+     i##_data *data;                                                                 \
+                                                                                     \
+     D_MAGIC_ASSERT( (IAny*)(p), DirectInterface );                                  \
+                                                                                     \
+     if (!(p)->priv)                                                                 \
+          (p)->priv = D_CALLOC( 1, sizeof(i##_data) );                               \
+                                                                                     \
      data = (i##_data*)((p)->priv);
 
 
-#define DIRECT_DEALLOCATE_INTERFACE(p)                           \
-     if ((p)->priv) {                                            \
-          D_FREE( (p)->priv );                                   \
-          (p)->priv = NULL;                                      \
-     }                                                           \
-                                                                 \
-     D_MAGIC_CLEAR( (IAny*)(p) );                                \
-                                                                 \
+#define DIRECT_DEALLOCATE_INTERFACE(p)                                               \
+     direct_dbg_interface_remove( __FUNCTION__, __FILE__, __LINE__, #p, p );         \
+                                                                                     \
+     if ((p)->priv) {                                                                \
+          D_FREE( (p)->priv );                                                       \
+          (p)->priv = NULL;                                                          \
+     }                                                                               \
+                                                                                     \
+     D_MAGIC_CLEAR( (IAny*)(p) );                                                    \
+                                                                                     \
      D_FREE( (p) );
 
 
-#define DIRECT_INTERFACE_GET_DATA(i)                             \
-     i##_data *data;                                             \
-                                                                 \
-     if (!thiz)                                                  \
-          return DFB_THIZNULL;                                   \
-                                                                 \
-     D_MAGIC_ASSERT( (IAny*)thiz, DirectInterface );             \
-                                                                 \
-     data = (i##_data*) thiz->priv;                              \
-                                                                 \
-     if (!data)                                                  \
+#define DIRECT_INTERFACE_GET_DATA(i)                                                 \
+     i##_data *data;                                                                 \
+                                                                                     \
+     if (!thiz)                                                                      \
+          return DFB_THIZNULL;                                                       \
+                                                                                     \
+     D_MAGIC_ASSERT( (IAny*)thiz, DirectInterface );                                 \
+                                                                                     \
+     data = (i##_data*) thiz->priv;                                                  \
+                                                                                     \
+     if (!data)                                                                      \
           return DFB_DEAD;
 
 
-#define DIRECT_INTERFACE_GET_DATA_FROM(interface,data,prefix)    \
-     do {                                                        \
-          D_MAGIC_ASSERT( (IAny*)(interface), DirectInterface ); \
-                                                                 \
-          (data) = (prefix##_data*) (interface)->priv;           \
-                                                                 \
-          if (!(data))                                           \
-               return DFB_DEAD;                                  \
+#define DIRECT_INTERFACE_GET_DATA_FROM(interface,data,prefix)                        \
+     do {                                                                            \
+          D_MAGIC_ASSERT( (IAny*)(interface), DirectInterface );                     \
+                                                                                     \
+          (data) = (prefix##_data*) (interface)->priv;                               \
+                                                                                     \
+          if (!(data))                                                               \
+               return DFB_DEAD;                                                      \
      } while (0)
 
+
 #endif
+

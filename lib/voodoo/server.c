@@ -250,6 +250,10 @@ voodoo_server_run( VoodooServer *server )
                     D_INFO( "Voodoo/Server: Closed connection.\n" );
 
                     D_FREE( connection );
+
+                    if (!server->connections) {
+                         return DFB_OK;
+                    }
                }
           }
 

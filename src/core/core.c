@@ -56,10 +56,12 @@
 #include <core/windows.h>
 
 #include <direct/build.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/signals.h>
+#include <direct/util.h>
 
 #include <fusion/build.h>
 
@@ -159,11 +161,8 @@ static void* dfb_lib_handle = NULL;
 /******************************************************************************/
 
 static CoreDFB         *core_dfb      = NULL;
-#ifdef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
-static pthread_mutex_t  core_dfb_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-#else
-static pthread_mutex_t  core_dfb_lock = PTHREAD_MUTEX_INITIALIZER;
-#endif
+static pthread_mutex_t  core_dfb_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+
 /******************************************************************************/
 
 DFBResult
@@ -614,6 +613,8 @@ dfb_core_deinit_check()
      }
 
      direct_print_memleaks();
+
+     direct_print_interface_leaks();
 }
 
 static void

@@ -45,6 +45,7 @@
 #include <direct/system.h>
 #include <direct/thread.h>
 #include <direct/trace.h>
+#include <direct/util.h>
 
 
 #ifdef PIC
@@ -72,7 +73,7 @@ struct __D_DirectTraceBuffer {
 
 static DirectTraceBuffer *buffers[MAX_BUFFERS];
 static int                buffers_num  = 0;
-static pthread_mutex_t    buffers_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static pthread_mutex_t    buffers_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 static pthread_key_t      trace_key    = -1;
 
 __attribute__((no_instrument_function))
@@ -153,7 +154,7 @@ typedef struct {
 } SymbolTable;
 
 static DirectLink      *tables      = NULL;
-static pthread_mutex_t  tables_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  tables_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 
 __attribute__((no_instrument_function))
 static void

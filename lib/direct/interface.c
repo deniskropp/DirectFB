@@ -40,7 +40,9 @@
 #include <direct/list.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/trace.h>
 #include <direct/util.h>
 
 #ifdef PIC
@@ -61,7 +63,7 @@ typedef struct {
      int                   references;
 } DirectInterfaceImplementation;
 
-static pthread_mutex_t  implementations_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  implementations_mutex = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 static DirectLink      *implementations       = NULL;
 
 /**************************************************************************************************/
@@ -250,4 +252,160 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
      return DFB_NOIMPL;
 }
+
+/**************************************************************************************************/
+
+#if DIRECT_BUILD_DEBUG
+
+typedef struct {
+     const void        *interface;
+     char              *name;
+     char              *what;
+
+     const char        *func;
+     const char        *file;
+     int                line;
+
+     DirectTraceBuffer *trace;
+} InterfaceDesc;
+
+static int              alloc_count    = 0;
+static int              alloc_capacity = 0;
+static InterfaceDesc   *alloc_list     = NULL;
+static pthread_mutex_t  alloc_lock     = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+
+/**************************************************************************************************/
+
+void
+direct_print_interface_leaks()
+{
+     unsigned int i;
+
+     pthread_mutex_lock( &alloc_lock );
+
+     if (alloc_count && (!direct_config || direct_config->debug)) {
+          D_DEBUG( "Interface instances remaining (%d): \n", alloc_count );
+
+          for (i=0; i<alloc_count; i++) {
+               InterfaceDesc *desc = &alloc_list[i];
+
+               D_DEBUG( "  - '%s' at %p (%s) allocated in %s (%s: %u)\n", desc->name,
+                        desc->interface, desc->what, desc->func, desc->file, desc->line );
+
+               if (desc->trace)
+                    direct_trace_print_stack( desc->trace );
+          }
+     }
+
+     pthread_mutex_unlock( &alloc_lock );
+}
+
+/**************************************************************************************************/
+
+static InterfaceDesc *
+allocate_interface_desc()
+{
+     int cap = alloc_capacity;
+
+     if (!cap)
+          cap = 64;
+     else if (cap == alloc_count)
+          cap <<= 1;
+
+     if (cap != alloc_capacity) {
+          alloc_capacity = cap;
+          alloc_list     = realloc( alloc_list, sizeof(InterfaceDesc) * cap );
+
+          D_ASSERT( alloc_list != NULL );
+     }
+
+     return &alloc_list[alloc_count++];
+}
+
+static inline void
+fill_interface_desc( InterfaceDesc     *desc,
+                     const void        *interface,
+                     const char        *name,
+                     const char        *func,
+                     const char        *file,
+                     int                line,
+                     const char        *what,
+                     DirectTraceBuffer *trace )
+{
+     desc->interface = interface;
+     desc->name      = strdup( name );
+     desc->what      = strdup( what );
+     desc->func      = func;
+     desc->file      = file;
+     desc->line      = line;
+     desc->trace     = trace;
+}
+
+/**************************************************************************************************/
+
+void
+direct_dbg_interface_add( const char *func,
+                          const char *file,
+                          int         line,
+                          const char *what,
+                          const void *interface,
+                          const char *name )
+{
+     InterfaceDesc *desc;
+
+     pthread_mutex_lock( &alloc_lock );
+
+     desc = allocate_interface_desc();
+
+     fill_interface_desc( desc, interface, name,
+                          func, file, line, what, direct_trace_copy_buffer(NULL) );
+
+     pthread_mutex_unlock( &alloc_lock );
+}
+
+void
+direct_dbg_interface_remove( const char *func,
+                             const char *file,
+                             int         line,
+                             const char *what,
+                             const void *interface )
+{
+     unsigned int i;
+
+     pthread_mutex_lock( &alloc_lock );
+
+     for (i=0; i<alloc_count; i++) {
+          InterfaceDesc *desc = &alloc_list[i];
+
+          if (desc->interface == interface) {
+               if (desc->trace)
+                    direct_trace_free_buffer( desc->trace );
+
+               free( desc->what );
+               free( desc->name );
+
+               if (i < --alloc_count)
+                    direct_memcpy( desc, desc + 1, (alloc_count - i) * sizeof(InterfaceDesc) );
+
+               pthread_mutex_unlock( &alloc_lock );
+
+               return;
+          }
+     }
+
+     pthread_mutex_unlock( &alloc_lock );
+
+     D_ERROR( "Direct/Interface: unknown instance %p (%s) from [%s:%d in %s()]\n",
+              interface, what, file, line, func );
+     D_BREAK( "unknown instance" );
+}
+
+#else     /* DIRECT_BUILD_DEBUG */
+
+void
+direct_print_interface_leaks()
+{
+}
+
+#endif    /* DIRECT_BUILD_DEBUG */
 

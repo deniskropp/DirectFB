@@ -89,7 +89,7 @@ typedef struct {
  * List of reactors with at least one local reaction attached.
  */
 static DirectLink      *nodes      = NULL;
-static pthread_mutex_t  nodes_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  nodes_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 
 static ReactorNode *lock_node( int reactor_id, bool add );
 

@@ -40,6 +40,7 @@
 #include <direct/signals.h>
 #include <direct/system.h>
 #include <direct/thread.h>
+#include <direct/util.h>
 
 
 /* FIXME: DIRECT_THREAD_WAIT_INIT is required, but should be optional. */
@@ -80,7 +81,7 @@ static const char *thread_type_name( DirectThreadType type )  D_CONST_FUNC;
 
 /******************************************************************************/
 
-static pthread_mutex_t key_lock   = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static pthread_mutex_t key_lock   = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 static pthread_key_t   thread_key = -1;
 
 /******************************************************************************/
