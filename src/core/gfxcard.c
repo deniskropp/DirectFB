@@ -942,6 +942,11 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
 
      dfb_font_lock( font );
 
+     /* preload glyphs to avoid deadlock */
+     for (offset = 0; offset < bytes; offset += dfb_utf8_skip[text[offset]])
+          dfb_font_get_glyph_data (font,
+                                   dfb_utf8_get_char (&text[offset]), &data);
+     
      /* simple prechecks */
      if (x > state->clip.x2 || y > state->clip.y2 ||
          y + font->ascender - font->descender <= state->clip.y1) {
