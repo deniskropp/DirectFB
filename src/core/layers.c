@@ -622,8 +622,11 @@ dfb_layer_enable( DisplayLayer *layer )
      funcs  = layer->funcs;
 
      /* FIXME: add reference counting */
-     if (shared->enabled)
-          return DFB_OK;
+     if (shared->enabled) {
+          DFB_ASSERT( shared->regions.num_elements > 0 );
+
+          return dfb_layer_region_ref( shared->regions.elements[0] );
+     }
 
      /* Create a new region. */
      ret = dfb_layer_region_create( layer, &region );
