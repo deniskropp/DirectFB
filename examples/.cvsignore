@@ -4,5 +4,6 @@ Makefile.in
 .libs
 gmon.out
 advanced
+player
 simple
 stream

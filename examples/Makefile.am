@@ -1,6 +1,6 @@
 ## Makefile.am for FusionSound/examples
 
-INCLUDES = -I$(top_srcdir)/include $(DFB_CFLAGS)
+INCLUDES = -I$(top_srcdir)/include $(DFB_CFLAGS) $(LITE_CFLAGS)
 
 LIBADDS = $(DFB_LIBS) -lm
 
@@ -8,13 +8,22 @@ EXTRA_DIST = \
 	test.wav	\
 	test2.wav
 
-noinst_PROGRAMS = advanced simple stream
+if HAVE_LITE
+LITE_EXAMPLES = player
+else
+LITE_EXAMPLES =
+endif
 
-advanced_SOURCES = advanced.c
+noinst_PROGRAMS = advanced simple stream $(LITE_EXAMPLES)
+
+advanced_SOURCES = advanced.c loader.c loader.h
 advanced_LDADD   = $(LIBADDS)
 
-simple_SOURCES = simple.c
+simple_SOURCES = simple.c loader.c loader.h
 simple_LDADD   = $(LIBADDS)
 
 stream_SOURCES = stream.c
 stream_LDADD   = $(LIBADDS)
+
+player_SOURCES = player.c loader.c loader.h
+player_LDADD   = $(LIBADDS) $(LITE_LIBS)

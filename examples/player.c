@@ -1,0 +1,171 @@
+#include <stdio.h>
+#include <math.h>
+#include <pthread.h>
+
+#include <lite/label.h>
+#include <lite/lite.h>
+#include <lite/slider.h>
+#include <lite/window.h>
+
+#include <fusionsound.h>
+
+#include "loader.h"
+
+
+static float values[4] = { 0.25f, 0.5f, 0.5f, 0 };
+
+static const char *channels[4] = { "Pitch", "Volume", "Pan", "Start" };
+
+static IFusionSound         *sound;
+static IFusionSoundBuffer   *buffer;
+static IFusionSoundPlayback *playback;
+static int                   sample_length;
+
+
+static DFBResult
+create_playback( const char *filename )
+{
+     DFBResult  ret;
+     IDirectFB *dfb;
+
+     ret = DirectFBCreate( &dfb );
+     if (ret) {
+          DirectFBError( "DirectFBCreate() failed", ret );
+          return ret;
+     }
+
+     ret = dfb->GetInterface( dfb, "IFusionSound", NULL, NULL, (void**)&sound );
+     if (ret) {
+          DirectFBError( "GetInterface(\"IFusionSound\") failed", ret );
+          dfb->Release( dfb );
+          return ret;
+     }
+
+     buffer = load_sample( sound, filename );
+     if (buffer) {
+          FSBufferDescription desc;
+
+          buffer->GetDescription( buffer, &desc );
+
+          sample_length = desc.length;
+
+          ret = buffer->CreatePlayback( buffer, &playback );
+          if (ret) {
+               DirectFBError( "CreatePlayback() failed", ret );
+
+               buffer->Release( buffer );
+          }
+          else {
+               playback->Start( playback, 0, -1 );
+               dfb->Release( dfb );
+               return DFB_OK;
+          }
+     }
+
+     sound->Release( sound );
+     dfb->Release( dfb );
+     
+     return DFB_FAILURE;
+}
+
+static void
+destroy_playback()
+{
+     playback->Release( playback );
+     buffer->Release( buffer );
+     sound->Release( sound );
+}
+
+static void
+slider_update( LiteSlider *slider, float pos, void *ctx )
+{
+     int i = (int) ctx;
+
+     values[i] = pos;
+
+     switch (i) {
+          case 0:
+               playback->SetPitch( playback, pos * 4.0f );
+               break;
+          case 1:
+               playback->SetVolume( playback, pos * 2.0f );
+               break;
+          case 2:
+               playback->SetPan( playback, pos * 2.0f - 1.0f );
+               break;
+          case 3:
+               playback->Start( playback, pos * sample_length, -1 );
+               break;
+          default:
+               break;
+     }
+}
+
+int
+main (int argc, char *argv[])
+{
+     int         i;
+     DFBResult   ret;
+     LiteLabel  *label[4];
+     LiteSlider *slider[4];
+     LiteWindow *window;
+
+     ret = DirectFBInit( &argc, &argv );
+     if (ret)
+          DirectFBErrorFatal( "DirectFBInit() failed", ret );
+
+     if (argc != 2) {
+          fprintf (stderr, "\nUsage: %s <filename>\n", argv[0]);
+          return -1;
+     }
+     
+     /* initialize */
+     if (lite_open())
+          return 1;
+
+     /* init sound */
+     if (create_playback( argv[1] )) {
+          lite_close();
+          return 2;
+     }
+
+     /* create a window */
+     window = lite_new_window( NULL, 300, 115,
+                               DWCAPS_ALPHACHANNEL, "Slider Test" );
+     
+     /* setup the labels */
+     for (i=0; i<4; i++) {
+          label[i] = lite_new_label( LITE_BOX(window),
+                                     10 - (i==1?1:0), 10 + i * 25, 55, 18 );
+
+          lite_set_label_text( label[i], channels[i] );
+     }
+     
+     /* setup the sliders */
+     for (i=0; i<4; i++) {
+          slider[i] = lite_new_slider( LITE_BOX(window),
+                                       70, 10 + i * 25, 220, 20 );
+
+          lite_set_slider_pos( slider[i], values[i] );
+
+          lite_on_slider_update( slider[i], slider_update, (void*) i );
+     }
+
+     
+     /* show the window */
+     lite_set_window_opacity( window, 0xff );
+
+     /* run the default event loop */
+     lite_window_event_loop( window );
+
+     /* destroy the window with all this children and resources */
+     lite_destroy_window( window );
+
+     /* deinit sound */
+     destroy_playback();
+
+     /* deinitialize */
+     lite_close();
+
+     return 0;
+}
