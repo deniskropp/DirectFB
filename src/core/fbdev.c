@@ -168,7 +168,7 @@ DFBResult fbdev_open()
           fbdev->modes->upper_margin = fbdev->orig_var.upper_margin;
           fbdev->modes->lower_margin = fbdev->orig_var.lower_margin;
           fbdev->modes->pixclock = fbdev->orig_var.pixclock;
-          
+
 
           if (fbdev->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
                fbdev->modes->hsync_high = 1;
@@ -435,9 +435,7 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
      while (videomode) {
           if (videomode->xres == width  &&
               videomode->yres == height  &&
-              videomode->bpp == bpp &&
-              videomode->laced == 0 &&
-              videomode->doubled == 0)
+              videomode->bpp == bpp)
                break;
 
           videomode = videomode->next;
@@ -501,14 +499,14 @@ static DFBResult primaryFlipBuffers( DisplayLayer *thiz )
 static void primarylayer_deinit( DisplayLayer *layer )
 {
      windowstack_destroy( layer->windowstack );
-     
+
      reactor_free( layer->surface->reactor );
-     
+
      DFBFREE( layer->surface->front_buffer );
-     
+
      if (layer->surface->back_buffer != layer->surface->front_buffer)
           DFBFREE( layer->surface->back_buffer );
-     
+
      DFBFREE( layer->surface );
 }
 
@@ -696,7 +694,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
           CoreSurface *surface = layer->surface;
 
           ioctl( fbdev->fd, FBIOGET_VSCREENINFO, &var );
-          
+
 
           mode->format = fbdev_get_pixelformat( &var );
           if (mode->format == DSPF_UNKNOWN) {
@@ -704,7 +702,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &fbdev->current_var );
                return DFB_UNSUPPORTED;
           }
-          
+
           /* set gamma ramp */
           fbdev_set_gamma_ramp( mode->format );
 
@@ -863,9 +861,9 @@ static DFBResult fbdev_read_modes()
 
 static __u16 fbdev_calc_gamma(int n, int max)
 {
-    int ret = 65535.0 * ((float)((float)n/(max))); 
+    int ret = 65535.0 * ((float)((float)n/(max)));
     if (ret > 65535) ret = 65535;
-    if (ret <	  0) ret =     0;
+    if (ret <     0) ret =     0;
     return ret;
 }
 
@@ -873,13 +871,13 @@ static __u16 fbdev_calc_gamma(int n, int max)
 static DFBResult fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
 {
      int i;
-     
+
      int red_size   = 0;
      int green_size = 0;
      int blue_size  = 0;
 
      struct fb_cmap cmap;
-      
+
      if (!fbdev) {
           BUG( "fbdev_set_gamme_ramp() called while fbdev == NULL!" );
 
@@ -892,7 +890,7 @@ static DFBResult fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
                green_size = 32;
                blue_size  = 32;
                break;
-          case DSPF_RGB16:                              
+          case DSPF_RGB16:
                red_size   = 32;
                green_size = 64;
                blue_size  = 32;
@@ -908,15 +906,15 @@ static DFBResult fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
                return DSPF_UNKNOWN;
                break;
      }
-               
+
      cmap.start  = 0;
-     /* assume green to have most weight */     
-     cmap.len    = green_size;     
+     /* assume green to have most weight */
+     cmap.len    = green_size;
      cmap.red   = (__u16*)alloca( 2 * green_size );
      cmap.green = (__u16*)alloca( 2 * green_size );
      cmap.blue  = (__u16*)alloca( 2 * green_size );
      cmap.transp = NULL;
-          
+
 
      for (i = 0; i < red_size; i++)
           cmap.red[i] = fbdev_calc_gamma( i, red_size );
@@ -933,8 +931,8 @@ static DFBResult fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
 
           return errno2dfb(errno);
      }
-     
+
      return DFB_OK;
-     
+
 }
 
