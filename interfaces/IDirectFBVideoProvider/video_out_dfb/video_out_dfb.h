@@ -53,14 +53,17 @@ struct dfb_frame_s
 
 typedef struct
 {
-	void (*yuy2) (dfb_driver_t* this, dfb_frame_t* frame,
+	void (*yuy2)  (dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch);
 
-	void (*uyvy) (dfb_driver_t* this, dfb_frame_t* frame,
+	void (*uyvy)  (dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch);
 
-	void (*yv12) (dfb_driver_t* this, dfb_frame_t* frame,
+	void (*yv12)  (dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch); /* yv12 and i420 */
+
+	void (*rgb8)  (dfb_driver_t* this, dfb_frame_t* frame,
+				uint8_t* data, uint32_t pitch);
 
 	void (*rgb15) (dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch);
