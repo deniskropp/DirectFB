@@ -810,9 +810,6 @@ IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (data->locked)
-          return DFB_LOCKED;
-
      if (font)
           font->AddRef (font);
 
