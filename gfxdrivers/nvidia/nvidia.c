@@ -8,7 +8,7 @@
               Andreas Hundt <andi@fischlustig.de>,
               Sven Neumann <neo@directfb.org>,
               Ville Syrjälä <syrjala@sci.fi> and
-              Claudio Ciccani <klan82@cheapnet.it>.
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -235,6 +235,16 @@ nv_set_destination( NVidiaDriverData  *nvdrv,
                     sformat3D = 0x00000108;
                     cformat   = 0x00000D02;
                     break;
+               case DSPF_YUY2:
+                    sformat2D = 0x00000005;
+                    sformat3D = 0x00000103;
+                    cformat   = 0x00001200;
+                    break;
+               case DSPF_UYVY:
+                    sformat2D = 0x00000005;
+                    sformat3D = 0x00000103;
+                    cformat   = 0x00001300;
+                    break;
                default:
                     D_BUG( "unexpected pixelformat" );
                     return;
@@ -387,6 +397,18 @@ nv_set_color( NVidiaDriverData *nvdrv,
                                           color->g,
                                           color->b );
                break;
+          
+          case DSPF_YUY2: {
+               int y, cb, cr;
+               RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
+               nvdev->color = PIXEL_YUY2( y, cb, cr );
+          }    break;
+          
+          case DSPF_UYVY: {
+               int y, cb, cr;
+               RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
+               nvdev->color = PIXEL_UYVY( y, cb, cr );
+          }    break;
 
           default:
                D_BUG( "unexpected pixelformat" );
@@ -477,6 +499,18 @@ static void nv4CheckState( void *drv, void *dev,
           case DSPF_ARGB:
                break;
           
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+               if (DFB_BLITTING_FUNCTION( accel )) {
+                    if (accel != DFXL_BLIT || state->blittingflags || 
+                        source->format != destination->format)
+                         return;
+               } else {
+                    if (state->drawingflags != DSDRAW_NOFX)
+                         return;
+               }
+               break;
+
           default:
                return;
      }
@@ -551,6 +585,18 @@ static void nv5CheckState( void *drv, void *dev,
           case DSPF_RGB32: 
           case DSPF_ARGB:
                break;
+
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+               if (DFB_BLITTING_FUNCTION( accel )) {
+                    if (accel != DFXL_BLIT || state->blittingflags || 
+                        source->format != destination->format)
+                         return;
+               } else {
+                    if (state->drawingflags != DSDRAW_NOFX)
+                         return;
+               }
+               break;
        
           default:
                return;
@@ -619,6 +665,18 @@ static void nv20CheckState( void *drv, void *dev,
           case DSPF_RGB32:
           case DSPF_ARGB:
                break;
+
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+               if (DFB_BLITTING_FUNCTION( accel )) {
+                    if (accel != DFXL_BLIT || state->blittingflags || 
+                        source->format != destination->format)
+                         return;
+               } else {
+                    if (state->drawingflags != DSDRAW_NOFX)
+                         return;
+               }
+               break;
           
           default:
                return;
@@ -685,6 +743,10 @@ static void nv30CheckState( void *drv, void *dev,
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
+               break;
+
+          case DSPF_YUY2:
+          case DSPF_UYVY:
                break;
           
           default:
