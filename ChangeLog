@@ -1,3 +1,212 @@
+2001-05-03	11:46	<dok@convergence.de>
+
+	Files:	patches/neofb-0.2.1-patch-2.4.3.bz2 (1.1) ( )
+	
+	Added my framebuffer driver for all NeoMagic PCI/AGP chips.
+	
+2001-05-03	11:27	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.8) (+18 -0)
+		src/input/idirectfbinputdevice.c (1.3) (+48 -78)
+	
+	Added IDirectFBInputDevice->GetButtonState() which returns the
+	state of the specified button.
+	Added DFBInputDeviceButtonState.
+	
+2001-05-02	11:17	<neo@convergence.de>
+
+	Files:	examples/df_knuckles/df_knuckles.c (1.4) (+54 -17)
+	
+	allow to switch between FLAT_SHADED and WIRE_FRAME using Space
+	
+2001-05-02	10:53	<neo@convergence.de>
+
+	Files:	examples/df_dok.c (1.5) (+14 -12)
+		src/misc/gfx_util.h (1.2) (+3 -2)
+		src/misc/gfx_util.c (1.2) (+13 -0)
+		src/core/gfxcard.c (1.4) (+11 -9)
+	
+	Introduced clip_triangle_precheck() that tests if a triangle needs to
+	be drawn at all.
+	
+	Beautified line drawing examples in df_dok.
+	
+2001-04-29	08:48	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.3) (+74 -0)
+		src/misc/util.h (1.2) (+1 -1)
+		src/gfx/generic/generic.c (1.5) (+2 -2)
+		gfxdrivers/matrox/regs.h (1.2) (+3 -0)
+		gfxdrivers/matrox/matrox_state.c (1.2) (+13 -0)
+	
+	Implemented triangle filling in Matrox driver.
+	Renamed utility macro SGN to SIGN.
+	
+2001-04-29	06:02	<dok@convergence.de>
+
+	Files:	examples/df_knuckles/df_knuckles.c (1.3) (+12 -6)
+	
+	yeah, rotating light!
+	
+2001-04-29	05:41	<dok@convergence.de>
+
+	Files:	examples/df_knuckles/df_knuckles.c (1.2) (+1 -1)
+	
+	golden skull ;)
+	
+2001-04-29	05:14	<dok@convergence.de>
+
+	Files:	configure.in (1.6) (+1 -0)
+		src/gfx/generic/generic.c (1.4) (+1 -1)
+		gfxdrivers/matrox/matrox.c (1.2) (+9 -7)
+		examples/df_knuckles/skull.h (1.1) ( )
+		examples/df_knuckles/matrix.h (1.1) ( )
+		examples/df_knuckles/matrix.c (1.1) ( )
+		examples/df_knuckles/df_knuckles.c (1.1) ( )
+		examples/df_knuckles/Makefile.am (1.1) ( )
+		examples/df_knuckles/.cvsignore (1.1) ( )
+		examples/Makefile.am (1.3) (+1 -1)
+	
+	Added new cool demo called df_knuckles, it's a port from Mark Vojkovich's
+	skull demo for DGA and a good demonstration of triangles.
+	
+	Fixed CheckState in Matrox driver, it does not support all functions any more.
+	Added rounding to fixed point triangle setup.
+	
+2001-04-29	03:37	<dok@convergence.de>
+
+	Files:	examples/df_dok.c (1.4) (+81 -23)
+		src/gfx/generic/generic.h (1.2) (+1 -0)
+		src/gfx/generic/generic.c (1.3) (+60 -0)
+		src/gfx/util.h (1.2) (+35 -0)
+		src/core/gfxcard.c (1.3) (+6 -4)
+		gfxdrivers/tdfx/tdfx.c (1.4) (+1 -35)
+	
+	implemented triangle filling in generic driver
+	moved utility function sort_triangle from tdfx driver to gfx/util.h
+	added triangles to df_dok
+	
+2001-04-29	01:13	<dok@convergence.de>
+
+	Files:	configure.in (1.5) (+1 -0)
+	
+	compile with "-g3" if "--enable-debug" is passed to configure
+	
+2001-04-27	14:43	<dok@convergence.de>
+
+	Files:	gfxdrivers/neomagic/neomagic.c (1.2) (+5 -5)
+	
+	fixed accelerator ids
+	
+2001-04-26	23:36	<neo@convergence.de>
+
+	Files:	examples/df_andi.c (1.2) (+3 -1)
+		src/directfb.c (1.2) (+21 -11)
+		include/directfb.h (1.7) (+10 -2)
+		examples/df_neo/df_neo.c (1.3) (+3 -1)
+		examples/df_window.c (1.4) (+3 -1)
+		examples/df_video_particle.c (1.3) (+4 -1)
+		examples/df_video.c (1.3) (+3 -1)
+		examples/df_stress.c (1.3) (+3 -1)
+		examples/df_porter.c (1.2) (+3 -1)
+		examples/df_particle.c (1.2) (+4 -1)
+		examples/df_joystick.c (1.3) (+4 -1)
+		examples/df_fire.c (1.3) (+4 -1)
+		examples/df_dok.c (1.3) (+3 -1)
+	
+	Moved command-line parsing out of DirectFBCreate() into DirectFBInit().
+	This means to inititalize DirectFB() there are now two calls necessary:
+	
+	  DirectFBInit( &argc, &argv );
+	  DirectFBCreate( &dfb );
+	
+	This makes is possible to do further checks on the command-line before
+	switching to graphics mode on DirectFBCreate.
+	
+2001-04-26	22:47	<mitch@convergence.de>
+
+	Files:	examples/df_video.c (1.2) (+7 -0)
+		examples/df_window.c (1.3) (+13 -1)
+		examples/df_video_particle.c (1.2) (+6 -0)
+	
+	- If we need argv[1] as video source, check for it instead of simply
+	  crashing if it's not there.
+	- Release the video provider so DMA from the tuner hardware doesn't
+	  trash framebuffer memory after the demo finished.
+	
+2001-04-26	21:05	<dok@convergence.de>
+
+	Files:	gfxdrivers/tdfx/tdfx.c (1.3) (+87 -7)
+		src/display/idirectfbsurface.c (1.5) (+32 -0)
+		src/core/gfxcard.h (1.2) (+4 -0)
+		src/core/gfxcard.c (1.2) (+23 -0)
+		include/directfb.h (1.6) (+26 -0)
+	
+	FillRectangle! But only on Voodoo, yet.
+	Accepts drawing flag DSDRAW_BLEND.
+	
+2001-04-26	20:30	<neo@convergence.de>
+
+	Files:	examples/df_neo/df_neo.c (1.2) (+0 -2)
+	
+	forgot to remove the free's here
+	
+2001-04-26	11:44	<dok@convergence.de>
+
+	Files:	examples/df_dok.c (1.2) (+2 -2)
+		src/windows/idirectfbwindow.c (1.3) (+4 -0)
+		src/media/idirectfbfont.c (1.2) (+4 -0)
+		src/input/idirectfbinputdevice.c (1.2) (+4 -0)
+		src/input/idirectfbinputbuffer.c (1.2) (+4 -0)
+		src/display/idirectfbsurface_window.c (1.2) (+4 -0)
+		src/display/idirectfbsurface_layer.c (1.3) (+4 -0)
+		src/display/idirectfbsurface.c (1.4) (+4 -0)
+		src/display/idirectfbdisplaylayer.c (1.4) (+4 -0)
+		src/idirectfb.c (1.8) (+6 -0)
+		interfaces/idirectfbvideoprovider_v4l.c (1.3) (+4 -0)
+		interfaces/idirectfbvideoprovider_swf.c (1.2) (+4 -0)
+		interfaces/idirectfbvideoprovider_avifile.cpp (1.6) (+4 -0)
+		interfaces/idirectfbimageprovider_png.c (1.2) (+6 -2)
+		interfaces/idirectfbimageprovider_jpeg.c (1.3) (+6 -2)
+		interfaces/idirectfbimageprovider_gif.c (1.2) (+6 -2)
+		examples/df_stress.c (1.2) (+2 -6)
+	
+	free interfaces if reference counter reaches zero,
+	disabled in debug mode to enable the feature of DFB_DEAD
+	
+2001-04-26	00:11	<mitch@convergence.de>
+
+	Files:	configure.in (1.4) (+1 -1)
+	
+	Fixed the check if avifile-config was found.
+	
+2001-04-25	21:10	<dok@convergence.de>
+
+	Files:	interfaces/idirectfbvideoprovider.c (1.2) (+0 -0)
+		interfaces/idirectfbvideoprovider.h (1.2) (+0 -0)
+	
+	removed unused files
+	
+2001-04-25	20:33	<holger@convergence.de>
+
+	Files:	src/idirectfb.c (1.7) (+24 -3)
+	
+	free interfaces if constuctor failed
+	
+2001-04-25	18:01	<dok@convergence.de>
+
+	Files:	src/display/idirectfbdisplaylayer.c (1.3) (+3 -2)
+	
+	fixed caps passed to IDirectFBSurface_Layer_Construct
+	
+2001-04-24	13:34	<dok@convergence.de>
+
+	Files:	ChangeLog (1.3) (+595 -6)
+		src/idirectfb.c (1.6) (+3 -0)
+	
+	Reset card state in suspend, some glitches still there.
+	Generated changelog.
+	
 2001-04-24	13:14	<neo@convergence.de>
 
 	Files:	README (1.2) (+4 -1)

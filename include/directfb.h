@@ -1461,7 +1461,7 @@ extern "C"
           DFBInputDeviceKeyIdentifier   keycode;       /* in case of a key
                                                           event */
           char                          key_ascii;
-          __u16                         key_unicode;
+          __u32                         key_unicode;
           DFBInputDeviceModifierKeys    modifiers;     /* modifier keys as
                                                           a bitmask */
 

@@ -1,0 +1,43 @@
+0.9.1
+------
+
+- Added IDirectFBInputDevice->GetButtonState() which returns the
+  state of the specified button. GetButtons() is also still available.
+- New demo called "df_knuckles" draws a three dimensional lighted skull
+  that can be rotated by the mouse. (Port from Mark Vojkovich's DGA demo)
+- Fixed accelerator ids in neomagic driver to match the ids in the
+  current neofb kernel patch that is now included in "patches".
+- Moved command-line parsing out of DirectFBCreate() into DirectFBInit().
+  This means to inititalize DirectFB() there are now two calls necessary:
+  DirectFBInit( &argc, &argv ); DirectFBCreate( &dfb );
+- Added IDirectFBSurface->FillTriangle() for solid and blended triangles.
+  Implemented in generic driver and Voodoo, Matrox acceleration.
+- Interfaces with a reference counter of zero are automatically freed
+  unless you enabled debugging during configure. In debug mode a released
+  interface returns DFB_DEAD if a function has been called.
+- Added Shockwave Flash Video Provider written by Joachim 'Roh' Steiger.
+  You will need the libflash, that can be downloaded as a shared library
+  from our download section. No modifications of libflash code.
+- Added an option to directfb-config that makes "--libs" output
+  the suitable LDFLAGS that are needed to have AviFile symbols resolved.
+- Mouse cursor is no longer enabled by default.
+- AviFile Provider now probing for ".asf" files, too.
+- Fixed Stop in AviFile Provider, work around crashing AviFile call
+  Player->Stop by using Pause and Continue. PlayTo can now be called
+  several times without stopping to change the destination on the fly.
+- V4L Video Provider no longer gets a NULL pointer as the filename,
+  but "/dev/video0" and so on. Removed v4l code from core.
+- AviFile Provider updated to compile with newest AviFile version.
+- Implemented flipping of surfaces that are no window or layer surfaces,
+  when the surface is a subsurface, a flipping region has been specified
+  or the flipping flag DSFLIP_BLIT has been used.
+- Improved documentation generator, a few parsing fixes.
+- Added missing "void *callbackdata" to 
+  DFBInputDeviceCallback and DFBVideoModeCallback.
+- Some minor fixes and cleanups.
+
+
+0.9.0
+------
+
+Initial release.
