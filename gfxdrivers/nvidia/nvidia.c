@@ -98,7 +98,7 @@ DFB_GRAPHICS_DRIVER( nvidia )
 #define NV5_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)
 
-/* GeForce256/GeForce2/GeForce4 */
+/* GeForce1/GeForce2/GeForce4 */
 #define NV10_SUPPORTED_DRAWINGFLAGS \
                (DSDRAW_BLEND)
 
@@ -547,17 +547,17 @@ nv_set_color( NVidiaDriverData *nvdrv,
 static inline void
 nv_set_beta1( NVidiaDriverData *nvdrv,
               NVidiaDeviceData *nvdev,
-              __u8              value )
+              __u8              alpha )
 {
      NVBeta1 *Beta1 = nvdrv->Beta1;
+     __u32    value = alpha << 23;
 
-     if (nvdev->alpha != value) {
+     if (nvdev->beta1 != value) {
           nv_assign_object( nvdrv, nvdev, 0, OBJ_BETA1 );
           
           nv_waitfifo( nvdev, subchannelof(Beta1), 1 );
-          Beta1->SetBeta1D31 = value << 23;
-
-          nvdev->alpha = value;
+          Beta1->SetBeta1D31 = value;
+          nvdev->beta1       = value;
      }
 }
 
@@ -568,10 +568,13 @@ nv_set_beta4( NVidiaDriverData *nvdrv,
 {
      NVBeta4 *Beta4 = nvdrv->Beta4;
      
-     nv_assign_object( nvdrv, nvdev, 0, OBJ_BETA4 );
+     if (nvdev->beta4 != value) {
+          nv_assign_object( nvdrv, nvdev, 0, OBJ_BETA4 );
      
-     nv_waitfifo( nvdev, subchannelof(Beta4), 2 );
-     Beta4->SetBetaFactor = value;
+          nv_waitfifo( nvdev, subchannelof(Beta4), 2 );
+          Beta4->SetBetaFactor = value;
+          nvdev->beta4         = value;
+     }
 }
 
 
@@ -581,12 +584,67 @@ static void nvAfterSetVar( void *driver_data,
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
+     volatile __u8    *PFIFO = nvdrv->PFIFO;
      NVFifoChannel    *Fifo  = nvdrv->Fifo;
      int               i;
+     
+     /* NV_PFIFO_CACHES */
+     nv_out32( PFIFO, 0x0500, 0x00000000 );
+     /* NV_PFIFO_MODE */
+     nv_out32( PFIFO, 0x0504, 0x00000000 );
+     /* NV_PFIFO_CACHE1_PUSH0 */
+     nv_out32( PFIFO, 0x1200, 0x00000000 );
+     /* NV_PFIFO_CACHE1_PULL0 */
+     nv_out32( PFIFO, 0x1250, 0x00000000 );
+     /* NV_PFIFO_CACHE1_PUSH1 */
+     nv_out32( PFIFO, 0x1204, 0x00000000 );
+     /* NV_PFIFO_CACHE1_DMA_PUT */
+     nv_out32( PFIFO, 0x1240, 0x00000000 );
+     /* NV_PFIFO_CACHE1_DMA_GET */
+     nv_out32( PFIFO, 0x1244, 0x00000000 );
+     /* NV_PFIFO_CACHE1_DMA_INSTANCE */
+     nv_out32( PFIFO, 0x122C, 0x00000000 );
+     /* NV_PFIFO_CACHE0_PUSH0 */
+     nv_out32( PFIFO, 0x1000, 0x00000000 );
+     /* NV_PFIFO_CACHE0_PULL0 */
+     nv_out32( PFIFO, 0x1050, 0x00000000 );
+     /* NV_PFIFO_RAMHT */
+     nv_out32( PFIFO, 0x0210, 0x03000100 );
+     /* NV_PFIFO_RAMFC */
+     nv_out32( PFIFO, 0x0214, 0x00000110 );
+     /* NV_PFIFO_RAMRO */
+     nv_out32( PFIFO, 0x0218, 0x00000112 );
+     /* NV_PFIFO_SIZE */
+     nv_out32( PFIFO, 0x050C, 0x0000FFFF ); 
+     /* NV_PFIFO_CACHE1_HASH */
+     nv_out32( PFIFO, 0x1258, 0x0000FFFF );
+     /* NV_PFIFO_INTR_EN */
+     nv_out32( PFIFO, 0x0140, 0x00000000 );
+     /* NV_PFIFO_INTR */
+     nv_out32( PFIFO, 0x0100, 0xFFFFFFFF );
+     /* NV_PFIFO_CACHE0_PULL1 */
+     nv_out32( PFIFO, 0x1054, 0x00000001 );
+     /* NV_PFIFO_CACHE1_PUSH0 */
+     nv_out32( PFIFO, 0x1200, 0x00000001 );
+     /* NV_PFIFO_CACHE1_DMA_PUSH */
+     nv_out32( PFIFO, 0x1220, 0x00000000 );
+     /* NV_PFIFO_CACHE1_PULL0 */
+     nv_out32( PFIFO, 0x1250, 0x00000001 );
+     /* NV_PFIFO_CACHE1_PULL1 */
+     nv_out32( PFIFO, 0x1254, 0x00000001 );
+     /* NV_PFIFO_CACHES */
+     nv_out32( PFIFO, 0x0500, 0x00000001 );
+     /* NV_PFIFO_INTR_EN */
+     nv_out32( PFIFO, 0x0140, 0x00000001 );
      
      if (nvdrv->arch == NV_ARCH_10) {
           volatile __u8* PGRAPH = nvdrv->PGRAPH;
 
+          /* NV_PGRAPH_DEBUG_1 */
+          nv_out32( PGRAPH, 0x0084, 0x00118701 );
+          /* NV_PGRAPH_DEBUG_2 */
+          nv_out32( PGRAPH, 0x0088, 0x24F82AD9 );
+        
           for (i = 0; i < 8; i++) {
                /* NV_PGRAPH_WINDOWCLIP_HORIZONTAL */
                nv_out32( PGRAPH, 0x0F00+i*4, 0x07FF0800 );
@@ -725,7 +783,7 @@ static void nvAfterSetVar( void *driver_data,
           /* NV_PGRAPH_GLOBALSTATE1 */
           nv_out32( PGRAPH, 0x0F4C, 0x00000000 );
      }
- 
+     
      /* put objects into subchannels */
      for (i = 0; i < 8; i++)
           Fifo->sub[i].SetObject = nvdev->subchannel_object[i];
@@ -1067,7 +1125,7 @@ static void nv20CheckState( void *drv, void *dev,
           case DSPF_LUT8:
           case DSPF_RGB332:
                if (DFB_BLITTING_FUNCTION( accel )) {
-                    if (accel != DFXL_BLIT || state->blittingflags ||
+                    if (state->blittingflags != DSBLIT_NOFX  ||
                         source->format != destination->format)
                          return;
                } else {
@@ -1276,7 +1334,7 @@ static void nv4SetState( void *drv, void *dev,
                          nvdev->state3d.format |= 0x00000400;
                          break;
                     default:
-                         nvdev->state3d.format |= 0x00000300;
+                         nvdev->state3d.format |= 0x00000500;
                          break;
                }
                
@@ -1449,7 +1507,7 @@ static void nv5SetState( void *drv, void *dev,
                          nvdev->state3d.format |= 0x00000400;
                          break;
                     default:
-                         nvdev->state3d.format |= 0x00000300;
+                         nvdev->state3d.format |= 0x00000500;
                          break;
                }
                
@@ -1630,7 +1688,7 @@ static void nv10SetState( void *drv, void *dev,
                          nvdev->state3d.format |= 0x00000400;
                          break;
                     default:
-                         nvdev->state3d.format |= 0x00000300;
+                         nvdev->state3d.format |= 0x00000500;
                          break;
                }
                
@@ -1785,6 +1843,9 @@ static void nv20SetState( void *drv, void *dev,
 
                          nvdev->bop0 = operation;
                     }
+
+                    nvdev->filter = (DFB_BITS_PER_PIXEL(nvdev->dst_format) == 8)
+                                     ? 0x00020000 : 0x01010000;
                     
                     funcs->Blit        = nvBlit;
                     funcs->StretchBlit = nvStretchBlit;
@@ -1805,12 +1866,21 @@ static void nv20SetState( void *drv, void *dev,
 
 /* exported symbols */
 
+#define FB_ACCEL_NV10  43
+#define FB_ACCEL_NV20  44
+#define FB_ACCEL_NV30  45
+#define FB_ACCEL_NV40  46
+
 static int
 driver_probe( GraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_NV4:
           case FB_ACCEL_NV5:
+          case FB_ACCEL_NV10:
+          case FB_ACCEL_NV20:
+          case FB_ACCEL_NV30:
+          case FB_ACCEL_NV40:
                return 1;
      }
 
@@ -1966,12 +2036,15 @@ driver_init_driver( GraphicsDevice      *device,
           nvdrv->fb_offset &= 0x0FFFFFFF;
           vram             += nvdrv->fb_offset;
      }
-     nvdrv->fb_mask = ((1 << direct_log2( vram )) - 1) & ~63;
+     nvdrv->fb_size = 1 << direct_log2( vram );
+     nvdrv->fb_mask = (nvdrv->fb_size - 1) & ~63;
      
      nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!nvdrv->mmio_base)
           return DFB_IO;
 
+     nvdrv->PMC     = nvdrv->mmio_base + 0x000000;
+     nvdrv->PFIFO   = nvdrv->mmio_base + 0x002000;
      nvdrv->PVIDEO  = nvdrv->mmio_base + 0x008000;
      nvdrv->PVIO    = nvdrv->mmio_base + 0x0C0000;
      nvdrv->PFB     = nvdrv->mmio_base + 0x100000;
@@ -2058,9 +2131,8 @@ driver_init_device( GraphicsDevice     *device,
 {
      NVidiaDriverData *nvdrv        = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev        = (NVidiaDeviceData*) device_data;
+     int               ram_used     = dfb_gfxcard_memory_length();
      int               ram_unusable = 0;
-     int               ram_total;
-     int               ram_used;
 
      snprintf( device_info->name,
                DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "RivaTNT/RivaTNT2/GeForce" );
@@ -2113,10 +2185,7 @@ driver_init_device( GraphicsDevice     *device,
 
      dfb_config->pollvsync_after = 1;
 
-     /* reserve unusable memory to avoid random crashes */
-     ram_total = 1 << direct_log2( dfb_system_videoram_length() );
-     ram_used  = dfb_gfxcard_memory_length();
- 
+     /* reserve unusable video memory to avoid random crashes */
      switch (nvdrv->arch) {
           case NV_ARCH_04:
           case NV_ARCH_05:
@@ -2130,7 +2199,7 @@ driver_init_device( GraphicsDevice     *device,
           default:
                break;
      }
-     ram_unusable -= ram_total - ram_used;
+     ram_unusable -= nvdrv->fb_size - ram_used;
      
      if (ram_unusable > 0) {
           int offset;
@@ -2190,8 +2259,7 @@ driver_init_device( GraphicsDevice     *device,
 
      /* write dma objects configuration */
      nv_store_dma( nvdrv, OBJ_DMA, ADDR_DMA,
-                   0x00, 0x00003000, ram_used + nvdrv->fb_offset,
-                   0, 2 );
+                   0x00, 0x00003000, nvdrv->fb_size, 0, 2 );
      
      /* write graphics objects configuration */
      nv_store_object( nvdrv, OBJ_SURFACES2D, ADDR_SURFACES2D,
@@ -2307,7 +2375,9 @@ driver_init_device( GraphicsDevice     *device,
      nvdev->bop0   = 3;
      nvdev->bop1   = 3;
      nvdev->filter = (nvdrv->arch == NV_ARCH_04) ? 0 : 0x01010000; 
-     
+    
+     nvAfterSetVar( driver_data, device_data );
+    
      return DFB_OK;
 }
 

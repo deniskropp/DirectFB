@@ -477,13 +477,15 @@ typedef struct {
      DFBRectangle            clip;
 
      __u32                   color;
-     __u8                    alpha;
+     __u32                   beta1;
+     __u32                   beta4;
+     
      __u32                   dop;           // drawing operation
      __u32                   bop0;          // blitting operation from video memory
      __u32                   bop1;          // blitting operation from system memory  
      __u32                   system_format; // color format for NVImageBlt & NVStretchedImage
      __u32                   video_format;  // color format for NVScaledImage
-     __u32                   filter;        // filter for NVScaledImage 
+     __u32                   filter;        // filter for NVScaledImage
 
      /* 3D stuff */
      bool                    enabled_3d;  // 3d engine enabled
@@ -530,9 +532,12 @@ typedef struct {
      __u32                   arch; /* NV_ARCH_* */
      
      __u32                   fb_offset;
+     __u32                   fb_size;
      __u32                   fb_mask;
 
      volatile __u8          *mmio_base;
+     volatile __u8          *PMC;
+     volatile __u8          *PFIFO;
      volatile __u8          *PVIDEO;
      volatile __u8          *PFB;
      volatile __u8          *PGRAPH;
