@@ -206,7 +206,7 @@ dfb_vt_shutdown( bool emergency )
 {
      if (!dfb_vt)
           return DFB_OK;
-
+#if 0
      if (dfb_config->vt_switching) {
           if (ioctl( dfb_vt->fd, VT_SETMODE, &Sdfb_vt->vt_mode ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
@@ -214,7 +214,7 @@ dfb_vt_shutdown( bool emergency )
           //sigaction( SIG_SWITCH_FROM, &Sdfb_vt->sig_usr1, NULL );
           //sigaction( SIG_SWITCH_TO, &Sdfb_vt->sig_usr2, NULL );
      }
-
+#endif
      if (dfb_config->vt_switch) {
           DEBUGMSG( "switching back...\n" );
 
@@ -225,6 +225,8 @@ dfb_vt_shutdown( bool emergency )
                PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE" );
 
           DEBUGMSG( "switched back...\n" );
+
+          usleep( 40000 );
 
           /* restore con2fbmap */
           vt_set_fb( Sdfb_vt->num, Sdfb_vt->old_fb );
