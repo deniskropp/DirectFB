@@ -530,7 +530,7 @@ driver_get_info( GraphicsDevice     *device,
                "Ville Syrjala" );
 
      info->version.major = 0;
-     info->version.minor = 7;
+     info->version.minor = 8;
 
      info->driver_data_size = sizeof (Mach64DriverData);
      info->device_data_size = sizeof (Mach64DeviceData);
