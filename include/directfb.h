@@ -175,8 +175,9 @@ typedef enum {
      DFB_INVAREA,        /* An invalid area has been specified or detected. */
      DFB_DESTROYED,      /* The underlying object (e.g. a window or surface)
                             has been destroyed. */
-     DFB_FUSION          /* Internal fusion error detected, most likely
+     DFB_FUSION,         /* Internal fusion error detected, most likely
                             related to IPC resources. */
+     DFB_BUFFERTOOLARGE  /* Buffer is too large. */
 } DFBResult;
 
 /*

@@ -264,6 +264,8 @@ DirectFBErrorString( DFBResult error )
                return "Object has been destroyed!";
           case DFB_FUSION:
                return "Internal fusion (IPC) error detected!";
+          case DFB_BUFFERTOOLARGE:
+               return "Buffer is too large!";
      }
 
      return "<UNKNOWN ERROR CODE>!";
