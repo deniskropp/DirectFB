@@ -1,10 +1,29 @@
-- Added inputdriver for serial mouse. 
+0.9.3
+------
+
+- Some license headers were forgotten to change to LPGPL.
+- New remote control keycodes and remote control input type.
+- df_window can play video files and behaves like a window manager.
+- New "thanks to" section in README.
+- Window stack repaints optimized through recursive function.
+- Added DirectFBSetOption from Till Adam <till@adam-lilienthal.de>.
+- Added IDirectFBWindow/IDirectFBInputBuffer->WaitForEventWithTimeout.
+- Changed to pthread conditions in waiting code.
+- Matrox driver fixed when blitting from 32bit without blending.
+- Added DFBInputDeviceTypeFlags, removed DIDID_TYPE.
+- Several cleanups in core, common code moved into helper functions.
+- Fonts can be loaded monochrome and/or without kerning.
+- Console blanking now disabled.
+- Software alpha blending performance boost for non MMX machines.
+- Added inputdriver for serial mice with config option "mouse-protocol".
 - Modularized inputdrivers.
 - Even faster DrawString() software implementations.
-- 32 bit aligning in the software driver resulting in a major speedup.
 - New function Font->GetStringExtents.
 - Use of antialiasing, kerning and hinting for fonts is now configurable.
+- Some fixes in the software rendering functions.
 - Support for interlaced PNGs (thanks to Johannes Zellner).
+- Two new example applications in very early stage.
+- New function IDirectFB->WaitForSync.
 
 0.9.2
 ------
