@@ -85,7 +85,7 @@ dfb_vt_initialize()
      struct vt_stat vs;
 
      dfb_vt = (VirtualTerminal*)DFBCALLOC( 1, sizeof(VirtualTerminal) );
-     Sdfb_vt = (VirtualTerminalShared*)shmalloc( sizeof(VirtualTerminal) );
+     Sdfb_vt = (VirtualTerminalShared*)shcalloc( 1, sizeof(VirtualTerminal) );
 
      setsid();
      dfb_vt->fd0 = open( "/dev/tty0", O_WRONLY );
