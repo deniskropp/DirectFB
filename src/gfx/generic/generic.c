@@ -1753,7 +1753,7 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
 
-#define SET_ALPHA_PIXEL_DUFFS_DEVICE(D, S, w, format) \
+#define SET_ALPHA_PIXEL_DUFFS_DEVICE_8(D, S, w, format) \
      while (w) {\
           int l = w & 7;\
           switch (l) {\
@@ -1767,6 +1767,25 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
                case 5:\
                     SET_ALPHA_PIXEL_##format( D[4], S[4] );\
                case 4:\
+                    SET_ALPHA_PIXEL_##format( D[3], S[3] );\
+               case 3:\
+                    SET_ALPHA_PIXEL_##format( D[2], S[2] );\
+               case 2:\
+                    SET_ALPHA_PIXEL_##format( D[1], S[1] );\
+               case 1:\
+                    SET_ALPHA_PIXEL_##format( D[0], S[0] );\
+          }\
+          D += l;\
+          S += l;\
+          w -= l;\
+     }
+
+#define SET_ALPHA_PIXEL_DUFFS_DEVICE_4(D, S, w, format) \
+     while (w) {\
+          int l = w & 3;\
+          switch (l) {\
+               default:\
+                    l = 4;\
                     SET_ALPHA_PIXEL_##format( D[3], S[3] );\
                case 3:\
                     SET_ALPHA_PIXEL_##format( D[2], S[2] );\
@@ -1801,7 +1820,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb15()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB15 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, RGB15 );
 
 #undef SET_ALPHA_PIXEL_RGB15
 }
@@ -1828,7 +1847,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb16()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB16 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, RGB16 );
 
 #undef SET_ALPHA_PIXEL_RGB16
 }
@@ -1889,7 +1908,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb32()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB32 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, RGB32 );
 
 #undef SET_ALPHA_PIXEL_RGB32
 }
@@ -1920,7 +1939,7 @@ static void Bop_a8_set_alphapixel_Aop_argb()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, ARGB );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, ARGB );
 
 #undef SET_ALPHA_PIXEL_ARGB
 }
@@ -1936,20 +1955,32 @@ static void Bop_a8_set_alphapixel_Aop_a8()
           case 0xff: d = 0xff;\
           case 0: break; \
           default: {\
-               register __u16 s = (a)+1;\
+               register __u16 s  = (a)+1;\
                register __u16 s1 = 256-s;\
                d = (d * s1 + s) >> 8;\
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, A8 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, A8 );
 
 #undef SET_ALPHA_PIXEL_A8
 }
 
 #ifdef SUPPORT_RGB332
-/* RGB332 reuses the LUT8 implementation */
-#define Bop_a8_set_alphapixel_Aop_rgb332  Bop_a8_set_alphapixel_Aop_lut8
+static void Bop_a8_set_alphapixel_Aop_rgb332()
+{
+     int    w = Dlength;
+     __u8  *S = Bop;
+     __u8  *D = Aop;
+
+/* FIXME: implement correctly! */
+#define SET_ALPHA_PIXEL_RGB332(d,a) \
+     if (a & 0x80) \
+          d = Cop;
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, RGB332 );
+#undef SET_ALPHA_PIXEL_RGB332
+}
 #endif
 
 static void Bop_a8_set_alphapixel_Aop_lut8()
@@ -1958,12 +1989,23 @@ static void Bop_a8_set_alphapixel_Aop_lut8()
      __u8  *S = Bop;
      __u8  *D = Aop;
 
-/* FIXME: implement correctly! */
-#define SET_ALPHA_PIXEL_LUT8(d,a) \
-     if (a & 0x80) \
-          d = Cop;
+#define SET_ALPHA_PIXEL_LUT8(d,alpha) \
+     switch (alpha) {\
+          case 0xff: d = Cop;\
+          case 0: break; \
+          default: {\
+               register __u16 s = alpha+1;\
+               DFBColor      dc = Alut->entries[d];\
+               __u16         sa = alpha + dc.a;\
+               dc.r = ((color.r - dc.r) * s + (dc.r << 8)) >> 8;\
+               dc.g = ((color.g - dc.g) * s + (dc.g << 8)) >> 8;\
+               dc.b = ((color.b - dc.b) * s + (dc.b << 8)) >> 8;\
+               d = dfb_palette_search( Alut, dc.r, dc.g, dc.b,\
+                                             sa & 0xff00 ? 0xff : sa );\
+          }\
+     }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, LUT8 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE_4( D, S, w, LUT8 );
 #undef SET_ALPHA_PIXEL_LUT8
 }
 
