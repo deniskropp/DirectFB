@@ -635,12 +635,21 @@ dnl Test for savage frame buffer support in the kernel
     AC_MSG_WARN([
 *** DBox2 Remote driver will not be built.]))
 
+
+  dnl Allow to enable driver for Microtouch serial touchscreen
+  dnl This driver is not built by default since it needs to be configured
+  dnl by changing some defines in the source.
+  AC_ARG_ENABLE(mutouch,
+    [  --enable-mutouch        build Microtouch touchscreen driver [default=no]],
+    enable_mutouch="$enableval", enable_mutouch=no)
 fi
+
 
 AC_ARG_WITH(tools, [  --without-tools         do not build any tools])
 if test "x$with_tools" != xno; then
   with_tools=yes
 fi
+
 
 AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
 AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
@@ -655,6 +664,7 @@ AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
 AM_CONDITIONAL(UCB1X00_TS, test x$have_arm = xyes)
 AM_CONDITIONAL(SONYPI, test x$sonypi = xyes)
 AM_CONDITIONAL(DBOX2REMOTE, test x$dbox2remote = xyes)
+AM_CONDITIONAL(MUTOUCH_TS, test x$enable_mutouch = xyes)
 
 AM_CONDITIONAL(BUILD_TOOLS, test x$with_tools = xyes)
 
@@ -736,16 +746,17 @@ gfxdrivers/tdfx/Makefile
 gfxdrivers/nvidia/Makefile
 gfxdrivers/savage/Makefile
 inputdrivers/Makefile
+inputdrivers/dbox2remote/Makefile
 inputdrivers/h3600_ts/Makefile
-inputdrivers/ucb1x00_ts/Makefile
-inputdrivers/sonypi/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
 inputdrivers/linux_input/Makefile
 inputdrivers/lirc/Makefile
-inputdrivers/dbox2remote/Makefile
+inputdrivers/mutouch/Makefile
 inputdrivers/ps2mouse/Makefile
 inputdrivers/serialmouse/Makefile
+inputdrivers/sonypi/Makefile
+inputdrivers/ucb1x00_ts/Makefile
 interfaces/Makefile
 interfaces/IDirectFBFont/Makefile
 interfaces/IDirectFBImageProvider/Makefile
@@ -812,6 +823,7 @@ Building Input Drivers:
   DBox2 Remote          $dbox2remote
   H3600 Touchscreen     $h3600_ts
   ucb1x00 Touchscreen   $have_arm
+  MuTouch touchscreen   $enable_mutouch
   SonyPI Jogdial        $sonypi]);
 fi
 

@@ -9,9 +9,11 @@ Sven Neumann <sven@convergence.de>
 Helping Developers
 ------------------
 
-Ville Syrjala <syrjala@sci.fi>          (Matrox driver)
-Daniel Foesch <dfoesch@cs.nmsu.edu>     (nVidia driver)
-David Wood <DWood@daedalcorp.com>       (Voodoo driver)
-Alex Song <alexsong@comports.com>       (Savage driver)
+Ville Syrjala <syrjala@sci.fi>            (Matrox gfx driver)
+Daniel Foesch <dfoesch@cs.nmsu.edu>       (nVidia gfx driver)
+David Wood <DWood@daedalcorp.com>         (Voodoo gfx driver)
+Alex Song <alexsong@comports.com>         (Savage gfx driver)
+Holger Waechtler <holger@convergence.de>  (Linux input driver)
+Simon Ueng <simon@ftech.com.tw>           (Mutouch input driver)
 
 See also "Thanks To" section in README.
