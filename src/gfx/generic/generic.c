@@ -2080,7 +2080,7 @@ static inline void gFillTrapezoid( int Xl, int Xr, int X2l, int X2r, int Y, int 
 
   while (dY--) {
     Aop = dst_org  +  Y++ * dst_pitch  +  ((Xl + (1<<19)) >> 20) * dst_bpp;
-    Dlength = ((Xr + (1<<19)) >> 20) - ((Xl + (1<<19)) >> 20);
+    Dlength = ((Xr + (1<<19)) >> 20) - ((Xl + (1<<19)) >> 20) + 1;
 
     if (Dlength)
       RUN_PIPELINE();

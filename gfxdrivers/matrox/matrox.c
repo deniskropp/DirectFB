@@ -74,6 +74,12 @@ static void matroxEngineSync()
      mga_waitidle( mmio_base );
 }
 
+#define MATROX_SUPPORTED_FUNCTIONS DFXL_FILLRECTANGLE | \
+                                   DFXL_DRAWRECTANGLE | \
+                                   DFXL_DRAWLINE      | \
+                                   DFXL_BLIT          | \
+                                   DFXL_STRETCHBLIT
+
 static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
@@ -84,7 +90,7 @@ static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
               state->source->width >= 8 &&
               state->source->height >= 8) ))
      {
-          state->accel |= accel;
+          state->accel |= MATROX_SUPPORTED_FUNCTIONS;
      }
 }
 
@@ -97,7 +103,7 @@ static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
               state->source->width >= 8 &&
               state->source->height >= 8) ))
      {
-          state->accel |= accel;
+          state->accel |= MATROX_SUPPORTED_FUNCTIONS;
      }
 }
 
@@ -347,11 +353,7 @@ int driver_init( int fd, GfxCard *card )
      card->info.driver_version.minor = 3;
 
      card->caps.flags    = CCF_CLIPPING;
-     card->caps.accel    = DFXL_FILLRECTANGLE |
-                           DFXL_DRAWRECTANGLE |
-                           DFXL_DRAWLINE |
-                           DFXL_BLIT |
-                           DFXL_STRETCHBLIT;
+     card->caps.accel    = MATROX_SUPPORTED_FUNCTIONS;
      card->caps.drawing  = DSDRAW_BLEND;
      card->caps.blitting = DSBLIT_BLEND_ALPHACHANNEL |
                            DSBLIT_BLEND_COLORALPHA |

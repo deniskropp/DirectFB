@@ -286,6 +286,7 @@ directfb-config
 directfb.pc
 Makefile
 examples/Makefile
+examples/df_knuckles/Makefile
 examples/df_neo/Makefile
 include/Makefile
 include/directfb_version.h
