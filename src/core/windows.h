@@ -51,8 +51,7 @@ typedef enum {
 } CoreWindowUpdateFlags;
 
 #define TRANSLUCENT_WINDOW(w) ((w)->opacity < 0xff || \
-                               (w)->options & (DWOP_ALPHACHANNEL | \
-                                               DWOP_COLORKEYING))
+                               (w)->options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING))
 
 #define VISIBLE_WINDOW(w)     (!((w)->caps & DWCAPS_INPUTONLY) && \
                                (w)->opacity > 0 && !DFB_WINDOW_DESTROYED((w)))

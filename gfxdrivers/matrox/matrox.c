@@ -1075,8 +1075,7 @@ matroxDoBlitTMU( MatroxDriverData *mdrv,
 
      mga_waitfifo( mdrv, mdev, 8);
 
-     mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
-                      ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
+     mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO | ARZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
 
      if (filter)
           mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_BILIN, TEXFILTER );
