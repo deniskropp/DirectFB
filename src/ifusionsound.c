@@ -204,6 +204,8 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
 
           if (flags & FSSDF_BUFFERSIZE)
                size = desc->buffersize;
+          else if (flags & FSSDF_SAMPLERATE)
+               size = desc->samplerate;
 
           if (flags & FSSDF_CHANNELS)
                channels = desc->channels;
