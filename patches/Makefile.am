@@ -12,5 +12,6 @@ EXTRA_DIST = \
 	matroxfb-vsync-c2vline-irq-patch-2.4.19.bz2	\
 	savagefb-0.3.2-linux-2.4.19-pre7.patch.bz2	\
 	savagefb-0.4.0-linux-2.4.19.patch.bz2		\
+	savagefb-0.4.0-linux-2.4.21-rc2.patch.bz2	\
 	vmwarefb-0.6.0-linux-2.4.18.patch.bz2		\
 	vmwarefb-0.6.0-linux-2.4.20.patch.bz2
