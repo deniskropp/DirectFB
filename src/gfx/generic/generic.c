@@ -2003,15 +2003,16 @@ void gFillRectangle( DFBRectangle *rect )
 
 void gDrawLine( DFBRegion *line )
 {
-     int i,dx,dy,sdx,sdy,dxabs,dyabs,x,y,px,py;
+     int i,dy,sdy,dxabs,dyabs,x,y,px,py;
 
-     dx = line->x2 - line->x1;      /* the horizontal distance of the line */
-     dxabs = abs(dx);
+     /* the horizontal distance of the line */
+     dxabs = abs(line->x2 - line->x1);
 
-     dy = line->y2 - line->y1;      /* the vertical distance of the line */
+     /* the vertical distance of the line */
+     dy = line->y2 - line->y1;      
      dyabs = abs(dy);
 
-     if (!dx || !dy) {              /* draw horizontal/vertical line */
+     if (!dxabs || !dy) {              /* draw horizontal/vertical line */
           DFBRectangle rect = { MIN (line->x1, line->x2),
                MIN (line->y1, line->y2),
                dxabs + 1, dyabs + 1};
@@ -2020,11 +2021,10 @@ void gDrawLine( DFBRegion *line )
           return;
      }
 
-     sdx = SIGN(dx) * dst_bpp;
      sdy = SIGN(dy) * dst_pitch;
      x   = dyabs >> 1;
      y   = dxabs >> 1;
-     px  = line->x1 * dst_bpp;
+     px  = MIN (line->x1, line->x2) * dst_bpp;
      py  = line->y1 * dst_pitch;
 
      if (dxabs >= dyabs) { /* the line is more horizontal than vertical */
@@ -2034,14 +2034,11 @@ void gDrawLine( DFBRegion *line )
                if (y >= dxabs) {
                     Aop = dst_org + py + px;
                     RUN_PIPELINE();
-                    if (sdx > 0)
-                         px += Dlength * dst_bpp;
+                    px += Dlength * dst_bpp;
                     Dlength = 0;
                     y -= dxabs;
                     py += sdy;
                }
-               if (sdx < 0)
-                    px += sdx;
           }
           Aop = dst_org + py + px;
           RUN_PIPELINE();
@@ -2056,7 +2053,7 @@ void gDrawLine( DFBRegion *line )
                x += dxabs;
                if (x >= dyabs) {
                     x -= dyabs;
-                    px += sdx;
+                    px += dst_bpp;
                }
                py += sdy;
 
