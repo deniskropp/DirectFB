@@ -1547,6 +1547,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                          case DIKS_SMALL_S:
                          case DIKS_SMALL_X:
                          case DIKS_SMALL_D:
+                         case DIKS_SMALL_P:
                               stack_unlock( stack );
                               return RS_OK;
                          
@@ -1644,6 +1645,13 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               stack_unlock( stack );
                               return RS_OK;
                          }
+
+                         case DIKS_SMALL_P:
+                              dfb_layer_cursor_enable( layer, true );
+                              dfb_layer_cursor_set_opacity( layer, 0xff );
+                              
+                              stack_unlock( stack );
+                              return RS_OK;
 
                          default:
                               ;
