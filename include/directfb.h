@@ -247,6 +247,11 @@ typedef struct {
      __u8           b;   /* blue channel */
 } DFBColor;
 
+#define DFB_COLOR_EQUAL(x,y)  ((x).a == (y).a &&  \
+                               (x).r == (y).r &&  \
+                               (x).g == (y).g &&  \
+                               (x).b == (y).b)
+
 /*
  * Print a description of the result code along with an
  * optional message that is put in front with a colon.
