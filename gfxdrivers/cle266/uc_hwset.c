@@ -327,11 +327,14 @@ void uc_set_source_3d(UcDriverData *ucdrv,
 }
 
 /// Set either destination color key, or fill color, as needed. (2D)
-void uc_set_drawing_color_2d(UcDriverData *ucdrv,
-                             UcDeviceData *ucdev,
-                             CardState    *state)
+void uc_set_color_2d( UcDriverData *ucdrv,
+                      UcDeviceData *ucdev,
+                      CardState    *state )
 {
      struct uc_fifo *fifo = ucdev->fifo;
+
+     if (UC_IS_VALID( uc_color2d ))
+          return;
 
      UC_FIFO_PREPARE(fifo, 8);
      UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
@@ -345,36 +348,80 @@ void uc_set_drawing_color_2d(UcDriverData *ucdrv,
           UC_FIFO_ADD_2D(fifo, VIA_REG_FGCOLOR, state->dst_colorkey);
      }
      else {
-          UC_FIFO_ADD_2D(fifo, VIA_REG_KEYCONTROL, 0);
-          UC_FIFO_ADD_2D(fifo, VIA_REG_FGCOLOR, ucdev->color);
+          __u32 color = 0;
+
+          switch (state->destination->format) {
+               case DSPF_ARGB1555:
+                    color = PIXEL_ARGB1555( state->color.a,
+                                            state->color.r,
+                                            state->color.g,
+                                            state->color.b );
+                    color |= color << 16;
+                    break;
+
+               case DSPF_RGB16:
+                    color = PIXEL_RGB16( state->color.r,
+                                         state->color.g,
+                                         state->color.b);
+                    color |= color << 16;
+                    break;
+
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+                    color = PIXEL_ARGB( state->color.a,
+                                        state->color.r,
+                                        state->color.g,
+                                        state->color.b );
+                    break;
+
+               default:
+                    BUG( "unexpected pixel format" );
+          }
+
+          UC_FIFO_ADD_2D( fifo, VIA_REG_KEYCONTROL, 0 );
+          UC_FIFO_ADD_2D( fifo, VIA_REG_FGCOLOR,    color );
      }
 
      UC_FIFO_CHECK(fifo);
+
+     UC_VALIDATE( uc_color2d );
+     UC_INVALIDATE( uc_colorkey2d );
 }
 
-void uc_set_blitting_colorkey_2d(UcDriverData *ucdrv,
-                                 UcDeviceData *ucdev,
-                                 CardState    *state)
+void uc_set_colorkey_2d( UcDriverData *ucdrv,
+                         UcDeviceData *ucdev,
+                         CardState    *state )
 {
      struct uc_fifo *fifo = ucdev->fifo;
 
-     UC_FIFO_PREPARE(fifo, 6);
-     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
+     if (UC_IS_VALID( uc_colorkey2d ))
+          return;
 
      if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-          UC_FIFO_ADD_2D(fifo, VIA_REG_KEYCONTROL, VIA_KEY_ENABLE_SRCKEY);
-          UC_FIFO_ADD_2D(fifo, VIA_REG_BGCOLOR, state->src_colorkey);
+          UC_FIFO_PREPARE( fifo, 6 );
+          UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
+
+          UC_FIFO_ADD_2D ( fifo, VIA_REG_KEYCONTROL, VIA_KEY_ENABLE_SRCKEY );
+          UC_FIFO_ADD_2D ( fifo, VIA_REG_BGCOLOR, state->src_colorkey );
      }
      else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
-          UC_FIFO_ADD_2D(fifo, VIA_REG_KEYCONTROL,
-                         VIA_KEY_ENABLE_DSTKEY | VIA_KEY_INVERT_KEY);
-          UC_FIFO_ADD_2D(fifo, VIA_REG_FGCOLOR, state->dst_colorkey);
+          UC_FIFO_PREPARE( fifo, 6 );
+          UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
+
+          UC_FIFO_ADD_2D ( fifo, VIA_REG_KEYCONTROL,
+                           VIA_KEY_ENABLE_DSTKEY | VIA_KEY_INVERT_KEY );
+          UC_FIFO_ADD_2D ( fifo, VIA_REG_FGCOLOR, state->dst_colorkey );
      }
      else {
-          UC_FIFO_ADD_2D(fifo, VIA_REG_KEYCONTROL, 0);
-          UC_FIFO_ADD_2D(fifo, VIA_REG_FGCOLOR, ucdev->color);
+          UC_FIFO_PREPARE( fifo, 4 );
+          UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
+
+          UC_FIFO_ADD_2D ( fifo, VIA_REG_KEYCONTROL, 0 );
      }
 
-     UC_FIFO_CHECK(fifo);
+     UC_FIFO_CHECK( fifo );
+
+     UC_VALIDATE( uc_colorkey2d );
+     UC_INVALIDATE( uc_color2d );
 }
 

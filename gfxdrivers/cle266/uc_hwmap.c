@@ -12,29 +12,6 @@
 #include "uc_hw.h"
 #include <gfx/convert.h>
 
-/// Map a DirectFB color tuple to the correct pixel format.
-int uc_map_color(DFBSurfacePixelFormat format, DFBColor color)
-{
-    __u32 c;
-
-    switch (format)
-    {
-    //case DSPF_RGB15: // <-- has same enum as DSPF_ARGB1555
-    case DSPF_ARGB1555:
-        c = PIXEL_ARGB1555(color.a, color.r, color.g, color.b);
-        return (c << 16) | c;
-    case DSPF_RGB16:
-        c = PIXEL_RGB16(color.r, color.g, color.b);
-        return (c << 16) | c;
-    case DSPF_RGB32:
-//      return PIXEL_ARGB(0xff, color.r, color.g, color.b);
-    case DSPF_ARGB:
-        return PIXEL_ARGB(color.a, color.r, color.g, color.b);
-    default:
-        return 0;
-    }
-}
-
 /// Map a DirectFB destination surface pixel format to the hw. (3D)
 int uc_map_dst_format(DFBSurfacePixelFormat format,
                       __u32* colormask, __u32* alphamask)
@@ -373,7 +350,7 @@ void uc_map_blitflags(struct uc_hw_texture* tex,
             tex->regHTXnTBLRAa_0 = 0x0;
             tex->regHTXnTBLRFog_0 = 0x0;
         }
-        else { 
+        else {
             // (!(bflags & DSBLIT_BLEND_ALPHACHANNEL) && gotalpha) || !gotalpha
             // Av0 = Af
 

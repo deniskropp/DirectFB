@@ -81,7 +81,9 @@ typedef enum {
      uc_source2d    = 0x00000001,
      uc_source3d    = 0x00000002,
      uc_texenv      = 0x00000004,
-     uc_blending_fn = 0x00000008
+     uc_blending_fn = 0x00000008,
+     uc_color2d     = 0x00000010,
+     uc_colorkey2d  = 0x00000020
 } UcStateBits;
 
 #define UC_VALIDATE(b)       (ucdev->valid |= (b))

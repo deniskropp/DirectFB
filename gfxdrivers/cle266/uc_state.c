@@ -106,41 +106,38 @@ void uc_check_state(void *drv, void *dev,
 void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                   CardState *state, DFBAccelerationMask accel)
 {
-     UcDriverData* ucdrv = (UcDriverData*) drv;
-     UcDeviceData* ucdev = (UcDeviceData*) dev;
-     struct uc_fifo* fifo = ucdev->fifo;
+     UcDriverData   *ucdrv = (UcDriverData*) drv;
+     UcDeviceData   *ucdev = (UcDeviceData*) dev;
+     struct uc_fifo *fifo  = ucdev->fifo;
 
      __u32 rop3d = HC_HROP_P;
      __u32 mask3d;
      __u32 regEnable = HC_HenCW_MASK;
 
+     StateModificationFlags modified = state->modified;
+
      // Check modified states and update hw
 
-     if (state->modified & SMF_SOURCE)
-          UC_INVALIDATE( uc_source2d | uc_source3d );
+     if (modified & SMF_SOURCE)
+          UC_INVALIDATE( uc_source3d | uc_texenv | uc_source2d );
+     else if (modified & SMF_BLITTING_FLAGS)
+          UC_INVALIDATE( uc_source3d | uc_texenv );
 
-     if (state->modified & (SMF_BLITTING_FLAGS | SMF_SOURCE)) {
-          UC_INVALIDATE( uc_texenv | uc_source3d );
+     if (modified & (SMF_BLITTING_FLAGS | SMF_SRC_COLORKEY | SMF_DST_COLORKEY))
+          UC_INVALIDATE( uc_colorkey2d );
 
-          ucdev->bflags = state->blittingflags;
-     }
+     if (modified & (SMF_COLOR | SMF_DESTINATION | SMF_DRAWING_FLAGS))
+          UC_INVALIDATE( uc_color2d );
 
-     /* also depends on SMF_DESTINATION (rarely) */
-     if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
+     if (modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
           UC_INVALIDATE( uc_blending_fn );
 
-     if (state->modified & SMF_DESTINATION)
-          uc_set_destination(ucdrv, ucdev, state);
 
-     if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
-          ucdev->color = uc_map_color(state->destination->format, state->color);
+     if (modified & SMF_COLOR)
+          ucdev->color3d = PIXEL_ARGB( state->color.a, state->color.r,
+                                       state->color.g, state->color.b );
 
-          if (state->modified & SMF_COLOR)
-               ucdev->color3d = PIXEL_ARGB( state->color.a , state->color.r,
-                                            state->color.g , state->color.b );
-     }
-
-     if (state->modified & SMF_DRAWING_FLAGS) {
+     if (modified & SMF_DRAWING_FLAGS) {
           if (state->drawingflags & DSDRAW_XOR) {
                ucdev->draw_rop3d = HC_HROP_DPx;
                ucdev->draw_rop2d = VIA_ROP_DPx;
@@ -151,13 +148,13 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
           }
      }
 
-     if (state->modified & SMF_CLIP) {
+     ucdev->bflags = state->blittingflags;
+
+     if (modified & SMF_DESTINATION)
+          uc_set_destination(ucdrv, ucdev, state);
+
+     if (modified & SMF_CLIP)
           uc_set_clip(ucdrv, ucdev, state);
-     }
-
-
-     // if (state->modified & SMF_SRC_COLORKEY) { }
-     // if (state->modified & SMF_DST_COLORKEY) { }
 
 
      // Select GPU and check remaining states
@@ -170,7 +167,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                     funcs->DrawRectangle = uc_draw_rectangle;
                     funcs->DrawLine = uc_draw_line;
 
-                    uc_set_drawing_color_2d(ucdrv, ucdev, state);
+                    uc_set_color_2d(ucdrv, ucdev, state);
 
                     state->set = UC_DRAWING_FUNCTIONS_2D;
                     break;
@@ -201,7 +198,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                     uc_set_source_2d(ucdrv, ucdev, state);
                     funcs->Blit = uc_blit;
 
-                    uc_set_blitting_colorkey_2d(ucdrv, ucdev, state);
+                    uc_set_colorkey_2d(ucdrv, ucdev, state);
                     state->set = UC_BLITTING_FUNCTIONS_2D;
                     break;
 
