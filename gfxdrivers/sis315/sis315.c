@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.8 2004-04-29 19:08:37 dok Exp $
+ * $Id: sis315.c,v 1.9 2004-05-19 10:52:03 oberritter Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -216,7 +216,7 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	FBDev *dfb_fbdev;
 	sisfb_info fbinfo;
-	unsigned long zero = 0;
+	unsigned int zero = 0;
 
 	(void)device_data;
 
