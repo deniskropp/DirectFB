@@ -45,6 +45,9 @@
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
+#include <core/system.h>
+
+#include <core/fbdev/fbdev.h>
 
 #include <gfx/convert.h>
 
@@ -363,6 +366,7 @@ driver_init_driver( GraphicsDevice      *device,
     RADEONDriverData *adrv = ( RADEONDriverData* ) driver_data;
 #ifdef FBIO_WAITFORVSYNC
     static const int zero = 0;
+    FBDev *dfb_fbdev = dfb_system_data();
 #endif
 
     /* gain access to memory mapped registers */
