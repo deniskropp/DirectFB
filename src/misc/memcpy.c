@@ -417,9 +417,9 @@ static struct {
 #endif /* USE_MMX  */
 #endif /* ARCH_X86 */
 #ifdef USE_PPCASM
-     { "ppcasm_memcpy()",            ppcasm_memcpy, 0, 0},
+     { "ppcasm_memcpy()",            dfb_ppcasm_memcpy, 0, 0},
 #ifdef __LINUX__
-     { "ppcasm_cacheable_memcpy()",   ppcasm_cacheable_memcpy, 0, 0},
+     { "ppcasm_cacheable_memcpy()",  dfb_ppcasm_cacheable_memcpy, 0, 0},
 #endif /* __LINUX__ */
 #endif /* USE_PPCASM */
      { NULL, NULL, 0, 0}
