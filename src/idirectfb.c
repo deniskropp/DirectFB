@@ -327,14 +327,14 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                DFBResult ret;
                DFBDisplayLayerConfig config;
 
+               config.flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
+                                    DLCONF_PIXELFORMAT;
                config.width       = width;
                config.height      = height;
                config.pixelformat = dfb_pixelformat_for_depth( bpp );
 
                if (config.pixelformat == DSPF_UNKNOWN)
                     return DFB_INVARG;
-
-               config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT;
 
                ret = dfb_layer_context_set_configuration( data->primary.context,
                                                           &config );
@@ -385,7 +385,10 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
      INTERFACE_GET_DATA(IDirectFB)
 
-     dfb_layer_context_get_configuration( data->context, &config );
+     if (data->primary.context)
+          dfb_layer_context_get_configuration( data->primary.context, &config );
+     else
+          dfb_layer_context_get_configuration( data->context, &config );
 
      format = config.pixelformat;
 
