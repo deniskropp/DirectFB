@@ -268,7 +268,7 @@ dump_mixers( IDirectFBScreen *screen,
 
 
           /* Full mode layers */
-          if (descs[i].caps & DSMCAPS_SUB_LAYERS) {
+          if (descs[i].caps & DSMCAPS_FULL) {
                printf( "     Layers (full mode):      " );
 
                for (n=0; n<DFB_DISPLAYLAYER_IDS_MAX; n++) {
