@@ -59,6 +59,15 @@ DFBBoolean   dfb_clip_rectangle( const DFBRegion *clip, DFBRectangle *rect );
  */
 DFBEdgeFlags dfb_clip_edges( const DFBRegion *clip, DFBRectangle *rect );
 
+static inline DFBBoolean
+dfb_clip_needed( const DFBRegion *clip, DFBRectangle *rect )
+{
+     return ((clip->x1 > rect->x) ||
+             (clip->y1 > rect->y) ||
+             (clip->x2 < rect->x + rect->w - 1) ||
+             (clip->y2 < rect->y + rect->h - 1));
+}
+
 /*
  * Simple check if triangle lies outside the clipping region.
  * Returns true if the triangle may be visible within the region.

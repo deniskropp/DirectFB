@@ -705,9 +705,66 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
      dfb_state_unlock( state );
 }
 
+static void
+build_clipped_rectangle_outlines( DFBRectangle    *rect,
+                                  const DFBRegion *clip,
+                                  DFBRectangle    *ret_outlines,
+                                  int             *ret_num )
+{
+     DFBEdgeFlags edges = dfb_clip_edges( clip, rect );
+     int          t     = (edges & DFEF_TOP ? 1 : 0);
+     int          tb    = t + (edges & DFEF_BOTTOM ? 1 : 0);
+     int          num   = 0;
+
+     DFB_RECTANGLE_ASSERT( rect );
+
+     D_ASSERT( ret_outlines != NULL );
+     D_ASSERT( ret_num != NULL );
+
+     if (edges & DFEF_TOP) {
+          DFBRectangle *out = &ret_outlines[num++];
+
+          out->x = rect->x;
+          out->y = rect->y;
+          out->w = rect->w;
+          out->h = 1;
+     }
+
+     if (edges & DFEF_LEFT) {
+          DFBRectangle *out = &ret_outlines[num++];
+
+          out->x = rect->x;
+          out->y = rect->y + t;
+          out->w = 1;
+          out->h = rect->h - tb;
+     }
+
+     if (edges & DFEF_RIGHT) {
+          DFBRectangle *out = &ret_outlines[num++];
+
+          out->x = rect->x + rect->w - 1;
+          out->y = rect->y + t;
+          out->w = 1;
+          out->h = rect->h - tb;
+     }
+
+     if (edges & DFEF_BOTTOM) {
+          DFBRectangle *out = &ret_outlines[num++];
+
+          out->x = rect->x;
+          out->y = rect->y + rect->h - 1;
+          out->w = rect->w;
+          out->h = 1;
+     }
+
+     *ret_num = num;
+}
+
 void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 {
-     bool hw = false;
+     DFBRectangle rects[4];
+     bool         hw = false;
+     int          i = 0, num = 0;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -716,65 +773,47 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 
      dfb_state_lock( state );
 
-     if (dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE ))
-     {
-          if (card->caps.flags & CCF_CLIPPING  ||
-              dfb_clip_rectangle( &state->clip, rect ))
+     if (!dfb_rectangle_region_intersects( rect, &state->clip )) {
+          dfb_state_unlock( state );
+          return;
+     }
+
+     if ((card->caps.flags & CCF_CLIPPING) || !dfb_clip_needed( &state->clip, rect )) {
+          if (dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
+              dfb_gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE ))
           {
-               /* FIXME: correct clipping like below */
                hw = card->funcs.DrawRectangle( card->driver_data,
                                                card->device_data, rect );
-          }
 
-          dfb_gfxcard_state_release( state );
+               dfb_gfxcard_state_release( state );
+          }
      }
 
      if (!hw) {
-          DFBEdgeFlags edges = dfb_clip_edges (&state->clip, rect);
+          if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+              dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+          {
+               build_clipped_rectangle_outlines( rect, &state->clip, rects, &num );
 
-          if (edges) {
-               if (gAcquire( state, DFXL_DRAWLINE )) {
-                    DFBRectangle r;
-                    int          t  = (edges & DFEF_TOP ? 1 : 0);
-                    int          tb = t + (edges & DFEF_BOTTOM ? 1 : 0);
-
-                    if (edges & DFEF_LEFT) {
-                         r.x = rect->x;
-                         r.y = rect->y + t;
-                         r.w = 1;
-                         r.h = rect->h - tb;
-
-                         gFillRectangle( state, &r );
-                    }
-                    if (edges & DFEF_TOP) {
-                         r.x = rect->x;
-                         r.y = rect->y;
-                         r.w = rect->w;
-                         r.h = 1;
-
-                         gFillRectangle( state, &r );
-                    }
-                    if (edges & DFEF_RIGHT) {
-                         r.x = rect->x + rect->w - 1;
-                         r.y = rect->y + t;
-                         r.w = 1;
-                         r.h = rect->h - tb;
-
-                         gFillRectangle( state, &r );
-                    }
-                    if (edges & DFEF_BOTTOM) {
-                         r.x = rect->x;
-                         r.y = rect->y + rect->h - 1;
-                         r.w = rect->w;
-                         r.h = 1;
-
-                         gFillRectangle( state, &r );
-                    }
-
-                    gRelease (state);
+               for (; i<num; i++) {
+                    hw = card->funcs.FillRectangle( card->driver_data,
+                                                    card->device_data, &rects[i] );
+                    if (!hw)
+                         break;
                }
+
+               dfb_gfxcard_state_release( state );
           }
+     }
+
+     if (!hw && gAcquire( state, DFXL_FILLRECTANGLE )) {
+          if (!num)
+               build_clipped_rectangle_outlines( rect, &state->clip, rects, &num );
+
+          for (; i<num; i++)
+               gFillRectangle( state, &rects[i] );
+
+          gRelease (state);
      }
 
      dfb_state_unlock( state );
