@@ -2,9 +2,8 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src
-
-CFLAGS = $(DFB_CFLAGS)
+	-I$(top_srcdir)/src	\
+	$(DFB_CFLAGS)
 
 
 internalincludedir = $(INTERNALINCLUDEDIR)/display
@@ -23,5 +22,3 @@ libdirectfb_display_la_SOURCES =	\
 	idirectfbsurface_layer.c 	\
 	idirectfbsurface_window.c 	\
 	idirectfbdisplaylayer.c
-
-libdirectfb_display_la_LIBADD = $(THREAD_LIBS)

@@ -5,21 +5,13 @@ SUBDIRS = fusion
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
-	-I$(top_srcdir)/src
-
-noinst_LTLIBRARIES = libdirectfb_core.la
-
-libdirectfb_core_la_LIBADD = \
-	fusion/libdirectfb_core_fusion.la	\
-	$(THREAD_LIBS)
-
-libdirectfb_core_la_LDFLAGS = -export-dynamic
-
-CFLAGS = $(DFB_CFLAGS)
+	-I$(top_srcdir)/src		\
+	$(DFB_CFLAGS)
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\
 	-DMODULEDIR=\"@MODULEDIR@\"
+
 
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
@@ -38,6 +30,12 @@ internalinclude_HEADERS = \
 	sig.h			\
 	windows.h		\
 	vt.h
+
+
+noinst_LTLIBRARIES = libdirectfb_core.la
+
+libdirectfb_core_la_LIBADD = \
+	fusion/libdirectfb_core_fusion.la
 
 libdirectfb_core_la_SOURCES = \
 	core.c			\

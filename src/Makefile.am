@@ -5,9 +5,8 @@ SUBDIRS = core display media windows input misc gfx
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
-	-I$(top_srcdir)/src
-
-CFLAGS = $(DFB_CFLAGS)
+	-I$(top_srcdir)/src		\
+	$(DFB_CFLAGS)
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\
@@ -29,7 +28,6 @@ libdirectfb_la_SOURCES = 	\
 libdirectfb_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
 	-release $(LT_RELEASE)					\
-	-export-dynamic						\
 	-export-symbols $(srcdir)/export_list.sym		\
 	$(DFB_LDFLAGS)
 

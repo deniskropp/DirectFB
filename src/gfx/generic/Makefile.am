@@ -2,11 +2,10 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src
+	-I$(top_srcdir)/src	\
+	$(DFB_CFLAGS)		\
+	$(DFB_CFLAGS_OMIT_FRAME_POINTER)
 
-CFLAGS = $(DFB_CFLAGS) $(DFB_CFLAGS_OMIT_FRAME_POINTER)
-
-noinst_LTLIBRARIES = libdirectfb_generic.la
 
 if BUILDMMX
 ASMSOURCES = \
@@ -24,6 +23,9 @@ ASMSOURCES = \
 else
 ASMSOURCES =
 endif
+
+
+noinst_LTLIBRARIES = libdirectfb_generic.la
 
 libdirectfb_generic_la_SOURCES = \
 	generic.c		\

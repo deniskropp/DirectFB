@@ -1,22 +1,15 @@
-## Makefile.am for DirectFB/src/core
+## Makefile.am for DirectFB/src/core/fusion
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
-	-I$(top_srcdir)/src
-
-noinst_LTLIBRARIES = libdirectfb_core_fusion.la
-
-libdirectfb_core_fusion_la_LIBADD = \
-	$(THREAD_LIBS)
-
-libdirectfb_core_fusion_la_LDFLAGS = -export-dynamic
-
-CFLAGS = $(DFB_CFLAGS)
+	-I$(top_srcdir)/src		\
+	$(DFB_CFLAGS)
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\
 	-DMODULEDIR=\"@MODULEDIR@\"
+
 
 internalincludedir = $(INTERNALINCLUDEDIR)/core/fusion
 
@@ -29,6 +22,9 @@ internalinclude_HEADERS = \
 	ref.h		\
 	shmalloc.h	\
 	fusion_types.h
+
+
+noinst_LTLIBRARIES = libdirectfb_core_fusion.la
 
 libdirectfb_core_fusion_la_SOURCES = \
 	arena.c			\

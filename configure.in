@@ -63,14 +63,15 @@ AC_HEADER_STDC
 AC_C_CONST
 
 
+DFB_CFLAGS="-D_REENTRANT"
+
+
 dnl Linux framebuffer
 AC_CHECK_HEADER(linux/fb.h,,
   AC_MSG_ERROR([*** DirectFB requires Linux with framebuffer support.]))
 
 dnl Threads
-AC_CHECK_LIB(pthread, pthread_attr_init,
-  THREAD_LIBS="$LIBS -lpthread"
-  THREAD_CFLAGS="-D_REENTRANT",
+AC_CHECK_LIB(pthread, pthread_attr_init, ,
   AC_MSG_ERROR([*** DirectFB requires libpthread.]))
 
 dnl Dynamic Linker
@@ -78,7 +79,7 @@ AC_CHECK_LIB(dl, dlopen, ,
   AC_MSG_ERROR([*** DirectFB requires libdl.]))
 
 if test "x$GCC" = xyes; then
-  DFB_CFLAGS="-ffast-math -Wall"
+  DFB_CFLAGS="$DFB_CFLAGS -ffast-math -Wall"
 fi
 
 
@@ -420,7 +421,7 @@ AC_CHECK_HEADER( [dbox/fp.h], dbox2remote=yes, dbox2remote=no
 AM_CONDITIONAL(DBOX2REMOTE, test x$dbox2remote = xyes)
 
 
-DFB_CFLAGS="$THREAD_CFLAGS $DFB_CFLAGS $DFB_INTERNAL_CFLAGS"
+DFB_CFLAGS="$DFB_CFLAGS $DFB_INTERNAL_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
 
 if test x$cflags_set != xset ; then
@@ -447,7 +448,6 @@ AC_SUBST(DFB_CFLAGS_OMIT_FRAME_POINTER)
 AC_SUBST(DFB_LDFLAGS)
 AC_SUBST(DFB_CXXFLAGS)
 AC_SUBST(DFB_INTERNAL_CFLAGS)
-AC_SUBST(THREAD_LIBS)
 AC_SUBST(GIF_PROVIDER)
 AC_SUBST(JPEG_PROVIDER)
 AC_SUBST(PNG_PROVIDER)

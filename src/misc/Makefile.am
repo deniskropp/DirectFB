@@ -2,9 +2,8 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src
-
-CFLAGS = $(DFB_CFLAGS)
+	-I$(top_srcdir)/src	\
+	$(DFB_CFLAGS)
 
 
 internalincludedir = $(INTERNALINCLUDEDIR)/misc
@@ -33,5 +32,3 @@ libdirectfb_misc_la_SOURCES =	\
 	tree.c			\
 	utf8.c			\
 	util.c
-
-libdirectfb_misc_la_LIBADD = $(THREAD_LIBS)

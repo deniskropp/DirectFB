@@ -4,9 +4,8 @@ SUBDIRS = generic
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src
-
-CFLAGS = $(DFB_CFLAGS)
+	-I$(top_srcdir)/src	\
+	$(DFB_CFLAGS)
 
 
 internalincludedir = $(INTERNALINCLUDEDIR)/gfx
@@ -25,5 +24,4 @@ libdirectfb_gfx_la_SOURCES = \
 	util.c
 
 libdirectfb_gfx_la_LIBADD = \
-	generic/libdirectfb_generic.la	\
-	$(THREAD_LIBS)
+	generic/libdirectfb_generic.la
