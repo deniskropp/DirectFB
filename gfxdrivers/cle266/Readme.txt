@@ -13,6 +13,10 @@ vga=789 video=vesa:ywrap
 
 vga=789 sets 800x600 pixels, 32 bits per pixel.
 
+(Note added by andi)
+You might want to add ,vram:32 to you video= parameter, I had to specify
+this to use the full 32MB of video ram  
+
 2. Configure the kernel for the device file system (devfs)
 
 3. Install the cle266vgaio module. It probes the PCI subsystem and won't
@@ -102,6 +106,3 @@ Known bugs and quirks
 
 * Blitting outside the screen is buggy (e.g with negative surface
   coordinates). The result is clipped, but does not look right.
-
-* DirectFB announces the driver as "DirectFB/GraphicsDevice: MMX Software
-  Rasterizer 0.1" rather than "Via UniChrome Driver".

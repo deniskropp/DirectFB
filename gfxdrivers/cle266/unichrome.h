@@ -104,9 +104,7 @@ typedef struct _UcDriverData {
     __u8*           hwregs;     // Hardware register base
     struct uc_fifo* fifo;       // Data FIFO.
 
-    CoreSurface*    vq_surface; // VQ related
-    bool            vq_locked;
-    __u32           vq_start;
+    __u32           vq_start;   // VQ related
     __u32           vq_size;
     __u32           vq_end;
 
