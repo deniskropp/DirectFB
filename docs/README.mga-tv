@@ -1,0 +1,533 @@
+	DIRECTFB MATROX G400/G450/G550 TV-OUT -HOWTO
+
+	Pekka Tiittanen, peti at kauhajoki.fi
+
+	Ville Syrjälä, syrjala at sci.fi
+
+  	v0.1, 5 April 2003
+
+  	This document describes how to set up tv-output with DirectFB when using
+  	Matrox Dualhead hardware. It tries to be an easy guide to set up DirectFB and
+	possible software alongside it.
+	
+  	-----------------------------------------------------------------------------
+
+	Table of Contents
+
+
+
+	1.	Introduction
+	
+		1.1 Copyright of this document
+	  	1.2 Where to get this document
+	  		1.2.1 Version history
+		1.3 Acknowledgments
+	  	1.4 Disclaimer
+		
+  	2. Hardware requirements
+
+  	3. Software requirements
+
+  	4. System configuration
+
+	  	4.1 Unpacking sources and patching the kernel
+	  	4.2 Configuring and compiling the kernel
+	  	4.3 Installing new kernel and modules
+	  	4.4 Installing DirectFB
+	
+  	5. Applications
+	
+	  	5.1 Compiling MPlayer
+
+	6. How to make it even better.
+
+  	-----------------------------------------------------------------------------
+
+  	1. Introduction
+
+	If you own a Matrox G400/450/550 video card with dualhead, you
+	probably know the feature Matrox calls "DVDMax". The main purpose 
+	of this feature is to display a videofile that is playing to a television.
+	That videofile can be almost anything mpeg, avi or a DVD (but not
+	Quicktime or RealMedia AFAIK).
+
+	Hre's the  part you may know if you're reading this document. Matrox 
+	has been  reluctant of giving information how to use this feature in 
+	other OS's,  for example they have given information on how to use 
+	this feature with a G400 card but not with G450 or G550. Luckily we
+	have people who are capable to figure these things out. I'm refering 
+	to Ville Syrjälä who has contributed to the DirectFB project with
+	code that enables the use of tv-out with these cards. Some of the 
+	main benefits of DirectFB include:
+	
+	- interlaced picture
+	- 720x576 50Hz PAL and 720x480 60Hz NTSC
+	- ARGB1555, RGB16, RGB32, ARGB, YUY2, UYVY, I420, YV12 pixel formats
+	- hardware blended sub-picure in I420 and YV12 modes
+	- brightness, contrast, hue, saturation adjustments
+	- no more tweaking sessions with fbset to get the image centered :)
+
+	On the downside is that you are not able to use your console while
+	watching movies. And probably your X Window System is not going
+	to work properly when booting to kernel with all the patches. (atleast
+	i'm not able to do that, but when I'm watching a movie, I don't need
+	X.)
+	
+	This document is intended to people with atleast some knowledge on 
+	how to configure and compile the Linux kernel and other 	software. I
+	do not recommend it to newbies or people who are not comfortable
+	and sure of what they are doing. If you feel uncertain about your skills, 
+	please do not continue further. But if you feel that you are able to do
+	things described above, you can continue reading.
+	
+	Please read this document fully through before actually doing anything.
+	
+	Also note that I won't always say should you do some operations as
+	root or not. Some operations do need root privileges.
+	
+	All notes, complaints, corrections, money, hardware or broadband
+	Internet connection donations are welcome.
+	
+	
+	1.1 Copyright of this document
+	
+	This HOWTO is copyrighted 2003 Pekka Tiittanen, Ville Syrjälä.
+	
+	Unless otherwise stated, Linux HOWTO documents are copyrighted by
+  	their respective authors. Linux HOWTO documents may be reproduced 
+	and distributed in whole or in part, in any medium physical or electronic,
+  	as long as this copyright notice is retained on all copies. Commercial
+  	redistribution is allowed and encouraged; however, the author would
+  	like to be notified of any such distributions.
+
+  	All translations, derivative works, or aggregate works incorporating any 
+	Linux HOWTO documents must be covered under this copyright notice.
+  	That is, you may not produce a derivative work from a HOWTO and impose
+  	additional restrictions on its distribution. Exceptions to these rules
+  	may be granted under certain conditions; please contact the Linux
+  	HOWTO co-ordinator at the address given below.
+  	In short, we wish to promote dissemination of this information through
+  	as many channels as possible. However, we do wish to retain copyright
+  	on the HOWTO documents, and would like to be notified of any plans to
+  	redistribute the HOWTOs.
+
+
+	1.2 Where to get this document
+	
+	The most recent official document can be obtained from here:
+	
+	plain-text:
+	
+		http://www.sci.fi/~syrjala/directfb/matrox-tv-out-howto
+	
+		http://www.kauhajoki.fi/~peti/directfb/matrox-tv-out-howto
+
+	gzipped, plain text:
+
+		http://www.sci.fi/~syrjala/directfb/matrox-tv-out-howto.gz
+
+		http://www.kauhajoki.fi/~peti/directfb/matrox-tv-out-howto.gz
+	
+	
+	1.2.1 Version history
+	
+	v0.1, 5 April 2003
+		
+	o Initial release. May contain a LOT of mistakes and errors.
+
+
+	1.3 Acknowledgements
+	
+	All copyrights are owned by their owners, unless specifically noted
+  	otherwise.  Use of a term in this document should not be regarded 
+	as affecting the validity of any trademark or service mark.
+		
+	Thank you for Ville Syrjälä for making this possible and for writing 
+	the  original document. Thanks also go to all the people behind the
+	DirectFB project and to everyone who have contributed making this
+	possible.
+	
+	MPlayer team needs also a big thank you, without them we wouldn't
+	have MPlayer.
+	
+	
+	1.4 Disclaimer
+	
+	Use the information in this document at your own risk. I disavow any
+  	potential liability for the contents of this document. Use of the
+  	concepts, examples, and/or other content of this document is entirely
+  	at your own risk. This document most likely has some serious errors
+  	but I think that it is better than nothing.
+  	
+  	  	
+  	2. Hardware requirements
+  	
+	You obviously need a Matrox G400, G450 or G550 with DualHead capability, 
+	all proper cables and a television :-) to take full advantage of this HOWTO.
+	
+	
+	3. Software requirements
+	
+	The Linux kernel source, preferably most recent one or atleast 2.4.20.
+
+	DirectFB version 0.9.16 or later. (NOTE! version 0.9.17 has a serious 
+	bug and you probably can't use the tv-out -feature in that version. 
+	DO NOT USE IT). Or you can use it and get the patches from Ville's site
+		
+	MPlayer 0.90*, if you're planning to watch movies. Which you obviously are
+	trying to do.
+	
+	
+	4. System configuration
+	
+	4.1 Unpacking sources and patching kernel
+	
+	I strongly recommend that you use a different kernel source tree for 
+	this, because you have to apply couple of patches to the kernel and
+	that may interfere with other patches that you've earlier applied. 
+	
+	It isn't necessary to patch the kernel, but it's recommended, because you
+	get many features that otherwise won't be available.
+	
+	Unpack the kernel-package and DirectFB source package where ever you 
+	like. After unpacking, there's a subdirectory in the DirectFB named 'patches',
+	there you'll find three patches.
+	
+		fusion-full-linux-2.4.20.patch.bz2
+		matroxfb-32mb.diff.bz2
+		matroxfb-vsync-c2vline-irq-patch-2.4.19.bz2
+	
+	Apply these patches, while you are in the root of the kernel sources (eg.
+	/usr/src/linux-directfb/linux-2.4.20/). There are a couple of ways to do this,
+	either by first copying these files to the root of kernel sources or just
+	going there and applying from there. You can do like this:
+	
+	--------------------------------------------------------------------------------------------
+	NOTE! At the moment of writing it seems that the patchfile 
+	'matroxfb-32mb.diff.bz2' that is delivered with the DirectFB 0.9.17
+	has a bug in it and it requires a bit of  tweaking to get it to apply. 
+	Here are the instructions: (Or go and get a working one from Ville's site.)
+	
+		'bunzip2 matroxfb-32mb.diff.bz2'
+		
+	now edit the file 'matroxfb-32mb.diff' with your favorite editor and replace the
+	following two lines at the top of the file:
+	
+	--- matroxfb_base.c.old 2002-11-14 20:52:42.000000000 +0100
+	+++ matroxfb_base.c     2002-11-14 20:53:00.000000000 +0100
+
+	with these two lines:
+	
+	--- linux/drivers/video/matrox/matroxfb_base.c.old      2002-11-14 20:52:42.000000000 +0100
+	+++ linux/drivers/video/matrox/matroxfb_base.c  2002-11-14 20:53:00.000000000 +0100
+
+	And apply the patch with this command:
+	
+		patch -p1 < matroxfb-32mb.diff 
+		
+	and it should say 'patching file drivers/video/matrox/matroxfb_base.c'
+	--------------------------------------------------------------------------------------------
+
+	To apply the other two patches do this:
+	
+		'bzcat fusion-full-linux-2.4.20.patch.bz2 | patch -p1'
+		'bzcat matroxfb-vsync-c2vline-irq-patch-2.4.19.bz2 | patch -p1'		
+	
+	Patch-command outputs some lines saying 'patching file ...', if 
+	everything worked fine.
+
+	Here's a short description of what these patches do.
+	
+	fusion-full-linux-2.4.20.patch.bz2:
+	Enables the use of multiple DirectFB applications.
+	
+	matroxfb-32mb.diff.bz2:
+	Use this patch if you have a 32MB card and you want DirectFB to use
+	all the memory instead of just 16MB. It won't hurt anything with a
+	16MB card either.
+	
+	matroxfb-vsync-c2vline-irq-patch-2.4.19.bz2:
+	This patch enables IRQ based vblank waiting. Make sure your card has
+	an IRQ assigned to it. You may have an option in the BIOS setup for
+	this.
+		
+
+	4.2 Configuring and compiling kernel
+	
+	Here I will only tell you what options to compile to get the framebuffer
+	and directfb working, you must also select many other things depending 
+	on your system. IDE-support, etc. Remember to select them also.
+	
+	I like to use 'make menuconfig' when selecting what to compile, I 
+	recommend you also use it.
+	
+	If not otherwise mentioned, these options are for all the cards (G400, 
+	G450 and G550). Also these options can be either modules or compiled 
+	directly in your kernel.
+	
+	Enable these:
+	
+	Processor type and features  --->
+		[*] MTRR (Memory Type Range Register) support
+	
+	Code maturity level options  --->
+		Prompt for development and/or incomplete code/drivers
+		
+	Character devices  --->
+		Fusion Kernel Device (NEW)
+	
+	-------------------------------------------------------------
+	For G400 only:
+
+	Character devices  --->
+		I2C support  --->
+			I2C support
+			I2C bit-banging interfaces (NEW)
+			I2C device interface (NEW)
+			I2C /proc interface (required for hardware sensors) (NEW)	
+	-------------------------------------------------------------
+	
+	Console drivers  --->
+		Frame-buffer support  --->
+			Support for frame buffer devices (EXPERIMENTAL) (NEW)
+			Matrox acceleration (EXPERIMENTAL) (NEW)
+			G100/G200/G400/G450/G550 support (NEW)
+			
+	This is only for G450/G550:
+			G450/G550 second head support (mandatory for G550)		
+			
+	This is only for G400:
+			Matrox I2C support (NEW)
+			
+	And you _must_ enable this:
+	
+		File systems  --->
+			Virtual memory file system support (former shm fs)
+			
+	NOTE! Some of these options aren't available until you have enabled
+	some other options. For example 'Matrox I2C support (NEW)' is  available 
+	after you've enabled all the options under the 'I2C support  --->'.
+	
+	NOTE! Do not build 'G400 second head support' into the kernel. It 
+	will prevent DirectFB from controlling the TV-out. If you really need
+	it make it a module so you can remove it before using DirectFB.
+	
+	NOTE! You must also create the fusion device file:
+
+		'mknod /dev/fusion c 10 23'
+	
+	After you've enable all the options you need, you can compile the kernel
+	(Do this in '/usr/src/linux-direcfb/linux-x.x.xx/'):
+	
+		'make dep; make bzImage modules'
+	
+	Depending on the speed of your machine this can take from a few minutes 
+	to about 30 minutes. Now it's a good time to go and make some coffee or 
+	tea (or whaterver you prefer to drink).
+	
+	
+	4.3 Installing new kernel and modules
+	
+	After kernel has compiled, you can go ahead and install it (On my 
+	system I copy it to /boot, your system may differ. x.x.xx represents 
+	the kernel version number):
+
+		'cp /usr/src/linux-directfb/linux-x.x.xx/arch/i386/boot/bzImage /boot/vmlinuz-directfb-1'
+			
+	Make a backup of your existing modules:
+	
+		'cp -a /lib/modules/x.x.xx/ /lib/modules/x.x.xx-backup'
+			
+	After that install modules (Do this in '/usr/src/linux-direcfb/linux-x.x.xx/'):
+	
+		'make modules_install'
+			
+	Now it's time to edit '/etc/lilo.conf' and add the new kernel there:
+	
+		image=/boot/vmlinuz-directfb-1
+		label=DirectFB
+		read-only						# read-only for ext2/3, read-write for reiserfs
+
+	Remember to run command 'lilo' after editing lilo.conf.
+	
+	Also add this row to '/etc/fstab' if it isn't there already:
+	
+		tmpfs           /dev/shm        tmpfs   defaults                                0       0
+		
+	Make sure you have the proper /dev/i2c-N device file in place. After 
+	loading i2c-matroxfb module you should see MAVEN in /proc/bus/i2c. 
+	You must have the corresponding device file. To create these files 
+	use:
+   	
+		'mknod /dev/i2c-N c 89 N' where N is 0,1,2...
+   	
+	The number might change depending on the order you load i2c modules
+   	so you may want to create some extra files.
+	
+	Now everything should be in order, so boot to the framebuffer enabled
+	kernel.
+	
+	
+	4.4 Installing DirectFB
+	
+	Compiling DirectFB should be very straight-forward operation.
+	
+		'cd /usr/src/DirectFB-x.x.xx'
+		
+		'./configure --enable-multi'
+		
+		'make'
+		
+		'make install'
+		
+	Use the option '--enable-multi' if you applied the fusion-patch.
+	
+	After installing, edit the file '/etc/directfbrc' or '~/.directfbrc' and
+	add these options:
+	
+		matrox-crtc2
+		matrox-tv-standard=pal
+		or
+		matrox-tv-standard=ntsc
+		
+
+	Pal is used in many european countries and ntsc in USA, Canada
+	and Japan, if I remember corretcly. Newer pal-televisions accept
+	also ntsc, but IMO pal gives you better image.
+	
+	You may want to also do a 'ldconfig'.
+	
+	
+	5. Applications
+	
+	5.1 MPlayer
+	
+	First You probably want to have w32codecs and other codecs installed, so
+	take all the packages you want, and install them under '/usr/local' or
+	where ever you want to put them. I recommend that you download
+	w32codecs, rp9codecs and qtcodecs, so you can also view RealMedia
+	and Quicktime formats.
+	
+	When configuring MPlayer, use the DVD specific options if you're planning
+	to watch DVDs.
+	
+	Unpack MPlayer somewhere, go there and use this:
+	
+		'./configure --enable-dvdnav --with-win32libdir=/usr/local/w32libdir \
+		--with-reallibdir=/usr/local/rp9codecs --enable-gui --enable-menu'
+		
+	These are probably the options you want to have. If you want any other
+	options you can get a list of all options with './configure --help'.
+	
+	After configure has finished, you might want to check a couple of things
+	from it's output (this is what it outputs on my machine, you might get
+	different output):
+	
+		Enabled optional drivers:
+    	Input: edl dvdnav mpdvdkit2 vcd
+    	Codecs: qtx libavcodec real dshow/dmo win32 libvorbis libmad liblzo gif
+    	Audio output: esd oss mpegpes(file)
+    	Video output: xvidix vesa gif89a jpeg png mpegpes(file) fbdev aa xmga mga dfbmga directfb
+
+		Disabled optional drivers:
+    	Input: streaming tv-v4l tv-bsdbt848 tv cdda dvdread dvdcss
+    	Codecs: opendivx xvid libdv xanim
+    	Audio output: sgi sun alsa arts dxr2 nas win32 sdl
+    	Video output: bl zr dxr3 dxr2 directx sdl svga ggi tdfxfb 3dfx
+
+	From this output we clearly see, that it has found the qtx, win32 and 
+	real dshow/dmo codecs
+	
+	Now take a closer look at the 'Video output:' at the end of that line
+	it says 'dfbmga direcfb' which means that it has found the DirectFB 
+	installation we did earlier. Good. Also notice that you have to compile
+	mplayer after you've installed new version of DirectFB, but there might
+	be a possibility, that mplayer doesn't always work with the newest
+	version of DirectFB. So you might want to consider the benefits of the
+	new version.
+	
+	If everything is fine:
+	
+		'make'
+		
+	This takes also a while to compile, so do something useful, perhaps
+	you could make your partner (if you have one) happy by washing 
+	the dishes. Who knows, maybe you'll get lucky later... ;)
+	
+	After it has compiled:
+	
+		'make install'
+	
+		'cp etc/input.conf ~/.mplayer/'
+		'cp etc/menu.conf ~/.mplayer/'
+		
+	Remember to create '.mplayer' first if it doesn't exist. MPlayer
+	creates it when you run it for the first time.
+	
+	Now we can give it a go, connect all the cables you want, turn 
+	on your television select the correct channel and type this:
+	
+	(file.avi is the file you want to play.)
+	
+		'mplayer file.avi -vo dfbmga -ao oss -fs' 
+		
+	It should change the resolution on your monitor and output the
+	video to your tv. Now the file should be playing on your tv. If
+	it worked congratulations! If not, you probably missed something.
+	
+	If you want to play a dvd, use this command:
+	
+		'mplayer -dvd 1 -vo dfbmga -ao oss -fs'
+		
+	'-fs' is optional, use it if seems that mplayer is playing the dvd, but
+	the tv is just black. You can also use these options:
+	
+		'mplayer -dvd 1 -vo dfbmga -ao oss -fs -autosync 30 -cache 16384'
+		'mplayer -dvd 1 -vo dfbmga -ao oss -fs -autosync 30 -cache 16384 -framedrop'
+		
+	'-framedrop' does just what it says, it drops frames if playback slows too much.
+	This option is on by default if you use the Matrox DVD Player, so it probably
+	isn't a bad idea to use it also here.
+	
+	'man mplayer' tells you more about it's options.
+	
+	If you play a video file with a small resolution, you may want to use this:
+	
+		'mplayer file.avi -vo dfbmga -ao oss -fs -vsync'
+		
+	And that's it. Hopefully you got it working and this document was any
+	help to you. If you have problems you can always ask me or Ville about
+	them. Just email us and we'll try to help you out.
+	
+	And now if it didn't work out or you noticed that i've done something
+	horribly wrong, please let me know, so I can correct those errors.
+	
+	
+	6. How to make it even better.
+	
+	If you tried out the above, here's something you might like to try. It
+	improves the video playback a LOT and you don't have to use the 
+	-vsync switch anymore. 
+	
+	Go get the CVS-version of DirectFB. Instructions on how to get the
+	CVS-version of DirectFB are at www.directfb.org, developers-section.
+	
+	Go grab these files from Ville Syrjälä's website:
+	
+		dfbmga_update.patch
+		mplayer_triple_option.patch
+		
+	And apply these patches to mplayer 0.90rc5.
+	
+	Compile the CVS-version of DirectFB and MPlayer, use the same options
+	as mentioned above, install and try this:
+	
+		'mplayer -vo dfbmga -ao oss -triple -fs file.avi'
+	
+	You should see a perfect, triple-buffered video file playing on your TV,
+	without any vsync-problems. You don't need to use the -vsync switch
+	anymore, because if you use -triple -vsync, it acts like -double -vsync,
+	but uses a lot more memory.
+	
+	If you don't like messing with CVS-versions of software, you can always
+	wait for the 0.9.18-version of DirectFB scheduled somewhere in the future.
