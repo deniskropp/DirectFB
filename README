@@ -15,22 +15,26 @@ Build Requirements
 
    - Linux kernel 2.2.x or newer with working frame buffer device
      (check /proc/fb) for the fbdev system.
-   - SDL (Simple DirectMedia Layer) for the sdl system (optional).
+   - Optionally SDL (Simple DirectMedia Layer) for the sdl system.
 
    - freetype (version >= 2.0.1)
-   - libpng2
    - libjpeg62
+   - libpng2 or libpng3
    - zlib
 
    The build of the image and font providers can be disabled but we
-   strongly suggest that you don't do this since the code examples and a
-   lot of DirectFB apps depend on the functionality provided by them.
+   strongly suggest that you don't do this since the code examples and
+   a lot of DirectFB apps depend on the functionality provided by them.
 
    The video providers require some libraries (avifile, libflash and
    libmpeg3) that are not commonly installed. We have provided packages
    on our web-site at http://www.directfb.org/download/contrib/. If for
    some reason the build of one of the video providers fails, you can
    disable it explicitely. Check the output of 'configure --help'.
+
+   We suggest you also install pkg-config available from
+   http://www.freedesktop.org/software/pkgconfig/. It will help you
+   to compile applications based on DirectFB.
 
 
 Usage Requirements
@@ -39,11 +43,10 @@ Usage Requirements
    Depending on the DirectFB application you want to run, you need some
    or all of these:
 
-   - A working frame buffer device (check the output of fbset -i).
+   - A working frame buffer device (check the output of 'fbset -i').
    - A keyboard (if it works on the console, everything should be fine).
-   - A PS/2 or serial mouse (MS protocol) for windowing, USB and ADB mice
-     also work via PS/2 emulation.
-
+   - A PS/2 or serial mouse for windowing. USB and ADB mice do also work
+     via PS/2 emulation.
 
    To access the frame buffer device and the mouse you need access to
    /dev/tty0, /dev/fb0 and the mouse device (/dev/psaux, /dev/mouse).
@@ -88,9 +91,9 @@ Installation
    2) Make sure that /usr/local/lib is listed in your /etc/ld.so.conf.
       If you added it you have to run 'ldconfig' as superuser.
 
-   3) Copy fb.modes to /etc or merge it with your existing /etc/fb.modes
-      file. The first entry will be used by default - copy other entries
-      you may need.
+   3) You might want to copy fb.modes to /etc or merge it with your
+      existing /etc/fb.modes file. The first entry will be used by
+      default - copy other entries you may need.
 
    4) If you want to use a serial mouse, create a link called /dev/mouse
       that points to serial device (e.g. /dev/ttyS0). Then add a line
@@ -106,6 +109,18 @@ Installation
         then be sure to
           export PATH=/dfb/usr/local/bin:$PATH
         before compiling and installing.
+
+
+Configuring DirectFB
+--------------------
+
+   There are lots of things that can be configured. We try to ship DirectFB
+   with reasonable defaults but you might have to tweak things. There are
+   several ways to do this. You may edit the system-wide configuration
+   file /etc/directfbrc or the user-specific $HOME/.directfbrc. There's a
+   manual page called directfbrc(5) that documents all the settings. The
+   same manual page also explains how DirectFB application can be
+   configured via the command-line.
 
 
 Configuring the Linux framebuffer device
