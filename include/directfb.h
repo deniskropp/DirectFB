@@ -2235,7 +2235,7 @@ DEFINE_INTERFACE(   IDirectFBScreen,
  */
 DEFINE_INTERFACE(   IDirectFBDisplayLayer,
 
-   /** Retrieving information **/
+   /** Information **/
 
      /*
       * Get the unique layer ID.
@@ -2253,8 +2253,36 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           DFBDisplayLayerDescription         *ret_desc
      );
 
+     /*
+      * Get a description of available sources.
+      *
+      * All descriptions are written to the array pointed to by
+      * <b>ret_descriptions</b>. The number of sources is returned by
+      * IDirectFBDisplayLayer::GetDescription().
+      */
+     DFBResult (*GetSourceDescriptions) (
+          IDirectFBDisplayLayer              *thiz,
+          DFBDisplayLayerSourceDescription   *ret_descriptions
+     );
 
-   /** Surface & Screen **/
+     /*
+      * For an interlaced display, this returns the currently inactive
+      * field: 0 for the top field, and 1 for the bottom field.
+      *
+      * The inactive field is the one you should draw to next to avoid
+      * tearing, the active field is the one currently being displayed.
+      *
+      * For a progressive output, this should always return 0.  We should
+      * also have some other call to indicate whether the display layer
+      * is interlaced or progressive, but this is a start.
+      */
+     DFBResult (*GetCurrentOutputField) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                *ret_field
+     );
+
+
+   /** Interfaces **/
 
      /*
       * Get an interface to layer's surface.
@@ -2275,7 +2303,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      );
 
 
-   /** Settings **/
+   /** Configuration **/
 
      /*
       * Set cooperative level to get control over the layer
@@ -2285,122 +2313,6 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           IDirectFBDisplayLayer              *thiz,
           DFBDisplayLayerCooperativeLevel     level
      );
-
-     /*
-      * Set global alpha factor for blending with layer(s) below.
-      */
-     DFBResult (*SetOpacity) (
-          IDirectFBDisplayLayer              *thiz,
-          __u8                                opacity
-     );
-
-     /*
-      * Set the source rectangle.
-      *
-      * Only this part of the layer will be displayed.
-      */
-     DFBResult (*SetSourceRectangle) (
-          IDirectFBDisplayLayer              *thiz,
-          int                                 x,
-          int                                 y,
-          int                                 width,
-          int                                 height
-     );
-
-     /*
-      * Set location on screen as normalized values.
-      *
-      * So the whole screen is 0.0, 0.0, -1.0, 1.0.
-      */
-     DFBResult (*SetScreenLocation) (
-          IDirectFBDisplayLayer              *thiz,
-          float                               x,
-          float                               y,
-          float                               width,
-          float                               height
-     );
-
-     /*
-      * Set the source color key.
-      *
-      * If a pixel of the layer matches this color the underlying
-      * pixel is visible at this point.
-      */
-     DFBResult (*SetSrcColorKey) (
-          IDirectFBDisplayLayer              *thiz,
-          __u8                                r,
-          __u8                                g,
-          __u8                                b
-     );
-
-     /*
-      * Set the destination color key.
-      *
-      * The layer is only visible at points where the underlying
-      * pixel matches this color.
-      */
-     DFBResult (*SetDstColorKey) (
-          IDirectFBDisplayLayer              *thiz,
-          __u8                                r,
-          __u8                                g,
-          __u8                                b
-     );
-
-     /*
-      * Get the current display layer level.
-      *
-      * The level describes the z axis position of a layer. The
-      * primary layer is always on level zero unless a special
-      * driver adds support for level adjustment on the primary
-      * layer.  Layers above have a positive level, e.g. video
-      * overlays.  Layers below have a negative level, e.g. video
-      * underlays or background layers.
-      */
-     DFBResult (*GetLevel) (
-          IDirectFBDisplayLayer              *thiz,
-          int                                *ret_level
-     );
-
-     /*
-      * Set the display layer level.
-      *
-      * Moves the layer to the specified level. The order of all
-      * other layers won't be changed. Note that only a few
-      * layers support level adjustment which is reflected by
-      * their capabilities.
-      */
-     DFBResult (*SetLevel) (
-          IDirectFBDisplayLayer              *thiz,
-          int                                 level
-     );
-
-     /*
-      * For an interlaced display, this Returns the currently inactive
-      * field: 0 for the top field, and 1 for the bottom field.
-      *
-      * The inactive field is the one you should draw to next to avoid
-      * tearing, the active field is the one currently being displayed.
-      *
-      * For a progressive output, this should always return 0.  We should
-      * also have some other call to indicate whether the display layer
-      * is interlaced or progressive, but this is a start.
-      */
-     DFBResult (*GetCurrentOutputField) (
-          IDirectFBDisplayLayer              *thiz,
-          int                                *ret_field
-     );
-
-     /*
-      * For an interlaced display, this sets the field parity.
-      * field: 0 for top field first, and 1 for bottom field first.
-      */
-     DFBResult (*SetFieldParity) (
-          IDirectFBDisplayLayer              *thiz,
-          int                                 field
-     );
-
-
-   /** Configuration handling **/
 
      /*
       * Get current layer configuration.
@@ -2431,6 +2343,135 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      DFBResult (*SetConfiguration) (
           IDirectFBDisplayLayer              *thiz,
           const DFBDisplayLayerConfig        *config
+     );
+
+
+   /** Layout **/
+
+     /*
+      * Set location on screen as normalized values.
+      *
+      * So the whole screen is 0.0, 0.0, -1.0, 1.0.
+      */
+     DFBResult (*SetScreenLocation) (
+          IDirectFBDisplayLayer              *thiz,
+          float                               x,
+          float                               y,
+          float                               width,
+          float                               height
+     );
+
+     /*
+      * Set location on screen in pixels.
+      */
+     DFBResult (*SetScreenPosition) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                 x,
+          int                                 y
+     );
+
+     /*
+      * Set location on screen in pixels.
+      */
+     DFBResult (*SetScreenRectangle) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                 x,
+          int                                 y,
+          int                                 width,
+          int                                 height
+     );
+
+
+   /** Misc Settings **/
+
+     /*
+      * Set global alpha factor for blending with layer(s) below.
+      */
+     DFBResult (*SetOpacity) (
+          IDirectFBDisplayLayer              *thiz,
+          __u8                                opacity
+     );
+
+     /*
+      * Set the source rectangle.
+      *
+      * Only this part of the layer will be displayed.
+      */
+     DFBResult (*SetSourceRectangle) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                 x,
+          int                                 y,
+          int                                 width,
+          int                                 height
+     );
+
+     /*
+      * For an interlaced display, this sets the field parity.
+      * field: 0 for top field first, and 1 for bottom field first.
+      */
+     DFBResult (*SetFieldParity) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                 field
+     );
+
+
+   /** Color keyes */
+
+     /*
+      * Set the source color key.
+      *
+      * If a pixel of the layer matches this color the underlying
+      * pixel is visible at this point.
+      */
+     DFBResult (*SetSrcColorKey) (
+          IDirectFBDisplayLayer              *thiz,
+          __u8                                r,
+          __u8                                g,
+          __u8                                b
+     );
+
+     /*
+      * Set the destination color key.
+      *
+      * The layer is only visible at points where the underlying
+      * pixel matches this color.
+      */
+     DFBResult (*SetDstColorKey) (
+          IDirectFBDisplayLayer              *thiz,
+          __u8                                r,
+          __u8                                g,
+          __u8                                b
+     );
+
+
+   /** Z Order **/
+
+     /*
+      * Get the current display layer level.
+      *
+      * The level describes the z axis position of a layer. The
+      * primary layer is always on level zero unless a special
+      * driver adds support for level adjustment on the primary
+      * layer.  Layers above have a positive level, e.g. video
+      * overlays.  Layers below have a negative level, e.g. video
+      * underlays or background layers.
+      */
+     DFBResult (*GetLevel) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                *ret_level
+     );
+
+     /*
+      * Set the display layer level.
+      *
+      * Moves the layer to the specified level. The order of all
+      * other layers won't be changed. Note that only a few
+      * layers support level adjustment which is reflected by
+      * their capabilities.
+      */
+     DFBResult (*SetLevel) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                 level
      );
 
 
@@ -2492,6 +2533,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           IDirectFBDisplayLayer              *thiz,
           const DFBColorAdjustment           *adj
      );
+
 
    /** Windows **/
 
@@ -2597,33 +2639,6 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*WaitForSync) (
           IDirectFBDisplayLayer              *thiz
-     );
-
-
-   /** Retrieving information **/
-
-     /*
-      * Get a description of available sources.
-      *
-      * All descriptions are written to the array pointed to by
-      * <b>ret_descriptions</b>. The number of sources is returned by
-      * IDirectFBDisplayLayer::GetDescription().
-      */
-     DFBResult (*GetSourceDescriptions) (
-          IDirectFBDisplayLayer              *thiz,
-          DFBDisplayLayerSourceDescription   *ret_descriptions
-     );
-
-
-   /** Settings **/
-
-     /*
-      * Set location on screen in pixels.
-      */
-     DFBResult (*SetScreenPosition) (
-          IDirectFBDisplayLayer              *thiz,
-          int                                 x,
-          int                                 y
      );
 )
 

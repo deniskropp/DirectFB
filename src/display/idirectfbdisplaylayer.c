@@ -352,6 +352,45 @@ IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
+IDirectFBDisplayLayer_SetScreenPosition( IDirectFBDisplayLayer *thiz,
+                                         int                    x,
+                                         int                    y )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (! D_FLAGS_IS_SET( data->desc.caps, DLCAPS_SCREEN_POSITION ))
+          return DFB_UNSUPPORTED;
+
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
+
+     return dfb_layer_context_set_screenposition( data->context, x, y );
+}
+
+static DFBResult
+IDirectFBDisplayLayer_SetScreenRectangle( IDirectFBDisplayLayer *thiz,
+                                          int                    x,
+                                          int                    y,
+                                          int                    width,
+                                          int                    height )
+{
+     DFBRectangle rect = { x, y, width, height };
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (! D_FLAGS_IS_SET( data->desc.caps, DLCAPS_SCREEN_LOCATION ))
+          return DFB_UNSUPPORTED;
+
+     if (width <= 0 || height <= 0)
+          return DFB_INVARG;
+
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
+
+     return dfb_layer_context_set_screenrectangle( data->context, &rect );
+}
+
+static DFBResult
 IDirectFBDisplayLayer_SetSrcColorKey( IDirectFBDisplayLayer *thiz,
                                       __u8                   r,
                                       __u8                   g,
@@ -754,22 +793,6 @@ IDirectFBDisplayLayer_GetSourceDescriptions( IDirectFBDisplayLayer            *t
      return DFB_OK;
 }
 
-static DFBResult
-IDirectFBDisplayLayer_SetScreenPosition( IDirectFBDisplayLayer *thiz,
-                                         int                    x,
-                                         int                    y )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-     if (! D_FLAGS_IS_SET( data->desc.caps, DLCAPS_SCREEN_POSITION ))
-          return DFB_UNSUPPORTED;
-
-     if (data->level == DLSCL_SHARED)
-          return DFB_ACCESSDENIED;
-
-     return dfb_layer_context_set_screenposition( data->context, x, y );
-}
-
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer )
@@ -837,6 +860,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->WaitForSync           = IDirectFBDisplayLayer_WaitForSync;
      thiz->GetSourceDescriptions = IDirectFBDisplayLayer_GetSourceDescriptions;
      thiz->SetScreenPosition     = IDirectFBDisplayLayer_SetScreenPosition;
+     thiz->SetScreenRectangle    = IDirectFBDisplayLayer_SetScreenRectangle;
 
      return DFB_OK;
 }

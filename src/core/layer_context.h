@@ -94,6 +94,9 @@ DFBResult dfb_layer_context_set_sourcerectangle( CoreLayerContext            *co
 DFBResult dfb_layer_context_set_screenlocation ( CoreLayerContext            *context,
                                                  const DFBLocation           *location );
 
+DFBResult dfb_layer_context_set_screenrectangle( CoreLayerContext            *context,
+                                                 const DFBRectangle          *rectangle );
+
 DFBResult dfb_layer_context_set_screenposition ( CoreLayerContext            *context,
                                                  int                          x,
                                                  int                          y );

@@ -863,6 +863,48 @@ dfb_layer_context_set_screenlocation( CoreLayerContext  *context,
 }
 
 DFBResult
+dfb_layer_context_set_screenrectangle( CoreLayerContext   *context,
+                                       const DFBRectangle *rectangle )
+{
+     DFBResult             ret;
+     CoreLayerRegionConfig config;
+
+     D_ASSERT( context != NULL );
+
+     DFB_RECTANGLE_ASSERT( rectangle );
+
+     /* Lock the context. */
+     if (dfb_layer_context_lock( context ))
+          return DFB_FUSION;
+
+     /* Do nothing if the location didn't change. */
+     if (context->screen.mode == CLLM_RECTANGLE &&
+         DFB_RECTANGLE_EQUAL( context->screen.rectangle, *rectangle ))
+     {
+          dfb_layer_context_unlock( context );
+          return DFB_OK;
+     }
+
+     /* Take the current configuration. */
+     config = context->primary.config;
+
+     /* Use supplied absolute screen coordinates. */
+     config.dest = *rectangle;
+
+     /* Try to set the new configuration. */
+     ret = update_primary_region_config( context, &config, CLRCF_DEST );
+     if (ret == DFB_OK) {
+          context->screen.rectangle = config.dest;
+          context->screen.mode      = CLLM_RECTANGLE;
+     }
+
+     /* Unlock the context. */
+     dfb_layer_context_unlock( context );
+
+     return ret;
+}
+
+DFBResult
 dfb_layer_context_set_screenposition( CoreLayerContext  *context,
                                       int                x,
                                       int                y )
