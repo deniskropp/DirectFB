@@ -781,7 +781,7 @@ primaryInitLayer         ( GraphicsDevice             *device,
 
      /* set name */
      snprintf( layer_info->desc.name,
-               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Primary Layer" );
+               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "FBDev Primary Layer" );
 
      /* fill out default color adjustment */
      default_adj->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_SATURATION;

@@ -200,7 +200,7 @@ primaryInitLayer         ( GraphicsDevice             *device,
 
      /* set name */
      snprintf( layer_info->desc.name,
-               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Primary Layer" );
+               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "SDL Primary Layer" );
 
      /* fill out the default configuration */
      default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
