@@ -25,53 +25,58 @@
 #define VIDEO_OUT_DFB_H
 
 
-typedef struct dfb_frame_s
-{
-	vo_frame_t    vo_frame;
 
-	int           width;
-	int           height;
-	double        ratio;
-	int           format;
-
-	CardState     state;
-	CoreSurface*  tmp;
-	DFBRectangle  dest_rect;
-	DFBRegion     used_area;
-
-	void*         chunks[3];
-
-} dfb_frame_t;
-
-
+typedef struct dfb_frame_s  dfb_frame_t;
 typedef struct dfb_driver_s dfb_driver_t;
+
+
+
+struct dfb_frame_s
+{
+	vo_frame_t     vo_frame;
+
+	int            width;
+	int            height;
+	int            format;
+
+	CardState      state;
+	CoreSurface*   tmp;
+	DFBRectangle   dest_rect;
+	DFBRegion      used_area;
+
+	void*          chunks[3];
+
+	void (*render) (dfb_driver_t* this, dfb_frame_t* frame,
+				uint8_t* data, uint32_t pitch);
+
+};
 
 
 typedef struct
 {
 	void (*yuy2) (dfb_driver_t* this, dfb_frame_t* frame,
-			 uint8_t* data, uint32_t pitch);
+				uint8_t* data, uint32_t pitch);
 
 	void (*uyvy) (dfb_driver_t* this, dfb_frame_t* frame,
-			 uint8_t* data, uint32_t pitch);
+				uint8_t* data, uint32_t pitch);
 
 	void (*yv12) (dfb_driver_t* this, dfb_frame_t* frame,
-			 uint8_t* data, uint32_t pitch);
+				uint8_t* data, uint32_t pitch);
 
 	void (*i420) (dfb_driver_t* this, dfb_frame_t* frame,
-			 uint8_t* data, uint32_t pitch);
+				uint8_t* data, uint32_t pitch);
 
 	void (*rgb15) (dfb_driver_t* this, dfb_frame_t* frame,
-			 uint8_t* data, uint32_t pitch);
+				uint8_t* data, uint32_t pitch);
 
 	void (*rgb16) (dfb_driver_t* this, dfb_frame_t* frame,
-			 uint8_t* data, uint32_t pitch);
+				uint8_t* data, uint32_t pitch);
 	
 	void (*rgb24) (dfb_driver_t* this, dfb_frame_t* frame,
-			uint8_t* data, uint32_t pitch);
+				uint8_t* data, uint32_t pitch);
 
 	void (*rgb32) (dfb_driver_t* this, dfb_frame_t* frame,
-			 uint8_t* data, uint32_t pitch);
+				uint8_t* data, uint32_t pitch);
 
 } yuv_render_t;
 
@@ -84,34 +89,39 @@ struct dfb_driver_s
 {
 	vo_driver_t            vo_driver;
 
-	dfb_frame_t*           frame;
+	char                   verbosity;
+	int                    max_num_frames;
 
 	IDirectFBSurface*      main;
 	IDirectFBSurface_data* main_data;
 
-	yuv_render_t*          yuv_cc;
+	struct
+	{
+		char defined;
+		char used;
+
+	} correction; /* gamma correction */
 
 	struct
 	{
 		int   l_val;
 		short mm_val[4];
-		
+
 	} brightness;
 
-	struct 
+	struct
 	{
 		int   l_val;
 		short mm_val[4];
-		
+
 	} contrast;
 
+	
 	DVOutputCallback       output_cb;
 	void*                  output_cdata;
 
 	DVFrameCallback        frame_cb;
 	void*                  frame_cdata;
-
-	uint8_t                verbosity;
 };
 
 
