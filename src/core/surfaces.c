@@ -411,13 +411,13 @@ void surface_destroy( CoreSurface *surface )
      pthread_mutex_lock( &surface->front_lock );
      pthread_mutex_lock( &surface->back_lock );
 
-     reactor_free( surface->reactor );
-
      surface_destroy_buffer( surface->front_buffer );
 
      if (surface->caps & DSCAPS_FLIPPING)
           surface_destroy_buffer( surface->back_buffer );
 
+     reactor_free( surface->reactor );
+     
      /* FIXME: mutex for surface list */
      if (surface->prev)
           surface->prev->next = surface->next;

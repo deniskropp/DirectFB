@@ -618,6 +618,9 @@ void windowstack_repaint_all( CoreWindowStack *stack )
  * internals
  */
 
+#define TRANSPARENT_WINDOW(w) ((w)->opacity < 0xff || \
+                               (w)->caps & DWCAPS_ALPHACHANNEL)
+
 static void update_region( CoreWindowStack *stack, int window,
                            int x1, int y1, int x2, int y2 )
 {
@@ -625,6 +628,10 @@ static void update_region( CoreWindowStack *stack, int window,
      unsigned int edges = 0;
      DFBRegion region = { x1, y1, x2, y2 };
      DisplayLayer *layer = stack->layer;
+
+     /* check for empty region */
+     if (x1 > x2  ||  y1 > y2)
+          return;
 
      while (i >= 0) {
           if (stack->windows[i]->opacity > 0) {
@@ -651,14 +658,13 @@ static void update_region( CoreWindowStack *stack, int window,
           if (region.y2 == y2)
                edges |= 0x8;
 
-          switch (edges) {
-               case 0xF:
-                    if (stack->windows[i]->opacity == 0xff  &&
-                        !(stack->windows[i]->caps & DWCAPS_ALPHACHANNEL))
-                         break;
-               default:
-                    update_region( stack, i-1, x1, y1, x2, y2 );
-                    break;
+          if (TRANSPARENT_WINDOW(stack->windows[i]))
+               update_region( stack, i-1, x1, y1, x2, y2 );
+          else if (edges < 0xF) {
+               update_region( stack, i-1, x1, y1, x2, region.y1-1 );
+               update_region( stack, i-1, x1, region.y1, region.x1-1, region.y2 );
+               update_region( stack, i-1, region.x2+1, region.y1, x2, region.y2 );
+               update_region( stack, i-1, x1, region.y2+1, x2, y2 );
           }
 
           {
