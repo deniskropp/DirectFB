@@ -46,7 +46,11 @@
 
 #include "video_out_dfb.h"
 
-
+#ifdef DFB_DEBUG
+  #define VERBOSITY  XINE_VERBOSITY_DEBUG
+#else
+  #define VERBOSITY  XINE_VERBOSITY_LOG
+#endif
 
 
 static DFBResult Probe(IDirectFBVideoProvider_ProbeContext *ctx);
@@ -72,8 +76,10 @@ typedef struct
 	xine_stream_t*      stream;
 	xine_event_queue_t* queue;
 
-	int                 lenght;
-	
+	int                 width; /* video width */
+	int                 height; /* video height */
+	int                 lenght; /* duration */
+
 	char                is_playing;
 	char                is_paused;
 
@@ -174,7 +180,7 @@ IDirectFBVideoProvider_Xine_GetCapabilities(IDirectFBVideoProvider* thiz,
 
 	*caps = (DVCAPS_BASIC | DVCAPS_SCALE |
 		 DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST);
-	
+
 	if(xine_get_stream_info(data->stream,
 				XINE_STREAM_INFO_SEEKABLE))
 		*caps |= DVCAPS_SEEK;
@@ -193,35 +199,34 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription(IDirectFBVideoProvider* thiz,
 	if(!desc)
 		return(DFB_INVARG);
 	
-	if(data->stream)
+	if(!data->width || !data->height)
 	{
-		int width  = xine_get_stream_info(data->stream,
-					XINE_STREAM_INFO_VIDEO_WIDTH);
-		int height = xine_get_stream_info(data->stream,
-					XINE_STREAM_INFO_VIDEO_HEIGHT);
-		
-		desc->flags  = (DSDESC_WIDTH | DSDESC_HEIGHT
-					| DSDESC_PIXELFORMAT);
+		data->width  = xine_get_stream_info(data->stream,
+				XINE_STREAM_INFO_VIDEO_WIDTH);
+		data->height = xine_get_stream_info(data->stream,
+				XINE_STREAM_INFO_VIDEO_HEIGHT);
 
-		if(xine_get_stream_info(data->stream, XINE_STREAM_INFO_HAS_VIDEO))
+		if(data->width < 1 || data->height < 1)
 		{
-			/* width must be a multiple of 4 */
-			desc->width  = width + ((width & 3) ? (4 - (width & 3)) : 0);
-			/* height must be a multiple of 2 */
-			desc->height = height + (height & 1);
+			data->width  = 320;
+			data->height = 240;
 		} else
 		{
-			/* we are usign a post plugin */
-			desc->width  = 320;
-			desc->height = 240;
+			/* width must be a multiple of 4 */
+			data->width  += (data->width & 3)
+					? (4 - data->width) : 0;
+			/* height must be a multiple of 2 */
+			data->height += data->height & 1;
 		}
-		
-		desc->pixelformat = dfb_primary_layer_pixelformat();
-		
-		return(DFB_OK);
 	}
 
-	return(DFB_UNSUPPORTED);
+	desc->flags       = (DSDESC_WIDTH | DSDESC_HEIGHT |
+				 DSDESC_PIXELFORMAT);
+	desc->width       = data->width;
+	desc->height      = data->height;
+	desc->pixelformat = dfb_primary_layer_pixelformat();
+
+	return(DFB_OK);
 }
 
 
@@ -237,9 +242,6 @@ IDirectFBVideoProvider_Xine_PlayTo(IDirectFBVideoProvider* thiz,
 
 	if(!dest)
 		return(DFB_INVARG);
-
-	if(!data->stream)
-		return(DFB_FAILURE);
 
 	dest_data = (IDirectFBSurface_data*) dest->priv;
 	if(!dest_data)
@@ -258,6 +260,10 @@ IDirectFBVideoProvider_Xine_PlayTo(IDirectFBVideoProvider* thiz,
 			return(DFB_INVARG);
 
 		data->dest_rect = *dest_rect;
+	} else
+	{
+		data->dest_rect.w = dest_data->area.wanted.w;
+		data->dest_rect.h = dest_data->area.wanted.h;
 	}
 
 	if(!xine_port_send_gui_data(data->vo,
@@ -324,7 +330,7 @@ IDirectFBVideoProvider_Xine_SeekTo(IDirectFBVideoProvider* thiz,
 {	
 	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 		
-	if(data->stream && data->is_playing)
+	if(data->is_playing)
 	{		
 		int offset;
 
@@ -358,7 +364,7 @@ IDirectFBVideoProvider_Xine_GetPos(IDirectFBVideoProvider* thiz,
 	if(!seconds)
 		return(DFB_INVARG);
 
-	if(data->stream && data->is_playing)
+	if(data->is_playing)
 	{
 		int pos = 0;
 		int try = 5;
@@ -368,7 +374,7 @@ IDirectFBVideoProvider_Xine_GetPos(IDirectFBVideoProvider* thiz,
 			if(xine_get_pos_length(data->stream, NULL, &pos, NULL))
 				break;
 
-			xine_usec_sleep(100000);				
+			usleep(100000);	
 		}
 
 		*seconds = (double) pos / 1000.0;
@@ -390,14 +396,11 @@ IDirectFBVideoProvider_Xine_GetLength(IDirectFBVideoProvider* thiz,
 	if(!seconds)
 		return(DFB_INVARG);
 
-	if(data->stream)
+	if(xine_get_pos_length(data->stream, NULL,
+				NULL, &(data->lenght)))
 	{
-		if(xine_get_pos_length(data->stream, NULL,
-					NULL, &(data->lenght)))
-		{
-			*seconds = (double) data->lenght / 1000.0;
-			return(DFB_OK);
-		}
+		*seconds = (double) data->lenght / 1000.0;
+		return(DFB_OK);
 	}
 
 	*seconds = 0.0;
@@ -415,17 +418,12 @@ IDirectFBVideoProvider_Xine_GetColorAdjustment(IDirectFBVideoProvider* thiz,
 	if(!adj)
 		return(DFB_INVARG);
 
-	if(data->stream)
-	{
-		adj->flags      = (DCAF_BRIGHTNESS | DCAF_CONTRAST);
-		adj->brightness = xine_get_param(data->stream,
-						XINE_PARAM_VO_BRIGHTNESS);
-		adj->contrast   = xine_get_param(data->stream,
-						XINE_PARAM_VO_CONTRAST);
-		return(DFB_OK);
-	}
-	
-	return(DFB_UNSUPPORTED);
+	adj->flags      = (DCAF_BRIGHTNESS | DCAF_CONTRAST);
+	adj->brightness = xine_get_param(data->stream,
+					XINE_PARAM_VO_BRIGHTNESS);
+	adj->contrast   = xine_get_param(data->stream,
+					XINE_PARAM_VO_CONTRAST);
+	return(DFB_OK);
 }
 
 
@@ -438,24 +436,19 @@ IDirectFBVideoProvider_Xine_SetColorAdjustment(IDirectFBVideoProvider* thiz,
 	if(!adj)
 		return(DFB_INVARG);
 
-	if(data->stream)
+	if(adj->flags & DCAF_BRIGHTNESS)
 	{
-		if(adj->flags & DCAF_BRIGHTNESS)
-		{
-			xine_set_param(data->stream, XINE_PARAM_VO_BRIGHTNESS,
-							adj->brightness);
-		}
-
-		if(adj->flags & DCAF_CONTRAST)
-		{
-			xine_set_param(data->stream, XINE_PARAM_VO_CONTRAST,
-							adj->contrast);
-		}
-
-		return(DFB_OK);
+		xine_set_param(data->stream, XINE_PARAM_VO_BRIGHTNESS,
+						adj->brightness);
 	}
-		
-	return(DFB_UNSUPPORTED);
+
+	if(adj->flags & DCAF_CONTRAST)
+	{
+		xine_set_param(data->stream, XINE_PARAM_VO_CONTRAST,
+						adj->contrast);
+	}
+
+	return(DFB_OK);
 }
 
 
@@ -470,8 +463,8 @@ Probe(IDirectFBVideoProvider_ProbeContext* ctx)
 	const char*        home;
 	char*              cfg;
 	DFBResult          result;
-	
-	
+
+
 	if(!(xine = xine_new()))
 		return(DFB_FAILURE);
 
@@ -490,7 +483,7 @@ Probe(IDirectFBVideoProvider_ProbeContext* ctx)
 	vo = xine_open_video_driver(xine, "DFB",
 				XINE_VISUAL_TYPE_DFB, (void*) &visual);
 
-	ao = xine_open_audio_driver(xine, "oss", NULL);
+	ao = xine_open_audio_driver(xine, "none", NULL);
 	
 	stream = xine_stream_new(xine, ao, vo);
 
@@ -544,8 +537,7 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 	xine_config_load(data->xine, data->cfg);
 
 	xine_init(data->xine);
-	xine_engine_set_param(data->xine, XINE_ENGINE_PARAM_VERBOSITY,
-						XINE_VERBOSITY_LOG);
+	xine_engine_set_param(data->xine, XINE_ENGINE_PARAM_VERBOSITY, VERBOSITY);
 
 	visual.surface   = NULL;
 	visual.output_cb = DFBxine_frame_output;
@@ -599,8 +591,7 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 		return(DFB_FAILURE);
 	}
 
-	xine_set_param(data->stream, XINE_PARAM_VERBOSITY,
-					XINE_VERBOSITY_LOG);
+	xine_set_param(data->stream, XINE_PARAM_VERBOSITY, VERBOSITY);
 
 	data->queue = xine_event_new_queue(data->stream);
 	if(data->queue)
@@ -632,9 +623,6 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 
 		if(post_list)
 		{
-			xine_audio_port_t* aos[2] = {data->ao, NULL};
-			xine_video_port_t* vos[2] = {data->vo, NULL};
-
 			post_plugin = config->register_enum(config,
 						"gui.post_audio_plugin", 0,
 						(char**) post_list,
@@ -643,10 +631,10 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 
 			data->post = xine_post_init(data->xine,
 						post_list[post_plugin],
-						0, aos, vos);
+						0, &(data->ao), &(data->vo));
 		}
 	}
-	
+
 
 	thiz->AddRef                = IDirectFBVideoProvider_Xine_AddRef;
 	thiz->Release               = IDirectFBVideoProvider_Xine_Release;
@@ -659,7 +647,6 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 	thiz->GetLength             = IDirectFBVideoProvider_Xine_GetLength;
 	thiz->GetColorAdjustment    = IDirectFBVideoProvider_Xine_GetColorAdjustment;
 	thiz->SetColorAdjustment    = IDirectFBVideoProvider_Xine_SetColorAdjustment;
-			
 
 	return(DFB_OK);
 }
@@ -675,7 +662,9 @@ DFBxine_frame_output(void* cdata, int width, int height,
 
 	if(!data) return;
 
-	*dest_rect = data->dest_rect;
+	data->width  = width;
+	data->height = height;
+	*dest_rect   = data->dest_rect;
 }
 
 
