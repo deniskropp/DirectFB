@@ -1338,14 +1338,62 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
      dfb_state_unlock( state );
 }
 
-void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
-                             int x, int y,
-                             CoreFont *font, CardState *state )
+static void
+setup_font_state( CoreFont *font, CardState *state )
 {
-     int                      steps[bytes];
-     unichar                  chars[bytes];
-     CoreGlyphData           *glyphs[bytes];
-     DFBSurfaceBlittingFlags  flags;
+     DFBSurfaceBlittingFlags flags = font->state.blittingflags;
+
+     /* set destination */
+     dfb_state_set_destination( &font->state, state->destination );
+
+     /* set clip */
+     dfb_state_set_clip( &font->state, &state->clip );
+
+     /* set color */
+     if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
+          dfb_state_set_color_index( &font->state, state->color_index );
+     else
+          dfb_state_set_color( &font->state, &state->color );
+
+     /* additional blending? */
+     if ((state->drawingflags & DSDRAW_BLEND) && (state->color.a != 0xff))
+          flags |= DSBLIT_BLEND_COLORALPHA;
+
+     /* Porter/Duff SRC_OVER composition */
+     if ((DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )
+          && (state->destination->caps & DSCAPS_PREMULTIPLIED))
+         ||
+         (font->surface_caps & DSCAPS_PREMULTIPLIED))
+     {
+          if (font->surface_caps & DSCAPS_PREMULTIPLIED) {
+               if (flags & DSBLIT_BLEND_COLORALPHA)
+                    flags |= DSBLIT_SRC_PREMULTCOLOR;
+          }
+          else
+               flags |= DSBLIT_SRC_PREMULTIPLY;
+
+          dfb_state_set_src_blend( &font->state, DSBF_ONE );
+     }
+     else
+          dfb_state_set_src_blend( &font->state, DSBF_SRCALPHA );
+
+
+     /* set blitting flags */
+     dfb_state_set_blitting_flags( &font->state, flags );
+
+
+     /* set disabled functions */
+     font->state.disabled = state->disabled;
+}
+
+void
+dfb_gfxcard_drawstring( const __u8 *text, int bytes,
+                        int x, int y,
+                        CoreFont *font, CardState *state )
+{
+     int            steps[bytes];
+     unichar        chars[bytes];
+     CoreGlyphData *glyphs[bytes];
 
      unichar prev = 0;
 
@@ -1397,42 +1445,7 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
           return;
      }
 
-     /* set destination */
-     dfb_state_set_destination( &font->state, state->destination );
-
-     /* set clip */
-     dfb_state_set_clip( &font->state, &state->clip );
-
-     /* set color */
-     if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
-          dfb_state_set_color_index( &font->state, state->color_index );
-     else
-          dfb_state_set_color( &font->state, &state->color );
-
-     /* gather blitting flags */
-     flags = font->state.blittingflags;
-
-     if (state->drawingflags & DSDRAW_BLEND)
-          flags |= DSBLIT_BLEND_COLORALPHA;
-
-     /* Porter/Duff SRC_OVER composition */
-     if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format ) &&
-         (state->destination->caps & DSCAPS_PREMULTIPLIED))
-     {
-          flags |= DSBLIT_SRC_PREMULTIPLY;
-
-          dfb_state_set_src_blend( &font->state, DSBF_ONE );
-     }
-     else
-          dfb_state_set_src_blend( &font->state, DSBF_SRCALPHA );
-
-
-     /* set blitting flags */
-     dfb_state_set_blitting_flags( &font->state, flags );
-
-
-     /* set disabled functions */
-     font->state.disabled = state->disabled;
+     setup_font_state( font, state );
 
      /* blit glyphs */
      for (offset = 0; offset < bytes; offset += steps[offset]) {
@@ -1522,9 +1535,8 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
 void dfb_gfxcard_drawglyph( unichar index, int x, int y,
                             CoreFont *font, CardState *state )
 {
-     CoreGlyphData           *data;
-     DFBRectangle             rect;
-     DFBSurfaceBlittingFlags  flags;
+     CoreGlyphData *data;
+     DFBRectangle   rect;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1550,43 +1562,8 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
           return;
      }
 
-     /* set destination */
-     dfb_state_set_destination( &font->state, state->destination );
+     setup_font_state( font, state );
 
-     /* set clip */
-     dfb_state_set_clip( &font->state, &state->clip );
-
-     /* set color */
-     if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
-          dfb_state_set_color_index( &font->state, state->color_index );
-     else
-          dfb_state_set_color( &font->state, &state->color );
-
-
-     /* gather blitting flags */
-     flags = font->state.blittingflags;
-
-     if (state->drawingflags & DSDRAW_BLEND)
-          flags |= DSBLIT_BLEND_COLORALPHA;
-
-     /* Porter/Duff SRC_OVER composition */
-     if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format ) &&
-         (state->destination->caps & DSCAPS_PREMULTIPLIED))
-     {
-          flags |= DSBLIT_SRC_PREMULTIPLY;
-
-          dfb_state_set_src_blend( &font->state, DSBF_ONE );
-     }
-     else
-          dfb_state_set_src_blend( &font->state, DSBF_SRCALPHA );
-
-
-     /* set blitting flags */
-     dfb_state_set_blitting_flags( &font->state, flags );
-
-
-     /* set disabled functions */
-     font->state.disabled = state->disabled;
 
      /* set blitting source */
      dfb_state_set_source( &font->state, data->surface );
@@ -1618,8 +1595,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
 
 void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
 {
-     CoreGlyphData           *data;
-     DFBSurfaceBlittingFlags  flags;
+     CoreGlyphData *data;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1635,35 +1611,7 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
           return;
      }
 
-     /* set destination */
-     font->state.destination  = state->destination;
-     font->state.modified    |= SMF_DESTINATION;
-
-
-     /* gather blitting flags */
-     flags = font->state.blittingflags;
-
-     if (state->drawingflags & DSDRAW_BLEND)
-          flags |= DSBLIT_BLEND_COLORALPHA;
-
-     /* Porter/Duff SRC_OVER composition */
-     if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format ) &&
-         (state->destination->caps & DSCAPS_PREMULTIPLIED))
-     {
-          flags |= DSBLIT_SRC_PREMULTIPLY;
-
-          dfb_state_set_src_blend( &font->state, DSBF_ONE );
-     }
-     else
-          dfb_state_set_src_blend( &font->state, DSBF_SRCALPHA );
-
-
-     /* set blitting flags */
-     dfb_state_set_blitting_flags( &font->state, flags );
-
-
-     /* set disabled functions */
-     font->state.disabled = state->disabled;
+     setup_font_state( font, state );
 
      /* set the source */
      dfb_state_set_source( &font->state, data->surface );
@@ -1673,8 +1621,6 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
           state->accel |= DFXL_DRAWSTRING;
      else
           state->accel &= ~DFXL_DRAWSTRING;
-
-     font->state.destination = NULL;
 
      dfb_font_unlock( font );
      dfb_state_unlock( state );

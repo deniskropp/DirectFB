@@ -729,7 +729,7 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
 
                /* Set the background color. */
                if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
-                    dfb_state_set_color_index( state,
+                    dfb_state_set_color_index( state,  /* FIXME: don't search every time */
                                                dfb_palette_search( dest->palette, color->r,
                                                                    color->g, color->b, color->a ) );
                else

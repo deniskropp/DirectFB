@@ -170,8 +170,15 @@ render_glyph( CoreFont      *thiz,
                case ft_pixel_mode_grays:
                     switch (surface->format) {
                          case DSPF_ARGB:
-                              for (i=0; i<info->width; i++)
-                                   dst32[i] = (src[i] << 24) | 0xFFFFFF;
+                              if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
+                                   for (i=0; i<info->width; i++)
+                                        dst32[i] = ((src[i] << 24) |
+                                                    (src[i] << 16) |
+                                                    (src[i] <<  8) | src[i]);
+                              }
+                              else
+                                   for (i=0; i<info->width; i++)
+                                        dst32[i] = (src[i] << 24) | 0xFFFFFF;
                               break;
                          case DSPF_AiRGB:
                               for (i=0; i<info->width; i++)

@@ -59,6 +59,7 @@ struct _CoreFont {
      int                      magic;
 
      DFBSurfacePixelFormat    pixel_format;
+     DFBSurfaceCapabilities   surface_caps;
      CardState                state;    /* the state used to blit glyphs    */
 
      CoreDFB         *core;

@@ -55,7 +55,11 @@ dfb_font_create( CoreDFB *core )
 {
      CoreFont *font;
 
-     font = (CoreFont *) D_CALLOC( 1, sizeof(CoreFont) );
+     font = D_CALLOC( 1, sizeof(CoreFont) );
+     if (!font) {
+          D_OOM();
+          return NULL;
+     }
 
      font->core = core;
 
@@ -64,8 +68,10 @@ dfb_font_create( CoreDFB *core )
      /* the proposed pixel_format, may be changed by the font provider */
      font->pixel_format = dfb_config->font_format ? : DSPF_A8;
 
-     /* the state used to blit the glyphs, may be changed by the font
-        provider */
+     if (font->pixel_format == DSPF_ARGB)
+          font->surface_caps = DSCAPS_PREMULTIPLIED;
+
+     /* the state used to blit the glyphs, may be changed by the font provider */
      dfb_state_init( &font->state );
      font->state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
 
@@ -167,8 +173,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                                          font->row_width,
                                          MAX( font->height + 1, 8 ),
                                          font->pixel_format,
-                                         CSP_VIDEOLOW, DSCAPS_NONE, NULL,
-                                         &surface );
+                                         CSP_VIDEOLOW, font->surface_caps, NULL, &surface );
                if (ret) {
                     D_ERROR( "DirectFB/core/fonts: "
                               "Could not create glyph surface! (%s)\n",
@@ -186,9 +191,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                font->surfaces[font->rows - 1] = surface;
           }
 
-          if (font->RenderGlyph(font, glyph, data,
-                                font->surfaces[font->rows - 1]) == DFB_OK)
-          {
+          if (font->RenderGlyph(font, glyph, data, font->surfaces[font->rows - 1]) == DFB_OK) {
                int align = DFB_PIXELFORMAT_ALIGNMENT(font->pixel_format);
 
                data->surface = font->surfaces[font->rows - 1];
