@@ -45,10 +45,13 @@ LIBADDS = \
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"
 
-bin_PROGRAMS = df_fire df_dok df_andi df_window df_particle df_video_particle df_joystick df_video df_porter df_stress pss
+bin_PROGRAMS = df_fire df_layer df_dok df_andi df_window df_particle df_video_particle df_joystick df_video df_porter df_stress pss
 
 df_fire_SOURCES = df_fire.c
 df_fire_LDADD = $(LIBADDS)
+
+df_layer_SOURCES = df_layer.c
+df_layer_LDADD = $(LIBADDS)
 
 df_window_SOURCES = df_window.c 
 df_window_LDADD  = $(LIBADDS) $(AVIFILE_LIBS) -lm

@@ -4,6 +4,7 @@ Makefile.in
 .libs
 df_dok
 df_fire
+df_layer
 df_particle
 df_video_particle
 df_simple
