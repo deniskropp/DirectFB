@@ -372,7 +372,7 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
      }
 
      return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_QUEUE, NULL,
+                                    IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_NONE, NULL,
                                     VMBT_ODATA, sizeof(DFBRegion), region,
                                     VMBT_INT, flags,
                                     VMBT_NONE );
