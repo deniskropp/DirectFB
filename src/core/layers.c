@@ -1059,6 +1059,26 @@ dfb_layer_id( const DisplayLayer *layer )
      return layer->shared->id;
 }
 
+DFBDisplayLayerID
+dfb_layer_id_translated( const DisplayLayer *layer )
+{
+     DFB_ASSERT( layersfield != NULL );
+     DFB_ASSERT( layer != NULL );
+     DFB_ASSERT( layer->shared != NULL );
+     
+     if (dfb_config->primary_layer > 0 &&
+         dfb_config->primary_layer < layersfield->num)
+     {
+          if (layer->shared->id == DLID_PRIMARY)
+               return dfb_config->primary_layer;
+          
+          if (layer->shared->id == dfb_config->primary_layer)
+               return DLID_PRIMARY;
+     }
+     
+     return layer->shared->id;
+}
+
 DFBResult
 dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
 {

@@ -278,6 +278,7 @@ CardState         *dfb_layer_state( DisplayLayer *layer );
 void               dfb_layer_description( const DisplayLayer         *layer,
                                           DFBDisplayLayerDescription *desc );
 DFBDisplayLayerID  dfb_layer_id( const DisplayLayer *layer );
+DFBDisplayLayerID  dfb_layer_id_translated( const DisplayLayer *layer );
 
 DFBResult          dfb_layer_flip_buffers ( DisplayLayer        *layer,
                                             DFBSurfaceFlipFlags  flags );

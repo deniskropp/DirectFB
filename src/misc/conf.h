@@ -118,6 +118,9 @@ typedef struct
      int       session;                           /* select multi app world */
 
      char     *tmpfs;                             /* location of shm file */
+
+     int       primary_layer;                     /* select alternative primary
+                                                     display layer */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

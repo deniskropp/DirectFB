@@ -1102,7 +1102,7 @@ EnumDisplayLayers_Callback( DisplayLayer *layer, void *ctx )
 
      dfb_layer_description( layer, &desc );
 
-     return context->callback( dfb_layer_id( layer ), desc,
+     return context->callback( dfb_layer_id_translated( layer ), desc,
                                context->callback_ctx );
 }
 
@@ -1111,7 +1111,7 @@ GetDisplayLayer_Callback( DisplayLayer *layer, void *ctx )
 {
      GetDisplayLayer_Context *context = (GetDisplayLayer_Context*) ctx;
 
-     if (dfb_layer_id( layer ) != context->id)
+     if (dfb_layer_id_translated( layer ) != context->id)
           return DFENUM_OK;
 
      if ((context->ret = dfb_layer_enable( layer )) == DFB_OK) {

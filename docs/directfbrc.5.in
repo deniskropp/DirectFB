@@ -92,6 +92,11 @@ world using the lowest unused session number. This will override
 the environment variable "DIRECTFB_SESSION".
 
 .TP
+.BI primary-layer=<id>
+Selects which layer is the "primary layer", default is the first.
+Check 'dfbinfo' for a list of layers supported by your hardware.
+
+.TP
 .BI tmpfs=<directory>
 Uses the given directory (tmpfs mount point) for creation of the
 shared memory file in multi application mode. This option is only

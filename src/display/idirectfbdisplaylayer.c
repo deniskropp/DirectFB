@@ -105,7 +105,7 @@ IDirectFBDisplayLayer_GetID( IDirectFBDisplayLayer *thiz,
      if (!id)
           return DFB_INVARG;
 
-     *id = dfb_layer_id( data->layer );
+     *id = dfb_layer_id_translated( data->layer );
 
      return DFB_OK;
 }

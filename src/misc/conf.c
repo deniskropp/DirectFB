@@ -69,6 +69,8 @@ static const char *config_usage =
     "Select multi app world (zero based, -1 = new)\n"
     "  tmpfs=<directory>              "
     "Location of shared memory file\n"
+    "  primary-layer=<id>             "
+    "Select an alternative primary layer\n"
     "  quiet                          "
     "No text output except debugging\n"
     "  [no-]banner                    "
@@ -365,6 +367,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG("DirectFB/Config 'depth': No value specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "primary-layer" ) == 0) {
+          if (value) {
+               int id;
+
+               if (sscanf( value, "%d", &id ) < 1) {
+                    ERRORMSG("DirectFB/Config 'primary-layer': Could not parse id!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->primary_layer = id;
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'primary-layer': No id specified!\n");
                return DFB_INVARG;
           }
      } else
