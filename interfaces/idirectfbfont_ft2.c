@@ -185,7 +185,6 @@ DFBResult get_kerning( CoreFontData *thiz,
      int prev_index;
      int current_index;
 
-#ifdef __i386__
      face = thiz->impl_data;
 
      prev_index    = FT_Get_Char_Index(face, prev);
@@ -193,10 +192,8 @@ DFBResult get_kerning( CoreFontData *thiz,
 
      FT_Get_Kerning( face, prev_index, current_index, ft_kerning_default, &vector );
      *kerning = vector.x >> 6;
-#else
-     *kerning = 0;
-#endif
 
+	printf("gay!\n");
      return DFB_OK;
 }
 
