@@ -119,12 +119,12 @@ typedef struct {
      FSStreamDescriptionFlags flags;        /* Defines which fields are set. */
 
      int                      buffersize;   /* Ring buffer size specified as
-                                               number of samples per channel. */
+                                               a number of samples (per channel). */
      int                      channels;     /* Number of channels. */
      FSSampleFormat           sampleformat; /* Format of each sample. */
-     int                      samplerate;   /* Number of samples per second. */
-     int                      prebuffer;    /* Number of samples to pre-buffer
-                                               before starting the playback. */
+     int                      samplerate;   /* Number of samples per second (per channel). */
+     int                      prebuffer;    /* Samples to buffer before starting the playback.
+                                               A negative value disables auto start of playback. */
 } FSStreamDescription;
 
 /*

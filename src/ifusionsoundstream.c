@@ -217,7 +217,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           }
 
           /* (Re)start if playback had stopped (buffer underrun). */
-          if (!data->playing) {
+          if (!data->playing && data->prebuffer >= 0) {
                int written;
 
                if (data->pos_write < data->pos_read)

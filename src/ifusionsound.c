@@ -220,7 +220,7 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
                prebuffer = desc->prebuffer;
      }
 
-     if (size < 1 || rate < 1 || prebuffer < 0 || prebuffer >= size)
+     if (size < 1 || rate < 1 || prebuffer >= size)
           return DFB_INVARG;
 
      /* Limit ring buffer size to five seconds. */
