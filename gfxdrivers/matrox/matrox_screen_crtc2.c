@@ -199,7 +199,7 @@ crtc2SetEncoderConfig( CoreScreen                   *screen,
                        int                           encoder,
                        const DFBScreenEncoderConfig *config )
 {
-     D_UNIMPLEMENTED();
+//     D_UNIMPLEMENTED();
 
      return DFB_UNIMPLEMENTED;
 }
@@ -226,7 +226,7 @@ crtc2SetOutputConfig( CoreScreen                  *screen,
                       int                          output,
                       const DFBScreenOutputConfig *config )
 {
-     D_UNIMPLEMENTED();
+//     D_UNIMPLEMENTED();
 
      return DFB_UNIMPLEMENTED;
 }
