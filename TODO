@@ -1,4 +1,6 @@
-Allow software driven field switches
+Module unloading.
+
+Allow software driven interlaced video field switches
 (functionality exists but not yet exported to apps).
 
 Changing window capabilities after creation.

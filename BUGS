@@ -1,3 +1,7 @@
+different bugs and issues
+-------------------------
+- fix deinitialization deadlocks, especially caused by signal handling
+
 automake/autoconf etc.
 ----------------------
 - while linking -ldl is repeated up to 12 times (looks silly)
