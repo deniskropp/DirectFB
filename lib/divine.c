@@ -159,9 +159,27 @@ divine_send_vt102( DiVine *divine, int size, const char *ansistr )
                               default:  break;
                          }
                          break;
-                    } else  event.key_symbol = DIKS_ESCAPE;    break;
+                    }
+                    else  event.key_symbol = DIKS_ESCAPE;    break;
+
                case 127: event.key_symbol = DIKS_BACKSPACE; break;
                case 10:  event.key_symbol = DIKS_ENTER;     break;
+
+                 /*  emulate numbers as coming from keypad  */
+               case 48:
+               case 49:
+               case 50:
+               case 51:
+               case 52:
+               case 53:
+               case 54:
+               case 55:
+               case 56:
+               case 57:
+                 event.key_id = DIKI_KP_0 + 48 - ansistr[i];
+                 event.flags |= DIEF_KEYID;
+                 /*  fallthru  */
+
                default:  event.key_symbol = ansistr[i];     break;
           }
           i= i + f;
