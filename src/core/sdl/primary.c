@@ -624,6 +624,9 @@ dfb_sdl_call_handler( int   caller,
           case SDL_UPDATE_SCREEN:
                return dfb_sdl_update_screen_handler( call_ptr );
 
+          case SDL_SET_PALETTE:
+               return dfb_sdl_set_palette_handler( call_ptr );
+
           default:
                BUG( "unknown call" );
                break;
