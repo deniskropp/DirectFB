@@ -492,9 +492,13 @@ dfb_layer_lease( DisplayLayer *layer )
 
      /* This can only be true if process with exclusive access died. */
      if (layer->shared->exclusive) {
-          dfb_layer_release( layer, true );
+          /* Restore the last configuration for shared access. */
+          dfb_layer_set_configuration( layer, &layer->shared->last_config );
 
-          return dfb_layer_lease( layer );
+          /* Clear exclusive access. */
+          layer->shared->exclusive = false;
+
+          dfb_windowstack_repaint_all( layer->shared->stack );
      }
      
      return DFB_OK;
