@@ -977,7 +977,7 @@ typedef enum {
      /* 16 bit  ARGB (2 byte, alpha 4@12, red 4@8, green 4@4, blue 4@0) */
      DSPF_ARGB4444  = DFB_SURFACE_PIXELFORMAT( 18, 12, 4, 1, 0, 2, 0, 0, 0, 0, 0 ),
 
-     /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size CbCr [15:0] plane) */
+     /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size CrCb [15:0] plane) */
      DSPF_NV21      = DFB_SURFACE_PIXELFORMAT( 19, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 )
 } DFBSurfacePixelFormat;
 
