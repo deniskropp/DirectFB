@@ -25,7 +25,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-static void Cacc_add_to_Dacc_MMX( GenefxState *gfxs )
+static void SCacc_add_to_Dacc_MMX( GenefxState *gfxs )
 {
      __asm__ __volatile__ (
                "    movq     %2, %%mm0\n"
@@ -39,7 +39,7 @@ static void Cacc_add_to_Dacc_MMX( GenefxState *gfxs )
                "    jnz      1b\n"
                "    emms"
                : /* no outputs */
-               : "D" (gfxs->Dacc), "c" (gfxs->length), "m" (gfxs->Cacc)
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "m" (gfxs->SCacc)
                : "%st", "memory");
 }
 

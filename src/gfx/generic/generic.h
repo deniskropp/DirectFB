@@ -113,6 +113,7 @@ struct _GenefxState {
      GenefxAccumulator Aacc[ACC_WIDTH]; // FIXME: dynamically
      GenefxAccumulator Bacc[ACC_WIDTH]; // FIXME: dynamically
      GenefxAccumulator Cacc;
+     GenefxAccumulator SCacc;
 
      /*
       * dataflow control

@@ -3133,12 +3133,82 @@ static void Xacc_blend_one( GenefxState *gfxs )
 
 static void Xacc_blend_srccolor( GenefxState *gfxs )
 {
-     D_ONCE( "Xacc_blend_srccolor() unimplemented" );
+     int                w = gfxs->length;
+     GenefxAccumulator *X = gfxs->Xacc;
+
+     if (gfxs->Sacc) {
+          GenefxAccumulator *S = gfxs->Sacc;
+
+          while (w--) {
+               if (!(X->a & 0xF000)) {
+                    X->r = ((S->r + 1) * X->r) >> 8;
+                    X->g = ((S->g + 1) * X->g) >> 8;
+                    X->b = ((S->b + 1) * X->b) >> 8;
+                    X->a = ((S->a + 1) * X->a) >> 8;
+               }
+
+               X++;
+               S++;
+          }
+     }
+     else {
+          GenefxAccumulator Cacc = gfxs->Cacc;
+          Cacc.r = Cacc.r + 1;
+          Cacc.g = Cacc.g + 1;
+          Cacc.b = Cacc.b + 1;
+          Cacc.a = Cacc.a + 1;
+
+          while (w--) {
+               if (!(X->a & 0xF000)) {
+                    X->r = (Cacc.r * X->r) >> 8;
+                    X->g = (Cacc.g * X->g) >> 8;
+                    X->b = (Cacc.b * X->b) >> 8;
+                    X->a = (Cacc.a * X->a) >> 8;
+               }
+
+               X++;
+          }
+     }
 }
 
 static void Xacc_blend_invsrccolor( GenefxState *gfxs )
 {
-     D_ONCE( "Xacc_blend_invsrccolor() unimplemented" );
+     int                w = gfxs->length;
+     GenefxAccumulator *X = gfxs->Xacc;
+
+     if (gfxs->Sacc) {
+          GenefxAccumulator *S = gfxs->Sacc;
+
+          while (w--) {
+               if (!(X->a & 0xF000)) {
+                    X->r = ((0x100 - S->r) * X->r) >> 8;
+                    X->g = ((0x100 - S->g) * X->g) >> 8;
+                    X->b = ((0x100 - S->b) * X->b) >> 8;
+                    X->a = ((0x100 - S->a) * X->a) >> 8;
+               }
+
+               X++;
+               S++;
+          }
+     }
+     else {
+          GenefxAccumulator Cacc = gfxs->Cacc;
+          Cacc.r = 0x100 - Cacc.r;
+          Cacc.g = 0x100 - Cacc.g;
+          Cacc.b = 0x100 - Cacc.b;
+          Cacc.a = 0x100 - Cacc.a;
+
+          while (w--) {
+               if (!(X->a & 0xF000)) {
+                    X->r = (Cacc.r * X->r) >> 8;
+                    X->g = (Cacc.g * X->g) >> 8;
+                    X->b = (Cacc.b * X->b) >> 8;
+                    X->a = (Cacc.a * X->a) >> 8;
+               }
+
+               X++;
+          }
+     }
 }
 
 static void Xacc_blend_srcalpha( GenefxState *gfxs )
@@ -3178,8 +3248,6 @@ static void Xacc_blend_srcalpha( GenefxState *gfxs )
           }
      }
 }
-
-
 
 static void Xacc_blend_invsrcalpha( GenefxState *gfxs )
 {
@@ -3263,17 +3331,79 @@ static void Xacc_blend_invdstalpha( GenefxState *gfxs )
 
 static void Xacc_blend_destcolor( GenefxState *gfxs )
 {
-     D_ONCE( "Xacc_blend_destcolor() unimplemented" );
+     int                w = gfxs->length;
+     GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *D = gfxs->Dacc;
+
+     while (w--) {
+          if (!(X->a & 0xF000)) {
+               X->r = ((D->r + 1) * X->r) >> 8;
+               X->g = ((D->g + 1) * X->g) >> 8;
+               X->b = ((D->b + 1) * X->b) >> 8;
+               X->a = ((D->a + 1) * X->a) >> 8;
+          }
+
+          X++;
+          D++;
+     }
 }
 
 static void Xacc_blend_invdestcolor( GenefxState *gfxs )
 {
-     D_ONCE( "Xacc_blend_invdestcolor() unimplemented" );
+     int                w = gfxs->length;
+     GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *D = gfxs->Dacc;
+
+     while (w--) {
+          if (!(X->a & 0xF000)) {
+               X->r = ((0x100 - D->r) * X->r) >> 8;
+               X->g = ((0x100 - D->g) * X->g) >> 8;
+               X->b = ((0x100 - D->b) * X->b) >> 8;
+               X->a = ((0x100 - D->a) * X->a) >> 8;
+          }
+
+          X++;
+          D++;
+     }
 }
 
 static void Xacc_blend_srcalphasat( GenefxState *gfxs )
 {
-     D_ONCE( "Xacc_blend_srcalphasat() unimplemented" );
+     int                w = gfxs->length;
+     GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *D = gfxs->Dacc;
+
+     if (gfxs->Sacc) {
+          GenefxAccumulator *S = gfxs->Sacc;
+
+          while (w--) {
+               if (!(X->a & 0xF000)) {
+                    register __u16 Sa = MIN( S->a + 1, 0x100 - D->a );
+
+                    X->r = (Sa * X->r) >> 8;
+                    X->g = (Sa * X->g) >> 8;
+                    X->b = (Sa * X->b) >> 8;
+               }
+
+               X++;
+               D++;
+               S++;
+          }
+     }
+     else {
+          while (w--) {
+               if (!(X->a & 0xF000)) {
+                    register __u16 Sa = MIN( gfxs->color.a + 1, 0x100 - D->a );
+
+                    X->r = (Sa * X->r) >> 8;
+                    X->g = (Sa * X->g) >> 8;
+                    X->b = (Sa * X->b) >> 8;
+               }
+
+               X++;
+               D++;
+          }
+     }
 }
 
 static GenefxFunc Xacc_blend[] = {
@@ -3455,24 +3585,24 @@ static void Cacc_to_Dacc( GenefxState *gfxs )
 
 
 
-static void Cacc_add_to_Dacc_C( GenefxState *gfxs )
+static void SCacc_add_to_Dacc_C( GenefxState *gfxs )
 {
-     int                w    = gfxs->length;
-     GenefxAccumulator *D    = gfxs->Dacc;
-     GenefxAccumulator  Cacc = gfxs->Cacc;
+     int                w     = gfxs->length;
+     GenefxAccumulator *D     = gfxs->Dacc;
+     GenefxAccumulator  SCacc = gfxs->SCacc;
 
      while (w--) {
           if (!(D->a & 0xF000)) {
-               D->a += Cacc.a;
-               D->r += Cacc.r;
-               D->g += Cacc.g;
-               D->b += Cacc.b;
+               D->a += SCacc.a;
+               D->r += SCacc.r;
+               D->g += SCacc.g;
+               D->b += SCacc.b;
           }
           D++;
      }
 }
 
-static GenefxFunc Cacc_add_to_Dacc = Cacc_add_to_Dacc_C;
+static GenefxFunc SCacc_add_to_Dacc = SCacc_add_to_Dacc_C;
 
 static void Sacc_add_to_Dacc_C( GenefxState *gfxs )
 {
@@ -3759,7 +3889,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           case DFXL_DRAWLINE:
           case DFXL_FILLTRIANGLE:
                if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_XOR)) {
-                    GenefxAccumulator Cacc;
+                    GenefxAccumulator Cacc, SCacc;
 
                     /* not yet completed optimizing checks */
                     if (state->src_blend == DSBF_ZERO) {
@@ -3812,28 +3942,42 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          /* source blending */
                          switch (state->src_blend) {
                               case DSBF_ZERO:
+                                   break;
                               case DSBF_ONE:
+                                   SCacc = Cacc;
+                                   break;
+                              case DSBF_SRCCOLOR:
+                                   SCacc.a = (Cacc.a * (Cacc.a + 1)) >> 8;
+                                   SCacc.r = (Cacc.r * (Cacc.r + 1)) >> 8;
+                                   SCacc.g = (Cacc.g * (Cacc.g + 1)) >> 8;
+                                   SCacc.b = (Cacc.b * (Cacc.b + 1)) >> 8;
+                                   break;
+                              case DSBF_INVSRCCOLOR:
+                                   SCacc.a = (Cacc.a * (0x100 - Cacc.a)) >> 8;
+                                   SCacc.r = (Cacc.r * (0x100 - Cacc.r)) >> 8;
+                                   SCacc.g = (Cacc.g * (0x100 - Cacc.g)) >> 8;
+                                   SCacc.b = (Cacc.b * (0x100 - Cacc.b)) >> 8;
                                    break;
                               case DSBF_SRCALPHA: {
                                         __u16 ca = color.a + 1;
 
-                                        Cacc.a = (Cacc.a * ca) >> 8;
-                                        Cacc.r = (Cacc.r * ca) >> 8;
-                                        Cacc.g = (Cacc.g * ca) >> 8;
-                                        Cacc.b = (Cacc.b * ca) >> 8;
-
+                                        SCacc.a = (Cacc.a * ca) >> 8;
+                                        SCacc.r = (Cacc.r * ca) >> 8;
+                                        SCacc.g = (Cacc.g * ca) >> 8;
+                                        SCacc.b = (Cacc.b * ca) >> 8;
                                         break;
                                    }
                               case DSBF_INVSRCALPHA: {
                                         __u16 ca = 0x100 - color.a;
 
-                                        Cacc.a = (Cacc.a * ca) >> 8;
-                                        Cacc.r = (Cacc.r * ca) >> 8;
-                                        Cacc.g = (Cacc.g * ca) >> 8;
-                                        Cacc.b = (Cacc.b * ca) >> 8;
-
+                                        SCacc.a = (Cacc.a * ca) >> 8;
+                                        SCacc.r = (Cacc.r * ca) >> 8;
+                                        SCacc.g = (Cacc.g * ca) >> 8;
+                                        SCacc.b = (Cacc.b * ca) >> 8;
                                         break;
                                    }
+                              case DSBF_SRCALPHASAT:
+                                   *funcs++ = Sacc_is_NULL;
                               case DSBF_DESTALPHA:
                               case DSBF_INVDESTALPHA:
                               case DSBF_DESTCOLOR:
@@ -3846,10 +3990,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Xacc_blend[state->src_blend - 1];
 
                                    break;
-                              case DSBF_SRCCOLOR:
-                              case DSBF_INVSRCCOLOR:
-                              case DSBF_SRCALPHASAT:
-                                   D_ONCE("unimplemented src blend function");
                          }
 
                          /* destination blending */
@@ -3862,22 +4002,21 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               case DSBF_ZERO:
                                    break;
                               case DSBF_ONE:
+                              case DSBF_SRCCOLOR:
+                              case DSBF_INVSRCCOLOR:
                               case DSBF_SRCALPHA:
                               case DSBF_INVSRCALPHA:
-                                   if (Cacc.a || Cacc.r || Cacc.g || Cacc.b)
-                                        *funcs++ = Cacc_add_to_Dacc;
+                                   if (SCacc.a || SCacc.r || SCacc.g || SCacc.b)
+                                        *funcs++ = SCacc_add_to_Dacc;
                                    break;
                               case DSBF_DESTALPHA:
                               case DSBF_INVDESTALPHA:
                               case DSBF_DESTCOLOR:
                               case DSBF_INVDESTCOLOR:
+                              case DSBF_SRCALPHASAT:
                                    *funcs++ = Sacc_is_Bacc;
                                    *funcs++ = Sacc_add_to_Dacc;
                                    break;
-                              case DSBF_SRCCOLOR:
-                              case DSBF_INVSRCCOLOR:
-                              case DSBF_SRCALPHASAT:
-                                   D_ONCE("unimplemented src blend function");
                          }
                     }
 
@@ -3895,7 +4034,8 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
 
                     /* store computed Cacc */
-                    gfxs->Cacc = Cacc;
+                    gfxs->Cacc  = Cacc;
+                    gfxs->SCacc = SCacc;
                }
                else {
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
@@ -3941,6 +4081,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    case DSBF_DESTCOLOR:
                                    case DSBF_INVDESTALPHA:
                                    case DSBF_INVDESTCOLOR:
+                                   case DSBF_SRCALPHASAT:
                                         source_needs_destination = true;
                                    default:
                                         ;
@@ -4538,7 +4679,7 @@ static void gInit_MMX()
                      DSBLIT_BLEND_COLORALPHA |
                      DSBLIT_COLORIZE] = Dacc_modulate_argb_MMX;
 /********************************* misc accumulator operations ****************/
-     Cacc_add_to_Dacc = Cacc_add_to_Dacc_MMX;
+     SCacc_add_to_Dacc = SCacc_add_to_Dacc_MMX;
      Sacc_add_to_Dacc = Sacc_add_to_Dacc_MMX;
 }
 
