@@ -612,7 +612,7 @@ dfb_sdl_set_palette_handler( CorePalette *palette )
      return DFB_OK;
 }
 
-static int
+int
 dfb_sdl_call_handler( int   caller,
                       int   call_arg,
                       void *call_ptr,
