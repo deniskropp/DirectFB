@@ -245,7 +245,7 @@ DFBResult fbdev_initialize()
      Sfbdev->orig_cmap.red    = (__u16*)shmalloc( 2 * 256 );
      Sfbdev->orig_cmap.green  = (__u16*)shmalloc( 2 * 256 );
      Sfbdev->orig_cmap.blue   = (__u16*)shmalloc( 2 * 256 );
-     Sfbdev->orig_cmap.transp = NULL;
+     Sfbdev->orig_cmap.transp = (__u16*)shmalloc( 2 * 256 );
 
      if (ioctl( fbdev->fd, FBIOGETCMAP, &Sfbdev->orig_cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
@@ -253,6 +253,7 @@ DFBResult fbdev_initialize()
           shmfree( Sfbdev->orig_cmap.red );
           shmfree( Sfbdev->orig_cmap.green );
           shmfree( Sfbdev->orig_cmap.blue );
+          shmfree( Sfbdev->orig_cmap.transp );
           Sfbdev->orig_cmap.len = 0;
      }
 
@@ -312,6 +313,7 @@ DFBResult fbdev_shutdown()
           shmfree( Sfbdev->orig_cmap.red );
           shmfree( Sfbdev->orig_cmap.green );
           shmfree( Sfbdev->orig_cmap.blue );
+          shmfree( Sfbdev->orig_cmap.transp );
      }
 
      close( fbdev->fd );
@@ -1154,18 +1156,19 @@ static DFBResult fbdev_set_rgb332_palette()
 
      cmap.start  = 0;
      cmap.len    = 256;
-     cmap.red   = (__u16*)alloca( 2 * 256 );
-     cmap.green = (__u16*)alloca( 2 * 256 );
-     cmap.blue  = (__u16*)alloca( 2 * 256 );
-     cmap.transp = NULL;
+     cmap.red    = (__u16*)alloca( 2 * 256 );
+     cmap.green  = (__u16*)alloca( 2 * 256 );
+     cmap.blue   = (__u16*)alloca( 2 * 256 );
+     cmap.transp = (__u16*)alloca( 2 * 256 );
 
 
      for (red_val = 0; red_val  < 8 ; red_val++) {
           for (green_val = 0; green_val  < 8 ; green_val++) {
                for (blue_val = 0; blue_val  < 4 ; blue_val++) {
-                    cmap.red[i]   = fbdev_calc_gamma( red_val, 7 );
-                    cmap.green[i] = fbdev_calc_gamma( green_val, 7 );
-                    cmap.blue[i]  = fbdev_calc_gamma( blue_val, 3 );
+                    cmap.red[i]    = fbdev_calc_gamma( red_val, 7 );
+                    cmap.green[i]  = fbdev_calc_gamma( green_val, 7 );
+                    cmap.blue[i]   = fbdev_calc_gamma( blue_val, 3 );
+                    cmap.transp[i] = (i ? 0x8000 : 0);
                     i++;
                }
           }
