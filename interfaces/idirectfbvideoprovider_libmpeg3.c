@@ -143,11 +143,11 @@ IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription(
 
     memset( desc, 0, sizeof(DFBSurfaceDescription) );
     desc->flags = (DFBSurfaceDescriptionFlags)
-        (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP);
+        (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
 
-    desc->width  = mpeg3_video_width( data->stream, 0 );
-    desc->height = mpeg3_video_height( data->stream, 0 );
-    desc->bpp = 16;
+    desc->width       = mpeg3_video_width( data->stream, 0 );
+    desc->height      = mpeg3_video_height( data->stream, 0 );
+    desc->pixelformat = layers->surface->format;
 
     return DFB_OK;
 }
