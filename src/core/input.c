@@ -825,10 +825,10 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
                return DIKI_DOWN;
           
           case DIKS_CONTROL:
-               return DIKI_CTRL;
+               return DIKI_CTRL_L;
           
           case DIKS_SHIFT:
-               return DIKI_SHIFT;
+               return DIKI_SHIFT_L;
           
           case DIKS_ALT:
                return DIKI_ALT;
@@ -923,10 +923,12 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
           case DIKI_DOWN:
                return DIKS_CURSOR_DOWN;
           
-          case DIKI_CTRL:
+          case DIKI_CTRL_L:
+          case DIKI_CTRL_R:
                return DIKS_CONTROL;
           
-          case DIKI_SHIFT:
+          case DIKI_SHIFT_L:
+          case DIKI_SHIFT_R:
                return DIKS_SHIFT;
           
           case DIKI_ALT:

@@ -1232,15 +1232,15 @@ stack_inputdevice_react( const void *msg_data,
      if (stack->wm_hack) {
           switch (evt->type) {
                case DIET_KEYRELEASE:
-                    switch (evt->key_id) {
-                         case DIKI_CAPSLOCK:
+                    switch (evt->key_symbol) {
+                         case DIKS_CAPSLOCK:
                               stack->wm_hack = 0;
                               stack_lock( stack );
                               handle_enter_leave_focus( stack );
                               stack_unlock( stack );
                               break;
 
-                         case DIKI_CTRL:
+                         case DIKS_CONTROL:
                               stack->wm_hack = 1;
                               return RS_OK;
 
@@ -1250,12 +1250,12 @@ stack_inputdevice_react( const void *msg_data,
                     break;
 
                case DIET_KEYPRESS:
-                    switch (evt->key_id) {
-                         case DIKI_CTRL:
+                    switch (DFB_LOWER_CASE(evt->key_symbol)) {
+                         case DIKS_CONTROL:
                               stack->wm_hack = 2;
                               return RS_OK;
 
-                         case DIKI_C:
+                         case DIKS_SMALL_C:
                               if (stack->entered_window) {
                                    DFBWindowEvent evt;
                                    evt.type = DWET_CLOSE;
@@ -1263,7 +1263,7 @@ stack_inputdevice_react( const void *msg_data,
                               }
                               return RS_OK;
 
-                         case DIKI_D: {
+                         case DIKS_SMALL_D: {
                               CoreWindow *window = stack->entered_window;
 
                               if (window &&

@@ -2635,8 +2635,6 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          *funcs++ = Sacc_to_Aop_PFI[pindex];
                     }
                     else if (state->source->format == state->destination->format) {
-                         //*funcs++ = Sop_is_Bop;
-
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    Skey = state->src_colorkey;

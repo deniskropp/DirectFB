@@ -66,7 +66,8 @@ typedef struct {
 } KeyboardData;
 
 static DFBInputDeviceKeySymbol
-keyboard_get_symbol( unsigned short                  value,
+keyboard_get_symbol( int                             code,
+                     unsigned short                  value,
                      DFBInputDeviceKeymapSymbolIndex level )
 {
      unsigned char type  = KTYP(value);
@@ -152,11 +153,18 @@ keyboard_get_symbol( unsigned short                  value,
           case K_PPARENR: return DIKS_PARENTHESIS_RIGHT;
      }
 
+     /* special keys not in the map, hack? */
+     if (code == 125)         /* windows key */
+          return DIKS_META;
+     
+     if (code == 127)         /* context menu key */
+          return DIKS_SUPER;
+     
      return DIKS_NULL;
 }
 
 static DFBInputDeviceKeyIdentifier
-keyboard_get_identifier( unsigned short value )
+keyboard_get_identifier( int code, unsigned short value )
 {
      unsigned char type  = KTYP(value);
      unsigned char index = KVAL(value);
@@ -175,6 +183,13 @@ keyboard_get_identifier( unsigned short value )
                case K_PDOT:   return DIKI_KP_DECIMAL;
           }
      }
+
+     /* Looks like a hack, but don't know a better way yet. */
+     if (code == 97)
+          return DIKI_CTRL_R;
+
+     if (code == 54)
+          return DIKI_SHIFT_R;
 
      return DIKI_UNKNOWN;
 }
@@ -340,14 +355,15 @@ driver_get_keymap_entry( InputDevice               *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
+     int                         code = entry->code;
      unsigned short              value;
      DFBInputDeviceKeyIdentifier identifier;
-     
+
      /* fetch the base level */
-     value = keyboard_read_value( K_NORMTAB, entry->code );
+     value = keyboard_read_value( K_NORMTAB, code );
 
      /* get the identifier for basic mapping */
-     identifier = keyboard_get_identifier( value );
+     identifier = keyboard_get_identifier( code, value );
 
      /* is CapsLock effective? */
      if (KTYP(value) == KT_LETTER)
@@ -361,14 +377,14 @@ driver_get_keymap_entry( InputDevice               *device,
      entry->identifier = identifier;
      
      /* write base level symbol to entry */
-     entry->symbols[DIKSI_BASE] = keyboard_get_symbol( value, DIKSI_BASE );
+     entry->symbols[DIKSI_BASE] = keyboard_get_symbol( code, value, DIKSI_BASE );
      
      
      /* fetch the shifted base level */
      value = keyboard_read_value( K_SHIFTTAB, entry->code );
      
      /* write shifted base level symbol to entry */
-     entry->symbols[DIKSI_BASE_SHIFT] = keyboard_get_symbol( value,
+     entry->symbols[DIKSI_BASE_SHIFT] = keyboard_get_symbol( code, value,
                                                              DIKSI_BASE_SHIFT );
      
      
@@ -376,14 +392,14 @@ driver_get_keymap_entry( InputDevice               *device,
      value = keyboard_read_value( K_ALTTAB, entry->code );
      
      /* write alternative level symbol to entry */
-     entry->symbols[DIKSI_ALT] = keyboard_get_symbol( value, DIKSI_ALT );
+     entry->symbols[DIKSI_ALT] = keyboard_get_symbol( code, value, DIKSI_ALT );
      
      
      /* fetch the shifted alternative level */
      value = keyboard_read_value( K_ALTSHIFTTAB, entry->code );
      
      /* write shifted alternative level symbol to entry */
-     entry->symbols[DIKSI_ALT_SHIFT] = keyboard_get_symbol( value,
+     entry->symbols[DIKSI_ALT_SHIFT] = keyboard_get_symbol( code, value,
                                                             DIKSI_ALT_SHIFT );
      
      return DFB_OK;

@@ -430,6 +430,8 @@ static void* FrameThread( void *ctx )
           if (data->callback)
                data->callback( data->ctx );
      }
+
+     return NULL;
 }
 
 
