@@ -612,20 +612,22 @@ static DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *va
                break;
 #endif
           case 15:
-               if (fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ))
+               if (fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ) |
+                   fbdev_compatible_format( var, 1, 5, 5, 5,15, 10, 5, 0 ) )
                     return DSPF_RGB15;
 
                break;
 
-          case 16:
-               if (fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ))
+          case 16:               
+               if (fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ) |
+                   fbdev_compatible_format( var, 1, 5, 5, 5,15, 10, 5, 0 ) )
                     return DSPF_RGB15;
 
                if (fbdev_compatible_format( var, 0, 5, 6, 5, 0, 11, 5, 0 ))
                     return DSPF_RGB16;
 
                break;
-
+                              
           case 24:
                if (fbdev_compatible_format( var, 0, 8, 8, 8, 0, 16, 8, 0 ))
                     return DSPF_RGB24;
@@ -793,12 +795,13 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                return DFB_UNSUPPORTED;
           }
 
-          /* set gamma ramp */
-          fbdev_set_gamma_ramp( mode->format );
 #ifdef SUPPORT_RGB332
           if (mode->format == DSPF_RGB332)
                fbdev_set_rgb332_palette();
+          else
 #endif
+          fbdev_set_gamma_ramp( mode->format );
+
           /* if mode->bpp contains 16 bit we won't find the mode again! */
           if (mode->format == DSPF_RGB15)
                mode->bpp = 15;
