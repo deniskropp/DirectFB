@@ -94,6 +94,7 @@ struct shmstats {
 struct shmstats shmstats (void);
 
 #else
+     #include <stdlib.h>
 
      #define shmalloc  malloc
      #define shrealloc realloc

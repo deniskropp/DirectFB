@@ -128,10 +128,14 @@ sub parse_interface (NAME)
       print INTERFACE "$comment";
 
       print INTERFACE "<P>\n",
-                      "  <CENTER><TABLE width=93% border=0 cellpadding=2>\n";
+                      "  <CENTER><TABLE width=93% border=1 rules=groups cellpadding=2 cellspacing=0>\n";
 
-      print INTERFACE "    <TR><TH colspan=3>Methods of $interface</TH></TR>\n";
+      print INTERFACE "    <THEAD>\n";
+      print INTERFACE "      <TR><TH colspan=3>Methods of $interface</TH></TR>\n";
+      print INTERFACE "    </THEAD>\n";
 
+      print INTERFACE "    <TBODY>\n";
+      
       while (<>)
          {
             chomp;
@@ -157,7 +161,7 @@ sub parse_interface (NAME)
                                "<FONT color=#DDDDDD>$interface</FONT>" .
                                "</A>", $1 );
 
-                  print FUNCTION "<P>\n",
+                  print FUNCTION "<P>$headline</P><P>\n",
                                  "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#C0C0C0>\n",
                                  "    <TR><TD colspan=3><I><FONT color=black>$1 (</FONT></I></TD></TR>\n";
 
@@ -195,7 +199,7 @@ sub parse_interface (NAME)
                                  "  </TABLE>\n",
                                  "</P>\n";
 
-                  print FUNCTION "<P>$headline</P><P>$detailed</P>\n";
+                  print FUNCTION "<P>$detailed</P>\n";
 
                   $headline = "";
                   $detailed = "";
@@ -241,7 +245,9 @@ sub parse_interface (NAME)
                }
          }
 
-      print INTERFACE "  </CENTER></TABLE>\n",
+      print INTERFACE "    </TBODY>\n";
+      
+      print INTERFACE "  </TABLE></CENTER>\n",
                       "</P>\n";
 
       html_close( INTERFACE );

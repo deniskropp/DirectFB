@@ -42,6 +42,7 @@
 #include "coretypes.h"
 
 #include "gfxcard.h"
+#include "palette.h"
 #include "surfaces.h"
 #include "surfacemanager.h"
 
@@ -510,6 +511,10 @@ void dfb_surface_destroy( CoreSurface *surface )
      /* remove it from the surface list */
      dfb_surfacemanager_remove_surface( surface->manager, surface );
 
+     /* deallocate palette */
+     if (surface->palette)
+          dfb_palette_deallocate( surface->palette );
+
      /* deallocate structure */
      shfree( surface );
      
@@ -535,16 +540,20 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
           case DSPF_YUY2:
           case DSPF_YV12:
                break;
+          
+          case DSPF_LUT8:
+               surface->palette = dfb_palette_allocate( 256 );
+               break;
 
           default:
                BUG( "unknown pixel format" );
                return DFB_BUG;
      }
 
-     surface->width   = width;
-     surface->height  = height;
-     surface->format  = format;
-     surface->caps    = caps;
+     surface->width  = width;
+     surface->height = height;
+     surface->format = format;
+     surface->caps   = caps;
 
      skirmish_init( &surface->front_lock );
      skirmish_init( &surface->back_lock );

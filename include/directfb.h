@@ -94,6 +94,11 @@ extern "C"
      DECLARE_INTERFACE( IDirectFBSurface )
 
      /*
+      * Access to palette data. Set/get entries, rotate palette.
+      */
+     DECLARE_INTERFACE( IDirectFBPalette )
+
+     /*
       * Moving, resizing, raising and lowering.
       * Getting an interface to the window's surface.
       * Setting opacity and handling events.
@@ -669,12 +674,13 @@ extern "C"
                                                 the LOWEST byte on the LEFT) */
           DSPF_I420           = 0x08100C0A,  /* 8 bit Y plane followed by 8 bit
                                                 2x2 subsampled U and V planes */
-          DSPF_YV12           = 0x08100C0B   /* 8 bit Y plane followed by 8 bit
+          DSPF_YV12           = 0x08100C0B,  /* 8 bit Y plane followed by 8 bit
                                                 2x2 subsampled V and U planes */
+          DSPF_LUT8           = 0x0010080C   /* 8 bit lookup table (palette) */
      } DFBSurfacePixelFormat;
 
      /* Number of pixelformats defined */
-     #define DFB_NUM_PIXELFORMATS            11
+     #define DFB_NUM_PIXELFORMATS            12
 
      /* These macros extract information about the pixel format. */
      #define DFB_BYTES_PER_PIXEL(fmt)        (((fmt) & 0xF00000) >> 20)
@@ -1641,6 +1647,20 @@ extern "C"
           );
 
 
+        /** Palette control **/
+
+          /*
+           * Get access to the surface's palette.
+           *
+           * Returns an interface that can be used to gain
+           * read and/or write access to the surface's palette.
+           */
+          DFBResult (*GetPalette) (
+               IDirectFBSurface         *thiz,
+               IDirectFBPalette        **interface
+          );
+        
+          
         /** Buffer operations **/
 
           /*
@@ -1985,6 +2005,56 @@ extern "C"
           );
      )
 
+     
+     /********************
+      * IDirectFBPalette *
+      ********************/
+
+     /*
+      * <i>No summary yet...</i>
+      */
+     DEFINE_INTERFACE(   IDirectFBPalette,
+
+        /** Retrieving information **/
+
+          /*
+           * Get the number of entries in the palette.
+           */
+          DFBResult (*GetSize) (
+               IDirectFBPalette         *thiz,
+               unsigned int             *size
+          );
+
+
+        /** Palette entries **/
+
+          /*
+           * Write entries to the palette.
+           *
+           * Writes the specified number of entries to the palette at the
+           * specified offset.
+           */
+          DFBResult (*SetEntries) (
+               IDirectFBPalette         *thiz,
+               DFBColor                 *entries,
+               unsigned int              num_entries,
+               unsigned int              offset
+          );
+
+          /*
+           * Read entries from the palette.
+           *
+           * Reads the specified number of entries from the palette at the
+           * specified offset.
+           */
+          DFBResult (*GetEntries) (
+               IDirectFBPalette         *thiz,
+               DFBColor                 *entries,
+               unsigned int              num_entries,
+               unsigned int              offset
+          );
+     )
+     
      
      /*
       * Specifies whether a key is currently down.

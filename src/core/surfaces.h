@@ -133,6 +133,8 @@ struct _CoreSurface
      DFBSurfacePixelFormat  format;        /* pixel format of the surface */
      DFBSurfaceCapabilities caps;
 
+     CorePalette           *palette;
+
      SurfaceBuffer         *front_buffer;  /* buffer for reading
                                               (blit from or display buffer) */
      FusionSkirmish         front_lock;    /* skirmish lock for front buffer */

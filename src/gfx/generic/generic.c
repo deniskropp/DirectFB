@@ -44,6 +44,7 @@
 #include "core/gfxcard.h"
 #include "core/state.h"
 #include "core/surfacemanager.h"
+#include "core/palette.h"
 
 #include "misc/gfx_util.h"
 #include "misc/util.h"
@@ -74,6 +75,8 @@ static int dst_height = 0;
 static int src_height = 0;
 
 DFBColor color;
+
+static DFBColor *sLut = NULL;
 
 /*
  * operands
@@ -194,7 +197,8 @@ static GFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 #endif
      NULL,
      NULL,
-     NULL
+     NULL,
+     Cop_to_Aop_8
 };
 
 /********************************* Cop_toK_Aop_PFI ****************************/
@@ -251,14 +255,11 @@ static GFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_toK_Aop_32,
      Cop_toK_Aop_8,
      NULL,
-#ifdef SUPPORT_RGB332
      Cop_toK_Aop_8,
-#else
-     NULL,
-#endif
      NULL,
      NULL,
-     NULL
+     NULL,
+     Cop_toK_Aop_8
 };
 
 /********************************* Bop_PFI_to_Aop_PFI *************************/
@@ -298,7 +299,8 @@ static GFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 #endif
      Bop_16_to_Aop,      /* DSPF_UYVY */
      Bop_8_to_Aop,       /* DSPF_I420 */
-     Bop_8_to_Aop        /* DSPF_YV12 */
+     Bop_8_to_Aop,       /* DSPF_YV12 */
+     Bop_8_to_Aop        /* DSPF_LUT8 */
 };
 
 /********************************* Bop_PFI_Kto_Aop_PFI ************************/
@@ -529,6 +531,7 @@ static GFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 #endif
      NULL,
      NULL,
+     NULL,
      NULL
 };
 
@@ -617,14 +620,11 @@ static GFunc Bop_PFI_Sto_Aop[DFB_NUM_PIXELFORMATS] = {
      Bop_32_Sto_Aop,
      Bop_8_Sto_Aop,
      NULL,
-#ifdef SUPPORT_RGB332
      Bop_8_Sto_Aop,
-#else
-     NULL,
-#endif
      NULL,
      NULL,
-     NULL
+     NULL,
+     Bop_8_Sto_Aop
 };
 
 /********************************* Bop_PFI_SKto_Aop ***************************/
@@ -765,6 +765,7 @@ static GFunc Bop_PFI_SKto_Aop[DFB_NUM_PIXELFORMATS] = {
 #else
      NULL,
 #endif
+     NULL,
      NULL,
      NULL,
      NULL
@@ -931,6 +932,7 @@ static GFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
 #endif
      NULL,
      NULL,
+     NULL,
      NULL
 };
 
@@ -1086,6 +1088,7 @@ static GFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_a8_SKto_Dacc,
      NULL,
      NULL,     /* FIXME: RGB332 */
+     NULL,
      NULL,
      NULL,
      NULL
@@ -1310,6 +1313,50 @@ static void Sop_rgb332_to_Dacc()
 }
 #endif
 
+#define LOOKUP_COLOR(D,S)                    \
+     {                                       \
+          register DFBColor col = sLut[S];   \
+          D.a = col.a;                       \
+          D.r = col.r;                       \
+          D.g = col.g;                       \
+          D.b = col.b;                       \
+     }
+
+static void Sop_lut8_to_Dacc()
+{
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     while (w) {
+          int l = w & 0x7;
+
+          switch (l) {
+               default:
+                    l = 0x8;
+                    LOOKUP_COLOR( D[0x7], S[0x7] );
+               case 0x7:
+                    LOOKUP_COLOR( D[0x6], S[0x6] );
+               case 0x6:
+                    LOOKUP_COLOR( D[0x5], S[0x5] );
+               case 0x5:
+                    LOOKUP_COLOR( D[0x4], S[0x4] );
+               case 0x4:
+                    LOOKUP_COLOR( D[0x3], S[0x3] );
+               case 0x3:
+                    LOOKUP_COLOR( D[0x2], S[0x2] );
+               case 0x2:
+                    LOOKUP_COLOR( D[0x1], S[0x1] );
+               case 0x1:
+                    LOOKUP_COLOR( D[0x0], S[0x0] );
+          }
+
+          D += l;
+          S += l;
+          w -= l;
+     }
+}
+
 static GFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_rgb15_to_Dacc,
      Sop_rgb16_to_Dacc,
@@ -1325,7 +1372,8 @@ static GFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
 #endif
      NULL,
      NULL,
-     NULL
+     NULL,
+     Sop_lut8_to_Dacc
 };
 
 /********************************* Sop_PFI_Kto_Dacc ***************************/
@@ -1486,6 +1534,7 @@ static GFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
 #else
      NULL,
 #endif
+     NULL,
      NULL,
      NULL,
      NULL
@@ -1678,6 +1727,7 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 #else
      NULL,
 #endif
+     NULL,
      NULL,
      NULL,
      NULL
@@ -1911,6 +1961,7 @@ GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 #else
      NULL,
 #endif
+     NULL,
      NULL,
      NULL,
      NULL
@@ -2452,6 +2503,9 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          return 0;
                     }
                     break;
+               case DSPF_LUT8:
+                    sLut = state->source->palette->entries;
+                    break;
                default:
                     ONCE("unsupported source format");
                     pthread_mutex_unlock( &generic_lock );
@@ -2832,6 +2886,8 @@ void gRelease( CardState *state )
      if (state->source_locked)
           dfb_surface_unlock( state->source, 1 );
 
+     sLut = NULL;
+
      pthread_mutex_unlock( &generic_lock );
 }
 
@@ -3061,3 +3117,4 @@ void gInit_MMX()
 }
 
 #endif
+

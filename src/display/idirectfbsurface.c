@@ -49,6 +49,7 @@
 #include "media/idirectfbfont.h"
 
 #include "idirectfbsurface.h"
+#include "idirectfbpalette.h"
 
 #include "misc/util.h"
 #include "misc/mem.h"
@@ -206,6 +207,32 @@ IDirectFBSurface_GetCapabilities( IDirectFBSurface       *thiz,
           return DFB_INVARG;
 
      *caps = data->caps;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_GetPalette( IDirectFBSurface  *thiz,
+                             IDirectFBPalette **interface )
+{
+     DFBResult         ret;
+     IDirectFBPalette *palette;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!interface)
+          return DFB_INVARG;
+
+     DFB_ALLOCATE_INTERFACE( palette, IDirectFBPalette );
+
+     ret = IDirectFBPalette_Construct( palette, data->surface );
+     if (ret)
+          return ret;
+
+     *interface = palette;
 
      return DFB_OK;
 }
@@ -1323,6 +1350,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetPixelFormat = IDirectFBSurface_GetPixelFormat;
      thiz->GetAccelerationMask = IDirectFBSurface_GetAccelerationMask;
 
+     thiz->GetPalette = IDirectFBSurface_GetPalette;
+     
      thiz->Lock = IDirectFBSurface_Lock;
      thiz->Unlock = IDirectFBSurface_Unlock;
      thiz->Flip = IDirectFBSurface_Flip;

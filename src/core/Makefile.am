@@ -29,6 +29,7 @@ internalinclude_HEADERS = \
 	input.h			\
 	input_driver.h		\
 	layers.h		\
+	palette.h		\
 	state.h			\
 	surfaces.h		\
 	surfacemanager.h	\
@@ -49,6 +50,7 @@ libdirectfb_core_la_SOURCES = \
 	gfxcard.c		\
 	input.c			\
 	layers.c		\
+	palette.c		\
 	state.c			\
 	surfaces.c		\
 	surfacemanager.c	\

@@ -24,38 +24,26 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORETYPES_H__
-#define __CORETYPES_H__
+#ifndef __IDIRECTFBPALETTE_H__
+#define __IDIRECTFBPALETTE_H__
 
-#include <asm/types.h>
+#include <directfb.h>
+#include <core/coretypes.h>
 
-typedef struct _CoreCleanup             CoreCleanup;
+/*
+ * private data struct of IDirectFBPalette
+ */
+typedef struct {
+     int                     ref;            /* reference counter */
 
-typedef struct _CoreFont                CoreFont;
-typedef struct _CoreSurface             CoreSurface;
-typedef struct _CorePalette             CorePalette;
-typedef struct _CoreWindow              CoreWindow;
-typedef struct _CoreWindowStack         CoreWindowStack;
+     CoreSurface            *surface;        /* the palette's surface */
+} IDirectFBPalette_data;
 
-typedef struct _SurfaceBuffer           SurfaceBuffer;
-typedef struct _SurfaceManager          SurfaceManager;
-
-typedef struct _CardState               CardState;
-
-typedef struct _Tree                    Tree;
-typedef struct _Chunk                   Chunk;
-
-typedef __u32 unichar;
-
-
-
-typedef struct _DisplayLayer            DisplayLayer;
-typedef struct _InputDevice             InputDevice;
-typedef struct _FBDev                   FBDev;
-typedef struct _VirtualTerminal         VirtualTerminal;
-typedef struct _GraphicsDevice          GraphicsDevice;
-
+/*
+ * initializes interface struct and private data
+ */
+DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
+                                      CoreSurface      *surface );
 
 
 #endif
-
