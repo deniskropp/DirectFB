@@ -69,11 +69,7 @@ typedef struct _CoreWindow
 
      CoreWindowStack      *stack;           /* window stack the window belongs */
 
-     CoreWindowEvent      *events;          /* event queue for the window */
-     pthread_mutex_t       events_mutex;    /* mutex lock for accessing the
-                                               event queue */
-     pthread_mutex_t       wait;            /* mutex lock for idle waits
-                                               used by WaitForEvent() */
+     Reactor              *reactor;         /* event dispatcher */
 } CoreWindow;
 
 /*
@@ -179,21 +175,6 @@ int window_set_opacity( CoreWindow *window, __u8 opacity );
 int window_repaint( CoreWindow *window, DFBRectangle *rect );
 
 /*
- * waits until the window has an event is its queue
- */
-int window_waitforevent( CoreWindow *window );
-
-/*
- * gets and removes the next event from the event queue
- */
-int window_getevent( CoreWindow *window, DFBWindowEvent *event );
-
-/*
- * gets the next event from the event queue without removing it
- */
-int window_peekevent( CoreWindow *window, DFBWindowEvent *event );
-
-/*
  * request a window to gain focus
  */
 int window_request_focus( CoreWindow *window );
@@ -207,11 +188,6 @@ DFBResult window_ungrab_pointer( CoreWindow *window );
  * repaints all window on a window stack
  */
 void windowstack_repaint_all( CoreWindowStack *stack );
-
-/*
- * appends event to the event queue of a window
- */
-inline void window_append_event( CoreWindow *window, DFBWindowEvent *event );
 
 /*
  * moves the cursor and handles events

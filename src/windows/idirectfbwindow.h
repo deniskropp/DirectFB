@@ -26,21 +26,9 @@
 
 #include <core/windows.h>
 
-typedef struct {
-     int               ref;
-     CoreWindow       *window;
-
-     IDirectFBSurface *surface;
-} IDirectFBWindow_data;
-
 /*
  * initializes a new window and constructs interface
  */
 DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz, CoreWindow *window );
-
-/*
- * deinitializes a window and removes it from the window stack
- */
-void IDirectFBWindow_Destruct( IDirectFBWindow *thiz );
 
 #endif

@@ -154,7 +154,7 @@ void window_insert( CoreWindow *window, int before )
           evt.y = window->y;
           evt.w = window->width;
           evt.h = window->height;
-          window_append_event( window, &evt );
+          reactor_dispatch( window->reactor, &evt );
      }
 
      if (window->opacity)
@@ -209,7 +209,7 @@ void window_remove( CoreWindow *window )
 
           evt.type = DWET_CLOSE;
 
-          window_append_event( window, &evt );
+          reactor_dispatch( window->reactor, &evt );
      }
 
      if (window->opacity)
@@ -243,8 +243,7 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
                           stack->wsp_opaque, DSCAPS_NONE, &window->surface );
 
 
-     pthread_mutex_init( &window->events_mutex, NULL );
-     pthread_mutex_init( &window->wait, NULL );
+     window->reactor = reactor_new();
 
      for (i=0; i<stack->num_windows; i++)
           if (stack->windows[i]->caps & DWHC_GHOST)
@@ -260,15 +259,9 @@ void window_destroy( CoreWindow *window )
      DFBWindowEvent evt;
 
      evt.type = DWET_CLOSE;
-     window_append_event( window, &evt );
+     reactor_dispatch( window->reactor, &evt );
 
      surface_destroy( window->surface );
-
-     /* unlock in case a thread does WaitForEvent */
-     pthread_mutex_unlock( &window->wait );
-     pthread_mutex_destroy( &window->wait );
-
-     pthread_mutex_destroy( &window->events_mutex );
 
      free( window );
 }
@@ -441,7 +434,7 @@ int window_move( CoreWindow *window, int dx, int dy )
           evt.type = DWET_POSITION;
           evt.x = window->x;
           evt.y = window->y;
-          window_append_event( window, &evt );
+          reactor_dispatch( window->reactor, &evt );
      }
 
      return DFB_OK;
@@ -470,7 +463,7 @@ int window_resize( CoreWindow *window, unsigned int width, unsigned int height )
           evt.type = DWET_SIZE;
           evt.w = window->width;
           evt.h = window->height;
-          window_append_event( window, &evt );
+          reactor_dispatch( window->reactor, &evt );
      }
 
      return DFB_OK;
@@ -517,55 +510,6 @@ int window_repaint( CoreWindow *window, DFBRectangle *rect )
                                     rect->y + window->y, rect->w, rect->h,
                                     erase );
      }
-
-     return DFB_OK;
-}
-
-int window_waitforevent( CoreWindow *window )
-{
-//     pthread_mutex_lock( &window->events_mutex );
-
-     if (window->events)
-          return DFB_OK;
-
-     pthread_mutex_lock( &window->wait );
-
-//     pthread_mutex_unlock( &window->events_mutex );
-
-     pthread_mutex_lock( &window->wait );
-     pthread_mutex_unlock( &window->wait );
-
-     return DFB_OK;
-}
-
-int window_getevent( CoreWindow *window, DFBWindowEvent *event )
-{
-     pthread_mutex_lock( &window->events_mutex );
-
-     if (!window->events) {
-          pthread_mutex_unlock( &window->events_mutex );
-          return DFB_BUFFEREMPTY;
-     }
-
-     *event = window->events->event;
-
-     {
-          CoreWindowEvent *e = window->events;
-          window->events = window->events->next;
-          free( e );
-     }
-
-     pthread_mutex_unlock( &window->events_mutex );
-
-     return DFB_OK;
-}
-
-int window_peekevent( CoreWindow *window, DFBWindowEvent *event )
-{
-     if (!window->events)
-          return DFB_BUFFEREMPTY;
-
-     *event = window->events->event;
 
      return DFB_OK;
 }
@@ -650,11 +594,11 @@ int window_request_focus( CoreWindow *window )
 
      if (current) {
           evt.type = DWET_LOSTFOCUS;
-          window_append_event( current, &evt );
+          reactor_dispatch( window->reactor, &evt );
      }
 
      evt.type = DWET_GOTFOCUS;
-     window_append_event( window, &evt );
+     reactor_dispatch( window->reactor, &evt );
 
      stack->focused_window = window;
 
@@ -667,39 +611,6 @@ void windowstack_repaint_all( CoreWindowStack *stack )
 
      windowstack_repaint( stack, 0, 0, surface->width, surface->height, 1 );
 }
-
-inline void window_append_event( CoreWindow *window, DFBWindowEvent *event )
-{
-     CoreWindowEvent *evt;
-
-     if (window->caps & DWHC_GHOST) {
-          BUG( "Sending event to Ghost Window!!!" );
-          return;
-     }
-
-     evt = (CoreWindowEvent*) calloc( 1, sizeof(CoreWindowEvent) );
-
-     evt->event = *event;
-
-     pthread_mutex_lock( &window->events_mutex );
-
-     if (!window->events) {
-          window->events = evt;
-     }
-     else {
-          CoreWindowEvent *e = window->events;
-
-          while (e->next)
-               e = e->next;
-
-          e->next = evt;
-     }
-
-     pthread_mutex_unlock( &window->events_mutex );
-
-     pthread_mutex_unlock( &window->wait );
-}
-
 
 /*
  * internals
@@ -841,7 +752,7 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                     we.keycode     = evt->keycode;
                     we.modifiers   = evt->modifiers;
 
-                    window_append_event( window, &we );
+                    reactor_dispatch( window->reactor, &we );
                }
 
                break;
@@ -859,7 +770,7 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                     we.x      = we.cx - window->x;
                     we.y      = we.cy - window->y;
 
-                    window_append_event( window, &we );
+                    reactor_dispatch( window->reactor, &we );
                }
 
                break;
@@ -907,7 +818,7 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
           we.x    = we.cx - stack->pointer_window->x;
           we.y    = we.cy - stack->pointer_window->y;
 
-          window_append_event( stack->pointer_window, &we );
+          reactor_dispatch( stack->pointer_window->reactor, &we );
      }
      else {
           if (!windowstack_handle_enter_leave_focus( stack )
@@ -917,7 +828,7 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
                we.x    = we.cx - stack->entered_window->x;
                we.y    = we.cy - stack->entered_window->y;
 
-               window_append_event( stack->entered_window, &we );
+               reactor_dispatch( stack->entered_window->reactor, &we );
           }
      }
 
@@ -940,7 +851,7 @@ static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack )
                we.x    = we.cx - before->x;
                we.y    = we.cy - before->y;
 
-               window_append_event( before, &we );
+               reactor_dispatch( before->reactor, &we );
           }
 
           if (after) {
@@ -950,7 +861,7 @@ static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack )
                we.x    = we.cx - after->x;
                we.y    = we.cy - after->y;
 
-               window_append_event( after, &we );
+               reactor_dispatch( after->reactor, &we );
           }
 
           stack->entered_window = after;
