@@ -139,7 +139,7 @@ crtc2InitOutput( CoreScreen                 *screen,
           default:
                /* Composite / S-Video */
                config->out_signals    = DSOS_CVBS | DSOS_YC;
-               config->out_connectors = DSOC_CVBS | DSOS_YC;
+               config->out_connectors = DSOC_CVBS | DSOC_YC;
                break;
      }
 
