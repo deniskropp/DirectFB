@@ -656,7 +656,7 @@ Misc options:
 
 Core Systems:
   FBDev support       yes
-  SDL support         $enable_sdl
+  SDL support         $SDL
 
 Building Image Providers:
   JPEG                $JPEG
