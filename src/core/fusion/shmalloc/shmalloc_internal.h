@@ -51,7 +51,7 @@ Cambridge, MA 02139, USA.
 #include "../reactor.h"
 #include "../lock.h"
 
-void *__shmalloc_init ();
+void *__shmalloc_init (bool initialize);
 void *__shmalloc_brk  (int increment);
 
 ReactionResult __shmalloc_react (const void *msg_data, void *ctx);

@@ -50,7 +50,6 @@
  */
 typedef struct {
      long  next_fid;
-     void *next_shmat_addr;
 } FusionShared;
 
 /*
@@ -109,16 +108,14 @@ int fusion_init()
      fusion->shared = shmat (fusion->shared_shm, NULL, 0);
 
      /* initialize shared Fusion data? */
-     if (as == AS_Initialize) {
+     if (as == AS_Initialize)
           fusion->shared->next_fid = 1;
-          fusion->shared->next_shmat_addr = (void*)0x60000000;
-     }
 
      /* set local Fusion ID */
      fusion->fid = fusion->shared->next_fid++;
 
      /* initialize shmalloc part */
-     if (!__shmalloc_init()) {
+     if (!__shmalloc_init(as == AS_Initialize)) {
           /* destroy shared Fusion data if we initialized it */
           if (as == AS_Initialize)
                shmctl (fusion->shared_shm, IPC_RMID, NULL);
@@ -135,10 +132,6 @@ void fusion_exit()
 {
      if (!fusion)
           return;
-
-#if 0
-     _shmalloc_exit();
-#endif
 
      switch (_shm_abolish (fusion->shared_shm, fusion->shared)) {
           case AB_Destroyed:
@@ -171,37 +164,6 @@ int _fusion_id()
      FERROR ("called without prior init!\n");
 
      return -1;
-}
-
-void *_fusion_shmat (int shmid)
-{
-     void *ret;
-
-     struct shmid_ds buf;
-
-     if (!fusion) {
-          FERROR ("called without prior init!\n");
-          return NULL;
-     }
-
-     if (shmctl (shmid, IPC_STAT, &buf) < 0) {
-          FPERROR ("shmctl failed");
-          return NULL;
-     }
-
-     FDEBUG ("attaching at %p\n", fusion->shared->next_shmat_addr);
-
-     ret = shmat (shmid, fusion->shared->next_shmat_addr, 0);
-     if (ret == (void*)(-1)) {
-          FPERROR ("shmat failed");
-          return NULL;
-     }
-
-     FDEBUG ("attached at %p\n", ret);
-
-     fusion->shared->next_shmat_addr = ret + buf.shm_segsz;
-
-     return ret;
 }
 
 

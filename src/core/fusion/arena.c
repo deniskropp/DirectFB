@@ -116,7 +116,7 @@ FusionArena *arena_enter (const char *name,
           return NULL;
      }
 
-     arena->shared = shared = _fusion_shmat (arena->shared_shm);
+     arena->shared = shared = shmat (arena->shared_shm, NULL, 0);
 
      if (as == AS_Initialize) {
           memset (shared, 0, sizeof (ArenaShared));

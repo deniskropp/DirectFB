@@ -21,61 +21,122 @@
 #include "shmalloc_internal.h"
 
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 
-#define SH_NAME     "/dev/shm/fusion.shm"
-#define SH_BASE     0x70000000
-#define SH_MAX_SIZE 0x30000000
+#define SH_BASE          0x70000000
+#define SH_MAX_SIZE      0x30000000
+#define SH_FILE_NAME     "/fusion.shm"
+#define SH_DEFAULT_NAME  "/dev/shm" SH_FILE_NAME
+#define SH_MOUNTS_FILE   "/proc/mounts"
+#define SH_SHMFS_TYPE    "shm"
+#define SH_BUFSIZE       256
 
-static int   fd   = -1;
-static void *mem  = NULL;
-static int   size = 0;
+static int   fd            = -1;
+static void *mem           = NULL;
+static int   size          = 0;
+static char  default_name[]= SH_DEFAULT_NAME;
 
-void *__shmalloc_init ()
+static char *
+shmalloc_check_shmfs (void)
 {
-     struct stat st;
+     FILE * mounts_handle = NULL;
+     char * pointer       = NULL;
+     char * mount_point   = NULL;
+     char * mount_fs      = NULL;
 
-     if (fd > -1) {
+     char   buffer[SH_BUFSIZE];
+
+     //fprintf (stderr, "default-shmfs-name: %s\n", default_name);
+
+     if (!(mounts_handle = fopen (SH_MOUNTS_FILE, "r"))) {
+          return(default_name);
+     }
+
+     while (fgets (buffer, SH_BUFSIZE, mounts_handle)) {
+          pointer = buffer;
+          strsep (&pointer, " ");
+          mount_point = strsep (&pointer, " ");
+          mount_fs = strsep (&pointer, " ");
+          if (mount_fs && mount_point \
+              && (strlen (mount_fs) == strlen (SH_SHMFS_TYPE)) \
+              && (!(strcmp (mount_fs, SH_SHMFS_TYPE)))) {
+               if (!(pointer = (char *) malloc (strlen (mount_point) \
+                                                + strlen (SH_FILE_NAME) + 1))) {
+                    fclose (mounts_handle);
+                    return(default_name);
+               }
+               strcpy (pointer, mount_point);
+               strcat (pointer, SH_FILE_NAME);
+               fclose (mounts_handle);
+               return(pointer);
+          }
+     }
+
+     fclose (mounts_handle);
+     return(default_name);
+}
+
+void *__shmalloc_init (bool initialize)
+{
+     struct stat   st;
+     char        * sh_name = NULL;
+
+     if (mem) {
           //fprintf (stderr, __FUNCTION__ " called more than once!\n");
           return mem;
      }
 
+     /* try to find out where the shmfs is actually mounted */
+
+     sh_name = shmalloc_check_shmfs ();
+     //fprintf (stderr, "shmfs-filename: %s\n", sh_name);
+
      /* open the virtual file */
-     fd = open (SH_NAME, O_RDWR | O_CREAT, 0600);
+     if (initialize)
+          fd = open (sh_name, O_RDWR | O_CREAT, 0600);
+     else
+          fd = open (sh_name, O_RDWR, 0600);
      if (fd < 0) {
-          perror ("opening " SH_NAME);
+          perror ("opening shared memory file");
           return NULL;
      }
 
-     /* query size of memory */
-     if (fstat (fd, &st) < 0) {
-          perror ("fstating " SH_NAME);
-          close (fd);
-          fd = -1;
-          return NULL;
-     }
-
-     /* if we are a slave */
-     if (st.st_size)
-          size = st.st_size;
-     else {
+     /* init or join */
+     if (initialize) {
           size = sizeof(shmalloc_heap);
           ftruncate (fd, size);
+     }
+     else {
+          size = st.st_size;
+          
+          /* query size of memory */
+          if (fstat (fd, &st) < 0) {
+               perror ("fstating shared memory file");
+               close (fd);
+               fd = -1;
+               return NULL;
+          }
      }
 
      /* map it shared */
      mem = mmap ((void*) SH_BASE, size,
                  PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
      if (mem == MAP_FAILED) {
-          perror ("mmapping " SH_NAME);
+          perror ("mmapping shared memory file");
           close (fd);
-          fd = -1;
-          return NULL;
+          fd  = -1;
+          mem = NULL;
      }
+
+     /* clear it */
+     if (initialize)
+          memset (mem, 0, size);
 
      return mem;
 }
@@ -95,13 +156,13 @@ void *__shmalloc_brk (int increment)
                printf ("WARNING: maximum shared size exceeded!\n");
 
           if (ftruncate (fd, new_size) < 0) {
-               perror ("ftruncating " SH_NAME);
+               perror ("ftruncating shared memory file");
                return NULL;
           }
 
           new_mem = mremap (mem, size, new_size, 0);
           if (new_mem == MAP_FAILED) {
-               perror ("mremapping " SH_NAME);
+               perror ("mremapping shared memory file");
                ftruncate (fd, size);
                return NULL;
           }
@@ -125,7 +186,7 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
 
      new_mem = mremap (mem, size, new_size, 0);
      if (new_mem == MAP_FAILED) {
-          perror ("FATAL: mremap in __shmalloc_react failed" SH_NAME);
+          perror ("FATAL: mremap in __shmalloc_react failed on shared memory file");
           return RS_OK;
      }
 

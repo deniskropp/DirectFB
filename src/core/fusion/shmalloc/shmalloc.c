@@ -74,7 +74,7 @@ initialize (void)
      if (_sheap)
           return 1;
 
-     _sheap = __shmalloc_init();
+     _sheap = __shmalloc_init(false);
      if (!_sheap)
           return 0;
 

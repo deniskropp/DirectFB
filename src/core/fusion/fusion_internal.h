@@ -87,15 +87,6 @@ typedef enum {
  * from fusion.c
  */
 int   _fusion_id();
-void *_fusion_shmat (int shmid);
-
-/*
- * from shmalloc.c
- */
-#if 0
-int  _shmalloc_init();
-void _shmalloc_exit();
-#endif
 
 /*
  * from util.c
