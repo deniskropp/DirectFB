@@ -2701,11 +2701,11 @@ static void Bop_a8_set_alphapixel_Aop_airgb( GenefxState *gfxs )
      int    w   = gfxs->length;
      __u8  *S   = gfxs->Bop;
      __u32 *D   = gfxs->Aop;
-     __u32  Cop = gfxs->Cop | 0xff000000;
+     __u32  Cop = gfxs->Cop;
      __u32  rb  = Cop & 0x00ff00ff;
      __u32  g   = gfxs->color.g;
 
-#define SET_ALPHA_PIXEL_ARGB(d,a)\
+#define SET_ALPHA_PIXEL_AiRGB(d,a)\
      switch (a) {\
           case 0xff: d = Cop;\
           case 0: break;\
@@ -2720,9 +2720,9 @@ static void Bop_a8_set_alphapixel_Aop_airgb( GenefxState *gfxs )
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, ARGB );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, AiRGB );
 
-#undef SET_ALPHA_PIXEL_ARGB
+#undef SET_ALPHA_PIXEL_AiRGB
 }
 
 static void Bop_a8_set_alphapixel_Aop_a8( GenefxState *gfxs )
