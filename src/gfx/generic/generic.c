@@ -3663,6 +3663,10 @@ void gFillRectangle( DFBRectangle *rect )
      }
 
      if (dst_format == DSPF_I420 || dst_format == DSPF_YV12) {
+          int dst_field_offset_save = dst_field_offset;
+
+          dst_field_offset /= 4;
+
           rect->x /= 2;
           rect->y /= 2;
           rect->w /= 2;
@@ -3689,6 +3693,8 @@ void gFillRectangle( DFBRectangle *rect )
 
                Aop_next( dst_pitch/2 );
           }
+
+          dst_field_offset = dst_field_offset_save;
      }
 }
 
@@ -3818,7 +3824,12 @@ void gBlit( DFBRectangle *rect, int dx, int dy )
      if (src_format == DSPF_I420 || src_format == DSPF_YV12) {
           void *sorg = src_org + src_height * src_pitch;
           void *dorg = dst_org + dst_height * dst_pitch;
-          
+          int dst_field_offset_save = dst_field_offset;
+          int src_field_offset_save = src_field_offset;
+
+          dst_field_offset /= 4;
+          src_field_offset /= 4;
+
           gDoBlit( rect->x/2, rect->y/2, rect->w/2, rect->h/2, dx/2, dy/2,
                    src_pitch/2, dst_pitch/2, sorg, dorg );
           
@@ -3827,6 +3838,9 @@ void gBlit( DFBRectangle *rect, int dx, int dy )
           
           gDoBlit( rect->x/2, rect->y/2, rect->w/2, rect->h/2, dx/2, dy/2,
                    src_pitch/2, dst_pitch/2, sorg, dorg );
+
+          dst_field_offset = dst_field_offset_save;
+          src_field_offset = src_field_offset_save;
      }
 }
 
