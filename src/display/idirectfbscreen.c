@@ -555,6 +555,12 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
      if (patch->flags & DSECONF_MIXER)
           patched->mixer = patch->mixer;
 
+     if (patch->flags & DSECONF_OUT_SIGNALS)
+          patched->out_signals = patch->out_signals;
+
+     if (patch->flags & DSECONF_SCANMODE)
+          patched->scanmode = patch->scanmode;
+
      return DFB_OK;
 }
 
