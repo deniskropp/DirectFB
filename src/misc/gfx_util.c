@@ -74,11 +74,19 @@ struct _PixopsFilter {
 
 static void rgba_to_dst_format (__u8 *dst,
                                 __u32 r, __u32 g, __u32 b, __u32 a,
-                                DFBSurfacePixelFormat dst_format,
-                                CorePalette *palette, int dx)
+                                CoreSurface *dst_surface, int dx)
 {
-     switch (dst_format) {
+     CorePalette *palette = dst_surface->palette;
 
+     if (dst_surface->caps & DSCAPS_PREMULTIPLIED) {
+          __u32 a1 = a + 1;
+
+          r = (r * a1) >> 8;
+          g = (g * a1) >> 8;
+          b = (b * a1) >> 8;
+     }
+
+     switch (dst_surface->format) {
           case DSPF_RGB332:
                *((__u8*)dst) = PIXEL_RGB332( r, g, b );
                break;
@@ -168,7 +176,7 @@ static void rgba_to_dst_format (__u8 *dst,
                break;
 
           default:
-               D_ONCE( "unimplemented destination format (0x%08x)", dst_format );
+               D_ONCE( "unimplemented destination format (0x%08x)", dst_surface->format );
                break;
      }
 }
@@ -200,15 +208,17 @@ void dfb_copy_buffer_32( __u32 *src,
                break;
 
           case DSPF_ARGB:
-               for (y = drect->y; y < drect->y + drect->h; y++) {
-                    void *d = LINE_PTR( dst, dst_surface->caps,
-                                        y, dst_surface->height, dpitch );
+               if (! (dst_surface->caps & DSCAPS_PREMULTIPLIED)) {
+                    for (y = drect->y; y < drect->y + drect->h; y++) {
+                         void *d = LINE_PTR( dst, dst_surface->caps,
+                                             y, dst_surface->height, dpitch );
 
-                    direct_memcpy (d + drect->x * 4, src, drect->w * 4);
+                         direct_memcpy (d + drect->x * 4, src, drect->w * 4);
 
-                    src += drect->w;
+                         src += drect->w;
+                    }
+                    break;
                }
-               break;
 
           default:
                for (y = drect->y; y < drect->y + drect->h; y++) {
@@ -223,8 +233,7 @@ void dfb_copy_buffer_32( __u32 *src,
                                              (*src & 0x0000FF00) >> 8,
                                              (*src & 0x000000FF),
                                              a,
-                                             dst_surface->format,
-                                             dst_surface->palette,
+                                             dst_surface,
                                              x);
 
                          d += bpp;
@@ -347,8 +356,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
 
 static void scale_pixel( int *weights, int n_x, int n_y,
                          void *dst, __u32 **src,
-                         int x, int sw, DFBSurfacePixelFormat dst_format,
-                         CorePalette *palette, int dx )
+                         int x, int sw, CoreSurface *dst_surface, int dx )
 {
      __u32 r = 0, g = 0, b = 0, a = 0;
      int i, j;
@@ -381,12 +389,12 @@ static void scale_pixel( int *weights, int n_x, int n_y,
      b = (b >> 24) == 0xFF ? 0xFF : (b + 0x800000) >> 24;
      a = (a >> 16) == 0xFF ? 0xFF : (a + 0x8000) >> 16;
 
-     rgba_to_dst_format( dst, r, g, b, a, dst_format, palette, dx );
+     rgba_to_dst_format( dst, r, g, b, a, dst_surface, dx );
 }
 
 static void *scale_line( int *weights, int n_x, int n_y, void *dst,
                          void *dst_end, __u32 **src, int x, int x_step, int sw,
-                         DFBSurfacePixelFormat dst_format, CorePalette *palette, int dx )
+                         CoreSurface *dst_surface, int dx )
 {
      int i, j;
      int *pixel_weights;
@@ -426,9 +434,9 @@ static void *scale_line( int *weights, int n_x, int n_y, void *dst,
           b = (b >> 24) == 0xFF ? 0xFF : (b + 0x800000) >> 24;
           a = (a >> 16) == 0xFF ? 0xFF : (a + 0x8000) >> 16;
 
-          rgba_to_dst_format( dst, r, g, b, a, dst_format, palette, dx++ );
+          rgba_to_dst_format( dst, r, g, b, a, dst_surface, dx++ );
 
-          dst += DFB_BYTES_PER_PIXEL (dst_format);
+          dst += DFB_BYTES_PER_PIXEL (dst_surface->format);
           x += x_step;
      }
 
@@ -507,8 +515,7 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
                scale_pixel( run_weights + ((sx >> (SCALE_SHIFT - SUBSAMPLE_BITS))
                                            & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
                             filter.n_x, filter.n_y, outbuf, line_bufs,
-                            sx >> SCALE_SHIFT, sw, dst_surface->format,
-                            dst_surface->palette, dest_x );
+                            sx >> SCALE_SHIFT, sw, dst_surface, dest_x );
 
                sx += x_step;
                x_start = sx >> SCALE_SHIFT;
@@ -518,8 +525,7 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
 
           new_outbuf = scale_line (run_weights, filter.n_x, filter.n_y, outbuf,
                                    outbuf_end, line_bufs, sx >> SCALE_SHIFT,
-                                   x_step, sw, dst_surface->format,
-                                   dst_surface->palette, dest_x);
+                                   x_step, sw, dst_surface, dest_x);
 
           dest_x += (new_outbuf - outbuf) / DFB_BYTES_PER_PIXEL (dst_surface->format);
           sx = dest_x * x_step + scaled_x_offset;
@@ -529,8 +535,7 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
                scale_pixel( run_weights + ((sx >> (SCALE_SHIFT - SUBSAMPLE_BITS))
                                            & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
                             filter.n_x, filter.n_y, outbuf, line_bufs,
-                            sx >> SCALE_SHIFT, sw, dst_surface->format,
-                            dst_surface->palette, dest_x);
+                            sx >> SCALE_SHIFT, sw, dst_surface, dest_x);
 
                sx += x_step;
                outbuf += DFB_BYTES_PER_PIXEL (dst_surface->format);
