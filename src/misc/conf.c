@@ -119,12 +119,14 @@ static const char *config_usage =
     "Allow translucent windows\n"
     "  videoram-limit=<amount>        "
     "Limit amount of Video RAM in kb\n"
-    "  matrox-tv-standard=[pal|ntsc]  "
-    "Matrox TV standard (default=pal)\n"
     "  [no-]matrox-sgram              "
     "Use Matrox SGRAM features\n"
     "  [no-]matrox-crtc2              "
     "Experimental Matrox CRTC2 support\n"
+    "  matrox-tv-standard=(pal|ntsc)  "
+    "Matrox TV standard (default=pal)\n"
+    "  matrox-cable-type=(composite|scart-rgb|scart-composite)\n"
+    "                                 Matrox cable type (default=composite)\n"
     "  screenshot-dir=<directory>     "
     "Dump screen content on <Print> key presses\n"
     "  disable-module=<module_name>   "
@@ -640,6 +642,28 @@ DFBResult dfb_config_set( const char *name, const char *value )
           else {
                ERRORMSG( "DirectFB/Config: "
                          "No TV standard specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "matrox-cable-type" ) == 0) {
+          if (value) {
+               if (strcmp( value, "composite" ) == 0) {
+                    dfb_config->matrox_cable = 0;
+               } else
+               if (strcmp( value, "scart-rgb" ) == 0) {
+                    dfb_config->matrox_cable = 1;
+               } else
+               if (strcmp( value, "scart-composite" ) == 0) {
+                    dfb_config->matrox_cable = 2;
+               } else {
+                    ERRORMSG( "DirectFB/Config: Unknown cable type "
+                              "'%s'!\n", value );
+                    return DFB_INVARG;
+               }
+          }
+          else {
+               ERRORMSG( "DirectFB/Config: "
+                         "No cable type specified!\n" );
                return DFB_INVARG;
           }
      } else

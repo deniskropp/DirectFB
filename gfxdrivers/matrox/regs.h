@@ -369,5 +369,5 @@
 #define XCOLKEY0BLUE   0x57
 
 #define XDISPCTRL      0x8A
-
+#define XSYNCCTRL      0x8B
 #define XPWRCTRL       0xA0

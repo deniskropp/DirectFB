@@ -101,9 +101,16 @@ void
 maven_enable( MatroxMavenData  *mav,
               MatroxDriverData *mdrv )
 {
-     if (mav->g450)
-          maven_write_byte( mav, mdrv, 0x80,
-                            dfb_config->matrox_ntsc ? 0x03 : 0x01 );
+     if (mav->g450) {
+          if (dfb_config->matrox_cable == 1)
+               /* SCART RGB */
+               maven_write_byte( mav, mdrv, 0x80,
+                                 dfb_config->matrox_ntsc ? 0x43 : 0x41 );
+          else
+               /* Composite / S-Video */
+               maven_write_byte( mav, mdrv, 0x80,
+                                 dfb_config->matrox_ntsc ? 0x03 : 0x01 );
+     }
      else
           maven_write_byte( mav, mdrv, 0x82, 0x20 );
 
@@ -216,7 +223,20 @@ maven_set_regs( MatroxMavenData       *mav,
           LR(0x8A);
           LR(0x8B);
 
-          maven_write_byte( mav, mdrv, 0xB0, 0x80 );
+          switch (dfb_config->matrox_cable) {
+               case 1:
+                    /* SCART RGB */
+                    maven_write_byte( mav, mdrv, 0xB0, 0x85 );
+                    break;
+               case 2:
+                    /* SCART Composite */
+                    maven_write_byte( mav, mdrv, 0xB0, 0x81 );
+                    break;
+               default:
+                    /* Composite / S-Video */
+                    maven_write_byte( mav, mdrv, 0xB0, 0x80 );
+                    break;
+          }
      }
 }
 

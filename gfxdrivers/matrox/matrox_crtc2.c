@@ -736,6 +736,18 @@ crtc2_enable_output( MatroxDriverData     *mdrv,
           val = mga_in_dac( mmio, XDISPCTRL );
           val |= (3 << 2);
           mga_out_dac( mmio, XDISPCTRL, val );
+
+          if (dfb_config->matrox_cable == 1) {
+               /*
+                * dac2hsoff = 0
+                * dac2vsoff = 0
+                * dac2hspol = 0 (+)
+                * dac2vspol = 0 (+)
+                */
+               val = mga_in_dac( mmio, XSYNCCTRL );
+               val &= 0x0F;
+               mga_out_dac( mmio, XSYNCCTRL, val );
+          }
      }
 
      maven_disable( mav, mdrv );

@@ -76,6 +76,7 @@ typedef struct
      bool      no_argb_font;                      /* force a8 font */
 
      bool      matrox_ntsc;                       /* Matrox TV standard */
+     int       matrox_cable;                      /* Matrox cable type */
      bool      matrox_sgram;                      /* Use Matrox SGRAM features */
      bool      matrox_crtc2;                      /* Experimental CRTC2 stuff */
      bool      sync;                              /* Do sync() in core_init() */
