@@ -128,6 +128,9 @@ static KeyCode keycodes_old_remote[] = {
 };
 
 
+/*
+ * declaration of private data
+ */
 typedef struct {
      int          fd;
      InputDevice *device;
@@ -135,6 +138,9 @@ typedef struct {
 } Dbox2remoteData;
 
 
+/*
+ * helper function for translating rccode
+ */
 static DFBInputDeviceKeyIdentifier
 dbox2remote_parse_rccode( __u16 rccode )
 {
@@ -145,7 +151,7 @@ dbox2remote_parse_rccode( __u16 rccode )
      }
      else {
           keycode = keycodes_new_remote;
-	  rccode &= 0x003f;
+          rccode &= 0x003f;
      }
 
      while (keycode->key != DIKC_UNKNOWN) {
@@ -158,6 +164,10 @@ dbox2remote_parse_rccode( __u16 rccode )
      return DIKC_UNKNOWN;
 }
  
+/*
+ * Input thread reading from device.
+ * Generates events on incoming data.
+ */
 static void*
 dbox2remoteEventThread( void *driver_data )
 {
@@ -166,18 +176,20 @@ dbox2remoteEventThread( void *driver_data )
      __u16            rccode; 
      DFBInputEvent    evt;    
 
-     memset( &evt, 0, sizeof(evt) );
-
+     /* set flags once */
      evt.flags = DIEF_KEYCODE;
 
      while ((readlen = read( data->fd, &rccode, 2 )) == 2) {
           pthread_testcancel();
 
+          /* translate rccode to DirectFB keycode */
           evt.keycode = dbox2remote_parse_rccode( rccode );
           if (evt.keycode != DIKC_UNKNOWN) {
+               /* set event type and dispatch*/
                evt.type = DIET_KEYPRESS;
                input_dispatch( data->device, &evt );
 
+               /* set event type and dispatch*/
                evt.type = DIET_KEYRELEASE;
                input_dispatch( data->device, &evt );
           }
@@ -191,21 +203,36 @@ dbox2remoteEventThread( void *driver_data )
  
 /* exported symbols */
 
+/*
+ * Return the version number of the 'binary interface'.
+ * Called immediately after input module has been opened
+ * and this function has been found.
+ * Input drivers with differing compiled in version won't be used.
+ */
 int
 driver_get_abi_version()
 {
      return DFB_INPUT_DRIVER_ABI_VERSION;
 }
 
+/*
+ * Return the number of available devices.
+ * Called once during initialization of DirectFB.
+ */
 int
 driver_get_available()
 {
+     /* Check if we are able to read from device */
      if (access( DEVICE, R_OK ))
         return 0;
         
      return 1;
 }
 
+/*
+ * Fill out general information about this driver.
+ * Called once during initialization of DirectFB.
+ */
 void
 driver_get_info( InputDriverInfo *info )
 {
@@ -219,34 +246,48 @@ driver_get_info( InputDriverInfo *info )
      info->version.minor = 9;
 }
  
+/*
+ * Open the device, fill out information about it,
+ * allocate and fill private data, start input thread.
+ * Called during initialization, resuming or taking over mastership.
+ */
 DFBResult
 driver_open_device( InputDevice      *device,
                     unsigned int      number,
-		    InputDeviceInfo  *info,
-		    void            **driver_data )
+                    InputDeviceInfo  *info,
+                    void            **driver_data )
 {
      int                 fd;
      Dbox2remoteData    *data;
      
+     /* open device */
      fd = open( DEVICE, O_RDONLY);
      if (fd < 0) {
           PERRORMSG( "DirectFB/dbox2remote: could not open device" );
           return DFB_INIT;
      }
+
      ioctl( fd, RC_IOCTL_BCODES, 0 );
 
-     /* fill device info structure */
+     
+     /* set device name */
      snprintf( info->name,
                DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "dbox2 remote control" );
 
+     /* set device vendor */
      snprintf( info->vendor,
                DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "nokia/sagem/philips" );
 
+     /* set one of the primary input device IDs */
      info->prefered_id = DIDID_REMOTE;
 
+     /* set type flags */
      info->desc.type   = DIDTF_REMOTE;
+
+     /* set capabilities */
      info->desc.caps   = DICAPS_KEYS;
 
+     
      /* allocate and fill private data */
      data = DFBCALLOC( 1, sizeof(Dbox2remoteData) );
 
@@ -262,6 +303,9 @@ driver_open_device( InputDevice      *device,
      return DFB_OK;
 }
  
+/*
+ * End thread, close device and free private data.
+ */
 void
 driver_close_device( void *driver_data )
 {
