@@ -2,7 +2,7 @@
 .\"
 .\" This man page is Copyright (C) 2002 Sven Neumann <neo@directfb.org>
 
-.TH DIRECTFBRC 5 "23 May 2002" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
+.TH DIRECTFBRC 5 "22 Dec 2004" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
 
 .SH NAME
 directfbrc \- DirectFB configuration file
