@@ -190,8 +190,6 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
              shared->driver_info.version.minor, shared->driver_info.vendor );
 
      if (dfb_config->software_only) {
-          memset( &shared->device_info.caps, 0, sizeof(CardCapabilities) );
-
           if (card->funcs.CheckState) {
                card->funcs.CheckState = NULL;
 
@@ -214,6 +212,7 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
 {
      DFBResult             ret;
      GraphicsDeviceShared *shared;
+     GraphicsDriverInfo    driver_info;
 
      D_ASSERT( card == NULL );
 
@@ -221,6 +220,9 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
      card->shared = data_shared;
 
      shared = card->shared;
+
+     /* Initialize software rasterizer. */
+     gGetDriverInfo( &driver_info );
 
      /* Build a list of available drivers. */
      direct_modules_explore_directory( &dfb_graphics_drivers );
@@ -248,10 +250,18 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
           return DFB_UNSUPPORTED;
      }
 
-     if (dfb_config->software_only && card->funcs.CheckState) {
-          card->funcs.CheckState = NULL;
 
-          D_INFO( "DirectFB/Graphics: Acceleration disabled (by 'no-hardware')\n" );
+     D_INFO( "DirectFB/Graphics: %s %s %d.%d (%s)\n",
+             shared->device_info.vendor, shared->device_info.name,
+             shared->driver_info.version.major,
+             shared->driver_info.version.minor, shared->driver_info.vendor );
+
+     if (dfb_config->software_only) {
+          if (card->funcs.CheckState) {
+               card->funcs.CheckState = NULL;
+
+               D_INFO( "DirectFB/Graphics: Acceleration disabled (by 'no-hardware')\n" );
+          }
      }
      else
           card->caps = shared->device_info.caps;
