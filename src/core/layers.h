@@ -283,6 +283,8 @@ CoreSurface       *dfb_layer_surface( const DisplayLayer *layer );
 CardState         *dfb_layer_state( DisplayLayer *layer );
 void               dfb_layer_description( const DisplayLayer         *layer,
                                           DFBDisplayLayerDescription *desc );
+void               dfb_layer_name( const DisplayLayer  *layer,
+                                   char               **name );
 DFBDisplayLayerID  dfb_layer_id( const DisplayLayer *layer );
 
 DFBResult          dfb_layer_flip_buffers ( DisplayLayer        *layer,

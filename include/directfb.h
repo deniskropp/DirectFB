@@ -1393,6 +1393,14 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      );
 
      /*
+      * Get a copy of the layer name. Caller should free it after use.
+      */
+     DFBResult (*GetName) (
+          IDirectFBDisplayLayer              *thiz,
+          char                              **layer_name
+     );
+
+     /*
       * Get a description of this display layer, i.e. the capabilities.
       */
      DFBResult (*GetDescription) (

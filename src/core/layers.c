@@ -923,6 +923,13 @@ dfb_layer_description( const DisplayLayer         *layer,
      *desc = layer->shared->layer_info.desc;
 }
 
+void
+dfb_layer_name( const DisplayLayer  *layer,
+                char               **name )
+{
+     *name = layer->shared->layer_info.name;
+}
+
 DFBDisplayLayerID
 dfb_layer_id( const DisplayLayer *layer )
 {
