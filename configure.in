@@ -211,7 +211,7 @@ dnl Test for freetype
 
 
 dnl Test for avifile
-  AC_ARG_ENABLE(avifile, [  --enable-avifile        compile avifile video provider [default=yes]], enable_avifile="$enableval", enable_avifile=yes)
+  AC_ARG_ENABLE(avifile, [  --enable-avifile        compile avifile video provider [default=auto]], enable_avifile="$enableval", enable_avifile=yes)
 
   if test x$enable_avifile = xyes; then
     AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
@@ -228,6 +228,7 @@ dnl Test for avifile
 AM_CONDITIONAL(AVIFILE_PROVIDER, test x$AVIFILE = xyes)
 
 
+
 dnl Test for libflash
   if test -z "$LIBFLASH"; then
     AC_CHECK_LIB(flash, FlashGetInfo,
@@ -239,6 +240,29 @@ dnl Test for libflash
   fi
 
 AM_CONDITIONAL(FLASH_PROVIDER, test x$FLASH = xyes)
+
+
+AC_ARG_WITH(libmpeg3, [  --with-libmpeg3=path    Path to libmpeg3 build])
+case "x$with_libmpeg3" in
+  x)
+    LIBMPEG3_DIR=
+    ;;
+  *)  
+    LIBMPEG3_DIR=$with_libmpeg3
+    MPEG3=yes
+    ;;
+esac  
+AC_SUBST(LIBMPEG3_DIR)
+
+AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
+
+
+AC_MSG_CHECKING(if libmpeg3 media provider will be built)
+if test x$MPEG3 = xyes; then
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(no)
+fi
 
 
 DFB_CFLAGS="$CFLAGS"
@@ -266,6 +290,7 @@ AC_SUBST(FREETYPE_LIBS)
 AC_SUBST(AVIFILE_PROVIDER)
 AC_SUBST(AVIFILE_CFLAGS)
 AC_SUBST(AVIFILE_LIBS)
+AC_SUBST(LIBMPEG3_LIBS)
 AC_SUBST(LIBFLASH)
 
 AC_SUBST(DATADIR)

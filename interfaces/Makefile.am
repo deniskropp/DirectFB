@@ -1,11 +1,7 @@
 ## Makefile.am for DirectFB/interfaces
 
-INCLUDES = \
-	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src
+interfacesdir = $(LIBDIR)/interfaces
 
-CFLAGS = $(DFB_CFLAGS) $(FREETYPE_CFLAGS)
-CXXFLAGS = $(DFB_CXXFLAGS) $(AVIFILE_CFLAGS)
 
 if AVIFILE_PROVIDER
 AVIFILE_PROVIDER_LTLIB = libidirectfbvideoprovider_avifile.la
@@ -13,11 +9,42 @@ else
 AVIFILE_PROVIDER_LTLIB =
 endif
 
+
+
+## This is a hack around fucking libtool to link libmpeg3.a into our shared object.
+
+if LIBMPEG3_PROVIDER
+
+clean-local:
+	-rm libidirectfbvideoprovider_libmpeg3.so
+
+all-local: libidirectfbvideoprovider_libmpeg3.so
+
+libidirectfbvideoprovider_libmpeg3.so: idirectfbvideoprovider_libmpeg3.o $(LIBMPEG3_DIR)/libmpeg3.a
+	$(LD) -shared -export-dynamic -o $@ $+ $(THREAD_LIBS) -lm
+
+interfaces_SCRIPTS = libidirectfbvideoprovider_libmpeg3.so
+
+LIBMPEG3_INCLUDES = -I$(LIBMPEG3_DIR)
+
+endif
+
+
 if FLASH_PROVIDER
 FLASH_PROVIDER_LTLIB = libidirectfbvideoprovider_swf.la
 else
 FLASH_PROVIDER_LTLIB =
 endif
+
+
+INCLUDES = \
+	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/src \
+	$(LIBMPEG3_INCLUDES)
+
+CFLAGS = $(DFB_CFLAGS) $(FREETYPE_CFLAGS)
+CXXFLAGS = $(DFB_CXXFLAGS) $(AVIFILE_CFLAGS)
+
 
 interfaces_LTLIBRARIES = \
 	libidirectfbfont_ft2.la			\
@@ -28,7 +55,6 @@ interfaces_LTLIBRARIES = \
 	$(AVIFILE_PROVIDER_LTLIB)		\
 	$(FLASH_PROVIDER_LTLIB)
 
-interfacesdir = $(LIBDIR)/interfaces
 
 
 libidirectfbfont_ft2_la_SOURCES = idirectfbfont_ft2.c
