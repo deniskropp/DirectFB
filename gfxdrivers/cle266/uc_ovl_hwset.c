@@ -79,8 +79,6 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     int dw, dh;             // Destination width and height
     DFBRectangle scr;       // Screen size
 
-	int sp_uv;
-
     bool write_buffers = false;
     bool write_settings = false;
 
