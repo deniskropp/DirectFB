@@ -1,3 +1,14 @@
+Bound to releases
+------------------
+
+0.9.13
+ - Finish palette API
+ - Synchronize DFB++ with the DirectFB API
+
+
+Sorted by priority (any release)
+---------------------------------
+
 Finish CLUT/ALUT support.
 
 Finish implementation of cooperative levels.
@@ -32,7 +43,8 @@ Virtual window/layer resolution with scrolling/panning.
 
 
 
-Refactoring/cleanups required:
+Refactoring/cleanups
+---------------------
 
 - Extract config stuff from DirectFBCreate
 - Move layer config stuff from IDirectFBSurface_Layer_Construct to IDirectFB
