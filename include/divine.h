@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -46,6 +46,11 @@ DiVine *divine_open (const char *path);
  * Sends a press and a release event for the specified symbol.
  */
 void divine_send_symbol (DiVine *divine, DFBInputDeviceKeySymbol symbol);
+
+/*
+ * Sends a press and a release event for the specified identifier.
+ */
+void divine_send_identifier (DiVine *divine, DFBInputDeviceKeyIdentifier identifier);
 
 /*
  * Sends a press and a release event for the specified ANSI string.

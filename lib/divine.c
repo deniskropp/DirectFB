@@ -86,9 +86,29 @@ divine_send_symbol( DiVine *divine, DFBInputDeviceKeySymbol symbol )
      write( divine->fd, &event, sizeof(DFBInputEvent) );
 }
 
+void
+divine_send_identifier( DiVine *divine, DFBInputDeviceKeyIdentifier identifier )
+{
+     DFBInputEvent event;
+
+     /* Construct 'press' event */
+     event.flags  = DIEF_KEYID;
+     event.type   = DIET_KEYPRESS;
+     event.key_id = identifier;
+
+     /* Write 'press' event to pipe */
+     write( divine->fd, &event, sizeof(DFBInputEvent) );
+
+     /* Turn into 'release' event */
+     event.type = DIET_KEYRELEASE;
+
+     /* Write 'release' event to pipe */
+     write( divine->fd, &event, sizeof(DFBInputEvent) );
+}
+
 /* crude hack for minicom vt102 escape sequences */
 void
-divine_send_vt102 ( DiVine *divine, int size, const char *ansistr )
+divine_send_vt102( DiVine *divine, int size, const char *ansistr )
 {
      int i;
 
