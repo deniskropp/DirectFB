@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.9 $
+ * $Revision: 1.10 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -205,6 +205,7 @@ static bool nscDrawLine(void *drv, void *dev, DFBRegion *line);
 static bool nscFillRectangle(void *drv, void *dev, DFBRectangle *rect);
 static bool nscDrawRectangle(void *drv, void *dev, DFBRectangle *rect);
 static bool nscBlit(void *drv, void *dev, DFBRectangle *rect, int dx, int dy);
+static bool nscBlitGu1(void *drv, void *dev, DFBRectangle *rect, int dx, int dy);
 
 static void gxEngineSync(void *drv, void *dev)
 {
@@ -227,6 +228,7 @@ gxCheckState(void *drv,
 {
 #if NSC_ACCEL
    NSCDriverData *gxdrv = (NSCDriverData *) drv;
+   NSCDeviceData *gxdev = (NSCDeviceData *) dev;
 
    if(state->destination->format != DSPF_RGB16)
       return;
@@ -235,15 +237,38 @@ gxCheckState(void *drv,
 
 	   if(state->source->format != DSPF_RGB16)
 		  return;
-      /* if there are no other blitting flags than the supported
-       * and the source and destination formats are the same
-       */
       if (gxdrv->cpu) {
+         /* GU2 - if there are no other blitting flags than the supported
+          * and the source and destination formats are the same 
+          */
          if (!(state->blittingflags & ~GX_SUPPORTED_BLITTINGFLAGS) &&
              state->source && state->source->format != DSPF_RGB24) {
             state->accel |= GX_SUPPORTED_BLITTINGFUNCTIONS;
          }
-     }
+      } else{
+         /* GU1 - source width must match frame buffer strid
+          */
+         if(state->source) {
+            int src_pitch = 0;
+            int dst_pitch = 0;
+
+            if(state->source) {
+               src_pitch = state->source->width * DFB_BYTES_PER_PIXEL(state->source->format);
+            }
+
+            if (state->modified & SMF_DESTINATION) {
+               if(state->destination && state->destination->front_buffer)
+                  dst_pitch = state->destination->back_buffer->video.pitch;
+            }
+            if(dst_pitch == 0) {
+               dst_pitch = gxdev->dst_pitch;
+            }
+       
+            if(src_pitch == dst_pitch && state->source) {
+               state->accel |= GX_SUPPORTED_BLITTINGFUNCTIONS;
+            }
+         }
+      }
    } else {
       /* if there are no other drawing flags than the supported */
       if (!(state->drawingflags & ~GX_SUPPORTED_DRAWINGFLAGS)) {
@@ -327,15 +352,17 @@ nscDrawLine(void *drv, void *dev, DFBRegion *line)
    short majorErr;
    unsigned short destData;
    NSCDeviceData *gxdev = (NSCDeviceData *) dev;
+   int yoffset;
 
    destData = 0;                        /*  Value will be 0x8 (or) 0 */
    dx = line->x2 - line->x1;            /*  delta values */
    dy = line->y2 - line->y1;
    adx = ABS(dx);
    ady = ABS(dy);
+   yoffset = gxdev->dst_offset / gxdev->dst_pitch;
 
    /* Canonical Bresenham stepper.
-    * * We use hardware to draw the pixels to take care of alu modes
+    * * We use hardware to draw the pixels to take care of alu modes 
     * * and whatnot.
     */
    Gal_set_raster_operation(0xF0);
@@ -351,7 +378,7 @@ nscDrawLine(void *drv, void *dev, DFBRegion *line)
       majorErr = (short)(ady << 1);
 
       Gal_bresenham_line((short)line->x1,
-                         (short)line->y1,
+                         (short)line->y1 + yoffset,
                          (short)adx,
                          (short)(majorErr - adx),
                          (short)majorErr,
@@ -367,7 +394,7 @@ nscDrawLine(void *drv, void *dev, DFBRegion *line)
          vectorMode |= GP_VECTOR_MAJOR_AXIS_POS;
       majorErr = (short)(adx << 1);
       Gal_bresenham_line((short)line->x1,
-                         (short)line->y1,
+                         (short)line->y1 + yoffset,
                          (short)ady,
                          (short)(majorErr - ady),
                          (short)majorErr,
@@ -381,10 +408,13 @@ static bool
 nscFillRectangle(void *drv, void *dev, DFBRectangle *rect)
 {
    NSCDeviceData *gxdev = (NSCDeviceData *) dev;
+   int yoffset;
 
    Gal_set_raster_operation(0xF0);
    Gal_set_solid_pattern(gxdev->Color);
-   Gal_pattern_fill(rect->x, rect->y, rect->w, rect->h);
+
+   yoffset = gxdev->dst_offset / gxdev->dst_pitch;
+   Gal_pattern_fill(rect->x, rect->y + yoffset, rect->w, rect->h);
 
    return true;
 }
@@ -393,14 +423,18 @@ static bool
 nscDrawRectangle(void *drv, void *dev, DFBRectangle *rect)
 {
    NSCDeviceData *gxdev = (NSCDeviceData *) dev;
+   int yoffset;
 
    Gal_set_raster_operation(0xF0);
    Gal_set_solid_pattern(gxdev->Color);
-   Gal_pattern_fill(rect->x, rect->y, rect->w, 1);
-   Gal_pattern_fill(rect->x, ((rect->y + rect->h) - 1), rect->w, 1);
-   Gal_pattern_fill(rect->x, (rect->y + 1), 1, (rect->h - 2));
+
+   yoffset = gxdev->dst_offset / gxdev->dst_pitch;
+
+   Gal_pattern_fill(rect->x, rect->y + yoffset, rect->w, 1);
+   Gal_pattern_fill(rect->x, ((rect->y + yoffset + rect->h) - 1), rect->w, 1);
+   Gal_pattern_fill(rect->x, (rect->y + yoffset + 1), 1, (rect->h - 2));
    Gal_pattern_fill(((rect->x + rect->w) - 1),
-                    (rect->y + 1), 1, (rect->h - 2));
+                    (rect->y + yoffset + 1), 1, (rect->h - 2));
 
    return true;
 }
@@ -423,6 +457,34 @@ nscBlit(void *drv, void *dev, DFBRectangle * rect, int dx, int dy)
                              nscdev->dst_offset + doffset,
                              (unsigned short)rect->w,
                              (unsigned short)rect->h, 1);
+
+   return true;
+}
+
+static bool
+nscBlitGu1(void *drv, void *dev, DFBRectangle * rect, int dx, int dy)
+{ 
+   int result, yoff;
+
+   NSCDeviceData *nscdev = (NSCDeviceData *) dev;
+
+   Gal_set_solid_pattern(nscdev->Color);
+   if (nscdev->v_srcColorkey) {
+      Gal_set_source_transparency(nscdev->src_colorkey, 0xFFFF);
+   }
+#if 0
+   printf("rect x %d y %d w %d h %d dx %d dy %d src_off %x dst_off %x src pitch %x dst pitch %x\n",
+		rect->x, rect->y, rect->w, rect->h, dx, dy,
+		nscdev->src_offset, nscdev->dst_offset,
+		nscdev->src_pitch, nscdev->dst_pitch);
+#endif
+
+   Gal_set_raster_operation(0xCC);
+   
+   yoff = nscdev->src_offset / nscdev->src_pitch;
+   result = Gal_screen_to_screen_blt(rect->x, rect->y + yoff, dx, dy,
+                             (unsigned short)rect->w,
+                             (unsigned short)rect->h);
 
    return true;
 }
@@ -460,6 +522,8 @@ driver_init_driver(GraphicsDevice      *device,
 {
    NSCDriverData *gxdrv = (NSCDriverData *) driver_data;
 
+   Gal_set_compression_enable(0);
+
    gxdrv->cpu_version = sAdapterInfo.dwCPUVersion;
    gxdrv->cpu = 0;
    if ((gxdrv->cpu_version & 0xFF) == GFX_CPU_REDCLOUD) {
@@ -477,8 +541,13 @@ driver_init_driver(GraphicsDevice      *device,
    funcs->DrawLine = nscDrawLine;
    if (gxdrv->cpu) {
       funcs->Blit = nscBlit;
+   } else {
+      funcs->Blit = nscBlitGu1;
    }
 #endif /* NSC_ACCEL */
+
+    /*dfb_config->pollvsync_after = 1;*/
+
    return DFB_OK;
 }
 
@@ -487,8 +556,6 @@ driver_init_device(GraphicsDevice *device,
                    GraphicsDeviceInfo *device_info,
                    void *driver_data, void *device_data)
 {
-   NSCDriverData *gxdrv = (NSCDriverData *) driver_data;
-
    snprintf(device_info->name,
             DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "NSC GX1/GX2 driver version");
    snprintf(device_info->vendor,
@@ -497,10 +564,8 @@ driver_init_device(GraphicsDevice *device,
    device_info->caps.flags = CCF_NOTRIEMU;
    device_info->caps.accel = GX_SUPPORTED_DRAWINGFUNCTIONS;
    device_info->caps.drawing = GX_SUPPORTED_DRAWINGFLAGS;
-   if (gxdrv->cpu) {
-      device_info->caps.accel |= GX_SUPPORTED_BLITTINGFUNCTIONS;
-      device_info->caps.blitting = GX_SUPPORTED_BLITTINGFLAGS;
-   }
+   device_info->caps.accel |= GX_SUPPORTED_BLITTINGFUNCTIONS;
+   device_info->caps.blitting = GX_SUPPORTED_BLITTINGFLAGS;
    return DFB_OK;
 }
 
