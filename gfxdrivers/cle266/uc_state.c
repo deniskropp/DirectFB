@@ -62,13 +62,13 @@ inline enum uc_state_type uc_select_blittype(CardState* state,
     }
 
 // 3d blitting is broken
-/*
+
     if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
         if ((uc_map_src_format_3d(state->source->format) >= 0) &&
             (uc_map_dst_format(state->destination->format, &tmp, &tmp) >= 0))
             return UC_TYPE_3D;
     }
-*/
+
     return UC_TYPE_UNSUPPORTED;
 }
 
