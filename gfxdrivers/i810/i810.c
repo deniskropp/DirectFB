@@ -43,7 +43,7 @@
 #include <core/surfaces.h>
 
 /* need fb handle to get accel, MMIO programming in the i810 is useless */
-#include <core/fbdev/fbdev.h>
+#include <fbdev/fbdev.h>
 #include <gfx/convert.h>
 #include <gfx/util.h>
 #include <misc/conf.h>
@@ -66,12 +66,12 @@ DFB_GRAPHICS_DRIVER( i810 )
                  (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_FILLTRIANGLE)
 
 #define I810_SUPPORTED_BLITTINGFLAGS   \
-                 (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY) 
+                 (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)
 
 #define I810_SUPPORTED_BLITTINGFUNCTIONS  \
-                 (DFXL_BLIT)  
+                 (DFXL_BLIT)
 
-static void 
+static void
 i810_lring_enable(I810DriverData *i810drv, u32 mode)
 {
 	u32 tmp;
@@ -80,10 +80,10 @@ i810_lring_enable(I810DriverData *i810drv, u32 mode)
 	tmp = (!mode) ? tmp & ~1 : tmp | 1;
 
 	i810_writel(i810drv->mmio_base, LRING + 12, tmp);
-}       
+}
 
 
-static inline void 
+static inline void
 i810_wait_for_blit_idle(I810DriverData *i810drv,
 			I810DeviceData *i810dev )
 {
@@ -105,7 +105,7 @@ i810_wait_for_blit_idle(I810DriverData *i810drv,
 	}
 }
 
-static void 
+static void
 i810_init_ringbuffer(I810DriverData *i810drv,
 		     I810DeviceData *i810dev )
 {
@@ -118,7 +118,7 @@ i810_init_ringbuffer(I810DriverData *i810drv,
 	i810_writel(i810drv->mmio_base, LRING + 4, 0);
 	i810drv->cur_tail = 0;
 
-	tmp2 = i810_readl(i810drv->mmio_base, LRING + 8) & ~RBUFFER_START_MASK; 
+	tmp2 = i810_readl(i810drv->mmio_base, LRING + 8) & ~RBUFFER_START_MASK;
 	tmp1 = i810drv->lring_bind.pg_start * 4096;
 	i810_writel(i810drv->mmio_base, LRING + 8, tmp2 | tmp1);
 
@@ -129,7 +129,7 @@ i810_init_ringbuffer(I810DriverData *i810drv,
 	i810_lring_enable(i810drv, 1);
 }
 
-static inline int 
+static inline int
 i810_wait_for_space(I810DriverData *i810drv,
 		    I810DeviceData *i810dev,
 		    u32             space   )
@@ -147,10 +147,10 @@ i810_wait_for_space(I810DriverData *i810drv,
 	while (count--) {
 		i810dev->fifo_waitcycles++;
 		head = i810_readl(i810drv->mmio_base, LRING + 4) & RBUFFER_HEAD_MASK;	
-		if ((tail == head) || 
-		    (tail > head && (RINGBUFFER_SIZE - tail + head) >= space) || 
+		if ((tail == head) ||
+		    (tail > head && (RINGBUFFER_SIZE - tail + head) >= space) ||
 		    (tail < head && (head - tail) >= space)) {
-			if (!tries) 
+			if (!tries)
 				i810dev->fifo_cache_hits++;
 			return 0;	
 		}
@@ -161,7 +161,7 @@ i810_wait_for_space(I810DriverData *i810drv,
 }
 
 
-static void 
+static void
 i810FlushTextureCache(void *drv, void *dev)
 {
 	I810DriverData *i810drv = (I810DriverData *) drv;
@@ -175,7 +175,7 @@ i810FlushTextureCache(void *drv, void *dev)
 	END_LRING(i810drv);
 }
 
-static void 
+static void
 i810EngineSync(void *drv, void *dev)
 {
 	I810DriverData *i810drv = (I810DriverData *) drv;
@@ -185,9 +185,9 @@ i810EngineSync(void *drv, void *dev)
 }
 
 /*
- * Set State routines 
+ * Set State routines
  */
-static inline void 
+static inline void
 i810_set_src(I810DriverData *i810drv,
 	     I810DeviceData *i810dev,
 	     CardState      *state)
@@ -204,7 +204,7 @@ i810_set_src(I810DriverData *i810drv,
 	i810dev->i_src = 1;
 }
 
-static inline void 
+static inline void
 i810_set_dest(I810DriverData *i810drv,
 	      I810DeviceData *i810dev,
 	      CardState      *state)
@@ -240,8 +240,8 @@ i810_set_dest(I810DriverData *i810drv,
 	}
 	i810dev->i_dst = 1;
 }
-					 
-static inline void 
+					
+static inline void
 i810_set_colorkey(I810DriverData *i810drv,
 		  I810DeviceData *i810dev,
 		  CardState      *state)
@@ -262,7 +262,7 @@ i810_set_colorkey(I810DriverData *i810drv,
 	i810dev->i_colorkey = 1;
 }
 
-static inline void 
+static inline void
 i810_set_color(I810DriverData *i810drv,
 	       I810DeviceData *i810dev,
 	       CardState      *state)
@@ -296,7 +296,7 @@ i810_set_color(I810DriverData *i810drv,
 	i810dev->i_color = 1;
 }
 
-static inline void 
+static inline void
 i810_set_clip(I810DriverData *i810drv,
 	      I810DeviceData *i810dev,
 	      DFBRegion      *clip     )
@@ -312,7 +312,7 @@ i810_set_clip(I810DriverData *i810drv,
 	i810dev->i_clip = 1;
 }
 	
-static void 
+static void
 i810CheckState(void *drv, void *dev,
 	       CardState *state, DFBAccelerationMask accel )
 {
@@ -337,7 +337,7 @@ i810CheckState(void *drv, void *dev,
 	}
 }
 
-static void 
+static void
 i810SetState( void *drv, void *dev,
 	      GraphicsDeviceFuncs *funcs,
 	      CardState *state, DFBAccelerationMask accel )
@@ -367,7 +367,7 @@ i810SetState( void *drv, void *dev,
 		i810_set_dest(i810drv, i810dev, state);
 		i810_set_color(i810drv, i810dev, state);
 		i810_set_clip(i810drv, i810dev, &state->clip);
-		state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE; 
+		state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE;
 		break;
 	case DFXL_BLIT:
 		i810_set_src( i810drv, i810dev, state);
@@ -385,7 +385,7 @@ i810SetState( void *drv, void *dev,
 	state->modified = 0;
 }
 
-static bool 
+static bool
 i810FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
 	I810DriverData *i810drv = (I810DriverData *) drv;
@@ -411,7 +411,7 @@ i810FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 	PUT_LRING(BLIT | COLOR_BLT | 3);
 	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN |
 		  DYN_COLOR_EN | i810drv->blit_color);
-	PUT_LRING(rect->h << 16 | rect->w); 
+	PUT_LRING(rect->h << 16 | rect->w);
 	PUT_LRING(dest);
 	PUT_LRING(i810drv->color_value);
 	PUT_LRING(NOP);
@@ -421,7 +421,7 @@ i810FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 	return true;
 }
 
-static bool 
+static bool
 i810DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
 	I810DriverData *i810drv = (I810DriverData *) drv;
@@ -448,7 +448,7 @@ i810DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 	/* horizontal line 1 */
 	dest = i810drv->destaddr + rect->x + (rect->y * i810drv->destpitch);
 	PUT_LRING(BLIT | COLOR_BLT | 3);
-	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN | 
+	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN |
 		  DYN_COLOR_EN | i810drv->blit_color);
 	PUT_LRING(1 << 16 | rect->w);
 	PUT_LRING(dest);
@@ -456,7 +456,7 @@ i810DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
 	/* vertical line 1 */
 	PUT_LRING(BLIT | COLOR_BLT | 3);
-	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN | 
+	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN |
 		  DYN_COLOR_EN | i810drv->blit_color);
 	PUT_LRING(rect->h << 16 | i810drv->pixeldepth);
 	PUT_LRING(dest);
@@ -475,7 +475,7 @@ i810DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 	dest -= rect->w;
 	dest += rect->h * i810drv->destpitch;
 	PUT_LRING(BLIT | COLOR_BLT | 3);
-	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN | 
+	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN |
 		  DYN_COLOR_EN | i810drv->blit_color);
 	PUT_LRING(1 << 16 | rect->w);
 	PUT_LRING(dest);
@@ -486,7 +486,7 @@ i810DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 	return true;
 }
 
-static bool 
+static bool
 i810Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
 	I810DriverData *i810drv = (I810DriverData *) drv;
@@ -538,7 +538,7 @@ i810Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 	BEGIN_LRING(i810drv, i810dev, 8);
 
 	PUT_LRING(BLIT | FULL_BLIT | 0x6 | i810drv->colorkey_bit);
-	PUT_LRING(xdir | PAT_COPY_ROP << 16 | i810drv->destpitch | 
+	PUT_LRING(xdir | PAT_COPY_ROP << 16 | i810drv->destpitch |
 		  DYN_COLOR_EN | i810drv->blit_color);
 	PUT_LRING((rect->h << 16) | rect->w);
 	PUT_LRING(dest);
@@ -553,18 +553,18 @@ i810Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 }
 
 /*
- * The software rasterizer when rendering non-axis aligned 
+ * The software rasterizer when rendering non-axis aligned
  * edges uses line spanning.  In our case, it will use
  * FillRect to render a 1 pixel-high rectangle.  However,
  * this would be slow in the i810 since for each rectangle,
  * an ioctl has to be done which is very slow.  As a temporary
  * replacement, I'll include a SpanLine function that will
- * not do an ioctl for every line.  This should be 
+ * not do an ioctl for every line.  This should be
  * significantly faster.
  */
 
 /* borrowed heavily and shamelessly from gfxcard.c */
-  
+
 typedef struct {
    int xi;
    int xf;
@@ -604,12 +604,12 @@ typedef struct {
 
 
 /*
- * The i810fill_tri function takes advantage of the buffer.  
- * It will fill up the buffer until it's done  rendering the 
- * triangle.  
+ * The i810fill_tri function takes advantage of the buffer.
+ * It will fill up the buffer until it's done  rendering the
+ * triangle.
  */
-static inline bool 
-i810fill_tri( DFBTriangle    *tri, 
+static inline bool
+i810fill_tri( DFBTriangle    *tri,
 	      I810DriverData *i810drv,
 	      I810DeviceData *i810dev )
 {
@@ -632,7 +632,7 @@ i810fill_tri( DFBTriangle    *tri,
 	
 	total = (yend - y) * 5;
 	if (total + BUFFER_PADDING > RINGBUFFER_SIZE/4) {
-		D_BUG("fill_triangle: buffer size is too small\n"); 
+		D_BUG("fill_triangle: buffer size is too small\n");
 		return false;
 	}
 	
@@ -654,7 +654,7 @@ i810fill_tri( DFBTriangle    *tri,
 			rect.y = y;
 			dest = i810drv->destaddr + (y * i810drv->destpitch) + (rect.x * i810drv->pixeldepth);
 			PUT_LRING(BLIT | COLOR_BLT | 3);
-			PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | 
+			PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch |
 				  SOLIDPATTERN | DYN_COLOR_EN | i810drv->blit_color);
 			PUT_LRING(1 << 16 | rect.w * i810drv->pixeldepth);
 			PUT_LRING(dest);
@@ -679,7 +679,7 @@ i810FillTriangle( void *drv, void *dev, DFBTriangle *tri)
 
 	dfb_sort_triangle(tri);
 	
-	if (tri->y3 - tri->y1 > 0) 
+	if (tri->y3 - tri->y1 > 0)
 		err = i810fill_tri(tri, i810drv, i810dev);
 
 	return err;
@@ -716,7 +716,7 @@ driver_get_info( GraphicsDevice     *device,
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
                "Tony Daplas" );
-     
+
      snprintf( info->url,
                DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH,
                "http://i810fb.sourceforge.net" );
@@ -744,7 +744,7 @@ i810_release_resource (I810DriverData *i810drv)
 		i810_writel(i810drv->mmio_base, LRING + 12, i810drv->lring4);
 	}
 
-	if (i810drv->flags & I810RES_MMAP) 
+	if (i810drv->flags & I810RES_MMAP)
 		munmap((void *) i810drv->aper_base, i810drv->info.aper_size * 1024 * 1024);
 
 	if (i810drv->flags & I810RES_LRING_BIND) {
@@ -752,7 +752,7 @@ i810_release_resource (I810DriverData *i810drv)
 		ioctl(i810drv->agpgart, AGPIOC_UNBIND, &unbind);
 	}
 
-	if (i810drv->flags & I810RES_LRING_ACQ) 
+	if (i810drv->flags & I810RES_LRING_ACQ)
 		ioctl(i810drv->agpgart, AGPIOC_DEALLOCATE, i810drv->lring_mem.key);
 		
 	if (i810drv->flags & I810RES_OVL_BIND) {
@@ -760,7 +760,7 @@ i810_release_resource (I810DriverData *i810drv)
 		ioctl(i810drv->agpgart, AGPIOC_UNBIND, &unbind);
 	}
 
-	if (i810drv->flags & I810RES_OVL_ACQ) 
+	if (i810drv->flags & I810RES_OVL_ACQ)
 		ioctl(i810drv->agpgart, AGPIOC_DEALLOCATE, i810drv->ovl_mem.key);
 
 	if (i810drv->flags & I810RES_GART_ACQ)
@@ -800,7 +800,7 @@ driver_init_driver( GraphicsDevice      *device,
      if (ioctl(i810drv->agpgart, AGPIOC_INFO, &i810drv->info))
 	     return DFB_IO;
 
-     i810drv->aper_base =  mmap(NULL, i810drv->info.aper_size * 1024 * 1024, PROT_WRITE, MAP_SHARED, 
+     i810drv->aper_base =  mmap(NULL, i810drv->info.aper_size * 1024 * 1024, PROT_WRITE, MAP_SHARED,
 				i810drv->agpgart, 0);
      if (i810drv->aper_base == MAP_FAILED) {
 	     i810_release_resource(i810drv);
@@ -829,7 +829,7 @@ driver_init_driver( GraphicsDevice      *device,
 	     return DFB_IO;
      }
      i810drv->flags |= I810RES_LRING_BIND;
-	     
+	
      i810drv->ovl_mem.pg_count = 1;
      i810drv->ovl_mem.type = AGP_PHYSICAL_MEMORY;
      if (ioctl(i810drv->agpgart, AGPIOC_ALLOCATE, &i810drv->ovl_mem)) {
@@ -865,7 +865,7 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->EngineSync         = i810EngineSync;
      funcs->FlushTextureCache  = i810FlushTextureCache;
 
-     funcs->FillRectangle      = i810FillRectangle;  
+     funcs->FillRectangle      = i810FillRectangle;
      funcs->DrawRectangle      = i810DrawRectangle;
      funcs->Blit               = i810Blit;
      funcs->FillTriangle       = i810FillTriangle;
@@ -888,7 +888,7 @@ driver_init_device( GraphicsDevice     *device,
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "Intel" );
 
-     device_info->caps.flags    = CCF_CLIPPING;   
+     device_info->caps.flags    = CCF_CLIPPING;
      device_info->caps.accel    = I810_SUPPORTED_DRAWINGFUNCTIONS |
                                   I810_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = I810_SUPPORTED_DRAWINGFLAGS;
@@ -913,7 +913,7 @@ driver_close_device( GraphicsDevice *device,
 	(void) i810dev;
 	(void) i810drv;
 
-	D_DEBUG( "DirectFB/I810: DMA Buffer Performance Monitoring:\n"); 
+	D_DEBUG( "DirectFB/I810: DMA Buffer Performance Monitoring:\n");
 	D_DEBUG( "DirectFB/I810:  %9d DMA buffer size in KB\n",
 		  RINGBUFFER_SIZE/1024 );
 	D_DEBUG( "DirectFB/I810:  %9d i810_wait_for_blit_idle calls\n",
@@ -928,7 +928,7 @@ driver_close_device( GraphicsDevice *device,
 		  i810dev->idle_waitcycles );
 	D_DEBUG( "DirectFB/I810:  %9d BUFFER space cache hits(depends on CPU)\n",
 		  i810dev->fifo_cache_hits );
-	D_DEBUG( "DirectFB/I810:  %9d BUFFER timeout sum (possible hardware crash)\n", 
+	D_DEBUG( "DirectFB/I810:  %9d BUFFER timeout sum (possible hardware crash)\n",
 		  i810dev->fifo_timeoutsum );
 	D_DEBUG( "DirectFB/I810:  %9d IDLE timeout sum (possible hardware crash)\n",
 		  i810dev->idle_timeoutsum );
@@ -939,7 +939,7 @@ driver_close_device( GraphicsDevice *device,
 	D_DEBUG( "DirectFB/I810:  Average wait cycles per i810_wait_for_space call:"
 		  " %.2f\n",
 		  i810dev->fifo_waitcycles/(float)(i810dev->waitfifo_calls) );
-	D_DEBUG( "DirectFB/I810:  Average wait cycles per i810_wait_for_blit_idle call:"	       
+	D_DEBUG( "DirectFB/I810:  Average wait cycles per i810_wait_for_blit_idle call:"	
 		  " %.2f\n",
 		  i810dev->idle_waitcycles/(float)(i810dev->idle_calls) );
 	D_DEBUG( "DirectFB/I810:  Average buffer space cache hits: %02d%%\n",

@@ -533,6 +533,8 @@ dfb_screen_rectangle( const DFBLocation *location,
           rect->h = location->h * mode->yres;
      }
      else {
+          D_WARN( "no video mode set yet" );
+
           /* This hack will be removed upon introduction of screens. */
           rect->x = location->x * 720;
           rect->y = location->y * 576;

@@ -531,7 +531,7 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
      }
 
      if (size != st.st_size) {
-          D_DEBUG("Fusion/SHM: __shmalloc_read (%d -> %ld)\n", size, st.st_size );
+          D_DEBUG("Fusion/SHM: __shmalloc_react (%d -> %ld)\n", size, st.st_size );
 
           new_mem = mremap (mem, size, st.st_size, 0);
           if (new_mem == MAP_FAILED) {

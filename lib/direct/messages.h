@@ -46,30 +46,34 @@
 
 #include <direct/conf.h>
 
-void direct_messages_info   ( const char *format, ... );
+void direct_messages_info         ( const char *format, ... );
 
-void direct_messages_error  ( const char *format, ... );
+void direct_messages_error        ( const char *format, ... );
 
-void direct_messages_perror ( int         erno,
-                              const char *format, ... );
+void direct_messages_perror       ( int         erno,
+                                    const char *format, ... );
 
-void direct_messages_dlerror( const char *dlerr,
-                              const char *format, ... );
+void direct_messages_dlerror      ( const char *dlerr,
+                                    const char *format, ... );
 
-void direct_messages_once   ( const char *func,
-                              const char *file,
-                              int         line,
-                              const char *format, ... );
+void direct_messages_once         ( const char *func,
+                                    const char *file,
+                                    int         line,
+                                    const char *format, ... );
 
-void direct_messages_bug    ( const char *func,
-                              const char *file,
-                              int         line,
-                              const char *format, ... );
+void direct_messages_unimplemented( const char *func,
+                                    const char *file,
+                                    int         line );
 
-void direct_messages_warn   ( const char *func,
-                              const char *file,
-                              int         line,
-                              const char *format, ... );
+void direct_messages_bug          ( const char *func,
+                                    const char *file,
+                                    int         line,
+                                    const char *format, ... );
+
+void direct_messages_warn         ( const char *func,
+                                    const char *file,
+                                    int         line,
+                                    const char *format, ... );
 
 
 #define D_INFO(x...)     do {                                                                  \
@@ -99,6 +103,17 @@ void direct_messages_warn   ( const char *func,
                                    if (first) {                                                \
                                         direct_messages_once( __FUNCTION__,                    \
                                                               __FILE__, __LINE__, x );         \
+                                        first = false;                                         \
+                                   }                                                           \
+                              }                                                                \
+                         } while (0)
+
+#define D_UNIMPLEMENTED() do {                                                                 \
+                              if (!direct_config->quiet) {                                     \
+                                   static bool first = true;                                   \
+                                   if (first) {                                                \
+                                        direct_messages_unimplemented( __FUNCTION__,           \
+                                                                       __FILE__, __LINE__ );   \
                                         first = false;                                         \
                                    }                                                           \
                               }                                                                \

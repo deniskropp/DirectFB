@@ -205,7 +205,6 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      if (ret) {
           dfb_surface_unref( surface );
           dfb_layer_region_unref( region );
-          DIRECT_DEALLOCATE_INTERFACE(thiz);
           return ret;
      }
 

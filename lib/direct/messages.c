@@ -128,6 +128,18 @@ direct_messages_once( const char *func,
 }
 
 void
+direct_messages_unimplemented( const char *func,
+                               const char *file,
+                               int         line )
+{
+     fprintf( stderr, " (!!!)  *** UNIMPLEMENTED [%s] *** [%s:%d]\n", func, file, line );
+
+     fflush( stderr );
+
+     direct_trace_print_stack( NULL );
+}
+
+void
 direct_messages_bug( const char *func,
                      const char *file,
                      int         line,

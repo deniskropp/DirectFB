@@ -28,8 +28,12 @@
 #ifndef __DIRECT__CLOCK_H__
 #define __DIRECT__CLOCK_H__
 
+#include <sys/time.h>
+
 long long direct_clock_get_micros();
 long long direct_clock_get_millis();
+
+void      direct_clock_set_start( const struct timeval *start );
 
 #endif
 

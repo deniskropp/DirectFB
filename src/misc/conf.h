@@ -127,6 +127,11 @@ typedef struct
                                                      as a1 and not a8 */
 
      bool      linux_input_ir_only;               /* Ignore non-IR devices. */
+
+     struct {
+          char *host;                             /* Remote host to connect to. */
+          int   session;                          /* Remote session number. */
+     } remote;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

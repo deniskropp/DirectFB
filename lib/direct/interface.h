@@ -28,16 +28,27 @@
 #ifndef __DIRECT__INTERFACE_H__
 #define __DIRECT__INTERFACE_H__
 
+#include <direct/types.h>
+
+#include <direct/debug.h>
 #include <direct/mem.h>
+
+
+#include <directfb.h>    /* FIXME: needed for DECLARE_INTERFACE and DEFINE_INTERFACE */
+
+DECLARE_INTERFACE( IAny )
+DEFINE_INTERFACE( IAny )
 
 
 typedef struct {
      const char * (*GetType)();
      const char * (*GetImplementation)();
-     DFBResult    (*Allocate)( void **interface );
-     DFBResult    (*Probe)( void *ctx, ... );
-     DFBResult    (*Construct)( void *interface, ... );
+     DirectResult (*Allocate)( void **interface );
+     DirectResult (*Probe)( void *ctx, ... );
+     DirectResult (*Construct)( void *interface, ... );
 } DirectInterfaceFuncs;
+
+typedef DirectResult (*DirectInterfaceProbeFunc)( DirectInterfaceFuncs *impl, void *ctx );
 
 /*
  * Loads an interface of a specific 'type'.
@@ -46,18 +57,18 @@ typedef struct {
  *
  * After success 'funcs' is set.
  */
-DFBResult DirectGetInterface( DirectInterfaceFuncs **funcs,
-                              const char            *type,
-                              const char            *implementation,
-                              int                  (*probe)( DirectInterfaceFuncs *impl, void *ctx ),
-                              void                  *probe_ctx );
+DirectResult DirectGetInterface( DirectInterfaceFuncs     **funcs,
+                                 const char                *type,
+                                 const char                *implementation,
+                                 DirectInterfaceProbeFunc   probe,
+                                 void                      *probe_ctx );
 
 /*
  * Default probe function. Calls "funcs->Probe(ctx)".
  * Can be used as the 'probe' argument to DirectGetInterface.
  * 'probe_ctx' should then be set to the interface specific probe context.
  */
-int DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx );
+DirectResult DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx );
 
 /*
  * Called by implementation modules during 'dlopen'ing or at startup if linked
@@ -65,45 +76,58 @@ int DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx );
  */
 void DirectRegisterInterface( DirectInterfaceFuncs *funcs );
 
-#define DIRECT_ALLOCATE_INTERFACE(p,i)                      \
-     do {                                                   \
-          (p) = (i*)D_CALLOC( 1, sizeof(i) );               \
+#define DIRECT_ALLOCATE_INTERFACE(p,i)                           \
+     do {                                                        \
+          (p) = D_CALLOC( 1, sizeof(i) );                        \
+                                                                 \
+          D_MAGIC_SET( (IAny*)(p), DirectInterface );            \
      } while (0)
 
 
-#define DIRECT_ALLOCATE_INTERFACE_DATA(p,i)                 \
-     i##_data *data;                                        \
-                                                            \
-     if (!(p)->priv)                                        \
-          (p)->priv = D_CALLOC( 1, sizeof(i##_data) );      \
-                                                            \
+#define DIRECT_ALLOCATE_INTERFACE_DATA(p,i)                      \
+     i##_data *data;                                             \
+                                                                 \
+     D_MAGIC_ASSERT( (IAny*)(p), DirectInterface );              \
+                                                                 \
+     if (!(p)->priv)                                             \
+          (p)->priv = D_CALLOC( 1, sizeof(i##_data) );           \
+                                                                 \
      data = (i##_data*)((p)->priv);
 
 
-#if 0
-#define DIRECT_DEALLOCATE_INTERFACE(p)  \
-     if ((p)->priv) {                   \
-          D_FREE( (p)->priv );          \
-          (p)->priv = NULL;             \
-     }
-#else
-#define DIRECT_DEALLOCATE_INTERFACE(p)  \
-     if ((p)->priv) {                   \
-          D_FREE( (p)->priv );          \
-          (p)->priv = NULL;             \
-     }                                  \
+#define DIRECT_DEALLOCATE_INTERFACE(p)                           \
+     if ((p)->priv) {                                            \
+          D_FREE( (p)->priv );                                   \
+          (p)->priv = NULL;                                      \
+     }                                                           \
+                                                                 \
+     D_MAGIC_CLEAR( (IAny*)(p) );                                \
+                                                                 \
      D_FREE( (p) );
-#endif
 
-#define DIRECT_INTERFACE_GET_DATA(i)    \
-     i##_data *data;                    \
-                                        \
-     if (!thiz)                         \
-          return DFB_THIZNULL;          \
-                                        \
-     data = (i##_data*) thiz->priv;     \
-                                        \
-     if (!data)                         \
+
+#define DIRECT_INTERFACE_GET_DATA(i)                             \
+     i##_data *data;                                             \
+                                                                 \
+     if (!thiz)                                                  \
+          return DFB_THIZNULL;                                   \
+                                                                 \
+     D_MAGIC_ASSERT( (IAny*)thiz, DirectInterface );             \
+                                                                 \
+     data = (i##_data*) thiz->priv;                              \
+                                                                 \
+     if (!data)                                                  \
           return DFB_DEAD;
+
+
+#define DIRECT_INTERFACE_GET_DATA_FROM(interface,data,prefix)    \
+     do {                                                        \
+          D_MAGIC_ASSERT( (IAny*)(interface), DirectInterface ); \
+                                                                 \
+          (data) = (prefix##_data*) (interface)->priv;           \
+                                                                 \
+          if (!(data))                                           \
+               return DFB_DEAD;                                  \
+     } while (0)
 
 #endif

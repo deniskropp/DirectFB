@@ -37,11 +37,11 @@
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
-#include <core/fbdev/fbdev.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
 
+#include <fbdev/fbdev.h>
 
 #include "regs.h"
 #include "mmio.h"

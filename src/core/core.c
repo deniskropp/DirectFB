@@ -200,7 +200,6 @@ dfb_core_create( CoreDFB **ret_core )
           return DFB_OK;
      }
 
-
 #if FUSION_BUILD_MULTI
      D_INFO( "DirectFB/Core: Multi Application Core.%s ("BUILDTIME")\n", mmx_string );
 #else

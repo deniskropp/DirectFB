@@ -31,6 +31,8 @@
 #include <time.h>
 
 #include <direct/clock.h>
+#include <direct/debug.h>
+#include <direct/util.h>
 
 
 static struct timeval start_time = { 0, 0 };
@@ -55,5 +57,21 @@ long long
 direct_clock_get_millis()
 {
      return direct_clock_get_micros() / 1000LL;
+}
+
+void
+direct_clock_set_start( const struct timeval *start )
+{
+     long long diff;
+
+     D_ASSERT( start != NULL );
+
+     diff = (long long)(start->tv_sec  - start_time.tv_sec)  * 1000LL +
+            (long long)(start->tv_usec - start_time.tv_usec) / 1000LL;
+
+     D_DEBUG( "Direct/Clock: "
+              "Adjusting start time (%lld.%lld seconds diff)\n", diff / 1000LL, ABS(diff) % 1000LL );
+
+     start_time = *start;
 }
 

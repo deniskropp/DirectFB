@@ -50,8 +50,6 @@
 #include <core/system.h>
 #include <core/thread.h>
 
-#include <core/fbdev/fbdev.h>
-
 #include <misc/conf.h>
 
 #include <direct/debug.h>
@@ -59,6 +57,8 @@
 #include <direct/messages.h>
 
 #include <core/input_driver.h>
+
+#include <fbdev/fbdev.h>
 
 
 DFB_INPUT_DRIVER( keyboard )

@@ -92,18 +92,32 @@ void direct_assumption( const char *exp,
                               direct_break( __FUNCTION__, __FILE__, __LINE__, x );   \
                          } while (0)
 
-#define D_MAGIC(spell)          ( (((spell)[0] << 24) | \
-                                   ((spell)[1] << 16) | \
-                                   ((spell)[2] <<  8) | \
-                                   ((spell)[3]      )) ^  \
-                                  (((spell)[4] << 24) | \
-                                   ((spell)[5] << 16) | \
-                                   ((spell)[6] <<  8) | \
-                                   ((spell)[7]      )) )
+#define D_MAGIC(spell)        ( (((spell)[sizeof(spell)*8/9] << 24) | \
+                                 ((spell)[sizeof(spell)*7/9] << 16) | \
+                                 ((spell)[sizeof(spell)*6/9] <<  8) | \
+                                 ((spell)[sizeof(spell)*5/9]      )) ^  \
+                                (((spell)[sizeof(spell)*4/9] << 24) | \
+                                 ((spell)[sizeof(spell)*3/9] << 16) | \
+                                 ((spell)[sizeof(spell)*2/9] <<  8) | \
+                                 ((spell)[sizeof(spell)*1/9]      )) )
 
-#define D_MAGIC_CLEAR(o)      do { (o)->magic = 0; } while (0)
-#define D_MAGIC_SET(o,m)      do { (o)->magic = D_MAGIC(#m); } while (0)
-#define D_MAGIC_ASSERT(o,m)   do { D_ASSERT((o) != NULL); D_ASSERT((o)->magic == D_MAGIC(#m)); } while (0)
+#define D_MAGIC_SET(o,m)      do {                                         \
+                                   D_ASSERT( (o) != NULL );                \
+                                                                           \
+                                   (o)->magic = D_MAGIC(#m);               \
+                              } while (0)
+
+#define D_MAGIC_ASSERT(o,m)   do {                                         \
+                                   D_ASSERT( (o) != NULL );                \
+                                   D_ASSERT( (o)->magic == D_MAGIC(#m) );  \
+                              } while (0)
+
+#define D_MAGIC_CLEAR(o)      do {                                         \
+                                   D_ASSERT( (o) != NULL );                \
+                                   D_ASSUME( (o)->magic != 0 );            \
+                                                                           \
+                                   (o)->magic = 0;                         \
+                              } while (0)
 
 #else
 

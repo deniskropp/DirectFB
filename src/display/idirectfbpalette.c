@@ -127,7 +127,7 @@ IDirectFBPalette_GetSize( IDirectFBPalette *thiz,
 
 static DFBResult
 IDirectFBPalette_SetEntries( IDirectFBPalette *thiz,
-                             DFBColor         *entries,
+                             const DFBColor   *entries,
                              unsigned int      num_entries,
                              unsigned int      offset )
 {

@@ -30,18 +30,33 @@
 
 #include <dfb_types.h>
 
+
+#include <directfb.h>
+typedef DFBResult DirectResult;    /* FIXME */
+
+
 typedef enum {
      false = 0,
      true  = !false
 } bool;
 
+
 typedef __u32 unichar;
 
-typedef struct __D_DirectConfig      DirectConfig;
-typedef struct __D_DirectLink        DirectLink;
-typedef struct __D_DirectTraceBuffer DirectTraceBuffer;
-typedef struct __D_DirectTree        DirectTree;
-typedef struct __D_DirectThread      DirectThread;
+typedef struct __D_DirectConfig         DirectConfig;
+typedef struct __D_DirectHash           DirectHash;
+typedef struct __D_DirectLink           DirectLink;
+typedef struct __D_DirectTraceBuffer    DirectTraceBuffer;
+typedef struct __D_DirectTree           DirectTree;
+typedef struct __D_DirectThread         DirectThread;
+
+
+#if __GNUC__ >= 3
+#define D_CONST_FUNC     __attribute__((const))
+#else
+#define D_CONST_FUNC
+#endif
+
 
 #endif
 

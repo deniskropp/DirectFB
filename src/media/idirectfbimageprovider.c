@@ -54,24 +54,24 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      /* Provide a fallback for image providers without data buffer support. */
      ctx.filename = buffer_data->filename;
 
-     /* Wait until 32 bytes are available */
+     /* Wait until 32 bytes are available. */
      ret = buffer->WaitForData( buffer, 32 );
      if (ret)
           return ret;
 
-     /* Read the first 32 bytes */
+     /* Read the first 32 bytes. */
      ret = buffer->PeekData( buffer, 32, 0, ctx.header, NULL );
      if (ret)
           return ret;
 
-     /* Find a suitable implementation */
+     /* Find a suitable implementation. */
      ret = DirectGetInterface( &funcs, "IDirectFBImageProvider", NULL, DirectProbeInterface, &ctx );
      if (ret)
           return ret;
 
      DIRECT_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
 
-     /* Construct the interface */
+     /* Construct the interface. */
      ret = funcs->Construct( imageprovider, buffer );
      if (ret)
           return ret;

@@ -199,13 +199,12 @@ Construct( IDirectFBImageProvider *thiz,
      if (ret)
           goto error;
 
-     thiz->AddRef = IDirectFBImageProvider_PNG_AddRef;
-     thiz->Release = IDirectFBImageProvider_PNG_Release;
-     thiz->RenderTo = IDirectFBImageProvider_PNG_RenderTo;
-     thiz->SetRenderCallback = IDirectFBImageProvider_PNG_SetRenderCallback;
-     thiz->GetImageDescription = IDirectFBImageProvider_PNG_GetImageDescription;
-     thiz->GetSurfaceDescription =
-                              IDirectFBImageProvider_PNG_GetSurfaceDescription;
+     thiz->AddRef                = IDirectFBImageProvider_PNG_AddRef;
+     thiz->Release               = IDirectFBImageProvider_PNG_Release;
+     thiz->RenderTo              = IDirectFBImageProvider_PNG_RenderTo;
+     thiz->SetRenderCallback     = IDirectFBImageProvider_PNG_SetRenderCallback;
+     thiz->GetImageDescription   = IDirectFBImageProvider_PNG_GetImageDescription;
+     thiz->GetSurfaceDescription = IDirectFBImageProvider_PNG_GetSurfaceDescription;
 
      return DFB_OK;
 

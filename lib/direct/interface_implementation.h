@@ -31,21 +31,16 @@
 #include <direct/interface.h>
 
 
-static const char *
-GetType();
-
-static const char *
-GetImplementation();
-
-static DFBResult
-Allocate( void **interface );
+static const char   *GetType();
+static const char   *GetImplementation();
+static DirectResult  Allocate( void **interface );
 
 static DirectInterfaceFuncs interface_funcs = {
      GetType:            GetType,
      GetImplementation:  GetImplementation,
      Allocate:           Allocate,
-     Probe:              (DFBResult (*)( void *, ... )) Probe,
-     Construct:          (DFBResult (*)( void *, ... )) Construct
+     Probe:              (DirectResult (*)( void *, ... )) Probe,
+     Construct:          (DirectResult (*)( void *, ... )) Construct
 };
 
 #define DIRECT_INTERFACE_IMPLEMENTATION(type, impl)    \
@@ -62,7 +57,7 @@ GetImplementation()                                    \
      return #impl;                                     \
 }                                                      \
                                                        \
-static DFBResult                                       \
+static DirectResult                                    \
 Allocate( void **interface )                           \
 {                                                      \
      DIRECT_ALLOCATE_INTERFACE( *interface, type );    \

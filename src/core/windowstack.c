@@ -1241,7 +1241,7 @@ load_default_cursor( CoreWindowStack *stack )
      /* open the file containing the cursors image data */
      f = fopen( CURSORFILE, "rb" );
      if (!f) {
-          ret = errno2dfb( errno );
+          ret = errno2result( errno );
 
           /* ignore a missing cursor file */
           if (ret == DFB_FILENOTFOUND)
@@ -1255,7 +1255,7 @@ load_default_cursor( CoreWindowStack *stack )
      /* read from file directly into the cursor window surface */
      for (i=0; i<40; i++) {
           if (fread( data, MIN (40*4, pitch), 1, f ) != 1) {
-               ret = errno2dfb( errno );
+               ret = errno2result( errno );
 
                D_ERROR( "DirectFB/core/layers: "
                          "unexpected end or read error of cursor data!\n" );

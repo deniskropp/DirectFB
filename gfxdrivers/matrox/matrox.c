@@ -1377,7 +1377,7 @@ static DFBResult matrox_find_pci_device( unsigned int *bus,
      if (!file) {
           D_PERROR( "DirectFB/Matrox: "
                      "Error opening `/proc/bus/pci/devices'!\n" );
-          return errno2dfb( errno );
+          return errno2result( errno );
      }
 
      while (fgets( line, 512, file )) {

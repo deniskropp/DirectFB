@@ -33,40 +33,43 @@
 
 #include <string.h>
 
-#include "directfb.h"
-#include "directfb_version.h"
+#include <directfb.h>
+#include <directfb_version.h>
 
-#include "misc/conf.h"
+#include <misc/conf.h>
 
-#include "core/core.h"
-#include "core/coredefs.h"
-#include "core/coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "core/input.h"
-#include "core/layer_context.h"
-#include "core/layer_control.h"
-#include "core/layers.h"
-#include "core/state.h"
-#include "core/gfxcard.h"
-#include "core/surfaces.h"
-#include "core/windows.h"
-#include "core/windowstack.h"
+#include <core/input.h>
+#include <core/layer_context.h>
+#include <core/layer_control.h>
+#include <core/layers.h>
+#include <core/state.h>
+#include <core/gfxcard.h>
+#include <core/surfaces.h>
+#include <core/windows.h>
+#include <core/windowstack.h>
 
-#include "gfx/convert.h"
+#include <gfx/convert.h>
 
 #include <direct/conf.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
-#include "display/idirectfbsurface.h"
+#include <display/idirectfbsurface.h>
 
-#include "idirectfb.h"
+#include <idirectfb.h>
 
 
 IDirectFB *idirectfb_singleton = NULL;
 
 static DFBResult apply_configuration( IDirectFB *dfb );
+
+static DFBResult CreateRemote( const char *host, int session, IDirectFB **ret_interface );
 
 /*
  * Version checking
@@ -156,8 +159,7 @@ DirectFBCreate( IDirectFB **interface )
      if (!dfb_config) {
           /*  don't use D_ERROR() here, it uses dfb_config  */
           fprintf( stderr,
-                   "(!) DirectFBCreate: DirectFBInit has to be "
-                   "called before DirectFBCreate!\n" );
+                   "(!) DirectFBCreate: DirectFBInit has to be called before DirectFBCreate!\n" );
           return DFB_INIT;
      }
 
@@ -179,6 +181,9 @@ DirectFBCreate( IDirectFB **interface )
           fprintf( stderr, "        -----------------------------------------------------------\n" );
           fprintf( stderr, "\n" );
      }
+
+     if (dfb_config->remote.host)
+          return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, interface );
 
      ret = dfb_core_create( &core_dfb );
      if (ret)
@@ -223,68 +228,7 @@ DirectFBError( const char *msg, DFBResult error )
 const char *
 DirectFBErrorString( DFBResult error )
 {
-     switch (error) {
-          case DFB_OK:
-               return "Everything OK!";
-          case DFB_FAILURE:
-               return "General failure!";
-          case DFB_INIT:
-               return "General initialization failure!";
-          case DFB_BUG:
-               return "Internal bug!";
-          case DFB_DEAD:
-               return "Interface is dead!";
-          case DFB_UNSUPPORTED:
-               return "Not supported!";
-          case DFB_UNIMPLEMENTED:
-               return "Unimplemented!";
-          case DFB_ACCESSDENIED:
-               return "Access denied!";
-          case DFB_INVARG:
-               return "Invalid argument(s)!";
-          case DFB_NOSYSTEMMEMORY:
-               return "Out of system memory!";
-          case DFB_NOVIDEOMEMORY:
-               return "Out of video memory!";
-          case DFB_LOCKED:
-               return "Resource (already) locked!";
-          case DFB_BUFFEREMPTY:
-               return "Buffer is empty!";
-          case DFB_FILENOTFOUND:
-               return "File not found!";
-          case DFB_IO:
-               return "General I/O failure!";
-          case DFB_NOIMPL:
-               return "Interface implementation not available!";
-          case DFB_MISSINGFONT:
-               return "No font has been set!";
-          case DFB_TIMEOUT:
-               return "Operation timed out!";
-          case DFB_MISSINGIMAGE:
-               return "No image has been set!";
-          case DFB_BUSY:
-               return "Resource in use (busy)!";
-          case DFB_THIZNULL:
-               return "'thiz' pointer is NULL!";
-          case DFB_IDNOTFOUND:
-               return "ID not found!";
-          case DFB_INVAREA:
-               return "Invalid area specified or detected!";
-          case DFB_DESTROYED:
-               return "Object has been destroyed!";
-          case DFB_FUSION:
-               return "Internal fusion (IPC) error detected!";
-          case DFB_BUFFERTOOLARGE:
-               return "Buffer is too large!";
-          case DFB_INTERRUPTED:
-               return "Operation has been interrupted!";
-          case DFB_NOCONTEXT:
-               return "No context available!";
-          case DFB_TEMPUNAVAIL:
-               return "Temporarily unavailable!";
-     }
-
-     return "<UNKNOWN ERROR CODE>!";
+     return DirectResultString( error );
 }
 
 DFBResult
@@ -292,11 +236,13 @@ DirectFBErrorFatal( const char *msg, DFBResult error )
 {
      DirectFBError( msg, error );
 
-     if (idirectfb_singleton)
-          IDirectFB_Destruct( idirectfb_singleton );
+     //if (idirectfb_singleton)
+          //IDirectFB_Destruct( idirectfb_singleton );
 
      exit( error );
 }
+
+/**************************************************************************************************/
 
 static DFBResult
 apply_configuration( IDirectFB *dfb )
@@ -422,6 +368,35 @@ apply_configuration( IDirectFB *dfb )
      dfb_windowstack_set_background_mode( stack, dfb_config->layer_bg_mode );
 
      dfb_layer_context_unref( context );
+
+     return DFB_OK;
+}
+
+/**************************************************************************************************/
+
+static DFBResult
+CreateRemote( const char *host, int session, IDirectFB **ret_interface )
+{
+     DFBResult             ret;
+     DirectInterfaceFuncs *funcs;
+     void                 *interface;
+
+     D_ASSERT( host != NULL );
+     D_ASSERT( ret_interface != NULL );
+
+     ret = DirectGetInterface( &funcs, "IDirectFB", "Requestor", NULL, NULL );
+     if (ret)
+          return ret;
+
+     ret = funcs->Allocate( &interface );
+     if (ret)
+          return ret;
+
+     ret = funcs->Construct( interface, host, session );
+     if (ret)
+          return ret;
+
+     *ret_interface = idirectfb_singleton = interface;
 
      return DFB_OK;
 }

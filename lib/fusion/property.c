@@ -42,6 +42,7 @@
 
 #include <direct/debug.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/types.h>
 #include <fusion/property.h>
@@ -214,7 +215,7 @@ fusion_property_init (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
 
-     fusion_pthread_recursive_mutex_init (&property->fake.lock);
+     direct_util_recursive_pthread_mutex_init (&property->fake.lock);
      pthread_cond_init (&property->fake.cond, NULL);
 
      property->fake.state = FUSION_PROPERTY_AVAILABLE;

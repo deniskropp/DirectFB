@@ -55,7 +55,6 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <core/fbdev/fbdev.h>
 #include <core/layer_control.h>
 #include <core/layers.h>
 #include <core/gfxcard.h>
@@ -79,6 +78,7 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
+#include "fbdev.h"
 #include "vt.h"
 
 #include <core/core_system.h>
@@ -252,7 +252,7 @@ static DFBResult dfb_fbdev_open()
                D_PERROR( "DirectFB/Core/FBDev: Error opening `%s'!\n",
                          dfb_config->fb_device);
 
-               return errno2dfb( errno );
+               return errno2result( errno );
           }
      }
      else if (getenv( "FRAMEBUFFER" ) && *getenv( "FRAMEBUFFER" ) != '\0') {
@@ -261,7 +261,7 @@ static DFBResult dfb_fbdev_open()
                D_PERROR( "DirectFB/Core/FBDev: Error opening `%s'!\n",
                           getenv ("FRAMEBUFFER"));
 
-               return errno2dfb( errno );
+               return errno2result( errno );
           }
      }
      else {
@@ -279,13 +279,13 @@ static DFBResult dfb_fbdev_open()
                                          "Error opening `/dev/fb/0'!\n" );
                          }
 
-                         return errno2dfb( errno );
+                         return errno2result( errno );
                     }
                }
                else {
                     D_PERROR( "DirectFB/Core/FBDev: Error opening `/dev/fb0'!\n");
 
-                    return errno2dfb( errno );
+                    return errno2result( errno );
                }
           }
      }
@@ -1019,7 +1019,7 @@ primarySetColorAdjustment( CoreLayer          *layer,
           D_PERROR( "DirectFB/Core/FBDev: "
                      "Could not set the palette!\n" );
 
-          return errno2dfb(errno);
+          return errno2result(errno);
      }
 
      return DFB_OK;
@@ -1338,7 +1338,7 @@ static DFBResult dfb_fbdev_pan( int offset, bool onsync )
 
           D_PERROR( "DirectFB/Core/FBDev: Panning display failed!\n" );
 
-          return errno2dfb( erno );
+          return errno2result( erno );
      }
 
      return DFB_OK;
@@ -1352,7 +1352,7 @@ static DFBResult dfb_fbdev_blank( int level )
      if (ioctl( dfb_fbdev->fd, FBIOBLANK, level ) < 0) {
           D_PERROR( "DirectFB/Core/FBDev: Display blanking failed!\n" );
 
-          return errno2dfb( errno );
+          return errno2result( errno );
      }
 
      return DFB_OK;
@@ -1498,7 +1498,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
           dfb_gfxcard_unlock();
 
-          return errno2dfb( erno );
+          return errno2result( erno );
      }
 
      /*
@@ -1736,7 +1736,7 @@ static DFBResult dfb_fbdev_read_modes()
      VideoMode *m = dfb_fbdev->shared->modes;
 
      if (!(fp = fopen("/etc/fb.modes","r")))
-          return errno2dfb( errno );
+          return errno2result( errno );
 
      while (fgets(line,79,fp)) {
           if (sscanf(line, "mode \"%31[^\"]\"",label) == 1) {
@@ -1898,7 +1898,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
           D_PERROR( "DirectFB/Core/FBDev: "
                      "Could not set gamma ramp" );
 
-          return errno2dfb(errno);
+          return errno2result(errno);
      }
 
      return DFB_OK;
@@ -1929,7 +1929,7 @@ dfb_fbdev_set_palette( CorePalette *palette )
      if (FBDEV_IOCTL( FBIOPUTCMAP, cmap ) < 0) {
           D_PERROR( "DirectFB/Core/FBDev: Could not set the palette!\n" );
 
-          return errno2dfb(errno);
+          return errno2result(errno);
      }
 
      return DFB_OK;
@@ -1979,7 +1979,7 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
           SHFREE( cmap.blue );
           SHFREE( cmap.transp );
 
-          return errno2dfb(errno);
+          return errno2result(errno);
      }
 
      SHFREE( cmap.red );

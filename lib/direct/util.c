@@ -31,16 +31,14 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <directfb.h>
-
 #include <direct/messages.h>
 #include <direct/util.h>
 
 /*
- * translates errno to DirectFB DFBResult
+ * translates errno to DirectResult
  */
-DFBResult
-errno2dfb( int erno )
+DirectResult
+errno2result( int erno )
 {
      switch (erno) {
           case 0:
@@ -53,6 +51,8 @@ errno2dfb( int erno )
           case EBUSY:
           case EAGAIN:
                return DFB_BUSY;
+          case ECONNREFUSED:
+               return DFB_ACCESSDENIED;
           case ENODEV:
           case ENXIO:
 #ifdef ENOTSUP
@@ -63,6 +63,79 @@ errno2dfb( int erno )
      }
 
      return DFB_FAILURE;
+}
+
+const char *
+DirectResultString( DirectResult result )
+{
+     switch (result) {
+          case DFB_OK:
+               return "OK";
+          case DFB_FAILURE:
+               return "General failure!";
+          case DFB_INIT:
+               return "Initialization error!";
+          case DFB_BUG:
+               return "Internal bug!";
+          case DFB_DEAD:
+               return "Interface was released!";
+          case DFB_UNSUPPORTED:
+               return "Not supported!";
+          case DFB_UNIMPLEMENTED:
+               return "Not implemented!";
+          case DFB_ACCESSDENIED:
+               return "Access denied!";
+          case DFB_INVARG:
+               return "Invalid argument!";
+          case DFB_NOSYSTEMMEMORY:
+               return "Out of memory!";
+          case DFB_NOVIDEOMEMORY:
+               return "Out of video memory!";
+          case DFB_LOCKED:
+               return "Resource is locked!";
+          case DFB_BUFFEREMPTY:
+               return "Buffer is empty!";
+          case DFB_FILENOTFOUND:
+               return "File not found!";
+          case DFB_IO:
+               return "General I/O error!";
+          case DFB_NOIMPL:
+               return "No (suitable) implementation found!";
+          case DFB_MISSINGFONT:
+               return "No font has been set!";
+          case DFB_TIMEOUT:
+               return "Operation timed out!";
+          case DFB_MISSINGIMAGE:
+               return "No image has been set!";
+          case DFB_BUSY:
+               return "Resource is busy!";
+          case DFB_THIZNULL:
+               return "'thiz' argument is NULL!";
+          case DFB_IDNOTFOUND:
+               return "Requested ID not found!";
+          case DFB_INVAREA:
+               return "Invalid area present!";
+          case DFB_DESTROYED:
+               return "Resource was destroyed!";
+          case DFB_FUSION:
+               return "Fusion IPC error detected!";
+          case DFB_BUFFERTOOLARGE:
+               return "Buffer is too large!";
+          case DFB_INTERRUPTED:
+               return "Operation has been interrupted!";
+          case DFB_NOCONTEXT:
+               return "No context available!";
+          case DFB_TEMPUNAVAIL:
+               return "Resource temporarily unavailable!";
+          case DFB_LIMITEXCEEDED:
+               return "Limit has been exceeded!";
+          case DFB_NOSUCHMETHOD:
+               return "No such (remote) method!";
+          case DFB_NOSUCHINSTANCE:
+               return "No such (remote) instance!";
+     }
+
+     return "UNKNOWN RESULT CODE!";
 }
 
 int

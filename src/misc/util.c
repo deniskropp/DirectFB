@@ -270,6 +270,8 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
      if (!rect2->w || !rect2->h)
           return;
 
+     /* FIXME: OPTIMIZE */
+
      if (rect1->w) {
           int temp = MIN (rect1->x, rect2->x);
           rect1->w = MAX (rect1->x + rect1->w, rect2->x + rect2->w) - temp;

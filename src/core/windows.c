@@ -202,7 +202,7 @@ dfb_window_create( CoreWindowStack        *stack,
      layer   = dfb_layer_at( context->layer_id );
 
      if (width > 4096 || height > 4096)
-          return DFB_BUFFERTOOLARGE;
+          return DFB_LIMITEXCEEDED;
 
      surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED |
                      DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
@@ -704,7 +704,7 @@ dfb_window_resize( CoreWindow   *window,
      D_ASSERT( height > 0 );
 
      if (width > 4096 || height > 4096)
-          return DFB_BUFFERTOOLARGE;
+          return DFB_LIMITEXCEEDED;
 
      dfb_windowstack_lock( stack );
 

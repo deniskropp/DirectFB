@@ -50,6 +50,7 @@ extern "C"
 #define DEFINE_INTERFACE( IFACE, IDATA... )       \
      struct _##IFACE     {                        \
           void       *priv;                       \
+          int         magic;                      \
           DFBResult (*AddRef)( IFACE *thiz );     \
           DFBResult (*Release)( IFACE *thiz );    \
                                                   \
@@ -158,10 +159,8 @@ typedef enum {
      DFB_FAILURE,        /* A general or unknown error occured. */
      DFB_INIT,           /* A general initialization error occured. */
      DFB_BUG,            /* Internal bug or inconsistency has been detected. */
-     DFB_DEAD,           /* Interface has a zero reference counter
-                            (after Release, only available in debug mode). */
-     DFB_UNSUPPORTED,    /* The requested operation or an argument
-                            is not supported by hardware or software. */
+     DFB_DEAD,           /* Interface has a zero reference counter (available in debug mode). */
+     DFB_UNSUPPORTED,    /* The requested operation or an argument is (currently) not supported. */
      DFB_UNIMPLEMENTED,  /* The requested operation is not yet implemented. */
      DFB_ACCESSDENIED,   /* Access to the resource is denied. */
      DFB_INVARG,         /* An invalid argument has been specified. */
@@ -172,22 +171,22 @@ typedef enum {
      DFB_FILENOTFOUND,   /* The specified file has not been found. */
      DFB_IO,             /* A general I/O error occured. */
      DFB_BUSY,           /* The resource or device is busy. */
-     DFB_NOIMPL,         /* No implementation for the requested interface or
-                            specified data has been found. */
+     DFB_NOIMPL,         /* No implementation for this interface or content type has been found. */
      DFB_MISSINGFONT,    /* No font has been set. */
      DFB_TIMEOUT,        /* The operation timed out. */
      DFB_MISSINGIMAGE,   /* No image has been set. */
      DFB_THIZNULL,       /* 'thiz' pointer is NULL. */
      DFB_IDNOTFOUND,     /* No resource has been found by the specified id. */
      DFB_INVAREA,        /* An invalid area has been specified or detected. */
-     DFB_DESTROYED,      /* The underlying object (e.g. a window or surface)
-                            has been destroyed. */
-     DFB_FUSION,         /* Internal fusion error detected, most likely
-                            related to IPC resources. */
+     DFB_DESTROYED,      /* The underlying object (e.g. a window or surface) has been destroyed. */
+     DFB_FUSION,         /* Internal fusion error detected, most likely related to IPC resources. */
      DFB_BUFFERTOOLARGE, /* Buffer is too large. */
      DFB_INTERRUPTED,    /* The operation has been interrupted. */
      DFB_NOCONTEXT,      /* No context available. */
-     DFB_TEMPUNAVAIL     /* Temporarily unavailable. */
+     DFB_TEMPUNAVAIL,    /* Temporarily unavailable. */
+     DFB_LIMITEXCEEDED,  /* Attempted to exceed limit, i.e. any kind of maximum size, count etc. */
+     DFB_NOSUCHMETHOD,   /* Requested method is not known to remote site. */
+     DFB_NOSUCHINSTANCE  /* Requested instance is not known to remote site. */
 } DFBResult;
 
 /*
@@ -663,12 +662,10 @@ typedef enum {
  * Rough information about hardware capabilities.
  */
 typedef struct {
-     DFBAccelerationMask     acceleration_mask;   /* drawing/blitting
-                                                     functions */
+     DFBAccelerationMask     acceleration_mask;   /* drawing/blitting functions */
      DFBSurfaceDrawingFlags  drawing_flags;       /* drawing flags */
      DFBSurfaceBlittingFlags blitting_flags;      /* blitting flags */
-     unsigned int            video_memory;        /* amount of video
-                                                     memory in bytes */
+     unsigned int            video_memory;        /* amount of video memory in bytes */
 } DFBCardCapabilities;
 
 /*
@@ -944,13 +941,11 @@ typedef enum {
 
 #define DFB_BYTES_PER_PIXEL(fmt)        (((fmt) & 0x00700000) >> 20)
 
-#define DFB_BYTES_PER_LINE(fmt,width)   (((((fmt) & 0x007E0000) >> 17) * \
-                                          (width) + 7) >> 3)
+#define DFB_BYTES_PER_LINE(fmt,width)   (((((fmt) & 0x007E0000) >> 17) * (width) + 7) >> 3)
 
 #define DFB_PIXELFORMAT_ALIGNMENT(fmt)  (((fmt) & 0x03800000) >> 23)
 
-#define DFB_PLANE_MULTIPLY(fmt,height)  ((((((fmt) & 0x3C000000) >> 26) + 4) * \
-                                          (height)) >> 2)
+#define DFB_PLANE_MULTIPLY(fmt,height)  ((((((fmt) & 0x3C000000) >> 26) + 4) * (height)) >> 2)
 
 #define DFB_PIXELFORMAT_IS_INDEXED(fmt) (((fmt) & 0x40000000) >> 30)
 
@@ -971,8 +966,7 @@ typedef struct {
      DFBSurfacePixelFormat              pixelformat; /* pixel format */
 
      struct {
-          void                         *data;        /* data pointer of
-                                                        existing buffer */
+          void                         *data;        /* data pointer of existing buffer */
           int                           pitch;       /* pitch of buffer */
      } preallocated[2];
 
@@ -1322,9 +1316,9 @@ DEFINE_INTERFACE(   IDirectFB,
       * Create a surface matching the specified description.
       */
      DFBResult (*CreateSurface) (
-          IDirectFB                *thiz,
-          DFBSurfaceDescription    *desc,
-          IDirectFBSurface        **interface
+          IDirectFB                     *thiz,
+          const DFBSurfaceDescription   *desc,
+          IDirectFBSurface             **interface
      );
 
      /*
@@ -1473,10 +1467,10 @@ DEFINE_INTERFACE(   IDirectFB,
       * of how to load the glyphs.
       */
      DFBResult (*CreateFont) (
-          IDirectFB                *thiz,
-          const char               *filename,
-          DFBFontDescription       *desc,
-          IDirectFBFont           **interface
+          IDirectFB                     *thiz,
+          const char                    *filename,
+          const DFBFontDescription      *desc,
+          IDirectFBFont                **interface
      );
 
      /*
@@ -3156,7 +3150,7 @@ DEFINE_INTERFACE(   IDirectFBPalette,
       */
      DFBResult (*SetEntries) (
           IDirectFBPalette         *thiz,
-          DFBColor                 *entries,
+          const DFBColor           *entries,
           unsigned int              num_entries,
           unsigned int              offset
      );
@@ -3667,7 +3661,7 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
       */
      DFBResult (*PostEvent) (
           IDirectFBEventBuffer     *thiz,
-          DFBEvent                 *event
+          const DFBEvent           *event
      );
 
      /*

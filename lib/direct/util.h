@@ -28,7 +28,10 @@
 #ifndef __DIRECT__UTIL_H__
 #define __DIRECT__UTIL_H__
 
-#include <directfb.h>
+#include <direct/types.h>
+#include <direct/messages.h>
+
+#include <pthread.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -46,14 +49,35 @@
 #define FLAGS_ARE_SET(set,flags) (((set) & (flags)) == (flags))
 
 /*
- * translates errno to DirectFB DFBResult
+ * translates errno to DirectResult
  */
-DFBResult errno2dfb( int erno );
+DirectResult errno2result( int erno );
+
+const char *DirectResultString( DirectResult result );
 
 int direct_try_open( const char *name1, const char *name2, int flags );
 
 void direct_trim( char **s );
 
+/*
+ * Utility function to initialize recursive mutexes.
+ */
+static inline int direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex )
+{
+     int                 ret;
+     pthread_mutexattr_t attr;
+
+     pthread_mutexattr_init( &attr );
+     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+
+     ret = pthread_mutex_init( mutex, &attr );
+     if (ret)
+          D_PERROR( "Fusion/Lock: Could not initialize recursive mutex!\n" );
+
+     pthread_mutexattr_destroy( &attr );
+
+     return ret;
+}
 
 /* floor and ceil implementation to get rid of libm */
 

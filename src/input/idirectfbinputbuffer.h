@@ -31,8 +31,8 @@
 #include <fusion/types.h>
 #include <core/input.h>
 
-typedef bool (*EventBufferFilterCallback)( DFBEvent             *evt,
-                                           void                 *ctx );
+typedef bool (*EventBufferFilterCallback)( DFBEvent *evt,
+                                           void     *ctx );
 
 /*
  * initializes event buffer, adds it to input listeners and initializes mutexes

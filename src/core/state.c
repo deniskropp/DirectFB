@@ -42,6 +42,7 @@
 #include <core/surfaces.h>
 
 #include <direct/mem.h>
+#include <direct/util.h>
 
 
 static ReactionResult destination_listener( const void *msg_data,
@@ -62,7 +63,7 @@ dfb_state_init( CardState *state )
      state->src_blend = DSBF_SRCALPHA;
      state->dst_blend = DSBF_INVSRCALPHA;
 
-     fusion_pthread_recursive_mutex_init( &state->lock );
+     direct_util_recursive_pthread_mutex_init( &state->lock );
 
      D_MAGIC_SET( state, CardState );
 

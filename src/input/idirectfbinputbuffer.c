@@ -365,16 +365,17 @@ IDirectFBEventBuffer_HasEvent( IDirectFBEventBuffer *thiz )
 
 static DFBResult
 IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
-                                DFBEvent             *event )
+                                const DFBEvent       *event )
 {
      IDirectFBEventBuffer_item *item;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
-     if (data->filter && data->filter( event, data->filter_ctx ))
-          return DFB_OK;
-
      item = D_CALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
+     if (!item) {
+          D_WARN( "out of memory" );
+          return DFB_NOSYSTEMMEMORY;
+     }
 
      item->evt = *event;
 
@@ -396,7 +397,7 @@ IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
           return DFB_BUSY;
 
      if (pipe( data->pipe_fds ))
-          return errno2dfb( errno );
+          return errno2result( errno );
 
      *fd = data->pipe_fds[0];
 
@@ -414,7 +415,7 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
      data->filter     = filter;
      data->filter_ctx = filter_ctx;
 
-     fusion_pthread_recursive_mutex_init( &data->events_mutex );
+     direct_util_recursive_pthread_mutex_init( &data->events_mutex );
      pthread_cond_init( &data->wait_condition, NULL );
 
      thiz->AddRef                  = IDirectFBEventBuffer_AddRef;

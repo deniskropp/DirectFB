@@ -43,6 +43,7 @@ internalinclude_HEADERS = \
 	conf.h				\
 	cpu_accel.h			\
 	debug.h				\
+	hash.h				\
 	interface.h			\
 	interface_implementation.h	\
 	list.h				\
@@ -67,6 +68,7 @@ libdirect_la_SOURCES = \
 	conf.c			\
 	cpu_accel.c		\
 	debug.c			\
+	hash.c			\
 	interface.c		\
 	list.c			\
 	mem.c			\

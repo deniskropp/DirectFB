@@ -72,6 +72,8 @@ static const char *config_usage =
     "Set the default pixel format\n"
     "  session=<num>                  "
     "Select multi app world (zero based, -1 = new)\n"
+    "  remote=<host>[:<session>]      "
+    "Select remote session to connect to\n"
     "  tmpfs=<directory>              "
     "Location of shared memory file\n"
     "  memcpy=<method>                "
@@ -490,6 +492,28 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("DirectFB/Config 'session': No value specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "remote" ) == 0) {
+          if (value) {
+               char host[128];
+               int  session = 0;
+
+               if (sscanf( value, "%127s:%d", host, &session ) < 1) {
+                    D_ERROR("DirectFB/Config 'remote': "
+                            "Could not parse value (format is <host>[:<session>])!\n");
+                    return DFB_INVARG;
+               }
+
+               if (dfb_config->remote.host)
+                    D_FREE( dfb_config->remote.host );
+
+               dfb_config->remote.host    = D_STRDUP( host );
+               dfb_config->remote.session = session;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'remote': No value specified!\n");
                return DFB_INVARG;
           }
      } else

@@ -435,7 +435,7 @@ bench_flock()
 int
 main( int argc, char *argv[] )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );

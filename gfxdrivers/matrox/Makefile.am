@@ -3,7 +3,8 @@
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/lib	\
-	-I$(top_srcdir)/src
+	-I$(top_srcdir)/src	\
+	-I$(top_srcdir)/systems
 
 matrox_LTLIBRARIES = libdirectfb_matrox.la
 

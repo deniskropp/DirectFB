@@ -366,7 +366,7 @@ IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz )
      if (ret)
           return ret;
 
-     fusion_pthread_recursive_mutex_init( &data->chunks_mutex );
+     direct_util_recursive_pthread_mutex_init( &data->chunks_mutex );
      pthread_cond_init( &data->wait_condition, NULL );
 
      thiz->Release                = IDirectFBDataBuffer_Streamed_Release;

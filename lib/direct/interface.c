@@ -35,8 +35,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include <directfb.h>
-
 #include <direct/debug.h>
 #include <direct/interface.h>
 #include <direct/list.h>
@@ -82,18 +80,18 @@ DirectRegisterInterface( DirectInterfaceFuncs *funcs )
      direct_list_prepend( &implementations, &impl->link );
 }
 
-int
+DirectResult
 DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx )
 {
      return (funcs->Probe( ctx ) == DFB_OK);
 }
 
-DFBResult
-DirectGetInterface( DirectInterfaceFuncs **funcs,
-                    const char            *type,
-                    const char            *implementation,
-                    int                  (*probe)( DirectInterfaceFuncs *funcs, void *ctx ),
-                    void                  *probe_ctx )
+DirectResult
+DirectGetInterface( DirectInterfaceFuncs     **funcs,
+                    const char                *type,
+                    const char                *implementation,
+                    DirectInterfaceProbeFunc   probe,
+                    void                      *probe_ctx )
 {
 #ifdef DYNAMIC_LINKING
      int                         len;
@@ -122,7 +120,7 @@ DirectGetInterface( DirectInterfaceFuncs **funcs,
                continue;
           else {
                if (!impl->references) {
-                    D_INFO( "DirectFB/Interface: Using '%s' implementation of '%s'.\n",
+                    D_INFO( "Direct/Interface: Using '%s' implementation of '%s'.\n",
                             impl->implementation, impl->type );
                }
 
@@ -145,13 +143,11 @@ DirectGetInterface( DirectInterfaceFuncs **funcs,
 
      dir = opendir( interface_dir );
      if (!dir) {
-          D_PERROR( "DirectFB/interfaces: "
-                     "Could not open interface directory `%s'!\n",
-                     interface_dir );
+          D_PERROR( "Direct/Interface: Could not open interface directory `%s'!\n", interface_dir );
 
           pthread_mutex_unlock( &implementations_mutex );
 
-          return errno2dfb( errno );
+          return errno2result( errno );
      }
 
      /*
@@ -208,8 +204,7 @@ DirectGetInterface( DirectInterfaceFuncs **funcs,
                     continue;
                }
 
-               D_HEAVYDEBUG( "DirectFB/interface: Found `%s_%s'.\n",
-                              impl->type, impl->implementation );
+               D_HEAVYDEBUG( "Direct/Interface: Found `%s_%s'.\n", impl->type, impl->implementation );
 
                /*
                 * Keep filename and module handle.
@@ -231,7 +226,7 @@ DirectGetInterface( DirectInterfaceFuncs **funcs,
                     continue;
                }
                else {
-                    D_INFO( "DirectFB/Interface: Loaded '%s' implementation of '%s'.\n",
+                    D_INFO( "Direct/Interface: Loaded '%s' implementation of '%s'.\n",
                             impl->implementation, impl->type );
 
                     *funcs = impl->funcs;
@@ -245,9 +240,7 @@ DirectGetInterface( DirectInterfaceFuncs **funcs,
                }
           }
           else
-               D_DLERROR( "DirectFB/core/gfxcards: Unable to dlopen `%s'!\n",
-                           buf );
-
+               D_DLERROR( "Direct/Interface: Unable to dlopen `%s'!\n", buf );
      }
 
      closedir( dir );

@@ -32,6 +32,8 @@ Virtual window/layer resolution with scrolling/panning.
 
 Rework cursor and palette handling in the window stack.
 
+Implementation rating.
+
 
 Drivers
 --------

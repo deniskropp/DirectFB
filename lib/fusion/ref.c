@@ -41,6 +41,7 @@
 
 #include <direct/debug.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/types.h>
 #include <fusion/ref.h>
@@ -305,7 +306,7 @@ fusion_ref_init (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
-     fusion_pthread_recursive_mutex_init (&ref->fake.lock);
+     direct_util_recursive_pthread_mutex_init (&ref->fake.lock);
      pthread_cond_init (&ref->fake.cond, NULL);
 
      ref->fake.refs      = 0;

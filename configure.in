@@ -1032,32 +1032,51 @@ AC_SUBST(INTERNALINCLUDEDIR)
 
 CFLAGS="$CFLAGS -Werror-implicit-function-declaration"
 
+
 AC_OUTPUT([
+
 directfb-config
 directfb.pc
 directfb-internal.pc
 directfb.spec
+
 Makefile
+
 include/Makefile
 include/directfb_version.h
+
 lib/Makefile
+
 lib/direct/Makefile
 lib/direct/build.h
+
 lib/fusion/Makefile
 lib/fusion/build.h
 lib/fusion/shmalloc/Makefile
+
+lib/voodoo/Makefile
+lib/voodoo/build.h
+
 patches/Makefile
+
+proxy/Makefile
+proxy/dispatcher/Makefile
+proxy/requestor/Makefile
+
 src/Makefile
+src/core/Makefile
 src/display/Makefile
-src/media/Makefile
-src/windows/Makefile
-src/input/Makefile
-src/misc/Makefile
 src/gfx/Makefile
 src/gfx/generic/Makefile
-src/core/Makefile
-src/core/fbdev/Makefile
-src/core/sdl/Makefile
+src/input/Makefile
+src/media/Makefile
+src/misc/Makefile
+src/windows/Makefile
+
+systems/Makefile
+systems/fbdev/Makefile
+systems/sdl/Makefile
+
 gfxdrivers/Makefile
 gfxdrivers/ati128/Makefile
 gfxdrivers/cle266/Makefile
@@ -1068,11 +1087,12 @@ gfxdrivers/matrox/Makefile
 gfxdrivers/neomagic/Makefile
 gfxdrivers/nsc/Makefile
 gfxdrivers/nsc/include/Makefile
-gfxdrivers/tdfx/Makefile
 gfxdrivers/nvidia/Makefile
 gfxdrivers/radeon/Makefile
 gfxdrivers/savage/Makefile
 gfxdrivers/sis315/Makefile
+gfxdrivers/tdfx/Makefile
+
 inputdrivers/Makefile
 inputdrivers/dbox2remote/Makefile
 inputdrivers/elo/Makefile
@@ -1087,87 +1107,98 @@ inputdrivers/serialmouse/Makefile
 inputdrivers/sonypi/Makefile
 inputdrivers/ucb1x00_ts/Makefile
 inputdrivers/wm97xx_ts/Makefile
+
 interfaces/Makefile
 interfaces/IDirectFBFont/Makefile
 interfaces/IDirectFBImageProvider/Makefile
 interfaces/IDirectFBImageProvider/mpeg2/Makefile
 interfaces/IDirectFBVideoProvider/Makefile
+
 data/Makefile
+
 tools/Makefile
+
 docs/Makefile
 docs/dfbg.1
 docs/directfb-csource.1
 docs/directfbrc.5
 docs/html/Makefile
+
 ], [chmod +x directfb-config])
+
 
 
 AC_MSG_RESULT([
 Build options:
-  Version               $VERSION
-  Install prefix        $prefix
-  Build shared libs     $enable_shared
-  Build static libs     $enable_static
-  Module directory      $MODULEDIR
-  CPPFLAGS              $CPPFLAGS
-  CFLAGS                $CFLAGS
-  LDFLAGS               $LDFLAGS
-  LIBS                  $LIBS
+  Version                   $VERSION
+  Install prefix            $prefix
+  Build shared libs         $enable_shared
+  Build static libs         $enable_static
+  Module directory          $MODULEDIR
+  CPPFLAGS                  $CPPFLAGS
+  CFLAGS                    $CFLAGS
+  LDFLAGS                   $LDFLAGS
+  LIBS                      $LIBS
 
 Misc options:
-  MMX support           $enable_mmx
-  SSE support           $enable_sse
-  Debug mode            $enable_debug
-  Trace support         $enable_trace
-  Multi App support     $enable_multi
-  zlib compression      $use_zlib
-  sysfs support         $use_sysfs
+  Multi Application Core    $enable_multi
+  Debug mode                $enable_debug
+  Trace support             $enable_trace
+  MMX support               $enable_mmx
+  SSE support               $enable_sse
+  zlib compression          $use_zlib
+  sysfs support             $use_sysfs
 
-Core Systems:
-  Linux FBDev support   $enable_fbdev
-  SDL support           $enable_sdl
+Building Core Systems:
+  Linux FBDev support       $enable_fbdev
+  SDL support               $enable_sdl
 
-Building Tools          $with_tools
+Building Tools              $with_tools
 
 Building Image Providers:
-  JPEG                  $JPEG
-  PNG                   $PNG
-  GIF                   $enable_gif 
-  MPEG2 I-Frame         yes
+  GIF                       $enable_gif 
+  JPEG                      $JPEG
+  MPEG2 I-Frame             yes
+  PNG                       $PNG
 
 Building Video Providers:
-  Video4Linux           $V4L
+  Video4Linux               $V4L
 
 Building Font implementations:
-  FreeType2             $FREETYPE
-  DirectFB font         yes]);
+  FreeType2                 $FREETYPE
+  Default font              yes]);
 
 if test "$have_linux" = "yes"; then
 AC_MSG_RESULT([
 Building Graphics Drivers:
-  3Dfx Voodoo           $tdfx
-  ATI Mach64            $mach64
-  ATI Radeon            $radeon
-  ATI Rage 128          $ati
-  Intel i810		$i810
-  Matrox                $matrox
-  NeoMagic              $neomagic
-  NSC Geode             $nsc
-  nVidia RIVA TNT       $nvidia
-  S3 Savage             $savage
-  SiS 315               $sis315
-  TVIA CyberPro         $cyber5k
-  VIA CLE266		$cle266
+  3Dfx Voodoo               $tdfx
+  ATI Mach64                $mach64
+  ATI Radeon                $radeon
+  ATI Rage 128              $ati
+  Intel i810                $i810
+  Matrox                    $matrox
+  NeoMagic                  $neomagic
+  NSC Geode                 $nsc
+  nVidia                    $nvidia
+  S3 Savage                 $savage
+  SiS 315                   $sis315
+  TVIA CyberPro             $cyber5k
+  VIA CLE266                $cle266
 
 Building Input Drivers:
-  DBox2 Remote          $dbox2remote
-  ELO Touchscreen       $enable_elo_input
-  Linux Input           $enable_linux_input
-  H3600 Touchscreen     $h3600_ts
-  MuTouch touchscreen   $enable_mutouch
-  SonyPI Jogdial        $sonypi
-  ucb1x00 Touchscreen   $have_arm
-  WM97xx Touchscreen    $wm97xx_ts]);
+  DBox2 Remote              $dbox2remote
+  ELO Touchscreen           $enable_elo_input
+  H3600 Touchscreen         $h3600_ts
+  Joystick                  yes
+  Keyboard                  yes
+  Linux Input               $enable_linux_input
+  LiRC                      yes
+  MuTouch touchscreen       $enable_mutouch
+  PS/2 Mouse                yes
+  Serial Mouse              yes
+  SonyPI Jogdial            $sonypi
+  ucb1x00 Touchscreen       $have_arm
+  WM97xx Touchscreen        $wm97xx_ts]);
 fi
 
 AC_MSG_RESULT([$png_warning $jpeg_warning $freetype_warning

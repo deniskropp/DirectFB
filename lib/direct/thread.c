@@ -53,6 +53,8 @@ struct __D_DirectThread {
      pthread_t         thread;   /* The pthread thread identifier. */
      pid_t             tid;
 
+     char             *name;
+
      DirectThreadType  type;     /* The thread's type, e.g. input thread. */
      DirectThreadMain  main;     /* The thread's main routine (or entry point). */
      void             *arg;      /* Custom argument passed to the main routine. */
@@ -74,17 +76,44 @@ static void *direct_thread_main( void *arg );
 
 /******************************************************************************/
 
+static const char *  D_CONST_FUNC
+thread_type_name( DirectThreadType type )
+{
+     switch (type) {
+          case DTT_DEFAULT:
+               return "DEFAULT";
+
+          case DTT_CLEANUP:
+               return "CLEANUP";
+
+          case DTT_INPUT:
+               return "INPUT";
+
+          case DTT_OUTPUT:
+               return "OUTPUT";
+
+          case DTT_MESSAGING:
+               return "MESSAGING";
+
+          case DTT_CRITICAL:
+               return "CRITICAL";
+     }
+
+     return "unknown type!";
+}
+
 DirectThread *
 direct_thread_create( DirectThreadType  thread_type,
                       DirectThreadMain  thread_main,
-                      void             *arg )
+                      void             *arg,
+                      const char       *name )
 {
      DirectThread *thread;
 
      D_ASSERT( thread_main != NULL );
+     D_ASSERT( name != NULL );
 
-     D_DEBUG( "Direct/Thread: Creating new thread of type %d...\n",
-              thread_type );
+     D_HEAVYDEBUG( "Direct/Thread: Creating '%s' (type %d)...\n", name, thread_type );
 
      /* Allocate thread structure. */
      thread = D_CALLOC( 1, sizeof(DirectThread) );
@@ -92,6 +121,7 @@ direct_thread_create( DirectThreadType  thread_type,
           return NULL;
 
      /* Write thread information to structure. */
+     thread->name = D_STRDUP( name );
      thread->type = thread_type;
      thread->main = thread_main;
      thread->arg  = arg;
@@ -104,17 +134,17 @@ direct_thread_create( DirectThreadType  thread_type,
      pthread_create( &thread->thread, NULL, direct_thread_main, thread );
 
 #ifdef DIRECT_THREAD_WAIT_INIT
-     D_DEBUG( "Direct/Thread: Waiting for thread to run...\n" );
+     D_HEAVYDEBUG( "Direct/Thread: Waiting for thread to run...\n" );
 
      /* Wait for completion of the thread's initialization. */
      while (!thread->init)
           sched_yield();
 
-     D_DEBUG( "Direct/Thread: ...thread is running.\n" );
+     D_HEAVYDEBUG( "Direct/Thread: ...thread is running.\n" );
 #endif
 
-     D_DEBUG( "Direct/Thread: ...created thread of type %d (%d).\n",
-              thread_type, thread->tid );
+     D_INFO( "Direct/Thread: Running '%s' (%s, %d)...\n",
+             name, thread_type_name(thread_type), thread->tid );
 
      return thread;
 }
@@ -168,13 +198,13 @@ direct_thread_join( DirectThread *thread )
      if (!thread->joining && !pthread_equal( thread->thread, pthread_self() )) {
           thread->joining = true;
 
-          D_DEBUG( "Direct/Thread: Joining %d...\n", thread->tid );
+          D_HEAVYDEBUG( "Direct/Thread: Joining %d...\n", thread->tid );
 
           pthread_join( thread->thread, NULL );
 
           thread->joined = true;
 
-          D_DEBUG( "Direct/Thread: ...joined %d.\n", thread->tid );
+          D_HEAVYDEBUG( "Direct/Thread: ...joined %d.\n", thread->tid );
      }
 }
 
@@ -205,6 +235,7 @@ direct_thread_destroy( DirectThread *thread )
           pthread_kill( thread->thread, SIGKILL );
      }
 
+     D_FREE( thread->name );
      D_FREE( thread );
 }
 
@@ -213,6 +244,7 @@ direct_thread_destroy( DirectThread *thread )
 static void *
 direct_thread_main( void *arg )
 {
+     void         *ret;
      DirectThread *thread = (DirectThread*) arg;
 
      thread->tid = direct_gettid();
@@ -222,20 +254,12 @@ direct_thread_main( void *arg )
 
      /* Adjust scheduling priority. */
      switch (thread->type) {
-          case DTT_INPUT:
-               setpriority( PRIO_PROCESS, 0, -10 );
-               break;
-
           case DTT_CLEANUP:
-               setpriority( PRIO_PROCESS, 0, -5 );
-               break;
-
-          case DTT_CRITICAL:
-               setpriority( PRIO_PROCESS, 0, -20 );
-               break;
-
+          case DTT_INPUT:
+          case DTT_OUTPUT:
           case DTT_MESSAGING:
-               setpriority( PRIO_PROCESS, 0, -15 );
+          case DTT_CRITICAL:
+               setpriority( PRIO_PROCESS, 0, thread->type );
                break;
 
           default:
@@ -246,32 +270,34 @@ direct_thread_main( void *arg )
      /* Indicate that our initialization has completed. */
      thread->init = true;
 
-     D_DEBUG( "Direct/Thread:     (thread) Initialization done.\n" );
+     D_HEAVYDEBUG( "Direct/Thread:   (thread) Initialization done.\n" );
 
      sched_yield();
 #endif
 
      if (thread->joining) {
-          D_DEBUG( "Direct/Thread: "
-                   "    (thread) Being joined before entering main routine.\n" );
+          D_HEAVYDEBUG( "Direct/Thread:   (thread) Being joined before entering main routine.\n" );
           return NULL;
      }
 
 #ifdef DIRECT_THREAD_WAIT_CREATE
      if (thread->thread == -1) {
-          D_DEBUG( "Direct/Thread: "
-                   "    (thread) Waiting for pthread_create()...\n" );
+          D_HEAVYDEBUG( "Direct/Thread:   (thread) Waiting for pthread_create()...\n" );
 
           /* Wait for completion of pthread_create(). */
           while ((int) thread->thread == -1)
                sched_yield();
 
-          D_DEBUG( "Direct/Thread: "
-                   "    (thread) ...pthread_create() finished.\n" );
+          D_HEAVYDEBUG( "Direct/Thread:   (thread) ...pthread_create() finished.\n" );
      }
 #endif
 
      /* Call main routine. */
-     return thread->main( thread, thread->arg );
+     ret = thread->main( thread, thread->arg );
+
+     D_DEBUG( "Direct/Thread: Returning %p from '%s' (%s, %d)...\n",
+              ret, thread->name, thread_type_name(thread->type), thread->tid );
+
+     return ret;
 }
 

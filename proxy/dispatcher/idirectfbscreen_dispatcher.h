@@ -1,0 +1,51 @@
+/*
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002-2004  convergence GmbH.
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#ifndef __IDIRECTFBSCREEN_DISPATCHER_H__
+#define __IDIRECTFBSCREEN_DISPATCHER_H__
+
+#define IDIRECTFBSCREEN_METHOD_ID_AddRef                     1
+#define IDIRECTFBSCREEN_METHOD_ID_Release                    2
+#define IDIRECTFBSCREEN_METHOD_ID_GetID                      3
+#define IDIRECTFBSCREEN_METHOD_ID_GetDescription             4
+#define IDIRECTFBSCREEN_METHOD_ID_EnumDisplayLayers          5
+#define IDIRECTFBSCREEN_METHOD_ID_SetPowerMode               6
+#define IDIRECTFBSCREEN_METHOD_ID_WaitForSync                7
+#define IDIRECTFBSCREEN_METHOD_ID_GetMixerDescriptions       8
+#define IDIRECTFBSCREEN_METHOD_ID_GetMixerConfiguration      9
+#define IDIRECTFBSCREEN_METHOD_ID_TestMixerConfiguration    10
+#define IDIRECTFBSCREEN_METHOD_ID_SetMixerConfiguration     11
+#define IDIRECTFBSCREEN_METHOD_ID_GetEncoderDescriptions    12
+#define IDIRECTFBSCREEN_METHOD_ID_GetEncoderConfiguration   13
+#define IDIRECTFBSCREEN_METHOD_ID_TestEncoderConfiguration  14
+#define IDIRECTFBSCREEN_METHOD_ID_SetEncoderConfiguration   15
+#define IDIRECTFBSCREEN_METHOD_ID_GetOutputDescriptions     16
+#define IDIRECTFBSCREEN_METHOD_ID_GetOutputConfiguration    17
+#define IDIRECTFBSCREEN_METHOD_ID_TestOutputConfiguration   18
+#define IDIRECTFBSCREEN_METHOD_ID_SetOutputConfiguration    19
+
+#endif

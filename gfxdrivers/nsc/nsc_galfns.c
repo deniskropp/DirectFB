@@ -1,6 +1,6 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.10 $
+ * $Revision: 1.11 $
  * $Author: dok $
  *
  * File Contents: This file contains the main functions of the Geode
@@ -153,7 +153,7 @@
 
 #include <direct/memcpy.h>
 
-#include <core/fbdev/fbdev.h>
+#include <fbdev/fbdev.h>
 
 static FBDev *dfb_fbdev = NULL;
 

@@ -173,7 +173,9 @@ fusion_init( int world, int abi_version, int *world_ret )
           }
      }
 
-     read_loop = direct_thread_create( DTT_MESSAGING, fusion_read_loop, NULL );
+     direct_clock_set_start( &_fusion_shared->start_time );
+
+     read_loop = direct_thread_create( DTT_MESSAGING, fusion_read_loop, NULL, "Fusion Read Loop" );
 
      if (world_ret)
           *world_ret = world;

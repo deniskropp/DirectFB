@@ -47,6 +47,7 @@
 #include <direct/messages.h>
 #include <direct/thread.h>
 #include <direct/trace.h>
+#include <direct/util.h>
 
 #include <fusion/types.h>
 #include <fusion/lock.h>
@@ -596,7 +597,7 @@ lock_node( int reactor_id, bool add )
                return NULL;
           }
 
-          fusion_pthread_recursive_mutex_init( &node->lock );
+          direct_util_recursive_pthread_mutex_init( &node->lock );
 
 
           pthread_mutex_lock( &node->lock );
@@ -660,8 +661,8 @@ fusion_reactor_new (int msg_size)
      if (!reactor)
           return NULL;
 
-     fusion_pthread_recursive_mutex_init( &reactor->reactions_lock );
-     fusion_pthread_recursive_mutex_init( &reactor->globals_lock );
+     direct_util_recursive_pthread_mutex_init( &reactor->reactions_lock );
+     direct_util_recursive_pthread_mutex_init( &reactor->globals_lock );
 
      return reactor;
 }

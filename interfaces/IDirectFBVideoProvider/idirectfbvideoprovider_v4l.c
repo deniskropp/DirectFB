@@ -518,7 +518,7 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
 #endif
 
           if (ioctl( data->fd, VIDIOCGPICT, &pic ) < 0) {
-               DFBResult ret = errno2dfb( errno );
+               DFBResult ret = errno2result( errno );
 
                D_PERROR( "DirectFB/Video4Linux: VIDIOCGPICT failed!\n" );
 
@@ -531,7 +531,7 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
           if (adj->flags & DCAF_SATURATION) pic.colour     = adj->saturation;
 
           if (ioctl( data->fd, VIDIOCSPICT, &pic ) < 0) {
-               DFBResult ret = errno2dfb( errno );
+               DFBResult ret = errno2result( errno );
 
                D_PERROR( "DirectFB/Video4Linux: VIDIOCSPICT failed!\n" );
 
@@ -570,7 +570,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      fd = open( filename, O_RDWR );
      if (fd < 0) {
-          DFBResult ret = errno2dfb( errno );
+          DFBResult ret = errno2result( errno );
 
           D_PERROR( "DirectFB/Video4Linux: Cannot open `%s'!\n", filename );
 
@@ -578,7 +578,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
           return ret;
      }
 
-     fusion_pthread_recursive_mutex_init( &data->lock );
+     direct_util_recursive_pthread_mutex_init( &data->lock );
 
 #ifdef HAVE_V4L2
      data->is_v4l2 = 0;
@@ -870,7 +870,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
           b.bytesperline = buffer->video.pitch;
 
           if (ioctl( data->fd, VIDIOCSFBUF, &b ) < 0) {
-               DFBResult ret = errno2dfb( errno );
+               DFBResult ret = errno2result( errno );
 
                D_PERROR( "DirectFB/Video4Linux: VIDIOCSFBUF failed, must run being root!\n" );
 
@@ -881,7 +881,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
           struct video_picture p;
 
           if (ioctl( data->fd, VIDIOCGPICT, &p ) < 0) {
-               DFBResult ret = errno2dfb( errno );
+               DFBResult ret = errno2result( errno );
 
                D_PERROR( "DirectFB/Video4Linux: VIDIOCGPICT failed!\n" );
 
@@ -892,7 +892,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
           p.palette = palette;
 
           if (ioctl( data->fd, VIDIOCSPICT, &p ) < 0) {
-               DFBResult ret = errno2dfb( errno );
+               DFBResult ret = errno2result( errno );
 
                D_PERROR( "DirectFB/Video4Linux: VIDIOCSPICT failed!\n" );
 
@@ -912,7 +912,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
           win.chromakey = 0;
 
           if (ioctl( data->fd, VIDIOCSWIN, &win ) < 0) {
-               DFBResult ret = errno2dfb( errno );
+               DFBResult ret = errno2result( errno );
 
                D_PERROR( "DirectFB/Video4Linux: VIDIOCSWIN failed!\n" );
 
@@ -924,7 +924,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
           data->cleanup = dfb_core_cleanup_add( NULL, v4l_cleanup, data, true );
 
      if (ioctl( data->fd, VIDIOCCAPTURE, &one ) < 0) {
-          DFBResult ret = errno2dfb( errno );
+          DFBResult ret = errno2result( errno );
 
           D_PERROR( "DirectFB/Video4Linux: Could not start capturing (VIDIOCCAPTURE failed)!\n" );
 
@@ -998,7 +998,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
      data->vmmap.format = palette;
      data->vmmap.frame = 0;
      if (ioctl(data->fd, VIDIOCMCAPTURE, &data->vmmap) < 0) {
-          DFBResult ret = errno2dfb(errno);
+          DFBResult ret = errno2result(errno);
 
           D_PERROR("DirectFB/Video4Linux: Could not start capturing (VIDIOCMCAPTURE failed)!\n");
 
@@ -1363,7 +1363,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
           D_DEBUG("w:%d, h:%d, bpp:%d, bpl:%d, base:0x%08lx\n",fb.fmt.width, fb.fmt.height,bpp,fb.fmt.bytesperline, (unsigned long)fb.base);
 
           if (ioctl(data->fd, VIDIOC_S_FBUF, &fb) < 0) {
-               DFBResult ret = errno2dfb(errno);
+               DFBResult ret = errno2result(errno);
 
                D_PERROR("DirectFB/Video4Linux2: VIDIOC_S_FBUF failed, must run being root!\n");
 

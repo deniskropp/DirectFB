@@ -49,8 +49,6 @@
 #include <core/surfaces.h>
 #include <core/system.h>
 
-#include <core/fbdev/fbdev.h>
-
 #include <gfx/convert.h>
 
 #include <direct/messages.h>
@@ -59,8 +57,10 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
-#include <core/graphics_driver.h>
+#include <fbdev/fbdev.h>
 
+
+#include <core/graphics_driver.h>
 
 DFB_GRAPHICS_DRIVER( radeon )
 
@@ -350,7 +350,7 @@ radeonSetPowerMode( CoreScreen         *screen,
      if (ioctl( fbdev->fd, FBIOBLANK, level ) < 0) {
           D_PERROR( "DirectFB/matrox: Display blanking failed!\n" );
 
-          return errno2dfb( errno );
+          return errno2result( errno );
      }
 
      return DFB_OK;

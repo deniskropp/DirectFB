@@ -194,7 +194,7 @@ IDirectFBDataBuffer_File_GetData( IDirectFBDataBuffer *thiz,
 
      size = read( data->fd, data_buffer, length );
      if (size < 0)
-          return errno2dfb( errno );
+          return errno2result( errno );
 
      data->pos += size;
 
@@ -237,7 +237,7 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
 
           lseek( data->fd, - offset, SEEK_CUR );
 
-          return errno2dfb( erno );
+          return errno2result( erno );
      }
 
      if (lseek( data->fd, - size - offset, SEEK_CUR ) < 0)
@@ -287,9 +287,9 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
 
           D_PERROR("DirectFB/DataBuffer: opening '%s' failed!\n", filename);
 
-          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          IDirectFBDataBuffer_Destruct( thiz );
 
-          return errno2dfb( erno );
+          return errno2result( erno );
      }
 
      if (fstat( data->fd, &status ) < 0) {
@@ -299,9 +299,9 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
 
           close( data->fd );
 
-          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          IDirectFBDataBuffer_Destruct( thiz );
 
-          return errno2dfb( erno );
+          return errno2result( erno );
      }
 
      data->size = status.st_size;

@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.7 2004-03-30 19:13:45 dok Exp $
+ * $Id: sis315.c,v 1.8 2004-04-29 19:08:37 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -26,11 +26,12 @@
 
 #include <direct/messages.h>
 
-#include <core/fbdev/fbdev.h>
 #include <core/gfxcard.h>
 #include <core/graphics_driver.h>
 #include <core/state.h>
 #include <core/surfaces.h>
+
+#include <fbdev/fbdev.h>
 
 #include "sis315.h"
 #include "sis315_accel.h"

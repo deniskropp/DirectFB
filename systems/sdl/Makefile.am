@@ -1,19 +1,11 @@
-## Makefile.am for DirectFB/src/core/sdl
+## Makefile.am for DirectFB/systems/sdl
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/lib		\
-	-I$(top_srcdir)/src
-
-AM_CFLAGS = $(SDL_CFLAGS)
-
-AM_CPPFLAGS = \
-	-DDATADIR=\"@DATADIR@\"		\
-	-DSOPATH=\"@SOPATH@\"		\
-	-DMODULEDIR=\"@MODULEDIR@\"	\
-	"-DBUILDTIME=\"`date -u "+%Y-%m-%d %H:%M"`\""
-
+	-I$(top_srcdir)/src		\
+	$(SDL_CFLAGS)
 
 systemsdir = $(MODULEDIR)/systems
 inputdriversdir = $(MODULEDIR)/inputdrivers
@@ -23,10 +15,8 @@ inputdrivers_LTLIBRARIES = libdirectfb_sdlinput.la
 
 libdirectfb_sdl_la_LDFLAGS = \
 	$(SDL_LIBS)	\
-	-export-dynamic	\
 	-avoid-version	\
-	-module		\
-	$(DFB_LDFLAGS)
+	-module
 
 libdirectfb_sdl_la_SOURCES = \
 	primary.c	\
@@ -36,10 +26,8 @@ libdirectfb_sdl_la_SOURCES = \
 
 libdirectfb_sdlinput_la_LDFLAGS = \
 	$(SDL_LIBS)	\
-	-export-dynamic	\
 	-avoid-version	\
-	-module		\
-	$(DFB_LDFLAGS)
+	-module
 
 libdirectfb_sdlinput_la_SOURCES = \
 	sdlinput.c

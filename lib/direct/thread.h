@@ -32,11 +32,12 @@
 
 
 typedef enum {
-     DTT_ANY,
-     DTT_INPUT,
-     DTT_CLEANUP,
-     DTT_CRITICAL,
-     DTT_MESSAGING
+     DTT_DEFAULT    =   0,
+     DTT_CLEANUP    =  -5,
+     DTT_INPUT      = -10,
+     DTT_OUTPUT     = -12,
+     DTT_MESSAGING  = -15,
+     DTT_CRITICAL   = -20
 } DirectThreadType;
 
 typedef void * (*DirectThreadMain)( DirectThread *thread, void *arg );
@@ -48,7 +49,8 @@ typedef void * (*DirectThreadMain)( DirectThread *thread, void *arg );
  */
 DirectThread *direct_thread_create     ( DirectThreadType  thread_type,
                                          DirectThreadMain  thread_main,
-                                         void             *arg );
+                                         void             *arg,
+                                         const char       *name );
 
 /*
  * Cancel a running thread.

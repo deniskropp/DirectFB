@@ -22,7 +22,7 @@ LINUXONLY_TOOLS =	\
 	raw32toraw24
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfblayer
+bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfblayer dfbproxy
 
 noinst_PROGRAMS = \
 	$(LINUXONLY_TOOLS)
@@ -38,6 +38,9 @@ dfbinfo_LDADD   = ../src/libdirectfb.la
 
 dfblayer_SOURCES = dfblayer.c
 dfblayer_LDADD   = ../src/libdirectfb.la
+
+dfbproxy_SOURCES = dfbproxy.c
+dfbproxy_LDADD   = ../src/libdirectfb.la ../lib/direct/libdirect.la ../lib/voodoo/libvoodoo.la
 
 dfbsummon_SOURCES = dfbsummon.c
 dfbsummon_LDADD   = ../src/libdirectfb.la

@@ -4,6 +4,7 @@ different bugs and issues
 - non-debug apps in a debug session break shared memory assertions
 
 - fix late software fallback for emulated triangles
+- dfb_screen_rectangle() called while dfb_system_current_mode() returns NULL
 
 
 LSB violations

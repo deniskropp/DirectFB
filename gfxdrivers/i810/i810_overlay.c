@@ -28,7 +28,7 @@
 #include <core/coredefs.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
-#include <core/fbdev/fbdev.h>
+#include <fbdev/fbdev.h>
 
 #include <direct/mem.h>
 

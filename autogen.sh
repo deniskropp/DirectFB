@@ -110,18 +110,27 @@ case $CC in
     ;;
 esac
 
+echo
+echo
+echo Running aclocal ...
 aclocal $ACLOCAL_FLAGS
+
+echo Running libtoolize ...
 libtoolize --automake
+
+echo Running autoconf ...
 autoconf
 
 # optionally feature autoheader
-(autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
 
+(autoheader --version)  < /dev/null > /dev/null 2>&1 && echo Running autoheader... && autoheader
+
+echo Running automake ...
 automake --add-missing $am_opt
 
 cd $ORIGDIR
 
+echo Running configure --enable-maintainer-mode "$@" ...
 $srcdir/configure --enable-maintainer-mode "$@" || exit 1
 
-echo 
 echo "Now type 'make' to compile $PROJECT."

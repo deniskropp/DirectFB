@@ -381,7 +381,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
 }
 
 static void
-init_palette( CoreSurface *surface, DFBSurfaceDescription *desc )
+init_palette( CoreSurface *surface, const DFBSurfaceDescription *desc )
 {
      int          num;
      CorePalette *palette = surface->palette;
@@ -397,9 +397,9 @@ init_palette( CoreSurface *surface, DFBSurfaceDescription *desc )
 }
 
 static DFBResult
-IDirectFB_CreateSurface( IDirectFB              *thiz,
-                         DFBSurfaceDescription  *desc,
-                         IDirectFBSurface      **interface )
+IDirectFB_CreateSurface( IDirectFB                    *thiz,
+                         const DFBSurfaceDescription  *desc,
+                         IDirectFBSurface            **interface )
 {
      DFBResult ret;
      int width = 256;
@@ -905,7 +905,7 @@ IDirectFB_CreateEventBuffer( IDirectFB             *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
 
-     return IDirectFBEventBuffer_Construct( *interface, NULL, data );
+     return IDirectFBEventBuffer_Construct( *interface, NULL, NULL );
 }
 
 static DFBResult
@@ -983,7 +983,7 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
           return DFB_INVARG;
 
      if (access( filename, R_OK ) != 0)
-          return errno2dfb( errno );
+          return errno2result( errno );
 
      /* Fill out probe context */
      ctx.filename = filename;
@@ -1006,10 +1006,10 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
 }
 
 static DFBResult
-IDirectFB_CreateFont( IDirectFB           *thiz,
-                      const char          *filename,
-                      DFBFontDescription  *desc,
-                      IDirectFBFont      **interface )
+IDirectFB_CreateFont( IDirectFB                 *thiz,
+                      const char                *filename,
+                      const DFBFontDescription  *desc,
+                      IDirectFBFont            **interface )
 {
      DFBResult                   ret;
      DirectInterfaceFuncs       *funcs = NULL;
@@ -1035,7 +1035,7 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
                return DFB_INVARG;
 
           if (access( filename, R_OK ) != 0)
-               return errno2dfb( errno );
+               return errno2result( errno );
      }
 
      /* Fill out probe context */

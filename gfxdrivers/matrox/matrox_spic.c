@@ -40,7 +40,6 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
-#include <core/fbdev/fbdev.h>
 #include <core/layers.h>
 #include <core/palette.h>
 #include <core/surfaces.h>
@@ -51,6 +50,8 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
+
+#include <fbdev/fbdev.h>
 
 #include "regs.h"
 #include "mmio.h"

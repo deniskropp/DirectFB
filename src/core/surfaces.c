@@ -145,7 +145,7 @@ DFBResult dfb_surface_create( CoreDFB *core,
      D_ASSERT( height > 0 );
 
      if (width * (long long) height > 4096*4096)
-          return DFB_BUFFERTOOLARGE;
+          return DFB_LIMITEXCEEDED;
 
      s = dfb_core_create_surface( core );
 
@@ -289,7 +289,7 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      D_ASSERT( height > 0 );
 
      if (width * (long long) height > 4096*4096)
-          return DFB_BUFFERTOOLARGE;
+          return DFB_LIMITEXCEEDED;
 
      if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
          surface->back_buffer->flags  & SBF_FOREIGN_SYSTEM)

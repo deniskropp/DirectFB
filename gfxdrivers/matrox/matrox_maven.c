@@ -331,7 +331,7 @@ maven_open( MatroxMavenData  *mav,
           D_PERROR( "DirectFB/Matrox/Maven: Error opening `%s'!\n",
                      mav->dev );
           mdrv->maven_fd = -1;
-          return errno2dfb( errno );
+          return errno2result( errno );
      }
 
      if (ioctl( mdrv->maven_fd, I2C_SLAVE, MAVEN_I2CID ) < 0) {
@@ -339,7 +339,7 @@ maven_open( MatroxMavenData  *mav,
                      mav->dev );
           close( mdrv->maven_fd );
           mdrv->maven_fd = -1;
-          return errno2dfb( errno );
+          return errno2result( errno );
      }
 
      return DFB_OK;
@@ -384,7 +384,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
           if (!class) {
                D_PERROR( "DirectFB/Matrox/Maven: "
                           "Error opening sysfs class `i2c-dev'!\n" );
-               return errno2dfb( errno );
+               return errno2result( errno );
           }
 
           class_devices = sysfs_get_class_devices( class );
@@ -392,7 +392,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
                D_PERROR( "DirectFB/Matrox/Maven: "
                           "Error reading sysfs class devices!\n" );
                sysfs_close_class( class );
-               return errno2dfb( errno );
+               return errno2result( errno );
           }
           dlist_for_each_data( class_devices, class_device,
                                struct sysfs_class_device ) {
@@ -419,7 +419,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
           if (!file) {
                D_PERROR( "DirectFB/Matrox/Maven: "
                           "Error opening `/proc/bus/i2c'!\n" );
-               return errno2dfb( errno );
+               return errno2result( errno );
           }
           while (fgets( line, 512, file )) {
                if (strstr( line, "MAVEN" )) {
@@ -447,14 +447,14 @@ DFBResult maven_init( MatroxMavenData  *mav,
           if ((fd = open( mav->dev, O_RDWR )) < 0) {
                D_PERROR( "DirectFB/Matrox/Maven: Error opening `%s'!\n",
                           mav->dev );
-               return errno2dfb( errno );
+               return errno2result( errno );
           }
 
           if (ioctl( fd, I2C_SLAVE, MAVEN_I2CID ) < 0) {
                D_PERROR( "DirectFB/Matrox/Maven: Error controlling `%s'!\n",
                           mav->dev );
                close( fd );
-               return errno2dfb( errno );
+               return errno2result( errno );
           }
           close( fd );
      }

@@ -39,6 +39,7 @@
 
 #include <direct/debug.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/build.h>
 #include <fusion/types.h>
@@ -180,7 +181,7 @@ fusion_skirmish_init (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
-     fusion_pthread_recursive_mutex_init( &skirmish->fake.lock );
+     direct_util_recursive_pthread_mutex_init( &skirmish->fake.lock );
 
      return FUSION_SUCCESS;
 }

@@ -28,6 +28,7 @@
 #include <config.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 
@@ -57,8 +58,8 @@
 #include <core/gfxcard.h>
 #include <core/thread.h>
 
-#include <core/fbdev/fbdev.h>
-#include <core/fbdev/vt.h>
+#include "fbdev.h"
+#include "vt.h"
 
 /*
  *  FIXME: the following looks like a bad hack.
@@ -297,16 +298,16 @@ DFBResult
 dfb_vt_detach( bool force )
 {
      if (dfb_config->vt_switch || force) {
+          int            fd;
           struct vt_stat vt_state;
 
-          int fd = open( "/dev/tty", O_RDONLY );
-
+          fd = open( "/dev/tty", O_RDWR );
           if (fd < 0) {
                if (errno == ENXIO)
                     return DFB_OK;
 
-               D_PERROR( "DirectFB/core/fbdev: opening /dev/tty failed\n" );
-               return errno2dfb( errno );
+               D_PERROR( "DirectFB/VT: Opening /dev/tty failed!\n" );
+               return errno2result( errno );
           }
 
           if (ioctl( fd, VT_GETSTATE, &vt_state )) {
@@ -314,11 +315,10 @@ dfb_vt_detach( bool force )
                return DFB_OK;
           }
 
-          if (ioctl( fd, TIOCNOTTY, 0 )) {
-               D_PERROR( "DirectFB/core/fbdev: "
-                          "TIOCNOTTY on /dev/tty failed\n" );
+          if (ioctl( fd, TIOCNOTTY )) {
+               D_PERROR( "DirectFB/VT: TIOCNOTTY on /dev/tty failed\n" );
                close( fd );
-               return errno2dfb( errno );
+               return errno2result( errno );
           }
 
           close( fd );
@@ -426,12 +426,12 @@ vt_init_switching()
                                     "Error opening `%s'!\n", buf );
                     }
 
-                    return errno2dfb( errno );
+                    return errno2result( errno );
                }
           }
           else {
                D_PERROR( "DirectFB/core/vt: Error opening `%s'!\n", buf );
-               return errno2dfb( errno );
+               return errno2result( errno );
           }
      }
 
@@ -480,7 +480,8 @@ vt_init_switching()
                return DFB_INIT;
           }
 
-          fusion_pthread_recursive_mutex_init( &dfb_vt->lock );
+          direct_util_recursive_pthread_mutex_init( &dfb_vt->lock );
+
           pthread_cond_init( &dfb_vt->wait, NULL );
 
           dfb_vt->vt_sig = -1;

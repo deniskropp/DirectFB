@@ -471,7 +471,7 @@ direct_find_best_memcpy()
 
                     direct_memcpy = memcpy_method[i].function;
 
-                    D_INFO( "Direct/Memcpy: forced to use %s\n", memcpy_method[i].desc );
+                    D_INFO( "Direct/Memcpy: Forced to use %s\n", memcpy_method[i].desc );
 
                     return;
                }
@@ -513,7 +513,7 @@ direct_find_best_memcpy()
      if (best) {
           direct_memcpy = memcpy_method[best].function;
 
-          D_INFO( "Direct/Memcpy: using %s\n", memcpy_method[best].desc );
+          D_INFO( "Direct/Memcpy: Using %s\n", memcpy_method[best].desc );
      }
 
      D_FREE( buf1 );
