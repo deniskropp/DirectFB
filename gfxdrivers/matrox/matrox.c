@@ -361,7 +361,7 @@ static void matroxSetState( void *drv, void *dev,
                mdev->m_color = 0;
 
           if (state->modified & SMF_SOURCE)
-               mdev->m_Source = mdev->m_source = mdev->m_SrcKey = mdev->m_srckey = 0;
+               mdev->m_Source = mdev->m_source = mdev->m_SrcKey = mdev->m_srckey = mdev->m_blitBlend = 0;
           else if (state->modified & SMF_SRC_COLORKEY)
                mdev->m_SrcKey = mdev->m_srckey = 0;
 

@@ -128,6 +128,7 @@ void matrox_validate_Color( MatroxDriverData *mdrv,
      mga_out32( mmio, U8_TO_F0915(state->color.b), DR12 );
 
      mdev->m_Color = 1;
+     mdev->m_blitBlend = 0;
 }
 
 void matrox_validate_color( MatroxDriverData *mdrv,
@@ -273,15 +274,32 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
           alphactrl = matroxSourceBlend[state->src_blend - 1] |
                       matroxDestBlend  [state->dst_blend - 1];
           
-          alphactrl |= matroxAlphaSelect [state->blittingflags & 3];
+          if (state->source->format == DSPF_RGB32) {
+               alphactrl |= DIFFUSEDALPHA;
+
+               if (! (state->blittingflags & DSBLIT_BLEND_COLORALPHA)) {
+                    mga_out32( mmio, U8_TO_F0915(0xff), ALPHASTART );
+                    mdev->m_Color = 0;
+               }
+          }
+          else
+               alphactrl |= matroxAlphaSelect [state->blittingflags & 3];
           
           if (state->dst_blend == DSBF_ZERO)
                alphactrl |= ALPHACHANNEL;
           else
                alphactrl |= VIDEOALPHA;
      }
-     else
+     else {
           alphactrl = SRC_ONE | ALPHACHANNEL;
+          
+          if (state->source->format == DSPF_RGB32) {
+               alphactrl |= DIFFUSEDALPHA;
+
+               mga_out32( mmio, U8_TO_F0915(0xff), ALPHASTART );
+               mdev->m_Color = 0;
+          }
+     }
 
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mmio, alphactrl, ALPHACTRL );
