@@ -98,7 +98,6 @@ typedef struct {
      bool                     exclusive; /* helps to detect dead excl. access */
 
      Reaction                 surface_reaction;
-     Reaction                 bgimage_reaction;
 } DisplayLayerShared;  
 
 struct _DisplayLayer {
@@ -112,6 +111,8 @@ struct _DisplayLayer {
      DisplayLayerFuncs  *funcs;
 
      CardState           state;
+
+     Reaction            bgimage_reaction;
 };  
 
 typedef struct {
@@ -647,7 +648,7 @@ dfb_layer_disable( DisplayLayer *layer )
           
           /* detach listener from background surface and unlink it */
           if (stack->bg.image) {
-               dfb_surface_detach( stack->bg.image, &shared->bgimage_reaction );
+          //     dfb_surface_detach( stack->bg.image, &shared->bgimage_reaction );
                dfb_surface_unlink( stack->bg.image );
           }
      }
@@ -827,18 +828,23 @@ dfb_layer_set_background_image( DisplayLayer *layer,
 
      /* if the surface is changed */
      if (stack->bg.image != image) {
-          /* detach listener from old surface and unlink it */
-          if (stack->bg.image) {
-               dfb_surface_detach( stack->bg.image, &shared->bgimage_reaction );
-               dfb_surface_unlink( stack->bg.image );
-          }
+          CoreSurface *old_image = stack->bg.image;
 
           /* link surface object */
           dfb_surface_link( &stack->bg.image, image );
           
+          /* detach listener from old surface and unlink it */
+          if (old_image) {
+          //     dfb_surface_detach( old_image, &shared->bgimage_reaction );
+               dfb_surface_unlink( old_image );
+          }
+
+          while (layer->bgimage_reaction.attached)
+               sched_yield();
+
           /* attach listener to new surface */
           dfb_surface_attach( image, background_image_listener,
-                              layer, &shared->bgimage_reaction );
+                              layer, &layer->bgimage_reaction );
      }
 
      /* force an update of the window stack */
@@ -1604,12 +1610,14 @@ background_image_listener( const void *msg_data,
           return RS_REMOVE;
 
      if (notification->flags & CSNF_DESTROY) {
-          ERRORMSG("DirectFB/core/layers: Surface for background vanished.\n");
+          if (stack->bg.image == notification->surface) {
+               ERRORMSG("DirectFB/core/layers: Surface for background vanished.\n");
 
-          stack->bg.mode  = DLBM_COLOR;
-          stack->bg.image = NULL;
+               stack->bg.mode  = DLBM_COLOR;
+               stack->bg.image = NULL;
 
-          dfb_windowstack_repaint_all( stack );
+               dfb_windowstack_repaint_all( stack );
+          }
 
           return RS_REMOVE;
      }
