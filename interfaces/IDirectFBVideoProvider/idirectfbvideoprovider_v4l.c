@@ -720,8 +720,26 @@ static void* GrabThread( CoreThread *thread, void *ctx )
           if (!data->running)
                break;
 
+          if (surface->caps & DSCAPS_INTERLACED)
+               dfb_surface_set_field( surface, 0 );
+
           if (data->callback)
                data->callback(data->ctx);
+
+          if (!data->running)
+               break;
+
+          sched_yield();
+
+          if (surface->caps & DSCAPS_INTERLACED) {
+               if (!data->running)
+                    break;
+
+               dfb_surface_set_field( surface, 1 );
+
+               if (data->callback)
+                    data->callback(data->ctx);
+          }
 
           if (++frame == data->vmbuf.frames)
                frame = 0;
@@ -758,7 +776,8 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
      DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
      if ((notification->flags & CSNF_SIZEFORMAT) ||
-         (surface->back_buffer->system.health != CSH_STORED))
+         (surface->back_buffer->system.health != CSH_STORED &&
+          surface->back_buffer->video.health != CSH_STORED))
      {
           v4l_stop( data, false );
           return RS_REMOVE;
@@ -976,7 +995,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
      data->running = true;
 
-     data->thread = dfb_thread_create( CTT_ANY, GrabThread, data );
+     data->thread = dfb_thread_create( CTT_INPUT, GrabThread, data );
 
      return DFB_OK;
 }
