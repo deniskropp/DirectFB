@@ -20,7 +20,6 @@ libdirectfb_savage_la_SOURCES = \
 	savage2000.c		\
 	savage2000.h		\
 	savage_bci.h		\
-	savage_streams_old.c	\
 	savage_streams_old.h
 
 libdirectfb_savage_la_LDFLAGS = \

@@ -37,6 +37,9 @@
 
 #include <directfb.h>
 
+#include <direct/messages.h>
+#include <direct/util.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -510,11 +513,11 @@ savage4_init_driver( GraphicsDevice      *device,
      funcs->StretchBlit   = savage4StretchBlit;
 
      /* setup primary layer functions */
-     dfb_layers_hook_primary(device, driver_data, &savagePrimaryFuncs,
-                             &savage_pfuncs, &savage_pdriver_data);
+//     dfb_layers_hook_primary(device, driver_data, &savagePrimaryFuncs,
+//                             &savage_pfuncs, &savage_pdriver_data);
 
      /* setup secondary layer functions */
-     dfb_layers_register(device, driver_data, &savageSecondaryFuncs);
+ //    dfb_layers_register(device, driver_data, &savageSecondaryFuncs);
 
      return DFB_OK;
 }

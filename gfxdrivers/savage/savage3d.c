@@ -37,6 +37,9 @@
 
 #include <directfb.h>
 
+#include <direct/messages.h>
+#include <direct/util.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -46,7 +49,9 @@
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
+
 #include <misc/conf.h>
+#include <misc/util.h>
 
 #include "savage.h"
 #include "savage_bci.h"
