@@ -127,6 +127,20 @@ void gInit_MMX();
           *dd   = ar;\
      }
 
+/* fefe code */
+#define SET_ALPHA_PIXEL_RGB32(d,r,g,b,a)\
+     { \
+          __u32 pixel=*(d); \
+          __u16 s=(a)+1;    \
+     	  __u16 s1=(256-s); \
+          \
+     	  *D = (((((pixel & 0x00ff00ff) * s1) + ((((r)<<16) | (b)) * s)) & 0xff00ff00) + \
+     	        ((((pixel & 0x0000ff00) * s1) + (((g)<<8) * s)) & 0x00ff0000)) >> 8; \
+     }
+
+
+/* old code */
+/*
 #define SET_ALPHA_PIXEL_RGB32(d,r,g,b,a)\
      { \
           __u8  dr, dg, db; \
@@ -142,6 +156,7 @@ void gInit_MMX();
           pixel = (ar << 16) | (ag << 8) | (ab);\
           *(d) = pixel;\
      }
+*/
 
 #define SET_ALPHA_PIXEL_ARGB(d,r,g,b,a)\
      { \
