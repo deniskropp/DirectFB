@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -115,7 +115,7 @@ besLayerDataSize()
 {
      return sizeof(MatroxBesLayerData);
 }
-     
+
 static DFBResult
 besInitLayer( GraphicsDevice             *device,
               DisplayLayer               *layer,
@@ -128,7 +128,7 @@ besInitLayer( GraphicsDevice             *device,
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
      volatile __u8      *mmio = mdrv->mmio_base;
-     
+
      /* set capabilities and type */
      layer_info->desc.caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
                              DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
@@ -154,17 +154,17 @@ besInitLayer( GraphicsDevice             *device,
      default_adj->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST;
      default_adj->brightness = 0x8000;
      default_adj->contrast   = 0x8000;
-     
-     
+
+
      /* initialize destination rectangle */
-     mbes->location.x = 0.125f;
-     mbes->location.y = 0.125f;
-     mbes->location.w = 0.25f;
-     mbes->location.h = 0.25f;
-     
+     mbes->location.x = 0.0f;
+     mbes->location.y = 0.0f;
+     mbes->location.w = 1.0f;
+     mbes->location.h = 1.0f;
+
      /* disable backend scaler */
      mga_out32( mmio, 0, BESCTL );
-     
+
      /* set defaults */
      mga_out_dac( mmio, XKEYOPMODE, 0x00 ); /* keying off */
 
@@ -177,7 +177,7 @@ besInitLayer( GraphicsDevice             *device,
      mga_out_dac( mmio, XCOLKEY0BLUE,  0x00 );
 
      mga_out32( mmio, 0x80, BESLUMACTL );
-     
+
      return DFB_OK;
 }
 
@@ -203,7 +203,7 @@ besEnable( DisplayLayer *layer,
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
-     
+
      /* enable backend scaler */
      besOnOff( mdrv, mbes, 1 );
 
@@ -282,7 +282,7 @@ besSetConfiguration( DisplayLayer          *layer,
 
      /* remember configuration */
      mbes->config = *config;
-     
+
      bes_calc_regs( mdrv, mbes, layer, config );
      bes_set_regs( mdrv, mbes, true );
 
@@ -297,7 +297,7 @@ besSetOpacity( DisplayLayer *layer,
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
-     
+
      switch (opacity) {
           case 0:
                besOnOff( mdrv, mbes, 0 );
@@ -323,7 +323,7 @@ besSetScreenLocation( DisplayLayer *layer,
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
-     
+
      /* set new destination rectangle */
      mbes->location.x = x;
      mbes->location.y = y;
@@ -332,7 +332,7 @@ besSetScreenLocation( DisplayLayer *layer,
 
      bes_calc_regs( mdrv, mbes, layer, &mbes->config );
      bes_set_regs( mdrv, mbes, true );
-     
+
      return DFB_OK;
 }
 
@@ -346,24 +346,24 @@ besSetDstColorKey( DisplayLayer *layer,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
      volatile __u8    *mmio = mdrv->mmio_base;
-     
+
      switch (dfb_primary_layer_pixelformat()) {
           case DSPF_ARGB1555:
                r >>= 3;
                g >>= 3;
                b >>= 3;
                break;
-          
+
           case DSPF_RGB16:
                r >>= 3;
                g >>= 2;
                b >>= 3;
                break;
-          
+
           default:
                ;
      }
-     
+
      mga_out_dac( mmio, XCOLKEY0RED,   r );
      mga_out_dac( mmio, XCOLKEY0GREEN, g );
      mga_out_dac( mmio, XCOLKEY0BLUE,  b );
@@ -380,9 +380,9 @@ besFlipBuffers( DisplayLayer        *layer,
      MatroxDriverData   *mdrv    = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes    = (MatroxBesLayerData*) layer_data;
      CoreSurface        *surface = dfb_layer_surface( layer );
-     
+
      dfb_surface_flip_buffers( surface );
-     
+
      bes_calc_regs( mdrv, mbes, layer, &mbes->config );
      bes_set_regs( mdrv, mbes, flags & DSFLIP_ONSYNC );
 
@@ -400,11 +400,11 @@ besSetColorAdjustment( DisplayLayer       *layer,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
      volatile __u8    *mmio = mdrv->mmio_base;
-     
+
      mga_out32( mmio, (adj->contrast >> 8) |
                       ((__u8)(((int)adj->brightness >> 8) - 128)) << 16,
                 BESLUMACTL );
-     
+
      return DFB_OK;
 }
 
@@ -416,12 +416,12 @@ besSetField( DisplayLayer *layer,
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
-     
+
      mbes->regs.besCTL_field = field ? 0x2000000 : 0;
 
      mga_out32( mdrv->mmio_base,
                 mbes->regs.besCTL | mbes->regs.besCTL_field, BESCTL );
-     
+
      return DFB_OK;
 }
 
@@ -458,7 +458,7 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
           if (line > current_mode->yres)
                line = current_mode->yres;
      }
-     
+
      mga_out32( mmio, mbes->regs.besGLOBCTL | (line << 16), BESGLOBCTL);
 
      mga_out32( mmio, mbes->regs.besA1ORG, BESA1ORG );
@@ -510,7 +510,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      /* destination box */
      dfb_primary_layer_rectangle( mbes->location.x, mbes->location.y,
                                   mbes->location.w, mbes->location.h, &dest );
-     
+
      dstBox.x1 = dest.x;
      dstBox.y1 = dest.y;
      dstBox.x2 = dest.x + dest.w;
@@ -519,7 +519,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      /* destination size */
      drw_w = dest.w;
      drw_h = dest.h;
-     
+
      /* should horizontal zoom be used? */
      hzoom = (1000000/current_mode->pixclock >= 135) ? 1 : 0;
 
@@ -634,7 +634,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                tmp = (32 << 16) - 1;
           mbes->regs.besHISCAL = tmp & 0x001ffffc;
      }
-     
+
      intrep = ((drw_h == field_height) || (drw_h < 2)) ? 0 : 1;
      tmp = ((field_height - intrep) << 16) / (drw_h - intrep);
      if(tmp >= (32 << 16))
