@@ -219,6 +219,7 @@ context_callback( FusionObjectPool *pool,
      FusionResult       ret;
      int                i;
      int                refs;
+     int                level;
      CoreLayerContext  *context = (CoreLayerContext*) object;
      CoreLayer         *layer   = (CoreLayer*) ctx;
 
@@ -242,7 +243,7 @@ context_callback( FusionObjectPool *pool,
 
      printf( "%3d   ", refs );
 
-     printf( "%4d x %4d   ", context->config.width, context->config.height );
+     printf( "%4d x %4d  ", context->config.width, context->config.height );
 
      for (i=0; format_names[i].format; i++) {
           if (context->config.pixelformat == format_names[i].format) {
@@ -254,7 +255,7 @@ context_callback( FusionObjectPool *pool,
      if (!format_names[i].format)
           printf( "unknown  " );
 
-     printf( "%.1f, %.1f -> %.1f, %.1f    ",
+     printf( "%.1f, %.1f -> %.1f, %.1f   ",
              context->screen.x, context->screen.y,
              context->screen.x + context->screen.w,
              context->screen.y + context->screen.h );
@@ -264,7 +265,14 @@ context_callback( FusionObjectPool *pool,
      printf( context->active ? "(*)    " : "       " );
 
      if (context == layer->shared->contexts.primary)
-          printf( "SHARED" );
+          printf( "SHARED   " );
+     else
+          printf( "PRIVATE  " );
+
+     if (dfb_layer_get_level( layer, &level ))
+          printf( "N/A" );
+     else
+          printf( "%3d", level );
 
      printf( "\n" );
 
@@ -279,7 +287,7 @@ dump_contexts( CoreLayer *layer )
 
      printf( "\n"
              "----------------------------------[ Contexts of Layer %d ]-----------------------------------\n", dfb_layer_id( layer ));
-     printf( "Reference  . Refs  Width Height  Format   Location on screen   Regions  Active  Info\n" );
+     printf( "Reference  . Refs  Width Height Format   Location on screen  Regions  Active  Info    Level\n" );
      printf( "--------------------------------------------------------------------------------------------\n" );
 
      dfb_core_enum_layer_contexts( NULL, context_callback, layer );
