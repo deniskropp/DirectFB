@@ -544,7 +544,7 @@ static GFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_8_Kto_Aop
 };
 
-/********************************* Bop_PFI_Sto_Aop ****************************/
+/********************************* Bop_PFI_Sto_Aop_PFI ****************************/
 
 static void Bop_16_Sto_Aop()
 {
@@ -621,7 +621,7 @@ static void Bop_8_Sto_Aop()
      }
 }
 
-static GFunc Bop_PFI_Sto_Aop[DFB_NUM_PIXELFORMATS] = {
+static GFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_Sto_Aop,
      Bop_16_Sto_Aop,
      Bop_24_Sto_Aop,
@@ -636,7 +636,7 @@ static GFunc Bop_PFI_Sto_Aop[DFB_NUM_PIXELFORMATS] = {
      Bop_8_Sto_Aop
 };
 
-/********************************* Bop_PFI_SKto_Aop ***************************/
+/********************************* Bop_PFI_SKto_Aop_PFI ***************************/
 
 static void Bop_rgb15_SKto_Aop()
 {
@@ -768,7 +768,7 @@ static void Bop_8_SKto_Aop()
      }
 }
 
-static GFunc Bop_PFI_SKto_Aop[DFB_NUM_PIXELFORMATS] = {
+static GFunc Bop_PFI_SKto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_rgb15_SKto_Aop,
      Bop_rgb16_SKto_Aop,
      Bop_rgb24_SKto_Aop,
@@ -3203,10 +3203,10 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          else {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    Skey = state->src_colorkey;
-                                   *funcs++ = Bop_PFI_SKto_Aop[dst_pfi];
+                                   *funcs++ = Bop_PFI_SKto_Aop_PFI[dst_pfi];
                               }
                               else
-                                   *funcs++ = Bop_PFI_Sto_Aop[dst_pfi];
+                                   *funcs++ = Bop_PFI_Sto_Aop_PFI[dst_pfi];
                          }
                     }
                     else {
