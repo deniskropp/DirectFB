@@ -189,6 +189,8 @@ dfb_core_ref()
 
      dfb_find_best_memcpy();
 
+     setpgrp();
+     
      fid = fusion_init( dfb_config->session, &world );
      if (fid < 0)
           return DFB_INIT;

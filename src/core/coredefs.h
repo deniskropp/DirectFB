@@ -100,7 +100,8 @@
                                        pid, millis/1000, millis%1000,          \
                                        msg, __FILE__, __LINE__ );              \
                               fflush( stderr );                                \
-                              kill( pid, SIGTRAP );                            \
+                              kill( getpgrp(), SIGTRAP );                      \
+                              pause();                                         \
                          } while (0)
 
 #if (defined(DFB_DEBUG) && !defined(DFB_NOTEXT)) || defined(DFB_FORCE_DEBUG)
@@ -132,7 +133,8 @@
                                             millis%1000, #exp,                 \
                                             __FILE__, __LINE__ );              \
                                    fflush( stderr );                           \
-                                   kill( pid, SIGTRAP );                       \
+                                   kill( getpgrp(), SIGTRAP );                 \
+                                   pause();                                    \
                               }
 
      #define DFB_ASSUME(exp)  if (!(exp)) {                                    \
