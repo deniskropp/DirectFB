@@ -9,24 +9,10 @@ else
 V4L_PROVIDER_LTLIB =
 endif
 
-if AVIFILE_PROVIDER
-AVIFILE_PROVIDER_LTLIB = libidirectfbvideoprovider_avifile.la
-else
-AVIFILE_PROVIDER_LTLIB =
-endif
-
-
 if LIBMPEG3_PROVIDER
 LIBMPEG3_PROVIDER_LTLIB = libidirectfbvideoprovider_libmpeg3.la
 else
 LIBMPEG3_PROVIDER_LTLIB =
-endif
-
-
-if FLASH_PROVIDER
-FLASH_PROVIDER_LTLIB = libidirectfbvideoprovider_swf.la
-else
-FLASH_PROVIDER_LTLIB =
 endif
 
 
@@ -36,28 +22,11 @@ INCLUDES = \
 	-DDATADIR=\"@DATADIR@\"
 
 AM_CFLAGS = $(DFB_CFLAGS)
-AM_CXXFLAGS = $(DFB_CXXFLAGS) $(AVIFILE_CFLAGS)
 
 
 idirectfbvideoprovider_LTLIBRARIES =	\
 	$(V4L_PROVIDER_LTLIB)		\
-	$(AVIFILE_PROVIDER_LTLIB)	\
-	$(FLASH_PROVIDER_LTLIB)		\
 	$(LIBMPEG3_PROVIDER_LTLIB)
-
-
-libidirectfbvideoprovider_avifile_la_SOURCES = idirectfbvideoprovider_avifile.cpp
-
-libidirectfbvideoprovider_avifile_la_LIBADD = $(AVIFILE_LIBS)
-
-libidirectfbvideoprovider_avifile_la_LDFLAGS = -avoid-version -module
-
-
-libidirectfbvideoprovider_swf_la_SOURCES = idirectfbvideoprovider_swf.c
-
-libidirectfbvideoprovider_swf_la_LIBADD = $(LIBFLASH)
-
-libidirectfbvideoprovider_swf_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbvideoprovider_libmpeg3_la_SOURCES = idirectfbvideoprovider_libmpeg3.c

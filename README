@@ -55,11 +55,12 @@ Build Requirements
    a lot of DirectFB applications depend on the functionality provided
    by them.
 
-   The video providers require some libraries (avifile, libflash and
-   libmpeg3) that are not commonly installed. We have provided packages
-   on our web-site at http://www.directfb.org/download/contrib/. If for
-   some reason the build of one of the video providers fails, you can
-   disable it explicitly. Check the output of 'configure --help'.
+   The libmpeg3 video provider requires the libmpeg3 library which is
+   not commonly installed. We provide this package on our web-site at
+   http://www.directfb.org/download/contrib/.
+
+   The avifile and flash video providers that used to be shipped with
+   DirectFB have been moved to the DirectFB-extra package.
 
    We suggest you also install pkg-config available from
    http://www.freedesktop.org/software/pkgconfig/. It will help you
