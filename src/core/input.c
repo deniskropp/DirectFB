@@ -310,7 +310,8 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
           case DIET_KEYPRESS:
           case DIET_KEYRELEASE:
                fixup_key_event( device, event );
-               printf("code: %x, id: %x, symbol: %x\n", event->key_code, event->key_id, event->key_symbol);
+               DEBUGMSG("DirectFB/core/input: key code: %x, id: %x, symbol: %x\n",
+                        event->key_code, event->key_id, event->key_symbol);
                break;
           
           default:

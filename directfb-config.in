@@ -82,8 +82,8 @@ if test "$echo_exec_prefix" = "yes"; then
 fi
 
 if test "$echo_cflags" = "yes"; then
-      if test @includedir@ != /usr/include ; then
-        includes=-I@includedir@
+      if test @INCLUDEDIR@ != /usr/include ; then
+        includes=-I@INCLUDEDIR@
       fi
       echo $includes
 fi
