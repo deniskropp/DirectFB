@@ -973,8 +973,9 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      dfb_state_set_destination( &font->state, state->destination );
 
      /* set clip and color */
-     font->state.clip      = state->clip;
-     font->state.color     = state->color;
+     font->state.clip        = state->clip;
+     font->state.color       = state->color;
+     font->state.color_index = state->color_index;
      font->state.modified |= SMF_CLIP | SMF_COLOR;
 
      for (offset = 0; offset < bytes; offset += dfb_utf8_skip[text[offset]]) {
@@ -1088,8 +1089,9 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      dfb_state_set_destination( &font->state, state->destination );
 
      /* set clip and color */
-     font->state.clip      = state->clip;
-     font->state.color     = state->color;
+     font->state.clip        = state->clip;
+     font->state.color       = state->color;
+     font->state.color_index = state->color_index;
      font->state.modified |= SMF_CLIP | SMF_COLOR;
 
      dfb_state_set_source( &font->state, data->surface );

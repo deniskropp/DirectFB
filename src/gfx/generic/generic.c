@@ -1327,26 +1327,26 @@ static void Sop_lut8_to_Dacc()
      DFBColor *entries = Slut->entries;
 
      while (w) {
-          int l = w & 0x7;
+          int l = w & 7;
 
           switch (l) {
                default:
-                    l = 0x8;
-                    LOOKUP_COLOR( D[0x7], S[0x7] );
-               case 0x7:
-                    LOOKUP_COLOR( D[0x6], S[0x6] );
-               case 0x6:
-                    LOOKUP_COLOR( D[0x5], S[0x5] );
-               case 0x5:
-                    LOOKUP_COLOR( D[0x4], S[0x4] );
-               case 0x4:
-                    LOOKUP_COLOR( D[0x3], S[0x3] );
-               case 0x3:
-                    LOOKUP_COLOR( D[0x2], S[0x2] );
-               case 0x2:
-                    LOOKUP_COLOR( D[0x1], S[0x1] );
-               case 0x1:
-                    LOOKUP_COLOR( D[0x0], S[0x0] );
+                    l = 8;
+                    LOOKUP_COLOR( D[7], S[7] );
+               case 7:
+                    LOOKUP_COLOR( D[6], S[6] );
+               case 6:
+                    LOOKUP_COLOR( D[5], S[5] );
+               case 5:
+                    LOOKUP_COLOR( D[4], S[4] );
+               case 4:
+                    LOOKUP_COLOR( D[3], S[3] );
+               case 3:
+                    LOOKUP_COLOR( D[2], S[2] );
+               case 2:
+                    LOOKUP_COLOR( D[1], S[1] );
+               case 1:
+                    LOOKUP_COLOR( D[0], S[0] );
           }
 
           D += l;
@@ -1755,25 +1755,25 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 #define SET_ALPHA_PIXEL_DUFFS_DEVICE(D, S, w, format) \
      while (w) {\
-          int l = w & 0x7;\
+          int l = w & 7;\
           switch (l) {\
                default:\
-                    l = 0x8;\
-                    SET_ALPHA_PIXEL_##format( D[0x7], S[0x7] );\
-               case 0x7:\
-                    SET_ALPHA_PIXEL_##format( D[0x6], S[0x6] );\
-               case 0x6:\
-                    SET_ALPHA_PIXEL_##format( D[0x5], S[0x5] );\
-               case 0x5:\
-                    SET_ALPHA_PIXEL_##format( D[0x4], S[0x4] );\
-               case 0x4:\
-                    SET_ALPHA_PIXEL_##format( D[0x3], S[0x3] );\
-               case 0x3:\
-                    SET_ALPHA_PIXEL_##format( D[0x2], S[0x2] );\
-               case 0x2:\
-                    SET_ALPHA_PIXEL_##format( D[0x1], S[0x1] );\
-               case 0x1:\
-                    SET_ALPHA_PIXEL_##format( D[0x0], S[0x0] );\
+                    l = 8;\
+                    SET_ALPHA_PIXEL_##format( D[7], S[7] );\
+               case 7:\
+                    SET_ALPHA_PIXEL_##format( D[6], S[6] );\
+               case 6:\
+                    SET_ALPHA_PIXEL_##format( D[5], S[5] );\
+               case 5:\
+                    SET_ALPHA_PIXEL_##format( D[4], S[4] );\
+               case 4:\
+                    SET_ALPHA_PIXEL_##format( D[3], S[3] );\
+               case 3:\
+                    SET_ALPHA_PIXEL_##format( D[2], S[2] );\
+               case 2:\
+                    SET_ALPHA_PIXEL_##format( D[1], S[1] );\
+               case 1:\
+                    SET_ALPHA_PIXEL_##format( D[0], S[0] );\
           }\
           D += l;\
           S += l;\
@@ -1958,13 +1958,28 @@ static void Bop_a8_set_alphapixel_Aop_rgb332()
 /* FIXME: implement correctly! */
 #define SET_ALPHA_PIXEL_RGB332(d,a) \
      if (a & 0x80) \
-          d = PIXEL_RGB332( color.r, color.g, color.b );
+          d = Cop;
 
      SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB332 );
 
 #undef SET_ALPHA_PIXEL_RGB332
 }
 #endif
+
+static void Bop_a8_set_alphapixel_Aop_lut8()
+{
+     int    w = Dlength;
+     __u8  *S = Bop;
+     __u8  *D = Aop;
+
+/* FIXME: implement correctly! */
+#define SET_ALPHA_PIXEL_LUT8(d,a) \
+     if (a & 0x80) \
+          d = Cop;
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, LUT8 );
+#undef SET_ALPHA_PIXEL_LUT8
+}
 
 GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_a8_set_alphapixel_Aop_rgb15,
@@ -1982,7 +1997,7 @@ GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     NULL
+     Bop_a8_set_alphapixel_Aop_lut8
 };
 
 
