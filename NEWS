@@ -1,7 +1,8 @@
 0.9.3
 ------
 
-- Image Providers and Font Providers are built conditionally.
+- All modules (drivers/providers) are built conditionally, can be
+  disabled. configure spits out a summary of all modules.
 - Some license headers were forgotten to change to LGPL.
 - New remote control keycodes and remote control input type.
 - df_window can play video files and behaves like a window manager.
