@@ -426,8 +426,6 @@ void *_reactor_receive (void *arg)
           }
      }
 
-     FERROR ("universe has collapsed...\n");
-
      return NULL;
 }
 
