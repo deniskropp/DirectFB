@@ -22,6 +22,8 @@ libdirectfb_generic_la_SOURCES = \
 	generic_mmx.h		\
 	yuvtbl.h
 
+generic.c: yuvtbl.h
+
 yuvtbl-gen: yuvtbl-gen.c
 	$(CC) -O2 yuvtbl-gen.c -o yuvtbl-gen
 
