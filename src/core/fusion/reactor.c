@@ -176,16 +176,11 @@ reactor_attach (FusionReactor *reactor,
 
           fusion_ref_init (&reactor->node[index].ref);
 
+          fusion_ref_up (&reactor->node[index].ref, false);
+          
           /* start our local receiver thread and detach it */
           pthread_create (&reactor->node[index].receiver,
                           NULL, _reactor_receive, reactor);
-          pthread_detach (reactor->node[index].receiver);
-
-          /* wait for receiver thread to get ready */
-          while (fusion_ref_zero_trylock (&reactor->node[index].ref) == FUSION_SUCCESS) {
-               fusion_ref_unlock (&reactor->node[index].ref);
-               sched_yield();
-          }
      }
 
      /* allocate information for local dispatching */
@@ -243,8 +238,8 @@ reactor_detach (FusionReactor *reactor,
      /* if it was the last reaction cancel our receiver thread and free the node */
      if (!reactor->node[index].reactions) {
           pthread_cancel (reactor->node[index].receiver);
+          pthread_join (reactor->node[index].receiver, NULL);
 
-          fusion_ref_zero_lock (&reactor->node[index].ref);
           fusion_ref_destroy (&reactor->node[index].ref);
 
           reactor->node[index].id = 0;
@@ -310,8 +305,8 @@ reactor_dispatch (FusionReactor *reactor,
                        because of RS_REMOVE) free the node */
                     if (!reactor->node[i].reactions) {
                          pthread_cancel (reactor->node[i].receiver);
+                         pthread_join (reactor->node[i].receiver, NULL);
 
-                         fusion_ref_zero_lock (&reactor->node[i].ref);
                          fusion_ref_destroy (&reactor->node[i].ref);
 
                          reactor->node[i].id = 0;
@@ -400,9 +395,6 @@ void *_reactor_receive (void *arg)
                   "could not find node with fusion id '%d'!\n", _fusion_id());
           return NULL;
      }
-
-     if (fusion_ref_up (&reactor->node[index].ref, false))
-          return NULL;
 
      /* allocate local buffer for received messages */
      message = alloca (sizeof(long) + reactor->msg_size);
