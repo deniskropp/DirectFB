@@ -201,6 +201,7 @@ static void print_usage (const char *prg_name)
      fprintf (stderr, "\n");
      fprintf (stderr, "See the directfb-csource(1) man-page for more information.\n");
      fprintf (stderr, "\n");
+     fprintf (stderr, "       This directfb-csource has multi-image powers.\n");
 }
 
 static DFBResult load_image (const char            *filename,
