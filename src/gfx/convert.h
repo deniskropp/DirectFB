@@ -104,6 +104,14 @@
                                     (((pixel) & 0x0380) >> 5) | \
                                     (((pixel) & 0x0018) >> 3) )
 
+#define ARGB1555_TO_ARGB2554(pixel) ( (((pixel) & 0x8000)     ) | \
+                                      (((pixel) & 0x7FFF) >> 1) )
+
+#define ARGB1555_TO_ARGB4444(pixel) ( (((pixel) & 0x8000)     ) | \
+                                      (((pixel) & 0x7800) >> 3) | \
+                                      (((pixel) & 0x03C0) >> 2) | \
+                                      (((pixel) & 0x001E) >> 1) )
+
 #define ARGB1555_TO_RGB16(pixel)  ( (((pixel) & 0x7C00) << 1) | \
                                     (((pixel) & 0x03E0) << 1) | \
                                     (((pixel) & 0x001F)) )
@@ -127,6 +135,16 @@
                                     (((pixel) & 0x07C0) >> 1) | \
                                     (((pixel) & 0x001F)) )
 
+#define RGB16_TO_ARGB2554(pixel)  ( 0xC000 |                    \
+                                    (((pixel) & 0xF800) >> 2) | \
+                                    (((pixel) & 0x07C0) >> 2) | \
+                                    (((pixel) & 0x001F) >> 1) )
+
+#define RGB16_TO_ARGB4444(pixel)  ( 0xF000 |                    \
+                                    (((pixel) & 0xF000) >> 4) | \
+                                    (((pixel) & 0x0780) >> 3) | \
+                                    (((pixel) & 0x001F) >> 1) )
+
 #define RGB16_TO_RGB32(pixel)  ( (((pixel) & 0xF800) << 8) | \
                                  (((pixel) & 0x07E0) << 5) | \
                                  (((pixel) & 0x001F) << 3) )
@@ -145,6 +163,16 @@
                                     (((pixel) & 0xF80000) >> 9) | \
                                     (((pixel) & 0x00F800) >> 6) | \
                                     (((pixel) & 0x0000F8) >> 3) )
+
+#define RGB32_TO_ARGB2554(pixel)  ( 0xC000 |                       \
+                                    (((pixel) & 0xF80000) >> 10) | \
+                                    (((pixel) & 0x00F800) >>  7) | \
+                                    (((pixel) & 0x0000F0) >>  4) )
+
+#define RGB32_TO_ARGB4444(pixel)  ( 0xF000 |                       \
+                                    (((pixel) & 0xF00000) >> 12) | \
+                                    (((pixel) & 0x00F000) >>  8) | \
+                                    (((pixel) & 0x0000F0) >>  4) )
 
 #define RGB32_TO_RGB16(pixel)  ( (((pixel) & 0xF80000) >> 8) | \
                                  (((pixel) & 0x00FC00) >> 5) | \
