@@ -36,14 +36,14 @@ typedef struct _Node Node;
 struct _Tree
 {
      Node            *root;
-     void            *fast_keys[128];
+     void            *fast_keys[96];
 
      pthread_mutex_t  mutex;
 };
 
 struct _Node
 {
-     int balance;
+     int   balance;
      Node *left;
      Node *right;
      void *key;
@@ -94,7 +94,7 @@ void tree_destroy (Tree *tree)
 
      pthread_mutex_destroy (&tree->mutex);
 
-     for (i = 0; i < 128; i++) {
+     for (i = 0; i < 96; i++) {
           if (tree->fast_keys[i])
                free (tree->fast_keys[i]);
      }
@@ -107,9 +107,10 @@ void tree_insert (Tree *tree,
                   void *value)
 {
      int inserted = 0;
+     int fast_key = (unsigned int) key - 32;
 
-     if ((unsigned int) key < 128)
-          tree->fast_keys[(unsigned int) key] = value;
+     if (fast_key >= 0 && fast_key < 96)
+          tree->fast_keys[fast_key] = value;
      else
           tree->root = tree_node_insert (tree,
                                          tree->root,
@@ -121,9 +122,10 @@ void * tree_lookup (Tree *tree,
                     void *key)
 {
      Node *node;
+     int fast_key = (unsigned int) key - 32;
 
-     if ((unsigned int) key < 128)
-          return tree->fast_keys[(unsigned int) key];
+     if (fast_key >= 0 && fast_key < 96)
+          return tree->fast_keys[fast_key];
 
      node = tree_node_lookup (tree->root, key);
 
