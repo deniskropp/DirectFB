@@ -993,7 +993,7 @@ static void Sop_rgb15_Kto_Dacc()
      while (w--) {
           __u16 s = *S++ & 0x7FFF;
 
-          if (s != Skey) {
+          if (s != (__u16)Skey) {
                D->a = 0xFF;
                D->r = (s & 0x7C00) >> 7;
                D->g = (s & 0x03E0) >> 2;
@@ -1015,7 +1015,7 @@ static void Sop_rgb16_Kto_Dacc()
      while (w--) {
           __u16 s = *S++;
 
-          if (s != Skey) {
+          if (s != (__u16)Skey) {
                D->a = 0xFF;
                D->r = (s & 0xF800) >> 8;
                D->g = (s & 0x07E0) >> 3;
@@ -1879,16 +1879,19 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
                          *funcs++ = Sop_is_Bop;
                          *funcs++ = Dacc_is_Bacc;
-                         if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                         if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                              Skey = state->src_colorkey;
                               if (accel == DFXL_BLIT)
                                    *funcs++ = Sop_PFI_Kto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
                               else
                                    *funcs++ = Sop_PFI_SKto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
-                         else
+                         }
+                         else {
                               if (accel == DFXL_BLIT)
                                    *funcs++ = Sop_PFI_to_Dacc[PIXELFORMAT_INDEX(state->source->format)];
                               else
                                    *funcs++ = Sop_PFI_Sto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
+                         }
 
                          if (Dacc_modulation[modulation]) {
                               /* modulation source */
