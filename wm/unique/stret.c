@@ -694,6 +694,8 @@ region_update( UpdateContext *context,
 
                region_update( &fork, x1, area.y2 + 1, x2, y2 );
           }
+
+          stret_iteration_abort( &context->iteration );
      }
      else
           region_update( context, x1, y1, x2, y2 );
