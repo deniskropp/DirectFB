@@ -74,6 +74,9 @@ DFB_GRAPHICS_DRIVER( mach64 )
                (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)
 
 #define MACH64_SUPPORTED_BLITTINGFUNCTIONS \
+               (DFXL_BLIT)
+
+#define MACH64GT_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 /* required implementations */
@@ -89,6 +92,8 @@ static void mach64EngineSync( void *drv, void *dev )
 static void mach64CheckState( void *drv, void *dev,
                               CardState *state, DFBAccelerationMask accel )
 {
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+
      switch (state->destination->format) {
           case DSPF_RGB332:
           case DSPF_ARGB1555:
@@ -127,7 +132,10 @@ static void mach64CheckState( void *drv, void *dev,
               (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY))
                return;
 
-          state->accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
+          if (mdrv->accelerator == FB_ACCEL_ATI_MACH64GT)
+               state->accel |= MACH64GT_SUPPORTED_BLITTINGFUNCTIONS;
+          else
+               state->accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
      }
 }
 
@@ -267,7 +275,7 @@ static bool mach64DrawLine( void *drv, void *dev, DFBRegion *line )
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
      volatile __u8    *mmio = mdrv->mmio_base;
 
-     __u32 dst_cntl = DST_LAST_PEL;
+     __u32 dst_cntl = 0;
      int   dx, dy;
 
      dx = line->x2 - line->x1;
@@ -311,7 +319,7 @@ static bool mach64DrawLine( void *drv, void *dev, DFBRegion *line )
      
      mach64_waitfifo( mdrv, mdev, 6 );
 
-     mach64_out32( mmio, DST_CNTL, dst_cntl );
+     mach64_out32( mmio, DST_CNTL, DST_LAST_PEL | dst_cntl );
      mach64_out32( mmio, DST_Y_X, (line->x1 << 16) | line->y1 );
      mach64_out32( mmio, DST_BRES_LNTH, dx+1 );
      mach64_out32( mmio, DST_BRES_ERR, -dx );
@@ -424,7 +432,7 @@ driver_get_info( GraphicsDevice     *device,
                "Ville Syrjala" );
 
      info->version.major = 0;
-     info->version.minor = 6;
+     info->version.minor = 7;
 
      info->driver_data_size = sizeof (Mach64DriverData);
      info->device_data_size = sizeof (Mach64DeviceData);
@@ -478,20 +486,29 @@ driver_init_device( GraphicsDevice     *device,
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
 
      /* fill device info */
+     device_info->caps.flags    = CCF_CLIPPING;
+     device_info->caps.accel    = MACH64_SUPPORTED_DRAWINGFUNCTIONS;
+     device_info->caps.drawing  = MACH64_SUPPORTED_DRAWINGFLAGS;
+     device_info->caps.blitting = MACH64_SUPPORTED_BLITTINGFLAGS;
+
      switch (mdrv->accelerator) {
           case FB_ACCEL_ATI_MACH64GX:
+               device_info->caps.accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GX" );
                break;
           case FB_ACCEL_ATI_MACH64CT:
+               device_info->caps.accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 CT" );
                break;
           case FB_ACCEL_ATI_MACH64VT:
+               device_info->caps.accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 VT" );
                break;
           case FB_ACCEL_ATI_MACH64GT:
+               device_info->caps.accel |= MACH64GT_SUPPORTED_BLITTINGFUNCTIONS;
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GT" );
                break;
@@ -499,12 +516,6 @@ driver_init_device( GraphicsDevice     *device,
 
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "ATI" );
-
-     device_info->caps.flags    = CCF_CLIPPING;
-     device_info->caps.accel    = MACH64_SUPPORTED_DRAWINGFUNCTIONS |
-                                  MACH64_SUPPORTED_BLITTINGFUNCTIONS;
-     device_info->caps.drawing  = MACH64_SUPPORTED_DRAWINGFLAGS;
-     device_info->caps.blitting = MACH64_SUPPORTED_BLITTINGFLAGS;
 
      device_info->limits.surface_byteoffset_alignment = 32 * 4;
      device_info->limits.surface_pixelpitch_alignment = 32;

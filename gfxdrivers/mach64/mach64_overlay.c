@@ -138,6 +138,7 @@ ovTestRegion( CoreLayer                  *layer,
               CoreLayerRegionConfigFlags *failed )
 {
      CoreLayerRegionConfigFlags fail = 0;
+     int max_width = 720; /* FIXME: 768 for 3D Rage (LT) Pro */
 
      /* check for unsupported options */
      if (config->options & ~OV_SUPPORTED_OPTIONS)
@@ -159,11 +160,11 @@ ovTestRegion( CoreLayer                  *layer,
      }
 
      /* check width */
-     if (config->width > 2048 || config->width < 1)
+     if (config->width > max_width || config->width < 1)
           fail |= CLRCF_WIDTH;
 
      /* check height */
-     if (config->height > 2048 || config->height < 1)
+     if (config->height > 1024 || config->height < 1)
           fail |= CLRCF_HEIGHT;
 
      /* write back failing fields */
@@ -348,44 +349,30 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
 
      switch (surface->format) {
           case DSPF_ARGB1555:
-               mov->regs.overlay_VIDEO_KEY_CLR = PIXEL_ARGB1555( config->src_key.a,
-                                                                 config->src_key.r,
-                                                                 config->src_key.g,
-                                                                 config->src_key.b );
                mov->regs.video_FORMAT = SCALER_IN_RGB15;
                break;
 
           case DSPF_RGB16:
-               mov->regs.overlay_VIDEO_KEY_CLR = PIXEL_RGB16( config->src_key.r,
-                                                              config->src_key.g,
-                                                              config->src_key.b );
                mov->regs.video_FORMAT = SCALER_IN_RGB16;
                break;
 
           case DSPF_RGB32:
-               mov->regs.overlay_VIDEO_KEY_CLR = PIXEL_RGB32( config->src_key.r,
-                                                              config->src_key.g,
-                                                              config->src_key.b );
                mov->regs.video_FORMAT = SCALER_IN_RGB32;
                break;
 
           case DSPF_UYVY:
-               mov->regs.overlay_VIDEO_KEY_CLR = 0; /* FIXME */
                mov->regs.video_FORMAT = SCALER_IN_YVYU422;
                break;
 
           case DSPF_YUY2:
-               mov->regs.overlay_VIDEO_KEY_CLR = 0; /* FIXME */
                mov->regs.video_FORMAT = SCALER_IN_VYUY422;
                break;
 
           case DSPF_I420:
-               mov->regs.overlay_VIDEO_KEY_CLR = 0; /* FIXME */
                mov->regs.video_FORMAT = SCALER_IN_YUV12;
                break;
 
           case DSPF_YV12:
-               mov->regs.overlay_VIDEO_KEY_CLR = 0; /* FIXME */
                mov->regs.video_FORMAT = SCALER_IN_YUV12;
                break;
 
@@ -393,7 +380,13 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
                BUG("unexpected pixelformat");
                return;
      }
-     mov->regs.overlay_VIDEO_KEY_MSK =  (1 << DFB_COLOR_BITS_PER_PIXEL( surface->format )) - 1;;
+
+     /* Video key is always RGB24 */
+     mov->regs.overlay_VIDEO_KEY_CLR = PIXEL_RGB32( config->src_key.r,
+                                                    config->src_key.g,
+                                                    config->src_key.b );
+     /* The same mask is used for all three components */
+     mov->regs.overlay_VIDEO_KEY_MSK = 0xFF;
 
      switch (primary_format) {
           case DSPF_RGB332:
@@ -466,40 +459,33 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
      if (config->dest.y < 0)
           croptop = -config->dest.y * surface->height / config->dest.h;
 
-     offset = front_buffer->video.offset;
-
      switch (surface->format) {
-          case DSPF_YUY2:
-          case DSPF_UYVY:
-               cropleft &= ~1;
-               break;
-
           case DSPF_I420:
-               cropleft &= ~1;
+               cropleft &= ~15;
                croptop &= ~1;
+
                offset_u = front_buffer->video.offset + surface->height * front_buffer->video.pitch;
                offset_v = offset_u + (surface->height/2) * (front_buffer->video.pitch/2);
+               offset_u += (croptop/2) * (front_buffer->video.pitch/2) + (cropleft/2);
+               offset_v += (croptop/2) * (front_buffer->video.pitch/2) + (cropleft/2);
                break;
 
           case DSPF_YV12:
-               cropleft &= ~1;
+               cropleft &= ~15;
                croptop &= ~1;
+
                offset_v = front_buffer->video.offset + surface->height * front_buffer->video.pitch;
                offset_u = offset_v + (surface->height/2) * (front_buffer->video.pitch/2);
-
+               offset_u += (croptop/2) * (front_buffer->video.pitch/2) + (cropleft/2);
+               offset_v += (croptop/2) * (front_buffer->video.pitch/2) + (cropleft/2);
                break;
 
           default:
                break;
      }
 
+     offset = front_buffer->video.offset;
      offset += croptop * front_buffer->video.pitch + cropleft * DFB_BYTES_PER_PIXEL( surface->format );
-
-     cropleft /= 2;
-     croptop /= 2;
-
-     offset_u += croptop * front_buffer->video.pitch/2 + cropleft * DFB_BYTES_PER_PIXEL( surface->format );
-     offset_v += croptop * front_buffer->video.pitch/2 + cropleft * DFB_BYTES_PER_PIXEL( surface->format );
 
      mov->regs.scaler_BUF0_OFFSET     = offset;
      mov->regs.scaler_BUF0_OFFSET_U   = offset_u;
