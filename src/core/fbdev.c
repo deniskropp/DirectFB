@@ -317,6 +317,8 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
 
      var = display->current_var;
 
+     var.xoffset = 0;
+     var.yoffset = 0;
      var.bits_per_pixel = mode->bpp;
 
      /*
@@ -397,6 +399,10 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
                ioctl( display->fd, FBIOPUT_VSCREENINFO, &display->current_var );
                return DFB_UNSUPPORTED;
           }
+
+          /* if mode->bpp contains 16 bit we won't find the mode again! */
+          if (mode->format == DSPF_RGB15)
+               mode->bpp = 15;
 
           surface->format = mode->format;
 
