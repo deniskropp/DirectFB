@@ -226,7 +226,7 @@ DFBInputEvent keyboard_handle_code(char code)
           DFBInputEvent event;
                
           event.type = keydown ? DIET_KEYPRESS : DIET_KEYRELEASE;
-          event.flags = DIEF_KEYCODE;
+          event.flags = DIEF_KEYCODE | DIEF_MODIFIERS;
           
           event.keycode = keyboard_translate( entry.kb_value ); 
 
