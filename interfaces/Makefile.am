@@ -29,6 +29,11 @@ idirectfbvideoprovider_SCRIPTS = libidirectfbvideoprovider_libmpeg3.so
 
 LIBMPEG3_INCLUDES = -I$(LIBMPEG3_DIR)
 
+else
+
+clean-local:
+all-local:
+
 endif
 
 EXTRA_DIST = idirectfbvideoprovider_libmpeg3.c
