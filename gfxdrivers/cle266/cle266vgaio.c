@@ -9,29 +9,42 @@
 */
 
 /* Standalone CLE266 IO-registers mmap driver.
- * Tested on a Linux 2.4.20 and 2.6.0-test3. Needs devfs to run.
+ * Tested on Linux 2.4.20 and 2.6.0-test3.
  * 
  * Compilation:
  *
  * make -f cle266vgaio.mk v24
+ * make -f cle266vgaio.mk v24-static
  * make -f cle266vgaio.mk v26
+ * make -f cle266vgaio.mk v26-static
  *
- * Note that the 2.6 version allocates a major device number, 245.
- * This is for experimental use only, but can possibly conflict with
- * something else if you have other experimental drivers installed.
- * If you need to change it, edit VIADEV_MAJOR below.
+ * Explanation
  *
- * Usage:
+ * v24 compiles for a 2.4 kernel, relying on devfs.
+ * v24-static compiles for a 2.4 kernel, without relying on devfs.
+ * v26 compiles for a 2.6 kernel, relying on devfs.
+ * v26-static compiles for a 2.6 kernel, without relying on devfs.
  *
- * Install the module, open the file /dev/cle266vgaio,
- * and mmap the area you want access to.
- * Only tested mapping 0 - 16Mbyte area yet.
+ * If in doubt use v24-static or v26-static.
+ * Devfs is not a standard kernel feature.
  *
- * Help wanted:
+ * If you select v24-static or v26 static, you must create a
+ * device node in your /dev directory, by executing the following
+ * command: (If you have devfs and select v24 or v26, you should
+ * not do this.)
  *
- * Someone with more knowledge of the virtual memory system
- * and the PCI subsystem should take a look at the code in
- * init_module() and viadev_mmap().
+ * mknod -m 666 /dev/cle266vgaio c 245 0
+ * (You need to have root privileges)
+ *
+ * IMPORTANT: If you forget to do this, DirectFB programs will
+ * run, but won't be accelerated, even if you install the module
+ * properly.
+ *
+ * All but the v24 option allocates a major device number, 245.
+ * This number is for experimental use only, and can possibly conflict
+ * with something else if you have other experimental drivers installed.
+ * If you need to change it, edit VIADEV_MAJOR below and adjust your
+ * mknod command if you use it.
  */
 
 #include <linux/init.h>
@@ -44,6 +57,10 @@
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
 #include <linux/vermagic.h>
 #endif
+
+// Module configuration ------------------------------------------------------
+
+#define VIADEV_MAJOR 245
 
 // VIA register declarations -------------------------------------------------
 
@@ -63,22 +80,20 @@
 
 #define MODULE_NAME "cle266vgaio"
 #define _PCI_DEVICE_ID_VIA_CLE3122  0x3122
-#define VIADEV_MAJOR 245    /* 2.6 kernel only. */
 #define MY_ASSERT(test, msg, exitcode) if (!test) { printk(msg); return exitcode; }
 
 
 struct via_devinfo
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#ifndef CLE266_STATIC_DEVNUM
     devfs_handle_t devhnd;
-//    struct file_operations fops;
+#endif
 #endif
     struct pci_dev* pcidev;     // PCI device (see linux/pci.h)
     u32 io_base_phy;            // Physical IO register address
     u8* iobase;                 // Kernel-mapped IO register address
     u32 size;                   // IO memory size in bytes
-
-    int busy;
 };
 
 // ----------------------------------------------------------------------------
@@ -121,12 +136,6 @@ static void via_enable_mmio(void)
     //outb(inb(0x3c5) | 0x68, 0x3c5);
 }
 
-static void via_disable_mmio(void)
-{
-    outb(0x1a, 0x3c4);
-    outb(inb(0x3c5) & 0x97, 0x3c5);
-}
-
 static int via_wait_idle(void)
 {
     int loop = 0;
@@ -146,17 +155,11 @@ static int via_wait_idle(void)
 
 static int viadev_open(struct inode *inode, struct file *filp)
 {
-// we need to open the device more than once for multi application core
-/*
-    if (di.busy) return -EBUSY;
-    di.busy = 1
-*/
     return 0; 
 }
         
 static int viadev_release(struct inode *inode, struct file *filp)
 {
-    di.busy = 0;
     return 0;
 }   
 
@@ -215,31 +218,43 @@ static int __init viadev_init(void)
     di.iobase = ioremap(di.io_base_phy, di.size);
     MY_ASSERT(di.iobase, MODULE_NAME ": Memory mapping failed (2).", -EBUSY);
 
-    di.busy = 0;
-
     // TODO: Register PCI device driver. Or not. We don't really need to.
 
     // Register a character device. Uses devfs
+
+#if CLE266_STATIC_DEVNUM
+    int result;
+    result = register_chrdev(VIADEV_MAJOR, MODULE_NAME, &viadev_fops);
+    MY_ASSERT(!result, MODULE_NAME " Unable to register driver\n", result);
+#else
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
     int result;
     result = register_chrdev(VIADEV_MAJOR, MODULE_NAME, &viadev_fops);
     MY_ASSERT(!result, MODULE_NAME " Unable to register driver\n", result);
-    devfs_mk_cdev(MKDEV(VIADEV_MAJOR, 0), S_IFCHR | S_IRUSR | S_IWUSR, MODULE_NAME);
+	devfs_mk_cdev(MKDEV(VIADEV_MAJOR, 0), S_IFCHR | S_IRUSR | S_IWUSR, MODULE_NAME);
 #else
     di.devhnd = devfs_register(NULL, MODULE_NAME, DEVFS_FL_AUTO_DEVNUM,
         0, 0, S_IFCHR | S_IRUGO | S_IWUGO, &viadev_fops, &di);
     MY_ASSERT(di.devhnd, MODULE_NAME ": Could not register a /dev entry.", -EAGAIN);
 #endif
 
-printk(MODULE_NAME " installed. Hardware rev %d detected.\n", via_get_revision());
-    via_enable_mmio();
+#endif // CLE266_STATIC_DEVNUM
+
+	printk(MODULE_NAME " installed. Hardware rev %d detected.\n",
+		via_get_revision());
+
+	via_enable_mmio();
     
     return 0;
 }
 
 static void __exit viadev_exit(void)
 {
+
+#if CLE266_STATIC_DEVNUM
+	unregister_chrdev(VIADEV_MAJOR, MODULE_NAME);
+#else
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
     unregister_chrdev(VIADEV_MAJOR, MODULE_NAME);
@@ -248,8 +263,9 @@ static void __exit viadev_exit(void)
     devfs_unregister(di.devhnd);
 #endif
 
+#endif // CLE266_STATIC_DEVNUM
+
     via_wait_idle();
-    via_disable_mmio();
     iounmap(di.iobase);
     release_mem_region(di.io_base_phy, di.size);
 
