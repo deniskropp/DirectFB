@@ -142,7 +142,8 @@ void dfb_input_dispatch( InputDevice *device, DFBInputEvent *event );
 void dfb_input_device_description( const InputDevice         *device,
                                    DFBInputDeviceDescription *desc );
 
-DFBInputDeviceID dfb_input_device_id( const InputDevice *device );
+DFBInputDeviceID  dfb_input_device_id( const InputDevice *device );
+InputDevice      *dfb_input_device_at( DFBInputDeviceID   id );
 
 DFBResult dfb_input_device_get_keymap_entry( InputDevice               *device,
                                              int                        keycode,

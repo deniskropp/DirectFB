@@ -53,10 +53,10 @@
 
 
 typedef struct {
-     FusionLink      link;
+     FusionLink       link;
 
-     InputDevice    *device;
-     GlobalReaction  reaction;
+     DFBInputDeviceID id;
+     GlobalReaction   reaction;
 } StackDevice;
 
 typedef struct {
@@ -173,8 +173,10 @@ window_destructor( FusionObject *object, bool zombie )
      DEBUGMSG("DirectFB/core/windows: destroying %p (%dx%d)%s\n", window,
               window->width, window->height, zombie ? " (ZOMBIE)" : "");
 
-     dfb_window_deinit( window );
-     dfb_window_destroy( window, false );
+     if (window->stack) {
+          dfb_window_deinit( window );
+          dfb_window_destroy( window, false );
+     }
 
      fusion_object_destroy( object );
 }
@@ -221,10 +223,13 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
      }
 
      /* Create the pool of windows. */
-     stack->pool = fusion_object_pool_create( "Window Pool",
-                                              sizeof(CoreWindow),
-                                              sizeof(DFBWindowEvent),
-                                              window_destructor );
+     if (stack->layer_id == DLID_PRIMARY)
+          stack->pool = fusion_object_pool_create( "Window Pool",
+                                                   sizeof(CoreWindow),
+                                                   sizeof(DFBWindowEvent),
+                                                   window_destructor );
+     else
+          stack->pool = dfb_layer_window_stack( dfb_layer_at(0) )->pool;
 
      /* Initialize the modify/update lock */
      skirmish_init( &stack->lock );
@@ -261,7 +266,8 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           FusionLink  *next   = l->next;
           StackDevice *device = (StackDevice*) l;
           
-          dfb_input_detach_global( device->device, &device->reaction );
+          dfb_input_detach_global( dfb_input_device_at( device->id ),
+                                   &device->reaction );
 
           shfree( device );
 
@@ -277,12 +283,19 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           l = next;
      }
 
-     fusion_object_pool_destroy( stack->pool );
+     if (stack->layer_id == DLID_PRIMARY)
+          fusion_object_pool_destroy( stack->pool );
 
      skirmish_destroy( &stack->lock );
 
-     if (stack->windows)
+     if (stack->windows) {
+          int i;
+
+          for (i=0; i<stack->num_windows; i++)
+               stack->windows[i]->stack = NULL;
+          
           shfree( stack->windows );
+     }
 
      shfree( stack );
 }
@@ -1254,7 +1267,7 @@ stack_attach_devices( InputDevice *device,
           return DFENUM_CANCEL;
      }
 
-     dev->device = device;
+     dev->id = dfb_input_device_id( device );
 
      fusion_list_prepend( &stack->devices, &dev->link );
 

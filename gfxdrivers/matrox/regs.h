@@ -348,7 +348,10 @@
 
 /* DAC registers */
 
-#define XMISCCTRL      0x1e
+#define XMISCCTRL      0x1E
+
+#define XGENIOCTRL     0x2A
+#define XGENIODATA     0x2B
 
 #define XKEYOPMODE     0x51
 
@@ -360,3 +363,6 @@
 #define XCOLKEY0GREEN  0x56
 #define XCOLKEY0BLUE   0x57
 
+#define XDISPCTRL      0x8A
+
+#define XPWRCTRL       0xA0

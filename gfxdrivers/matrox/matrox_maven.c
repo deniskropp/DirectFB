@@ -24,11 +24,18 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
+
+#include <misc/util.h>
+
+#include "matrox.h"
+#include "regs.h"
+#include "mmio.h"
 #include "matrox_maven.h"
 
 #ifndef min
@@ -40,180 +47,94 @@
 
 #define MAVEN_I2CID	(0x1B)
 
-static int maven_set_reg( int fd, __u8 reg, __u8 val )
+static void
+maven_write_byte( MatroxMavenData  *mav,
+                  MatroxDriverData *mdrv,
+                  __u8              reg,
+                  __u8              val )
 {
-     __s32 err;
+     if (mav->g450) {
+          volatile __u8 *mmio = mdrv->mmio_base;
 
-     err = i2c_smbus_write_byte_data( fd, reg, val );
-     if (err)
-          fprintf( stderr, "maven_set_reg(0x%X) failed\n", reg );
-     return err;
+          mga_out_dac( mmio, 0x87, reg );
+          mga_out_dac( mmio, 0x88, val );
+     } else
+          i2c_smbus_write_byte_data( mdrv->maven_fd, reg, val );
 }
 
-static int maven_set_reg_pair( int fd, __u8 reg, __u16 val )
+static void
+maven_write_word( MatroxMavenData  *mav,
+                  MatroxDriverData *mdrv,
+                  __u8              reg,
+                  __u16             val )
 {
-     __s32 err;
+     if (mav->g450) {
+          volatile __u8 *mmio = mdrv->mmio_base;
 
-     err = i2c_smbus_write_word_data( fd, reg, val );
-     if (err)
-          fprintf( stderr, "maven_set_reg_pair(0x%X) failed\n", reg );
-     return err;
+          mga_out_dac( mmio, 0x87, reg );
+          mga_out_dac( mmio, 0x88, val );
+          mga_out_dac( mmio, 0x87, reg + 1 );
+          mga_out_dac( mmio, 0x88, val >> 8);
+     } else
+          i2c_smbus_write_word_data( mdrv->maven_fd, reg, val );
 }
 
-#define LR(x) maven_set_reg( fd, (x), m->regs[(x)] )
-#define LRP(x) maven_set_reg_pair( fd, (x), m->regs[(x)] | (m->regs[(x)+1] << 8) )
-
-void maven_set_mode( struct maven_data *md,
-                     int mode )
+void
+maven_disable( MatroxMavenData  *mav,
+               MatroxDriverData *mdrv )
 {
-     md->mode = mode;
+     maven_write_byte( mav, mdrv, 0x3E, 0x01 );
+
+     if (mav->g450) {
+          maven_write_byte( mav, mdrv, 0x80, 0x00 );
+          return;
+     }
+
+     maven_write_byte( mav, mdrv, 0x82, 0x80 );
+     maven_write_byte( mav, mdrv, 0x8C, 0x00 );
+     maven_write_byte( mav, mdrv, 0x94, 0xA2 );
+     maven_write_word( mav, mdrv, 0x8E, 0x1EFF );
+     maven_write_byte( mav, mdrv, 0xC6, 0x01 );
 }
 
-void maven_compute( struct maven_data *md,
-                    struct mavenregs *data )
+void
+maven_enable( MatroxMavenData  *mav,
+              MatroxDriverData *mdrv )
 {
-     static struct mavenregs palregs = { {
-          0x2A, 0x09, 0x8A, 0xCB,	/* 00: chroma subcarrier */
-          0x00,
-          0x00,	/* ? not written */
-          0x00,	/* modified by code (09 written...) */
-          0x00,	/* ? not written */
-          0x7E,	/* 08 */
-          0x3C,	/* 09 */
-          0x82,	/* 0A */
-          0x2E,	/* 0B */
-          0x21,	/* 0C */
-          0x00,	/* ? not written */
-          0x3F, 0x03, /* 0E-0F */
-          0x3F, 0x03, /* 10-11 */
-          0x1A,	/* 12 */
-          0x2A,	/* 13 */
-          0x1C, 0x3D, 0x14, /* 14-16 */
-          0x9C, 0x01, /* 17-18 */
-          0x00,	/* 19 */
-          0xFE,	/* 1A */
-          0x7E,	/* 1B */
-          0x60,	/* 1C */
-          0x05,	/* 1D */
-          0xC4, 0x01, /* 1E-1F */
-          0x95,	/* 20 */
-          0x07,	/* 21 */
-          0x95,	/* 22 */
-          0x00,	/* 23 */
-          0x00,	/* 24 */
-          0x00,	/* 25 */
-          0x08,	/* 26 */
-          0x04,	/* 27 */
-          0x00,	/* 28 */
-          0x1A,	/* 29 */
-          0x55, 0x01, /* 2A-2B */
-          0x20,	/* 2C */
-          0x07, 0x7E, /* 2D-2E */
-          0x02, 0x54, /* 2F-30 */
-          0xB4, 0x00, /* 31-32 */
-          0x14,	/* 33 */
-          0x49,	/* 34 */
-          0x00,	/* 35 written multiple times */
-          0x00,	/* 36 not written */
-          0xA3,	/* 37 */
-          0xC8,	/* 38 */
-          0x22,	/* 39 */
-          0x02,	/* 3A */
-          0x22,	/* 3B */
-          0x3F, 0x03, /* 3C-3D */
-          0x00,	/* 3E written multiple times */
-          0x00,	/* 3F not written */
-     }, MODE_PAL };
-     static struct mavenregs ntscregs = { {
-          0x21, 0xF0, 0x7C, 0x1F,	/* 00: chroma subcarrier */
-          0x00,
-          0x00,	/* ? not written */
-          0x00,	/* modified by code (09 written...) */
-          0x00,	/* ? not written */
-          0x7E,	/* 08 */
-          0x43,	/* 09 */
-          0x7E,	/* 0A */
-          0x3D,	/* 0B */
-          0x00,	/* 0C */
-          0x00,	/* ? not written */
-          0x46, 0x03, /* 0E-0F */
-          0x3C, 0x02, /* 10-11 */
-          0x17,	/* 12 */
-          0x21,	/* 13 */
-          0x1B, 0x1B, 0x24, /* 14-16 */
-          0x83, 0x01, /* 17-18 */
-          0x00,	/* 19 */
-          0x0F,	/* 1A */
-          0x0F,	/* 1B */
-          0x60,	/* 1C */
-          0x05,	/* 1D */
-          0xC4, 0x02, /* 1E-1F */
-          0x8E,	/* 20 */
-          0x04,	/* 21 */
-          0x8E,	/* 22 */
-          0x01,	/* 23 */
-          0x02,	/* 24 */
-          0x00,	/* 25 */
-          0x0A,	/* 26 */
-          0x05,	/* 27 */
-          0x00,	/* 28 */
-          0x10,	/* 29 */
-          0xFF, 0x03, /* 2A-2B */
-          0x18,	/* 2C */
-          0x0F, 0x78, /* 2D-2E */
-          0x00, 0x00, /* 2F-30 */
-          0xB4, 0x00, /* 31-32 */
-          0x14,	/* 33 */
-          0x02,	/* 34 */
-          0x00,	/* 35 written multiple times */
-          0x00,	/* 36 not written */
-          0xA3,	/* 37 */
-          0xC8,	/* 38 */
-          0x15,	/* 39 */
-          0x05,	/* 3A */
-          0x15,	/* 3B */
-          0x3C, 0x00, /* 3C-3D */
-          0x00,	/* 3E written multiple times */
-          0x00,	/* never written */
-     }, MODE_NTSC };
-
-     if (md->mode & MODE_PAL)
-          *data = palregs;
+     if (mav->g450)
+          maven_write_byte( mav, mdrv, 0x80,
+                            dfb_config->matrox_ntsc ? 0x03 : 0x01 );
      else
-          *data = ntscregs;
+          maven_write_byte( mav, mdrv, 0x82, 0x20 );
 
-     /* gamma correction registers */
-     data->regs[0x83] = 0x00;
-     data->regs[0x84] = 0x00;
-     data->regs[0x85] = 0x00;
-     data->regs[0x86] = 0x1F;
-     data->regs[0x87] = 0x10;
-     data->regs[0x88] = 0x10;
-     data->regs[0x89] = 0x10;
-     data->regs[0x8A] = 0x64;	/* 100 */
-     data->regs[0x8B] = 0xC8;	/* 200 */
+     maven_write_byte( mav, mdrv, 0x3E, 0x00 );
 }
 
-void maven_program( struct maven_data* md,
-                    const struct mavenregs* m )
+void
+maven_sync( MatroxMavenData  *mav,
+            MatroxDriverData *mdrv )
 {
-     int fd = md->fd;
+     if (mav->g450)
+          return;
 
-     maven_set_reg( fd, 0x3E, 0x01 );
+     maven_write_byte( mav, mdrv, 0xD4, 0x01 );
+     maven_write_byte( mav, mdrv, 0xD4, 0x00 );
+}
 
-     maven_set_reg( fd, 0x8C, 0x00 );
-     maven_set_reg( fd, 0x94, 0xA2 );
+#define LR(x)  maven_write_byte( mav, mdrv, (x), mav->regs[(x)] )
+#define LRP(x) maven_write_word( mav, mdrv, (x), mav->regs[(x)] | (mav->regs[(x)+1] << 8) )
 
-     maven_set_reg_pair( fd, 0x8E, 0x1EFF );
-     maven_set_reg( fd, 0xC6, 0x01 );
-
-     maven_set_reg( fd, 0x06, 0x09 );
-
-     /* chroma subcarrier */
-     LR(0x00); LR(0x01); LR(0x02); LR(0x03);
-
+void
+maven_set_regs( MatroxMavenData       *mav,
+                MatroxDriverData      *mdrv,
+                DFBDisplayLayerConfig *config,
+                DFBColorAdjustment    *adj )
+{
+     LR(0x00);
+     LR(0x01);
+     LR(0x02);
+     LR(0x03);
      LR(0x04);
-
      LR(0x2C);
      LR(0x08);
      LR(0x0A);
@@ -223,10 +144,7 @@ void maven_program( struct maven_data* md,
      LRP(0x17);
      LR(0x0B);
      LR(0x0C);
-     if (m->mode & MODE_PAL)
-          maven_set_reg( fd, 0x35, 0x10 );
-     else
-          maven_set_reg( fd, 0x35, 0x0F );
+     LR(0x35);
      LRP(0x10);
      LRP(0x0E);
      LRP(0x1E);
@@ -258,182 +176,438 @@ void maven_program( struct maven_data* md,
      LR(0x27);
      LR(0x21);
      LRP(0x2A);
-     if (m->mode & MODE_PAL)
-          maven_set_reg( fd, 0x35, 0x1D );
-     else
-          maven_set_reg( fd, 0x35, 0x1C );
-
+     LR(0x35);
      LRP(0x3C);
      LR(0x37);
      LR(0x38);
 
-     maven_set_reg( fd, 0xB3, 0x01 );
+     if (mav->g450) {
+          maven_write_word( mav, mdrv, 0x82,
+                            dfb_config->matrox_ntsc ? 0x0014 : 0x0017 );
+          maven_write_word( mav, mdrv, 0x84, 0x0001 );
+     } else {
+          maven_write_byte( mav, mdrv, 0xB3, 0x01 );
+          maven_write_byte( mav, mdrv, 0x82, 0xA0 );
+          maven_write_byte( mav, mdrv, 0xD3, 0x01 );
+          maven_write_byte( mav, mdrv, 0x8C, 0x10 );
+          maven_write_byte( mav, mdrv, 0x94, 0xA2 );
+          maven_write_byte( mav, mdrv, 0x8D, 0x03);
+          maven_write_byte( mav, mdrv, 0xB9, 0x78);
+          maven_write_byte( mav, mdrv, 0xBF, 0x02);
 
-     maven_set_reg( fd, 0x82, 0xA0 );
-
-     maven_set_reg( fd, 0xD3, 0x01 );
-     maven_set_reg( fd, 0x8C, 0x10 );
-
-     maven_set_reg( fd, 0x94, 0xA2 );
-
-     LR(0x33);
-     maven_set_reg(fd, 0x8D, 0x03);
-     maven_set_reg(fd, 0xB9, 0x78);
-     maven_set_reg(fd, 0xBF, 0x02);
-
-     maven_set_deflicker( md, 0 );
-     if (m->mode & MODE_PAL)
-          maven_set_saturation( md, 149 );
-     else
-          maven_set_saturation( md, 142 );
-     maven_set_hue( md, 0 );
-     LRP(0x10);
-     maven_set_bwlevel( md, 255, 255 );
-
-     /* load gamma correction stuff */
-     LR(0x83);
-     LR(0x84);
-     LR(0x85);
-     LR(0x86);
-     LR(0x87);
-     LR(0x88);
-     LR(0x89);
-     LR(0x8A);
-     LR(0x8B);
-
-     LR(0x33);
-     LR(0x19);
-     LR(0x12);
-     LR(0x3B);
-     LR(0x13);
-     LR(0x39);
-     LR(0x1D);
-     LR(0x3A);
-     LR(0x24);
-     LR(0x14);
-     LR(0x15);
-     LR(0x16);
-     LRP(0x2D);
-     LRP(0x2F);
-     LR(0x1A);
-     LR(0x1B);
-     LR(0x1C);
-     LR(0x23);
-     LR(0x26);
-     LR(0x28);
-     LR(0x27);
-     LR(0x21);
-     LRP(0x2A);
-     if (m->mode & MODE_PAL)
-          maven_set_reg( fd, 0x35, 0x1D );
-     else
-          maven_set_reg( fd, 0x35, 0x1C );
-     LRP(0x3C);
-     LR(0x37);
-     LR(0x38);
-
-     maven_set_reg( fd, 0xB0, 0x80 );
-
-     maven_set_reg( fd, 0x82, 0x20 );
-     maven_set_reg( fd, 0x3E, 0x00 );
-
-     maven_set_reg( md->fd, 0xD4, 0x01 );
-     maven_set_reg( md->fd, 0xD4, 0x00 );
-}
-
-void maven_set_deflicker( struct maven_data *md,
-                          int mode )
-{
-     __u8 val;
-
-     switch (mode) {
-     case 1:
-          val = 0xB1;
-          break;
-     case 2:
-          val = 0xA2;
-          break;
-     default:
-          val = 0x00;
+          /*  deflicker: 0x00, 0xB1, 0xA2 */
+          maven_write_byte( mav, mdrv, 0x93,
+                            config->flags & DLOP_FLICKER_FILTERING ? 0xA2 : 0x00 );
      }
-     maven_set_reg( md->fd, 0x93, val );
+
+     maven_set_saturation( mav, mdrv, adj->saturation >> 8 );
+     maven_set_hue( mav, mdrv, adj->hue >> 8 );
+     maven_set_bwlevel( mav, mdrv, adj->brightness >> 8,
+                        adj->contrast >> 8 );
+
+     if (!mav->g450) {
+          LR(0x83);
+          LR(0x84);
+          LR(0x85);
+          LR(0x86);
+          LR(0x87);
+          LR(0x88);
+          LR(0x89);
+          LR(0x8A);
+          LR(0x8B);
+
+          maven_write_byte( mav, mdrv, 0xB0, 0x80 );
+     }
 }
 
-void maven_set_hue( struct maven_data *md,
-                    int hue )
+void
+maven_set_hue( MatroxMavenData  *mav,
+               MatroxDriverData *mdrv,
+               __u8              hue )
 {
-     maven_set_reg( md->fd, 0x25, hue );
+     maven_write_byte( mav, mdrv, 0x25, hue );
 }
 
-void maven_set_saturation( struct maven_data *md,
-                           int saturation )
+void
+maven_set_saturation( MatroxMavenData  *mav,
+                      MatroxDriverData *mdrv,
+                      __u8              saturation )
 {
-     maven_set_reg( md->fd, 0x20, saturation );
-     maven_set_reg( md->fd, 0x22, saturation );
+     maven_write_byte( mav, mdrv, 0x20, saturation );
+     maven_write_byte( mav, mdrv, 0x22, saturation );
 }
 
-void maven_set_bwlevel( struct maven_data *md,
-                        int brightness,
-                        int contrast )
+void
+maven_set_bwlevel( MatroxMavenData  *mav,
+                   MatroxDriverData *mdrv,
+                   __u8              brightness,
+                   __u8              contrast )
 {
-     int bl, wl;
-     int wlmax = 786;
-     int blmin = (md->mode == MODE_NTSC) ? 242 : 255;
-     int range = (wlmax - blmin) / 2;
+     int b, c, bl, wl, wlmax, blmin, range;
+     bool ntsc = dfb_config->matrox_ntsc;
 
-     /* convert values to proper range */
-     brightness = brightness * range / 255 + blmin;
-     contrast = contrast * range / 255;
+     if (mav->g450) {
+          wlmax = ntsc ? 869 : 881;
+          blmin = ntsc ? 200 : 224;
+     } else {
+          wlmax = 786;
+          blmin = ntsc ? 242 : 255;
+     }
+     range = wlmax - blmin - 128;
 
-     /* calculate levels */
-     bl = max( brightness - contrast, blmin );
-     wl = min( brightness + contrast, wlmax );
+     b = brightness * range / 255 + blmin;
+     c = contrast * range / 2 / 255 + 64;
 
-     /* Convert to maven 8+2 bits format */
-     bl = ((bl << 8) & 0x0300) | ((bl >> 2) & 0x00FF);
-     wl = ((wl << 8) & 0x0300) | ((wl >> 2) & 0x00FF);
+     bl = max( b - c, blmin );
+     wl = min( b + c, wlmax );
 
-     /* Write regs */
-     maven_set_reg_pair( md->fd, 0x0E, bl );
-     maven_set_reg_pair( md->fd, 0x1E, wl );
+     blmin = ((blmin << 8) & 0x0300) | ((blmin >> 2) & 0x00FF);
+     bl    = ((bl    << 8) & 0x0300) | ((bl    >> 2) & 0x00FF);
+     wl    = ((wl    << 8) & 0x0300) | ((wl    >> 2) & 0x00FF);
+
+     maven_write_word( mav, mdrv, 0x10, blmin );
+     maven_write_word( mav, mdrv, 0x0E, bl );
+     maven_write_word( mav, mdrv, 0x1E, wl );
 }
 
-int maven_open( struct maven_data *md )
+DFBResult
+maven_open( MatroxMavenData  *mav,
+            MatroxDriverData *mdrv )
 {
-     char dev[16] = "/dev/";
-     char line[256];
+     if (mav->g450)
+          return DFB_OK;
+
+     if (mdrv->maven_fd != -1)
+          BUG( "DirectFB/Matrox/Maven: Device already open!\n" );
+
+     if ((mdrv->maven_fd = open( mav->dev, O_RDWR )) < 0) {
+          PERRORMSG( "DirectFB/Matrox/Maven: Error opening `%s'!\n",
+                     mav->dev );
+          mdrv->maven_fd = -1;
+          return errno2dfb( errno );
+     }
+
+     if (ioctl( mdrv->maven_fd, I2C_SLAVE, MAVEN_I2CID ) < 0) {
+          PERRORMSG( "DirectFB/Matrox/Maven: Error controlling `%s'!\n",
+                     mav->dev );
+          close( mdrv->maven_fd );
+          mdrv->maven_fd = -1;
+          return errno2dfb( errno );
+     }
+
+     return DFB_OK;
+}
+
+void
+maven_close( MatroxMavenData  *mav,
+             MatroxDriverData *mdrv )
+{
+     if (mav->g450)
+          return;
+
+     if (mdrv->maven_fd == -1)
+          BUG( "DirectFB/Matrox/Maven: Device not open!\n" );
+
+     close( mdrv->maven_fd );
+     mdrv->maven_fd = -1;
+}
+
+DFBResult maven_init( MatroxMavenData  *mav,
+                      MatroxDriverData *mdrv )
+{
+     char  line[512];
+     int   fd, found;
      FILE *file;
-     int fd;
 
-     /* Locate maven /dev/i2c entry */
-     file = fopen( "/proc/bus/i2c", "r" );
-     if (!file)
-          return -1;
-     while (fgets( line, 256, file )) {
-          if (strstr( line, "MAVEN" )) {
-               strtok( line, " \t\n" );
-               strncat( dev, line, 10 );
-               break;
+     /* Determine chip type (G400 or G450/G550) */
+     {
+          unsigned int devfn, devid, rev;
+
+          found = 0;
+
+          file = fopen( "/proc/bus/pci/devices", "r" );
+          if (!file) {
+               PERRORMSG( "DirectFB/Matrox/Maven: "
+                          "Error opening `/proc/bus/pci/devices'!\n" );
+               return errno2dfb( errno );
+          }
+          while (fgets( line, 512, file )) {
+               sscanf( line,
+                       "%x %x %*x %*x %*x %*x"
+                       "%*x %*x %*x %*x %*x"
+                       "%*x %*x %*x %*x %*x"
+                       "%*x",
+                       &devfn, &devid );
+
+               /* vendor */
+               if ((devid >> 16) != 0x102B)
+                    continue;
+
+               /* device */
+               if ((devid & 0xFFFF) == 0x2527) {
+                    /* G550 */
+                    mav->g450 = 1;
+                    found = 1;
+                    break;
+               } else if ((devid & 0xFFFF) == 0x0525) {
+                    /* G400 or G450 -> check revision */
+                    snprintf( line, 512,
+                              "/proc/bus/pci/%02x/%02x.%x",
+                              devfn >> 8,
+                              (devfn >> 3) & 0x1F,
+                              devfn & 0x07 );
+
+                    fd = open( line, O_RDONLY );
+                    if (fd < 0)
+                         continue;
+
+                    if (lseek( fd, 0x08, SEEK_SET ) != 0x08) {
+                         close( fd );
+                         continue;
+                    }
+                    if (read( fd, &rev, 1 ) != 1) {
+                         close( fd );
+                         continue;
+                    }
+                    close( fd );
+
+                    if ((rev & 0xFF) >= 0x80)
+                         mav->g450 = 1;
+                    else
+                         mav->g450 = 0;
+
+                    found = 1;
+                    break;
+               }
+          }
+          fclose( file );
+
+          if (!found) {
+               ERRORMSG( "DirectFB/Matrox/Maven: "
+                         "Can't determine if chip is G400 or G450/G550!\n" );
+               return DFB_UNSUPPORTED;
           }
      }
-     fclose( file );
 
-     if ((fd = open( dev, O_RDWR )) < 0) {
-          return -1;
+     /* Locate G400 maven /dev/i2c file */
+     if (!mav->g450) {
+          found = 0;
+
+          file = fopen( "/proc/bus/i2c", "r" );
+          if (!file) {
+               PERRORMSG( "DirectFB/Matrox/Maven: "
+                          "Error opening `/proc/bus/i2c'!\n" );
+               return errno2dfb( errno );
+          }
+          while (fgets( line, 512, file )) {
+               if (strstr( line, "MAVEN" )) {
+                    char *p = line;
+                    while (!isspace( *p ))
+                         p++;
+                    *p = '\0';
+                    strncpy( mav->dev, "/dev/", 6 );
+                    strncat( mav->dev, line, 250 );
+                    found = 1;
+                    break;
+               }
+          }
+          fclose( file );
+
+          if (!found) {
+               ERRORMSG( "DirectFB/Matrox/Maven: "
+                         "Can't find MAVEN in /proc/bus/i2c!\n" );
+               return DFB_UNSUPPORTED;
+          }
+
+          /* Try to use it */
+          if ((fd = open( mav->dev, O_RDWR )) < 0) {
+               PERRORMSG( "DirectFB/Matrox/Maven: Error opening `%s'!\n",
+                          mav->dev );
+               return errno2dfb( errno );
+          }
+
+          if (ioctl( fd, I2C_SLAVE, MAVEN_I2CID ) < 0) {
+               PERRORMSG( "DirectFB/Matrox/Maven: Error controlling `%s'!\n",
+                          mav->dev );
+               close( fd );
+               return errno2dfb( errno );
+          }
+          close( fd );
      }
 
-     if (ioctl( fd, I2C_SLAVE, MAVEN_I2CID ) < 0) {
-          close(fd);
-          return -1;
+     /* Maven registers */
+     {
+          const __u8 ntscregs[64] = {
+               0x21, 0xF0, 0x7C, 0x1F, /* 00-03 */
+               0x00, /* 04 */
+               0x00,
+               0x00,
+               0x00,
+               0x7E, /* 08 */
+               0x43, /* 09 */
+               0x7E, /* 0A */
+               0x3D, /* 0B */
+               0x00, /* 0C */
+               0x00,
+               0x46, 0x03, /* 0E-0F */
+               0x3C, 0x02, /* 10-11 */
+               0x17, /* 12 */
+               0x21, /* 13 */
+               0x1B, /* 14 */
+               0x1B, /* 15 */
+               0x24, /* 16 */
+               0x83, 0x01, /* 17-18 */
+               0x00, /* 19 */
+               0x0F, /* 1A */
+               0x0F, /* 1B */
+               0x60, /* 1C */
+               0x05, /* 1D */
+               0xC4, 0x02, /* 1E-1F */
+               0x8E, /* 20 */
+               0x04, /* 21 */
+               0x8E, /* 22 */
+               0x01, /* 23 */
+               0x02, /* 24 */
+               0x00, /* 25 */
+               0x0A, /* 26 */
+               0x05, /* 27 */
+               0x00, /* 28 */
+               0x10, /* 29 */
+               0xFF, 0x03, /* 2A-2B */
+               0x18, /* 2C */
+               0x0F, 0x78, /* 2D-2E */
+               0x00, 0x00, /* 2F-30 */
+               0xB4, 0x00, /* 31-32 */
+               0x14, /* 33 */
+               0x02, /* 34 */
+               0x1C, /* 35 */
+               0x00,
+               0xA3, /* 37 */
+               0xC8, /* 38 */
+               0x15, /* 39 */
+               0x05, /* 3A */
+               0x15, /* 3B */
+               0x3C, 0x00, /* 3C-3D */
+               0x00, /* 3E */
+               0x00
+          };
+          const __u8 palregs[64] = {
+               0x2A, 0x09, 0x8A, 0xCB, /* 00-03 */
+               0x00, /* 04 */
+               0x00,
+               0x00,
+               0x00,
+               0x7E, /* 08 */
+               0x3C, /* 09 */
+               0x82, /* 0A */
+               0x2E, /* 0B */
+               0x21, /* 0C */
+               0x00,
+               0x3F, 0x03, /* 0E-0F */
+               0x3F, 0x03, /* 10-11 */
+               0x1A, /* 12 */
+               0x2A, /* 13 */
+               0x1C, /* 14 */
+               0x3D, /* 15 */
+               0x14, /* 16 */
+               0x9C, 0x01, /* 17-18 */
+               0x00, /* 19 */
+               0xFE, /* 1A */
+               0x7E, /* 1B */
+               0x60, /* 1C */
+               0x05, /* 1D */
+               0xC4, 0x01, /* 1E-1F */
+               0x95, /* 20 */
+               0x07, /* 21 */
+               0x95, /* 22 */
+               0x00, /* 23 */
+               0x00, /* 24 */
+               0x00, /* 25 */
+               0x08, /* 26 */
+               0x04, /* 27 */
+               0x00, /* 28 */
+               0x1A, /* 29 */
+               0x55, 0x01, /* 2A-2B */
+               0x20, /* 2C */
+               0x07, 0x7E, /* 2D-2E */
+               0x02, 0x54, /* 2F-30 */
+               0xB4, 0x00, /* 31-32 */
+               0x14, /* 33 */
+               0x49, /* 34 */
+               0x1D, /* 35 */
+               0x00,
+               0xA3, /* 37 */
+               0xC8, /* 38 */
+               0x22, /* 39 */
+               0x02, /* 3A */
+               0x22, /* 3B */
+               0x3F, 0x03, /* 3C-3D */
+               0x00, /* 3E */
+               0x00,
+          };
+
+          if (dfb_config->matrox_ntsc)
+               memcpy( mav->regs, ntscregs, 64 );
+          else
+               memcpy( mav->regs, palregs, 64 );
+
+          if (mav->g450) {
+               if (dfb_config->matrox_ntsc) {
+                    mav->regs[0x09] = 0x44;
+                    mav->regs[0x0A] = 0x76;
+                    mav->regs[0x0B] = 0x49;
+                    mav->regs[0x0C] = 0x00;
+                    mav->regs[0x0E] = 0x3E;
+                    mav->regs[0x0F] = 0x00;
+                    mav->regs[0x10] = 0x32;
+                    mav->regs[0x11] = 0x00;
+                    mav->regs[0x1E] = 0xD9;
+                    mav->regs[0x1F] = 0x01;
+                    mav->regs[0x20] = 0xAE;
+                    mav->regs[0x22] = 0xAE;
+                    mav->regs[0x29] = 0x11;
+                    mav->regs[0x2C] = 0x20;
+                    mav->regs[0x33] = 0x14;
+                    mav->regs[0x35] = 0x00;
+                    mav->regs[0x37] = 0xBD;
+                    mav->regs[0x38] = 0xDA;
+                    mav->regs[0x3C] = 0x42;
+                    mav->regs[0x3D] = 0x03;
+               } else {
+                    mav->regs[0x09] = 0x3A;
+                    mav->regs[0x0A] = 0x8A;
+                    mav->regs[0x0B] = 0x38;
+                    mav->regs[0x0C] = 0x28;
+                    mav->regs[0x0E] = 0x38;
+                    mav->regs[0x0F] = 0x00;
+                    mav->regs[0x10] = 0x38;
+                    mav->regs[0x11] = 0x00;
+                    mav->regs[0x1E] = 0xDB;
+                    mav->regs[0x1F] = 0x03;
+                    mav->regs[0x20] = 0xBB;
+                    mav->regs[0x22] = 0xBB;
+                    mav->regs[0x29] = 0x1A;
+                    mav->regs[0x2C] = 0x18;
+                    mav->regs[0x33] = 0x16;
+                    mav->regs[0x35] = 0x00;
+                    mav->regs[0x37] = 0xB9;
+                    mav->regs[0x38] = 0xDD;
+                    mav->regs[0x3C] = 0x46;
+                    mav->regs[0x3D] = 0x00;
+               }
+          } else {
+               /* gamma */
+               mav->regs[0x83] = 0x00;
+               mav->regs[0x84] = 0x00;
+               mav->regs[0x85] = 0x00;
+               mav->regs[0x86] = 0x1F;
+               mav->regs[0x87] = 0x10;
+               mav->regs[0x88] = 0x10;
+               mav->regs[0x89] = 0x10;
+               mav->regs[0x8A] = 0x64;
+               mav->regs[0x8B] = 0xC8;
+          }
      }
 
-     md->fd = fd;
-     md->mode = MODE_PAL;
-
-     return 0;
-}
-
-void maven_close( struct maven_data *md )
-{
-     close( md->fd );
+     return DFB_OK;
 }

@@ -56,8 +56,6 @@
 #include "matrox_maven.h"
 
 typedef struct {
-     DFBDisplayLayerConfig config;
-
      /* Stored registers */
      struct {
           /* CRTC2 sub picture */
@@ -70,7 +68,7 @@ typedef struct {
 } MatroxSpicLayerData;
 
 static void spic_set_buffer( MatroxDriverData *mdrv, MatroxSpicLayerData *mspic,
-                              DisplayLayer *layer );
+                             DisplayLayer *layer );
 
 #define SPIC_SUPPORTED_OPTIONS   (DLOP_DEINTERLACING)
 
@@ -83,13 +81,13 @@ spicLayerDataSize()
 }
      
 static DFBResult
-spicInitLayer( GraphicsDevice             *device,
-                DisplayLayer               *layer,
-                DisplayLayerInfo           *layer_info,
-                DFBDisplayLayerConfig      *default_config,
-                DFBColorAdjustment         *default_adj,
-                void                       *driver_data,
-                void                       *layer_data )
+spicInitLayer( GraphicsDevice        *device,
+               DisplayLayer          *layer,
+               DisplayLayerInfo      *layer_info,
+               DFBDisplayLayerConfig *default_config,
+               DFBColorAdjustment    *default_adj,
+               void                  *driver_data,
+               void                  *layer_data )
 {
      /* set capabilities and type */
      layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_DEINTERLACING;
@@ -105,7 +103,7 @@ spicInitLayer( GraphicsDevice             *device,
                                    DLCONF_OPTIONS;
 
      default_config->width       = 720;
-     default_config->height      = dfb_config->matrox_ntsc ? 486 : 576;
+     default_config->height      = dfb_config->matrox_ntsc ? 480 : 576;
      default_config->pixelformat = DSPF_LUT8;
      default_config->buffermode  = DLBM_FRONTONLY;
      default_config->options     = DLOP_NONE;
@@ -113,11 +111,10 @@ spicInitLayer( GraphicsDevice             *device,
      return DFB_OK;
 }
 
-
 static void
-spicOnOff( MatroxDriverData     *mdrv,
-            MatroxSpicLayerData *mspic,
-            int                   on )
+spicOnOff( MatroxDriverData    *mdrv,
+           MatroxSpicLayerData *mspic,
+           int                  on )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
@@ -166,7 +163,7 @@ spicTestConfiguration( DisplayLayer               *layer,
                        DFBDisplayLayerConfig      *config,
                        DFBDisplayLayerConfigFlags *failed )
 {
-     DFBDisplayLayerConfigFlags  fail = 0;
+     DFBDisplayLayerConfigFlags fail = 0;
 
      if (config->options & ~SPIC_SUPPORTED_OPTIONS)
           fail |= DLCONF_OPTIONS;
@@ -181,7 +178,7 @@ spicTestConfiguration( DisplayLayer               *layer,
      if (config->width != 720)
           fail |= DLCONF_WIDTH;
 
-     if (config->height != (dfb_config->matrox_ntsc ? 486 : 576))
+     if (config->height != (dfb_config->matrox_ntsc ? 480 : 576))
           fail |= DLCONF_HEIGHT;
 
      if (failed)
@@ -199,11 +196,8 @@ spicSetConfiguration( DisplayLayer          *layer,
                       void                  *layer_data,
                       DFBDisplayLayerConfig *config )
 {
-     MatroxDriverData    *mdrv   = (MatroxDriverData*) driver_data;
-     MatroxSpicLayerData *mspic   = (MatroxSpicLayerData*) layer_data;
-
-     /* remember configuration */
-     mspic->config = *config;
+     MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
+     MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
 
      spic_set_buffer( mdrv, mspic, layer );
 
@@ -241,7 +235,6 @@ spicSetPalette( DisplayLayer *layer,
 
      return DFB_OK;
 }
-
 
 static DFBResult
 spicSetOpacity( DisplayLayer *layer,

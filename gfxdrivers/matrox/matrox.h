@@ -52,6 +52,7 @@ typedef enum {
 
 typedef struct {
      int            accelerator;
+     int            maven_fd;
      volatile __u8 *mmio_base;
 } MatroxDriverData;
 

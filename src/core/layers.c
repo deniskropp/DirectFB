@@ -621,6 +621,7 @@ dfb_layer_enable( DisplayLayer *layer )
           CoreSurface *surface = shared->surface;
 
           dfb_surface_link( &shared->surface, surface );
+          dfb_surface_unref( surface );
           
           /* set default palette */
           if (surface->palette && layer->funcs->SetPalette)
@@ -1638,8 +1639,6 @@ deallocate_surface( DisplayLayer *layer )
      if (layer->funcs->DeallocateSurface)
           return layer->funcs->DeallocateSurface( layer, layer->driver_data,
                                                   layer->layer_data, surface );
-
-     dfb_surface_unref( surface );
      
      return DFB_OK;
 }

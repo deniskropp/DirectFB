@@ -424,6 +424,21 @@ dfb_input_device_id( const InputDevice *device )
      return device->shared->id;
 }
 
+InputDevice *
+dfb_input_device_at( DFBInputDeviceID id )
+{
+     InputDevice *d = inputdevices;
+
+     while (d) {
+          if (d->shared->id == id)
+               return d;
+
+          d = d->next;
+     }
+
+     return NULL;
+}
+
 void
 dfb_input_device_description( const InputDevice         *device,
                               DFBInputDeviceDescription *desc )

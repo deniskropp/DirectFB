@@ -24,54 +24,41 @@
 #ifndef __MATROX_MAVEN_H__
 #define __MATROX_MAVEN_H__
 
-struct maven_data {
-     int        fd;
-     int        mode;
-};
+typedef struct {
+     int  g450;
+     char dev[256];
+     __u8 regs[256];
+} MatroxMavenData;
 
-struct mavenregs {
-     __u8       regs[256];
-     int        mode;
-};
+DFBResult maven_init( MatroxMavenData  *mav,
+                      MatroxDriverData *mdrv );
 
-int maven_open( struct maven_data *md );
-void maven_close( struct maven_data *md );
+DFBResult maven_open( MatroxMavenData  *mav,
+                      MatroxDriverData *mdrv );
+void maven_close( MatroxMavenData  *mav,
+                  MatroxDriverData *mdrv );
 
-/*
- * Set TV standard
- * Must be called before maven_compute()
- */
-#define MODE_PAL	1
-#define MODE_NTSC	2
-void maven_set_mode( struct maven_data *md,
-                     int mode );
-/*
- * Compute initial register values
- * Must be called before maven_program()
- */
-void maven_compute( struct maven_data *md,
-                    struct mavenregs *m );
+void maven_enable( MatroxMavenData  *mav,
+                   MatroxDriverData *mdrv );
+void maven_disable( MatroxMavenData  *mav,
+                    MatroxDriverData *mdrv );
+void maven_sync( MatroxMavenData  *mav,
+                 MatroxDriverData *mdrv );
 
-/*
- * Program registers
- */
-void maven_program( struct maven_data *md,
-                    const struct mavenregs *m );
+void maven_set_regs( MatroxMavenData       *mav,
+                     MatroxDriverData      *mdrv,
+                     DFBDisplayLayerConfig *config,
+                     DFBColorAdjustment    *adj );
 
-/* The following functions can be called at any time */
-
-/* Set deflicker mode (0=disabled,1,2) */
-void maven_set_deflicker( struct maven_data *md,
-                          int mode );
-/* Set hue (0-255) */
-void maven_set_hue( struct maven_data *md,
-                    int hue );
-/* Set saturation (0-255) */
-void maven_set_saturation( struct maven_data *md,
-                           int saturation );
-/* Set brightness and contrast (0-255) */
-void maven_set_bwlevel( struct maven_data *md,
-                        int brightness,
-                        int contrast );
+void maven_set_hue( MatroxMavenData  *mav,
+                    MatroxDriverData *mdrv,
+                    __u8              hue );
+void maven_set_saturation( MatroxMavenData  *mav,
+                           MatroxDriverData *mdrv,
+                           __u8              saturation );
+void maven_set_bwlevel( MatroxMavenData  *mav,
+                        MatroxDriverData *mdrv,
+                        __u8              brightness,
+                        __u8              contrast );
 
 #endif

@@ -1163,6 +1163,8 @@ driver_init_driver( GraphicsDevice      *device,
      if (!mdrv->mmio_base)
           return DFB_IO;
 
+     mdrv->maven_fd = -1;
+
      mdrv->accelerator = dfb_gfxcard_get_accelerator( device );
 
      switch (mdrv->accelerator) {
