@@ -289,7 +289,22 @@ ovlFlipBuffers( DisplayLayer        *layer,
                 void                *layer_data,
                 DFBSurfaceFlipFlags  flags )
 {
-     return DFB_UNIMPLEMENTED;
+     NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
+     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
+     CoreSurface         *surface = dfb_layer_surface( layer );
+#if 0
+     bool                 onsync  = (flags & DSFLIP_WAITFORSYNC);
+     
+     if (onsync)
+          dfb_fbdev_wait_vsync();
+#endif
+     
+     dfb_surface_flip_buffers( surface );
+     
+     ovl_calc_regs( ndrv, novl, layer, &novl->config );
+     ovl_set_regs( ndrv, novl );
+
+     return DFB_OK;
 }
 
 static DFBResult
