@@ -108,7 +108,8 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     scr.y = 0;
 
     if (ucovl->scrwidth != scr.w) {
-        uc_ovl_setup_fifo(ucovl, scr.w);
+    // FIXME: fix uc_ovl_setup_fifo()
+    //    uc_ovl_setup_fifo(ucovl, scr.w);
         action |= UC_OVL_CHANGE;
     }
 
