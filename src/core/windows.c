@@ -1769,7 +1769,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                                         if (window_restack( stack, index, stack->num_windows - 1, false ))
                                              window_restacked( window );
 
-                                        switch_focus( stack, window );
+                                        dfb_window_request_focus( window );
 
                                         break;
                                    }
