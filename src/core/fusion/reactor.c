@@ -417,6 +417,17 @@ void *_reactor_receive (void *arg)
                     return NULL;
           }
 
+          /* if any reactions (should not happen, because
+             the local receiver thread is canceled after the last local detach */
+          if (!reactor->node[index].reactions) {
+               FDEBUG ("no reactions for dispatching locally!\n");
+               
+               /* unlock reactor */
+               skirmish_dismiss (&reactor->lock);
+               
+               return NULL;
+          }
+
           /* dispatch the message locally */
           _reactor_process_reactions (&reactor->node[index].reactions, (void*)((long*)message+1));
 
@@ -444,13 +455,6 @@ void *_reactor_receive (void *arg)
 static void _reactor_process_reactions (FusionLink **reactions, const void *msg_data)
 {
      FusionLink *l = *reactions;
-
-     /* if any reactions (should not happen, because
-        the local receiver thread is canceled after the last local detach */
-     if (!l) {
-          FDEBUG ("no reactions for dispatching locally!");
-          return;
-     }
 
      /* loop through local reactions */
      while (l) {
