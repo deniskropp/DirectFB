@@ -35,6 +35,7 @@
 #include <stdlib.h>
 
 #include <directfb.h>
+#include <directfb_strings.h>
 
 #include <core/fusion/ref.h>
 #include <core/fusion/object.h>
@@ -48,6 +49,8 @@
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h>
+
+static DirectFBPixelFormatNames( format_names );
 
 typedef struct {
      int video;
@@ -131,6 +134,7 @@ surface_callback( FusionObjectPool *pool,
                   void             *ctx )
 {
      FusionResult ret;
+     int          i;
      int          refs;
      CoreSurface *surface = (CoreSurface*) object;
      MemoryUsage *mem     = ctx;
@@ -156,70 +160,9 @@ surface_callback( FusionObjectPool *pool,
 
      printf( "%4d x %4d   ", surface->width, surface->height );
 
-     switch (surface->format) {
-          case DSPF_A1:
-               printf( "A1       " );
-               break;
-
-          case DSPF_A8:
-               printf( "A8       " );
-               break;
-
-          case DSPF_ARGB:
-               printf( "ARGB     " );
-               break;
-
-          case DSPF_ARGB1555:
-               printf( "ARGB1555 " );
-               break;
-
-          case DSPF_AiRGB:
-               printf( "AiRGB    " );
-               break;
-
-          case DSPF_I420:
-               printf( "I420     " );
-               break;
-
-          case DSPF_LUT8:
-               printf( "LUT8     " );
-               break;
-
-          case DSPF_ALUT44:
-               printf( "ALUT44   " );
-               break;
-
-          case DSPF_RGB16:
-               printf( "RGB16    " );
-               break;
-
-          case DSPF_RGB24:
-               printf( "RGB24    " );
-               break;
-
-          case DSPF_RGB32:
-               printf( "RGB32    " );
-               break;
-
-          case DSPF_RGB332:
-               printf( "RGB332   " );
-               break;
-
-          case DSPF_UYVY:
-               printf( "UYVY     " );
-               break;
-
-          case DSPF_YUY2:
-               printf( "YUY2     " );
-               break;
-
-          case DSPF_YV12:
-               printf( "YV12     " );
-               break;
-
-          default:
-               printf( "unknown! " );
-               break;
+     for (i=0; format_names[i].format; i++) {
+          if (surface->format == format_names[i].format)
+               printf( "%8s ", format_names[i].name );
      }
 
      vmem = buffer_sizes( surface, true );
@@ -266,6 +209,75 @@ dump_surfaces()
      printf( "                                          ------   ------\n" );
      printf( "                                         %6dk  %6dk   -> %dk total\n",
              mem.video >> 10, mem.system >> 10, (mem.video + mem.system) >> 10);
+}
+
+static bool
+context_callback( FusionObjectPool *pool,
+                  FusionObject     *object,
+                  void             *ctx )
+{
+     FusionResult       ret;
+     int                i;
+     int                refs;
+     CoreLayerContext  *context = (CoreLayerContext*) object;
+     CoreLayer         *layer   = (CoreLayer*) ctx;
+
+     if (object->state != FOS_ACTIVE)
+          return true;
+
+     if (context->layer_id != dfb_layer_id( layer ))
+          return true;
+
+     ret = fusion_ref_stat( &object->ref, &refs );
+     if (ret) {
+          printf( "Fusion error %d!\n", ret );
+          return false;
+     }
+
+#ifndef FUSION_FAKE
+     printf( "0x%08x : ", object->ref.id );
+#else
+     printf( "N/A        : " );
+#endif
+
+     printf( "%3d   ", refs );
+
+     printf( "%4d x %4d   ", context->config.width, context->config.height );
+
+     for (i=0; format_names[i].format; i++) {
+          if (context->config.pixelformat == format_names[i].format)
+               printf( "%-8s ", format_names[i].name );
+     }
+
+     printf( "%.1f, %.1f -> %.1f, %.1f    ",
+             context->screen.x, context->screen.y,
+             context->screen.x + context->screen.w,
+             context->screen.y + context->screen.h );
+
+     printf( "%2d     ", fusion_vector_size( &context->regions ) );
+
+     printf( context->active ? "(*)    " : "       " );
+
+     if (context == layer->shared->contexts.primary)
+          printf( "SHARED" );
+
+     printf( "\n" );
+
+     return true;
+}
+
+static void
+dump_contexts( CoreLayer *layer )
+{
+     if (fusion_vector_size( &layer->shared->contexts.stack ) == 0)
+          return;
+
+     printf( "\n"
+             "----------------------------------[ Contexts of Layer %d ]-----------------------------------\n", dfb_layer_id( layer ));
+     printf( "Reference  . Refs  Width Height  Format   Location on screen   Regions  Active  Info\n" );
+     printf( "--------------------------------------------------------------------------------------------\n" );
+
+     dfb_core_enum_layer_contexts( NULL, context_callback, layer );
 }
 
 static bool
@@ -340,28 +352,27 @@ window_callback( CoreWindow      *window,
      return true;
 }
 
-static DFBEnumerationResult
-layer_callback( CoreLayer *layer,
-                void      *ctx)
+static void
+dump_windows( CoreLayer *layer )
 {
      int               i;
      CoreLayerContext *context;
      CoreWindowStack  *stack;
 
      if (dfb_layer_get_primary_context( layer, false, &context ))
-          return DFENUM_OK;
+          return;
 
      stack = dfb_layer_context_windowstack( context );
      if (!stack) {
           dfb_layer_context_unref( context );
-          return DFENUM_OK;
+          return;
      }
 
      dfb_windowstack_lock( stack );
 
      if (stack->num_windows) {
           printf( "\n"
-                  "-----------------------------------[ Windows on Layer %d ]-----------------------------------\n", dfb_layer_id( layer ) );
+                  "-----------------------------------[ Windows of Layer %d ]-----------------------------------\n", dfb_layer_id( layer ) );
           printf( "Reference  . Refs     X     Y   Width Height Opacity   ID     Capabilities   State & Options\n" );
           printf( "--------------------------------------------------------------------------------------------\n" );
 
@@ -374,12 +385,20 @@ layer_callback( CoreLayer *layer,
      dfb_windowstack_unlock( stack );
 
      dfb_layer_context_unref( context );
+}
+
+static DFBEnumerationResult
+layer_callback( CoreLayer *layer,
+                void      *ctx)
+{
+     dump_windows( layer );
+     dump_contexts( layer );
 
      return DFENUM_OK;
 }
 
 static void
-dump_windows()
+dump_layers()
 {
      dfb_layers_enumerate( layer_callback, NULL );
 }
@@ -432,7 +451,7 @@ main( int argc, char *argv[] )
      }
 
      dump_surfaces();
-     dump_windows();
+     dump_layers();
 
      printf( "\n" );
 
