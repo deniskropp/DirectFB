@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: Voodoo
+Description: Interface based network transparency (like CORBA)
+Version: @VERSION@
+Requires: direct
+Libs: -L${libdir} -lvoodoo
+Cflags: -I@INCLUDEDIR@
