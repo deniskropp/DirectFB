@@ -105,11 +105,9 @@ Configuring the Linux framebuffer device
    entry found is used. Make sure that it is a mode with at least 15bpp 
    bitdepth (16bpp recommened).
 
-   If you use an ATI128 or a RivaTNT apply the corresponding patch in the
-   'patches' directory to the kernel.
-
    If you have a Matrox G200/G400 you may try the highly experimental vsync 
-   patch that enables applications to "idle wait" for the vertical retrace.
+   patch found in the patches/ directory that enables applications to 
+   "idle wait" for the vertical retrace.
 
 Documentation
 -------------
