@@ -71,6 +71,7 @@ keyboard_get_symbol( unsigned short                  value,
 {
      unsigned char type  = KTYP(value);
      unsigned char index = KVAL(value);
+     int           base  = level == DIKSI_BASE;
 
      switch (type) {
           case KT_FN:
@@ -144,8 +145,8 @@ keyboard_get_symbol( unsigned short                  value,
           case K_PSTAR:   return DIKS_ASTERISK;
           case K_PSLASH:  return DIKS_SLASH;
           case K_PENTER:  return DIKS_ENTER;
-          case K_PCOMMA:  return DIKS_COMMA;
-          case K_PDOT:    return DIKS_PERIOD;
+          case K_PCOMMA:  return base ? DIKS_DELETE : DIKS_COMMA;
+          case K_PDOT:    return base ? DIKS_DELETE : DIKS_PERIOD;
           case K_PPARENL: return DIKS_PARENTHESIS_LEFT;
           case K_PPARENR: return DIKS_PARENTHESIS_RIGHT;
      }
