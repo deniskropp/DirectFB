@@ -122,6 +122,7 @@ void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
                for (y = 0; y < h; y++) {
                     for (x = 0; x < w; x++) {
                          *(__u8 *)dst++ = *src & 0xFF000000;
+                         src++;
                     }
                     (__u8 *)dst += dskip;
                }
@@ -131,6 +132,7 @@ void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
                for (y = 0; y < h; y++) {
                     memcpy (dst, src, w * 4);
                     (__u8 *)dst += w * 4 + dskip;
+                    src += w;
                }
                break;
 

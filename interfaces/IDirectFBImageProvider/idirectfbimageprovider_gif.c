@@ -713,14 +713,10 @@ DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
                     return err;
                }
 
-               if (format == DSPF_ARGB && 
-                   src_width == width && src_height == height)
-                    memcpy (dst, image_data, width * height * 4);
-               else
-                    scale_linear_32( dst, image_data, 
-                                     src_width, src_height, width, height, 
-                                     pitch - width * BYTES_PER_PIXEL(format),
-                                     format );
+               scale_linear_32( dst, image_data, 
+                                src_width, src_height, width, height, 
+                                pitch - width * BYTES_PER_PIXEL(format),
+                                format );
 
                destination->Unlock( destination );
                free (image_data);

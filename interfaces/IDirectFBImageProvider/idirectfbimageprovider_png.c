@@ -44,7 +44,7 @@
 
 
 DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
-                         int pitch, int bpp );
+                         int pitch, DFBSurfacePixelFormat format );
 
 
 /*
@@ -237,7 +237,7 @@ DFBResult IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 /* Loading routines */
 
 DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
-                         int pitch, int format )
+                         int pitch, DFBSurfacePixelFormat format )
 {
      png_structp png_ptr;
      png_infop info_ptr;
@@ -289,8 +289,7 @@ DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
 
           number_of_passes = png_set_interlace_handling(png_ptr);
 
-          if (width == png_width
-                &&  height == png_height && BYTES_PER_PIXEL(format) == 4)
+          if (width == png_width && height == png_height && format == DSPF_ARGB)
           {
                while (number_of_passes--) {
                     int h = png_height;
