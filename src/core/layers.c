@@ -201,7 +201,9 @@ dfb_layers_initialize( void *data_local, void *data_shared )
 
                fusion_property_destroy( &shared->lock );
 
-               SHFREE( shared->layer_data );
+               if (shared->layer_data)
+                    SHFREE( shared->layer_data );
+
                SHFREE( shared );
 
                return ret;
