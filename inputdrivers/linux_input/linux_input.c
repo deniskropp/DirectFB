@@ -351,6 +351,9 @@ keyboard_get_symbol( int                             code,
      }
 
      /* special keys not in the map, hack? */
+     if (code == 99)
+          return DIKS_PRINT;
+
      if (code == 125)         /* left windows key */
           return DIKS_META;
 
