@@ -27,7 +27,8 @@
 
 #define UC_DRAWING_FLAGS_3D (DSDRAW_BLEND | DSDRAW_XOR)
 #define UC_BLITTING_FLAGS_3D (DSBLIT_BLEND_ALPHACHANNEL | \
-                                DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE)
+                                DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE | \
+                                DSBLIT_DEINTERLACE)
 
 #define UC_DRAWING_FUNCTIONS_3D (DFXL_DRAWLINE | DFXL_DRAWRECTANGLE | \
                                 DFXL_FILLRECTANGLE | DFXL_FILLTRIANGLE)
@@ -43,7 +44,7 @@
 
 #endif // UC_ENABLE_3D
 
-// Functions 
+// Functions
 
 void uc_emit_commands(void* drv, void* dev);
 void uc_flush_texture_cache(void* drv, void* dev);

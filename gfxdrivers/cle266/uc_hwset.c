@@ -205,14 +205,37 @@ void uc_set_source_2d(struct uc_fifo* fifo, UcDeviceData *ucdev,
 void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
                       CardState* state)
 {
-    struct uc_hw_texture* tex;
-    CoreSurface* src;
+    struct uc_hw_texture *tex;
+    CoreSurface          *src;
+    SurfaceBuffer        *buffer;
+
+    int src_height, src_offset, src_pitch;
 
     if (ucdev->v_source3d)
         return;
 
-    tex = &(ucdev->hwtex);
-    src = state->source;
+    tex    = &(ucdev->hwtex);
+    src    = state->source;
+    buffer = src->front_buffer;
+
+    src_height = src->height;
+    src_offset = buffer->video.offset;
+    src_pitch  = buffer->video.pitch;
+
+    /*
+     * TODO: Check if we can set the odd/even field as L1/L2 texture and select
+     * between L0/L1/L2 upon blit. Otherwise we depend on SMF_BLITTINGFLAGS ;(
+     */
+
+    if (state->blittingflags & DSBLIT_DEINTERLACE) {
+         if (src->field)
+              src_offset += src_pitch;
+
+         src_height >>= 1;
+         src_pitch  <<= 1;
+    }
+
+    ucdev->field = src->field;
 
     // Round texture size up to nearest
     // value evenly divisible by 2^n
@@ -224,9 +247,9 @@ void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
         tex->l2w <<= 1;
     }
 
-    ILOG2(src->height, tex->he);
+    ILOG2(src_height, tex->he);
     tex->l2h = 1 << tex->he;
-    if (tex->l2h < src->height) {
+    if (tex->l2h < src_height) {
         tex->he++;
         tex->l2h <<= 1;
     }
@@ -242,17 +265,14 @@ void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
 
     UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Tex << 16) | (HC_SubType_Tex0 << 24));
 
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnFM, HC_HTXnLoc_Local | tex->format);
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0OS, (0 << HC_HTXnLVmax_SHIFT));
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0_5WE, tex->we);
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0_5HE, tex->he);
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnFM,       HC_HTXnLoc_Local | tex->format);
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0OS,     (0 << HC_HTXnLVmax_SHIFT));
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0_5WE,   tex->we);
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0_5HE,   tex->he);
 
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL012BasH,
-        (src->front_buffer->video.offset >> 24) & 0xff);
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0BasL,
-        src->front_buffer->video.offset & 0xffffff);
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0Pit,
-        HC_HTXnEnPit_MASK | src->front_buffer->video.pitch);
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL012BasH, (src_offset >> 24) & 0xff);
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0BasL,   (src_offset      ) & 0xffffff);
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXnL0Pit,    (HC_HTXnEnPit_MASK | src_pitch));
 
     UC_FIFO_PAD_EVEN(fifo);
 
@@ -267,13 +287,14 @@ void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
 
         UC_FIFO_PREPARE(fifo, 258);
 
-        UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Palette << 16)
-            | (HC_SubType_TexPalette0 << 24));
+        UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Palette << 16) |
+                              (HC_SubType_TexPalette0 << 24));
 
         c = src->palette->entries;
         n = src->palette->num_entries;
         if (n > 256) n = 256;
 
+        /* What about the last entry? -- dok */
         for (i = 0; i < n-1; i++) {
             UC_FIFO_ADD(fifo, PIXEL_ARGB(c[i].a, c[i].r, c[i].g, c[i].b));
         }

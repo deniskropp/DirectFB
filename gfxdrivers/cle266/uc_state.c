@@ -27,7 +27,7 @@ inline bool uc_is_destination_supported(DFBSurfacePixelFormat format)
     {
     case DSPF_RGB16:
     case DSPF_RGB32:
-    case DSPF_LUT8:
+//    case DSPF_LUT8:
     case DSPF_ARGB:
     case DSPF_ARGB1555:
         return true;
@@ -125,8 +125,11 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
     if (state->modified & SMF_SOURCE)
         ucdev->v_source2d = ucdev->v_source3d = 0;
 
-    if (state->modified & (SMF_BLITTING_FLAGS | SMF_SOURCE))
-        ucdev->v_texenv = 0;
+    if (state->modified & (SMF_BLITTING_FLAGS | SMF_SOURCE)) {
+        ucdev->v_texenv = ucdev->v_source3d = 0;
+
+        ucdev->bflags = state->blittingflags;
+    }
 
     if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
         ucdev->v_blending_fn = 0; /* also depends on SMF_DESTINATION (rarely) */

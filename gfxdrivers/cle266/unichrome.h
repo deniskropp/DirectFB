@@ -94,6 +94,7 @@ typedef struct _UcDeviceData {
 
     DFBSurfaceBlittingFlags bflags; // Current blitting flags
     struct uc_hw_texture hwtex;     // Current hardware settings for blitting (3D)
+    int field;
 
     /// Set directly after a 2D/3D engine command is sent.
     int must_wait;

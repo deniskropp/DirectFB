@@ -362,6 +362,8 @@ bool uc_blit_3d(void* drv, void* dev,
 {
     // TODO: Write separate blit function to save some overhead.
 
+    // Hmm, I don't think we can save anything beyond a few CPU cycles. -- dok
+
     DFBRectangle dest = {dx, dy, rect->w, rect->h};
     return uc_stretch_blit(drv, dev, rect, &dest);
 }
@@ -374,16 +376,30 @@ bool uc_stretch_blit(void* drv, void* dev,
     float w = ucdev->hwtex.l2w;
     float h = ucdev->hwtex.l2h;
 
-    float s1 = ((float) sr->x) / w;
-    float t1 = ((float) sr->y) / h;
-    float s2 = ((float) sr->x + sr->w) / w;
-    float t2 = ((float) sr->y + sr->h) / h;
+    float dy = dr->y;
+
+    float s1 = (sr->x        ) / w;
+    float t1 = (sr->y        ) / h;
+    float s2 = (sr->x + sr->w) / w;
+    float t2 = (sr->y + sr->h) / h;
 
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y |
-               HC_HVPMSK_Cd | HC_HVPMSK_S | HC_HVPMSK_T;
-    int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HVCycle_AFP |
-               HC_HVCycle_AA | HC_HVCycle_BB | HC_HVCycle_NewC | HC_HShading_FlatC;
+               HC_HVPMSK_Cd  | HC_HVPMSK_S | HC_HVPMSK_T;
+
+    int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HShading_FlatC |
+               HC_HVCycle_AFP | HC_HVCycle_AA | HC_HVCycle_BB | HC_HVCycle_NewC;
+
     int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
+
+    if (ucdev->bflags & DSBLIT_DEINTERLACE) {
+         t1 *= 0.5f;
+         t2 *= 0.5f;
+
+         if (ucdev->field)
+             dy += 0.6f;
+         else
+             dy -= 0.6f;
+    }
 
     UC_FIFO_PREPARE(fifo, 26);
 
@@ -391,10 +407,10 @@ bool uc_stretch_blit(void* drv, void* dev,
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYCST(fifo, dr->x, dr->y, 0, s1, t1);
-    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dr->y+dr->h, 0, s2, t2);
-    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dr->y, ucdev->color3d, s2, t1);
-    UC_FIFO_ADD_XYCST(fifo, dr->x, dr->y+dr->h, ucdev->color3d, s1, t2);
+    UC_FIFO_ADD_XYCST(fifo, dr->x,       dy,       0,              s1, t1);
+    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dy+dr->h, 0,              s2, t2);
+    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dy,       ucdev->color3d, s2, t1);
+    UC_FIFO_ADD_XYCST(fifo, dr->x,       dy+dr->h, ucdev->color3d, s1, t2);
 
     UC_FIFO_ADD(fifo, cmdA_End);
 
