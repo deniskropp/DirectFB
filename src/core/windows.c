@@ -596,7 +596,7 @@ int window_request_focus( CoreWindow *window )
 
      if (current) {
           evt.type = DWET_LOSTFOCUS;
-          reactor_dispatch( window->reactor, &evt );
+          reactor_dispatch( current->reactor, &evt );
      }
 
      evt.type = DWET_GOTFOCUS;
