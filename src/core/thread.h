@@ -34,7 +34,8 @@
 
 typedef enum {
      CTT_ANY,
-     CTT_INPUT
+     CTT_INPUT,
+     CTT_CRITICAL
 } CoreThreadType;
 
 typedef void * (*CoreThreadMain)( CoreThread *thread, void *arg );
