@@ -160,14 +160,31 @@ Installation
 
    1) In the DirectFB directory type:
 
-	./configure
+	./configure <options>
 	make
 	make install (as superuser)
 
-      Use 'configure --help' to get a list of possible configure options. 
+      Use './configure --help' to get a list of possible configure options.
 
-   2) Make sure that /usr/local/lib is listed in your /etc/ld.so.conf.
-      If you added it you have to run 'ldconfig' as superuser.
+      Imported options include:
+        --enable-multi   Enables the Multi Application Core
+        --enable-debug   Enables many debug messages and assertions
+        --enable-trace   Enables run time stack trace information
+
+      Debugging and especially stack trace support are a performance
+      impact. It may be noticably slower in some areas, e.g. text drawing.
+
+      You may use the options "no-debug" and "no-trace" by default, e.g.
+      in '/etc/directfbrc', and use "--dfb:debug,trace" on the command
+      line if needed.
+
+   2) Make sure that "<prefix>/lib" is listed in your /etc/ld.so.conf.
+      The default prefix is "/usr/local". After adding it you have to
+      run 'ldconfig' as superuser.
+
+      Alternatively, you can add the path to the environment
+      variable LD_LIBRARY_PATH. This is useful for temporarily
+      switching to another installed version.
 
    3) You might want to copy fb.modes to /etc or merge it with your
       existing /etc/fb.modes file. The first entry will be used by
