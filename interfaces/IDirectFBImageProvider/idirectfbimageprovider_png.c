@@ -305,7 +305,7 @@ IDirectFBImageProvider_PNG_SetRenderCallback( IDirectFBImageProvider *thiz,
      data->render_callback         = callback;
      data->render_callback_context = context;
 
-     return DFB_OK;
+     return DFB_UNIMPLEMENTED;
 }
 
 /* Loading routines */
@@ -469,8 +469,7 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
                        int                              buffer_size)
 {
      DFBResult            ret;
-     int                  last_row;
-     IDirectFBDataBuffer *buffer   = data->buffer;
+     IDirectFBDataBuffer *buffer = data->buffer;
 
      while (data->stage < stage) {
           unsigned int  len;
@@ -479,8 +478,6 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
           if (data->stage < 0)
                return DFB_FAILURE;
 
-          last_row = data->rows;
-          
           buffer->WaitForData( buffer, 1 );
           
           while (buffer->HasData( buffer ) == DFB_OK) {
@@ -490,17 +487,10 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
 
                png_process_data( data->png_ptr, data->info_ptr, buf, len );
 
+               /* check for errors */
                if (data->stage < 0)
                     break;
           }
-#if 0
-          if (data->stage >= 2 && data->render_callback) {
-               DFBRectangle rect = { 0, last_row, data->width,
-                                     data->rows - last_row };
-
-               data->render_callback( &rect, data->render_callback_context );
-          }
-#endif
      }
      
      return DFB_OK;
