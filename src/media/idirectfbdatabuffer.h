@@ -31,13 +31,18 @@
  * private data struct of IDirectFBDataBuffer
  */
 typedef struct {
-     int                           ref;           /* reference counter */
+     int          ref;        /* reference counter */
+     char        *filename;   /* Only set if databuffer is created from file. */
 } IDirectFBDataBuffer_data;
 
 /*
  * base constructor
+ *
+ * If the databuffer is created for a file, the filename can be provided
+ * for fallbacks.
  */
-DFBResult IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz );
+DFBResult IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz,
+                                         const char          *filename );
 
 /*
  * base destructor

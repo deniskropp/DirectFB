@@ -276,7 +276,7 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_File)
 
-     ret = IDirectFBDataBuffer_Construct( thiz );
+     ret = IDirectFBDataBuffer_Construct( thiz, filename );
      if (ret)
           return ret;
 

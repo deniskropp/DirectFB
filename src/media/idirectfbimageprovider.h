@@ -32,6 +32,8 @@
  */
 typedef struct {
      char        header[32];
+
+     const char *filename;    /* Only set if databuffer is created from file. */
 } IDirectFBImageProvider_ProbeContext;
 
 DFBResult

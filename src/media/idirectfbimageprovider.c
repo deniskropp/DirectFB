@@ -32,6 +32,7 @@
 #include <misc/mem.h>
 
 #include <media/idirectfbimageprovider.h>
+#include <media/idirectfbdatabuffer.h>
 
 DFBResult
 IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
@@ -39,8 +40,17 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
 {
      DFBResult                            ret;
      DFBInterfaceFuncs                   *funcs = NULL;
+     IDirectFBDataBuffer_data            *buffer_data;
      IDirectFBImageProvider              *imageprovider;
      IDirectFBImageProvider_ProbeContext  ctx;
+
+     /* Get the private information of the data buffer. */
+     buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
+     if (!buffer_data)
+          return DFB_DEAD;
+
+     /* Provide a fallback for image providers without data buffer support. */
+     ctx.filename = buffer_data->filename;
 
      /* Wait until 32 bytes are available */
      ret = buffer->WaitForData( buffer, 32 );

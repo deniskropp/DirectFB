@@ -356,7 +356,7 @@ IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz )
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Streamed)
 
-     ret = IDirectFBDataBuffer_Construct( thiz );
+     ret = IDirectFBDataBuffer_Construct( thiz, NULL );
      if (ret)
           return ret;
 

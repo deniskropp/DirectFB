@@ -244,7 +244,7 @@ IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Memory)
 
-     ret = IDirectFBDataBuffer_Construct( thiz );
+     ret = IDirectFBDataBuffer_Construct( thiz, NULL );
      if (ret)
           return ret;
 

@@ -58,6 +58,11 @@
 void
 IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz )
 {
+     IDirectFBDataBuffer_data *data = (IDirectFBDataBuffer_data*) thiz->priv;
+     
+     if (data->filename)
+          DFBFREE( data->filename );
+     
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -172,11 +177,14 @@ IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
 }
 
 DFBResult
-IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz )
+IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz, const char *filename )
 {
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer)
 
      data->ref = 1;
+
+     if (filename)
+          data->filename = DFBSTRDUP( filename );
 
      thiz->AddRef                 = IDirectFBDataBuffer_AddRef;
      thiz->Release                = IDirectFBDataBuffer_Release;
