@@ -45,6 +45,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/system.h>
 #include <core/screens.h>
 #include <core/state.h>
 #include <core/gfxcard.h>
@@ -120,7 +121,6 @@ static void nvEngineSync( void *drv, void *dev )
                (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 
-
 static inline void nv_set_clip( NVidiaDriverData *nvdrv,
                                 NVidiaDeviceData *nvdev,
                                 DFBRegion        *clip )
@@ -129,44 +129,10 @@ static inline void nv_set_clip( NVidiaDriverData *nvdrv,
      int              width  = clip->x2 - clip->x1 + 1;
      int              height = clip->y2 - clip->y1 + 1;
 
-     NV_FIFO_FREE( nvdev, Clip, 2 );
+     NV_FIFO_FREE( nvdev, Clip, 2 )
 
      Clip->TopLeft     = (clip->y1 << 16) | clip->x1;
      Clip->WidthHeight = (height << 16) | width;
-}
-
-static inline void nv_set_rop( NVidiaDriverData        *nvdrv,
-                               NVidiaDeviceData        *nvdev,
-                               DFBSurfaceBlendFunction  src,
-                               DFBSurfaceBlendFunction  dst )
-{
-     volatile NVRop *Rop = nvdrv->Rop;
-     __u32           op  = 0;
-     
-     switch (src) {
-          case 0:
-               op |= 0xC0;
-               break;
-          case DSBF_ZERO:
-               op |= 0x00;
-               break;
-          default:
-               return;
-     }
-
-     switch (dst) {
-          case 0:
-               op |= 0x0C;
-               break;
-          case DSBF_ZERO:
-               op |= 0x00;
-               break;
-          default:
-               return;
-     }
-
-     NV_FIFO_FREE( nvdev, Rop, 1 )
-     Rop->Rop3 = op;
 }
 
 
@@ -192,6 +158,10 @@ static void nvCheckState( void *drv, void *dev,
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
+          /* check unsupported blitting flags first */
+          if (state->blittingflags & ~NV4_SUPPORTED_BLITTINGFLAGS)
+               return;
+
           /* FIXME: RGB16 */
           if (accel == DFXL_STRETCHBLIT ||
               source->format != destination->format) {
@@ -211,31 +181,29 @@ static void nvCheckState( void *drv, void *dev,
                }
           }
 
-          /* if there are no other blitting flags than the supported */
-          if (!(state->blittingflags & ~NV4_SUPPORTED_BLITTINGFLAGS))
-               state->accel |= NV4_SUPPORTED_BLITTINGFUNCTIONS;
+          state->accel |= NV4_SUPPORTED_BLITTINGFUNCTIONS;
      }
      else {
-          /* if there are no other drawing flags than the supported */
+          /* check unsupported drawing flags first */
           if (state->drawingflags & ~NV4_SUPPORTED_DRAWINGFLAGS)
                return;
-
+#if 0
           if (state->drawingflags & DSDRAW_BLEND) {
                switch (state->src_blend) {
-                    case DSBF_ZERO:
+                    case DSBF_SRCALPHA:
                          break;
                     default:
                          return;
                }
 
                switch (state->dst_blend) {
-                    case DSBF_ZERO:
+                    case DSBF_INVSRCALPHA:
                          break;
                     default:
                          return;
                }
           }
-            
+#endif            
           state->accel |= NV4_SUPPORTED_DRAWINGFUNCTIONS;
      }
 }
@@ -277,7 +245,7 @@ static void nvSetState( void *drv, void *dev,
           nv_waitidle( nvdrv, nvdev );
           PGRAPH[0x640/4] = state->destination->back_buffer->video.offset & 0x1FFFFFF;
           PGRAPH[0x670/4] = state->destination->back_buffer->video.pitch;
-
+	  	  
           if (!nvdev->destination ||
               state->destination->format != nvdev->destination->format) {
                /* change objects pixelformat */
@@ -298,7 +266,7 @@ static void nvSetState( void *drv, void *dev,
                          break;
 
                     case DSPF_ARGB:
-                         NV_LOAD_TABLE( PGRAPH, PGRAPH_ARGB )
+                         NV_LOAD_TABLE( PGRAPH, PGRAPH_RGB32 )
                          NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB32 )
                          break;
 
@@ -324,14 +292,14 @@ static void nvSetState( void *drv, void *dev,
           nvdev->destination = state->destination;
      }
 
-     if (state->modified & SMF_SOURCE && state->source) {
+     if ((state->modified & SMF_SOURCE) && state->source) {
           nv_waitidle( nvdrv, nvdev );
           PGRAPH[0x644/4] = state->source->front_buffer->video.offset & 0x1FFFFFF;
           PGRAPH[0x674/4] = state->source->front_buffer->video.pitch;
           nvdev->source   = state->source;
      }
 
-     if (state->modified & SMF_CLIP)
+     if (state->modified & (SMF_CLIP | SMF_DESTINATION))
           nv_set_clip( nvdrv, nvdev, &state->clip );
 
      if (state->modified & (SMF_DESTINATION | SMF_COLOR)) {
@@ -369,16 +337,25 @@ static void nvSetState( void *drv, void *dev,
                default:
                     D_BUG( "unexpected pixelformat" );
                     break;
-          }
+          } 
      }
 
+#if 0
+     /* how do we control alpha value ?? */
      if (state->modified & SMF_DRAWING_FLAGS) {
           if (state->drawingflags == DSDRAW_BLEND)
-               nv_set_rop( nvdrv, nvdev, state->src_blend, state->dst_blend );
-          else
-               nv_set_rop( nvdrv, nvdev, 0, 0 );
+               nvdev->drawfx = 0x2;
+	  else
+	       nvdev->drawfx = 0x0;
      }
 
+     if (state->modified & SMF_BLITTING_FLAGS) {
+          if (state->blittingflags & DSBLIT_BLEND_COLORALPHA)
+               nvdev->blitfx = 0x2;
+	  else
+               nvdev->blitfx = 0x0;
+     }
+#endif
      state->modified = 0;
 }
 
@@ -388,10 +365,10 @@ static bool nvFillRectangle( void *drv, void *dev, DFBRectangle *rect )
      NVidiaDeviceData     *nvdev     = (NVidiaDeviceData*) dev;
      volatile NVRectangle *Rectangle = nvdrv->Rectangle;
      
-     NV_FIFO_FREE( nvdev, Rectangle, 3 );
-
-     Rectangle->Color = nvdev->color;
-
+     NV_FIFO_FREE( nvdev, Rectangle, 3 )
+     
+     Rectangle->Color       = nvdev->color;
+     
      Rectangle->TopLeft     = (rect->y << 16) | rect->x;
      Rectangle->WidthHeight = (rect->h << 16) | rect->w;
 
@@ -404,10 +381,10 @@ static bool nvFillTriangle( void *drv, void *dev, DFBTriangle *tri )
      NVidiaDeviceData    *nvdev    = (NVidiaDeviceData*) dev;
      volatile NVTriangle *Triangle = nvdrv->Triangle;
 
-     NV_FIFO_FREE( nvdev, Triangle, 4 );
-
-     Triangle->Color = nvdev->color;
-
+     NV_FIFO_FREE( nvdev, Triangle, 4 )
+     
+     Triangle->Color          = nvdev->color;
+     
      Triangle->TrianglePoint0 = (tri->y1 << 16) | tri->x1;
      Triangle->TrianglePoint1 = (tri->y2 << 16) | tri->x2;
      Triangle->TrianglePoint2 = (tri->y3 << 16) | tri->x3;
@@ -420,10 +397,10 @@ static bool nvDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      NVidiaDriverData     *nvdrv     = (NVidiaDriverData*) drv;
      NVidiaDeviceData     *nvdev     = (NVidiaDeviceData*) dev;
      volatile NVRectangle *Rectangle = nvdrv->Rectangle;
+     
+     NV_FIFO_FREE( nvdev, Rectangle, 9 )
 
-     NV_FIFO_FREE( nvdev, Rectangle, 9 );
-
-     Rectangle->Color = nvdev->color;
+     Rectangle->Color       = nvdev->color;
 
      Rectangle->TopLeft     = (rect->y << 16) | rect->x;
      Rectangle->WidthHeight = (1 << 16) | rect->w;
@@ -446,10 +423,10 @@ static bool nvDrawLine( void *drv, void *dev, DFBRegion *line )
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
      volatile NVLine  *Line  = nvdrv->Line;
 
-     NV_FIFO_FREE( nvdev, Line, 4 );
-
-     Line->Color = nvdev->color;
-
+     NV_FIFO_FREE( nvdev, Line, 3 )
+     
+     Line->Color         = nvdev->color;
+     
      Line->Lin[0].point0 = (line->y1 << 16) | line->x1;
      Line->Lin[0].point1 = (line->y2 << 16) | line->x2;
 
@@ -518,68 +495,43 @@ static bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
           return nvStretchBlit( drv, dev, rect, &dr );
      }
 
-     NV_FIFO_FREE( nvdev, Blt, 3 );
+     NV_FIFO_FREE( nvdev, Blt, 3 )
 
-     Blt->TopLeftSrc  = (rect->y << 16) | rect->x;
-     Blt->TopLeftDst  = (dy << 16) | dx;
-     Blt->WidthHeight = (rect->h << 16) | rect->w;
+     Blt->TopLeftSrc   = (rect->y << 16) | rect->x;
+     Blt->TopLeftDst   = (dy << 16) | dx;
+     Blt->WidthHeight  = (rect->h << 16) | rect->w;
 
      return true;
 }
 
 
 #if 0
-#define NV_VERTEX3D( v, x, y, z, w, col, spc, s, t ) \
+#define NV_VERTEX3D( n, x, y, z, w, col, spc, s, t ) \
 {\
      NV_FIFO_FREE( nvdev, TexTri, 8 );\
-     TexTri->Vertex[v].sx       = x;\
-     TexTri->Vertex[v].sy       = y;\
-     TexTri->Vertex[v].sz       = z;\
-     TexTri->Vertex[v].rhw      = w;\
-     TexTri->Vertex[v].color    = col;\
-     TexTri->Vertex[v].specular = spc;\
-     TexTri->Vertex[v].ts       = s;\
-     TexTri->Vertex[v].tt       = t;\
+     TexTri->Vertex[n].sx       = x;\
+     TexTri->Vertex[n].sy       = y;\
+     TexTri->Vertex[n].sz       = z;\
+     TexTri->Vertex[n].rhw      = w;\
+     TexTri->Vertex[n].color    = col;\
+     TexTri->Vertex[n].specular = spc;\
+     TexTri->Vertex[n].ts       = s;\
+     TexTri->Vertex[n].tt       = t;\
 }
 
 static void
-TextureTriangle( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev,
+nv_texture_triangle( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev,
            DFBVertex *v0, DFBVertex *v1, DFBVertex *v2 )
 {
-     volatile RivaTexturedTriangle05 *TexTri = nvdrv->TexTri;
+     volatile NVTexturedTriangle05 *TexTri = nvdrv->TexTri;
 
-     NV_FIFO_FREE( nvdev, TexTri, 8 );
-
-     TexTri->Vertex[0].sx       = v0->x;
-     TexTri->Vertex[0].sy       = v0->y;
-     TexTri->Vertex[0].sz       = v0->z;
-     TexTri->Vertex[0].rhw      = 1.0 / v0->w;
-     TexTri->Vertex[0].color    = 0;
-     TexTri->Vertex[0].specular = 0;
-     TexTri->Vertex[0].ts       = v0->s;
-     TexTri->Vertex[0].tt       = v0->t;
-
-     TexTri->Vertex[1].sx       = v1->x;
-     TexTri->Vertex[1].sy       = v1->y;
-     TexTri->Vertex[1].sz       = v1->z;
-     TexTri->Vertex[1].rhw      = 1.0 / v1->w;
-     TexTri->Vertex[1].color    = 0;
-     TexTri->Vertex[1].specular = 0;
-     TexTri->Vertex[1].ts       = v1->s;
-     TexTri->Vertex[1].tt       = v1->t;
-
-     TexTri->Vertex[2].sx       = v2->x;
-     TexTri->Vertex[2].sy       = v2->y;
-     TexTri->Vertex[2].sz       = v2->z;
-     TexTri->Vertex[2].rhw      = 1.0 / v2->w;
-     TexTri->Vertex[2].color    = 0;
-     TexTri->Vertex[2].specular = 0;
-     TexTri->Vertex[2].ts       = v2->s;
-     TexTri->Vertex[2].tt       = v2->t;
+     NV_VERTEX3D( 0, v0->x, v0->y, v0->z, v0->w, 0, 0, v0->s, v0->t )
+     NV_VERTEX3D( 1, v1->x, v1->y, v1->z, v1->w, 0, 0, v1->s, v1->t )
+     NV_VERTEX3D( 2, v2->x, v2->y, v2->z, v2->w, 0, 0, v2->s, v2->t )
 
      NV_FIFO_FREE( nvdev, TexTri, 1 );
 
-     TexTri->DrawTriangle3D     = (2 << 8) | (1 << 4) | 0;
+     TexTri->DrawTriangle3D = (2 << 8) | (1 << 4) | 0;
 }
 #endif
 
@@ -588,59 +540,49 @@ nvTextureTriangles( void *drv, void *dev, DFBVertex *vertices,
                     int num, DFBTriangleFormation formation )
 {
 #if 0
-     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
-     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
-     CardState        *state = nvdev->state;
-     volatile RivaTexturedTriangle05 *TexTri = nvdrv->TexTri;
-     int               i;
+     NVidiaDriverData              *nvdrv  = (NVidiaDriverData*) drv;
+     NVidiaDeviceData              *nvdev  = (NVidiaDeviceData*) dev;
+     volatile NVTexturedTriangle05 *TexTri = nvdrv->TexTri;
+     int                            wl2    = direct_log2( nvdev->source->width );
+     int                            hl2    = direct_log2( nvdev->source->height );
+     int                            i;
 
-     for ( i = 0; i < num ; i++ )
-     {
-          vertices[i].x -= 0.5;
-          vertices[i].y -= 0.5;
-          vertices[i].w  = 1.0 / vertices[i].w;
-     }
-
-     NV_FIFO_FREE( nvdev, TexTri, 8 );
-     
-     TexTri->TextureOffset = state->source->front_buffer->video.offset;
-     TexTri->TextureFormat = state->source->front_buffer->video.pitch;
+     NV_FIFO_FREE( nvdev, TexTri, 7 );
+     TexTri->ColorKeyValue = 0;
+     TexTri->TextureOffset = nvdev->source->front_buffer->video.offset & 0x1FFFFFFF;
+     TexTri->TextureFormat = (wl2 << 16) | (hl2 << 20);
      TexTri->TextureFilter = 0;
      TexTri->Blend         = 0;
      TexTri->Control       = 0;
      TexTri->FogColor      = 0xffffffff;
-
+ 
      switch (formation)
      {
           case DTTF_LIST:
                for (i = 0; i < num; i += 3)
-                    TextureTriangle( nvdrv, nvdev,
+                    nv_texture_triangle( nvdrv, nvdev,
                          &vertices[i], &vertices[i+1], &vertices[i+2] );
-          break;
+               break;
 
           case DTTF_STRIP:
-               TextureTriangle( nvdrv, nvdev, 
+               nv_texture_triangle( nvdrv, nvdev, 
                          &vertices[0], &vertices[1], &vertices[2] );
-               
                for (i = 0; i < num; i++)
-                    TextureTriangle( nvdrv, nvdev, 
+                    nv_texture_triangle( nvdrv, nvdev, 
                          &vertices[i-2], &vertices[i-1], &vertices[i] );
-          break;
+               break;
 
           case DTTF_FAN:
-               TextureTriangle( nvdrv, nvdev,
+		nv_texture_triangle( nvdrv, nvdev,
                          &vertices[0], &vertices[1], &vertices[2] );
-
                for (i = 0; i < num; i++)
-                    TextureTriangle( nvdrv, nvdev,
+                    nv_texture_triangle( nvdrv, nvdev,
                          &vertices[0], &vertices[i-1], &vertices[i] );
-          break;
+               break;
 
           default:
-          return false;
+               return false;
      }
-
-     nv_waitidle( nvdrv, nvdev );
 #endif
      return true;
 }
@@ -724,10 +666,11 @@ driver_init_driver( GraphicsDevice      *device,
 
      nvdrv->device = device;
 
+     nvdrv->PVIDEO = (volatile __u32*) (nvdrv->mmio_base + 0x008000);
+     nvdrv->PFB    = (volatile __u32*) (nvdrv->mmio_base + 0x100000);
      nvdrv->PGRAPH = (volatile __u32*) (nvdrv->mmio_base + 0x400000);
      nvdrv->PRAMIN = (volatile __u32*) (nvdrv->mmio_base + 0x710000);
      nvdrv->FIFO   = (volatile __u32*) (nvdrv->mmio_base + 0x800000);
-     nvdrv->PMC    = (volatile __u32*) (nvdrv->mmio_base + 0x000000);
 
      nvdrv->Rop         = (volatile NVRop                *) &nvdrv->FIFO[0x0000/4];
      nvdrv->Clip        = (volatile NVClip               *) &nvdrv->FIFO[0x2000/4];
@@ -764,18 +707,13 @@ driver_init_device( GraphicsDevice     *device,
                     void               *driver_data,
                     void               *device_data )
 {
-     NVidiaDriverData   *nvdrv   = (NVidiaDriverData*) driver_data;
-     NVidiaDeviceData   *nvdev   = (NVidiaDeviceData*) device_data;
-     volatile NVPattern *Pattern = nvdrv->Pattern;
-     volatile NVRop     *Rop     = nvdrv->Rop;
-
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
 
      snprintf( device_info->name,
                DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "TNT/TNT2/GeForce" );
 
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nVidia" );
-
 
      device_info->caps.flags    = CCF_CLIPPING;
      device_info->caps.accel    = NV4_SUPPORTED_DRAWINGFUNCTIONS |
@@ -787,18 +725,23 @@ driver_init_device( GraphicsDevice     *device,
      device_info->limits.surface_pixelpitch_alignment = 32;
 
      dfb_config->pollvsync_after = 1;
+ 
+     /* set video memory start and limit */
+     nvdrv->PVIDEO[0x920/4] = 0;
+     nvdrv->PVIDEO[0x924/4] = 0;
+     nvdrv->PVIDEO[0x908/4] = dfb_system_videoram_length() - 1;
+     nvdrv->PVIDEO[0x90C/4] = dfb_system_videoram_length() - 1;
+     //nvdrv->PGRAPH[0x684/4] = dfb_system_videoram_length() - 1;
+     //nvdrv->PGRAPH[0x688/4] = dfb_system_videoram_length() - 1;
 
-
-     NV_FIFO_FREE( nvdev, Pattern, 5 );
-     Pattern->Shape         = 0; /* 0 = 8X8, 1 = 64X1, 2 = 1X64 */
-     Pattern->Color0        = 0xFFFFFFFF;
-     Pattern->Color1        = 0xFFFFFFFF;
-     Pattern->Monochrome[0] = 0xFFFFFFFF;
-     Pattern->Monochrome[1] = 0xFFFFFFFF;
-
-     NV_FIFO_FREE( nvdev, Rop, 1 );
-     Rop->Rop3 = 0xCC;
-
+     /* set default Rop3 (copy) */
+     nvdrv->PGRAPH[0x604/4] = 0x000000CC;
+     
+     /* set default pattern */
+     nvdrv->PGRAPH[0x800/4] = 0xFFFFFFFF; /* Color0 */
+     nvdrv->PGRAPH[0x804/4] = 0xFFFFFFFF; /* Color1 */
+     nvdrv->PGRAPH[0x810/4] = 0x00000000; /* Shape */
+ 
      return DFB_OK;
 }
 

@@ -6,8 +6,9 @@
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
-              Sven Neumann <neo@directfb.org> and
-              Ville Syrjälä <syrjala@sci.fi>.
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan82@cheapnet.it>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -221,7 +222,8 @@ typedef struct
     __u16 FifoFree;
     __u16 Nop;
 #endif
-    __u32 reserved01[0x0BB];
+    __u32 reserved01[0x0BA];
+    __u32 SetOperation;
     __u32 TopLeftSrc;
     __u32 TopLeftDst;
     __u32 WidthHeight;
@@ -324,7 +326,9 @@ typedef struct
     __u16 FifoFree;
     __u16 Nop;
 #endif
-    __u32 reserved01[0x0BC];
+    __u32 reserved01[0x0BA];
+    __u32 SetOperation;
+    __u32 SetColorFormat;
     __u32 Color;             /* source color               0304-0307*/
     __u32 Reserved02[0x03e];
     struct {                /* start aliased methods in array   0400-    */
@@ -430,13 +434,12 @@ typedef struct
     __u16 FifoFree;
     __u16 Nop;
 #endif
-//    __u32 reserved01[0x0BC];
     __u32 reserved01[0x0BB];
     __u32 Format;
     __u32 Pitch;
     __u32 SourceOffset;
     __u32 DestOffset;
-} NVSurface;
+} NVSurfaces;
 
 typedef struct
 {
@@ -453,8 +456,6 @@ typedef struct
     __u32 ZBufferOffset;
 } NVSurface3D;
 
-
-#define  NV01_RENDER_SOLID_RECTANGLE                               (0x0000001E)
 
 #define CTX_PTR(o)     (0x1144 + o)
 
@@ -474,11 +475,13 @@ typedef struct
 } NVidiaInstances;
 
 
-typedef struct {
+typedef struct {	
      CoreSurface           *destination;
      CoreSurface           *source;
      
      __u32                  color;
+     __u32                  drawfx;
+     __u32                  blitfx;
 
      /* for fifo/performance monitoring */
      unsigned int           fifo_space;
@@ -491,13 +494,15 @@ typedef struct {
 
 typedef struct {
      GraphicsDevice                *device;
-
+     
      volatile __u8                 *mmio_base;
+     volatile __u32                *PVIDEO;
+     volatile __u32                *PFB;
      volatile __u32                *PGRAPH;
      volatile __u32                *FIFO;
      volatile __u32                *PRAMIN;
-     volatile __u32                *PMC;
 
+     volatile NVSurfaces           *Surfaces;
      volatile NVRop                *Rop;
      volatile NVClip               *Clip;
      volatile NVPattern            *Pattern;
@@ -505,7 +510,6 @@ typedef struct {
      volatile NVTriangle           *Triangle;
      volatile NVRectangle          *Rectangle;
      volatile NVLine               *Line;
-     volatile NVSurface            *Surface;
      volatile NVScaledImage        *ScaledImage;
      volatile NVTexturedTriangle05 *TexTri;
      
