@@ -534,6 +534,7 @@ ati=no
 matrox=no
 nvidea=no
 tdfx=no
+cyber5k=no
 savage=no
 dnl neomagic is already set
 
@@ -576,6 +577,19 @@ if test x$have_linux = xyes; then
   tdfx=no  
   AC_MSG_WARN([
 *** 3DFX Voodoo/Banshee gfxdriver will not be built.]))
+
+
+  dnl Test for cyber5k framebuffer support in the kernel
+  AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_IGS_CYBER5000
+  yes
+#endif
+  ],
+  cyber5k=yes, 
+  cyber5k=no  
+  AC_MSG_WARN([
+*** CyberPro driver will not be built.]))
 
 
   dnl Test for nvidia framebuffer support in the kernel
@@ -633,6 +647,7 @@ AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
 AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
 AM_CONDITIONAL(GFX_MATROX, test x$matrox = xyes)
 AM_CONDITIONAL(GFX_ATI, test x$ati = xyes)
+AM_CONDITIONAL(GFX_CYBER5K, test x$cyber5k = xyes)
 AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
 
 AM_CONDITIONAL(LINUX_INPUT, test x$enable_linux_input = xyes)
@@ -724,6 +739,7 @@ src/core/fusion/shmalloc/Makefile
 src/core/sdl/Makefile
 gfxdrivers/Makefile
 gfxdrivers/ati128/Makefile
+gfxdrivers/cyber5k/Makefile
 gfxdrivers/matrox/Makefile
 gfxdrivers/neomagic/Makefile
 gfxdrivers/tdfx/Makefile
@@ -798,6 +814,7 @@ Building Graphics Drivers:
   3Dfx Voodoo           $tdfx
   nVidia RIVA TNT       $nvidia
   S3 Savage             $savage
+  Cyber Pro             $cyber5k
 
 Building Input Drivers:
   Linux Input           $enable_linux_input
