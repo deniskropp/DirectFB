@@ -397,7 +397,7 @@ extern "C"
           DFXL_BLIT           = 0x00010000,  /* Blit */
           DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit */
 
-          DFXL_ALL            = 0x0003000F   /* all drawing/blitting
+          DFXL_ALL            = 0x0003001F   /* all drawing/blitting
                                                 functions */
      } DFBAccelerationMask;
 

@@ -358,6 +358,14 @@ AC_EGREP_CPP(yes, [
 AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
 
 
+
+dnl Test for H3600 Touchscreen support
+AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no  
+  AC_MSG_WARN(*** H3600 Touchscreen driver will not be built.))
+
+AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
+
+
 DFB_CFLAGS="$THREAD_CFLAGS $DFB_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
 
@@ -436,6 +444,7 @@ gfxdrivers/neomagic/Makefile
 gfxdrivers/tdfx/Makefile
 gfxdrivers/nvidia/Makefile
 inputdrivers/Makefile
+inputdrivers/h3600_ts/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
 inputdrivers/lirc/Makefile
@@ -453,28 +462,31 @@ docs/Makefile
 AC_MSG_RESULT([
 
 Build options: 
-  Install prefix    $prefix
-  MMX support       $MMX
-  Debug mode        $enable_debug
+  Install prefix      $prefix
+  MMX support         $MMX
+  Debug mode          $enable_debug
 
 Building Image Providers:
-  JPEG              $JPEG
-  PNG               $PNG
-  GIF               $enable_gif 
+  JPEG                $JPEG
+  PNG                 $PNG
+  GIF                 $enable_gif 
 
 Building Video Providers:
-  AviFile           $AVIFILE
-  libmpeg3          $MPEG3
-  Flash             $FLASH
-  Video4Linux       yes
+  AviFile             $AVIFILE
+  libmpeg3            $MPEG3
+  Flash               $FLASH
+  Video4Linux         yes
 
 Building Font implementations:
-  FreeType2         $FREETYPE
+  FreeType2           $FREETYPE
 
 Building Graphics Drivers:
-  Matrox G200/G400  $matrox
-  ATI Rage 128      $ati
-  NeoMagic          yes
-  3Dfx Voodoo       $tdfx
-  nVidia RIVA TNT   $nvidia
+  Matrox G200/G400    $matrox
+  ATI Rage 128        $ati
+  NeoMagic            yes
+  3Dfx Voodoo         $tdfx
+  nVidia RIVA TNT     $nvidia
+
+Building Input Drivers:
+  H3600 Touchscreen   $h3600_ts
 ]);
