@@ -148,12 +148,14 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      if (data->window->region) {
           dfb_layer_region_flip_update( data->window->region, &reg, flags );
      }
-     else if (data->base.surface->caps & DSCAPS_FLIPPING) {
-          if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
-              reg.x2 == data->window->width - 1 && reg.y2 == data->window->height - 1)
-               dfb_surface_flip_buffers( data->base.surface );
-          else
-               dfb_back_to_front_copy( data->base.surface, &reg );
+     else {
+          if (data->base.surface->caps & DSCAPS_FLIPPING) {
+               if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
+                   reg.x2 == data->window->width - 1 && reg.y2 == data->window->height - 1)
+                    dfb_surface_flip_buffers( data->base.surface );
+               else
+                    dfb_back_to_front_copy( data->base.surface, &reg );
+          }
 
           dfb_window_repaint( data->window, &reg, flags, false, false );
      }
