@@ -67,26 +67,33 @@ static inline void video_access_by_hardware( SurfaceBuffer       *buffer,
                                              DFBSurfaceLockFlags  flags )
 {
      if (flags & DSLF_READ) {
-          if (buffer->video.written & VWF_BY_SOFTWARE) {
+          if (buffer->video.access & VAF_SOFTWARE_WRITE) {
                dfb_gfxcard_flush_texture_cache();
-               buffer->video.written &= ~VWF_BY_SOFTWARE;
+               buffer->video.access &= ~VAF_SOFTWARE_WRITE;
           }
+          buffer->video.access |= VAF_HARDWARE_READ;
      }
      if (flags & DSLF_WRITE)
-          buffer->video.written |= VWF_BY_HARDWARE;
+          buffer->video.access |= VAF_HARDWARE_WRITE;
 }
 
 static inline void video_access_by_software( SurfaceBuffer       *buffer,
                                              DFBSurfaceLockFlags  flags )
 {
-     if (flags & (DSLF_READ | DSLF_WRITE)) {
-          if (buffer->video.written & VWF_BY_HARDWARE) {
+     if (flags & DSLF_WRITE) {
+          if (buffer->video.access & VAF_HARDWARE_READ) {
                dfb_gfxcard_sync();
-               buffer->video.written &= ~VWF_BY_HARDWARE;
+               buffer->video.access &= ~VAF_HARDWARE_READ;
           }
+          buffer->video.access |= VAF_SOFTWARE_WRITE;
      }
-     if (flags & DSLF_WRITE)
-          buffer->video.written |= VWF_BY_SOFTWARE;
+     if (flags & (DSLF_READ | DSLF_WRITE)) {
+          if (buffer->video.access & VAF_HARDWARE_WRITE) {
+               dfb_gfxcard_sync();
+               buffer->video.access &= ~VAF_HARDWARE_WRITE;
+          }
+          buffer->video.access |= VAF_SOFTWARE_READ;
+     }
 }
 
 /** public **/

@@ -58,11 +58,13 @@ typedef enum {
 } SurfaceBufferFlags;
 
 typedef enum {
-     VWF_NONE            = 0x00000000,  /* no write access happened since last
+     VAF_NONE            = 0x00000000,  /* no write access happened since last
                                            clearing of all bits */
-     VWF_BY_SOFTWARE     = 0x00000001,  /* software wrote to buffer */
-     VWF_BY_HARDWARE     = 0x00000002   /* hardware wrote to buffer */
-} VideoWrittenFlags;
+     VAF_SOFTWARE_WRITE  = 0x00000001,  /* software wrote to buffer */
+     VAF_HARDWARE_WRITE  = 0x00000002,  /* hardware wrote to buffer */
+     VAF_SOFTWARE_READ   = 0x00000004,  /* software read from buffer */
+     VAF_HARDWARE_READ   = 0x00000008   /* hardware read from buffer */
+} VideoAccessFlags;
 
 
 struct _SurfaceBuffer
@@ -82,7 +84,7 @@ struct _SurfaceBuffer
           int               locked;     /* video instance is locked, don't
                                            try to kick out, could deadlock */
 
-          VideoWrittenFlags written;    /* information about recent write
+          VideoAccessFlags  access;     /* information about recent read/write
                                            accesses to video buffer memory */
 
           int               pitch;      /* number of bytes til next line */
