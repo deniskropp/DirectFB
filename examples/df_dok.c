@@ -101,6 +101,8 @@ typedef struct {
      char    * desc;
      char    * message;
      char    * status;
+     char    * option;
+     int       requested;
      float     result;
      char    * unit;
      int    (* func) (unsigned long);  
@@ -109,61 +111,61 @@ typedef struct {
 static Demo demos[] = {
   { "Anti-aliased Text", 
     "This is the DirectFB benchmarking tool, let's start with some text!",
-    "Anti-aliased Text", 
-    0.0, "KChars/sec",  draw_string },
+    "Anti-aliased Text", "draw-string", 
+    0, 0.0, "KChars/sec",  draw_string },
   { "Fill Rectangles",
     "Ok, we'll go on with some opaque filled rectangles!",
-    "Rectangle Filling", 
-    0.0, "MPixel/sec", fill_rect },
+    "Rectangle Filling", "fill-rect",
+    0, 0.0, "MPixel/sec", fill_rect },
   { "Fill Rectangles (blend)",
     "What about alpha blended rectangles?",
-    "Alpha Blended Rectangle Filling", 
-    0.0, "MPixel/sec", fill_rect_blend },
-  { "Fill Triangles", 
+    "Alpha Blended Rectangle Filling", "fill-rect-blend",
+    0, 0.0, "MPixel/sec", fill_rect_blend },
+  { "Fill Triangles",
     "Ok, we'll go on with some opaque filled triangles!",
-    "Triangle Filling", 
-    0.0, "MPixel/sec", fill_triangle },
+    "Triangle Filling", "fill-triangle",
+    0, 0.0, "MPixel/sec", fill_triangle },
   { "Fill Triangles (blend)",  
     "What about alpha blended triangles?", 
-    "Alpha Blended Triangle Filling", 
-    0.0, "MPixel/sec", fill_triangle_blend },
+    "Alpha Blended Triangle Filling", "fill-triangle-blend",
+    0, 0.0, "MPixel/sec", fill_triangle_blend },
   { "Draw Rectangles", 
     "Now pass over to non filled rectangles!", 
-    "Rectangle Outlines", 
-    0.0, "MPixel/sec", draw_rect },
+    "Rectangle Outlines", "draw-rect",
+    0, 0.0, "MPixel/sec", draw_rect },
   { "Draw Rectangles (blend)",
     "Again, we want it with alpha blending!",
-    "Alpha Blended Rectangle Outlines",
-    0.0, "MPixel/sec", draw_rect_blend },
+    "Alpha Blended Rectangle Outlines", "draw-rect-blend",
+    0, 0.0, "MPixel/sec", draw_rect_blend },
   { "Draw Lines",
     "Can we have some opaque lines, please?",
-    "Line Drawing",
-    0.0, "MPixel/sec", draw_lines },
+    "Line Drawing", "draw-line",
+    0, 0.0, "MPixel/sec", draw_lines },
   { "Draw Lines (blend)",
     "So what? Where's the blending?",
-    "Alpha Blended Line Drawing",
-    0.0, "MPixel/sec", draw_lines_blend },
+    "Alpha Blended Line Drawing", "draw-line-blend",
+    0, 0.0, "MPixel/sec", draw_lines_blend },
   { "Blit",
     "Now lead to some blitting demos! The simplest one comes first...",
-    "Simple BitBlt",
-    0.0, "MPixel/sec", blit },
+    "Simple BitBlt", "blit",
+    0, 0.0, "MPixel/sec", blit },
   { "Blit colorkeyed",
     "Color keying would be nice...",
-    "BitBlt with Color Keying",
-    0.0, "MPixel/sec", blit_colorkeyed },
+    "BitBlt with Color Keying", "blit-colorkeyed",
+    0, 0.0, "MPixel/sec", blit_colorkeyed },
   { "Blit with format conversion",
     "What if the source surface has another format?",
-    "BitBlt with on-the-fly format conversion",
-    0.0, "MPixel/sec", blit_convert },
+    "BitBlt with on-the-fly format conversion", "blit-convert",
+    0, 0.0, "MPixel/sec", blit_convert },
   { "Blit from 32bit (alphachannel blend)", 
     "Here we go with alpha again!",
-    "BitBlt with Alpha Channel",
-    0.0, "MPixel/sec", blit_blend },
+    "BitBlt with Alpha Channel", "blit-blend",
+    0, 0.0, "MPixel/sec", blit_blend },
   { "Stretched Blit", 
     "Stretching!!!!!",
-    "Stretched Blit",
-    0.0, "MPixel/sec", blit_stretch },
-  { NULL, NULL, NULL, 0.0, NULL, NULL }
+    "Stretched Blit", "blit-stretch",
+    0, 0.0, "MPixel/sec", blit_stretch },
+  { NULL, NULL, NULL, NULL, 0, 0.0, NULL, NULL }
 };
 
 static void shutdown()
@@ -247,29 +249,33 @@ static void showResult()
      primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0x40 );
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
 
-     for (i = 0; demos[i].desc != NULL; i++)
-       {
-         dest.w = (int)( demos[i].result * factor );
-         primary->StretchBlit( primary, meter, NULL, &dest );
-         primary->DrawLine( primary, 40, dest.y + 19, SW-40, dest.y + 19 );
-         dest.y += 40;
-       }
+     for (i = 0; demos[i].desc != NULL; i++) {
+          if (!demos[i].requested)
+               continue;
+
+          dest.w = (int)( demos[i].result * factor );
+          primary->StretchBlit( primary, meter, NULL, &dest );
+          primary->DrawLine( primary, 40, dest.y + 19, SW-40, dest.y + 19 );
+          dest.y += 40;
+     }
 
      meter->Release( meter );
     
      y = 75;
-     for (i = 0; demos[i].desc != NULL; i++)
-       {
-         primary->SetColor( primary, 0xCC, 0xCC, 0xCC, 0xFF );
-         primary->DrawString( primary, demos[i].desc, -1, 20, y, DSTF_LEFT );
-     
-         sprintf( format, "%%.2f %s", demos[i].unit );
-         sprintf( rate, format, demos[i].result );
-         primary->SetColor( primary, 0xAA, 0xAA, 0xAA, 0xFF );
-         primary->DrawString( primary, rate, -1, SW-40, y + 5, DSTF_RIGHT );
+     for (i = 0; demos[i].desc != NULL; i++) {
+          if (!demos[i].requested)
+               continue;
 
-         y += 40;
-       }
+          primary->SetColor( primary, 0xCC, 0xCC, 0xCC, 0xFF );
+          primary->DrawString( primary, demos[i].desc, -1, 20, y, DSTF_LEFT );
+     
+          sprintf( format, "%%.2f %s", demos[i].unit );
+          sprintf( rate, format, demos[i].result );
+          primary->SetColor( primary, 0xAA, 0xAA, 0xAA, 0xFF );
+          primary->DrawString( primary, rate, -1, SW-40, y + 5, DSTF_RIGHT );
+
+          y += 40;
+     }
      
      key_events->Reset( key_events );
      key_events->WaitForEvent( key_events );
@@ -522,6 +528,22 @@ int main( int argc, char *argv[] )
      /* create the super interface */
      DFBCHECK(DirectFBCreate( &dfb ));
 
+     /* parse command line */
+     if (argc == 1) {
+          for (i = 0; demos[i].desc != NULL; i++) {
+               demos[i].requested = 1;
+          }
+     }
+     while (--argc > 0) {
+          if (strncmp (argv[argc], "--", 2) == 0) {
+               for (i = 0; demos[i].desc != NULL; i++) {
+                    if (strcmp (argv[argc] + 2, demos[i].option) == 0) {
+                         demos[i].requested = 1;
+                    }
+               }
+          }
+     }
+
      /* get an interface to the primary keyboard
         and create an input buffer for it */
      DFBCHECK(dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard ));
@@ -643,6 +665,9 @@ int main( int argc, char *argv[] )
            float dt;
            int pixels;
           
+           if (!demos[i].requested)
+                continue;
+
            showMessage( demos[i].message );
            showStatus( demos[i].status );
 
