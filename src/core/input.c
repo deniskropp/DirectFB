@@ -40,17 +40,23 @@
 #include <core/fusion/arena.h>
 #include <core/fusion/list.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core.h"
-#include "coredefs.h"
-#include "coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "layers.h"
-#include "input.h"
+#include <core/modules.h>
 
-#include "misc/mem.h"
-#include "misc/util.h"
+#include <core/layers.h>
+#include <core/input.h>
+
+#include <misc/mem.h>
+#include <misc/util.h>
+
+
+DEFINE_MODULE_DIRECTORY( dfb_input_modules, "inputdrivers",
+                         DFB_INPUT_DRIVER_ABI_VERSION );
 
 
 #define MAX_INPUT_DEVICES 100
@@ -58,11 +64,12 @@
 typedef struct {
      FusionLink         link;
 
+     ModuleEntry       *module;
+
      InputDriverFuncs  *funcs;
 
      InputDriverInfo    info;
 
-     int                abi_version;
      int                nr_devices;
 } InputDriver;
 
@@ -102,8 +109,6 @@ typedef struct {
      InputDeviceShared *devices[MAX_INPUT_DEVICES];
 } CoreInputField;
 
-static bool modules_loaded = false;
-
 static FusionLink     *input_drivers = NULL;
 
 static CoreInputField *inputfield   = NULL;
@@ -141,11 +146,6 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
               DFBInputDeviceModifierMask  modifiers,
               DFBInputDeviceLockState     locks );
 
-#ifdef DFB_DYNAMIC_LINKING
-static CoreModuleLoadResult
-input_driver_handle_func( void *handle, char *name, void *ctx );
-#endif
-
 
 /** public **/
 
@@ -160,13 +160,7 @@ dfb_input_initialize()
      arena_add_shared_field( dfb_core->arena, inputfield, "Core/Input" );
 #endif
 
-#ifdef DFB_DYNAMIC_LINKING
-     if (!modules_loaded) {
-          dfb_core_load_modules( MODULEDIR"/inputdrivers",
-                                 input_driver_handle_func, NULL );
-          modules_loaded = true;
-     }
-#endif
+     dfb_modules_explore_directory( &dfb_input_modules );
 
      init_devices();
 
@@ -228,8 +222,10 @@ dfb_input_shutdown( bool emergency )
 
           driver->funcs->CloseDevice( d->driver_data );
           
-/*          if (!--driver->nr_devices)
-               DFBFREE( driver );*/
+          if (!--driver->nr_devices) {
+               dfb_module_unref( driver->module );
+               DFBFREE( driver );
+          }
 
           reactor_free( shared->reactor );
 
@@ -243,7 +239,8 @@ dfb_input_shutdown( bool emergency )
           d = next;
      }
 
-     inputdevices = NULL;
+     inputdevices  = NULL;
+     input_drivers = NULL;
 
      shfree( inputfield );
      inputfield = NULL;
@@ -317,19 +314,6 @@ dfb_input_resume()
      return DFB_OK;
 }
 #endif
-
-void
-dfb_input_register_module( InputDriverFuncs *funcs )
-{
-     InputDriver *driver;
-
-     driver = calloc( 1, sizeof(InputDriver) );
-
-     driver->funcs       = funcs;
-     driver->abi_version = funcs->GetAbiVersion();
-
-     fusion_list_prepend( &input_drivers, &driver->link );
-}
 
 void
 dfb_input_enumerate_devices( InputDeviceCallback  callback,
@@ -451,31 +435,6 @@ input_add_device( InputDevice *device )
      inputfield->devices[ inputfield->num++ ] = device->shared;
 }
 
-#ifdef DFB_DYNAMIC_LINKING
-static CoreModuleLoadResult
-input_driver_handle_func( void *handle, char *name, void *ctx )
-{
-     InputDriver *driver = (InputDriver*) input_drivers;
-
-     if (!driver)
-          return MODULE_REJECTED;
-
-     if (driver->abi_version != DFB_INPUT_DRIVER_ABI_VERSION) {
-          ERRORMSG( "DirectFB/core/input: '%s' "
-                    "was built for ABI version %d, but %d is required!\n", name,
-                    driver->abi_version, DFB_INPUT_DRIVER_ABI_VERSION );
-
-          fusion_list_remove( &input_drivers, input_drivers );
-
-          DFBFREE( driver );
-
-          return MODULE_REJECTED;
-     }
-
-     return MODULE_LOADED_CONTINUE;
-}
-#endif
-
 static void
 allocate_device_keymap( InputDevice *device )
 {
@@ -509,17 +468,40 @@ init_devices()
 {
      FusionLink *link;
 
-     fusion_list_foreach( link, input_drivers ) {
+     fusion_list_foreach( link, dfb_input_modules.entries ) {
           int               n;
-          InputDriver      *driver = (InputDriver*) link;
-          InputDriverFuncs *funcs  = driver->funcs;
+          InputDriver      *driver;
+          InputDriverFuncs *funcs;
+          ModuleEntry      *module = (ModuleEntry*) link;
 
-          funcs->GetDriverInfo( &driver->info );
-
-          driver->nr_devices = funcs->GetAvailable();
-          if (!driver->nr_devices)
+          if (module->disabled)
                continue;
 
+          driver = DFBCALLOC( 1, sizeof(InputDriver) );
+          if (!driver)
+               continue;
+
+          funcs = (InputDriverFuncs*) dfb_module_ref( module );
+          if (!funcs) {
+               DFBFREE( driver );
+               continue;
+          }
+          
+          driver->nr_devices = funcs->GetAvailable();
+          if (!driver->nr_devices) {
+               dfb_module_unref( module );
+               DFBFREE( driver );
+               continue;
+          }
+          
+          driver->module = module;
+          driver->funcs  = funcs;
+          
+          funcs->GetDriverInfo( &driver->info );
+
+          fusion_list_prepend( &input_drivers, &driver->link );
+
+          
           for (n=0; n<driver->nr_devices; n++) {
                InputDevice     *device;
                InputDeviceInfo  device_info;

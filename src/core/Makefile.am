@@ -44,6 +44,7 @@ internalinclude_HEADERS = \
 	input.h			\
 	input_driver.h		\
 	layers.h		\
+	modules.h		\
 	palette.h		\
 	sig.h			\
 	state.h			\
@@ -68,6 +69,7 @@ libdirectfb_core_la_SOURCES = \
 	gfxcard.c		\
 	input.c			\
 	layers.c		\
+	modules.c		\
 	palette.c		\
 	sig.c			\
 	state.c			\

@@ -48,6 +48,8 @@ typedef struct _Chunk                   Chunk;
 
 typedef __u32 unichar;
 
+typedef struct _ModuleEntry             ModuleEntry;
+typedef struct _ModuleDirectory         ModuleDirectory;
 
 
 typedef struct _DisplayLayer            DisplayLayer;

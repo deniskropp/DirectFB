@@ -53,7 +53,7 @@ driver_get_keymap_entry( InputDevice               *device,
 static void
 driver_close_device( void *driver_data );
 
-static InputDriverFuncs driver_funcs = {
+static const InputDriverFuncs driver_funcs = {
      GetAbiVersion:      driver_get_abi_version,
      GetAvailable:       driver_get_available,
      GetDriverInfo:      driver_get_info,
@@ -62,12 +62,13 @@ static InputDriverFuncs driver_funcs = {
      CloseDevice:        driver_close_device
 };
 
-#define DFB_INPUT_DRIVER(shortname)               \
-__attribute__((constructor))                      \
-void                                              \
-directfb_##shortname (void)                       \
-{                                                 \
-     dfb_input_register_module( &driver_funcs );  \
+#define DFB_INPUT_DRIVER(shortname)                                          \
+__attribute__((constructor))                                                 \
+void                                                                         \
+directfb_##shortname (void)                                                  \
+{                                                                            \
+     dfb_modules_register( &dfb_input_modules, DFB_INPUT_DRIVER_ABI_VERSION, \
+                           #shortname, &driver_funcs );                      \
 }
 
 #endif

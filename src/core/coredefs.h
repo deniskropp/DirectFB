@@ -66,14 +66,14 @@
      #include <misc/util.h>   /* for dfb_get_millis() */
      
      #ifdef HEAVYDEBUG
-          #define HEAVYDEBUGMSG(x...)   if (dfb_config->debug) {               \
+          #define HEAVYDEBUGMSG(x...)   if (!dfb_config || dfb_config->debug) {\
                                                   fprintf( stderr, "(=) "x );  \
                                         }
      #else
           #define HEAVYDEBUGMSG(x...)
      #endif
 
-     #define DEBUGMSG(x...)   do { if (dfb_config->debug) {                    \
+     #define DEBUGMSG(x...)   do { if (!dfb_config || dfb_config->debug) {     \
                                    fprintf( stderr, "(-) [%d: %5lld] ",        \
                                             getpid(), dfb_get_millis() );      \
                                    fprintf( stderr, x );                       \
