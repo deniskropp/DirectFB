@@ -1,6 +1,3 @@
-.data
- cpu_flags: .long 0
-
 .text
 .align 4
 .globl intel_cpu_features
@@ -36,17 +33,12 @@ intel_cpu_features:
 	xorl %ecx,%eax
 	je .intel_cpu_features_end
 
-	pushal
-
 	movl $1,%eax
 	cpuid
 
-	movl %edx,cpu_flags
-
-	popal
-
-	movl cpu_flags,%eax
+	movl %edx,%eax
 
 .intel_cpu_features_end:
         popl    %ebx
         ret
+

@@ -9,14 +9,26 @@
 
 .text
 
+.Lget_pic:
+    	movl	(%esp), %ebx
+	ret
+ 
 .align 8
 Dacc_modulate_argb_MMX:
-        pushal
+        pushl   %esi
+    	pushl   %edi
+        pushl   %ebx
 
-        movl    Dacc, %edi
-        movl    Dlength, %ecx
+  	call	.Lget_pic
+1:	addl    $_GLOBAL_OFFSET_TABLE_, %ebx
 
-        movq    Cacc, %mm0
+        movl	Dacc@GOT(%ebx), %eax
+        movl    (%eax), %edi
+        movl	Dlength@GOT(%ebx), %eax
+        movl    (%eax), %ecx
+
+	movl	Cacc@GOT(%ebx), %eax
+        movq    (%eax), %mm0
 
 .align 8
 .MODULATE_ARGB:
@@ -38,6 +50,8 @@ Dacc_modulate_argb_MMX:
 
         emms
 
-        popal
+        popl	%ebx
+        popl    %edi
+        popl    %esi
         ret
 

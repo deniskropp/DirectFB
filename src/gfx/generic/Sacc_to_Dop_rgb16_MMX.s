@@ -14,17 +14,32 @@ pm:      .long  0x01000004,     0x00000004
 
 .text
 
+.Lget_pic:
+        movl	(%esp), %ebx
+        ret
+ 
 .align 8
 Sacc_to_Aop_rgb16_MMX: 
-	pushal
+    	pushl   %esi
+        pushl   %edi
+        pushl   %ebx
 
-	movl	Sacc, %esi
-	movl	Aop, %edi
-        movl    Dlength, %ecx
+  	call    .Lget_pic   
+1:	addl    $_GLOBAL_OFFSET_TABLE_, %ebx
         
-        movq    preload, %mm7
-        movq    mask, %mm5
-        movq    pm, %mm4
+        movl    Sacc@GOT(%ebx), %eax
+        movl	(%eax), %esi
+        movl    Aop@GOT(%ebx), %eax
+        movl	(%eax), %edi
+        movl    Dlength@GOT(%ebx), %eax
+        movl    (%eax), %ecx
+
+	movl	preload@GOT(%ebx), %eax
+	movq	(%eax), %mm7
+	movl	mask@GOT(%ebx), %eax
+	movq	(%eax), %mm5
+	movl    pm@GOT(%ebx), %eax
+        movq	(%eax), %mm4
         
 .align 8
 .CONVERT:
@@ -57,6 +72,8 @@ Sacc_to_Aop_rgb16_MMX:
 
 	emms
 
-	popal
+        popl	%ebx
+        popl    %edi
+        popl    %esi
 	ret
 

@@ -6,30 +6,46 @@
 .extern Xacc
 .extern Dlength
 
-zeros:  .long   0,              0
+zeros: .long   0,              0
 ones:   .long   0x00010001,     0x00010001
 
 .globl Xacc_blend_srcalpha_MMX
 
 .text
 
+.Lget_pic:
+        movl	(%esp), %ebx
+        ret
+ 
 .align 8
 Xacc_blend_srcalpha_MMX:
-        pushal
+	pushl   %esi
+	pushl   %edi
+	pushl   %ebx
 
-        movl    Sacc, %esi
-        movl    Xacc, %edi
-        movl    Dlength, %ecx
+	call	.Lget_pic
+1:	addl	$_GLOBAL_OFFSET_TABLE_, %ebx
 
-        movq    ones, %mm7
+	movl	Sacc@GOT(%ebx), %eax
+	movl	(%eax), %esi
+	movl	Xacc@GOT(%ebx), %eax
+	movl	(%eax), %edi
+	movl	Dlength@GOT(%ebx), %eax
+	movl	(%eax), %ecx
+
+	movl	zeros@GOT(%ebx), %eax
+	movq	(%eax), %mm6
+	movl	ones@GOT(%ebx), %eax
+	movq	(%eax), %mm7
 
         cmpl    $0, %esi
         jnz     .blend_from_Sacc
 
 
-        movd    color, %mm0
+	movl	color@GOT(%ebx), %eax
+	movd	(%eax), %mm0
 
-        punpcklbw zeros, %mm0           # mm0 = 00aa 00rr 00gg 00bb
+        punpcklbw %mm6, %mm0           # mm0 = 00aa 00rr 00gg 00bb
         punpcklwd %mm0, %mm0            # mm0 = 00aa 00aa xxxx xxxx
         punpckldq %mm0, %mm0            # mm0 = 00aa 00aa 00aa 00aa
 
@@ -55,7 +71,9 @@ Xacc_blend_srcalpha_MMX:
 
         emms
 
-        popal
+	popl    %ebx
+	popl	%edi
+	popl	%esi
         ret
 
 
@@ -87,6 +105,8 @@ Xacc_blend_srcalpha_MMX:
 
         emms
 
-        popal
+	popl    %ebx
+	popl	%edi
+	popl	%esi
         ret
 

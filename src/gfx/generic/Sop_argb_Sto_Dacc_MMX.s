@@ -12,17 +12,32 @@ zeros:  .long   0,              0
 
 .text
 
+.Lget_pic:
+	movl	(%esp), %ebx
+	ret
+
 .align 8
 Sop_argb_Sto_Dacc_MMX:
-        pushal
+        pushl	%esi
+	pushl	%edi
+	pushl	%ebx
 
-        movl    Sop, %esi
-        movl    Dacc, %edi
-        movl    Dlength, %ecx
-        movl    SperD, %eax
+	call	.Lget_pic
+1:	addl	$_GLOBAL_OFFSET_TABLE_, %ebx
+
+        movl    Sop@GOT(%ebx), %eax
+	movl	(%eax), %esi
+        movl    Dacc@GOT(%ebx), %eax
+	movl	(%eax), %edi
+        movl    Dlength@GOT(%ebx), %eax
+	movl	(%eax), %ecx
+        movl    SperD@GOT(%ebx), %eax
+	movl	(%eax), %eax
+
         xor     %edx, %edx
 
-        movq    zeros, %mm0
+	movl	zeros@GOT(%ebx), %eax
+        movq    (%eax), %mm0
 
 .align 8
 .LOAD:
@@ -54,6 +69,8 @@ Sop_argb_Sto_Dacc_MMX:
 .FINISH:
         emms
 
-        popal
+	popl	%ebx
+	popl	%edi
+	popl	%esi
         ret
 

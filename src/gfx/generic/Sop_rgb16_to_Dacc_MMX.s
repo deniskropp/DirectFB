@@ -13,17 +13,32 @@ alpha:	.long	0,      	0x00FF0000
 
 .text
 
+.Lget_pic:
+	movl	(%esp), %ebx
+	ret
+ 
 .align 8
 Sop_rgb16_to_Dacc_MMX: 
-	pushal
+	pushl	%esi
+	pushl	%edi
+	pushl	%ebx
 
-	movl	Sop, %esi
-	movl	Dacc, %edi
-        movl    Dlength, %ecx
+	call	.Lget_pic
+1:	addl	$_GLOBAL_OFFSET_TABLE_, %ebx
+
+	movl	Sop@GOT(%ebx), %eax  
+	movl	(%eax), %esi
+	movl	Dacc@GOT(%ebx), %eax
+	movl	(%eax), %edi
+	movl	Dlength@GOT(%ebx), %eax
+        movl    (%eax), %ecx
         
-        movq    mask, %mm4
-        movq    smul, %mm5
-        movq    alpha, %mm7
+	movl	mask@GOT(%ebx), %eax
+        movq    (%eax), %mm4
+	movl	smul@GOT(%ebx), %eax
+        movq    (%eax), %mm5
+	movl	alpha@GOT(%ebx), %eax
+        movq    (%eax), %mm7
 
 .align 8
 .CONVERT4:
@@ -126,6 +141,8 @@ Sop_rgb16_to_Dacc_MMX:
 .FINISH:
 	emms
 
-	popal
+	popl	%ebx
+	popl	%edi
+	popl	%esi
 	ret
 

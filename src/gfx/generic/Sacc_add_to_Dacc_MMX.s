@@ -9,13 +9,25 @@
 
 .text
 
+.Lget_pic:
+        movl	(%esp), %ebx
+        ret
+ 
 .align 8
 Sacc_add_to_Dacc_MMX: 
-	pushal
+    	pushl   %esi
+        pushl   %edi
+        pushl   %ebx
 
-	movl	Sacc, %esi
-	movl	Dacc, %edi
-        movl    Dlength, %ecx
+  	call    .Lget_pic   
+1:	addl    $_GLOBAL_OFFSET_TABLE_, %ebx
+        
+        movl    Sacc@GOT(%ebx), %eax
+        movl	(%eax), %esi
+        movl    Dacc@GOT(%ebx), %eax
+        movl	(%eax), %edi
+        movl    Dlength@GOT(%ebx), %eax
+        movl    (%eax), %ecx
 
 .align 8
 .CONVERT: 
@@ -34,6 +46,8 @@ Sacc_add_to_Dacc_MMX:
 
 	emms
 
-	popal
+        popl	%ebx
+        popl    %edi
+        popl    %esi
 	ret
 
