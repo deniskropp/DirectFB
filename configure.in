@@ -117,7 +117,7 @@ if test "x$have_x86" = xon; then
   AC_SUBST(ASFLAGS)
 
   AC_DEFINE(HAVE_INB_OUTB_IOPL)
-  AC_MSG_CHECKING([for sys/io.h])
+  AC_MSG_CHECKING([for sysio.h])
   AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0);], 
     AC_DEFINE(HAVE_SYSIO)
     neomagic="yes"
@@ -523,6 +523,7 @@ interfaces/IDirectFBVideoProvider/Makefile
 data/Makefile
 tools/Makefile
 docs/Makefile
+docs/directfbrc.5
 docs/html/Makefile
 ], [chmod +x directfb-config])
 

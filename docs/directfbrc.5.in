@@ -1,0 +1,251 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This man page is Copyright (C) 2002 Sven Neumann <neo@directfb.org>
+
+.TH DIRECTFBRC 5 "17 May 2002" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
+
+.SH NAME
+directfbrc \- DirectFB configuration file
+
+
+.SH DESCRIPTION
+
+The
+.B directfbrc
+file is a configuration file read by all DirectFB applications on startup.
+There are two of these: a system-wide one stored in
+.I /etc/directfbrc
+and a per-user
+.I
+\fB$HOME\fP/.directfbrc
+which may override system settings.
+
+The same parameters that can be used in the
+.B directfbrc
+file can also be passed to DirectFB applications on the command-line
+by prefixing them with 
+.BR --dfb:
+
+
+.SH SYNTAX
+
+The
+.B directfbrc
+file contains one parameter per line. Comments are introduced by a
+hash sign (#), and continue until the end of the line.  Blank lines
+are ignored.
+
+
+.SH PARAMETERS
+
+The following parameters may be specified in the
+.B directfbrc
+file:
+
+.TP
+.BI fbdev=<device>
+Open the given frame buffer device instead of /dev/fb0.
+
+.TP
+.BI mode=<width>x<height>
+Sets the default screen resolution. If unspecified DirectFB will use
+the first mode from
+.I /etc/fb.modes
+Some frame buffer devices (namely vesafb) don't support mode switches
+and can only be used in the resolution that is set on boot time.
+
+.TP
+.BI depth=<pixeldepth>
+Sets the default pixel depth in bits per pixel. If unspecified
+DirectFB will use the depth specified in the first mode from
+.I /etc/fb.modes
+DirectFB supports color depths of 15, 16, 24 and 32 (support for 8 bit
+can optionally be compiled in as well). What values are available for
+you depends on the frame buffer device you are using. Some frame
+buffer devices (namely vesafb) don't support mode switches at all and
+can only be used in the pixel depth that is set on boot time.
+
+.TP
+.BI quiet
+Suppresses console output from DirectFB. Only error messages will be
+displayed.
+
+.TP
+.BI no-banner
+Suppresses the output of the DirectFB banner at startup.
+
+.TP
+.BI [no-]debug
+Enables/disables debug output.
+
+.TP
+.BI force-windowed
+Primary surface always is a window.
+
+.TP
+.BI [no-]hardware
+Hardware acceleration.
+
+.TP
+.BI [no-]sync
+Do `sync()' (default=no).
+
+.TP
+.BI no-mmx
+Disables MMX support.
+
+.TP
+.BI argb-font
+Load glyphs into ARGB surfaces.
+
+.TP
+.BI dont-catch=<num>[[,<num>]...]
+Don't catch these signals.
+
+.TP
+.BI no-sighandler
+Disables signal handlers.
+
+.TP
+.BI no-deinit-check
+Disable deinit check at exit.
+
+.TP
+.BI no-vt-switch
+Don't allocate/switch to a new VT.
+
+.TP
+.BI [no-]vt-switching
+Allow Ctrl+Alt+<F?> (EXPERIMENTAL).
+
+.TP
+.BI graphics-vt
+Put terminal into graphics mode.
+
+.TP
+.BI [no-]motion-compression
+Mouse motion event compression.
+
+.TP
+.BI mouse-protocol=<protocol>
+Mouse protocol (serial mouse).
+
+.TP
+.BI lefty
+Swap left and right mouse buttons.
+
+.TP
+.BI [no-]cursor
+Show cursor on start up (default).
+
+.TP
+.BI bg-none
+Disable background clear.
+
+.TP
+.BI bg-color=AARRGGBB
+Use background color (hex).
+
+.TP
+.BI bg-image=<filename>
+Use background image.
+
+.TP
+.BI bg-tile=<filename>
+Use tiled background image.
+
+.TP
+.BI disable-window-opacity
+Force window opacity to be 0 or 255.
+
+.TP
+.BI videoram-limit=<amount>
+Limit amount of Video RAM in kb.
+
+.TP
+.BI matrox-sgram
+Use Matrox SGRAM features.
+
+.TP
+.BI window-surface-policy=<policy>
+Allows to control where window surfaces are stored. Supported values
+for <policy> are:
+
+.BI auto
+DirectFB decides depending on hardware.
+
+.BI videohigh
+Swapping system/video with high priority.
+
+.BI videolow
+Swapping system/video with low priority.
+
+.BI systemonly
+Window surface is always stored in system memory.
+
+.BI videoonly
+Window surface is always stored in video memory.
+
+.TP
+.BI desktop-buffer-mode=<mode>
+Allows to control the desktop buffer mode. Supported values for <mode>
+are:
+
+.BI auto
+DirectFB decides depending on hardware.
+
+.BI backvideo
+Front and back buffer are video only.
+
+.BI backsystem
+Back buffer is system only.
+
+.BI frontonly
+There is no back buffer.
+
+.TP
+.BI vsync-after
+Wait for the vertical retrace after flipping.
+
+.TP
+.BI vsync-none
+Disable polling for vertical retrace.
+
+
+.SH EXAMPLES
+
+Here are some examples that demonstrates how the parameters described
+above are passed to DirectFB application on the command-line.
+
+.TP
+.B df_neo --dfb:no-hardware
+starts df_neo without hardware acceleration
+.TP
+.B df_neo --dfb:help
+lists the DirectFB options that can be passed to df_neo
+
+
+.SH OTHER INFO
+
+The canonical place to find informations about DirectFB is at
+http://www.directfb.org/.  Here you can find the FAQ, tutorials,
+mailing list archives, the CVS tree and can download the latest
+version of the DirectFB library as well as a number of applications.
+
+
+.SH FILES
+
+.TP
+.I /etc/directfbrc
+system-wide DirectFB configuration file
+.TP
+.I $HOME/.directfbrc
+per-user DirectFB configuration file
+.TP
+.I /etc/fb.modes
+frame buffer modes file
+
+
+.SH SEE ALSO
+.BR fb.modes (5)
+.BR fbset (8)
