@@ -44,7 +44,7 @@ typedef enum {
      SMF_DESTINATION     = 0x00000100,
      SMF_SOURCE          = 0x00000200,
 
-     SMF_ALL             = 0x000001FF
+     SMF_ALL             = 0x000003FF
 } StateModificationFlags;
 
 struct _CardState {
