@@ -522,7 +522,7 @@ DFBResult dfb_fbdev_wait_vsync()
      return DFB_OK;
 }
 
-static DFBResult init_modes()
+DFBResult dfb_fbdev_init_modes()
 {
      dfb_fbdev_read_modes();
 
@@ -597,7 +597,7 @@ primaryInitLayer         ( GraphicsDevice             *device,
      VideoMode *default_mode;
 
      /* initialize mode table */
-     ret = init_modes();
+     ret = dfb_fbdev_init_modes();
      if (ret)
           return ret;
 

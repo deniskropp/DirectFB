@@ -63,7 +63,7 @@
 
 /* #define SAVAGE_DEBUG */
 #ifdef SAVAGE_DEBUG
-#define SVGDBG(x...) fprintf(stderr, "savage4:");fprintf(stderr,x)
+#define SVGDBG(x...) fprintf(stderr, "savage4:" x)
 #else
 #define SVGDBG(x...)
 #endif
@@ -187,6 +187,13 @@ static inline void savage4_validate_color( Savage4DeviceData *sdev,
                                              state->color.g,
                                              state->color.b);
                break;
+#ifdef SUPPORT_RGB332
+          case DSPF_RGB332:
+               sdev->Fill_Color = PIXEL_RGB332(state->color.r,
+                                               state->color.g,
+                                               state->color.b);
+               break;
+#endif
           default:
                BUG( "unexpected destination format" );
                break;
@@ -218,6 +225,9 @@ static void savage4CheckState( void *drv, void *dev,
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
+#ifdef SUPPORT_RGB332
+          case DSPF_RGB332:
+#endif
                break;
           default:
                return;
@@ -353,8 +363,8 @@ static void savage4DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
           
      /* fourth line */
      BCI_SEND( BCI_CMD_RECT |
-          BCI_CMD_RECT_XP | BCI_CMD_RECT_YP |
-          BCI_CMD_DEST_GBD | BCI_CMD_SRC_SOLID | (0xcc << 16) );
+               BCI_CMD_RECT_XP | BCI_CMD_RECT_YP |
+               BCI_CMD_DEST_GBD | BCI_CMD_SRC_SOLID | (0xcc << 16) );
 
      BCI_SEND( BCI_X_Y( rect->x+rect->w-1, rect->y ) );
      BCI_SEND( BCI_W_H( 1 , rect->h ) );
@@ -417,7 +427,7 @@ static void savage4Blit( void *drv, void *dev,
                    BCI_CMD_CLIP_CURRENT | BCI_CMD_DEST_GBD | 
                    BCI_CMD_SRC_PBD_COLOR | (0xcc << 16) );
  
-     SVGDBG("savage4Blit1 x:%i y:%i w:%i h:%i dx:%i dy:%i\n",
+     SVGDBG("savage4Blit x:%i y:%i w:%i h:%i dx:%i dy:%i\n",
             rect->x, rect->y, rect->w, rect->h, dx, dy);
 
      if (dx < rect->x && dx >= 0) {

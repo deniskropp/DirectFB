@@ -109,9 +109,9 @@ DFBResult dfb_fbdev_leave( bool emergency );
  */
 DFBResult dfb_fbdev_wait_vsync();
 
+DFBResult dfb_fbdev_init_modes();
+
 VideoMode *dfb_fbdev_modes();
-
-
 
 void dfb_primarylayer_register( GraphicsDevice *device );
 

@@ -64,7 +64,7 @@
 
 /* #define SAVAGE_DEBUG */
 #ifdef SAVAGE_DEBUG
-#define SVGDBG(x...) fprintf(stderr, "savage_streams_old:");fprintf(stderr,x)
+#define SVGDBG(x...) fprintf(stderr, "savage_streams_old:" x)
 #else
 #define SVGDBG(x...)
 #endif
@@ -156,7 +156,7 @@ streamOnOff(SavageDriverData * sdrv, int on)
 
        /* turn on stream operation */ 
        vga_out8( mmio, 0x3d4, 0x67 );
-       vga_out8( mmio, 0x3d5, vga_in8( mmio, 0x3d5 ) | 0x0c );
+       vga_out8( mmio, 0x3d5, 0x0c );
      } else {
        /* turn off stream operation */ 
        vga_out8( mmio, 0x3d4, 0x67 );
@@ -509,8 +509,21 @@ savageSecondaryFlipBuffers(  DisplayLayer        *layer,
 			     void                *layer_data,
                              DFBSurfaceFlipFlags flags )
 {
+     SavageDriverData *sdrv = (SavageDriverData*) driver_data;
+     SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
+     CoreSurface        *surface = dfb_layer_surface( layer );
+
      SVGDBG("savageSecondaryFlipBuffers\n");
-     return DFB_UNSUPPORTED;
+
+     dfb_surface_flip_buffers( surface );
+     
+     secondary_calc_regs(sdrv, slay, layer, &slay->config);
+     secondary_set_regs(sdrv, slay);
+
+     if (flags & DSFLIP_WAITFORSYNC)
+          dfb_fbdev_wait_vsync();
+
+     return DFB_OK;
 }
 
 
@@ -616,6 +629,7 @@ secondary_set_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay)
         int pitch = slay->video_pitch;
 	unsigned char cr92;
 
+	SVGDBG("FIFO L2 pitch:%i\n", pitch);
 	pitch = (pitch + 7) / 8;
 	vga_out8(mmio, 0x3d4, 0x92);
 	cr92 = vga_in8( mmio, 0x3d5);
@@ -644,6 +658,7 @@ secondary_calc_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay,
             surface->height, front_buffer->video.pitch,
             front_buffer->video.offset);
      
+     slay->video_pitch = 1;
      slay->regs.SSTREAM_FB_SIZE = (((front_buffer->video.pitch *
                                      surface->height) / 8) - 1) & 0x003fffff;
 
@@ -678,6 +693,7 @@ secondary_calc_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay,
           break;
      case DSPF_I420:
           SVGDBG("secondary set to DSPF_I420\n");
+	  slay->video_pitch = 2;
           slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr420;
           slay->regs.SSTREAM_FB_CB_ADDR = front_buffer->video.offset +
                (surface->height * front_buffer->video.pitch);
@@ -688,6 +704,7 @@ secondary_calc_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay,
           break;
      case DSPF_YV12:
           SVGDBG("secondary set to DSPF_YV12\n");
+	  slay->video_pitch = 2;
           slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr420;
           slay->regs.SSTREAM_FB_CR_ADDR = front_buffer->video.offset +
                surface->height * front_buffer->video.pitch;
@@ -726,7 +743,7 @@ secondary_calc_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay,
      }
 
      slay->regs.SSTREAM_H_SCALE = ((32768 * src_w) / drw_w) & 0x0000FFFF;
-     slay->regs.SSTREAM_V_SCALE = ((32768 * src_h) / drw_h) & 0x000FFFF;
+     slay->regs.SSTREAM_V_SCALE = ((32768 * src_h) / drw_h) & 0x000FFFFF;
      slay->regs.SSTREAM_V_INIT_VALUE = 0;
      slay->regs.SSTREAM_SRC_LINE_COUNT = src_h & 0x7ff;
      slay->regs.SSTREAM_MULTIBUF = 0;
@@ -738,7 +755,7 @@ secondary_calc_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay,
      slay->regs.SSTREAM_WIN_SIZE = OS_WH(drw_w, drw_h);
      
      /* remember pitch */
-     slay->video_pitch = front_buffer->video.pitch;
+     slay->video_pitch *= front_buffer->video.pitch;
 }
 
 /* primary layer functions */
@@ -758,13 +775,21 @@ savagePrimaryInitLayer( GraphicsDevice             *device,
                         void                       *driver_data,
                         void                       *layer_data )
 {
-     VideoMode *default_mode = dfb_fbdev->shared->modes;
+     VideoMode * default_mode;
      SavagePrimaryLayerData *play = (SavagePrimaryLayerData*) layer_data;
+     DFBResult ret;
     
      SVGDBG("savagePrimaryInitLayer w:%i h:%i bpp:%i\n",
             dfb_config->mode.width, dfb_config->mode.height,
             dfb_config->mode.depth);
     
+     /* initialize mode table */
+     ret = dfb_fbdev_init_modes();
+     if (ret)
+          return ret;
+
+     default_mode = dfb_fbdev->shared->modes;
+
      /* set capabilities and type */
      layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION;
      layer_info->desc.type = DLTF_GRAPHICS;
@@ -857,7 +882,7 @@ savagePrimarySetScreenLocation( DisplayLayer *layer,
      
      return DFB_OK;
 }
-          
+
 DisplayLayerFuncs savagePrimaryFuncs = {
      LayerDataSize:      savagePrimaryLayerDataSize,
      InitLayer:          savagePrimaryInitLayer,
@@ -889,7 +914,7 @@ primary_set_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play)
 
      /* turn streams on */
      streamOnOff(sdrv, 1);
-          
+
      /* setup primary stream */
      savage_out32(mmio, SAVAGE_PRIMARY_STREAM_WINDOW_START,
                   play->regs.PSTREAM_WIN_START);
@@ -905,7 +930,7 @@ primary_set_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play)
                   play->regs.PSTREAM_CTRL);
      savage_out32(mmio, SAVAGE_PRIMARY_STREAM_FRAME_BUFFER_SIZE,
                   play->regs.PSTREAM_FB_SIZE);
-          
+
      if (play->init == 0) {
           /* tweak */
           /* fifo fetch delay register */
@@ -935,23 +960,23 @@ primary_set_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play)
           vga_out8( mmio, 0x3d4, 0x51 );
           SVGDBG( "cr51: 0x%02x\n", vga_in8( mmio, 0x3d5 ) );
           vga_out8( mmio, 0x3d5, vga_in8( mmio, 0x3d5 ) | 0x80 );
-          
+
           /* setup secondary stream */
-          savage_out32( mmio, SAVAGE_CHROMA_KEY_CONTROL, 0 );
+          savage_out32(mmio, SAVAGE_CHROMA_KEY_CONTROL, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_CONTROL, 0);
-          savage_out32( mmio, SAVAGE_CHROMA_KEY_UPPER_BOUND, 0 );
+          savage_out32(mmio, SAVAGE_CHROMA_KEY_UPPER_BOUND, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_HORIZONTAL_SCALING, 0);
-          savage_out32( mmio, SAVAGE_COLOR_ADJUSTMENT, 0 );
+          savage_out32(mmio, SAVAGE_COLOR_ADJUSTMENT, 0);
           savage_out32(mmio, SAVAGE_BLEND_CONTROL, 1 << 24);
-          savage_out32( mmio, SAVAGE_SECONDARY_STREAM_MULTIPLE_BUFFER_SUPPORT, 0 );
+          savage_out32(mmio, SAVAGE_SECONDARY_STREAM_MULTIPLE_BUFFER_SUPPORT, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS0, 0);
-          savage_out32( mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS1, 0 );
-          savage_out32( mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS2, 0 );
+          savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS1, 0);
+          savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS2, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_SIZE, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_STRIDE, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_VERTICAL_SCALING, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_SOURCE_LINE_COUNT, 0);
-          savage_out32( mmio, SAVAGE_SECONDARY_STREAM_VERTICAL_INITIAL_VALUE, 0 );
+          savage_out32(mmio, SAVAGE_SECONDARY_STREAM_VERTICAL_INITIAL_VALUE, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_WINDOW_START,
                   OS_XY(0xfffe, 0xfffe));
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_WINDOW_SIZE,
@@ -968,8 +993,9 @@ primary_calc_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play,
      CoreSurface * surface = dfb_layer_surface(layer);
      SurfaceBuffer * front_buffer = surface->front_buffer;
      
-     SVGDBG("primary_calc_regs w:%i h:%i pitch:%i\n",
-            surface->width, surface->height, front_buffer->video.pitch);
+     SVGDBG("primary_calc_regs w:%i h:%i pitch:%i video.offset:%x\n",
+            surface->width, surface->height, front_buffer->video.pitch,
+	    front_buffer->video.offset);
      
      switch (surface->format) {
      case DSPF_RGB15:
@@ -1003,7 +1029,7 @@ primary_calc_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play,
           return;
      }
 
-     play->regs.PSTREAM_FB_ADDR0 = 0;
+     play->regs.PSTREAM_FB_ADDR0 = front_buffer->video.offset & 0x01ffffff;
      play->regs.PSTREAM_FB_ADDR1 = 0;
      play->regs.PSTREAM_STRIDE = front_buffer->video.pitch & 0x00001fff;
      play->regs.PSTREAM_WIN_START = OS_XY(play->dx, play->dy);

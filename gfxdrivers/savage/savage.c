@@ -231,7 +231,7 @@ driver_init_device( GraphicsDevice     *device,
      /* Enable 2D engine. */
 
      vga_out8( mmio, 0x3d4, 0x40 );
-     vga_out8( mmio, 0x3d4, 0x01 );
+     vga_out8( mmio, 0x3d5, 0x01 );
      
      
      savage_out32( mmio, MONO_PAT_0, ~0 );
@@ -245,38 +245,6 @@ driver_init_device( GraphicsDevice     *device,
      
      return DFB_OK;
 }
-
-#if 0
-static DFBResult
-driver_init_layers( void *driver_data,
-                    void *device_data )
-{
-     SavageDeviceData *sdev = (SavageDeviceData*) device_data;
-     
-     switch (sdev->accel_id) {
-#if 0
-          case FB_ACCEL_SAVAGE3D:       /* Old Streams Processor */
-          case FB_ACCEL_SAVAGE3D_MV:
-#endif
-          case FB_ACCEL_SAVAGE4:
-          case FB_ACCEL_PROSAVAGE_PM:
-          case FB_ACCEL_PROSAVAGE_KM:
-          case FB_ACCEL_S3TWISTER_P:
-          case FB_ACCEL_S3TWISTER_K:
-               savage_streams_old_init( driver_data, device_data );
-               break;
-
-          case FB_ACCEL_SAVAGE_MX_MV:   /* New Streams Processor */
-          case FB_ACCEL_SAVAGE_MX:
-          case FB_ACCEL_SAVAGE_IX_MV:
-          case FB_ACCEL_SAVAGE_IX:
-          case FB_ACCEL_SAVAGE2000:
-               break;
-     }
-
-     return DFB_OK;
-}
-#endif
 
 static void
 driver_close_device( GraphicsDevice *device,
