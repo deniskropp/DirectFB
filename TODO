@@ -3,6 +3,4 @@ when in normal cooperative level and it already exists.
 
 Use CON2FBMAP. Allow disabling of specific input devices.
 
-Add creation of surfaces with preallocated memory.
-
 Memory Source or Streaming for Image/Video Provider.
