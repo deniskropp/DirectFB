@@ -120,7 +120,7 @@ Construct( IDirectFBFont      *thiz,
                                    "01234567890!\"$\%&/()=?^<>"
                                    "|,;.:-_{[]}\\`+*~#'";
 
-	  if ((desc->flags & DFDESC_ATTRIBUTES) &&
+	  if (desc && (desc->flags & DFDESC_ATTRIBUTES) &&
 	      (desc->attributes & DFFA_NOCHARMAP))
                use_unicode = 0;
 	  else
@@ -137,7 +137,8 @@ Construct( IDirectFBFont      *thiz,
                     data->height  = 20;
                     data->left    = 0;
                     data->top     = 0;
-                    data->advance = ((desc->flags & DFDESC_FIXEDADVANCE) ?
+                    data->advance = ((desc && (desc->flags &
+                                               DFDESC_FIXEDADVANCE)) ?
                                      desc->fixed_advance :
                                      data->width + 1);
 
