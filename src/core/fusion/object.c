@@ -90,6 +90,7 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
      /* Stop bone collector thread. */
      pool->shutdown = true;
      dfb_thread_join( pool->bone_collector );
+     dfb_thread_destroy( pool->bone_collector );
 
      /* Destroy the pool lock. */
      fusion_skirmish_destroy( &pool->lock );
