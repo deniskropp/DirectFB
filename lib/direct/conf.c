@@ -31,7 +31,8 @@
 
 
 static DirectConfig config = {
-     debug:    true
+     debug:      true,
+     sighandler: true
 };
 
 DirectConfig *direct_config = &config;

@@ -44,6 +44,7 @@ include_HEADERS = \
 	conf.h				\
 	cpu_accel.h			\
 	debug.h				\
+	direct.h			\
 	hash.h				\
 	interface.h			\
 	interface_implementation.h	\
@@ -70,6 +71,7 @@ libdirect_la_SOURCES = \
 	conf.c			\
 	cpu_accel.c		\
 	debug.c			\
+	direct.c		\
 	hash.c			\
 	interface.c		\
 	list.c			\

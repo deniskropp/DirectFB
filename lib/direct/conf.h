@@ -32,13 +32,16 @@
 #include <direct/types.h>
 
 struct __D_DirectConfig {
-     bool   quiet;
-     bool   debug;
+     bool       quiet;
+     bool       debug;
 
-     char  *memcpy;           /* Don't probe for memcpy routines to save a lot of
-                                 startup time. Use this one instead if it's set. */
+     char      *memcpy;           /* Don't probe for memcpy routines to save a lot of
+                                     startup time. Use this one instead if it's set. */
 
-     char **disable_module;   /* Never load these modules. */
+     char     **disable_module;    /* Never load these modules. */
+
+     bool       sighandler;
+     sigset_t   dont_catch;        /* don't catch these signals */
 };
 
 extern DirectConfig *direct_config;

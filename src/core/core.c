@@ -50,12 +50,12 @@
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/palette.h>
-#include <core/sig.h>
 #include <core/surfaces.h>
 #include <core/system.h>
 #include <core/windows.h>
 
 #include <direct/build.h>
+#include <direct/direct.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -116,6 +116,8 @@ struct __DFB_CoreDFB {
      DirectLink              *cleanups;
 
      DirectThreadInitHandler *init_handler;
+
+     DirectSignalHandler     *signal_handler;
 };
 
 /******************************************************************************/
@@ -128,6 +130,10 @@ static void dfb_core_deinit_check();
 static void dfb_core_thread_init_handler( DirectThread *thread, void *arg );
 
 static void dfb_core_process_cleanups( CoreDFB *core, bool emergency );
+
+static DirectSignalHandlerResult dfb_core_signal_handler( int   num,
+                                                          void *addr,
+                                                          void *ctx );
 
 /******************************************************************************/
 
@@ -204,6 +210,8 @@ dfb_core_create( CoreDFB **ret_core )
           return DFB_OK;
      }
 
+     direct_initialize();
+
 #if FUSION_BUILD_MULTI
      D_INFO( "DirectFB/Core: Multi Application Core.%s ("BUILDTIME")\n", mmx_string );
 #else
@@ -223,6 +231,7 @@ dfb_core_create( CoreDFB **ret_core )
      ret = dfb_system_lookup();
      if (ret) {
           pthread_mutex_unlock( &core_dfb_lock );
+          direct_shutdown();
           return ret;
      }
 
@@ -231,6 +240,7 @@ dfb_core_create( CoreDFB **ret_core )
      core = D_CALLOC( 1, sizeof(CoreDFB) );
      if (!core) {
           pthread_mutex_unlock( &core_dfb_lock );
+          direct_shutdown();
           return DFB_NOSYSTEMMEMORY;
      }
 
@@ -260,6 +270,7 @@ dfb_core_create( CoreDFB **ret_core )
           D_FREE( core );
           core_dfb = NULL;
           pthread_mutex_unlock( &core_dfb_lock );
+          direct_shutdown();
           return DFB_FUSION;
      }
 
@@ -276,8 +287,7 @@ dfb_core_create( CoreDFB **ret_core )
           sync();
      }
 
-     dfb_sig_install_handlers( core );
-
+     direct_signal_handler_add( -1, dfb_core_signal_handler, core, &core->signal_handler );
 
      if (fusion_arena_enter( "DirectFB/Core",
                              dfb_core_arena_initialize, dfb_core_arena_join,
@@ -285,13 +295,14 @@ dfb_core_create( CoreDFB **ret_core )
      {
           direct_thread_remove_init_handler( core->init_handler );
 
-          dfb_sig_remove_handlers( core );
+          direct_signal_handler_remove( core->signal_handler );
 
           D_FREE( core );
           core_dfb = NULL;
 
           pthread_mutex_unlock( &core_dfb_lock );
 
+          direct_shutdown();
           return ret ? ret : DFB_FUSION;
      }
 
@@ -328,7 +339,7 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           return DFB_OK;
      }
 
-     dfb_sig_remove_handlers( core );
+     direct_signal_handler_remove( core->signal_handler );
 
      if (core->master) {
           if (emergency) {
@@ -358,6 +369,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      core_dfb = NULL;
 
      pthread_mutex_unlock( &core_dfb_lock );
+
+     direct_shutdown();
 
      return DFB_OK;
 }
@@ -648,6 +661,20 @@ dfb_core_process_cleanups( CoreDFB *core, bool emergency )
 
           D_FREE( cleanup );
      }
+}
+
+static DirectSignalHandlerResult
+dfb_core_signal_handler( int   num,
+                         void *addr,
+                         void *ctx )
+{
+     CoreDFB *core = ctx;
+
+     D_ASSERT( core == core_dfb );
+
+     dfb_core_destroy( core, true );
+
+     return DSHR_OK;
 }
 
 /******************************************************************************/

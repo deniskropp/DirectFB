@@ -35,7 +35,6 @@ internalinclude_HEADERS = \
 	palette.h		\
 	screen.h		\
 	screens.h		\
-	sig.h			\
 	state.h			\
 	surfaces.h		\
 	surfacemanager.h	\
@@ -64,7 +63,6 @@ libdirectfb_core_la_SOURCES = \
 	screen.c		\
 	screens.c		\
 	screens_internal.h	\
-	sig.c			\
 	state.c			\
 	surfaces.c		\
 	surfacemanager.c	\

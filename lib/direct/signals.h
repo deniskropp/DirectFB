@@ -28,11 +28,37 @@
 #ifndef __DIRECT__SIGNALS_H__
 #define __DIRECT__SIGNALS_H__
 
+#include <direct/types.h>
+
+
+typedef enum {
+     DSHR_OK,
+     DSHR_REMOVE,
+     DSHR_RESUME
+} DirectSignalHandlerResult;
+
+typedef DirectSignalHandlerResult (*DirectSignalHandlerFunc)( int   num,
+                                                              void *addr,
+                                                              void *ctx );
+
+
+DirectResult direct_signals_initialize();
+DirectResult direct_signals_shutdown();
+
 /*
  * Modifies the current thread's signal mask to block everything.
  * Should be called by input threads once to avoid killing themselves
  * in the signal handler by deinitializing all input drivers.
  */
 void direct_signals_block_all();
+
+
+DirectResult direct_signal_handler_add   ( int                       num,
+                                           DirectSignalHandlerFunc   func,
+                                           void                     *ctx,
+                                           DirectSignalHandler     **ret_handler );
+
+DirectResult direct_signal_handler_remove( DirectSignalHandler      *handler );
+
 
 #endif

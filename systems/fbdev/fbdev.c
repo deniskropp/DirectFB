@@ -61,7 +61,6 @@
 #include <core/palette.h>
 #include <core/screen.h>
 #include <core/screens.h>
-#include <core/sig.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 #include <core/state.h>

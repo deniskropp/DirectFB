@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <signal.h>
 #include <errno.h>
 #include <time.h>
 #include <fcntl.h>
@@ -40,8 +41,10 @@
 
 #include <direct/clock.h>
 #include <direct/debug.h>
+#include <direct/direct.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/signals.h>
 #include <direct/thread.h>
 
 #include <fusion/build.h>
@@ -60,7 +63,12 @@
 #include "shmalloc/shmalloc_internal.h"
 
 
-static void *fusion_read_loop( DirectThread *thread, void *arg );
+static void                      *fusion_read_loop     ( DirectThread *thread,
+                                                         void         *arg );
+
+static DirectSignalHandlerResult  fusion_signal_handler( int           num,
+                                                         void         *addr,
+                                                         void         *ctx );
 
 /**************************
  *  Fusion internal data  *
@@ -70,7 +78,8 @@ static int    fusion_refs   =  0;
 int           _fusion_fd    = -1;
 FusionShared *_fusion_shared = NULL;
 
-static DirectThread *read_loop;
+static DirectThread        *read_loop;
+static DirectSignalHandler *signal_handler;
 
 /****************
  *  Public API  *
@@ -91,6 +100,8 @@ fusion_init( int world, int abi_version, int *world_ret )
           return _fusion_id;
      }
 
+     direct_initialize();
+
      /* Open Fusion Kernel Device. */
      if (world < 0) {
           for (world=0; world<256; world++) {
@@ -102,6 +113,7 @@ fusion_init( int world, int abi_version, int *world_ret )
                          continue;
 
                     D_PERROR( "Fusion/Init: opening '%s' failed!\n", buf );
+                    direct_shutdown();
                     return -1;
                }
                else
@@ -114,6 +126,7 @@ fusion_init( int world, int abi_version, int *world_ret )
           _fusion_fd = open (buf, O_RDWR | O_NONBLOCK);
           if (_fusion_fd < 0) {
                D_PERROR( "Fusion/Init: opening '%s' failed!\n", buf );
+               direct_shutdown();
                return -1;
           }
      }
@@ -123,6 +136,7 @@ fusion_init( int world, int abi_version, int *world_ret )
           D_PERROR( "Fusion/Init: FUSION_GET_ID failed!\n" );
           close( _fusion_fd );
           _fusion_fd = -1;
+          direct_shutdown();
           return -1;
      }
 
@@ -142,6 +156,7 @@ fusion_init( int world, int abi_version, int *world_ret )
 
           close( _fusion_fd );
           _fusion_fd = -1;
+          direct_shutdown();
           return -1;
      }
 
@@ -169,11 +184,14 @@ fusion_init( int world, int abi_version, int *world_ret )
 
                close( _fusion_fd );
                _fusion_fd = -1;
+               direct_shutdown();
                return -1;
           }
      }
 
      direct_clock_set_start( &_fusion_shared->start_time );
+
+     direct_signal_handler_add( SIGSEGV, fusion_signal_handler, NULL, &signal_handler );
 
      read_loop = direct_thread_create( DTT_MESSAGING, fusion_read_loop, NULL, "Fusion Dispatch" );
 
@@ -212,6 +230,8 @@ fusion_exit()
      direct_thread_join( read_loop );
      direct_thread_destroy( read_loop );
 
+     direct_signal_handler_remove( signal_handler );
+
      /* Master has to deinitialize shared data. */
      if (_fusion_id == 1) {
           fusion_skirmish_destroy( &_fusion_shared->arenas_lock );
@@ -230,6 +250,8 @@ fusion_exit()
      if (close( _fusion_fd ))
           D_PERROR( "Fusion/Exit: closing the fusion device failed!\n" );
      _fusion_fd = -1;
+
+     direct_shutdown();
 }
 
 FusionResult
@@ -380,11 +402,24 @@ fusion_read_loop( DirectThread *thread, void *arg )
      return NULL;
 }
 
+static DirectSignalHandlerResult
+fusion_signal_handler( int   num,
+                       void *addr,
+                       void *ctx )
+{
+     if (fusion_shmalloc_cure( addr ))
+          return DSHR_RESUME;
+
+     return DSHR_OK;
+}
+
 #else
 
 int
 fusion_init( int world, int abi_version, int *ret_world )
 {
+     direct_initialize();
+
      if (ret_world)
           *ret_world = 0;
 
@@ -395,6 +430,8 @@ void
 fusion_exit()
 {
      fusion_dbg_print_memleaks();
+
+     direct_shutdown();
 }
 
 FusionResult

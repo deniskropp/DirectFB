@@ -25,24 +25,15 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __SIG_H__
-#define __SIG_H__
+#ifndef __DIRECT__DIRECT_H__
+#define __DIRECT__DIRECT_H__
 
-#include <pthread.h>
-#include <signal.h>
+#include <direct/types.h>
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
 
-/*
- * installs a signal handler for all signals
- * that would cause the program to terminate
- */
-void dfb_sig_install_handlers( CoreDFB *core );
+DirectResult direct_initialize();
+DirectResult direct_shutdown();
 
-/*
- * removes all installed handlers
- */
-void dfb_sig_remove_handlers( CoreDFB *core );
 
 #endif
+

@@ -63,7 +63,6 @@ typedef struct
 
      bool      force_windowed;                    /* prohibit exclusive modes */
 
-     bool      sighandler;
      bool      deinit_check;
 
      bool      vt_switch;                         /* allocate a new VT */
@@ -101,8 +100,6 @@ typedef struct
 
      int       videoram_limit;                    /* limit amount of video
                                                      memory used by DirectFB */
-
-     sigset_t  dont_catch;                        /* don't catch these signals */
 
      char     *screenshot_dir;                    /* dump screen content into
                                                      this directory */

@@ -313,7 +313,6 @@ static void config_allocate()
      dfb_config->banner                   = true;
      dfb_config->deinit_check             = true;
      dfb_config->mmx                      = true;
-     dfb_config->sighandler               = true;
      dfb_config->vt_switch                = true;
      dfb_config->translucent_windows      = true;
      dfb_config->mouse_motion_compression = true;
@@ -321,8 +320,6 @@ static void config_allocate()
      dfb_config->mouse_source             = D_STRDUP( DEV_NAME );
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
-
-     sigemptyset( &dfb_config->dont_catch );
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -584,10 +581,10 @@ DFBResult dfb_config_set( const char *name, const char *value )
           dfb_config->a1_font = false;
      } else
      if (strcmp (name, "sighandler" ) == 0) {
-          dfb_config->sighandler = true;
+          direct_config->sighandler = true;
      } else
      if (strcmp (name, "no-sighandler" ) == 0) {
-          dfb_config->sighandler = false;
+          direct_config->sighandler = false;
      } else
      if (strcmp (name, "block-all-signals" ) == 0) {
           dfb_config->block_all_signals = true;
@@ -791,7 +788,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                          return DFB_INVARG;
                     }
 
-                    sigaddset( &dfb_config->dont_catch, signum );
+                    sigaddset( &direct_config->dont_catch, signum );
 
                     s = NULL;
                }
