@@ -756,9 +756,9 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
           ret = fbdev_pan( thiz->surface->back_buffer->video.offset ? 1 : 0 );
           if (ret)
                return ret;
-
-          surface_flip_buffers( thiz->surface );
      }
+
+     surface_flip_buffers( thiz->surface );
 
 #if defined(HAVE_INB_OUTB_IOPL)
      if (!dfb_config->pollvsync_none && dfb_config->pollvsync_after) {
