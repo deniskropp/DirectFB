@@ -313,10 +313,11 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
                          c->tolerations = 0xff;
                     
                     if (!c->buffer->video.locked              &&
-                        c->buffer->policy != CSP_VIDEOONLY    &&
                         c->buffer->policy <= buffer->policy   &&
-                        ((c->tolerations > manager->min_toleration/8 + 2) ||
-                         buffer->policy == CSP_VIDEOONLY))
+                        c->buffer->policy != CSP_VIDEOONLY    &&
+
+                        ((buffer->policy > c->buffer->policy) ||
+                         (c->tolerations > manager->min_toleration/8 + 2)))
                     {
                          /* found a nice place to chill */
                          if (!best_occupied  ||
