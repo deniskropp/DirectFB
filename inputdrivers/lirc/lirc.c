@@ -27,6 +27,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <limits.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -161,7 +162,7 @@ driver_get_available()
      struct sockaddr_un addr;
 
      addr.sun_family = AF_UNIX;
-     strcpy( addr.sun_path, "/dev/lircd" );
+     strncpy( addr.sun_path, "/dev/lircd", sizeof(addr.sun_path) );
 
      fd = socket( PF_UNIX, SOCK_STREAM, 0 );
      if (fd < 0)
@@ -204,7 +205,7 @@ driver_open_device( InputDevice      *device,
 
      /* create socket */
      sa.sun_family = AF_UNIX;
-     strcpy( sa.sun_path, "/dev/lircd" );
+     strncpy( sa.sun_path, "/dev/lircd", sizeof(sa.sun_path) );
 
      fd = socket( PF_UNIX, SOCK_STREAM, 0 );
      if (fd < 0) {

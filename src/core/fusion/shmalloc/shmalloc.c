@@ -71,7 +71,7 @@ Cambridge, MA 02139, USA.
 #define SH_DEFAULT_NAME  "/dev/shm" SH_FILE_NAME
 #define SH_MOUNTS_FILE   "/proc/mounts"
 #define SH_SHMFS_TYPE    "tmpfs"
-#define SH_BUFSIZE       256
+#define SH_BUFSIZE       1024
 
 static int   fd            = -1;
 static void *mem           = NULL;
@@ -106,18 +106,17 @@ shmalloc_check_shmfs (void)
               && (strlen (mount_fs) == strlen (SH_SHMFS_TYPE))
               && (!(strcmp (mount_fs, SH_SHMFS_TYPE))))
           {
-               if (!(pointer = DFBMALLOC(strlen (mount_point)
-                                         + strlen (SH_FILE_NAME) + 1)))
-               {
+               int len = strlen (mount_point) + strlen (SH_FILE_NAME) + 1;
+
+               if (!(pointer = DFBMALLOC(len))) {
                     fclose (mounts_handle);
 
                     return DFBSTRDUP( SH_DEFAULT_NAME );
                }
 
-               strcpy (pointer, mount_point);
-               strcat (pointer, SH_FILE_NAME);
-
                fclose (mounts_handle);
+
+               snprintf (pointer, len, "%s%s", mount_point, SH_FILE_NAME);
 
                return pointer;
           }
@@ -292,6 +291,7 @@ _fusion_shmalloc (size_t size)
                         __shmalloc_brk (0) == ADDRESS (block + lastblocks) &&
                         (morecore ((blocks - lastblocks) * BLOCKSIZE)) != NULL) {
 #if 1   /* Adapted from Mike */
+
                          /* Note that morecore() can change the location of
                             the final block if it moves the info table and the
                             old one gets coalesced into the final block. */
@@ -394,7 +394,7 @@ void *__shmalloc_init (bool initialize)
      }
 
      FDEBUG("mmaping shared memory file...\n");
-     
+
      /* map it shared */
      mem = mmap ((void*) SH_BASE, size,
                  PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
@@ -406,9 +406,9 @@ void *__shmalloc_init (bool initialize)
      }
 
      FDEBUG("mmapped shared memory file.\n");
-     
+
      _sheap = mem;
-     
+
      if (initialize) {
           memset (mem, 0, size);
 
@@ -431,12 +431,12 @@ void *__shmalloc_init (bool initialize)
           _sheap->heapbase = (char *) _sheap->heapinfo;
 
           skirmish_init (&_sheap->lock);
-          
+
           _sheap->reactor  = reactor_new (sizeof(int));
      }
 
      reactor_attach (_sheap->reactor, __shmalloc_react, NULL, &reaction);
-     
+
      return mem;
 }
 
@@ -503,11 +503,11 @@ void __shmalloc_exit (bool shutdown)
 {
      if (!mem)
           return;
-     
+
      if (_sheap) {
           /* Detach from reactor */
           reactor_detach (_sheap->reactor, &reaction);
-     
+
           /* Destroy reactor & skirmish */
           if (shutdown) {
                FusionReactor *reactor = _sheap->reactor;
@@ -521,7 +521,7 @@ void __shmalloc_exit (bool shutdown)
 
           _sheap = NULL;
      }
-     
+
      munmap (mem, size);
      mem = NULL;
 
@@ -554,6 +554,6 @@ void *__shmalloc_get_root()
 
 bool fusion_is_shared (const void *ptr)
 {
-     return ((unsigned int) ptr >= SH_BASE &&
-             (unsigned int) ptr <  SH_BASE + SH_MAX_SIZE);
+     return((unsigned int) ptr >= SH_BASE &&
+            (unsigned int) ptr <  SH_BASE + SH_MAX_SIZE);
 }

@@ -696,10 +696,10 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
      }
      
      if (prog && prog[0]) {
-          char buf[ strlen("/etc/directfbrc.") + strlen(prog) + 1 ];
+          int  len = strlen("/etc/directfbrc.") + strlen(prog) + 1;
+          char buf[len];
 
-          strcpy( buf, "/etc/directfbrc." );
-          strcat( buf, prog );
+          snprintf( buf, len, "/etc/directfbrc.%s", prog );
 
           ret = dfb_config_read( buf );
           if (ret  &&  ret != DFB_IO)
@@ -707,20 +707,18 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
      }
 
      if (home) {
-          char filename[ strlen(home) +
-                         strlen("/.directfbrc.") +
-                         (prog ? strlen(prog) : 0) + 1 ];
+          int len = strlen(home) +
+                    strlen("/.directfbrc.") + (prog ? strlen(prog) : 0) + 1;
+          char filename[len];
 
-          strcpy( filename, home );
-          strcat( filename, "/.directfbrc" );
+          snprintf( filename, len, "%s/.directfbrc", home );
 
           ret = dfb_config_read( filename );
           if (ret  &&  ret != DFB_IO)
                return ret;
      
           if (prog && prog[0]) {
-               strcat( filename, "." );
-               strcat( filename, prog );
+               snprintf( filename, len, "%s/.directfbrc.%s", home, prog );
 
                ret = dfb_config_read( filename );
                if (ret  &&  ret != DFB_IO)
