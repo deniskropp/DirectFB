@@ -1,0 +1,12 @@
+This patch patches the aty128fb driver in the "official" 2.4 kernel tree to
+the version included in Benjamin Herrenschmidt's kernel tree.
+
+If you have a Power Mac and already use benh's kernel tree, you dont have to
+do anything, DirectFB will just run fine.
+
+It fixes/changes the following (for DirectFB):
+
+- driver supports RGB565 16-bit mode
+- pannig works, allows correct dublebuffering, without jittering screen.
+- no more errors when using drm and starting DirectFB programs from X.
+- correct colors when using XFree's "UseFBDev" option.
