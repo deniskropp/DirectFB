@@ -111,6 +111,28 @@ static void ati128EngineSync()
 
 static void ati128CheckState( CardState *state, DFBAccelerationMask accel )
 {
+     switch (state->destination->format) {
+          case DSPF_RGB15:
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               break;
+          default:
+               return;
+     }
+     
+     switch (state->source->format) {
+          case DSPF_RGB15:
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               break;
+          default:
+               return;
+     }
+
      /* check for the special drawing function that does not support
         the usually supported drawingflags */
      if (accel == DFXL_DRAWLINE  &&  state->drawingflags != DSDRAW_NOFX)
@@ -119,7 +141,7 @@ static void ati128CheckState( CardState *state, DFBAccelerationMask accel )
      /* if there are no other drawing flags than the supported */
      if (!(accel & ~ATI128_SUPPORTED_DRAWINGFUNCTIONS) &&
          !(state->drawingflags & ~ATI128_SUPPORTED_DRAWINGFLAGS))
-          state->accel |= accel;
+          state->accel |= ATI128_SUPPORTED_DRAWINGFUNCTIONS;
 
      /* if there are no other blitting flags than the supported
         and the source has the minimum size */
@@ -128,7 +150,7 @@ static void ati128CheckState( CardState *state, DFBAccelerationMask accel )
          state->source &&
          state->source->width  >= 8 &&
          state->source->height >= 8 )
-         state->accel |= accel;
+         state->accel |= ATI128_SUPPORTED_BLITTINGFUNCTIONS;
 }
 
 
