@@ -3218,11 +3218,11 @@ void gDrawLine( DFBRegion *line )
      }
 }
 
-static inline void gDoBlit( int sx,     int sy,
-                            int width,  int height,
-                            int dx,     int dy,
-                            int spitch, int dpitch,
-                            void *sorg, void *dorg )
+static void gDoBlit( int sx,     int sy,
+                     int width,  int height,
+                     int dx,     int dy,
+                     int spitch, int dpitch,
+                     void *sorg, void *dorg )
 {
      if (dy > sy) {
           /* we must blit from bottom to top */

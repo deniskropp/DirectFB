@@ -364,7 +364,7 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
      if (data->window->caps & DWCAPS_INPUTONLY)
           return DFB_UNSUPPORTED;
 
-     key = color_to_pixel( data->window->surface->format, r, g, b );
+     key = dfb_color_to_pixel( data->window->surface->format, r, g, b );
 
      if (data->window->color_key != key) {
           data->window->color_key = key;

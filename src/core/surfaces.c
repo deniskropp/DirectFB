@@ -63,8 +63,8 @@ static ReactionResult palette_listener( const void *msg_data,
 
 /* internal functions needed to avoid side effects */
 
-static inline void video_access_by_hardware( SurfaceBuffer       *buffer,
-                                             DFBSurfaceLockFlags  flags )
+static void video_access_by_hardware( SurfaceBuffer       *buffer,
+                                      DFBSurfaceLockFlags  flags )
 {
      if (flags & DSLF_READ) {
           if (buffer->video.access & VAF_SOFTWARE_WRITE) {
@@ -77,8 +77,8 @@ static inline void video_access_by_hardware( SurfaceBuffer       *buffer,
           buffer->video.access |= VAF_HARDWARE_WRITE;
 }
 
-static inline void video_access_by_software( SurfaceBuffer       *buffer,
-                                             DFBSurfaceLockFlags  flags )
+static void video_access_by_software( SurfaceBuffer       *buffer,
+                                      DFBSurfaceLockFlags  flags )
 {
      if (flags & DSLF_WRITE) {
           if (buffer->video.access & VAF_HARDWARE_READ) {

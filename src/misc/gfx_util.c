@@ -67,10 +67,10 @@ struct _PixopsFilter {
 };
 
 
-static inline void rgba_to_dst_format (__u8 *dst,
-                                       __u32 r, __u32 g, __u32 b, __u32 a,
-                                       DFBSurfacePixelFormat dst_format,
-                                       CorePalette *palette)
+static void rgba_to_dst_format (__u8 *dst,
+                                __u32 r, __u32 g, __u32 b, __u32 a,
+                                DFBSurfacePixelFormat dst_format,
+                                CorePalette *palette)
 {
      __u32 out_pixel;
 

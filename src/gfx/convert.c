@@ -34,6 +34,60 @@
 #include "convert.h"
 
 
+DFBSurfacePixelFormat
+dfb_pixelformat_for_depth( int depth )
+{
+     switch (depth) {
+          case 8:
+#ifdef SUPPORT_RGB332
+               return DSPF_RGB332;
+#else
+               return DSPF_LUT8;
+#endif
+          case 15:
+               return DSPF_RGB15;
+          case 16:
+               return DSPF_RGB16;
+          case 24:
+               return DSPF_RGB24;
+          case 32:
+               return DSPF_RGB32;
+     }
+
+     return DSPF_UNKNOWN;
+}
+
+__u32
+dfb_color_to_pixel( DFBSurfacePixelFormat format,
+                    __u8 r, __u8 g, __u8 b )
+{
+     __u32 pixel;
+
+     switch (format) {
+#ifdef SUPPORT_RGB332
+          case DSPF_RGB332:
+               pixel = PIXEL_RGB332( r, g, b );
+               break;
+#endif
+          case DSPF_RGB15:
+               pixel = PIXEL_RGB15( r, g, b );
+               break;
+          case DSPF_RGB16:
+               pixel = PIXEL_RGB16( r, g, b );
+               break;
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               pixel = PIXEL_RGB24( r, g, b );
+               break;
+          default:
+               pixel = 0;
+     }
+
+     return pixel;
+}
+
+
 /* Totally unused yet, not even declared */
 
 #if 0

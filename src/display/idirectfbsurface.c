@@ -656,7 +656,7 @@ IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
           data->src_key.value = dfb_palette_search( surface->palette,
                                                     r, g, b, 0x80 );
      else
-          data->src_key.value = color_to_pixel( surface->format, r, g, b );
+          data->src_key.value = dfb_color_to_pixel( surface->format, r, g, b );
 
      /* The new key won't be applied to this surface's state.
         The key will be taken by the destination surface to apply it
@@ -723,7 +723,7 @@ IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
           data->dst_key.value = dfb_palette_search( surface->palette,
                                                     r, g, b, 0x80 );
      else
-          data->dst_key.value = color_to_pixel( surface->format, r, g, b );
+          data->dst_key.value = dfb_color_to_pixel( surface->format, r, g, b );
 
      if (data->state.dst_colorkey != data->dst_key.value) {
           data->state.dst_colorkey = data->dst_key.value;
