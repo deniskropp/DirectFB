@@ -4,7 +4,7 @@ video_out_dfbdir = $(XINE_PLUGINDIR)
 
 INCLUDES = $(DFB_CFLAGS) $(XINE_CFLAGS)
 
-AM_CFLAGS = -O2 -fomit-frame-pointer -ffast-math
+AM_CFLAGS = -fomit-frame-pointer -ffast-math
 
 
 video_out_dfb_LTLIBRARIES = xineplug_vo_out_dfb.la
