@@ -49,10 +49,10 @@ const char dfb_utf8_skip[256] = {
      3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
 };
 
-unichar dfb_utf8_get_char (const char *p)
+unichar dfb_utf8_get_char (const unsigned char *p)
 {
      unichar result;
-     unsigned char c = (unsigned char) *p;
+     unsigned char c = *p;
      int i, len;
 
      if (!(c & 0x80))

@@ -189,7 +189,7 @@ static DFBResult load_image (const char            *filename,
      }
 
      bytes = fread (header, 1, sizeof(header), fp);
-     if (png_sig_cmp (header, 0, bytes)) {
+     if (png_sig_cmp ((unsigned char*) header, 0, bytes)) {
           fprintf (stderr, "File '%s' doesn't seem to be a PNG image file.\n",
                    filename);
           goto cleanup;

@@ -456,8 +456,8 @@ static int DoExtension( IDirectFBImageProvider_GIF_data *data, int label )
                     ;
                return false;
           default:
-               str = buf;
-               snprintf(buf, 256, "UNKNOWN (0x%02x)", label);
+               str = (char*) buf;
+               snprintf(str, 256, "UNKNOWN (0x%02x)", label);
           break;
      }
 

@@ -52,7 +52,7 @@ typedef struct {
      CoreSystemInfo system_info;
 } CoreSystemField;
 
-DFB_CORE_PART( system, 0, sizeof(CoreSystemField) );
+DFB_CORE_PART( system, 0, sizeof(CoreSystemField) )
 
 static CoreSystemField       *system_field  = NULL;
 

@@ -516,7 +516,7 @@ DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags
 }
 
 DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
-                                     void **data, unsigned int *pitch, int front )
+                                     void **data, int *pitch, int front )
 {
      SurfaceBuffer *buffer;
 

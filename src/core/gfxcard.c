@@ -110,7 +110,7 @@ static GraphicsDevice *card = NULL;
 static void dfb_gfxcard_find_driver();
 static void dfb_gfxcard_load_driver();
 
-DFB_CORE_PART( gfxcard, sizeof(GraphicsDevice), sizeof(GraphicsDeviceShared) );
+DFB_CORE_PART( gfxcard, sizeof(GraphicsDevice), sizeof(GraphicsDeviceShared) )
 
 
 /** public **/
@@ -1071,7 +1071,7 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      dfb_state_unlock( state );
 }
 
-void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
+void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
                              int x, int y,
                              CoreFont *font, CardState *state )
 {

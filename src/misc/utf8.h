@@ -43,6 +43,6 @@ static inline const char *dfb_utf8_prev_char (const char *p)
      return (const char *)p;
 }
 
-unichar dfb_utf8_get_char (const char *p);
+unichar dfb_utf8_get_char (const unsigned char *p);
 
 #endif

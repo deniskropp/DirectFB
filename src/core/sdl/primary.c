@@ -656,7 +656,7 @@ dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config )
      }
      
      fusion_call_execute( &dfb_sdl->call, SDL_SET_VIDEO_MODE,
-                          tmp ? : config, &ret );
+                          tmp ? tmp : config, &ret );
 
      if (tmp)
           shfree( tmp );
@@ -684,7 +684,7 @@ dfb_sdl_update_screen( DFBRegion *region )
      }
      
      fusion_call_execute( &dfb_sdl->call, SDL_UPDATE_SCREEN,
-                          tmp ? : region, &ret );
+                          tmp ? tmp : region, &ret );
 
      if (tmp)
           shfree( tmp );

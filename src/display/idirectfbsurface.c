@@ -275,10 +275,12 @@ IDirectFBSurface_SetPalette( IDirectFBSurface *thiz,
 static DFBResult
 IDirectFBSurface_Lock( IDirectFBSurface *thiz,
                        DFBSurfaceLockFlags flags,
-                       void **ptr, int *pitch )
+                       void **ret_ptr, int *ret_pitch )
 {
-     int front;
-     DFBResult ret;
+     DFBResult  ret;
+     int        front;
+     int        pitch;
+     void      *ptr;
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -286,7 +288,7 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
           return DFB_DESTROYED;
 
 
-     if (!flags || !ptr || !pitch)
+     if (!flags || !ret_ptr || !ret_pitch)
           return DFB_INVARG;
 
      if (!data->area.current.w || !data->area.current.h)
@@ -294,15 +296,17 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 
      front = (flags & DSLF_WRITE) ? 0 : 1;
 
-     ret = dfb_surface_soft_lock( data->surface, flags, ptr, pitch, front );
+     ret = dfb_surface_soft_lock( data->surface, flags, &ptr, &pitch, front );
      if (ret)
           return ret;
 
-     (__u8*)(*ptr) += data->area.current.y * (*pitch) +
-                      data->area.current.x *
-                      DFB_BYTES_PER_PIXEL(data->surface->format);
+     ptr += pitch * data->area.current.y +
+            DFB_BYTES_PER_LINE( data->surface->format, data->area.current.x );
 
      data->locked = front + 1;
+
+     *ret_ptr   = ptr;
+     *ret_pitch = pitch;
 
      return DFB_OK;
 }
@@ -1335,7 +1339,7 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      font_data = (IDirectFBFont_data *)data->font->priv;
 
-     dfb_gfxcard_drawstring( text, bytes,
+     dfb_gfxcard_drawstring( (const unsigned char*) text, bytes,
                              data->area.wanted.x + x, data->area.wanted.y + y,
                              font_data->font, &data->state );
 

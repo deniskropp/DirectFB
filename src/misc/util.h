@@ -106,8 +106,8 @@ static inline int DFB_IFLOOR(float f)
         /*
          GCC generates an extra fstp/fld without this.
         */
-        asm ("fstps %0" : "=m" (ai) : "t" (af) : "st");
-        asm ("fstps %0" : "=m" (bi) : "t" (bf) : "st");
+        __asm__ __volatile__ ("fstps %0" : "=m" (ai) : "t" (af) : "st");
+        __asm__ __volatile__ ("fstps %0" : "=m" (bi) : "t" (bf) : "st");
 #else
         {
                 union { int i; float f; } u;
@@ -140,8 +140,8 @@ static inline int DFB_ICEIL(float f)
         /*
          GCC generates an extra fstp/fld without this.
         */
-        asm ("fstps %0" : "=m" (ai) : "t" (af) : "st");
-        asm ("fstps %0" : "=m" (bi) : "t" (bf) : "st");
+        __asm__ __volatile__ ("fstps %0" : "=m" (ai) : "t" (af) : "st");
+        __asm__ __volatile__ ("fstps %0" : "=m" (bi) : "t" (bf) : "st");
 #else
         {
                 union { int i; float f; } u;

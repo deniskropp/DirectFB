@@ -126,7 +126,7 @@ static int           dfb_num_layers = 0;
 static DisplayLayer *dfb_layers[MAX_LAYERS] = { NULL };
 
 
-DFB_CORE_PART( layers, 0, sizeof(CoreLayersField) );
+DFB_CORE_PART( layers, 0, sizeof(CoreLayersField) )
 
 
 static DFBResult load_default_cursor ( DisplayLayer          *layer );
@@ -1707,7 +1707,7 @@ load_default_cursor( DisplayLayer *layer )
 {
      DFBResult           ret;
      int                 i;
-     unsigned int        pitch;
+     int                 pitch;
      void               *data;
      FILE               *f      = NULL;
      DisplayLayerShared *shared;

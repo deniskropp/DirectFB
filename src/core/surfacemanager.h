@@ -72,7 +72,7 @@ void dfb_surfacemanager_unlock( SurfaceManager *manager );
  * surface data and the line pitch a.k.a. rowstride
  */
 DFBResult dfb_surface_software_lock( CoreSurface *surface, unsigned int flags,
-                                     void **data, unsigned int *pitch, int front );
+                                     void **data, int *pitch, int front );
 
 /*
  * lock a surface for access by hardware that enforces a video instance

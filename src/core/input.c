@@ -122,7 +122,7 @@ static CoreInputField *inputfield   = NULL;
 static InputDevice    *inputdevices = NULL;
 
 
-DFB_CORE_PART( input, 0, sizeof(CoreInputField) );
+DFB_CORE_PART( input, 0, sizeof(CoreInputField) )
 
 
 static void
@@ -1466,7 +1466,7 @@ dump_screen( const char *directory )
 
           write( fd, buf24, surface->width * 3 );
 
-          ((__u8*)data) += pitch;
+          data += pitch;
      }
 
      dfb_surface_unlock( surface,

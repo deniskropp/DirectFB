@@ -461,7 +461,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                               BUG("unsupported format not filtered before");
                               return DFB_BUG;
                     }
-                    (__u8*)row_ptr += pitch;
+                    row_ptr += pitch;
                }
           }
           else {     /* image must be scaled */
@@ -471,7 +471,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                while (cinfo.output_scanline < cinfo.output_height) {
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     copy_line32( (__u32*)row_ptr, *buffer, cinfo.output_width);
-                    (__u32*)row_ptr += cinfo.output_width;
+                    row_ptr += cinfo.output_width * 4;
                }
                dfb_scale_linear_32( dst, image_data, cinfo.output_width,
                                     cinfo.output_height, rect.w, rect.h,

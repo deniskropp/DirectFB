@@ -2043,7 +2043,7 @@ fbdev_ioctl( int request, void *arg, int arg_size )
      }
 
      ret = fusion_call_execute( &dfb_fbdev->shared->fbdev_ioctl,
-                                request, tmp_shm ? : arg, &erno );
+                                request, tmp_shm ? tmp_shm : arg, &erno );
 
      if (tmp_shm) {
           dfb_memcpy( arg, tmp_shm, arg_size );

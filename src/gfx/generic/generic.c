@@ -58,8 +58,8 @@
 #include "generic.h"
 
 /* lookup tables for 2/3bit to 8bit color conversion */
-static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
-static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
+static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff};
+static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff};
 
 static int use_mmx = 0;
 
@@ -278,7 +278,7 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
           __u16 *tmp = gfxs->Aop;
           --l;
           if ((*((__u16*)S) & 0x7FFF) != Skey)
-           *tmp = *((__u16*)S);
+               *tmp = *((__u16*)S);
 
           D = (__u32*)((__u16*)D+1);
           S = (__u32*)((__u16*)S+1);
@@ -335,7 +335,7 @@ static void Bop_rgb16_Kto_Aop( GenefxState *gfxs )
           __u16 *tmp = gfxs->Aop;
           --l;
           if (*((__u16*)S) != Skey)
-           *tmp = *((__u16*)S);
+               *tmp = *((__u16*)S);
 
           D = (__u32*)((__u16*)D+1);
           S = (__u32*)((__u16*)S+1);
@@ -538,9 +538,10 @@ static void Bop_16_Sto_Aop( GenefxState *gfxs )
      int    SperD2 = SperD << 1;
 
      if (((long)D)&2) {
-        *(((__u16*)D)++) = *S;
-        i += SperD;
-        w--;
+          *(__u16*)D = *S;
+          i += SperD;
+          w--;
+          D = gfxs->Aop + 2;
      }
 
      w2 = (w >> 1);
@@ -553,8 +554,8 @@ static void Bop_16_Sto_Aop( GenefxState *gfxs )
           i += SperD2;
      }
      if (w&1) {
-          *((__u16*)D) = S[i>>16];
-     }     
+          *(__u16*)D = S[i>>16];
+     }
 }
 
 static void Bop_24_Sto_Aop( GenefxState *gfxs )
@@ -1226,7 +1227,7 @@ static void Sop_lut8_SKto_Dacc( GenefxState *gfxs )
                D->g = entries[s].g;
                D->b = entries[s].b;
           }
-          else 
+          else
                D->a = 0xF000;
 
           i += SperD;
@@ -1257,7 +1258,7 @@ static void Sop_alut44_SKto_Dacc( GenefxState *gfxs )
                D->g = entries[s].g;
                D->b = entries[s].b;
           }
-          else 
+          else
                D->a = 0xF000;
 
           i += SperD;
@@ -1811,7 +1812,7 @@ static void Sacc_to_Aop_rgb16( GenefxState *gfxs )
                                  (S->g & 0xFF00) ? 0xFF : S->g,
                                  (S->b & 0xFF00) ? 0xFF : S->b );
           }
-          
+
           ++S;
           ++D;
           --w;
@@ -1843,20 +1844,21 @@ static void Sacc_to_Aop_rgb16( GenefxState *gfxs )
                     D[0] = PIXEL_RGB16( (S[0].r & 0xFF00) ? 0xFF : S[0].r,
                                         (S[0].g & 0xFF00) ? 0xFF : S[0].g,
                                         (S[0].b & 0xFF00) ? 0xFF : S[0].b );
-               } else
-               if (!(S[1].a & 0xF000)) {
+               }
+               else
+                    if (!(S[1].a & 0xF000)) {
                     D[1] = PIXEL_RGB16( (S[1].r & 0xFF00) ? 0xFF : S[1].r,
                                         (S[1].g & 0xFF00) ? 0xFF : S[1].g,
                                         (S[1].b & 0xFF00) ? 0xFF : S[1].b );
                }
           }
-          
+
           S += 2;
           D += 2;
 
           --l;
      }
-     
+
      if (w & 1) {
           if (!(S->a & 0xF000)) {
                *D = PIXEL_RGB16( (S->r & 0xFF00) ? 0xFF : S->r,
@@ -2251,7 +2253,7 @@ static GenefxFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
                case 8:\
                     SET_ALPHA_PIXEL_##format( D[7], S[7] );\
                DUFF_3(format)
-               
+
 #define SET_ALPHA_PIXEL_DUFFS_DEVICE_N(D, S, w, format, n) \
      while (w) {\
           register int l = w & ((1 << n) - 1);\
@@ -2265,7 +2267,7 @@ static GenefxFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
           S += l;\
           w -= l;\
      }
-     
+
 /* change the last value to adjust the size of the device (1-4) */
 #define SET_ALPHA_PIXEL_DUFFS_DEVICE(D, S, w, format) \
           SET_ALPHA_PIXEL_DUFFS_DEVICE_N(D, S, w, format, 3)
@@ -2354,7 +2356,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb24( GenefxState *gfxs )
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
-      w-=4;
+          w-=4;
      }
      while (w--) {
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3, S++;
@@ -2466,7 +2468,7 @@ static void Bop_a8_set_alphapixel_Aop_lut8( GenefxState *gfxs )
      __u8  *S   = gfxs->Bop;
      __u8  *D   = gfxs->Aop;
      __u32  Cop = gfxs->Cop;
-     
+
      DFBColor  color   = gfxs->color;
      DFBColor *entries = gfxs->Alut->entries;
 
@@ -2585,7 +2587,7 @@ static void Xacc_blend_srcalpha( GenefxState *gfxs )
           while (w--) {
                if (!(X->a & 0xF000)) {
                     register __u16 Sa = S->a + 1;
-                    
+
                     X->r = (Sa * X->r) >> 8;
                     X->g = (Sa * X->g) >> 8;
                     X->b = (Sa * X->b) >> 8;
@@ -2830,7 +2832,7 @@ static void Dacc_premultiply( GenefxState *gfxs )
      while (w--) {
           if (!(D->a & 0xF000)) {
                register __u16 Da = D->a + 1;
-               
+
                D->r = (Da * D->r) >> 8;
                D->g = (Da * D->g) >> 8;
                D->b = (Da * D->b) >> 8;
@@ -2848,7 +2850,7 @@ static void Dacc_demultiply( GenefxState *gfxs )
      while (w--) {
           if (!(D->a & 0xF000)) {
                register __u16 Da = D->a + 1;
-               
+
                D->r = (D->r << 8) / Da;
                D->g = (D->g << 8) / Da;
                D->b = (D->b << 8) / Da;
@@ -3019,19 +3021,19 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
 
           state->gfxs = gfxs;
      }
-          
+
      gfxs  = state->gfxs;
      funcs = gfxs->funcs;
 
      /* Destination may have been destroyed. */
      if (!destination)
           return false;
-     
+
      /* Source may have been destroyed. */
      if (DFB_BLITTING_FUNCTION( accel ) && !source)
           return false;
-     
-     
+
+
      gfxs->dst_caps   = destination->caps;
      gfxs->dst_height = destination->height;
      gfxs->dst_format = destination->format;
@@ -3057,7 +3059,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
 
      gfxs->color = color;
 
-     
+
      switch (gfxs->dst_format) {
           case DSPF_ARGB1555:
                gfxs->Cop = PIXEL_ARGB1555( color.a, color.r, color.g, color.b );
@@ -3131,8 +3133,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_YV12:
                     if (accel != DFXL_BLIT ||
                         gfxs->src_format != gfxs->dst_format ||
-                        state->blittingflags != DSBLIT_NOFX)
-                    {
+                        state->blittingflags != DSBLIT_NOFX) {
                          ONCE("only copying blits supported for YUV in software");
                          return false;
                     }
@@ -3147,9 +3148,9 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
           }
      }
 
-     
+
      dfb_surfacemanager_lock( dfb_gfxcard_surface_manager() );
-     
+
      if (DFB_BLITTING_FUNCTION( accel )) {
           if (dfb_surface_software_lock( source, DSLF_READ, &gfxs->src_org,
                                          &gfxs->src_pitch, 1 )) {
@@ -3158,7 +3159,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
           }
 
           gfxs->src_field_offset = gfxs->src_height/2 * gfxs->src_pitch;
-          
+
           state->source_locked = 1;
      }
      else
@@ -3175,10 +3176,10 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
      }
 
      gfxs->dst_field_offset = gfxs->dst_height/2 * gfxs->dst_pitch;
-     
+
      dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
 
-     
+
      switch (accel) {
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWRECTANGLE:
@@ -3233,7 +3234,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                          Cacc.g = (Cacc.g * ca) >> 8;
                          Cacc.b = (Cacc.b * ca) >> 8;
                     }
-                    
+
                     if (state->drawingflags & DSDRAW_BLEND) {
                          /* source blending */
                          switch (state->src_blend) {
@@ -3242,22 +3243,22 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                                    break;
                               case DSBF_SRCALPHA: {
                                         __u16 ca = color.a + 1;
-          
+
                                         Cacc.a = (Cacc.a * ca) >> 8;
                                         Cacc.r = (Cacc.r * ca) >> 8;
                                         Cacc.g = (Cacc.g * ca) >> 8;
                                         Cacc.b = (Cacc.b * ca) >> 8;
-          
+
                                         break;
                                    }
                               case DSBF_INVSRCALPHA: {
                                         __u16 ca = 0x100 - color.a;
-          
+
                                         Cacc.a = (Cacc.a * ca) >> 8;
                                         Cacc.r = (Cacc.r * ca) >> 8;
                                         Cacc.g = (Cacc.g * ca) >> 8;
                                         Cacc.b = (Cacc.b * ca) >> 8;
-          
+
                                         break;
                                    }
                               case DSBF_DESTALPHA:
@@ -3266,23 +3267,23 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                               case DSBF_INVDESTCOLOR:
                                    *funcs++ = Dacc_is_Bacc;
                                    *funcs++ = Cacc_to_Dacc;
-          
+
                                    *funcs++ = Dacc_is_Aacc;
                                    *funcs++ = Xacc_is_Bacc;
                                    *funcs++ = Xacc_blend[state->src_blend - 1];
-          
+
                                    break;
                               case DSBF_SRCCOLOR:
                               case DSBF_INVSRCCOLOR:
                               case DSBF_SRCALPHASAT:
                                    ONCE("unimplemented src blend function");
                          }
-          
+
                          /* destination blending */
                          *funcs++ = Sacc_is_NULL;
                          *funcs++ = Xacc_is_Aacc;
                          *funcs++ = Xacc_blend[state->dst_blend - 1];
-          
+
                          /* add source to destination accumulator */
                          switch (state->src_blend) {
                               case DSBF_ZERO:
@@ -3310,7 +3311,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                     /* demultiply result */
                     if (state->blittingflags & DSDRAW_DEMULTIPLY)
                          *funcs++ = Dacc_demultiply;
-                    
+
                     /* write to destination */
                     *funcs++ = Sacc_is_Aacc;
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
@@ -3335,26 +3336,24 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
           case DFXL_BLIT:
                if ((gfxs->src_format == DSPF_A8) &&
                    (state->blittingflags ==
-                     (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)) &&
+                    (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)) &&
                    (state->src_blend == DSBF_SRCALPHA) &&
                    (state->dst_blend == DSBF_INVSRCALPHA) &&
-                   Bop_a8_set_alphapixel_Aop_PFI[dst_pfi])
-               {
+                   Bop_a8_set_alphapixel_Aop_PFI[dst_pfi]) {
                     *funcs++ = Bop_a8_set_alphapixel_Aop_PFI[dst_pfi];
                     break;
                }
-          /* fallthru */
+               /* fallthru */
           case DFXL_STRETCHBLIT: {
                     int modulation = state->blittingflags & MODULATION_FLAGS;
 
                     if (modulation) {
                          bool read_destination = false;
                          bool source_needs_destination = false;
-                          
+
                          /* check if destination has to be read */
                          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                                     DSBLIT_BLEND_COLORALPHA))
-                         {
+                                                     DSBLIT_BLEND_COLORALPHA)) {
                               switch (state->src_blend) {
                                    case DSBF_DESTALPHA:
                                    case DSBF_DESTCOLOR:
@@ -3364,7 +3363,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                                    default:
                                         ;
                               }
-                              
+
                               read_destination = source_needs_destination ||
                                                  (state->dst_blend != DSBF_ZERO);
                          }
@@ -3413,11 +3412,10 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
 
                          if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
                               *funcs++ = Dacc_premultiply;
-                         
+
                          /* do blend functions and combine both accumulators */
                          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                                     DSBLIT_BLEND_COLORALPHA))
-                         {
+                                                     DSBLIT_BLEND_COLORALPHA)) {
                               /* Xacc will be blended and written to while
                                  Sacc and Dacc point to the SRC and DST
                                  as referenced by the blending functions */
@@ -3425,12 +3423,11 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Dacc_is_Aacc;
 
                               if (source_needs_destination &&
-                                  state->dst_blend != DSBF_ONE)
-                              {
+                                  state->dst_blend != DSBF_ONE) {
                                    /* blend the source */
                                    *funcs++ = Xacc_is_Bacc;
                                    *funcs++ = Xacc_blend[state->src_blend - 1];
-                                   
+
                                    /* blend the destination */
                                    *funcs++ = Xacc_is_Aacc;
                                    *funcs++ = Xacc_blend[state->dst_blend - 1];
@@ -3459,15 +3456,14 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Dacc_is_Bacc;
                               *funcs++ = Dacc_demultiply;
                          }
-                         
+
                          /* write source to destination */
                          *funcs++ = Sacc_is_Bacc;
                          *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
                     }
                     else if (gfxs->src_format == gfxs->dst_format/* &&
                              (!DFB_PIXELFORMAT_IS_INDEXED(src_format) ||
-                              Alut == Blut)*/)
-                    {
+                              Alut == Blut)*/) {
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    gfxs->Skey = state->src_colorkey;
@@ -3571,7 +3567,7 @@ static inline void Aop_next( GenefxState *gfxs, int pitch )
 {
      if (gfxs->dst_caps & DSCAPS_SEPARATED) {
           gfxs->Aop_field = !gfxs->Aop_field;
-          
+
           if (gfxs->Aop_field)
                gfxs->Aop += gfxs->dst_field_offset;
           else
@@ -3585,7 +3581,7 @@ static inline void Aop_prev( GenefxState *gfxs, int pitch )
 {
      if (gfxs->dst_caps & DSCAPS_SEPARATED) {
           gfxs->Aop_field = !gfxs->Aop_field;
-          
+
           if (gfxs->Aop_field)
                gfxs->Aop += gfxs->dst_field_offset - pitch;
           else
@@ -3616,7 +3612,7 @@ static inline void Bop_next( GenefxState *gfxs, int pitch )
 {
      if (gfxs->src_caps & DSCAPS_SEPARATED) {
           gfxs->Bop_field = !gfxs->Bop_field;
-          
+
           if (gfxs->Bop_field)
                gfxs->Bop += gfxs->src_field_offset;
           else
@@ -3630,7 +3626,7 @@ static inline void Bop_prev( GenefxState *gfxs, int pitch )
 {
      if (gfxs->src_caps & DSCAPS_SEPARATED) {
           gfxs->Bop_field = !gfxs->Bop_field;
-          
+
           if (gfxs->Bop_field)
                gfxs->Bop += gfxs->src_field_offset - pitch;
           else
@@ -3704,11 +3700,11 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
 void gDrawLine( CardState *state, DFBRegion *line )
 {
      GenefxState *gfxs = state->gfxs;
-     
+
      int i,dx,dy,sdy,dxabs,dyabs,x,y,px,py;
 
      DFB_ASSERT( gfxs != NULL );
-     
+
      CHECK_PIPELINE();
 
      /* the horizontal distance of the line */
@@ -3723,7 +3719,7 @@ void gDrawLine( CardState *state, DFBRegion *line )
           DFBRectangle rect = {
                MIN (line->x1, line->x2),
                MIN (line->y1, line->y2),
-               dxabs + 1, dyabs + 1 };
+               dxabs + 1, dyabs + 1};
 
           gFillRectangle( state, &rect );
           return;
@@ -3736,7 +3732,8 @@ void gDrawLine( CardState *state, DFBRegion *line )
      if (dx > 0) {
           px  = line->x1;
           py  = line->y1;
-     } else {
+     }
+     else {
           px  = line->x2;
           py  = line->y2;
      }
@@ -3790,7 +3787,7 @@ static void gDoBlit( GenefxState *gfxs,
 
           Aop_xy( gfxs, dorg, dx, dy + height - 1, dpitch );
           Bop_xy( gfxs, sorg, sx, sy + height - 1, spitch );
-          
+
           while (height--) {
                RUN_PIPELINE();
 
@@ -3804,7 +3801,7 @@ static void gDoBlit( GenefxState *gfxs,
 
           Aop_xy( gfxs, dorg, dx, dy, dpitch );
           Bop_xy( gfxs, sorg, sx, sy, spitch );
-          
+
           while (height--) {
                RUN_PIPELINE();
 
@@ -3817,9 +3814,9 @@ static void gDoBlit( GenefxState *gfxs,
 void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 {
      GenefxState *gfxs = state->gfxs;
-     
+
      DFB_ASSERT( gfxs != NULL );
-     
+
      CHECK_PIPELINE();
 
      if (dx > rect->x)
@@ -3844,10 +3841,10 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           gDoBlit( gfxs, rect->x/2, rect->y/2, rect->w/2, rect->h/2, dx/2, dy/2,
                    gfxs->src_pitch/2, gfxs->dst_pitch/2, sorg, dorg );
-          
+
           sorg += gfxs->src_height * gfxs->src_pitch / 4;
           dorg += gfxs->dst_height * gfxs->dst_pitch / 4;
-          
+
           gDoBlit( gfxs, rect->x/2, rect->y/2, rect->w/2, rect->h/2, dx/2, dy/2,
                    gfxs->src_pitch/2, gfxs->dst_pitch/2, sorg, dorg );
 
@@ -3859,12 +3856,12 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
      GenefxState *gfxs = state->gfxs;
-     
+
      int f;
      int i = 0;
 
      DFB_ASSERT( gfxs != NULL );
-     
+
      CHECK_PIPELINE();
 
      gfxs->length = drect->w;

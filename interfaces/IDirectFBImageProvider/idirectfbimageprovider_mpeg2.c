@@ -319,7 +319,7 @@ IDirectFBImageProvider_MPEG2_GetImageDescription( IDirectFBImageProvider *thiz,
 static int
 mpeg2_read_func( void *buf, int count, void *ctx )
 {
-     int                  len;
+     unsigned int         len;
      DFBResult            ret;
      IDirectFBDataBuffer *buffer = (IDirectFBDataBuffer*) ctx;
 

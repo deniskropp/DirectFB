@@ -54,7 +54,7 @@ typedef struct {
 static ColorhashField *hash_field = NULL;
 
 
-DFB_CORE_PART( colorhash, 0, sizeof(ColorhashField) );
+DFB_CORE_PART( colorhash, 0, sizeof(ColorhashField) )
 
 
 static DFBResult

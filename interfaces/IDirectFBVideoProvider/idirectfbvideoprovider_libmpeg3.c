@@ -308,7 +308,7 @@ static void
 WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
 {
      void                  *ptr;
-     unsigned int           pitch;
+     int                    pitch;
      CoreSurface           *surface;
      IDirectFBSurface_data *dst_data;
      int                    i, off_x, off_y;
@@ -391,7 +391,7 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
 {
      void                  *dst;
      __u16                 *dst16;
-     unsigned int           pitch;
+     int                    pitch;
      CoreSurface           *surface;
      IDirectFBSurface_data *dst_data;
      __u8                  *src_y, *src_u, *src_v;
@@ -403,9 +403,9 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
 
      dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );
 
-     src_y  = data->yuv.lines[0];
-     src_u  = data->yuv.lines[1];
-     src_v  = data->yuv.lines[2];
+     src_y  = (__u8*) data->yuv.lines[0];
+     src_u  = (__u8*) data->yuv.lines[1];
+     src_v  = (__u8*) data->yuv.lines[2];
 
      off_x  = data->dest_clip.x - data->dest_rect.x;
      off_y  = data->dest_clip.y - data->dest_rect.y;
@@ -555,9 +555,9 @@ VideoThread( void *ctx )
 
                if (data->video.yuv)
                     ret = mpeg3_read_yuvframe( data->file,
-                                               data->yuv.lines[0],
-                                               data->yuv.lines[1],
-                                               data->yuv.lines[2],
+                                               (char*) data->yuv.lines[0],
+                                               (char*) data->yuv.lines[1],
+                                               (char*) data->yuv.lines[2],
                                                0, 0,
                                                data->video.width,
                                                data->video.height, 0 );

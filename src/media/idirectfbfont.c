@@ -220,7 +220,7 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
           offset < bytes;
           offset += dfb_utf8_skip[(__u8)text[offset]]) {
 
-          current = dfb_utf8_get_char (&text[offset]);
+          current = dfb_utf8_get_char ((const unsigned char*) &text[offset]);
 
           if (dfb_font_get_glyph_data (font, current, &glyph) == DFB_OK) {
 

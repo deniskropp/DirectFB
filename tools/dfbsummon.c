@@ -48,7 +48,7 @@ static IDirectFB            *dfb     = NULL;
 static IDirectFBSurface     *primary = NULL;
 static IDirectFBEventBuffer *events  = NULL;
 
-static unsigned int screen_width, screen_height;
+static int screen_width, screen_height;
 static unsigned int video_total, screen_total;
 
 /******************************************************************************/

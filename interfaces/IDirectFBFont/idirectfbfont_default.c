@@ -111,7 +111,7 @@ Construct( IDirectFBFont      *thiz,
           const char *glyphs =
           "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
           "abcdefghijklmnopqrstuvwxyz"
-          "01234567890!\"$\%&/()=?^<>"
+          "01234567890!\"$%&/()=?^<>"
           "|,;.:-_{[]}\\`+*~#'";
 
           if (desc && (desc->flags & DFDESC_ATTRIBUTES) &&
@@ -142,7 +142,7 @@ Construct( IDirectFBFont      *thiz,
                          font->maxadvance = data->advance;
 
                     if (use_unicode)
-                         key = dfb_utf8_get_char (glyphs+index);
+                         key = glyphs[index];
                     else
                          key = index;
 
@@ -160,7 +160,7 @@ Construct( IDirectFBFont      *thiz,
           data->advance = 5;
 
           if (use_unicode)
-               key = dfb_utf8_get_char (" ");
+               key = 32;
           else
                key = index;
 

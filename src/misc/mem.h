@@ -79,6 +79,9 @@ char *dfb_dbg_strdup ( char *file, int line,
 
 #else
 
+#include <stdlib.h>
+#include <string.h>
+
 #define DFBFREE     free
 #define DFBMALLOC   malloc
 #define DFBCALLOC   calloc

@@ -50,6 +50,7 @@
 DFB_INPUT_DRIVER( lirc )
 
 static DirectFBKeySymbolNames(keynames);
+
 static bool keynames_sorted = false;
 
 typedef struct {

@@ -49,7 +49,7 @@ typedef struct {
 static CoreClip *core_clip = NULL;
 
 
-DFB_CORE_PART( clipboard, 0, sizeof(CoreClip) );
+DFB_CORE_PART( clipboard, 0, sizeof(CoreClip) )
 
 
 static DFBResult
