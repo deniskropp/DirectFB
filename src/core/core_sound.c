@@ -248,7 +248,7 @@ fs_core_destroy( CoreSound *core )
           }
      }
 
-     fusion_exit();
+     fusion_exit( false );
 
      /* Deallocate local core structure. */
      D_FREE( core );
