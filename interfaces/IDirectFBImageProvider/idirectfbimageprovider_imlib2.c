@@ -91,15 +91,16 @@ IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
 IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
-                                     IDirectFBSurface       *destination );
+                                        IDirectFBSurface       *destination,
+                                        DFBRectangle           *destination_rect );
 
 static DFBResult
 IDirectFBImageProvider_IMLIB2_GetSurfaceDescription( IDirectFBImageProvider *thiz,
-                                                  DFBSurfaceDescription  *dsc );
+                                                     DFBSurfaceDescription  *dsc );
 
 static DFBResult
 IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
-                                                DFBImageDescription    *dsc );
+                                                   DFBImageDescription    *dsc );
 
 
 static DFBResult
@@ -197,11 +198,14 @@ IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz )
 
 static DFBResult
 IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
-                                     IDirectFBSurface       *destination )
+                                        IDirectFBSurface       *destination,
+                                        DFBRectangle           *dest_rect )
 {
      int err;
      void *dst;
-     int pitch, width, height, src_width, src_height;
+     int pitch;
+     int src_width, src_height;
+     DFBRectangle rect = { 0, 0, 0, 0 };
      __u32 *image_data = NULL;
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
@@ -217,13 +221,16 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      if (err)
           return err;
 
-     err = destination->GetSize( destination, &width, &height );
+     err = destination->GetSize( destination, &rect.w, &rect.h );
      if (err)
           return err;
 
      err = destination->GetPixelFormat( destination, &format );
      if (err)
           return err;
+
+     if (dest_rect && !dfb_rectangle_intersect( &rect, dest_rect ))
+          return DFB_OK;
 
      image_data = imlib_image_get_data_for_reading_only();
 
@@ -234,10 +241,11 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      if (err)
         return err;
 
+     dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
+
      dfb_scale_linear_32( dst, image_data,
-                          src_width, src_height, width, height,
-                          pitch - width * DFB_BYTES_PER_PIXEL(format),
-                          format );
+                          src_width, src_height, rect.w, rect.h,
+                          pitch, format );
 
      destination->Unlock( destination );
      return DFB_OK;
