@@ -59,8 +59,10 @@ int main( int argc, char *argv[] )
      int i;
      DFBResult err;
 
+     DFBCHECK(DirectFBInit( &argc, &argv ));
+
      /* create the super interface */
-     DFBCHECK(DirectFBCreate( &argc, &argv, &dfb ));
+     DFBCHECK(DirectFBCreate( &dfb ));
 
      /* get an interface to the primary keyboard
         and create an input buffer for it */

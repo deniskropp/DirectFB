@@ -213,8 +213,10 @@ main (int    argc,
   colorize    = TRUE;
   quit        = FALSE;
 
+  DFBCHECK (DirectFBInit( &argc, &argv ));
+
   /* create the super interface */
-  DFBCHECK (DirectFBCreate( &argc, &argv, &dfb));
+  DFBCHECK (DirectFBCreate( &dfb));
 
   DFBCHECK (dfb->SetCooperativeLevel (dfb, DFSCL_FULLSCREEN));
   DFBCHECK (dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard));

@@ -203,11 +203,19 @@ extern "C"
                             );
 
      /*
+      * Parses the command-line and initializes some variables. You
+      * absolutely need to call this before doing anything else.
+      * Removes all options used by DirectFB from argv.
+      */
+     DFBResult DirectFBInit(
+                             int   *argc,         /* main()'s argc */
+                             char **argv[]        /* main()'s argv */
+                           );
+
+     /*
       * Create the super interface
       */
      DFBResult DirectFBCreate(
-                               int   *argc,            /* main()'s argc */
-                               char **argv[],          /* main()'s argv */
                                IDirectFB **interface   /* pointer to the
                                                           created interface */
                              );

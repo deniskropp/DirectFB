@@ -125,7 +125,10 @@ int main( int argc, char *argv[] )
 
      srand( (long)time( 0 ) );
 
-     if (DirectFBCreate( &argc, &argv, &dfb )  !=  DFB_OK)
+     if (DirectFBInit( &argc, &argv ) != DFB_OK)
+          return 1;
+
+     if (DirectFBCreate( &dfb ) != DFB_OK)
           return 1;
 
      dfb->GetCardCapabilities( dfb, &caps );

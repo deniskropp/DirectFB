@@ -147,7 +147,7 @@ int main( int argc, char *argv[] )
 
      srand( (long)time( 0 ) );
 
-     if (DirectFBCreate( &argc, &argv, &dfb )  !=  DFB_OK)
+     if (DirectFBInit( &argc, &argv )  !=  DFB_OK)
           return 1;
 
      if (argc < 2)
@@ -155,6 +155,9 @@ int main( int argc, char *argv[] )
           fprintf(stderr, "%s: you must specify a video source\n", argv[0]);
           return 1;
      }
+
+     if (DirectFBCreate( &dfb )  !=  DFB_OK)
+          return 1;
 
      err = dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard );
      if (err != DFB_OK) {

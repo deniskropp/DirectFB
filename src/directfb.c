@@ -84,19 +84,9 @@ void keyboard_handler( DFBInputEvent *evt, void *ctx )
           exit(1);
 }
 
-/*
- * Programs have to call this to get the super interface
- * which is needed to access other functions
- */
-DFBResult DirectFBCreate( int *argc, char **argv[], IDirectFB **interface )
+DFBResult DirectFBInit( int *argc, char **argv[] )
 {
      DFBResult ret;
-
-     if (idirectfb_singleton) {
-          idirectfb_singleton->AddRef( idirectfb_singleton );
-          *interface = idirectfb_singleton;
-          return DFB_OK;
-     }
 
      ret = config_init( argc, argv );
      if (ret)
@@ -109,6 +99,26 @@ DFBResult DirectFBCreate( int *argc, char **argv[], IDirectFB **interface )
           printf( "                (c)2000  convergence integrated media GmbH  \n" );
           printf( "        -----------------------------------------------------------\n" );
           printf( "\n" );
+     }
+
+     return DFB_OK;
+}
+
+/*
+ * Programs have to call this to get the super interface
+ * which is needed to access other functions
+ */
+DFBResult DirectFBCreate( IDirectFB **interface )
+{
+     DFBResult ret;
+
+     if (config == NULL)
+          return DFB_INIT;
+
+     if (idirectfb_singleton) {
+          idirectfb_singleton->AddRef( idirectfb_singleton );
+          *interface = idirectfb_singleton;
+          return DFB_OK;
      }
 
      ret = core_init();

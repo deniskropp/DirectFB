@@ -73,13 +73,15 @@ int main( int argc, char *argv[] )
      int screenx, screeny;
      DFBInputDeviceKeyState quit = DIKS_UP;
 
-     DFBCHECK(DirectFBCreate( &argc, &argv, &dfb ));
+     DFBCHECK(DirectFBInit( &argc, &argv ));
 
      if (argc < 2)
      {
           fprintf(stderr, "%s: you must specify a video source\n", argv[0]);
           return 1;
      }
+
+     DFBCHECK(DirectFBCreate( &dfb ));
 
      DFBCHECK(dfb->GetInputDevice( dfb, DIDID_MOUSE, &mouse ));
      DFBCHECK(dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard ));

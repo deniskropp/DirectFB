@@ -86,7 +86,7 @@ int main( int argc, char *argv[] )
      DFBCardCapabilities    caps;
      DFBInputDeviceKeyState quit = DIKS_UP;
 
-     DFBCHECK(DirectFBCreate( &argc, &argv, &dfb ));
+     DFBCHECK(DirectFBInit( &argc, &argv ));
 
 #ifdef VIDEO
      if (argc < 2)
@@ -95,6 +95,8 @@ int main( int argc, char *argv[] )
           return 1;
      }
 #endif
+
+     DFBCHECK(DirectFBCreate( &dfb ));
 
      dfb->GetCardCapabilities( dfb, &caps );
 
