@@ -1153,6 +1153,10 @@ void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
 
 int dfb_gfxcard_get_accelerator( GraphicsDevice *device )
 {
+#ifdef FB_ACCEL_MATROX_MGAG400
+     if (!strcmp( device->shared->fix.id, "MATROX DH" ))
+          return FB_ACCEL_MATROX_MGAG400;
+#endif
      return device->shared->fix.accel;
 }
 

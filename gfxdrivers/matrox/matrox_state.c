@@ -60,7 +60,8 @@ void matrox_set_destination( MatroxDriverData *mdrv,
      if (mdev->old_matrox)
           mga_out32( mmio, mdev->dst_pixeloffset, YDSTORG );
      else
-          mga_out32( mmio, buffer->video.offset, DSTORG );
+          mga_out32( mmio, dfb_gfxcard_memory_physical( buffer->video.offset) &
+                     0x1FFFFFF, DSTORG );
 
      mga_out32( mmio, mdev->dst_pixelpitch, PITCH );
 
@@ -380,7 +381,8 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
                       ((8-mdev->matrox_w2)&63)<<9 | mdev->matrox_w2, TEXWIDTH );
      mga_out32( mmio, ((surface->height-1)<<18) |
                       ((8-mdev->matrox_h2)&63)<<9 | mdev->matrox_h2, TEXHEIGHT );
-     mga_out32( mmio, buffer->video.offset, TEXORG );
+     mga_out32( mmio, dfb_gfxcard_memory_physical( buffer->video.offset ) &
+                0x1FFFFFF, TEXORG );
 
      MGA_VALIDATE( m_Source );
 }
@@ -403,7 +405,8 @@ void matrox_validate_source( MatroxDriverData *mdrv,
           mdev->src_pixeloffset = buffer->video.offset / bytes_per_pixel;
      else {
           mga_waitfifo( mdrv, mdev, 1);
-          mga_out32( mmio, buffer->video.offset, SRCORG );
+          mga_out32( mmio, dfb_gfxcard_memory_physical( buffer->video.offset) &
+                     0x1FFFFFF, SRCORG );
      }
 
      MGA_VALIDATE( m_source );
