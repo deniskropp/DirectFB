@@ -38,6 +38,7 @@
 typedef struct _VideoMode {
      int xres;
      int yres;
+     int bpp;
 
      int pixclock;
      int left_margin;

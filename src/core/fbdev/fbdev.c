@@ -1038,6 +1038,8 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                     ;
           }
      }
+     else
+          var.bits_per_pixel = mode->bpp;
 
      var.activate = layer ? FB_ACTIVATE_NOW : FB_ACTIVATE_TEST;
 
@@ -1214,7 +1216,7 @@ static DFBResult dfb_fbdev_read_modes()
                geometry = 0;
                timings = 0;
                while (fgets(line,79,fp) && !(strstr(line,"endmode"))) {
-                    if (5 == sscanf(line," geometry %d %d %d %d %d", &temp_mode.xres, &temp_mode.yres, &dummy, &dummy, &dummy)) {
+                    if (5 == sscanf(line," geometry %d %d %d %d %d", &temp_mode.xres, &temp_mode.yres, &dummy, &dummy, &temp_mode.bpp)) {
                          geometry = 1;
                     }
                     else if (7 == sscanf(line," timings %d %d %d %d %d %d %d", &temp_mode.pixclock, &temp_mode.left_margin,  &temp_mode.right_margin,

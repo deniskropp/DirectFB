@@ -237,7 +237,7 @@ IDirectFB_EnumVideoModes( IDirectFB            *thiz,
      m = dfb_fbdev_modes();
      while (m) {
           if (callbackfunc( m->xres, m->yres,
-                            0, callbackdata ) == DFENUM_CANCEL)
+                            m->bpp, callbackdata ) == DFENUM_CANCEL)
                break;
 
           m = m->next;
