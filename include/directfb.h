@@ -175,7 +175,7 @@ extern "C"
           int            x3;  /* X coordinate of third edge */
           int            y3;  /* Y coordinate of third edge */
      } DFBTriangle;
-     
+
      /*
       * A color defined by channels with 8bit each.
       */
@@ -350,7 +350,7 @@ extern "C"
           DFXL_ALL            = 0x0003000F   /* all drawing/blitting
                                                 functions */
      } DFBAccelerationMask;
-     
+
      /*
       * Rough information about hardware capabilities.
       */
@@ -568,7 +568,7 @@ extern "C"
                IDirectFB                *thiz,
                DFBCardCapabilities      *caps
           );
-          
+
           /*
            * Enumerate supported video modes.
            */
@@ -668,6 +668,21 @@ extern "C"
         /** Misc **/
 
           /*
+           * Suspend DirectFB, no other calls to DirectFB allowed until
+           * Resume has been called.
+           */
+          DFBResult (*Suspend) (
+               IDirectFB                *thiz
+          );
+
+          /*
+           * Resume DirectFB, only to be called after Suspend.
+           */
+          DFBResult (*Resume) (
+               IDirectFB                *thiz
+          );
+
+          /*
            * Wait until graphics card is idle,
            * i.e. finish all drawing/blitting functions.
            */
@@ -676,16 +691,9 @@ extern "C"
           );
 
           /*
-           * Suspend
+           * Wait for next vertical retrace.
            */
-          DFBResult (*Suspend) (
-               IDirectFB                *thiz
-          );
-
-          /*
-           * Resume
-           */
-          DFBResult (*Resume) (
+          DFBResult (*WaitForSync) (
                IDirectFB                *thiz
           );
      )
@@ -849,7 +857,7 @@ extern "C"
                int                                 x,
                int                                 y
           );
-          
+
           /*
            * Enable/disable the mouse cursor for this layer.
            * Only available in exclusive/administrative mode.
@@ -1230,10 +1238,10 @@ extern "C"
           );
 
           /*
-           * Draw an UTF-8 string at the specified position with the 
-           * given color following the specified flags. Bytes specifies 
-           * the number of bytes to take from the string or -1 for the 
-           * complete NULL-terminated string. You need to set a font 
+           * Draw an UTF-8 string at the specified position with the
+           * given color following the specified flags. Bytes specifies
+           * the number of bytes to take from the string or -1 for the
+           * complete NULL-terminated string. You need to set a font
            * using the SetFont() method before calling this function.
            */
           DFBResult (*DrawString) (
@@ -1415,7 +1423,7 @@ extern "C"
                DFBInputDeviceButtonIdentifier button,
                DFBInputDeviceButtonState     *state
           );
-          
+
           /*
            * Get the current value of the specified axis.
            */

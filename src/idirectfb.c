@@ -154,7 +154,7 @@ DFBResult IDirectFB_EnumVideoModes( IDirectFB *thiz,
 {
      VideoMode *m = display->modes;
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
-     
+
      if (!data)
           return DFB_DEAD;
 
@@ -309,7 +309,7 @@ DFBResult IDirectFB_EnumDisplayLayers( IDirectFB *thiz,
 
      while (dl) {
           if (callbackfunc( dl->id, dl->caps, callbackdata ))
-	       return DFB_OK;
+           return DFB_OK;
 
           dl = dl->next;
      }
@@ -332,7 +332,7 @@ DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
      while (dl) {
           if (dl->id == id) {
                dl->Enable( dl );
-               
+
                DFB_ALLOCATE_INTERFACE( *layer, IDirectFBDisplayLayer );
 
                return IDirectFBDisplayLayer_Construct( *layer, dl );
@@ -422,10 +422,10 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
           return DFB_IO;
      }
      close (fd);
-     
+
      ret = DFBGetInterface( &impl, "IDirectFBImageProvider", NULL,
                             image_probe, ctx );
-     
+
      free (ctx);
 
      if (ret)
@@ -503,7 +503,7 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
 
      if (filename) {
          if (!desc)
-	     return DFB_INVARG;
+         return DFB_INVARG;
 
           /* the only supported real font format yet. */
           ret = DFBGetInterface( &impl,
@@ -511,7 +511,7 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
                                  NULL, NULL );
      }
      else {
-          /* use the default bitmap font */ 
+          /* use the default bitmap font */
           ret = DFBGetInterface( &impl,
                                  "IDirectFBFont", "Default",
                                  NULL, NULL );
@@ -532,22 +532,10 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
      return ret;
 }
 
-DFBResult IDirectFB_WaitIdle( IDirectFB *thiz )
-{
-     IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
-     
-     if (!data)
-          return DFB_DEAD;
-
-     gfxcard_sync();
-
-     return DFB_OK;
-}
-
 DFBResult IDirectFB_Suspend( IDirectFB *thiz )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
-     
+
      if (!data)
           return DFB_DEAD;
 
@@ -564,12 +552,36 @@ DFBResult IDirectFB_Suspend( IDirectFB *thiz )
 DFBResult IDirectFB_Resume( IDirectFB *thiz )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
-     
+
      if (!data)
           return DFB_DEAD;
 
      layers_resume();
      input_resume();
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFB_WaitIdle( IDirectFB *thiz )
+{
+     IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
+     
+     if (!data)
+          return DFB_DEAD;
+
+     gfxcard_sync();
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFB_WaitForSync( IDirectFB *thiz )
+{
+     IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     fbdev_wait_vsync();
 
      return DFB_OK;
 }
@@ -606,9 +618,10 @@ DFBResult IDirectFB_Construct( IDirectFB *thiz )
      thiz->CreateImageProvider = IDirectFB_CreateImageProvider;
      thiz->CreateVideoProvider = IDirectFB_CreateVideoProvider;
      thiz->CreateFont = IDirectFB_CreateFont;
-     thiz->WaitIdle = IDirectFB_WaitIdle;
      thiz->Suspend = IDirectFB_Suspend;
      thiz->Resume = IDirectFB_Resume;
+     thiz->WaitIdle = IDirectFB_WaitIdle;
+     thiz->WaitForSync = IDirectFB_WaitForSync;
 
      return DFB_OK;
 }
