@@ -84,6 +84,8 @@ buffer_destroy( void *buffer )
      for (; i<buffers_num-1; i++)
           buffers[i] = buffers[i+1];
 
+     buffers_num--;
+
      free( buffer );
 
      pthread_mutex_unlock( &buffers_lock );
