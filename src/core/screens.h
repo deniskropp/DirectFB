@@ -199,6 +199,6 @@ void dfb_screens_enumerate( CoreScreenCallback  callback,
 /*
  * Returns the screen with the specified ID.
  */
-inline CoreScreen *dfb_screens_at( DFBScreenID screen_id );
+CoreScreen *dfb_screens_at( DFBScreenID screen_id );
 
 #endif

@@ -278,16 +278,16 @@ void dfb_layers_enumerate( DisplayLayerCallback  callback,
                            void                 *ctx );
 
 
-inline CoreLayer *dfb_layer_at( DFBDisplayLayerID id );
-inline CoreLayer *dfb_layer_at_translated( DFBDisplayLayerID id );
+__attribute__((const))  CoreLayer *dfb_layer_at( DFBDisplayLayerID id );
+__attribute__((const))  CoreLayer *dfb_layer_at_translated( DFBDisplayLayerID id );
 
 
-inline void dfb_layer_get_description( const CoreLayer            *layer,
-                                       DFBDisplayLayerDescription *desc );
+void dfb_layer_get_description( const CoreLayer            *layer,
+                                DFBDisplayLayerDescription *desc );
 
-inline CoreScreen *dfb_layer_screen( const CoreLayer *layer );
+CoreScreen *dfb_layer_screen( const CoreLayer *layer );
 
-inline DFBDisplayLayerID dfb_layer_id( const CoreLayer *layer );
+DFBDisplayLayerID dfb_layer_id( const CoreLayer *layer );
 
 DFBDisplayLayerID dfb_layer_id_translated( const CoreLayer *layer );
 

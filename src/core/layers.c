@@ -406,7 +406,7 @@ dfb_layers_enumerate( DisplayLayerCallback  callback,
      }
 }
 
-inline CoreLayer *
+CoreLayer *
 dfb_layer_at( DFBDisplayLayerID id )
 {
      DFB_ASSERT( layersfield != NULL );
@@ -416,7 +416,7 @@ dfb_layer_at( DFBDisplayLayerID id )
      return dfb_layers[id];
 }
 
-inline CoreLayer *
+CoreLayer *
 dfb_layer_at_translated( DFBDisplayLayerID id )
 {
      DFB_ASSERT( layersfield != NULL );
@@ -437,7 +437,7 @@ dfb_layer_at_translated( DFBDisplayLayerID id )
      return dfb_layer_at( id );
 }
 
-inline void
+void
 dfb_layer_get_description( const CoreLayer            *layer,
                            DFBDisplayLayerDescription *desc )
 {
@@ -448,7 +448,7 @@ dfb_layer_get_description( const CoreLayer            *layer,
      *desc = layer->shared->description;
 }
 
-inline CoreScreen *
+CoreScreen *
 dfb_layer_screen( const CoreLayer *layer )
 {
      DFB_ASSERT( layer != NULL );
@@ -456,7 +456,7 @@ dfb_layer_screen( const CoreLayer *layer )
      return layer->screen;
 }
 
-inline DFBDisplayLayerID
+DFBDisplayLayerID
 dfb_layer_id( const CoreLayer *layer )
 {
      DFB_ASSERT( layer != NULL );

@@ -379,7 +379,7 @@ dfb_screens_enumerate( CoreScreenCallback  callback,
      }
 }
 
-inline CoreScreen *
+CoreScreen *
 dfb_screens_at( DFBScreenID screen_id )
 {
      DFB_ASSERT( screen_id >= 0);

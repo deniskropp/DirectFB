@@ -36,21 +36,21 @@
 /*
  * allocates a WindowStack, initializes it, registers it for input events
  */
-CoreWindowStack    *dfb_windowstack_create ( CoreLayerContext *context );
+CoreWindowStack *dfb_windowstack_create ( CoreLayerContext *context );
 
-void                dfb_windowstack_destroy( CoreWindowStack  *stack );
+void             dfb_windowstack_destroy( CoreWindowStack  *stack );
 
-void                dfb_windowstack_resize ( CoreWindowStack  *stack,
-                                             int               width,
-                                             int               height );
+void             dfb_windowstack_resize ( CoreWindowStack  *stack,
+                                          int               width,
+                                          int               height );
 
-inline FusionResult dfb_windowstack_lock   ( CoreWindowStack  *stack );
+FusionResult     dfb_windowstack_lock   ( CoreWindowStack  *stack );
 
-inline FusionResult dfb_windowstack_unlock ( CoreWindowStack  *stack );
+FusionResult    dfb_windowstack_unlock  ( CoreWindowStack  *stack );
 
 
-inline int dfb_windowstack_get_window_index( CoreWindowStack *stack,
-                                             CoreWindow      *window );
+int             dfb_windowstack_get_window_index( CoreWindowStack *stack,
+                                                  CoreWindow      *window );
 
 /*
  * repaints all window on a window stack

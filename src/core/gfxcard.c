@@ -1410,7 +1410,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      dfb_state_unlock( state );
 }
 
-inline void dfb_gfxcard_sync()
+void dfb_gfxcard_sync()
 {
      DFB_ASSERT( card != NULL );
 
@@ -1418,7 +1418,7 @@ inline void dfb_gfxcard_sync()
           card->funcs.EngineSync( card->driver_data, card->device_data );
 }
 
-inline void dfb_gfxcard_flush_texture_cache()
+void dfb_gfxcard_flush_texture_cache()
 {
      DFB_ASSERT( card != NULL );
 
@@ -1426,7 +1426,7 @@ inline void dfb_gfxcard_flush_texture_cache()
           card->funcs.FlushTextureCache( card->driver_data, card->device_data );
 }
 
-inline void dfb_gfxcard_after_set_var()
+void dfb_gfxcard_after_set_var()
 {
      DFB_ASSERT( card != NULL );
 

@@ -280,9 +280,9 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes, int x, int y,
 void dfb_gfxcard_drawglyph( unichar index, int x, int y,
                             CoreFont *font, CardState *state );
 
-inline void dfb_gfxcard_sync();
-inline void dfb_gfxcard_flush_texture_cache();
-inline void dfb_gfxcard_after_set_var();
+void dfb_gfxcard_sync();
+void dfb_gfxcard_flush_texture_cache();
+void dfb_gfxcard_after_set_var();
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 
