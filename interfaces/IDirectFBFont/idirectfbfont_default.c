@@ -32,9 +32,6 @@
 
 #include <directfb.h>
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
 #include <core/fonts.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
@@ -97,13 +94,16 @@ Construct( IDirectFBFont      *thiz,
 
      font = dfb_font_create();
 
+     DFB_ASSERT( font->pixel_format == DSPF_ARGB || 
+                 font->pixel_format == DSPF_A8 );
+
      font->height    = 20;
      font->ascender  = 16;
      font->descender = 4;
 
      dfb_surface_create( 1024, font->height,
-                         dfb_config->argb_font ? DSPF_ARGB : DSPF_A8,
-                         CSP_VIDEOHIGH, DSCAPS_NONE, &surface );
+                         font->pixel_format, CSP_VIDEOHIGH, DSCAPS_NONE,
+                         &surface );
 
      font->rows = 1;
      font->row_width = 1024;
@@ -123,25 +123,26 @@ Construct( IDirectFBFont      *thiz,
 
           for (i=0; i<1024; i++) {
                if (points[i] == 0xFF) {
-                 data = DFBMALLOC(sizeof (CoreGlyphData));
-                 data->surface = surface;
-                 data->start   = start;
-                 data->width   = i - start;
-                 data->height  = font->height;
-                 data->left    = 0;
-                 data->top     = 0;
-                 data->advance = data->width + 1;
-                 HEAVYDEBUGMSG( "DirectFB/core/fonts: glyph '%c' at %d, width %d\n",
-                                *glyphs, start, i-start );
+                    data = DFBMALLOC(sizeof (CoreGlyphData));
+                    data->surface = surface;
+                    data->start   = start;
+                    data->width   = i - start;
+                    data->height  = font->height;
+                    data->left    = 0;
+                    data->top     = 0;
+                    data->advance = data->width + 1;
+                    HEAVYDEBUGMSG( "DirectFB/core/fonts: glyph '%c' at %d, width %d\n",
+                                   *glyphs, start, i-start );
 
-                 if (font->maxadvance < data->width)
-                      font->maxadvance = data->width;
+                    if (font->maxadvance < data->width)
+                         font->maxadvance = data->width;
 
-                 dfb_tree_insert (font->glyph_infos,
-                              (void *) dfb_utf8_get_char (glyphs), data);
+                    dfb_tree_insert (font->glyph_infos,
+                                     (void *) dfb_utf8_get_char (glyphs),
+                                     data);
 
-                 start = i+1;
-                 glyphs++;
+                    start = i+1;
+                    glyphs++;
                }
                if (*glyphs == 0)
                     break;
@@ -151,22 +152,28 @@ Construct( IDirectFBFont      *thiz,
           data = DFBCALLOC(1, sizeof (CoreGlyphData));
           data->advance = 5;
           dfb_tree_insert (font->glyph_infos,
-                       (void *) dfb_utf8_get_char (" "), data);
+                           (void *) dfb_utf8_get_char (" "), data);
      }
 
      dfb_surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
 
      for (i = 0; i < font->height; i++) {
-          if (dfb_config->argb_font) {
-               char buf[1024];
+          switch (surface->format) {
+               case DSPF_ARGB:
+                    {
+                         char buf[1024];
 
-               fread( buf, 1024, 1, f);
-               span_a8_to_argb(buf, (__u32*)dst, 1024);
+                         fread( buf, 1024, 1, f);
+                         span_a8_to_argb(buf, (__u32*)dst, 1024);
+                    }
+                    break;
+               case DSPF_A8:
+                    fread( dst, 1024, 1, f);
+                    break;
+               default:
+                    break;
           }
-          else {
-               fread( dst, 1024, 1, f);
-          }
-         dst += pitch;
+          dst += pitch;
      }
 
      dfb_surface_unlock( surface, 0 );
@@ -175,5 +182,3 @@ Construct( IDirectFBFont      *thiz,
 
      return IDirectFBFont_Construct (thiz, font);
 }
-
-

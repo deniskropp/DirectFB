@@ -51,6 +51,18 @@ CoreFont *dfb_font_create()
 
      pthread_mutex_init( &font->lock, NULL );
 
+     /* the proposed pixel_format, may be changed by the font provider */
+     font->pixel_format = dfb_config->argb_font ? DSPF_ARGB : DSPF_A8;
+
+     /* the state used to blit the glyphs, may be changed by the font
+        provider */
+     memset( &font->state, 0, sizeof(CardState) );
+     dfb_state_init( &font->state );
+     font->state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
+     font->state.src_blend     = DSBF_SRCALPHA;
+     font->state.dst_blend     = DSBF_INVSRCALPHA;
+     font->state.modified      = SMF_ALL;
+
      font->glyph_infos = dfb_tree_new ();
 
      return font;
@@ -111,8 +123,9 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
                     font->surfaces = DFBREALLOC(font->surfaces,
                                               sizeof (void *) * font->rows);
 
-                    dfb_surface_create( font->row_width, MAX( font->height, 8 ),
-                                        dfb_config->argb_font ? DSPF_ARGB : DSPF_A8,
+                    dfb_surface_create( font->row_width,
+                                        MAX( font->height, 8 ),
+                                        font->pixel_format,
                                         CSP_VIDEOHIGH, DSCAPS_NONE,
                                         &font->surfaces[font->rows - 1] );
                }

@@ -35,6 +35,8 @@
 
 #include <core/coretypes.h>
 
+#include <core/state.h>
+
 /*
  * glyph struct
  */
@@ -53,6 +55,9 @@ typedef struct {
  */
 
 struct _CoreFont {
+     DFBSurfacePixelFormat    pixel_format;
+     CardState                state;    /* the state used to blit glyphs    */
+
      CoreSurface    **surfaces;         /* contain bitmaps of loaded glyphs */
      int              rows;
      int              row_width;
@@ -97,6 +102,7 @@ void dfb_font_destroy( CoreFont *font );
 static inline void dfb_font_lock( CoreFont *font )
 {
      pthread_mutex_lock( &font->lock );
+     dfb_state_lock( &font->state );
 }
 
 /*
@@ -104,6 +110,7 @@ static inline void dfb_font_lock( CoreFont *font )
  */
 static inline void dfb_font_unlock( CoreFont *font )
 {
+     dfb_state_unlock( &font->state );
      pthread_mutex_unlock( &font->lock );
 }
 
