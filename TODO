@@ -7,10 +7,22 @@ Finish implementation of cooperative levels.
 
 Finish display layer core and driver API.
  - Finish reallocate_surface() in src/core/layers.c
+ - Link a layer's surface to the layer to avoid destruction
+   if process that enabled a layer exits.
+ - Disable a layer if it has been enabled by a process that died.
 
 Finish multi application core.
  - Some messages may need to be dispatched synchronized
  - Add fork handling
+ - Detaching foreign reactions from a reactor is currently
+   not implemented.
+ - dfb_surface_set_palette() installs a listener that needs
+   to exist as long as the palette is linked to the surface,
+   but if the process that did this call exits, the listener
+   is dead, but the palette is still linked to the surface.
+   The layer_surface_listener() currently does a workaround
+   by attaching an extra listener (running in the master
+   fusionee if it's the primary layer).
 
 Finish surface manager.
  - Add kicking out a few smaller surfaces for a bigger one
