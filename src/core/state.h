@@ -32,6 +32,8 @@
 
 #include <directfb.h>
 
+#include <misc/util.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -175,7 +177,7 @@ do {                                                        \
 static inline void dfb_state_set_clip( CardState *state, const DFBRegion *clip )
 {
      D_MAGIC_ASSERT( state, CardState );
-     D_ASSERT( clip != NULL );
+     DFB_REGION_ASSERT( clip );
 
      if (! DFB_REGION_EQUAL( state->clip, *clip )) {
           state->clip      = *clip;
