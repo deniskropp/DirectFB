@@ -538,8 +538,10 @@ extern "C"
                                                 red 8@16, green 8@8, blue 8@0)*/
           DSPF_A8             = 0x00010806,  /* 8bit alpha (1 byte, alpha 8@0 ),
                                                 e.g. anti-aliased text glyphs */
-          DSPF_YUY2           = 0x00021007   /* A macropixel (32bit / 2 pixel)
+          DSPF_YUY2           = 0x00021007,  /* A macropixel (32bit / 2 pixel)
                                                 contains VYUY (lsb) */
+          DSPF_RGB332         = 0x00010808   /* 8bit true color (1 byte,
+                                                red 3@5, green 3@2, blue 2@0 */
      } DFBSurfacePixelFormat;
 
 

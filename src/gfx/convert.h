@@ -29,6 +29,12 @@
 #include <asm/types.h>
 
 
+#ifdef SUPPORT_RGB332
+#define PIXEL_RGB332(r,g,b)    ( (((r)&0xE0)     ) | \
+                                 (((g)&0xE0) >> 3) | \
+                                 (((b)&0xC0) >> 6) )
+#endif
+
 #define PIXEL_RGB15(r,g,b)     ( (((r)&0xF8) << 7) | \
                                  (((g)&0xF8) << 2) | \
                                  (((b)&0xF8) >> 3) )

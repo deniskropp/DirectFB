@@ -11,6 +11,7 @@
 #undef HAVE_SYSIO
 #undef HAVE_INB_OUTB_IOPL
 
+#undef SUPPORT_RGB332
 #undef USE_MMX
 
 #undef DFB_DEBUG

@@ -72,6 +72,9 @@ static void primarylayer_deinit( DisplayLayer *layer );
 
 static DFBResult fbdev_read_modes();
 static DFBResult fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
+#ifdef SUPPORT_RGB332
+static DFBResult fbdev_set_rgb332_palette();
+#endif
 static DFBResult fbdev_pan( int buffer );
 static DFBResult fbdev_set_mode( DisplayLayer              *layer,
                                  VideoMode                 *mode,
@@ -554,6 +557,20 @@ static int fbdev_compatible_format( struct fb_var_screeninfo *var,
 static DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *var )
 {
      switch (var->bits_per_pixel) {
+
+#ifdef SUPPORT_RGB332
+          case 8:
+/*
+               This check is omitted, since we want to use RGB332 even if the
+               hardware uses a palette (in that case we initzalize a calculated
+               one to have correct colors)
+               
+               if (fbdev_compatible_format( var, 0, 3, 3, 2, 0, 5, 2, 0 ))
+                    return DSPF_RGB332;
+*/
+               return DSPF_RGB332;               
+               break;
+#endif
           case 15:
                if (fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ))
                     return DSPF_RGB15;
@@ -669,6 +686,9 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                var.green.offset = 5;
                var.blue.offset  = 0;
                break;
+#ifdef SUPPORT_RGB332
+          case 8:
+#endif
           case 24:
           case 32:
                break;
@@ -729,7 +749,10 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
 
           /* set gamma ramp */
           fbdev_set_gamma_ramp( mode->format );
-
+#ifdef SUPPORT_RGB332
+          if (mode->format == DSPF_RGB332)
+               fbdev_set_rgb332_palette();
+#endif
           /* if mode->bpp contains 16 bit we won't find the mode again! */
           if (mode->format == DSPF_RGB15)
                mode->bpp = 15;
@@ -957,6 +980,50 @@ static DFBResult fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      }
 
      return DFB_OK;
-
 }
 
+#ifdef SUPPORT_RGB332
+static DFBResult fbdev_set_rgb332_palette()
+{
+     int red_val;
+     int green_val;
+     int blue_val;
+     int i = 0;
+
+     struct fb_cmap cmap;
+
+     if (!fbdev) {
+          BUG( "fbdev_set_rgb332_palette() called while fbdev == NULL!" );
+
+          return DFB_BUG;
+     }     
+
+     cmap.start  = 0;
+     cmap.len    = 256;
+     cmap.red   = (__u16*)alloca( 2 * 256 );
+     cmap.green = (__u16*)alloca( 2 * 256 );
+     cmap.blue  = (__u16*)alloca( 2 * 256 );
+     cmap.transp = NULL;
+
+
+     for (red_val = 0; red_val  < 8 ; red_val++) {
+          for (green_val = 0; green_val  < 8 ; green_val++) {
+               for (blue_val = 0; blue_val  < 4 ; blue_val++) {
+                    cmap.red[i]   = red_val   << 13;
+                    cmap.green[i] = green_val << 13;
+                    cmap.blue[i]  = blue_val  << 14; 
+                    i++;
+               }
+          }
+     }                                        
+     
+     if (ioctl( fbdev->fd, FBIOPUTCMAP, &cmap ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not set rgb332 palette" );
+
+          return errno2dfb(errno);
+     }
+
+     return DFB_OK;
+}
+#endif

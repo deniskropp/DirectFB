@@ -131,6 +131,18 @@ static void copy_line15( __u16 *dst, __u8 *src, int width)
      }
 }
 
+#ifdef SUPPORT_RGB332
+static void copy_line8( __u8 *dst, __u8 *src, int width)
+{
+     __u32 r, g , b;
+     while (width--) {
+          r = (*src++ >> 5) << 5;
+          g = (*src++ >> 5) << 2;
+          b = (*src++ >> 6);
+          *dst++ = (r|g|b);
+     }
+}
+#endif
 
 char *get_type()
 {
@@ -229,7 +241,10 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
           return err;
 
      switch (format) {
- 	  case DSPF_RGB15:
+#ifdef SUPPORT_RGB332
+          case DSPF_RGB332:
+#endif          
+ 	    case DSPF_RGB15:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
@@ -309,6 +324,12 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
                while (cinfo.output_scanline < cinfo.output_height) {
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     switch (format) {
+#ifdef SUPPORT_RGB332
+                         case DSPF_RGB332:
+                              copy_line8( (__u8*)row_ptr, *buffer,
+                                           cinfo.output_width);
+                              break;
+#endif
                          case DSPF_RGB16:
                               copy_line16( (__u16*)row_ptr, *buffer,
                                            cinfo.output_width);
