@@ -82,13 +82,14 @@ extern "C"
      DECLARE_INTERFACE( IDirectFB )
 
      /*
-      * Layer configuration, creation of windows and background configuration.
+      * Layer configuration, creation of windows and background
+      * configuration.
       */
      DECLARE_INTERFACE( IDirectFBDisplayLayer )
 
      /*
-      * Surface locking, setting colorkeys and other drawing parameters,
-      * clipping, flipping, blitting, drawing.
+      * Surface locking, setting colorkeys and other drawing
+      * parameters, clipping, flipping, blitting, drawing.
       */
      DECLARE_INTERFACE( IDirectFBSurface )
 
@@ -229,9 +230,9 @@ extern "C"
                            );
 
      /*
-      * Retrieve information about supported command-line flags in the form
-      * of a user-readable string formatted suitable to be printed as usage
-      * information.
+      * Retrieves information about supported command-line flags in the
+      * form of a user-readable string formatted suitable to be printed
+      * as usage information.
       */
      const char *DirectFBUsageString( void );
 
@@ -246,8 +247,8 @@ extern "C"
                            );
 
      /*
-      * Sets configuration parameters supported on command line
-      * and in config file. Has to be called before DirectFBCreate but after
+      * Sets configuration parameters supported on command line and in
+      * config file. Has to be called before DirectFBCreate but after
       * DirectFBInit.
       */
      DFBResult DirectFBSetOption(
@@ -256,7 +257,7 @@ extern "C"
                            );
 
      /*
-      * Create the super interface
+      * Creates the super interface
       */
      DFBResult DirectFBCreate(
                                IDirectFB **interface  /* pointer to the
@@ -329,10 +330,10 @@ extern "C"
      } DFBDisplayLayerCapabilities;
 
      /*
-      * Used to enable some capabilities like flicker filtering
-      * or colorkeying. Usage of capabilities not listed here depend
-      * on their settings, e.g. if layer opacity is not set to 100% the opacity
-      * capability is required and used.
+      * Used to enable some capabilities like flicker filtering or
+      * colorkeying. Usage of capabilities not listed here depend on
+      * their settings, e.g. if layer opacity is not set to 100% the
+      * opacity capability is required and used.
       */
      typedef enum {
           DLOP_NONE                = 0x00000000,  /* None of these. */
@@ -367,9 +368,9 @@ extern "C"
                                                 preallocated by the application.
                                                 The field array 'preallocated'
                                                 has to be set using the first
-                                                element for the front buffer and
-                                                eventually the second one for
-                                                the back buffer. */
+                                                element for the front buffer
+                                                and eventually the second one
+                                                for the back buffer. */
      } DFBSurfaceDescriptionFlags;
 
      /*
@@ -800,54 +801,62 @@ extern "C"
 
 
      /*
-      * <i><b>IDirectFB</b></i> is the main interface. It can be retrieved by a call to
-      * <i>DirectFBCreate</i>. It's the only interface with a global creation
-      * facility. Other interfaces are created by this interface or
-      * interfaces created by it.
+      * <i><b>IDirectFB</b></i> is the main interface. It can be
+      * retrieved by a call to <i>DirectFBCreate</i>. It's the only
+      * interface with a global creation facility. Other interfaces
+      * are created by this interface or interfaces created by it.
       *
-      * <b>Hardware capabilities</b> such as the amount of video memory or a
-      * list of supported drawing/blitting functions and flags can be retrieved.
-      * It also provides enumeration of all supported video modes.
+      * <b>Hardware capabilities</b> such as the amount of video
+      * memory or a list of supported drawing/blitting functions and
+      * flags can be retrieved.  It also provides enumeration of all
+      * supported video modes.
       *
-      * <b>Input devices</b> and <b>display layers</b> that are present can be
-      * enumerated via a callback mechanism. The callback is given the
-      * capabilities and the device or layer ID. An interface to specific input
-      * devices or display layers can be retrieved by passing the device or
-      * layer ID to the corresponding method.
+      * <b>Input devices</b> and <b>display layers</b> that are
+      * present can be enumerated via a callback mechanism. The
+      * callback is given the capabilities and the device or layer
+      * ID. An interface to specific input devices or display layers
+      * can be retrieved by passing the device or layer ID to the
+      * corresponding method.
       *
       * <b>Surfaces</b> for general purpose use can be created via
-      * <i>CreateSurface</i>. These surfaces are so called "offscreen surfaces"
-      * and could be used for sprites or icons.
+      * <i>CreateSurface</i>. These surfaces are so called "offscreen
+      * surfaces" and could be used for sprites or icons.
       *
-      * The <b>primary surface</b> is an abstraction and API shortcut for
-      * getting a surface for visual output. Fullscreen games for example have
-      * the whole screen as their primary surface. Alternatively fullscreen
-      * applications can be forced to run in a window. The primary surface is
-      * also created via <i>CreateSurface</i> but with the special capability
+      * The <b>primary surface</b> is an abstraction and API shortcut
+      * for getting a surface for visual output. Fullscreen games for
+      * example have the whole screen as their primary
+      * surface. Alternatively fullscreen applications can be forced
+      * to run in a window. The primary surface is also created via
+      * <i>CreateSurface</i> but with the special capability
       * DSCAPS_PRIMARY.
       *
-      * The <b>cooperative level</b> selects the type of the primary surface.
-      * With a call to <i>SetCooperativeLevel</i> the application can choose
-      * between the surface of an implicitly created window and the surface
-      * of the primary layer (deactivating the window stack). The application
-      * doesn't need to have any extra functionality to run in a window. If
-      * the application is forced to run in a window the call to
-      * <i>SetCooperativeLevel</i> fails with DFB_ACCESSDENIED. Applications
-      * that want to be "window aware" shouldn't exit on this error.
+      * The <b>cooperative level</b> selects the type of the primary
+      * surface.  With a call to <i>SetCooperativeLevel</i> the
+      * application can choose between the surface of an implicitly
+      * created window and the surface of the primary layer
+      * (deactivating the window stack). The application doesn't need
+      * to have any extra functionality to run in a window. If the
+      * application is forced to run in a window the call to
+      * <i>SetCooperativeLevel</i> fails with DFB_ACCESSDENIED.
+      * Applications that want to be "window aware" shouldn't exit on
+      * this error.
       *
-      * The <b>video mode</b> can be changed via <i>SetVideoMode</i> and is the
-      * size and depth of the primary surface, i.e. the screen when in exclusive
-      * cooperative level. Without exclusive access <i>SetVideoMode</i> sets the
-      * size of the implicitly created window.
+      * The <b>video mode</b> can be changed via <i>SetVideoMode</i>
+      * and is the size and depth of the primary surface, i.e. the
+      * screen when in exclusive cooperative level. Without exclusive
+      * access <i>SetVideoMode</i> sets the size of the implicitly
+      * created window.
       * 
-      * <b>Event buffers</b> can be created with an option to automatically
-      * attach input devices matching the specified capabilities. If DICAPS_NONE
-      * is passed an event buffer with nothing attached to is created. An event
-      * buffer can be attached to input devices and windows.
+      * <b>Event buffers</b> can be created with an option to
+      * automatically attach input devices matching the specified
+      * capabilities. If DICAPS_NONE is passed an event buffer with
+      * nothing attached to is created. An event buffer can be
+      * attached to input devices and windows.
       *
-      * <b>Fonts, images and videos</b> are created by this interface. There are
-      * different implementations for different content types. On creation a
-      * suitable implementation is automatically chosen.
+      * <b>Fonts, images and videos</b> are created by this
+      * interface. There are different implementations for different
+      * content types. On creation a suitable implementation is
+      * automatically chosen.
       */
      DEFINE_INTERFACE(   IDirectFB,
 
@@ -867,8 +876,9 @@ extern "C"
           /*
            * Switch the current video mode (primary layer).
            *
-           * If in shared cooperative level this function sets the resolution
-           * of the window that is created implicitly for the primary surface.
+           * If in shared cooperative level this function sets the
+           * resolution of the window that is created implicitly for
+           * the primary surface.
            */
           DFBResult (*SetVideoMode) (
                IDirectFB                *thiz,
@@ -924,9 +934,9 @@ extern "C"
            * Enumerate all existing display layers.
            *
            * Calls the given callback for all available display
-           * layers. The callback is passed the layer id that
-           * can be used to retrieve an interface on a
-           * specific layer using IDirectFB->GetDisplayLayer().
+           * layers. The callback is passed the layer id that can be
+           * used to retrieve an interface on a specific layer using
+           * IDirectFB->GetDisplayLayer().
            */
           DFBResult (*EnumDisplayLayers) (
                IDirectFB                *thiz,
@@ -949,10 +959,10 @@ extern "C"
           /*
            * Enumerate all existing input devices.
            *
-           * Calls the given callback for all available input
-           * devices. The callback is passed the device id that
-           * can be used to retrieve an interface on a
-           * specific device using IDirectFB->GetInputDevice().
+           * Calls the given callback for all available input devices.
+           * The callback is passed the device id that can be used to
+           * retrieve an interface on a specific device using
+           * IDirectFB->GetInputDevice().
            */
           DFBResult (*EnumInputDevices) (
                IDirectFB                *thiz,
@@ -1004,9 +1014,9 @@ extern "C"
           );
 
           /*
-           * Create a streamed video provider that uses the callback function
-           * to retrieve data. Callback is called one time during creation
-           * to determine the data type.
+           * Create a streamed video provider that uses the callback
+           * function to retrieve data. Callback is called one time
+           * during creation to determine the data type.
            */
           /*DFBResult (*CreateStreamedVideoProvider) (
                IDirectFB                *thiz,
@@ -1016,8 +1026,8 @@ extern "C"
           );*/
 
           /*
-           * Load a font from the specified file given a description of how
-           * to load the glyphs.
+           * Load a font from the specified file given a description
+           * of how to load the glyphs.
            */
           DFBResult (*CreateFont) (
                IDirectFB                *thiz,
@@ -1197,8 +1207,8 @@ extern "C"
           /*
            * Set the source color key.
            *
-           * If a pixel of the layer matches this color the underlying pixel
-           * is visible at this point.
+           * If a pixel of the layer matches this color the underlying
+           * pixel is visible at this point.
            */
           DFBResult (*SetSrcColorKey) (
                IDirectFBDisplayLayer              *thiz,
@@ -1223,12 +1233,12 @@ extern "C"
           /*
            * Get the current display layer level.
            *
-           * The level describes the z axis position of a layer.
-           * The primary layer is always on level zero unless a special
-           * driver adds support for level adjustment on the primary layer.
-           * Layers above have a positive level, e.g. video overlays.
-           * Layers below have a negative level, e.g. video underlays
-           * or background layers.
+           * The level describes the z axis position of a layer. The
+           * primary layer is always on level zero unless a special
+           * driver adds support for level adjustment on the primary
+           * layer.  Layers above have a positive level, e.g. video
+           * overlays.  Layers below have a negative level, e.g. video
+           * underlays or background layers.
            */
           DFBResult (*GetLevel) (
                IDirectFBDisplayLayer              *thiz,
@@ -1238,9 +1248,10 @@ extern "C"
           /*
            * Set the display layer level.
            *
-           * Moves the layer to the specified level. The order of all other
-           * layers won't be changed. Note that only a few layers support
-           * level adjustment which is reflected by their capabilities.
+           * Moves the layer to the specified level. The order of all
+           * other layers won't be changed. Note that only a few
+           * layers support level adjustment which is reflected by
+           * their capabilities.
            */
           DFBResult (*SetLevel) (
                IDirectFBDisplayLayer              *thiz,
@@ -1261,8 +1272,9 @@ extern "C"
           /*
            * Test layer configuration.
            *
-           * If configuration fails and 'failed' is not NULL it will indicate
-           * which fields of the configuration caused the error.
+           * If configuration fails and 'failed' is not NULL it will
+           * indicate which fields of the configuration caused the
+           * error.
            */
           DFBResult (*TestConfiguration) (
                IDirectFBDisplayLayer              *thiz,
@@ -1391,8 +1403,9 @@ extern "C"
            * Set cursor acceleration.
            *
            * Sets the acceleration of cursor movements. The amount
-           * beyond the 'threshold' will be multiplied with the acceleration
-           * factor. The acceleration factor is 'numerator/denominator'.
+           * beyond the 'threshold' will be multiplied with the
+           * acceleration factor. The acceleration factor is
+           * 'numerator/denominator'.
            */
           DFBResult (*SetCursorAcceleration) (
                IDirectFBDisplayLayer              *thiz,
@@ -1548,15 +1561,14 @@ extern "C"
           );
 
           /*
-           * Get a mask of drawing functions that are
-           * hardware accelerated with the current settings.
+           * Get a mask of drawing functions that are hardware
+           * accelerated with the current settings.
            *
-           * If a source surface is specified the mask will
-           * also contain accelerated blitting functions.
-           * Note that there is no guarantee that these will
-           * actually be accelerated since the surface storage
-           * (video/system) is examined only when something
-           * actually gets drawn or blitted.
+           * If a source surface is specified the mask will also
+           * contain accelerated blitting functions.  Note that there
+           * is no guarantee that these will actually be accelerated
+           * since the surface storage (video/system) is examined only
+           * when something actually gets drawn or blitted.
            */
           DFBResult (*GetAccelerationMask) (
                IDirectFBSurface         *thiz,
@@ -1603,14 +1615,14 @@ extern "C"
           /*
            * Clear the surface with an extra color.
            *
-           * Fills the whole (sub) surface with the specified color ignoring
-           * drawing flags and color of the current state, but limited to the
-           * current clip.
+           * Fills the whole (sub) surface with the specified color
+           * ignoring drawing flags and color of the current state,
+           * but limited to the current clip.
            *
-           * As with all drawing and blitting functions the backbuffer is
-           * written to. If you are initializing a double buffered surface
-           * you may want to clear both buffers by doing a Clear-Flip-Clear
-           * sequence.
+           * As with all drawing and blitting functions the backbuffer
+           * is written to. If you are initializing a double buffered
+           * surface you may want to clear both buffers by doing a
+           * Clear-Flip-Clear sequence.
            */
           DFBResult (*Clear) (
                IDirectFBSurface         *thiz,
@@ -1624,11 +1636,11 @@ extern "C"
         /** Drawing/blitting control **/
 
           /*
-           * Set the clipping region used to limitate the area
-           * for drawing, blitting and text functions.
+           * Set the clipping region used to limitate the area for
+           * drawing, blitting and text functions.
            *
-           * If no region is specified (NULL passed)
-           * the clip is set to the surface extents (initial clip).
+           * If no region is specified (NULL passed) the clip is set
+           * to the surface extents (initial clip).
            */
           DFBResult (*SetClip) (
                IDirectFBSurface         *thiz,
@@ -1639,9 +1651,9 @@ extern "C"
            * Set the color used for drawing/text functions or
            * alpha/color modulation (blitting functions).
            *
-           * If you are not using the alpha value it should be set to 0xff
-           * to ensure visibility when the code is ported to or used for
-           * surfaces with an alpha channel.
+           * If you are not using the alpha value it should be set to
+           * 0xff to ensure visibility when the code is ported to or
+           * used for surfaces with an alpha channel.
            */
           DFBResult (*SetColor) (
                IDirectFBSurface         *thiz,
@@ -1689,8 +1701,8 @@ extern "C"
           );
 
           /*
-           * Set the destination color key, i.e. the only color
-           * that gets overwritten by drawing and blitting to this surface
+           * Set the destination color key, i.e. the only color that
+           * gets overwritten by drawing and blitting to this surface
            * when destination color keying is enabled.
            */
           DFBResult (*SetDstColorKey) (
@@ -1740,7 +1752,8 @@ extern "C"
           );
 
           /*
-           * Blit an area scaled from the source to the destination rectangle.
+           * Blit an area scaled from the source to the destination
+           * rectangle.
            *
            * Pass a NULL rectangle to use the whole source surface.
            */
@@ -1775,8 +1788,8 @@ extern "C"
           );
 
           /*
-           * Draw an outline of the specified rectangle with the given color
-           * following the specified flags.
+           * Draw an outline of the specified rectangle with the given
+           * color following the specified flags.
            */
           DFBResult (*DrawRectangle) (
                IDirectFBSurface         *thiz,
@@ -1799,8 +1812,8 @@ extern "C"
           );
 
           /*
-           * Draw 'num_lines' lines with the given color
-           * following the drawing flags. Each line specified by a DFBRegion.
+           * Draw 'num_lines' lines with the given color following the
+           * drawing flags. Each line specified by a DFBRegion.
            */
           DFBResult (*DrawLines) (
                IDirectFBSurface         *thiz,
@@ -1846,9 +1859,10 @@ extern "C"
            * Draw an UTF-8 string at the specified position with the
            * given color following the specified flags.
            *
-           * Bytes specifies the number of bytes to take from the string
-           * or -1 for the complete NULL-terminated string. You need to set
-           * a font using the SetFont() method before calling this function.
+           * Bytes specifies the number of bytes to take from the
+           * string or -1 for the complete NULL-terminated string. You
+           * need to set a font using the SetFont() method before
+           * calling this function.
            */
           DFBResult (*DrawString) (
                IDirectFBSurface         *thiz,
@@ -1865,13 +1879,14 @@ extern "C"
           /*
            * Get an interface to a sub area of this surface.
            *
-           * No image data is duplicated, this is a clipped graphics within the
-           * original surface. This is very helpful for lightweight components
-           * in a GUI toolkit.
-           * The new surface's state (color, drawingflags, etc.) is independent
-           * from this one. So it's a handy graphics context.
-           * If no rectangle is specified, the whole surface (or a part if this
-           * surface is a subsurface itself) is represented by the new one.
+           * No image data is duplicated, this is a clipped graphics
+           * within the original surface. This is very helpful for
+           * lightweight components in a GUI toolkit.  The new
+           * surface's state (color, drawingflags, etc.) is
+           * independent from this one. So it's a handy graphics
+           * context.  If no rectangle is specified, the whole surface
+           * (or a part if this surface is a subsurface itself) is
+           * represented by the new one.
            */
           DFBResult (*GetSubSurface) (
                IDirectFBSurface         *thiz,
@@ -2324,9 +2339,9 @@ extern "C"
           );
 
           /*
-           * Check if there is a pending event in the queue. This function
-           * returns DFB_OK if there is at least one event, DFB_BUFFER_EMPTY
-           * otherwise.
+           * Check if there is a pending event in the queue. This
+           * function returns DFB_OK if there is at least one event,
+           * DFB_BUFFER_EMPTY otherwise.
            */
           DFBResult (*HasEvent) (
                IDirectFBEventBuffer     *thiz
@@ -2457,8 +2472,8 @@ extern "C"
           /*
            * Disable specific events from being sent to the window.
            *
-           * The argument is a mask of events that will be cleared in the
-           * window's event mask. The default event mask is DWET_ALL.
+           * The argument is a mask of events that will be cleared in
+           * the window's event mask. The default event mask is DWET_ALL.
            */
           DFBResult (*DisableEvents) (
                IDirectFBWindow          *thiz,
@@ -2472,7 +2487,8 @@ extern "C"
            * Get an interface to the backing store surface.
            *
            * This surface has to be flipped to make previous drawing
-           * commands visible, i.e. to repaint the windowstack for that region.
+           * commands visible, i.e. to repaint the windowstack for
+           * that region.
            */
           DFBResult (*GetSurface) (
                IDirectFBWindow          *thiz,
@@ -2501,8 +2517,9 @@ extern "C"
           /*
            * Set the window color key.
            *
-           * If a pixel of the window matches this color the underlying window
-           * or the background is visible at this point.
+           * If a pixel of the window matches this color the
+           * underlying window or the background is visible at this
+           * point.
            */
           DFBResult (*SetColorKey) (
                IDirectFBWindow          *thiz,
@@ -2542,30 +2559,32 @@ extern "C"
           );
 
           /*
-           * Grab the keyboard, i.e. all following keyboard events are sent to
-           * this window ignoring the focus.
+           * Grab the keyboard, i.e. all following keyboard events are
+           * sent to this window ignoring the focus.
            */
           DFBResult (*GrabKeyboard) (
                IDirectFBWindow          *thiz
           );
 
           /*
-           * Ungrab the keyboard, i.e. switch to standard key event dispatching.
+           * Ungrab the keyboard, i.e. switch to standard key event
+           * dispatching.
            */
           DFBResult (*UngrabKeyboard) (
                IDirectFBWindow          *thiz
           );
 
           /*
-           * Grab the pointer, i.e. all following mouse events are sent to
-           * this window ignoring the focus.
+           * Grab the pointer, i.e. all following mouse events are
+           * sent to this window ignoring the focus.
            */
           DFBResult (*GrabPointer) (
                IDirectFBWindow          *thiz
           );
 
           /*
-           * Ungrab the pointer, i.e. switch to standard mouse event dispatching.
+           * Ungrab the pointer, i.e. switch to standard mouse event
+           * dispatching.
            */
           DFBResult (*UngrabPointer) (
                IDirectFBWindow          *thiz
@@ -2672,10 +2691,10 @@ extern "C"
           /*
            * Destroys the window and sends a destruction message.
            *
-           * This function sends a message of type DWET_DESTROY to the window
-           * after removing it from the window stack and freeing its data.
-           * Some functions called from this interface will return DFB_DESTROYED
-           * after that.
+           * This function sends a message of type DWET_DESTROY to
+           * the window after removing it from the window stack and
+           * freeing its data.  Some functions called from this
+           * interface will return DFB_DESTROYED after that.
            */
           DFBResult (*Destroy) (
                IDirectFBWindow          *thiz
@@ -2743,14 +2762,13 @@ extern "C"
            * Get the logical width of the specified UTF-8 string
            * as if it were drawn with this font.
            *
-           * Bytes specifies the number of bytes to take from
-           * the string or -1 for the complete NULL-terminated
-           * string.
+           * Bytes specifies the number of bytes to take from the
+           * string or -1 for the complete NULL-terminated string.
            *
-           * The returned width may be different than the actual
-           * drawn width of the text since this function returns
-           * the logical width that should be used to layout the
-           * text. A negative width indicates right-to-left rendering.
+           * The returned width may be different than the actual drawn
+           * width of the text since this function returns the logical
+           * width that should be used to layout the text. A negative
+           * width indicates right-to-left rendering.
            */
           DFBResult (*GetStringWidth) (
                IDirectFBFont       *thiz,
@@ -2763,9 +2781,8 @@ extern "C"
            * Get the logical and real extents of the specified
            * UTF-8 string as if it were drawn with this font.
            *
-           * Bytes specifies the number of bytes to take from
-           * the string or -1 for the complete NULL-terminated
-           * string.
+           * Bytes specifies the number of bytes to take from the
+           * string or -1 for the complete NULL-terminated string.
            *
            * The logical rectangle describes the typographic extents
            * and should be used to layout text. The ink rectangle
@@ -2779,7 +2796,8 @@ extern "C"
            * layout.
            *
            * The rectangles offsets are reported relative to the
-           * baseline and refer to the text being drawn using DSTF_LEFT.
+           * baseline and refer to the text being drawn using
+           * DSTF_LEFT.
            */
           DFBResult (*GetStringExtents) (
                IDirectFBFont       *thiz,
@@ -2803,8 +2821,8 @@ extern "C"
      } DFBImageCapabilities;
 
      /*
-      * Information about an image including capabilities and
-      * values belonging to available capabilities.
+      * Information about an image including capabilities and values
+      * belonging to available capabilities.
       */
      typedef struct {
           DFBImageCapabilities     caps;        /* capabilities              */
@@ -2829,9 +2847,9 @@ extern "C"
            * Get a surface description that best matches the image
            * contained in the file.
            *
-           * For opaque image formats the pixel format of the
-           * primary layer is used. For images with alpha channel
-           * an ARGB surface description is returned.
+           * For opaque image formats the pixel format of the primary
+           * layer is used. For images with alpha channel an ARGB
+           * surface description is returned.
            */
           DFBResult (*GetSurfaceDescription) (
                IDirectFBImageProvider   *thiz,
@@ -2975,10 +2993,9 @@ extern "C"
           /*
            * Adjusts the video colors.
            *
-           * This function only has an effect if the video
-           * provider supports this operation. Check the
-           * providers capabilities to find out if this
-           * is the case.
+           * This function only has an effect if the video provider
+           * supports this operation. Check the providers capabilities
+           * to find out if this is the case.
            */
           DFBResult (*SetColorAdjustment) (
                IDirectFBVideoProvider   *thiz,
