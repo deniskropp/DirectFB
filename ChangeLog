@@ -1,71 +1,110 @@
-2001-05-03	11:46	<dok@convergence.de>
+2001-05-03 17:04   Sven Neumann <neo@convergence.de>
 
-	Files:	patches/neofb-0.2.1-patch-2.4.3.bz2 (1.1) ( )
+	NOTES (1.3) (REMOVED)
+	
+	removed empty NOTES file
+	
+2001-05-03 15:10   Denis Oliver Kropp <dok@convergence.de>
+
+	NOTES (1.2) (+0 -24)
+	
+	cleared NOTES, outdated
+	
+2001-05-03 13:07   Denis Oliver Kropp <dok@convergence.de>
+
+	NEWS (1.3) (+2 -0)
+	
+	Added Sven's pkg-config additions to NEWS.
+	
+2001-05-03 12:50   Denis Oliver Kropp <dok@convergence.de>
+
+	ChangeLog (1.4) (+209 -0)
+	include/directfb.h (1.9) (+1 -1)
+	NEWS (1.2) (+43 -0)
+	
+	Generated ChangeLog.
+	Wrote NEWS.
+	Made DFBInputEvent.key_unicode an __u32.
+	
+2001-05-03 11:57   Sven Neumann <neo@convergence.de>
+
+	.cvsignore (1.2) (+2 -0)
+	directfb-swf.pc.in (1.1) (ADDED)
+	directfb-avifile.pc.in (1.1) (ADDED)
+	configure.in (1.7) (+4 -2)
+	Makefile.am (1.2) (+12 -1)
+	
+	added pkg-config files for the interfaces that get optionally installed
+	so apps can test for their existence
+	
+2001-05-03 11:46   Denis Oliver Kropp <dok@convergence.de>
+
+	patches/neofb-0.2.1-patch-2.4.3.bz2 (1.1) (ADDED)
 	
 	Added my framebuffer driver for all NeoMagic PCI/AGP chips.
 	
-2001-05-03	11:27	<dok@convergence.de>
+2001-05-03 11:27   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	include/directfb.h (1.8) (+18 -0)
-		src/input/idirectfbinputdevice.c (1.3) (+48 -78)
+	include/directfb.h (1.8) (+18 -0)
+	src/input/idirectfbinputdevice.c (1.3) (+48 -78)
 	
 	Added IDirectFBInputDevice->GetButtonState() which returns the
 	state of the specified button.
 	Added DFBInputDeviceButtonState.
 	
-2001-05-02	11:17	<neo@convergence.de>
+2001-05-02 11:17   Sven Neumann <neo@convergence.de>
 
-	Files:	examples/df_knuckles/df_knuckles.c (1.4) (+54 -17)
+	examples/df_knuckles/df_knuckles.c (1.4) (+54 -17)
 	
 	allow to switch between FLAT_SHADED and WIRE_FRAME using Space
 	
-2001-05-02	10:53	<neo@convergence.de>
+2001-05-02 10:53   Sven Neumann <neo@convergence.de>
 
-	Files:	examples/df_dok.c (1.5) (+14 -12)
-		src/misc/gfx_util.h (1.2) (+3 -2)
-		src/misc/gfx_util.c (1.2) (+13 -0)
-		src/core/gfxcard.c (1.4) (+11 -9)
+	examples/df_dok.c (1.5) (+14 -12)
+	src/misc/gfx_util.h (1.2) (+3 -2)
+	src/misc/gfx_util.c (1.2) (+13 -0)
+	src/core/gfxcard.c (1.4) (+11 -9)
 	
 	Introduced clip_triangle_precheck() that tests if a triangle needs to
 	be drawn at all.
 	
 	Beautified line drawing examples in df_dok.
 	
-2001-04-29	08:48	<dok@convergence.de>
+2001-04-29 08:48   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	gfxdrivers/matrox/matrox.c (1.3) (+74 -0)
-		src/misc/util.h (1.2) (+1 -1)
-		src/gfx/generic/generic.c (1.5) (+2 -2)
-		gfxdrivers/matrox/regs.h (1.2) (+3 -0)
-		gfxdrivers/matrox/matrox_state.c (1.2) (+13 -0)
+	gfxdrivers/matrox/matrox.c (1.3) (+74 -0)
+	src/misc/util.h (1.2) (+1 -1)
+	src/gfx/generic/generic.c (1.5) (+2 -2)
+	gfxdrivers/matrox/regs.h (1.2) (+3 -0)
+	gfxdrivers/matrox/matrox_state.c (1.2) (+13 -0)
 	
 	Implemented triangle filling in Matrox driver.
 	Renamed utility macro SGN to SIGN.
 	
-2001-04-29	06:02	<dok@convergence.de>
+2001-04-29 06:02   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	examples/df_knuckles/df_knuckles.c (1.3) (+12 -6)
+	examples/df_knuckles/df_knuckles.c (1.3) (+12 -6)
 	
 	yeah, rotating light!
 	
-2001-04-29	05:41	<dok@convergence.de>
+2001-04-29 05:41   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	examples/df_knuckles/df_knuckles.c (1.2) (+1 -1)
+	examples/df_knuckles/df_knuckles.c (1.2) (+1 -1)
 	
 	golden skull ;)
 	
-2001-04-29	05:14	<dok@convergence.de>
+2001-04-29 05:14   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	configure.in (1.6) (+1 -0)
-		src/gfx/generic/generic.c (1.4) (+1 -1)
-		gfxdrivers/matrox/matrox.c (1.2) (+9 -7)
-		examples/df_knuckles/skull.h (1.1) ( )
-		examples/df_knuckles/matrix.h (1.1) ( )
-		examples/df_knuckles/matrix.c (1.1) ( )
-		examples/df_knuckles/df_knuckles.c (1.1) ( )
-		examples/df_knuckles/Makefile.am (1.1) ( )
-		examples/df_knuckles/.cvsignore (1.1) ( )
-		examples/Makefile.am (1.3) (+1 -1)
+	configure.in (1.6) (+1 -0)
+	src/gfx/generic/generic.c (1.4) (+1 -1)
+	gfxdrivers/matrox/matrox.c (1.2) (+9 -7)
+	examples/df_knuckles/skull.h (1.1) (ADDED)
+	examples/df_knuckles/matrix.h (1.1) (ADDED)
+	examples/df_knuckles/matrix.c (1.1) (ADDED)
+	examples/df_knuckles/df_knuckles.c (1.1) (ADDED)
+	examples/df_knuckles/Makefile.am (1.1) (ADDED)
+	examples/df_knuckles/.cvsignore (1.1) (ADDED)
+	examples/Makefile.am (1.3) (+1 -1)
 	
 	Added new cool demo called df_knuckles, it's a port from Mark Vojkovich's
 	skull demo for DGA and a good demonstration of triangles.
@@ -73,46 +112,46 @@
 	Fixed CheckState in Matrox driver, it does not support all functions any more.
 	Added rounding to fixed point triangle setup.
 	
-2001-04-29	03:37	<dok@convergence.de>
+2001-04-29 03:37   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	examples/df_dok.c (1.4) (+81 -23)
-		src/gfx/generic/generic.h (1.2) (+1 -0)
-		src/gfx/generic/generic.c (1.3) (+60 -0)
-		src/gfx/util.h (1.2) (+35 -0)
-		src/core/gfxcard.c (1.3) (+6 -4)
-		gfxdrivers/tdfx/tdfx.c (1.4) (+1 -35)
+	examples/df_dok.c (1.4) (+81 -23)
+	src/gfx/generic/generic.h (1.2) (+1 -0)
+	src/gfx/generic/generic.c (1.3) (+60 -0)
+	src/gfx/util.h (1.2) (+35 -0)
+	src/core/gfxcard.c (1.3) (+6 -4)
+	gfxdrivers/tdfx/tdfx.c (1.4) (+1 -35)
 	
 	implemented triangle filling in generic driver
 	moved utility function sort_triangle from tdfx driver to gfx/util.h
 	added triangles to df_dok
 	
-2001-04-29	01:13	<dok@convergence.de>
+2001-04-29 01:13   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	configure.in (1.5) (+1 -0)
+	configure.in (1.5) (+1 -0)
 	
 	compile with "-g3" if "--enable-debug" is passed to configure
 	
-2001-04-27	14:43	<dok@convergence.de>
+2001-04-27 14:43   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	gfxdrivers/neomagic/neomagic.c (1.2) (+5 -5)
+	gfxdrivers/neomagic/neomagic.c (1.2) (+5 -5)
 	
 	fixed accelerator ids
 	
-2001-04-26	23:36	<neo@convergence.de>
+2001-04-26 23:36   Sven Neumann <neo@convergence.de>
 
-	Files:	examples/df_andi.c (1.2) (+3 -1)
-		src/directfb.c (1.2) (+21 -11)
-		include/directfb.h (1.7) (+10 -2)
-		examples/df_neo/df_neo.c (1.3) (+3 -1)
-		examples/df_window.c (1.4) (+3 -1)
-		examples/df_video_particle.c (1.3) (+4 -1)
-		examples/df_video.c (1.3) (+3 -1)
-		examples/df_stress.c (1.3) (+3 -1)
-		examples/df_porter.c (1.2) (+3 -1)
-		examples/df_particle.c (1.2) (+4 -1)
-		examples/df_joystick.c (1.3) (+4 -1)
-		examples/df_fire.c (1.3) (+4 -1)
-		examples/df_dok.c (1.3) (+3 -1)
+	examples/df_andi.c (1.2) (+3 -1)
+	src/directfb.c (1.2) (+21 -11)
+	include/directfb.h (1.7) (+10 -2)
+	examples/df_neo/df_neo.c (1.3) (+3 -1)
+	examples/df_window.c (1.4) (+3 -1)
+	examples/df_video_particle.c (1.3) (+4 -1)
+	examples/df_video.c (1.3) (+3 -1)
+	examples/df_stress.c (1.3) (+3 -1)
+	examples/df_porter.c (1.2) (+3 -1)
+	examples/df_particle.c (1.2) (+4 -1)
+	examples/df_joystick.c (1.3) (+4 -1)
+	examples/df_fire.c (1.3) (+4 -1)
+	examples/df_dok.c (1.3) (+3 -1)
 	
 	Moved command-line parsing out of DirectFBCreate() into DirectFBInit().
 	This means to inititalize DirectFB() there are now two calls necessary:
@@ -123,96 +162,96 @@
 	This makes is possible to do further checks on the command-line before
 	switching to graphics mode on DirectFBCreate.
 	
-2001-04-26	22:47	<mitch@convergence.de>
+2001-04-26 22:47   Michael Natterer <mitch@convergence.de>
 
-	Files:	examples/df_video.c (1.2) (+7 -0)
-		examples/df_window.c (1.3) (+13 -1)
-		examples/df_video_particle.c (1.2) (+6 -0)
+	examples/df_video.c (1.2) (+7 -0)
+	examples/df_window.c (1.3) (+13 -1)
+	examples/df_video_particle.c (1.2) (+6 -0)
 	
 	- If we need argv[1] as video source, check for it instead of simply
 	  crashing if it's not there.
 	- Release the video provider so DMA from the tuner hardware doesn't
 	  trash framebuffer memory after the demo finished.
 	
-2001-04-26	21:05	<dok@convergence.de>
+2001-04-26 21:05   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	gfxdrivers/tdfx/tdfx.c (1.3) (+87 -7)
-		src/display/idirectfbsurface.c (1.5) (+32 -0)
-		src/core/gfxcard.h (1.2) (+4 -0)
-		src/core/gfxcard.c (1.2) (+23 -0)
-		include/directfb.h (1.6) (+26 -0)
+	gfxdrivers/tdfx/tdfx.c (1.3) (+87 -7)
+	src/display/idirectfbsurface.c (1.5) (+32 -0)
+	src/core/gfxcard.h (1.2) (+4 -0)
+	src/core/gfxcard.c (1.2) (+23 -0)
+	include/directfb.h (1.6) (+26 -0)
 	
 	FillRectangle! But only on Voodoo, yet.
 	Accepts drawing flag DSDRAW_BLEND.
 	
-2001-04-26	20:30	<neo@convergence.de>
+2001-04-26 20:30   Sven Neumann <neo@convergence.de>
 
-	Files:	examples/df_neo/df_neo.c (1.2) (+0 -2)
+	examples/df_neo/df_neo.c (1.2) (+0 -2)
 	
 	forgot to remove the free's here
 	
-2001-04-26	11:44	<dok@convergence.de>
+2001-04-26 11:44   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	examples/df_dok.c (1.2) (+2 -2)
-		src/windows/idirectfbwindow.c (1.3) (+4 -0)
-		src/media/idirectfbfont.c (1.2) (+4 -0)
-		src/input/idirectfbinputdevice.c (1.2) (+4 -0)
-		src/input/idirectfbinputbuffer.c (1.2) (+4 -0)
-		src/display/idirectfbsurface_window.c (1.2) (+4 -0)
-		src/display/idirectfbsurface_layer.c (1.3) (+4 -0)
-		src/display/idirectfbsurface.c (1.4) (+4 -0)
-		src/display/idirectfbdisplaylayer.c (1.4) (+4 -0)
-		src/idirectfb.c (1.8) (+6 -0)
-		interfaces/idirectfbvideoprovider_v4l.c (1.3) (+4 -0)
-		interfaces/idirectfbvideoprovider_swf.c (1.2) (+4 -0)
-		interfaces/idirectfbvideoprovider_avifile.cpp (1.6) (+4 -0)
-		interfaces/idirectfbimageprovider_png.c (1.2) (+6 -2)
-		interfaces/idirectfbimageprovider_jpeg.c (1.3) (+6 -2)
-		interfaces/idirectfbimageprovider_gif.c (1.2) (+6 -2)
-		examples/df_stress.c (1.2) (+2 -6)
+	examples/df_dok.c (1.2) (+2 -2)
+	src/windows/idirectfbwindow.c (1.3) (+4 -0)
+	src/media/idirectfbfont.c (1.2) (+4 -0)
+	src/input/idirectfbinputdevice.c (1.2) (+4 -0)
+	src/input/idirectfbinputbuffer.c (1.2) (+4 -0)
+	src/display/idirectfbsurface_window.c (1.2) (+4 -0)
+	src/display/idirectfbsurface_layer.c (1.3) (+4 -0)
+	src/display/idirectfbsurface.c (1.4) (+4 -0)
+	src/display/idirectfbdisplaylayer.c (1.4) (+4 -0)
+	src/idirectfb.c (1.8) (+6 -0)
+	interfaces/idirectfbvideoprovider_v4l.c (1.3) (+4 -0)
+	interfaces/idirectfbvideoprovider_swf.c (1.2) (+4 -0)
+	interfaces/idirectfbvideoprovider_avifile.cpp (1.6) (+4 -0)
+	interfaces/idirectfbimageprovider_png.c (1.2) (+6 -2)
+	interfaces/idirectfbimageprovider_jpeg.c (1.3) (+6 -2)
+	interfaces/idirectfbimageprovider_gif.c (1.2) (+6 -2)
+	examples/df_stress.c (1.2) (+2 -6)
 	
 	free interfaces if reference counter reaches zero,
 	disabled in debug mode to enable the feature of DFB_DEAD
 	
-2001-04-26	00:11	<mitch@convergence.de>
+2001-04-26 00:11   Michael Natterer <mitch@convergence.de>
 
-	Files:	configure.in (1.4) (+1 -1)
+	configure.in (1.4) (+1 -1)
 	
 	Fixed the check if avifile-config was found.
 	
-2001-04-25	21:10	<dok@convergence.de>
+2001-04-25 21:10   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	interfaces/idirectfbvideoprovider.c (1.2) (+0 -0)
-		interfaces/idirectfbvideoprovider.h (1.2) (+0 -0)
+	interfaces/idirectfbvideoprovider.c (1.2) (REMOVED)
+	interfaces/idirectfbvideoprovider.h (1.2) (REMOVED)
 	
 	removed unused files
 	
-2001-04-25	20:33	<holger@convergence.de>
+2001-04-25 20:33   Holger Wächtler <holger@convergence.de>
 
-	Files:	src/idirectfb.c (1.7) (+24 -3)
+	src/idirectfb.c (1.7) (+24 -3)
 	
 	free interfaces if constuctor failed
 	
-2001-04-25	18:01	<dok@convergence.de>
+2001-04-25 18:01   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	src/display/idirectfbdisplaylayer.c (1.3) (+3 -2)
+	src/display/idirectfbdisplaylayer.c (1.3) (+3 -2)
 	
 	fixed caps passed to IDirectFBSurface_Layer_Construct
 	
-2001-04-24	13:34	<dok@convergence.de>
+2001-04-24 13:34   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	ChangeLog (1.3) (+595 -6)
-		src/idirectfb.c (1.6) (+3 -0)
+	ChangeLog (1.3) (+595 -6)
+	src/idirectfb.c (1.6) (+3 -0)
 	
 	Reset card state in suspend, some glitches still there.
 	Generated changelog.
 	
-2001-04-24	13:14	<neo@convergence.de>
+2001-04-24 13:14   Sven Neumann <neo@convergence.de>
 
-	Files:	README (1.2) (+4 -1)
-		interfaces/idirectfbvideoprovider_swf.c (1.1) ( )
-		interfaces/Makefile.am (1.3) (+15 -1)
-		configure.in (1.3) (+16 -3)
+	README (1.2) (+4 -1)
+	interfaces/idirectfbvideoprovider_swf.c (1.1) (ADDED)
+	interfaces/Makefile.am (1.3) (+15 -1)
+	configure.in (1.3) (+16 -3)
 	
 	Added Shockwave Flash videoprovider hacked by Roh.
 	
@@ -224,12 +263,12 @@
 	Try to build avifile videoprovider by default. Can be disabled by passing
 	--disable-avifile to configure.
 	
-2001-04-23	17:04	<neo@convergence.de>
+2001-04-23 17:04   Sven Neumann <neo@convergence.de>
 
-	Files:	configure.in (1.2) (+2 -2)
-		interfaces/Makefile.am (1.2) (+1 -1)
-		examples/Makefile.am (1.2) (+3 -17)
-		directfb-config.in (1.2) (+15 -3)
+	configure.in (1.2) (+2 -2)
+	interfaces/Makefile.am (1.2) (+1 -1)
+	examples/Makefile.am (1.2) (+3 -17)
+	directfb-config.in (1.2) (+15 -3)
 	
 	Bumped version number to 0.9.1
 	
@@ -237,50 +276,50 @@
 	suitable LDFLAGS so the avifile provider can be used with the linked
 	application. Will need to figure out how to do this right in directfb.pc.
 	
-2001-04-20	19:15	<dok@convergence.de>
+2001-04-20 19:15   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	src/core/surfaces.h (1.2) (+2 -2)
-		src/display/idirectfbdisplaylayer.c (1.2) (+6 -3)
-		src/core/windows.h (1.2) (+16 -15)
-		src/core/windows.c (1.2) (+1 -1)
+	src/core/surfaces.h (1.2) (+2 -2)
+	src/display/idirectfbdisplaylayer.c (1.2) (+6 -3)
+	src/core/windows.h (1.2) (+16 -15)
+	src/core/windows.c (1.2) (+1 -1)
 	
 	Fixed the segfault that happens at exit in all applications using an
 	IDirectFBDisplayLayer.
 	
 	more signed/unsigned cleanups, we need to check all code for that
 	
-2001-04-20	18:52	<dok@convergence.de>
+2001-04-20 18:52   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	include/directfb.h (1.5) (+11 -11)
-		src/windows/idirectfbwindow.c (1.2) (+4 -3)
-		src/display/idirectfbsurface.c (1.3) (+1 -1)
-		src/idirectfb.c (1.5) (+2 -1)
+	include/directfb.h (1.5) (+11 -11)
+	src/windows/idirectfbwindow.c (1.2) (+4 -3)
+	src/display/idirectfbsurface.c (1.3) (+1 -1)
+	src/idirectfb.c (1.5) (+2 -1)
 	
 	signed/unsigned int cleanup
 	
-2001-04-20	14:38	<dok@convergence.de>
+2001-04-20 14:38   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	gfxdrivers/tdfx/tdfx.c (1.2) (+0 -3)
+	gfxdrivers/tdfx/tdfx.c (1.2) (+0 -3)
 	
 	removed bogus test lines from driver
 	
-2001-04-19	20:57	<neo@convergence.de>
+2001-04-19 20:57   Sven Neumann <neo@convergence.de>
 
-	Files:	examples/df_fire.c (1.2) (+1 -0)
-		src/idirectfb.c (1.4) (+0 -2)
+	examples/df_fire.c (1.2) (+1 -0)
+	src/idirectfb.c (1.4) (+0 -2)
 	
 	do not enable the cursor by default
 	explicitely enabled the cursor in df_fire
 	
-2001-04-14	22:14	<dok@convergence.de>
+2001-04-14 22:14   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	interfaces/idirectfbvideoprovider_avifile.cpp (1.5) (+3 -1)
+	interfaces/idirectfbvideoprovider_avifile.cpp (1.5) (+3 -1)
 	
 	also support .asf
 	
-2001-04-13	07:07	<dok@convergence.de>
+2001-04-13 07:07   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	interfaces/idirectfbvideoprovider_avifile.cpp (1.4) (+21 -4)
+	interfaces/idirectfbvideoprovider_avifile.cpp (1.4) (+21 -4)
 	
 	Stop works now, actually doing a Pause (Stop crashes avifile).
 	PlayTo no more stops the video before destination setup and
@@ -289,13 +328,13 @@
 	Works really fine to call PlayTo several times with different destinations.
 	(Different surfaces on the fly not tested yet. Todo: Mutex PlayTo/DrawCallback)
 	
-2001-04-12	21:06	<dok@convergence.de>
+2001-04-12 21:06   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	interfaces/idirectfbvideoprovider_v4l.c (1.2) (+249 -11)
-		src/core/v4l.h (1.2) (+0 -0)
-		src/core/v4l.c (1.2) (+0 -0)
-		src/core/Makefile.am (1.2) (+0 -2)
-		src/idirectfb.c (1.3) (+4 -13)
+	interfaces/idirectfbvideoprovider_v4l.c (1.2) (+249 -11)
+	src/core/v4l.h (1.2) (REMOVED)
+	src/core/v4l.c (1.2) (REMOVED)
+	src/core/Makefile.am (1.2) (+0 -2)
+	src/idirectfb.c (1.3) (+4 -13)
 	
 	V4L Videoprovider Probe now checks if the filename bgeins with "/dev/video",
 	so you have to pass e.g. "/dev/video0" to the provider and not NULL.
@@ -305,501 +344,501 @@
 	2. Add grabbing support.
 	3. Do proper surface listening (resize, destroy, ...).
 	
-2001-04-12	20:59	<dok@convergence.de>
+2001-04-12 20:59   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	interfaces/idirectfbvideoprovider_avifile.cpp (1.3) (+4 -5)
+	interfaces/idirectfbvideoprovider_avifile.cpp (1.3) (+4 -5)
 	
 	compiles with newest avifile version now
 	
-2001-04-12	15:48	<dok@convergence.de>
+2001-04-12 15:48   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	include/directfb.h (1.4) (+2 -2)
+	include/directfb.h (1.4) (+2 -2)
 	
 	oops, directfb.h said "SetColor(a,r,g,b)", it is "r, g, b, a"
 	
-2001-04-11	01:47	<dok@convergence.de>
+2001-04-11 01:47   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	include/directfb.h (1.3) (+1 -8)
-		interfaces/idirectfbimageprovider_jpeg.c (1.2) (+15 -8)
+	include/directfb.h (1.3) (+1 -8)
+	interfaces/idirectfbimageprovider_jpeg.c (1.2) (+15 -8)
 	
 	-removed composed blitting flags (DECAL,MODULATE,...)
 	-precheck if destination format is supported in jpeg provider,
 	image loading needs to be cleaned up badly (src/misc/gfx_util.c, too).
 	
-2001-04-11	00:44	<dok@convergence.de>
+2001-04-11 00:44   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	src/display/idirectfbsurface.c (1.2) (+19 -4)
-		src/display/idirectfbsurface_layer.c (1.2) (+1 -3)
+	src/display/idirectfbsurface.c (1.2) (+19 -4)
+	src/display/idirectfbsurface_layer.c (1.2) (+1 -3)
 	
 	implemented flipping of general purpose surfaces (no layer, no window)
 	a) that are subsurfaces
 	b) with specified flip region
 	c) with DSFLIP_BLIT flag
 	
-2001-04-10	23:48	<dok@convergence.de>
+2001-04-10 23:48   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	tools/gendoc.pl (1.2) (+51 -35)
+	tools/gendoc.pl (1.2) (+51 -35)
 	
 	fixed parsing of struct members and interface call parameters
 	that have a type with spaces, e.g. "unsigned int".
 	
 	improved linking within types.html for struct members, e.g. flags
 	
-2001-04-10	22:44	<dok@convergence.de>
+2001-04-10 22:44   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	examples/df_joystick.c (1.2) (+3 -2)
-		src/idirectfb.c (1.2) (+7 -5)
-		include/directfb.h (1.2) (+9 -5)
+	examples/df_joystick.c (1.2) (+3 -2)
+	src/idirectfb.c (1.2) (+7 -5)
+	include/directfb.h (1.2) (+9 -5)
 	
 	added missing "void *callbackdata" to callbacks:
 	DFBInputDeviceCallback and DFBVideoModeCallback
 	
-2001-04-10	16:32	<dok@convergence.de>
+2001-04-10 16:32   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	examples/df_window.c (1.2) (+0 -2)
-		src/gfx/generic/generic.c (1.2) (+0 -12)
+	examples/df_window.c (1.2) (+0 -2)
+	src/gfx/generic/generic.c (1.2) (+0 -12)
 	
 	removed clipping from software drivers blitting functions, gfxcard.c does this
 	removed debugging sleep from df_window
 	
-2001-04-10	14:04	<dok@convergence.de>
+2001-04-10 14:04   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	fb.modes (1.3) (+1 -1)
+	fb.modes (1.3) (+1 -1)
 	
 	added note about where to place this file
 	
-2001-04-10	13:27	<dok@convergence.de>
+2001-04-10 13:27   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	fb.modes (1.2) (+13 -0)
+	fb.modes (1.2) (+13 -0)
 	
 	added 768x576 mode (PAL), but at 75Hz
 	
-2001-04-10	13:00	<dok@convergence.de>
+2001-04-10 13:00   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	interfaces/idirectfbvideoprovider_avifile.cpp (1.2) (+1 -0)
+	interfaces/idirectfbvideoprovider_avifile.cpp (1.2) (+1 -0)
 	
 	added #warning to help people compile the avifile provider
 	with a newer version of avifile
 	
-2001-04-10	12:58	<dok@convergence.de>
+2001-04-10 12:58   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	src/core/.cvsignore (1.1) ( )
-		src/core/inputdevices/.cvsignore (1.1) ( )
+	src/core/.cvsignore (1.1) (ADDED)
+	src/core/inputdevices/.cvsignore (1.1) (ADDED)
 	
 	standard files
 	
-2001-04-10	12:57	<dok@convergence.de>
+2001-04-10 12:57   Denis Oliver Kropp <dok@convergence.de>
 
-	Files:	src/core/Makefile.am (1.1) ( )
-		src/core/inputdevices/ps2mouse.h (1.1) ( )
-		src/core/inputdevices/ps2mouse.c (1.1) ( )
-		src/core/inputdevices/keyboard.h (1.1) ( )
-		src/core/inputdevices/keyboard.c (1.1) ( )
-		src/core/inputdevices/joystick.h (1.1) ( )
-		src/core/inputdevices/joystick.c (1.1) ( )
-		src/core/inputdevices/Makefile.am (1.1) ( )
-		src/core/windows.h (1.1) ( )
-		src/core/windows.c (1.1) ( )
-		src/core/vt.h (1.1) ( )
-		src/core/vt.c (1.1) ( )
-		src/core/v4l.h (1.1) ( )
-		src/core/v4l.c (1.1) ( )
-		src/core/surfaces.h (1.1) ( )
-		src/core/surfaces.c (1.1) ( )
-		src/core/surfacemanager.h (1.1) ( )
-		src/core/surfacemanager.c (1.1) ( )
-		src/core/state.h (1.1) ( )
-		src/core/state.c (1.1) ( )
-		src/core/sig.h (1.1) ( )
-		src/core/sig.c (1.1) ( )
-		src/core/layers.h (1.1) ( )
-		src/core/layers.c (1.1) ( )
-		src/core/input.h (1.1) ( )
-		src/core/input.c (1.1) ( )
-		src/core/gfxcard.h (1.1) ( )
-		src/core/gfxcard.c (1.1) ( )
-		src/core/fonts.h (1.1) ( )
-		src/core/fonts.c (1.1) ( )
-		src/core/fbdev.h (1.1) ( )
-		src/core/fbdev.c (1.1) ( )
-		src/core/coredefs.h (1.1) ( )
-		src/core/core.h (1.1) ( )
-		src/core/core.c (1.1) ( )
+	src/core/Makefile.am (1.1) (ADDED)
+	src/core/inputdevices/ps2mouse.h (1.1) (ADDED)
+	src/core/inputdevices/ps2mouse.c (1.1) (ADDED)
+	src/core/inputdevices/keyboard.h (1.1) (ADDED)
+	src/core/inputdevices/keyboard.c (1.1) (ADDED)
+	src/core/inputdevices/joystick.h (1.1) (ADDED)
+	src/core/inputdevices/joystick.c (1.1) (ADDED)
+	src/core/inputdevices/Makefile.am (1.1) (ADDED)
+	src/core/windows.h (1.1) (ADDED)
+	src/core/windows.c (1.1) (ADDED)
+	src/core/vt.h (1.1) (ADDED)
+	src/core/vt.c (1.1) (ADDED)
+	src/core/v4l.h (1.1) (ADDED)
+	src/core/v4l.c (1.1) (ADDED)
+	src/core/surfaces.h (1.1) (ADDED)
+	src/core/surfaces.c (1.1) (ADDED)
+	src/core/surfacemanager.h (1.1) (ADDED)
+	src/core/surfacemanager.c (1.1) (ADDED)
+	src/core/state.h (1.1) (ADDED)
+	src/core/state.c (1.1) (ADDED)
+	src/core/sig.h (1.1) (ADDED)
+	src/core/sig.c (1.1) (ADDED)
+	src/core/layers.h (1.1) (ADDED)
+	src/core/layers.c (1.1) (ADDED)
+	src/core/input.h (1.1) (ADDED)
+	src/core/input.c (1.1) (ADDED)
+	src/core/gfxcard.h (1.1) (ADDED)
+	src/core/gfxcard.c (1.1) (ADDED)
+	src/core/fonts.h (1.1) (ADDED)
+	src/core/fonts.c (1.1) (ADDED)
+	src/core/fbdev.h (1.1) (ADDED)
+	src/core/fbdev.c (1.1) (ADDED)
+	src/core/coredefs.h (1.1) (ADDED)
+	src/core/core.h (1.1) (ADDED)
+	src/core/core.c (1.1) (ADDED)
 	
 	added missing files that got sorted out by .cvsignore
 	
-2001-04-06	20:34	<neo@convergence.de>
+2001-04-06 20:34   Sven Neumann <neo@convergence.de>
 
-	Files:	ChangeLog (1.2) (+6 -2)
+	ChangeLog (1.2) (+6 -2)
 	
 	Documented the release version number in the ChangeLog.
 	
-2001-04-06	20:18	<mitch@convergence.de>
+2001-04-06 20:18   Michael Natterer <mitch@convergence.de>
 
-	Files:	.cvsignore (1.1) ( )
-		tools/raw32toraw24.c (1.1.1.1) (+0 -0)
-		tools/raw32toraw24.c (1.1) ( )
-		tools/raw16toraw24.c (1.1.1.1) (+0 -0)
-		tools/raw16toraw24.c (1.1) ( )
-		tools/gendoc.pl (1.1.1.1) (+0 -0)
-		tools/gendoc.pl (1.1) ( )
-		tools/README (1.1.1.1) (+0 -0)
-		tools/README (1.1) ( )
-		tools/Makefile.am (1.1.1.1) (+0 -0)
-		tools/Makefile.am (1.1) ( )
-		tools/.cvsignore (1.1.1.1) (+0 -0)
-		tools/.cvsignore (1.1) ( )
-		src/windows/idirectfbwindow.h (1.1.1.1) (+0 -0)
-		src/windows/idirectfbwindow.h (1.1) ( )
-		src/windows/idirectfbwindow.c (1.1.1.1) (+0 -0)
-		src/windows/idirectfbwindow.c (1.1) ( )
-		src/windows/Makefile.am (1.1.1.1) (+0 -0)
-		src/windows/Makefile.am (1.1) ( )
-		src/windows/.cvsignore (1.1.1.1) (+0 -0)
-		src/windows/.cvsignore (1.1) ( )
-		src/misc/util.h (1.1.1.1) (+0 -0)
-		src/misc/util.h (1.1) ( )
-		src/misc/util.c (1.1.1.1) (+0 -0)
-		src/misc/util.c (1.1) ( )
-		src/misc/gfx_util.h (1.1.1.1) (+0 -0)
-		src/misc/gfx_util.h (1.1) ( )
-		src/misc/gfx_util.c (1.1.1.1) (+0 -0)
-		src/misc/gfx_util.c (1.1) ( )
-		src/misc/conf.h (1.1.1.1) (+0 -0)
-		src/misc/conf.h (1.1) ( )
-		src/misc/conf.c (1.1.1.1) (+0 -0)
-		src/misc/conf.c (1.1) ( )
-		src/misc/Makefile.am (1.1.1.1) (+0 -0)
-		src/misc/Makefile.am (1.1) ( )
-		src/misc/.cvsignore (1.1.1.1) (+0 -0)
-		src/misc/.cvsignore (1.1) ( )
-		src/media/idirectfbfont.h (1.1.1.1) (+0 -0)
-		src/media/idirectfbfont.h (1.1) ( )
-		src/media/idirectfbfont.c (1.1.1.1) (+0 -0)
-		src/media/idirectfbfont.c (1.1) ( )
-		src/media/Makefile.am (1.1.1.1) (+0 -0)
-		src/media/Makefile.am (1.1) ( )
-		src/media/.cvsignore (1.1.1.1) (+0 -0)
-		src/media/.cvsignore (1.1) ( )
-		src/input/idirectfbinputdevice.h (1.1.1.1) (+0 -0)
-		src/input/idirectfbinputdevice.h (1.1) ( )
-		src/input/idirectfbinputdevice.c (1.1.1.1) (+0 -0)
-		src/input/idirectfbinputdevice.c (1.1) ( )
-		src/input/idirectfbinputbuffer.h (1.1.1.1) (+0 -0)
-		src/input/idirectfbinputbuffer.h (1.1) ( )
-		src/input/idirectfbinputbuffer.c (1.1.1.1) (+0 -0)
-		src/input/idirectfbinputbuffer.c (1.1) ( )
-		src/input/Makefile.am (1.1.1.1) (+0 -0)
-		src/input/Makefile.am (1.1) ( )
-		src/input/.cvsignore (1.1.1.1) (+0 -0)
-		src/input/.cvsignore (1.1) ( )
-		src/gfx/generic/generic.h (1.1.1.1) (+0 -0)
-		src/gfx/generic/generic.h (1.1) ( )
-		src/gfx/generic/generic.c (1.1.1.1) (+0 -0)
-		src/gfx/generic/generic.c (1.1) ( )
-		src/gfx/generic/detect_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/detect_MMX.s (1.1) ( )
-		src/gfx/generic/Xacc_blend_srcalpha_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Xacc_blend_srcalpha_MMX.s (1.1) ( )
-		src/gfx/generic/Xacc_blend_invsrcalpha_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Xacc_blend_invsrcalpha_MMX.s (1.1) ( )
-		src/gfx/generic/Sop_rgb32_to_Dacc_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Sop_rgb32_to_Dacc_MMX.s (1.1) ( )
-		src/gfx/generic/Sop_rgb16_to_Dacc_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Sop_rgb16_to_Dacc_MMX.s (1.1) ( )
-		src/gfx/generic/Sop_argb_to_Dacc_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Sop_argb_to_Dacc_MMX.s (1.1) ( )
-		src/gfx/generic/Sop_argb_Sto_Dacc_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Sop_argb_Sto_Dacc_MMX.s (1.1) ( )
-		src/gfx/generic/Sacc_to_Dop_rgb32_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Sacc_to_Dop_rgb32_MMX.s (1.1) ( )
-		src/gfx/generic/Sacc_to_Dop_rgb16_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Sacc_to_Dop_rgb16_MMX.s (1.1) ( )
-		src/gfx/generic/Sacc_add_to_Dacc_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Sacc_add_to_Dacc_MMX.s (1.1) ( )
-		src/gfx/generic/Makefile.am (1.1.1.1) (+0 -0)
-		src/gfx/generic/Makefile.am (1.1) ( )
-		src/gfx/generic/Dacc_modulate_argb_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Dacc_modulate_argb_MMX.s (1.1) ( )
-		src/gfx/generic/Cacc_add_to_Dacc_MMX.s (1.1.1.1) (+0 -0)
-		src/gfx/generic/Cacc_add_to_Dacc_MMX.s (1.1) ( )
-		src/gfx/generic/.cvsignore (1.1.1.1) (+0 -0)
-		src/gfx/generic/.cvsignore (1.1) ( )
-		src/gfx/util.h (1.1.1.1) (+0 -0)
-		src/gfx/util.h (1.1) ( )
-		src/gfx/util.c (1.1.1.1) (+0 -0)
-		src/gfx/util.c (1.1) ( )
-		src/gfx/convert.h (1.1.1.1) (+0 -0)
-		src/gfx/convert.h (1.1) ( )
-		src/gfx/convert.c (1.1.1.1) (+0 -0)
-		src/gfx/convert.c (1.1) ( )
-		src/gfx/Makefile.am (1.1.1.1) (+0 -0)
-		src/gfx/Makefile.am (1.1) ( )
-		src/gfx/.cvsignore (1.1.1.1) (+0 -0)
-		src/gfx/.cvsignore (1.1) ( )
-		src/display/idirectfbsurface_window.h (1.1.1.1) (+0 -0)
-		src/display/idirectfbsurface_window.h (1.1) ( )
-		src/display/idirectfbsurface_window.c (1.1.1.1) (+0 -0)
-		src/display/idirectfbsurface_window.c (1.1) ( )
-		src/display/idirectfbsurface_layer.h (1.1.1.1) (+0 -0)
-		src/display/idirectfbsurface_layer.h (1.1) ( )
-		src/display/idirectfbsurface_layer.c (1.1.1.1) (+0 -0)
-		src/display/idirectfbsurface_layer.c (1.1) ( )
-		src/display/idirectfbsurface.h (1.1.1.1) (+0 -0)
-		src/display/idirectfbsurface.h (1.1) ( )
-		src/display/idirectfbsurface.c (1.1.1.1) (+0 -0)
-		src/display/idirectfbsurface.c (1.1) ( )
-		src/display/idirectfbdisplaylayer.h (1.1.1.1) (+0 -0)
-		src/display/idirectfbdisplaylayer.h (1.1) ( )
-		src/display/idirectfbdisplaylayer.c (1.1.1.1) (+0 -0)
-		src/display/idirectfbdisplaylayer.c (1.1) ( )
-		src/display/Makefile.am (1.1.1.1) (+0 -0)
-		src/display/Makefile.am (1.1) ( )
-		src/display/.cvsignore (1.1.1.1) (+0 -0)
-		src/display/.cvsignore (1.1) ( )
-		src/interface.c (1.1.1.1) (+0 -0)
-		src/interface.c (1.1) ( )
-		src/idirectfb.h (1.1.1.1) (+0 -0)
-		src/idirectfb.h (1.1) ( )
-		src/idirectfb.c (1.1.1.1) (+0 -0)
-		src/idirectfb.c (1.1) ( )
-		src/export_list.sym (1.1.1.1) (+0 -0)
-		src/export_list.sym (1.1) ( )
-		src/directfb.c (1.1.1.1) (+0 -0)
-		src/directfb.c (1.1) ( )
-		src/Makefile.am (1.1.1.1) (+0 -0)
-		src/Makefile.am (1.1) ( )
-		src/.cvsignore (1.1.1.1) (+0 -0)
-		src/.cvsignore (1.1) ( )
-		patches/matroxfb-vsync-irq.patch (1.1.1.1) (+0 -0)
-		patches/matroxfb-vsync-irq.patch (1.1) ( )
-		patches/aty128fb_patch_2.4.0-andi (1.1.1.1) (+0 -0)
-		patches/aty128fb_patch_2.4.0-andi (1.1) ( )
-		patches/README.atyfb_patch_2.4.0-andi (1.1.1.1) (+0 -0)
-		patches/README.atyfb_patch_2.4.0-andi (1.1) ( )
-		patches/Makefile.am (1.1.1.1) (+0 -0)
-		patches/Makefile.am (1.1) ( )
-		patches/.cvsignore (1.1.1.1) (+0 -0)
-		patches/.cvsignore (1.1) ( )
-		interfaces/idirectfbvideoprovider_v4l.c (1.1.1.1) (+0 -0)
-		interfaces/idirectfbvideoprovider_v4l.c (1.1) ( )
-		interfaces/idirectfbvideoprovider_avifile.cpp (1.1.1.1) (+0 -0)
-		interfaces/idirectfbvideoprovider_avifile.cpp (1.1) ( )
-		interfaces/idirectfbvideoprovider.h (1.1.1.1) (+0 -0)
-		interfaces/idirectfbvideoprovider.h (1.1) ( )
-		interfaces/idirectfbvideoprovider.c (1.1.1.1) (+0 -0)
-		interfaces/idirectfbvideoprovider.c (1.1) ( )
-		interfaces/idirectfbimageprovider_png.c (1.1.1.1) (+0 -0)
-		interfaces/idirectfbimageprovider_png.c (1.1) ( )
-		interfaces/idirectfbimageprovider_jpeg.c (1.1.1.1) (+0 -0)
-		interfaces/idirectfbimageprovider_jpeg.c (1.1) ( )
-		interfaces/idirectfbimageprovider_gif.c (1.1.1.1) (+0 -0)
-		interfaces/idirectfbimageprovider_gif.c (1.1) ( )
-		interfaces/idirectfbfont_ft2.c (1.1.1.1) (+0 -0)
-		interfaces/idirectfbfont_ft2.c (1.1) ( )
-		interfaces/Makefile.am (1.1.1.1) (+0 -0)
-		interfaces/Makefile.am (1.1) ( )
-		interfaces/.cvsignore (1.1.1.1) (+0 -0)
-		interfaces/.cvsignore (1.1) ( )
-		include/directfb_version.h.in (1.1.1.1) (+0 -0)
-		include/directfb_version.h.in (1.1) ( )
-		include/directfb_internals.h (1.1.1.1) (+0 -0)
-		include/directfb_internals.h (1.1) ( )
-		include/directfb.h (1.1.1.1) (+0 -0)
-		include/directfb.h (1.1) ( )
-		include/Makefile.am (1.1.1.1) (+0 -0)
-		include/Makefile.am (1.1) ( )
-		include/.cvsignore (1.1.1.1) (+0 -0)
-		include/.cvsignore (1.1) ( )
-		gfxdrivers/tdfx/tdfx.h (1.1.1.1) (+0 -0)
-		gfxdrivers/tdfx/tdfx.h (1.1) ( )
-		gfxdrivers/tdfx/tdfx.c (1.1.1.1) (+0 -0)
-		gfxdrivers/tdfx/tdfx.c (1.1) ( )
-		gfxdrivers/tdfx/Makefile.am (1.1.1.1) (+0 -0)
-		gfxdrivers/tdfx/Makefile.am (1.1) ( )
-		gfxdrivers/tdfx/.cvsignore (1.1.1.1) (+0 -0)
-		gfxdrivers/tdfx/.cvsignore (1.1) ( )
-		gfxdrivers/neomagic/neomagic.h (1.1.1.1) (+0 -0)
-		gfxdrivers/neomagic/neomagic.h (1.1) ( )
-		gfxdrivers/neomagic/neomagic.c (1.1.1.1) (+0 -0)
-		gfxdrivers/neomagic/neomagic.c (1.1) ( )
-		gfxdrivers/neomagic/neo2200.c (1.1.1.1) (+0 -0)
-		gfxdrivers/neomagic/neo2200.c (1.1) ( )
-		gfxdrivers/neomagic/Makefile.am (1.1.1.1) (+0 -0)
-		gfxdrivers/neomagic/Makefile.am (1.1) ( )
-		gfxdrivers/neomagic/.cvsignore (1.1.1.1) (+0 -0)
-		gfxdrivers/neomagic/.cvsignore (1.1) ( )
-		gfxdrivers/matrox/regs.h (1.1.1.1) (+0 -0)
-		gfxdrivers/matrox/regs.h (1.1) ( )
-		gfxdrivers/matrox/mmio.h (1.1.1.1) (+0 -0)
-		gfxdrivers/matrox/mmio.h (1.1) ( )
-		gfxdrivers/matrox/matrox_state.h (1.1.1.1) (+0 -0)
-		gfxdrivers/matrox/matrox_state.h (1.1) ( )
-		gfxdrivers/matrox/matrox_state.c (1.1.1.1) (+0 -0)
-		gfxdrivers/matrox/matrox_state.c (1.1) ( )
-		gfxdrivers/matrox/matrox.h (1.1.1.1) (+0 -0)
-		gfxdrivers/matrox/matrox.h (1.1) ( )
-		gfxdrivers/matrox/matrox.c (1.1.1.1) (+0 -0)
-		gfxdrivers/matrox/matrox.c (1.1) ( )
-		gfxdrivers/matrox/Makefile.am (1.1.1.1) (+0 -0)
-		gfxdrivers/matrox/Makefile.am (1.1) ( )
-		gfxdrivers/matrox/.cvsignore (1.1.1.1) (+0 -0)
-		gfxdrivers/matrox/.cvsignore (1.1) ( )
-		gfxdrivers/ati128/regs.h (1.1.1.1) (+0 -0)
-		gfxdrivers/ati128/regs.h (1.1) ( )
-		gfxdrivers/ati128/mmio.h (1.1.1.1) (+0 -0)
-		gfxdrivers/ati128/mmio.h (1.1) ( )
-		gfxdrivers/ati128/ati128_state.h (1.1.1.1) (+0 -0)
-		gfxdrivers/ati128/ati128_state.h (1.1) ( )
-		gfxdrivers/ati128/ati128_state.c (1.1.1.1) (+0 -0)
-		gfxdrivers/ati128/ati128_state.c (1.1) ( )
-		gfxdrivers/ati128/ati128.h (1.1.1.1) (+0 -0)
-		gfxdrivers/ati128/ati128.h (1.1) ( )
-		gfxdrivers/ati128/ati128.c (1.1.1.1) (+0 -0)
-		gfxdrivers/ati128/ati128.c (1.1) ( )
-		gfxdrivers/ati128/Makefile.am (1.1.1.1) (+0 -0)
-		gfxdrivers/ati128/Makefile.am (1.1) ( )
-		gfxdrivers/ati128/.cvsignore (1.1.1.1) (+0 -0)
-		gfxdrivers/ati128/.cvsignore (1.1) ( )
-		gfxdrivers/Makefile.am (1.1.1.1) (+0 -0)
-		gfxdrivers/Makefile.am (1.1) ( )
-		gfxdrivers/.cvsignore (1.1.1.1) (+0 -0)
-		gfxdrivers/.cvsignore (1.1) ( )
-		examples/df_neo/gnu-keys.png (1.1.1.1) (+0 -0)
-		examples/df_neo/gnu-keys.png (1.1) ( )
-		examples/df_neo/gnome-gsame.png (1.1.1.1) (+0 -0)
-		examples/df_neo/gnome-gsame.png (1.1) ( )
-		examples/df_neo/gnome-gmush.png (1.1.1.1) (+0 -0)
-		examples/df_neo/gnome-gmush.png (1.1) ( )
-		examples/df_neo/gnome-gimp.png (1.1.1.1) (+0 -0)
-		examples/df_neo/gnome-gimp.png (1.1) ( )
-		examples/df_neo/gnome-foot.png (1.1.1.1) (+0 -0)
-		examples/df_neo/gnome-foot.png (1.1) ( )
-		examples/df_neo/gnome-calendar.png (1.1.1.1) (+0 -0)
-		examples/df_neo/gnome-calendar.png (1.1) ( )
-		examples/df_neo/gnome-applets.png (1.1.1.1) (+0 -0)
-		examples/df_neo/gnome-applets.png (1.1) ( )
-		examples/df_neo/df_neo.c (1.1.1.1) (+0 -0)
-		examples/df_neo/df_neo.c (1.1) ( )
-		examples/df_neo/background.jpg (1.1.1.1) (+0 -0)
-		examples/df_neo/background.jpg (1.1) ( )
-		examples/df_neo/apple-red.png (1.1.1.1) (+0 -0)
-		examples/df_neo/apple-red.png (1.1) ( )
-		examples/df_neo/Makefile.am (1.1.1.1) (+0 -0)
-		examples/df_neo/Makefile.am (1.1) ( )
-		examples/df_neo/.cvsignore (1.1.1.1) (+0 -0)
-		examples/df_neo/.cvsignore (1.1) ( )
-		examples/wood_andi.jpg (1.1.1.1) (+0 -0)
-		examples/wood_andi.jpg (1.1) ( )
-		examples/tux.png (1.1.1.1) (+0 -0)
-		examples/tux.png (1.1) ( )
-		examples/shot.png (1.1.1.1) (+0 -0)
-		examples/shot.png (1.1) ( )
-		examples/pngtest2.png (1.1.1.1) (+0 -0)
-		examples/pngtest2.png (1.1) ( )
-		examples/pngtest.png (1.1.1.1) (+0 -0)
-		examples/pngtest.png (1.1) ( )
-		examples/meter.png (1.1.1.1) (+0 -0)
-		examples/meter.png (1.1) ( )
-		examples/melted.png (1.1.1.1) (+0 -0)
-		examples/melted.png (1.1) ( )
-		examples/intro.png (1.1.1.1) (+0 -0)
-		examples/intro.png (1.1) ( )
-		examples/font.data (1.1.1.1) (+0 -0)
-		examples/font.data (1.1) ( )
-		examples/dfblogo.png (1.1.1.1) (+0 -0)
-		examples/dfblogo.png (1.1) ( )
-		examples/df_window.c (1.1.1.1) (+0 -0)
-		examples/df_window.c (1.1) ( )
-		examples/df_video_particle.c (1.1.1.1) (+0 -0)
-		examples/df_video_particle.c (1.1) ( )
-		examples/df_video.c (1.1.1.1) (+0 -0)
-		examples/df_video.c (1.1) ( )
-		examples/df_stress.c (1.1.1.1) (+0 -0)
-		examples/df_stress.c (1.1) ( )
-		examples/df_porter.c (1.1.1.1) (+0 -0)
-		examples/df_porter.c (1.1) ( )
-		examples/df_particle.c (1.1.1.1) (+0 -0)
-		examples/df_particle.c (1.1) ( )
-		examples/df_joystick.c (1.1.1.1) (+0 -0)
-		examples/df_joystick.c (1.1) ( )
-		examples/df_fire.c (1.1.1.1) (+0 -0)
-		examples/df_fire.c (1.1) ( )
-		examples/df_dok_benchmark (1.1.1.1) (+0 -0)
-		examples/df_dok_benchmark (1.1) ( )
-		examples/df_dok.results (1.1.1.1) (+0 -0)
-		examples/df_dok.results (1.1) ( )
-		examples/df_dok.c (1.1.1.1) (+0 -0)
-		examples/df_dok.c (1.1) ( )
-		examples/df_andi.c (1.1.1.1) (+0 -0)
-		examples/df_andi.c (1.1) ( )
-		examples/destination_mask.png (1.1.1.1) (+0 -0)
-		examples/destination_mask.png (1.1) ( )
-		examples/desktop.png (1.1.1.1) (+0 -0)
-		examples/desktop.png (1.1) ( )
-		examples/decker.ttf (1.1.1.1) (+0 -0)
-		examples/decker.ttf (1.1) ( )
-		examples/cursor64x64.dat (1.1.1.1) (+0 -0)
-		examples/cursor64x64.dat (1.1) ( )
-		examples/cursor2.c (1.1.1.1) (+0 -0)
-		examples/cursor2.c (1.1) ( )
-		examples/cursor.png (1.1.1.1) (+0 -0)
-		examples/cursor.png (1.1) ( )
-		examples/cursor.dat (1.1.1.1) (+0 -0)
-		examples/cursor.dat (1.1) ( )
-		examples/convergence.png (1.1.1.1) (+0 -0)
-		examples/convergence.png (1.1) ( )
-		examples/colorkeyed.png (1.1.1.1) (+0 -0)
-		examples/colorkeyed.png (1.1) ( )
-		examples/Makefile.am (1.1.1.1) (+0 -0)
-		examples/Makefile.am (1.1) ( )
-		examples/.cvsignore (1.1.1.1) (+0 -0)
-		examples/.cvsignore (1.1) ( )
-		docs/html/directfb.png (1.1.1.1) (+0 -0)
-		docs/html/directfb.png (1.1) ( )
-		docs/html/cimlogo.png (1.1.1.1) (+0 -0)
-		docs/html/cimlogo.png (1.1) ( )
-		docs/html/.cvsignore (1.1.1.1) (+0 -0)
-		docs/html/.cvsignore (1.1) ( )
-		docs/Makefile.am (1.1.1.1) (+0 -0)
-		docs/Makefile.am (1.1) ( )
-		docs/.cvsignore (1.1.1.1) (+0 -0)
-		docs/.cvsignore (1.1) ( )
-		mkchlog (1.1.1.1) (+0 -0)
-		mkchlog (1.1) ( )
-		fb.modes (1.1.1.1) (+0 -0)
-		fb.modes (1.1) ( )
-		directfb.pc.in (1.1.1.1) (+0 -0)
-		directfb.pc.in (1.1) ( )
-		directfb-config.in (1.1.1.1) (+0 -0)
-		directfb-config.in (1.1) ( )
-		configure.in (1.1.1.1) (+0 -0)
-		configure.in (1.1) ( )
-		autogen.sh (1.1.1.1) (+0 -0)
-		autogen.sh (1.1) ( )
-		acconfig.h (1.1.1.1) (+0 -0)
-		acconfig.h (1.1) ( )
-		TODO (1.1.1.1) (+0 -0)
-		TODO (1.1) ( )
-		README.screenshots (1.1.1.1) (+0 -0)
-		README.screenshots (1.1) ( )
-		README (1.1.1.1) (+0 -0)
-		README (1.1) ( )
-		NOTES (1.1.1.1) (+0 -0)
-		NOTES (1.1) ( )
-		NEWS (1.1.1.1) (+0 -0)
-		NEWS (1.1) ( )
-		Makefile.am (1.1.1.1) (+0 -0)
-		Makefile.am (1.1) ( )
-		ChangeLog (1.1.1.1) (+0 -0)
-		ChangeLog (1.1) ( )
-		COPYING (1.1.1.1) (+0 -0)
-		COPYING (1.1) ( )
-		BUGS (1.1.1.1) (+0 -0)
-		BUGS (1.1) ( )
-		AUTHORS (1.1.1.1) (+0 -0)
-		AUTHORS (1.1) ( )
-		.cvsignore (1.1.1.1) (+0 -0)
+	.cvsignore (1.1) (ADDED)
+	tools/raw32toraw24.c (1.1.1.1) (ADDED)
+	tools/raw32toraw24.c (1.1) (ADDED)
+	tools/raw16toraw24.c (1.1.1.1) (ADDED)
+	tools/raw16toraw24.c (1.1) (ADDED)
+	tools/gendoc.pl (1.1.1.1) (ADDED)
+	tools/gendoc.pl (1.1) (ADDED)
+	tools/README (1.1.1.1) (ADDED)
+	tools/README (1.1) (ADDED)
+	tools/Makefile.am (1.1.1.1) (ADDED)
+	tools/Makefile.am (1.1) (ADDED)
+	tools/.cvsignore (1.1.1.1) (ADDED)
+	tools/.cvsignore (1.1) (ADDED)
+	src/windows/idirectfbwindow.h (1.1.1.1) (ADDED)
+	src/windows/idirectfbwindow.h (1.1) (ADDED)
+	src/windows/idirectfbwindow.c (1.1.1.1) (ADDED)
+	src/windows/idirectfbwindow.c (1.1) (ADDED)
+	src/windows/Makefile.am (1.1.1.1) (ADDED)
+	src/windows/Makefile.am (1.1) (ADDED)
+	src/windows/.cvsignore (1.1.1.1) (ADDED)
+	src/windows/.cvsignore (1.1) (ADDED)
+	src/misc/util.h (1.1.1.1) (ADDED)
+	src/misc/util.h (1.1) (ADDED)
+	src/misc/util.c (1.1.1.1) (ADDED)
+	src/misc/util.c (1.1) (ADDED)
+	src/misc/gfx_util.h (1.1.1.1) (ADDED)
+	src/misc/gfx_util.h (1.1) (ADDED)
+	src/misc/gfx_util.c (1.1.1.1) (ADDED)
+	src/misc/gfx_util.c (1.1) (ADDED)
+	src/misc/conf.h (1.1.1.1) (ADDED)
+	src/misc/conf.h (1.1) (ADDED)
+	src/misc/conf.c (1.1.1.1) (ADDED)
+	src/misc/conf.c (1.1) (ADDED)
+	src/misc/Makefile.am (1.1.1.1) (ADDED)
+	src/misc/Makefile.am (1.1) (ADDED)
+	src/misc/.cvsignore (1.1.1.1) (ADDED)
+	src/misc/.cvsignore (1.1) (ADDED)
+	src/media/idirectfbfont.h (1.1.1.1) (ADDED)
+	src/media/idirectfbfont.h (1.1) (ADDED)
+	src/media/idirectfbfont.c (1.1.1.1) (ADDED)
+	src/media/idirectfbfont.c (1.1) (ADDED)
+	src/media/Makefile.am (1.1.1.1) (ADDED)
+	src/media/Makefile.am (1.1) (ADDED)
+	src/media/.cvsignore (1.1.1.1) (ADDED)
+	src/media/.cvsignore (1.1) (ADDED)
+	src/input/idirectfbinputdevice.h (1.1.1.1) (ADDED)
+	src/input/idirectfbinputdevice.h (1.1) (ADDED)
+	src/input/idirectfbinputdevice.c (1.1.1.1) (ADDED)
+	src/input/idirectfbinputdevice.c (1.1) (ADDED)
+	src/input/idirectfbinputbuffer.h (1.1.1.1) (ADDED)
+	src/input/idirectfbinputbuffer.h (1.1) (ADDED)
+	src/input/idirectfbinputbuffer.c (1.1.1.1) (ADDED)
+	src/input/idirectfbinputbuffer.c (1.1) (ADDED)
+	src/input/Makefile.am (1.1.1.1) (ADDED)
+	src/input/Makefile.am (1.1) (ADDED)
+	src/input/.cvsignore (1.1.1.1) (ADDED)
+	src/input/.cvsignore (1.1) (ADDED)
+	src/gfx/generic/generic.h (1.1.1.1) (ADDED)
+	src/gfx/generic/generic.h (1.1) (ADDED)
+	src/gfx/generic/generic.c (1.1.1.1) (ADDED)
+	src/gfx/generic/generic.c (1.1) (ADDED)
+	src/gfx/generic/detect_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/detect_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Xacc_blend_srcalpha_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Xacc_blend_srcalpha_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Xacc_blend_invsrcalpha_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Xacc_blend_invsrcalpha_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Sop_rgb32_to_Dacc_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Sop_rgb32_to_Dacc_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Sop_rgb16_to_Dacc_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Sop_rgb16_to_Dacc_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Sop_argb_to_Dacc_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Sop_argb_to_Dacc_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Sop_argb_Sto_Dacc_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Sop_argb_Sto_Dacc_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Sacc_to_Dop_rgb32_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Sacc_to_Dop_rgb32_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Sacc_to_Dop_rgb16_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Sacc_to_Dop_rgb16_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Sacc_add_to_Dacc_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Sacc_add_to_Dacc_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Makefile.am (1.1.1.1) (ADDED)
+	src/gfx/generic/Makefile.am (1.1) (ADDED)
+	src/gfx/generic/Dacc_modulate_argb_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Dacc_modulate_argb_MMX.s (1.1) (ADDED)
+	src/gfx/generic/Cacc_add_to_Dacc_MMX.s (1.1.1.1) (ADDED)
+	src/gfx/generic/Cacc_add_to_Dacc_MMX.s (1.1) (ADDED)
+	src/gfx/generic/.cvsignore (1.1.1.1) (ADDED)
+	src/gfx/generic/.cvsignore (1.1) (ADDED)
+	src/gfx/util.h (1.1.1.1) (ADDED)
+	src/gfx/util.h (1.1) (ADDED)
+	src/gfx/util.c (1.1.1.1) (ADDED)
+	src/gfx/util.c (1.1) (ADDED)
+	src/gfx/convert.h (1.1.1.1) (ADDED)
+	src/gfx/convert.h (1.1) (ADDED)
+	src/gfx/convert.c (1.1.1.1) (ADDED)
+	src/gfx/convert.c (1.1) (ADDED)
+	src/gfx/Makefile.am (1.1.1.1) (ADDED)
+	src/gfx/Makefile.am (1.1) (ADDED)
+	src/gfx/.cvsignore (1.1.1.1) (ADDED)
+	src/gfx/.cvsignore (1.1) (ADDED)
+	src/display/idirectfbsurface_window.h (1.1.1.1) (ADDED)
+	src/display/idirectfbsurface_window.h (1.1) (ADDED)
+	src/display/idirectfbsurface_window.c (1.1.1.1) (ADDED)
+	src/display/idirectfbsurface_window.c (1.1) (ADDED)
+	src/display/idirectfbsurface_layer.h (1.1.1.1) (ADDED)
+	src/display/idirectfbsurface_layer.h (1.1) (ADDED)
+	src/display/idirectfbsurface_layer.c (1.1.1.1) (ADDED)
+	src/display/idirectfbsurface_layer.c (1.1) (ADDED)
+	src/display/idirectfbsurface.h (1.1.1.1) (ADDED)
+	src/display/idirectfbsurface.h (1.1) (ADDED)
+	src/display/idirectfbsurface.c (1.1.1.1) (ADDED)
+	src/display/idirectfbsurface.c (1.1) (ADDED)
+	src/display/idirectfbdisplaylayer.h (1.1.1.1) (ADDED)
+	src/display/idirectfbdisplaylayer.h (1.1) (ADDED)
+	src/display/idirectfbdisplaylayer.c (1.1.1.1) (ADDED)
+	src/display/idirectfbdisplaylayer.c (1.1) (ADDED)
+	src/display/Makefile.am (1.1.1.1) (ADDED)
+	src/display/Makefile.am (1.1) (ADDED)
+	src/display/.cvsignore (1.1.1.1) (ADDED)
+	src/display/.cvsignore (1.1) (ADDED)
+	src/interface.c (1.1.1.1) (ADDED)
+	src/interface.c (1.1) (ADDED)
+	src/idirectfb.h (1.1.1.1) (ADDED)
+	src/idirectfb.h (1.1) (ADDED)
+	src/idirectfb.c (1.1.1.1) (ADDED)
+	src/idirectfb.c (1.1) (ADDED)
+	src/export_list.sym (1.1.1.1) (ADDED)
+	src/export_list.sym (1.1) (ADDED)
+	src/directfb.c (1.1.1.1) (ADDED)
+	src/directfb.c (1.1) (ADDED)
+	src/Makefile.am (1.1.1.1) (ADDED)
+	src/Makefile.am (1.1) (ADDED)
+	src/.cvsignore (1.1.1.1) (ADDED)
+	src/.cvsignore (1.1) (ADDED)
+	patches/matroxfb-vsync-irq.patch (1.1.1.1) (ADDED)
+	patches/matroxfb-vsync-irq.patch (1.1) (ADDED)
+	patches/aty128fb_patch_2.4.0-andi (1.1.1.1) (ADDED)
+	patches/aty128fb_patch_2.4.0-andi (1.1) (ADDED)
+	patches/README.atyfb_patch_2.4.0-andi (1.1.1.1) (ADDED)
+	patches/README.atyfb_patch_2.4.0-andi (1.1) (ADDED)
+	patches/Makefile.am (1.1.1.1) (ADDED)
+	patches/Makefile.am (1.1) (ADDED)
+	patches/.cvsignore (1.1.1.1) (ADDED)
+	patches/.cvsignore (1.1) (ADDED)
+	interfaces/idirectfbvideoprovider_v4l.c (1.1.1.1) (ADDED)
+	interfaces/idirectfbvideoprovider_v4l.c (1.1) (ADDED)
+	interfaces/idirectfbvideoprovider_avifile.cpp (1.1.1.1) (ADDED)
+	interfaces/idirectfbvideoprovider_avifile.cpp (1.1) (ADDED)
+	interfaces/idirectfbvideoprovider.h (1.1.1.1) (ADDED)
+	interfaces/idirectfbvideoprovider.h (1.1) (ADDED)
+	interfaces/idirectfbvideoprovider.c (1.1.1.1) (ADDED)
+	interfaces/idirectfbvideoprovider.c (1.1) (ADDED)
+	interfaces/idirectfbimageprovider_png.c (1.1.1.1) (ADDED)
+	interfaces/idirectfbimageprovider_png.c (1.1) (ADDED)
+	interfaces/idirectfbimageprovider_jpeg.c (1.1.1.1) (ADDED)
+	interfaces/idirectfbimageprovider_jpeg.c (1.1) (ADDED)
+	interfaces/idirectfbimageprovider_gif.c (1.1.1.1) (ADDED)
+	interfaces/idirectfbimageprovider_gif.c (1.1) (ADDED)
+	interfaces/idirectfbfont_ft2.c (1.1.1.1) (ADDED)
+	interfaces/idirectfbfont_ft2.c (1.1) (ADDED)
+	interfaces/Makefile.am (1.1.1.1) (ADDED)
+	interfaces/Makefile.am (1.1) (ADDED)
+	interfaces/.cvsignore (1.1.1.1) (ADDED)
+	interfaces/.cvsignore (1.1) (ADDED)
+	include/directfb_version.h.in (1.1.1.1) (ADDED)
+	include/directfb_version.h.in (1.1) (ADDED)
+	include/directfb_internals.h (1.1.1.1) (ADDED)
+	include/directfb_internals.h (1.1) (ADDED)
+	include/directfb.h (1.1.1.1) (ADDED)
+	include/directfb.h (1.1) (ADDED)
+	include/Makefile.am (1.1.1.1) (ADDED)
+	include/Makefile.am (1.1) (ADDED)
+	include/.cvsignore (1.1.1.1) (ADDED)
+	include/.cvsignore (1.1) (ADDED)
+	gfxdrivers/tdfx/tdfx.h (1.1.1.1) (ADDED)
+	gfxdrivers/tdfx/tdfx.h (1.1) (ADDED)
+	gfxdrivers/tdfx/tdfx.c (1.1.1.1) (ADDED)
+	gfxdrivers/tdfx/tdfx.c (1.1) (ADDED)
+	gfxdrivers/tdfx/Makefile.am (1.1.1.1) (ADDED)
+	gfxdrivers/tdfx/Makefile.am (1.1) (ADDED)
+	gfxdrivers/tdfx/.cvsignore (1.1.1.1) (ADDED)
+	gfxdrivers/tdfx/.cvsignore (1.1) (ADDED)
+	gfxdrivers/neomagic/neomagic.h (1.1.1.1) (ADDED)
+	gfxdrivers/neomagic/neomagic.h (1.1) (ADDED)
+	gfxdrivers/neomagic/neomagic.c (1.1.1.1) (ADDED)
+	gfxdrivers/neomagic/neomagic.c (1.1) (ADDED)
+	gfxdrivers/neomagic/neo2200.c (1.1.1.1) (ADDED)
+	gfxdrivers/neomagic/neo2200.c (1.1) (ADDED)
+	gfxdrivers/neomagic/Makefile.am (1.1.1.1) (ADDED)
+	gfxdrivers/neomagic/Makefile.am (1.1) (ADDED)
+	gfxdrivers/neomagic/.cvsignore (1.1.1.1) (ADDED)
+	gfxdrivers/neomagic/.cvsignore (1.1) (ADDED)
+	gfxdrivers/matrox/regs.h (1.1.1.1) (ADDED)
+	gfxdrivers/matrox/regs.h (1.1) (ADDED)
+	gfxdrivers/matrox/mmio.h (1.1.1.1) (ADDED)
+	gfxdrivers/matrox/mmio.h (1.1) (ADDED)
+	gfxdrivers/matrox/matrox_state.h (1.1.1.1) (ADDED)
+	gfxdrivers/matrox/matrox_state.h (1.1) (ADDED)
+	gfxdrivers/matrox/matrox_state.c (1.1.1.1) (ADDED)
+	gfxdrivers/matrox/matrox_state.c (1.1) (ADDED)
+	gfxdrivers/matrox/matrox.h (1.1.1.1) (ADDED)
+	gfxdrivers/matrox/matrox.h (1.1) (ADDED)
+	gfxdrivers/matrox/matrox.c (1.1.1.1) (ADDED)
+	gfxdrivers/matrox/matrox.c (1.1) (ADDED)
+	gfxdrivers/matrox/Makefile.am (1.1.1.1) (ADDED)
+	gfxdrivers/matrox/Makefile.am (1.1) (ADDED)
+	gfxdrivers/matrox/.cvsignore (1.1.1.1) (ADDED)
+	gfxdrivers/matrox/.cvsignore (1.1) (ADDED)
+	gfxdrivers/ati128/regs.h (1.1.1.1) (ADDED)
+	gfxdrivers/ati128/regs.h (1.1) (ADDED)
+	gfxdrivers/ati128/mmio.h (1.1.1.1) (ADDED)
+	gfxdrivers/ati128/mmio.h (1.1) (ADDED)
+	gfxdrivers/ati128/ati128_state.h (1.1.1.1) (ADDED)
+	gfxdrivers/ati128/ati128_state.h (1.1) (ADDED)
+	gfxdrivers/ati128/ati128_state.c (1.1.1.1) (ADDED)
+	gfxdrivers/ati128/ati128_state.c (1.1) (ADDED)
+	gfxdrivers/ati128/ati128.h (1.1.1.1) (ADDED)
+	gfxdrivers/ati128/ati128.h (1.1) (ADDED)
+	gfxdrivers/ati128/ati128.c (1.1.1.1) (ADDED)
+	gfxdrivers/ati128/ati128.c (1.1) (ADDED)
+	gfxdrivers/ati128/Makefile.am (1.1.1.1) (ADDED)
+	gfxdrivers/ati128/Makefile.am (1.1) (ADDED)
+	gfxdrivers/ati128/.cvsignore (1.1.1.1) (ADDED)
+	gfxdrivers/ati128/.cvsignore (1.1) (ADDED)
+	gfxdrivers/Makefile.am (1.1.1.1) (ADDED)
+	gfxdrivers/Makefile.am (1.1) (ADDED)
+	gfxdrivers/.cvsignore (1.1.1.1) (ADDED)
+	gfxdrivers/.cvsignore (1.1) (ADDED)
+	examples/df_neo/gnu-keys.png (1.1.1.1) (ADDED)
+	examples/df_neo/gnu-keys.png (1.1) (ADDED)
+	examples/df_neo/gnome-gsame.png (1.1.1.1) (ADDED)
+	examples/df_neo/gnome-gsame.png (1.1) (ADDED)
+	examples/df_neo/gnome-gmush.png (1.1.1.1) (ADDED)
+	examples/df_neo/gnome-gmush.png (1.1) (ADDED)
+	examples/df_neo/gnome-gimp.png (1.1.1.1) (ADDED)
+	examples/df_neo/gnome-gimp.png (1.1) (ADDED)
+	examples/df_neo/gnome-foot.png (1.1.1.1) (ADDED)
+	examples/df_neo/gnome-foot.png (1.1) (ADDED)
+	examples/df_neo/gnome-calendar.png (1.1.1.1) (ADDED)
+	examples/df_neo/gnome-calendar.png (1.1) (ADDED)
+	examples/df_neo/gnome-applets.png (1.1.1.1) (ADDED)
+	examples/df_neo/gnome-applets.png (1.1) (ADDED)
+	examples/df_neo/df_neo.c (1.1.1.1) (ADDED)
+	examples/df_neo/df_neo.c (1.1) (ADDED)
+	examples/df_neo/background.jpg (1.1.1.1) (ADDED)
+	examples/df_neo/background.jpg (1.1) (ADDED)
+	examples/df_neo/apple-red.png (1.1.1.1) (ADDED)
+	examples/df_neo/apple-red.png (1.1) (ADDED)
+	examples/df_neo/Makefile.am (1.1.1.1) (ADDED)
+	examples/df_neo/Makefile.am (1.1) (ADDED)
+	examples/df_neo/.cvsignore (1.1.1.1) (ADDED)
+	examples/df_neo/.cvsignore (1.1) (ADDED)
+	examples/wood_andi.jpg (1.1.1.1) (ADDED)
+	examples/wood_andi.jpg (1.1) (ADDED)
+	examples/tux.png (1.1.1.1) (ADDED)
+	examples/tux.png (1.1) (ADDED)
+	examples/shot.png (1.1.1.1) (ADDED)
+	examples/shot.png (1.1) (ADDED)
+	examples/pngtest2.png (1.1.1.1) (ADDED)
+	examples/pngtest2.png (1.1) (ADDED)
+	examples/pngtest.png (1.1.1.1) (ADDED)
+	examples/pngtest.png (1.1) (ADDED)
+	examples/meter.png (1.1.1.1) (ADDED)
+	examples/meter.png (1.1) (ADDED)
+	examples/melted.png (1.1.1.1) (ADDED)
+	examples/melted.png (1.1) (ADDED)
+	examples/intro.png (1.1.1.1) (ADDED)
+	examples/intro.png (1.1) (ADDED)
+	examples/font.data (1.1.1.1) (ADDED)
+	examples/font.data (1.1) (ADDED)
+	examples/dfblogo.png (1.1.1.1) (ADDED)
+	examples/dfblogo.png (1.1) (ADDED)
+	examples/df_window.c (1.1.1.1) (ADDED)
+	examples/df_window.c (1.1) (ADDED)
+	examples/df_video_particle.c (1.1.1.1) (ADDED)
+	examples/df_video_particle.c (1.1) (ADDED)
+	examples/df_video.c (1.1.1.1) (ADDED)
+	examples/df_video.c (1.1) (ADDED)
+	examples/df_stress.c (1.1.1.1) (ADDED)
+	examples/df_stress.c (1.1) (ADDED)
+	examples/df_porter.c (1.1.1.1) (ADDED)
+	examples/df_porter.c (1.1) (ADDED)
+	examples/df_particle.c (1.1.1.1) (ADDED)
+	examples/df_particle.c (1.1) (ADDED)
+	examples/df_joystick.c (1.1.1.1) (ADDED)
+	examples/df_joystick.c (1.1) (ADDED)
+	examples/df_fire.c (1.1.1.1) (ADDED)
+	examples/df_fire.c (1.1) (ADDED)
+	examples/df_dok_benchmark (1.1.1.1) (ADDED)
+	examples/df_dok_benchmark (1.1) (ADDED)
+	examples/df_dok.results (1.1.1.1) (ADDED)
+	examples/df_dok.results (1.1) (ADDED)
+	examples/df_dok.c (1.1.1.1) (ADDED)
+	examples/df_dok.c (1.1) (ADDED)
+	examples/df_andi.c (1.1.1.1) (ADDED)
+	examples/df_andi.c (1.1) (ADDED)
+	examples/destination_mask.png (1.1.1.1) (ADDED)
+	examples/destination_mask.png (1.1) (ADDED)
+	examples/desktop.png (1.1.1.1) (ADDED)
+	examples/desktop.png (1.1) (ADDED)
+	examples/decker.ttf (1.1.1.1) (ADDED)
+	examples/decker.ttf (1.1) (ADDED)
+	examples/cursor64x64.dat (1.1.1.1) (ADDED)
+	examples/cursor64x64.dat (1.1) (ADDED)
+	examples/cursor2.c (1.1.1.1) (ADDED)
+	examples/cursor2.c (1.1) (ADDED)
+	examples/cursor.png (1.1.1.1) (ADDED)
+	examples/cursor.png (1.1) (ADDED)
+	examples/cursor.dat (1.1.1.1) (ADDED)
+	examples/cursor.dat (1.1) (ADDED)
+	examples/convergence.png (1.1.1.1) (ADDED)
+	examples/convergence.png (1.1) (ADDED)
+	examples/colorkeyed.png (1.1.1.1) (ADDED)
+	examples/colorkeyed.png (1.1) (ADDED)
+	examples/Makefile.am (1.1.1.1) (ADDED)
+	examples/Makefile.am (1.1) (ADDED)
+	examples/.cvsignore (1.1.1.1) (ADDED)
+	examples/.cvsignore (1.1) (ADDED)
+	docs/html/directfb.png (1.1.1.1) (ADDED)
+	docs/html/directfb.png (1.1) (ADDED)
+	docs/html/cimlogo.png (1.1.1.1) (ADDED)
+	docs/html/cimlogo.png (1.1) (ADDED)
+	docs/html/.cvsignore (1.1.1.1) (ADDED)
+	docs/html/.cvsignore (1.1) (ADDED)
+	docs/Makefile.am (1.1.1.1) (ADDED)
+	docs/Makefile.am (1.1) (ADDED)
+	docs/.cvsignore (1.1.1.1) (ADDED)
+	docs/.cvsignore (1.1) (ADDED)
+	mkchlog (1.1.1.1) (ADDED)
+	mkchlog (1.1) (ADDED)
+	fb.modes (1.1.1.1) (ADDED)
+	fb.modes (1.1) (ADDED)
+	directfb.pc.in (1.1.1.1) (ADDED)
+	directfb.pc.in (1.1) (ADDED)
+	directfb-config.in (1.1.1.1) (ADDED)
+	directfb-config.in (1.1) (ADDED)
+	configure.in (1.1.1.1) (ADDED)
+	configure.in (1.1) (ADDED)
+	autogen.sh (1.1.1.1) (ADDED)
+	autogen.sh (1.1) (ADDED)
+	acconfig.h (1.1.1.1) (ADDED)
+	acconfig.h (1.1) (ADDED)
+	TODO (1.1.1.1) (ADDED)
+	TODO (1.1) (ADDED)
+	README.screenshots (1.1.1.1) (ADDED)
+	README.screenshots (1.1) (ADDED)
+	README (1.1.1.1) (ADDED)
+	README (1.1) (ADDED)
+	NOTES (1.1.1.1) (ADDED)
+	NOTES (1.1) (ADDED)
+	NEWS (1.1.1.1) (ADDED)
+	NEWS (1.1) (ADDED)
+	Makefile.am (1.1.1.1) (ADDED)
+	Makefile.am (1.1) (ADDED)
+	ChangeLog (1.1.1.1) (ADDED)
+	ChangeLog (1.1) (ADDED)
+	COPYING (1.1.1.1) (ADDED)
+	COPYING (1.1) (ADDED)
+	BUGS (1.1.1.1) (ADDED)
+	BUGS (1.1) (ADDED)
+	AUTHORS (1.1.1.1) (ADDED)
+	AUTHORS (1.1) (ADDED)
+	.cvsignore (1.1.1.1) (ADDED)
 	
 	Initial revision
 	
