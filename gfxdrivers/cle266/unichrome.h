@@ -19,8 +19,8 @@
 #define UC_FIFO_SIZE 2000
 
 /** If defined - the driver will use the 3D engine. */
-//#define UC_ENABLE_3D
-#undef UC_ENABLE_3D
+#define UC_ENABLE_3D
+//#undef UC_ENABLE_3D
 
 
 /** Register settings for the current source surface. (3D) */
