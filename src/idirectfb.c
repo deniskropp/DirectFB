@@ -327,7 +327,9 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                                                      x, y,
                                                      data->primary.width,
                                                      data->primary.height,
-                                                     DWCAPS_ALPHACHANNEL | DWCAPS_DOUBLEBUFFER );
+                                                     DWCAPS_ALPHACHANNEL |
+                                                     DWCAPS_DOUBLEBUFFER,
+                                                     DSPF_UNKNOWN );
                     }
                     else
                          window = dfb_window_create( dfb_layers->shared->windowstack,
@@ -335,7 +337,11 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                                                      data->primary.width,
                                                      data->primary.height,
                                                      (caps & DSCAPS_FLIPPING) ?
-                                                     DWCAPS_DOUBLEBUFFER : 0 );
+                                                     DWCAPS_DOUBLEBUFFER : 0,
+                                                     DSPF_UNKNOWN );
+
+                    if (!window)
+                         return DFB_FAILURE;
 
                     dfb_window_init( window );
 

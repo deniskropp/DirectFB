@@ -496,8 +496,9 @@ extern "C"
           DWDESC_CAPS         = 0x00000001,  /* caps field is valid */
           DWDESC_WIDTH        = 0x00000002,  /* width field is valid */
           DWDESC_HEIGHT       = 0x00000004,  /* height field is valid */
-          DWDESC_POSX         = 0x00000008,  /* posx field is valid */
-          DWDESC_POSY         = 0x00000010   /* posy field is valid */
+          DWDESC_PIXELFORMAT  = 0x00000008,  /* pixelformat field is valid */
+          DWDESC_POSX         = 0x00000010,  /* posx field is valid */
+          DWDESC_POSY         = 0x00000020   /* posy field is valid */
      } DFBWindowDescriptionFlags;
 
      /*
@@ -622,31 +623,32 @@ extern "C"
       * Description of the input device capabilities.
       */
      typedef struct {
-          DFBInputDeviceTypeFlags            type;       /* classification of
-                                                            input device */
-          DFBInputDeviceCapabilities         caps;       /* capabilities,
-                                                            validates the
-                                                            following fields */
+          DFBInputDeviceTypeFlags            type;        /* classification of
+                                                             input device */
+          DFBInputDeviceCapabilities         caps;        /* capabilities,
+                                                             validates the
+                                                             following fields */
 
-          DFBInputDeviceAxisIdentifier       max_axis;   /* highest axis
-                                                            identifier */
-          DFBInputDeviceButtonIdentifier     max_button; /* highest button
-                                                            identifier */
+          DFBInputDeviceAxisIdentifier       max_axis;    /* highest axis
+                                                             identifier */
+          DFBInputDeviceButtonIdentifier     max_button;  /* highest button
+                                                             identifier */
      } DFBInputDeviceDescription;
 
      /*
       * Description of the window that is to be created.
       */
      typedef struct {
-          DFBWindowDescriptionFlags          flags;      /* field validation */
+          DFBWindowDescriptionFlags          flags;       /* field validation */
 
-          DFBWindowCapabilities              caps;       /* capabilities */
-          unsigned int                       width;      /* pixel width */
-          unsigned int                       height;     /* pixel height */
-          int                                posx;       /* distance from left
-                                                            layer border */
-          int                                posy;       /* distance from upper
-                                                            layer border */
+          DFBWindowCapabilities              caps;        /* capabilities */
+          unsigned int                       width;       /* pixel width */
+          unsigned int                       height;      /* pixel height */
+          DFBSurfacePixelFormat              pixelformat; /* pixel format */
+          int                                posx;        /* distance from left
+                                                             layer border */
+          int                                posy;        /* distance from upper
+                                                             layer border */
      } DFBWindowDescription;
 
      /*

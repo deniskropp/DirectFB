@@ -125,7 +125,8 @@ void dfb_window_remove( CoreWindow *window );
  */
 CoreWindow* dfb_window_create( CoreWindowStack *stack, int x, int y,
                                unsigned int width, unsigned int height,
-                               unsigned int caps );
+                               DFBWindowCapabilities caps,
+                               DFBSurfacePixelFormat pixelformat );
 
 /*
  * must be called after window_create

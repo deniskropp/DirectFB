@@ -267,6 +267,7 @@ driver_open_device( InputDevice      *device,
           return DFB_INIT;
      }
 
+     /* apply voodoo */
      ioctl( fd, RC_IOCTL_BCODES, 0 );
 
      

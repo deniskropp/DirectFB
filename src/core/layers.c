@@ -454,7 +454,8 @@ static DFBResult dfb_layer_create_cursor_window( DisplayLayer *layer,
      cursor = dfb_window_create( layer->shared->windowstack,
                                  layer->shared->windowstack->cx,
                                  layer->shared->windowstack->cy, width, height,
-                                 DWHC_GHOST | DWCAPS_ALPHACHANNEL );
+                                 DWHC_GHOST | DWCAPS_ALPHACHANNEL,
+                                 DSPF_UNKNOWN );
      if (!cursor) {
           ERRORMSG( "DirectFB/core/layers: "
                     "failed creating a window for software cursor!\n" );
