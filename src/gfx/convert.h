@@ -240,6 +240,11 @@ static inline void span_rgb32_to_argb( __u32 *src, __u32 *dst, int width )
 }
 
 
+static inline void span_argb_to_a8( __u32 *src, __u8 *dst, int width )
+{
+     while (width--) *dst++ = *src >> 24, src++;
+}
+
 static inline void span_argb_to_rgb15( __u32 *src, __u16 *dst, int width )
 {
      while (width--) *dst++ = RGB32_TO_RGB15( *src ), src++;
