@@ -1141,6 +1141,25 @@ dfb_windowstack_flush_keys( CoreWindowStack *stack )
 }
 
 void
+dfb_windowstack_sync_buffers( CoreWindowStack *stack )
+{
+     DisplayLayer *layer;
+     CoreSurface  *surface;
+
+     DFB_ASSERT( stack != NULL );
+
+     stack_lock( stack );
+     
+     layer = dfb_layer_at( stack->layer_id );
+     surface = dfb_layer_surface( layer );
+
+     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE))
+          dfb_gfx_copy(surface, surface, NULL);
+     
+     stack_unlock( stack );
+}
+
+void
 dfb_windowstack_handle_motion( CoreWindowStack          *stack,
                                int                       dx,
                                int                       dy )

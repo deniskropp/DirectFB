@@ -523,14 +523,17 @@ dfb_layer_purchase( DisplayLayer *layer )
      if (fusion_property_purchase( &layer->shared->lock ))
           return DFB_LOCKED;
 
-     /* Flush pressed keys. */
-     if (layer->shared->stack)
+     /* Flush pressed keys and
+        synchronize the content of the window stack's front and back buffer. */
+     if (layer->shared->stack) {
           dfb_windowstack_flush_keys( layer->shared->stack );
+          dfb_windowstack_sync_buffers( layer->shared->stack );
+     }
 
      /* Backup configuration of shared access. */
      if (!layer->shared->exclusive)
           layer->shared->last_config = layer->shared->config;
-     
+
      /* Indicate exclusive access. */
      layer->shared->exclusive = true;
 

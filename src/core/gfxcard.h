@@ -204,7 +204,7 @@ typedef struct {
                                   void                *driver_data);
 } GraphicsDriverFuncs;
 
-void dfb_gfxcard_lock();
+void dfb_gfxcard_lock( bool sync );
 void dfb_gfxcard_unlock( bool invalidate_state );
 
 bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );

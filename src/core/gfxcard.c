@@ -238,8 +238,7 @@ dfb_gfxcard_shutdown( bool emergency )
 {
      DFB_ASSERT( card != NULL );
 
-     dfb_gfxcard_lock();
-     dfb_gfxcard_sync();
+     dfb_gfxcard_lock( true );
 
      if (card->driver_funcs) {
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
@@ -306,10 +305,14 @@ dfb_gfxcard_resume()
 }
 
 void
-dfb_gfxcard_lock()
+dfb_gfxcard_lock( bool sync )
 {
-     if (card && card->shared)
+     if (card && card->shared) {
           skirmish_prevail( &card->shared->lock );
+
+          if (sync)
+               dfb_gfxcard_sync();
+     }
 }
 
 void

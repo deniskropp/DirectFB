@@ -1505,7 +1505,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
      if (mode->doubled)
           var.vmode |= FB_VMODE_DOUBLE;
 
-     dfb_gfxcard_lock();
+     dfb_gfxcard_lock( true );
 
      if (FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &var ) < 0) {
           int erno = errno;

@@ -347,6 +347,11 @@ void dfb_windowstack_repaint_all( CoreWindowStack *stack );
 void dfb_windowstack_flush_keys( CoreWindowStack *stack );
 
 /*
+ * Synchronize the content of the stack's front and back buffer.
+ */
+void dfb_windowstack_sync_buffers( CoreWindowStack *stack );
+
+/*
  * moves the cursor and handles events
  */
 void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
