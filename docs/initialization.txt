@@ -1,0 +1,86 @@
+Initialization map
+------------------
+
+- normal entry
+- (optional entry)
+* function call
+= loop (generally for each like)
+X entering arena (like switch)
+: possible way of entering (like case)
++ new arena field allocated
+# reactor related
+O object pool related
+$ property related
+
+
+DirectFBInit
+  * dfb_config_init
+    - allocate config
+    - read config from files and command line
+  * dfb_core_init
+    - dlopen ourself if linked dynamically
+    * dfb_system_lookup
+
+DirectFBCreate
+  * dfb_core_ref
+    - (atexit)
+    - (sync)
+    - (block all signals)
+    * dfb_system_thread_init if multi app
+    * dfb_find_best_memcpy
+    * fusion_init
+    - init local core data
+    X arena_enter
+      : dfb_core_initialize
+        - (install signal handlers)
+        + core clip field
+        * dfb_colorhash_initialize
+          + color hash field
+        * dfb_system_initialize (fbdev)
+          + fbdev field
+          - open framebuffer device
+          * dfb_vt_initialize
+            - open /dev/tty0
+            - (switch to new vt)
+            - open /dev/ttyN
+            - (set graphics mode)
+          - get fixed screen info
+          - mmap framebuffer
+          - get variable screen info
+          - get color map
+          # new/attach to rpc reactor
+          * dfb_layers_register
+            - add to local layer list
+            - initialize local state for drawing
+        * dfb_input_initialize
+          + input field
+          - explore driver module directory
+          * init_devices
+            - ask each driver for devices
+            - unload unused driver modules
+            = for each device
+              - init local and shared data
+              # new input device reactor
+              * OpenDevice
+              - (allocate device keymap)
+              - add to local and shared input device list
+        * dfb_gfxcard_initialize
+          + card field
+          - explore driver module directory
+          - (load/init graphics driver)
+          - create surface manager
+          O palette pool
+          O surface pool
+        * dfb_layers_initialize
+          + layers field
+          = for each registered layer
+            - init shared data
+            $ layer property
+            * InitLayer
+          * dfb_layer_enable (primary layer)
+            - ... (TODO)
+  * apply_configuration
+    - set buffer mode of primary layer
+    - set background color of primary layer
+    - (set background image of primary layer)
+    - (enable mouse cursor)
