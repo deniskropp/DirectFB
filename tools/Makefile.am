@@ -17,7 +17,6 @@ endif
 
 if HAVE_LINUX
 LINUXONLY_TOOLS =	\
-	dfbsummon	\
 	fusion_bench	\
 	raw15toraw24	\
 	raw16toraw24	\
@@ -28,7 +27,7 @@ if ENABLE_VOODOO
 VOODOO_PROGS = dfbproxy
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfblayer $(VOODOO_PROGS)
+bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfblayer dfbsummon $(VOODOO_PROGS)
 
 noinst_PROGRAMS = \
 	$(LINUXONLY_TOOLS)
