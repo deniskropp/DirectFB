@@ -220,7 +220,10 @@ IDirectFBDataBuffer_Streamed_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
           if (pthread_cond_timedwait( &data->wait_condition,
                                       &data->chunks_mutex,
                                       &timeout ) == ETIMEDOUT)
+          {
                ret = DFB_TIMEOUT;
+               break;
+          }
      }
 
      pthread_mutex_unlock( &data->chunks_mutex );
