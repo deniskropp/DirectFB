@@ -975,10 +975,10 @@ typedef enum {
      DSPF_A1        = DFB_SURFACE_PIXELFORMAT( 14,  0, 1, 1, 1, 0, 7, 0, 0, 0, 0 ),
 
      /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size CbCr [15:0] plane) */
-     DSPF_YC420     = DFB_SURFACE_PIXELFORMAT( 15, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
+     DSPF_NV12      = DFB_SURFACE_PIXELFORMAT( 15, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
 
      /* 16 bit   YUV (8 bit Y plane followed by one 16 bit half width CbCr [15:0] plane) */
-     DSPF_YC422     = DFB_SURFACE_PIXELFORMAT( 16, 24, 0, 0, 0, 1, 0, 0, 2, 0, 0 )
+     DSPF_NV16      = DFB_SURFACE_PIXELFORMAT( 16, 24, 0, 0, 0, 1, 0, 0, 2, 0, 0 )
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */

@@ -868,10 +868,14 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
      switch (format) {
           case DSPF_A1:
           case DSPF_A8:
+          case DSPF_ALUT44:
           case DSPF_ARGB:
           case DSPF_ARGB1555:
           case DSPF_AiRGB:
           case DSPF_I420:
+          case DSPF_LUT8:
+          case DSPF_NV12:
+          case DSPF_NV16:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
@@ -879,8 +883,6 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
           case DSPF_UYVY:
           case DSPF_YUY2:
           case DSPF_YV12:
-          case DSPF_LUT8:
-          case DSPF_ALUT44:
                break;
 
           default:
