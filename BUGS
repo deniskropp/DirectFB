@@ -1,3 +1,8 @@
+URGENT
+------
+- sometimes input devices have the same id!
+
+
 different bugs and issues
 -------------------------
 - sometimes a deadlock occurs in deinitialization done by the signal handler
