@@ -85,6 +85,8 @@ typedef struct {
 
      __u32 bltCntl;
 
+     bool src_dst_equal;
+
      /* state validation */
      int n_bltMode_dst;
      int n_src;
@@ -339,6 +341,9 @@ static void neo2200SetState( void *drv, void *dev,
           case DFXL_BLIT:
                neo2200_validate_src( ndrv, ndev, state->source );
 
+               ndev->src_dst_equal = (state->source->front_buffer ==
+                                      state->destination->back_buffer);
+               
                if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                     ndev->bltCntl = NEO_BC0_SRC_TRANS;
                     neo2200_validate_xpColor( ndrv, ndev, state );
@@ -454,6 +459,10 @@ static bool neo2200Blit( void *drv, void *dev,
           bltCntl |= NEO_BC0_DST_Y_DEC | NEO_BC0_SRC_Y_DEC;
      }
 */
+     /* ARGH, the above code for the blitting direction doesn't work. */
+     if (ndev->src_dst_equal && (rect->x < dx || rect->y < dy))
+          return false;
+     
      src_start = rect->y * ndev->srcPitch + rect->x * ndev->srcPixelWidth;
      dst_start = dy * ndev->dstPitch + dx * ndev->dstPixelWidth;
 
