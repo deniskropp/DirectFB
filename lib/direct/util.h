@@ -58,6 +58,7 @@
 #define D_FLAGS_IS_SET(flags,f)    (((flags) & (f)) != 0)
 #define D_FLAGS_ARE_SET(flags,f)   (((flags) & (f)) == (f))
 #define D_FLAGS_ARE_IN(flags,f)    (((flags) & ~(f)) == 0)
+#define D_FLAGS_INVALID(flags,f)   (((flags) & ~(f)) != 0)
 
 #define D_ARRAY_SIZE(array)        (sizeof(array) / sizeof((array)[0]))
 

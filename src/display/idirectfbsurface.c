@@ -1778,6 +1778,20 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      return dfb_surface_dump( surface, directory, prefix );
 }
 
+static DFBResult
+IDirectFBSurface_DisableAcceleration( IDirectFBSurface    *thiz,
+                                      DFBAccelerationMask  mask )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (D_FLAGS_INVALID( mask, DFXL_ALL ))
+          return DFB_INVARG;
+
+     data->state.disabled = mask;
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -1882,6 +1896,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetGL = IDirectFBSurface_GetGL;
 
      thiz->Dump = IDirectFBSurface_Dump;
+     thiz->DisableAcceleration = IDirectFBSurface_DisableAcceleration;
 
 
      dfb_surface_attach( surface,

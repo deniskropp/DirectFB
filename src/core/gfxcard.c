@@ -414,6 +414,12 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      if (!card->funcs.CheckState)
           return false;
 
+     /*
+      * Check if this function has been disabled temporarily.
+      */
+     if (state->disabled & accel)
+          return false;
+
      /* Destination may have been destroyed. */
      if (!state->destination) {
           D_BUG( "no destination" );
@@ -1410,6 +1416,9 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
           dfb_state_set_blitting_flags( &font->state,
                                         font->state.blittingflags & ~DSBLIT_BLEND_COLORALPHA );
 
+     /* set disabled functions */
+     font->state.disabled = state->disabled;
+
      /* blit glyphs */
      for (offset = 0; offset < bytes; offset += steps[offset]) {
 
@@ -1545,6 +1554,9 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
           dfb_state_set_blitting_flags( &font->state,
                                         font->state.blittingflags & ~DSBLIT_BLEND_COLORALPHA );
 
+     /* set disabled functions */
+     font->state.disabled = state->disabled;
+
      /* set blitting source */
      dfb_state_set_source( &font->state, data->surface );
 
@@ -1602,6 +1614,9 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
      else
           dfb_state_set_blitting_flags( &font->state,
                                         font->state.blittingflags & ~DSBLIT_BLEND_COLORALPHA );
+
+     /* set disabled functions */
+     font->state.disabled = state->disabled;
 
      /* set the source */
      dfb_state_set_source( &font->state, data->surface );

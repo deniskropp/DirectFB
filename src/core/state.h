@@ -108,6 +108,7 @@ struct _CardState {
      DFBAccelerationMask      accel;         /* remember checked commands if they are accelerated */
      DFBAccelerationMask      checked;       /* commands for which a state has been checked */
      DFBAccelerationMask      set;           /* commands for which a state is valid */
+     DFBAccelerationMask      disabled;      /* commands which are disabled temporarily */
 
      CoreGraphicsSerial       serial;        /* hardware serial of the last operation */
 

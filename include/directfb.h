@@ -3341,6 +3341,17 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           const char               *directory,
           const char               *prefix
      );
+
+     /*
+      * Disable hardware acceleration.
+      *
+      * If any function in <b>mask</b> is set, acceleration will not be used for it.<br/>
+      * Default is DFXL_NONE.
+      */
+     DFBResult (*DisableAcceleration) (
+          IDirectFBSurface         *thiz,
+          DFBAccelerationMask       mask
+     );
 )
 
 
