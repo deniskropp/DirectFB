@@ -122,11 +122,11 @@ sub substitute_method_links ($)
    }
 
 sub parse_comment ($$) {
-   my ($head, $body) = @_;
+   local (*head, *body) = @_;
    my $headline_mode = 1;
 
-   $$head = "";
-   $$body = "";
+   $head = "";
+   $body = "";
 
 
    while (<>)
@@ -142,24 +142,24 @@ sub parse_comment ($$) {
                   }
                elsif (/^\s*\*?\s*(.+)$/)
                   {
-                     $$head .= " $1";
+                     $head .= " $1";
                   }
             }
          else
             {
                if (/^\s*\*?\s*$/)
                   {
-                     $$body .= " </P><P>";
+                     $body .= " </P><P>";
                   }
                elsif (/^\s*\*?\s*(.+)$/)
                   {
-                     $$body .= " $1";
+                     $body .= " $1";
                   }
             }
       }
 
-   substitute_method_links ($head);
-   substitute_method_links ($body);
+   substitute_method_links (\$head);
+   substitute_method_links (\$body);
 }
 
 sub parse_params () {
