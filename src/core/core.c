@@ -411,6 +411,11 @@ dfb_core_get_clip( char **mime_type, void **data, unsigned int *size )
      if (skirmish_prevail( &core_clip->lock ))
           return DFB_FUSION;
 
+     if (!core_clip->mime_type || !core_clip->data) {
+          skirmish_dismiss( &core_clip->lock );
+          return DFB_BUFFEREMPTY;
+     }
+     
      if (mime_type)
           *mime_type = strdup( core_clip->mime_type );
 
