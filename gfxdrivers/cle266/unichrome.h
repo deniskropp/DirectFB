@@ -104,6 +104,7 @@ typedef struct _UcDeviceData {
      // Entries related to the current source surface.
 
      DFBSurfaceBlittingFlags bflags; // Current blitting flags
+     DFBRegion               clip;   // Current clipping region
      struct uc_hw_texture hwtex;     // Current hardware settings for blitting (3D)
      int field;
 

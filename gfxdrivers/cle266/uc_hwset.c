@@ -119,6 +119,9 @@ void uc_set_clip(UcDriverData *ucdrv,
 {
      struct uc_fifo *fifo = ucdev->fifo;
 
+     if (DFB_REGION_EQUAL( ucdev->clip, state->clip ))
+          return;
+
      UC_FIFO_PREPARE(fifo, 8);
      UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
 
@@ -137,6 +140,8 @@ void uc_set_clip(UcDriverData *ucdrv,
                     ((RS16(state->clip.y2) << 16) | RS16(state->clip.x2)));
 
      UC_FIFO_CHECK(fifo);
+
+     ucdev->clip = state->clip;
 }
 
 /// Set destination (2D and 3D)
