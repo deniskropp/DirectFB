@@ -83,20 +83,44 @@ mach64_in32(volatile __u8 *mmioaddr, __u32 reg)
 #endif
 }
 
+static const __u32 lt_lcd_regs[] = {
+     CONFIG_PANEL_LT,
+     LCD_GEN_CTRL_LT,
+     DSTN_CONTROL_LT,
+     HFB_PITCH_ADDR_LT,
+     HORZ_STRETCHING_LT,
+     VERT_STRETCHING_LT,
+     0, /* EXT_VERT_STRETCH */
+     LT_GIO_LT,
+     POWER_MANAGEMENT_LT
+};
+
 #if 0
 static inline void
-mach64_out_lcd(volatile __u8 *mmioaddr, __u8 reg, __u32 value )
+mach64_in_lcd( Mach64DeviceData *mdev,
+               volatile __u8    *mmioaddr, __u8 reg, __u32 value )
 {
-     mach64_out8( mmioaddr, LCD_INDEX, reg );
-     mach64_out32( mmioaddr, LCD_DATA, value );
+     if (mdev->chip == CHIP_3D_RAGE_LT) {
+          mach64_out32( mmioaddr, lt_lcd_regs[reg], value );
+     } else if (mdev->chip >= CHIP_3D_RAGE_LT_PRO) {
+          mach64_out8( mmioaddr, LCD_INDEX, reg );
+          mach64_out32( mmioaddr, LCD_DATA, value );
+     }
 }
 #endif
 
 static inline __u32
-mach64_in_lcd(volatile __u8 *mmioaddr, __u8 reg )
+mach64_in_lcd( Mach64DeviceData *mdev,
+               volatile __u8    *mmioaddr, __u8 reg )
 {
-     mach64_out8( mmioaddr, LCD_INDEX, reg );
-     return mach64_in32( mmioaddr, LCD_DATA );
+     if (mdev->chip == CHIP_3D_RAGE_LT) {
+          return mach64_in32( mmioaddr, lt_lcd_regs[reg] );
+     } else if (mdev->chip >= CHIP_3D_RAGE_LT_PRO) {
+          mach64_out8( mmioaddr, LCD_INDEX, reg );
+          return mach64_in32( mmioaddr, LCD_DATA );
+     } else {
+          return 0;
+     }
 }
 
 #if 0

@@ -330,6 +330,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
                           CoreLayerRegionConfig  *config,
                           CoreSurface            *surface )
 {
+     Mach64DeviceData *mdev = mdrv->device_data;
      volatile __u8 *mmio = mdrv->mmio_base;
      DFBSurfacePixelFormat primary_format = dfb_primary_layer_pixelformat();
      SurfaceBuffer *front_buffer = surface->front_buffer;
@@ -351,8 +352,8 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
 
      h_inc = (config->source.w << 12) / config->dest.w;
 
-     lcd_gen_ctrl = mach64_in_lcd( mmio, LCD_GEN_CTRL );
-     vert_stretching = mach64_in_lcd( mmio, VERT_STRETCHING );
+     lcd_gen_ctrl = mach64_in_lcd( mdev, mmio, LCD_GEN_CTRL );
+     vert_stretching = mach64_in_lcd( mdev, mmio, VERT_STRETCHING );
 
      if ((lcd_gen_ctrl & LCD_ON) && (vert_stretching & VERT_STRETCH_EN))
           v_inc = (config->source.h << 2) * (vert_stretching & VERT_STRETCH_RATIO0) / config->dest.h;
