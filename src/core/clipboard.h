@@ -29,13 +29,16 @@
 
 #include <directfb.h>
 
-DFBResult dfb_clipboard_set( const char    *mime_type,
-                             const void    *data,
-                             unsigned int   size );
+DFBResult dfb_clipboard_set( const char     *mime_type,
+                             const void     *data,
+                             unsigned int    size,
+                             struct timeval *timestamp );
 
 DFBResult dfb_clipboard_get( char         **mime_type,
                              void         **data,
                              unsigned int  *size );
+
+DFBResult dfb_clipboard_get_timestamp( struct timeval *timestamp );
 
 #endif
 

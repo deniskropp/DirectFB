@@ -43,6 +43,7 @@ typedef struct {
      char           *mime_type;
      void           *data;
      unsigned int    size;
+     struct timeval  timestamp;
 } CoreClip;
 
 static CoreClip *core_clip = NULL;
@@ -119,7 +120,10 @@ dfb_clipboard_resume()
 
 
 DFBResult
-dfb_clipboard_set( const char *mime_type, const void *data, unsigned int size )
+dfb_clipboard_set( const char     *mime_type,
+                   const void     *data,
+                   unsigned int    size,
+                   struct timeval *timestamp )
 {
      char *new_mime;
      void *new_data;
@@ -158,6 +162,11 @@ dfb_clipboard_set( const char *mime_type, const void *data, unsigned int size )
      core_clip->data      = new_data;
      core_clip->size      = size;
 
+     gettimeofday( &core_clip->timestamp, NULL );
+
+     if (timestamp)
+          *timestamp = core_clip->timestamp;
+     
      skirmish_dismiss( &core_clip->lock );
 
      return DFB_OK;
@@ -187,6 +196,22 @@ dfb_clipboard_get( char **mime_type, void **data, unsigned int *size )
      if (size)
           *size = core_clip->size;
 
+     skirmish_dismiss( &core_clip->lock );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_clipboard_get_timestamp( struct timeval *timestamp )
+{
+     DFB_ASSERT( core_clip != NULL );
+     DFB_ASSERT( timestamp != NULL );
+     
+     if (skirmish_prevail( &core_clip->lock ))
+          return DFB_FUSION;
+
+     *timestamp = core_clip->timestamp;
+     
      skirmish_dismiss( &core_clip->lock );
 
      return DFB_OK;

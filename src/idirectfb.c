@@ -922,27 +922,38 @@ IDirectFB_CreateDataBuffer( IDirectFB                 *thiz,
 }
 
 static DFBResult
-IDirectFB_SetClipboardData( IDirectFB                 *thiz,
-                            const char                *mime_type,
-                            const void                *data,
-                            unsigned int               size )
+IDirectFB_SetClipboardData( IDirectFB      *thiz,
+                            const char     *mime_type,
+                            const void     *data,
+                            unsigned int    size,
+                            struct timeval *timestamp )
 {
      if (!mime_type || !data || !size)
           return DFB_INVARG;
 
-     return dfb_clipboard_set( mime_type, data, size );
+     return dfb_clipboard_set( mime_type, data, size, timestamp );
 }
 
 static DFBResult
-IDirectFB_GetClipboardData( IDirectFB                 *thiz,
-                            char                     **mime_type,
-                            void                     **data,
-                            unsigned int              *size )
+IDirectFB_GetClipboardData( IDirectFB     *thiz,
+                            char         **mime_type,
+                            void         **data,
+                            unsigned int  *size )
 {
      if (!mime_type && !data && !size)
           return DFB_INVARG;
 
      return dfb_clipboard_get( mime_type, data, size );
+}
+
+static DFBResult
+IDirectFB_GetClipboardTimeStamp( IDirectFB      *thiz,
+                                 struct timeval *timestamp )
+{
+     if (!timestamp)
+          return DFB_INVARG;
+
+     return dfb_clipboard_get_timestamp( timestamp );
 }
 
 static DFBResult
@@ -1023,6 +1034,7 @@ IDirectFB_Construct( IDirectFB *thiz )
      thiz->CreateDataBuffer = IDirectFB_CreateDataBuffer;
      thiz->SetClipboardData = IDirectFB_SetClipboardData;
      thiz->GetClipboardData = IDirectFB_GetClipboardData;
+     thiz->GetClipboardTimeStamp = IDirectFB_GetClipboardTimeStamp;
      thiz->Suspend = IDirectFB_Suspend;
      thiz->Resume = IDirectFB_Resume;
      thiz->WaitIdle = IDirectFB_WaitIdle;

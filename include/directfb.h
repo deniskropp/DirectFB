@@ -1308,12 +1308,16 @@ DEFINE_INTERFACE(   IDirectFB,
       *
       * This is an experimental and intermediate API call that is
       * supposed to change soon.
+      *
+      * If timestamp is non null DirectFB returns the time stamp
+      * that it associated with the new data.
       */
      DFBResult (*SetClipboardData) (
           IDirectFB                *thiz,
           const char               *mime_type,
           const void               *data,
-          unsigned int              size
+          unsigned int              size,
+          struct timeval           *timestamp
      );
 
      /*
@@ -1329,6 +1333,17 @@ DEFINE_INTERFACE(   IDirectFB,
           char                    **mime_type,
           void                    **data,
           unsigned int             *size
+     );
+
+     /*
+      * Get time stamp of last SetClipboardData call.
+      *
+      * This is an experimental and intermediate API call that is
+      * supposed to change soon.
+      */
+     DFBResult (*GetClipboardTimeStamp) (
+          IDirectFB                *thiz,
+          struct timeval           *timestamp
      );
 
      
