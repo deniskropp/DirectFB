@@ -43,6 +43,7 @@
 
 #include <core/core.h>
 #include <core/layers.h>
+#include <core/layer_context.h>
 #include <core/gfxcard.h>
 #include <core/input.h>
 #include <core/state.h>
@@ -178,6 +179,7 @@ dfb_window_create( CoreWindowStack        *stack,
      CoreLayerContext       *context;
      CoreWindow             *window;
      CardCapabilities        card_caps;
+     CoreLayerRegion        *primary_region;
 
      DFB_ASSERT( stack != NULL );
      DFB_ASSERT( stack->context != NULL );
@@ -261,6 +263,11 @@ dfb_window_create( CoreWindowStack        *stack,
      if (caps & DWCAPS_DOUBLEBUFFER)
           surface_caps |= DSCAPS_FLIPPING;
 
+     /* Get the primary region of the context. */
+     ret = dfb_layer_context_get_primary_region( context, &primary_region );
+     if (ret)
+          return ret;
+
      /* Create the window object. */
      window = dfb_core_create_window( layer->core );
 
@@ -281,6 +288,13 @@ dfb_window_create( CoreWindowStack        *stack,
      if ((caps & DWCAPS_ALPHACHANNEL) && pixelformat == DSPF_ARGB)
           window->options = DWOP_ALPHACHANNEL;
 
+     /* Link the primary region into the window structure. */
+     if (dfb_layer_region_link( &window->primary_region, primary_region )) {
+          fusion_object_destroy( &window->object );
+          dfb_layer_region_unref( primary_region );
+          return DFB_FUSION;
+     }
+
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
           ret = dfb_surface_create( layer->core,
@@ -288,7 +302,9 @@ dfb_window_create( CoreWindowStack        *stack,
                                     surface_policy, surface_caps,
                                     palette, &surface );
           if (ret) {
+               dfb_layer_region_unlink( &window->primary_region );
                fusion_object_destroy( &window->object );
+               dfb_layer_region_unref( primary_region );
                return ret;
           }
 
@@ -309,6 +325,8 @@ dfb_window_create( CoreWindowStack        *stack,
      }
 
      fusion_object_activate( &window->object );
+
+     dfb_layer_region_unref( primary_region );
 
      *ret_window = window;
 
@@ -374,9 +392,6 @@ dfb_window_destroy( CoreWindow *window )
      /* Hardware allocated? */
      if (window->region) {
           /* Disable region (removing it from hardware). */
-          dfb_layer_region_disable( window->region );
-
-          /* Throw away it's surface. */
           dfb_layer_region_disable( window->region );
 
           /* Unlink from structure. */
@@ -1094,6 +1109,9 @@ window_remove( CoreWindow *window )
      }
 
      window->initialized = false;
+
+     /* Unlink the primary region of the context. */
+     dfb_layer_region_unlink( &window->primary_region );
 
      window->stack = NULL;
 }

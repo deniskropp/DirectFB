@@ -61,7 +61,7 @@
 #include <misc/util.h>
 
 
-#define DIRECTFB_CORE_ABI     2
+#define DIRECTFB_CORE_ABI     3
 
 /******************************************************************************/
 

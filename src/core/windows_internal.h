@@ -79,6 +79,8 @@ struct __DFB_CoreWindow {
                                               the stack */
      bool                    destroyed;    /* window is (being) destroyed */
 
+     CoreLayerRegion        *primary_region; /* default region of context */
+
      CoreLayerRegion        *region;       /* hardware allocated window */
 };
 
