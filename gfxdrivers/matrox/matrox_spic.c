@@ -271,8 +271,8 @@ spicSetOpacity( DisplayLayer *layer,
                /* c2statickeyen = 1 */
                mspic->regs.c2DATACTL |= (1 << 5);
                /* c2statickey */
-               mspic->regs.c2DATACTL &= ~0x1F00000;
-               mspic->regs.c2DATACTL |= ((opacity + 2) << 20) & 0x1F00000;
+               mspic->regs.c2DATACTL &= ~0x1F000000;
+               mspic->regs.c2DATACTL |= ((opacity + 2) << 20) & 0x1F000000;
                break;
      }
 
@@ -306,7 +306,8 @@ DisplayLayerFuncs matroxSpicFuncs = {
      TestConfiguration:  spicTestConfiguration,
      SetConfiguration:   spicSetConfiguration,
      FlipBuffers:        spicFlipBuffers,
-     SetPalette:         spicSetPalette
+     SetPalette:         spicSetPalette,
+     SetOpacity:         spicSetOpacity
 };
 
 /* internal */
