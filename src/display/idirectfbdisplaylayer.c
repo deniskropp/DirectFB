@@ -386,7 +386,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
      if (desc->flags & DWDESC_CAPS)
           caps = desc->caps;
 
-     if (caps & ~DWCAPS_ALL)
+     if ((caps & ~DWCAPS_ALL) || !window)
           return DFB_INVARG;
 
      if (!width || width > 4096 || !height || height > 4096)
@@ -396,6 +396,27 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
                                     caps, format, &w );
      if (ret)
           return ret;
+
+     DFB_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
+
+     return IDirectFBWindow_Construct( *window, w );
+}
+
+static DFBResult
+IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
+                                 DFBWindowID             id,
+                                 IDirectFBWindow       **window )
+{
+     CoreWindow *w;
+
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!window)
+          return DFB_INVARG;
+
+     w = dfb_layer_find_window( data->layer, id );
+     if (!w)
+          return DFB_IDNOTFOUND;
 
      DFB_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
@@ -538,6 +559,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->GetColorAdjustment = IDirectFBDisplayLayer_GetColorAdjustment;
      thiz->SetColorAdjustment = IDirectFBDisplayLayer_SetColorAdjustment;
      thiz->CreateWindow = IDirectFBDisplayLayer_CreateWindow;
+     thiz->GetWindow = IDirectFBDisplayLayer_GetWindow;
      thiz->WarpCursor = IDirectFBDisplayLayer_WarpCursor;
      thiz->SetCursorAcceleration = IDirectFBDisplayLayer_SetCursorAcceleration;
      thiz->EnableCursor = IDirectFBDisplayLayer_EnableCursor;

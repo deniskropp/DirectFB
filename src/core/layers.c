@@ -864,6 +864,23 @@ dfb_layer_create_window( DisplayLayer           *layer,
      return DFB_OK;
 }
 
+CoreWindow *dfb_layer_find_window( DisplayLayer *layer, DFBWindowID id )
+{
+     int                  i;
+     DisplayLayerShared  *shared  = layer->shared;
+     CoreWindowStack     *stack   = shared->stack;
+     int                  num     = stack->num_windows;
+     CoreWindow         **windows = stack->windows;
+
+     /* FIXME: make thread safe, add assertions */
+
+     for (i=0; i<num; i++)
+          if (windows[i]->id == id)
+               return windows[i];
+     
+     return NULL;
+}
+
 DFBResult
 dfb_layer_set_src_colorkey( DisplayLayer *layer,
                             __u8 r, __u8 g, __u8 b )

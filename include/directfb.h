@@ -1397,6 +1397,17 @@ extern "C"
                IDirectFBWindow                   **interface
           );
 
+          /*
+           * Retrieve an interface to an existing window.
+           *
+           * The window is identified by its window id.
+           */
+          DFBResult (*GetWindow) (
+               IDirectFBDisplayLayer              *thiz,
+               DFBWindowID                         id,
+               IDirectFBWindow                   **interface
+          );
+
 
         /** Cursor handling **/
 

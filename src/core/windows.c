@@ -1544,18 +1544,22 @@ window_insert( CoreWindow *window,
 
      DFB_ASSERT( window->stack != NULL );
      
-     if (before < 0  ||  before > stack->num_windows)
-          before = stack->num_windows;
+     if (!window->initialized) {
+          if (before < 0  ||  before > stack->num_windows)
+               before = stack->num_windows;
 
-     stack->windows = shrealloc( stack->windows,
-                                 sizeof(CoreWindow*) * (stack->num_windows+1) );
+          stack->windows = shrealloc( stack->windows,
+                                      sizeof(CoreWindow*) * (stack->num_windows+1) );
 
-     for (i=stack->num_windows; i>before; i--)
-          stack->windows[i] = stack->windows[i-1];
+          for (i=stack->num_windows; i>before; i--)
+               stack->windows[i] = stack->windows[i-1];
 
-     stack->windows[before] = window;
+          stack->windows[before] = window;
 
-     stack->num_windows++;
+          stack->num_windows++;
+
+          window->initialized = true;
+     }
 
      /* Send configuration */
      evt.type = DWET_POSITION_SIZE;
@@ -1602,6 +1606,8 @@ window_remove( CoreWindow *window )
                stack->windows = NULL;
           }
      }
+
+     window->initialized = false;
 
      /* If window was visible... */
      if (window->opacity) {

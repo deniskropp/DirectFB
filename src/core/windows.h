@@ -69,6 +69,8 @@ struct _CoreWindow {
 
      FusionReactor          *reactor;      /* event dispatcher */
 
+     bool                    initialized;  /* window has been inserted into
+                                              the stack */
      bool                    destroyed;    /* window is (being) destroyed */
 };
 
