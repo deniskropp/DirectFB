@@ -35,6 +35,7 @@
 #include <pthread.h>
 
 #include <directfb.h>
+#include <directfb_keynames.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -49,135 +50,8 @@
 
 DFB_INPUT_DRIVER( lirc )
 
-typedef struct {
-     DFBInputDeviceKeySymbol  symbol;
-     char                    *name;
-} KeySymbolString;
-
-static const KeySymbolString keysymbol_strings[] = {
-     { DIKS_F1,   "F1" },
-     { DIKS_F2,   "F2" },
-     { DIKS_F3,   "F3" },
-     { DIKS_F4,   "F4" },
-     { DIKS_F5,   "F5" },
-     { DIKS_F6,   "F6" },
-     { DIKS_F7,   "F7" },
-     { DIKS_F8,   "F8" },
-     { DIKS_F9,   "F9" },
-     { DIKS_F10, "F10" },
-     { DIKS_F11, "F11" },
-     { DIKS_F12, "F12" },
-
-     { DIKS_ESCAPE, "ESCAPE" },
-     { DIKS_CURSOR_LEFT, "CURSOR_LEFT" },
-     { DIKS_CURSOR_RIGHT, "CURSOR_RIGHT" },
-     { DIKS_CURSOR_UP, "CURSOR_UP" },
-     { DIKS_CURSOR_DOWN, "CURSOR_DOWN" },
-     { DIKS_CONTROL, "CONTROL" },
-     { DIKS_SHIFT, "SHIFT" },
-     { DIKS_ALT, "ALT" },
-     { DIKS_ALTGR, "ALTGR" },
-     { DIKS_TAB, "TAB" },
-     { DIKS_ENTER, "ENTER" },
-     { DIKS_SPACE, "SPACE" },
-     { DIKS_BACKSPACE, "BACKSPACE" },
-     { DIKS_INSERT, "INSERT" },
-     { DIKS_DELETE, "DELETE" },
-     { DIKS_HOME, "HOME" },
-     { DIKS_END, "END" },
-     { DIKS_PAGE_UP, "PAGE_UP" },
-     { DIKS_PAGE_DOWN, "PAGE_DOWN" },
-     { DIKS_CAPS_LOCK, "CAPS_LOCK" },
-     { DIKS_NUM_LOCK, "NUM_LOCK" },
-     { DIKS_SCROLL_LOCK, "SCROLL_LOCK" },
-     { DIKS_PRINT, "PRINT" },
-     { DIKS_PAUSE, "PAUSE" },
-
-     { DIKS_OK, "OK" },
-     { DIKS_CANCEL, "CANCEL" },
-     { DIKS_SELECT, "SELECT" },
-     { DIKS_GOTO, "GOTO" },
-     { DIKS_CLEAR, "CLEAR" },
-     { DIKS_POWER, "POWER" },
-     { DIKS_POWER2, "POWER2" },
-     { DIKS_OPTION, "OPTION" },
-     { DIKS_MENU, "MENU" },
-     { DIKS_HELP, "HELP" },
-     { DIKS_INFO, "INFO" },
-     { DIKS_TIME, "TIME" },
-     { DIKS_VENDOR, "VENDOR" },
-
-     { DIKS_ARCHIVE, "ARCHIVE" },
-     { DIKS_PROGRAM, "PROGRAM" },
-     { DIKS_FAVORITES, "FAVORITES" },
-     { DIKS_EPG, "EPG" },
-     { DIKS_LANGUAGE, "LANGUAGE" },
-     { DIKS_TITLE, "TITLE" },
-     { DIKS_SUBTITLE, "SUBTITLE" },
-     { DIKS_ANGLE, "ANGLE" },
-     { DIKS_ZOOM, "ZOOM" },
-     { DIKS_MODE, "MODE" },
-     { DIKS_KEYBOARD, "KEYBOARD" },
-     { DIKS_PC, "PC" },
-     { DIKS_SCREEN, "SCREEN" },
-
-     { DIKS_TV, "TV" },
-     { DIKS_TV2, "TV2" },
-     { DIKS_VCR, "VCR" },
-     { DIKS_VCR2, "VCR2" },
-     { DIKS_SAT, "SAT" },
-     { DIKS_SAT2, "SAT2" },
-     { DIKS_CD, "CD" },
-     { DIKS_TAPE, "TAPE" },
-     { DIKS_RADIO, "RADIO" },
-     { DIKS_TUNER, "TUNER" },
-     { DIKS_PLAYER, "PLAYER" },
-     { DIKS_TEXT, "TEXT" },
-     { DIKS_DVD, "DVD" },
-     { DIKS_AUX, "AUX" },
-     { DIKS_MP3, "MP3" },
-     { DIKS_AUDIO, "AUDIO" },
-     { DIKS_VIDEO, "VIDEO" },
-     { DIKS_INTERNET, "INTERNET" },
-     { DIKS_MAIL, "MAIL" },
-     { DIKS_NEWS, "NEWS" },
-
-     { DIKS_RED, "RED" },
-     { DIKS_GREEN, "GREEN" },
-     { DIKS_YELLOW, "YELLOW" },
-     { DIKS_BLUE, "BLUE" },
-
-     { DIKS_CHANNEL_UP, "CHANNEL_UP" },
-     { DIKS_CHANNEL_DOWN, "CHANNEL_DOWN" },
-     { DIKS_BACK, "BACK" },
-     { DIKS_FORWARD, "FORWARD" },
-     { DIKS_VOLUME_UP, "VOLUME_UP" },
-     { DIKS_VOLUME_DOWN, "VOLUME_DOWN" },
-     { DIKS_MUTE, "MUTE" },
-     { DIKS_AB, "AB" },
-
-     { DIKS_PLAYPAUSE, "PLAYPAUSE" },
-     { DIKS_PLAY, "PLAY" },
-     { DIKS_STOP, "STOP" },
-     { DIKS_RESTART, "RESTART" },
-     { DIKS_SLOW, "SLOW" },
-     { DIKS_FAST, "FAST" },
-     { DIKS_RECORD, "RECORD" },
-     { DIKS_EJECT, "EJECT" },
-     { DIKS_SHUFFLE, "SHUFFLE" },
-     { DIKS_REWIND, "REWIND" },
-     { DIKS_FASTFORWARD, "FASTFORWARD" },
-     { DIKS_PREVIOUS, "PREVIOUS" },
-     { DIKS_NEXT, "NEXT" },
-
-     { DIKS_DIGITS, "DIGITS" },
-     { DIKS_TEEN, "TEEN" },
-     { DIKS_TWEN, "TWEN" },
-     { DIKS_ASTERISK, "ASTERISK" },
-     { DIKS_NUMBER_SIGN, "NUMBER_SIGN" },
-     { DIKS_NULL, NULL }
-};
-
+static DirectFBKeySymbolNames(keynames);
+static bool keynames_sorted = false;
 
 typedef struct {
      int          fd;
@@ -186,11 +60,25 @@ typedef struct {
 } LircData;
 
 
+static int keynames_compare (const void *key,
+                             const void *base)
+{
+  return strcmp ((const char *) key,
+                 ((const struct DFBKeySymbolName *) base)->name);
+}
+
 static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
 {
-     const KeySymbolString *keysymbol_string = keysymbol_strings;
-     char                  *s, *name;
+     struct DFBKeySymbolName *symbol_name;
+     char *s, *name;
 
+     if (!keynames_sorted) {
+          qsort ( keynames,
+                  sizeof(keynames) / sizeof(keynames[0]) - 1,
+                  sizeof(keynames[0]),
+                  keynames_compare );
+          keynames_sorted = true;
+     }
 
      s = strchr( line, ' ' );
      if (!s || !s[1])
@@ -210,14 +98,13 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
           case 0:
                return DIKS_NULL;
           case 1:
-               return name[0];
+               return (DFBInputDeviceKeySymbol) name[0];
           default:
-               while (keysymbol_string->symbol != DIKS_NULL) {
-                    if (!strcmp( keysymbol_string->name, name ))
-                         return keysymbol_string->symbol;
-
-                    keysymbol_string++;
-               }
+               symbol_name = bsearch( name, keynames,
+                                      sizeof(keynames)/sizeof(keynames[0]) - 1,
+                                      sizeof(keynames[0]), keynames_compare );
+               if (symbol_name)
+                    return symbol_name->symbol;
                break;
      }
 
