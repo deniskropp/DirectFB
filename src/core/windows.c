@@ -956,8 +956,6 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
      if (!stack->cursor.enabled)
           return;
 
-     stack_lock( stack );
-     
      new_cx = MIN( stack->cursor.x + dx, stack->cursor.region.x2);
      new_cy = MIN( stack->cursor.y + dy, stack->cursor.region.y2);
 
@@ -975,8 +973,6 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
      stack->cursor.x = new_cx;
      stack->cursor.y = new_cy;
 
-     stack_unlock( stack );
-     
      DFB_ASSERT( stack->cursor.window != NULL );
 
      dfb_window_move( stack->cursor.window, dx, dy );
