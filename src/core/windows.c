@@ -556,11 +556,21 @@ dfb_window_resize( CoreWindow   *window,
      window->height = window->surface->height;
 
      if (window->opacity) {
-          DFBRegion region = { window->x, window->y,
-                               window->x + MAX(ow, width) - 1,
-                               window->y + MAX(oh, height) - 1 };
+          if (ow > window->width) {
+               DFBRegion region = { window->x + window->width, window->y,
+                                    window->x + ow - 1,
+                                    window->y + MIN(window->height, oh) - 1 };
+								
+               repaint_stack( stack, &region );
+          }
 
-          repaint_stack( stack, &region );
+          if (oh > window->height) {
+               DFBRegion region = { window->x, window->y + window->height,
+                                    window->x + MAX(window->width, ow) - 1,
+                                    window->y + oh - 1 };
+		
+               repaint_stack( stack, &region );
+          }
      }
 
      if (!(window->caps & DWHC_GHOST)) {
@@ -1005,13 +1015,27 @@ stack_inputdevice_react( const void *msg_data,
      if (stack->wm_hack) {
           switch (evt->type) {
                case DIET_KEYRELEASE:
-                    if (evt->keycode == DIKC_CAPSLOCK) {
-                         stack->wm_hack = 0;
-                         handle_enter_leave_focus( stack );
+                    switch (evt->keycode) {
+                         case DIKC_CAPSLOCK:
+                              stack->wm_hack = 0;
+                              handle_enter_leave_focus( stack );
+                              return RS_OK;
+
+                         case DIKC_CTRL:
+                              stack->wm_hack = 1;
+                              return RS_OK;
+
+                         default:
+                              ;
                     }
-                    return RS_OK;
+                    break;
+
                case DIET_KEYPRESS:
                     switch (evt->keycode) {
+                         case DIKC_CTRL:
+                              stack->wm_hack = 2;
+                              return RS_OK;
+
                          case DIKC_C:
                               if (stack->entered_window) {
                                    DFBWindowEvent evt;
@@ -1019,6 +1043,7 @@ stack_inputdevice_react( const void *msg_data,
                                    dfb_window_dispatch( stack->entered_window, &evt );
                               }
                               return RS_OK;
+
                          case DIKC_D:
                               if (stack->entered_window) {
                                    CoreWindow *window = stack->entered_window;
@@ -1026,16 +1051,20 @@ stack_inputdevice_react( const void *msg_data,
                                    dfb_window_destroy( window );
                               }
                               return RS_OK;
+
                          default:
                               ;
                     }
-                    return RS_OK;
+                    break;
+
                case DIET_BUTTONRELEASE:
                     return RS_OK;
+
                case DIET_BUTTONPRESS:
                     if (stack->entered_window)
                          dfb_window_raisetotop( stack->entered_window );
                     return RS_OK;
+
                default:
                     ;
           }
@@ -1155,32 +1184,57 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
 
      dfb_window_move( stack->cursor_window, dx, dy );
 
-     if (stack->wm_hack) {
-          if (stack->entered_window)
-               dfb_window_move( stack->entered_window, dx, dy );
-     }
-     else {
-          we.cx   = stack->cx;
-          we.cy   = stack->cy;
+     switch (stack->wm_hack) {
+          case 2:
+               if (stack->entered_window) {
+                    CoreWindow *window = stack->entered_window;
+                    int         width  = window->width + dx;
+                    int         height = window->height + dy;
 
-          if (stack->pointer_window) {
-               we.type = DWET_MOTION;
-               we.x    = we.cx - stack->pointer_window->x;
-               we.y    = we.cy - stack->pointer_window->y;
+                    if (width  <   10) width  = 10;
+                    if (height <   10) height = 10;
+                    if (width  > 2048) width  = 2048;
+                    if (height > 2048) height = 2048;
 
-               dfb_window_dispatch( stack->pointer_window, &we );
-          }
-          else {
-               if (!handle_enter_leave_focus( stack )
-                   && stack->entered_window)
-               {
-                    we.type = DWET_MOTION;
-                    we.x    = we.cx - stack->entered_window->x;
-                    we.y    = we.cy - stack->entered_window->y;
-
-                    dfb_window_dispatch( stack->entered_window, &we );
+                    if (width != window->width || height != window->height)
+                         dfb_window_resize( window, width, height );
                }
-          }
+
+               break;
+
+          case 1:
+               if (stack->entered_window)
+                    dfb_window_move( stack->entered_window, dx, dy );
+
+               break;
+
+          case 0:
+               we.cx   = stack->cx;
+               we.cy   = stack->cy;
+
+               if (stack->pointer_window) {
+                    we.type = DWET_MOTION;
+                    we.x    = we.cx - stack->pointer_window->x;
+                    we.y    = we.cy - stack->pointer_window->y;
+          
+                    dfb_window_dispatch( stack->pointer_window, &we );
+               }
+               else {
+                    if (!handle_enter_leave_focus( stack )
+                        && stack->entered_window)
+                    {
+                         we.type = DWET_MOTION;
+                         we.x    = we.cx - stack->entered_window->x;
+                         we.y    = we.cy - stack->entered_window->y;
+          
+                         dfb_window_dispatch( stack->entered_window, &we );
+                    }
+               }
+
+               break;
+
+          default:
+               ;
      }
 
      HEAVYDEBUGMSG("DirectFB/windows: mouse at %d, %d\n", stack->cx, stack->cy);

@@ -213,6 +213,8 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
           return DFB_UNSUPPORTED;
      }
 
+     dfb_surfacemanager_lock( surface->manager );
+     
      skirmish_prevail( &surface->front_lock );
      skirmish_prevail( &surface->back_lock );
 
@@ -251,6 +253,8 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
                return ret;
           }
      }
+
+     dfb_surfacemanager_unlock( surface->manager );
 
 
      dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
@@ -444,8 +448,10 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
 
 void dfb_surface_destroy( CoreSurface *surface )
 {
+     dfb_surfacemanager_lock( surface->manager );
      skirmish_prevail( &surface->front_lock );
      skirmish_prevail( &surface->back_lock );
+     dfb_surfacemanager_unlock( surface->manager );
      
      dfb_surface_notify_listeners( surface, CSNF_DESTROY );
      
@@ -576,16 +582,12 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
                                   surface->height * buffer->system.pitch) );
 
           /* FIXME: better support video instance reallocation */
-          dfb_surfacemanager_lock( surface->manager );
           dfb_surfacemanager_deallocate( surface->manager, buffer );
-          dfb_surfacemanager_unlock( surface->manager );
      }
      else {
           /* FIXME: better support video instance reallocation */
-          dfb_surfacemanager_lock( surface->manager );
           dfb_surfacemanager_deallocate( surface->manager, buffer );
           ret = dfb_surfacemanager_allocate( surface->manager, buffer );
-          dfb_surfacemanager_unlock( surface->manager );
 
           if (ret) {
                CAUTION( "reallocation of video instance failed" );
