@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -64,10 +64,10 @@ int suppress_module (const char *name)
 
      if (!dfb_config || !dfb_config->disable_module)
           return 0;
-     
+
      while (dfb_config->disable_module[i]) {
           if (strcmp (dfb_config->disable_module[i], name) == 0) {
-               INITMSG( "DirectFB/Core: suppress module '%s'\n", 
+               INITMSG( "DirectFB/Core: suppress module '%s'\n",
 			dfb_config->disable_module[i] );
                return 1;
 	  }
@@ -97,7 +97,7 @@ dfb_modules_register( ModuleDirectory *directory,
      if ((entry = lookup_by_name( directory, name )) != NULL) {
           entry->loaded = true;
           entry->funcs  = funcs;
-          
+
           return;
      }
 #endif
@@ -136,7 +136,7 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
 
      DFB_ASSERT( directory != NULL );
      DFB_ASSERT( directory->path != NULL );
-     
+
      dir_len = strlen( directory->path );
      dir     = opendir( directory->path );
 
@@ -158,8 +158,8 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
 
           if (lookup_by_file( directory, entry->d_name ))
                continue;
-          
-          
+
+
           module = DFBCALLOC( 1, sizeof(ModuleEntry) );
           if (!module)
                continue;
@@ -167,29 +167,54 @@ dfb_modules_explore_directory( ModuleDirectory *directory )
           module->directory = directory;
           module->dynamic   = true;
           module->file      = DFBSTRDUP( entry->d_name );
-          
+
 
           directory->loading = module;
 
           if ((handle = open_module( module )) != NULL) {
                if (!module->loaded) {
-                    dlclose( handle );
+                    int    len;
+                    void (*func)();
 
                     ERRORMSG( "DirectFB/core/modules: Module '%s' did not "
-                              "register itself after loading!\n", entry->d_name );
-                    
-                    module->disabled = true;
-                    
-                    fusion_list_prepend( &directory->entries, &module->link );
+                              "register itself after loading! Trying default "
+                              "module constructor...\n", entry->d_name );
+
+                    len = strlen( entry->d_name );
+
+                    entry->d_name[len-3] = 0;
+
+                    func = dlsym( handle, entry->d_name + 3 );
+                    if (func) {
+                         func();
+
+                         if (!module->loaded) {
+                              ERRORMSG( "DirectFB/core/modules: ... even "
+                                        "did not register after explicitly "
+                                        "calling the module constructor!\n" );
+                         }
+                    }
+                    else {
+                         ERRORMSG( "DirectFB/core/modules: ... "
+                                   "default contructor not found!\n" );
+                    }
+
+                    if (!module->loaded) {
+                         module->disabled = true;
+
+                         fusion_list_prepend( &directory->entries,
+                                              &module->link );
+                    }
                }
-               else if (module->disabled) {
+
+               if (module->disabled) {
                     dlclose( handle );
-                    
+
                     module->loaded = false;
                }
                else {
                     module->handle = handle;
-                    
+
                     count++;
                }
           }
@@ -233,7 +258,7 @@ dfb_module_unref( ModuleEntry *module )
 {
      DFB_ASSERT( module != NULL );
      DFB_ASSERT( module->refs > 0 );
-     
+
      if (--module->refs)
           return;
 
