@@ -105,16 +105,19 @@ window_destructor( FusionObject *object, bool zombie )
      if (stack) {
           dfb_windowstack_lock( stack );
 
-          dfb_layer_context_ref( stack->context );
-
           if (stack->cursor.window == window)
                stack->cursor.window = NULL;
 
           dfb_window_destroy( window );
 
-          dfb_windowstack_unlock( stack );
+          /* Unlink the primary region of the context. */
+          if (window->primary_region) {
+               dfb_layer_region_unlink( &window->primary_region );
+          }
+          else
+               D_ASSUME( window->caps & DWCAPS_INPUTONLY );
 
-          dfb_layer_context_unref( stack->context );
+          dfb_windowstack_unlock( stack );
      }
 
      fusion_object_destroy( object );
@@ -498,13 +501,6 @@ dfb_window_destroy( CoreWindow *window )
           dfb_surface_detach_global( window->surface, &window->surface_reaction );
           dfb_surface_unlink( &window->surface );
      }
-
-     /* Unlink the primary region of the context. */
-     if (window->primary_region) {
-          dfb_layer_region_unlink( &window->primary_region );
-     }
-     else
-          D_ASSUME( window->caps & DWCAPS_INPUTONLY );
 
      /* Decrease number of windows. */
      stack->num--;
