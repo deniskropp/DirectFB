@@ -68,9 +68,7 @@
 
 	.text
 
-CACHELINE_BYTES = 32
-LG_CACHELINE_BYTES = 5
-CACHELINE_MASK = (32 -1)
+CACHELINE_MASK = (L1_CACHE_LINE_SIZE - 1) 
 
 	.global	ppcasm_cacheable_memcpy
 ppcasm_cacheable_memcpy:
@@ -107,8 +105,8 @@ ppcasm_cacheable_memcpy:
 	stwu	r9,4(r6)
 	bdnz	72b
 
-58:	srwi.	r0,r5,LG_CACHELINE_BYTES /* # complete cachelines */
-	clrlwi	r5,r5,32-LG_CACHELINE_BYTES
+58:	srwi.	r0,r5,LG_L1_CACHE_LINE_SIZE /* complete cachelines */
+	clrlwi	r5,r5,32-LG_L1_CACHE_LINE_SIZE
 	li	r11,4
 	mtctr	r0
 	beq	63f
