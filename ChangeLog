@@ -1,3 +1,17 @@
+2003-10-23	16:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.48) (+1944 -1937)
+		mkchlog (1.6) (+0 -0)
+		mkchlog (1.7) (+0 -0)
+	
+	temp. remove
+	
+2003-10-23	16:23	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	mkchlog (1.5) (+1 -1)
+	
+	changed andros email address
+	
 2003-10-23	16:01	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	ChangeLog (1.47) (+981 -0)
@@ -17,7 +31,7 @@
 	
 	added Andreas Robinson <andro134 at student.liu.se>
 	
-2003-10-21	23:24	Andreas Robinson <andros@convergence.de>
+2003-10-21	23:24	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/changelog.txt (1.2) (+24 -0)
 	
@@ -63,38 +77,38 @@
 	
 	Added missing ranlib call.
 	
-2003-10-19	22:49	Andreas Robinson <andros@convergence.de>
+2003-10-19	22:49	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/unichrome.c (1.11) (+36 -26)
 	
 	Added AfterSetVar() function. May help with VIA-drivers crash bug.
 	
-2003-10-19	22:47	Andreas Robinson <andros@convergence.de>
+2003-10-19	22:47	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_accel.h (1.2) (+2 -0)
 	
 	Fixed some compiler warnings.
 	
-2003-10-19	22:44	Andreas Robinson <andros@convergence.de>
+2003-10-19	22:44	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_accel.c (1.9) (+3 -1)
 	
 	Fixed some compiler warnings.
 	
-2003-10-19	22:39	Andreas Robinson <andros@convergence.de>
+2003-10-19	22:39	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_fifo.c (1.2) (+6 -4)
 	
 	Print debug msg before writing to hardware register.
 	
-2003-10-18	11:51	Andreas Robinson <andros@convergence.de>
+2003-10-18	11:51	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_accel.c (1.8) (+15 -8)
 		gfxdrivers/cle266/unichrome.c (1.10) (+38 -21)
 	
 	Made the driver use EmitCommands().
 	
-2003-10-18	11:50	Andreas Robinson <andros@convergence.de>
+2003-10-18	11:50	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.5) (+0 -2)
 	
@@ -196,7 +210,7 @@
 	
 	Lock original state, too.
 	
-2003-10-11	11:22	Andreas Robinson <andros@convergence.de>
+2003-10-11	11:22	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.4) (+2 -0)
 		gfxdrivers/cle266/unichrome.c (1.9) (+1 -1)
@@ -216,14 +230,14 @@
 	
 	Indicate locked buffers.
 	
-2003-10-10	16:11	Andreas Robinson <andros@convergence.de>
+2003-10-10	16:11	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/cle266vgaio.c (1.4) (+1 -1)
 		gfxdrivers/cle266/unichrome.c (1.8) (+5 -5)
 	
 	viafb problem workaround rollback - it worked once, but not twice. :-/
 	
-2003-10-10	15:26	Andreas Robinson <andros@convergence.de>
+2003-10-10	15:26	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/cle266vgaio.c (1.3) (+6 -9)
 		gfxdrivers/cle266/unichrome.h (1.5) (+3 -0)
@@ -233,7 +247,7 @@
 	Worked around the problem which hangs the computer hard if e.g viafb is installed.
 	I don't know why VIA's own drivers don't need the same fix ...
 	
-2003-10-09	17:17	Andreas Robinson <andros@convergence.de>
+2003-10-09	17:17	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_accel.c (1.7) (+4 -9)
 	
@@ -312,14 +326,14 @@
 	
 	fix off by one bug in uc_stretch_blit()
 	
-2003-10-08	15:23	Andreas Robinson <andros@convergence.de>
+2003-10-08	15:23	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_hwset.c (1.2) (+16 -6)
 	
 	Partial fix for 3D-blitting size problem. Blitting arbitrary (non 2^n) sizes
 	works much better now, but there is still a one-pixel-off error in df_window.
 	
-2003-10-08	14:00	Andreas Robinson <andros@convergence.de>
+2003-10-08	14:00	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_state.c (1.4) (+4 -1)
 	
@@ -452,13 +466,13 @@
 	
 	Added DFB_KEY_INDEX macro.
 	
-2003-10-05	11:59	Andreas Robinson <andros@convergence.de>
+2003-10-05	11:59	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.3) (+17 -17)
 	
 	YUV planar mode bugfix. U and V planes were not set up correctly and did not look right.
 	
-2003-10-05	11:33	Andreas Robinson <andros@convergence.de>
+2003-10-05	11:33	Andreas Robinson <andro134+student.liu.se>
 
 	Files:	gfxdrivers/cle266/uc_overlay.c (1.2) (+10 -0)
 	
