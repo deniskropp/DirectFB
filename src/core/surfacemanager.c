@@ -507,12 +507,28 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                          dst += buffer->video.pitch;
                     }
 
-                    if (DFB_PLANAR_PIXELFORMAT( buffer->format )) {
+                    if (buffer->format == DSPF_YV12 || buffer->format == DSPF_I420) {
                          for (i=0; i<surface->height; i++) {
-                              direct_memcpy( dst, src,
-                                             DFB_BYTES_PER_LINE(buffer->format, surface->width / 2) );
+                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
+                                                                          surface->width / 2) );
                               src += buffer->system.pitch / 2;
                               dst += buffer->video.pitch  / 2;
+                         }
+                    }
+                    else if (buffer->format == DSPF_NV12 || buffer->format == DSPF_NV21) {
+                         for (i=0; i<surface->height/2; i++) {
+                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
+                                                                          surface->width) );
+                              src += buffer->system.pitch;
+                              dst += buffer->video.pitch;
+                         }
+                    }
+                    else if (buffer->format == DSPF_NV16) {
+                         for (i=0; i<surface->height; i++) {
+                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
+                                                                          surface->width) );
+                              src += buffer->system.pitch;
+                              dst += buffer->video.pitch;
                          }
                     }
                }
@@ -547,7 +563,7 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
      if (buffer->system.health == CSH_STORED)
           return DFB_OK;
      else if (buffer->video.health == CSH_STORED) {
-          int   h   = surface->height;
+          int   i;
           char *src = dfb_system_video_memory_virtual( buffer->video.offset );
           char *dst = buffer->system.addr;
 
@@ -558,19 +574,37 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
           }
           buffer->video.access |= VAF_SOFTWARE_READ;
 
-          while (h--) {
+          for (i=0; i<surface->height; i++) {
                direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format, surface->width) );
                src += buffer->video.pitch;
                dst += buffer->system.pitch;
           }
-          if (DFB_PLANAR_PIXELFORMAT( buffer->format )) {
-               h = surface->height;
-               while (h--) {
-                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format, surface->width / 2) );
+
+          if (buffer->format == DSPF_YV12 || buffer->format == DSPF_I420) {
+               for (i=0; i<surface->height; i++) {
+                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
+                                                                surface->width / 2) );
                     src += buffer->video.pitch  / 2;
                     dst += buffer->system.pitch / 2;
                }
           }
+          else if (buffer->format == DSPF_NV12 || buffer->format == DSPF_NV21) {
+               for (i=0; i<surface->height/2; i++) {
+                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
+                                                                surface->width) );
+                    src += buffer->video.pitch;
+                    dst += buffer->system.pitch;
+               }
+          }
+          else if (buffer->format == DSPF_NV16) {
+               for (i=0; i<surface->height; i++) {
+                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
+                                                                surface->width) );
+                    src += buffer->video.pitch;
+                    dst += buffer->system.pitch;
+               }
+          }
+
           buffer->system.health = CSH_STORED;
 
           dfb_surface_notify_listeners( surface, CSNF_SYSTEM );
