@@ -352,7 +352,7 @@ DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     copy_line32( (__u32*)row_ptr, *buffer,
                                  cinfo.output_width);
-                    (__u8*)row_ptr += pitch;
+                    (__u32*)row_ptr += cinfo.output_width;
                }
                scale_linear_32( dst, image_data, cinfo.output_width,
                                 cinfo.output_height, width, height,
