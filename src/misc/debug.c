@@ -105,11 +105,11 @@ dfb_trace_print_stacks()
      int i, pid = getpid();
 
      if (threads[pid].level)
-          dfb_debug_print_stack( pid );
+          dfb_trace_print_stack( pid );
      
      for (i=0; i<65536; i++) {
           if (i != pid && threads[i].level)
-               dfb_debug_print_stack( i );
+               dfb_trace_print_stack( i );
      }
 }
 
