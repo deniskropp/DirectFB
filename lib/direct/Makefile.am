@@ -14,6 +14,7 @@ noinst_PROGRAMS = dtest
 
 dtest_SOURCES = dtest.c
 dtest_LDADD   = libdirect.la
+dtest_CFLAGS  = $(CPPFLAGS)
 
 
 EXTRA_DIST = \
