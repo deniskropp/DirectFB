@@ -160,8 +160,7 @@ struct _CoreSurface
 /*
  * creates a surface pool
  */
-FusionObjectPool *
-dfb_surface_pool_create();
+FusionObjectPool *dfb_surface_pool_create();
 
 static inline void
 dfb_surface_pool_destroy( FusionObjectPool *pool )

@@ -32,6 +32,7 @@
 #include <core/coretypes.h>
 
 #include <core/surfaces.h>
+#include <core/gfxcard.h>
 #include <core/palette.h>
 
 #include <misc/util.h>
@@ -39,40 +40,56 @@
 static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
 static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 
+static void palette_destructor( FusionObject *object, bool zombie )
+{
+     CorePalette *palette = (CorePalette*) object;
+
+     DEBUGMSG("DirectFB/core/palette: destroying %p (%d)%s\n", palette,
+              palette->num_entries, zombie ? " (ZOMBIE)" : "");
+
+     shfree( palette->entries );
+
+     fusion_object_destroy( object );
+}
+
+/** public **/
+
+FusionObjectPool *
+dfb_palette_pool_create()
+{
+     FusionObjectPool *pool;
+
+     pool = fusion_object_pool_create( "Palette Pool",
+                                       sizeof(CorePalette),
+                                       sizeof(CorePaletteNotification),
+                                       palette_destructor );
+
+     return pool;
+}
+
 CorePalette *
-dfb_palette_allocate( unsigned int size )
+dfb_palette_create( unsigned int size )
 {
      CorePalette *palette;
-     DFBColor    *entries;
 
-     DFB_ASSERT( size > 0 );
-
-     palette = shcalloc( 1, sizeof(CorePalette) );
+     palette = (CorePalette*) fusion_object_create( dfb_gfxcard_palette_pool() );
      if (!palette)
           return NULL;
 
-     entries = shcalloc( size, sizeof(DFBColor) );
-     if (!entries) {
-          shfree( palette );
-          return NULL;
+     if (size) {
+          palette->entries = shcalloc( size, sizeof(DFBColor) );
+          if (!palette->entries) {
+               fusion_object_destroy( &palette->object );
+               return NULL;
+          }
      }
      
      palette->num_entries = size;
-     palette->entries     = entries;
 
      /* reset cache */
      palette->search_cache.index = -1;
 
      return palette;
-}
-
-void
-dfb_palette_deallocate( CorePalette *palette )
-{
-     DFB_ASSERT( palette != NULL );
-
-     shfree( palette->entries );
-     shfree( palette );
 }
 
 void

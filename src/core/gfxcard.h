@@ -64,7 +64,7 @@ typedef struct {
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          12
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          13
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     60
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   80
@@ -280,6 +280,7 @@ DFBResult dfb_gfxcard_adjust_heap_offset( unsigned int offset );
 
 SurfaceManager   *dfb_gfxcard_surface_manager();
 FusionObjectPool *dfb_gfxcard_surface_pool();
+FusionObjectPool *dfb_gfxcard_palette_pool();
 CardCapabilities  dfb_gfxcard_capabilities();
 
 int            dfb_gfxcard_reserve_memory( GraphicsDevice *device,

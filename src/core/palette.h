@@ -29,10 +29,13 @@
 
 #include <directfb.h>
 #include <core/coretypes.h>
+#include <core/fusion/object.h>
 
 struct _CorePalette {
-     int       num_entries;
-     DFBColor *entries;
+     FusionObject  object;
+
+     int           num_entries;
+     DFBColor     *entries;
 
      struct {
           int      index;
@@ -40,8 +43,12 @@ struct _CorePalette {
      } search_cache;
 };
 
-CorePalette *dfb_palette_allocate           ( unsigned int  size );
-void         dfb_palette_deallocate         ( CorePalette  *palette );
+typedef struct {
+     int foo;
+} CorePaletteNotification;
+
+
+CorePalette *dfb_palette_create             ( unsigned int  size );
 
 void         dfb_palette_generate_rgb332_map( CorePalette  *palette );
 
@@ -53,6 +60,59 @@ unsigned int dfb_palette_search             ( CorePalette  *palette,
 
 void         dfb_palette_update             ( CoreSurface  *surface,
                                               CorePalette  *palette );
+
+
+/*
+ * creates a palette pool
+ */
+FusionObjectPool *dfb_palette_pool_create();
+
+static inline void
+dfb_palette_pool_destroy( FusionObjectPool *pool )
+{
+     fusion_object_pool_destroy( pool );
+}
+
+static inline FusionResult
+dfb_palette_attach( CorePalette *palette,
+                    React        react,
+                    void        *ctx )
+{
+     return fusion_object_attach( &palette->object, react, ctx );
+}
+
+static inline FusionResult
+dfb_palette_detach( CorePalette *palette,
+                    React        react,
+                    void        *ctx )
+{
+     return fusion_object_detach( &palette->object, react, ctx );
+}
+
+static inline FusionResult
+dfb_palette_ref( CorePalette *palette )
+{
+     return fusion_object_ref( &palette->object );
+}
+
+static inline FusionResult
+dfb_palette_unref( CorePalette *palette )
+{
+     return fusion_object_unref( &palette->object );
+}
+
+static inline FusionResult
+dfb_palette_link( CorePalette **link,
+                  CorePalette  *palette )
+{
+     return fusion_object_link( (FusionObject**) link, &palette->object );
+}
+
+static inline FusionResult
+dfb_palette_unlink( CorePalette *palette )
+{
+     return fusion_object_unlink( &palette->object );
+}
 
 #endif
 

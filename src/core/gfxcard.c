@@ -47,6 +47,7 @@
 #include <core/gfxcard.h>
 #include <core/fonts.h>
 #include <core/state.h>
+#include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 
@@ -85,6 +86,7 @@ typedef struct {
      SurfaceManager       *surface_manager;
 
      FusionObjectPool     *surface_pool;
+     FusionObjectPool     *palette_pool;
 
      /*
       * Points to the current state of the graphics card.
@@ -181,6 +183,7 @@ DFBResult dfb_gfxcard_initialize()
                 card->shared->device_info.limits.surface_byteoffset_alignment,
                 card->shared->device_info.limits.surface_pixelpitch_alignment );
 
+     Scard->palette_pool = dfb_palette_pool_create();
      Scard->surface_pool = dfb_surface_pool_create();
 
      skirmish_init( &Scard->lock );
@@ -254,6 +257,7 @@ DFBResult dfb_gfxcard_shutdown( bool emergency )
      }
 
      dfb_surface_pool_destroy( Scard->surface_pool );
+     dfb_palette_pool_destroy( Scard->palette_pool );
 
      dfb_surfacemanager_destroy( Scard->surface_manager );
 
@@ -1157,6 +1161,12 @@ FusionObjectPool *
 dfb_gfxcard_surface_pool()
 {
      return Scard->surface_pool;
+}
+
+FusionObjectPool *
+dfb_gfxcard_palette_pool()
+{
+     return Scard->palette_pool;
 }
 
 CardCapabilities

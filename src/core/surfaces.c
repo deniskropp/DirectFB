@@ -532,9 +532,9 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
      skirmish_destroy( &surface->front_lock );
      skirmish_destroy( &surface->back_lock );
 
-     /* deallocate palette */
+     /* unlink palette */
      if (surface->palette)
-          dfb_palette_deallocate( surface->palette );
+          dfb_palette_unlink( surface->palette );
 
      skirmish_dismiss( &surface->lock );
      
@@ -581,12 +581,20 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
           surface->min_height = height;
      }
 
+     if (1 /* FIXME: DFB_PIXELFORMAT_IS_INDEXED( format )*/) {
+          CorePalette *palette = dfb_palette_create( 256 );
+
+          if (!palette)
+               return DFB_FAILURE;
+
+          dfb_palette_link( &surface->palette, palette );
+          dfb_palette_unref( palette );
+     }
+     
      skirmish_init( &surface->lock );
      
      skirmish_init( &surface->front_lock );
      skirmish_init( &surface->back_lock );
-
-     surface->palette = dfb_palette_allocate( 256 );
 
      if (format == DSPF_LUT8)
           dfb_palette_generate_rgb332_map( surface->palette );
