@@ -170,9 +170,13 @@ void IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
                                    (IDirectFBImageProvider_GIF_data*)thiz->priv;
 
      free( data->filename );
-     free( data );
-
+     
+     free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 DFBResult IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )

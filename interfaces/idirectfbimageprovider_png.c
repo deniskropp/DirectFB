@@ -126,9 +126,13 @@ void IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
                                    (IDirectFBImageProvider_PNG_data*)thiz->priv;
 
      free( data->filename );
-     free( data );
-
+     
+     free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 DFBResult IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )

@@ -61,6 +61,10 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 DFBResult IDirectFBSurface_AddRef( IDirectFBSurface *thiz )

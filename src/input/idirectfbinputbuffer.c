@@ -134,6 +134,10 @@ void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
      
      free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 DFBResult IDirectFBInputBuffer_AddRef( IDirectFBInputBuffer *thiz )

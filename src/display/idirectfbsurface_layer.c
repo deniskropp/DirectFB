@@ -65,6 +65,10 @@ void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
      
      free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 DFBResult IDirectFBSurface_Layer_Release( IDirectFBSurface *thiz )

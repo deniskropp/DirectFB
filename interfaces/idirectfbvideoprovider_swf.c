@@ -194,6 +194,10 @@ void IDirectFBVideoProvider_Swf_Destruct(IDirectFBVideoProvider *thiz )
     
      free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 static DFBResult IDirectFBVideoProvider_Swf_AddRef(IDirectFBVideoProvider *thiz )

@@ -51,6 +51,10 @@ void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 
      free( data );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 DFBResult IDirectFBWindow_AddRef( IDirectFBWindow *thiz )

@@ -150,6 +150,10 @@ void IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 
      free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 DFBResult IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz )

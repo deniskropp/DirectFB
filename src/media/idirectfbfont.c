@@ -107,6 +107,10 @@ void IDirectFBFont_Destruct( IDirectFBFont *thiz )
 
      free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 DFBResult IDirectFBFont_AddRef( IDirectFBFont *thiz )

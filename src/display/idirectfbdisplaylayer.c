@@ -76,6 +76,10 @@ void IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
 
      free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 DFBResult IDirectFBDisplayLayer_AddRef( IDirectFBDisplayLayer *thiz )

@@ -166,7 +166,7 @@ void showResult()
      dfb->CreateSurface( dfb, &dsc, &meter );
      provider->RenderTo( provider, meter );
      provider->Release ( provider );
-     free ( provider );
+
 
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
      primary->SetColor( primary, 0, 0, 0, 0 );
@@ -225,7 +225,7 @@ void showResult()
      primary->StretchBlit( primary, meter, NULL, &dest );
 
      meter->Release( meter );
-     free( meter );
+
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0x40 );

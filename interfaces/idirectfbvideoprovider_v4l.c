@@ -82,6 +82,10 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 
      free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz )

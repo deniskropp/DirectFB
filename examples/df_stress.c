@@ -93,10 +93,8 @@ void surfacemanager_test()
                DirectFBError( "surfacemanager_test: "
                               "unable to create surface", ret );
 
-               for (j=0; j<i; j++) {
+               for (j=0; j<i; j++)
                     surfaces[j]->Release( surfaces[j] );
-                    free( surfaces[j] );
-               }
 
                return;
           }
@@ -118,10 +116,8 @@ void surfacemanager_test()
 
      printf( "surfacemanager_test: clock diff %d\n", (int)t );
 
-     for (i=0; i<SURFACEMANAGER_TEST_SURFACES; i++) {
+     for (i=0; i<SURFACEMANAGER_TEST_SURFACES; i++)
           surfaces[i]->Release( surfaces[i] );
-          free( surfaces[i] );
-     }
 }
 
 int main( int argc, char *argv[] )

@@ -82,6 +82,10 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
 
      free( thiz->priv );
      thiz->priv = NULL;
+
+#ifndef DFB_DEBUG
+     free( thiz );
+#endif
 }
 
 static DFBResult IDirectFBVideoProvider_AviFile_AddRef(
