@@ -1,3 +1,18 @@
+2002-06-05	02:33	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/Makefile.am (1.4) (+5 -1)
+		tools/README (1.3) (+18 -5)
+	
+	Added dfb_static_build_example and ipc_cleanup to EXTRA_DIST.
+	Explained their purpose in the README.
+	
+2002-06-05	02:20	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.20) (+803 -785)
+		mkchlog (1.2) (+9 -1)
+	
+	Use hash table with predefined real names and e-mail addresses for short names.
+	
 2002-06-05	02:02	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	fb.modes (1.5) (+0 -52)
