@@ -55,8 +55,17 @@ Cambridge, MA 02139, USA.
 #include <stddef.h>
 
 #include <direct/build.h>
+#include <fusion/build.h>
 
 #include <fusion/types.h>
+
+
+#if FUSION_BUILD_MULTI && DIRECT_BUILD_TEXT
+#define D_OOSHM()        (direct_messages_warn( __FUNCTION__, __FILE__, __LINE__,              \
+                                                "out of shared memory" ), DFB_NOSHAREDMEMORY)
+#else
+#define D_OOSHM()        D_OOM()
+#endif
 
 
 /* Check if a pointer points to the shared memory. */
