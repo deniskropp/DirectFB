@@ -83,8 +83,10 @@ context_destructor( FusionObject *object, bool zombie )
      dfb_layer_remove_context( layer, context );
 
      /* Destroy the window stack. */
-     if (context->stack)
+     if (context->stack) {
           dfb_windowstack_destroy( context->stack );
+          context->stack = NULL;
+     }
 
      /* Destroy the region vector. */
      fusion_vector_destroy( &context->regions );
