@@ -280,7 +280,7 @@ reactor_dispatch (FusionReactor *reactor,
 
           /* <DEBUG> */
           if (fusion_ref_zero_trylock (&reactor->node[i].ref) == FUSION_SUCCESS) {
-               printf(__FUNCTION__": node '%d' with id '%d' is dead, freeing it!\n",
+               FDEBUG("node '%d' with id '%d' is dead, freeing it!\n",
                       i, reactor->node[i].id);
                fusion_ref_destroy (&reactor->node[i].ref);
                reactor->node[i].id        = 0;

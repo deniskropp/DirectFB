@@ -206,7 +206,7 @@ fusion_property_cede (FusionProperty *property)
 
      /* debug check */
      if (property->state == FUSION_PROPERTY_AVAILABLE)
-          FDEBUG("BUG! property not leased/purchased!");
+          FDEBUG("BUG! property not leased/purchased!\n");
           
      /* make available */
      property->state = FUSION_PROPERTY_AVAILABLE;
@@ -267,7 +267,7 @@ check_orphaned_property (FusionProperty *property)
                return;
           
           case 0:
-               FDEBUG ("orphaned property detected!");
+               FDEBUG ("orphaned property detected!\n");
 
                property->state = FUSION_PROPERTY_AVAILABLE;
 
