@@ -19,36 +19,24 @@ Requirements
    - libjpeg62
    - zlib
 
+   - The video providers require some libraries that are not commonly
+     installed. We have provided packages on our web-site at
+     http://www.directfb.org/download/contrib/.
+     - If you have avifile, but not the correct version, you can explicitely 
+       disable building it by passing --disable-avifile to configure.
+     - To build the SWF video provider, you need libflash.
+     - To build the MPEG video provider, download and compile libmpeg3 and 
+       specify the path to the source when configuring DirectFB:
+       ./configure --with-libmpeg3=<path_to_libmpeg3_source>. 
+
 
 Additional Requirements for some Demos
 --------------------------------------
 
    - PS/2 mouse for windowing, USB and ADB mice also work via PS/2 emulation.
      Please stop gpm before using the mouse in DirectFB.
-   - Video card supported by video4linux for df_video
-   - A very recent version of avifile is required to build an optional AVI 
-     videoprovider. If you have avifile, but not the correct version, you 
-     can explicetely disable building it by passing --disable-avifile to 
-     configure.
-   - To build the SWF videoprovider, you need libflash. We have build a 
-     package that can be found at http://www.directfb.org/download.
-   - Joystick for df_joystick
-
-
-   For mode switching a special fbdev driver for the graphics card must be 
-   compiled in, generic vesa fbdev driver does not support mode switching.
-   However if you use vesafb, you should add the following to /etc/lilo.conf:
-
-	append="video=vesa:ywrap,mtrr"
-
-   'ywrap' enables panning with wraparound.
-   'mtrr' enables setting caching type for the framebuffer to write-combining.
-
-   If you use an ATI128 or a RivaTNT apply the corresponding patch in the
-   'patches' directory to the kernel.
-
-   If you have a Matrox G200/G400 you may try the highly experimental vsync 
-   patch that enables applications to "idle wait" for the vertical retrace.
+   - Video card supported by video4linux for df_video.
+   - A joystick for df_joystick.
 
 
 Recommendations
@@ -74,8 +62,40 @@ Installation
       If you added it you have to run 'ldconfig' as superuser.
 
    3) Copy fb.modes to /etc or merge it with your existing /etc/fb.modes file. 
-      The first entry will be used by default - copy other entries as you may 
+      The first entry will be used by default - copy other entries you may 
       need.
+
+
+Configuring the Linux framebuffer device
+----------------------------------------
+
+   DirectFB needs a Linux kernel with framebuffer support. Check the 
+   documentation in the kernel tree (/usr/src/linux/Documentation/fb/) on 
+   how to enable the framebuffer device for your graphics card. 
+
+   The generic vesa fbdev driver does not support mode switching and you 
+   will not get hardware acceleration. To make DirectFB work with veasfb, 
+   you should add the following lines to /etc/lilo.conf:
+
+	append="video=vesa:ywrap,mtrr"
+
+   'ywrap' enables panning with wraparound.
+   'mtrr' enables setting caching type for the framebuffer to write-combining.
+
+	vga=791
+
+   This sets the mode on startup. 791 means 1024x768@16, 788 means 800x600@16.
+
+   Other framebuffer devices support mode switching. DirectFB will only 
+   support modes listed in your /etc/fb.modes file. By default the first 
+   entry found is used. Make sure that it is a mode with at least 15bpp 
+   bitdepth (16bpp recommened).
+
+   If you use an ATI128 or a RivaTNT apply the corresponding patch in the
+   'patches' directory to the kernel.
+
+   If you have a Matrox G200/G400 you may try the highly experimental vsync 
+   patch that enables applications to "idle wait" for the vertical retrace.
 
 
 Demos
@@ -83,39 +103,43 @@ Demos
 
    After installation the following demos can be run (must be root):
 
-   df_andi    - penguin demo, press space to form convergence logo, 
-   	     	s/d to spawn/destroy a penguin, r to revive penguin
-                after space was pressed, c tests clipping
+   df_andi     - penguin demo, press space to form convergence logo, 
+   	     	 s/d to spawn/destroy a penguin, r to revive penguin
+                 after space was pressed, c tests clipping
 
-   df_dok     - the DirectFB benchmark application, runs some tests and 
-		displays benchmark results afterwards
+   df_dok      - the DirectFB benchmark application, runs some tests and 
+		 displays benchmark results afterwards
 
-   df_window  - simple demostration of the DirectFB window stack,
-   	        follow the instructions in the upper left corner
-       		(look into the source to enable the videowindow)
+   df_window   - simple demostration of the DirectFB window stack,
+   	         follow the instructions in the upper left corner
+       		 (look into the source to enable the videowindow)
 
    df_particle - a moving fountain consisting of alphablended rectangles,
-		nice and fast if hardware accelerated
+		 nice and fast if hardware accelerated
 
    df_video_partice - same as df_particle, but the rectangles have been
-  		replaced by a video (via video4linux). nice color effects.
+  		 replaced by a video (via video4linux). Nice color effects.
 
-   df_porter  - shows porter/duff blending rules
+   df_porter   - shows porter/duff blending rules
 
-   df_video   - shows window stack with alpha blending and video playback in 
-		a moving window
+   df_video    - shows window stack with alpha blending and video playback in 
+		 a moving window
 
    df_joystick - colored version of df_particle, fointain can be moved with 
-		joystick, particles of different colors can be spawned with 
-		different joystick  buttons (1-4)
+		 joystick, particles of different colors can be spawned with 
+		 different joystick  buttons (1-4)
 
-   df_neo     - port from a gdk-pixbuf demo to DirectFB, uses scaling, alpha
-   	      	blending and color modulation; use cursor keys and space to
-	 	change parameters
+   df_neo      - port from a gdk-pixbuf demo to DirectFB, uses scaling, alpha
+   	      	 blending and color modulation; use cursor keys and space to
+	 	 change parameters
 
-   df_fire    - the famous fire effect ported to DirectFB (16 bpp only)
+   df_knuckles - a 3D skull drawn using triangles that can be rotated using
+                 the mouse. Space switches to wireframe, b toggles backface
+                 culling.
+	
+   df_fire     - the famous fire effect ported to DirectFB (16 bpp only)
 
-   df_stress  - stress tests surface manager, for debugging purposes only
+   df_stress   - stress tests surface manager, for debugging purposes only
 
 
 Dokumentation
@@ -140,4 +164,3 @@ Legal stuff
    version 2 of the License, or (at your option) any later version.
 
    The complete text of the license is found in the file COPYING. 
-
