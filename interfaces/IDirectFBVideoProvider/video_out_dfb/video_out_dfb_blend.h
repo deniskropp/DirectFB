@@ -63,7 +63,7 @@ _skip_planes( uint8_t* dst[], int w, int y )
 	if (y & 1)
 	{
 		dst[1] += w >> 1;
-		dst[2] += w >> 2;
+		dst[2] += w >> 1;
 	}
 }
 
