@@ -1232,7 +1232,7 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
      if (id >= DIKI_0 && id <= DIKI_9)
           return DIKS_0 + id - DIKI_0;
 
-     if ((locks & DILS_NUM) && id >= DIKI_KP_0 && id <= DIKI_KP_9)
+     if (id >= DIKI_KP_0 && id <= DIKI_KP_9)
           return DIKS_0 + id - DIKI_KP_0;
 
      if (id >= DIKI_F1 && id <= DIKI_F12)
@@ -1347,18 +1347,6 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
           case DIKI_KP_TAB:
                return DIKS_TAB;
           
-          case DIKI_KP_F1:
-               return DIKS_F1;
-          
-          case DIKI_KP_F2:
-               return DIKS_F2;
-          
-          case DIKI_KP_F3:
-               return DIKS_F3;
-          
-          case DIKI_KP_F4:
-               return DIKS_F4;
-          
           case DIKI_KP_EQUAL:
                return DIKS_EQUALS_SIGN;
           
@@ -1368,36 +1356,31 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
           case DIKI_KP_SEPARATOR:
                return DIKS_COMMA;
 
-          case DIKI_KP_0:
-               return DIKS_0;
+          case DIKI_BACKSLASH:
+               return DIKS_BACKSLASH;
           
-          case DIKI_KP_1:
-               return DIKS_1;
+          case DIKI_EQUALS_SIGN:
+               return DIKS_EQUALS_SIGN;
           
-          case DIKI_KP_2:
-               return DIKS_2;
+          case DIKI_LESS_SIGN:
+               return DIKS_LESS_THAN_SIGN;
           
-          case DIKI_KP_3:
-               return DIKS_3;
+          case DIKI_MINUS_SIGN:
+               return DIKS_MINUS_SIGN;
           
-          case DIKI_KP_4:
-               return DIKS_4;
+          case DIKI_PERIOD:
+               return DIKS_PERIOD;
           
-          case DIKI_KP_5:
-               return DIKS_5;
+          case DIKI_QUOTE_LEFT:
+          case DIKI_QUOTE_RIGHT:
+               return DIKS_QUOTATION;
           
-          case DIKI_KP_6:
-               return DIKS_6;
+          case DIKI_SEMICOLON:
+               return DIKS_SEMICOLON;
           
-          case DIKI_KP_7:
-               return DIKS_7;
+          case DIKI_SLASH:
+               return DIKS_SLASH;
           
-          case DIKI_KP_8:
-               return DIKS_8;
-          
-          case DIKI_KP_9:
-               return DIKS_9;
-
           default:
                ;
      }
