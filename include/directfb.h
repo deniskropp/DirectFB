@@ -2199,6 +2199,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
 
      /*
       * Set the font used by DrawString() and DrawGlyph().
+      * You can pass NULL here to unset the font.
       */
      DFBResult (*SetFont) (
           IDirectFBSurface         *thiz,

@@ -813,13 +813,12 @@ IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     if (!font)
-          return DFB_INVARG;
+     if (font)
+          font->AddRef (font);
 
      if (data->font)
           data->font->Release (data->font);
 
-     font->AddRef (font);
      data->font = font;
 
      return DFB_OK;
@@ -831,11 +830,13 @@ IDirectFBSurface_GetFont( IDirectFBSurface  *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (!data->font)
-          return DFB_MISSINGFONT;
-
      if (!font)
           return DFB_INVARG;
+
+     if (!data->font) {
+	  *font = NULL;
+          return DFB_MISSINGFONT;
+     }
 
      data->font->AddRef (data->font);
      *font = data->font;
