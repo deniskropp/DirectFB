@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2005 Claudio "KLaN" Ciccani <klan82@cheapnet.it>
+ * Copyright (C) 2004-2005 Claudio "KLaN" Ciccani <klan@users.sf.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -48,7 +47,6 @@
 #include <xine/video_out.h>
 
 
-
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
@@ -62,8 +60,29 @@ Construct( IDirectFBVideoProvider *thiz,
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, Xine )
 
 
-typedef struct
-{
+/************************** Driver Specific Data ******************************/
+
+typedef void (*DVOutputCallback) ( void         *cdata,
+                                   int           width,
+                                   int           height,
+                                   double        ratio,
+                                   DFBRectangle *dest_rect );
+
+typedef struct {
+     IDirectFBSurface *destination;
+     IDirectFBSurface *subpicture;
+
+     DVOutputCallback  output_cb;
+     void             *output_cdata;
+
+     DVFrameCallback  frame_cb;
+     void            *frame_cdata;
+} dfb_visual_t;
+
+
+/**************************** VideoProvider Data ******************************/
+
+typedef struct {
      int                    ref;
      DFBResult              err;
      
@@ -77,6 +96,8 @@ typedef struct
      xine_stream_t         *stream;
      xine_event_queue_t    *queue;
 
+     dfb_visual_t           visual;
+     
      int                    width;  /* video width */
      int                    height; /* video height */
      int                    length; /* duration */
@@ -84,37 +105,14 @@ typedef struct
      bool                   is_playing;
      bool                   is_paused;
      bool                   is_finished;
-
-     IDirectFBSurface      *dest;
-     IDirectFBSurface_data *dest_data;
      
      bool                   full_area;
      DFBRectangle           dest_rect;
-
+     
 } IDirectFBVideoProvider_Xine_data;
 
 
-typedef struct
-{
-     IDirectFBSurface *surface;
-
-     void            (*output_cb) ( void *cdata, int width, int height,
-                              double ratio, DFBRectangle *dest_rect );
-     void             *cdata;
-
-} dfb_visual_t;
-
-
-typedef struct
-{
-     DVFrameCallback  frame_cb;
-     
-     void            *cdata;
-     
-} dfb_frame_callback_t;
-
-
-
+/***************************** Private Functions ******************************/
 
 static void
 get_stream_error( IDirectFBVideoProvider_Xine_data *data );
@@ -127,7 +125,7 @@ static void
 event_listner( void *cdata, const xine_event_t *event );
 
 
-
+/******************************* Public Methods *******************************/
 
 static void
 IDirectFBVideoProvider_Xine_Destruct( IDirectFBVideoProvider *thiz )
@@ -173,7 +171,6 @@ IDirectFBVideoProvider_Xine_Destruct( IDirectFBVideoProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-
 static DFBResult
 IDirectFBVideoProvider_Xine_AddRef( IDirectFBVideoProvider *thiz )
 {
@@ -183,7 +180,6 @@ IDirectFBVideoProvider_Xine_AddRef( IDirectFBVideoProvider *thiz )
 
      return DFB_OK;
 }
-
 
 static DFBResult
 IDirectFBVideoProvider_Xine_Release( IDirectFBVideoProvider *thiz )
@@ -196,7 +192,6 @@ IDirectFBVideoProvider_Xine_Release( IDirectFBVideoProvider *thiz )
      return DFB_OK;
 }
 
-
 static DFBResult
 IDirectFBVideoProvider_Xine_GetCapabilities( IDirectFBVideoProvider       *thiz,
                                              DFBVideoProviderCapabilities *caps )
@@ -206,15 +201,15 @@ IDirectFBVideoProvider_Xine_GetCapabilities( IDirectFBVideoProvider       *thiz,
      if (!caps)
           return DFB_INVARG;
 
-     *caps = (DVCAPS_BASIC | DVCAPS_SCALE | DVCAPS_BRIGHTNESS |
-                DVCAPS_CONTRAST | DVCAPS_SATURATION);
+     *caps = DVCAPS_BASIC      | DVCAPS_SCALE    |
+             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST |
+             DVCAPS_SATURATION;
 
      if (xine_get_stream_info( data->stream, XINE_STREAM_INFO_SEEKABLE ))
           *caps |= DVCAPS_SEEK;
 
      return DFB_OK;
 }
-
 
 static DFBResult
 IDirectFBVideoProvider_Xine_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
@@ -246,7 +241,6 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
      return DFB_OK;
 }
 
-
 static DFBResult
 IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
                                     IDirectFBSurface       *dest,
@@ -254,17 +248,12 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
                                     DVFrameCallback         callback,
                                     void                   *ctx )
 {
-     dfb_frame_callback_t frame_callback;
-
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
 
      if (!dest)
           return DFB_INVARG;
 
-     data->dest      = dest;
-     data->dest_data = (IDirectFBSurface_data*) dest->priv;
-     
-     if (!data->dest_data)
+     if (!dest->priv)
           return DFB_DESTROYED;
      
      memset( &data->dest_rect, 0, sizeof( DFBRectangle ) );
@@ -278,17 +267,15 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
      } else
           data->full_area = true;
 
+     /* update visual */
+     data->visual.destination = dest;
+     data->visual.frame_cb    = callback;
+     data->visual.frame_cdata = ctx;
+     /* notify visual changes */
      if (!xine_port_send_gui_data( data->vo, 
-                                   XINE_GUI_SEND_DRAWABLE_CHANGED,
-                                   (void*) data->dest ))
+                                   XINE_GUI_SEND_SELECT_VISUAL,
+                                   (void*) &data->visual ))
           return DFB_UNSUPPORTED;
-
-     frame_callback.frame_cb = callback;
-     frame_callback.cdata    = ctx;
-
-     xine_port_send_gui_data( data->vo,
-                              XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO,
-                              (void*) &frame_callback );
 
      if (data->is_paused) {
           xine_set_param( data->stream,
@@ -320,7 +307,6 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
      return DFB_OK;
 }
 
-
 static DFBResult
 IDirectFBVideoProvider_Xine_Stop( IDirectFBVideoProvider *thiz )
 {
@@ -343,7 +329,6 @@ IDirectFBVideoProvider_Xine_Stop( IDirectFBVideoProvider *thiz )
      return DFB_UNSUPPORTED;
 }
 
-
 static DFBResult
 IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
                                     double                  seconds )
@@ -354,7 +339,7 @@ IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
           int offset;
 
           if (!xine_get_stream_info( data->stream,
-                              XINE_STREAM_INFO_SEEKABLE ))
+                                     XINE_STREAM_INFO_SEEKABLE ))
                return DFB_UNSUPPORTED;
 
           offset = (int) (seconds * 1000.0);
@@ -377,7 +362,6 @@ IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
 
      return DFB_UNSUPPORTED;
 }
-
 
 static DFBResult
 IDirectFBVideoProvider_Xine_GetPos( IDirectFBVideoProvider *thiz,
@@ -415,7 +399,6 @@ IDirectFBVideoProvider_Xine_GetPos( IDirectFBVideoProvider *thiz,
      return DFB_UNSUPPORTED;
 }
 
-
 static DFBResult
 IDirectFBVideoProvider_Xine_GetLength( IDirectFBVideoProvider *thiz,
                                        double                 *seconds )
@@ -436,7 +419,6 @@ IDirectFBVideoProvider_Xine_GetLength( IDirectFBVideoProvider *thiz,
      return DFB_UNSUPPORTED;
 }
 
-
 static DFBResult
 IDirectFBVideoProvider_Xine_GetColorAdjustment( IDirectFBVideoProvider *thiz,
                                                 DFBColorAdjustment     *adj )
@@ -456,7 +438,6 @@ IDirectFBVideoProvider_Xine_GetColorAdjustment( IDirectFBVideoProvider *thiz,
 
      return DFB_OK;
 }
-
 
 static DFBResult
 IDirectFBVideoProvider_Xine_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
@@ -486,15 +467,17 @@ IDirectFBVideoProvider_Xine_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
 }
 
 
+/****************************** Exported Symbols ******************************/
+
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-     char              *xinerc = NULL;
+     char              *xinerc;
      xine_t            *xine;
      xine_video_port_t *vo;
      xine_audio_port_t *ao;
      xine_stream_t     *stream;
-     dfb_visual_t       visual = {NULL, frame_output};
+     dfb_visual_t       visual;
      DFBResult          result;
      
      xine = xine_new();
@@ -515,42 +498,54 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 
      xine_init( xine );
 
-     vo = xine_open_video_driver( xine, "DFB", XINE_VISUAL_TYPE_DFB,
+     memset( &visual, 0, sizeof(visual) );
+     visual.output_cb = frame_output;
+     
+     vo = xine_open_video_driver( xine, "DFB",
+                                  XINE_VISUAL_TYPE_DFB,
                                   (void*) &visual );
+     if (!vo) {
+          xine_exit( xine );
+          return DFB_INIT;
+     }
 
      ao = xine_open_audio_driver( xine, "none", NULL );
-     
-     stream = xine_stream_new( xine, ao, vo );
-
-     result = (xine_open( stream, ctx->filename ))
-               ? DFB_OK : DFB_UNSUPPORTED;
-
-     if (stream) {
-          xine_close( stream );
-          xine_dispose( stream );
+     if (!ao) {
+          xine_close_video_driver( xine, vo );
+          xine_exit( xine );
+          return DFB_INIT;
      }
      
-     if (vo)
-          xine_close_video_driver( xine, vo );
-     
-     if (ao)
+     stream = xine_stream_new( xine, ao, vo );
+     if (!stream) {
           xine_close_audio_driver( xine, ao );
-     
+          xine_close_video_driver( xine, vo );
+          xine_exit( xine );
+          return DFB_INIT;
+     }
+          
+     if (xine_open( stream, ctx->filename ))
+          result = DFB_OK;
+     else
+          result = DFB_UNSUPPORTED;
+
+     xine_close( stream );
+     xine_dispose( stream );
+     xine_close_video_driver( xine, vo );
+     xine_close_audio_driver( xine, ao );
      xine_exit( xine );
 
      return result;
 }
-
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
            const char             *filename )
 {
      const char        *xinerc;
-     int                verbosity  = XINE_VERBOSITY_LOG;
+     int                verbosity;
      const char* const *ao_list;
      const char        *ao_driver;
-     dfb_visual_t       visual;
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Xine )
 
@@ -560,8 +555,7 @@ Construct( IDirectFBVideoProvider *thiz,
      
      data->xine = xine_new();
      if (!data->xine) {
-          D_ERROR( "DirectFB/VideoProvider_Xine: "
-                   "xine_new() failed.\n" );
+          D_ERROR( "DirectFB/VideoProvider_Xine: xine_new() failed.\n" );
           return DFB_INIT;
      }
 
@@ -583,22 +577,23 @@ Construct( IDirectFBVideoProvider *thiz,
 
      if(direct_config->quiet)
           verbosity = XINE_VERBOSITY_NONE;
-
+     else
      if(direct_config->debug)
           verbosity = XINE_VERBOSITY_DEBUG;
+     else
+          verbosity = XINE_VERBOSITY_LOG;
      
      xine_engine_set_param( data->xine,
                             XINE_ENGINE_PARAM_VERBOSITY,
                             verbosity );
 
-     /* setup visual */
-     visual.surface   = NULL;
-     visual.output_cb = frame_output;
-     visual.cdata     = (void*) data;
-     
+     /* prepare the visual */
+     data->visual.output_cb    = frame_output;
+     data->visual.output_cdata = (void*) data;
+     /* open the video driver */
      data->vo = xine_open_video_driver( data->xine, "DFB",
                                         XINE_VISUAL_TYPE_DFB,
-                                        (void*) &visual );
+                                        (void*) &data->visual );
      if (!data->vo) {
           D_ERROR( "DirectFB/VideoProvider_Xine: "
                    "failed to load video driver 'DFB'.\n" );
@@ -606,14 +601,16 @@ Construct( IDirectFBVideoProvider *thiz,
           return data->err;
      }
 
+     /* get available audio plugins */
      ao_list = xine_list_audio_output_plugins( data->xine );
 
+     /* register config entry */
      ao_driver = xine_config_register_string( data->xine, "audio.driver",
                                         ao_list[0], "Audio driver to use",
-                                        NULL, 0, NULL, NULL );     
+                                        NULL, 0, NULL, NULL );
      
+     /* open audio driver */
      data->ao = xine_open_audio_driver( data->xine, ao_driver, NULL );
-
      if (!data->ao) {
           D_ERROR( "DirectFB/VideoProvider_Xine: "
                    "failed to load audio driver '%s'.\n", ao_driver );
@@ -622,6 +619,7 @@ Construct( IDirectFBVideoProvider *thiz,
           return data->err;
      }
      
+     /* create a new stream */
      data->stream = xine_stream_new( data->xine, data->ao, data->vo );
      if (!data->stream) {
           D_ERROR( "DirectFB/VideoProvider_Xine: "
@@ -632,14 +630,20 @@ Construct( IDirectFBVideoProvider *thiz,
           return data->err;
      }
 
-     xine_set_param( data->stream, XINE_PARAM_VERBOSITY, verbosity );
-     xine_set_param( data->stream, XINE_PARAM_AUDIO_CHANNEL_LOGICAL, -1 );
+     xine_set_param( data->stream, 
+                     XINE_PARAM_VERBOSITY,
+                     verbosity );
+     xine_set_param( data->stream,
+                     XINE_PARAM_AUDIO_CHANNEL_LOGICAL,
+                     -1 );
 
+     /* create a event queue for end-of-playback notification */
      data->queue = xine_event_new_queue( data->stream );
      if (data->queue)
-          xine_event_create_listener_thread( data->queue, event_listner,
-                                             (void*) data );
+          xine_event_create_listener_thread( data->queue,
+                                             event_listner, (void*) data );
 
+     /* open the MRL */
      if (!xine_open( data->stream, data->mrl )) {
           get_stream_error( data );
           if (data->queue)
@@ -692,6 +696,8 @@ Construct( IDirectFBVideoProvider *thiz,
 }
 
 
+/***************************** Private Functions ******************************/
+
 static void
 get_stream_error( IDirectFBVideoProvider_Xine_data *data )
 {
@@ -737,12 +743,12 @@ get_stream_error( IDirectFBVideoProvider_Xine_data *data )
      }
 }
 
-
 static void
 frame_output( void *cdata, int width, int height,
           double ratio, DFBRectangle *dest_rect )
 {
      IDirectFBVideoProvider_Xine_data *data;
+     IDirectFBSurface                 *surface;
 
      data = (IDirectFBVideoProvider_Xine_data*) cdata;
 
@@ -753,14 +759,13 @@ frame_output( void *cdata, int width, int height,
      data->height = height;
 
      if (data->full_area) {
-          dest_rect->x = 0; /* the driver adds area.wanted.x */
-          dest_rect->y = 0; /* the driver adds area.wanted.y */
-          dest_rect->w = data->dest_data->area.wanted.w;
-          dest_rect->h = data->dest_data->area.wanted.h;
+          surface = data->visual.destination;
+          surface->GetSize( surface, &dest_rect->w, &dest_rect->h );
+          dest_rect->x = 0;
+          dest_rect->y = 0;
      } else
           *dest_rect = data->dest_rect;
 }
-
 
 static void
 event_listner( void *cdata, const xine_event_t *event )
