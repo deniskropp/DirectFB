@@ -497,8 +497,10 @@ __u32* ReadImage( FILE *fd, int len, int height,
 
      while ((v = LWZReadByte(fd,FALSE,c)) >= 0 ) {
           __u32 *dst = image + (ypos * len + xpos);
-          *dst++ = 0xFF000000 | cmap[CM_RED][v] << 16 |
-                   cmap[CM_GREEN][v] << 8 | cmap[CM_BLUE][v];
+          *dst++ = ((Gif89.transparent == v ? 0x0 : 0xFF000000) | 
+                    cmap[CM_RED][v]   << 16 | 
+                    cmap[CM_GREEN][v] << 8  | 
+                    cmap[CM_BLUE][v]);
 
           ++xpos;
           if (xpos == len) {
@@ -553,8 +555,9 @@ fini:
 
 
 
-__u32* ReadGIF( FILE *fd, int imageNumber, int *width, int *height,
-                       int headeronly)
+__u32* ReadGIF( FILE *fd, int imageNumber, 
+                int *width, int *height, int *transparency,
+                int headeronly)
 {
      __u8 buf[16];
      __u8 c;
@@ -636,6 +639,7 @@ __u32* ReadGIF( FILE *fd, int imageNumber, int *width, int *height,
 
           *width = LM_to_uint(buf[4],buf[5]);
           *height = LM_to_uint(buf[6],buf[7]);
+          *transparency = (Gif89.transparent != -1);
 
           if (headeronly) {
                return NULL;
@@ -647,7 +651,7 @@ __u32* ReadGIF( FILE *fd, int imageNumber, int *width, int *height,
 
           if (! useGlobalColormap) {
                if (ReadColorMap(fd, bitPixel, localColorMap)) {
-                    GIFERRORMSG("error rrading local colormap" );
+                    GIFERRORMSG("error reading local colormap" );
                }
                return ReadImage( fd, LM_to_uint(buf[4],buf[5]),
                                  LM_to_uint(buf[6],buf[7]), localColorMap,
@@ -669,7 +673,7 @@ DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
 {
      int err;
      void *dst;
-     int pitch, width, height, src_width, src_height;
+     int pitch, width, height, src_width, src_height, transparency;
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
      IDirectFBImageProvider_GIF_data *data =
@@ -700,7 +704,7 @@ DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
           if (!f)
                return errno2dfb( errno );
 
-          image_data = ReadGIF( f, 1, &src_width, &src_height,0  );
+          image_data = ReadGIF( f, 1, &src_width, &src_height, &transparency, 0  );
           if (image_data) {
                err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
                if (err) {
@@ -709,9 +713,14 @@ DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
                     return err;
                }
 
-               scale_linear_32( dst, image_data, src_width, src_height, width,
-                                height, pitch - width * BYTES_PER_PIXEL(format),
-                                format );
+               if (format == DSPF_ARGB && 
+                   src_width == width && src_height == height)
+                    memcpy (dst, image_data, width * height * 4);
+               else
+                    scale_linear_32( dst, image_data, 
+                                     src_width, src_height, width, height, 
+                                     pitch - width * BYTES_PER_PIXEL(format),
+                                     format );
 
                destination->Unlock( destination );
                free (image_data);
@@ -737,13 +746,15 @@ DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
      {
           int width;
           int height;
+          int transparency;
 
-          ReadGIF( f, 1, &width, &height, 1  ); // 1 = read header only
+          ReadGIF( f, 1, &width, &height, &transparency, 1  ); // 1 = read header only
 
           dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->width  = width;
           dsc->height = height;
-          dsc->pixelformat = layers->surface->format;
+          dsc->pixelformat = 
+            (transparency ? DSPF_ARGB : layers->surface->format);
 
           fclose (f);
      }

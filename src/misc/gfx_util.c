@@ -65,114 +65,102 @@ struct _PixopsFilter {
 };
 
 
+static inline void rgba_to_dst_format (__u8 *dst, 
+                                       __u32 r, __u32 g, __u32 b, __u32 a,
+                                       DFBSurfacePixelFormat dst_format)
+{
+     __u32 out_pixel;
+
+     switch (dst_format) {
+
+     case DSPF_A8:
+          *((__u8*)dst) = a;
+          break;
+
+     case DSPF_ARGB:
+          *((__u32*)dst) = PIXEL_ARGB( a, r, g, b );
+          break;
+
+     case DSPF_RGB32:
+          *((__u32*)dst) = PIXEL_RGB32( r, g, b );
+          break;
+
+     case DSPF_RGB15:
+          out_pixel  = b;
+          out_pixel |= g << 8;
+          out_pixel |= r << 16;
+          *(__u16 *)dst = RGB32_TO_RGB15 (out_pixel);
+          break;
+
+     case DSPF_RGB16:
+          out_pixel  = b;
+          out_pixel |= g << 8;
+          out_pixel |= r << 16;
+          *(__u16 *)dst = RGB32_TO_RGB16 (out_pixel);
+          break;
+
+     case DSPF_RGB24:
+          *dst++ = b;
+          *dst++ = g;
+          *dst   = r;
+          break;
+
+     default:
+          ERRORMSG( "DirectFB/misc/gfx_util: unimplemented format!\n" );
+          break;
+     }
+}
+
 void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
                      DFBSurfacePixelFormat dst_format )
 {
      int x, y;
+     __u32 r, g, b, a;
 
      switch (dst_format) {
+          case DSPF_A8:
+               for (y = 0; y < h; y++) {
+                    for (x = 0; x < w; x++) {
+                         *(__u8 *)dst++ = *src & 0xFF000000;
+                    }
+                    (__u8 *)dst += dskip;
+               }
+               break;
+
           case DSPF_ARGB:
-          case DSPF_RGB32:
                for (y = 0; y < h; y++) {
                     memcpy (dst, src, w * 4);
                     (__u8 *)dst += w * 4 + dskip;
                }
                break;
 
-          case DSPF_RGB15:
-               for (y = 0; y < h; y++) {
-                    for (x = 0; x < w; x++) {
-                         *(__u16 *)dst = RGB32_TO_RGB15 (*src);
-                         (__u8 *)dst += 2;
-                         src++;
-                    }
-                    (__u8 *)dst += dskip;
-               }
-               break;
-
-          case DSPF_RGB16:
-               for (y = 0; y < h; y++) {
-                    for (x = 0; x < w; x++) {
-                         *(__u16 *)dst = RGB32_TO_RGB16 (*src);
-                         (__u8 *)dst += 2;
-                         src++;
-                    }
-                    (__u8 *)dst += dskip;
-               }
-               break;
-
-          case DSPF_RGB24:
-               for (y = 0; y < h; y++) {
-                    for (x = 0; x < w; x++) {
-                         *(__u16 *)dst = (*src & 0xFFFF);
-                         (__u8 *)dst += 2;
-                         *(__u8 *)dst++ = (*src & 0xFF0000) >> 16;
-                         src++;
-                    }
-                    (__u8 *)dst += dskip;
-               }
-               break;
           default:
-               ERRORMSG( "DirectFB/misc/gfx_util: unimplemented format!\n" );
+               for (y = 0; y < h; y++) {
+                    for (x = 0; x < w; x++) {
+                         a = (*src & 0xFF000000) >> 24;
+                         switch (a) {
+                         case 0x0:
+                              r = g = b = 0;
+                              break;
+                         case 0xFF:
+                              r = (*src & 0x00FF0000) >> 16;
+                              g = (*src & 0x0000FF00) >> 8;
+                              b = (*src & 0x000000FF);
+                              break;
+                         default:
+                              r = (((*src & 0x00FF0000) >> 16) * a) >> 8;
+                              g = (((*src & 0x0000FF00) >> 8)  * a) >> 8;
+                              b =  ((*src & 0x000000FF)        * a) >> 8;
+                              break;
+                         }
+                         rgba_to_dst_format ((__u8 *)dst, 
+                                             r, g, b, a, dst_format);
+                         (__u8 *)dst += BYTES_PER_PIXEL (dst_format);
+                         src++;
+                    }
+                    (__u8 *)dst += dskip;
+               }
                break;
-     }
-}
-
-static void rgba_to_dst_format (__u8 *dst, __u32 r, __u32 g, __u32 b, __u32 a,
-                                DFBSurfacePixelFormat dst_format)
-{
-     __u32 out_pixel;
-
-     if (dst_format == DSPF_ARGB) {
-          if (a) {
-               r /= a;
-               g /= a;
-               b /= a;
-               a >>= 16;
-
-               *((__u32*)dst) = PIXEL_ARGB( a, r, g, b );
-          }
-          else {
-               memset (dst, 0, 4);
-          }
-     }
-     else {  /*  dst_format does not support transparency  */
-          r >>= 16;
-          g >>= 16;
-          b >>= 16;
-
-          switch (dst_format) {
-               case DSPF_ARGB:
-                    /*  already handled above  */
-                    break;
-
-               case DSPF_RGB32:
-                    *((__u32*)dst) = PIXEL_RGB32( r, g, b );
-                    break;
-
-               case DSPF_RGB15:
-                    out_pixel  = b;
-                    out_pixel |= g << 8;
-                    out_pixel |= r << 16;
-                    *(__u16 *)dst = RGB32_TO_RGB15 (out_pixel);
-                    break;
-
-               case DSPF_RGB16:
-                    out_pixel  = b;
-                    out_pixel |= g << 8;
-                    out_pixel |= r << 16;
-                    *(__u16 *)dst = RGB32_TO_RGB16 (out_pixel);
-                    break;
-
-               case DSPF_RGB24:
-                    *dst++ = b;
-                    *dst++ = g;
-                    *dst   = r;
-                    break;
-               default:
-                    ERRORMSG( "DirectFB/misc/gfx_util: unimplemented format!\n" );
-                    break;
-          }
      }
 }
 
@@ -291,52 +279,30 @@ static void scale_pixel( int *weights, int n_x, int n_y, void *dst, __u32 **src,
      __u32 r = 0, g = 0, b = 0, a = 0;
      int i, j;
 
-     if (dst_format == DSPF_ARGB) {
-          for (i = 0; i < n_y; i++) {
-               int *pixel_weights = weights + n_x * i;
+     for (i = 0; i < n_y; i++) {
+          int *pixel_weights = weights + n_x * i;
 
-               for (j = 0; j < n_x; j++) {
-                    __u32  ta;
-                    __u32 *q;
+          for (j = 0; j < n_x; j++) {
+               __u32  ta;
+               __u32 *q;
 
-                    if (x + j < 0)
-                         q = src[i];
-                    else if (x + j < sw)
-                         q = src[i] + x + j;
-                    else
-                         q = src[i] + sw - 1;
+               if (x + j < 0)
+                    q = src[i];
+               else if (x + j < sw)
+                    q = src[i] + x + j;
+               else
+                    q = src[i] + sw - 1;
 
-                    ta = ((*q & 0xFF000000) >> 24) * pixel_weights[j];
+               ta = ((*q & 0xFF000000) >> 24) * pixel_weights[j];
 
-                    b += ta * ((*q & 0xFF));
-                    g += ta * ((*q & 0xFF00) >> 8);
-                    r += ta * ((*q & 0xFF0000) >> 16);
-                    a += ta;
-               }
+               b += ta * ((*q & 0xFF));
+               g += ta * ((*q & 0xFF00) >> 8);
+               r += ta * ((*q & 0xFF0000) >> 16);
+               a += ta;
           }
-     }
-     else {
-          for (i = 0; i < n_y; i++) {
-               int *pixel_weights = weights + n_x * i;
+      }
 
-               for (j = 0; j < n_x; j++) {
-                    __u32 *q;
-
-                    if (x + j < 0)
-                         q = src[i];
-                    else if (x + j < sw)
-                         q = src[i] + x + j;
-                    else
-                         q = src[i] + sw - 1;
-
-                    b += pixel_weights[j] * ((*q & 0xFF));
-                    g += pixel_weights[j] * ((*q & 0xFF00) >> 8);
-                    r += pixel_weights[j] * ((*q & 0xFF0000) >> 16);
-               }
-          }
-     }
-
-     rgba_to_dst_format( dst, r, g, b, a, dst_format );
+     rgba_to_dst_format( dst, r >> 24, g >> 24, b >> 24, a >> 16, dst_format );
 }
 
 static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
@@ -357,43 +323,27 @@ static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
           pixel_weights = weights + ((x >> (SCALE_SHIFT - SUBSAMPLE_BITS))
                                      & SUBSAMPLE_MASK) * n_x * n_y;
 
-          if (dst_format == DSPF_ARGB) {
-               for (i = 0; i < n_y; i++) {
-                    line_weights = pixel_weights + n_x * i;
+          for (i = 0; i < n_y; i++) {
+               line_weights = pixel_weights + n_x * i;
 
-                    q = src[i] + x_scaled;
+               q = src[i] + x_scaled;
 
-                    for (j = 0; j < n_x; j++) {
-                         __u32 ta;
+               for (j = 0; j < n_x; j++) {
+                    __u32 ta;
 
-                         ta = ((*q & 0xFF000000) >> 24) * line_weights[j];
-
-                         b+= ta * ((*q & 0xFF));
-                         g+= ta * ((*q & 0xFF00) >> 8);
-                         r+= ta * ((*q & 0xFF0000) >> 16);
-                         a += ta;
-
-                         q++;
-                    }
+                    ta = ((*q & 0xFF000000) >> 24) * line_weights[j];
+                    
+                    b+= ta * ((*q & 0xFF));
+                    g+= ta * ((*q & 0xFF00) >> 8);
+                    r+= ta * ((*q & 0xFF0000) >> 16);
+                    a += ta;
+                    
+                    q++;
                }
           }
-          else {  /*  dst_format does not support transparency  */
-               for (i = 0; i < n_y; i++) {
-                    line_weights = pixel_weights + n_x * i;
-
-                    q = src[i] + x_scaled;
-
-                    for (j = 0; j < n_x; j++) {
-                         b+= line_weights[j] * ((*q & 0xFF));
-                         g+= line_weights[j] * ((*q & 0xFF00) >> 8);
-                         r+= line_weights[j] * ((*q & 0xFF0000) >> 16);
-
-                         q++;
-                    }
-               }
-          }
-
-          rgba_to_dst_format( dst, r, g, b, a, dst_format );
+  
+          rgba_to_dst_format( dst, 
+                              r >> 24, g >> 24, b >> 24, a >> 16, dst_format );
 
           dst += BYTES_PER_PIXEL (dst_format);
           x += x_step;
@@ -501,67 +451,6 @@ void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
      }
 
      free (filter.weights);
-}
-
-void scale_nearest_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
-                       int dskip, DFBSurfacePixelFormat dst_format )
-{
-     double hscale, vscale;
-     int x, y;
-
-     if (sw < 1 || sh < 1 || dw < 1 || dh < 1)
-          return;
-
-     if (dw == sw && dh == sh) {
-          copy_buffer_32( dst, src, sw, sh, dskip, dst_format );
-          return;
-     }
-
-     hscale = (double)sw / dw;
-     vscale = (double)sh / dh;
-
-     for (y = 0; y < dh; y++) {
-          for (x = 0; x < dw; x++) {
-               __u32 q;
-               int sx, sy;
-
-               sx = IFLOOR((float)x*hscale + 0.5f);
-               sy = IFLOOR((float)y*vscale + 0.5f);
-
-               q = src[sy * sw + sx];
-
-               switch (dst_format) {
-                    case DSPF_ARGB:
-                    case DSPF_RGB32:
-                         *(__u32 *)dst = q;
-                         (__u8 *)dst += 4;
-                         break;
-
-                    case DSPF_RGB15:
-                         *(__u16 *)dst = RGB32_TO_RGB15 (q);
-                         (__u8 *)dst += 2;
-                         break;
-
-                    case DSPF_RGB16:
-                         *(__u16 *)dst = RGB32_TO_RGB16 (q);
-                         (__u8 *)dst += 2;
-                         break;
-
-                    case DSPF_RGB24:
-                         *(__u16 *)dst = (q & 0xFFFF);
-                         (__u8 *)dst += 2;
-                         *(__u8 *)dst++ = (q & 0xFF0000) >> 16;
-                         break;
-                    case DSPF_A8:
-                    case DSPF_A1:
-                    case DSPF_UNKNOWN:
-                         break;
-                         /* not supported */
-               }
-          }
-
-          (__u8 *)dst += dskip;
-     }
 }
 
 int clip_line( DFBRegion *clip, DFBRegion *line )
