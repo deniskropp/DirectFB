@@ -601,8 +601,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      }
      mbes->regs.besV2WGHT = tmp;
 
-     mbes->regs.besV1SRCLST = mbes->regs.besV2SRCLST =
-          source.h - 1 - (croptop >> 16) - (cropbot >> 16);
+     mbes->regs.besV1SRCLST = mbes->regs.besV2SRCLST = source.h - 1;
 
      /* horizontal scaling */
      if (!mdev->g450_matrox && surface->format == DSPF_RGB32) {
