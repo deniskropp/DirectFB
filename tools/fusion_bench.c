@@ -1,0 +1,193 @@
+#include <config.h>
+
+#include <stdio.h>
+
+#include <pthread.h>
+
+#include <directfb.h>
+
+#include <core/fusion/lock.h>
+#include <core/fusion/ref.h>
+
+#include <misc/util.h>
+
+
+static IDirectFB *dfb = NULL;
+
+static DFBResult
+init_directfb( int *argc, char **argv[] )
+{
+     DFBResult ret;
+     
+     /* Initialize DirectFB. */
+     ret = DirectFBInit( argc, argv );
+     if (ret)
+          return DirectFBError( "DirectFBInit", ret );
+
+     /* Create the super interface. */
+     ret = DirectFBCreate( &dfb );
+     if (ret)
+          return DirectFBError( "DirectFBCreate", ret );
+
+     return DFB_OK;
+}
+
+static void
+deinit_directfb()
+{
+     if (dfb)
+          dfb->Release( dfb );
+}
+
+static void
+bench_ref()
+{
+     FusionResult ret;
+     unsigned int i;
+     long long    t1, t2;
+     FusionRef    ref;
+
+     ret = fusion_ref_init( &ref );
+     if (ret) {
+          fprintf( stderr, "Fusion Error %d\n", ret );
+          return;
+     }
+
+     
+     /* ref up/down (local) */
+     t1 = dfb_get_millis();
+     
+     for (i=0; i<4000000; i++) {
+          fusion_ref_up( &ref, false );
+          fusion_ref_down( &ref, false );
+     }
+     
+     t2 = dfb_get_millis();
+     
+     printf( "ref up/down (local)        -> %.2f M/sec\n", 4000 / (float)(t2 - t1) );
+
+     
+     /* ref up/down (global) */
+     t1 = dfb_get_millis();
+     
+     for (i=0; i<4000000; i++) {
+          fusion_ref_up( &ref, true );
+          fusion_ref_down( &ref, true );
+     }
+     
+     t2 = dfb_get_millis();
+
+     printf( "ref up/down (global)       -> %.2f M/sec\n", 4000 / (float)(t2 - t1) );
+
+     
+     fusion_ref_destroy( &ref );
+
+     printf( "\n" );
+}
+
+static void
+bench_skirmish()
+{
+     FusionResult   ret;
+     unsigned int   i;
+     long long      t1, t2;
+     FusionSkirmish skirmish;
+
+     ret = skirmish_init( &skirmish );
+     if (ret) {
+          fprintf( stderr, "Fusion Error %d\n", ret );
+          return;
+     }
+
+     
+     /* skirmish prevail/dismiss */
+     t1 = dfb_get_millis();
+     
+     for (i=0; i<4000000; i++) {
+          skirmish_prevail( &skirmish );
+          skirmish_dismiss( &skirmish );
+     }
+     
+     t2 = dfb_get_millis();
+     
+     printf( "skirmish prevail/dismiss   -> %.2f M/sec\n", 4000 / (float)(t2 - t1) );
+
+     
+     skirmish_destroy( &skirmish );
+
+     printf( "\n" );
+}
+
+static void
+bench_pthread_mutex()
+{
+     unsigned int    i;
+     long long       t1, t2;
+     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+     
+     /* pthread_mutex lock/unlock */
+     t1 = dfb_get_millis();
+     
+     for (i=0; i<4000000; i++) {
+          pthread_mutex_lock( &mutex );
+          pthread_mutex_unlock( &mutex );
+          pthread_mutex_lock( &mutex );
+          pthread_mutex_unlock( &mutex );
+          pthread_mutex_lock( &mutex );
+          pthread_mutex_unlock( &mutex );
+          pthread_mutex_lock( &mutex );
+          pthread_mutex_unlock( &mutex );
+          pthread_mutex_lock( &mutex );
+          pthread_mutex_unlock( &mutex );
+     }
+     
+     t2 = dfb_get_millis();
+     
+     printf( "pthread_mutex lock/unlock  -> %.2f M/sec\n", 20000 / (float)(t2 - t1) );
+
+     
+     pthread_mutex_destroy( &mutex );
+
+     printf( "\n" );
+}
+
+int
+main( int argc, char *argv[] )
+{
+     DFBResult ret;
+
+     /* DirectFB initialization. */
+     ret = init_directfb( &argc, &argv );
+     if (ret)
+          goto out;
+
+     printf( "\n" );
+
+#ifdef FUSION_FAKE
+     printf( "Fusion Benchmark (Fusion fake mode!)\n" );
+#else
+#ifdef LINUX_FUSION
+     printf( "Fusion Benchmark (with Fusion Kernel Device)\n" );
+#else
+     printf( "Fusion Benchmark (without Fusion Kernel Device)\n" );
+#endif
+#endif
+
+     printf( "\n" );
+     
+     
+     bench_pthread_mutex();
+     
+     bench_skirmish();
+     
+     bench_ref();
+
+
+out:
+     /* DirectFB deinitialization. */
+     deinit_directfb();
+
+     return ret;
+}
+

@@ -18,12 +18,16 @@ bin_PROGRAMS = $(DFB_CSOURCE)
 
 noinst_PROGRAMS = \
 	dfbdump 	\
+	fusion_bench	\
 	raw15toraw24	\
 	raw16toraw24	\
 	raw32toraw24
 
 dfbdump_SOURCES = dfbdump.c
 dfbdump_LDADD   = ../src/libdirectfb.la
+
+fusion_bench_SOURCES = fusion_bench.c
+fusion_bench_LDADD   = ../src/libdirectfb.la
 
 raw15toraw24_SOURCES = raw15toraw24.c
 
