@@ -997,7 +997,7 @@ dfb_layer_context_find_window( CoreLayerContext *context, DFBWindowID id )
      num     = stack->num_windows;
      windows = stack->windows;
 
-     for (i=num; i>=0; i--) {
+     for (i=num-1; i>=0; i--) {
           if (windows[i]->id == id) {
                /* don't hand out the cursor window */
                if (! (windows[i]->caps & DWHC_TOPMOST))
