@@ -180,8 +180,6 @@ dfb_assertion_fail( const char *expression,
      fflush( stderr );
 
      kill( getpgrp(), SIGTRAP );
-
-     pause();
 }
 
 void
