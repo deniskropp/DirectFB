@@ -94,7 +94,8 @@ struct _CoreWindowStack {
 
      CardState           state;           /* state for windowstack repaints */
 
-     FusionSkirmish      update;          /* skirmish lock for repaints */
+     FusionSkirmish      lock;            /* skirmish lock for repaints and
+                                             management functions */
 
      int                 wm_hack;
 
@@ -125,20 +126,6 @@ void
 dfb_windowstack_destroy( CoreWindowStack *stack );
 
 /*
- * inserts a window into the windowstack pointed to by window->stack,
- * this function is called by window_create.
- */
-void
-dfb_window_insert( CoreWindow *window, int before );
-
-/*
- * removes a window from the windowstack pointed to by window->stack,
- * this function is NOT called by window_destroy, it has to be called BEFORE.
- */
-void
-dfb_window_remove( CoreWindow *window );
-
-/*
  * creates a window on a given stack
  */
 DFBResult
@@ -152,10 +139,16 @@ dfb_window_create( CoreWindowStack        *stack,
                    CoreWindow            **window );
 
 /*
- * must be called after window_create
+ * must be called after dfb_window_create
  */
 void
 dfb_window_init( CoreWindow *window );
+
+/*
+ * must be called before dfb_window_destroy
+ */
+void
+dfb_window_deinit( CoreWindow *window );
 
 /*
  * deinitializes a window and removes it from the window stack

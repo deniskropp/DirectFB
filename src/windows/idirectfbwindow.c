@@ -81,10 +81,7 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           data->surface->Release( data->surface );
 
      if (data->window) {
-          dfb_window_remove( data->window );
-
-          reactor_detach( data->window->reactor, IDirectFBWindow_React, data );
-
+          dfb_window_deinit( data->window );
           dfb_window_destroy( data->window );
      }
 
@@ -121,6 +118,9 @@ static DFBResult IDirectFBWindow_CreateEventBuffer(
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      DFB_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
 
      IDirectFBEventBuffer_Construct( b );
@@ -143,6 +143,9 @@ static DFBResult IDirectFBWindow_AttachEventBuffer(
                                                   IDirectFBEventBuffer  *buffer)
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      IDirectFBEventBuffer_AttachWindow( buffer, data->window );
 
@@ -494,11 +497,11 @@ static DFBResult IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!lower)
-          return DFB_INVARG;
-
      if (!data->window)
           return DFB_DESTROYED;
+
+     if (!lower)
+          return DFB_INVARG;
 
      lower_data = (IDirectFBWindow_data*) lower->priv;
      if (!lower_data)
@@ -519,11 +522,11 @@ static DFBResult IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!upper)
-          return DFB_INVARG;
-
      if (!data->window)
           return DFB_DESTROYED;
+
+     if (!upper)
+          return DFB_INVARG;
 
      upper_data = (IDirectFBWindow_data*) upper->priv;
      if (!upper_data)
@@ -560,7 +563,7 @@ static DFBResult IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
      if (!data->window)
           return DFB_DESTROYED;
 
-     dfb_window_remove( data->window );
+     dfb_window_deinit( data->window );
      dfb_window_destroy( data->window );
 
      return DFB_OK;
