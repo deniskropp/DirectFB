@@ -75,8 +75,6 @@ fusion_init( int world, int *world_ret )
 {
      char buf[20];
 
-     DFB_ASSERT( world >= 0 );
-
      /* Check against multiple initialization. */
      if (_fusion_id) {
           /* Increment local reference counter. */
@@ -301,8 +299,6 @@ fusion_read_loop( CoreThread *thread, void *arg )
 int
 fusion_init( int world, int *world_ret )
 {
-     DFB_ASSERT( world >= 0 );
-
      if (ret_world)
           *ret_world = 0;
      
