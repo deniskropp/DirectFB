@@ -127,6 +127,15 @@ public:                                                          \
           iface = NULL;                                          \
      }                                                           \
                                                                  \
+     Interface(const Interface &other) {                         \
+          Interface##_C *other_iface = other.iface;              \
+                                                                 \
+          if (other_iface)                                       \
+               other_iface->AddRef( other_iface );               \
+                                                                 \
+          iface = other_iface;                                   \
+     }                                                           \
+                                                                 \
      virtual ~Interface() {                                      \
           if (iface)                                             \
                iface->Release( iface );                          \
