@@ -2212,6 +2212,42 @@ static GFunc Dacc_modulation[] = {
 
 /********************************* misc accumulator operations ****************/
 
+static void Dacc_premultiply()
+{
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+
+     while (w--) {
+          if (!(D->a & 0xF000)) {
+               __u16 Da = D->a + 1;
+               
+               D->r = (Da * D->r) >> 8;
+               D->g = (Da * D->g) >> 8;
+               D->b = (Da * D->b) >> 8;
+          }
+
+          D++;
+     }
+}
+
+static void Dacc_demultiply()
+{
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+
+     while (w--) {
+          if (!(D->a & 0xF000)) {
+               __u16 Da = D->a + 1;
+               
+               D->r = (D->r << 8) / Da;
+               D->g = (D->g << 8) / Da;
+               D->b = (D->b << 8) / Da;
+          }
+
+          D++;
+     }
+}
+
 #ifdef USE_MMX
 void Cacc_add_to_Dacc_MMX();
 void Sacc_add_to_Dacc_MMX();
@@ -2326,6 +2362,13 @@ void gGetDeviceInfo( GraphicsDeviceInfo *info )
      info->caps.drawing  = DSDRAW_NOFX;
      info->caps.blitting = DSBLIT_NOFX;
 }
+
+#define MODULATION_FLAGS (DSBLIT_BLEND_ALPHACHANNEL |  \
+                          DSBLIT_BLEND_COLORALPHA |    \
+                          DSBLIT_COLORIZE |            \
+                          DSBLIT_DST_PREMULTIPLY |     \
+                          DSBLIT_SRC_PREMULTIPLY |     \
+                          DSBLIT_DEMULTIPLY)
 
 int gAquire( CardState *state, DFBAccelerationMask accel )
 {
@@ -2560,7 +2603,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                }
           /* fallthru */
           case DFXL_STRETCHBLIT: {
-                    int modulation = state->blittingflags & 0x7;
+                    int modulation = state->blittingflags & MODULATION_FLAGS;
 
                     if (modulation) {
 
@@ -2572,6 +2615,9 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Sop_is_Aop;
                               *funcs++ = Dacc_is_Aacc;
                               *funcs++ = Sop_PFI_to_Dacc[pindex];
+
+                              if (state->blittingflags & DSBLIT_DST_PREMULTIPLY)
+                                   *funcs++ = Dacc_premultiply;
                          }
 
                          /* read the source */
@@ -2592,16 +2638,19 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          }
 
                          /* modulate the source if requested */
-                         if (Dacc_modulation[modulation]) {
+                         if (Dacc_modulation[modulation & 0x7]) {
                               /* modulation source */
                               Cacc.a = color.a + 1;
                               Cacc.r = color.r + 1;
                               Cacc.g = color.g + 1;
                               Cacc.b = color.b + 1;
 
-                              *funcs++ = Dacc_modulation[modulation];
+                              *funcs++ = Dacc_modulation[modulation & 0x7];
                          }
 
+                         if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
+                              *funcs++ = Dacc_premultiply;
+                         
                          /* do blend functions and combine both accumulators */
                          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                                      DSBLIT_BLEND_COLORALPHA))
@@ -2630,6 +2679,11 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                               }
                          }
 
+                         if (state->blittingflags & DSBLIT_DEMULTIPLY) {
+                              *funcs++ = Dacc_is_Bacc;
+                              *funcs++ = Dacc_demultiply;
+                         }
+                         
                          /* write source to destination */
                          *funcs++ = Sacc_is_Bacc;
                          *funcs++ = Sacc_to_Aop_PFI[pindex];
