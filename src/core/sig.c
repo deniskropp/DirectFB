@@ -36,21 +36,36 @@
 #include "sig.h"
 #include "vt.h"
 
+typedef struct {
+     int              signum;
+     struct sigaction old_action;
+} SigHandled;
+
 static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGPOLL,*/
                                 SIGTERM, /*SIGUSR1, SIGUSR2,*/ /*SIGVTALRM,*/
                                 /*SIGSTKFLT,*/ SIGABRT, SIGFPE, SIGILL, SIGQUIT,
                                 SIGSEGV, SIGTRAP, /*SIGSYS, SIGEMT,*/ SIGBUS,
-                                SIGXCPU, SIGXFSZ, -1 };
+                                SIGXCPU, SIGXFSZ };
+
+#define NUM_SIGS_TO_HANDLE (sizeof(sigs_to_handle)/sizeof(sigs_to_handle[0]))
+
+static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
 
 void dfb_sig_remove_handlers()
 {
-     int *sigs = sigs_to_handle;
+     int i;
 
-     while (*sigs != -1) {
-          if (!sigismember( &dfb_config->dont_catch, *sigs ))
-               signal( *sigs, SIG_DFL );
-
-          sigs++;
+     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
+          if (sigs_handled[i].signum != -1) {
+               int signum = sigs_handled[i].signum;
+               
+               if (sigaction( signum, &sigs_handled[i].old_action, NULL )) {
+                    PERRORMSG("DirectFB/core/sig: Unable to restore previous "
+                              "handler for signal %d!\n", signum);
+               }
+               
+               sigs_handled[i].signum = -1;
+          }
      }
 }
 
@@ -67,13 +82,28 @@ static void dfb_sig_handler( int num )
 
 void dfb_sig_install_handlers()
 {
-     int *sigs = sigs_to_handle;
+     int i;
 
-     while (*sigs != -1) {
-          if (!sigismember( &dfb_config->dont_catch, *sigs ))
-               signal( *sigs, dfb_sig_handler );
+     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
+          sigs_handled[i].signum = -1;
 
-          sigs++;
+          if (!sigismember( &dfb_config->dont_catch, sigs_to_handle[i] )) {
+               struct sigaction action;
+               int              signum = sigs_to_handle[i];
+
+               action.sa_handler = dfb_sig_handler;
+               action.sa_flags   = SA_RESTART;
+               
+               sigfillset( &action.sa_mask );
+
+               if (sigaction( signum, &action, &sigs_handled[i].old_action )) {
+                    PERRORMSG("DirectFB/core/sig: Unable to install signal "
+                              "handler for signal %d!\n", signum);
+                    continue;
+               }
+               
+               sigs_handled[i].signum = signum;
+          }
      }
 }
 
