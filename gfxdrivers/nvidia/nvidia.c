@@ -274,7 +274,7 @@ static void nvSetState( void *drv, void *dev,
      state->modified = 0;
 }
 
-static void nvFillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool nvFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      NVidiaDriverData       *nvdrv     = (NVidiaDriverData*) drv;
      NVidiaDeviceData       *nvdev     = (NVidiaDeviceData*) dev;
@@ -286,9 +286,11 @@ static void nvFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      Rectangle->TopLeft     = (rect->y << 16) | rect->x;
      Rectangle->WidthHeight = (rect->h << 16) | rect->w;
+
+     return true;
 }
 
-static void nvFillTriangle( void *drv, void *dev, DFBTriangle *tri )
+static bool nvFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
      NVidiaDriverData      *nvdrv    = (NVidiaDriverData*) drv;
      NVidiaDeviceData      *nvdev    = (NVidiaDeviceData*) dev;
@@ -301,9 +303,11 @@ static void nvFillTriangle( void *drv, void *dev, DFBTriangle *tri )
      Triangle->TrianglePoint0 = (tri->y1 << 16) | tri->x1;
      Triangle->TrianglePoint1 = (tri->y2 << 16) | tri->x2;
      Triangle->TrianglePoint2 = (tri->y3 << 16) | tri->x3;
+
+     return true;
 }
 
-static void nvDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool nvDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      NVidiaDriverData       *nvdrv     = (NVidiaDriverData*) drv;
      NVidiaDeviceData       *nvdev     = (NVidiaDeviceData*) dev;
@@ -324,9 +328,11 @@ static void nvDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      Rectangle->TopLeft     = ((rect->y + 1) << 16) | (rect->x + rect->w - 1);
      Rectangle->WidthHeight = ((rect->h - 2) << 16) | 1;
+
+     return true;
 }
 
-static void nvDrawLine( void *drv, void *dev, DFBRegion *line )
+static bool nvDrawLine( void *drv, void *dev, DFBRegion *line )
 {
      NVidiaDriverData  *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData  *nvdev = (NVidiaDeviceData*) dev;
@@ -338,9 +344,11 @@ static void nvDrawLine( void *drv, void *dev, DFBRegion *line )
 
      Line->Lin[0].point0 = (line->y1 << 16) | line->x1;
      Line->Lin[0].point1 = (line->y2 << 16) | line->x2;
+
+     return true;
 }
 
-static void nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
+static bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData       *nvdev = (NVidiaDeviceData*) dev;
@@ -351,9 +359,11 @@ static void nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      Blt->TopLeftSrc  = (rect->y << 16) | rect->x;
      Blt->TopLeftDst  = (dy << 16) | dx;
      Blt->WidthHeight = (rect->h << 16) | rect->w;
+
+     return true;
 }
 
-static void nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
+static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 {
 #if 0
      NVidiaDriverData         *nvdrv       = (NVidiaDriverData*) drv;
@@ -375,6 +385,8 @@ static void nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle 
      ScaledImage->ImageInOffset = card->state->source->front_buffer->video.offset;
      ScaledImage->ImageInPoint = 0;
 #endif
+
+     return true;
 }
 
 static void nvAfterSetVar( void *drv, void *dev )

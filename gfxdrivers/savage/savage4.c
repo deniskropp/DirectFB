@@ -310,7 +310,7 @@ static void savage4SetState( void *drv, void *dev,
 }
 
 
-static void savage4FillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool savage4FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      Savage4DriverData *sdrv = (Savage4DriverData*) drv;
      Savage4DeviceData *sdev = (Savage4DeviceData*) dev;
@@ -325,9 +325,11 @@ static void savage4FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      
      BCI_SEND( BCI_X_Y(rect->x, rect->y) );
      BCI_SEND( BCI_W_H(rect->w, rect->h) );
+
+     return true;
 }
 
-static void savage4DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool savage4DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      Savage4DriverData *sdrv = (Savage4DriverData*) drv;
      Savage4DeviceData *sdev = (Savage4DeviceData*) dev;
@@ -368,9 +370,11 @@ static void savage4DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      BCI_SEND( BCI_X_Y( rect->x+rect->w-1, rect->y ) );
      BCI_SEND( BCI_W_H( 1 , rect->h ) );
+
+     return true;
 }
 
-static void savage4DrawLine( void *drv, void *dev, DFBRegion *line )
+static bool savage4DrawLine( void *drv, void *dev, DFBRegion *line )
 {
      Savage4DriverData *sdrv = (Savage4DriverData*) drv;
      Savage4DeviceData *sdev = (Savage4DeviceData*) dev;
@@ -411,13 +415,16 @@ static void savage4DrawLine( void *drv, void *dev, DFBRegion *line )
      BCI_SEND( BCI_LINE_X_Y( line->x1, line->y1 ) );
      BCI_SEND( BCI_LINE_STEPS( 2 * (min - max), 2 * min ) );
      BCI_SEND( BCI_LINE_MISC( max, ym, xp, yp, 2 * min - max ) );
+
+     return true;
 }
 
-static void savage4FillTriangle( void *drv, void *dev, DFBTriangle *tri )
+static bool savage4FillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
+     return false;
 }
 
-static void savage4Blit( void *drv, void *dev,
+static bool savage4Blit( void *drv, void *dev,
                          DFBRectangle *rect, int dx, int dy )
 {
      Savage4DriverData *sdrv = (Savage4DriverData*) drv;
@@ -458,11 +465,14 @@ static void savage4Blit( void *drv, void *dev,
      BCI_SEND( BCI_X_Y( rect->x, rect->y ) );
      BCI_SEND( BCI_X_Y( dx, dy ) );
      BCI_SEND( BCI_W_H( rect->w, rect->h ) );
+
+     return true;
 }
 
-static void savage4StretchBlit( void *drv, void *dev,
+static bool savage4StretchBlit( void *drv, void *dev,
                                 DFBRectangle *sr, DFBRectangle *dr )
 {
+     return false;
 }
 
 static void savage4AfterSetVar( void *drv, void *dev )

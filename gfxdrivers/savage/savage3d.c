@@ -293,7 +293,7 @@ static void savage3DSetState( void *drv, void *dev,
      state->modified = 0;
 }
 
-static void savage3DFillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool savage3DFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      Savage3DDriverData *sdrv = (Savage3DDriverData*) drv;
      Savage3DDeviceData *sdev = (Savage3DDeviceData*) dev;
@@ -306,9 +306,11 @@ static void savage3DFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      BCI_SEND( BCI_X_Y(rect->x, rect->y) );
      BCI_SEND( BCI_W_H(rect->w, rect->h) );
+
+     return true;
 }
 
-static void savage3DDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool savage3DDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      Savage3DDriverData *sdrv = (Savage3DDriverData*) drv;
      Savage3DDeviceData *sdev = (Savage3DDeviceData*) dev;
@@ -346,9 +348,11 @@ static void savage3DDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      
      BCI_SEND( BCI_X_Y( rect->x+rect->w-1, rect->y ) );
      BCI_SEND( BCI_W_H( 1 , rect->h ) );
+
+     return true;
 }
 
-static void savage3DDrawLine( void *drv, void *dev, DFBRegion *line )
+static bool savage3DDrawLine( void *drv, void *dev, DFBRegion *line )
 {
      Savage3DDriverData *sdrv = (Savage3DDriverData*) drv;
      Savage3DDeviceData *sdev = (Savage3DDeviceData*) dev;
@@ -387,13 +391,16 @@ static void savage3DDrawLine( void *drv, void *dev, DFBRegion *line )
      BCI_SEND( BCI_LINE_X_Y( line->x1, line->y1 ) );
      BCI_SEND( BCI_LINE_STEPS( 2 * (min - max), 2 * min ) );
      BCI_SEND( BCI_LINE_MISC( max, ym, xp, yp, 2 * min - max ) );
+
+     return true;
 }
 
-static void savage3DFillTriangle( void *drv, void *dev, DFBTriangle *tri )
+static bool savage3DFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
+     return false;
 }
 
-static void savage3DBlit( void *drv, void *dev,
+static bool savage3DBlit( void *drv, void *dev,
                           DFBRectangle *rect, int dx, int dy )
 {
      Savage3DDriverData *sdrv = (Savage3DDriverData*) drv;
@@ -431,11 +438,14 @@ static void savage3DBlit( void *drv, void *dev,
      BCI_SEND( BCI_X_Y( rect->x, rect->y ) );
      BCI_SEND( BCI_X_Y( dx, dy ) );
      BCI_SEND( BCI_W_H( rect->w, rect->h ) );
+
+     return true;
 }
 
-static void savage3DStretchBlit( void *drv, void *dev,
+static bool savage3DStretchBlit( void *drv, void *dev,
                                  DFBRectangle *sr, DFBRectangle *dr )
 {
+     return false;
 }
 
 void savage3DAfterSetVar( void *drv, void *dev )

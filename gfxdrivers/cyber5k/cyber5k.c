@@ -79,13 +79,13 @@ volatile __u8 *mmio_base = NULL;
 #define CYBER5K_BLITTING_FUNCTIONS \
                (DFXL_BLIT)
 
-static void cyber5kFillRectangle( void *drv, void *dev, DFBRectangle *rect );
-static void cyber5kFillRectangle24( void *drv, void *dev, DFBRectangle *rect );
-static void cyber5kDrawRectangle( void *drv, void *dev, DFBRectangle *rect );
-static void cyber5kDrawRectangle24( void *drv, void *dev, DFBRectangle *rect );
-static void cyber5kBlit( void *drv, void *dev,
+static bool cyber5kFillRectangle( void *drv, void *dev, DFBRectangle *rect );
+static bool cyber5kFillRectangle24( void *drv, void *dev, DFBRectangle *rect );
+static bool cyber5kDrawRectangle( void *drv, void *dev, DFBRectangle *rect );
+static bool cyber5kDrawRectangle24( void *drv, void *dev, DFBRectangle *rect );
+static bool cyber5kBlit( void *drv, void *dev,
                          DFBRectangle *rect, int dx, int dy );
-static void cyber5kBlit24( void *drv, void *dev,
+static bool cyber5kBlit24( void *drv, void *dev,
                            DFBRectangle *rect, int dx, int dy );
 
 static void cyber5kEngineSync( void *drv, void *dev )
@@ -323,7 +323,7 @@ static void cyber5kSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      state->modified = 0;
 }
 
-static void cyber5kFillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool cyber5kFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
@@ -337,9 +337,11 @@ static void cyber5kFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      cyber_out32( mmio, HEIGHTWIDTH, ((rect->h-1) << 16) | (rect->w-1) );
      cyber_out32( mmio, PIXOP, COP_PXBLT | PAT_FIXFGD );
+
+     return true;
 }
 
-static void cyber5kFillRectangle24( void *drv, void *dev, DFBRectangle *rect )
+static bool cyber5kFillRectangle24( void *drv, void *dev, DFBRectangle *rect )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
@@ -354,9 +356,11 @@ static void cyber5kFillRectangle24( void *drv, void *dev, DFBRectangle *rect )
 
      cyber_out32( mmio, HEIGHTWIDTH, ((rect->h-1) << 16) | (rect->w-1) );
      cyber_out32( mmio, PIXOP, COP_PXBLT | PAT_FIXFGD );
+
+     return true;
 }
 
-static void cyber5kDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool cyber5kDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
@@ -384,9 +388,11 @@ static void cyber5kDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      cyber_waitidle( cdrv, cdev );
      cyber_out32( mmio, DSTPTR, dst + cdev->dst_pixelpitch * (rect->h - 1) );
      cyber_out32( mmio, PIXOP, COP_PXBLT | PAT_FIXFGD );
+
+     return true;
 }
 
-static void cyber5kDrawRectangle24( void *drv, void *dev, DFBRectangle *rect )
+static bool cyber5kDrawRectangle24( void *drv, void *dev, DFBRectangle *rect )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
@@ -416,9 +422,11 @@ static void cyber5kDrawRectangle24( void *drv, void *dev, DFBRectangle *rect )
      cyber_out8( mmio, DSTXROT, (rect->x + rect->w - 1) & 7 );
      cyber_out32( mmio, DSTPTR, dst + (rect->w-1) * 3 );
      cyber_out32( mmio, PIXOP, COP_PXBLT | PAT_FIXFGD );
+
+     return true;
 }
 
-static void cyber5kDrawLine( void *drv, void *dev, DFBRegion *line )
+static bool cyber5kDrawLine( void *drv, void *dev, DFBRegion *line )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
@@ -458,9 +466,11 @@ static void cyber5kDrawLine( void *drv, void *dev, DFBRegion *line )
      cyber_out16( mmio, ERRORTERM, 2*dy-dx);
      cyber_out32( mmio, K2      ,2*(dy-dx));
      cyber_out32( mmio, PIXOP        , cmd);
+
+     return true;
 }
 
-static void cyber5kBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
+static bool cyber5kBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
@@ -491,9 +501,11 @@ static void cyber5kBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int d
                   rect->y * cdev->src_pixelpitch + rect->x );
      cyber_out32( mmio, HEIGHTWIDTH, ((rect->h-1) << 16) | (rect->w-1) );
      cyber_out32( mmio, PIXOP      , cmd);
+
+     return true;
 }
 
-static void cyber5kBlit24( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
+static bool cyber5kBlit24( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
@@ -529,6 +541,8 @@ static void cyber5kBlit24( void *drv, void *dev, DFBRectangle *rect, int dx, int
      cyber_out32( mmio, SRC1PTR    , dst );
      cyber_out32( mmio, HEIGHTWIDTH, ((rect->h-1) << 16) | (rect->w-1) );
      cyber_out32( mmio, PIXOP      , cmd );
+
+     return true;
 }
 
 /* primary layer hooks */

@@ -159,25 +159,25 @@ typedef struct _GraphicsDeviceFuncs {
      /*
       * drawing functions
       */
-     void (*FillRectangle) ( void *driver_data, void *device_data,
+     bool (*FillRectangle) ( void *driver_data, void *device_data,
                              DFBRectangle *rect );
 
-     void (*DrawRectangle) ( void *driver_data, void *device_data,
+     bool (*DrawRectangle) ( void *driver_data, void *device_data,
                              DFBRectangle *rect );
 
-     void (*DrawLine)      ( void *driver_data, void *device_data,
+     bool (*DrawLine)      ( void *driver_data, void *device_data,
                              DFBRegion *line );
 
-     void (*FillTriangle)  ( void *driver_data, void *device_data,
+     bool (*FillTriangle)  ( void *driver_data, void *device_data,
                              DFBTriangle *tri );
 
      /*
       * blitting functions
       */
-     void (*Blit)          ( void *driver_data, void *device_data,
+     bool (*Blit)          ( void *driver_data, void *device_data,
                              DFBRectangle *rect, int dx, int dy );
 
-     void (*StretchBlit)   ( void *driver_data, void *device_data,
+     bool (*StretchBlit)   ( void *driver_data, void *device_data,
                              DFBRectangle *srect, DFBRectangle *drect );
 
 } GraphicsDeviceFuncs;

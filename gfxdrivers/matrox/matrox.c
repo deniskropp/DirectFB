@@ -57,13 +57,13 @@ DFB_GRAPHICS_DRIVER( matrox )
 #include "matrox_state.h"
 
 
-static void matroxBlit2D    ( void *drv, void *dev,
+static bool matroxBlit2D    ( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
 
-static void matroxBlit2D_Old( void *drv, void *dev,
+static bool matroxBlit2D_Old( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
 
-static void matroxBlit3D    ( void *drv, void *dev,
+static bool matroxBlit3D    ( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
 
 
@@ -499,7 +499,7 @@ static void matroxSetState( void *drv, void *dev,
      state->modified = 0;
 }
 
-static void matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -516,9 +516,11 @@ static void matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      mga_out32( mmio, (RS16(rect->x + rect->w) << 16) | RS16(rect->x), FXBNDRY );
      mga_out32( mmio, (RS16(rect->y) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
+     
+     return true;
 }
 
-static void matroxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool matroxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -551,9 +553,11 @@ static void matroxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      mga_out32(mmio, RS16(rect->x) |
                     (RS16(rect->y) << 16),
                      XYEND | EXECUTE);
+
+     return true;
 }
 
-static void matroxDrawLine( void *drv, void *dev, DFBRegion *line )
+static bool matroxDrawLine( void *drv, void *dev, DFBRegion *line )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -575,6 +579,8 @@ static void matroxDrawLine( void *drv, void *dev, DFBRegion *line )
 
      mga_out32( mmio, RS16(line->x2) | (RS16(line->y2) << 16),
                       XYEND | EXECUTE );
+
+     return true;
 }
 
 static void matrox_fill_trapezoid( MatroxDriverData *mdrv,
@@ -613,7 +619,7 @@ static void matrox_fill_trapezoid( MatroxDriverData *mdrv,
      mga_out32( mmio, (RS16(Y) << 16) | RS16(dY), YDSTLEN | EXECUTE );
 }
 
-static void matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
+static bool matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -662,6 +668,8 @@ static void matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
                 MIN( tri->x2, majX2 ), MAX( tri->x2, majX2 ),
                 tri->x3, tri->x3, tri->y2, botDy + 1 );
      }
+     
+     return true;
 }
 
 static void matroxDoBlit2D_Old( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
@@ -714,7 +722,7 @@ static void matroxDoBlit2D_Old( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      mga_out32( mmio, (RS16(dy) << 16) | RS16(h), YDSTLEN | EXECUTE );
 }
 
-static void matroxBlit2D_Old( void *drv, void *dev,
+static bool matroxBlit2D_Old( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
@@ -731,7 +739,7 @@ static void matroxBlit2D_Old( void *drv, void *dev,
 
 
      if (mdev->src_format != DSPF_I420 && mdev->src_format != DSPF_YV12)
-          return;
+          return true;
 
      rect->x /= 2; rect->y /= 2;
      rect->w /= 2; rect->h /= 2;
@@ -783,6 +791,8 @@ static void matroxBlit2D_Old( void *drv, void *dev,
 
      mga_out32( mmio, mdev->dst_pixeloffset, YDSTORG );
      mga_out32( mmio, mdev->dst_pixelpitch, PITCH );
+     
+     return true;
 }
 
 
@@ -834,7 +844,7 @@ static void matroxDoBlit2D( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      mga_out32( mmio, (RS16(dy) << 16) | RS16(h), YDSTLEN | EXECUTE );
 }
 
-static void matroxBlit2D( void *drv, void *dev,
+static bool matroxBlit2D( void *drv, void *dev,
                           DFBRectangle *rect, int dx, int dy )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
@@ -853,7 +863,7 @@ static void matroxBlit2D( void *drv, void *dev,
 
 
      if (mdev->src_format != DSPF_I420 && mdev->src_format != DSPF_YV12)
-          return;
+          return true;
 
      rect->x /= 2; rect->y /= 2;
      rect->w /= 2; rect->h /= 2;
@@ -904,6 +914,8 @@ static void matroxBlit2D( void *drv, void *dev,
 
      mga_out32( mmio, dfb_gfxcard_memory_physical( NULL, mdev->dst_byteoffset ) & 0x1FFFFFF, DSTORG );
      mga_out32( mmio, mdev->dst_pixelpitch, PITCH );
+     
+     return true;
 }
 
 static void matroxDoBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
@@ -1090,16 +1102,18 @@ static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      mga_out32( mmio, mdev->dst_pixelpitch, PITCH );
 }
 
-static void matroxStretchBlit( void *drv, void *dev,
+static bool matroxStretchBlit( void *drv, void *dev,
                                DFBRectangle *srect, DFBRectangle *drect )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
 
      matroxBlitTMU( mdrv, mdev, srect, drect, 1 );
+     
+     return true;
 }
 
-static void matroxBlit3D( void *drv, void *dev,
+static bool matroxBlit3D( void *drv, void *dev,
                           DFBRectangle *rect, int dx, int dy )
 {
      MatroxDriverData *mdrv  = (MatroxDriverData*) drv;
@@ -1108,6 +1122,8 @@ static void matroxBlit3D( void *drv, void *dev,
      DFBRectangle      drect = { dx, dy, rect->w, rect->h };
 
      matroxBlitTMU( mdrv, mdev, rect, &drect, mdev->blit_deinterlace );
+     
+     return true;
 }
 
 

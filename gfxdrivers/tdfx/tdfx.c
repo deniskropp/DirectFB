@@ -56,11 +56,11 @@ DFB_GRAPHICS_DRIVER( tdfx )
 
 #include "tdfx.h"
 
-static void tdfxFillRectangle2D( void *drv, void *dev, DFBRectangle *rect );
-static void tdfxFillRectangle3D( void *drv, void *dev, DFBRectangle *rect );
-static void tdfxFillTriangle2D ( void *drv, void *dev, DFBTriangle  *tri );
-static void tdfxFillTriangle3D ( void *drv, void *dev, DFBTriangle  *tri );
-static void tdfxDrawLine2D     ( void *drv, void *dev, DFBRegion    *line );
+static bool tdfxFillRectangle2D( void *drv, void *dev, DFBRectangle *rect );
+static bool tdfxFillRectangle3D( void *drv, void *dev, DFBRectangle *rect );
+static bool tdfxFillTriangle2D ( void *drv, void *dev, DFBTriangle  *tri );
+static bool tdfxFillTriangle3D ( void *drv, void *dev, DFBTriangle  *tri );
+static bool tdfxDrawLine2D     ( void *drv, void *dev, DFBRegion    *line );
 //static void tdfxDrawLine3D     ( void *drv, void *dev, DFBRegion    *line );
 
 typedef struct {
@@ -109,8 +109,7 @@ static inline void tdfx_waitfifo( TDFXDriverData *tdrv,
                     break;
 
           }
-     }
-     else {
+     } else {
           tdev->fifo_cache_hits++;
      }
 
@@ -134,7 +133,7 @@ static inline void tdfx_waitidle( TDFXDriverData *tdrv,
           tdev->idle_waitcycles++;
 
           i = (tdrv->voodoo2D->status & (0xF << 7))  ?  0 : i + 1;
-          if(i == 3)
+          if (i == 3)
                return;
 
      }
@@ -321,10 +320,10 @@ static inline void tdfx_validate_alphaMode( TDFXDriverData *tdrv,
      tdfx_waitfifo( tdrv, tdev, 1 );
 
      tdrv->voodoo3D->alphaMode = TDFX_ALPHAMODE_BLEND_ENABLE |
-                                (tdfxBlendFactor[state->src_blend] <<  8) |
-                                (tdfxBlendFactor[state->src_blend] << 16) |
-                                (tdfxBlendFactor[state->dst_blend] << 12) |
-                                (tdfxBlendFactor[state->dst_blend] << 20);
+                                 (tdfxBlendFactor[state->src_blend] <<  8) |
+                                 (tdfxBlendFactor[state->src_blend] << 16) |
+                                 (tdfxBlendFactor[state->dst_blend] << 12) |
+                                 (tdfxBlendFactor[state->dst_blend] << 20);
 
      tdev->v_alphaMode = 1;
 }
@@ -467,8 +466,7 @@ static void tdfxSetState( void *drv, void *dev,
 
                     funcs->FillRectangle = tdfxFillRectangle3D;
                     funcs->FillTriangle = tdfxFillTriangle3D;
-               }
-               else {
+               } else {
                     tdfx_validate_colorFore( tdrv, tdev, state );
                     tdfx_validate_destination2D( tdrv, tdev, state );
 
@@ -502,7 +500,7 @@ static void tdfxSetState( void *drv, void *dev,
      state->modified = 0;
 }
 
-static void tdfxFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
+static bool tdfxFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
 {
      TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
      TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
@@ -514,9 +512,11 @@ static void tdfxFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
      voodoo2D->dstSize = ((rect->h & 0x1FFF) << 16) | (rect->w & 0x1FFF);
 
      voodoo2D->command = 5 | (1 << 8) | (0xCC << 24);
+
+     return true;
 }
 
-static void tdfxFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
+static bool tdfxFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
      TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
      TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
@@ -540,13 +540,16 @@ static void tdfxFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      voodoo3D->vertexBy = S12_4(rect->y);
 
      voodoo3D->triangleCMD = 0;
+
+     return true;
 }
 
-static void tdfxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool tdfxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
+     return false;
 }
 
-static void tdfxDrawLine2D( void *drv, void *dev, DFBRegion *line )
+static bool tdfxDrawLine2D( void *drv, void *dev, DFBRegion *line )
 {
      TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
      TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
@@ -557,9 +560,11 @@ static void tdfxDrawLine2D( void *drv, void *dev, DFBRegion *line )
      voodoo2D->srcXY   = ((line->y1 & 0x1FFF) << 16) | (line->x1 & 0x1FFF);
      voodoo2D->dstXY   = ((line->y2 & 0x1FFF) << 16) | (line->x2 & 0x1FFF);
      voodoo2D->command = 6 | (1 << 8) | (0xCC << 24);
+
+     return true;
 }
 
-/*static void tdfxDrawLine3D( void *drv, void *dev, DFBRegion *line )
+/*static bool tdfxDrawLine3D( void *drv, void *dev, DFBRegion *line )
 {
      int xl, xr, yb, yt;
 
@@ -599,9 +604,11 @@ static void tdfxDrawLine2D( void *drv, void *dev, DFBRegion *line )
      voodoo3D->vertexBy = S12_4_( line->y1, yt );
 
      voodoo3D->triangleCMD = 0;
+     
+     return true;
 }*/
 
-static void tdfxFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
+static bool tdfxFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
 {
      TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
      TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
@@ -615,21 +622,21 @@ static void tdfxFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
      voodoo2D->command = 8 | (1 << 8) | (0xCC << 24);
 
      if (tri->x2 < tri->x3) {
-        voodoo2D->launchArea[0] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
-        voodoo2D->launchArea[1] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
-        voodoo2D->launchArea[2] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+          voodoo2D->launchArea[0] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+          voodoo2D->launchArea[1] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+          voodoo2D->launchArea[2] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+
+     } else {
+          voodoo2D->launchArea[0] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+          voodoo2D->launchArea[1] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+          voodoo2D->launchArea[2] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
 
      }
-     else {
-        voodoo2D->launchArea[0] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
-        voodoo2D->launchArea[1] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
-        voodoo2D->launchArea[2] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
 
-    }
-
+     return true;
 }
 
-static void tdfxFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
+static bool tdfxFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
 {
      TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
      TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
@@ -651,9 +658,11 @@ static void tdfxFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
      voodoo3D->triangleCMD = (1 << 31);
 
      voodoo3D->triangleCMD = 0;
+
+     return true;
 }
 
-static void tdfxBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
+static bool tdfxBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
      TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
@@ -680,9 +689,11 @@ static void tdfxBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      voodoo2D->dstSize = ((rect->h & 0x1FFF) << 16) | (rect->w & 0x1FFF);
 
      voodoo2D->command = cmd;
+
+     return true;
 }
 
-static void tdfxStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
+static bool tdfxStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 {
      TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
      TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
@@ -697,6 +708,8 @@ static void tdfxStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangl
      voodoo2D->dstSize = ((dr->h & 0x1FFF) << 16) | (dr->w & 0x1FFF);
 
      voodoo2D->command = 2 | (1 << 8) | (0xCC << 24);
+
+     return true;
 }
 
 /* exported symbols */
@@ -852,7 +865,7 @@ driver_close_device( GraphicsDevice *device,
                tdev->fifo_waitcycles/(float)(tdev->waitfifo_calls) );
      DEBUGMSG( "DirectFB/TDFX:  Average fifo space cache hits: %02d%%\n",
                (int)(100 * tdev->fifo_cache_hits/
-               (float)(tdev->waitfifo_calls)) );
+                     (float)(tdev->waitfifo_calls)) );
 
      DEBUGMSG( "DirectFB/TDFX:  Pixels Out: %d\n", tdrv->voodoo3D->fbiPixelsOut );
      DEBUGMSG( "DirectFB/TDFX:  Triangles Out: %d\n", tdrv->voodoo3D->fbiTrianglesOut );

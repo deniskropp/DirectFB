@@ -364,7 +364,7 @@ static void neo2200SetState( void *drv, void *dev,
      state->modified = 0;
 }
 
-static void neo2200FillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool neo2200FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      Neo2200DriverData *ndrv    = (Neo2200DriverData*) drv;
      Neo2200DeviceData *ndev    = (Neo2200DeviceData*) dev;
@@ -382,9 +382,11 @@ static void neo2200FillRectangle( void *drv, void *dev, DFBRectangle *rect )
            (rect->x * ndev->dstPixelWidth);
 
      neo2200->xyExt    = (rect->h << 16) | (rect->w & 0xffff);
+
+     return true;
 }
 
-static void neo2200DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool neo2200DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      Neo2200DriverData *ndrv    = (Neo2200DriverData*) drv;
      Neo2200DeviceData *ndev    = (Neo2200DeviceData*) dev;
@@ -421,9 +423,11 @@ static void neo2200DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      neo2200_waitfifo( ndrv, ndev, 2 );
      neo2200->dstStart = dst;
      neo2200->xyExt    = ((rect->h - 2) << 16) | 1;
+
+     return true;
 }
 
-static void neo2200Blit( void *drv, void *dev,
+static bool neo2200Blit( void *drv, void *dev,
                          DFBRectangle *rect, int dx, int dy )
 {
      Neo2200DriverData *ndrv    = (Neo2200DriverData*) drv;
@@ -466,6 +470,8 @@ static void neo2200Blit( void *drv, void *dev,
 
      /* set size */
      neo2200->xyExt    = (rect->h << 16) | (rect->w & 0xffff);
+
+     return true;
 }
 
 

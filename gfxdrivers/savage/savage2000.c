@@ -88,30 +88,36 @@ static void savage2000SetState( void *drv, void *dev,
 {
 }
 
-static void savage2000FillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool savage2000FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
+     return false;
 }
 
-static void savage2000DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool savage2000DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
+     return false;
 }
 
-static void savage2000DrawLine( void *drv, void *dev, DFBRegion *line )
+static bool savage2000DrawLine( void *drv, void *dev, DFBRegion *line )
 {
+     return false;
 }
 
-static void savage2000FillTriangle( void *drv, void *dev, DFBTriangle *tri )
+static bool savage2000FillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
+     return false;
 }
 
-static void savage2000Blit( void *drv, void *dev,
+static bool savage2000Blit( void *drv, void *dev,
                             DFBRectangle *rect, int dx, int dy )
 {
+     return false;
 }
 
-static void savage2000StretchBlit( void *drv, void *dev,
+static bool savage2000StretchBlit( void *drv, void *dev,
                                    DFBRectangle *sr, DFBRectangle *dr )
 {
+     return false;
 }
 
 /* exported symbols */

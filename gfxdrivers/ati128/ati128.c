@@ -85,10 +85,10 @@ DFB_GRAPHICS_DRIVER( ati128 )
 #define S14(val) (((__u16)((__s16)(val)))&0x3fff)
 
 /** CARD FUNCTIONS **/
-static void ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect );
-static void ati128FillBlendRectangle( void *drv, void *dev, DFBRectangle *rect );
-static void ati128DrawRectangle( void *drv, void *dev, DFBRectangle *rect );
-static void ati128DrawBlendRectangle( void *drv, void *dev, DFBRectangle *rect );
+static bool ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect );
+static bool ati128FillBlendRectangle( void *drv, void *dev, DFBRectangle *rect );
+static bool ati128DrawRectangle( void *drv, void *dev, DFBRectangle *rect );
+static bool ati128DrawBlendRectangle( void *drv, void *dev, DFBRectangle *rect );
 
 /* required implementations */
 
@@ -186,7 +186,7 @@ static void ati128SetState( void *drv, void *dev,
      }
 }
 
-static void ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
@@ -203,9 +203,11 @@ static void ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      ati128_out32( mmio, DST_Y_X, (S14(rect->y) << 16) | S12(rect->x) );
      /* this executes the drawing command */
      ati128_out32( mmio, DST_HEIGHT_WIDTH, (rect->h << 16) | rect->w );
+
+     return true;
 }
 
-static void ati128FillBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool ati128FillBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
@@ -242,9 +244,11 @@ static void ati128FillBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
      ati128_out32( mmio, SCALE_3D_CNTL, 0x00000000 );
      ati128_out32( mmio, TEX_CNTL,  0);
      adev->fake_texture_number++;
+
+     return true;
 }
 
-static void ati128DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool ati128DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
@@ -270,9 +274,11 @@ static void ati128DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      /* fourth line */
      ati128_out32( mmio, DST_Y_X, (S14(rect->y) << 16) | S12(rect->x+rect->w-1));
      ati128_out32( mmio, DST_HEIGHT_WIDTH, rect->h << 16 | 1);
+
+     return true;
 }
 
-static void ati128DrawBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool ati128DrawBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
@@ -322,10 +328,12 @@ static void ati128DrawBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
      ati128_out32( mmio, SCALE_3D_CNTL, 0x00000000 );
      ati128_out32( mmio, TEX_CNTL, 0 );
      adev->fake_texture_number++;
+
+     return true;
 }
 
 
-static void ati128DrawLine( void *drv, void *dev, DFBRegion *line )
+static bool ati128DrawLine( void *drv, void *dev, DFBRegion *line )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
@@ -386,9 +394,11 @@ static void ati128DrawLine( void *drv, void *dev, DFBRegion *line )
      ati128_out32( mmio, DST_BRES_INC, inc );
      ati128_out32( mmio, DST_BRES_DEC, dec );
      ati128_out32( mmio, DST_BRES_LNTH, large + 1 );
+
+     return true;
 }
 
-static void ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
+static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
@@ -475,7 +485,7 @@ static void ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
                break;
           default:
                BUG( "unexpected pixelformat!" );
-               return;
+               return false;
      }
 
      ati128_out32( mmio, DP_DATATYPE, adev->ATI_dst_bpp | SRC_DSTCOLOR );
@@ -506,9 +516,11 @@ static void ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
      /* set CLR_CMP_CNTL to zero, to insure that drawing funcions work corrently */
      if (adev->ATI_color_compare)
           ati128_out32( mmio, CLR_CMP_CNTL, 0 );
+
+     return true;
 }
 
-static void ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
+static bool ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
@@ -522,7 +534,7 @@ static void ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
           DFBRectangle sr = { rect->x, rect->y, rect->w, rect->h };
           DFBRectangle dr = { dx, dy, rect->w, rect->h };
           ati128StretchBlit( adrv, adev, &sr, &dr );
-          return;
+          return true;
      }
 
      /* check which blitting direction should be used */
@@ -566,6 +578,8 @@ static void ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
           ati128_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT |
                                        DST_Y_TOP_TO_BOTTOM );
      }
+
+     return true;
 }
 
 /* exported symbols */

@@ -512,6 +512,8 @@ dfb_gfxcard_state_release( CardState *state )
 
 void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
 {
+     bool hw = false;
+
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
@@ -530,14 +532,15 @@ void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
                 * Now everything is prepared for execution of the
                 * FillRectangle driver function.
                 */
-               card->funcs.FillRectangle( card->driver_data,
-                                          card->device_data, rect );
+               hw = card->funcs.FillRectangle( card->driver_data,
+                                               card->device_data, rect );
           }
 
           /* Release after state acquisition. */
           dfb_gfxcard_state_release( state );
      }
-     else {
+
+     if (!hw) {
           /*
            * Otherwise use the software clipping routine and execute the
            * software fallback if the rectangle isn't completely clipped.
@@ -556,6 +559,8 @@ void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
 
 void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 {
+     bool hw = false;
+
      dfb_state_lock( state );
 
      if (dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
@@ -565,12 +570,14 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
               dfb_clip_rectangle( &state->clip, rect ))
           {
                /* FIXME: correct clipping like below */
-               card->funcs.DrawRectangle( card->driver_data,
-                                          card->device_data, rect );
+               hw = card->funcs.DrawRectangle( card->driver_data,
+                                               card->device_data, rect );
           }
+
           dfb_gfxcard_state_release( state );
      }
-     else {
+     
+     if (!hw) {
           unsigned int edges = dfb_clip_rectangle (&state->clip, rect);
 
           if (edges & 0xF) {
@@ -785,6 +792,8 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 
 void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 {
+     bool hw = false;
+
      dfb_state_lock( state );
 
      if (!dfb_clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy )) {
@@ -799,11 +808,13 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
           if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
                dfb_clip_blit( &state->clip, rect, &dx, &dy );
 
-          card->funcs.Blit( card->driver_data, card->device_data,
-                            rect, dx, dy );
+          hw = card->funcs.Blit( card->driver_data, card->device_data,
+                                 rect, dx, dy );
+
           dfb_gfxcard_state_release( state );
      }
-     else {
+     
+     if (!hw) {
           if (gAquire( state, DFXL_BLIT )) {
                dfb_clip_blit( &state->clip, rect, &dx, &dy );
                gBlit( rect, dx, dy );
@@ -817,9 +828,10 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
                            CardState *state )
 {
-     int x, y;
-     int odx;
+     int          x, y;
+     int          odx;
      DFBRectangle srect;
+
 
      /* If called with an invalid rectangle, the algorithm goes into an
         infinite loop. This should never happen but it's safer to check. */
@@ -883,6 +895,8 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
 void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                               CardState *state )
 {
+     bool hw = false;
+
      dfb_state_lock( state );
 
      if (!dfb_clip_blit_precheck( &state->clip, drect->w, drect->h,
@@ -898,11 +912,13 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
           if (!(card->shared->device_info.caps.flags & CCF_CLIPPING))
                dfb_clip_stretchblit( &state->clip, srect, drect );
 
-          card->funcs.StretchBlit( card->driver_data,
-                                   card->device_data, srect, drect );
+          hw = card->funcs.StretchBlit( card->driver_data,
+                                        card->device_data, srect, drect );
+
           dfb_gfxcard_state_release( state );
      }
-     else {
+     
+     if (!hw) {
           if (gAquire( state, DFXL_STRETCHBLIT )) {
                dfb_clip_stretchblit( &state->clip, srect, drect );
                gStretchBlit( srect, drect );
@@ -920,6 +936,7 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      int            steps[bytes];
      unichar        chars[bytes];
      CoreGlyphData *glyphs[bytes];
+
 
      unichar prev = 0;
 
