@@ -199,8 +199,8 @@ dump_surfaces()
      fusion_object_pool_enum( dfb_gfxcard_surface_pool(),
                               surface_callback, &mem );
 
-     printf( "                                         -------  -------\n" );
-     printf( "                                         %6dk  %6dk    -> %dk total\n",
+     printf( "                                          ------  ------\n" );
+     printf( "                                         %6dk %6dk  -> %dk total\n",
              mem.video >> 10, mem.system >> 10, (mem.video + mem.system) >> 10);
 }
 
