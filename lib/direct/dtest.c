@@ -16,7 +16,7 @@ main( int argc, char *argv[] )
 
      D_DEBUG( "Direct/Test: direct_mm_accel() returns 0x%08x\n", direct_mm_accel() );
 
-     direct_print_memleaks();
+//     direct_print_memleaks();
 
      return 0;
 }
