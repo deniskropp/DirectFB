@@ -1,6 +1,9 @@
 0.9.13
 ------
 
+- Added new interface IDirectFBDataBuffer with three implementations
+  (File, Memory and Stream).
+- Made image providers use the new IDirectFBDataBuffer.
 - Added DFBDisplayLayerTypeFlags for a basic layer classification.
 - Added DFBDisplayLayerDescription (changes DFBDisplayLayerCallback).
 - Added input_only windows (windows w/o a surface).
@@ -10,6 +13,7 @@
 - Changed SetSrcColorKey() to take RGB values just like SetDstColorKey().
 - Added support for color lookup tables. Added new surface type DSPF_LUT8
   and IDirectFBSurface::GetPalette() and IDirectFBSurface::SetPalette().
+- Added IDirectFBSurface::SetColorIndex() for indexed pixel formats.
 - Added pre/demultiplication to drawing functions.
 - Added IDirectFBDisplayLayer::GetWindow().
 - Added input driver for linux input driver (/dev/input/eventX).
@@ -24,6 +28,7 @@
 - Enabled acceleration for the second head of a dual head Matrox card.
 - Updated Matrox vsync IRQ patch.
 - Improved S3 Savage driver.
+- Added directfb-csource, a C code generator for inline images.
 - Lots of bug-fixes.
 
 

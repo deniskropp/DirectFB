@@ -1,3 +1,321 @@
+2002-08-08	11:45	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/directfb-csource.c (1.7) (+3 -1)
+	
+	Also dump the number of palette entries.
+	
+2002-08-08	11:19	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/directfb-csource.c (1.6) (+66 -31)
+	
+	Dump palette from PNG file when the destination format is LUT8.
+	
+2002-08-08	10:16	Sven Neumann <sven@convergence.de>
+
+	Files:	docs/directfb-csource.1.in (1.2) (+5 -6)
+		tools/directfb-csource.c (1.5) (+26 -17)
+	
+	Allow to create LUT8 surfaces from indexed PNGs (need to add a way to
+	dump the palette).
+	
+2002-08-08	08:50	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/directfb-csource.c (1.4) (+9 -2)
+	
+	Align the pitch to multiples of 4.
+	
+2002-08-07	23:14	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/directfb-csource.c (1.3) (+27 -14)
+	
+	Fixed loading of grayscale PNGs into A8 and added support
+	for loading RGB PNGs w/o alpha-channel into RGB24.
+	
+2002-08-07	22:23	Sven Neumann <sven@convergence.de>
+
+	Files:	Makefile.am (1.9) (+11 -1)
+	
+	Added two Makefile rules that might be useful to build only parts of
+	the DirectFB package:
+	  'html' creates the HTML docs
+	  'directfb-csource' compiles the directfb-csource utility
+	
+2002-08-07	22:00	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.89) (+1 -0)
+		docs/directfb-csource.1.in (1.1) ( )
+		docs/Makefile.am (1.4) (+10 -2)
+		docs/.cvsignore (1.4) (+1 -0)
+	
+	Added a man-page for directfb-csource.
+	
+2002-08-07	19:07	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.39) (+1 -0)
+		src/gfx/convert.h (1.13) (+5 -0)
+	
+	Added span_argb_to_a8().
+	Added Tim Janik to the list of contributors since I used some of
+	his gdk-pixbuf-csource code for directfb-csource.
+	
+2002-08-07	18:57	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/Makefile.am (1.6) (+5 -1)
+		tools/directfb-csource.c (1.2) (+120 -42)
+	
+	Allow to specify the destination format on the command-line.
+	
+2002-08-07	15:48	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.88) (+1 -0)
+		tools/directfb-csource.c (1.1) ( )
+		tools/README (1.4) (+3 -0)
+		tools/Makefile.am (1.5) (+10 -1)
+		tools/.cvsignore (1.3) (+1 -0)
+	
+	Added directfb-csource, a tool that creates a C header file from
+	a PNG image that can included in a DirectFB application.
+	Based on gdk-pixbuf-csource.
+	
+2002-08-06	19:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/media/idirectfbdatabuffer_streamed.c (1.6) (+4 -0)
+	
+	Forgot to lock/unlock during Flush().
+	
+2002-08-06	19:11	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/media/idirectfbdatabuffer_streamed.c (1.5) (+353 -14)
+	
+	Completely implemented streamed data buffer, completely untested.
+	
+2002-08-06	17:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.63) (+0 -50)
+		src/media/idirectfbdatabuffer_streamed.c (1.4) (+1 -1)
+		src/media/idirectfbdatabuffer_memory.c (1.5) (+2 -5)
+		src/media/idirectfbdatabuffer_file.c (1.5) (+2 -5)
+	
+	cleanup
+	
+2002-08-06	16:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/media/idirectfbdatabuffer_file.c (1.4) (+6 -0)
+		src/media/idirectfbdatabuffer_memory.c (1.4) (+1 -1)
+	
+	Return DFB_BUFFEREMPTY in PeekData() instead of blocking forever.
+	
+2002-08-06	16:02	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.138) (+11 -0)
+		src/media/idirectfbimageprovider.h (1.3) (+4 -1)
+		src/media/idirectfbimageprovider.c (1.1) ( )
+		src/media/idirectfbdatabuffer_streamed.c (1.3) (+4 -4)
+		src/media/idirectfbdatabuffer_memory.c (1.3) (+102 -15)
+		src/media/idirectfbdatabuffer_file.c (1.3) (+4 -1)
+		src/media/idirectfbdatabuffer.c (1.3) (+15 -0)
+		src/media/Makefile.am (1.9) (+2 -1)
+		src/idirectfb.c (1.62) (+34 -0)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.27) (+244 -208)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.24) (+139 -75)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.33) (+129 -122)
+	
+	Image providers now read data from an IDirectFBDataBuffer.
+	JPEG and GIF providers cannot fully handle streamed buffers yet.
+	
+	IDirectFB::CreateImageProvider() implicitly creates a data buffer now.
+	
+	Added IDirectFBDataBuffer::CreateImageProvider().
+	
+2002-08-06	13:27	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/fbdev.c (1.72) (+1 -1)
+	
+	typo
+	
+2002-08-06	12:24	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.87) (+2 -1)
+	
+	Call AC_INIT() with a sane value.
+	
+2002-08-02	17:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.42) (+18 -10)
+	
+	Don't reconfig front buffer if policy stays the same.
+	
+2002-08-02	13:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.137) (+5 -5)
+		src/media/idirectfbdatabuffer_streamed.c (1.2) (+1 -1)
+		src/media/idirectfbdatabuffer_memory.c (1.2) (+1 -1)
+		src/media/idirectfbdatabuffer_file.c (1.2) (+34 -2)
+		src/media/idirectfbdatabuffer.c (1.2) (+1 -3)
+	
+	Implemented IDirectFBDataBuffer_File::PeekData().
+	Made "offset" for PeekData() signed.
+	
+2002-08-02	12:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev.c (1.71) (+61 -56)
+	
+	Moved mode probing to primaryInitLayer().
+	
+2002-08-01	13:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.136) (+190 -12)
+		src/media/idirectfbdatabuffer_streamed.c (1.1) ( )
+		src/media/idirectfbdatabuffer_memory.c (1.1) ( )
+		src/media/idirectfbdatabuffer_file.c (1.1) ( )
+		src/media/idirectfbdatabuffer.h (1.1) ( )
+		src/media/idirectfbdatabuffer.c (1.1) ( )
+		src/media/Makefile.am (1.8) (+5 -0)
+		src/gfx/generic/generic.c (1.85) (+0 -2)
+		src/idirectfb.c (1.61) (+77 -33)
+	
+	Reject RGB332 in IDirectFB::CreateSurface() if it's not compiled in.
+	
+	Initial work on data abstraction for image providers, etc.
+	
+2002-08-01	13:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.84) (+1 -1)
+	
+	Fixed typo, fixes a crash when blitting from LUT to RGB.
+	
+2002-07-31	13:13	Sven Neumann <sven@convergence.de>
+
+	Files:	patches/Makefile.am (1.19) (+1 -1)
+		patches/README.matroxfb-vsync-irq-patch-2.4.6 (1.2) (+0 -0)
+		patches/README.matroxfb-vsync-irq-patch (1.1) ( )
+	
+	Removed the version number from the README file for the
+	matroxfb-vsync-irq-patch.
+	
+2002-07-29	22:47	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.135) (+14 -0)
+		src/display/idirectfbpalette.c (1.5) (+35 -5)
+	
+	Added IDirectFBPalette::FindBestMatch().
+	
+2002-07-29	19:24	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.32) (+2 -7)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.26) (+4 -9)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.23) (+5 -10)
+	
+	Removed unneeded calls to IDirectFBSurface::GetCapabilities from
+	RenderTo() functions.
+	
+2002-07-29	17:24	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.134) (+1 -1)
+	
+	Typo.
+	
+2002-07-28	23:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.86) (+9 -1)
+		src/misc/util.h (1.12) (+1 -0)
+		src/misc/gfx_util.h (1.10) (+2 -2)
+		src/misc/gfx_util.c (1.25) (+31 -22)
+		src/misc/conf.h (1.25) (+4 -3)
+		src/misc/conf.c (1.34) (+61 -0)
+		src/gfx/generic/generic.c (1.83) (+63 -46)
+		src/display/idirectfbsurface.h (1.14) (+1 -0)
+		src/display/idirectfbsurface.c (1.52) (+40 -22)
+		src/display/idirectfbpalette.c (1.4) (+5 -2)
+		src/core/windows.c (1.81) (+7 -9)
+		src/core/surfaces.c (1.41) (+16 -13)
+		src/core/palette.h (1.2) (+14 -0)
+		src/core/palette.c (1.2) (+64 -0)
+		src/core/layers.c (1.48) (+28 -1)
+		src/core/gfxcard.c (1.72) (+0 -2)
+		src/core/fbdev.c (1.70) (+3 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.25) (+19 -4)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.22) (+21 -4)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.31) (+13 -1)
+		include/directfb.h (1.133) (+2 -2)
+	
+	Added configure option "--enable-profiling".
+	
+	Added "alpha present" bit to LUT8, because the LUT has alpha values.
+	
+	Added LUT8 support to image providers.
+	
+	Added option "pixelformat" which overrides "depth" for the default mode.
+	The value specified is e.g. "RGB332" or "LUT8".
+	
+	SetPalette() for display layers is now called by the core after setting
+	a new configuration (for LUT8 only of course).
+	
+	Added dfb_palette_search() which (really slowly) looks for the best
+	matching palette entry for a specific color.
+	
+	Generate a RGB332 like palette as default palette for LUT8.
+	
+	Allow other alpha supporting pixel formats than ARGB for alpha blended
+	windows, too.
+	
+	IDirectFBSurface::Clear(), SetColor(), SetSrcColorKey() and SetDstColorKey()
+	now lookup the right color index for indexed surfaces.
+	
+	Much more support for LUT8 in software driver.
+	
+2002-07-26	16:28	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.7) (+0 -2)
+		src/core/windows.h (1.28) (+6 -6)
+		src/core/windows.c (1.80) (+4 -4)
+		src/core/surfaces.h (1.26) (+2 -2)
+		src/core/layers.h (1.32) (+2 -2)
+		src/core/layers.c (1.47) (+2 -2)
+		src/idirectfb.c (1.60) (+2 -2)
+	
+	Fixed centering of primary surface window.
+	Converted some unsigned ints to signed ones.
+	
+2002-07-26	15:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.6) (+3 -0)
+	
+	two more bugs
+	
+2002-07-26	14:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.132) (+23 -3)
+		src/gfx/generic/generic.c (1.82) (+20 -12)
+		src/display/idirectfbsurface.c (1.51) (+68 -21)
+		src/core/state.h (1.10) (+1 -0)
+	
+	Added another bit to the pixel format definition indicating an indexed format.
+	Added DFB_PIXELFORMAT_IS_INDEXED(format).
+	Added IDirectFBSurface::SetColorIndex() for indexed pixel formats.
+	Enabled drawing functions for DSPF_LUT8 in the software driver.
+	
+2002-07-26	13:53	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.131) (+71 -68)
+		src/directfb.c (1.49) (+3 -3)
+	
+	Declared the return value of DirectFBCheckVersion() as const.
+	Assure that directfb.h fits into 80 columns.
+	
+2002-07-26	10:59	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.38) (+17 -14)
+	
+	some smaller README updates
+	
+2002-07-26	10:49	Sven Neumann <sven@convergence.de>
+
+	Files:	ChangeLog (1.24) (+731 -3)
+		NEWS (1.30) (+29 -0)
+	
+	Updated ChangeLog and NEWS file.
+	
 2002-07-26	10:32	Holger Waechtler <holger@convergence.de>
 
 	Files:	include/directfb.h (1.130) (+8 -1)

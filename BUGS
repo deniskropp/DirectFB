@@ -2,6 +2,7 @@ different bugs and issues
 -------------------------
 - sometimes a deadlock occurs in deinitialization done by the signal handler
 - after switching back from fullscreen mode the original mode is not restored
+- EnumVideoModes doesn't handle mode depths (bpp is always 0 in the callback)
 
 automake/autoconf etc.
 ----------------------
