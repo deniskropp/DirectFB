@@ -1276,6 +1276,23 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
 
           return errno2dfb( erno );
      }
+     else {
+         /* 
+          * the video mode was set successfully, check if there is enough
+          * video ram (for buggy framebuffer drivers)
+          */
+          
+          if  (dfb_fbdev->shared->fix.smem_len < (var.yres_virtual * 
+                                                  var.xres_virtual * 
+                                                  var.bits_per_pixel >> 3))
+          {
+               if (layer)
+                    PERRORMSG( "DirectFB/core/fbdev: "
+                      "Could not set video mode (not enough video ram)!\n" );
+
+               return DFB_INVARG;
+          }
+     }
 
      /* If layer is NULL the mode was only tested, otherwise apply changes. */
      if (layer) {
