@@ -62,7 +62,7 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     config->width  = 720;
     config->height = 576;
 
-    config->pixelformat = DSPF_RGB16;
+    config->pixelformat = DSPF_YV12;
     config->buffermode  = DLBM_FRONTONLY;
     config->options     = DLOP_NONE;
 
