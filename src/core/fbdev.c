@@ -563,6 +563,10 @@ primaryInitLayer         ( GraphicsDevice             *device,
      
      if (dfb_config->mode.depth)
           default_config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
+#ifndef SUPPORT_RGB332
+     else if (default_mode->bpp == 8)
+          default_config->pixelformat = DSPF_RGB16;
+#endif
      else
           default_config->pixelformat = dfb_pixelformat_for_depth( default_mode->bpp );
 
@@ -605,6 +609,11 @@ primaryTestConfiguration ( DisplayLayer               *layer,
                     bpp = 15;
                     break;
 
+#ifndef SUPPORT_RGB332
+               case DSPF_RGB332:
+                    fail |= DLCONF_PIXELFORMAT;
+                    /* fall through */
+#endif
                default:
                     bpp = DFB_BYTES_PER_PIXEL(config->pixelformat) * 8;
           }
@@ -988,9 +997,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
                var.green.offset = 5;
                var.blue.offset  = 0;
                break;
-#ifdef SUPPORT_RGB332
           case 8:
-#endif
           case 24:
           case 32:
                break;
