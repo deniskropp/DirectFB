@@ -314,7 +314,7 @@ reactor_dispatch (FusionReactor *reactor,
                process_globals( reactor, msg_data, globals );
           else
                FERROR( "global reactions exist but no "
-                       "globals have been passed to dispatch()" );
+                       "globals have been passed to dispatch()\n" );
      }
 
      dispatch.reactor_id = reactor->id;
