@@ -505,9 +505,7 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
           while (videomode) {
                if (videomode->xres == width  &&
                    videomode->yres == height  &&
-                   videomode->bpp == bpp &&
-                   videomode->laced == 0 &&
-                   videomode->doubled == 0)
+                   videomode->bpp == bpp)
                     break;
 
                videomode = videomode->next;
