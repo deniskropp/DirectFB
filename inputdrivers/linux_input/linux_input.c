@@ -259,6 +259,9 @@ key_event( struct input_event *levt,
                devt->key_symbol = key;
                devt->flags |= DIEF_KEYSYMBOL;
           }
+
+          devt->flags |= DIEF_KEYCODE;
+          devt->key_code = levt->code;
      }
 
      return 1;
