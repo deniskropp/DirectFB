@@ -28,6 +28,9 @@
 #include <malloc.h>
 #include <string.h>
 
+#include <sys/types.h>
+#include <signal.h>
+
 #include <directfb.h>
 
 #include <misc/conf.h>
@@ -81,7 +84,7 @@ void keyboard_handler( DFBInputEvent *evt, void *ctx )
      if (evt->type == DIET_KEYPRESS &&
          evt->keycode == DIKC_BACKSPACE &&
          (evt->modifiers & (DIMK_CTRL|DIMK_ALT)) == (DIMK_CTRL|DIMK_ALT))
-          exit(1);
+          kill( getpid(), SIGINT );
 }
 
 DFBResult DirectFBInit( int *argc, char **argv[] )
