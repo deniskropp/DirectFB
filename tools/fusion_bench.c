@@ -274,11 +274,11 @@ main( int argc, char *argv[] )
      printf( "\n" );
      
      
-/*     bench_pthread_mutex();
+     bench_pthread_mutex();
      
      bench_skirmish();
      
-     bench_ref();*/
+     bench_ref();
      
      bench_reactor();
 
