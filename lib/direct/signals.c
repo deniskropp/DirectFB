@@ -412,7 +412,7 @@ signal_handler( int num, siginfo_t *info, void *foo )
      pthread_mutex_unlock( &handlers_lock );
 
      /* Propagate signal. */
-     killpg( 0, num );
+     killpg( 0, SIGKILL );
 
      _exit( -1 );
 }
