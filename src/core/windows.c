@@ -214,6 +214,22 @@ void window_remove( CoreWindow *window )
 
      if (window->opacity)
           windowstack_handle_enter_leave_focus( stack );
+
+
+     pthread_mutex_lock( &stack->update );
+
+     if (!stack->focused_window) {
+          for (i=stack->num_windows-1; i>=0; i--) {
+               if (!(stack->windows[i]->caps & DWHC_GHOST)) {
+                    pthread_mutex_unlock( &stack->update );
+                    window_request_focus( stack->windows[i] );
+                    pthread_mutex_lock( &stack->update );
+                    break;
+               }
+          }
+     }
+
+     pthread_mutex_unlock( &stack->update );
 }
 
 CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
