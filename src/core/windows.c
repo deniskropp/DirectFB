@@ -280,6 +280,13 @@ dfb_window_create( CoreWindowStack        *stack,
      surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED |
                      DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
 
+     if (!dfb_config->translucent_windows) {
+          caps &= ~DWCAPS_ALPHACHANNEL;
+
+          if (DFB_PIXELFORMAT_HAS_ALPHA(pixelformat))
+               pixelformat = DSPF_UNKNOWN;
+     }
+
      if (caps & DWCAPS_ALPHACHANNEL) {
           if (pixelformat == DSPF_UNKNOWN)
                pixelformat = DSPF_ARGB;
