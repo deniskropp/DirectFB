@@ -5,6 +5,7 @@
 */
    
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 #include <directfb.h>
@@ -273,7 +274,7 @@ static void ClosedownDirectFB (void)
 int main (int argc, char *argv[])
 {
   DFBInputDeviceKeyState Quit = DIKS_UP;
-//  int dxL, dyL;
+  int dxL, dyL;
 
   if(SetupDirectFB (argc, argv))
     return -1;
@@ -286,6 +287,9 @@ int main (int argc, char *argv[])
   DrawIt();
   if(DoubleBuffer)
     primary->Flip (primary, NULL, DSFLIP_WAITFORSYNC);
+
+  dxL = 11;
+  dyL = 7;
 
   while(Quit == DIKS_UP)
     {
@@ -303,12 +307,14 @@ int main (int argc, char *argv[])
 		Rotate (-evt.axisrel * 2, 'x');
 	    }
 	}
-      
-      //      Rotate (30, 'x');
-      //      Rotate (70, 'z');
 
-      //	if(dxL | dyL)
-      //	   RotateLight(&Light, dxL, dyL);
+      if (rand()%50 == 0)
+	dxL += rand()%5 - 2;
+      if (rand()%50 == 0)
+	dyL += rand()%5 - 2;
+      
+      if(dxL | dyL)
+      	RotateLight(&Light, dxL, dyL);
       
       DrawIt();
       if(DoubleBuffer)
