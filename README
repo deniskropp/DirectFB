@@ -100,6 +100,13 @@ Configuring the Linux framebuffer device
 
    This sets the mode on startup. 791 means 1024x768@16, 788 means 800x600@16.
 
+   All VESA Video Modes:
+
+   Bits    640x480 800x600 1024x768 1280x1024 1600x1200
+   8       769     771     773      775       796
+   16      785     788     791      794       798
+   32      786     789     792      795       799
+
    Other framebuffer devices support mode switching. DirectFB will only 
    support modes listed in your /etc/fb.modes file. By default the first 
    entry found is used. Make sure that it is a mode with at least 15bpp 
