@@ -76,7 +76,7 @@ void mach64_set_destination( Mach64DriverData *mdrv,
                BUG( "unexpected pixelformat!" );
                break;
      }
-     mdev->dst_key_mask = (1 << DFB_BITS_PER_PIXEL( destination->format )) - 1;
+     mdev->dst_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( destination->format )) - 1;
 
      mach64_out32( mmio, DST_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
 }
@@ -111,7 +111,7 @@ void mach64_set_source( Mach64DriverData *mdrv,
                BUG( "unexpected pixelformat!" );
                break;
      }
-     mdev->src_key_mask = (1 << DFB_BITS_PER_PIXEL( source->format )) - 1;
+     mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
 
      mach64_waitfifo( mdrv, mdev, 1 );
 
@@ -147,24 +147,15 @@ void mach64_set_color( Mach64DriverData *mdrv,
                color = PIXEL_RGB332( state->color.r,
                                      state->color.g,
                                      state->color.b );
-               color |= color << 8;
-               color |= color << 16;
                break;
           case DSPF_ARGB1555:
                color = PIXEL_ARGB1555( state->color.a,
                                        state->color.r,
                                        state->color.g,
                                        state->color.b );
-               color |= color << 16;
                break;
           case DSPF_RGB16:
                color = PIXEL_RGB16( state->color.r,
-                                    state->color.g,
-                                    state->color.b );
-               color |= color << 16;
-               break;
-          case DSPF_RGB24:
-               color = PIXEL_RGB32( state->color.r,
                                     state->color.g,
                                     state->color.b );
                break;
@@ -220,7 +211,7 @@ void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
      mach64_waitfifo( mdrv, mdev, 3 );
      mach64_out32( mmio, CLR_CMP_MASK, mdev->dst_key_mask );
      mach64_out32( mmio, CLR_CMP_CLR, state->dst_colorkey );
-     mach64_out32( mmio, CLR_CMP_CNTL, COMPARE_EQUAL | COMPARE_DESTINATION );
+     mach64_out32( mmio, CLR_CMP_CNTL, COMPARE_NOT_EQUAL | COMPARE_DESTINATION );
 
      MACH64_VALIDATE( m_dstkey );
      MACH64_INVALIDATE( m_srckey | m_disable_key );

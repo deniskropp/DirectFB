@@ -68,8 +68,7 @@ static void ov_set_buffer( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov )
 static void ov_calc_buffer( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov,
                             CoreLayerRegionConfig *config, CoreSurface *surface );
 
-/* FIXME: #define OV_SUPPORTED_OPTIONS   (DLOP_SRC_COLORKEY | DLOP_DST_COLORKEY) */
-#define OV_SUPPORTED_OPTIONS   (DLOP_NONE)
+#define OV_SUPPORTED_OPTIONS   (DLOP_SRC_COLORKEY | DLOP_DST_COLORKEY)
 
 /**********************/
 
@@ -93,8 +92,8 @@ ovInitLayer( CoreLayer                  *layer,
 
      /* set capabilities and type */
      description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
-                         DLCAPS_BRIGHTNESS | DLCAPS_SATURATION;
-     /* FIXME:                        DLCAPS_SRC_COLORKEY | DLCAPS_DST_COLORKEY; */
+                         DLCAPS_BRIGHTNESS | DLCAPS_SATURATION |
+                         DLCAPS_SRC_COLORKEY | DLCAPS_DST_COLORKEY;
      description->type = DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
@@ -305,6 +304,14 @@ static void ov_set_regs( Mach64DriverData       *mdrv,
      mach64_out32( mmio, OVERLAY_SCALE_CNTL,       mov->regs.overlay_SCALE_CNTL );
 }
 
+static __u32 ovColorKey[] = {
+     VIDEO_MIX_TRUE | GRAPHICS_MIX_TRUE,                 /* 0 */
+     VIDEO_MIX_NOT_EQUAL | GRAPHICS_MIX_FALSE,           /* DLOP_SRC_COLORKEY */
+     VIDEO_MIX_FALSE | GRAPHICS_MIX_EQUAL,               /* DLOP_DST_COLORKEY */
+     VIDEO_MIX_NOT_EQUAL | GRAPHICS_MIX_EQUAL | CMP_MIX  /* DLOP_SRC_COLORKEY |
+                                                            DLOP_DST_COLORKEY */
+};
+
 static void ov_calc_regs( Mach64DriverData       *mdrv,
                           Mach64OverlayLayerData *mov,
                           CoreLayerRegionConfig  *config,
@@ -341,30 +348,44 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
 
      switch (surface->format) {
           case DSPF_ARGB1555:
+               mov->regs.overlay_VIDEO_KEY_CLR = PIXEL_ARGB1555( config->src_key.a,
+                                                                 config->src_key.r,
+                                                                 config->src_key.g,
+                                                                 config->src_key.b );
                mov->regs.video_FORMAT = SCALER_IN_RGB15;
                break;
 
           case DSPF_RGB16:
+               mov->regs.overlay_VIDEO_KEY_CLR = PIXEL_RGB16( config->src_key.r,
+                                                              config->src_key.g,
+                                                              config->src_key.b );
                mov->regs.video_FORMAT = SCALER_IN_RGB16;
                break;
 
           case DSPF_RGB32:
+               mov->regs.overlay_VIDEO_KEY_CLR = PIXEL_RGB32( config->src_key.r,
+                                                              config->src_key.g,
+                                                              config->src_key.b );
                mov->regs.video_FORMAT = SCALER_IN_RGB32;
                break;
 
           case DSPF_UYVY:
+               mov->regs.overlay_VIDEO_KEY_CLR = 0; /* FIXME */
                mov->regs.video_FORMAT = SCALER_IN_YVYU422;
                break;
 
           case DSPF_YUY2:
+               mov->regs.overlay_VIDEO_KEY_CLR = 0; /* FIXME */
                mov->regs.video_FORMAT = SCALER_IN_VYUY422;
                break;
 
           case DSPF_I420:
+               mov->regs.overlay_VIDEO_KEY_CLR = 0; /* FIXME */
                mov->regs.video_FORMAT = SCALER_IN_YUV12;
                break;
 
           case DSPF_YV12:
+               mov->regs.overlay_VIDEO_KEY_CLR = 0; /* FIXME */
                mov->regs.video_FORMAT = SCALER_IN_YUV12;
                break;
 
@@ -372,21 +393,55 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
                BUG("unexpected pixelformat");
                return;
      }
+     mov->regs.overlay_VIDEO_KEY_MSK =  (1 << DFB_COLOR_BITS_PER_PIXEL( surface->format )) - 1;;
+
+     switch (primary_format) {
+          case DSPF_RGB332:
+               mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_RGB332( config->dst_key.r,
+                                                                  config->dst_key.g,
+                                                                  config->dst_key.b );
+               break;
+
+          case DSPF_ARGB1555:
+               mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_ARGB1555( config->dst_key.a,
+                                                                    config->dst_key.r,
+                                                                    config->dst_key.g,
+                                                                    config->dst_key.b );
+               break;
+
+          case DSPF_RGB16:
+               mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_RGB16( config->dst_key.r,
+                                                                 config->dst_key.g,
+                                                                 config->dst_key.b );
+               break;
+
+          case DSPF_RGB32:
+               mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_RGB32( config->dst_key.r,
+                                                                 config->dst_key.g,
+                                                                 config->dst_key.b );
+               break;
+
+          case DSPF_ARGB:
+               mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_ARGB( config->dst_key.a,
+                                                                config->dst_key.r,
+                                                                config->dst_key.g,
+                                                                config->dst_key.b );
+               break;
+
+               
+          default:
+               BUG("unexpected pixelformat");
+               return;
+     }
+     mov->regs.overlay_GRAPHICS_KEY_MSK = (1 << DFB_COLOR_BITS_PER_PIXEL( primary_format )) - 1;
+
+     mov->regs.overlay_KEY_CNTL = ovColorKey[(config->options >> 3) & 3];
 
      mov->regs.scaler_HEIGHT_WIDTH = (surface->width << 16) | surface->height;
      mov->regs.scaler_BUF_PITCH    = front_buffer->video.pitch / DFB_BYTES_PER_PIXEL( surface->format );
 
      mov->regs.overlay_Y_X_START = (dst.x1 << 16) | dst.y1 | OVERLAY_LOCK_START;
      mov->regs.overlay_Y_X_END   = (dst.x2 << 16) | dst.y2;
-
-     mov->regs.overlay_GRAPHICS_KEY_CLR = 0;
-     mov->regs.overlay_GRAPHICS_KEY_MSK = (1 << DFB_COLOR_BITS_PER_PIXEL( primary_format )) - 1;
-
-     mov->regs.overlay_VIDEO_KEY_CLR = 0;
-     mov->regs.overlay_VIDEO_KEY_MSK =  (1 << DFB_COLOR_BITS_PER_PIXEL( surface->format )) - 1;;
-
-     /* FIXME: figure out color keying */
-     mov->regs.overlay_KEY_CNTL = 0x00000011;
 
      mov->regs.overlay_SCALE_INC  = (h_inc << 16) | v_inc;
      mov->regs.overlay_SCALE_CNTL = SCALE_PIX_EXPAND | SCALE_EN;

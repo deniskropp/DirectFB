@@ -411,6 +411,17 @@
 /* OVERLAY_Y_X_END */
 #define OVERLAY_LOCK_END        0x80000000
 
+/* OVERLAY_KEY_CNTL */
+#define VIDEO_MIX_FALSE         0x0
+#define VIDEO_MIX_TRUE          0x1
+#define VIDEO_MIX_NOT_EQUAL     0x4
+#define VIDEO_MIX_EQUAL         0x5
+#define GRAPHICS_MIX_FALSE      0x00
+#define GRAPHICS_MIX_TRUE       0x10
+#define GRAPHICS_MIX_NOT_EQUAL  0x40
+#define GRAPHICS_MIX_EQUAL      0x50
+#define CMP_MIX                 0x100
+
 /* VIDEO_FORMAT */
 #define VIDEO_IN_VYUY422        0x0000000B
 #define VIDEO_IN_YVYU422        0x0000000C
