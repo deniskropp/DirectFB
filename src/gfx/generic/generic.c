@@ -2282,6 +2282,23 @@ static void Dacc_demultiply()
      }
 }
 
+static void Dacc_xor()
+{
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+
+     while (w--) {
+          if (!(D->a & 0xF000)) {
+               D->a ^= color.a;
+               D->r ^= color.r;
+               D->g ^= color.g;
+               D->b ^= color.b;
+          }
+
+          D++;
+     }
+}
+
 #ifdef USE_MMX
 void Cacc_add_to_Dacc_MMX();
 void Sacc_add_to_Dacc_MMX();
@@ -2558,7 +2575,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
           case DFXL_FILLTRIANGLE:
-               if (state->drawingflags & DSDRAW_BLEND) {
+               if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_XOR)) {
 
                     /* not yet completed optimizing checks */
                     if (state->src_blend == DSBF_ZERO) {
@@ -2588,8 +2605,12 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
 
                     /* premultiply destination */
-                    if (state->drawingflags & DSBLIT_DST_PREMULTIPLY)
+                    if (state->drawingflags & DSDRAW_DST_PREMULTIPLY)
                          *funcs++ = Dacc_premultiply;
+
+                    /* xor destination */
+                    if (state->drawingflags & DSDRAW_XOR)
+                         *funcs++ = Dacc_xor;
 
                     /* load source (color) */
                     Cacc.a = color.a;
@@ -2598,7 +2619,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     Cacc.b = color.b;
 
                     /* premultiply source (color) */
-                    if (state->drawingflags & DSBLIT_SRC_PREMULTIPLY) {
+                    if (state->drawingflags & DSDRAW_SRC_PREMULTIPLY) {
                          __u16 ca = color.a + 1;
 
                          Cacc.r = (Cacc.r * ca) >> 8;
@@ -2606,79 +2627,81 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          Cacc.b = (Cacc.b * ca) >> 8;
                     }
                     
-                    /* source blending */
-                    switch (state->src_blend) {
-                         case DSBF_ZERO:
-                         case DSBF_ONE:
-                              break;
-                         case DSBF_SRCALPHA: {
-                                   __u16 ca = color.a + 1;
-
-                                   Cacc.a = (Cacc.a * ca) >> 8;
-                                   Cacc.r = (Cacc.r * ca) >> 8;
-                                   Cacc.g = (Cacc.g * ca) >> 8;
-                                   Cacc.b = (Cacc.b * ca) >> 8;
-
+                    if (state->drawingflags & DSDRAW_BLEND) {
+                         /* source blending */
+                         switch (state->src_blend) {
+                              case DSBF_ZERO:
+                              case DSBF_ONE:
                                    break;
-                              }
-                         case DSBF_INVSRCALPHA: {
-                                   __u16 ca = 0x100 - color.a;
-
-                                   Cacc.a = (Cacc.a * ca) >> 8;
-                                   Cacc.r = (Cacc.r * ca) >> 8;
-                                   Cacc.g = (Cacc.g * ca) >> 8;
-                                   Cacc.b = (Cacc.b * ca) >> 8;
-
+                              case DSBF_SRCALPHA: {
+                                        __u16 ca = color.a + 1;
+          
+                                        Cacc.a = (Cacc.a * ca) >> 8;
+                                        Cacc.r = (Cacc.r * ca) >> 8;
+                                        Cacc.g = (Cacc.g * ca) >> 8;
+                                        Cacc.b = (Cacc.b * ca) >> 8;
+          
+                                        break;
+                                   }
+                              case DSBF_INVSRCALPHA: {
+                                        __u16 ca = 0x100 - color.a;
+          
+                                        Cacc.a = (Cacc.a * ca) >> 8;
+                                        Cacc.r = (Cacc.r * ca) >> 8;
+                                        Cacc.g = (Cacc.g * ca) >> 8;
+                                        Cacc.b = (Cacc.b * ca) >> 8;
+          
+                                        break;
+                                   }
+                              case DSBF_DESTALPHA:
+                              case DSBF_INVDESTALPHA:
+                              case DSBF_DESTCOLOR:
+                              case DSBF_INVDESTCOLOR:
+                                   *funcs++ = Dacc_is_Bacc;
+                                   *funcs++ = Cacc_to_Dacc;
+          
+                                   *funcs++ = Dacc_is_Aacc;
+                                   *funcs++ = Xacc_is_Bacc;
+                                   *funcs++ = Xacc_blend[state->src_blend - 1];
+          
                                    break;
-                              }
-                         case DSBF_DESTALPHA:
-                         case DSBF_INVDESTALPHA:
-                         case DSBF_DESTCOLOR:
-                         case DSBF_INVDESTCOLOR:
-                              *funcs++ = Dacc_is_Bacc;
-                              *funcs++ = Cacc_to_Dacc;
-
-                              *funcs++ = Dacc_is_Aacc;
-                              *funcs++ = Xacc_is_Bacc;
-                              *funcs++ = Xacc_blend[state->src_blend - 1];
-
-                              break;
-                         case DSBF_SRCCOLOR:
-                         case DSBF_INVSRCCOLOR:
-                         case DSBF_SRCALPHASAT:
-                              ONCE("unimplemented src blend function");
-                    }
-
-                    /* destination blending */
-                    *funcs++ = Sacc_is_NULL;
-                    *funcs++ = Xacc_is_Aacc;
-                    *funcs++ = Xacc_blend[state->dst_blend - 1];
-
-                    /* add source to destination accumulator */
-                    switch (state->src_blend) {
-                         case DSBF_ZERO:
-                              break;
-                         case DSBF_ONE:
-                         case DSBF_SRCALPHA:
-                         case DSBF_INVSRCALPHA:
-                              if (Cacc.a || Cacc.r || Cacc.g || Cacc.b)
-                                   *funcs++ = Cacc_add_to_Dacc;
-                              break;
-                         case DSBF_DESTALPHA:
-                         case DSBF_INVDESTALPHA:
-                         case DSBF_DESTCOLOR:
-                         case DSBF_INVDESTCOLOR:
-                              *funcs++ = Sacc_is_Bacc;
-                              *funcs++ = Sacc_add_to_Dacc;
-                              break;
-                         case DSBF_SRCCOLOR:
-                         case DSBF_INVSRCCOLOR:
-                         case DSBF_SRCALPHASAT:
-                              ONCE("unimplemented src blend function");
+                              case DSBF_SRCCOLOR:
+                              case DSBF_INVSRCCOLOR:
+                              case DSBF_SRCALPHASAT:
+                                   ONCE("unimplemented src blend function");
+                         }
+          
+                         /* destination blending */
+                         *funcs++ = Sacc_is_NULL;
+                         *funcs++ = Xacc_is_Aacc;
+                         *funcs++ = Xacc_blend[state->dst_blend - 1];
+          
+                         /* add source to destination accumulator */
+                         switch (state->src_blend) {
+                              case DSBF_ZERO:
+                                   break;
+                              case DSBF_ONE:
+                              case DSBF_SRCALPHA:
+                              case DSBF_INVSRCALPHA:
+                                   if (Cacc.a || Cacc.r || Cacc.g || Cacc.b)
+                                        *funcs++ = Cacc_add_to_Dacc;
+                                   break;
+                              case DSBF_DESTALPHA:
+                              case DSBF_INVDESTALPHA:
+                              case DSBF_DESTCOLOR:
+                              case DSBF_INVDESTCOLOR:
+                                   *funcs++ = Sacc_is_Bacc;
+                                   *funcs++ = Sacc_add_to_Dacc;
+                                   break;
+                              case DSBF_SRCCOLOR:
+                              case DSBF_INVSRCCOLOR:
+                              case DSBF_SRCALPHASAT:
+                                   ONCE("unimplemented src blend function");
+                         }
                     }
 
                     /* demultiply result */
-                    if (state->blittingflags & DSBLIT_DEMULTIPLY)
+                    if (state->blittingflags & DSDRAW_DEMULTIPLY)
                          *funcs++ = Dacc_demultiply;
                     
                     /* write to destination */

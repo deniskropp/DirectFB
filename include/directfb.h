@@ -452,9 +452,12 @@ typedef enum {
                                                 channel before drawing */
      DSDRAW_DST_PREMULTIPLY    = 0x00000008, /* modulates the dest. color
                                                 with the dest. alpha */
-     DSDRAW_DEMULTIPLY         = 0x00000010  /* divides the color by the
+     DSDRAW_DEMULTIPLY         = 0x00000010, /* divides the color by the
                                                 alpha before writing the
                                                 data to the destination */
+     DSDRAW_XOR                = 0x00000020  /* bitwise xor the destination
+                                                pixels with the specified color
+                                                after premultiplication */
 } DFBSurfaceDrawingFlags;
 
 /*
