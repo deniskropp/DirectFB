@@ -61,6 +61,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/signals.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #include <fusion/build.h>
@@ -102,17 +103,19 @@ struct __DFB_CoreDFBShared {
 };
 
 struct __DFB_CoreDFB {
-     int               refs;
+     int                      refs;
 
-     int               fusion_id;
+     int                      fusion_id;
 
-     FusionArena      *arena;
+     FusionArena             *arena;
 
-     CoreDFBShared    *shared;
+     CoreDFBShared           *shared;
 
-     bool              master;
+     bool                     master;
 
-     DirectLink       *cleanups;
+     DirectLink              *cleanups;
+
+     DirectThreadInitHandler *init_handler;
 };
 
 /******************************************************************************/
@@ -121,6 +124,8 @@ struct __DFB_CoreDFB {
  * ckecks if stack is clean, otherwise prints warning, then calls core_deinit()
  */
 static void dfb_core_deinit_check();
+
+static void dfb_core_thread_init_handler( DirectThread *thread, void *arg );
 
 static void dfb_core_process_cleanups( CoreDFB *core, bool emergency );
 
@@ -231,6 +236,7 @@ dfb_core_create( CoreDFB **ret_core )
 
      core->refs = 1;
 
+     core->init_handler = direct_thread_add_init_handler( dfb_core_thread_init_handler, core );
 
 #if FUSION_BUILD_MULTI
      dfb_system_thread_init();
@@ -240,6 +246,8 @@ dfb_core_create( CoreDFB **ret_core )
 
      setpgid( 0, 0 );
 
+     core_dfb = core;
+
      core->fusion_id = fusion_init( dfb_config->session,
 #if DIRECT_BUILD_DEBUG
                                     -DIRECTFB_CORE_ABI,
@@ -248,7 +256,9 @@ dfb_core_create( CoreDFB **ret_core )
 #endif
                                     &world );
      if (core->fusion_id < 0) {
+          direct_thread_remove_init_handler( core->init_handler );
           D_FREE( core );
+          core_dfb = NULL;
           pthread_mutex_unlock( &core_dfb_lock );
           return DFB_FUSION;
      }
@@ -266,8 +276,6 @@ dfb_core_create( CoreDFB **ret_core )
           sync();
      }
 
-     core_dfb = core;
-
      dfb_sig_install_handlers( core );
 
 
@@ -275,10 +283,12 @@ dfb_core_create( CoreDFB **ret_core )
                              dfb_core_arena_initialize, dfb_core_arena_join,
                              core, &core->arena, &ret ) || ret)
      {
-          D_FREE( core );
-          core_dfb = NULL;
+          direct_thread_remove_init_handler( core->init_handler );
 
           dfb_sig_remove_handlers( core );
+
+          D_FREE( core );
+          core_dfb = NULL;
 
           pthread_mutex_unlock( &core_dfb_lock );
 
@@ -341,6 +351,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      }
 
      fusion_exit();
+
+     direct_thread_remove_init_handler( core->init_handler );
 
      D_FREE( core );
      core_dfb = NULL;
@@ -615,6 +627,12 @@ dfb_core_deinit_check()
      direct_print_memleaks();
 
      direct_print_interface_leaks();
+}
+
+static void
+dfb_core_thread_init_handler( DirectThread *thread, void *arg )
+{
+     dfb_system_thread_init();
 }
 
 static void

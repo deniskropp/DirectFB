@@ -40,17 +40,30 @@ typedef enum {
      DTT_CRITICAL   = -20
 } DirectThreadType;
 
-typedef void * (*DirectThreadMain)( DirectThread *thread, void *arg );
+typedef void * (*DirectThreadMainFunc)( DirectThread *thread, void *arg );
+
+typedef void   (*DirectThreadInitFunc)( DirectThread *thread, void *arg );
 
 
 /*
- * Create a new thread and start it. The thread type is relevant
- * for the scheduling priority.
+ * Add a handler being called at the beginning of new threads.
  */
-DirectThread *direct_thread_create     ( DirectThreadType  thread_type,
-                                         DirectThreadMain  thread_main,
-                                         void             *arg,
-                                         const char       *name );
+DirectThreadInitHandler *direct_thread_add_init_handler   ( DirectThreadInitFunc     func,
+                                                            void                    *arg );
+
+/*
+ * Remove the specified handler.
+ */
+void                     direct_thread_remove_init_handler( DirectThreadInitHandler *handler );
+
+/*
+ * Create a new thread and start it.
+ * The thread type is relevant for the scheduling priority.
+ */
+DirectThread *direct_thread_create     ( DirectThreadType      thread_type,
+                                         DirectThreadMainFunc  thread_main,
+                                         void                 *arg,
+                                         const char           *name );
 
 /*
  * Returns the thread of the caller.
@@ -60,7 +73,7 @@ DirectThread *direct_thread_self       ();
 /*
  * Returns the name of the specified thread.
  */
-const char   *direct_thread_get_name   ( DirectThread     *thread );
+const char   *direct_thread_get_name   ( DirectThread *thread );
 
 /*
  * Returns the name of the calling thread.
@@ -70,35 +83,35 @@ const char   *direct_thread_self_name  ();
 /*
  * Cancel a running thread.
  */
-void          direct_thread_cancel     ( DirectThread     *thread );
+void direct_thread_cancel     ( DirectThread *thread );
 
 /*
  * Returns true if the specified thread has been canceled.
  */
-bool          direct_thread_is_canceled( DirectThread     *thread );
+bool direct_thread_is_canceled( DirectThread *thread );
 
 /*
  * Check if the calling thread is canceled.
  * Must not be called by other threads than 'thread'.
  * This function won't return if the thread is canceled.
  */
-void          direct_thread_testcancel ( DirectThread     *thread );
+void direct_thread_testcancel ( DirectThread *thread );
 
 /*
  * Wait until a running thread is terminated.
  */
-void          direct_thread_join       ( DirectThread     *thread );
+void direct_thread_join       ( DirectThread *thread );
 
 /*
  * Returns true if the specified thread has been join.
  */
-bool          direct_thread_is_joined  ( DirectThread     *thread );
+bool direct_thread_is_joined  ( DirectThread *thread );
 
 /*
- * Free resources allocated by dfb_thread_create.
+ * Free resources allocated by direct_thread_create.
  * If the thread is still running it will be killed.
  */
-void          direct_thread_destroy    ( DirectThread     *thread );
+void direct_thread_destroy    ( DirectThread *thread );
 
 #endif
 

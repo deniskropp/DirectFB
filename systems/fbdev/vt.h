@@ -50,7 +50,7 @@ typedef struct {
 
      struct vt_mode   vt_mode;     /* previous VT mode */
 
-     CoreThread      *thread;
+     DirectThread    *thread;
      pthread_mutex_t  lock;
      pthread_cond_t   wait;
 

@@ -39,9 +39,9 @@
 #include <core/coretypes.h>
 #include <core/input.h>
 #include <core/system.h>
-#include <core/thread.h>
 
 #include <direct/mem.h>
+#include <direct/thread.h>
 
 #include "sdl.h"
 
@@ -54,10 +54,10 @@ DFB_INPUT_DRIVER( sdlinput )
  * declaration of private data
  */
 typedef struct {
-     InputDevice *device;
-     CoreThread  *thread;
-     DFBSDL      *dfb_sdl;
-     int          stop;
+     InputDevice  *device;
+     DirectThread *thread;
+     DFBSDL       *dfb_sdl;
+     int           stop;
 } SDLInputData;
 
 
@@ -318,7 +318,7 @@ translate_key( SDLKey key, DFBInputEvent *evt )
  * Generates events on incoming data.
  */
 static void*
-sdlEventThread( CoreThread *thread, void *driver_data )
+sdlEventThread( DirectThread *thread, void *driver_data )
 {
      SDLInputData *data    = (SDLInputData*) driver_data;
      DFBSDL       *dfb_sdl = data->dfb_sdl;
@@ -413,7 +413,7 @@ sdlEventThread( CoreThread *thread, void *driver_data )
 
           usleep(10000);
 
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
      }
 
      return NULL;
@@ -498,7 +498,7 @@ driver_open_device( InputDevice      *device,
      data->dfb_sdl = dfb_sdl;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, sdlEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, sdlEventThread, data, "SDL Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -528,8 +528,8 @@ driver_close_device( void *driver_data )
      /* stop input thread */
      data->stop = 1;
 
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* free private data */
      D_FREE ( data );

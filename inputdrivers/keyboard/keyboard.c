@@ -48,13 +48,13 @@
 
 #include <core/input.h>
 #include <core/system.h>
-#include <core/thread.h>
 
 #include <misc/conf.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -64,12 +64,12 @@
 DFB_INPUT_DRIVER( keyboard )
 
 typedef struct {
-     InputDevice                *device;
-     CoreThread                 *thread;
+     InputDevice     *device;
+     DirectThread    *thread;
 
-     struct termios              old_ts;
+     struct termios   old_ts;
 
-     VirtualTerminal            *vt;
+     VirtualTerminal *vt;
 } KeyboardData;
 
 static DFBInputDeviceKeySymbol
@@ -255,7 +255,7 @@ keyboard_set_lights( KeyboardData *data, DFBInputDeviceLockState locks )
 }
 
 static void*
-keyboardEventThread( CoreThread *thread, void *driver_data )
+keyboardEventThread( DirectThread *thread, void *driver_data )
 {
      int            readlen;
      unsigned char  buf[64];
@@ -265,7 +265,7 @@ keyboardEventThread( CoreThread *thread, void *driver_data )
      while ((readlen = read (data->vt->fd, buf, 64)) >= 0 || errno == EINTR) {
           int i;
 
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           for (i = 0; i < readlen; i++) {
                DFBInputEvent evt;
@@ -365,7 +365,7 @@ driver_open_device( InputDevice      *device,
      info->desc.max_keycode = 127;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, keyboardEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, keyboardEventThread, data, "Keyboard Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -437,9 +437,9 @@ driver_close_device( void *driver_data )
      KeyboardData *data = (KeyboardData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      if (tcsetattr( data->vt->fd, TCSAFLUSH, &data->old_ts ) < 0)
           D_PERROR("DirectFB/keyboard: tcsetattr for original values failed!\n");

@@ -54,13 +54,13 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/thread.h>
 
 #include <misc/conf.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -69,13 +69,13 @@ DFB_INPUT_DRIVER( wm97xx_ts )
 
 typedef struct {
      InputDevice   *device;
-     CoreThread    *thread;
+     DirectThread  *thread;
 
      int            fd;
 } WM97xxTSData;
 
 static void *
-wm97xxtsEventThread( CoreThread *thread, void *driver_data )
+wm97xxtsEventThread( DirectThread *thread, void *driver_data )
 {
      WM97xxTSData *data = (WM97xxTSData*) driver_data;
 
@@ -92,7 +92,7 @@ wm97xxtsEventThread( CoreThread *thread, void *driver_data )
      {
           DFBInputEvent evt;
 
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           if (readlen < 1)
                continue;
@@ -208,7 +208,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, wm97xxtsEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, wm97xxtsEventThread, data, "WM97xx TS Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -233,9 +233,9 @@ driver_close_device( void *driver_data )
      WM97xxTSData *data = (WM97xxTSData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* close device */
      if (close( data->fd ) < 0)

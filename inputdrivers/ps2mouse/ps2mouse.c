@@ -42,13 +42,13 @@
 
 #include <core/input.h>
 #include <core/system.h>
-#include <core/thread.h>
 
 #include <misc/conf.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -81,7 +81,7 @@ static char *devlist[3] = { NULL, NULL, NULL };
 typedef struct {
      int            fd;
      InputDevice   *device;
-     CoreThread    *thread;
+     DirectThread  *thread;
 
      int            mouseId;
      int            packetLength;
@@ -139,7 +139,7 @@ ps2mouse_motion_realize( PS2MouseData *data )
 }
 
 static void*
-ps2mouseEventThread( CoreThread *thread, void *driver_data )
+ps2mouseEventThread( DirectThread *thread, void *driver_data )
 {
      PS2MouseData *data  = (PS2MouseData*) driver_data;
 
@@ -155,7 +155,7 @@ ps2mouseEventThread( CoreThread *thread, void *driver_data )
      while ( (readlen = read(data->fd, buf, 256)) > 0 ) {
           int i;
 
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           for ( i = 0; i < readlen; i++ ) {
 
@@ -459,7 +459,7 @@ driver_open_device( InputDevice      *device,
      data->packetLength = (mouseId == PS2_ID_IMPS2) ? 4 : 3;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, ps2mouseEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, ps2mouseEventThread, data, "PS/2 Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -484,9 +484,9 @@ driver_close_device( void *driver_data )
      PS2MouseData *data = (PS2MouseData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* close device */
      close( data->fd );

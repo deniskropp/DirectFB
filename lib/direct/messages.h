@@ -31,13 +31,14 @@
 #include <direct/build.h>
 
 #if DIRECT_BUILD_NOTEXT
-     #define D_INFO(x...)       do { } while (0)
-     #define D_ERROR(x...)      do { } while (0)
-     #define D_PERROR(x...)     do { } while (0)
-     #define D_DLERROR(x...)    do { } while (0)
-     #define D_ONCE(x...)       do { } while (0)
-     #define D_BUG(x...)        do { } while (0)
-     #define D_WARN(x...)       do { } while (0)
+     #define D_INFO(x...)          do { } while (0)
+     #define D_ERROR(x...)         do { } while (0)
+     #define D_PERROR(x...)        do { } while (0)
+     #define D_DLERROR(x...)       do { } while (0)
+     #define D_ONCE(x...)          do { } while (0)
+     #define D_UNIMPLEMENTED(x...) do { } while (0)
+     #define D_BUG(x...)           do { } while (0)
+     #define D_WARN(x...)          do { } while (0)
 #else
 
 #include <stdio.h>

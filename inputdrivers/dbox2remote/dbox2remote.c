@@ -42,11 +42,11 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/input.h>
-#include <core/thread.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -142,10 +142,10 @@ static KeyCode keycodes_old_remote[] = {
  * declaration of private data
  */
 typedef struct {
-     InputDevice *device;
-     CoreThread  *thread;
+     InputDevice  *device;
+     DirectThread *thread;
 
-     int          fd;
+     int           fd;
 } Dbox2remoteData;
 
 
@@ -180,7 +180,7 @@ dbox2remote_parse_rccode( __u16 rccode )
  * Generates events on incoming data.
  */
 static void*
-dbox2remoteEventThread( CoreThread *thread, void *driver_data )
+dbox2remoteEventThread( DirectThread *thread, void *driver_data )
 {
      Dbox2remoteData *data = (Dbox2remoteData*) driver_data;
      int              readlen;
@@ -188,7 +188,7 @@ dbox2remoteEventThread( CoreThread *thread, void *driver_data )
      DFBInputEvent    evt;
 
      while ((readlen = read( data->fd, &rccode, 2 )) == 2) {
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           /* translate rccode to DirectFB keycode */
           evt.key_symbol = dbox2remote_parse_rccode( rccode );
@@ -294,8 +294,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT,
-                                       dbox2remoteEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, dbox2remoteEventThread, data, "DBOX2 Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -323,9 +322,9 @@ driver_close_device( void *driver_data )
      Dbox2remoteData *data = (Dbox2remoteData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* close file */
      close( data->fd );

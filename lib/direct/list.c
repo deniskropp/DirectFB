@@ -31,28 +31,4 @@
 
 #include <direct/list.h>
 
-void
-direct_list_prepend (DirectLink **list, DirectLink *link)
-{
-     link->prev = NULL;
-     link->next = *list;
 
-     if (*list)
-          (*list)->prev = link;
-
-     *list = link;
-}
-
-void
-direct_list_remove (DirectLink **list, DirectLink *link)
-{
-     if (link->prev)
-          link->prev->next = link->next;
-     else
-          *list = link->next;
-
-     if (link->next)
-          link->next->prev = link->prev;
-
-     link->next = link->prev = NULL;
-}

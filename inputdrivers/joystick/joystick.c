@@ -47,9 +47,9 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <core/input.h>
-#include <core/thread.h>
 
 #include <core/input_driver.h>
 
@@ -57,10 +57,10 @@
 DFB_INPUT_DRIVER( joystick )
 
 typedef struct {
-     InputDevice *device;
-     CoreThread  *thread;
+     InputDevice  *device;
+     DirectThread *thread;
 
-     int          fd;
+     int           fd;
 } JoystickData;
 
 
@@ -90,7 +90,7 @@ joystick_handle_event( JoystickData *data, struct js_event jse )
 }
 
 static void*
-joystickEventThread( CoreThread *thread, void *driver_data )
+joystickEventThread( DirectThread *thread, void *driver_data )
 {
      int              len;
      struct js_event  jse;
@@ -99,7 +99,7 @@ joystickEventThread( CoreThread *thread, void *driver_data )
      while ((len = read( data->fd, &jse,
                          sizeof(struct js_event) )) > 0 || errno == EINTR)
      {
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           if (len != sizeof(struct js_event))
                continue;
@@ -220,7 +220,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, joystickEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, joystickEventThread, data, "Joystick Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -245,9 +245,9 @@ driver_close_device( void *driver_data )
      JoystickData *data = (JoystickData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* close device */
      close( data->fd );

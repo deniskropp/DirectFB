@@ -50,13 +50,13 @@
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
-#include <core/thread.h>
 
 #include "fbdev.h"
 #include "vt.h"
@@ -89,7 +89,7 @@ static VirtualTerminal *dfb_vt = NULL;
 static DFBResult vt_init_switching();
 static int       vt_get_fb( int vt );
 static void      vt_set_fb( int vt, int fb );
-static void     *vt_thread( CoreThread *thread, void *arg );
+static void     *vt_thread( DirectThread *thread, void *arg );
 
 DFBResult
 dfb_vt_initialize()
@@ -237,9 +237,9 @@ dfb_vt_shutdown( bool emergency )
           sigaction( SIGUSR1, &dfb_vt->sig_usr1, NULL );
           sigaction( SIGUSR2, &dfb_vt->sig_usr2, NULL );
 
-          dfb_thread_cancel( dfb_vt->thread );
-          dfb_thread_join( dfb_vt->thread );
-          dfb_thread_destroy( dfb_vt->thread );
+          direct_thread_cancel( dfb_vt->thread );
+          direct_thread_join( dfb_vt->thread );
+          direct_thread_destroy( dfb_vt->thread );
 
           pthread_mutex_destroy( &dfb_vt->lock );
           pthread_cond_destroy( &dfb_vt->wait );
@@ -342,12 +342,12 @@ dfb_vt_switch( int num )
 }
 
 static void *
-vt_thread( CoreThread *thread, void *arg )
+vt_thread( DirectThread *thread, void *arg )
 {
      pthread_mutex_lock( &dfb_vt->lock );
 
      while (true) {
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           D_DEBUG( "DirectFB/fbdev/vt: %s (%d)\n",
                     __FUNCTION__, dfb_vt->vt_sig);
@@ -486,7 +486,7 @@ vt_init_switching()
 
           dfb_vt->vt_sig = -1;
 
-          dfb_vt->thread = dfb_thread_create( CTT_CRITICAL, vt_thread, NULL );
+          dfb_vt->thread = direct_thread_create( DTT_CRITICAL, vt_thread, NULL, "VT Switcher" );
      }
 
      return DFB_OK;

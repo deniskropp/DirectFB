@@ -43,11 +43,11 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/thread.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -59,10 +59,10 @@ static DirectFBKeySymbolNames(keynames);
 static bool keynames_sorted = false;
 
 typedef struct {
-     InputDevice *device;
-     CoreThread  *thread;
+     InputDevice  *device;
+     DirectThread *thread;
 
-     int          fd;
+     int           fd;
 } LircData;
 
 
@@ -126,7 +126,7 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
 }
 
 static void*
-lircEventThread( CoreThread *thread, void *driver_data )
+lircEventThread( DirectThread *thread, void *driver_data )
 {
      int                      repeats = 0;
      DFBInputDeviceKeySymbol  last    = DIKS_NULL;
@@ -176,7 +176,7 @@ lircEventThread( CoreThread *thread, void *driver_data )
                     break;
           }
 
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           /* read data */
           readlen = read( data->fd, buf, 128 );
@@ -308,7 +308,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, lircEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, lircEventThread, data, "LiRC Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -333,9 +333,9 @@ driver_close_device( void *driver_data )
      LircData *data = (LircData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* close socket */
      close( data->fd );

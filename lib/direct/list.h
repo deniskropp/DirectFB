@@ -32,11 +32,59 @@
 
 struct __D_DirectLink {
      DirectLink *next;
-     DirectLink *prev;
+     DirectLink *prev; /* 'prev' of the first element points to the last element of the list ;) */
 };
 
-void direct_list_prepend (DirectLink **list, DirectLink *link);
-void direct_list_remove  (DirectLink **list, DirectLink *link);
+static inline void direct_list_prepend (DirectLink **list, DirectLink *link)
+{
+     DirectLink *first = *list;
+
+     link->next = first;
+
+     if (first) {
+          link->prev = first->prev;
+
+          first->prev = link;
+     }
+     else
+          link->prev = link;
+
+     *list = link;
+}
+
+static inline void direct_list_append (DirectLink **list, DirectLink *link)
+{
+     DirectLink *first = *list;
+
+     link->next = NULL;
+
+     if (first) {
+          DirectLink *last = first->prev;
+
+          link->prev = last;
+
+          last->next = first->prev = link;
+     }
+     else
+          *list = link->prev = link;
+}
+
+static inline void direct_list_remove (DirectLink **list, DirectLink *link)
+{
+     DirectLink *next = link->next;
+     DirectLink *prev = link->prev;
+
+     if (next)
+          next->prev = prev;
+
+     if (link == *list)
+          *list = next;
+     else
+          prev->next = next;
+
+     link->next = link->prev = NULL;
+}
+
 
 #define direct_list_foreach(link, list) \
      for (link = list; link; link = link->next)

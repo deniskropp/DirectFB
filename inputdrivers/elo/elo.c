@@ -45,7 +45,6 @@
 
 #include <core/input.h>
 #include <core/system.h>
-#include <core/thread.h>
 
 #include <misc/conf.h>
 
@@ -53,6 +52,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/memcpy.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -83,7 +83,7 @@ DFB_INPUT_DRIVER( elo )
 
 typedef struct __eloData__ {
   int fd;
-  CoreThread *thread;
+  DirectThread *thread;
   InputDevice *device;
   unsigned short x;
   unsigned short y;
@@ -340,7 +340,7 @@ static int eloGetEvent(eloData *event)
 }
 
 /* The main routine for elo */
-static void *eloTouchEventThread(CoreThread *thread, void *driver_data)
+static void *eloTouchEventThread(DirectThread *thread, void *driver_data)
 {
   eloData *data = (eloData *) driver_data;
 
@@ -349,7 +349,7 @@ static void *eloTouchEventThread(CoreThread *thread, void *driver_data)
     DFBInputEvent evt;
 
     if(eloGetEvent(data) == -1) continue;
-    dfb_thread_testcancel(thread);
+    direct_thread_testcancel(thread);
 
     /* Dispatch axis */
     evt.type    = DIET_AXISMOTION;
@@ -374,7 +374,7 @@ static void *eloTouchEventThread(CoreThread *thread, void *driver_data)
     evt.button = DIBI_LEFT;
 
     dfb_input_dispatch(data->device, &evt);
-    dfb_thread_testcancel(thread);
+    direct_thread_testcancel(thread);
   }
 
   return NULL;
@@ -450,7 +450,7 @@ static DFBResult driver_open_device(InputDevice *device,
   info->desc.max_button = DIBI_LEFT;
 
   /* start input thread */
-  data->thread = dfb_thread_create (CTT_INPUT, eloTouchEventThread, data);
+  data->thread = direct_thread_create (DTT_INPUT, eloTouchEventThread, data, "ELO Touch Input");
 
   /* set private data pointer */
   *driver_data = data;
@@ -473,9 +473,9 @@ static void driver_close_device(void *driver_data)
   eloData *data = (eloData *)driver_data;
 
   /* stop input thread */
-  dfb_thread_cancel(data->thread);
-  dfb_thread_join(data->thread);
-  dfb_thread_destroy(data->thread);
+  direct_thread_cancel(data->thread);
+  direct_thread_join(data->thread);
+  direct_thread_destroy(data->thread);
 
   /* restore termnial settings for the port */
   tty_rawmode(data->fd,0);

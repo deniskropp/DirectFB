@@ -54,11 +54,11 @@
 #include <core/coretypes.h>
 #include <core/input.h>
 #include <core/system.h>
-#include <core/thread.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #include <misc/conf.h>
@@ -81,10 +81,10 @@ DFB_INPUT_DRIVER( linux_input )
  * declaration of private data
  */
 typedef struct {
-     InputDevice *device;
-     CoreThread  *thread;
+     InputDevice  *device;
+     DirectThread *thread;
 
-     int          fd;
+     int           fd;
 } LinuxInputData;
 
 
@@ -372,7 +372,7 @@ translate_event( struct input_event *levt,
  * Generates events on incoming data.
  */
 static void*
-linux_input_EventThread( CoreThread *thread, void *driver_data )
+linux_input_EventThread( DirectThread *thread, void *driver_data )
 {
      LinuxInputData    *data = (LinuxInputData*) driver_data;
      int                readlen;
@@ -382,7 +382,7 @@ linux_input_EventThread( CoreThread *thread, void *driver_data )
      while ((readlen = read( data->fd, &levt, sizeof(levt) )) == sizeof(levt)
             || (readlen < 0 && errno == EINTR))
      {
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           if (readlen <= 0)
                continue;
@@ -614,8 +614,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT,
-                                       linux_input_EventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, linux_input_EventThread, data, "Linux Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -646,9 +645,9 @@ driver_close_device( void *driver_data )
      LinuxInputData *data = (LinuxInputData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* release device */
      ioctl( data->fd, EVIOCGRAB, 0 );

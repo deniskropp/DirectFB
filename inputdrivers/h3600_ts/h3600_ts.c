@@ -42,13 +42,13 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/thread.h>
 
 #include <misc/conf.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -56,14 +56,14 @@
 DFB_INPUT_DRIVER( h3600_ts )
 
 typedef struct {
-     InputDevice   *device;
-     CoreThread    *thread;
+     InputDevice  *device;
+     DirectThread *thread;
 
-     int            fd;
+     int           fd;
 } H3600TSData;
 
 static void *
-h3600tsEventThread( CoreThread *thread, void *driver_data )
+h3600tsEventThread( DirectThread *thread, void *driver_data )
 {
      H3600TSData *data = (H3600TSData*) driver_data;
 
@@ -80,7 +80,7 @@ h3600tsEventThread( CoreThread *thread, void *driver_data )
      {
           DFBInputEvent evt;
 
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           if (readlen < 1)
                continue;
@@ -196,7 +196,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, h3600tsEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, h3600tsEventThread, data, "H3600 TS Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -221,9 +221,9 @@ driver_close_device( void *driver_data )
      H3600TSData *data = (H3600TSData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* close device */
      if (close( data->fd ) < 0)

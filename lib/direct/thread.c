@@ -35,6 +35,7 @@
 #include <sys/resource.h>
 
 #include <direct/debug.h>
+#include <direct/list.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/signals.h>
@@ -51,25 +52,36 @@
 
 
 struct __D_DirectThread {
-     int               magic;
+     int                   magic;
 
-     pthread_t         thread;   /* The pthread thread identifier. */
-     pid_t             tid;
+     pthread_t             thread;   /* The pthread thread identifier. */
+     pid_t                 tid;
 
-     char             *name;
+     char                 *name;
 
-     DirectThreadType  type;     /* The thread's type, e.g. input thread. */
-     DirectThreadMain  main;     /* The thread's main routine (or entry point). */
-     void             *arg;      /* Custom argument passed to the main routine. */
+     DirectThreadType      type;     /* The thread's type, e.g. input thread. */
+     DirectThreadMainFunc  main;     /* The thread's main routine (or entry point). */
+     void                 *arg;      /* Custom argument passed to the main routine. */
 
-     bool              canceled; /* Set when direct_thread_cancel() is called. */
-     bool              joining;  /* Set when direct_thread_join() is called. */
-     bool              joined;   /* Set when direct_thread_join() has finished. */
+     bool                  canceled; /* Set when direct_thread_cancel() is called. */
+     bool                  joining;  /* Set when direct_thread_join() is called. */
+     bool                  joined;   /* Set when direct_thread_join() has finished. */
 
 #ifdef DIRECT_THREAD_WAIT_INIT
-     bool              init;     /* Set to true before calling the main routine. */
+     bool                  init;     /* Set to true before calling the main routine. */
 #endif
 };
+
+struct __D_DirectThreadInitHandler {
+     DirectLink            link;
+
+     int                   magic;
+
+     DirectThreadInitFunc  func;
+     void                 *arg;
+};
+
+/******************************************************************************/
 
 /*
  * Wrapper around pthread's main routine to pass additional arguments
@@ -81,16 +93,65 @@ static const char *thread_type_name( DirectThreadType type )  D_CONST_FUNC;
 
 /******************************************************************************/
 
+static pthread_mutex_t  handler_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static DirectLink      *handlers     = NULL;
+
+/******************************************************************************/
+
+DirectThreadInitHandler *
+direct_thread_add_init_handler( DirectThreadInitFunc  func,
+                                void                 *arg )
+{
+     DirectThreadInitHandler *handler;
+
+     handler = D_CALLOC( 1, sizeof(DirectThreadInitHandler) );
+     if (!handler) {
+          D_WARN( "out of memory" );
+          return NULL;
+     }
+
+     handler->func = func;
+     handler->arg  = arg;
+
+     D_MAGIC_SET( handler, DirectThreadInitHandler );
+
+     pthread_mutex_lock( &handler_lock );
+
+     direct_list_append( &handlers, &handler->link );
+
+     pthread_mutex_unlock( &handler_lock );
+
+     return handler;
+}
+
+void
+direct_thread_remove_init_handler( DirectThreadInitHandler *handler )
+{
+     D_MAGIC_ASSERT( handler, DirectThreadInitHandler );
+
+     pthread_mutex_lock( &handler_lock );
+
+     direct_list_remove( &handlers, &handler->link );
+
+     pthread_mutex_unlock( &handler_lock );
+
+     D_MAGIC_CLEAR( handler );
+
+     D_FREE( handler );
+}
+
+/******************************************************************************/
+
 static pthread_mutex_t key_lock   = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 static pthread_key_t   thread_key = -1;
 
 /******************************************************************************/
 
 DirectThread *
-direct_thread_create( DirectThreadType  thread_type,
-                      DirectThreadMain  thread_main,
-                      void             *arg,
-                      const char       *name )
+direct_thread_create( DirectThreadType      thread_type,
+                      DirectThreadMainFunc  thread_main,
+                      void                 *arg,
+                      const char           *name )
 {
      DirectThread *thread;
 
@@ -304,6 +365,7 @@ static void *
 direct_thread_main( void *arg )
 {
      void         *ret;
+     DirectLink   *l;
      DirectThread *thread = (DirectThread*) arg;
 
      D_MAGIC_ASSERT( thread, DirectThread );
@@ -311,6 +373,19 @@ direct_thread_main( void *arg )
      pthread_setspecific( thread_key, thread );
 
      thread->tid = direct_gettid();
+
+
+     /* Call all init handlers. */
+     pthread_mutex_lock( &handler_lock );
+
+     direct_list_foreach (l, handlers) {
+          DirectThreadInitHandler *handler = (DirectThreadInitHandler*) l;
+
+          handler->func( thread, handler->arg );
+     }
+
+     pthread_mutex_unlock( &handler_lock );
+
 
      /* Have all signals handled by the main thread. */
      direct_signals_block_all();

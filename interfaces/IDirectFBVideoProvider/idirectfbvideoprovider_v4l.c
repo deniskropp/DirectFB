@@ -45,8 +45,6 @@
 #include <sys/ioctl.h>
 #include <linux/videodev.h>
 
-#include <core/thread.h>
-
 #include <directfb.h>
 
 #include <media/idirectfbvideoprovider.h>
@@ -70,6 +68,7 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #ifdef HAVE_V4L2
@@ -124,7 +123,7 @@ typedef struct {
      void                    *buffer;
      bool                     grab_mode;
 
-     CoreThread              *thread;
+     DirectThread            *thread;
      CoreSurface             *destination;
      DVFrameCallback          callback;
      void                    *ctx;
@@ -140,8 +139,8 @@ typedef struct {
 static const unsigned int zero = 0;
 static const unsigned int one = 1;
 
-static void* OverlayThread( CoreThread *thread, void *context );
-static void* GrabThread( CoreThread *thread, void *context );
+static void* OverlayThread( DirectThread *thread, void *context );
+static void* GrabThread( DirectThread *thread, void *context );
 static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx );
 static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ctx );
 static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rect,
@@ -634,7 +633,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
  * bogus thread to generate callback,
  * because video4linux does not support syncing in overlay mode
  */
-static void* OverlayThread( CoreThread *thread, void *ctx )
+static void* OverlayThread( DirectThread *thread, void *ctx )
 {
      IDirectFBVideoProvider_V4L_data *data =
      (IDirectFBVideoProvider_V4L_data*)ctx;
@@ -670,7 +669,7 @@ static void* OverlayThread( CoreThread *thread, void *ctx )
 /*
  * thread to capture data from v4l buffers and generate callback
  */
-static void* GrabThread( CoreThread *thread, void *ctx )
+static void* GrabThread( DirectThread *thread, void *ctx )
 {
      IDirectFBVideoProvider_V4L_data *data =
      (IDirectFBVideoProvider_V4L_data*)ctx;
@@ -939,7 +938,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
      data->running = true;
 
      if (data->callback || surface->caps & DSCAPS_INTERLACED)
-          data->thread = dfb_thread_create( CTT_CRITICAL, OverlayThread, data );
+          data->thread = direct_thread_create( DTT_CRITICAL, OverlayThread, data, "V4L Overlay" );
 
      return DFB_OK;
 }
@@ -1015,7 +1014,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
      data->running = true;
 
-     data->thread = dfb_thread_create( CTT_INPUT, GrabThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, GrabThread, data, "V4L Grabber" );
 
      return DFB_OK;
 }
@@ -1035,8 +1034,8 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 
      if (data->thread) {
           data->running = false;
-          dfb_thread_join( data->thread );
-          dfb_thread_destroy( data->thread );
+          direct_thread_join( data->thread );
+          direct_thread_destroy( data->thread );
           data->thread = NULL;
      }
 
@@ -1163,7 +1162,7 @@ int wait_for_buffer(int vid, struct v4l2_buffer *cur)
      return 0;
 }
 
-static void *V4L2_Thread(CoreThread * thread, void *ctx)
+static void *V4L2_Thread(DirectThread * thread, void *ctx)
 {
      int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
      int i, err;
@@ -1418,7 +1417,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
 
      data->running = true;
 
-     data->thread = dfb_thread_create(CTT_ANY, V4L2_Thread, data);
+     data->thread = direct_thread_create(DTT_DEFAULT, V4L2_Thread, data, "Video4Linux 2");
 
      return DFB_OK;
 }

@@ -63,7 +63,6 @@
 
 #include <core/input.h>
 #include <core/system.h>
-#include <core/thread.h>
 
 #include <misc/conf.h>
 
@@ -71,6 +70,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/memcpy.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -136,7 +136,7 @@ DFB_INPUT_DRIVER( MuTouch )
 
 typedef struct __MuTData__ {
      int fd;
-     CoreThread *thread;
+     DirectThread *thread;
      InputDevice *device;
      unsigned short x;
      unsigned short y;
@@ -345,7 +345,7 @@ static void MuTGetEvent(MuTData *event)
 }
 
 /* The main routine for MuTouch */
-static void *MuTouchEventThread(CoreThread *thread, void *driver_data)
+static void *MuTouchEventThread(DirectThread *thread, void *driver_data)
 {
      MuTData *data = (MuTData *) driver_data;
 
@@ -354,7 +354,7 @@ static void *MuTouchEventThread(CoreThread *thread, void *driver_data)
           DFBInputEvent evt;
 
           MuTGetEvent (data);
-          dfb_thread_testcancel (thread);
+          direct_thread_testcancel (thread);
 
           /* Dispatch axis */
           evt.type    = DIET_AXISMOTION;
@@ -383,7 +383,7 @@ static void *MuTouchEventThread(CoreThread *thread, void *driver_data)
           evt.button = DIBI_LEFT;
 
           dfb_input_dispatch (data->device, &evt);
-          dfb_thread_testcancel (thread);
+          direct_thread_testcancel (thread);
      }
 
      return NULL;
@@ -459,7 +459,7 @@ static DFBResult driver_open_device(InputDevice *device,
      info->desc.max_button = DIBI_LEFT;
 
      /* start input thread */
-     data->thread = dfb_thread_create (CTT_INPUT, MuTouchEventThread, data);
+     data->thread = direct_thread_create (DTT_INPUT, MuTouchEventThread, data, "MuTouch Input");
 
      /* set private data pointer */
      *driver_data = data;
@@ -482,9 +482,9 @@ static void driver_close_device(void *driver_data)
      MuTData *data = (MuTData *)driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel (data->thread);
-     dfb_thread_join (data->thread);
-     dfb_thread_destroy (data->thread);
+     direct_thread_cancel (data->thread);
+     direct_thread_join (data->thread);
+     direct_thread_destroy (data->thread);
 
      /* close device */
      close (data->fd);

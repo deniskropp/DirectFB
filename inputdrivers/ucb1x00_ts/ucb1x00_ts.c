@@ -40,7 +40,6 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/thread.h>
 
 #include <misc/conf.h>
 
@@ -48,6 +47,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/memcpy.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -61,7 +61,7 @@ DFB_INPUT_DRIVER( ucb1x00_ts )
 
 typedef struct {
      InputDevice   *device;
-     CoreThread    *thread;
+     DirectThread  *thread;
 
      int            fd;
 } ucb1x00TSData;
@@ -174,7 +174,7 @@ scale_point( TS_EVENT *ts_event )
 }
 
 static void *
-ucb1x00tsEventThread( CoreThread *thread, void *driver_data )
+ucb1x00tsEventThread( DirectThread *thread, void *driver_data )
 {
      ucb1x00TSData *data = (ucb1x00TSData*) driver_data;
 
@@ -191,7 +191,7 @@ ucb1x00tsEventThread( CoreThread *thread, void *driver_data )
      {
           DFBInputEvent evt;
 
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           if (readlen < 1)
                continue;
@@ -315,7 +315,7 @@ driver_open_device( InputDevice      *device,
      event_buffer = malloc( sizeof( TS_EVENT) * config.numevents );
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, ucb1x00tsEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, ucb1x00tsEventThread, data, "UCB TS Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -340,9 +340,9 @@ driver_close_device( void *driver_data )
      ucb1x00TSData *data = (ucb1x00TSData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* close device */
      if (close( data->fd ) < 0)

@@ -41,7 +41,6 @@ internalinclude_HEADERS = \
 	surfaces.h		\
 	surfacemanager.h	\
 	system.h		\
-	thread.h		\
 	windows.h		\
 	windowstack.h
 
@@ -72,7 +71,6 @@ libdirectfb_core_la_SOURCES = \
 	surfaces.c		\
 	surfacemanager.c	\
 	system.c		\
-	thread.c		\
 	window_display.c	\
 	windows.c		\
 	windows_internal.h	\

@@ -42,11 +42,11 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/input.h>
-#include <core/thread.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <core/input_driver.h>
 
@@ -60,10 +60,10 @@ DFB_INPUT_DRIVER( sonypi )
  * declaration of private data
  */
 typedef struct {
-     InputDevice *device;
-     CoreThread  *thread;
+     InputDevice  *device;
+     DirectThread *thread;
 
-     int          fd;
+     int           fd;
 } SonypiData;
 
 
@@ -72,7 +72,7 @@ typedef struct {
  * Generates events on incoming data.
  */
 static void*
-sonypiEventThread( CoreThread *thread, void *driver_data )
+sonypiEventThread( DirectThread *thread, void *driver_data )
 {
      SonypiData    *data = (SonypiData*) driver_data;
      int            readlen;
@@ -83,7 +83,7 @@ sonypiEventThread( CoreThread *thread, void *driver_data )
           int           i;
           DFBInputEvent evt;
 
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           /* process each byte */
           for (i=0; i<readlen; i++) {
@@ -217,7 +217,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     data->thread = dfb_thread_create( CTT_INPUT, sonypiEventThread, data );
+     data->thread = direct_thread_create( DTT_INPUT, sonypiEventThread, data, "Sony PI Input" );
 
      /* set private data pointer */
      *driver_data = data;
@@ -245,9 +245,9 @@ driver_close_device( void *driver_data )
      SonypiData *data = (SonypiData*) driver_data;
 
      /* stop input thread */
-     dfb_thread_cancel( data->thread );
-     dfb_thread_join( data->thread );
-     dfb_thread_destroy( data->thread );
+     direct_thread_cancel( data->thread );
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      /* close file */
      close( data->fd );
