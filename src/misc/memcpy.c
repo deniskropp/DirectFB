@@ -459,10 +459,10 @@ void dfb_find_best_memcpy()
      int i, j, best = 0;
      __u32 config_flags = dfb_mm_accel();
 
-     if (!(buf1 = DFBMALLOC( BUFSIZE )))
+     if (!(buf1 = DFBMALLOC( BUFSIZE * 2000 )))
           return;
 
-     if (!(buf2 = DFBMALLOC( BUFSIZE ))) {
+     if (!(buf2 = DFBMALLOC( BUFSIZE * 2000 ))) {
           DFBFREE( buf1 );
           return;
      }
@@ -471,7 +471,8 @@ void dfb_find_best_memcpy()
                "Benchmarking memcpy methods (smaller is better):\n");
 
      /* make sure buffers are present on physical memory */
-     memcpy( buf1, buf2, BUFSIZE );
+     memcpy( buf1, buf2, BUFSIZE * 2000 );
+     memcpy( buf2, buf1, BUFSIZE * 2000 );
 
      for (i=1; memcpy_method[i].name; i++) {
           if (memcpy_method[i].cpu_require & ~config_flags)
@@ -479,10 +480,8 @@ void dfb_find_best_memcpy()
 
           t = rdtsc();
 
-          for (j=0; j<2000; j++) {
-               memcpy_method[i].function( buf1, buf2, BUFSIZE );
-               memcpy_method[i].function( buf2, buf1, BUFSIZE );
-          }
+          for (j=0; j<2000; j++)
+               memcpy_method[i].function( buf1 + j*BUFSIZE, buf2 + j*BUFSIZE, BUFSIZE );
 
           t = rdtsc() - t;
           memcpy_method[i].time = t;
