@@ -95,6 +95,9 @@ shmalloc_check_shmfs (int world)
      char * mount_point   = NULL;
      char * mount_fs      = NULL;
 
+     int    largest = 0;
+     char  *name    = NULL;
+
      char   buffer[SH_BUFSIZE];
 
      if (!(mounts_handle = fopen (SH_MOUNTS_FILE, "r")))
@@ -111,38 +114,39 @@ shmalloc_check_shmfs (int world)
           if (mount_fs && mount_point &&
               (!strcmp (mount_fs, "tmpfs") || !strcmp (mount_fs, "shmfs")))
           {
-               char          *name;
                struct statfs  stat;
-               int            len = strlen (mount_point) +
-                                    strlen (SH_FILE_NAME) + 11;
+               int            bytes;
+               int            len = strlen (mount_point) + strlen (SH_FILE_NAME) + 11;
 
                if (statfs (mount_point, &stat)) {
                     D_PERROR ("Fusion/SHM: statfs on tmpfs failed!\n");
                     continue;
                }
 
-               if (stat.f_blocks * stat.f_bsize < (4<<20))
+               bytes = stat.f_blocks * stat.f_bsize;
+
+               if (bytes <= largest)
                     continue;
 
-               if (!(name = D_MALLOC(len))) {
-                    D_ERROR ("Fusion/SHM: malloc failed!\n");
-                    fclose (mounts_handle);
+               if (name)
+                    D_FREE( name );
 
+               name = D_MALLOC( len );
+               if (!name) {
+                    D_OOM();
+                    fclose (mounts_handle);
                     return NULL;
                }
 
-               snprintf (name, len, "%s%s%d",
-                         mount_point, SH_FILE_NAME, world);
+               snprintf (name, len, "%s%s%d", mount_point, SH_FILE_NAME, world);
 
-               fclose (mounts_handle);
-
-               return name;
+               largest = bytes;
           }
      }
 
      fclose (mounts_handle);
 
-     return NULL;
+     return name;
 }
 
 /* Aligned allocation.  */
