@@ -1,4 +1,4 @@
-dnl Process this file with autoconf to produce a configure script.
+gdnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(include/directfb.h)
 
@@ -367,7 +367,7 @@ dnl Test for libpng and libz
         AC_MSG_RESULT($png_ok)
         if test "$png_ok" = yes; then
 	  PNG=yes
-          LIBPNG="-lpng $LIBZ"
+          LIBPNG="-lpng $LIBZ -lm"
         else
 	  PNG=no
           AC_MSG_WARN([
