@@ -163,16 +163,33 @@ fusion_init( int world, int *world_ret )
 void
 fusion_exit()
 {
+     int               foo;
+     FusionSendMessage msg;
+     
      DFB_ASSERT( fusion_refs > 0 );
 
      /* decrement local reference counter */
      if (--fusion_refs)
           return;
 
-     dfb_thread_cancel( read_loop );
+     /* Wake up the read loop thread. */
+     msg.fusion_id = _fusion_id;
+     msg.msg_id    = 0;
+     msg.msg_data  = &foo;
+     msg.msg_size  = sizeof(foo);
+
+     while (ioctl( _fusion_fd, FUSION_SEND_MESSAGE, &msg ) < 0) {
+          if (errno != EINTR) {
+               FPERROR ("FUSION_SEND_MESSAGE");
+               break;
+          }
+     }
+
+     /* Wait for its termination. */
      dfb_thread_join( read_loop );
      dfb_thread_destroy( read_loop );
 
+     /* Master has to deinitialize shared data. */
      if (_fusion_id == 1) {
           fusion_skirmish_destroy( &_fusion_shared->arenas_lock );
           
@@ -181,13 +198,16 @@ fusion_exit()
 
      _fusion_shared = NULL;
 
+     /* Deinitialize or leave shared memory. */
      __shmalloc_exit( _fusion_id == 1 );
 
+     /* Reset local dispatch nodes. */
      _fusion_reactor_free_all();
 
      _fusion_id = 0;
      
-     close( _fusion_fd );
+     if (close( _fusion_fd ))
+          FPERROR( "closing the fusion device failed!\n" );
      _fusion_fd = -1;
 }
 
@@ -250,34 +270,28 @@ fusion_read_loop( CoreThread *thread, void *arg )
      
      FDEBUG( "entering loop...\n" );
 
-     dfb_thread_testcancel( thread );
-     
      while ((result = select (_fusion_fd+1, &set, NULL, NULL, NULL)) >= 0 ||
             errno == EINTR)
      {
           char *buf_p = buf;
 
-          dfb_thread_testcancel( thread );
-          
           FD_ZERO(&set);
           FD_SET(_fusion_fd,&set);
           
           if (result <= 0)
                continue;
           
-          //FDEBUG( "going to read...\n" );
-          
           len = read (_fusion_fd, buf, 1024);
-          
-          //FDEBUG( "read %d bytes.\n", len );
-          
-          dfb_thread_testcancel( thread );
           
           while (buf_p < buf + len) {
                FusionReadMessage *header = (FusionReadMessage*) buf_p;
                void              *data   = buf_p + sizeof(FusionReadMessage);
 
                switch (header->msg_type) {
+                    case FMT_SEND:
+                         if (!fusion_refs)
+                              return NULL;
+                         break;
                     case FMT_CALL:
                          _fusion_call_process( header->msg_id, data );
                          break;
@@ -290,8 +304,6 @@ fusion_read_loop( CoreThread *thread, void *arg )
                          break;
                }
 
-               dfb_thread_testcancel( thread );
-               
                buf_p = data + header->msg_size;
           }
      }
