@@ -47,6 +47,7 @@
 
 #include <misc/gfx_util.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 #include <misc/util.h>
 
 #include "config.h"
@@ -88,6 +89,8 @@ typedef struct {
      png_uint_32          height;
      int                  bpp;
      int                  color_type;
+     png_uint_32          color_key;
+     bool                 color_keyed;
 
      __u32               *image;
 
@@ -329,7 +332,7 @@ IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
      dsc->width  = data->width;
      dsc->height = data->height;
 
-     if (data->color_type & (PNG_COLOR_MASK_ALPHA | PNG_COLOR_MASK_PALETTE))
+     if (data->color_type & PNG_COLOR_MASK_ALPHA)
           dsc->pixelformat = DSPF_ARGB;
      else
           dsc->pixelformat = dfb_primary_layer_pixelformat();
@@ -346,15 +349,73 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
      if (!dsc)
           return DFB_INVARG;
 
-     /* FIXME: colorkeyed PNGs are currently converted to alphachannel PNGs */
-     if (data->color_type & (PNG_COLOR_MASK_ALPHA | PNG_COLOR_MASK_PALETTE))
-          dsc->caps = DICAPS_ALPHACHANNEL;
-     else
-          dsc->caps = DICAPS_NONE;
+     dsc->caps = DICAPS_NONE;
+     
+     if (data->color_type & PNG_COLOR_MASK_ALPHA)
+          dsc->caps |= DICAPS_ALPHACHANNEL;
+     
+     if (data->color_keyed) {
+          dsc->caps |= DICAPS_COLORKEY;
+
+          dsc->colorkey_r = (data->color_key & 0xff0000) >> 16;
+          dsc->colorkey_g = (data->color_key & 0x00ff00) >>  8;
+          dsc->colorkey_b = (data->color_key & 0x0000ff);
+     }
 
      return DFB_OK;
 }
 
+
+#define MAXCOLORMAPSIZE 256
+
+static int SortColors (const void *a, const void *b)
+{
+     return (*((const __u8 *) a) - *((const __u8 *) b));
+}
+
+/*  looks for a color that is not in the colormap and ideally not
+    even close to the colors used in the colormap  */
+static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
+{
+     __u32 color = 0xFF000000;
+     __u8  csort[MAXCOLORMAPSIZE];
+     int   i, j, index, d;
+
+     if (n_colors < 1)
+          return color;
+
+     DFB_ASSERT( n_colors <= MAXCOLORMAPSIZE );
+
+     for (i = 0; i < 3; i++) {
+          dfb_memcpy( csort, cmap[i], n_colors );
+          qsort( csort, n_colors, 1, SortColors );
+          
+          for (j = 1, index = 0, d = 0; j < n_colors; j++) {
+               if (csort[j] - csort[j-1] > d) {
+                    d = csort[j] - csort[j-1];
+                    index = j;
+               }
+          }
+          if ((csort[0] - 0x0) > d) {
+               d = csort[0] - 0x0;
+               index = n_colors;
+          }
+          if (0xFF - (csort[n_colors - 1]) > d) {
+               index = n_colors + 1;
+          }
+          
+          if (index < n_colors)
+               csort[0] = csort[index] - (d/2);
+          else if (index == n_colors)
+               csort[0] = 0x0;
+          else
+               csort[0] = 0xFF;
+
+          color |= (csort[0] << (8 * (2 - i)));
+     }
+
+     return color;
+}
 
 /* Called at the start of the progressive load, once we have image info */
 static void
@@ -375,7 +436,7 @@ png_info_callback   (png_structp png_read_ptr,
      png_get_IHDR( data->png_ptr, data->info_ptr,
                    &data->width, &data->height, &data->bpp, &data->color_type,
                    NULL, NULL, NULL );
-     
+
      if (data->color_type == PNG_COLOR_TYPE_PALETTE)
           png_set_palette_to_rgb( data->png_ptr );
 
@@ -383,8 +444,50 @@ png_info_callback   (png_structp png_read_ptr,
          || data->color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
           png_set_gray_to_rgb( data->png_ptr );
 
-     if (png_get_valid( data->png_ptr, data->info_ptr, PNG_INFO_tRNS ))
-          png_set_tRNS_to_alpha( data->png_ptr );
+     if (png_get_valid( data->png_ptr, data->info_ptr, PNG_INFO_tRNS )) {
+          data->color_keyed = true;
+          
+          /* generate color key based on palette... */
+          if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
+               int        i;
+               __u32      key;
+               png_colorp palette    = data->info_ptr->palette;
+               png_bytep  trans      = data->info_ptr->trans;
+               int        num_colors = MIN( MAXCOLORMAPSIZE,
+                                            data->info_ptr->num_palette );
+               __u8       cmap[3][num_colors];
+
+               for (i=0; i<num_colors; i++) {
+                    cmap[0][i] = palette[i].red;
+                    cmap[1][i] = palette[i].green;
+                    cmap[2][i] = palette[i].blue;
+               }
+
+               key = FindColorKey( num_colors, cmap );
+
+               for (i=0; i<data->info_ptr->num_trans; i++) {
+                    if (!trans[i]) {
+                         trans[i] = 0xff;
+                         
+                         palette[i].red   = (key & 0xff0000) >> 16;
+                         palette[i].green = (key & 0x00ff00) >>  8;
+                         palette[i].blue  = (key & 0x0000ff);
+                    }
+               }
+
+               data->color_key = key;
+          }
+          else {
+               /* ...or based on trans rgb value */
+               png_color_16p trans = &data->info_ptr->trans_values;
+
+               CAUTION("color key from non-palette source is untested");
+               
+               data->color_key = (((trans->red & 0xff00) << 8) |
+                                  ((trans->green & 0xff00)) |
+                                  ((trans->blue & 0xff00) >> 8));
+          }
+     }
 
      if (data->bpp == 16)
           png_set_strip_16( data->png_ptr );
