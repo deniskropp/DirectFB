@@ -75,6 +75,7 @@ v0.0.1 and v0.1.0 are tested on an EPIA-M9000
 #include <core/gfxcard.h>
 #include <core/graphics_driver.h>
 #include <core/surfacemanager.h>
+#include <core/system.h>
 
 // System headers
 
@@ -84,6 +85,8 @@ v0.0.1 and v0.1.0 are tested on an EPIA-M9000
 #include <sys/mman.h>
 #include <unistd.h>
 #include <stdio.h>
+
+#include <string.h>
 
 // Driver headers
 
@@ -100,7 +103,26 @@ DFB_GRAPHICS_DRIVER(unichrome)
 
 //----------
 
-/** Allocate and lock a surface to be used as VQ buffer. */
+
+/**
+ * Dump beginning of virtual queue.
+ * Use it to check that the VQ actually is in use. */
+
+static void uc_dump_vq(UcDeviceData *ucdev) 
+{
+	int i;
+	__u8* vq;
+
+	if (!ucdev->vq_start) return;
+	vq = dfb_system_video_memory_virtual(ucdev->vq_start);
+
+	for (i = 0; i < 128; i++) {
+		printf("%02x ", *(vq+i));
+		if ((i+1) % 16 == 0) printf("\n");
+	}
+}
+
+/** Allocate memory for the virtual queue. */
 
 static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
 {
@@ -111,19 +133,17 @@ static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
 
     if (!ucdev->vq_start)
         return DFB_INIT;
-    
+
     ucdev->vq_end = ucdev->vq_start + ucdev->vq_size - 1;
+
+	// Debug: clear buffer
+	memset((void *) dfb_system_video_memory_virtual(ucdev->vq_start),
+		0xcc, ucdev->vq_size);
+
+	// uc_dump_vq(ucdev);
 
     return DFB_OK;
 }
-
-/** Free the VQ buffer. */
-
-void uc_free_vq(UcDriverData *ucdrv)
-{
-/* can't be freed */
-}
-
 
 /**
  * Initialize the hardware. 
@@ -134,13 +154,6 @@ DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDeviceData *ucdev, UcDrive
 {
     DFBResult result = DFB_OK;
     volatile __u8* hwregs = ucdrv->hwregs;
-
-    if (enable) {
-        result = uc_alloc_vq(device,ucdev);
-        if (result != DFB_OK) {
-            enable = false;
-        }
-    }
 
     // Init 2D engine registers to reset 2D engine
 
@@ -176,9 +189,12 @@ DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDeviceData *ucdev, UcDrive
     VIA_OUT(hwregs, 0x43c, 0xfe020000);
     VIA_OUT(hwregs, 0x440, 0x00000000);
 
-    if (enable) { // Enable VQ
+    if (enable) {
+        result = uc_alloc_vq(device,ucdev);
+        enable = (result == DFB_OK);
+    }
 
-        uc_alloc_vq(device, ucdev);
+    if (enable) { // Enable VQ
 
         VIA_OUT(hwregs, 0x43c, 0x00fe0000);
         VIA_OUT(hwregs, 0x440, 0x080003fe);
@@ -213,8 +229,6 @@ DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDeviceData *ucdev, UcDrive
         VIA_OUT(hwregs, 0x440, 0x44000000);
         VIA_OUT(hwregs, 0x440, 0x45080c04);
         VIA_OUT(hwregs, 0x440, 0x46800408);
-
-        uc_free_vq(ucdrv);
     }
 
     return result;
@@ -398,6 +412,7 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
     funcs->CheckState    = uc_check_state;
     funcs->SetState      = uc_set_state;
     funcs->EngineSync    = uc_engine_sync;
+    funcs->EmitCommands  = uc_emit_commands;
 
     funcs->FillRectangle = uc_fill_rectangle;
     funcs->DrawRectangle = uc_draw_rectangle;
@@ -448,7 +463,7 @@ static DFBResult driver_init_device(GraphicsDevice* device,
     ucdev->idle_waitcycles = 0;
 
     uc_init_3d_engine(ucdrv->hwregs, ucdrv->hwrev, 1);
-    uc_init_2d_engine(device, ucdev, ucdrv, false);    // False for now - surface allocator crashes
+    uc_init_2d_engine(device, ucdev, ucdrv, false);	// VQ disabled - can't make it work.
 
     return DFB_OK;
 }
@@ -458,6 +473,8 @@ static void driver_close_device(GraphicsDevice *device,
 {
     UcDriverData* ucdrv = (UcDriverData*) driver_data;
     UcDeviceData* ucdev = (UcDeviceData*) device_data;
+
+	// uc_dump_vq(ucdev);
 
     uc_engine_sync(driver_data, device_data);
     uc_init_2d_engine(device, ucdev, ucdrv, false);

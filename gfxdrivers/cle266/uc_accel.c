@@ -20,9 +20,6 @@
 
 #define UC_ACCEL_END()                                      \
     UC_FIFO_CHECK(fifo);                                    \
-    if (ucdev->must_wait == 1) uc_waitcmd(ucdrv, ucdev);    \
-    UC_FIFO_FLUSH(fifo);                                    \
-    ucdev->must_wait = 1;                                   \
     /*printf("leaving %s\n", __PRETTY_FUNCTION__)*/
 
 // Private functions ---------------------------------------------------------
@@ -44,6 +41,15 @@ inline void uc_waitcmd(UcDriverData* ucdrv, UcDeviceData* ucdev)
 
     ucdev->cmd_waitcycles += loop;
     ucdev->must_wait = 0;
+}
+
+/** Send commands to 2D/3D engine. */
+
+bool uc_emit_commands(void* drv, void* dev)
+{
+    UC_ACCEL_BEGIN()
+    if (ucdev->must_wait == 1) uc_waitcmd(ucdrv, ucdev);
+    UC_FIFO_FLUSH(fifo);
 }
 
 /**
@@ -352,7 +358,7 @@ bool uc_stretch_blit(void* drv, void* dev,
         HC_HVCycle_AA | HC_HVCycle_BB | HC_HVCycle_NewC | HC_HShading_FlatA;
     int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
 
-    UC_FIFO_PREPARE(fifo, 100);
+    UC_FIFO_PREPARE(fifo, 30);
 
     UC_FIFO_ADD_HDR(fifo, HC_ParaType_CmdVdata << 16);
     UC_FIFO_ADD(fifo, cmdB);
@@ -366,13 +372,17 @@ bool uc_stretch_blit(void* drv, void* dev,
     UC_FIFO_ADD(fifo, cmdA_End);
     UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.
 
+    UC_ACCEL_END();
+
+    return true;
+}
 
     // Blit profiling
 
     //struct timeval tv_start, tv_stop;
     //gettimeofday(&tv_start, NULL);
 
-    UC_ACCEL_END();
+    // Run test here
 
     //gettimeofday(&tv_stop, NULL);
 
@@ -384,6 +394,3 @@ bool uc_stretch_blit(void* drv, void* dev,
     //}
 
     //printf("elapsed time: %d us\n", tv_stop.tv_usec);
-
-    return true;
-}
