@@ -30,6 +30,12 @@ else
 NEOMAGIC_DIR =
 endif
 
+if GFX_NSC
+GEODE_DIR = nsc
+else
+GEODE_DIR =
+endif
+
 if GFX_SAVAGE
 SAVAGE_DIR = savage
 else
@@ -48,5 +54,13 @@ else
 I810_DIR =
 endif
 
-SUBDIRS = $(ATI_DIR) $(CYBER5K_DIR) $(MATROX_DIR) $(TDFX_DIR) $(NVIDIA_DIR) $(NEOMAGIC_DIR) $(SAVAGE_DIR) $(I810_DIR)
-
+SUBDIRS = \
+	$(ATI_DIR)	\
+	$(CYBER5K_DIR)	\
+	$(MATROX_DIR)	\
+	$(TDFX_DIR)	\
+	$(NVIDIA_DIR)	\
+	$(NEOMAGIC_DIR)	\
+	$(SAVAGE_DIR)	\
+	$(I810_DIR)	\
+	$(GEODE_DIR)

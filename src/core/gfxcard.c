@@ -728,8 +728,8 @@ typedef struct {
 /**
  *  render a triangle using two parallel DDA's
  */
-static
-void fill_tri( DFBTriangle *tri, CardState *state, int accelerated )
+static void
+fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
 {
      int y, yend;
      DDA dda1, dda2;
@@ -810,15 +810,16 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 
           if (tri->y3 - tri->y1 > 0) {
                /* try hardware accelerated rectangle filling */
-               if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+               if (! (card->shared->device_info.caps.flags & CCF_NOTRIEMU) &&
+                   dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
                    dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
                {
-                    fill_tri( tri, state, 1 );
+                    fill_tri( tri, state, true );
 
                     dfb_gfxcard_state_release( state );
                }
                else if (gAquire( state, DFXL_FILLTRIANGLE )) {
-                    fill_tri( tri, state, 0 );
+                    fill_tri( tri, state, false );
 
                     gRelease( state );
                }

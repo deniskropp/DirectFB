@@ -36,7 +36,8 @@
 #include <core/modules.h>
 
 typedef enum {
-     CCF_CLIPPING = 0x00000001
+     CCF_CLIPPING = 0x00000001,
+     CCF_NOTRIEMU = 0x00000002
 } CardCapabilitiesFlags;
 
 
