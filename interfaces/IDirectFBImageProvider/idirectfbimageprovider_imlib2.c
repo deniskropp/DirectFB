@@ -263,8 +263,7 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
 
      dfb_scale_linear_32( dst, image_data,
                           src_width, src_height, rect.w, rect.h,
-                          pitch, format, dst_surface->palette,
-                          dst_surface->caps );
+                          pitch, dst_surface );
 
      destination->Unlock( destination );
      return DFB_OK;
