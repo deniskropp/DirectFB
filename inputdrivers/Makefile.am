@@ -24,6 +24,10 @@ if MUTOUCH_TS
 MUTOUCH_TS_DIR = mutouch
 endif
 
+if WM97XX_TS
+WM97XX_TS_DIR = wm97xx_ts
+endif
+
 SUBDIRS = \
 	joystick		\
 	keyboard		\
@@ -35,4 +39,5 @@ SUBDIRS = \
 	$(UCB1X00_TS_DIR)	\
 	$(MUTOUCH_TS_DIR)	\
 	$(SONYPI_DIR)		\
-	$(DBOX2REMOTE_DIR)
+	$(DBOX2REMOTE_DIR)	\
+	$(WM97XX_TS_DIR)
