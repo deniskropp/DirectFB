@@ -169,8 +169,14 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
 
      D_ASSERT( pool != NULL );
 
+     D_DEBUG_AT( Fusion_Object, "{%s}  Destroying pool...\n", pool->name );
+
+     D_DEBUG_AT( Fusion_Object, "{%s}    -> syncing...\n", pool->name );
+
      /* Wait for processing of pending messages. */
      fusion_sync();
+
+     D_DEBUG_AT( Fusion_Object, "{%s}    -> locking...\n", pool->name );
 
      /* Lock the pool. */
      if (fusion_skirmish_prevail( &pool->lock ))
@@ -188,7 +194,7 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
 
           fusion_ref_stat( &object->ref, &refs );
 
-          D_DEBUG_AT( Fusion_Object, "{%s} undestroyed object: %p (refs: %d)\n",
+          D_DEBUG_AT( Fusion_Object, "{%s}    -> destroying %p with %d reference count...\n",
                       pool->name, object, refs );
 
           /* Set "deinitializing" state. */
@@ -206,6 +212,8 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
 
      /* Destroy the pool lock. */
      fusion_skirmish_destroy( &pool->lock );
+
+     D_DEBUG_AT( Fusion_Object, "{%s}    -> pool destroyed.\n", pool->name );
 
      /* Deallocate shared memory. */
      SHFREE( pool->name );
