@@ -515,6 +515,8 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
 
      dfb_gfx_copy( shape, cursor->surface, NULL );
 
+     cursor->surface->caps = ((cursor->surface->caps & ~DSCAPS_PREMULTIPLIED) |
+                              (shape->caps & DSCAPS_PREMULTIPLIED));
 
      if (flags) {
           ret = dfb_wm_set_window_config( cursor, &config, flags );
