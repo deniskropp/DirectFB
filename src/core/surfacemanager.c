@@ -59,6 +59,8 @@
  * two chunks are merged to one free chunk if memory is deallocated
  */
 struct _Chunk {
+     int             magic;
+
      int             offset;      /* offset in video memory,
                                      is greater or equal to the heap offset */
      int             length;      /* length of this chunk in bytes */
@@ -74,6 +76,8 @@ struct _Chunk {
 };
 
 struct _SurfaceManager {
+     int             magic;
+
      FusionSkirmish  lock;
 
      Chunk          *chunks;
@@ -128,6 +132,10 @@ dfb_surfacemanager_create( unsigned int     length,
 
      fusion_skirmish_init( &manager->lock );
 
+     DFB_MAGIC_SET( chunk, _Chunk_ );
+
+     DFB_MAGIC_SET( manager, SurfaceManager );
+
      return manager;
 }
 
@@ -139,10 +147,16 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
      DFB_ASSERT( manager != NULL );
      DFB_ASSERT( manager->chunks != NULL );
 
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+
+     DFB_MAGIC_CLEAR( manager );
+
      /* Deallocate all chunks. */
      chunk = manager->chunks;
      while (chunk) {
           Chunk *next = chunk->next;
+
+          DFB_MAGIC_CLEAR( chunk );
 
           SHFREE( chunk );
 
@@ -159,6 +173,8 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
 DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 {
      Chunk *c;
+
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
 
      dfb_surfacemanager_lock( manager );
 
@@ -184,6 +200,8 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 
 DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 {
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+
      dfb_surfacemanager_lock( manager );
 
      manager->suspended = false;
@@ -195,11 +213,15 @@ DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 
 void dfb_surfacemanager_lock( SurfaceManager *manager )
 {
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+
      fusion_skirmish_prevail( &manager->lock );
 }
 
 void dfb_surfacemanager_unlock( SurfaceManager *manager )
 {
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+
      fusion_skirmish_dismiss( &manager->lock );
 }
 
@@ -207,6 +229,8 @@ DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
                                                  int             offset )
 {
      DFB_ASSERT( offset >= 0 );
+
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
 
      dfb_surfacemanager_lock( manager );
 
@@ -251,6 +275,8 @@ dfb_surfacemanager_enumerate_chunks( SurfaceManager  *manager,
      DFB_ASSERT( manager != NULL );
      DFB_ASSERT( callback != NULL );
 
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+
      dfb_surfacemanager_lock( manager );
 
      c = manager->chunks;
@@ -279,6 +305,8 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      Chunk *best_occupied = NULL;
 
      CoreSurface *surface = buffer->surface;
+
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
 
      if (!manager->length || manager->suspended)
           return DFB_NOVIDEOMEMORY;
@@ -393,6 +421,8 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
 
      DFB_ASSERT( buffer->surface );
 
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+
      if (buffer->video.health == CSH_INVALID)
           return DFB_OK;
 
@@ -426,6 +456,8 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
 {
      DFBResult    ret;
      CoreSurface *surface = buffer->surface;
+
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
 
      if (manager->suspended)
           return DFB_NOVIDEOMEMORY;
@@ -493,6 +525,8 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
 {
      CoreSurface *surface = buffer->surface;
 
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+
      if (buffer->policy == CSP_VIDEOONLY) {
           BUG( "surface_manager_assure_system() called on video only surface" );
           return DFB_BUG;
@@ -544,6 +578,8 @@ static Chunk* split_chunk( Chunk *c, int length )
 {
      Chunk *newchunk;
 
+     DFB_MAGIC_ASSERT( c, _Chunk_ );
+
      if (c->length == length)          /* does not need be splitted */
           return c;
 
@@ -561,12 +597,17 @@ static Chunk* split_chunk( Chunk *c, int length )
           c->next->prev = newchunk;
      c->next = newchunk;
 
+     DFB_MAGIC_SET( newchunk, _Chunk_ );
+
      return newchunk;
 }
 
 static Chunk*
 free_chunk( SurfaceManager *manager, Chunk *chunk )
 {
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     DFB_MAGIC_ASSERT( chunk, _Chunk_ );
+
      if (!chunk->buffer) {
           BUG( "freeing free chunk" );
           return chunk;
@@ -597,6 +638,8 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
 
           //DEBUGMSG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
 
+          DFB_MAGIC_CLEAR( chunk );
+
           SHFREE( chunk );
           chunk = prev;
      }
@@ -612,6 +655,8 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
           if (chunk->next)
                chunk->next->prev = chunk;
 
+          DFB_MAGIC_CLEAR( next );
+
           SHFREE( next );
      }
 
@@ -621,6 +666,9 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
 static void
 occupy_chunk( SurfaceManager *manager, Chunk *chunk, SurfaceBuffer *buffer, int length )
 {
+     DFB_MAGIC_ASSERT( manager, SurfaceManager );
+     DFB_MAGIC_ASSERT( chunk, _Chunk_ );
+
      if (buffer->policy == CSP_VIDEOONLY)
           manager->available -= length;
 

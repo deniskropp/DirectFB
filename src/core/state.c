@@ -73,7 +73,7 @@ dfb_state_init( CardState *state )
 
      pthread_mutexattr_destroy( &attr );
 
-     state->initialized = true;
+     DFB_MAGIC_SET( state, CardState );
 
      return 0;
 }
@@ -82,9 +82,10 @@ void
 dfb_state_destroy( CardState *state )
 {
      DFB_ASSERT( state != NULL );
-     DFB_ASSERT( state->initialized );
 
-     state->initialized = false;
+     DFB_MAGIC_ASSERT( state, CardState );
+
+     DFB_MAGIC_CLEAR( state );
 
      if (state->gfxs)
           DFBFREE( state->gfxs );
@@ -96,7 +97,8 @@ void
 dfb_state_set_destination( CardState *state, CoreSurface *destination )
 {
      DFB_ASSERT( state != NULL );
-     DFB_ASSERT( state->initialized );
+
+     DFB_MAGIC_ASSERT( state, CardState );
 
      dfb_state_lock( state );
 
@@ -124,7 +126,8 @@ void
 dfb_state_set_source( CardState *state, CoreSurface *source )
 {
      DFB_ASSERT( state != NULL );
-     DFB_ASSERT( state->initialized );
+
+     DFB_MAGIC_ASSERT( state, CardState );
 
      dfb_state_lock( state );
 
@@ -157,7 +160,7 @@ destination_listener( const void *msg_data,
      const CoreSurfaceNotification *notification = msg_data;
      CardState                     *state        = ctx;
 
-     DFB_ASSERT( state->initialized );
+     DFB_MAGIC_ASSERT( state, CardState );
 
 //     dfb_state_lock( state );
 
@@ -205,7 +208,7 @@ source_listener( const void *msg_data,
      const CoreSurfaceNotification *notification = msg_data;
      CardState                     *state        = ctx;
 
-     DFB_ASSERT( state->initialized );
+     DFB_MAGIC_ASSERT( state, CardState );
 
 //     dfb_state_lock( state );
 

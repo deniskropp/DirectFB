@@ -55,7 +55,7 @@ typedef enum {
 } StateModificationFlags;
 
 struct _CardState {
-     bool                    initialized;  /* dfb_state_init() called? */
+     int                     magic;
 
      StateModificationFlags  modified;     /* indicate which fields have been
                                               modified, these flags will be
@@ -111,7 +111,7 @@ void dfb_state_set_source( CardState *state, CoreSurface *source );
 #define dfb_state_lock(state)                \
 do {                                         \
      DFB_ASSERT( (state) != NULL );          \
-     DFB_ASSERT( (state)->initialized );     \
+     DFB_MAGIC_ASSERT( (state), CardState ); \
                                              \
      pthread_mutex_lock( &(state)->lock );   \
 } while (0)
@@ -119,7 +119,7 @@ do {                                         \
 #define dfb_state_unlock(state)              \
 do {                                         \
      DFB_ASSERT( (state) != NULL );          \
-     DFB_ASSERT( (state)->initialized );     \
+     DFB_MAGIC_ASSERT( (state), CardState ); \
                                              \
      pthread_mutex_unlock( &(state)->lock ); \
 } while (0)
