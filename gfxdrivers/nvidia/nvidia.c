@@ -1662,7 +1662,7 @@ driver_init_device( GraphicsDevice     *device,
                                 0x1F, 0x03002000 | ENDIAN_FLAG, 0,
                                 ADDR_DMA, ADDR_DMA );
                nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x37, 0x03002000 | ENDIAN_FLAG, 0,
+                                0x37, 0x03102000 | ENDIAN_FLAG, 0,
                                 ADDR_DMA, ADDR_DMA );
                nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
                                 0x54, 0x03002000 | ENDIAN_FLAG, 0,
@@ -1676,7 +1676,7 @@ driver_init_device( GraphicsDevice     *device,
                                 0x5F, 0x0301A000 | ENDIAN_FLAG, 0,
                                 ADDR_DMA, ADDR_DMA );
                nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x63, 0x0301A000 | ENDIAN_FLAG, 0,
+                                0x63, 0x0311A000 | ENDIAN_FLAG, 0,
                                 ADDR_DMA, ADDR_DMA );
                nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
                                 0x54, 0x03002000 | ENDIAN_FLAG, 0,
@@ -1690,7 +1690,7 @@ driver_init_device( GraphicsDevice     *device,
                                 0x5F, 0x0301A000 | ENDIAN_FLAG, 0,
                                 ADDR_DMA, ADDR_DMA );
                nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x89, 0x0301A000 | ENDIAN_FLAG, 0,
+                                0x89, 0x0311A000 | ENDIAN_FLAG, 0,
                                 ADDR_DMA, ADDR_DMA );
                nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
                                 0x94, 0x03002000 | ENDIAN_FLAG, 0,
@@ -1706,7 +1706,7 @@ driver_init_device( GraphicsDevice     *device,
                                 0x9F, 0x0301A000 | ENDIAN_FLAG, 0,
                                 ADDR_DMA, ADDR_DMA );
                nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x89, 0x0301A000 | ENDIAN_FLAG, 0,
+                                0x89, 0x0311A000 | ENDIAN_FLAG, 0,
                                 ADDR_DMA, ADDR_DMA );
                nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
                                 0x94, 0x03002000 | ENDIAN_FLAG, 0,
