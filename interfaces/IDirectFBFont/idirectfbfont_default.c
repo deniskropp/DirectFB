@@ -97,7 +97,7 @@ Construct( IDirectFBFont      *thiz,
      DFB_ASSERT( font->pixel_format == DSPF_ARGB || 
                  font->pixel_format == DSPF_A8 );
 
-     font->height    = 20;
+     font->height    = 24;
      font->ascender  = 16;
      font->descender = 4;
 
