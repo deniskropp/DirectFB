@@ -684,6 +684,43 @@ static GenefxFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_rgb32_Kto_Aop
 };
 
+/********************************* Bop_PFI_toK_Aop_PFI ************************/
+
+static void Bop_rgb16_toK_Aop( GenefxState *gfxs )
+{
+     int                w    = gfxs->length;
+     __u16             *S    = gfxs->Bop;
+     __u16             *D    = gfxs->Aop;
+     __u32              Dkey = gfxs->Dkey;
+
+     while (w--) {
+          if (Dkey == *D) {
+               *D = *S;
+          }
+          D++;
+          S++;
+     }
+}
+
+static GenefxFunc Bop_PFI_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+     NULL,
+     Bop_rgb16_toK_Aop,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL
+};
+
+
+
 /********************************* Bop_PFI_Sto_Aop_PFI ****************************/
 
 static void Bop_16_Sto_Aop( GenefxState *gfxs )
@@ -3956,6 +3993,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    gfxs->Skey = state->src_colorkey;
                                    *funcs++ = Bop_PFI_Kto_Aop_PFI[dst_pfi];
+                              }
+                              else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                   gfxs->Dkey = state->dst_colorkey;
+                                   *funcs++ = Bop_PFI_toK_Aop_PFI[dst_pfi];
                               }
                               else
                                    *funcs++ = Bop_PFI_to_Aop_PFI[dst_pfi];
