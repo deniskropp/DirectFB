@@ -21,8 +21,8 @@ Requirements
    - zlib
 
    The build of the image and font providers can be disabled but we strongly
-   suggest that you don't do this since the code examples depend on the
-   functionality provided by them.
+   suggest that you don't do this since the code examples and DirectFB apps
+   depend on the functionality provided by them.
 
    The video providers require some libraries that are not commonly
    installed. We have provided packages on our web-site at
