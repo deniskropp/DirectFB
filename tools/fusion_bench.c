@@ -40,9 +40,7 @@
 
 #include <pthread.h>
 
-#include <directfb.h>
-
-#include <core/system.h>
+#include <direct/clock.h>
 
 #include <fusion/build.h>
 #include <fusion/fusion.h>
@@ -52,16 +50,18 @@
 #include <fusion/ref.h>
 #include <fusion/shmalloc.h>
 
-#include <misc/util.h>
+#include <directfb.h>
+
+#include <core/system.h>
 
 
 static long long    t1, t2;
 static unsigned int loops;
 
-#define BENCH_START()       do { sync(); usleep(100000); sync(); t1 = dfb_get_millis(); loops = 0; } while (0)
-#define BENCH_STOP()        do { t2 = dfb_get_millis(); } while (0)
+#define BENCH_START()       do { sync(); usleep(100000); sync(); t1 = direct_clock_get_millis(); loops = 0; } while (0)
+#define BENCH_STOP()        do { t2 = direct_clock_get_millis(); } while (0)
 
-#define BENCH_LOOP()        while ((++loops & 0xfff) || (dfb_get_millis() - t1 < 1000))
+#define BENCH_LOOP()        while ((++loops & 0xfff) || (direct_clock_get_millis() - t1 < 1000))
 
 #define BENCH_RESULT()      (loops / (float)(t2 - t1))
 #define BENCH_RESULT_BY(x)  ((loops * x) / (float)(t2 - t1))
