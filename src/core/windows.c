@@ -136,7 +136,8 @@ static const React dfb_window_globals[] = {
 static void
 window_destructor( FusionObject *object, bool zombie )
 {
-     CoreWindow *window = (CoreWindow*) object;
+     CoreWindow      *window = (CoreWindow*) object;
+     CoreWindowStack *stack  = window->stack;
 
      DEBUGMSG("DirectFB/core/windows: destroying %p (%dx%d%s)\n", window,
               window->width, window->height, zombie ? " ZOMBIE" : "");
@@ -144,6 +145,9 @@ window_destructor( FusionObject *object, bool zombie )
      dfb_window_destroy( window );
 
      window_remove( window );
+
+     if (stack->cursor.window == window)
+          stack->cursor.window = NULL;
 
      fusion_object_destroy( object );
 }
