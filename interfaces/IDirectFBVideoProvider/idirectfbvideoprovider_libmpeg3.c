@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <malloc.h>
+#include <endian.h>
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -1080,8 +1081,8 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
 {
      int fd;
      int prof   = APF_NORMAL;
-     int bits   = data->audio.bits;
-     int bytes  = (bits + 7) / 8;
+     int format;
+     int bytes  = (data->audio.bits + 7) / 8;
      int stereo = (data->audio.channels > 1) ? 1 : 0;
      int rate   = data->audio.rate;
 
@@ -1095,11 +1096,27 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
      /* set application profile */
      ioctl( fd, SNDCTL_DSP_PROFILE, &prof );
 
-     /* set bits per sample */
-     ioctl( fd, SNDCTL_DSP_SAMPLESIZE, &bits );
-     if (bits != data->audio.bits) {
+     /* set format */
+     if (data->audio.bits == 8)
+          format = AFMT_U8;
+     else if (data->audio.bits == 16) {
+#if __BYTE_ORDER == __BIG_ENDIAN
+          format = AFMT_S16_BE;
+#else
+          format = AFMT_S16_LE;
+#endif
+     }
+     else {
           ERRORMSG( "Libmpeg3 Provider: "
-                    "Unable to set audio bits to '%d'!\n", data->audio.bits );
+                    "unexpected sample format (%d bit)!\n", data->audio.bits );
+          close( fd );
+          return DFB_UNSUPPORTED;                    
+     }
+     
+     if (ioctl( fd, SNDCTL_DSP_SETFMT, &format )) {
+          ERRORMSG( "Libmpeg3 Provider: "
+                    "failed to set sample format to %d bit!\n", 
+                    data->audio.bits );
           close( fd );
           return DFB_UNSUPPORTED;
      }
