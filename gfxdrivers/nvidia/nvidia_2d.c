@@ -8,7 +8,7 @@
               Andreas Hundt <andi@fischlustig.de>,
               Sven Neumann <neo@directfb.org>,
               Ville Syrjälä <syrjala@sci.fi> and
-              Claudio Ciccani <klan82@cheapnet.it>.
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -53,6 +53,11 @@ bool nvFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
      NVidiaDeviceData *nvdev     = (NVidiaDeviceData*) dev;
      NVRectangle      *Rectangle = nvdrv->Rectangle;
      
+     if (nvdev->dst_422) {
+          rect->x = (rect->x + 1) >> 1;
+          rect->w = (rect->w + 1) >> 1;
+     }
+
      nv_waitfifo( nvdev, subchannelof(Rectangle), 3 );
      Rectangle->Color       = nvdev->color;
      Rectangle->TopLeft     = (rect->y << 16) | (rect->x & 0xFFFF);
@@ -105,7 +110,7 @@ bool nvDrawLine2D( void *drv, void *dev, DFBRegion *line )
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
      NVLine           *Line  = nvdrv->Line;
-
+     
      nv_waitfifo( nvdev, subchannelof(Line), 3 );
      Line->Color         = nvdev->color;
      Line->Lin[0].point0 = (line->y1 << 16) | (line->x1 & 0xFFFF);
@@ -123,6 +128,12 @@ bool nv4Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      if (nvdev->bop || nvdev->src_format != nvdev->dst_format) {
           DFBRectangle dr = { dx, dy, rect->w, rect->h };
           return nv4StretchBlit( drv, dev, rect, &dr );
+     }
+
+     if (nvdev->dst_422) {
+          dx      = (dx      + 1) >> 1;
+          rect->x = (rect->x + 1) >> 1;
+          rect->w = (rect->w + 1) >> 1;
      }
 
      nv_waitfifo( nvdev, subchannelof(Blt), 3 );
@@ -144,6 +155,12 @@ bool nv5Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
           return nv5StretchBlit( drv, dev, rect, &dr );
      }
 
+     if (nvdev->dst_422) {
+          dx      = (dx      + 1) >> 1;
+          rect->x = (rect->x + 1) >> 1;
+          rect->w = (rect->w + 1) >> 1;
+     }
+
      nv_waitfifo( nvdev, subchannelof(Blt), 3 );
      Blt->TopLeftSrc   = (rect->y << 16) | (rect->x & 0xFFFF);
      Blt->TopLeftDst   = (dy      << 16) | (dx      & 0xFFFF);
@@ -161,21 +178,28 @@ bool nv4StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      DFBRectangle     *cr          = &nvdev->clip;
      __u32             format      = 0;
      
+     if (nvdev->dst_422) {
+          sr->x = (sr->x + 1) >> 1;
+          sr->w = (sr->w + 1) >> 1;
+          dr->x = (dr->x + 1) >> 1;
+          dr->w = (dr->w + 1) >> 1;
+     }
+     
      switch (nvdev->src_format) {
           case DSPF_ARGB1555:
-               format = 0x00000002;
+               format = 2;
                break;
           case DSPF_RGB32:
-               format = 0x00000004;
+               format = 4;
                break;
           case DSPF_ARGB:
-               format = (nvdev->argb_src) ? 0x00000003 : 0x00000004;
+               format = (nvdev->argb_src) ? 3 :4;
                break;
           case DSPF_YUY2:
-               format = 0x00000005;
+               format = (nvdev->dst_422)  ? 3: 5;
                break;
           case DSPF_UYVY:
-               format = 0x00000006;
+               format = (nvdev->dst_422)  ? 3: 6;
                break;
           default:
                D_BUG( "unexpected pixelformat" );
@@ -211,24 +235,31 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      DFBRectangle     *cr          = &nvdev->clip;
      __u32             format      = 0;
 
+     if (nvdev->dst_422) {
+          sr->x = (sr->x + 1) >> 1;
+          sr->w = (sr->w + 1) >> 1;
+          dr->x = (dr->x + 1) >> 1;
+          dr->w = (dr->w + 1) >> 1;
+     } 
+     
      switch (nvdev->src_format) {
           case DSPF_ARGB1555:
-               format = 0x00000002;
+               format = 2;
                break;
           case DSPF_RGB16:
-               format = 0x00000007;
+               format = 7;
                break;
           case DSPF_RGB32:
-               format = 0x00000004;
+               format = 4;
                break;
           case DSPF_ARGB:
-               format = (nvdev->argb_src) ? 0x00000003 : 0x00000004;
+               format = (nvdev->argb_src) ? 3 : 4;
                break;
           case DSPF_YUY2:
-               format = 0x00000005;
+               format = (nvdev->dst_422)  ? 3 : 5;
                break;
           case DSPF_UYVY:
-               format = 0x00000006;
+               format = (nvdev->dst_422)  ? 3 : 6;
                break;
           default:
                D_BUG( "unexpected pixelformat" );

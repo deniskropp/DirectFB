@@ -214,6 +214,8 @@ nv_set_destination( NVidiaDriverData  *nvdrv,
           __u32 sformat3D = 0;
           __u32 cformat   = 0;
 
+          nvdev->dst_422 = false;
+
           switch (buffer->format) {
                case DSPF_ARGB1555:
                     sformat2D = 0x00000002;
@@ -236,14 +238,16 @@ nv_set_destination( NVidiaDriverData  *nvdrv,
                     cformat   = 0x00000D02;
                     break;
                case DSPF_YUY2:
-                    sformat2D = 0x00000005;
-                    sformat3D = 0x00000103;
+                    sformat2D = 0x0000000A;
+                    sformat3D = 0x00000108;
                     cformat   = 0x00001200;
+                    nvdev->dst_422 = true;
                     break;
                case DSPF_UYVY:
-                    sformat2D = 0x00000005;
-                    sformat3D = 0x00000103;
+                    sformat2D = 0x0000000A;
+                    sformat3D = 0x00000108;
                     cformat   = 0x00001300;
+                    nvdev->dst_422 = true;
                     break;
                default:
                     D_BUG( "unexpected pixelformat" );
@@ -255,12 +259,12 @@ nv_set_destination( NVidiaDriverData  *nvdrv,
           nv_out32( nvdrv->PRAMIN, (ADDR_RECTANGLE << 4) + 4, cformat );
           nv_out32( nvdrv->PRAMIN, (ADDR_TRIANGLE  << 4) + 4, cformat );
           nv_out32( nvdrv->PRAMIN, (ADDR_LINE      << 4) + 4, cformat );
-        
+           
           nv_waitfifo( nvdev, SubChannel, 3 );
           nvdrv->Fifo->sub[2].SetObject = OBJ_RECTANGLE;
           nvdrv->Fifo->sub[3].SetObject = OBJ_TRIANGLE;
           nvdrv->Fifo->sub[4].SetObject = OBJ_LINE;
-             
+          
           nv_waitfifo( nvdev, SubChannel, 4 );
           SubChannel->SetObject               = OBJ_SURFACES2D;
           SubChannel->o.Surfaces2D.Format     = sformat2D;
@@ -276,14 +280,14 @@ nv_set_destination( NVidiaDriverData  *nvdrv,
                                                        (dst_pitch & 0xFFFF);
                SubChannel->o.Surfaces3D.RenderOffset = dst_offset;
           }
-
+          
           nvdev->dst_format = buffer->format;
           nvdev->dst_offset = dst_offset;
-          nvdev->dst_pitch  = dst_pitch; 
+          nvdev->dst_pitch  = dst_pitch;
      }
      else if (nvdev->dst_offset != dst_offset ||
               nvdev->dst_pitch  != dst_pitch ) 
-     {          
+     {
           nv_waitfifo( nvdev, SubChannel, 3 );
           SubChannel->SetObject               = OBJ_SURFACES2D;
           SubChannel->o.Surfaces2D.Pitch      = (dst_pitch << 16) | 
@@ -359,10 +363,15 @@ nv_set_clip( NVidiaDriverData *nvdrv,
      NVClip       *Clip = nvdrv->Clip;
      DFBRectangle *cr   = &nvdev->clip;
 
-     nvdev->clip.x = clip->x1;
-     nvdev->clip.y = clip->y1;
-     nvdev->clip.w = clip->x2 - clip->x1 + 1;
-     nvdev->clip.h = clip->y2 - clip->y1 + 1;
+     cr->x = clip->x1;
+     cr->y = clip->y1;
+     cr->w = clip->x2 - clip->x1 + 1;
+     cr->h = clip->y2 - clip->y1 + 1;
+
+     if (nvdev->dst_422) {
+          cr->x =  cr->x >> 1;
+          cr->w = (cr->w >> 1) ? : 1;
+     }
 
      nv_waitfifo( nvdev, subchannelof(Clip), 2 );
      Clip->TopLeft     = (cr->y << 16) | (cr->x & 0xFFFF);
@@ -502,11 +511,13 @@ static void nv4CheckState( void *drv, void *dev,
           case DSPF_YUY2:
           case DSPF_UYVY:
                if (DFB_BLITTING_FUNCTION( accel )) {
-                    if (accel != DFXL_BLIT || state->blittingflags || 
+                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
+                        state->blittingflags != DSBLIT_NOFX     || 
                         source->format != destination->format)
                          return;
                } else {
-                    if (state->drawingflags != DSDRAW_NOFX)
+                    if (accel != DFXL_FILLRECTANGLE       ||
+                        state->drawingflags != DSDRAW_NOFX)
                          return;
                }
                break;
@@ -589,11 +600,13 @@ static void nv5CheckState( void *drv, void *dev,
           case DSPF_YUY2:
           case DSPF_UYVY:
                if (DFB_BLITTING_FUNCTION( accel )) {
-                    if (accel != DFXL_BLIT || state->blittingflags || 
+                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
+                        state->blittingflags != DSBLIT_NOFX     || 
                         source->format != destination->format)
                          return;
                } else {
-                    if (state->drawingflags != DSDRAW_NOFX)
+                    if (accel != DFXL_FILLRECTANGLE       ||
+                        state->drawingflags != DSDRAW_NOFX)
                          return;
                }
                break;
@@ -669,11 +682,13 @@ static void nv20CheckState( void *drv, void *dev,
           case DSPF_YUY2:
           case DSPF_UYVY:
                if (DFB_BLITTING_FUNCTION( accel )) {
-                    if (accel != DFXL_BLIT || state->blittingflags || 
+                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
+                        state->blittingflags != DSBLIT_NOFX     || 
                         source->format != destination->format)
                          return;
                } else {
-                    if (state->drawingflags != DSDRAW_NOFX)
+                    if (accel != DFXL_FILLRECTANGLE       ||
+                        state->drawingflags != DSDRAW_NOFX)
                          return;
                }
                break;
@@ -747,6 +762,8 @@ static void nv30CheckState( void *drv, void *dev,
 
           case DSPF_YUY2:
           case DSPF_UYVY:
+               if (accel & ~(DFXL_FILLRECTANGLE | DFXL_BLIT))
+                    return;
                break;
           
           default:
@@ -790,7 +807,7 @@ static void nv4SetState( void *drv, void *dev,
           nv_set_destination( nvdrv, nvdev,
                               state->destination->back_buffer );
 
-     if (modify & SMF_CLIP)
+     if (modify & (SMF_CLIP | SMF_DESTINATION))
           nv_set_clip( nvdrv, nvdev, &state->clip );
 
      if (modify & (SMF_COLOR | SMF_DESTINATION))
@@ -838,6 +855,11 @@ static void nv4SetState( void *drv, void *dev,
                nvdev->src_width  = state->source->width;
                nvdev->src_height = state->source->height;
                nvdev->argb_src   = false;
+
+               if (nvdev->dst_422) {
+                    nvdev->src_width = (nvdev->src_width + 1) >> 1;
+                    nvdev->src_width = nvdev->src_width ? : 1;
+               }
 
                switch (state->blittingflags) {
                     case DSBLIT_ALPHABLEND:
@@ -936,7 +958,7 @@ static void nv5SetState( void *drv, void *dev,
           nv_set_destination( nvdrv, nvdev,
                               state->destination->back_buffer );
      
-     if (modify & SMF_CLIP)
+     if (modify & (SMF_CLIP | SMF_DESTINATION))
           nv_set_clip( nvdrv, nvdev, &state->clip );
 
      if (modify & (SMF_COLOR | SMF_DESTINATION))
@@ -984,6 +1006,9 @@ static void nv5SetState( void *drv, void *dev,
                nvdev->src_width  = (state->source->width  + 1) & ~1;
                nvdev->src_height = (state->source->height + 1) & ~1;
                nvdev->argb_src   = true;
+
+               if (nvdev->dst_422)
+                    nvdev->src_width = ((nvdev->src_width>>1) + 1) & ~1;
                
                switch (state->blittingflags) {
                     case DSBLIT_ALPHABLEND:
@@ -1090,7 +1115,7 @@ static void nv20SetState( void *drv, void *dev,
           nv_set_destination( nvdrv, nvdev,
                               state->destination->back_buffer );
           
-     if (modify & SMF_CLIP)
+     if (modify & (SMF_CLIP | SMF_DESTINATION))
           nv_set_clip( nvdrv, nvdev, &state->clip );
 
      if (modify & (SMF_COLOR | SMF_DESTINATION))
@@ -1138,6 +1163,9 @@ static void nv20SetState( void *drv, void *dev,
                nvdev->src_width  = (state->source->width  + 1) & ~1;
                nvdev->src_height = (state->source->height + 1) & ~1;
                nvdev->argb_src   = true;
+               
+               if (nvdev->dst_422)
+                    nvdev->src_width = ((nvdev->src_width>>1) + 1) & ~1;
                
                switch (state->blittingflags) {
                     case DSBLIT_ALPHABLEND:
@@ -1200,7 +1228,7 @@ static void nv30SetState( void *drv, void *dev,
           nv_set_destination( nvdrv, nvdev,
                               state->destination->back_buffer );
 
-     if (modify & SMF_CLIP)
+     if (modify & (SMF_CLIP | SMF_DESTINATION))
           nv_set_clip( nvdrv, nvdev, &state->clip );
 
      if (modify & (SMF_COLOR | SMF_DESTINATION))
@@ -1396,7 +1424,7 @@ driver_init_driver( GraphicsDevice      *device,
      nvdrv->device = device;
      
      nv_find_architecture( nvdrv );
-
+     
      if (nvdrv->chip == 0x02A0) {
           nvdrv->fb_offset  = (__u32) dfb_gfxcard_memory_physical( device, 0 );
           nvdrv->fb_offset &= 0x0FFFFFFF;
