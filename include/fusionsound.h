@@ -56,9 +56,15 @@ DECLARE_INTERFACE( IFusionSoundPlayback )
 
 /*
  * The sample format is the way of storing audible information.
+ *
+ * Data is always stored in <b>native endian</b>. This keeps the library and
+ * applications simple and clean. Always access sample buffers like arrays of
+ * 8 bit or 16 bit integers depending on the sample format, unless data is
+ * written with endianness being taken care of. This does not excuse from endian
+ * conversion that might be necessary when reading data from files.
  */
 typedef enum {
-     FSSF_UNKNOWN        = 0x00000000,      /* Unknown/invalid format. */
+     FSSF_UNKNOWN        = 0x00000000,      /* Unknown or invalid format. */
      FSSF_S16            = 0x00000001,      /* Signed 16 bit (linear). */
      FSSF_U8             = 0x00000002       /* Unsigned 8 bit (linear). */
 } FSSampleFormat;
@@ -114,21 +120,24 @@ typedef struct {
 } FSStreamDescription;
 
 /*
- * <i><b>IFusionSound</b></i> is the main FusionSound interface and can be
- * retrieved by calling <i>IDirectFB::GetInterface()</i>.
+ * <i><b>IFusionSound</b></i> is the main FusionSound interface. Currently it
+ * can only be retrieved by calling <i>IDirectFB::GetInterface()</i>. This will
+ * change when Fusion and other relevant parts of DirectFB are dumped into a
+ * base library.
  *
  * <b>Static sound buffers</b> for smaller samples like sound effects in
  * games or audible feedback in user interfaces are created by calling
  * <i>CreateBuffer()</i>. They can be played several times with an unlimited
- * number of <b>concurrent playbacks</b>. Playback can also be started in
- * <b>looping</b> mode or <b>panned</b>.
+ * number of <b>concurrent playbacks</b>. Playback can be started in
+ * <b>looping</b> mode. Other per-playback control includes <b>pan value</b>,
+ * <b>volume level</b> and <b>pitch</b>.
  *
  * <b>Streaming sound buffers</b> for large or compressed files and for
  * streaming of real time sound data are created by calling
  * <i>CreateStream()</i>. There's only one <b>single playback</b> that
  * automatically starts when data is written to the <b>ring buffer</b> for the
- * first time. If the buffer underruns the playback automatically stops and
- * is started again when the ring buffer is written to again.
+ * first time. If the buffer underruns, the playback automatically stops and
+ * continues when the ring buffer is written to again.
  */
 DEFINE_INTERFACE( IFusionSound,
 
@@ -136,6 +145,11 @@ DEFINE_INTERFACE( IFusionSound,
 
      /*
       * Create a static sound buffer.
+      *
+      * This requires a <b>desc</b> with at least the length being set.
+      *
+      * Default values for sample rate, sample format and number of channels
+      * are 44kHz, 16 bit (FSSF_S16) with two channels.
       */
      DFBResult (*CreateBuffer) (
           IFusionSound             *thiz,
@@ -176,6 +190,25 @@ typedef enum {
 } FSBufferPlayFlags;
 
 
+/*
+ * <i><b>IFusionSoundBuffer</b></i> represents a static block of sample data.
+ *
+ * <b>Data access</b> is simply provided by <i>Lock()</i> and <i>Unlock()</i>.
+ *
+ * There are <b>two ways of playback</b>.
+ *
+ * <b>Simple playback</b> is provided by this interface. It includes an
+ * unlimited number of non-looping playbacks plus one looping playback at a
+ * time. Before <b>starting</b> a playback with <i>Play()</i> the application
+ * can <b>adjust the pan value</b> with <i>SetPan()</i> and set the FSPLAY_PAN
+ * playback flag. To start the <b>looping</b> playback use FSPLAY_LOOPING. It
+ * will <b>stop</b> when the interface is destroyed or <i>Stop()</i> is called.
+ *
+ * <b>Advanced playback</b> is provided by an extra interface called
+ * <i>IFusionSoundPlayback</i> which is created by <i>CreatePlayback()</i>.
+ * It includes <b>live</b> control over <b>pan</b>, <b>volume</b>, <b>pitch</b>
+ * and provides <b>versatile playback commands</b>.
+ */
 DEFINE_INTERFACE( IFusionSoundBuffer,
 
    /** Information **/
@@ -193,6 +226,8 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
 
      /*
       * Lock a buffer to access its data.
+      *
+      * Lock/unlock semantics are weak right now, API will change!
       */
      DFBResult (*Lock) (
           IFusionSoundBuffer       *thiz,
@@ -201,6 +236,8 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
 
      /*
       * Unlock a buffer.
+      *
+      * Lock/unlock semantics are weak right now, API will change!
       */
      DFBResult (*Unlock) (
           IFusionSoundBuffer       *thiz
@@ -258,6 +295,28 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
      );
 )
 
+/*
+ * <i><b>IFusionSoundStream</b></i> represents a ring buffer for streamed
+ * playback which fairly maps to writing to a sound device. Use it for easy
+ * porting of applications that use exclusive access to a sound device.
+ *
+ * <b>Writing</b> to the ring buffer <b>triggers the playback</b> if it's not
+ * already running. The method <i>Write()</i> can be called with an <b>arbitrary
+ * number of samples</b>. It returns after all samples have been written to the
+ * ring buffer and <b>sleeps</b> while the ring buffer is full.
+ * Blocking writes are perfect for accurate filling of the buffer,
+ * which keeps the ring buffer as full as possible using a very small block
+ * size (depending on sample rate, playback pitch and the underlying hardware).
+ *
+ * <b>Waiting</b> for a specific amount of <b>free space</b> in the ring buffer
+ * is provided by <i>Wait()</i>. It can be used to <b>avoid blocking</b> of
+ * <i>Write()</i> or to <b>finish playback</b> before destroying the interface.
+ *
+ * <b>Status information</b> includes the amount of <b>filled</b> and
+ * <b>total</b> space in the ring buffer, along with the current <b>read</b> and
+ * <b>write position</b>. It can be retrieved by calling <i>GetStatus()</i> at
+ * any time without blocking.
+ */
 DEFINE_INTERFACE( IFusionSoundStream,
 
    /** Ring buffer **/
@@ -268,8 +327,10 @@ DEFINE_INTERFACE( IFusionSoundStream,
       * Writes the sample <b>data</b> into the ring buffer.
       * The <b>length</b> specifies the number of samples per channel.
       *
-      * If the ring buffer is full the method blocks until there's enough
-      * space. If this method returns successfully, all data has been written.
+      * If the ring buffer gets full, the method blocks until it can write more
+      * data.
+      *
+      * If this method returns successfully, all data has been written.
       */
      DFBResult (*Write) (
           IFusionSoundStream       *thiz,
@@ -280,8 +341,8 @@ DEFINE_INTERFACE( IFusionSoundStream,
      /*
       * Wait for a specified amount of free ring buffer space.
       *
-      * This method blocks until there's enough space in the ring buffer
-      * so that writing data of the specified <b>length</b> wouldn't block.
+      * This method blocks until there's free space of at least the specified
+      * <b>length</b> (number of samples per channel).
       *
       * Specifying a <b>length</b> of zero waits until playback has finished.
       */
@@ -308,6 +369,24 @@ DEFINE_INTERFACE( IFusionSoundStream,
      );
 )
 
+/*
+ * <i><b>IFusionSoundPlayback</b></i> represents one concurrent playback and
+ * provides full control over the internal processing of samples.
+ *
+ * <b>Commands</b> control the playback as in terms of tape transportation.
+ * This includes <b>starting</b> the playback at <b>any position</b> with an
+ * optional <b>stop position</b>. The default value of <b>zero</b> causes the
+ * playback to stop at the <b>end</b>. A <b>negative</b> value puts the playback
+ * in <b>looping</b> mode. <i>Start()</i> does <b>seeking</b> if the playback is
+ * already running and updates the stop position. Other methods provide
+ * <b>pausing</b>, <b>stopping</b> and <b>waiting</b> for the playback to end.
+ *
+ * <b>Information</b> provided by <i>GetStatus()</i> includes the current
+ * <b>position</b> and whether the playback is <b>running</b>.
+ *
+ * <b>Parameters</b> provide <b>live</b> control over <b>volume</b>, <b>pan</b>
+ * and <b>pitch</b> (speed factor) of the playback.
+ */
 DEFINE_INTERFACE( IFusionSoundPlayback,
 
    /** Commands **/
@@ -349,14 +428,16 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * The playback will begin at the position where it stopped, either
       * explicitly by <i>Stop()</i> or by reaching the stop position.
       *
-      * If the playback has never been started it uses the default start and
+      * If the playback has never been started, it uses the default start and
       * stop position which means non-looping playback from the beginning
       * to the end.
       *
-      * It returns without an error if the playback is running. This can be used
-      * to trigger playback without having to check if it's already running,
-      * similar to simple playback via <i>IFusionSoundBuffer::Play()</i>, but
-      * rejects multiple concurrent playbacks.
+      * It returns without an error if the playback is running.
+      *
+      * This method can be used to trigger one-at-a-time playback without having
+      * to check if it's already running. It's similar to simple playback via
+      * <i>IFusionSoundBuffer::Play()</i>, but rejects multiple concurrent
+      * playbacks.
       */
      DFBResult (*Continue) (
           IFusionSoundPlayback     *thiz
