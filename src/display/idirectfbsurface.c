@@ -1523,9 +1523,6 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      dfb_state_init( &data->state );
      dfb_state_set_destination( &data->state, surface );
 
-     dfb_surface_attach( surface, IDirectFBSurface_listener,
-                         thiz, &data->reaction );
-
      data->state.clip.x1 = data->area.current.x;
      data->state.clip.y1 = data->area.current.y;
      data->state.clip.x2 = data->area.current.x + data->area.current.w - 1;
@@ -1584,6 +1581,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->GetGL = IDirectFBSurface_GetGL;
 
+     dfb_surface_attach( surface,
+                         IDirectFBSurface_listener, thiz, &data->reaction );
+     
      return DFB_OK;
 }
 
