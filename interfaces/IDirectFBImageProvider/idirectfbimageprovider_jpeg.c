@@ -394,8 +394,6 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (err)
           return err;
 
-     dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
-
      /* actual loading and rendering */
      {
           struct jpeg_decompress_struct cinfo;
@@ -434,6 +432,8 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                /* image must not be scaled */
                row_ptr = dst;
 
+               dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
+               
                while (cinfo.output_scanline < cinfo.output_height) {
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     switch (format) {
@@ -474,9 +474,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     copy_line32( (__u32*)row_ptr, *buffer, cinfo.output_width);
                     row_ptr += cinfo.output_width * 4;
                }
-               dfb_scale_linear_32( dst, image_data, cinfo.output_width,
-                                    cinfo.output_height, rect.w, rect.h,
-                                    pitch, dst_surface );
+
+               dfb_scale_linear_32( image_data,
+                                    cinfo.output_width, cinfo.output_height,
+                                    dst, pitch, &rect, dst_surface );
 
                free( image_data );
           }

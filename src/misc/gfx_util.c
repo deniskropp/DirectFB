@@ -75,50 +75,50 @@ static void rgba_to_dst_format (__u8 *dst,
                                 CorePalette *palette)
 {
      switch (dst_format) {
+          
+          case DSPF_RGB332:
+               *((__u8*)dst) = PIXEL_RGB332( r, g, b );
+               break;
 
-     case DSPF_RGB332:
-          *((__u8*)dst) = PIXEL_RGB332( r, g, b );
-          break;
+          case DSPF_A8:
+               *((__u8*)dst) = a;
+               break;
 
-     case DSPF_A8:
-          *((__u8*)dst) = a;
-          break;
+          case DSPF_ARGB:
+               *((__u32*)dst) = PIXEL_ARGB( a, r, g, b );
+               break;
 
-     case DSPF_ARGB:
-          *((__u32*)dst) = PIXEL_ARGB( a, r, g, b );
-          break;
+          case DSPF_ARGB1555:
+               *((__u16*)dst) = PIXEL_ARGB1555( a, r, g, b );
+               break;
 
-     case DSPF_ARGB1555:
-          *((__u16*)dst) = PIXEL_ARGB1555( a, r, g, b );
-          break;
+          case DSPF_RGB32:
+               *((__u32*)dst) = PIXEL_RGB32( r, g, b );
+               break;
 
-     case DSPF_RGB32:
-          *((__u32*)dst) = PIXEL_RGB32( r, g, b );
-          break;
+          case DSPF_RGB16:
+               *(__u16 *)dst = PIXEL_RGB16 (r, g, b);
+               break;
 
-     case DSPF_RGB16:
-          *(__u16 *)dst = PIXEL_RGB16 (r, g, b);
-          break;
+          case DSPF_RGB24:
+               *dst++ = b;
+               *dst++ = g;
+               *dst   = r;
+               break;
 
-     case DSPF_RGB24:
-          *dst++ = b;
-          *dst++ = g;
-          *dst   = r;
-          break;
+          case DSPF_LUT8:
+               if (palette)
+                    *dst++ = dfb_palette_search( palette, r, g, b, a );
+               break;
 
-     case DSPF_LUT8:
-          if (palette)
-               *dst++ = dfb_palette_search( palette, r, g, b, a );
-          break;
+          case DSPF_ALUT44:
+               if (palette)
+                    *dst++ = (a & 0xF0) + dfb_palette_search( palette, r, g, b, 0x80 );
+               break;
 
-     case DSPF_ALUT44:
-          if (palette)
-               *dst++ = (a & 0xF0) + dfb_palette_search( palette, r, g, b, 0x80 );
-          break;
-
-     default:
-          ONCE( "unimplemented destination format" );
-          break;
+          default:
+               ONCE( "unimplemented destination format" );
+               break;
      }
 }
 
@@ -127,71 +127,53 @@ static void rgba_to_dst_format (__u8 *dst,
           ? (((char*)dst) + y/2 * pitch + ((y%2) ? h/2 * pitch : 0)) \
           : (((char*)dst) + y * pitch))
 
-void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dpitch,
+void dfb_copy_buffer_32( __u32 *src,
+                         void  *dst, int dpitch, DFBRectangle *drect,
                          CoreSurface *dst_surface )
 {
      int x, y;
-     int dskip;
-     __u32 /*rb,*/ a;
+     __u32 a;
      int bpp = DFB_BYTES_PER_PIXEL( dst_surface->format );
-
-     dskip = dpitch - DFB_BYTES_PER_LINE (dst_surface->format, w);
 
      switch (dst_surface->format) {
           case DSPF_A8:
-               for (y = 0; y < h; y++) {
+               for (y = drect->y; y < drect->h; y++) {
                     __u8 *d = LINE_PTR( dst, dst_surface->caps,
                                         y, dst_surface->height, dpitch );
 
-                    for (x = 0; x < w; x++)
+                    for (x = drect->x; x < drect->w; x++)
                          d[x] = src[x] >> 24;
 
-                    src += w;
+                    src += drect->w;
                }
                break;
 
           case DSPF_ARGB:
-               for (y = 0; y < h; y++) {
+               for (y = drect->y; y < drect->h; y++) {
                     void *d = LINE_PTR( dst, dst_surface->caps,
                                         y, dst_surface->height, dpitch );
 
-                    dfb_memcpy (d, src, w * 4);
+                    dfb_memcpy (d + drect->x * 4, src, drect->w * 4);
 
-                    src += w;
+                    src += drect->w;
                }
                break;
 
           default:
-               for (y = 0; y < h; y++) {
+               for (y = drect->y; y < drect->h; y++) {
                     void *d = LINE_PTR( dst, dst_surface->caps,
                                         y, dst_surface->height, dpitch );
-                    
-                    for (x = 0; x < w; x++) {
+
+                    for (x = drect->x; x < drect->w; x++) {
                          a = *src >> 24;
 
-/*                         switch (a) {
-                              case 0x0:
-                                   memset ( (__u8*) d, 0, bpp );
-                                   break;
-                              case 0xFF:*/
-                                   rgba_to_dst_format ((__u8 *)d,
-                                                       (*src & 0x00FF0000) >> 16,
-                                                       (*src & 0x0000FF00) >> 8,
-                                                       (*src & 0x000000FF),
-                                                       a,
-                                                       dst_surface->format,
-                                                       dst_surface->palette);
-/*                                   break;
-                              default:
-                                   rb = (*src & 0x00FF00FF) * (a+1);
-                                   rgba_to_dst_format ((__u8 *)d,
-                                                       rb >> 24,
-                                                       ((*src & 0x0000FF00) * (a+1)) >> 16,
-                                                       (rb & 0x0000FF00) >> 8,
-                                                       a, dst_surface->format,
-                                                       dst_surface->palette);
-                                   break;
-                         }*/
+                         rgba_to_dst_format ((__u8 *)d,
+                                             (*src & 0x00FF0000) >> 16,
+                                             (*src & 0x0000FF00) >> 8,
+                                             (*src & 0x000000FF),
+                                             a,
+                                             dst_surface->format,
+                                             dst_surface->palette);
 
                          d += bpp;
 
@@ -203,7 +185,7 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dpitch,
 }
 
 static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
-                                                             double y_scale )
+                                       double y_scale )
 {
      int i_offset, j_offset;
      double *x_weights, *y_weights;
@@ -230,7 +212,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
      filter->n_y = n_y;
      filter->n_x = n_x;
      filter->weights = (int *) DFBMALLOC(SUBSAMPLE * SUBSAMPLE * n_x * n_y *
-                                       sizeof (int));
+                                         sizeof (int));
      if (!filter->weights) {
           DEBUGMSG ("couldn't allocate memory for scaling\n");
           return 0;
@@ -303,8 +285,8 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
                for (i = 0; i < n_y; i++) {
                     for (j = 0; j < n_x; j++) {
                          *(pixel_weights + n_x * i + j) =
-                                           65536 * x_weights[j] * x_scale
-                                                 * y_weights[i] * y_scale;
+                         65536 * x_weights[j] * x_scale
+                         * y_weights[i] * y_scale;
                     }
                }
           }
@@ -341,7 +323,7 @@ static void scale_pixel( int *weights, int n_x, int n_y,
                r += ta * (((*q & 0xFF0000) >> 16) + 1);
                a += ta;
           }
-      }
+     }
 
      r = (r >> 24) == 0xFF ? 0xFF : (r + 0x800000) >> 24;
      g = (g >> 24) == 0xFF ? 0xFF : (g + 0x800000) >> 24;
@@ -402,27 +384,27 @@ static void *scale_line( int *weights, int n_x, int n_y, void *dst,
      return dst;
 }
 
-void dfb_scale_linear_32( void *dst, __u32 *src, int sw, int sh,
-                          int dw, int dh, int dpitch, CoreSurface *dst_surface )
+void dfb_scale_linear_32( __u32 *src, int sw, int sh,
+                          void  *dst, int dpitch, DFBRectangle *drect,
+                          CoreSurface *dst_surface )
 {
      double scale_x, scale_y;
      int i, j;
-     int x, y;
+     int sx, sy;
      int x_step, y_step;
      int scaled_x_offset;
-     int dskip;
      PixopsFilter filter;
 
-     if (sw < 1 || sh < 1 || dw < 1 || dh < 1)
+     if (sw < 1 || sh < 1 || drect->w < 1 || drect->h < 1)
           return;
 
-     if (dw == sw && dh == sh) {
-          dfb_copy_buffer_32( dst, src, sw, sh, dpitch, dst_surface );
+     if (drect->w == sw && drect->h == sh) {
+          dfb_copy_buffer_32( src, dst, dpitch, drect, dst_surface );
           return;
      }
 
-     scale_x = (double)dw / sw;
-     scale_y = (double)dh / sh;
+     scale_x = (double)drect->w / sw;
+     scale_y = (double)drect->h / sh;
 
      x_step = (1 << SCALE_SHIFT) / scale_x;
      y_step = (1 << SCALE_SHIFT) / scale_y;
@@ -430,12 +412,10 @@ void dfb_scale_linear_32( void *dst, __u32 *src, int sw, int sh,
      if (! bilinear_make_fast_weights( &filter, scale_x, scale_y ))
           return;
 
-     dskip = dpitch - DFB_BYTES_PER_LINE (dst_surface->format, dw);
-
      scaled_x_offset = DFB_IFLOOR( filter.x_offset * (1 << SCALE_SHIFT) );
-     y = DFB_IFLOOR( filter.y_offset * (1 << SCALE_SHIFT) );
+     sy = DFB_IFLOOR( filter.y_offset * (1 << SCALE_SHIFT) );
 
-     for (i = 0; i < dh; i++) {
+     for (i = drect->y; i < drect->h; i++) {
           int x_start;
           int y_start;
           int dest_x;
@@ -445,10 +425,10 @@ void dfb_scale_linear_32( void *dst, __u32 *src, int sw, int sh,
           void *new_outbuf;
           __u32 **line_bufs;
 
-          y_start = y >> SCALE_SHIFT;
+          y_start = sy >> SCALE_SHIFT;
 
-          run_weights = filter.weights + ((y >> (SCALE_SHIFT - SUBSAMPLE_BITS))
-                        & SUBSAMPLE_MASK) * filter.n_x * filter.n_y * SUBSAMPLE;
+          run_weights = filter.weights + ((sy >> (SCALE_SHIFT - SUBSAMPLE_BITS))
+                                          & SUBSAMPLE_MASK) * filter.n_x * filter.n_y * SUBSAMPLE;
 
           line_bufs = (__u32 **) alloca( filter.n_y * sizeof (void *) );
 
@@ -463,48 +443,49 @@ void dfb_scale_linear_32( void *dst, __u32 *src, int sw, int sh,
                y_start++;
           }
 
-          outbuf = LINE_PTR( dst, dst_surface->caps,
-                             i, dst_surface->height, dpitch );
+          outbuf = (LINE_PTR( dst, dst_surface->caps,
+                              i, dst_surface->height, dpitch ) +
+                    DFB_BYTES_PER_LINE( dst_surface->format, drect->x ));
 
-          outbuf_end = outbuf + DFB_BYTES_PER_LINE( dst_surface->format, dw );
-          x = scaled_x_offset;
-          x_start = x >> SCALE_SHIFT;
+          outbuf_end = outbuf + DFB_BYTES_PER_LINE( dst_surface->format, drect->w );
+          sx = scaled_x_offset;
+          x_start = sx >> SCALE_SHIFT;
           dest_x = 0;
 
           while (x_start < 0 && outbuf < outbuf_end) {
-               scale_pixel( run_weights + ((x >> (SCALE_SHIFT - SUBSAMPLE_BITS))
-                            & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
+               scale_pixel( run_weights + ((sx >> (SCALE_SHIFT - SUBSAMPLE_BITS))
+                                           & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
                             filter.n_x, filter.n_y, outbuf, line_bufs,
-                            x >> SCALE_SHIFT, sw, dst_surface->format,
+                            sx >> SCALE_SHIFT, sw, dst_surface->format,
                             dst_surface->palette );
 
-               x += x_step;
-               x_start = x >> SCALE_SHIFT;
+               sx += x_step;
+               x_start = sx >> SCALE_SHIFT;
                dest_x++;
                outbuf += DFB_BYTES_PER_PIXEL (dst_surface->format);
           }
 
           new_outbuf = scale_line (run_weights, filter.n_x, filter.n_y, outbuf,
-                                   outbuf_end, line_bufs, x >> SCALE_SHIFT,
+                                   outbuf_end, line_bufs, sx >> SCALE_SHIFT,
                                    x_step, sw, dst_surface->format,
                                    dst_surface->palette);
 
           dest_x += (new_outbuf - outbuf) / DFB_BYTES_PER_PIXEL (dst_surface->format);
-          x = dest_x * x_step + scaled_x_offset;
+          sx = dest_x * x_step + scaled_x_offset;
           outbuf = new_outbuf;
 
           while (outbuf < outbuf_end) {
-               scale_pixel( run_weights + ((x >> (SCALE_SHIFT - SUBSAMPLE_BITS))
-                            & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
+               scale_pixel( run_weights + ((sx >> (SCALE_SHIFT - SUBSAMPLE_BITS))
+                                           & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
                             filter.n_x, filter.n_y, outbuf, line_bufs,
-                            x >> SCALE_SHIFT, sw, dst_surface->format,
+                            sx >> SCALE_SHIFT, sw, dst_surface->format,
                             dst_surface->palette);
 
-               x += x_step;
+               sx += x_step;
                outbuf += DFB_BYTES_PER_PIXEL (dst_surface->format);
           }
 
-          y += y_step;
+          sy += y_step;
      }
 
      DFBFREE(filter.weights);
