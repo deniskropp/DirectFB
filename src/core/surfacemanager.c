@@ -148,7 +148,6 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
      shfree( manager );
 }
 
-#ifdef FUSION_FAKE
 DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 {
      Chunk *c;
@@ -177,7 +176,6 @@ DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 {
      return DFB_OK;
 }
-#endif
 
 void dfb_surfacemanager_lock( SurfaceManager *manager )
 {

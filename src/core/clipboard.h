@@ -24,25 +24,18 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __COLORHASH_H__
-#define __COLORHASH_H__
+#ifndef __CORE__CLIPBOARD_H__
+#define __CORE__CLIPBOARD_H__
 
 #include <directfb.h>
 
-#include <core/fusion/fusion_types.h>
+DFBResult dfb_clipboard_set( const char    *mime_type,
+                             const void    *data,
+                             unsigned int   size );
 
-DFBResult dfb_colorhash_initialize();
-DFBResult dfb_colorhash_join();
-DFBResult dfb_colorhash_shutdown( bool emergency );
-DFBResult dfb_colorhash_leave( bool emergency );
-
-void          dfb_colorhash_attach     (CorePalette *palette);
-void          dfb_colorhash_detach     (CorePalette *palette);
-unsigned int  dfb_colorhash_lookup     (CorePalette *palette,
-                                        __u8         r,
-                                        __u8         g,
-                                        __u8         b,
-                                        __u8         a);
-void          dfb_colorhash_invalidate (CorePalette *palette);
+DFBResult dfb_clipboard_get( char         **mime_type,
+                             void         **data,
+                             unsigned int  *size );
 
 #endif
+

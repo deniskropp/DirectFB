@@ -161,18 +161,6 @@ void dfb_system_register_module( CoreSystemFuncs *funcs );
 DFBResult
 dfb_system_lookup();
 
-DFBResult
-dfb_system_initialize();
-
-DFBResult
-dfb_system_join();
-
-DFBResult
-dfb_system_shutdown( bool emergency );
-
-DFBResult
-dfb_system_leave( bool emergency );
-
 CoreSystemType
 dfb_system_type();
 

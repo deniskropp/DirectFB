@@ -35,8 +35,11 @@ AM_CPPFLAGS = \
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
+	clipboard.h		\
+	colorhash.h		\
 	coredefs.h		\
 	coretypes.h		\
+	core_parts.h		\
 	core_system.h		\
 	core.h			\
 	fonts.h			\
@@ -65,6 +68,8 @@ libdirectfb_core_la_LIBADD = \
 	$(SDL_LIB)
 
 libdirectfb_core_la_SOURCES = \
+	clipboard.c		\
+	colorhash.c		\
 	core.c			\
 	fonts.c			\
 	gfxcard.c		\

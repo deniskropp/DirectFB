@@ -121,11 +121,5 @@ dfb_core_cleanup_add( CoreCleanupFunc func, void *data, bool emergency );
 void
 dfb_core_cleanup_remove( CoreCleanup *cleanup );
 
-DFBResult
-dfb_core_set_clip( const char *mime_type, const void *data, unsigned int size );
-
-DFBResult
-dfb_core_get_clip( char **mime_type, void **data, unsigned int *size );
-
 #endif
 

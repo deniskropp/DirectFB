@@ -43,6 +43,8 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/core_parts.h>
+
 #include <core/modules.h>
 
 #include <core/surfaces.h>
@@ -116,6 +118,9 @@ static CoreInputField *inputfield   = NULL;
 static InputDevice    *inputdevices = NULL;
 
 
+DFB_CORE_PART( input, 0, sizeof(CoreInputField) );
+
+
 static void
 init_devices();
 
@@ -157,16 +162,10 @@ static const React dfb_input_globals[] = {
 
 /** public **/
 
-DFBResult
-dfb_input_initialize()
+static DFBResult
+dfb_input_initialize( void *data_local, void *data_shared )
 {
-     DFB_ASSERT( inputfield == NULL );
-
-     inputfield = shcalloc( 1, sizeof (CoreInputField) );
-
-#ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, "Core/Input", inputfield );
-#endif
+     inputfield = data_shared;
 
      dfb_modules_explore_directory( &dfb_input_modules );
 
@@ -175,23 +174,15 @@ dfb_input_initialize()
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
-DFBResult
-dfb_input_join()
+static DFBResult
+dfb_input_join( void *data_local, void *data_shared )
 {
-     int          i;
-     FusionResult ret;
+     int i;
 
-     DFB_ASSERT( inputfield == NULL );
-
-     ret = arena_get_shared_field( dfb_core->arena, "Core/Input",
-                                  (void**) &inputfield );
-     if (ret) {
-          return DFB_INIT;
-     }
+     inputfield = data_shared;
 
      for (i=0; i<inputfield->num; i++) {
-          InputDevice       *device;
+          InputDevice *device;
 
           device = DFBCALLOC( 1, sizeof(InputDevice) );
 
@@ -213,9 +204,8 @@ dfb_input_join()
 
      return DFB_OK;
 }
-#endif
 
-DFBResult
+static DFBResult
 dfb_input_shutdown( bool emergency )
 {
      InputDevice *d = inputdevices;
@@ -250,14 +240,12 @@ dfb_input_shutdown( bool emergency )
      inputdevices  = NULL;
      input_drivers = NULL;
 
-     shfree( inputfield );
      inputfield = NULL;
 
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
-DFBResult
+static DFBResult
 dfb_input_leave( bool emergency )
 {
      InputDevice *d = inputdevices;
@@ -278,10 +266,8 @@ dfb_input_leave( bool emergency )
 
      return DFB_OK;
 }
-#endif
 
-#ifdef FUSION_FAKE
-DFBResult
+static DFBResult
 dfb_input_suspend()
 {
      InputDevice *d = inputdevices;
@@ -297,7 +283,7 @@ dfb_input_suspend()
      return DFB_OK;
 }
 
-DFBResult
+static DFBResult
 dfb_input_resume()
 {
      InputDevice *d = inputdevices;
@@ -321,7 +307,6 @@ dfb_input_resume()
 
      return DFB_OK;
 }
-#endif
 
 void
 dfb_input_enumerate_devices( InputDeviceCallback  callback,

@@ -169,18 +169,6 @@ typedef struct {
 } DisplayLayerFuncs;
 
 
-DFBResult dfb_layers_initialize();
-DFBResult dfb_layers_join();
-
-
-DFBResult dfb_layers_shutdown( bool emergency );
-DFBResult dfb_layers_leave( bool emergency );
-
-#ifdef FUSION_FAKE
-DFBResult dfb_layers_suspend();
-DFBResult dfb_layers_resume();
-#endif
-
 /*
  * Add a layer to a graphics device by pointing to a table
  * containing driver functions. The supplied driver data

@@ -43,18 +43,13 @@
 #include <core/coretypes.h>
 
 #include <core/core.h>
+#include <core/core_parts.h>
 #include <core/system.h>
 #include <core/sig.h>
-#include <core/input.h>
-#include <core/gfxcard.h>
-#include <core/layers.h>
-#include <core/surfaces.h>
-#include <core/surfacemanager.h>
 
 #include <misc/mem.h>
 #include <misc/memcpy.h>
 #include <misc/util.h>
-#include <misc/colorhash.h>
 
 /*
  * one entry in the cleanup stack
@@ -83,15 +78,16 @@ static void* dfb_lib_handle = NULL;
 #endif
 
 
-typedef struct {
-     FusionSkirmish  lock;
-     char           *mime_type;
-     void           *data;
-     unsigned int    size;
-} CoreClip;
+static CorePart *core_parts[] = {
+     &dfb_core_clipboard,
+     &dfb_core_colorhash,
+     &dfb_core_system,
+     &dfb_core_input,
+     &dfb_core_gfxcard,
+     &dfb_core_layers
+};
 
-static CoreClip *core_clip = NULL;
-
+#define NUM_CORE_PARTS (sizeof(core_parts)/sizeof(CorePart*))
 
 static int
 dfb_core_initialize( FusionArena *arena, void *ctx );
@@ -281,15 +277,15 @@ dfb_core_suspend()
 #else
      DFBResult ret;
 
-     ret = dfb_input_suspend();
+     ret = dfb_core_input.Suspend();
      if (ret)
           return ret;
 
-     ret = dfb_layers_suspend();
+     ret = dfb_core_layers.Suspend();
      if (ret)
           return ret;
 
-     ret = dfb_gfxcard_suspend();
+     ret = dfb_core_gfxcard.Suspend();
      if (ret)
           return ret;
 
@@ -305,15 +301,15 @@ dfb_core_resume()
 #else
      DFBResult ret;
 
-     ret = dfb_gfxcard_resume();
+     ret = dfb_core_gfxcard.Resume();
      if (ret)
           return ret;
 
-     ret = dfb_layers_resume();
+     ret = dfb_core_layers.Resume();
      if (ret)
           return ret;
 
-     ret = dfb_input_resume();
+     ret = dfb_core_input.Resume();
      if (ret)
           return ret;
 
@@ -366,78 +362,12 @@ dfb_core_cleanup_remove( CoreCleanup *cleanup )
      DFBFREE( cleanup );
 }
 
-DFBResult
-dfb_core_set_clip( const char *mime_type, const void *data, unsigned int size )
-{
-     char *new_mime;
-     void *new_data;
-
-     new_mime = shstrdup( mime_type );
-     if (!new_mime)
-          return DFB_NOSYSTEMMEMORY;
-     
-     new_data = shmalloc( size );
-     if (!new_data) {
-          shfree( new_mime );
-          return DFB_NOSYSTEMMEMORY;
-     }
-     
-     dfb_memcpy( new_data, data, size );
-
-     if (skirmish_prevail( &core_clip->lock )) {
-          shfree( new_data );
-          shfree( new_mime );
-          return DFB_FUSION;
-     }
-
-     if (core_clip->data)
-          shfree( core_clip->data );
-
-     if (core_clip->mime_type)
-          shfree( core_clip->mime_type );
-
-     core_clip->mime_type = new_mime;
-     core_clip->data      = new_data;
-     core_clip->size      = size;
-
-     skirmish_dismiss( &core_clip->lock );
-     
-     return DFB_OK;
-}
-
-DFBResult
-dfb_core_get_clip( char **mime_type, void **data, unsigned int *size )
-{
-     if (skirmish_prevail( &core_clip->lock ))
-          return DFB_FUSION;
-
-     if (!core_clip->mime_type || !core_clip->data) {
-          skirmish_dismiss( &core_clip->lock );
-          return DFB_BUFFEREMPTY;
-     }
-     
-     if (mime_type)
-          *mime_type = strdup( core_clip->mime_type );
-
-     if (data) {
-          *data = malloc( core_clip->size );
-          dfb_memcpy( *data, core_clip->data, core_clip->size );
-     }
-
-     if (size)
-          *size = core_clip->size;
-
-     skirmish_dismiss( &core_clip->lock );
-     
-     return DFB_OK;
-}
-
 /****************************/
 
 static int
 dfb_core_initialize( FusionArena *arena, void *ctx )
 {
-     DFBResult ret;
+     int i;
 
      DEBUGMSG( "DirectFB/Core: we are the master, initializing...\n" );
 
@@ -445,37 +375,40 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
      
      dfb_core->master = true;
 
-     core_clip = shcalloc( 1, sizeof(CoreClip) );
-     if (!core_clip)
-          return DFB_NOSYSTEMMEMORY;
+     for (i=0; i<NUM_CORE_PARTS; i++) {
+          DFBResult  ret;
+          void      *local  = NULL;
+          void      *shared = NULL;
 
-     skirmish_init( &core_clip->lock );
+          if (core_parts[i]->size_local)
+               local = DFBCALLOC( 1, core_parts[i]->size_local );
+
+          if (core_parts[i]->size_shared)
+               shared = shcalloc( 1, core_parts[i]->size_shared );
+
+          ret = core_parts[i]->Initialize( local, shared );
+          if (ret) {
+               ERRORMSG( "DirectFB/Core: Could not initialize '%s' core!\n"
+                         "    --> %s\n", core_parts[i]->name,
+                         DirectFBErrorString( ret ) );
+               
+               if (shared)
+                    shfree( shared );
+               
+               if (local)
+                    DFBFREE( local );
+
+               return ret;
+          }
 
 #ifndef FUSION_FAKE
-     arena_add_shared_field( arena, "Core/Clip", core_clip );
+          if (shared)
+               arena_add_shared_field( arena, core_parts[i]->name, shared );
 #endif
 
-     ret = dfb_colorhash_initialize();
-     if (ret)
-          return ret;
-     
-     
-     ret = dfb_system_initialize();
-     if (ret)
-          return ret;
-     
-     
-     ret = dfb_input_initialize();
-     if (ret)
-          return ret;
-     
-     ret = dfb_gfxcard_initialize();
-     if (ret)
-          return ret;
-     
-     ret = dfb_layers_initialize();
-     if (ret)
-          return ret;
+          core_parts[i]->data_local  = local;
+          core_parts[i]->data_shared = shared;
+     }
 
      return 0;
 }
@@ -484,7 +417,7 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
 static int
 dfb_core_join( FusionArena *arena, void *ctx )
 {
-     DFBResult ret;
+     int i;
 
      DEBUGMSG( "DirectFB/Core: we are a slave, joining...\n" );
 
@@ -492,30 +425,33 @@ dfb_core_join( FusionArena *arena, void *ctx )
 
      dfb_sig_install_handlers();
      
-     if (arena_get_shared_field( arena, "Core/Clip", (void**) &core_clip ))
-          return DFB_FUSION;
+     for (i=0; i<NUM_CORE_PARTS; i++) {
+          DFBResult  ret;
+          void      *local  = NULL;
+          void      *shared = NULL;
 
-     ret = dfb_colorhash_join();
-     if (ret)
-          return ret;
-     
-     
-     ret = dfb_system_join();
-     if (ret)
-          return ret;
-     
-     
-     ret = dfb_input_join();
-     if (ret)
-          return ret;
-     
-     ret = dfb_gfxcard_join();
-     if (ret)
-          return ret;
-     
-     ret = dfb_layers_join();
-     if (ret)
-          return ret;
+          if (core_parts[i]->size_shared &&
+              arena_get_shared_field( arena, core_parts[i]->name, &shared ))
+               return DFB_FUSION;
+
+          if (core_parts[i]->size_local)
+               local = DFBCALLOC( 1, core_parts[i]->size_local );
+
+          ret = core_parts[i]->Join( local, shared );
+          if (ret) {
+               ERRORMSG( "DirectFB/Core: Could not join '%s' core!\n"
+                         "    --> %s\n", core_parts[i]->name,
+                         DirectFBErrorString( ret ) );
+               
+               if (local)
+                    DFBFREE( local );
+
+               return ret;
+          }
+
+          core_parts[i]->data_local  = local;
+          core_parts[i]->data_shared = shared;
+     }
      
      return 0;
 }
@@ -524,6 +460,8 @@ dfb_core_join( FusionArena *arena, void *ctx )
 static int
 dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
 {
+     int i;
+
      DEBUGMSG( "DirectFB/Core: shutting down!\n" );
 
      while (core_cleanups) {
@@ -537,25 +475,23 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
           DFBFREE( cleanup );
      }
 
-     dfb_layers_shutdown( emergency );
-     dfb_gfxcard_shutdown( emergency );
-     dfb_input_shutdown( emergency );
-     
-     dfb_system_shutdown( emergency );
+     for (i=NUM_CORE_PARTS-1; i>=0; i--) {
+          DFBResult ret;
 
-     dfb_colorhash_shutdown( emergency );
-
-     if (core_clip) {
-          skirmish_destroy( &core_clip->lock );
+          ret = core_parts[i]->Shutdown( emergency );
+          if (ret)
+               ERRORMSG( "DirectFB/Core: Could not shutdown '%s' core!\n"
+                         "    --> %s\n", core_parts[i]->name,
+                         DirectFBErrorString( ret ) );
           
-          if (core_clip->data)
-               shfree( core_clip->data );
+          if (core_parts[i]->data_shared)
+               shfree( core_parts[i]->data_shared );
 
-          if (core_clip->mime_type)
-               shfree( core_clip->mime_type );
-          
-          shfree( core_clip );
-          core_clip = NULL;
+          if (core_parts[i]->data_local)
+               DFBFREE( core_parts[i]->data_local );
+
+          core_parts[i]->data_local  = NULL;
+          core_parts[i]->data_shared = NULL;
      }
 
      return 0;
@@ -565,6 +501,8 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
 static int
 dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
 {
+     int i;
+
      DEBUGMSG( "DirectFB/Core: leaving!\n" );
 
      while (core_cleanups) {
@@ -578,16 +516,22 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
           DFBFREE( cleanup );
      }
      
-     dfb_input_leave( emergency );
-     dfb_layers_leave( emergency );
-     dfb_gfxcard_leave( emergency );
-     
-     dfb_system_leave( emergency );
+     for (i=NUM_CORE_PARTS-1; i>=0; i--) {
+          DFBResult ret;
 
-     dfb_colorhash_leave( emergency );
+          ret = core_parts[i]->Leave( emergency );
+          if (ret)
+               ERRORMSG( "DirectFB/Core: Could not shutdown '%s' core!\n"
+                         "    --> %s\n", core_parts[i]->name,
+                         DirectFBErrorString( ret ) );
+          
+          if (core_parts[i]->data_local)
+               DFBFREE( core_parts[i]->data_local );
 
-     core_clip = NULL;
-     
+          core_parts[i]->data_local  = NULL;
+          core_parts[i]->data_shared = NULL;
+     }
+
      return 0;
 }
 #endif

@@ -85,22 +85,6 @@ typedef struct {
      void      (*CloseDevice)    (void                       *driver_data);
 } InputDriverFuncs;
 
-/*
- * core init function, probes all input drivers and creates devices of them
- */
-DFBResult dfb_input_initialize();
-DFBResult dfb_input_join();
-
-/*
- * cancels input threads, deinitializes drivers, deallocates device structs
- */
-DFBResult dfb_input_shutdown( bool emergency );
-DFBResult dfb_input_leave( bool emergency );
-
-#ifdef FUSION_FAKE
-DFBResult dfb_input_suspend();
-DFBResult dfb_input_resume();
-#endif
 
 void dfb_input_register_module( InputDriverFuncs *funcs );
 

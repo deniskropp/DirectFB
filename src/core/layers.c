@@ -39,6 +39,8 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/core_parts.h>
+
 #include <core/input.h>
 #include <core/gfxcard.h>
 #include <core/layers.h>
@@ -124,6 +126,9 @@ static int           dfb_num_layers = 0;
 static DisplayLayer *dfb_layers[MAX_LAYERS] = { NULL };
 
 
+DFB_CORE_PART( layers, 0, sizeof(CoreLayersField) );
+
+
 static DFBResult load_default_cursor ( DisplayLayer          *layer );
 
 static DFBResult create_cursor_window( DisplayLayer          *layer,
@@ -138,19 +143,13 @@ static DFBResult deallocate_surface  ( DisplayLayer          *layer );
 
 /** public **/
 
-DFBResult
-dfb_layers_initialize()
+static DFBResult
+dfb_layers_initialize( void *data_local, void *data_shared )
 {
      int       i;
      DFBResult ret;
 
-     DFB_ASSERT( layersfield == NULL );
-
-     layersfield = shcalloc( 1, sizeof (CoreLayersField) );
-
-#ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, "Core/Layers", layersfield );
-#endif
+     layersfield = data_shared;
 
      for (i=0; i<dfb_num_layers; i++) {
           int                 layer_data_size;
@@ -189,9 +188,15 @@ dfb_layers_initialize()
                                          layer->driver_data,
                                          shared->layer_data );
           if (ret) {
+               ERRORMSG("DirectFB/Core/layers: "
+                        "Failed to initialize layer %d!\n", shared->id);
+
                fusion_property_destroy( &shared->lock );
+
                shfree( shared->layer_data );
                shfree( shared );
+
+               return ret;
           }
 
           /* make a copy for faster access */
@@ -214,17 +219,12 @@ dfb_layers_initialize()
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
-DFBResult
-dfb_layers_join()
+static DFBResult
+dfb_layers_join( void *data_local, void *data_shared )
 {
      int i;
 
-     DFB_ASSERT( layersfield == NULL );
-     
-     if (arena_get_shared_field( dfb_core->arena, "Core/Layers",
-                                 (void**) &layersfield ))
-          return DFB_INIT;
+     layersfield = data_shared;
 
      if (dfb_num_layers != layersfield->num)
           CAUTION("Number of layers does not match!");
@@ -242,9 +242,8 @@ dfb_layers_join()
      
      return DFB_OK;
 }
-#endif
 
-DFBResult
+static DFBResult
 dfb_layers_shutdown( bool emergency )
 {
      int i;
@@ -284,8 +283,6 @@ dfb_layers_shutdown( bool emergency )
           DFBFREE( l );
      }
 
-     /* Free shared layer field */
-     shfree( layersfield );
      layersfield = NULL;
 
      dfb_num_layers = 0;
@@ -293,8 +290,7 @@ dfb_layers_shutdown( bool emergency )
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
-DFBResult
+static DFBResult
 dfb_layers_leave( bool emergency )
 {
      int i;
@@ -320,10 +316,8 @@ dfb_layers_leave( bool emergency )
 
      return DFB_OK;
 }
-#endif
 
-#ifdef FUSION_FAKE
-DFBResult
+static DFBResult
 dfb_layers_suspend()
 {
      int i;
@@ -338,7 +332,7 @@ dfb_layers_suspend()
      return DFB_OK;
 }
 
-DFBResult
+static DFBResult
 dfb_layers_resume()
 {
      int i;
@@ -359,7 +353,6 @@ dfb_layers_resume()
 
      return DFB_OK;
 }
-#endif
 
 void
 dfb_layers_register( GraphicsDevice    *device,
@@ -626,6 +619,8 @@ dfb_layer_enable( DisplayLayer *layer )
           /* clear the layer's surface */
           dfb_windowstack_repaint_all( shared->stack );
      }
+
+     INITMSG( "DirectFB/Layer: Enabled '%s'.\n", shared->layer_info.desc.name );
 
      return DFB_OK;
 }

@@ -40,6 +40,7 @@
 #include <core/core.h>
 #include <core/coretypes.h>
 
+#include <core/clipboard.h>
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/input.h>
@@ -914,7 +915,7 @@ IDirectFB_SetClipboardData( IDirectFB                 *thiz,
      if (!mime_type || !data || !size)
           return DFB_INVARG;
 
-     return dfb_core_set_clip( mime_type, data, size );
+     return dfb_clipboard_set( mime_type, data, size );
 }
 
 static DFBResult
@@ -926,7 +927,7 @@ IDirectFB_GetClipboardData( IDirectFB                 *thiz,
      if (!mime_type && !data && !size)
           return DFB_INVARG;
 
-     return dfb_core_get_clip( mime_type, data, size );
+     return dfb_clipboard_get( mime_type, data, size );
 }
 
 static DFBResult

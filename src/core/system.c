@@ -33,6 +33,7 @@
                                    
 #include <core/coredefs.h>
 #include <core/coretypes.h>
+#include <core/core_parts.h>
 #include <core/layers.h>
 #include <core/modules.h>
 #include <core/palette.h>
@@ -46,6 +47,9 @@
 
 DEFINE_MODULE_DIRECTORY( dfb_core_systems, "systems",
                          DFB_CORE_SYSTEM_ABI_VERSION );
+
+DFB_CORE_PART( system, 0, 0 );
+
 
 static ModuleEntry     *system_module  = NULL;
 static CoreSystemFuncs *system_funcs   = NULL;
@@ -89,23 +93,23 @@ dfb_system_lookup()
      return DFB_OK;
 }
 
-DFBResult
-dfb_system_initialize()
+static DFBResult
+dfb_system_initialize( void *data_local, void *data_shared )
 {
      DFB_ASSERT( system_funcs != NULL );
 
      return system_funcs->Initialize();
 }
 
-DFBResult
-dfb_system_join()
+static DFBResult
+dfb_system_join( void *data_local, void *data_shared )
 {
      DFB_ASSERT( system_funcs != NULL );
 
      return system_funcs->Join();
 }
 
-DFBResult
+static DFBResult
 dfb_system_shutdown( bool emergency )
 {
      if (system_module) {
@@ -122,7 +126,7 @@ dfb_system_shutdown( bool emergency )
      return DFB_OK;
 }
 
-DFBResult
+static DFBResult
 dfb_system_leave( bool emergency )
 {
      if (system_module) {
@@ -137,6 +141,22 @@ dfb_system_leave( bool emergency )
      }
 
      return DFB_OK;
+}
+
+static DFBResult
+dfb_system_suspend()
+{
+     DFB_ASSERT( system_funcs != NULL );
+
+     return system_funcs->Suspend();
+}
+
+static DFBResult
+dfb_system_resume()
+{
+     DFB_ASSERT( system_funcs != NULL );
+
+     return system_funcs->Resume();
 }
 
 CoreSystemType

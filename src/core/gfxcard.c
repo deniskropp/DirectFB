@@ -35,6 +35,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/core_parts.h>
 #include <core/modules.h>
 #include <core/gfxcard.h>
 #include <core/fonts.h>
@@ -97,28 +98,25 @@ static GraphicsDevice *card = NULL;
 
 static void dfb_gfxcard_find_driver();
 
+DFB_CORE_PART( gfxcard, sizeof(GraphicsDevice), sizeof(GraphicsDeviceShared) );
+
 
 /** public **/
 
-DFBResult dfb_gfxcard_initialize()
+static DFBResult
+dfb_gfxcard_initialize( void *data_local, void *data_shared )
 {
      DFBResult    ret;
      unsigned int videoram_length;
 
-     card = (GraphicsDevice*) DFBCALLOC( 1, sizeof(GraphicsDevice) );
+     card         = data_local;
+     card->shared = data_shared;
 
-     card->shared = (GraphicsDeviceShared*) shcalloc( 1, sizeof(GraphicsDeviceShared) );
-
-#ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, "Core/GfxCard", card->shared );
-#endif
-     
      /* fill generic driver info */
      gGetDriverInfo( &card->shared->driver_info );
 
      /* fill generic device info */
      gGetDeviceInfo( &card->shared->device_info );
-
 
      /* Limit video ram length */
      videoram_length = dfb_system_videoram_length();
@@ -144,7 +142,6 @@ DFBResult dfb_gfxcard_initialize()
           ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
           if (ret) {
                DFBFREE( card->driver_data );
-               DFBFREE( card );
                card = NULL;
                return ret;
           }
@@ -158,7 +155,6 @@ DFBResult dfb_gfxcard_initialize()
                funcs->CloseDriver( card, card->driver_data );
                shfree( card->shared->device_data );
                DFBFREE( card->driver_data );
-               DFBFREE( card );
                card = NULL;
                return ret;
           }
@@ -194,15 +190,14 @@ DFBResult dfb_gfxcard_initialize()
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
-DFBResult dfb_gfxcard_join()
+static DFBResult
+dfb_gfxcard_join( void *data_local, void *data_shared )
 {
      DFBResult ret;
 
-     card = (GraphicsDevice*)DFBCALLOC( 1, sizeof(GraphicsDevice) );
-
-     arena_get_shared_field( dfb_core->arena, "Core/GfxCard", (void**) &card->shared );
-
+     card         = data_local;
+     card->shared = data_shared;
+     
      /* Build a list of available drivers. */
      dfb_modules_explore_directory( &dfb_graphics_drivers );
 
@@ -217,7 +212,6 @@ DFBResult dfb_gfxcard_join()
           ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
           if (ret) {
                DFBFREE( card->driver_data );
-               DFBFREE( card );
                card = NULL;
                return ret;
           }
@@ -234,9 +228,9 @@ DFBResult dfb_gfxcard_join()
      
      return DFB_OK;
 }
-#endif
 
-DFBResult dfb_gfxcard_shutdown( bool emergency )
+static DFBResult
+dfb_gfxcard_shutdown( bool emergency )
 {
      if (!card)
           return DFB_OK;
@@ -263,16 +257,13 @@ DFBResult dfb_gfxcard_shutdown( bool emergency )
 
      skirmish_destroy( &card->shared->lock );
 
-     shfree( card->shared );
-
-     DFBFREE( card );
      card = NULL;
 
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
-DFBResult dfb_gfxcard_leave( bool emergency )
+static DFBResult
+dfb_gfxcard_leave( bool emergency )
 {
      if (!card)
           return DFB_OK;
@@ -287,26 +278,24 @@ DFBResult dfb_gfxcard_leave( bool emergency )
           DFBFREE( card->driver_data );
      }
 
-     DFBFREE( card );
      card = NULL;
 
      return DFB_OK;
 }
-#endif
 
-#ifdef FUSION_FAKE
-DFBResult dfb_gfxcard_suspend()
+static DFBResult
+dfb_gfxcard_suspend()
 {
      dfb_gfxcard_sync();
 
      return dfb_surfacemanager_suspend( card->shared->surface_manager );
 }
 
-DFBResult dfb_gfxcard_resume()
+static DFBResult
+dfb_gfxcard_resume()
 {
      return dfb_surfacemanager_resume( card->shared->surface_manager );
 }
-#endif
 
 void
 dfb_gfxcard_lock()

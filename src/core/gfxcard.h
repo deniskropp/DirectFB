@@ -203,20 +203,6 @@ typedef struct {
                                   void                *driver_data);
 } GraphicsDriverFuncs;
 
-/*
- * initializes card struct, maps framebuffer, chooses accelerated driver
- */
-DFBResult dfb_gfxcard_initialize();
-DFBResult dfb_gfxcard_join();
-
-DFBResult dfb_gfxcard_shutdown( bool emergency );
-DFBResult dfb_gfxcard_leave( bool emergency );
-
-#ifdef FUSION_FAKE
-DFBResult dfb_gfxcard_suspend();
-DFBResult dfb_gfxcard_resume();
-#endif
-
 void dfb_gfxcard_lock();
 void dfb_gfxcard_unlock( bool invalidate_state );
 

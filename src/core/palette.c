@@ -34,8 +34,8 @@
 #include <core/surfaces.h>
 #include <core/gfxcard.h>
 #include <core/palette.h>
+#include <core/colorhash.h>
 
-#include <misc/colorhash.h>
 #include <misc/util.h>
 
 static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };

@@ -42,8 +42,6 @@ noinst_LTLIBRARIES = libdirectfb_misc.la
 
 libdirectfb_misc_la_SOURCES =	\
 	conf.c			\
-	colorhash.c		\
-	colorhash.h		\
 	cpu_accel.c		\
 	gfx_util.c		\
 	mem.c			\

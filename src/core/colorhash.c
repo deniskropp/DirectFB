@@ -24,26 +24,25 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <core/fusion/arena.h>
 #include <core/fusion/shmalloc.h>
 
 #include <core/core.h>
+#include <core/core_parts.h>
 #include <core/palette.h>
+#include <core/colorhash.h>
 
 #include <misc/util.h>
 #include <gfx/convert.h>
 
-#include "colorhash.h"
-
 #define HASH_SIZE 1021
 
-typedef struct
-{
-  unsigned int  pixel;
-  unsigned int  index;
-  CorePalette  *palette;
+typedef struct {
+     unsigned int  pixel;
+     unsigned int  index;
+     CorePalette  *palette;
 } Colorhash;
 
 typedef struct {
@@ -55,54 +54,41 @@ typedef struct {
 static ColorhashField *hash_field = NULL;
 
 
-DFBResult
-dfb_colorhash_initialize()
-{
-     DFB_ASSERT( hash_field == NULL );
+DFB_CORE_PART( colorhash, 0, sizeof(ColorhashField) );
 
-     hash_field = shcalloc( 1, sizeof(ColorhashField) );
-     if (!hash_field)
-          return DFB_NOSYSTEMMEMORY;
+
+static DFBResult
+dfb_colorhash_initialize( void *data_local, void *data_shared )
+{
+     hash_field = data_shared;
 
      skirmish_init( &hash_field->hash_lock );
 
-#ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, "Colorhash", hash_field );
-#endif
-
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
-DFBResult
-dfb_colorhash_join()
+static DFBResult
+dfb_colorhash_join( void *data_local, void *data_shared )
 {
-     DFB_ASSERT( hash_field == NULL );
-     
-     if (arena_get_shared_field( dfb_core->arena, "Colorhash",
-                                 (void**) &hash_field ))
-          return DFB_INIT;
+     hash_field = data_shared;
 
      return DFB_OK;
 }
-#endif
 
-DFBResult
+static DFBResult
 dfb_colorhash_shutdown( bool emergency )
 {
      if (!hash_field)
           return DFB_OK;
 
      skirmish_destroy( &hash_field->hash_lock );
-     
-     shfree( hash_field );
+
      hash_field = NULL;
 
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
-DFBResult
+static DFBResult
 dfb_colorhash_leave( bool emergency )
 {
      if (!hash_field)
@@ -112,20 +98,35 @@ dfb_colorhash_leave( bool emergency )
 
      return DFB_OK;
 }
-#endif
+
+static DFBResult
+dfb_colorhash_suspend()
+{
+     return DFB_OK;
+}
+
+static DFBResult
+dfb_colorhash_resume()
+{
+     return DFB_OK;
+}
 
 
-static inline void colorhash_lock( void )
+static inline void
+colorhash_lock( void )
 {
      skirmish_prevail( &hash_field->hash_lock );
 }
 
-static inline void colorhash_unlock( void )
+static inline void
+colorhash_unlock( void )
 {
      skirmish_dismiss( &hash_field->hash_lock );
 }
 
-void dfb_colorhash_attach( CorePalette *palette ) {
+void
+dfb_colorhash_attach( CorePalette *palette )
+{
      colorhash_lock();
 
      if (!hash_field->hash) {
@@ -139,12 +140,14 @@ void dfb_colorhash_attach( CorePalette *palette ) {
      colorhash_unlock();
 }
 
-void dfb_colorhash_detach( CorePalette *palette ) {
+void
+dfb_colorhash_detach( CorePalette *palette )
+{
      colorhash_lock();
 
      DFB_ASSERT( hash_field->hash_users > 0 );
      DFB_ASSERT( hash_field->hash != NULL );
-     
+
      hash_field->hash_users--;
 
      if (!hash_field->hash_users) {
@@ -156,11 +159,12 @@ void dfb_colorhash_detach( CorePalette *palette ) {
      colorhash_unlock();
 }
 
-unsigned int dfb_colorhash_lookup( CorePalette *palette,
-                                   __u8         r,
-                                   __u8         g,
-                                   __u8         b,
-                                   __u8         a )
+unsigned int
+dfb_colorhash_lookup( CorePalette *palette,
+                      __u8         r,
+                      __u8         g,
+                      __u8         b,
+                      __u8         a )
 {
      Colorhash    *hash;
      unsigned int  pixel = PIXEL_ARGB(a, r, g, b);
@@ -176,12 +180,11 @@ unsigned int dfb_colorhash_lookup( CorePalette *palette,
      if (hash[index].palette == palette && hash[index].pixel == pixel) {
           /* set the return value */
           index = hash[index].index;
-     }
-     else { /* look for the closest match */
+     } else { /* look for the closest match */
           DFBColor *entries = palette->entries;
           int min_diff = 0;
           unsigned int i, min_index = 0;
-          
+
           for (i = 0; i < palette->num_entries; i++) {
 
                int r_diff = (int) entries[i].r - (int) r;
@@ -196,11 +199,11 @@ unsigned int dfb_colorhash_lookup( CorePalette *palette,
                     min_diff = diff;
                     min_index = i;
                }
-          
+
                if (!diff)
                     break;
           }
-          
+
           /* store the matching entry in the hash table */
           hash[index].pixel   = pixel;
           hash[index].index   = min_index;
@@ -215,8 +218,8 @@ unsigned int dfb_colorhash_lookup( CorePalette *palette,
      return index;
 }
 
-
-void dfb_colorhash_invalidate( CorePalette *palette )
+void
+dfb_colorhash_invalidate( CorePalette *palette )
 {
      Colorhash    *hash;
      unsigned int  index = HASH_SIZE - 1;
@@ -232,7 +235,7 @@ void dfb_colorhash_invalidate( CorePalette *palette )
           if (hash[index].palette == palette)
                hash[index].palette = NULL;
      } while (--index);
-     
+
      colorhash_unlock();
 }
 
