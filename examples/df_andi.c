@@ -428,7 +428,9 @@ void init_resources( int argc, char *argv[] )
 
      /* set our cooperative level to DFSCL_FULLSCREEN for exclusive access to
         the primary layer */
-     DFBCHECK(dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN ));
+     err = dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
+     if (err)
+       DirectFBError( "Failed to get exclusive access", err );
 
      DFBCHECK(dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer ));
 
@@ -440,7 +442,7 @@ void init_resources( int argc, char *argv[] )
      memset( &dsc, 0, sizeof(DFBSurfaceDescription) );
      dsc.flags = DSDESC_CAPS;
      dsc.caps = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
-     
+
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &primary ));
 
      /* load font */
@@ -480,18 +482,18 @@ void init_resources( int argc, char *argv[] )
 
      /* load the penguin destination mask */
      DFBCHECK(dfb->CreateImageProvider( dfb, DATADIR
-                                        "/examples/destination_mask.png", 
+                                        "/examples/destination_mask.png",
                                         &provider ));
-     
+
      DFBCHECK(provider->GetSurfaceDescription( provider, &dsc ));
-          
+
      dsc.pixelformat = DSPF_RGB32;
 
      DESTINATION_MASK_WIDTH  = dsc.width;
      DESTINATION_MASK_HEIGHT = dsc.height;
-          
+
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &destination_mask ));
-          
+
      DFBCHECK(provider->RenderTo( provider, destination_mask ));
      provider->Release( provider );
 }
@@ -599,7 +601,7 @@ int main( int argc, char *argv[] )
                          case DIKC_D:
                               /* removes one penguin */
                               destroy_penguins(10);
-                              break;                         
+                              break;
                          case DIKC_C:
                               /*toggle clipping*/
                               clipping=!clipping;

@@ -78,21 +78,21 @@ static int intro()
       int frames = 200;
 
       while (frames--)
-	{
-	  primary->SetColor( primary, 0, 0, 0, 0 );
-	  primary->FillRectangle( primary, 0, 0, xres, yres );
+    {
+      primary->SetColor( primary, 0, 0, 0, 0 );
+      primary->FillRectangle( primary, 0, 0, xres, yres );
 
-	  primary->SetColor( primary,
-			     0x40 + rand()%0xC0, 0x80 + rand()%0x80, 0x80 + rand()%0x80, 0xff );
-	  primary->DrawString( primary, lines[l], -1,
-			       xres/2 + rand()%jitter1-jitter2,
-			       yres/2 + rand()%jitter1-jitter2, DSTF_CENTER );
-      
-	  /* flip display */
-	  DFBCHECK(primary->Flip( primary, NULL, DSFLIP_WAITFORSYNC ));
+      primary->SetColor( primary,
+                 0x40 + rand()%0xC0, 0x80 + rand()%0x80, 0x80 + rand()%0x80, 0xff );
+      primary->DrawString( primary, lines[l], -1,
+                   xres/2 + rand()%jitter1-jitter2,
+                   yres/2 + rand()%jitter1-jitter2, DSTF_CENTER );
 
-	  pthread_testcancel();
-	}
+      /* flip display */
+      DFBCHECK(primary->Flip( primary, NULL, DSFLIP_WAITFORSYNC ));
+
+      pthread_testcancel();
+    }
 
       ++l;
     }
@@ -121,7 +121,7 @@ static int demo1()
 
   primary->SetColor( primary, 0, 0, 0, 0 );
   primary->FillRectangle( primary, 0, 0, xres, yres );
-  
+
   for (i=0; i<30; i++)
     {
       usleep( 40000 );
@@ -179,15 +179,15 @@ static int demo2()
       primary->FillRectangle( primary, 0, 0, xres, yres );
 
       for (w=b; w<=b+6.29; w+=.05)
-	{
-	  primary->SetColor( primary,
-			     sin(1*w+b) *127+127,
-			     sin(2*w-b) *127+127,
-			     sin(3*w+b) *127+127,
-			     sin(4*w-b) *127+127 );
-	  primary->DrawLine( primary, xres2, yres2,
-			     xres2 + cos(w)*xres2, yres2 + sin(w)*yres2 );
-	}
+    {
+      primary->SetColor( primary,
+                 sin(1*w+b) *127+127,
+                 sin(2*w-b) *127+127,
+                 sin(3*w+b) *127+127,
+                 sin(4*w-b) *127+127 );
+      primary->DrawLine( primary, xres2, yres2,
+                 xres2 + cos(w)*xres2, yres2 + sin(w)*yres2 );
+    }
 
       b += .02;
 
@@ -222,7 +222,7 @@ static void* demo_loop (void *arg)
   while (demos[d])
     {
       if (demos[d]())
-	break;
+    break;
 
       ++d;
     }
@@ -232,7 +232,7 @@ static void* demo_loop (void *arg)
 
   primary->SetColor( primary, 0xff, 0xff, 0xff, 0xff );
   primary->DrawString( primary, "The End", -1, xres/2, yres/2, DSTF_CENTER );
-      
+
   /* flip display */
   DFBCHECK(primary->Flip( primary, NULL, DSFLIP_WAITFORSYNC ));
 
@@ -270,13 +270,15 @@ int main( int argc, char *argv[] )
 
   /* set our cooperative level to DFSCL_FULLSCREEN for exclusive access to
      the primary layer */
-  DFBCHECK(dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN ));
+  err = dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
+  if (err)
+    DirectFBError( "Failed to get exclusive access", err );
 
   /* get the primary surface, i.e. the surface of the primary layer we have
      exclusive access to */
   dsc.flags = DSDESC_CAPS;
   dsc.caps = DSCAPS_PRIMARY | DSCAPS_FLIPPING | DSCAPS_VIDEOONLY;
-  
+
   DFBCHECK(dfb->CreateSurface( dfb, &dsc, &primary ));
 
   /* set our desired video mode */
@@ -295,7 +297,7 @@ int main( int argc, char *argv[] )
 
   /* load smokey_light */
   DFBCHECK(dfb->CreateImageProvider( dfb, DATADIR"/examples/smokey_light.jpg",
-				     &provider ));
+                     &provider ));
 
   DFBCHECK(provider->GetSurfaceDescription (provider, &dsc));
   DFBCHECK(dfb->CreateSurface( dfb, &dsc, &smokey_light ));
@@ -310,31 +312,31 @@ int main( int argc, char *argv[] )
       DFBInputEvent evt;
 
       if (demo_loop_thread == -1)
-	pthread_create( &demo_loop_thread, NULL, demo_loop, NULL );
+    pthread_create( &demo_loop_thread, NULL, demo_loop, NULL );
 
       keybuffer->WaitForEvent( keybuffer );
 
       /* process keybuffer */
       while (keybuffer->GetEvent( keybuffer, &evt) == DFB_OK)
-	{
-	  if (evt.type == DIET_KEYPRESS)
-	    {
-	      switch (evt.keycode)
-		{
-		case DIKC_ESCAPE:
-		  /* quit main loop */
-		  quit = 1;
+    {
+      if (evt.type == DIET_KEYPRESS)
+        {
+          switch (evt.keycode)
+        {
+        case DIKC_ESCAPE:
+          /* quit main loop */
+          quit = 1;
 
-		  /* fall through */
+          /* fall through */
 
-		default:
-		  pthread_cancel( demo_loop_thread );
-		  pthread_join( demo_loop_thread, NULL );
-		  demo_loop_thread = -1;
-		  break;
-		}
-	    }
-	}
+        default:
+          pthread_cancel( demo_loop_thread );
+          pthread_join( demo_loop_thread, NULL );
+          demo_loop_thread = -1;
+          break;
+        }
+        }
+    }
     }
 
   smokey_light->Release( smokey_light );

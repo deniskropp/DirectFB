@@ -57,6 +57,8 @@ static void config_print_usage()
              "Disable DirectFB Banner\n"
              " --[no-]debug                      "
              "Disable/enable debug output\n"
+             " --force-windowed                  "
+             "Primary surface always is a window\n"
              " --[no-]hardware                   "
              "Hardware acceleration\n"
 #ifdef USE_MMX
@@ -155,6 +157,9 @@ DFBResult config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-debug" ) == 0) {
           dfb_config->no_debug = 1;
+     } else
+     if (strcmp (name, "force-windowed" ) == 0) {
+          dfb_config->force_windowed = 1;
      } else
      if (strcmp (name, "hardware" ) == 0) {
           dfb_config->software_only = 0;
@@ -303,7 +308,7 @@ DFBResult config_set( const char *name, const char *value )
      }
      else
           return DFB_UNSUPPORTED;
-     
+
      return DFB_OK;
 }
 
@@ -312,6 +317,9 @@ DFBResult config_init( int *argc, char **argv[] )
      DFBResult ret;
      int i;
      char *home = getenv( "HOME" );
+
+     if (dfb_config)
+          return DFB_OK;
 
      config_allocate();
 
@@ -325,7 +333,7 @@ DFBResult config_init( int *argc, char **argv[] )
 
           filename = strcpy( filename, home );
           filename = strcat( filename, "/.directfbrc" );
-          
+
           ret = config_read( filename );
 
           free( filename );
@@ -336,18 +344,18 @@ DFBResult config_init( int *argc, char **argv[] )
 
      if (argc && argv) {
           for (i = 1; i < *argc; i++) {
- 	           /*  FIXME: shouldn't parse --help myself, leave it to the app  */
-	           if (strcmp ((*argv)[i], "--help") == 0) {
-  	                config_print_usage();
-		            exit(1);
-	           }
+               /*  FIXME: shouldn't parse --help myself, leave it to the app  */
+               if (strcmp ((*argv)[i], "--help") == 0) {
+                    config_print_usage();
+                    exit(1);
+               }
 
                if (strncmp ((*argv)[i], "--", 2) == 0) {
                     int len = strlen( (*argv)[i] ) - 2;
 
                     if (len) {
                          char *name, *value;
-                         
+
                          name = strdup( (*argv)[i] + 2 );
                          value = strchr( name, '=' );
 
@@ -366,7 +374,7 @@ DFBResult config_init( int *argc, char **argv[] )
                     }
                }
           }
-          
+
           for (i = 1; i < *argc; i++) {
            int k;
 

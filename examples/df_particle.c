@@ -137,8 +137,8 @@ int main( int argc, char *argv[] )
      err = dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
      if (err != DFB_OK) {
           DirectFBError( "Failed requesting exclusive access", err );
-          dfb->Release( dfb );
-          return 1;
+/*          dfb->Release( dfb );
+          return 1;*/
      }
 
      err = dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard );

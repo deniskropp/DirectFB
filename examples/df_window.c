@@ -30,6 +30,19 @@
 
 #include <directfb.h>
 
+
+/* macro for a safe call to DirectFB functions */
+#define DFBCHECK(x...) \
+     {                                                                \
+          err = x;                                                    \
+          if (err != DFB_OK) {                                        \
+               fprintf( stderr, "%s <%d>:\n\t", __FILE__, __LINE__ ); \
+               DirectFBErrorFatal( #x, err );                         \
+          }                                                           \
+     }
+
+int main( int argc, char *argv[] )
+{
 IDirectFB              *dfb;
 IDirectFBDisplayLayer  *layer;
 
@@ -51,28 +64,6 @@ int fontheight;
 int err;
 int SW, SH;
 
-/* macro for a safe call to DirectFB functions */
-#define DFBCHECK(x...) \
-     {                                                                \
-          err = x;                                                    \
-          if (err != DFB_OK) {                                        \
-               fprintf( stderr, "%s <%d>:\n\t", __FILE__, __LINE__ ); \
-               DirectFBErrorFatal( #x, err );                         \
-          }                                                           \
-     }
-
-int enum_layers_callback( unsigned int id, unsigned int caps, void *data )
-{
-     printf( "\ndf_window: Found Layer %d\n", id );
-
-     if (id == DLID_PRIMARY)
-          DFBCHECK( dfb->GetDisplayLayer( dfb, id, &layer ) );
-
-     return 0;
-}
-
-int main( int argc, char *argv[] )
-{
      DFBCardCapabilities    caps;
      DFBInputDeviceKeyState quit = DIKS_UP;
      IDirectFBWindow*       upper;
@@ -85,7 +76,7 @@ int main( int argc, char *argv[] )
 
      DFBCHECK(dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard));
 
-     dfb->EnumDisplayLayers( dfb, enum_layers_callback, NULL );
+     dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer );
 
      if (!((caps.blitting_flags & DSBLIT_BLEND_ALPHACHANNEL) &&
            (caps.blitting_flags & DSBLIT_BLEND_COLORALPHA  )))
@@ -106,8 +97,8 @@ int main( int argc, char *argv[] )
           font->GetHeight( font, &fontheight );
      }
 
-     if (argc < 2 || 
-         dfb->CreateVideoProvider( dfb, argv[1], &video_provider ) != DFB_OK) 
+     if (argc < 2 ||
+         dfb->CreateVideoProvider( dfb, argv[1], &video_provider ) != DFB_OK)
      {
           video_provider = NULL;
      }
@@ -138,12 +129,12 @@ int main( int argc, char *argv[] )
 
           bgsurface->SetColor( bgsurface, 0xCF, 0xDF, 0xCF, 0xFF );
           bgsurface->DrawString( bgsurface,
-                                 "Press left mouse button and drag to move the window.", 
+                                 "Press left mouse button and drag to move the window.",
                                  -1, 0, fontheight, DSTF_LEFT | DSTF_TOP );
 
           bgsurface->SetColor( bgsurface, 0xCF, 0xEF, 0x9F, 0xFF );
           bgsurface->DrawString( bgsurface,
-                                 "Press middle mouse button to raise/lower the window.", 
+                                 "Press middle mouse button to raise/lower the window.",
                                  -1, 0, fontheight * 2, DSTF_LEFT | DSTF_TOP );
 
           bgsurface->SetColor( bgsurface, 0xCF, 0xFF, 0x6F, 0xFF );
@@ -159,7 +150,7 @@ int main( int argc, char *argv[] )
      {
           DFBWindowDescription desc;
 
-          desc.flags = ( DWDESC_POSX | DWDESC_POSY | 
+          desc.flags = ( DWDESC_POSX | DWDESC_POSY |
                          DWDESC_WIDTH | DWDESC_HEIGHT );
 
           if (!video_provider) {
@@ -177,18 +168,18 @@ int main( int argc, char *argv[] )
 
           window2->SetOpacity( window2, 0xFF );
 
-          if (video_provider) 
+          if (video_provider)
           {
                video_provider->PlayTo( video_provider, window_surface2,
                                        NULL, NULL, NULL );
-          } 
-          else 
+          }
+          else
           {
-               window_surface2->SetColor( window_surface2, 
+               window_surface2->SetColor( window_surface2,
                                           0x00, 0x30, 0x10, 0xc0 );
                window_surface2->DrawRectangle( window_surface2, 0, 0,
                                                desc.width, desc.height );
-               window_surface2->SetColor( window_surface2, 
+               window_surface2->SetColor( window_surface2,
                                           0x80, 0xa0, 0x00, 0x90 );
                window_surface2->FillRectangle( window_surface2, 1, 1,
                                                desc.width-2, desc.height-2 );
@@ -200,7 +191,7 @@ int main( int argc, char *argv[] )
      {
           DFBWindowDescription desc;
 
-          desc.flags = ( DWDESC_POSX | DWDESC_POSY | 
+          desc.flags = ( DWDESC_POSX | DWDESC_POSY |
                          DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_CAPS );
           desc.posx = 200;
           desc.posy = 200;
@@ -243,7 +234,7 @@ int main( int argc, char *argv[] )
           DFBWindowEvent evt;
 
           keyboard->GetKeyState( keyboard, DIKC_ESCAPE, &quit );
-          
+
           if (!window)
                window = active ? active : window1;
 
@@ -255,7 +246,7 @@ int main( int argc, char *argv[] )
                     case DWET_BUTTONDOWN:
                          if (!grabbed && evt.button == DIBI_LEFT) {
                               grabbed = 1;
-                              layer->GetCursorPosition( layer, 
+                              layer->GetCursorPosition( layer,
                                                         &startx, &starty );
                               window->GrabPointer( window );
                          }
@@ -280,7 +271,7 @@ int main( int argc, char *argv[] )
                               break;
                          }
                          break;
-                    
+
                     case DWET_LOSTFOCUS:
                          if (!grabbed)
                               active = NULL;
@@ -311,7 +302,7 @@ int main( int argc, char *argv[] )
                }
                active->SetOpacity( active,
                                    (sin( clock()/500000.0 ) * 100) + 155 );
-          } 
+          }
           else {
                window = (window == window1) ? window2 : window1;
           }

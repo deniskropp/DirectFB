@@ -131,6 +131,9 @@ DFBResult IDirectFB_SetCooperativeLevel( IDirectFB *thiz,
                break;
           case DFSCL_FULLSCREEN:
           case DFSCL_EXCLUSIVE:
+               if (dfb_config->force_windowed)
+                    return DFB_ACCESSDENIED;
+
                if (data->level == DFSCL_NORMAL)
                     if (layer_lock( layers ) != DFB_OK)
                          return DFB_LOCKED;
@@ -242,11 +245,11 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
 
      if (desc->flags & DSDESC_CAPS)
           caps = desc->caps;
-     
-     if (desc->flags & DSDESC_PIXELFORMAT)
-          format = desc->pixelformat; 
 
-     
+     if (desc->flags & DSDESC_PIXELFORMAT)
+          format = desc->pixelformat;
+
+
      if (caps & DSCAPS_PRIMARY) {
 
           /* FIXME: should we allow to create more primaries in windowed mode?
@@ -261,8 +264,8 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                          data->primary.height = height;
                     }
 
-                    if ((desc->flags & DSDESC_PIXELFORMAT) 
-                        && desc->pixelformat == DSPF_ARGB) 
+                    if ((desc->flags & DSDESC_PIXELFORMAT)
+                        && desc->pixelformat == DSPF_ARGB)
                     {
 
                          window = window_create( layers->windowstack, 0, 0,
@@ -595,7 +598,7 @@ DFBResult IDirectFB_Resume( IDirectFB *thiz )
 DFBResult IDirectFB_WaitIdle( IDirectFB *thiz )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
-     
+
      if (!data)
           return DFB_DEAD;
 
@@ -688,7 +691,7 @@ void DFBRemoveSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx )
           if (h->func == func  &&  h->ctx == ctx) {
                if (h->prev)
                     h->prev->next = h->next;
-               
+
                if (h->next)
                     h->next->prev = h->prev;
 

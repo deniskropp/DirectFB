@@ -54,6 +54,8 @@ typedef struct
 
      int       no_debug;                          /* disable debug output */
 
+     int       force_windowed;                    /* prohibit exclusive modes */
+
      int       no_sighandler;
      int       no_deinit_check;
 
