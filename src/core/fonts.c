@@ -58,50 +58,54 @@ DFBResult fonts_get_glyph_data (CoreFontData    *font,
      if (!font->glyph_infos)
        font->glyph_infos = tree_new();
 
+     tree_lock (font->glyph_infos);
      data = tree_lookup (font->glyph_infos, (void *)glyph);
 
      if (!data) {
-       data = (CoreGlyphData *) calloc (1, sizeof (CoreGlyphData));
-       if (!data)
-         return DFB_NOSYSTEMMEMORY;
+          data = (CoreGlyphData *) calloc (1, sizeof (CoreGlyphData));
+          if (!data) {
+               tree_unlock (font->glyph_infos);
+               return DFB_NOSYSTEMMEMORY;
+          }
 
-       if (font->GetGlyphInfo && 
-            (* font->GetGlyphInfo) (font, glyph, data) == DFB_OK &&
-            data->width && data->height) {
+          if (font->GetGlyphInfo && 
+              (* font->GetGlyphInfo) (font, glyph, data) == DFB_OK &&
+              data->width && data->height) {
          
-            if (font->next_x + data->width > font->row_width)
-                 {
-                     if (font->row_width == 0)
-                         font->row_width = ((font->maxadvance * 32) > 2048 ? 
-                                            2048 : font->maxadvance * 32);
+               if (font->next_x + data->width > font->row_width)
+                    {
+                         if (font->row_width == 0)
+                           font->row_width = ((font->maxadvance * 32) > 2048 ? 
+                                              2048 : font->maxadvance * 32);
 
-                     font->next_x = 0;
-                     font->rows++;
+                         font->next_x = 0;
+                         font->rows++;
 
-                     font->surfaces = 
-                          realloc (font->surfaces, sizeof (void *) * font->rows);
+                         font->surfaces = realloc (font->surfaces, 
+                                                   sizeof (void *) * font->rows);
 
-                     surface_create( font->row_width, font->height, 
-                                     dfb_config->argb_font ? DSPF_ARGB : DSPF_A8, 
-                                     CSP_VIDEOHIGH, DSCAPS_NONE, 
-                                     &font->surfaces[font->rows - 1] );
-                 }
+                         surface_create( font->row_width, font->height, 
+                                         dfb_config->argb_font ? DSPF_ARGB : DSPF_A8, 
+                                         CSP_VIDEOHIGH, DSCAPS_NONE, 
+                                         &font->surfaces[font->rows - 1] );
+                    }
 
-            if ((* font->RenderGlyph) 
-                (font, glyph, data, font->surfaces[font->rows - 1]) == DFB_OK){
+               if ((* font->RenderGlyph) 
+                   (font, glyph, data, font->surfaces[font->rows - 1]) == DFB_OK){
            
-                 data->start = font->next_x + font->row_width * (font->rows - 1);
-                 font->next_x += data->width;
-            }
-            else {
-                 data->start = data->width = data->height = 0;
-            }
-       }
+                    data->start = font->next_x + font->row_width * (font->rows - 1);
+                    font->next_x += data->width;
+               }
+               else {
+                    data->start = data->width = data->height = 0;
+               }
+          }
        
-       tree_insert (font->glyph_infos, (void *) glyph, data);       
+          tree_insert (font->glyph_infos, (void *) glyph, data);       
      }
 
      *glyph_data = data;
+     tree_unlock (font->glyph_infos);
 
      return DFB_OK;
 }

@@ -26,6 +26,8 @@
 
 #include <stdlib.h>
 
+#include <pthread.h>
+
 #include "tree.h"
 
 
@@ -33,7 +35,8 @@ typedef struct _Node Node;
 
 struct _Tree
 {
-     Node *root;
+     Node            *root;
+     pthread_mutex_t  mutex;
 };
 
 struct _Node
@@ -65,18 +68,28 @@ Tree * tree_new (void)
      Tree *tree;
 
      tree = malloc (sizeof (Tree));
-     if (tree)
+     if (tree) {
           tree->root = NULL;
-  
+          pthread_mutex_init (&tree->mutex, NULL);
+     }
      return tree;
+}
+
+void tree_lock (Tree *tree)
+{
+     pthread_mutex_lock (&tree->mutex);
+}
+
+void tree_unlock (Tree *tree)
+{
+     pthread_mutex_unlock (&tree->mutex);
 }
 
 void tree_destroy (Tree *tree)
 {
-     if (tree) {
-          tree_node_destroy (tree->root);
-          free (tree);
-     }
+     pthread_mutex_destroy (&tree->mutex);
+     tree_node_destroy (tree->root);
+     free (tree);
 }
 
 void tree_insert (Tree *tree,
@@ -101,9 +114,8 @@ void * tree_lookup (Tree *tree,
      return (node ? node->value : NULL);
 }
 
-static Node *
-tree_node_new (void *key,
-               void *value)
+static Node * tree_node_new (void *key,
+                             void *value)
 {
      Node *node;
 
@@ -118,8 +130,7 @@ tree_node_new (void *key,
      return node;
 }
 
-static void
-tree_node_destroy (Node *node)
+static void tree_node_destroy (Node *node)
 {
      if (node) {
           tree_node_destroy (node->left);
@@ -131,12 +142,11 @@ tree_node_destroy (Node *node)
      }
 }
 
-static Node *
-tree_node_insert (Tree *tree,
-                  Node *node,
-                  void *key,
-                  void *value,
-                  int  *inserted)
+static Node * tree_node_insert (Tree *tree,
+                                Node *node,
+                                void *key,
+                                void *value,
+                                int  *inserted)
 {
      int cmp;
      int old_balance;

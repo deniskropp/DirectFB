@@ -31,6 +31,8 @@
 typedef struct _Tree Tree;
 
 Tree * tree_new     (void);
+void   tree_lock    (Tree *tree);
+void   tree_unlock  (Tree *tree);
 void   tree_destroy (Tree *tree);
 void   tree_insert  (Tree *tree,
                      void *key,
