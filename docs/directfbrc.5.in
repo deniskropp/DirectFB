@@ -350,4 +350,5 @@ frame buffer modes file
 .SH SEE ALSO
 .BR fb.modes (5),
 .BR fbset (8),
-.BR mouse (4)
+.BR mouse (4),
+.BR ppm (5)
