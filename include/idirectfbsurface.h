@@ -51,6 +51,10 @@ public:
 
      IDirectFBPalette       GetPalette          ();
      void                   SetPalette          (IDirectFBPalette         *palette);
+     void                   SetAlphaRamp        (__u8                      a0,
+                                                 __u8                      a1,
+                                                 __u8                      a2,
+                                                 __u8                      a3);
 
      void                   Lock                (DFBSurfaceLockFlags       flags,
                                                  void                    **ptr,
@@ -62,7 +66,7 @@ public:
      void                   Clear               (__u8                      r = 0x00,
                                                  __u8                      g = 0x00,
                                                  __u8                      b = 0x00,
-                                                 __u8                      a = 0xFF);
+                                                 __u8                      a = 0x00);
 
      void                   SetClip             (DFBRegion                *clip);
      void                   SetColor            (__u8                      r,

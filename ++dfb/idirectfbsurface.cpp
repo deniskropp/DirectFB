@@ -77,6 +77,11 @@ void IDirectFBSurface::SetPalette (IDirectFBPalette *palette)
      DFBCHECK( iface->SetPalette (iface, palette->get_iface()) );
 }
 
+void IDirectFBSurface::SetAlphaRamp (__u8 a0, __u8 a1, __u8 a2, __u8 a3)
+{
+     DFBCHECK( iface->SetAlphaRamp (iface, a0, a1, a2, a3) );
+}
+
 void IDirectFBSurface::Lock (DFBSurfaceLockFlags   flags,
                              void                **ptr,
                              int                  *pitch)
