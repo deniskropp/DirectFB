@@ -162,9 +162,6 @@ IDirectFBVideoProvider_Libmpeg3_Destruct( IDirectFBVideoProvider *thiz )
 
     DFBFREE( data->filename );
 
-    DFBFREE( thiz->priv );
-    thiz->priv = NULL;
-
     DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -989,14 +986,8 @@ static DFBResult
 Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      int i;
-     IDirectFBVideoProvider_Libmpeg3_data *data;
-
-     /* allocate private data */
-     data = (IDirectFBVideoProvider_Libmpeg3_data *)
-          DFBCALLOC( 1, sizeof(IDirectFBVideoProvider_Libmpeg3_data) );
-
-     thiz->priv = data;
-
+     
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Libmpeg3)
 
      /* initialize private data */
      data->ref           = 1;

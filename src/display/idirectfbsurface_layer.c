@@ -179,8 +179,9 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                                   DFBSurfaceCapabilities  caps )
 {
      DFBResult err = DFB_OK;
-     IDirectFBSurface_Layer_data *data;
 
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Layer)
+     
      if (!(caps & DSCAPS_SUBSURFACE)  &&  !wanted) {
           DFBDisplayLayerConfig config;
 
@@ -207,13 +208,9 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
           }
      }
 
-     if (!thiz->priv)
-          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBSurface_Layer_data) );
-
      IDirectFBSurface_Construct( thiz, wanted, granted,
                                  dfb_layer_surface( layer ), caps );
 
-     data = (IDirectFBSurface_Layer_data*)(thiz->priv);
      data->layer = layer;
 
      thiz->Release = IDirectFBSurface_Layer_Release;

@@ -44,6 +44,16 @@
 #include "misc/mem.h"
 #include "misc/util.h"
 
+void
+IDirectFBFont_Destruct( IDirectFBFont *thiz )
+{
+     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+
+     dfb_font_destroy (data->font);
+
+     DFB_DEALLOCATE_INTERFACE( thiz );
+}
+
 /*
  * increments reference count of font
  */
@@ -327,12 +337,7 @@ IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
 DFBResult
 IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
 {
-     IDirectFBFont_data *data;
-
-     if (!thiz->priv)
-          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBFont_data) );
-
-     data = (IDirectFBFont_data*)(thiz->priv);
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBFont)
 
      data->ref = 1;
      data->font = font;
@@ -351,15 +356,3 @@ IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      return DFB_OK;
 }
 
-void
-IDirectFBFont_Destruct( IDirectFBFont *thiz )
-{
-     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
-
-     dfb_font_destroy (data->font);
-
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
-
-     DFB_DEALLOCATE_INTERFACE( thiz );
-}

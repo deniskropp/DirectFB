@@ -78,9 +78,6 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      if (data->font)
           data->font->Release (data->font);
 
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
-
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -1296,13 +1293,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
                                       CoreSurface            *surface,
                                       DFBSurfaceCapabilities  caps )
 {
-     IDirectFBSurface_data *data;
-     DFBRectangle           rect = { 0, 0, surface->width, surface->height };
+     DFBRectangle rect = { 0, 0, surface->width, surface->height };
 
-     if (!thiz->priv)
-          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBSurface_data) );
-
-     data = (IDirectFBSurface_data*)(thiz->priv);
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface)
 
      data->ref = 1;
      data->caps = caps;

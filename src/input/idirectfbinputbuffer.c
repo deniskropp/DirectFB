@@ -136,9 +136,6 @@ static void IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
 
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
-
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -342,12 +339,7 @@ static DFBResult IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
 
 DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer *thiz )
 {
-     IDirectFBEventBuffer_data *data;
-
-     if (!thiz->priv)
-          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_data) );
-
-     data = (IDirectFBEventBuffer_data*)(thiz->priv);
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBEventBuffer)
 
      data->ref = 1;
 
@@ -367,6 +359,8 @@ DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer *thiz )
 
      return DFB_OK;
 }
+
+/* directfb internals */
 
 DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
                                                   InputDevice          *device )
@@ -402,7 +396,7 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
      return DFB_OK;
 }
 
-/* internals */
+/* file internals */
 
 static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
                                           IDirectFBEventBuffer_item *item )

@@ -206,10 +206,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    CoreWindow             *window,
                                    DFBSurfaceCapabilities  caps )
 {
-     IDirectFBSurface_Window_data *data;
-
-     if (!thiz->priv)
-          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBSurface_Window_data) );
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
      IDirectFBSurface_Construct( thiz, wanted, granted, window->surface, caps );
 

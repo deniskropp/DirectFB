@@ -75,9 +75,6 @@ IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
      if (data->surface)
           data->surface->Release( data->surface );
 
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
-
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -528,12 +525,7 @@ DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  DisplayLayer          *layer )
 {
-     IDirectFBDisplayLayer_data *data;
-
-     if (!thiz->priv)
-          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBDisplayLayer_data) );
-
-     data = (IDirectFBDisplayLayer_data*)(thiz->priv);
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDisplayLayer)
 
      data->ref = 1;
      data->layer = layer;

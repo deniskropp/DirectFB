@@ -150,12 +150,7 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            const char             *filename )
 {
-     IDirectFBImageProvider_GIF_data *data;
-
-     data = (IDirectFBImageProvider_GIF_data*)
-          DFBCALLOC( 1, sizeof(IDirectFBImageProvider_GIF_data) );
-
-     thiz->priv = data;
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_GIF)
 
      data->ref = 1;
      data->filename = (char*)DFBMALLOC( strlen(filename)+1 );
@@ -179,9 +174,6 @@ static void IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
                                    (IDirectFBImageProvider_GIF_data*)thiz->priv;
 
      DFBFREE( data->filename );
-
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }

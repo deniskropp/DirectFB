@@ -87,9 +87,6 @@ IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 
      dfb_input_detach( data->device, IDirectFBInputDevice_React, data );
 
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
-
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -301,12 +298,7 @@ DFBResult
 IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
                                 InputDevice          *device )
 {
-     IDirectFBInputDevice_data *data;
-
-     if (!thiz->priv)
-          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBInputDevice_data) );
-
-     data = (IDirectFBInputDevice_data*)(thiz->priv);
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBInputDevice)
 
      data->ref    = 1;
      data->device = device;

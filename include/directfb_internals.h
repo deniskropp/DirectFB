@@ -67,10 +67,28 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
 #define DFB_ALLOCATE_INTERFACE(p,i)     \
      (p) = (i*)calloc( 1, sizeof(i) );
 
+
+#define DFB_ALLOCATE_INTERFACE_DATA(p,i)     \
+     i##_data *data;                                        \
+                                                            \
+     if (!(p)->priv)                                        \
+          (p)->priv = DFBCALLOC( 1, sizeof(i##_data) );     \
+                                                            \
+     data = (i##_data*)((p)->priv);
+
+
 #ifdef DFB_DEBUG
-#define DFB_DEALLOCATE_INTERFACE(p)
+#define DFB_DEALLOCATE_INTERFACE(p)     \
+     if ((p)->priv) {                   \
+          DFBFREE( (p)->priv );         \
+          (p)->priv = NULL;             \
+     }
 #else
 #define DFB_DEALLOCATE_INTERFACE(p)     \
+     if ((p)->priv) {                   \
+          DFBFREE( (p)->priv );         \
+          (p)->priv = NULL;             \
+     }                                  \
      free( (p) );
 #endif
 

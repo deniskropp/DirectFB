@@ -50,7 +50,7 @@ typedef struct {
                                                 intersected by wanted area,
                                                 only valid if clip_set != 0 */
 
-     int                    locked;          /* is it locked? TODO: use core */
+     int                    locked;          /* which buffer is locked? */
      CoreSurface            *surface;        /* buffer to show */
      IDirectFBFont          *font;           /* font to use */
      CardState              state;           /* render state to use */

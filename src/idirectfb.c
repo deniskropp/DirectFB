@@ -140,9 +140,6 @@ IDirectFB_Destruct( IDirectFB *thiz )
 
      idirectfb_singleton = NULL;
 
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
-
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -740,17 +737,14 @@ IDirectFB_WaitForSync( IDirectFB *thiz )
 DFBResult
 IDirectFB_Construct( IDirectFB *thiz )
 {
-     IDirectFB_data *data;
-
-     data = (IDirectFB_data*)DFBCALLOC( 1, sizeof(IDirectFB_data) );
-     thiz->priv = data;
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFB)
 
      data->ref = 1;
 
      data->level = DFSCL_NORMAL;
 
-     data->primary.width  = 500;
-     data->primary.height = 500;
+     data->primary.width  = 640;
+     data->primary.height = 480;
 
      data->layer = dfb_layer_at( DLID_PRIMARY );
 

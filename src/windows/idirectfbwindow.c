@@ -96,9 +96,6 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           }
      }
 
-     DFBFREE( data );
-     thiz->priv = NULL;
-
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -672,15 +669,10 @@ DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window )
 {
-     IDirectFBWindow_data *data;
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
      DEBUGMSG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
                 window->x, window->y, window->width, window->height );
-
-     if (!thiz->priv)
-          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBWindow_data) );
-
-     data = (IDirectFBWindow_data*)(thiz->priv);
 
      data->ref = 1;
      data->window = window;

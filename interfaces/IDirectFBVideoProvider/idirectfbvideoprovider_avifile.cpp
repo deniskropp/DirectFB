@@ -107,9 +107,6 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
 
      reactor_free( data->source.reactor );
 
-     DFBFREE (thiz->priv);
-     thiz->priv = NULL;
-
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -406,12 +403,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
-     IDirectFBVideoProvider_AviFile_data *data;
-
-     data = (IDirectFBVideoProvider_AviFile_data*)
-          DFBCALLOC( 1, sizeof(IDirectFBVideoProvider_AviFile_data) );
-
-     thiz->priv = data;
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_AviFile)
 
      data->ref = 1;
 

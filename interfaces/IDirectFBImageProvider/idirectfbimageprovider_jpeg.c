@@ -180,12 +180,7 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            const char             *filename )
 {
-     IDirectFBImageProvider_JPEG_data *data;
-
-     data = (IDirectFBImageProvider_JPEG_data*)
-          DFBCALLOC( 1, sizeof(IDirectFBImageProvider_JPEG_data) );
-
-     thiz->priv = data;
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_JPEG)
 
      data->ref = 1;
      data->filename = (char*)DFBMALLOC( strlen(filename)+1 );
@@ -210,9 +205,6 @@ IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
                                   (IDirectFBImageProvider_JPEG_data*)thiz->priv;
 
      DFBFREE( data->filename );
-
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }

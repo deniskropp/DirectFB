@@ -125,9 +125,6 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 
      DFBFREE( data->filename );
 
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
-
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -369,8 +366,11 @@ static DFBResult
 Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      int fd;
-     IDirectFBVideoProvider_V4L_data *data;
+     
+     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_V4L)
 
+     data->ref = 1;
+     
      fd = open( filename, O_RDWR );
      if (fd < 0) {
           DFBResult ret = errno2dfb( errno );
@@ -380,13 +380,6 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
           DFB_DEALLOCATE_INTERFACE( thiz );
           return ret;
      }
-
-     data = (IDirectFBVideoProvider_V4L_data*)
-          DFBCALLOC( 1, sizeof(IDirectFBVideoProvider_V4L_data) );
-
-     thiz->priv = data;
-
-     data->ref = 1;
 
      ioctl( fd, VIDIOCGCAP, &data->vcap );
      ioctl( fd, VIDIOCCAPTURE, &zero );
