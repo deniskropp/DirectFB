@@ -287,9 +287,10 @@ ov0SetDstColorKey( DisplayLayer *layer,
 }
 
 static DFBResult
-ov0FlipBuffers( DisplayLayer *layer,
-                void         *driver_data,
-                void         *layer_data )
+ov0FlipBuffers( DisplayLayer        *layer,
+                void                *driver_data,
+                void                *layer_data,
+                DFBSurfaceFlipFlags  flags )
 {
      return DFB_UNIMPLEMENTED;
 }

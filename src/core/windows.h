@@ -239,8 +239,9 @@ dfb_window_set_opacity( CoreWindow *window,
  * repaints part of a window, if region is NULL the whole window is repainted
  */
 void
-dfb_window_repaint( CoreWindow *window,
-                    DFBRegion  *region );
+dfb_window_repaint( CoreWindow          *window,
+                    DFBRegion           *region,
+                    DFBSurfaceFlipFlags  flags );
 
 /*
  * request a window to gain focus

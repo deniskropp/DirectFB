@@ -301,9 +301,6 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      if (!(data->caps & DSCAPS_FLIPPING))
           return DFB_UNSUPPORTED;
 
-     if (flags & DSFLIP_WAITFORSYNC)
-          return DFB_INVARG;
-
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
 

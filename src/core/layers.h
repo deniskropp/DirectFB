@@ -117,7 +117,8 @@ typedef struct {
      
      DFBResult (*FlipBuffers)       ( DisplayLayer               *layer,
                                       void                       *driver_data,
-                                      void                       *layer_data );
+                                      void                       *layer_data,
+                                      DFBSurfaceFlipFlags         flags );
      
      DFBResult (*SetColorAdjustment)( DisplayLayer               *layer,
                                       void                       *driver_data,
@@ -247,7 +248,8 @@ DFBResult dfb_layer_set_background_color( DisplayLayer                  *layer,
 CoreSurface                *dfb_layer_surface( const DisplayLayer *layer );
 DFBDisplayLayerCapabilities dfb_layer_capabilities( const DisplayLayer *layer );
 DFBDisplayLayerID           dfb_layer_id( const DisplayLayer *layer );
-DFBResult                   dfb_layer_flip_buffers( DisplayLayer *layer );
+DFBResult                   dfb_layer_flip_buffers( DisplayLayer *layer,
+                                                    DFBSurfaceFlipFlags flags );
 
 DFBResult dfb_layer_create_window( DisplayLayer           *layer,
                                    int                     x,

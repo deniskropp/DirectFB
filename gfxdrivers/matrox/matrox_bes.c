@@ -92,7 +92,8 @@ typedef struct {
      } regs;
 } MatroxBesLayerData;
 
-static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes );
+static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
+                          bool onsync );
 static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                            DisplayLayer *layer, DFBDisplayLayerConfig *config );
 
@@ -320,7 +321,7 @@ besSetConfiguration( DisplayLayer          *layer,
      mbes->config = *config;
      
      bes_calc_regs( mdrv, mbes, layer, config );
-     bes_set_regs( mdrv, mbes );
+     bes_set_regs( mdrv, mbes, true );
 
      return DFB_OK;
 }
@@ -364,7 +365,7 @@ besSetScreenLocation( DisplayLayer *layer,
      dfb_primary_layer_rectangle( x, y, width, height, &mbes->dest );
 
      bes_calc_regs( mdrv, mbes, layer, &mbes->config );
-     bes_set_regs( mdrv, mbes );
+     bes_set_regs( mdrv, mbes, true );
      
      return DFB_OK;
 }
@@ -405,18 +406,23 @@ besSetDstColorKey( DisplayLayer *layer,
 }
 
 static DFBResult
-besFlipBuffers( DisplayLayer *layer,
-                void         *driver_data,
-                void         *layer_data )
+besFlipBuffers( DisplayLayer        *layer,
+                void                *driver_data,
+                void                *layer_data,
+                DFBSurfaceFlipFlags  flags )
 {
      MatroxDriverData   *mdrv    = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes    = (MatroxBesLayerData*) layer_data;
      CoreSurface        *surface = dfb_layer_surface( layer );
+     bool                onsync  = (flags & DSFLIP_WAITFORSYNC);
      
      dfb_surface_flip_buffers( surface );
      
      bes_calc_regs( mdrv, mbes, layer, &mbes->config );
-     bes_set_regs( mdrv, mbes );
+     bes_set_regs( mdrv, mbes, onsync );
+
+     if (onsync)
+          dfb_fbdev_wait_vsync();
      
      return DFB_OK;
 }
@@ -455,11 +461,20 @@ DisplayLayerFuncs matroxBesFuncs = {
 
 /* internal */
 
-static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes )
+static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
+                          bool onsync )
 {
+     int            line = 0;
      volatile __u8 *mmio = mdrv->mmio_base;
 
-     mga_out32( mmio, mbes->regs.besGLOBCTL, BESGLOBCTL);
+     if (!onsync) {
+          line = mga_in32( mmio, MGAREG_VCOUNT ) + 48;
+
+          if (line > dfb_fbdev->shared->current_mode->yres)
+               line = dfb_fbdev->shared->current_mode->yres;
+     }
+     
+     mga_out32( mmio, mbes->regs.besGLOBCTL | (line << 16), BESGLOBCTL);
 
      mga_out32( mmio, mbes->regs.besA1ORG, BESA1ORG );
      mga_out32( mmio, mbes->regs.besA2ORG, BESA2ORG );

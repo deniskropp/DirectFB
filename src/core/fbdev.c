@@ -133,7 +133,8 @@ primarySetDstColorKey    ( DisplayLayer               *layer,
 static DFBResult
 primaryFlipBuffers       ( DisplayLayer               *layer,
                            void                       *driver_data,
-                           void                       *layer_data );
+                           void                       *layer_data,
+                           DFBSurfaceFlipFlags         flags );
      
 static DFBResult
 primarySetColorAdjustment( DisplayLayer               *layer,
@@ -513,7 +514,6 @@ DFBResult dfb_fbdev_wait_vsync()
      dfb_gfxcard_sync();
      if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC ))
 #endif
-     if (!dfb_config->pollvsync_after)
           waitretrace();
 
      return DFB_OK;
@@ -742,17 +742,21 @@ primarySetDstColorKey    ( DisplayLayer               *layer,
 static DFBResult
 primaryFlipBuffers       ( DisplayLayer               *layer,
                            void                       *driver_data,
-                           void                       *layer_data )
+                           void                       *layer_data,
+                           DFBSurfaceFlipFlags         flags )
 {
      DFBResult    ret;
      CoreSurface *surface = dfb_layer_surface( layer );
 
+     if ((flags & DSFLIP_WAITFORSYNC) && !dfb_config->pollvsync_after)
+          dfb_fbdev_wait_vsync();
+     
      ret = dfb_fbdev_pan( surface->back_buffer->video.offset ? 1 : 0 );
      if (ret)
           return ret;
 
-     if (!dfb_config->pollvsync_none && dfb_config->pollvsync_after)
-          waitretrace();
+     if ((flags & DSFLIP_WAITFORSYNC) && dfb_config->pollvsync_after)
+          dfb_fbdev_wait_vsync();
           
      dfb_surface_flip_buffers( surface );
 

@@ -41,6 +41,7 @@
 #include "coretypes.h"
 
 #include "layers.h"
+#include "fbdev.h"
 #include "gfxcard.h"
 #include "input.h"
 #include "state.h"
@@ -53,7 +54,8 @@
 #include "gfx/util.h"
 
 
-static void repaint_stack( CoreWindowStack *stack, DFBRegion *region );
+static void repaint_stack( CoreWindowStack *stack, DFBRegion *region,
+                           DFBSurfaceFlipFlags flags );
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
 static int  handle_enter_leave_focus( CoreWindowStack *stack );
 static void handle_wheel( CoreWindowStack *stack, int z );
@@ -624,7 +626,7 @@ dfb_window_move( CoreWindow *window,
           else if (dy < 0)
                region.y2 -= dy;
 
-          repaint_stack( stack, &region );
+          repaint_stack( stack, &region, 0 );
      }
 
      /* Send new position */
@@ -666,7 +668,7 @@ dfb_window_resize( CoreWindow   *window,
                                     window->x + ow - 1,
                                     window->y + MIN(window->height, oh) - 1 };
 								
-               repaint_stack( stack, &region );
+               repaint_stack( stack, &region, 0 );
           }
 
           if (oh > window->height) {
@@ -674,7 +676,7 @@ dfb_window_resize( CoreWindow   *window,
                                     window->x + MAX(window->width, ow) - 1,
                                     window->y + oh - 1 };
 		
-               repaint_stack( stack, &region );
+               repaint_stack( stack, &region, 0 );
           }
      }
 
@@ -708,7 +710,7 @@ dfb_window_set_opacity( CoreWindow *window,
           
           window->opacity = opacity;
 
-          repaint_stack( stack, &region );
+          repaint_stack( stack, &region, 0 );
 
           /* Check focus after window appeared or disappeared */
           if ((!old_opacity && opacity) || !opacity)
@@ -732,8 +734,9 @@ dfb_window_set_opacity( CoreWindow *window,
 }
 
 void
-dfb_window_repaint( CoreWindow *window,
-                    DFBRegion  *region )
+dfb_window_repaint( CoreWindow          *window,
+                    DFBRegion           *region,
+                    DFBSurfaceFlipFlags  flags )
 {
      CoreWindowStack *stack = window->stack;
 
@@ -748,14 +751,14 @@ dfb_window_repaint( CoreWindow *window,
           region->y1 += window->y;
           region->y2 += window->y;
 
-          repaint_stack( stack, region );
+          repaint_stack( stack, region, flags );
      }
      else {
           DFBRegion reg = { window->x, window->y,
                             window->x + window->width - 1,
                             window->y + window->height - 1 };
 
-          repaint_stack( stack, &reg );
+          repaint_stack( stack, &reg, flags );
      }
      
      stack_unlock( stack );
@@ -881,7 +884,7 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
 
      stack_lock( stack );
      
-     repaint_stack( stack, &region );
+     repaint_stack( stack, &region, 0 );
      
      stack_unlock( stack );
 }
@@ -1165,8 +1168,9 @@ update_region( CoreWindowStack *stack,
 }
 
 static void
-repaint_stack( CoreWindowStack *stack,
-               DFBRegion       *region )
+repaint_stack( CoreWindowStack     *stack,
+               DFBRegion           *region,
+               DFBSurfaceFlipFlags  flags )
 {
      DisplayLayer *layer   = dfb_layer_at( stack->layer_id );
      CoreSurface  *surface = dfb_layer_surface( layer );
@@ -1190,13 +1194,16 @@ repaint_stack( CoreWindowStack *stack,
               region->x2 == surface->width - 1 &&
               region->y2 == surface->height - 1 && 0)
           {
-               dfb_layer_flip_buffers( layer );
+               dfb_layer_flip_buffers( layer, flags );
           }
           else {
                DFBRectangle rect = { region->x1, region->y1,
                                      region->x2 - region->x1 + 1,
                                      region->y2 - region->y1 + 1 };
 
+               if (flags & DSFLIP_WAITFORSYNC)
+                    dfb_fbdev_wait_vsync();
+               
                dfb_back_to_front_copy( surface, &rect );
           }
      }
@@ -1612,7 +1619,7 @@ window_remove( CoreWindow *window )
      /* If window was visible... */
      if (window->opacity) {
           /* Update the affected region */
-          repaint_stack( stack, &region );
+          repaint_stack( stack, &region, 0 );
           
           /* Possibly change focus to window now under the cursor */
           handle_enter_leave_focus( stack );
@@ -1687,7 +1694,7 @@ window_restacked( CoreWindow *window )
                                window->x + window->width - 1,
                                window->y + window->height - 1 };
 
-          repaint_stack( window->stack, &region );
+          repaint_stack( window->stack, &region, 0 );
 
           handle_enter_leave_focus( window->stack );
      }

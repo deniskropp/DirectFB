@@ -37,8 +37,8 @@
 #include "core/core.h"
 #include "core/coretypes.h"
 
-#include "core/gfxcard.h"
 #include "core/fbdev.h"
+#include "core/gfxcard.h"
 #include "core/state.h"
 #include "core/layers.h"
 #include "core/surfaces.h"
@@ -99,11 +99,10 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
           return DFB_INVAREA;
 
 
-     if (flags & DSFLIP_WAITFORSYNC)
-          dfb_fbdev_wait_vsync();
-
-
      if (flags & DSFLIP_BLIT || region || data->base.caps & DSCAPS_SUBSURFACE) {
+          if (flags & DSFLIP_WAITFORSYNC)
+               dfb_fbdev_wait_vsync();
+          
           if (region) {
                DFBRegion    reg  = *region;
                DFBRectangle rect = data->base.area.current;
@@ -123,7 +122,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
           }
      }
      else
-          return dfb_layer_flip_buffers( data->layer );
+          return dfb_layer_flip_buffers( data->layer, flags );
 
      return DFB_OK;
 }

@@ -322,7 +322,7 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
 
      /* Redraw window if appearance influencing options have been toggled */
      if (changed & DWOP_COLORKEYING)
-          dfb_window_repaint( data->window, NULL );
+          dfb_window_repaint( data->window, NULL, 0 );
 
      return DFB_OK;
 }
@@ -363,7 +363,7 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
           data->window->color_key = key;
 
           if (data->window->options & DWOP_COLORKEYING)
-               dfb_window_repaint( data->window, NULL );
+               dfb_window_repaint( data->window, NULL, 0 );
      }
 
      return DFB_OK;

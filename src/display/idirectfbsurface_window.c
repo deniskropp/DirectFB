@@ -39,7 +39,6 @@
 
 #include "core/gfxcard.h"
 #include "core/surfaces.h"
-#include "core/fbdev.h"
 #include "core/fonts.h"
 #include "core/state.h"
 #include "core/windows.h"
@@ -118,9 +117,6 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      if (data->base.locked)
           return DFB_LOCKED;
 
-//     if (!(data->base.caps & DSCAPS_FLIPPING))
-//          return DFB_UNSUPPORTED;
-
      if (!data->base.area.current.w || !data->base.area.current.h)
           return DFB_INVAREA;
 
@@ -154,10 +150,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                dfb_back_to_front_copy( data->window->surface, &rect );
      }
 
-     if (flags & DSFLIP_WAITFORSYNC)
-          dfb_fbdev_wait_vsync();
-
-     dfb_window_repaint( data->window, &reg );
+     dfb_window_repaint( data->window, &reg, flags );
 
      return DFB_OK;
 }

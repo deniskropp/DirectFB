@@ -1509,11 +1509,11 @@ extern "C"
       * Flipping flags controlling the behaviour of Flip().
       */
      typedef enum {
-          DSFLIP_WAITFORSYNC  = 0x00000001,  /* flip surface while display
-                                                is in vertical retrace */
+          DSFLIP_WAITFORSYNC  = 0x00000001,  /* flip during vertical retrace,
+                                                blocks until it occurs */
           DSFLIP_BLIT         = 0x00000002   /* copy backbuffer into
                                                 frontbuffer rather than
-                                                just swapping them */
+                                                just swapping these buffers */
      } DFBSurfaceFlipFlags;
 
      /*

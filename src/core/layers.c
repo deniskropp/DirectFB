@@ -811,7 +811,7 @@ dfb_layer_id( const DisplayLayer *layer )
 }
 
 DFBResult
-dfb_layer_flip_buffers( DisplayLayer *layer )
+dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
 {
      DisplayLayerShared *shared = layer->shared;
 
@@ -824,9 +824,11 @@ dfb_layer_flip_buffers( DisplayLayer *layer )
           case DLBM_BACKVIDEO:
                return layer->funcs->FlipBuffers( layer,
                                                  layer->driver_data,
-                                                 layer->layer_data );
+                                                 layer->layer_data, flags );
           
           case DLBM_BACKSYSTEM:
+               if (flags & DSFLIP_WAITFORSYNC)
+                    dfb_fbdev_wait_vsync();
                dfb_back_to_front_copy( shared->surface, NULL );
                break;
 
@@ -1168,7 +1170,7 @@ dfb_layer_cursor_set_shape( DisplayLayer *layer,
      if (dx || dy)
           dfb_window_move( shared->stack->cursor.window, dx, dy );
      else
-          dfb_window_repaint( shared->stack->cursor.window, NULL );
+          dfb_window_repaint( shared->stack->cursor.window, NULL, 0 );
 
      return DFB_OK;
 }
@@ -1282,7 +1284,7 @@ load_default_cursor( DisplayLayer *layer )
      fclose( f );
      dfb_surface_unlock( stack->cursor.window->surface, 0 );
 
-     dfb_window_repaint( stack->cursor.window, NULL );
+     dfb_window_repaint( stack->cursor.window, NULL, 0 );
 
      return DFB_OK;
 }
