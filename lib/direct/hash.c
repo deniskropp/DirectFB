@@ -134,7 +134,35 @@ direct_hash_insert( DirectHash *hash,
 
      D_MAGIC_ASSERT( hash, DirectHash );
      D_ASSERT( value != NULL );
-     D_ASSERT( hash->count < hash->size / 2 );    /* FIXME: resize hash if this fails */
+
+     /* Need to resize the hash table? */
+     if ((hash->count + hash->removed) > hash->size / 4) {
+          int      i, size = hash->size * 3;
+          Element *elements;
+
+          D_DEBUG( "Direct/Hash: Resizing from %d to %d... (count %d, removed %d)\n",
+                   hash->size, size, hash->count, hash->removed );
+
+          elements = D_CALLOC( size, sizeof(Element) );
+          if (!elements) {
+               D_WARN( "out of memory" );
+               return DFB_NOSYSTEMMEMORY;
+          }
+
+          for (i=0; i<hash->size; i++) {
+               Element *element = &hash->elements[i];
+
+               if (element->value && element->value != REMOVED) {
+                    pos = element->key % size;
+
+                    elements[pos] = *element;
+               }
+          }
+
+          hash->size     = size;
+          hash->elements = elements;
+          hash->removed  = 0;
+     }
 
      pos = key % hash->size;
 
