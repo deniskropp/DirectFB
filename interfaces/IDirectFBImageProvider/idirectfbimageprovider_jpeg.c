@@ -58,7 +58,7 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           const char             *filename );
+           IDirectFBDataBuffer    *buffer );
 
 #include <interface_implementation.h>
 
@@ -68,8 +68,9 @@ DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, JPEG )
  * private data struct of IDirectFBImageProvider_JPEG
  */
 typedef struct {
-     int            ref;      /* reference counter */
-     char          *filename; /* filename of file to load */
+     int                  ref;      /* reference counter */
+
+     IDirectFBDataBuffer *buffer;
 } IDirectFBImageProvider_JPEG_data;
 
 static DFBResult
@@ -90,6 +91,108 @@ IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
 static DFBResult
 IDirectFBImageProvider_JPEG_GetImageDescription( IDirectFBImageProvider *thiz,
                                                  DFBImageDescription    *dsc );
+
+
+#define JPEG_PROG_BUF_SIZE    0x10000
+
+typedef struct {
+     struct jpeg_source_mgr  pub; /* public fields */
+
+     JOCTET                 *data;       /* start of buffer */
+
+     IDirectFBDataBuffer    *buffer;
+} buffer_source_mgr;
+
+typedef buffer_source_mgr * buffer_src_ptr;
+
+static void
+buffer_init_source (j_decompress_ptr cinfo)
+{
+     DFBResult            ret;
+     buffer_src_ptr       src    = (buffer_src_ptr) cinfo->src;
+     IDirectFBDataBuffer *buffer = src->buffer;
+
+     /* FIXME: support streamed buffers */
+     ret = buffer->SeekTo( buffer, 0 );
+     if (ret)
+          DirectFBError( "(DirectFB/ImageProvider_JPEG) Unable to seek", ret );
+}
+
+static boolean
+buffer_fill_input_buffer (j_decompress_ptr cinfo)
+{
+     DFBResult            ret;
+     unsigned int         nbytes;
+     buffer_src_ptr       src    = (buffer_src_ptr) cinfo->src;
+     IDirectFBDataBuffer *buffer = src->buffer;
+
+     ret = buffer->GetData( buffer, JPEG_PROG_BUF_SIZE, src->data, &nbytes );
+     if (ret || nbytes <= 0) {
+#if 0
+          if (src->start_of_file)   /* Treat empty input file as fatal error */
+               ERREXIT(cinfo, JERR_INPUT_EMPTY);
+          WARNMS(cinfo, JWRN_JPEG_EOF);
+#endif
+          /* Insert a fake EOI marker */
+          src->data[0] = (JOCTET) 0xFF;
+          src->data[1] = (JOCTET) JPEG_EOI;
+          nbytes = 2;
+          
+          if (ret)
+               DirectFBError( "(DirectFB/ImageProvider_JPEG) GetData failed", ret );
+     }
+
+     src->pub.next_input_byte = src->data;
+     src->pub.bytes_in_buffer = nbytes;
+
+     return TRUE;
+}
+
+static void
+buffer_skip_input_data (j_decompress_ptr cinfo, long num_bytes)
+{
+     buffer_src_ptr src = (buffer_src_ptr) cinfo->src;
+
+     if (num_bytes > 0) {
+          while (num_bytes > (long) src->pub.bytes_in_buffer) {
+               num_bytes -= (long) src->pub.bytes_in_buffer;
+               (void)buffer_fill_input_buffer(cinfo);
+          }
+          src->pub.next_input_byte += (size_t) num_bytes;
+          src->pub.bytes_in_buffer -= (size_t) num_bytes;
+     }
+}
+
+static void
+buffer_term_source (j_decompress_ptr cinfo)
+{
+}
+
+static void
+jpeg_buffer_src (j_decompress_ptr cinfo, IDirectFBDataBuffer *buffer)
+{
+     buffer_src_ptr src;
+
+     cinfo->src = (struct jpeg_source_mgr *)
+                  cinfo->mem->alloc_small ((j_common_ptr) cinfo, JPOOL_PERMANENT,
+                                           sizeof (buffer_source_mgr));
+
+     src = (buffer_src_ptr) cinfo->src;
+     
+     src->data = (JOCTET *)
+                  cinfo->mem->alloc_small ((j_common_ptr) cinfo, JPOOL_PERMANENT,
+                                           JPEG_PROG_BUF_SIZE * sizeof (JOCTET));
+
+     src->buffer = buffer;
+
+     src->pub.init_source       = buffer_init_source;
+     src->pub.fill_input_buffer = buffer_fill_input_buffer;
+     src->pub.skip_input_data   = buffer_skip_input_data;
+     src->pub.resync_to_restart = jpeg_resync_to_restart; /* use default method */
+     src->pub.term_source       = buffer_term_source;
+     src->pub.bytes_in_buffer   = 0; /* forces fill_input_buffer on first read */
+     src->pub.next_input_byte   = NULL; /* until buffer loaded */
+}
 
 
 struct my_error_mgr {
@@ -180,22 +283,21 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx )
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           const char             *filename )
+           IDirectFBDataBuffer    *buffer )
 {
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_JPEG)
 
-     data->ref = 1;
-     data->filename = (char*)DFBMALLOC( strlen(filename)+1 );
-     strcpy( data->filename, filename );
+     data->ref    = 1;
+     data->buffer = buffer;
 
-     DEBUGMSG( "DirectFB/Media: JPEG Provider Construct '%s'\n", filename );
+     buffer->AddRef( buffer );
 
      thiz->AddRef = IDirectFBImageProvider_JPEG_AddRef;
      thiz->Release = IDirectFBImageProvider_JPEG_Release;
      thiz->RenderTo = IDirectFBImageProvider_JPEG_RenderTo;
      thiz->GetImageDescription =IDirectFBImageProvider_JPEG_GetImageDescription;
      thiz->GetSurfaceDescription =
-                              IDirectFBImageProvider_JPEG_GetSurfaceDescription;
+     IDirectFBImageProvider_JPEG_GetSurfaceDescription;
 
      return DFB_OK;
 }
@@ -204,9 +306,9 @@ static void
 IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
 {
      IDirectFBImageProvider_JPEG_data *data =
-                                  (IDirectFBImageProvider_JPEG_data*)thiz->priv;
+                              (IDirectFBImageProvider_JPEG_data*)thiz->priv;
 
-     DFBFREE( data->filename );
+     data->buffer->Release( data->buffer );
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -238,11 +340,11 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                       IDirectFBSurface       *destination,
                                       const DFBRectangle     *dest_rect )
 {
-     int   err;
-     void *dst;
-     int   pitch;
-     int   direct;
-     DFBRectangle           rect = { 0, 0, 0, 0 };
+     int                    err;
+     void                  *dst;
+     int                    pitch;
+     int                    direct;
+     DFBRectangle           rect = { 0, 0, 0, 0};
      DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
@@ -256,7 +358,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      dst_surface = dst_data->surface;
      if (!dst_surface)
           return DFB_DESTROYED;
-     
+
      err = destination->GetPixelFormat( destination, &format );
      if (err)
           return err;
@@ -297,38 +399,21 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           struct jpeg_decompress_struct cinfo;
           struct my_error_mgr jerr;
           JSAMPARRAY buffer;      /* Output row buffer */
-          FILE *f;
           int row_stride;         /* physical row width in output buffer */
           void *image_data;
           void *row_ptr;
-
-          f = fopen( data->filename, "rb" );
-          if (!f) {
-               destination->Unlock( destination );
-               switch (errno) {
-                    case EACCES:
-                         return DFB_ACCESSDENIED;
-                    case EIO:
-                         return DFB_IO;
-                    case ENOENT:
-                         return DFB_FILENOTFOUND;
-                    default:
-                         return DFB_FAILURE;
-               }
-          }
 
           cinfo.err = jpeg_std_error(&jerr.pub);
           jerr.pub.error_exit = jpeglib_panic;
 
           if (setjmp(jerr.setjmp_buffer)) {
                jpeg_destroy_decompress(&cinfo);
-               fclose(f);
                destination->Unlock( destination );
                return DFB_FAILURE;
           }
 
           jpeg_create_decompress(&cinfo);
-          jpeg_stdio_src(&cinfo, f);
+          jpeg_buffer_src(&cinfo, data->buffer);
           jpeg_read_header(&cinfo, TRUE);
 
           cinfo.out_color_space = JCS_RGB;
@@ -350,7 +435,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 #ifdef SUPPORT_RGB332
                          case DSPF_RGB332:
                               copy_line8( (__u8*)row_ptr, *buffer,
-                                           cinfo.output_width);
+                                          cinfo.output_width);
                               break;
 #endif
                          case DSPF_RGB16:
@@ -395,7 +480,6 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
           jpeg_finish_decompress(&cinfo);
           jpeg_destroy_decompress(&cinfo);
-          fclose( f );
      }
 
      err = destination->Unlock( destination );
@@ -409,50 +493,30 @@ static DFBResult
 IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                    DFBSurfaceDescription  *dsc )
 {
-     FILE *f;
+     struct jpeg_decompress_struct cinfo;
+     struct my_error_mgr jerr;
 
      INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
-     f = fopen( data->filename, "rb" );
-     if (!f) {
-          switch (errno) {
-               case EACCES:
-                    return DFB_ACCESSDENIED;
-               case EIO:
-                    return DFB_IO;
-               case ENOENT:
-                    return DFB_FILENOTFOUND;
-               default:
-                    return DFB_FAILURE;
-          }
-     }
+     cinfo.err = jpeg_std_error(&jerr.pub);
+     jerr.pub.error_exit = jpeglib_panic;
 
-     {
-          struct jpeg_decompress_struct cinfo;
-          struct my_error_mgr jerr;
-
-          cinfo.err = jpeg_std_error(&jerr.pub);
-          jerr.pub.error_exit = jpeglib_panic;
-
-          if (setjmp(jerr.setjmp_buffer)) {
-               jpeg_destroy_decompress(&cinfo);
-               fclose(f);
-               return DFB_FAILURE;
-          }
-
-          jpeg_create_decompress(&cinfo);
-          jpeg_stdio_src(&cinfo, f);
-          jpeg_read_header(&cinfo, TRUE);
-          jpeg_start_decompress(&cinfo);
-
-          dsc->flags  = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-          dsc->height = cinfo.output_height;
-          dsc->width  = cinfo.output_width;
-          dsc->pixelformat = dfb_primary_layer_pixelformat();
-
+     if (setjmp(jerr.setjmp_buffer)) {
           jpeg_destroy_decompress(&cinfo);
-          fclose(f);
+          return DFB_FAILURE;
      }
+
+     jpeg_create_decompress(&cinfo);
+     jpeg_buffer_src(&cinfo, data->buffer);
+     jpeg_read_header(&cinfo, TRUE);
+     jpeg_start_decompress(&cinfo);
+
+     dsc->flags  = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+     dsc->height = cinfo.output_height;
+     dsc->width  = cinfo.output_width;
+     dsc->pixelformat = dfb_primary_layer_pixelformat();
+
+     jpeg_destroy_decompress(&cinfo);
 
      return DFB_OK;
 }

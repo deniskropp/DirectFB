@@ -124,8 +124,8 @@ IDirectFBDataBuffer_Streamed_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
 static DFBResult
 IDirectFBDataBuffer_Streamed_GetData( IDirectFBDataBuffer *thiz,
                                       unsigned int         length,
-                                      void                *data,
-                                      unsigned int        *read )
+                                      void                *data_buffer,
+                                      unsigned int        *read_out )
 {
      return DFB_UNIMPLEMENTED;
 }
@@ -134,8 +134,8 @@ static DFBResult
 IDirectFBDataBuffer_Streamed_PeekData( IDirectFBDataBuffer *thiz,
                                        unsigned int         length,
                                        int                  offset,
-                                       void                *data,
-                                       unsigned int        *read )
+                                       void                *data_buffer,
+                                       unsigned int        *read_out )
 {
      return DFB_UNIMPLEMENTED;
 }

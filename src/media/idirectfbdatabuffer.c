@@ -52,6 +52,7 @@
 #include <misc/mem.h>
 
 #include <media/idirectfbdatabuffer.h>
+#include <media/idirectfbimageprovider.h>
 
 
 void
@@ -157,6 +158,19 @@ IDirectFBDataBuffer_PutData( IDirectFBDataBuffer *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
+                                         IDirectFBImageProvider **interface )
+{
+     INTERFACE_GET_DATA(IDirectFBDataBuffer)
+
+     /* Check arguments */
+     if (!interface)
+          return DFB_INVARG;
+
+     return IDirectFBImageProvider_CreateFromBuffer( thiz, interface );
+}
+
 DFBResult
 IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz )
 {
@@ -176,6 +190,7 @@ IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz )
      thiz->PeekData               = IDirectFBDataBuffer_PeekData;
      thiz->HasData                = IDirectFBDataBuffer_HasData;
      thiz->PutData                = IDirectFBDataBuffer_PutData;
+     thiz->CreateImageProvider    = IDirectFBDataBuffer_CreateImageProvider;
 
      return DFB_OK;
 }

@@ -3465,6 +3465,17 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
           const void               *data,
           unsigned int              length
      );
+
+
+   /** Media from data **/
+
+     /*
+      * Creates an image provider using the buffers data.
+      */
+     DFBResult (*CreateImageProvider) (
+          IDirectFBDataBuffer      *thiz,
+          IDirectFBImageProvider  **interface
+     );
 )
 
 #ifdef __cplusplus

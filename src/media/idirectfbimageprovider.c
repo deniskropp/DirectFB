@@ -24,18 +24,45 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __IDIRECTFBIMAGEPROVIDER_H__
-#define __IDIRECTFBIMAGEPROVIDER_H__
+#include <stddef.h>
 
-/*
- * probing context
- */
-typedef struct {
-     char        header[32];
-} IDirectFBImageProvider_ProbeContext;
+#include <directfb.h>
+#include <directfb_internals.h>
+
+#include <misc/mem.h>
+
+#include <media/idirectfbimageprovider.h>
 
 DFBResult
 IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
-                                         IDirectFBImageProvider **interface );
+                                         IDirectFBImageProvider **interface )
+{
+     DFBResult                            ret;
+     DFBInterfaceFuncs                   *funcs = NULL;
+     IDirectFBImageProvider              *imageprovider;
+     IDirectFBImageProvider_ProbeContext  ctx;
 
-#endif
+     /* Read the first 32 bytes */
+     ret = buffer->PeekData( buffer, 32, 0, ctx.header, NULL );
+     if (ret)
+          return ret;
+     
+     /* Find a suitable implementation */
+     ret = DFBGetInterface( &funcs,
+                            "IDirectFBImageProvider", NULL,
+                            DFBProbeInterface, &ctx );
+     if (ret)
+          return ret;
+
+     DFB_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
+
+     /* Construct the interface */
+     ret = funcs->Construct( imageprovider, buffer );
+     if (ret)
+          return ret;
+        
+     *interface = imageprovider;
+     
+     return DFB_OK;
+}
+

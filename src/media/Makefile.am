@@ -23,4 +23,5 @@ libdirectfb_media_la_SOURCES = \
 	idirectfbdatabuffer_file.c	\
 	idirectfbdatabuffer_memory.c	\
 	idirectfbdatabuffer_streamed.c	\
-	idirectfbfont.c
+	idirectfbfont.c			\
+	idirectfbimageprovider.c

@@ -187,6 +187,9 @@ IDirectFBDataBuffer_File_GetData( IDirectFBDataBuffer *thiz,
 
      if (!data || !length)
           return DFB_INVARG;
+
+     if (data->pos >= data->size)
+          return DFB_BUFFEREMPTY;
      
      size = read( data->fd, data_buffer, length );
      if (size < 0)
@@ -233,7 +236,7 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
           return errno2dfb( erno );
      }
 
-     if (offset && lseek( data->fd, - size - offset, SEEK_CUR ) < 0)
+     if (lseek( data->fd, - size - offset, SEEK_CUR ) < 0)
           return DFB_FAILURE;
      
      if (read_out)

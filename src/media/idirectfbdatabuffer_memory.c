@@ -50,6 +50,7 @@
 
 #include <misc/util.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 
 #include <media/idirectfbdatabuffer.h>
 
@@ -57,7 +58,12 @@
  * private data struct of IDirectFBDataBuffer_Memory
  */
 typedef struct {
-     IDirectFBDataBuffer_data base;
+     IDirectFBDataBuffer_data  base;
+
+     void                     *buffer;
+     unsigned int              length;
+
+     unsigned int              pos;
 } IDirectFBDataBuffer_Memory_data;
 
 
@@ -81,35 +87,61 @@ IDirectFBDataBuffer_Memory_Release( IDirectFBDataBuffer *thiz )
 static DFBResult
 IDirectFBDataBuffer_Memory_Flush( IDirectFBDataBuffer *thiz )
 {
-     return DFB_UNIMPLEMENTED;
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult
 IDirectFBDataBuffer_Memory_SeekTo( IDirectFBDataBuffer *thiz,
                                    unsigned int         offset )
 {
-     return DFB_UNIMPLEMENTED;
+     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+
+     if (offset >= data->length)
+          return DFB_INVARG;
+
+     data->pos = offset;
+
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBDataBuffer_Memory_GetPosition( IDirectFBDataBuffer *thiz,
                                         unsigned int        *offset )
 {
-     return DFB_UNIMPLEMENTED;
+     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+
+     if (!offset)
+          return DFB_INVARG;
+
+     *offset = data->pos;
+
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBDataBuffer_Memory_GetLength( IDirectFBDataBuffer *thiz,
                                       unsigned int        *length )
 {
-     return DFB_UNIMPLEMENTED;
+     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+
+     if (!length)
+          return DFB_INVARG;
+
+     *length = data->length;
+
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBDataBuffer_Memory_WaitForData( IDirectFBDataBuffer *thiz,
                                         unsigned int         length )
 {
-     return DFB_UNIMPLEMENTED;
+     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+
+     if (data->pos + length > data->length)
+          return DFB_BUFFEREMPTY;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -118,32 +150,84 @@ IDirectFBDataBuffer_Memory_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
                                                    unsigned int         seconds,
                                                    unsigned int         milli_seconds )
 {
-     return DFB_UNIMPLEMENTED;
+     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+
+     if (data->pos + length > data->length) {
+          usleep( seconds * 1000000 + milli_seconds * 1000 );
+
+          return DFB_BUFFEREMPTY;
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBDataBuffer_Memory_GetData( IDirectFBDataBuffer *thiz,
                                     unsigned int         length,
-                                    void                *data,
-                                    unsigned int        *read )
+                                    void                *data_buffer,
+                                    unsigned int        *read_out )
 {
-     return DFB_UNIMPLEMENTED;
+     unsigned int size;
+
+     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+
+     if (!data_buffer || !length)
+          return DFB_INVARG;
+
+     if (data->pos >= data->length)
+          return DFB_BUFFEREMPTY;
+     
+     size = MIN( length, data->length - data->pos );
+     
+     dfb_memcpy( data_buffer, data->buffer + data->pos, size );
+
+     data->pos += size;
+
+     if (read_out)
+          *read_out = size;
+     
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBDataBuffer_Memory_PeekData( IDirectFBDataBuffer *thiz,
                                      unsigned int         length,
                                      int                  offset,
-                                     void                *data,
-                                     unsigned int        *read )
+                                     void                *data_buffer,
+                                     unsigned int        *read_out )
 {
-     return DFB_UNIMPLEMENTED;
+     unsigned int size;
+
+     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+
+     if (!data_buffer || !length)
+          return DFB_INVARG;
+
+     if (data->pos + offset >= data->length)
+          return DFB_INVARG;
+     
+     if (data->pos + offset < 0)
+          return DFB_INVARG;
+     
+     size = MIN( length, data->length - data->pos - offset );
+     
+     dfb_memcpy( data_buffer, data->buffer + data->pos + offset, size );
+
+     if (read_out)
+          *read_out = size;
+     
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBDataBuffer_Memory_HasData( IDirectFBDataBuffer *thiz )
 {
-     return DFB_UNIMPLEMENTED;
+     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+
+     if (data->pos >= data->length)
+          return DFB_BUFFEREMPTY;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -151,7 +235,7 @@ IDirectFBDataBuffer_Memory_PutData( IDirectFBDataBuffer *thiz,
                                     const void          *data,
                                     unsigned int         length )
 {
-     return DFB_UNIMPLEMENTED;
+     return DFB_UNSUPPORTED;
 }
 
 DFBResult
@@ -166,6 +250,9 @@ IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
      ret = IDirectFBDataBuffer_Construct( thiz );
      if (ret)
           return ret;
+
+     data->buffer = data_buffer;
+     data->length = length;
 
      thiz->Release                = IDirectFBDataBuffer_Memory_Release;
      thiz->Flush                  = IDirectFBDataBuffer_Memory_Flush;

@@ -57,24 +57,31 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           const char             *filename );
+           IDirectFBDataBuffer    *buffer );
 
 #include <interface_implementation.h>
 
 DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, PNG )
 
 
-static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
-                                int pitch, DFBSurfacePixelFormat format,
-                                CorePalette *palette );
-
-
 /*
  * private data struct of IDirectFBImageProvider_PNG
  */
 typedef struct {
-     int            ref;      /* reference counter */
-     char          *filename; /* filename of file to load */
+     int                  ref;      /* reference counter */
+     IDirectFBDataBuffer *buffer;
+
+     int                  stage;
+
+     png_structp          png_ptr;
+     png_infop            info_ptr;
+
+     png_uint_32          width;
+     png_uint_32          height;
+     int                  bpp;
+     int                  color_type;
+
+     __u32               *image;
 } IDirectFBImageProvider_PNG_data;
 
 static DFBResult
@@ -96,11 +103,34 @@ static DFBResult
 IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
                                                 DFBImageDescription    *dsc );
 
+/* Called at the start of the progressive load, once we have image info */
+static void
+png_info_callback (png_structp png_read_ptr,
+                   png_infop   png_info_ptr);
+
+/* Called for each row; note that you will get duplicate row numbers
+   for interlaced PNGs */
+static void
+png_row_callback  (png_structp png_read_ptr,
+                   png_bytep   new_row,
+                   png_uint_32 row_num,
+                   int         pass_num);
+
+/* Called after reading the entire image */
+static void
+png_end_callback  (png_structp png_read_ptr,
+                   png_infop   png_info_ptr);
+
+/* Pipes data into libpng until stage is different from the one specified. */
+static DFBResult
+push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
+                       int                              stage,
+                       int                              buffer_size);
 
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
-     if (strncmp (ctx->header, "\211PNG\r\n\032\n", 8) == 0)
+     if (png_check_sig( ctx->header, 8 ))
           return DFB_OK;
 
      return DFB_UNSUPPORTED;
@@ -108,34 +138,78 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx )
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           const char             *filename )
+           IDirectFBDataBuffer    *buffer )
 {
+     DFBResult ret = DFB_FAILURE;
+
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_PNG)
 
-     data->ref = 1;
-     data->filename = (char*)DFBMALLOC( strlen(filename)+1 );
-     strcpy( data->filename, filename );
+     data->ref    = 1;
+     data->buffer = buffer;
 
-     DEBUGMSG( "DirectFB/Media: PNG Provider Construct '%s'\n", filename );
+     /* Increase the data buffer reference counter. */
+     buffer->AddRef( buffer );
+     
+     /* Create the PNG read handle. */
+     data->png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING,
+                                             NULL, NULL, NULL );
+     if (!data->png_ptr)
+          goto error;
+
+     /* Create the PNG info handle. */
+     data->info_ptr = png_create_info_struct( data->png_ptr );
+     if (!data->info_ptr)
+          goto error;
+
+     /* Setup progressive image loading. */
+     png_set_progressive_read_fn( data->png_ptr, data,
+                                  png_info_callback,
+                                  png_row_callback,
+                                  png_end_callback );
+
+     
+     /* Read until info callback is called. */
+     ret = push_data_until_stage( data, 1, 4 );
+     if (ret)
+          goto error;
 
      thiz->AddRef = IDirectFBImageProvider_PNG_AddRef;
      thiz->Release = IDirectFBImageProvider_PNG_Release;
      thiz->RenderTo = IDirectFBImageProvider_PNG_RenderTo;
      thiz->GetImageDescription = IDirectFBImageProvider_PNG_GetImageDescription;
      thiz->GetSurfaceDescription =
-                               IDirectFBImageProvider_PNG_GetSurfaceDescription;
+                              IDirectFBImageProvider_PNG_GetSurfaceDescription;
 
      return DFB_OK;
+
+error:
+     png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
+
+     buffer->Release( buffer );
+     
+     if (data->image)
+          DFBFREE( data->image );
+     
+     DFB_DEALLOCATE_INTERFACE(thiz);
+
+     return ret;
 }
 
 static void
 IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
 {
      IDirectFBImageProvider_PNG_data *data =
-                                   (IDirectFBImageProvider_PNG_data*)thiz->priv;
+                              (IDirectFBImageProvider_PNG_data*)thiz->priv;
 
-     DFBFREE( data->filename );
+     png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
+     
+     /* Release the data buffer reference counter. */
+     data->buffer->Release( data->buffer );
 
+     /* Deallocate image data. */
+     if (data->image)
+          DFBFREE( data->image );
+     
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -166,13 +240,10 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *destination,
                                      const DFBRectangle     *dest_rect )
 {
-     int   err, loader_result = 1;
-     void *dst;
-     int   pitch;
-     DFBRectangle           rect = { 0, 0, 0, 0 };
-     DFBSurfacePixelFormat  format;
+     DFBResult              ret;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
+     DFBRectangle           rect = { 0, 0, 0, 0};
 
      INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
@@ -184,189 +255,54 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      if (!dst_surface)
           return DFB_DESTROYED;
 
-     err = destination->GetSize( destination, &rect.w, &rect.h );
-     if (err)
-          return err;
+     ret = destination->GetSize( destination, &rect.w, &rect.h );
+     if (ret)
+          return ret;
 
-     err = destination->GetPixelFormat( destination, &format );
-     if (err)
-          return err;
+     /* Read until image is completely decoded. */
+     ret = push_data_until_stage( data, 3, 4096 );
+     if (ret)
+          return ret;
 
-     /* actual loading and rendering */
+     /* actual rendering */
      if (dest_rect == NULL || dfb_rectangle_intersect ( &rect, dest_rect )) {
+          void *dst;
+          int   pitch;
 
-          FILE *f;
+          ret = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
+          if (ret)
+               return ret;
 
-          f = fopen( data->filename, "rb" );
-          if (!f) {
-               destination->Unlock( destination );
-               switch (errno) {
-                    case EACCES:
-                         return DFB_ACCESSDENIED;
-                    case EIO:
-                         return DFB_IO;
-                    case ENOENT:
-                         return DFB_FILENOTFOUND;
-                    default:
-                         return DFB_FAILURE;
-               }
-          }
+          dst += rect.x * DFB_BYTES_PER_PIXEL(dst_surface->format) + rect.y * pitch;
 
-          err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
-          if (err) {
-               fclose( f );
-               return err;
-          }
-
-          dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
-
-          loader_result = load_png_argb( f, dst, rect.w, rect.h, pitch,
-                                         format, dst_surface->palette );
-
-          err = destination->Unlock( destination );
-
-          fclose( f );
+          dfb_scale_linear_32( (__u32*)dst, (__u32*)data->image, data->width,
+                               data->height, rect.w, rect.h, pitch,
+                               dst_surface->format, dst_surface->palette );
+          
+          destination->Unlock( destination );
      }
 
-     if (loader_result)
-          return loader_result;
-
-     return err;
+     return DFB_OK;
 }
 
 
 /* Loading routines */
 
 static DFBResult
-load_png_argb( FILE *f, __u8 *dst, int width, int height,
-               int pitch, DFBSurfacePixelFormat format, CorePalette *palette )
-{
-     png_structp png_ptr;
-     png_infop   info_ptr;
-     png_uint_32 png_width, png_height;
-     int         png_bpp, png_type, i;
-
-     png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-     if (!png_ptr)
-          return DFB_FAILURE;
-
-     info_ptr = png_create_info_struct( png_ptr );
-     if (!info_ptr) {
-          png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-          return DFB_FAILURE;
-     }
-
-     png_init_io( png_ptr, f );
-     png_read_info( png_ptr, info_ptr );
-
-     png_get_IHDR( png_ptr, info_ptr, &png_width, &png_height, &png_bpp,
-                   &png_type, NULL, NULL, NULL );
-
-     if (png_type == PNG_COLOR_TYPE_PALETTE)
-          png_set_palette_to_rgb( png_ptr );
-
-     if (png_type == PNG_COLOR_TYPE_GRAY
-         || png_type == PNG_COLOR_TYPE_GRAY_ALPHA)
-          png_set_gray_to_rgb(png_ptr);
-
-     if (png_get_valid( png_ptr, info_ptr, PNG_INFO_tRNS ))
-          png_set_tRNS_to_alpha( png_ptr );
-
-     if (png_bpp == 16)
-          png_set_strip_16( png_ptr );
-
-#if __BYTE_ORDER == __BIG_ENDIAN
-     if (!(png_type & PNG_COLOR_MASK_ALPHA))
-          png_set_filler( png_ptr, 0xFF, PNG_FILLER_BEFORE );
-
-     png_set_swap_alpha( png_ptr );
-#else
-     if (!(png_type & PNG_COLOR_MASK_ALPHA))
-          png_set_filler( png_ptr, 0xFF, PNG_FILLER_AFTER );
-
-     png_set_bgr( png_ptr );
-#endif
-
-     if (width == png_width && height == png_height && format == DSPF_ARGB) {
-          png_bytep bptrs[png_height];
-
-          for (i=0; i<png_height; i++)
-               bptrs[i] = dst + pitch * i;
-
-          png_read_image( png_ptr, bptrs );
-     }
-     else {
-          png_bytep bptrs[png_height];
-
-          bptrs[0] = DFBMALLOC( png_height * png_width*4 );
-
-          for (i=1; i<png_height; i++)
-               bptrs[i] = bptrs[i-1] + png_width*4;
-
-          png_read_image( png_ptr, bptrs );
-
-          dfb_scale_linear_32( (__u32*)dst, (__u32*)bptrs[0], png_width,
-                               png_height, width, height,
-                               pitch, format, palette );
-
-          DFBFREE( bptrs[0] );
-     }
-
-     png_destroy_read_struct( &png_ptr, &info_ptr, NULL );
-
-     return DFB_OK;
-}
-
-static DFBResult
 IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                   DFBSurfaceDescription *dsc )
 {
-     FILE *f;
-
      INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
+          
+     dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+     dsc->width  = data->width;
+     dsc->height = data->height;
 
-     f = fopen( data->filename, "rb" );
-     if (!f)
-          return errno2dfb( errno );
-
-     {
-          png_structp png_ptr;
-          png_infop info_ptr;
-
-          png_uint_32 png_width, png_height;
-          int png_bpp, png_type;
-
-          png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL,
-                                            NULL, NULL );
-          if (!png_ptr)
-               return DFB_FAILURE;
-
-          info_ptr = png_create_info_struct( png_ptr );
-          if (!info_ptr) {
-               png_destroy_read_struct( &png_ptr, (png_infopp)NULL,
-                                        (png_infopp)NULL );
-               return DFB_FAILURE;
-          }
-
-          png_init_io( png_ptr, f );
-          png_read_info( png_ptr, info_ptr );
-
-          png_get_IHDR( png_ptr, info_ptr, &png_width, &png_height, &png_bpp,
-                        &png_type, NULL, NULL, NULL );
-
-          dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-          dsc->width  = png_width;
-          dsc->height = png_height;
-
-          if (png_type & PNG_COLOR_MASK_ALPHA)
-               dsc->pixelformat = DSPF_ARGB;
-          else
-               dsc->pixelformat = dfb_primary_layer_pixelformat();
-
-          png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-          fclose( f );
-     }
-
+     if (data->color_type & PNG_COLOR_MASK_ALPHA)
+          dsc->pixelformat = DSPF_ARGB;
+     else
+          dsc->pixelformat = dfb_primary_layer_pixelformat();
+     
      return DFB_OK;
 }
 
@@ -374,55 +310,155 @@ static DFBResult
 IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
                                                 DFBImageDescription    *dsc )
 {
-     FILE *f;
-
      INTERFACE_GET_DATA(IDirectFBImageProvider_PNG)
 
      if (!dsc)
           return DFB_INVARG;
 
-     f = fopen( data->filename, "rb" );
-     if (!f)
-          return errno2dfb( errno );
-
      /* FIXME: colorkeyed PNGs are currently converted to alphachannel PNGs */
-     {
-          png_structp png_ptr;
-          png_infop info_ptr;
-
-          png_uint_32 png_width, png_height;
-          int png_bpp, png_type;
-
-          png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL,
-                                            NULL, NULL );
-          if (!png_ptr) {
-               fclose( f );
-               return DFB_FAILURE;
-          }
-
-          info_ptr = png_create_info_struct( png_ptr );
-          if (!info_ptr) {
-               png_destroy_read_struct( &png_ptr, (png_infopp)NULL,
-                                        (png_infopp)NULL );
-               fclose( f );
-               return DFB_FAILURE;
-          }
-
-          png_init_io( png_ptr, f );
-          png_read_info( png_ptr, info_ptr );
-
-          png_get_IHDR( png_ptr, info_ptr, &png_width, &png_height, &png_bpp,
-                        &png_type, NULL, NULL, NULL );
-
-          if (png_type & PNG_COLOR_MASK_ALPHA)
-               dsc->caps = DICAPS_ALPHACHANNEL;
-          else
-               dsc->caps = DICAPS_NONE;
-
-          png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-          fclose( f );
-     }
-
+     if (data->color_type & PNG_COLOR_MASK_ALPHA)
+          dsc->caps = DICAPS_ALPHACHANNEL;
+     else
+          dsc->caps = DICAPS_NONE;
+     
      return DFB_OK;
 }
 
+
+
+
+
+/* Called at the start of the progressive load, once we have image info */
+static void
+png_info_callback   (png_structp png_read_ptr,
+                     png_infop   png_info_ptr)
+{
+     IDirectFBImageProvider_PNG_data *data;
+
+     data = png_get_progressive_ptr(png_read_ptr);
+
+     /* error stage? */
+     if (data->stage < 0)
+          return;
+
+     /* set info stage */
+     data->stage = 1;
+
+     png_get_IHDR( data->png_ptr, data->info_ptr,
+                   &data->width, &data->height, &data->bpp, &data->color_type,
+                   NULL, NULL, NULL );
+     
+     if (data->color_type == PNG_COLOR_TYPE_PALETTE)
+          png_set_palette_to_rgb( data->png_ptr );
+
+     if (data->color_type == PNG_COLOR_TYPE_GRAY
+         || data->color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+          png_set_gray_to_rgb( data->png_ptr );
+
+     if (png_get_valid( data->png_ptr, data->info_ptr, PNG_INFO_tRNS ))
+          png_set_tRNS_to_alpha( data->png_ptr );
+
+     if (data->bpp == 16)
+          png_set_strip_16( data->png_ptr );
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+     if (!(data->color_type & PNG_COLOR_MASK_ALPHA))
+          png_set_filler( data->png_ptr, 0xFF, PNG_FILLER_BEFORE );
+
+     png_set_swap_alpha( data->png_ptr );
+#else
+     if (!(data->color_type & PNG_COLOR_MASK_ALPHA))
+          png_set_filler( data->png_ptr, 0xFF, PNG_FILLER_AFTER );
+
+     png_set_bgr( data->png_ptr );
+#endif
+     
+     png_set_interlace_handling( data->png_ptr );
+
+     /* Update the info to reflect our transformations */
+     png_read_update_info( data->png_ptr, data->info_ptr );
+}
+
+/* Called for each row; note that you will get duplicate row numbers
+   for interlaced PNGs */
+static void
+png_row_callback   (png_structp png_read_ptr,
+                    png_bytep   new_row,
+                    png_uint_32 row_num,
+                    int         pass_num)
+{
+     IDirectFBImageProvider_PNG_data *data;
+
+     data = png_get_progressive_ptr( png_read_ptr );
+
+     /* error stage? */
+     if (data->stage < 0)
+          return;
+
+     /* set image decoding stage */
+     data->stage = 2;
+
+     /* check image data pointer */
+     if (!data->image) {
+          int size = data->width * data->height * 4;
+
+          /* allocate image data */
+          data->image = DFBMALLOC( size );
+          if (!data->image) {
+               ERRORMSG("DirectFB/ImageProvider_PNG: Could not "
+                        "allocate %d bytes of system memory!\n", size);
+
+               /* set error stage */
+               data->stage = -1;
+          }
+     }
+
+     /* write to image data */
+     png_progressive_combine_row( data->png_ptr, (png_bytep) (data->image +
+                                  row_num * data->width), new_row );
+}
+
+/* Called after reading the entire image */
+static void
+png_end_callback   (png_structp png_read_ptr,
+                    png_infop   png_info_ptr)
+{
+     IDirectFBImageProvider_PNG_data *data;
+
+     data = png_get_progressive_ptr(png_read_ptr);
+
+     /* error stage? */
+     if (data->stage < 0)
+          return;
+     
+     /* set end stage */
+     data->stage = 3;
+}
+
+/* Pipes data into libpng until stage is different from the one specified. */
+static DFBResult
+push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
+                       int                              stage,
+                       int                              buffer_size)
+{
+     DFBResult            ret;
+     IDirectFBDataBuffer *buffer = data->buffer;
+
+     while (data->stage < stage) {
+          unsigned int  len;
+          unsigned char buf[buffer_size];
+
+          if (data->stage < 0)
+               return DFB_FAILURE;
+
+          buffer->WaitForData( buffer, 1 );
+
+          ret = buffer->GetData( buffer, buffer_size, buf, &len );
+          if (ret)
+               return ret;
+
+          png_process_data( data->png_ptr, data->info_ptr, buf, len );
+     }
+     
+     return DFB_OK;
+}

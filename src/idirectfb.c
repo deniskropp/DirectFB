@@ -569,6 +569,39 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
                                const char              *filename,
                                IDirectFBImageProvider **interface )
 {
+     DFBResult                 ret;
+     DFBDataBufferDescription  desc;
+     IDirectFBDataBuffer      *databuffer;
+
+     INTERFACE_GET_DATA(IDirectFB)
+
+     /* Check arguments */
+     if (!filename || !interface)
+          return DFB_INVARG;
+
+     /* Create a data buffer. */
+     desc.flags = DBDESC_FILE;
+     desc.file  = filename;
+
+     ret = thiz->CreateDataBuffer( thiz, &desc, &databuffer );
+     if (ret)
+          return ret;
+     
+     /* Create (probing) the image provider. */
+     ret = IDirectFBImageProvider_CreateFromBuffer( databuffer, interface );
+
+     /* We don't need it anymore, image provider has its own reference. */
+     databuffer->Release( databuffer );
+     
+     return ret;
+}
+
+#if 0
+static DFBResult
+IDirectFB_CreateImageProvider( IDirectFB               *thiz,
+                               const char              *filename,
+                               IDirectFBImageProvider **interface )
+{
      int                                  fd;
      DFBResult                            ret;
      DFBInterfaceFuncs                   *funcs = NULL;
@@ -611,6 +644,7 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
 
      return DFB_OK;
 }
+#endif
 
 static DFBResult
 IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
