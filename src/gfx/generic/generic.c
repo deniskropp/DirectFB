@@ -3003,7 +3003,7 @@ void gGetDeviceInfo( GraphicsDeviceInfo *info )
                           DSBLIT_SRC_PREMULTIPLY |     \
                           DSBLIT_DEMULTIPLY)
 
-int gAquire( CardState *state, DFBAccelerationMask accel )
+bool gAquire( CardState *state, DFBAccelerationMask accel )
 {
      GFunc       *funcs       = gfuncs;
      CoreSurface *destination = state->destination;
@@ -3014,19 +3014,16 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      DFBSurfaceLockFlags lock_flags;
 
 
+     /* Destination may have been destroyed. */
+     if (!destination)
+          return false;
+     
+     /* Source may have been destroyed. */
+     if (DFB_BLITTING_FUNCTION( accel ) && !source)
+          return false;
+     
+     
      pthread_mutex_lock( &generic_lock );
-
-     /* Debug checks */
-     if (!state->destination) {
-          BUG("state check: no destination");
-          pthread_mutex_unlock( &generic_lock );
-          return 0;
-     }
-     if (!source  &&  DFB_BLITTING_FUNCTION( accel )) {
-          BUG("state check: no source");
-          pthread_mutex_unlock( &generic_lock );
-          return 0;
-     }
      
      dst_caps   = destination->caps;
      dst_height = destination->height;
@@ -3110,7 +3107,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           default:
                ONCE("unsupported destination format");
                pthread_mutex_unlock( &generic_lock );
-               return 0;
+               return false;
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
@@ -3132,7 +3129,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     {
                          ONCE("only copying blits supported for YUV in software");
                          pthread_mutex_unlock( &generic_lock );
-                         return 0;
+                         return false;
                     }
                     break;
                case DSPF_LUT8:
@@ -3142,7 +3139,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                default:
                     ONCE("unsupported source format");
                     pthread_mutex_unlock( &generic_lock );
-                    return 0;
+                    return false;
           }
      }
 
@@ -3153,7 +3150,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                                          DSLF_READ, &src_org, &src_pitch, 1 )) {
                dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
                pthread_mutex_unlock( &generic_lock );
-               return 0;
+               return false;
           }
 
           src_field_offset = src_height/2 * src_pitch;
@@ -3171,7 +3168,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
           dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
           pthread_mutex_unlock( &generic_lock );
-          return 0;
+          return false;
      }
 
      dst_field_offset = dst_height/2 * dst_pitch;
@@ -3515,12 +3512,12 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           default:
                ONCE("unimplemented drawing/blitting function");
                gRelease( state );
-               return 0;
+               return false;
      }
 
      *funcs = NULL;
 
-     return 1;
+     return true;
 }
 
 void gRelease( CardState *state )
@@ -3775,7 +3772,7 @@ static void gDoBlit( int sx,     int sy,
                      int spitch, int dpitch,
                      void *sorg, void *dorg )
 {
-     if (dy > sy) {
+     if (sorg == dorg && dy > sy) {
           /* we must blit from bottom to top */
           Dlength = width;
 

@@ -1505,7 +1505,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
      if (mode->doubled)
           var.vmode |= FB_VMODE_DOUBLE;
 
-     dfb_gfxcard_lock( true );
+     dfb_gfxcard_lock( true, true, true );
 
      if (FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &var ) < 0) {
           int erno = errno;
@@ -1514,7 +1514,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                PERRORMSG( "DirectFB/core/fbdev: "
                           "Could not set video mode (FBIOPUT_VSCREENINFO)!\n" );
 
-          dfb_gfxcard_unlock( false, false );
+          dfb_gfxcard_unlock();
 
           return errno2dfb( erno );
      }
@@ -1535,7 +1535,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
           }
           
-          dfb_gfxcard_unlock( true, true );
+          dfb_gfxcard_unlock();
 
           return DFB_INVARG;
      }
@@ -1554,13 +1554,13 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                /* restore mode */
                FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
 
-               dfb_gfxcard_unlock( true, true );
+               dfb_gfxcard_unlock();
 
                return DFB_UNSUPPORTED;
           }
 
           if (!config) {
-               dfb_gfxcard_unlock( true, true );
+               dfb_gfxcard_unlock();
 
                return DFB_OK;
           }
@@ -1729,7 +1729,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                                         CSNF_VIDEO | CSNF_SYSTEM );
      }
 
-     dfb_gfxcard_unlock( true, true );
+     dfb_gfxcard_unlock();
 
      return DFB_OK;
 }

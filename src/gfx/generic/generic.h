@@ -56,7 +56,7 @@ void gInit_MMX();
 void gGetDriverInfo( GraphicsDriverInfo *info );
 void gGetDeviceInfo( GraphicsDeviceInfo *info );
 
-int  gAquire  ( CardState *state, DFBAccelerationMask accel );
+bool gAquire  ( CardState *state, DFBAccelerationMask accel );
 void gRelease ( CardState *state );
 
 void gFillRectangle ( DFBRectangle *rect );

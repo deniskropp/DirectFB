@@ -56,6 +56,11 @@
 DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers",
                          DFB_GRAPHICS_DRIVER_ABI_VERSION );
 
+typedef enum {
+   GLF_INVALIDATE_STATE,
+   GLF_ENGINE_RESET
+} GraphicsLockFlags;
+
 /*
  * struct for graphics cards
  */
@@ -68,6 +73,7 @@ typedef struct {
      void                 *device_data;
 
      FusionSkirmish        lock;
+     GraphicsLockFlags     lock_flags;
 
      SurfaceManager       *surface_manager;
 
@@ -241,7 +247,7 @@ dfb_gfxcard_shutdown( bool emergency )
 {
      DFB_ASSERT( card != NULL );
 
-     dfb_gfxcard_lock( true );
+     dfb_gfxcard_lock( true, false, false );
 
      if (card->driver_funcs) {
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
@@ -307,27 +313,41 @@ dfb_gfxcard_resume()
      return dfb_surfacemanager_resume( card->shared->surface_manager );
 }
 
-void
-dfb_gfxcard_lock( bool sync )
+DFBResult
+dfb_gfxcard_lock( bool sync, bool invalidate_state, bool engine_reset )
 {
      if (card && card->shared) {
-          skirmish_prevail( &card->shared->lock );
+          GraphicsDeviceShared *shared = card->shared;
+          GraphicsLockFlags     flags  = shared->lock_flags;
+
+          if (skirmish_prevail( &shared->lock ))
+               return DFB_FAILURE;
 
           if (sync)
                dfb_gfxcard_sync();
+          
+          if (flags & GLF_INVALIDATE_STATE)
+               shared->state = NULL;
+          
+          if ((flags & GLF_ENGINE_RESET) && card->funcs.EngineReset)
+               card->funcs.EngineReset( card->driver_data, card->device_data );
+
+          shared->lock_flags = 0;
+          
+          if (invalidate_state)
+               shared->lock_flags |= GLF_INVALIDATE_STATE;
+          
+          if (engine_reset)
+               shared->lock_flags |= GLF_ENGINE_RESET;
      }
+
+     return DFB_OK;
 }
 
 void
-dfb_gfxcard_unlock( bool invalidate_state, bool engine_reset )
+dfb_gfxcard_unlock()
 {
      if (card && card->shared) {
-          if (invalidate_state)
-               card->shared->state = NULL;
-
-          if (engine_reset && card->funcs.EngineReset)
-               card->funcs.EngineReset( card->driver_data, card->device_data );
-
           skirmish_dismiss( &card->shared->lock );
      }
 }
@@ -346,19 +366,15 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
       * If there's no CheckState function there's no acceleration at all.
       */
      if (!card->funcs.CheckState)
-          return 0;
+          return false;
 
-     /* Debug checks */
-#ifdef DFB_DEBUG
-     if (!state->destination) {
-          BUG("state check: no destination");
-          return 0;
-     }
-     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
-          BUG("state check: no source");
-          return 0;
-     }
-#endif
+     /* Destination may have been destroyed. */
+     if (!state->destination)
+          return false;
+     
+     /* Source may have been destroyed. */
+     if (DFB_BLITTING_FUNCTION( accel ) && !state->source)
+          return false;
 
      /*
       * If back_buffer policy is 'system only' there's no acceleration
@@ -369,7 +385,7 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           state->accel = 0;
 
           /* Return immediately. */
-          return 0;
+          return false;
      }
 
      /*
@@ -384,7 +400,7 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 
           /* Return if a blitting function was requested. */
           if (DFB_BLITTING_FUNCTION( accel ))
-               return 0;
+               return false;
      }
 
      /* If destination or blend functions have been changed... */
@@ -436,17 +452,13 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      DFB_ASSERT( card->shared != NULL );
      DFB_ASSERT( state != NULL );
      
-     /* Debug checks */
-#ifdef DFB_DEBUG
-     if (!state->destination) {
-          BUG("state check: no destination");
-          return 0;
-     }
-     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
-          BUG("state check: no source");
-          return 0;
-     }
-#endif
+     /* Destination may have been destroyed. */
+     if (!state->destination)
+          return false;
+     
+     /* Source may have been destroyed. */
+     if (DFB_BLITTING_FUNCTION( accel ) && !state->source)
+          return false;
 
      /* find locking flags */
      if (DFB_BLITTING_FUNCTION( accel ))
@@ -467,7 +479,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           /* ...lock source for reading */
           if (dfb_surface_hardware_lock( state->source, DSLF_READ, 1 )) {
                dfb_surfacemanager_unlock( card->shared->surface_manager );
-               return 0;
+               return false;
           }
 
           state->source_locked = 1;
@@ -481,7 +493,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                dfb_surface_unlock( state->source, 1 );
 
           dfb_surfacemanager_unlock( card->shared->surface_manager );
-          return 0;
+          return false;
      }
 
      /* unlock surface manager */
@@ -491,8 +503,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * Make sure that state setting with subsequent command execution
       * isn't done by two processes simultaneously.
       */
-     if (skirmish_prevail( &card->shared->lock ))
-          return 0;
+     if (dfb_gfxcard_lock( false, false, false ))
+          return false;
 
      /* if we are switching to another state... */
      if (state != card->shared->state) {
@@ -511,7 +523,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           card->funcs.SetState( card->driver_data, card->device_data,
                                 &card->funcs, state, accel );
 
-     return 1;
+     return true;
 }
 
 /*
@@ -525,14 +537,14 @@ dfb_gfxcard_state_release( CardState *state )
      DFB_ASSERT( state != NULL );
      
      /* destination always gets locked during acquisition */
-     dfb_surface_unlock( state->destination, 0 );
+     dfb_surface_unlock( state->destination, false );
 
      /* if source got locked this value is true */
      if (state->source_locked)
-          dfb_surface_unlock( state->source, 1 );
+          dfb_surface_unlock( state->source, true );
 
      /* allow others to use the hardware */
-     skirmish_dismiss( &card->shared->lock );
+     dfb_gfxcard_unlock();
 }
 
 /** DRAWING FUNCTIONS **/
