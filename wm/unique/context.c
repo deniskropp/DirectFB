@@ -1153,6 +1153,9 @@ handle_motion( UniqueContext *context,
 
      dfb_window_move( stack->cursor.window, dx, dy, true );
 
+
+
+
      switch (context->wm_level) {
           case 7:
           case 6:
@@ -1223,16 +1226,14 @@ handle_motion( UniqueContext *context,
 
                     unique_window_post_event( window, &we );
                }
-               else {
-                    if (!update_focus( context ) && context->entered_window) {
-                         UniqueWindow *window = context->entered_window;
+               else if (!update_focus( context ) && context->entered_window) {
+                    UniqueWindow *window = context->entered_window;
 
-                         we.type = DWET_MOTION;
-                         we.x    = stack->cursor.x - window->bounds.x;
-                         we.y    = stack->cursor.y - window->bounds.y;
+                    we.type = DWET_MOTION;
+                    we.x    = stack->cursor.x - window->bounds.x;
+                    we.y    = stack->cursor.y - window->bounds.y;
 
-                         unique_window_post_event( window, &we );
-                    }
+                    unique_window_post_event( window, &we );
                }
 
                break;
