@@ -416,6 +416,12 @@ set_configuration()
 
      /* Set the configuration if anything changed. */
      if (config.flags) {
+          ret = layer->TestConfiguration( layer, &config, NULL );
+          if (ret) {
+               DirectFBError( "IDirectFBDisplayLayer::TestConfiguration() failed", ret );
+               return;
+          }
+
           ret = layer->SetConfiguration( layer, &config );
           if (ret) {
                DirectFBError( "IDirectFBDisplayLayer::SetConfiguration() failed", ret );
@@ -429,6 +435,25 @@ set_configuration()
           DirectFBError( "IDirectFBDisplayLayer::GetConfiguration() failed", ret );
           return;
      }
+
+     /* Set the opacity if requested. */
+     if (opacity != -1) {
+          ret = layer->SetOpacity( layer, opacity );
+          if (ret == DFB_UNSUPPORTED)
+               fprintf( stderr, "Opacity value (%d) not supported!\n\n", opacity );
+          else if (ret)
+               DirectFBError( "IDirectFBDisplayLayer::SetOpacity() failed", ret );
+     }
+
+     /* Set the level if requested. */
+     if (set_level) {
+          ret = layer->SetLevel( layer, level );
+          if (ret == DFB_UNSUPPORTED)
+               fprintf( stderr, "Level (%d) not supported!\n\n", level );
+          else if (ret)
+               DirectFBError( "IDirectFBDisplayLayer::SetLevel() failed", ret );
+     }
+
 
      if (config.flags & DLCONF_WIDTH)
           printf( "Width       %d\n", config.width );
@@ -497,24 +522,17 @@ set_configuration()
           }
      }
 
+     /* Query current level. */
+     if (desc.caps & DLCAPS_LEVELS) {
+          int l;
+
+          ret = layer->GetLevel( layer, &l );
+          if (ret)
+               DirectFBError( "IDirectFBDisplayLayer::GetLevel() failed", ret );
+          else
+               printf( "Level       %d\n", l );
+     }
+
      printf( "\n" );
-
-     /* Set the opacity if requested. */
-     if (opacity != -1) {
-          ret = layer->SetOpacity( layer, opacity );
-          if (ret == DFB_UNSUPPORTED)
-               fprintf( stderr, "Opacity value (%d) not supported!\n\n", opacity );
-          else if (ret)
-               DirectFBError( "IDirectFBDisplayLayer::SetOpacity() failed", ret );
-     }
-
-     /* Set the level if requested. */
-     if (set_level) {
-          ret = layer->SetLevel( layer, level );
-          if (ret == DFB_UNSUPPORTED)
-               fprintf( stderr, "Level (%d) not supported!\n\n", level );
-          else if (ret)
-               DirectFBError( "IDirectFBDisplayLayer::SetLevel() failed", ret );
-     }
 }
 
