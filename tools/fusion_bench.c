@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <config.h>
 
 #include <stdio.h>
@@ -258,8 +260,8 @@ bench_skirmish_threaded()
      }
 
      
-     /* skirmish prevail/dismiss (2-4 threads) */
-     for (i=2; i<=4; i++) {
+     /* skirmish prevail/dismiss (1-5 threads) */
+     for (i=1; i<=5; i++) {
           int       t;
           long long t1, t2;
           pthread_t threads[i];
@@ -284,12 +286,120 @@ bench_skirmish_threaded()
      printf( "\n" );
 }
 
+static void *
+spin_lock_unlock_loop( void *arg )
+{
+     unsigned int        i;
+     pthread_spinlock_t *lock = (pthread_spinlock_t *) arg;
+
+     for (i=0; i<2000000; i++) {
+          pthread_spin_lock( lock );
+          pthread_spin_unlock( lock );
+     }
+
+     return NULL;
+}
+
+static void
+bench_spinlock_threaded()
+{
+     FusionResult       ret;
+     unsigned int       i;
+     pthread_spinlock_t lock;
+
+     ret = pthread_spin_init( &lock, true );
+     if (ret) {
+          fprintf( stderr, "pthread error %d\n", ret );
+          return;
+     }
+
+     
+     /* spinlock lock/unlock (1-5 threads) */
+     for (i=1; i<=5; i++) {
+          int       t;
+          long long t1, t2;
+          pthread_t threads[i];
+          
+          t1 = dfb_get_millis();
+
+          for (t=0; t<i; t++)
+               pthread_create( &threads[t], NULL, spin_lock_unlock_loop, (void*)&lock );
+
+          for (t=0; t<i; t++)
+               pthread_join( threads[t], NULL );
+
+          t2 = dfb_get_millis();
+
+          printf( "spinlock lock/unlock (%d threads)      -> %8.2f k/sec\n",
+                  i, (double)i * (double)2000000 / (double)(t2 - t1) );
+     }
+
+     
+     pthread_spin_destroy( &lock );
+
+     printf( "\n" );
+}
+
+static void *
+mutex_lock_unlock_loop( void *arg )
+{
+     unsigned int     i;
+     pthread_mutex_t *lock = (pthread_mutex_t *) arg;
+
+     for (i=0; i<2000000; i++) {
+          pthread_mutex_lock( lock );
+          pthread_mutex_unlock( lock );
+     }
+
+     return NULL;
+}
+
+static void
+bench_mutex_threaded()
+{
+     FusionResult    ret;
+     unsigned int    i;
+     pthread_mutex_t lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+
+     ret = pthread_mutex_init( &lock, NULL );
+     if (ret) {
+          fprintf( stderr, "pthread error %d\n", ret );
+          return;
+     }
+
+     
+     /* mutex lock/unlock (1-5 threads) */
+     for (i=1; i<=5; i++) {
+          int       t;
+          long long t1, t2;
+          pthread_t threads[i];
+          
+          t1 = dfb_get_millis();
+
+          for (t=0; t<i; t++)
+               pthread_create( &threads[t], NULL, mutex_lock_unlock_loop, (void*)&lock );
+
+          for (t=0; t<i; t++)
+               pthread_join( threads[t], NULL );
+
+          t2 = dfb_get_millis();
+
+          printf( "mutex lock/unlock (%d threads)         -> %8.2f k/sec\n",
+                  i, (double)i * (double)2000000 / (double)(t2 - t1) );
+     }
+
+     
+     pthread_mutex_destroy( &lock );
+
+     printf( "\n" );
+}
+
 static void
 bench_pthread_mutex()
 {
      unsigned int    i;
      long long       t1, t2;
-     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+     pthread_mutex_t mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
      
      /* pthread_mutex lock/unlock */
@@ -333,19 +443,21 @@ main( int argc, char *argv[] )
 
      printf( "\n" );
      
-     
+#if 0     
      bench_pthread_mutex();
-     
+
      bench_skirmish();
+#endif
      
+     bench_mutex_threaded();
+     bench_spinlock_threaded();
      bench_skirmish_threaded();
-     
+
      bench_property();
      
      bench_ref();
      
      bench_reactor();
-
 
      fusion_exit();
 
