@@ -16,4 +16,4 @@ libdirectfb_nvidia_la_SOURCES =	\
 libdirectfb_nvidia_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
-        $(DFB_LDFLAGS)
+        $(DFB_LDFLAGS) -lm
