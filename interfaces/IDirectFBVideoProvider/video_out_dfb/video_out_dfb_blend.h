@@ -677,7 +677,7 @@ dfb_overlay_blend_rgb( dfb_frame_t  *frame,
                     rect.w = width;
                     rect.h = 1;
 
-                    dfb_gfxcard_fillrectangle( &rect, &this->state );
+                    dfb_gfxcard_fillrectangles( &rect, 1, &this->state );
                }
 
                x += width;
