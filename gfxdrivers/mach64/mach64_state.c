@@ -54,25 +54,19 @@ void mach64_set_destination( Mach64DriverData *mdrv,
      SurfaceBuffer *buffer      = destination->back_buffer;
      int            pitch       = buffer->video.pitch / DFB_BYTES_PER_PIXEL( destination->format );
 
-     mach64_waitfifo( mdrv, mdev, 3 );
-
      switch (destination->format) {
           case DSPF_RGB332:
-               mdev->dst_pix_width = DST_8BPP;
-               mach64_out32( mmio, DP_CHAIN_MASK, DP_CHAIN_8BPP_RGB | BYTE_ORDER_LSB_TO_MSB );
+               mdev->dst_pix_width = DST_PIX_WIDTH_RGB332;
                break;
           case DSPF_ARGB1555:
-               mdev->dst_pix_width = DST_15BPP;
-               mach64_out32( mmio, DP_CHAIN_MASK, DP_CHAIN_15BPP | BYTE_ORDER_LSB_TO_MSB );
+               mdev->dst_pix_width = DST_PIX_WIDTH_ARGB1555;
                break;
           case DSPF_RGB16:
-               mdev->dst_pix_width = DST_16BPP;
-               mach64_out32( mmio, DP_CHAIN_MASK, DP_CHAIN_16BPP | BYTE_ORDER_LSB_TO_MSB );
+               mdev->dst_pix_width = DST_PIX_WIDTH_RGB565;
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
-               mdev->dst_pix_width = DST_32BPP;
-               mach64_out32( mmio, DP_CHAIN_MASK, DP_CHAIN_32BPP | BYTE_ORDER_LSB_TO_MSB );
+               mdev->dst_pix_width = DST_PIX_WIDTH_ARGB8888;
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
@@ -80,8 +74,8 @@ void mach64_set_destination( Mach64DriverData *mdrv,
      }
      mdev->dst_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( destination->format )) - 1;
 
+     mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, DST_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
-     mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_pix_width | mdev->src_pix_width );
 }
 
 void mach64_set_source( Mach64DriverData *mdrv,
@@ -98,17 +92,17 @@ void mach64_set_source( Mach64DriverData *mdrv,
 
      switch (source->format) {
           case DSPF_RGB332:
-               mdev->src_pix_width = SRC_8BPP | SCALE_8BPP;
+               mdev->src_pix_width = SRC_PIX_WIDTH_RGB332 | SCALE_PIX_WIDTH_RGB332;
                break;
           case DSPF_ARGB1555:
-               mdev->src_pix_width = SRC_15BPP | SCALE_15BPP;
+               mdev->src_pix_width = SRC_PIX_WIDTH_ARGB1555 | SCALE_PIX_WIDTH_ARGB1555;
                break;
           case DSPF_RGB16:
-               mdev->src_pix_width = SRC_16BPP | SCALE_16BPP;
+               mdev->src_pix_width = SRC_PIX_WIDTH_RGB565 | SCALE_PIX_WIDTH_RGB565;
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
-               mdev->src_pix_width = SRC_32BPP | SCALE_32BPP;
+               mdev->src_pix_width = SRC_PIX_WIDTH_ARGB8888 | SCALE_PIX_WIDTH_ARGB8888;
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
@@ -116,10 +110,9 @@ void mach64_set_source( Mach64DriverData *mdrv,
      }
      mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
 
-     mach64_waitfifo( mdrv, mdev, 3 );
+     mach64_waitfifo( mdrv, mdev, 2 );
      mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
      mach64_out32( mmio, SCALE_PITCH, pitch );
-     mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_pix_width | mdev->src_pix_width );
 
      mdev->source = source;
 

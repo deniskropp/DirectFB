@@ -119,7 +119,7 @@ static void mach64EngineReset( void *drv, void *dev )
      mach64_waitfifo( mdrv, mdev, 2 );
 
      mach64_out32( mmio, DP_WRITE_MASK, 0xFFFFFFFF );
-     mach64_out32( mmio, DP_MIX, DP_FRGD_MIX_SRC | DP_BKGD_MIX_DST );
+     mach64_out32( mmio, DP_MIX, FRGD_MIX_SRC | BKGD_MIX_DST );
 
      if (mdrv->accelerator == FB_ACCEL_ATI_MACH64GT) {
           mach64_waitfifo( mdrv, mdev, 13 );
@@ -311,9 +311,12 @@ static void mach64SetState( void *drv, void *dev,
      case DFXL_DRAWLINE:
      case DFXL_FILLTRIANGLE:
           if (state->drawingflags & DSDRAW_BLEND) {
-               mach64_waitfifo( mdrv, mdev, 3 );
+               mach64_waitfifo( mdrv, mdev, 4 );
+
+               mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_pix_width | mdev->src_pix_width );
                mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
                mach64_out32( mmio, SRC_CNTL, 0 );
+
                /* Some 3D registers aren't accessible without this. */
                mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SHADE );
 
@@ -322,13 +325,23 @@ static void mach64SetState( void *drv, void *dev,
 
                mach64_waitfifo( mdrv, mdev, 1 );
                mach64_out32( mmio, SCALE_3D_CNTL, mdev->draw_blend );
+
+               state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE |
+                            DFXL_DRAWLINE | DFXL_FILLTRIANGLE;
           } else {
-               mach64_waitfifo( mdrv, mdev, 3 );
+               mach64_waitfifo( mdrv, mdev, 4 );
+
+               mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_pix_width | mdev->src_pix_width );
                mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
-               if (accel == DFXL_FILLRECTANGLE || accel == DFXL_FILLTRIANGLE)
+
+               if (accel == DFXL_FILLRECTANGLE || accel == DFXL_FILLTRIANGLE) {
                     mach64_out32( mmio, SRC_CNTL, mdev->src_cntl );
-               else
+                    state->set = DFXL_FILLRECTANGLE | DFXL_FILLTRIANGLE;
+               } else {
                     mach64_out32( mmio, SRC_CNTL, 0 );
+                    state->set = DFXL_DRAWRECTANGLE | DFXL_DRAWLINE;
+               }
+
                mach64_out32( mmio, SCALE_3D_CNTL, 0 );
 
                mach64_set_color( mdrv, mdev, state );
@@ -339,16 +352,18 @@ static void mach64SetState( void *drv, void *dev,
           else
                mach64_disable_colorkey( mdrv, mdev );
 
-          state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE | DFXL_FILLTRIANGLE;
           break;
      case DFXL_BLIT:
      case DFXL_STRETCHBLIT:
           mach64_set_source( mdrv, mdev, state );
 
           if (USE_SCALER( state, accel )) {
-               mach64_waitfifo( mdrv, mdev, 3 );
+               mach64_waitfifo( mdrv, mdev, 4 );
+
+               mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_pix_width | mdev->src_pix_width );
                mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
                mach64_out32( mmio, SRC_CNTL, 0 );
+
                /* Some 3D registers aren't accessible without this. */
                mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SCALE );
 
@@ -372,9 +387,12 @@ static void mach64SetState( void *drv, void *dev,
 
                state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
           } else {
-               mach64_waitfifo( mdrv, mdev, 3 );
+               mach64_waitfifo( mdrv, mdev, 4 );
+
+               mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_pix_width | mdev->src_pix_width );
                mach64_out32( mmio, DP_SRC, FRGD_SRC_BLIT );
                mach64_out32( mmio, SRC_CNTL, 0 );
+
                mach64_out32( mmio, SCALE_3D_CNTL, 0 );
 
                if (state->blittingflags & DSBLIT_DST_COLORKEY)
@@ -634,9 +652,9 @@ static void mach64DoBlitScale( Mach64DriverData *mdrv,
                    srect->x * DFB_BYTES_PER_PIXEL( source->format ) );
      mach64_out32( mmio, SCALE_HACC, 0 );
      mach64_out32( mmio, SCALE_VACC, 0 );
-     mach64_out32( mmio, SCALE_DST_Y_X, (drect->x << 16) | drect->y );
 
      mach64_out32( mmio, DST_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
+     mach64_out32( mmio, DST_Y_X, (drect->x << 16) | drect->y );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (drect->w << 16) | drect->h );
 }
 
