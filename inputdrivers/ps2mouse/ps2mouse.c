@@ -72,8 +72,8 @@ DFB_INPUT_DRIVER( ps2mouse )
 #define PS2_ID_PS2       0
 #define PS2_ID_IMPS2     3
 
-static char *devname[2] = { "/dev/psaux", "/dev/input/mice" };
-static char *devlist[2] = { NULL, NULL };
+static char *devname[3] = { "/dev/psaux", "/dev/input/mice", "/dev/misc/psaux" };
+static char *devlist[3] = { NULL, NULL, NULL };
 
 typedef struct {
      int            fd;
