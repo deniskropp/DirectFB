@@ -267,12 +267,12 @@ driver_open_device( InputDevice      *device,
 
 
      /* set device name */
-     snprintf( info->name,
-               DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "dbox2 remote control" );
+     snprintf( info->desc.name,
+               DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "dbox2 remote control" );
 
      /* set device vendor */
-     snprintf( info->vendor,
-               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "nokia/sagem/philips" );
+     snprintf( info->desc.vendor,
+               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "nokia/sagem/philips" );
 
      /* set one of the primary input device IDs */
      info->prefered_id = DIDID_REMOTE;

@@ -199,11 +199,11 @@ driver_open_device( InputDevice      *device,
      ioctl( fd, JSIOCGAXES, &axes );
 
      /* fill device info structure */
-     snprintf( info->name,
-               DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "Joystick" );
+     snprintf( info->desc.name,
+               DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "Joystick" );
 
-     snprintf( info->vendor,
-               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
+     snprintf( info->desc.vendor,
+               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "Unknown" );
 
      info->prefered_id     = DIDID_JOYSTICK;
 

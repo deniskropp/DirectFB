@@ -142,7 +142,7 @@ typedef struct __MuTData__ {
      unsigned short min_y;
      unsigned char action;
 } MuTData;
-	
+
 /* Global Variables */
 static unsigned char packet[MuT_PACKET_SIZE];
 
@@ -179,7 +179,7 @@ static int MuTSetToOptimalCTRL(int file, unsigned long baud)
 
      tcgetattr(file, &options);
      options.c_cflag = baud | CS8 | CLOCAL | CREAD;
-     switch(baud) {
+     switch (baud) {
           case B19200:
                MuTSendPacket (file, "PN811", 5);
                break;
@@ -204,7 +204,7 @@ static int MuTTestConnect(int file, unsigned char *packet)
 
      timeout = 0;
      __mdelay (100);
-     
+
      if (read (file, packet, 3) > 0)
           return 1;
 
@@ -228,11 +228,11 @@ static int MuTPollDevice(unsigned char *device)
      /* cfmakeraw(&options) */
      options.c_cc[VMIN] = 0;
      options.c_cc[VTIME] = 10;
-	
+
      /* loop through the bauds */
      timeout = MAX_TIMEOUT;
      optimal = 0;
-     while( timeout) {
+     while ( timeout) {
           for (i = 0; i < 2; i++) {
                /* loop through the misc configs */
                for (m = 0; m < 2; m++) {
@@ -253,8 +253,7 @@ static int MuTPollDevice(unsigned char *device)
                                    } else if (MuTSetToOptimalCTRL (file, B9600)) {
                                         i = m = 0;
                                         optimal = timeout = MAX_TIMEOUT;
-                                   }
-                                   else return ERROR_NOT_SUITABLE;
+                                   } else return ERROR_NOT_SUITABLE;
                               } else
                                    goto success_return;
                          }
@@ -268,7 +267,7 @@ static int MuTPollDevice(unsigned char *device)
 
      return ERROR_NOT_FOUND;
 
- success_return:
+     success_return:
      options.c_cc[VMIN] = 1;
      options.c_cc[VTIME] = 0;
      tcflush (file, TCIFLUSH);
@@ -365,9 +364,9 @@ static void *MuTouchEventThread(CoreThread *thread, void *driver_data)
           evt.axis    = DIAI_Y;
           evt.axisabs = data->y;
           dfb_input_dispatch (data->device, &evt);
-		
+
           /* Dispatch touch event */
-          switch(data->action) {
+          switch (data->action) {
                case MUT_PANEL_TOUCH:
                     evt.type = DIET_BUTTONPRESS;
                     break;
@@ -411,9 +410,9 @@ static void driver_get_info( InputDriverInfo *info )
 }
 
 static DFBResult driver_open_device(InputDevice *device,
-				    unsigned int number,
-				    InputDeviceInfo *info,
-				    void **driver_data)
+                                    unsigned int number,
+                                    InputDeviceInfo *info,
+                                    void **driver_data)
 {
      int fd;
      MuTData *data;
@@ -426,7 +425,7 @@ static DFBResult driver_open_device(InputDevice *device,
      }
 
      data = DFBCALLOC (1, sizeof(MuTData));
-	
+
      data->fd     = fd;
      data->device = device;
 
@@ -439,16 +438,16 @@ static DFBResult driver_open_device(InputDevice *device,
       */
      data->min_x = MuT_MINX;
      data->min_y = MuT_MINY;
-	
+
      /* fill device info structure */
-     snprintf(info->name, DFB_INPUT_DEVICE_INFO_NAME_LENGTH,
+     snprintf(info->desc.name, DFB_INPUT_DEVICE_DESC_NAME_LENGTH,
               "MuTouch");
-     snprintf(info->vendor, DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH,
+     snprintf(info->desc.vendor, DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH,
               "Microtouch");
-     
+
      info->prefered_id     = DIDID_MOUSE;
-     info->desc.type	   = DIDTF_MOUSE;
-     info->desc.caps	   = DICAPS_AXES | DICAPS_BUTTONS;
+     info->desc.type        = DIDTF_MOUSE;
+     info->desc.caps        = DICAPS_AXES | DICAPS_BUTTONS;
      info->desc.max_axis   = DIAI_Y;
      info->desc.max_button = DIBI_LEFT;
 
@@ -457,7 +456,7 @@ static DFBResult driver_open_device(InputDevice *device,
 
      /* set private data pointer */
      *driver_data = data;
-	
+
      return DFB_OK;
 }
 
@@ -465,8 +464,8 @@ static DFBResult driver_open_device(InputDevice *device,
  * Fetch one entry from the device's keymap if supported.
  */
 static DFBResult driver_get_keymap_entry(InputDevice *device,
-		                         void        *driver_data,
-		                         DFBInputDeviceKeymapEntry *entry)
+                                         void        *driver_data,
+                                         DFBInputDeviceKeymapEntry *entry)
 {
      return DFB_UNSUPPORTED;
 }

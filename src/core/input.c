@@ -587,10 +587,10 @@ init_devices()
 
                     do {
                          if (dev->shared->id == device->shared->id) {
-                              /* give it a new one beyond the last predefined id */
-                              if (device->shared->id < DIDID_REMOTE)
-                                   device->shared->id = DIDID_REMOTE;
                               device->shared->id++;
+                              /* give it a new one beyond the last predefined id */
+                              if (device->shared->id < DIDID_ANY)
+                                   device->shared->id = DIDID_ANY;
                               dev = inputdevices;
                               continue;
                          }
@@ -599,14 +599,14 @@ init_devices()
 
                if (driver->nr_devices > 1) {
                     INITMSG( "DirectFB/InputDevice: %s (%d) %d.%d (%s)\n",
-                             device_info.name, n+1,
+                             device_info.desc.name, n+1,
                              driver->info.version.major,
                              driver->info.version.minor,
                              driver->info.vendor );
                }
                else {
                     INITMSG( "DirectFB/InputDevice: %s %d.%d (%s)\n",
-                             device_info.name,
+                             device_info.desc.name,
                              driver->info.version.major,
                              driver->info.version.minor,
                              driver->info.vendor );

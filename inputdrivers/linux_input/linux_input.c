@@ -401,11 +401,11 @@ get_device_info( int              fd,
      unsigned long absbit[NBITS(ABS_MAX)];
 
      /* get device name */
-     ioctl( fd, EVIOCGNAME(DFB_INPUT_DEVICE_INFO_NAME_LENGTH), info->name );
+     ioctl( fd, EVIOCGNAME(DFB_INPUT_DEVICE_DESC_NAME_LENGTH), info->desc.name );
 
      /* set device vendor */
-     snprintf( info->vendor,
-               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Linux" );
+     snprintf( info->desc.vendor,
+               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "Linux" );
 
      /* get event type bits */
      ioctl( fd, EVIOCGBIT(0, EV_MAX), evbit );

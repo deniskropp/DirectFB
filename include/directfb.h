@@ -854,20 +854,22 @@ typedef struct {
                                                         entries. */
 } DFBPaletteDescription;
 
+#define DFB_DISPLAY_LAYER_DESC_NAME_LENGTH   30
+
 /*
  * Description of the display layer capabilities.
  */
-#define DFB_DISPLAY_LAYER_DESC_NAME_LENGTH   30
 typedef struct {
-     char                               name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];
-                                                     /* Display layer name. */
-
      DFBDisplayLayerTypeFlags           type;        /* Classification of the
                                                         display layer. */
      DFBDisplayLayerCapabilities        caps;        /* Capability flags of
                                                         the display layer. */
 
+     char name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];  /* Display layer name. */
 } DFBDisplayLayerDescription;
+
+#define DFB_INPUT_DEVICE_DESC_NAME_LENGTH    30
+#define DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH  40
 
 /*
  * Description of the input device capabilities.
@@ -893,6 +895,10 @@ typedef struct {
                                                         identifier */
      DFBInputDeviceButtonIdentifier     max_button;  /* highest button
                                                         identifier */
+     
+     char name[DFB_INPUT_DEVICE_DESC_NAME_LENGTH];   /* Device name */
+
+     char vendor[DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH]; /* Device vendor */
 } DFBInputDeviceDescription;
 
 /*
@@ -1360,7 +1366,7 @@ DEFINE_INTERFACE(   IDirectFB,
 #define DIDID_MOUSE           0x0001    /* primary mouse          */
 #define DIDID_JOYSTICK        0x0002    /* primary joystick       */
 #define DIDID_REMOTE          0x0003    /* primary remote control */
-#define DIDID_ANY             0x1000    /* no primary device      */
+#define DIDID_ANY             0x0010    /* no primary device      */
 
 
 /*

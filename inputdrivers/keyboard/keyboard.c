@@ -343,11 +343,11 @@ driver_open_device( InputDevice      *device,
      write( dfb_vt->fd, blankoff_str, strlen(blankoff_str) );
 
      /* fill device info structure */
-     snprintf( info->name,
-               DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "Keyboard" );
+     snprintf( info->desc.name,
+               DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "Keyboard" );
 
-     snprintf( info->vendor,
-               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
+     snprintf( info->desc.vendor,
+               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "Unknown" );
 
      /* claim to be the primary keyboard */
      info->prefered_id = DIDID_KEYBOARD;

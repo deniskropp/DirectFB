@@ -188,12 +188,12 @@ driver_open_device( InputDevice      *device,
      }
 
      /* set device name */
-     snprintf( info->name,
-               DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "PI Jogdial" );
+     snprintf( info->desc.name,
+               DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "PI Jogdial" );
 
      /* set device vendor */
-     snprintf( info->vendor,
-               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Sony" );
+     snprintf( info->desc.vendor,
+               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "Sony" );
 
      /* set one of the primary input device IDs */
      info->prefered_id = DIDID_MOUSE;

@@ -220,11 +220,11 @@ driver_open_device( InputDevice      *device,
      }
 
      /* fill driver info structure */
-     snprintf( info->name,
-               DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "LIRC Device" );
+     snprintf( info->desc.name,
+               DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "LIRC Device" );
 
-     snprintf( info->vendor,
-               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
+     snprintf( info->desc.vendor,
+               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "Unknown" );
 
      info->prefered_id = DIDID_REMOTE;
 

@@ -42,13 +42,10 @@ DECLARE_MODULE_DIRECTORY( dfb_input_modules );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_INPUT_DRIVER_ABI_VERSION         4
+#define DFB_INPUT_DRIVER_ABI_VERSION         5
 
 #define DFB_INPUT_DRIVER_INFO_NAME_LENGTH   60
 #define DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH 80
-
-#define DFB_INPUT_DEVICE_INFO_NAME_LENGTH   60
-#define DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH 80
 
 
 typedef struct {
@@ -69,14 +66,6 @@ typedef struct {
 } InputDriverInfo;
 
 typedef struct {
-     char               name[DFB_INPUT_DEVICE_INFO_NAME_LENGTH+1];
-                                      /* Device name,
-                                         e.g. 'MouseMan Serial Mouse' */
-
-     char               vendor[DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH+1];
-                                      /* Vendor of the device,
-                                         e.g. 'Logitech' or just 'Unknown' */
-
      unsigned int       prefered_id;  /* Prefered predefined input device id,
                                          e.g. DIDID_MOUSE */
 

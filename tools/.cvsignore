@@ -4,6 +4,7 @@ Makefile
 Makefile.in
 dfbg
 dfbdump
+dfbinfo
 dfbsummon
 directfb-csource
 fusion_bench
