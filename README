@@ -254,6 +254,8 @@ Using the builtin "window manager"
      - Press P to enable and show the mouse cursor.
      - Press E to focus the window currently under the mouse cursor,
        useful in conjunction with 'X'.
+     - Press Escape to return from fullscreen mode to the desktop.
+       (currently not advisable if the fullscreen app is still flipping)
 
    You might want to use the "capslock-meta" option (see directfbrc(5))
    if you don't have a <Meta> key.
