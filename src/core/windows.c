@@ -700,7 +700,7 @@ windowstack_attach_devices( InputDevice *device,
                             void        *ctx )
 {
      input_attach( device, windowstack_inputdevice_react, ctx );
-     
+
      return DFENUM_OK;
 }
 
@@ -709,7 +709,7 @@ windowstack_detach_devices( InputDevice *device,
                             void        *ctx )
 {
      input_detach( device, windowstack_inputdevice_react, ctx );
-     
+
      return DFENUM_OK;
 }
 
@@ -880,6 +880,9 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
      DFBWindowEvent   we;
      CoreWindow      *window = NULL;
      CoreWindowStack *stack  = (CoreWindowStack*)ctx;
+
+     if (stack->layer->exclusive)
+          return RS_OK;
 
      if (stack->wm_hack) {
           switch (evt->type) {
@@ -1059,30 +1062,30 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
 
 void handle_wheel( CoreWindowStack *stack, int dz )
 {
-     DFBWindowEvent we;          
+     DFBWindowEvent we;
      CoreWindow *window = NULL;
-     
+
      if (!stack->cursor)
           return;
-          
+
      window = (stack->pointer_window ?
                stack->pointer_window : stack->entered_window);
-     
+
 
      if (window) {
           if (stack->wm_hack) {
                int opacity = window->opacity + dz*4;
-               
-               if (opacity < 0x01) 
+
+               if (opacity < 0x01)
                     opacity = 1;
-               if (opacity > 0xFF) 
+               if (opacity > 0xFF)
                     opacity = 0xFF;
 
                window_set_opacity( window, (__u8)opacity );
           }
           else {
                we.type = DWET_WHEEL;
-          
+
                we.cx     = stack->cx;
                we.cy     = stack->cy;
                we.x      = we.cx - window->x;
@@ -1094,7 +1097,7 @@ void handle_wheel( CoreWindowStack *stack, int dz )
      }
 }
 
-                              
+
 static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack )
 {
      CoreWindow    *before = stack->entered_window;
