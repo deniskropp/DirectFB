@@ -380,6 +380,8 @@ _reactor_free_all()
 {
      FusionLink *l;
 
+     pthread_mutex_lock( &nodes_lock );
+     
      fusion_list_foreach (l, nodes) {
           FusionLink  *next = l->next;
           ReactorNode *node = (ReactorNode*) l;
@@ -390,6 +392,8 @@ _reactor_free_all()
      }
 
      nodes = NULL;
+     
+     pthread_mutex_unlock( &nodes_lock );
 }
 
 void
