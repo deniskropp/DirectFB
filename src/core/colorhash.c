@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -58,10 +58,10 @@ DFB_CORE_PART( colorhash, 0, sizeof(ColorhashField) )
 
 
 static DFBResult
-dfb_colorhash_initialize( void *data_local, void *data_shared )
+dfb_colorhash_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
      DFB_ASSERT( hash_field == NULL );
-     
+
      hash_field = data_shared;
 
      fusion_skirmish_init( &hash_field->hash_lock );
@@ -70,20 +70,20 @@ dfb_colorhash_initialize( void *data_local, void *data_shared )
 }
 
 static DFBResult
-dfb_colorhash_join( void *data_local, void *data_shared )
+dfb_colorhash_join( CoreDFB *core, void *data_local, void *data_shared )
 {
      DFB_ASSERT( hash_field == NULL );
-     
+
      hash_field = data_shared;
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_colorhash_shutdown( bool emergency )
+dfb_colorhash_shutdown( CoreDFB *core, bool emergency )
 {
      DFB_ASSERT( hash_field != NULL );
-     
+
      fusion_skirmish_destroy( &hash_field->hash_lock );
 
      hash_field = NULL;
@@ -92,28 +92,28 @@ dfb_colorhash_shutdown( bool emergency )
 }
 
 static DFBResult
-dfb_colorhash_leave( bool emergency )
+dfb_colorhash_leave( CoreDFB *core, bool emergency )
 {
      DFB_ASSERT( hash_field != NULL );
-     
+
      hash_field = NULL;
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_colorhash_suspend()
+dfb_colorhash_suspend( CoreDFB *core )
 {
      DFB_ASSERT( hash_field != NULL );
-     
+
      return DFB_OK;
 }
 
 static DFBResult
-dfb_colorhash_resume()
+dfb_colorhash_resume( CoreDFB *core )
 {
      DFB_ASSERT( hash_field != NULL );
-     
+
      return DFB_OK;
 }
 
@@ -122,7 +122,7 @@ static inline void
 colorhash_lock( void )
 {
      DFB_ASSERT( hash_field != NULL );
-     
+
      fusion_skirmish_prevail( &hash_field->hash_lock );
 }
 
@@ -130,7 +130,7 @@ static inline void
 colorhash_unlock( void )
 {
      DFB_ASSERT( hash_field != NULL );
-     
+
      fusion_skirmish_dismiss( &hash_field->hash_lock );
 }
 
@@ -138,7 +138,7 @@ void
 dfb_colorhash_attach( CorePalette *palette )
 {
      DFB_ASSERT( hash_field != NULL );
-     
+
      colorhash_lock();
 
      if (!hash_field->hash) {
@@ -156,7 +156,7 @@ void
 dfb_colorhash_detach( CorePalette *palette )
 {
      DFB_ASSERT( hash_field != NULL );
-     
+
      colorhash_lock();
 
      DFB_ASSERT( hash_field->hash_users > 0 );
@@ -186,9 +186,9 @@ dfb_colorhash_lookup( CorePalette *palette,
 
      DFB_ASSERT( hash_field != NULL );
      DFB_ASSERT( hash_field->hash != NULL );
-     
+
      colorhash_lock();
-     
+
      hash = hash_field->hash;
 
      /* try a lookup in the hash table */
@@ -202,14 +202,14 @@ dfb_colorhash_lookup( CorePalette *palette,
 
           for (i = 0; i < palette->num_entries; i++) {
                int diff;
-                
+
                if (a) {
                     int r_diff = (int) entries[i].r - (int) r;
                     int g_diff = (int) entries[i].g - (int) g;
                     int b_diff = (int) entries[i].b - (int) b;
                     int a_diff = (int) entries[i].a - (int) a;
-                    
-                    diff = (r_diff * r_diff + g_diff * g_diff + 
+
+                    diff = (r_diff * r_diff + g_diff * g_diff +
                             b_diff * b_diff + ((a_diff * a_diff) >> 6));
                }
                else

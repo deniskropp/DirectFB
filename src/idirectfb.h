@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002-2003  convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -29,10 +29,12 @@
 
 #include <directfb.h>
 
+#include <core/coretypes.h>
+
 /*
  * IDirectFB constructor/destructor
  */
-DFBResult IDirectFB_Construct( IDirectFB *thiz );
+DFBResult IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core );
 
 DFBResult IDirectFB_SetAppFocus( IDirectFB *thiz, DFBBoolean focused );
 

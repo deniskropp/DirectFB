@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -28,6 +28,8 @@
 #define __CORE__FBDEV_H__
 
 #include <linux/fb.h>
+
+#include <core/coretypes.h>
 
 #include <core/system.h>
 
@@ -60,9 +62,11 @@ typedef struct {
 typedef struct {
      FBDevShared             *shared;
 
+     CoreDFB                 *core;
+
      /* virtual framebuffer address */
      void                    *framebuffer_base;
-     
+
      int                      fd;            /* file descriptor for /dev/fb */
 
      VirtualTerminal         *vt;

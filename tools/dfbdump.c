@@ -5,7 +5,7 @@
 #include <core/fusion/ref.h>
 #include <core/fusion/object.h>
 
-#include <core/gfxcard.h>
+#include <core/core.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
 #include <core/windows.h>
@@ -214,8 +214,7 @@ dump_surfaces()
      printf( "Reference  . Refs  Width Height  Format     Video   System  Capabilities\n" );
      printf( "------------------------------------------------------------------------\n" );
 
-     fusion_object_pool_enum( dfb_gfxcard_surface_pool(),
-                              surface_callback, &mem );
+     dfb_core_enum_surfaces( NULL, surface_callback, &mem );
 
      printf( "                                          ------   ------\n" );
      printf( "                                         %6dk  %6dk   -> %dk total\n",

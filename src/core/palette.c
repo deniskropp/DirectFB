@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -33,6 +33,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/core.h>
 #include <core/surfaces.h>
 #include <core/gfxcard.h>
 #include <core/palette.h>
@@ -87,13 +88,15 @@ dfb_palette_pool_create()
 }
 
 DFBResult
-dfb_palette_create( unsigned int size, CorePalette **ret_palette )
+dfb_palette_create( CoreDFB       *core,
+                    unsigned int   size,
+                    CorePalette  **ret_palette )
 {
      CorePalette *palette;
 
      DFB_ASSERT( ret_palette );
 
-     palette = (CorePalette*) fusion_object_create( dfb_gfxcard_palette_pool() );
+     palette = dfb_core_create_palette( core );
      if (!palette)
           return DFB_FUSION;
 
@@ -104,7 +107,7 @@ dfb_palette_create( unsigned int size, CorePalette **ret_palette )
                return DFB_NOSYSTEMMEMORY;
           }
      }
-     
+
      palette->num_entries = size;
 
      /* reset cache */
@@ -112,7 +115,7 @@ dfb_palette_create( unsigned int size, CorePalette **ret_palette )
 
      /* activate object */
      fusion_object_activate( &palette->object );
-     
+
      /* return the new palette */
      *ret_palette = palette;
 
@@ -169,7 +172,7 @@ dfb_palette_search( CorePalette *palette,
      unsigned int index;
 
      DFB_ASSERT( palette != NULL );
-     
+
      /* check local cache first */
      if (palette->search_cache.index != -1 &&
          palette->search_cache.color.a == a &&
@@ -217,7 +220,7 @@ dfb_palette_update( CorePalette *palette, int first, int last )
      if (palette->search_cache.index >= first &&
          palette->search_cache.index <= last)
           palette->search_cache.index = -1;
-     
+
      /* invalidate entries in colorhash */
      if (palette->hash_attached)
           dfb_colorhash_invalidate( palette );

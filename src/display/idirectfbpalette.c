@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -100,7 +100,7 @@ IDirectFBPalette_GetCapabilities( IDirectFBPalette       *thiz,
 
      /* FIXME: no caps yet */
      *caps = DPCAPS_NONE;
-     
+
      return DFB_OK;
 }
 
@@ -120,7 +120,7 @@ IDirectFBPalette_GetSize( IDirectFBPalette *thiz,
           return DFB_INVARG;
 
      *size = palette->num_entries;
-     
+
      return DFB_OK;
 }
 
@@ -147,7 +147,7 @@ IDirectFBPalette_SetEntries( IDirectFBPalette *thiz,
 
           dfb_palette_update( palette, offset, offset + num_entries - 1 );
      }
-     
+
      return DFB_OK;
 }
 
@@ -169,7 +169,7 @@ IDirectFBPalette_GetEntries( IDirectFBPalette *thiz,
           return DFB_INVARG;
 
      dfb_memcpy( entries, palette->entries + offset, num_entries * sizeof(DFBColor));
-     
+
      return DFB_OK;
 }
 
@@ -193,7 +193,7 @@ IDirectFBPalette_FindBestMatch( IDirectFBPalette *thiz,
           return DFB_DESTROYED;
 
      *index = dfb_palette_search( palette, r, g, b, a );
-     
+
      return DFB_OK;
 }
 
@@ -209,20 +209,21 @@ IDirectFBPalette_CreateCopy( IDirectFBPalette  *thiz,
 
      if (!data->palette)
           return DFB_DESTROYED;
-     
+
      if (!interface)
           return DFB_INVARG;
 
-     ret = dfb_palette_create( data->palette->num_entries, &palette );
+     ret = dfb_palette_create( NULL,    /* FIXME */
+                               data->palette->num_entries, &palette );
      if (ret)
           return ret;
-     
+
      dfb_memcpy( palette->entries, data->palette->entries,
                  palette->num_entries * sizeof(DFBColor));
 
      dfb_palette_update( palette, 0, palette->num_entries - 1 );
-     
-     
+
+
      DFB_ALLOCATE_INTERFACE( iface, IDirectFBPalette );
 
      ret = IDirectFBPalette_Construct( iface, palette );
@@ -246,7 +247,7 @@ DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
           DFB_DEALLOCATE_INTERFACE(thiz);
           return DFB_FAILURE;
      }
-     
+
      data->ref     = 1;
      data->palette = palette;
 
@@ -256,13 +257,13 @@ DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
 
      thiz->GetCapabilities = IDirectFBPalette_GetCapabilities;
      thiz->GetSize         = IDirectFBPalette_GetSize;
-     
+
      thiz->SetEntries      = IDirectFBPalette_SetEntries;
      thiz->GetEntries      = IDirectFBPalette_GetEntries;
      thiz->FindBestMatch   = IDirectFBPalette_FindBestMatch;
 
      thiz->CreateCopy      = IDirectFBPalette_CreateCopy;
-     
+
      return DFB_OK;
 }
 

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -155,14 +155,14 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
      (IDirectFBVideoProvider_V4L_data*)thiz->priv;
 
      if (data->cleanup)
-          dfb_core_cleanup_remove( data->cleanup );
+          dfb_core_cleanup_remove( NULL, data->cleanup );
 
      v4l_deinit( data );
 
      DFBFREE( data->filename );
 
      pthread_mutex_destroy( &data->lock );
-     
+
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -202,13 +202,13 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
 
 		data->saturation.id = V4L2_CID_SATURATION;
 		if( 0 != ioctl(data->fd, VIDIOC_G_CTRL, &data->saturation)) {
-			*caps |= DVCAPS_SATURATION; 
+			*caps |= DVCAPS_SATURATION;
 		} else {
 			data->saturation.id = 0;
 		}
 		data->brightness.id = V4L2_CID_BRIGHTNESS;
 		if( 0 != ioctl(data->fd, VIDIOC_G_CTRL, &data->brightness)) {
-			*caps |= DVCAPS_BRIGHTNESS; 
+			*caps |= DVCAPS_BRIGHTNESS;
 		} else {
 			data->brightness.id = 0;
 		}
@@ -318,7 +318,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      v4l_stop( data, true );
 
      pthread_mutex_lock( &data->lock );
-     
+
      data->callback = callback;
      data->ctx      = ctx;
 
@@ -362,7 +362,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
           dfb_surface_unlock( surface, false );
 
      pthread_mutex_unlock( &data->lock );
-     
+
      return ret;
 }
 
@@ -677,7 +677,7 @@ static void* GrabThread( CoreThread *thread, void *ctx )
 
           if (!data->running)
                break;
-          
+
           h = surface->height;
           src = data->buffer + data->vmbuf.offsets[frame];
           dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &dst_pitch, 0 );
@@ -717,7 +717,7 @@ static void* GrabThread( CoreThread *thread, void *ctx )
 
           if (!data->running)
                break;
-          
+
           if (data->callback)
                data->callback(data->ctx);
 
@@ -879,7 +879,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
      }
 
      if (!data->cleanup)
-          data->cleanup = dfb_core_cleanup_add( v4l_cleanup, data, true );
+          data->cleanup = dfb_core_cleanup_add( NULL, v4l_cleanup, data, true );
 
      if (ioctl( data->fd, VIDIOCCAPTURE, &one ) < 0) {
           DFBResult ret = errno2dfb( errno );
@@ -896,7 +896,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
                          data, &data->reaction );
 
      data->running = true;
-     
+
      if (data->callback || surface->caps & DSCAPS_INTERLACED)
           data->thread = dfb_thread_create( CTT_CRITICAL, OverlayThread, data );
 
@@ -965,7 +965,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
      }
 
      if (!data->cleanup)
-          data->cleanup = dfb_core_cleanup_add( v4l_cleanup, data, true );
+          data->cleanup = dfb_core_cleanup_add( NULL, v4l_cleanup, data, true );
 
      data->destination = surface;
 
@@ -973,7 +973,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                          data, &data->reaction );
 
      data->running = true;
-     
+
      data->thread = dfb_thread_create( CTT_ANY, GrabThread, data );
 
      return DFB_OK;
@@ -986,7 +986,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
      DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
      pthread_mutex_lock( &data->lock );
-     
+
      if (!data->running) {
           pthread_mutex_unlock( &data->lock );
           return DFB_OK;
@@ -1049,9 +1049,9 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 #endif
 
      data->destination = NULL;
-     
+
      pthread_mutex_unlock( &data->lock );
-     
+
      if (detach)
           dfb_surface_detach( destination, &data->reaction );
 
@@ -1361,7 +1361,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
 	}
 
 	if (!data->cleanup)
-		data->cleanup = dfb_core_cleanup_add(v4l_cleanup, data, true);
+		data->cleanup = dfb_core_cleanup_add( NULL, v4l_cleanup, data, true );
 
 	data->destination = surface;
 

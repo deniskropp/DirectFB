@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -32,7 +32,7 @@
 #include <directfb.h>
 
 #include <core/fusion/list.h>
-                                   
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/core_parts.h>
@@ -70,7 +70,7 @@ dfb_system_lookup()
      FusionLink *l;
 
      dfb_modules_explore_directory( &dfb_core_systems );
-     
+
      fusion_list_foreach( l, dfb_core_systems.entries ) {
           ModuleEntry           *module = (ModuleEntry*) l;
           const CoreSystemFuncs *funcs;
@@ -87,7 +87,7 @@ dfb_system_lookup()
 
                system_module = module;
                system_funcs  = funcs;
-               
+
                funcs->GetSystemInfo( &system_info );
           }
           else
@@ -104,7 +104,7 @@ dfb_system_lookup()
 }
 
 static DFBResult
-dfb_system_initialize( void *data_local, void *data_shared )
+dfb_system_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
      DFB_ASSERT( system_funcs != NULL );
      DFB_ASSERT( system_field == NULL );
@@ -113,17 +113,17 @@ dfb_system_initialize( void *data_local, void *data_shared )
 
      system_field->system_info = system_info;
 
-     return system_funcs->Initialize( &system_data );
+     return system_funcs->Initialize( core, &system_data );
 }
 
 static DFBResult
-dfb_system_join( void *data_local, void *data_shared )
+dfb_system_join( CoreDFB *core, void *data_local, void *data_shared )
 {
      DFB_ASSERT( system_funcs != NULL );
      DFB_ASSERT( system_field == NULL );
 
      system_field = data_shared;
-     
+
      if (system_field->system_info.type != system_info.type ||
          strcmp( system_field->system_info.name, system_info.name ))
      {
@@ -135,7 +135,7 @@ dfb_system_join( void *data_local, void *data_shared )
 
           return DFB_UNSUPPORTED;
      }
-     
+
      if (system_field->system_info.version.major != system_info.version.major ||
          system_field->system_info.version.minor != system_info.version.minor)
      {
@@ -150,18 +150,18 @@ dfb_system_join( void *data_local, void *data_shared )
 
           return DFB_UNSUPPORTED;
      }
-     
-     return system_funcs->Join( &system_data );
+
+     return system_funcs->Join( core, &system_data );
 }
 
 static DFBResult
-dfb_system_shutdown( bool emergency )
+dfb_system_shutdown( CoreDFB *core, bool emergency )
 {
      DFBResult ret;
-     
+
      DFB_ASSERT( system_field != NULL );
      DFB_ASSERT( system_module != NULL );
-     
+
      ret = system_funcs->Shutdown( emergency );
 
      dfb_module_unref( system_module );
@@ -175,13 +175,13 @@ dfb_system_shutdown( bool emergency )
 }
 
 static DFBResult
-dfb_system_leave( bool emergency )
+dfb_system_leave( CoreDFB *core, bool emergency )
 {
      DFBResult ret;
-     
+
      DFB_ASSERT( system_field != NULL );
      DFB_ASSERT( system_module != NULL );
-     
+
      ret = system_funcs->Leave( emergency );
 
      dfb_module_unref( system_module );
@@ -195,7 +195,7 @@ dfb_system_leave( bool emergency )
 }
 
 static DFBResult
-dfb_system_suspend()
+dfb_system_suspend( CoreDFB *core )
 {
      DFB_ASSERT( system_funcs != NULL );
      DFB_ASSERT( system_field != NULL );
@@ -204,7 +204,7 @@ dfb_system_suspend()
 }
 
 static DFBResult
-dfb_system_resume()
+dfb_system_resume( CoreDFB *core )
 {
      DFB_ASSERT( system_funcs != NULL );
      DFB_ASSERT( system_field != NULL );

@@ -98,7 +98,7 @@ static DFBResult deallocate_surface  ( CoreLayer             *layer,
 /** public **/
 
 static DFBResult
-dfb_layers_initialize( void *data_local, void *data_shared )
+dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
      int       i;
      DFBResult ret;
@@ -158,17 +158,15 @@ dfb_layers_initialize( void *data_local, void *data_shared )
                return ret;
           }
 
-          /* create the object pool for the regions */
-          shared->region_pool = dfb_layer_region_pool_create( shared->id );
-
           /* initialize the vector for the regions */
           fusion_vector_init( &shared->regions, 4 );
 
           /* make a copy for faster access */
           layer->layer_data = shared->layer_data;
 
-          /* store pointer to shared data */
+          /* store pointer to shared data and core */
           layer->shared = shared;
+          layer->core   = core;
 
           /* add it to the shared list */
           layersfield->layers[ layersfield->num++ ] = shared;
@@ -185,7 +183,7 @@ dfb_layers_initialize( void *data_local, void *data_shared )
 }
 
 static DFBResult
-dfb_layers_join( void *data_local, void *data_shared )
+dfb_layers_join( CoreDFB *core, void *data_local, void *data_shared )
 {
      int i;
 
@@ -204,15 +202,16 @@ dfb_layers_join( void *data_local, void *data_shared )
           /* make a copy for faster access */
           layer->layer_data = shared->layer_data;
 
-          /* store pointer to shared data */
+          /* store pointer to shared data and core */
           layer->shared = shared;
+          layer->core   = core;
      }
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_layers_shutdown( bool emergency )
+dfb_layers_shutdown( CoreDFB *core, bool emergency )
 {
      int i;
 
@@ -248,9 +247,6 @@ dfb_layers_shutdown( bool emergency )
           dfb_state_set_destination( &l->state, NULL );
           dfb_state_destroy( &l->state );
 
-          /* Destroy the object pool for the regions. */
-          fusion_object_pool_destroy( shared->region_pool );
-
           /* Destroy the vector for the regions. */
           fusion_vector_destroy( &shared->regions );
 
@@ -269,7 +265,7 @@ dfb_layers_shutdown( bool emergency )
 }
 
 static DFBResult
-dfb_layers_leave( bool emergency )
+dfb_layers_leave( CoreDFB *core, bool emergency )
 {
      int i;
 
@@ -295,7 +291,7 @@ dfb_layers_leave( bool emergency )
 }
 
 static DFBResult
-dfb_layers_suspend()
+dfb_layers_suspend( CoreDFB *core )
 {
      int i;
 
@@ -334,7 +330,7 @@ dfb_layers_suspend()
 }
 
 static DFBResult
-dfb_layers_resume()
+dfb_layers_resume( CoreDFB *core )
 {
      int i;
 
@@ -2122,7 +2118,8 @@ allocate_surface( CoreLayer             *layer,
                }
           }
 
-          ret = dfb_surface_create( config->width, config->height,
+          ret = dfb_surface_create( layer->core,
+                                    config->width, config->height,
                                     config->pixelformat, CSP_VIDEOONLY,
                                     caps, NULL, &surface );
           if (ret) {
@@ -2205,7 +2202,8 @@ reallocate_surface( CoreLayer             *layer,
      }
 
      if (region->surface) {
-          ret = dfb_surface_reformat( region->surface, config->width,
+          ret = dfb_surface_reformat( layer->core,
+                                      region->surface, config->width,
                                       config->height, config->pixelformat );
           if (ret)
                return ret;

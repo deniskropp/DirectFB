@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -33,10 +33,10 @@ static void
 system_get_info( CoreSystemInfo *info );
 
 static DFBResult
-system_initialize( void **data );
+system_initialize( CoreDFB *core, void **data );
 
 static DFBResult
-system_join( void **data );
+system_join( CoreDFB *core, void **data );
 
 static DFBResult
 system_shutdown( bool emergency );
@@ -70,16 +70,16 @@ system_map_mmio( unsigned int    offset,
 static void
 system_unmap_mmio( volatile void  *addr,
                    int             length );
-     
+
 static int
 system_get_accelerator();
-     
+
 static unsigned long
 system_video_memory_physical( unsigned int offset );
 
 static void*
 system_video_memory_virtual( unsigned int offset );
-     
+
 static unsigned int
 system_videoram_length();
 
@@ -103,7 +103,7 @@ static CoreSystemFuncs system_funcs = {
      VideoMemoryVirtual:  system_video_memory_virtual,
      VideoRamLength:      system_videoram_length
 };
-                                                  
+
 #define DFB_CORE_SYSTEM(shortname)                          \
 __attribute__((constructor)) void directfb_##shortname();   \
                                                             \

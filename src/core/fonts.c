@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -46,11 +46,13 @@
 #include <misc/util.h>
 
 CoreFont *
-dfb_font_create()
+dfb_font_create( CoreDFB *core )
 {
      CoreFont *font;
 
      font = (CoreFont *) DFBCALLOC( 1, sizeof(CoreFont) );
+
+     font->core = core;
 
      pthread_mutex_init( &font->lock, NULL );
 
@@ -77,13 +79,13 @@ dfb_font_destroy( CoreFont *font )
 
      dfb_state_set_source( &font->state, NULL );
      dfb_state_destroy( &font->state );
-     
+
      dfb_tree_destroy( font->glyph_infos );
 
      if (font->surfaces) {
           for (i = 0; i < font->rows; i++)
                dfb_surface_unref( font->surfaces[i] );
-          
+
           DFBFREE( font->surfaces );
      }
 
@@ -123,17 +125,18 @@ dfb_font_get_glyph_data( CoreFont        *font,
 
                          if (width > 2048)
                               width = 2048;
-                         
+
                          if (width < font->maxadvance)
                               width = font->maxadvance;
-                         
+
                          if (width < 4)
                               width = 4;
 
                          font->row_width = width;
                     }
 
-                    ret = dfb_surface_create( font->row_width,
+                    ret = dfb_surface_create( font->core,
+                                              font->row_width,
                                               MAX( font->height + 1, 8 ),
                                               font->pixel_format,
                                               CSP_VIDEOLOW, DSCAPS_NONE, NULL,
@@ -146,7 +149,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                          DFBFREE( data );
                          return ret;
                     }
-                    
+
                     font->next_x = 0;
                     font->rows++;
 

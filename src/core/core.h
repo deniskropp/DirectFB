@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -29,6 +29,7 @@
 
 #include <core/fusion/fusion_types.h>
 #include <core/fusion/lock.h>
+#include <core/fusion/object.h>
 
 #include <directfb.h>
 
@@ -36,90 +37,71 @@
 #include "coredefs.h"
 
 /*
- * Return type of a module loading callback.
- */
-typedef enum {
-     MODULE_LOADED_CONTINUE,  /* Keep module loaded, continue with next. */
-     MODULE_LOADED_STOP,      /* Keep module loaded, but don't continue. */
-     MODULE_REJECTED          /* Module has been rejected, continue. */
-} CoreModuleLoadResult;
-
-/*
  * Cleanup function, callback of a cleanup stack entry.
  */
 typedef void (*CoreCleanupFunc)(void *data, int emergency);
 
-/*
- * Process local core data. Shared between threads.
- */
-typedef struct {
-     int                    refs;       /* references to the core */
-     int                    fid;        /* fusion id */
-     bool                   master;     /* if we are the master fusionee */
-     FusionArena           *arena;      /* DirectFB Core arena */
-} CoreData;
-
-extern CoreData *dfb_core;
 
 
 /*
- * called by DirectFBInit
+ * Core initialization and deinitialization
  */
-DFBResult
-dfb_core_init( int *argc, char **argv[] );
+DFBResult dfb_core_create ( CoreDFB **ret_core );
+
+DFBResult dfb_core_destroy( CoreDFB  *core,
+                            bool      emergency );
 
 /*
- * Called by DirectFBCreate(), initializes all core parts if needed and
- * increases the core reference counter.
+ * Object creation
  */
-DFBResult
-dfb_core_ref();
+CoreLayerRegion *dfb_core_create_layer_region( CoreDFB *core );
+CorePalette     *dfb_core_create_palette     ( CoreDFB *core );
+CoreSurface     *dfb_core_create_surface     ( CoreDFB *core );
+CoreWindow      *dfb_core_create_window      ( CoreDFB *core );
 
 /*
- * Called by IDirectFB::Destruct() or by core_deinit_check() via atexit(),
- * decreases the core reference counter and deinitializes all core parts
- * if reference counter reaches zero.
+ * Debug
  */
-void
-dfb_core_unref();
+FusionResult     dfb_core_enum_surfaces      ( CoreDFB               *core,
+                                               FusionObjectCallback   callback,
+                                               void                  *ctx );
+
 
 /*
  * Returns true if the calling process is the master fusionee,
  * i.e. handles input drivers running their threads.
  */
-bool
-dfb_core_is_master();
+bool         dfb_core_is_master( CoreDFB *core );
+
+/*
+ * Returns the core arena.
+ */
+FusionArena *dfb_core_arena( CoreDFB *core );
 
 /*
  * Suspends all core parts, stopping input threads, closing devices...
  */
-DFBResult
-dfb_core_suspend();
+DFBResult    dfb_core_suspend( CoreDFB *core );
 
 /*
  * Resumes all core parts, reopening devices, starting input threads...
  */
-DFBResult
-dfb_core_resume();
-
-/*
- * Called by signal handler, does all important shutdowns.
- */
-void
-dfb_core_deinit_emergency();
+DFBResult    dfb_core_resume( CoreDFB *core );
 
 /*
  * Adds a function to the cleanup stack that is called during deinitialization.
  * If emergency is true, the cleanup is even called by core_deinit_emergency().
  */
-CoreCleanup *
-dfb_core_cleanup_add( CoreCleanupFunc func, void *data, bool emergency );
+CoreCleanup *dfb_core_cleanup_add( CoreDFB         *core,
+                                   CoreCleanupFunc  func,
+                                   void            *data,
+                                   bool             emergency );
 
 /*
  * Removes a function from the cleanup stack.
  */
-void
-dfb_core_cleanup_remove( CoreCleanup *cleanup );
+void         dfb_core_cleanup_remove( CoreDFB     *core,
+                                      CoreCleanup *cleanup );
 
 #endif
 

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -55,26 +55,9 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
 
 #define NUM_SIGS_TO_HANDLE ((int)(sizeof(sigs_to_handle)/sizeof(sigs_to_handle[0])))
 
-static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
+static CoreDFB    *core_dfb = NULL;
+static SigHandled  sigs_handled[NUM_SIGS_TO_HANDLE];
 
-void
-dfb_sig_remove_handlers()
-{
-     int i;
-
-     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
-          if (sigs_handled[i].signum != -1) {
-               int signum = sigs_handled[i].signum;
-               
-               if (sigaction( signum, &sigs_handled[i].old_action, NULL )) {
-                    PERRORMSG("DirectFB/core/sig: Unable to restore previous "
-                              "handler for signal %d!\n", signum);
-               }
-               
-               sigs_handled[i].signum = -1;
-          }
-     }
-}
 
 #ifdef DFB_TRACE
 __attribute__((no_instrument_function))
@@ -84,11 +67,11 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
 {
      int       pid    = getpid();
      long long millis = fusion_get_millis();
-     
+
      fprintf( stderr, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
               pid, millis/1000, millis%1000, num );
      fflush( stderr );
-     
+
      switch (num) {
           case SIGILL:
           case SIGFPE:
@@ -113,7 +96,7 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
                               fflush( stderr );
                               return;
                          }
-                         
+
                          break;
 
                     case SEGV_ACCERR:
@@ -132,22 +115,25 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
                fprintf( stderr, " <--\n" );
                break;
      }
-     
+
      dfb_trace_print_stacks();
-     
+
      fflush( stderr );
 
-     dfb_sig_remove_handlers();
-     
-     dfb_core_deinit_emergency();
+     dfb_core_destroy( core_dfb, true );
 
      kill( 0, num );
 }
 
 void
-dfb_sig_install_handlers()
+dfb_sig_install_handlers( CoreDFB *core )
 {
      int i;
+
+     DFB_ASSERT( core != NULL );
+     DFB_ASSERT( core_dfb == NULL );
+
+     core_dfb = core;
 
      for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
           sigs_handled[i].signum = -1;
@@ -160,7 +146,7 @@ dfb_sig_install_handlers()
 
                action.sa_sigaction = dfb_sig_action;
                action.sa_flags     = SA_RESTART | SA_SIGINFO;
-               
+
                sigfillset( &action.sa_mask );
 
                if (sigaction( signum, &action, &sigs_handled[i].old_action )) {
@@ -168,8 +154,32 @@ dfb_sig_install_handlers()
                               "handler for signal %d!\n", signum);
                     continue;
                }
-               
+
                sigs_handled[i].signum = signum;
+          }
+     }
+}
+
+void
+dfb_sig_remove_handlers( CoreDFB *core )
+{
+     int i;
+
+     DFB_ASSERT( core != NULL );
+     DFB_ASSERT( core_dfb == core );
+
+     core_dfb = NULL;
+
+     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
+          if (sigs_handled[i].signum != -1) {
+               int signum = sigs_handled[i].signum;
+
+               if (sigaction( signum, &sigs_handled[i].old_action, NULL )) {
+                    PERRORMSG("DirectFB/core/sig: Unable to restore previous "
+                              "handler for signal %d!\n", signum);
+               }
+
+               sigs_handled[i].signum = -1;
           }
      }
 }
@@ -178,7 +188,7 @@ void
 dfb_sig_block_all()
 {
      sigset_t signals;
-     
+
      sigfillset( &signals );
 
      if (pthread_sigmask( SIG_BLOCK, &signals, NULL ))

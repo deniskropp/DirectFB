@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -31,17 +31,18 @@
 #include <signal.h>
 
 #include <core/coredefs.h>
+#include <core/coretypes.h>
 
 /*
  * installs a signal handler for all signals
  * that would cause the program to terminate
  */
-void dfb_sig_install_handlers();
+void dfb_sig_install_handlers( CoreDFB *core );
 
 /*
  * removes all installed handlers
  */
-void dfb_sig_remove_handlers();
+void dfb_sig_remove_handlers( CoreDFB *core );
 
 
 /*

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -41,7 +41,7 @@ struct _CorePalette {
           int      index;
           DFBColor color;
      } search_cache;
-  
+
      bool          hash_attached;
 };
 
@@ -58,7 +58,8 @@ typedef struct {
 } CorePaletteNotification;
 
 
-DFBResult    dfb_palette_create             ( unsigned int   size,
+DFBResult    dfb_palette_create             ( CoreDFB       *core,
+                                              unsigned int   size,
                                               CorePalette  **ret_palette );
 
 void         dfb_palette_generate_rgb332_map( CorePalette   *palette );

@@ -425,7 +425,7 @@ primaryAllocateSurface( CoreLayer              *layer,
      if (config->buffermode != DLBM_FRONTONLY)
           caps |= DSCAPS_FLIPPING;
 
-     return dfb_surface_create( config->width, config->height,
+     return dfb_surface_create( NULL, config->width, config->height,
                                 config->pixelformat, CSP_SYSTEMONLY,
                                 caps, NULL, ret_surface );
 }
@@ -465,7 +465,7 @@ primaryReallocateSurface( CoreLayer             *layer,
      if (ret)
           return ret;
 
-     ret = dfb_surface_reformat( surface, config->width,
+     ret = dfb_surface_reformat( NULL, surface, config->width,
                                  config->height, config->pixelformat );
      if (ret)
           return ret;
@@ -480,7 +480,8 @@ primaryReallocateSurface( CoreLayer             *layer,
           DFBResult    ret;
           CorePalette *palette;
 
-          ret = dfb_palette_create( 1 << DFB_BITS_PER_PIXEL( config->pixelformat ),
+          ret = dfb_palette_create( NULL,    /* FIXME */
+                                    1 << DFB_BITS_PER_PIXEL( config->pixelformat ),
                                     &palette );
           if (ret)
                return ret;
@@ -652,7 +653,7 @@ dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config )
 
      DFB_ASSERT( config != NULL );
 
-     if (dfb_core_is_master())
+     if (dfb_core_is_master( NULL ))
           return dfb_sdl_set_video_mode_handler( config );
 
      if (!fusion_is_shared( config )) {
@@ -678,7 +679,7 @@ dfb_sdl_update_screen( DFBRegion *region )
      int        ret;
      DFBRegion *tmp = NULL;
 
-     if (dfb_core_is_master())
+     if (dfb_core_is_master( NULL ))
           return dfb_sdl_update_screen_handler( region );
 
      if (region) {

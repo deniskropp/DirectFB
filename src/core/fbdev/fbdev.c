@@ -319,7 +319,7 @@ system_get_info( CoreSystemInfo *info )
 }
 
 static DFBResult
-system_initialize( void **data )
+system_initialize( CoreDFB *core, void **data )
 {
      DFBResult ret;
 
@@ -329,7 +329,10 @@ system_initialize( void **data )
 
      dfb_fbdev->shared = (FBDevShared*) SHCALLOC( 1, sizeof(FBDevShared) );
 
-     fusion_arena_add_shared_field( dfb_core->arena, "fbdev", dfb_fbdev->shared );
+     fusion_arena_add_shared_field( dfb_core_arena( core ),
+                                    "fbdev", dfb_fbdev->shared );
+
+     dfb_fbdev->core = core;
 
      ret = dfb_fbdev_open();
      if (ret) {
@@ -446,7 +449,7 @@ system_initialize( void **data )
 }
 
 static DFBResult
-system_join( void **data )
+system_join( CoreDFB *core, void **data )
 {
      DFBResult ret;
 
@@ -458,7 +461,10 @@ system_join( void **data )
 
      dfb_fbdev = (FBDev*)DFBCALLOC( 1, sizeof(FBDev) );
 
-     fusion_arena_get_shared_field( dfb_core->arena, "fbdev", (void**) &dfb_fbdev->shared );
+     fusion_arena_get_shared_field( dfb_core_arena( core ),
+                                    "fbdev", (void**) &dfb_fbdev->shared );
+
+     dfb_fbdev->core = core;
 
      /* Open framebuffer device */
      ret = dfb_fbdev_open();
@@ -1218,7 +1224,7 @@ primaryAllocateSurface( CoreLayer              *layer,
           caps |= DSCAPS_FLIPPING;
 
      /* allocate surface object */
-     surface = (CoreSurface*) fusion_object_create( dfb_gfxcard_surface_pool() );
+     surface = dfb_core_create_surface( dfb_fbdev->core );
      if (!surface)
           return DFB_FAILURE;
 
@@ -1232,7 +1238,8 @@ primaryAllocateSurface( CoreLayer              *layer,
      }
 
      /* initialize surface structure */
-     ret = dfb_surface_init( surface, config->width, config->height,
+     ret = dfb_surface_init( dfb_fbdev->core,
+                             surface, config->width, config->height,
                              config->pixelformat, caps, NULL );
      if (ret) {
           SHFREE( surface );
@@ -1261,7 +1268,8 @@ primaryReallocateSurface( CoreLayer             *layer,
           DFBResult    ret;
           CorePalette *palette;
 
-          ret = dfb_palette_create( 1 << DFB_BITS_PER_PIXEL( config->pixelformat ),
+          ret = dfb_palette_create( dfb_fbdev->core,
+                                    1 << DFB_BITS_PER_PIXEL( config->pixelformat ),
                                     &palette );
           if (ret)
                return ret;
@@ -2036,7 +2044,7 @@ fbdev_ioctl( int request, void *arg, int arg_size )
      DFB_ASSERT( dfb_fbdev != NULL );
      DFB_ASSERT( dfb_fbdev->shared != NULL );
 
-     if (dfb_core_is_master())
+     if (dfb_core_is_master( dfb_fbdev->core ))
           return fbdev_ioctl_call_handler( 1, request, arg, NULL );
 
      if (arg) {

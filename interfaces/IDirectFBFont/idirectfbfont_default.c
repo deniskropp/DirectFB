@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -52,6 +52,7 @@ Probe( IDirectFBFont_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBFont      *thiz,
+           CoreDFB            *core,
            const char         *filename,
            DFBFontDescription *desc );
 
@@ -72,6 +73,7 @@ Probe( IDirectFBFont_ProbeContext *ctx )
 
 static DFBResult
 Construct( IDirectFBFont      *thiz,
+           CoreDFB            *core,
            const char         *filename,
            DFBFontDescription *desc )
 {
@@ -84,16 +86,17 @@ Construct( IDirectFBFont      *thiz,
 
      HEAVYDEBUGMSG( "DirectFB/FontDefault: Construct default font");
 
-     font = dfb_font_create();
+     font = dfb_font_create( core );
 
-     DFB_ASSERT( font->pixel_format == DSPF_ARGB || 
+     DFB_ASSERT( font->pixel_format == DSPF_ARGB ||
                  font->pixel_format == DSPF_A8 );
 
      font->height    = DEFAULT_FONT_HEIGHT;
      font->ascender  = DEFAULT_FONT_ASCENDER;
      font->descender = DEFAULT_FONT_DESCENDER;
 
-     dfb_surface_create( font_desc.width, font_desc.height, font->pixel_format,
+     dfb_surface_create( core,
+                         font_desc.width, font_desc.height, font->pixel_format,
                          CSP_VIDEOHIGH, DSCAPS_NONE, NULL, &surface );
 
      font->rows = 1;

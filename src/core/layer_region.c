@@ -25,9 +25,11 @@
 */
 
 #include <directfb.h>
-#include <core/coretypes.h>
-#include <core/coredefs.h>
 
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+
+#include <core/core.h>
 #include <core/layer_region.h>
 #include <core/surfaces.h>
 
@@ -53,13 +55,9 @@ region_destructor( FusionObject *object, bool zombie )
 /******************************************************************************/
 
 FusionObjectPool *
-dfb_layer_region_pool_create( DFBDisplayLayerID layer_id )
+dfb_layer_region_pool_create()
 {
-     char buf[32];
-
-     snprintf( buf, sizeof(buf), "Region Pool (%d)", layer_id );
-
-     return fusion_object_pool_create( buf,
+     return fusion_object_pool_create( "Layer Region Pool",
                                        sizeof(CoreLayerRegion),
                                        sizeof(CoreLayerRegionNotification),
                                        region_destructor );
@@ -76,13 +74,12 @@ dfb_layer_region_create( CoreLayer        *layer,
 
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( layer->shared->region_pool != NULL );
      DFB_ASSERT( ret_region != NULL );
 
      shared = layer->shared;
 
      /* Create the object. */
-     region = (CoreLayerRegion*) fusion_object_create( shared->region_pool );
+     region = dfb_core_create_layer_region( layer->core );
      if (!region)
           return DFB_FUSION;
 

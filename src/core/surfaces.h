@@ -195,7 +195,8 @@ FUSION_OBJECT_METHODS( CoreSurface, dfb_surface )
  * creates a surface with specified width and height in the specified
  * pixelformat using the specified swapping policy
  */
-DFBResult dfb_surface_create( int                      width,
+DFBResult dfb_surface_create( CoreDFB                 *core,
+                              int                      width,
                               int                      height,
                               DFBSurfacePixelFormat    format,
                               CoreSurfacePolicy        policy,
@@ -207,7 +208,8 @@ DFBResult dfb_surface_create( int                      width,
  * like surface_create, but with preallocated system memory that won't be
  * freed on surface destruction
  */
-DFBResult dfb_surface_create_preallocated( int                      width,
+DFBResult dfb_surface_create_preallocated( CoreDFB                 *core,
+                                           int                      width,
                                            int                      height,
                                            DFBSurfacePixelFormat    format,
                                            CoreSurfacePolicy        policy,
@@ -222,7 +224,8 @@ DFBResult dfb_surface_create_preallocated( int                      width,
 /*
  * initialize surface structure, not required for surface_create_*
  */
-DFBResult dfb_surface_init ( CoreSurface            *surface,
+DFBResult dfb_surface_init ( CoreDFB                *core,
+                             CoreSurface            *surface,
                              int                     width,
                              int                     height,
                              DFBSurfacePixelFormat   format,
@@ -232,7 +235,8 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
 /*
  * reallocates data for the specified surface
  */
-DFBResult dfb_surface_reformat( CoreSurface           *surface,
+DFBResult dfb_surface_reformat( CoreDFB               *core,
+                                CoreSurface           *surface,
                                 int                    width,
                                 int                    height,
                                 DFBSurfacePixelFormat  format );

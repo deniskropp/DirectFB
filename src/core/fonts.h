@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -58,6 +58,8 @@ struct _CoreFont {
      DFBSurfacePixelFormat    pixel_format;
      CardState                state;    /* the state used to blit glyphs    */
 
+     CoreDFB         *core;
+
      CoreSurface    **surfaces;         /* contain bitmaps of loaded glyphs */
      int              rows;
      int              row_width;
@@ -77,7 +79,7 @@ struct _CoreFont {
 
      void            *impl_data;        /* a pointer used by the impl.      */
 
-     DFBResult   (* GetGlyphInfo) ( CoreFont *thiz, unichar glyph, 
+     DFBResult   (* GetGlyphInfo) ( CoreFont *thiz, unichar glyph,
                                     CoreGlyphData *info );
      DFBResult   (* RenderGlyph)  ( CoreFont *thiz, unichar glyph,
                                     CoreGlyphData *info, CoreSurface *surface );
@@ -89,7 +91,7 @@ struct _CoreFont {
 /*
  * allocates and initializes a new font structure
  */
-CoreFont *dfb_font_create();
+CoreFont *dfb_font_create( CoreDFB *core );
 
 /*
  * destroy all data in the CoreFont struct

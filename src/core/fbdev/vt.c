@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -217,24 +217,24 @@ dfb_vt_shutdown( bool emergency )
 {
      const char cursoron_str[] = "\033[?0;0;0c";
      const char blankon_str[] = "\033[9;10]";
-     
+
      if (!dfb_vt)
           return DFB_OK;
 
      write( dfb_vt->fd, cursoron_str, sizeof(cursoron_str) );
      write( dfb_vt->fd, blankon_str, sizeof(blankon_str) );
-     
+
      if (dfb_config->vt_switching) {
           if (ioctl( dfb_vt->fd, VT_SETMODE, &dfb_vt->vt_mode ) < 0)
                PERRORMSG( "DirectFB/fbdev/vt: Unable to restore VT mode!!!\n" );
 
           sigaction( SIGUSR1, &dfb_vt->sig_usr1, NULL );
           sigaction( SIGUSR2, &dfb_vt->sig_usr2, NULL );
-     
+
           dfb_thread_cancel( dfb_vt->thread );
           dfb_thread_join( dfb_vt->thread );
           dfb_thread_destroy( dfb_vt->thread );
-          
+
           pthread_mutex_destroy( &dfb_vt->lock );
           pthread_cond_destroy( &dfb_vt->wait );
      }
@@ -332,7 +332,7 @@ dfb_vt_switch( int num )
 
      if (ioctl( dfb_vt->fd0, VT_ACTIVATE, num ) < 0)
           PERRORMSG( "DirectFB/fbdev/vt: VT_ACTIVATE failed\n" );
-     
+
      return true;
 }
 
@@ -340,13 +340,13 @@ static void *
 vt_thread( CoreThread *thread, void *arg )
 {
      pthread_mutex_lock( &dfb_vt->lock );
-     
+
      while (true) {
           dfb_thread_testcancel( thread );
-          
+
           DEBUGMSG( "DirectFB/fbdev/vt: %s (%d)\n",
                     __FUNCTION__, dfb_vt->vt_sig);
-          
+
           switch (dfb_vt->vt_sig) {
                default:
                     BUG( "unexpected vt_sig" );
@@ -358,13 +358,13 @@ vt_thread( CoreThread *thread, void *arg )
 
                case SIGUSR1:
                     if (ioctl( dfb_vt->fd, VT_RELDISP,
-                               dfb_core_suspend() == DFB_OK ? 1 : 0 ) < 0)
+                               dfb_core_suspend( NULL ) == DFB_OK ? 1 : 0 ) < 0)
                          PERRORMSG( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
 
                     break;
 
                case SIGUSR2:
-                    dfb_core_resume();
+                    dfb_core_resume( NULL );
 
                     if (ioctl( dfb_vt->fd, VT_RELDISP, 2 ) < 0)
                          PERRORMSG( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
@@ -373,7 +373,7 @@ vt_thread( CoreThread *thread, void *arg )
                          if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0)
                               PERRORMSG( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
                     }
-                    
+
                     break;
           }
 
@@ -393,7 +393,7 @@ vt_switch_handler( int signum )
      dfb_vt->vt_sig = signum;
 
      pthread_cond_signal( &dfb_vt->wait );
-     
+
      pthread_mutex_unlock( &dfb_vt->lock );
 }
 
@@ -477,7 +477,7 @@ vt_init_switching()
 
           pthread_mutex_init( &dfb_vt->lock, NULL );
           pthread_cond_init( &dfb_vt->wait, NULL );
-          
+
           dfb_vt->vt_sig = -1;
 
           dfb_vt->thread = dfb_thread_create( CTT_CRITICAL, vt_thread, NULL );

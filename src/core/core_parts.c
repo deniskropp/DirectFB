@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -41,7 +41,8 @@
 
 
 DFBResult
-dfb_core_part_initialize( CorePart *core_part )
+dfb_core_part_initialize( CoreDFB  *core,
+                          CorePart *core_part )
 {
      DFBResult  ret;
      void      *local  = NULL;
@@ -51,7 +52,7 @@ dfb_core_part_initialize( CorePart *core_part )
           BUG( core_part->name );
           return DFB_BUG;
      }
-     
+
      DEBUGMSG( "DirectFB/CoreParts: "
                "Going to initialize '%s' core...\n", core_part->name );
 
@@ -61,25 +62,24 @@ dfb_core_part_initialize( CorePart *core_part )
      if (core_part->size_shared)
           shared = SHCALLOC( 1, core_part->size_shared );
 
-     ret = core_part->Initialize( local, shared );
+     ret = core_part->Initialize( core, local, shared );
      if (ret) {
           ERRORMSG( "DirectFB/Core: Could not initialize '%s' core!\n"
                     "    --> %s\n", core_part->name,
                     DirectFBErrorString( ret ) );
-          
+
           if (shared)
                SHFREE( shared );
-          
+
           if (local)
                DFBFREE( local );
 
           return ret;
      }
 
-#ifndef FUSION_FAKE
      if (shared)
-          fusion_arena_add_shared_field( dfb_core->arena, core_part->name, shared );
-#endif
+          fusion_arena_add_shared_field( dfb_core_arena( core ),
+                                         core_part->name, shared );
 
      core_part->data_local  = local;
      core_part->data_shared = shared;
@@ -88,35 +88,36 @@ dfb_core_part_initialize( CorePart *core_part )
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
 DFBResult
-dfb_core_part_join( CorePart *core_part )
+dfb_core_part_join( CoreDFB  *core,
+                    CorePart *core_part )
 {
      DFBResult  ret;
      void      *local  = NULL;
      void      *shared = NULL;
-     
+
      if (core_part->initialized) {
           BUG( core_part->name );
           return DFB_BUG;
      }
-     
+
      DEBUGMSG( "DirectFB/CoreParts: "
                "Going to join '%s' core...\n", core_part->name );
-     
+
      if (core_part->size_shared &&
-         fusion_arena_get_shared_field( dfb_core->arena, core_part->name, &shared ))
+         fusion_arena_get_shared_field( dfb_core_arena( core ),
+                                        core_part->name, &shared ))
           return DFB_FUSION;
 
      if (core_part->size_local)
           local = DFBCALLOC( 1, core_part->size_local );
 
-     ret = core_part->Join( local, shared );
+     ret = core_part->Join( core, local, shared );
      if (ret) {
           ERRORMSG( "DirectFB/Core: Could not join '%s' core!\n"
                     "    --> %s\n", core_part->name,
                     DirectFBErrorString( ret ) );
-          
+
           if (local)
                DFBFREE( local );
 
@@ -126,28 +127,29 @@ dfb_core_part_join( CorePart *core_part )
      core_part->data_local  = local;
      core_part->data_shared = shared;
      core_part->initialized = true;
-     
+
      return DFB_OK;
 }
-#endif
 
 DFBResult
-dfb_core_part_shutdown( CorePart *core_part, bool emergency )
+dfb_core_part_shutdown( CoreDFB  *core,
+                        CorePart *core_part,
+                        bool      emergency )
 {
      DFBResult ret;
 
      if (!core_part->initialized)
           return DFB_OK;
-     
+
      DEBUGMSG( "DirectFB/CoreParts: "
                "Going to shutdown '%s' core...\n", core_part->name );
 
-     ret = core_part->Shutdown( emergency );
+     ret = core_part->Shutdown( core, emergency );
      if (ret)
           ERRORMSG( "DirectFB/Core: Could not shutdown '%s' core!\n"
                     "    --> %s\n", core_part->name,
                     DirectFBErrorString( ret ) );
-     
+
      if (core_part->data_shared)
           SHFREE( core_part->data_shared );
 
@@ -161,9 +163,10 @@ dfb_core_part_shutdown( CorePart *core_part, bool emergency )
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
 DFBResult
-dfb_core_part_leave( CorePart *core_part, bool emergency )
+dfb_core_part_leave( CoreDFB  *core,
+                     CorePart *core_part,
+                     bool      emergency )
 {
      DFBResult ret;
 
@@ -172,13 +175,13 @@ dfb_core_part_leave( CorePart *core_part, bool emergency )
 
      DEBUGMSG( "DirectFB/CoreParts: "
                "Going to leave '%s' core...\n", core_part->name );
-     
-     ret = core_part->Leave( emergency );
+
+     ret = core_part->Leave( core, emergency );
      if (ret)
           ERRORMSG( "DirectFB/Core: Could not leave '%s' core!\n"
                     "    --> %s\n", core_part->name,
                     DirectFBErrorString( ret ) );
-     
+
      if (core_part->data_local)
           DFBFREE( core_part->data_local );
 
@@ -188,5 +191,4 @@ dfb_core_part_leave( CorePart *core_part, bool emergency )
 
      return DFB_OK;
 }
-#endif
 

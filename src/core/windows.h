@@ -94,8 +94,6 @@ struct _CoreWindowStack {
      int                 width;
      int                 height;
 
-     FusionObjectPool   *pool;            /* window pool */
-
      int                 num_windows;     /* number of windows on the stack */
      CoreWindow        **windows;         /* array of windows */
 
@@ -235,6 +233,10 @@ dfb_windowstack_get_window_index( CoreWindow *window )
      return -1;
 }
 
+/*
+ * Creates a pool of window objects.
+ */
+FusionObjectPool *dfb_window_pool_create();
 
 /*
  * Generates dfb_window_ref(), dfb_window_attach() etc.

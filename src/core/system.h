@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -91,7 +91,7 @@ typedef struct {
      CoreSystemVersion  version;
 
      CoreSystemType     type;
-     
+
      char               name[DFB_CORE_SYSTEM_INFO_NAME_LENGTH];
                                 /* Name of system, e.g. 'FBDev' */
 
@@ -110,8 +110,8 @@ typedef struct {
 typedef struct {
      void           (*GetSystemInfo)( CoreSystemInfo *info );
 
-     DFBResult      (*Initialize)( void **data );
-     DFBResult      (*Join)( void **data );
+     DFBResult      (*Initialize)( CoreDFB *core, void **data );
+     DFBResult      (*Join)( CoreDFB *core, void **data );
 
      DFBResult      (*Shutdown)( bool emergency );
      DFBResult      (*Leave)( bool emergency );
@@ -132,7 +132,7 @@ typedef struct {
       * Return true to drop the event, e.g. after doing special handling of it.
       */
      bool           (*InputFilter)( InputDevice *device, DFBInputEvent *event );
-     
+
      /*
       * Graphics drivers call this function to get access to MMIO regions.
       *
@@ -144,7 +144,7 @@ typedef struct {
       */
      volatile void* (*MapMMIO)( unsigned int    offset,
                                 int             length );
-     
+
      /*
       * Graphics drivers call this function to unmap MMIO regions.
       *
@@ -153,12 +153,12 @@ typedef struct {
       */
      void           (*UnmapMMIO)( volatile void  *addr,
                                   int             length );
-     
+
      int            (*GetAccelerator)();
-     
+
      unsigned long  (*VideoMemoryPhysical)( unsigned int offset );
      void*          (*VideoMemoryVirtual)( unsigned int offset );
-     
+
      unsigned int   (*VideoRamLength)();
 } CoreSystemFuncs;
 

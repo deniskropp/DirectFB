@@ -60,6 +60,8 @@
 
 IDirectFB *idirectfb_singleton = NULL;
 
+static CoreDFB *core_dfb = NULL;
+
 static DFBResult apply_configuration( IDirectFB *dfb );
 
 /*
@@ -104,10 +106,6 @@ DirectFBInit( int *argc, char **argv[] )
      DFBResult ret;
 
      ret = dfb_config_init( argc, argv );
-     if (ret)
-          return ret;
-
-     ret = dfb_core_init( argc, argv );
      if (ret)
           return ret;
 
@@ -177,19 +175,20 @@ DirectFBCreate( IDirectFB **interface )
           fprintf( stderr, "\n" );
      }
 
-     ret = dfb_core_ref();
+     ret = dfb_core_create( &core_dfb );
      if (ret)
           return ret;
 
      DFB_ALLOCATE_INTERFACE( idirectfb_singleton, IDirectFB );
 
-     IDirectFB_Construct( idirectfb_singleton );
+     IDirectFB_Construct( idirectfb_singleton, core_dfb );
 
-     if (dfb_core_is_master()) {
+     if (dfb_core_is_master( core_dfb )) {
           ret = apply_configuration( idirectfb_singleton );
           if (ret) {
                idirectfb_singleton->Release( idirectfb_singleton );
                idirectfb_singleton = NULL;
+               core_dfb = NULL;
                return ret;
           }
      }
@@ -280,10 +279,8 @@ DirectFBErrorFatal( const char *msg, DFBResult error )
 {
      DirectFBError( msg, error );
 
-     /* Deinit all stuff here. */
-     if (dfb_core)
-          dfb_core->refs = 1;
-     dfb_core_unref();     /* for now, this dirty thing should work */
+     if (idirectfb_singleton && core_dfb)
+          dfb_core_destroy( core_dfb, true );
 
      exit( error );
 }

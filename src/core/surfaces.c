@@ -123,7 +123,9 @@ FusionObjectPool *dfb_surface_pool_create()
      return pool;
 }
 
-DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat format,
+DFBResult dfb_surface_create( CoreDFB *core,
+                              int width, int height,
+                              DFBSurfacePixelFormat format,
                               CoreSurfacePolicy policy,
                               DFBSurfaceCapabilities caps, CorePalette *palette,
                               CoreSurface **surface )
@@ -137,9 +139,9 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
      if (width * (long long) height > 4096*4096)
           return DFB_BUFFERTOOLARGE;
 
-     s = (CoreSurface*) fusion_object_create( dfb_gfxcard_surface_pool() );
+     s = dfb_core_create_surface( core );
 
-     ret = dfb_surface_init( s, width, height, format, caps, palette );
+     ret = dfb_surface_init( core, s, width, height, format, caps, palette );
      if (ret) {
           fusion_object_destroy( &s->object );
           return ret;
@@ -195,7 +197,8 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
      return DFB_OK;
 }
 
-DFBResult dfb_surface_create_preallocated( int width, int height,
+DFBResult dfb_surface_create_preallocated( CoreDFB *core,
+                                           int width, int height,
                                            DFBSurfacePixelFormat format,
                                            CoreSurfacePolicy policy, DFBSurfaceCapabilities caps,
                                            CorePalette *palette,
@@ -212,9 +215,9 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
      if (policy == CSP_VIDEOONLY)
           return DFB_UNSUPPORTED;
 
-     s = (CoreSurface*) fusion_object_create( dfb_gfxcard_surface_pool() );
+     s = dfb_core_create_surface( core );
 
-     ret = dfb_surface_init( s, width, height, format, caps, palette );
+     ret = dfb_surface_init( core, s, width, height, format, caps, palette );
      if (ret) {
           fusion_object_destroy( &s->object );
           return ret;
@@ -266,7 +269,8 @@ dfb_surface_notify_listeners( CoreSurface                  *surface,
      return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
 }
 
-DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
+DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
+                                int width, int height,
                                 DFBSurfacePixelFormat format )
 {
      int old_width, old_height;
@@ -348,7 +352,8 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
           DFBResult    ret;
           CorePalette *palette;
 
-          ret = dfb_palette_create( 1 << DFB_BITS_PER_PIXEL( format ),
+          ret = dfb_palette_create( core,
+                                    1 << DFB_BITS_PER_PIXEL( format ),
                                     &palette );
           if (ret)
                return ret;
@@ -671,7 +676,8 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
           buffer->video.locked--;
 }
 
-DFBResult dfb_surface_init ( CoreSurface            *surface,
+DFBResult dfb_surface_init ( CoreDFB                *core,
+                             CoreSurface            *surface,
                              int                     width,
                              int                     height,
                              DFBSurfacePixelFormat   format,
@@ -718,7 +724,7 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
           DFBResult    ret;
           CorePalette *palette;
 
-          ret = dfb_palette_create( 1 << DFB_BITS_PER_PIXEL( format ),
+          ret = dfb_palette_create( core, 1 << DFB_BITS_PER_PIXEL( format ),
                                     &palette );
           if (ret)
                return ret;

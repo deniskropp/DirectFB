@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -96,7 +96,7 @@ typedef struct {
      InputDeviceInfo              device_info;
 
      InputDeviceKeymap            keymap;
-     
+
      DFBInputDeviceModifierMask   modifiers_l;
      DFBInputDeviceModifierMask   modifiers_r;
      DFBInputDeviceLockState      locks;
@@ -173,10 +173,10 @@ static const React dfb_input_globals[] = {
 /** public **/
 
 static DFBResult
-dfb_input_initialize( void *data_local, void *data_shared )
+dfb_input_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
      DFB_ASSERT( inputfield == NULL );
-     
+
      inputfield = data_shared;
 
      dfb_modules_explore_directory( &dfb_input_modules );
@@ -187,12 +187,12 @@ dfb_input_initialize( void *data_local, void *data_shared )
 }
 
 static DFBResult
-dfb_input_join( void *data_local, void *data_shared )
+dfb_input_join( CoreDFB *core, void *data_local, void *data_shared )
 {
      int i;
 
      DFB_ASSERT( inputfield == NULL );
-     
+
      inputfield = data_shared;
 
      for (i=0; i<inputfield->num; i++) {
@@ -220,7 +220,7 @@ dfb_input_join( void *data_local, void *data_shared )
 }
 
 static DFBResult
-dfb_input_shutdown( bool emergency )
+dfb_input_shutdown( CoreDFB *core, bool emergency )
 {
      InputDevice *d = inputdevices;
 
@@ -232,7 +232,7 @@ dfb_input_shutdown( bool emergency )
           InputDriver       *driver = d->driver;
 
           driver->funcs->CloseDevice( d->driver_data );
-          
+
           if (!--driver->nr_devices) {
                dfb_module_unref( driver->module );
                DFBFREE( driver );
@@ -242,9 +242,9 @@ dfb_input_shutdown( bool emergency )
 
           if (shared->keymap.entries)
                SHFREE( shared->keymap.entries );
-          
+
           SHFREE( shared );
-          
+
           DFBFREE( d );
 
           d = next;
@@ -259,7 +259,7 @@ dfb_input_shutdown( bool emergency )
 }
 
 static DFBResult
-dfb_input_leave( bool emergency )
+dfb_input_leave( CoreDFB *core, bool emergency )
 {
      InputDevice *d = inputdevices;
 
@@ -280,7 +280,7 @@ dfb_input_leave( bool emergency )
 }
 
 static DFBResult
-dfb_input_suspend()
+dfb_input_suspend( CoreDFB *core )
 {
      InputDevice *d = inputdevices;
 
@@ -298,24 +298,24 @@ dfb_input_suspend()
           d->driver->funcs->CloseDevice( d->driver_data );
 
           flush_keys( d );
-          
+
           d = d->next;
      }
 
      DEBUGMSG( "DirectFB/core/input: suspended.\n" );
-     
+
      return DFB_OK;
 }
 
 static DFBResult
-dfb_input_resume()
+dfb_input_resume( CoreDFB *core )
 {
      InputDevice *d = inputdevices;
 
      DFB_ASSERT( inputfield != NULL );
 
      DEBUGMSG( "DirectFB/core/input: resuming...\n" );
-     
+
      while (d) {
           DFBResult ret;
 
@@ -324,7 +324,7 @@ dfb_input_resume()
                     d->driver->info.version.major,
                     d->driver->info.version.minor,
                     d->driver->info.vendor );
-          
+
           ret = d->driver->funcs->OpenDevice( d, d->shared->num,
                                               &d->shared->device_info,
                                               &d->driver_data );
@@ -338,7 +338,7 @@ dfb_input_resume()
      }
 
      DEBUGMSG( "DirectFB/core/input: resumed.\n" );
-     
+
      return DFB_OK;
 }
 
@@ -349,7 +349,7 @@ dfb_input_enumerate_devices( InputDeviceCallback  callback,
      InputDevice *d = inputdevices;
 
      DFB_ASSERT( inputfield != NULL );
-     
+
      while (d) {
           if (callback( d, ctx ) == DFENUM_CANCEL)
                break;
@@ -367,7 +367,7 @@ dfb_input_attach( InputDevice *device,
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
-     
+
      return fusion_reactor_attach( device->shared->reactor, react, ctx, reaction );
 }
 
@@ -378,7 +378,7 @@ dfb_input_detach( InputDevice *device,
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
-     
+
      return fusion_reactor_detach( device->shared->reactor, reaction );
 }
 
@@ -391,7 +391,7 @@ dfb_input_attach_global( InputDevice    *device,
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
-     
+
      return fusion_reactor_attach_global( device->shared->reactor,
                                    react_index, ctx, reaction );
 }
@@ -403,7 +403,7 @@ dfb_input_detach_global( InputDevice    *device,
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
-     
+
      return fusion_reactor_detach_global( device->shared->reactor, reaction );
 }
 
@@ -414,7 +414,7 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
      DFB_ASSERT( event != NULL );
-     
+
      if (!(event->flags & DIEF_TIMESTAMP)) {
           gettimeofday( &event->timestamp, NULL );
           event->flags |= DIEF_TIMESTAMP;
@@ -440,7 +440,7 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
                /* DEBUGMSG("DirectFB/core/input: key code: %x, id: %x, symbol: %x\n",
                         event->key_code, event->key_id, event->key_symbol); */
                break;
-          
+
           default:
                ;
      }
@@ -459,7 +459,7 @@ dfb_input_device_id( const InputDevice *device )
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
-     
+
      return device->shared->id;
 }
 
@@ -469,7 +469,7 @@ dfb_input_device_at( DFBInputDeviceID id )
      InputDevice *d = inputdevices;
 
      DFB_ASSERT( inputfield != NULL );
-     
+
      while (d) {
           if (d->shared->id == id)
                return d;
@@ -487,7 +487,7 @@ dfb_input_device_description( const InputDevice         *device,
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
-     
+
      *desc = device->shared->device_info.desc;
 }
 
@@ -501,13 +501,13 @@ dfb_input_device_get_keymap_entry( InputDevice               *device,
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( entry != NULL );
-     
+
      keymap_entry = get_keymap_entry( device, keycode );
      if (!keymap_entry)
           return DFB_FAILURE;
 
      *entry = *keymap_entry;
-     
+
      return DFB_OK;
 }
 
@@ -519,7 +519,7 @@ input_add_device( InputDevice *device )
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
-     
+
      if (inputfield->num == MAX_INPUT_DEVICES) {
           ERRORMSG( "DirectFB/Core/Input: "
                     "Maximum number of devices reached!\n" );
@@ -552,13 +552,13 @@ allocate_device_keymap( InputDevice *device )
                                               desc->min_keycode + 1;
 
      DFB_ASSERT( inputfield != NULL );
-     
+
      entries = SHCALLOC( num_entries, sizeof(DFBInputDeviceKeymapEntry) );
-     
+
      /* write -1 indicating entry is not fetched yet from driver */
      for (i=0; i<num_entries; i++)
           entries[i].code = -1;
-     
+
      shared->keymap.min_keycode = desc->min_keycode;
      shared->keymap.max_keycode = desc->max_keycode;
      shared->keymap.num_entries = num_entries;
@@ -577,7 +577,7 @@ make_id( DFBInputDeviceID prefered )
      InputDevice *device = inputdevices;
 
      DFB_ASSERT( inputfield != NULL );
-     
+
      while (device) {
           if (device->shared->id == prefered)
                return make_id( (prefered < DIDID_ANY) ?
@@ -595,7 +595,7 @@ init_devices()
      FusionLink *link;
 
      DFB_ASSERT( inputfield != NULL );
-     
+
      fusion_list_foreach( link, dfb_input_modules.entries ) {
           int                     n;
           InputDriver            *driver;
@@ -605,7 +605,7 @@ init_devices()
           funcs = dfb_module_ref( module );
           if (!funcs)
                continue;
-          
+
           driver = DFBCALLOC( 1, sizeof(InputDriver) );
           if (!driver) {
                dfb_module_unref( module );
@@ -615,17 +615,17 @@ init_devices()
           DFB_ASSERT( funcs->GetDriverInfo != NULL );
 
           funcs->GetDriverInfo( &driver->info );
-          
+
           DEBUGMSG( "DirectFB/Core/Input: Probing '%s'...\n",
                     driver->info.name );
-          
+
           driver->nr_devices = funcs->GetAvailable();
           if (!driver->nr_devices) {
                dfb_module_unref( module );
                DFBFREE( driver );
                continue;
           }
-          
+
           DEBUGMSG( "DirectFB/Core/Input: %d available %s provided by '%s'.\n",
                     driver->nr_devices,
                     driver->nr_devices == 1 ? "device" : "devices",
@@ -633,10 +633,10 @@ init_devices()
 
           driver->module = module;
           driver->funcs  = funcs;
-          
+
           fusion_list_prepend( &input_drivers, &driver->link );
 
-          
+
           for (n=0; n<driver->nr_devices; n++) {
                InputDevice     *device;
                InputDeviceInfo  device_info;
@@ -709,7 +709,7 @@ get_keymap_entry( InputDevice *device,
      DFB_ASSERT( device->shared != NULL );
 
      map = &device->shared->keymap;
-     
+
      /* safety check */
      if (code < map->min_keycode || code > map->max_keycode)
           return NULL;
@@ -759,12 +759,12 @@ lookup_from_table( InputDevice        *device,
                    DFBInputEventFlags  lookup )
 {
      DFBInputDeviceKeymapEntry *entry;
-     
+
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
      DFB_ASSERT( event != NULL );
-     
+
      /* fetch the entry from the keymap, possibly calling the driver */
      entry = get_keymap_entry( device, event->key_code );
      if (!entry)
@@ -798,13 +798,13 @@ find_key_code_by_id( InputDevice                 *device,
 {
      int                i;
      InputDeviceKeymap *map;
-     
+
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
-     
+
      map = &device->shared->keymap;
-     
+
      for (i=0; i<map->num_entries; i++) {
           DFBInputDeviceKeymapEntry *entry = &map->entries[i];
 
@@ -821,13 +821,13 @@ find_key_code_by_symbol( InputDevice             *device,
 {
      int                i;
      InputDeviceKeymap *map;
-     
+
      DFB_ASSERT( inputfield != NULL );
      DFB_ASSERT( device != NULL );
      DFB_ASSERT( device->shared != NULL );
-     
+
      map = &device->shared->keymap;
-     
+
      for (i=0; i<map->num_entries; i++) {
           int                        n;
           DFBInputDeviceKeymapEntry *entry = &map->entries[i];
@@ -876,7 +876,7 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
 
      /* Add missing flags */
      event->flags |= missing;
-     
+
      /*
       * Use cached values for modifiers/locks if they are missing.
       */
@@ -900,7 +900,7 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
 
                if (event->key_code != -1) {
                     lookup_from_table( device, event, missing );
-                    
+
                     missing &= ~(DIEF_KEYCODE | DIEF_KEYSYMBOL);
                }
                else if (missing & DIEF_KEYSYMBOL) {
@@ -916,7 +916,7 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
 
                if (event->key_code != -1) {
                     lookup_from_table( device, event, missing );
-                    
+
                     missing &= ~(DIEF_KEYCODE | DIEF_KEYID);
                }
                else {
@@ -970,7 +970,7 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
                     case DIKI_CONTROL_L:
                          shared->modifiers_l |= DIMM_CONTROL;
                          break;
-                    case DIKI_CONTROL_R: 
+                    case DIKI_CONTROL_R:
                          shared->modifiers_r |= DIMM_CONTROL;
                          break;
                     case DIKI_ALT_L:
@@ -1015,7 +1015,7 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
                     case DIKI_CONTROL_L:
                          shared->modifiers_l &= ~DIMM_CONTROL;
                          break;
-                    case DIKI_CONTROL_R: 
+                    case DIKI_CONTROL_R:
                          shared->modifiers_r &= ~DIMM_CONTROL;
                          break;
                     case DIKI_ALT_L:
@@ -1049,12 +1049,12 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
                          ;
                }
           }
-          
+
           /* write back to event */
           if (missing & DIEF_MODIFIERS)
                event->modifiers = shared->modifiers_l | shared->modifiers_r;
      }
-     
+
      /*
       * Update cached values for locks.
       */
@@ -1072,7 +1072,7 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
                default:
                     ;
           }
-          
+
           /* write back to event */
           if (missing & DIEF_LOCKS)
                event->locks = shared->locks;
@@ -1111,10 +1111,10 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
 {
      if (symbol >= 'a' && symbol <= 'z')
           return DIKI_A + symbol - 'a';
-     
+
      if (symbol >= 'A' && symbol <= 'Z')
           return DIKI_A + symbol - 'A';
-     
+
      if (symbol >= '0' && symbol <= '9')
           return DIKI_0 + symbol - '0';
 
@@ -1124,10 +1124,10 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
      switch (symbol) {
           case DIKS_ESCAPE:
                return DIKI_ESCAPE;
-          
+
           case DIKS_CURSOR_LEFT:
                return DIKI_LEFT;
-          
+
           case DIKS_CURSOR_RIGHT:
                return DIKI_RIGHT;
 
@@ -1136,70 +1136,70 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
 
           case DIKS_CURSOR_DOWN:
                return DIKI_DOWN;
-          
+
           case DIKS_ALTGR:
                return DIKI_ALTGR;
-          
+
           case DIKS_CONTROL:
                return DIKI_CONTROL_L;
-          
+
           case DIKS_SHIFT:
                return DIKI_SHIFT_L;
-          
+
           case DIKS_ALT:
                return DIKI_ALT_L;
-          
+
           case DIKS_META:
                return DIKI_META_L;
-          
+
           case DIKS_SUPER:
                return DIKI_SUPER_L;
-          
+
           case DIKS_HYPER:
                return DIKI_HYPER_L;
-          
+
           case DIKS_TAB:
                return DIKI_TAB;
-          
+
           case DIKS_ENTER:
                return DIKI_ENTER;
-          
+
           case DIKS_SPACE:
                return DIKI_SPACE;
-          
+
           case DIKS_BACKSPACE:
                return DIKI_BACKSPACE;
-          
+
           case DIKS_INSERT:
                return DIKI_INSERT;
-          
+
           case DIKS_DELETE:
                return DIKI_DELETE;
-          
+
           case DIKS_HOME:
                return DIKI_HOME;
-          
+
           case DIKS_END:
                return DIKI_END;
-          
+
           case DIKS_PAGE_UP:
                return DIKI_PAGE_UP;
-          
+
           case DIKS_PAGE_DOWN:
                return DIKI_PAGE_DOWN;
-          
+
           case DIKS_CAPS_LOCK:
                return DIKI_CAPS_LOCK;
-          
+
           case DIKS_NUM_LOCK:
                return DIKI_NUM_LOCK;
-          
+
           case DIKS_SCROLL_LOCK:
                return DIKI_SCROLL_LOCK;
-          
+
           case DIKS_PRINT:
                return DIKI_PRINT;
-          
+
           case DIKS_PAUSE:
                return DIKI_PAUSE;
 
@@ -1215,7 +1215,7 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
           default:
                ;
      }
-     
+
      return DIKI_UNKNOWN;
 }
 
@@ -1228,7 +1228,7 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
 
      if (id >= DIKI_A && id <= DIKI_Z)
           return (shift ? DIKS_CAPITAL_A : DIKS_SMALL_A) + id - DIKI_A;
-     
+
      if (id >= DIKI_0 && id <= DIKI_9)
           return DIKS_0 + id - DIKI_0;
 
@@ -1241,10 +1241,10 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
      switch (id) {
           case DIKI_ESCAPE:
                return DIKS_ESCAPE;
-          
+
           case DIKI_LEFT:
                return DIKS_CURSOR_LEFT;
-          
+
           case DIKI_RIGHT:
                return DIKS_CURSOR_RIGHT;
 
@@ -1253,138 +1253,138 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
 
           case DIKI_DOWN:
                return DIKS_CURSOR_DOWN;
-          
+
           case DIKI_ALTGR:
                return DIKS_ALTGR;
-          
+
           case DIKI_CONTROL_L:
           case DIKI_CONTROL_R:
                return DIKS_CONTROL;
-          
+
           case DIKI_SHIFT_L:
           case DIKI_SHIFT_R:
                return DIKS_SHIFT;
-          
+
           case DIKI_ALT_L:
           case DIKI_ALT_R:
                return DIKS_ALT;
-          
+
           case DIKI_META_L:
           case DIKI_META_R:
                return DIKS_META;
-          
+
           case DIKI_SUPER_L:
           case DIKI_SUPER_R:
                return DIKS_SUPER;
-          
+
           case DIKI_HYPER_L:
           case DIKI_HYPER_R:
                return DIKS_HYPER;
-          
+
           case DIKI_TAB:
                return DIKS_TAB;
-          
+
           case DIKI_ENTER:
                return DIKS_ENTER;
-          
+
           case DIKI_SPACE:
                return DIKS_SPACE;
-          
+
           case DIKI_BACKSPACE:
                return DIKS_BACKSPACE;
-          
+
           case DIKI_INSERT:
                return DIKS_INSERT;
-          
+
           case DIKI_DELETE:
                return DIKS_DELETE;
-          
+
           case DIKI_HOME:
                return DIKS_HOME;
-          
+
           case DIKI_END:
                return DIKS_END;
-          
+
           case DIKI_PAGE_UP:
                return DIKS_PAGE_UP;
-          
+
           case DIKI_PAGE_DOWN:
                return DIKS_PAGE_DOWN;
-          
+
           case DIKI_CAPS_LOCK:
                return DIKS_CAPS_LOCK;
-          
+
           case DIKI_NUM_LOCK:
                return DIKS_NUM_LOCK;
-          
+
           case DIKI_SCROLL_LOCK:
                return DIKS_SCROLL_LOCK;
-          
+
           case DIKI_PRINT:
                return DIKS_PRINT;
-          
+
           case DIKI_PAUSE:
                return DIKS_PAUSE;
 
           case DIKI_KP_DIV:
                return DIKS_SLASH;
-               
+
           case DIKI_KP_MULT:
                return DIKS_ASTERISK;
 
           case DIKI_KP_MINUS:
                return DIKS_MINUS_SIGN;
-              
+
           case DIKI_KP_PLUS:
                return DIKS_PLUS_SIGN;
 
           case DIKI_KP_ENTER:
                return DIKS_ENTER;
-          
+
           case DIKI_KP_SPACE:
                return DIKS_SPACE;
-          
+
           case DIKI_KP_TAB:
                return DIKS_TAB;
-          
+
           case DIKI_KP_EQUAL:
                return DIKS_EQUALS_SIGN;
-          
+
           case DIKI_KP_DECIMAL:
                return DIKS_PERIOD;
-          
+
           case DIKI_KP_SEPARATOR:
                return DIKS_COMMA;
 
           case DIKI_BACKSLASH:
                return DIKS_BACKSLASH;
-          
+
           case DIKI_EQUALS_SIGN:
                return DIKS_EQUALS_SIGN;
-          
+
           case DIKI_LESS_SIGN:
                return DIKS_LESS_THAN_SIGN;
-          
+
           case DIKI_MINUS_SIGN:
                return DIKS_MINUS_SIGN;
-          
+
           case DIKI_PERIOD:
                return DIKS_PERIOD;
-          
+
           case DIKI_QUOTE_LEFT:
           case DIKI_QUOTE_RIGHT:
                return DIKS_QUOTATION;
-          
+
           case DIKI_SEMICOLON:
                return DIKS_SEMICOLON;
-          
+
           case DIKI_SLASH:
                return DIKS_SLASH;
-          
+
           default:
                ;
      }
-     
+
      return DIKS_NULL;
 }
 
@@ -1406,22 +1406,22 @@ flush_keys( InputDevice *device )
      if (device->shared->modifiers_l) {
           if (device->shared->modifiers_l & DIMM_ALT)
                release_key( device, DIKI_ALT_L );
-          
+
           if (device->shared->modifiers_l & DIMM_ALTGR)
                release_key( device, DIKI_ALTGR );
-          
+
           if (device->shared->modifiers_l & DIMM_CONTROL)
                release_key( device, DIKI_CONTROL_L );
-          
+
           if (device->shared->modifiers_l & DIMM_HYPER)
                release_key( device, DIKI_HYPER_L );
-          
+
           if (device->shared->modifiers_l & DIMM_META)
                release_key( device, DIKI_META_L );
-          
+
           if (device->shared->modifiers_l & DIMM_SHIFT)
                release_key( device, DIKI_SHIFT_L );
-          
+
           if (device->shared->modifiers_l & DIMM_SUPER)
                release_key( device, DIKI_SUPER_L );
      }
@@ -1429,19 +1429,19 @@ flush_keys( InputDevice *device )
      if (device->shared->modifiers_r) {
           if (device->shared->modifiers_r & DIMM_ALT)
                release_key( device, DIKI_ALT_R );
-          
+
           if (device->shared->modifiers_r & DIMM_CONTROL)
                release_key( device, DIKI_CONTROL_R );
-          
+
           if (device->shared->modifiers_r & DIMM_HYPER)
                release_key( device, DIKI_HYPER_R );
-          
+
           if (device->shared->modifiers_r & DIMM_META)
                release_key( device, DIKI_META_R );
-          
+
           if (device->shared->modifiers_r & DIMM_SHIFT)
                release_key( device, DIKI_SHIFT_R );
-          
+
           if (device->shared->modifiers_r & DIMM_SUPER)
                release_key( device, DIKI_SUPER_R );
      }
@@ -1452,7 +1452,7 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
 {
      if (dfb_system_input_filter( device, event ))
           return true;
-     
+
      if (event->type == DIET_KEYPRESS) {
           switch (event->key_symbol) {
                case DIKS_PRINT:
@@ -1481,7 +1481,7 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
                     break;
           }
      }
-     
+
      return false;
 }
 

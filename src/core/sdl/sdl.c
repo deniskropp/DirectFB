@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -34,7 +34,7 @@
 
 #include <core/fusion/arena.h>
 #include <core/fusion/shmalloc.h>
-                                   
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -69,7 +69,7 @@ system_get_info( CoreSystemInfo *info )
 }
 
 static DFBResult
-system_initialize( void **data )
+system_initialize( CoreDFB *core, void **data )
 {
      char *driver;
 
@@ -87,42 +87,42 @@ system_initialize( void **data )
                    "SDL_VIDEODRIVER is 'directfb', unsetting it.\n" );
           unsetenv( "SDL_VIDEODRIVER" );
      }
-     
+
      /* Initialize SDL */
      if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
           ERRORMSG( "DirectFB/SDL: Couldn't initialize SDL: %s\n",
                     SDL_GetError() );
-          
+
           SHFREE( dfb_sdl );
           dfb_sdl = NULL;
-          
+
           return DFB_INIT;
      }
-     
+
      fusion_skirmish_init( &dfb_sdl->lock );
-     
+
      fusion_call_init( &dfb_sdl->call, dfb_sdl_call_handler, NULL );
-     
+
      dfb_layers_register( NULL, NULL, &sdlPrimaryLayerFuncs );
 
-     fusion_arena_add_shared_field( dfb_core->arena, "sdl", dfb_sdl );
+     fusion_arena_add_shared_field( dfb_core_arena( core ), "sdl", dfb_sdl );
 
      *data = dfb_sdl;
-     
+
      return DFB_OK;
 }
 
 static DFBResult
-system_join( void **data )
+system_join( CoreDFB *core, void **data )
 {
      void *ret;
 
      DFB_ASSERT( dfb_sdl == NULL );
 
-     fusion_arena_get_shared_field( dfb_core->arena, "sdl", &ret );
+     fusion_arena_get_shared_field( dfb_core_arena( core ), "sdl", &ret );
 
      dfb_sdl = ret;
-     
+
      dfb_layers_register( NULL, NULL, &sdlPrimaryLayerFuncs );
 
      *data = dfb_sdl;
@@ -134,18 +134,18 @@ static DFBResult
 system_shutdown( bool emergency )
 {
      DFB_ASSERT( dfb_sdl != NULL );
-     
+
      fusion_call_destroy( &dfb_sdl->call );
-     
+
      fusion_skirmish_prevail( &dfb_sdl->lock );
-     
+
      SDL_Quit();
 
      fusion_skirmish_destroy( &dfb_sdl->lock );
-     
+
      SHFREE( dfb_sdl );
      dfb_sdl = NULL;
-     
+
      return DFB_OK;
 }
 

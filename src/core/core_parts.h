@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -35,19 +35,23 @@
 #include <core/coretypes.h>
 #include <core/coredefs.h>
 
-typedef DFBResult (*CoreInitialize)( void *data_local,
-                                     void *data_shared );
+typedef DFBResult (*CoreInitialize)( CoreDFB *core,
+                                     void    *data_local,
+                                     void    *data_shared );
 
-typedef DFBResult (*CoreJoin)      ( void *data_local,
-                                     void *data_shared );
+typedef DFBResult (*CoreJoin)      ( CoreDFB *core,
+                                     void    *data_local,
+                                     void    *data_shared );
 
-typedef DFBResult (*CoreShutdown)  ( bool  emergency );
+typedef DFBResult (*CoreShutdown)  ( CoreDFB *core,
+                                     bool     emergency );
 
-typedef DFBResult (*CoreLeave)     ( bool  emergency );
+typedef DFBResult (*CoreLeave)     ( CoreDFB *core,
+                                     bool     emergency );
 
-typedef DFBResult (*CoreSuspend)   (  );
+typedef DFBResult (*CoreSuspend)   ( CoreDFB *core );
 
-typedef DFBResult (*CoreResume)    (  );
+typedef DFBResult (*CoreResume)    ( CoreDFB *core );
 
 typedef struct {
      const char     *name;
@@ -59,7 +63,7 @@ typedef struct {
      void           *data_shared;
 
      bool            initialized;
-     
+
      CoreInitialize  Initialize;
      CoreJoin        Join;
      CoreShutdown    Shutdown;
@@ -75,29 +79,40 @@ extern CorePart dfb_core_input;
 extern CorePart dfb_core_gfxcard;
 extern CorePart dfb_core_layers;
 
-DFBResult dfb_core_part_initialize( CorePart *core_part );
-DFBResult dfb_core_part_join      ( CorePart *core_part );
-DFBResult dfb_core_part_shutdown  ( CorePart *core_part,
+DFBResult dfb_core_part_initialize( CoreDFB  *core,
+                                    CorePart *core_part );
+
+DFBResult dfb_core_part_join      ( CoreDFB  *core,
+                                    CorePart *core_part );
+
+DFBResult dfb_core_part_shutdown  ( CoreDFB  *core,
+                                    CorePart *core_part,
                                     bool      emergency );
-DFBResult dfb_core_part_leave     ( CorePart *core_part,
+
+DFBResult dfb_core_part_leave     ( CoreDFB  *core,
+                                    CorePart *core_part,
                                     bool      emergency );
 
 
 #define DFB_CORE_PART(part,sl,ss)                                              \
                                                                                \
-static DFBResult dfb_##part##_initialize( void *data_local,                    \
-                                          void *data_shared );                 \
+static DFBResult dfb_##part##_initialize( CoreDFB  *core,                      \
+                                          void     *data_local,                \
+                                          void     *data_shared );             \
                                                                                \
-static DFBResult dfb_##part##_join      ( void *data_local,                    \
-                                          void *data_shared );                 \
+static DFBResult dfb_##part##_join      ( CoreDFB  *core,                      \
+                                          void     *data_local,                \
+                                          void     *data_shared );             \
                                                                                \
-static DFBResult dfb_##part##_shutdown  ( bool  emergency );                   \
+static DFBResult dfb_##part##_shutdown  ( CoreDFB  *core,                      \
+                                          bool      emergency );               \
                                                                                \
-static DFBResult dfb_##part##_leave     ( bool  emergency );                   \
+static DFBResult dfb_##part##_leave     ( CoreDFB  *core,                      \
+                                          bool      emergency );               \
                                                                                \
-static DFBResult dfb_##part##_suspend   (  );                                  \
+static DFBResult dfb_##part##_suspend   ( CoreDFB  *core );                    \
                                                                                \
-static DFBResult dfb_##part##_resume    (  );                                  \
+static DFBResult dfb_##part##_resume    ( CoreDFB  *core );                    \
                                                                                \
 CorePart dfb_core_##part = {                                                   \
      #part,                                                                    \

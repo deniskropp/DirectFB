@@ -331,13 +331,13 @@ ov0AllocateSurface( CoreLayer              *layer,
           }
      }
 
-     result = dfb_surface_create(config->width, config->height,
+     result = dfb_surface_create(NULL, config->width, config->height,
                                  config->pixelformat, CSP_VIDEOONLY,
                                  caps | DSCAPS_VIDEOONLY, NULL,
                                  &nvov0->videoSurface);
      if (result == DFB_OK)
      {
-          result = dfb_surface_create( config->width, config->height,
+          result = dfb_surface_create( NULL, config->width, config->height,
                                        config->pixelformat, CSP_SYSTEMONLY,
                                        caps | DSCAPS_SYSTEMONLY, NULL, surface );
      }
@@ -392,13 +392,13 @@ ov0ReallocateSurface( CoreLayer             *layer,
      DEBUGMSG("Reallocate: %d kBytes\n", dstPitch * config->height *
                                          DFB_BYTES_PER_PIXEL(config->pixelformat) /
                                          1024);
-     result = dfb_surface_reformat( nvov0->videoSurface, dstPitch,
+     result = dfb_surface_reformat( NULL, nvov0->videoSurface, dstPitch,
                                     config->height, config->pixelformat );
 
      if (result == DFB_OK)
      {
-          result = dfb_surface_reformat( surface, config->width,
-                                       config->height, config->pixelformat );
+          result = dfb_surface_reformat( NULL, surface, config->width,
+                                         config->height, config->pixelformat );
      }
      return result;
 }

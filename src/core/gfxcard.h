@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -265,15 +265,13 @@ void dfb_gfxcard_after_set_var();
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 
-SurfaceManager   *dfb_gfxcard_surface_manager();
-FusionObjectPool *dfb_gfxcard_surface_pool();
-FusionObjectPool *dfb_gfxcard_palette_pool();
-void              dfb_gfxcard_get_capabilities( CardCapabilities *caps );
+SurfaceManager *dfb_gfxcard_surface_manager();
+void            dfb_gfxcard_get_capabilities( CardCapabilities *caps );
 
-int            dfb_gfxcard_reserve_memory( GraphicsDevice *device,
-                                           unsigned int    size );
+int             dfb_gfxcard_reserve_memory( GraphicsDevice *device,
+                                            unsigned int    size );
 
-unsigned int   dfb_gfxcard_memory_length();
+unsigned int    dfb_gfxcard_memory_length();
 
 /*
  * Graphics drivers call this function to get access to MMIO regions.

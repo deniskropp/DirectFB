@@ -41,6 +41,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/core.h>
 #include <core/layers.h>
 #include <core/gfxcard.h>
 #include <core/input.h>
@@ -54,6 +55,7 @@
 #include <misc/mem.h>
 #include <gfx/util.h>
 
+#include <core/layers_internal.h>
 
 typedef struct {
      FusionLink       link;
@@ -157,6 +159,19 @@ window_destructor( FusionObject *object, bool zombie )
      fusion_object_destroy( object );
 }
 
+/******************************************************************************/
+
+FusionObjectPool *
+dfb_window_pool_create()
+{
+     return fusion_object_pool_create( "Window Pool",
+                                       sizeof(CoreWindow),
+                                       sizeof(DFBWindowEvent),
+                                       window_destructor );
+}
+
+/******************************************************************************/
+
 /*
  * Allocates and initializes a window stack.
  */
@@ -174,16 +189,7 @@ dfb_windowstack_new( CoreLayer *layer, int width, int height )
      stack = (CoreWindowStack*) SHCALLOC( 1, sizeof(CoreWindowStack) );
 
      /* Remember layer id for access to it's local data later */
-     stack->layer_id = dfb_layer_id( layer );
-
-     /* Create the pool of windows. */
-     if (stack->layer_id == DLID_PRIMARY)
-          stack->pool = fusion_object_pool_create( "Window Pool",
-                                                   sizeof(CoreWindow),
-                                                   sizeof(DFBWindowEvent),
-                                                   window_destructor );
-     else
-          stack->pool = dfb_layer_window_stack( dfb_layer_at(DLID_PRIMARY) )->pool;
+     stack->layer_id = layer->shared->id;
 
      /* Initialize the modify/update lock */
      fusion_skirmish_init( &stack->lock );
@@ -233,10 +239,6 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      /* Unlink cursor window. */
      if (stack->cursor.window)
           dfb_window_unlink( &stack->cursor.window );
-
-     /* Destroy the object pool and all remaining objects. FIXME: per stack */
-     if (stack->layer_id == DLID_PRIMARY)
-          fusion_object_pool_destroy( stack->pool );
 
      /* Destroy the stack lock. */
      fusion_skirmish_destroy( &stack->lock );
@@ -387,7 +389,7 @@ dfb_window_create( CoreWindowStack        *stack,
           surface_caps |= DSCAPS_FLIPPING;
 
      /* Create the window object. */
-     window = (CoreWindow*) fusion_object_create( stack->pool );
+     window = dfb_core_create_window( layer->core );
 
      window->id      = new_window_id( stack );
 
@@ -409,7 +411,8 @@ dfb_window_create( CoreWindowStack        *stack,
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
           if (config->buffermode == DLBM_WINDOWS) {
-               ret = dfb_surface_create( width, height, pixelformat,
+               ret = dfb_surface_create( layer->core,
+                                         width, height, pixelformat,
                                          surface_policy, surface_caps,
                                          NULL, &surface );
           }
@@ -418,7 +421,8 @@ dfb_window_create( CoreWindowStack        *stack,
 
                DFB_ASSERT( layer_surface != NULL );
 
-               ret = dfb_surface_create( width, height, pixelformat,
+               ret = dfb_surface_create( layer->core,
+                                         width, height, pixelformat,
                                          surface_policy, surface_caps,
                                          layer_surface->palette, &surface );
           }
@@ -807,6 +811,7 @@ dfb_window_resize( CoreWindow   *window,
      CoreWindowStack *stack = window->stack;
      int              ow    = window->width;
      int              oh    = window->height;
+     CoreLayer       *layer = dfb_layer_at( stack->layer_id );
 
      DFB_ASSERT( width > 0 );
      DFB_ASSERT( height > 0 );
@@ -817,7 +822,8 @@ dfb_window_resize( CoreWindow   *window,
      dfb_windowstack_lock( stack );
 
      if (window->surface) {
-          DFBResult ret = dfb_surface_reformat( window->surface,
+          DFBResult ret = dfb_surface_reformat( layer->core,
+                                                window->surface,
                                                 width, height,
                                                 window->surface->format );
           if (ret) {

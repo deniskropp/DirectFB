@@ -77,6 +77,8 @@
  */
 typedef struct {
      int                  ref;      /* reference counter */
+     CoreDFB             *core;
+
      DFBCooperativeLevel  level;    /* current cooperative level */
 
      CoreLayer           *layer;    /* primary display layer */
@@ -159,7 +161,7 @@ IDirectFB_Destruct( IDirectFB *thiz )
 
      drop_window( data );
 
-     dfb_core_unref();     /* TODO: where should we place this call? */
+     dfb_core_destroy( data->core, false );
 
      idirectfb_singleton = NULL;
 
@@ -427,7 +429,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                          else if (dfb_config->mode.format)
                               format = dfb_config->mode.format;
 
-                         ret = dfb_surface_create( config.width, config.height,
+                         ret = dfb_surface_create( data->core,
+                                                   config.width, config.height,
                                                    format, policy, caps, NULL,
                                                    &surface );
                          if (ret)
@@ -600,7 +603,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                return DFB_INVARG;
           }
 
-          ret = dfb_surface_create_preallocated( width, height,
+          ret = dfb_surface_create_preallocated( data->core,
+                                                 width, height,
                                                  format, policy, caps, NULL,
                                                  desc->preallocated[0].data,
                                                  desc->preallocated[1].data,
@@ -611,7 +615,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                return ret;
      }
      else {
-          ret = dfb_surface_create( width, height, format,
+          ret = dfb_surface_create( data->core,
+                                    width, height, format,
                                     policy, caps, NULL, &surface );
           if (ret)
                return ret;
@@ -650,7 +655,7 @@ IDirectFB_CreatePalette( IDirectFB              *thiz,
           size = desc->size;
      }
 
-     ret = dfb_palette_create( size, &palette );
+     ret = dfb_palette_create( data->core, size, &palette );
      if (ret)
           return ret;
 
@@ -914,7 +919,7 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
      DFB_ALLOCATE_INTERFACE( font, IDirectFBFont );
 
      /* Construct the interface */
-     ret = funcs->Construct( font, filename, desc );
+     ret = funcs->Construct( font, data->core, filename, desc );
      if (ret)
           return ret;
 
@@ -1000,13 +1005,17 @@ IDirectFB_GetClipboardTimeStamp( IDirectFB      *thiz,
 static DFBResult
 IDirectFB_Suspend( IDirectFB *thiz )
 {
-     return dfb_core_suspend();
+     INTERFACE_GET_DATA(IDirectFB)
+
+     return dfb_core_suspend( data->core );
 }
 
 static DFBResult
 IDirectFB_Resume( IDirectFB *thiz )
 {
-     return dfb_core_resume();
+     INTERFACE_GET_DATA(IDirectFB)
+
+     return dfb_core_resume( data->core );
 }
 
 static DFBResult
@@ -1072,12 +1081,12 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
  * Fills in function pointers and intializes data structure.
  */
 DFBResult
-IDirectFB_Construct( IDirectFB *thiz )
+IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
 {
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFB)
 
-     data->ref = 1;
-
+     data->ref   = 1;
+     data->core  = core;
      data->level = DFSCL_NORMAL;
 
      if (dfb_config->mode.width)

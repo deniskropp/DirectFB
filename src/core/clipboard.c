@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -53,7 +53,7 @@ DFB_CORE_PART( clipboard, 0, sizeof(CoreClip) )
 
 
 static DFBResult
-dfb_clipboard_initialize( void *data_local, void *data_shared )
+dfb_clipboard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
      DFB_ASSERT( core_clip == NULL );
 
@@ -65,7 +65,7 @@ dfb_clipboard_initialize( void *data_local, void *data_shared )
 }
 
 static DFBResult
-dfb_clipboard_join( void *data_local, void *data_shared )
+dfb_clipboard_join( CoreDFB *core, void *data_local, void *data_shared )
 {
      DFB_ASSERT( core_clip == NULL );
 
@@ -75,7 +75,7 @@ dfb_clipboard_join( void *data_local, void *data_shared )
 }
 
 static DFBResult
-dfb_clipboard_shutdown( bool emergency )
+dfb_clipboard_shutdown( CoreDFB *core, bool emergency )
 {
      DFB_ASSERT( core_clip != NULL );
 
@@ -93,7 +93,7 @@ dfb_clipboard_shutdown( bool emergency )
 }
 
 static DFBResult
-dfb_clipboard_leave( bool emergency )
+dfb_clipboard_leave( CoreDFB *core, bool emergency )
 {
      DFB_ASSERT( core_clip != NULL );
 
@@ -103,7 +103,7 @@ dfb_clipboard_leave( bool emergency )
 }
 
 static DFBResult
-dfb_clipboard_suspend()
+dfb_clipboard_suspend( CoreDFB *core )
 {
      DFB_ASSERT( core_clip != NULL );
 
@@ -111,7 +111,7 @@ dfb_clipboard_suspend()
 }
 
 static DFBResult
-dfb_clipboard_resume()
+dfb_clipboard_resume( CoreDFB *core )
 {
      DFB_ASSERT( core_clip != NULL );
 
@@ -129,7 +129,7 @@ dfb_clipboard_set( const char     *mime_type,
      void *new_data;
 
      DFB_ASSERT( core_clip != NULL );
-     
+
      DFB_ASSERT( mime_type != NULL );
      DFB_ASSERT( data != NULL );
      DFB_ASSERT( size > 0 );
@@ -166,7 +166,7 @@ dfb_clipboard_set( const char     *mime_type,
 
      if (timestamp)
           *timestamp = core_clip->timestamp;
-     
+
      fusion_skirmish_dismiss( &core_clip->lock );
 
      return DFB_OK;
@@ -176,7 +176,7 @@ DFBResult
 dfb_clipboard_get( char **mime_type, void **data, unsigned int *size )
 {
      DFB_ASSERT( core_clip != NULL );
-     
+
      if (fusion_skirmish_prevail( &core_clip->lock ))
           return DFB_FUSION;
 
@@ -206,12 +206,12 @@ dfb_clipboard_get_timestamp( struct timeval *timestamp )
 {
      DFB_ASSERT( core_clip != NULL );
      DFB_ASSERT( timestamp != NULL );
-     
+
      if (fusion_skirmish_prevail( &core_clip->lock ))
           return DFB_FUSION;
 
      *timestamp = core_clip->timestamp;
-     
+
      fusion_skirmish_dismiss( &core_clip->lock );
 
      return DFB_OK;

@@ -29,6 +29,9 @@
 
 #include <dfb_types.h>
 
+typedef struct __DFB_CoreDFB            CoreDFB;
+typedef struct __DFB_CoreDFBShared      CoreDFBShared;
+
 typedef struct _CoreCleanup             CoreCleanup;
 
 typedef struct _CoreFont                CoreFont;

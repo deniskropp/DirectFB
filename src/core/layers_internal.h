@@ -42,8 +42,6 @@ typedef struct {
      DisplayLayerInfo         layer_info;
      void                    *layer_data;
 
-     FusionObjectPool        *region_pool;
-
      FusionVector             regions;
 
      /****/
@@ -81,6 +79,8 @@ typedef struct {
 
 struct __DFB_CoreLayer {
      CoreLayerShared   *shared;
+
+     CoreDFB           *core;
 
      GraphicsDevice    *device;
 
