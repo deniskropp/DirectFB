@@ -1309,14 +1309,17 @@ static void video_access_by_software( SurfaceBuffer       *buffer,
                dfb_gfxcard_sync();
                buffer->video.access &= ~VAF_HARDWARE_READ;
           }
-          buffer->video.access |= VAF_SOFTWARE_WRITE;
      }
-     if (flags & (DSLF_READ | DSLF_WRITE)) {
-          if (buffer->video.access & VAF_HARDWARE_WRITE) {
-               dfb_gfxcard_sync();
-               buffer->video.access &= ~VAF_HARDWARE_WRITE;
-          }
+
+     if (buffer->video.access & VAF_HARDWARE_WRITE) {
+          dfb_gfxcard_wait_serial( &buffer->video.serial );
+          buffer->video.access &= ~VAF_HARDWARE_WRITE;
+     }
+
+     if (flags & DSLF_READ)
           buffer->video.access |= VAF_SOFTWARE_READ;
-     }
+
+     if (flags & DSLF_WRITE)
+          buffer->video.access |= VAF_SOFTWARE_WRITE;
 }
 
