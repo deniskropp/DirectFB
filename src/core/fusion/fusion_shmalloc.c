@@ -33,17 +33,23 @@
 
 #include <core/coredefs.h>
 
+#include <misc/mem.h>
 #include <misc/memcpy.h>
 
 #include "shmalloc.h"
 
+
+#ifndef FUSION_FAKE
+
 #include "shmalloc/shmalloc_internal.h"
 
 /* Allocate SIZE bytes of memory.  */
-void *shmalloc (size_t __size)
+void *
+shmalloc (size_t __size)
 {
      void *ret;
 
+     DFB_ASSERT( __size > 0 );
      DFB_ASSERT( _sheap != NULL );
 
      fusion_skirmish_prevail( &_sheap->lock );
@@ -57,7 +63,8 @@ void *shmalloc (size_t __size)
 
 /* Re-allocate the previously allocated block
    in __ptr, making the new block SIZE bytes long.  */
-void *shrealloc (void *__ptr, size_t __size)
+void *
+shrealloc (void *__ptr, size_t __size)
 {
      void *ret;
 
@@ -73,10 +80,13 @@ void *shrealloc (void *__ptr, size_t __size)
 }
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
-void *shcalloc (size_t __nmemb, size_t __size)
+void *
+shcalloc (size_t __nmemb, size_t __size)
 {
      void *ret;
 
+     DFB_ASSERT( __nmemb > 0 );
+     DFB_ASSERT( __size > 0 );
      DFB_ASSERT( _sheap != NULL );
 
      fusion_skirmish_prevail( &_sheap->lock );
@@ -89,8 +99,10 @@ void *shcalloc (size_t __nmemb, size_t __size)
 }
 
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
-void  shfree (void *__ptr)
+void
+shfree (void *__ptr)
 {
+     DFB_ASSERT( __ptr != NULL );
      DFB_ASSERT( _sheap != NULL );
 
      fusion_skirmish_prevail( &_sheap->lock );
@@ -100,57 +112,15 @@ void  shfree (void *__ptr)
      fusion_skirmish_dismiss( &_sheap->lock );
 }
 
-/* Allocate SIZE bytes allocated to ALIGNMENT bytes.  */
-void *shmemalign (size_t __alignment, size_t __size)
-{
-     void *ret;
-
-     DFB_ASSERT( _sheap != NULL );
-
-     fusion_skirmish_prevail( &_sheap->lock );
-     
-     ret = _fusion_shmemalign( __alignment, __size );
-     
-     fusion_skirmish_dismiss( &_sheap->lock );
-
-     return ret;
-}
-
-/* Allocate SIZE bytes on a page boundary.  */
-void *shvalloc (size_t __size)
-{
-     void *ret;
-
-     DFB_ASSERT( _sheap != NULL );
-
-     fusion_skirmish_prevail( &_sheap->lock );
-     
-     ret = _fusion_shvalloc( __size );
-     
-     fusion_skirmish_dismiss( &_sheap->lock );
-
-     return ret;
-}
-
-/* Pick up the current statistics. */
-void shmstats (struct shmstats *stats)
-{
-     DFB_ASSERT( _sheap != NULL );
-
-     fusion_skirmish_prevail( &_sheap->lock );
-     
-     _fusion_shmstats( stats );
-     
-     fusion_skirmish_dismiss( &_sheap->lock );
-}
-
-char *shstrdup (const char* string)
+/* Duplicate string in shared memory. */
+char *
+shstrdup (const char* string)
 {
      void *ret;
      int   len;
 
-     DFB_ASSERT( _sheap != NULL );
      DFB_ASSERT( string != NULL );
+     DFB_ASSERT( _sheap != NULL );
 
      len = strlen( string ) + 1;
 
@@ -164,4 +134,53 @@ char *shstrdup (const char* string)
 
      return ret;
 }
+
+#else
+
+/* Allocate SIZE bytes of memory.  */
+void *
+shmalloc (size_t __size)
+{
+     DFB_ASSERT( __size > 0 );
+
+     return DFBMALLOC( __size );
+}
+
+/* Re-allocate the previously allocated block
+   in __ptr, making the new block SIZE bytes long.  */
+void *
+shrealloc (void *__ptr, size_t __size)
+{
+     return DFBREALLOC( __ptr, __size );
+}
+
+/* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
+void *
+shcalloc (size_t __nmemb, size_t __size)
+{
+     DFB_ASSERT( __nmemb > 0 );
+     DFB_ASSERT( __size > 0 );
+
+     return DFBCALLOC( __nmemb, __size );
+}
+
+/* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
+void
+shfree (void *__ptr)
+{
+     DFB_ASSERT( __ptr != NULL );
+
+     DFBFREE( __ptr );
+}
+
+/* Duplicate string in shared memory. */
+char *
+shstrdup (const char* string)
+{
+     DFB_ASSERT( string != NULL );
+
+     return DFBSTRDUP( string );
+}
+
+#endif
 

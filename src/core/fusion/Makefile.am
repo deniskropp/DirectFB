@@ -3,8 +3,7 @@
 if ENABLE_MULTI
 SUBDIRS = shmalloc
 MULTIAPPSOURCES = \
-	fusion.c		\
-	fusion_shmalloc.c
+	fusion.c
 endif
 
 INCLUDES = \
@@ -40,6 +39,7 @@ libdirectfb_core_fusion_la_SOURCES = \
 	arena.c			\
 	call.c			\
 	fusion_internal.h	\
+	fusion_shmalloc.c	\
 	list.c			\
 	lock.c			\
 	object.c		\

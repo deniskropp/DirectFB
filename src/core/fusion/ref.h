@@ -27,6 +27,8 @@
 #ifndef __REF_H__
 #define __REF_H__
 
+#include <pthread.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -35,25 +37,17 @@ extern "C"
 #include "fusion_types.h"
 
 
-#ifndef FUSION_FAKE
-
-     typedef struct {
-          int ref_id;
-     } FusionRef;
-
-#else
-
-     #include <pthread.h>
+typedef union {
+     int                  id;           /* multi app */
      
-     typedef struct {
+     struct {
           int             refs;
           pthread_cond_t  cond;
           pthread_mutex_t lock;
           bool            destroyed;
           int             waiting;
-     } FusionRef;
-
-#endif
+     } fake;                            /* single app */
+} FusionRef;
 
 /*
  * Initialize.

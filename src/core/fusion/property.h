@@ -27,6 +27,8 @@
 #ifndef __PROPERTY_H__
 #define __PROPERTY_H__
 
+#include <pthread.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -41,23 +43,15 @@ typedef enum {
 } FusionPropertyState;
 
 
-#ifndef FUSION_FAKE
-     typedef struct {
-          int                 id;
-          FusionPropertyState state;
-     } FusionProperty;
-
-#else
-
-#include <pthread.h>
+typedef union {
+     int                      id;       /* multi app */
      
-     typedef struct {
+     struct {
           pthread_mutex_t     lock;
           pthread_cond_t      cond;
           FusionPropertyState state;
-     } FusionProperty;
-
-#endif
+     } fake;                            /* single app */
+} FusionProperty;
 
 /*
  * Initializes the property

@@ -72,7 +72,7 @@ _fusion_shrealloc (void *ptr, size_t size)
           return _fusion_shmalloc (size);
      else if (size == 0) {
           _fusion_shfree (ptr);
-          return _fusion_shmalloc (0);
+          return NULL;
      }
 
      block = BLOCK (ptr);

@@ -45,21 +45,6 @@
 #include "fusion_internal.h"
 
 
-/***************************
- *  Internal declarations  *
- ***************************/
-
-
-/*******************
- *  Internal data  *
- *******************/
-
-
-
-/****************
- *  Public API  *
- ****************/
-
 #ifndef FUSION_FAKE
 
 FusionResult
@@ -193,23 +178,44 @@ fusion_skirmish_init (FusionSkirmish *skirmish)
      pthread_mutexattr_init( &attr );
      pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
      
-     pthread_mutex_init( skirmish, &attr );
+     pthread_mutex_init( &skirmish->fake.lock, &attr );
      
      pthread_mutexattr_destroy( &attr );
 
      return FUSION_SUCCESS;
 }
 
+FusionResult
+fusion_skirmish_prevail (FusionSkirmish *skirmish)
+{
+     DFB_ASSERT( skirmish != NULL );
+     
+     return pthread_mutex_lock( &skirmish->fake.lock );
+}
+
+FusionResult
+fusion_skirmish_swoop (FusionSkirmish *skirmish)
+{
+     DFB_ASSERT( skirmish != NULL );
+     
+     return pthread_mutex_trylock( &skirmish->fake.lock );
+}
+
+FusionResult
+fusion_skirmish_dismiss (FusionSkirmish *skirmish)
+{
+     DFB_ASSERT( skirmish != NULL );
+     
+     return pthread_mutex_unlock( &skirmish->fake.lock );
+}
+
+FusionResult
+fusion_skirmish_destroy (FusionSkirmish *skirmish)
+{
+     DFB_ASSERT( skirmish != NULL );
+     
+     return pthread_mutex_destroy( &skirmish->fake.lock );
+}
+
 #endif
-
-/*******************************
- *  Fusion internal functions  *
- *******************************/
-
-
-
-/*****************************
- *  File internal functions  *
- *****************************/
-
 

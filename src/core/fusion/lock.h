@@ -27,6 +27,8 @@
 #ifndef __LOCK_H__
 #define __LOCK_H__
 
+#include <pthread.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -34,55 +36,38 @@ extern "C"
 
 #include "fusion_types.h"
 
+typedef union {
+     int                  id;      /* multi app */
 
-#ifndef FUSION_FAKE
+     struct {
+          pthread_mutex_t lock;
+     } fake;                       /* single app */
+} FusionSkirmish;
 
-     typedef struct {
-          int id;
-     } FusionSkirmish;
+/*
+ * Initialize.
+ */
+FusionResult fusion_skirmish_init    (FusionSkirmish *skirmish);
 
-     /** These functions returns 0 on success and -1 on failure. **/
+/*
+ * Lock.
+ */
+FusionResult fusion_skirmish_prevail (FusionSkirmish *skirmish);
 
-     /*
-      * Initialize.
-      */
-     FusionResult fusion_skirmish_init    (FusionSkirmish *skirmish);
+/*
+ * Try lock.
+ */
+FusionResult fusion_skirmish_swoop   (FusionSkirmish *skirmish);
 
-     /*
-      * Lock.
-      */
-     FusionResult fusion_skirmish_prevail (FusionSkirmish *skirmish);
+/*
+ * Unlock.
+ */
+FusionResult fusion_skirmish_dismiss (FusionSkirmish *skirmish);
 
-     /*
-      * Try lock.
-      */
-     FusionResult fusion_skirmish_swoop   (FusionSkirmish *skirmish);
-
-     /*
-      * Unlock.
-      */
-     FusionResult fusion_skirmish_dismiss (FusionSkirmish *skirmish);
-
-     /*
-      * Deinitialize.
-      */
-     FusionResult fusion_skirmish_destroy (FusionSkirmish *skirmish);
-
-#else
-  #include <pthread.h>
-
-  #define FusionSkirmish      pthread_mutex_t
-
-     /*
-      * Initialize.
-      */
-     FusionResult fusion_skirmish_init    (FusionSkirmish *skirmish);
-
-  #define fusion_skirmish_prevail(s) pthread_mutex_lock (s)
-  #define fusion_skirmish_swoop(s)   pthread_mutex_trylock (s)
-  #define fusion_skirmish_dismiss(s) pthread_mutex_unlock (s)
-  #define fusion_skirmish_destroy(s) pthread_mutex_destroy (s)
-#endif
+/*
+ * Deinitialize.
+ */
+FusionResult fusion_skirmish_destroy (FusionSkirmish *skirmish);
 
 #ifdef __cplusplus
 }

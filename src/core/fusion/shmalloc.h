@@ -56,8 +56,6 @@ extern "C"
 {
 #endif
 
-#ifndef FUSION_FAKE
-
 #include <stddef.h>
 
 #include "fusion_types.h"
@@ -76,46 +74,13 @@ void *shcalloc (size_t __nmemb, size_t __size);
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
 void  shfree (void *__ptr);
 
-/* Allocate SIZE bytes allocated to ALIGNMENT bytes.  */
-void *shmemalign (size_t __alignment, size_t __size);
-
-/* Allocate SIZE bytes on a page boundary.  */
-void *shvalloc (size_t __size);
-
 /* Duplicate string in shared memory. */
-char *shstrdup (const char* string);
+char *shstrdup (const char *string);
 
 
 /* Check if a pointer points to the shared memory. */
 bool fusion_is_shared (const void *ptr);
 
-
-/* Statistics available to the user.  */
-struct shmstats {
-    size_t bytes_total;         /* Total size of the heap. */
-    size_t chunks_used;         /* Chunks allocated by the user. */
-    size_t bytes_used;          /* Byte total of user-allocated chunks. */
-    size_t chunks_free;         /* Chunks in the free list. */
-    size_t bytes_free;          /* Byte total of chunks in the free list. */
-};
-
-/* Pick up the current statistics. */
-void shmstats (struct shmstats *stats);
-
-#else
-     #include <stdlib.h>
-     #include <string.h>
-     #include <misc/mem.h>
-
-     #define shmalloc  DFBMALLOC
-     #define shrealloc DFBREALLOC
-     #define shcalloc  DFBCALLOC
-     #define shfree    DFBFREE
-     #define shstrdup  DFBSTRDUP
-     
-     #define fusion_is_shared(ptr) true
-
-#endif
 
 #ifdef __cplusplus
 }

@@ -42,21 +42,8 @@
 #include "fusion_internal.h"
 
 #include <signal.h>
-/***************************
- *  Internal declarations  *
- ***************************/
-
-
-/*******************
- *  Internal data  *
- *******************/
-
-
-
-/****************
- *  Public API  *
- ****************/
  
+
 #ifndef FUSION_FAKE
 
 FusionResult
@@ -64,7 +51,7 @@ fusion_ref_init (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     while (ioctl (_fusion_fd, FUSION_REF_NEW, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_NEW, &ref->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -86,7 +73,7 @@ fusion_ref_up (FusionRef *ref, bool global)
      DFB_ASSERT( ref != NULL );
 
      while (ioctl (_fusion_fd, global ?
-                   FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->ref_id))
+                   FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->id))
      {
           switch (errno) {
                case EINTR:
@@ -115,7 +102,7 @@ fusion_ref_down (FusionRef *ref, bool global)
      DFB_ASSERT( ref != NULL );
      
      while (ioctl (_fusion_fd, global ?
-                   FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->ref_id))
+                   FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->id))
      {
           switch (errno) {
                case EINTR:
@@ -146,7 +133,7 @@ fusion_ref_stat (FusionRef *ref, int *refs)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( refs != NULL );
 
-     while ((val = ioctl (_fusion_fd, FUSION_REF_STAT, &ref->ref_id)) < 0) {
+     while ((val = ioctl (_fusion_fd, FUSION_REF_STAT, &ref->id)) < 0) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -172,7 +159,7 @@ fusion_ref_zero_lock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     while (ioctl (_fusion_fd, FUSION_REF_ZERO_LOCK, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_ZERO_LOCK, &ref->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -196,7 +183,7 @@ fusion_ref_zero_trylock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     while (ioctl (_fusion_fd, FUSION_REF_ZERO_TRYLOCK, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_ZERO_TRYLOCK, &ref->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -222,7 +209,7 @@ fusion_ref_unlock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     while (ioctl (_fusion_fd, FUSION_REF_UNLOCK, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_UNLOCK, &ref->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -246,7 +233,7 @@ fusion_ref_destroy (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_REF_DESTROY, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_DESTROY, &ref->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -272,12 +259,12 @@ fusion_ref_init (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     pthread_mutex_init (&ref->lock, NULL);
-     pthread_cond_init (&ref->cond, NULL);
+     pthread_mutex_init (&ref->fake.lock, NULL);
+     pthread_cond_init (&ref->fake.cond, NULL);
 
-     ref->refs      = 0;
-     ref->destroyed = false;
-     ref->waiting   = 0;
+     ref->fake.refs      = 0;
+     ref->fake.destroyed = false;
+     ref->fake.waiting   = 0;
 
      return FUSION_SUCCESS;
 }
@@ -289,14 +276,14 @@ fusion_ref_up (FusionRef *ref, bool global)
 
      DFB_ASSERT( ref != NULL );
      
-     pthread_mutex_lock (&ref->lock);
+     pthread_mutex_lock (&ref->fake.lock);
 
-     if (ref->destroyed)
+     if (ref->fake.destroyed)
           ret = FUSION_DESTROYED;
      else
-          ref->refs++;
+          ref->fake.refs++;
      
-     pthread_mutex_unlock (&ref->lock);
+     pthread_mutex_unlock (&ref->fake.lock);
      
      return ret;
 }
@@ -308,17 +295,17 @@ fusion_ref_down (FusionRef *ref, bool global)
 
      DFB_ASSERT( ref != NULL );
      
-     pthread_mutex_lock (&ref->lock);
+     pthread_mutex_lock (&ref->fake.lock);
 
-     if (ref->destroyed)
+     if (ref->fake.destroyed)
           ret = FUSION_DESTROYED;
      else
-          ref->refs--;
+          ref->fake.refs--;
      
-     if (ref->waiting)
-          pthread_cond_broadcast (&ref->cond);
+     if (ref->fake.waiting)
+          pthread_cond_broadcast (&ref->fake.cond);
      
-     pthread_mutex_unlock (&ref->lock);
+     pthread_mutex_unlock (&ref->fake.lock);
      
      return ret;
 }
@@ -329,10 +316,10 @@ fusion_ref_stat (FusionRef *ref, int *refs)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( refs != NULL );
 
-     if (ref->destroyed)
+     if (ref->fake.destroyed)
           return FUSION_DESTROYED;
 
-     *refs = ref->refs;
+     *refs = ref->fake.refs;
 
      return FUSION_SUCCESS;
 }
@@ -344,21 +331,21 @@ fusion_ref_zero_lock (FusionRef *ref)
 
      DFB_ASSERT( ref != NULL );
      
-     pthread_mutex_lock (&ref->lock);
+     pthread_mutex_lock (&ref->fake.lock);
 
-     if (ref->destroyed)
+     if (ref->fake.destroyed)
           ret = FUSION_DESTROYED;
-     else while (ref->refs && !ret) {
-          ref->waiting++;
-          pthread_cond_wait (&ref->cond, &ref->lock);
-          ref->waiting--;
+     else while (ref->fake.refs && !ret) {
+          ref->fake.waiting++;
+          pthread_cond_wait (&ref->fake.cond, &ref->fake.lock);
+          ref->fake.waiting--;
           
-          if (ref->destroyed)
+          if (ref->fake.destroyed)
                ret = FUSION_DESTROYED;
      }
      
      if (ret != FUSION_SUCCESS)
-          pthread_mutex_unlock (&ref->lock);
+          pthread_mutex_unlock (&ref->fake.lock);
      
      return ret;
 }
@@ -370,15 +357,15 @@ fusion_ref_zero_trylock (FusionRef *ref)
 
      DFB_ASSERT( ref != NULL );
      
-     pthread_mutex_lock (&ref->lock);
+     pthread_mutex_lock (&ref->fake.lock);
 
-     if (ref->destroyed)
+     if (ref->fake.destroyed)
           ret = FUSION_DESTROYED;
-     else if (ref->refs)
+     else if (ref->fake.refs)
           ret = FUSION_INUSE;
      
      if (ret != FUSION_SUCCESS)
-          pthread_mutex_unlock (&ref->lock);
+          pthread_mutex_unlock (&ref->fake.lock);
      
      return ret;
 }
@@ -388,7 +375,7 @@ fusion_ref_unlock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     pthread_mutex_unlock (&ref->lock);
+     pthread_mutex_unlock (&ref->fake.lock);
 
      return FUSION_SUCCESS;
 }
@@ -398,26 +385,16 @@ fusion_ref_destroy (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     ref->destroyed = true;
+     ref->fake.destroyed = true;
 
-     if (ref->waiting)
-          pthread_cond_broadcast (&ref->cond);
+     if (ref->fake.waiting)
+          pthread_cond_broadcast (&ref->fake.cond);
 
-     pthread_mutex_unlock (&ref->lock);
-     pthread_cond_destroy (&ref->cond);
+     pthread_mutex_unlock (&ref->fake.lock);
+     pthread_cond_destroy (&ref->fake.cond);
      
      return FUSION_SUCCESS;
 }
 
 #endif
-
-/*******************************
- *  Fusion internal functions  *
- *******************************/
-
-
-
-/*****************************
- *  File internal functions  *
- *****************************/
 

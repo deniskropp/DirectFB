@@ -202,10 +202,10 @@ fusion_property_destroy (FusionProperty *property)
 FusionResult
 fusion_property_init (FusionProperty *property)
 {
-     pthread_mutex_init (&property->lock, NULL);
-     pthread_cond_init (&property->cond, NULL);
+     pthread_mutex_init (&property->fake.lock, NULL);
+     pthread_cond_init (&property->fake.cond, NULL);
 
-     property->state = FUSION_PROPERTY_AVAILABLE;
+     property->fake.state = FUSION_PROPERTY_AVAILABLE;
 
      return FUSION_SUCCESS;
 }
@@ -218,19 +218,19 @@ fusion_property_lease (FusionProperty *property)
 {
      FusionResult ret = FUSION_SUCCESS;
 
-     pthread_mutex_lock (&property->lock);
+     pthread_mutex_lock (&property->fake.lock);
 
      /* Wait as long as the property is leased by another party. */
-     while (property->state == FUSION_PROPERTY_LEASED)
-          pthread_cond_wait (&property->cond, &property->lock);
+     while (property->fake.state == FUSION_PROPERTY_LEASED)
+          pthread_cond_wait (&property->fake.cond, &property->fake.lock);
 
      /* Fail if purchased by another party, otherwise succeed. */
-     if (property->state == FUSION_PROPERTY_PURCHASED)
+     if (property->fake.state == FUSION_PROPERTY_PURCHASED)
           ret = FUSION_INUSE;
      else
-          property->state = FUSION_PROPERTY_LEASED;
+          property->fake.state = FUSION_PROPERTY_LEASED;
 
-     pthread_mutex_unlock (&property->lock);
+     pthread_mutex_unlock (&property->fake.lock);
 
      return ret;
 }
@@ -243,23 +243,23 @@ fusion_property_purchase (FusionProperty *property)
 {
      FusionResult ret = FUSION_SUCCESS;
 
-     pthread_mutex_lock (&property->lock);
+     pthread_mutex_lock (&property->fake.lock);
 
      /* Wait as long as the property is leased by another party. */
-     while (property->state == FUSION_PROPERTY_LEASED)
-          pthread_cond_wait (&property->cond, &property->lock);
+     while (property->fake.state == FUSION_PROPERTY_LEASED)
+          pthread_cond_wait (&property->fake.cond, &property->fake.lock);
 
      /* Fail if purchased by another party, otherwise succeed. */
-     if (property->state == FUSION_PROPERTY_PURCHASED)
+     if (property->fake.state == FUSION_PROPERTY_PURCHASED)
           ret = FUSION_INUSE;
      else {
-          property->state = FUSION_PROPERTY_PURCHASED;
+          property->fake.state = FUSION_PROPERTY_PURCHASED;
 
           /* Wake up any other waiting party. */
-          pthread_cond_broadcast (&property->cond);
+          pthread_cond_broadcast (&property->fake.cond);
      }
 
-     pthread_mutex_unlock (&property->lock);
+     pthread_mutex_unlock (&property->fake.lock);
 
      return ret;
 }
@@ -270,18 +270,18 @@ fusion_property_purchase (FusionProperty *property)
 FusionResult
 fusion_property_cede (FusionProperty *property)
 {
-     pthread_mutex_lock (&property->lock);
+     pthread_mutex_lock (&property->fake.lock);
 
      /* Simple error checking, maybe we should also check the owner. */
-     DFB_ASSERT( property->state != FUSION_PROPERTY_AVAILABLE );
+     DFB_ASSERT( property->fake.state != FUSION_PROPERTY_AVAILABLE );
 
      /* Put back into 'available' state. */
-     property->state = FUSION_PROPERTY_AVAILABLE;
+     property->fake.state = FUSION_PROPERTY_AVAILABLE;
 
      /* Wake up one waiting party if there are any. */
-     pthread_cond_signal (&property->cond);
+     pthread_cond_signal (&property->fake.cond);
      
-     pthread_mutex_unlock (&property->lock);
+     pthread_mutex_unlock (&property->fake.lock);
      
      return FUSION_SUCCESS;
 }
@@ -301,8 +301,8 @@ fusion_property_holdup (FusionProperty *property)
 FusionResult
 fusion_property_destroy (FusionProperty *property)
 {
-     pthread_cond_destroy (&property->cond);
-     pthread_mutex_destroy (&property->lock);
+     pthread_cond_destroy (&property->fake.cond);
+     pthread_mutex_destroy (&property->fake.lock);
      
      return FUSION_SUCCESS;
 }

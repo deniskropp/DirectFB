@@ -13,11 +13,8 @@ AM_CPPFLAGS = \
 noinst_LTLIBRARIES = libdirectfb_shmalloc.la
 
 libdirectfb_shmalloc_la_SOURCES = \
-	mstats.c			\
 	shcalloc.c			\
 	shfree.c			\
 	shmalloc.c			\
 	shmalloc_internal.h		\
-	shmemalign.c			\
-	shrealloc.c			\
-	shvalloc.c
+	shrealloc.c

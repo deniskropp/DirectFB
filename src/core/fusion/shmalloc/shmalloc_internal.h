@@ -73,14 +73,6 @@ void *_fusion_shcalloc (size_t __nmemb, size_t __size);
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
 void  _fusion_shfree (void *__ptr);
 
-/* Allocate SIZE bytes allocated to ALIGNMENT bytes.  */
-void *_fusion_shmemalign (size_t __alignment, size_t __size);
-
-/* Allocate SIZE bytes on a page boundary.  */
-void *_fusion_shvalloc (size_t __size);
-
-/* Pick up the current statistics. */
-void _fusion_shmstats (struct shmstats *stats);
 
 
 void *__shmalloc_init (int world, bool initialize);
