@@ -872,7 +872,7 @@ driver_init_device( GraphicsDevice     *device,
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
                snprintf( device_info->name,
-                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G400/G450" );
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G400/G450/G550" );
                break;
 #endif
           case FB_ACCEL_MATROX_MGAG200:
