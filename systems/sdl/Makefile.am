@@ -20,7 +20,10 @@ systems_LTLIBRARIES = libdirectfb_sdl.la
 
 inputdriversdir = $(MODULEDIR)/inputdrivers
 
+if BUILD_STATIC
 inputdrivers_DATA = libdirectfb_sdlinput.o
+endif
+
 inputdrivers_LTLIBRARIES = libdirectfb_sdlinput.la
 
 
@@ -45,3 +48,4 @@ libdirectfb_sdlinput_la_SOURCES = \
 
 
 include $(top_srcdir)/rules/libobject.make
+

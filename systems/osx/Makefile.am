@@ -11,6 +11,11 @@ systemsdir = $(MODULEDIR)/systems
 
 systems_LTLIBRARIES = libdirectfb_osx.la
 
+if BUILD_STATIC
+systems_DATA = libdirectfb_osx.o
+endif
+
+
 libdirectfb_osx_la_LDFLAGS = \
 	-framework CoreGraphics	\
 	-avoid-version	\
@@ -26,6 +31,11 @@ inputdriversdir = $(MODULEDIR)/inputdrivers
 
 inputdrivers_LTLIBRARIES = libdirectfb_osxinput.la
 
+if BUILD_STATIC
+inputdrivers_DATA = libdirectfb_osxinput.o
+endif
+
+
 libdirectfb_osxinput_la_LDFLAGS = \
 	-framework Carbon	\
 	-avoid-version	\
@@ -33,3 +43,7 @@ libdirectfb_osxinput_la_LDFLAGS = \
 
 libdirectfb_osxinput_la_SOURCES = \
 	osxinput.c
+
+
+include $(top_srcdir)/rules/libobject.make	
+
