@@ -618,7 +618,7 @@ extern "C"
           DCAF_BRIGHTNESS   = 0x00000001,  /* brightness field is valid  */
           DCAF_CONTRAST     = 0x00000002,  /* contrast field is valid    */
           DCAF_HUE          = 0x00000004,  /* hue field is valid         */
-          DCAF_SATURATION   = 0x00000008,  /* saturation field is valid  */
+          DCAF_SATURATION   = 0x00000008   /* saturation field is valid  */
      } DFBColorAdjustmentFlags;
 
      /* 
