@@ -22,6 +22,11 @@ INCLUDES = \
 	-I$(top_srcdir)/proxy/requestor	\
 	-DDATADIR=\"@DATADIR@\"
 
+LIBS = \
+	$(top_builddir)/lib/voodoo/libvoodoo.la \
+	$(top_builddir)/lib/direct/libdirect.la
+
+
 idirectfb_LTLIBRARIES = \
 	libidirectfb_dispatcher.la
 
@@ -55,30 +60,40 @@ idirectfbwindow_LTLIBRARIES = \
 
 libidirectfb_dispatcher_la_SOURCES = idirectfb_dispatcher.c
 libidirectfb_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfb_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbdatabuffer_dispatcher_la_SOURCES = idirectfbdatabuffer_dispatcher.c
 libidirectfbdatabuffer_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbdatabuffer_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbdisplaylayer_dispatcher_la_SOURCES = idirectfbdisplaylayer_dispatcher.c
 libidirectfbdisplaylayer_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbdisplaylayer_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbeventbuffer_dispatcher_la_SOURCES = idirectfbeventbuffer_dispatcher.c
 libidirectfbeventbuffer_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbeventbuffer_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbfont_dispatcher_la_SOURCES = idirectfbfont_dispatcher.c
 libidirectfbfont_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbfont_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbimageprovider_dispatcher_la_SOURCES = idirectfbimageprovider_dispatcher.c
 libidirectfbimageprovider_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbimageprovider_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbpalette_dispatcher_la_SOURCES = idirectfbpalette_dispatcher.c
 libidirectfbpalette_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbpalette_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbscreen_dispatcher_la_SOURCES = idirectfbscreen_dispatcher.c
 libidirectfbscreen_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbscreen_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbsurface_dispatcher_la_SOURCES = idirectfbsurface_dispatcher.c
 libidirectfbsurface_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbsurface_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbwindow_dispatcher_la_SOURCES = idirectfbwindow_dispatcher.c
 libidirectfbwindow_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbwindow_dispatcher_la_LIBADDD = $(LIBS)

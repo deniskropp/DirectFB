@@ -22,6 +22,11 @@ INCLUDES = \
 	-I$(top_srcdir)/proxy/dispatcher	\
 	-DDATADIR=\"@DATADIR@\"
 
+LIBS = \
+	$(top_builddir)/lib/voodoo/libvoodoo.la	\
+	$(top_builddir)/lib/direct/libdirect.la
+
+
 idirectfb_LTLIBRARIES = \
 	libidirectfb_requestor.la
 
@@ -55,40 +60,40 @@ idirectfbwindow_LTLIBRARIES = \
 
 libidirectfb_requestor_la_SOURCES = idirectfb_requestor.c
 libidirectfb_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfb_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfb_requestor_la_LIBADD  = $(LIBS)
 
 libidirectfbdatabuffer_requestor_la_SOURCES = idirectfbdatabuffer_requestor.c
 libidirectfbdatabuffer_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfbdatabuffer_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfbdatabuffer_requestor_la_LIBADD  = $(LIBS)
 
 libidirectfbdisplaylayer_requestor_la_SOURCES = idirectfbdisplaylayer_requestor.c
 libidirectfbdisplaylayer_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfbdisplaylayer_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfbdisplaylayer_requestor_la_LIBADD  = $(LIBS)
 
 libidirectfbeventbuffer_requestor_la_SOURCES = idirectfbeventbuffer_requestor.c
 libidirectfbeventbuffer_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfbeventbuffer_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfbeventbuffer_requestor_la_LIBADD  = $(LIBS)
 
 libidirectfbfont_requestor_la_SOURCES = idirectfbfont_requestor.c
 libidirectfbfont_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfbfont_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfbfont_requestor_la_LIBADD  = $(LIBS)
 
 libidirectfbimageprovider_requestor_la_SOURCES = idirectfbimageprovider_requestor.c
 libidirectfbimageprovider_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfbimageprovider_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfbimageprovider_requestor_la_LIBADD  = $(LIBS)
 
 libidirectfbpalette_requestor_la_SOURCES = idirectfbpalette_requestor.c
 libidirectfbpalette_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfbpalette_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfbpalette_requestor_la_LIBADD  = $(LIBS)
 
 libidirectfbscreen_requestor_la_SOURCES = idirectfbscreen_requestor.c
 libidirectfbscreen_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfbscreen_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfbscreen_requestor_la_LIBADD  = $(LIBS)
 
 libidirectfbsurface_requestor_la_SOURCES = idirectfbsurface_requestor.c
 libidirectfbsurface_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfbsurface_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfbsurface_requestor_la_LIBADD  = $(LIBS)
 
 libidirectfbwindow_requestor_la_SOURCES = idirectfbwindow_requestor.c
 libidirectfbwindow_requestor_la_LDFLAGS = -avoid-version -module
-libidirectfbwindow_requestor_la_LIBADD  = $(top_builddir)/lib/voodoo/libvoodoo.la
+libidirectfbwindow_requestor_la_LIBADD  = $(LIBS)
