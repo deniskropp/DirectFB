@@ -43,6 +43,8 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+
+#include <linux/compiler.h>
 #include <linux/videodev.h>
 
 #include <directfb.h>
