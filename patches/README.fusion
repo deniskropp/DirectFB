@@ -1,0 +1,16 @@
+Quick guide
+------------
+
+Patch your kernel:
+
+	patch -p1 < fusion-all-linux-2.4.20-pre11.patch
+
+Enable the character device driver module "Fusion Kernel Device",
+build and install modules, insmod fusion. Maybe check /proc/misc.
+
+Create the fusion device:
+
+	mknod /dev/fusion c 10 23
+
+Make sure /usr/include/linux points to the patched kernel tree
+so that <linux/fusion.h> is found at configure time of DirectFB.
