@@ -758,8 +758,12 @@ frame_output( void *cdata, int width, int height,
 	data->height = height;
 
 	if (data->full_area)
-		*dest_rect = data->dest_data->area.wanted;
-	else
+	{
+		dest_rect->x = 0; /* the driver adds area.wanted.x */
+		dest_rect->y = 0; /* the driver adds area.wanted.y */
+		dest_rect->w = data->dest_data->area.wanted.w;
+		dest_rect->h = data->dest_data->area.wanted.h;
+	} else
 		*dest_rect = data->dest_rect;
 }
 
