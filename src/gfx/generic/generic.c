@@ -1685,19 +1685,31 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
 
-#define SET_ALPHA_PIXEL_RGB15(d,a) \
-     switch (a) {\
-     case 0xff: *(d) = Cop;\
-     case 0: break;\
-     default: {\
-          __u32 pixel = *(d);\
-          register __u8   s = ((a)>>3)+1;\
-          register __u32 t1 = (pixel & 0x7c1f);\
-          register __u32 t2 = (pixel & 0x03e0);\
-          pixel = ((((rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
-                   ((( g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5;\
-          *(d) = pixel;\
+#define SET_ALPHA_PIXEL_DUFFS_DEVICE(D, S, w, format) \
+     while (w) {\
+          int l = w & 0x7;\
+          switch (l) {\
+               default:\
+                    l = 0x8;\
+                    SET_ALPHA_PIXEL_##format( D[0x7], S[0x7] );\
+               case 0x7:\
+                    SET_ALPHA_PIXEL_##format( D[0x6], S[0x6] );\
+               case 0x6:\
+                    SET_ALPHA_PIXEL_##format( D[0x5], S[0x5] );\
+               case 0x5:\
+                    SET_ALPHA_PIXEL_##format( D[0x4], S[0x4] );\
+               case 0x4:\
+                    SET_ALPHA_PIXEL_##format( D[0x3], S[0x3] );\
+               case 0x3:\
+                    SET_ALPHA_PIXEL_##format( D[0x2], S[0x2] );\
+               case 0x2:\
+                    SET_ALPHA_PIXEL_##format( D[0x1], S[0x1] );\
+               case 0x1:\
+                    SET_ALPHA_PIXEL_##format( D[0x0], S[0x0] );\
           }\
+          D += l;\
+          S += l;\
+          w -= l;\
      }
 
 static void Bop_a8_set_alphapixel_Aop_rgb15()
@@ -1708,30 +1720,24 @@ static void Bop_a8_set_alphapixel_Aop_rgb15()
      __u32  rb = Cop & 0x7c1f;
      __u32  g  = Cop & 0x03e0;
 
-     while (w>4) {
-          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
-          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
-          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
-          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
-          w-=4;
-     }
-     while (w--) {
-          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
-     }
-}
-
-#define SET_ALPHA_PIXEL_RGB16(d,a)\
+#define SET_ALPHA_PIXEL_RGB15(d,a) \
      switch (a) {\
-     case 0xff: d = Cop;\
-     case 0: break;\
-     default: {\
-          register __u8   s = ((a)>>2)+1;\
-          register __u32 t1 = (d & 0xf81f);\
-          register __u32 t2 = (d & 0x07e0);\
-          d  = ((((rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
-                ((( g-t2)*s+(t2<<6)) & 0x0001f800)) >> 6;\
+          case 0xff: d = Cop;\
+          case 0: break;\
+          default: {\
+               register __u8   s = (a>>3)+1;\
+               register __u32 t1 = (d & 0x7c1f);\
+               register __u32 t2 = (d & 0x03e0);\
+               d = ((((rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
+                    ((( g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5;\
           }\
      }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB15 );
+
+#undef SET_ALPHA_PIXEL_RGB15
+}
+
 
 static void Bop_a8_set_alphapixel_Aop_rgb16()
 {
@@ -1741,77 +1747,44 @@ static void Bop_a8_set_alphapixel_Aop_rgb16()
      __u32  rb = Cop & 0xf81f;
      __u32  g  = Cop & 0x07e0;
 
-     while (w) {
-          int l = w & 0xf;
-
-          switch (l) {
-               default:
-                    l = 0x10;
-                    SET_ALPHA_PIXEL_RGB16( D[0xf], S[0xf] );
-               case 0xf:
-                    SET_ALPHA_PIXEL_RGB16( D[0xe], S[0xe] );
-               case 0xe:
-                    SET_ALPHA_PIXEL_RGB16( D[0xd], S[0xd] );
-               case 0xd:
-                    SET_ALPHA_PIXEL_RGB16( D[0xc], S[0xc] );
-               case 0xc:
-                    SET_ALPHA_PIXEL_RGB16( D[0xb], S[0xb] );
-               case 0xb:
-                    SET_ALPHA_PIXEL_RGB16( D[0xa], S[0xa] );
-               case 0xa:
-                    SET_ALPHA_PIXEL_RGB16( D[0x9], S[0x9] );
-               case 0x9:
-                    SET_ALPHA_PIXEL_RGB16( D[0x8], S[0x8] );
-               case 0x8:
-                    SET_ALPHA_PIXEL_RGB16( D[0x7], S[0x7] );
-               case 0x7:
-                    SET_ALPHA_PIXEL_RGB16( D[0x6], S[0x6] );
-               case 0x6:
-                    SET_ALPHA_PIXEL_RGB16( D[0x5], S[0x5] );
-               case 0x5:
-                    SET_ALPHA_PIXEL_RGB16( D[0x4], S[0x4] );
-               case 0x4:
-                    SET_ALPHA_PIXEL_RGB16( D[0x3], S[0x3] );
-               case 0x3:
-                    SET_ALPHA_PIXEL_RGB16( D[0x2], S[0x2] );
-               case 0x2:
-                    SET_ALPHA_PIXEL_RGB16( D[0x1], S[0x1] );
-               case 0x1:
-                    SET_ALPHA_PIXEL_RGB16( D[0x0], S[0x0] );
-          }
-
-          D += l;
-          S += l;
-          w -= l;
+#define SET_ALPHA_PIXEL_RGB16(d,a)\
+     switch (a) {\
+          case 0xff: d = Cop;\
+          case 0: break;\
+          default: {\
+               register __u8   s = (a>>2)+1;\
+               register __u32 t1 = (d & 0xf81f);\
+               register __u32 t2 = (d & 0x07e0);\
+               d  = ((((rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
+                     ((( g-t2)*s+(t2<<6)) & 0x0001f800)) >> 6;\
+          }\
      }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB16 );
+
+#undef SET_ALPHA_PIXEL_RGB16
 }
-
-#define SET_ALPHA_PIXEL_RGB24(d,r,g,b,a)\
-     if (a) {\
-          __u8 *pixel = (d);\
-          \
-          if ((a) == 0xff) {\
-               *pixel++ = (b);\
-               *pixel++ = (g);\
-               *pixel++ = (r);\
-          }\
-          else {\
-               register __u16 s = (a)+1;\
-               \
-               *pixel = (((b)-(*pixel)) * s + (*pixel << 8)) >> 8;\
-               ++pixel;\
-               *pixel = (((g)-(*pixel)) * s + (*pixel << 8)) >> 8;\
-               ++pixel;\
-               *pixel = (((r)-(*pixel)) * s + (*pixel << 8)) >> 8;\
-               ++pixel;\
-          }\
-     }
 
 static void Bop_a8_set_alphapixel_Aop_rgb24()
 {
      int    w = Dlength;
      __u8  *S = Bop;
      __u8  *D = Aop;
+
+#define SET_ALPHA_PIXEL_RGB24(d,r,g,b,a)\
+     switch (a) {\
+         case 0xff:\
+               d[0] = b;\
+               d[1] = g;\
+               d[2] = r;\
+          case 0: break;\
+          default: {\
+               register __u16 s = a+1;\
+               d[0] = ((b-d[0]) * s + (d[0] << 8)) >> 8;\
+               d[1] = ((g-d[1]) * s + (d[1] << 8)) >> 8;\
+               d[2] = ((r-d[2]) * s + (d[2] << 8)) >> 8;\
+          }\
+     }
 
      while (w>4) {
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
@@ -1823,22 +1796,9 @@ static void Bop_a8_set_alphapixel_Aop_rgb24()
      while (w--) {
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3, S++;
      }
-}
 
-#define SET_ALPHA_PIXEL_RGB32(d,a)\
-     switch (a) {\
-     case 0xff: *(d) = Cop;\
-     case 0: break;\
-     default: {\
-          __u32 pixel = *(d);\
-          register __u16  s = (a)+1;\
-          register __u32 t1 = (pixel & 0x00ff00ff);\
-          register __u32 t2 = (pixel & 0x0000ff00);\
-          pixel = ((((rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
-                   ((( g-t2)*s+(t2<<8)) & 0x00ff0000)) >> 8;\
-          *(d) = pixel;\
-          }\
-     }
+#undef SET_ALPHA_PIXEL_RGB24
+}
 
 static void Bop_a8_set_alphapixel_Aop_rgb32()
 {
@@ -1848,36 +1808,26 @@ static void Bop_a8_set_alphapixel_Aop_rgb32()
      __u32  rb = Cop & 0xff00ff;
      __u32  g  = Cop & 0x00ff00;
 
-     while (w>4) {
-          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
-          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
-          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
-          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
-      w-=4;
+#define SET_ALPHA_PIXEL_RGB32(d,a)\
+     switch (a) {\
+          case 0xff: d = Cop;\
+          case 0: break;\
+          default: {\
+               register __u16  s = (a)+1;\
+               register __u32 t1 = (d & 0x00ff00ff);\
+               register __u32 t2 = (d & 0x0000ff00);\
+               d = ((((rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
+                    ((( g-t2)*s+(t2<<8)) & 0x00ff0000)) >> 8;\
+          }\
      }
-     while (w--) {
-          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
-     }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB32 );
+
+#undef SET_ALPHA_PIXEL_RGB32
 }
 
 
 /* saturating alpha blend */
-
-#define SET_ALPHA_PIXEL_ARGB(d,a)\
-     switch (a) {\
-     case 0xff: *(d) = 0xff000000 | Cop;\
-     case 0: break;\
-     default: {\
-          __u32 pixel = *(d);\
-          register __u16  s = (a)+1;\
-          register __u16 s1 = 256-s;\
-          register __u16 sa = (pixel >> 24) + a;\
-          if (sa & 0xff00) sa = 0xff;\
-          *(d) = (sa << 24) + \
-                 (((((pixel & 0x00ff00ff)       * s1) + (rb  * s)) >> 8) & 0x00ff00ff) + \
-                 (((((pixel & 0x0000ff00) >> 8) * s1) + ((g) * s))       & 0x0000ff00);  \
-          }\
-     }
 
 static void Bop_a8_set_alphapixel_Aop_argb()
 {
@@ -1887,29 +1837,25 @@ static void Bop_a8_set_alphapixel_Aop_argb()
      __u32  rb = Cop & 0x00ff00ff;
      __u32  g  = color.g;
 
-     while (w>4) {
-          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
-          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
-          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
-          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
-      w-=4;
-     }
-     while (w--) {
-          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
-     }
-}
-
-#define SET_ALPHA_PIXEL_A8(d,a)\
+#define SET_ALPHA_PIXEL_ARGB(d,a)\
      switch (a) {\
-     case 0xff: *(d) = 0xff;\
-     case 0: break; \
-     default: {\
-          __u16 pixel = *(d);\
-          register __u16 s = (a)+1;\
-          register __u16 s1 = 256-s;\
-          *(d) = (pixel * s1 + s) >> 8;\
+          case 0xff: d = 0xff000000 | Cop;\
+          case 0: break;\
+          default: {\
+               register __u16  s = a+1;\
+               register __u16 s1 = 256-s;\
+               register __u16 sa = (d >> 24) + a;\
+               if (sa & 0xff00) sa = 0xff;\
+               d = (sa << 24) + \
+                    (((((d & 0x00ff00ff)       * s1) + (rb  * s)) >> 8) & 0x00ff00ff) + \
+                    (((((d & 0x0000ff00) >> 8) * s1) + ((g) * s))       & 0x0000ff00);  \
           }\
      }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, ARGB );
+
+#undef SET_ALPHA_PIXEL_ARGB
+}
 
 static void Bop_a8_set_alphapixel_Aop_a8()
 {
@@ -1917,25 +1863,23 @@ static void Bop_a8_set_alphapixel_Aop_a8()
      __u8  *S = Bop;
      __u8  *D = Aop;
 
-     while (w>4) {
-          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
-          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
-          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
-          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
-      w -= 4;
+#define SET_ALPHA_PIXEL_A8(d,a)\
+     switch (a) {\
+          case 0xff: d = 0xff;\
+          case 0: break; \
+          default: {\
+               register __u16 s = (a)+1;\
+               register __u16 s1 = 256-s;\
+               d = (d * s1 + s) >> 8;\
+          }\
      }
-     while (w--) {
-          SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
-     }
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, A8 );
+
+#undef SET_ALPHA_PIXEL_A8
 }
 
 #ifdef SUPPORT_RGB332
-
-/* FIXME: implement correctly! */
-#define SET_ALPHA_PIXEL_RGB332(d,a) \
-     if (a > 127) \
-          *(d) = PIXEL_RGB332( color.r, color.g, color.b );
-
 
 static void Bop_a8_set_alphapixel_Aop_rgb332()
 {
@@ -1943,16 +1887,14 @@ static void Bop_a8_set_alphapixel_Aop_rgb332()
      __u8  *S = Bop;
      __u8  *D = Aop;
 
-     while (w>4) {
-          SET_ALPHA_PIXEL_RGB332 (D, *S); D++; S++;
-          SET_ALPHA_PIXEL_RGB332 (D, *S); D++; S++;
-          SET_ALPHA_PIXEL_RGB332 (D, *S); D++; S++;
-          SET_ALPHA_PIXEL_RGB332 (D, *S); D++; S++;
-      w -= 4;
-     }
-     while (w--) {
-          SET_ALPHA_PIXEL_RGB332 (D, *S); D++; S++;
-     }
+/* FIXME: implement correctly! */
+#define SET_ALPHA_PIXEL_RGB332(d,a) \
+     if (a & 0x80) \
+          d = PIXEL_RGB332( color.r, color.g, color.b );
+
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB332 );
+
+#undef SET_ALPHA_PIXEL_RGB332
 }
 #endif
 
