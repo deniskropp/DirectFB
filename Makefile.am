@@ -8,6 +8,10 @@ if BUILD_TOOLS
 TOOLS_DIR = tools
 endif
 
+if ENABLE_VOODOO
+PROXY_DIR = proxy
+endif
+
 SUBDIRS = \
 	data			\
 	docs			\
@@ -16,7 +20,7 @@ SUBDIRS = \
 	src 			\
 	systems			\
 	interfaces 		\
-	proxy			\
+	$(PROXY_DIR)		\
 	$(LINUXONLY_DIRS)	\
 	$(TOOLS_DIR)		\
 	patches

@@ -1,3 +1,7 @@
 ## Makefile.am for DirectFB/lib
 
-SUBDIRS = direct fusion voodoo
+if ENABLE_VOODOO
+VOODOO_DIR = voodoo
+endif
+
+SUBDIRS = direct fusion $(VOODOO_DIR)

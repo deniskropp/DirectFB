@@ -22,7 +22,11 @@ LINUXONLY_TOOLS =	\
 	raw32toraw24
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfblayer dfbproxy
+if ENABLE_VOODOO
+VOODOO_PROGS = dfbproxy
+endif
+
+bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfblayer $(VOODOO_PROGS)
 
 noinst_PROGRAMS = \
 	$(LINUXONLY_TOOLS)
