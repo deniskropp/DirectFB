@@ -702,10 +702,10 @@ AudioThread( void *ctx )
 
 static DFBResult
 IDirectFBVideoProvider_OpenQuicktime_PlayTo( IDirectFBVideoProvider *thiz,
-                                        IDirectFBSurface       *destination,
-                                        DFBRectangle           *dstrect,
-                                        DVFrameCallback         callback,
-                                        void                   *ctx )
+                                             IDirectFBSurface       *destination,
+                                             const DFBRectangle     *dstrect,
+                                             DVFrameCallback         callback,
+                                             void                   *ctx )
 {
      int                    yuv_mode = 0;
      DFBRectangle           rect, dest_rect, dest_clip;
