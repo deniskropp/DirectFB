@@ -508,6 +508,9 @@ static void* GrabThread( CoreThread *thread, void *ctx )
      while (data->running) {
           ioctl( data->fd, VIDIOCSYNC, &frame );
 
+          if (!data->running)
+               break;
+          
           h = surface->height;
           src = data->buffer + data->vmbuf.offsets[frame];
           dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &dst_pitch, 0 );
@@ -545,6 +548,9 @@ static void* GrabThread( CoreThread *thread, void *ctx )
           data->vmmap.frame = frame;
           ioctl( data->fd, VIDIOCMCAPTURE, &data->vmmap );
 
+          if (!data->running)
+               break;
+          
           if (data->callback)
                data->callback(data->ctx);
 
