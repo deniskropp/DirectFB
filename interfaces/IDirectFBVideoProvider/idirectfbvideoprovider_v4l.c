@@ -803,8 +803,6 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 {
-     printf("v4l: stop\n");
-     
      if (data->thread) {
           dfb_thread_cancel( data->thread );
           dfb_thread_join( data->thread );
