@@ -171,20 +171,21 @@ sub parse_interface (NAME)
                         last if /^\s*\)\;\s*$/;
 
 
-                        if ( /^\s*([\w\ ]+)\s+(\**\w+)\s*,?\s*$/ )
+                        if ( /^\s*(const )?([\w\ ]+)\s+(\**\w+)\s*,?\s*$/ )
                            {
-                              $type = $1;
-                              $name = $2;
+                              $const = $1;
+                              $type  = $2;
+                              $name  = $3;
 
                               $type =~ s/\ *$//;
 
                               if ($types{$type})
                                  {
-                                    $type = "<A href=\"types.html#$type\">$type</A>";
+                                    $type = "$const<A href=\"types.html#$type\">$type</A>";
                                  }
                               elsif ($interface_abstracts{$type})
                                  {
-                                    $type = "<A href=\"$type.html\">$type</A>";
+                                    $type = "<A href=\"$type.html\">$const$type</A>";
                                  }
 
                               print FUNCTION "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",
