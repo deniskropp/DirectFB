@@ -126,16 +126,16 @@ static unsigned char keyboard_translate(unsigned short kb_value)
                break;
           case 0xe: /* special IPAQ H3600 case - AH */
                switch (key_index) {
-                    case 0x20:     return DIKC_IPAQ_CAL; /* calendar button */
-                    case 0x1a:     return DIKC_IPAQ_ARROW; /* arrow button */
-                    case 0x1c:     return DIKC_IPAQ_MEMO; /* memo button */
-                    case 0x21:     return DIKC_IPAQ_SUSPEND; /* power suspend */
+                    case 0x20:     return DIKC_CALENDAR;
+                    case 0x1a:     return DIKC_BACK;
+                    case 0x1c:     return DIKC_MEMO;
+                    case 0x21:     return DIKC_POWER;
                }
                break;
           case 0xd: /* another special IPAQ H3600 case - AH */
                switch (key_index) {
-                    case 0x2:     return DIKC_IPAQ_NOTE; /* notepad button */
-                    case 0x1:     return DIKC_IPAQ_Q; /* Q button */
+                    case 0x2:     return DIKC_DIRECTORY;
+                    case 0x1:     return DIKC_MAIL;  /* Q on older iPaqs */
                }
                break;
      }
