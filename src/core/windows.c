@@ -204,7 +204,7 @@ dfb_window_create( CoreWindowStack        *stack,
      if (width > 4096 || height > 4096)
           return DFB_LIMITEXCEEDED;
 
-     surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED |
+     surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_DEPTH |
                      DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
 
      if (!dfb_config->translucent_windows) {

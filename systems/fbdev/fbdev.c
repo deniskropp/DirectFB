@@ -1593,6 +1593,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
           surface->front_buffer->surface = surface;
           surface->front_buffer->policy = CSP_VIDEOONLY;
+          surface->front_buffer->format = format;
           surface->front_buffer->video.health = CSH_STORED;
           surface->front_buffer->video.pitch = fix.line_length;
           surface->front_buffer->video.offset = 0;
@@ -1636,6 +1637,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     }
                     surface->back_buffer->surface = surface;
                     surface->back_buffer->policy = CSP_VIDEOONLY;
+                    surface->back_buffer->format = format;
                     surface->back_buffer->video.health = CSH_STORED;
                     surface->back_buffer->video.pitch = fix.line_length;
                     surface->back_buffer->video.offset =
@@ -1667,6 +1669,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     }
                     surface->back_buffer->surface = surface;
                     surface->back_buffer->policy = CSP_VIDEOONLY;
+                    surface->back_buffer->format = format;
                     surface->back_buffer->video.health = CSH_STORED;
                     surface->back_buffer->video.pitch = fix.line_length;
                     surface->back_buffer->video.offset =
@@ -1685,6 +1688,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     }
                     surface->idle_buffer->surface = surface;
                     surface->idle_buffer->policy = CSP_VIDEOONLY;
+                    surface->idle_buffer->format = format;
                     surface->idle_buffer->video.health = CSH_STORED;
                     surface->idle_buffer->video.pitch = fix.line_length;
                     surface->idle_buffer->video.offset =
@@ -1699,6 +1703,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     }
                     surface->back_buffer->surface = surface;
                     surface->back_buffer->policy = CSP_SYSTEMONLY;
+                    surface->back_buffer->format = format;
                     surface->back_buffer->video.health = CSH_INVALID;
                     surface->back_buffer->system.health = CSH_STORED;
                     surface->back_buffer->system.pitch =

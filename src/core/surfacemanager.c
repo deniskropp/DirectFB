@@ -320,22 +320,22 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
           pitch -= pitch % manager->pixelpitch_align;
      }
 
-     pitch = DFB_BYTES_PER_LINE( surface->format, pitch );
+     pitch = DFB_BYTES_PER_LINE( buffer->format, pitch );
 
      if (manager->bytepitch_align > 1) {
           pitch += manager->bytepitch_align - 1;
           pitch -= pitch % manager->bytepitch_align;
      }
 
-     length = DFB_PLANE_MULTIPLY( surface->format,
-                                  MAX( surface->height,
-                                       surface->min_height ) * pitch );
+     length = DFB_PLANE_MULTIPLY( buffer->format,
+                                  MAX( surface->height, surface->min_height ) * pitch );
 
      if (manager->byteoffset_align > 1) {
           length += manager->byteoffset_align - 1;
           length -= length % manager->byteoffset_align;
      }
 
+     /* Do a pre check before iterating through all chunks. */
      if (length > manager->available - manager->heap_offset)
           return DFB_NOVIDEOMEMORY;
 
@@ -489,15 +489,15 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
 
                     for (i=0; i<surface->height; i++) {
                          direct_memcpy( dst, src,
-                                        DFB_BYTES_PER_LINE(surface->format, surface->width) );
+                                        DFB_BYTES_PER_LINE(buffer->format, surface->width) );
                          src += buffer->system.pitch;
                          dst += buffer->video.pitch;
                     }
 
-                    if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+                    if (DFB_PLANAR_PIXELFORMAT( buffer->format )) {
                          for (i=0; i<surface->height; i++) {
                               direct_memcpy( dst, src,
-                                             DFB_BYTES_PER_LINE(surface->format, surface->width / 2) );
+                                             DFB_BYTES_PER_LINE(buffer->format, surface->width / 2) );
                               src += buffer->system.pitch / 2;
                               dst += buffer->video.pitch  / 2;
                          }
@@ -546,14 +546,14 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
           buffer->video.access |= VAF_SOFTWARE_READ;
 
           while (h--) {
-               direct_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format, surface->width) );
+               direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format, surface->width) );
                src += buffer->video.pitch;
                dst += buffer->system.pitch;
           }
-          if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+          if (DFB_PLANAR_PIXELFORMAT( buffer->format )) {
                h = surface->height;
                while (h--) {
-                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format, surface->width / 2) );
+                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format, surface->width / 2) );
                     src += buffer->video.pitch  / 2;
                     dst += buffer->system.pitch / 2;
                }

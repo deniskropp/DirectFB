@@ -101,6 +101,8 @@ typedef struct {
      int field;
      bool planar;
 
+     bool depth_buffer;
+
      __u32 texctl;
 
      __u32 idle_status;

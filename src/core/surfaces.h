@@ -99,6 +99,8 @@ struct _SurfaceBuffer
      SurfaceBufferFlags      flags;     /* additional information */
      CoreSurfacePolicy       policy;    /* swapping policy for surfacemanager */
 
+     DFBSurfacePixelFormat   format;    /* pixel format of buffer, usually that of its surface */
+
      struct {
           CoreSurfaceHealth  health;    /* currently stored in system memory? */
           int                locked;    /* system instance is locked,
@@ -152,6 +154,8 @@ struct _CoreSurface
                                               (drawing/blitting destination) */
 
      SurfaceBuffer         *idle_buffer;   /* triple buffering */
+
+     SurfaceBuffer         *depth_buffer;  /* Z buffer for 3D rendering */
 
      SurfaceManager        *manager;
 };
@@ -248,6 +252,12 @@ DFBResult dfb_surface_reformat( CoreDFB               *core,
 DFBResult dfb_surface_reconfig( CoreSurface       *surface,
                                 CoreSurfacePolicy  front_policy,
                                 CoreSurfacePolicy  back_policy );
+
+/*
+ * Add/remove the depth buffer capability.
+ */
+DFBResult dfb_surface_allocate_depth( CoreSurface *surface );
+void      dfb_surface_deallocate_depth( CoreSurface *surface );
 
 /*
  * Change the palette of the surface.

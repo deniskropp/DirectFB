@@ -206,6 +206,7 @@
 #define MIN_ANISO     0x0000000D
 #define MAG_NRST      0x00000000
 #define MAG_BILIN     0x00000020
+#define FILTER_ALPHA  0x00100000
 
 /* SGN */
 #define SGN_BRKLEFT   0x00000100
@@ -218,6 +219,10 @@
 #     define PW16      0x00000001
 #     define PW32      0x00000002
 #     define PW24      0x00000003
+#     define ZW16      0x00000000
+#     define ZW32      0x00000008
+#     define ZW15      0x00000010
+#     define ZW24      0x00000018
 #     define BYPASS332 0x10000000
 #     define NODITHER  0x40000000
 #     define DIT555    0x80000000

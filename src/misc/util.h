@@ -53,6 +53,9 @@ bool dfb_unsafe_region_rectangle_intersect( DFBRegion          *region,
 bool dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
                                                DFBRegion    *region );
 
+bool dfb_rectangle_intersect_by_region( DFBRectangle    *rectangle,
+                                        const DFBRegion *region );
+
 bool dfb_rectangle_intersect( DFBRectangle       *rectangle,
                               const DFBRectangle *clip );
 

@@ -3601,14 +3601,14 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      gfxs->dst_caps   = destination->caps;
      gfxs->dst_height = destination->height;
-     gfxs->dst_format = destination->format;
+     gfxs->dst_format = destination->back_buffer->format;
      gfxs->dst_bpp    = DFB_BYTES_PER_PIXEL( gfxs->dst_format );
      dst_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->dst_format );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           gfxs->src_caps   = source->caps;
           gfxs->src_height = source->height;
-          gfxs->src_format = source->format;
+          gfxs->src_format = source->front_buffer->format;
           gfxs->src_bpp    = DFB_BYTES_PER_PIXEL( gfxs->src_format );
           src_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->src_format );
 

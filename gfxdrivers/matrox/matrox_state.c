@@ -54,6 +54,7 @@ void matrox_set_destination( MatroxDriverData *mdrv,
 {
      volatile __u8 *mmio            = mdrv->mmio_base;
      SurfaceBuffer *buffer          = destination->back_buffer;
+     SurfaceBuffer *depth_buffer    = destination->depth_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(destination->format);
 
      mdev->planar    = DFB_PLANAR_PIXELFORMAT( destination->format );
@@ -63,6 +64,7 @@ void matrox_set_destination( MatroxDriverData *mdrv,
 
      D_ASSERT( buffer->video.offset % 64 == 0 );
 
+     mdev->depth_buffer = depth_buffer != NULL;
 
      if (mdev->old_matrox) {
           mdev->dst_offset = buffer->video.offset / bytes_per_pixel;
@@ -89,16 +91,15 @@ void matrox_set_destination( MatroxDriverData *mdrv,
           }
      }
 
-     mga_waitfifo( mdrv, mdev, 3 );
+     mga_waitfifo( mdrv, mdev, depth_buffer ? 4 : 3 );
 
-     if (mdev->old_matrox)
-          mga_out32( mmio, mdev->dst_offset, YDSTORG );
-     else
-          mga_out32( mmio, mdev->dst_offset, DSTORG );
-
+     mga_out32( mmio, mdev->dst_offset, mdev->old_matrox ? YDSTORG : DSTORG );
      mga_out32( mmio, mdev->dst_pitch, PITCH );
 
-     switch (destination->format) {
+     if (depth_buffer)
+          mga_out32( mmio, depth_buffer->video.offset, ZORG );
+
+     switch (buffer->format) {
           case DSPF_A8:
           case DSPF_RGB332:
                mga_out32( mmio, PW8, MACCESS );

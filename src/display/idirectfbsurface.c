@@ -444,14 +444,17 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      data->state.color.a = a;
 
      if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
-          data->state.color_index = dfb_palette_search( surface->palette,
-                                                        r, g, b, a );
+          data->state.color_index = dfb_palette_search( surface->palette, r, g, b, a );
 
      data->state.modified |= SMF_COLOR;
 
      /* fill the visible rectangle */
      rect = data->area.current;
      dfb_gfxcard_fillrectangle( &rect, &data->state );
+
+     /* clear the depth buffer */
+     if (data->caps & DSCAPS_DEPTH)
+          dfb_clear_depth( data->surface, &data->state.clip );
 
      /* restore drawing flags */
      if (old_flags != DSDRAW_NOFX) {

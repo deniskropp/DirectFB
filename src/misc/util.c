@@ -229,6 +229,39 @@ dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
      return true;
 }
 
+bool
+dfb_rectangle_intersect_by_region( DFBRectangle    *rectangle,
+                                   const DFBRegion *region )
+{
+     /* adjust position */
+     if (region->x1 > rectangle->x) {
+          rectangle->w -= region->x1 - rectangle->x;
+          rectangle->x = region->x1;
+     }
+
+     if (region->y1 > rectangle->y) {
+          rectangle->h -= region->y1 - rectangle->y;
+          rectangle->y = region->y1;
+     }
+
+     /* adjust size */
+     if (region->x2 <= rectangle->x + rectangle->w)
+        rectangle->w = region->x2 - rectangle->x + 1;
+
+     if (region->y2 <= rectangle->y + rectangle->h)
+        rectangle->h = region->y2 - rectangle->y + 1;
+
+     /* set size to zero if there's no intersection */
+     if (rectangle->w <= 0 || rectangle->h <= 0) {
+          rectangle->w = 0;
+          rectangle->h = 0;
+
+          return false;
+     }
+
+     return true;
+}
+
 bool dfb_rectangle_intersect( DFBRectangle       *rectangle,
                               const DFBRectangle *clip )
 {

@@ -66,13 +66,14 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
-static DFBResult dfb_surface_allocate_buffer  ( CoreSurface        *surface,
-                                                CoreSurfacePolicy   policy,
-                                                SurfaceBuffer     **buffer );
-static DFBResult dfb_surface_reallocate_buffer( CoreSurface        *surface,
-                                                SurfaceBuffer      *buffer );
-static void dfb_surface_deallocate_buffer     ( CoreSurface        *surface,
-                                                SurfaceBuffer      *buffer );
+static DFBResult dfb_surface_allocate_buffer  ( CoreSurface            *surface,
+                                                CoreSurfacePolicy       policy,
+                                                DFBSurfacePixelFormat   format,
+                                                SurfaceBuffer         **buffer );
+static DFBResult dfb_surface_reallocate_buffer( CoreSurface            *surface,
+                                                SurfaceBuffer          *buffer );
+static void dfb_surface_destroy_buffer        ( CoreSurface            *surface,
+                                                SurfaceBuffer          *buffer );
 
 static void video_access_by_hardware( SurfaceBuffer       *buffer,
                                       DFBSurfaceLockFlags  flags );
@@ -97,15 +98,20 @@ static void surface_destructor( FusionObject *object, bool zombie )
      dfb_surface_notify_listeners( surface, CSNF_DESTROY );
 
      /* deallocate first buffer */
-     dfb_surface_deallocate_buffer( surface, surface->front_buffer );
+     dfb_surface_destroy_buffer( surface, surface->front_buffer );
 
      /* deallocate second buffer if it's another one */
      if (surface->back_buffer != surface->front_buffer)
-          dfb_surface_deallocate_buffer( surface, surface->back_buffer );
+          dfb_surface_destroy_buffer( surface, surface->back_buffer );
 
      /* deallocate third buffer if it's another one */
-     if (surface->idle_buffer != surface->front_buffer)
-          dfb_surface_deallocate_buffer( surface, surface->idle_buffer );
+     if (surface->idle_buffer != surface->front_buffer &&
+         surface->idle_buffer != surface->back_buffer)
+          dfb_surface_destroy_buffer( surface, surface->idle_buffer );
+
+     /* deallocate depth buffer if existent */
+     if (surface->depth_buffer)
+          dfb_surface_destroy_buffer( surface, surface->depth_buffer );
 
      /* unlink palette */
      if (surface->palette) {
@@ -136,10 +142,10 @@ DFBResult dfb_surface_create( CoreDFB *core,
                               DFBSurfacePixelFormat format,
                               CoreSurfacePolicy policy,
                               DFBSurfaceCapabilities caps, CorePalette *palette,
-                              CoreSurface **surface )
+                              CoreSurface **ret_surface )
 {
      DFBResult    ret;
-     CoreSurface *s;
+     CoreSurface *surface;
 
      D_ASSERT( width > 0 );
      D_ASSERT( height > 0 );
@@ -147,60 +153,80 @@ DFBResult dfb_surface_create( CoreDFB *core,
      if (width * (long long) height > 4096*4096)
           return DFB_LIMITEXCEEDED;
 
-     s = dfb_core_create_surface( core );
+     surface = dfb_core_create_surface( core );
 
-     ret = dfb_surface_init( core, s, width, height, format, caps, palette );
+     ret = dfb_surface_init( core, surface, width, height, format, caps, palette );
      if (ret) {
-          fusion_object_destroy( &s->object );
+          fusion_object_destroy( &surface->object );
           return ret;
      }
 
      switch (policy) {
           case CSP_SYSTEMONLY:
-               s->caps |= DSCAPS_SYSTEMONLY;
+               surface->caps |= DSCAPS_SYSTEMONLY;
                break;
           case CSP_VIDEOONLY:
-               s->caps |= DSCAPS_VIDEOONLY;
+               surface->caps |= DSCAPS_VIDEOONLY;
                break;
           default:
                ;
      }
 
-
-     ret = dfb_surface_allocate_buffer( s, policy, &s->front_buffer );
+     /* Allocate front buffer. */
+     ret = dfb_surface_allocate_buffer( surface, policy, format, &surface->front_buffer );
      if (ret) {
-          fusion_object_destroy( &s->object );
+          fusion_object_destroy( &surface->object );
           return ret;
      }
 
+     /* Allocate back buffer. */
      if (caps & DSCAPS_FLIPPING) {
-          ret = dfb_surface_allocate_buffer( s, policy, &s->back_buffer );
+          ret = dfb_surface_allocate_buffer( surface, policy, format, &surface->back_buffer );
           if (ret) {
-               dfb_surface_deallocate_buffer( s, s->front_buffer );
+               dfb_surface_destroy_buffer( surface, surface->front_buffer );
 
-               fusion_object_destroy( &s->object );
+               fusion_object_destroy( &surface->object );
                return ret;
           }
      }
      else
-          s->back_buffer = s->front_buffer;
+          surface->back_buffer = surface->front_buffer;
 
+     /* Allocate extra back buffer. */
      if (caps & DSCAPS_TRIPLE) {
-          ret = dfb_surface_allocate_buffer( s, policy, &s->idle_buffer );
+          ret = dfb_surface_allocate_buffer( surface, policy, format, &surface->idle_buffer );
           if (ret) {
-               dfb_surface_deallocate_buffer( s, s->back_buffer );
-               dfb_surface_deallocate_buffer( s, s->front_buffer );
+               dfb_surface_destroy_buffer( surface, surface->back_buffer );
+               dfb_surface_destroy_buffer( surface, surface->front_buffer );
 
-               fusion_object_destroy( &s->object );
+               fusion_object_destroy( &surface->object );
                return ret;
           }
      }
      else
-          s->idle_buffer = s->front_buffer;
+          surface->idle_buffer = surface->front_buffer;
 
-     fusion_object_activate( &s->object );
+     /* Allocate depth buffer. */
+     if (caps & DSCAPS_DEPTH) {
+          ret = dfb_surface_allocate_buffer( surface, CSP_VIDEOONLY,  /* FIXME */
+                                             DSPF_RGB16, &surface->depth_buffer );
+          if (ret) {
+               if (surface->idle_buffer != surface->front_buffer)
+                    dfb_surface_destroy_buffer( surface, surface->idle_buffer );
 
-     *surface = s;
+               if (surface->back_buffer != surface->front_buffer)
+                    dfb_surface_destroy_buffer( surface, surface->back_buffer );
+
+               dfb_surface_destroy_buffer( surface, surface->front_buffer );
+
+               fusion_object_destroy( &surface->object );
+               return ret;
+          }
+     }
+
+     fusion_object_activate( &surface->object );
+
+     *ret_surface = surface;
 
      return DFB_OK;
 }
@@ -220,7 +246,7 @@ DFBResult dfb_surface_create_preallocated( CoreDFB *core,
      D_ASSERT( width > 0 );
      D_ASSERT( height > 0 );
 
-     if (policy == CSP_VIDEOONLY)
+     if (policy == CSP_VIDEOONLY || (caps & (DSCAPS_DEPTH | DSCAPS_TRIPLE)))
           return DFB_UNSUPPORTED;
 
      s = dfb_core_create_surface( core );
@@ -356,13 +382,29 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
           }
      }
 
+     if (surface->caps & DSCAPS_DEPTH) {
+          ret = dfb_surface_reallocate_buffer( surface, surface->depth_buffer );
+          if (ret) {
+               surface->width  = old_width;
+               surface->height = old_height;
+               surface->format = old_format;
+
+               if (surface->caps & DSCAPS_TRIPLE)
+                    dfb_surface_reallocate_buffer( surface, surface->idle_buffer );
+
+               dfb_surface_reallocate_buffer( surface, surface->back_buffer );
+               dfb_surface_reallocate_buffer( surface, surface->front_buffer );
+
+               dfb_surfacemanager_unlock( surface->manager );
+               return ret;
+          }
+     }
+
      if (DFB_PIXELFORMAT_IS_INDEXED( format ) && !surface->palette) {
           DFBResult    ret;
           CorePalette *palette;
 
-          ret = dfb_palette_create( core,
-                                    1 << DFB_COLOR_BITS_PER_PIXEL( format ),
-                                    &palette );
+          ret = dfb_palette_create( core, 1 << DFB_COLOR_BITS_PER_PIXEL( format ), &palette );
           if (ret)
                return ret;
 
@@ -373,8 +415,7 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
 
      dfb_surfacemanager_unlock( surface->manager );
 
-     dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
-                                   CSNF_SYSTEM | CSNF_VIDEO );
+     dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT | CSNF_SYSTEM | CSNF_VIDEO );
 
      return DFB_OK;
 }
@@ -384,25 +425,31 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
                                 CoreSurfacePolicy  back_policy )
 {
      DFBResult      ret;
-     SurfaceBuffer *old_front;
-     SurfaceBuffer *old_back;
-     SurfaceBuffer *old_idle;
-     bool           new_front = surface->front_buffer->policy != front_policy;
+     SurfaceBuffer *front;
+     SurfaceBuffer *back;
+     SurfaceBuffer *idle;
+     SurfaceBuffer *depth;
+     SurfaceBuffer *new_front = NULL;
+     SurfaceBuffer *new_back  = NULL;
+     SurfaceBuffer *new_idle  = NULL;
+     SurfaceBuffer *new_depth = NULL;
 
-     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
-         surface->back_buffer->flags  & SBF_FOREIGN_SYSTEM)
-     {
+     D_ASSERT( surface != NULL );
+     D_ASSERT( surface->front_buffer != NULL );
+
+     front = surface->front_buffer;
+     back  = surface->back_buffer;
+     idle  = surface->idle_buffer;
+     depth = surface->depth_buffer;
+
+     if ((front->flags | back->flags) & SBF_FOREIGN_SYSTEM)
           return DFB_UNSUPPORTED;
-     }
 
      dfb_surfacemanager_lock( surface->manager );
 
-     old_front = surface->front_buffer;
-     old_back = surface->back_buffer;
-     old_idle = surface->idle_buffer;
 
-     if (new_front) {
-          ret = dfb_surface_allocate_buffer( surface, front_policy, &surface->front_buffer );
+     if (front->policy != front_policy) {
+          ret = dfb_surface_allocate_buffer( surface, front_policy, surface->format, &new_front );
           if (ret) {
                dfb_surfacemanager_unlock( surface->manager );
                return ret;
@@ -410,53 +457,123 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      }
 
      if (surface->caps & DSCAPS_FLIPPING) {
-          ret = dfb_surface_allocate_buffer( surface, back_policy, &surface->back_buffer );
-          if (ret) {
-               if (new_front) {
-                    dfb_surface_deallocate_buffer( surface, surface->front_buffer );
-                    surface->front_buffer = old_front;
-               }
+          ret = dfb_surface_allocate_buffer( surface, back_policy, surface->format, &new_back );
+          if (ret)
+               goto error;
+     }
 
-               dfb_surfacemanager_unlock( surface->manager );
-               return ret;
-          }
+     if (surface->caps & DSCAPS_TRIPLE) {
+          ret = dfb_surface_allocate_buffer( surface, back_policy, surface->format, &new_idle );
+          if (ret)
+               goto error;
+     }
+
+     if (surface->caps & DSCAPS_DEPTH) {
+          ret = dfb_surface_allocate_buffer( surface, CSP_VIDEOONLY,  /* FIXME */
+                                             DSPF_RGB16, &new_depth );
+          if (ret)
+               goto error;
+     }
+
+
+     if (new_front) {
+          dfb_surface_destroy_buffer( surface, front );
+          surface->front_buffer = new_front;
+     }
+
+     if (new_back) {
+          dfb_surface_destroy_buffer( surface, back );
+          surface->back_buffer = new_back;
      }
      else
           surface->back_buffer = surface->front_buffer;
 
-     if (surface->caps & DSCAPS_TRIPLE) {
-          ret = dfb_surface_allocate_buffer( surface, back_policy, &surface->idle_buffer );
-          if (ret) {
-               dfb_surface_deallocate_buffer( surface, surface->back_buffer );
-               surface->back_buffer = old_back;
-
-               if (new_front) {
-                    dfb_surface_deallocate_buffer( surface, surface->front_buffer );
-                    surface->front_buffer = old_front;
-               }
-
-               dfb_surfacemanager_unlock( surface->manager );
-               return ret;
-          }
+     if (new_idle) {
+          dfb_surface_destroy_buffer( surface, idle );
+          surface->idle_buffer = new_idle;
      }
      else
           surface->idle_buffer = surface->front_buffer;
 
-     if (new_front)
-          dfb_surface_deallocate_buffer( surface, old_front );
+     if (new_depth) {
+          dfb_surface_destroy_buffer( surface, depth );
+          surface->depth_buffer = new_depth;
+     }
+     else
+          surface->depth_buffer = NULL;
 
-     if (old_front != old_back)
-          dfb_surface_deallocate_buffer ( surface, old_back );
-
-     if (old_front != old_idle && old_back != old_idle)
-          dfb_surface_deallocate_buffer ( surface, old_idle );
 
      dfb_surfacemanager_unlock( surface->manager );
 
-     dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
-                                   CSNF_SYSTEM | CSNF_VIDEO );
+     dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT | CSNF_SYSTEM | CSNF_VIDEO );
 
      return DFB_OK;
+
+
+error:
+     if (new_depth)
+          dfb_surface_destroy_buffer( surface, new_depth );
+
+     if (new_idle)
+          dfb_surface_destroy_buffer( surface, new_idle );
+
+     if (new_back)
+          dfb_surface_destroy_buffer( surface, new_back );
+
+     if (new_front)
+          dfb_surface_destroy_buffer( surface, new_front );
+
+     dfb_surfacemanager_unlock( surface->manager );
+
+     return ret;
+}
+
+DFBResult
+dfb_surface_allocate_depth( CoreSurface *surface )
+{
+     DFBResult ret;
+
+     D_ASSERT( surface != NULL );
+
+     dfb_surfacemanager_lock( surface->manager );
+
+     D_ASSUME( ! (surface->caps & DSCAPS_DEPTH) );
+
+     if (surface->caps & DSCAPS_DEPTH) {
+          dfb_surfacemanager_unlock( surface->manager );
+          return DFB_OK;
+     }
+
+     ret = dfb_surface_allocate_buffer( surface, CSP_VIDEOONLY,  /* FIXME */
+                                        DSPF_RGB16, &surface->depth_buffer );
+     if (ret == DFB_OK)
+          surface->caps |= DSCAPS_DEPTH;
+
+     dfb_surfacemanager_unlock( surface->manager );
+
+     return ret;
+}
+
+void
+dfb_surface_deallocate_depth( CoreSurface *surface )
+{
+     D_ASSERT( surface != NULL );
+
+     dfb_surfacemanager_lock( surface->manager );
+
+     D_ASSUME( surface->caps & DSCAPS_DEPTH );
+
+     if (! (surface->caps & DSCAPS_DEPTH)) {
+          dfb_surfacemanager_unlock( surface->manager );
+          return;
+     }
+
+     dfb_surface_destroy_buffer( surface, surface->depth_buffer );
+
+     surface->depth_buffer  = NULL;
+     surface->caps         &= ~DSCAPS_DEPTH;
+
+     dfb_surfacemanager_unlock( surface->manager );
 }
 
 DFBResult
@@ -976,9 +1093,10 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
 /** internal **/
 
-static DFBResult dfb_surface_allocate_buffer( CoreSurface        *surface,
-                                              CoreSurfacePolicy   policy,
-                                              SurfaceBuffer     **ret_buffer )
+static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
+                                              CoreSurfacePolicy       policy,
+                                              DFBSurfacePixelFormat   format,
+                                              SurfaceBuffer         **ret_buffer )
 {
      SurfaceBuffer *buffer;
 
@@ -990,6 +1108,7 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface        *surface,
 
      buffer->policy  = policy;
      buffer->surface = surface;
+     buffer->format  = format;
 
      switch (policy) {
           case CSP_SYSTEMONLY:
@@ -1000,16 +1119,14 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface        *surface,
                void *data;
 
                /* Calculate pitch. */
-               pitch = DFB_BYTES_PER_LINE( surface->format,
-                                           MAX( surface->width,
-                                                surface->min_width ) );
+               pitch = DFB_BYTES_PER_LINE( buffer->format,
+                                           MAX( surface->width, surface->min_width ) );
                if (pitch & 3)
                     pitch += 4 - (pitch & 3);
 
                /* Calculate amount of data to allocate. */
-               size = DFB_PLANE_MULTIPLY( surface->format,
-                                          MAX( surface->height,
-                                               surface->min_height ) * pitch );
+               size = DFB_PLANE_MULTIPLY( buffer->format,
+                                          MAX( surface->height, surface->min_height ) * pitch );
 
                /* Allocate shared memory. */
                data = SHMALLOC( size );
@@ -1071,16 +1188,14 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           void *data;
 
           /* Calculate pitch. */
-          pitch = DFB_BYTES_PER_LINE( surface->format,
-                                      MAX( surface->width,
-                                           surface->min_width ) );
+          pitch = DFB_BYTES_PER_LINE( buffer->format,
+                                      MAX( surface->width, surface->min_width ) );
           if (pitch & 3)
                pitch += 4 - (pitch & 3);
 
           /* Calculate amount of data to allocate. */
-          size = DFB_PLANE_MULTIPLY( surface->format,
-                                     MAX( surface->height,
-                                          surface->min_height ) * pitch );
+          size = DFB_PLANE_MULTIPLY( buffer->format,
+                                     MAX( surface->height, surface->min_height ) * pitch );
 
           /* Allocate shared memory. */
           data = SHMALLOC( size );
@@ -1118,13 +1233,20 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
      return DFB_OK;
 }
 
-static void dfb_surface_deallocate_buffer( CoreSurface   *surface,
-                                           SurfaceBuffer *buffer )
+static void dfb_surface_destroy_buffer( CoreSurface   *surface,
+                                        SurfaceBuffer *buffer )
 {
-     if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM))
-          SHFREE( buffer->system.addr );
+     D_ASSERT( surface != NULL );
+     D_ASSERT( buffer != NULL );
 
      dfb_surfacemanager_lock( surface->manager );
+
+     if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM)) {
+          SHFREE( buffer->system.addr );
+
+          buffer->system.addr   = NULL;
+          buffer->system.health = CSH_INVALID;
+     }
 
      if (buffer->video.health)
           dfb_surfacemanager_deallocate( surface->manager, buffer );

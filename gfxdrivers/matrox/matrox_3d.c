@@ -422,6 +422,34 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
     DZ ## dy = eMaj.dxOOA * eBot_DZ - eMaj_DZ * eBot.dxOOA;    \
   }
 
+          if (mdev->depth_buffer) {
+               float Zstart;
+               float dzdx, dzdy;
+
+               DERIV(dz, z);
+#define DEPTH_SCALE 65535.0f  /* what the...? */
+               if (dzdx>DEPTH_SCALE*(1<<15) || dzdx<-DEPTH_SCALE*(1<<15)) {
+                    /* probably a sliver triangle */
+                    dzdx = 0.0;
+                    dzdy = 0.0;
+               }
+
+               Zstart = vTL->z + dzdx*adjx + dzdy*adjy + (1 << 24);
+
+               /* FIXME: 16 bit assumed */
+               if (Zstart > 65535.0F*(1 << 15)) {
+                    Zstart = 65535.0F*(1 << 15);
+                    dzdx = 0.0F;
+                    dzdy = 0.0F;
+               }
+
+               mga_waitfifo( mdrv, mdev, 3 );
+
+               mga_out32( mmio, RINT(Zstart), DR0 );
+               mga_out32( mmio, RINT(dzdx), DR2 );
+               mga_out32( mmio, RINT(dzdy), DR3 );
+          }
+
           {
                float dsdx, dsdy;
                float dtdx, dtdy;
@@ -505,26 +533,31 @@ matroxTextureTriangles( void *drv, void *dev,
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
      volatile __u8    *mmio = mdrv->mmio_base;
+     __u32             dwgctl;
 
      float wScale = 1 << 20;
-
 
      for (i=0; i<num; i++) {
           DFBVertex *v = &vertices[i];
 
           v->x -= 0.5f;
           v->y -= 0.5f;
-          v->z *= 1 << 15;
+          v->z *= 1 << 20;
           v->w *= wScale;
 
           v->s *= v->w * (float) mdev->w / (float) (1 << mdev->w2);
           v->t *= v->w * (float) mdev->h / (float) (1 << mdev->h2);
      }
 
+     if (mdev->depth_buffer)
+          dwgctl = ATYPE_ZI | ZMODE_ZGT;
+     else
+          dwgctl = ATYPE_I  | ZMODE_NOZCMP;
+
      mga_waitfifo( mdrv, mdev, 2 );
 
-     mga_out32( mmio, BOP_COPY | SHFTZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
-     mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_ANISO, TEXFILTER );
+     mga_out32( mmio, dwgctl | BOP_COPY | SHFTZERO | OP_TEXTURE_TRAP, DWGCTL );
+     mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_ANISO | FILTER_ALPHA, TEXFILTER );
 
      switch (formation) {
           case DTTF_LIST:
@@ -534,22 +567,18 @@ matroxTextureTriangles( void *drv, void *dev,
                break;
 
           case DTTF_STRIP:
-               texture_triangle( mdrv, mdev, &vertices[0],
-                                 &vertices[1], &vertices[2] );
+               texture_triangle( mdrv, mdev, &vertices[0], &vertices[1], &vertices[2] );
 
                for (i=3; i<num; i++)
-                    texture_triangle( mdrv, mdev, &vertices[i-2],
-                                      &vertices[i-1], &vertices[i] );
+                    texture_triangle( mdrv, mdev, &vertices[i-2], &vertices[i-1], &vertices[i] );
 
                break;
 
           case DTTF_FAN:
-               texture_triangle( mdrv, mdev, &vertices[0],
-                                 &vertices[1], &vertices[2] );
+               texture_triangle( mdrv, mdev, &vertices[0], &vertices[1], &vertices[2] );
 
                for (i=3; i<num; i++)
-                    texture_triangle( mdrv, mdev, &vertices[0],
-                                      &vertices[i-1], &vertices[i] );
+                    texture_triangle( mdrv, mdev, &vertices[0], &vertices[i-1], &vertices[i] );
 
                break;
 

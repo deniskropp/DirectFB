@@ -569,6 +569,9 @@ typedef enum {
                                            space in video memory after
                                            resizing. */
      DSCAPS_TRIPLE       = 0x00000200,  /* Surface is triple buffered */
+
+     DSCAPS_DEPTH        = 0x00010000,  /* A depth buffer is allocated */
+
      DSCAPS_FLIPPING     = DSCAPS_DOUBLE | DSCAPS_TRIPLE /* Surface needs Flip()
                                                             calls to make
                                                             updates/changes
@@ -2710,16 +2713,14 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Clear the surface with an extra color.
+      * Clear the surface and its depth buffer if existent.
       *
-      * Fills the whole (sub) surface with the specified color
-      * ignoring drawing flags and color of the current state,
-      * but limited to the current clip.
+      * Fills the whole (sub) surface with the specified color while ignoring
+      * drawing flags and color of the current state, but limited to the current clip.
       *
-      * As with all drawing and blitting functions the backbuffer
-      * is written to. If you are initializing a double buffered
-      * surface you may want to clear both buffers by doing a
-      * Clear-Flip-Clear sequence.
+      * As with all drawing and blitting functions the backbuffer is written to.
+      * If you are initializing a double buffered surface you may want to clear both
+      * buffers by doing a Clear-Flip-Clear sequence.
       */
      DFBResult (*Clear) (
           IDirectFBSurface         *thiz,

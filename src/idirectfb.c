@@ -652,6 +652,18 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          return ret;
                     }
 
+                    if ((caps & DSCAPS_DEPTH) && !(surface->caps & DSCAPS_DEPTH)) {
+                         ret = dfb_surface_allocate_depth( surface );
+                         if (ret) {
+                              dfb_surface_unref( surface );
+                              dfb_layer_region_unref( region );
+                              return ret;
+                         }
+                    }
+                    else if (!(caps & DSCAPS_DEPTH) && (surface->caps & DSCAPS_DEPTH)) {
+                         dfb_surface_deallocate_depth( surface );
+                    }
+
                     init_palette( surface, desc );
 
                     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
