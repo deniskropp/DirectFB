@@ -570,7 +570,8 @@ fusion_ref_down (FusionRef *ref, bool global)
      else
           ref->refs--;
      
-     pthread_cond_broadcast (&ref->cond);
+     if (ref->waiting)
+          pthread_cond_broadcast (&ref->cond);
      
      pthread_mutex_unlock (&ref->lock);
      
@@ -603,7 +604,9 @@ fusion_ref_zero_lock (FusionRef *ref)
      if (ref->destroyed)
           ret = FUSION_DESTROYED;
      else while (ref->refs && !ret) {
+          ref->waiting++;
           pthread_cond_wait (&ref->cond, &ref->lock);
+          ref->waiting--;
           
           if (ref->destroyed)
                ret = FUSION_DESTROYED;
@@ -652,7 +655,8 @@ fusion_ref_destroy (FusionRef *ref)
      
      ref->destroyed = true;
 
-     pthread_cond_broadcast (&ref->cond);
+     if (ref->waiting)
+          pthread_cond_broadcast (&ref->cond);
 
      pthread_mutex_unlock (&ref->lock);
      pthread_cond_destroy (&ref->cond);

@@ -51,6 +51,7 @@ extern "C"
           pthread_cond_t  cond;
           pthread_mutex_t lock;
           bool            destroyed;
+          int             waiting;
      } FusionRef;
 
 #endif
