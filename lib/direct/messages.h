@@ -47,20 +47,24 @@
 
 #include <direct/conf.h>
 
-void direct_messages_info         ( const char *format, ... );
 
-void direct_messages_error        ( const char *format, ... );
+#define D_FORMAT_PRINTF(n)    __attribute__((__format__ (__printf__, n, n+1)))
+
+
+void direct_messages_info         ( const char *format, ... )  D_FORMAT_PRINTF(1);
+
+void direct_messages_error        ( const char *format, ... )  D_FORMAT_PRINTF(1);
 
 void direct_messages_perror       ( int         erno,
-                                    const char *format, ... );
+                                    const char *format, ... )  D_FORMAT_PRINTF(2);
 
 void direct_messages_dlerror      ( const char *dlerr,
-                                    const char *format, ... );
+                                    const char *format, ... )  D_FORMAT_PRINTF(2);
 
 void direct_messages_once         ( const char *func,
                                     const char *file,
                                     int         line,
-                                    const char *format, ... );
+                                    const char *format, ... )  D_FORMAT_PRINTF(4);
 
 void direct_messages_unimplemented( const char *func,
                                     const char *file,
@@ -69,12 +73,12 @@ void direct_messages_unimplemented( const char *func,
 void direct_messages_bug          ( const char *func,
                                     const char *file,
                                     int         line,
-                                    const char *format, ... );
+                                    const char *format, ... )  D_FORMAT_PRINTF(4);
 
 void direct_messages_warn         ( const char *func,
                                     const char *file,
                                     int         line,
-                                    const char *format, ... );
+                                    const char *format, ... )  D_FORMAT_PRINTF(4);
 
 
 #define D_INFO(x...)     do {                                                                  \

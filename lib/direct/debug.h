@@ -38,12 +38,12 @@
 #include <direct/system.h>
 
 
-void direct_debug( const char *format, ... );
+void direct_debug( const char *format, ... )  D_FORMAT_PRINTF(1);
 
 void direct_break( const char *func,
                    const char *file,
                    int         line,
-                   const char *format, ... );
+                   const char *format, ... )  D_FORMAT_PRINTF(4);
 
 void direct_assertion( const char *exp,
                        const char *func,
