@@ -39,7 +39,7 @@
 
 static struct timeval start_time = { 0, 0 };
 
-long long dfb_get_millis()
+long long dfb_get_micros()
 {
      struct timeval tv;
      
@@ -50,8 +50,13 @@ long long dfb_get_millis()
 
      gettimeofday( &tv, NULL );
 
-     return (tv.tv_sec - start_time.tv_sec) * 1000 +
-            (tv.tv_usec - start_time.tv_usec) / 1000;
+     return (long long)(tv.tv_sec - start_time.tv_sec) * (long long) 1000000 +
+            (long long)(tv.tv_usec - start_time.tv_usec);
+}
+
+long long dfb_get_millis()
+{
+     return dfb_get_micros() / (long long) 1000;
 }
 
 int

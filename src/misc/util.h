@@ -76,6 +76,9 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
                            const DFBRectangle *rect2 );
 
 
+/* Returns the current time after startup of DirectFB in microseconds */
+long long dfb_get_micros();
+
 /* Returns the current time after startup of DirectFB in milliseconds */
 long long dfb_get_millis();
 
