@@ -1,16 +1,24 @@
-Quick installation
--------------------
+Installation
+-------------
 
-Patch your kernel:
+1) Patch your kernel
 
-	patch -p1 < fusion-full-linux-2.4.20.patch
+	patch -p1 < fusion-full-linux-2.4.21.patch
 
-Enable the character device driver module "Fusion Kernel Device",
-build and install modules, insmod fusion. Maybe check /proc/misc.
+2) Enable the character device driver module "Fusion Kernel Device",
+   build and install modules, insmod fusion.
 
-Create the fusion device:
+3) Make sure /usr/include/linux points to the patched kernel tree
+   so that <linux/fusion.h> is found at configure time of DirectFB.
 
-	mknod /dev/fusion c 10 23
+4) Create the fusion device(s) if not using devfs:
 
-Make sure /usr/include/linux points to the patched kernel tree
-so that <linux/fusion.h> is found at configure time of DirectFB.
+	mkdir /dev/fusion
+	mknod /dev/fusion/0 c 253 0
+
+	...if you need more than one session
+
+	mknod /dev/fusion/1 c 253 1
+	mknod /dev/fusion/2 c 253 2
+
+	...and so on (currently limited to eight sessions)
