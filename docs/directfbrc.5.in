@@ -77,6 +77,13 @@ devices (namely vesafb) don't support mode switches at all and can
 only be used in the pixel depth that is set on boot time.
 
 .TP
+.BI pixelformat=<pixelformat>
+Sets the default pixel format. This is similar to the depth parameter
+described above but allows more fine-grained control. Possible values
+for pixelformat are A8, ARGB, I420, LUT8, RGB15, RGB16, RGB24, RGB32,
+RGB322, UYVY, YUY2 and YV12.
+
+.TP
 .BI quiet
 Suppresses console output from DirectFB. Only error messages will be
 displayed.

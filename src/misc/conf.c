@@ -63,6 +63,8 @@ static const char *config_usage =
     "Set the default resolution\n"
     "  depth=<pixeldepth>             "
     "Set the default pixel depth\n"
+    "  pixelformat=<pixelformat>      "
+    "Set the default pixel format\n"
     "  quiet                          "
     "No text output except debugging\n"
     "  [no-]banner                    "
