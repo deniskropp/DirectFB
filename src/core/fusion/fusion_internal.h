@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/user.h>
 #include <asm/page.h>
+#include <string.h>
 
 #include <config.h>
 
