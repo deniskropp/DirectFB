@@ -347,24 +347,33 @@ static DFBResult IDirectFBWindow_WaitForEventWithTimeout(
                                                   long int             seconds,
                                                   long int        nano_seconds )
 {
-     DFBResult ret = DFB_OK;
+     struct timeval  now;
+     struct timespec timeout;
+     DFBResult       ret    = DFB_OK;
+     int             locked = 0;
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (pthread_mutex_trylock( &data->events_mutex ) == 0) {
+          if (data->events) {
+               pthread_mutex_unlock ( &data->events_mutex );
+               return ret;
+          }
+          locked = 1;
+     }
 
-     pthread_mutex_lock( &data->events_mutex );
+     gettimeofday( &now, NULL );
+
+     timeout.tv_sec  = now.tv_sec + seconds;
+     timeout.tv_nsec = (now.tv_usec * 1000) + nano_seconds;
+
+     timeout.tv_sec  += timeout.tv_nsec / 1000000000;
+     timeout.tv_nsec %= 1000000000;
+
+     if (!locked)
+          pthread_mutex_lock( &data->events_mutex );
 
      if (!data->events) {
-          struct timeval  now;
-          struct timespec timeout;
-
-          gettimeofday( &now, NULL );
-
-          timeout.tv_sec  = now.tv_sec + seconds;
-          timeout.tv_nsec = (now.tv_usec * 1000) + nano_seconds;
-
-          timeout.tv_sec  += timeout.tv_nsec / 1000000000;
-          timeout.tv_nsec %= 1000000000;
 
           if (pthread_cond_timedwait( &data->wait_condition,
                                       &data->events_mutex,
@@ -383,7 +392,6 @@ static DFBResult IDirectFBWindow_GetEvent( IDirectFBWindow *thiz,
      IDirectFBWindowBuffer_item *e;
 
      INTERFACE_GET_DATA(IDirectFBWindow)
-
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -471,7 +479,6 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
 
      return DFB_OK;
 }
-
 
 
 /* internals */
