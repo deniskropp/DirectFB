@@ -2293,24 +2293,25 @@ window_insert( CoreWindow *window,
      DFB_ASSERT( window->stack != NULL );
      DFB_ASSERT( !window->destroyed );
 
-     /* FIXME: this is a normal case currently  DFB_ASSUME( !window->initialized );*/
+     DFB_ASSUME( !window->initialized );
 
-     if (!window->initialized) {
-          if (before < 0  ||  before > stack->num_windows)
-               before = stack->num_windows;
+     if (window->initialized)
+          return;
 
-          stack->windows = SHREALLOC( stack->windows,
-                                      sizeof(CoreWindow*) * (stack->num_windows+1) );
+     window->initialized = true;
+     
+     if (before < 0  ||  before > stack->num_windows)
+          before = stack->num_windows;
 
-          for (i=stack->num_windows; i>before; i--)
-               stack->windows[i] = stack->windows[i-1];
+     stack->windows = SHREALLOC( stack->windows,
+                                 sizeof(CoreWindow*) * (stack->num_windows+1) );
 
-          stack->windows[before] = window;
+     for (i=stack->num_windows; i>before; i--)
+          stack->windows[i] = stack->windows[i-1];
 
-          stack->num_windows++;
+     stack->windows[before] = window;
 
-          window->initialized = true;
-     }
+     stack->num_windows++;
 
      /* Send configuration */
      evt.type = DWET_POSITION_SIZE;

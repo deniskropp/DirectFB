@@ -34,6 +34,8 @@
 /*
  * initializes a new window and constructs interface
  */
-DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz, CoreWindow *window );
+DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
+                                     CoreWindow      *window,
+                                     bool             init );
 
 #endif

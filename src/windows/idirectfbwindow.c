@@ -845,10 +845,9 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
-                           CoreWindow      *window )
+                           CoreWindow      *window,
+                           bool             init )
 {
-     DFBWindowEventType old_events;
-
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
      DEBUGMSG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
@@ -861,16 +860,13 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      dfb_window_attach( window, IDirectFBWindow_React,
                         data, &data->reaction );
 
-     old_events = window->events;
-     window->events |= DWET_POSITION_SIZE;
-     
-     dfb_window_init( window );
-     
-     window->events = old_events;
+     if (init) {
+          DFBWindowEventType old_events = window->events;
 
-     /* Wait for initial DWET_POSITION_SIZE event */
-     while (!data->position_size_event)
-          sched_yield();
+          window->events |= DWET_POSITION_SIZE;
+          dfb_window_init( window );
+          window->events = old_events;
+     }
 
      thiz->AddRef = IDirectFBWindow_AddRef;
      thiz->Release = IDirectFBWindow_Release;
