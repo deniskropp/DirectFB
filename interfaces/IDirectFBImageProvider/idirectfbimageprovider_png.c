@@ -195,7 +195,7 @@ Construct( IDirectFBImageProvider *thiz,
 
 
      /* Read until info callback is called. */
-     ret = push_data_until_stage( data, STAGE_INFO, 4 );
+     ret = push_data_until_stage( data, STAGE_INFO, 64 );
      if (ret)
           goto error;
 
@@ -287,7 +287,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
           return ret;
 
      /* Read until image is completely decoded. */
-     ret = push_data_until_stage( data, STAGE_END, 4096 );
+     ret = push_data_until_stage( data, STAGE_END, 16384 );
      if (ret)
           return ret;
 
@@ -589,20 +589,28 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
           if (data->stage < 0)
                return DFB_FAILURE;
 
-          if (buffer->WaitForData( buffer, 1 ) == DFB_BUFFEREMPTY)
-               return DFB_FAILURE;
-
           while (buffer->HasData( buffer ) == DFB_OK) {
+               D_DEBUG( "ImageProvider/PNG: Retrieving data (up to %d bytes)...\n", buffer_size );
+
                ret = buffer->GetData( buffer, buffer_size, buf, &len );
                if (ret)
                     return ret;
 
+               D_DEBUG( "ImageProvider/PNG: Got %d bytes...\n", len );
+
                png_process_data( data->png_ptr, data->info_ptr, buf, len );
+
+               D_DEBUG( "ImageProvider/PNG: ...processed %d bytes.\n", len );
 
                /* are we there yet? */
                if (data->stage < 0 || data->stage >= stage)
-                    break;
+                    return DFB_OK;
           }
+
+          D_DEBUG( "ImageProvider/PNG: Waiting for data...\n" );
+
+          if (buffer->WaitForData( buffer, 1 ) == DFB_BUFFEREMPTY)
+               return DFB_FAILURE;
      }
 
      return DFB_OK;
