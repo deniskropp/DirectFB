@@ -51,6 +51,9 @@ volatile __u8 *mmio_base;
 
 GfxCard *matrox = NULL;
 
+/* Old cards are older than G200/G400, e.g. Mystique or Millenium */
+int old_matrox = 0;
+
 unsigned int matrox_fifo_space = 0;
 
 unsigned int matrox_waitfifo_sum = 0;
@@ -62,6 +65,7 @@ unsigned int matrox_fifo_cache_hits = 0;
 static __u32 atype_blk_rstr = 0;
 
 static void matroxBlit2D( DFBRectangle *rect, int dx, int dy );
+static void matroxBlit2D_Old( DFBRectangle *rect, int dx, int dy );
 static void matroxBlit3D( DFBRectangle *rect, int dx, int dy );
 
 
@@ -77,7 +81,10 @@ int m_srckey = 0;
 int m_drawBlend = 0;
 int m_blitBlend = 0;
 
+int dst_pixelpitch = 0;
+int dst_pixeloffset = 0;
 int src_pixelpitch = 0;
+int src_pixeloffset = 0;
 
 
 static void matroxEngineSync()
@@ -91,15 +98,40 @@ static void matroxFlushTextureCache()
      mga_out32( mmio_base, 0, TEXORG1 );
 }
 
-#define MATROX_SUPPORTED_FUNCTIONS DFXL_FILLRECTANGLE | \
-                                   DFXL_DRAWRECTANGLE | \
-                                   DFXL_DRAWLINE      | \
-                                   DFXL_FILLTRIANGLE  | \
-                                   DFXL_BLIT          | \
-                                   DFXL_STRETCHBLIT
+/* Old cards (Mystique, Millenium, ...) */
 
-static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
+#define MATROX_OLD_DRAWING_FLAGS            (DSDRAW_NOFX)
+
+#define MATROX_OLD_BLITTING_FLAGS           (DSBLIT_SRC_COLORKEY)
+
+#define MATROX_OLD_DRAWING_FUNCTIONS        (DFXL_FILLRECTANGLE | \
+                                             DFXL_DRAWRECTANGLE | \
+                                             DFXL_DRAWLINE      | \
+                                             DFXL_FILLTRIANGLE)
+
+#define MATROX_OLD_BLITTING_FUNCTIONS       (DFXL_BLIT)
+
+
+/* G200/G400 */
+
+#define MATROX_G200G400_DRAWING_FLAGS       (DSDRAW_BLEND)
+
+#define MATROX_G200G400_BLITTING_FLAGS      (DSBLIT_SRC_COLORKEY | \
+                                             DSBLIT_BLEND_ALPHACHANNEL | \
+                                             DSBLIT_BLEND_COLORALPHA | \
+                                             DSBLIT_COLORIZE)
+
+#define MATROX_G200G400_DRAWING_FUNCTIONS   (DFXL_FILLRECTANGLE | \
+                                             DFXL_DRAWRECTANGLE | \
+                                             DFXL_DRAWLINE      | \
+                                             DFXL_FILLTRIANGLE)
+
+#define MATROX_G200G400_BLITTING_FUNCTIONS  (DFXL_BLIT          | \
+                                             DFXL_STRETCHBLIT)
+
+static void matroxOldCheckState( CardState *state, DFBAccelerationMask accel )
 {
+     /* FIXME: 24bit support */
      switch (state->destination->format) {
           case DSPF_RGB15:
           case DSPF_RGB16:
@@ -111,7 +143,44 @@ static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
                return;
      }
 
-     if (accel & 0xFFFF0000) {
+     if (accel & 0xFFFF) {
+          if (state->drawingflags & ~MATROX_OLD_DRAWING_FLAGS)
+               return;
+
+          state->accel |= MATROX_OLD_DRAWING_FUNCTIONS;
+     }
+     else {
+          if (state->source->format != state->destination->format)
+               return;
+
+          if (state->blittingflags & ~MATROX_OLD_BLITTING_FLAGS)
+               return;
+
+          state->accel |= MATROX_OLD_BLITTING_FUNCTIONS;
+     }
+}
+
+static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
+{
+     /* FIXME: 24bit support */
+     switch (state->destination->format) {
+          case DSPF_RGB15:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+          case DSPF_A8:
+               break;
+          default:
+               return;
+     }
+
+     if (accel & 0xFFFF) {
+          if (state->drawingflags & ~MATROX_G200G400_DRAWING_FLAGS)
+               return;
+
+          state->accel |= MATROX_G200G400_DRAWING_FUNCTIONS;
+     }
+     else {
           switch (state->source->format) {
                case DSPF_RGB15:
                case DSPF_RGB16:
@@ -121,23 +190,23 @@ static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
                default:
                     return;
           }
-     }
 
-     /* FIXME: 24bit support */
-     if (!(accel & 0xFFFF0000) ||
-         (state->source->format != DSPF_A8 &&
-          state->source->format != DSPF_RGB24 &&
-          state->source->width >= 8 &&
-          state->source->height >= 8 &&
-          state->source->width <= 2048 &&
-          state->source->height <= 2048))
-     {
-          state->accel |= MATROX_SUPPORTED_FUNCTIONS;
+          if (state->source->width < 8 ||
+              state->source->height < 8 ||
+              state->source->width > 2048 ||
+              state->source->height > 2048)
+               return;
+
+          if (state->blittingflags & ~MATROX_G200G400_BLITTING_FLAGS)
+               return;
+
+          state->accel |= MATROX_G200G400_BLITTING_FUNCTIONS;
      }
 }
 
 static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
 {
+     /* FIXME: 24bit support */
      switch (state->destination->format) {
           case DSPF_RGB15:
           case DSPF_RGB16:
@@ -149,7 +218,13 @@ static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
                return;
      }
 
-     if (accel & 0xFFFF0000) {
+     if (accel & 0xFFFF) {
+          if (state->drawingflags & ~MATROX_G200G400_DRAWING_FLAGS)
+               return;
+
+          state->accel |= MATROX_G200G400_DRAWING_FUNCTIONS;
+     }
+     else {
           switch (state->source->format) {
                case DSPF_RGB15:
                case DSPF_RGB16:
@@ -160,17 +235,17 @@ static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
                default:
                     return;
           }
-     }
 
-     /* FIXME: 24bit support */
-     if (!(accel & 0xFFFF0000) ||
-         (state->source->format != DSPF_RGB24 &&
-          state->source->width >= 8 &&
-          state->source->height >= 8 &&
-          state->source->width <= 2048 &&
-          state->source->height <= 2048))
-     {
-          state->accel |= MATROX_SUPPORTED_FUNCTIONS;
+          if (state->source->width < 8 ||
+              state->source->height < 8 ||
+              state->source->width > 2048 ||
+              state->source->height > 2048)
+               return;
+
+          if (state->blittingflags & ~MATROX_G200G400_BLITTING_FLAGS)
+               return;
+
+          state->accel |= MATROX_G200G400_BLITTING_FUNCTIONS;
      }
 }
 
@@ -186,22 +261,21 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
      }
      else {
           if (state->modified) {
-               if (state->modified & SMF_DESTINATION)
-                    m_color = m_Source = m_source = 0;
-               else if (state->modified & SMF_SOURCE)
-                    m_Source = m_source = 0;
+               if (state->modified & SMF_COLOR)
+                    m_Color = m_color = 0;
+               else if (state->modified & SMF_DESTINATION)
+                    m_color = 0;
+
+               if (state->modified & SMF_SOURCE)
+                    m_Source = m_source = m_SrcKey = m_srckey = 0;
+               else if (state->modified & SMF_SRC_COLORKEY)
+                    m_SrcKey = m_srckey = 0;
 
                if (state->modified & SMF_BLITTING_FLAGS)
                     m_Source = m_blitBlend = 0;
 
                if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
                     m_blitBlend = m_drawBlend = 0;
-
-               if (state->modified & SMF_COLOR)
-                    m_Color = m_color = 0;
-
-               if (state->modified & SMF_SRC_COLORKEY)
-                    m_SrcKey = m_srckey = 0;
           }
      }
 
@@ -244,7 +318,10 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
                     state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
                }
                else {
-                    matrox->Blit = matroxBlit2D;
+                    if (old_matrox)
+                         matrox->Blit = matroxBlit2D_Old;
+                    else
+                         matrox->Blit = matroxBlit2D;
 
                     matrox_validate_source();
 
@@ -259,8 +336,13 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
                break;
      }
 
-     if (state->modified & SMF_DESTINATION)
+     if (state->modified & SMF_DESTINATION) {
           matrox_set_destination();
+
+          /* On old cards the clip depends on the destination's pixel offset */
+          if (old_matrox)
+               state->modified |= SMF_CLIP;
+     }
 
      if (state->modified & SMF_CLIP)
           matrox_set_clip();
@@ -422,7 +504,7 @@ static void matroxBlit2D( DFBRectangle *rect, int dx, int dy )
                     ATYPE_RSTR | OP_BITBLT;
      __u32 start, end;
      __u32 sgn = 0;
-     __s32 pitch = src_pixelpitch;
+     __s32 pixelpitch = src_pixelpitch;
 
      if (rect->x < dx)
           sgn |= BLIT_LEFT;
@@ -434,7 +516,7 @@ static void matroxBlit2D( DFBRectangle *rect, int dx, int dy )
           dy += rect->h - 1;
      }
 
-     start = end = rect->y * pitch + rect->x;
+     start = end = rect->y * pixelpitch + rect->x;
 
      rect->w--;
 
@@ -444,17 +526,61 @@ static void matroxBlit2D( DFBRectangle *rect, int dx, int dy )
           end += rect->w;
 
      if (sgn & BLIT_UP)
-          pitch = -pitch;
-
-     mga_waitfifo( mmio_base, 7 );
+          pixelpitch = -pixelpitch;
 
      if (matrox->state->blittingflags & DSBLIT_SRC_COLORKEY)
           dwgctl |= TRANSC;
 
+     mga_waitfifo( mmio_base, 7 );
      mga_out32( mmio_base, dwgctl, DWGCTL );
-     mga_out32( mmio_base, pitch & 0x3FFFFF, AR5 );
+     mga_out32( mmio_base, pixelpitch & 0x3FFFFF, AR5 );
      mga_out32( mmio_base, start & 0xFFFFFF, AR3 );
      mga_out32( mmio_base, end & 0x3FFFFF, AR0 );
+     mga_out32( mmio_base, sgn, SGN );
+     mga_out32( mmio_base, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
+     mga_out32( mmio_base, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
+}
+
+static void matroxBlit2D_Old( DFBRectangle *rect, int dx, int dy )
+{
+     __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO |
+                    ATYPE_RSTR | OP_BITBLT;
+     __u32 start, end;
+     __u32 sgn = 0;
+     __s32 pixelpitch = src_pixelpitch;
+
+     if (rect->x < dx)
+          sgn |= BLIT_LEFT;
+     if (rect->y < dy)
+          sgn |= BLIT_UP;
+
+     if (sgn & BLIT_UP) {
+          rect->y += rect->h - 1;
+          dy += rect->h - 1;
+     }
+
+     start = rect->y * pixelpitch + rect->x + src_pixeloffset;
+
+     rect->w--;
+
+     end = rect->w;
+
+     if (sgn & BLIT_LEFT) {
+          start += rect->w;
+          end = -end;
+     }
+
+     if (sgn & BLIT_UP)
+          pixelpitch = -pixelpitch;
+
+     if (matrox->state->blittingflags & DSBLIT_SRC_COLORKEY)
+          dwgctl |= TRANSC;
+
+     mga_waitfifo( mmio_base, 7 );
+     mga_out32( mmio_base, dwgctl, DWGCTL );
+     mga_out32( mmio_base, pixelpitch & 0x3FFFFF, AR5 );
+     mga_out32( mmio_base, start & 0xFFFFFF, AR3 );
+     mga_out32( mmio_base, end & 0x3FFFF, AR0 );
      mga_out32( mmio_base, sgn, SGN );
      mga_out32( mmio_base, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
      mga_out32( mmio_base, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
@@ -490,13 +616,14 @@ static void matroxStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
      incx = (srect->w << (20 - matrox_w2))  /  drect->w;
      incy = (srect->h << (20 - matrox_h2))  /  drect->h;
 
-     startx = (srect->x << 20)  >> matrox_w2;
-     starty = (srect->y << 20)  >> matrox_h2;
+     startx = srect->x << (20 - matrox_w2);
+     starty = srect->y << (20 - matrox_h2);
 
      mga_waitfifo( mmio_base, 8);
 
+
      mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
-                ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
+                           ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
 
      mga_out32( mmio_base, MAG_BILIN | MIN_BILIN, TEXFILTER );
 
@@ -515,10 +642,18 @@ static void matroxStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
 int driver_probe( int fd, GfxCard *card )
 {
      switch (card->fix.accel) {
+          case FB_ACCEL_MATROX_MGA2064W:     /* Matrox MGA2064W (Millenium)   */
+          case FB_ACCEL_MATROX_MGA1064SG:    /* Matrox MGA1064SG (Mystique)   */
+          case FB_ACCEL_MATROX_MGA2164W:     /* Matrox MGA2164W (Millenium II)*/
+          case FB_ACCEL_MATROX_MGA2164W_AGP: /* Matrox MGA2164W (Millenium II)*/
+               old_matrox = 1;
+
+               /* fall through */
+
 #ifdef FB_ACCEL_MATROX_MGAG400
-          case FB_ACCEL_MATROX_MGAG400:  /* Matrox G400                       */
+          case FB_ACCEL_MATROX_MGAG400:      /* Matrox G400                   */
 #endif
-          case FB_ACCEL_MATROX_MGAG200:  /* Matrox G200 (Myst, Mill, ...)     */
+          case FB_ACCEL_MATROX_MGAG200:      /* Matrox G200 (Myst, Mill, ...) */
                return 1;
      }
 
@@ -535,28 +670,68 @@ int driver_init( int fd, GfxCard *card )
           return DFB_IO;
      }
 
-     sprintf( card->info.driver_name, "Matrox" );
+     switch (card->fix.accel) {
+#ifdef FB_ACCEL_MATROX_MGAG400
+          case FB_ACCEL_MATROX_MGAG400:
+               sprintf( card->info.driver_name, "Matrox G400/G450" );
+               break;
+#endif
+          case FB_ACCEL_MATROX_MGAG200:
+               sprintf( card->info.driver_name, "Matrox G200" );
+               break;
+          case FB_ACCEL_MATROX_MGA2064W:
+               sprintf( card->info.driver_name, "Matrox Millenium I" );
+               break;
+          case FB_ACCEL_MATROX_MGA1064SG:
+               sprintf( card->info.driver_name, "Matrox Mystique" );
+               break;
+          case FB_ACCEL_MATROX_MGA2164W:
+          case FB_ACCEL_MATROX_MGA2164W_AGP:
+               sprintf( card->info.driver_name, "Matrox Millenium II" );
+               break;
+          default:
+               BUG("id known by probe() not known by init()");
+               munmap( (void*)mmio_base, card->fix.mmio_len);
+               return DFB_BUG;
+     }
+
      sprintf( card->info.driver_vendor, "convergence integrated media GmbH" );
 
      card->info.driver_version.major = 0;
-     card->info.driver_version.minor = 4;
+     card->info.driver_version.minor = 5;
 
-     card->caps.flags    = CCF_CLIPPING;
-     card->caps.accel    = MATROX_SUPPORTED_FUNCTIONS;
-     card->caps.drawing  = DSDRAW_BLEND;
-     card->caps.blitting = DSBLIT_BLEND_ALPHACHANNEL |
-                           DSBLIT_BLEND_COLORALPHA |
-                           DSBLIT_COLORIZE |
-                           DSBLIT_SRC_COLORKEY;
+     card->caps.flags = CCF_CLIPPING;
 
      switch (card->fix.accel) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
+               card->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
+                                     MATROX_G200G400_BLITTING_FUNCTIONS;
+               card->caps.drawing  = MATROX_G200G400_DRAWING_FLAGS;
+               card->caps.blitting = MATROX_G200G400_BLITTING_FLAGS;
+
                card->CheckState = matroxG400CheckState;
                break;
 #endif
           case FB_ACCEL_MATROX_MGAG200:
+               card->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
+                                     MATROX_G200G400_BLITTING_FUNCTIONS;
+               card->caps.drawing  = MATROX_G200G400_DRAWING_FLAGS;
+               card->caps.blitting = MATROX_G200G400_BLITTING_FLAGS;
+
                card->CheckState = matroxG200CheckState;
+               break;
+
+          case FB_ACCEL_MATROX_MGA2064W:
+          case FB_ACCEL_MATROX_MGA1064SG:
+          case FB_ACCEL_MATROX_MGA2164W:
+          case FB_ACCEL_MATROX_MGA2164W_AGP:
+               card->caps.accel    = MATROX_OLD_DRAWING_FUNCTIONS |
+                                     MATROX_OLD_BLITTING_FUNCTIONS;
+               card->caps.drawing  = MATROX_OLD_DRAWING_FLAGS;
+               card->caps.blitting = MATROX_OLD_BLITTING_FLAGS;
+
+               card->CheckState = matroxOldCheckState;
                break;
      }
 

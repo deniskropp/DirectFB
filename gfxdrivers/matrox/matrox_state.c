@@ -39,9 +39,6 @@
 
 #include "matrox_state.h"
 
-static int pixelpitch = 0;
-
-int matrox_tmu = 0;
 int matrox_w2;
 int matrox_h2;
 
@@ -49,12 +46,19 @@ inline void matrox_set_destination()
 {
      CoreSurface   *surface = matrox->state->destination;
      SurfaceBuffer *buffer  = surface->back_buffer;
+     int            bytes_per_pixel = BYTES_PER_PIXEL(surface->format);
 
-     pixelpitch = buffer->video.pitch / BYTES_PER_PIXEL(surface->format);
+     dst_pixelpitch = buffer->video.pitch / bytes_per_pixel;
+     dst_pixeloffset = buffer->video.offset / bytes_per_pixel;
 
      mga_waitfifo( mmio_base, 3 );
-     mga_out32( mmio_base, pixelpitch, PITCH );
-     mga_out32( mmio_base, buffer->video.offset, DSTORG );
+
+     if (old_matrox)
+          mga_out32( mmio_base, dst_pixeloffset, YDSTORG );
+     else
+          mga_out32( mmio_base, buffer->video.offset, DSTORG );
+
+     mga_out32( mmio_base, dst_pixelpitch, PITCH );
 
      switch (surface->format) {
           case DSPF_A8:
@@ -82,10 +86,20 @@ inline void matrox_set_destination()
 inline void matrox_set_clip()
 {
      mga_waitfifo( mmio_base, 3 );
+
+     if (old_matrox) {
+          mga_out32( mmio_base, (dst_pixeloffset +
+                                 dst_pixelpitch * matrox->state->clip.y1) & 0xFFFFFF, YTOP );
+          mga_out32( mmio_base, (dst_pixeloffset +
+                                 dst_pixelpitch * matrox->state->clip.y2) & 0xFFFFFF, YBOT );
+     }
+     else {
+          mga_out32( mmio_base, (dst_pixelpitch * matrox->state->clip.y1) & 0xFFFFFF, YTOP );
+          mga_out32( mmio_base, (dst_pixelpitch * matrox->state->clip.y2) & 0xFFFFFF, YBOT );
+     }
+
      mga_out32( mmio_base, ((matrox->state->clip.x2 & 0x0FFF) << 16) |
-                           (matrox->state->clip.x1 & 0x0FFF), CXBNDRY );
-     mga_out32( mmio_base, (pixelpitch * matrox->state->clip.y1) & 0xFFFFFF, YTOP );
-     mga_out32( mmio_base, (pixelpitch * matrox->state->clip.y2) & 0xFFFFFF, YBOT );
+                            (matrox->state->clip.x1 & 0x0FFF), CXBNDRY );
 }
 
 inline void matrox_validate_Color()
@@ -280,8 +294,8 @@ inline void matrox_validate_Source()
      mga_out32( mmio_base, CLAMPUV |
                            ((src_pixelpitch&0x7ff)<<9) | PITCHEXT | texctl, TEXCTL );
      mga_out32( mmio_base, texctl2, TEXCTL2 );
-     mga_out32( mmio_base, ((surface->width -1)<<18) | matrox_w2<<9 | matrox_w2, TEXWIDTH );
-     mga_out32( mmio_base, ((surface->height-1)<<18) | matrox_h2<<9 | matrox_h2, TEXHEIGHT );
+     mga_out32( mmio_base, ((surface->width -1)<<18) | ((8-matrox_w2)&63)<<9 | matrox_w2, TEXWIDTH );
+     mga_out32( mmio_base, ((surface->height-1)<<18) | ((8-matrox_h2)&63)<<9 | matrox_h2, TEXHEIGHT );
      mga_out32( mmio_base, buffer->video.offset, TEXORG );
 
      m_Source = 1;
@@ -289,19 +303,21 @@ inline void matrox_validate_Source()
 
 inline void matrox_validate_source()
 {
-     CoreSurface   *surface = matrox->state->source;
-     SurfaceBuffer *buffer  = surface->front_buffer;
+     CoreSurface   *surface         = matrox->state->source;
+     SurfaceBuffer *buffer          = surface->front_buffer;
+     int            bytes_per_pixel = BYTES_PER_PIXEL(surface->format);
 
      if (m_source)
           return;
 
-     src_pixelpitch = buffer->video.pitch / BYTES_PER_PIXEL(surface->format);
+     src_pixelpitch = buffer->video.pitch / bytes_per_pixel;
 
-     mga_waitfifo( mmio_base, 2);
-
-     mga_out32( mmio_base,
-                (1 << MIN( 24, BITS_PER_PIXEL(surface->format) )) - 1, BCOL );
-     mga_out32( mmio_base, buffer->video.offset, SRCORG );
+     if (old_matrox)
+          src_pixeloffset = buffer->video.offset / bytes_per_pixel;
+     else {
+          mga_waitfifo( mmio_base, 1);
+          mga_out32( mmio_base, buffer->video.offset, SRCORG );
+     }
 
      m_source = 1;
 }
@@ -333,11 +349,21 @@ inline void matrox_validate_SrcKey()
 
 inline void matrox_validate_srckey()
 {
+     CoreSurface *surface = matrox->state->source;
+     __u32        mask;
+
      if (m_srckey)
           return;
 
-     mga_waitfifo( mmio_base, 1);
+     mask = (1 << MIN( 24, BITS_PER_PIXEL(surface->format) )) - 1;
+
+     mga_waitfifo( mmio_base, 2);
      mga_out32( mmio_base, matrox->state->src_colorkey, FCOL );
+
+     if (BYTES_PER_PIXEL(matrox->state->source->format) > 2)
+          mga_out32( mmio_base, mask, BCOL );
+     else
+          mga_out32( mmio_base, (mask << 16) | mask, BCOL );
 
      m_srckey = 1;
      m_color = 0;

@@ -25,9 +25,10 @@
 #define ___MATROX_H__
 
 extern volatile __u8 *mmio_base;
-extern int g400;
 
 extern GfxCard *matrox;
+
+extern int old_matrox;
 
 extern int m_Source;
 extern int m_source;
@@ -41,7 +42,10 @@ extern int m_srckey;
 extern int m_drawBlend;
 extern int m_blitBlend;
 
+extern int dst_pixelpitch;
+extern int dst_pixeloffset;
 extern int src_pixelpitch;
+extern int src_pixeloffset;
 
 
 static inline unsigned int log2( unsigned int val )

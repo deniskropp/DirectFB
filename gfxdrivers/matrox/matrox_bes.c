@@ -282,7 +282,12 @@ void matrox_bes_deinit( DisplayLayer *layer )
 
 void driver_init_layers()
 {
-     DisplayLayer *layer = (DisplayLayer*)DFBCALLOC( 1, sizeof(DisplayLayer) );
+     DisplayLayer *layer;
+
+     if (old_matrox)
+          return;
+
+     layer = (DisplayLayer*)DFBCALLOC( 1, sizeof(DisplayLayer) );
 
      layer->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
                    DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST;
