@@ -164,6 +164,7 @@ static void Sacc_to_Aop_rgb32_MMX( GenefxState *gfxs )
                : "%st", "memory");
 }
 
+__attribute__((no_instrument_function))
 static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
 {
      static const long zeros[]  = { 0, 0 };
