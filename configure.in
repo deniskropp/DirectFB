@@ -133,9 +133,13 @@ if test "x$enable_multi" = xyes; then
 
 *** Multi application support is highly experimental, you have been warned. ***
 ])
+    FUSION_CFLAGS=
 else
+    FUSION_CFLAGS="-DFUSION_FAKE"
     AC_DEFINE(FUSION_FAKE)
 fi
+
+AC_SUBST(FUSION_CFLAGS)
 
 
 AC_ARG_ENABLE(rgb332, [  --enable-rgb332         enable RGB332 pixel format support [default=no]],,enable_rgb332=no)
