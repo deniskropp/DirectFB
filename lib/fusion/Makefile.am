@@ -76,9 +76,10 @@ clean-local:
 all-local: libfusion_fixed.a
 
 libfusion_fixed.a: .libs/libfusion.a
-        rm -f libfusion_fixed.a
-        ${AR} cru libfusion_fixed.a ind -name "*.o"        ${RANLIB} libfusion_fixed.a
-        cp -af libfusion_fixed.a .libs/libfusion.a
+	rm -f libfusion_fixed.a
+	${AR} cru libfusion_fixed.a `find -name "*.o"`
+	${RANLIB} libfusion_fixed.a
+	cp -af libfusion_fixed.a .libs/libfusion.a
 
 .libs/libfusion.a: libfusion.la
 
