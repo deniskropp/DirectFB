@@ -35,7 +35,11 @@ typedef enum {
      CSNF_SYSTEM      = 0x00000002,     /* system instance information */
      CSNF_VIDEO       = 0x00000004,     /* video instance information */
      CSNF_DESTROY     = 0x00000008,     /* surface is about to be destroyed */
-     CSNF_FLIP        = 0x00000010      /* surface buffer pointer swapped */
+     CSNF_FLIP        = 0x00000010,     /* surface buffer pointer swapped */
+     CSNF_SET_EVEN    = 0x00000020,     /* set the even field of an interlaced
+                                           surface buffer active */
+     CSNF_SET_ODD     = 0x00000040      /* set the odd field of an interlaced
+                                           surface buffer active */
 } CoreSurfaceNotificationFlags;
 
 typedef struct {

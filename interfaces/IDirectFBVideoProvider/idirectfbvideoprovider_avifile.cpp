@@ -171,6 +171,23 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
 
      /* URGENT: keep in sync with DrawCallback */
 
+     switch (dst_data->surface->format) {
+          case DSPF_YUY2:
+               data->source.format = DSPF_YUY2;
+               if (data->player->SetColorSpace( fccYUY2, 0 ))
+                    return DFB_UNSUPPORTED;
+               break;
+          case DSPF_UYVY:
+               data->source.format = DSPF_UYVY;
+               if (data->player->SetColorSpace( fccUYVY, 0 ))
+                    return DFB_UNSUPPORTED;
+               break;
+          default:
+               data->source.format = DSPF_RGB16;
+               data->player->SetColorSpace( 0, 0 );
+               break;
+     }
+
      /* build the destination rectangle */
      if (dstrect) {
           if (dstrect->w < 1  ||  dstrect->h < 1)
@@ -213,15 +230,6 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
 
      data->callback = callback;
      data->ctx = ctx;
-
-     switch (dst_data->surface->format) {
-          case DSPF_YUY2:
-               data->source.format = DSPF_YUY2;
-               data->player->SetColorSpace( fccYUY2, 0 );
-               break;
-          default:
-               ;
-     }
 
      switch (data->player->GetState( NULL )) {
           case IAviPlayer::Playing:
@@ -353,7 +361,6 @@ static void AviFile_DrawCallback( const CImage *image, void *p )
 
           gfxcard_stretchblit( &rect, &drect, &data->state );
      }
-
 
      if (data->callback)
           data->callback( data->ctx );

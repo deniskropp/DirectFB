@@ -66,6 +66,7 @@ typedef struct {
      int                      fd;
      struct video_capability  vcap;
      pthread_t                thread;
+     CoreSurface             *destination;
      DVFrameCallback          callback;
      void                    *ctx;
 
@@ -140,7 +141,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
                DVCAPS_BRIGHTNESS |
                DVCAPS_CONTRAST   |
                DVCAPS_HUE        |
-               DVCAPS_SATURATION );
+               DVCAPS_SATURATION |
+               DVCAPS_INTERLACED );
 
      if (data->vcap.type & VID_TYPE_SCALES)
           *caps |= DVCAPS_SCALE;
@@ -402,6 +404,7 @@ static void* FrameThread( void *ctx )
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)ctx;
 
+     int            even = 0;
      struct timeval tv;
 
      while (1) {
@@ -411,7 +414,14 @@ static void* FrameThread( void *ctx )
 
           pthread_testcancel();
 
-          data->callback( data->ctx );
+          if (data->destination->caps & DSCAPS_INTERLACED) {
+               surface_notify_listeners( data->destination,
+                                         even ? CSNF_SET_EVEN : CSNF_SET_ODD );
+               even = !even;
+          }
+
+          if (data->callback)
+               data->callback( data->ctx );
      }
 }
 
@@ -446,7 +456,11 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      switch (surface->format) {
           case DSPF_YUY2:
                bpp = 16;
-               palette = VIDEO_PALETTE_YUV422;
+               palette = VIDEO_PALETTE_YUYV;
+               break;
+          case DSPF_UYVY:
+               bpp = 16;
+               palette = VIDEO_PALETTE_UYVY;
                break;
           case DSPF_RGB15:
                bpp = 15;
@@ -550,7 +564,9 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
                                CSN_DESTROY| CSN_FLIP| CSN_SIZEFORMAT| CSN_VIDEO,
                                NULL );*/
 
-     if (data->callback)
+     data->destination = surface;
+
+     if (data->callback || surface->caps & DSCAPS_INTERLACED)
           pthread_create( &data->thread, NULL, FrameThread, data );
 
      return DFB_OK;
@@ -572,6 +588,8 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data )
 
           return ret;
      }
+
+     data->destination = NULL;
 
      return DFB_OK;
 }

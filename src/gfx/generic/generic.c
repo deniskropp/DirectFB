@@ -168,7 +168,7 @@ static GFunc Cop_to_Aop_PFI[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Cop_to_Aop_8
-#endif     
+#endif
 
 };
 
@@ -228,7 +228,7 @@ static GFunc Cop_toK_Aop_PFI[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Cop_toK_Aop_8
-#endif     
+#endif
 };
 
 /********************************* Sop_PFI_to_Aop_PFI *************************/
@@ -263,7 +263,7 @@ static GFunc Sop_PFI_to_Aop_PFI[] = {
      Sop_16_to_Aop
 #ifdef SUPPORT_RGB332
      ,Sop_8_to_Aop
-#endif     
+#endif
 };
 
 /********************************* Sop_PFI_Kto_Aop_PFI ************************/
@@ -280,8 +280,8 @@ static void Sop_rgb15_Kto_Aop()
           __u16 *tmp = Aop;
           --l;
           if ((*((__u16*)S) & 0x7FFF) != (__u16)Skey)
-	       *tmp = *((__u16*)S);	       
-          
+           *tmp = *((__u16*)S);
+
           D = (__u32*)(tmp+1);
      }
 
@@ -289,10 +289,10 @@ static void Sop_rgb15_Kto_Aop()
      while (w) {
           __u32 dpixel = *S;
           __u16 *tmp = (__u16*)D;
-          
+
           if (dpixel != DSkey) {
                if ((dpixel & 0x7FFF0000) != (DSkey & 0x7FFF0000)) {
-                    if ((dpixel & 0x00007FFF) != (DSkey & 0x00007FFF)) { 
+                    if ((dpixel & 0x00007FFF) != (DSkey & 0x00007FFF)) {
                          *D = dpixel;
                     }
                     else {
@@ -308,7 +308,7 @@ static void Sop_rgb15_Kto_Aop()
                     tmp[1] = (__u16)dpixel;
 #else
                     tmp[0] = (__u16)dpixel;
-#endif                    
+#endif
                }
           }
           ++S;
@@ -334,8 +334,8 @@ static void Sop_rgb16_Kto_Aop()
           __u16 *tmp = Aop;
           --l;
           if (*((__u16*)S) != (__u16)Skey)
-	       *tmp = *((__u16*)S);	       
-          
+           *tmp = *((__u16*)S);
+
           D = (__u32*)(tmp+1);
      }
 
@@ -343,10 +343,10 @@ static void Sop_rgb16_Kto_Aop()
      while (w) {
           __u32 dpixel = *S;
           __u16 *tmp = (__u16*)D;
-          
+
           if (dpixel != DSkey) {
                if ((dpixel & 0xFFFF0000) != (DSkey & 0xFFFF0000)) {
-                    if ((dpixel & 0x0000FFFF) != (DSkey & 0x0000FFFF)) { 
+                    if ((dpixel & 0x0000FFFF) != (DSkey & 0x0000FFFF)) {
                          *D = dpixel;
                     }
                     else {
@@ -362,7 +362,7 @@ static void Sop_rgb16_Kto_Aop()
                     tmp[1] = (__u16)dpixel;
 #else
                     tmp[0] = (__u16)dpixel;
-#endif                    
+#endif
                }
           }
           ++S;
@@ -487,7 +487,7 @@ static GFunc Sop_PFI_Kto_Aop_PFI[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Sop_rgb332_Kto_Aop
-#endif     
+#endif
 };
 
 /********************************* Sop_PFI_Sto_Aop ****************************/
@@ -562,7 +562,7 @@ static GFunc Sop_PFI_Sto_Aop[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Sop_8_Sto_Aop
-#endif     
+#endif
 };
 
 /********************************* Sop_PFI_SKto_Aop ***************************/
@@ -687,7 +687,7 @@ static GFunc Sop_PFI_SKto_Aop[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Sop_rgb332_SKto_Aop
-#endif     
+#endif
 };
 
 /********************************* Sop_PFI_Sto_Dacc ***************************/
@@ -829,7 +829,7 @@ static GFunc Sop_PFI_Sto_Dacc[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Sop_rgb332_Sto_Dacc
-#endif     
+#endif
 };
 
 /********************************* Sop_PFI_SKto_Dacc **************************/
@@ -1218,7 +1218,7 @@ static GFunc Sop_PFI_to_Dacc[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Sop_rgb332_to_Dacc
-#endif     
+#endif
 };
 
 /********************************* Sop_PFI_Kto_Dacc ***************************/
@@ -1358,7 +1358,7 @@ static GFunc Sop_PFI_Kto_Dacc[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Sop_rgb332_Kto_Dacc
-#endif     
+#endif
 };
 
 /********************************* Sacc_to_Aop_PFI ****************************/
@@ -1482,7 +1482,7 @@ GFunc Sacc_to_Aop_PFI[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Sacc_to_Aop_rgb332
-#endif     
+#endif
 };
 
 /************** Sop_a8_set_alphapixel_Aop_PFI *********************************/
@@ -1699,8 +1699,8 @@ static void Sop_a8_set_alphapixel_Aop_a8()
 #define SET_ALPHA_PIXEL_RGB332(d,a) \
      if (a>127) \
           *(d) = PIXEL_RGB332( color.r, color.g, color.b );
-          
-     
+
+
 static void Sop_a8_set_alphapixel_Aop_rgb332()
 {
      int    w = Dlength;
@@ -1730,7 +1730,7 @@ GFunc Sop_a8_set_alphapixel_Aop_PFI[] = {
      NULL
 #ifdef SUPPORT_RGB332
      ,Sop_a8_set_alphapixel_Aop_rgb332
-#endif     
+#endif
 };
 
 /********************************* Xacc_blend *********************************/
@@ -2126,6 +2126,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                Cop = color.a;
                break;
           case DSPF_YUY2:
+          case DSPF_UYVY:
                break;
           default:
                ONCE("unsupported pixelformat");

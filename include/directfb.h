@@ -358,8 +358,14 @@ extern "C"
           DSCAPS_FLIPPING     = 0x00000010,  /* surface is double buffered
                                                 (use Flip to make changes
                                                  visible/usable) */
-          DSCAPS_SUBSURFACE   = 0x00000020   /* surface is just a sub area of
+          DSCAPS_SUBSURFACE   = 0x00000020,  /* surface is just a sub area of
                                                 another one */
+          DSCAPS_INTERLACED   = 0x00000040   /* each surface buffer contains
+                                                interlaced video data
+                                                consisting of two fields which
+                                                lines are interleaved,
+                                                one field's height is a half
+                                                of the surface's height */
      } DFBSurfaceCapabilities;
 
      /*
@@ -539,9 +545,14 @@ extern "C"
           DSPF_A8             = 0x00010806,  /* 8bit alpha (1 byte, alpha 8@0 ),
                                                 e.g. anti-aliased text glyphs */
           DSPF_YUY2           = 0x00021007,  /* A macropixel (32bit / 2 pixel)
-                                                contains VYUY (lsb) */
-          DSPF_RGB332         = 0x00010808   /* 8bit true color (1 byte,
+                                                contains YUYV (starting with
+                                                the LOWEST byte on the LEFT) */
+          DSPF_RGB332         = 0x00010808,  /* 8bit true color (1 byte,
                                                 red 3@5, green 3@2, blue 2@0 */
+          DSPF_UYVY           = 0x00021009   /* A macropixel (32bit / 2 pixel)
+                                                contains UYVY (starting with
+                                                the LOWEST byte on the LEFT) */
+          /* YVYU could be the next */
      } DFBSurfacePixelFormat;
 
 
@@ -656,6 +667,7 @@ extern "C"
           DVCAPS_BASIC      = 0x00000000,  /* basic ops (PlayTo, Stop)       */
           DVCAPS_SEEK       = 0x00000001,  /* supports SeekTo                */
           DVCAPS_SCALE      = 0x00000002,  /* can scale the video            */
+          DVCAPS_INTERLACED = 0x00000004,  /* supports interlaced surfaces   */
           DVCAPS_BRIGHTNESS = 0x00000010,  /* supports Brightness adjustment */
           DVCAPS_CONTRAST   = 0x00000020,  /* supports Contrast adjustment   */
           DVCAPS_HUE        = 0x00000040,  /* supports Hue adjustment        */

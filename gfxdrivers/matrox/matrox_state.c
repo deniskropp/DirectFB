@@ -261,6 +261,12 @@ inline void matrox_validate_Source()
           texctl = TAKEY;
 
      switch (surface->format) {
+          case DSPF_YUY2:
+               texctl |= TW422;
+               break;
+          case DSPF_UYVY:
+               texctl |= TW422UYVY;
+               break;
           case DSPF_A8:
                texctl |= TW8A;
                break;
@@ -279,6 +285,8 @@ inline void matrox_validate_Source()
                break;
      }
 
+     texctl |= CLAMPUV | ((src_pixelpitch&0x7ff)<<9) | PITCHEXT | NOPERSPECTIVE;
+
      if (matrox->state->blittingflags & DSBLIT_COLORIZE)
           texctl |= TMODULATE;
 
@@ -291,11 +299,12 @@ inline void matrox_validate_Source()
 
      mga_waitfifo( mmio_base, 5);
 
-     mga_out32( mmio_base, CLAMPUV |
-                           ((src_pixelpitch&0x7ff)<<9) | PITCHEXT | texctl, TEXCTL );
+     mga_out32( mmio_base, texctl, TEXCTL );
      mga_out32( mmio_base, texctl2, TEXCTL2 );
-     mga_out32( mmio_base, ((surface->width -1)<<18) | ((8-matrox_w2)&63)<<9 | matrox_w2, TEXWIDTH );
-     mga_out32( mmio_base, ((surface->height-1)<<18) | ((8-matrox_h2)&63)<<9 | matrox_h2, TEXHEIGHT );
+     mga_out32( mmio_base, ((surface->width -1)<<18) |
+                           ((8-matrox_w2)&63)<<9 | matrox_w2, TEXWIDTH );
+     mga_out32( mmio_base, ((surface->height-1)<<18) |
+                           ((8-matrox_h2)&63)<<9 | matrox_h2, TEXHEIGHT );
      mga_out32( mmio_base, buffer->video.offset, TEXORG );
 
      m_Source = 1;

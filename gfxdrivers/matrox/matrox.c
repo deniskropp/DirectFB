@@ -112,6 +112,24 @@ static void matroxFlushTextureCache()
 #define MATROX_OLD_BLITTING_FUNCTIONS       (DFXL_BLIT)
 
 
+/* G100 */
+
+#define MATROX_G100_DRAWING_FLAGS           (DSDRAW_NOFX)
+
+#define MATROX_G100_BLITTING_FLAGS          (DSBLIT_SRC_COLORKEY | \
+                                           /*DSBLIT_BLEND_ALPHACHANNEL |*/ \
+                                           /*DSBLIT_BLEND_COLORALPHA |*/ \
+                                             DSBLIT_COLORIZE)
+
+#define MATROX_G100_DRAWING_FUNCTIONS       (DFXL_FILLRECTANGLE | \
+                                             DFXL_DRAWRECTANGLE | \
+                                             DFXL_DRAWLINE      | \
+                                             DFXL_FILLTRIANGLE)
+
+#define MATROX_G100_BLITTING_FUNCTIONS      (DFXL_BLIT          | \
+                                             DFXL_STRETCHBLIT)
+
+
 /* G200/G400 */
 
 #define MATROX_G200G400_DRAWING_FLAGS       (DSDRAW_BLEND)
@@ -160,6 +178,62 @@ static void matroxOldCheckState( CardState *state, DFBAccelerationMask accel )
      }
 }
 
+static void matroxG100CheckState( CardState *state, DFBAccelerationMask accel )
+{
+     /* FIXME: 24bit support */
+     switch (state->destination->format) {
+          case DSPF_RGB15:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+          case DSPF_A8:
+               break;
+          default:
+               return;
+     }
+
+     if (accel & 0xFFFF) {
+          if (state->drawingflags & ~MATROX_G100_DRAWING_FLAGS)
+               return;
+
+          state->accel |= MATROX_G100_DRAWING_FUNCTIONS;
+     }
+     else {
+          if (state->blittingflags & ~MATROX_G100_BLITTING_FLAGS)
+               return;
+
+          /* using the texture mapping unit? */
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                      DSBLIT_BLEND_COLORALPHA   |
+                                      DSBLIT_COLORIZE)             ||
+              state->destination->format != state->source->format  ||
+              accel == DFXL_STRETCHBLIT)
+          {
+               /* TMU has no 32bit support */
+               switch (state->source->format) {
+                    case DSPF_RGB15:
+                    case DSPF_RGB16:
+                         break;
+                    default:
+                         return;
+               }
+
+               /* TMU limits */
+               if (state->source->width < 8 ||
+                   state->source->height < 8 ||
+                   state->source->width > 2048 ||
+                   state->source->height > 2048)
+                    return;
+
+               state->accel |= MATROX_G100_BLITTING_FUNCTIONS;
+          }
+          else {
+               /* source and destination formats equal, no stretching is done */
+               state->accel |= accel;
+          }
+     }
+}
+
 static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
@@ -186,6 +260,7 @@ static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
+               case DSPF_YUY2:
                     break;
                default:
                     return;
@@ -231,6 +306,8 @@ static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
                case DSPF_RGB32:
                case DSPF_ARGB:
                case DSPF_A8:
+               case DSPF_YUY2:
+               case DSPF_UYVY:
                     break;
                default:
                     return;
@@ -593,8 +670,8 @@ static void matroxBlit3D( DFBRectangle *rect, int dx, int dy )
      startx = ((rect->x << 20) | 0x80000) >> matrox_w2;
      starty = ((rect->y << 20) | 0x80000) >> matrox_h2;
 
-     mga_waitfifo( mmio_base, 8);
 
+     mga_waitfifo( mmio_base, 8);
 
      mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO |
                 ARZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
@@ -619,8 +696,8 @@ static void matroxStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
      startx = srect->x << (20 - matrox_w2);
      starty = srect->y << (20 - matrox_h2);
 
-     mga_waitfifo( mmio_base, 8);
 
+     mga_waitfifo( mmio_base, 8);
 
      mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
                            ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
@@ -726,11 +803,19 @@ int driver_init( int fd, GfxCard *card )
                card->CheckState = matroxG200CheckState;
                break;
 
+          case FB_ACCEL_MATROX_MGAG100:
+               card->caps.accel    = MATROX_G100_DRAWING_FUNCTIONS |
+                                     MATROX_G100_BLITTING_FUNCTIONS;
+               card->caps.drawing  = MATROX_G100_DRAWING_FLAGS;
+               card->caps.blitting = MATROX_G100_BLITTING_FLAGS;
+
+               card->CheckState = matroxG100CheckState;
+               break;
+
           case FB_ACCEL_MATROX_MGA2064W:
           case FB_ACCEL_MATROX_MGA1064SG:
           case FB_ACCEL_MATROX_MGA2164W:
           case FB_ACCEL_MATROX_MGA2164W_AGP:
-          case FB_ACCEL_MATROX_MGAG100:
                card->caps.accel    = MATROX_OLD_DRAWING_FUNCTIONS |
                                      MATROX_OLD_BLITTING_FUNCTIONS;
                card->caps.drawing  = MATROX_OLD_DRAWING_FLAGS;

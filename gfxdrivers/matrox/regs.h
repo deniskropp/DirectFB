@@ -37,6 +37,7 @@
 #define BESA1C3ORG       0x3D60
 #define BESA1CORG        0x3D10
 #define BESA1ORG         0x3D00
+#define BESA2ORG         0x3D04
 
 #define BESCTL           0x3D20
 #define BESCTL_BESEN     0x00000001
@@ -59,7 +60,9 @@
 #define BESPITCH         0x3D24
 #define BESSTATUS        0x3DC4
 #define BESV1SRCLST      0x3D54
+#define BESV2SRCLST      0x3D58
 #define BESV1WGHT        0x3D48
+#define BESV2WGHT        0x3D4C
 #define BESVCOORD        0x3D2C
 #define BESVISCAL        0x3D34
 
@@ -137,8 +140,11 @@
 #define TW32          0x00000006
 #define TW8A          0x00000007
 #define TW8AL         0x00000008
+#define TW422         0x0000000A
+#define TW422UYVY     0x0000000B
 
 #define PITCHEXT      0x00000100
+#define NOPERSPECTIVE 0x00200000
 #define TAKEY         0x02000000
 #define TAMASK        0x04000000
 #define CLAMPUV       0x18000000

@@ -89,14 +89,16 @@ DFBEnumerationResult enum_layers_callback( unsigned int                 id,
 
 int main( int argc, char *argv[] )
 {
-     DFBResult               ret;
-     IDirectFBSurface       *videosurface;
-     IDirectFBVideoProvider *videoprovider;
-     IDirectFBDisplayLayer  *videolayer = NULL;
-     DFBDisplayLayerConfig   dlc;
-     DFBSurfaceDescription   dsc;
+     DFBResult                    ret;
+     IDirectFBSurface            *videosurface;
+     IDirectFBVideoProvider      *videoprovider;
+     IDirectFBDisplayLayer       *videolayer = NULL;
+     DFBDisplayLayerConfig        dlc;
+     DFBSurfaceDescription        dsc;
+     DFBVideoProviderCapabilities vcaps;
+     DFBDisplayLayerConfigFlags   failed;
 
-     IDirectFBInputBuffer   *events;
+     IDirectFBInputBuffer        *events;
 
      /* Initialize DirectFB */
      ret = DirectFBInit( &argc, &argv );
@@ -124,35 +126,90 @@ int main( int argc, char *argv[] )
           return -1;
      }
 
-     /* Set the screen location of the video layer */
-     videolayer->SetScreenLocation( videolayer, 0.0f, 0.0f, 0.2f, 0.2f );
+     /* Create a videoprovider for the file or device */
+     ret = dfb->CreateVideoProvider( dfb, argv[1], &videoprovider );
+     if (ret)
+          DirectFBErrorFatal( "dfb->CreateVideoProvider failed", ret );
+
+     /* Query capabilities of the video provider */
+     videoprovider->GetCapabilities (videoprovider, &vcaps);
+
+
+     /* Get the surface description to get the dimensions of the video */
+     videoprovider->GetSurfaceDescription( videoprovider, &dsc );
+
+     /* Try deinterlacing if video provider is capable, try YUY2 */
+     dlc.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS;
+     dlc.width       = dsc.width;
+     dlc.height      = dsc.height;
+     dlc.pixelformat = DSPF_YUY2;
+     dlc.options     = (vcaps & DVCAPS_INTERLACED) ? DLOP_INTERLACED_VIDEO : 0;
+
+     /* Test the configuration, getting failed fields */
+     ret = videolayer->TestConfiguration( videolayer, &dlc, &failed );
+     if (ret == DFB_UNSUPPORTED) {
+
+          /* Pixelformat not supported? Try UYVY */
+          if (failed & DLCONF_PIXELFORMAT) {
+               dlc.pixelformat = DSPF_UYVY;
+
+               videolayer->TestConfiguration( videolayer, &dlc, &failed );
+
+               /* Not supported, too? Keep current pixelformat */
+               if (failed & DLCONF_PIXELFORMAT) {
+                    dlc.flags &= ~DLCONF_PIXELFORMAT;
+                    videolayer->TestConfiguration( videolayer, &dlc, &failed );
+               }
+          }
+
+          /* Interlaced seems to be unsupported, try without it */
+          if (failed & DLCONF_OPTIONS) {
+               dlc.flags &= ~DLCONF_OPTIONS;
+               videolayer->TestConfiguration( videolayer, &dlc, &failed );
+          }
+     }
+     else if (ret) {
+          /* Could be unimplemented */
+          failed = 0;
+          DirectFBError( "videolayer->TestConfiguration failed", ret );
+     }
+
+     /* Found a configuration? Set it */
+     if (!failed) {
+          ret = videolayer->SetConfiguration( videolayer, &dlc );
+          if (ret)
+               DirectFBErrorFatal( "videolayer->SetConfiguration failed", ret );
+     }
 
      /* Get the surface of the video layer */
      ret = videolayer->GetSurface( videolayer, &videosurface );
      if (ret)
           DirectFBErrorFatal( "videolayer->GetSurface failed", ret );
 
-     /* Create a videoprovider for the file or device */
-     ret = dfb->CreateVideoProvider( dfb, argv[1], &videoprovider );
-     if (ret)
-          DirectFBErrorFatal( "dfb->CreateVideoProvider failed", ret );
-
-     /* Set the layer's pixel resolution to that of the video */
-     videoprovider->GetSurfaceDescription( videoprovider, &dsc );
-
-     dlc.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT;
-     dlc.width       = dsc.width;
-     dlc.height      = dsc.height;
-     dlc.pixelformat = DSPF_YUY2;
-
-     ret = videolayer->SetConfiguration( videolayer, &dlc );
-     if (ret)
-          DirectFBErrorFatal( "videolayer->SetConfiguration failed", ret );
-
      /* Have the video decoded into the surface of the layer */
      ret = videoprovider->PlayTo( videoprovider, videosurface, NULL, NULL, NULL );
-     if (ret)
-          DirectFBErrorFatal( "videoprovider->PlayTo failed", ret );
+     if (ret) {
+
+          /* If video provider failed for YUY2, try UYVY */
+          if (dlc.flags & DLCONF_PIXELFORMAT && dlc.pixelformat == DSPF_YUY2) {
+               DirectFBError( "videoprovider->PlayTo with YUY2 failed", ret );
+
+               fprintf (stderr, "Trying UYVY...\n");
+
+               dlc.pixelformat = DSPF_UYVY;
+               ret = videolayer->SetConfiguration( videolayer, &dlc );
+               if (ret)
+                    DirectFBErrorFatal( "videolayer->SetConfiguration failed", ret );
+
+               ret = videoprovider->PlayTo( videoprovider, videosurface, NULL, NULL, NULL );
+               if (ret)
+                    DirectFBErrorFatal( "videoprovider->PlayTo with UYVY failed, too", ret );
+
+               fprintf (stderr, "Ok.\n");
+          }
+          else
+               DirectFBErrorFatal( "videoprovider->PlayTo failed", ret );
+     }
 
      /* Create an input buffer for any device that has keys */
      ret = dfb->CreateInputBuffer( dfb, DICAPS_KEYS, &events );
@@ -172,11 +229,11 @@ int main( int argc, char *argv[] )
 
           t = tv.tv_sec + tv.tv_usec / 1000000.0;
 
-          w = ( (float)sin(4*t) + 1.0f ) / 3.0f + 0.2f;
-          h = ( (float)cos(3*t) + 1.0f ) / 3.0f + 0.2f;
+          w = ( (float)sin(4*t) + 1.0f ) / 8.0f + 0.7f;
+          h = ( (float)cos(3*t) + 1.0f ) / 8.0f + 0.7f;
 
-          videolayer->SetScreenLocation( videolayer,
-                                         0.5f - w/2.0f, 0.5f - h/2.0f, w, h );
+/*          videolayer->SetScreenLocation( videolayer,
+                                         0.5f - w/2.0f, 0.5f - h/2.0f, w, h );*/
      }
 
      /* Shutdown */

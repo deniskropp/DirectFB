@@ -46,7 +46,10 @@
 static struct {
      __u32 besGLOBCTL;
      __u32 besA1ORG;
+     __u32 besA2ORG;
      __u32 besCTL;
+
+     __u32 besCTL_field;
 
      __u32 besHCOORD;
      __u32 besVCOORD;
@@ -59,7 +62,10 @@ static struct {
      __u32 besPITCH;
 
      __u32 besV1WGHT;
+     __u32 besV2WGHT;
+
      __u32 besV1SRCLST;
+     __u32 besV2SRCLST;
 
      __u32 besVISCAL;
      __u32 besHISCAL;
@@ -69,18 +75,46 @@ static void bes_set_regs();
 static void bes_calc_regs( DisplayLayer *layer );
 
 
+#define BES_SUPPORTED_OPTIONS   (DLOP_INTERLACED_VIDEO)
+
+
+static ReactionResult besSurfaceListener (const void *msg_data, void *ctx)
+{
+     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
+//     DisplayLayer            *layer        = (DisplayLayer*) ctx;
+
+     if (notification->flags & (CSNF_SET_EVEN | CSNF_SET_ODD)) {
+          bes_regs.besCTL_field =
+               (notification->flags & CSNF_SET_ODD) ? 0x2000000 : 0;
+
+          mga_out32( mmio_base, bes_regs.besCTL | bes_regs.besCTL_field, BESCTL );
+     }
+
+     if (notification->flags & CSNF_DESTROY)
+          return RS_REMOVE;
+
+     return RS_OK;
+}
+
+
 /**********************/
 
 DFBResult besEnable( DisplayLayer *layer )
 {
      if (!layer->surface) {
-          DFBResult ret;
+          DFBResult              ret;
+          DFBSurfaceCapabilities caps = DSCAPS_VIDEOONLY;
 
-          ret = surface_create( layer->width, layer->height,
-                                DSPF_RGB16, CSP_VIDEOONLY,
-                                DSCAPS_VIDEOONLY, &layer->surface );
+          if (layer->options & DLOP_INTERLACED_VIDEO)
+               caps |= DSCAPS_INTERLACED;
+
+          /* FIXME HARDCODER! */
+          ret = surface_create( layer->width, layer->height, DSPF_RGB16,
+                                CSP_VIDEOONLY, caps, &layer->surface );
           if (ret)
                return ret;
+
+          reactor_attach( layer->surface->reactor, besSurfaceListener, layer );
      }
 
      if (!layer->windowstack)
@@ -96,6 +130,7 @@ DFBResult besEnable( DisplayLayer *layer )
 
 DFBResult besDisable( DisplayLayer *layer )
 {
+     /* FIXME: The surface should be destroyed, and the window stack? */
      layer->enabled = 0;
 
      mga_out32( mmio_base, 0, BESCTL );
@@ -110,7 +145,8 @@ DFBResult besTestConfiguration( DisplayLayer               *layer,
      int max_width = 1024;
      DFBDisplayLayerConfigFlags fail = 0;
 
-     if (config->flags & DLCONF_OPTIONS && config->options)
+     if (config->flags & DLCONF_OPTIONS &&
+         config->options & ~BES_SUPPORTED_OPTIONS)
           fail |= DLCONF_OPTIONS;
 
      if (config->flags & DLCONF_PIXELFORMAT)
@@ -120,6 +156,7 @@ DFBResult besTestConfiguration( DisplayLayer               *layer,
                case DSPF_RGB15:
                case DSPF_RGB16:
                case DSPF_YUY2:
+               case DSPF_UYVY: /* FIXME: not supported on G200 */
                     break;
                default:
                     fail |= DLCONF_PIXELFORMAT;
@@ -153,10 +190,11 @@ DFBResult besTestConfiguration( DisplayLayer               *layer,
 DFBResult besSetConfiguration( DisplayLayer          *layer,
                                DFBDisplayLayerConfig *config )
 {
-     DFBResult ret;
-     int width, height;
-     DFBSurfacePixelFormat format;
+     DFBResult                 ret;
+     int                       width, height;
+     DFBSurfacePixelFormat     format;
      DFBDisplayLayerBufferMode buffermode;
+     DFBDisplayLayerOptions    options;
 
      ret = besTestConfiguration( layer, config, NULL );
      if (ret)
@@ -182,6 +220,11 @@ DFBResult besSetConfiguration( DisplayLayer          *layer,
      else
           buffermode = layer->buffermode;
 
+     if (config->flags & DLCONF_OPTIONS)
+          options = config->options;
+     else
+          options = layer->options;
+
      if (layer->buffermode != buffermode) {
           ONCE("Changing the buffermode of the overlay is unimplemented!");
           return DFB_UNIMPLEMENTED;
@@ -189,14 +232,24 @@ DFBResult besSetConfiguration( DisplayLayer          *layer,
 
      if (layer->width != width ||
          layer->height != height ||
-         layer->surface->format != format)
+         layer->surface->format != format ||
+         layer->options != options)
      {
+          /* FIXME: write surface management functions
+                    for easier configuration changes */
+
           ret = surface_reformat( layer->surface, width, height, format );
           if (ret)
                return ret;
 
-          layer->width = width;
-          layer->height = height;
+          if (options & DLOP_INTERLACED_VIDEO)
+               layer->surface->caps |= DSCAPS_INTERLACED;
+          else
+               layer->surface->caps &= ~DSCAPS_INTERLACED;
+
+          layer->options = options;
+          layer->width   = width;
+          layer->height  = height;
 
           layer->windowstack->cursor_region.x1 = 0;
           layer->windowstack->cursor_region.y1 = 0;
@@ -289,8 +342,8 @@ void driver_init_layers()
 
      layer = (DisplayLayer*)DFBCALLOC( 1, sizeof(DisplayLayer) );
 
-     layer->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
-                   DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST;
+     layer->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE | DLCAPS_BRIGHTNESS |
+                   DLCAPS_CONTRAST | DLCAPS_INTERLACED_VIDEO;
 
      sprintf( layer->description, "Matrox Backend Scaler" );
 
@@ -346,8 +399,9 @@ static void bes_set_regs()
      mga_out32( mmio_base, bes_regs.besGLOBCTL, BESGLOBCTL);
 
      mga_out32( mmio_base, bes_regs.besA1ORG, BESA1ORG );
+     mga_out32( mmio_base, bes_regs.besA2ORG, BESA2ORG );
 
-     mga_out32( mmio_base, bes_regs.besCTL, BESCTL );
+     mga_out32( mmio_base, bes_regs.besCTL | bes_regs.besCTL_field, BESCTL );
 
      mga_out32( mmio_base, bes_regs.besHCOORD, BESHCOORD );
      mga_out32( mmio_base, bes_regs.besVCOORD, BESVCOORD );
@@ -360,7 +414,10 @@ static void bes_set_regs()
      mga_out32( mmio_base, bes_regs.besPITCH, BESPITCH );
 
      mga_out32( mmio_base, bes_regs.besV1WGHT, BESV1WGHT );
+     mga_out32( mmio_base, bes_regs.besV2WGHT, BESV2WGHT );
+
      mga_out32( mmio_base, bes_regs.besV1SRCLST, BESV1SRCLST );
+     mga_out32( mmio_base, bes_regs.besV2SRCLST, BESV2SRCLST );
 
      mga_out32( mmio_base, bes_regs.besVISCAL, BESVISCAL );
      mga_out32( mmio_base, bes_regs.besHISCAL, BESHISCAL );
@@ -370,9 +427,11 @@ static void bes_calc_regs( DisplayLayer *layer )
 {
      int tmp, hzoom, intrep;
 
-     DFBRegion dstBox;
-     short drw_w;
-     short drw_h;
+     DFBRegion    dstBox;
+     int          drw_w;
+     int          drw_h;
+     int          field_height;
+     CoreSurface *surface = layer->surface;
 
 
      drw_w = (int)(layer->screen.w * (float)fbdev->current_mode->xres + 0.5f);
@@ -387,9 +446,14 @@ static void bes_calc_regs( DisplayLayer *layer )
 
      bes_regs.besCTL = BESCTL_BESEN;
 
-     switch (layer->surface->format) {
+     switch (surface->format) {
           case DSPF_YUY2:
                bes_regs.besGLOBCTL = BESPROCAMP;
+               bes_regs.besCTL    |= BESCTL_BESHFEN |
+                                     BESCTL_BESVFEN | BESCTL_BESCUPS;
+               break;
+          case DSPF_UYVY:
+               bes_regs.besGLOBCTL = BESPROCAMP | 0x40;
                bes_regs.besCTL    |= BESCTL_BESHFEN |
                                      BESCTL_BESVFEN | BESCTL_BESCUPS;
                break;
@@ -409,8 +473,10 @@ static void bes_calc_regs( DisplayLayer *layer )
                return;
      }
 
-     bes_regs.besGLOBCTL |= 3*hzoom;
-     bes_regs.besA1ORG    = layer->surface->front_buffer->video.offset;
+     bes_regs.besGLOBCTL |= 3*hzoom | (fbdev->current_mode->yres & 0xFFF) << 16;
+     bes_regs.besA1ORG    = surface->front_buffer->video.offset;
+     bes_regs.besA2ORG    = surface->front_buffer->video.offset +
+                            surface->front_buffer->video.pitch;
 
      bes_regs.besHCOORD   = (dstBox.x1 << 16) | (dstBox.x2 - 1);
      bes_regs.besVCOORD   = (dstBox.y1 << 16) | (dstBox.y2 - 1);
@@ -422,10 +488,24 @@ static void bes_calc_regs( DisplayLayer *layer )
      bes_regs.besLUMACTL  = (layer->adjustment.contrast >> 8) |
                             ((__u8)(((int)layer->adjustment.brightness >> 8)
                                      - 128)) << 16;
-     bes_regs.besPITCH    = layer->surface->front_buffer->video.pitch >> 1;
 
      bes_regs.besV1WGHT   = 0;
+     bes_regs.besV2WGHT   = 0x18000;
+
      bes_regs.besV1SRCLST = layer->height - 1;
+     bes_regs.besV2SRCLST = layer->height - 2;
+
+     bes_regs.besPITCH    = surface->front_buffer->video.pitch;
+
+     field_height         = layer->height;
+
+     if (layer->options & DLOP_INTERLACED_VIDEO)
+          field_height >>= 1;
+     else {
+          bes_regs.besPITCH >>= 1;
+          bes_regs.besCTL_field = 0;
+     }
+
 
      if (layer->surface->format == DSPF_RGB32)
           bes_regs.besHISCAL = 0x20000;
@@ -437,8 +517,8 @@ static void bes_calc_regs( DisplayLayer *layer )
           bes_regs.besHISCAL = tmp & 0x001ffffc;
      }
 
-     intrep = ((drw_h == layer->height) || (drw_h < 2)) ? 0 : 1;
-     tmp = ((layer->height - intrep) << 16) / (drw_h - intrep);
+     intrep = ((drw_h == field_height) || (drw_h < 2)) ? 0 : 1;
+     tmp = ((field_height - intrep) << 16) / (drw_h - intrep);
      if(tmp >= (32 << 16))
           tmp = (32 << 16) - 1;
      bes_regs.besVISCAL = tmp & 0x001ffffc;
