@@ -140,9 +140,10 @@ dfb_layer_context_create( CoreLayer         *layer,
      /* Initialize the region vector. */
      fusion_vector_init( &context->regions, 4 );
 
-     /* Store layer ID and default configuration. */
-     context->layer_id = shared->layer_id;
-     context->config   = shared->default_config;
+     /* Store layer ID, default configuration and default color adjustment. */
+     context->layer_id   = shared->layer_id;
+     context->config     = shared->default_config;
+     context->adjustment = shared->default_adjustment;
 
      /* Initialize screen location. */
      context->screen.x = 0.0f;
