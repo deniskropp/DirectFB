@@ -55,9 +55,9 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      state_set_destination( &data->state, NULL );
      state_set_source( &data->state, NULL );
-     
+
      surface_remove_listener( data->surface, IDirectFBSurface_listener, thiz );
-     
+
      if (!(data->caps & DSCAPS_SUBSURFACE))
           surface_destroy( data->surface );
 
@@ -261,7 +261,7 @@ DFBResult IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 
      /* FIXME: clip_rect has no effect here,
         application will write into non visible region if req/clip differ */
-     
+
      (__u8*)(*ptr) += *pitch * data->req_rect.y + data->req_rect.x *
                                     BYTES_PER_PIXEL(data->surface->format);
 
@@ -779,13 +779,14 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
                                  int dx, int dy )
 {
      DFBRectangle srect;
-     IDirectFBSurface_data *src_data = (IDirectFBSurface_data*)source->priv;
+     IDirectFBSurface_data *src_data;
      IDirectFBSurface_data *data;
 
-     if (!thiz)
+     if (!thiz || !source)
           return DFB_INVARG;
 
      data = (IDirectFBSurface_data*)thiz->priv;
+     src_data = (IDirectFBSurface_data*)source->priv;
 
      if (!data)
           return DFB_DEAD;
@@ -810,7 +811,7 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
      }
      else {
           srect = src_data->clip_rect;
-          
+
           dx += srect.x - src_data->req_rect.x;
           dy += srect.y - src_data->req_rect.y;
      }
@@ -830,13 +831,14 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
 {
      DFBRectangle srect, drect;
      IDirectFBSurface_data *data;
-     IDirectFBSurface_data *src_data = (IDirectFBSurface_data*)source->priv;
+     IDirectFBSurface_data *src_data;
 
 
-     if (!thiz)
+     if (!thiz || !source)
           return DFB_INVARG;
 
      data = (IDirectFBSurface_data*)thiz->priv;
+     src_data = (IDirectFBSurface_data*)source->priv;
 
      if (!data)
           return DFB_DEAD;
@@ -854,11 +856,11 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
      }
      else
           drect = data->req_rect;
-     
+
      if (drect.w < 1  ||  drect.h < 1)
           return DFB_OK;
-     
-     
+
+
      /* do source rectangle */
      if (source_rect) {
           srect = *source_rect;
@@ -871,8 +873,8 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
 
      if (srect.w < 1  ||  srect.h < 1)
           return DFB_OK;
-     
-     
+
+
      /* clipping of the source rectangle must be applied to the destination */
      {
           DFBRectangle orig_src = srect;
@@ -902,7 +904,7 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
 }
 
 DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
-                                       const char *text, int bytes, 
+                                       const char *text, int bytes,
                                        int x, int y,
                                        DFBSurfaceTextFlags flags )
 {
@@ -931,7 +933,7 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      if (!(flags & DSTF_TOP)) {
           int ascender = 0;
-       
+
           data->font->GetAscender (data->font, &ascender);
           y -= ascender;
      }
@@ -951,7 +953,7 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      font_data = (IDirectFBFont_data *)data->font->priv;
 
-     gfxcard_drawstring( text, bytes, 
+     gfxcard_drawstring( text, bytes,
                          data->req_rect.x + x, data->req_rect.y + y,
                          font_data->font, &data->state );
 
@@ -1099,11 +1101,11 @@ SLResult IDirectFBSurface_listener( CoreSurface  *surface,
                    "CoreSurface vanished! I'm dead now!!!\n");
 
           thiz->Unlock( thiz );
-     
+
           free( data );
           thiz->priv = NULL;
      }
-     
+
      return SL_REMOVE;
 }
 
