@@ -32,6 +32,7 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <directfb.h>
 
@@ -381,6 +382,10 @@ main( int argc, char *argv[] )
      DFBResult ret;
      long long millis;
      long int  seconds, minutes, hours, days;
+
+     char *buffer = malloc( 0x10000 );
+
+     setvbuf( stdout, buffer, _IOFBF, 0x10000 );
 
      /* DirectFB initialization. */
      ret = init_directfb( &argc, &argv );
