@@ -46,8 +46,8 @@ struct _CorePalette {
 };
 
 typedef enum {
-     CPNF_ENTRIES,
-     CPNF_DESTROY
+     CPNF_ENTRIES = 0x00000001,
+     CPNF_DESTROY = 0x00000002
 } CorePaletteNotificationFlags;
 
 typedef struct {
