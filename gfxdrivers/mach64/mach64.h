@@ -32,16 +32,20 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 
+#define S13( val ) ((val) & 0x3FFF)
+#define S14( val ) ((val) & 0x7FFF)
+
 typedef enum {
      m_source       = 0x001,
-     m_color        = 0x002,
-     m_color_3d     = 0x004,
-     m_srckey       = 0x008,
-     m_srckey_scale = 0x010,
-     m_dstkey       = 0x020,
-     m_disable_key  = 0x040,
-     m_draw_blend   = 0x080,
-     m_blit_blend   = 0x100
+     m_source_scale = 0x002,
+     m_color        = 0x004,
+     m_color_3d     = 0x008,
+     m_srckey       = 0x010,
+     m_srckey_scale = 0x020,
+     m_dstkey       = 0x040,
+     m_disable_key  = 0x080,
+     m_draw_blend   = 0x100,
+     m_blit_blend   = 0x200,
 } Mach64StateBits;
 
 #define MACH64_VALIDATE(b)      (mdev->valid |= (b))
@@ -77,8 +81,9 @@ typedef struct {
 
      Mach64StateBits valid;
 
-     __u32 src_pix_width;
-     __u32 dst_pix_width;
+     __u32 hw_debug;
+
+     __u32 pix_width;
 
      __u32 src_key_mask;
      __u32 dst_key_mask;
@@ -86,13 +91,22 @@ typedef struct {
      __u32 draw_blend;
      __u32 blit_blend;
 
-     __u32 src_cntl;
-
+     int tex_offset;
      int tex_pitch;
      int tex_height;
      int tex_size;
 
+     int scale_offset;
+     int scale_pitch;
+
      CoreSurface *source;
+
+     bool blit_deinterlace;
+     int field;
+
+     DFBRegion clip;
+
+     bool use_scaler_3d;
 } Mach64DeviceData;
 
 typedef struct {

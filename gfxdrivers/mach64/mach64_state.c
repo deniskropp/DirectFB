@@ -55,24 +55,64 @@ void mach64_set_destination( Mach64DriverData *mdrv,
      SurfaceBuffer *buffer      = destination->back_buffer;
      int            pitch       = buffer->video.pitch / DFB_BYTES_PER_PIXEL( destination->format );
 
+     mdev->pix_width &= ~DST_PIX_WIDTH;
      switch (destination->format) {
           case DSPF_RGB332:
-               mdev->dst_pix_width = DST_PIX_WIDTH_RGB332;
+               mdev->pix_width |= DST_PIX_WIDTH_8BPP;
                break;
           case DSPF_ARGB1555:
-               mdev->dst_pix_width = DST_PIX_WIDTH_ARGB1555;
+               mdev->pix_width |= DST_PIX_WIDTH_15BPP;
                break;
           case DSPF_RGB16:
-               mdev->dst_pix_width = DST_PIX_WIDTH_RGB565;
+               mdev->pix_width |= DST_PIX_WIDTH_16BPP;
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
-               mdev->dst_pix_width = DST_PIX_WIDTH_ARGB8888;
+               mdev->pix_width |= DST_PIX_WIDTH_32BPP;
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
                break;
      }
+
+     mdev->dst_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( destination->format )) - 1;
+
+     mach64_waitfifo( mdrv, mdev, 1 );
+     mach64_out32( mmio, DST_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
+}
+
+void mach64gt_set_destination( Mach64DriverData *mdrv,
+                               Mach64DeviceData *mdev,
+                               CardState        *state )
+{
+     volatile __u8 *mmio        = mdrv->mmio_base;
+     CoreSurface   *destination = state->destination;
+     SurfaceBuffer *buffer      = destination->back_buffer;
+     int            pitch       = buffer->video.pitch / DFB_BYTES_PER_PIXEL( destination->format );
+
+     mdev->pix_width &= ~DST_PIX_WIDTH;
+     switch (destination->format) {
+          case DSPF_RGB332:
+               mdev->pix_width |= DST_PIX_WIDTH_RGB332;
+               break;
+          case DSPF_ARGB1555:
+               mdev->pix_width |= DST_PIX_WIDTH_ARGB1555;
+               break;
+          case DSPF_ARGB4444:
+               mdev->pix_width |= DST_PIX_WIDTH_ARGB4444;
+               break;
+          case DSPF_RGB16:
+               mdev->pix_width |= DST_PIX_WIDTH_RGB565;
+               break;
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               mdev->pix_width |= DST_PIX_WIDTH_ARGB8888;
+               break;
+          default:
+               D_BUG( "unexpected pixelformat!" );
+               break;
+     }
+
      mdev->dst_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( destination->format )) - 1;
 
      mach64_waitfifo( mdrv, mdev, 1 );
@@ -91,52 +131,162 @@ void mach64_set_source( Mach64DriverData *mdrv,
      if (MACH64_IS_VALID( m_source ))
           return;
 
+     mdev->pix_width &= ~SRC_PIX_WIDTH;
      switch (source->format) {
           case DSPF_RGB332:
-               mdev->src_pix_width = SRC_PIX_WIDTH_RGB332 | SCALE_PIX_WIDTH_RGB332;
+               mdev->pix_width |= SRC_PIX_WIDTH_8BPP;
                break;
           case DSPF_ARGB1555:
-               mdev->src_pix_width = SRC_PIX_WIDTH_ARGB1555 | SCALE_PIX_WIDTH_ARGB1555;
+               mdev->pix_width |= SRC_PIX_WIDTH_15BPP;
                break;
           case DSPF_RGB16:
-               mdev->src_pix_width = SRC_PIX_WIDTH_RGB565 | SCALE_PIX_WIDTH_RGB565;
+               mdev->pix_width |= SRC_PIX_WIDTH_16BPP;
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
-               mdev->src_pix_width = SRC_PIX_WIDTH_ARGB8888 | SCALE_PIX_WIDTH_ARGB8888;
+               mdev->pix_width |= SRC_PIX_WIDTH_32BPP;
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
                break;
      }
+
      mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
 
-     mdev->tex_pitch = direct_log2( pitch );
-     mdev->tex_height = direct_log2( source->height );
-     mdev->tex_size = MAX( mdev->tex_pitch, mdev->tex_height );
+     mach64_waitfifo( mdrv, mdev, 1 );
+     mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
 
-     mach64_waitfifo( mdrv, mdev, 2 );
+     MACH64_VALIDATE( m_source );
+}
 
+void mach64gt_set_source( Mach64DriverData *mdrv,
+                          Mach64DeviceData *mdev,
+                          CardState        *state )
+{
+     volatile __u8 *mmio   = mdrv->mmio_base;
+     CoreSurface   *source = state->source;
+     SurfaceBuffer *buffer = source->front_buffer;
+     int            pitch  = buffer->video.pitch / DFB_BYTES_PER_PIXEL( source->format );
+
+     if (MACH64_IS_VALID( m_source ))
+          return;
+
+     mdev->pix_width &= ~SRC_PIX_WIDTH;
+     switch (source->format) {
+          case DSPF_RGB332:
+               mdev->pix_width |= SRC_PIX_WIDTH_RGB332;
+               break;
+          case DSPF_ARGB1555:
+               mdev->pix_width |= SRC_PIX_WIDTH_ARGB1555;
+               break;
+          case DSPF_ARGB4444:
+               mdev->pix_width |= SRC_PIX_WIDTH_ARGB4444;
+               break;
+          case DSPF_RGB16:
+               mdev->pix_width |= SRC_PIX_WIDTH_RGB565;
+               break;
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               mdev->pix_width |= SRC_PIX_WIDTH_ARGB8888;
+               break;
+          default:
+               D_BUG( "unexpected pixelformat!" );
+               break;
+     }
+
+     mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
+
+     mach64_waitfifo( mdrv, mdev, 1 );
+     mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
+
+     MACH64_VALIDATE( m_source );
+}
+
+void mach64gt_set_source_scale( Mach64DriverData *mdrv,
+                                Mach64DeviceData *mdev,
+                                CardState        *state )
+{
+     volatile __u8 *mmio   = mdrv->mmio_base;
+     CoreSurface   *source = state->source;
+     SurfaceBuffer *buffer = source->front_buffer;
+     int            offset = buffer->video.offset;
+     int            pitch  = buffer->video.pitch;
+     int            height = source->height;
+
+     if (MACH64_IS_VALID( m_source_scale ))
+          return;
+
+     mdev->pix_width &= ~SCALE_PIX_WIDTH;
+     switch (source->format) {
+          case DSPF_RGB332:
+               mdev->pix_width |= SCALE_PIX_WIDTH_RGB332;
+               break;
+          case DSPF_ARGB1555:
+               mdev->pix_width |= SCALE_PIX_WIDTH_ARGB1555;
+               break;
+          case DSPF_ARGB4444:
+               mdev->pix_width |= SCALE_PIX_WIDTH_ARGB4444;
+               break;
+          case DSPF_RGB16:
+               mdev->pix_width |= SCALE_PIX_WIDTH_RGB565;
+               break;
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               mdev->pix_width |= SCALE_PIX_WIDTH_ARGB8888;
+               break;
+          default:
+               D_BUG( "unexpected pixelformat!" );
+               break;
+     }
+
+     /* FIXME: Scaler/texture color key is RGB24 on < 3D Rage Pro. */
+     mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
+
+     mdev->field = source->field;
+     if (mdev->blit_deinterlace) {
+          if (mdev->field) {
+               if (source->caps & DSCAPS_SEPARATED) {
+                    offset += height/2 * pitch;
+               } else {
+                    offset += pitch;
+                    pitch  *= 2;
+               }
+          }
+          height /= 2;
+     }
+
+     mdev->source = source;
+
+     mdev->scale_offset = offset;
+     mdev->scale_pitch  = pitch;
+     
+     mdev->tex_offset = offset;
+     mdev->tex_pitch  = direct_log2( pitch / DFB_BYTES_PER_PIXEL( source->format ) );
+     mdev->tex_height = direct_log2( height );
+     mdev->tex_size   = MAX( mdev->tex_pitch, mdev->tex_height );
+
+     mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, TEX_SIZE_PITCH, (mdev->tex_pitch  << 0) |
                                          (mdev->tex_size   << 4) |
                                          (mdev->tex_height << 8) );
 
-     mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
+     if (mdev->chip >= CHIP_3D_RAGE_PRO) {
+          mach64_waitfifo( mdrv, mdev, 1 );
+          mach64_out32( mmio, TEX_CNTL, TEX_CACHE_FLUSH );
+     }
 
-     mdev->source = source;
-
-     MACH64_VALIDATE( m_source );
+     MACH64_VALIDATE( m_source_scale );
 }
 
 void mach64_set_clip( Mach64DriverData *mdrv,
                       Mach64DeviceData *mdev,
                       CardState        *state )
 {
-     volatile __u8 *mmio   = mdrv->mmio_base;
+     volatile __u8 *mmio = mdrv->mmio_base;
 
      mach64_waitfifo( mdrv, mdev, 2 );
-     mach64_out32( mmio, SC_LEFT_RIGHT, (state->clip.x2 << 16) | state->clip.x1 );
-     mach64_out32( mmio, SC_TOP_BOTTOM, (state->clip.y2 << 16) | state->clip.y1 );
+     mach64_out32( mmio, SC_LEFT_RIGHT, (S13( state->clip.x2 ) << 16) | S13( state->clip.x1 ) );
+     mach64_out32( mmio, SC_TOP_BOTTOM, (S14( state->clip.y2 ) << 16) | S14( state->clip.y1 ) );
 }
 
 void mach64_set_color( Mach64DriverData *mdrv,
@@ -157,6 +307,12 @@ void mach64_set_color( Mach64DriverData *mdrv,
                break;
           case DSPF_ARGB1555:
                color = PIXEL_ARGB1555( state->color.a,
+                                       state->color.r,
+                                       state->color.g,
+                                       state->color.b );
+               break;
+          case DSPF_ARGB4444:
+               color = PIXEL_ARGB4444( state->color.a,
                                        state->color.r,
                                        state->color.g,
                                        state->color.b );
@@ -197,15 +353,15 @@ void mach64_set_color_3d( Mach64DriverData *mdrv,
      if (MACH64_IS_VALID( m_color_3d ))
           return;
 
-     mach64_waitfifo( mdrv, mdev, 6 );
+     /* Some 3D color registers scaler registers are shared. */
+     mach64_waitfifo( mdrv, mdev, 7 );
+     mach64_out32( mmio, RED_X_INC, 0 );
      mach64_out32( mmio, RED_START, state->color.r << 16 );
+     mach64_out32( mmio, GREEN_X_INC, 0 );
      mach64_out32( mmio, GREEN_START, state->color.g << 16 );
+     mach64_out32( mmio, BLUE_X_INC, 0 );
      mach64_out32( mmio, BLUE_START, state->color.b << 16 );
      mach64_out32( mmio, ALPHA_START, state->color.a << 16 );
-
-     /* These (and RED_START) are shared with some scaler registers. */
-     mach64_out32( mmio, RED_X_INC, 0 );
-     mach64_out32( mmio, GREEN_X_INC, 0 );
 
      MACH64_INVALIDATE( m_blit_blend );
      MACH64_VALIDATE( m_color_3d );
@@ -238,6 +394,7 @@ void mach64_set_src_colorkey_scale( Mach64DriverData *mdrv,
      if (MACH64_IS_VALID( m_srckey_scale ))
           return;
 
+     /* FIXME: Scaler/texture color key is RGB24 on < 3D Rage Pro. */
      mach64_waitfifo( mdrv, mdev, 3 );
      mach64_out32( mmio, CLR_CMP_MSK, mdev->src_key_mask );
      mach64_out32( mmio, CLR_CMP_CLR, state->src_colorkey );
@@ -314,19 +471,19 @@ void mach64_set_draw_blend( Mach64DriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
-     __u32 scale_3d_cntl;
-
      if (MACH64_IS_VALID( m_draw_blend ))
           return;
 
-     scale_3d_cntl = SCALE_3D_FCN_SHADE | ALPHA_FOG_EN_ALPHA |
-                     mach64SourceBlend[state->src_blend - 1] |
-                     mach64DestBlend  [state->dst_blend - 1];
+     mdev->draw_blend = SCALE_PIX_EXPAND | DITHER_EN |
+                        ALPHA_FOG_EN_ALPHA |
+                        mach64SourceBlend[state->src_blend - 1] |
+                        mach64DestBlend  [state->dst_blend - 1];
 
-     mdev->draw_blend = scale_3d_cntl;
-
-     mach64_waitfifo( mdrv, mdev, 1 );
-     mach64_out32( mmio, ALPHA_TST_CNTL, ALPHA_DST_SEL_DSTALPHA );
+     if (mdev->chip >= CHIP_3D_RAGE_PRO) {
+          /* FIXME: This is wrong. */
+          mach64_waitfifo( mdrv, mdev, 1 );
+          mach64_out32( mmio, ALPHA_TST_CNTL, ALPHA_DST_SEL_DSTALPHA );
+     }
 
      MACH64_VALIDATE( m_draw_blend );
 }
@@ -337,42 +494,47 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
-     __u32 scale_3d_cntl = 0;
-
      if (MACH64_IS_VALID( m_blit_blend ))
           return;
 
-     /* This needs to be set even without alpha blending.
-      * Otherwise alpha channel won't get copied.
-      */
-     if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->format ))
-          scale_3d_cntl |= TEX_MAP_AEN;
+     mdev->blit_blend = SCALE_PIX_EXPAND | DITHER_EN;
 
-     if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                 DSBLIT_BLEND_COLORALPHA)) {
-          scale_3d_cntl |= ALPHA_FOG_EN_ALPHA |
-                           mach64SourceBlend[state->src_blend - 1] |
-                           mach64DestBlend  [state->dst_blend - 1];
+     if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+          mdev->blit_blend |= ALPHA_FOG_EN_ALPHA |
+                              mach64SourceBlend[state->src_blend - 1] |
+                              mach64DestBlend  [state->dst_blend - 1];
 
-          if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
-               scale_3d_cntl &= ~TEX_MAP_AEN;
-          } else if (!DFB_PIXELFORMAT_HAS_ALPHA( state->source->format )) {
-               mach64_waitfifo( mdrv, mdev, 1 );
-               mach64_out32( mmio, ALPHA_START, 0xFF << 16 );
-               MACH64_INVALIDATE( m_color_3d );
+          if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
+               if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->format )) {
+                    mdev->blit_blend |= TEX_MAP_AEN;
+               } else {
+                    mach64_waitfifo( mdrv, mdev, 1 );
+                    mach64_out32( mmio, ALPHA_START, 0xFF << 16 );
+                    MACH64_INVALIDATE( m_color_3d );
+               }
           }
 
-          mach64_waitfifo( mdrv, mdev, 1 );
-          mach64_out32( mmio, ALPHA_TST_CNTL, ALPHA_DST_SEL_DSTALPHA );
+          if (mdev->chip >= CHIP_3D_RAGE_PRO) {
+               /* FIXME: This is wrong. */
+               mach64_waitfifo( mdrv, mdev, 1 );
+               mach64_out32( mmio, ALPHA_TST_CNTL, ALPHA_DST_SEL_DSTALPHA );
+          }
      } else {
-          mach64_waitfifo( mdrv, mdev, 1 );
-          mach64_out32( mmio, ALPHA_TST_CNTL, ALPHA_DST_SEL_SRCALPHA );
+          /* This needs to be set even without alpha blending.
+           * Otherwise alpha channel won't get copied.
+           */
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->format ))
+               mdev->blit_blend |= TEX_MAP_AEN;
+
+          if (mdev->chip >= CHIP_3D_RAGE_PRO) {
+               /* FIXME: This is wrong. */
+               mach64_waitfifo( mdrv, mdev, 1 );
+               mach64_out32( mmio, ALPHA_TST_CNTL, ALPHA_DST_SEL_SRCALPHA );
+          }
      }
 
      if (state->blittingflags & DSBLIT_COLORIZE)
-          scale_3d_cntl |= TEX_LIGHT_FCN_MODULATE;
-
-     mdev->blit_blend = scale_3d_cntl;
+          mdev->blit_blend |= TEX_LIGHT_FCN_MODULATE;
 
      MACH64_VALIDATE( m_blit_blend );
 }

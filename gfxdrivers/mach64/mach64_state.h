@@ -33,10 +33,19 @@
 void mach64_set_destination( Mach64DriverData *mdrv,
                              Mach64DeviceData *mdev,
                              CardState        *state );
+void mach64gt_set_destination( Mach64DriverData *mdrv,
+                               Mach64DeviceData *mdev,
+                               CardState        *state );
 
 void mach64_set_source( Mach64DriverData *mdrv,
                         Mach64DeviceData *mdev,
                         CardState        *state );
+void mach64gt_set_source( Mach64DriverData *mdrv,
+                          Mach64DeviceData *mdev,
+                          CardState        *state );
+void mach64gt_set_source_scale( Mach64DriverData *mdrv,
+                                Mach64DeviceData *mdev,
+                                CardState        *state );
 
 void mach64_set_clip( Mach64DriverData *mdrv,
                       Mach64DeviceData *mdev,
