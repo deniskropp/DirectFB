@@ -82,7 +82,8 @@ get_window_index( CoreWindow *window );
  * to the new one. Returns if restacking actually happened.
  */
 static bool
-window_restack( CoreWindowStack *stack, int old_index, int new_index );
+window_restack( CoreWindowStack *stack,
+                int old_index, int new_index, bool ignore_stackingclass );
 
 /*
  * inserts a window into the windowstack pointed to by window->stack,
@@ -388,7 +389,8 @@ dfb_window_init( CoreWindow *window )
      stack_lock( stack );
      
      for (i=0; i<stack->num_windows; i++)
-          if (stack->windows[i]->caps & DWHC_TOPMOST)
+          if (stack->windows[i]->caps & DWHC_TOPMOST ||
+              stack->windows[i]->stacking == DWSC_UPPER)
                break;
 
      window_insert( window, i );
@@ -510,7 +512,9 @@ dfb_window_change_stacking( CoreWindow             *window,
                return;
      }
 
-     update = window_restack( stack, index, i );
+     window->stacking = stacking;
+
+     update = window_restack( stack, index, i, true );
 
      if (update)
           window_restacked( window );
@@ -533,7 +537,7 @@ dfb_window_raise( CoreWindow *window )
           return;
      }
 
-     update = window_restack( stack, index, index + 1 );
+     update = window_restack( stack, index, index + 1, false );
 
      if (update)
           window_restacked( window );
@@ -556,7 +560,7 @@ dfb_window_lower( CoreWindow *window )
           return;
      }
 
-     update = window_restack( stack, index, index - 1 );
+     update = window_restack( stack, index, index - 1, false );
 
      if (update)
           window_restacked( window );
@@ -579,7 +583,7 @@ dfb_window_raisetotop( CoreWindow *window )
           return;
      }
 
-     update = window_restack( stack, index, stack->num_windows - 1 );
+     update = window_restack( stack, index, stack->num_windows - 1, false );
 
      if (update)
           window_restacked( window );
@@ -602,7 +606,7 @@ dfb_window_lowertobottom( CoreWindow *window )
           return;
      }
 
-     update = window_restack( stack, index, 0 );
+     update = window_restack( stack, index, 0, false );
 
      if (update)
           window_restacked( window );
@@ -634,9 +638,9 @@ dfb_window_putatop( CoreWindow *window,
      }
 
      if (index < lower_index)
-          update = window_restack( stack, index, lower_index );
+          update = window_restack( stack, index, lower_index, false );
      else
-          update = window_restack( stack, index, lower_index + 1 );
+          update = window_restack( stack, index, lower_index + 1, false );
 
      if (update)
           window_restacked( window );
@@ -668,9 +672,9 @@ dfb_window_putbelow( CoreWindow *window,
      }
 
      if (index > upper_index)
-          update = window_restack( stack, index, upper_index );
+          update = window_restack( stack, index, upper_index, false );
      else
-          update = window_restack( stack, index, upper_index - 1 );
+          update = window_restack( stack, index, upper_index - 1, false );
 
      if (update)
           window_restacked( window );
@@ -1487,7 +1491,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                                              continue;
                                         }
 
-                                        if (window_restack( stack, index, stack->num_windows - 1 ))
+                                        if (window_restack( stack, index, stack->num_windows - 1, false ))
                                              window_restacked( window );
 
                                         switch_focus( stack, window );
@@ -1861,7 +1865,8 @@ window_remove( CoreWindow *window )
 static bool
 window_restack( CoreWindowStack *stack,
                 int              old_index,
-                int              new_index )
+                int              new_index,
+                bool             ignore_stackingclass )
 {
      bool ret = false;
 
@@ -1882,8 +1887,10 @@ window_restack( CoreWindowStack *stack,
           int i;
 
           for (i=old_index; i<new_index; i++) {
-               if (stack->windows[i+1]->stacking == stack->windows[i]->stacking &&
-                   !(stack->windows[i+1]->caps & DWHC_TOPMOST)) {
+               if ((ignore_stackingclass ||
+                    stack->windows[i+1]->stacking == stack->windows[i]->stacking) &&
+                   !(stack->windows[i+1]->caps & DWHC_TOPMOST))
+               {
                     CoreWindow *temp = stack->windows[i];
                     stack->windows[i] = stack->windows[i+1];
                     stack->windows[i+1] = temp;
@@ -1898,7 +1905,9 @@ window_restack( CoreWindowStack *stack,
           int i;
 
           for (i=old_index; i>new_index; i--) {
-               if (stack->windows[i-1]->stacking == stack->windows[i]->stacking) {
+               if (ignore_stackingclass ||
+                   stack->windows[i-1]->stacking == stack->windows[i]->stacking)
+               {
                     CoreWindow *temp = stack->windows[i];
                     stack->windows[i] = stack->windows[i-1];
                     stack->windows[i-1] = temp;
