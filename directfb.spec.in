@@ -1,8 +1,7 @@
 %define name directfb
 %define version @VERSION@
 %define oname DirectFB
-%define major @DIRECTFB_MAJOR_VERSION@.@DIRECTFB_MINOR_VERSION@_@DIRECTFB_MICRO_VERSION@
-%define libname lib%name%major
+%define libname lib%name
 
 Summary:	Hardware graphics acceleration library
 Name:		%name
@@ -19,35 +18,38 @@ BuildRequires:	freetype2-devel >= 2.0.2
 BuildRoot:	%{_tmppath}/%{name}-%{version}
 
 %description
-DirectFB hardware graphics acceleration - libraries.
+%oname - A hardware-accelerated graphics library on top of the Linux framebuffer device.
 
 %package -n %libname
 Summary:        Shared library part of %oname
 Group:		System/Libraries
 
 %description -n %libname
-DirectFB hardware graphics acceleration - libraries.
+%oname - A hardware-accelerated graphics library on top of the Linux framebuffer device.
 
-This package contains the %oname shared library and interface modules.
-It's required for running apps based on %oname.
-
+%oname is a thin library that provides developers with hardware graphics
+acceleration, input device handling and abstraction, an integrated windowing
+system with support for translucent windows and multiple display layers on top
+of the Linux framebuffer device. It is a complete hardware abstraction layer
+with software fallbacks for every graphics operation that is not supported by
+the underlying hardware.
 
 %package -n %libname-devel
 Group:		Development/C
-Summary:	Header files for compiling DirectFB applications
+Summary:	Header files for compiling %oname applications
 Requires:	%{libname} = %{version}-%release
 Provides:	lib%name-devel = %version-%release
 Provides:	%oname-devel = %version-%release
 
 %description -n %libname-devel
-DirectFB header files for building applications based on %oname. 
+%oname header files needed for building applications based on %oname. 
 
 %package doc
-Summary:	DirectFB - documentation
+Summary:	%oname documentation
 Group:		Development/Other
 
 %description doc
-DirectFB documentation and examples.
+%oname documentation in html format.
 
 %prep
 %setup  -q -n %oname-%version
@@ -59,7 +61,8 @@ DirectFB documentation and examples.
 	--enable-shared \
 	--disable-fast-install \
 	--disable-avifile \
-	--disable-debug
+	--disable-debug \
+	--program-transform-name=""  # is this hack needed?
 
 %make
 
@@ -79,15 +82,15 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/lib*.so.*
 %{_libdir}/directfb-%version
 %{_datadir}/directfb-%version
-%{_mandir}/man5/directfbrc.5*
+%{_mandir}/man5/*directfbrc.5*
 
 %files -n %libname-devel
 %defattr(644,root,root,755)
-%attr(755,root,root) %{_bindir}/directfb-config
-%attr(755,root,root) %{_bindir}/directfb-csource
+%attr(755,root,root) %{_bindir}/*directfb-config
+%attr(755,root,root) %{_bindir}/*directfb-csource
 %{_includedir}/directfb
 %{_includedir}/directfb-internal
-%{_mandir}/man1/directfb-csource.1*
+%{_mandir}/man1/*directfb-csource.1*
 %{_libdir}/pkgconfig/*
 %{_libdir}/*.la
 %{_libdir}/*.so
@@ -107,4 +110,3 @@ rm -rf $RPM_BUILD_ROOT
 
 * Thu Jul 11 2002 Götz Waschk <waschk@linux-mandrake.com> 0.9.12-1mdk
 - initial package based on PLD effort
-
