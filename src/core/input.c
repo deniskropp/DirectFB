@@ -82,6 +82,7 @@ typedef struct {
      DFBInputDeviceModifierMask   modifiers;
      DFBInputDeviceLockState      locks;
      DFBInputDeviceLockState      locks_pressed;
+     DFBInputDeviceButtonMask     buttons;
 
      FusionReactor               *reactor;       /* event dispatcher */
 } InputDeviceShared;
@@ -124,6 +125,10 @@ lookup_from_table( InputDevice        *device,
 static void
 fixup_key_event( InputDevice   *device,
                  DFBInputEvent *event );
+
+static void
+fixup_button_event( InputDevice   *device,
+                    DFBInputEvent *event );
 
 static DFBInputDeviceKeyIdentifier
 symbol_to_id( DFBInputDeviceKeySymbol symbol );
@@ -342,6 +347,7 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
                          event->button = DIBI_LEFT;
                }
 
+               fixup_button_event( device, event );
                break;
 
           case DIET_KEYPRESS:
@@ -634,8 +640,8 @@ lookup_from_table( InputDevice        *device,
      return true;
 }
 
-#define FIXUP_FIELDS     (DIEF_MODIFIERS | DIEF_LOCKS | \
-                          DIEF_KEYCODE | DIEF_KEYID | DIEF_KEYSYMBOL)
+#define FIXUP_KEY_FIELDS     (DIEF_MODIFIERS | DIEF_LOCKS | \
+                              DIEF_KEYCODE | DIEF_KEYID | DIEF_KEYSYMBOL)
 
 /*
  * Fill partially missing values for key_code, key_id and key_symbol by
@@ -664,8 +670,8 @@ lookup_from_table( InputDevice        *device,
 static void
 fixup_key_event( InputDevice *device, DFBInputEvent *event )
 {
-     DFBInputEventFlags  valid   = event->flags & FIXUP_FIELDS;
-     DFBInputEventFlags  missing = valid ^ FIXUP_FIELDS;
+     DFBInputEventFlags  valid   = event->flags & FIXUP_KEY_FIELDS;
+     DFBInputEventFlags  missing = valid ^ FIXUP_KEY_FIELDS;
      InputDeviceShared  *shared  = device->shared;
 
      /* Add missing flags */
@@ -790,6 +796,27 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
                default:
                     ;
           }
+     }
+}
+
+static void
+fixup_button_event( InputDevice *device, DFBInputEvent *event )
+{
+     InputDeviceShared *shared = device->shared;
+
+     if (event->flags & DIEF_BUTTONS) {
+          shared->buttons = event->buttons;
+     }
+     else {
+          if (event->type == DIET_BUTTONPRESS)
+               shared->buttons |= (1 << event->button);
+          else
+               shared->buttons &= ~(1 << event->button);
+     
+          /* Add missing flag */
+          event->flags |= DIEF_BUTTONS;
+
+          event->buttons = shared->buttons;
      }
 }
 

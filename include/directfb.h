@@ -2113,19 +2113,23 @@ extern "C"
       * Flags defining which additional (optional) event fields are valid.
       */
      typedef enum {
-          DIEF_NONE           = 0x00,   /* no additional fields */
-          DIEF_TIMESTAMP      = 0x01,   /* timestamp is valid */
-          DIEF_MODIFIERS      = 0x02,   /* modifiers are valid */
-          DIEF_LOCKS          = 0x04,   /* locks are valid */
-          DIEF_AXISABS        = 0x08,   /* axis and axisabs are valid */
-          DIEF_AXISREL        = 0x10,   /* axis and axisrel are valid */
+          DIEF_NONE           = 0x000,   /* no additional fields */
+          DIEF_TIMESTAMP      = 0x001,   /* timestamp is valid */
+          DIEF_AXISABS        = 0x002,   /* axis and axisabs are valid */
+          DIEF_AXISREL        = 0x004,   /* axis and axisrel are valid */
 
-          DIEF_KEYCODE        = 0x20,   /* used internally by the input core,
-                                           always set at application level */
-          DIEF_KEYID          = 0x40,   /* used internally by the input core,
-                                           always set at application level */
-          DIEF_KEYSYMBOL      = 0x80    /* used internally by the input core,
-                                           always set at application level */
+          DIEF_KEYCODE        = 0x008,   /* used internally by the input core,
+                                            always set at application level */
+          DIEF_KEYID          = 0x010,   /* used internally by the input core,
+                                            always set at application level */
+          DIEF_KEYSYMBOL      = 0x020,   /* used internally by the input core,
+                                            always set at application level */
+          DIEF_MODIFIERS      = 0x040,   /* used internally by the input core,
+                                            always set at application level */
+          DIEF_LOCKS          = 0x080,   /* used internally by the input core,
+                                            always set at application level */
+          DIEF_BUTTONS        = 0x100    /* used internally by the input core,
+                                            always set at application level */
      } DFBInputEventFlags;
 
      /*
@@ -2162,6 +2166,8 @@ extern "C"
      /* DIET_BUTTONPRESS, DIET_BUTTONRELEASE */
           DFBInputDeviceButtonIdentifier  button;     /* in case of a button
                                                          event */
+          DFBInputDeviceButtonMask        buttons;    /* mask of currently
+                                                         pressed buttons */
 
      /* DIET_AXISMOTION */
           DFBInputDeviceAxisIdentifier    axis;       /* in case of an axis
@@ -2262,6 +2268,8 @@ extern "C"
           /* used by DWET_BUTTONDOWN, DWET_BUTTONUP */
           DFBInputDeviceButtonIdentifier  button;     /* button being
                                                          pressed or released */
+          DFBInputDeviceButtonMask        buttons;    /* mask of currently
+                                                         pressed buttons */
      } DFBWindowEvent;
 
      /*

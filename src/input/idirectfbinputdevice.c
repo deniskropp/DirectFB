@@ -346,6 +346,8 @@ IDirectFBInputDevice_React( const void *msg_data,
           data->modifiers = evt->modifiers;
      if (evt->flags & DIEF_LOCKS)
           data->locks = evt->locks;
+     if (evt->flags & DIEF_BUTTONS)
+          data->buttonmask = evt->buttons;
      
      switch (evt->type) {
           case DIET_KEYPRESS:
@@ -356,14 +358,6 @@ IDirectFBInputDevice_React( const void *msg_data,
           case DIET_KEYRELEASE:
                if (evt->key_id != DIKI_UNKNOWN)
                     data->keystates[evt->key_id] = DIKS_UP;
-               break;
-
-          case DIET_BUTTONPRESS:
-               data->buttonmask |= (1 << evt->button);
-               break;
-
-          case DIET_BUTTONRELEASE:
-               data->buttonmask &= ~(1 << evt->button);
                break;
 
           case DIET_AXISMOTION:
@@ -379,4 +373,3 @@ IDirectFBInputDevice_React( const void *msg_data,
 
      return RS_OK;
 }
-

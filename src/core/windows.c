@@ -1312,8 +1312,8 @@ stack_inputdevice_react( const void *msg_data,
                     we.key_code   = evt->key_code;
                     we.key_id     = evt->key_id;
                     we.key_symbol = evt->key_symbol;
-                    we.modifiers  = evt->modifiers;
-                    we.locks      = evt->locks;
+                    we.modifiers  = evt->modifiers; /* FIXME: handle mult. devices */
+                    we.locks      = evt->locks; /* FIXME: handle mult. devices */
 
                     dfb_window_dispatch( window, &we );
                }
@@ -1334,11 +1334,12 @@ stack_inputdevice_react( const void *msg_data,
                if (window) {
                     we.type = (evt->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN :
                                                                 DWET_BUTTONUP;
-                    we.button = evt->button;
-                    we.cx     = stack->cursor.x;
-                    we.cy     = stack->cursor.y;
-                    we.x      = we.cx - window->x;
-                    we.y      = we.cy - window->y;
+                    we.button  = evt->button;
+                    we.buttons = evt->buttons; /* FIXME: handle mult. devices */
+                    we.cx      = stack->cursor.x;
+                    we.cy      = stack->cursor.y;
+                    we.x       = we.cx - window->x;
+                    we.y       = we.cy - window->y;
 
                     dfb_window_dispatch( window, &we );
                }
