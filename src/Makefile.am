@@ -5,6 +5,7 @@ SUBDIRS = core display input gfx media misc windows
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
+	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src
 
 AM_CPPFLAGS = \
@@ -39,6 +40,7 @@ libdirectfb_la_LIBADD = \
 	misc/libdirectfb_misc.la	\
 	gfx/libdirectfb_gfx.la		\
 	core/libdirectfb_core.la
+#	../lib/direct/libdirect.la
 
 
 #

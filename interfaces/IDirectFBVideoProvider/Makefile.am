@@ -11,6 +11,7 @@ endif
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src 	\
 	-DDATADIR=\"@DATADIR@\"
 

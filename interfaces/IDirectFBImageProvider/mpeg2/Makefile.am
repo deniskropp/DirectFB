@@ -2,6 +2,7 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
 noinst_LTLIBRARIES = libmpeg2decode.la

@@ -2,6 +2,7 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
 input_LTLIBRARIES = libdirectfb_ucb1x00_ts.la

@@ -14,6 +14,7 @@ SUBDIRS = \
 	docs			\
 	patches 		\
 	include 		\
+	lib			\
 	src 			\
 	$(TOOLS_DIR)		\
 	$(LINUXONLY_DIRS)	\

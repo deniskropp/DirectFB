@@ -2,6 +2,7 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
 serialmouse_LTLIBRARIES = libdirectfb_serialmouse.la

@@ -2,6 +2,7 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
 ati_LTLIBRARIES = libdirectfb_ati128.la

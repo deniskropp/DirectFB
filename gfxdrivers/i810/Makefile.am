@@ -2,6 +2,7 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
 i810_LTLIBRARIES = libdirectfb_i810.la

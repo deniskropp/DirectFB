@@ -1024,6 +1024,8 @@ directfb.spec
 Makefile
 include/Makefile
 include/directfb_version.h
+lib/Makefile
+lib/direct/Makefile
 patches/Makefile
 src/Makefile
 src/display/Makefile
