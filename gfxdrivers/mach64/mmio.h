@@ -34,19 +34,19 @@
 #include "mach64.h"
 
 static inline void
-mach64_out8(volatile __u8 *mmioaddr, __u32 reg, __u8 value)
+mach64_out8( volatile __u8 *mmioaddr, __u32 reg, __u8 value )
 {
      *((volatile __u8*)(mmioaddr+reg)) = value;
 }
 
 static inline __u8
-mach64_in8(volatile __u8 *mmioaddr, __u32 reg)
+mach64_in8( volatile __u8 *mmioaddr, __u32 reg )
 {
      return *((volatile __u8*)(mmioaddr+reg));
 }
 
 static inline void
-mach64_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
+mach64_out32( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
 {
 #ifdef __powerpc__
      if (reg >= 0x400)
@@ -64,7 +64,7 @@ mach64_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
 }
 
 static inline __u32
-mach64_in32(volatile __u8 *mmioaddr, __u32 reg)
+mach64_in32( volatile __u8 *mmioaddr, __u32 reg )
 {
 #ifdef __powerpc__
      __u32 value;
@@ -145,7 +145,7 @@ static inline void mach64_waitidle( Mach64DriverData *mdrv,
      int timeout = 1000000;
 
      while (timeout--) {
-          if ((mach64_in32( mdrv->mmio_base, FIFO_STAT) & 0x0000FFFF) == 0)
+          if ((mach64_in32( mdrv->mmio_base, FIFO_STAT ) & 0x0000FFFF) == 0)
                break;
 
           mdev->idle_waitcycles++;
@@ -154,7 +154,7 @@ static inline void mach64_waitidle( Mach64DriverData *mdrv,
      timeout = 1000000;
 
      while (timeout--) {
-          if ((mach64_in32( mdrv->mmio_base, GUI_STAT) & GUI_ACTIVE) == 0)
+          if ((mach64_in32( mdrv->mmio_base, GUI_STAT ) & GUI_ACTIVE) == 0)
                break;
 
           mdev->idle_waitcycles++;
@@ -165,7 +165,7 @@ static inline void mach64_waitidle( Mach64DriverData *mdrv,
 
 static inline void mach64_waitfifo( Mach64DriverData *mdrv,
                                     Mach64DeviceData *mdev,
-                                    unsigned int requested_fifo_space)
+                                    unsigned int requested_fifo_space )
 {
      __u32 fifo_stat;
      int timeout = 1000000;
@@ -177,7 +177,7 @@ static inline void mach64_waitfifo( Mach64DriverData *mdrv,
           while (timeout--) {
                mdev->fifo_waitcycles++;
 
-               fifo_stat = mach64_in32( mdrv->mmio_base, FIFO_STAT) & 0x0000FFFF;
+               fifo_stat = mach64_in32( mdrv->mmio_base, FIFO_STAT ) & 0x0000FFFF;
                mdev->fifo_space = 16;
                while (fifo_stat) {
                     mdev->fifo_space--;
