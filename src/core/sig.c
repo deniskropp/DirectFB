@@ -64,17 +64,19 @@ static bool
 show_segv( const siginfo_t *info )
 {
      switch (info->si_code) {
+#ifdef SEGV_MAPERR
           case SEGV_MAPERR:
                fprintf( stderr, " (at %p, invalid address) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef SEGV_ACCERR
           case SEGV_ACCERR:
                fprintf( stderr, " (at %p, invalid permissions) <--\n",
                         info->si_addr );
                return true;
+#endif
      }
-
      return false;
 }
 
@@ -82,20 +84,24 @@ static bool
 show_bus( const siginfo_t *info )
 {
      switch (info->si_code) {
+#ifdef BUG_ADRALN
           case BUS_ADRALN:
                fprintf( stderr, " (at %p, invalid address alignment) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef BUS_ADRERR
           case BUS_ADRERR:
                fprintf( stderr, " (at %p, non-existent physical address) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef BUS_OBJERR
           case BUS_OBJERR:
                fprintf( stderr, " (at %p, object specific hardware error) <--\n",
                         info->si_addr );
                return true;
+#endif
      }
 
      return false;
@@ -105,45 +111,54 @@ static bool
 show_ill( const siginfo_t *info )
 {
      switch (info->si_code) {
+#ifdef ILL_ILLOPC
           case ILL_ILLOPC:
                fprintf( stderr, " (at %p, illegal opcode) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef ILL_ILLOPN
           case ILL_ILLOPN:
                fprintf( stderr, " (at %p, illegal operand) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef ILL_ILLADR
           case ILL_ILLADR:
                fprintf( stderr, " (at %p, illegal addressing mode) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef ILL_ILLTRP
           case ILL_ILLTRP:
                fprintf( stderr, " (at %p, illegal trap) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef ILL_PRVOPC
           case ILL_PRVOPC:
                fprintf( stderr, " (at %p, privileged opcode) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef ILL_PRVREG
           case ILL_PRVREG:
                fprintf( stderr, " (at %p, privileged register) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef ILL_COPROC
           case ILL_COPROC:
                fprintf( stderr, " (at %p, coprocessor error) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef ILL_BADSTK
           case ILL_BADSTK:
                fprintf( stderr, " (at %p, internal stack error) <--\n",
                         info->si_addr );
                return true;
+#endif
      }
 
      return false;
@@ -153,15 +168,18 @@ static bool
 show_fpe( const siginfo_t *info )
 {
      switch (info->si_code) {
+#ifdef FPE_INTDIV
           case FPE_INTDIV:
                fprintf( stderr, " (at %p, integer divide by zero) <--\n",
                         info->si_addr );
                return true;
-
+#endif
+#ifdef FPE_FLTDIV
           case FPE_FLTDIV:
                fprintf( stderr, " (at %p, floating point divide by zero) <--\n",
                         info->si_addr );
                return true;
+#endif
      }
 
      fprintf( stderr, " (at %p) <--\n", info->si_addr );
@@ -173,16 +191,18 @@ static bool
 show_any( const siginfo_t *info )
 {
      switch (info->si_code) {
+#ifdef SI_USER
           case SI_USER:
                fprintf( stderr, " (sent by pid %d, uid %d) <--\n",
                         info->si_pid, info->si_uid );
                return true;
-
+#endif
+#ifdef SI_KERNEL
           case SI_KERNEL:
                fprintf( stderr, " (sent by the kernel) <--\n" );
                return true;
+#endif
      }
-
      return false;
 }
 
@@ -325,4 +345,3 @@ dfb_sig_block_all()
      if (pthread_sigmask( SIG_BLOCK, &signals, NULL ))
           PERRORMSG( "DirectFB/Core: Setting signal mask failed!\n" );
 }
-
