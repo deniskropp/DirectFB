@@ -2,8 +2,6 @@
 
 includedir = @INCLUDEDIR@
 
-MAINTAINERCLEANFILES = directfb_keynames.h directfb_strings.h
-
 EXTRA_DIST = mknames.sh
 
 include_HEADERS = \
@@ -16,6 +14,9 @@ include_HEADERS = \
 
 MKNAMES = $(top_srcdir)/include/mknames.sh
 INCP = $(top_srcdir)/include
+
+distclean-local:
+	rm -f directfb_keynames.h directfb_strings.h
 
 directfb_keynames.h: directfb_keyboard.h mknames.sh Makefile
 	@echo '#ifndef __DIRECTFB_KEYNAMES_H__' > $@
