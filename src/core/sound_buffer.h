@@ -70,6 +70,7 @@ DFBResult fs_buffer_unlock( CoreSoundBuffer  *buffer );
 
 DFBResult fs_buffer_mixto ( CoreSoundBuffer  *buffer,
                             int              *dest,
+                            int               dest_rate,
                             int               max_samples,
                             int               pos,
                             int               stop,

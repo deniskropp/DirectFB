@@ -175,6 +175,7 @@ fs_buffer_unlock( CoreSoundBuffer *buffer )
 static inline int
 mix_from_8bit( CoreSoundBuffer *buffer,
                int             *dest,
+               int              dest_rate,
                int              max_samples,
                int              pos,
                int              stop,
@@ -184,7 +185,7 @@ mix_from_8bit( CoreSoundBuffer *buffer,
 {
      int   i, n;
      __u8 *data = buffer->data;
-     int   inc  = (buffer->rate * pitch) / 44100;
+     int   inc  = (buffer->rate * pitch) / dest_rate;
 
      DEBUGMSG( "FusionSound/Core: %s (%p, pos %d, max %d) ...\n",
                __FUNCTION__, buffer, pos, max_samples / 2 );
@@ -219,6 +220,7 @@ mix_from_8bit( CoreSoundBuffer *buffer,
 static inline int
 mix_from_16bit( CoreSoundBuffer *buffer,
                 int             *dest,
+                int              dest_rate,
                 int              max_samples,
                 int              pos,
                 int              stop,
@@ -228,7 +230,7 @@ mix_from_16bit( CoreSoundBuffer *buffer,
 {
      int    i, n;
      __s16 *data = buffer->data;
-     int    inc  = (buffer->rate * pitch) / 44100;
+     int    inc  = (buffer->rate * pitch) / dest_rate;
 
      DEBUGMSG( "FusionSound/Core: %s (%p, pos %d, max %d) ...\n",
                __FUNCTION__, buffer, pos, max_samples / 2 );
@@ -263,6 +265,7 @@ mix_from_16bit( CoreSoundBuffer *buffer,
 DFBResult
 fs_buffer_mixto( CoreSoundBuffer *buffer,
                  int             *dest,
+                 int              dest_rate,
                  int              max_samples,
                  int              pos,
                  int              stop,
@@ -288,13 +291,13 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      /* Mix the data into the buffer. */
      switch (buffer->format) {
           case FSSF_S16:
-               pos += mix_from_16bit( buffer, dest, max_samples, pos, stop,
-                                      left, right, pitch );
+               pos += mix_from_16bit( buffer, dest, dest_rate, max_samples,
+                                      pos, stop, left, right, pitch );
                break;
           
           case FSSF_U8:
-               pos += mix_from_8bit( buffer, dest, max_samples, pos, stop,
-                                     left, right, pitch );
+               pos += mix_from_8bit( buffer, dest, dest_rate, max_samples,
+                                     pos, stop, left, right, pitch );
                break;
 
           default:

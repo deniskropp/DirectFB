@@ -313,15 +313,13 @@ sound_thread( CoreThread *thread, void *arg )
                long long this_time = dfb_get_micros();
                long long diff_time = this_time - last_time;
 
-               played = diff_time * total_rate / 1000000;
+               played = (int)(total_rate * diff_time / 1000000LL);
                
                written -= played;
 
                if (written < 0) {
                     CAUTION( "buffer underrun" );
-
-                    written   = 0;
-                    last_time = 0;
+                    written = 0;
                }
 
                last_time = this_time;
@@ -344,7 +342,8 @@ sound_thread( CoreThread *thread, void *arg )
                CorePlaylistEntry *entry    = (CorePlaylistEntry *) l;
                CorePlayback      *playback = entry->playback;
                
-               ret = fs_playback_mixto( playback, mixing, samples );
+               ret = fs_playback_mixto( playback, mixing,
+                                        shared->config.rate, samples );
                if (ret) {
                     fs_playback_unlink( playback );
 
@@ -420,17 +419,13 @@ fs_core_initialize( CoreSound *core )
 
      /* set sample rate */
      if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
-          rate = 44100;
-
-          if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
-               ERRORMSG( "FusionSound/Core: "
-                         "Unable to set rate to '%ld'!\n", shared->config.rate );
-               close( fd );
-               return DFB_UNSUPPORTED;
-          }
-
-          shared->config.rate = 44100;
+          ERRORMSG( "FusionSound/Core: "
+                    "Unable to set rate to '%ld'!\n", shared->config.rate );
+          close( fd );
+          return DFB_UNSUPPORTED;
      }
+     
+     shared->config.rate = rate;
 
      /* query block size */
      ioctl( fd, SNDCTL_DSP_GETBLKSIZE, &shared->config.block_size );

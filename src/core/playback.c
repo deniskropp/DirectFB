@@ -251,6 +251,7 @@ fs_playback_set_pitch( CorePlayback *playback,
 DFBResult
 fs_playback_mixto( CorePlayback *playback,
                    int          *dest,
+                   int           dest_rate,
                    int           max_samples )
 {
      DFBResult ret;
@@ -266,7 +267,7 @@ fs_playback_mixto( CorePlayback *playback,
           return DFB_FUSION;
 
      /* Mix samples... */
-     ret = fs_buffer_mixto( playback->buffer, dest, max_samples,
+     ret = fs_buffer_mixto( playback->buffer, dest, dest_rate, max_samples,
                             playback->position, playback->stop, playback->left,
                             playback->right, playback->pitch, &pos );
      if (ret)

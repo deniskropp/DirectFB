@@ -84,6 +84,7 @@ DFBResult fs_playback_set_pitch   ( CorePlayback     *playback,
  */
 DFBResult fs_playback_mixto       ( CorePlayback     *playback,
                                     int              *dest,
+                                    int               dest_rate,
                                     int               max_samples );
 
 #endif
