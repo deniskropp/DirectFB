@@ -191,6 +191,8 @@ DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );
 __u32 dfb_color_to_pixel( DFBSurfacePixelFormat format,
                           __u8 r, __u8 g, __u8 b );
 
+const char *dfb_pixelformat_name( DFBSurfacePixelFormat format );
+
 static inline __u32
 dfb_color_to_argb( const DFBColor *color )
 {
