@@ -135,6 +135,8 @@ DirectResultString( DirectResult result )
                return "No such (remote) instance!";
           case DFB_ITEMNOTFOUND:
                return "Appropriate item not found!";
+          case DFB_VERSIONMISMATCH:
+               return "Some versions didn't match!";
      }
 
      return "UNKNOWN RESULT CODE!";

@@ -191,7 +191,8 @@ typedef enum {
      DFB_LIMITEXCEEDED,  /* Attempted to exceed limit, i.e. any kind of maximum size, count etc. */
      DFB_NOSUCHMETHOD,   /* Requested method is not known to remote site. */
      DFB_NOSUCHINSTANCE, /* Requested instance is not known to remote site. */
-     DFB_ITEMNOTFOUND    /* No such item found. */
+     DFB_ITEMNOTFOUND,   /* No such item found. */
+     DFB_VERSIONMISMATCH /* Some versions didn't match. */
 } DFBResult;
 
 /*
@@ -259,6 +260,18 @@ typedef struct {
      int            x2;  /* X coordinate of lower-right point */
      int            y2;  /* Y coordinate of lower-right point */
 } DFBRegion;
+
+/*
+ * Insets specify a distance from each edge of a rectangle.
+ *
+ * Positive values always mean 'outside'.
+ */
+typedef struct {
+     int            l;   /* distance from left edge */
+     int            t;   /* distance from top edge */
+     int            r;   /* distance from right edge */
+     int            b;   /* distance from bottom edge */
+} DFBInsets;
 
 /*
  * A triangle specified by three points.
