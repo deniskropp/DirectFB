@@ -91,9 +91,8 @@ typedef struct {
 } FT2ImplData;
 
 typedef struct {
-     int  x   : 16;
-     int  y   : 15;
-     bool got : 1;
+     char x;
+     char y;
 } KerningCacheEntry;
 
 typedef struct {
@@ -303,15 +302,13 @@ get_kerning( CoreFont *thiz,
      if (KERNING_DO_CACHE (prev, current)) {
           cache = &KERNING_CACHE_ENTRY (prev, current);
 
-          if (cache->got) {
-               if (kern_x)
-                    *kern_x = cache->x;
+          if (kern_x)
+               *kern_x = cache->x;
 
-               if (kern_y)
-                    *kern_y = cache->y;
+          if (kern_y)
+               *kern_y = cache->y;
 
-               return DFB_OK;
-          }
+          return DFB_OK;
      }
 
      pthread_mutex_lock ( &library_mutex );
@@ -333,18 +330,38 @@ get_kerning( CoreFont *thiz,
      if (kern_y)
           *kern_y = vector.y >> 6;
 
-     /*
-      * Fill cache entry if characters are in the cachable range.
-      */
-     if (cache) {
-          cache->x   = vector.x >> 6;
-          cache->y   = vector.y >> 6;
-          cache->got = true;
-     }
-
      return DFB_OK;
 }
 
+static void
+init_kerning_cache( FT2ImplKerningData *data )
+{
+     int a, b;
+
+     for (a=KERNING_CACHE_MIN; a<=KERNING_CACHE_MAX; a++) {
+          for (b=KERNING_CACHE_MIN; b<=KERNING_CACHE_MAX; b++) {
+               FT_Vector          vector;
+               FT_UInt            prev;
+               FT_UInt            current;
+               KerningCacheEntry *cache = &KERNING_CACHE_ENTRY( a, b );
+
+               pthread_mutex_lock ( &library_mutex );
+
+               /* Get the character indices for lookup. */
+               prev    = FT_Get_Char_Index( data->base.face, a );
+               current = FT_Get_Char_Index( data->base.face, b );
+
+               /* Lookup kerning values for the character pair. */
+               FT_Get_Kerning( data->base.face,
+                               prev, current, ft_kerning_default, &vector );
+
+               pthread_mutex_unlock ( &library_mutex );
+
+               cache->x = vector.x >> 6;
+               cache->y = vector.y >> 6;
+          }
+     }
+}
 
 static DFBResult
 init_freetype( void )
@@ -604,6 +621,9 @@ Construct( IDirectFBFont      *thiz,
 
      data->face            = face;
      data->disable_charmap = disable_charmap;
+
+     if (FT_HAS_KERNING(face) && !disable_kerning)
+          init_kerning_cache( (FT2ImplKerningData*) data );
 
      if (desc->flags & DFDESC_FIXEDADVANCE) {
           data->fixed_advance = desc->fixed_advance;
