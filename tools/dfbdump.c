@@ -229,7 +229,9 @@ window_callback( CoreWindow      *window,
 
      printf( "%4d x %4d   ", window->width, window->height );
      
-     printf( "0x%02x  ", window->opacity );
+     printf( "0x%02x ", window->opacity );
+
+     printf( "%5d  ", window->id );
 
      if (window->caps & DWHC_TOPMOST) {
           printf( "*  " );
