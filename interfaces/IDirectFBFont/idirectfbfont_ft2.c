@@ -28,8 +28,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-
-#include <freetype/ftglyph.h>
+#include <ft2build.h>
+#include FT_GLYPH_H
 
 #include <directfb.h>
 
