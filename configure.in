@@ -675,6 +675,11 @@ dnl Test for savage frame buffer support in the kernel
 
 fi
 
+AC_ARG_WITH(tools, [  --without-tools         do not build any tools])
+if test "x$with_tools" != xno; then
+  with_tools=yes
+fi
+
 AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
 AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
 AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
@@ -688,6 +693,8 @@ AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
 AM_CONDITIONAL(UCB1X00_TS, test x$have_arm = xyes)
 AM_CONDITIONAL(SONYPI, test x$sonypi = xyes)
 AM_CONDITIONAL(DBOX2REMOTE, test x$dbox2remote = xyes)
+
+AM_CONDITIONAL(BUILD_TOOLS, test x$with_tools = xyes)
 
 DFB_CFLAGS="$DFB_CFLAGS $DFB_INTERNAL_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
@@ -818,6 +825,8 @@ Core Systems:
   Linux FBDev support   $enable_fbdev
   SDL support           $enable_sdl
 
+Building Tools          $with_tools
+
 Building Image Providers:
   JPEG                  $JPEG
   PNG                   $PNG
@@ -851,7 +860,6 @@ Building Input Drivers:
   H3600 Touchscreen     $h3600_ts
   ucb1x00 Touchscreen   $have_arm
   SonyPI Jogdial        $sonypi]);
-
 fi
 
 AC_MSG_RESULT([$png_warning $jpeg_warning $freetype_warning
