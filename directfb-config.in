@@ -131,6 +131,9 @@ while test $# -gt 0; do
             echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_PNG -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -lpng -lz -lm"
             ;;
+          gif)
+            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_GIF -lidirectfbimageprovider_$i"
+            ;;
           mpeg2)
             echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_MPEG2 -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -lm"
