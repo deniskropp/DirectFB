@@ -223,30 +223,38 @@ static __u32 matroxDestBlend[] = {
      0                        /* DSBF_SRCALPHASAT  */
 };
 
-static __u32 matroxModulation[] = {
-     ALPHACHANNEL,
-     VIDEOALPHA,
-     VIDEOALPHA | DIFFUSEDALPHA,
-     VIDEOALPHA | MODULATEDALPHA
-};
-
 void matrox_validate_drawBlend( MatroxDriverData *mdrv,
                                 MatroxDeviceData *mdev,
                                 CardState        *state )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
+     __u32 alphactrl;
+
      if (mdev->m_drawBlend)
           return;
+     
+     alphactrl = matroxSourceBlend[state->src_blend - 1] |
+                 matroxDestBlend  [state->dst_blend - 1] | DIFFUSEDALPHA;
+
+     if (state->dst_blend == DSBF_ZERO)
+          alphactrl |= ALPHACHANNEL;
+     else
+          alphactrl |= VIDEOALPHA;
 
      mga_waitfifo( mdrv, mdev, 1 );
-     mga_out32( mmio,
-                matroxSourceBlend[state->src_blend - 1] |
-                matroxDestBlend  [state->dst_blend - 1], ALPHACTRL );
+     mga_out32( mmio, alphactrl, ALPHACTRL );
 
      mdev->m_drawBlend = 1;
      mdev->m_blitBlend = 0;
 }
+
+static __u32 matroxAlphaSelect[] = {
+     0,
+     0,
+     DIFFUSEDALPHA,
+     MODULATEDALPHA
+};
 
 void matrox_validate_blitBlend( MatroxDriverData *mdrv,
                                 MatroxDeviceData *mdev,
@@ -254,20 +262,26 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
-     __u32 alphactrl = 1;
+     __u32 alphactrl;
 
      if (mdev->m_blitBlend)
           return;
 
      if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                         DSBLIT_BLEND_COLORALPHA))
+                                 DSBLIT_BLEND_COLORALPHA))
+     {
           alphactrl = matroxSourceBlend[state->src_blend - 1] |
                       matroxDestBlend  [state->dst_blend - 1];
-
-     alphactrl |= matroxModulation [state->blittingflags & 3];
-
-     if (state->dst_blend == DSBF_ZERO)
-          alphactrl &= ~VIDEOALPHA;
+          
+          alphactrl |= matroxAlphaSelect [state->blittingflags & 3];
+          
+          if (state->dst_blend == DSBF_ZERO)
+               alphactrl |= ALPHACHANNEL;
+          else
+               alphactrl |= VIDEOALPHA;
+     }
+     else
+          alphactrl = SRC_ONE | ALPHACHANNEL;
 
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mmio, alphactrl, ALPHACTRL );
