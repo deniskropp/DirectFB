@@ -581,6 +581,8 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                /* FALL THROUGH, for the rest we have to do a video lock
                   as if it had the policy CSP_VIDEOONLY */
           case CSP_VIDEOONLY:
+               if (dfb_surfacemanager_assure_video( surface->manager, buffer ))
+                    ONCE( "accessing video memory during suspend" );
                buffer->video.locked++;
                *data = dfb_system_video_memory_virtual( buffer->video.offset );
                *pitch = buffer->video.pitch;
@@ -637,6 +639,8 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
                /* fall through */
 
           case CSP_VIDEOONLY:
+               if (dfb_surfacemanager_assure_video( surface->manager, buffer ))
+                    break;
                buffer->video.locked++;
                video_access_by_hardware( buffer, flags );
                return DFB_OK;
