@@ -223,7 +223,7 @@ extern "C"
                               char        *name,
                               char        *value
                            );
-     
+
      /*
       * Create the super interface
       */
@@ -382,7 +382,7 @@ extern "C"
           DIDTF_JOYSTICK      = 0x00000004,  /* can be used as a joystick */
           DIDTF_REMOTE        = 0x00000008   /* device is a remote control */
      } DFBInputDeviceTypeFlags;
-     
+
      /*
       * Basic input device features.
       */
@@ -434,7 +434,7 @@ extern "C"
           DWCAPS_ALPHACHANNEL = 0x00000001   /* window has an alphachannel */
      } DFBWindowCapabilities;
 
-  
+
      /*
       * Flags describing how to load a font.
       */
@@ -532,20 +532,20 @@ extern "C"
 
      /*
       * Called for each existing display layer.
-      * "id" can be used to get an interface to the layer.
+      * "layer_id" can be used to get an interface to the layer.
       */
      typedef int (*DFBDisplayLayerCallback) (
-          unsigned int                       id,
+          unsigned int                       layer_id,
           DFBDisplayLayerCapabilities        caps,
           void                              *callbackdata
      );
 
      /*
       * Called for each existing input device.
-      * "id" can be used to get an interface to the device.
+      * "device_id" can be used to get an interface to the device.
       */
      typedef int (*DFBInputDeviceCallback) (
-          unsigned int                       id,
+          unsigned int                       device_id,
           DFBInputDeviceDescription          desc,
           void                              *callbackdata
      );
@@ -646,7 +646,7 @@ extern "C"
            */
           DFBResult (*GetDisplayLayer) (
                IDirectFB                *thiz,
-               unsigned int              id,
+               unsigned int              layer_id,
                IDirectFBDisplayLayer   **interface
           );
 
@@ -667,7 +667,7 @@ extern "C"
            */
           DFBResult (*GetInputDevice) (
                IDirectFB                *thiz,
-               unsigned int              id,
+               unsigned int              device_id,
                IDirectFBInputDevice    **interface
           );
 
@@ -1281,7 +1281,7 @@ extern "C"
            * Get the font associated with a surface.
            *
            * This function increases the font's reference count.
-           */          
+           */
           DFBResult (*GetFont) (
                IDirectFBSurface         *thiz,
                IDirectFBFont           **font
@@ -1352,19 +1352,19 @@ extern "C"
           DIKC_INSERT, DIKC_DELETE, DIKC_HOME, DIKC_END,
           DIKC_PAGEUP, DIKC_PAGEDOWN,
           DIKC_CAPSLOCK, DIKC_NUMLOCK, DIKC_SCRLOCK, DIKC_PRINT, DIKC_PAUSE,
-          DIKC_KP_DIV, DIKC_KP_MULT, DIKC_KP_MINUS, DIKC_KP_PLUS, 
+          DIKC_KP_DIV, DIKC_KP_MULT, DIKC_KP_MINUS, DIKC_KP_PLUS,
           DIKC_KP_ENTER,
 
-          DIKC_OK, DIKC_CANCEL, DIKC_SELECT, DIKC_GOTO, DIKC_CLEAR, 
-          DIKC_POWER, DIKC_POWER2, DIKC_OPTION, 
+          DIKC_OK, DIKC_CANCEL, DIKC_SELECT, DIKC_GOTO, DIKC_CLEAR,
+          DIKC_POWER, DIKC_POWER2, DIKC_OPTION,
           DIKC_MENU, DIKC_HELP, DIKC_INFO, DIKC_TIME, DIKC_VENDOR,
 
           DIKC_ARCHIVE, DIKC_PROGRAM, DIKC_FAVORITES, DIKC_EPG,
           DIKC_LANGUAGE, DIKC_TITLE, DIKC_SUBTITLE, DIKC_ANGLE,
           DIKC_ZOOM, DIKC_MODE, DIKC_KEYBOARD, DIKC_PC, DIKC_SCREEN,
 
-          DIKC_TV, DIKC_TV2, DIKC_VCR, DIKC_VCR2, DIKC_SAT, DIKC_SAT2, 
-          DIKC_CD, DIKC_TAPE, DIKC_RADIO, DIKC_TUNER, DIKC_PLAYER,  
+          DIKC_TV, DIKC_TV2, DIKC_VCR, DIKC_VCR2, DIKC_SAT, DIKC_SAT2,
+          DIKC_CD, DIKC_TAPE, DIKC_RADIO, DIKC_TUNER, DIKC_PLAYER,
           DIKC_TEXT, DIKC_DVD, DIKC_AUX, DIKC_MP3,
           DIKC_AUDIO, DIKC_VIDEO, DIKC_INTERNET, DIKC_MAIL, DIKC_NEWS,
 
@@ -1860,7 +1860,7 @@ extern "C"
                IDirectFBWindow     *thiz
           );
 
-	  /*
+      /*
            * Block until next event to occurs or timeout is reached.
            * Thread is idle in the meantime.
            */
@@ -1942,10 +1942,10 @@ extern "C"
            * Bytes specifies the number of bytes to take from
            * the string or -1 for the complete NULL-terminated
            * string.
-           * 
+           *
            * The returned width may be different than the actual
            * drawn width of the text since this function returns
-           * the logical width that should be used to layout the 
+           * the logical width that should be used to layout the
            * text. A negative width indicates right-to-left rendering.
            */
           DFBResult (*GetStringWidth) (
@@ -1954,10 +1954,10 @@ extern "C"
                int                  bytes,
                int                 *width
           );
-         
+
           /*
            * Get the logical and real extents of the specified
-           * UTF-8 string as if it were drawn with this font. 
+           * UTF-8 string as if it were drawn with this font.
            *
            * Bytes specifies the number of bytes to take from
            * the string or -1 for the complete NULL-terminated
@@ -1965,24 +1965,24 @@ extern "C"
            *
            * The logical rectangle describes the typographic extents
            * and should be used to layout text. The ink rectangle
-           * describes the smallest rectangle containing all pixels 
+           * describes the smallest rectangle containing all pixels
            * that are touched when drawing the string. If you only
            * need one of the rectangles, pass NULL for the other one.
            *
            * The ink rectangle is guaranteed to be a valid rectangle
-           * with positive width and height, while the logical 
-           * rectangle may have negative width indicating right-to-left 
+           * with positive width and height, while the logical
+           * rectangle may have negative width indicating right-to-left
            * layout.
            *
-           * The rectangles offsets are reported relative to the 
+           * The rectangles offsets are reported relative to the
            * baseline and refer to the text being drawn using DSTF_LEFT.
            */
-          DFBResult (*GetStringExtents) ( 
+          DFBResult (*GetStringExtents) (
                IDirectFBFont       *thiz,
-               const char          *text, 
+               const char          *text,
                int                  bytes,
                DFBRectangle        *logical_rect,
-               DFBRectangle        *ink_rect 
+               DFBRectangle        *ink_rect
           );
      )
 
