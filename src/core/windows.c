@@ -1681,7 +1681,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                          case DIKS_CAPS_LOCK:
                               stack->wm_hack = 0;
                               stack->wm_cycle = 0;
-                              handle_enter_leave_focus( stack );
+                              //handle_enter_leave_focus( stack );
                               break;
 
                          case DIKS_ALT:
