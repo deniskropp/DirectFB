@@ -469,6 +469,8 @@ DFBResult maven_init( MatroxMavenData  *mav,
                return errno2result( errno );
           }
 
+#if 0
+          /* FIXME: This fails for some people */
           /* Check if maven is at address 0x1B (DH board) or 0x1A (DH add-on) */
           if (i2c_read_byte( fd, 0x1B, 0xB2 ) < 0) {
                if (i2c_read_byte( fd, 0x1A, 0xB2 ) < 0) {
@@ -479,6 +481,9 @@ DFBResult maven_init( MatroxMavenData  *mav,
                     mav->address = 0x1A;
           } else
                mav->address = 0x1B;
+#else
+          mav->address = 0x1B;
+#endif
 
           close( fd );
      }
