@@ -65,9 +65,12 @@ dfb_system_lookup()
           if (!funcs)
                continue;
 
-          if (!system_module && (!dfb_config->system ||
+          if (!system_module || (!dfb_config->system ||
               !strcasecmp( dfb_config->system, module->name )))
           {
+               if (system_module)
+                    dfb_module_unref( system_module );
+
                system_module = module;
                system_funcs  = funcs;
                
