@@ -959,6 +959,36 @@ Dispatch_TileBlit( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_BatchBlit( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                    VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     VoodooMessageParser  parser;
+     VoodooInstanceID     instance;
+     unsigned int         num;
+     const DFBRectangle  *source_rects;
+     const DFBPoint      *dest_points;
+     void                *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, instance );
+     VOODOO_PARSER_GET_UINT( parser, num );
+     VOODOO_PARSER_GET_DATA( parser, source_rects );
+     VOODOO_PARSER_GET_DATA( parser, dest_points );
+     VOODOO_PARSER_END( parser );
+
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &surface );
+     if (ret)
+          return ret;
+
+     real->BatchBlit( real, surface, source_rects, dest_points, num );
+
+     return DFB_OK;
+}
+
+static DirectResult
 Dispatch_StretchBlit( IDirectFBSurface *thiz, IDirectFBSurface *real,
                       VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -1293,6 +1323,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBSURFACE_METHOD_ID_TileBlit:
                return Dispatch_TileBlit( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_BatchBlit:
+               return Dispatch_BatchBlit( dispatcher, real, manager, msg );
 
           case IDIRECTFBSURFACE_METHOD_ID_StretchBlit:
                return Dispatch_StretchBlit( dispatcher, real, manager, msg );

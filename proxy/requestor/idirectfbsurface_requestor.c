@@ -755,14 +755,22 @@ IDirectFBSurface_Requestor_BatchBlit( IDirectFBSurface   *thiz,
                                       const DFBPoint     *dest_points,
                                       int                 num )
 {
+     IDirectFBSurface_Requestor_data *source_data;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      if (!source || !source_rects || !dest_points || num < 1)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     DIRECT_INTERFACE_GET_DATA_FROM( source, source_data, IDirectFBSurface_Requestor );
 
-     return DFB_UNIMPLEMENTED;
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_BatchBlit, VREQ_QUEUE, NULL,
+                                    VMBT_ID, source_data->instance,
+                                    VMBT_UINT, num,
+                                    VMBT_DATA, num * sizeof(DFBRectangle), source_rects,
+                                    VMBT_DATA, num * sizeof(DFBPoint), dest_points,
+                                    VMBT_NONE );
 }
 
 static DFBResult
