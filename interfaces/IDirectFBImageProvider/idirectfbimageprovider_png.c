@@ -329,7 +329,7 @@ IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
      dsc->width  = data->width;
      dsc->height = data->height;
 
-     if (data->color_type & PNG_COLOR_MASK_ALPHA)
+     if (data->color_type & (PNG_COLOR_MASK_ALPHA | PNG_COLOR_MASK_PALETTE))
           dsc->pixelformat = DSPF_ARGB;
      else
           dsc->pixelformat = dfb_primary_layer_pixelformat();
@@ -347,11 +347,11 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
           return DFB_INVARG;
 
      /* FIXME: colorkeyed PNGs are currently converted to alphachannel PNGs */
-     if (data->color_type & PNG_COLOR_MASK_ALPHA)
+     if (data->color_type & (PNG_COLOR_MASK_ALPHA | PNG_COLOR_MASK_PALETTE))
           dsc->caps = DICAPS_ALPHACHANNEL;
      else
           dsc->caps = DICAPS_NONE;
-     
+
      return DFB_OK;
 }
 
