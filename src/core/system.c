@@ -66,6 +66,8 @@ dfb_system_lookup()
 {
      FusionLink *l;
 
+     dfb_modules_explore_directory( &dfb_core_systems );
+     
      fusion_list_foreach( l, dfb_core_systems.entries ) {
           ModuleEntry     *module = (ModuleEntry*) l;
           CoreSystemFuncs *funcs;

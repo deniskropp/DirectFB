@@ -87,6 +87,9 @@ dfb_modules_register( ModuleDirectory *directory,
      DFB_ASSERT( name != NULL );
      DFB_ASSERT( funcs != NULL );
 
+     DEBUGMSG( "DirectFB/core/modules: Registering '%s' ('%s')\n",
+               name, directory->path );
+
 #ifdef DFB_DYNAMIC_LINKING
      if ((entry = lookup_by_name( directory, name )) != NULL) {
           entry->loaded = true;
@@ -324,7 +327,9 @@ open_module( ModuleEntry *module )
 
      snprintf( buf, buf_len, "%s/%s", directory->path, module->file );
 
-     handle = dlopen( buf, RTLD_LAZY );
+     DEBUGMSG( "DirectFB/core/modules: Loading '%s'...\n", buf );
+
+     handle = dlopen( buf, RTLD_LAZY | RTLD_GLOBAL );
      if (!handle)
           DLERRORMSG( "DirectFB/core/modules: Unable to dlopen `%s'!\n", buf );
 

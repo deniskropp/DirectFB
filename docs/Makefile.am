@@ -11,6 +11,22 @@ man_MANS = \
 	dfbg.1		\
 	directfbrc.5
 
+HTMLMANS = $(patsubst %,%.html,$(man_MANS))
+
+
+if HAVE_MAN2HTML
+
+all-local: $(HTMLMANS)
+
+clean-local:
+	rm -f $(HTMLMANS)
+
+%.html: %
+	$(MAN2HTML) $* > $@
+
+endif
+
+
 EXTRA_DIST = \
 	README.screenshots	\
 	dfbg.1.in		\

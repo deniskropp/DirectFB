@@ -13,13 +13,30 @@ AM_CPPFLAGS = \
 	-DMODULEDIR=\"@MODULEDIR@\"	\
 	"-DBUILDTIME=\"`date -u "+%Y-%m-%d %H:%M"`\""
 
-noinst_LTLIBRARIES = libdirectfb_core_sdl.la
 
-libdirectfb_core_sdl_la_LDFLAGS = $(SDL_LIBS)
+systemsdir = $(MODULEDIR)/systems
+inputdriversdir = $(MODULEDIR)/inputdrivers
 
-libdirectfb_core_sdl_la_SOURCES = \
+systems_LTLIBRARIES = libdirectfb_sdl.la
+inputdrivers_LTLIBRARIES = libdirectfb_sdlinput.la
+
+libdirectfb_sdl_la_LDFLAGS = \
+	$(SDL_LIBS)	\
+	-export-dynamic	\
+	-avoid-version	\
+	$(DFB_LDFLAGS)
+
+libdirectfb_sdl_la_SOURCES = \
 	primary.c	\
 	primary.h	\
 	sdl.c		\
-	sdl.h		\
+	sdl.h
+
+libdirectfb_sdlinput_la_LDFLAGS = \
+	$(SDL_LIBS)	\
+	-export-dynamic	\
+	-avoid-version	\
+	$(DFB_LDFLAGS)
+
+libdirectfb_sdlinput_la_SOURCES = \
 	sdlinput.c

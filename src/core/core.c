@@ -213,7 +213,14 @@ dfb_core_ref()
      if (ret) {
           ERRORMSG("DirectFB/Core: Error during initialization (%s)\n",
                    DirectFBErrorString( ret ));
-          dfb_core_deinit_emergency();
+          
+          fusion_exit();
+
+          DFBFREE( dfb_core );
+          dfb_core = NULL;
+
+          dfb_sig_remove_handlers();
+          
           return ret;
      }
 #else
@@ -221,7 +228,14 @@ dfb_core_ref()
      if (ret) {
           ERRORMSG("DirectFB/Core: Error during initialization (%s)\n",
                    DirectFBErrorString( ret ));
-          dfb_core_deinit_emergency();
+          
+          fusion_exit();
+
+          DFBFREE( dfb_core );
+          dfb_core = NULL;
+
+          dfb_sig_remove_handlers();
+          
           return ret;
      }
 #endif
@@ -330,7 +344,7 @@ dfb_core_deinit_emergency()
 
 #ifndef FUSION_FAKE
      fusion_arena_exit( dfb_core->arena,
-                 dfb_core_shutdown, dfb_core_leave, NULL, true, NULL );
+                        dfb_core_shutdown, dfb_core_leave, NULL, true, NULL );
 #else
      dfb_core_shutdown( NULL, NULL, true );
 #endif
@@ -379,9 +393,12 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
 
      dfb_sig_install_handlers();
      
-     for (i=0; i<NUM_CORE_PARTS; i++)
-          if ((ret = dfb_core_part_initialize( core_parts[i] )))
+     for (i=0; i<NUM_CORE_PARTS; i++) {
+          if ((ret = dfb_core_part_initialize( core_parts[i] ))) {
+               dfb_core_shutdown( arena, ctx, true );
                return ret;
+          }
+     }
 
      return 0;
 }
@@ -398,21 +415,20 @@ dfb_core_join( FusionArena *arena, void *ctx )
      dfb_config->sighandler = false;
      dfb_sig_install_handlers();
      
-     for (i=0; i<NUM_CORE_PARTS; i++)
-          if ((ret = dfb_core_part_join( core_parts[i] )))
+     for (i=0; i<NUM_CORE_PARTS; i++) {
+          if ((ret = dfb_core_part_join( core_parts[i] ))) {
+               dfb_core_leave( arena, ctx, true );
                return ret;
+          }
+     }
      
      return 0;
 }
 #endif
 
-static int
-dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
+static void
+process_cleanups( bool emergency )
 {
-     int i;
-
-     DEBUGMSG( "DirectFB/Core: shutting down!\n" );
-
      while (core_cleanups) {
           CoreCleanup *cleanup = (CoreCleanup *)core_cleanups;
 
@@ -423,6 +439,16 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
 
           DFBFREE( cleanup );
      }
+}
+
+static int
+dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
+{
+     int i;
+
+     DEBUGMSG( "DirectFB/Core: shutting down!\n" );
+
+     process_cleanups( emergency );
 
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
           dfb_core_part_shutdown( core_parts[i], emergency );
@@ -438,16 +464,7 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
 
      DEBUGMSG( "DirectFB/Core: leaving!\n" );
 
-     while (core_cleanups) {
-          CoreCleanup *cleanup = (CoreCleanup *)core_cleanups;
-
-          core_cleanups = core_cleanups->next;
-
-          if (cleanup->emergency || !emergency)
-               cleanup->func( cleanup->data, emergency );
-
-          DFBFREE( cleanup );
-     }
+     process_cleanups( emergency );
      
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
           dfb_core_part_leave( core_parts[i], emergency );

@@ -609,6 +609,8 @@ init_devices()
                continue;
           }
 
+          DFB_ASSERT( funcs->GetDriverInfo != NULL );
+
           funcs->GetDriverInfo( &driver->info );
           
           DEBUGMSG( "DirectFB/Core/Input: Probing '%s'...\n",
@@ -621,6 +623,11 @@ init_devices()
                continue;
           }
           
+          DEBUGMSG( "DirectFB/Core/Input: %d available %s provided by '%s'.\n",
+                    driver->nr_devices,
+                    driver->nr_devices == 1 ? "device" : "devices",
+                    driver->info.name );
+
           driver->module = module;
           driver->funcs  = funcs;
           

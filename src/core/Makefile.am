@@ -2,18 +2,14 @@
 
 if SDL_CORE
 SDL_DIR = sdl
-SDL_LIB = sdl/libdirectfb_core_sdl.la
 else
 SDL_DIR =
-SDL_LIB =
 endif
 
 if FBDEV_CORE
 FBDEV_DIR = fbdev
-FBDEV_LIB = fbdev/libdirectfb_core_fbdev.la
 else
 FBDEV_DIR =
-FBDEV_LIB =
 endif
 
 SUBDIRS = fusion $(FBDEV_DIR) $(SDL_DIR)
@@ -61,9 +57,7 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 
 
 libdirectfb_core_la_LIBADD = \
-	fusion/libdirectfb_core_fusion.la \
-	$(FBDEV_LIB) \
-	$(SDL_LIB)
+	fusion/libdirectfb_core_fusion.la
 
 libdirectfb_core_la_SOURCES = \
 	clipboard.c		\

@@ -19,8 +19,15 @@ internalinclude_HEADERS = \
 	vt.h
 
 
-noinst_LTLIBRARIES = libdirectfb_core_fbdev.la
+systemsdir = $(MODULEDIR)/systems
 
-libdirectfb_core_fbdev_la_SOURCES = \
-	fbdev.c			\
+systems_LTLIBRARIES = libdirectfb_fbdev.la
+
+libdirectfb_fbdev_la_LDFLAGS = \
+	-export-dynamic	\
+	-avoid-version	\
+	$(DFB_LDFLAGS)
+
+libdirectfb_fbdev_la_SOURCES = \
+	fbdev.c		\
 	vt.c

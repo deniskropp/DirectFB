@@ -3,7 +3,7 @@ General (roughly sorted by priority)
 
 Modularize pixel formats (eventually with dynamic extension support).
 
-Change already modularized systems to be modules (currently always builtin).
+Fix inter-module-exported symbols, e.g. keyboard -> fbdev(dfb_vt).
 
 Finish VT switching (already working well after 0.9.18 release)
  - Save/redirect video only buffers.
