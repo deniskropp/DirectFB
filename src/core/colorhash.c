@@ -201,14 +201,20 @@ dfb_colorhash_lookup( CorePalette *palette,
           unsigned int i, min_index = 0;
 
           for (i = 0; i < palette->num_entries; i++) {
+               int diff;
+                
+               if (a) {
+                    int r_diff = (int) entries[i].r - (int) r;
+                    int g_diff = (int) entries[i].g - (int) g;
+                    int b_diff = (int) entries[i].b - (int) b;
+                    int a_diff = (int) entries[i].a - (int) a;
+                    
+                    diff = (r_diff * r_diff + g_diff * g_diff + 
+                            b_diff * b_diff + ((a_diff * a_diff) >> 6));
+               }
+               else
+                    diff = entries[i].a;
 
-               int r_diff = (int) entries[i].r - (int) r;
-               int g_diff = (int) entries[i].g - (int) g;
-               int b_diff = (int) entries[i].b - (int) b;
-               int a_diff = (int) entries[i].a - (int) a;
-
-               int diff = (r_diff * r_diff + g_diff * g_diff + 
-                           b_diff * b_diff + ((a_diff * a_diff) >> 6));
 
                if (i == 0 || diff < min_diff) {
                     min_diff = diff;
