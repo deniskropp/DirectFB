@@ -1,3 +1,984 @@
+2003-10-23   neo	14:12	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/directfb-csource.c (1.18) (+10 -10)
+	
+	minor code formatting changes
+	
+2003-10-22   andi	09:01	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	mkchlog (1.4) (+1 -0)
+	
+	added Andreas Robinson <andro134 at student.liu.se>
+	
+2003-10-21   andros	23:24	
+
+	Files:	gfxdrivers/cle266/changelog.txt (1.2) (+24 -0)
+	
+	Updated changelog for v0.3.0
+	
+2003-10-21   andi	15:30	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_hw.h (1.3) (+1 -1)
+		gfxdrivers/cle266/unichrome.h (1.8) (+1 -0)
+		gfxdrivers/cle266/unichrome.c (1.12) (+1 -1)
+		gfxdrivers/cle266/uc_state.c (1.8) (+20 -19)
+		gfxdrivers/cle266/uc_hwset.c (1.6) (+9 -1)
+	
+	- version number = 0.3
+	- imrovements to state handling
+	- workaround for font rendering in some applications
+	
+2003-10-21   andi	13:56	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_hw.h (1.2) (+1 -1)
+		gfxdrivers/cle266/unichrome.h (1.7) (+1 -0)
+		gfxdrivers/cle266/uc_state.c (1.7) (+5 -6)
+		gfxdrivers/cle266/uc_hwset.c (1.5) (+13 -2)
+	
+	another state handling fix.
+	
+2003-10-21   dok	13:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.6) (+2 -2)
+	
+	COMPILE WITH GCC 2.95!!!
+	
+2003-10-20   dok	20:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.10) (+2 -2)
+	
+	Compile with gcc 2.95.
+	
+2003-10-20   dok	13:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/Makefile.am (1.16) (+2 -1)
+		src/windows/idirectfbwindow.c (1.69) (+0 -2)
+	
+	Added missing ranlib call.
+	
+2003-10-19   andros	22:49	
+
+	Files:	gfxdrivers/cle266/unichrome.c (1.11) (+36 -26)
+	
+	Added AfterSetVar() function. May help with VIA-drivers crash bug.
+	
+2003-10-19   andros	22:47	
+
+	Files:	gfxdrivers/cle266/uc_accel.h (1.2) (+2 -0)
+	
+	Fixed some compiler warnings.
+	
+2003-10-19   andros	22:44	
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.9) (+3 -1)
+	
+	Fixed some compiler warnings.
+	
+2003-10-19   andros	22:39	
+
+	Files:	gfxdrivers/cle266/uc_fifo.c (1.2) (+6 -4)
+	
+	Print debug msg before writing to hardware register.
+	
+2003-10-18   andros	11:51	
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.8) (+15 -8)
+		gfxdrivers/cle266/unichrome.c (1.10) (+38 -21)
+	
+	Made the driver use EmitCommands().
+	
+2003-10-18   andros	11:50	
+
+	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.5) (+0 -2)
+	
+	Removed an unused variable.
+	
+2003-10-17   dok	16:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.86) (+3 -2)
+	
+	Fixed warnings.
+	
+2003-10-17   dok	16:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.127) (+4 -0)
+		src/gfx/clip.h (1.6) (+13 -2)
+		src/gfx/clip.c (1.7) (+0 -14)
+		src/core/gfxcard.h (1.54) (+4 -0)
+	
+	Added graphics driver function EmitCommands().
+	
+	It's called when a state is released. Drivers can flush or emit any kind of
+	command buffer. This is an advantage over flushing after each command,
+	especially for dfb_gfxcard_draw_string() and dfb_gfxcard_fill_triangle() with
+	semi acceleration.
+	
+	Made dfb_clip_blit_precheck() static inline.
+	
+2003-10-17   dok	05:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/fusion-full-linux-2.4.21.patch.bz2 (1.7) (+64 -64)
+		patches/fusion-full-linux-2.6.0-test7.patch.bz2 (1.2) (+66 -52)
+		patches/fusion-full-linux-2.4.22.patch.bz2 (1.2) (+70 -55)
+	
+	Updated, too.
+	
+2003-10-17   dok	05:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.18) (+21 -0)
+	
+	Added getpid() benchmark as a reference value for system calls.
+	
+2003-10-15   dok	21:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbsurface_window.c (1.35) (+11 -3)
+	
+	Added error checking to IDirectFBSurface_Window_Construct().
+	
+2003-10-15   dok	21:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.17) (+85 -56)
+	
+	- sync/sleep before each test
+	- use simple version for mutex/skirmish with one thread
+	- added recursive mutex benchmark
+	- added reactor_attach/detach_global() benchmark
+	
+2003-10-15   dok	17:01	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.85) (+6 -5)
+	
+	Use dfb_surface_data_offset() in dfb_surface_dump() to support DSCAPS_SEPARATED.
+	
+2003-10-15   dok	16:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.h (1.46) (+26 -0)
+	
+	Added dfb_surface_data_offset() which calculates the data pointer for a
+	given coordinate (x/y) based on the pointer and pitch passed to it.
+	
+	It also handles DSCAPS_SEPARATED depending on the surface which is passed, too.
+	
+2003-10-14   dok	07:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/Makefile.am (1.37) (+4 -3)
+		patches/fusion-full-linux-2.6.0-test7.patch.bz2 (1.1) ( )
+		patches/fusion-full-linux-2.6.0-test1.patch.bz2 (1.2) (+0 -0)
+		patches/fusion-full-linux-2.4.22.patch.bz2 (1.1) ( )
+		patches/fusion-full-linux-2.4.21.patch.bz2 (1.6) (+63 -51)
+		patches/fusion-full-linux-2.4.20.patch.bz2 (1.12) (+0 -0)
+		patches/README.fusion (1.6) (+1 -1)
+	
+	Updated.
+	
+2003-10-13   andi	17:15	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_hwset.c (1.4) (+10 -0)
+		gfxdrivers/cle266/unichrome.h (1.6) (+4 -0)
+		gfxdrivers/cle266/uc_state.c (1.6) (+7 -6)
+	
+	fix state handling
+	
+2003-10-13   dok	04:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.41) (+0 -1)
+		src/core/gfxcard.c (1.126) (+18 -3)
+	
+	Don't attach the font state to the destination to avoid increasing its
+	reference count until the font is destroyed or used on another surface.
+	
+	Lock original state, too.
+	
+2003-10-11   andros	11:22	
+
+	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.4) (+2 -0)
+		gfxdrivers/cle266/unichrome.c (1.9) (+1 -1)
+	
+	Increased pixelpitch alignment from 16 to 32 to overcome a limitation in
+	the video overlay hardware.
+	
+2003-10-10   dok	19:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfacemanager.c (1.56) (+4 -3)
+	
+	Higher video priority buffers always kick out lower priority buffers.
+	
+2003-10-10   dok	19:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.21) (+25 -7)
+	
+	Indicate locked buffers.
+	
+2003-10-10   andros	16:11	
+
+	Files:	gfxdrivers/cle266/cle266vgaio.c (1.4) (+1 -1)
+		gfxdrivers/cle266/unichrome.c (1.8) (+5 -5)
+	
+	viafb problem workaround rollback - it worked once, but not twice. :-/
+	
+2003-10-10   andros	15:26	
+
+	Files:	gfxdrivers/cle266/cle266vgaio.c (1.3) (+6 -9)
+		gfxdrivers/cle266/unichrome.h (1.5) (+3 -0)
+		gfxdrivers/cle266/unichrome.c (1.7) (+12 -1)
+		gfxdrivers/cle266/mmio.h (1.2) (+4 -0)
+	
+	Worked around the problem which hangs the computer hard if e.g viafb is installed.
+	I don't know why VIA's own drivers don't need the same fix ...
+	
+2003-10-09   andros	17:17	
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.7) (+4 -9)
+	
+	Made DSBLIT_COLORIZE and DSBLIT_BLEND_COLORALPHA work in df_neo and df_dok.
+	
+2003-10-09   dok	14:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.20) (+2 -2)
+	
+	Small fix.
+	
+2003-10-09   dok	13:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.19) (+20 -14)
+	
+	Improved output.
+	
+2003-10-09   dok	13:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.18) (+3 -1)
+	
+	Show window id.
+	
+2003-10-09   dok	12:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.17) (+23 -6)
+	
+	Print "DESTROYED" if window is destroyed explicitly but object is still alive.
+	
+	Show reference ids for further investigation via /proc/fusion.
+	
+	Added table header to surface list.
+	
+2003-10-09   dok	12:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.175) (+5 -4)
+	
+	Don't remove the window from the stack in dfb_window_destroy(),
+	but in the window destructor (object finalizer) after remaining
+	references went off.
+	
+	This way dfbdump can show (not fully) destroyed windows.
+	
+2003-10-09   dok	02:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.16) (+3 -0)
+	
+	Print "GHOST" for ghost windows.
+	
+2003-10-09   dok	02:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/windows/idirectfbwindow.c (1.68) (+2 -6)
+	
+	Silently mask out DWOP_ALPHACHANNEL instead of failing in SetOption()
+	if it's not supported.
+	
+2003-10-08   andi	17:08	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.6) (+3 -3)
+	
+	fix off by one bug for blended filled rectangles
+	
+2003-10-08   andi	16:50	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_hwset.c (1.3) (+2 -2)
+		gfxdrivers/cle266/unichrome.c (1.6) (+2 -2)
+		gfxdrivers/cle266/uc_state.c (1.5) (+2 -2)
+	
+	- correct pixelpitch and byteoffset alignment for surfaces
+	- fix off by one error for 3d clipping
+	- reenable 3d blitting
+	
+2003-10-08   andi	16:13	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.5) (+5 -5)
+	
+	fix off by one bug in uc_stretch_blit()
+	
+2003-10-08   andros	15:23	
+
+	Files:	gfxdrivers/cle266/uc_hwset.c (1.2) (+16 -6)
+	
+	Partial fix for 3D-blitting size problem. Blitting arbitrary (non 2^n) sizes
+	works much better now, but there is still a one-pixel-off error in df_window.
+	
+2003-10-08   andros	14:00	
+
+	Files:	gfxdrivers/cle266/uc_state.c (1.4) (+4 -1)
+	
+	Fixed LUT8 blit bug. The driver erroneously tried to do a LUT8->LUT8 stretch
+	blit, which isn't supported.
+	
+2003-10-07   andi	16:54	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_state.c (1.3) (+3 -18)
+	
+	remove check for VIDEOONLY surfaces, disable blit_3d stuff because it
+	is broken.
+	
+2003-10-07   syrjala	12:14	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/fbdev/fbdev.c (1.78) (+6 -4)
+	
+	Added DSFLIP_ONSYNC support to fbdev layer.
+	
+2003-10-07   andi	11:17	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/gfx/generic/generic.c (1.129) (+6 -3)
+	
+	fixed optimized 8bit colorkeying for little endian. disable it on x86
+	since it is much slower. have to test on my little endian arm machine.
+	
+2003-10-07   andi	10:09	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/unichrome.c (1.5) (+0 -3)
+	
+	removed my stupid debug message
+	
+2003-10-07   dok	10:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.77) (+0 -3)
+	
+	Removed evil artifact.
+	
+2003-10-07   andi	09:52	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/gfx/generic/generic.c (1.128) (+1 -1)
+	
+	enable dok's 8 bit colorkeying optimization for all big endian architecures
+	
+	PowerBook G3 400Mhz
+	
+	df_dok --dfb:pixelformat=LUT8 --blit-colorkeyed
+	
+	before: 13.16
+	after 42.70(!)
+	
+2003-10-07   dok	07:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.126) (+3 -1)
+	
+	Added null pointer check.
+	
+2003-10-07   dok	07:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.76) (+1 -1)
+	
+	Fixed segfault.
+	
+2003-10-07   dok	07:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.127) (+185 -15)
+	
+	Wrote two complex 8 bit color keying implementations optimized for alignment,
+	currently only enabled for MIPS Big Endian for testing.
+	
+	1) (sx & 3) != (dx & 3) ->  30% boost
+	2) (sx & 3) == (dx & 3) -> 120% boost
+	
+	Should be tested on other platforms. Little Endian is not supported by 1), yet.
+	
+2003-10-06   dok	21:45	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.190) (+5 -5)
+	
+	Start with 0x00000001 in DFBDisplayLayerBufferMode which can be used as flags.
+	
+	Sorry for binary incompatibility.
+	
+2003-10-06   dok	19:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/gfx_util.c (1.39) (+6 -6)
+	
+	Fixed 'for' condition.
+	
+2003-10-06   dok	19:18	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.44) (+2 -5)
+		src/misc/gfx_util.h (1.14) (+4 -3)
+		src/misc/gfx_util.c (1.38) (+100 -119)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.41) (+2 -6)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_mpeg2.c (1.6) (+2 -6)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.34) (+6 -5)
+	
+	Clean up dfb_scale_linear_32() and dfb_copy_buffer_32() parameters.
+	
+	Destination offset is now handled by these functions,
+	fixing rendering to field separated surfaces with an offset != 0, 0.
+	
+2003-10-06   andi	17:53	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/cle266vgaio.c (1.2) (+4 -1)
+		gfxdrivers/cle266/unichrome.h (1.4) (+4 -5)
+		gfxdrivers/cle266/unichrome.c (1.4) (+23 -17)
+	
+	fixes for multi-application support
+	
+	- move vq stuff from driver_data to device_data
+	- allow cle266vgaio device to be opened more than once
+	
+2003-10-06   dok	09:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.93) (+18 -35)
+	
+	Added some keys to id_to_symbol().
+	
+2003-10-06   dok	09:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/gfx_util.c (1.37) (+1 -6)
+	
+	Minor simplification.
+	
+2003-10-06   dok	09:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb_keyboard.h (1.24) (+1 -0)
+	
+	Added DFB_KEY_INDEX macro.
+	
+2003-10-05   andros	11:59	
+
+	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.3) (+17 -17)
+	
+	YUV planar mode bugfix. U and V planes were not set up correctly and did not look right.
+	
+2003-10-05   andros	11:33	
+
+	Files:	gfxdrivers/cle266/uc_overlay.c (1.2) (+10 -0)
+	
+	Added WaitVSync() to video overlay.
+	
+2003-10-04   dok	19:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/Makefile.am (1.36) (+1 -2)
+		patches/vmwarefb-0.7.0-linux-2.4.22.patch.bz2 (1.1) ( )
+		patches/vmwarefb-0.6.0-linux-2.4.20.patch.bz2 (1.2) (+0 -0)
+		patches/vmwarefb-0.6.0-linux-2.4.18.patch.bz2 (1.2) (+0 -0)
+	
+	New version for VMware Workstation 4.0, supports switching of bits per pixel
+	at run time, can disable acceleration at run time. Also fixed palette mode.
+	
+2003-10-02   andi	17:54	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.4) (+1 -1)
+	
+	fix FillTriangle() for non 32bit modes
+	
+2003-10-02   andi	16:44	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.3) (+11 -11)
+		gfxdrivers/cle266/unichrome.h (1.3) (+1 -0)
+		gfxdrivers/cle266/uc_state.c (1.2) (+3 -0)
+	
+	bugfix for blended FillRectangle(), DrawRectangle() and DrawLine()
+	in non 32-bit modes.
+	
+	(while performing 3d operations, the source color is always 32 bit ARGB,
+	not in the destinations's pixelformat)
+	
+2003-10-02   andi	15:42	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/Readme.txt (1.2) (+4 -3)
+		gfxdrivers/cle266/unichrome.h (1.2) (+1 -3)
+		gfxdrivers/cle266/unichrome.c (1.3) (+15 -37)
+	
+	- removed surface allocation for vc buffer,
+	  use dfb_gfxcard_reserve_memory() instead.
+	- added note about vram command line boot parameter
+	- removed bug note about wrong driver announcement
+	
+2003-10-01   syrjala	20:41	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	patches/matroxfb-g400-clock-2.4.22.patch.bz2 (1.2) (+8 -7)
+	
+	Fix for CONFIG_FB_MATROX_MULTIHEAD.
+	
+2003-10-01   syrjala	17:32	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	patches/matroxfb-g400-clock-2.4.22.patch.bz2 (1.1) ( )
+	
+	Patch to set the clocks on a G400 to proper values.
+	
+2003-10-01   dok	12:28	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.125) (+1 -1)
+	
+	Commented out assertion.
+	
+2003-10-01   dok	12:03	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/colorhash.c (1.8) (+1 -1)
+	
+	Fixed dfb_colorhash_invalidate() which did not invalidate the first entry.
+	
+2003-10-01   dok	12:02	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.124) (+0 -8)
+	
+	Removed debugging artifacts.
+	
+2003-10-01   dok	12:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/window_display.c (1.1) ( )
+	
+	Forgot to add that.
+	
+2003-10-01   dok	11:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/Makefile.am (1.21) (+0 -1)
+	
+	Removed bogus flag.
+	
+2003-10-01   dok	11:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.22) (+2 -0)
+		tools/dfblayer.c (1.4) (+6 -0)
+		src/windows/idirectfbwindow.c (1.67) (+2 -2)
+		src/misc/conf.c (1.67) (+5 -1)
+		src/display/idirectfbsurface_window.c (1.34) (+1 -1)
+		src/display/idirectfbsurface_layer.c (1.33) (+17 -6)
+		src/core/sdl/primary.c (1.20) (+9 -4)
+		src/core/fusion/shmalloc.h (1.16) (+2 -0)
+		src/core/fbdev/fbdev.c (1.75) (+19 -4)
+		src/core/windows.h (1.48) (+78 -1)
+		src/core/windows.c (1.174) (+276 -729)
+		src/core/surfaces.h (1.45) (+2 -1)
+		src/core/surfaces.c (1.84) (+2 -1)
+		src/core/layers.h (1.53) (+40 -1)
+		src/core/layers.c (1.123) (+322 -111)
+		src/core/Makefile.am (1.26) (+2 -1)
+		include/directfb.h (1.189) (+5 -2)
+	
+	Added new display layer buffer mode DLBM_WINDOWS where the layer itself
+	has no surface, but the hardware is aware of each window and displays the
+	window stack.
+	
+	Added DLCAPS_WINDOWS and three display layer driver calls to add, update
+	and remove windows.
+	
+2003-10-01   dok	11:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/gfx_util.c (1.36) (+1 -1)
+	
+	Pass real alpha value to conversion routine.
+	
+2003-10-01   dok	11:20	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/ati128/ati128.c (1.25) (+2 -1)
+		src/core/graphics_driver.h (1.6) (+2 -1)
+		src/core/gfxcard.h (1.53) (+3 -2)
+		src/core/gfxcard.c (1.125) (+11 -10)
+		gfxdrivers/tdfx/tdfx.c (1.24) (+2 -1)
+		gfxdrivers/savage/savage.c (1.9) (+2 -1)
+		gfxdrivers/radeon/radeon.c (1.4) (+2 -1)
+		gfxdrivers/nvidia/nvidia.c (1.19) (+2 -1)
+		gfxdrivers/nsc/nsc.c (1.6) (+5 -3)
+		gfxdrivers/neomagic/neomagic.c (1.16) (+2 -1)
+		gfxdrivers/matrox/matrox.c (1.55) (+2 -1)
+		gfxdrivers/i810/i810.c (1.5) (+2 -1)
+		gfxdrivers/cyber5k/cyber5k.c (1.7) (+2 -1)
+		gfxdrivers/cle266/unichrome.c (1.2) (+2 -1)
+	
+	Added "void *device_data" to InitDriver().
+	
+	Drivers can store a pointer to the shared device data in the local driver data,
+	e.g. to access the device data in display layer functions which only get the
+	driver data passed.
+	
+2003-09-30   dok	14:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/gfx_util.c (1.35) (+5 -5)
+	
+	Don't blend pixels with black when loading images with alpha to non-alpha formats.
+	
+2003-09-29   dok	14:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.176) (+1 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.66) (+6 -1)
+	
+	Fix for v4l2.
+	
+2003-09-29   dok	13:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.76) (+1 -0)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.65) (+497 -10)
+		configure.in (1.175) (+36 -1)
+	
+	Video4Linux 2 support by Michael Hunold <hunold@convergence.de>, thanks!
+	
+2003-09-25   dok	06:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.117) (+3 -1)
+	
+	Creating a fullscreen primary with a pixel format set in the description
+	took the pixel format specified via "pixelformat=" option if the current
+	pixel format already was the pixel format set in the description.
+	
+	Make sure the "primary-layer=" option used for slaves enables the display
+	layer before usage.
+	
+2003-09-25   dok	05:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.174) (+2 -2)
+		gfxdrivers/cle266/uc_ovl_hwset.c (1.2) (+1 -1)
+	
+	Include <sys/io.h>.
+	
+	Build CLE266 driver on platforms with sys/io.h only.
+	
+2003-09-25   dok	05:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.2) (+13 -13)
+	
+	Compile fixes for 2.95
+	
+2003-09-25   dok	04:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	AUTHORS (1.13) (+2 -1)
+		gfxdrivers/cle266/vidregs.h (1.1) ( )
+		gfxdrivers/cle266/unichrome.h (1.1) ( )
+		gfxdrivers/cle266/unichrome.c (1.1) ( )
+		gfxdrivers/cle266/uc_state.h (1.1) ( )
+		gfxdrivers/cle266/uc_state.c (1.1) ( )
+		gfxdrivers/cle266/uc_ovl_hwset.c (1.1) ( )
+		gfxdrivers/cle266/uc_ovl_hwmap.c (1.1) ( )
+		gfxdrivers/cle266/uc_overlay.h (1.1) ( )
+		gfxdrivers/cle266/uc_overlay.c (1.1) ( )
+		gfxdrivers/cle266/uc_hwset.c (1.1) ( )
+		gfxdrivers/cle266/uc_hwmap.c (1.1) ( )
+		gfxdrivers/cle266/uc_hw.h (1.1) ( )
+		gfxdrivers/cle266/uc_fifo.h (1.1) ( )
+		gfxdrivers/cle266/uc_fifo.c (1.1) ( )
+		gfxdrivers/cle266/uc_accel.h (1.1) ( )
+		gfxdrivers/cle266/uc_accel.c (1.1) ( )
+		gfxdrivers/cle266/rops.h (1.1) ( )
+		gfxdrivers/cle266/regs3d.h (1.1) ( )
+		gfxdrivers/cle266/regs2d.h (1.1) ( )
+		gfxdrivers/cle266/mmio.h (1.1) ( )
+		gfxdrivers/cle266/hwdoc.txt (1.1) ( )
+		gfxdrivers/cle266/cle266vgaio.patch (1.1) ( )
+		gfxdrivers/cle266/cle266vgaio.mk (1.1) ( )
+		gfxdrivers/cle266/cle266vgaio.c (1.1) ( )
+		gfxdrivers/cle266/changelog.txt (1.1) ( )
+		gfxdrivers/cle266/Readme.txt (1.1) ( )
+		gfxdrivers/cle266/Patching.txt (1.1) ( )
+		gfxdrivers/cle266/Makefile.am (1.1) ( )
+		gfxdrivers/cle266/Installation.txt (1.1) ( )
+		gfxdrivers/cle266/.cvsignore (1.1) ( )
+		gfxdrivers/Makefile.am (1.11) (+7 -0)
+		configure.in (1.173) (+25 -7)
+		README (1.75) (+1 -0)
+	
+	CLE266 driver by Andreas Robinson <andro134 at student.liu.se>, thank you!
+	
+2003-09-23   dok	20:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/fusion.c (1.43) (+2 -2)
+	
+	Added "LL" suffix to constants of multiplication to preserve long long type.
+	
+	Otherwise the session uptime turns negative after about 25 days,
+	e.g. using dfbdump to display it.
+	
+	Yes, my working session is up for "29 days, 10:02:37" now ;)
+	
+	My secondary session (dedicated to XDirectFB + streamtuner + xmms)
+	is up for "36 days, 05:48:40" !!!
+	
+2003-09-23   dok	14:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.40) (+1 -1)
+	
+	Don't set alpha value of color key palette index to 0xff.
+	
+2003-09-23   dok	13:11	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.126) (+8 -9)
+	
+	Simplified Bop_a8_set_alphapixel_Aop_lut8 for monochrome fonts.
+	
+2003-09-22   dok	20:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/colorhash.c (1.7) (+13 -7)
+	
+	Ignore r, g and b difference if alpha is zero.
+	
+2003-09-19   syrjala	01:17	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/i810/i810_overlay.c (1.5) (+1 -1)
+	
+	PIXEL_RGB24 is gone, use PIXEL_RGB32.
+	
+2003-09-12   dok	21:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.124) (+14 -8)
+		src/core/fusion/fusion.h (1.9) (+5 -0)
+		src/core/fusion/fusion.c (1.42) (+12 -0)
+	
+	Remember and compare the Fusion ID of the last state's owner.
+	
+	Fixes cases where state pointers equal but don't belong to the
+	same application.
+	
+	I wondered for a long time why two instances of e.g. df_andi
+	running windowed mixed up their blits.
+	
+2003-09-10   dok	08:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.15) (+44 -14)
+	
+	Show actually allocated bytes for each surface (video + system).
+	
+2003-09-10   dok	02:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/colorhash.c (1.6) (+1 -1)
+	
+	Less weight for alpha.
+	
+2003-09-09   dok	18:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.74) (+49 -39)
+	
+	Multi app related stuff.
+	
+2003-09-05   dok	12:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/vt.c (1.20) (+6 -1)
+	
+	Restore KD_GRAPHICS after switching back to DirectFB.
+	
+2003-09-01   syrjala	11:44	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox_crtc2.c (1.17) (+4 -4)
+	
+	Enable dithering and filtering for RGB modes instead of YUV modes.
+	
+2003-08-28   dok	17:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.33) (+3 -2)
+	
+	Use the generic conversion routines for surfaces with DSCAPS_SEPARATED.
+	
+2003-08-27   dok	17:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.122) (+3 -0)
+	
+	Call driver's SetOpacity() only if the opacity changed.
+	
+2003-08-27   dok	17:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.121) (+4 -0)
+	
+	Call driver's SetScreenLocation() only if the location changed.
+	
+2003-08-27   dok	17:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.173) (+13 -12)
+		src/windows/idirectfbwindow.h (1.6) (+3 -1)
+		src/windows/idirectfbwindow.c (1.66) (+8 -12)
+		src/display/idirectfbdisplaylayer.c (1.56) (+2 -2)
+	
+	Don't call dfb_window_init() for each IDirectFBWindow_Construct(),
+	but only for the first time.
+	
+2003-08-27   dok	16:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.172) (+1 -1)
+	
+	Commented out assumption.
+	
+2003-08-26   dok	16:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.64) (+6 -0)
+	
+	Added some more exit points to the grabbing thread.
+	
+2003-08-26   dok	16:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.54) (+0 -1)
+	
+	Don't support A8 destination on a G200. It doesn't support it as a source, too.
+	
+2003-08-25   dok	17:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.40) (+7 -3)
+	
+	Align glyph offsets to a multiple of four.
+	
+2003-08-25   dok	17:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.125) (+4 -4)
+	
+	10% DrawString() boost by changing __u16 to __u32.
+	
+2003-08-25   dok	17:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.39) (+34 -0)
+	
+	Embrace FreeType calls with a mutex.
+	
+2003-08-25   dok	16:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/palette.c (1.20) (+2 -0)
+		src/core/windows.c (1.171) (+14 -4)
+	
+	Lookup color index for layer's background color.
+	
+2003-08-25   dok	15:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.43) (+1 -2)
+		src/misc/gfx_util.h (1.13) (+2 -3)
+		src/misc/gfx_util.c (1.34) (+61 -47)
+		src/core/windows.c (1.170) (+0 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.39) (+1 -2)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_mpeg2.c (1.5) (+1 -2)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.32) (+1 -2)
+	
+	Support DSCAPS_SEPARATED in dfb_copy_buffer_32(), too.
+	
+2003-08-25   dok	14:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.42) (+2 -1)
+		src/misc/gfx_util.h (1.12) (+2 -1)
+		src/misc/gfx_util.c (1.33) (+11 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.38) (+2 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_mpeg2.c (1.4) (+2 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.31) (+2 -1)
+	
+	Support DSCAPS_SEPARATED in dfb_scale_linear_32().
+	
+2003-08-21   dok	17:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.169) (+1 -1)
+	
+	Don't optimize repaints for restacking.
+	
+2003-08-21   dok	15:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.92) (+10 -10)
+	
+	Translate DIKI_KP_0-9 to DIKS_0-9 instead of DIKS_HOME etc.
+	
+2003-08-20   dok	07:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.37) (+112 -9)
+	
+	Added support for color keyed PNGs.
+	
+	Instead of converting an 8 bit palette PNG (with tRNS) to ARGB,
+	convert it to RGB and generate a color key.
+	
+2003-08-20   dok	00:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.168) (+107 -24)
+	
+	Applied a great patch from Maurizio Monge <monge@sns.it>.
+	
+	When repainting the stack due to a window update, e.g. a Flip(),
+	skip those regions which are hidden by opaque windows above the window
+	that changed.
+	
+	This increases performance and reduces artifacts.
+	
+	Example: Terminal with tons of debug messages under opaque window caused
+	the opaque window to be updated, too, within the intersection of both windows.
+	
+	Another example: Run a fullscreen app in windowed mode, e.g. df_andi, and
+	see how frame rate increases as more of df_andi is hidden by opaque windows ;)
+	
+2003-08-19   dok	18:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.124) (+2 -0)
+	
+	Fix warning for builds without MMX.
+	
+2003-08-19   dok	10:45	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.83) (+9 -0)
+	
+	Set SBF_WRITTEN if hardware writes, too.
+	
+	Fixes garbage after VT switching (in case the surface has never been written
+	to in system memory and therefor was not properly restored).
+	
+2003-08-19   dok	01:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbsurface.c (1.76) (+0 -1)
+	
+	Fixed warning.
+	
+2003-08-18   dok	20:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/windows/idirectfbwindow.c (1.65) (+0 -4)
+	
+	Don't automatically flip in SetOptions().
+	
+2003-08-18   dok	17:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.188) (+22 -0)
+		src/display/idirectfbsurface.c (1.75) (+30 -0)
+	
+	Added IDirectFBSurface::Dump(), e.g. for debugging.
+	
+2003-08-18   syrjala	14:35	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/i810/i810.c (1.4) (+2 -1)
+	
+	PIXEL_RGB24 is gone, use PIXEL_RGB32. memset() needs string.h.
+	
+2003-08-18   dok	12:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/Makefile.am (1.11) (+1 -1)
+	
+	Added "-lm" to libmpeg3 module.
+	
+2003-08-17   andi	09:29	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/core/sdl/Makefile.am (1.8) (+2 -0)
+	
+	use -module flag, which causes libtool to create mach-o "bundles" on darwin/osx
+	instead of dynamic libraries which cannot be dlopen()ed
+	
+2003-08-15   dok	18:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.21) (+1 -0)
+	
+	non-debug apps in a debug session break shared memory assertions
+	
+2003-08-15   dok	15:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	NEWS (1.52) (+1 -0)
+	
+	Updated.
+	
+2003-08-15   dok	15:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/sdl/sdlinput.c (1.10) (+2 -6)
+	
+	Enable key repeat.
+	
+2003-08-15   dok	15:11	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	NEWS (1.51) (+1 -0)
+	
+	Added the obligatory "other bug fixes" line ;)
+	
+2003-08-15   dok	13:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.46) (+394 -0)
+		NEWS (1.50) (+28 -0)
+	
+	Updated.
+	
 2003-08-15   dok	13:04	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	AUTHORS (1.12) (+9 -8)

@@ -1,6 +1,8 @@
 0.9.20
 ------
 
+- Added CLE266 driver by Andreas Robinson <andro134 at student.liu.se>, thanks!
+  The driver supports alpha blending, color keying, video overlay etc.
 - Added WM97XX Touchscreen driver,
   thanks to Liam Girdwood <liam.girdwood@wolfsonmicro.com>!
 - Added DWOP_SHAPED which enables shaped input handling, windows with an alpha
@@ -8,24 +10,37 @@
   transparent. Thanks to Monge Maurizio <monge@sns.it>!
 - Added IDirectFBEventBuffer::WakeUp() causing any WaitForEvent() or
   WaitForEventWithTimeout() to return with DFB_INTERRUPTED.
+- Added new display layer buffer mode DLBM_WINDOWS where the layer itself
+  has no surface, but the hardware is aware of each window and displays
+  the window stack. Added DLCAPS_WINDOWS, too.
 - Added <Meta>-<Print> hot key to make a screenshot of the focused window
   including its alpha channel if present. Creates a ppm (RGB) and a pgm (alpha).
   Use "pnmtopng -alpha foo.pgm foo.ppm > foo.png" to combine them.
+- Added IDirectFBSurface::Dump() similar to <Meta>-<Print>, see above.
 - Added "memcpy = <method>" option to save a lot of startup time.
   "time dfbinfo" went from 0.080 secs to < 0.010 secs on my machine.
 - New environment variable "DFBARGS" is now parsed like the "--dfb:" parameter.
 - Added Fusion Kernel Device patch for Linux 2.6.
+- Added a patch to set proper clocks on a G400 (great performance boost).
+- Updated vmwarefb for VMware Workstation 4.0 with resolution and depth switch
+  at run time, can disable acceleration at run time. Also fixed palette mode.
+- Video4Linux 2 support by Michael Hunold <hunold@convergence.de>, thanks!
 - Send valid button events in MuTouch driver,
   thanks to Tim Wright <tim.wright@iosystems.co.uk>.
+- Added support for color keyed PNGs (palette converted to RGB with color key).
 - Enable key repeat in SDL input driver.
 - Fixed segfault in slave processes when no graphics driver is loaded.
 - Signal handler now displays the faulting address in case of SIGSEGV.
 - Added configure option "--enable-trace" activating stack trace dumps in the
   signal handler. Uses "-finstrument-functions" and therefor only includes
   functions of DirectFB unless you compile your code with that option, too.
+- Optimized window stack updates by Maurizio Monge <monge@sns.it>.
 - Optimized auto-video surface handling, speeding up Create/Clear a lot.
+- Software driver optimizations for LUT8 (e.g. colorkeyed blitting).
 - Switching single/multi between builds doesn't require "make clean" anymore.
-- Enhanced stability and fixed some bugs.
+- Improved output of dfbdump (multi app resource monitor).
+- Important bug fix in state handling (multi app only).
+- Enhanced stability and bug fixes.
 
 
 0.9.19
