@@ -43,6 +43,8 @@ extern "C"
      #define fusion_property_destroy  skirmish_destroy
 #else
 
+#include <pthread.h>
+
      typedef enum {
           FUSION_PROPERTY_AVAILABLE,
           FUSION_PROPERTY_LEASED,
