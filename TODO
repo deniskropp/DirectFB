@@ -1,3 +1,20 @@
+Display layer destination color keying.
+
+Allow software driven field switches
+(functionality exists but not yet exported to apps).
+
+Window color keying.
+
+Changing window capabilities after creation.
+
+Window options like focusable, moveable, resizeable.
+
+Enable/disable events at a window.
+
+Add cooperative levels to input devices and implement
+a grabbing mechanism for fullscreen apps running in
+windowed mode.
+
 Finish implementation of cooperative levels.
 
 Finish display layer core and driver API.
