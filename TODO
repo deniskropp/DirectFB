@@ -11,6 +11,8 @@ Add cooperative levels to input devices and implement
 a grabbing mechanism for fullscreen apps running in
 windowed mode.
 
+Virtual window/layer resolution with scrolling/panning.
+
 Finish implementation of cooperative levels.
 
 Finish display layer core and driver API.
