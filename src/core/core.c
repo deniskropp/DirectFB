@@ -156,8 +156,6 @@ dfb_core_ref()
      if (dfb_core && dfb_core->refs++)
           return DFB_OK;
 
-     dfb_sig_install_handlers();
-
      if (dfb_config->deinit_check)
           atexit( dfb_core_deinit_check );
 
@@ -433,6 +431,8 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
 
      DEBUGMSG( "DirectFB/Core: we are the master, initializing...\n" );
 
+     dfb_sig_install_handlers();
+     
      dfb_core->arena  = arena;
      dfb_core->master = true;
 
@@ -459,6 +459,10 @@ dfb_core_join( FusionArena *arena, void *ctx )
 
      DEBUGMSG( "DirectFB/Core: we are a slave, joining...\n" );
 
+     dfb_config->sighandler = false;
+
+     dfb_sig_install_handlers();
+     
      dfb_core->arena  = arena;
 
      INITCHECK( dfb_vt_join() );
