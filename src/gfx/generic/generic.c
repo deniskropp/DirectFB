@@ -229,7 +229,6 @@ static void Sop_8_to_Dop()
 
 static void Sop_16_to_Dop()
 {
-
      memmove( Dop, Sop, Dlength*2 );
 }
 
@@ -872,19 +871,63 @@ static void Sop_rgb15_to_Dacc()
 
 static void Sop_rgb16_to_Dacc()
 {
-     int          w = Dlength;
+     int       l, w = Dlength;
      Accumulator *D = Dacc;
      __u16       *S = (__u16*)Sop;
 
-     while (w--) {
-          __u16 spixel = *S++;
+     if (((long)S)&2) {
+          __u16 spixel = *S;
 
           D->a = 0xFF;
           D->r = (spixel & 0xF800) >> 8;
           D->g = (spixel & 0x07E0) >> 3;
           D->b = (spixel & 0x001F) << 3;
 
-          D++;
+          ++S;
+          ++D;
+          --w;
+     }
+     
+     l = w >> 1;
+     while (l) {
+          __u32 spixel2 = *((__u32*)S);
+
+#ifdef __BIG_ENDIAN__
+          D[0].a = 0xFF;
+          D[0].r = (spixel2 & 0xF8000000) >> 24;
+          D[0].g = (spixel2 & 0x07E00000) >> 19;
+          D[0].b = (spixel2 & 0x001F0000) >> 13;
+          
+          D[1].a = 0xFF;
+          D[1].r = (spixel2 & 0xF800) >> 8;
+          D[1].g = (spixel2 & 0x07E0) >> 3;
+          D[1].b = (spixel2 & 0x001F) << 3;
+#else
+          D[0].a = 0xFF;
+          D[0].r = (spixel2 & 0xF800) >> 8;
+          D[0].g = (spixel2 & 0x07E0) >> 3;
+          D[0].b = (spixel2 & 0x001F) << 3;
+
+          D[1].a = 0xFF;
+          D[1].r = (spixel2 & 0xF8000000) >> 24;
+          D[1].g = (spixel2 & 0x07E00000) >> 19;
+          D[1].b = (spixel2 & 0x001F0000) >> 13;
+#endif
+
+          S += 2;
+          D += 2;
+          w -= 2;
+
+          --l;
+     }
+
+     if (w) {
+          __u16 spixel = *S;
+
+          D->a = 0xFF;
+          D->r = (spixel & 0xF800) >> 8;
+          D->g = (spixel & 0x07E0) >> 3;
+          D->b = (spixel & 0x001F) << 3;
      }
 }
 
