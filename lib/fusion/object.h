@@ -178,6 +178,24 @@ prefix##_unlink( type **link )                                                 \
      *link = NULL;                                                             \
                                                                                \
      return fusion_ref_down( &((FusionObject*)object)->ref, true );            \
+}                                                                              \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_globalize( type *object )                                             \
+{                                                                              \
+     FusionResult ret;                                                         \
+                                                                               \
+     D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
+                                                                               \
+     ret = fusion_ref_up( &((FusionObject*)object)->ref, true );               \
+     if (ret)                                                                  \
+          return ret;                                                          \
+                                                                               \
+     ret = fusion_ref_down( &((FusionObject*)object)->ref, false );            \
+     if (ret)                                                                  \
+          fusion_ref_down( &((FusionObject*)object)->ref, true );              \
+                                                                               \
+     return ret;                                                               \
 }
 
 FUSION_OBJECT_METHODS( void, fusion_object );
