@@ -50,12 +50,22 @@ struct _FusionObject {
 };
 
 
-FusionObjectPool *fusion_object_pool_create( const char            *name,
-                                             int                    object_size,
-                                             int                    message_size,
-                                             FusionObjectDestructor destructor );
+typedef bool (*FusionObjectCallback)( FusionObjectPool *pool,
+                                      FusionObject     *object,
+                                      void             *ctx );
 
-FusionResult      fusion_object_pool_destroy( FusionObjectPool     *pool );
+
+FusionObjectPool *fusion_object_pool_create ( const char            *name,
+                                              int                    object_size,
+                                              int                    message_size,
+                                              FusionObjectDestructor destructor );
+
+FusionResult      fusion_object_pool_destroy( FusionObjectPool      *pool );
+
+
+FusionResult      fusion_object_pool_enum   ( FusionObjectPool      *pool,
+                                              FusionObjectCallback   callback,
+                                              void                  *ctx );
 
 
 FusionObject     *fusion_object_create  ( FusionObjectPool *pool );

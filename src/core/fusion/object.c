@@ -100,6 +100,32 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
      return FUSION_SUCCESS;
 }
 
+FusionResult
+fusion_object_pool_enum   ( FusionObjectPool      *pool,
+                            FusionObjectCallback   callback,
+                            void                  *ctx )
+{
+     FusionLink *l;
+
+     /* Lock the pool's object list. */
+     skirmish_prevail( &pool->lock );
+
+     l = pool->objects;
+     while (l) {
+          FusionObject *object = (FusionObject*) l;
+
+          if (!callback( pool, object, ctx ))
+               break;
+
+          l = l->next;
+     }
+
+     /* Unlock the pool's object list. */
+     skirmish_dismiss( &pool->lock );
+     
+     return FUSION_SUCCESS;
+}
+
 FusionObject *
 fusion_object_create( FusionObjectPool *pool )
 {
