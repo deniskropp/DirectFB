@@ -25,19 +25,22 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __SDL__PRIMARY_H__
-#define __SDL__PRIMARY_H__
+#ifndef __DFB__CORE__SCREEN_H__
+#define __DFB__CORE__SCREEN_H__
 
-#include <core/layers.h>
-#include <core/screens.h>
+#include <core/coretypes.h>
 
-extern ScreenFuncs       sdlPrimaryScreenFuncs;
-extern DisplayLayerFuncs sdlPrimaryLayerFuncs;
+DFBResult dfb_screen_get_info     ( CoreScreen           *screen,
+                                    DFBScreenID          *ret_id,
+                                    DFBScreenDescription *ret_desc );
 
-int dfb_sdl_call_handler( int   caller,
-                          int   call_arg,
-                          void *call_ptr,
-                          void *ctx );
+DFBResult dfb_screen_suspend      ( CoreScreen           *screen );
+DFBResult dfb_screen_resume       ( CoreScreen           *screen );
+
+DFBResult dfb_screen_set_powermode( CoreScreen           *screen,
+                                    DFBScreenPowerMode    mode );
+
+DFBResult dfb_screen_wait_vsync   ( CoreScreen           *screen );
 
 #endif
 

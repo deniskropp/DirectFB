@@ -72,7 +72,8 @@ system_get_info( CoreSystemInfo *info )
 static DFBResult
 system_initialize( CoreDFB *core, void **data )
 {
-     char *driver;
+     char       *driver;
+     CoreScreen *screen;
 
      DFB_ASSERT( dfb_sdl == NULL );
 
@@ -104,7 +105,9 @@ system_initialize( CoreDFB *core, void **data )
 
      fusion_call_init( &dfb_sdl->call, dfb_sdl_call_handler, NULL );
 
-     dfb_layers_register( NULL, NULL, &sdlPrimaryLayerFuncs );
+     screen = dfb_screens_register( NULL, NULL, &sdlPrimaryScreenFuncs );
+
+     dfb_layers_register( screen, NULL, &sdlPrimaryLayerFuncs );
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "sdl", dfb_sdl );
 

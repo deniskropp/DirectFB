@@ -53,6 +53,8 @@
 #include <core/layer_region.h>
 #include <core/layers.h>
 #include <core/palette.h>
+#include <core/screen.h>
+#include <core/screens.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 #include <core/system.h>
@@ -61,6 +63,7 @@
 #include <core/windowstack.h>
 
 #include <display/idirectfbpalette.h>
+#include <display/idirectfbscreen.h>
 #include <display/idirectfbsurface.h>
 #include <display/idirectfbsurface_layer.h>
 #include <display/idirectfbsurface_window.h>
@@ -110,6 +113,17 @@ typedef struct {
 } IDirectFB_data;
 
 typedef struct {
+     DFBScreenCallback  callback;
+     void              *callback_ctx;
+} EnumScreens_Context;
+
+typedef struct {
+     IDirectFBScreen **interface;
+     DFBScreenID       id;
+     DFBResult         ret;
+} GetScreen_Context;
+
+typedef struct {
      DFBDisplayLayerCallback  callback;
      void                    *callback_ctx;
 } EnumDisplayLayers_Context;
@@ -136,14 +150,21 @@ typedef struct {
 } CreateEventBuffer_Context;
 
 
+static DFBEnumerationResult EnumScreens_Callback      ( CoreScreen  *screen,
+                                                        void        *ctx );
+static DFBEnumerationResult GetScreen_Callback        ( CoreScreen  *screen,
+                                                        void        *ctx );
+
 static DFBEnumerationResult EnumDisplayLayers_Callback( CoreLayer   *layer,
                                                         void        *ctx );
 static DFBEnumerationResult GetDisplayLayer_Callback  ( CoreLayer   *layer,
                                                         void        *ctx );
+
 static DFBEnumerationResult EnumInputDevices_Callback ( InputDevice *device,
                                                         void        *ctx );
 static DFBEnumerationResult GetInputDevice_Callback   ( InputDevice *device,
                                                         void        *ctx );
+
 static DFBEnumerationResult CreateEventBuffer_Callback( InputDevice *device,
                                                         void        *ctx );
 
@@ -746,6 +767,47 @@ IDirectFB_CreatePalette( IDirectFB              *thiz,
 }
 
 static DFBResult
+IDirectFB_EnumScreens( IDirectFB         *thiz,
+                       DFBScreenCallback  callbackfunc,
+                       void              *callbackdata )
+{
+     EnumScreens_Context context;
+
+     INTERFACE_GET_DATA(IDirectFB)
+
+     if (!callbackfunc)
+          return DFB_INVARG;
+
+     context.callback     = callbackfunc;
+     context.callback_ctx = callbackdata;
+
+     dfb_screens_enumerate( EnumScreens_Callback, &context );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFB_GetScreen( IDirectFB        *thiz,
+                     DFBScreenID       id,
+                     IDirectFBScreen **interface )
+{
+     GetScreen_Context context;
+
+     INTERFACE_GET_DATA(IDirectFB)
+
+     if (!interface)
+          return DFB_INVARG;
+
+     context.interface = interface;
+     context.id        = id;
+     context.ret       = DFB_IDNOTFOUND;
+
+     dfb_screens_enumerate( GetScreen_Callback, &context );
+
+     return context.ret;
+}
+
+static DFBResult
 IDirectFB_EnumDisplayLayers( IDirectFB               *thiz,
                              DFBDisplayLayerCallback  callbackfunc,
                              void                    *callbackdata )
@@ -1187,6 +1249,8 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      thiz->SetVideoMode = IDirectFB_SetVideoMode;
      thiz->CreateSurface = IDirectFB_CreateSurface;
      thiz->CreatePalette = IDirectFB_CreatePalette;
+     thiz->EnumScreens = IDirectFB_EnumScreens;
+     thiz->GetScreen = IDirectFB_GetScreen;
      thiz->EnumDisplayLayers = IDirectFB_EnumDisplayLayers;
      thiz->GetDisplayLayer = IDirectFB_GetDisplayLayer;
      thiz->EnumInputDevices = IDirectFB_EnumInputDevices;
@@ -1222,6 +1286,36 @@ IDirectFB_SetAppFocus( IDirectFB *thiz, DFBBoolean focused )
 /*
  * internal functions
  */
+
+static DFBEnumerationResult
+EnumScreens_Callback( CoreScreen *screen, void *ctx )
+{
+     DFBScreenID           id;
+     DFBScreenDescription  desc;
+     EnumScreens_Context  *context = (EnumScreens_Context*) ctx;
+
+     dfb_screen_get_info( screen, &id, &desc );
+
+     return context->callback( id, desc, context->callback_ctx );
+}
+
+static DFBEnumerationResult
+GetScreen_Callback( CoreScreen *screen, void *ctx )
+{
+     DFBScreenID        id;
+     GetScreen_Context *context = (GetScreen_Context*) ctx;
+
+     dfb_screen_get_info( screen, &id, NULL );
+
+     if (id != context->id)
+          return DFENUM_OK;
+
+     DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBScreen );
+
+     context->ret = IDirectFBScreen_Construct( *context->interface, screen );
+
+     return DFENUM_CANCEL;
+}
 
 static DFBEnumerationResult
 EnumDisplayLayers_Callback( CoreLayer *layer, void *ctx )

@@ -25,19 +25,17 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __SDL__PRIMARY_H__
-#define __SDL__PRIMARY_H__
+#ifndef __IDIRECTFBSCREEN_H__
+#define __IDIRECTFBSCREEN_H__
 
-#include <core/layers.h>
-#include <core/screens.h>
+#include <directfb.h>
+#include <core/coretypes.h>
 
-extern ScreenFuncs       sdlPrimaryScreenFuncs;
-extern DisplayLayerFuncs sdlPrimaryLayerFuncs;
+/*
+ * initializes interface struct and private data
+ */
+DFBResult IDirectFBScreen_Construct( IDirectFBScreen *thiz,
+                                     CoreScreen      *screen );
 
-int dfb_sdl_call_handler( int   caller,
-                          int   call_arg,
-                          void *call_ptr,
-                          void *ctx );
 
 #endif
-

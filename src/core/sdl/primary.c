@@ -49,92 +49,9 @@
 #include <SDL.h>
 
 #include "sdl.h"
+#include "primary.h"
 
 extern DFBSDL *dfb_sdl;
-
-/******************************************************************************/
-
-static int       primaryLayerDataSize ();
-
-static int       primaryRegionDataSize();
-
-static DFBResult primaryInitLayer     ( CoreLayer                  *layer,
-                                        void                       *driver_data,
-                                        void                       *layer_data,
-                                        DFBDisplayLayerDescription *description,
-                                        DFBDisplayLayerConfig      *config,
-                                        DFBColorAdjustment         *adjustment );
-
-static DFBResult primaryTestRegion    ( CoreLayer                  *layer,
-                                        void                       *driver_data,
-                                        void                       *layer_data,
-                                        CoreLayerRegionConfig      *config,
-                                        CoreLayerRegionConfigFlags *failed );
-
-static DFBResult primaryAddRegion     ( CoreLayer                  *layer,
-                                        void                       *driver_data,
-                                        void                       *layer_data,
-                                        void                       *region_data,
-                                        CoreLayerRegionConfig      *config );
-
-static DFBResult primarySetRegion     ( CoreLayer                  *layer,
-                                        void                       *driver_data,
-                                        void                       *layer_data,
-                                        void                       *region_data,
-                                        CoreLayerRegionConfig      *config,
-                                        CoreLayerRegionConfigFlags  updated,
-                                        CoreSurface                *surface,
-                                        CorePalette                *palette );
-
-static DFBResult primaryRemoveRegion  ( CoreLayer                  *layer,
-                                        void                       *driver_data,
-                                        void                       *layer_data,
-                                        void                       *region_data );
-
-static DFBResult primaryFlipRegion    ( CoreLayer                  *layer,
-                                        void                       *driver_data,
-                                        void                       *layer_data,
-                                        void                       *region_data,
-                                        CoreSurface                *surface,
-                                        DFBSurfaceFlipFlags         flags );
-
-static DFBResult primaryUpdateRegion  ( CoreLayer                  *layer,
-                                        void                       *driver_data,
-                                        void                       *layer_data,
-                                        void                       *region_data,
-                                        CoreSurface                *surface,
-                                        DFBRegion                  *update );
-
-
-static DFBResult primaryAllocateSurface  ( CoreLayer                  *layer,
-                                           void                       *driver_data,
-                                           void                       *layer_data,
-                                           void                       *region_data,
-                                           CoreLayerRegionConfig      *config,
-                                           CoreSurface               **ret_surface );
-
-static DFBResult primaryReallocateSurface( CoreLayer                  *layer,
-                                           void                       *driver_data,
-                                           void                       *layer_data,
-                                           void                       *region_data,
-                                           CoreLayerRegionConfig      *config,
-                                           CoreSurface                *surface );
-
-DisplayLayerFuncs sdlPrimaryLayerFuncs = {
-     .LayerDataSize     = primaryLayerDataSize,
-     .RegionDataSize    = primaryRegionDataSize,
-     .InitLayer         = primaryInitLayer,
-
-     .TestRegion        = primaryTestRegion,
-     .AddRegion         = primaryAddRegion,
-     .SetRegion         = primarySetRegion,
-     .RemoveRegion      = primaryRemoveRegion,
-     .FlipRegion        = primaryFlipRegion,
-     .UpdateRegion      = primaryUpdateRegion,
-
-     .AllocateSurface   = primaryAllocateSurface,
-     .ReallocateSurface = primaryReallocateSurface
-};
 
 /******************************************************************************/
 
@@ -146,6 +63,29 @@ static DFBResult update_screen( CoreSurface *surface,
                                 int x, int y, int w, int h );
 
 static SDL_Surface *screen = NULL;
+
+/******************************************************************************/
+
+static DFBResult
+primaryInitScreen( CoreScreen           *screen,
+                   GraphicsDevice       *device,
+                   void                 *driver_data,
+                   void                 *screen_data,
+                   DFBScreenDescription *description )
+{
+     /* Set the screen capabilities. */
+     description->caps = DSCCAPS_NONE;
+
+     /* Set the screen name. */
+     snprintf( description->name,
+               DFB_SCREEN_DESC_NAME_LENGTH, "SDL Primary Screen" );
+
+     return DFB_OK;
+}
+
+ScreenFuncs sdlPrimaryScreenFuncs = {
+     .InitScreen   = primaryInitScreen
+};
 
 /******************************************************************************/
 
@@ -384,6 +324,22 @@ primaryReallocateSurface( CoreLayer             *layer,
 
      return DFB_OK;
 }
+
+DisplayLayerFuncs sdlPrimaryLayerFuncs = {
+     .LayerDataSize     = primaryLayerDataSize,
+     .RegionDataSize    = primaryRegionDataSize,
+     .InitLayer         = primaryInitLayer,
+
+     .TestRegion        = primaryTestRegion,
+     .AddRegion         = primaryAddRegion,
+     .SetRegion         = primarySetRegion,
+     .RemoveRegion      = primaryRemoveRegion,
+     .FlipRegion        = primaryFlipRegion,
+     .UpdateRegion      = primaryUpdateRegion,
+
+     .AllocateSurface   = primaryAllocateSurface,
+     .ReallocateSurface = primaryReallocateSurface
+};
 
 /******************************************************************************/
 

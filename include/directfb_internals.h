@@ -31,7 +31,11 @@
 #include <stdlib.h>
 
 #include <directfb.h>
+
 #include <core/coretypes.h>
+
+#include <misc/mem.h>
+
 
 typedef struct {
      const char * (*GetType)();

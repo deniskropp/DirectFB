@@ -63,6 +63,7 @@
 #include <misc/util.h>
 
 #include <core/layers_internal.h>
+#include <core/screens_internal.h>
 
 
 
@@ -95,7 +96,6 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      /* Initialize all registered layers. */
      for (i=0; i<dfb_num_layers; i++) {
-          //CoreLayerContext  *context;
           CoreLayerShared   *shared;
           CoreLayer         *layer = dfb_layers[i];
           DisplayLayerFuncs *funcs = layer->funcs;
@@ -296,26 +296,28 @@ dfb_layers_resume( CoreDFB *core )
      return DFB_OK;
 }
 
-void
-dfb_layers_register( GraphicsDevice    *device,
+CoreLayer *
+dfb_layers_register( CoreScreen        *screen,
                      void              *driver_data,
                      DisplayLayerFuncs *funcs )
 {
      CoreLayer *layer;
 
+     DFB_ASSERT( screen != NULL );
      DFB_ASSERT( funcs != NULL );
 
      if (dfb_num_layers == MAX_LAYERS) {
           ERRORMSG( "DirectFB/Core/Layers: "
                     "Maximum number of layers reached!\n" );
-          return;
+          return NULL;
      }
 
      /* allocate local data */
      layer = DFBCALLOC( 1, sizeof(CoreLayer) );
 
      /* assign local pointers */
-     layer->device      = device;
+     layer->device      = screen->device;
+     layer->screen      = screen;
      layer->driver_data = driver_data;
      layer->funcs       = funcs;
 
@@ -324,11 +326,13 @@ dfb_layers_register( GraphicsDevice    *device,
 
      /* add it to the local list */
      dfb_layers[dfb_num_layers++] = layer;
+
+     return layer;
 }
 
 typedef void (*AnyFunc)();
 
-void
+CoreLayer *
 dfb_layers_hook_primary( GraphicsDevice     *device,
                          void               *driver_data,
                          DisplayLayerFuncs  *funcs,
@@ -340,6 +344,7 @@ dfb_layers_hook_primary( GraphicsDevice     *device,
      CoreLayer *primary = dfb_layers[0];
 
      DFB_ASSERT( primary != NULL );
+     DFB_ASSERT( device != NULL );
      DFB_ASSERT( funcs != NULL );
 
      /* copy content of original function table */
@@ -363,9 +368,11 @@ dfb_layers_hook_primary( GraphicsDevice     *device,
      /* replace device and driver data pointer */
      primary->device      = device;
      primary->driver_data = driver_data;
+
+     return primary;
 }
 
-void
+CoreLayer *
 dfb_layers_replace_primary( GraphicsDevice     *device,
                             void               *driver_data,
                             DisplayLayerFuncs  *funcs )
@@ -373,12 +380,15 @@ dfb_layers_replace_primary( GraphicsDevice     *device,
      CoreLayer *primary = dfb_layers[0];
 
      DFB_ASSERT( primary != NULL );
+     DFB_ASSERT( device != NULL );
      DFB_ASSERT( funcs != NULL );
 
      /* replace device, function table and driver data pointer */
      primary->device      = device;
      primary->funcs       = funcs;
      primary->driver_data = driver_data;
+
+     return primary;
 }
 
 void
@@ -436,6 +446,14 @@ dfb_layer_get_description( const CoreLayer            *layer,
      DFB_ASSERT( desc != NULL );
 
      *desc = layer->shared->description;
+}
+
+inline CoreScreen *
+dfb_layer_screen( const CoreLayer *layer )
+{
+     DFB_ASSERT( layer != NULL );
+
+     return layer->screen;
 }
 
 inline DFBDisplayLayerID

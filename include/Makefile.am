@@ -20,7 +20,7 @@ internalinclude_HEADERS = \
 	directfb_internals.h
 
 
-directfb_keynames.h: directfb_keyboard.h mknames.sh
+directfb_keynames.h: directfb_keyboard.h mknames.sh Makefile
 	@echo '#ifndef __DIRECTFB_KEYNAMES_H__' > $@
 	@echo '#define __DIRECTFB_KEYNAMES_H__' >> $@
 
@@ -34,11 +34,27 @@ directfb_keynames.h: directfb_keyboard.h mknames.sh
 	@echo '#endif' >> $@
 
 
-directfb_strings.h: directfb.h mknames.sh
+directfb_strings.h: directfb.h mknames.sh Makefile
 	@echo '#ifndef __DIRECTFB_STRINGS_H__' > $@
 	@echo '#define __DIRECTFB_STRINGS_H__' >> $@
 
 	./mknames.sh DFBSurfacePixelFormat DSPF UNKNOWN PixelFormat format directfb.h >> $@
+
+	./mknames.sh DFBInputDeviceTypeFlags DIDTF NONE InputDeviceTypeFlags type directfb.h \
+	   | grep -v DIDTF_ALL >> $@
+
+	# FIXME: Use DIMCAPS prefix for DFBImageCapabilities
+	./mknames.sh DFBInputDeviceCapabilities DICAPS NONE InputDeviceCapabilities capability directfb.h \
+	   | grep -v DICAPS_ALL | grep -v DICAPS_ALPHACHANNEL | grep -v DICAPS_COLORKEY >> $@
+
+	./mknames.sh DFBDisplayLayerTypeFlags DLTF NONE DisplayLayerTypeFlags type directfb.h \
+	   | grep -v DLTF_ALL >> $@
+
+	./mknames.sh DFBDisplayLayerCapabilities DLCAPS NONE DisplayLayerCapabilities capability directfb.h \
+	   | grep -v DLCAPS_ALL >> $@
+
+	./mknames.sh DFBScreenCapabilities DSCCAPS NONE ScreenCapabilities capability directfb.h \
+	   | grep -v DSCCAPS_ALL >> $@
 
 	@echo '' >> $@
 	@echo '#endif' >> $@

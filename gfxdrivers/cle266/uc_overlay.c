@@ -240,15 +240,6 @@ uc_ovl_flip_region( CoreLayer           *layer,
 }
 
 static DFBResult
-uc_ovl_wait_vsync(CoreLayer *layer,
-                  void      *driver_data,
-                  void      *layer_data)
-{
-    // Forward the function call to the primary layer.
-    return dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
-}
-
-static DFBResult
 uc_ovl_get_level(CoreLayer    *layer,
                  void         *driver_data,
                  void         *layer_data,
@@ -290,7 +281,7 @@ DisplayLayerFuncs ucOverlayFuncs = {
     RemoveRegion:       uc_ovl_remove,
     TestRegion:         uc_ovl_test_region,
     FlipRegion:         uc_ovl_flip_region,
-    WaitVSync:          uc_ovl_wait_vsync,
     GetLevel:           uc_ovl_get_level,
     SetLevel:           uc_ovl_set_level,
 };
+

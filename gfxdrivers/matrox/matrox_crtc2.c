@@ -42,6 +42,7 @@
 #include <core/gfxcard.h>
 #include <core/fbdev/fbdev.h>
 #include <core/layers.h>
+#include <core/screen.h>
 #include <core/surfaces.h>
 #include <core/windows.h>
 
@@ -81,8 +82,6 @@ typedef struct {
 
      MatroxMavenData mav;
 } MatroxCrtc2LayerData;
-
-static void crtc2_wait_vsync         ( MatroxDriverData      *mdrv );
 
 static void crtc2_set_regs           ( MatroxDriverData      *mdrv,
                                        MatroxCrtc2LayerData  *mcrtc2 );
@@ -142,7 +141,7 @@ crtc2InitLayer( CoreLayer                  *layer,
 
      /* set name */
      snprintf( description->name,
-               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Matrox CRTC2" );
+               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Matrox CRTC2 Layer" );
 
      /* fill out the default configuration */
      config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
@@ -288,8 +287,6 @@ crtc2FlipRegion( CoreLayer           *layer,
      dfb_surface_flip_buffers( surface );
      crtc2_calc_buffer( mdrv, mcrtc2, surface );
 
-     dfb_gfxcard_sync();
-
      line = mga_in32( mmio, C2VCOUNT ) & 0x00000FFF;
      if (line + 6 > vdisplay && line < vdisplay)
           while ((int)(mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != vdisplay)
@@ -299,14 +296,15 @@ crtc2FlipRegion( CoreLayer           *layer,
           int field = (mga_in32( mmio, C2VCOUNT ) >> 24) & 0x1;
 
           while (field == mcrtc2->field) {
-               crtc2_wait_vsync( mdrv );
+               dfb_screen_wait_vsync( mdrv->secondary );
+
                field = (mga_in32( mmio, C2VCOUNT ) >> 24) & 0x1;
           }
      }
      crtc2_set_buffer( mdrv, mcrtc2 );
 
      if (flags & DSFLIP_WAIT)
-          crtc2_wait_vsync( mdrv );
+          dfb_screen_wait_vsync( mdrv->secondary );
 
      return DFB_OK;
 }
@@ -376,20 +374,6 @@ crtc2SetFieldParity( CoreLayer *layer,
 }
 #endif
 
-static DFBResult
-crtc2WaitVSync( CoreLayer *layer,
-                void      *driver_data,
-                void      *layer_data )
-{
-     MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
-     MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
-
-     if (mcrtc2->enabled)
-          crtc2_wait_vsync( mdrv );
-
-     return DFB_OK;
-}
-
 DisplayLayerFuncs matroxCrtc2Funcs = {
      LayerDataSize:         crtc2LayerDataSize,
      InitLayer:             crtc2InitLayer,
@@ -401,24 +385,10 @@ DisplayLayerFuncs matroxCrtc2Funcs = {
      FlipRegion:            crtc2FlipRegion,
 
      SetColorAdjustment:    crtc2SetColorAdjustment,
-     GetCurrentOutputField: crtc2GetCurrentOutputField,
-     WaitVSync:             crtc2WaitVSync
+     GetCurrentOutputField: crtc2GetCurrentOutputField
 };
 
 /* internal */
-
-static void crtc2_wait_vsync( MatroxDriverData *mdrv )
-{
-     int vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 2;
-
-#ifdef FBIO_WAITFORVSYNC
-     static const int one = 1;
-     FBDev *dfb_fbdev = dfb_system_data();
-     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &one ))
-#endif
-          while ((int)(mga_in32( mdrv->mmio_base, C2VCOUNT ) & 0x00000FFF) != vdisplay)
-               ;
-}
 
 static void crtc2_set_regs( MatroxDriverData     *mdrv,
                             MatroxCrtc2LayerData *mcrtc2 )

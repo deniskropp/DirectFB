@@ -33,32 +33,33 @@
 
 #include <string.h>
 
-#include "directfb.h"
-#include "directfb_internals.h"
+#include <directfb.h>
+#include <directfb_internals.h>
 
-#include "core/core.h"
-#include "core/coredefs.h"
-#include "core/coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "core/surfaces.h"
-#include "core/gfxcard.h"
-#include "core/layers.h"
-#include "core/layer_context.h"
-#include "core/layer_control.h"
-#include "core/layer_region.h"
-#include "core/state.h"
-#include "core/windows.h"
-#include "core/windowstack.h"
+#include <core/surfaces.h>
+#include <core/gfxcard.h>
+#include <core/layers.h>
+#include <core/layer_context.h>
+#include <core/layer_control.h>
+#include <core/layer_region.h>
+#include <core/state.h>
+#include <core/windows.h>
+#include <core/windowstack.h>
 
-#include "windows/idirectfbwindow.h"
+#include <windows/idirectfbwindow.h>
+
+#include <gfx/convert.h>
+
+#include <misc/mem.h>
 
 #include "idirectfbdisplaylayer.h"
+#include "idirectfbscreen.h"
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_layer.h"
-
-#include "gfx/convert.h"
-
-#include "misc/mem.h"
 
 /*
  * private data struct of IDirectFB
@@ -66,7 +67,8 @@
 typedef struct {
      int                              ref;     /* reference counter */
      DFBDisplayLayerCooperativeLevel  level;   /* current cooperative level */
-     CoreLayer                       *layer;   /* pointer to core data */
+     CoreScreen                      *screen;  /* layer's screen */
+     CoreLayer                       *layer;   /* core layer data */
      CoreLayerContext                *context; /* shared or exclusive context */
      CoreLayerRegion                 *region;  /* primary region (shared ctx) */
      CoreWindowStack                 *stack;   /* stack of shared context */
@@ -174,6 +176,27 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
 }
 
 static DFBResult
+IDirectFBDisplayLayer_GetScreen( IDirectFBDisplayLayer  *thiz,
+                                 IDirectFBScreen       **interface )
+{
+     DFBResult        ret;
+     IDirectFBScreen *screen;
+
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!interface)
+          return DFB_INVARG;
+
+     DFB_ALLOCATE_INTERFACE( screen, IDirectFBScreen );
+
+     ret = IDirectFBScreen_Construct( screen, data->screen );
+
+     *interface = ret ? NULL : screen;
+
+     return ret;
+}
+
+static DFBResult
 IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz,
                                            DFBDisplayLayerCooperativeLevel  level )
 {
@@ -255,26 +278,6 @@ IDirectFBDisplayLayer_SetFieldParity( IDirectFBDisplayLayer *thiz, int field )
           return DFB_ACCESSDENIED;
 
      return dfb_layer_context_set_field_parity( data->context, field );
-}
-
-static DFBResult
-IDirectFBDisplayLayer_WaitForSync( IDirectFBDisplayLayer *thiz )
-{
-     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-     return dfb_layer_wait_vsync( data->layer );
-}
-static DFBResult
-
-IDirectFBDisplayLayer_SetScreenPowerMode( IDirectFBDisplayLayer *thiz,
-                                          DFBScreenPowerMode     mode )
-{
-     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-     if (data->level == DLSCL_SHARED)
-          return DFB_ACCESSDENIED;
-
-     return dfb_layer_set_screen_power_mode( data->layer, mode );
 }
 
 static DFBResult
@@ -692,6 +695,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      }
 
      data->ref     = 1;
+     data->screen  = dfb_layer_screen( layer );
      data->layer   = layer;
      data->context = context;
      data->stack   = dfb_layer_context_windowstack( context );
@@ -701,6 +705,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->GetID                 = IDirectFBDisplayLayer_GetID;
      thiz->GetDescription        = IDirectFBDisplayLayer_GetDescription;
      thiz->GetSurface            = IDirectFBDisplayLayer_GetSurface;
+     thiz->GetScreen             = IDirectFBDisplayLayer_GetScreen;
      thiz->SetCooperativeLevel   = IDirectFBDisplayLayer_SetCooperativeLevel;
      thiz->SetOpacity            = IDirectFBDisplayLayer_SetOpacity;
      thiz->GetCurrentOutputField = IDirectFBDisplayLayer_GetCurrentOutputField;
@@ -725,9 +730,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->GetCursorPosition     = IDirectFBDisplayLayer_GetCursorPosition;
      thiz->SetCursorShape        = IDirectFBDisplayLayer_SetCursorShape;
      thiz->SetCursorOpacity      = IDirectFBDisplayLayer_SetCursorOpacity;
-     thiz->WaitForSync           = IDirectFBDisplayLayer_WaitForSync;
      thiz->SetFieldParity        = IDirectFBDisplayLayer_SetFieldParity;
-     thiz->SetScreenPowerMode    = IDirectFBDisplayLayer_SetScreenPowerMode;
 
      return DFB_OK;
 }

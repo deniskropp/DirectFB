@@ -82,6 +82,13 @@ const char * DirectFBCheckVersion( unsigned int required_major,
 DECLARE_INTERFACE( IDirectFB )
 
 /*
+ * Display encoder and output connector settings,
+ * input device assignment in multi head environments,
+ * power management, synchronization.
+ */
+DECLARE_INTERFACE( IDirectFBScreen )
+
+/*
  * Layer configuration, creation of windows and background
  * configuration.
  */
@@ -354,6 +361,10 @@ DFBResult DirectFBCreate(
                         );
 
 
+typedef unsigned int DFBScreenID;
+typedef unsigned int DFBDisplayLayerID;
+typedef unsigned int DFBWindowID;
+typedef unsigned int DFBInputDeviceID;
 
 /*
  * The cooperative level controls the super interface's behaviour
@@ -382,6 +393,8 @@ typedef enum {
  * Capabilities of a display layer.
  */
 typedef enum {
+     DLCAPS_NONE              = 0x00000000,
+
      DLCAPS_SURFACE           = 0x00000001,  /* The layer has a surface that
                                                 can be drawn to. This may not
                                                 be provided by layers that
@@ -424,8 +437,24 @@ typedef enum {
      DLCAPS_LEVELS            = 0x00001000,  /* Adjustment of the layer's level
                                                 (z position) is supported. */
      DLCAPS_FIELD_PARITY      = 0x00002000,  /* Field parity can be selected */
-     DLCAPS_WINDOWS           = 0x00004000   /* Hardware window support. */
+     DLCAPS_WINDOWS           = 0x00004000,  /* Hardware window support. */
+
+     DLCAPS_ALL               = 0x00007FFF
 } DFBDisplayLayerCapabilities;
+
+/*
+ * Capabilities of a screen.
+ */
+typedef enum {
+     DSCCAPS_NONE             = 0x00000000,
+
+     DSCCAPS_VSYNC            = 0x00000001,  /* Synchronization with the
+                                                vertical retrace supported. */
+     DSCCAPS_TV_ENCODER       = 0x00000002,  /* TV output supported. */
+     DSCCAPS_POWER_MANAGEMENT = 0x00000004,  /* Power management supported. */
+
+     DSCCAPS_ALL              = 0x00000007
+} DFBScreenCapabilities;
 
 /*
  * Used to enable some capabilities like flicker filtering or colorkeying.
@@ -949,6 +978,7 @@ typedef struct {
                                                         entries. */
 } DFBPaletteDescription;
 
+
 #define DFB_DISPLAY_LAYER_DESC_NAME_LENGTH   32
 
 /*
@@ -969,6 +999,20 @@ typedef struct {
                                                          0 = unknown/one,
                                                         >0 = actual number */
 } DFBDisplayLayerDescription;
+
+
+#define DFB_SCREEN_DESC_NAME_LENGTH          32
+
+/*
+ * Description of the display encoder capabilities.
+ */
+typedef struct {
+     DFBScreenCapabilities              caps;        /* Capability flags of
+                                                        the screen. */
+
+     char name[DFB_SCREEN_DESC_NAME_LENGTH];         /* Rough description. */
+} DFBScreenDescription;
+
 
 #define DFB_INPUT_DEVICE_DESC_NAME_LENGTH    32
 #define DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH  40
@@ -1043,10 +1087,6 @@ typedef enum {
      DFENUM_CANCEL       = 0x00000001   /* Cancel enumeration */
 } DFBEnumerationResult;
 
-typedef unsigned int DFBDisplayLayerID;
-typedef unsigned int DFBWindowID;
-typedef unsigned int DFBInputDeviceID;
-
 /*
  * Called for each supported video mode.
  */
@@ -1055,6 +1095,16 @@ typedef DFBEnumerationResult (*DFBVideoModeCallback) (
      int                       height,
      int                       bpp,
      void                     *callbackdata
+);
+
+/*
+ * Called for each existing screen.
+ * "screen_id" can be used to get an interface to the screen.
+ */
+typedef DFBEnumerationResult (*DFBScreenCallback) (
+     DFBScreenID                        screen_id,
+     DFBScreenDescription               desc,
+     void                              *callbackdata
 );
 
 /*
@@ -1270,14 +1320,40 @@ DEFINE_INTERFACE(   IDirectFB,
      );
 
 
+   /** Screens **/
+
+     /*
+      * Enumerate all existing screen.
+      *
+      * Calls the given callback for each available screen.
+      * The callback is passed the screen id that can be
+      * used to retrieve an interface to a specific screen using
+      * IDirectFB->GetScreen().
+      */
+     DFBResult (*EnumScreens) (
+          IDirectFB                *thiz,
+          DFBScreenCallback         callback,
+          void                     *callbackdata
+     );
+
+     /*
+      * Retrieve an interface to a specific screen.
+      */
+     DFBResult (*GetScreen) (
+          IDirectFB                *thiz,
+          DFBScreenID               screen_id,
+          IDirectFBScreen         **interface
+     );
+
+
    /** Display Layers **/
 
      /*
       * Enumerate all existing display layers.
       *
-      * Calls the given callback for all available display
-      * layers. The callback is passed the layer id that can be
-      * used to retrieve an interface on a specific layer using
+      * Calls the given callback for each available display
+      * layer. The callback is passed the layer id that can be
+      * used to retrieve an interface to a specific layer using
       * IDirectFB->GetDisplayLayer().
       */
      DFBResult (*EnumDisplayLayers) (
@@ -1504,6 +1580,9 @@ DEFINE_INTERFACE(   IDirectFB,
 /* predefined layer ids */
 #define DLID_PRIMARY          0x00
 
+/* predefined screen ids */
+#define DSCID_PRIMARY         0x00
+
 /* predefined input device ids */
 #define DIDID_KEYBOARD        0x0000    /* primary keyboard       */
 #define DIDID_MOUSE           0x0001    /* primary mouse          */
@@ -1576,6 +1655,73 @@ typedef enum {
 } DFBScreenPowerMode;
 
 
+/*******************
+ * IDirectFBScreen *
+ *******************/
+
+/*
+ * <i>No summary yet...</i>
+ */
+DEFINE_INTERFACE(   IDirectFBScreen,
+
+   /** Retrieving information **/
+
+     /*
+      * Get the unique screen ID.
+      */
+     DFBResult (*GetID) (
+          IDirectFBScreen                    *thiz,
+          DFBScreenID                        *screen_id
+     );
+
+     /*
+      * Get a description of this screen, i.e. the capabilities.
+      */
+     DFBResult (*GetDescription) (
+          IDirectFBScreen                    *thiz,
+          DFBScreenDescription               *desc
+     );
+
+
+   /** Display Layers **/
+
+     /*
+      * Enumerate all existing display layers for this screen.
+      *
+      * Calls the given callback for each available display
+      * layer. The callback is passed the layer id that can be
+      * used to retrieve an interface to a specific layer using
+      * IDirectFB->GetDisplayLayer().
+      */
+     DFBResult (*EnumDisplayLayers) (
+          IDirectFBScreen          *thiz,
+          DFBDisplayLayerCallback   callback,
+          void                     *callbackdata
+     );
+
+
+   /** Power management **/
+
+     /*
+      * Set screen power mode.
+      */
+     DFBResult (*SetPowerMode) (
+          IDirectFBScreen                    *thiz,
+          DFBScreenPowerMode                  mode
+     );
+
+
+   /** Synchronization **/
+
+     /*
+      * Wait for next vertical retrace.
+      */
+     DFBResult (*WaitForSync) (
+          IDirectFBScreen                    *thiz
+     );
+)
+
+
 /*************************
  * IDirectFBDisplayLayer *
  *************************/
@@ -1604,7 +1750,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      );
 
 
-   /** Surface **/
+   /** Surface & Screen **/
 
      /*
       * Get an interface to layer's surface.
@@ -1614,6 +1760,14 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      DFBResult (*GetSurface) (
           IDirectFBDisplayLayer              *thiz,
           IDirectFBSurface                  **interface
+     );
+
+     /*
+      * Get an interface to the screen to which the layer belongs.
+      */
+     DFBResult (*GetScreen) (
+          IDirectFBDisplayLayer              *thiz,
+          IDirectFBScreen                   **interface
      );
 
 
@@ -1728,20 +1882,6 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           int                                 field
      );
 
-     /*
-      * Wait for next vertical retrace.
-      */
-     DFBResult (*WaitForSync) (
-          IDirectFBDisplayLayer              *thiz
-     );
-
-     /*
-      * Set screen power mode.
-      */
-     DFBResult (*SetScreenPowerMode) (
-          IDirectFBDisplayLayer              *thiz,
-          DFBScreenPowerMode                  mode
-     );
 
    /** Configuration handling **/
 

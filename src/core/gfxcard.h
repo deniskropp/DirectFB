@@ -69,7 +69,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          20
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          21
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     60
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   80

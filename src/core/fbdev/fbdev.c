@@ -59,6 +59,8 @@
 #include <core/layers.h>
 #include <core/gfxcard.h>
 #include <core/palette.h>
+#include <core/screen.h>
+#include <core/screens.h>
 #include <core/sig.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
@@ -76,11 +78,6 @@
 #include <core/core_system.h>
 
 DFB_CORE_SYSTEM( fbdev )
-
-
-#ifndef FBIO_WAITFORVSYNC
-#define FBIO_WAITFORVSYNC	_IOW('F', 0x20, u_int32_t)
-#endif
 
 
 static int fbdev_ioctl_call_handler( int   caller,
@@ -106,16 +103,6 @@ static DFBResult primaryInitLayer     ( CoreLayer                  *layer,
                                         DFBDisplayLayerDescription *description,
                                         DFBDisplayLayerConfig      *config,
                                         DFBColorAdjustment         *adjustment );
-
-static DFBResult primaryWaitVSync     ( CoreLayer                  *layer,
-                                        void                       *driver_data,
-                                        void                       *layer_data );
-
-
-static DFBResult primarySetScreenPowerMode( CoreLayer              *layer,
-                                            void                   *driver_data,
-                                            void                   *layer_data,
-                                            DFBScreenPowerMode      mode );
 
 static DFBResult primarySetColorAdjustment( CoreLayer              *layer,
                                             void                   *driver_data,
@@ -175,8 +162,6 @@ static DisplayLayerFuncs primaryLayerFuncs = {
      RegionDataSize:     primaryRegionDataSize,
      InitLayer:          primaryInitLayer,
 
-     WaitVSync:          primaryWaitVSync,
-     SetScreenPowerMode: primarySetScreenPowerMode,
      SetColorAdjustment: primarySetColorAdjustment,
 
      TestRegion:         primaryTestRegion,
@@ -188,6 +173,29 @@ static DisplayLayerFuncs primaryLayerFuncs = {
      AllocateSurface:    primaryAllocateSurface,
      ReallocateSurface:  primaryReallocateSurface,
      /* default DeallocateSurface copes with our chunkless video buffers */
+};
+
+/******************************************************************************/
+
+static DFBResult primaryInitScreen  ( CoreScreen           *screen,
+                                      GraphicsDevice       *device,
+                                      void                 *driver_data,
+                                      void                 *screen_data,
+                                      DFBScreenDescription *description );
+
+static DFBResult primarySetPowerMode( CoreScreen           *screen,
+                                      void                 *driver_data,
+                                      void                 *screen_data,
+                                      DFBScreenPowerMode    mode );
+
+static DFBResult primaryWaitVSync   ( CoreScreen           *screen,
+                                      void                 *driver_data,
+                                      void                 *layer_data );
+
+static ScreenFuncs primaryScreenFuncs = {
+     .InitScreen   = primaryInitScreen,
+     .SetPowerMode = primarySetPowerMode,
+     .WaitVSync    = primaryWaitVSync
 };
 
 /******************************************************************************/
@@ -292,7 +300,8 @@ system_get_info( CoreSystemInfo *info )
 static DFBResult
 system_initialize( CoreDFB *core, void **data )
 {
-     DFBResult ret;
+     DFBResult   ret;
+     CoreScreen *screen;
 
      DFB_ASSERT( dfb_fbdev == NULL );
 
@@ -411,8 +420,11 @@ system_initialize( CoreDFB *core, void **data )
      fusion_call_init( &dfb_fbdev->shared->fbdev_ioctl,
                        fbdev_ioctl_call_handler, NULL );
 
+     /* Register primary screen functions */
+     screen = dfb_screens_register( NULL, NULL, &primaryScreenFuncs );
+
      /* Register primary layer functions */
-     dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
+     dfb_layers_register( screen, NULL, &primaryLayerFuncs );
 
      *data = dfb_fbdev;
 
@@ -422,7 +434,8 @@ system_initialize( CoreDFB *core, void **data )
 static DFBResult
 system_join( CoreDFB *core, void **data )
 {
-     DFBResult ret;
+     DFBResult   ret;
+     CoreScreen *screen;
 
      DFB_ASSERT( dfb_fbdev == NULL );
 
@@ -459,8 +472,11 @@ system_join( CoreDFB *core, void **data )
           return DFB_INIT;
      }
 
+     /* Register primary screen functions */
+     screen = dfb_screens_register( NULL, NULL, &primaryScreenFuncs );
+
      /* Register primary layer functions */
-     dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
+     dfb_layers_register( screen, NULL, &primaryLayerFuncs );
 
      *data = dfb_fbdev;
 
@@ -670,7 +686,8 @@ system_videoram_length()
 
 /******************************************************************************/
 
-static DFBResult init_modes()
+static DFBResult
+init_modes()
 {
      dfb_fbdev_read_modes();
 
@@ -724,7 +741,70 @@ static DFBResult init_modes()
      return DFB_OK;
 }
 
-/** primary layer functions **/
+/******************************************************************************/
+
+static DFBResult
+primaryInitScreen( CoreScreen           *screen,
+                   GraphicsDevice       *device,
+                   void                 *driver_data,
+                   void                 *screen_data,
+                   DFBScreenDescription *description )
+{
+     /* Set the screen capabilities. */
+     description->caps = DSCCAPS_VSYNC | DSCCAPS_POWER_MANAGEMENT;
+
+     /* Set the screen name. */
+     snprintf( description->name,
+               DFB_SCREEN_DESC_NAME_LENGTH, "FBDev Primary Screen" );
+
+     return DFB_OK;
+}
+
+static DFBResult
+primarySetPowerMode( CoreScreen         *screen,
+                     void               *driver_data,
+                     void               *screen_data,
+                     DFBScreenPowerMode  mode )
+{
+     int level;
+
+     switch (mode) {
+          case DSPM_OFF:
+               level = 4;
+               break;
+          case DSPM_SUSPEND:
+               level = 3;
+               break;
+          case DSPM_STANDBY:
+               level = 2;
+               break;
+          case DSPM_ON:
+               level = 0;
+               break;
+          default:
+               return DFB_INVARG;
+     }
+
+     return dfb_fbdev_blank( level );
+}
+
+static DFBResult
+primaryWaitVSync( CoreScreen *screen,
+                  void       *driver_data,
+                  void       *layer_data )
+{
+     static const int zero = 0;
+
+     if (dfb_config->pollvsync_none)
+          return DFB_OK;
+
+     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ))
+          waitretrace();
+
+     return DFB_OK;
+}
+
+/******************************************************************************/
 
 static int
 primaryLayerDataSize()
@@ -808,54 +888,6 @@ primaryInitLayer( CoreLayer                  *layer,
      }
 
      return DFB_OK;
-}
-
-static DFBResult
-primaryWaitVSync( CoreLayer *layer,
-                  void      *driver_data,
-                  void      *layer_data )
-{
-#ifdef FBIO_WAITFORVSYNC
-     static const int zero = 0;
-#endif
-     if (dfb_config->pollvsync_none)
-          return DFB_OK;
-
-#ifdef FBIO_WAITFORVSYNC
-     dfb_gfxcard_sync();
-     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ))
-#endif
-          waitretrace();
-
-     return DFB_OK;
-}
-
-static DFBResult
-primarySetScreenPowerMode( CoreLayer          *layer,
-                           void               *driver_data,
-                           void               *layer_data,
-                           DFBScreenPowerMode  mode )
-{
-     int level;
-
-     switch (mode) {
-          case DSPM_OFF:
-               level = 4;
-               break;
-          case DSPM_SUSPEND:
-               level = 3;
-               break;
-          case DSPM_STANDBY:
-               level = 2;
-               break;
-          case DSPM_ON:
-               level = 0;
-               break;
-          default:
-               return DFB_INVARG;
-     }
-
-     return dfb_fbdev_blank( level );
 }
 
 static DFBResult
@@ -1087,7 +1119,7 @@ primaryFlipRegion( CoreLayer           *layer,
 
      if (((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) &&
          !dfb_config->pollvsync_after)
-          dfb_layer_wait_vsync( layer );
+          dfb_screen_wait_vsync( dfb_screens_at(DSCID_PRIMARY) );
 
      ret = dfb_fbdev_pan( surface->back_buffer->video.offset /
                           surface->back_buffer->video.pitch,
@@ -1097,7 +1129,7 @@ primaryFlipRegion( CoreLayer           *layer,
 
      if ((flags & DSFLIP_WAIT) &&
          (dfb_config->pollvsync_after || !(flags & DSFLIP_ONSYNC)))
-          dfb_layer_wait_vsync( layer );
+          dfb_screen_wait_vsync( dfb_screens_at(DSCID_PRIMARY) );
 
      dfb_surface_flip_buffers( surface );
 

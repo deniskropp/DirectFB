@@ -11,14 +11,14 @@ TOOLS_DIR = tools
 endif
 
 SUBDIRS = \
+	docs			\
 	patches 		\
 	include 		\
 	src 			\
 	$(TOOLS_DIR)		\
 	$(LINUXONLY_DIRS)	\
 	interfaces 		\
-	data			\
-	docs
+	data
 
 bin_SCRIPTS = directfb-config
 

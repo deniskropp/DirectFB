@@ -45,12 +45,14 @@
 
 #include <core/state.h>
 #include <core/gfxcard.h>
+#include <core/screens.h>
 #include <core/surfaces.h>
 #include <core/system.h>
 
 #include <core/fbdev/fbdev.h>
 
 #include <gfx/convert.h>
+#include <misc/util.h>
 
 #include <core/graphics_driver.h>
 
@@ -298,12 +300,64 @@ static bool radeonBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
 
 
 static DFBResult
-radeonWaitVSync( CoreLayer *layer,
-		 void      *driver_data,
-		 void      *layer_data )
+radeonInitScreen( CoreScreen           *screen,
+                  GraphicsDevice       *device,
+                  void                 *driver_data,
+                  void                 *screen_data,
+                  DFBScreenDescription *description )
 {
-    RADEONDriverData	*rdrv	= ( RADEONDriverData* ) driver_data;
-    int			i;
+     /* Set the screen capabilities. */
+     description->caps = DSCCAPS_VSYNC | DSCCAPS_POWER_MANAGEMENT;
+
+     /* Set the screen name. */
+     snprintf( description->name,
+               DFB_SCREEN_DESC_NAME_LENGTH, "Radeon Primary Screen" );
+
+     return DFB_OK;
+}
+
+static DFBResult
+radeonSetPowerMode( CoreScreen         *screen,
+                    void               *driver_data,
+                    void               *screen_data,
+                    DFBScreenPowerMode  mode )
+{
+     int    level;
+     FBDev *fbdev = dfb_system_data();
+
+     switch (mode) {
+          case DSPM_OFF:
+               level = 4;
+               break;
+          case DSPM_SUSPEND:
+               level = 3;
+               break;
+          case DSPM_STANDBY:
+               level = 2;
+               break;
+          case DSPM_ON:
+               level = 0;
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
+
+     if (ioctl( fbdev->fd, FBIOBLANK, level ) < 0) {
+          PERRORMSG( "DirectFB/matrox: Display blanking failed!\n" );
+
+          return errno2dfb( errno );
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+radeonWaitVSync( CoreScreen *screen,
+		 void       *driver_data,
+		 void       *layer_data )
+{
+    RADEONDriverData *rdrv = (RADEONDriverData*) driver_data;
+    int               i;
 
     if ( dfb_config->pollvsync_none )
 	return DFB_OK;
@@ -321,7 +375,9 @@ radeonWaitVSync( CoreLayer *layer,
     return DFB_OK;
 }
 
-DisplayLayerFuncs radeonPrimaryFuncs = {
+static ScreenFuncs radeonScreenFuncs = {
+     InitScreen:         radeonInitScreen,
+     SetPowerMode:       radeonSetPowerMode,
      WaitVSync:          radeonWaitVSync
 };
 
@@ -392,7 +448,7 @@ driver_init_driver( GraphicsDevice      *device,
 #ifdef FBIO_WAITFORVSYNC
     if ( ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ) )
 #endif
-	dfb_layers_hook_primary( device, driver_data, &radeonPrimaryFuncs, NULL, NULL );
+	dfb_screens_register_primary( device, driver_data, &radeonScreenFuncs );
 
     return DFB_OK;
 }

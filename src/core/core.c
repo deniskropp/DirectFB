@@ -62,7 +62,15 @@
 #include <misc/util.h>
 
 
-#define DIRECTFB_CORE_ABI     5
+#define DIRECTFB_CORE_ABI     7
+
+extern CorePart dfb_core_clipboard;
+extern CorePart dfb_core_colorhash;
+extern CorePart dfb_core_gfxcard;
+extern CorePart dfb_core_input;
+extern CorePart dfb_core_layers;
+extern CorePart dfb_core_screens;
+extern CorePart dfb_core_system;
 
 /******************************************************************************/
 
@@ -130,6 +138,7 @@ static CorePart *core_parts[] = {
      &dfb_core_system,
      &dfb_core_input,
      &dfb_core_gfxcard,
+     &dfb_core_screens,
      &dfb_core_layers
 };
 
@@ -468,11 +477,15 @@ dfb_core_suspend( CoreDFB *core )
      if (!core->master)
           return DFB_ACCESSDENIED;
 
+     ret = dfb_core_input.Suspend( core );
+     if (ret)
+          return ret;
+
      ret = dfb_core_layers.Suspend( core );
      if (ret)
           return ret;
 
-     ret = dfb_core_input.Suspend( core );
+     ret = dfb_core_screens.Suspend( core );
      if (ret)
           return ret;
 
@@ -498,11 +511,15 @@ dfb_core_resume( CoreDFB *core )
      if (!core->master)
           return DFB_ACCESSDENIED;
 
+     ret = dfb_core_input.Resume( core );
+     if (ret)
+          return ret;
+
      ret = dfb_core_gfxcard.Resume( core );
      if (ret)
           return ret;
 
-     ret = dfb_core_input.Resume( core );
+     ret = dfb_core_screens.Resume( core );
      if (ret)
           return ret;
 

@@ -71,6 +71,7 @@ later versions on an EPIA-M10000.
 #include <core/graphics_driver.h>
 #include <core/surfacemanager.h>
 #include <core/system.h>
+#include <core/screens.h>
 
 // System headers
 
@@ -451,7 +452,8 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
      funcs->Blit          = uc_blit;
      funcs->StretchBlit   = uc_stretch_blit;
 
-     dfb_layers_register(device, driver_data, &ucOverlayFuncs);
+     dfb_layers_register( dfb_screens_at(DSCID_PRIMARY),
+                          driver_data, &ucOverlayFuncs );
 
      return DFB_OK;
 }

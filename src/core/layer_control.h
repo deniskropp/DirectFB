@@ -56,16 +56,12 @@ DFBResult dfb_layer_resume                  ( CoreLayer          *layer );
 DFBResult dfb_layer_get_current_output_field( CoreLayer          *layer,
                                               int                *field );
 
-DFBResult dfb_layer_wait_vsync              ( CoreLayer          *layer );
-
 DFBResult dfb_layer_get_level               ( CoreLayer          *layer,
                                               int                *ret_level );
 
 DFBResult dfb_layer_set_level               ( CoreLayer          *layer,
                                               int                 level );
 
-DFBResult dfb_layer_set_screen_power_mode   ( CoreLayer          *layer,
-                                              DFBScreenPowerMode  mode );
-
+DFBResult dfb_layer_wait_vsync              ( CoreLayer          *layer );
 
 #endif

@@ -1182,19 +1182,24 @@ driver_init_driver( GraphicsDevice      *device,
 
      /* will be set dynamically: funcs->Blit */
 
+     /* Generic CRTC1 support */
+     mdrv->primary = dfb_screens_at( DSCID_PRIMARY );
 
      /* G200/G400/G450/G550 Backend Scaler Support */
      if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200 ||
          mdrv->accelerator == FB_ACCEL_MATROX_MGAG400)
-          dfb_layers_register( device, driver_data, &matroxBesFuncs );
+          dfb_layers_register( mdrv->primary, driver_data, &matroxBesFuncs );
 
-     /* G400/G450/G550 CRTC2 Support */
+     /* G400/G450/G550 CRTC2 support */
 #ifdef FB_ACCEL_MATROX_MGAG400
      if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400 &&
          dfb_config->matrox_crtc2)
      {
-          dfb_layers_register( device, driver_data, &matroxCrtc2Funcs );
-          dfb_layers_register( device, driver_data, &matroxSpicFuncs );
+          mdrv->secondary = dfb_screens_register( device, driver_data,
+                                                  &matroxCrtc2ScreenFuncs );
+
+          dfb_layers_register( mdrv->secondary, driver_data, &matroxCrtc2Funcs );
+          dfb_layers_register( mdrv->secondary, driver_data, &matroxSpicFuncs );
      }
 #endif
 

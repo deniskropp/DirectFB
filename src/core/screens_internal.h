@@ -25,19 +25,38 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __SDL__PRIMARY_H__
-#define __SDL__PRIMARY_H__
+#ifndef __DFB__CORE__SCREENS_INTERNAL_H__
+#define __DFB__CORE__SCREENS_INTERNAL_H__
 
-#include <core/layers.h>
+#include <directfb.h>
+
+#include <core/fusion/lock.h>
+
+#include <core/coretypes.h>
 #include <core/screens.h>
 
-extern ScreenFuncs       sdlPrimaryScreenFuncs;
-extern DisplayLayerFuncs sdlPrimaryLayerFuncs;
 
-int dfb_sdl_call_handler( int   caller,
-                          int   call_arg,
-                          void *call_ptr,
-                          void *ctx );
+typedef struct {
+     DFBScreenID           screen_id;
+
+     DFBScreenDescription  description;
+
+     void                 *screen_data;
+
+     FusionSkirmish        lock;
+} CoreScreenShared;
+
+struct __DFB_CoreScreen {
+     CoreScreenShared     *shared;
+
+     CoreDFB              *core;
+     GraphicsDevice       *device;
+
+     ScreenFuncs          *funcs;
+
+     void                 *driver_data;
+     void                 *screen_data;   /* copy of shared->screen_data */
+};
 
 #endif
 

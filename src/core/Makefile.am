@@ -47,6 +47,8 @@ internalinclude_HEADERS = \
 	layers.h		\
 	modules.h		\
 	palette.h		\
+	screen.h		\
+	screens.h		\
 	sig.h			\
 	state.h			\
 	surfaces.h		\
@@ -78,6 +80,8 @@ libdirectfb_core_la_SOURCES = \
 	layers_internal.h	\
 	modules.c		\
 	palette.c		\
+	screen.c		\
+	screens.c		\
 	sig.c			\
 	state.c			\
 	surfaces.c		\

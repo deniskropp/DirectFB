@@ -53,8 +53,9 @@ static inline _syscall0(pid_t,gettid)
 #define DFB_DYNAMIC_LINKING
 #endif
 
-#define MAX_INPUTDEVICES 100
-#define MAX_LAYERS       100
+#define MAX_INPUTDEVICES 30
+#define MAX_LAYERS       40
+#define MAX_SCREENS      20
 
 
 #if defined(DFB_NOTEXT)

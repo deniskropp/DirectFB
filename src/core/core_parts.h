@@ -73,13 +73,6 @@ typedef struct {
      CoreResume      Resume;
 } CorePart;
 
-extern CorePart dfb_core_clipboard;
-extern CorePart dfb_core_colorhash;
-extern CorePart dfb_core_system;
-extern CorePart dfb_core_input;
-extern CorePart dfb_core_gfxcard;
-extern CorePart dfb_core_layers;
-
 DFBResult dfb_core_part_initialize( CoreDFB  *core,
                                     CorePart *core_part );
 

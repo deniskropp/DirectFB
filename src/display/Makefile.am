@@ -12,7 +12,8 @@ internalinclude_HEADERS = \
 	idirectfbsurface.h		\
 	idirectfbsurface_layer.h 	\
 	idirectfbsurface_window.h 	\
-	idirectfbdisplaylayer.h
+	idirectfbdisplaylayer.h		\
+	idirectfbscreen.h
 
 
 noinst_LTLIBRARIES = libdirectfb_display.la
@@ -22,4 +23,5 @@ libdirectfb_display_la_SOURCES =	\
 	idirectfbsurface.c		\
 	idirectfbsurface_layer.c 	\
 	idirectfbsurface_window.c 	\
-	idirectfbdisplaylayer.c
+	idirectfbdisplaylayer.c		\
+	idirectfbscreen.c

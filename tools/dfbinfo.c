@@ -37,8 +37,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "directfb.h"
+#include <directfb.h>
+#include <directfb_strings.h>
 
+static const DirectFBInputDeviceTypeFlagsNames(input_types);
+static const DirectFBInputDeviceCapabilitiesNames(input_caps);
+
+static const DirectFBDisplayLayerTypeFlagsNames(layer_types);
+static const DirectFBDisplayLayerCapabilitiesNames(layer_caps);
+
+static const DirectFBScreenCapabilitiesNames(screen_caps);
 
 /*****************************************************************************/
 
@@ -48,7 +56,7 @@ static IDirectFB *dfb = NULL;
 
 static DFBBoolean parse_command_line ( int argc, char *argv[] );
 static void       enum_input_devices ();
-static void       enum_display_layers ();
+static void       enum_screens ();
 
 /*****************************************************************************/
 
@@ -78,7 +86,9 @@ main( int argc, char *argv[] )
           return -3;
      }
 
-     enum_display_layers();
+     printf( "\n" );
+
+     enum_screens();
      enum_input_devices();
 
      /* Release the super interface. */
@@ -102,8 +112,10 @@ input_device_callback( DFBInputDeviceID           id,
                        DFBInputDeviceDescription  desc,
                        void                      *arg )
 {
+     int i;
+
      /* Name */
-     printf( "(%02x) %-30s", id, desc.name );
+     printf( "Input (%02x) %-30s", id, desc.name );
 
      switch (id) {
           case DIDID_JOYSTICK:
@@ -125,36 +137,22 @@ input_device_callback( DFBInputDeviceID           id,
      printf( "\n" );
 
      /* Type */
-     printf( "        Type: " );
+     printf( "   Type: " );
 
-     if (desc.type & DIDTF_KEYBOARD)
-          printf( "keyboard " );
-
-     if (desc.type & DIDTF_MOUSE)
-          printf( "mouse " );
-
-     if (desc.type & DIDTF_JOYSTICK)
-          printf( "joystick " );
-
-     if (desc.type & DIDTF_REMOTE)
-          printf( "remote " );
-
-     if (desc.type & DIDTF_VIRTUAL)
-          printf( "virtual " );
+     for (i=0; input_types[i].type; i++) {
+          if (desc.type & input_types[i].type)
+               printf( "%s ", input_types[i].name );
+     }
 
      printf( "\n" );
 
      /* Caps */
-     printf( "        Caps: " );
+     printf( "   Caps: " );
 
-     if (desc.caps & DICAPS_AXES)
-          printf( "axes " );
-
-     if (desc.caps & DICAPS_BUTTONS)
-          printf( "buttons " );
-
-     if (desc.caps & DICAPS_KEYS)
-          printf( "keys " );
+     for (i=0; input_caps[i].capability; i++) {
+          if (desc.caps & input_caps[i].capability)
+               printf( "%s ", input_caps[i].name );
+     }
 
      printf( "\n" );
 
@@ -168,7 +166,7 @@ enum_input_devices()
 {
      DFBResult ret;
 
-     printf( "\nInput Devices\n\n" );
+     printf( "\n" );
 
      ret = dfb->EnumInputDevices( dfb, input_device_callback, NULL );
      if (ret)
@@ -182,8 +180,10 @@ display_layer_callback( DFBDisplayLayerID           id,
                         DFBDisplayLayerDescription  desc,
                         void                       *arg )
 {
+     int i;
+
      /* Name */
-     printf( "(%02x) %-30s", id, desc.name );
+     printf( "     Layer (%02x) %-30s", id, desc.name );
 
      switch (id) {
           case DLID_PRIMARY:
@@ -198,61 +198,20 @@ display_layer_callback( DFBDisplayLayerID           id,
      /* Type */
      printf( "        Type: " );
 
-     if (desc.type & DLTF_BACKGROUND)
-          printf( "background " );
-
-     if (desc.type & DLTF_GRAPHICS)
-          printf( "graphics " );
-
-     if (desc.type & DLTF_STILL_PICTURE)
-          printf( "picture " );
-
-     if (desc.type & DLTF_VIDEO)
-          printf( "video " );
+     for (i=0; layer_types[i].type; i++) {
+          if (desc.type & layer_types[i].type)
+               printf( "%s ", layer_types[i].name );
+     }
 
      printf( "\n" );
 
      /* Caps */
      printf( "        Caps: " );
 
-     if (desc.caps & DLCAPS_ALPHACHANNEL)
-          printf( "alphachannel " );
-
-     if (desc.caps & DLCAPS_BRIGHTNESS)
-          printf( "brightness " );
-
-     if (desc.caps & DLCAPS_CONTRAST)
-          printf( "contrast " );
-
-     if (desc.caps & DLCAPS_DEINTERLACING)
-          printf( "deinterlacing " );
-
-     if (desc.caps & DLCAPS_DST_COLORKEY)
-          printf( "dst_colorkey " );
-
-     if (desc.caps & DLCAPS_FLICKER_FILTERING)
-          printf( "flicker_filtering " );
-
-     if (desc.caps & DLCAPS_HUE)
-          printf( "hue " );
-
-     if (desc.caps & DLCAPS_LEVELS)
-          printf( "levels " );
-
-     if (desc.caps & DLCAPS_OPACITY)
-          printf( "opacity " );
-
-     if (desc.caps & DLCAPS_SATURATION)
-          printf( "saturation " );
-
-     if (desc.caps & DLCAPS_SCREEN_LOCATION)
-          printf( "screen_location " );
-
-     if (desc.caps & DLCAPS_SRC_COLORKEY)
-          printf( "src_colorkey " );
-
-     if (desc.caps & DLCAPS_SURFACE)
-          printf( "surface " );
+     for (i=0; layer_caps[i].capability; i++) {
+          if (desc.caps & layer_caps[i].capability)
+               printf( "%s ", layer_caps[i].name );
+     }
 
      printf( "\n" );
 
@@ -262,14 +221,72 @@ display_layer_callback( DFBDisplayLayerID           id,
 }
 
 static void
-enum_display_layers()
+enum_display_layers( IDirectFBScreen *screen )
 {
      DFBResult ret;
 
-     printf( "\nDisplay Layers\n\n" );
-
-     ret = dfb->EnumDisplayLayers( dfb, display_layer_callback, NULL );
+     ret = screen->EnumDisplayLayers( screen, display_layer_callback, NULL );
      if (ret)
-          DirectFBError( "IDirectFB::EnumDisplayLayers", ret );
+          DirectFBError( "IDirectFBScreen::EnumDisplayLayers", ret );
+}
+
+/*****************************************************************************/
+
+static DFBEnumerationResult
+screen_callback( DFBScreenID           id,
+                 DFBScreenDescription  desc,
+                 void                 *arg )
+{
+     int              i;
+     DFBResult        ret;
+     IDirectFBScreen *screen;
+
+     /* Name */
+     printf( "Screen (%02x) %-30s", id, desc.name );
+
+     switch (id) {
+          case DSCID_PRIMARY:
+               printf( "  (primary screen)" );
+               break;
+          default:
+               break;
+     }
+
+     printf( "\n" );
+
+     /* Caps */
+     printf( "   Caps: " );
+
+     for (i=0; screen_caps[i].capability; i++) {
+          if (desc.caps & screen_caps[i].capability)
+               printf( "%s ", screen_caps[i].name );
+     }
+
+     printf( "\n" );
+
+     printf( "\n" );
+
+
+     ret = dfb->GetScreen( dfb, id, &screen );
+     if (ret)
+          DirectFBErrorFatal( "IDirectFB::GetScreen", ret );
+
+     enum_display_layers( screen );
+
+     screen->Release( screen );
+
+     return DFB_OK;
+}
+
+static void
+enum_screens()
+{
+     DFBResult ret;
+
+     printf( "\n" );
+
+     ret = dfb->EnumScreens( dfb, screen_callback, NULL );
+     if (ret)
+          DirectFBError( "IDirectFB::EnumScreens", ret );
 }
 

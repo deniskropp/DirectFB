@@ -42,6 +42,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/screens.h>
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
@@ -540,7 +541,8 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->Blit          = nvBlit;
      funcs->StretchBlit   = nvStretchBlit;
 
-     dfb_layers_register( device, driver_data, &nvidiaOverlayFuncs );
+     dfb_layers_register( dfb_screens_at(DSCID_PRIMARY),
+                          driver_data, &nvidiaOverlayFuncs );
 
      return DFB_OK;
 }

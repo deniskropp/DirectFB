@@ -1,0 +1,130 @@
+/*
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002-2004  convergence GmbH.
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+
+#include <directfb.h>
+
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+#include <core/fbdev/fbdev.h>
+
+#include <misc/util.h>
+
+
+#include "regs.h"
+#include "mmio.h"
+#include "matrox.h"
+#include "matrox_maven.h"
+
+
+typedef struct {
+     DFBScreenPowerMode power_mode;
+} MatroxCrtc2ScreenData;
+
+static void crtc2_wait_vsync( MatroxDriverData *mdrv );
+
+/******************************************************************************/
+
+static int
+crtc2ScreenDataSize()
+{
+     return sizeof(MatroxCrtc2ScreenData);
+}
+
+static DFBResult
+crtc2InitScreen( CoreScreen           *screen,
+                 GraphicsDevice       *device,
+                 void                 *driver_data,
+                 void                 *screen_data,
+                 DFBScreenDescription *description )
+{
+     /* Set the screen capabilities. */
+     description->caps = DSCCAPS_VSYNC | DSCCAPS_TV_ENCODER;
+
+     /* Set the screen name. */
+     snprintf( description->name,
+               DFB_SCREEN_DESC_NAME_LENGTH, "Matrox CRTC2 Screen" );
+
+     return DFB_OK;
+}
+
+static DFBResult
+crtc2SetPowerMode( CoreScreen         *screen,
+                   void               *driver_data,
+                   void               *screen_data,
+                   DFBScreenPowerMode  mode )
+{
+     MatroxCrtc2ScreenData *msc2 = (MatroxCrtc2ScreenData*) screen_data;
+
+     msc2->power_mode = mode;
+
+     return DFB_OK;
+}
+
+static DFBResult
+crtc2WaitVSync( CoreScreen *screen,
+                void       *driver_data,
+                void       *screen_data )
+{
+     MatroxDriverData      *mdrv = (MatroxDriverData*) driver_data;
+     MatroxCrtc2ScreenData *msc2 = (MatroxCrtc2ScreenData*) screen_data;
+
+     if (msc2->power_mode == DSPM_ON)
+          crtc2_wait_vsync( mdrv );
+
+     return DFB_OK;
+}
+
+ScreenFuncs matroxCrtc2ScreenFuncs = {
+     ScreenDataSize:     crtc2ScreenDataSize,
+     InitScreen:         crtc2InitScreen,
+     SetPowerMode:       crtc2SetPowerMode,
+     WaitVSync:          crtc2WaitVSync
+};
+
+/******************************************************************************/
+
+static void crtc2_wait_vsync( MatroxDriverData *mdrv )
+{
+     int vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 2;
+
+#ifdef FBIO_WAITFORVSYNC
+     static const int one = 1;
+     FBDev *dfb_fbdev = dfb_system_data();
+     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &one ))
+#endif
+          while ((int)(mga_in32( mdrv->mmio_base, C2VCOUNT ) & 0x00000FFF) != vdisplay)
+               ;
+}
+

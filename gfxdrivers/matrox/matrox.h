@@ -31,6 +31,7 @@
 #include <dfb_types.h>
 
 #include <core/layers.h>
+#include <core/screens.h>
 
 
 typedef enum {
@@ -55,6 +56,9 @@ typedef struct {
      int            accelerator;
      int            maven_fd;
      volatile __u8 *mmio_base;
+
+     CoreScreen    *primary;
+     CoreScreen    *secondary;
 } MatroxDriverData;
 
 typedef struct {
@@ -101,6 +105,8 @@ typedef struct {
 extern DisplayLayerFuncs matroxBesFuncs;
 extern DisplayLayerFuncs matroxCrtc2Funcs;
 extern DisplayLayerFuncs matroxSpicFuncs;
+
+extern ScreenFuncs matroxCrtc2ScreenFuncs;
 
 static inline int mga_log2( int val )
 {

@@ -125,21 +125,6 @@ typedef struct {
                                          void                   *layer_data,
                                          int                     level );
 
-     /*
-      * Wait for the vertical retrace.
-      */
-     DFBResult (*WaitVSync)            ( CoreLayer              *layer,
-                                         void                   *driver_data,
-                                         void                   *layer_data );
-
-     /*
-      * Switch between "on", "standby", "suspend" and "off".
-      */
-     DFBResult (*SetScreenPowerMode)   ( CoreLayer              *layer,
-                                         void                   *driver_data,
-                                         void                   *layer_data,
-                                         DFBScreenPowerMode      mode );
-
 
    /** Configuration **/
 
@@ -261,9 +246,9 @@ typedef struct {
  * containing driver functions. The supplied driver data
  * will be passed to these functions.
  */
-void dfb_layers_register( GraphicsDevice    *device,
-                          void              *driver_data,
-                          DisplayLayerFuncs *funcs );
+CoreLayer *dfb_layers_register( CoreScreen        *screen,
+                                void              *driver_data,
+                                DisplayLayerFuncs *funcs );
 
 /*
  * Replace functions of the primary layer implementation by passing
@@ -272,19 +257,19 @@ void dfb_layers_register( GraphicsDevice    *device,
  * The original function table is written to 'primary_funcs' before to allow
  * drivers to use existing functionality from the original implementation.
  */
-void dfb_layers_hook_primary( GraphicsDevice     *device,
-                              void               *driver_data,
-                              DisplayLayerFuncs  *funcs,
-                              DisplayLayerFuncs  *primary_funcs,
-                              void              **primary_driver_data );
+CoreLayer *dfb_layers_hook_primary( GraphicsDevice     *device,
+                                    void               *driver_data,
+                                    DisplayLayerFuncs  *funcs,
+                                    DisplayLayerFuncs  *primary_funcs,
+                                    void              **primary_driver_data );
 
 /*
  * Replace functions of the primary layer implementation completely by passing
  * an alternative driver function table.
  */
-void dfb_layers_replace_primary( GraphicsDevice     *device,
-                                 void               *driver_data,
-                                 DisplayLayerFuncs  *funcs );
+CoreLayer *dfb_layers_replace_primary( GraphicsDevice     *device,
+                                       void               *driver_data,
+                                       DisplayLayerFuncs  *funcs );
 
 typedef DFBEnumerationResult (*DisplayLayerCallback) (CoreLayer *layer,
                                                       void      *ctx);
@@ -299,6 +284,8 @@ inline CoreLayer *dfb_layer_at_translated( DFBDisplayLayerID id );
 
 inline void dfb_layer_get_description( const CoreLayer            *layer,
                                        DFBDisplayLayerDescription *desc );
+
+inline CoreScreen *dfb_layer_screen( const CoreLayer *layer );
 
 inline DFBDisplayLayerID dfb_layer_id( const CoreLayer *layer );
 

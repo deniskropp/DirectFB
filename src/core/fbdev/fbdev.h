@@ -39,6 +39,11 @@
 
 #include "vt.h"
 
+#ifndef FBIO_WAITFORVSYNC
+#define FBIO_WAITFORVSYNC	_IOW('F', 0x20, u_int32_t)
+#endif
+
+
 typedef struct {
      /* fbdev fixed screeninfo, contains infos about memory and type of card */
      struct fb_fix_screeninfo fix;

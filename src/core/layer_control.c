@@ -50,6 +50,7 @@
 #include <core/layer_control.h>
 #include <core/layer_region.h>
 #include <core/layers.h>
+#include <core/screen.h>
 #include <core/state.h>
 #include <core/palette.h>
 #include <core/system.h>
@@ -477,19 +478,6 @@ dfb_layer_get_current_output_field( CoreLayer *layer, int *field )
 }
 
 DFBResult
-dfb_layer_wait_vsync( CoreLayer *layer )
-{
-     DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->funcs != NULL );
-
-     if (!layer->funcs->WaitVSync)
-          return DFB_UNSUPPORTED;
-
-     return layer->funcs->WaitVSync( layer, layer->driver_data,
-                                     layer->layer_data );
-}
-
-DFBResult
 dfb_layer_get_level( CoreLayer *layer, int *ret_level )
 {
      DisplayLayerFuncs *funcs;
@@ -525,20 +513,10 @@ dfb_layer_set_level( CoreLayer *layer, int level )
 }
 
 DFBResult
-dfb_layer_set_screen_power_mode( CoreLayer          *layer,
-                                 DFBScreenPowerMode  mode )
+dfb_layer_wait_vsync( CoreLayer *layer )
 {
-     DisplayLayerFuncs *funcs;
-
      DFB_ASSERT( layer != NULL );
-     DFB_ASSERT( layer->funcs != NULL );
 
-     funcs = layer->funcs;
-
-     if (!funcs->SetScreenPowerMode)
-          return DFB_UNSUPPORTED;
-
-     return funcs->SetScreenPowerMode( layer, layer->driver_data,
-                                       layer->layer_data, mode );
+     return dfb_screen_wait_vsync( layer->screen );
 }
 

@@ -33,6 +33,7 @@
 #include <core/fusion/shmalloc.h>
 
 #include <core/core.h>
+#include <core/gfxcard.h>
 #include <core/layer_context.h>
 #include <core/layer_control.h>
 #include <core/layer_region.h>
@@ -445,6 +446,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                     /* Use the driver's routine if the region is realized. */
                     if (FLAG_IS_SET( region->state, CLRSF_REALIZED )) {
                          DFB_ASSUME( funcs->FlipRegion != NULL );
+
+                         dfb_gfxcard_sync();
 
                          if (funcs->FlipRegion)
                               ret = funcs->FlipRegion( layer,

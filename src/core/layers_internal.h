@@ -71,6 +71,8 @@ struct __DFB_CoreLayer {
 
      GraphicsDevice    *device;
 
+     CoreScreen        *screen;
+
      void              *driver_data;
      void              *layer_data;   /* copy of shared->layer_data */
 

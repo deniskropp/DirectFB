@@ -44,6 +44,7 @@
 #include <core/gfxcard.h>
 #include <core/layer_control.h>
 #include <core/layers.h>
+#include <core/screen.h>
 #include <core/surfaces.h>
 #include <core/system.h>
 #include <core/windows.h>
@@ -343,7 +344,7 @@ besFlipRegion( CoreLayer           *layer,
      bes_set_regs( mdrv, mbes, flags & DSFLIP_ONSYNC );
 
      if (flags & DSFLIP_WAIT)
-          dfb_layer_wait_vsync( dfb_layer_at( DLID_PRIMARY ) );
+          dfb_screen_wait_vsync( mdrv->primary );
 
      return DFB_OK;
 }
