@@ -548,6 +548,44 @@ Dispatch_GetSurface( IDirectFBWindow *thiz, IDirectFBWindow *real,
 }
 
 static DirectResult
+Dispatch_SetOptions( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                     VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult           ret;
+     VoodooMessageParser parser;
+     DFBWindowOptions    options;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_INT( parser, options );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->SetOptions( real, options );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_GetOptions( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                     VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult     ret;
+     DFBWindowOptions options;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     ret = real->GetOptions( real, &options );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_INT, options,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_SetOpacity( IDirectFBWindow *thiz, IDirectFBWindow *real,
                      VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -563,6 +601,49 @@ Dispatch_SetOpacity( IDirectFBWindow *thiz, IDirectFBWindow *real,
      real->SetOpacity( real, opacity );
 
      return DFB_OK;
+}
+
+static DirectResult
+Dispatch_SetCursorShape( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                         VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     VoodooMessageParser  parser;
+     VoodooInstanceID     instance;
+     const DFBPoint      *hot;
+     void                *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, instance );
+     VOODOO_PARSER_GET_DATA( parser, hot );
+     VOODOO_PARSER_END( parser );
+
+     ret = voodoo_manager_lookup( manager, instance, NULL, &surface );
+     if (ret)
+          return ret;
+
+     ret = real->SetCursorShape( real, surface, hot->x, hot->y );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_RequestFocus( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                       VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult ret;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     ret = real->RequestFocus( real );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
 }
 
 static DirectResult
@@ -653,6 +734,95 @@ Dispatch_Resize( IDirectFBWindow *thiz, IDirectFBWindow *real,
 }
 
 static DirectResult
+Dispatch_SetStackingClass( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                           VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult              ret;
+     VoodooMessageParser    parser;
+     DFBWindowStackingClass stacking_class;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_INT( parser, stacking_class );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->SetStackingClass( real, stacking_class );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_Raise( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     real->Raise( real );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_Lower( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     real->Lower( real );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_RaiseToTop( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                     VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     real->RaiseToTop( real );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_LowerToBottom( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                        VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     real->LowerToBottom( real );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_Close( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     real->Close( real );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_Destroy( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult ret;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     ret = real->Destroy( real );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBWindow/Dispatcher: "
@@ -661,22 +831,63 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
      switch (msg->method) {
           case IDIRECTFBWINDOW_METHOD_ID_CreateEventBuffer:
                return Dispatch_CreateEventBuffer( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_GetID:
                return Dispatch_GetID( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_GetSurface:
                return Dispatch_GetSurface( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_SetOptions:
+               return Dispatch_SetOptions( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_GetOptions:
+               return Dispatch_GetOptions( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_SetOpacity:
                return Dispatch_SetOpacity( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_SetCursorShape:
+               return Dispatch_SetCursorShape( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_RequestFocus:
+               return Dispatch_RequestFocus( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_GrabPointer:
                return Dispatch_GrabPointer( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_UngrabPointer:
                return Dispatch_UngrabPointer( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_Move:
                return Dispatch_Move( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_MoveTo:
                return Dispatch_MoveTo( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_Resize:
                return Dispatch_Resize( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_SetStackingClass:
+               return Dispatch_SetStackingClass( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_Raise:
+               return Dispatch_Raise( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_Lower:
+               return Dispatch_Lower( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_RaiseToTop:
+               return Dispatch_RaiseToTop( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_LowerToBottom:
+               return Dispatch_LowerToBottom( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_Close:
+               return Dispatch_Close( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_Destroy:
+               return Dispatch_Destroy( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;
