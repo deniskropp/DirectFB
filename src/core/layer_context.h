@@ -87,6 +87,9 @@ DFBResult dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
 DFBResult dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
                                               __u8 r, __u8 g, __u8 b );
 
+DFBResult dfb_layer_context_set_sourcerectangle( CoreLayerContext *context,
+                                                 DFBRectangle     *source );
+
 DFBResult dfb_layer_context_set_screenlocation( CoreLayerContext *context,
                                                 DFBLocation      *location );
 

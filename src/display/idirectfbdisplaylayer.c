@@ -298,6 +298,26 @@ IDirectFBDisplayLayer_SetFieldParity( IDirectFBDisplayLayer *thiz, int field )
 }
 
 static DFBResult
+IDirectFBDisplayLayer_SetSourceRectangle( IDirectFBDisplayLayer *thiz,
+                                          int                    x,
+                                          int                    y,
+                                          int                    width,
+                                          int                    height )
+{
+     DFBRectangle source = { x, y, width, height };
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (x < 0 || y < 0 || width <= 0 || height <= 0)
+          return DFB_INVARG;
+
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
+
+     return dfb_layer_context_set_sourcerectangle( data->context, &source );
+}
+
+static DFBResult
 IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
                                          float                  x,
                                          float                  y,
@@ -736,6 +756,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetCooperativeLevel   = IDirectFBDisplayLayer_SetCooperativeLevel;
      thiz->SetOpacity            = IDirectFBDisplayLayer_SetOpacity;
      thiz->GetCurrentOutputField = IDirectFBDisplayLayer_GetCurrentOutputField;
+     thiz->SetSourceRectangle    = IDirectFBDisplayLayer_SetSourceRectangle;
      thiz->SetScreenLocation     = IDirectFBDisplayLayer_SetScreenLocation;
      thiz->SetSrcColorKey        = IDirectFBDisplayLayer_SetSrcColorKey;
      thiz->SetDstColorKey        = IDirectFBDisplayLayer_SetDstColorKey;

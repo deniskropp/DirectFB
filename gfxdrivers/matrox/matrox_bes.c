@@ -247,7 +247,7 @@ besSetRegion( CoreLayer                  *layer,
 
      /* set main configuration */
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT |
-                    CLRCF_OPTIONS | CLRCF_DEST | CLRCF_OPACITY))
+                    CLRCF_OPTIONS | CLRCF_DEST | CLRCF_OPACITY | CLRCF_SOURCE))
      {
           bes_calc_regs( mdrv, mbes, config, surface );
           bes_set_regs( mdrv, mbes, true );
@@ -430,8 +430,8 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 {
      MatroxDeviceData *mdev = mdrv->device_data;
      int cropleft, cropright, croptop, cropbot, croptop_uv;
-     int field_height, pitch, tmp, hzoom, intrep;
-     DFBRectangle   dest;
+     int pitch, tmp, hzoom, intrep;
+     DFBRectangle   source, dest;
      DFBRegion      dstBox;
      SurfaceBuffer *front_buffer = surface->front_buffer;
      VideoMode     *current_mode = dfb_system_current_mode();
@@ -440,17 +440,17 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      if (!current_mode)
           return;
 
-     dest = config->dest;
+     source = config->source;
+     dest   = config->dest;
 
      if (!mdev->g450_matrox && surface->format == DSPF_RGB32)
-          dest.w = surface->width;
+          dest.w = source.w;
 
-     field_height = surface->height;
-     pitch        = front_buffer->video.pitch;
+     pitch = front_buffer->video.pitch;
 
      if (config->options & DLOP_DEINTERLACING) {
-          field_height /= 2;
-          pitch        *= 2;
+          source.h /= 2;
+          pitch    *= 2;
      } else
           mbes->regs.besCTL_field = 0;
 
@@ -474,15 +474,20 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 
      /* scale crop values to source dimensions */
      if (cropleft)
-          cropleft = ((__u64) (surface->width << 16) * cropleft / dest.w) & ~0x3;
+          cropleft = ((__u64) (source.w << 16) * cropleft / dest.w) & ~0x3;
      if (croptop)
-          croptop = ((__u64) (field_height << 16) * croptop / dest.h) & ~0x3;
+          croptop = ((__u64) (source.h << 16) * croptop / dest.h) & ~0x3;
      if (cropright)
-          cropright = ((__u64) (surface->width << 16) * cropright / dest.w) & ~0x3;
+          cropright = ((__u64) (source.w << 16) * cropright / dest.w) & ~0x3;
      if (cropbot)
-          cropbot = ((__u64) (field_height << 16) * cropbot / dest.h) & ~0x3;
+          cropbot = ((__u64) (source.h << 16) * cropbot / dest.h) & ~0x3;
      if (croptop_uv)
-          croptop_uv = ((__u64) ((field_height/2) << 16) * croptop_uv / dest.h) & ~0x3;
+          croptop_uv = ((__u64) ((source.h/2) << 16) * croptop_uv / dest.h) & ~0x3;
+
+     /* add source cropping */
+     cropleft   += config->source.x << 16;
+     croptop    += config->source.y << 16;
+     croptop_uv += (config->source.y/2) << 16;
 
      /* should horizontal zoom be used? */
      if (mdev->g450_matrox)
@@ -575,8 +580,8 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      mbes->regs.besVCOORD   = (dstBox.y1 << 16) | dstBox.y2;
 
      mbes->regs.besHSRCST   = cropleft;
-     mbes->regs.besHSRCEND  = ((surface->width - 1) << 16) - cropright;
-     mbes->regs.besHSRCLST  = (surface->width - 1) << 16;
+     mbes->regs.besHSRCEND  = ((source.w - 1) << 16) - cropright;
+     mbes->regs.besHSRCLST  = (source.w - 1) << 16;
 
      /* vertical starting weights */
      tmp = croptop & 0xfffc;
@@ -597,7 +602,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      mbes->regs.besV2WGHT = tmp;
 
      mbes->regs.besV1SRCLST = mbes->regs.besV2SRCLST =
-          field_height - 1 - (croptop >> 16) - (cropbot >> 16);
+          source.h - 1 - (croptop >> 16) - (cropbot >> 16);
 
      /* horizontal scaling */
      if (!mdev->g450_matrox && surface->format == DSPF_RGB32) {
@@ -607,20 +612,20 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
           mbes->regs.besHSRCLST *= 2;
           mbes->regs.besPITCH   *= 2;
      } else {
-          intrep = ((mbes->regs.besCTL & BESHFEN) || (surface->width > dest.w)) ? 1 : 0;
-          if ((dest.w == surface->width) || (dest.w < 2))
+          intrep = ((mbes->regs.besCTL & BESHFEN) || (source.w > dest.w)) ? 1 : 0;
+          if ((dest.w == source.w) || (dest.w < 2))
                intrep = 0;
-          tmp = (((surface->width - intrep) << 16) / (dest.w - intrep)) << hzoom;
+          tmp = (((source.w - intrep) << 16) / (dest.w - intrep)) << hzoom;
           if (tmp >= (32 << 16))
                tmp = (32 << 16) - 1;
           mbes->regs.besHISCAL = tmp & 0x001ffffc;
      }
 
      /* vertical scaling */
-     intrep = ((mbes->regs.besCTL & BESVFEN) || (field_height > dest.h)) ? 1 : 0;
-     if ((dest.h == field_height) || (dest.h < 2))
+     intrep = ((mbes->regs.besCTL & BESVFEN) || (source.h > dest.h)) ? 1 : 0;
+     if ((dest.h == source.h) || (dest.h < 2))
           intrep = 0;
-     tmp = ((field_height - intrep) << 16) / (dest.h - intrep);
+     tmp = ((source.h - intrep) << 16) / (dest.h - intrep);
      if(tmp >= (32 << 16))
           tmp = (32 << 16) - 1;
      mbes->regs.besVISCAL = tmp & 0x001ffffc;

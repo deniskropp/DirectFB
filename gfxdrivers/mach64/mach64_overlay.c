@@ -349,15 +349,15 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
 
      dfb_region_intersect( &dst, 0, 0, mode->xres - 1, mode->yres - 1 );
 
-     h_inc = ((__u64) surface->width << 12) / config->dest.w;
+     h_inc = (config->source.w << 12) / config->dest.w;
 
      lcd_gen_ctrl = mach64_in_lcd( mmio, LCD_GEN_CTRL );
      lcd_vert_stretching = mach64_in_lcd( mmio, LCD_VERT_STRETCHING );
 
      if ((lcd_gen_ctrl & LCD_ON) && (lcd_vert_stretching & VERT_STRETCH_EN))
-          v_inc = ((__u64) surface->height << 2) * (lcd_vert_stretching & VERT_STRETCH_RATIO0) / config->dest.h;
+          v_inc = (config->source.h << 2) * (lcd_vert_stretching & VERT_STRETCH_RATIO0) / config->dest.h;
      else
-          v_inc = ((__u64) surface->height << 12) / config->dest.h;
+          v_inc = (config->source.h << 12) / config->dest.h;
 
      switch (surface->format) {
           case DSPF_ARGB1555:
@@ -442,7 +442,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
 
      mov->regs.overlay_KEY_CNTL = ovColorKey[(config->options >> 3) & 3];
 
-     mov->regs.scaler_HEIGHT_WIDTH = (surface->width << 16) | surface->height;
+     mov->regs.scaler_HEIGHT_WIDTH = (config->source.w << 16) | config->source.h;
      mov->regs.scaler_BUF_PITCH    = front_buffer->video.pitch / DFB_BYTES_PER_PIXEL( surface->format );
 
      mov->regs.overlay_Y_X_START = (dst.x1 << 16) | dst.y1 | OVERLAY_LOCK_START;
@@ -463,13 +463,17 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
 {
      __u32 offset, offset_u = 0, offset_v = 0;
      SurfaceBuffer *front_buffer = surface->front_buffer;
-     int cropleft = 0, croptop = 0;
+     int cropleft, croptop;
 
+     /* Source cropping */
+     cropleft = config->source.x;
+     croptop  = config->source.y;
+
+     /* Add destination cropping */
      if (config->dest.x < 0)
-          cropleft = -config->dest.x * surface->width / config->dest.w;
-
+          cropleft += -config->dest.x * config->source.w / config->dest.w;
      if (config->dest.y < 0)
-          croptop = -config->dest.y * surface->height / config->dest.h;
+          croptop  += -config->dest.y * config->source.h / config->dest.h;
 
      switch (surface->format) {
           case DSPF_I420:

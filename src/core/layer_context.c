@@ -747,6 +747,49 @@ dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
 }
 
 DFBResult
+dfb_layer_context_set_sourcerectangle( CoreLayerContext *context,
+                                       DFBRectangle     *source )
+{
+     DFBResult             ret;
+     CoreLayerRegionConfig config;
+
+     D_ASSERT( context != NULL );
+     D_ASSERT( source != NULL );
+
+     /* Lock the context. */
+     if (dfb_layer_context_lock( context ))
+          return DFB_FUSION;
+
+     /* Take the current configuration. */
+     config = context->primary.config;
+
+     /* Do nothing if the source rectangle didn't change. */
+     if (DFB_RECTANGLE_EQUAL( config.source, *source )) {
+          dfb_layer_context_unlock( context );
+          return DFB_OK;
+     }
+
+     /* Check if the new source rectangle is valid. */
+     if (source->x < 0 || source->y < 0 ||
+         source->x + source->w > config.width ||
+         source->y + source->h > config.height) {
+          dfb_layer_context_unlock( context );
+          return DFB_INVAREA;
+     }
+
+     /* Change the source rectangle. */
+     config.source = *source;
+
+     /* Try to set the new configuration. */
+     ret = update_primary_region_config( context, &config, CLRCF_SOURCE );
+
+     /* Unlock the context. */
+     dfb_layer_context_unlock( context );
+
+     return ret;
+}
+
+DFBResult
 dfb_layer_context_set_screenlocation( CoreLayerContext *context,
                                       DFBLocation      *location )
 {
@@ -1069,18 +1112,25 @@ build_updated_config( CoreLayerContext           *context,
      /* Get the current region configuration. */
      *ret_config = context->primary.config;
 
+     /* Reset source rectangle. */
+     if (update->flags & (DLCONF_WIDTH | DLCONF_HEIGHT)) {
+          flags |= CLRCF_SOURCE;
+          ret_config->source.x = 0;
+          ret_config->source.y = 0;
+          ret_config->source.w = ret_config->width;
+          ret_config->source.h = ret_config->height;
+     }
+
      /* Change width. */
      if (update->flags & DLCONF_WIDTH) {
-          flags |= CLRCF_WIDTH | CLRCF_SOURCE;
-
+          flags |= CLRCF_WIDTH;
           ret_config->width    = update->width;
           ret_config->source.w = update->width;
      }
 
      /* Change height. */
      if (update->flags & DLCONF_HEIGHT) {
-          flags |= CLRCF_HEIGHT | CLRCF_SOURCE;
-
+          flags |= CLRCF_HEIGHT;
           ret_config->height   = update->height;
           ret_config->source.h = update->height;
      }

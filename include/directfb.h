@@ -2183,6 +2183,19 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      );
 
      /*
+      * Set the source rectangle.
+      *
+      * Only this part of the layer will be displayed.
+      */
+     DFBResult (*SetSourceRectangle) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                 x,
+          int                                 y,
+          int                                 width,
+          int                                 height
+     );
+
+     /*
       * Set location on screen as normalized values.
       *
       * So the whole screen is 0.0, 0.0, -1.0, 1.0.
