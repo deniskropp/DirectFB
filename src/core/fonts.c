@@ -76,7 +76,6 @@ dfb_font_destroy( CoreFont *font )
      pthread_mutex_lock( &font->lock );
 
      dfb_state_set_source( &font->state, NULL );
-     dfb_state_set_destination( &font->state, NULL );
      dfb_state_destroy( &font->state );
      
      dfb_tree_destroy( font->glyph_infos );

@@ -1104,6 +1104,7 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
      DFB_ASSERT( bytes > 0 );
      DFB_ASSERT( font != NULL );
      
+     dfb_state_lock( state );
      dfb_font_lock( font );
 
      /* preload glyphs to avoid deadlock */
@@ -1120,10 +1121,13 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
      if (x > state->clip.x2 || y > state->clip.y2 ||
          y + font->ascender - font->descender <= state->clip.y1) {
           dfb_font_unlock( font );
+          dfb_state_unlock( state );
           return;
      }
 
-     dfb_state_set_destination( &font->state, state->destination );
+     /* set destination */
+     font->state.destination  = state->destination;
+     font->state.modified    |= SMF_DESTINATION;
 
      /* set clip and color */
      font->state.clip         = state->clip;
@@ -1215,7 +1219,10 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
                break;
      }
 
+     font->state.destination = NULL;
+     
      dfb_font_unlock( font );
+     dfb_state_unlock( state );
 }
 
 void dfb_gfxcard_drawglyph( unichar index, int x, int y,
@@ -1229,12 +1236,14 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      DFB_ASSERT( state != NULL );
      DFB_ASSERT( font != NULL );
      
+     dfb_state_lock( state );
      dfb_font_lock( font );
 
      if (dfb_font_get_glyph_data (font, index, &data) != DFB_OK ||
          !data->width) {
 
           dfb_font_unlock( font );
+          dfb_state_unlock( state );
           return;
      }
 
@@ -1244,11 +1253,14 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      if (! dfb_clip_blit_precheck( &state->clip,
                                    data->width, data->height, x, y )) {
           dfb_font_unlock( font );
+          dfb_state_unlock( state );
           return;
      }
 
-     dfb_state_set_destination( &font->state, state->destination );
-
+     /* set destination */
+     font->state.destination  = state->destination;
+     font->state.modified    |= SMF_DESTINATION;
+     
      /* set clip and color */
      font->state.clip        = state->clip;
      font->state.color       = state->color;
@@ -1282,7 +1294,10 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
           gRelease( &font->state );
      }
 
+     font->state.destination = NULL;
+     
      dfb_font_unlock( font );
+     dfb_state_unlock( state );
 }
 
 void dfb_gfxcard_sync()
