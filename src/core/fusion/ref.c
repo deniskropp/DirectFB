@@ -165,8 +165,6 @@ fusion_ref_down (FusionRef *ref, bool global)
      while (semop (ref->sem_id, op, 2)) {
           FPERROR ("semop");
 
-          kill(0,5);
-
           switch (errno) {
                case EINTR:
                     continue;
