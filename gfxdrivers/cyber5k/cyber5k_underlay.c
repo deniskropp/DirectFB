@@ -154,7 +154,7 @@ udlTestConfiguration( DisplayLayer               *layer,
      /* check pixel format */
      switch (config->pixelformat) {
           case DSPF_RGB332:
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
@@ -263,7 +263,7 @@ static void udl_set_all( CyberDriverData        *cdrv,
                cyber_set_overlay_format (OVERLAY_RGB8);
                break;
 
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                cyber_set_overlay_format (OVERLAY_RGB555);
                break;
 

@@ -165,10 +165,11 @@ static inline void savage4_validate_color( Savage4DeviceData *sdev,
           case DSPF_A8:
                sdev->Fill_Color = state->color.a;
                break;
-          case DSPF_RGB15:
-               sdev->Fill_Color = PIXEL_RGB15(state->color.r,
-                                              state->color.g,
-                                              state->color.b);
+          case DSPF_ARGB1555:
+               sdev->Fill_Color = PIXEL_ARGB1555(state->color.a,
+                                                 state->color.r,
+                                                 state->color.g,
+                                                 state->color.b);
                break;
           case DSPF_RGB16:
                sdev->Fill_Color = PIXEL_RGB16(state->color.r,
@@ -220,7 +221,7 @@ static void savage4CheckState( void *drv, void *dev,
 {
      SVGDBG("savage4checkstate\n");
      switch (state->destination->format) {
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:

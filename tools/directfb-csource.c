@@ -48,14 +48,14 @@ static struct {
      DFBSurfacePixelFormat  format;
      const char             *name;
 } pixelformats[] = {
-     { DSPF_ARGB,   "ARGB"   },
-     { DSPF_RGB32,  "RGB32"  },
-     { DSPF_RGB24,  "RGB24"  },
-     { DSPF_RGB16,  "RGB16"  },
-     { DSPF_RGB15,  "RGB15"  },
-     { DSPF_RGB332, "RGB332" },
-     { DSPF_A8,     "A8"     },
-     { DSPF_LUT8,   "LUT8"   }
+     { DSPF_ARGB,     "ARGB"     },
+     { DSPF_ARGB1555, "ARGB1555" },
+     { DSPF_RGB32,    "RGB32"    },
+     { DSPF_RGB24,    "RGB24"    },
+     { DSPF_RGB16,    "RGB16"    },
+     { DSPF_RGB332,   "RGB332"   },
+     { DSPF_A8,       "A8"       },
+     { DSPF_LUT8,     "LUT8"     }
 };
 static int n_pixelformats = sizeof (pixelformats) / sizeof (pixelformats[0]);
 
@@ -342,9 +342,9 @@ static DFBResult load_image (const char            *filename,
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
                          span_rgb32_to_rgb16 ((__u32 *) s, (__u16 *) d, width);
                     break;
-               case DSPF_RGB15:
+               case DSPF_ARGB1555:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
-                         span_rgb32_to_rgb15 ((__u32 *) s, (__u16 *) d, width);
+                         span_rgb32_to_argb1555 ((__u32 *) s, (__u16 *) d, width);
                     break;
                case DSPF_RGB332:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)

@@ -155,7 +155,7 @@ static inline void neo2200_validate_bltMode_dst( Neo2200DriverData *ndrv,
     case DSPF_RGB332:
       bltMode |= NEO_MODE1_DEPTH8;
       break;
-    case DSPF_RGB15:
+    case DSPF_ARGB1555:
     case DSPF_RGB16:
     case DSPF_YUY2:
       bltMode |= NEO_MODE1_DEPTH16;
@@ -220,10 +220,11 @@ static inline void neo2200_validate_fgColor( Neo2200DriverData *ndrv,
                                              state->color.g,
                                              state->color.b );
       break;
-    case DSPF_RGB15:
-      ndrv->neo2200->fgColor = PIXEL_RGB15( state->color.r,
-                                            state->color.g,
-                                            state->color.b );
+    case DSPF_ARGB1555:
+      ndrv->neo2200->fgColor = PIXEL_ARGB1555( state->color.a,
+                                               state->color.r,
+                                               state->color.g,
+                                               state->color.b );
       break;
     case DSPF_RGB16:
       ndrv->neo2200->fgColor = PIXEL_RGB16( state->color.r,
@@ -283,7 +284,7 @@ static void neo2200CheckState( void *drv, void *dev,
     case DSPF_A8:
     case DSPF_LUT8:
     case DSPF_RGB332:
-    case DSPF_RGB15:
+    case DSPF_ARGB1555:
     case DSPF_RGB16:
       break;
     case DSPF_YUY2:
@@ -309,7 +310,6 @@ static void neo2200CheckState( void *drv, void *dev,
          are different due to a blitting bug */
       if (!(accel & ~NEO_SUPPORTED_BLITTINGFUNCTIONS)             &&
           !(state->blittingflags & ~NEO_SUPPORTED_BLITTINGFLAGS)  &&
-          state->source != state->destination                     &&
           state->source->format == state->destination->format)
         state->accel |= accel;
     }
@@ -433,14 +433,21 @@ static void neo2200Blit( void *drv, void *dev,
      __u32 src_start, dst_start;
      __u32 bltCntl = ndev->bltCntl;
 
+//     fprintf(stderr, "blit: %d, %d (%dx%d) -> %d, %d\n",
+//             rect->x, rect->y, rect->w, rect->h, dx, dy);
+
 /*     if (rect->x < dx) {
-          rect->x += rect->w - 1;
-          dx      += rect->w - 1;
+          //rect->x += rect->w - 1;
+          //dx      += rect->w - 1;
+
+          bltCntl |= NEO_BC0_X_DEC;
      }
 
      if (rect->y < dy) {
-          rect->y += rect->h - 1;
-          dy      += rect->h - 1;
+          //rect->y += rect->h - 1;
+          //dy      += rect->h - 1;
+
+          bltCntl |= NEO_BC0_DST_Y_DEC | NEO_BC0_SRC_Y_DEC;
      }
 */
      src_start = rect->y * ndev->srcPitch + rect->x * ndev->srcPixelWidth;

@@ -381,9 +381,9 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
      switch (format) {
           case DSPF_A8:
           case DSPF_ARGB:
+          case DSPF_ARGB1555:
           case DSPF_I420:
           case DSPF_LUT8:
-          case DSPF_RGB15:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:

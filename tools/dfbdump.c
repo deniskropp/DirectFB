@@ -64,55 +64,55 @@ surface_callback( FusionObjectPool *pool,
 
      switch (surface->format) {
           case DSPF_A8:
-               printf( "A8      " );
+               printf( "A8       " );
                break;
 
           case DSPF_ARGB:
-               printf( "ARGB    " );
+               printf( "ARGB     " );
+               break;
+
+          case DSPF_ARGB1555:
+               printf( "ARGB1555 " );
                break;
 
           case DSPF_I420:
-               printf( "I420    " );
+               printf( "I420     " );
                break;
 
           case DSPF_LUT8:
-               printf( "LUT8    " );
-               break;
-
-          case DSPF_RGB15:
-               printf( "RGB15   " );
+               printf( "LUT8     " );
                break;
 
           case DSPF_RGB16:
-               printf( "RGB16   " );
+               printf( "RGB16    " );
                break;
 
           case DSPF_RGB24:
-               printf( "RGB24   " );
+               printf( "RGB24    " );
                break;
 
           case DSPF_RGB32:
-               printf( "RGB32   " );
+               printf( "RGB32    " );
                break;
 
           case DSPF_RGB332:
-               printf( "RGB332  " );
+               printf( "RGB332   " );
                break;
 
           case DSPF_UYVY:
-               printf( "UYVY    " );
+               printf( "UYVY     " );
                break;
 
           case DSPF_YUY2:
-               printf( "YUY2    " );
+               printf( "YUY2     " );
                break;
 
           case DSPF_YV12:
-               printf( "YV12    " );
+               printf( "YV12     " );
                break;
 
           default:
-               printf( "unknown!" );
+               printf( "unknown! " );
                break;
      }
 

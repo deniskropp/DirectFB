@@ -770,8 +770,8 @@ typedef struct {
 typedef enum {
      DSPF_UNKNOWN        = 0x00000000,  /* no specific format,
                                            unusual and unsupported */
-     DSPF_RGB15          = 0x00200F01,  /* 15bit  RGB (2 bytes, red 5@10,
-                                           green 5@5, blue 5@0) */
+     DSPF_ARGB1555       = 0x00211001,  /* 16bit ARGB (2 bytes, alpha 1@15,
+                                           red 5@10, green 5@5, blue 5@0) */
      DSPF_RGB16          = 0x00201002,  /* 16bit  RGB (2 bytes, red 5@11,
                                            green 6@5, blue 5@0) */
      DSPF_RGB24          = 0x00301803,  /* 24bit  RGB (3 bytes, red 8@16,

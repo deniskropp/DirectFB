@@ -7,7 +7,7 @@
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de> and
               Sven Neumann <sven@convergence.de> and
-	      Alex Song <alexsong@comports.com>.
+           Alex Song <alexsong@comports.com>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -63,11 +63,11 @@
 
 /* #define SAVAGE_DEBUG */
 #ifdef SAVAGE_DEBUG
-#define SVGDBG(x...) fprintf(stderr, "savage_streams_old:" x)
+     #define SVGDBG(x...) fprintf(stderr, "savage_streams_old:" x)
 #else
-#define SVGDBG(x...)
+     #define SVGDBG(x...)
 #endif
-  
+
 typedef struct {
      DFBRectangle          dest;
      DFBDisplayLayerConfig config;
@@ -132,11 +132,11 @@ static inline
 void waitretrace (void)
 {
      iopl(3);
-    while ((inb (0x3da) & 0x8))
-        ;
+     while ((inb (0x3da) & 0x8))
+          ;
 
-    while (!(inb (0x3da) & 0x8))
-        ;
+     while (!(inb (0x3da) & 0x8))
+          ;
 }
 
 static void
@@ -145,21 +145,22 @@ streamOnOff(SavageDriverData * sdrv, int on)
      volatile __u8 *mmio = sdrv->mmio_base;
 
      waitretrace();
-     
+
      if (on) {
-       vga_out8( mmio, 0x3d4, 0x23 );
-       vga_out8( mmio, 0x3d5, 0x00 );
+          vga_out8( mmio, 0x3d4, 0x23 );
+          vga_out8( mmio, 0x3d5, 0x00 );
 
-       vga_out8( mmio, 0x3d4, 0x26 );
-       vga_out8( mmio, 0x3d5, 0x00 );
+          vga_out8( mmio, 0x3d4, 0x26 );
+          vga_out8( mmio, 0x3d5, 0x00 ); 
 
-       /* turn on stream operation */ 
-       vga_out8( mmio, 0x3d4, 0x67 );
-       vga_out8( mmio, 0x3d5, 0x0c );
-     } else {
-       /* turn off stream operation */ 
-       vga_out8( mmio, 0x3d4, 0x67 );
-       vga_out8( mmio, 0x3d5, vga_in8( mmio, 0x3d5 ) & ~0x0c );
+          /* turn on stream operation */
+          vga_out8( mmio, 0x3d4, 0x67 );
+          vga_out8( mmio, 0x3d5, 0x0c );
+     }
+     else { 
+          /* turn off stream operation */
+          vga_out8( mmio, 0x3d4, 0x67 );
+          vga_out8( mmio, 0x3d5, vga_in8( mmio, 0x3d5 ) & ~0x0c );
      }
 }
 
@@ -169,7 +170,7 @@ savageSecondaryLayerDataSize()
 {
      SVGDBG("savageSecondaryLayerDataSize\n");
      return sizeof(SavageSecondaryLayerData);
-     }
+}
 
 static DFBResult
 savageSecondaryInitLayer( GraphicsDevice             *device,
@@ -181,9 +182,9 @@ savageSecondaryInitLayer( GraphicsDevice             *device,
                           void                       *layer_data )
 {
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
-    
+
      SVGDBG("savageSecondaryInitLayer\n");
-    
+
      /* set capabilities and type */
      layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION |
                              DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
@@ -191,11 +192,11 @@ savageSecondaryInitLayer( GraphicsDevice             *device,
                              DLCAPS_ALPHACHANNEL | DLCAPS_SRC_COLORKEY |
                              DLCAPS_DST_COLORKEY;
      layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
-     
+
      /* set name */
      snprintf(layer_info->desc.name, DFB_DISPLAY_LAYER_DESC_NAME_LENGTH,
               "Savage Secondary Stream");
-     
+
      /* fill out the default configuration */
      default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
                                    DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
@@ -205,7 +206,7 @@ savageSecondaryInitLayer( GraphicsDevice             *device,
      default_config->pixelformat = DSPF_YUY2;
      default_config->buffermode  = DLBM_FRONTONLY;
      default_config->options     = DLOP_NONE;
-     
+
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
      default_adj->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST |
@@ -217,13 +218,13 @@ savageSecondaryInitLayer( GraphicsDevice             *device,
 
      /* initialize destination rectangle */
      dfb_primary_layer_rectangle(0.0f, 0.0f, 1.0f, 1.0f, &slay->dest);
-     
+
      return DFB_OK;
 }
 
 static DFBResult savageSecondaryEnable( DisplayLayer *layer,
-					void         *driver_data,
-					void         *layer_data )
+                                        void         *driver_data,
+                                        void         *layer_data )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      volatile __u8 *mmio = sdrv->mmio_base;
@@ -238,27 +239,27 @@ static DFBResult savageSecondaryEnable( DisplayLayer *layer,
 }
 
 static DFBResult savageSecondaryDisable( DisplayLayer *layer,
-					 void         *driver_data,
-					 void         *layer_data )
+                                         void         *driver_data,
+                                         void         *layer_data )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      volatile __u8 *mmio = sdrv->mmio_base;
-     
+
      SVGDBG("savageSecondaryDisable\n");
 
      /* put primary stream on top of secondary stream */
      savage_out32(mmio, SAVAGE_BLEND_CONTROL,
-		  SAVAGE_BLEND_CONTROL_COMP_PSTREAM);
-     
+                  SAVAGE_BLEND_CONTROL_COMP_PSTREAM);
+
      return DFB_OK;
 }
 
 static DFBResult
 savageSecondaryTestConfiguration( DisplayLayer               *layer,
-				  void                       *driver_data,
-				  void                       *layer_data,
-                                            DFBDisplayLayerConfig      *config,
-                                            DFBDisplayLayerConfigFlags *failed )
+                                  void                       *driver_data,
+                                  void                       *layer_data,
+                                  DFBDisplayLayerConfig      *config,
+                                  DFBDisplayLayerConfigFlags *failed )
 {
      DFBDisplayLayerConfigFlags fail = 0;
 
@@ -267,20 +268,20 @@ savageSecondaryTestConfiguration( DisplayLayer               *layer,
      /* check for unsupported options */
      /* savage only supports one option at a time */
      switch (config->options) {
-     case DLOP_NONE:
-     case DLOP_ALPHACHANNEL:
-     case DLOP_SRC_COLORKEY:
-     case DLOP_DST_COLORKEY:
-     case DLOP_OPACITY:
-          break;
-     default:
-          fail |= DLCONF_OPTIONS;
-          break;
+          case DLOP_NONE:
+          case DLOP_ALPHACHANNEL:
+          case DLOP_SRC_COLORKEY:
+          case DLOP_DST_COLORKEY:
+          case DLOP_OPACITY:
+               break;
+          default:
+               fail |= DLCONF_OPTIONS;
+               break;
      }
 
      /* check pixel format */
      switch (config->pixelformat) {
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
@@ -314,9 +315,9 @@ savageSecondaryTestConfiguration( DisplayLayer               *layer,
 
 static DFBResult
 savageSecondarySetConfiguration( DisplayLayer          *layer,
-				 void                  *driver_data,
-				 void                  *layer_data,
-                                                  DFBDisplayLayerConfig *config)
+                                 void                  *driver_data,
+                                 void                  *layer_data,
+                                 DFBDisplayLayerConfig *config)
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
@@ -336,14 +337,14 @@ savageSecondarySetConfiguration( DisplayLayer          *layer,
 
 static DFBResult
 savageSecondarySetOpacity( DisplayLayer *layer,
-			   void         *driver_data,
-			   void         *layer_data,
-                                            __u8          opacity )
+                           void         *driver_data,
+                           void         *layer_data,
+                           __u8          opacity )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
      volatile __u8 *mmio = sdrv->mmio_base;
-     
+
      SVGDBG("savageSecondarySetOpacity\n");
      switch (opacity) {
           case 0:
@@ -358,20 +359,21 @@ savageSecondarySetOpacity( DisplayLayer *layer,
                break;
           default:
                if (slay->config.options == DLOP_OPACITY) {
-	            /* reverse opacity */
-		    opacity = 7 - (opacity >> 5);
+                    /* reverse opacity */
+                    opacity = 7 - (opacity >> 5);
 
-		    /* for some reason opacity can not be zero */
-		    if (opacity == 0)
-		         opacity = 1;
+                    /* for some reason opacity can not be zero */
+                    if (opacity == 0)
+                         opacity = 1;
 
                     /* dissolve primary and secondary stream */
                     savage_out32(mmio, SAVAGE_BLEND_CONTROL,
                                  SAVAGE_BLEND_CONTROL_COMP_DISSOLVE |
                                  KP_KS(opacity,0));
-               } else {
-     return DFB_UNSUPPORTED;
-}
+               }
+               else {
+                    return DFB_UNSUPPORTED;
+               }
                break;
      }
      return DFB_OK;
@@ -379,19 +381,19 @@ savageSecondarySetOpacity( DisplayLayer *layer,
 
 static DFBResult
 savageSecondarySetScreenLocation( DisplayLayer *layer,
-				  void         *driver_data,
-				  void         *layer_data,
-                                                   float         x,
-                                                   float         y,
-                                                   float         width,
-                                                   float         height )
+                                  void         *driver_data,
+                                  void         *layer_data,
+                                  float         x,
+                                  float         y,
+                                  float         width,
+                                  float         height )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
      volatile __u8    *mmio = sdrv->mmio_base;
 
      SVGDBG("savageSecondarySetScreenLocation x:%f y:%f w:%f h:%f\n",
-	    x, y, width, height);
+            x, y, width, height);
 
      /* get new destination rectangle */
      dfb_primary_layer_rectangle(x, y, width, height, &slay->dest);
@@ -402,13 +404,14 @@ savageSecondarySetScreenLocation( DisplayLayer *layer,
               slay->dest.h < (slay->config.height / 32)) {
                return DFB_UNSUPPORTED;
           }
-     } else {
+     }
+     else {
           /* secondary is rgb format */
           if (slay->dest.w < slay->config.width ||
               slay->dest.h < slay->config.height) {
                return DFB_UNSUPPORTED;
           }
-}
+     }
 
      savage_out32(mmio, SAVAGE_SECONDARY_STREAM_HORIZONTAL_SCALING,
                   ((32768 * slay->config.width) / slay->dest.w) & 0x0000FFFF);
@@ -423,11 +426,11 @@ savageSecondarySetScreenLocation( DisplayLayer *layer,
 
 static DFBResult
 savageSecondarySetSrcColorKey( DisplayLayer *layer,
-			       void         *driver_data,
-			       void         *layer_data,
+                               void         *driver_data,
+                               void         *layer_data,
                                __u8          r,
-			       __u8          g,
-			       __u8          b )
+                               __u8          g,
+                               __u8          b )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
@@ -439,17 +442,17 @@ savageSecondarySetSrcColorKey( DisplayLayer *layer,
           __u32 reg;
 
           switch (slay->config.pixelformat) {
-          case DSPF_RGB15:
-          case DSPF_RGB16:
-               reg = 0x14000000;
-               break;
-          case DSPF_RGB24:
-          case DSPF_RGB32:
-               reg = 0x17000000;
-               break;
-          default:
-     return DFB_UNSUPPORTED;
-}
+               case DSPF_ARGB1555:
+               case DSPF_RGB16:
+                    reg = 0x14000000;
+                    break;
+               case DSPF_RGB24:
+               case DSPF_RGB32:
+                    reg = 0x17000000;
+                    break;
+               default:
+                    return DFB_UNSUPPORTED;
+          }
 
           savage_out32(mmio, SAVAGE_CHROMA_KEY_CONTROL,
                        reg | (r << 16) | (g << 8) | (b));
@@ -457,18 +460,19 @@ savageSecondarySetSrcColorKey( DisplayLayer *layer,
                        0x00000000 | (r << 16) | (g << 8) | (b));
 
           return DFB_OK;
-     } else {
+     }
+     else {
           return DFB_UNSUPPORTED;
      }
 }
 
 static DFBResult
 savageSecondarySetDstColorKey( DisplayLayer *layer,
-			       void         *driver_data,
-			       void         *layer_data,
-                                                __u8          r,
-                                                __u8          g,
-                                                __u8          b )
+                               void         *driver_data,
+                               void         *layer_data,
+                               __u8          r,
+                               __u8          g,
+                               __u8          b )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
@@ -480,16 +484,16 @@ savageSecondarySetDstColorKey( DisplayLayer *layer,
           __u32 reg;
 
           switch (dfb_primary_layer_pixelformat()) {
-          case DSPF_RGB16:
-               reg = 0x14000000;
-               break;
-          case DSPF_RGB24:
-          case DSPF_RGB32:
-               reg = 0x17000000;
-               break;
-          default:
-     return DFB_UNSUPPORTED;
-}
+               case DSPF_RGB16:
+                    reg = 0x14000000;
+                    break;
+               case DSPF_RGB24:
+               case DSPF_RGB32:
+                    reg = 0x17000000;
+                    break;
+               default:
+                    return DFB_UNSUPPORTED;
+          }
 
           savage_out32(mmio, SAVAGE_CHROMA_KEY_CONTROL,
                        reg | (r << 16) | (g << 8) | (b));
@@ -497,15 +501,16 @@ savageSecondarySetDstColorKey( DisplayLayer *layer,
                        0x00000000 | (r << 16) | (g << 8) | (b));
 
           return DFB_OK;
-     } else {
+     }
+     else {
           return DFB_UNSUPPORTED;
      }
 }
 
 static DFBResult
 savageSecondaryFlipBuffers(  DisplayLayer        *layer,
-			     void                *driver_data,
-			     void                *layer_data,
+                             void                *driver_data,
+                             void                *layer_data,
                              DFBSurfaceFlipFlags flags )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
@@ -515,7 +520,7 @@ savageSecondaryFlipBuffers(  DisplayLayer        *layer,
      SVGDBG("savageSecondaryFlipBuffers\n");
 
      dfb_surface_flip_buffers( surface );
-     
+
      secondary_calc_regs(sdrv, slay, layer, &slay->config);
      secondary_set_regs(sdrv, slay);
 
@@ -528,16 +533,16 @@ savageSecondaryFlipBuffers(  DisplayLayer        *layer,
 
 static DFBResult
 savageSecondarySetColorAdjustment( DisplayLayer       *layer,
-				   void               *driver_data,
-				   void               *layer_data,
-				   DFBColorAdjustment *adj )
+                                   void               *driver_data,
+                                   void               *layer_data,
+                                   DFBColorAdjustment *adj )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
      volatile __u8    *mmio = sdrv->mmio_base;
-     
+
      SVGDBG("savageSecondaryColorAdjustment b:%i c:%i h:%i s:%i\n",
-	    adj->brightness, adj->contrast, adj->hue, adj->saturation);
+            adj->brightness, adj->contrast, adj->hue, adj->saturation);
 
      if ((slay->regs.SSTREAM_FB_SIZE & 0x00400000) == 0) {
           /* secondary is yuv format */
@@ -548,12 +553,13 @@ savageSecondarySetColorAdjustment( DisplayLayer       *layer,
           unsigned char hs2 = ((char)(sat * sin(hue))) & 0x1f;
 
           reg = 0x80008000 | (adj->brightness >> 8) |
-               ((adj->contrast & 0xf800) >> 3) | (hs1 << 16) | (hs2 << 24);
+                ((adj->contrast & 0xf800) >> 3) | (hs1 << 16) | (hs2 << 24);
 
           savage_out32(mmio, SAVAGE_COLOR_ADJUSTMENT, reg);
 
           return DFB_OK;
-     } else {
+     }
+     else {
           /* secondary is rgb format */
           return DFB_UNSUPPORTED;
      }
@@ -584,58 +590,58 @@ DisplayLayerFuncs savageSecondaryFuncs = {
 static void
 secondary_set_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay)
 {
-    volatile __u8 *mmio = sdrv->mmio_base;
+     volatile __u8 *mmio = sdrv->mmio_base;
 
-    SVGDBG("secondary_set_regs\n");
-     
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_CONTROL,
-		 slay->regs.SSTREAM_CTRL);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_HORIZONTAL_SCALING,
-		 slay->regs.SSTREAM_H_SCALE);
-    savage_out32(mmio, SAVAGE_BLEND_CONTROL,
-                 slay->regs.BLEND_CTRL);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_MULTIPLE_BUFFER_SUPPORT,
-		 slay->regs.SSTREAM_MULTIBUF);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS0,
-		 slay->regs.SSTREAM_FB_ADDR0);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS1,
-		 slay->regs.SSTREAM_FB_ADDR1);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS2,
-		 slay->regs.SSTREAM_FB_ADDR2);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_SIZE,
-		 slay->regs.SSTREAM_FB_SIZE);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_STRIDE,
-		 slay->regs.SSTREAM_STRIDE);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_VERTICAL_SCALING,
-		 slay->regs.SSTREAM_V_SCALE);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_SOURCE_LINE_COUNT,
-		 slay->regs.SSTREAM_SRC_LINE_COUNT);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_VERTICAL_INITIAL_VALUE,
-		 slay->regs.SSTREAM_V_INIT_VALUE);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_WINDOW_START,
-		 slay->regs.SSTREAM_WIN_START);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_WINDOW_SIZE,
-		 slay->regs.SSTREAM_WIN_SIZE);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FB_CB_ADDRESS,
-                 slay->regs.SSTREAM_FB_CB_ADDR);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FB_CR_ADDRESS,
-                 slay->regs.SSTREAM_FB_CR_ADDR);
-    savage_out32(mmio, SAVAGE_SECONDARY_STREAM_CBCR_STRIDE,
-                 slay->regs.SSTREAM_CBCR_STRIDE);
+     SVGDBG("secondary_set_regs\n");
 
-    /* Set FIFO L2 on second stream. */
-    {
-        int pitch = slay->video_pitch;
-	unsigned char cr92;
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_CONTROL,
+                  slay->regs.SSTREAM_CTRL);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_HORIZONTAL_SCALING,
+                  slay->regs.SSTREAM_H_SCALE);
+     savage_out32(mmio, SAVAGE_BLEND_CONTROL,
+                  slay->regs.BLEND_CTRL);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_MULTIPLE_BUFFER_SUPPORT,
+                  slay->regs.SSTREAM_MULTIBUF);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS0,
+                  slay->regs.SSTREAM_FB_ADDR0);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS1,
+                  slay->regs.SSTREAM_FB_ADDR1);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS2,
+                  slay->regs.SSTREAM_FB_ADDR2);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_SIZE,
+                  slay->regs.SSTREAM_FB_SIZE);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_STRIDE,
+                  slay->regs.SSTREAM_STRIDE);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_VERTICAL_SCALING,
+                  slay->regs.SSTREAM_V_SCALE);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_SOURCE_LINE_COUNT,
+                  slay->regs.SSTREAM_SRC_LINE_COUNT);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_VERTICAL_INITIAL_VALUE,
+                  slay->regs.SSTREAM_V_INIT_VALUE);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_WINDOW_START,
+                  slay->regs.SSTREAM_WIN_START);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_WINDOW_SIZE,
+                  slay->regs.SSTREAM_WIN_SIZE);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FB_CB_ADDRESS,
+                  slay->regs.SSTREAM_FB_CB_ADDR);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_FB_CR_ADDRESS,
+                  slay->regs.SSTREAM_FB_CR_ADDR);
+     savage_out32(mmio, SAVAGE_SECONDARY_STREAM_CBCR_STRIDE,
+                  slay->regs.SSTREAM_CBCR_STRIDE);
 
-	SVGDBG("FIFO L2 pitch:%i\n", pitch);
-	pitch = (pitch + 7) / 8;
-	vga_out8(mmio, 0x3d4, 0x92);
-	cr92 = vga_in8( mmio, 0x3d5);
-	vga_out8(mmio, 0x3d5, (cr92 & 0x40) | (pitch >> 8) | 0x80);
-	vga_out8(mmio, 0x3d4, 0x93);
-	vga_out8(mmio, 0x3d5, pitch);
-    }
+     /* Set FIFO L2 on second stream. */
+     {
+          int pitch = slay->video_pitch;
+          unsigned char cr92;
+
+          SVGDBG("FIFO L2 pitch:%i\n", pitch);
+          pitch = (pitch + 7) / 8;
+          vga_out8(mmio, 0x3d4, 0x92);
+          cr92 = vga_in8( mmio, 0x3d5);
+          vga_out8(mmio, 0x3d5, (cr92 & 0x40) | (pitch >> 8) | 0x80);
+          vga_out8(mmio, 0x3d4, 0x93);
+          vga_out8(mmio, 0x3d5, pitch);
+     }
 }
 
 static void
@@ -650,95 +656,95 @@ secondary_calc_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay,
      /* destination size */
      const int drw_w = slay->dest.w;
      const int drw_h = slay->dest.h;
-     
+
      SVGDBG("secondary_calc_regs x:%i y:%i w:%i h:%i\n",
             slay->dest.x, slay->dest.y, slay->dest.w, slay->dest.h);
      SVGDBG("w:%i h:%i pitch:%i video.offset:%x\n", surface->width,
             surface->height, front_buffer->video.pitch,
             front_buffer->video.offset);
-     
+
      slay->video_pitch = 1;
      slay->regs.SSTREAM_FB_SIZE = (((front_buffer->video.pitch *
                                      surface->height) / 8) - 1) & 0x003fffff;
 
      switch (surface->format) {
-     case DSPF_RGB15:
-          SVGDBG("secondary set to DSPF_RGB15\n");
-          slay->regs.SSTREAM_FB_SIZE |= 0x00400000;
-          slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_KRGB16;
-          break;
-     case DSPF_RGB16:
-          SVGDBG("secondary set to DSPF_RGB16\n");
-          slay->regs.SSTREAM_FB_SIZE |= 0x00400000;
-          slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_RGB16;
-          break;
-     case DSPF_RGB24:
-          SVGDBG("secondary set to DSPF_RGB24\n");
-          slay->regs.SSTREAM_FB_SIZE |= 0x00400000;
-          slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_RGB24;
-          break;
-     case DSPF_RGB32:
-          SVGDBG("secondary set to DSPF_RGB32\n");
-          slay->regs.SSTREAM_FB_SIZE |= 0x00400000;
-          slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_RGB32;
-          break;
-     case DSPF_YUY2:
-          SVGDBG("secondary set to DSPF_YUY2\n");
-          slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr422;
-          break;
-     case DSPF_UYVY:
-          SVGDBG("secondary set to DSPF_UYVY\n");
-          slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_CbYCrY422;
-          break;
-     case DSPF_I420:
-          SVGDBG("secondary set to DSPF_I420\n");
-	  slay->video_pitch = 2;
-          slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr420;
-          slay->regs.SSTREAM_FB_CB_ADDR = front_buffer->video.offset +
-               (surface->height * front_buffer->video.pitch);
-          slay->regs.SSTREAM_FB_CR_ADDR = slay->regs.SSTREAM_FB_CB_ADDR +
-               ((surface->height * front_buffer->video.pitch)/4);
-          slay->regs.SSTREAM_CBCR_STRIDE = ((front_buffer->video.pitch/2)
-                                            & 0x00001fff);
-          break;
-     case DSPF_YV12:
-          SVGDBG("secondary set to DSPF_YV12\n");
-	  slay->video_pitch = 2;
-          slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr420;
-          slay->regs.SSTREAM_FB_CR_ADDR = front_buffer->video.offset +
-               surface->height * front_buffer->video.pitch;
-          slay->regs.SSTREAM_FB_CB_ADDR = slay->regs.SSTREAM_FB_CR_ADDR +
-               (surface->height * front_buffer->video.pitch)/4;
-          slay->regs.SSTREAM_CBCR_STRIDE = ((front_buffer->video.pitch/2)
-                                            & 0x00001fff);
-          break;
-     default:
-          BUG("unexpected secondary pixelformat");
-          return;
+          case DSPF_ARGB1555:
+               SVGDBG("secondary set to DSPF_ARGB1555\n");
+               slay->regs.SSTREAM_FB_SIZE |= 0x00400000;
+               slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_KRGB16;
+               break;
+          case DSPF_RGB16:
+               SVGDBG("secondary set to DSPF_RGB16\n");
+               slay->regs.SSTREAM_FB_SIZE |= 0x00400000;
+               slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_RGB16;
+               break;
+          case DSPF_RGB24:
+               SVGDBG("secondary set to DSPF_RGB24\n");
+               slay->regs.SSTREAM_FB_SIZE |= 0x00400000;
+               slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_RGB24;
+               break;
+          case DSPF_RGB32:
+               SVGDBG("secondary set to DSPF_RGB32\n");
+               slay->regs.SSTREAM_FB_SIZE |= 0x00400000;
+               slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_RGB32;
+               break;
+          case DSPF_YUY2:
+               SVGDBG("secondary set to DSPF_YUY2\n");
+               slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr422;
+               break;
+          case DSPF_UYVY:
+               SVGDBG("secondary set to DSPF_UYVY\n");
+               slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_CbYCrY422;
+               break;
+          case DSPF_I420:
+               SVGDBG("secondary set to DSPF_I420\n");
+               slay->video_pitch = 2;
+               slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr420;
+               slay->regs.SSTREAM_FB_CB_ADDR = front_buffer->video.offset +
+                                               (surface->height * front_buffer->video.pitch);
+               slay->regs.SSTREAM_FB_CR_ADDR = slay->regs.SSTREAM_FB_CB_ADDR +
+                                               ((surface->height * front_buffer->video.pitch)/4);
+               slay->regs.SSTREAM_CBCR_STRIDE = ((front_buffer->video.pitch/2)
+                                                 & 0x00001fff);
+               break;
+          case DSPF_YV12:
+               SVGDBG("secondary set to DSPF_YV12\n");
+               slay->video_pitch = 2;
+               slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr420;
+               slay->regs.SSTREAM_FB_CR_ADDR = front_buffer->video.offset +
+                                               surface->height * front_buffer->video.pitch;
+               slay->regs.SSTREAM_FB_CB_ADDR = slay->regs.SSTREAM_FB_CR_ADDR +
+                                               (surface->height * front_buffer->video.pitch)/4;
+               slay->regs.SSTREAM_CBCR_STRIDE = ((front_buffer->video.pitch/2)
+                                                 & 0x00001fff);
+               break;
+          default:
+               BUG("unexpected secondary pixelformat");
+               return;
      }
 
      slay->regs.SSTREAM_CTRL |= src_w;
-     
+
      switch (config->options) {
-     case DLOP_ALPHACHANNEL:
-          SVGDBG("secondary option DLOP_ALPHACHANNEL\n");
-          slay->regs.BLEND_CTRL = SAVAGE_BLEND_CONTROL_COMP_ALPHA;
-          break;
-     case DLOP_SRC_COLORKEY:
-          SVGDBG("secondary option DLOP_SRC_COLORKEY\n");
-          slay->regs.BLEND_CTRL = SAVAGE_BLEND_CONTROL_COMP_SCOLORKEY;
-          break;
-     case DLOP_DST_COLORKEY:
-          SVGDBG("secondary option DLOP_DST_COLORKEY\n");
-          slay->regs.BLEND_CTRL = SAVAGE_BLEND_CONTROL_COMP_PCOLORKEY;
-          break;
-     case DLOP_OPACITY:
-          SVGDBG("secondary option DLOP_OPACITY\n");
-          /* fall through */
-     default:
-          SVGDBG("secondary option default\n");
-          slay->regs.BLEND_CTRL = SAVAGE_BLEND_CONTROL_COMP_SSTREAM;
-          break;
+          case DLOP_ALPHACHANNEL:
+               SVGDBG("secondary option DLOP_ALPHACHANNEL\n");
+               slay->regs.BLEND_CTRL = SAVAGE_BLEND_CONTROL_COMP_ALPHA;
+               break;
+          case DLOP_SRC_COLORKEY:
+               SVGDBG("secondary option DLOP_SRC_COLORKEY\n");
+               slay->regs.BLEND_CTRL = SAVAGE_BLEND_CONTROL_COMP_SCOLORKEY;
+               break;
+          case DLOP_DST_COLORKEY:
+               SVGDBG("secondary option DLOP_DST_COLORKEY\n");
+               slay->regs.BLEND_CTRL = SAVAGE_BLEND_CONTROL_COMP_PCOLORKEY;
+               break;
+          case DLOP_OPACITY:
+               SVGDBG("secondary option DLOP_OPACITY\n");
+               /* fall through */
+          default:
+               SVGDBG("secondary option default\n");
+               slay->regs.BLEND_CTRL = SAVAGE_BLEND_CONTROL_COMP_SSTREAM;
+               break;
      }
 
      slay->regs.SSTREAM_H_SCALE = ((32768 * src_w) / drw_w) & 0x0000FFFF;
@@ -752,7 +758,7 @@ secondary_calc_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay,
      slay->regs.SSTREAM_STRIDE = front_buffer->video.pitch & 0x00001fff;
      slay->regs.SSTREAM_WIN_START = OS_XY(slay->dest.x, slay->dest.y);
      slay->regs.SSTREAM_WIN_SIZE = OS_WH(drw_w, drw_h);
-     
+
      /* remember pitch */
      slay->video_pitch *= front_buffer->video.pitch;
 }
@@ -776,11 +782,11 @@ savagePrimaryInitLayer( GraphicsDevice             *device,
 {
      SavagePrimaryLayerData *play = (SavagePrimaryLayerData*) layer_data;
      DFBResult ret;
-    
+
      SVGDBG("savagePrimaryInitLayer w:%i h:%i bpp:%i\n",
             dfb_config->mode.width, dfb_config->mode.height,
             dfb_config->mode.depth);
-    
+
      /* call the original initialization function first */
      ret = pfuncs.InitLayer (device, layer, layer_info,
                              default_config, default_adj,
@@ -798,7 +804,7 @@ savagePrimaryInitLayer( GraphicsDevice             *device,
 
      /* add capabilities */
      layer_info->desc.caps |= DLCAPS_SCREEN_LOCATION;
-     
+
      play->dx = 0;
      play->dy = 0;
      play->init = 0;
@@ -829,7 +835,7 @@ savagePrimarySetConfiguration( DisplayLayer          *layer,
 
      primary_calc_regs(sdrv, play, layer, config);
      primary_set_regs(sdrv, play);
-     
+
      return DFB_OK;
 }
 
@@ -846,17 +852,17 @@ savagePrimarySetScreenLocation( DisplayLayer *layer,
      SavagePrimaryLayerData *play = (SavagePrimaryLayerData*) layer_data;
 
      SVGDBG("savagePrimarySetScreenLocation x:%f y:%f w:%f h:%f\n",
-	    x, y, width, height);
-     
+            x, y, width, height);
+
      if (width != 1  ||  height != 1)
           return DFB_UNSUPPORTED;
 
      play->dx = (int)(x * (float)play->config.width + 0.5f);
      play->dy = (int)(y * (float)play->config.height + 0.5f);
-     
+
      primary_calc_regs(sdrv, play, layer, &play->config);
      primary_set_regs(sdrv, play);
-     
+
      return DFB_OK;
 }
 
@@ -880,13 +886,13 @@ DisplayLayerFuncs savagePrimaryFuncs = {
      /*ReallocateSurface:*/
      /*DeallocateSurface:*/
 };
-          
+
 /* primary internal */
 static void
 primary_set_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play)
 {
      volatile __u8 *mmio = sdrv->mmio_base;
-          
+
      SVGDBG("primary_set_regs\n");
 
      /* turn streams on */
@@ -914,25 +920,25 @@ primary_set_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play)
           vga_out8( mmio, 0x3d4, 0x85 );
           SVGDBG( "cr85: 0x%02x\n", vga_in8( mmio, 0x3d5 ) );
           vga_out8( mmio, 0x3d5, 0x00 );
-     
+
           /* force high priority for display channel memory */
           vga_out8( mmio, 0x3d4, 0x88 );
           SVGDBG( "cr88: 0x%02x\n", vga_in8( mmio, 0x3d5 ) );
           vga_out8( mmio, 0x3d5, vga_in8( mmio, 0x3d5 ) & ~0x01 );
-     
+
           /* primary stream timeout register */
           vga_out8( mmio, 0x3d4, 0x71 );
           SVGDBG( "cr71: 0x%02x\n", vga_in8( mmio, 0x3d5 ) );
-     
+
           /* secondary stream timeout register */
           vga_out8( mmio, 0x3d4, 0x73 );
           SVGDBG( "cr73: 0x%02x\n", vga_in8( mmio, 0x3d5 ) );
-     
+
           /* set primary stream to use memory mapped io */
           vga_out8( mmio, 0x3d4, 0x69 );
           SVGDBG( "cr69: 0x%02x\n", vga_in8( mmio, 0x3d5 ) );
           vga_out8( mmio, 0x3d5, vga_in8( mmio, 0x3d5 ) | 0x80 );
-     
+
           /* enable certain registers to be loaded on vsync */
           vga_out8( mmio, 0x3d4, 0x51 );
           SVGDBG( "cr51: 0x%02x\n", vga_in8( mmio, 0x3d5 ) );
@@ -955,9 +961,9 @@ primary_set_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play)
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_SOURCE_LINE_COUNT, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_VERTICAL_INITIAL_VALUE, 0);
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_WINDOW_START,
-                  OS_XY(0xfffe, 0xfffe));
+                       OS_XY(0xfffe, 0xfffe));
           savage_out32(mmio, SAVAGE_SECONDARY_STREAM_WINDOW_SIZE,
-		  OS_WH(10,2));
+                       OS_WH(10,2));
 
           play->init = 1;
      }
@@ -969,41 +975,41 @@ primary_calc_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play,
 {
      CoreSurface * surface = dfb_layer_surface(layer);
      SurfaceBuffer * front_buffer = surface->front_buffer;
-     
+
      SVGDBG("primary_calc_regs w:%i h:%i pitch:%i video.offset:%x\n",
             surface->width, surface->height, front_buffer->video.pitch,
-	    front_buffer->video.offset);
-     
+            front_buffer->video.offset);
+
      switch (surface->format) {
-     case DSPF_RGB15:
-          SVGDBG("primary set to DSPF_RGB15\n");
-          play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_KRGB16;
-          break;
-     case DSPF_RGB16:
-          SVGDBG("primary set to DSPF_RGB16\n");
-          play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_RGB16;
-          break;
-     case DSPF_RGB24:
-          SVGDBG("primary set to DSPF_RGB24 (unaccelerated)\n");
-          play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_RGB24;
-          break;
-     case DSPF_RGB32:
-          SVGDBG("primary set to DSPF_RGB32\n");
-          play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_RGB32;
-          break;
-     case DSPF_ARGB:
-          SVGDBG("primary set to DSPF_ARGB\n");
-          play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_ARGB;
-          break;
+          case DSPF_ARGB1555:
+               SVGDBG("primary set to DSPF_ARGB1555\n");
+               play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_KRGB16;
+               break;
+          case DSPF_RGB16:
+               SVGDBG("primary set to DSPF_RGB16\n");
+               play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_RGB16;
+               break;
+          case DSPF_RGB24:
+               SVGDBG("primary set to DSPF_RGB24 (unaccelerated)\n");
+               play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_RGB24;
+               break;
+          case DSPF_RGB32:
+               SVGDBG("primary set to DSPF_RGB32\n");
+               play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_RGB32;
+               break;
+          case DSPF_ARGB:
+               SVGDBG("primary set to DSPF_ARGB\n");
+               play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_ARGB;
+               break;
 #ifdef SUPPORT_RGB332
-     case DSPF_RGB332:
-          SVGDBG("primary set to DSPF_RGB332\n");
-          play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_CLUT;
-          break;
+          case DSPF_RGB332:
+               SVGDBG("primary set to DSPF_RGB332\n");
+               play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_CLUT;
+               break;
 #endif
-     default:
-          BUG("unexpected primary pixelformat");
-          return;
+          default:
+               BUG("unexpected primary pixelformat");
+               return;
      }
 
      play->regs.PSTREAM_FB_ADDR0 = front_buffer->video.offset & 0x01ffffff;

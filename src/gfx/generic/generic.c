@@ -299,7 +299,7 @@ static void Bop_32_to_Aop()
 }
 
 static GFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
-     Bop_16_to_Aop,      /* DSPF_RGB15 */
+     Bop_16_to_Aop,      /* DSPF_ARGB1555 */
      Bop_16_to_Aop,      /* DSPF_RGB16 */
      Bop_24_to_Aop,      /* DSPF_RGB24 */
      Bop_32_to_Aop,      /* DSPF_RGB32 */
@@ -789,7 +789,7 @@ static GFunc Bop_PFI_SKto_Aop[DFB_NUM_PIXELFORMATS] = {
 void Sop_argb_Sto_Dacc_MMX();
 #endif
 
-static void Sop_rgb15_Sto_Dacc()
+static void Sop_argb1555_Sto_Dacc()
 {
      int    w = Dlength;
      int    i = 0;
@@ -800,7 +800,7 @@ static void Sop_rgb15_Sto_Dacc()
      while (w--) {
           __u16 s = S[i>>16];
 
-          D->a = 0xFF;
+          D->a = (s & 0x8000) ? 0xffff : 0;
           D->r = (s & 0x7C00) >> 7;
           D->g = (s & 0x03E0) >> 2;
           D->b = (s & 0x001F) << 3;
@@ -971,7 +971,7 @@ static void Sop_lut8_Sto_Dacc()
 }
 
 static GFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
-     Sop_rgb15_Sto_Dacc,
+     Sop_argb1555_Sto_Dacc,
      Sop_rgb16_Sto_Dacc,
      Sop_rgb24_Sto_Dacc,
      Sop_rgb32_Sto_Dacc,
@@ -991,7 +991,7 @@ static GFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
 
 /********************************* Sop_PFI_SKto_Dacc **************************/
 
-static void Sop_rgb15_SKto_Dacc()
+static void Sop_argb1555_SKto_Dacc()
 {
      int    w = Dlength;
      int    i = 0;
@@ -1000,10 +1000,10 @@ static void Sop_rgb15_SKto_Dacc()
      __u16       *S = (__u16*)Sop;
 
      while (w--) {
-          __u16 s = S[i>>16] & 0x7FFF;
+          __u16 s = S[i>>16];
 
-          if (s != Skey) {
-               D->a = 0xFF;
+          if ((s & 0x7FFF) != Skey) {
+               D->a = (s & 0x8000) ? 0xffff : 0;
                D->r = (s & 0x7C00) >> 7;
                D->g = (s & 0x03E0) >> 2;
                D->b = (s & 0x001F) << 3;
@@ -1150,7 +1150,7 @@ static void Sop_a8_SKto_Dacc()
 }
 
 static GFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
-     Sop_rgb15_SKto_Dacc,
+     Sop_argb1555_SKto_Dacc,
      Sop_rgb16_SKto_Dacc,
      Sop_rgb24_SKto_Dacc,
      Sop_rgb32_SKto_Dacc,
@@ -1173,7 +1173,7 @@ void Sop_argb_to_Dacc_MMX();
 #endif
 
 
-static void Sop_rgb15_to_Dacc()
+static void Sop_argb1555_to_Dacc()
 {
      int       l, w = Dlength;
      Accumulator *D = Dacc;
@@ -1182,7 +1182,7 @@ static void Sop_rgb15_to_Dacc()
      if (((long)S)&2) {
           __u16 spixel = *S;
 
-          D->a = 0xFF;
+          D->a = (spixel & 0x8000) ? 0xffff : 0;
           D->r = (spixel & 0x7C00) >> 7;
           D->g = (spixel & 0x03E0) >> 2;
           D->b = (spixel & 0x001F) << 3;
@@ -1427,7 +1427,7 @@ static void Sop_lut8_to_Dacc()
 }
 
 static GFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
-     Sop_rgb15_to_Dacc,
+     Sop_argb1555_to_Dacc,
      Sop_rgb16_to_Dacc,
      Sop_rgb24_to_Dacc,
      Sop_rgb32_to_Dacc,
@@ -1447,17 +1447,17 @@ static GFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
 
 /********************************* Sop_PFI_Kto_Dacc ***************************/
 
-static void Sop_rgb15_Kto_Dacc()
+static void Sop_argb1555_Kto_Dacc()
 {
      int          w = Dlength;
      Accumulator *D = Dacc;
      __u16       *S = (__u16*)Sop;
 
      while (w--) {
-          __u16 s = *S++ & 0x7FFF;
+          __u16 s = *S++;
 
-          if (s != (__u16)Skey) {
-               D->a = 0xFF;
+          if ((s & 0x7FFF) != Skey) {
+               D->a = (s & 0x8000) ? 0xffff : 0;
                D->r = (s & 0x7C00) >> 7;
                D->g = (s & 0x03E0) >> 2;
                D->b = (s & 0x001F) << 3;
@@ -1603,7 +1603,7 @@ static void Sop_rgb332_Kto_Dacc()
 #endif
 
 static GFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
-     Sop_rgb15_Kto_Dacc,
+     Sop_argb1555_Kto_Dacc,
      Sop_rgb16_Kto_Dacc,
      Sop_rgb24_Kto_Dacc,
      Sop_rgb32_Kto_Dacc,
@@ -1628,7 +1628,7 @@ void Sacc_to_Aop_rgb16_MMX();
 void Sacc_to_Aop_rgb32_MMX();
 #endif
 
-static void Sacc_to_Aop_rgb15()
+static void Sacc_to_Aop_argb1555()
 {
      int          w = Dlength;
      Accumulator *S = Sacc;
@@ -1636,9 +1636,10 @@ static void Sacc_to_Aop_rgb15()
 
      while (w--) {
           if (!(S->a & 0xF000)) {
-               *D = PIXEL_RGB15( (S->r & 0xFF00) ? 0xFF : S->r,
-                                 (S->g & 0xFF00) ? 0xFF : S->g,
-                                 (S->b & 0xFF00) ? 0xFF : S->b );
+               *D = PIXEL_ARGB1555( (S->a & 0xFF00) ? 0xFF : S->a,
+                                    (S->r & 0xFF00) ? 0xFF : S->r,
+                                    (S->g & 0xFF00) ? 0xFF : S->g,
+                                    (S->b & 0xFF00) ? 0xFF : S->b );
           }
 
           D++;
@@ -1826,7 +1827,7 @@ static void Sacc_to_Aop_lut8()
 }
 
 GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
-     Sacc_to_Aop_rgb15,
+     Sacc_to_Aop_argb1555,
      Sacc_to_Aop_rgb16,
      Sacc_to_Aop_rgb24,
      Sacc_to_Aop_rgb32,
@@ -1873,7 +1874,7 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
           w -= l;\
      }
 
-static void Bop_a8_set_alphapixel_Aop_rgb15()
+static void Bop_a8_set_alphapixel_Aop_argb1555()
 {
      int    w  = Dlength;
      __u8  *S  = Bop;
@@ -1881,7 +1882,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb15()
      __u32  rb = Cop & 0x7c1f;
      __u32  g  = Cop & 0x03e0;
 
-#define SET_ALPHA_PIXEL_RGB15(d,a) \
+#define SET_ALPHA_PIXEL_ARGB1555(d,a) \
      switch (a) {\
           case 0xff: d = Cop;\
           case 0: break;\
@@ -1889,14 +1890,15 @@ static void Bop_a8_set_alphapixel_Aop_rgb15()
                register __u8   s = (a>>3)+1;\
                register __u32 t1 = (d & 0x7c1f);\
                register __u32 t2 = (d & 0x03e0);\
-               d = ((((rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
+               d = ((a & 0x80) << 8) | \
+                   ((((rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
                     ((( g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5;\
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB15 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, ARGB1555 );
 
-#undef SET_ALPHA_PIXEL_RGB15
+#undef SET_ALPHA_PIXEL_ARGB1555
 }
 
 
@@ -2088,7 +2090,7 @@ static void Bop_a8_set_alphapixel_Aop_lut8()
 }
 
 GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
-     Bop_a8_set_alphapixel_Aop_rgb15,
+     Bop_a8_set_alphapixel_Aop_argb1555,
      Bop_a8_set_alphapixel_Aop_rgb16,
      Bop_a8_set_alphapixel_Aop_rgb24,
      Bop_a8_set_alphapixel_Aop_rgb32,
@@ -2614,8 +2616,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      color = state->color;
 
      switch (dst_format) {
-          case DSPF_RGB15:
-               Cop = PIXEL_RGB15( color.r, color.g, color.b );
+          case DSPF_ARGB1555:
+               Cop = PIXEL_ARGB1555( color.a, color.r, color.g, color.b );
                break;
           case DSPF_RGB16:
                Cop = PIXEL_RGB16( color.r, color.g, color.b );
@@ -2671,7 +2673,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           switch (src_format) {
-               case DSPF_RGB15:
+               case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB24:
                case DSPF_RGB32:

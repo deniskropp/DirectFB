@@ -235,7 +235,7 @@ besTestConfiguration( DisplayLayer               *layer,
 
           case DSPF_RGB32:
                max_width = 512;
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_UYVY:
           case DSPF_I420:
@@ -336,7 +336,7 @@ besSetDstColorKey( DisplayLayer *layer,
      volatile __u8    *mmio = mdrv->mmio_base;
      
      switch (dfb_primary_layer_pixelformat()) {
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                r >>= 3;
                g >>= 3;
                b >>= 3;
@@ -531,7 +531,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                mbes->regs.besCTL     |= BESHFEN | BESVFEN | BESCUPS;
                break;
 
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                mbes->regs.besGLOBCTL |= BESRGB15;
                break;
 

@@ -144,7 +144,7 @@ static inline void tdfx_waitidle( TDFXDriverData *tdrv,
 
 
 static int blitFormat[] = {
-     2, /* DSPF_RGB15 */
+     2, /* DSPF_ARGB1555 */
      3, /* DSPF_RGB16 */
      4, /* DSPF_RGB24 */
      5, /* DSPF_RGB32 */
@@ -207,7 +207,7 @@ static inline void tdfx_validate_destination3D( TDFXDriverData *tdrv,
           return;
 
      switch (destination->format) {
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                lfbmode |= TDFX_LFBMODE_RGB555;
                break;
           case DSPF_RGB16:
@@ -265,10 +265,11 @@ static inline void tdfx_validate_colorFore( TDFXDriverData *tdrv,
           case DSPF_A8:
                tdrv->voodoo2D->colorFore = state->color.a;
                break;
-          case DSPF_RGB15:
-               tdrv->voodoo2D->colorFore = PIXEL_RGB15( state->color.r,
-                                                        state->color.g,
-                                                        state->color.b );
+          case DSPF_ARGB1555:
+               tdrv->voodoo2D->colorFore = PIXEL_ARGB1555( state->color.a,
+                                                           state->color.r,
+                                                           state->color.g,
+                                                           state->color.b );
                break;
           case DSPF_RGB16:
                tdrv->voodoo2D->colorFore = PIXEL_RGB16( state->color.r,

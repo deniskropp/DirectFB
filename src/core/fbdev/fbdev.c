@@ -1263,14 +1263,14 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
           case 15:
                if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ) |
                    dfb_fbdev_compatible_format( var, 1, 5, 5, 5,15, 10, 5, 0 ) )
-                    return DSPF_RGB15;
+                    return DSPF_ARGB1555;
 
                break;
 
           case 16:
                if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ) |
                    dfb_fbdev_compatible_format( var, 1, 5, 5, 5,15, 10, 5, 0 ) )
-                    return DSPF_RGB15;
+                    return DSPF_ARGB1555;
 
                if (dfb_fbdev_compatible_format( var, 0, 5, 6, 5, 0, 11, 5, 0 ))
                     return DSPF_RGB16;
@@ -1369,23 +1369,38 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
 
           var.bits_per_pixel = DFB_BYTES_PER_PIXEL(config->pixelformat) * 8;
 
+          var.transp.length = var.transp.offset = 0;
+          
           switch (config->pixelformat) {
-               case DSPF_RGB15:
-                    var.red.length   = 5;
-                    var.green.length = 5;
-                    var.blue.length  = 5;
-                    var.red.offset   = 10;
-                    var.green.offset = 5;
-                    var.blue.offset  = 0;
+               case DSPF_ARGB1555:
+                    var.transp.length = 1;
+                    var.red.length    = 5;
+                    var.green.length  = 5;
+                    var.blue.length   = 5;
+                    var.transp.offset = 15;
+                    var.red.offset    = 10;
+                    var.green.offset  = 5;
+                    var.blue.offset   = 0;
                     break;
      
                case DSPF_RGB16:
-                    var.red.length   = 5;
-                    var.green.length = 6;
-                    var.blue.length  = 5;
-                    var.red.offset   = 11;
-                    var.green.offset = 5;
-                    var.blue.offset  = 0;
+                    var.red.length    = 5;
+                    var.green.length  = 6;
+                    var.blue.length   = 5;
+                    var.red.offset    = 11;
+                    var.green.offset  = 5;
+                    var.blue.offset   = 0;
+                    break;
+     
+               case DSPF_ARGB:
+                    var.transp.length = 8;
+                    var.red.length    = 5;
+                    var.green.length  = 6;
+                    var.blue.length   = 5;
+                    var.transp.offset = 24;
+                    var.red.offset    = 11;
+                    var.green.offset  = 5;
+                    var.blue.offset   = 0;
                     break;
      
                default:
@@ -1690,7 +1705,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      }
 
      switch (format) {
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                red_size   = 32;
                green_size = 32;
                blue_size  = 32;

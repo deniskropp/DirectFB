@@ -156,18 +156,18 @@ typedef struct {
 } FormatString;
  
 static const FormatString format_strings[] = {
-     { "A8",     DSPF_A8     },
-     { "ARGB",   DSPF_ARGB   },
-     { "I420",   DSPF_I420   },
-     { "LUT8",   DSPF_LUT8   },
-     { "RGB15",  DSPF_RGB15  },
-     { "RGB16",  DSPF_RGB16  },
-     { "RGB24",  DSPF_RGB24  },
-     { "RGB32",  DSPF_RGB32  },
-     { "RGB332", DSPF_RGB332 },
-     { "UYVY",   DSPF_UYVY   },
-     { "YUY2",   DSPF_YUY2   },
-     { "YV12",   DSPF_YV12   }
+     { "A8",       DSPF_A8       },
+     { "ARGB",     DSPF_ARGB     },
+     { "ARGB1555", DSPF_ARGB1555 },
+     { "I420",     DSPF_I420     },
+     { "LUT8",     DSPF_LUT8     },
+     { "RGB16",    DSPF_RGB16    },
+     { "RGB24",    DSPF_RGB24    },
+     { "RGB32",    DSPF_RGB32    },
+     { "RGB332",   DSPF_RGB332   },
+     { "UYVY",     DSPF_UYVY     },
+     { "YUY2",     DSPF_YUY2     },
+     { "YV12",     DSPF_YV12     }
 };
 
 #define NUM_FORMAT_STRINGS (sizeof(format_strings) / sizeof(FormatString))

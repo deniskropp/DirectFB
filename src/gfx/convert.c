@@ -41,7 +41,7 @@ dfb_pixelformat_for_depth( int depth )
           case 8:
                return DSPF_LUT8;
           case 15:
-               return DSPF_RGB15;
+               return DSPF_ARGB1555;
           case 16:
                return DSPF_RGB16;
           case 24:
@@ -65,7 +65,7 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
                pixel = PIXEL_RGB332( r, g, b );
                break;
 #endif
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                pixel = PIXEL_RGB15( r, g, b );
                break;
           case DSPF_RGB16:

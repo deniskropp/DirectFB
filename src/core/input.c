@@ -1287,7 +1287,7 @@ dump_screen( const char *directory )
           __u8  buf24[surface->width * 3];
 
           switch (surface->format) {
-               case DSPF_RGB15:
+               case DSPF_ARGB1555:
                     span_rgb15_to_rgb32( data, buf32, surface->width );
                     break;
                case DSPF_RGB16:

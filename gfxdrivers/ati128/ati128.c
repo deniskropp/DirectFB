@@ -104,7 +104,7 @@ static void ati128CheckState( void *drv, void *dev,
                               CardState *state, DFBAccelerationMask accel )
 {
      switch (state->destination->format) {
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
@@ -133,7 +133,7 @@ static void ati128CheckState( void *drv, void *dev,
          state->source->height >= 8 )
      {
           switch (state->source->format) {
-               case DSPF_RGB15:
+               case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB24:
                case DSPF_RGB32:
@@ -406,7 +406,7 @@ static void ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
      ati128_out32( mmio, CLR_CMP_CNTL, adev->ATI_color_compare );
 
      switch (adev->source->format) {
-          case DSPF_RGB15:
+          case DSPF_ARGB1555: /* FIXME: alpha channel will be zero ;( */
                ati128_out32( mmio, SCALE_3D_DATATYPE, DST_15BPP );
 
                ati128_out32( mmio, SCALE_PITCH,

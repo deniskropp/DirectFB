@@ -235,14 +235,14 @@ RGB888_to_RGB332( void *d, void *s, int len )
 }
 
 static void
-RGB888_to_RGB15( void *d, void *s, int len )
+RGB888_to_ARGB1555( void *d, void *s, int len )
 {
      int    i;
      __u16 *dst = (__u16*) d;
      __u8  *src = (__u8*) s;
 
      for (i=0; i<len; i++) {
-          dst[i] = PIXEL_RGB15( src[0], src[1], src[2] );
+          dst[i] = 0x8000 | PIXEL_RGB15( src[0], src[1], src[2] );
 
           src += 3;
      }
@@ -334,10 +334,10 @@ WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                }
                break;
 
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                for (i=off_y; i<data->dest_clip.h; i++) {
-                    RGB888_to_RGB15( ptr, data->rgb.lines[i] + off_x * 4,
-                                     data->dest_clip.w );
+                    RGB888_to_ARGB1555( ptr, data->rgb.lines[i] + off_x * 4,
+                                        data->dest_clip.w );
 
                     ptr += pitch;
                }
@@ -737,7 +737,7 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
                break;
 
           case DSPF_RGB332:
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:

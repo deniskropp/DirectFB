@@ -622,7 +622,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
                bpp = 8;
                palette = VIDEO_PALETTE_YUV420P;
                break;
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                bpp = 15;
                palette = VIDEO_PALETTE_RGB555;
                break;
@@ -753,7 +753,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                bpp = 8;
                palette = VIDEO_PALETTE_YUV420P;
                break;
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                bpp = 15;
                palette = VIDEO_PALETTE_RGB555;
                break;

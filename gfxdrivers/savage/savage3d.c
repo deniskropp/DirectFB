@@ -162,10 +162,11 @@ static inline void savage3D_validate_color( Savage3DDriverData *sdrv,
           case DSPF_A8:
                BCI_SEND( state->color.a );
                break;
-          case DSPF_RGB15:
-               BCI_SEND( PIXEL_RGB15(state->color.r,
-                                     state->color.g,
-                                     state->color.b) );
+          case DSPF_ARGB1555:
+               BCI_SEND( PIXEL_ARGB1555(state->color.a,
+                                        state->color.r,
+                                        state->color.g,
+                                        state->color.b) );
                break;
           case DSPF_RGB16:
                BCI_SEND( PIXEL_RGB16(state->color.r,
@@ -207,7 +208,7 @@ static void savage3DCheckState( void *drv, void *dev,
                                 CardState *state, DFBAccelerationMask accel )
 {
      switch (state->destination->format) {
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:

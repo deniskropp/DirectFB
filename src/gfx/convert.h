@@ -40,6 +40,11 @@
                                  (((g)&0xE0) >> 3) | \
                                  (((b)&0xC0) >> 6) )
 
+#define PIXEL_ARGB1555(a,r,g,b)( (((a)&0x80) << 8) | \
+                                 (((r)&0xF8) << 7) | \
+                                 (((g)&0xF8) << 2) | \
+                                 (((b)&0xF8) >> 3) )
+
 #define PIXEL_RGB15(r,g,b)     ( (((r)&0xF8) << 7) | \
                                  (((g)&0xF8) << 2) | \
                                  (((b)&0xF8) >> 3) )
@@ -132,6 +137,11 @@
 
 #define RGB32_TO_RGB24(pixel)  ( (pixel) & 0x00FFFFFF )
 
+#define RGB32_TO_ARGB1555(pixel) ( 0x8000 | \
+                                   (((pixel) & 0xF80000) >> 9) | \
+                                   (((pixel) & 0x00F800) >> 6) | \
+                                   (((pixel) & 0x0000F8) >> 3) )
+
 #define RGB32_TO_ARGB(pixel)   ( 0xFF000000 | (pixel) )
 
 
@@ -214,6 +224,11 @@ static inline void span_rgb32_to_rgb332( __u32 *src, __u8 *dst, int width )
 static inline void span_rgb32_to_rgb15( __u32 *src, __u16 *dst, int width )
 {
      while (width--) *dst++ = RGB32_TO_RGB15( *src ), src++;
+}
+
+static inline void span_rgb32_to_argb1555( __u32 *src, __u16 *dst, int width )
+{
+     while (width--) *dst++ = RGB32_TO_ARGB1555( *src ), src++;
 }
 
 static inline void span_rgb32_to_rgb16( __u32 *src, __u16 *dst, int width )

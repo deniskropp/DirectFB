@@ -209,7 +209,7 @@ crtc2TestConfiguration( DisplayLayer               *layer,
      switch (config->pixelformat) {
           case DSPF_ARGB:
           case DSPF_RGB32:
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_YUY2:
           case DSPF_UYVY:
@@ -482,7 +482,7 @@ static void crtc2_calc_regs( MatroxDriverData     *mdrv,
                mcrtc2->regs.c2CTL |= (5 << 21);
                break;
 
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                /* c2depth = 001 */
                mcrtc2->regs.c2CTL |= (1 << 21);
                break;

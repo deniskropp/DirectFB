@@ -79,7 +79,7 @@ void ati128_set_destination( ATI128DriverData *adrv,
      ati128_waitfifo( adrv, adev, 1 );
 
      switch (destination->format) {
-          case DSPF_RGB15:		
+          case DSPF_ARGB1555:		
                ati128_out32( adrv->mmio_base, DST_PITCH_OFFSET,
                              ((destination->back_buffer->video.pitch >> 4) << 21) |
                              (destination->back_buffer->video.offset >> 5));               
@@ -123,7 +123,7 @@ void ati128_set_source( ATI128DriverData *adrv,
      ati128_waitfifo( adrv, adev, 3 );
      
      switch (state->source->format) {
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
                ati128_out32( adrv->mmio_base, SRC_PITCH,
                              state->source->front_buffer->video.pitch >>4);
 
@@ -192,10 +192,11 @@ void ati128_set_color( ATI128DriverData *adrv,
      __u32 fill_color = 0; 
      
      switch (state->destination->format) {
-          case DSPF_RGB15:
-               fill_color = PIXEL_RGB15( state->color.r,
-                                         state->color.g,
-                                         state->color.b );
+          case DSPF_ARGB1555:
+               fill_color = PIXEL_ARGB1555( state->color.a,
+                                            state->color.r,
+                                            state->color.g,
+                                            state->color.b );
                break;
           case DSPF_RGB16:
                fill_color = PIXEL_RGB16( state->color.r,

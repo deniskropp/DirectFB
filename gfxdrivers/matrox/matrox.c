@@ -161,7 +161,7 @@ static void matroxOldCheckState( void *drv, void *dev,
                     state->source->format != DSPF_YV12))
                     return;
           case DSPF_RGB332:
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
@@ -208,7 +208,7 @@ static void matroxG100CheckState( void *drv, void *dev,
                     state->source->format != DSPF_YV12))
                     return;
           case DSPF_RGB332:
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
@@ -232,7 +232,7 @@ static void matroxG100CheckState( void *drv, void *dev,
           if (MATROX_USE_TMU( state, accel )) {
                /* TMU has no 32bit support */
                switch (state->source->format) {
-                    case DSPF_RGB15:
+                    case DSPF_ARGB1555:
                     case DSPF_RGB16:
                          break;
                     default:
@@ -267,7 +267,7 @@ static void matroxG200CheckState( void *drv, void *dev,
                     state->source->format != DSPF_YV12))
                     return;
           case DSPF_RGB332:
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
@@ -290,7 +290,7 @@ static void matroxG200CheckState( void *drv, void *dev,
                case DSPF_RGB332:
                     if (use_tmu)
                          return;
-               case DSPF_RGB15:
+               case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
@@ -336,7 +336,7 @@ static void matroxG400CheckState( void *drv, void *dev,
                     state->source->format != DSPF_YV12))
                     return;
           case DSPF_RGB332:
-          case DSPF_RGB15:
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
@@ -359,7 +359,7 @@ static void matroxG400CheckState( void *drv, void *dev,
                case DSPF_RGB332:
                     if (use_tmu)
                          return;
-               case DSPF_RGB15:
+               case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:

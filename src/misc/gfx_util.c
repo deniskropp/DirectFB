@@ -90,15 +90,12 @@ static void rgba_to_dst_format (__u8 *dst,
           *((__u32*)dst) = PIXEL_ARGB( a, r, g, b );
           break;
 
-     case DSPF_RGB32:
-          *((__u32*)dst) = PIXEL_RGB32( r, g, b );
+     case DSPF_ARGB1555:
+          *((__u16*)dst) = PIXEL_ARGB1555( a, r, g, b );
           break;
 
-     case DSPF_RGB15:
-          out_pixel  = b;
-          out_pixel |= g << 8;
-          out_pixel |= r << 16;
-          *(__u16 *)dst = RGB32_TO_RGB15 (out_pixel);
+     case DSPF_RGB32:
+          *((__u32*)dst) = PIXEL_RGB32( r, g, b );
           break;
 
      case DSPF_RGB16:
