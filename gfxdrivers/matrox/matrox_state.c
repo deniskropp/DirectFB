@@ -215,7 +215,7 @@ inline void matrox_validate_Source()
 
      src_pixelpitch = buffer->video.pitch / BYTES_PER_PIXEL(surface->format);
 
-     matrox_w2 = log2( src_pixelpitch );
+     matrox_w2 = log2( surface->width );
      matrox_h2 = log2( surface->height );
 
      if (matrox->state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
@@ -267,7 +267,7 @@ inline void matrox_validate_Source()
      mga_out32( mmio_base, CLAMPUV |
                            ((src_pixelpitch&0x7ff)<<9) | PITCHEXT | texctl, TEXCTL );
      mga_out32( mmio_base, texctl2, TEXCTL2 );
-     mga_out32( mmio_base, ((src_pixelpitch -1)<<18) | matrox_w2<<9 | matrox_w2, TEXWIDTH );
+     mga_out32( mmio_base, ((surface->width -1)<<18) | matrox_w2<<9 | matrox_w2, TEXWIDTH );
      mga_out32( mmio_base, ((surface->height-1)<<18) | matrox_h2<<9 | matrox_h2, TEXHEIGHT );
      mga_out32( mmio_base, buffer->video.offset, TEXORG );
 
