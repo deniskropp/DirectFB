@@ -186,6 +186,8 @@ besTestRegion( CoreLayer                  *layer,
 
      switch (config->format) {
           case DSPF_YUY2:
+          case DSPF_NV12:
+          case DSPF_NV21:
                break;
 
           case DSPF_RGB32:
@@ -196,12 +198,26 @@ besTestRegion( CoreLayer                  *layer,
           case DSPF_UYVY:
           case DSPF_I420:
           case DSPF_YV12:
-          case DSPF_NV12:
                /* these formats are not supported by G200 */
                if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG200)
                     break;
           default:
                fail |= CLRCF_FORMAT;
+     }
+
+     switch (config->format) {
+          case DSPF_I420:
+          case DSPF_YV12:
+          case DSPF_NV12:
+          case DSPF_NV21:
+               if (config->height & 1)
+                    fail |= CLRCF_HEIGHT;
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+               if (config->width & 1)
+                    fail |= CLRCF_WIDTH;
+          default:
+               break;
      }
 
      if (config->width > max_width || config->width < 1)
@@ -492,9 +508,17 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 
      /* pixel format settings */
      switch (surface->format) {
-          case DSPF_I420:
           case DSPF_YV12:
-               mbes->regs.besGLOBCTL |= BES3PLANE;
+               mbes->regs.besGLOBCTL |= BESCORDER;
+               /* fall through */
+
+          case DSPF_I420:
+               mbes->regs.besGLOBCTL |= BESPROCAMP | BES3PLANE;
+               mbes->regs.besCTL     |= BESHFEN | BESVFEN | BESCUPS | BES420PL;
+               break;
+
+          case DSPF_NV21:
+               mbes->regs.besGLOBCTL |= BESCORDER;
                /* fall through */
 
           case DSPF_NV12:
@@ -540,6 +564,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 
      switch (surface->format) {
           case DSPF_NV12:
+          case DSPF_NV21:
                mbes->regs.besA1CORG  = front_buffer->video.offset +
                                        surface->height * front_buffer->video.pitch +
                                        pitch * (source.y/2 + (croptop_uv >> 16));
@@ -548,6 +573,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                break;
 
           case DSPF_I420:
+          case DSPF_YV12:
                mbes->regs.besA1CORG  = front_buffer->video.offset +
                                        surface->height * front_buffer->video.pitch +
                                        pitch/2 * (source.y/2 + (croptop_uv >> 16));
@@ -557,19 +583,6 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                mbes->regs.besA1C3ORG = mbes->regs.besA1CORG +
                                        surface->height/2 * front_buffer->video.pitch/2;
                mbes->regs.besA2C3ORG = mbes->regs.besA1C3ORG +
-                                       front_buffer->video.pitch/2;
-               break;
-
-          case DSPF_YV12:
-               mbes->regs.besA1C3ORG = front_buffer->video.offset +
-                                       surface->height * front_buffer->video.pitch +
-                                       pitch/2 * (source.y/2 + (croptop_uv >> 16));
-               mbes->regs.besA2C3ORG = mbes->regs.besA1C3ORG +
-                                       front_buffer->video.pitch/2;
-
-               mbes->regs.besA1CORG  = mbes->regs.besA1C3ORG +
-                                       surface->height/2 * front_buffer->video.pitch/2;
-               mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
                                        front_buffer->video.pitch/2;
                break;
 
