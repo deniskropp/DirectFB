@@ -127,6 +127,8 @@ static void gfxcard_deinit()
           return;
      }
 
+     gfxcard_sync();
+
      if (card->info.driver && card->info.driver->DeInit)
           card->info.driver->DeInit();
 
