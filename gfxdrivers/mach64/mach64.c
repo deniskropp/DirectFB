@@ -141,10 +141,14 @@ static void mach64EngineReset( void *drv, void *dev )
 
      mach64_waitidle( mdrv, mdev );
 
+     mach64_waitfifo( mdrv, mdev, 2 );
+
      mach64_out32( mmio, DP_WRITE_MSK, 0xFFFFFFFF );
      mach64_out32( mmio, DP_MIX, FRGD_MIX_SRC | BKGD_MIX_DST );
 
      if (mdrv->accelerator == FB_ACCEL_ATI_MACH64GT) {
+          mach64_waitfifo( mdrv, mdev, 12 );
+
           /* Some 3D registers aren't accessible without this. */
           mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SHADE );
 
