@@ -299,7 +299,7 @@ instance_iterator( DirectHash *hash,
      }
 
 
-     D_DEBUG( "Voodoo/Manager: Releasing dispatcher interface %p %s(instance %lu)...\n",
+     D_DEBUG( "Voodoo/Manager: Releasing dispatcher interface %p %s(instance %u)...\n",
               instance->proxy, instance->super ? "[super] " : "", key );
 
      D_ASSERT( instance->proxy != NULL );
@@ -308,7 +308,7 @@ instance_iterator( DirectHash *hash,
      instance->proxy->Release( instance->proxy );
 
 
-     D_DEBUG( "Voodoo/Manager: Releasing real interface %p %s(instance %lu)...\n",
+     D_DEBUG( "Voodoo/Manager: Releasing real interface %p %s(instance %u)...\n",
               instance->real, instance->super ? "[super] " : "", key );
 
      D_ASSERT( instance->real != NULL );
@@ -428,7 +428,7 @@ voodoo_manager_super( VoodooManager    *manager,
           return ret;
      }
 
-     D_DEBUG( "Voodoo/Manager: Got response %llu (%s) with instance %lu for request %llu "
+     D_DEBUG( "Voodoo/Manager: Got response %llu (%s) with instance %u for request %llu "
               "(%d bytes).\n", response->header.serial, DirectResultString( ret ),
               response->instance, response->request, response->header.size );
 
@@ -467,7 +467,7 @@ calc_blocks( VoodooMessageBlockType type, va_list args )
                     len = 4;
                     arg = va_arg( args, __u32 );
 
-                    D_DEBUG( "Voodoo/Message: + ID %lu\n", arg );
+                    D_DEBUG( "Voodoo/Message: + ID %u\n", arg );
                     break;
 
                case VMBT_INT:
@@ -481,7 +481,7 @@ calc_blocks( VoodooMessageBlockType type, va_list args )
                     len = 4;
                     arg = va_arg( args, __u32 );
 
-                    D_DEBUG( "Voodoo/Message: + UINT %lu\n", arg );
+                    D_DEBUG( "Voodoo/Message: + UINT %u\n", arg );
                     break;
 
                case VMBT_DATA:
@@ -512,7 +512,7 @@ calc_blocks( VoodooMessageBlockType type, va_list args )
 
                     D_ASSERT( ptr != NULL );
 
-                    D_DEBUG( "Voodoo/Message: + STRING '%s' at %p with length %d\n", ptr, ptr, len );
+                    D_DEBUG( "Voodoo/Message: + STRING '%s' at %p with length %d\n", (char*) ptr, ptr, len );
                     break;
 
                default:
@@ -601,7 +601,7 @@ voodoo_manager_request( VoodooManager           *manager,
      D_ASSUME( (flags & (VREQ_RESPOND | VREQ_QUEUE)) != (VREQ_RESPOND | VREQ_QUEUE) );
 
      D_DEBUG( "Voodoo/Request: "
-              "Instance %lu, method %lu, flags 0x%08x...\n", instance, method, flags );
+              "Instance %u, method %u, flags 0x%08x...\n", instance, method, flags );
 
      /* Calculate the total message size. */
      va_start( args, block_type );
@@ -634,7 +634,7 @@ voodoo_manager_request( VoodooManager           *manager,
      va_end( args );
 
 
-     D_DEBUG( "Voodoo/Manager: Sending REQUEST message %llu to %lu::%lu %s(%d bytes).\n",
+     D_DEBUG( "Voodoo/Manager: Sending REQUEST message %llu to %u::%u %s(%d bytes).\n",
               serial, instance, method, (flags & VREQ_RESPOND) ? "[RESPONDING] " : "", size );
 
      /* Unlock the output buffer. */
@@ -652,7 +652,7 @@ voodoo_manager_request( VoodooManager           *manager,
                return ret;
           }
 
-          D_DEBUG( "Voodoo/Manager: Got response %llu (%s) with instance %lu for request %llu "
+          D_DEBUG( "Voodoo/Manager: Got response %llu (%s) with instance %u for request %llu "
                    "(%d bytes).\n", response->header.serial, DirectResultString( response->result ),
                    response->instance, response->request, response->header.size );
 
@@ -689,7 +689,7 @@ voodoo_manager_respond( VoodooManager          *manager,
      D_MAGIC_ASSERT( manager, VoodooManager );
 
      D_DEBUG( "Voodoo/Response: "
-              "Request %llu, result %d, instance %lu...\n", request, result, instance );
+              "Request %llu, result %d, instance %u...\n", request, result, instance );
 
      /* Calculate the total message size. */
      va_start( args, block_type );
@@ -723,7 +723,7 @@ voodoo_manager_respond( VoodooManager          *manager,
 
 
      D_DEBUG( "Voodoo/Manager: "
-              "Sending RESPONSE message %llu (%s) with instance %lu for request %llu (%d bytes).\n",
+              "Sending RESPONSE message %llu (%s) with instance %u for request %llu (%d bytes).\n",
               serial, DirectResultString( result ), instance, request, size );
 
      /* Unlock the output buffer. */
@@ -776,7 +776,7 @@ voodoo_manager_register_local( VoodooManager    *manager,
      }
 
      D_DEBUG( "Voodoo/Manager: "
-              "Added instance %lu, dispatcher %p, real %p.\n", instance_id, dispatcher, real );
+              "Added instance %u, dispatcher %p, real %p.\n", instance_id, dispatcher, real );
 
      *ret_instance = instance_id;
 
@@ -848,7 +848,7 @@ voodoo_manager_register_remote( VoodooManager    *manager,
      }
 
      D_DEBUG( "Voodoo/Manager: "
-              "Added remote instance %lu, requestor %p.\n", instance_id, requestor );
+              "Added remote instance %u, requestor %p.\n", instance_id, requestor );
 
      return DFB_OK;
 }
@@ -980,7 +980,7 @@ handle_request( VoodooManager        *manager,
      D_ASSERT( request->header.size >= sizeof(VoodooRequestMessage) );
      D_ASSERT( request->header.type == VMSG_REQUEST );
 
-     D_DEBUG( "Voodoo/Dispatch: Handling REQUEST message %llu to %lu::%lu %s%s(%d bytes).\n",
+     D_DEBUG( "Voodoo/Dispatch: Handling REQUEST message %llu to %u::%u %s%s(%d bytes).\n",
               request->header.serial, request->instance, request->method,
               (request->flags & VREQ_RESPOND) ? "[RESPONDING] " : "",
               (request->flags & VREQ_ASYNC) ? "[ASYNC] " : "",
@@ -993,7 +993,7 @@ handle_request( VoodooManager        *manager,
           pthread_mutex_unlock( &manager->instances.lock );
 
           D_ERROR( "Voodoo/Dispatch: "
-                   "Requested instance %lu doesn't exist (anymore)!\n", request->instance );
+                   "Requested instance %u doesn't exist (anymore)!\n", request->instance );
 
           if (request->flags & VREQ_RESPOND)
                voodoo_manager_respond( manager, request->header.serial,
@@ -1045,7 +1045,7 @@ handle_response( VoodooManager         *manager,
      D_ASSERT( response->header.type == VMSG_RESPONSE );
      D_ASSERT( response->request < manager->msg_serial );
 
-     D_DEBUG( "Voodoo/Dispatch: Handling RESPONSE message %llu (%s) with instance %lu for request "
+     D_DEBUG( "Voodoo/Dispatch: Handling RESPONSE message %llu (%s) with instance %u for request "
               "%llu (%d bytes).\n", response->header.serial, DirectResultString( response->result ),
               response->instance, response->request, response->header.size );
 

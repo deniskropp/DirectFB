@@ -1240,7 +1240,7 @@ static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBSurface/Dispatcher: "
-              "Handling request for instance %lu with method %lu...\n", msg->instance, msg->method );
+              "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
           case IDIRECTFBSURFACE_METHOD_ID_GetSize:

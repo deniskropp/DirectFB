@@ -70,7 +70,7 @@ static CoreWMShared *wm_shared = NULL;
 /**************************************************************************************************/
 
 static DFBResult
-load_module( const void *name )
+load_module( const char *name )
 {
      DirectLink *l;
 

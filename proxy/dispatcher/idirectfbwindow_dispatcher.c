@@ -877,7 +877,7 @@ static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBWindow/Dispatcher: "
-              "Handling request for instance %lu with method %lu...\n", msg->instance, msg->method );
+              "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
           case IDIRECTFBWINDOW_METHOD_ID_CreateEventBuffer:
