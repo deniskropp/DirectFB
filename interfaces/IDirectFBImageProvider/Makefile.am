@@ -28,8 +28,6 @@ INCLUDES = \
 	-I$(top_srcdir)/src 	\
 	-DDATADIR=\"@DATADIR@\"
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 idirectfbimageprovider_LTLIBRARIES = \
 	libidirectfbimageprovider_mpeg2.la	\
 	$(GIF_PROVIDER_LTLIB)			\

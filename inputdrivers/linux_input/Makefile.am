@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 linux_input_LTLIBRARIES = libdirectfb_linux_input.la
 
 linux_inputdir = $(MODULEDIR)/inputdrivers

@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 ati_LTLIBRARIES = libdirectfb_ati128.la
 
 atidir = $(MODULEDIR)/gfxdrivers

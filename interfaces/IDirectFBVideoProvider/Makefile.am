@@ -21,8 +21,6 @@ INCLUDES = \
 	-I$(top_srcdir)/src 	\
 	-DDATADIR=\"@DATADIR@\"
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 
 idirectfbvideoprovider_LTLIBRARIES =	\
 	$(V4L_PROVIDER_LTLIB)		\

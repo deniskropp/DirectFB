@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 lirc_LTLIBRARIES = libdirectfb_lirc.la
 
 lircdir = $(MODULEDIR)/inputdrivers

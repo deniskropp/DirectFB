@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 dbox2remote_LTLIBRARIES = libdirectfb_dbox2remote.la
 
 dbox2remotedir = $(MODULEDIR)/inputdrivers

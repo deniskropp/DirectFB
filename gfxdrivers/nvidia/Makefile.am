@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 nvidia_LTLIBRARIES = libdirectfb_nvidia.la
 
 nvidiadir = $(MODULEDIR)/gfxdrivers

@@ -2,6 +2,8 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(include/directfb.h)
 
+AC_PREREQ(2.52)
+
 #
 # Making releases:
 #   DIRECTFB_MICRO_VERSION += 1;
@@ -51,8 +53,6 @@ AC_CANONICAL_TARGET
 
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
 
-DFB_CFLAGS="$CFLAGS"
-CFLAGS=
 
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
@@ -88,8 +88,15 @@ fi
 AM_CONDITIONAL(FBDEV_CORE, test x$enable_fbdev = xyes)
 
 
+dnl Clear default CFLAGS
+if test x"$CFLAGS" = x"-g -O2"; then
+  CFLAGS=
+fi
+
+CFLAGS="-O3 -pipe $CFLAGS"
+
 if test "x$GCC" = xyes; then
-  DFB_CFLAGS="$DFB_CFLAGS -ffast-math -Wall"
+  CFLAGS="-Wall $CFLAGS"
 fi
 
 
@@ -196,7 +203,7 @@ fi
 AC_SUBST(THREADFLAGS)
 AC_SUBST(THREADLIB)
 
-DFB_CFLAGS="$THREADFLAGS $DFB_CFLAGS"
+CFLAGS="$THREADFLAGS $CFLAGS"
 
 dnl Dynamic Linker
 DYNLIB=""
@@ -239,7 +246,9 @@ AC_ARG_ENABLE(profiling,
   [  --enable-profiling      enable profiling support [default=no]],,
   enable_profiling=no)
 if test "x$enable_profiling" = xyes; then
-    DFB_CFLAGS="$DFB_CFLAGS -pg -g3"
+    CFLAGS="$CFLAGS -pg -g3"
+else
+    DFB_CFLAGS_OMIT_FRAME_POINTER="-fomit-frame-pointer"
 fi
 
 
@@ -248,12 +257,7 @@ AC_ARG_ENABLE(debug,
   enable_debug=no)
 if test "x$enable_debug" = xyes; then
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DDFB_DEBUG"
-    DFB_CFLAGS="$DFB_CFLAGS -O3 -g3 -fno-inline"
-else
-    DFB_CFLAGS="$DFB_CFLAGS -O3 -g"
-    if test "x$enable_profiling" = xno; then
-        DFB_CFLAGS_OMIT_FRAME_POINTER="-fomit-frame-pointer"
-    fi
+    CFLAGS="$CFLAGS -g3 -fno-inline"
 fi
 AM_CONDITIONAL(ENABLE_DEBUG, test "x$enable_debug" = xyes)
 
@@ -786,7 +790,7 @@ AM_CONDITIONAL(MUTOUCH_TS, test x$enable_mutouch = xyes)
 
 AM_CONDITIONAL(BUILD_TOOLS, test x$with_tools = xyes)
 
-DFB_CFLAGS="$DFB_CFLAGS $DFB_INTERNAL_CFLAGS"
+CFLAGS="$CFLAGS $DFB_INTERNAL_CFLAGS"
 DFB_LDFLAGS="$LDFLAGS"
 
 
@@ -811,7 +815,6 @@ SOPATH=$libdir/libdirectfb-$LT_RELEASE.so.$LT_CURRENT
 AC_SUBST(SOPATH)
 
 AC_SUBST(HAVE_LINUX)
-AC_SUBST(DFB_CFLAGS)
 AC_SUBST(DFB_CFLAGS_OMIT_FRAME_POINTER)
 AC_SUBST(DFB_LDFLAGS)
 AC_SUBST(DFB_INTERNAL_CFLAGS)
@@ -900,6 +903,7 @@ Build options:
   Build shared libs     $enable_shared
   Build static libs     $enable_static
   Module directory      $MODULEDIR
+  CFLAGS                $CFLAGS
 
 Misc options:
   MMX support           $enable_mmx

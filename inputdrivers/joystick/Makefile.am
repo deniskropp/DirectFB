@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 joystick_LTLIBRARIES = libdirectfb_joystick.la
 
 joystickdir = $(MODULEDIR)/inputdrivers

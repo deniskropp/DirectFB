@@ -10,8 +10,6 @@ INCLUDES = \
 	-I$(top_srcdir)/src \
 	-Iinclude
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 nsc_LTLIBRARIES = libdirectfb_nsc.la
 
 nscdir = $(MODULEDIR)/gfxdrivers

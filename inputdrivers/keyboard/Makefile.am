@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 keyboard_LTLIBRARIES = libdirectfb_keyboard.la
 
 keyboarddir = $(MODULEDIR)/inputdrivers

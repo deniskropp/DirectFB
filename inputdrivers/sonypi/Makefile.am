@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 sonypi_LTLIBRARIES = libdirectfb_sonypi.la
 
 sonypidir = $(MODULEDIR)/inputdrivers

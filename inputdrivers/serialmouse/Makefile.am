@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 serialmouse_LTLIBRARIES = libdirectfb_serialmouse.la
 
 serialmousedir = $(MODULEDIR)/inputdrivers

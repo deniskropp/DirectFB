@@ -13,7 +13,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src 	\
 	-DDATADIR=\"@DATADIR@\"
 
-AM_CFLAGS = $(DFB_CFLAGS) $(FREETYPE_CFLAGS)
+AM_CFLAGS = $(FREETYPE_CFLAGS)
 
 idirectfbfont_LTLIBRARIES = \
 	libidirectfbfont_default.la	\

@@ -23,8 +23,6 @@ INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"		\
 	-DSOPATH=\"@SOPATH@\"		\

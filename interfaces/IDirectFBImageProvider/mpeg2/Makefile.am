@@ -1,7 +1,5 @@
 ## Makefile.am for DirectFB/interfaces/IDirectFBImageProvider/mpeg2
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 noinst_LTLIBRARIES = libmpeg2decode.la
 
 libmpeg2decode_la_SOURCES = \

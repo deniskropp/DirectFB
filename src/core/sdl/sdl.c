@@ -103,9 +103,13 @@ static DFBResult
 system_join()
 {
 #ifndef FUSION_FAKE
+     void *ret;
+
      DFB_ASSERT( dfb_sdl == NULL );
 
-     arena_get_shared_field( dfb_core->arena, "sdl", (void**) &dfb_sdl );
+     arena_get_shared_field( dfb_core->arena, "sdl", &ret );
+
+     dfb_sdl = ret;
      
      dfb_layers_register( NULL, NULL, &sdlPrimaryLayerFuncs );
 

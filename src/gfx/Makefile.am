@@ -6,8 +6,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 
 internalincludedir = $(INTERNALINCLUDEDIR)/gfx
 

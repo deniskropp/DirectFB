@@ -4,8 +4,6 @@ INCLUDES = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS)
-
 cyber5k_LTLIBRARIES = libdirectfb_cyber5k.la
 
 cyber5kdir = $(MODULEDIR)/gfxdrivers
