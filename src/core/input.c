@@ -71,10 +71,12 @@ void input_deinit()
      while (d) {
           InputDevice *next = d->next;
 
-          pthread_cancel( d->event_thread );
-          pthread_join( d->event_thread, NULL );
+          if (!pthread_equal( pthread_self(), d->event_thread)) {
+               pthread_cancel( d->event_thread );
+               pthread_join( d->event_thread, NULL );
 
-          reactor_free( d->reactor );
+               reactor_free( d->reactor );
+          }
 
           d->info.driver->DeInit( d );
 
@@ -97,12 +99,12 @@ DFBResult input_suspend()
           pthread_cancel( d->event_thread );
           pthread_join( d->event_thread, NULL );
           d->info.driver->DeInit( d );
-          
+
           d = d->next;
      }
 
      DEBUGMSG( "DirectFB/core/input: ...suspended\n" );
-     
+
      return DFB_OK;
 }
 
@@ -111,17 +113,17 @@ DFBResult input_resume()
      InputDevice *d = inputdevices;
 
      DEBUGMSG( "DirectFB/core/input: resuming...\n" );
-     
+
      while (d) {
           d->info.driver->Init( d );
           pthread_create( &d->event_thread, NULL,
                            d->EventThread, d );
-          
+
           d = d->next;
      }
 
      DEBUGMSG( "DirectFB/core/input: ...resumed\n" );
-     
+
      return DFB_OK;
 }
 
@@ -134,7 +136,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
 {
      int n, nr_devices;
      InputDriver *driver = DFBMALLOC( sizeof(InputDriver) );
-     
+
      driver->Probe  = dlsym( handle, "driver_probe" );
      if (!driver->Probe) {
           DLERRORMSG( "DirectFB/core/input: "
@@ -159,7 +161,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
           return MODULE_REJECTED;
      }
 
-     
+
      nr_devices = driver->Probe();
      if (!nr_devices) {
           DFBFREE( driver );
@@ -203,7 +205,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
                    device->info.driver_vendor );
 
           device->reactor = reactor_new();
-          
+
           /* start input thread */
           if (device->EventThread) {
                int                 policy;

@@ -32,6 +32,8 @@
 
 #ifdef DFB_DEBUG
 
+void  dbg_print_memleaks();
+
 void  dbg_free( char *file, int line, char *func, char *what, void *mem );
 void *dbg_malloc( char *file, int line, char *func, size_t bytes );
 void *dbg_calloc( char *file, int line, char *func, size_t count, size_t bytes);

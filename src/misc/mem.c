@@ -40,18 +40,18 @@ typedef struct {
 } MemDesc;
 
 
-static int initialized = 0;
 static int alloc_count = 0;
 static MemDesc *alloc_list = NULL;
 static pthread_mutex_t alloc_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
-static void dbg_memleaks_done( int exitcode, void *dummy )
+void dbg_print_memleaks()
 {
      unsigned int i;
-     (void) dummy;
 
-     if (exitcode == 0 && alloc_count != 0) {
+     pthread_mutex_lock( &alloc_lock );
+
+     if (alloc_count) {
           DEBUGMSG( "memory leak detected !!!\n");
           DEBUGMSG( "alloc_count == %i\n\n", alloc_count);
 
@@ -65,13 +65,8 @@ static void dbg_memleaks_done( int exitcode, void *dummy )
 
           free( alloc_list );
      }
-}
 
-
-static void dbg_memleaks_init( void )
-{
-     on_exit( dbg_memleaks_done, NULL );
-     initialized = 1;
+     pthread_mutex_unlock( &alloc_lock );
 }
 
 
@@ -79,9 +74,6 @@ void* dbg_malloc( char* file, int line, char *func, size_t bytes )
 {
      void *mem = (void*) malloc (bytes);
      MemDesc *d;
-
-     if (!initialized)
-          dbg_memleaks_init();
 
      pthread_mutex_lock( &alloc_lock );
 
@@ -104,9 +96,6 @@ void* dbg_calloc( char* file, int line, char *func, size_t count, size_t bytes )
 {
      void *mem = (void*) calloc (count, bytes);
      MemDesc *d;
-
-     if (!initialized)
-          dbg_memleaks_init();
 
      pthread_mutex_lock( &alloc_lock );
 
@@ -158,9 +147,6 @@ char* dbg_strdup( char* file, int line, char *func, const char *string )
      char *mem = strdup (string);
      MemDesc *d;
 
-     if (!initialized)
-          dbg_memleaks_init();
-
      pthread_mutex_lock( &alloc_lock );
 
      alloc_count++;
@@ -180,9 +166,6 @@ char* dbg_strdup( char* file, int line, char *func, const char *string )
 void dbg_free( char *file, int line, char *func, char *what, void *mem )
 {
      unsigned int i;
-
-     if (!initialized)
-          dbg_memleaks_init();
 
      pthread_mutex_lock( &alloc_lock );
 

@@ -83,8 +83,12 @@ void core_deinit_check()
      if (core_refs) {
           DEBUGMSG( "DirectFB/core: WARNING - Application "
                     "exitted without deinitialization of DirectFB!\n" );
-          core_deinit_emergency();
+          core_deinit();
      }
+
+#ifdef DFB_DEBUG
+     dbg_print_memleaks();
+#endif
 }
 
 DFBResult core_init()
@@ -176,11 +180,12 @@ void core_deinit_emergency()
 
                sched_yield();
           }
-          
+
           if (card->info.driver && card->info.driver->DeInit)
                card->info.driver->DeInit();
      }
 
+     input_deinit();
      if (vt)
           vt_close();
 

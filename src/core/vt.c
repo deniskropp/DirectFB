@@ -44,13 +44,13 @@
 #include "gfxcard.h"
 #include "vt.h"
 
-/* 
+/*
  *  FIXME: the following looks like a bad hack.
  *
- *  SIGUNUSED is no longer unused, but is defined for backwards compatibility. 
+ *  SIGUNUSED is no longer unused, but is defined for backwards compatibility.
  *  sparc, mips and alpha signal.h however do not define SIGUNUSED.
- */   
- 
+ */
+
 #ifdef SIGUNUSED
 #define SIG_SWITCH_FROM  (SIGUNUSED + 10)
 #define SIG_SWITCH_TO    (SIGUNUSED + 11)
@@ -88,22 +88,26 @@ void vt_close()
 
      if (!dfb_config->no_vt_switch) {
           DEBUGMSG( "switching back...\n" );
-          
+
           if (ioctl( vt->fd0, VT_ACTIVATE, vt->prev ) < 0)
                PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE" );
 
           if (ioctl( vt->fd0, VT_WAITACTIVE, vt->prev ) < 0)
                PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE" );
-          
+
           DEBUGMSG( "switched back...\n" );
-          
-          close( vt->fd );
-          
+
+          if (close( vt->fd ) < 0)
+               PERRORMSG( "DirectFB/core/vt: Unable to "
+                          "close file descriptor of allocated VT!\n" );
+
           if (ioctl( vt->fd0, VT_DISALLOCATE, vt->num ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to disallocate VT!\n" );
      }
 
-     close( vt->fd0 );
+     if (close( vt->fd0 ) < 0)
+          PERRORMSG( "DirectFB/core/vt: Unable to "
+                     "close file descriptor of tty0!\n" );
 
      DFBFREE( vt );
      vt = NULL;
@@ -247,7 +251,7 @@ static void vt_switch( int signal, siginfo_t *info, void *p )
 
           DEBUGMSG( "DirectFB/core/vt: "
                     "...previous signal handler returned.\n" );
-          
+
           return;
      }
 
