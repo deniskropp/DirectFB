@@ -56,7 +56,6 @@
 
 DFB_INPUT_DRIVER( serialmouse )
 
-#define DEV_NAME "/dev/mouse"
 #define MIDDLE   0x08
 
 typedef enum
@@ -87,7 +86,6 @@ typedef struct {
      DFBInputEvent  x_motion;
      DFBInputEvent  y_motion;
 } SerialMouseData;
-
 
 static inline void
 mouse_motion_initialize( SerialMouseData *data )
@@ -384,6 +382,7 @@ driver_get_available()
      char                 buf[8];
      int                  readlen;
      int                  lines;
+     int                  flags;
 
      if (dfb_system_type() != CORE_FBDEV)
           return 0;
@@ -392,11 +391,28 @@ driver_get_available()
      if (protocol == LAST_PROTOCOL)
           return 0;
 
-     fd = open( DEV_NAME, O_RDWR | O_NONBLOCK );
-     if (fd < 0)
+     /* initialize source device name to read from */
+     /* initialize flags to open device with */
+     flags = O_NONBLOCK;
+     INITMSG( "mouse detection: device '%s'...", dfb_config->mouse_source );
+
+     /* open device to read from */
+     fd = open( dfb_config->mouse_source, flags );
+     if (fd < 0) {
+	  INITMSG( "could not open device!\n" );
           return 0;
+     }
 
      /*  test if this is a serial device  */
+     if (dfb_config->mouse_gpm_source) {
+
+          /* test whether a there is really a GPM driver active */
+          /* availibity of device name is enough */
+
+          goto success;
+
+     } else {
+
      if (ioctl( fd, TIOCGSERIAL, &serial_info ))
           goto error;
 
@@ -425,12 +441,19 @@ driver_get_available()
                     break;
           }
           if (readlen) {
-               close (fd);
-               return 1;
+                    goto success;
           }
      }
 
+    }
+
+ success:
+     INITMSG("OK\n");
+     close (fd);
+     return 1;
+
  error:
+     INITMSG("Failed\n");
      close (fd);
      return 0;
 }
@@ -457,6 +480,7 @@ driver_open_device( InputDevice      *device,
                     void            **driver_data )
 {
      int              fd;
+     int              flags;
      MouseProtocol    protocol;
      SerialMouseData *data;
 
@@ -465,9 +489,10 @@ driver_open_device( InputDevice      *device,
           return DFB_BUG;
 
      /* open device */
-     fd = open( DEV_NAME, O_RDWR | O_NONBLOCK );
+     flags = O_NONBLOCK | (dfb_config->mouse_gpm_source ? O_RDONLY : O_RDWR);
+     fd = open( dfb_config->mouse_source, flags );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/SerialMouse: Error opening '"DEV_NAME"'!\n" );
+          PERRORMSG( "DirectFB/SerialMouse: Error opening '%s'!\n", dfb_config->mouse_source );
           return DFB_INIT;
      }
 

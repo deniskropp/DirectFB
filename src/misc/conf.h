@@ -44,6 +44,8 @@ typedef struct
 
      bool      mouse_motion_compression;          /* use motion compression? */
      char     *mouse_protocol;                    /* mouse protocol */
+     char     *mouse_source;                      /* mouse source device name */
+     bool      mouse_gpm_source;                  /* mouse source is gpm? */
 
      int       window_policy;                     /* swapping policy for the
                                                      surface of a window */

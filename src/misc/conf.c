@@ -192,6 +192,10 @@ static const FormatString format_strings[] = {
 
 #define NUM_FORMAT_STRINGS (sizeof(format_strings) / sizeof(FormatString))
 
+/* serial mouse device names */
+#define DEV_NAME     "/dev/mouse"
+#define DEV_NAME_GPM "/dev/gpmdata"
+
 static int
 format_string_compare (const void *key,
                        const void *base)
@@ -307,6 +311,8 @@ static void config_allocate()
      dfb_config->vt_switch                = true;
      dfb_config->translucent_windows      = true;
      dfb_config->mouse_motion_compression = true;
+     dfb_config->mouse_gpm_source         = false;
+     dfb_config->mouse_source             = DFBSTRDUP( DEV_NAME );
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
 
@@ -585,6 +591,21 @@ DFBResult dfb_config_set( const char *name, const char *value )
                ERRORMSG( "DirectFB/Config: No mouse protocol specified!\n" );
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "mouse-source" ) == 0) {
+          if (value) {
+               DFBFREE( dfb_config->mouse_source );	  
+               dfb_config->mouse_source = DFBSTRDUP( value );
+          }
+          else {
+               ERRORMSG( "DirectFB/Config: No mouse source specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "mouse-gpm-source" ) == 0) {
+          dfb_config->mouse_gpm_source = true;
+	  DFBFREE( dfb_config->mouse_source );
+	  dfb_config->mouse_source = DFBSTRDUP( DEV_NAME_GPM );
      } else
      if (strcmp (name, "translucent-windows" ) == 0) {
           dfb_config->translucent_windows = true;
