@@ -166,7 +166,8 @@ DFBResult IDirectFB_EnumVideoModes( IDirectFB *thiz,
 }
 
 DFBResult IDirectFB_SetVideoMode( IDirectFB *thiz,
-                                  int width, int height, int bpp )
+                                  unsigned int width, unsigned int height,
+                                  unsigned int bpp )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
 

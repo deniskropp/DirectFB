@@ -504,9 +504,9 @@ extern "C"
            */
           DFBResult (*SetVideoMode) (
                IDirectFB                *thiz,
-               int                      width,
-               int                      height,
-               int                      bpp
+               unsigned int             width,
+               unsigned int             height,
+               unsigned int             bpp
           );
 
 
@@ -951,8 +951,8 @@ extern "C"
            */
           DFBResult (*GetSize) (
                IDirectFBSurface         *thiz,
-               int                      *width,
-               int                      *height
+               unsigned int             *width,
+               unsigned int             *height
           );
 
           /*
@@ -1079,7 +1079,7 @@ extern "C"
            */
           DFBResult (*SetSrcColorKey) (
                IDirectFBSurface         *thiz,
-               unsigned int             key
+               __u32                    key
           );
 
           /*
@@ -1088,7 +1088,7 @@ extern "C"
            */
           DFBResult (*SetDstColorKey) (
                IDirectFBSurface         *thiz,
-               unsigned int             key
+               __u32                    key
           );
 
 
@@ -1562,8 +1562,8 @@ extern "C"
            */
           DFBResult (*GetSize) (
                IDirectFBWindow     *thiz,
-               int                 *width,
-               int                 *height
+               unsigned int        *width,
+               unsigned int        *height
           );
 
 
@@ -1666,8 +1666,8 @@ extern "C"
            */
           DFBResult (*Resize) (
                IDirectFBWindow     *thiz,
-               int                 width,
-               int                 height
+               unsigned int        width,
+               unsigned int        height
           );
 
 

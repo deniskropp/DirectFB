@@ -98,8 +98,8 @@ DFBResult IDirectFBWindow_GetPosition( IDirectFBWindow *thiz, int *x, int *y )
      return DFB_OK;
 }
 
-DFBResult IDirectFBWindow_GetSize( IDirectFBWindow *thiz, int *width,
-                                                          int *height )
+DFBResult IDirectFBWindow_GetSize( IDirectFBWindow *thiz, unsigned int *width,
+                                                          unsigned int *height )
 {
      IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
 
@@ -253,7 +253,8 @@ DFBResult IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
                          x - data->window->x, y - data->window->y );
 }
 
-DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz, int width, int height )
+DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
+                                  unsigned int width, unsigned int height )
 {
      IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
 
