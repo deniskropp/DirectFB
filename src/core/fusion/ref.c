@@ -30,10 +30,12 @@
 #include <unistd.h>
 #include <errno.h>
 
+#ifndef FUSION_FAKE
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/sem.h>
+#endif
 
 #include "fusion_types.h"
 #include "ref.h"

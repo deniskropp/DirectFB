@@ -48,8 +48,6 @@
 #include "fusion_internal.h"
 
 
-#ifndef FUSION_FAKE
-
 /***************************
  *  Internal declarations  *
  ***************************/
@@ -280,7 +278,4 @@ void arena_exit (FusionArena   *arena,
 /*****************************
  *  File internal functions  *
  *****************************/
-
-
-#endif /* !FUSION_FAKE */
 

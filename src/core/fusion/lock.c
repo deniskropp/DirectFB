@@ -42,8 +42,6 @@
 #include "fusion_internal.h"
 
 
-#ifndef FUSION_FAKE
-
 /***************************
  *  Internal declarations  *
  ***************************/
@@ -150,6 +148,4 @@ void skirmish_destroy (FusionSkirmish *skirmish)
  *  File internal functions  *
  *****************************/
 
-
-#endif /* !FUSION_FAKE */
 

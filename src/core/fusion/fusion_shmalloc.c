@@ -37,8 +37,6 @@
 
 #include "shmalloc.h"
 
-#ifndef FUSION_FAKE
-
 #include "shmalloc/shmalloc_internal.h"
 
 /* Allocate SIZE bytes of memory.  */
@@ -170,6 +168,4 @@ char *shstrdup (const char* string)
 
      return ret;
 }
-
-#endif /* !FUSION_FAKE */
 

@@ -31,10 +31,12 @@
 #include <errno.h>
 #include <signal.h>
 
+#ifndef FUSION_FAKE
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/sem.h>
+#endif
 
 #include <core/coredefs.h>
 

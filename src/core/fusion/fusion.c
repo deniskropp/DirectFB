@@ -49,8 +49,6 @@
 #include "ref.h"
 
 
-#ifndef FUSION_FAKE
-
 #include "shmalloc/shmalloc_internal.h"
 
 /***************************
@@ -336,6 +334,4 @@ initialize_shared (FusionShared *shared)
 
      return 0;
 }
-
-#endif /* !FUSION_FAKE */
 

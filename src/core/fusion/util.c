@@ -31,18 +31,18 @@
 #include <errno.h>
 #include <time.h>
 
+#ifndef FUSION_FAKE
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/shm.h>
+#endif
 
 #include <misc/mem.h>
 
 #include "fusion_types.h"
 
 #include "fusion_internal.h"
-
-#ifndef FUSION_FAKE
 
 /*******************************
  *  Fusion internal functions  *
@@ -138,5 +138,4 @@ AbolitionStatus _shm_abolish (int shmid, void *addr)
      return AB_Detached;
 }
 
-#endif /* !FUSION_FAKE */
 
