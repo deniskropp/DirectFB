@@ -10,7 +10,7 @@ Contents
 
   - install the developer cd that came with Mac OS X 10.3 (newer versions may
     also work), make sure to install the X11 developer package which is needed
-    forfree type)
+    for freetype)
   - install fink 0.7.0 (http://fink.sourceforce.net), fink is a distribution
     which contains precompiled packages of many open source projects and uses
     debian package tools (apt-get, dselect, dpkg, etc).
