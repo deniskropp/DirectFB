@@ -43,6 +43,8 @@
 
 #include <misc/util.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
+
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
