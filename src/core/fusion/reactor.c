@@ -362,7 +362,7 @@ void reactor_free (FusionReactor *reactor)
                   reactor->node[i].id, reactor->node[i].reactions);
         }
 
-      kill (getpid(), 5);
+      //kill (getpid(), 5);
     }
 
   /* unlock reactor and destroy the skirmish */
