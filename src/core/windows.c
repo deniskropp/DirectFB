@@ -1962,7 +1962,7 @@ window_remove( CoreWindow *window )
           ensure_focus( stack );
      }
 
-     window->stack = NULL;
+//     window->stack = NULL;
 }
 
 static bool
