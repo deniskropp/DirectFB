@@ -70,10 +70,10 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      /* Initialize all registered screens. */
      for (i=0; i<num_screens; i++) {
-          DFBScreenDescription  desc;
           CoreScreenShared     *shared;
           CoreScreen           *screen = screens[i];
           ScreenFuncs          *funcs  = screen->funcs;
+          DFBScreenDescription  desc   = { 0 };
 
           /* Allocate shared data. */
           shared = SHCALLOC( 1, sizeof(CoreScreenShared) );
