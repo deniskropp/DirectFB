@@ -191,13 +191,22 @@ DFBResult dfb_input_shutdown( bool emergency )
      InputDevice *d = inputdevices;
 
      while (d) {
-          InputDevice *next = d->next;
+          InputDevice       *next   = d->next;
+          InputDeviceShared *shared = d->shared;
+          InputDriver       *driver = d->driver;
 
-          d->driver->funcs->CloseDevice( d->driver_data );
-          d->driver->nr_devices--;
+          driver->funcs->CloseDevice( d->driver_data );
+          
+          if (!--driver->nr_devices)
+               DFBFREE( driver );
 
-          reactor_free( d->shared->reactor );
+          reactor_free( shared->reactor );
 
+          if (shared->keymap.entries)
+               shfree( shared->keymap.entries );
+          
+          shfree( shared );
+          
           DFBFREE( d );
 
           d = next;
@@ -403,7 +412,7 @@ static void allocate_device_keymap( InputDevice *device )
      int                        num_entries = desc->max_keycode -
                                               desc->min_keycode + 1;
 
-     entries = DFBCALLOC( num_entries, sizeof(DFBInputDeviceKeymapEntry) );
+     entries = shcalloc( num_entries, sizeof(DFBInputDeviceKeymapEntry) );
      
      /* write -1 indicating entry is not fetched yet from driver */
      for (i=0; i<num_entries; i++)
@@ -413,6 +422,12 @@ static void allocate_device_keymap( InputDevice *device )
      shared->keymap.max_keycode = desc->max_keycode;
      shared->keymap.num_entries = num_entries;
      shared->keymap.entries     = entries;
+
+#ifdef DFB_MULTI
+     /* we need to fetch the whole map, otherwise a slave would try to */
+     for (i=desc->min_keycode; i<=desc->max_keycode; i++)
+          get_keymap_entry( device, i );
+#endif
 }
 
 static void init_devices()
@@ -420,12 +435,13 @@ static void init_devices()
      FusionLink *link;
 
      fusion_list_foreach( link, input_drivers ) {
-          int          n;
-          InputDriver *driver = (InputDriver*) link;
+          int               n;
+          InputDriver      *driver = (InputDriver*) link;
+          InputDriverFuncs *funcs  = driver->funcs;
 
-          driver->funcs->GetDriverInfo( &driver->info );
+          funcs->GetDriverInfo( &driver->info );
 
-          driver->nr_devices = driver->funcs->GetAvailable();
+          driver->nr_devices = funcs->GetAvailable();
           if (!driver->nr_devices)
                continue;
 
@@ -444,8 +460,7 @@ static void init_devices()
 
                device->shared->reactor = reactor_new( sizeof(DFBInputEvent) );
 
-               if (driver->funcs->OpenDevice( device, n,
-                                              &device_info, &driver_data )) {
+               if (funcs->OpenDevice( device, n, &device_info, &driver_data )) {
                     reactor_free( device->shared->reactor );
                     shfree( device->shared );
                     DFBFREE( device );
@@ -519,9 +534,10 @@ get_keymap_entry( InputDevice *device,
           DFBResult    ret;
           InputDriver *driver = device->driver;
 
-          /* FIXME: (multi-app) retrieve whole map once during initialization */
-          if (!driver)
+          if (!driver) {
+               BUG("seem to be a slave with an empty keymap");
                return NULL;
+          }
 
           /* write keycode to entry */
           entry->code = code;
