@@ -3,6 +3,15 @@ different bugs and issues
 - sometimes a deadlock occurs in deinitialization done by the signal handler
 
 
+LSB violations (from http://www.opengroup.org/personal/ajosey/tr28-07-2003.txt)
+-------------------------------------------------------------------------------
+
+215 Applications must disconnect from the controlling tty before calling
+216 pthread_create.
+
+225 Threaded applications cannot use SIGUSR1 or SIGUSR2."
+
+
 demo problems
 -------------
 - some demos work incredible slower with hardware drivers that do not support
