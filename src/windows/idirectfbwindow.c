@@ -338,8 +338,6 @@ static DFBResult
 IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
                             DFBWindowOptions  options )
 {
-     DFBWindowOptions changed;
-
      INTERFACE_GET_DATA(IDirectFBWindow)
 
      /* Check arguments */
