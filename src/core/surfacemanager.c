@@ -472,6 +472,13 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
           char *src = dfb_system_video_memory_virtual( buffer->video.offset );
           char *dst = buffer->system.addr;
 
+          /* from video_access_by_software() in surface.c */
+          if (buffer->video.access & VAF_HARDWARE_WRITE) {
+               dfb_gfxcard_sync();
+               buffer->video.access &= ~VAF_HARDWARE_WRITE;
+          }
+          buffer->video.access |= VAF_SOFTWARE_READ;
+
           while (h--) {
                dfb_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
                                                         surface->width) );
