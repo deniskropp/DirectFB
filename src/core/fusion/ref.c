@@ -77,8 +77,6 @@ fusion_ref_init (FusionRef *ref)
           return FUSION_FAILURE;
      }
 
-     ref->magic = 0x12345678;
-
      return FUSION_SUCCESS;
 }
 
@@ -86,7 +84,6 @@ FusionResult
 fusion_ref_up (FusionRef *ref, bool global)
 {
      DFB_ASSERT( ref != NULL );
-     DFB_ASSERT( ref->magic == 0x12345678 );
 
      while (ioctl (fusion_fd, global ?
                    FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->ref_id))
@@ -116,7 +113,6 @@ FusionResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
      DFB_ASSERT( ref != NULL );
-     DFB_ASSERT( ref->magic == 0x12345678 );
      
      while (ioctl (fusion_fd, global ?
                    FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->ref_id))
@@ -149,13 +145,22 @@ fusion_ref_stat (FusionRef *ref, int *refs)
 
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( refs != NULL );
-     DFB_ASSERT( ref->magic == 0x12345678 );
 
-     val = ioctl (fusion_fd, FUSION_REF_STAT, &ref->ref_id);
-/*     if (val < 0) {
+     while ((val = ioctl (fusion_fd, FUSION_REF_STAT, &ref->ref_id)) < 0) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reference\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_REF_STAT");
+          
           return FUSION_FAILURE;
-     }*/
+     }
 
      *refs = val;
 
@@ -166,7 +171,6 @@ FusionResult
 fusion_ref_zero_lock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
-     DFB_ASSERT( ref->magic == 0x12345678 );
      
      while (ioctl (fusion_fd, FUSION_REF_ZERO_LOCK, &ref->ref_id)) {
           switch (errno) {
@@ -191,7 +195,6 @@ FusionResult
 fusion_ref_zero_trylock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
-     DFB_ASSERT( ref->magic == 0x12345678 );
      
      while (ioctl (fusion_fd, FUSION_REF_ZERO_TRYLOCK, &ref->ref_id)) {
           switch (errno) {
@@ -218,7 +221,6 @@ FusionResult
 fusion_ref_unlock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
-     DFB_ASSERT( ref->magic == 0x12345678 );
      
      while (ioctl (fusion_fd, FUSION_REF_UNLOCK, &ref->ref_id)) {
           switch (errno) {
@@ -243,9 +245,6 @@ FusionResult
 fusion_ref_destroy (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
-     DFB_ASSERT( ref->magic == 0x12345678 );
-     
-     ref->magic = 0x87654321;
 
      while (ioctl (fusion_fd, FUSION_REF_DESTROY, &ref->ref_id)) {
           switch (errno) {
