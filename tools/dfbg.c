@@ -38,27 +38,21 @@
 #include "directfb.h"
 
 
-#ifndef bool
-typedef enum {
-     false = 0,
-     true = !false
-} bool;
-#endif
-
 /*****************************************************************************/
 
 static IDirectFB             *dfb   = NULL;
 static IDirectFBDisplayLayer *layer = NULL;
 
 static const char *filename = NULL;
-static bool        color    = false;
-static bool        tiled    = false;
+static DFBBoolean  color    = DFB_FALSE;
+static DFBBoolean  tiled    = DFB_FALSE;
+
 
 /*****************************************************************************/
 
-static bool parse_command_line( int argc, char *argv[] );
-static void set_background_color( void );
-static void set_background_image( void );
+static DFBBoolean parse_command_line   ( int argc, char *argv[] );
+static void       set_background_color ( void );
+static void       set_background_image ( void );
 
 /*****************************************************************************/
 
@@ -127,7 +121,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "\n");
 }
 
-static bool
+static DFBBoolean
 parse_command_line( int argc, char *argv[] )
 {
      int n;
@@ -142,33 +136,33 @@ parse_command_line( int argc, char *argv[] )
                }
                else {
                     print_usage (argv[0]);
-                    return false;
+                    return DFB_FALSE;
                }
           }
           if (strcmp (a, "-h") == 0 || strcmp (a, "--help") == 0) {
                print_usage (argv[0]);
-               return false;
+               return DFB_FALSE;
           }
           if (strcmp (a, "-v") == 0 || strcmp (a, "--version") == 0) {
                fprintf (stderr, "dfbg version %s\n", DIRECTFB_VERSION);
-               return false;
+               return DFB_FALSE;
           }
           if (strcmp (a, "-c") == 0 || strcmp (a, "--color") == 0) {
-               color = true;
+               color = DFB_TRUE;
                continue;
           }
           if (strcmp (a, "-t") == 0 || strcmp (a, "--tile") == 0) {
-               tiled = true;
+               tiled = DFB_TRUE;
                continue;
           }
      }
 
      if (!filename) {
           print_usage (argv[0]);
-          return false;
-     }      
+          return DFB_FALSE;
+     }
 
-     return true;
+     return DFB_TRUE;
 }
 
 static void

@@ -1,11 +1,15 @@
-This directory holds some tools you might find useful.
+This directory holds some tools that you might find useful ...
 
-  dfb_static_build_example  is a shell script that shows how to create a
-	statically linked DirectFB application. Modify the script to adapt
-	it to your needs.
+  dfb_static_build_example  is a shell script that shows how to create 
+        a statically linked DirectFB application. Modify the script to
+        adapt it to your needs.
 
   dfbdump  is a simple debugging tool for DirectFB that shows a list of
         surfaces and windows. It needs the multi-application core.
+
+  dfbg  is a utility to configure the background of the DirectFB desktop.
+        It's only useful with the multi-application core. Have a look at
+        the dfbg man-page for more infos. 
 
   directfb-csource  creates header files from PNG images. Check the
         directfb-csource man-page for more details.
@@ -13,7 +17,8 @@ This directory holds some tools you might find useful.
   gendoc.pl  is a Perl script used to generate HTML documentation from
 	the DirectFB header files.
 
-  raw16toraw24, raw15toraw24 and raw32toraw24  are small utilities that
-	help creating screenshots from applications running on the
-	Linux framebuffer. See the file README.screenshots in the
-	toplevel directory to learn how to use them.
+  raw16toraw24, raw15toraw24 and raw32toraw24  are utilities that help
+        to create screenshots from applications running on the Linux
+        frame buffer. See the file README.screenshots in the toplevel
+        directory to learn how to use them.
+
