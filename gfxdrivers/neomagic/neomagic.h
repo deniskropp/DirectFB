@@ -25,6 +25,7 @@
 #define __NEOMAGIC_H__
 
 #include <asm/types.h>
+#include <sys/io.h>
 
 #include <core/gfxcard.h>
 
@@ -34,11 +35,27 @@ typedef struct {
      unsigned int fifo_waitcycles;
      unsigned int idle_waitcycles;
      unsigned int fifo_cache_hits;
+
+     struct {
+          __u32 OFFSET;
+          __u16 PITCH;
+          __u16 X1;
+          __u16 X2;
+          __u16 Y1;
+          __u16 Y2;
+          __u16 HSCALE;
+          __u16 VSCALE;
+          __u8  CONTROL;
+     } OVERLAY;
 } NeoDeviceData;
 
 typedef struct {
      volatile __u8 *mmio_base;
 } NeoDriverData;
+
+DFBResult
+neo_init_overlay( void *driver_data,
+                  void *device_data );
 
 void
 neo2200_get_info( GraphicsDevice     *device,
@@ -113,5 +130,26 @@ neo2200_close_driver( GraphicsDevice *device,
 #define NEO_MODE1_BLT_ON_ADDR   0x2000
 
 
+static inline void OUTGR (__u8 index, __u8 data)
+{
+     outb (index, 0x3ce);
+     outb (data, 0x3cf);
+}
+
+static inline void OUTSR (__u8 index, __u8 data)
+{
+     outb (index, 0x3c4);
+     outb (data, 0x3c5);
+}
+
+static inline void neo_lock()
+{
+     OUTGR(0x09, 0x00);
+}
+
+static inline void neo_unlock()
+{
+     OUTGR(0x09, 0x26);
+}
 
 #endif

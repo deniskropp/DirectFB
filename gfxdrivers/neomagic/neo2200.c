@@ -153,6 +153,7 @@ static inline void neo2200_validate_bltMode_dst( Neo2200DriverData *ndrv,
       break;
     case DSPF_RGB15:
     case DSPF_RGB16:
+    case DSPF_YUY2:
       bltMode |= NEO_MODE1_DEPTH16;
       break;
     default:
@@ -271,20 +272,27 @@ static void neo2200CheckState( void *drv, void *dev,
     case DSPF_RGB15:
     case DSPF_RGB16:
       break;
+    case DSPF_YUY2:
+      if (accel == DFXL_BLIT)
+        break;
     default:
       return;
     }
 
-  /* if there are no other drawing flags than the supported */
-  if (!(state->drawingflags & ~NEO_SUPPORTED_DRAWINGFLAGS))
-    state->accel |= NEO_SUPPORTED_DRAWINGFUNCTIONS;
-
-  /* if there are no other blitting flags than the supported
-     and the source and destination formats are the same */
-  if (!(state->blittingflags & ~NEO_SUPPORTED_BLITTINGFLAGS)  &&
-      state->source  &&  state->source->format == state->destination->format  &&
-      state->source->front_buffer != state->destination->back_buffer)
-    state->accel |= NEO_SUPPORTED_BLITTINGFUNCTIONS;
+  if (DFB_DRAWING_FUNCTION(accel))
+    {
+      /* if there are no other drawing flags than the supported */
+      if (!(state->drawingflags & ~NEO_SUPPORTED_DRAWINGFLAGS))
+        state->accel |= accel;
+    }
+  else
+    {
+      /* if there are no other blitting flags than the supported
+         and the source and destination formats are the same */
+      if (!(state->blittingflags & ~NEO_SUPPORTED_BLITTINGFLAGS)  &&
+          state->source  &&  state->source->format == state->destination->format)
+        state->accel |= accel;
+    }
 }
 
 static void neo2200SetState( void *drv, void *dev,
@@ -305,6 +313,8 @@ static void neo2200SetState( void *drv, void *dev,
      if (state->modified & SMF_SRC_COLORKEY)
           ndev->n_xpColor = 0;
 
+     neo2200_validate_bltMode_dst( ndrv, ndev, state->destination );
+
      switch (accel) {
           case DFXL_BLIT:
                neo2200_validate_src( ndrv, ndev, state->source );
@@ -316,12 +326,14 @@ static void neo2200SetState( void *drv, void *dev,
                else
                     ndev->bltCntl = 0;
 
+               state->set |= DFXL_BLIT;
+               break;
+
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWRECTANGLE:
                neo2200_validate_fgColor( ndrv, ndev, state );
-               neo2200_validate_bltMode_dst( ndrv, ndev, state->destination );
 
-               state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_BLIT;
+               state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE;
                break;
 
           default:
@@ -398,43 +410,35 @@ static void neo2200Blit( void *drv, void *dev,
      Neo2200DeviceData *ndev    = (Neo2200DeviceData*) dev;
      Neo2200           *neo2200 = ndrv->neo2200;
 
-     __u32 start;
+     __u32 src_start, dst_start;
      __u32 bltCntl = ndev->bltCntl;
 
-     /* shit, doesn't work */
-#if 0
-     if (rect->x < dx)
-          bltCntl |= NEO_BC0_X_DEC;
+     if (rect->x < dx) {
+          rect->x += rect->w - 1;
+          dx      += rect->w - 1;
+     }
 
      if (rect->y < dy) {
-          bltCntl |= NEO_BC0_DST_Y_DEC | NEO_BC0_SRC_Y_DEC;
-
           rect->y += rect->h - 1;
-          dy += rect->h - 1;
+          dy      += rect->h - 1;
      }
-#endif
 
-     start = rect->y * ndev->srcPitch + rect->x * ndev->srcPixelWidth;
+     src_start = rect->y * ndev->srcPitch + rect->x * ndev->srcPixelWidth;
+     dst_start = dy * ndev->dstPitch + dx * ndev->dstPixelWidth;
 
-#if 0
-     if (bltCntl & NEO_BC0_X_DEC)
-          start += (rect->w-1) * ndev->srcPixelWidth;
-#endif
-
-     neo2200_waitfifo( ndrv, ndev, 3 );
+     neo2200_waitfifo( ndrv, ndev, 4 );
 
      /* set blt control */
-     neo2200->bltCntl = bltCntl |
-                        NEO_BC3_FIFO_EN      |
-                        NEO_BC3_SKIP_MAPPING |  0x0c0000;
+     neo2200->bltCntl  = bltCntl |
+                         NEO_BC3_FIFO_EN      |
+                         NEO_BC3_SKIP_MAPPING |  0x0c0000;
 
-     neo2200->srcStart = ndev->srcOrg + start;
+     /* set start addresses */
+     neo2200->srcStart = ndev->srcOrg + src_start;
+     neo2200->dstStart = ndev->dstOrg + dst_start;
 
-     neo2200->dstStart = ndev->dstOrg +
-                   (dy * ndev->dstPitch) +
-                   (dx * ndev->dstPixelWidth);
-
-     neo2200->xyExt = (rect->h << 16) | (rect->w & 0xffff);
+     /* set size */
+     neo2200->xyExt    = (rect->h << 16) | (rect->w & 0xffff);
 }
 
 
