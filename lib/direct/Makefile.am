@@ -9,6 +9,8 @@ AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\
 	-DMODULEDIR=\"@MODULEDIR@\"
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = direct.pc
 
 noinst_PROGRAMS = dtest
 
@@ -33,10 +35,9 @@ endif
 ppcasm_headers = ppcasm_memcpy.h ppc_asm.h
 endif
 
+includedir = @INCLUDEDIR@/direct
 
-internalincludedir = $(INTERNALINCLUDEDIR)/direct
-
-internalinclude_HEADERS = \
+include_HEADERS = \
 	$(ppcasm_headers)		\
 	build.h				\
 	clock.h				\

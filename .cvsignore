@@ -21,4 +21,5 @@ DirectFB.vpj
 DirectFB.vpw
 DirectFB.vtg
 gmon.out
+boot*
 *.diff

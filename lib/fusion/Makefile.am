@@ -20,10 +20,12 @@ AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\
 	-DMODULEDIR=\"@MODULEDIR@\"
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = fusion.pc
 
-internalincludedir = $(INTERNALINCLUDEDIR)/fusion
+includedir = @INCLUDEDIR@/fusion
 
-internalinclude_HEADERS = \
+include_HEADERS = \
 	arena.h		\
 	build.h		\
 	call.h		\

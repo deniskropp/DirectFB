@@ -1055,9 +1055,11 @@ lib/Makefile
 
 lib/direct/Makefile
 lib/direct/build.h
+lib/direct/direct.pc
 
 lib/fusion/Makefile
 lib/fusion/build.h
+lib/fusion/fusion.pc
 lib/fusion/shmalloc/Makefile
 
 lib/voodoo/Makefile
