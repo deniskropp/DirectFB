@@ -1,31 +1,9 @@
-CLUT/ALUT support.
-
-Module unloading.
-
-Allow software driven interlaced video field switches
-(functionality exists but not yet exported to apps).
-
-Changing window capabilities after creation.
-
-Add cooperative levels to input devices and implement
-a grabbing mechanism for fullscreen apps running in
-windowed mode.
-
-Virtual window/layer resolution with scrolling/panning.
+Finish CLUT/ALUT support.
 
 Finish implementation of cooperative levels.
 
 Finish display layer core and driver API.
  - Finish reallocate_surface() in src/core/layers.c
-
-SetVideoMode should resize the window for the primary surface
-when in normal cooperative level and it already exists.
-
-Allow disabling of specific input devices.
-
-Memory Source or Streaming for Image/Video Provider.
-
-Rework VT handling. Readd VT switching and Suspend/Resume.
 
 Finish multi application core.
  - Reduce number of thread
@@ -35,6 +13,22 @@ Finish multi application core.
 Finish surface manager.
  - Add kicking out a few smaller surfaces for a bigger one
  - Defragment free space
+
+Module unloading.
+
+SetVideoMode should resize the window for the primary surface
+when in normal cooperative level and it already exists.
+
+Add cooperative levels to input devices and implement
+a grabbing mechanism for fullscreen apps running in
+windowed mode.
+
+Allow software driven interlaced video field switches
+(functionality exists but not yet exported to apps).
+
+Rework VT handling. Readd VT switching and Suspend/Resume.
+
+Virtual window/layer resolution with scrolling/panning.
 
 
 
