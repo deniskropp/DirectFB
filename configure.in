@@ -279,7 +279,7 @@ AC_ARG_ENABLE(trace,
   [  --enable-trace            enable call tracing [default=no]],, enable_trace=no)
 if test "x$enable_trace" = xyes; then
     AC_DEFINE(DFB_TRACE, 1, [Define to 1 if call tracing should be enabled.])
-    CFLAGS="$CFLAGS -finstrument-functions"
+    DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -finstrument-functions"
 fi
 AM_CONDITIONAL(ENABLE_TRACE, test "x$enable_trace" = xyes)
 
