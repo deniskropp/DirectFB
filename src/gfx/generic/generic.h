@@ -59,7 +59,6 @@ void gRelease ( CardState *state );
 
 void gFillRectangle ( DFBRectangle *rect );
 void gDrawLine      ( DFBRegion    *line );
-void gFillTriangle  ( DFBTriangle  *tri );
 
 void gBlit          ( DFBRectangle *rect, int dx, int dy );
 void gStretchBlit   ( DFBRectangle *srect, DFBRectangle *drect );

@@ -49,6 +49,7 @@
 #include "surfacemanager.h"
 
 #include "gfx/generic/generic.h"
+#include "gfx/util.h"
 
 #include "misc/gfx_util.h"
 #include "misc/utf8.h"
@@ -574,31 +575,91 @@ void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      state_unlock( state );
 }
 
+/**
+ *  render a triangle with horizontal baseline (x2,y2)-(x3,y3)
+ */
+static
+void fill_tri( DFBTriangle *tri, CardState *state )
+{
+     int y, yend, dy, dx2, dx3;
+     int clip_x1 = state->clip.x1;
+     int clip_x2 = state->clip.x2;
+     DFBRectangle rect;
+
+     dy = tri->y3 - tri->y1;
+     y = MIN(tri->y1, tri->y3);
+
+     if (y < state->clip.y1)
+        y = state->clip.y1;
+
+     yend = MAX(tri->y1, tri->y3);
+
+     if (yend > state->clip.y2)
+        yend = state->clip.y2;
+
+     dx3 = tri->x3 - tri->x1;
+     dx2 = tri->x2 - tri->x1;
+
+     while (y < yend) {
+          int x1 = tri->x1 + dx3 * (y - tri->y1) / dy;
+          int x2 = tri->x1 + dx2 * (y - tri->y1) / dy;
+          if (x1 < x2) { rect.x = x1; rect.w = x2 - x1; }
+          else         { rect.x = x2; rect.w = x1 - x2; }
+          if (clip_x1 > rect.x)
+               rect.x = clip_x1;
+          if (clip_x2 < rect.x + rect.w)
+               rect.w = clip_x2 - rect.x;
+          if (rect.w > 0) {
+               rect.y = y;
+               rect.h = 1;
+               gFillRectangle (&rect);
+          }
+          y++;
+     }
+}
+
+
 void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
      state_lock( state );
 
      if (gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
-         gfxcard_state_acquire( state, DFXL_FILLTRIANGLE )) {
-          /*  FIXME: do real clipping  */
-          if (Scard->device_info.caps.flags & CCF_CLIPPING ||
-              clip_triangle_precheck( &state->clip, tri ))
+         gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ) &&
+         Scard->device_info.caps.flags & CCF_CLIPPING) {
                card->funcs.FillTriangle( card->driver_data,
                                          card->device_data, tri );
 
           gfxcard_state_release( state );
      }
      else {
-          /*  FIXME: do real clipping  */
-          if (clip_triangle_precheck( &state->clip, tri ) &&
-              gAquire( state, DFXL_FILLTRIANGLE )) {
-               gFillTriangle( tri );
-               gRelease( state );
-          }
+          DFBTriangle t1, t2;
+          int split_x, split_y;
+
+          sort_triangle( tri );
+
+          gAquire( state, DFXL_FILLTRIANGLE );
+
+          split_x = tri->x1 + (tri->x3 - tri->x1) * (tri->y2 - tri->y1) / (tri->y3 - tri->y1);
+          split_y = tri->y2;
+
+          t1.x1 = tri->x1; t1.y1 = tri->y1;
+          t1.x2 = split_x; t1.y2 = split_y;
+          t1.x3 = tri->x2; t1.y3 = tri->y2;
+
+          t2.x1 = tri->x3; t2.y1 = tri->y3;
+          t2.x2 = tri->x2; t2.y2 = tri->y2;
+          t2.x3 = split_x; t2.y3 = split_y;
+
+          fill_tri( &t1, state );
+          fill_tri( &t2, state );
+
+          gRelease( state );
      }
 
      state_unlock( state );
 }
+
+
 
 void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 {
