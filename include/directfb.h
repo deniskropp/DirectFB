@@ -2570,9 +2570,9 @@ typedef struct {
  * Way of building triangles from the list of vertices.
  */
 typedef enum {
-     DTTF_LIST,  /* Each triangle takes three vertices: tris * 3 */
-     DTTF_STRIP, /* Consecutive triangles take two vertices: (tris-1) * 2 + 3 */
-     DTTF_FAN    /* Consecutive triangles take one vertex: (tris-1) + 3 */
+     DTTF_LIST,  /* 0/1/2  3/4/5  6/7/8 ... */
+     DTTF_STRIP, /* 0/1/2  1/2/3  2/3/4 ... */
+     DTTF_FAN    /* 0/1/2  0/2/3  0/3/4 ... */
 } DFBTriangleFormation;
 
 /********************
