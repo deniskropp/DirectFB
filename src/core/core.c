@@ -206,6 +206,52 @@ void core_unref()
      sig_remove_handlers();
 }
 
+DFBResult core_suspend()
+{
+#ifndef FUSION_FAKE
+     return DFB_UNSUPPORTED;
+#else
+     DFBResult ret;
+
+     ret = input_suspend();
+     if (ret)
+          return ret;
+     
+     ret = layers_suspend();
+     if (ret)
+          return ret;
+     
+     ret = gfxcard_suspend();
+     if (ret)
+          return ret;
+
+     return DFB_OK;
+#endif
+}
+
+DFBResult core_resume()
+{
+#ifndef FUSION_FAKE
+     return DFB_UNSUPPORTED;
+#else
+     DFBResult ret;
+
+     ret = gfxcard_resume();
+     if (ret)
+          return ret;
+     
+     ret = layers_resume();
+     if (ret)
+          return ret;
+     
+     ret = input_resume();
+     if (ret)
+          return ret;
+     
+     return DFB_OK;
+#endif
+}
+
 void core_deinit_emergency()
 {
      if (!dfb_core->refs)

@@ -74,6 +74,9 @@ void core_unref();
 
 int core_is_master();
 
+DFBResult core_suspend();
+DFBResult core_resume();
+
 /*
  * called by signal handler
  */

@@ -89,6 +89,11 @@ DFBResult input_join();
 DFBResult input_shutdown();
 DFBResult input_leave();
 
+#ifdef FUSION_FAKE
+DFBResult input_suspend();
+DFBResult input_resume();
+#endif
+
 typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,
                                                      void        *ctx);
 

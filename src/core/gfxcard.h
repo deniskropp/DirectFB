@@ -186,6 +186,11 @@ DFBResult gfxcard_join();
 DFBResult gfxcard_shutdown();
 DFBResult gfxcard_leave();
 
+#ifdef FUSION_FAKE
+DFBResult gfxcard_suspend();
+DFBResult gfxcard_resume();
+#endif
+
 /*
  * initializes card struct, maps framebuffer, chooses accelerated driver
  */

@@ -140,6 +140,37 @@ SurfaceManager *surfacemanager_create( unsigned int length,
      return manager;
 }
 
+#ifdef FUSION_FAKE
+DFBResult surfacemanager_suspend( SurfaceManager *manager )
+{
+     Chunk *c;
+
+     surfacemanager_lock( manager );
+
+     c = manager->chunks;
+     while (c) {
+          if (c->buffer &&
+              c->buffer->policy != CSP_VIDEOONLY &&
+              c->buffer->video.health == CSH_STORED)
+          {
+               surfacemanager_assure_system( manager, c->buffer );
+               c->buffer->video.health = CSH_RESTORE;
+          }
+
+          c = c->next;
+     }
+
+     surfacemanager_unlock( manager );
+
+     return DFB_OK;
+}
+
+DFBResult surfacemanager_resume( SurfaceManager *manager )
+{
+     return DFB_OK;
+}
+#endif
+
 void surfacemanager_lock( SurfaceManager *manager )
 {
      skirmish_prevail( &manager->lock );

@@ -195,6 +195,43 @@ DFBResult input_leave()
 }
 #endif
 
+#ifdef FUSION_FAKE
+DFBResult input_suspend()
+{
+     InputDevice *d = inputdevices;
+
+     while (d) {
+          d->driver->CloseDevice( d->driver_data );
+
+          d = d->next;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult input_resume()
+{
+     InputDevice *d = inputdevices;
+
+     while (d) {
+          int       i;
+          DFBResult ret;
+
+          for (i=0; i<d->driver->nr_devices; i++) {
+               ret = d->driver->OpenDevice( d, i,
+                                            &d->shared->device_info,
+                                            &d->driver_data );
+               if (ret)
+                    return ret;
+          }
+
+          d = d->next;
+     }
+     
+     return DFB_OK;
+}
+#endif
+
 void input_enumerate_devices( InputDeviceCallback  callback,
                               void                *ctx )
 {

@@ -200,6 +200,41 @@ DFBResult layers_leave()
 }
 #endif
 
+#ifdef FUSION_FAKE
+DFBResult layers_suspend()
+{
+     DisplayLayer *l = layers;
+
+     while (l) {
+          l->Disable( l );
+
+          l = l->next;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult layers_resume()
+{
+     DisplayLayer *l = layers;
+
+     while (l) {
+          /* bad check if layer was enabled before */
+          if (l->shared->surface) {
+               l->Enable( l );
+
+               if (l->shared->windowstack)
+                    windowstack_repaint_all( l->shared->windowstack );
+          }
+
+          l = l->next;
+     }
+ 
+     layers->SetConfiguration (layers, NULL);
+
+     return DFB_OK;
+}
+#endif
 
 DFBResult layer_lock( DisplayLayer *layer )
 {

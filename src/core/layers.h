@@ -134,6 +134,11 @@ DFBResult layers_join();
 DFBResult layers_shutdown();
 DFBResult layers_leave();
 
+#ifdef FUSION_FAKE
+DFBResult layers_suspend();
+DFBResult layers_resume();
+#endif
+
 /*
  * lock/unlock layer for exclusive access
  */

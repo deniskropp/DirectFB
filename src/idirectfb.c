@@ -651,12 +651,12 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
 
 DFBResult IDirectFB_Suspend( IDirectFB *thiz )
 {
-     return DFB_UNSUPPORTED;
+     return core_suspend();
 }
 
 DFBResult IDirectFB_Resume( IDirectFB *thiz )
 {
-     return DFB_UNSUPPORTED;
+     return core_resume();
 }
 
 DFBResult IDirectFB_WaitIdle( IDirectFB *thiz )

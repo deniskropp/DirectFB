@@ -325,6 +325,19 @@ DFBResult gfxcard_leave()
 }
 #endif
 
+#ifdef FUSION_FAKE
+DFBResult gfxcard_suspend()
+{
+     gfxcard_sync();
+
+     return surfacemanager_suspend( card->shared->surface_manager );
+}
+
+DFBResult gfxcard_resume()
+{
+     return surfacemanager_resume( card->shared->surface_manager );
+}
+#endif
 
 DFBResult gfxcard_init_layers()
 {

@@ -36,6 +36,11 @@ SurfaceManager *surfacemanager_create( unsigned int length,
                                        unsigned int byteoffset_align,
                                        unsigned int pixelpitch_align );
 
+#ifdef FUSION_FAKE
+DFBResult surfacemanager_suspend( SurfaceManager *manager );
+DFBResult surfacemanager_resume( SurfaceManager *manager );
+#endif
+
 /*
  * adjust the offset within the framebuffer for surface storage,
  * needs to be called after a resolution switch
@@ -48,7 +53,6 @@ void surfacemanager_add_surface( SurfaceManager *manager,
 
 void surfacemanager_remove_surface( SurfaceManager *manager,
                                     CoreSurface    *surface );
-
 
 /*
  * Lock/unlock the surfacemanager for usage of the functions below.
