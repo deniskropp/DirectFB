@@ -70,7 +70,21 @@ static bool matroxBlit3D    ( void *drv, void *dev,
 
 
 
-/* Old cards (Mystique, Millennium, ...) */
+/* Millennium */
+
+#define MATROX_2064W_DRAWING_FLAGS          (DSDRAW_NOFX)
+
+#define MATROX_2064W_BLITTING_FLAGS         (DSBLIT_NOFX)
+
+#define MATROX_2064W_DRAWING_FUNCTIONS      (DFXL_FILLRECTANGLE | \
+                                             DFXL_DRAWRECTANGLE | \
+                                             DFXL_DRAWLINE      | \
+                                             DFXL_FILLTRIANGLE)
+
+#define MATROX_2064W_BLITTING_FUNCTIONS     (DFXL_BLIT)
+
+
+/* Old cards (Mystique, Millennium II) */
 
 #define MATROX_OLD_DRAWING_FLAGS            (DSDRAW_NOFX)
 
@@ -177,6 +191,53 @@ static void matroxFlushTextureCache( void *drv, void *dev )
 
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mdrv->mmio_base, 0, TEXORG1 );
+}
+
+static void matrox2064WCheckState( void *drv, void *dev,
+                                   CardState *state, DFBAccelerationMask accel )
+{
+     /* FIXME: 24bit support */
+     switch (state->destination->format) {
+          case DSPF_I420:
+          case DSPF_YV12:
+               if (!DFB_BLITTING_FUNCTION( accel ) ||
+                   (state->source->format != DSPF_I420 &&
+                    state->source->format != DSPF_YV12))
+                    return;
+          case DSPF_RGB332:
+          case DSPF_ARGB1555:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+          case DSPF_A8:
+               break;
+          default:
+               return;
+     }
+
+     if (DFB_DRAWING_FUNCTION( accel )) {
+          if (state->drawingflags & ~MATROX_2064W_DRAWING_FLAGS)
+               return;
+
+          state->accel |= MATROX_2064W_DRAWING_FUNCTIONS;
+     }
+     else {
+          switch (state->source->format) {
+               case DSPF_I420:
+               case DSPF_YV12:
+                    if (state->destination->format == DSPF_I420 ||
+                        state->destination->format == DSPF_YV12)
+                         break;
+               default:
+                    if (state->source->format != state->destination->format)
+                         return;
+          }
+
+          if (state->blittingflags & ~MATROX_2064W_BLITTING_FLAGS)
+               return;
+
+          state->accel |= MATROX_2064W_BLITTING_FUNCTIONS;
+     }
 }
 
 static void matroxOldCheckState( void *drv, void *dev,
@@ -1443,11 +1504,14 @@ driver_init_driver( GraphicsDevice      *device,
                funcs->CheckState = matroxG100CheckState;
                break;
 
-          case FB_ACCEL_MATROX_MGA2064W:
           case FB_ACCEL_MATROX_MGA1064SG:
           case FB_ACCEL_MATROX_MGA2164W:
           case FB_ACCEL_MATROX_MGA2164W_AGP:
                funcs->CheckState = matroxOldCheckState;
+               break;
+
+          case FB_ACCEL_MATROX_MGA2064W:
+               funcs->CheckState = matrox2064WCheckState;
                break;
      }
 
@@ -1581,7 +1645,6 @@ driver_init_device( GraphicsDevice     *device,
                device_info->caps.blitting = MATROX_G100_BLITTING_FLAGS;
                break;
 
-          case FB_ACCEL_MATROX_MGA2064W:
           case FB_ACCEL_MATROX_MGA1064SG:
           case FB_ACCEL_MATROX_MGA2164W:
           case FB_ACCEL_MATROX_MGA2164W_AGP:
@@ -1589,6 +1652,13 @@ driver_init_device( GraphicsDevice     *device,
                                             MATROX_OLD_BLITTING_FUNCTIONS;
                device_info->caps.drawing  = MATROX_OLD_DRAWING_FLAGS;
                device_info->caps.blitting = MATROX_OLD_BLITTING_FLAGS;
+               break;
+
+          case FB_ACCEL_MATROX_MGA2064W:
+               device_info->caps.accel    = MATROX_2064W_DRAWING_FUNCTIONS |
+                                            MATROX_2064W_BLITTING_FUNCTIONS;
+               device_info->caps.drawing  = MATROX_2064W_DRAWING_FLAGS;
+               device_info->caps.blitting = MATROX_2064W_BLITTING_FLAGS;
                break;
      }
 
