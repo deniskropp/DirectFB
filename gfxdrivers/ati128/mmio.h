@@ -58,7 +58,6 @@ ati128_in32(volatile __u8 *mmioaddr, __u32 reg)
 static inline void ati128_waitidle( ATI128DriverData *adrv,
                                     ATI128DeviceData *adev )
 {
-#ifndef __powerpc__
      int timeout = 1000000;
 
      while (timeout--) {
@@ -88,7 +87,6 @@ static inline void ati128_waitidle( ATI128DriverData *adrv,
           adev->idle_waitcycles++;
      }
      adev->fifo_space = 60;
-#endif
 }
 
 static inline void ati128_waitfifo( ATI128DriverData *adrv,
