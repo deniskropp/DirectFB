@@ -37,7 +37,7 @@ void uc_set_blending_fn(UcDriverData *ucdrv,
 {
      struct uc_fifo *fifo = ucdev->fifo;
 
-     if (ucdev->v_blending_fn)
+     if (UC_IS_VALID( uc_blending_fn ))
           return;
 
      uc_map_blending_fn(&(ucdev->hwalpha), state->src_blend,
@@ -62,7 +62,7 @@ void uc_set_blending_fn(UcDriverData *ucdrv,
 
      UC_FIFO_CHECK(fifo);
 
-     ucdev->v_blending_fn = 1;
+     UC_VALIDATE( uc_blending_fn );
 }
 
 /// Set texture environment (3D)
@@ -73,7 +73,7 @@ void uc_set_texenv(UcDriverData *ucdrv,
      struct uc_hw_texture* tex;
      struct uc_fifo *fifo = ucdev->fifo;
 
-     if (ucdev->v_texenv)
+     if (UC_IS_VALID( uc_texenv ))
           return;
 
      uc_map_blitflags(&(ucdev->hwtex), state->blittingflags,
@@ -109,7 +109,7 @@ void uc_set_texenv(UcDriverData *ucdrv,
 
      UC_FIFO_CHECK(fifo);
 
-     ucdev->v_texenv = 1;
+     UC_VALIDATE( uc_texenv );
 }
 
 /// Set clipping rectangle (2D and 3D)
@@ -201,7 +201,7 @@ void uc_set_source_2d(UcDriverData *ucdrv,
      struct uc_fifo *fifo = ucdev->fifo;
 
 
-     if (ucdev->v_source2d)
+     if (UC_IS_VALID( uc_source2d ))
           return;
 
      ucdev->pitch = (ucdev->pitch & 0x7fff0000) | ((buf->video.pitch >> 3) & 0x7fff);
@@ -214,7 +214,7 @@ void uc_set_source_2d(UcDriverData *ucdrv,
 
      UC_FIFO_CHECK(fifo);
 
-     ucdev->v_source2d = 1;
+     UC_VALIDATE( uc_source2d );
 }
 
 /// Set new source (3D)
@@ -229,7 +229,7 @@ void uc_set_source_3d(UcDriverData *ucdrv,
 
      int src_height, src_offset, src_pitch;
 
-     if (ucdev->v_source3d)
+     if (UC_IS_VALID( uc_source3d ))
           return;
 
      tex    = &(ucdev->hwtex);
@@ -323,7 +323,7 @@ void uc_set_source_3d(UcDriverData *ucdrv,
           UC_FIFO_CHECK(fifo);
      }
 
-     ucdev->v_source3d = 1;
+     UC_VALIDATE( uc_source3d );
 }
 
 /// Set either destination color key, or fill color, as needed. (2D)
@@ -377,3 +377,4 @@ void uc_set_blitting_colorkey_2d(UcDriverData *ucdrv,
 
      UC_FIFO_CHECK(fifo);
 }
+
