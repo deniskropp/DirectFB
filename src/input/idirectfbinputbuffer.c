@@ -346,6 +346,7 @@ DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer *thiz )
           IDirectFBEventBuffer_WaitForEventWithTimeout;
      thiz->GetEvent = IDirectFBEventBuffer_GetEvent;
      thiz->PeekEvent = IDirectFBEventBuffer_PeekEvent;
+     thiz->PostEvent = IDirectFBEventBuffer_PostEvent;
 
      return DFB_OK;
 }
