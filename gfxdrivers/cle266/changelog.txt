@@ -1,3 +1,27 @@
+v0.3.0 - changes from v0.2.1
+----------------------------
+This release is mostly bugfixes.
+
+* Bugfix: Made the driver work with VIA drivers. Needs testing. (Andreas)
+* Bugfix: Numerous state handling bugs. (Andi)
+* Bugfix: Surface pitch and offset alignments were incorrect. (Andi)
+* Bugfix: 3D-engine blit problem. Only 2^n by 2^m sizes worked. (Andreas)
+* Bugfix: Off-by-one rectangle and surface sizes. (Andi)
+* Bugfix: Video overlay: YUV planar mode. (Andreas)
+* Bugfix: Incorrect color handling during blended operations. (Andi)
+* Bugfix: LUT8->LUT8 stretch blits unsupported - removed (Andreas)
+* Bugfix: Blended FillRectangle(), DrawRectangle() and DrawLine()
+  in non 32-bit modes. (Andi)
+* Bugfix: DSBLIT_COLORIZE and DSBLIT_BLEND_COLORALPHA. (Andreas)
+* Bugfix: Workaround for font rendering in some applications. (Andi)
+* Bugfix: Fixed problems with gcc 2.95, and a missing header file. (dok)
+
+* Change: Added "void *device_data" to InitDriver() (dok)
+* Change: Added multi-application support, by allowing the cle266vgaio
+  device to be opened more than once and moving around some code. (Andi)
+* Change: Added new function EmitCommands() (Andreas)
+
+
 v0.2.1 - changes from v0.2.0
 ----------------------------
 
