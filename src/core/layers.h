@@ -87,7 +87,7 @@ struct _DisplayLayer
      DFBResult (*Disable)          ( DisplayLayer               *thiz );
      DFBResult (*TestConfiguration)( DisplayLayer               *thiz,
                                      DFBDisplayLayerConfig      *config,
-                                     DFBDisplayLayerConfigFlags *flags );
+                                     DFBDisplayLayerConfigFlags *failed );
      DFBResult (*SetConfiguration) ( DisplayLayer               *thiz,
                                      DFBDisplayLayerConfig      *config );
      DFBResult (*SetOpacity)       ( DisplayLayer               *thiz,

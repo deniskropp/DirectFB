@@ -243,7 +243,7 @@ DFBResult primarylayer_init()
      DisplayLayer *layer = (DisplayLayer*) DFBCALLOC( 1, sizeof(DisplayLayer) );
 
      layer->id = DLID_PRIMARY;
-     layer->caps = 0;
+     layer->caps = DLCAPS_SURFACE;
      sprintf( layer->description, "Primary Layer" );
 
      layer->deinit = primarylayer_deinit;
