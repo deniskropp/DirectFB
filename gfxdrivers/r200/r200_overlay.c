@@ -221,6 +221,10 @@ ov0TestRegion( CoreLayer                  *layer,
      
      /* check pixel format */
      switch (config->format) {
+          case DSPF_ARGB1555:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
           case DSPF_YUY2:
           case DSPF_UYVY:
           case DSPF_I420:
@@ -370,29 +374,25 @@ ov0_calc_offsets( R200DeviceData       *rdev,
      offsets[0] += croptop * buffer->video.pitch + 
                    cropleft * DFB_BYTES_PER_PIXEL( surface->format );
 
-     switch (surface->format) {
-          case DSPF_I420:
-          case DSPF_YV12:
-               cropleft &= ~15;
-               croptop  &= ~1;
+     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+          cropleft &= ~15;
+          croptop  &= ~1;
 
-               offsets[1]  = rdev->fb_offset + buffer->video.offset +
-                             surface->height * buffer->video.pitch;
-               offsets[2]  = offsets[1] +
-                             (surface->height/2) * (buffer->video.pitch/2);
-               offsets[1] += (croptop/2) * (buffer->video.pitch/2) + (cropleft/2);
-               offsets[2] += (croptop/2) * (buffer->video.pitch/2) + (cropleft/2);
-               if (surface->format == DSPF_YV12) {
-                    __u32 tmp  = offsets[1];
-                    offsets[1] = offsets[2];
-                    offsets[2] = tmp;
-               }
-               break;
-               
-          default:
-               offsets[1] = 0;
-               offsets[2] = 0;
-               break;
+          offsets[1]  = rdev->fb_offset + buffer->video.offset +
+                        surface->height * buffer->video.pitch;
+          offsets[2]  = offsets[1] +
+                        (surface->height/2) * (buffer->video.pitch/2);
+          offsets[1] += (croptop/2) * (buffer->video.pitch/2) + (cropleft/2);
+          offsets[2] += (croptop/2) * (buffer->video.pitch/2) + (cropleft/2);
+          
+          if (surface->format == DSPF_YV12) {
+               __u32 tmp  = offsets[1];
+               offsets[1] = offsets[2];
+               offsets[2] = tmp;
+          }
+     } else {
+          offsets[1] = offsets[0];
+          offsets[2] = offsets[0];
      }
 }
 
@@ -471,9 +471,21 @@ ov0_calc_regs ( R200DriverData        *rdrv,
                                    (OV0_P23_MAX_LN_IN_PER_LN_OUT & 1);
 
      /* set destination coordinates */
-     rov0->regs.H_INC     = h_inc | ((h_inc >> 1) << 16);  
-     rov0->regs.STEP_BY   = step_by | (step_by << 8);
-     rov0->regs.V_INC     = (config->source.h << 20) / config->dest.h;
+     switch (surface->format) {
+          case DSPF_ARGB1555:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               rov0->regs.H_INC = h_inc | (h_inc << 16);
+               break;
+          default:
+               rov0->regs.H_INC = h_inc | ((h_inc >> 1) << 16);
+               break;
+     }
+     
+     rov0->regs.STEP_BY = step_by | (step_by << 8);
+     rov0->regs.V_INC   = (config->source.h << 20) / config->dest.h;
+     
      if (rdev->chipset == CHIP_R200) {
           rov0->regs.Y_X_START = (config->dest.x) | (config->dest.y << 16);
           rov0->regs.Y_X_END   = (config->dest.x + config->dest.w) | 
@@ -484,21 +496,26 @@ ov0_calc_regs ( R200DriverData        *rdrv,
                                  ((config->dest.y + config->dest.h) << 16);
      }
                                          
-     /* set source coordinates */
+     /* set source coordinates and pitches */
      rov0->regs.P1_BLANK_LINES_AT_TOP  = P1_BLNK_LN_AT_TOP_M1_MASK  | 
                                          ((config->source.h - 1) << 16);
      rov0->regs.P23_BLANK_LINES_AT_TOP = P23_BLNK_LN_AT_TOP_M1_MASK |
                                          ((((config->source.h + 1) >> 1) - 1) << 16);
      rov0->regs.P1_X_START_END         = (config->source.x << 16) |
                                          (config->source.x+config->source.w-1);
-     rov0->regs.P2_X_START_END         = ((config->source.x >> 1) << 16) |
-                                         (((config->source.x+config->source.w)>>1) - 1);
-     rov0->regs.P3_X_START_END         = rov0->regs.P2_X_START_END;
-
-     /* set pitches */
      rov0->regs.VID_BUF_PITCH0_VALUE = surface->front_buffer->video.pitch;
-     rov0->regs.VID_BUF_PITCH1_VALUE = surface->front_buffer->video.pitch >> 1;
-
+     
+     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+          rov0->regs.P2_X_START_END       = ((config->source.x >> 1) << 16) |
+                                            (((config->source.x+config->source.w)>>1) - 1);
+          rov0->regs.P3_X_START_END       = rov0->regs.P2_X_START_END;
+          rov0->regs.VID_BUF_PITCH1_VALUE = rov0->regs.VID_BUF_PITCH0_VALUE >> 1;
+     } else {
+          rov0->regs.P2_X_START_END       = rov0->regs.P1_X_START_END;
+          rov0->regs.P3_X_START_END       = rov0->regs.P1_X_START_END;
+          rov0->regs.VID_BUF_PITCH1_VALUE = rov0->regs.VID_BUF_PITCH0_VALUE;
+     }
+     
      /* set field */
      rov0->regs.AUTO_FLIP_CNTL = OV0_AUTO_FLIP_CNTL_SOFT_BUF_ODD;
      
@@ -512,12 +529,10 @@ ov0_calc_regs ( R200DriverData        *rdrv,
      rov0->regs.VID_BUF1_BASE_ADRS = (offsets[1] & VIF_BUF1_BASE_ADRS_MASK) |
                                       VIF_BUF1_PITCH_SEL;
      rov0->regs.VID_BUF2_BASE_ADRS = (offsets[2] & VIF_BUF2_BASE_ADRS_MASK) |
-                                      VIF_BUF2_PITCH_SEL;
-     rov0->regs.VID_BUF3_BASE_ADRS =  offsets[0] & VIF_BUF3_BASE_ADRS_MASK;
-     rov0->regs.VID_BUF4_BASE_ADRS = (offsets[1] & VIF_BUF4_BASE_ADRS_MASK) |
-                                      VIF_BUF1_PITCH_SEL;
-     rov0->regs.VID_BUF5_BASE_ADRS = (offsets[2] & VIF_BUF5_BASE_ADRS_MASK) |
-                                      VIF_BUF2_PITCH_SEL;
+                                      VIF_BUF2_PITCH_SEL; 
+     rov0->regs.VID_BUF3_BASE_ADRS = rov0->regs.VID_BUF0_BASE_ADRS;
+     rov0->regs.VID_BUF4_BASE_ADRS = rov0->regs.VID_BUF1_BASE_ADRS;
+     rov0->regs.VID_BUF5_BASE_ADRS = rov0->regs.VID_BUF2_BASE_ADRS; 
      
      /* configure options */
      if (config->options & DLOP_SRC_COLORKEY)
@@ -528,18 +543,11 @@ ov0_calc_regs ( R200DriverData        *rdrv,
      else
           rov0->regs.KEY_CNTL |= GRAPHIC_KEY_FN_TRUE;
 
-     if (config->options & DLOP_DEINTERLACING) {
-          rov0->regs.SCALE_CNTL |= SCALER_ADAPTIVE_DEINT;
-
-          switch (surface->field) {
-               case 1:
-                    rov0->regs.DEINTERLACE_PATTERN = 0x00055555;
-                    break;
-               default:
-                    rov0->regs.DEINTERLACE_PATTERN = 0x900AAAAA;
-                    break;
-          }
-     }
+     if (config->options & DLOP_DEINTERLACING)
+          rov0->regs.SCALE_CNTL |= SCALER_ADAPTIVE_DEINT     |
+                                   R200_SCALER_TEMPORAL_DEINT;
+     
+     rov0->regs.DEINTERLACE_PATTERN = 0x0000aaaa;
           
      /* set source colorkey */
      rov0->regs.VID_KEY_CLR_LOW  = PIXEL_RGB32( config->src_key.r,
@@ -560,11 +568,22 @@ ov0_calc_regs ( R200DriverData        *rdrv,
      if (config->opacity) { 
           rov0->regs.SCALE_CNTL |= SCALER_ENABLE       |
                                    SCALER_SMART_SWITCH |
-                                   SCALER_Y2R_TEMP     |
-                                   SCALER_PIX_EXPAND   |
                                    SCALER_DOUBLE_BUFFER;
           
           switch (surface->format) {
+               case DSPF_ARGB1555:
+                    rov0->regs.SCALE_CNTL |= SCALER_SOURCE_15BPP |
+                                             SCALER_PRG_LOAD_START;
+                    break;
+               case DSPF_RGB16:
+                    rov0->regs.SCALE_CNTL |= SCALER_SOURCE_16BPP |
+                                             SCALER_PRG_LOAD_START;
+                    break;
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+                    rov0->regs.SCALE_CNTL |= SCALER_SOURCE_32BPP |
+                                             SCALER_PRG_LOAD_START;
+                    break;
                case DSPF_UYVY:
                     rov0->regs.SCALE_CNTL |= SCALER_SOURCE_YVYU422;
                     break;
