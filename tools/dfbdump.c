@@ -471,6 +471,7 @@ main( int argc, char *argv[] )
      dump_surfaces();
      dump_layers();
 
+#if FUSION_BUILD_MULTI
      if (argc > 1 && !strcmp( argv[1], "-s" )) {
           unsigned int i;
           unsigned int total = 0;
@@ -496,6 +497,7 @@ main( int argc, char *argv[] )
 
           fusion_skirmish_dismiss( &_sheap->lock );
      }
+#endif
 
      printf( "\n" );
 
