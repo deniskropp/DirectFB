@@ -68,7 +68,8 @@ AC_C_BIGENDIAN
 AC_PATH_PROGS(PERL, perl5 perl)
 
 
-DFB_CFLAGS=""
+DFB_CFLAGS="$CFLAGS"
+CFLAGS=
 
 dnl Test for Linux frame buffer device
 AC_ARG_ENABLE(fbdev,
