@@ -78,7 +78,7 @@ df_stress_SOURCES = df_stress.c
 df_stress_LDADD = $(LIBADDS)
 
 pss_SOURCES = pss.c
-pss_LDADD = $(LIBADDS)
+pss_LDADD = $(LIBADDS) -lm
 
 .PHONY: files
 
