@@ -595,7 +595,7 @@ static DFBResult dump_image (const char            *name,
 
      /* dump data */
      fprintf (csource.fp,
-              "static unsigned char %s_data[] = \n", vname);
+              "static unsigned char %s_data[] =\n", vname);
      fprintf (csource.fp, "  \"");
 
      csource.pos = 3;
