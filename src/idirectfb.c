@@ -464,7 +464,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     
                     ret = dfb_layer_set_configuration( data->layer, &config );
                     if (ret) {
-                         if (! (caps & (DSCAPS_SYSTEMONLY||DSCAPS_VIDEOONLY))) {
+                         if (! (caps & (DSCAPS_SYSTEMONLY|DSCAPS_VIDEOONLY))) {
                               if (config.buffermode == DLBM_BACKVIDEO) {
                                    config.buffermode = DLBM_BACKSYSTEM;
                                    
