@@ -430,17 +430,17 @@ Build options:
   Debug mode        $enable_debug
 
 Building Image Providers:
-  libjpeg Provider  $JPEG
-  libpng Provider   $PNG
-  GIF Provider      $enable_gif 
+  JPEG              $JPEG
+  PNG               $PNG
+  GIF               $enable_gif 
 
 Building Video Providers:
-  AviFile           $enable_avifile
+  AviFile           $AVIFILE
   libmpeg3          $MPEG3
-  libflash          $FLASH
+  Flash             $FLASH
 
 Building Font implementations:
-  FreeType2         $enable_freetype
+  FreeType2         $FREETYPE
 
 Building Graphics Drivers:
   Matrox G200/G400  $matrox
