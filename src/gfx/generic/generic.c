@@ -1411,12 +1411,6 @@ static void Sop_rgb332_to_Dacc()
 }
 #endif
 
-#define LOOKUP_COLOR(D,S)     \
-     D.a = entries[S].a;      \
-     D.r = entries[S].r;      \
-     D.g = entries[S].g;      \
-     D.b = entries[S].b;
-
 static void Sop_lut8_to_Dacc()
 {
      int          w = Dlength;
@@ -1425,32 +1419,15 @@ static void Sop_lut8_to_Dacc()
 
      DFBColor *entries = Slut->entries;
 
-     while (w) {
-          int l = w & 7;
+     while (w--) {
+          __u8 s = *S++;
 
-          switch (l) {
-               default:
-                    l = 8;
-                    LOOKUP_COLOR( D[7], S[7] );
-               case 7:
-                    LOOKUP_COLOR( D[6], S[6] );
-               case 6:
-                    LOOKUP_COLOR( D[5], S[5] );
-               case 5:
-                    LOOKUP_COLOR( D[4], S[4] );
-               case 4:
-                    LOOKUP_COLOR( D[3], S[3] );
-               case 3:
-                    LOOKUP_COLOR( D[2], S[2] );
-               case 2:
-                    LOOKUP_COLOR( D[1], S[1] );
-               case 1:
-                    LOOKUP_COLOR( D[0], S[0] );
-          }
+          D->a = entries[s].a;
+          D->r = entries[s].r;
+          D->g = entries[s].g;
+          D->b = entries[s].b;
 
-          D += l;
-          S += l;
-          w -= l;
+          D++;
      }
 }
 
