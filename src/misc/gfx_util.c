@@ -281,8 +281,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
                     for (j = 0; j < n_x; j++) {
                          *(pixel_weights + n_x * i + j) =
                                            65536 * x_weights[j] * x_scale
-                                                 * y_weights[i] * y_scale
-                                           + 127;
+                                                 * y_weights[i] * y_scale;
                     }
                }
           }
@@ -320,7 +319,12 @@ static void scale_pixel( int *weights, int n_x, int n_y,
           }
       }
 
-     rgba_to_dst_format( dst, r >> 24, g >> 24, b >> 24, a >> 16, dst_format );
+     r = (r >> 24) == 0xFF ? 0xFF : (r >> 24) + ((r >> 23) & 0x1);
+     g = (g >> 24) == 0xFF ? 0xFF : (g >> 24) + ((g >> 23) & 0x1);
+     b = (b >> 24) == 0xFF ? 0xFF : (b >> 24) + ((b >> 23) & 0x1);
+     a = (a >> 16) == 0xFF ? 0xFF : (a >> 16) + ((a >> 15) & 0x1);
+
+     rgba_to_dst_format( dst, r, g, b, a, dst_format );
 }
 
 static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
@@ -360,8 +364,12 @@ static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
                }
           }
 
-          rgba_to_dst_format( dst,
-                              r >> 24, g >> 24, b >> 24, a >> 16, dst_format );
+          r = (r >> 24) == 0xFF ? 0xFF : (r >> 24) + ((r >> 23) & 0x1);
+          g = (g >> 24) == 0xFF ? 0xFF : (g >> 24) + ((g >> 23) & 0x1);
+          b = (b >> 24) == 0xFF ? 0xFF : (b >> 24) + ((b >> 23) & 0x1);
+          a = (a >> 16) == 0xFF ? 0xFF : (a >> 16) + ((a >> 15) & 0x1);
+          
+          rgba_to_dst_format( dst, r, g, b, a, dst_format );
 
           dst += DFB_BYTES_PER_PIXEL (dst_format);
           x += x_step;
