@@ -862,49 +862,63 @@ static void Bop_8_Sto_Aop( GenefxState *gfxs )
 
 static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
 {
-     int   w;
-     int   i;
-     int   j     = 0;
-     __u8 *D     = gfxs->Aop;
-     __u8 *S     = gfxs->Bop;
-     int   SperD = gfxs->SperD;
+     int    w      = gfxs->length >> 1;
+     int    ysc    = 0;
+     int    crsc   = 0;
+     __u32 *D      = (__u32*) gfxs->Aop;
+     __u32 *S      = (__u32*) gfxs->Bop;
+     __u16 *S2     = (__u16*) gfxs->Bop;
+     int    SperD  = gfxs->SperD;
+     int    SperD2 = gfxs->SperD << 1;
 
-     for (w = 0; w < gfxs->length; w++) {
-	  i  = (j >> 16) * 2;
-	  *D = S[i]; /* blit luma */
+     while (w--) {
+	  register __u32 Dpix;
 
-	  if (!(w & 1)) { /* blit chroma */
-	        i      = (j >> 17) * 4;
-		*(D+1) = S[i+1];
-		*(D+3) = S[i+3];
-	  }
+#ifdef WORDS_BIGENDIAN
+	  Dpix  = S[crsc>>16] & 0x00ff00ff;              /* chroma samples */
+	  Dpix |= (S2[ysc>>16] & 0xff00) << 16;          /* first y sample */
+	  Dpix |= S2[(ysc+SperD)>>16] & 0xff00;          /* second y sample */
+#else
+	  Dpix  = S[crsc>>16] & 0xff00ff00;              /* chroma samples */
+	  Dpix |= *((__u8*) &S2[ysc>>16]);               /* first y sample */
+	  Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]) << 16; /* second y sample */
+#endif
 
-	  D += 2;
-	  j += SperD;
+	  *D++ = Dpix;
+
+	  ysc  += SperD2;
+	  crsc += SperD;
      }
 }
 
 static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
 {
-     int   w;
-     int   i;
-     int   j     = 0;
-     __u8 *D     = gfxs->Aop;
-     __u8 *S     = gfxs->Bop;
-     int   SperD = gfxs->SperD;
+     int    w      = gfxs->length >> 1;
+     int    ysc    = 0;
+     int    crsc   = 0;
+     __u32 *D      = (__u32*) gfxs->Aop;
+     __u32 *S      = (__u32*) gfxs->Bop;
+     __u16 *S2     = (__u16*) gfxs->Bop;
+     int    SperD  = gfxs->SperD;
+     int    SperD2 = gfxs->SperD << 1;
 
-     for (w = 0; w < gfxs->length; w++) {
-          i      = (j >> 16) * 2;
-	  *(D+1) = S[i+1]; /* blit luma */
+     while (w--) {
+          register __u32 Dpix;
 
-	  if (!(w & 1)) { /* blit chroma */
-                i      = (j >> 17) * 4;
-		*D     = S[i];
-		*(D+2) = S[i+2];
-          }
-
-	  D += 2;
-	  j += SperD;
+#ifdef WORDS_BIGENDIAN
+	  Dpix  = S[crsc>>16] & 0xff00ff00;              /* chroma sample */
+	  Dpix |= *((__u8*) &S2[ysc>>16]) << 16;         /* first y sample */
+	  Dpix |= *((__u8*) &S2[(ysc+SperD)>>16]);       /* second y sample */
+#else
+	  Dpix  = S[crsc>>16] & 0x00ff00ff;              /* chroma samples */
+	  Dpix |= S2[ysc>>16] & 0xff00;                  /* first y sample */
+	  Dpix |= (S2[(ysc+SperD)>>16] & 0xff00) << 16;  /* second y sample */
+#endif
+	  
+	  *D++ = Dpix;
+	  
+	  ysc  += SperD2;
+	  crsc += SperD;
      }
 }
 	  
@@ -4717,7 +4731,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 	  Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
 
 	  /* scale first plane */
-	  for (h = 0, i = 0; h < (drect->h / 2); h++) {
+	  for (h = (drect->h / 2), i = 0; h--; ) {
 	       RUN_PIPELINE();
 
 	       Aop_next( gfxs, dpitch );
@@ -4737,7 +4751,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 	  Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
 
 	  /* scale second plane */
-	  for (h = 0, i = 0; h < (drect->h / 2); h++) {
+	  for (h = (drect->h / 2), i = 0; h--; ) {
 	       RUN_PIPELINE();
 
 	       Aop_next( gfxs, dpitch );
