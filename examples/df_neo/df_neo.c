@@ -118,7 +118,6 @@ load_images (void)
       provider->RenderTo (provider, images[i]);
 
       provider->Release( provider );
-      free (provider);
     }
 }
 
@@ -234,7 +233,6 @@ main (int    argc,
   DFBCHECK (dfb->CreateSurface( dfb, &back_dsc, &background));
   provider->RenderTo (provider, background);
   provider->Release( provider );
-  free (provider);
 
   /*  create the primary surface  */
   dsc.flags  = DSDESC_CAPS;
