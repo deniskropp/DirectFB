@@ -169,26 +169,35 @@ system_initialize( CoreDFB *core, void **data )
                         visual->bits_per_rgb, visual->map_entries );
 
                switch (depth->depth) {
+                    case 32:
+                         if (visual->red_mask   == 0xff0000 &&
+                             visual->green_mask == 0x00ff00 &&
+                             visual->blue_mask  == 0x0000ff &&
+                             !dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)])
+                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)] = visual;
+                         break;
+
                     case 24:
                          if (visual->red_mask   == 0xff0000 &&
                              visual->green_mask == 0x00ff00 &&
-                             visual->blue_mask  == 0x0000ff) {
+                             visual->blue_mask  == 0x0000ff &&
+                             !dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)])
                               dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = visual;
-                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]  = visual;
-                         }
                          break;
 
                     case 16:
                          if (visual->red_mask   == 0xf800 &&
                              visual->green_mask == 0x07e0 &&
-                             visual->blue_mask  == 0x001f)
+                             visual->blue_mask  == 0x001f &&
+                             !dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)])
                               dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)] = visual;
                          break;
 
                     case 15:
                          if (visual->red_mask   == 0x7c00 &&
                              visual->green_mask == 0x03e0 &&
-                             visual->blue_mask  == 0x001f)
+                             visual->blue_mask  == 0x001f &&
+                             !dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB555)])
                               dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB555)] = visual;
                          break;
                }
