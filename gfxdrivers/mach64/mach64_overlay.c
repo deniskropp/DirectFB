@@ -70,6 +70,7 @@ typedef struct {
      } regs;
 } Mach64OverlayLayerData;
 
+static void ov_reset( Mach64DriverData *mdrv );
 static void ov_set_regs( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov );
 static void ov_calc_regs( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov,
                           CoreLayerRegionConfig *config, CoreSurface *surface );
@@ -104,7 +105,6 @@ ovInitLayer( CoreLayer                  *layer,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
      Mach64DeviceData *mdev = mdrv->device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
 
      /* set capabilities and type */
      description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
@@ -136,23 +136,7 @@ ovInitLayer( CoreLayer                  *layer,
           adjustment->flags      |= DCAF_BRIGHTNESS | DCAF_SATURATION;
           adjustment->brightness  = 0x8000;
           adjustment->saturation  = 0x8000;
-
-          mach64_waitfifo( mdrv, mdev, 6 );
-
-          mach64_out32( mmio, SCALER_H_COEFF0, 0x00002000 );
-          mach64_out32( mmio, SCALER_H_COEFF1, 0x0D06200D );
-          mach64_out32( mmio, SCALER_H_COEFF2, 0x0D0A1C0D );
-          mach64_out32( mmio, SCALER_H_COEFF3, 0x0C0E1A0C );
-          mach64_out32( mmio, SCALER_H_COEFF4, 0x0C14140C );
-          mach64_out32( mmio, SCALER_COLOUR_CNTL, 0x00101000 );
      }
-
-     mach64_waitfifo( mdrv, mdev, 4 );
-
-     mach64_out32( mmio, OVERLAY_SCALE_CNTL, 0 );
-     mach64_out32( mmio, OVERLAY_EXCLUSIVE_HORZ, 0 );
-     mach64_out32( mmio, OVERLAY_EXCLUSIVE_VERT, 0 );
-     mach64_out32( mmio, SCALER_TEST, 0 );
 
      return DFB_OK;
 }
@@ -275,6 +259,9 @@ ovSetRegion( CoreLayer                  *layer,
      /* remember configuration */
      mov->config = *config;
 
+     if (updated == CLRCF_ALL)
+          ov_reset( mdrv );
+
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SOURCE | CLRCF_DEST | CLRCF_OPTIONS)) {
           ov_calc_buffer( mdrv, mov, config, surface );
           ov_calc_regs( mdrv, mov, config, surface );
@@ -384,6 +371,30 @@ DisplayLayerFuncs mach64OverlayFuncs = {
 };
 
 /* internal */
+
+static void ov_reset( Mach64DriverData *mdrv )
+{
+     Mach64DeviceData *mdev = mdrv->device_data;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     if (mdev->chip >= CHIP_3D_RAGE_PRO) {
+          mach64_waitfifo( mdrv, mdev, 6 );
+
+          mach64_out32( mmio, SCALER_H_COEFF0, 0x00002000 );
+          mach64_out32( mmio, SCALER_H_COEFF1, 0x0D06200D );
+          mach64_out32( mmio, SCALER_H_COEFF2, 0x0D0A1C0D );
+          mach64_out32( mmio, SCALER_H_COEFF3, 0x0C0E1A0C );
+          mach64_out32( mmio, SCALER_H_COEFF4, 0x0C14140C );
+          mach64_out32( mmio, SCALER_COLOUR_CNTL, 0x00101000 );
+     }
+
+     mach64_waitfifo( mdrv, mdev, 4 );
+
+     mach64_out32( mmio, OVERLAY_SCALE_CNTL, 0 );
+     mach64_out32( mmio, OVERLAY_EXCLUSIVE_HORZ, 0 );
+     mach64_out32( mmio, OVERLAY_EXCLUSIVE_VERT, 0 );
+     mach64_out32( mmio, SCALER_TEST, 0 );
+}
 
 static void ov_set_regs( Mach64DriverData       *mdrv,
                          Mach64OverlayLayerData *mov )
