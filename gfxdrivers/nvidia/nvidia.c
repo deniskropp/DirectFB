@@ -416,7 +416,7 @@ static void nvAfterSetVar( void *driver_data,
           case NV_ARCH_20:
           default:
                nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x89, 0x0100A000 | ENDIAN_FLAG, color,
+                                0x77, 0x0100A000 | ENDIAN_FLAG, color,
                                 ADDR_DMA, ADDR_DMA, ENGINE_GRAPHICS );
                nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
                                 0x94, 0x0300A000 | ENDIAN_FLAG, color,
