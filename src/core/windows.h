@@ -28,6 +28,7 @@
 #include <core/coretypes.h>
 
 #include <core/fusion/lock.h>
+#include <core/fusion/reactor.h>
 
 #include "state.h"
 
