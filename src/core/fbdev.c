@@ -903,7 +903,7 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
 #ifdef SUPPORT_RGB332
 /*
                This check is omitted, since we want to use RGB332 even if the
-               hardware uses a palette (in that case we initzalize a calculated
+               hardware uses a palette (in that case we initialize a calculated
                one to have correct colors)
 
                if (fbdev_compatible_format( var, 0, 3, 3, 2, 0, 5, 2, 0 ))*/
