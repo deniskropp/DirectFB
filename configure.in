@@ -449,9 +449,9 @@ ACLOCAL="$ACLOCAL $ACLOCAL_FLAGS"
 AM_CONDITIONAL(BUILD_STATIC, test x$enable_static = xyes)
 
 
-DATADIR=$datadir/directfb
-MODULEDIR=$libdir/directfb
-INTERNALINCLUDEDIR=$includedir/directfb-internal
+DATADIR=$datadir/directfb-$VERSION
+MODULEDIR=$libdir/directfb-$VERSION
+INTERNALINCLUDEDIR=$includedir/directfb-internal-$VERSION
 SOPATH=$libdir/libdirectfb-$LT_RELEASE.so.$LT_CURRENT
 AC_SUBST(SOPATH)
 
@@ -533,6 +533,7 @@ Build options:
   Install prefix      $prefix
   Build shared libs   $enable_shared
   Build static libs   $enable_static
+  Module directory    $MODULEDIR
 
 Misc options:
   MMX support         $MMX
