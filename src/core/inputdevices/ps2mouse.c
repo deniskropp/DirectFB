@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -147,6 +148,8 @@ void* ps2mouseEventThread(void *device)
      while ((readlen = read(fd, buf, 256)) > 0) {
           int i;
 
+          pthread_testcancel();
+          
           for (i = 0; i < readlen; i++) {
 //               DEBUGMSG( "--- %02x ---\n", buf[i] );
 
@@ -209,7 +212,10 @@ void* ps2mouseEventThread(void *device)
           ps2mouse_motion_realize( device );
      }
 
-     PERRORMSG ("psmouse thread died\n");
+     if (readlen <= 0 && errno != EINTR)
+          PERRORMSG ("psmouse thread died\n");
+
+     pthread_testcancel();
 
      return NULL;
 }

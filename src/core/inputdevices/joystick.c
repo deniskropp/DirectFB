@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <fcntl.h>
@@ -92,16 +93,23 @@ int joystick_init(InputDevice *device)
 
 void* joystickEventThread(void *device)
 {
+     int readlen;
      InputDevice *joystick = (InputDevice*)device;
 
      struct js_event jse;
 
-     while (read( fd[((InputDevice*)device)->number], &jse,
-                  sizeof(struct js_event) ) > 0) {
-
+     while ((readlen = read( fd[((InputDevice*)device)->number], &jse,
+                             sizeof(struct js_event) )) > 0)
+     {
+          pthread_testcancel();
           input_dispatch( joystick, joystick_handle_event(jse) );
      }
 
+     if (readlen <= 0 && errno != EINTR)
+          PERRORMSG ("joystick thread died\n");
+     
+     pthread_testcancel();
+     
      return NULL;
 }
 

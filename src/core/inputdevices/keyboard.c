@@ -164,10 +164,17 @@ void* keyboardEventThread(void *device)
      while ((readlen = read(fd, buf, 256)) > 0) {
           int i;
           
+          pthread_testcancel();
+          
           for (i = 0; i < readlen; i++) {
                input_dispatch( keyboard, keyboard_handle_code( buf[i] ) );
           }
      }
+     
+     if (readlen <= 0 && errno != EINTR)
+          PERRORMSG ("keyboard thread died\n");
+     
+     pthread_testcancel();
      
      return NULL;
 }
