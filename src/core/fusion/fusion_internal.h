@@ -55,10 +55,12 @@
 #if !defined(FUSION_DEBUG) || defined(DFB_NOTEXT)
 #  define FDEBUG(x...)   do {} while (0)
 #else
-#  define FDEBUG(x...)   do { if (dfb_config->debug) {                         \
-                                 fprintf( stderr, "(-) [%d: %5lld] DirectFB/"  \
-                                          "core/fusion: (%s) ", getpid(),      \
-                                          fusion_get_millis(), __FUNCTION__ ); \
+#  define FDEBUG(x...)   do { if (!dfb_config || dfb_config->debug) {          \
+                                 long long millis = fusion_get_millis();       \
+                                 fprintf( stderr, "(-) [%5d: %4lld.%03lld] Dir"\
+                                          "ectFB/core/fusion: (%s) ", getpid(),\
+                                          millis/1000, millis%1000,            \
+                                          __FUNCTION__ );                      \
                                  fprintf( stderr, x );                         \
                                  fflush( stderr );                             \
                             } } while (0)
@@ -69,17 +71,19 @@
 #  define FPERROR(x...) do {} while (0)
 #else
 #  define FERROR(x...) do \
-{ \
-     fprintf( stderr, "(!) [%d: %5lld] DirectFB/core/fusion: (%s) ",           \
-              getpid(), fusion_get_millis(), __FUNCTION__ );                   \
+{                                                                              \
+     long long millis = fusion_get_millis();                                   \
+     fprintf( stderr, "(!) [%5d: %4lld.%03lld] DirectFB/core/fusion: (%s) ",   \
+              getpid(), millis/1000, millis%1000, __FUNCTION__ );              \
      fprintf( stderr, x );                                                     \
      fflush( stderr );                                                         \
 } while (0)
 
 #  define FPERROR(x...) do \
-{ \
-     fprintf( stderr, "(!) [%d: %5lld] DirectFB/core/fusion: (%s) ",           \
-              getpid(), fusion_get_millis(), __FUNCTION__ );                   \
+{                                                                              \
+     long long millis = fusion_get_millis();                                   \
+     fprintf( stderr, "(!) [%5d: %4lld.%03lld] DirectFB/core/fusion: (%s) ",   \
+              getpid(), millis/1000, millis%1000, __FUNCTION__ );              \
      fprintf( stderr, x );                                                     \
      fprintf( stderr, "    --> " );                                            \
      perror("");                                                               \
