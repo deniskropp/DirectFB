@@ -897,8 +897,9 @@ IDirectFBSurface_TileBlit( IDirectFBSurface *thiz,
      dfb_gfxcard_tileblit( &srect,
                            data->area.wanted.x + dx,
                            data->area.wanted.y + dy,
-                           data->area.wanted.w,
-                           data->area.wanted.h, &data->state );
+                           data->area.wanted.x + data->area.wanted.w,
+                           data->area.wanted.y + data->area.wanted.h, 
+                           &data->state );
 
      return DFB_OK;
 }
