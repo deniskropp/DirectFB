@@ -244,8 +244,8 @@ dnl Test for libflash
       AC_CHECK_HEADER(flash.h,
 	FLASH=yes
 	LIBFLASH='-lflash',
-	AC_MSG_WARN([*** libflash header files not found.])),
-      AC_MSG_WARN([*** libflash not found.]), $LIBJPEG $LIBZ -lm)
+	AC_MSG_WARN([*** libflash headers not found -- SWF media provider will not be built.])),
+      AC_MSG_WARN([*** libflash not found -- SWF media provider will not be built.]), $LIBJPEG $LIBZ -lm)
   fi
 
 AM_CONDITIONAL(FLASH_PROVIDER, test x$FLASH = xyes)
@@ -284,6 +284,8 @@ AC_SUBST(LIBDIR)
 AC_OUTPUT([
 directfb-config
 directfb.pc
+directfb-avifile.pc
+directfb-swf.pc
 Makefile
 examples/Makefile
 examples/df_knuckles/Makefile

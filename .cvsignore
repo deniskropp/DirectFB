@@ -13,6 +13,8 @@ config.cache
 stamp-h.in
 directfb-config
 directfb.pc
+directfb-avifile.pc
+directfb-swf.pc
 DirectFB.vpj
 DirectFB.vpw
 DirectFB.vtg

@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: DirectFB Flash Provider
+Description: ShockWave Flash video provider for DirectFB
+Requires: directfb
+Version: @VERSION@
+Libs:
+Cflags:
