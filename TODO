@@ -21,7 +21,6 @@ Finish display layer core and driver API.
 Finish multi application core.
  - Some messages may need to be dispatched synchronized.
  - Add fork handling.
- - Add support for running multiple multi app core instances (fusion worlds).
  - Run time single/multi app core selection (both enabled during build).
 
 Finish surface manager.

@@ -434,7 +434,7 @@ main( int argc, char *argv[] )
      if (ret)
           return DirectFBError( "DirectFBInit", ret );
 
-     if (fusion_init() < 0)
+     if (fusion_init( dfb_config->session, NULL ) < 0)
           return -1;
 
      printf( "\n" );

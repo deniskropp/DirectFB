@@ -67,10 +67,8 @@ Cambridge, MA 02139, USA.
 
 #define SH_BASE          0x20000000
 #define SH_MAX_SIZE      0x20000000
-#define SH_FILE_NAME     "/fusion.shm"
-#define SH_DEFAULT_NAME  "/dev/shm" SH_FILE_NAME
+#define SH_FILE_NAME     "/fusion."
 #define SH_MOUNTS_FILE   "/proc/mounts"
-#define SH_SHMFS_TYPE    "tmpfs"
 #define SH_BUFSIZE       1024
 
 static int   fd            = -1;
@@ -82,7 +80,7 @@ shmalloc_heap   *_fusion_shmalloc_heap = NULL;
 static Reaction  reaction;
 
 static char *
-shmalloc_check_shmfs (void)
+shmalloc_check_shmfs (int world)
 {
      FILE * mounts_handle = NULL;
      char * pointer       = NULL;
@@ -92,7 +90,7 @@ shmalloc_check_shmfs (void)
      char   buffer[SH_BUFSIZE];
 
      if (!(mounts_handle = fopen (SH_MOUNTS_FILE, "r")))
-          return DFBSTRDUP( SH_DEFAULT_NAME );
+          return NULL;
 
      while (fgets (buffer, SH_BUFSIZE, mounts_handle)) {
           pointer = buffer;
@@ -102,21 +100,22 @@ shmalloc_check_shmfs (void)
           mount_point = strsep (&pointer, " ");
           mount_fs = strsep (&pointer, " ");
 
-          if (mount_fs && mount_point
-              && (strlen (mount_fs) == strlen (SH_SHMFS_TYPE))
-              && (!(strcmp (mount_fs, SH_SHMFS_TYPE))))
+          if (mount_fs && mount_point &&
+              (!strcmp (mount_fs, "tmpfs") || !strcmp (mount_fs, "shmfs")))
           {
-               int len = strlen (mount_point) + strlen (SH_FILE_NAME) + 1;
+               int len = strlen (mount_point) + strlen (SH_FILE_NAME) + 11;
 
                if (!(pointer = DFBMALLOC(len))) {
+                    FERROR ("malloc failed!\n");
                     fclose (mounts_handle);
 
-                    return DFBSTRDUP( SH_DEFAULT_NAME );
+                    return NULL;
                }
 
                fclose (mounts_handle);
 
-               snprintf (pointer, len, "%s%s", mount_point, SH_FILE_NAME);
+               snprintf (pointer, len, "%s%s%d",
+                         mount_point, SH_FILE_NAME, world);
 
                return pointer;
           }
@@ -124,7 +123,7 @@ shmalloc_check_shmfs (void)
 
      fclose (mounts_handle);
 
-     return DFBSTRDUP( SH_DEFAULT_NAME );
+     return NULL;
 }
 
 /* Aligned allocation.  */
@@ -352,7 +351,7 @@ _fusion_shmalloc (size_t size)
 }
 
 
-void *__shmalloc_init (bool initialize)
+void *__shmalloc_init (int world, bool initialize)
 {
      struct stat st;
 
@@ -360,7 +359,11 @@ void *__shmalloc_init (bool initialize)
           return mem;
 
      /* try to find out where the shmfs is actually mounted */
-     sh_name = shmalloc_check_shmfs ();
+     sh_name = shmalloc_check_shmfs (world);
+     if (!sh_name) {
+          FERROR( "Could not find tmpfs mount point!\n" );
+          return NULL;
+     }
 
      /* open the virtual file */
      if (initialize)
@@ -557,3 +560,4 @@ bool fusion_is_shared (const void *ptr)
      return((unsigned int) ptr >= SH_BASE &&
             (unsigned int) ptr <  SH_BASE + SH_MAX_SIZE);
 }
+

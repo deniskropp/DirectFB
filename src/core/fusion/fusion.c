@@ -70,8 +70,10 @@ static CoreThread *read_loop;
 int _fusion_id = 0;  /* non-zero if Fusion is initialized */
 
 int
-fusion_init()
+fusion_init( int world, int *world_ret )
 {
+     char buf[20];
+
      /* Check against multiple initialization. */
      if (_fusion_id) {
           /* Increment local reference counter. */
@@ -81,13 +83,34 @@ fusion_init()
      }
 
      /* Open Fusion Kernel Device. */
-     _fusion_fd = dfb_try_open ("/dev/fusion",
-                                "/dev/misc/fusion", O_RDWR | O_NONBLOCK);
-     if (_fusion_fd < 0)
-          return -1;
+     if (world < 0) {
+          for (world=0; world<256; world++) {
+               snprintf( buf, sizeof(buf), "/dev/fusion/%d", world );
+          
+               _fusion_fd = open (buf, O_RDWR | O_NONBLOCK | O_EXCL);
+               if (_fusion_fd < 0) {
+                    if (errno == EBUSY)
+                         continue;
+                    
+                    FPERROR( "opening '%s' failed!\n", buf );
+                    return -1;
+               }
+               else
+                    break;
+          }
+     }
+     else {
+          snprintf( buf, sizeof(buf), "/dev/fusion/%d", world );
+          
+          _fusion_fd = open (buf, O_RDWR | O_NONBLOCK);
+          if (_fusion_fd < 0) {
+               FPERROR( "opening '%s' failed!\n", buf );
+               return -1;
+          }
+     }
 
      /* Get our Fusion ID. */
-     if (ioctl( _fusion_fd, FUSION_GET_ID, &_fusion_id)) {
+     if (ioctl( _fusion_fd, FUSION_GET_ID, &_fusion_id )) {
           FPERROR( "FUSION_GET_ID failed!\n" );
           close( _fusion_fd );
           return -1;
@@ -97,7 +120,12 @@ fusion_init()
      fusion_refs = 1;
 
      /* Initialize shmalloc part. */
-     if (!__shmalloc_init( _fusion_id == 1 )) {
+     if (!__shmalloc_init( world, _fusion_id == 1 )) {
+          fprintf( stderr, "\nShared memory initialization failed.\n" );
+          fprintf( stderr, "Please make sure that tmpfs is properly mounted "
+                           "and writable, \n" );
+          fprintf( stderr, "see the DirectFB README for more instructions.\n" );
+          
           _fusion_id = 0;
 
           close( _fusion_fd );
@@ -115,6 +143,9 @@ fusion_init()
           _fusion_shared = __shmalloc_get_root();
 
      read_loop = dfb_thread_create( CTT_MESSAGING, fusion_read_loop, NULL );
+
+     if (world_ret)
+          *world_ret = world;
 
      return _fusion_id;
 }
@@ -150,7 +181,6 @@ fusion_exit()
 FusionResult
 fusion_kill( int fusion_id, int signal, int timeout_ms )
 {
-#ifdef FUSION_KILL
      FusionKill param;
 
      param.fusion_id  = fusion_id;
@@ -171,7 +201,7 @@ fusion_kill( int fusion_id, int signal, int timeout_ms )
 
           return FUSION_FAILURE;
      }
-#endif
+     
      return FUSION_SUCCESS;
 }
 

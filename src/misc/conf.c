@@ -65,6 +65,8 @@ static const char *config_usage =
     "Set the default pixel depth\n"
     "  pixelformat=<pixelformat>      "
     "Set the default pixel format\n"
+    "  session=<num>                  "
+    "Select multi app world (zero based, -1 = new)\n"
     "  quiet                          "
     "No text output except debugging\n"
     "  [no-]banner                    "
@@ -367,6 +369,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG("DirectFB/Config 'pixelformat': No format specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "session" ) == 0) {
+          if (value) {
+               int session;
+
+               if (sscanf( value, "%d", &session ) < 1) {
+                    ERRORMSG("DirectFB/Config 'session': Could not parse value!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->session = session;
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'session': No value specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -706,12 +724,20 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
      int i;
      char *home = getenv( "HOME" );
      char *prog = NULL;
+     char *session;
 
      if (dfb_config)
           return DFB_OK;
 
      config_allocate();
 
+     session = getenv( "DIRECTFB_SESSION" );
+     if (session) {
+          ret = dfb_config_set( "session", session );
+          if (ret)
+               return ret;
+     }
+     
      ret = dfb_config_read( "/etc/directfbrc" );
      if (ret  &&  ret != DFB_IO)
           return ret;

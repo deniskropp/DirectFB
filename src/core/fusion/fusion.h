@@ -39,7 +39,7 @@ extern "C"
      /*
       * Initializes fusion and returns the fusion id or -1 on failure.
       */
-     int fusion_init();
+     int fusion_init( int world, int *world_ret );
 
      /*
       * Deinitializes fusion.
@@ -63,7 +63,7 @@ extern "C"
 
 #else
 
-  #define fusion_init()       (1)
+  #define fusion_init(a,b)    (1)
   #define fusion_exit()       do {} while (0)
   #define fusion_get_millis   dfb_get_millis
 

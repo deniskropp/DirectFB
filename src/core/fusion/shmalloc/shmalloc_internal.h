@@ -82,7 +82,7 @@ void *_fusion_shvalloc (size_t __size);
 struct shmstats _fusion_shmstats (void);
 
 
-void *__shmalloc_init (bool initialize);
+void *__shmalloc_init (int world, bool initialize);
 void *__shmalloc_brk  (int increment);
 void  __shmalloc_exit (bool shutdown);
 

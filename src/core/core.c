@@ -155,8 +155,10 @@ dfb_core_ref()
 #else
      char *mmx_string = "";
 #endif
-     int fid;
-     int ret;
+     int   fid;
+     int   ret;
+     int   world;
+     char  buf[16];
 
      /* check for multiple calls, do reference counting */
      if (dfb_core && dfb_core->refs++)
@@ -185,17 +187,23 @@ dfb_core_ref()
 
      dfb_find_best_memcpy();
 
-     fid = fusion_init();
+     fid = fusion_init( dfb_config->session, &world );
      if (fid < 0)
           return DFB_INIT;
 
-     DEBUGMSG( "DirectFB/Core: fusion id %d\n", fid );
+#ifndef FUSION_FAKE
+     DEBUGMSG( "DirectFB/core: world %d, fusion id %d\n", world, fid );
+
+     snprintf( buf, sizeof(buf), "%d", world );
+
+     setenv( "DIRECTFB_SESSION", buf, true );
+#endif
 
      /* allocate local data */
      dfb_core = DFBCALLOC( 1, sizeof(CoreData) );
 
-     dfb_core->refs  = 1;
-     dfb_core->fid   = fid;
+     dfb_core->refs = 1;
+     dfb_core->fid  = fid;
 
 #ifndef FUSION_FAKE
      if (fusion_arena_enter ("DirectFB/Core",

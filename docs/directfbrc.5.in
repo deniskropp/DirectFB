@@ -85,6 +85,13 @@ may also support the more exotic pixel formats A8, ARGB, ARGB1555,
 I420, UYVY, YUY2 and YV12.
 
 .TP
+.BI session=<num>
+Selects the multi application world which is joined or created.
+Starting with zero, negative values force creation of a new
+world using the lowest unused session number. This will override
+the environment variable "DIRECTFB_SESSION".
+
+.TP
 .BI quiet
 Suppresses console output from DirectFB. Only error messages will be
 displayed.

@@ -114,6 +114,8 @@ typedef struct
      bool      capslock_meta;                     /* map CapsLock -> Meta */
 
      bool      block_all_signals;                 /* block all signals */
+
+     int       session;                           /* select multi app world */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
