@@ -1,7 +1,3 @@
-Use context structs instead of variing parameters to module functions.
-
-Font module probing.
-
 Allow software driven field switches
 (functionality exists but not yet exported to apps).
 
