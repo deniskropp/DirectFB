@@ -75,7 +75,7 @@ struct _PixopsFilter {
 static void rgba_to_dst_format (__u8 *dst,
                                 __u32 r, __u32 g, __u32 b, __u32 a,
                                 DFBSurfacePixelFormat dst_format,
-                                CorePalette *palette)
+                                CorePalette *palette, int dx)
 {
      switch (dst_format) {
 
@@ -132,7 +132,7 @@ static void rgba_to_dst_format (__u8 *dst,
                break;
 
           case DSPF_YUY2:
-               if (! ((int)dst & 3)) {  /* HACK */
+               if (! (dx & 1)) {  /* HACK */
                     __u32 y, cb, cr;
 
                     RGB_TO_YCBCR( r, g, b, y, cb, cr );
@@ -142,7 +142,7 @@ static void rgba_to_dst_format (__u8 *dst,
                break;
 
           case DSPF_UYVY:
-               if (! ((int)dst & 3)) {  /* HACK */
+               if (! (dx & 1)) {  /* HACK */
                     __u32 y, cb, cr;
 
                     RGB_TO_YCBCR( r, g, b, y, cb, cr );
@@ -208,7 +208,8 @@ void dfb_copy_buffer_32( __u32 *src,
                                              (*src & 0x000000FF),
                                              a,
                                              dst_surface->format,
-                                             dst_surface->palette);
+                                             dst_surface->palette,
+                                             x);
 
                          d += bpp;
 
@@ -331,7 +332,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
 static void scale_pixel( int *weights, int n_x, int n_y,
                          void *dst, __u32 **src,
                          int x, int sw, DFBSurfacePixelFormat dst_format,
-                         CorePalette *palette )
+                         CorePalette *palette, int dx )
 {
      __u32 r = 0, g = 0, b = 0, a = 0;
      int i, j;
@@ -364,12 +365,12 @@ static void scale_pixel( int *weights, int n_x, int n_y,
      b = (b >> 24) == 0xFF ? 0xFF : (b + 0x800000) >> 24;
      a = (a >> 16) == 0xFF ? 0xFF : (a + 0x8000) >> 16;
 
-     rgba_to_dst_format( dst, r, g, b, a, dst_format, palette );
+     rgba_to_dst_format( dst, r, g, b, a, dst_format, palette, dx );
 }
 
 static void *scale_line( int *weights, int n_x, int n_y, void *dst,
                          void *dst_end, __u32 **src, int x, int x_step, int sw,
-                         DFBSurfacePixelFormat dst_format, CorePalette *palette )
+                         DFBSurfacePixelFormat dst_format, CorePalette *palette, int dx )
 {
      int i, j;
      int *pixel_weights;
@@ -409,7 +410,7 @@ static void *scale_line( int *weights, int n_x, int n_y, void *dst,
           b = (b >> 24) == 0xFF ? 0xFF : (b + 0x800000) >> 24;
           a = (a >> 16) == 0xFF ? 0xFF : (a + 0x8000) >> 16;
 
-          rgba_to_dst_format( dst, r, g, b, a, dst_format, palette );
+          rgba_to_dst_format( dst, r, g, b, a, dst_format, palette, dx++ );
 
           dst += DFB_BYTES_PER_PIXEL (dst_format);
           x += x_step;
@@ -491,7 +492,7 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
                                            & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
                             filter.n_x, filter.n_y, outbuf, line_bufs,
                             sx >> SCALE_SHIFT, sw, dst_surface->format,
-                            dst_surface->palette );
+                            dst_surface->palette, dest_x );
 
                sx += x_step;
                x_start = sx >> SCALE_SHIFT;
@@ -502,7 +503,7 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
           new_outbuf = scale_line (run_weights, filter.n_x, filter.n_y, outbuf,
                                    outbuf_end, line_bufs, sx >> SCALE_SHIFT,
                                    x_step, sw, dst_surface->format,
-                                   dst_surface->palette);
+                                   dst_surface->palette, dest_x);
 
           dest_x += (new_outbuf - outbuf) / DFB_BYTES_PER_PIXEL (dst_surface->format);
           sx = dest_x * x_step + scaled_x_offset;
@@ -513,7 +514,7 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
                                            & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
                             filter.n_x, filter.n_y, outbuf, line_bufs,
                             sx >> SCALE_SHIFT, sw, dst_surface->format,
-                            dst_surface->palette);
+                            dst_surface->palette, dest_x);
 
                sx += x_step;
                outbuf += DFB_BYTES_PER_PIXEL (dst_surface->format);
