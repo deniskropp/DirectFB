@@ -81,12 +81,33 @@ static inline void direct_list_append( DirectLink **list, DirectLink *link )
      D_MAGIC_SET( link, DirectLink );
 }
 
+static inline bool direct_list_contains( DirectLink *list, DirectLink *link )
+{
+     D_MAGIC_ASSERT_IF( list, DirectLink );
+     D_MAGIC_ASSERT( link, DirectLink );
+
+     while (list) {
+          if (list == link)
+               return true;
+
+          list = list->next;
+     }
+
+     return false;
+}
+
 static inline void direct_list_remove( DirectLink **list, DirectLink *link )
 {
-     DirectLink *next = link->next;
-     DirectLink *prev = link->prev;
+     DirectLink *next;
+     DirectLink *prev;
 
+     D_ASSERT( direct_list_contains( *list, link ) );
+
+     D_MAGIC_ASSERT( *list, DirectLink );
      D_MAGIC_ASSERT( link, DirectLink );
+
+     next = link->next;
+     prev = link->prev;
 
      if (next) {
           D_MAGIC_ASSERT( next, DirectLink );
