@@ -220,7 +220,7 @@ video_sequence(MPEG2_Decoder *dec, int *Bitstream_Framenumber)
 {
      int Bitstream_Framenum;
      int Sequence_Framenum;
-     int Return_Value;
+     int Return_Value = 0;
 
      Bitstream_Framenum = *Bitstream_Framenumber;
      Sequence_Framenum=0;
@@ -240,14 +240,14 @@ video_sequence(MPEG2_Decoder *dec, int *Bitstream_Framenumber)
      }
 
      /* loop through the rest of the pictures in the sequence */
-     while ((Return_Value=MPEG2_Get_Hdr(dec))) {
+/*     while ((Return_Value=MPEG2_Get_Hdr(dec))) {
           MPEG2_Decode_Picture(dec, Bitstream_Framenum, Sequence_Framenum);
 
           if (!dec->Second_Field) {
                Bitstream_Framenum++;
                Sequence_Framenum++;
           }
-     }
+     }*/
 
      /* put last frame */
      if (Sequence_Framenum!=0) {
