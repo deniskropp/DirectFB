@@ -1964,7 +1964,7 @@ typedef enum {
      DSECONF_MIXER        = 0x00000004, /* Select mixer. */
      DSECONF_OUT_SIGNALS  = 0x00000008, /* Select generated output signal(s). */
      DSECONF_SCANMODE     = 0x00000010, /* Select interlaced or progressive output. */
-     DSECONF_TEST_COLOR   = 0x00000020, /* Set color for DSETP_SINGLE_COLOR. */
+     DSECONF_TEST_COLOR   = 0x00000020, /* Set color for DSETP_SINGLE. */
 
      DSECONF_ALL          = 0x0000001F
 } DFBScreenEncoderConfigFlags;
@@ -2000,7 +2000,7 @@ typedef struct {
      DFBScreenOutputSignals        out_signals;   /* Generated output signals. */
      DFBScreenEncoderScanMode      scanmode;      /* Interlaced or progressive output. */
 
-     DFBColor                      test_color;    /* Color for DSETP_SINGLE_COLOR. */
+     DFBColor                      test_color;    /* Color for DSETP_SINGLE. */
 } DFBScreenEncoderConfig;
 
 
