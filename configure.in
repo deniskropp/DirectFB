@@ -71,22 +71,20 @@ AC_PATH_PROGS(PERL, perl5 perl)
 DFB_CFLAGS=""
 
 dnl Test for Linux frame buffer device
-LINUX_FBDEV=no
-  AC_ARG_ENABLE(fbdev,
-    [  --enable-fbdev          build with linux fbdev support [default=auto]],
-    enable_fbdev="$enableval", enable_fbdev=yes)
+AC_ARG_ENABLE(fbdev,
+  [  --enable-fbdev          build with linux fbdev support [default=auto]],,
+  enable_fbdev=yes)
 
-  if test x$enable_fbdev = xyes; then
-    AC_CHECK_HEADER(linux/fb.h, fbdev_found=yes, fbdev_found=no)
-    if test "$fbdev_found" = no; then
-      AC_MSG_WARN([
+if test x$enable_fbdev = xyes; then
+  AC_CHECK_HEADER(linux/fb.h, fbdev_found=yes, fbdev_found=no)
+  if test "$fbdev_found" = no; then
+    enable_fbdev=no
+    AC_MSG_WARN([
 *** no linux/fb.h found -- building without linux fbdev support.])
-    else
-      LINUX_FBDEV=yes
-    fi
   fi
-  
-  AM_CONDITIONAL(FBDEV_CORE, test x$LINUX_FBDEV = xyes)    
+fi
+
+AM_CONDITIONAL(FBDEV_CORE, test x$enable_fbdev = xyes)
 
 
 if test "x$GCC" = xyes; then
@@ -126,8 +124,8 @@ case "$target_or_host" in
 esac
 
 have_linux=no
-need_libdl=yes
 need_libc_r=no
+need_libdl=yes
 
 case "$target_or_host" in
   *-linux*)
@@ -136,9 +134,9 @@ case "$target_or_host" in
 
   *-freebsd*)
     need_libc_r=yes
+    need_libdl=no
     CPPFLAGS="$CPPFLAGS -I/usr/local/include"
     LDFLAGS="$LDFLAGS -L/usr/local/lib"
-    need_libdl=no
     ;;
 
   *-openbsd*)
@@ -269,60 +267,56 @@ fi
 AM_CONDITIONAL(ENABLE_RGB332, test "x$enable_rgb332" = xyes)
 
 
-have_mmx=$have_x86
 AC_ARG_ENABLE(mmx,
-  [  --enable-mmx            enable MMX support [default=autodetect]],
-  have_mmx=$enableval)
+  [  --enable-mmx            enable MMX support [default=autodetect]],,
+  enable_mmx=$have_x86)
 
-MMX=no
-
-dnl Necessary for assembler sources
-save_ac_ext="$ac_ext"
-ac_ext=S
-
-if test "x$have_mmx" = xyes; then
+if test "x$enable_mmx" = xyes; then
   AC_MSG_CHECKING(whether the binutils support MMX)
+
+  dnl Necessary for assembler sources
+  save_ac_ext="$ac_ext"
+  ac_ext=S
+
   echo "       movq 0, %mm0" > conftest.S
   if AC_TRY_EVAL(ac_compile); then
     AC_DEFINE(USE_MMX,1,[Define to 1 if MMX assembly is available.])
-    MMX=yes
-    have_mmx=yes
     AC_MSG_RESULT(yes)
   else
+    enable_mmx=no
     AC_MSG_RESULT(no)
     AC_MSG_WARN([
 ****************************************************************
  The installed assembler does not supports the MMX command set. 
  Update your binutils package, if you want to compile MMX code. 
 ****************************************************************])
-    MMX=no
   fi
+
   rm conftest*
+  ac_ext="$save_ac_ext"
 fi
 
-AM_CONDITIONAL(BUILDMMX, test x$MMX = xyes)
-ac_ext="$save_ac_ext"
+AM_CONDITIONAL(BUILDMMX, test x$enable_mmx = xyes)
 
 
 dnl Test for SDL
-SDL=no
 AC_ARG_ENABLE(sdl,
-  [  --enable-sdl            build with SDL support [default=auto]],
-  enable_sdl="$enableval", enable_sdl=yes)
+  [  --enable-sdl            build with SDL support [default=auto]],,
+  enable_sdl=yes)
 
 if test x$enable_sdl = xyes; then
   AC_PATH_PROG(SDL_CONFIG, sdl-config, no)
   if test x$SDL_CONFIG = xno; then
+    enable_sdl=no
     AC_MSG_WARN([
 *** sdl-config not found -- building without SDL support.])
   else
-    SDL=yes
-    SDL_CFLAGS=`sdl-config --cflags`
-    SDL_LIBS=`sdl-config --libs`
+    SDL_CFLAGS=`$SDL_CONFIG --cflags`
+    SDL_LIBS=`$SDL_CONFIG --libs`
   fi
 fi
 
-AM_CONDITIONAL(SDL_CORE, test x$SDL = xyes)
+AM_CONDITIONAL(SDL_CORE, test x$enable_sdl = xyes)
 
 
 dnl Test for Fusion Kernel Device
@@ -698,6 +692,8 @@ AC_SUBST(DFB_CFLAGS_OMIT_FRAME_POINTER)
 AC_SUBST(DFB_LDFLAGS)
 AC_SUBST(DFB_CXXFLAGS)
 AC_SUBST(DFB_INTERNAL_CFLAGS)
+AC_SUBST(SDL_CFLAGS)
+AC_SUBST(SDL_LIBS)
 AC_SUBST(GIF_PROVIDER)
 AC_SUBST(JPEG_PROVIDER)
 AC_SUBST(PNG_PROVIDER)
@@ -782,15 +778,15 @@ Build options:
   Module directory      $MODULEDIR
 
 Misc options:
-  MMX support           $MMX
+  MMX support           $enable_mmx
   Debug mode            $enable_debug
   RGB332 support        $enable_rgb332
   Multi App support     $enable_multi
   Fusion Kernel Device  $linux_fusion
 
 Core Systems:
-  Linux FBDev support   $LINUX_FBDEV
-  SDL support           $SDL
+  Linux FBDev support   $enable_fbdev
+  SDL support           $enable_sdl
 
 Building Image Providers:
   JPEG                  $JPEG

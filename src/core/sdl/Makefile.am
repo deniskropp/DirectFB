@@ -5,7 +5,7 @@ INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/src
 
-AM_CFLAGS = $(DFB_CFLAGS) `sdl-config --cflags`
+AM_CFLAGS = $(DFB_CFLAGS) $(SDL_CFLAGS)
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"		\
@@ -15,7 +15,7 @@ AM_CPPFLAGS = \
 
 noinst_LTLIBRARIES = libdirectfb_core_sdl.la
 
-libdirectfb_core_sdl_la_LDFLAGS = `sdl-config --libs`
+libdirectfb_core_sdl_la_LDFLAGS = $(SDL_LIBS)
 
 libdirectfb_core_sdl_la_SOURCES = \
 	primary.c	\
