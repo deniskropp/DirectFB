@@ -1141,6 +1141,9 @@ update_region( CoreWindowStack *stack,
                     }
                }
 
+               if (window->surface->caps & DSCAPS_INTERLACED)
+                    flags |= DSBLIT_DEINTERLACE;
+
                if (state->blittingflags != flags) {
                     state->blittingflags  = flags;
                     state->modified      |= SMF_BLITTING_FLAGS;
