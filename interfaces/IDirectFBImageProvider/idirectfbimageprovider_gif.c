@@ -663,8 +663,11 @@ static __u32* ReadImage( IDirectFBImageProvider_GIF_data *data, int width, int h
                ;
           return NULL;
      }
-
-     if ((image = D_MALLOC(width * height * 4)) == NULL) {
+     
+     // FIXME: allocates four additional bytes because the scaling functions
+     //        in src/misc/gfx_util.c have an off-by-one bug which causes
+     //        segfaults on darwin/osx (not on linux)           
+     if ((image = D_MALLOC(width * height * 4 + 4)) == NULL) {
           GIFERRORMSG("couldn't alloc space for image" );
      }
 

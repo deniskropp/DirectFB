@@ -533,7 +533,10 @@ png_row_callback   (png_structp png_read_ptr,
 
      /* check image data pointer */
      if (!data->image) {
-          int size = data->width * data->height * 4;
+          // FIXME: allocates four additional bytes because the scaling functions
+          //        in src/misc/gfx_util.c have an off-by-one bug which causes
+          //        segfaults on darwin/osx (not on linux)                
+          int size = data->width * data->height * 4 + 4 ;
 
           /* allocate image data */
           data->image = D_MALLOC( size );
