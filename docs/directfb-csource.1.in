@@ -26,9 +26,10 @@ filename.
 
 .TP
 \fI--format=pixelformat
-Specifies the pixelformat of the generated inline surface. Possible
-values are ARGB, RGB32, RGB24, RGB16, RGB15 and A8. By default the
-format is ARGB if the PNG image has alpha information or RGB32 if not.
+Specifies the pixel-format of the generated inline surface. Possible
+values are ARGB, RGB32, RGB24, RGB16, RGB15, A8 and LUT8. By default
+the format is ARGB if the PNG image has an alpha channel or RGB32
+otherwise.
 
 .TP
 \fI--version
@@ -45,7 +46,7 @@ Generate a header file from a PNG image file:
 	directfb-csource --name=foo foo.png > foo.h
 
 Include the generated header in your application and create a
-surface using the surface description from the header file.
+surface using the surface description from the header file:
 
   #include <directfb.h>
   #include "foo.h"
@@ -56,8 +57,6 @@ surface using the surface description from the header file.
   ...
 
   dfb->CreateSurface( dfb, &foo_desc, &surface );
-
-That's it.
 
 
 .SH OTHER INFO

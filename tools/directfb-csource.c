@@ -55,12 +55,13 @@ static struct {
      DFBSurfacePixelFormat  format;
      const char             *name;
 } pixelformats[] = {
-     { DSPF_RGB15, "RGB15" },
-     { DSPF_RGB16, "RGB16" },
-     { DSPF_RGB24, "RGB24" },
-     { DSPF_RGB32, "RGB32" },
      { DSPF_ARGB,  "ARGB"  },
-     { DSPF_A8,    "A8"    }
+     { DSPF_RGB32, "RGB32" },
+     { DSPF_RGB24, "RGB24" },
+     { DSPF_RGB16, "RGB16" },
+     { DSPF_RGB15, "RGB15" },
+     { DSPF_A8,    "A8"    },
+     { DSPF_LUT8,  "LUT8"  }
 };
 static int n_pixelformats = sizeof (pixelformats) / sizeof (pixelformats[0]);
 
@@ -217,9 +218,6 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
      png_get_IHDR (png_ptr, info_ptr,
                    &width, &height, &bytes, &type, NULL, NULL, NULL);
 
-     if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS))
-          png_set_tRNS_to_alpha (png_ptr);
-
      if (bytes == 16)
           png_set_strip_16 (png_ptr);
 
@@ -232,7 +230,10 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
      src_format = (type & PNG_COLOR_MASK_ALPHA) ? DSPF_ARGB : DSPF_RGB32;
      switch (type) {
           case PNG_COLOR_TYPE_PALETTE:
-            /* FIXME: LUT8 */
+               if (dest_format == DSPF_LUT8) {
+                    src_format = DSPF_LUT8;
+                    break;
+               }
                png_set_palette_to_rgb (png_ptr);
                break;
           case PNG_COLOR_TYPE_GRAY:
@@ -255,14 +256,24 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
                break;
        }
 
-     if (DFB_BYTES_PER_PIXEL (src_format) == 4 && !(type & PNG_COLOR_MASK_ALPHA))
-          png_set_filler (png_ptr, 0xFF,
+     switch (src_format) {
+          case DSPF_RGB32:
+                png_set_filler (png_ptr, 0xFF,
 #if __BYTE_ORDER == __BIG_ENDIAN
-                          PNG_FILLER_BEFORE
+                                PNG_FILLER_BEFORE
 #else
-                          PNG_FILLER_AFTER
+                                PNG_FILLER_AFTER
 #endif
-                          );
+                                );
+                break;
+          case DSPF_ARGB:
+          case DSPF_A8:
+               if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS))
+                    png_set_tRNS_to_alpha (png_ptr);
+               break;
+          default:
+               break;
+     }
 
      pitch = width * DFB_BYTES_PER_PIXEL (src_format);
      if (pitch & 3)
@@ -313,10 +324,8 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
                          span_argb_to_a8 ((__u32 *) s, (__u8 *) d, width);
                     break;
-               case DSPF_RGB24:
-                    /* FIXME */
                default:
-                    fprintf (stderr, "Sorry, conversion unsupported.\n");
+                    fprintf (stderr, "Sorry, unsupported format conversion.\n");
                     goto cleanup;
           }
 
