@@ -368,10 +368,6 @@ rgb32_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
      }
 }
 
-#define ARGB_TO_ARGB4444( pix ) (((pix) & 0xF0000000) >> 16) | \
-                                (((pix) & 0x00F00000) >> 12) | \
-                                (((pix) & 0x0000F000) >>  8) | \
-                                (((pix) & 0x000000F0) >>  4)
 static inline void
 argb_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 {
