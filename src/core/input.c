@@ -467,7 +467,7 @@ allocate_device_keymap( InputDevice *device )
      shared->keymap.num_entries = num_entries;
      shared->keymap.entries     = entries;
 
-#ifdef DFB_MULTI
+#ifndef FUSION_FAKE
      /* we need to fetch the whole map, otherwise a slave would try to */
      for (i=desc->min_keycode; i<=desc->max_keycode; i++)
           get_keymap_entry( device, i );
@@ -704,7 +704,7 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
       * With translation table
       */
      if (device->shared->keymap.num_entries) {
-          /* 3. only, 4. and 5. not implemented yet */
+          /* FIXME: 3. only, 4. and 5. not implemented yet (see above) */
           if (valid & DIEF_KEYCODE) {
                lookup_from_table( device, event, missing );
 
