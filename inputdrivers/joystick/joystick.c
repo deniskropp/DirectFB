@@ -121,7 +121,7 @@ driver_get_available()
 {
      int  i, fd;
      int  joy_count = 0;
-     char devicename[10];
+     char devicename[20];
      
      for (i=0; i<8; i++) {
           sprintf( devicename, "/dev/js%d", i );
@@ -133,6 +133,22 @@ driver_get_available()
           close (fd);
 
           joy_count++;
+     }
+     
+     if (!joy_count) {
+          /* try new-style device names */
+
+          for (i=0; i<8; i++) {
+               sprintf( devicename, "/dev/input/js%d", i );
+          
+               fd = open( devicename, O_RDONLY );
+               if (fd < 0)
+                    break;
+
+               close (fd);
+
+               joy_count++;
+          }
      }
 
      return joy_count;
@@ -161,15 +177,21 @@ driver_open_device( InputDevice      *device,
 {
      int           fd, buttons, axes;
      JoystickData *data;
-     char          devicename[10];
+     char          devicename[20];
      
      /* open the right device */
      sprintf( devicename, "/dev/js%d", number );
 
      fd = open( devicename, O_RDONLY );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/Joystick: Could not open `%s'!\n", devicename );
-          return DFB_INIT; // no joystick available
+          /* try new-style device names */
+          sprintf( devicename, "/dev/input/js%d", number );
+
+          fd = open( devicename, O_RDONLY );
+	  if (fd < 0) {
+               PERRORMSG( "DirectFB/Joystick: Could not open `%s'!\n", devicename );
+               return DFB_INIT; // no joystick available
+          }
      }
 
      /* query number of buttons and axes */
