@@ -1,8 +1,8 @@
 #ifndef __UC_OVERLAY_H__
 #define __UC_OVERLAY_H__
 
-#define UC_OVL_CAPS (DLCAPS_SURFACE | DLCAPS_OPACITY | DLCAPS_SCREEN_LOCATION)
-#define UC_OVL_OPTIONS DLOP_NONE
+#define UC_OVL_CAPS (DLCAPS_SURFACE | DLCAPS_OPACITY | DLCAPS_SCREEN_LOCATION | DLCAPS_DEINTERLACING)
+#define UC_OVL_OPTIONS (DLOP_DEINTERLACING)
 
 #define ALIGN_TO(v, n) (((v) + (n-1)) & ~(n-1))
 #define UC_MAP_V1_FIFO_CONTROL(depth, pre_thr, thr) \
@@ -12,6 +12,7 @@
 
 #define UC_OVL_FLIP     1
 #define UC_OVL_CHANGE   2
+#define UC_OVL_FIELD    4
 
 /** Overlay layer data. */
 struct uc_ovl_vinfo {
@@ -37,6 +38,11 @@ typedef struct _UcOverlayData {
 
     struct uc_ovl_vinfo v1;          // Video overlay V1
 
+    bool                deinterlace;
+    int                 field;
+
+    CoreSurface        *surface;
+
 } UcOverlayData;
 
 
@@ -50,7 +56,7 @@ __u32 uc_ovl_map_format(DFBSurfacePixelFormat format);
 void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
                        __u32* win_start, __u32* win_end, int* ox, int* oy);
 void uc_ovl_map_buffer(DFBSurfacePixelFormat format, __u32 buf,
-                       int x, int y, int w, int h, int pitch,
+                       int x, int y, int w, int h, int pitch, int field,
                        __u32* y_start, __u32* u_start, __u32* v_start);
 __u32 uc_ovl_map_alpha(int opacity);
 void uc_ovl_map_v1_control(DFBSurfacePixelFormat format, int sw,

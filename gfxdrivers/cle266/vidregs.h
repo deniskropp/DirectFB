@@ -106,20 +106,20 @@
 #define CAP0_CONTROL                    0x110
 #define CAP0_H_RANGE                    0x114
 #define CAP0_V_RANGE                    0x118
-#define CAP0_SCAL_CONTROL               0x11C 
+#define CAP0_SCAL_CONTROL               0x11C
 #define CAP0_VBI_H_RANGE                0x120
 #define CAP0_VBI_V_RANGE                0x124
 #define CAP0_VBI_STARTADDR              0x128
-#define CAP0_VBI_STRIDE                 0x12C 
+#define CAP0_VBI_STRIDE                 0x12C
 #define CAP0_ANCIL_COUNT                0x130
 #define CAP0_MAXCOUNT                   0x134
 #define CAP0_VBIMAX_COUNT               0x138
-#define CAP0_DATA_COUNT                 0x13C 
+#define CAP0_DATA_COUNT                 0x13C
 #define CAP0_FB_STARTADDR0              0x140
 #define CAP0_FB_STARTADDR1              0x144
 #define CAP0_FB_STARTADDR2              0x148
 #define CAP0_STRIDE                     0x150
-    
+
 /* Video Capture Engine Registers - port 2 */
 #define CAP1_CONTROL                    0x154
 #define CAP1_SCAL_CONTROL               0x160
@@ -130,7 +130,7 @@
 #define CAP1_ANCIL_COUNT                0x174 /*To be deleted*/
 #define CAP1_MAXCOUNT                   0x178
 #define CAP1_VBIMAX_COUNT               0x17C /*To be deleted*/
-#define CAP1_DATA_COUNT                 0x180 
+#define CAP1_DATA_COUNT                 0x180
 #define CAP1_FB_STARTADDR0              0x184
 #define CAP1_FB_STARTADDR1              0x188
 #define CAP1_STRIDE                     0x18C
@@ -182,8 +182,8 @@
 #define V1_RGB16                        0x0000000C
 #define V1_YUV420                       0x00000010
 #define V1_COLORSPACE_SIGN              0x00000080
-#define V1_SRC_IS_FIELD_PIC             0x00000200
-#define V1_SRC_IS_FRAME_PIC             0x00000000
+#define V1_SRC_IS_FRAME_PIC             0x00000200
+#define V1_SRC_IS_FIELD_PIC             0x00000000
 #define V1_BOB_ENABLE                   0x00400000
 #define V1_FIELD_BASE                   0x00000000
 #define V1_FRAME_BASE                   0x01000000
@@ -243,24 +243,24 @@
 #define V1_FIFO_DEPTH16                 0x0000000F
 #define V1_FIFO_DEPTH32                 0x0000001F
 #define V1_FIFO_DEPTH48                 0x0000002F
-#define V1_FIFO_DEPTH64                 0x0000003F   
+#define V1_FIFO_DEPTH64                 0x0000003F
 #define V1_FIFO_THRESHOLD6              0x00000600
 #define V1_FIFO_THRESHOLD8              0x00000800
 #define V1_FIFO_THRESHOLD12             0x00000C00
 #define V1_FIFO_THRESHOLD16             0x00001000
 #define V1_FIFO_THRESHOLD24             0x00001800
 #define V1_FIFO_THRESHOLD32             0x00002000
-#define V1_FIFO_THRESHOLD40             0x00002800  
-#define V1_FIFO_THRESHOLD48             0x00003000   
-#define V1_FIFO_THRESHOLD56             0x00003800  
-#define V1_FIFO_THRESHOLD61             0x00003D00  
+#define V1_FIFO_THRESHOLD40             0x00002800
+#define V1_FIFO_THRESHOLD48             0x00003000
+#define V1_FIFO_THRESHOLD56             0x00003800
+#define V1_FIFO_THRESHOLD61             0x00003D00
 #define V1_FIFO_PRETHRESHOLD10          0x0A000000
 #define V1_FIFO_PRETHRESHOLD12          0x0C000000
 #define V1_FIFO_PRETHRESHOLD29          0x1d000000
-#define V1_FIFO_PRETHRESHOLD40          0x28000000  
+#define V1_FIFO_PRETHRESHOLD40          0x28000000
 #define V1_FIFO_PRETHRESHOLD44          0x2c000000
-#define V1_FIFO_PRETHRESHOLD56          0x38000000   
-#define V1_FIFO_PRETHRESHOLD61          0x3D000000   
+#define V1_FIFO_PRETHRESHOLD56          0x38000000
+#define V1_FIFO_PRETHRESHOLD61          0x3D000000
 
 /* ALPHA_V3_FIFO_CONTROL - 0x278
  * IA2 has 32 level FIFO for packet mode video format
@@ -275,22 +275,22 @@
 #define V3_FIFO_DEPTH24                 0x00000017
 #define V3_FIFO_DEPTH32                 0x0000001F
 #define V3_FIFO_DEPTH48                 0x0000002F
-#define V3_FIFO_DEPTH64                 0x0000003F   
+#define V3_FIFO_DEPTH64                 0x0000003F
 #define V3_FIFO_THRESHOLD8              0x00000800
 #define V3_FIFO_THRESHOLD12             0x00000C00
 #define V3_FIFO_THRESHOLD16             0x00001000
 #define V3_FIFO_THRESHOLD24             0x00001800
 #define V3_FIFO_THRESHOLD32             0x00002000
-#define V3_FIFO_THRESHOLD40             0x00002800  
-#define V3_FIFO_THRESHOLD48             0x00003000   
-#define V3_FIFO_THRESHOLD61             0x00003D00   
+#define V3_FIFO_THRESHOLD40             0x00002800
+#define V3_FIFO_THRESHOLD48             0x00003000
+#define V3_FIFO_THRESHOLD61             0x00003D00
 #define V3_FIFO_PRETHRESHOLD10          0x0000000A
 #define V3_FIFO_PRETHRESHOLD12          0x0000000C
 #define V3_FIFO_PRETHRESHOLD29          0x0000001d
-#define V3_FIFO_PRETHRESHOLD40          0x00000028  
+#define V3_FIFO_PRETHRESHOLD40          0x00000028
 #define V3_FIFO_PRETHRESHOLD44          0x0000002c
-#define V3_FIFO_PRETHRESHOLD56          0x00000038   
-#define V3_FIFO_PRETHRESHOLD61          0x0000003D   
+#define V3_FIFO_PRETHRESHOLD56          0x00000038
+#define V3_FIFO_PRETHRESHOLD61          0x0000003D
 #define V3_FIFO_MASK                    0x0000007F
 #define ALPHA_FIFO_DEPTH8               0x00070000
 #define ALPHA_FIFO_THRESHOLD4           0x04000000
@@ -357,8 +357,8 @@
 #define BUFFER_2_MODE                   0x00000000
 #define BUFFER_3_MODE                   0x00000004
 #define BUFFER_4_MODE                   0x00000006
-#define SWAP_YUYV                       0x00000000 
-#define SWAP_UYVY                       0x00000100   
+#define SWAP_YUYV                       0x00000000
+#define SWAP_UYVY                       0x00000100
 #define SWAP_YVYU                       0x00000200
 #define SWAP_VYUY                       0x00000300
 #define IN_601_8                        0x00000000
@@ -366,17 +366,17 @@
 #define IN_601_16                       0x00000020
 #define IN_656_16                       0x00000030
 #define DEINTER_ODD                     0x00000000
-#define DEINTER_EVEN                    0x00001000   
+#define DEINTER_EVEN                    0x00001000
 #define DEINTER_ODD_EVEN                0x00002000
 #define DEINTER_FRAME                   0x00003000
-#define VIP_1                           0x00000000 
+#define VIP_1                           0x00000000
 #define VIP_2                           0x00000400
 #define H_FILTER_2                      0x00010000
-#define H_FILTER_4                      0x00020000 
-#define H_FILTER_8_1331                 0x00030000 
+#define H_FILTER_4                      0x00020000
+#define H_FILTER_8_1331                 0x00030000
 #define H_FILTER_8_12221                0x00040000
 #define VIP_ENABLE                      0x00000008
-#define EN_FIELD_SIG                    0x00000800  
+#define EN_FIELD_SIG                    0x00000800
 #define VREF_INVERT                     0x00100000
 #define FIELD_INPUT_INVERSE             0x00400000
 #define FIELD_INVERSE                   0x40000000
@@ -399,7 +399,7 @@
 #define V3_RGB16                        0x0000000C
 #define V3_COLORSPACE_SIGN              0x00000080
 #define V3_EXPIRE_NUM                   0x00040000
-#define V3_EXPIRE_NUM_F                 0x000f0000 
+#define V3_EXPIRE_NUM_F                 0x000f0000
 #define V3_BOB_ENABLE                   0x00400000
 #define V3_FIELD_BASE                   0x00000000
 #define V3_FRAME_BASE                   0x01000000
@@ -431,12 +431,12 @@
 #define HQV_FRAME_2_FIELD               0x00040000   /* Src is field. Display field */
 #define HQV_FRAME_UV                    0x00000000   /* Src is Non-interleaved */
 #define HQV_FIELD_UV                    0x00100000   /* Src is interleaved */
-#define HQV_IDLE                        0x00000008   
-#define HQV_FLIP_STATUS                 0x00000001   
+#define HQV_IDLE                        0x00000008
+#define HQV_FLIP_STATUS                 0x00000001
 #define HQV_DOUBLE_BUFF                 0x00000000
 #define HQV_TRIPLE_BUFF                 0x04000000
 #define HQV_SUBPIC_FLIP                 0x00008000
-#define HQV_FIFO_STATUS                 0x00001000  
+#define HQV_FIFO_STATUS                 0x00001000
 
 /* HQV_FILTER_CONTROL - 0x3E4 */
 #define HQV_H_LOWPASS_2TAP              0x00000001

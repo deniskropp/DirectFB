@@ -42,7 +42,7 @@ bool uc_ovl_map_vzoom(int sh, int dh, __u32* zoom, __u32* mini)
 
         *zoom |= (tmp & 0x3ff) | V1_Y_ZOOM_ENABLE;
         *mini |= V1_Y_INTERPOLY | V1_YCBCR_INTERPOLY;
-    } 
+    }
     else { // sw > dh - Zoom out
 
         // Find a suitable divider (1 << d) = {2, 4, 8 or 16}
@@ -134,7 +134,7 @@ bool uc_ovl_map_hzoom(int sw, int dw,  __u32* zoom, __u32* mini,
         if (sw1 < dw) {
             //CLE bug
             //tmp = sw1*0x0800 / dw;
-            tmp = (sw1 - 2) * 0x0800 / dw;                
+            tmp = (sw1 - 2) * 0x0800 / dw;
             *zoom |= ((tmp & 0x7ff) << 16) | V1_X_ZOOM_ENABLE;
         }
     }
@@ -335,7 +335,7 @@ void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
  *       DDOver_GetSrcStartAddress() and DDOVer_GetYCbCrStartAddress()
  */
 void uc_ovl_map_buffer(DFBSurfacePixelFormat format, __u32 buf,
-                       int ox, int oy, int sw, int sh, int sp,
+                       int ox, int oy, int sw, int sh, int sp, int field,
                        __u32* y_start, __u32* u_start, __u32* v_start)
 {
     int swap_cb_cr = 0;
@@ -376,6 +376,11 @@ void uc_ovl_map_buffer(DFBSurfacePixelFormat format, __u32 buf,
         BUG("Unexpected pixelformat!");
     }
 
+    if (field) {
+         y_offset  += sp;
+         uv_offset += sp >> 1;
+    }
+
     *y_start = buf + y_offset;
 
     if (u_start && v_start) {
@@ -411,7 +416,7 @@ void uc_ovl_map_buffer(DFBSurfacePixelFormat format, __u32 buf,
 
 __u32 uc_ovl_map_alpha(int opacity)
 {
-    __u32 ctrl = 0x00080000;    // Not sure what this number is, supposedly 
+    __u32 ctrl = 0x00080000;    // Not sure what this number is, supposedly
                                 // it is the "expire number divided by 4".
 
     if (opacity > 255) opacity = 255;
@@ -440,7 +445,7 @@ void uc_ovl_map_v1_control(DFBSurfacePixelFormat format, int sw,
                            int hwrev, bool extfifo_on,
                            __u32* control, __u32* fifo)
 {
-    *control = V1_ENABLE | uc_ovl_map_format(format);
+    *control = V1_BOB_ENABLE | V1_ENABLE | uc_ovl_map_format(format);
 
     if (hwrev == 0x10) {
         *control |= V1_EXPIRE_NUM_F;

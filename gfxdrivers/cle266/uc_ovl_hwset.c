@@ -98,6 +98,9 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
     __u32 y_start, u_start, v_start;
     __u32 v_ctrl, fifo_ctrl;
 
+    int offset = surface->front_buffer->video.offset;
+
+
     if (!ucovl->v1.isenabled) return DFB_OK;
 
     qwpitch = 0;
@@ -122,6 +125,14 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
     sp = surface->front_buffer->video.pitch;
     sfmt = surface->format;
 
+    if (ucovl->deinterlace) {
+         /*if (ucovl->field)
+              offset += sp;*/
+
+         sh /= 2;
+         //sp *= 2;
+    }
+
     if (action & UC_OVL_CHANGE) {
 
         if ((sw > 4096) || (sh > 4096) ||
@@ -141,6 +152,10 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
         uc_ovl_map_v1_control(sfmt, sw, ucovl->hwrev, ucovl->extfifo_on,
             &v_ctrl, &fifo_ctrl);
 
+        if (ucovl->deinterlace) {
+             v_ctrl |= /*V1_BOB_ENABLE |*/ V1_FRAME_BASE;
+        }
+
         // Get layer window.
         // The parts that fall outside the screen are clipped.
 
@@ -156,20 +171,28 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
         zoom = 0;
         mini = 0;
 
-        uc_ovl_map_vzoom(sh, dh, &zoom, &mini);
+        uc_ovl_map_vzoom(sh-1, dh, &zoom, &mini);
         uc_ovl_map_hzoom(sw, dw, &zoom, &mini, &falign, &dcount);
         qwpitch = uc_ovl_map_qwpitch(falign, sfmt, sw);
 
         write_settings = true;
     }
 
-    if (action & (UC_OVL_FLIP | UC_OVL_CHANGE)) {
-
+    if (action & (UC_OVL_FIELD | UC_OVL_FLIP | UC_OVL_CHANGE)) {
+         int field = 0;
         // Update the buffer pointers
 
-        uc_ovl_map_buffer(sfmt, surface->front_buffer->video.offset,
-            ucovl->v1.ox, ucovl->v1.oy, sw, sh, sp, &y_start,
+         if (ucovl->deinterlace) {
+              field = ucovl->field;
+         }
+
+        uc_ovl_map_buffer(sfmt, offset,
+            ucovl->v1.ox, ucovl->v1.oy, sw, surface->height, sp, 0/*field*/, &y_start,
             &u_start, &v_start);
+
+        if (field) {
+             y_start |= 0x08000000;
+        }
 
         write_buffers = true;
     }

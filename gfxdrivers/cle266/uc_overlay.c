@@ -112,6 +112,9 @@ uc_ovl_set_region( CoreLayer                  *layer,
     ucovl->v1.isenabled = true;
     ucovl->v1.win = win;
 
+    ucovl->deinterlace = config->options & DLOP_DEINTERLACING;
+    ucovl->surface     = surface;
+
     return uc_ovl_update(ucdrv, ucovl, UC_OVL_CHANGE, surface);
 }
 
@@ -148,6 +151,8 @@ uc_ovl_remove(CoreLayer *layer,
 
     VIDEO_OUT(vio, V_COMPOSE_MODE,
         VIDEO_IN(vio, V_COMPOSE_MODE) | V1_COMMAND_FIRE);
+
+    ucovl->surface = NULL;
 
     return DFB_OK;
 }
@@ -249,7 +254,6 @@ uc_ovl_set_level(CoreLayer    *layer,
                  void         *layer_data,
                  int          level)
 {
-
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
 
@@ -268,6 +272,21 @@ uc_ovl_set_level(CoreLayer    *layer,
     return DFB_OK;
 }
 
+static DFBResult
+uc_ovl_set_input_field( CoreLayer *layer,
+                        void      *driver_data,
+                        void      *layer_data,
+                        void      *region_data,
+                        int        field )
+{
+     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
+     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
+
+     ucovl->field = field;
+
+     return uc_ovl_update(ucdrv, ucovl, UC_OVL_FIELD, ucovl->surface);
+}
+
 DisplayLayerFuncs ucOverlayFuncs = {
     LayerDataSize:      uc_ovl_datasize,
     InitLayer:          uc_ovl_init_layer,
@@ -277,4 +296,5 @@ DisplayLayerFuncs ucOverlayFuncs = {
     FlipRegion:         uc_ovl_flip_region,
     GetLevel:           uc_ovl_get_level,
     SetLevel:           uc_ovl_set_level,
+    SetInputField:      uc_ovl_set_input_field
 };
