@@ -29,7 +29,7 @@
 
 #include <fusionsound.h>
 
-#include <core/fusion/object.h>
+#include <fusion/object.h>
 
 #include <core/types_sound.h>
 

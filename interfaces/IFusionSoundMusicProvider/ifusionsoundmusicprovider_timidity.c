@@ -35,9 +35,9 @@
 
 #include <core/coredefs.h>
 
-#include <core/fusion/lock.h>
+#include <fusion/lock.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include "config.h"
 
@@ -83,7 +83,7 @@ IFusionSoundMusicProvider_Timidity_Destruct( IFusionSoundMusicProvider *thiz )
 
     thiz->Stop( thiz );
 
-    DFBFREE( data->filename );
+    D_FREE( data->filename );
 
     pthread_mutex_destroy( &data->lock );
 
@@ -209,7 +209,7 @@ IFusionSoundMusicProvider_Timidity_PlayTo(
           Timidity_Stop();
           Timidity_FreeSong( data->song );
 
-          DFBFREE( data->buffer );
+          D_FREE( data->buffer );
      }
 
      /* release previous destination stream */
@@ -240,7 +240,7 @@ IFusionSoundMusicProvider_Timidity_PlayTo(
      data->destination = destination;
 
      data->playing  = 1;
-     data->buffer = DFBMALLOC( data->length * desc.channels * 2 );
+     data->buffer = D_MALLOC( data->length * desc.channels * 2 );
 
      /* start thread */
      data->thread = dfb_thread_create( CTT_ANY, TimidityThread, data );
@@ -270,7 +270,7 @@ IFusionSoundMusicProvider_Timidity_Stop( IFusionSoundMusicProvider *thiz )
           Timidity_Stop();
           Timidity_FreeSong( data->song );
 
-          DFBFREE( data->buffer );
+          D_FREE( data->buffer );
      }
 
      /* release destination stream */
@@ -348,7 +348,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
 
      /* initialize private data */
      data->ref = 1;
-     data->filename = DFBSTRDUP( filename );
+     data->filename = D_STRDUP( filename );
      fusion_pthread_recursive_mutex_init( &data->lock );
 
      /* initialize function pointers */

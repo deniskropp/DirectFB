@@ -35,15 +35,17 @@
 
 
 #include <fusionsound.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 
 #include <core/core_sound.h>
 #include <core/playback.h>
@@ -69,8 +71,8 @@ IFusionSoundStream_Destruct( IFusionSoundStream *thiz )
 {
      IFusionSoundStream_data *data = (IFusionSoundStream_data*)thiz->priv;
 
-     DFB_ASSERT( data->buffer != NULL );
-     DFB_ASSERT( data->playback != NULL );
+     D_ASSERT( data->buffer != NULL );
+     D_ASSERT( data->playback != NULL );
 
      fs_playback_detach( data->playback, &data->reaction );
 
@@ -145,11 +147,11 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           int       num;
           int       bytes;
 
-          DEBUGMSG( "%s: length %d, read pos %d, write pos %d, filled %d/%d (%splaying)\n",
-                    __FUNCTION__, length, data->pos_read, data->pos_write, data->filled,
-                    data->size, data->playing ? "" : "not " );
+          D_DEBUG( "%s: length %d, read pos %d, write pos %d, filled %d/%d (%splaying)\n",
+                   __FUNCTION__, length, data->pos_read, data->pos_write, data->filled,
+                   data->size, data->playing ? "" : "not " );
 
-          DFB_ASSERT( data->filled <= data->size );
+          D_ASSERT( data->filled <= data->size );
 
           /* Wait for at least one free sample. */
           while (data->filled == data->size)
@@ -171,7 +173,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
 
           /* (Re)start if playback had stopped (buffer underrun). */
           if (!data->playing && data->prebuffer >= 0 && data->filled >= data->prebuffer) {
-               DEBUGMSG( "%s: starting playback now!\n", __FUNCTION__ );
+               D_DEBUG( "%s: starting playback now!\n", __FUNCTION__ );
 
                fs_playback_start( data->playback, true );
           }
@@ -416,9 +418,9 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
      int              lock_bytes;
      int              offset = 0;
 
-     DEBUGMSG( "%s: length %d\n", __FUNCTION__, length );
+     D_DEBUG( "%s: length %d\n", __FUNCTION__, length );
 
-     DFB_ASSERT( length <= data->size - data->filled );
+     D_ASSERT( length <= data->size - data->filled );
 
      while (length) {
           int num = MIN( length, data->size - data->pos_write );
@@ -428,7 +430,7 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
           if (ret)
                return ret;
 
-          dfb_memcpy( lock_data, sample_data + offset, lock_bytes );
+          direct_memcpy( lock_data, sample_data + offset, lock_bytes );
 
           fs_buffer_unlock( data->buffer );
 
@@ -467,7 +469,7 @@ IFusionSoundStream_React( const void *msg_data,
      IFusionSoundStream_data        *data         = ctx;
 
      if (flags & CPNF_START) {
-          DEBUGMSG( "%s: playback started at %d\n", __FUNCTION__, notification->pos );
+          D_DEBUG( "%s: playback started at %d\n", __FUNCTION__, notification->pos );
 
           /* No locking here to avoid dead possible dead lock with IFusionSoundStream_Write(). */
           data->playing = true;
@@ -478,10 +480,10 @@ IFusionSoundStream_React( const void *msg_data,
      pthread_mutex_lock( &data->lock );
 
      if (notification->flags & CPNF_ADVANCE) {
-          DEBUGMSG( "%s: playback advanced by %d from %d to %d\n",
-                    __FUNCTION__, notification->num, data->pos_read, notification->pos );
+          D_DEBUG( "%s: playback advanced by %d from %d to %d\n",
+                   __FUNCTION__, notification->num, data->pos_read, notification->pos );
 
-          DFB_ASSERT( data->filled >= notification->num );
+          D_ASSERT( data->filled >= notification->num );
 
           data->filled -= notification->num;
      }
@@ -489,7 +491,7 @@ IFusionSoundStream_React( const void *msg_data,
      data->pos_read = notification->pos;
 
      if (flags & CPNF_STOP) {
-          DEBUGMSG( "%s: playback stopped at %d!\n", __FUNCTION__, notification->pos );
+          D_DEBUG( "%s: playback stopped at %d!\n", __FUNCTION__, notification->pos );
 
           data->playing = false;
      }

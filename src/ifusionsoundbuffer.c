@@ -34,14 +34,15 @@
 #include <pthread.h>
 
 #include <fusionsound.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <direct/mem.h>
+
 #include <misc/util.h>
-#include <misc/mem.h>
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
@@ -81,7 +82,7 @@ IFusionSoundBuffer_Destruct( IFusionSoundBuffer *thiz )
 {
      IFusionSoundBuffer_data *data = (IFusionSoundBuffer_data*)thiz->priv;
 
-     DFB_ASSERT( data->buffer != NULL );
+     D_ASSERT( data->buffer != NULL );
 
      if (data->locked)
           fs_buffer_unlock( data->buffer );

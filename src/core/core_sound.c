@@ -36,15 +36,19 @@
 
 #include <sys/soundcard.h>
 
+#include <direct/list.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+
+#include <fusion/arena.h>
+#include <fusion/shmalloc.h>
+#include <fusion/object.h>
+
 #include <core/coredefs.h>
 #include <core/core.h>
-#include <core/fusion/arena.h>
-#include <core/fusion/list.h>
-#include <core/fusion/shmalloc.h>
-#include <core/fusion/object.h>
 #include <core/thread.h>
-#include <misc/mem.h>
-#include <misc/memcpy.h>
+
 #include <misc/util.h>
 
 #include <core/core_sound.h>
@@ -54,7 +58,7 @@
 /******************************************************************************/
 
 typedef struct {
-     FusionLink           link;
+     DirectLink           link;
 
      CorePlayback        *playback;
 } CorePlaylistEntry;
@@ -64,7 +68,7 @@ struct __FS_CoreSoundShared {
      FusionObjectPool    *playback_pool;
 
      struct {
-          FusionLink     *entries;
+          DirectLink     *entries;
           FusionSkirmish  lock;
      } playlist;
 
@@ -116,9 +120,9 @@ fs_core_create( CoreSound **ret_core )
      int        ret;
      CoreSound *core;
 
-     DFB_ASSERT( ret_core != NULL );
+     D_ASSERT( ret_core != NULL );
 
-     DEBUGMSG( "FusionSound/core: %s...\n", __FUNCTION__ );
+     D_DEBUG( "FusionSound/Core: %s...\n", __FUNCTION__ );
 
      /* Lock the core singleton mutex. */
      pthread_mutex_lock( &core_sound_lock );
@@ -138,7 +142,7 @@ fs_core_create( CoreSound **ret_core )
      }
 
      /* Allocate local core structure. */
-     core = DFBCALLOC( 1, sizeof(CoreSound) );
+     core = D_CALLOC( 1, sizeof(CoreSound) );
      if (!core) {
           pthread_mutex_unlock( &core_sound_lock );
           return DFB_NOSYSTEMMEMORY;
@@ -152,7 +156,7 @@ fs_core_create( CoreSound **ret_core )
                              fs_core_arena_initialize, fs_core_arena_join,
                              core, &core->arena, &ret ) || ret)
      {
-          DFBFREE( core );
+          D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
           return ret ? ret : DFB_FUSION;
      }
@@ -169,10 +173,10 @@ fs_core_create( CoreSound **ret_core )
 DFBResult
 fs_core_destroy( CoreSound *core )
 {
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core == core_sound );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core == core_sound );
 
-     DEBUGMSG( "FusionSound/Core: %s...\n", __FUNCTION__ );
+     D_DEBUG( "FusionSound/Core: %s...\n", __FUNCTION__ );
 
      /* Lock the core singleton mutex. */
      pthread_mutex_lock( &core_sound_lock );
@@ -191,12 +195,12 @@ fs_core_destroy( CoreSound *core )
                                core, false, NULL ) == FUSION_INUSE)
      {
           /* FIXME: quick hack to solve the dfb-slave-but-fs-master problem. */
-          ONCE( "waiting for sound slaves to terminate" );
+          D_ONCE( "waiting for sound slaves to terminate" );
           usleep( 100000 );
      }
 
      /* Deallocate local core structure. */
-     DFBFREE( core );
+     D_FREE( core );
 
      /* Clear the singleton. */
      core_sound = NULL;
@@ -210,9 +214,9 @@ fs_core_destroy( CoreSound *core )
 CoreSoundBuffer *
 fs_core_create_buffer( CoreSound *core )
 {
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( core->shared->buffer_pool != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     D_ASSERT( core->shared->buffer_pool != NULL );
 
      /* Create a new object in the buffer pool. */
      return (CoreSoundBuffer*) fusion_object_create( core->shared->buffer_pool );
@@ -221,9 +225,9 @@ fs_core_create_buffer( CoreSound *core )
 CorePlayback *
 fs_core_create_playback( CoreSound *core )
 {
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( core->shared->playback_pool != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     D_ASSERT( core->shared->playback_pool != NULL );
 
      /* Create a new object in the playback pool. */
      return (CorePlayback*) fusion_object_create( core->shared->playback_pool );
@@ -232,8 +236,8 @@ fs_core_create_playback( CoreSound *core )
 FusionResult
 fs_core_playlist_lock( CoreSound *core )
 {
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
 
      return fusion_skirmish_prevail( &core->shared->playlist.lock );
 }
@@ -241,8 +245,8 @@ fs_core_playlist_lock( CoreSound *core )
 FusionResult
 fs_core_playlist_unlock( CoreSound *core )
 {
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
 
      return fusion_skirmish_dismiss( &core->shared->playlist.lock );
 }
@@ -254,11 +258,11 @@ fs_core_add_playback( CoreSound    *core,
      CorePlaylistEntry *entry;
      CoreSoundShared   *shared;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( playback != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     D_ASSERT( playback != NULL );
 
-     DEBUGMSG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, playback );
+     D_DEBUG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, playback );
 
      shared = core->shared;
 
@@ -274,7 +278,7 @@ fs_core_add_playback( CoreSound    *core,
      }
 
      /* Add it to the playback list. */
-     fusion_list_prepend( &shared->playlist.entries, &entry->link );
+     direct_list_prepend( &shared->playlist.entries, &entry->link );
 
      return DFB_OK;
 }
@@ -283,24 +287,24 @@ DFBResult
 fs_core_remove_playback( CoreSound    *core,
                          CorePlayback *playback )
 {
-     FusionLink      *l, *next;
+     DirectLink      *l, *next;
      CoreSoundShared *shared;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( playback != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     D_ASSERT( playback != NULL );
 
-     DEBUGMSG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, playback );
+     D_DEBUG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, playback );
 
      shared = core->shared;
 
      /* Lookup playback in the list. */
-     fusion_list_foreach_safe (l, next, shared->playlist.entries) {
+     direct_list_foreach_safe (l, next, shared->playlist.entries) {
           CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
 
           /* Remove any matches. */
           if (entry->playback == playback) {
-               fusion_list_remove( &shared->playlist.entries, l );
+               direct_list_remove( &shared->playlist.entries, l );
 
                fs_playback_unlink( &entry->playback );
 
@@ -314,8 +318,8 @@ fs_core_remove_playback( CoreSound    *core,
 int
 fs_core_output_delay( CoreSound *core )
 {
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
 
      /* Return the delay produced by the device buffer. */
      return core->shared->output_delay;
@@ -343,7 +347,7 @@ sound_thread( CoreThread *thread, void *arg )
      while (true) {
           int             i;
           audio_buf_info  info;
-          FusionLink     *next, *l;
+          DirectLink     *next, *l;
 
           dfb_thread_testcancel( thread );
 
@@ -351,20 +355,20 @@ sound_thread( CoreThread *thread, void *arg )
                int buffered = info.fragsize * info.fragstotal - info.bytes;
 
                if (!buffered && !empty)
-                    CAUTION( "device buffer underrun?" );
+                    D_WARN( "device buffer underrun?" );
 
                /* calculate output delay (ms) */
                shared->output_delay = buffered * 1000 / byte_rate;
 
                /* do not buffer more than 80 ms */
                if (buffered > byte_rate * 80 / 1000) {
-                    DEBUGMSG( "FusionSound/Core: %s sleeping...\n", __FUNCTION__ );
+                    D_DEBUG( "FusionSound/Core: %s sleeping...\n", __FUNCTION__ );
                     usleep( 10000 );
                     continue;
                }
           }
           else
-               ONCE( "SNDCTL_DSP_GETOSPACE failed!" );
+               D_ONCE( "SNDCTL_DSP_GETOSPACE failed!" );
 
           empty = !shared->playlist.entries;
           if (empty) {
@@ -378,7 +382,7 @@ sound_thread( CoreThread *thread, void *arg )
           /* Iterate through running playbacks, mixing them together. */
           fusion_skirmish_prevail( &shared->playlist.lock );
 
-          fusion_list_foreach_safe (l, next, shared->playlist.entries) {
+          direct_list_foreach_safe (l, next, shared->playlist.entries) {
                DFBResult          ret;
                CorePlaylistEntry *entry    = (CorePlaylistEntry *) l;
                CorePlayback      *playback = entry->playback;
@@ -386,7 +390,7 @@ sound_thread( CoreThread *thread, void *arg )
                ret = fs_playback_mixto( playback, mixing,
                                         shared->config.rate, samples );
                if (ret) {
-                    fusion_list_remove( &shared->playlist.entries, l );
+                    direct_list_remove( &shared->playlist.entries, l );
 
                     fs_playback_unlink( &entry->playback );
 
@@ -442,24 +446,24 @@ fs_core_initialize( CoreSound *core )
      /* set bits per sample */
      ioctl( fd, SNDCTL_DSP_SETFMT, &fmt );
      if (fmt != shared->config.fmt) {
-          ERRORMSG( "FusionSound/Core: "
-                    "Unable to set bits to '%d'!\n", shared->config.bits );
+          D_ERROR( "FusionSound/Core: "
+                   "Unable to set bits to '%d'!\n", shared->config.bits );
           close( fd );
           return DFB_UNSUPPORTED;
      }
 
      /* set mono/stereo */
      if (ioctl( fd, SNDCTL_DSP_STEREO, &stereo ) == -1) {
-          ERRORMSG( "FusionSound/Core: Unable to set '%s' mode!\n",
-                    (shared->config.channels > 1) ? "stereo" : "mono");
+          D_ERROR( "FusionSound/Core: Unable to set '%s' mode!\n",
+                   (shared->config.channels > 1) ? "stereo" : "mono");
           close( fd );
           return DFB_UNSUPPORTED;
      }
 
      /* set sample rate */
      if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
-          ERRORMSG( "FusionSound/Core: "
-                    "Unable to set rate to '%ld'!\n", shared->config.rate );
+          D_ERROR( "FusionSound/Core: "
+                   "Unable to set rate to '%ld'!\n", shared->config.rate );
           close( fd );
           return DFB_UNSUPPORTED;
      }
@@ -469,20 +473,20 @@ fs_core_initialize( CoreSound *core )
      /* query block size */
      ioctl( fd, SNDCTL_DSP_GETBLKSIZE, &shared->config.block_size );
      if (shared->config.block_size < 1) {
-          ERRORMSG( "FusionSound/Core: "
-                    "Unable to query block size of '/dev/dsp'!\n" );
+          D_ERROR( "FusionSound/Core: "
+                   "Unable to query block size of '/dev/dsp'!\n" );
           close( fd );
           return DFB_UNSUPPORTED;
      }
 
-     DEBUGMSG( "FusionSound/Core: got block size %d\n", shared->config.block_size );
+     D_DEBUG( "FusionSound/Core: got block size %d\n", shared->config.block_size );
 
      if (shared->config.block_size < 4096)
           shared->config.block_size = 4096;
      else if (shared->config.block_size > 8192)
           shared->config.block_size = 8192;
 
-     DEBUGMSG( "FusionSound/Core: using block size %d\n", shared->config.block_size );
+     D_DEBUG( "FusionSound/Core: using block size %d\n", shared->config.block_size );
 
      /* calculate number of samples fitting into one block */
      shared->config.samples_per_block = shared->config.block_size / bytes;
@@ -524,16 +528,16 @@ fs_core_leave( CoreSound *core )
 static DFBResult
 fs_core_shutdown( CoreSound *core )
 {
-     FusionLink      *l, *next;
+     DirectLink      *l, *next;
      CoreSoundShared *shared;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( core->shared != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
 
      shared = core->shared;
 
-     DFB_ASSERT( shared->buffer_pool != NULL );
-     DFB_ASSERT( shared->playback_pool != NULL );
+     D_ASSERT( shared->buffer_pool != NULL );
+     D_ASSERT( shared->playback_pool != NULL );
 
      /* stop sound thread */
      dfb_thread_cancel( core->sound_thread );
@@ -549,7 +553,7 @@ fs_core_shutdown( CoreSound *core )
      /* clear playback list */
      fusion_skirmish_prevail( &shared->playlist.lock );
 
-     fusion_list_foreach_safe (l, next, shared->playlist.entries) {
+     direct_list_foreach_safe (l, next, shared->playlist.entries) {
           CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
 
           fs_playback_unlink( &entry->playback );
@@ -579,7 +583,7 @@ fs_core_arena_initialize( FusionArena *arena,
      CoreSound       *core   = ctx;
      CoreSoundShared *shared;
 
-     DEBUGMSG( "FusionSound/Core: Initializing...\n" );
+     D_DEBUG( "FusionSound/Core: Initializing...\n" );
 
 /*     if (!dfb_core_is_master()) {
           ERRORMSG( "FusionSound/Core: Only master can initialize for now!\n" );
@@ -589,7 +593,7 @@ fs_core_arena_initialize( FusionArena *arena,
      /* Allocate shared structure. */
      shared = SHCALLOC( 1, sizeof(CoreSoundShared) );
      if (!shared) {
-          ERRORMSG( "FusionSound/Core: Could not allocate (shared) memory!\n" );
+          D_ERROR( "FusionSound/Core: Could not allocate (shared) memory!\n" );
           return DFB_NOSYSTEMMEMORY;
      }
 
@@ -627,7 +631,7 @@ fs_core_arena_join( FusionArena *arena,
      CoreSound       *core   = ctx;
      CoreSoundShared *shared;
 
-     DEBUGMSG( "FusionSound/Core: Joining...\n" );
+     D_DEBUG( "FusionSound/Core: Joining...\n" );
 
      /* Get shared data. */
      if (fusion_arena_get_shared_field( arena, "Core/Shared", (void**)&shared ))
@@ -651,7 +655,7 @@ fs_core_arena_leave( FusionArena *arena,
      DFBResult  ret;
      CoreSound *core = ctx;
 
-     DEBUGMSG( "FusionSound/Core: Leaving...\n" );
+     D_DEBUG( "FusionSound/Core: Leaving...\n" );
 
      /* Leave. */
      ret = fs_core_leave( core );
@@ -669,10 +673,10 @@ fs_core_arena_shutdown( FusionArena *arena,
      DFBResult  ret;
      CoreSound *core = ctx;
 
-     DEBUGMSG( "FusionSound/Core: Shutting down...\n" );
+     D_DEBUG( "FusionSound/Core: Shutting down...\n" );
 
      if (!core->master) {
-          DEBUGMSG( "FusionSound/Core: Refusing shutdown in slave.\n" );
+          D_DEBUG( "FusionSound/Core: Refusing shutdown in slave.\n" );
           return fs_core_leave( core );
      }
 

@@ -24,9 +24,11 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <core/coredefs.h>
-#include <core/fusion/shmalloc.h>
-#include <core/fusion/object.h>
+#include <direct/debug.h>
+#include <direct/messages.h>
+
+#include <fusion/shmalloc.h>
+#include <fusion/object.h>
 
 #include <core/core_sound.h>
 #include <core/playback.h>
@@ -39,9 +41,9 @@ buffer_destructor( FusionObject *object, bool zombie )
 {
      CoreSoundBuffer *buffer = (CoreSoundBuffer*) object;
 
-     DEBUGMSG( "FusionSound/Core: %s (%p, len %d, ch %d, fmt %d, rate %d)%s\n",
-               __FUNCTION__, buffer, buffer->length, buffer->channels,
-               buffer->format, buffer->rate, zombie ? " ZOMBIE!" : "" );
+     D_DEBUG( "FusionSound/Core: %s (%p, len %d, ch %d, fmt %d, rate %d)%s\n",
+              __FUNCTION__, buffer, buffer->length, buffer->channels,
+              buffer->format, buffer->rate, zombie ? " ZOMBIE!" : "" );
 
      SHFREE( buffer->data );
 
@@ -69,14 +71,14 @@ fs_buffer_create( CoreSound        *core,
      int              bytes;
      CoreSoundBuffer *buffer;
 
-     DFB_ASSERT( core != NULL );
-     DFB_ASSERT( length > 0 );
-     DFB_ASSERT( channels == 1 || channels == 2 );
-     DFB_ASSERT( rate > 0 );
-     DFB_ASSERT( ret_buffer != NULL );
+     D_ASSERT( core != NULL );
+     D_ASSERT( length > 0 );
+     D_ASSERT( channels == 1 || channels == 2 );
+     D_ASSERT( rate > 0 );
+     D_ASSERT( ret_buffer != NULL );
 
-     DEBUGMSG( "FusionSound/Core: %s (len %d, ch %d, fmt %d, rate %d)\n",
-               __FUNCTION__, length, channels, format, rate );
+     D_DEBUG( "FusionSound/Core: %s (len %d, ch %d, fmt %d, rate %d)\n",
+              __FUNCTION__, length, channels, format, rate );
 
      switch (format) {
           case FSSF_S16:
@@ -88,7 +90,7 @@ fs_buffer_create( CoreSound        *core,
                break;
 
           default:
-               BUG( "unknown format" );
+               D_BUG( "unknown format" );
                return DFB_BUG;
      }
 
@@ -123,16 +125,16 @@ fs_buffer_lock( CoreSoundBuffer  *buffer,
                 void            **ret_data,
                 int              *ret_bytes )
 {
-     DFB_ASSERT( buffer != NULL );
-     DFB_ASSERT( pos >= 0 );
-     DFB_ASSERT( pos < buffer->length );
-     DFB_ASSERT( length >= 0 );
-     DFB_ASSERT( length + pos <= buffer->length );
-     DFB_ASSERT( ret_data != NULL );
-     DFB_ASSERT( ret_bytes != NULL );
+     D_ASSERT( buffer != NULL );
+     D_ASSERT( pos >= 0 );
+     D_ASSERT( pos < buffer->length );
+     D_ASSERT( length >= 0 );
+     D_ASSERT( length + pos <= buffer->length );
+     D_ASSERT( ret_data != NULL );
+     D_ASSERT( ret_bytes != NULL );
 
-     DEBUGMSG( "FusionSound/Core: %s (%p, pos %d, length %d)\n",
-               __FUNCTION__, buffer, pos, length );
+     D_DEBUG( "FusionSound/Core: %s (%p, pos %d, length %d)\n",
+              __FUNCTION__, buffer, pos, length );
 
      if (!length)
           length = buffer->length - pos;
@@ -146,9 +148,9 @@ fs_buffer_lock( CoreSoundBuffer  *buffer,
 DFBResult
 fs_buffer_unlock( CoreSoundBuffer *buffer )
 {
-     DFB_ASSERT( buffer != NULL );
+     D_ASSERT( buffer != NULL );
 
-     DEBUGMSG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, buffer );
+     D_DEBUG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, buffer );
 
      return DFB_OK;
 }
@@ -168,8 +170,8 @@ mix_from_8bit( CoreSoundBuffer *buffer,
      __u8 *data = buffer->data;
      int   inc  = (buffer->rate * pitch) / dest_rate;
 
-     DEBUGMSG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
-               __FUNCTION__, buffer, pos, stop, max_samples / 2 );
+     D_DEBUG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
+              __FUNCTION__, buffer, pos, stop, max_samples / 2 );
 
      for (i = 0, n = 0; i < max_samples; i += 2, n += inc) {
           int p = (n >> 8) + pos;
@@ -194,7 +196,7 @@ mix_from_8bit( CoreSoundBuffer *buffer,
           }
      }
 
-     DEBUGMSG( "FusionSound/Core: %s ... mixed %d (%d).\n", __FUNCTION__, n >> 8, i >> 1 );
+     D_DEBUG( "FusionSound/Core: %s ... mixed %d (%d).\n", __FUNCTION__, n >> 8, i >> 1 );
 
      return n >> 8;
 }
@@ -214,8 +216,8 @@ mix_from_16bit( CoreSoundBuffer *buffer,
      unsigned int  inc  = (buffer->rate * pitch) / dest_rate;
      __s16        *data = buffer->data;
 
-     DEBUGMSG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
-               __FUNCTION__, buffer, pos, stop, max_samples / 2 );
+     D_DEBUG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
+              __FUNCTION__, buffer, pos, stop, max_samples / 2 );
 
      for (i = 0, n = 0; i < max_samples; i += 2, n += inc) {
           int p = (n >> 8) + pos;
@@ -240,7 +242,7 @@ mix_from_16bit( CoreSoundBuffer *buffer,
           }
      }
 
-     DEBUGMSG( "FusionSound/Core: %s ... mixed %d (%d).\n", __FUNCTION__, n >> 8, i >> 1 );
+     D_DEBUG( "FusionSound/Core: %s ... mixed %d (%d).\n", __FUNCTION__, n >> 8, i >> 1 );
 
      return n >> 8;
 }
@@ -261,13 +263,13 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      DFBResult ret = DFB_OK;
      int       num;
 
-     DFB_ASSERT( buffer != NULL );
-     DFB_ASSERT( buffer->data != NULL );
-     DFB_ASSERT( pos >= 0 );
-     DFB_ASSERT( pos < buffer->length );
-     DFB_ASSERT( stop <= buffer->length );
-     DFB_ASSERT( dest != NULL );
-     DFB_ASSERT( max_samples >= 0 );
+     D_ASSERT( buffer != NULL );
+     D_ASSERT( buffer->data != NULL );
+     D_ASSERT( pos >= 0 );
+     D_ASSERT( pos < buffer->length );
+     D_ASSERT( stop <= buffer->length );
+     D_ASSERT( dest != NULL );
+     D_ASSERT( max_samples >= 0 );
 
      /* Make sure stop position is greater than start position. */
      if (stop >= 0 && pos >= stop)
@@ -286,7 +288,7 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                break;
 
           default:
-               BUG( "unknown sample format" );
+               D_BUG( "unknown sample format" );
                return DFB_BUG;
      }
 

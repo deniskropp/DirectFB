@@ -29,12 +29,12 @@
 #include <unistd.h>
 
 #include <fusionsound.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
 
 #include <core/core_sound.h>
 #include <core/sound_buffer.h>

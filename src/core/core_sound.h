@@ -29,6 +29,8 @@
 
 #include <fusionsound.h>
 
+#include <fusion/types.h>
+
 #include <core/types_sound.h>
 
 /*

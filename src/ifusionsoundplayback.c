@@ -35,14 +35,16 @@
 
 
 #include <fusionsound.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
+
+#include <direct/mem.h>
+
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
@@ -86,7 +88,7 @@ IFusionSoundPlayback_Destruct( IFusionSoundPlayback *thiz )
 {
      IFusionSoundPlayback_data *data = (IFusionSoundPlayback_data*)thiz->priv;
 
-     DFB_ASSERT( data->playback != NULL );
+     D_ASSERT( data->playback != NULL );
 
      fs_playback_detach( data->playback, &data->reaction );
 
@@ -129,8 +131,8 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
 
-     DEBUGMSG( "%s (%p, %d -> %d)\n",
-               __FUNCTION__, data->playback, start, stop );
+     D_DEBUG( "%s (%p, %d -> %d)\n",
+              __FUNCTION__, data->playback, start, stop );
 
      if (data->stream)
           return DFB_UNSUPPORTED;
@@ -157,7 +159,7 @@ IFusionSoundPlayback_Stop( IFusionSoundPlayback *thiz )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
 
-     DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
+     D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
      return fs_playback_stop( data->playback, false );
 }
@@ -167,7 +169,7 @@ IFusionSoundPlayback_Continue( IFusionSoundPlayback *thiz )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
 
-     DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
+     D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
      return fs_playback_start( data->playback, false );
 }
@@ -177,7 +179,7 @@ IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
 
-     DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
+     D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
      pthread_mutex_lock( &data->lock );
 
@@ -202,7 +204,7 @@ IFusionSoundPlayback_GetStatus( IFusionSoundPlayback *thiz,
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
 
-     DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
+     D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
      if (playing)
           *playing = data->playing;
@@ -219,7 +221,7 @@ IFusionSoundPlayback_SetVolume( IFusionSoundPlayback *thiz,
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
 
-     DEBUGMSG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, level );
+     D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, level );
 
      if (level < 0.0f || level > 256.0f)
           return DFB_INVARG;
@@ -235,7 +237,7 @@ IFusionSoundPlayback_SetPan( IFusionSoundPlayback *thiz,
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
 
-     DEBUGMSG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
+     D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
 
      if (value < -1.0f || value > 1.0f)
           return DFB_INVARG;
@@ -251,7 +253,7 @@ IFusionSoundPlayback_SetPitch( IFusionSoundPlayback *thiz,
 {
      INTERFACE_GET_DATA(IFusionSoundPlayback)
 
-     DEBUGMSG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
+     D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
 
      if (value < 0.0f || value > 256.0f)
           return DFB_INVARG;
@@ -327,13 +329,13 @@ IFusionSoundPlayback_React( const void *msg_data,
      IFusionSoundPlayback_data      *data         = ctx;
 
      if (notification->flags & CPNF_START)
-          DEBUGMSG( "%s: playback started at position %d\n", __FUNCTION__, notification->pos );
+          D_DEBUG( "%s: playback started at position %d\n", __FUNCTION__, notification->pos );
 
      if (notification->flags & CPNF_STOP)
-          DEBUGMSG( "%s: playback stopped at position %d!\n", __FUNCTION__, notification->pos );
+          D_DEBUG( "%s: playback stopped at position %d!\n", __FUNCTION__, notification->pos );
 
      if (notification->flags & CPNF_ADVANCE)
-          DEBUGMSG( "%s: playback advanced to position %d\n", __FUNCTION__, notification->pos );
+          D_DEBUG( "%s: playback advanced to position %d\n", __FUNCTION__, notification->pos );
 
      pthread_mutex_lock( &data->lock );
 

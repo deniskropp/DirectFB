@@ -24,9 +24,10 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <core/coredefs.h>
+#include <direct/debug.h>
+#include <direct/messages.h>
 
-#include <core/fusion/lock.h>
+#include <fusion/lock.h>
 
 #include <core/core_sound.h>
 #include <core/sound_buffer.h>
@@ -64,8 +65,8 @@ playback_destructor( FusionObject *object, bool zombie )
 {
      CorePlayback *playback = (CorePlayback*) object;
 
-     DEBUGMSG( "FusionSound/Core: %s (%p, buffer: %p)%s\n", __FUNCTION__,
-               playback, playback->buffer, zombie ? " ZOMBIE!" : "" );
+     D_DEBUG( "FusionSound/Core: %s (%p, buffer: %p)%s\n", __FUNCTION__,
+              playback, playback->buffer, zombie ? " ZOMBIE!" : "" );
 
      fs_buffer_unlink( &playback->buffer );
 
@@ -92,11 +93,11 @@ fs_playback_create( CoreSound        *core,
 {
      CorePlayback *playback;
 
-     DFB_ASSERT( buffer != NULL );
-     DFB_ASSERT( ret_playback != NULL );
+     D_ASSERT( buffer != NULL );
+     D_ASSERT( ret_playback != NULL );
 
-     DEBUGMSG( "FusionSound/Core: %s (buffer %p, notify %d)\n",
-               __FUNCTION__, buffer, notify );
+     D_DEBUG( "FusionSound/Core: %s (buffer %p, notify %d)\n",
+              __FUNCTION__, buffer, notify );
 
      /* Create playback object. */
      playback = fs_core_create_playback( core );
@@ -132,8 +133,8 @@ fs_playback_start( CorePlayback *playback, bool enable )
 {
      DFBResult ret = DFB_OK;
 
-     DFB_ASSERT( playback != NULL );
-     DFB_ASSERT( playback->buffer != NULL );
+     D_ASSERT( playback != NULL );
+     D_ASSERT( playback->buffer != NULL );
 
      /* Lock playlist. */
      if (fs_core_playlist_lock( playback->core ))
@@ -175,7 +176,7 @@ fs_playback_start( CorePlayback *playback, bool enable )
 DFBResult
 fs_playback_stop( CorePlayback *playback, bool disable )
 {
-     DFB_ASSERT( playback != NULL );
+     D_ASSERT( playback != NULL );
 
      /* Lock playlist. */
      if (fs_core_playlist_lock( playback->core ))
@@ -212,9 +213,9 @@ DFBResult
 fs_playback_set_stop( CorePlayback *playback,
                       int           stop )
 {
-     DFB_ASSERT( playback != NULL );
-     DFB_ASSERT( playback->buffer != NULL );
-     DFB_ASSERT( stop <= playback->buffer->length );
+     D_ASSERT( playback != NULL );
+     D_ASSERT( playback->buffer != NULL );
+     D_ASSERT( stop <= playback->buffer->length );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
@@ -233,10 +234,10 @@ DFBResult
 fs_playback_set_position( CorePlayback *playback,
                           int           position )
 {
-     DFB_ASSERT( playback != NULL );
-     DFB_ASSERT( playback->buffer != NULL );
-     DFB_ASSERT( position >= 0 );
-     DFB_ASSERT( position < playback->buffer->length );
+     D_ASSERT( playback != NULL );
+     D_ASSERT( playback->buffer != NULL );
+     D_ASSERT( position >= 0 );
+     D_ASSERT( position < playback->buffer->length );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
@@ -256,11 +257,11 @@ fs_playback_set_volume( CorePlayback *playback,
                         int           left,
                         int           right )
 {
-     DFB_ASSERT( playback != NULL );
-     DFB_ASSERT( left >= 0 );
-     DFB_ASSERT( left < 0x10000 );
-     DFB_ASSERT( right >= 0 );
-     DFB_ASSERT( right < 0x10000 );
+     D_ASSERT( playback != NULL );
+     D_ASSERT( left >= 0 );
+     D_ASSERT( left < 0x10000 );
+     D_ASSERT( right >= 0 );
+     D_ASSERT( right < 0x10000 );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
@@ -280,9 +281,9 @@ DFBResult
 fs_playback_set_pitch( CorePlayback *playback,
                        int           pitch )
 {
-     DFB_ASSERT( playback != NULL );
-     DFB_ASSERT( pitch >= 0 );
-     DFB_ASSERT( pitch < 0x10000 );
+     D_ASSERT( playback != NULL );
+     D_ASSERT( pitch >= 0 );
+     D_ASSERT( pitch < 0x10000 );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
@@ -309,10 +310,10 @@ fs_playback_mixto( CorePlayback *playback,
      int       pos;
      int       num;
 
-     DFB_ASSERT( playback != NULL );
-     DFB_ASSERT( playback->buffer != NULL );
-     DFB_ASSERT( dest != NULL );
-     DFB_ASSERT( max_samples > 0 );
+     D_ASSERT( playback != NULL );
+     D_ASSERT( playback->buffer != NULL );
+     D_ASSERT( dest != NULL );
+     D_ASSERT( max_samples > 0 );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
@@ -346,9 +347,9 @@ fs_playback_notify( CorePlayback                  *playback,
 {
      CorePlaybackNotification notification;
 
-     DFB_ASSERT( playback != NULL );
-     DFB_ASSERT( playback->buffer != NULL );
-     DFB_ASSERT( ! (flags & ~(CPNF_START | CPNF_STOP | CPNF_ADVANCE)) );
+     D_ASSERT( playback != NULL );
+     D_ASSERT( playback->buffer != NULL );
+     D_ASSERT( ! (flags & ~(CPNF_START | CPNF_STOP | CPNF_ADVANCE)) );
 
      if (flags & CPNF_START)
           playback->running = true;
