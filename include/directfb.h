@@ -616,7 +616,7 @@ extern "C"
      typedef struct {
           DFBFontDescriptionFlags            flags;
 
-          unsigned int                       attributes;
+          DFBFontAttributes                  attributes;
           unsigned int                       height;
      } DFBFontDescription;
 
