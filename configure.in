@@ -111,9 +111,7 @@ case "$target_or_host" in
     ;;
 esac
 
-
 if test "x$have_x86" = xon; then
-
 ##
 ## HACK HACK HACK automake uses @AS@ like a gcc
 ##
@@ -126,8 +124,11 @@ if test "x$have_x86" = xon; then
   AC_MSG_CHECKING([for sys/io.h])
   AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0);], 
     AC_DEFINE(HAVE_SYSIO)
-    AC_MSG_RESULT(yes), 
+    neomagic="yes"
+    AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no))
+else
+  neomagic=no
 fi
 
 dnl Necessary for assembler sources
@@ -407,6 +408,9 @@ AC_EGREP_CPP(yes, [
 
 AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
 
+dnl Only compile NeoMagic driver when HAVE_SYSIO is defined
+
+AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
 
 
 dnl Test for H3600 Touchscreen support
@@ -540,11 +544,12 @@ Building Video Providers:
 
 Building Font implementations:
   FreeType2           $FREETYPE
+  DirectFB font       yes
 
 Building Graphics Drivers:
   Matrox G200/G400    $matrox
   ATI Rage 128        $ati
-  NeoMagic            yes
+  NeoMagic            $neomagic
   3Dfx Voodoo         $tdfx
   nVidia RIVA TNT     $nvidia
 
