@@ -129,6 +129,8 @@ typedef struct
      } remote;
 
      char      *wm;                               /* Window manager to use. */
+
+     bool       vt;                               /* Use VT stuff at all? */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

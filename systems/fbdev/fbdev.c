@@ -328,16 +328,16 @@ system_initialize( CoreDFB *core, void **data )
           return ret;
      }
 
+     if (dfb_config->vt) {
+          ret = dfb_vt_initialize();
+          if (ret) {
+               SHFREE( dfb_fbdev->shared );
+               D_FREE( dfb_fbdev );
+               dfb_fbdev = NULL;
 
-     ret = dfb_vt_initialize();
-     if (ret) {
-          SHFREE( dfb_fbdev->shared );
-          D_FREE( dfb_fbdev );
-          dfb_fbdev = NULL;
-
-          return ret;
+               return ret;
+          }
      }
-
 
      /* Retrieve fixed informations like video ram size */
      if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &dfb_fbdev->shared->fix ) < 0) {
@@ -444,9 +444,11 @@ system_join( CoreDFB *core, void **data )
 
      D_ASSERT( dfb_fbdev == NULL );
 
-     ret = dfb_vt_join();
-     if (ret)
-          return ret;
+     if (dfb_config->vt) {
+          ret = dfb_vt_join();
+          if (ret)
+               return ret;
+     }
 
      dfb_fbdev = D_CALLOC( 1, sizeof(FBDev) );
 
@@ -533,9 +535,11 @@ system_shutdown( bool emergency )
 
      munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
 
-     ret = dfb_vt_shutdown( emergency );
-     if (ret)
-          return ret;
+     if (dfb_config->vt) {
+          ret = dfb_vt_shutdown( emergency );
+          if (ret)
+               return ret;
+     }
 
      close( dfb_fbdev->fd );
 
@@ -556,9 +560,11 @@ system_leave( bool emergency )
      munmap( dfb_fbdev->framebuffer_base,
              dfb_fbdev->shared->fix.smem_len );
 
-     ret = dfb_vt_leave( emergency );
-     if (ret)
-          return ret;
+     if (dfb_config->vt) {
+          ret = dfb_vt_leave( emergency );
+          if (ret)
+               return ret;
+     }
 
      close( dfb_fbdev->fd );
 
@@ -642,30 +648,35 @@ system_thread_init()
      if (dfb_config->block_all_signals)
           direct_signals_block_all();
 
-     return dfb_vt_detach( false );
+     if (dfb_config->vt)
+          return dfb_vt_detach( false );
+
+     return DFB_OK;
 }
 
 static bool
 system_input_filter( InputDevice   *device,
                      DFBInputEvent *event )
 {
-     switch (event->type) {
-          case DIET_KEYPRESS:
-               if (DFB_KEY_TYPE(event->key_symbol) == DIKT_FUNCTION &&
-                   event->modifiers == (DIMM_CONTROL | DIMM_ALT))
-                    return dfb_vt_switch( event->key_symbol - DIKS_F1 + 1 );
+     if (dfb_config->vt && dfb_config->vt_switching) {
+          switch (event->type) {
+               case DIET_KEYPRESS:
+                    if (DFB_KEY_TYPE(event->key_symbol) == DIKT_FUNCTION &&
+                        event->modifiers == (DIMM_CONTROL | DIMM_ALT))
+                         return dfb_vt_switch( event->key_symbol - DIKS_F1 + 1 );
 
-               break;
+                    break;
 
-          case DIET_KEYRELEASE:
-               if (DFB_KEY_TYPE(event->key_symbol) == DIKT_FUNCTION &&
-                   event->modifiers == (DIMM_CONTROL | DIMM_ALT))
-                    return true;
+               case DIET_KEYRELEASE:
+                    if (DFB_KEY_TYPE(event->key_symbol) == DIKT_FUNCTION &&
+                        event->modifiers == (DIMM_CONTROL | DIMM_ALT))
+                         return true;
 
-               break;
+                    break;
 
-          default:
-               break;
+               default:
+                    break;
+          }
      }
 
      return false;
@@ -2021,17 +2032,21 @@ fbdev_ioctl_call_handler( int   caller,
      const char cursoroff_str[] = "\033[?1;0;0c";
      const char blankoff_str[] = "\033[9;0]";
 
-     if (!dfb_config->kd_graphics && call_arg == FBIOPUT_VSCREENINFO)
-          ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_GRAPHICS );
+     if (dfb_config->vt) {
+          if (!dfb_config->kd_graphics && call_arg == FBIOPUT_VSCREENINFO)
+               ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_GRAPHICS );
+     }
 
      ret = ioctl( dfb_fbdev->fd, call_arg, call_ptr );
 
-     if (call_arg == FBIOPUT_VSCREENINFO) {
-          if (!dfb_config->kd_graphics)
-               ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_TEXT );
+     if (dfb_config->vt) {
+          if (call_arg == FBIOPUT_VSCREENINFO) {
+               if (!dfb_config->kd_graphics)
+                    ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_TEXT );
 
-          write( dfb_fbdev->vt->fd, cursoroff_str, strlen(cursoroff_str) );
-          write( dfb_fbdev->vt->fd, blankoff_str, strlen(blankoff_str) );
+               write( dfb_fbdev->vt->fd, cursoroff_str, strlen(cursoroff_str) );
+               write( dfb_fbdev->vt->fd, blankoff_str, strlen(blankoff_str) );
+          }
      }
 
      return ret;
