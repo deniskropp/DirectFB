@@ -362,10 +362,7 @@ typedef enum {
 } DFBDisplayLayerCapabilities;
 
 /*
- * Used to enable some capabilities like flicker filtering or
- * colorkeying. Usage of capabilities not listed here depend on
- * their settings, e.g. if layer opacity is not set to 100% the
- * opacity capability is required and used.
+ * Used to enable some capabilities like flicker filtering or colorkeying.
  */
 typedef enum {
      DLOP_NONE                = 0x00000000,  /* None of these. */
@@ -377,7 +374,9 @@ typedef enum {
      DLOP_DEINTERLACING       = 0x00000004,  /* Enable deinterlacing of an
                                                 interlaced (video) source. */
      DLOP_SRC_COLORKEY        = 0x00000008,  /* Enable source color key. */
-     DLOP_DST_COLORKEY        = 0x00000010   /* Enable dest. color key. */
+     DLOP_DST_COLORKEY        = 0x00000010,  /* Enable dest. color key. */
+     DLOP_OPACITY             = 0x00000020   /* Make usage of the global alpha
+                                                factor set by SetOpacity. */
 } DFBDisplayLayerOptions;
 
 /*
