@@ -586,7 +586,7 @@ feed_thread( DirectThread *thread, void *arg )
           }
 
           if (feed->stop)
-               return;
+               return NULL;
 
           while (src->GetEvent( src, &event ) == DFB_OK) {
                ret = dst->PostEvent( dst, &event );
@@ -596,7 +596,7 @@ feed_thread( DirectThread *thread, void *arg )
                }
 
                if (feed->stop)
-                    return;
+                    return NULL;
           }
      }
 
