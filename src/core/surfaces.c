@@ -163,7 +163,7 @@ DFBResult surface_create( int width, int height, int format, int policy,
 
      pthread_mutex_init( &s->front_lock, NULL );
      pthread_mutex_init( &s->back_lock, NULL );
-     
+
      s->reactor = reactor_new();
 
      if (!surfaces) {
@@ -398,6 +398,8 @@ DFBResult surface_hard_lock( CoreSurface *surface,
 
 void surface_unlock( CoreSurface *surface, int front )
 {
+     gfxcard_flush_texture_cache();
+
      if (front)
           pthread_mutex_unlock( &surface->front_lock );
      else
@@ -417,7 +419,7 @@ void surface_destroy( CoreSurface *surface )
           surface_destroy_buffer( surface->back_buffer );
 
      reactor_free( surface->reactor );
-     
+
      /* FIXME: mutex for surface list */
      if (surface->prev)
           surface->prev->next = surface->next;

@@ -100,6 +100,7 @@
 #define TEXWIDTH      0x2C28
 #define TEXHEIGHT     0x2C2C
 #define TEXORG        0x2C24
+#define TEXORG1       0x2CA4
 #define TEXTRANS      0x2C34
 #define TEXTRANSHIGH  0x2C38
 #define TDUALSTAGE0   0x2CF8

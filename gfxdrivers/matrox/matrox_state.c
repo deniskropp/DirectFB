@@ -202,7 +202,7 @@ inline void matrox_validate_Blend()
 inline void matrox_validate_Source()
 {
      __u32 texctl, texctl2;
-     
+
      CoreSurface   *surface = matrox->state->source;
      SurfaceBuffer *buffer  = surface->front_buffer;
 
@@ -210,7 +210,7 @@ inline void matrox_validate_Source()
           return;
 
      src_pixelpitch = buffer->video.pitch / BYTES_PER_PIXEL(surface->format);
-     
+
      matrox_w2 = log2( src_pixelpitch );
      matrox_h2 = log2( surface->height );
 
@@ -240,7 +240,7 @@ inline void matrox_validate_Source()
 
      if (matrox->state->blittingflags & DSBLIT_COLORIZE)
           texctl |= TMODULATE;
-     
+
      if (matrox->state->blittingflags & DSBLIT_SRC_COLORKEY) {
           texctl |= DECALCKEY | STRANS;
           texctl2 = DECALDIS;
@@ -249,9 +249,11 @@ inline void matrox_validate_Source()
           texctl2 = DECALDIS | CKSTRANSDIS;
 
      mga_waitfifo( mmio_base, 10);
-     
+
+     mga_out32( mmio_base, 0x100000 >> matrox_w2, TMR0 );
      mga_out32( mmio_base, 0, TMR1 );
      mga_out32( mmio_base, 0, TMR2 );
+     mga_out32( mmio_base, 0x100000 >> matrox_h2, TMR3 );
      mga_out32( mmio_base, 0, TMR4 );
      mga_out32( mmio_base, 0, TMR5 );
      mga_out32( mmio_base, 0x10000, TMR8 );
@@ -270,12 +272,12 @@ inline void matrox_validate_source()
 {
      CoreSurface   *surface = matrox->state->source;
      SurfaceBuffer *buffer  = surface->front_buffer;
-     
+
      if (m_source)
           return;
 
      src_pixelpitch = buffer->video.pitch / BYTES_PER_PIXEL(surface->format);
-     
+
      mga_waitfifo( mmio_base, 2);
 
      mga_out32( mmio_base,
@@ -291,7 +293,7 @@ inline void matrox_validate_SrcKey()
           return;
 
      mga_waitfifo( mmio_base, 2);
-     
+
      if (BYTES_PER_PIXEL(matrox->state->source->format) > 2) {
           mga_out32( mmio_base, (0xFFFF << 16) |
                      (matrox->state->src_colorkey & 0xFFFF),
@@ -325,7 +327,7 @@ inline void matrox_validate_srckey()
 inline void matrox_set_dwgctl( DFBAccelerationMask accel )
 {
      mga_waitfifo( mmio_base, 1 );
-     
+
      switch (accel) {
           case DFXL_FILLRECTANGLE: {
                unsigned int atype = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
@@ -351,7 +353,7 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                     mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
                                           ATYPE_RSTR | OP_AUTOLINE_OPEN,
                                DWGCTL );
-               
+
                break;
           }
           case DFXL_DRAWLINE: {
@@ -363,7 +365,7 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                     mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
                                           ATYPE_RSTR | OP_AUTOLINE_CLOSE,
                                DWGCTL );
-               
+
                break;
           }
           case DFXL_FILLTRIANGLE: {
@@ -384,7 +386,7 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                     mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
                                ATYPE_I | OP_TEXTURE_TRAP,
                                DWGCTL );
-                    
+
                     mga_waitfifo( mmio_base, 3 );
                     mga_out32( mmio_base, 0x100000 >> matrox_w2, TMR0 );
                     mga_out32( mmio_base, 0x100000 >> matrox_h2, TMR3 );
@@ -405,7 +407,7 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
                           ATYPE_I | OP_TEXTURE_TRAP,
                           DWGCTL );
-               
+
                mga_waitfifo( mmio_base, 1 );
                mga_out32( mmio_base, MAG_BILIN | MIN_BILIN, TEXFILTER );
                break;

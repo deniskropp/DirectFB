@@ -77,6 +77,11 @@ static void matroxEngineSync()
      mga_waitidle( mmio_base );
 }
 
+static void matroxFlushTextureCache()
+{
+     mga_out32( mmio_base, 0, TEXORG1 );
+}
+
 #define MATROX_SUPPORTED_FUNCTIONS DFXL_FILLRECTANGLE | \
                                    DFXL_DRAWRECTANGLE | \
                                    DFXL_DRAWLINE      | \
@@ -117,7 +122,7 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
           state->modified |= SMF_ALL;
           state->set = 0;
           matrox->state = state;
-     
+
           m_Source = m_source = m_Color =
                m_color = m_SrcKey = m_srckey = m_Blend = 0;
      }
@@ -138,7 +143,7 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
           if (state->modified & SMF_SRC_COLORKEY)
                m_SrcKey = m_srckey = 0;
      }
-          
+
      switch (accel) {
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWRECTANGLE:
@@ -158,7 +163,7 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
           case DFXL_STRETCHBLIT:
                if (state->modified & SMF_BLITTING_FLAGS)
                     state->set = 0;
-               
+
                if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                            DSBLIT_COLORIZE))
                     matrox_validate_Color();
@@ -176,7 +181,7 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
 
                     matrox_validate_Blend();
                     matrox_validate_Source();
-                    
+
                     if (state->blittingflags & DSBLIT_SRC_COLORKEY)
                          matrox_validate_SrcKey();
                }
@@ -199,7 +204,7 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
 
      if (state->modified & SMF_DESTINATION)
           matrox_set_destination();
-     
+
      if (state->modified & SMF_CLIP)
           matrox_set_clip();
 
@@ -244,7 +249,7 @@ static void matroxDrawRectangle( DFBRectangle *rect )
 static void matroxDrawLine( DFBRegion *line )
 {
      mga_waitfifo( mmio_base, 2 );
-     
+
      mga_out32( mmio_base, RS16(line->x1) | (RS16(line->y1) << 16),
                            XYSTRT );
 
@@ -289,13 +294,13 @@ static void matroxFillTriangle( DFBTriangle *tri )
 
      if (tri->y2 == tri->y3) {
        matroxFillTrapezoid( tri->x1, tri->x1,
-			    MIN( tri->x2, tri->x3 ), MAX( tri->x2, tri->x3 ),
-			    tri->y1, tri->y3 - tri->y1 + 1 );
+                MIN( tri->x2, tri->x3 ), MAX( tri->x2, tri->x3 ),
+                tri->y1, tri->y3 - tri->y1 + 1 );
      } else
      if (tri->y1 == tri->y2) {
        matroxFillTrapezoid( MIN( tri->x1, tri->x2 ), MAX( tri->x1, tri->x2 ),
-			    tri->x3, tri->x3,
-			    tri->y1, tri->y3 - tri->y1 + 1 );
+                tri->x3, tri->x3,
+                tri->y1, tri->y3 - tri->y1 + 1 );
      }
      else {
        int majDx = tri->x3 - tri->x1;
@@ -312,11 +317,11 @@ static void matroxFillTriangle( DFBTriangle *tri )
        int majX2a = majX2 - ((majXperY + (1<<19)) >> 20);
 
        matroxFillTrapezoid( tri->x1, tri->x1,
-			    MIN( X2a, majX2a ), MAX( X2a, majX2a ),
-			    tri->y1, topDy );
+                MIN( X2a, majX2a ), MAX( X2a, majX2a ),
+                tri->y1, topDy );
        matroxFillTrapezoid( MIN( tri->x2, majX2 ), MAX( tri->x2, majX2 ),
-			    tri->x3, tri->x3,
-			    tri->y2, botDy + 1 );
+                tri->x3, tri->x3,
+                tri->y2, botDy + 1 );
      }
 }
 
@@ -324,10 +329,10 @@ static void matroxBlit( DFBRectangle *rect, int dx, int dy )
 {
      if (matrox_tmu) {
           __s32 startx, starty;
-          
+
           startx = ((rect->x << 20) | 0x80000) >> matrox_w2;
           starty = ((rect->y << 20) | 0x80000) >> matrox_h2;
-          
+
           mga_waitfifo( mmio_base, 4);
 
           mga_out32( mmio_base, startx, TMR6 );
@@ -367,7 +372,7 @@ static void matroxBlit( DFBRectangle *rect, int dx, int dy )
           mga_out32( mmio_base, end & 0x3FFFFF, AR0 );
           mga_out32( mmio_base, sgn, SGN );
      }
-     
+
      mga_out32( mmio_base, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
      mga_out32( mmio_base, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
 }
@@ -387,9 +392,9 @@ static void matroxStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
 
      startx = ((srect->x << 20) | 0x80000) >> matrox_w2;
      starty = ((srect->y << 20) | 0x80000) >> matrox_h2;
-     
+
      mga_waitfifo( mmio_base, 6);
-     
+
      mga_out32( mmio_base, incx, TMR0 );
      mga_out32( mmio_base, incy, TMR3 );
      mga_out32( mmio_base, startx, TMR6 );
@@ -446,6 +451,7 @@ int driver_init( int fd, GfxCard *card )
           card->CheckState = matroxG200CheckState;
      card->SetState = matroxSetState;
      card->EngineSync = matroxEngineSync;
+     card->FlushTextureCache = matroxFlushTextureCache;
 
      card->FillRectangle = matroxFillRectangle;
      card->DrawRectangle = matroxDrawRectangle;

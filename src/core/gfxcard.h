@@ -103,6 +103,12 @@ typedef struct {
      void (*EngineSync)();
 
      /*
+      * after the video memory has been written to by the CPU (e.g. modification
+      * of a texture) make sure the accelerator won't use cached texture data
+      */
+     void (*FlushTextureCache)();
+
+     /*
       * state handling
       */
      CardState           *state;
@@ -121,7 +127,7 @@ typedef struct {
      void (*DrawLine) ( DFBRegion *line );
 
      void (*FillTriangle) ( DFBTriangle *tri );
-     
+
      void (*Blit)( DFBRectangle *rect, int dx, int dy );
 
      void (*StretchBlit) ( DFBRectangle *srect, DFBRectangle *drect );
@@ -183,13 +189,16 @@ void gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
                          CoreFontData *font, CardState *state );
 
 
-/*
- *  makes sure that graphics hardware has finished all operations
- */
 static inline void gfxcard_sync()
 {
      if (card->EngineSync)
           card->EngineSync();
+}
+
+static inline void gfxcard_flush_texture_cache()
+{
+     if (card->FlushTextureCache)
+          card->FlushTextureCache();
 }
 
 #endif
