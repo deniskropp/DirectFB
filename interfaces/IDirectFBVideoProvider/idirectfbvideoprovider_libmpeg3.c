@@ -1162,7 +1162,7 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
      if (fd < 0) {
           fd = open( "/dev/sound/dsp", O_WRONLY );
           if (fd < 0) {
-               PERRORMSG( "Libmpeg3 Provider: Opening both '/dev/dsp' and "
+               D_PERROR( "Libmpeg3 Provider: Opening both '/dev/dsp' and "
                           "'/dev/sound/dsp' failed!\n" );
                return DFB_IO;
           }
@@ -1182,14 +1182,14 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
 #endif
      }
      else {
-          ERRORMSG( "Libmpeg3 Provider: "
+          D_ERROR( "Libmpeg3 Provider: "
                     "unexpected sample format (%d bit)!\n", data->audio.bits );
           close( fd );
           return DFB_UNSUPPORTED;
      }
 
      if (ioctl( fd, SNDCTL_DSP_SETFMT, &format )) {
-          ERRORMSG( "Libmpeg3 Provider: "
+          D_ERROR( "Libmpeg3 Provider: "
                     "failed to set sample format to %d bit!\n",
                     data->audio.bits );
           close( fd );
@@ -1198,7 +1198,7 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
 
      /* set mono/stereo */
      if (ioctl( fd, SNDCTL_DSP_STEREO, &stereo ) == -1) {
-          ERRORMSG( "Libmpeg3 Provider: Unable to set '%s' mode!\n",
+          D_ERROR( "Libmpeg3 Provider: Unable to set '%s' mode!\n",
                     (data->audio.channels > 1) ? "stereo" : "mono");
           close( fd );
           return DFB_UNSUPPORTED;
@@ -1206,7 +1206,7 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
 
      /* set sample rate */
      if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
-          ERRORMSG( "Libmpeg3 Provider: "
+          D_ERROR( "Libmpeg3 Provider: "
                     "Unable to set sample rate to '%ld'!\n", data->audio.rate );
           close( fd );
           return DFB_UNSUPPORTED;
@@ -1215,7 +1215,7 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
      /* query block size */
      ioctl( fd, SNDCTL_DSP_GETBLKSIZE, &data->audio.block_size );
      if (data->audio.block_size < 1) {
-          ERRORMSG( "Libmpeg3 Provider: "
+          D_ERROR( "Libmpeg3 Provider: "
                     "Unable to query block size of '/dev/dsp'!\n" );
           close( fd );
           return DFB_UNSUPPORTED;
