@@ -484,6 +484,7 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
                                  DFBWindowID             id,
                                  IDirectFBWindow       **window )
 {
+     DFBResult   ret;
      CoreWindow *w;
 
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
@@ -497,6 +498,11 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
      w = dfb_layer_find_window( data->layer, id );
      if (!w)
           return DFB_IDNOTFOUND;
+
+     /* FIXME URGENT: not thread safe, the window might have disappeared */
+     ret = dfb_window_ref( w );
+     if (ret)
+          return ret;
 
      DFB_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
