@@ -55,6 +55,11 @@
                                  ((g) << 8)  | \
                                   (b) )
 
+#define PIXEL_AiRGB(a,r,g,b)   ( (((a) ^ 0xff) << 24) | \
+                                 ((r) << 16) | \
+                                 ((g) << 8)  | \
+                                  (b) )
+
 #define PIXEL_YUY2(y,u,v)      ( ((v) << 24) | \
                                  ((y) << 16) | \
                                  ((u) << 8)  | \

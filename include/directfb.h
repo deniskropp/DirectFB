@@ -804,7 +804,7 @@ typedef struct {
  *
  * Format constants are encoded in the following way (bit 31 - 0):
  *
- * -jhh:gggg | ffff:eeed | cccc:bbbb | baaa:aaaa
+ * kjhh:gggg | ffff:eeed | cccc:bbbb | baaa:aaaa
  *
  * a) pixelformat index<br>
  * b) effective color (or index) bits per pixel of format<br>
@@ -814,11 +814,13 @@ typedef struct {
  * f) bytes per pixel in a row (decimal part, i.e. bytes)<br>
  * g) multiplier for planes minus one (1/16 fragment)<br>
  * h) multiplier for planes minus one (decimal part)<br>
- * j) color and/or alpha lookup table present
+ * j) color and/or alpha lookup table present<br>
+ * k) alpha channel is inverted
  */
 
 #define DFB_SURFACE_PIXELFORMAT( index, color_bits, alpha_bits, has_alpha,     \
-                                 row_bits, row_bytes, mul_f, mul_d, has_lut )  \
+                                 row_bits, row_bytes, mul_f, mul_d,            \
+                                 has_lut, inv_alpha )                          \
      ( (((index     ) & 0x7F)      ) |                                         \
        (((color_bits) & 0x1F) <<  7) |                                         \
        (((alpha_bits) & 0x0F) << 12) |                                         \
@@ -827,55 +829,59 @@ typedef struct {
        (((row_bytes ) & 0x0F) << 20) |                                         \
        (((mul_f     ) & 0x0F) << 24) |                                         \
        (((mul_d     ) & 0x03) << 28) |                                         \
-       (((has_lut   ) ? 1 :0) << 30) )
+       (((has_lut   ) ? 1 :0) << 30) |                                         \
+       (((inv_alpha ) ? 1 :0) << 31) )
 
 typedef enum {
      DSPF_UNKNOWN   = 0x00000000,  /* unknown or unspecified format */
 
      /* 16 bit  ARGB (2 byte, alpha 1@15, red 5@10, green 5@5, blue 5@0) */
-     DSPF_ARGB1555  = DFB_SURFACE_PIXELFORMAT(  0, 15, 1, 1, 0, 2, 0, 0, 0 ),
+     DSPF_ARGB1555  = DFB_SURFACE_PIXELFORMAT(  0, 15, 1, 1, 0, 2, 0, 0, 0, 0 ),
 
      /* 16 bit   RGB (2 byte, red 5@11, green 6@5, blue 5@0) */
-     DSPF_RGB16     = DFB_SURFACE_PIXELFORMAT(  1, 16, 0, 0, 0, 2, 0, 0, 0 ),
+     DSPF_RGB16     = DFB_SURFACE_PIXELFORMAT(  1, 16, 0, 0, 0, 2, 0, 0, 0, 0 ),
 
      /* 24 bit   RGB (3 byte, red 8@16, green 8@8, blue 8@0) */
-     DSPF_RGB24     = DFB_SURFACE_PIXELFORMAT(  2, 24, 0, 0, 0, 3, 0, 0, 0 ),
+     DSPF_RGB24     = DFB_SURFACE_PIXELFORMAT(  2, 24, 0, 0, 0, 3, 0, 0, 0, 0 ),
 
      /* 24 bit   RGB (4 byte, nothing@24, red 8@16, green 8@8, blue 8@0) */
-     DSPF_RGB32     = DFB_SURFACE_PIXELFORMAT(  3, 24, 0, 0, 0, 4, 0, 0, 0 ),
+     DSPF_RGB32     = DFB_SURFACE_PIXELFORMAT(  3, 24, 0, 0, 0, 4, 0, 0, 0, 0 ),
 
      /* 32 bit  ARGB (4 byte, alpha 8@24, red 8@16, green 8@8, blue 8@0) */
-     DSPF_ARGB      = DFB_SURFACE_PIXELFORMAT(  4, 24, 8, 1, 0, 4, 0, 0, 0 ),
+     DSPF_ARGB      = DFB_SURFACE_PIXELFORMAT(  4, 24, 8, 1, 0, 4, 0, 0, 0, 0 ),
 
      /*  8 bit alpha (1 byte, alpha 8@0), e.g. anti-aliased glyphs */
-     DSPF_A8        = DFB_SURFACE_PIXELFORMAT(  5,  0, 8, 1, 0, 1, 0, 0, 0 ),
+     DSPF_A8        = DFB_SURFACE_PIXELFORMAT(  5,  0, 8, 1, 0, 1, 0, 0, 0, 0 ),
 
      /* 16 bit   YUV (4 byte/ 2 pixel, macropixel contains YUYV <- MSB RIGHT) */
-     DSPF_YUY2      = DFB_SURFACE_PIXELFORMAT(  6, 16, 0, 0, 0, 2, 0, 0, 0 ),
+     DSPF_YUY2      = DFB_SURFACE_PIXELFORMAT(  6, 16, 0, 0, 0, 2, 0, 0, 0, 0 ),
 
      /*  8 bit   RGB (1 byte, red 3@5, green 3@2, blue 2@0 */
-     DSPF_RGB332    = DFB_SURFACE_PIXELFORMAT(  7,  8, 0, 0, 0, 1, 0, 0, 0 ),
+     DSPF_RGB332    = DFB_SURFACE_PIXELFORMAT(  7,  8, 0, 0, 0, 1, 0, 0, 0, 0 ),
 
      /* 16 bit   YUV (4 byte/ 2 pixel, macropixel contains UYVY <- MSB RIGHT) */
-     DSPF_UYVY      = DFB_SURFACE_PIXELFORMAT(  8, 16, 0, 0, 0, 2, 0, 0, 0 ),
+     DSPF_UYVY      = DFB_SURFACE_PIXELFORMAT(  8, 16, 0, 0, 0, 2, 0, 0, 0, 0 ),
 
      /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size U/V planes */
-     DSPF_I420      = DFB_SURFACE_PIXELFORMAT(  9, 12, 0, 0, 0, 1, 8, 0, 0 ),
+     DSPF_I420      = DFB_SURFACE_PIXELFORMAT(  9, 12, 0, 0, 0, 1, 8, 0, 0, 0 ),
 
      /* 12 bit   YUV (8 bit Y plane followed by 8 bit quarter size V/U planes */
-     DSPF_YV12      = DFB_SURFACE_PIXELFORMAT( 10, 12, 0, 0, 0, 1, 8, 0, 0 ),
+     DSPF_YV12      = DFB_SURFACE_PIXELFORMAT( 10, 12, 0, 0, 0, 1, 8, 0, 0, 0 ),
 
      /*  8 bit   LUT (8 bit color and alpha lookup from palette) */
-     DSPF_LUT8      = DFB_SURFACE_PIXELFORMAT( 11,  8, 0, 1, 0, 1, 0, 0, 1 ),
+     DSPF_LUT8      = DFB_SURFACE_PIXELFORMAT( 11,  8, 0, 1, 0, 1, 0, 0, 1, 0 ),
 
      /*  8 bit  ALUT (1 byte, alpha 4@4, color lookup 4@0 */
-     DSPF_ALUT44    = DFB_SURFACE_PIXELFORMAT( 12,  4, 4, 1, 0, 1, 0, 0, 1 ),
+     DSPF_ALUT44    = DFB_SURFACE_PIXELFORMAT( 12,  4, 4, 1, 0, 1, 0, 0, 1, 0 ),
+
+     /* 32 bit  ARGB (4 byte, inv. alpha 8@24, red 8@16, green 8@8, blue 8@0) */
+     DSPF_AiRGB     = DFB_SURFACE_PIXELFORMAT( 13, 24, 8, 1, 0, 4, 0, 0, 0, 1 ),
 
      DSPF_RGB15     = DSPF_ARGB1555     /* same as DSPF_ARGB1555 */
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            13
+#define DFB_NUM_PIXELFORMATS            14
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )

@@ -424,6 +424,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
           case DSPF_A8:
           case DSPF_ARGB:
           case DSPF_ARGB1555:
+          case DSPF_AiRGB:
           case DSPF_I420:
           case DSPF_LUT8:
           case DSPF_ALUT44:
@@ -514,7 +515,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                          y = (config.height - height) / 2;
 
                          if (desc->flags & DSDESC_PIXELFORMAT) {
-                              if (desc->pixelformat == DSPF_ARGB)
+                              if (desc->pixelformat == DSPF_ARGB ||
+                                  desc->pixelformat == DSPF_AiRGB)
                                    window_caps |= DWCAPS_ALPHACHANNEL;
                          }
                          else {
@@ -523,6 +525,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                                         break;
 
                                    case DSPF_ARGB:
+                                   case DSPF_AiRGB:
                                         window_caps |= DWCAPS_ALPHACHANNEL;
                                         /* fall through */
 

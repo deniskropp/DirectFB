@@ -176,6 +176,7 @@ static const FormatString format_strings[] = {
      { "ALUT44",   DSPF_ALUT44   },
      { "ARGB",     DSPF_ARGB     },
      { "ARGB1555", DSPF_ARGB1555 },
+     { "AiRGB",    DSPF_AiRGB    },
      { "I420",     DSPF_I420     },
      { "LUT8",     DSPF_LUT8     },
      { "RGB16",    DSPF_RGB16    },

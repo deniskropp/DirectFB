@@ -844,6 +844,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
                palette = VIDEO_PALETTE_RGB24;
                break;
           case DSPF_ARGB:
+          case DSPF_AiRGB:
           case DSPF_RGB32:
                bpp = 32;
                palette = VIDEO_PALETTE_RGB32;
@@ -978,6 +979,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                palette = VIDEO_PALETTE_RGB24;
                break;
           case DSPF_ARGB:
+          case DSPF_AiRGB:
           case DSPF_RGB32:
                bpp = 32;
                palette = VIDEO_PALETTE_RGB32;
@@ -1291,6 +1293,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
 		palette = V4L2_PIX_FMT_BGR24;
 		break;
 	case DSPF_ARGB:
+        case DSPF_AiRGB:
 	case DSPF_RGB32:
 		bpp = 32;
 		palette = V4L2_PIX_FMT_BGR32;

@@ -692,6 +692,7 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
           case DSPF_A8:
           case DSPF_ARGB:
           case DSPF_ARGB1555:
+          case DSPF_AiRGB:
           case DSPF_I420:
           case DSPF_RGB16:
           case DSPF_RGB24:
@@ -768,6 +769,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      switch (surface->format) {
           case DSPF_ARGB:
           case DSPF_ARGB1555:
+          case DSPF_AiRGB:
                alpha = true;
 
                /* fall through */
@@ -854,6 +856,15 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           data32 = dfb_surface_data_offset( surface, data, pitch, 0, i );
 
           switch (surface->format) {
+               case DSPF_AiRGB:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
+                         buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
+                         buf_p[n3+2] = (data32[n] & 0x0000FF);
+
+                         buf_g[n] = ~(data32[n] >> 24);
+                    }
+                    break;
                case DSPF_ARGB:
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
                          buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;

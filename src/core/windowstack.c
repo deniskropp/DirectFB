@@ -1361,6 +1361,10 @@ window_at_pointer( CoreWindowStack *stack,
                               DFB_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) );
 
                               switch (surface->format) {
+                                   case DSPF_AiRGB:
+                                        alpha = 0xff - (*(__u32*)(data + 4 * wx +
+                                                                  pitch * wy) >> 24);
+                                        break;
                                    case DSPF_ARGB:
                                         alpha = *(__u32*)(data +
                                                           4 * wx + pitch * wy) >> 24;
@@ -1403,6 +1407,7 @@ window_at_pointer( CoreWindowStack *stack,
 
                               switch (surface->format) {
                                    case DSPF_ARGB:
+                                   case DSPF_AiRGB:
                                    case DSPF_RGB32:
                                         pixel = *(__u32*)(data +
                                                           4 * wx + pitch * wy)

@@ -70,6 +70,7 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
           case DSPF_RGB24:
           case DSPF_RGB32:
           case DSPF_ARGB:
+          case DSPF_AiRGB:
                pixel = PIXEL_RGB32( r, g, b );
                break;
           default:

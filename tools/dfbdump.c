@@ -169,6 +169,10 @@ surface_callback( FusionObjectPool *pool,
                printf( "ARGB1555 " );
                break;
 
+          case DSPF_AiRGB:
+               printf( "AiRGB    " );
+               break;
+
           case DSPF_I420:
                printf( "I420     " );
                break;
