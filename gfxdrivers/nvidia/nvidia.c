@@ -50,6 +50,7 @@
 #include <misc/conf.h>
 
 #include <core/graphics_driver.h>
+#include <core/layers.h>
 
 #include "config.h"
 
@@ -69,23 +70,6 @@ typedef struct {
 
      __u32        Color;
 } NVidiaDeviceData;
-
-typedef struct {
-     volatile __u8             *mmio_base;
-     volatile __u32            *PGRAPH;
-     volatile __u32            *FIFO;
-     volatile __u32            *PRAMIN;
-
-     volatile RivaRop          *Rop;
-     volatile RivaClip         *Clip;
-     volatile RivaPattern      *Pattern;
-     volatile RivaScreenBlt    *Blt;
-     volatile RivaTriangle     *Triangle;
-     volatile RivaScaledImage  *ScaledImage;
-     volatile RivaRectangle    *Rectangle;
-     volatile RivaLine         *Line;
-     volatile RivaSurface      *Surface;
-} NVidiaDriverData;
 
 #ifdef WORDS_BIGENDIAN
 /* 
@@ -539,6 +523,7 @@ driver_init_driver( GraphicsDevice      *device,
      nvdrv->PGRAPH = (__u32*)(nvdrv->mmio_base + 0x400000);
      nvdrv->PRAMIN = (__u32*)(nvdrv->mmio_base + 0x710000);
      nvdrv->FIFO   = (__u32*)(nvdrv->mmio_base + 0x800000);
+     nvdrv->PMC    = (__u32*)(nvdrv->mmio_base + 0x000000);
 
      nvdrv->Rop         = (RivaRop        *)(nvdrv->FIFO + 0x0000/4);
      nvdrv->Clip        = (RivaClip       *)(nvdrv->FIFO + 0x2000/4);
@@ -562,6 +547,8 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->DrawLine      = nvDrawLine;
      funcs->Blit          = nvBlit;
      funcs->StretchBlit   = nvStretchBlit;
+
+     dfb_layers_register( device, driver_data, &nvidiaOverlayFuncs );
 
      return DFB_OK;
 }

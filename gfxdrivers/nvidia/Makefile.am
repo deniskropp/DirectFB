@@ -9,7 +9,8 @@ nvidia_LTLIBRARIES = libdirectfb_nvidia.la
 nvidiadir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_nvidia_la_SOURCES =	\
-	nvidia.c	\
+	nvidia.c	 \
+	nvidia_overlay.c \
 	nvidia.h
 
 libdirectfb_nvidia_la_LDFLAGS = \

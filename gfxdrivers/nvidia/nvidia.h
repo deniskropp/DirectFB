@@ -426,5 +426,25 @@ typedef struct
 
 } RivaInstances;
 
+typedef struct {
+     volatile __u8             *mmio_base;
+     volatile __u32            *PGRAPH;
+     volatile __u32            *FIFO;
+     volatile __u32            *PRAMIN;
+     volatile __u32            *PMC;
+
+     volatile RivaRop          *Rop;
+     volatile RivaClip         *Clip;
+     volatile RivaPattern      *Pattern;
+     volatile RivaScreenBlt    *Blt;
+     volatile RivaTriangle     *Triangle;
+     volatile RivaScaledImage  *ScaledImage;
+     volatile RivaRectangle    *Rectangle;
+     volatile RivaLine         *Line;
+     volatile RivaSurface      *Surface;
+} NVidiaDriverData;
+
+extern DisplayLayerFuncs nvidiaOverlayFuncs;
+
 #endif
 
