@@ -92,6 +92,8 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
                              const DFBRegion     *region,
                              DFBSurfaceFlipFlags  flags )
 {
+     DFBRegion reg;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
      if (!data->base.surface)
@@ -100,38 +102,23 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
      if (data->base.locked)
           return DFB_LOCKED;
 
-     if (!data->base.area.current.w || !data->base.area.current.h)
+     if (!data->base.area.current.w || !data->base.area.current.h ||
+         (region && (region->x1 > region->x2 || region->y1 > region->y2)))
           return DFB_INVAREA;
 
 
-     if (region || data->base.caps & DSCAPS_SUBSURFACE) {
-          DFBRegion reg;
+     dfb_region_from_rectangle( &reg, &data->base.area.current );
 
-          if (region) {
-               reg.x1 = region->x1 + data->base.area.wanted.x;
-               reg.x2 = region->x2 + data->base.area.wanted.x;
-               reg.y1 = region->y1 + data->base.area.wanted.y;
-               reg.y2 = region->y2 + data->base.area.wanted.y;
+     if (region) {
+          DFBRegion clip = DFB_REGION_INIT_TRANSLATED( region,
+                                                       data->base.area.wanted.x,
+                                                       data->base.area.wanted.y );
 
-               if (reg.x1 > reg.x2 || reg.y1 > reg.y2)
-                    return DFB_INVAREA;
-
-               if (!dfb_region_rectangle_intersect( &reg, &data->base.area.current ))
-                    return DFB_INVAREA;
-
-               return dfb_layer_region_flip_update( data->region, &reg, flags );
-          }
-          else {
-               reg.x1 = data->base.area.current.x;
-               reg.x2 = data->base.area.current.x + data->base.area.current.w - 1;
-               reg.y1 = data->base.area.current.y;
-               reg.y2 = data->base.area.current.y + data->base.area.current.h - 1;
-
-               return dfb_layer_region_flip_update( data->region, &reg, flags );
-          }
+          if (!dfb_region_region_intersect( &reg, &clip ))
+               return DFB_INVAREA;
      }
 
-     return dfb_layer_region_flip_update( data->region, NULL, flags );
+     return dfb_layer_region_flip_update( data->region, &reg, flags );
 }
 
 static DFBResult
