@@ -1567,18 +1567,26 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 
 	if(frame->surface)
 	{
-		dfb_surface_unref(frame->surface);
-		frame->surface = NULL;
-	}
-	
-	dfb_surface_create(NULL, frame->width, frame->height,
-				this->main_data->surface->format,
-				CSP_SYSTEMONLY, DSCAPS_SYSTEMONLY,
-				NULL, &(frame->surface));
-	if(!frame->surface)
+		CoreSurface *surface = frame->surface;
+
+		if (surface->width  != frame->width  ||
+		    surface->height != frame->height ||
+		    surface->format != this->main_data->surface->format)
+		{
+			dfb_surface_reformat(NULL, surface, frame->width, frame->height,
+					     this->main_data->surface->format);
+		}
+	} else
 	{
-		DBUG("couldn't create a surface for frame %p", frame);
-		goto FAILURE;
+		dfb_surface_create(NULL, frame->width, frame->height,
+				   this->main_data->surface->format,
+				   CSP_SYSTEMONLY, DSCAPS_SYSTEMONLY,
+				   NULL, &(frame->surface));
+		if(!frame->surface)
+		{
+			DBUG("couldn't create a surface for frame %p", frame);
+			goto FAILURE;
+		}
 	}
 
 	frame->state.source    = frame->surface;
@@ -2269,7 +2277,7 @@ init_class(xine_t* xine, void* vo_visual)
 	class->vo_class.get_identifier  = get_identifier;
 	class->vo_class.get_description = get_description;
 	class->vo_class.dispose         = dispose_class;
-	class->xine                     = xine; 
+	class->xine                     = xine;
 
 	return(class);
 
