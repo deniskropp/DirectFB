@@ -275,6 +275,7 @@ DFBResult dfb_fbdev_initialize()
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not get variable screen information!\n" );
           shfree( Sfbdev );
+          close( dfb_fbdev->fd );
           DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
@@ -288,6 +289,7 @@ DFBResult dfb_fbdev_initialize()
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not disable console acceleration!\n" );
           shfree( Sfbdev );
+          close( dfb_fbdev->fd );
           DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
@@ -341,7 +343,10 @@ DFBResult dfb_fbdev_initialize()
 
                shfree( Sfbdev->modes );
                shfree( Sfbdev );
-               Sfbdev->modes = NULL;
+
+               close( dfb_fbdev->fd );
+               DFBFREE( dfb_fbdev );
+               dfb_fbdev = NULL;
 
                return DFB_INIT;
           }
@@ -364,6 +369,7 @@ DFBResult dfb_fbdev_initialize()
           Sfbdev->orig_cmap.len = 0;
      }
 
+     /* Register primary layer functions */
      dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
 
 #ifndef FUSION_FAKE
@@ -377,6 +383,7 @@ DFBResult dfb_fbdev_initialize()
 DFBResult dfb_fbdev_join()
 {
      DFBResult ret;
+     struct fb_var_screeninfo var;
 
      if (dfb_fbdev) {
           BUG( "dfb_fbdev_join() called and display != NULL" );
@@ -387,13 +394,40 @@ DFBResult dfb_fbdev_join()
 
      arena_get_shared_field( dfb_core->arena, (void**) &Sfbdev, "Sfbdev" );
 
+     /* Open framebuffer device */
      ret = dfb_fbdev_open();
      if (ret) {
-          free( dfb_fbdev );
+          DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
           return ret;
      }
 
+     /*
+      * Disable console acceleration.
+      */
+     if (ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &var ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not get variable screen information!\n" );
+          close( dfb_fbdev->fd );
+          DFBFREE( dfb_fbdev );
+          dfb_fbdev = NULL;
+
+          return DFB_INIT;
+     }
+
+     var.accel_flags = 0;
+
+     if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &var ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not disable console acceleration!\n" );
+          close( dfb_fbdev->fd );
+          DFBFREE( dfb_fbdev );
+          dfb_fbdev = NULL;
+
+          return DFB_INIT;
+     }
+
+     /* Register primary layer functions */
      dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
      
      return DFB_OK;
