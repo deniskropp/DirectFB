@@ -8,6 +8,10 @@ INCLUDES = \
 
 neomagic_LTLIBRARIES = libdirectfb_neomagic.la
 
+if BUILD_STATIC
+neomagic_DATA = $(neomagic_LTLIBRARIES:.la=.o)
+endif
+
 neomagicdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_neomagic_la_SOURCES =	\
@@ -20,3 +24,7 @@ libdirectfb_neomagic_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

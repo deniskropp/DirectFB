@@ -6,9 +6,15 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
-ati_LTLIBRARIES = libdirectfb_ati128.la
 
 atidir = $(MODULEDIR)/gfxdrivers
+
+ati_LTLIBRARIES = libdirectfb_ati128.la
+
+if BUILD_STATIC
+ati_DATA = $(ati_LTLIBRARIES:.la=.o)
+endif
+
 
 libdirectfb_ati128_la_SOURCES =	\
 	ati128.c		\
@@ -23,3 +29,7 @@ libdirectfb_ati128_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+

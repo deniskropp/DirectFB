@@ -9,6 +9,10 @@ INCLUDES = \
 
 radeon_LTLIBRARIES = libdirectfb_radeon.la
 
+if BUILD_STATIC
+radeon_DATA = $(radeon_LTLIBRARIES:.la=.o)
+endif
+
 radeondir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_radeon_la_SOURCES =	\
@@ -24,3 +28,7 @@ libdirectfb_radeon_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

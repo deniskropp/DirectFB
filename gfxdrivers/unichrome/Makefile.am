@@ -10,6 +10,10 @@ AM_CFLAGS = $(DFB_CFLAGS)
 
 unichrome_LTLIBRARIES = libdirectfb_unichrome.la
 
+if BUILD_STATIC
+unichrome_DATA = $(unichrome_LTLIBRARIES:.la=.o)
+endif
+
 unichromedir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_unichrome_la_SOURCES =  \
@@ -31,3 +35,7 @@ libdirectfb_unichrome_la_LDFLAGS = \
 	-export-dynamic		   \
 	-avoid-version		   \
 	$(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

@@ -8,6 +8,10 @@ INCLUDES = \
 
 mach64_LTLIBRARIES = libdirectfb_mach64.la
 
+if BUILD_STATIC
+mach64_DATA = $(mach64_LTLIBRARIES:.la=.o)
+endif
+
 mach64dir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_mach64_la_SOURCES =	\
@@ -23,3 +27,7 @@ libdirectfb_mach64_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

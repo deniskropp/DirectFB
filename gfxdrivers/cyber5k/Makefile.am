@@ -8,6 +8,10 @@ INCLUDES = \
 
 cyber5k_LTLIBRARIES = libdirectfb_cyber5k.la
 
+if BUILD_STATIC
+cyber5k_DATA = $(cyber5k_LTLIBRARIES:.la=.o)
+endif
+
 cyber5kdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_cyber5k_la_SOURCES = \
@@ -25,3 +29,7 @@ libdirectfb_cyber5k_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+

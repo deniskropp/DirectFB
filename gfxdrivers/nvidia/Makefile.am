@@ -8,6 +8,10 @@ INCLUDES = \
 
 nvidia_LTLIBRARIES = libdirectfb_nvidia.la
 
+if BUILD_STATIC
+nvidia_DATA = $(nvidia_LTLIBRARIES:.la=.o)
+endif
+
 nvidiadir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_nvidia_la_SOURCES =	\
@@ -17,7 +21,11 @@ libdirectfb_nvidia_la_SOURCES =	\
 	nvidia_tables.h
 
 libdirectfb_nvidia_la_LDFLAGS = \
-     $(SYSFS_LIBS)       \
-     -export-dynamic	\
+	$(SYSFS_LIBS)		\
+        -export-dynamic		\
 	-avoid-version		\
-     $(DFB_LDFLAGS) -lm
+	$(DFB_LDFLAGS) -lm
+
+
+include $(top_srcdir)/rules/libobject.make
+

@@ -10,6 +10,10 @@ AM_CFLAGS = $(DFB_CFLAGS)
 
 cle266_LTLIBRARIES = libdirectfb_cle266.la
 
+if BUILD_STATIC
+cle266_DATA = $(cle266_LTLIBRARIES:.la=.o)
+endif
+
 cle266dir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_cle266_la_SOURCES =     \
@@ -29,3 +33,7 @@ libdirectfb_cle266_la_LDFLAGS = \
 	-export-dynamic		\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

@@ -8,6 +8,10 @@ INCLUDES = \
 
 savage_LTLIBRARIES = libdirectfb_savage.la
 
+if BUILD_STATIC
+savage_DATA = $(savage_LTLIBRARIES:.la=.o)
+endif
+
 savagedir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_savage_la_SOURCES = \
@@ -27,3 +31,7 @@ libdirectfb_savage_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

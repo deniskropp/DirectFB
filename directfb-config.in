@@ -91,7 +91,7 @@ while test $# -gt 0; do
       fi
         
       for i in `echo $optarg | sed 's/,/ /g'`; do
-        echo_graphics="$echo_graphics -Wl,-udirectfb_$i -ldirectfb_$i"
+        echo_graphics="$echo_graphics $moduledir/gfxdrivers/libdirectfb_$i.o"
       done
 
       echo_static=yes
@@ -216,7 +216,7 @@ if test -n "$echo_input"; then
 fi
 
 if test -n "$echo_graphics"; then
-	echo -L$moduledir/gfxdrivers $echo_graphics
+	echo $echo_graphics
 fi
 
 if test -n "$echo_fusionsound"; then

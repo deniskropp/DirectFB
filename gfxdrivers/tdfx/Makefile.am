@@ -8,6 +8,10 @@ INCLUDES = \
 
 tdfx_LTLIBRARIES = libdirectfb_tdfx.la
 
+if BUILD_STATIC
+tdfx_DATA = $(tdfx_LTLIBRARIES:.la=.o)
+endif
+
 tdfxdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_tdfx_la_SOURCES =	\
@@ -18,3 +22,7 @@ libdirectfb_tdfx_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

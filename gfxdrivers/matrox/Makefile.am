@@ -9,6 +9,10 @@ INCLUDES = \
 
 matrox_LTLIBRARIES = libdirectfb_matrox.la
 
+if BUILD_STATIC
+matrox_DATA = $(matrox_LTLIBRARIES:.la=.o)
+endif
+
 matroxdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_matrox_la_SOURCES =	\
@@ -35,3 +39,7 @@ libdirectfb_matrox_la_LDFLAGS = \
         $(DFB_LDFLAGS)
 
 libdirectfb_matrox_la_LIBADD = -lm
+
+
+include $(top_srcdir)/rules/libobject.make
+

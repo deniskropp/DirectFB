@@ -9,6 +9,10 @@ INCLUDES = \
 
 sis315_LTLIBRARIES = libdirectfb_sis315.la
 
+if BUILD_STATIC
+sis315_DATA = $(sis315_LTLIBRARIES:.la=.o)
+endif
+
 sis315dir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_sis315_la_SOURCES =	\
@@ -27,3 +31,7 @@ libdirectfb_sis315_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+	

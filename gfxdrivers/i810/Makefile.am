@@ -9,6 +9,10 @@ INCLUDES = \
 
 i810_LTLIBRARIES = libdirectfb_i810.la
 
+if BUILD_STATIC
+i810_DATA = $(i810_LTLIBRARIES:.la=.o)
+endif
+
 i810dir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_i810_la_SOURCES =	\
@@ -20,3 +24,7 @@ libdirectfb_i810_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+
+include $(top_srcdir)/rules/libobject.make
+
