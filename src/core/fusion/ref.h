@@ -26,7 +26,6 @@ extern "C"
 {
 #endif
 
-#include <config.h>
 #include "fusion_types.h"
 
 

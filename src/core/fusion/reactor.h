@@ -21,7 +21,6 @@
 #ifndef __FUSION__REACTOR_H__
 #define __FUSION__REACTOR_H__
 
-#include <config.h>
 #include "fusion_types.h"
 
 

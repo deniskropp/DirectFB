@@ -120,6 +120,7 @@ ac_ext=S
 AC_ARG_ENABLE(debug, [  --enable-debug          enable debugging support [default=no]],,enable_debug=no)
 if test "x$enable_debug" = xyes; then
     AC_DEFINE(DFB_DEBUG)
+    DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DDFB_DEBUG"
     DFB_CFLAGS="$DFB_CFLAGS -g3"
 else
     DFB_CFLAGS="$DFB_CFLAGS -fomit-frame-pointer -g0"
@@ -133,9 +134,8 @@ if test "x$enable_multi" = xyes; then
 
 *** Multi application support is highly experimental, you have been warned. ***
 ])
-    FUSION_CFLAGS=
 else
-    FUSION_CFLAGS="-DFUSION_FAKE"
+    DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DFUSION_FAKE"
     AC_DEFINE(FUSION_FAKE)
 fi
 
@@ -397,7 +397,7 @@ AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no
 AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
 
 
-DFB_CFLAGS="$THREAD_CFLAGS $DFB_CFLAGS"
+DFB_CFLAGS="$THREAD_CFLAGS $DFB_CFLAGS $DFB_INTERNAL_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
 
 if test x$cflags_set != xset ; then
@@ -422,6 +422,7 @@ INTERNALINCLUDEDIR=$includedir/directfb-internal
 AC_SUBST(DFB_CFLAGS)
 AC_SUBST(DFB_LDFLAGS)
 AC_SUBST(DFB_CXXFLAGS)
+AC_SUBST(DFB_INTERNAL_CFLAGS)
 AC_SUBST(THREAD_LIBS)
 AC_SUBST(GIF_PROVIDER)
 AC_SUBST(JPEG_PROVIDER)

@@ -24,8 +24,6 @@
 #ifndef __COREDEFS_H__
 #define __COREDEFS_H__
 
-#include "config.h"
-
 //#define HEAVYDEBUG
 
 #include <stdio.h>

@@ -26,7 +26,6 @@ extern "C"
 {
 #endif
 
-#include <config.h>
 
 #ifndef FUSION_FAKE
 

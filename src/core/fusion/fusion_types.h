@@ -33,7 +33,6 @@ typedef enum {
 
 #endif
 
-#include <config.h>
 
   typedef enum {
     FUSION_SUCCESS   = 0,
