@@ -113,7 +113,7 @@ static inline void rgba_to_dst_format (__u8 *dst,
           break;
 
      default:
-          ERRORMSG( "DirectFB/misc/gfx_util: unimplemented format!\n" );
+          ONCE( "unimplemented destination format" );
           break;
      }
 }

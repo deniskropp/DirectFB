@@ -2407,11 +2407,6 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      color = state->color;
 
      switch (dst_format) {
-#ifdef SUPPORT_RGB332
-          case DSPF_RGB332:
-               Cop = PIXEL_RGB332( color.r, color.g, color.b );
-               break;
-#endif
           case DSPF_RGB15:
                Cop = PIXEL_RGB15( color.r, color.g, color.b );
                break;
@@ -2430,6 +2425,11 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_A8:
                Cop = color.a;
                break;
+#ifdef SUPPORT_RGB332
+          case DSPF_RGB332:
+               Cop = PIXEL_RGB332( color.r, color.g, color.b );
+               break;
+#endif
           case DSPF_YUY2:
           case DSPF_UYVY:
           case DSPF_I420:
@@ -2443,9 +2443,40 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                }
                break;
           default:
-               ONCE("unsupported pixelformat");
+               ONCE("unsupported destination format");
                pthread_mutex_unlock( &generic_lock );
                return 0;
+     }
+
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          switch (src_format) {
+               case DSPF_RGB15:
+               case DSPF_RGB16:
+               case DSPF_RGB24:
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+               case DSPF_A8:
+#ifdef SUPPORT_RGB332
+               case DSPF_RGB332:
+#endif
+                    break;
+               case DSPF_YUY2:
+               case DSPF_UYVY:
+               case DSPF_I420:
+               case DSPF_YV12:
+                    if (accel != DFXL_BLIT || src_format != dst_format ||
+                        state->blittingflags != DSBLIT_NOFX)
+                    {
+                         ONCE("only copying blits supported for YUV in software");
+                         pthread_mutex_unlock( &generic_lock );
+                         return 0;
+                    }
+                    break;
+               default:
+                    ONCE("unsupported source format");
+                    pthread_mutex_unlock( &generic_lock );
+                    return 0;
+          }
      }
 
      /* Debug checks */
