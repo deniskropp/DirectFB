@@ -78,9 +78,26 @@ static void surface_destructor( FusionObject *object, bool zombie )
      DEBUGMSG("DirectFB/core/surfaces: destroying %p (%dx%d)%s\n", surface,
               surface->width, surface->height, zombie ? " (ZOMBIE)" : "");
 
-     dfb_surface_destroy( surface, false );
+     /* announce surface destruction */
+     dfb_surface_notify_listeners( surface, CSNF_DESTROY );
 
-     fusion_skirmish_destroy( &surface->lock );
+     /* deallocate first buffer */
+     dfb_surface_deallocate_buffer( surface, surface->front_buffer );
+
+     /* deallocate second buffer if it's another one */
+     if (surface->back_buffer != surface->front_buffer)
+          dfb_surface_deallocate_buffer( surface, surface->back_buffer );
+
+     /* deallocate third buffer if it's another one */
+     if (surface->idle_buffer != surface->front_buffer)
+          dfb_surface_deallocate_buffer( surface, surface->idle_buffer );
+
+     /* unlink palette */
+     if (surface->palette) {
+          dfb_palette_detach_global( surface->palette,
+                                     &surface->palette_reaction );
+          dfb_palette_unlink( surface->palette );
+     }
 
      fusion_object_destroy( object );
 }
@@ -692,55 +709,6 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
      }
 }
 
-void dfb_surface_destroy( CoreSurface *surface, bool unref )
-{
-     DFB_ASSERT( surface != NULL );
-     
-     DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) entered\n", surface);
-
-     fusion_skirmish_prevail( &surface->lock );
-
-     if (surface->destroyed) {
-          fusion_skirmish_dismiss( &surface->lock );
-          return;
-     }
-
-     surface->destroyed = true;
-     
-     /* anounce surface destruction */
-     dfb_surface_notify_listeners( surface, CSNF_DESTROY );
-
-     /* deallocate first buffer */
-     dfb_surface_deallocate_buffer( surface, surface->front_buffer );
-
-     /* deallocate second buffer if it's another one */
-     if (surface->back_buffer != surface->front_buffer)
-          dfb_surface_deallocate_buffer( surface, surface->back_buffer );
-
-     /* deallocate third buffer if it's another one */
-     if (surface->idle_buffer != surface->front_buffer)
-          dfb_surface_deallocate_buffer( surface, surface->idle_buffer );
-
-     /* destroy the locks */
-     fusion_skirmish_destroy( &surface->front_lock );
-     fusion_skirmish_destroy( &surface->back_lock );
-
-     /* unlink palette */
-     if (surface->palette) {
-          dfb_palette_detach_global( surface->palette,
-                                     &surface->palette_reaction );
-          dfb_palette_unlink( surface->palette );
-     }
-
-     fusion_skirmish_dismiss( &surface->lock );
-     
-     /* unref surface object */
-     if (unref)
-          dfb_surface_unref( surface );
-     
-     DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) exitting\n", surface);
-}
-
 DFBResult dfb_surface_init ( CoreSurface            *surface,
                              int                     width,
                              int                     height,
@@ -781,8 +749,6 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
           surface->min_height = height;
      }
 
-     fusion_skirmish_init( &surface->lock );
-     
      fusion_skirmish_init( &surface->front_lock );
      fusion_skirmish_init( &surface->back_lock );
 

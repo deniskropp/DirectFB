@@ -127,9 +127,6 @@ struct _CoreSurface
 {
      FusionObject           object;
 
-     FusionSkirmish         lock;
-     bool                   destroyed;
-
      /* size/format and instances */
      int                    width;         /* pixel width of the surface */
      int                    height;        /* pixel height of the surface */
@@ -261,12 +258,6 @@ DFBResult dfb_surface_soft_lock( CoreSurface          *surface,
  * been CSH_STORED before
  */
 void dfb_surface_unlock( CoreSurface *surface, int front );
-
-/*
- * destroy the surface and free its instances
- */
-void dfb_surface_destroy( CoreSurface *surface, bool unref );
-
 
 /* global reactions */
 ReactionResult _dfb_surface_palette_listener( const void *msg_data,

@@ -407,8 +407,7 @@ ov0DeallocateSurface( DisplayLayer               *layer,
                       CoreSurface                *surface )
 {
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
-     dfb_surface_destroy( nvov0->videoSurface, true );
-     dfb_surface_destroy( surface, true );
+     dfb_surface_unref( nvov0->videoSurface );
      return DFB_OK;
 }
 
