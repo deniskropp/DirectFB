@@ -93,9 +93,9 @@ extern "C"
      #define DFB_CUSTOM_KEY(n)          (DFB_KEY( CUSTOM, n ))
      
      #define DFB_LOWER_CASE(symbol)     (((symbol) >= 'A' && (symbol) <= 'Z') ?\
-                                         ((symbol) & ~0x20) : (symbol))
-     #define DFB_UPPER_CASE(symbol)     (((symbol) >= 'a' && (symbol) <= 'z') ?\
                                          ((symbol) | 0x20) : (symbol))
+     #define DFB_UPPER_CASE(symbol)     (((symbol) >= 'a' && (symbol) <= 'z') ?\
+                                         ((symbol) & ~0x20) : (symbol))
      
      /*
       * DirectFB modifier key identifiers (for advanced mapping)
