@@ -2,7 +2,7 @@
 .\"
 .\" This man page is Copyright (C) 2002 Sven Neumann <neo@directfb.org>
 
-.TH DIRECTFBRC 5 "17 May 2002" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
+.TH DIRECTFBRC 5 "23 May 2002" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
 
 .SH NAME
 directfbrc \- DirectFB configuration file
@@ -76,7 +76,8 @@ Suppresses the output of the DirectFB banner at startup.
 
 .TP
 .BI [no-]debug
-Enables/disables debug output.
+Enables/disables debug output. You won't see any debug output unless
+you compiled DirectFB with debugging support.
 
 .TP
 .BI force-windowed
@@ -85,7 +86,9 @@ applications that were written to do fullscreen access in a window.
 
 .TP
 .BI [no-]hardware
-Turns hardware acceleration on or off.
+Turns hardware acceleration on or off. If you disable hardware
+acceleration, the driver for your graphics card will not be loaded and
+all graphics operations will be performed by the software renderer.
 
 .TP
 .BI [no-]sync
@@ -100,16 +103,24 @@ Disables the use of MMX routines even if support for MMX was detected.
 .TP
 .BI argb-font
 Instead of using A8 surfaces (alpha masks), load glyphs into ARGB
-surfaces. This uses more memory but some gfx cards do weird things
-with A8 surfaces. Try this option if your fonts look strange.
-
-.TP
-.BI dont-catch=<num>[[,<num>]...]
-Don't catch these signals.
+surfaces. This uses more memory but some graphics cards do weird
+things with A8 surfaces. Try this option if your fonts look strange.
 
 .TP
 .BI no-sighandler
-Disables signal handlers.
+By default DirectFB installs a signal handler for a number of signals
+that cause an application to exit. This signal handler tries to
+deinitialize the DirectFB engine before quitting the application.
+Use this option to turn off this feature.
+
+.TP
+.BI dont-catch=<num>[[,<num>]...]
+As described with the
+.B
+no-sighandler
+option, DirectFB installs a signal handler for a number of signals.
+By using this option you may specify a list of signals that shouldn't
+be handled this way.
 
 .TP
 .BI no-deinit-check
@@ -129,47 +140,76 @@ Put terminal into graphics mode.
 
 .TP
 .BI [no-]motion-compression
-Mouse motion event compression.
+Enables/Disables mouse motion event compression.
 
 .TP
 .BI mouse-protocol=<protocol>
-Mouse protocol (serial mouse).
+Specifies the mouse protocol to use for a serial mouse. The following
+protocols are supported: 
+
+.BI MS
+Two button mouse using the Microsoft mouse protocol.
+
+.BI MS3
+Three button mouse using an extended Microsoft mouse protocol.
+
+.BI MouseMan
+Three button mouse using a different extension to the Microsoft mouse
+protocol introduced by Logitech.
+
+.BI MouseSystems
+The most commonly used protocol for three button mice.
+
+The different protocols for serial mice are described in more details
+in mouse(4).
 
 .TP
 .BI lefty
-Swap left and right mouse buttons.
+Swaps left and right mouse buttons. Useful for left-handers.
 
 .TP
 .BI [no-]cursor
-Show cursor on start up (default).
+By default DirectFB shows a mouse cursor when an applications make use
+of windows. This options allows to switch the cursor off. Note that
+applications may nevertheless switch it on explicitely.
 
 .TP
 .BI bg-none
-Disable background clear.
+Completely disables background handling. Doesn't make much sense since
+your mouse and moving windows will leave ugly traces.
 
 .TP
 .BI bg-color=AARRGGBB
-Use background color (hex).
+Controls the color of the background. The color is specified in
+hexadecimal notation.
 
 .TP
 .BI bg-image=<filename>
-Use background image.
+Fills the background with the given image file. The image is stretched to
+fit to the screen dimensions.
 
 .TP
 .BI bg-tile=<filename>
-Use tiled background image.
+Like
+.B bg-image
+but tiles the image to fit to the screen dimensions instead of
+stretching it.
 
 .TP
 .BI disable-window-opacity
-Force window opacity to be 0 or 255.
+Forces windows to be either fully opaque or fully transparent. Useful if
+your graphics card doesn't support alpha-transparent blits.
 
 .TP
 .BI videoram-limit=<amount>
-Limit amount of Video RAM in kb.
+Limits the amount of Video RAM used by DirectFB. The amount of Video
+RAM is specified in Kilobytes.
 
 .TP
 .BI matrox-sgram
-Use Matrox SGRAM features.
+Use this option if your Matrox card has SGRAM (available on some older
+G400 cards). Some operations are considerably faster with this option
+enabled. Only use it if your card really has SGRAM!
 
 .TP
 .BI window-surface-policy=<policy>
@@ -252,5 +292,6 @@ frame buffer modes file
 
 
 .SH SEE ALSO
-.BR fb.modes (5)
-.BR fbset (8)
+.BR fb.modes (5),
+.BR fbset (8),
+.BR mouse (4)
