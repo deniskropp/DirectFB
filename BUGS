@@ -3,10 +3,6 @@ different bugs and issues
 - sometimes a deadlock occurs in deinitialization done by the signal handler
 
 
-automake/autoconf etc.
-----------------------
-- while linking -ldl is repeated up to 12 times (looks silly)
-
 demo problems
 -------------
 - some demos work incredible slower with hardware drivers that do not support
