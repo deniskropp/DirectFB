@@ -848,33 +848,141 @@ static bool mach64StretchBlitTex( void *drv, void *dev,
 
 /* */
 
-static bool mach64_detect_rage_pro( Mach64DriverData *mdrv,
-                                    GraphicsDeviceInfo *device_info )
+#define MACH64_CFG_CHIP_TYPE( a, b ) (((a) << 8) | (b))
+
+static Mach64ChipType
+mach64_chip_type_vt( Mach64DriverData   *mdrv,
+                     GraphicsDeviceInfo *device_info )
 {
-     switch (mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID ) & 0xFFFF) {
-     case 0x4742: case 0x4744: case 0x4749: case 0x4750: case 0x4751:
+     __u32 config_chip_id = mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID );
+     __u32 cfg_chip_type = config_chip_id & CFG_CHIP_TYPE;
+
+     switch (cfg_chip_type) {
+     case MACH64_CFG_CHIP_TYPE( 'V', 'T' ):
+          switch ((config_chip_id & CFG_CHIP_MAJOR) >> 24) {
+          case 0:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,
+                         (config_chip_id & CFG_CHIP_MINOR) ? "ATI-264VT2 (%c%c)" : "ATI-264VT (%c%c)",
+                         cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+               return CHIP_264VT;
+          case 1:
+          case 2:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "ATI-264VT3 (%c%c)",
+                         cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+               return CHIP_264VT3;
+          }
+          break;
+     case MACH64_CFG_CHIP_TYPE( 'V', 'U' ):
           snprintf( device_info->name,
-                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage Pro" );
-          return true;
-     case 0x4C42: case 0x4C44: case 0x4C49: case 0x4C50: case 0x4C51:
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "ATI-264VT3 (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_264VT3;
+     case MACH64_CFG_CHIP_TYPE( 'V', 'V' ):
           snprintf( device_info->name,
-                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage LT Pro" );
-          return true;
-     case 0x4752: case 0x474F: case 0x474D:
-          snprintf( device_info->name,
-                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage XL" );
-          return true;
-     case 0x4753: case 0x474C: case 0x474E:
-          snprintf( device_info->name,
-                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage XC" );
-          return true;
-     case 0x4C4D: case 0x4C4E: case 0x4C52: case 0x4C53:
-          snprintf( device_info->name,
-                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage Mobility" );
-          return true;
-     default:
-          return false;
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "ATI-264VT4 (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_264VT4;
      }
+     D_WARN( "DirectFB/Mach64: Unknown VT chip type %c%c (0x%08x)",
+             cfg_chip_type >> 8, cfg_chip_type & 0xFF, config_chip_id );
+     snprintf( device_info->name,
+               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 VT" );
+     return CHIP_UNKNOWN;
+}
+
+static Mach64ChipType
+mach64_chip_type_gt( Mach64DriverData   *mdrv,
+                     GraphicsDeviceInfo *device_info )
+{
+     __u32 config_chip_id = mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID );
+     __u32 cfg_chip_type = config_chip_id & CFG_CHIP_TYPE;
+
+     switch (cfg_chip_type) {
+     case MACH64_CFG_CHIP_TYPE( 'G', 'T' ):
+          switch ((config_chip_id & CFG_CHIP_MAJOR) >> 24) {
+          case 0:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage (%c%c)",
+                         cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+               return CHIP_3D_RAGE;
+          case 1:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage II (%c%c)",
+                         cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+               return CHIP_3D_RAGE_II;
+          case 2:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage II+ (%c%c)",
+                         cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+               return CHIP_3D_RAGE_IIPLUS;
+          }
+          break;
+     case MACH64_CFG_CHIP_TYPE( 'G', 'U' ):
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage II+ (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_3D_RAGE_IIPLUS;
+     case MACH64_CFG_CHIP_TYPE( 'L', 'G' ):
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage LT (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_3D_RAGE_LT;
+     case MACH64_CFG_CHIP_TYPE( 'G', 'V' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'W' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'Y' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'Z' ):
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage IIC (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_3D_RAGE_IIC;
+     case MACH64_CFG_CHIP_TYPE( 'G', 'B' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'D' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'I' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'P' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'Q' ):
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage Pro (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_3D_RAGE_PRO;
+     case MACH64_CFG_CHIP_TYPE( 'L', 'B' ):
+     case MACH64_CFG_CHIP_TYPE( 'L', 'D' ):
+     case MACH64_CFG_CHIP_TYPE( 'L', 'I' ):
+     case MACH64_CFG_CHIP_TYPE( 'L', 'P' ):
+     case MACH64_CFG_CHIP_TYPE( 'L', 'Q' ):
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage LT Pro (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_3D_RAGE_LT_PRO;
+     case MACH64_CFG_CHIP_TYPE( 'G', 'M' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'O' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'R' ):
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage XL (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_3D_RAGE_XLXC;
+     case MACH64_CFG_CHIP_TYPE( 'G', 'L' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'N' ):
+     case MACH64_CFG_CHIP_TYPE( 'G', 'S' ):
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage XC (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_3D_RAGE_XLXC;
+     case MACH64_CFG_CHIP_TYPE( 'L', 'M' ):
+     case MACH64_CFG_CHIP_TYPE( 'L', 'N' ):
+     case MACH64_CFG_CHIP_TYPE( 'L', 'R' ):
+     case MACH64_CFG_CHIP_TYPE( 'L', 'S' ):
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage Mobility (%c%c)",
+                    cfg_chip_type >> 8, cfg_chip_type & 0xFF );
+          return CHIP_3D_RAGE_MOBILITY;
+     }
+     D_WARN( "DirectFB/Mach64: Unknown GT chip type %c%c (0x%08x)",
+             cfg_chip_type >> 8, cfg_chip_type & 0xFF, config_chip_id );
+     snprintf( device_info->name,
+               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GT" );
+     return CHIP_UNKNOWN;
 }
 
 /* exported symbols */
@@ -994,14 +1102,10 @@ driver_init_device( GraphicsDevice     *device,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 CT" );
                break;
           case FB_ACCEL_ATI_MACH64VT:
-               snprintf( device_info->name,
-                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 VT" );
+               mdev->chip = mach64_chip_type_vt( mdrv, device_info );
                break;
           case FB_ACCEL_ATI_MACH64GT:
-               mdev->rage_pro = mach64_detect_rage_pro( mdrv, device_info );
-               if (!mdev->rage_pro)
-                    snprintf( device_info->name,
-                              DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GT" );
+               mdev->chip = mach64_chip_type_gt( mdrv, device_info );
 
                /* Max texture size is 1024x1024 */
                device_info->limits.surface_max_power_of_two_pixelpitch = 1024;

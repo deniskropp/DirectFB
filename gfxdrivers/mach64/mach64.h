@@ -48,8 +48,24 @@ typedef enum {
 #define MACH64_INVALIDATE(b)    (mdev->valid &= ~(b))
 #define MACH64_IS_VALID(b)      (mdev->valid & (b))
 
+typedef enum {
+     CHIP_UNKNOWN = 0,
+     CHIP_264VT,
+     CHIP_3D_RAGE,
+     CHIP_264VT3,
+     CHIP_3D_RAGE_II,
+     CHIP_3D_RAGE_IIPLUS,
+     CHIP_3D_RAGE_LT,
+     CHIP_264VT4,
+     CHIP_3D_RAGE_IIC,
+     CHIP_3D_RAGE_PRO,
+     CHIP_3D_RAGE_LT_PRO,
+     CHIP_3D_RAGE_XLXC,
+     CHIP_3D_RAGE_MOBILITY,
+} Mach64ChipType;
+
 typedef struct {
-     bool rage_pro;
+     Mach64ChipType chip;
 
      /* for fifo/performance monitoring */
      unsigned int fifo_space;

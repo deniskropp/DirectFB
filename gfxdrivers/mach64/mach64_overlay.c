@@ -116,7 +116,7 @@ ovInitLayer( CoreLayer                  *layer,
 
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
-     if (mdev->rage_pro) {
+     if (mdev->chip >= CHIP_3D_RAGE_PRO) {
           adjustment->flags      = DCAF_BRIGHTNESS | DCAF_SATURATION;
           adjustment->brightness = 0x8000;
           adjustment->saturation = 0x8000;
@@ -124,7 +124,7 @@ ovInitLayer( CoreLayer                  *layer,
           adjustment->flags      = DCAF_NONE;
 
      /* reset overlay */
-     if (mdev->rage_pro) {
+     if (mdev->chip >= CHIP_3D_RAGE_PRO) {
           mach64_waitfifo( mdrv, mdev, 6 );
           mach64_out32( mmio, SCALER_H_COEFF0, 0x00002000 );
           mach64_out32( mmio, SCALER_H_COEFF1, 0x0D06200D );
@@ -150,7 +150,7 @@ ovTestRegion( CoreLayer                  *layer,
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
      Mach64DeviceData *mdev = mdrv->device_data;
      CoreLayerRegionConfigFlags fail = 0;
-     int max_width = mdev->rage_pro ? 768 : 720;
+     int max_width = (mdev->chip >= CHIP_3D_RAGE_PRO) ? 768 : 720;
 
      /* check for unsupported options */
      if (config->options & ~OV_SUPPORTED_OPTIONS)
