@@ -190,7 +190,7 @@ load_symbols( const char *filename )
      char         line[1024];
      char         command[ strlen(filename) + 32 ];
 
-     snprintf( command, sizeof(command), "nm --defined-only -n %s", filename );
+     snprintf( command, sizeof(command), "nm -n %s", filename );
 
      pipe = popen( command, "r" );
      if (!pipe) {
@@ -337,7 +337,9 @@ dfb_trace_print_stack( TraceBuffer *buffer )
                     if (!symbol) {
                          symbol = lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
                          if (!symbol)
-                              symbol = "??";
+                              symbol = lookup_symbol(info.dli_fname, (long)(fn));
+                              if (!symbol)
+                                   symbol = "??";
                     }
 
                     fprintf( stderr, "%s () from %s\n", symbol, info.dli_fname );
