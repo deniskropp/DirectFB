@@ -288,10 +288,10 @@ IDirectFBInputDevice_GetXY( IDirectFBInputDevice *thiz,
      if (!x && !y)
           return DFB_INVARG;
 
-     if (!x)
+     if (x)
           *x = data->axis[DIAI_X];
 
-     if (!y)
+     if (y)
           *y = data->axis[DIAI_Y];
 
      return DFB_OK;
