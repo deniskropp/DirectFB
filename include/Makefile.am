@@ -76,5 +76,14 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	$(MKNAMES) DFBScreenMixerCapabilities DSMCAPS NONE ScreenMixerCapabilities capability directfb.h \
 	   | grep -v DSMCAPS_ALL >> $@
 
+	$(MKNAMES) DFBScreenMixerTree DSMT UNKNOWN ScreenMixerTree tree directfb.h \
+	   | grep -v DSMT_ALL >> $@
+
+	$(MKNAMES) DFBScreenEncoderTestPicture DSETP OFF ScreenEncoderTestPicture test_picture directfb.h \
+	   | grep -v DSETP_ALL >> $@
+
+	$(MKNAMES) DFBScreenEncoderScanMode DSESM UNKNOWN ScreenEncoderScanMode scan_mode directfb.h \
+	   | grep -v DSESM_ALL >> $@
+
 	@echo '' >> $@
 	@echo '#endif' >> $@
