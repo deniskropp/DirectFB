@@ -40,6 +40,7 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/arena.h>
 #include <fusion/shmalloc.h>
@@ -435,7 +436,7 @@ fs_core_initialize( CoreSound *core )
      int              rate   = shared->config.rate;
 
      /* open sound device */
-     fd = dfb_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY );
+     fd = direct_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY );
      if (fd < 0)
           return DFB_INIT;
 

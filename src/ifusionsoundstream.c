@@ -46,6 +46,7 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/util.h>
 
 #include <core/core_sound.h>
 #include <core/playback.h>
