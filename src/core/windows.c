@@ -1001,6 +1001,7 @@ static ReactionResult stack_inputdevice_react( const void *msg_data,
                     we.key_unicode = evt->key_unicode;
                     we.keycode     = evt->keycode;
                     we.modifiers   = evt->modifiers;
+                    we.locks   = evt->locks;
 
                     dfb_window_dispatch( window, &we );
                }

@@ -1750,8 +1750,17 @@ extern "C"
           DIKC_INSERT, DIKC_DELETE, DIKC_HOME, DIKC_END,
           DIKC_PAGEUP, DIKC_PAGEDOWN,
           DIKC_CAPSLOCK, DIKC_NUMLOCK, DIKC_SCRLOCK, DIKC_PRINT, DIKC_PAUSE,
-          DIKC_KP_DIV, DIKC_KP_MULT, DIKC_KP_MINUS, DIKC_KP_PLUS,
-          DIKC_KP_ENTER,
+          
+	  DIKC_KP_DIV, DIKC_KP_MULT, DIKC_KP_MINUS, DIKC_KP_PLUS,
+          DIKC_KP_ENTER, DIKC_KP_SPACE, DIKC_KP_TAB, DIKC_KP_F1,
+          DIKC_KP_F2, DIKC_KP_F3, DIKC_KP_F4, DIKC_KP_HOME, DIKC_KP_LEFT,
+          DIKC_KP_UP, DIKC_KP_RIGHT, DIKC_KP_DOWN, DIKC_KP_PRIOR,
+          DIKC_KP_PAGE_UP, DIKC_KP_NEXT, DIKC_KP_PAGE_DOWN, DIKC_KP_END,
+          DIKC_KP_BEGIN, DIKC_KP_INSERT, DIKC_KP_DELETE, DIKC_KP_EQUAL,
+          DIKC_KP_DECIMAL, DIKC_KP_SEPARATOR,
+
+          DIKC_KP_0, DIKC_KP_1, DIKC_KP_2, DIKC_KP_3, DIKC_KP_4, 
+          DIKC_KP_5, DIKC_KP_6, DIKC_KP_7, DIKC_KP_8, DIKC_KP_9, 
 
           DIKC_OK, DIKC_CANCEL, DIKC_SELECT, DIKC_GOTO, DIKC_CLEAR,
           DIKC_POWER, DIKC_POWER2, DIKC_OPTION,
@@ -1770,7 +1779,6 @@ extern "C"
 
           DIKC_CHANNELUP, DIKC_CHANNELDOWN, DIKC_BACK, DIKC_FORWARD,
           DIKC_VOLUMEUP, DIKC_VOLUMEDOWN, DIKC_MUTE, DIKC_AB,
-
           DIKC_PLAYPAUSE, DIKC_PLAY, DIKC_STOP, DIKC_RESTART,
           DIKC_SLOW, DIKC_FAST, DIKC_RECORD, DIKC_EJECT, DIKC_SHUFFLE,
           DIKC_REWIND, DIKC_FASTFORWARD, DIKC_PREVIOUS, DIKC_NEXT,
@@ -1808,6 +1816,15 @@ extern "C"
           DIMK_ALT            = 0x00000004,  /* alt key down? */
           DIMK_ALTGR          = 0x00000008   /* altgr key down? */
      } DFBInputDeviceModifierKeys;
+
+     /*
+      * Flags specifying the key locks that are currently active.
+      */
+     typedef enum {
+          DILS_SCROLL         = 0x00000001,  /* scroll-lock active? */
+          DILS_NUM            = 0x00000002,  /* num-lock active? */
+          DILS_CAPS           = 0x00000004   /* caps-lock active? */
+     } DFBInputDeviceLockState;
 
      /*
       * Flags specifying which buttons are currently down.
@@ -1885,6 +1902,14 @@ extern "C"
                DFBInputDeviceModifierKeys    *modifiers
           );
 
+	  /*
+           * Get the current state of the key locks.
+           */
+          DFBResult (*GetLockState) (
+               IDirectFBInputDevice          *thiz,
+               DFBInputDeviceLockState       *locks
+          );
+	   
           /*
            * Get a mask of currently pressed buttons.
            *
@@ -1955,7 +1980,8 @@ extern "C"
       */
      typedef enum {
           DIEF_KEYCODE        = 0x01,   /* keycode is valid */
-          DIEF_MODIFIERS      = 0x04,   /* modifiers are valid */
+          DIEF_MODIFIERS      = 0x02,   /* modifiers are valid */
+          DIEF_LOCKS          = 0x04,   /* locks are valid */
           DIEF_BUTTON         = 0x08,   /* button is valid */
           DIEF_AXISABS        = 0x10,   /* axis and axisabs are valid */
           DIEF_AXISREL        = 0x20,   /* axis and axisrel are valid */
@@ -1982,6 +2008,8 @@ extern "C"
           unsigned short                key_unicode;
           DFBInputDeviceModifierKeys    modifiers;     /* modifier keys as
                                                           a bitmask */
+          DFBInputDeviceLockState       locks;     /* key lock state
+							  as a bitmask */
 
      /* DIET_BUTTONPRESS, DIET_BUTTONRELEASE */
           DFBInputDeviceButtonIdentifier     button;   /* in case of a button
@@ -2068,6 +2096,7 @@ extern "C"
           unsigned char                      key_ascii;
           unsigned short                     key_unicode;
           DFBInputDeviceModifierKeys         modifiers;
+          DFBInputDeviceLockState            locks;
 
           /* used by DWET_BUTTONDOWN, DWET_BUTTONUP */
           DFBInputDeviceButtonIdentifier     button;

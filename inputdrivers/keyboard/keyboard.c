@@ -59,6 +59,7 @@ typedef struct {
      InputDevice                *device;
      struct termios              old_ts;
      DFBInputDeviceModifierKeys  modifier_state;
+     DFBInputDeviceLockState     lock_state;
      pthread_t                   thread;
 } KeyboardData;
 
@@ -71,7 +72,6 @@ keyboard_get_ascii( unsigned short kb_value )
      switch (key_type) {
           case KT_LETTER:
           case KT_LATIN:
-          case KT_PAD:
           case KT_ASCII:
                return key_index;
           /* some special keys also have ascii values */
@@ -79,6 +79,7 @@ keyboard_get_ascii( unsigned short kb_value )
                if (kb_value == K_ENTER) {
                     return 13;
                }
+          case KT_PAD:
           default:
                HEAVYDEBUGMSG( "key typed has no ascii value (key_type: %d)\n",
                          key_type );
@@ -121,7 +122,7 @@ static unsigned char keyboard_translate(unsigned short kb_value)
                break;
           case KT_PAD:
                if (key_index <= 9)
-                    return DIKC_0 + key_index;
+                    return DIKC_KP_0 + key_index;
                break;
           case 0xe: /* special IPAQ H3600 case - AH */
                switch (key_index) {
@@ -145,7 +146,6 @@ static unsigned char keyboard_translate(unsigned short kb_value)
           case K_UP:     return DIKC_UP;
           case K_DOWN:   return DIKC_DOWN;
           case K_ENTER:  return DIKC_ENTER;
-
           case K_CTRL:   return DIKC_CTRL;
           case K_SHIFT:  return DIKC_SHIFT;
           case K_ALT:    return DIKC_ALT;
@@ -165,10 +165,34 @@ static unsigned char keyboard_translate(unsigned short kb_value)
           case K_PMINUS: return DIKC_KP_MINUS;
           case K_PPLUS:  return DIKC_KP_PLUS;
           case K_PENTER: return DIKC_KP_ENTER;
+          case K_PCOMMA: 
+	  case K_PDOT:   return DIKC_KP_DECIMAL;
      }
 
      return DIKC_UNKNOWN;
 }
+
+static unsigned char adjust_pad_keys( unsigned char code ){
+   switch (code) {
+       case DIKC_KP_DECIMAL: return DIKC_KP_DELETE;
+       case DIKC_KP_0:       return DIKC_KP_INSERT;
+       case DIKC_KP_1:       return DIKC_KP_END;
+       case DIKC_KP_2:       return DIKC_KP_DOWN;
+       case DIKC_KP_3:       return DIKC_KP_PAGE_DOWN;
+       case DIKC_KP_4:       return DIKC_KP_LEFT;
+       case DIKC_KP_5:       return DIKC_KP_BEGIN;
+       case DIKC_KP_6:       return DIKC_KP_RIGHT;
+       case DIKC_KP_7:       return DIKC_KP_HOME;
+       case DIKC_KP_8:       return DIKC_KP_UP;
+       case DIKC_KP_9:        return DIKC_KP_PAGE_UP;
+   }
+
+   return DIKC_UNKNOWN;
+   
+}
+#define TOGGLE_LOCK(flag)	data->lock_state & flag ?\
+                                   (data->lock_state &= ~flag):\
+			           (data->lock_state |= flag);
 
 static DFBInputEvent
 keyboard_handle_code( KeyboardData  *data, unsigned char code )
@@ -193,12 +217,12 @@ keyboard_handle_code( KeyboardData  *data, unsigned char code )
      entry.kb_value = 0;
 
      ioctl( dfb_vt->fd, KDGKBENT, &entry );
-
+     ioctl( dfb_vt->fd, KDGKBLED, &data->lock_state );
      {
           DFBInputEvent event;
 
           event.type = keydown ? DIET_KEYPRESS : DIET_KEYRELEASE;
-          event.flags = DIEF_KEYCODE | DIEF_MODIFIERS;
+          event.flags = DIEF_KEYCODE | DIEF_MODIFIERS | DIEF_LOCKS;
 
           event.keycode = keyboard_translate( entry.kb_value );
 
@@ -227,9 +251,27 @@ keyboard_handle_code( KeyboardData  *data, unsigned char code )
                      else
                           data->modifier_state &= ~DIMK_ALTGR;
                      break;
-                default:
+	       case DIKC_CAPSLOCK:
+                     if (keydown) {
+                          TOGGLE_LOCK( DILS_CAPS );
+		     }
+		     break;
+               case DIKC_NUMLOCK:
+                     if (keydown) {
+                          TOGGLE_LOCK( DILS_NUM );
+		     }
+		     break;
+	        case DIKC_SCRLOCK:
+                     if (keydown) {
+                          TOGGLE_LOCK( DILS_SCROLL );
+		     }
+		     break;
+	       default:
                     break;
           }
+	  /* Set the lock flags. We rely on these being
+	   * in the same order as defined by the kernel. */
+	  ioctl( dfb_vt->fd, KDSKBLED, data->lock_state );
 
           if (data->modifier_state & DIMK_SHIFT) {
                if (data->modifier_state & DIMK_ALT)
@@ -243,8 +285,18 @@ keyboard_handle_code( KeyboardData  *data, unsigned char code )
                entry.kb_table = K_ALTTAB;
                ioctl( dfb_vt->fd, KDGKBENT, &entry );
           }
+	  if ( ((entry.kb_value & 0xFF00) >> 8 == KT_LETTER) &&
+		(data->lock_state & DILS_CAPS)) { 
+	       entry.kb_table = K_SHIFTTAB;
+               ioctl( dfb_vt->fd, KDGKBENT, &entry );
+	  }
+	  if ( ((entry.kb_value & 0xFF00) >> 8 == KT_PAD) &&
+		!(data->lock_state & DILS_NUM)) { 
+	       event.keycode = adjust_pad_keys(event.keycode);
+	  }
 
           event.modifiers = data->modifier_state;
+          event.locks = data->lock_state;
           event.key_ascii = keyboard_get_ascii( entry.kb_value );
 
           return event;
