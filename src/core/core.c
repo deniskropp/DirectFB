@@ -72,6 +72,13 @@ static FusionLink *core_cleanups = NULL;
 
 CoreData *dfb_core = NULL;
 
+#ifdef DFB_DYNAMIC_LINKING
+/*
+ * the library handle for dlopen'ing ourselves
+ */
+static void* dfb_lib_handle = NULL;
+#endif
+
 
 
 static int
@@ -129,6 +136,12 @@ dfb_core_deinit_check()
 DFBResult
 dfb_core_init( int *argc, char **argv[] )
 {
+#ifdef DFB_DYNAMIC_LINKING
+    printf( "will try opening myself\n" );
+    dfb_lib_handle = dlopen(SOPATH, RTLD_GLOBAL|RTLD_LAZY);
+    printf( "opened myself %p\n", dfb_lib_handle );
+#endif
+    
      return DFB_OK;
 }
 
@@ -218,11 +231,18 @@ dfb_core_unref()
 #else
      dfb_core_shutdown( NULL, NULL );
 #endif
-
+    
      fusion_exit();
 
      DFBFREE( dfb_core );
      dfb_core = NULL;
+
+#ifdef DFB_DYNAMIC_LINKING
+     if (dfb_lib_handle) {
+          dlclose(dfb_lib_handle);
+          dfb_lib_handle = NULL;
+     }
+#endif
 
      dfb_sig_remove_handlers();
 }
