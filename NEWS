@@ -2,7 +2,7 @@
 ------
 
 - Added VT switching support which has to be enabled via option "vt-switching".
-  Already pretty well working, though there are some minor issues left.
+  It's pretty well working already, though there are some minor issues left.
 - Added support for multiple multi application worlds with new option
   "session=<num>" selecting the multi application world being joined or created.
   VT switching between multiple DirectFB sessions rocks!
