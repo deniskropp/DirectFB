@@ -115,3 +115,5 @@ DFBResult dfb_config_read( const char *filename );
  */
 DFBResult dfb_config_set( const char *name, const char *value );
 #endif
+
+const char *dfb_config_usage( void );

@@ -224,6 +224,13 @@ extern "C"
                            );
 
      /*
+      * Retrieve information about supported command-line flags in the form
+      * of a user-readable string formatted suitable to be printed as usage
+      * information.
+      */
+     const char *DirectFBUsageString( void );
+
+     /*
       * Parses the command-line and initializes some variables. You
       * absolutely need to call this before doing anything else.
       * Removes all options used by DirectFB from argv.

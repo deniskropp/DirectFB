@@ -138,6 +138,11 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
 }
 #endif
 
+const char *DirectFBUsageString( void )
+{
+     return dfb_config_usage();
+}
+
 DFBResult DirectFBInit( int *argc, char **argv[] )
 {
      DFBResult ret;
@@ -178,7 +183,6 @@ DFBResult DirectFBSetOption( char *name, char *value )
 
      return DFB_OK;
 }
-
 
 /*
  * Programs have to call this to get the super interface

@@ -2440,6 +2440,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     *funcs++ = Bop_a8_set_alphapixel_Aop_PFI[pindex];
                     break;
                }
+          /* fallthru */
           case DFXL_STRETCHBLIT: {
                     int modulation = state->blittingflags & 0x7;
 

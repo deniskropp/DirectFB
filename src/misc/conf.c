@@ -44,86 +44,82 @@
 
 DFBConfig *dfb_config = NULL;
 
-/*
- * prints a help message if "--help" is supplied
- */
-static void config_print_usage()
-{
-     fprintf(stderr,
-             "\n"
-             "DirectFB options are:\n"
-             " --fbdev=<device>                  "
-             "Open <device> instead of /dev/fb0\n"
-             " --quiet                           "
-             "No text output except debugging\n"
-             " --no-banner                       "
-             "Disable DirectFB Banner\n"
-             " --[no-]debug                      "
-             "Disable/enable debug output\n"
-             " --force-windowed                  "
-             "Primary surface always is a window\n"
-             " --[no-]hardware                   "
-             "Hardware acceleration\n"
-             " --[no-]sync                       "
-             "Do `sync()' (default=no)\n"
+static const char *config_usage =
+    "\n"
+    "DirectFB options:\n"
+    " --fbdev=<device>                  "
+    "Open <device> instead of /dev/fb0\n"
+    " --quiet                           "
+    "No text output except debugging\n"
+    " --no-banner                       "
+    "Disable DirectFB Banner\n"
+    " --[no-]debug                      "
+    "Disable/enable debug output\n"
+    " --force-windowed                  "
+    "Primary surface always is a window\n"
+    " --[no-]hardware                   "
+    "Hardware acceleration\n"
+    " --[no-]sync                       "
+    "Do `sync()' (default=no)\n"
 #ifdef USE_MMX
-             " --no-mmx                          "
-             "Disable mmx support\n"
+    " --no-mmx                          "
+    "Disable mmx support\n"
 #endif
-             " --argb-font                       "
-             "Load glyphs into ARGB surfaces\n"
-             " --no-sighandler                   "
-             "Disable signal handler\n"
-             " --no-deinit-check                 "
-             "Disable deinit check at exit\n"
-             " --no-vt-switch                    "
-             "Don't allocate/switch to a new VT\n"
-             " --[no-]vt-switching               "
-             "Allow Ctrl+Alt+<F?> (EXPERIMENTAL)\n"
-             " --graphics-vt                     "
-             "Put terminal into graphics mode\n"
-             " --[no-]motion-compression         "
-             "Mouse motion event compression\n"
-             " --mouse-protocol=<protocol>       "
-             "Mouse protocol (serial mouse)\n"
-             " --lefty                           "
-             "Swap left and right mouse buttons\n"
-             " --[no-]cursor                     "
-             "Show cursor on start up (default)\n"
-             " --bg-none                         "
-             "Disable background clear\n"
-             " --bg-color=AARRGGBB               "
-             "Use background color (hex)\n"
-             " --bg-image=<filename>             "
-             "Use background image\n"
-             " --bg-tile=<filename>              "
-             "Use tiled background image\n"
-             " --disable-window-opacity          "
-             "Force window opacity to be 0 or 255\n"
-             " --matrox-sgram                    "
-             "Use Matrox SGRAM features\n"
-             "\n"
-             "Window surface swapping policy:\n"
-             " --window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
-             "     auto:       DirectFB decides depending on hardware.\n"
-             "     videohigh:  Swapping system/video with high priority.\n"
-             "     videolow:   Swapping system/video with low priority.\n"
-             "     systemonly: Window surface is always stored in system memory.\n"
-             "     videoonly:  Window surface is always stored in video memory.\n"
-             "\n"
-             "Desktop buffer mode:\n"
-             " --desktop-buffer-mode=(auto|backvideo|backsystem|frontonly)\n"
-             "     auto:       DirectFB decides depending on hardware.\n"
-             "     backvideo:  Front and back buffer are video only.\n"
-             "     backsystem: Back buffer is system only.\n"
-             "     frontonly:  There is no back buffer.\n"
-             "\n"
-             "Force synchronization of vertical retrace:\n"
-             " --vsync-after:   Wait for the vertical retrace after flipping.\n"
-             " --vsync-none:    disable polling for vertical retrace.\n"
-             "\n"
-           );
-}
+    " --argb-font                       "
+    "Load glyphs into ARGB surfaces\n"
+    " --no-sighandler                   "
+    "Disable signal handler\n"
+    " --no-deinit-check                 "
+    "Disable deinit check at exit\n"
+    " --no-vt-switch                    "
+    "Don't allocate/switch to a new VT\n"
+    " --[no-]vt-switching               "
+    "Allow Ctrl+Alt+<F?> (EXPERIMENTAL)\n"
+    " --graphics-vt                     "
+    "Put terminal into graphics mode\n"
+    " --[no-]motion-compression         "
+    "Mouse motion event compression\n"
+    " --mouse-protocol=<protocol>       "
+    "Mouse protocol (serial mouse)\n"
+    " --lefty                           "
+    "Swap left and right mouse buttons\n"
+    " --[no-]cursor                     "
+    "Show cursor on start up (default)\n"
+    " --bg-none                         "
+    "Disable background clear\n"
+    " --bg-color=AARRGGBB               "
+    "Use background color (hex)\n"
+    " --bg-image=<filename>             "
+    "Use background image\n"
+    " --bg-tile=<filename>              "
+    "Use tiled background image\n"
+    " --disable-window-opacity          "
+    "Force window opacity to be 0 or 255\n"
+    " --matrox-sgram                    "
+    "Use Matrox SGRAM features\n"
+    " --dfb-help                        "
+    "Output DirectFB usage information\n"
+    "\n"
+    "Window surface swapping policy:\n"
+    " --window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
+    "     auto:       DirectFB decides depending on hardware.\n"
+    "     videohigh:  Swapping system/video with high priority.\n"
+    "     videolow:   Swapping system/video with low priority.\n"
+    "     systemonly: Window surface is always stored in system memory.\n"
+    "     videoonly:  Window surface is always stored in video memory.\n"
+    "\n"
+    "Desktop buffer mode:\n"
+    " --desktop-buffer-mode=(auto|backvideo|backsystem|frontonly)\n"
+    "     auto:       DirectFB decides depending on hardware.\n"
+    "     backvideo:  Front and back buffer are video only.\n"
+    "     backsystem: Back buffer is system only.\n"
+    "     frontonly:  There is no back buffer.\n"
+    "\n"
+    "Force synchronization of vertical retrace:\n"
+    " --vsync-after:   Wait for the vertical retrace after flipping.\n"
+    " --vsync-none:    disable polling for vertical retrace.\n"
+    "\n";
+
 
 /*
  * The following function isn't used because the configuration should
@@ -173,6 +169,11 @@ static void config_allocate()
      dfb_config->mouse_motion_compression =  1;
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
+}
+
+const char *dfb_config_usage( void )
+{
+     return config_usage;
 }
 
 DFBResult dfb_config_set( const char *name, const char *value )
@@ -421,9 +422,9 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
 
      if (argc && argv) {
           for (i = 1; i < *argc; i++) {
-               /*  FIXME: shouldn't parse --help myself, leave it to the app  */
-               if (strcmp ((*argv)[i], "--help") == 0) {
-                    config_print_usage();
+
+               if (strcmp ((*argv)[i], "--dfb-help") == 0) {
+                    fprintf( stderr, config_usage );
                     exit(1);
                }
 
