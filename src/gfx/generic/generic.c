@@ -503,7 +503,8 @@ static void Bop_argb_Kto_Aop()
 
 static void Bop_a8_Kto_Aop()
 {
-     ONCE( "Bop_a8_Kto_Aop() unimplemented");
+     /* no color to key */
+     dfb_memmove( Aop, Bop, Dlength );
 }
 
 static void Bop_8_Kto_Aop()
@@ -736,7 +737,17 @@ static void Bop_argb_SKto_Aop()
 
 static void Bop_a8_SKto_Aop()
 {
-     ONCE( "Bop_a8_SKto_Aop() unimplemented" );
+     int    w = Dlength;
+     int    i = 0;
+     __u8 *D = (__u8*)Aop;
+     __u8 *S = (__u8*)Bop;
+
+     /* no color to key */
+     while (w--) {
+          *D++ = S[i>>16];
+
+          i += SperD;
+     }
 }
 
 static void Bop_8_SKto_Aop()
@@ -1047,8 +1058,7 @@ static void Sop_rgb24_SKto_Dacc()
           __u8 g = S[pixelstart+1];
           __u8 r = S[pixelstart+2];
 
-          if (Skey != (r<<16 | g<<8 | b ))
-          {
+          if (Skey != (r<<16 | g<<8 | b )) {
                D->a = 0xFF;
                D->r = r;
                D->g = g;
@@ -1118,7 +1128,25 @@ static void Sop_argb_SKto_Dacc()
 
 static void Sop_a8_SKto_Dacc()
 {
-     ONCE( "Sop_a8_SKto_Dacc() unimplemented");
+     int    w = Dlength;
+     int    i = 0;
+
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     /* no color to key */
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          D->a = s;
+          D->r = 0xFF;
+          D->g = 0xFF;
+          D->b = 0xFF;
+
+          i += SperD;
+
+          D++;
+     }
 }
 
 static GFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
@@ -1534,7 +1562,19 @@ static void Sop_argb_Kto_Dacc()
 
 static void Sop_a8_Kto_Dacc()
 {
-     ONCE( "Sop_a8_Kto_Dacc() unimplemented" );
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     /* no color to key */
+     while (w--) {
+          D->a = *S++;
+          D->r = 0xFF;
+          D->g = 0xFF;
+          D->b = 0xFF;
+
+          D++;
+     }
 }
 
 #ifdef SUPPORT_RGB332
@@ -1732,7 +1772,17 @@ static void Sacc_to_Aop_argb()
 
 static void Sacc_to_Aop_a8()
 {
-     ONCE( "Sacc_to_Aop_a8() unimplemented" );
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u8        *D = (__u8*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000))
+               *D = (S->a & 0xFF00) ? 0xFF : S->a;
+
+          D++;
+          S++;
+     }
 }
 
 #ifdef SUPPORT_RGB332
