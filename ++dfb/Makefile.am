@@ -4,7 +4,7 @@ INCLUDES = \
 
 lib_LTLIBRARIES = lib++dfb.la
 
-libdfb___la_SOURCES = \
+lib__dfb_la_SOURCES = \
 	++dfb.cpp			\
 	++dfb_internal.h		\
 	idirectfb.cpp			\
@@ -20,8 +20,8 @@ libdfb___la_SOURCES = \
 	idirectfbvideoprovider.cpp	\
 	idirectfbwindow.cpp
 
-libdfb___la_LIBADD = @DIRECTFB_LIBS@
+lib__dfb_la_LIBADD = @DIRECTFB_LIBS@
 
-libdfb___la_LDFLAGS = \
+lib__dfb_la_LDFLAGS = \
         -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
         -release $(LT_RELEASE)
