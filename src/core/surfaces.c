@@ -842,8 +842,9 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           __u8 buf_g[surface->width];
           
           /* Prepare one row. */
-          data8 = data16 = data32 = dfb_surface_data_offset( surface, data,
-                                                             pitch, 0, i );
+          data8 = (__u8*)
+          data16 = (__u16*)
+          data32 = dfb_surface_data_offset( surface, data, pitch, 0, i );
 
           switch (surface->format) {
                case DSPF_ARGB:
