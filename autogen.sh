@@ -23,13 +23,18 @@ DIE=0
 (automake --version) < /dev/null > /dev/null 2>&1 || {
 	echo
 	echo "You must have automake installed to compile $PROJECT."
-	echo "Get ftp://ftp.cygnus.com/pub/home/tromey/automake-1.4.tar.gz"
+	echo "Get ftp://ftp.cygnus.com/pub/home/tromey/automake-1.2d.tar.gz"
 	echo "(or a newer version if it is available)"
 	DIE=1
 }
 
+echo "I am testing that you have the required versions of autoconf, automake"
+echo "and gettext. This test is not foolproof, so if anything goes wrong,"
+echo "see the file HACKING for more information..."
+echo
+
 echo "Testing autoconf... "
-VER=`autoconf --version | sed "s/.* \([0-9.]*\)[a-z]*$/\1/"`
+VER=`autoconf --version | grep -iw autoconf | sed "s/.* \([0-9.]*\)[-a-z0-9]*$/\1/"`
 if expr $VER \>= 2.13 >/dev/null; then
 	echo "looks OK."
 else
@@ -38,7 +43,7 @@ else
 fi
 
 echo "Testing automake... "
-VER=`automake --version | grep automake | sed "s/.* \([0-9.]*\)[a-z]*$/\1/"`
+VER=`automake --version | grep automake | sed "s/.* \([0-9.]*\)[-a-z0-9]*$/\1/"`
 if expr $VER \>= 1.4 >/dev/null; then
 	echo "looks OK."
 else
@@ -68,38 +73,38 @@ esac
 
 if test -z "$ACLOCAL_FLAGS"; then
 
-	acdir=`aclocal --print-ac-dir`
+        acdir=`aclocal --print-ac-dir`
         m4list=""
 
-	for file in $m4list
-	do
-		if [ ! -f "$acdir/$file" ]; then
-			echo "WARNING: aclocal's directory is $acdir, but..."
-			echo "         no file $acdir/$file"
-			echo "         You may see fatal macro warnings below."
-			echo "         If these files are installed in /some/dir, set the ACLOCAL_FLAGS "
-			echo "         environment variable to \"-I /some/dir\", or install"
-			echo "         $acdir/$file."
-			echo ""
-		fi
-	done
+        for file in $m4list
+        do
+                if [ ! -f "$acdir/$file" ]; then
+                        echo "WARNING: aclocal's directory is $acdir, but..."
+                        echo "         no file $acdir/$file"
+                        echo "         You may see fatal macro warnings below."
+                        echo "         If these files are installed in /some/dir, set the ACLOCAL_FLAGS "
+                        echo "         environment variable to \"-I /some/dir\", or install"
+                        echo "         $acdir/$file."
+                        echo ""
+                fi
+        done
 fi
 
 autogen_dirs="."
 
 for i in $autogen_dirs; do
-        echo "Processing $i..."
+	echo "Processing $i..."
 
-        cd $i
-        aclocal $ACLOCAL_FLAGS
+	cd $i
+	aclocal $ACLOCAL_FLAGS
 
-        # optionally feature autoheader
-        if grep AM_CONFIG_HEADER configure.in >/dev/null ; then
-                (autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
-        fi
+	# optionally feature autoheader
+	if grep AM_CONFIG_HEADER configure.in >/dev/null ; then
+		(autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
+	fi
 
-        automake --add-missing $am_opt
-        autoconf
+	automake --add-missing $am_opt
+	autoconf
 done
 
 cd $ORIGDIR
