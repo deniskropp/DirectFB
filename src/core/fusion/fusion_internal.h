@@ -45,8 +45,8 @@
 #define MAX_REACTOR_NODES            100
 
 #define MAX_ARENA_NODES              200
-#define MAX_ARENA_FIELDS             100
-#define MAX_ARENA_FIELD_NAME_LENGTH  100
+#define MAX_ARENA_FIELDS              20
+#define MAX_ARENA_FIELD_NAME_LENGTH   60
 
 
 #define FUSION_MSGMNI     1024

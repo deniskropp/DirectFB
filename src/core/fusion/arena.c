@@ -167,16 +167,16 @@ FusionResult arena_enter (const char     *name,
 
      FDEBUG ("added fid %x to arena nodes (%d)\n", _fusion_id(), arena->shared->nodes.num);
 
+     *ret_arena = arena;
+     
      if (func)
           error = func (arena, ctx);
      
-     skirmish_dismiss (&arena->shared->lock);
-
-     *ret_arena = arena;
-
      if (ret_error)
           *ret_error = error;
      
+     skirmish_dismiss (&arena->shared->lock);
+
      return FUSION_SUCCESS;
 }
 
@@ -187,8 +187,9 @@ FusionResult arena_add_shared_field (FusionArena *arena,
      int          i;
      ArenaShared *shared;
 
-     if (!arena || !data || !name)
-          return FUSION_INVARG;
+     DFB_ASSERT( arena != NULL );
+     DFB_ASSERT( data != NULL );
+     DFB_ASSERT( name != NULL );
 
      if (strlen (name) > MAX_ARENA_FIELD_NAME_LENGTH)
           return FUSION_TOOLONG;
@@ -202,7 +203,7 @@ FusionResult arena_add_shared_field (FusionArena *arena,
                shared->fields[i].data = data;
                strcpy (shared->fields[i].name, name);
 
-               skirmish_dismiss (&shared->lock);
+               //skirmish_dismiss (&shared->lock);
 
                return FUSION_SUCCESS;
           }
@@ -220,8 +221,9 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
      int          i;
      ArenaShared *shared;
 
-     if (!arena || !name)
-          return FUSION_INVARG;
+     DFB_ASSERT( arena != NULL );
+     DFB_ASSERT( data != NULL );
+     DFB_ASSERT( name != NULL );
 
      if (strlen (name) > MAX_ARENA_FIELD_NAME_LENGTH)
           return FUSION_TOOLONG;
@@ -234,7 +236,7 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
           if (strcmp (shared->fields[i].name, name) == 0) {
                *data = shared->fields[i].data;
 
-               skirmish_dismiss (&shared->lock);
+               //skirmish_dismiss (&shared->lock);
 
                return FUSION_SUCCESS;
           }
@@ -253,6 +255,10 @@ FusionResult arena_exit (FusionArena   *arena,
 {
      int error = 0;
 
+     DFB_ASSERT( arena != NULL );
+     DFB_ASSERT( shutdown != NULL );
+     DFB_ASSERT( leave != NULL );
+     
      skirmish_prevail (&arena->shared->lock);
 
      if (arena->shared->nodes.num > 1) {
