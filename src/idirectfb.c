@@ -458,8 +458,21 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                          else if (dfb_config->mode.format)
                               format = dfb_config->mode.format;
 
+                         if (!data->primary.bpp) {
+                              if (dfb_config->mode.width)
+                                   data->primary.width = dfb_config->mode.width;
+                              else
+                                   data->primary.width = config.width;
+
+                              if (dfb_config->mode.height)
+                                   data->primary.height = dfb_config->mode.height;
+                              else
+                                   data->primary.height = config.height;
+                         }
+
                          ret = dfb_surface_create( data->core,
-                                                   config.width, config.height,
+                                                   data->primary.width,
+                                                   data->primary.height,
                                                    format, policy, caps, NULL,
                                                    &surface );
                          if (ret)
