@@ -2452,7 +2452,7 @@ window_restacked( CoreWindow *window )
                window->x + window->width - 1,
                window->y + window->height - 1};
 
-          repaint_stack_window_changed( stack, &region, 0, get_window_index(window) );
+          repaint_stack( stack, &region, 0 );
 
           /* Possibly change focus to window now under the cursor */
           handle_enter_leave_focus( stack );
