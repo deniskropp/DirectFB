@@ -60,6 +60,16 @@
 #include <openquicktime/colormodels.h>
 
 
+static DFBResult
+Probe( const char *filename );
+
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz, const char *filename );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, OpenQuicktime )
+
 /*
  * private data struct of IDirectFBVideoProvider
  */
@@ -948,17 +958,8 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_SetColorAdjustment(
 
 /* exported symbols */
 
-const char *get_type()
-{
-     return "IDirectFBVideoProvider";
-}
-
-const char *get_implementation()
-{
-     return "OpenQuicktime";
-}
-
-DFBResult Probe( const char *filename )
+static DFBResult
+Probe( const char *filename )
 {
      quicktime_t *q;
 
@@ -998,7 +999,8 @@ DFBResult Probe( const char *filename )
      return DFB_OK;
 }
 
-DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      int i;
      IDirectFBVideoProvider_OpenQuicktime_data *data;
