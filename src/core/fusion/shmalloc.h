@@ -64,6 +64,14 @@ extern "C"
 /* Check if a pointer points to the shared memory. */
 bool fusion_is_shared (const void *ptr);
 
+/*
+ * Called by the signal handler to recover segfault in case the
+ * address is a valid shared memory pointer, but the remap for
+ * the new area wasn't done yet.
+ *
+ * Returns true if the segfault is cured and the signal handler may drop it.
+ */
+bool fusion_shmalloc_cure( const void *ptr );
 
 
 #ifdef DFB_DEBUG

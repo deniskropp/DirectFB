@@ -366,6 +366,8 @@ _fusion_shmalloc (size_t size)
 }
 
 
+/******************************************************************************/
+
 void *__shmalloc_init (int world, bool initialize)
 {
      struct stat st;
@@ -516,21 +518,34 @@ void *__shmalloc_brk (int increment)
 
 ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
 {
-     void *new_mem;
-     int   new_size = *((const int*) msg_data);
+     void   *new_mem;
+     struct  stat st;
 
-     FDEBUG( "%d -> %d\n", size, new_size );
+     if (fd < 0) {
+          FDEBUG("called without __shmalloc_init!\n");
+          return RS_REMOVE;
+     }
      
-     new_mem = mremap (mem, size, new_size, 0);
-     if (new_mem == MAP_FAILED) {
-          FPERROR ("mremap on shared memory file failed!\n");
+     /* Query size of memory. */
+     if (fstat (fd, &st) < 0) {
+          FPERROR( "fstating shared memory file failed!\n" );
           return RS_OK;
      }
 
-     if (new_mem != mem)
-          DFB_BREAK ("mremap returned a different address");
+     if (size != st.st_size) {
+          FDEBUG( "%d -> %ld\n", size, st.st_size );
+          
+          new_mem = mremap (mem, size, st.st_size, 0);
+          if (new_mem == MAP_FAILED) {
+               FPERROR ("mremap on shared memory file failed!\n");
+               return RS_OK;
+          }
 
-     size = new_size;
+          if (new_mem != mem)
+               DFB_BREAK ("mremap returned a different address");
+
+          size = st.st_size;
+     }
 
      return RS_OK;
 }
@@ -598,5 +613,70 @@ bool fusion_is_shared (const void *ptr)
 {
      return((unsigned int) ptr >= SH_BASE &&
             (unsigned int) ptr <  SH_BASE + SH_MAX_SIZE);
+}
+
+bool
+fusion_shmalloc_cure (const void *ptr)
+{
+     struct stat st;
+     int         offset = (int) ptr - SH_BASE;
+     
+     FDEBUG( "trying to cure segfault at address %p (%d)...\n", ptr, offset );
+
+     /* Check file descriptor. */
+     if (fd < 0) {
+          FDEBUG( "  won't cure, shared memory file is not opened.\n" );
+          return false;
+     }
+     
+     /* Check address space. */
+     if (offset >= SH_MAX_SIZE) {
+          FDEBUG( "  won't cure, address is outside shared address space.\n" );
+          return false;
+     }
+     
+     /* Shouldn't happen, but... */
+     if (offset < size) {
+          FDEBUG( "  won't cure, address is inside mapped region!?\n" );
+          return false;
+     }
+
+     /* Query size of memory. */
+     if (fstat (fd, &st) < 0) {
+          FPERROR( "fstating shared memory file failed!\n" );
+          return false;
+     }
+
+     /* Check for pending remap. */
+     if (st.st_size != size) {
+          FDEBUG( "  pending remap (%d -> %ld)...\n", size, st.st_size );
+
+          if (offset < st.st_size) {
+               void *new_mem;
+               
+               FDEBUG( "  address is inside new region, remapping...\n" );
+
+               new_mem = mremap (mem, size, st.st_size, 0);
+               if (new_mem == MAP_FAILED) {
+                    FPERROR ("mremap on shared memory file failed!\n");
+                    return false;
+               }
+               
+               if (new_mem != mem)
+                    DFB_BREAK ("mremap returned a different address");
+
+               size = st.st_size;
+
+               FDEBUG( "  successfully cured ;)\n" );
+               
+               return true;
+          }
+          
+          FDEBUG( "  address is even outside new region, cannot cure ;(\n" );
+     }
+     else
+          FDEBUG( "  no pending remap, cannot cure ;(\n" );
+     
+     return false;
 }
 

@@ -31,6 +31,8 @@
 
 #include <directfb.h>
 
+#include <core/fusion/shmalloc.h>
+
 #include <core/coredefs.h>
 #include <core/core.h>
 #include <core/sig.h>
@@ -86,7 +88,25 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
           case SIGFPE:
           case SIGSEGV:
           case SIGBUS:
-               fprintf( stderr, " (at %p) <--\n", info->si_addr );
+               switch (info->si_code) {
+                    case SEGV_MAPERR:
+                         fprintf( stderr, " (at %p, invalid address) <--\n",
+                                  info->si_addr );
+
+                         if (num == SIGSEGV && fusion_shmalloc_cure( info->si_addr ))
+                              return;
+                         break;
+
+                    case SEGV_ACCERR:
+                         fprintf( stderr, " (at %p, invalid permissions) <--\n",
+                                  info->si_addr );
+                         break;
+
+                    default:
+                         fprintf( stderr, " (unknown origin) <--\n" );
+                         break;
+               }
+
                break;
 
           default:
@@ -96,7 +116,6 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
      
      fflush( stderr );
 
-     
      dfb_sig_remove_handlers();
      
      dfb_core_deinit_emergency();

@@ -484,5 +484,11 @@ fusion_is_shared (const void *ptr)
      return true;
 }
 
+bool
+fusion_shmalloc_cure (const void *ptr)
+{
+     return false;
+}
+
 #endif
 
