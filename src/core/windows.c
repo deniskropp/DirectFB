@@ -55,7 +55,7 @@
 static void windowstack_repaint( CoreWindowStack *stack, DFBRegion *region );
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
 static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack );
-static void generate_wheelevents( CoreWindowStack *stack, int z );
+static void handle_wheel( CoreWindowStack *stack, int z );
 
 static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                                                      void       *ctx );
@@ -969,7 +969,7 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                                                          0, evt->axisrel );
                               break;
                          case DIAI_Z:
-                              generate_wheelevents( stack, evt->axisrel );
+                              handle_wheel( stack, evt->axisrel );
                               break;
                          default:
                               return RS_OK;
@@ -1057,7 +1057,7 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
 }
 
 
-void generate_wheelevents( CoreWindowStack *stack, int dz )
+void handle_wheel( CoreWindowStack *stack, int dz )
 {
      DFBWindowEvent we;          
      CoreWindow *window = NULL;
@@ -1067,17 +1067,30 @@ void generate_wheelevents( CoreWindowStack *stack, int dz )
           
      window = (stack->pointer_window ?
                stack->pointer_window : stack->entered_window);
+     
 
      if (window) {
-          we.type = DWET_WHEEL;
-          
-          we.cx     = stack->cx;
-          we.cy     = stack->cy;
-          we.x      = we.cx - window->x;
-          we.y      = we.cy - window->y;
-          we.step   = dz;
+          if (stack->wm_hack) {
+               int opacity = window->opacity + dz*4;
+               
+               if (opacity < 0x01) 
+                    opacity = 1;
+               if (opacity > 0xFF) 
+                    opacity = 0xFF;
 
-          reactor_dispatch( window->reactor, &we, true );
+               window_set_opacity( window, (__u8)opacity );
+          }
+          else {
+               we.type = DWET_WHEEL;
+          
+               we.cx     = stack->cx;
+               we.cy     = stack->cy;
+               we.x      = we.cx - window->x;
+               we.y      = we.cy - window->y;
+               we.step   = dz;
+
+               reactor_dispatch( window->reactor, &we, true );
+          }
      }
 }
 
