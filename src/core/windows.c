@@ -1039,7 +1039,7 @@ stack_inputdevice_react( const void *msg_data,
                          case DIKC_CAPSLOCK:
                               stack->wm_hack = 0;
                               handle_enter_leave_focus( stack );
-                              return RS_OK;
+                              break;
 
                          case DIKC_CTRL:
                               stack->wm_hack = 1;
@@ -1098,10 +1098,8 @@ stack_inputdevice_react( const void *msg_data,
 
      switch (evt->type) {
           case DIET_KEYPRESS:
-               if (evt->keycode == DIKC_CAPSLOCK) {
+               if (evt->keycode == DIKC_CAPSLOCK)
                     stack->wm_hack = 1;
-                    break;
-               }
                /* fall through */
           case DIET_KEYRELEASE:
                window = (stack->keyboard_window ?
