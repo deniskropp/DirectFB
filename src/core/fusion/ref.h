@@ -36,16 +36,20 @@ extern "C"
 
 #include "fusion_types.h"
 
+#include "call.h"
 
 typedef union {
-     int                  id;           /* multi app */
+     int                   id;           /* multi app */
      
      struct {
-          int             refs;
-          pthread_cond_t  cond;
-          pthread_mutex_t lock;
-          bool            destroyed;
-          int             waiting;
+          int              refs;
+          pthread_cond_t   cond;
+          pthread_mutex_t  lock;
+          bool             destroyed;
+          int              waiting;
+          
+          FusionCall      *call;
+          int              call_arg;
      } fake;                            /* single app */
 } FusionRef;
 
@@ -86,6 +90,13 @@ FusionResult fusion_ref_zero_trylock (FusionRef *ref);
  * Only to be called after successful zero_lock or zero_trylock.
  */
 FusionResult fusion_ref_unlock       (FusionRef *ref);
+
+/*
+ * Have the call executed when reference counter reaches zero.
+ */
+FusionResult fusion_ref_watch        (FusionRef  *ref,
+                                      FusionCall *call,
+                                      int         call_arg);
 
 /*
  * Deinitialize.

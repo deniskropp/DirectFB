@@ -51,6 +51,8 @@ struct _FusionObject {
      FusionLink         link;
      FusionObjectPool  *pool;
 
+     int                id;
+
      FusionObjectState  state;
 
      FusionRef          ref;

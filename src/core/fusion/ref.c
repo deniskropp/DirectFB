@@ -236,6 +236,38 @@ fusion_ref_unlock (FusionRef *ref)
 }
 
 FusionResult
+fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
+{
+     FusionRefWatch watch;
+
+     DFB_ASSERT( _fusion_fd != -1 );
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( call != NULL );
+
+     watch.id       = ref->id;
+     watch.call_id  = call->call_id;
+     watch.call_arg = call_arg;
+     
+     while (ioctl (_fusion_fd, FUSION_REF_WATCH, &watch)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reference\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
+          FPERROR ("FUSION_REF_WATCH");
+          
+          return FUSION_FAILURE;
+     }
+     
+     return FUSION_SUCCESS;
+}
+
+FusionResult
 fusion_ref_destroy (FusionRef *ref)
 {
      DFB_ASSERT( _fusion_fd != -1 );
@@ -305,6 +337,12 @@ fusion_ref_down (FusionRef *ref, bool global)
      
      pthread_mutex_lock (&ref->fake.lock);
 
+     if (!ref->fake.refs) {
+          BUG( "no more references" );
+          pthread_mutex_unlock (&ref->fake.lock);
+          return FUSION_BUG;
+     }
+     
      if (ref->fake.destroyed)
           ret = FUSION_DESTROYED;
      else
@@ -314,6 +352,13 @@ fusion_ref_down (FusionRef *ref, bool global)
           pthread_cond_broadcast (&ref->fake.cond);
      
      pthread_mutex_unlock (&ref->fake.lock);
+
+     if (!ref->fake.refs && ref->fake.call) {
+          FusionCall *call = ref->fake.call;
+
+          if (call->handler)
+               call->handler( 0, ref->fake.call_arg, NULL, call->ctx );
+     }
      
      return ret;
 }
@@ -343,6 +388,8 @@ fusion_ref_zero_lock (FusionRef *ref)
 
      if (ref->fake.destroyed)
           ret = FUSION_DESTROYED;
+     else if (ref->fake.call)
+          ret = FUSION_ACCESSDENIED;
      else while (ref->fake.refs && !ret) {
           ref->fake.waiting++;
           pthread_cond_wait (&ref->fake.cond, &ref->fake.lock);
@@ -350,6 +397,8 @@ fusion_ref_zero_lock (FusionRef *ref)
           
           if (ref->fake.destroyed)
                ret = FUSION_DESTROYED;
+          else if (ref->fake.call)
+               ret = FUSION_ACCESSDENIED;
      }
      
      if (ret != FUSION_SUCCESS)
@@ -385,6 +434,37 @@ fusion_ref_unlock (FusionRef *ref)
      
      pthread_mutex_unlock (&ref->fake.lock);
 
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
+{
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( call != NULL );
+
+     pthread_mutex_lock (&ref->fake.lock);
+
+     if (ref->fake.destroyed) {
+          pthread_mutex_unlock (&ref->fake.lock);
+          return FUSION_DESTROYED;
+     }
+     
+     if (!ref->fake.refs) {
+          pthread_mutex_unlock (&ref->fake.lock);
+          return FUSION_BUG;
+     }
+     
+     if (ref->fake.call) {
+          pthread_mutex_unlock (&ref->fake.lock);
+          return FUSION_INUSE;
+     }
+     
+     ref->fake.call     = call;
+     ref->fake.call_arg = call_arg;
+     
+     pthread_mutex_unlock (&ref->fake.lock);
+     
      return FUSION_SUCCESS;
 }
 

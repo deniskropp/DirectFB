@@ -36,17 +36,82 @@
 struct _FusionObjectPool {
      FusionSkirmish          lock;
      FusionLink             *objects;
+     int                     ids;
 
      char                   *name;
      int                     object_size;
      int                     message_size;
      FusionObjectDestructor  destructor;
 
-     CoreThread             *bone_collector;
-     bool                    shutdown;
+     FusionCall              call;
 };
 
-static void *bone_collector_loop( CoreThread *thread, void *arg );
+static int
+object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
+{
+     FusionLink       *l;
+     FusionObjectPool *pool = ctx;
+
+     if (caller) {
+          BUG( "call not from Fusion" );
+          return 0;
+     }
+     
+     /* Lock the pool. */
+     if (fusion_skirmish_prevail( &pool->lock ))
+          return 0;
+
+     /* Lookup the object. */
+     fusion_list_foreach (l, pool->objects) {
+          FusionObject *object = (FusionObject*) l;
+
+          if (object->id == call_arg) {
+               switch (fusion_ref_zero_trylock( &object->ref )) {
+                    case FUSION_SUCCESS:
+                         break;
+
+                    case FUSION_DESTROYED:
+                         BUG("object already destroyed");
+                         fusion_list_remove( &pool->objects, &object->link );
+                         fusion_skirmish_dismiss( &pool->lock );
+                         return 0;
+                    
+                    case FUSION_INUSE:
+                         BUG("object revived in the meantime");
+                         /* fall through */
+
+                    default:
+                         fusion_skirmish_dismiss( &pool->lock );
+                         return 0;
+               }
+               
+               FDEBUG("{%s} dead object: %p\n", pool->name, object);
+
+               if (object->state == FOS_INIT) {
+                    CAUTION( "won't destroy incomplete object, leaking memory" );
+                    fusion_list_remove( &pool->objects, &object->link );
+                    break;
+               }
+
+               /* Set "deinitializing" state. */
+               object->state = FOS_DEINIT;
+
+               /* Remove the object from the pool. */
+               object->pool = NULL;
+               fusion_list_remove( &pool->objects, &object->link );
+
+               /* Call the destructor. */
+               pool->destructor( object, false );
+
+               break;
+          }
+     }
+     
+     /* Unlock the pool. */
+     fusion_skirmish_dismiss( &pool->lock );
+
+     return 0;
+}
 
 FusionObjectPool *
 fusion_object_pool_create( const char             *name,
@@ -75,9 +140,8 @@ fusion_object_pool_create( const char             *name,
      pool->message_size = message_size;
      pool->destructor   = destructor;
 
-     /* Run bone collector thread. */
-     pool->bone_collector = dfb_thread_create( CTT_CLEANUP,
-                                               bone_collector_loop, pool );
+     /* Destruction call from Fusion. */
+     fusion_call_init( &pool->call, object_reference_watcher, pool );
 
      return pool;
 }
@@ -85,13 +149,42 @@ fusion_object_pool_create( const char             *name,
 FusionResult
 fusion_object_pool_destroy( FusionObjectPool *pool )
 {
+     FusionLink *l;
+     
      DFB_ASSERT( pool != NULL );
 
-     /* Stop bone collector thread. */
-     pool->shutdown = true;
-     dfb_thread_join( pool->bone_collector );
-     dfb_thread_destroy( pool->bone_collector );
+     /* Lock the pool. */
+     if (fusion_skirmish_prevail( &pool->lock ))
+          return FUSION_FAILURE;
 
+     /* Destroy the call. */
+     fusion_call_destroy( &pool->call );
+
+     /* Destroy zombies */
+     l = pool->objects;
+     while (l) {
+          int           refs;
+          FusionObject *object = (FusionObject*) l;
+          FusionLink   *next   = l->next;
+
+          fusion_ref_stat( &object->ref, &refs );
+
+          FDEBUG("{%s} undestroyed object: %p (refs: %d)\n",
+                 pool->name, object, refs);
+          
+          /* Set "deinitializing" state. */
+          object->state = FOS_DEINIT;
+          
+          /* Remove the object from the pool. */
+          fusion_list_remove( &pool->objects, &object->link );
+          object->pool = NULL;
+
+          /* Call the destructor. */
+          pool->destructor( object, (refs != 0) );
+
+          l = next;
+     }
+     
      /* Destroy the pool lock. */
      fusion_skirmish_destroy( &pool->lock );
 
@@ -109,8 +202,9 @@ fusion_object_pool_enum   ( FusionObjectPool      *pool,
 {
      FusionLink *l;
 
-     /* Lock the pool's object list. */
-     fusion_skirmish_prevail( &pool->lock );
+     /* Lock the pool. */
+     if (fusion_skirmish_prevail( &pool->lock ))
+          return FUSION_FAILURE;
 
      l = pool->objects;
      while (l) {
@@ -122,7 +216,7 @@ fusion_object_pool_enum   ( FusionObjectPool      *pool,
           l = l->next;
      }
 
-     /* Unlock the pool's object list. */
+     /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
      
      return FUSION_SUCCESS;
@@ -135,43 +229,54 @@ fusion_object_create( FusionObjectPool *pool )
 
      DFB_ASSERT( pool != NULL );
 
+     /* Lock the pool. */
+     if (fusion_skirmish_prevail( &pool->lock ))
+          return NULL;
+
      /* Allocate shared memory for the object. */
      object = SHCALLOC( 1, pool->object_size );
-     if (!object)
+     if (!object) {
+          fusion_skirmish_dismiss( &pool->lock );
           return NULL;
+     }
 
      /* Set "initializing" state. */
      object->state = FOS_INIT;
 
+     /* Set object id. */
+     object->id = pool->ids++;
+
      /* Initialize the reference counter. */
      if (fusion_ref_init( &object->ref )) {
           SHFREE( object );
-          return NULL;
-     }
-
-     /* Create a reactor for message dispatching. */
-     object->reactor = fusion_reactor_new( pool->message_size );
-     if (!object->reactor) {
-          fusion_ref_destroy( &object->ref );
-          SHFREE( object );
+          fusion_skirmish_dismiss( &pool->lock );
           return NULL;
      }
 
      /* Increase the object's reference counter. */
      fusion_ref_up( &object->ref, false );
 
-     /* Lock the pool's object list. */
-     fusion_skirmish_prevail( &pool->lock );
+     /* Install handler for automatic destruction. */
+     fusion_ref_watch( &object->ref, &pool->call, object->id );
 
-     FDEBUG("{%s} adding %p\n", pool->name, object);
-     
+     /* Create a reactor for message dispatching. */
+     object->reactor = fusion_reactor_new( pool->message_size );
+     if (!object->reactor) {
+          fusion_ref_destroy( &object->ref );
+          SHFREE( object );
+          fusion_skirmish_dismiss( &pool->lock );
+          return NULL;
+     }
+
      /* Set pool back pointer. */
      object->pool = pool;
-
+     
      /* Add the object to the pool. */
      fusion_list_prepend( &pool->objects, &object->link );
 
-     /* Unlock the pool's object list. */
+     FDEBUG("{%s} added %p\n", pool->name, object);
+     
+     /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
      
      return object;
@@ -198,8 +303,9 @@ fusion_object_destroy( FusionObject     *object )
      if (object->pool) {
           FusionObjectPool *pool = object->pool;
 
-          /* Lock the pool's object list. */
-          fusion_skirmish_prevail( &pool->lock );
+          /* Lock the pool. */
+          if (fusion_skirmish_prevail( &pool->lock ))
+               return FUSION_FAILURE;
 
           /* Remove the object from the pool. */
           if (object->pool) {
@@ -207,7 +313,7 @@ fusion_object_destroy( FusionObject     *object )
                fusion_list_remove( &pool->objects, &object->link );
           }
           
-          /* Unlock the pool's object list. */
+          /* Unlock the pool. */
           fusion_skirmish_dismiss( &pool->lock );
      }
      
@@ -218,92 +324,5 @@ fusion_object_destroy( FusionObject     *object )
      SHFREE( object );
 
      return FUSION_SUCCESS;
-}
-
-/******************************************************************************/
-
-static void *
-bone_collector_loop( CoreThread *thread, void *arg )
-{
-     FusionLink       *l;
-     FusionObjectPool *pool = (FusionObjectPool*) arg;
-
-     while (!pool->shutdown) {
-          usleep(100000);
-
-          /* Lock the pool's object list. */
-          fusion_skirmish_prevail( &pool->lock );
-
-          l = pool->objects;
-          while (l) {
-               FusionObject *object = (FusionObject*) l;
-               FusionLink   *next   = l->next;
-
-               switch (fusion_ref_zero_trylock( &object->ref )) {
-                    case FUSION_SUCCESS:
-                         FDEBUG("{%s} dead object: %p\n", pool->name, object);
-
-                         if (object->state == FOS_INIT) {
-                              CAUTION( "won't destroy incomplete object, leaking memory" );
-                              fusion_list_remove( &pool->objects, &object->link );
-                              break;
-                         }
-
-                         /* Set "deinitializing" state. */
-                         object->state = FOS_DEINIT;
-
-                         /* Remove the object from the pool. */
-                         object->pool = NULL;
-                         fusion_list_remove( &pool->objects, &object->link );
-                         
-                         /* Call the destructor. */
-                         pool->destructor( object, false );
-
-                         break;
-
-                    case FUSION_DESTROYED:
-                         FDEBUG("already destroyed! removing %p from '%s'\n",
-                                object, pool->name);
-
-                         /* Remove the object from the pool. */
-                         fusion_list_remove( &pool->objects, &object->link );
-
-                    default:
-                         break;
-               }
-
-               l = next;
-          }
-
-          /* Unlock the pool's object list. */
-          fusion_skirmish_dismiss( &pool->lock );
-     }
-
-     /* shutdown */
-     l = pool->objects;
-     while (l) {
-          int           refs;
-          FusionObject *object = (FusionObject*) l;
-          FusionLink   *next   = l->next;
-
-          fusion_ref_stat( &object->ref, &refs );
-
-          FDEBUG("{%s} undestroyed object: %p (refs: %d)\n",
-                 pool->name, object, refs);
-          
-          /* Set "deinitializing" state. */
-          object->state = FOS_DEINIT;
-          
-          /* Remove the object from the pool. */
-          fusion_list_remove( &pool->objects, &object->link );
-          object->pool = NULL;
-
-          /* Call the destructor. */
-          pool->destructor( object, true );
-
-          l = next;
-     }
-
-     return NULL;
 }
 
