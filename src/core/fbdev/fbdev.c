@@ -968,7 +968,8 @@ primaryFlipBuffers       ( DisplayLayer               *layer,
      if ((flags & DSFLIP_WAITFORSYNC) && !dfb_config->pollvsync_after)
           dfb_layer_wait_vsync( layer );
 
-     ret = dfb_fbdev_pan( surface->back_buffer->video.offset );
+     ret = dfb_fbdev_pan( surface->back_buffer->video.offset /
+                          surface->back_buffer->video.pitch );
      if (ret)
           return ret;
 
@@ -1334,6 +1335,8 @@ static DFBResult dfb_fbdev_pan( int offset )
      var = dfb_fbdev->shared->current_var;
 
      if (var.yres_virtual < offset + var.yres) {
+          ERRORMSG( "DirectFB/core/fbdev: yres %d, vyres %d, offset %d\n",
+                    var.yres, var.yres_virtual, offset );
           BUG( "panning buffer out of range" );
           return DFB_BUG;
      }
