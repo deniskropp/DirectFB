@@ -597,8 +597,8 @@ driver_open_device( InputDevice      *device,
 
      /* grab device */
      ret = ioctl( fd, EVIOCGRAB, 1 );
-     /* 2.4 kernels don't have EVIOCGRAB so ignore -EINVAL */
-     if (ret && ret != -EINVAL) {
+     /* 2.4 kernels don't have EVIOCGRAB so ignore EINVAL */
+     if (ret && errno != EINVAL) {
           D_PERROR( "DirectFB/linux_input: could not grab device" );
           close( fd );
           return DFB_INIT;
