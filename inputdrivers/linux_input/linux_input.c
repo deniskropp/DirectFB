@@ -527,7 +527,9 @@ driver_get_available()
                   break;
           }
           else {
-               InputDeviceInfo info = { .desc.type = 0 };
+               InputDeviceInfo info;
+
+               memset( &info, 0, sizeof(InputDeviceInfo) );
 
                get_device_info( fd, &info );
 
