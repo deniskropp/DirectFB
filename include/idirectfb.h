@@ -39,7 +39,7 @@ public:
                                                      unsigned int                height,
                                                      unsigned int                bpp);
 
-     void                    GetCardCapabilities    (DFBCardCapabilities        *caps);
+     void                    GetDeviceDescription   (DFBGraphicsDeviceDescription *desc);
      void                    EnumVideoModes         (DFBVideoModeCallback        callback,
                                                      void                       *callbackdata);
 

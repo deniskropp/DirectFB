@@ -37,9 +37,9 @@ void IDirectFB::SetVideoMode (unsigned int width,
      DFBCHECK( iface->SetVideoMode (iface, width, height, bpp) );
 }
 
-void IDirectFB::GetCardCapabilities (DFBCardCapabilities *caps)
+void IDirectFB::GetDeviceDescription (DFBGraphicsDeviceDescription *desc)
 {
-     DFBCHECK( iface->GetCardCapabilities (iface, caps) );
+     DFBCHECK( iface->GetDeviceDescription (iface, desc) );
 }
 
 void IDirectFB::EnumVideoModes (DFBVideoModeCallback  callback,
