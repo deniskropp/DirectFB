@@ -183,7 +183,7 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dpitch,
                                                        (*src & 0x00FF0000) >> 16,
                                                        (*src & 0x0000FF00) >> 8,
                                                        (*src & 0x000000FF),
-                                                       0xFF,
+                                                       a,
                                                        dst_surface->format,
                                                        dst_surface->palette);
 /*                                   break;
