@@ -154,6 +154,7 @@ DFBResult IDirectFB_GetCardCapabilities( IDirectFB               *thiz,
      caps->acceleration_mask = card->caps.accel;
      caps->blitting_flags    = card->caps.blitting;
      caps->drawing_flags     = card->caps.drawing;
+     caps->video_memory      = card->fix.smem_len;
 
      return DFB_OK;
 }
@@ -432,7 +433,7 @@ DFBResult IDirectFB_CreateInputBuffer( IDirectFB                   *thiz,
           return DFB_INVARG;
 
      *buffer = NULL;
-     
+
      while (d) {
           if (d->desc.caps & caps) {
                if (! *buffer) {

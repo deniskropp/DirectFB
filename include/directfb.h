@@ -408,6 +408,8 @@ extern "C"
                                                           functions */
           DFBSurfaceDrawingFlags  drawing_flags;       /* drawing flags */
           DFBSurfaceBlittingFlags blitting_flags;      /* blitting flags */
+          unsigned int            video_memory;        /* amount of video
+                                                          memory in bytes */
      } DFBCardCapabilities;
 
      /*
@@ -479,11 +481,11 @@ extern "C"
 
      /*
       * Flags describing how to load a font.
-      * 
+      *
       * These flags describe how a font is loaded and affect how the
       * glyphs are drawn. There is no way to change this after the font
       * has been loaded. If you need to render a font with different
-      * attributes, you have to create multiple FontProviders of the 
+      * attributes, you have to create multiple FontProviders of the
       * same font file.
       */
      typedef enum {
@@ -845,7 +847,7 @@ extern "C"
         /** Misc **/
 
           /*
-           * Suspend DirectFB, no other calls to DirectFB are allowed 
+           * Suspend DirectFB, no other calls to DirectFB are allowed
            * until Resume has been called.
            */
           DFBResult (*Suspend) (
@@ -1134,9 +1136,9 @@ extern "C"
            * Set the cursor opacity.
            *
            * This function is especially useful if you want
-           * to hide the cursor but still want windows on this 
+           * to hide the cursor but still want windows on this
            * display layer to receive motion events. In this
-           * case, simply set the cursor opacity to zero. 
+           * case, simply set the cursor opacity to zero.
            */
           DFBResult (*SetCursorOpacity) (
                IDirectFBDisplayLayer              *thiz,
@@ -1255,7 +1257,7 @@ extern "C"
            * this function returns the resulting rectangle relative
            * to this surface.
            *
-           * For non sub surfaces this function returns 
+           * For non sub surfaces this function returns
            * { 0, 0, width, height }.
            */
           DFBResult (*GetVisibleRectangle) (
@@ -2142,7 +2144,7 @@ extern "C"
         /** Retrieving information **/
 
           /*
-           * Get the distance from the baseline to the top of the 
+           * Get the distance from the baseline to the top of the
            * logical extents of this font.
            */
           DFBResult (*GetAscender) (
@@ -2151,7 +2153,7 @@ extern "C"
           );
 
           /*
-           * Get the distance from the baseline to the bottom of 
+           * Get the distance from the baseline to the bottom of
            * the logical extents of this font.
            *
            * This is a negative value!
@@ -2246,7 +2248,7 @@ extern "C"
                                                    e.g. the transparent color
                                                    of a GIF image.           */
      } DFBImageCapabilities;
-     
+
      /*
       * Information about an image including capabilities and
       * values belonging to available capabilities.
@@ -2300,8 +2302,8 @@ extern "C"
            *
            * If the image file has an alpha channel it is rendered
            * with alpha channel if the destination surface is of the
-           * ARGB pixelformat. Otherwise, transparent areas are 
-           * blended over a black background. 
+           * ARGB pixelformat. Otherwise, transparent areas are
+           * blended over a black background.
            */
           DFBResult (*RenderTo) (
                IDirectFBImageProvider   *thiz,
@@ -2348,7 +2350,7 @@ extern "C"
            * Play the video rendering it into the specified rectangle
            * of the destination surface.
            *
-           * Optionally a callback can be registered that is called 
+           * Optionally a callback can be registered that is called
            * for each rendered frame. This is especially important if
            * you are playing to a flipping surface. In this case, you
            * should flip the destination surface in your callback.
