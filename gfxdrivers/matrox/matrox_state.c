@@ -261,7 +261,7 @@ inline void matrox_validate_Source()
      mga_out32( mmio_base, 0x10000, TMR8 );
 
      mga_out32( mmio_base, CLAMPUV |
-                           ((src_pixelpitch)<<9) | PITCHEXT | texctl, TEXCTL );
+                           ((src_pixelpitch&0x7ff)<<9) | PITCHEXT | texctl, TEXCTL );
      mga_out32( mmio_base, texctl2, TEXCTL2 );
      mga_out32( mmio_base, ((src_pixelpitch -1)<<18) | matrox_w2<<9 | matrox_w2, TEXWIDTH );
      mga_out32( mmio_base, ((surface->height-1)<<18) | matrox_h2<<9 | matrox_h2, TEXHEIGHT );

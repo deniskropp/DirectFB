@@ -97,7 +97,9 @@ static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
              (state->source->format != DSPF_A8 &&
               state->source->format != DSPF_RGB24 &&
               state->source->width >= 8 &&
-              state->source->height >= 8) ))
+              state->source->height >= 8 &&
+              state->source->width <= 2048 &&
+              state->source->height <= 2048) ))
      {
           state->accel |= MATROX_SUPPORTED_FUNCTIONS;
      }
@@ -110,7 +112,9 @@ static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
         (!(accel & 0xFFFF0000) ||
              (state->source->format != DSPF_RGB24 &&
               state->source->width >= 8 &&
-              state->source->height >= 8) ))
+              state->source->height >= 8 &&
+              state->source->width <= 2048 &&
+              state->source->height <= 2048) ))
      {
           state->accel |= MATROX_SUPPORTED_FUNCTIONS;
      }
