@@ -78,6 +78,11 @@ typedef struct {
      DFBInputDeviceCapabilities   caps;
 } CreateInputBuffer_Context;
 
+typedef struct {
+     char        header[32];
+     const char *filename;
+} CreateImageProvider_Context;
+
 static DFBEnumerationResult EnumInputDevices_Callback ( InputDevice *device,
                                                         void        *ctx );
 static DFBEnumerationResult GetInputDevice_Callback   ( InputDevice *device,
@@ -510,7 +515,9 @@ DFBResult IDirectFB_CreateInputBuffer( IDirectFB                   *thiz,
 
 static int image_probe( DFBInterfaceImplementation *impl, void *ctx )
 {
-     if (impl->Probe((char *) ctx) == DFB_OK)
+     CreateImageProvider_Context *context = (CreateImageProvider_Context*) ctx;
+     
+     if (impl->Probe( context->header, context->filename ) == DFB_OK)
           return 1;
 
      return 0;
@@ -519,10 +526,10 @@ static int image_probe( DFBInterfaceImplementation *impl, void *ctx )
 DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
                                          IDirectFBImageProvider **interface )
 {
+     int       fd;
      DFBResult ret;
-     DFBInterfaceImplementation *impl = NULL;
-     void *ctx;
-     int   fd;
+     DFBInterfaceImplementation  *impl = NULL;
+     CreateImageProvider_Context  ctx;
 
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -534,15 +541,16 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
      if (fd == -1)
           return errno2dfb( errno );
 
-     ctx = alloca(32);
-     if (read (fd, ctx, 32) < 32) {
+     if (read (fd, ctx.header, 32) < 32) {
           close (fd);
           return DFB_IO;
      }
      close (fd);
 
+     ctx.filename = filename;
+
      ret = DFBGetInterface( &impl, "IDirectFBImageProvider", NULL,
-                            image_probe, ctx );
+                            image_probe, (void*)&ctx );
      if (ret)
           return ret;
 

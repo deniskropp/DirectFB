@@ -133,7 +133,7 @@ char *get_implementation()
      return "GIF";
 }
 
-DFBResult Probe( const char *head )
+DFBResult Probe( const char *head, const char *filename )
 {
      if (strncmp (head, "GIF8", 4) == 0)
           return DFB_OK;

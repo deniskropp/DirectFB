@@ -87,7 +87,7 @@ char *get_implementation()
      return "PNG";
 }
 
-DFBResult Probe( const char *head )
+DFBResult Probe( const char *head, const char *filename )
 {
      if (strncmp (head, "\211PNG\r\n\032\n", 8) == 0)
           return DFB_OK;

@@ -154,7 +154,7 @@ char *get_implementation()
      return "JPEG";
 }
 
-DFBResult Probe( const char *head )
+DFBResult Probe( const char *head, const char *filename )
 {
      if (strncmp (head + 6, "JFIF", 4) == 0 ||
          strncmp (head + 6, "Exif", 4) == 0)
