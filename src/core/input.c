@@ -65,7 +65,7 @@ typedef struct {
 } InputDriverModule;
 
 typedef struct {
-     unsigned int       id;            /* unique device id */
+     DFBInputDeviceID   id;            /* unique device id */
 
      InputDriverInfo    driver_info;
      InputDeviceInfo    device_info;
@@ -276,12 +276,12 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
                ;
      }
 
-     event->id = device->shared->id;
+     event->device_id = device->shared->id;
 
      reactor_dispatch( device->shared->reactor, event, true );
 }
 
-unsigned int dfb_input_device_id( const InputDevice *device )
+DFBInputDeviceID dfb_input_device_id( const InputDevice *device )
 {
      return device->shared->id;
 }

@@ -679,7 +679,7 @@ void dfb_window_detach( CoreWindow *window, React react, void *ctx )
 
 void dfb_window_dispatch( CoreWindow *window, DFBWindowEvent *event )
 {
-     event->id = window->id;
+     event->window_id = window->id;
 
      reactor_dispatch( window->reactor, event, true );
 }

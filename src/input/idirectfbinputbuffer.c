@@ -426,7 +426,7 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
           AttachedWindow *window = (AttachedWindow*) data->windows;
 
           while (window) {
-               if (window->window->id == evt->id) {
+               if (window->window->id == evt->window_id) {
                     fusion_list_remove( &data->windows, &window->link );
                     DFBFREE( window );
                     break;

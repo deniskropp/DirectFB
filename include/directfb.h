@@ -678,20 +678,20 @@ extern "C"
 
      /*
       * Called for each existing display layer.
-      * "id" can be used to get an interface to the layer.
+      * "layer_id" can be used to get an interface to the layer.
       */
      typedef DFBEnumerationResult (*DFBDisplayLayerCallback) (
-          DFBDisplayLayerID                  id,
+          DFBDisplayLayerID                  layer_id,
           DFBDisplayLayerCapabilities        caps,
           void                              *callbackdata
      );
 
      /*
       * Called for each existing input device.
-      * "id" can be used to get an interface to the device.
+      * "device_id" can be used to get an interface to the device.
       */
      typedef DFBEnumerationResult (*DFBInputDeviceCallback) (
-          DFBInputDeviceID                   id,
+          DFBInputDeviceID                   device_id,
           DFBInputDeviceDescription          desc,
           void                              *callbackdata
      );
@@ -856,7 +856,7 @@ extern "C"
            */
           DFBResult (*GetDisplayLayer) (
                IDirectFB                *thiz,
-               DFBDisplayLayerID         id,
+               DFBDisplayLayerID         layer_id,
                IDirectFBDisplayLayer   **interface
           );
 
@@ -882,7 +882,7 @@ extern "C"
            */
           DFBResult (*GetInputDevice) (
                IDirectFB                *thiz,
-               DFBInputDeviceID          id,
+               DFBInputDeviceID          device_id,
                IDirectFBInputDevice    **interface
           );
 
@@ -1047,7 +1047,7 @@ extern "C"
            */
           DFBResult (*GetID) (
                IDirectFBDisplayLayer              *thiz,
-               DFBDisplayLayerID                  *id
+               DFBDisplayLayerID                  *layer_id
           );
 
           /*
@@ -1808,7 +1808,7 @@ extern "C"
            */
           DFBResult (*GetID) (
                IDirectFBInputDevice          *thiz,
-               DFBInputDeviceID              *id
+               DFBInputDeviceID              *device_id
           );
 
           /*
@@ -1945,7 +1945,7 @@ extern "C"
           DFBEventClass                 clazz;         /* clazz of event */
 
           DFBInputEventType             type;          /* type of event */
-          DFBInputDeviceID              id;            /* source of event */
+          DFBInputDeviceID              device_id;     /* source of event */
           DFBInputEventFlags            flags;         /* which fields are
                                                           valid? */
 
@@ -2020,7 +2020,7 @@ extern "C"
           DFBEventClass                      clazz;       /* clazz of event */
 
           DFBWindowEventType                 type;
-          DFBWindowID                        id;
+          DFBWindowID                        window_id;
 
           /* used by DWET_MOVE, DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP,
              DWET_ENTER, DWET_LEAVE */
@@ -2128,7 +2128,7 @@ extern "C"
            */
           DFBResult (*GetID) (
                IDirectFBWindow     *thiz,
-               DFBWindowID         *id
+               DFBWindowID         *window_id
           );
 
           /*
