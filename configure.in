@@ -573,7 +573,7 @@ if test $have_linux = yes; then
   if test $V4L = yes; then
     dnl Test for video4linux 2
     AC_EGREP_CPP(yes, [
-        #include <linux/videodev.h>
+        #include <linux/videodev2.h>
         #ifdef VIDIOC_REQBUFS
           yes
         #endif

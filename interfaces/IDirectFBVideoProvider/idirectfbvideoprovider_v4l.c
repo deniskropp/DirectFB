@@ -65,6 +65,10 @@
 #include <misc/mem.h>
 #include <misc/memcpy.h>
 
+#ifdef HAVE_V4L2
+#include <linux/videodev2.h>
+#endif
+
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
@@ -92,7 +96,8 @@ typedef struct {
      int                      fd;
 #ifdef HAVE_V4L2
 #define NUMBER_OF_BUFFERS 2
-     bool is_v4l2;
+	bool is_v4l2;
+	
 	struct v4l2_format fmt;
 	struct v4l2_capability caps;
 	
