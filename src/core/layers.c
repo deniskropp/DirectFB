@@ -493,11 +493,9 @@ dfb_layer_lease( DisplayLayer *layer )
 
      /* This can only be true if process with exclusive access died. */
      if (layer->shared->exclusive) {
-          /* Restore the last configuration for shared access. */
-          dfb_layer_set_configuration( layer, &layer->shared->last_config );
+          dfb_layer_release( layer, true );
 
-          /* Clear exclusive access. */
-          layer->shared->exclusive = false;
+          return dfb_layer_lease( layer );
      }
      
      return DFB_OK;
