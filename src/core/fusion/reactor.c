@@ -523,6 +523,7 @@ lock_node( int reactor_id, bool add )
                return node;
           }
 
+          /* FIXME: Don't cleanup asynchronously. */
           if (!pthread_mutex_trylock( &node->lock )) {
                if (!node->reactions) {
                     fusion_list_remove( &nodes, &node->link );
