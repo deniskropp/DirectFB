@@ -1389,6 +1389,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     break;
 
                case DSPF_ARGB:
+               case DSPF_AiRGB:
                     var.transp.length = 8;
                     var.red.length    = 8;
                     var.green.length  = 8;
@@ -1509,9 +1510,10 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                return DFB_OK;
           }
 
-          /* force format for 8bit */
-          if (format != config->format && DFB_BYTES_PER_PIXEL(format) == 1) {
-               format = config->format;
+          if (format != config->format) {
+               if (DFB_BYTES_PER_PIXEL(format) == 1 ||
+                   (format == DSPF_ARGB && config->format == DSPF_AiRGB))
+                    format = config->format;
           }
 
           if (config->format == DSPF_RGB332)
