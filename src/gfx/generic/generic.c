@@ -1753,7 +1753,7 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
 
-#define SET_ALPHA_PIXEL_DUFFS_DEVICE_8(D, S, w, format) \
+#define SET_ALPHA_PIXEL_DUFFS_DEVICE(D, S, w, format) \
      while (w) {\
           int l = w & 7;\
           switch (l) {\
@@ -1767,25 +1767,6 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
                case 5:\
                     SET_ALPHA_PIXEL_##format( D[4], S[4] );\
                case 4:\
-                    SET_ALPHA_PIXEL_##format( D[3], S[3] );\
-               case 3:\
-                    SET_ALPHA_PIXEL_##format( D[2], S[2] );\
-               case 2:\
-                    SET_ALPHA_PIXEL_##format( D[1], S[1] );\
-               case 1:\
-                    SET_ALPHA_PIXEL_##format( D[0], S[0] );\
-          }\
-          D += l;\
-          S += l;\
-          w -= l;\
-     }
-
-#define SET_ALPHA_PIXEL_DUFFS_DEVICE_4(D, S, w, format) \
-     while (w) {\
-          int l = w & 3;\
-          switch (l) {\
-               default:\
-                    l = 4;\
                     SET_ALPHA_PIXEL_##format( D[3], S[3] );\
                case 3:\
                     SET_ALPHA_PIXEL_##format( D[2], S[2] );\
@@ -1820,7 +1801,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb15()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, RGB15 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB15 );
 
 #undef SET_ALPHA_PIXEL_RGB15
 }
@@ -1847,7 +1828,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb16()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, RGB16 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB16 );
 
 #undef SET_ALPHA_PIXEL_RGB16
 }
@@ -1908,7 +1889,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb32()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, RGB32 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB32 );
 
 #undef SET_ALPHA_PIXEL_RGB32
 }
@@ -1939,7 +1920,7 @@ static void Bop_a8_set_alphapixel_Aop_argb()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, ARGB );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, ARGB );
 
 #undef SET_ALPHA_PIXEL_ARGB
 }
@@ -1961,7 +1942,7 @@ static void Bop_a8_set_alphapixel_Aop_a8()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, A8 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, A8 );
 
 #undef SET_ALPHA_PIXEL_A8
 }
@@ -1978,7 +1959,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb332()
      if (a & 0x80) \
           d = Cop;
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE_8( D, S, w, RGB332 );
+     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB332 );
 #undef SET_ALPHA_PIXEL_RGB332
 }
 #endif
@@ -2005,7 +1986,11 @@ static void Bop_a8_set_alphapixel_Aop_lut8()
           }\
      }
 
-     SET_ALPHA_PIXEL_DUFFS_DEVICE_4( D, S, w, LUT8 );
+     while (w--) {
+          SET_ALPHA_PIXEL_LUT8( *D, *S );
+          D++, S++;
+     }
+
 #undef SET_ALPHA_PIXEL_LUT8
 }
 
