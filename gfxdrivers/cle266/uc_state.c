@@ -51,6 +51,8 @@ inline enum uc_state_type uc_select_drawtype(CardState* state,
 inline enum uc_state_type uc_select_blittype(CardState* state,
                                              DFBAccelerationMask accel)
 {
+    __u32 tmp;
+
     if (!(state->blittingflags & ~UC_BLITTING_FLAGS_2D))
     {
         if ((state->source->format == state->destination->format) &&
@@ -62,7 +64,8 @@ inline enum uc_state_type uc_select_blittype(CardState* state,
 // 3d blitting is broken
 /*
     if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
-        if (uc_map_src_format_3d(state->source->format) >= 0) 
+        if ((uc_map_src_format_3d(state->source->format) >= 0) &&
+            (uc_map_dst_format(state->destination->format, &tmp, &tmp) >= 0))
             return UC_TYPE_3D;
     }
 */
