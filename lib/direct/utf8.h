@@ -27,23 +27,23 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __UTF8_H__
-#define __UTF8_H__
+#ifndef __DIRECT__UTF8_H__
+#define __DIRECT__UTF8_H__
 
-#include <core/coretypes.h>
+#include <direct/types.h>
 
-extern const char dfb_utf8_skip[256];
+extern const char direct_utf8_skip[256];
 
-#define dfb_utf8_next_char(p) \
-     (char *)((p) + dfb_utf8_skip[*(unsigned char *)(p)])
+#define direct_utf8_next_char(p) \
+     ((p) + (*(unsigned char*)(p) & 0x80) ? 1 : direct_utf8_skip[*(unsigned char*)(p)])
 
-static inline const char *dfb_utf8_prev_char (const char *p)
+static inline const char *direct_utf8_prev_char (const char *p)
 {
      while ((*(--p) & 0xc0) == 0x80)
           ;
      return (const char *)p;
 }
 
-unichar dfb_utf8_get_char (const unsigned char *p);
+unichar direct_utf8_get_char (const unsigned char *p);
 
 #endif

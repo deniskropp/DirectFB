@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -41,8 +41,9 @@
 
 #include "idirectfbfont.h"
 
-#include "misc/utf8.h"
-#include "direct/mem.h"
+#include <direct/utf8.h>
+#include <direct/mem.h>
+
 #include "misc/util.h"
 
 void
@@ -218,23 +219,25 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
      if (bytes < 0)
           bytes = strlen (text);
 
-     for (offset = 0;
-          offset < bytes;
-          offset += dfb_utf8_skip[(__u8)text[offset]]) {
+     for (offset = 0; offset < bytes; offset += direct_utf8_skip[(__u8)text[offset]]) {
+          unsigned char c = text[offset];
 
-          current = dfb_utf8_get_char ((const unsigned char*) &text[offset]);
+          if (c < 128)
+               current = c;
+          else
+               current = direct_utf8_get_char( &text[offset] );
 
           if (dfb_font_get_glyph_data (font, current, &glyph) == DFB_OK) {
-
                kern_y = 0;
+
                if (prev && font->GetKerning &&
-                   (* font->GetKerning) (font, 
-                                         prev, current, 
-                                         &kern_x, &kern_y) == DFB_OK) {
+                   font->GetKerning (font, prev, current, &kern_x, &kern_y) == DFB_OK)
+               {
                     width += kern_x;
                }
+
                if (ink_rect) {
-                    DFBRectangle glyph_rect = { width + glyph->left, 
+                    DFBRectangle glyph_rect = { width + glyph->left,
                                                 kern_y + glyph->top,
                                                 glyph->width, glyph->height };
                     dfb_rectangle_union (ink_rect, &glyph_rect);
@@ -331,7 +334,7 @@ IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
      }
 
      dfb_font_unlock( font );
-     
+
      return DFB_OK;
 }
 

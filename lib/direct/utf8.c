@@ -29,9 +29,7 @@
 
 #include <config.h>
 
-#include <core/coretypes.h>
-
-#include "utf8.h"
+#include <direct/utf8.h>
 
 
 /*
@@ -39,7 +37,7 @@
  *  invalid UTF-8 string. Changed it to 1 to avoid endless looping on
  *  invalid input.
  */
-const char dfb_utf8_skip[256] = {
+const char direct_utf8_skip[256] = {
      1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
      1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
      1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -50,7 +48,8 @@ const char dfb_utf8_skip[256] = {
      3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
 };
 
-unichar dfb_utf8_get_char (const unsigned char *p)
+unichar
+direct_utf8_get_char (const unsigned char *p)
 {
      unichar result;
      unsigned char c = *p;
@@ -62,7 +61,7 @@ unichar dfb_utf8_get_char (const unsigned char *p)
      if (c > 0xfd)
           return (unichar) -1;
 
-     len = dfb_utf8_skip[c];
+     len = direct_utf8_skip[c];
 
      result = p[0] & (0x7c >> len);
 

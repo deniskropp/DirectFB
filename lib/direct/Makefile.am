@@ -50,7 +50,8 @@ internalinclude_HEADERS = \
 	system.h		\
 	thread.h		\
 	trace.h			\
-	types.h
+	types.h			\
+	utf8.h
 
 
 lib_LTLIBRARIES = libdirect.la
@@ -68,7 +69,8 @@ libdirect_la_SOURCES = \
 	signals.c		\
 	system.c		\
 	trace.c			\
-	thread.c
+	thread.c		\
+	utf8.c
 
 libdirect_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\

@@ -39,9 +39,10 @@
 #include <media/idirectfbfont.h>
 
 #include <misc/tree.h>
-#include <misc/utf8.h>
+
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/utf8.h>
 
 #include "default_font.h"
 

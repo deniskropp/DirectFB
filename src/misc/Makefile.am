@@ -15,7 +15,6 @@ internalinclude_HEADERS = \
 	conf.h			\
 	gfx_util.h		\
 	tree.h			\
-	utf8.h			\
 	util.h
 
 
@@ -25,5 +24,4 @@ libdirectfb_misc_la_SOURCES =	\
 	conf.c			\
 	gfx_util.c		\
 	tree.c			\
-	utf8.c			\
 	util.c

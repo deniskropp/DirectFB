@@ -28,10 +28,14 @@
 #ifndef __DIRECT__TYPES_H__
 #define __DIRECT__TYPES_H__
 
+#include <dfb_types.h>
+
 typedef enum {
      false = 0,
      true  = !false
 } bool;
+
+typedef __u32 unichar;
 
 typedef struct __D_DirectConfig      DirectConfig;
 typedef struct __D_DirectLink        DirectLink;

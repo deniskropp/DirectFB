@@ -56,10 +56,10 @@
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/utf8.h>
 
 #include <misc/conf.h>
 #include <misc/tree.h>
-#include <misc/utf8.h>
 #include <misc/util.h>
 
 DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers",
@@ -1193,8 +1193,8 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
                chars[offset] = c;
           }
           else {
-               steps[offset] = dfb_utf8_skip[c];
-               chars[offset] = dfb_utf8_get_char( &text[offset] );
+               steps[offset] = direct_utf8_skip[c];
+               chars[offset] = direct_utf8_get_char( &text[offset] );
           }
 
           if (c >= 32 && c < 128)
