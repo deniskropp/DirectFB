@@ -50,7 +50,7 @@
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/windows.h>
-#include <core/fbdev.h>
+#include <core/fbdev/fbdev.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
