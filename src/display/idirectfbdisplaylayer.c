@@ -438,10 +438,10 @@ DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
 {
      IDirectFBDisplayLayer_data *data;
 
-     data = (IDirectFBDisplayLayer_data*)
-          calloc( 1, sizeof(IDirectFBDisplayLayer_data) );
+     if (!thiz->priv)
+          thiz->priv = calloc( 1, sizeof(IDirectFBDisplayLayer_data) );
 
-     thiz->priv = data;
+     data = (IDirectFBDisplayLayer_data*)(thiz->priv);
 
      data->ref = 1;
      data->layer = layer;

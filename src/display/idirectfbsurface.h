@@ -29,10 +29,21 @@
  */
 typedef struct {
      int                    ref;             /* reference counter */
+
      DFBSurfaceCapabilities caps;            /* capabilities */
-     DFBRectangle           req_rect;        /* requested (sub) area
-                                                in surface */
-     DFBRectangle           clip_rect;       /* clipped (sub) area in surface */
+
+     struct {
+         DFBRectangle       wanted;          /* passed to GetSubSurface */
+         DFBRectangle       granted;         /* clipped by parent on creation */
+         DFBRectangle       current;         /* currently available area */
+     } area;
+
+     int                    clip_set;        /* fixed clip set? (SetClip called
+                                                with clip != NULL */
+     DFBRegion              clip_wanted;     /* last region passed to SetClip
+                                                intersected by wanted area,
+                                                only valid if clip_set != 0 */
+
      int                    locked;          /* is it locked? TODO: use core */
      CoreSurface            *surface;        /* buffer to show */
      IDirectFBFont          *font;           /* font to use */

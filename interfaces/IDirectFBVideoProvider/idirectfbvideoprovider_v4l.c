@@ -84,9 +84,9 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-     
+
      DFBRemoveSuspendResumeFunc( v4l_suspend_resume, (void*)data );
-     
+
      v4l_deinit( data );
 
      free( data->filename );
@@ -149,11 +149,11 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
      if (!data)
           return DFB_DEAD;
 
-     *caps = ( DVCAPS_BASIC      | 
-               DVCAPS_BRIGHTNESS | 
+     *caps = ( DVCAPS_BASIC      |
+               DVCAPS_BRIGHTNESS |
                DVCAPS_CONTRAST   |
-               DVCAPS_HUE        | 
-               DVCAPS_SATURATION ); 
+               DVCAPS_HUE        |
+               DVCAPS_SATURATION );
 
      if (data->vcap.type & VID_TYPE_SCALES)
           *caps |= DVCAPS_SCALE;
@@ -204,20 +204,23 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      if (!data || !dst_data)
           return DFB_DEAD;
 
+     if (!dst_data->area.current.w || !dst_data->area.current.h)
+          return DFB_INVAREA;
+
      if (dstrect) {
           if (dstrect->w < 1  ||  dstrect->h < 1)
                return DFB_INVARG;
 
           rect = *dstrect;
 
-          rect.x += dst_data->req_rect.x;
-          rect.y += dst_data->req_rect.y;
+          rect.x += dst_data->area.wanted.x;
+          rect.y += dst_data->area.wanted.y;
      }
      else
-          rect = dst_data->req_rect;
+          rect = dst_data->area.wanted;
 
-     if (!rectangle_intersect( &rect, &dst_data->clip_rect ))
-          return DFB_INVARG;
+     if (!rectangle_intersect( &rect, &dst_data->area.current ))
+          return DFB_INVAREA;
 
      data->callback = callback;
      data->ctx      = ctx;
@@ -225,7 +228,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      return v4l_to_surface( dst_data->surface, &rect, data );
 }
 
-static DFBResult IDirectFBVideoProvider_V4L_Stop( 
+static DFBResult IDirectFBVideoProvider_V4L_Stop(
                                                  IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_V4L_data *data;
@@ -312,14 +315,14 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
           return DFB_DEAD;
 
      ioctl( data->fd, VIDIOCGPICT, &pic );
-     
-     adj->flags = 
+
+     adj->flags =
           DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION;
      adj->brightness = pic.brightness;
      adj->contrast   = pic.contrast;
      adj->hue        = pic.hue;
      adj->saturation = pic.colour;
-     
+
      return DFB_OK;
 }
 
@@ -418,7 +421,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->thread = -1;
 
      DFBAddSuspendResumeFunc( v4l_suspend_resume, (void*)data );
-     
+
      thiz->AddRef    = IDirectFBVideoProvider_V4L_AddRef;
      thiz->Release   = IDirectFBVideoProvider_V4L_Release;
      thiz->GetCapabilities = IDirectFBVideoProvider_V4L_GetCapabilities;
@@ -431,7 +434,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      thiz->GetLength = IDirectFBVideoProvider_V4L_GetLength;
      thiz->GetColorAdjustment = IDirectFBVideoProvider_V4L_GetColorAdjustment;
      thiz->SetColorAdjustment = IDirectFBVideoProvider_V4L_SetColorAdjustment;
-     
+
      return DFB_OK;
 }
 
@@ -446,7 +449,7 @@ static void* FrameThread( void *ctx )
 {
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)ctx;
-     
+
      struct timeval tv;
 
      while (1) {
@@ -486,7 +489,7 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
           case DSPF_RGB15:
                bpp = 15;
                palette = VIDEO_PALETTE_RGB555;
-               break;          
+               break;
           case DSPF_RGB16:
                bpp = 16;
                palette = VIDEO_PALETTE_RGB565;
@@ -581,7 +584,7 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
 /*     surface_install_listener( surface, v4l_surface_listener,
                                CSN_DESTROY| CSN_FLIP| CSN_SIZEFORMAT| CSN_VIDEO,
                                NULL );*/
-     
+
      if (data->callback)
           pthread_create( &data->thread, NULL, FrameThread, data );
 
@@ -631,7 +634,7 @@ static void v4l_suspend_resume( int suspend, void *ctx )
 {
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)ctx;
-     
+
      if (suspend) {
           v4l_stop( data );
           close( data->fd );

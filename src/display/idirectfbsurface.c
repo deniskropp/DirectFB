@@ -147,10 +147,10 @@ DFBResult IDirectFBSurface_GetSize( IDirectFBSurface *thiz,
           return DFB_INVARG;
 
      if (width)
-          *width = data->req_rect.w;
+          *width = data->area.wanted.w;
 
      if (height)
-          *height = data->req_rect.h;
+          *height = data->area.wanted.h;
 
      return DFB_OK;
 }
@@ -163,10 +163,10 @@ DFBResult IDirectFBSurface_GetVisibleRectangle( IDirectFBSurface *thiz,
      if (!rect)
           return DFB_INVARG;
 
-     rect->x = data->clip_rect.x - data->req_rect.x;
-     rect->y = data->clip_rect.y - data->req_rect.y;
-     rect->w = data->clip_rect.w;
-     rect->h = data->clip_rect.h;
+     rect->x = data->area.current.x - data->area.wanted.x;
+     rect->y = data->area.current.y - data->area.wanted.y;
+     rect->w = data->area.current.w;
+     rect->h = data->area.current.h;
 
      return DFB_OK;
 }
@@ -197,17 +197,18 @@ DFBResult IDirectFBSurface_Lock( IDirectFBSurface *thiz,
      if (!flags || !ptr || !pitch)
           return DFB_INVARG;
 
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
      front = (flags & DSLF_WRITE) ? 0 : 1;
 
      ret = surface_soft_lock( data->surface, flags, ptr, pitch, front );
      if (ret)
           return ret;
 
-     /* FIXME: clip_rect has no effect here,
-        application will write into non visible region if req/clip differ */
-
-     (__u8*)(*ptr) += *pitch * data->req_rect.y + data->req_rect.x *
-                                    BYTES_PER_PIXEL(data->surface->format);
+     (__u8*)(*ptr) += data->area.current.y * (*pitch) +
+                      data->area.current.x *
+                      BYTES_PER_PIXEL(data->surface->format);
 
      data->locked = front + 1;
 
@@ -237,26 +238,27 @@ DFBResult IDirectFBSurface_Flip( IDirectFBSurface *thiz, DFBRegion *region,
      if (!(data->caps & DSCAPS_FLIPPING))
           return DFB_UNSUPPORTED;
 
-     if (flags & DSFLIP_WAITFORSYNC) {
+     if (flags & DSFLIP_WAITFORSYNC)
           return DFB_INVARG;
-     }
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
 
      if (flags & DSFLIP_BLIT  ||  region  ||  data->caps & DSCAPS_SUBSURFACE) {
           if (region) {
-               DFBRegion reg = *region;
-               DFBRectangle rect = data->req_rect;
+               DFBRegion    reg  = *region;
+               DFBRectangle rect = data->area.current;
 
-               reg.x1 += rect.x;
-               reg.x2 += rect.x;
-               reg.y1 += rect.y;
-               reg.y2 += rect.y;
+               reg.x1 += data->area.wanted.x;
+               reg.x2 += data->area.wanted.x;
+               reg.y1 += data->area.wanted.y;
+               reg.y2 += data->area.wanted.y;
 
-               if (rectangle_intersect_by_unsafe_region( &rect, &reg ) &&
-                   rectangle_intersect( &rect, &data->clip_rect ))
+               if (rectangle_intersect_by_unsafe_region( &rect, &reg ))
                     back_to_front_copy( data->surface, &rect );
           }
           else {
-               DFBRectangle rect = data->clip_rect;
+               DFBRectangle rect = data->area.current;
 
                back_to_front_copy( data->surface, &rect );
           }
@@ -274,22 +276,34 @@ DFBResult IDirectFBSurface_SetClip( IDirectFBSurface *thiz, DFBRegion *clip )
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
      if (clip) {
           newclip = *clip;
 
-          newclip.x1 += data->req_rect.x;
-          newclip.x2 += data->req_rect.x;
-          newclip.y1 += data->req_rect.y;
-          newclip.y2 += data->req_rect.y;
+          newclip.x1 += data->area.wanted.x;
+          newclip.x2 += data->area.wanted.x;
+          newclip.y1 += data->area.wanted.y;
+          newclip.y2 += data->area.wanted.y;
 
-          if (!unsafe_region_rectangle_intersect( &newclip, &data->clip_rect ))
+          if (!unsafe_region_rectangle_intersect( &newclip,
+                                                  &data->area.wanted ))
                return DFB_INVARG;
+
+          data->clip_set = 1;
+          data->clip_wanted = newclip;
+
+          if (!region_rectangle_intersect( &newclip, &data->area.current ))
+               return DFB_INVAREA;
      }
      else {
-          newclip.x1 = data->clip_rect.x;
-          newclip.y1 = data->clip_rect.y;
-          newclip.x2 = data->clip_rect.x + data->clip_rect.w - 1;
-          newclip.y2 = data->clip_rect.y + data->clip_rect.h - 1;
+          newclip.x1 = data->area.current.x;
+          newclip.y1 = data->area.current.y;
+          newclip.x2 = data->area.current.x + data->area.current.w - 1;
+          newclip.y2 = data->area.current.y + data->area.current.h - 1;
+
+          data->clip_set = 0;
      }
 
      data->state.clip      = newclip;
@@ -518,14 +532,17 @@ DFBResult IDirectFBSurface_FillRectangle( IDirectFBSurface *thiz,
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
      if (data->locked)
           return DFB_LOCKED;
 
      if (w<=0 || h<=0)
           return DFB_INVARG;
 
-     rect.x += data->req_rect.x;
-     rect.y += data->req_rect.y;
+     rect.x += data->area.wanted.x;
+     rect.y += data->area.wanted.y;
 
      gfxcard_fillrectangle( &rect, &data->state );
 
@@ -541,13 +558,16 @@ DFBResult IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
      if (data->locked)
           return DFB_LOCKED;
 
-     line.x1 += data->req_rect.x;
-     line.x2 += data->req_rect.x;
-     line.y1 += data->req_rect.y;
-     line.y2 += data->req_rect.y;
+     line.x1 += data->area.wanted.x;
+     line.x2 += data->area.wanted.x;
+     line.y1 += data->area.wanted.y;
+     line.y2 += data->area.wanted.y;
 
      gfxcard_drawlines( &line, 1, &data->state );
 
@@ -562,17 +582,20 @@ DFBResult IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
      if (data->locked)
           return DFB_LOCKED;
 
-     if (data->req_rect.x || data->req_rect.y) {
+     if (data->area.wanted.x || data->area.wanted.y) {
           unsigned int i;
 
           for (i=0; i<num_lines; i++) {
-               local_lines[i].x1 = lines[i].x1 + data->req_rect.x;
-               local_lines[i].x2 = lines[i].x2 + data->req_rect.x;
-               local_lines[i].y1 = lines[i].y1 + data->req_rect.y;
-               local_lines[i].y2 = lines[i].y2 + data->req_rect.y;
+               local_lines[i].x1 = lines[i].x1 + data->area.wanted.x;
+               local_lines[i].x2 = lines[i].x2 + data->area.wanted.x;
+               local_lines[i].y1 = lines[i].y1 + data->area.wanted.y;
+               local_lines[i].y2 = lines[i].y2 + data->area.wanted.y;
           }
      }
      else
@@ -592,14 +615,17 @@ DFBResult IDirectFBSurface_DrawRectangle( IDirectFBSurface *thiz,
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
      if (data->locked)
           return DFB_LOCKED;
 
      if (w<=0 || h<=0)
           return DFB_INVARG;
 
-     rect.x += data->req_rect.x;
-     rect.y += data->req_rect.y;
+     rect.x += data->area.wanted.x;
+     rect.y += data->area.wanted.y;
 
      gfxcard_drawrectangle( &rect, &data->state );
 
@@ -616,15 +642,18 @@ DFBResult IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
      if (data->locked)
           return DFB_LOCKED;
 
-     tri.x1 += data->req_rect.x;
-     tri.y1 += data->req_rect.y;
-     tri.x2 += data->req_rect.x;
-     tri.y2 += data->req_rect.y;
-     tri.x3 += data->req_rect.x;
-     tri.y3 += data->req_rect.y;
+     tri.x1 += data->area.wanted.x;
+     tri.y1 += data->area.wanted.y;
+     tri.x2 += data->area.wanted.x;
+     tri.y2 += data->area.wanted.y;
+     tri.x3 += data->area.wanted.x;
+     tri.y3 += data->area.wanted.y;
 
      gfxcard_filltriangle( &tri, &data->state );
 
@@ -655,13 +684,21 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
-     if (!source)
-          return DFB_INVARG;
-
-     src_data = (IDirectFBSurface_data*)source->priv;
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
 
      if (data->locked)
           return DFB_LOCKED;
+
+     if (!source)
+          return DFB_INVARG;
+
+
+     src_data = (IDirectFBSurface_data*)source->priv;
+
+     if (!src_data->area.current.w || !src_data->area.current.h)
+          return DFB_INVAREA;
+
 
      if (sr) {
           if (sr->w < 1  ||  sr->h < 1)
@@ -669,26 +706,27 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
 
           srect = *sr;
 
-          srect.x += src_data->req_rect.x;
-          srect.y += src_data->req_rect.y;
+          srect.x += src_data->area.wanted.x;
+          srect.y += src_data->area.wanted.y;
 
-          if (!rectangle_intersect( &srect, &src_data->clip_rect ))
-               return DFB_OK;
+          if (!rectangle_intersect( &srect, &src_data->area.current ))
+               return DFB_INVAREA;
 
-          dx += srect.x - (sr->x + src_data->req_rect.x);
-          dy += srect.y - (sr->y + src_data->req_rect.y);
+          dx += srect.x - (sr->x + src_data->area.wanted.x);
+          dy += srect.y - (sr->y + src_data->area.wanted.y);
      }
      else {
-          srect = src_data->clip_rect;
+          srect = src_data->area.current;
 
-          dx += srect.x - src_data->req_rect.x;
-          dy += srect.y - src_data->req_rect.y;
+          dx += srect.x - src_data->area.wanted.x;
+          dy += srect.y - src_data->area.wanted.y;
      }
 
      state_set_source( &data->state, src_data->surface );
 
      gfxcard_blit( &srect,
-                   data->req_rect.x + dx, data->req_rect.y + dy, &data->state );
+                   data->area.wanted.x + dx,
+                   data->area.wanted.y + dy, &data->state );
 
      return DFB_OK;
 }
@@ -704,49 +742,55 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
-     if (!source)
-          return DFB_INVARG;
-
-     src_data = (IDirectFBSurface_data*)source->priv;
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
 
      if (data->locked)
           return DFB_LOCKED;
 
+     if (!source)
+          return DFB_INVARG;
+
+
+     src_data = (IDirectFBSurface_data*)source->priv;
+
+     if (!src_data->area.current.w || !src_data->area.current.h)
+          return DFB_INVAREA;
+
 
      /* do destination rectangle */
      if (destination_rect) {
+          if (destination_rect->w < 1  ||  destination_rect->h < 1)
+               return DFB_INVARG;
+
           drect = *destination_rect;
 
-          drect.x += data->req_rect.x;
-          drect.y += data->req_rect.y;
+          drect.x += data->area.wanted.x;
+          drect.y += data->area.wanted.y;
      }
      else
-          drect = data->req_rect;
-
-     if (drect.w < 1  ||  drect.h < 1)
-          return DFB_OK;
-
+          drect = data->area.wanted;
 
      /* do source rectangle */
      if (source_rect) {
+          if (source_rect->w < 1  ||  source_rect->h < 1)
+               return DFB_INVARG;
+
           srect = *source_rect;
 
-          srect.x += src_data->req_rect.x;
-          srect.y += src_data->req_rect.y;
+          srect.x += src_data->area.wanted.x;
+          srect.y += src_data->area.wanted.y;
      }
      else
-          srect = src_data->req_rect;
-
-     if (srect.w < 1  ||  srect.h < 1)
-          return DFB_OK;
+          srect = src_data->area.wanted;
 
 
      /* clipping of the source rectangle must be applied to the destination */
      {
           DFBRectangle orig_src = srect;
 
-          if (!rectangle_intersect( &srect, &src_data->clip_rect ))
-               return DFB_OK;
+          if (!rectangle_intersect( &srect, &src_data->area.current ))
+               return DFB_INVAREA;
 
           if (srect.x != orig_src.x)
                drect.x += (int)( (srect.x - orig_src.x) *
@@ -779,11 +823,15 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
      if (data->locked)
           return DFB_LOCKED;
 
      if (!data->font)
           return DFB_MISSINGFONT;
+
 
      if (bytes < 0)
           bytes = strlen (text);
@@ -814,44 +862,49 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      font_data = (IDirectFBFont_data *)data->font->priv;
 
      gfxcard_drawstring( text, bytes,
-                         data->req_rect.x + x, data->req_rect.y + y,
+                         data->area.wanted.x + x, data->area.wanted.y + y,
                          font_data->font, &data->state );
 
      return DFB_OK;
 }
 
-DFBResult IDirectFBSurface_GetSubSurface( IDirectFBSurface       *thiz,
-                                          DFBRectangle           *rect,
-                                          IDirectFBSurface       **surface )
+DFBResult IDirectFBSurface_GetSubSurface( IDirectFBSurface   *thiz,
+                                          DFBRectangle       *rect,
+                                          IDirectFBSurface  **surface )
 {
-     DFBRectangle req, clip;
+     DFBRectangle wanted, granted;
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
 
-     if (data->locked)
-          return DFB_LOCKED;
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
 
      if (rect) {
           if (rect->w < 0  ||  rect->h < 0)
                return DFB_INVARG;
 
-          req = *rect;
+          wanted = *rect;
 
-          req.x += data->req_rect.x;
-          req.y += data->req_rect.y;
+          wanted.x += data->area.wanted.x;
+          wanted.y += data->area.wanted.y;
+
+/*          if (!rectangle_intersect( &wanted, &data->area.wanted ))
+               return DFB_INVAREA;*/
      }
      else
-          req = data->req_rect;
+          wanted = data->area.wanted;
 
-     clip = req;
+     granted = wanted;
 
-     if (!rectangle_intersect( &clip, &data->clip_rect ))
-          return DFB_INVARG;
+     if (!rectangle_intersect( &granted, &data->area.granted ))
+          return DFB_INVAREA;
+
 
      DFB_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
-     return IDirectFBSurface_Construct( *surface, &req, &clip,
+     return IDirectFBSurface_Construct( *surface, &wanted, &granted,
                                         data->surface,
                                         data->caps | DSCAPS_SUBSURFACE );
 }
@@ -859,34 +912,34 @@ DFBResult IDirectFBSurface_GetSubSurface( IDirectFBSurface       *thiz,
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
-                                      DFBRectangle           *req_rect,
-                                      DFBRectangle           *clip_rect,
+                                      DFBRectangle           *wanted,
+                                      DFBRectangle           *granted,
                                       CoreSurface            *surface,
                                       DFBSurfaceCapabilities  caps )
 {
      IDirectFBSurface_data *data;
+     DFBRectangle           rect = { 0, 0, surface->width, surface->height };
 
-     data = (IDirectFBSurface_data*)
-          calloc( 1, sizeof(IDirectFBSurface_data) );
+     if (!thiz->priv)
+          thiz->priv = calloc( 1, sizeof(IDirectFBSurface_data) );
 
-     thiz->priv = data;
+     data = (IDirectFBSurface_data*)(thiz->priv);
 
      data->ref = 1;
      data->caps = caps;
 
-     if (req_rect)
-          data->req_rect = *req_rect;
-     else {
-          data->req_rect.x = 0;
-          data->req_rect.y = 0;
-          data->req_rect.w = surface->width;
-          data->req_rect.h = surface->height;
-     }
-
-     if (clip_rect)
-        data->clip_rect = *clip_rect;
+     if (wanted)
+          data->area.wanted = *wanted;
      else
-        data->clip_rect = data->req_rect;
+          data->area.wanted = rect;
+
+     if (granted)
+          data->area.granted = *granted;
+     else
+          data->area.granted = data->area.wanted;
+
+     data->area.current = data->area.granted;
+     rectangle_intersect( &data->area.current, &rect );
 
      data->surface = surface;
 
@@ -895,10 +948,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      reactor_attach( surface->reactor, IDirectFBSurface_listener, thiz );
 
-     data->state.clip.x1 = data->clip_rect.x;
-     data->state.clip.y1 = data->clip_rect.y;
-     data->state.clip.x2 = data->clip_rect.x + data->clip_rect.w - 1;
-     data->state.clip.y2 = data->clip_rect.y + data->clip_rect.h - 1;
+     data->state.clip.x1 = data->area.current.x;
+     data->state.clip.y1 = data->area.current.y;
+     data->state.clip.x2 = data->area.current.x + data->area.current.w - 1;
+     data->state.clip.y2 = data->area.current.y + data->area.current.h - 1;
      data->state.dst_blend = DSBF_INVSRCALPHA;
      data->state.src_blend = DSBF_SRCALPHA;
      data->state.modified = SMF_ALL;
@@ -949,6 +1002,7 @@ ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx )
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      IDirectFBSurface        *thiz         = (IDirectFBSurface*)ctx;
      IDirectFBSurface_data   *data         = (IDirectFBSurface_data*)thiz->priv;
+     CoreSurface             *surface      = data->surface;
 
      if (notification->flags & CSNF_DESTROY) {
           if (data) {
@@ -965,38 +1019,20 @@ ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx )
      }
 
      if (notification->flags & CSNF_SIZEFORMAT) {
-          DFBResult ret;
+          DFBRectangle rect = { 0, 0, surface->width, surface->height };
 
           if (data->caps & DSCAPS_SUBSURFACE) {
-               DFBRectangle clip = { 0, 0,
-                                     data->surface->width,
-                                     data->surface->height };
-
-               if (!rectangle_intersect( &data->clip_rect, &clip )) {
-                   CAUTION("surface resized, sub surface out of bounds now, "
-                           "setting sub surface area to 0,0 - 1x1");
-
-                   data->clip_rect.x = data->req_rect.x = 0;
-                   data->clip_rect.y = data->req_rect.y = 0;
-                   data->clip_rect.w = data->req_rect.w = 1;
-                   data->clip_rect.h = data->req_rect.h = 1;
-               }
+               data->area.current = data->area.granted;
+               rectangle_intersect( &data->area.current, &rect );
           }
-          else {
-               data->clip_rect.x = data->req_rect.x = 0;
-               data->clip_rect.y = data->req_rect.y = 0;
-               data->clip_rect.w = data->req_rect.w = data->surface->width;
-               data->clip_rect.h = data->req_rect.h = data->surface->height;
-          }
+          else
+               data->area.wanted = data->area.granted = data->area.current=rect;
 
           /* Reset clip to avoid crashes caused by drawing out of bounds. */
-          ret = thiz->SetClip( thiz, &data->state.clip );
-          if (ret) {
-               CAUTION("resetting clip failed, "
-                       "setting clip to (sub) surface area");
-
+          if (data->clip_set)
+               thiz->SetClip( thiz, &data->clip_wanted );
+          else
                thiz->SetClip( thiz, NULL );
-          }
      }
 
      return RS_OK;

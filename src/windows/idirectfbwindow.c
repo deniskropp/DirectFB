@@ -430,9 +430,10 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      DEBUGMSG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
                 window->x, window->y, window->width, window->height );
 
-     data = (IDirectFBWindow_data*) calloc( 1, sizeof(IDirectFBWindow_data) );
+     if (!thiz->priv)
+          thiz->priv = calloc( 1, sizeof(IDirectFBWindow_data) );
 
-     thiz->priv = data;
+     data = (IDirectFBWindow_data*)(thiz->priv);
 
      data->ref = 1;
      data->window = window;

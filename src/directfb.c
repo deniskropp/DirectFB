@@ -364,6 +364,8 @@ const char *DirectFBErrorString( DFBResult error )
                return "'thiz' pointer is NULL!";
           case DFB_IDNOTFOUND:
                return "ID not found!";
+          case DFB_INVAREA:
+               return "Invalid area specified or detected!";
      }
 
      return "<UNKNOWN ERROR CODE>!";

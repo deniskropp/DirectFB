@@ -226,9 +226,10 @@ DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
 {
      IDirectFBFont_data *data;
 
-     data = (IDirectFBFont_data*) calloc( 1, sizeof(IDirectFBFont_data) );
+     if (!thiz->priv)
+          thiz->priv = calloc( 1, sizeof(IDirectFBFont_data) );
 
-     thiz->priv = data;
+     data = (IDirectFBFont_data*)(thiz->priv);
 
      data->ref = 1;
      data->font = font;

@@ -35,7 +35,7 @@ void trim( char **s )
                (*s)[i] = 0;
           else
                break;
-          
+
      while (**s)
           if (**s <= ' ')
                (*s)++;
@@ -85,6 +85,25 @@ int region_intersect( DFBRegion *region,
      return 1;
 }
 
+int region_rectangle_intersect( DFBRegion *region, DFBRectangle *rect )
+{
+     int x2 = rect->x + rect->w - 1;
+     int y2 = rect->y + rect->h - 1;
+
+     if (region->x2 < rect->x ||
+         region->y2 < rect->y ||
+         region->x1 > x2 ||
+         region->y1 > y2)
+          return 0;
+
+     region->x1 = MAX( region->x1, rect->x );
+     region->y1 = MAX( region->y1, rect->y );
+     region->x2 = MIN( region->x2, x2 );
+     region->y2 = MIN( region->y2, y2 );
+
+     return 1;
+}
+
 int unsafe_region_intersect( DFBRegion *region,
                              int x1, int y1, int x2, int y2 )
 {
@@ -93,35 +112,31 @@ int unsafe_region_intersect( DFBRegion *region,
           region->x1 = region->x2;
           region->x2 = temp;
      }
-     
+
      if (region->y1 > region->y2) {
           int temp = region->y1;
           region->y1 = region->y2;
           region->y2 = temp;
      }
-     
-     if (region->x2 < x1 ||
-         region->y2 < y1 ||
-         region->x1 > x2 ||
-         region->y1 > y2)
-          return 0;
 
-     region->x1 = MAX( region->x1, x1 );
-     region->y1 = MAX( region->y1, y1 );
-     region->x2 = MIN( region->x2, x2 );
-     region->y2 = MIN( region->y2, y2 );
-
-     return 1;
+     return region_intersect( region, x1, y1, x2, y2 );
 }
 
-int unsafe_region_rectangle_intersect( DFBRegion *region,
-                                       DFBRectangle *rect )
+int unsafe_region_rectangle_intersect( DFBRegion *region, DFBRectangle *rect )
 {
-     return unsafe_region_intersect( region,
-                                     rect->x,
-                                     rect->y,
-                                     rect->x + rect->w - 1,
-                                     rect->y + rect->h - 1 );
+     if (region->x1 > region->x2) {
+          int temp = region->x1;
+          region->x1 = region->x2;
+          region->x2 = temp;
+     }
+
+     if (region->y1 > region->y2) {
+          int temp = region->y1;
+          region->y1 = region->y2;
+          region->y2 = temp;
+     }
+
+     return region_rectangle_intersect( region, rect );
 }
 
 int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
@@ -132,13 +147,13 @@ int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
           region->x1 = region->x2;
           region->x2 = temp;
      }
-     
+
      if (region->y1 > region->y2) {
           int temp = region->y1;
           region->y1 = region->y2;
           region->y2 = temp;
      }
-     
+
      if (region->x1 > rectangle->x) {
           rectangle->w -= region->x1 - rectangle->x;
           rectangle->x = region->x1;
@@ -148,7 +163,7 @@ int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
           rectangle->h -= region->y1 - rectangle->y;
           rectangle->y = region->y1;
      }
-     
+
      if (region->x2 <= rectangle->x + rectangle->w)
         rectangle->w = region->x2 - rectangle->x + 1;
 
@@ -161,7 +176,7 @@ int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
 int rectangle_intersect( DFBRectangle *rectangle,
                          DFBRectangle *clip )
 {
-     DFBRegion region = { clip->x, clip->y, 
+     DFBRegion region = { clip->x, clip->y,
                           clip->x + clip->w - 1, clip->y + clip->h - 1 };
 
      if (region.x1 > rectangle->x) {
@@ -173,7 +188,7 @@ int rectangle_intersect( DFBRectangle *rectangle,
           rectangle->h -= region.y1 - rectangle->y;
           rectangle->y = region.y1;
      }
-     
+
      if (region.x2 <= rectangle->x + rectangle->w)
           rectangle->w = region.x2 - rectangle->x + 1;
 
@@ -193,7 +208,7 @@ void rectangle_union ( DFBRectangle *rect1,
           int temp = MIN (rect1->x, rect2->x);
           rect1->w = MAX (rect1->x + rect1->w, rect2->x + rect2->w) - temp;
           rect1->x = temp;
-     } 
+     }
      else {
           rect1->x = rect2->x;
           rect1->w = rect2->w;

@@ -97,26 +97,29 @@ DFBResult IDirectFBSurface_Layer_Flip( IDirectFBSurface *thiz,
      if (!(data->base.caps & DSCAPS_FLIPPING))
           return DFB_UNSUPPORTED;
 
-     if (flags & DSFLIP_WAITFORSYNC) {
+     if (!data->base.area.current.w || !data->base.area.current.h)
+          return DFB_INVAREA;
+
+
+     if (flags & DSFLIP_WAITFORSYNC)
           fbdev_wait_vsync();
-     }
+
 
      if (flags & DSFLIP_BLIT || region || data->base.caps & DSCAPS_SUBSURFACE) {
           if (region) {
-               DFBRegion reg = *region;
-               DFBRectangle rect = data->base.req_rect;
+               DFBRegion    reg  = *region;
+               DFBRectangle rect = data->base.area.current;
 
-               reg.x1 += rect.x;
-               reg.x2 += rect.x;
-               reg.y1 += rect.y;
-               reg.y2 += rect.y;
+               reg.x1 += data->base.area.wanted.x;
+               reg.x2 += data->base.area.wanted.x;
+               reg.y1 += data->base.area.wanted.y;
+               reg.y2 += data->base.area.wanted.y;
 
-               if (rectangle_intersect_by_unsafe_region( &rect, &reg ) &&
-                   rectangle_intersect( &rect, &data->base.clip_rect ))
+               if (rectangle_intersect_by_unsafe_region( &rect, &reg ))
                     back_to_front_copy( data->base.surface, &rect );
           }
           else {
-               DFBRectangle rect = data->base.clip_rect;
+               DFBRectangle rect = data->base.area.current;
 
                back_to_front_copy( data->base.surface, &rect );
           }
@@ -131,48 +134,53 @@ DFBResult IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface     *thiz,
                                                 DFBRectangle         *rect,
                                                 IDirectFBSurface     **surface )
 {
-     DFBRectangle req, clip;
+     DFBRectangle wanted, granted;
 
      INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
 
-     if (data->base.locked)
-          return DFB_LOCKED;
+     if (!data->base.area.current.w || !data->base.area.current.h)
+          return DFB_INVAREA;
+
 
      if (rect) {
           if (rect->w < 0  ||  rect->h < 0)
                return DFB_INVARG;
 
-          req = *rect;
+          wanted = *rect;
 
-          req.x += data->base.req_rect.x;
-          req.y += data->base.req_rect.y;
-     }
-     else {
-          req = data->base.req_rect;
-     }
-     clip = req;
+          wanted.x += data->base.area.wanted.x;
+          wanted.y += data->base.area.wanted.y;
 
-     if (!rectangle_intersect( &clip, &data->base.clip_rect ))
-          return DFB_INVARG;
+/*          if (!rectangle_intersect( &wanted, &data->base.area.wanted ))
+               return DFB_INVAREA;*/
+     }
+     else
+          wanted = data->base.area.wanted;
+
+     granted = wanted;
+
+     if (!rectangle_intersect( &granted, &data->base.area.granted ))
+          return DFB_INVAREA;
+
 
      DFB_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
-     return IDirectFBSurface_Layer_Construct( *surface, &req, &clip,
-                                              data->layer,
-                                           data->base.caps | DSCAPS_SUBSURFACE);
+     return IDirectFBSurface_Layer_Construct( *surface, &wanted, &granted,
+                                              data->layer, data->base.caps |
+                                              DSCAPS_SUBSURFACE );
 }
 
 DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
-                                            DFBRectangle           *req_rect,
-                                            DFBRectangle           *clip_rect,
+                                            DFBRectangle           *wanted,
+                                            DFBRectangle           *granted,
                                             DisplayLayer           *layer,
                                             DFBSurfaceCapabilities caps )
 {
      DFBResult err = DFB_OK;
      IDirectFBSurface_Layer_data *data;
 
-     if (!(caps & DSCAPS_SUBSURFACE)  &&  !req_rect) {
+     if (!(caps & DSCAPS_SUBSURFACE)  &&  !wanted) {
           DFBDisplayLayerConfig config;
 
           config.flags      = DLCONF_BUFFERMODE;
@@ -198,11 +206,11 @@ DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
           }
      }
 
-     IDirectFBSurface_Construct( thiz, req_rect, clip_rect,
-                                 layer->surface, caps );
+     if (!thiz->priv)
+          thiz->priv = calloc( 1, sizeof(IDirectFBSurface_Layer_data) );
 
-     thiz->priv = (IDirectFBSurface_Layer_data*)
-                   realloc( thiz->priv, sizeof( IDirectFBSurface_Layer_data ) );
+     IDirectFBSurface_Construct( thiz, wanted, granted, layer->surface, caps );
+
      data = (IDirectFBSurface_Layer_data*)(thiz->priv);
      data->layer = layer;
 

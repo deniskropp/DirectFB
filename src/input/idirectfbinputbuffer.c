@@ -236,13 +236,12 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
 {
      IDirectFBInputBuffer_data *data;
 
-     data = (IDirectFBInputBuffer_data*)
-         calloc( 1, sizeof(IDirectFBInputBuffer_data) );
+     if (!thiz->priv)
+          thiz->priv = calloc( 1, sizeof(IDirectFBInputBuffer_data) );
 
-     thiz->priv = data;
+     data = (IDirectFBInputBuffer_data*)(thiz->priv);
 
      data->ref = 1;
-
      data->device = device;
 
      pthread_mutex_init( &data->events_mutex, NULL );

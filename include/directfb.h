@@ -144,7 +144,8 @@ extern "C"
           DFB_TIMEOUT,        /* operation timed out */
           DFB_MISSINGIMAGE,   /* no image has been set */
           DFB_THIZNULL,       /* 'thiz' pointer is NULL */
-          DFB_IDNOTFOUND      /* layer/device/... id not found */
+          DFB_IDNOTFOUND,     /* layer/device/... id not found */
+          DFB_INVAREA         /* invalid area specified or detected */
      } DFBResult;
 
      /*

@@ -217,10 +217,10 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
 {
      IDirectFBInputDevice_data *data;
 
-     data = (IDirectFBInputDevice_data*)
-          calloc( 1, sizeof(IDirectFBInputDevice_data) );
+     if (!thiz->priv)
+          thiz->priv = calloc( 1, sizeof(IDirectFBInputDevice_data) );
 
-     thiz->priv = data;
+     data = (IDirectFBInputDevice_data*)(thiz->priv);
 
      data->ref = 1;
      data->device = device;

@@ -43,10 +43,13 @@ DFBResult errno2dfb( int erno );
 int region_intersect( DFBRegion *region,
                       int x1, int y1, int x2, int y2 );
 
+int region_rectangle_intersect( DFBRegion    *region,
+                                DFBRectangle *rect );
+
 int unsafe_region_intersect( DFBRegion *region,
                              int x1, int y1, int x2, int y2 );
 
-int unsafe_region_rectangle_intersect( DFBRegion *region,
+int unsafe_region_rectangle_intersect( DFBRegion    *region,
                                        DFBRectangle *rect );
 
 int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,

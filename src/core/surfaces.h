@@ -45,7 +45,7 @@ typedef struct {
 struct _SurfaceBuffer
 {
      int                 policy;        /* swapping policy for surfacemanager */
-     
+
      struct {
           int            health;        /* currently stored in system memory? */
 
@@ -79,7 +79,7 @@ struct _CoreSurface
      SurfaceBuffer         *front_buffer;  /* buffer for reading
                                               (blit from or display buffer) */
      pthread_mutex_t        front_lock;    /* mutex lock for front buffer */
-     
+
      SurfaceBuffer         *back_buffer;   /* buffer for (reading&)writing
                                               (drawing/blitting destination) */
      pthread_mutex_t        back_lock;     /* mutex lock for back buffer,
