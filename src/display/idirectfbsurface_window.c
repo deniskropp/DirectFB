@@ -147,9 +147,8 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                                 reg.x2 - reg.x1 + 1,
                                 reg.y2 - reg.y1 + 1 };
 
-          if (rect.x == 0 && rect.y == 0 &&
-              rect.w == data->window->width &&
-              rect.h == data->window->height)
+          if ((~flags & DSFLIP_BLIT) && rect.x == 0 && rect.y == 0 &&
+              rect.w == data->window->width && rect.h == data->window->height)
                dfb_surface_flip_buffers( data->window->surface );
           else
                dfb_back_to_front_copy( data->window->surface, &rect );
