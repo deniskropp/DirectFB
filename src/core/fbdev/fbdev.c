@@ -1351,6 +1351,8 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
               "mode: %p, buffermode: %d)\n", layer, mode,
               config ? config->buffermode : DLBM_FRONTONLY);
 
+     dfb_gfxcard_lock();
+
      if (!mode)
           mode = dfb_fbdev->shared->current_mode ? dfb_fbdev->shared->current_mode : dfb_fbdev->shared->modes;
 
@@ -1433,6 +1435,8 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                PERRORMSG( "DirectFB/core/fbdev: "
                           "Could not set video mode (FBIOPUT_VSCREENINFO)!\n" );
 
+          dfb_gfxcard_unlock( true );
+          
           return errno2dfb( erno );
      }
      else {
@@ -1449,6 +1453,8 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                     PERRORMSG( "DirectFB/core/fbdev: "
                       "Could not set video mode (not enough video ram)!\n" );
 
+               dfb_gfxcard_unlock( true );
+               
                return DFB_INVARG;
           }
      }
@@ -1467,10 +1473,14 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                /* restore mode */
                FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var );
                
+               dfb_gfxcard_unlock( true );
+               
                return DFB_UNSUPPORTED;
           }
 
           if (!config) {
+               dfb_gfxcard_unlock( true );
+               
                return DFB_OK;
           }
           
@@ -1567,6 +1577,8 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                                                  CSNF_VIDEO | CSNF_SYSTEM );
      }
 
+     dfb_gfxcard_unlock( true );
+     
      return DFB_OK;
 }
 

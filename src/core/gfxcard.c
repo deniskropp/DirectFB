@@ -425,6 +425,24 @@ int dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      return (state->accel & accel);
 }
 
+void
+dfb_gfxcard_lock()
+{
+     if (card && card->shared)
+          skirmish_prevail( &card->shared->lock );
+}
+
+void
+dfb_gfxcard_unlock( bool invalidate_state )
+{
+     if (card && card->shared) {
+          if (invalidate_state)
+               card->shared->state = NULL;
+
+          skirmish_dismiss( &card->shared->lock );
+     }
+}
+
 /*
  * This function returns non zero after successful locking the surface(s)
  * for access by hardware. Propagate state changes to driver.
