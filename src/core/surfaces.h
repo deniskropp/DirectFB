@@ -160,15 +160,15 @@ struct _CoreSurface
 };
 
 /*
- * creates a surface pool
+ * Creates a pool of surface objects.
  */
 FusionObjectPool *dfb_surface_pool_create();
 
-static inline void
-dfb_surface_pool_destroy( FusionObjectPool *pool )
-{
-     fusion_object_pool_destroy( pool );
-}
+/*
+ * Generates dfb_surface_ref(), dfb_surface_attach() etc.
+ */
+FUSION_OBJECT_METHODS( CoreSurface, dfb_surface )
+
 
 /*
  * creates a surface with specified width and height in the specified
@@ -235,64 +235,6 @@ DFBResult dfb_surface_set_palette( CoreSurface *surface,
 FusionResult
 dfb_surface_notify_listeners( CoreSurface                  *surface,
                               CoreSurfaceNotificationFlags  flags);
-
-static inline FusionResult
-dfb_surface_attach( CoreSurface *surface,
-                    React        react,
-                    void        *ctx,
-                    Reaction    *reaction )
-{
-     return fusion_object_attach( &surface->object, react, ctx, reaction );
-}
-
-static inline FusionResult
-dfb_surface_detach( CoreSurface *surface,
-                    Reaction    *reaction )
-{
-     return fusion_object_detach( &surface->object, reaction );
-}
-
-static inline FusionResult
-dfb_surface_attach_global( CoreSurface     *surface,
-                           int             react_index,
-                           void           *ctx,
-                           GlobalReaction *reaction )
-{
-     return fusion_object_attach_global( &surface->object, react_index,
-                                         ctx, reaction );
-}
-
-static inline FusionResult
-dfb_surface_detach_global( CoreSurface    *surface,
-                           GlobalReaction *reaction )
-{
-     return fusion_object_detach_global( &surface->object, reaction );
-}
-
-static inline FusionResult
-dfb_surface_ref( CoreSurface *surface )
-{
-     return fusion_object_ref( &surface->object );
-}
-
-static inline FusionResult
-dfb_surface_unref( CoreSurface *surface )
-{
-     return fusion_object_unref( &surface->object );
-}
-
-static inline FusionResult
-dfb_surface_link( CoreSurface **link,
-                  CoreSurface  *surface )
-{
-     return fusion_object_link( (FusionObject**) link, &surface->object );
-}
-
-static inline FusionResult
-dfb_surface_unlink( CoreSurface *surface )
-{
-     return fusion_object_unlink( &surface->object );
-}
 
 /*
  * really swaps front_buffer and back_buffer if they have the same policy,

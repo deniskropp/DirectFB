@@ -76,8 +76,8 @@ int DFBProbeInterface( DFBInterfaceFuncs *funcs, void *ctx )
 }
 
 DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
-                           char *type,
-                           char *implementation,
+                           const char *type,
+                           const char *implementation,
                            int (*probe)( DFBInterfaceFuncs *funcs, void *ctx ),
                            void *probe_ctx )
 {

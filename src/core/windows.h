@@ -164,6 +164,13 @@ dfb_windowstack_resize( CoreWindowStack *stack,
                         int              width,
                         int              height );
 
+
+/*
+ * Generates dfb_window_ref(), dfb_window_attach() etc.
+ */
+FUSION_OBJECT_METHODS( CoreWindow, dfb_window )
+
+
 /*
  * creates a window on a given stack
  */
@@ -289,50 +296,7 @@ DFBResult dfb_window_ungrab_key     ( CoreWindow                 *window,
                                       DFBInputDeviceKeySymbol     symbol,
                                       DFBInputDeviceModifierMask  modifiers );
 
-
-static inline FusionResult
-dfb_window_attach( CoreWindow *window,
-                   React       react,
-                   void       *ctx,
-                   Reaction   *reaction )
-{
-     return fusion_object_attach( &window->object, react, ctx, reaction );
-}
-
-static inline FusionResult
-dfb_window_detach( CoreWindow *window,
-                   Reaction   *reaction )
-{
-     return fusion_object_detach( &window->object, reaction );
-}
-
-static inline FusionResult
-dfb_window_ref( CoreWindow *window )
-{
-     return fusion_object_ref( &window->object );
-}
-
-static inline FusionResult
-dfb_window_unref( CoreWindow *window )
-{
-     return fusion_object_unref( &window->object );
-}
-
-static inline FusionResult
-dfb_window_link( CoreWindow **link,
-                 CoreWindow  *window )
-{
-     return fusion_object_link( (FusionObject**) link, &window->object );
-}
-
-static inline FusionResult
-dfb_window_unlink( CoreWindow *window )
-{
-     return fusion_object_unlink( &window->object );
-}
-
-
-void dfb_window_dispatch( CoreWindow *window, DFBWindowEvent *event );
+void dfb_window_post_event( CoreWindow *window, DFBWindowEvent *event );
 
 /*
  * repaints all window on a window stack

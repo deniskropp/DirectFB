@@ -40,8 +40,8 @@
 
 #include <core/input.h>
 
-#include "misc/util.h"
-#include "misc/mem.h"
+#include <misc/util.h>
+#include <misc/mem.h>
 
 #include "idirectfbinputdevice.h"
 #include "idirectfbinputbuffer.h"

@@ -76,73 +76,14 @@ void         dfb_palette_update             ( CorePalette   *palette,
 
 
 /*
- * creates a palette pool
+ * Creates a pool of palette objects.
  */
 FusionObjectPool *dfb_palette_pool_create();
 
-static inline void
-dfb_palette_pool_destroy( FusionObjectPool *pool )
-{
-     fusion_object_pool_destroy( pool );
-}
-
-static inline FusionResult
-dfb_palette_attach( CorePalette *palette,
-                    React        react,
-                    void        *ctx,
-                    Reaction    *reaction )
-{
-     return fusion_object_attach( &palette->object, react, ctx, reaction );
-}
-
-static inline FusionResult
-dfb_palette_detach( CorePalette *palette,
-                    Reaction    *reaction )
-{
-     return fusion_object_detach( &palette->object, reaction );
-}
-
-static inline FusionResult
-dfb_palette_attach_global( CorePalette    *palette,
-                           int             react_index,
-                           void           *ctx,
-                           GlobalReaction *reaction )
-{
-     return fusion_object_attach_global( &palette->object,
-                                         react_index, ctx, reaction );
-}
-
-static inline FusionResult
-dfb_palette_detach_global( CorePalette    *palette,
-                           GlobalReaction *reaction )
-{
-     return fusion_object_detach_global( &palette->object, reaction );
-}
-
-static inline FusionResult
-dfb_palette_ref( CorePalette *palette )
-{
-     return fusion_object_ref( &palette->object );
-}
-
-static inline FusionResult
-dfb_palette_unref( CorePalette *palette )
-{
-     return fusion_object_unref( &palette->object );
-}
-
-static inline FusionResult
-dfb_palette_link( CorePalette **link,
-                  CorePalette  *palette )
-{
-     return fusion_object_link( (FusionObject**) link, &palette->object );
-}
-
-static inline FusionResult
-dfb_palette_unlink( CorePalette *palette )
-{
-     return fusion_object_unlink( &palette->object );
-}
+/*
+ * Generates dfb_palette_ref(), dfb_palette_attach() etc.
+ */
+FUSION_OBJECT_METHODS( CorePalette, dfb_palette )
 
 
 /* global reactions */

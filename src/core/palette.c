@@ -57,8 +57,7 @@ static void palette_destructor( FusionObject *object, bool zombie )
      notification.flags   = CPNF_DESTROY;
      notification.palette = palette;
 
-     fusion_object_dispatch( &palette->object, &notification,
-                             dfb_palette_globals );
+     dfb_palette_dispatch( palette, &notification, dfb_palette_globals );
 
      if (palette->hash_attached) {
           dfb_colorhash_invalidate( palette );
@@ -220,7 +219,6 @@ dfb_palette_update( CorePalette *palette, int first, int last )
           dfb_colorhash_invalidate( palette );
 
      /* post message about palette update */
-     fusion_object_dispatch( &palette->object, &notification,
-                             dfb_palette_globals );
+     dfb_palette_dispatch( palette, &notification, dfb_palette_globals );
 }
 

@@ -76,34 +76,92 @@ FusionResult      fusion_object_pool_enum   ( FusionObjectPool      *pool,
                                               void                  *ctx );
 
 
-FusionObject     *fusion_object_create        ( FusionObjectPool *pool );
+FusionObject     *fusion_object_create  ( FusionObjectPool *pool );
 
-FusionResult      fusion_object_activate      ( FusionObject     *object );
-
-FusionResult      fusion_object_attach        ( FusionObject     *object,
-                                                React             react,
-                                                void             *ctx,
-                                                Reaction         *reaction );
-FusionResult      fusion_object_detach        ( FusionObject     *object,
-                                                Reaction         *react );
-FusionResult      fusion_object_attach_global ( FusionObject     *object,
-                                                int               react_index,
-                                                void             *ctx,
-                                                GlobalReaction   *reaction );
-FusionResult      fusion_object_detach_global ( FusionObject     *object,
-                                                GlobalReaction   *react );
-FusionResult      fusion_object_dispatch      ( FusionObject     *object,
-                                                void             *message,
-                                                const React      *globals );
-
-FusionResult      fusion_object_ref     ( FusionObject     *object );
-FusionResult      fusion_object_unref   ( FusionObject     *object );
-
-FusionResult      fusion_object_link    ( FusionObject    **link,
-                                          FusionObject     *object );
-FusionResult      fusion_object_unlink  ( FusionObject     *object );
+FusionResult      fusion_object_activate( FusionObject     *object );
 
 FusionResult      fusion_object_destroy ( FusionObject     *object );
+
+
+#define FUSION_OBJECT_METHODS(type, prefix)                                    \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_attach( type     *object,                                             \
+                 React     react,                                              \
+                 void     *ctx,                                                \
+                 Reaction *reaction )                                          \
+{                                                                              \
+     return fusion_reactor_attach( ((FusionObject*)object)->reactor,           \
+                                   react, ctx, reaction );                     \
+}                                                                              \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_detach( type     *object,                                             \
+                 Reaction *reaction )                                          \
+{                                                                              \
+     return fusion_reactor_detach( ((FusionObject*)object)->reactor,           \
+                                   reaction );                                 \
+}                                                                              \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_attach_global( type           *object,                                \
+                        int             react_index,                           \
+                        void           *ctx,                                   \
+                        GlobalReaction *reaction )                             \
+{                                                                              \
+     return fusion_reactor_attach_global( ((FusionObject*)object)->reactor,    \
+                                          react_index, ctx, reaction );        \
+}                                                                              \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_detach_global( type           *object,                                \
+                        GlobalReaction *reaction )                             \
+{                                                                              \
+     return fusion_reactor_detach_global( ((FusionObject*)object)->reactor,    \
+                                          reaction );                          \
+}                                                                              \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_dispatch( type        *object,                                        \
+                   void        *message,                                       \
+                   const React *globals )                                      \
+{                                                                              \
+     return fusion_reactor_dispatch( ((FusionObject*)object)->reactor,         \
+                                     message, true, globals );                 \
+}                                                                              \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_ref( type *object )                                                   \
+{                                                                              \
+     return fusion_ref_up( &((FusionObject*)object)->ref, false );             \
+}                                                                              \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_unref( type *object )                                                 \
+{                                                                              \
+     return fusion_ref_down( &((FusionObject*)object)->ref, false );           \
+}                                                                              \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_link( type **link,                                                    \
+               type  *object )                                                 \
+{                                                                              \
+     FusionResult ret;                                                         \
+                                                                               \
+     ret = fusion_ref_up( &((FusionObject*)object)->ref, true );               \
+     if (ret)                                                                  \
+          return ret;                                                          \
+                                                                               \
+     *link = object;                                                           \
+                                                                               \
+     return FUSION_SUCCESS;                                                    \
+}                                                                              \
+                                                                               \
+static inline FusionResult                                                     \
+prefix##_unlink( type *object )                                                \
+{                                                                              \
+     return fusion_ref_down( &((FusionObject*)object)->ref, true );            \
+}
 
 
 #ifdef __cplusplus

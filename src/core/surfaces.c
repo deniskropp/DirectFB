@@ -229,8 +229,7 @@ dfb_surface_notify_listeners( CoreSurface                  *surface,
      notification.flags   = flags;
      notification.surface = surface;
 
-     return fusion_object_dispatch( &surface->object,
-                                    &notification, dfb_surface_globals );
+     return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
 }
 
 DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,

@@ -1378,6 +1378,32 @@ DEFINE_INTERFACE(   IDirectFB,
      DFBResult (*WaitForSync) (
           IDirectFB                *thiz
      );
+
+
+   /** Extensions **/
+
+     /*
+      * Load an implementation of a specific interface type.
+      *
+      * This methods loads an interface implementation of the specified
+      * <i>type</i> of interface, e.g. "IDirectAudio".
+      *
+      * A specific implementation can be forced with the optional
+      * <i>implementation</i> argument.
+      *
+      * Implementations are passed <i>arg</i> during probing and construction.
+      *
+      * If an implementation has been successfully probed and the interface
+      * has been constructed, the resulting interface pointer is stored in
+      * <i>interface</i>.
+      */
+     DFBResult (*GetInterface) (
+          IDirectFB                *thiz,
+          const char               *type,
+          const char               *implementation,
+          void                     *arg,
+          void                    **interface
+     );
 )
 
 /* predefined layer ids */

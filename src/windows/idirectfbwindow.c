@@ -171,7 +171,7 @@ IDirectFBWindow_CreateEventBuffer( IDirectFBWindow       *thiz,
      IDirectFBEventBuffer_AttachWindow( b, data->window );
 
      if (data->position_size_event) {
-          dfb_window_dispatch( data->window, data->position_size_event );
+          dfb_window_post_event( data->window, data->position_size_event );
           DFBFREE( data->position_size_event );
           data->position_size_event = NULL;
      }
@@ -193,7 +193,7 @@ IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
      IDirectFBEventBuffer_AttachWindow( buffer, data->window );
 
      if (data->position_size_event) {
-          dfb_window_dispatch( data->window, data->position_size_event );
+          dfb_window_post_event( data->window, data->position_size_event );
           DFBFREE( data->position_size_event );
           data->position_size_event = NULL;
      }
@@ -825,7 +825,7 @@ IDirectFBWindow_Close( IDirectFBWindow *thiz )
 
      evt.type = DWET_CLOSE;
 
-     dfb_window_dispatch( data->window, &evt );
+     dfb_window_post_event( data->window, &evt );
 
      return DFB_OK;
 }

@@ -47,8 +47,8 @@
 #include <core/input.h>
 #include <core/windows.h>
 
-#include "misc/util.h"
-#include "misc/mem.h"
+#include <misc/util.h>
+#include <misc/mem.h>
 
 #include "idirectfbinputbuffer.h"
 

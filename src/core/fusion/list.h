@@ -42,7 +42,13 @@ extern "C"
      void fusion_list_prepend (FusionLink **list, FusionLink *link);
      void fusion_list_remove  (FusionLink **list, FusionLink *link);
 
-#define fusion_list_foreach(link, list)  for (link = list; link; link = link->next)
+#define fusion_list_foreach(link, list) \
+     for (link = list; link; link = link->next)
+
+#define fusion_list_foreach_safe(link, next, list)          \
+     for (link = list, next = (link ? link->next : NULL);   \
+          link;                                             \
+          link = next, next = (link ? link->next : NULL))
 
 #ifdef __cplusplus
 }

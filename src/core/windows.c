@@ -471,7 +471,7 @@ dfb_window_destroy( CoreWindow *window, bool unref )
      window->destroyed = true;
 
      evt.type = DWET_DESTROYED;
-     dfb_window_dispatch( window, &evt );
+     dfb_window_post_event( window, &evt );
 
      if (window->surface) {
           CoreSurface *surface = window->surface;
@@ -768,7 +768,7 @@ dfb_window_move( CoreWindow *window,
      evt.type = DWET_POSITION;
      evt.x = window->x;
      evt.y = window->y;
-     dfb_window_dispatch( window, &evt );
+     dfb_window_post_event( window, &evt );
 
      stack_unlock( stack );
 }
@@ -824,7 +824,7 @@ dfb_window_resize( CoreWindow   *window,
      evt.type = DWET_SIZE;
      evt.w = window->width;
      evt.h = window->height;
-     dfb_window_dispatch( window, &evt );
+     dfb_window_post_event( window, &evt );
 
      stack_unlock( stack );
 
@@ -1055,8 +1055,8 @@ dfb_window_ungrab_key( CoreWindow                 *window,
 }
 
 void
-dfb_window_dispatch( CoreWindow     *window,
-                     DFBWindowEvent *event )
+dfb_window_post_event( CoreWindow     *window,
+                       DFBWindowEvent *event )
 {
      DFB_ASSERT( window != NULL );
      DFB_ASSERT( event != NULL );
@@ -1078,7 +1078,7 @@ dfb_window_dispatch( CoreWindow     *window,
           event->cy        = stack->cursor.y;
      }
 
-     fusion_object_dispatch( &window->object, event, dfb_window_globals );
+     dfb_window_dispatch( window, event, dfb_window_globals );
 }
 
 void
@@ -1100,7 +1100,7 @@ dfb_window_request_focus( CoreWindow *window )
           we.x    = stack->cursor.x - entered->x;
           we.y    = stack->cursor.y - entered->y;
 
-          dfb_window_dispatch( entered, &we );
+          dfb_window_post_event( entered, &we );
 
           stack->entered_window = NULL;
      }
@@ -1136,7 +1136,7 @@ dfb_windowstack_flush_keys( CoreWindowStack *stack )
                we.key_id     = stack->keys[i].id;
                we.key_symbol = stack->keys[i].symbol;
 
-               dfb_window_dispatch( stack->keys[i].owner, &we );
+               dfb_window_post_event( stack->keys[i].owner, &we );
 
                stack->keys[i].code = -1;
           }
@@ -1254,7 +1254,7 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
                     we.x    = stack->cursor.x - stack->pointer_window->x;
                     we.y    = stack->cursor.y - stack->pointer_window->y;
 
-                    dfb_window_dispatch( stack->pointer_window, &we );
+                    dfb_window_post_event( stack->pointer_window, &we );
                }
                else {
                     if (!handle_enter_leave_focus( stack )
@@ -1263,7 +1263,7 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
                          we.x    = stack->cursor.x - stack->entered_window->x;
                          we.y    = stack->cursor.y - stack->entered_window->y;
 
-                         dfb_window_dispatch( stack->entered_window, &we );
+                         dfb_window_post_event( stack->entered_window, &we );
                     }
                }
 
@@ -1754,7 +1754,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               if (stack->entered_window) {
                                    DFBWindowEvent evt;
                                    evt.type = DWET_CLOSE;
-                                   dfb_window_dispatch( stack->entered_window, &evt );
+                                   dfb_window_post_event( stack->entered_window, &evt );
                               }
                               stack_unlock( stack );
                               return RS_OK;
@@ -1838,7 +1838,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                     we.key_id     = evt->key_id;
                     we.key_symbol = evt->key_symbol;
 
-                    dfb_window_dispatch( window, &we );
+                    dfb_window_post_event( window, &we );
                }
 
                break;
@@ -1858,7 +1858,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                     we.x      = stack->cursor.x - window->x;
                     we.y      = stack->cursor.y - window->y;
 
-                    dfb_window_dispatch( window, &we );
+                    dfb_window_post_event( window, &we );
                }
 
                break;
@@ -1947,7 +1947,7 @@ handle_wheel( CoreWindowStack *stack, int dz )
                we.y      = stack->cursor.y - window->y;
                we.step   = dz;
 
-               dfb_window_dispatch( window, &we );
+               dfb_window_post_event( window, &we );
           }
      }
 }
@@ -1970,7 +1970,7 @@ handle_enter_leave_focus( CoreWindowStack *stack )
                     we.x    = stack->cursor.x - before->x;
                     we.y    = stack->cursor.y - before->y;
 
-                    dfb_window_dispatch( before, &we );
+                    dfb_window_post_event( before, &we );
                }
 
                /* switch focus and send enter event */
@@ -1981,7 +1981,7 @@ handle_enter_leave_focus( CoreWindowStack *stack )
                     we.x    = stack->cursor.x - after->x;
                     we.y    = stack->cursor.y - after->y;
 
-                    dfb_window_dispatch( after, &we );
+                    dfb_window_post_event( after, &we );
                }
 
                /* update pointer to window under the cursor */
@@ -2064,7 +2064,7 @@ window_insert( CoreWindow *window,
      evt.y    = window->y;
      evt.w    = window->width;
      evt.h    = window->height;
-     dfb_window_dispatch( window, &evt );
+     dfb_window_post_event( window, &evt );
 
      if (window->opacity)
           handle_enter_leave_focus( stack );
@@ -2242,7 +2242,7 @@ window_withdraw( CoreWindow *window )
                we.key_id     = stack->keys[i].id;
                we.key_symbol = stack->keys[i].symbol;
 
-               dfb_window_dispatch( window, &we );
+               dfb_window_post_event( window, &we );
 
                stack->keys[i].code = -1;
           }
@@ -2260,7 +2260,7 @@ switch_focus( CoreWindowStack *stack, CoreWindow *to )
 
      if (from) {
           evt.type = DWET_LOSTFOCUS;
-          dfb_window_dispatch( from, &evt );
+          dfb_window_post_event( from, &evt );
      }
 
      if (to) {
@@ -2274,7 +2274,7 @@ switch_focus( CoreWindowStack *stack, CoreWindow *to )
           }
 
           evt.type = DWET_GOTFOCUS;
-          dfb_window_dispatch( to, &evt );
+          dfb_window_post_event( to, &evt );
      }
 
      stack->focused_window = to;

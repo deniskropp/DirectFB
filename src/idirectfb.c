@@ -988,6 +988,43 @@ IDirectFB_WaitForSync( IDirectFB *thiz )
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFB_GetInterface( IDirectFB   *thiz,
+                        const char  *type,
+                        const char  *implementation,
+                        void        *arg,
+                        void       **interface )
+{
+     DFBResult          ret;
+     DFBInterfaceFuncs *funcs = NULL;
+
+     INTERFACE_GET_DATA(IDirectFB)
+
+     if (!type || !interface)
+          return DFB_INVARG;
+
+     if (!strncmp( type, "IDirectFB", 9 )) {
+          ERRORMSG( "IDirectFB::GetInterface() "
+                    "is not allowed for \"IDirectFB*\"!\n" );
+          return DFB_ACCESSDENIED;
+     }
+
+     ret = DFBGetInterface( &funcs,
+                            type, implementation, DFBProbeInterface, arg );
+     if (ret)
+          return ret;
+
+     ret = funcs->Allocate( interface );
+     if (ret)
+          return ret;
+
+     ret = funcs->Construct( *interface, arg );
+     if (ret)
+          *interface = NULL;
+
+     return ret;
+}
+
 /*
  * Constructor
  *
@@ -1039,6 +1076,7 @@ IDirectFB_Construct( IDirectFB *thiz )
      thiz->Resume = IDirectFB_Resume;
      thiz->WaitIdle = IDirectFB_WaitIdle;
      thiz->WaitForSync = IDirectFB_WaitForSync;
+     thiz->GetInterface = IDirectFB_GetInterface;
 
      return DFB_OK;
 }

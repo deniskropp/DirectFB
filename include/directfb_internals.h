@@ -46,8 +46,8 @@ typedef struct {
  * After success 'funcs' is set.
  */
 DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
-                           char *type,
-                           char *implementation,
+                           const char *type,
+                           const char *implementation,
                            int (*probe)( DFBInterfaceFuncs *impl, void *ctx ),
                            void *probe_ctx );
 

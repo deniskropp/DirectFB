@@ -252,7 +252,16 @@ dfb_gfxcard_join( void *data_local, void *data_shared )
 static DFBResult
 dfb_gfxcard_shutdown( bool emergency )
 {
+     GraphicsDeviceShared *shared;
+
      DFB_ASSERT( card != NULL );
+     DFB_ASSERT( card->shared != NULL );
+
+     shared = card->shared;
+
+     DFB_ASSERT( shared->surface_pool != NULL );
+     DFB_ASSERT( shared->palette_pool != NULL );
+     DFB_ASSERT( shared->surface_manager != NULL );
 
      dfb_gfxcard_lock( true, true, false, false );
 
@@ -268,12 +277,12 @@ dfb_gfxcard_shutdown( bool emergency )
           DFBFREE( card->driver_data );
      }
 
-     dfb_surface_pool_destroy( card->shared->surface_pool );
-     dfb_palette_pool_destroy( card->shared->palette_pool );
+     fusion_object_pool_destroy( shared->surface_pool );
+     fusion_object_pool_destroy( shared->palette_pool );
 
-     dfb_surfacemanager_destroy( card->shared->surface_manager );
+     dfb_surfacemanager_destroy( shared->surface_manager );
 
-     fusion_property_destroy( &card->shared->lock );
+     fusion_property_destroy( &shared->lock );
 
      card = NULL;
 
