@@ -233,7 +233,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                     uc_set_texenv(ucdrv, ucdev, state);
                     uc_set_blending_fn(ucdrv, ucdev, state);
 
-                    regEnable |= HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK;
+                    regEnable |= HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK | HC_HenDT_MASK;
 
                     if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                                 DSBLIT_BLEND_COLORALPHA))
