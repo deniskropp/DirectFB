@@ -1406,9 +1406,12 @@ static void Sop_a8_set_alphapixel_Aop_rgb16()
           else {\
                __u16 s = (a)+1;\
                \
-               *pixel++ = (((b)-(*pixel)) * s + (*pixel << 8)) >> 8;\
-               *pixel++ = (((g)-(*pixel)) * s + (*pixel << 8)) >> 8;\
-               *pixel++ = (((r)-(*pixel)) * s + (*pixel << 8)) >> 8;\
+               *pixel = (((b)-(*pixel)) * s + (*pixel << 8)) >> 8;\
+               ++pixel;\
+               *pixel = (((g)-(*pixel)) * s + (*pixel << 8)) >> 8;\
+               ++pixel;\
+               *pixel = (((r)-(*pixel)) * s + (*pixel << 8)) >> 8;\
+               ++pixel;\
           }\
      }
 

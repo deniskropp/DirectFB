@@ -304,10 +304,11 @@ static DFBResult layer_cursor_load_default( DisplayLayer *layer )
                __u32 *tmp_data = data;
 
                while(i--) {
-                    *tmp_data++ = (*tmp_data & 0xFF000000) >> 24 |
-                                  (*tmp_data & 0x00FF0000) >>  8 |
-                                  (*tmp_data & 0x0000FF00) <<  8 |
-                                  (*tmp_data & 0x000000FF) << 24;
+                    *tmp_data = (*tmp_data & 0xFF000000) >> 24 |
+                                (*tmp_data & 0x00FF0000) >>  8 |
+                                (*tmp_data & 0x0000FF00) <<  8 |
+                                (*tmp_data & 0x000000FF) << 24;
+                    ++tmp_data;
                }
           }
 #endif          
