@@ -27,6 +27,8 @@
 #include <dlfcn.h>
 #include <errno.h>
 
+#include <pthread.h>
+
 #include "directfb.h"
 
 #include "coredefs.h"
@@ -114,7 +116,7 @@ DFBResult core_init()
      INITCHECK( input_init_devices() );
      INITCHECK( fbdev_open() );
      INITCHECK( gfxcard_init() );
-     
+
      INITCHECK( primarylayer_init() );
      INITCHECK( gfxcard_init_layers() );
 
@@ -125,14 +127,14 @@ void core_deinit()
 {
      if (--core_refs)
           return;
-     
+
      while (core_cleanups) {
           CoreCleanup *cleanup = core_cleanups;
 
           core_cleanups = cleanup->next;
 
           cleanup->cleanup( cleanup->data, 0 );
-          
+
           DFBFREE( cleanup );
      }
 
@@ -148,19 +150,30 @@ void core_deinit()
 
 void core_deinit_emergency()
 {
+     int i;
+
      core_refs = 0;
 
      while (core_cleanups) {
           CoreCleanup     *cleanup      = core_cleanups;
 
           core_cleanups = core_cleanups->prev;
-          
+
           if (cleanup->emergency)
                cleanup->cleanup( cleanup->data, 1 );
-          
+
           DFBFREE( cleanup );
      }
-     
+
+     /* try to prohibit graphics hardware access,
+        this may fail if the current thread locked it */
+     for (i=0; i<100; i++) {
+          gfxcard_sync();
+
+          if (pthread_mutex_trylock( &card->lock ) != EBUSY)
+               break;
+     }
+
      vt_close();
 
      sig_remove_handlers();
@@ -194,7 +207,7 @@ void core_cleanup_remove( CoreCleanup *cleanup )
 {
      if (cleanup->next)
           cleanup->next->prev = cleanup->prev;
-     
+
      if (cleanup->prev)
           cleanup->prev->next = cleanup->next;
      else
