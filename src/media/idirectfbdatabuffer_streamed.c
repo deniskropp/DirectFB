@@ -46,7 +46,6 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <direct/debug.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -76,8 +75,6 @@ typedef struct {
      IDirectFBDataBuffer_data  base;
 
      DirectLink               *chunks;          /* data chunks */
-     DirectLink               *last;            /* last chunk is the
-                                                   first to read */
 
      unsigned int              length;          /* total length of all chunks */
 
@@ -338,12 +335,8 @@ IDirectFBDataBuffer_Streamed_PutData( IDirectFBDataBuffer *thiz,
 
      pthread_mutex_lock( &data->chunks_mutex );
 
-     /* Prepend new chunk. */
-     direct_list_prepend( &data->chunks, &chunk->link );
-
-     /* If no chunk has been there before it's the last one. */
-     if (!data->last)
-          data->last = data->chunks;
+     /* Append new chunk. */
+     direct_list_append( &data->chunks, &chunk->link );
 
      /* Increase total length. */
      data->length += length;
@@ -400,7 +393,7 @@ DestroyAllChunks( IDirectFBDataBuffer_Streamed_data *data )
      }
 
      /* Clear lists. */
-     data->last = data->chunks = NULL;
+     data->chunks = NULL;
 }
 
 static void
@@ -410,20 +403,16 @@ ReadChunkData( IDirectFBDataBuffer_Streamed_data *data,
                unsigned int                       length,
                bool                               flush )
 {
-     DirectLink *l;
+     DirectLink *l, *n;
 
      D_ASSERT( data != NULL );
      D_ASSERT( buffer != NULL );
 
-     /* Fetch last link (the first to read). */
-     l = data->last;
-
      /* Loop through links. */
-     while (l && length) {
+     direct_list_foreach_safe (l, n, data->chunks) {
           unsigned int  len;
           unsigned int  off   = 0;
           DataChunk    *chunk = (DataChunk*) l;
-          DirectLink   *prev  = l->prev;
 
           /* Is there data to be skipped? */
           if (offset) {
@@ -456,11 +445,6 @@ ReadChunkData( IDirectFBDataBuffer_Streamed_data *data,
 
                /* Completely consumed? */
                if (chunk->done == chunk->length) {
-                    /* If this chunk is the last,
-                       the previous is the new last. */
-                    if (data->last == l)
-                         data->last = prev;
-
                     /* Remove the chunk from the list. */
                     direct_list_remove( &data->chunks, l );
 
@@ -468,9 +452,6 @@ ReadChunkData( IDirectFBDataBuffer_Streamed_data *data,
                     destroy_chunk( chunk );
                }
           }
-
-          /* Proceed with previous link. */
-          l = prev;
      }
 
      D_ASSERT( length == 0 );
