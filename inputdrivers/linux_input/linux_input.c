@@ -34,8 +34,6 @@
 #include <sys/ioctl.h>
 
 
-#include <pthread.h>
-
 #include <linux/input.h>
 #include "input_fake.h"
 
@@ -45,6 +43,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/input.h>
+#include <core/thread.h>
 
 #include <misc/mem.h>
 #include <misc/util.h>
@@ -66,9 +65,10 @@ DFB_INPUT_DRIVER( linux_input )
  * declaration of private data
  */
 typedef struct {
-     int          fd;
      InputDevice *device;
-     pthread_t    thread;
+     CoreThread  *thread;
+     
+     int          fd;
 } LinuxInputData;
 
 
@@ -353,7 +353,7 @@ translate_event( struct input_event *levt,
  * Generates events on incoming data.
  */
 static void*
-linux_input_EventThread( void *driver_data )
+linux_input_EventThread( CoreThread *thread, void *driver_data )
 {
      LinuxInputData    *data = (LinuxInputData*) driver_data;
      int                readlen;
@@ -363,7 +363,7 @@ linux_input_EventThread( void *driver_data )
      while ((readlen = read( data->fd, &levt, sizeof(levt) )) == sizeof(levt)
             || (readlen < 0 && errno == EINTR))
      {
-          pthread_testcancel();
+          dfb_thread_testcancel( thread );
 
           if (readlen <= 0)
                continue;
@@ -572,7 +572,8 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     pthread_create( &data->thread, NULL, linux_input_EventThread, data );
+     data->thread = dfb_thread_create( CTT_INPUT,
+                                       linux_input_EventThread, data );
 
      /* set private data pointer */
      *driver_data = data;
@@ -603,8 +604,9 @@ driver_close_device( void *driver_data )
      LinuxInputData *data = (LinuxInputData*) driver_data;
 
      /* stop input thread */
-     pthread_cancel( data->thread );
-     pthread_join( data->thread, NULL );
+     dfb_thread_cancel( data->thread );
+     dfb_thread_join( data->thread );
+     dfb_thread_destroy( data->thread );
 
      /* close file */
      close( data->fd );

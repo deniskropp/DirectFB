@@ -35,15 +35,13 @@
 
 #include <linux/h3600_ts.h>
 
-#include <pthread.h>
-
 #include <directfb.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/sig.h>
+#include <core/thread.h>
 
 #include <misc/conf.h>
 #include <misc/mem.h>
@@ -54,12 +52,14 @@
 DFB_INPUT_DRIVER( h3600_ts )
 
 typedef struct {
-     int            fd;
      InputDevice   *device;
-     pthread_t      thread;
+     CoreThread    *thread;
+
+     int            fd;
 } H3600TSData;
 
-static void* h3600tsEventThread( void *driver_data )
+static void *
+h3600tsEventThread( CoreThread *thread, void *driver_data )
 {
      H3600TSData *data = (H3600TSData*) driver_data;
 
@@ -71,15 +71,12 @@ static void* h3600tsEventThread( void *driver_data )
      unsigned short old_y = -1;
      unsigned short old_pressure = 0;
 
-     /* block all signals, they must not be handled by this thread */
-     dfb_sig_block_all();
-
      while ((readlen = read(data->fd, &ts_event, sizeof(TS_EVENT))) > 0  ||
             errno == EINTR)
      {
           DFBInputEvent evt;
 
-          pthread_testcancel();
+          dfb_thread_testcancel( thread );
 
           if (readlen < 1)
                continue;
@@ -123,8 +120,6 @@ static void* h3600tsEventThread( void *driver_data )
 
      if (readlen <= 0)
           PERRORMSG ("H3600 Touchscreen thread died\n");
-
-     pthread_testcancel();
 
      return NULL;
 }
@@ -202,7 +197,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     pthread_create( &data->thread, NULL, h3600tsEventThread, data );
+     data->thread = dfb_thread_create( CTT_INPUT, h3600tsEventThread, data );
 
      /* set private data pointer */
      *driver_data = data;
@@ -227,8 +222,9 @@ driver_close_device( void *driver_data )
      H3600TSData *data = (H3600TSData*) driver_data;
 
      /* stop input thread */
-     pthread_cancel( data->thread );
-     pthread_join( data->thread, NULL );
+     dfb_thread_cancel( data->thread );
+     dfb_thread_join( data->thread );
+     dfb_thread_destroy( data->thread );
 
      /* close device */
      if (close( data->fd ) < 0)

@@ -36,8 +36,6 @@
 #include <sys/ioctl.h>
 #include <sys/vt.h>
 
-#include <pthread.h>
-
 #include <linux/joystick.h>
 
 #include <directfb.h>
@@ -48,7 +46,7 @@
 #include <misc/mem.h>
 
 #include <core/input.h>
-#include <core/sig.h>
+#include <core/thread.h>
 
 #include <core/input_driver.h>
 
@@ -56,9 +54,10 @@
 DFB_INPUT_DRIVER( joystick )
 
 typedef struct {
-     int          fd;
      InputDevice *device;
-     pthread_t    thread;
+     CoreThread  *thread;
+
+     int          fd;
 } JoystickData;
 
 
@@ -87,21 +86,18 @@ static DFBInputEvent joystick_handle_event(struct js_event jse)
 }
 
 static void*
-joystickEventThread (void *driver_data)
+joystickEventThread( CoreThread *thread, void *driver_data )
 {
      int              len;
      struct js_event  jse;
      JoystickData    *data = (JoystickData*) driver_data;
-
-     /* block all signals, they must not be handled by this thread */
-     dfb_sig_block_all();
 
      while ((len = read( data->fd, &jse,
                          sizeof(struct js_event) )) > 0 || errno == EINTR)
      {
           DFBInputEvent evt;
 
-          pthread_testcancel();
+          dfb_thread_testcancel( thread );
 
           if (len != sizeof(struct js_event))
                continue;
@@ -113,8 +109,6 @@ joystickEventThread (void *driver_data)
 
      if (len <= 0 && errno != EINTR)
           PERRORMSG ("joystick thread died\n");
-
-     pthread_testcancel();
 
      return NULL;
 }
@@ -232,7 +226,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     pthread_create( &data->thread, NULL, joystickEventThread, data );
+     data->thread = dfb_thread_create( CTT_INPUT, joystickEventThread, data );
 
      /* set private data pointer */
      *driver_data = data;
@@ -257,8 +251,9 @@ driver_close_device( void *driver_data )
      JoystickData *data = (JoystickData*) driver_data;
 
      /* stop input thread */
-     pthread_cancel( data->thread );
-     pthread_join( data->thread, NULL );
+     dfb_thread_cancel( data->thread );
+     dfb_thread_join( data->thread );
+     dfb_thread_destroy( data->thread );
 
      /* close device */
      close( data->fd );

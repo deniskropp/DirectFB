@@ -32,8 +32,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include <pthread.h>
-
 #include <directfb.h>
 #include <directfb_keynames.h>
 
@@ -41,7 +39,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/sig.h>
+#include <core/thread.h>
 
 #include <misc/mem.h>
 
@@ -54,9 +52,10 @@ static DirectFBKeySymbolNames(keynames);
 static bool keynames_sorted = false;
 
 typedef struct {
-     int          fd;
      InputDevice *device;
-     pthread_t    thread;
+     CoreThread  *thread;
+
+     int          fd;
 } LircData;
 
 
@@ -119,20 +118,17 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
 }
 
 static void*
-lircEventThread( void *driver_data )
+lircEventThread( CoreThread *thread, void *driver_data )
 {
      LircData      *data  = (LircData*) driver_data;
      int            readlen;
      char           buf[128];
      DFBInputEvent  evt;
 
-     /* block all signals, they must not be handled by this thread */
-     dfb_sig_block_all();
-
      memset( &evt, 0, sizeof(DFBInputEvent) );
 
      while ((readlen = read( data->fd, buf, 128 )) > 0 || errno == EINTR) {
-          pthread_testcancel();
+          dfb_thread_testcancel( thread );
 
           if (readlen < 1)
                continue;
@@ -248,7 +244,7 @@ driver_open_device( InputDevice      *device,
      data->device = device;
 
      /* start input thread */
-     pthread_create( &data->thread, NULL, lircEventThread, data );
+     data->thread = dfb_thread_create( CTT_INPUT, lircEventThread, data );
 
      /* set private data pointer */
      *driver_data = data;
@@ -273,8 +269,9 @@ driver_close_device( void *driver_data )
      LircData *data = (LircData*) driver_data;
 
      /* stop input thread */
-     pthread_cancel( data->thread );
-     pthread_join( data->thread, NULL );
+     dfb_thread_cancel( data->thread );
+     dfb_thread_join( data->thread );
+     dfb_thread_destroy( data->thread );
 
      /* close socket */
      close( data->fd );

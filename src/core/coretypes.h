@@ -32,8 +32,9 @@
 typedef struct _CoreCleanup             CoreCleanup;
 
 typedef struct _CoreFont                CoreFont;
-typedef struct _CoreSurface             CoreSurface;
 typedef struct _CorePalette             CorePalette;
+typedef struct _CoreSurface             CoreSurface;
+typedef struct _CoreThread              CoreThread;
 typedef struct _CoreWindow              CoreWindow;
 typedef struct _CoreWindowStack         CoreWindowStack;
 

@@ -38,15 +38,13 @@
 
 #include <linux/serial.h>
 
-#include <pthread.h>
-
 #include <directfb.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/sig.h>
+#include <core/thread.h>
 
 #include <misc/conf.h>
 #include <misc/mem.h>
@@ -77,10 +75,11 @@ static const char *protocol_names[LAST_PROTOCOL] =
 };
 
 typedef struct {
-     int            fd;
      InputDevice   *device;
-     pthread_t      thread;
+     CoreThread    *thread;
 
+     int            fd;
+     
      MouseProtocol  protocol;
 
      DFBInputEvent  x_motion;
@@ -146,7 +145,7 @@ mouse_setspeed( SerialMouseData *data )
 
 /* the main routine for MS mice (plus extensions) */
 static void*
-mouseEventThread_ms( void *driver_data )
+mouseEventThread_ms( CoreThread *thread, void *driver_data )
 {
      SerialMouseData *data = (SerialMouseData*) driver_data;
      DFBInputEvent    evt;
@@ -160,15 +159,12 @@ mouseEventThread_ms( void *driver_data )
      int readlen;
      int i;
 
-     /* block all signals, they must not be handled by this thread */
-     dfb_sig_block_all();
-
      mouse_motion_initialize( data );
 
      /* Read data */
      while ((readlen = read( data->fd, buf, 256 )) >= 0 || errno == EINTR) {
 
-          pthread_testcancel();
+          dfb_thread_testcancel( thread );
 
           for (i = 0; i < readlen; i++) {
 
@@ -259,7 +255,7 @@ mouseEventThread_ms( void *driver_data )
           if (readlen > 0)
                mouse_motion_realize( data );
 
-          pthread_testcancel();
+          dfb_thread_testcancel( thread );
      }
 
      PERRORMSG ("serial mouse thread died\n");
@@ -269,7 +265,7 @@ mouseEventThread_ms( void *driver_data )
 
 /* the main routine for MouseSystems */
 static void*
-mouseEventThread_mousesystems( void *driver_data )
+mouseEventThread_mousesystems( CoreThread *thread, void *driver_data )
 {
      SerialMouseData *data = (SerialMouseData*) driver_data;
 
@@ -280,15 +276,12 @@ mouseEventThread_mousesystems( void *driver_data )
      int i;
      int readlen;
 
-     /* block all signals, they must not be handled by this thread */
-     dfb_sig_block_all();
-
      mouse_motion_initialize( data );
 
      /* Read data */
      while ((readlen = read( data->fd, buf, 256 )) >= 0 || errno == EINTR) {
 
-          pthread_testcancel();
+          dfb_thread_testcancel( thread );
 
           for (i = 0; i < readlen; i++) {
 
@@ -352,7 +345,7 @@ mouseEventThread_mousesystems( void *driver_data )
           if (readlen > 0)
                mouse_motion_realize( data );
 
-          pthread_testcancel();
+          dfb_thread_testcancel( thread );
      }
 
      PERRORMSG ("serial mouse thread died\n");
@@ -505,11 +498,10 @@ driver_open_device( InputDevice      *device,
      info->desc.max_button = (protocol > PROTOCOL_MS) ? DIBI_MIDDLE : DIBI_RIGHT;
 
      /* start input thread */
-     if (protocol == PROTOCOL_MOUSESYSTEMS)
-          pthread_create( &data->thread, NULL,
-                          mouseEventThread_mousesystems, data );
-     else
-          pthread_create( &data->thread, NULL, mouseEventThread_ms, data );
+     data->thread = dfb_thread_create( CTT_INPUT,
+                                       protocol == PROTOCOL_MOUSESYSTEMS ?
+                                       mouseEventThread_mousesystems :
+                                       mouseEventThread_ms, data );
 
      /* set private data pointer */
      *driver_data = data;
@@ -534,8 +526,9 @@ driver_close_device( void *driver_data )
      SerialMouseData *data = (SerialMouseData*) driver_data;
 
      /* stop input thread */
-     pthread_cancel( data->thread );
-     pthread_join( data->thread, NULL );
+     dfb_thread_cancel( data->thread );
+     dfb_thread_join( data->thread );
+     dfb_thread_destroy( data->thread );
 
      /* close device */
      close( data->fd );

@@ -36,8 +36,6 @@
 
 #include <errno.h>
 
-#include <pthread.h>
-
 #include <linux/keyboard.h>
 
 #include <termios.h>
@@ -48,7 +46,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/sig.h>
+#include <core/thread.h>
 
 #include <core/fbdev/vt.h> /* FIXME! */
 
@@ -62,8 +60,9 @@ DFB_INPUT_DRIVER( keyboard )
 
 typedef struct {
      InputDevice                *device;
+     CoreThread                 *thread;
+     
      struct termios              old_ts;
-     pthread_t                   thread;
 } KeyboardData;
 
 static DFBInputDeviceKeySymbol
@@ -247,20 +246,17 @@ keyboard_set_lights( DFBInputDeviceLockState locks )
 }
 
 static void*
-keyboardEventThread( void *driver_data )
+keyboardEventThread( CoreThread *thread, void *driver_data )
 {
      int            readlen;
      unsigned char  buf[64];
      KeyboardData  *data = (KeyboardData*) driver_data;
 
-     /* block all signals, they must not be handled by this thread */
-     dfb_sig_block_all();
-
      /* Read keyboard data */
      while ((readlen = read (dfb_vt->fd, buf, 64)) >= 0 || errno == EINTR) {
           int i;
 
-          pthread_testcancel();
+          dfb_thread_testcancel( thread );
 
           for (i = 0; i < readlen; i++) {
                DFBInputEvent evt;
@@ -278,8 +274,6 @@ keyboardEventThread( void *driver_data )
 
      if (readlen <= 0 && errno != EINTR)
           PERRORMSG ("keyboard thread died\n");
-
-     pthread_testcancel();
 
      return NULL;
 }
@@ -368,7 +362,7 @@ driver_open_device( InputDevice      *device,
      info->desc.max_keycode = 127;
 
      /* start input thread */
-     pthread_create( &data->thread, NULL, keyboardEventThread, data );
+     data->thread = dfb_thread_create( CTT_INPUT, keyboardEventThread, data );
 
      /* set private data pointer */
      *driver_data = data;
@@ -442,8 +436,9 @@ driver_close_device( void *driver_data )
      KeyboardData *data = (KeyboardData*) driver_data;
 
      /* stop input thread */
-     pthread_cancel( data->thread );
-     pthread_join( data->thread, NULL );
+     dfb_thread_cancel( data->thread );
+     dfb_thread_join( data->thread );
+     dfb_thread_destroy( data->thread );
 
      write( dfb_vt->fd, cursoron_str, strlen(cursoron_str) );
      write( dfb_vt->fd, blankon_str, strlen(blankon_str) );

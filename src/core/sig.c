@@ -52,7 +52,8 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
 
 static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
 
-void dfb_sig_remove_handlers()
+void
+dfb_sig_remove_handlers()
 {
      int i;
 
@@ -70,7 +71,8 @@ void dfb_sig_remove_handlers()
      }
 }
 
-static void dfb_sig_handler( int num )
+static void
+dfb_sig_handler( int num )
 {
      ERRORMSG( "--->  CAUGHT SIGNAL %d  <---\n", num );
 
@@ -81,7 +83,8 @@ static void dfb_sig_handler( int num )
      kill( 0, num );
 }
 
-void dfb_sig_install_handlers()
+void
+dfb_sig_install_handlers()
 {
      int i;
 
@@ -108,5 +111,16 @@ void dfb_sig_install_handlers()
                sigs_handled[i].signum = signum;
           }
      }
+}
+
+void
+dfb_sig_block_all()
+{
+     sigset_t signals;
+     
+     sigfillset( &signals );
+
+     if (pthread_sigmask( SIG_BLOCK, &signals, NULL ))
+          PERRORMSG( "DirectFB/Core: Setting signal mask failed!\n" );
 }
 
