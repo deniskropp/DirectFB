@@ -343,6 +343,7 @@ fill_interface_desc( InterfaceDesc     *desc,
 
 /**************************************************************************************************/
 
+__attribute__((no_instrument_function))
 void
 direct_dbg_interface_add( const char *func,
                           const char *file,
@@ -363,6 +364,7 @@ direct_dbg_interface_add( const char *func,
      pthread_mutex_unlock( &alloc_lock );
 }
 
+__attribute__((no_instrument_function))
 void
 direct_dbg_interface_remove( const char *func,
                              const char *file,

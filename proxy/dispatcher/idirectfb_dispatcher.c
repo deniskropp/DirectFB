@@ -539,6 +539,31 @@ Dispatch_GetCardCapabilities( IDirectFB *thiz, IDirectFB *real,
 }
 
 static DirectResult
+Dispatch_SetVideoMode( IDirectFB *thiz, IDirectFB *real,
+                       VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult        ret;
+     VoodooMessageParser parser;
+     int                 width;
+     int                 height;
+     int                 bpp;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_INT( parser, width );
+     VOODOO_PARSER_GET_INT( parser, height );
+     VOODOO_PARSER_GET_INT( parser, bpp );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->SetVideoMode( real, width, height, bpp );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_CreateInputEventBuffer( IDirectFB *thiz, IDirectFB *real,
                                  VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -903,6 +928,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFB_METHOD_ID_GetCardCapabilities:
                return Dispatch_GetCardCapabilities( dispatcher, real, manager, msg );
+
+          case IDIRECTFB_METHOD_ID_SetVideoMode:
+               return Dispatch_SetVideoMode( dispatcher, real, manager, msg );
 
           case IDIRECTFB_METHOD_ID_CreateSurface:
                return Dispatch_CreateSurface( dispatcher, real, manager, msg );

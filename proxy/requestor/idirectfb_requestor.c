@@ -180,11 +180,28 @@ IDirectFB_Requestor_SetVideoMode( IDirectFB    *thiz,
                                   int           height,
                                   int           bpp )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (width < 1 || height < 1 || bpp < 1)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFB_METHOD_ID_SetVideoMode, VREQ_RESPOND, &response,
+                                   VMBT_INT, width,
+                                   VMBT_INT, height,
+                                   VMBT_INT, bpp,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
 }
 
 static DFBResult
