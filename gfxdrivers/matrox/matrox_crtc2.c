@@ -482,10 +482,10 @@ static void crtc2_calc_regs( MatroxDriverData     *mdrv,
      mcrtc2->regs.c2CTL |= (1 << 31);
 
      switch (surface->format) {
-          case DSPF_I420:
-          case DSPF_YV12:
-          case DSPF_UYVY:
-          case DSPF_YUY2:
+          case DSPF_ARGB1555:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
                /* c2dithen = 1 */
                mcrtc2->regs.c2DATACTL |= (1 << 0);
                /* c2yfiltend = 1 */
