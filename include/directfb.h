@@ -440,8 +440,8 @@ typedef enum {
                                            stored interleaved. One field's
                                            height is a half of the surface's
                                            height. */
-     DSCAPS_SEPERATED    = 0x00000080,  /* For usage with DSCAPS_INTERLACED.
-                                           <br> DSCAPS_SEPERATED specifies that
+     DSCAPS_SEPARATED    = 0x00000080,  /* For usage with DSCAPS_INTERLACED.
+                                           <br> DSCAPS_SEPARATED specifies that
                                            the fields are NOT interleaved line
                                            by line in the buffer. <br>The first
                                            field is followed by the second one

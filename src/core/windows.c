@@ -279,7 +279,7 @@ dfb_window_create( CoreWindowStack        *stack,
      DisplayLayer           *layer = dfb_layer_at( stack->layer_id );
      CoreSurface            *layer_surface = dfb_layer_surface( layer );
 
-     surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPERATED |
+     surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED |
                      DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
 
      if (caps & DWCAPS_ALPHACHANNEL) {

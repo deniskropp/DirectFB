@@ -3045,7 +3045,7 @@ static void Aop_xy( void *org, int x, int y, int pitch )
 {
      Aop = org;
 
-     if (dst_caps & DSCAPS_SEPERATED) {
+     if (dst_caps & DSCAPS_SEPARATED) {
           Aop_field = y & 1;
           if (Aop_field)
                Aop += dst_field_offset;
@@ -3058,7 +3058,7 @@ static void Aop_xy( void *org, int x, int y, int pitch )
 
 static void Aop_next( int pitch )
 {
-     if (dst_caps & DSCAPS_SEPERATED) {
+     if (dst_caps & DSCAPS_SEPARATED) {
           Aop_field = !Aop_field;
           
           if (Aop_field)
@@ -3072,7 +3072,7 @@ static void Aop_next( int pitch )
 
 static void Aop_prev( int pitch )
 {
-     if (dst_caps & DSCAPS_SEPERATED) {
+     if (dst_caps & DSCAPS_SEPARATED) {
           Aop_field = !Aop_field;
           
           if (Aop_field)
@@ -3091,7 +3091,7 @@ static void Bop_xy( void *org, int x, int y, int pitch )
 {
      Bop = org;
 
-     if (src_caps & DSCAPS_SEPERATED) {
+     if (src_caps & DSCAPS_SEPARATED) {
           Bop_field = y & 1;
           if (Bop_field)
                Bop += src_field_offset;
@@ -3104,7 +3104,7 @@ static void Bop_xy( void *org, int x, int y, int pitch )
 
 static void Bop_next( int pitch )
 {
-     if (src_caps & DSCAPS_SEPERATED) {
+     if (src_caps & DSCAPS_SEPARATED) {
           Bop_field = !Bop_field;
           
           if (Bop_field)
@@ -3118,7 +3118,7 @@ static void Bop_next( int pitch )
 
 static void Bop_prev( int pitch )
 {
-     if (src_caps & DSCAPS_SEPERATED) {
+     if (src_caps & DSCAPS_SEPARATED) {
           Bop_field = !Bop_field;
           
           if (Bop_field)
