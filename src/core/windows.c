@@ -2067,16 +2067,30 @@ window_insert( CoreWindow *window,
 static void
 window_remove( CoreWindow *window )
 {
-     int i;
-     CoreWindowStack *stack = window->stack;
-     DFBRegion region = { window->x, window->y,
-          window->x + window->width - 1,
-          window->y + window->height - 1};
+     int              i;
+     FusionLink      *l;
+     CoreWindowStack *stack  = window->stack;
+     DFBRegion        region = { window->x, window->y,
+                                 window->x + window->width - 1,
+                                 window->y + window->height - 1};
 
      DFB_ASSERT( window->stack != NULL );
 
      window_withdraw( window );
 
+     l = stack->grabbed_keys;
+     while (l) {
+          FusionLink *next = l->next;
+          GrabbedKey *key  = (GrabbedKey*) l;
+
+          if (key->owner == window) {
+               fusion_list_remove( &stack->grabbed_keys, &key->link );
+               shfree( key );
+          }
+
+          l = next;
+     }
+     
      for (i=0; i<stack->num_windows; i++)
           if (stack->windows[i] == window)
                break;
@@ -2193,7 +2207,6 @@ static void
 window_withdraw( CoreWindow *window )
 {
      int              i;
-     FusionLink      *l;
      CoreWindowStack *stack;
 
      DFB_ASSERT( window != NULL );
@@ -2227,19 +2240,6 @@ window_withdraw( CoreWindow *window )
 
                stack->keys[i].code = -1;
           }
-     }
-
-     l = stack->grabbed_keys;
-     while (l) {
-          FusionLink *next = l->next;
-          GrabbedKey *key  = (GrabbedKey*) l;
-
-          if (key->owner == window) {
-               fusion_list_remove( &stack->grabbed_keys, &key->link );
-               shfree( key );
-          }
-
-          l = next;
      }
 }
 
