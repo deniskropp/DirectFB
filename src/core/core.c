@@ -596,11 +596,13 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      shared = core->shared;
 
-     fusion_object_pool_destroy( shared->window_pool );
-     fusion_object_pool_destroy( shared->layer_region_pool );
-     fusion_object_pool_destroy( shared->layer_context_pool );
-     fusion_object_pool_destroy( shared->surface_pool );
-     fusion_object_pool_destroy( shared->palette_pool );
+     if (!emergency) {
+          fusion_object_pool_destroy( shared->window_pool );
+          fusion_object_pool_destroy( shared->layer_region_pool );
+          fusion_object_pool_destroy( shared->layer_context_pool );
+          fusion_object_pool_destroy( shared->surface_pool );
+          fusion_object_pool_destroy( shared->palette_pool );
+     }
 
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
           dfb_core_part_shutdown( core, core_parts[i], emergency );
