@@ -98,7 +98,7 @@ static int core_transfer( FusionArena *arena, void *ctx );
  */
 void core_deinit_check()
 {
-     if (dfb_core->refs) {
+     if (dfb_core && dfb_core->refs) {
           DEBUGMSG( "DirectFB/core: WARNING - Application "
                     "exitted without deinitialization of DirectFB!\n" );
           if (dfb_core->master)
@@ -162,6 +162,7 @@ DFBResult core_ref()
                   core_initialize, core_join, core_takeover, NULL);
      if (!dfb_core->arena) {
           DFBFREE( dfb_core );
+          dfb_core = NULL;
           fusion_exit();
           return DFB_INIT;
      }
