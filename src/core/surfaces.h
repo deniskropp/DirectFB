@@ -46,7 +46,8 @@ typedef enum {
      CSNF_DESTROY        = 0x00000008,  /* surface is about to be destroyed */
      CSNF_FLIP           = 0x00000010,  /* surface buffer pointer swapped */
      CSNF_FIELD          = 0x00000020,  /* active (displayed) field switched */
-     CSNF_PALETTE        = 0x00000040   /* surface palette has been altered */
+     CSNF_PALETTE_CHANGE = 0x00000040,  /* another palette has been set */
+     CSNF_PALETTE_UPDATE = 0x00000080   /* current palette has been altered */
 } CoreSurfaceNotificationFlags;
 
 typedef struct {

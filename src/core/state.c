@@ -145,7 +145,8 @@ destination_listener( const void *msg_data,
 //     dfb_state_lock( state );
      
      if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
-                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
+                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE_CHANGE |
+                                CSNF_PALETTE_UPDATE))
           state->modified |= SMF_DESTINATION;
 
      if (notification->flags & CSNF_DESTROY) {
@@ -190,7 +191,8 @@ source_listener( const void *msg_data,
 //     dfb_state_lock( state );
      
      if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT | CSNF_FIELD |
-                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
+                                CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE_CHANGE |
+                                CSNF_PALETTE_UPDATE))
           state->modified |= SMF_SOURCE;
 
      if (notification->flags & CSNF_DESTROY) {

@@ -45,6 +45,7 @@
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/state.h>
+#include <core/palette.h>
 #include <core/system.h>
 #include <core/surfacemanager.h>
 #include <core/windows.h>
@@ -91,6 +92,7 @@ typedef struct {
                                           its own pixel buffer */
 
      CoreSurface             *surface; /* surface of the layer */
+     CorePalette             *palette; /* palette of the layer's surface */
 
      FusionProperty           lock;    /* purchased during exclusive access,
                                           leased during window stack repaint */
@@ -98,6 +100,7 @@ typedef struct {
      bool                     exclusive; /* helps to detect dead excl. access */
 
      Reaction                 surface_reaction;
+     Reaction                 palette_reaction;
 } DisplayLayerShared;  
 
 struct _DisplayLayer {
@@ -141,6 +144,8 @@ static ReactionResult layer_surface_listener   ( const void *msg_data,
                                                  void       *ctx );
 static ReactionResult background_image_listener( const void *msg_data,
                                                  void       *ctx );
+static ReactionResult layer_palette_listener( const void *msg_data,
+                                              void       *ctx );
 
 /** public **/
 
@@ -609,18 +614,21 @@ dfb_layer_enable( DisplayLayer *layer )
      if (shared->surface) {
           CoreSurface *surface = shared->surface;
 
+          /* attach palette listener and set default palette */
+          if (surface->palette) {
+               dfb_palette_link( &shared->palette, surface->palette );
+               dfb_palette_attach( shared->palette, layer_palette_listener,
+                                   layer, &shared->palette_reaction );
+               
+               if (layer->funcs->SetPalette)
+                    layer->funcs->SetPalette( layer, layer->driver_data,
+                                              layer->layer_data, shared->palette );
+          }
+          
           /* attach surface listener for palette and field switches */
           dfb_surface_attach( surface, layer_surface_listener,
                               layer, &shared->surface_reaction );
 
-          /* set default palette */
-          if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ) &&
-              surface->palette && layer->funcs->SetPalette)
-          {
-               layer->funcs->SetPalette( layer, layer->driver_data,
-                                         layer->layer_data, surface->palette );
-          }
-          
           /* create a window stack on layers with a surface */
           shared->stack = dfb_windowstack_new( layer,
                                                shared->config.width,
@@ -647,6 +655,12 @@ dfb_layer_disable( DisplayLayer *layer )
 
      if (shared->surface)
           dfb_surface_detach( shared->surface, &shared->surface_reaction );
+     
+     if (shared->palette) {
+          dfb_palette_detach( shared->palette, &shared->palette_reaction );
+          dfb_palette_unlink( shared->palette );
+          shared->palette = NULL;
+     }
      
      /* destroy the window stack if there is one */
      if (shared->stack) {
@@ -1648,18 +1662,58 @@ layer_surface_listener( const void *msg_data, void *ctx )
      DisplayLayer            *layer        = (DisplayLayer*) ctx;
      CoreSurface             *surface      = notification->surface;
      DisplayLayerFuncs       *funcs        = layer->funcs;
+     DisplayLayerShared      *shared       = layer->shared;
      CoreSurfaceNotificationFlags flags    = notification->flags;
 
      if (notification->flags & CSNF_DESTROY)
           return RS_REMOVE;
 
-     if ((flags & CSNF_PALETTE) && surface->palette && funcs->SetPalette)
-          funcs->SetPalette( layer, layer->driver_data,
-                             layer->layer_data, surface->palette );
+     if (flags & CSNF_PALETTE_CHANGE) {
+          if (shared->palette) {
+               dfb_palette_detach( shared->palette, &shared->palette_reaction );
+               dfb_palette_unlink( shared->palette );
+               shared->palette = NULL;
+          }
+          
+          if (surface->palette) {
+               dfb_palette_link( &shared->palette, surface->palette );
+               dfb_palette_attach( shared->palette, layer_palette_listener,
+                                   layer, &shared->palette_reaction );
+               
+               if (funcs->SetPalette)
+                    funcs->SetPalette( layer, layer->driver_data,
+                                       layer->layer_data, surface->palette );
+          }
+     }
 
      if ((flags & CSNF_FIELD) && funcs->SetField)
           funcs->SetField( layer, layer->driver_data,
                            layer->layer_data, surface->field );
+
+     return RS_OK;
+}
+
+/*
+ * listen to the layer surface's palette
+ */
+static ReactionResult
+layer_palette_listener( const void *msg_data,
+                        void       *ctx )
+{
+     CorePaletteNotification *notification = (CorePaletteNotification*)msg_data;
+     DisplayLayer            *layer        = (DisplayLayer*) ctx;
+     CoreSurface             *surface      = layer->shared->surface;
+
+     if (notification->flags & CPNF_DESTROY ||
+         notification->palette != surface->palette)
+          return RS_REMOVE;
+     
+     if ((notification->flags & CPNF_ENTRIES) &&
+         surface->palette && layer->funcs->SetPalette)
+     {
+          layer->funcs->SetPalette( layer, layer->driver_data,
+                                    layer->layer_data, surface->palette );
+     }
 
      return RS_OK;
 }

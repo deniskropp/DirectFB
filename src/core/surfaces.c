@@ -404,7 +404,7 @@ dfb_surface_set_palette( CoreSurface *surface,
                               surface, &surface->palette_reaction );
      }
 
-     dfb_surface_notify_listeners( surface, CSNF_PALETTE );
+     dfb_surface_notify_listeners( surface, CSNF_PALETTE_CHANGE );
 
      return DFB_OK;
 }
@@ -912,12 +912,10 @@ palette_listener( const void *msg_data,
      CoreSurface             *surface      = (CoreSurface*) ctx;
 
      if (notification->flags & CPNF_DESTROY)
-          surface->palette = NULL;
-
-     dfb_surface_notify_listeners( surface, CSNF_PALETTE );
-
-     if (notification->flags & CPNF_DESTROY)
           return RS_REMOVE;
+     
+     if (notification->flags & CPNF_ENTRIES)
+          dfb_surface_notify_listeners( surface, CSNF_PALETTE_UPDATE );
 
      return RS_OK;
 }
