@@ -658,8 +658,12 @@ if test "$enable_freetype" = "yes"; then
 *** freetype-config not found -- FreeType font provider will not be built.])
   else
     FREETYPE=yes
-    FREETYPE_CFLAGS=`freetype-config --cflags`
-    FREETYPE_LIBS=`freetype-config --libs`
+    if test -z "$FREETYPE_CFLAGS"; then
+      FREETYPE_CFLAGS=`freetype-config --cflags`
+    fi
+    if test -z "$FREETYPE_LIBS"; then
+      FREETYPE_LIBS=`freetype-config --libs`
+    fi
   fi
 fi
 
