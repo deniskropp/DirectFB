@@ -269,8 +269,8 @@ DFBResult Construct( IDirectFBFont *thiz,
      font->maxadvance = face->size->metrics.max_advance >> 6;
 
      HEAVYDEBUGMSG( "DirectFB/FontFT2: font->height = %d\n", font->height );
-     HEAVYDEBUGMSG( "DirectFB/FontFT2: font->ascender = %d\n", font->ascender);
-     HEAVYDEBUGMSG( "DirectFB/FontFT2: font->descender = %d\n",font->descender);
+     HEAVYDEBUGMSG( "DirectFB/FontFT2: font->ascender = %d\n", font->ascender );
+     HEAVYDEBUGMSG( "DirectFB/FontFT2: font->descender = %d\n",font->descender );
 
      font->impl_data = face;
 
@@ -278,7 +278,7 @@ DFBResult Construct( IDirectFBFont *thiz,
      font->RenderGlyph  = render_glyph;
      font->GetKerning   = get_kerning;
 
-     IDirectFBFont_Construct (thiz, font);
+     IDirectFBFont_Construct( thiz, font );
 
      thiz->Release = IDirectFBFont_FT2_Release;
 

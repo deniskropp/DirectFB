@@ -515,7 +515,7 @@ static int stretch_blit(unsigned long t)
      int pixels = 0;
 
      primary->SetBlittingFlags( primary, DSBLIT_NOFX );
-     for (j=1; j%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); j++) {
+     for (j=1; clock()<(t+CLOCKS_PER_SEC*DEMOTIME); j++) {
           if (j>SH) {
                j = 10;
           }
