@@ -185,7 +185,7 @@ unique_window_create( CoreWindow              *window,
 
      shared = context->shared;
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      surface = dfb_window_surface( window );
 
@@ -777,7 +777,7 @@ resize_window( UniqueWindow *window,
 
      shared = context->shared;
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      sizes = shared->foo_rects;
 
@@ -1222,7 +1222,7 @@ foo_rects( UniqueWindow  *window,
      D_MAGIC_ASSERT( window, UniqueWindow );
      D_MAGIC_ASSERT( context, UniqueContext );
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
      D_ASSERT( ret_rects != NULL );
 
      width  = window->full.w;
@@ -1293,8 +1293,7 @@ update_foo_frame( UniqueWindow  *window,
 
      D_MAGIC_ASSERT( window, UniqueWindow );
      D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      if (!window->foos[0])
           return;
@@ -1342,8 +1341,7 @@ create_foos( UniqueWindow  *window,
 
      D_MAGIC_ASSERT( window, UniqueWindow );
      D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
 
      foo_rects( window, context, shared, rects );
@@ -1384,7 +1382,7 @@ create_regions( UniqueWindow *window )
 
      shared = context->shared;
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      if (! (window->options & DWOP_GHOST) && ! (window->caps & DWHC_TOPMOST))
           flags |= SRF_INPUT;

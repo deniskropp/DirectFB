@@ -144,6 +144,70 @@ unique_context_pool_create()
 
 /**************************************************************************************************/
 
+static DFBEnumerationResult
+connect_device( CoreInputDevice *source,
+                void            *ctx )
+{
+     UniqueDevice *device = ctx;
+
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
+     unique_device_connect( device, source );
+
+     return DFENUM_OK;
+}
+
+static DFBResult
+create_devices( UniqueContext *context,
+                WMShared      *shared )
+{
+     int       i;
+     DFBResult ret;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
+     D_MAGIC_ASSERT( shared, WMShared );
+
+     for (i=0; i<_UDCI_NUM; i++) {
+          DFBInputDeviceCapabilities caps;
+
+          ret = unique_device_create( context, shared->device_classes[i],
+                                      NULL, 0, &context->devices[i] );
+          if (ret)
+               goto error;
+
+          switch (i) {
+               case UDCI_POINTER:
+                    caps = DICAPS_AXES | DICAPS_BUTTONS;
+                    break;
+
+               case UDCI_WHEEL:
+                    caps = DICAPS_AXES;
+                    break;
+
+               case UDCI_KEYBOARD:
+                    caps = DICAPS_KEYS;
+                    break;
+
+               default:
+                    caps = DICAPS_ALL;
+                    break;
+          }
+
+          dfb_input_enumerate_devices( connect_device, context->devices[i], caps );
+     }
+
+     return DFB_OK;
+
+
+error:
+     while (--i >= 0)
+          unique_device_destroy( context->devices[i] );
+
+     return ret;
+}
+
+/**************************************************************************************************/
+
 DFBResult
 unique_context_create( CoreWindowStack    *stack,
                        CoreLayerRegion    *region,
@@ -156,7 +220,7 @@ unique_context_create( CoreWindowStack    *stack,
      UniqueContext *context;
 
      D_ASSERT( stack != NULL );
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
      D_ASSERT( ret_context != NULL );
 
      context = unique_wm_create_context();
@@ -201,16 +265,11 @@ unique_context_create( CoreWindowStack    *stack,
 
      D_MAGIC_SET( context, UniqueContext );
 
-     ret = unique_device_create( context, shared->device_classes[UDCI_POINTER],
-                                 NULL, 0, &context->devices[UDCI_POINTER] );
-     if (ret == DFB_OK) {
-          unique_device_connect( context->devices[UDCI_POINTER], dfb_input_device_at(1) );
-     }
-
-     ret = unique_device_create( context, shared->device_classes[UDCI_KEYBOARD],
-                                 NULL, 0, &context->devices[UDCI_KEYBOARD] );
-     if (ret == DFB_OK) {
-          unique_device_connect( context->devices[UDCI_KEYBOARD], dfb_input_device_at(0) );
+     ret = create_devices( context, shared );
+     if (ret) {
+          D_MAGIC_CLEAR( context );
+          dfb_surface_unlink( &context->surface );
+          goto error;
      }
 
 
@@ -528,7 +587,7 @@ unique_context_window_at( UniqueContext  *context,
      shared = context->shared;
 
      D_ASSERT( stack != NULL );
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      if (stack->cursor.enabled) {
           StretRegion *region;

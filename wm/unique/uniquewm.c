@@ -89,7 +89,8 @@ load_foo( CoreDFB *core, WMShared *shared )
      int        pitch;
 
      D_ASSERT( core != NULL );
-     D_ASSERT( shared != NULL );
+
+     D_MAGIC_ASSERT( shared, WMShared );
 
      ret = dfb_surface_create( core, foo_desc.width, foo_desc.height, foo_desc.pixelformat,
                                CSP_VIDEOHIGH, DSCAPS_NONE, NULL, &shared->foo_surface );
@@ -122,7 +123,7 @@ load_foo( CoreDFB *core, WMShared *shared )
 static void
 unload_foo( WMShared *shared )
 {
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      dfb_surface_unlink( &shared->foo_surface );
 }
@@ -141,7 +142,8 @@ unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool maste
      D_ASSERT( data != NULL );
      D_ASSERT( data->context_notify != NULL );
      D_ASSERT( data->window_notify != NULL );
-     D_ASSERT( shared != NULL );
+
+     D_MAGIC_ASSERT( shared, WMShared );
 
      D_ASSERT( dfb_core == NULL );
      D_ASSERT( wm_data == NULL );
@@ -213,7 +215,8 @@ unique_wm_module_deinit( bool master, bool emergency )
 
      D_ASSERT( dfb_core != NULL );
      D_ASSERT( wm_data != NULL );
-     D_ASSERT( wm_shared != NULL );
+
+     D_MAGIC_ASSERT( wm_shared, WMShared );
 
      if (master) {
           fusion_object_pool_destroy( wm_shared->window_pool );
@@ -273,7 +276,7 @@ unique_wm_create_context()
 {
      D_ASSERT( dfb_core != NULL );
      D_ASSERT( wm_data != NULL );
-     D_ASSERT( wm_shared != NULL );
+     D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->context_pool != NULL );
 
      return (UniqueContext*) fusion_object_create( wm_shared->context_pool );
@@ -284,7 +287,7 @@ unique_wm_create_window()
 {
      D_ASSERT( dfb_core != NULL );
      D_ASSERT( wm_data != NULL );
-     D_ASSERT( wm_shared != NULL );
+     D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->window_pool != NULL );
 
      return (UniqueWindow*) fusion_object_create( wm_shared->window_pool );
@@ -313,7 +316,7 @@ unique_wm_enum_contexts( FusionObjectCallback  callback,
 {
      D_ASSERT( dfb_core != NULL );
      D_ASSERT( wm_data != NULL );
-     D_ASSERT( wm_shared != NULL );
+     D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->context_pool != NULL );
 
      return fusion_object_pool_enum( wm_shared->context_pool, callback, ctx );
@@ -325,7 +328,7 @@ unique_wm_enum_windows( FusionObjectCallback  callback,
 {
      D_ASSERT( dfb_core != NULL );
      D_ASSERT( wm_data != NULL );
-     D_ASSERT( wm_shared != NULL );
+     D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->context_pool != NULL );
 
      return fusion_object_pool_enum( wm_shared->window_pool, callback, ctx );
@@ -341,7 +344,7 @@ register_region_classes( WMShared *shared,
      DFBResult          ret;
      StretRegionClassID class_id;
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      for (i=0; i<_URCI_NUM; i++) {
           ret = stret_class_register( region_classes[i], &class_id );
@@ -378,7 +381,7 @@ unregister_region_classes( WMShared *shared )
 {
      int i;
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      for (i=_URCI_NUM-1; i>=0; i--)
           stret_class_unregister( shared->region_classes[i] );
@@ -394,7 +397,7 @@ register_device_classes( WMShared *shared,
      DFBResult           ret;
      UniqueDeviceClassID class_id;
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      for (i=0; i<_UDCI_NUM; i++) {
           ret = unique_device_class_register( device_classes[i], &class_id );
@@ -431,7 +434,7 @@ unregister_device_classes( WMShared *shared )
 {
      int i;
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      for (i=_UDCI_NUM-1; i>=0; i--)
           unique_device_class_unregister( shared->device_classes[i] );

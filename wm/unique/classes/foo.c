@@ -77,7 +77,7 @@ foo_update( StretRegion     *region,
 
      shared = window->shared;
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
      D_ASSERT( shared->foo_surface != NULL );
 
      context = window->context;

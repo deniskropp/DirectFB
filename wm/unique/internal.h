@@ -45,7 +45,7 @@
 #include <unique/window.h>
 
 
-#define UNIQUE_WM_ABI_VERSION 6
+#define UNIQUE_WM_ABI_VERSION 7
 
 
 extern const StretRegionClass unique_root_region_class;
@@ -106,6 +106,8 @@ struct __UniQuE_WMData {
 };
 
 struct __UniQuE_WMShared {
+     int                           magic;
+
      FusionObjectPool             *context_pool;
      FusionObjectPool             *window_pool;
 

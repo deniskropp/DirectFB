@@ -210,6 +210,8 @@ wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
 
      initialize_data( core, data, shared );
 
+     D_MAGIC_SET( shared, WMShared );
+
      return unique_wm_module_init( core, data, shared, true );
 }
 
@@ -229,9 +231,15 @@ wm_join( CoreDFB *core, void *wm_data, void *shared_data )
 static DFBResult
 wm_shutdown( bool emergency, void *wm_data, void *shared_data )
 {
+     WMShared *shared = shared_data;
+
+     (void) shared;
+
      D_DEBUG_AT( WM_Unique, "wm_shutdown()\n" );
 
      unique_wm_module_deinit( true, emergency );
+
+     D_MAGIC_CLEAR( shared );
 
      return DFB_OK;
 }

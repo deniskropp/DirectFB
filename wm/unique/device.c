@@ -223,7 +223,7 @@ unique_device_connect( UniqueDevice    *device,
 
      shared = context->shared;
 
-     D_ASSERT( shared != NULL );
+     D_MAGIC_ASSERT( shared, WMShared );
 
      D_DEBUG_AT( UniQuE_Device, "unique_device_connect( %p, %p, ID %d )\n",
                  device, source, dfb_input_device_id( source ) );
