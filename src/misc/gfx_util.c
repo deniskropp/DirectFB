@@ -131,6 +131,26 @@ static void rgba_to_dst_format (__u8 *dst,
                     *dst++ = (a & 0xF0) + dfb_palette_search( palette, r, g, b, 0x80 );
                break;
 
+          case DSPF_YUY2:
+               if (! ((int)dst & 3)) {  /* HACK */
+                    __u32 y, cb, cr;
+
+                    RGB_TO_YCBCR( r, g, b, y, cb, cr );
+
+                    *((__u32*)dst) = PIXEL_YUY2( y, cb, cr );
+               }
+               break;
+
+          case DSPF_UYVY:
+               if (! ((int)dst & 3)) {  /* HACK */
+                    __u32 y, cb, cr;
+
+                    RGB_TO_YCBCR( r, g, b, y, cb, cr );
+
+                    *((__u32*)dst) = PIXEL_UYVY( y, cb, cr );
+               }
+               break;
+
           default:
                D_ONCE( "unimplemented destination format (0x%08x)", dst_format );
                break;
