@@ -11,11 +11,12 @@ ati_LTLIBRARIES = libdirectfb_ati128.la
 atidir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_ati128_la_SOURCES =	\
-	ati128.c	\
-	ati128.h	\
-	ati128_state.c	\
-	ati128_state.h	\
-	regs.h		\
+	ati128.c		\
+	ati128.h		\
+	ati128_overlay.c	\
+	ati128_state.c		\
+	ati128_state.h		\
+	regs.h			\
 	mmio.h
 
 libdirectfb_ati128_la_LDFLAGS = \

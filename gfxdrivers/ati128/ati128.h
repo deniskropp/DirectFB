@@ -54,6 +54,26 @@ typedef struct {
      unsigned int fifo_waitcycles;
      unsigned int idle_waitcycles;
      unsigned int fifo_cache_hits;
+
+     /* overlay registers */
+     struct {
+          __u32 H_INC;
+          __u32 STEP_BY;
+          __u32 Y_X_START;
+          __u32 Y_X_END;
+          __u32 V_INC;
+          __u32 P1_BLANK_LINES_AT_TOP;
+          __u32 VID_BUF_PITCH0_VALUE;
+          __u32 P1_X_START_END;
+          __u32 P2_X_START_END;
+          __u32 P3_X_START_END;
+          __u32 VID_BUF0_BASE_ADRS;
+          __u32 P1_V_ACCUM_INIT;
+          __u32 P23_V_ACCUM_INIT;
+          __u32 P1_H_ACCUM_INIT;
+          __u32 P23_H_ACCUM_INIT;
+          __u32 SCALE_CNTL;
+     } ov0;
 } ATI128DeviceData;
 
 #endif

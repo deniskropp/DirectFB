@@ -824,5 +824,50 @@
 #define CRTC_OFFSET_FLIP_CNTL                      0x00010000
 #define MEM_ADDR_CONFIG                            0x0148
 
+
+/* overlay registers */
+#define OV0_Y_X_START                              0x0400
+#define OV0_Y_X_END                                0x0404
+#define OV0_EXCLUSIVE_HORZ                         0x0408
+#define OV0_EXCLUSIVE_VERT                         0x040c
+#define OV0_REG_LOAD_CNTL                          0x0410
+#define OV0_SCALE_CNTL                             0x0420
+#define OV0_V_INC                                  0x0424
+#define OV0_P1_V_ACCUM_INIT                        0x0428
+#define OV0_P23_V_ACCUM_INIT                       0x042c
+#define OV0_P1_BLANK_LINES_AT_TOP                  0x0430
+#define OV0_P23_BLANK_LINES_AT_TOP                 0x0434
+#define OV0_VID_BUF0_BASE_ADRS                     0x0440
+#define OV0_VID_BUF1_BASE_ADRS                     0x0444
+#define OV0_VID_BUF2_BASE_ADRS                     0x0448
+#define OV0_VID_BUF3_BASE_ADRS                     0x044c
+#define OV0_VID_BUF4_BASE_ADRS                     0x0450
+#define OV0_VID_BUF5_BASE_ADRS                     0x0454
+#define OV0_VID_BUF_PITCH0_VALUE                   0x0460
+#define OV0_VID_BUF_PITCH1_VALUE                   0x0464
+#define OV0_OCTWORDS_PER_LINE_M1                   0x046c
+#define OV0_AUTO_FLIP_CNTL                         0x0470
+#define OV0_DEINTERLACE_PATTERN                    0x0474
+#define OV0_H_INC                                  0x0480
+#define OV0_STEP_BY                                0x0484
+#define OV0_P1_H_ACCUM_INIT                        0x0488
+#define OV0_P23_H_ACCUM_INIT                       0x048c
+#define OV0_P1_X_START_END                         0x0494
+#define OV0_P2_X_START_END                         0x0498
+#define OV0_P3_X_START_END                         0x049c
+#define OV0_FILTER_CNTL                            0x04a0
+#define OV0_FOUR_TAP_COEF_0                        0x04b0
+#define OV0_FOUR_TAP_COEF_1                        0x04b4
+#define OV0_FOUR_TAP_COEF_2                        0x04b8
+#define OV0_FOUR_TAP_COEF_3                        0x04bc
+#define OV0_FOUR_TAP_COEF_4                        0x04c0
+#define OV0_COLOR_CNTL                             0x04e0
+#define OV0_VIDEO_KEY_CLR                          0x04e4
+#define OV0_VIDEO_KEY_MASK                         0x04e8
+#define OV0_GRAPHICS_KEY_CLR                       0x04ec
+#define OV0_GRAPHICS_KEY_MASK                      0x04f0
+#define OV0_KEY_CNTL                               0x04f4
+#define OV0_TEST                                   0x04f8
+
 #endif
 

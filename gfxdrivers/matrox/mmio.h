@@ -40,25 +40,25 @@ typedef __s32 sint32;
 static inline void
 mga_out8(volatile uint8 *mmioaddr, uint8 value, uint32 reg)
 {
-     *((uint8*)(mmioaddr+reg)) = value;
+     *((volatile uint8*)(mmioaddr+reg)) = value;
 }
 
 static inline void
 mga_out32(volatile uint8 *mmioaddr, uint32 value, uint32 reg)
 {
-     *((uint32*)(mmioaddr+reg)) = value;
+     *((volatile uint32*)(mmioaddr+reg)) = value;
 }
 
 static inline volatile uint8
 mga_in8(volatile uint8 *mmioaddr, uint32 reg)
 {
-     return *((uint8*)(mmioaddr+reg));
+     return *((volatile uint8*)(mmioaddr+reg));
 }
 
 static inline volatile uint32
 mga_in32(volatile uint8 *mmioaddr, uint32 reg)
 {
-     return *((uint32*)(mmioaddr+reg));
+     return *((volatile uint32*)(mmioaddr+reg));
 }
 
 /* Wait for fifo space */
