@@ -64,8 +64,16 @@ fusion_ref_init (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     if (ioctl (fusion_fd, FUSION_REF_NEW, &ref->ref_id)) {
+     while (ioctl (fusion_fd, FUSION_REF_NEW, &ref->ref_id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_REF_NEW");
+          
           return FUSION_FAILURE;
      }
 
@@ -80,9 +88,19 @@ fusion_ref_up (FusionRef *ref, bool global)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
 
-     if (ioctl (fusion_fd,
-                global ? FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->ref_id))
+     while (ioctl (fusion_fd, global ?
+                   FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->ref_id))
      {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reference\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+
           if (global)
                FPERROR ("FUSION_REF_UP_GLOBAL");
           else
@@ -100,9 +118,19 @@ fusion_ref_down (FusionRef *ref, bool global)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
      
-     if (ioctl (fusion_fd,
-                global ? FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->ref_id))
+     while (ioctl (fusion_fd, global ?
+                   FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->ref_id))
      {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reference\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+
           if (global)
                FPERROR ("FUSION_REF_DOWN_GLOBAL");
           else
@@ -140,8 +168,19 @@ fusion_ref_zero_lock (FusionRef *ref)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
      
-     if (ioctl (fusion_fd, FUSION_REF_ZERO_LOCK, &ref->ref_id)) {
+     while (ioctl (fusion_fd, FUSION_REF_ZERO_LOCK, &ref->ref_id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reference\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_REF_ZERO_LOCK");
+          
           return FUSION_FAILURE;
      }
 
@@ -154,10 +193,19 @@ fusion_ref_zero_trylock (FusionRef *ref)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
      
-     if (ioctl (fusion_fd, FUSION_REF_ZERO_TRYLOCK, &ref->ref_id)) {
-          if (errno == ETOOMANYREFS)
-               return FUSION_INUSE;
-
+     while (ioctl (fusion_fd, FUSION_REF_ZERO_TRYLOCK, &ref->ref_id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case ETOOMANYREFS:
+                    return FUSION_INUSE;
+               case EINVAL:
+                    FERROR ("invalid reference\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_REF_ZERO_TRYLOCK");
 
           return FUSION_FAILURE;
@@ -172,8 +220,19 @@ fusion_ref_unlock (FusionRef *ref)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
      
-     if (ioctl (fusion_fd, FUSION_REF_UNLOCK, &ref->ref_id)) {
+     while (ioctl (fusion_fd, FUSION_REF_UNLOCK, &ref->ref_id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reference\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_REF_UNLOCK");
+          
           return FUSION_FAILURE;
      }
      
@@ -188,8 +247,19 @@ fusion_ref_destroy (FusionRef *ref)
      
      ref->magic = 0x87654321;
 
-     if (ioctl (fusion_fd, FUSION_REF_DESTROY, &ref->ref_id)) {
+     while (ioctl (fusion_fd, FUSION_REF_DESTROY, &ref->ref_id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reference\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_REF_DESTROY");
+          
           return FUSION_FAILURE;
      }
 

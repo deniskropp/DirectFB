@@ -67,8 +67,16 @@ skirmish_init (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
-     if (ioctl (fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->id)) {
+     while (ioctl (fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_SKIRMISH_NEW");
+          
           return FUSION_FAILURE;
      }
 
@@ -85,7 +93,7 @@ skirmish_prevail (FusionSkirmish *skirmish)
                case EINTR:
                     continue;
                case EINVAL:
-                    FERROR ("skirmish already destroyed\n");
+                    FERROR ("invalid skirmish\n");
                     return FUSION_DESTROYED;
                default:
                     break;
@@ -111,7 +119,7 @@ skirmish_swoop (FusionSkirmish *skirmish)
                case EAGAIN:
                     return FUSION_INUSE;
                case EINVAL:
-                    FERROR ("skirmish already destroyed\n");
+                    FERROR ("invalid skirmish\n");
                     return FUSION_DESTROYED;
                default:
                     break;
@@ -135,7 +143,7 @@ skirmish_dismiss (FusionSkirmish *skirmish)
                case EINTR:
                     continue;
                case EINVAL:
-                    FERROR ("skirmish already destroyed\n");
+                    FERROR ("invalid skirmish\n");
                     return FUSION_DESTROYED;
                default:
                     break;
@@ -159,7 +167,7 @@ skirmish_destroy (FusionSkirmish *skirmish)
                case EINTR:
                     continue;
                case EINVAL:
-                    FERROR ("skirmish already destroyed\n");
+                    FERROR ("invalid skirmish\n");
                     return FUSION_DESTROYED;
                default:
                     break;

@@ -52,8 +52,16 @@ fusion_property_init (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
      
-     if (ioctl (fusion_fd, FUSION_PROPERTY_NEW, &property->id)) {
+     while (ioctl (fusion_fd, FUSION_PROPERTY_NEW, &property->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_PROPERTY_NEW");
+          
           return FUSION_FAILURE;
      }
 
@@ -72,7 +80,7 @@ fusion_property_lease (FusionProperty *property)
                case EAGAIN:
                     return FUSION_INUSE;
                case EINVAL:
-                    FERROR ("property already destroyed\n");
+                    FERROR ("invalid property\n");
                     return FUSION_DESTROYED;
                default:
                     break;
@@ -98,7 +106,7 @@ fusion_property_purchase (FusionProperty *property)
                case EAGAIN:
                     return FUSION_INUSE;
                case EINVAL:
-                    FERROR ("property already destroyed\n");
+                    FERROR ("invalid property\n");
                     return FUSION_DESTROYED;
                default:
                     break;
@@ -122,7 +130,7 @@ fusion_property_cede (FusionProperty *property)
                case EINTR:
                     continue;
                case EINVAL:
-                    FERROR ("property already destroyed\n");
+                    FERROR ("invalid property\n");
                     return FUSION_DESTROYED;
                default:
                     break;
@@ -146,7 +154,7 @@ fusion_property_destroy (FusionProperty *property)
                case EINTR:
                     continue;
                case EINVAL:
-                    FERROR ("property already destroyed\n");
+                    FERROR ("invalid property\n");
                     return FUSION_DESTROYED;
                default:
                     break;

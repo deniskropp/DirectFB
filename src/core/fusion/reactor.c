@@ -100,9 +100,18 @@ reactor_new (int msg_size)
           return NULL;
 
      /* create a new reactor */
-     if (ioctl (fusion_fd, FUSION_REACTOR_NEW, &reactor->id)) {
+     while (ioctl (fusion_fd, FUSION_REACTOR_NEW, &reactor->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               default:
+                    break;
+          }
+
           FPERROR ("FUSION_REACTOR_NEW\n");
+
           shfree( reactor );
+
           return NULL;
      }
 
@@ -123,15 +132,37 @@ reactor_attach (FusionReactor *reactor,
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
 
-     if (ioctl (fusion_fd, FUSION_REACTOR_ATTACH, &reactor->id)) {
+     while (ioctl (fusion_fd, FUSION_REACTOR_ATTACH, &reactor->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reactor\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_REACTOR_ATTACH\n");
+          
           return FUSION_FAILURE;
      }
      
      node = lock_node( reactor->id, true );
      if (!node) {
-          if (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor->id))
+          while (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor->id)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         FERROR ("invalid reactor\n");
+                         return FUSION_DESTROYED;
+                    default:
+                         break;
+               }
+               
                FPERROR ("FUSION_REACTOR_DETACH\n");
+          }
           
           return FUSION_FAILURE;
      }
@@ -158,6 +189,9 @@ reactor_detach (FusionReactor *reactor,
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
 
+     if (!reaction->attached)
+          return;
+
      node = lock_node( reactor->id, false );
      if (!node) {
           BUG( "node not found" );
@@ -169,8 +203,19 @@ reactor_detach (FusionReactor *reactor,
 
           fusion_list_remove( &node->reactions, &reaction->link );
 
-          if (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor->id))
+          while (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor->id)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         FERROR ("invalid reactor\n");
+                         return FUSION_DESTROYED;
+                    default:
+                         break;
+               }
+               
                FPERROR ("FUSION_REACTOR_DETACH\n");
+          }
      }
 
      unlock_node( node );
@@ -196,8 +241,19 @@ reactor_dispatch (FusionReactor *reactor,
      dispatch.msg_size   = reactor->msg_size;
      dispatch.msg_data   = msg_data;
 
-     if (ioctl (fusion_fd, FUSION_REACTOR_DISPATCH, &dispatch)) {
+     while (ioctl (fusion_fd, FUSION_REACTOR_DISPATCH, &dispatch)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reactor\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_REACTOR_DISPATCH\n");
+          
           return FUSION_FAILURE;
      }
 
@@ -209,8 +265,19 @@ reactor_free (FusionReactor *reactor)
 {
      DFB_ASSERT( reactor != NULL );
 
-     if (ioctl (fusion_fd, FUSION_REACTOR_DESTROY, &reactor->id)) {
+     while (ioctl (fusion_fd, FUSION_REACTOR_DESTROY, &reactor->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("invalid reactor\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
           FPERROR ("FUSION_REACTOR_DESTROY\n");
+          
           return FUSION_FAILURE;
      }
      
@@ -255,8 +322,19 @@ _reactor_process_message( int reactor_id, const void *msg_data )
 
                     fusion_list_remove( &node->reactions, &reaction->link );
 
-                    if (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor_id))
+                    while (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor_id)) {
+                         switch (errno) {
+                              case EINTR:
+                                   continue;
+                              case EINVAL:
+                                   FERROR ("invalid reactor\n");
+                                   return FUSION_DESTROYED;
+                              default:
+                                   break;
+                         }
+                         
                          FPERROR ("FUSION_REACTOR_DETACH\n");
+                    }
                }
           }
           else
