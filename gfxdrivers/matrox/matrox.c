@@ -67,14 +67,32 @@ DFB_GRAPHICS_DRIVER( matrox )
 #include "matrox_state.h"
 
 
+static bool matroxFillRectangle   ( void *drv, void *dev, DFBRectangle *rect );
+static bool matroxFillRectangle_2P( void *drv, void *dev, DFBRectangle *rect );
+static bool matroxFillRectangle_3P( void *drv, void *dev, DFBRectangle *rect );
+
 static bool matroxBlit2D    ( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
-
+static bool matroxBlit2D_2P ( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy );
+static bool matroxBlit2D_3P ( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy );
 static bool matroxBlit2D_Old( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
 
 static bool matroxBlit3D    ( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
+static bool matroxBlit3D_2P ( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy );
+static bool matroxBlit3D_3P ( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy );
+
+static bool matroxStretchBlit   ( void *drv, void *dev,
+                                  DFBRectangle *srect, DFBRectangle *drect );
+static bool matroxStretchBlit_2P( void *drv, void *dev,
+                                  DFBRectangle *srect, DFBRectangle *drect );
+static bool matroxStretchBlit_3P( void *drv, void *dev,
+                                  DFBRectangle *srect, DFBRectangle *drect );
 
 
 
@@ -155,6 +173,9 @@ static bool matroxBlit3D    ( void *drv, void *dev,
        (state)->destination->format != DSPF_YV12)              ||        \
       (accel) & (DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES))
 
+#define MATROX_USE_3D(state, accel)                                                     \
+     ((DFB_DRAWING_FUNCTION( accel ) && ((state)->drawingflags & DSDRAW_BLEND)) ||      \
+      (DFB_BLITTING_FUNCTION( accel ) && MATROX_USE_TMU( state, accel )))
 
 static void
 matroxEngineReset( void *drv, void *dev )
@@ -239,11 +260,8 @@ matrox2064WCheckState( void *drv, void *dev,
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
-          case DSPF_I420:
-          case DSPF_YV12:
-               if (!DFB_BLITTING_FUNCTION( accel ) ||
-                   (state->source->format != DSPF_I420 &&
-                    state->source->format != DSPF_YV12))
+          case DSPF_LUT8:
+               if (DFB_BLITTING_FUNCTION( accel ))
                     return;
           case DSPF_RGB332:
           case DSPF_ARGB4444:
@@ -252,10 +270,6 @@ matrox2064WCheckState( void *drv, void *dev,
           case DSPF_RGB32:
           case DSPF_ARGB:
           case DSPF_A8:
-               break;
-          case DSPF_LUT8:
-               if (DFB_BLITTING_FUNCTION( accel ))
-                    return;
                break;
           default:
                return;
@@ -268,16 +282,8 @@ matrox2064WCheckState( void *drv, void *dev,
           state->accel |= MATROX_2064W_DRAWING_FUNCTIONS;
      }
      else {
-          switch (state->source->format) {
-               case DSPF_I420:
-               case DSPF_YV12:
-                    if (state->destination->format == DSPF_I420 ||
-                        state->destination->format == DSPF_YV12)
-                         break;
-               default:
-                    if (state->source->format != state->destination->format)
-                         return;
-          }
+          if (state->source->format != state->destination->format)
+               return;
 
           if (state->blittingflags & ~MATROX_2064W_BLITTING_FLAGS)
                return;
@@ -292,11 +298,8 @@ matroxOldCheckState( void *drv, void *dev,
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
-          case DSPF_I420:
-          case DSPF_YV12:
-               if (!DFB_BLITTING_FUNCTION( accel ) ||
-                   (state->source->format != DSPF_I420 &&
-                    state->source->format != DSPF_YV12))
+          case DSPF_LUT8:
+               if (DFB_BLITTING_FUNCTION( accel ))
                     return;
           case DSPF_RGB332:
           case DSPF_ARGB4444:
@@ -305,10 +308,6 @@ matroxOldCheckState( void *drv, void *dev,
           case DSPF_RGB32:
           case DSPF_ARGB:
           case DSPF_A8:
-               break;
-          case DSPF_LUT8:
-               if (DFB_BLITTING_FUNCTION( accel ))
-                    return;
                break;
           default:
                return;
@@ -321,16 +320,8 @@ matroxOldCheckState( void *drv, void *dev,
           state->accel |= MATROX_OLD_DRAWING_FUNCTIONS;
      }
      else {
-          switch (state->source->format) {
-               case DSPF_I420:
-               case DSPF_YV12:
-                    if (state->destination->format == DSPF_I420 ||
-                        state->destination->format == DSPF_YV12)
-                         break;
-               default:
-                    if (state->source->format != state->destination->format)
-                         return;
-          }
+          if (state->source->format != state->destination->format)
+               return;
 
           if (state->blittingflags & ~MATROX_OLD_BLITTING_FLAGS)
                return;
@@ -345,27 +336,18 @@ matroxG100CheckState( void *drv, void *dev,
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
-          case DSPF_I420:
-          case DSPF_YV12:
-               if (!DFB_BLITTING_FUNCTION( accel ) ||
-                   (state->source->format != DSPF_I420 &&
-                    state->source->format != DSPF_YV12))
+          case DSPF_LUT8:
+               if (DFB_BLITTING_FUNCTION( accel ))
                     return;
-               break;
+          case DSPF_A8:
           case DSPF_ARGB4444:
                if (DFB_BLITTING_FUNCTION( accel ) && MATROX_USE_TMU( state, accel ))
                     return;
-               break;
           case DSPF_RGB332:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
-          case DSPF_A8:
-               break;
-          case DSPF_LUT8:
-               if (DFB_BLITTING_FUNCTION( accel ))
-                    return;
                break;
           default:
                return;
@@ -405,15 +387,6 @@ matroxG100CheckState( void *drv, void *dev,
                state->accel |= MATROX_G100_BLITTING_FUNCTIONS;
           }
           else {
-               switch (state->source->format) {
-                    case DSPF_I420:
-                    case DSPF_YV12:
-                         if (state->destination->format != DSPF_I420 &&
-                             state->destination->format != DSPF_YV12)
-                              return;
-                    default:
-                         break;
-               }
                /* source and destination formats equal, no stretching is done */
                state->accel |= accel;
           }
@@ -428,27 +401,25 @@ matroxG200CheckState( void *drv, void *dev,
 
      /* FIXME: 24bit support */
      switch (state->destination->format) {
-          case DSPF_I420:
-          case DSPF_YV12:
-               if (!DFB_BLITTING_FUNCTION( accel ) ||
-                   (state->source->format != DSPF_I420 &&
-                    state->source->format != DSPF_YV12))
+          case DSPF_NV12:
+          case DSPF_NV21:
+               if ((accel & DFXL_FILLRECTANGLE && !state->drawingflags) ||
+                   (accel & DFXL_BLIT && !state->blittingflags &&
+                    state->source->format == state->destination->format))
+                    break;
+               return;
+          case DSPF_LUT8:
+               if (DFB_BLITTING_FUNCTION( accel ))
                     return;
-               break;
+          case DSPF_A8:
           case DSPF_ARGB4444:
-               if ((DFB_BLITTING_FUNCTION( accel ) && MATROX_USE_TMU( state, accel )) ||
-                   (DFB_DRAWING_FUNCTION( accel ) && (state->drawingflags & DSDRAW_BLEND)))
+               if (MATROX_USE_3D( state, accel ))
                     return;
-               break;
           case DSPF_RGB332:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
-               break;
-          case DSPF_LUT8:
-               if (DFB_BLITTING_FUNCTION( accel ) || state->drawingflags & DSDRAW_BLEND)
-                    return;
                break;
           default:
                return;
@@ -468,10 +439,13 @@ matroxG200CheckState( void *drv, void *dev,
           bool use_tmu = MATROX_USE_TMU( state, accel );
 
           switch (state->source->format) {
-               case DSPF_I420:
-               case DSPF_YV12:
-                    if (state->destination->format != DSPF_I420 &&
-                        state->destination->format != DSPF_YV12)
+               case DSPF_NV12:
+               case DSPF_NV21:
+                    if (state->destination->format != state->source->format)
+                         return;
+                    break;
+               case DSPF_A8:
+                    if (use_tmu)
                          return;
                case DSPF_LUT8:
                case DSPF_RGB332:
@@ -520,27 +494,33 @@ matroxG400CheckState( void *drv, void *dev,
      switch (state->destination->format) {
           case DSPF_I420:
           case DSPF_YV12:
-               if (!DFB_BLITTING_FUNCTION( accel ) ||
-                   (state->source->format != DSPF_I420 &&
-                    state->source->format != DSPF_YV12))
+               if ((accel & DFXL_FILLRECTANGLE && !state->drawingflags) ||
+                   (accel & (DFXL_BLIT | DFXL_STRETCHBLIT) &&
+                    !(state->blittingflags & ~DSBLIT_DEINTERLACE) &&
+                    (state->source->format == DSPF_I420 || state->source->format == DSPF_YV12)))
+                    break;
+               return;
+          case DSPF_NV12:
+          case DSPF_NV21:
+               if ((accel & DFXL_FILLRECTANGLE && !state->drawingflags) ||
+                   (accel & (DFXL_BLIT | DFXL_STRETCHBLIT) &&
+                    !(state->blittingflags & ~DSBLIT_DEINTERLACE) &&
+                    state->source->format == state->destination->format))
+                    break;
+               return;
+          case DSPF_LUT8:
+          case DSPF_ALUT44:
+               if (DFB_BLITTING_FUNCTION( accel ))
                     return;
-               break;
+          case DSPF_A8:
           case DSPF_ARGB4444:
-               if ((DFB_BLITTING_FUNCTION( accel ) && MATROX_USE_TMU( state, accel )) ||
-                   (DFB_DRAWING_FUNCTION( accel ) && (state->drawingflags & DSDRAW_BLEND)))
+               if (MATROX_USE_3D( state, accel ))
                     return;
-               break;
           case DSPF_RGB332:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
-          case DSPF_A8:
-               break;
-          case DSPF_LUT8:
-          case DSPF_ALUT44:
-               if (DFB_BLITTING_FUNCTION( accel ) || state->drawingflags & DSDRAW_BLEND)
-                    return;
                break;
           default:
                return;
@@ -560,6 +540,17 @@ matroxG400CheckState( void *drv, void *dev,
           bool use_tmu = MATROX_USE_TMU( state, accel );
 
           switch (state->source->format) {
+               case DSPF_I420:
+               case DSPF_YV12:
+                    if (state->destination->format != DSPF_I420 &&
+                        state->destination->format != DSPF_YV12)
+                         return;
+                    break;
+               case DSPF_NV12:
+               case DSPF_NV21:
+                    if (state->destination->format != state->source->format)
+                         return;
+                    break;
                case DSPF_RGB332:
                     if (use_tmu)
                          return;
@@ -572,11 +563,6 @@ matroxG400CheckState( void *drv, void *dev,
                case DSPF_YUY2:
                case DSPF_UYVY:
                     break;
-               case DSPF_I420:
-               case DSPF_YV12:
-                    if (state->destination->format == DSPF_I420 ||
-                        state->destination->format == DSPF_YV12)
-                         break;
                default:
                     return;
           }
@@ -657,9 +643,22 @@ matroxSetState( void *drv, void *dev,
                     matrox_validate_color( mdrv, mdev, state );
                }
 
-               state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE |
-                            DFXL_DRAWLINE | DFXL_FILLTRIANGLE;
-
+               switch (state->destination->format) {
+                    case DSPF_I420:
+                    case DSPF_YV12:
+                         funcs->FillRectangle = matroxFillRectangle_3P;
+                         state->set = DFXL_FILLRECTANGLE;
+                         break;
+                    case DSPF_NV12:
+                    case DSPF_NV21:
+                         funcs->FillRectangle = matroxFillRectangle_2P;
+                         state->set = DFXL_FILLRECTANGLE;
+                         break;
+                    default:
+                         funcs->FillRectangle = matroxFillRectangle;
+                         state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE |
+                                      DFXL_DRAWLINE | DFXL_FILLTRIANGLE;
+               }
                break;
           case DFXL_BLIT:
           case DFXL_STRETCHBLIT:
@@ -673,22 +672,44 @@ matroxSetState( void *drv, void *dev,
                     if (flags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE))
                          matrox_validate_Color( mdrv, mdev, state );
 
-                    funcs->Blit = matroxBlit3D;
+                    switch (state->destination->format) {
+                         case DSPF_I420:
+                         case DSPF_YV12:
+                              funcs->Blit        = matroxBlit3D_3P;
+                              funcs->StretchBlit = matroxStretchBlit_3P;
+                              state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
+                              break;
+                         case DSPF_NV12:
+                         case DSPF_NV21:
+                              funcs->Blit        = matroxBlit3D_2P;
+                              funcs->StretchBlit = matroxStretchBlit_2P;
+                              state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
+                              break;
+                         default:
+                              funcs->Blit        = matroxBlit3D;
+                              funcs->StretchBlit = matroxStretchBlit;
+                              state->set = DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES;
+                    }
 
                     matrox_validate_blitBlend( mdrv, mdev, state );
                     matrox_validate_Source( mdrv, mdev, state );
 
                     if (mdev->blit_src_colorkey)
                          matrox_validate_SrcKey( mdrv, mdev, state );
-
-                    state->set = DFXL_BLIT |
-                                 DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES;
                }
                else {
-                    if (mdev->old_matrox)
-                         funcs->Blit = matroxBlit2D_Old;
-                    else
-                         funcs->Blit = matroxBlit2D;
+                    switch (state->destination->format) {
+                         case DSPF_I420:
+                         case DSPF_YV12:
+                              funcs->Blit = matroxBlit2D_3P;
+                              break;
+                         case DSPF_NV12:
+                         case DSPF_NV21:
+                              funcs->Blit = matroxBlit2D_2P;
+                              break;
+                         default:
+                              funcs->Blit = mdev->old_matrox ? matroxBlit2D_Old : matroxBlit2D;
+                    }
 
                     matrox_validate_source( mdrv, mdev, state );
 
@@ -722,11 +743,11 @@ matroxSetState( void *drv, void *dev,
 
 /******************************************************************************/
 
-static bool
-matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static void
+matrox_fill_rectangle( MatroxDriverData *mdrv,
+                       MatroxDeviceData *mdev,
+                       DFBRectangle *rect )
 {
-     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
-     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
      volatile __u8    *mmio = mdrv->mmio_base;
 
      mga_waitfifo( mdrv, mdev, 3 );
@@ -740,6 +761,98 @@ matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      mga_out32( mmio, (RS16(rect->x + rect->w) << 16) | RS16(rect->x), FXBNDRY );
      mga_out32( mmio, (RS16(rect->y) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
+}
+
+static bool
+matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     matrox_fill_rectangle( mdrv, mdev, rect );
+
+     return true;
+}
+
+static bool
+matroxFillRectangle_2P( void *drv, void *dev, DFBRectangle *rect )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     matrox_fill_rectangle( mdrv, mdev, rect );
+
+     rect->x /= 2;
+     rect->y /= 2;
+     rect->w = (rect->w + 1) / 2;
+     rect->h = (rect->h + 1) / 2;
+
+     /* CbCr plane */
+     mga_waitfifo( mdrv, mdev, 7 );
+     mga_out32( mmio, PW16 | NODITHER, MACCESS );
+     mga_out32( mmio, mdev->color[1], FCOL );
+     mga_out32( mmio, mdev->dst_pitch/2, PITCH );
+     mga_out32( mmio, mdev->dst_offset[1], DSTORG );
+
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y1 / 4) & 0xFFFFFF, YTOP );
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y2 / 4) & 0xFFFFFF, YBOT );
+     mga_out32( mmio, ((mdev->clip.x2/2 & 0x0FFF) << 16) | (mdev->clip.x1/2 & 0x0FFF), CXBNDRY );
+
+     matrox_fill_rectangle( mdrv, mdev, rect );
+
+     /* Restore registers */
+     mga_waitfifo( mdrv, mdev, 4 );
+     mga_out32( mmio, PW8 | BYPASS332 | NODITHER, MACCESS );
+     mga_out32( mmio, mdev->color[0], FCOL );
+     mga_out32( mmio, mdev->dst_pitch, PITCH );
+     mga_out32( mmio, mdev->dst_offset[0], DSTORG );
+
+     matrox_set_clip( mdrv, mdev, &mdev->clip );
+
+     return true;
+}
+
+static bool
+matroxFillRectangle_3P( void *drv, void *dev, DFBRectangle *rect )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     matrox_fill_rectangle( mdrv, mdev, rect );
+
+     rect->x /= 2;
+     rect->y /= 2;
+     rect->w = (rect->w + 1) / 2;
+     rect->h = (rect->h + 1) / 2;
+
+     /* Cb plane */
+     mga_waitfifo( mdrv, mdev, 6 );
+     mga_out32( mmio, mdev->color[1], FCOL );
+     mga_out32( mmio, mdev->dst_pitch/2, PITCH );
+     mga_out32( mmio, mdev->dst_offset[1], DSTORG );
+
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y1 / 4) & 0xFFFFFF, YTOP );
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y2 / 4) & 0xFFFFFF, YBOT );
+     mga_out32( mmio, ((mdev->clip.x2/2 & 0x0FFF) << 16) | (mdev->clip.x1/2 & 0x0FFF), CXBNDRY );
+
+     matrox_fill_rectangle( mdrv, mdev, rect );
+
+     /* Cr plane */
+     mga_waitfifo( mdrv, mdev, 2 );
+     mga_out32( mmio, mdev->color[2], FCOL );
+     mga_out32( mmio, mdev->dst_offset[2], DSTORG );
+
+     matrox_fill_rectangle( mdrv, mdev, rect );
+
+     /* Restore registers */
+     mga_waitfifo( mdrv, mdev, 3 );
+     mga_out32( mmio, mdev->color[0], FCOL );
+     mga_out32( mmio, mdev->dst_pitch, PITCH );
+     mga_out32( mmio, mdev->dst_offset[0], DSTORG );
+
+     matrox_set_clip( mdrv, mdev, &mdev->clip );
 
      return true;
 }
@@ -962,61 +1075,13 @@ matroxBlit2D_Old( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
 
      matroxDoBlit2D_Old( mdrv, mdev,
                          rect->x, rect->y,
                          dx, dy,
                          rect->w, rect->h,
                          mdev->src_pitch,
-                         mdev->src_offset );
-
-
-     if (!mdev->planar)
-          return true;
-
-     rect->x /= 2; rect->y /= 2;
-     rect->w /= 2; rect->h /= 2;
-     dx /= 2; dy /= 2;
-
-     /* Cb plane */
-     mga_waitfifo( mdrv, mdev, 5 );
-     mga_out32( mmio, mdev->dst_pitch/2, PITCH );
-     mga_out32( mmio, mdev->dst_cb_offset, YDSTORG );
-
-     mga_out32( mmio, (mdev->dst_cb_offset + mdev->dst_pitch * mdev->clip.y1 / 4) & 0xFFFFFF, YTOP );
-     mga_out32( mmio, (mdev->dst_cb_offset + mdev->dst_pitch * mdev->clip.y2 / 4) & 0xFFFFFF, YBOT );
-     mga_out32( mmio, ((mdev->clip.x2/2 & 0x0FFF) << 16) | (mdev->clip.x1/2 & 0x0FFF), CXBNDRY );
-
-     matroxDoBlit2D_Old( mdrv, mdev,
-                         rect->x, rect->y,
-                         dx, dy,
-                         rect->w, rect->h,
-                         mdev->src_pitch/2,
-                         mdev->src_cb_offset );
-
-     /* Cr plane */
-     mga_waitfifo( mdrv, mdev, 3 );
-     mga_out32( mmio, mdev->dst_cr_offset, YDSTORG );
-
-     mga_out32( mmio, (mdev->dst_cr_offset + mdev->dst_pitch * mdev->clip.y1 / 4) & 0xFFFFFF, YTOP );
-     mga_out32( mmio, (mdev->dst_cr_offset + mdev->dst_pitch * mdev->clip.y2 / 4) & 0xFFFFFF, YBOT );
-
-     matroxDoBlit2D_Old( mdrv, mdev,
-                         rect->x, rect->y,
-                         dx, dy,
-                         rect->w, rect->h,
-                         mdev->src_pitch/2,
-                         mdev->src_cr_offset );
-
-     /* Restore resisters */
-     mga_waitfifo( mdrv, mdev, 5 );
-     mga_out32( mmio, mdev->dst_pitch, PITCH );
-     mga_out32( mmio, mdev->dst_offset, YDSTORG );
-
-     mga_out32( mmio, (mdev->dst_offset + mdev->dst_pitch * mdev->clip.y1) & 0xFFFFFF, YTOP );
-     mga_out32( mmio, (mdev->dst_offset + mdev->dst_pitch * mdev->clip.y2) & 0xFFFFFF, YBOT );
-     mga_out32( mmio, ((mdev->clip.x2 & 0x0FFF) << 16) | (mdev->clip.x1 & 0x0FFF), CXBNDRY );
+                         mdev->src_offset[0] );
 
      return true;
 }
@@ -1079,6 +1144,22 @@ matroxBlit2D( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     matroxDoBlit2D( mdrv, mdev,
+                     rect->x, rect->y,
+                     dx, dy,
+                     rect->w, rect->h,
+                     mdev->src_pitch );
+
+     return true;
+}
+
+static bool
+matroxBlit2D_2P( void *drv, void *dev,
+                 DFBRectangle *rect, int dx, int dy )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
      volatile __u8    *mmio = mdrv->mmio_base;
 
      matroxDoBlit2D( mdrv, mdev,
@@ -1087,20 +1168,64 @@ matroxBlit2D( void *drv, void *dev,
                      rect->w, rect->h,
                      mdev->src_pitch );
 
+     rect->x &= ~1;
+     rect->y /= 2;
+     rect->w = (rect->w + 1) & ~1;
+     rect->h = (rect->h + 1) / 2;
+     dx &= ~1;
+     dy /= 2;
 
-     if (!mdev->planar)
-          return true;
+     /* CbCr plane */
+     mga_waitfifo( mdrv, mdev, 4 );
+     mga_out32( mmio, mdev->src_offset[1], SRCORG );
+     mga_out32( mmio, mdev->dst_offset[1], DSTORG );
 
-     rect->x /= 2; rect->y /= 2;
-     rect->w /= 2; rect->h /= 2;
-     dx /= 2; dy /= 2;
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y1 / 2) & 0xFFFFFF, YTOP );
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y2 / 2) & 0xFFFFFF, YBOT );
+
+     matroxDoBlit2D( mdrv, mdev,
+                     rect->x, rect->y,
+                     dx, dy,
+                     rect->w, rect->h,
+                     mdev->src_pitch );
+
+     /* Restore registers */
+     mga_waitfifo( mdrv, mdev, 4 );
+     mga_out32( mmio, mdev->src_offset[0], SRCORG );
+     mga_out32( mmio, mdev->dst_offset[0], DSTORG );
+
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y1) & 0xFFFFFF, YTOP );
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y2) & 0xFFFFFF, YBOT );
+
+     return true;
+}
+
+static bool
+matroxBlit2D_3P( void *drv, void *dev,
+                 DFBRectangle *rect, int dx, int dy )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     matroxDoBlit2D( mdrv, mdev,
+                     rect->x, rect->y,
+                     dx, dy,
+                     rect->w, rect->h,
+                     mdev->src_pitch );
+
+     rect->x /= 2;
+     rect->y /= 2;
+     rect->w = (rect->w + 1) / 2;
+     rect->h = (rect->h + 1) / 2;
+     dx /= 2;
+     dy /= 2;
 
      /* Cb plane */
      mga_waitfifo( mdrv, mdev, 6 );
-     mga_out32( mmio, mdev->src_cb_offset, SRCORG );
-
+     mga_out32( mmio, mdev->src_offset[1], SRCORG );
+     mga_out32( mmio, mdev->dst_offset[1], DSTORG );
      mga_out32( mmio, mdev->dst_pitch/2, PITCH );
-     mga_out32( mmio, mdev->dst_cb_offset, DSTORG );
 
      mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y1 / 4) & 0xFFFFFF, YTOP );
      mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y2 / 4) & 0xFFFFFF, YBOT );
@@ -1114,9 +1239,8 @@ matroxBlit2D( void *drv, void *dev,
 
      /* Cr plane */
      mga_waitfifo( mdrv, mdev, 2 );
-     mga_out32( mmio, mdev->src_cr_offset, SRCORG );
-
-     mga_out32( mmio, mdev->dst_cr_offset, DSTORG );
+     mga_out32( mmio, mdev->src_offset[2], SRCORG );
+     mga_out32( mmio, mdev->dst_offset[2], DSTORG );
 
      matroxDoBlit2D( mdrv, mdev,
                      rect->x, rect->y,
@@ -1125,15 +1249,12 @@ matroxBlit2D( void *drv, void *dev,
                      mdev->src_pitch/2 );
 
      /* Restore registers */
-     mga_waitfifo( mdrv, mdev, 6 );
-     mga_out32( mmio, mdev->src_offset, SRCORG );
-
+     mga_waitfifo( mdrv, mdev, 3 );
+     mga_out32( mmio, mdev->src_offset[0], SRCORG );
+     mga_out32( mmio, mdev->dst_offset[0], DSTORG );
      mga_out32( mmio, mdev->dst_pitch, PITCH );
-     mga_out32( mmio, mdev->dst_offset, DSTORG );
 
-     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y1) & 0xFFFFFF, YTOP );
-     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y2) & 0xFFFFFF, YBOT );
-     mga_out32( mmio, ((mdev->clip.x2 & 0x0FFF) << 16) | (mdev->clip.x1 & 0x0FFF), CXBNDRY );
+     matrox_set_clip( mdrv, mdev, &mdev->clip );
 
      return true;
 }
@@ -1192,6 +1313,22 @@ matroxBlitTMU( MatroxDriverData *mdrv,
                DFBRectangle *drect,
                bool filter )
 {
+     matroxDoBlitTMU( mdrv, mdev,
+                      srect->x, srect->y,
+                      drect->x, drect->y,
+                      srect->w, srect->h,
+                      drect->w, drect->h,
+                      mdev->w2, mdev->h2,
+                      filter );
+}
+
+static inline void
+matroxBlitTMU_2P( MatroxDriverData *mdrv,
+                  MatroxDeviceData *mdev,
+                  DFBRectangle *srect,
+                  DFBRectangle *drect,
+                  bool filter )
+{
      volatile __u8 *mmio = mdrv->mmio_base;
      __u32          texctl;
 
@@ -1203,17 +1340,93 @@ matroxBlitTMU( MatroxDriverData *mdrv,
                       mdev->w2, mdev->h2,
                       filter );
 
+     srect->x /= 2;
+     srect->y /= 2;
+     srect->w = (srect->w + 1) / 2;
+     srect->h = (srect->h + 1) / 2;
+     drect->x /= 2;
+     drect->y /= 2;
+     drect->w = (drect->w + 1) / 2;
+     drect->h = (drect->h + 1) / 2;
 
-     if (!mdev->planar)
-          return;
+     texctl  = mdev->texctl & ~(TPITCHEXT | TFORMAT);
+     texctl |= (((mdev->src_pitch/2) << 9) & TPITCHEXT) | TW16;
 
-     srect->x /= 2; srect->y /= 2;
-     srect->w /= 2; srect->h /= 2;
-     drect->x /= 2; drect->y /= 2;
-     drect->w /= 2; drect->h /= 2;
+     /* CbCr plane */
+     mga_waitfifo( mdrv, mdev, 10 );
+     mga_out32( mmio, texctl, TEXCTL );
+     mga_out32( mmio, ( (((__u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
+                        (((__u32)(3 - mdev->w2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((__u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
+                        (((__u32)(3 - mdev->h2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, mdev->src_offset[1], TEXORG );
 
-     texctl  = mdev->texctl & ~(0x7ff << 9);
-     texctl |= (mdev->src_pitch/2 & 0x7ff) << 9;
+     mga_out32( mmio, mdev->dst_pitch/2, PITCH );
+     mga_out32( mmio, PW16 | NODITHER, MACCESS );
+     mga_out32( mmio, mdev->dst_offset[1], DSTORG );
+
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y1 / 4) & 0xFFFFFF, YTOP );
+     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y2 / 4) & 0xFFFFFF, YBOT );
+     mga_out32( mmio, ((mdev->clip.x2/2 & 0x0FFF) << 16) | (mdev->clip.x1/2 & 0x0FFF), CXBNDRY );
+
+     /* No filtering since we're not using real RGB16 data */
+     matroxDoBlitTMU( mdrv, mdev,
+                      srect->x, srect->y,
+                      drect->x, drect->y,
+                      srect->w, srect->h,
+                      drect->w, drect->h,
+                      mdev->w2-1, mdev->h2-1,
+                      false );
+
+     /* Restore registers */
+     mga_waitfifo( mdrv, mdev, 7 );
+     mga_out32( mmio, mdev->texctl, TEXCTL );
+     mga_out32( mmio, ( (((__u32)(mdev->w - 1) & 0x7ff) << 18) |
+                        (((__u32)(4 - mdev->w2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((__u32)(mdev->h - 1) & 0x7ff) << 18) |
+                        (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, mdev->src_offset[0], TEXORG );
+
+     mga_out32( mmio, mdev->dst_pitch, PITCH );
+     mga_out32( mmio, PW8 | BYPASS332 | NODITHER, MACCESS );
+     mga_out32( mmio, mdev->dst_offset[0], DSTORG );
+
+     matrox_set_clip( mdrv, mdev, &mdev->clip );
+}
+
+static inline void
+matroxBlitTMU_3P( MatroxDriverData *mdrv,
+                  MatroxDeviceData *mdev,
+                  DFBRectangle *srect,
+                  DFBRectangle *drect,
+                  bool filter )
+{
+     volatile __u8 *mmio = mdrv->mmio_base;
+     __u32          texctl;
+
+     matroxDoBlitTMU( mdrv, mdev,
+                      srect->x, srect->y,
+                      drect->x, drect->y,
+                      srect->w, srect->h,
+                      drect->w, drect->h,
+                      mdev->w2, mdev->h2,
+                      filter );
+
+     srect->x /= 2;
+     srect->y /= 2;
+     srect->w = (srect->w + 1) / 2;
+     srect->h = (srect->h + 1) / 2;
+     drect->x /= 2;
+     drect->y /= 2;
+     drect->w = (drect->w + 1) / 2;
+     drect->h = (drect->h + 1) / 2;
+
+     texctl  = mdev->texctl & ~TPITCHEXT;
+     texctl |= ((mdev->src_pitch/2) << 9) & TPITCHEXT;
 
      /* Cb plane */
      mga_waitfifo( mdrv, mdev, 9 );
@@ -1224,10 +1437,10 @@ matroxBlitTMU( MatroxDriverData *mdrv,
      mga_out32( mmio, ( (((__u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
                         (((__u32)(3 - mdev->h2) & 0x3f) <<  9) |
                         (((__u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
-     mga_out32( mmio, mdev->src_cb_offset, TEXORG );
+     mga_out32( mmio, mdev->src_offset[1], TEXORG );
 
      mga_out32( mmio, mdev->dst_pitch/2, PITCH );
-     mga_out32( mmio, mdev->dst_cb_offset, DSTORG );
+     mga_out32( mmio, mdev->dst_offset[1], DSTORG );
 
      mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y1 / 4) & 0xFFFFFF, YTOP );
      mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y2 / 4) & 0xFFFFFF, YBOT );
@@ -1238,20 +1451,22 @@ matroxBlitTMU( MatroxDriverData *mdrv,
                       drect->x, drect->y,
                       srect->w, srect->h,
                       drect->w, drect->h,
-                      mdev->w2-1, mdev->h2-1, true );
+                      mdev->w2-1, mdev->h2-1,
+                      filter );
 
      /* Cr plane */
      mga_waitfifo( mdrv, mdev, 2 );
-     mga_out32( mmio, mdev->src_cr_offset, TEXORG );
+     mga_out32( mmio, mdev->src_offset[2], TEXORG );
 
-     mga_out32( mmio, mdev->dst_cr_offset, DSTORG );
+     mga_out32( mmio, mdev->dst_offset[2], DSTORG );
 
      matroxDoBlitTMU( mdrv, mdev,
                       srect->x, srect->y,
                       drect->x, drect->y,
                       srect->w, srect->h,
                       drect->w, drect->h,
-                      mdev->w2-1, mdev->h2-1, true );
+                      mdev->w2-1, mdev->h2-1,
+                      filter );
 
      /* Restore registers */
      mga_waitfifo( mdrv, mdev, 6 );
@@ -1262,10 +1477,10 @@ matroxBlitTMU( MatroxDriverData *mdrv,
      mga_out32( mmio, ( (((__u32)(mdev->h - 1) & 0x7ff) << 18) |
                         (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
                         (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
-     mga_out32( mmio, mdev->src_offset, TEXORG );
+     mga_out32( mmio, mdev->src_offset[0], TEXORG );
 
      mga_out32( mmio, mdev->dst_pitch, PITCH );
-     mga_out32( mmio, mdev->dst_offset, DSTORG );
+     mga_out32( mmio, mdev->dst_offset[0], DSTORG );
 
      matrox_set_clip( mdrv, mdev, &mdev->clip );
 }
@@ -1283,6 +1498,30 @@ matroxStretchBlit( void *drv, void *dev,
 }
 
 static bool
+matroxStretchBlit_2P( void *drv, void *dev,
+                      DFBRectangle *srect, DFBRectangle *drect )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     matroxBlitTMU_2P( mdrv, mdev, srect, drect, true );
+
+     return true;
+}
+
+static bool
+matroxStretchBlit_3P( void *drv, void *dev,
+                      DFBRectangle *srect, DFBRectangle *drect )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     matroxBlitTMU_3P( mdrv, mdev, srect, drect, true );
+
+     return true;
+}
+
+static bool
 matroxBlit3D( void *drv, void *dev,
               DFBRectangle *rect, int dx, int dy )
 {
@@ -1292,6 +1531,34 @@ matroxBlit3D( void *drv, void *dev,
      DFBRectangle      drect = { dx, dy, rect->w, rect->h };
 
      matroxBlitTMU( mdrv, mdev, rect, &drect, mdev->blit_deinterlace );
+
+     return true;
+}
+
+static bool
+matroxBlit3D_2P( void *drv, void *dev,
+                 DFBRectangle *rect, int dx, int dy )
+{
+     MatroxDriverData *mdrv  = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev  = (MatroxDeviceData*) dev;
+
+     DFBRectangle      drect = { dx, dy, rect->w, rect->h };
+
+     matroxBlitTMU_2P( mdrv, mdev, rect, &drect, mdev->blit_deinterlace );
+
+     return true;
+}
+
+static bool
+matroxBlit3D_3P( void *drv, void *dev,
+                 DFBRectangle *rect, int dx, int dy )
+{
+     MatroxDriverData *mdrv  = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev  = (MatroxDeviceData*) dev;
+
+     DFBRectangle      drect = { dx, dy, rect->w, rect->h };
+
+     matroxBlitTMU_3P( mdrv, mdev, rect, &drect, mdev->blit_deinterlace );
 
      return true;
 }
@@ -1498,14 +1765,12 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->EngineSync        = matroxEngineSync;
      funcs->FlushTextureCache = matroxFlushTextureCache;
 
-     funcs->FillRectangle     = matroxFillRectangle;
      funcs->DrawRectangle     = matroxDrawRectangle;
      funcs->DrawLine          = matroxDrawLine;
      funcs->FillTriangle      = matroxFillTriangle;
-     funcs->StretchBlit       = matroxStretchBlit;
      funcs->TextureTriangles  = matroxTextureTriangles;
 
-     /* will be set dynamically: funcs->Blit */
+     /* will be set dynamically: funcs->FillRectangle, funcs->Blit, funcs->StretchBlit */
 
      /* Generic CRTC1 support */
      mdrv->primary = dfb_screens_at( DSCID_PRIMARY );
@@ -1650,6 +1915,14 @@ driver_init_device( GraphicsDevice     *device,
      device_info->limits.surface_pixelpitch_alignment = 32;
      device_info->limits.surface_bytepitch_alignment  = 64;
 
+     mdev->atype_blk_rstr = (sgram || dfb_config->matrox_sgram) ? ATYPE_BLK : ATYPE_RSTR;
+     /*
+      * Pitch must be a multiple of 64 bytes for block write to work.
+      * I420/YV12 subsampling makes the actual requirement 128 bytes.
+      */
+     if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400 && mdev->atype_blk_rstr == ATYPE_BLK)
+          device_info->limits.surface_bytepitch_alignment = 128;
+
      /* soft reset to fix eventually corrupted TMU read offset on G200 */
      if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200) {
           __u32 ien = mga_in32( mmio, IEN );
@@ -1663,8 +1936,6 @@ driver_init_device( GraphicsDevice     *device,
           mdev->idle_status = 0;
      else
           mdev->idle_status = ENDPRDMASTS;
-
-     mdev->atype_blk_rstr = (sgram || dfb_config->matrox_sgram) ? ATYPE_BLK : ATYPE_RSTR;
 
      switch (mdrv->accelerator) {
           case FB_ACCEL_MATROX_MGAG100:

@@ -87,21 +87,17 @@ typedef struct {
 
      /* Stored values */
      int dst_pitch;
-     int dst_offset;
-     int dst_cb_offset;
-     int dst_cr_offset;
+     int dst_offset[3];
      int src_pitch;
-     int src_offset;
-     int src_cb_offset;
-     int src_cr_offset;
+     int src_offset[3];
      int w, h, w2, h2;
+     __u32 color[3];
 
      bool draw_blend;
      bool blit_src_colorkey;
 
      bool blit_deinterlace;
      int field;
-     bool planar;
 
      bool depth_buffer;
 

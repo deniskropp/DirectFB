@@ -219,7 +219,10 @@
 #define TW422         0x0000000A
 #define TW422UYVY     0x0000000B
 
-#define PITCHEXT      0x00000100
+#define TFORMAT       0x0000000F
+#define TPITCHLIN     0x00000100
+#define TPITCHEXT     0x000FFE00
+
 #define NOPERSPECTIVE 0x00200000
 #define TAKEY         0x02000000
 #define TAMASK        0x04000000
