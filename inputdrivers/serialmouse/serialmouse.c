@@ -41,12 +41,30 @@
 #include <core/coredefs.h>
 #include <core/input.h>
 
+#define DEV_NAME "/dev/mouse"
+#define MIDDLE   0x08
+
+typedef enum
+{
+  PROTOCOL_MS,
+  PROTOCOL_MS3,
+  //  PROTOCOL_LOGITECH,
+  LAST_PROTOCOL
+} MouseProtocol;
+
+static char *protocol_names[] = 
+{
+  "MS",
+  "MS3"
+  //  "Logitech"
+};
 
 static int fd = -1;
-
+static MouseProtocol protocol = LAST_PROTOCOL;
 
 static DFBInputEvent x_motion;
 static DFBInputEvent y_motion;
+
 
 static inline void mouse_motion_initialize()
 {
@@ -76,7 +94,7 @@ static inline void mouse_motion_realize(InputDevice *device)
      }
 }
 
-static void mouse_setspeed ()
+static void mouse_setspeed()
 {
      struct termios tty;
 
@@ -130,7 +148,7 @@ void* mouseEventThread(void *device)
 
                     pos = 0;
                     
-                    buttons = packet[0];
+                    buttons = packet[0] & 0x30;
                     dx = (signed char) 
                          (((packet[0] & 0x03) << 6) | (packet[1] & 0x3f));
                     dy = (signed char) 
@@ -138,6 +156,13 @@ void* mouseEventThread(void *device)
                     
                     mouse_motion_compress( dx, dy );
                     
+                    if (protocol == PROTOCOL_MS3) {
+                         if (!dx && !dy && buttons == (last_buttons & ~MIDDLE))
+                              buttons = last_buttons ^ MIDDLE;  /* toggle    */
+                         else
+                              buttons |= last_buttons & MIDDLE; /* preserve  */
+                    }
+
                     if (!dfb_config->mouse_motion_compression)
                          mouse_motion_realize( device );
                          
@@ -163,14 +188,16 @@ void* mouseEventThread(void *device)
                               evt.button = DIBI_RIGHT;
                               reactor_dispatch( mouse->reactor, &evt );
                          }
+                         if (changed_buttons & MIDDLE) {
+                              evt.type = (buttons & MIDDLE) ? 
+                                   DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.flags = DIEF_BUTTON;
+                              evt.button = DIBI_MIDDLE;
+                              reactor_dispatch( mouse->reactor, &evt );
+                         }
 
                          last_buttons = buttons;
                     }
-                    else
-                         if (i == readlen-1) {
-                           /* test */
-                           continue;
-                         }
                }
           }
 
@@ -199,11 +226,18 @@ int driver_probe()
      int readlen;
      int lines;
 
-     if (!dfb_config->mouse_protocol || 
-         strcmp (dfb_config->mouse_protocol, "ms"))
+     if (!dfb_config->mouse_protocol)
           return 0;
 
-     fd = open( "/dev/mouse", O_RDWR | O_NONBLOCK );
+     for (protocol = 0; protocol < LAST_PROTOCOL; protocol++) {
+          if (strcasecmp (dfb_config->mouse_protocol, 
+                          protocol_names[protocol]) == 0)
+               break;
+     }
+     if (protocol == LAST_PROTOCOL)
+          return 0;
+
+     fd = open( DEV_NAME, O_RDWR | O_NONBLOCK );
      if (fd < 0)
           return 0;
 
@@ -250,9 +284,9 @@ int driver_init(InputDevice *device)
 {
      char *driver_name;
 
-     fd = open( "/dev/mouse", O_RDWR | O_NONBLOCK );
+     fd = open( DEV_NAME, O_RDWR | O_NONBLOCK );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/SerialMouse: Error opening `/dev/mouse'!\n" );
+          PERRORMSG( "DirectFB/SerialMouse: Error opening '"DEV_NAME"'!\n" );
           return DFB_INIT;
      }
 
@@ -262,21 +296,22 @@ int driver_init(InputDevice *device)
      mouse_setspeed ();
 
      driver_name = malloc( strlen("Serial Mouse ()") +
-                           strlen(dfb_config->mouse_protocol) + 1 );
-     sprintf( driver_name, "Serial Mouse (%s)", dfb_config->mouse_protocol );
+                           strlen(protocol_names[protocol]) + 1 );
+     sprintf( driver_name, "Serial Mouse (%s)", protocol_names[protocol]);
      
      device->info.driver_name   = driver_name;
      device->info.driver_vendor = "convergence integrated media GmbH";
 
      device->info.driver_version.major = 0;
-     device->info.driver_version.minor = 0;
+     device->info.driver_version.minor = 1;
 
      device->id = DIDID_MOUSE;
 
      device->desc.type = DIDTF_MOUSE;
      device->desc.caps = DICAPS_AXIS | DICAPS_BUTTONS;
      device->desc.max_axis = DIAI_Y;
-     device->desc.max_button = DIBI_RIGHT; /* DIBI_MIDDLE */
+     device->desc.max_button = 
+          (protocol > PROTOCOL_MS) ? DIBI_MIDDLE : DIBI_RIGHT;
 
      device->EventThread = mouseEventThread;
 

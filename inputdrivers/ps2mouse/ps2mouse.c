@@ -43,12 +43,11 @@
 #include <core/coredefs.h>
 #include <core/input.h>
 
-
 static int fd = -1;
-
 
 static DFBInputEvent x_motion;
 static DFBInputEvent y_motion;
+
 
 static inline void ps2mouse_motion_initialize()
 {
@@ -95,14 +94,12 @@ static void* ps2mouseEventThread(void *device)
 
      ps2mouse_motion_initialize();
 
-     // Read ps2 data
      while ((readlen = read(fd, buf, 256)) > 0) {
           int i;
 
           pthread_testcancel();
           
           for (i = 0; i < readlen; i++) {
-//               DEBUGMSG( "--- %02x ---\n", buf[i] );
 
                if (pos == 0  &&  (buf[i] & 0xc0))
                     continue;
@@ -151,10 +148,6 @@ static void* ps2mouseEventThread(void *device)
                          }
 
                          last_buttons = buttons;
-                    } else
-                    if (i == readlen-1) {
-                         /* test */
-                         continue;
                     }
                }
           }
