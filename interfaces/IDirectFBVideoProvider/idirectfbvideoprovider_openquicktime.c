@@ -429,7 +429,7 @@ WriteYUVFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
                }
 
                for (y=0; y<data->dest_clip.h; y++) {
-                    memcpy( dst_y, src_y, data->dest_clip.w );
+                    dfb_memcpy( dst_y, src_y, data->dest_clip.w );
 
                     src_y += data->video.width;
                     dst_y += pitch;
@@ -441,8 +441,8 @@ WriteYUVFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
                          dst_v += pitch/2;
                     }
                     else {
-                         memcpy( dst_u, src_u, data->dest_clip.w/2 );
-                         memcpy( dst_v, src_v, data->dest_clip.w/2 );
+                         dfb_memcpy( dst_u, src_u, data->dest_clip.w/2 );
+                         dfb_memcpy( dst_v, src_v, data->dest_clip.w/2 );
                     }
                }
                break;
