@@ -17,10 +17,10 @@
  *
  *  video_out_dfb: unofficial xine video output driver using DirectFB
  *
- * 
+ *
  *  NOTE: adjusting contrast is disabled in __dummy_* when output is RGB
  *
- * 
+ *
  *  TODO: speed up at 24bpp and 32bpp, add support for overlays
  *
  */
@@ -174,11 +174,14 @@ static const uint32_t b6_mask[] = {0xfcfcfcfc, 0xfcfcfcfc};
 
 
 
+
+
 static void
 __mmx_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
 {
-	if(!this->brightness.l_val && this->contrast.l_val == 0x4000)
+	if(!this->brightness.l_val &&
+		this->contrast.l_val == 0x4000)
 	{
 
 		xine_fast_memcpy(data, frame->vo_frame.base[0],
@@ -212,6 +215,7 @@ __mmx_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 			"addl $8, %1\n\t"
 			"loop 1b\n\t"
 			"emms\n\t"
+
 			:: "r" (data), "r" (yuv_data), "c" (n),
 			   "m" (*(this->brightness.mm_val)), "m" (*(this->contrast.mm_val))
 			: "memory");
@@ -401,7 +405,7 @@ __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 		y = (y * ctr) >> 14;
 		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 		*y_off = y;
-		
+
 		y = *(yuv_data + 2) + bright;
 		y = (y * ctr) >> 14;
 		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
@@ -416,7 +420,7 @@ __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 		y = (y * ctr) >> 14;
 		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 		*(y_off + 3) = y;
-		
+
 		y = *(yuv_data + l) + bright;
 		y = (y * ctr) >> 7;
 		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
@@ -439,7 +443,7 @@ __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 
 		*u_off       = (*(yuv_data + 1) + *(yuv_data + l + 1)) >> 1;
 		*(u_off + 1) = (*(yuv_data + 5) + *(yuv_data + l + 5)) >> 1;
-		
+
 		*v_off       = (*(yuv_data + 3) + *(yuv_data + l + 3)) >> 1;
 		*(v_off + 1) = (*(yuv_data + 7) + *(yuv_data + l + 7)) >> 1;
 
@@ -454,7 +458,7 @@ __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 			yuv_data += l;
 			y_off    += pitch;
 		}
-	
+
 	} while(--n);
 
 }
@@ -475,7 +479,7 @@ __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
 		"movq %%mm0, %%mm2\n\t" /* mm2 = [v2 y3 u2 y2 v0 y1 u0 y0] */
 		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %3, %%mm2\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %3, %%mm2\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm2\n\t" /* y << 2 */
 		"pmulhw %4, %%mm2\n\t" /* y * contrast */
 		"movq %%mm0, %%mm1\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
@@ -600,7 +604,7 @@ __mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
 		"movq %%mm0, %%mm2\n\t" /* mm2 = [v2 y3 u2 y2 v0 y1 u0 y0] */
 		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %3, %%mm2\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %3, %%mm2\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm2\n\t" /* y << 2 */
 		"pmulhw %4, %%mm2\n\t" /* y * contrast */
 		"movq %%mm0, %%mm1\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
@@ -726,7 +730,7 @@ __mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
 		"movq %%mm0, %%mm2\n\t" /* mm2 = [v2 y3 u2 y2 v0 y1 u0 y0] */
 		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %3, %%mm2\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %3, %%mm2\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm2\n\t" /* y << 2 */
 		"pmulhw %4, %%mm2\n\t" /* y * contrast */
 		"movq %%mm0, %%mm1\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
@@ -884,7 +888,7 @@ __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 		"1:\tmovq (%1), %%mm0\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
 		"movq %%mm0, %%mm2\n\t" /* mm2 = [v2 y3 u2 y2 v0 y1 u0 y0] */
 		"pand (wmask), %%mm2\n\t" /* mm2 = [0 y3 0 y2 0 y1 0 y0] */
-		"paddw %3, %%mm2\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %3, %%mm2\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm2\n\t" /* y << 2 */
 		"pmulhw %4, %%mm2\n\t" /* y * contrast */
 		"movq %%mm0, %%mm1\n\t" /* mm1 = [v2 y3 u2 y2 v0 y1 u0 y0] */
@@ -1025,7 +1029,6 @@ static yuv_render_t yuy2_cc =
 	yuy2:	__dummy_yuy2_be_yuy2,
 	uyvy:	__dummy_yuy2_be_uyvy,
 	yv12:	__dummy_yuy2_be_yv12,
-	i420:	__dummy_yuy2_be_yv12,
 	rgb15:	__dummy_yuy2_be_rgb15,
 	rgb16:	__dummy_yuy2_be_rgb16,
 	rgb24:  __dummy_yuy2_be_rgb24,
@@ -1326,13 +1329,69 @@ __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 
 /* NOT TESTED */
 static void
+__mmx_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
+				uint8_t* data, uint32_t pitch)
+{
+	if(!this->brightness.l_val &&
+		this->contrast.l_val == 0x4000)
+	{
+		xine_fast_memcpy(data,
+				frame->vo_frame.base[0],
+				pitch * frame->height);
+		data += (pitch * frame->height);
+
+	} else
+	{
+		uint32_t n = (frame->width * frame->height) >> 2;
+
+		__asm__ __volatile__(
+
+			"movq %3, %%mm1\n\t" /* mm1 = brightness */
+			"movq %4, %%mm2\n\t" /* mm2 = contrast */
+			"pxor %%mm7, %%mm7\n\t"
+			".align 16\n"
+			"1:\tmovd (%1), %%mm0\n\t" /* mm0 = [0 0 0 0 y3 y2 y1 y0] */
+			"punpcklbw %%mm7, %%mm0\n\t" /* mm0 = [0 y3 0 y2 0 y1 0 y0] */
+			"paddw %%mm1, %%mm0\n\t" /* y + brightness */
+			"psllw $2, %%mm0\n\t" /* y << 2 */
+			"pmulhw %%mm2, %%mm0\n\t" /* y * contrast */
+			"packuswb %%mm0, %%mm0\n\t" /* mm0 = [y3 y2 y1 y0 y3 y2 y1 y0] */
+			"movd %%mm0, (%0)\n\t"
+			"addl $4, %0\n\t"
+			"addl $4, %1\n\t"
+			"loop 1b\n\t"
+
+			: "=&r" (data)
+			: "r" (frame->vo_frame.base[0]), "c" (n),
+			  "m" (*(this->brightness.mm_val)),
+			  "m" (*(this->contrast.mm_val)), "0" (data)
+			: "memory");
+	}
+
+	xine_fast_memcpy(data,
+			(frame->tmp->format == DSPF_YV12)
+				? frame->vo_frame.base[1]
+				: frame->vo_frame.base[2],
+			frame->vo_frame.pitches[1] * (frame->height >> 1));
+	data += (pitch * frame->height) >> 2;
+
+	xine_fast_memcpy(data,
+			(frame->tmp->format == DSPF_YV12)
+				? frame->vo_frame.base[2]
+				: frame->vo_frame.base[1],
+			frame->vo_frame.pitches[2] * (frame->height >> 1));
+}
+
+
+/* NOT TESTED */
+static void
 __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
 {
 	int32_t bright = this->brightness.l_val;
 	int32_t ctr    = this->contrast.l_val;
 
-	
+
 	if(!bright && ctr == 0x4000)
 	{
 		xine_fast_memcpy(data,
@@ -1397,12 +1456,12 @@ __mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 		".align 16\n"
 		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
 		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %8, %%mm3\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %8, %%mm3\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm3\n\t" /* y << 2 */
 		"pmulhw %9, %%mm3\n\t" /* y * contrast */
 		"movd (%1, %4), %%mm2\n\t" /* mm2 = [0 0 0 0 y13 y12 y11 y10] */
 		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %8, %%mm2\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %8, %%mm2\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm2\n\t" /* y << 2 */
 		"pmulhw %9, %%mm2\n\t" /* y * contrast */
 		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
@@ -1591,12 +1650,12 @@ __mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 		".align 16\n"
 		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
 		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %8, %%mm3\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %8, %%mm3\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm3\n\t" /* y << 2 */
 		"pmulhw %9, %%mm3\n\t" /* y * contrast */
 		"movd (%1, %4), %%mm2\n\t" /* mm2 = [0 0 0 0 y13 y12 y11 y10] */
 		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %8, %%mm2\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %8, %%mm2\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm2\n\t" /* y << 2 */
 		"pmulhw %9, %%mm2\n\t" /* y * contrast */
 		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
@@ -1786,12 +1845,12 @@ __mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 		".align 16\n"
 		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
 		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %8, %%mm3\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %8, %%mm3\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm3\n\t" /* y << 2 */
 		"pmulhw %9, %%mm3\n\t" /* y * contrast */
 		"movd (%1, %4), %%mm2\n\t" /* mm2 = [0 0 0 0 y13 y12 y11 y10] */
 		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %8, %%mm2\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %8, %%mm2\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm2\n\t" /* y << 2 */
 		"pmulhw %9, %%mm2\n\t" /* y * contrast */
 		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
@@ -1981,12 +2040,12 @@ __mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 		".align 16\n"
 		"1:\tmovd (%1), %%mm3\n\t" /* mm3 = [0 0 0 0 y03 y02 y01 y00] */
 		"punpcklbw %%mm7, %%mm3\n\t" /* mm3 = [0 y03 0 y02 0 y01 0 y00] */
-		"paddw %8, %%mm3\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %8, %%mm3\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm3\n\t" /* y << 2 */
 		"pmulhw %9, %%mm3\n\t" /* y * contrast */
 		"movd (%1, %4), %%mm2\n\t" /* mm2 = [0 0 0 0 y13 y12 y11 y10] */
 		"punpcklbw %%mm7, %%mm2\n\t" /* mm2 = [0 y13 0 y12 0 y11 0 y10] */
-		"paddw %8, %%mm2\n\t" /* y + (brightness - Y_OFFSET) */
+		"paddw %8, %%mm2\n\t" /* y + (brightness + gamma_correction) */
 		"psllw $2, %%mm2\n\t" /* y << 2 */
 		"pmulhw %9, %%mm2\n\t" /* y * contrast */
 		"movd (%2), %%mm1\n\t" /* mm1 = [0 0 0 0 u3 u2 u1 u0] */
@@ -2148,7 +2207,6 @@ static yuv_render_t yv12_cc =
 	yuy2:	__dummy_yv12_be_yuy2,
 	uyvy:	__dummy_yv12_be_uyvy,
 	yv12:	__dummy_yv12_be_yv12,
-	i420:	__dummy_yv12_be_yv12,
 	rgb15:	__dummy_yv12_be_rgb15,
 	rgb16:	__dummy_yv12_be_rgb16,
 	rgb24:  __dummy_yv12_be_rgb24,
@@ -2269,7 +2327,7 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	
 	frame->state.source      = frame->tmp;
 	frame->state.destination = this->main_data->surface;
-	frame->state.modified    = SMF_ALL;
+	frame->state.modified    = (SMF_CLIP | SMF_DESTINATION | SMF_SOURCE);
 	
 	this->output_cb(this->output_cdata, frame->width, 
 			frame->height, &(frame->dest_rect));
@@ -2761,6 +2819,7 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 			yuy2_cc.rgb32 = __mmx_yuy2_be_rgb32;
 			yv12_cc.yuy2  = __mmx_yv12_be_yuy2;
 			yv12_cc.uyvy  = __mmx_yv12_be_uyvy;
+			yv12_cc.yv12  = __mmx_yv12_be_yv12;
 			yv12_cc.rgb15 = __mmx_yv12_be_rgb15;
 			yv12_cc.rgb16 = __mmx_yv12_be_rgb16;
 			yv12_cc.rgb24 = __mmx_yv12_be_rgb24;
@@ -2836,12 +2895,12 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 		this->main->AddRef(this->main);
 	}
 
-	this->brightness.l_val     += this->correction.used;
-	this->brightness.mm_val[0] += this->correction.used;
-	this->brightness.mm_val[1] += this->correction.used;
-	this->brightness.mm_val[2] += this->correction.used;
-	this->brightness.mm_val[3] += this->correction.used;
-
+	this->brightness.l_val     = this->correction.used;
+	this->brightness.mm_val[0] = this->correction.used;
+	this->brightness.mm_val[1] = this->correction.used;
+	this->brightness.mm_val[2] = this->correction.used;
+	this->brightness.mm_val[3] = this->correction.used;
+	
 	this->contrast.l_val     = 0x4000;
 	this->contrast.mm_val[0] = 0x4000;
 	this->contrast.mm_val[1] = 0x4000;
