@@ -518,7 +518,7 @@ static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data )
           data->thread = -1;
      }
 
-     ioctl( data->fd, VIDIOCCAPTURE, &zero );
+     v4l_stop( data );
 
      close( data->fd );
      data->fd = -1;
