@@ -611,13 +611,16 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     config.height      = height;
 
                     ret = dfb_layer_context_set_configuration( context, &config );
-                    if (ret && ! (caps & (DSCAPS_SYSTEMONLY|DSCAPS_VIDEOONLY)) &&
-                        config.buffermode == DLBM_BACKVIDEO)
-                    {
-                         config.buffermode = DLBM_BACKSYSTEM;
+                    if (ret) {
+                         if (!(caps & (DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY)) &&
+                             config.buffermode == DLBM_BACKVIDEO) {
+                              config.buffermode = DLBM_BACKSYSTEM;
 
-                         ret = dfb_layer_context_set_configuration( context, &config );
-                         if (ret)
+                              ret = dfb_layer_context_set_configuration( context, &config );
+                              if (ret)
+                                   return ret;
+                         }
+                         else
                               return ret;
                     }
 
