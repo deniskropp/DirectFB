@@ -1311,33 +1311,93 @@ GFunc Sacc_to_Dop_PFI[] = {
 
 /************** Sop_a8_set_alphapixel_Dop_PFI *********************************/
 
+#define SET_ALPHA_PIXEL_RGB15(d,a) \
+     switch (a) {\
+     case 0xff: *(d) = __rb+__g; \
+     case 0: break; \
+     default: {\
+          __u32 pixel = *(d); \
+          __u8  s = ((a)>>3)+1; \
+          register __u32 t1,t2; \
+	  t1 = (pixel&0x7c1f); t2 = (pixel&0x03e0); \
+	  pixel = ((((__rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
+	           ((( __g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5; \
+	  *(d) = pixel;\
+          }\
+     }
+
 static void Sop_a8_set_alphapixel_Dop_rgb15()
 {
      int    w = Dlength;
      __u8  *S = Sop;
      __u16 *D = (__u16*)Dop;
+     __u32 __rb = (((color.r&0xf8)<<7) | ((color.b&0xf8)>>3));
+     __u32 __g  =  ((color.g&0xf8)<<2);
 
+     while (w>4) {
+          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
+          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
+          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
+          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
+	  w-=4;
+     }
      while (w--) {
-          SET_ALPHA_PIXEL_RGB15( D, color.r, color.g, color.b, *S );
-
-          D++;
-          S++;
+          SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
      }
 }
+
+#define SET_ALPHA_PIXEL_RGB16(d,a) \
+     switch (a) {\
+     case 0xff: *(d) = __rb+__g; \
+     case 0: break; \
+     default: {\
+	  __u32 pixel = *(d);\
+	  __u8  s = ((a)>>2)+1;\
+	  register __u32 t1,t2; \
+	  t1 = (pixel&0xf81f); t2 = (pixel&0x07e0); \
+	  pixel = ((((__rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
+	           ((( __g-t2)*s+(t2<<6)) & 0x0001f800)) >> 6; \
+	  *(d) = pixel;\
+          }\
+     }
 
 static void Sop_a8_set_alphapixel_Dop_rgb16()
 {
      int    w = Dlength;
      __u8  *S = Sop;
      __u16 *D = (__u16*)Dop;
+     __u32 __rb = (((color.r&0xf8)<<8) | ((color.b&0xf8)>>3));
+     __u32 __g  =  ((color.g&0xfc)<<3);
 
+     while (w>4) {
+          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
+          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
+          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
+          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
+	  w-=4;
+     }
      while (w--) {
-          SET_ALPHA_PIXEL_RGB16( D, color.r, color.g, color.b, *S );
-
-          D++;
-          S++;
+          SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
      }
 }
+
+#define SET_ALPHA_PIXEL_RGB24(d,r,g,b,a)\
+     if (a) {\
+          __u8 *pixel = (d);\
+          \
+          if ((a) == 0xff) {\
+               *pixel++ = (b);\
+               *pixel++ = (g);\
+               *pixel++ = (r);\
+          }\
+          else {\
+               __u16 s = (a)+1;\
+               \
+               *pixel++ = (((b)-(*pixel)) * s + (*pixel << 8)) >> 8;\
+               *pixel++ = (((g)-(*pixel)) * s + (*pixel << 8)) >> 8;\
+               *pixel++ = (((r)-(*pixel)) * s + (*pixel << 8)) >> 8;\
+          }\
+     }
 
 static void Sop_a8_set_alphapixel_Dop_rgb24()
 {
@@ -1345,40 +1405,82 @@ static void Sop_a8_set_alphapixel_Dop_rgb24()
      __u8  *S = Sop;
      __u8  *D = (__u8*)Dop;
 
-     while (w--) {
-          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S );
-
-          D+=3;
-          S++;
+     while (w>4) {
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
+	  w-=4;
      }
-
+     while (w--) {
+          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3, S++;
+     }
 }
+
+#define SET_ALPHA_PIXEL_RGB32(d,a)\
+     switch (a) {\
+     case 0xff: *(d) = (0xff000000 | __rb | __g); \
+     case 0: break; \
+     default: {\
+	  __u32 pixel = *(d);\
+	  __u16  s = (a)+1;\
+	  register __u32 t1,t2; \
+	  t1 = (pixel&0x00ff00ff); t2 = (pixel&0x0000ff00); \
+	  pixel = ((((__rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
+	           ((( __g-t2)*s+(t2<<8)) & 0x00ff0000)) >> 8; \
+	  *(d) = pixel;\
+          }\
+     }
 
 static void Sop_a8_set_alphapixel_Dop_rgb32()
 {
      int    w = Dlength;
      __u8  *S = Sop;
      __u32 *D = (__u32*)Dop;
+     __u32 __rb = (((color.r)<<16) | (color.b));
+     __u32 __g  =  ((color.g)<<8);
 
+     while (w>4) {
+          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
+          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
+          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
+          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
+	  w-=4;
+     }
      while (w--) {
-          SET_ALPHA_PIXEL_RGB32( D, color.r, color.g, color.b, *S );
-
-          D++;
-          S++;
+          SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
      }
 }
+
+#define SET_ALPHA_PIXEL_ARGB(d,g,a)\
+     switch (a) {\
+     case 0xff: *(d) = (0xff000000 | __rb | ((g) << 8));\
+     case 0: break; \
+     default: {\
+          __u32 pixel = *(d);\
+          __u16  s = (a)+1;\
+     	  __u16 s1 = 256-s;\
+     	  *(d) = (((((pixel & 0x00ff00ff)       * s1) +              (__rb * s)) & 0xff00ff00) >> 8) + \
+                 (((((pixel & 0xff00ff00) >> 8) * s1) + ((((a)<<16) | (g)) * s)) & 0xff00ff00);\
+          }\
+     }
 
 static void Sop_a8_set_alphapixel_Dop_argb()
 {
      int    w = Dlength;
      __u8  *S = Sop;
      __u32 *D = (__u32*)Dop;
+     __u32 __rb = (((color.r)<<16) | (color.b));
 
+     while (w>4) {
+          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
+          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
+          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
+          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
+	  w-=4;
+     }
      while (w--) {
-          SET_ALPHA_PIXEL_ARGB( D, color.r, color.g, color.b, *S );
-
-          D++;
-          S++;
+          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
      }
 }
 
