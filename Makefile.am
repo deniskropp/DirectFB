@@ -19,6 +19,4 @@ pkgconfig_DATA = directfb.pc directfb-internal.pc
 
 EXTRA_DIST = \
 	README.screenshots	\
-	directfb-avifile.pc	\
-	directfb-swf.pc		\
 	fb.modes
