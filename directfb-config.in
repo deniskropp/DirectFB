@@ -20,6 +20,7 @@ Options:
 	[--font=<impl>[,<impl>]...]
 	[--imageprovider=<impl>[,<impl>]...]
 	[--videoprovider=<impl>[,<impl>]...]
+	[--fusionsound]
 Libraries:
 	directfb
 	avifile
@@ -173,6 +174,10 @@ while test $# -gt 0; do
 
       echo_static=yes
       ;;
+    --fusionsound)
+      echo_fusionsound="-Wl,-uIFusionSound_default -lifusionsound"
+      echo_static=yes
+      ;;
     *)
       usage 1 1>&2
       ;;
@@ -217,6 +222,10 @@ fi
 
 if test -n "$echo_videoprovider"; then
 	echo -L$moduledir/interfaces/IDirectFBVideoProvider $echo_videoprovider
+fi
+
+if test -n "$echo_fusionsound"; then
+	echo -L$moduledir/interfaces/IFusionSound $echo_fusionsound
 fi
 
 if test "$echo_libs" = "yes"; then
