@@ -43,7 +43,7 @@ typedef enum {
 
 #ifndef FUSION_FAKE
      typedef struct {
-          int                 sem_id;
+          int                 id;
           FusionPropertyState state;
      } FusionProperty;
 

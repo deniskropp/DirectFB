@@ -36,6 +36,12 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/sem.h>
+
+#if LINUX_FUSION
+#include <sys/ioctl.h>
+#include <linux/fusion.h>
+#endif
+
 #endif
 
 #include <core/coredefs.h>
@@ -47,6 +53,123 @@
 
 
 #ifndef FUSION_FAKE
+
+#if LINUX_FUSION
+
+FusionResult
+fusion_property_init (FusionProperty *property)
+{
+     DFB_ASSERT( property != NULL );
+     
+     if (ioctl (_fusion_fd(), FUSION_PROPERTY_NEW, &property->id)) {
+          FPERROR ("FUSION_PROPERTY_NEW");
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_property_lease (FusionProperty *property)
+{
+     DFB_ASSERT( property != NULL );
+     
+     while (ioctl (_fusion_fd(), FUSION_PROPERTY_LEASE, &property->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EAGAIN:
+                    return FUSION_INUSE;
+               case EINVAL:
+                    FERROR ("property already destroyed\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+
+          FPERROR ("FUSION_PROPERTY_LEASE");
+          
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_property_purchase (FusionProperty *property)
+{
+     DFB_ASSERT( property != NULL );
+     
+     while (ioctl (_fusion_fd(), FUSION_PROPERTY_PURCHASE, &property->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EAGAIN:
+                    return FUSION_INUSE;
+               case EINVAL:
+                    FERROR ("property already destroyed\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
+          FPERROR ("FUSION_PROPERTY_PURCHASE");
+          
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_property_cede (FusionProperty *property)
+{
+     DFB_ASSERT( property != NULL );
+     
+     while (ioctl (_fusion_fd(), FUSION_PROPERTY_CEDE, &property->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("property already destroyed\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
+          FPERROR ("FUSION_PROPERTY_CEDE");
+          
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_property_destroy (FusionProperty *property)
+{
+     DFB_ASSERT( property != NULL );
+     
+     while (ioctl (_fusion_fd(), FUSION_PROPERTY_DESTROY, &property->id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    FERROR ("property already destroyed\n");
+                    return FUSION_DESTROYED;
+               default:
+                    break;
+          }
+          
+          FPERROR ("FUSION_PROPERTY_DESTROY");
+
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+#else
 
 #define SEMOP(s,o,n)                              \
      while (semop (s, o, n)) {                    \
@@ -77,8 +200,8 @@ fusion_property_init (FusionProperty *property)
      union semun semopts;
 
      /* create four semaphores: locking, counting, waiting, orphan detection */
-     property->sem_id = semget (IPC_PRIVATE, 4, IPC_CREAT | 0660);
-     if (property->sem_id < 0) {
+     property->id = semget (IPC_PRIVATE, 4, IPC_CREAT | 0660);
+     if (property->id < 0) {
           FPERROR ("semget");
 
           if (errno == ENOMEM || errno == ENOSPC)
@@ -89,10 +212,10 @@ fusion_property_init (FusionProperty *property)
 
      /* initialize the lock */
      semopts.val = 1;
-     if (semctl (property->sem_id, 0, SETVAL, semopts)) {
+     if (semctl (property->id, 0, SETVAL, semopts)) {
           FPERROR ("semctl");
 
-          semctl (property->sem_id, 0, IPC_RMID, 0);
+          semctl (property->id, 0, IPC_RMID, 0);
           return FUSION_FAILURE;
      }
 
@@ -113,7 +236,7 @@ fusion_property_lease (FusionProperty *property)
      op[0].sem_op  = -1;
      op[0].sem_flg = SEM_UNDO;
 
-     SEMOP (property->sem_id, op, 1);
+     SEMOP (property->id, op, 1);
 
      /* detect orphan */
      check_orphaned_property (property);
@@ -128,7 +251,7 @@ fusion_property_lease (FusionProperty *property)
                op[0].sem_op  = 1;
                op[0].sem_flg = SEM_UNDO;
 
-               SEMOP (property->sem_id, op, 1);
+               SEMOP (property->id, op, 1);
           }
           else
                ret = FUSION_INUSE;
@@ -139,7 +262,7 @@ fusion_property_lease (FusionProperty *property)
      op[0].sem_op  = 1;
      op[0].sem_flg = SEM_UNDO;
 
-     SEMOP (property->sem_id, op, 1);
+     SEMOP (property->id, op, 1);
 
      return ret;
 }
@@ -158,7 +281,7 @@ fusion_property_purchase (FusionProperty *property)
      op[0].sem_op  = -1;
      op[0].sem_flg = SEM_UNDO;
 
-     SEMOP (property->sem_id, op, 1);
+     SEMOP (property->id, op, 1);
 
      /* detect orphan */
      check_orphaned_property (property);
@@ -173,7 +296,7 @@ fusion_property_purchase (FusionProperty *property)
                op[0].sem_op  = 1;
                op[0].sem_flg = SEM_UNDO;
 
-               SEMOP (property->sem_id, op, 1);
+               SEMOP (property->id, op, 1);
 
                awake_all_waiters (property);
           }
@@ -186,7 +309,7 @@ fusion_property_purchase (FusionProperty *property)
      op[0].sem_op  = 1;
      op[0].sem_flg = SEM_UNDO;
      
-     SEMOP (property->sem_id, op, 1);
+     SEMOP (property->id, op, 1);
 
      return ret;
 }
@@ -204,7 +327,7 @@ fusion_property_cede (FusionProperty *property)
      op[0].sem_op  = -1;
      op[0].sem_flg = SEM_UNDO;
 
-     SEMOP (property->sem_id, op, 1);
+     SEMOP (property->id, op, 1);
 
      /* debug check */
      if (property->state == FUSION_PROPERTY_AVAILABLE)
@@ -223,7 +346,7 @@ fusion_property_cede (FusionProperty *property)
      op[1].sem_op  = 1;
      op[1].sem_flg = SEM_UNDO;
 
-     SEMOP (property->sem_id, op, 2);
+     SEMOP (property->id, op, 2);
 
      awake_all_waiters (property);
      
@@ -238,7 +361,7 @@ fusion_property_destroy (FusionProperty *property)
 {
      union semun semopts;
 
-     if (semctl (property->sem_id, 0, IPC_RMID, semopts)) {
+     if (semctl (property->id, 0, IPC_RMID, semopts)) {
           FPERROR ("semctl");
 
           switch (errno) {
@@ -264,7 +387,7 @@ check_orphaned_property (FusionProperty *property)
      if (property->state == FUSION_PROPERTY_AVAILABLE)
           return;
      
-     switch (semctl (property->sem_id, 3, GETVAL, semopts)) {
+     switch (semctl (property->id, 3, GETVAL, semopts)) {
           case 1:
                return;
           
@@ -298,7 +421,7 @@ wait_until_not_leased (FusionProperty *property)
           op[1].sem_op  = 1;
           op[1].sem_flg = SEM_UNDO;
 
-          SEMOP (property->sem_id, op, 2);
+          SEMOP (property->id, op, 2);
           
           /* lock */
           op[0].sem_num = 0;
@@ -315,7 +438,7 @@ wait_until_not_leased (FusionProperty *property)
           op[2].sem_op  = -1;
           op[2].sem_flg = SEM_UNDO;
           
-          SEMOP (property->sem_id, op, 3);
+          SEMOP (property->id, op, 3);
      }
 
      return FUSION_SUCCESS;
@@ -329,7 +452,7 @@ awake_all_waiters (FusionProperty *property)
      struct sembuf op[1];
 
      /* get number of waiters */
-     waiters = semctl (property->sem_id, 1, GETVAL, semopts);
+     waiters = semctl (property->id, 1, GETVAL, semopts);
      if (waiters < 0) {
           FPERROR ("semctl");
           return FUSION_FAILURE;
@@ -343,10 +466,12 @@ awake_all_waiters (FusionProperty *property)
      op[0].sem_op  = waiters;
      op[0].sem_flg = 0;
 
-     SEMOP (property->sem_id, op, 1);
+     SEMOP (property->id, op, 1);
 
      return FUSION_SUCCESS;
 }
+
+#endif
 
 #else
 

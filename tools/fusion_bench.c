@@ -7,6 +7,7 @@
 #include <directfb.h>
 
 #include <core/fusion/lock.h>
+#include <core/fusion/property.h>
 #include <core/fusion/reactor.h>
 #include <core/fusion/ref.h>
 
@@ -189,6 +190,39 @@ bench_ref()
 }
 
 static void
+bench_property()
+{
+     FusionResult   ret;
+     unsigned int   i;
+     long long      t1, t2;
+     FusionProperty property;
+
+     ret = fusion_property_init( &property );
+     if (ret) {
+          fprintf( stderr, "Fusion Error %d\n", ret );
+          return;
+     }
+
+     
+     /* property lease/cede */
+     t1 = dfb_get_millis();
+     
+     for (i=0; i<4000000; i++) {
+          fusion_property_lease( &property );
+          fusion_property_cede( &property );
+     }
+     
+     t2 = dfb_get_millis();
+     
+     printf( "property lease/cede                   -> %8.2f k/sec\n", 4000000 / (float)(t2 - t1) );
+
+     
+     fusion_property_destroy( &property );
+
+     printf( "\n" );
+}
+
+static void
 bench_skirmish()
 {
      FusionResult   ret;
@@ -339,6 +373,8 @@ main( int argc, char *argv[] )
      bench_skirmish();
      
      bench_skirmish_threaded();
+     
+     bench_property();
      
      bench_ref();
      
