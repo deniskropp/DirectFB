@@ -112,8 +112,11 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 {
      DFBResult ret;
 
-     if (config == NULL)
+     if (config == NULL) {
+          ERRORMSG( "DirectFB/DirectFBCreate: DirectFBInit has to be called "
+                    "before DirectFBCreate!\n" );
           return DFB_INIT;
+     }
 
      if (idirectfb_singleton) {
           idirectfb_singleton->AddRef( idirectfb_singleton );
