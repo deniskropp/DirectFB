@@ -445,12 +445,13 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
      funcs->FlushTextureCache = uc_flush_texture_cache;
      funcs->AfterSetVar       = uc_after_set_var;
 
-     funcs->FillRectangle = uc_fill_rectangle;
-     funcs->DrawRectangle = uc_draw_rectangle;
-     funcs->DrawLine      = uc_draw_line;
-     funcs->FillTriangle  = uc_fill_triangle;
-     funcs->Blit          = uc_blit;
-     funcs->StretchBlit   = uc_stretch_blit;
+     funcs->FillRectangle     = uc_fill_rectangle;
+     funcs->DrawRectangle     = uc_draw_rectangle;
+     funcs->DrawLine          = uc_draw_line;
+     funcs->FillTriangle      = uc_fill_triangle;
+     funcs->Blit              = uc_blit;
+     funcs->StretchBlit       = uc_stretch_blit;
+     funcs->TextureTriangles  = uc_texture_triangles;
 
      dfb_layers_register( dfb_screens_at(DSCID_PRIMARY),
                           driver_data, &ucOverlayFuncs );

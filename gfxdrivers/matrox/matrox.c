@@ -118,7 +118,8 @@ static bool matroxBlit3D    ( void *drv, void *dev,
                                              DFXL_FILLTRIANGLE)
 
 #define MATROX_G200G400_BLITTING_FUNCTIONS  (DFXL_BLIT          | \
-                                             DFXL_STRETCHBLIT)
+                                             DFXL_STRETCHBLIT   | \
+                                             DFXL_TEXTRIANGLES)
 
 
 #define MATROX_USE_TMU(state, accel)                                     \
@@ -321,7 +322,7 @@ static void matroxG200CheckState( void *drv, void *dev,
           state->accel |= MATROX_G200G400_DRAWING_FUNCTIONS;
      }
      else {
-          int use_tmu = MATROX_USE_TMU( state, accel );
+          bool use_tmu = MATROX_USE_TMU( state, accel );
 
           switch (state->source->format) {
                case DSPF_I420:
@@ -390,7 +391,7 @@ static void matroxG400CheckState( void *drv, void *dev,
           state->accel |= MATROX_G200G400_DRAWING_FUNCTIONS;
      }
      else {
-          int use_tmu = MATROX_USE_TMU( state, accel );
+          bool use_tmu = MATROX_USE_TMU( state, accel );
 
           switch (state->source->format) {
                case DSPF_RGB332:
@@ -489,16 +490,16 @@ static void matroxSetState( void *drv, void *dev,
                break;
           case DFXL_BLIT:
           case DFXL_STRETCHBLIT:
-               mdev->blit_src_colorkey = (state->blittingflags &
-                                          DSBLIT_SRC_COLORKEY) ? 1 : 0;
-               mdev->blit_deinterlace  = (state->blittingflags &
-                                          DSBLIT_DEINTERLACE) ? 1 : 0;
+          case DFXL_TEXTRIANGLES: {
+               DFBSurfaceBlittingFlags flags = state->blittingflags;
 
-               if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
-                                           DSBLIT_COLORIZE))
-                    matrox_validate_Color( mdrv, mdev, state );
+               mdev->blit_src_colorkey = flags & DSBLIT_SRC_COLORKEY;
+               mdev->blit_deinterlace  = flags & DSBLIT_DEINTERLACE;
 
                if (MATROX_USE_TMU( state, accel )) {
+                    if (flags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE))
+                         matrox_validate_Color( mdrv, mdev, state );
+
                     funcs->Blit = matroxBlit3D;
 
                     matrox_validate_blitBlend( mdrv, mdev, state );
@@ -507,7 +508,8 @@ static void matroxSetState( void *drv, void *dev,
                     if (mdev->blit_src_colorkey)
                          matrox_validate_SrcKey( mdrv, mdev, state );
 
-                    state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
+                    state->set = DFXL_BLIT |
+                                 DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES;
                }
                else {
                     if (mdev->old_matrox)
@@ -523,6 +525,7 @@ static void matroxSetState( void *drv, void *dev,
                     state->set = DFXL_BLIT;
                }
                break;
+          }
           default:
                BUG( "unexpected drawing/blitting function!" );
                break;
@@ -543,6 +546,8 @@ static void matroxSetState( void *drv, void *dev,
 
      state->modified = 0;
 }
+
+/******************************************************************************/
 
 static bool matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
@@ -627,6 +632,8 @@ static bool matroxDrawLine( void *drv, void *dev, DFBRegion *line )
 
      return true;
 }
+
+/******************************************************************************/
 
 static void matrox_fill_trapezoid( MatroxDriverData *mdrv,
                                    MatroxDeviceData *mdev,
@@ -716,6 +723,8 @@ static bool matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 
      return true;
 }
+
+/******************************************************************************/
 
 static void matroxDoBlit2D_Old( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                                 int sx, int sy,
@@ -831,6 +840,7 @@ static bool matroxBlit2D_Old( void *drv, void *dev,
      return true;
 }
 
+/******************************************************************************/
 
 static void matroxDoBlit2D( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                             int sx, int sy,
@@ -944,13 +954,15 @@ static bool matroxBlit2D( void *drv, void *dev,
      return true;
 }
 
+/******************************************************************************/
+
 static void matroxDoBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                              int sx, int sy,
                              int dx, int dy,
                              int sw, int sh,
                              int dw, int dh,
                              int w2, int h2,
-                             int filter )
+                             bool filter )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
@@ -990,7 +1002,7 @@ static void matroxDoBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
 
 static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                            DFBRectangle *srect, DFBRectangle *drect,
-                           int stretch )
+                           bool filter )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
      __u32          texctl;
@@ -1001,7 +1013,7 @@ static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                       srect->w, srect->h,
                       drect->w, drect->h,
                       mdev->w2, mdev->h2,
-                      stretch );
+                      filter );
 
 
      if (!mdev->planar)
@@ -1034,7 +1046,7 @@ static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                       drect->x, drect->y,
                       srect->w, srect->h,
                       drect->w, drect->h,
-                      mdev->w2-1, mdev->h2-1, 1 );
+                      mdev->w2-1, mdev->h2-1, true );
 
      /* Cr plane */
      mga_waitfifo( mdrv, mdev, 2 );
@@ -1047,7 +1059,7 @@ static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                       drect->x, drect->y,
                       srect->w, srect->h,
                       drect->w, drect->h,
-                      mdev->w2-1, mdev->h2-1, 1 );
+                      mdev->w2-1, mdev->h2-1, true );
 
      /* Restore registers */
      mga_waitfifo( mdrv, mdev, 9 );
@@ -1070,7 +1082,7 @@ static bool matroxStretchBlit( void *drv, void *dev,
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
 
-     matroxBlitTMU( mdrv, mdev, srect, drect, 1 );
+     matroxBlitTMU( mdrv, mdev, srect, drect, true );
 
      return true;
 }
@@ -1088,6 +1100,169 @@ static bool matroxBlit3D( void *drv, void *dev,
      return true;
 }
 
+/******************************************************************************/
+
+static void
+texture_trap( MatroxDriverData *mdrv,
+              MatroxDeviceData *mdev,
+              int X1l, int X1r,
+              int X2l, int X2r,
+              int Y1,  int Y2,
+              int S1l, int S1r, int S2l, int S2r,
+              int T1l, int T1r, int T2l, int T2r )
+{
+     volatile __u8 *mmio = mdrv->mmio_base;
+
+     int dxl = X2l - X1l;
+     int dxr = X2r - X1r;
+
+     int dXl = abs(dxl);
+     int dXr = abs(dxr);
+
+     int dY = Y2 - Y1;
+
+     __u32 sgn = 0;
+
+     if (dxl < 0)
+          sgn |= SDXL;
+     if (dxr < 0)
+          sgn |= SDXR;
+
+
+     mga_waitfifo( mdrv, mdev, 4 );
+
+     mga_out32( mmio, 0x8, TMR0 );
+     mga_out32( mmio, 0x8, TMR3 );
+     mga_out32( mmio, 0, TMR6 );
+     mga_out32( mmio, 0, TMR7 );
+
+
+     mga_waitfifo( mdrv, mdev, 9 );
+
+     mga_out32( mmio, dY, AR0 );
+     mga_out32( mmio, - dXl, AR1 );
+     mga_out32( mmio, - dXl, AR2 );
+     mga_out32( mmio, - dXr, AR4 );
+     mga_out32( mmio, - dXr, AR5 );
+     mga_out32( mmio, dY, AR6 );
+
+     mga_out32( mmio, sgn, SGN );
+     mga_out32( mmio, (RS16(X1r) << 16) | RS16(X1l), FXBNDRY );
+     mga_out32( mmio, (RS16(Y1) << 16) | RS16(dY), YDSTLEN | EXECUTE );
+}
+
+#define SWAP(a,b)   do { void *tmp = a; a = b; b = tmp; } while (0)
+
+static void
+texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
+                  DFBVertex *v1, DFBVertex *v2, DFBVertex *v3 )
+{
+     if (v1->y > v3->y)
+          SWAP( v1, v3 );
+
+     if (v2->y > v3->y)
+          SWAP( v2, v3 );
+     else if (v2->y < v1->y)
+          SWAP( v2, v1 );
+
+     if (v2->y == v3->y) {
+          if (v2->x > v3->x)
+               SWAP( v2, v3 );
+
+          texture_trap( mdrv, mdev,
+                        v1->x, v1->x,
+                        v2->x, v3->x,
+                        v1->y, v2->y,
+                        v1->s, v1->s, v2->s, v3->s,
+                        v1->t, v1->t, v2->t, v3->t );
+     }
+     else if (v1->y == v2->y) {
+          if (v1->x > v2->x)
+               SWAP( v1, v2 );
+
+          texture_trap( mdrv, mdev,
+                        v1->x, v2->x,
+                        v3->x, v3->x,
+                        v2->y, v3->y,
+                        v1->s, v2->s, v3->s, v3->s,
+                        v1->t, v2->t, v3->t, v3->t );
+     }
+     else {
+          int Dx = v3->x - v1->x;
+          int Dy = v3->y - v1->y;
+          int Ds = v3->s - v1->s;
+          int Dt = v3->t - v1->t;
+
+          int Ty = v2->y - v1->y;
+
+          int Mx = v1->x + Dx * Ty / Dy;
+
+          int Ms = v1->s + Ds / Dy * Ty;
+          int Mt = v1->t + Dt / Dy * Ty;
+
+          if (Mx < v2->x) {
+               texture_trap( mdrv, mdev,
+                             v1->x, v1->x,
+                             Mx, v2->x,
+                             v1->y, v2->y,
+                             v1->s, v1->s, Ms, v2->s,
+                             v1->t, v1->t, Mt, v2->t );
+
+               texture_trap( mdrv, mdev,
+                             Mx, v2->x,
+                             v3->x, v3->x,
+                             v2->y, v3->y,
+                             Ms, v2->s, v3->s, v3->s,
+                             Mt, v2->t, v3->t, v3->t );
+          }
+          else {
+               texture_trap( mdrv, mdev,
+                             v1->x, v1->x,
+                             v2->x, Mx,
+                             v1->y, v2->y,
+                             v1->s, v1->s, v2->s, Ms,
+                             v1->t, v1->t, v2->t, Mt );
+
+               texture_trap( mdrv, mdev,
+                             v2->x, Mx,
+                             v3->x, v3->x,
+                             v2->y, v3->y,
+                             v2->s, Ms, v3->s, v3->s,
+                             v2->t, Mt, v3->t, v3->t );
+          }
+     }
+}
+
+static bool matroxTextureTriangles( void *drv, void *dev,
+                                    DFBVertex *vertices, int num,
+                                    DFBTriangleFormation formation )
+{
+     int               i;
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     mga_waitfifo( mdrv, mdev, 2 );
+
+     mga_out32( mmio, BOP_COPY | SHFTZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
+     mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_BILIN, TEXFILTER );
+
+     switch (formation) {
+          case DTTF_FAN:
+               texture_triangle( mdrv, mdev, &vertices[0],
+                                 &vertices[1], &vertices[2] );
+
+               for (i=3; i<num; i++)
+                    texture_triangle( mdrv, mdev, &vertices[0],
+                                      &vertices[i-1], &vertices[i] );
+
+               break;
+     }
+
+     return true;
+}
+
+/******************************************************************************/
 
 /* exported symbols */
 
@@ -1179,6 +1354,7 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->DrawLine          = matroxDrawLine;
      funcs->FillTriangle      = matroxFillTriangle;
      funcs->StretchBlit       = matroxStretchBlit;
+     funcs->TextureTriangles  = matroxTextureTriangles;
 
      /* will be set dynamically: funcs->Blit */
 

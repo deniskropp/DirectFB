@@ -42,7 +42,9 @@
                                     DFXL_FILLRECTANGLE | \
                                     DFXL_FILLTRIANGLE)
 
-#define UC_BLITTING_FUNCTIONS_3D   (DFXL_BLIT | DFXL_STRETCHBLIT)
+#define UC_BLITTING_FUNCTIONS_3D   (DFXL_BLIT        | \
+                                    DFXL_STRETCHBLIT | \
+                                    DFXL_TEXTRIANGLES)
 
 #else
 
@@ -106,6 +108,12 @@ bool uc_stretch_blit       ( void         *drv,
                              void         *dev,
                              DFBRectangle *srect,
                              DFBRectangle *drect );
+
+bool uc_texture_triangles  ( void         *drv,
+                             void         *dev,
+                             DFBVertex    *vertices,
+                             int           num,
+                             DFBTriangleFormation formation );
 
 #endif // __UC_ACCEL_H__
 

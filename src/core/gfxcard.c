@@ -1083,6 +1083,42 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      dfb_state_unlock( state );
 }
 
+void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
+                                    DFBTriangleFormation formation,
+                                    CardState *state )
+{
+     bool hw = false;
+
+     DFB_ASSERT( card != NULL );
+     DFB_ASSERT( card->shared != NULL );
+     DFB_ASSERT( vertices != NULL );
+     DFB_ASSERT( num >= 3 );
+     DFB_ASSERT( state != NULL );
+
+     dfb_state_lock( state );
+
+     if ((card->caps.flags & CCF_CLIPPING) &&
+         dfb_gfxcard_state_check( state, DFXL_TEXTRIANGLES ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_TEXTRIANGLES ))
+     {
+          hw = card->funcs.TextureTriangles( card->driver_data,
+                                             card->device_data,
+                                             vertices, num, formation );
+
+          dfb_gfxcard_state_release( state );
+     }
+
+     if (!hw) {
+          if (gAquire( state, DFXL_TEXTRIANGLES )) {
+               //dfb_clip_stretchblit( &state->clip, srect, drect );
+               //gStretchBlit( state, srect, drect );
+               gRelease( state );
+          }
+     }
+
+     dfb_state_unlock( state );
+}
+
 void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
                              int x, int y,
                              CoreFont *font, CardState *state )

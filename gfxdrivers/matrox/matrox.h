@@ -90,12 +90,12 @@ typedef struct {
      int src_cr_offset;
      int w, h, w2, h2;
 
-     int draw_blend;
-     int blit_src_colorkey;
+     bool draw_blend;
+     bool blit_src_colorkey;
 
-     int blit_deinterlace;
+     bool blit_deinterlace;
      int field;
-     int planar;
+     bool planar;
 
      __u32 texctl;
 

@@ -193,11 +193,15 @@ typedef struct _GraphicsDeviceFuncs {
      /*
       * blitting functions
       */
-     bool (*Blit)          ( void *driver_data, void *device_data,
-                             DFBRectangle *rect, int dx, int dy );
+     bool (*Blit)            ( void *driver_data, void *device_data,
+                               DFBRectangle *rect, int dx, int dy );
 
-     bool (*StretchBlit)   ( void *driver_data, void *device_data,
-                             DFBRectangle *srect, DFBRectangle *drect );
+     bool (*StretchBlit)     ( void *driver_data, void *device_data,
+                               DFBRectangle *srect, DFBRectangle *drect );
+
+     bool (*TextureTriangles)( void *driver_data, void *device_data,
+                               DFBVertex *vertices, int num,
+                               DFBTriangleFormation formation );
 
      /*
       * emit any buffered commands, i.e. trigger processing
@@ -255,6 +259,10 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
 
 void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                               CardState *state );
+
+void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
+                                    DFBTriangleFormation formation,
+                                    CardState *state );
 
 void dfb_gfxcard_drawstring( const unsigned char *text, int bytes, int x, int y,
                              CoreFont *font, CardState *state );

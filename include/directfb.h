@@ -636,8 +636,9 @@ typedef enum {
 
      DFXL_BLIT           = 0x00010000,  /* Blit() is accelerated. */
      DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit() is accelerated. */
+     DFXL_TEXTRIANGLES   = 0x00040000,  /* TextureTriangles() is accelerated. */
 
-     DFXL_ALL            = 0x0003000F   /* All drawing/blitting functions. */
+     DFXL_ALL            = 0x0007000F   /* All drawing/blitting functions. */
 } DFBAccelerationMask;
 
 #define DFB_DRAWING_FUNCTION(a)    ((a) & 0x0000FFFF)
@@ -2154,6 +2155,28 @@ typedef enum {
      DSBF_SRCALPHASAT        = 11  /* */
 } DFBSurfaceBlendFunction;
 
+/*
+ * Transformed vertex of a textured triangle.
+ */
+typedef struct {
+     int  x;   /* Destination X coordinate (in pixels) */
+     int  y;   /* Destination Y coordinate (in pixels) */
+     int  z;   /* Z coordinate (not used yet) */
+     int  w;   /* W coordinate (fixed point 16.16) */
+
+     int  s;   /* Texture S coordinate (normalized fixed point 12.20) */
+     int  t;   /* Texture T coordinate (normalized fixed point 12.20) */
+} DFBVertex;
+
+/*
+ * Way of building triangles from the list of vertices.
+ */
+typedef enum {
+     DTTF_LIST,  /* Each triangle takes three vertices: tris * 3 */
+     DTTF_STRIP, /* Consecutive triangles take two vertices: (tris-1) * 2 + 3 */
+     DTTF_FAN    /* Consecutive triangles take one vertex: (tris-1) + 3 */
+} DFBTriangleFormation;
+
 /********************
  * IDirectFBSurface *
  ********************/
@@ -2482,6 +2505,17 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *source,
           const DFBRectangle       *source_rect,
           const DFBRectangle       *destination_rect
+     );
+
+     /*
+      * Preliminary texture mapping support.
+      */
+     DFBResult (*TextureTriangles) (
+          IDirectFBSurface         *thiz,
+          IDirectFBSurface         *source,
+          const DFBVertex          *vertices,
+          int                       num,
+          DFBTriangleFormation      formation
      );
 
 

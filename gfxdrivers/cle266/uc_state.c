@@ -79,7 +79,7 @@ uc_select_blittype( CardState* state,
           if ((state->source->format == state->destination->format) &&
               !((state->blittingflags & DSBLIT_SRC_COLORKEY) &&
                 (state->blittingflags & DSBLIT_DST_COLORKEY)) &&
-              !(accel & DFXL_STRETCHBLIT))
+              !(accel & (DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)))
                return UC_TYPE_2D;
      }
 

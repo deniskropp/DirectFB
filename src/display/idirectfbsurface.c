@@ -1292,6 +1292,81 @@ IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
+                                   IDirectFBSurface     *source,
+                                   const DFBVertex      *vertices,
+                                   int                   num,
+                                   DFBTriangleFormation  formation )
+{
+     int                    i;
+     DFBVertex             *translated;
+     IDirectFBSurface_data *src_data;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!source || !vertices || num < 3)
+          return DFB_INVARG;
+
+     src_data = (IDirectFBSurface_data*)source->priv;
+
+     if (src_data->caps & DSCAPS_SUBSURFACE)
+          return DFB_UNSUPPORTED;
+
+     switch (formation) {
+          case DTTF_LIST:
+               if (num % 3)
+                    return DFB_INVARG;
+               break;
+
+          case DTTF_STRIP:
+               if ((num - 3) % 2)
+                    return DFB_INVARG;
+               break;
+
+          case DTTF_FAN:
+               break;
+
+          default:
+               return DFB_INVARG;
+     }
+
+     translated = alloca( num * sizeof(DFBVertex) );
+     if (!translated)
+          return DFB_NOSYSTEMMEMORY;
+
+     dfb_memcpy( translated, vertices, num * sizeof(DFBVertex) );
+
+     for (i=0; i<num; i++) {
+          translated[i].x += data->area.wanted.x;
+          translated[i].y += data->area.wanted.y;
+     }
+
+     dfb_state_set_source( &data->state, src_data->surface );
+
+     /* fetch the source color key from the source if necessary */
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
+          if (data->state.src_colorkey != src_data->src_key.value) {
+               data->state.src_colorkey = src_data->src_key.value;
+               data->state.modified |= SMF_SRC_COLORKEY;
+          }
+     }
+
+     dfb_gfxcard_texture_triangles( translated, num, formation, &data->state );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
                              const char *text, int bytes,
                              int x, int y,
@@ -1611,6 +1686,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->Blit = IDirectFBSurface_Blit;
      thiz->TileBlit = IDirectFBSurface_TileBlit;
      thiz->StretchBlit = IDirectFBSurface_StretchBlit;
+     thiz->TextureTriangles = IDirectFBSurface_TextureTriangles;
 
      thiz->SetDrawingFlags = IDirectFBSurface_SetDrawingFlags;
      thiz->FillRectangle = IDirectFBSurface_FillRectangle;

@@ -420,6 +420,46 @@ bool uc_stretch_blit(void* drv, void* dev,
     return true;
 }
 
+bool uc_texture_triangles( void *drv, void *dev,
+                           DFBVertex *vertices, int num,
+                           DFBTriangleFormation formation )
+{
+     UC_ACCEL_BEGIN()
+
+     int i;
+
+     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_W |
+                HC_HVPMSK_Cd  | HC_HVPMSK_S | HC_HVPMSK_T;
+
+     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HShading_FlatC |
+                HC_HVCycle_AFP | HC_HVCycle_AA | HC_HVCycle_BC | HC_HVCycle_NewC;
+
+     int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
+
+
+     UC_FIFO_PREPARE(fifo, 6 + num * 6);
+
+     UC_FIFO_ADD_HDR(fifo, HC_ParaType_CmdVdata << 16);
+     UC_FIFO_ADD(fifo, cmdB);
+     UC_FIFO_ADD(fifo, cmdA);
+
+     for (i=0; i<num; i++) {
+          UC_FIFO_ADD_XYWCST(fifo,
+                             vertices[i].x, vertices[i].y,
+                             vertices[i].w / (float) 0x10000, ucdev->color3d,
+                             vertices[i].s / (float) 0x100000,
+                             vertices[i].t / (float) 0x100000);
+     }
+
+     UC_FIFO_ADD(fifo, cmdA_End);
+
+     UC_FIFO_PAD_EVEN(fifo);
+
+     UC_ACCEL_END();
+
+     return true;
+}
+
     // Blit profiling
 
     //struct timeval tv_start, tv_stop;
