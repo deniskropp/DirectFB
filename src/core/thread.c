@@ -122,13 +122,9 @@ dfb_thread_testcancel( CoreThread *thread )
 
      DFB_ASSERT( pthread_equal( thread->thread, pthread_self() ) );
 
-     DEBUGMSG( "DirectFB/core/threads: dfb_thread_testcancel...\n" );
-
      /* Quick check before calling the pthread function. */
      if (thread->cancel)
           pthread_testcancel();
-     
-     DEBUGMSG( "DirectFB/core/threads: still alive.\n" );
 }
 
 void
