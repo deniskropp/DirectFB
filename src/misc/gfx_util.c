@@ -74,8 +74,6 @@ static void rgba_to_dst_format (__u8 *dst,
                                 DFBSurfacePixelFormat dst_format,
                                 CorePalette *palette)
 {
-     __u32 out_pixel;
-
      switch (dst_format) {
 
      case DSPF_RGB332:
@@ -99,10 +97,7 @@ static void rgba_to_dst_format (__u8 *dst,
           break;
 
      case DSPF_RGB16:
-          out_pixel  = b;
-          out_pixel |= g << 8;
-          out_pixel |= r << 16;
-          *(__u16 *)dst = RGB32_TO_RGB16 (out_pixel);
+          *(__u16 *)dst = PIXEL_RGB16 (r, g, b);
           break;
 
      case DSPF_RGB24:
