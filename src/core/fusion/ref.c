@@ -132,10 +132,10 @@ fusion_ref_stat (FusionRef *ref, int *refs)
      DFB_ASSERT( ref->magic == 0x12345678 );
 
      val = ioctl (_fusion_fd(), FUSION_REF_STAT, &ref->ref_id);
-     if (val < 0) {
+/*     if (val < 0) {
           FPERROR ("FUSION_REF_STAT");
           return FUSION_FAILURE;
-     }
+     }*/
 
      *refs = val;
 
