@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -285,7 +286,7 @@ i810_set_color(I810DriverData *i810drv,
 						   state->color.b);
 		break;
 	case DSPF_RGB24:
-		i810drv->color_value = PIXEL_RGB24(state->color.r,
+		i810drv->color_value = PIXEL_RGB32(state->color.r,
 						   state->color.g,
 						   state->color.b);
 		break;
