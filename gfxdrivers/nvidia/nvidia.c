@@ -506,7 +506,7 @@ static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle 
      ScaledImage->DvDy           = (sr->h << 20) / dr->h;
 
      NV_FIFO_FREE( nvdev, ScaledImage, 4 )
-     ScaledImage->ImageInSize    = (source->height << 16) | source->width;
+     ScaledImage->ImageInSize    = (sr->h << 16) | sr->w;
      ScaledImage->ImageInFormat  = source->front_buffer->video.pitch;
      ScaledImage->ImageInOffset  = (source->front_buffer->video.offset & 0x1FFFFFF) + 
                                    (sr->y * source->front_buffer->video.pitch)      +
