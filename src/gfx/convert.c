@@ -69,6 +69,12 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
           case DSPF_ARGB1555:
                pixel = PIXEL_ARGB1555( 0, r, g, b );
                break;
+          case DSPF_ARGB2554:
+               pixel = PIXEL_ARGB2554( 0, r, g, b );
+               break;
+          case DSPF_ARGB4444:
+               pixel = PIXEL_ARGB4444( 0, r, g, b );
+               break;
           case DSPF_RGB16:
                pixel = PIXEL_RGB16( r, g, b );
                break;
