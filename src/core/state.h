@@ -52,6 +52,8 @@ struct _CardState {
                                               modified, these flags will be
                                               cleared by the gfx drivers */
 
+     /* values forming the state for graphics operations */
+
      DFBSurfaceDrawingFlags  drawingflags; /* drawing flags */
      DFBSurfaceBlittingFlags blittingflags;/* blitting flags */
 
@@ -65,6 +67,9 @@ struct _CardState {
      CoreSurface             *destination; /* destination surface */
      CoreSurface             *source;      /* source surface */
 
+
+     /* hardware abstraction and state handling helpers */
+
      DFBAccelerationMask     accel;        /* cache for checked commands
                                               if they are accelerated */
      DFBAccelerationMask     checked;      /* commands for which a state has
@@ -74,9 +79,9 @@ struct _CardState {
 
      int                     source_locked;/* when state is acquired for a blit
                                               mark that the source needs to be
-                                              unlock when state is released */
+                                              unlocked when state is released */
 
-     FusionSkirmish          lock;         /* lock for state access */
+     FusionSkirmish          lock;         /* lock for state handling */
 };
 
 int state_init( CardState *state );

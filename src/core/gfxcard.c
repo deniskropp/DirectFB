@@ -349,7 +349,7 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      if (state->modified & SMF_DESTINATION) {
           /* ...force rechecking for all functions. */
           state->checked = 0;
-          
+
           /* Debug check */
           if (!state->destination) {
                BUG("state check: no destination");
@@ -375,7 +375,7 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      if (state->modified & SMF_SOURCE) {
           /* ...force rechecking for all blitting functions. */
           state->checked &= 0xFFFF;
-          
+
           /* Debug check */
           if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
                BUG("state check: no source");
@@ -389,7 +389,7 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           if (state->source->front_buffer->policy == CSP_SYSTEMONLY) {
                /* unset 'destination modified' bit */
                state->modified &= ~SMF_SOURCE;
-              
+
                /* clear 'accelerated blitting functions' */
                state->accel &= 0xFFFF;
 
@@ -421,7 +421,7 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           /* call driver function that sets the bit if supported */
           card->funcs.CheckState( card->driver_data,
                                   card->device_data, state, accel );
-          
+
           /* add function to 'checked functions' */
           state->checked |= accel;
      }
@@ -486,7 +486,10 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* unlock surface manager */
      surfacemanager_unlock( card->shared->surface_manager );
 
-     /* synchronize card access */
+     /*
+      * Make sure that state setting with subsequent command execution
+      * isn't done by two processes simultaneously.
+      */
      skirmish_prevail( &Scard->lock );
 
      /* if we are switching to another state... */
@@ -499,8 +502,8 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      }
 
      /*
-      * If function hasn't been set or state is modified call the driver
-      * function to propagate the state changes.
+      * If function hasn't been set or state is modified
+      * call the driver function to propagate the state changes.
       */
      if (!(state->set & accel) || state->modified)
           card->funcs.SetState( card->driver_data, card->device_data,
@@ -514,11 +517,14 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
  */
 void gfxcard_state_release( CardState *state )
 {
+     /* destination always gets locked during acquisition */
      surface_unlock( state->destination, 0 );
 
+     /* if source got locked this value is true */
      if (state->source_locked)
           surface_unlock( state->source, 1 );
 
+     /* allow others to use the hardware */
      skirmish_dismiss( &Scard->lock );
 }
 
@@ -526,25 +532,45 @@ void gfxcard_state_release( CardState *state )
 
 void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
 {
+     /* The state is locked during graphics operations. */
      state_lock( state );
 
+     /* Check for acceleration and setup execution. */
      if (gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-         gfxcard_state_acquire( state, DFXL_FILLRECTANGLE )) {
+         gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+     {
+          /*
+           * Either hardware has clipping support or the software clipping
+           * routine returned that there's something to do.
+           */
           if ((Scard->device_info.caps.flags & CCF_CLIPPING) ||
-              clip_rectangle( &state->clip, rect )) {
+              clip_rectangle( &state->clip, rect ))
+          {
+               /*
+                * Now everything is prepared for execution of the
+                * FillRectangle driver function.
+                */
                card->funcs.FillRectangle( card->driver_data,
                                           card->device_data, rect );
           }
+
+          /* Release after state acquisition. */
           gfxcard_state_release( state );
      }
      else {
+          /*
+           * Otherwise use the software clipping routine and execute the
+           * software fallback if the rectangle isn't completely clipped.
+           */
           if (clip_rectangle( &state->clip, rect ) &&
-              gAquire( state, DFXL_FILLRECTANGLE )) {
+              gAquire( state, DFXL_FILLRECTANGLE ))
+          {
                gFillRectangle( rect );
                gRelease( state );
           }
      }
 
+     /* Unlock after execution. */
      state_unlock( state );
 }
 
@@ -1054,7 +1080,7 @@ gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
           return -1;
 
      device->framebuffer.length -= size;
-     
+
      return device->framebuffer.length;
 }
 
