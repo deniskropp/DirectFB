@@ -166,6 +166,7 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
 
           dfb_gfxcard_state_check( &data->state, DFXL_BLIT );
           dfb_gfxcard_state_check( &data->state, DFXL_STRETCHBLIT );
+          dfb_gfxcard_state_check( &data->state, DFXL_TEXTRIANGLES );
      }
 
      if (data->font) {
