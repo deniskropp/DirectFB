@@ -28,9 +28,10 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #define SH_BASE          0x70000000
-#define SH_MAX_SIZE      0x30000000
+#define SH_MAX_SIZE      0x20000000
 #define SH_FILE_NAME     "/fusion.shm"
 #define SH_DEFAULT_NAME  "/dev/shm" SH_FILE_NAME
 #define SH_MOUNTS_FILE   "/proc/mounts"
@@ -108,8 +109,6 @@ void *__shmalloc_init (bool initialize)
           ftruncate (fd, size);
      }
      else {
-          size = st.st_size;
-          
           /* query size of memory */
           if (fstat (fd, &st) < 0) {
                perror ("fstating shared memory file");
@@ -117,6 +116,8 @@ void *__shmalloc_init (bool initialize)
                fd = -1;
                return NULL;
           }
+
+          size = st.st_size;
      }
 
      /* map it shared */
@@ -147,8 +148,10 @@ void *__shmalloc_brk (int increment)
           void *new_mem;
           int   new_size = size + increment;
 
-          if (new_size > SH_MAX_SIZE)
+          if (new_size > SH_MAX_SIZE) {
                printf ("WARNING: maximum shared size exceeded!\n");
+               kill(0,SIGTRAP);
+          }
 
           if (ftruncate (fd, new_size) < 0) {
                perror ("ftruncating shared memory file");
