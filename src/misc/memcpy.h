@@ -39,7 +39,7 @@ extern void *(*dfb_memcpy)( void *to, const void *from, size_t len );
 
 static inline void *dfb_memmove( void *to, const void *from, size_t len )
 {
-     if (from > to  ||  ((char*) from + len) < ((char*) to))
+     if (from > to  ||  ((const char*) from + len) < ((char*) to))
           return dfb_memcpy( to, from, len );
 
      return memmove( to, from, len );
