@@ -32,6 +32,7 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <signal.h>
 
@@ -42,6 +43,8 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
+
+#if DIRECT_BUILD_TEXT
 
 typedef struct {
      DirectLink  link;
@@ -278,4 +281,13 @@ direct_assumption( const char *exp,
 
      direct_trace_print_stack( NULL );
 }
+
+#else
+
+void
+direct_debug_config_domain( const char *name, bool enable )
+{
+}
+
+#endif    /* DIRECT_BUILD_TEXT */
 

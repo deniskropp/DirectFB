@@ -458,7 +458,7 @@ dfb_layer_context_test_configuration( CoreLayerContext            *context,
 
      /* Test the region configuration. */
      if (region_config.buffermode == DLBM_WINDOWS) {
-          if (! FLAG_IS_SET( layer->shared->description.caps, DLCAPS_WINDOWS )) {
+          if (! D_FLAGS_IS_SET( layer->shared->description.caps, DLCAPS_WINDOWS )) {
                failed = CLRCF_BUFFERMODE;
                ret = DFB_UNSUPPORTED;
           }
@@ -530,7 +530,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
      /* Test the region configuration first. */
      if (region_config.buffermode == DLBM_WINDOWS) {
-          if (! FLAG_IS_SET( shared->description.caps, DLCAPS_WINDOWS )) {
+          if (! D_FLAGS_IS_SET( shared->description.caps, DLCAPS_WINDOWS )) {
                dfb_layer_context_unlock( context );
                return DFB_UNSUPPORTED;
           }
@@ -567,7 +567,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                if (shared->description.caps & DLCAPS_SURFACE) {
                     flags |= CLRCF_SURFACE | CLRCF_PALETTE;
 
-                    if (FLAG_IS_SET( region->state, CLRSF_ENABLED ))
+                    if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
                          ret = reallocate_surface( layer, region, &region_config,
                                                    &context->config );
                     else
@@ -585,12 +585,12 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                dfb_layer_region_set_configuration( region, &region_config, flags );
 
                /* Enable the primary region. */
-               if (! FLAG_IS_SET( region->state, CLRSF_ENABLED ))
+               if (! D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
                     dfb_layer_region_enable( region );
           }
           else {
                /* Disable and deallocate the primary region. */
-               if (FLAG_IS_SET( region->state, CLRSF_ENABLED )) {
+               if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED )) {
                     dfb_layer_region_disable( region );
 
                     if (shared->description.caps & DLCAPS_SURFACE)

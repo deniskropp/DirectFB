@@ -339,12 +339,12 @@ AC_SUBST(DIRECT_BUILD_TRACE)
 AC_ARG_ENABLE(text,
   [  --enable-text             enable text output [default=yes]],, enable_text=yes)
 if test "$enable_text" = "no"; then
-    DIRECT_BUILD_NOTEXT=1
+    DIRECT_BUILD_TEXT=0
 else
-    DIRECT_BUILD_NOTEXT=0
+    DIRECT_BUILD_TEXT=1
 fi
 
-AC_SUBST(DIRECT_BUILD_NOTEXT)
+AC_SUBST(DIRECT_BUILD_TEXT)
 
 
 AC_ARG_ENABLE(gettid,

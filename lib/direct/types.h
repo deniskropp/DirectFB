@@ -61,13 +61,5 @@ typedef struct __D_DirectTree                DirectTree;
 typedef struct __D_DirectThread              DirectThread;
 typedef struct __D_DirectThreadInitHandler   DirectThreadInitHandler;
 
-
-#if __GNUC__ >= 3
-#define D_CONST_FUNC     __attribute__((const))
-#else
-#define D_CONST_FUNC
-#endif
-
-
 #endif
 

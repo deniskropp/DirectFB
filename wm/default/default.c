@@ -792,7 +792,7 @@ update_region( CoreWindowStack *stack,
      if (i >= 0) {
           CoreWindow *window = fusion_vector_at( &data->windows, i );
 
-          if (FLAGS_ARE_SET( window->options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
+          if (D_FLAGS_ARE_SET( window->options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
                DFBRegion opaque;
 
                opaque.x1 = window->x + window->opaque.x1;

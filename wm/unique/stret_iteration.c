@@ -39,7 +39,7 @@
 static inline bool
 accept_region( StretRegion *region, int x0, int y0, const DFBRegion *clip )
 {
-     if (!FLAG_IS_SET( region->flags, SRF_ACTIVE ))
+     if (!D_FLAGS_IS_SET( region->flags, SRF_ACTIVE ))
           return false;
 
      if (!clip)

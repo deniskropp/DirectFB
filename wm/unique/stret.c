@@ -429,7 +429,7 @@ clip_out( StretIteration *iteration,
 
           D_MAGIC_ASSERT( region, StretRegion );
 
-          if (FLAGS_ARE_SET( region->flags, SRF_OUTPUT | SRF_OPAQUE ))
+          if (D_FLAGS_ARE_SET( region->flags, SRF_OUTPUT | SRF_OPAQUE ))
                break;
      }
 
@@ -512,7 +512,7 @@ stret_region_visible( StretRegion     *region,
      }
 
 
-     if (! FLAG_IS_SET( region->flags, SRF_ACTIVE )) {
+     if (! D_FLAGS_IS_SET( region->flags, SRF_ACTIVE )) {
           D_DEBUG_AT( UniQuE_StReT, "  -> Region is not active and therefore invisible!\n" );
 
           *ret_num = 0;
@@ -539,7 +539,7 @@ stret_region_visible( StretRegion     *region,
           do {
                D_MAGIC_ASSERT( parent, StretRegion );
 
-               if (! FLAG_IS_SET( parent->flags, SRF_ACTIVE )) {
+               if (! D_FLAGS_IS_SET( parent->flags, SRF_ACTIVE )) {
                     D_DEBUG_AT( UniQuE_StReT, "  -> At least one parent is not active!\n" );
 
                     *ret_num = 0;
@@ -622,7 +622,7 @@ region_update( UpdateContext *context,
 
           D_MAGIC_ASSERT( region, StretRegion );
 
-          if (FLAG_IS_SET( region->flags, SRF_OUTPUT ))
+          if (D_FLAGS_IS_SET( region->flags, SRF_OUTPUT ))
                break;
      }
 
@@ -637,7 +637,7 @@ region_update( UpdateContext *context,
 
 
 
-     if (FLAG_IS_SET( region->flags, SRF_OPAQUE )) {
+     if (D_FLAGS_IS_SET( region->flags, SRF_OPAQUE )) {
           /* upper */
           if (area.y1 != y1) {
                UpdateContext fork = *context;
@@ -707,7 +707,7 @@ stret_region_update( StretRegion     *region,
                       "stret_region_update( %d, %d - %dx%d )\n",
                       DFB_RECTANGLE_VALS_FROM_REGION( &region->bounds ) );
 
-     if (! FLAG_IS_SET( region->flags, SRF_ACTIVE )) {
+     if (! D_FLAGS_IS_SET( region->flags, SRF_ACTIVE )) {
           D_DEBUG_AT( UniQuE_StReT, "  -> Region is not active and therefore invisible.\n" );
           return DFB_OK;
      }
@@ -745,7 +745,7 @@ stret_region_at( StretRegion      *region,
 
      D_DEBUG_AT( UniQuE_StReT, "stret_region_at( %p, %d, %d, 0x%08x )\n", region, x, y, flags );
 
-     if (! FLAG_IS_SET( region->flags, SRF_ACTIVE )) {
+     if (! D_FLAGS_IS_SET( region->flags, SRF_ACTIVE )) {
           D_DEBUG_AT( UniQuE_StReT, "  -> Region is not active.\n" );
           return NULL;
      }
@@ -754,7 +754,7 @@ stret_region_at( StretRegion      *region,
      stret_iteration_init( &iteration, region );
 
      while ((region = stret_iteration_next( &iteration, &area )) != NULL) {
-          if (! FLAGS_ARE_SET( region->flags, flags ))
+          if (! D_FLAGS_ARE_SET( region->flags, flags ))
                continue;
 
           return region;

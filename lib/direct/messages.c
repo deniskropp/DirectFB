@@ -35,7 +35,7 @@
 #include <direct/util.h>
 
 
-#if !DIRECT_BUILD_NOTEXT
+#if DIRECT_BUILD_TEXT
 
 __attribute__((no_instrument_function))
 void

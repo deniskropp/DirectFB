@@ -162,6 +162,8 @@ direct_thread_create( DirectThreadType      thread_type,
 
      D_HEAVYDEBUG( "Direct/Thread: Creating '%s' (type %d)...\n", name, thread_type );
 
+     (void) thread_type_name;
+
      /* Create the key for the TSD (thread specific data). */
      pthread_mutex_lock( &key_lock );
 
@@ -339,7 +341,7 @@ direct_thread_destroy( DirectThread *thread )
 
 /******************************************************************************/
 
-static const char *  D_CONST_FUNC
+static const char *
 thread_type_name( DirectThreadType type )
 {
      switch (type) {

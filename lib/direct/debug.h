@@ -36,6 +36,8 @@
 #include <direct/conf.h>
 #include <direct/messages.h>
 #include <direct/system.h>
+#include <direct/util.h>
+
 
 typedef struct {
      unsigned int   age;
@@ -48,6 +50,8 @@ typedef struct {
 
 void direct_debug_config_domain( const char *name, bool enable );
 
+
+#if DIRECT_BUILD_TEXT
 
 void direct_debug( const char *format, ... )  D_FORMAT_PRINTF(1);
 
@@ -69,8 +73,11 @@ void direct_assumption( const char *exp,
                         const char *file,
                         int         line );
 
+#endif    /* DIRECT_BUILD_TEXT */
 
-#if DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG)
+
+
+#if DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG))
 
 #ifdef HEAVYDEBUG
      #define D_HEAVYDEBUG(x...)    if (!direct_config || direct_config->debug) {\
@@ -126,11 +133,8 @@ void direct_assumption( const char *exp,
 #define D_ASSUME(exp)         do {} while (0)
 #define D_BREAK(x...)         do {} while (0)
 
-#endif
+#endif    /* DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || DIRECT_FORCE_DEBUG) */
 
-
-
-#if DIRECT_BUILD_DEBUG
 
 #define D_MAGIC(spell)        ( (((spell)[sizeof(spell)*8/9] << 24) | \
                                  ((spell)[sizeof(spell)*7/9] << 16) | \
@@ -159,15 +163,6 @@ void direct_assumption( const char *exp,
                                                                            \
                                    (o)->magic = 0;                         \
                               } while (0)
-
-#else
-
-#define D_MAGIC_CLEAR(o)      do {} while (0)
-#define D_MAGIC_SET(o,m)      do {} while (0)
-#define D_MAGIC_ASSERT(o,m)   do {} while (0)
-
-#endif
-
 
 
 #endif

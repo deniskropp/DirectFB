@@ -30,26 +30,13 @@
 
 #include <direct/build.h>
 
-#if DIRECT_BUILD_NOTEXT
-     #define D_INFO(x...)          do { } while (0)
-     #define D_ERROR(x...)         do { } while (0)
-     #define D_DERROR(x...)        do { } while (0)
-     #define D_PERROR(x...)        do { } while (0)
-     #define D_DLERROR(x...)       do { } while (0)
-     #define D_ONCE(x...)          do { } while (0)
-     #define D_UNIMPLEMENTED(x...) do { } while (0)
-     #define D_BUG(x...)           do { } while (0)
-     #define D_WARN(x...)          do { } while (0)
-#else
 
-#include <stdio.h>
-#include <string.h>
+#if DIRECT_BUILD_TEXT
+
 #include <errno.h>
 
 #include <direct/conf.h>
-
-
-#define D_FORMAT_PRINTF(n)    __attribute__((__format__ (__printf__, n, n+1)))
+#include <direct/util.h>
 
 
 void direct_messages_info         ( const char *format, ... )  D_FORMAT_PRINTF(1);
@@ -142,6 +129,18 @@ void direct_messages_warn         ( const char *func,
                               if (!direct_config->quiet)                                       \
                                    direct_messages_warn( __FUNCTION__, __FILE__, __LINE__, x );\
                          } while (0)
+
+
+#else
+     #define D_INFO(x...)          do { } while (0)
+     #define D_ERROR(x...)         do { } while (0)
+     #define D_DERROR(x...)        do { } while (0)
+     #define D_PERROR(x...)        do { } while (0)
+     #define D_DLERROR(x...)       do { } while (0)
+     #define D_ONCE(x...)          do { } while (0)
+     #define D_UNIMPLEMENTED(x...) do { } while (0)
+     #define D_BUG(x...)           do { } while (0)
+     #define D_WARN(x...)          do { } while (0)
 #endif
 
 

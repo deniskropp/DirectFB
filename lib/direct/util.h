@@ -52,10 +52,23 @@
 #define CLAMP(x,min,max) ((x) < (min) ? (min) : (x) > (max) ? (max) : (x))
 #endif
 
-#define SET_FLAG(set,flag)       do { (set) |= (flag); } while (0)
-#define CLEAR_FLAG(set,flag)     do { (set) &= ~(flag); } while (0)
-#define FLAG_IS_SET(set,flag)    (((set) & (flag)) != 0)
-#define FLAGS_ARE_SET(set,flags) (((set) & (flags)) == (flags))
+
+#define D_FLAGS_SET(flags,f)       do { (flags) |= (f); } while (0)
+#define D_FLAGS_CLEAR(flags,f)     do { (flags) &= ~(f); } while (0)
+#define D_FLAGS_IS_SET(flags,f)    (((flags) & (f)) != 0)
+#define D_FLAGS_ARE_SET(flags,f)   (((flags) & (f)) == (f))
+
+#define D_ARRAY_SIZE(array)        (sizeof(array) / sizeof((array)[0]))
+
+
+#if __GNUC__ >= 3
+#define D_CONST_FUNC               __attribute__((const))
+#define D_FORMAT_PRINTF(n)         __attribute__((__format__ (__printf__, n, n+1)))
+#else
+#define D_CONST_FUNC
+#define D_FORMAT_PRINTF(n)
+#endif
+
 
 /*
  * translates errno to DirectResult

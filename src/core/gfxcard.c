@@ -675,7 +675,7 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
 
                     rect = rects[i];
 
-                    if (!FLAG_IS_SET( card->caps.flags, CCF_CLIPPING ))
+                    if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ))
                          dfb_clip_rectangle( &state->clip, &rect );
 
                     if (!card->funcs.FillRectangle( card->driver_data, card->device_data, &rect ))

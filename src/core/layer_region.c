@@ -71,18 +71,18 @@ region_destructor( FusionObject *object, bool zombie )
      D_DEBUG( "DirectFB/core/layers: destroying region %p (%s, %dx%d, "
                "%s, %s, %s, %s%s)\n", region, shared->description.name,
                region->config.width, region->config.height,
-               FLAG_IS_SET( region->state,
+               D_FLAGS_IS_SET( region->state,
                             CLRSF_CONFIGURED ) ? "configured" : "unconfigured",
-               FLAG_IS_SET( region->state,
+               D_FLAGS_IS_SET( region->state,
                             CLRSF_ENABLED ) ? "enabled" : "disabled",
-               FLAG_IS_SET( region->state,
+               D_FLAGS_IS_SET( region->state,
                             CLRSF_ACTIVE ) ? "active" : "inactive",
-               FLAG_IS_SET( region->state,
+               D_FLAGS_IS_SET( region->state,
                             CLRSF_REALIZED ) ? "realized" : "not realized",
                zombie ? " - ZOMBIE" : "");
 
      /* Hide region etc. */
-     if (FLAG_IS_SET( region->state, CLRSF_ENABLED ))
+     if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
           dfb_layer_region_disable( region );
 
      /* Remove the region from the context. */
@@ -178,15 +178,15 @@ dfb_layer_region_activate( CoreLayerRegion *region )
      if (dfb_layer_region_lock( region ))
           return DFB_FUSION;
 
-     D_ASSUME( ! FLAG_IS_SET( region->state, CLRSF_ACTIVE ) );
+     D_ASSUME( ! D_FLAGS_IS_SET( region->state, CLRSF_ACTIVE ) );
 
-     if (FLAG_IS_SET( region->state, CLRSF_ACTIVE )) {
+     if (D_FLAGS_IS_SET( region->state, CLRSF_ACTIVE )) {
           dfb_layer_region_unlock( region );
           return DFB_OK;
      }
 
      /* Realize the region if it's enabled. */
-     if (FLAG_IS_SET( region->state, CLRSF_ENABLED )) {
+     if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED )) {
           ret = realize_region( region );
           if (ret) {
                dfb_layer_region_unlock( region );
@@ -195,7 +195,7 @@ dfb_layer_region_activate( CoreLayerRegion *region )
      }
 
      /* Update the region's state. */
-     SET_FLAG( region->state, CLRSF_ACTIVE );
+     D_FLAGS_SET( region->state, CLRSF_ACTIVE );
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
@@ -214,22 +214,22 @@ dfb_layer_region_deactivate( CoreLayerRegion *region )
      if (dfb_layer_region_lock( region ))
           return DFB_FUSION;
 
-     D_ASSUME( FLAG_IS_SET( region->state, CLRSF_ACTIVE ) );
+     D_ASSUME( D_FLAGS_IS_SET( region->state, CLRSF_ACTIVE ) );
 
-     if (! FLAG_IS_SET( region->state, CLRSF_ACTIVE )) {
+     if (! D_FLAGS_IS_SET( region->state, CLRSF_ACTIVE )) {
           dfb_layer_region_unlock( region );
           return DFB_OK;
      }
 
      /* Unrealize the region if it's enabled. */
-     if (FLAG_IS_SET( region->state, CLRSF_ENABLED )) {
+     if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED )) {
           ret = unrealize_region( region );
           if (ret)
                return ret;
      }
 
      /* Update the region's state. */
-     CLEAR_FLAG( region->state, CLRSF_ACTIVE );
+     D_FLAGS_CLEAR( region->state, CLRSF_ACTIVE );
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
@@ -249,15 +249,15 @@ dfb_layer_region_enable( CoreLayerRegion *region )
      if (dfb_layer_region_lock( region ))
           return DFB_FUSION;
 
-     D_ASSUME( ! FLAG_IS_SET( region->state, CLRSF_ENABLED ) );
+     D_ASSUME( ! D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ) );
 
-     if (FLAG_IS_SET( region->state, CLRSF_ENABLED )) {
+     if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED )) {
           dfb_layer_region_unlock( region );
           return DFB_OK;
      }
 
      /* Realize the region if it's active. */
-     if (FLAG_IS_SET( region->state, CLRSF_ACTIVE )) {
+     if (D_FLAGS_IS_SET( region->state, CLRSF_ACTIVE )) {
           ret = realize_region( region );
           if (ret) {
                dfb_layer_region_unlock( region );
@@ -266,7 +266,7 @@ dfb_layer_region_enable( CoreLayerRegion *region )
      }
 
      /* Update the region's state. */
-     SET_FLAG( region->state, CLRSF_ENABLED );
+     D_FLAGS_SET( region->state, CLRSF_ENABLED );
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
@@ -285,22 +285,22 @@ dfb_layer_region_disable( CoreLayerRegion *region )
      if (dfb_layer_region_lock( region ))
           return DFB_FUSION;
 
-     D_ASSUME( FLAG_IS_SET( region->state, CLRSF_ENABLED ) );
+     D_ASSUME( D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ) );
 
-     if (! FLAG_IS_SET( region->state, CLRSF_ENABLED )) {
+     if (! D_FLAGS_IS_SET( region->state, CLRSF_ENABLED )) {
           dfb_layer_region_unlock( region );
           return DFB_OK;
      }
 
      /* Unrealize the region if it's active. */
-     if (FLAG_IS_SET( region->state, CLRSF_ACTIVE )) {
+     if (D_FLAGS_IS_SET( region->state, CLRSF_ACTIVE )) {
           ret = unrealize_region( region );
           if (ret)
                return ret;
      }
 
      /* Update the region's state. */
-     CLEAR_FLAG( region->state, CLRSF_ENABLED );
+     D_FLAGS_CLEAR( region->state, CLRSF_ENABLED );
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
@@ -323,7 +323,7 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
 
      if (region->surface != surface) {
           /* Setup hardware for the new surface if the region is realized. */
-          if (FLAG_IS_SET( region->state, CLRSF_REALIZED )) {
+          if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                ret = set_region( region, &region->config, CLRCF_SURFACE | CLRCF_PALETTE, surface );
                if (ret) {
                     dfb_layer_region_unlock( region );
@@ -445,7 +445,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                                 update->y2 == surface->height - 1)))
                {
                     /* Use the driver's routine if the region is realized. */
-                    if (FLAG_IS_SET( region->state, CLRSF_REALIZED )) {
+                    if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                          D_ASSUME( funcs->FlipRegion != NULL );
 
                          if (buffer->video.access & VAF_HARDWARE_WRITE) {
@@ -485,7 +485,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
           case DLBM_FRONTONLY:
                /* Tell the driver about the update if the region is realized. */
                if (funcs->UpdateRegion &&
-                   FLAG_IS_SET( region->state, CLRSF_REALIZED ))
+                   D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ))
                {
                     ret = funcs->UpdateRegion( layer,
                                                layer->driver_data,
@@ -589,7 +589,7 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
      }
 
      /* Propagate new configuration to the driver if the region is realized. */
-     if (FLAG_IS_SET( region->state, CLRSF_REALIZED )) {
+     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
           ret = set_region( region, &new_config, flags, region->surface );
           if (ret) {
                dfb_layer_region_unlock( region );
@@ -601,7 +601,7 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
      region->config = new_config;
 
      /* Update the region's state. */
-     SET_FLAG( region->state, CLRSF_CONFIGURED );
+     D_FLAGS_SET( region->state, CLRSF_CONFIGURED );
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
@@ -616,7 +616,7 @@ dfb_layer_region_get_configuration( CoreLayerRegion       *region,
      D_ASSERT( region != NULL );
      D_ASSERT( config != NULL );
 
-     D_ASSERT( FLAG_IS_SET( region->state, CLRSF_CONFIGURED ) );
+     D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_CONFIGURED ) );
 
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
@@ -696,7 +696,7 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
      if (dfb_layer_region_lock( region ))
           return RS_OK;
 
-     if (FLAG_IS_SET( region->state, CLRSF_REALIZED )) {
+     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
           if (flags & (CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE)) {
                if (surface->palette)
                     funcs->SetRegion( layer,
@@ -732,7 +732,7 @@ set_region( CoreLayerRegion            *region,
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
 
-     D_ASSERT( FLAG_IS_SET( region->state, CLRSF_REALIZED ) );
+     D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 
      layer = dfb_layer_at( region->context->layer_id );
 
@@ -757,8 +757,8 @@ realize_region( CoreLayerRegion *region )
 
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
-     D_ASSERT( FLAG_IS_SET( region->state, CLRSF_CONFIGURED ) );
-     D_ASSERT( ! FLAG_IS_SET( region->state, CLRSF_REALIZED ) );
+     D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_CONFIGURED ) );
+     D_ASSERT( ! D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 
      layer = dfb_layer_at( region->context->layer_id );
 
@@ -794,7 +794,7 @@ realize_region( CoreLayerRegion *region )
      }
 
      /* Update the region's state. */
-     SET_FLAG( region->state, CLRSF_REALIZED );
+     D_FLAGS_SET( region->state, CLRSF_REALIZED );
 
      /* Initially setup hardware. */
      ret = set_region( region, &region->config, CLRCF_ALL, region->surface );
@@ -815,7 +815,7 @@ unrealize_region( CoreLayerRegion *region )
 
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
-     D_ASSERT( FLAG_IS_SET( region->state, CLRSF_REALIZED ) );
+     D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 
      layer = dfb_layer_at( region->context->layer_id );
 
@@ -842,7 +842,7 @@ unrealize_region( CoreLayerRegion *region )
      }
 
      /* Update the region's state. */
-     CLEAR_FLAG( region->state, CLRSF_REALIZED );
+     D_FLAGS_CLEAR( region->state, CLRSF_REALIZED );
 
      return DFB_OK;
 }

@@ -426,7 +426,7 @@ dfb_window_create( CoreWindowStack        *stack,
      }
 
      /* Indicate that initialization is complete. */
-     SET_FLAG( window->flags, CWF_INITIALIZED );
+     D_FLAGS_SET( window->flags, CWF_INITIALIZED );
 
      /* Increase number of windows. */
      stack->num++;
@@ -479,7 +479,7 @@ dfb_window_destroy( CoreWindow *window )
      dfb_wm_remove_window( stack, window );
 
      /* Indicate destruction. */
-     SET_FLAG( window->flags, CWF_DESTROYED );
+     D_FLAGS_SET( window->flags, CWF_DESTROYED );
 
      /* Hardware allocated? */
      if (window->region) {
@@ -1011,19 +1011,19 @@ core_window_filter( CoreWindow *window, const DFBWindowEvent *event )
 {
      switch (event->type) {
           case DWET_GOTFOCUS:
-               SET_FLAG( window->flags, CWF_FOCUSED );
+               D_FLAGS_SET( window->flags, CWF_FOCUSED );
                break;
 
           case DWET_LOSTFOCUS:
-               CLEAR_FLAG( window->flags, CWF_FOCUSED );
+               D_FLAGS_CLEAR( window->flags, CWF_FOCUSED );
                break;
 
           case DWET_ENTER:
-               SET_FLAG( window->flags, CWF_ENTERED );
+               D_FLAGS_SET( window->flags, CWF_ENTERED );
                break;
 
           case DWET_LEAVE:
-               CLEAR_FLAG( window->flags, CWF_ENTERED );
+               D_FLAGS_CLEAR( window->flags, CWF_ENTERED );
                break;
 
           default:
