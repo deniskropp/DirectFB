@@ -3175,14 +3175,28 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Fill 'num_spans' spans with the given color following the
-      * drawing flags. Each span specified by a DFBSpan.
+      * Fill a bunch of rectangles with a single call.
+      *
+      * Fill <b>num</b> rectangles with the current color following the
+      * drawing flags. Each rectangle specified by a DFBRectangle.
+      */
+     DFBResult (*FillRectangles) (
+          IDirectFBSurface         *thiz,
+          const DFBRectangle       *rects,
+          unsigned int              num
+     );
+
+     /*
+      * Fill spans specified by x and width.
+      *
+      * Fill <b>num</b> spans with the given color following the
+      * drawing flags. Each span is specified by a DFBSpan.
       */
      DFBResult (*FillSpans) (
           IDirectFBSurface         *thiz,
           int                       y,
           const DFBSpan            *spans,
-          unsigned int              num_spans
+          unsigned int              num
      );
 
 

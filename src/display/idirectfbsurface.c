@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <alloca.h>
 
 #include <math.h>
 
@@ -1029,6 +1030,94 @@ IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
+                                 const DFBRectangle *rects,
+                                 unsigned int        num_rects )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!rects || !num_rects)
+          return DFB_INVARG;
+
+     if (data->area.wanted.x || data->area.wanted.y) {
+          unsigned int  i;
+          DFBRectangle *local_rects;
+          bool          malloced = (num_rects > 256);
+
+          if (malloced)
+               local_rects = malloc( sizeof(DFBRectangle) * num_rects );
+          else
+               local_rects = alloca( sizeof(DFBRectangle) * num_rects );
+
+          for (i=0; i<num_rects; i++) {
+               local_rects[i].x = rects[i].x + data->area.wanted.x;
+               local_rects[i].y = rects[i].y + data->area.wanted.y;
+               local_rects[i].w = rects[i].w;
+               local_rects[i].h = rects[i].h;
+          }
+
+          dfb_gfxcard_fillrectangles( local_rects, num_rects, &data->state );
+
+          if (malloced)
+               free( local_rects );
+     }
+     else
+          dfb_gfxcard_fillrectangles( rects, num_rects, &data->state );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_FillSpans( IDirectFBSurface *thiz,
+                            int               y,
+                            const DFBSpan    *spans,
+                            unsigned int      num_spans )
+{
+     DFBSpan *local_spans = alloca(sizeof(DFBSpan) * num_spans);
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!spans || !num_spans)
+          return DFB_INVARG;
+
+     if (data->area.wanted.x || data->area.wanted.y) {
+          unsigned int i;
+
+          for (i=0; i<num_spans; i++) {
+               local_spans[i].x = spans[i].x + data->area.wanted.x;
+               local_spans[i].w = spans[i].w;
+          }
+     }
+     else
+          /* clipping may modify spans, so we copy them */
+          direct_memcpy( local_spans, spans, sizeof(DFBSpan) * num_spans );
+
+     dfb_gfxcard_fillspans( y + data->area.wanted.y, local_spans, num_spans, &data->state );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_SetBlittingFlags( IDirectFBSurface        *thiz,
                                    DFBSurfaceBlittingFlags  flags )
 {
@@ -1689,46 +1778,6 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      return dfb_surface_dump( surface, directory, prefix );
 }
 
-static DFBResult
-IDirectFBSurface_FillSpans( IDirectFBSurface *thiz,
-                            int               y,
-                            const DFBSpan    *spans,
-                            unsigned int      num_spans )
-{
-     DFBSpan *local_spans = alloca(sizeof(DFBSpan) * num_spans);
-
-     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
-
-     if (!data->surface)
-          return DFB_DESTROYED;
-
-
-     if (!data->area.current.w || !data->area.current.h)
-          return DFB_INVAREA;
-
-     if (data->locked)
-          return DFB_LOCKED;
-
-     if (!spans || !num_spans)
-          return DFB_INVARG;
-
-     if (data->area.wanted.x || data->area.wanted.y) {
-          unsigned int i;
-
-          for (i=0; i<num_spans; i++) {
-               local_spans[i].x = spans[i].x + data->area.wanted.x;
-               local_spans[i].w = spans[i].w;
-          }
-     }
-     else
-          /* clipping may modify spans, so we copy them */
-          direct_memcpy( local_spans, spans, sizeof(DFBSpan) * num_spans );
-
-     dfb_gfxcard_fillspans( y + data->area.wanted.y, local_spans, num_spans, &data->state );
-
-     return DFB_OK;
-}
-
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -1820,6 +1869,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->DrawLines = IDirectFBSurface_DrawLines;
      thiz->DrawRectangle = IDirectFBSurface_DrawRectangle;
      thiz->FillTriangle = IDirectFBSurface_FillTriangle;
+     thiz->FillRectangles = IDirectFBSurface_FillRectangles;
      thiz->FillSpans = IDirectFBSurface_FillSpans;
 
      thiz->SetFont = IDirectFBSurface_SetFont;
