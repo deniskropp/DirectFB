@@ -99,7 +99,6 @@ typedef struct {
 static const unsigned int zero = 0;
 static const unsigned int one = 1;
 
-static void* FrameThread( void *context );
 static ReactionResult v4l_surface_listener( const void *msg_data, void *ctx );
 static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
                                  IDirectFBVideoProvider_V4L_data *data );
@@ -409,69 +408,79 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 /*****************/
 
 /*
+ * thread to capture data from v4l buffers and generate callback
+ */
+static void* SystemThread( void *ctx )
+{
+     IDirectFBVideoProvider_V4L_data *data =
+          (IDirectFBVideoProvider_V4L_data*)ctx;
+     int field = 0;
+     __u8 *src, *dst;
+     int src_pitch = DFB_BYTES_PER_LINE( data->destination->format, data->destination->width );
+     int dst_pitch = data->destination->back_buffer->system.pitch * (data->destination->caps & DSCAPS_INTERLACED ? 2 : 1);
+     int h;
+
+     while (1) {
+          data->vmmap.frame = field;
+          ioctl( data->fd, VIDIOCSYNC, &field );
+          pthread_testcancel();
+
+          ioctl( data->fd, VIDIOCMCAPTURE, &data->vmmap );
+
+          src = (__u8 *) data->buffer + data->vmbuf.offsets[field];
+          dst = (__u8 *) data->destination->back_buffer->system.addr;
+          h = data->destination->height;
+          if (data->destination->caps & DSCAPS_INTERLACED) {
+               dst += field * data->destination->back_buffer->system.pitch;
+               h += field ? 0 : 1;
+               h /= 2;
+          }
+
+          while (h--) {
+               memcpy( dst, src, src_pitch );
+               src += src_pitch;
+               dst += dst_pitch;
+          }
+          if (data->destination->caps & DSCAPS_INTERLACED) {
+               dfb_surface_notify_listeners( data->destination,
+                                             field ? CSNF_SET_ODD : CSNF_SET_EVEN );
+               field = !field;
+          }
+
+          if (data->callback)
+               data->callback(data->ctx);
+     }
+
+     return NULL;
+}
+
+/*
  * bogus thread to generate callback,
  * because video4linux does not support syncing in overlay mode
  */
-static void* FrameThread( void *ctx )
+static void* VideoThread( void *ctx )
 {
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)ctx;
 
-     int            field = 0;
+     int field = 0;
+     struct timeval tv;
 
-     if (data->destination->caps & DSCAPS_SYSTEMONLY) {
-          __u8 *src, *dst;
-          int src_pitch = DFB_BYTES_PER_LINE( data->destination->format, data->destination->width );
-          int dst_pitch = data->destination->back_buffer->system.pitch * (data->destination->caps & DSCAPS_INTERLACED ? 2 : 1);
-          int h;
-          while (1) {
-               data->vmmap.frame = field;
-               ioctl( data->fd, VIDIOCSYNC, &field );
-               pthread_testcancel();
+     while (1) {
+          tv.tv_sec = 0;
+          tv.tv_usec = 20000;
+          select( 0, 0, 0, 0, &tv );
 
-               ioctl( data->fd, VIDIOCMCAPTURE, &data->vmmap );
+          pthread_testcancel();
 
-               src = (__u8 *) data->buffer + data->vmbuf.offsets[field];
-               dst = (__u8 *) data->destination->back_buffer->system.addr;
-               h = data->destination->height;
-               if (data->destination->caps & DSCAPS_INTERLACED) {
-                    dst += field * data->destination->back_buffer->system.pitch;
-                    h += field ? 0 : 1;
-                    h /= 2;
-               }
-
-               while (h--) {
-                    memcpy( dst, src, src_pitch );
-                    src += src_pitch;
-                    dst += dst_pitch;
-               }
-               if (data->destination->caps & DSCAPS_INTERLACED) {
-                    dfb_surface_notify_listeners( data->destination,
-                                                  field ? CSNF_SET_ODD : CSNF_SET_EVEN );
-                    field = !field;
-               }
-               if (data->callback)
-                   data->callback(data->ctx);
+          if (data->destination->caps & DSCAPS_INTERLACED) {
+              dfb_surface_notify_listeners( data->destination,
+                                            field ? CSNF_SET_ODD : CSNF_SET_EVEN );
+              field = !field;
           }
-     } else {
-          struct timeval tv;
 
-          while (1) {
-               tv.tv_sec = 0;
-               tv.tv_usec = 20000;
-               select( 0, 0, 0, 0, &tv );
-
-               pthread_testcancel();
-
-               if (data->destination->caps & DSCAPS_INTERLACED) {
-                    dfb_surface_notify_listeners( data->destination,
-                                                  field ? CSNF_SET_ODD : CSNF_SET_EVEN );
-                    field = !field;
-               }
-
-               if (data->callback)
-                    data->callback( data->ctx );
-          }
+          if (data->callback)
+              data->callback( data->ctx );
      }
 
      return NULL;
@@ -682,8 +691,10 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
 
      reactor_attach( surface->reactor, v4l_surface_listener, data );
      
-     if (data->callback || surface->caps & DSCAPS_INTERLACED || surface->caps & DSCAPS_SYSTEMONLY)
-          pthread_create( &data->thread, NULL, FrameThread, data );
+     if (surface->caps & DSCAPS_SYSTEMONLY)
+          pthread_create( &data->thread, NULL, SystemThread, data );
+     else if (data->callback || surface->caps & DSCAPS_INTERLACED)
+          pthread_create( &data->thread, NULL, VideoThread, data );
 
      return DFB_OK;
 }
