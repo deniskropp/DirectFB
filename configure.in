@@ -572,11 +572,11 @@ fi
 DFB_CFLAGS="$DFB_CFLAGS $DFB_INTERNAL_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
 
-if test x$cflags_set != xset ; then
+if test "x$cflags_set" != xset ; then
   DFB_CFLAGS="$DFB_CFLAGS $CFLAGS"
 fi
 
-if test x$cxxflags_set != xset ; then
+if test "x$cxxflags_set" != xset ; then
   DFB_CXXFLAGS="$DFB_CXXFLAGS $CXXFLAGS"
 fi
 
