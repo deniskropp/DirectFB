@@ -478,6 +478,9 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                          config.flags       |= DLCONF_PIXELFORMAT;
                          config.pixelformat  = format;
                     }
+                    else if (!data->primary.bpp && dfb_config->mode.format) {
+                         config.pixelformat = dfb_config->mode.format;
+                    }
                     
                     /*
                      * If SetVideoMode hasn't been called,
