@@ -357,6 +357,7 @@ dfb_screens_register_primary( GraphicsDevice *device,
 
      D_ASSERT( primary != NULL );
      D_ASSERT( funcs != NULL );
+     D_ASSERT( num_screens > 0 );
 
      /* replace device, function table and driver data pointer */
      primary->device      = device;
