@@ -9,13 +9,6 @@ else
 V4L_PROVIDER_LTLIB =
 endif
 
-if LIBMPEG3_PROVIDER
-LIBMPEG3_PROVIDER_LTLIB = libidirectfbvideoprovider_libmpeg3.la
-else
-LIBMPEG3_PROVIDER_LTLIB =
-endif
-
-
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src 	\
@@ -23,15 +16,7 @@ INCLUDES = \
 
 
 idirectfbvideoprovider_LTLIBRARIES =	\
-	$(V4L_PROVIDER_LTLIB)		\
-	$(LIBMPEG3_PROVIDER_LTLIB)
-
-
-libidirectfbvideoprovider_libmpeg3_la_SOURCES = idirectfbvideoprovider_libmpeg3.c
-
-libidirectfbvideoprovider_libmpeg3_la_LIBADD = $(LIBMPEG3) -lm
-
-libidirectfbvideoprovider_libmpeg3_la_LDFLAGS = -avoid-version -module
+	$(V4L_PROVIDER_LTLIB)
 
 
 libidirectfbvideoprovider_v4l_la_SOURCES = idirectfbvideoprovider_v4l.c

@@ -529,31 +529,6 @@ if test x$enable_freetype != xno && test x$FREETYPE != xyes; then
 FreeType2 support is missing - many applications won't work correctly!"
 fi
 
-
-dnl Test for libmpeg3
-MPEG3=no
-AC_ARG_ENABLE(libmpeg3,
-  [  --enable-libmpeg3         build Libmpeg3 video provider [default=yes]],
-  enable_mpeg3="$enableval", enable_mpeg3=yes)
-
-if test x$enable_mpeg3 = xyes; then
-  AC_CHECK_LIB(mpeg3, mpeg3_open,
-    [
-      AC_CHECK_HEADER(libmpeg3.h,
-        MPEG3=yes
-        LIBMPEG3='-lmpeg3',
-        AC_MSG_WARN([
-*** libmpeg3 headers not found -- Libmpeg3 video provider will not be built.]))
-    ],[
-      AC_MSG_WARN([
-*** libmpeg3 not found -- Libmpeg3 video provider will not be build.])
-    ], -lm -lpthread)
-fi
-
-AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
-
-
-
 dnl Test for video4linux
 V4L=no
 
@@ -946,7 +921,6 @@ AC_SUBST(LIBPNG)
 AC_SUBST(FREETYPE_PROVIDER)
 AC_SUBST(FREETYPE_CFLAGS)
 AC_SUBST(FREETYPE_LIBS)
-AC_SUBST(LIBMPEG3)
 
 AC_SUBST(DATADIR)
 AC_SUBST(MODULEDIR)
@@ -1049,7 +1023,6 @@ Building Image Providers:
   MPEG2 I-Frame         yes
 
 Building Video Providers:
-  Libmpeg3              $MPEG3
   Video4Linux           $V4L
 
 Building Font implementations:
