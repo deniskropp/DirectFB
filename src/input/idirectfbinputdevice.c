@@ -193,12 +193,13 @@ IDirectFBInputDevice_GetKeyState( IDirectFBInputDevice        *thiz,
                                   DFBInputDeviceKeyIdentifier  key_id,
                                   DFBInputDeviceKeyState      *state )
 {
+     unsigned int index = key_id - DFB_KEY(IDENTIFIER, 0);
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     if (!state || key_id < DIKI_UNKNOWN || key_id >= DIKI_NUMBER_OF_KEYS)
+     if (!state || index >= DIKI_NUMBER_OF_KEYS)
           return DFB_INVARG;
 
-     *state = data->keystates[key_id];
+     *state = data->keystates[index];
 
      return DFB_OK;
 }
@@ -333,6 +334,7 @@ IDirectFBInputDevice_React( const void *msg_data,
 {
      const DFBInputEvent       *evt  = (DFBInputEvent*)msg_data;
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)ctx;
+     unsigned int               index;
 
      if (evt->flags & DIEF_MODIFIERS)
           data->modifiers = evt->modifiers;
@@ -343,13 +345,15 @@ IDirectFBInputDevice_React( const void *msg_data,
      
      switch (evt->type) {
           case DIET_KEYPRESS:
-               if (evt->key_id != DIKI_UNKNOWN)
-                    data->keystates[evt->key_id] = DIKS_DOWN;
+               index = evt->key_id - DFB_KEY(IDENTIFIER, 0);
+               if (index < DIKI_NUMBER_OF_KEYS)
+                    data->keystates[index] = DIKS_DOWN;
 	           break;
 
           case DIET_KEYRELEASE:
-               if (evt->key_id != DIKI_UNKNOWN)
-                    data->keystates[evt->key_id] = DIKS_UP;
+               index = evt->key_id - DFB_KEY(IDENTIFIER, 0);
+               if (index < DIKI_NUMBER_OF_KEYS)
+                    data->keystates[index] = DIKS_UP;
                break;
 
           case DIET_AXISMOTION:
@@ -365,3 +369,4 @@ IDirectFBInputDevice_React( const void *msg_data,
 
      return RS_OK;
 }
+

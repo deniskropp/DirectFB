@@ -33,10 +33,51 @@ extern "C"
 #endif
 
      /*
+      * DirectFB key types (for advanced mapping)
+      */
+     typedef enum {
+          DIKT_UNICODE        = 0x00000,     /* Unicode 3.x character
+                                                (compatible to Latin-1) */
+          DIKT_SPECIAL        = 0xF0000,     /* Special key (e.g. EPG) */
+          DIKT_FUNCTION       = 0xF1000,     /* Function key (F1 - Fn) */
+          DIKT_MODIFIER       = 0xF2000,     /* Modifier key */
+          DIKT_LOCK           = 0xF3000,     /* Lock key (e.g. CapsLock) */
+          DIKT_DEAD           = 0xF4000,     /* Dead key (e.g. dead grave) */
+          DIKT_CUSTOM         = 0xF7000,     /* Custom key (vendor specific) */
+          DIKT_IDENTIFIER     = 0xF8000      /* DirectFB key identifier */
+     } DFBInputDeviceKeyType;
+
+     #define DFB_KEY(type,index)        ((DIKT_##type) | (index))
+     
+     #define DFB_KEY_TYPE(symbol)       ((symbol) & 0xFF000)
+     
+     #define DFB_FUNCTION_KEY(n)        (DFB_KEY( FUNCTION, n ))
+     #define DFB_MODIFIER_KEY(i)        (DFB_KEY( MODIFIER, (1 << i) ))
+     #define DFB_CUSTOM_KEY(n)          (DFB_KEY( CUSTOM, n ))
+     
+     #define DFB_LOWER_CASE(symbol)     (((symbol) >= 'A' && (symbol) <= 'Z') ?\
+                                         ((symbol) | 0x20) : (symbol))
+     #define DFB_UPPER_CASE(symbol)     (((symbol) >= 'a' && (symbol) <= 'z') ?\
+                                         ((symbol) & ~0x20) : (symbol))
+     
+     /*
+      * DirectFB modifier key identifiers (for advanced mapping)
+      */
+     typedef enum {
+          DIMKI_SHIFT,                       /* Shift modifier key */
+          DIMKI_CONTROL,                     /* Control modifier key */
+          DIMKI_ALT,                         /* Alt modifier key */
+          DIMKI_ALTGR,                       /* AltGr modifier key */
+          DIMKI_META,                        /* Meta modifier key */
+          DIMKI_SUPER,                       /* Super modifier key */
+          DIMKI_HYPER                        /* Hyper modifier key */
+     } DFBInputDeviceModifierKeyIdentifier;
+
+     /*
       * DirectFB key identifiers (for basic mapping)
       */
      typedef enum {
-          DIKI_UNKNOWN = 0,
+          DIKI_UNKNOWN = DFB_KEY( IDENTIFIER, 0 ),
 
           DIKI_A,
           DIKI_B,
@@ -167,48 +208,10 @@ extern "C"
           DIKI_KP_8,
           DIKI_KP_9,
 
-          DIKI_NUMBER_OF_KEYS
+          DIKI_KEYDEF_END,
+          DIKI_NUMBER_OF_KEYS = DIKI_KEYDEF_END - DFB_KEY( IDENTIFIER, 0 )
+
      } DFBInputDeviceKeyIdentifier;
-
-     /*
-      * DirectFB key types (for advanced mapping)
-      */
-     typedef enum {
-          DIKT_UNICODE        = 0x00000,     /* Unicode 3.x character
-                                                (compatible to Latin-1) */
-          DIKT_SPECIAL        = 0xF0000,     /* Special key (e.g. EPG) */
-          DIKT_FUNCTION       = 0xF1000,     /* Function key (F1 - Fn) */
-          DIKT_MODIFIER       = 0xF2000,     /* Modifier key */
-          DIKT_LOCK           = 0xF3000,     /* Lock key (e.g. CapsLock) */
-          DIKT_DEAD           = 0xF4000,     /* Dead key (e.g. dead grave) */
-          DIKT_CUSTOM         = 0xF8000      /* Custom key (vendor specific) */
-     } DFBInputDeviceKeyType;
-
-     #define DFB_KEY(type,index)        ((DIKT_##type) | (index))
-     
-     #define DFB_KEY_TYPE(symbol)       ((symbol) & 0xFF000)
-     
-     #define DFB_FUNCTION_KEY(n)        (DFB_KEY( FUNCTION, n ))
-     #define DFB_MODIFIER_KEY(i)        (DFB_KEY( MODIFIER, (1 << i) ))
-     #define DFB_CUSTOM_KEY(n)          (DFB_KEY( CUSTOM, n ))
-     
-     #define DFB_LOWER_CASE(symbol)     (((symbol) >= 'A' && (symbol) <= 'Z') ?\
-                                         ((symbol) | 0x20) : (symbol))
-     #define DFB_UPPER_CASE(symbol)     (((symbol) >= 'a' && (symbol) <= 'z') ?\
-                                         ((symbol) & ~0x20) : (symbol))
-     
-     /*
-      * DirectFB modifier key identifiers (for advanced mapping)
-      */
-     typedef enum {
-          DIMKI_SHIFT,                       /* Shift modifier key */
-          DIMKI_CONTROL,                     /* Control modifier key */
-          DIMKI_ALT,                         /* Alt modifier key */
-          DIMKI_ALTGR,                       /* AltGr modifier key */
-          DIMKI_META,                        /* Meta modifier key */
-          DIMKI_SUPER,                       /* Super modifier key */
-          DIMKI_HYPER                        /* Hyper modifier key */
-     } DFBInputDeviceModifierKeyIdentifier;
 
      /*
       * DirectFB key symbols (for advanced mapping)
