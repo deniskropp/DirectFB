@@ -59,7 +59,7 @@ void dfb_assumption_fail( const char *expression,
 
 #define DFB_MAGIC_CLEAR(o)      do { (o)->magic = 0; } while (0)
 #define DFB_MAGIC_SET(o,m)      do { (o)->magic = DFB_MAGIC(#m); } while (0)
-#define DFB_MAGIC_ASSERT(o,m)   DFB_ASSERT( (o)->magic == DFB_MAGIC(#m) )
+#define DFB_MAGIC_ASSERT(o,m)   do { DFB_ASSERT( (o) != NULL ); DFB_ASSERT( (o)->magic == DFB_MAGIC(#m) ); } while (0)
 
 #else
 
