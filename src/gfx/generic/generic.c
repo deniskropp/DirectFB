@@ -2567,6 +2567,12 @@ void gRelease( CardState *state )
      pthread_mutex_unlock( &generic_lock );
 }
 
+#define CHECK_PIPELINE()           \
+     {                             \
+          if (!*gfuncs)            \
+               return;             \
+     }                             \
+
 #define RUN_PIPELINE()             \
      {                             \
           GFunc *funcs = gfuncs;   \
@@ -2578,6 +2584,8 @@ void gRelease( CardState *state )
 
 void gFillRectangle( DFBRectangle *rect )
 {
+     CHECK_PIPELINE();
+
      Aop = dst_org  +  rect->y * dst_pitch  +  rect->x * dst_bpp;
      Dlength = rect->w;
 
@@ -2592,6 +2600,8 @@ void gDrawLine( DFBRegion *line )
 {
      int i,dx,dy,sdy,dxabs,dyabs,x,y,px,py;
 
+     CHECK_PIPELINE();
+     
      /* the horizontal distance of the line */
      dx = line->x2 - line->x1;
      dxabs = abs(dx);
@@ -2662,6 +2672,8 @@ static inline void gFillTrapezoid( int Xl, int Xr, int X2l, int X2r, int Y, int 
   int dXl = ((X2l - Xl) << 20) / dY;
   int dXr = ((X2r - Xr) << 20) / dY;
 
+  CHECK_PIPELINE();
+  
   Xl <<= 20;
   Xr <<= 20;
 
@@ -2679,6 +2691,8 @@ static inline void gFillTrapezoid( int Xl, int Xr, int X2l, int X2r, int Y, int 
 
 void gFillTriangle( DFBTriangle *tri )
 {
+     CHECK_PIPELINE();
+     
      sort_triangle( tri );
 
      if (tri->y2 == tri->y3) {
@@ -2717,6 +2731,8 @@ void gFillTriangle( DFBTriangle *tri )
 
 void gBlit( DFBRectangle *rect, int dx, int dy )
 {
+     CHECK_PIPELINE();
+     
      if (dx > rect->x)
           /* we must blit from right to left */
           Ostep = -1;
@@ -2758,6 +2774,8 @@ void gStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
      int f;
      int i = 0;
 
+     CHECK_PIPELINE();
+     
      Aop = dst_org  +  drect->y * dst_pitch  +  drect->x * dst_bpp;
      Bop = src_org  +  srect->y * src_pitch  +  srect->x * src_bpp;
 
