@@ -448,7 +448,14 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBImageProvider );
 
-     return impl->Construct( *interface, filename );
+     ret = impl->Construct( *interface, filename );
+
+     if (ret) {
+        free (*interface);
+        *interface = NULL;
+     }
+
+     return ret;
 }
 
 
@@ -485,7 +492,14 @@ DFBResult IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBVideoProvider );
 
-     return impl->Construct( *interface, filename );
+     ret = impl->Construct( *interface, filename );
+
+     if (ret) {
+        free (*interface);
+        *interface = NULL;
+     }
+
+     return ret;
 }
 
 DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
@@ -511,7 +525,14 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBFont );
 
-     return impl->Construct( *interface, filename, desc );
+     ret = impl->Construct( *interface, filename, desc );
+
+     if (ret) {
+        free (*interface);
+        *interface = NULL;
+     }
+
+     return ret;
 }
 
 DFBResult IDirectFB_Suspend( IDirectFB *thiz )
