@@ -437,9 +437,14 @@ static void* FrameThread( void *ctx )
 
 static ReactionResult v4l_surface_listener( const void *msg_data, void *ctx )
 {
-     v4l_stop( (IDirectFBVideoProvider_V4L_data*)ctx );
+     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
+     
+     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT | CSNF_VIDEO)) {
+          v4l_stop( (IDirectFBVideoProvider_V4L_data*)ctx );
+          return RS_REMOVE;
+     }
 
-     return RS_REMOVE;
+     return RS_OK;
 }
 
 /************/
@@ -577,12 +582,10 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
           return ret;
      }
 
-/*     surface_install_listener( surface, v4l_surface_listener,
-                               CSN_DESTROY| CSN_FLIP| CSN_SIZEFORMAT| CSN_VIDEO,
-                               NULL );*/
-
      data->destination = surface;
 
+     reactor_attach( surface->reactor, v4l_surface_listener, data );
+     
      if (data->callback || surface->caps & DSCAPS_INTERLACED)
           pthread_create( &data->thread, NULL, FrameThread, data );
 
