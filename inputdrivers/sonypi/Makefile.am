@@ -9,7 +9,7 @@ INCLUDES = \
 sonypi_LTLIBRARIES = libdirectfb_sonypi.la
 
 if BUILD_STATIC
-sonypi_DATA = $(sonypi_LTLIBRARIES:.la=.o)
+#sonypi_DATA = $(sonypi_LTLIBRARIES:.la=.o)
 endif
 
 sonypidir = $(MODULEDIR)/inputdrivers

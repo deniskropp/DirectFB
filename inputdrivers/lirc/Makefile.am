@@ -10,7 +10,7 @@ INCLUDES = \
 lirc_LTLIBRARIES = libdirectfb_lirc.la
 
 if BUILD_STATIC
-lirc_DATA = $(lirc_LTLIBRARIES:.la=.o)
+#lirc_DATA = $(lirc_LTLIBRARIES:.la=.o)
 endif
 
 lircdir = $(MODULEDIR)/inputdrivers

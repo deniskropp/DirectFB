@@ -18,7 +18,7 @@ internalinclude_HEADERS = \
 systemsdir = $(MODULEDIR)/systems
 
 if BUILD_STATIC
-systems_DATA = libdirectfb_fbdev.o
+#systems_DATA = libdirectfb_fbdev.o
 endif
 systems_LTLIBRARIES = libdirectfb_fbdev.la
 

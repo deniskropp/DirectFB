@@ -9,7 +9,7 @@ INCLUDES = \
 dbox2remote_LTLIBRARIES = libdirectfb_dbox2remote.la
 
 if BUILD_STATIC
-dbox2remote_DATA = $(dbox2remote_LTLIBRARIES:.la=.o)
+#dbox2remote_DATA = $(dbox2remote_LTLIBRARIES:.la=.o)
 endif
 
 dbox2remotedir = $(MODULEDIR)/inputdrivers

@@ -11,7 +11,7 @@ INCLUDES = \
 wmdir = $(MODULEDIR)/wm
 
 if BUILD_STATIC
-wm_DATA = libdirectfbwm_default.o
+#wm_DATA = libdirectfbwm_default.o
 endif
 
 wm_LTLIBRARIES = libdirectfbwm_default.la

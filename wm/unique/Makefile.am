@@ -50,7 +50,7 @@ wmdir = $(MODULEDIR)/wm
 wm_LTLIBRARIES = libdirectfbwm_unique.la
 
 if BUILD_STATIC
-wm_DATA = libdirectfbwm_unique.o
+#wm_DATA = libdirectfbwm_unique.o
 endif
 
 libdirectfbwm_unique_la_SOURCES = \

@@ -9,7 +9,7 @@ INCLUDES = \
 ps2mouse_LTLIBRARIES = libdirectfb_ps2mouse.la
 
 if BUILD_STATIC
-ps2mouse_DATA = $(ps2mouse_LTLIBRARIES:.la=.o)
+#ps2mouse_DATA = $(ps2mouse_LTLIBRARIES:.la=.o)
 endif
 
 ps2mousedir = $(MODULEDIR)/inputdrivers

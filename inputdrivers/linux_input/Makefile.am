@@ -9,7 +9,7 @@ INCLUDES = \
 linux_input_LTLIBRARIES = libdirectfb_linux_input.la
 
 if BUILD_STATIC
-linux_input_DATA = $(linux_input_LTLIBRARIES:.la=.o)
+#linux_input_DATA = $(linux_input_LTLIBRARIES:.la=.o)
 endif
 
 linux_inputdir = $(MODULEDIR)/inputdrivers
