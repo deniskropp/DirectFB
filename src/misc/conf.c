@@ -143,8 +143,6 @@ static const char *config_usage =
     "Matrox TV standard (default=pal)\n"
     "  matrox-cable-type=(composite|scart-rgb|scart-composite)\n"
     "                                 Matrox cable type (default=composite)\n"
-    "  [no-]mach64-sgram              "
-    "Use Mach64 SGRAM features\n"
     "  screenshot-dir=<directory>     "
     "Dump screen content on <Print> key presses\n"
     "  disable-module=<module_name>   "
@@ -829,12 +827,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-matrox-sgram" ) == 0) {
           dfb_config->matrox_sgram = false;
-     } else
-     if (strcmp (name, "mach64-sgram" ) == 0) {
-          dfb_config->mach64_sgram = true;
-     } else
-     if (strcmp (name, "no-mach64-sgram" ) == 0) {
-          dfb_config->mach64_sgram = false;
      } else
      if (strcmp (name, "sync" ) == 0) {
           dfb_config->sync = true;

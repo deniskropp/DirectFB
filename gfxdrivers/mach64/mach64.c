@@ -808,7 +808,12 @@ driver_init_device( GraphicsDevice     *device,
      device_info->limits.surface_bytepitch_alignment  = 16;
      device_info->limits.surface_pixelpitch_alignment = 8;
 
-     mdev->src_cntl = dfb_config->mach64_sgram ? FAST_FILL_EN | BLOCK_WRITE_EN : 0;
+     if (mdrv->accelerator != FB_ACCEL_ATI_MACH64GX &&
+         (mach64_in32( mdrv->mmio_base, CONFIG_STAT0 ) & 0x7) == 0x5)
+          /* SGRAM */
+          mdev->src_cntl = FAST_FILL_EN | BLOCK_WRITE_EN;
+     else
+          mdev->src_cntl = 0;
 
      return DFB_OK;
 }
