@@ -205,8 +205,8 @@ void dfb_dbg_free( char *file, int line, char *func, char *what, void *mem )
           if (alloc_list[i].mem == mem) {
                free( mem );
                alloc_count--;
-               memmove( &alloc_list[i], &alloc_list[i+1],
-                        (alloc_count - i) * sizeof(MemDesc) );
+               dfb_memcpy( &alloc_list[i], &alloc_list[i+1],
+                           (alloc_count - i) * sizeof(MemDesc) );
                pthread_mutex_unlock( &alloc_lock );
                return;
           }

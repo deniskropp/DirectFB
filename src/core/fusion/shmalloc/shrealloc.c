@@ -133,7 +133,7 @@ _fusion_shrealloc (void *ptr, size_t size)
                          return NULL;
                     }
                     if (ptr != result)
-                         memmove (result, ptr, blocks * BLOCKSIZE);
+                         dfb_memmove (result, ptr, blocks * BLOCKSIZE);
                }
                break;
 
