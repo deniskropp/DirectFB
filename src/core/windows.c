@@ -880,7 +880,6 @@ dfb_window_repaint( CoreWindow          *window,
                     DFBRegion           *region,
                     DFBSurfaceFlipFlags  flags )
 {
-     int              i;
      CoreWindowStack *stack = window->stack;
 
      if (!VISIBLE_WINDOW(window))

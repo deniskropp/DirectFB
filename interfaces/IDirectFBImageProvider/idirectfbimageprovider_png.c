@@ -299,8 +299,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
           dfb_scale_linear_32( (__u32*)dst, (__u32*)data->image, data->width,
                                data->height, rect.w, rect.h, pitch,
-                               dst_surface->format, dst_surface->palette,
-                               dst_surface->caps );
+                               dst_surface );
           
           destination->Unlock( destination );
      }
