@@ -59,6 +59,20 @@ DFBEnumerationResult enum_layers_callback( unsigned int                 id,
      if (caps & DLCAPS_SCREEN_LOCATION)
           printf( "  - Can be positioned on the screen.\n" );
 
+     if (caps & DLCAPS_BRIGHTNESS)
+          printf( "  - Brightness can be adjusted.\n" );
+
+     if (caps & DLCAPS_CONTRAST)
+          printf( "  - Contrast can be adjusted.\n" );
+
+     if (caps & DLCAPS_HUE)
+          printf( "  - Hue can be adjusted.\n" );
+
+     if (caps & DLCAPS_SATURATION)
+          printf( "  - Saturation can be adjusted.\n" );
+
+     printf("\n");
+
      /* We take the first layer not being the primary */
      if (id != DLID_PRIMARY) {
           DFBResult ret;

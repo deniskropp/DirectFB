@@ -55,6 +55,7 @@ static struct {
      __u32 besHSRCEND;
      __u32 besHSRCLST;
 
+     __u32 besLUMACTL;
      __u32 besPITCH;
 
      __u32 besV1WGHT;
@@ -254,6 +255,24 @@ DFBResult besFlipBuffers( DisplayLayer *layer )
      return DFB_UNIMPLEMENTED;
 }
 
+DFBResult besSetColorAdjustment( DisplayLayer       *layer,
+                                 DFBColorAdjustment *adj )
+{
+     if (adj->flags & ~(DCAF_BRIGHTNESS | DCAF_CONTRAST))
+          return DFB_UNSUPPORTED;
+
+     if (adj->flags & DCAF_BRIGHTNESS)
+          layer->adjustment.brightness = adj->brightness;
+
+     if (adj->flags & DCAF_CONTRAST)
+          layer->adjustment.contrast = adj->contrast;
+
+     bes_calc_regs( layer );
+     bes_set_regs();
+
+     return DFB_OK;
+}
+
 void matrox_bes_deinit( DisplayLayer *layer )
 {
      mga_out32( mmio_base, 0, BESCTL );
@@ -265,14 +284,15 @@ void driver_init_layers()
 {
      DisplayLayer *layer = (DisplayLayer*)DFBCALLOC( 1, sizeof(DisplayLayer) );
 
-     layer->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
+     layer->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
+                   DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST;
 
      sprintf( layer->description, "Matrox Backend Scaler" );
 
      layer->enabled = 0;
 
-     layer->width = 512;
-     layer->height = 384;
+     layer->width = 640;
+     layer->height = 480;
      layer->buffermode = DLBM_FRONTONLY;
      layer->options = 0;
 
@@ -285,6 +305,10 @@ void driver_init_layers()
 
      layer->bg.mode  = DLBM_DONTCARE;
 
+     layer->adjustment.flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST;
+     layer->adjustment.brightness = 0x8000;
+     layer->adjustment.contrast   = 0x8000;
+
      layer->Enable = besEnable;
      layer->Disable = besDisable;
      layer->TestConfiguration = besTestConfiguration;
@@ -293,6 +317,7 @@ void driver_init_layers()
      layer->SetScreenLocation = besSetScreenLocation;
      layer->SetColorKey = besSetColorKey;
      layer->FlipBuffers = besFlipBuffers;
+     layer->SetColorAdjustment = besSetColorAdjustment;
 
      layer->deinit = matrox_bes_deinit;
 
@@ -326,6 +351,7 @@ static void bes_set_regs()
      mga_out32( mmio_base, bes_regs.besHSRCEND, BESHSRCEND );
      mga_out32( mmio_base, bes_regs.besHSRCLST, BESHSRCLST );
 
+     mga_out32( mmio_base, bes_regs.besLUMACTL, BESLUMACTL );
      mga_out32( mmio_base, bes_regs.besPITCH, BESPITCH );
 
      mga_out32( mmio_base, bes_regs.besV1WGHT, BESV1WGHT );
@@ -358,7 +384,7 @@ static void bes_calc_regs( DisplayLayer *layer )
 
      switch (layer->surface->format) {
           case DSPF_YUY2:
-               bes_regs.besGLOBCTL = 0;
+               bes_regs.besGLOBCTL = BESPROCAMP;
                bes_regs.besCTL    |= BESCTL_BESHFEN |
                                      BESCTL_BESVFEN | BESCTL_BESCUPS;
                break;
@@ -388,6 +414,9 @@ static void bes_calc_regs( DisplayLayer *layer )
      bes_regs.besHSRCEND  = (layer->width - 1) << 16;
      bes_regs.besHSRCLST  = (layer->width - 1) << 16;
 
+     bes_regs.besLUMACTL  = (layer->adjustment.contrast >> 8) |
+                            ((__u8)(((int)layer->adjustment.brightness >> 8)
+                                     - 128)) << 16;
      bes_regs.besPITCH    = layer->surface->front_buffer->video.pitch >> 1;
 
      bes_regs.besV1WGHT   = 0;

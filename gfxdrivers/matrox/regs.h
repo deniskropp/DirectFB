@@ -48,6 +48,7 @@
 #     define     BESRGB15     0x00000100
 #     define     BESRGB16     0x00000200
 #     define     BESRGB32     0x00000300
+#     define     BESPROCAMP   0x00000080
 
 #define BESHCOORD        0x3D28
 #define BESHISCAL        0x3D30

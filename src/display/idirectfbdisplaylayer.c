@@ -434,8 +434,35 @@ DFBResult IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
      return layer_cursor_set_opacity( data->layer, opacity );
 }
 
+DFBResult IDirectFBDisplayLayer_GetColorAdjustment( IDirectFBDisplayLayer *thiz,
+                                                    DFBColorAdjustment    *adj )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!adj)
+          return DFB_INVARG;
+
+     *adj = data->layer->adjustment;
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBDisplayLayer_SetColorAdjustment( IDirectFBDisplayLayer *thiz,
+                                                    DFBColorAdjustment    *adj )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!adj || !adj->flags)
+          return DFB_INVARG;
+
+     if (data->layer->SetColorAdjustment)
+          return data->layer->SetColorAdjustment( data->layer, adj );
+
+     return DFB_UNSUPPORTED;
+}
+
 DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
-                                           DisplayLayer *layer )
+                                           DisplayLayer          *layer )
 {
      IDirectFBDisplayLayer_data *data;
 
@@ -461,6 +488,8 @@ DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetBackgroundMode = IDirectFBDisplayLayer_SetBackgroundMode;
      thiz->SetBackgroundColor = IDirectFBDisplayLayer_SetBackgroundColor;
      thiz->SetBackgroundImage = IDirectFBDisplayLayer_SetBackgroundImage;
+     thiz->GetColorAdjustment = IDirectFBDisplayLayer_GetColorAdjustment;
+     thiz->SetColorAdjustment = IDirectFBDisplayLayer_SetColorAdjustment;
      thiz->CreateWindow = IDirectFBDisplayLayer_CreateWindow;
      thiz->WarpCursor = IDirectFBDisplayLayer_WarpCursor;
      thiz->EnableCursor = IDirectFBDisplayLayer_EnableCursor;

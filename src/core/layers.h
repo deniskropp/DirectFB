@@ -67,6 +67,8 @@ struct _DisplayLayer
           CoreSurface    *image;         /* surface for background image mode */
      } bg;
 
+     DFBColorAdjustment adjustment;
+
      CoreWindowStack *windowstack;       /* every layer has its own
                                             windowstack as every layer has
                                             its own pixel buffer */
@@ -83,23 +85,25 @@ struct _DisplayLayer
       * internal layer driver API (alpha version)
       */
 
-     DFBResult (*Enable)           ( DisplayLayer               *thiz );
-     DFBResult (*Disable)          ( DisplayLayer               *thiz );
-     DFBResult (*TestConfiguration)( DisplayLayer               *thiz,
-                                     DFBDisplayLayerConfig      *config,
-                                     DFBDisplayLayerConfigFlags *failed );
-     DFBResult (*SetConfiguration) ( DisplayLayer               *thiz,
-                                     DFBDisplayLayerConfig      *config );
-     DFBResult (*SetOpacity)       ( DisplayLayer               *thiz,
-                                     __u8                        opacity );
-     DFBResult (*SetScreenLocation)( DisplayLayer               *thiz,
-                                     float                       x,
-                                     float                       y,
-                                     float                       width,
-                                     float                       height );
-     DFBResult (*SetColorKey)      ( DisplayLayer               *thiz,
-                                     __u32                       key );
-     DFBResult (*FlipBuffers)      ( DisplayLayer *thiz );
+     DFBResult (*Enable)            ( DisplayLayer               *thiz );
+     DFBResult (*Disable)           ( DisplayLayer               *thiz );
+     DFBResult (*TestConfiguration) ( DisplayLayer               *thiz,
+                                      DFBDisplayLayerConfig      *config,
+                                      DFBDisplayLayerConfigFlags *failed );
+     DFBResult (*SetConfiguration)  ( DisplayLayer               *thiz,
+                                      DFBDisplayLayerConfig      *config );
+     DFBResult (*SetOpacity)        ( DisplayLayer               *thiz,
+                                      __u8                        opacity );
+     DFBResult (*SetScreenLocation) ( DisplayLayer               *thiz,
+                                      float                       x,
+                                      float                       y,
+                                      float                       width,
+                                      float                       height );
+     DFBResult (*SetColorKey)       ( DisplayLayer               *thiz,
+                                      __u32                       key );
+     DFBResult (*FlipBuffers)       ( DisplayLayer *thiz );
+     DFBResult (*SetColorAdjustment)( DisplayLayer               *thiz,
+                                      DFBColorAdjustment         *adj );
 
      DisplayLayer *next;
 };
