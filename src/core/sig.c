@@ -33,7 +33,7 @@
 
 static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, SIGPIPE, SIGPOLL,
                                 SIGTERM, /*SIGUSR1, SIGUSR2,*/ /*SIGVTALRM,*/
-                                SIGSTKFLT, SIGABRT, SIGFPE, SIGILL, SIGQUIT,
+                                /*SIGSTKFLT,*/ SIGABRT, SIGFPE, SIGILL, SIGQUIT,
                                 SIGSEGV, SIGTRAP, /*SIGSYS, SIGEMT,*/ SIGBUS,
                                 SIGXCPU, SIGXFSZ, -1 };
 
