@@ -311,6 +311,9 @@ sound_thread( CoreThread *thread, void *arg )
                                    shared->config.channels *
                                    (shared->config.bits >> 3));
 
+     bool             empty = true;
+
+
      while (true) {
           int             i;
           audio_buf_info  info;
@@ -320,6 +323,9 @@ sound_thread( CoreThread *thread, void *arg )
 
           if (! ioctl( core->fd, SNDCTL_DSP_GETOSPACE, &info )) {
                int buffered = info.fragsize * info.fragstotal - info.bytes;
+
+               if (!buffered && !empty)
+                    CAUTION( "device buffer underrun?" );
 
                /* calculate output delay (ms) */
                shared->output_delay = buffered * 1000 / byte_rate;
@@ -334,7 +340,7 @@ sound_thread( CoreThread *thread, void *arg )
           else
                ONCE( "SNDCTL_DSP_GETOSPACE failed!" );
 
-          if (!shared->playlist.entries) {
+          if (empty = !shared->playlist.entries) {
                usleep( 20000 );
                continue;
           }
