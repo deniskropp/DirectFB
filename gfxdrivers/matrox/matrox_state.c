@@ -39,6 +39,8 @@
 
 #include "matrox_state.h"
 
+#define MGA_KEYMASK(format)   ((1 << MIN(24, DFB_BITS_PER_PIXEL(format))) - 1)
+
 void matrox_set_destination( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CoreSurface      *destination )
@@ -370,27 +372,23 @@ void matrox_validate_SrcKey( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile __u8 *mmio    = mdrv->mmio_base;
+     CoreSurface   *surface = state->source;
+     __u32          key;
+     __u32          mask;
 
      if (mdev->m_SrcKey)
           return;
 
+     mask = MGA_KEYMASK(surface->format);
+     key  = state->src_colorkey & mask;
+
+     printf("0x%08x, 0x%08x\n", mask, key);
+
      mga_waitfifo( mdrv, mdev, 2);
 
-     if (DFB_BYTES_PER_PIXEL(state->source->format) > 2) {
-          mga_out32( mmio, (0xFFFF << 16) |
-                     (state->src_colorkey & 0xFFFF),
-                     TEXTRANS );
-          mga_out32( mmio, (((1 << (DFB_BITS_PER_PIXEL(state->source->format)-16)) - 1) << 16) |
-                     ((state->src_colorkey & 0xFFFF0000) >> 16),
-                     TEXTRANSHIGH );
-     }
-     else {
-          mga_out32( mmio, (((1 << DFB_BITS_PER_PIXEL(state->source->format)) - 1) << 16) |
-                     (state->src_colorkey & 0xFFFF),
-                     TEXTRANS );
-          mga_out32( mmio, 0, TEXTRANSHIGH );
-     }
+     mga_out32( mmio, ((mask & 0xFFFF) << 16) | (key & 0xFFFF), TEXTRANS );
+     mga_out32( mmio, (mask & 0xFFFF0000) | (key >> 16), TEXTRANSHIGH );
 
      mdev->m_SrcKey = 1;
 }
@@ -407,7 +405,7 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
      if (mdev->m_srckey)
           return;
 
-     mask = (1 << MIN( 24, DFB_BITS_PER_PIXEL(surface->format) )) - 1;
+     mask = MGA_KEYMASK(surface->format);
      key  = state->src_colorkey & mask;
 
      mga_waitfifo( mdrv, mdev, 2);

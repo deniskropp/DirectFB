@@ -1358,7 +1358,7 @@ static void Sop_rgb32_Kto_Dacc()
 
           if (s != Skey) {
                D->a = 0xFF;
-               D->r = (s & 0xFF0000) >> 16;
+               D->r = s >> 16;
                D->g = (s & 0x00FF00) >>  8;
                D->b = (s & 0x0000FF);
           }
@@ -1378,8 +1378,8 @@ static void Sop_argb_Kto_Dacc()
      while (w--) {
           __u32 s = *S++;
 
-          if (s != Skey) {
-               D->a = (s & 0xFF000000) >> 24;
+          if ((s & 0xFFFFFF) != Skey) {
+               D->a = s >> 24;
                D->r = (s & 0x00FF0000) >> 16;
                D->g = (s & 0x0000FF00) >>  8;
                D->b = (s & 0x000000FF);
