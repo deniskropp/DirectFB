@@ -97,7 +97,7 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
 static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                            DisplayLayer *layer, DFBDisplayLayerConfig *config );
 
-#define BES_SUPPORTED_OPTIONS   (DLOP_INTERLACED_VIDEO | DLOP_DST_COLORKEY)
+#define BES_SUPPORTED_OPTIONS   (DLOP_DEINTERLACING | DLOP_DST_COLORKEY)
 
 
 typedef struct {
@@ -153,7 +153,7 @@ besInitLayer( GraphicsDevice             *device,
      /* set capabilities */
      layer_info->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
                         DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
-                        DLCAPS_INTERLACED_VIDEO | DLCAPS_DST_COLORKEY;
+                        DLCAPS_DEINTERLACING | DLCAPS_DST_COLORKEY;
 
      /* set name */
      snprintf( layer_info->name,
@@ -626,7 +626,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
 
      field_height           = surface->height;
 
-     if (config->options & DLOP_INTERLACED_VIDEO) {
+     if (config->options & DLOP_DEINTERLACING) {
           field_height        /= 2;
           mbes->regs.besPITCH *= 2;
      }

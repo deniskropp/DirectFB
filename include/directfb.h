@@ -137,37 +137,43 @@ DECLARE_INTERFACE( IDirectFBGL )
 
 
 /*
- * DirectFB interface functions return code.
+ * Every interface method returns this result code.<br>
+ * Any other value to be returned adds an argument pointing
+ * to a location the value should be written to.
  */
 typedef enum {
-     DFB_OK,             /* no error */
-     DFB_FAILURE,        /* general/unknown error, should not be used */
-     DFB_INIT,           /* general initialization error */
-     DFB_BUG,            /* internal bug */
-     DFB_DEAD,           /* dead interface */
-     DFB_UNSUPPORTED,    /* not supported */
-     DFB_UNIMPLEMENTED,  /* yet unimplemented */
-     DFB_ACCESSDENIED,   /* access denied */
-     DFB_INVARG,         /* invalid argument */
-     DFB_NOSYSTEMMEMORY, /* out of system memory */
-     DFB_NOVIDEOMEMORY,  /* out of video memory */
-     DFB_LOCKED,         /* resource locked */
-     DFB_BUFFEREMPTY,    /* buffer is empty */
-     DFB_FILENOTFOUND,   /* file not found */
-     DFB_IO,             /* general I/O error */
-     DFB_BUSY,           /* resource/device busy */
-     DFB_NOIMPL,         /* no implementation for that interface */
-     DFB_MISSINGFONT,    /* no font has been set */
-     DFB_TIMEOUT,        /* operation timed out */
-     DFB_MISSINGIMAGE,   /* no image has been set */
-     DFB_THIZNULL,       /* 'thiz' pointer is NULL */
-     DFB_IDNOTFOUND,     /* layer/device/... id not found */
-     DFB_INVAREA,        /* invalid area specified or detected */
-     DFB_DESTROYED       /* object (e.g. a window) has been destroyed */
+     DFB_OK,             /* No error occured. */
+     DFB_FAILURE,        /* A general or unknown error occured. */
+     DFB_INIT,           /* A general initialization error occured. */
+     DFB_BUG,            /* Internal bug or inconsistency has been detected. */
+     DFB_DEAD,           /* Interface has a zero reference counter
+                            (after Release, only available in debug mode). */
+     DFB_UNSUPPORTED,    /* The requested operation or an argument
+                            is not supported by hardware or software. */
+     DFB_UNIMPLEMENTED,  /* The requested operation is not yet implemented. */
+     DFB_ACCESSDENIED,   /* Access to the resource is denied. */
+     DFB_INVARG,         /* An invalid argument has been specified. */
+     DFB_NOSYSTEMMEMORY, /* There's not enough system memory. */
+     DFB_NOVIDEOMEMORY,  /* There's not enough video memory. */
+     DFB_LOCKED,         /* The resource is (already) locked. */
+     DFB_BUFFEREMPTY,    /* The buffer is empty. */
+     DFB_FILENOTFOUND,   /* The specified file has not been found. */
+     DFB_IO,             /* A general I/O error occured. */
+     DFB_BUSY,           /* The resource or device is busy. */
+     DFB_NOIMPL,         /* No implementation for the requested interface or
+                            specified data has been found. */
+     DFB_MISSINGFONT,    /* No font has been set. */
+     DFB_TIMEOUT,        /* The operation timed out. */
+     DFB_MISSINGIMAGE,   /* No image has been set. */
+     DFB_THIZNULL,       /* 'thiz' pointer is NULL. */
+     DFB_IDNOTFOUND,     /* No resource has been found by the specified id. */
+     DFB_INVAREA,        /* An invalid area has been specified or detected. */
+     DFB_DESTROYED       /* The underlying object (e.g. a window or surface)
+                            has been destroyed. */
 } DFBResult;
 
 /*
- * Point specified by x/y coordinates.
+ * A point specified by x/y coordinates.
  */
 typedef struct {
      int            x;   /* X coordinate of it */
@@ -175,7 +181,7 @@ typedef struct {
 } DFBPoint;
 
 /*
- * Dimension specified by width and height.
+ * A dimension specified by width and height.
  */
 typedef struct {
      int            w;   /* width of it */
@@ -183,7 +189,7 @@ typedef struct {
 } DFBDimension;
 
 /*
- * Rectangle specified by a point and a dimension.
+ * A rectangle specified by a point and a dimension.
  */
 typedef struct {
      int            x;   /* X coordinate of its top-left point */
@@ -193,7 +199,7 @@ typedef struct {
 } DFBRectangle;
 
 /*
- * Region specified by two points.
+ * A region specified by two points.
  *
  * The defined region includes both endpoints.
  */
@@ -205,7 +211,7 @@ typedef struct {
 } DFBRegion;
 
 /*
- * Triangle.
+ * A triangle specified by three points.
  */
 typedef struct {
      int            x1;  /* X coordinate of first edge */
@@ -263,13 +269,13 @@ const char *DirectFBUsageString( void );
  * Removes all options used by DirectFB from argv.
  */
 DFBResult DirectFBInit(
-                         int         *argc,   /* main()'s argc */
-                         char       **argv[]  /* main()'s argv */
+                         int         *argc,   /* pointer to main()'s argc */
+                         char       **argv[]  /* pointer to main()'s argv */
                       );
 
 /*
  * Sets configuration parameters supported on command line and in
- * config file. Has to be called before DirectFBCreate but after
+ * config file. Can only be called before DirectFBCreate but after
  * DirectFBInit.
  */
 DFBResult DirectFBSetOption(
@@ -292,62 +298,67 @@ DFBResult DirectFBCreate(
  * in functions like SetVideoMode or CreateSurface for the primary.
  */
 typedef enum {
-     DFSCL_NORMAL        = 0x00000000,  /* normal shared access, primary
-                                           surface will be the backbuffer
-                                           of an implicitly created window
-                                           at the resolution given by
-                                           SetVideoMode() */
-     DFSCL_FULLSCREEN,                  /* application grabs the primary
-                                           layer, SetVideoMode automates
-                                           layer control, primary surface
-                                           is the primary layer surface */
-     DFSCL_EXCLUSIVE                    /* all but the primary layer will
-                                           be disabled, application has
-                                           full control over layers if
-                                           desired, other applications
-                                           have no input/output/control,
-                                           primary surface is the primary
-                                           layer surface */
+     DFSCL_NORMAL        = 0x00000000,  /* Normal shared access, primary surface
+                                           will be the buffer of an implicitly
+                                           created window at the resolution
+                                           given by SetVideoMode(). */
+     DFSCL_FULLSCREEN,                  /* Application grabs the primary layer,
+                                           SetVideoMode automates layer control,
+                                           primary surface is the primary layer
+                                           surface. */
+     DFSCL_EXCLUSIVE                    /* All but the primary layer will be
+                                           disabled, the application has full
+                                           control over layers if desired,
+                                           other applications have no
+                                           input/output/control, primary surface
+                                           is the primary layer surface. */
 } DFBCooperativeLevel;
 
 /*
  * Capabilities of a display layer
  */
 typedef enum {
-     DLCAPS_SURFACE           = 0x00000001,  /* The layer has a surface
-                                                that can be drawn to. This
-                                                may not be provided by
-                                                layers that only display
-                                                realtime data, e.g. from an
-                                                MPEG decoder chip. */
-     DLCAPS_OPACITY           = 0x00000002,  /* The layer supports blending
-                                                with layer(s) below by
-                                                a global alpha factor. */
-     DLCAPS_ALPHACHANNEL      = 0x00000004,  /* The layer supports blending
-                                                with layer(s) below on
-                                                a pixel per pixel basis. */
-     DLCAPS_SCREEN_LOCATION   = 0x00000008,  /* The layer location on the
-                                                screen can be changed, this
-                                                includes position and size
-                                                as normalized values,
-                                                default is 0, 0, 1, 1. */
-     DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be
-                                                enabled for this layer. */
-     DLCAPS_INTERLACED_VIDEO  = 0x00000020,  /* The layer can display
-                                                interlaced video data. */
-     DLCAPS_SRC_COLORKEY      = 0x00000040,  /* A specific color can be
-                                                declared as transparent. */
-     DLCAPS_DST_COLORKEY      = 0x00000080,  /* A specific color can be
-                                                declared as transparent. */
-     DLCAPS_BRIGHTNESS        = 0x00000100,  /* supports Brightness
-                                                adjustment */
-     DLCAPS_CONTRAST          = 0x00000200,  /* supports Contrast
-                                                adjustment   */
-     DLCAPS_HUE               = 0x00000400,  /* supports Hue adjustment */
-     DLCAPS_SATURATION        = 0x00000800,  /* supports Saturation
-                                                adjustment */
-     DLCAPS_LEVELS            = 0x00001000   /* level (z position) can be
-                                                adjusted */
+     DLCAPS_SURFACE           = 0x00000001,  /* The layer has a surface that can
+                                                be drawn to. This may not be
+                                                provided by layers that display
+                                                realtime data, e.g. from an MPEG
+                                                decoder chip. Playback control
+                                                may be provided by an external
+                                                API. */
+     DLCAPS_OPACITY           = 0x00000002,  /* The layer supports blending with
+                                                layer(s) below based on a global
+                                                alpha factor. */
+     DLCAPS_ALPHACHANNEL      = 0x00000004,  /* The layer supports blending with
+                                                layer(s) below based on each
+                                                pixel's alpha value. */
+     DLCAPS_SCREEN_LOCATION   = 0x00000008,  /* The layer location on the screen
+                                                can be changed, this includes
+                                                position and size as normalized
+                                                values. Default is 0.0f, 0.0f,
+                                                1.0f, 1.0f. */
+     DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be enabled
+                                                for smooth output on interlaced
+                                                display devices. */
+     DLCAPS_DEINTERLACING     = 0x00000020,  /* The layer provides optional
+                                                deinterlacing for displaying
+                                                interlaced video data on
+                                                progressive display devices. */
+     DLCAPS_SRC_COLORKEY      = 0x00000040,  /* A specific color can be declared
+                                                as transparent. */
+     DLCAPS_DST_COLORKEY      = 0x00000080,  /* A specific color of layers below
+                                                can be specified as the color
+                                                of the only locations where the
+                                                layer is visible. */
+     DLCAPS_BRIGHTNESS        = 0x00000100,  /* Adjustment of brightness is
+                                                supported. */
+     DLCAPS_CONTRAST          = 0x00000200,  /* Adjustment of contrast is
+                                                supported. */
+     DLCAPS_HUE               = 0x00000400,  /* Adjustment of hue is
+                                                supported. */
+     DLCAPS_SATURATION        = 0x00000800,  /* Adjustment of saturation is
+                                                supported. */
+     DLCAPS_LEVELS            = 0x00001000   /* Adjustment of the layer's level
+                                                (z position) is supported. */
 } DFBDisplayLayerCapabilities;
 
 /*
@@ -363,7 +374,8 @@ typedef enum {
                                                 pixel basis. */
      DLOP_FLICKER_FILTERING   = 0x00000002,  /* Enable flicker
                                                 filtering. */
-     DLOP_INTERLACED_VIDEO    = 0x00000004,  /* Source is interlaced. */
+     DLOP_DEINTERLACING       = 0x00000004,  /* Enable deinterlacing of an
+                                                interlaced (video) source. */
      DLOP_SRC_COLORKEY        = 0x00000008,  /* Enable source color key. */
      DLOP_DST_COLORKEY        = 0x00000010   /* Enable dest. color key. */
 } DFBDisplayLayerOptions;

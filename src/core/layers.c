@@ -1429,7 +1429,7 @@ reallocate_surface( DisplayLayer *layer, DFBDisplayLayerConfig *config )
      if (ret)
           return ret;
 
-     if (config->options & DLOP_INTERLACED_VIDEO)
+     if (config->options & DLOP_DEINTERLACING)
           shared->surface->caps |= DSCAPS_INTERLACED;
      else
           shared->surface->caps &= ~DSCAPS_INTERLACED;
