@@ -38,7 +38,7 @@
 
 #include "display/idirectfbsurface.h"
 
-#include "libmpeg3.h"
+#include <libmpeg3.h>
 
 
 /*
