@@ -417,8 +417,11 @@ driver_open_device( InputDevice      *device,
      }
 
      if (!dfb_config->no_vt_switch) {
-          ioctl( 0, TIOCNOTTY, 0 );
-          ioctl( dfb_vt->fd, TIOCSCTTY, 0 );
+          if (ioctl( dfb_vt->fd0, TIOCNOTTY, 0 ) < 0)
+               PERRORMSG( "DirectFB/Keyboard: TIOCNOTTY failed!\n" );
+          
+          if (ioctl( dfb_vt->fd, TIOCSCTTY, 0 ) < 0)
+               PERRORMSG( "DirectFB/Keyboard: TIOCSCTTY failed!\n" );
      }
 
      /* allocate and fill private data */

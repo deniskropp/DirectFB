@@ -28,9 +28,6 @@
 #include <errno.h>
 
 #include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/kd.h>
-#include <sys/vt.h>
 #include <sys/time.h>
 
 #include <termios.h>
@@ -247,8 +244,6 @@ ps2WriteChar( int fd, unsigned char c, int verbose )
      struct timeval tv;
      fd_set fds;
 
-     tcflush (fd, TCIOFLUSH);
-
      tv.tv_sec = 0;
      tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
 
@@ -282,8 +277,6 @@ ps2GetId( int fd, int verbose )
 
      read( fd, &c, 1 );
 
-     tcflush( fd, TCIOFLUSH );
-
      return( c );
 }
 
@@ -301,8 +294,6 @@ ps2Write( int fd, const unsigned char *data, size_t len, int verbose)
                error++;
           }
      }
-
-     tcflush( fd, TCIOFLUSH );
 
      if ( error && verbose )
           ERRORMSG( "DirectFB/PS2Mouse: missed %i ack's!\n", error);
