@@ -392,6 +392,7 @@ window_at_pointer( CoreWindowStack *stack,
                                              break;
                                         }
 
+			      __u8 *p;
                                         /* fall through */
                                    }
 
@@ -417,10 +418,13 @@ window_at_pointer( CoreWindowStack *stack,
                                                 & 0x00ffffff;
                                         break;
 
-                                   case DSPF_RGB24:   //endianess? boh...
-                                        pixel = (*(__u32*)(data +
-                                                           3 * wx + pitch * wy))
-                                                & 0x00ffffff;
+                                   case DSPF_RGB24:
+                                        p = (data + 3 * wx + pitch * wy);
+#ifdef WORDS_BIGENDIAN
+                                        pixel = (p[0] << 16) | (p[1] << 8) | p[2];
+#else
+                                        pixel = (p[2] << 16) | (p[1] << 8) | p[0];
+#endif
                                         break;
 
                                    case DSPF_RGB16:
