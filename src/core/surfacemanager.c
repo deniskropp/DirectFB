@@ -673,6 +673,8 @@ static void debug_dump( SurfaceManager *manager )
                     case CSP_VIDEOONLY:
                          r = 0xFF;
                          break;
+                    default:
+                         ;
                }
 
                if (c->tolerations > min_toleration/8)

@@ -98,7 +98,8 @@ static inline void video_access_by_software( SurfaceBuffer       *buffer,
 
 /** public **/
 
-DFBResult dfb_surface_create( int width, int height, int format, int policy,
+DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat format,
+                              CoreSurfacePolicy policy,
                               DFBSurfaceCapabilities caps, CoreSurface **surface )
 {
      DFBResult    ret;
@@ -119,6 +120,8 @@ DFBResult dfb_surface_create( int width, int height, int format, int policy,
           case CSP_VIDEOONLY:
                s->caps |= DSCAPS_VIDEOONLY;
                break;
+          default:
+               ;
      }
 
      dfb_surfacemanager_add_surface( dfb_gfxcard_surface_manager(), s );
@@ -148,8 +151,9 @@ DFBResult dfb_surface_create( int width, int height, int format, int policy,
      return DFB_OK;
 }
 
-DFBResult dfb_surface_create_preallocated( int width, int height, int format,
-                                           int policy, DFBSurfaceCapabilities caps,
+DFBResult dfb_surface_create_preallocated( int width, int height,
+                                           DFBSurfacePixelFormat format,
+                                           CoreSurfacePolicy policy, DFBSurfaceCapabilities caps,
                                            void *front_buffer, void *back_buffer,
                                            int front_pitch, int back_pitch,
                                            CoreSurface **surface )
@@ -214,7 +218,7 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
      }
 
      dfb_surfacemanager_lock( surface->manager );
-     
+
      skirmish_prevail( &surface->front_lock );
      skirmish_prevail( &surface->back_lock );
 
@@ -287,8 +291,8 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
           dfb_back_to_front_copy( surface, NULL );
 }
 
-DFBResult dfb_surface_soft_lock( CoreSurface *surface, unsigned int flags,
-                                 void **data, unsigned int *pitch, int front )
+DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
+                                 void **data, int *pitch, int front )
 {
      DFBResult ret;
 
@@ -452,9 +456,9 @@ void dfb_surface_destroy( CoreSurface *surface )
      skirmish_prevail( &surface->front_lock );
      skirmish_prevail( &surface->back_lock );
      dfb_surfacemanager_unlock( surface->manager );
-     
+
      dfb_surface_notify_listeners( surface, CSNF_DESTROY );
-     
+
      skirmish_destroy( &surface->front_lock );
      skirmish_destroy( &surface->back_lock );
 
