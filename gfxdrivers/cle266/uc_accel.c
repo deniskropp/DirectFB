@@ -314,7 +314,7 @@ bool uc_fill_triangle(void* drv, void* dev, DFBTriangle* tri)
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYC(fifo, tri->x1, tri->y1, ucdev->color);
+    UC_FIFO_ADD_XYC(fifo, tri->x1, tri->y1, ucdev->color3d);
     UC_FIFO_ADD_XYC(fifo, tri->x2, tri->y2, 0);
     UC_FIFO_ADD_XYC(fifo, tri->x3, tri->y3, 0);
 
