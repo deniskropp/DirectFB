@@ -53,23 +53,23 @@ DFB_INPUT_DRIVER( ps2mouse )
 
 
 /* Stolen from the linux kernel (pc_keyb.h) */
-#define PS2_SET_RES             0xE8    /* Set resolution */
-#define PS2_SET_SCALE11         0xE6    /* Set 1:1 scaling */
-#define PS2_SET_SCALE21         0xE7    /* Set 2:1 scaling */
-#define PS2_GET_SCALE           0xE9    /* Get scaling factor */
-#define PS2_SET_STREAM          0xEA    /* Set stream mode */
-#define PS2_SET_SAMPLE          0xF3    /* Set sample rate */
-#define PS2_ENABLE_DEV          0xF4    /* Enable aux device */
-#define PS2_DISABLE_DEV         0xF5    /* Disable aux device */
-#define PS2_RESET               0xFF    /* Reset aux device */
-#define PS2_ACK                 0xFA    /* Command byte ACK. */
+#define PS2_SET_RES      0xE8    /* Set resolution     */
+#define PS2_SET_SCALE11  0xE6    /* Set 1:1 scaling    */
+#define PS2_SET_SCALE21  0xE7    /* Set 2:1 scaling    */
+#define PS2_GET_SCALE    0xE9    /* Get scaling factor */
+#define PS2_SET_STREAM   0xEA    /* Set stream mode    */
+#define PS2_SET_SAMPLE   0xF3    /* Set sample rate    */
+#define PS2_ENABLE_DEV   0xF4    /* Enable aux device  */
+#define PS2_DISABLE_DEV  0xF5    /* Disable aux device */
+#define PS2_RESET        0xFF    /* Reset aux device   */
+#define PS2_ACK          0xFA    /* Command byte ACK   */
 
 /*** mouse commands ***/
 
-#define PS2_SEND_ID    0xF2
-#define PS2_ID_ERROR   -1
-#define PS2_ID_PS2     0
-#define PS2_ID_IMPS2   3
+#define PS2_SEND_ID      0xF2
+#define PS2_ID_ERROR     -1
+#define PS2_ID_PS2       0
+#define PS2_ID_IMPS2     3
 
 static char *devname[2] = { "/dev/psaux", "/dev/input/mice" };
 static char *devlist[2] = { NULL, NULL };
@@ -167,7 +167,8 @@ ps2mouseEventThread( CoreThread *thread, void *driver_data )
 
                     if ( !(packet[0] & 0x08) ) {
                          /* We've lost sync! */
-                         i--;    /* does this make sense? oh well, it will resync eventually (or will it!?)*/
+                         i--;    /* does this make sense? oh well,
+                                    it will resync eventually (will it ?)*/
                          continue;
                     }
 
@@ -175,8 +176,10 @@ ps2mouseEventThread( CoreThread *thread, void *driver_data )
                     dx = (packet[0] & 0x10) ?   packet[1]-256  :  packet[1];
                     dy = (packet[0] & 0x20) ? -(packet[2]-256) : -packet[2];
                     if (data->mouseId == PS2_ID_IMPS2) {
-                         /* Just strip off the extra buttons if present and sign extend the 4 bit value */
-                         dz = (__s8)((packet[3] & 0x80) ? packet[3] | 0xf0 : packet[3] & 0x0F);
+                         /* Just strip off the extra buttons if present
+                            and sign extend the 4 bit value */
+                         dz = (__s8)((packet[3] & 0x80) ?
+                                     packet[3] | 0xf0 : packet[3] & 0x0F);
                     }
                     else {
                          dz = 0;
@@ -188,7 +191,9 @@ ps2mouseEventThread( CoreThread *thread, void *driver_data )
 
                     if ( last_buttons != buttons ) {
                          DFBInputEvent evt;
-                         unsigned char changed_buttons = last_buttons ^ buttons;
+                         unsigned char changed_buttons;
+
+                         changed_buttons = last_buttons ^ buttons;
 
                          /* make sure the compressed motion event is dispatched
                             before any button change */
@@ -300,9 +305,12 @@ ps2Write( int fd, const unsigned char *data, size_t len, int verbose)
 static int
 init_ps2( int fd, int verbose )
 {
-     static const unsigned char basic_init[] = { PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100};
-     static const unsigned char imps2_init[] = { PS2_SET_SAMPLE, 200, PS2_SET_SAMPLE, 100, PS2_SET_SAMPLE, 80,};
-     static const unsigned char ps2_init[] = { PS2_SET_SCALE11, PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100, PS2_SET_RES, 3,};
+     static const unsigned char basic_init[] =
+     { PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100 };
+     static const unsigned char imps2_init[] =
+     { PS2_SET_SAMPLE, 200, PS2_SET_SAMPLE, 100, PS2_SET_SAMPLE, 80 };
+     static const unsigned char ps2_init[] =
+     { PS2_SET_SCALE11, PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100, PS2_SET_RES, 3 };
      int mouseId;
 
      ps2Write(fd, basic_init, sizeof (basic_init), verbose);
@@ -343,7 +351,7 @@ driver_get_available()
      if (dfb_system_type() != CORE_FBDEV)
           return 0;
 
-     for (i=0; i<sizeof(devname)/sizeof(char*); i++) {
+     for (i=0; i<sizeof(devname)/sizeof(devname[0]); i++) {
           fd = open( devname[i], O_RDWR | O_SYNC );
 
           if (fd >= 0) {
@@ -455,4 +463,3 @@ driver_close_device( void *driver_data )
      /* free private data */
      DFBFREE( data );
 }
-
