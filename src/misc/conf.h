@@ -69,10 +69,6 @@ typedef struct
      bool      kd_graphics;                       /* put terminal into graphics
                                                      mode */
 
-     bool      argb_font;                         /* whether to load fontmap
-                                                     as argb and not a8 */
-     bool      no_argb_font;                      /* force a8 font */
-
      bool      matrox_ntsc;                       /* Matrox TV standard */
      int       matrox_cable;                      /* Matrox cable type */
      bool      matrox_sgram;                      /* Use Matrox SGRAM features */
@@ -118,9 +114,6 @@ typedef struct
      bool      force_desktop;                     /* Desktop background is
                                                      the primary surface. */
 
-     bool      a1_font;                           /* whether to load fontmap
-                                                     as a1 and not a8 */
-
      bool      linux_input_ir_only;               /* Ignore non-IR devices. */
 
      struct {
@@ -133,6 +126,8 @@ typedef struct
      bool       vt;                               /* Use VT stuff at all? */
 
      bool       decorations;                      /* Enable window decorations. */
+
+     DFBSurfacePixelFormat font_format;           /* Preferred font format. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

@@ -81,8 +81,7 @@ static const char *config_usage =
 #ifdef USE_MMX
      "  [no-]mmx                       Enable mmx support\n"
 #endif
-     "  [no-]argb-font                 Load glyphs into ARGB surfaces\n"
-     "  [no-]a1-font                   Load glyphs into A1 surfaces\n"
+     "  font-format=<pixelformat>      Set the preferred font format\n"
      "  dont-catch=<num>[[,<num>]...]  Don't catch these signals\n"
      "  [no-]sighandler                Enable signal handler\n"
      "  [no-]deinit-check              Enable deinit check at exit\n"
@@ -165,6 +164,18 @@ static const FormatString format_strings[] = {
 
 #define NUM_FORMAT_STRINGS (sizeof(format_strings) / sizeof(FormatString))
 
+static const FormatString font_format_strings[] = {
+     { "A1",       DSPF_A1       },
+     { "A8",       DSPF_A8       },
+     { "ARGB",     DSPF_ARGB     },
+     { "ARGB1555", DSPF_ARGB1555 },
+     { "ARGB2554", DSPF_ARGB2554 },
+     { "ARGB4444", DSPF_ARGB4444 },
+     { "AiRGB",    DSPF_AiRGB    }
+};
+
+#define NUM_FONT_FORMAT_STRINGS (sizeof(font_format_strings) / sizeof(FormatString))
+
 /* serial mouse device names */
 #define DEV_NAME     "/dev/mouse"
 #define DEV_NAME_GPM "/dev/gpmdata"
@@ -183,6 +194,20 @@ parse_pixelformat( const char *format )
 
      format_string = bsearch( format, format_strings,
                               NUM_FORMAT_STRINGS, sizeof(FormatString),
+                              format_string_compare );
+     if (!format_string)
+          return DSPF_UNKNOWN;
+
+     return format_string->format;
+}
+
+static DFBSurfacePixelFormat
+parse_font_format( const char *format )
+{
+     FormatString *format_string;
+
+     format_string = bsearch( format, font_format_strings,
+                              NUM_FONT_FORMAT_STRINGS, sizeof(FormatString),
                               format_string_compare );
      if (!format_string)
           return DSPF_UNKNOWN;
@@ -458,6 +483,23 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+     if (strcmp (name, "font-format" ) == 0) {
+          if (value) {
+               DFBSurfacePixelFormat format;
+
+               format = parse_font_format( value );
+               if (format == DSPF_UNKNOWN) {
+                    D_ERROR("DirectFB/Config 'font-format': Could not parse format!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->font_format = format;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'font-format': No format specified!\n");
+               return DFB_INVARG;
+          }
+     } else
      if (strcmp (name, "session" ) == 0) {
           if (value) {
                int session;
@@ -565,20 +607,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-vt" ) == 0) {
           dfb_config->vt = false;
-     } else
-     if (strcmp (name, "argb-font" ) == 0) {
-          dfb_config->argb_font    = true;
-          dfb_config->no_argb_font = false;
-     } else
-     if (strcmp (name, "no-argb-font" ) == 0) {
-          dfb_config->argb_font    = false;
-          dfb_config->no_argb_font = true;
-     } else
-     if (strcmp (name, "a1-font" ) == 0) {
-          dfb_config->a1_font = true;
-     } else
-     if (strcmp (name, "no-a1-font" ) == 0) {
-          dfb_config->a1_font = false;
      } else
      if (strcmp (name, "sighandler" ) == 0) {
           direct_config->sighandler = true;

@@ -163,6 +163,7 @@ render_glyph( CoreFont      *thiz,
      for (y=0; y < info->height; y++) {
           int    i, j, n;
           __u8  *dst8  = dst;
+          __u16 *dst16 = dst;
           __u32 *dst32 = dst;
 
           switch (face->glyph->bitmap.pixel_mode) {
@@ -171,6 +172,22 @@ render_glyph( CoreFont      *thiz,
                          case DSPF_ARGB:
                               for (i=0; i<info->width; i++)
                                    dst32[i] = (src[i] << 24) | 0xFFFFFF;
+                              break;
+                         case DSPF_AiRGB:
+                              for (i=0; i<info->width; i++)
+                                   dst32[i] = ((src[i] ^ 0xFF) << 24) | 0xFFFFFF;
+                              break;
+                         case DSPF_ARGB4444:
+                              for (i=0; i<info->width; i++)
+                                   dst16[i] = (src[i] << 8) | 0xFFF;
+                              break;
+                         case DSPF_ARGB2554:
+                              for (i=0; i<info->width; i++)
+                                   dst16[i] = (src[i] << 8) | 0x3FFF;
+                              break;
+                         case DSPF_ARGB1555:
+                              for (i=0; i<info->width; i++)
+                                   dst16[i] = (src[i] << 8) | 0x7FFF;
                               break;
                          case DSPF_A8:
                               direct_memcpy( dst, src, info->width );
@@ -196,6 +213,26 @@ render_glyph( CoreFont      *thiz,
                               for (i=0; i<info->width; i++)
                                    dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
                                                 0xFF : 0x00) << 24) | 0xFFFFFF;
+                              break;
+                         case DSPF_AiRGB:
+                              for (i=0; i<info->width; i++)
+                                   dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                0x00 : 0xFF) << 24) | 0xFFFFFF;
+                              break;
+                         case DSPF_ARGB4444:
+                              for (i=0; i<info->width; i++)
+                                   dst16[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                0xF : 0x0) << 12) | 0xFFF;
+                              break;
+                         case DSPF_ARGB2554:
+                              for (i=0; i<info->width; i++)
+                                   dst16[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                0x3 : 0x0) << 14) | 0x3FFF;
+                              break;
+                         case DSPF_ARGB1555:
+                              for (i=0; i<info->width; i++)
+                                   dst16[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                0x1 : 0x0) << 15) | 0x7FFF;
                               break;
                          case DSPF_A8:
                               for (i=0; i<info->width; i++)
@@ -480,7 +517,7 @@ Construct( IDirectFBFont      *thiz,
      FT2ImplData           *data;
      bool                   disable_charmap = false;
      bool                   disable_kerning = false;
-     DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
+     bool                   load_mono = false;
 
      D_HEAVYDEBUG( "DirectFB/FontFT2: "
                     "Construct font from file `%s' (index %d) at pixel size %d x %d.\n",
@@ -516,8 +553,8 @@ Construct( IDirectFBFont      *thiz,
           return DFB_FAILURE;
      }
 
-     if (dfb_config->a1_font)
-          format = DSPF_A1;
+     if (dfb_config->font_format == DSPF_A1 || dfb_config->font_format == DSPF_ARGB1555)
+          load_mono = true;
 
      if (desc->flags & DFDESC_ATTRIBUTES) {
           if (desc->attributes & DFFA_NOHINTING)
@@ -527,10 +564,10 @@ Construct( IDirectFBFont      *thiz,
           if (desc->attributes & DFFA_NOKERNING)
                disable_kerning = true;
           if (desc->attributes & DFFA_MONOCHROME)
-               format = DSPF_A1;
+               load_mono = true;
      }
 
-     if (format == DSPF_A1) {
+     if (load_mono) {
 #ifdef FT_LOAD_TARGET_MONO  /* added in FreeType-2.1.3 */
           load_flags |= FT_LOAD_TARGET_MONO;
 #else
@@ -594,11 +631,12 @@ Construct( IDirectFBFont      *thiz,
      font = dfb_font_create( core );
 
      D_ASSERT( font->pixel_format == DSPF_ARGB ||
-                 font->pixel_format == DSPF_A8   ||
-                 font->pixel_format == DSPF_A1 );
-
-     if (format != DSPF_UNKNOWN)
-          font->pixel_format = format;
+               font->pixel_format == DSPF_AiRGB ||
+               font->pixel_format == DSPF_ARGB4444 ||
+               font->pixel_format == DSPF_ARGB2554 ||
+               font->pixel_format == DSPF_ARGB1555 ||
+               font->pixel_format == DSPF_A8 ||
+               font->pixel_format == DSPF_A1 );
 
      font->ascender   = face->size->metrics.ascender >> 6;
      font->descender  = face->size->metrics.descender >> 6;

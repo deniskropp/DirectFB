@@ -949,7 +949,8 @@ driver_init_driver( GraphicsDevice      *device,
 
      switch (mdrv->accelerator) {
           case FB_ACCEL_ATI_MACH64GT:
-               dfb_config->argb_font = true;
+               if (!dfb_config->font_format)
+                    dfb_config->font_format = DSPF_ARGB;
                funcs->CheckState        = mach64GTCheckState;
                funcs->FlushTextureCache = mach64GTFlushTextureCache;
           case FB_ACCEL_ATI_MACH64VT:

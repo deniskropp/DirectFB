@@ -1473,7 +1473,8 @@ driver_init_driver( GraphicsDevice      *device,
                break;
 
           case FB_ACCEL_MATROX_MGAG200:
-               dfb_config->argb_font = true;
+               if (!dfb_config->font_format)
+                    dfb_config->font_format = DSPF_ARGB;
                funcs->CheckState = matroxG200CheckState;
                break;
 

@@ -62,8 +62,7 @@ dfb_font_create( CoreDFB *core )
      direct_util_recursive_pthread_mutex_init( &font->lock );
 
      /* the proposed pixel_format, may be changed by the font provider */
-     font->pixel_format = (dfb_config->argb_font &&
-                           !dfb_config->no_argb_font) ? DSPF_ARGB : DSPF_A8;
+     font->pixel_format = dfb_config->font_format ? : DSPF_A8;
 
      /* the state used to blit the glyphs, may be changed by the font
         provider */
