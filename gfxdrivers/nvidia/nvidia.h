@@ -435,7 +435,7 @@ typedef struct
     __u16 Nop;
 #endif
     __u32 reserved01[0x0BB];
-    __u32 Format;
+    __u32 SetColorFormat;
     __u32 Pitch;
     __u32 SourceOffset;
     __u32 DestOffset;
@@ -475,13 +475,18 @@ typedef struct
 } NVidiaInstances;
 
 
-typedef struct {	
+typedef struct {
      CoreSurface           *destination;
      CoreSurface           *source;
      
      __u32                  color;
      __u32                  drawfx;
      __u32                  blitfx;
+
+     __u32                  supported_drawingflags;
+     __u32                  supported_drawingfunctions;
+     __u32                  supported_blittingflags;
+     __u32                  supported_blittingfunctions;
 
      /* for fifo/performance monitoring */
      unsigned int           fifo_space;
@@ -492,8 +497,19 @@ typedef struct {
      unsigned int           fifo_cache_hits;
 } NVidiaDeviceData;
 
+
+typedef enum {
+     NV_ARCH04 = 0x04,
+     NV_ARCH05 = 0x05,
+     NV_ARCH10 = 0x10,
+     NV_ARCH11 = 0x11,
+     NV_ARCH20 = 0x20
+} NVArch;
+
 typedef struct {
      GraphicsDevice                *device;
+     
+     NVArch                         arch;
      
      volatile __u8                 *mmio_base;
      volatile __u32                *PVIDEO;
