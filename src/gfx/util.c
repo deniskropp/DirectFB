@@ -105,6 +105,8 @@ void dfb_back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
      surface->front_buffer = surface->back_buffer;
      surface->back_buffer = tmp;
 
+     dfb_surfacemanager_unlock( surface->manager );
+     
      if (rect) {
           dfb_gfxcard_blit( rect, rect->x, rect->y, &btf_state );
      }
@@ -120,8 +122,6 @@ void dfb_back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
      skirmish_dismiss( &surface->front_lock );
      skirmish_dismiss( &surface->back_lock );
      
-     dfb_surfacemanager_unlock( surface->manager );
-
      pthread_mutex_unlock( &btf_lock );
 }
 

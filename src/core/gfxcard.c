@@ -329,12 +329,14 @@ dfb_gfxcard_lock( bool wait, bool sync,
           GraphicsLockFlags     flags  = shared->lock_flags;
 
           if (wait) {
-               if (fusion_property_purchase( &shared->lock ))
+               if (fusion_property_purchase( &shared->lock )) {
                     return DFB_FAILURE;
+               }
           }
           else {
-               if (fusion_property_lease( &shared->lock ))
+               if (fusion_property_lease( &shared->lock )) {
                     return DFB_FAILURE;
+               }
           }
 
           if (sync)
@@ -362,6 +364,17 @@ void
 dfb_gfxcard_unlock()
 {
      if (card && card->shared) {
+          GraphicsDeviceShared *shared = card->shared;
+          GraphicsLockFlags     flags  = shared->lock_flags;
+          
+          if (flags & GLF_INVALIDATE_STATE)
+               shared->state = NULL;
+          
+          if ((flags & GLF_ENGINE_RESET) && card->funcs.EngineReset)
+               card->funcs.EngineReset( card->driver_data, card->device_data );
+
+          shared->lock_flags = 0;
+          
           fusion_property_cede( &card->shared->lock );
      }
 }
@@ -525,15 +538,15 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * Make sure that state setting with subsequent command execution
       * isn't done by two processes simultaneously.
       *
-      * This will fail if the hardware is locked by another party with
-      * the first argument being true.
+      * This will timeout if the hardware is locked by another party with
+      * the first argument being true (e.g. DRI).
       */
      if (dfb_gfxcard_lock( false, false, false, false )) {
           dfb_surface_unlock( state->destination, false );
-          
+
           if (state->source_locked)
                dfb_surface_unlock( state->source, true );
-          
+
           return false;
      }
 
