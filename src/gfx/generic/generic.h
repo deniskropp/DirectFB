@@ -135,7 +135,7 @@ struct _GenefxState {
 void gGetDriverInfo( GraphicsDriverInfo *info );
 void gGetDeviceInfo( GraphicsDeviceInfo *info );
 
-bool gAquire  ( CardState *state, DFBAccelerationMask accel );
+bool gAcquire  ( CardState *state, DFBAccelerationMask accel );
 void gRelease ( CardState *state );
 
 void gFillRectangle ( CardState *state, DFBRectangle *rect );

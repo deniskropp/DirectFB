@@ -3468,7 +3468,7 @@ void gGetDeviceInfo( GraphicsDeviceInfo *info )
                           DSBLIT_SRC_PREMULTIPLY |     \
                           DSBLIT_DEMULTIPLY)
 
-bool gAquire( CardState *state, DFBAccelerationMask accel )
+bool gAcquire( CardState *state, DFBAccelerationMask accel )
 {
      GenefxState *gfxs;
      GenefxFunc  *funcs;
