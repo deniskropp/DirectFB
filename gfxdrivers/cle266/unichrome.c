@@ -313,9 +313,11 @@ static void uc_after_set_var(void* drv, void* dev)
 {
     UcDriverData* ucdrv = (UcDriverData*) drv;
 
-    // VIA-driver interoperability - clear bit 6 in E-VGA reg 0x1a
     VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
+    // Clear bit 6 in extended VGA register 0x1a to prevent system lockup.
     VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) & 0xbf);
+    // Set bit 2, it might make a difference.
+    VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) | 0x4);
 }
 
 /** Wait until the engine is idle. */
@@ -395,13 +397,17 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
 
     ucdrv->file = -1;
     fd = open(UNICHROME_DEVICE, O_RDWR | O_SYNC, 0);
-    if (fd < 0) return DFB_IO;
+    if (fd < 0) {
+        ERRORMSG("Could not access %s. "
+            "Is the cle266vgaio module installed?\n", UNICHROME_DEVICE);
+        return DFB_IO;
+    }
     ucdrv->file = fd;
 
     ucdrv->hwregs = mmap(NULL, 0x1000000,
         PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if ((int) ucdrv->hwregs == -1)
-         return DFB_IO;
+        return DFB_IO;
 
     uc_after_set_var(driver_data, device_data);
 
