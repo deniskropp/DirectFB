@@ -1845,6 +1845,177 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_lut8
 };
 
+/******************************** Sacc_toK_Aop_PFI ****************************/
+
+static void Sacc_toK_Aop_argb1555()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u16       *D = (__u16*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000) && ((*D & 0x7fff) == (__u16)Dkey)) {
+               *D = PIXEL_ARGB1555( (S->a & 0xFF00) ? 0xFF : S->a,
+                                    (S->r & 0xFF00) ? 0xFF : S->r,
+                                    (S->g & 0xFF00) ? 0xFF : S->g,
+                                    (S->b & 0xFF00) ? 0xFF : S->b );
+          }
+
+          D++;
+          S++;
+     }
+}
+
+static void Sacc_toK_Aop_rgb16()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u16       *D = (__u16*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000) && (*D == (__u16)Dkey)) {
+               *D = PIXEL_RGB16( (S->r & 0xFF00) ? 0xFF : S->r,
+                                 (S->g & 0xFF00) ? 0xFF : S->g,
+                                 (S->b & 0xFF00) ? 0xFF : S->b );
+          }
+
+          D++;
+          S++;
+     }
+}
+
+static void Sacc_toK_Aop_rgb24()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u8        *D = (__u8*)Aop;
+
+     /* FIXME: implement keying */
+     while (w--) {
+          if (!(S->a & 0xF000)) {
+               *D++ = (S->b & 0xFF00) ? 0xFF : S->b;
+               *D++ = (S->g & 0xFF00) ? 0xFF : S->g;
+               *D++ = (S->r & 0xFF00) ? 0xFF : S->r;
+          }
+          else
+               D += 3;
+
+          S++;
+     }
+}
+
+static void Sacc_toK_Aop_rgb32()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u32       *D = (__u32*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000) && ((*D & 0xffffff) == Dkey)) {
+               *D = PIXEL_RGB32( (S->r & 0xFF00) ? 0xFF : S->r,
+                                 (S->g & 0xFF00) ? 0xFF : S->g,
+                                 (S->b & 0xFF00) ? 0xFF : S->b );
+          }
+
+          D++;
+          S++;
+     }
+}
+
+static void Sacc_toK_Aop_argb()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u32       *D = (__u32*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000) && ((*D & 0xffffff) == Dkey)) {
+               *D = PIXEL_ARGB( (S->a & 0xFF00) ? 0xFF : S->a,
+                                (S->r & 0xFF00) ? 0xFF : S->r,
+                                (S->g & 0xFF00) ? 0xFF : S->g,
+                                (S->b & 0xFF00) ? 0xFF : S->b );
+          }
+
+          D++;
+          S++;
+     }
+}
+
+static void Sacc_toK_Aop_a8()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u8        *D = (__u8*)Aop;
+
+     /* FIXME: do all or do none? */
+     while (w--) {
+          if (!(S->a & 0xF000))
+               *D = (S->a & 0xFF00) ? 0xFF : S->a;
+
+          D++;
+          S++;
+     }
+}
+
+#ifdef SUPPORT_RGB332
+static void Sacc_toK_Aop_rgb332()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u8        *D = (__u8*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000) && (*D == (__u8)Dkey)) {
+               *D = PIXEL_RGB332( (S->r & 0xFF00) ? 0xFF : S->r,
+                                  (S->g & 0xFF00) ? 0xFF : S->g,
+                                  (S->b & 0xFF00) ? 0xFF : S->b );
+          }
+
+          D++;
+          S++;
+     }
+}
+#endif
+
+static void Sacc_toK_Aop_lut8()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u8        *D = (__u8*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000) && (*D == (__u8)Dkey)) {
+               *D = dfb_palette_search( Alut,
+                                        (S->r & 0xFF00) ? 0xFF : S->r,
+                                        (S->g & 0xFF00) ? 0xFF : S->g,
+                                        (S->b & 0xFF00) ? 0xFF : S->b,
+                                        (S->a & 0xFF00) ? 0xFF : S->a );
+          }
+
+          D++;
+          S++;
+     }
+}
+
+GFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+     Sacc_toK_Aop_argb1555,
+     Sacc_toK_Aop_rgb16,
+     Sacc_toK_Aop_rgb24,
+     Sacc_toK_Aop_rgb32,
+     Sacc_toK_Aop_argb,
+     Sacc_toK_Aop_a8,
+     NULL,
+#ifdef SUPPORT_RGB332
+     Sacc_toK_Aop_rgb332,
+#else
+     NULL,
+#endif
+     NULL,
+     NULL,
+     NULL,
+     Sacc_toK_Aop_lut8
+};
+
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
 
 #define SET_ALPHA_PIXEL_DUFFS_DEVICE(D, S, w, format) \
@@ -2765,12 +2936,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     if (DFB_PIXELFORMAT_IS_INDEXED(dst_format))
                          *funcs++ = Slut_is_Alut;
                     *funcs++ = Dacc_is_Aacc;
-                    if (state->drawingflags & DSDRAW_DST_COLORKEY) {
-                         Skey = state->dst_colorkey;
-                         *funcs++ = Sop_PFI_Kto_Dacc[dst_pfi];
-                    }
-                    else
-                         *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
+                    *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
 
                     /* premultiply destination */
                     if (state->drawingflags & DSDRAW_DST_PREMULTIPLY)
@@ -2874,7 +3040,12 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     
                     /* write to destination */
                     *funcs++ = Sacc_is_Aacc;
-                    *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
+                    if (state->drawingflags & DSDRAW_DST_COLORKEY) {
+                         Dkey = state->dst_colorkey;
+                         *funcs++ = Sacc_toK_Aop_PFI[dst_pfi];
+                    }
+                    else
+                         *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
                }
                else {
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
