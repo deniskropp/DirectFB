@@ -162,7 +162,7 @@ dfb_layer_context_create( CoreLayer         *layer,
 
      /* Initialize the primary region's configuration. */
      init_region_config( context, &context->primary.config );
-     
+
      /* Change global reaction lock. */
      fusion_object_set_lock( &context->object, &context->lock );
 
@@ -372,8 +372,8 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
                                                     &context->primary.config,
                                                     CLRCF_ALL );
           if (ret) {
-               D_ERROR( "DirectFB/core/layers: "
-                         "Could not initialize primary region config!\n" );
+               D_DERROR( ret, "DirectFB/core/layers: "
+                         "Could not set primary region config!\n" );
                dfb_layer_region_unref( region );
                dfb_layer_context_unlock( context );
                return ret;
@@ -386,8 +386,8 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
           ret = dfb_layer_context_set_configuration( context,
                                                      &context->config );
           if (ret) {
-               D_ERROR( "DirectFB/core/layers: "
-                         "Could not apply layer configuration!\n" );
+               D_DERROR( ret, "DirectFB/core/layers: "
+                         "Could not set layer context config!\n" );
                context->primary.region = NULL;
                dfb_layer_region_unref( region );
                dfb_layer_context_unlock( context );
