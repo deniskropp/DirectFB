@@ -1037,8 +1037,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 {
      IDirectFBSurface_data *data;
 
-     data = (IDirectFBSurface_data*)malloc( sizeof(IDirectFBSurface_data) );
-     memset( data, 0, sizeof(IDirectFBSurface_data) );
+     data = (IDirectFBSurface_data*) 
+          calloc( 1, sizeof(IDirectFBSurface_data) );
+
      thiz->priv = data;
 
      data->ref = 1;

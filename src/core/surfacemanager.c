@@ -52,8 +52,7 @@ static inline Chunk* split_chunk( Chunk *c, int length )
      if (c->length == length)          /* does not need be splitted */
           return c;
 
-     newchunk = (Chunk*)malloc( sizeof(Chunk) );
-     memset( newchunk, 0, sizeof(Chunk) );
+     newchunk = (Chunk*) calloc( 1, sizeof(Chunk) );
 
      /* calculate offsets and lengths of resulting chunks */
      newchunk->offset = c->offset + c->length - length;
@@ -167,8 +166,7 @@ DFBResult surfacemanager_init_heap()
           return DFB_BUG;
      }
 
-     chunks = (Chunk*)malloc( sizeof(Chunk) );
-     memset( chunks, 0, sizeof(Chunk) );
+     chunks = (Chunk*) calloc( 1, sizeof(Chunk) );
 
      chunks->offset = card->heap_offset;
 

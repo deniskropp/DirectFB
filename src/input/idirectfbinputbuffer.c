@@ -102,10 +102,9 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
 {
      IDirectFBInputBuffer_data *data;
 
-     data = (IDirectFBInputBuffer_data*)malloc( 
-                                        sizeof(IDirectFBInputBuffer_data) );
-     
-     memset( data, 0, sizeof(IDirectFBInputBuffer_data) );
+     data = (IDirectFBInputBuffer_data*)
+         calloc( 1, sizeof(IDirectFBInputBuffer_data) );
+
      thiz->priv = data;
      
      data->ref = 1;
@@ -259,11 +258,9 @@ void IDirectFBInputBuffer_Receive( DFBInputEvent *evt, void *ctx )
      IDirectFBInputBuffer_item     *item;
      IDirectFBInputBuffer_data     *data = (IDirectFBInputBuffer_data*)ctx;
      
-     item = (IDirectFBInputBuffer_item*)malloc( 
-                                        sizeof(IDirectFBInputBuffer_item) );
+     item = (IDirectFBInputBuffer_item*)
+          calloc( 1, sizeof(IDirectFBInputBuffer_item) );
 
-     memset( item, 0, sizeof(IDirectFBInputBuffer_item) );
-     
      item->evt = *evt;
 
      pthread_mutex_lock( &data->events_mutex );

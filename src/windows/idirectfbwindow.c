@@ -373,8 +373,8 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      DEBUGMSG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
                 window->x, window->y, window->width, window->height );
 
-     data = (IDirectFBWindow_data*)malloc( sizeof(IDirectFBWindow_data) );
-     memset( data, 0, sizeof(IDirectFBWindow_data) );
+     data = (IDirectFBWindow_data*) calloc( 1, sizeof(IDirectFBWindow_data) );
+
      thiz->priv = data;
 
      data->ref = 1;

@@ -244,10 +244,9 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
 {
      IDirectFBInputDevice_data *data;
 
-     data = (IDirectFBInputDevice_data*)malloc( sizeof(
-                                                IDirectFBInputDevice_data) );
-                                                
-     memset( data, 0, sizeof(IDirectFBInputDevice_data) );
+     data = (IDirectFBInputDevice_data*)
+          calloc( 1, sizeof(IDirectFBInputDevice_data) );
+
      thiz->priv = data;
 
      data->ref = 1;

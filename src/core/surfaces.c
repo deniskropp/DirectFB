@@ -53,8 +53,7 @@ DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
 {
      SurfaceBuffer *b;
 
-     b = malloc( sizeof(SurfaceBuffer) );
-     memset( b, 0, sizeof(SurfaceBuffer) );
+     b = (SurfaceBuffer *) calloc( 1, sizeof(SurfaceBuffer) );
 
      b->policy = policy;
      b->surface = surface;
@@ -137,8 +136,7 @@ DFBResult surface_create( int width, int height, int format, int policy,
           return DFB_BUG;
      }
 
-     s = (CoreSurface*)malloc( sizeof(CoreSurface) );
-     memset( s, 0, sizeof(CoreSurface) );
+     s = (CoreSurface*) calloc( 1, sizeof(CoreSurface) );
 
      s->width = width;
      s->height = height;

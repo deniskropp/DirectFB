@@ -242,8 +242,8 @@ DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font )
 {
      IDirectFBFont_data *data;
 
-     data = (IDirectFBFont_data*)malloc( sizeof(IDirectFBFont_data) );
-     memset( data, 0, sizeof(IDirectFBFont_data) );
+     data = (IDirectFBFont_data*) calloc( 1, sizeof(IDirectFBFont_data) );
+
      thiz->priv = data;
 
      data->ref = 1;

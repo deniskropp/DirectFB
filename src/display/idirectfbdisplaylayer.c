@@ -417,9 +417,8 @@ DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      IDirectFBDisplayLayer_data *data;
 
      data = (IDirectFBDisplayLayer_data*)
-            malloc( sizeof(IDirectFBDisplayLayer_data) );
+          calloc( 1, sizeof(IDirectFBDisplayLayer_data) );
 
-     memset( data, 0, sizeof(IDirectFBDisplayLayer_data) );
      thiz->priv = data;
 
      data->ref = 1;

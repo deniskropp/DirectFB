@@ -95,8 +95,7 @@ DFBResult input_init_devices()
           for (n=0; n<nr_devices; n++) {
                InputDevice *device;
 
-               device = (InputDevice*)malloc( sizeof(InputDevice) );
-               memset( device, 0, sizeof(InputDevice) );
+               device = (InputDevice*) calloc( 1, sizeof(InputDevice) );
 
                device->number = n;
 
@@ -197,8 +196,8 @@ DFBResult input_add_listener( InputDevice *device,
 {
      InputDeviceListener *listener;
 
-     listener = (InputDeviceListener*)malloc( sizeof(InputDeviceListener) );
-     memset( listener, 0, sizeof(InputDeviceListener) );
+     listener = (InputDeviceListener*) 
+          calloc( 1, sizeof(InputDeviceListener) );
 
      listener->notify = notify;
      listener->ctx = ctx;     

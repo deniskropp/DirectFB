@@ -125,8 +125,7 @@ DFBResult gfxcard_init()
           return DFB_BUG;
      }
 
-     card = (GfxCard*)malloc( sizeof(GfxCard) );
-     memset( card, 0, sizeof(GfxCard) );
+     card = (GfxCard*) calloc( 1, sizeof(GfxCard) );
 
      sprintf( card->info.driver_name, "Generic" );
 

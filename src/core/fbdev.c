@@ -111,8 +111,7 @@ DFBResult fbdev_open()
           return DFB_BUG;
      }
 
-     display = (FBDev*)malloc( sizeof(FBDev) );
-     memset( display, 0, sizeof(FBDev) );
+     display = (FBDev*) calloc( 1, sizeof(FBDev) );
 
      display->fd = open( "/dev/fb0", O_RDWR );
      if (display->fd < 0) {
@@ -169,8 +168,7 @@ DFBResult fbdev_open()
 
      if (!display->modes) {
           /* try to use current mode*/
-          display->modes = (VideoMode*)malloc( sizeof(VideoMode) );
-          memset( display->modes, 0, sizeof(VideoMode) );
+          display->modes = (VideoMode*) calloc( 1, sizeof(VideoMode) );
      
           display->modes->xres = display->orig_var.xres;
           display->modes->yres = display->orig_var.yres;
@@ -663,8 +661,7 @@ DFBResult primarylayer_init()
      CoreSurface *surface;
      DFBResult err;
 
-     DisplayLayer *layer = (DisplayLayer*)malloc( sizeof(DisplayLayer) );
-     memset( layer, 0, sizeof(DisplayLayer) );
+     DisplayLayer *layer = (DisplayLayer*) calloc( 1, sizeof(DisplayLayer) );
 
      layer->id = DLID_PRIMARY;
      layer->caps = 0;
@@ -690,15 +687,14 @@ DFBResult primarylayer_init()
      layer->FlipBuffers = primaryFlipBuffers;
 
      /* allocate the surface */
-     surface = malloc( sizeof(CoreSurface) );
-     memset( surface, 0, sizeof(CoreSurface) );
+     surface = (CoreSurface *) calloc ( 1, sizeof(CoreSurface) );
 
      pthread_mutex_init( &surface->listeners_mutex, NULL );
      pthread_mutex_init( &surface->front_lock, NULL );
      pthread_mutex_init( &surface->back_lock, NULL );
 
-     surface->front_buffer = malloc( sizeof(SurfaceBuffer) );
-     memset( surface->front_buffer, 0, sizeof(SurfaceBuffer) );
+     surface->front_buffer = (SurfaceBuffer *) 
+          calloc( 1, sizeof(SurfaceBuffer) );
 
      surface->back_buffer = surface->front_buffer;
 

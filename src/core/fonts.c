@@ -61,11 +61,9 @@ DFBResult fonts_get_glyph_data (CoreFontData    *font,
      data = tree_lookup (font->glyph_infos, (void *)glyph);
 
      if (!data) {
-       data = malloc (sizeof (CoreGlyphData));
+       data = (CoreGlyphData *) calloc (1, sizeof (CoreGlyphData));
        if (!data)
          return DFB_NOSYSTEMMEMORY;
-       
-       memset (data, 0, sizeof (CoreGlyphData));
 
        if (font->GetGlyphInfo && 
             (* font->GetGlyphInfo) (font, glyph, data) == DFB_OK &&

@@ -57,8 +57,7 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
      InputDevice *inputdevice = inputdevices;
      CoreWindowStack *stack;
 
-     stack = malloc( sizeof(CoreWindowStack) );
-     memset( stack, 0, sizeof(CoreWindowStack) );
+     stack = (CoreWindowStack*) calloc ( 1, sizeof(CoreWindowStack) );
 
      stack->layer = layer;
 
@@ -232,8 +231,7 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
      int i;
      CoreWindow* window;
 
-     window = (CoreWindow*)malloc( sizeof(CoreWindow) );
-     memset( window, 0, sizeof(CoreWindow) );
+     window = (CoreWindow*) calloc( 1, sizeof(CoreWindow) );
 
      window->x = x;
      window->y = y;
@@ -687,8 +685,7 @@ inline void window_append_event( CoreWindow *window, DFBWindowEvent *event )
           return;
      }
 
-     evt = (CoreWindowEvent*)malloc( sizeof(CoreWindowEvent) );
-     memset( evt, 0, sizeof(CoreWindowEvent) );
+     evt = (CoreWindowEvent*) calloc( 1, sizeof(CoreWindowEvent) );
 
      evt->event = *event;
 
