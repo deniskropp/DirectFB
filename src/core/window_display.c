@@ -130,10 +130,11 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
 void
 dfb_windowstack_sync_buffers( CoreWindowStack *stack )
 {
-     CoreLayerRegion *region;
-     CoreSurface     *surface;
+     CoreSurface *surface;
 
      DFB_ASSERT( stack != NULL );
+     DFB_ASSERT( stack->region != NULL );
+     DFB_ASSERT( stack->region->surface != NULL );
 
      if (stack->hw_mode)
           return;
@@ -142,19 +143,10 @@ dfb_windowstack_sync_buffers( CoreWindowStack *stack )
      if (dfb_windowstack_lock( stack ))
           return;
 
-     if (dfb_layer_context_get_primary_region( stack->context, &region )) {
-          dfb_windowstack_unlock( stack );
-          return;
-     }
-
-     if (dfb_layer_region_get_surface( region, &surface ) == DFB_OK) {
-          if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE))
-               dfb_gfx_copy( surface, surface, NULL );
-
-          dfb_surface_unref( surface );
-     }
-
-     dfb_layer_region_unref( region );
+     surface = stack->region->surface;
+          
+     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE))
+          dfb_gfx_copy( surface, surface, NULL );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -495,22 +487,19 @@ repaint_stack( CoreWindowStack     *stack,
                DFBRegion           *update,
                DFBSurfaceFlipFlags  flags )
 {
-     CoreLayer       *layer = dfb_layer_at( stack->context->layer_id );
-     CardState       *state = &layer->state;
-     CoreLayerRegion *region;
+     CoreLayer       *layer  = dfb_layer_at( stack->context->layer_id );
+     CardState       *state  = &layer->state;
+     CoreLayerRegion *region = stack->region;
 
-     if ((! stack->active) ||
-         (! dfb_region_intersect( update, 0, 0,
-                                  stack->width - 1, stack->height - 1 )) ||
-         (dfb_layer_context_get_primary_region( stack->context, &region ) != DFB_OK))
+     if (!stack->active ||
+         !dfb_region_intersect( update, 0, 0,
+                                stack->width - 1, stack->height - 1 ))
      {
           return;
      }
 
-     if (!region->surface) {
-          dfb_layer_region_unref( region );
+     if (!region->surface)
           return;
-     }
 
      state->destination = region->surface;
      state->clip        = *update;
@@ -520,8 +509,6 @@ repaint_stack( CoreWindowStack     *stack,
                     update->x1, update->y1, update->x2, update->y2 );
 
      dfb_layer_region_flip_update( region, update, flags );
-
-     dfb_layer_region_unref( region );
 
      state->destination = NULL;
 }

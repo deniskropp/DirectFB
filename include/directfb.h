@@ -3096,6 +3096,17 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
      DFBResult (*WakeUp) (
           IDirectFBEventBuffer     *thiz
      );
+
+
+   /** Special handling **/
+
+     /*
+      * Create a file descriptor for reading events.
+      */
+     DFBResult (*CreateFileDescriptor) (
+          IDirectFBEventBuffer     *thiz,
+          int                      *fd
+     );
 )
 
 /*

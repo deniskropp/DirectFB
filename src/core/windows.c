@@ -173,14 +173,13 @@ dfb_window_create( CoreWindowStack        *stack,
                    CorePalette            *palette,
                    CoreWindow            **ret_window )
 {
-     DFBResult               ret;
-     CoreSurface            *surface;
-     CoreSurfacePolicy       surface_policy = CSP_SYSTEMONLY;
-     CoreLayer              *layer;
-     CoreLayerContext       *context;
-     CoreWindow             *window;
-     CardCapabilities        card_caps;
-     CoreLayerRegion        *primary_region;
+     DFBResult          ret;
+     CoreSurface       *surface;
+     CoreSurfacePolicy  surface_policy = CSP_SYSTEMONLY;
+     CoreLayer         *layer;
+     CoreLayerContext  *context;
+     CoreWindow        *window;
+     CardCapabilities   card_caps;
 
      DFB_ASSERT( stack != NULL );
      DFB_ASSERT( stack->context != NULL );
@@ -264,11 +263,6 @@ dfb_window_create( CoreWindowStack        *stack,
      if (caps & DWCAPS_DOUBLEBUFFER)
           surface_caps |= DSCAPS_FLIPPING;
 
-     /* Get the primary region of the context. */
-     ret = dfb_layer_context_get_primary_region( context, &primary_region );
-     if (ret)
-          return ret;
-
      /* Create the window object. */
      window = dfb_core_create_window( layer->core );
 
@@ -290,9 +284,8 @@ dfb_window_create( CoreWindowStack        *stack,
           window->options = DWOP_ALPHACHANNEL;
 
      /* Link the primary region into the window structure. */
-     if (dfb_layer_region_link( &window->primary_region, primary_region )) {
+     if (dfb_layer_region_link( &window->primary_region, stack->region )) {
           fusion_object_destroy( &window->object );
-          dfb_layer_region_unref( primary_region );
           return DFB_FUSION;
      }
 
@@ -305,7 +298,6 @@ dfb_window_create( CoreWindowStack        *stack,
           if (ret) {
                dfb_layer_region_unlink( &window->primary_region );
                fusion_object_destroy( &window->object );
-               dfb_layer_region_unref( primary_region );
                return ret;
           }
 
@@ -326,8 +318,6 @@ dfb_window_create( CoreWindowStack        *stack,
      }
 
      fusion_object_activate( &window->object );
-
-     dfb_layer_region_unref( primary_region );
 
      *ret_window = window;
 

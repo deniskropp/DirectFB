@@ -120,6 +120,9 @@ dfb_windowstack_create( CoreLayerContext *context )
      /* Store context which we belong to. */
      stack->context = context;
 
+     /* Store the context's primary region. */
+     stack->region = context->primary;
+
      /* Set default acceleration */
      stack->cursor.numerator   = 2;
      stack->cursor.denominator = 1;
@@ -799,19 +802,11 @@ dfb_windowstack_switch_focus( CoreWindowStack *stack, CoreWindow *to )
 
      if (to) {
           if (to->surface && to->surface->palette && !stack->hw_mode) {
-               CoreLayerRegion  *region;
-               CoreLayerContext *context = stack->context;
+               CoreLayerRegion *region  = stack->region;
+               CoreSurface     *surface = region->surface;
 
-               if (dfb_layer_context_get_primary_region( context,
-                                                         &region ) == DFB_OK)
-               {
-                    CoreSurface *surface = region->surface;
-
-                    if (surface && DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
-                         dfb_surface_set_palette (surface, to->surface->palette);
-
-                    dfb_layer_region_unref( region );
-               }
+               if (surface && DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+                    dfb_surface_set_palette (surface, to->surface->palette);
           }
 
           evt.type = DWET_GOTFOCUS;

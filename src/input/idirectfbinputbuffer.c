@@ -95,6 +95,8 @@ typedef struct {
 
      pthread_cond_t                wait_condition;/* condition used for idle
                                                      wait in WaitForEvent() */
+
+     int                           pipe_fds[2];
 } IDirectFBEventBuffer_data;
 
 /*
@@ -144,6 +146,12 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
 
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
+
+     if (data->pipe_fds[0])
+          close( data->pipe_fds[0] );
+
+     if (data->pipe_fds[1])
+          close( data->pipe_fds[1] );
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -373,6 +381,26 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
+                                           int                  *fd )
+{
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     if (!fd)
+          return DFB_INVARG;
+     
+     if (data->pipe_fds[0])
+          return DFB_BUSY;
+
+     if (pipe( data->pipe_fds ))
+          return errno2dfb( errno );
+
+     *fd = data->pipe_fds[0];
+
+     return DFB_OK;
+}
+
 DFBResult
 IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
                                 EventBufferFilterCallback  filter,
@@ -397,6 +425,7 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
      thiz->HasEvent                = IDirectFBEventBuffer_HasEvent;
      thiz->PostEvent               = IDirectFBEventBuffer_PostEvent;
      thiz->WakeUp                  = IDirectFBEventBuffer_WakeUp;
+     thiz->CreateFileDescriptor    = IDirectFBEventBuffer_CreateFileDescriptor;
 
      return DFB_OK;
 }
@@ -464,6 +493,9 @@ static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
      }
 
      pthread_cond_broadcast( &data->wait_condition );
+
+     if (data->pipe_fds[1])
+          write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
 
      pthread_mutex_unlock( &data->events_mutex );
 }

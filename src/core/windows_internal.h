@@ -90,6 +90,7 @@ struct __DFB_CoreWindow {
  */
 struct __DFB_CoreWindowStack {
      CoreLayerContext   *context;
+     CoreLayerRegion    *region;
 
      bool                active;          /* true while context is active */
 
