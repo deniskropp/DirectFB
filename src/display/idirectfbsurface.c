@@ -1246,7 +1246,6 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
      CoreSurface             *surface      = data->surface;
 
      if (notification->flags & CSNF_DESTROY) {
-          thiz->Unlock( thiz );
           data->surface = NULL;
           return RS_REMOVE;
      }

@@ -444,8 +444,11 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
 
 void dfb_surface_destroy( CoreSurface *surface )
 {
+     skirmish_prevail( &surface->front_lock );
+     skirmish_prevail( &surface->back_lock );
+     
      dfb_surface_notify_listeners( surface, CSNF_DESTROY );
-
+     
      skirmish_destroy( &surface->front_lock );
      skirmish_destroy( &surface->back_lock );
 
@@ -567,7 +570,8 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           if (buffer->system.pitch & 3)
                buffer->system.pitch += 4 - (buffer->system.pitch & 3);
 
-          buffer->system.addr = shrealloc( buffer->system.addr,
+          shfree( buffer->system.addr );
+          buffer->system.addr = shmalloc(
                DFB_PLANE_MULTIPLY(surface->format,
                                   surface->height * buffer->system.pitch) );
 

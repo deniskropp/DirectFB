@@ -200,6 +200,8 @@ dfb_window_remove( CoreWindow *window )
                           window->x + window->width - 1,
                           window->y + window->height - 1 };
 
+     DFB_ASSERT( window->stack != NULL );
+
      skirmish_prevail( &stack->update );
 
      if (stack->entered_window == window)
@@ -234,6 +236,8 @@ dfb_window_remove( CoreWindow *window )
                stack->windows = NULL;
           }
      }
+
+     window->stack = NULL;
 
      skirmish_dismiss( &stack->update );
 
@@ -1013,6 +1017,13 @@ stack_inputdevice_react( const void *msg_data,
                                    DFBWindowEvent evt;
                                    evt.type = DWET_CLOSE;
                                    dfb_window_dispatch( stack->entered_window, &evt );
+                              }
+                              return RS_OK;
+                         case DIKC_D:
+                              if (stack->entered_window) {
+                                   CoreWindow *window = stack->entered_window;
+                                   dfb_window_remove( window );
+                                   dfb_window_destroy( window );
                               }
                               return RS_OK;
                          default:
