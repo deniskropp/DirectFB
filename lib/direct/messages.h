@@ -31,12 +31,18 @@
 #include <direct/build.h>
 
 
+#if __GNUC__ >= 3
+#define D_FORMAT_PRINTF(n)         __attribute__((__format__ (__printf__, n, n+1)))
+#else
+#define D_FORMAT_PRINTF(n)
+#endif
+
+
 #if DIRECT_BUILD_TEXT
 
 #include <errno.h>
 
 #include <direct/conf.h>
-#include <direct/util.h>
 
 
 void direct_messages_info         ( const char *format, ... )  D_FORMAT_PRINTF(1);

@@ -63,10 +63,8 @@
 
 #if __GNUC__ >= 3
 #define D_CONST_FUNC               __attribute__((const))
-#define D_FORMAT_PRINTF(n)         __attribute__((__format__ (__printf__, n, n+1)))
 #else
 #define D_CONST_FUNC
-#define D_FORMAT_PRINTF(n)
 #endif
 
 
