@@ -38,9 +38,15 @@
 #include <sys/msg.h>
 #include <sys/shm.h>
 
+#include <core/coredefs.h>
+
+#include <misc/mem.h>
+
 #include "fusion_types.h"
 
 #include "fusion_internal.h"
+
+#include "ref.h"
 
 
 #ifndef FUSION_FAKE
@@ -52,17 +58,20 @@
  ***************************/
 
 /*
- *
+ * shared fusion data
  */
 typedef struct {
-     long  next_fid;
+     long      next_fid;
+     FusionRef ref;
 } FusionShared;
 
 /*
- *
+ * local fusion data
  */
 typedef struct {
      int  fid;
+
+     int  ref;
 
      int  shared_shm;
      int  shared_sem;
@@ -71,7 +80,8 @@ typedef struct {
 } Fusion;
 
 
-static void _fusion_check_limits();
+static void check_limits();
+static int  initialize_shared (FusionShared *shared);
 
 /*******************
  *  Internal data  *
@@ -87,18 +97,26 @@ static Fusion *fusion = NULL;
  *  Public API  *
  ****************/
 
-int fusion_init()
+int
+fusion_init()
 {
      AcquisitionStatus as;
 
      /* check against multiple initialization */
-     if (fusion)
-          return -1;
+     if (fusion) {
+          /* increment local reference counter */
+          fusion->ref++;
 
-     _fusion_check_limits();
+          return _fusion_id();
+     }
+
+     check_limits();
 
      /* allocate local Fusion data */
-     fusion = (Fusion*)calloc (1, sizeof(Fusion));
+     fusion = DFBCALLOC (1, sizeof(Fusion));
+
+     /* intialize local reference counter */
+     fusion->ref = 1;
 
      /* acquire shared Fusion data */
      as = _shm_acquire (FUSION_KEY_PREFIX,
@@ -106,7 +124,7 @@ int fusion_init()
 
      /* on failure free local Fusion data and return */
      if (as == AS_Failure) {
-          free (fusion);
+          DFBFREE (fusion);
           fusion = NULL;
           return -1;
      }
@@ -114,8 +132,24 @@ int fusion_init()
      fusion->shared = shmat (fusion->shared_shm, NULL, 0);
 
      /* initialize shared Fusion data? */
-     if (as == AS_Initialize)
-          fusion->shared->next_fid = 1;
+     if (as == AS_Initialize) {
+          if (initialize_shared (fusion->shared)) {
+               shmctl (fusion->shared_shm, IPC_RMID, NULL);
+     
+               DFBFREE (fusion);
+               fusion = NULL;
+               
+               return -1;
+          }
+     }
+     else {
+          if (fusion_ref_up (&fusion->shared->ref, false)) {
+               DFBFREE (fusion);
+               fusion = NULL;
+               
+               return -1;
+          }
+     }
 
      /* set local Fusion ID */
      fusion->fid = fusion->shared->next_fid++;
@@ -126,18 +160,34 @@ int fusion_init()
           if (as == AS_Initialize)
                shmctl (fusion->shared_shm, IPC_RMID, NULL);
 
-          free (fusion);
+          DFBFREE (fusion);
           fusion = NULL;
+          
           return -1;
      }
 
      return _fusion_id();
 }
 
-void fusion_exit()
+void
+fusion_exit()
 {
-     if (!fusion)
+     if (!fusion) {
+          FERROR("called without being initialized!\n");
           return;
+     }
+
+     /* decrement local reference counter */
+     if (--(fusion->ref))
+          return;
+
+     /* decrement shared reference counter */
+     fusion_ref_down (&fusion->shared->ref, false);
+     
+     /* perform a shutdown? */
+     if (fusion_ref_zero_trylock (&fusion->shared->ref) == FUSION_SUCCESS) {
+          fusion_ref_destroy (&fusion->shared->ref);
+     }
 
      switch (_shm_abolish (fusion->shared_shm, fusion->shared)) {
           case AB_Destroyed:
@@ -155,7 +205,7 @@ void fusion_exit()
                break;
      }
 
-     free (fusion);
+     DFBFREE (fusion);
      fusion = NULL;
 }
 
@@ -164,12 +214,13 @@ void fusion_exit()
  *  Fusion internal functions  *
  *******************************/
 
-int _fusion_id()
+int
+_fusion_id()
 {
      if (fusion)
           return fusion->fid;
 
-     FERROR ("called without prior init!\n");
+     FERROR("called without being initialized!\n");
 
      return -1;
 }
@@ -179,7 +230,8 @@ int _fusion_id()
  *  File internal functions  *
  *******************************/
 
-static void _fusion_check_msgmni()
+static void
+check_msgmni()
 {
      int     fd;
      int     msgmni;
@@ -214,7 +266,8 @@ static void _fusion_check_msgmni()
      close (fd);
 }
 
-static void _fusion_check_sem()
+static void
+check_sem()
 {
      int     fd;
      int     per, sys, ops, num;
@@ -255,10 +308,33 @@ static void _fusion_check_sem()
      close (fd);
 }
 
-static void _fusion_check_limits()
+static void
+check_limits()
 {
-     _fusion_check_msgmni();
-     _fusion_check_sem();
+     check_msgmni();
+     check_sem();
+}
+
+
+static int
+initialize_shared (FusionShared *shared)
+{
+     DFB_ASSERT( shared != NULL );
+
+     shared->next_fid = 1;
+
+     /* initialize shared reference counter */
+     if (fusion_ref_init (&shared->ref))
+          return -1;
+
+     /* increment shared reference counter */
+     if (fusion_ref_up (&shared->ref, false)) {
+          fusion_ref_destroy (&shared->ref);
+
+          return -2;
+     }
+
+     return 0;
 }
 
 #endif /* !FUSION_FAKE */
