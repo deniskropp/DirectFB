@@ -312,6 +312,7 @@ main (int    argc,
                   break;
                 case DIKC_SPACE:
                 case DIKC_ENTER:
+                case DIKC_OK:
                   colorize = !colorize;
                   break;
                 case DIKC_HOME:

@@ -584,10 +584,12 @@ int main( int argc, char *argv[] )
                               break;
                          case DIKC_SPACE:
                          case DIKC_ENTER:
+                         case DIKC_OK:
                               /* penguins go in formation */
                               penguins_search_destination();
                               break;
                          case DIKC_S:
+                         case DIKC_UP:
                               /* add another penguin */
                               spawn_penguins(10);
                               break;
@@ -596,6 +598,7 @@ int main( int argc, char *argv[] )
                               revive_penguins();
                               break;
                          case DIKC_D:
+                         case DIKC_DOWN:
                               /* removes one penguin */
                               destroy_penguins(10);
                               break;
