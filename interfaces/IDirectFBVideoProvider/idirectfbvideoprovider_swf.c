@@ -443,7 +443,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      FlashGetInfo (data->flashHandle, &data->flashInfo);
 
-     dfb_surface_create( (int) data->flashInfo.frameWidth  / 20,
+     dfb_surface_create( NULL, (int) data->flashInfo.frameWidth / 20,
                          (int) data->flashInfo.frameHeight / 20,
                          DSPF_RGB16, CSP_SYSTEMONLY, DSCAPS_SYSTEMONLY, NULL,
                          &(data->source));
