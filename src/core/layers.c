@@ -1396,7 +1396,7 @@ load_default_cursor( DisplayLayer *layer )
      int                 i;
      unsigned int        pitch;
      void               *data;
-     FILE               *f;
+     FILE               *f      = NULL;
      DisplayLayerShared *shared = layer->shared;
      CoreWindowStack    *stack  = shared->stack;
 
@@ -1406,23 +1406,25 @@ load_default_cursor( DisplayLayer *layer )
                return ret;
      }
 
-     /* open the file containing the cursors image data */
-     f = fopen( CURSORFILE, "rb" );
-     if (!f) {
-          ret = errno2dfb( errno );
-          PERRORMSG( "`" CURSORFILE "` could not be opened!\n" );
-          return ret;
-     }
-
      /* lock the surface of the window */
      ret = dfb_surface_soft_lock( stack->cursor.window->surface,
                                   DSLF_WRITE, &data, &pitch, 0 );
      if (ret) {
           ERRORMSG( "DirectFB/core/layers: "
                     "cannot lock the surface for cursor window data!\n" );
-          fclose( f );
-
           return ret;
+     }
+
+     /* initialize as empty cursor */
+     memset( data, 0, 40 * pitch);
+
+     /* open the file containing the cursors image data */
+     f = fopen( CURSORFILE, "rb" );
+     if (!f) {
+          ret = errno2dfb( errno );
+          PERRORMSG( "`" CURSORFILE "` could not be opened!\n" );
+          
+          goto finish;
      }
 
      /* read from file directly into the cursor window surface */
@@ -1433,10 +1435,7 @@ load_default_cursor( DisplayLayer *layer )
                ERRORMSG( "DirectFB/core/layers: "
                          "unexpected end or read error of cursor data!\n" );
 
-               dfb_surface_unlock( stack->cursor.window->surface, 0 );
-               fclose( f );
-
-               return ret;
+               goto finish;
           }
 #ifdef WORDS_BIGENDIAN
           {
@@ -1455,12 +1454,13 @@ load_default_cursor( DisplayLayer *layer )
           data += pitch;
      }
 
-     fclose( f );
+ finish:
+     if (f) fclose( f );
      dfb_surface_unlock( stack->cursor.window->surface, 0 );
 
      dfb_window_repaint( stack->cursor.window, NULL, 0 );
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
