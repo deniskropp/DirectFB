@@ -276,7 +276,6 @@ ov0AllocateSurface( CoreLayer              *layer,
 {
      DFBResult result;
      NVidiaOverlayLayerData *nvov0     = (NVidiaOverlayLayerData*) layer_data;
-     CoreSurface            *buffer    = NULL;
      DFBSurfacePixelFormat   format;
      __u32                   dst_width;
      __u32                   src_width;
@@ -318,14 +317,9 @@ ov0AllocateSurface( CoreLayer              *layer,
 
      result = dfb_surface_create(NULL, dst_width, config->height,
                                  format, CSP_VIDEOONLY, DSCAPS_VIDEOONLY,
-                                 NULL, &buffer );
+                                 NULL, &nvov0->videoSurface );
      if (result != DFB_OK)
           return result;
-
-     nvov0->videoSurface        = buffer;
-     nvov0->regs.NV_PVIDEO_BASE = buffer->front_buffer->video.offset & 0x07fffff0;
-     // XBOX-specific: add nvov0->fbstart
-     // nvov0->regs.NV_PVIDEO_BASE = (nvov0->fbstart + front_buffer->video.offset) & 0x03fffff0;
 
      result = dfb_surface_create( NULL, src_width, config->height,
                                   config->format, CSP_SYSTEMONLY,
@@ -343,7 +337,6 @@ ov0ReallocateSurface( CoreLayer             *layer,
 {
      DFBResult result;
      NVidiaOverlayLayerData *nvov0      = (NVidiaOverlayLayerData*) layer_data;
-     CoreSurface            *buffer     = nvov0->videoSurface;
      DFBSurfacePixelFormat   format;
      __u32                   dst_width;
      __u32                   src_width;
@@ -387,12 +380,10 @@ ov0ReallocateSurface( CoreLayer             *layer,
                                     dst_width * config->height *
                                     DFB_BYTES_PER_PIXEL(format) / 1024);
 
-     result = dfb_surface_reformat( NULL, buffer, dst_width,
+     result = dfb_surface_reformat( NULL, nvov0->videoSurface, dst_width,
                                     config->height, format );
      if (result != DFB_OK)
           return result;
-
-     nvov0->regs.NV_PVIDEO_BASE = buffer->front_buffer->video.offset & 0x07fffff0;
 
      result = dfb_surface_reformat( NULL, surface, src_width,
                                     config->height, config->format );
@@ -690,12 +681,17 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
                CoreLayerRegionConfig  *config )
 {
      CoreSurface   *surface = nvov0->videoSurface;
-      __u32         pitch   = surface->front_buffer->video.pitch;
-     
-     nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->height << 16) | config->width;
+     SurfaceBuffer *buffer  = surface->front_buffer;
+     __u32          pitch   = buffer->video.pitch;
+    
+     nvov0->regs.NV_PVIDEO_BASE      = (buffer->video.offset & 0x07fffff0) +
+                                       (config->source.y * pitch) + (config->source.x * 2);
+     // XBOX-specific: add nvov0->fbstart
+     // nvov0->regs.NV_PVIDEO_BASE = (nvov0->fbstart + buffer->video.offset) & 0x03fffff0;
+     nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->source.h << 16) | config->source.w;
      nvov0->regs.NV_PVIDEO_POINT_IN  = 0;
-     nvov0->regs.NV_PVIDEO_DS_DX     = (config->width << 20) / config->dest.w;
-     nvov0->regs.NV_PVIDEO_DT_DY     = (config->height << 20) / config->dest.h;
+     nvov0->regs.NV_PVIDEO_DS_DX     = (config->source.w << 20) / config->dest.w;
+     nvov0->regs.NV_PVIDEO_DT_DY     = (config->source.h << 20) / config->dest.h;
      nvov0->regs.NV_PVIDEO_POINT_OUT = (config->dest.y << 16) | config->dest.x;
      nvov0->regs.NV_PVIDEO_SIZE_OUT  = (config->dest.h << 16) | config->dest.w;
 
