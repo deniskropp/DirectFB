@@ -203,7 +203,7 @@ IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz )
           thiz->priv = NULL;
      }
 #ifndef DFB_DEBUG
-     DFBFREE( thiz );
+     D_FREE( thiz );
 #endif
      return DFB_OK;
 }
