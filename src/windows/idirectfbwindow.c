@@ -472,37 +472,42 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
                                 int               hot_x,
                                 int               hot_y )
 {
-     DFBResult              ret;
-     IDirectFBSurface_data *shape_data;
-     CoreSurface           *shape_surface;
+     DFBResult ret;
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     shape_data = (IDirectFBSurface_data*) shape->priv;
-     if (!shape_data)
-          return DFB_DEAD;
-
-     shape_surface = shape_data->surface;
-     if (!shape_surface)
-          return DFB_DESTROYED;
-
-     ret = shape->AddRef( shape );
-     if (ret)
-          return ret;
-
-     if (data->cursor.shape)
+     if (data->cursor.shape) {
           data->cursor.shape->Release( data->cursor.shape );
+          data->cursor.shape = NULL;
+     }
 
-     data->cursor.shape = shape;
-     data->cursor.hot_x = hot_x;
-     data->cursor.hot_y = hot_y;
+     if (shape) {
+          IDirectFBSurface_data *shape_data;
+          CoreSurface           *shape_surface;
+          
+          shape_data = (IDirectFBSurface_data*) shape->priv;
+          if (!shape_data)
+               return DFB_DEAD;
 
-     if (data->entered)
-          dfb_layer_cursor_set_shape( data->layer,
-                                      shape_surface, hot_x, hot_y );
+          shape_surface = shape_data->surface;
+          if (!shape_surface)
+               return DFB_DESTROYED;
+
+          ret = shape->AddRef( shape );
+          if (ret)
+               return ret;
+
+          data->cursor.shape = shape;
+          data->cursor.hot_x = hot_x;
+          data->cursor.hot_y = hot_y;
+
+          if (data->entered)
+               dfb_layer_cursor_set_shape( data->layer,
+                                           shape_surface, hot_x, hot_y );
+     }
 
      return DFB_OK;
 }

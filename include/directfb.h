@@ -3039,6 +3039,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       *
       * This method will set a per-window cursor shape. Everytime
       * the cursor enters this window, the specified shape is set.
+      *
+      * Passing NULL will unbind a set shape and release its surface.
       */
      DFBResult (*SetCursorShape) (
           IDirectFBWindow          *thiz,
