@@ -41,64 +41,65 @@ html_create( TYPES, "types.html", "DirectFB Types" );
 print INDEX "<P>\n",
             "  <CENTER><TABLE width=90% border=0 cellpadding=2>\n";
 
-while (<>)
-   {
-      chomp;
+while (<>) {
+   chomp;
 
-      if ( /^\s*\/\*\s*$/ )
-         {
-           $comment = "\n";
+   if ( /^\s*\/\*\s*$/ ) {
+      %options = ();
+      $comment = "";
 
-            while (<>)
-               {
-                  chomp;
-                  last if ( /^\s*\*\/\s*$/ );
+      while (<>) {
+         chomp;
 
-                  if (/^\s*\*\s*(.*)$/)
-                    {
-                      if ($1 eq "")
-                        {
-                          $comment .= "<br>\n";
-                        }
-                      else
-                        {
-                          $comment .= "   $1\n";
-                        }
-                    }
-               }
+         last if ( /^\s*\*\/\s*$/ );
 
-           $comment .= "\n";
+         if (/^\s*\*\s*(.*)$/) {
+            $line = $1;
+
+            if ($line eq "" && $comment ne "") {
+               $comment .= "    <br><br>\n";
+            }
+            elsif ($line =~ /^@(\w+)\s*=?\s*(.*)$/) {
+               $options{$1} = $2;
+            }
+            else {
+               $comment .= "      $line\n";
+            }
          }
-      elsif ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ )
-         {
-            $interface_abstracts{$1} = $comment;
-            print INDEX "    <TR><TD valign=top>\n",
-                        "      <A href=\"$1.html\">$1</A>\n",
-                        "    </TD><TD valign=top>\n",
-                        "      $comment\n",
-                        "    </TD></TR>\n";
-         }
-      elsif ( /^\s*DEFINE_INTERFACE\s*\(\s*(\w+),\s*$/ )
-         {
-            parse_interface( $1 );
-         }
-      elsif ( /^\s*typedef\s+enum\s*\{?\s*$/ )
-         {
-            parse_enum();
-         }
-      elsif ( /^\s*typedef\s+(struct|union)\s*\{?\s*$/ )
-         {
-            parse_struct();
-         }
-      elsif ( /^\s*#define\s+(\S+)\s*\(?([^\)]*)\)/ )
-         {
-            parse_macro( $1 );
-         }
-      else
-         {
-            $comment = "";
-         }
+      }
    }
+   elsif ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ ) {
+      $interface_abstracts{$1} = $comment;
+
+      print INDEX "    <TR><TD valign=top>\n",
+                  "      <A href=\"$1.html\">$1</A>\n",
+                  "    </TD><TD valign=top>\n",
+                  "      $comment\n",
+                  "    </TD></TR>\n";
+   }
+   elsif ( /^\s*DEFINE_INTERFACE\s*\(\s*(\w+),\s*$/ ) {
+      parse_interface( $1 );
+   }
+   elsif ( /^\s*typedef\s+enum\s*\{?\s*$/ ) {
+      parse_enum();
+   }
+   elsif ( /^\s*typedef\s+(struct|union)\s*\{?\s*$/ ) {
+      parse_struct();
+   }
+   elsif ( /^\s*#define\s+([^\(\s]+)\s*(\([^\)]*\))?/ ) {
+      $macro  = $1;
+      $params = $2;
+
+      chomp $params;
+
+      if ($comment ne "" && !defined ($options{"internal"})) {
+         parse_macro( $macro, $params );
+      }
+   }
+   else {
+      $comment = "";
+   }
+}
 
 print INDEX "  </CENTER></TABLE>\n",
             "</P>\n";
@@ -562,9 +563,10 @@ sub parse_struct
 # Writes formatted HTML to "types.html".
 # Parameter is the macro name.
 #
-sub parse_macro (NAME)
+sub parse_macro (NAME, PARAMS)
    {
-      my $macro = shift(@_);
+      my $macro  = shift(@_);
+      my $params = shift(@_);
 
       while (<>)
          {
@@ -575,7 +577,7 @@ sub parse_macro (NAME)
 
       print TYPES "<p>\n",
                   "  <a name=$macro>\n",
-                  "  <font color=#7070D0 size=+1>$macro</font>\n",
+                  "  <font color=#7070D0 size=+1>$macro $params</font>\n",
                   "  <br>\n",
                   "  $comment\n",
                   "  <br>\n",
