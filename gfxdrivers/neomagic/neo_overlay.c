@@ -145,11 +145,11 @@ ovlTestRegion( CoreLayer                  *layer,
                CoreLayerRegionConfig      *config,
                CoreLayerRegionConfigFlags *failed )
 {
-     DFBDisplayLayerConfigFlags fail = 0;
+     CoreLayerRegionConfigFlags fail = 0;
 
      /* check for unsupported options */
      if (config->options & ~NEO_OVERLAY_SUPPORTED_OPTIONS)
-          fail |= DLCONF_OPTIONS;
+          fail |= CLRCF_OPTIONS;
 
      /* check pixel format */
      switch (config->format) {
@@ -157,16 +157,16 @@ ovlTestRegion( CoreLayer                  *layer,
                break;
 
           default:
-               fail |= DLCONF_PIXELFORMAT;
+               fail |= CLRCF_FORMAT;
      }
 
      /* check width */
      if (config->width > 1024 || config->width < 160)
-          fail |= DLCONF_WIDTH;
+          fail |= CLRCF_WIDTH;
 
      /* check height */
      if (config->height > 1024 || config->height < 1)
-          fail |= DLCONF_HEIGHT;
+          fail |= CLRCF_HEIGHT;
 
      /* write back failing fields */
      if (failed)
