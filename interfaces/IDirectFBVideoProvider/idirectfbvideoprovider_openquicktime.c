@@ -72,6 +72,8 @@ typedef struct {
 
          pthread_t         thread;
          pthread_mutex_t   lock;
+
+         int               playing;
     } video;
 
     IDirectFBSurface      *destination;
@@ -356,9 +358,7 @@ VideoThread( void *ctx )
 
      gettimeofday(&start, 0);
 
-     while ( 1 ) {
-          pthread_testcancel();
-
+     while (data->video.playing) {
           pthread_mutex_lock( &data->video.lock );
 
           while (drop) {
@@ -378,10 +378,6 @@ VideoThread( void *ctx )
           if (data->callback)
                data->callback (data->ctx);
 
-          pthread_mutex_unlock( &data->video.lock );
-
-          pthread_testcancel();
-
           frame = quicktime_video_position( data->file, 0 );
 
           gettimeofday (&after, 0);
@@ -391,7 +387,8 @@ VideoThread( void *ctx )
                long cframe = (long) (delay * rate);
 
                if ( frame < cframe ) {
-                    drop = 1;
+                    drop = cframe - frame;
+                    pthread_mutex_unlock( &data->video.lock );
                     continue;
                }
                else if ( frame == cframe )
@@ -401,18 +398,19 @@ VideoThread( void *ctx )
           }
           after.tv_sec = 0;
           after.tv_usec = delay * 1000;
+          
+          pthread_mutex_unlock( &data->video.lock );
+          
           select( 0, 0, 0, 0, &after );
-
-          pthread_testcancel();
 
           /*  jump to start if arrived at last frame  */
           if (frame == frames) {
+               pthread_mutex_lock( &data->video.lock );
                quicktime_seek_start( data->file );
                gettimeofday(&start, 0);
+               pthread_mutex_unlock( &data->video.lock );
           }
      }
-
-     printf("VIDEO THREAD died!\n");
 
      return NULL;
 }
@@ -487,8 +485,9 @@ IDirectFBVideoProvider_OpenQuicktime_PlayTo( IDirectFBVideoProvider *thiz,
     destination->AddRef( destination );
     data->destination = destination;   /* FIXME: install listener */
 
-    data->callback = callback;
-    data->ctx      = ctx;
+    data->callback       = callback;
+    data->ctx            = ctx;
+    data->video.playing  = 1;
 
     if (data->video.thread == -1)
         pthread_create( &data->video.thread, NULL, VideoThread, data );
@@ -505,7 +504,7 @@ IDirectFBVideoProvider_OpenQuicktime_Stop( IDirectFBVideoProvider *thiz )
      INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      if (data->video.thread != -1) {
-          pthread_cancel( data->video.thread );
+          data->video.playing = 0;
           pthread_join( data->video.thread, NULL );
           data->video.thread = -1;
      }
