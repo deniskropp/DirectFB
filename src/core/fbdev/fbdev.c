@@ -2007,7 +2007,7 @@ fbdev_ioctl( int request, void *arg, int arg_size )
      DFB_ASSERT( dfb_fbdev->shared != NULL );
 
      if (dfb_core_is_master())
-          return ioctl( dfb_fbdev->fd, request, arg );
+          return fbdev_ioctl_call_handler( 1, request, arg, NULL );
 
      if (arg) {
           if (!fusion_is_shared( arg )) {
