@@ -377,7 +377,7 @@ DFBResult IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer *thiz,
      if (desc->flags & DWDESC_CAPS)
           caps = desc->caps;
 
-     if (width > 4096 || height > 4096)
+     if (!width || width > 4096 || !height || height > 4096)
           return DFB_INVARG;
 
      w = window_create( data->layer->windowstack,
