@@ -427,7 +427,7 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                   the surface health is CSH_RESTORE */
           }
           case CSH_RESTORE: {
-               int   h   = DFB_PLANE_MULTIPLY(surface->format, surface->height);
+               int   h   = surface->height;
                char *src = buffer->system.addr;
                char *dst = dfb_system_video_memory_virtual( buffer->video.offset );
 
@@ -440,6 +440,16 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                     src += buffer->system.pitch;
                     dst += buffer->video.pitch;
                }
+               if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+                    h = surface->height;
+                    while (h--) {
+                         dfb_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
+                                                                  surface->width / 2) );
+                         src += buffer->system.pitch / 2;
+                         dst += buffer->video.pitch  / 2;
+                    }
+               }
+
                buffer->video.health = CSH_STORED;
                buffer->video.chunk->tolerations = 0;
                dfb_surface_notify_listeners( surface, CSNF_VIDEO );
@@ -465,7 +475,7 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
      if (buffer->system.health == CSH_STORED)
           return DFB_OK;
      else if (buffer->video.health == CSH_STORED) {
-          int   h   = DFB_PLANE_MULTIPLY(surface->format, surface->height);
+          int   h   = surface->height;
           char *src = dfb_system_video_memory_virtual( buffer->video.offset );
           char *dst = buffer->system.addr;
 
@@ -474,6 +484,15 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
                                                         surface->width) );
                src += buffer->video.pitch;
                dst += buffer->system.pitch;
+          }
+          if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+               h = surface->height;
+               while (h--) {
+                    dfb_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
+                                                             surface->width / 2) );
+                    src += buffer->video.pitch  / 2;
+                    dst += buffer->system.pitch / 2;
+               }
           }
           buffer->system.health = CSH_STORED;
 
