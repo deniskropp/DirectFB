@@ -361,7 +361,8 @@ driver_get_info( GraphicsDevice     *device,
 static DFBResult
 driver_init_driver( GraphicsDevice      *device,
                     GraphicsDeviceFuncs *funcs,
-                    void                *driver_data )
+                    void                *driver_data,
+                    void                *device_data )
 {
     RADEONDriverData *adrv = ( RADEONDriverData* ) driver_data;
 #ifdef FBIO_WAITFORVSYNC

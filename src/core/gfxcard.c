@@ -156,19 +156,21 @@ dfb_gfxcard_initialize( void *data_local, void *data_shared )
           card->driver_data = DFBCALLOC( 1,
                                          card->shared->driver_info.driver_data_size );
 
-          ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
+          card->device_data = card->shared->device_data =
+               SHCALLOC( 1, card->shared->driver_info.device_data_size );
+          
+          ret = funcs->InitDriver( card, &card->funcs,
+                                   card->driver_data, card->device_data );
           if (ret) {
+               SHFREE( card->shared->device_data );
                SHFREE( card->shared->module_name );
                DFBFREE( card->driver_data );
                card = NULL;
                return ret;
           }
 
-          card->shared->device_data =
-               SHCALLOC( 1, card->shared->driver_info.device_data_size );
-
           ret = funcs->InitDevice( card, &card->shared->device_info,
-                                   card->driver_data, card->shared->device_data );
+                                   card->driver_data, card->device_data );
           if (ret) {
                funcs->CloseDriver( card, card->driver_data );
                SHFREE( card->shared->device_data );
@@ -177,8 +179,6 @@ dfb_gfxcard_initialize( void *data_local, void *data_shared )
                card = NULL;
                return ret;
           }
-
-          card->device_data = card->shared->device_data;
 
           if (card->funcs.EngineReset)
                card->funcs.EngineReset( card->driver_data, card->device_data );
@@ -235,14 +235,15 @@ dfb_gfxcard_join( void *data_local, void *data_shared )
           card->driver_data = DFBCALLOC( 1,
                                          card->shared->driver_info.driver_data_size );
 
-          ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
+          card->device_data = card->shared->device_data;
+          
+          ret = funcs->InitDriver( card, &card->funcs,
+                                   card->driver_data, card->device_data );
           if (ret) {
                DFBFREE( card->driver_data );
                card = NULL;
                return ret;
           }
-
-          card->device_data = card->shared->device_data;
      }
      else if (card->shared->module_name) {
           ERRORMSG( "DirectFB/core/gfxcard: "

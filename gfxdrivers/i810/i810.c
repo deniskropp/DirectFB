@@ -773,7 +773,8 @@ i810_release_resource (I810DriverData *i810drv)
 static DFBResult
 driver_init_driver( GraphicsDevice      *device,
                     GraphicsDeviceFuncs *funcs,
-                    void                *driver_data )
+                    void                *driver_data,
+                    void                *device_data )
 {
      I810DriverData *i810drv = (I810DriverData *) driver_data;
      agp_setup setup;
