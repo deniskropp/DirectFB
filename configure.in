@@ -336,20 +336,16 @@ AM_CONDITIONAL(FLASH_PROVIDER, test x$FLASH = xyes)
 dnl Test for libmpeg3
   MPEG3=no
 
-  AC_ARG_WITH(libmpeg3, [  --with-libmpeg3=path    path to libmpeg3 build])
-  case "x$with_libmpeg3" in
-    x)
-      LIBMPEG3_DIR=
-      ;;
-    *)  
-      LIBMPEG3_DIR=$with_libmpeg3
-      MPEG3=yes
-      ;;
-  esac  
+  if test -z "$LIBMPEG3"; then
+    AC_CHECK_LIB(mpeg3, mpeg3_open,
+      AC_CHECK_HEADER(libmpeg3.h,
+        MPEG3=yes
+        LIBMPEG3='-lmpeg3',
+        AC_MSG_WARN([*** libmpeg3 headers not found -- mpeg3 video provider will not be built.])),
+      AC_MSG_WARN([*** libmpeg3 not found -- mpeg3 video provider will not be build.]), -lm -lpthread)
+  fi
 
-  AC_SUBST(LIBMPEG3_DIR)
-
-  AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
+AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
 
 
 
@@ -474,7 +470,7 @@ AC_SUBST(FREETYPE_LIBS)
 AC_SUBST(AVIFILE_PROVIDER)
 AC_SUBST(AVIFILE_CFLAGS)
 AC_SUBST(AVIFILE_LIBS)
-AC_SUBST(LIBMPEG3_LIBS)
+AC_SUBST(LIBMPEG3)
 AC_SUBST(LIBFLASH)
 AC_SUBST(GFX_ATI)
 AC_SUBST(GFX_MATROX)

@@ -10,30 +10,11 @@ AVIFILE_PROVIDER_LTLIB =
 endif
 
 
-## This is a hack around fucking libtool to link libmpeg3.a into our shared object.
-
 if LIBMPEG3_PROVIDER
-
-clean-local:
-	-rm -f libidirectfbvideoprovider_libmpeg3.so
-
-all-local: libidirectfbvideoprovider_libmpeg3.so
-
-libidirectfbvideoprovider_libmpeg3.so: idirectfbvideoprovider_libmpeg3.o $(LIBMPEG3_DIR)/$(shell uname --machine)/libmpeg3.a
-	$(CC) -shared $+ -ldl -lpthread -lm -Wl,-soname -Wl,libidirectfbvideoprovider_libmpeg3.so -o $@
-
-idirectfbvideoprovider_SCRIPTS = libidirectfbvideoprovider_libmpeg3.so
-
-LIBMPEG3_INCLUDES = -I$(LIBMPEG3_DIR)
-
+LIBMPEG3_PROVIDER_LTLIB = libidirectfbvideoprovider_libmpeg3.la
 else
-
-clean-local:
-all-local:
-
+LIBMPEG3_PROVIDER_LTLIB =
 endif
-
-EXTRA_DIST = idirectfbvideoprovider_libmpeg3.c
 
 
 if FLASH_PROVIDER
@@ -46,8 +27,7 @@ endif
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src 	\
-	-DDATADIR=\"@DATADIR@\"	\
-	$(LIBMPEG3_INCLUDES)
+	-DDATADIR=\"@DATADIR@\"
 
 CFLAGS = $(DFB_CFLAGS)
 CXXFLAGS = $(DFB_CXXFLAGS) $(AVIFILE_CFLAGS)
@@ -56,7 +36,8 @@ CXXFLAGS = $(DFB_CXXFLAGS) $(AVIFILE_CFLAGS)
 idirectfbvideoprovider_LTLIBRARIES = \
 	libidirectfbvideoprovider_v4l.la	\
 	$(AVIFILE_PROVIDER_LTLIB)		\
-	$(FLASH_PROVIDER_LTLIB)
+	$(FLASH_PROVIDER_LTLIB)			\
+	$(LIBMPEG3_PROVIDER_LTLIB)
 
 
 libidirectfbvideoprovider_avifile_la_SOURCES = idirectfbvideoprovider_avifile.cpp
@@ -71,6 +52,13 @@ libidirectfbvideoprovider_swf_la_SOURCES = idirectfbvideoprovider_swf.c
 libidirectfbvideoprovider_swf_la_LIBADD = $(LIBFLASH)
 
 libidirectfbvideoprovider_swf_la_LDFLAGS = -avoid-version -module
+
+
+libidirectfbvideoprovider_libmpeg3_la_SOURCES = idirectfbvideoprovider_libmpeg3.c
+
+libidirectfbvideoprovider_libmpeg3_la_LIBADD = $(LIBMPEG3)
+
+libidirectfbvideoprovider_libmpeg3_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbvideoprovider_v4l_la_SOURCES = idirectfbvideoprovider_v4l.c
