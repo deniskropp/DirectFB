@@ -163,6 +163,7 @@ int dfb_unsafe_region_rectangle_intersect( DFBRegion *region, DFBRectangle *rect
 int dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
                                               DFBRegion    *region )
 {
+     /* validate region */
      if (region->x1 > region->x2) {
           int temp = region->x1;
           region->x1 = region->x2;
@@ -175,6 +176,7 @@ int dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
           region->y2 = temp;
      }
 
+     /* adjust position */
      if (region->x1 > rectangle->x) {
           rectangle->w -= region->x1 - rectangle->x;
           rectangle->x = region->x1;
@@ -185,13 +187,22 @@ int dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
           rectangle->y = region->y1;
      }
 
+     /* adjust size */
      if (region->x2 <= rectangle->x + rectangle->w)
         rectangle->w = region->x2 - rectangle->x + 1;
 
      if (region->y2 <= rectangle->y + rectangle->h)
         rectangle->h = region->y2 - rectangle->y + 1;
 
-     return (rectangle->w > 0  &&  rectangle->h > 0);
+     /* set size to zero if there's no intersection */
+     if (rectangle->w <= 0 || rectangle->h <= 0) {
+          rectangle->w = 0;
+          rectangle->h = 0;
+
+          return 0;
+     }
+
+     return 1;
 }
 
 int dfb_rectangle_intersect( DFBRectangle *rectangle,
@@ -200,6 +211,7 @@ int dfb_rectangle_intersect( DFBRectangle *rectangle,
      DFBRegion region = { clip->x, clip->y,
                           clip->x + clip->w - 1, clip->y + clip->h - 1 };
 
+     /* adjust position */
      if (region.x1 > rectangle->x) {
           rectangle->w -= region.x1 - rectangle->x;
           rectangle->x = region.x1;
@@ -210,13 +222,22 @@ int dfb_rectangle_intersect( DFBRectangle *rectangle,
           rectangle->y = region.y1;
      }
 
+     /* adjust size */
      if (region.x2 <= rectangle->x + rectangle->w)
           rectangle->w = region.x2 - rectangle->x + 1;
 
      if (region.y2 <= rectangle->y + rectangle->h)
           rectangle->h = region.y2 - rectangle->y + 1;
 
-     return (rectangle->w > 0  &&  rectangle->h > 0);
+     /* set size to zero if there's no intersection */
+     if (rectangle->w <= 0 || rectangle->h <= 0) {
+          rectangle->w = 0;
+          rectangle->h = 0;
+
+          return 0;
+     }
+
+     return 1;
 }
 
 void dfb_rectangle_union ( DFBRectangle *rect1,
