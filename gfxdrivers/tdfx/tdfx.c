@@ -47,146 +47,156 @@
 
 #include "tdfx.h"
 
-static void tdfxFillRectangle2D( DFBRectangle *rect );
-static void tdfxFillRectangle3D( DFBRectangle *rect );
-static void tdfxFillTriangle2D( DFBTriangle *tri );
-static void tdfxFillTriangle3D( DFBTriangle *tri );
-static void tdfxDrawLine2D( DFBRegion *line );
-//static void tdfxDrawLine3D( DFBRegion *line );
+static void tdfxFillRectangle2D( void *drv, void *dev, DFBRectangle *rect );
+static void tdfxFillRectangle3D( void *drv, void *dev, DFBRectangle *rect );
+static void tdfxFillTriangle2D ( void *drv, void *dev, DFBTriangle  *tri );
+static void tdfxFillTriangle3D ( void *drv, void *dev, DFBTriangle  *tri );
+static void tdfxDrawLine2D     ( void *drv, void *dev, DFBRegion    *line );
+//static void tdfxDrawLine3D     ( void *drv, void *dev, DFBRegion    *line );
 
-/* for fifo/performance monitoring */
-static unsigned int tdfx_fifo_space = 0;
+typedef struct {
+     /* for fifo/performance monitoring */
+     unsigned int fifo_space;
 
-static unsigned int tdfx_waitfifo_sum    = 0;
-static unsigned int tdfx_waitfifo_calls  = 0;
-static unsigned int tdfx_fifo_waitcycles = 0;
-static unsigned int tdfx_idle_waitcycles = 0;
-static unsigned int tdfx_fifo_cache_hits = 0;
+     unsigned int waitfifo_sum;
+     unsigned int waitfifo_calls;
+     unsigned int fifo_waitcycles;
+     unsigned int idle_waitcycles;
+     unsigned int fifo_cache_hits;
+
+     /* state validation */
+     int v_destination2D;
+     int v_destination3D;
+     int v_color1;
+     int v_colorFore;
+     int v_alphaMode;
+     int v_source2D;
+     int v_srcColorkey;
+     int v_commandExtra;
+} TDFXDeviceData;
+
+typedef struct {
+     volatile __u8 *mmio_base;
+     Voodoo2D      *voodoo2D;
+     Voodoo3D      *voodoo3D;
+} TDFXDriverData;
 
 
-static volatile __u8 *mmio_base = NULL;
-static Voodoo2D      *voodoo2D = NULL;
-static Voodoo3D      *voodoo3D = NULL;
-static GfxCard       *tdfx = NULL;
 
-
-
-static inline void tdfx_waitfifo( int requested_fifo_space )
+static inline void tdfx_waitfifo( TDFXDriverData *tdrv,
+                                  TDFXDeviceData *tdev, int space )
 {
      int timeout = 1000000;
-     
-     tdfx_waitfifo_calls++;
-     tdfx_waitfifo_sum += requested_fifo_space;
-     
-     if (tdfx_fifo_space < requested_fifo_space) {
-          while (timeout--) {
-               tdfx_fifo_waitcycles++;
 
-               tdfx_fifo_space = (voodoo2D->status & 0x3f);
-               if (tdfx_fifo_space >= requested_fifo_space)
+     tdev->waitfifo_calls++;
+     tdev->waitfifo_sum += space;
+
+     if (tdev->fifo_space < space) {
+          while (timeout--) {
+               tdev->fifo_waitcycles++;
+
+               tdev->fifo_space = (tdrv->voodoo2D->status & 0x3f);
+               if (tdev->fifo_space >= space)
                     break;
-               
+
           }
      }
      else {
-          tdfx_fifo_cache_hits++;
+          tdev->fifo_cache_hits++;
      }
 
-     tdfx_fifo_space -= requested_fifo_space;
-     
-     if (!timeout) 
-          BUG( "timeout during waitfifo!\n");
+     tdev->fifo_space -= space;
+
+     if (!timeout)
+          CAUTION( "timeout during waitfifo!" );
 }
 
-static inline void tdfx_waitidle()
-{           
+static inline void tdfx_waitidle( TDFXDriverData *tdrv,
+                                  TDFXDeviceData *tdev )
+{
      int i = 0;
      int timeout = 1000000;
-     
-//     tdfx_waitfifo( 1 );
-     
+
+//     tdfx_waitfifo( tdrv, tdev, 1 );
+
 //     voodoo3D->nopCMD = 0;
-          
+
      while (timeout--) {
-          tdfx_idle_waitcycles++;
-          
-          i = (voodoo2D->status & (0xF << 7))  ?  0 : i + 1;
+          tdev->idle_waitcycles++;
+
+          i = (tdrv->voodoo2D->status & (0xF << 7))  ?  0 : i + 1;
           if(i == 3)
                return;
-          
+
      }
 
-     BUG( "timeout during waitidle!\n");              
+     BUG( "timeout during waitidle!\n");
 }
 
 
-/* state validation */
-
-static int v_destination2D = 0;
-static int v_destination3D = 0;
-static int v_color1 = 0;
-static int v_colorFore = 0;
-static int v_alphaMode = 0;
-static int v_source2D = 0;
-static int v_srcColorkey = 0;
-static int v_commandExtra = 0;
-
-     
 static int blitFormat[] = {
      2, /* DSPF_RGB15 */
      3, /* DSPF_RGB16 */
      4, /* DSPF_RGB24 */
-     5, /* DSPF_RGB32 */     
-     5, /* DSPF_ARGB  */     
+     5, /* DSPF_RGB32 */
+     5, /* DSPF_ARGB  */
      0  /* DSPF_A8    */
 };
 
-static inline void tdfx_validate_source2D()
+static inline void tdfx_validate_source2D( TDFXDriverData *tdrv,
+                                           TDFXDeviceData *tdev,
+                                           CardState      *state )
 {
+     CoreSurface   *source   = state->source;
+     SurfaceBuffer *buffer   = source->front_buffer;
+     Voodoo2D      *voodoo2D = tdrv->voodoo2D;
 
-     CoreSurface *source = tdfx->state->source;
-     SurfaceBuffer *buffer = source->front_buffer;
-     
-     if (v_source2D)
+     if (tdev->v_source2D)
           return;
 
-     tdfx_waitfifo( 2 );
+     tdfx_waitfifo( tdrv, tdev, 2 );
 
      voodoo2D->srcBaseAddr = buffer->video.offset & 0xFFFFFF;
-     voodoo2D->srcFormat   = (buffer->video.pitch & 0x3FFF) | 
+     voodoo2D->srcFormat   = (buffer->video.pitch & 0x3FFF) |
                              (blitFormat[PIXELFORMAT_INDEX(source->format)] << 16);
 
-     v_source2D = 1;
+     tdev->v_source2D = 1;
 }
 
-static inline void tdfx_validate_destination2D()
+static inline void tdfx_validate_destination2D( TDFXDriverData *tdrv,
+                                                TDFXDeviceData *tdev,
+                                                CardState      *state )
 {
-     CoreSurface *destination = tdfx->state->destination;
-     SurfaceBuffer *buffer = destination->back_buffer;
+     CoreSurface   *destination = state->destination;
+     SurfaceBuffer *buffer      = destination->back_buffer;
+     Voodoo2D      *voodoo2D    = tdrv->voodoo2D;
 
-     if (v_destination2D)
+     if (tdev->v_destination2D)
           return;
-     
-     tdfx_waitfifo( 2 );
+
+     tdfx_waitfifo( tdrv, tdev, 2 );
 
      voodoo2D->dstBaseAddr = buffer->video.offset;
-     voodoo2D->dstFormat   = (buffer->video.pitch & 0x3FFF) | 
+     voodoo2D->dstFormat   = (buffer->video.pitch & 0x3FFF) |
                              (blitFormat[PIXELFORMAT_INDEX(destination->format)] << 16);
-     
-     v_destination2D = 1;
+
+     tdev->v_destination2D = 1;
 }
 
-static inline void tdfx_validate_destination3D()
+static inline void tdfx_validate_destination3D( TDFXDriverData *tdrv,
+                                                TDFXDeviceData *tdev,
+                                                CardState      *state )
 {
-     CoreSurface *destination = tdfx->state->destination;
-     SurfaceBuffer *buffer = destination->back_buffer;
+     CoreSurface   *destination = state->destination;
+     SurfaceBuffer *buffer      = destination->back_buffer;
+     Voodoo3D      *voodoo3D    = tdrv->voodoo3D;
 
      __u32 lfbmode = TDFX_LFBMODE_PIXEL_PIPELINE_ENABLE;
      __u32 fbzMode = (1 << 9) | 1;
 
-     if (v_destination3D)
+     if (tdev->v_destination3D)
           return;
-     
+
      switch (destination->format) {
           case DSPF_RGB15:
                lfbmode |= TDFX_LFBMODE_RGB555;
@@ -205,74 +215,80 @@ static inline void tdfx_validate_destination3D()
                BUG( "unexpected pixelformat!" );
                break;
      }
-     
-     tdfx_waitfifo( 4 );
-     
+
+     tdfx_waitfifo( tdrv, tdev, 4 );
+
      voodoo3D->lfbMode = lfbmode;
      voodoo3D->fbzMode = fbzMode;
      voodoo3D->colBufferAddr = buffer->video.offset;
      voodoo3D->colBufferStride = buffer->video.pitch;
-     
-     v_destination3D = 1;
+
+     tdev->v_destination3D = 1;
 }
 
-static inline void tdfx_validate_color1()
+static inline void tdfx_validate_color1( TDFXDriverData *tdrv,
+                                         TDFXDeviceData *tdev,
+                                         CardState      *state )
 {
-     if (v_color1)
+     if (tdev->v_color1)
           return;
 
-     tdfx_waitfifo( 1 );
+     tdfx_waitfifo( tdrv, tdev, 1 );
 
-     voodoo3D->color1 = PIXEL_ARGB( tdfx->state->color.a,
-                                    tdfx->state->color.r,
-                                    tdfx->state->color.g,
-                                    tdfx->state->color.b );
+     tdrv->voodoo3D->color1 = PIXEL_ARGB( state->color.a,
+                                          state->color.r,
+                                          state->color.g,
+                                          state->color.b );
 
-     v_color1 = 1;
+     tdev->v_color1 = 1;
 }
 
-static inline void tdfx_validate_colorFore()
+static inline void tdfx_validate_colorFore( TDFXDriverData *tdrv,
+                                            TDFXDeviceData *tdev,
+                                            CardState      *state )
 {
-     if (v_colorFore)
+     if (tdev->v_colorFore)
           return;
 
-     tdfx_waitfifo( 1 );
+     tdfx_waitfifo( tdrv, tdev, 1 );
 
-     switch (tdfx->state->destination->format) {
+     switch (state->destination->format) {
           case DSPF_A8:
-               voodoo2D->colorFore = tdfx->state->color.a;
+               tdrv->voodoo2D->colorFore = state->color.a;
                break;
           case DSPF_RGB15:
-               voodoo2D->colorFore = PIXEL_RGB15( tdfx->state->color.r,
-                                                  tdfx->state->color.g,
-                                                  tdfx->state->color.b );
+               tdrv->voodoo2D->colorFore = PIXEL_RGB15( state->color.r,
+                                                        state->color.g,
+                                                        state->color.b );
                break;
           case DSPF_RGB16:
-               voodoo2D->colorFore = PIXEL_RGB16( tdfx->state->color.r,
-                                                  tdfx->state->color.g,
-                                                  tdfx->state->color.b );
+               tdrv->voodoo2D->colorFore = PIXEL_RGB16( state->color.r,
+                                                        state->color.g,
+                                                        state->color.b );
                break;
           case DSPF_RGB24:
-          case DSPF_RGB32:                              
-               voodoo2D->colorFore = PIXEL_RGB32( tdfx->state->color.r,
-                                                  tdfx->state->color.g,
-                                                  tdfx->state->color.b );
+          case DSPF_RGB32:
+               tdrv->voodoo2D->colorFore = PIXEL_RGB32( state->color.r,
+                                                        state->color.g,
+                                                        state->color.b );
                break;
           case DSPF_ARGB:
-               voodoo2D->colorFore = PIXEL_ARGB(  tdfx->state->color.a,
-                                                  tdfx->state->color.r,
-                                                  tdfx->state->color.g,
-                                                  tdfx->state->color.b );
+               tdrv->voodoo2D->colorFore = PIXEL_ARGB(  state->color.a,
+                                                        state->color.r,
+                                                        state->color.g,
+                                                        state->color.b );
                break;
           default:
                BUG( "unexpected pixelformat!" );
                break;
      }
 
-     v_colorFore = 1;
+     tdev->v_colorFore = 1;
 }
 
-static inline void tdfx_validate_alphaMode()
+static inline void tdfx_validate_alphaMode( TDFXDriverData *tdrv,
+                                            TDFXDeviceData *tdev,
+                                            CardState      *state )
 {
      static int tdfxBlendFactor[] = {
           0,
@@ -289,78 +305,88 @@ static inline void tdfx_validate_alphaMode()
           0xF  /* DSBF_SRCALPHASAT  */
      };
 
-     if (v_alphaMode)
+     if (tdev->v_alphaMode)
           return;
 
-     tdfx_waitfifo( 1 );
+     tdfx_waitfifo( tdrv, tdev, 1 );
 
-     voodoo3D->alphaMode = TDFX_ALPHAMODE_BLEND_ENABLE |
-                         (tdfxBlendFactor[tdfx->state->src_blend] <<  8) |
-                         (tdfxBlendFactor[tdfx->state->src_blend] << 16) |
-                         (tdfxBlendFactor[tdfx->state->dst_blend] << 12) |
-                         (tdfxBlendFactor[tdfx->state->dst_blend] << 20);
-     
-     v_alphaMode = 1;
+     tdrv->voodoo3D->alphaMode = TDFX_ALPHAMODE_BLEND_ENABLE |
+                                (tdfxBlendFactor[state->src_blend] <<  8) |
+                                (tdfxBlendFactor[state->src_blend] << 16) |
+                                (tdfxBlendFactor[state->dst_blend] << 12) |
+                                (tdfxBlendFactor[state->dst_blend] << 20);
+
+     tdev->v_alphaMode = 1;
 }
 
-static inline void tdfx_validate_srcColorkey()
+static inline void tdfx_validate_srcColorkey( TDFXDriverData *tdrv,
+                                              TDFXDeviceData *tdev,
+                                              CardState      *state )
 {
-     if (v_srcColorkey)
+     Voodoo2D *voodoo2D = tdrv->voodoo2D;
+
+     if (tdev->v_srcColorkey)
           return;
 
-     tdfx_waitfifo( 2 );
+     tdfx_waitfifo( tdrv, tdev, 2 );
 
      voodoo2D->srcColorkeyMin =
-     voodoo2D->srcColorkeyMax = tdfx->state->src_colorkey;
+     voodoo2D->srcColorkeyMax = state->src_colorkey;
 
-     v_srcColorkey = 1;
+     tdev->v_srcColorkey = 1;
 }
 
-static inline void tdfx_validate_commandExtra()
+static inline void tdfx_validate_commandExtra( TDFXDriverData *tdrv,
+                                               TDFXDeviceData *tdev,
+                                               CardState      *state )
 {
-     if (v_commandExtra)
+     if (tdev->v_commandExtra)
           return;
 
-     tdfx_waitfifo( 1 );
+     tdfx_waitfifo( tdrv, tdev, 1 );
 
-     if (tdfx->state->blittingflags & DSBLIT_SRC_COLORKEY)
-          voodoo2D->commandExtra = 1;
+     if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+          tdrv->voodoo2D->commandExtra = 1;
      else
-          voodoo2D->commandExtra = 0;
+          tdrv->voodoo2D->commandExtra = 0;
 
-     v_commandExtra = 1;
+     tdev->v_commandExtra = 1;
 }
 
 
 
-static inline void tdfx_set_clip()
+static inline void tdfx_set_clip( TDFXDriverData *tdrv,
+                                  TDFXDeviceData *tdev,
+                                  DFBRegion      *clip )
 {
-     DFBRegion *clip = &tdfx->state->clip;
+     Voodoo2D *voodoo2D = tdrv->voodoo2D;
+     Voodoo3D *voodoo3D = tdrv->voodoo3D;
 
-     tdfx_waitfifo( 4 );
+     tdfx_waitfifo( tdrv, tdev, 4 );
 
      voodoo2D->clip0Min = ((clip->y1 & 0xFFF) << 16) |
                           (clip->x1 & 0xFFF);
 
      voodoo2D->clip0Max = (((clip->y2+1) & 0xFFF) << 16) |
                           ((clip->x2+1) & 0xFFF);
-     
+
      voodoo3D->clipLeftRight = ((clip->x1 & 0xFFF) << 16) |
                                ((clip->x2+1) & 0xFFF);
 
      voodoo3D->clipTopBottom = ((clip->y1 & 0xFFF) << 16) |
                                ((clip->y2+1) & 0xFFF);
-
-     tdfx->state->modified &= ~SMF_CLIP;
 }
 
 
 
 /* required implementations */
 
-static void tdfxEngineSync()
+static void tdfxEngineSync( void *drv, void *dev )
 {
-     tdfx_waitidle( mmio_base );
+     TDFXDriverData *tdrv = (TDFXDriverData*) drv;
+     TDFXDeviceData *tdev = (TDFXDeviceData*) dev;
+
+     tdfx_waitidle( tdrv, tdev );
 }
 
 #define TDFX_SUPPORTED_DRAWINGFLAGS \
@@ -376,13 +402,14 @@ static void tdfxEngineSync()
                (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 
-static void tdfxCheckState( CardState *state, DFBAccelerationMask accel )
+static void tdfxCheckState( void *drv, void *dev,
+                            CardState *state, DFBAccelerationMask accel )
 {
      /* check for the special drawing function that does not support
         the usually supported drawingflags */
      if (accel == DFXL_DRAWLINE  &&  state->drawingflags != DSDRAW_NOFX)
           return;
-     
+
      /* if there are no other drawing flags than the supported */
      if (!(state->drawingflags & ~TDFX_SUPPORTED_DRAWINGFLAGS))
           state->accel |= TDFX_SUPPORTED_DRAWINGFUNCTIONS;
@@ -394,54 +421,49 @@ static void tdfxCheckState( CardState *state, DFBAccelerationMask accel )
           state->accel |= TDFX_SUPPORTED_BLITTINGFUNCTIONS;
 }
 
-static void tdfxSetState( CardState *state, DFBAccelerationMask accel )
+static void tdfxSetState( void *drv, void *dev,
+                          GraphicsDeviceFuncs *funcs,
+                          CardState *state, DFBAccelerationMask accel )
 {
-     if (state != tdfx->state) {
-          state->modified |= SMF_ALL;
-          state->set = 0;
-          tdfx->state = state;
-     
-          v_color1 = v_colorFore = v_srcColorkey = v_alphaMode = v_source2D =
-               v_destination2D = v_destination3D = v_commandExtra = 0;
-     }
-     else {
-          if (state->modified & SMF_DESTINATION)
-               v_destination2D = v_destination3D = v_colorFore = 0;
-          
-          if (state->modified & SMF_SOURCE)
-               v_source2D = 0;
+     TDFXDriverData *tdrv = (TDFXDriverData*) drv;
+     TDFXDeviceData *tdev = (TDFXDeviceData*) dev;
 
-          if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
-               v_alphaMode = 0;
+     if (state->modified & SMF_DESTINATION)
+          tdev->v_destination2D = tdev->v_destination3D = tdev->v_colorFore = 0;
 
-          if (state->modified & SMF_COLOR)
-               v_color1 = v_colorFore = 0;
+     if (state->modified & SMF_SOURCE)
+          tdev->v_source2D = 0;
 
-          if (state->modified & SMF_SRC_COLORKEY)
-               v_srcColorkey = 0;
-     
-          if (state->modified & SMF_BLITTING_FLAGS)
-               v_commandExtra = 0;
-     }
-          
+     if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
+          tdev->v_alphaMode = 0;
+
+     if (state->modified & SMF_COLOR)
+          tdev->v_color1 = tdev->v_colorFore = 0;
+
+     if (state->modified & SMF_SRC_COLORKEY)
+          tdev->v_srcColorkey = 0;
+
+     if (state->modified & SMF_BLITTING_FLAGS)
+          tdev->v_commandExtra = 0;
+
      switch (accel) {
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWLINE:
           case DFXL_FILLTRIANGLE:
                if (state->drawingflags & DSDRAW_BLEND) {
-                    tdfx_validate_color1();
-                    tdfx_validate_alphaMode();
-                    tdfx_validate_destination3D();
-                    
-                    tdfx->FillRectangle = tdfxFillRectangle3D;
-                    tdfx->FillTriangle = tdfxFillTriangle3D;
+                    tdfx_validate_color1( tdrv, tdev, state );
+                    tdfx_validate_alphaMode( tdrv, tdev, state );
+                    tdfx_validate_destination3D( tdrv, tdev, state );
+
+                    funcs->FillRectangle = tdfxFillRectangle3D;
+                    funcs->FillTriangle = tdfxFillTriangle3D;
                }
                else {
-                    tdfx_validate_colorFore();
-                    tdfx_validate_destination2D();
+                    tdfx_validate_colorFore( tdrv, tdev, state );
+                    tdfx_validate_destination2D( tdrv, tdev, state );
 
-                    tdfx->FillRectangle = tdfxFillRectangle2D;
-                    tdfx->FillTriangle = tdfxFillTriangle2D;
+                    funcs->FillRectangle = tdfxFillRectangle2D;
+                    funcs->FillTriangle = tdfxFillTriangle2D;
                }
 
                state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWLINE;
@@ -450,11 +472,11 @@ static void tdfxSetState( CardState *state, DFBAccelerationMask accel )
           case DFXL_BLIT:
           case DFXL_STRETCHBLIT:
                if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                    tdfx_validate_srcColorkey();
-               
-               tdfx_validate_commandExtra();
-               tdfx_validate_source2D();
-               tdfx_validate_destination2D();
+                    tdfx_validate_srcColorkey( tdrv, tdev, state );
+
+               tdfx_validate_commandExtra( tdrv, tdev, state );
+               tdfx_validate_source2D( tdrv, tdev, state );
+               tdfx_validate_destination2D( tdrv, tdev, state );
 
                state->set |= DFXL_BLIT | DFXL_STRETCHBLIT;
                break;
@@ -468,14 +490,18 @@ static void tdfxSetState( CardState *state, DFBAccelerationMask accel )
      }
 
      if (state->modified & SMF_CLIP)
-          tdfx_set_clip();
+          tdfx_set_clip( tdrv, tdev, &state->clip );
 
      state->modified = 0;
 }
 
-static void tdfxFillRectangle2D( DFBRectangle *rect )
+static void tdfxFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
 {
-     tdfx_waitfifo( 3 );
+     TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
+     TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
+     Voodoo2D       *voodoo2D = tdrv->voodoo2D;
+
+     tdfx_waitfifo( tdrv, tdev, 3 );
 
      voodoo2D->dstXY   = ((rect->y & 0x1FFF) << 16) | (rect->x & 0x1FFF);
      voodoo2D->dstSize = ((rect->h & 0x1FFF) << 16) | (rect->w & 0x1FFF);
@@ -483,9 +509,13 @@ static void tdfxFillRectangle2D( DFBRectangle *rect )
      voodoo2D->command = 5 | (1 << 8) | (0xCC << 24);
 }
 
-static void tdfxFillRectangle3D( DFBRectangle *rect )
+static void tdfxFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
-     tdfx_waitfifo( 10 );
+     TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
+     TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
+     Voodoo3D       *voodoo3D = tdrv->voodoo3D;
+
+     tdfx_waitfifo( tdrv, tdev, 10 );
 
      voodoo3D->vertexAx = S12_4(rect->x);
      voodoo3D->vertexAy = S12_4(rect->y);
@@ -505,20 +535,24 @@ static void tdfxFillRectangle3D( DFBRectangle *rect )
      voodoo3D->triangleCMD = 0;
 }
 
-static void tdfxDrawRectangle( DFBRectangle *rect )
+static void tdfxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
 }
 
-static void tdfxDrawLine2D( DFBRegion *line )
+static void tdfxDrawLine2D( void *drv, void *dev, DFBRegion *line )
 {
-     tdfx_waitfifo( 5 );
+     TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
+     TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
+     Voodoo2D       *voodoo2D = tdrv->voodoo2D;
+
+     tdfx_waitfifo( tdrv, tdev, 5 );
 
      voodoo2D->srcXY   = ((line->y1 & 0x1FFF) << 16) | (line->x1 & 0x1FFF);
      voodoo2D->dstXY   = ((line->y2 & 0x1FFF) << 16) | (line->x2 & 0x1FFF);
      voodoo2D->command = 6 | (1 << 8) | (0xCC << 24);
 }
 
-/*static void tdfxDrawLine3D( DFBRegion *line )
+/*static void tdfxDrawLine3D( void *drv, void *dev, DFBRegion *line )
 {
      int xl, xr, yb, yt;
 
@@ -560,9 +594,13 @@ static void tdfxDrawLine2D( DFBRegion *line )
      voodoo3D->triangleCMD = 0;
 }*/
 
-static void tdfxFillTriangle2D( DFBTriangle *tri )
+static void tdfxFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
 {
-     tdfx_waitfifo( 7 );
+     TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
+     TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
+     Voodoo2D       *voodoo2D = tdrv->voodoo2D;
+
+     tdfx_waitfifo( tdrv, tdev, 7 );
 
      sort_triangle( tri );
 
@@ -588,9 +626,13 @@ static void tdfxFillTriangle2D( DFBTriangle *tri )
      }
 }
 
-static void tdfxFillTriangle3D( DFBTriangle *tri )
+static void tdfxFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
 {
-     tdfx_waitfifo( 7 );
+     TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
+     TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
+     Voodoo3D       *voodoo3D = tdrv->voodoo3D;
+
+     tdfx_waitfifo( tdrv, tdev, 7 );
 
      sort_triangle( tri );
 
@@ -606,25 +648,27 @@ static void tdfxFillTriangle3D( DFBTriangle *tri )
      voodoo3D->triangleCMD = (1 << 31);
 }
 
-static void tdfxBlit( DFBRectangle *rect, int dx, int dy )
+static void tdfxBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
-     __u32 cmd = 1 | (1 <<8) | (0xCC << 24);//SST_2D_GO | SST_2D_SCRNTOSCRNBLIT | (ROP_COPY << 24);      
-     
-     if (tdfx->state->source == tdfx->state->destination) {        
-          if (rect->x <= dx) {
-               cmd |= (1 << 14);//SST_2D_X_RIGHT_TO_LEFT;
-               rect->x += rect->w-1;
-               dx += rect->w-1;
-          }
-          if (rect->y <= dy) {    
-               cmd |= (1 << 15);//SST_2D_Y_BOTTOM_TO_TOP;
-               rect->y += rect->h-1;
-               dy += rect->h-1;
-          }
+     TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
+     TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
+     Voodoo2D       *voodoo2D = tdrv->voodoo2D;
+
+     __u32 cmd = 1 | (1 <<8) | (0xCC << 24);//SST_2D_GO | SST_2D_SCRNTOSCRNBLIT | (ROP_COPY << 24);
+
+     if (rect->x <= dx) {
+          cmd |= (1 << 14);//SST_2D_X_RIGHT_TO_LEFT;
+          rect->x += rect->w-1;
+          dx += rect->w-1;
      }
-   
-     
-     tdfx_waitfifo( 4 );
+     if (rect->y <= dy) {
+          cmd |= (1 << 15);//SST_2D_Y_BOTTOM_TO_TOP;
+          rect->y += rect->h-1;
+          dy += rect->h-1;
+     }
+
+
+     tdfx_waitfifo( tdrv, tdev, 4 );
 
      voodoo2D->srcXY   = ((rect->y & 0x1FFF) << 16) | (rect->x & 0x1FFF);
      voodoo2D->dstXY   = ((dy      & 0x1FFF) << 16) | (dx      & 0x1FFF);
@@ -633,13 +677,17 @@ static void tdfxBlit( DFBRectangle *rect, int dx, int dy )
      voodoo2D->command = cmd;
 }
 
-static void tdfxStretchBlit( DFBRectangle *sr, DFBRectangle *dr )
+static void tdfxStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 {
-     tdfx_waitfifo( 5 );
+     TDFXDriverData *tdrv     = (TDFXDriverData*) drv;
+     TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
+     Voodoo2D       *voodoo2D = tdrv->voodoo2D;
+
+     tdfx_waitfifo( tdrv, tdev, 5 );
 
      voodoo2D->srcXY   = ((sr->y & 0x1FFF) << 16) | (sr->x & 0x1FFF);
      voodoo2D->srcSize = ((sr->h & 0x1FFF) << 16) | (sr->w & 0x1FFF);
-     
+
      voodoo2D->dstXY   = ((dr->y & 0x1FFF) << 16) | (dr->x & 0x1FFF);
      voodoo2D->dstSize = ((dr->h & 0x1FFF) << 16) | (dr->w & 0x1FFF);
 
@@ -648,10 +696,17 @@ static void tdfxStretchBlit( DFBRectangle *sr, DFBRectangle *dr )
 
 /* exported symbols */
 
-int driver_probe( int fd, GfxCard *card )
+int
+driver_get_abi_version()
+{
+     return DFB_GRAPHICS_DRIVER_ABI_VERSION;
+}
+
+int
+driver_probe( GraphicsDevice *device )
 {
 #ifdef FB_ACCEL_3DFX_BANSHEE
-     switch (card->fix.accel) {
+     switch (gfxcard_get_accelerator( device )) {
           case FB_ACCEL_3DFX_BANSHEE:          /* Banshee/Voodoo3 */
                return 1;
      }
@@ -659,48 +714,87 @@ int driver_probe( int fd, GfxCard *card )
      return 0;
 }
 
-int driver_init( int fd, GfxCard *card )
+void
+driver_get_info( GraphicsDevice     *device,
+                 GraphicsDriverInfo *info )
 {
-     mmio_base = (__u8*)mmap(NULL, card->fix.mmio_len, PROT_READ | PROT_WRITE,
-                             MAP_SHARED, fd, card->fix.smem_len);
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
+               "3Dfx Voodoo 3/4/5/Banshee Driver" );
 
-     if (mmio_base == MAP_FAILED) {
-          PERRORMSG("DirectFB/TDFX: Unable to map mmio region!\n");
+     snprintf( info->vendor,
+               DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->version.major = 0;
+     info->version.minor = 1;
+
+     info->driver_data_size = sizeof (TDFXDriverData);
+     info->device_data_size = sizeof (TDFXDeviceData);
+}
+
+DFBResult
+driver_init_driver( GraphicsDevice      *device,
+                    GraphicsDeviceFuncs *funcs,
+                    void                *driver_data )
+{
+     TDFXDriverData *tdrv = (TDFXDriverData*) driver_data;
+
+     tdrv->mmio_base = (volatile __u8*) gfxcard_map_mmio( device, 0, -1 );
+     if (!tdrv->mmio_base)
           return DFB_IO;
-     }
 
-     voodoo2D = (Voodoo2D*)(mmio_base + 0x100000);
-     voodoo3D = (Voodoo3D*)(mmio_base + 0x200000);
+     tdrv->voodoo2D = (Voodoo2D*)(tdrv->mmio_base + 0x100000);
+     tdrv->voodoo3D = (Voodoo3D*)(tdrv->mmio_base + 0x200000);
 
-     sprintf( card->info.driver_name, "3Dfx V3/4/5/Banshee" );
-     sprintf( card->info.driver_vendor, "convergence integrated media GmbH" );
+     funcs->CheckState    = tdfxCheckState;
+     funcs->SetState      = tdfxSetState;
+     funcs->EngineSync    = tdfxEngineSync;
 
-     card->info.driver_version.major = 0;
-     card->info.driver_version.minor = 0;
+     funcs->DrawRectangle = tdfxDrawRectangle;
+     funcs->DrawLine      = tdfxDrawLine2D;
+     funcs->Blit          = tdfxBlit;
+     funcs->StretchBlit   = tdfxStretchBlit;
 
-     card->caps.flags    = CCF_CLIPPING;
-     card->caps.accel    = TDFX_SUPPORTED_DRAWINGFUNCTIONS |
-                           TDFX_SUPPORTED_BLITTINGFUNCTIONS;
-     card->caps.drawing  = TDFX_SUPPORTED_DRAWINGFLAGS;
-     card->caps.blitting = TDFX_SUPPORTED_BLITTINGFLAGS;
+     return DFB_OK;
+}
 
-     card->CheckState = tdfxCheckState;
-     card->SetState = tdfxSetState;
-     card->EngineSync = tdfxEngineSync;          
 
-     card->DrawRectangle = tdfxDrawRectangle;
-     card->DrawLine = tdfxDrawLine2D;
-     card->Blit = tdfxBlit;
-     card->StretchBlit = tdfxStretchBlit;
+DFBResult
+driver_init_device( GraphicsDevice     *device,
+                    GraphicsDeviceInfo *device_info,
+                    void               *driver_data,
+                    void               *device_data )
+{
+     TDFXDriverData *tdrv     = (TDFXDriverData*) driver_data;
+     TDFXDeviceData *tdev     = (TDFXDeviceData*) device_data;
+     Voodoo2D       *voodoo2D = tdrv->voodoo2D;
+     Voodoo3D       *voodoo3D = tdrv->voodoo3D;
 
-     card->byteoffset_align = 32 * 4;
-     card->pixelpitch_align = 32;
+     /* fill device info */
+     snprintf( device_info->name,
+               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Voodoo 3/4/5/Banshee" );
 
-     
+     snprintf( device_info->vendor,
+               DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "3Dfx" );
+
+
+     device_info->caps.flags    = CCF_CLIPPING;
+     device_info->caps.accel    = TDFX_SUPPORTED_DRAWINGFUNCTIONS |
+                                  TDFX_SUPPORTED_BLITTINGFUNCTIONS;
+     device_info->caps.drawing  = TDFX_SUPPORTED_DRAWINGFLAGS;
+     device_info->caps.blitting = TDFX_SUPPORTED_BLITTINGFLAGS;
+
+     device_info->limits.surface_byteoffset_alignment = 32 * 4;
+     device_info->limits.surface_pixelpitch_alignment = 32;
+
+
+     /* initialize card */
      voodoo2D->status = 0;
      voodoo3D->nopCMD = 3;
-     
-     tdfx_waitfifo( 6 );
+
+     tdfx_waitfifo( tdrv, tdev, 6 );
 
      voodoo3D->clipLeftRight1 = 0;
      voodoo3D->clipTopBottom1 = 0;
@@ -713,47 +807,63 @@ int driver_init( int fd, GfxCard *card )
      voodoo2D->commandExtra = 0;
      voodoo2D->rop = 0xAAAAAA;
 
-     tdfx_waitfifo( 1 );           /* VOODOO !!!  */
-     *((__u32*)((__u8*) mmio_base + 0x10c)) = 1 << 4 | 1 << 8 | 5 << 12 | 
-	                                      1 << 18 | 5 << 24;
-     tdfx = card;
+     tdfx_waitfifo( tdrv, tdev, 1 );           /* VOODOO !!!  */
+     *((__u32*)((__u8*) tdrv->mmio_base + 0x10c)) = 1 << 4 | 1 << 8 | 5 << 12 |
+                                                    1 << 18 | 5 << 24;
 
      dfb_config->pollvsync_after = 1;
 
      return DFB_OK;
 }
 
-void driver_init_layers()
+void
+driver_init_layers()
 {
 }
 
-void driver_deinit()
+void
+driver_close_device( GraphicsDevice *device,
+                     void           *driver_data,
+                     void           *device_data )
 {
+     TDFXDeviceData *tdev = (TDFXDeviceData*) device_data;
+     TDFXDriverData *tdrv = (TDFXDriverData*) driver_data;
+
+     (void) tdev;
+     (void) tdrv;
+
      DEBUGMSG( "DirectFB/TDFX: FIFO Performance Monitoring:\n" );
      DEBUGMSG( "DirectFB/TDFX:  %9d tdfx_waitfifo calls\n",
-               tdfx_waitfifo_calls );
+               tdev->waitfifo_calls );
      DEBUGMSG( "DirectFB/TDFX:  %9d register writes (tdfx_waitfifo sum)\n",
-               tdfx_waitfifo_sum );
+               tdev->waitfifo_sum );
      DEBUGMSG( "DirectFB/TDFX:  %9d FIFO wait cycles (depends on CPU)\n",
-               tdfx_fifo_waitcycles );
+               tdev->fifo_waitcycles );
      DEBUGMSG( "DirectFB/TDFX:  %9d IDLE wait cycles (depends on CPU)\n",
-               tdfx_idle_waitcycles );
+               tdev->idle_waitcycles );
      DEBUGMSG( "DirectFB/TDFX:  %9d FIFO space cache hits(depends on CPU)\n",
-               tdfx_fifo_cache_hits );
+               tdev->fifo_cache_hits );
      DEBUGMSG( "DirectFB/TDFX: Conclusion:\n" );
      DEBUGMSG( "DirectFB/TDFX:  Average register writes/tdfx_waitfifo"
                "call:%.2f\n",
-               tdfx_waitfifo_sum/(float)(tdfx_waitfifo_calls) );
+               tdev->waitfifo_sum/(float)(tdev->waitfifo_calls) );
      DEBUGMSG( "DirectFB/TDFX:  Average wait cycles/tdfx_waitfifo call:"
                " %.2f\n",
-               tdfx_fifo_waitcycles/(float)(tdfx_waitfifo_calls) );
+               tdev->fifo_waitcycles/(float)(tdev->waitfifo_calls) );
      DEBUGMSG( "DirectFB/TDFX:  Average fifo space cache hits: %02d%%\n",
-               (int)(100 * tdfx_fifo_cache_hits/
-               (float)(tdfx_waitfifo_calls)) );
+               (int)(100 * tdev->fifo_cache_hits/
+               (float)(tdev->waitfifo_calls)) );
 
-     DEBUGMSG( "DirectFB/TDFX:  Pixels Out: %d\n", voodoo3D->fbiPixelsOut );
-     DEBUGMSG( "DirectFB/TDFX:  Triangles Out: %d\n", voodoo3D->fbiTrianglesOut );
-     
-     munmap( (void*)mmio_base, tdfx->fix.mmio_len);
+     DEBUGMSG( "DirectFB/TDFX:  Pixels Out: %d\n", tdrv->voodoo3D->fbiPixelsOut );
+     DEBUGMSG( "DirectFB/TDFX:  Triangles Out: %d\n", tdrv->voodoo3D->fbiTrianglesOut );
+}
+
+void
+driver_close_driver( GraphicsDevice *device,
+                     void           *driver_data )
+{
+     TDFXDriverData *tdrv = (TDFXDriverData*) driver_data;
+
+     gfxcard_unmap_mmio( device, tdrv->mmio_base, -1 );
 }
 

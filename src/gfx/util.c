@@ -33,11 +33,25 @@
 #include "util.h"
 
 
-static CardState copy_state = { 0 };
-static CardState btf_state = { 0 };
+static int       copy_state_inited = 0;
+static CardState copy_state;
+
+static int       btf_state_inited = 0;
+static CardState btf_state;
+
+static pthread_mutex_t copy_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t btf_lock = PTHREAD_MUTEX_INITIALIZER;
+
 
 void gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect )
 {
+     pthread_mutex_lock( &copy_lock );
+
+     if (!copy_state_inited) {
+          state_init( &copy_state );
+          copy_state_inited = 1;
+     }
+
      copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
 
      copy_state.clip.x1     = 0;
@@ -54,11 +68,20 @@ void gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect
           DFBRectangle sourcerect = { 0, 0, source->width, source->height };
           gfxcard_blit( &sourcerect, 0, 0, &copy_state );
      }
+
+     pthread_mutex_unlock( &copy_lock );
 }
 
 void back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
 {
      SurfaceBuffer *tmp;
+
+     pthread_mutex_lock( &btf_lock );
+
+     if (!btf_state_inited) {
+          state_init( &btf_state );
+          btf_state_inited = 1;
+     }
 
      btf_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
 
@@ -81,9 +104,11 @@ void back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
           DFBRectangle sourcerect = { 0, 0, surface->width, surface->height };
           gfxcard_blit( &sourcerect, 0, 0, &btf_state );
      }
-     
+
      tmp = surface->front_buffer;
      surface->front_buffer = surface->back_buffer;
      surface->back_buffer = tmp;
+
+     pthread_mutex_unlock( &btf_lock );
 }
 

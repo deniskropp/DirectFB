@@ -7,7 +7,7 @@ ATI_DIR =
 endif
 
 if GFX_MATROX
-MATROX_DIR =matrox
+MATROX_DIR = matrox
 else
 MATROX_DIR =
 endif

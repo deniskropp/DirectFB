@@ -39,7 +39,6 @@
 #include "core/coredefs.h"
 #include "core/coretypes.h"
 
-#include "core/reactor.h"
 #include "core/state.h"
 #include "core/surfaces.h"
 #include "core/windows.h"
@@ -75,7 +74,7 @@ typedef struct {
      IDirectFBWindowBuffer_item    *events;         /* linked list containing
                                                        events */
 
-     pthread_mutex_t                events_mutex;   /* mutex lock for accessing
+     pthread_mutex_t                events_mutex;   /* skirmish lock for accessing
                                                        the event queue */
 
      pthread_cond_t                 wait_condition; /* condition used for idle

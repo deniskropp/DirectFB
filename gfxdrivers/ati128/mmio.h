@@ -27,15 +27,7 @@
 
 #include <asm/types.h>
 
-
-/* for fifo/performance monitoring */
-extern unsigned int ati128_waitfifo_sum;
-extern unsigned int ati128_waitfifo_calls;
-extern unsigned int ati128_fifo_waitcycles;
-extern unsigned int ati128_idle_waitcycles;
-extern unsigned int ati128_fifo_cache_hits;
-
-extern unsigned int ati128_fifo_space;
+#include "ati128.h"
 
 static inline void
 ati128_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
@@ -63,62 +55,64 @@ ati128_in32(volatile __u8 *mmioaddr, __u32 reg)
 #endif
 }
 
-static inline void ati128_waitidle( volatile __u8 *mmioaddr )
+static inline void ati128_waitidle( ATI128DriverData *adrv,
+                                    ATI128DeviceData *adev )
 {
 #ifndef __powerpc__    
      int timeout = 1000000;          
      
      while (timeout--) { 
-          if ((ati128_in32( mmioaddr, GUI_STAT) & 0x00000FFF) == 64)
+          if ((ati128_in32( adrv->mmio_base, GUI_STAT) & 0x00000FFF) == 64)
                break;
           	 
-          ati128_idle_waitcycles++;
+          adev->idle_waitcycles++;
      }
 
      timeout = 1000000;
      
      while (timeout--) {          
-          if ((ati128_in32( mmioaddr, GUI_STAT) & (GUI_ACTIVE | ENG_3D_BUSY)) == ENGINE_IDLE)
+          if ((ati128_in32( adrv->mmio_base, GUI_STAT) & (GUI_ACTIVE | ENG_3D_BUSY)) == ENGINE_IDLE)
                break;
           
-          ati128_idle_waitcycles++;
+          adev->idle_waitcycles++;
      }
 
-     ati128_out32( mmioaddr, PC_NGUI_CTLSTAT,
-                   ati128_in32( mmioaddr, PC_NGUI_CTLSTAT) | 0x000000ff);
+     ati128_out32( adrv->mmio_base, PC_NGUI_CTLSTAT,
+                   ati128_in32( adrv->mmio_base, PC_NGUI_CTLSTAT) | 0x000000ff);
 
      timeout = 1000000;
      while (timeout--) {
-          if ((ati128_in32( mmioaddr, PC_NGUI_CTLSTAT) & PC_BUSY) != PC_BUSY)
+          if ((ati128_in32( adrv->mmio_base, PC_NGUI_CTLSTAT) & PC_BUSY) != PC_BUSY)
                break;
                
-          ati128_idle_waitcycles++;
+          adev->idle_waitcycles++;
      }    
-     ati128_fifo_space = 60;
+     adev->fifo_space = 60;
 #endif
 }
 
-static inline void ati128_waitfifo( volatile __u8 *mmioaddr,
+static inline void ati128_waitfifo( ATI128DriverData *adrv,
+                                    ATI128DeviceData *adev,
                                     int requested_fifo_space)
 {
      int timeout = 1000000;
      
-     ati128_waitfifo_sum += requested_fifo_space;
-     ati128_waitfifo_calls++;
+     adev->waitfifo_sum += requested_fifo_space;
+     adev->waitfifo_calls++;
 
-     if (ati128_fifo_space < requested_fifo_space) {
+     if (adev->fifo_space < requested_fifo_space) {
           while (timeout--) {
-               ati128_fifo_waitcycles++;
+               adev->fifo_waitcycles++;
 
-               ati128_fifo_space = ati128_in32( mmioaddr, GUI_STAT) & 0x00000FFF;
-               if (ati128_fifo_space >= requested_fifo_space)
+               adev->fifo_space = ati128_in32( adrv->mmio_base, GUI_STAT) & 0x00000FFF;
+               if (adev->fifo_space >= requested_fifo_space)
                     break;               
           }
      }
      else {
-          ati128_fifo_cache_hits++;
+          adev->fifo_cache_hits++;
      }
-     ati128_fifo_space -= requested_fifo_space;
+     adev->fifo_space -= requested_fifo_space;
 }
 
 #endif

@@ -35,8 +35,13 @@
 
 #include <pthread.h>
 
+#include <core/fusion/shmalloc.h>
+#include <core/fusion/reactor.h>
+#include <core/fusion/arena.h>
+
 #include "directfb.h"
 
+#include "core.h"
 #include "coredefs.h"
 #include "coretypes.h"
 
@@ -44,7 +49,6 @@
 #include "core.h"
 #include "layers.h"
 #include "gfxcard.h"
-#include "reactor.h"
 #include "surfaces.h"
 #include "surfacemanager.h"
 #include "state.h"
@@ -55,6 +59,7 @@
 
 
 FBDev *fbdev = NULL;
+
 
 static DFBResult primaryEnable( DisplayLayer *thiz );
 static DFBResult primaryDisable( DisplayLayer *thiz );
@@ -93,30 +98,8 @@ void waitretrace (void)
 #endif
 
 
-/** public **/
-
-DFBResult fbdev_open()
+static DFBResult fbdev_open()
 {
-     if (fbdev) {
-          BUG( "fbdev_init() already called!" );
-          return DFB_BUG;
-     }
-
-     fbdev = (FBDev*) DFBCALLOC( 1, sizeof(FBDev) );
-
-     if (dfb_config->fb_device) {
-          fbdev->fd = open( dfb_config->fb_device, O_RDWR );
-          if (fbdev->fd < 0) {
-               PERRORMSG( "DirectFB/core/fbdev: Error opening `%s'!\n",
-                          dfb_config->fb_device);
-
-               DFBFREE( fbdev );
-               fbdev = NULL;
-
-               return DFB_INIT;
-          }
-     }
-
      fbdev->fd = open( "/dev/fb0", O_RDWR );
      if (fbdev->fd < 0) {
           if (errno == ENOENT) {
@@ -131,15 +114,42 @@ DFBResult fbdev_open()
                                     "Error opening `/dev/fb/0'!\n" );
                     }
 
-                    DFBFREE( fbdev );
-                    fbdev = NULL;
-
-                    return DFB_INIT;
+                    return errno2dfb( errno );
                }
           }
           else {
                PERRORMSG( "DirectFB/core/fbdev: Error opening `/dev/fb0'!\n");
 
+               return errno2dfb( errno );
+          }
+     }
+
+     return DFB_OK;
+}
+
+/** public **/
+
+DFBResult fbdev_initialize()
+{
+     DFBResult ret;
+
+     if (fbdev) {
+          BUG( "fbdev_init() already called!" );
+          return DFB_BUG;
+     }
+
+     fbdev = (FBDev*) DFBCALLOC( 1, sizeof(FBDev) );
+
+     Sfbdev = (FBDevShared*) shcalloc( 1, sizeof(FBDevShared) );
+
+
+     if (dfb_config->fb_device) {
+          fbdev->fd = open( dfb_config->fb_device, O_RDWR );
+          if (fbdev->fd < 0) {
+               PERRORMSG( "DirectFB/core/fbdev: Error opening `%s'!\n",
+                          dfb_config->fb_device);
+
+               shmfree( Sfbdev );
                DFBFREE( fbdev );
                fbdev = NULL;
 
@@ -147,21 +157,32 @@ DFBResult fbdev_open()
           }
      }
 
-     if (ioctl( fbdev->fd, FBIOGET_VSCREENINFO, &fbdev->orig_var ) < 0) {
+     ret = fbdev_open();
+     if (ret) {
+          shmfree( Sfbdev );
+          DFBFREE( fbdev );
+          fbdev = NULL;
+
+          return ret;
+     }
+
+     if (ioctl( fbdev->fd, FBIOGET_VSCREENINFO, &Sfbdev->orig_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not get variable screen information!\n" );
+          shmfree( Sfbdev );
           DFBFREE( fbdev );
           fbdev = NULL;
 
           return DFB_INIT;
      }
 
-     fbdev->current_var = fbdev->orig_var;
-     fbdev->current_var.accel_flags = 0;
+     Sfbdev->current_var = Sfbdev->orig_var;
+     Sfbdev->current_var.accel_flags = 0;
 
-     if (ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &fbdev->current_var ) < 0) {
+     if (ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &Sfbdev->current_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not disable console acceleration!\n" );
+          shmfree( Sfbdev );
           DFBFREE( fbdev );
           fbdev = NULL;
 
@@ -170,33 +191,33 @@ DFBResult fbdev_open()
 
      fbdev_read_modes();
 
-     if (!fbdev->modes) {
+     if (!Sfbdev->modes) {
           /* try to use current mode*/
-          fbdev->modes = (VideoMode*) DFBCALLOC( 1, sizeof(VideoMode) );
+          Sfbdev->modes = (VideoMode*) shcalloc( 1, sizeof(VideoMode) );
 
-          fbdev->modes->xres = fbdev->orig_var.xres;
-          fbdev->modes->yres = fbdev->orig_var.yres;
-          fbdev->modes->bpp = fbdev->orig_var.bits_per_pixel;
-          fbdev->modes->hsync_len = fbdev->orig_var.hsync_len;
-          fbdev->modes->vsync_len = fbdev->orig_var.vsync_len;
-          fbdev->modes->left_margin = fbdev->orig_var.left_margin;
-          fbdev->modes->right_margin = fbdev->orig_var.right_margin;
-          fbdev->modes->upper_margin = fbdev->orig_var.upper_margin;
-          fbdev->modes->lower_margin = fbdev->orig_var.lower_margin;
-          fbdev->modes->pixclock = fbdev->orig_var.pixclock;
+          Sfbdev->modes->xres = Sfbdev->orig_var.xres;
+          Sfbdev->modes->yres = Sfbdev->orig_var.yres;
+          Sfbdev->modes->bpp = Sfbdev->orig_var.bits_per_pixel;
+          Sfbdev->modes->hsync_len = Sfbdev->orig_var.hsync_len;
+          Sfbdev->modes->vsync_len = Sfbdev->orig_var.vsync_len;
+          Sfbdev->modes->left_margin = Sfbdev->orig_var.left_margin;
+          Sfbdev->modes->right_margin = Sfbdev->orig_var.right_margin;
+          Sfbdev->modes->upper_margin = Sfbdev->orig_var.upper_margin;
+          Sfbdev->modes->lower_margin = Sfbdev->orig_var.lower_margin;
+          Sfbdev->modes->pixclock = Sfbdev->orig_var.pixclock;
 
 
-          if (fbdev->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
-               fbdev->modes->hsync_high = 1;
-          if (fbdev->orig_var.sync & FB_SYNC_VERT_HIGH_ACT)
-               fbdev->modes->vsync_high = 1;
+          if (Sfbdev->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
+               Sfbdev->modes->hsync_high = 1;
+          if (Sfbdev->orig_var.sync & FB_SYNC_VERT_HIGH_ACT)
+               Sfbdev->modes->vsync_high = 1;
 
-          if (fbdev->orig_var.vmode & FB_VMODE_INTERLACED)
-               fbdev->modes->laced = 1;
-          if (fbdev->orig_var.vmode & FB_VMODE_DOUBLE)
-               fbdev->modes->doubled = 1;
+          if (Sfbdev->orig_var.vmode & FB_VMODE_INTERLACED)
+               Sfbdev->modes->laced = 1;
+          if (Sfbdev->orig_var.vmode & FB_VMODE_DOUBLE)
+               Sfbdev->modes->doubled = 1;
 
-          if (fbdev_set_mode(NULL, fbdev->modes, DLBM_FRONTONLY))
+          if (fbdev_set_mode(NULL, Sfbdev->modes, DLBM_FRONTONLY))
           {
                ERRORMSG("DirectFB/core/fbdev: "
                         "No supported modes found in /etc/fb.modes and "
@@ -204,78 +225,124 @@ DFBResult fbdev_open()
 
                ERRORMSG( "DirectFB/core/fbdev: Current mode's pixelformat: "
                          "rgba %d/%d, %d/%d, %d/%d, %d/%d (%dbit)\n",
-                         fbdev->orig_var.red.length,
-                         fbdev->orig_var.red.offset,
-                         fbdev->orig_var.green.length,
-                         fbdev->orig_var.green.offset,
-                         fbdev->orig_var.blue.length,
-                         fbdev->orig_var.blue.offset,
-                         fbdev->orig_var.transp.length,
-                         fbdev->orig_var.transp.offset,
-                         fbdev->orig_var.bits_per_pixel );
+                         Sfbdev->orig_var.red.length,
+                         Sfbdev->orig_var.red.offset,
+                         Sfbdev->orig_var.green.length,
+                         Sfbdev->orig_var.green.offset,
+                         Sfbdev->orig_var.blue.length,
+                         Sfbdev->orig_var.blue.offset,
+                         Sfbdev->orig_var.transp.length,
+                         Sfbdev->orig_var.transp.offset,
+                         Sfbdev->orig_var.bits_per_pixel );
 
-               DFBFREE( fbdev->modes );
-               fbdev->modes = NULL;
+               shmfree( Sfbdev->modes );
+               shmfree( Sfbdev );
+               Sfbdev->modes = NULL;
 
                return DFB_INIT;
           }
      }
 
-     fbdev->orig_cmap.start  = 0;
-     fbdev->orig_cmap.len    = 256;
-     fbdev->orig_cmap.red    = (__u16*)DFBMALLOC( 2 * 256 );
-     fbdev->orig_cmap.green  = (__u16*)DFBMALLOC( 2 * 256 );
-     fbdev->orig_cmap.blue   = (__u16*)DFBMALLOC( 2 * 256 );
-     fbdev->orig_cmap.transp = NULL;
+     Sfbdev->orig_cmap.start  = 0;
+     Sfbdev->orig_cmap.len    = 256;
+     Sfbdev->orig_cmap.red    = (__u16*)shmalloc( 2 * 256 );
+     Sfbdev->orig_cmap.green  = (__u16*)shmalloc( 2 * 256 );
+     Sfbdev->orig_cmap.blue   = (__u16*)shmalloc( 2 * 256 );
+     Sfbdev->orig_cmap.transp = NULL;
 
-     if (ioctl( fbdev->fd, FBIOGETCMAP, &fbdev->orig_cmap ) < 0) {
+     if (ioctl( fbdev->fd, FBIOGETCMAP, &Sfbdev->orig_cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not retrieve palette for backup!\n" );
-          DFBFREE( fbdev->orig_cmap.red );
-          DFBFREE( fbdev->orig_cmap.green );
-          DFBFREE( fbdev->orig_cmap.blue );
-          fbdev->orig_cmap.len = 0;
+          shmfree( Sfbdev->orig_cmap.red );
+          shmfree( Sfbdev->orig_cmap.green );
+          shmfree( Sfbdev->orig_cmap.blue );
+          Sfbdev->orig_cmap.len = 0;
      }
 
+#ifndef FUSION_FAKE
+     arena_add_shared_field( dfb_core->arena, Sfbdev, "Sfbdev" );
+#endif
 
      return DFB_OK;
 }
 
-void fbdev_deinit()
+#ifndef FUSION_FAKE
+DFBResult fbdev_join()
+{
+     DFBResult ret;
+
+     if (fbdev) {
+          BUG( "fbdev_join() called and display != NULL" );
+          return DFB_BUG;
+     }
+
+     fbdev = (FBDev*)DFBCALLOC( 1, sizeof(FBDev) );
+
+     arena_get_shared_field( dfb_core->arena, (void**) &Sfbdev, "Sfbdev" );
+
+     ret = fbdev_open();
+     if (ret) {
+          free( fbdev );
+          fbdev = NULL;
+          return ret;
+     }
+
+     return DFB_OK;
+}
+#endif
+
+DFBResult fbdev_shutdown()
 {
      VideoMode *m;
 
-     if (!fbdev) {
-          BUG( "fbdev_deinit() called while fbdev == NULL!" );
-          return;
-     }
-
-     m = fbdev->modes;
+     m = Sfbdev->modes;
      while (m) {
           VideoMode *next = m->next;
-          DFBFREE( m );
+          shmfree( m );
           m = next;
      }
 
-     if (ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &fbdev->orig_var ) < 0) {
+     if (ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &Sfbdev->orig_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not restore variable screen information!\n" );
      }
 
-     if (fbdev->orig_cmap.len) {
-          if (ioctl( fbdev->fd, FBIOPUTCMAP, &fbdev->orig_cmap ) < 0)
+     if (Sfbdev->orig_cmap.len) {
+          if (ioctl( fbdev->fd, FBIOPUTCMAP, &Sfbdev->orig_cmap ) < 0)
                PERRORMSG( "DirectFB/core/fbdev: "
                           "Could not restore palette!\n" );
 
-          DFBFREE( fbdev->orig_cmap.red );
-          DFBFREE( fbdev->orig_cmap.green );
-          DFBFREE( fbdev->orig_cmap.blue );
+          shmfree( Sfbdev->orig_cmap.red );
+          shmfree( Sfbdev->orig_cmap.green );
+          shmfree( Sfbdev->orig_cmap.blue );
      }
 
      close( fbdev->fd );
 
      DFBFREE( fbdev );
      fbdev = NULL;
+
+     return DFB_OK;
+}
+
+#ifndef FUSION_FAKE
+DFBResult fbdev_leave()
+{
+     close( fbdev->fd );
+
+     DFBFREE( fbdev );
+     fbdev = NULL;
+
+     return DFB_OK;
+}
+#endif
+
+
+
+
+VideoMode *fbdev_modes()
+{
+     return Sfbdev->modes;
 }
 
 DFBResult fbdev_wait_vsync()
@@ -290,26 +357,28 @@ DFBResult fbdev_wait_vsync()
      return DFB_OK;
 }
 
-DFBResult primarylayer_init()
+DFBResult primarylayer_initialize()
 {
      CoreSurface *surface;
      DFBResult err;
 
      DisplayLayer *layer = (DisplayLayer*) DFBCALLOC( 1, sizeof(DisplayLayer) );
 
-     layer->id = DLID_PRIMARY;
-     layer->caps = DLCAPS_SURFACE;
-     sprintf( layer->description, "Primary Layer" );
+     layer->shared = (DisplayLayerShared*) shcalloc( 1, sizeof(DisplayLayerShared) );
+
+     layer->shared->id = DLID_PRIMARY;
+     layer->shared->caps = DLCAPS_SURFACE;
+     sprintf( layer->shared->description, "Primary Layer" );
 
      layer->deinit = primarylayer_deinit;
 
-     layer->screen.x = 0.0f;
-     layer->screen.y = 0.0f;
-     layer->screen.w = 1.0f;
-     layer->screen.h = 1.0f;
+     layer->shared->screen.x = 0.0f;
+     layer->shared->screen.y = 0.0f;
+     layer->shared->screen.w = 1.0f;
+     layer->shared->screen.h = 1.0f;
 
-     layer->enabled = 1;
-     layer->opacity = 0xFF;
+     layer->shared->enabled = 1;
+     layer->shared->opacity = 0xFF;
 
      layer->Enable = primaryEnable;
      layer->Disable = primaryDisable;
@@ -321,38 +390,56 @@ DFBResult primarylayer_init()
      layer->FlipBuffers = primaryFlipBuffers;
 
      /* allocate the surface */
-     surface = (CoreSurface *) DFBCALLOC( 1, sizeof(CoreSurface) );
+     surface = (CoreSurface *) shcalloc( 1, sizeof(CoreSurface) );
 
-     pthread_mutex_init( &surface->front_lock, NULL );
-     pthread_mutex_init( &surface->back_lock, NULL );
+     skirmish_init( &surface->front_lock );
+     skirmish_init( &surface->back_lock );
 
-     surface->reactor = reactor_new();
+     surface->manager = gfxcard_surface_manager();
+     surface->reactor = reactor_new(sizeof(CoreSurfaceNotification));
 
-     surface->front_buffer = (SurfaceBuffer *)
-          DFBCALLOC( 1, sizeof(SurfaceBuffer) );
+     surface->front_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
+     surface->back_buffer  = surface->front_buffer;
 
-     surface->back_buffer = surface->front_buffer;
-
-     layer->surface = surface;
+     layer->shared->surface = surface;
 
      /* set the mode to initialize the surface */
      err = fbdev_set_mode( layer, NULL, DLBM_FRONTONLY );
      if (err) {
-          ERRORMSG( "DirectFB/core/primarylayer: "
-                    "Setting default mode failed!\n" );
+          ERRORMSG( "DirectFB/core/primarylayer: Setting default mode failed! "
+                    "(%s)\n", DirectFBErrorString( err ) );
           DFBFREE( layer );
           return err;
      }
 
-     layer->bg.mode = DLBM_DONTCARE;
+     layer->shared->bg.mode = DLBM_DONTCARE;
 
-     layer->windowstack = windowstack_new( layer );
+     layer->shared->windowstack = windowstack_new( layer );
 
      layers_add( layer );
 
      return DFB_OK;
 }
 
+#ifndef FUSION_FAKE
+DFBResult primarylayer_join()
+{
+     DisplayLayer *layer = layers;
+
+     layer->deinit = primarylayer_deinit;
+
+     layer->Enable = primaryEnable;
+     layer->Disable = primaryDisable;
+     layer->TestConfiguration = primaryTestConfiguration;
+     layer->SetConfiguration = primarySetConfiguration;
+     layer->SetScreenLocation = primarySetScreenLocation;
+     layer->SetOpacity = primarySetOpacity;
+     layer->SetColorKey = primarySetColorKey;
+     layer->FlipBuffers = primaryFlipBuffers;
+
+     return DFB_OK;
+}
+#endif
 
 /** primary layer internal **/
 
@@ -380,17 +467,17 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
           if (config->flags & DLCONF_WIDTH)
                width = config->width;
           else
-               width = thiz->width;
+               width = thiz->shared->width;
 
           if (config->flags & DLCONF_HEIGHT)
                height = config->height;
           else
-               height = thiz->height;
+               height = thiz->shared->height;
 
           if (config->flags & DLCONF_PIXELFORMAT)
                pixelformat = config->pixelformat;
           else
-               pixelformat = thiz->surface->format;
+               pixelformat = thiz->shared->surface->format;
 
           switch (pixelformat) {
                case DSPF_RGB15:  /* special case where VideoMode->bpp = 15 */
@@ -401,7 +488,7 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
                     bpp = BYTES_PER_PIXEL(pixelformat) * 8;
           }
 
-          videomode = fbdev->modes;
+          videomode = Sfbdev->modes;
           while (videomode) {
                if (videomode->xres == width  &&
                    videomode->yres == height  &&
@@ -422,7 +509,7 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
                fail |= DLCONF_BUFFERMODE;
      }
      else if (videomode) {
-          if (fbdev_set_mode( NULL, videomode, thiz->buffermode ))
+          if (fbdev_set_mode( NULL, videomode, thiz->shared->buffermode ))
                fail |= (config->flags & (DLCONF_WIDTH  |
                                          DLCONF_HEIGHT | DLCONF_PIXELFORMAT));
      }
@@ -449,7 +536,7 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
      unsigned int               width, height, bpp;
 
      if (!config)
-          return fbdev_set_mode( thiz, fbdev->current_mode, thiz->buffermode );
+          return fbdev_set_mode( thiz, Sfbdev->current_mode, thiz->shared->buffermode );
 
      if (config->flags & DLCONF_OPTIONS  &&  config->options)
           return DFB_UNSUPPORTED;
@@ -457,17 +544,17 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
      if (config->flags & DLCONF_WIDTH)
           width = config->width;
      else
-          width = thiz->width;
+          width = thiz->shared->width;
 
      if (config->flags & DLCONF_HEIGHT)
           height = config->height;
      else
-          height = thiz->height;
+          height = thiz->shared->height;
 
      if (config->flags & DLCONF_PIXELFORMAT)
           pixelformat = config->pixelformat;
      else
-          pixelformat = thiz->surface->format;
+          pixelformat = thiz->shared->surface->format;
 
      switch (pixelformat) {
           case DSPF_RGB15:  /* special case where VideoMode->bpp = 15 */
@@ -481,15 +568,15 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
      if (config->flags & DLCONF_BUFFERMODE)
           buffermode = config->buffermode;
      else
-          buffermode = thiz->buffermode;
+          buffermode = thiz->shared->buffermode;
 
-     if (fbdev->current_mode->xres == width  &&
-         fbdev->current_mode->yres == height &&
-         fbdev->current_mode->bpp  == bpp    &&
-         thiz->buffermode            == buffermode)
+     if (Sfbdev->current_mode->xres == width  &&
+         Sfbdev->current_mode->yres == height &&
+         Sfbdev->current_mode->bpp  == bpp    &&
+         thiz->shared->buffermode            == buffermode)
           return DFB_OK;
 
-     videomode = fbdev->modes;
+     videomode = Sfbdev->modes;
      while (videomode) {
           if (videomode->xres == width  &&
               videomode->yres == height  &&
@@ -531,18 +618,18 @@ static DFBResult primarySetColorKey( DisplayLayer *thiz, __u32 key )
 
 static DFBResult primaryFlipBuffers( DisplayLayer *thiz )
 {
-     if (thiz->buffermode == DLBM_FRONTONLY)
+     if (thiz->shared->buffermode == DLBM_FRONTONLY)
           return DFB_UNSUPPORTED;
 
-     if (thiz->buffermode == DLBM_BACKVIDEO) {
+     if (thiz->shared->buffermode == DLBM_BACKVIDEO) {
           DFBResult ret;
 
-          ret = fbdev_pan( thiz->surface->back_buffer->video.offset ? 1 : 0 );
+          ret = fbdev_pan( thiz->shared->surface->back_buffer->video.offset ? 1 : 0 );
           if (ret)
                return ret;
      }
 
-     surface_flip_buffers( thiz->surface );
+     surface_flip_buffers( thiz->shared->surface );
 
 #if defined(HAVE_INB_OUTB_IOPL)
      if (!dfb_config->pollvsync_none && dfb_config->pollvsync_after) {
@@ -556,16 +643,24 @@ static DFBResult primaryFlipBuffers( DisplayLayer *thiz )
 
 static void primarylayer_deinit( DisplayLayer *layer )
 {
-     windowstack_destroy( layer->windowstack );
+     CoreSurface *surface = layer->shared->surface;
 
-     reactor_free( layer->surface->reactor );
+     windowstack_destroy( layer->shared->windowstack );
 
-     DFBFREE( layer->surface->front_buffer );
+     reactor_free( surface->reactor );
 
-     if (layer->surface->back_buffer != layer->surface->front_buffer)
-          DFBFREE( layer->surface->back_buffer );
+     if (surface->back_buffer->system.health)
+          shmfree( surface->back_buffer->system.addr );
 
-     DFBFREE( layer->surface );
+     shmfree( surface->front_buffer );
+
+     if (surface->back_buffer != surface->front_buffer)
+          shmfree( surface->back_buffer );
+
+     skirmish_destroy( &surface->front_lock );
+     skirmish_destroy( &surface->back_lock );
+
+     shmfree( surface );
 }
 
 
@@ -621,7 +716,7 @@ static DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *va
 
                break;
 
-          case 16:               
+          case 16:
                if (fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ) |
                    fbdev_compatible_format( var, 1, 5, 5, 5,15, 10, 5, 0 ) )
                     return DSPF_RGB15;
@@ -630,7 +725,7 @@ static DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *va
                     return DSPF_RGB16;
 
                break;
-                              
+
           case 24:
                if (fbdev_compatible_format( var, 0, 8, 8, 8, 0, 16, 8, 0 ))
                     return DSPF_RGB24;
@@ -665,7 +760,7 @@ static DFBResult fbdev_pan( int buffer )
 {
      struct fb_var_screeninfo var;
 
-     var = fbdev->current_var;
+     var = Sfbdev->current_var;
 
      if (var.yres_virtual < var.yres*(buffer+1)) {
           BUG( "panning buffer out of range" );
@@ -685,7 +780,7 @@ static DFBResult fbdev_pan( int buffer )
           return errno2dfb( erno );
      }
 
-     fbdev->current_var = var;
+     Sfbdev->current_var = var;
 
      return DFB_OK;
 }
@@ -701,9 +796,9 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
      struct fb_var_screeninfo var;
 
      if (!mode)
-          mode = fbdev->current_mode ? fbdev->current_mode : fbdev->modes;
+          mode = Sfbdev->current_mode ? Sfbdev->current_mode : Sfbdev->modes;
 
-     var = fbdev->current_var;
+     var = Sfbdev->current_var;
 
      var.xoffset = 0;
      var.yoffset = 0;
@@ -711,7 +806,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
 
      /*
       * since parsing of the argb parameter in fbset is broken, DirectFB
-      * sets RGB555 mode, when 15bpp is is given in an /etc/fb.modes entry
+      * sets RGB555 mode, when 15bpp is given in an /etc/fb.modes entry
       */
      switch (mode->bpp) {
           case 15:
@@ -786,7 +881,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
 
      /* If layer is NULL the mode was only tested, otherwise apply changes. */
      if (layer) {
-          CoreSurface *surface = layer->surface;
+          CoreSurface *surface = layer->shared->surface;
 
           ioctl( fbdev->fd, FBIOGET_VSCREENINFO, &var );
 
@@ -794,7 +889,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
           mode->format = fbdev_get_pixelformat( &var );
           if (mode->format == DSPF_UNKNOWN) {
                /* restore mode */
-               ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &fbdev->current_var );
+               ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &Sfbdev->current_var );
                return DFB_UNSUPPORTED;
           }
 
@@ -811,16 +906,16 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
 
           surface->format = mode->format;
 
-          fbdev->current_var = var;
-          fbdev->current_mode = mode;
+          Sfbdev->current_var = var;
+          Sfbdev->current_mode = mode;
 
-          layer->width = surface->width = mode->xres;
-          layer->height = surface->height = mode->yres;
-          layer->buffermode = buffermode;
+          layer->shared->width = surface->width = mode->xres;
+          layer->shared->height = surface->height = mode->yres;
+          layer->shared->buffermode = buffermode;
 
-          surfacemanager_adjust_heap_offset( var.yres_virtual *
-                                             var.xres_virtual *
-                                             ((var.bits_per_pixel + 7) / 8) );
+          gfxcard_adjust_heap_offset( var.yres_virtual *
+                                      var.xres_virtual *
+                                      ((var.bits_per_pixel + 7) / 8) );
 
           surface->front_buffer->policy = CSP_VIDEOONLY;
           surface->front_buffer->video.health = CSH_STORED;
@@ -833,9 +928,9 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                     surface->caps &= ~DSCAPS_FLIPPING;
                     if (surface->back_buffer != surface->front_buffer) {
                          if (surface->back_buffer->system.health)
-                              DFBFREE( surface->back_buffer->system.addr );
+                              shmfree( surface->back_buffer->system.addr );
 
-                         DFBFREE( surface->back_buffer );
+                         shmfree( surface->back_buffer );
 
                          surface->back_buffer = surface->front_buffer;
                     }
@@ -843,11 +938,11 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                case DLBM_BACKVIDEO:
                     surface->caps |= DSCAPS_FLIPPING;
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = DFBCALLOC( 1, sizeof(SurfaceBuffer) );
+                         surface->back_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
                     }
                     else {
                          if (surface->back_buffer->system.health)
-                              DFBFREE( surface->back_buffer->system.addr );
+                              shmfree( surface->back_buffer->system.addr );
 
                          surface->back_buffer->system.health = CSH_INVALID;
                     }
@@ -861,23 +956,25 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                case DLBM_BACKSYSTEM:
                     surface->caps |= DSCAPS_FLIPPING;
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = DFBCALLOC( 1, sizeof(SurfaceBuffer) );
+                         surface->back_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
                     }
                     surface->back_buffer->policy = CSP_SYSTEMONLY;
                     surface->back_buffer->video.health = CSH_INVALID;
                     surface->back_buffer->system.health = CSH_STORED;
                     surface->back_buffer->system.pitch = var.xres *
                                                   BYTES_PER_PIXEL(mode->format);
-                    surface->back_buffer->system.addr = DFBREALLOC(
-                         surface->back_buffer->system.addr,
-                         surface->back_buffer->system.pitch * var.yres );
+
+                    if (surface->back_buffer->system.addr)
+                         shmfree( surface->back_buffer->system.addr );
+
+                    surface->back_buffer->system.addr =
+                         shmalloc( surface->back_buffer->system.pitch * var.yres );
                     break;
           }
 
           fbdev_pan(0);
 
-          if (card->AfterSetVar)
-               card->AfterSetVar();
+          gfxcard_after_set_var();
 
           surface_notify_listeners( surface, CSNF_SIZEFORMAT | CSNF_FLIP |
                                              CSNF_VIDEO | CSNF_SYSTEM );
@@ -887,7 +984,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
 }
 
 /*
- * parses video modes in /etc/fb.modes and stores them in fbdev->modes
+ * parses video modes in /etc/fb.modes and stores them in Sfbdev->modes
  * (to be replaced by DirectFB's own config system
  */
 static DFBResult fbdev_read_modes()
@@ -897,7 +994,7 @@ static DFBResult fbdev_read_modes()
      int geometry=0, timings=0;
      int dummy;
      VideoMode temp_mode;
-     VideoMode *m = fbdev->modes;
+     VideoMode *m = Sfbdev->modes;
 
      if (!(fp = fopen("/etc/fb.modes","r")))
           return errno2dfb( errno );
@@ -941,13 +1038,12 @@ static DFBResult fbdev_read_modes()
                    timings &&
                    !fbdev_set_mode(NULL, &temp_mode, DLBM_FRONTONLY))
                {
-
                     if (!m) {
-                         fbdev->modes = DFBMALLOC(sizeof(VideoMode));
-                         m = fbdev->modes;
+                         Sfbdev->modes = shcalloc(1, sizeof(VideoMode));
+                         m = Sfbdev->modes;
                     }
                     else {
-                         m->next = DFBMALLOC(sizeof(VideoMode));
+                         m->next = shcalloc(1, sizeof(VideoMode));
                          m = m->next;
                     }
                     memcpy (m, &temp_mode, sizeof(VideoMode));

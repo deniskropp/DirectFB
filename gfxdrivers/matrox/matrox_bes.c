@@ -43,6 +43,8 @@
 #include "mmio.h"
 #include "matrox.h"
 
+#if 0
+
 static struct {
      __u32 besGLOBCTL;
      __u32 besA1ORG;
@@ -101,26 +103,26 @@ static ReactionResult besSurfaceListener (const void *msg_data, void *ctx)
 
 DFBResult besEnable( DisplayLayer *layer )
 {
-     if (!layer->surface) {
+     if (!layer->shared->surface) {
           DFBResult              ret;
           DFBSurfaceCapabilities caps = DSCAPS_VIDEOONLY;
 
-          if (layer->options & DLOP_INTERLACED_VIDEO)
+          if (layer->shared->options & DLOP_INTERLACED_VIDEO)
                caps |= DSCAPS_INTERLACED;
 
           /* FIXME HARDCODER! */
-          ret = surface_create( layer->width, layer->height, DSPF_RGB16,
-                                CSP_VIDEOONLY, caps, &layer->surface );
+          ret = surface_create( layer->shared->width, layer->shared->height, DSPF_RGB16,
+                                CSP_VIDEOONLY, caps, &layer->shared->surface );
           if (ret)
                return ret;
 
-          reactor_attach( layer->surface->reactor, besSurfaceListener, layer );
+          reactor_attach( layer->shared->surface->reactor, besSurfaceListener, layer );
      }
 
-     if (!layer->windowstack)
-          layer->windowstack = windowstack_new( layer );
+     if (!layer->shared->windowstack)
+          layer->shared->windowstack = windowstack_new( layer );
 
-     layer->enabled = 1;
+     layer->shared->enabled = 1;
 
      bes_calc_regs( layer );
      bes_set_regs();
@@ -131,7 +133,7 @@ DFBResult besEnable( DisplayLayer *layer )
 DFBResult besDisable( DisplayLayer *layer )
 {
      /* FIXME: The surface should be destroyed, and the window stack? */
-     layer->enabled = 0;
+     layer->shared->enabled = 0;
 
      mga_out32( mmio_base, 0, BESCTL );
 
@@ -162,7 +164,7 @@ DFBResult besTestConfiguration( DisplayLayer               *layer,
                     fail |= DLCONF_PIXELFORMAT;
           }
      else
-          if (layer->surface->format == DSPF_RGB32)
+          if (layer->shared->surface->format == DSPF_RGB32)
                max_width = 512;
 
      if (config->flags & DLCONF_WIDTH) {
@@ -170,7 +172,7 @@ DFBResult besTestConfiguration( DisplayLayer               *layer,
                fail |= DLCONF_WIDTH;
      }
      else {
-          if (layer->width > max_width)
+          if (layer->shared->width > max_width)
                fail |= DLCONF_WIDTH;
      }
 
@@ -203,58 +205,58 @@ DFBResult besSetConfiguration( DisplayLayer          *layer,
      if (config->flags & DLCONF_WIDTH)
           width = config->width;
      else
-          width = layer->width;
+          width = layer->shared->width;
 
      if (config->flags & DLCONF_HEIGHT)
           height = config->height;
      else
-          height = layer->height;
+          height = layer->shared->height;
 
      if (config->flags & DLCONF_PIXELFORMAT)
           format = config->pixelformat;
      else
-          format = layer->surface->format;
+          format = layer->shared->surface->format;
 
      if (config->flags & DLCONF_BUFFERMODE)
           buffermode = config->buffermode;
      else
-          buffermode = layer->buffermode;
+          buffermode = layer->shared->buffermode;
 
      if (config->flags & DLCONF_OPTIONS)
           options = config->options;
      else
-          options = layer->options;
+          options = layer->shared->options;
 
-     if (layer->buffermode != buffermode) {
+     if (layer->shared->buffermode != buffermode) {
           ONCE("Changing the buffermode of the overlay is unimplemented!");
           return DFB_UNIMPLEMENTED;
      }
 
-     if (layer->width != width ||
-         layer->height != height ||
-         layer->surface->format != format ||
-         layer->options != options)
+     if (layer->shared->width != width ||
+         layer->shared->height != height ||
+         layer->shared->surface->format != format ||
+         layer->shared->options != options)
      {
           /* FIXME: write surface management functions
                     for easier configuration changes */
 
-          ret = surface_reformat( layer->surface, width, height, format );
+          ret = surface_reformat( layer->shared->surface, width, height, format );
           if (ret)
                return ret;
 
           if (options & DLOP_INTERLACED_VIDEO)
-               layer->surface->caps |= DSCAPS_INTERLACED;
+               layer->shared->surface->caps |= DSCAPS_INTERLACED;
           else
-               layer->surface->caps &= ~DSCAPS_INTERLACED;
+               layer->shared->surface->caps &= ~DSCAPS_INTERLACED;
 
-          layer->options = options;
-          layer->width   = width;
-          layer->height  = height;
+          layer->shared->options = options;
+          layer->shared->width   = width;
+          layer->shared->height  = height;
 
-          layer->windowstack->cursor_region.x1 = 0;
-          layer->windowstack->cursor_region.y1 = 0;
-          layer->windowstack->cursor_region.x2 = layer->width - 1;
-          layer->windowstack->cursor_region.y2 = layer->height - 1;
+          layer->shared->windowstack->cursor_region.x1 = 0;
+          layer->shared->windowstack->cursor_region.y1 = 0;
+          layer->shared->windowstack->cursor_region.x2 = layer->shared->width - 1;
+          layer->shared->windowstack->cursor_region.y2 = layer->shared->height - 1;
 
           bes_calc_regs( layer );
           bes_set_regs();
@@ -286,10 +288,10 @@ DFBResult besSetScreenLocation( DisplayLayer *layer,
                                 float         width,
                                 float         height )
 {
-     layer->screen.x = x;
-     layer->screen.y = y;
-     layer->screen.w = width;
-     layer->screen.h = height;
+     layer->shared->screen.x = x;
+     layer->shared->screen.y = y;
+     layer->shared->screen.w = width;
+     layer->shared->screen.h = height;
 
      bes_calc_regs( layer );
      bes_set_regs();
@@ -315,10 +317,10 @@ DFBResult besSetColorAdjustment( DisplayLayer       *layer,
           return DFB_UNSUPPORTED;
 
      if (adj->flags & DCAF_BRIGHTNESS)
-          layer->adjustment.brightness = adj->brightness;
+          layer->shared->adjustment.brightness = adj->brightness;
 
      if (adj->flags & DCAF_CONTRAST)
-          layer->adjustment.contrast = adj->contrast;
+          layer->shared->adjustment.contrast = adj->contrast;
 
      bes_calc_regs( layer );
      bes_set_regs();
@@ -342,30 +344,32 @@ void driver_init_layers()
 
      layer = (DisplayLayer*)DFBCALLOC( 1, sizeof(DisplayLayer) );
 
-     layer->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE | DLCAPS_BRIGHTNESS |
+     layer->shared = (DisplayLayerShared*) shcalloc( 1, sizeof(DisplayLayerShared) );
+
+     layer->shared->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE | DLCAPS_BRIGHTNESS |
                    DLCAPS_CONTRAST | DLCAPS_INTERLACED_VIDEO;
 
-     sprintf( layer->description, "Matrox Backend Scaler" );
+     sprintf( layer->shared->description, "Matrox Backend Scaler" );
 
-     layer->enabled = 0;
+     layer->shared->enabled = 0;
 
-     layer->width = 640;
-     layer->height = 480;
-     layer->buffermode = DLBM_FRONTONLY;
-     layer->options = 0;
+     layer->shared->width = 640;
+     layer->shared->height = 480;
+     layer->shared->buffermode = DLBM_FRONTONLY;
+     layer->shared->options = 0;
 
-     layer->screen.x = 0.0f;
-     layer->screen.y = 0.0f;
-     layer->screen.w = 1.0f;
-     layer->screen.h = 1.0f;
+     layer->shared->screen.x = 0.0f;
+     layer->shared->screen.y = 0.0f;
+     layer->shared->screen.w = 1.0f;
+     layer->shared->screen.h = 1.0f;
 
-     layer->opacity = 0xFF;
+     layer->shared->opacity = 0xFF;
 
-     layer->bg.mode  = DLBM_DONTCARE;
+     layer->shared->bg.mode  = DLBM_DONTCARE;
 
-     layer->adjustment.flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST;
-     layer->adjustment.brightness = 0x8000;
-     layer->adjustment.contrast   = 0x8000;
+     layer->shared->adjustment.flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST;
+     layer->shared->adjustment.brightness = 0x8000;
+     layer->shared->adjustment.contrast   = 0x8000;
 
      layer->Enable = besEnable;
      layer->Disable = besDisable;
@@ -386,8 +390,8 @@ void driver_init_layers()
 
      mga_out32( mmio_base, 0x80, BESLUMACTL );
 
-     /* gets filled by layers_add: layer->id */
-     layers_add( layer );
+     /* gets filled by layers_add: layer->shared->id */
+     layers_add( layer, 1 );
 }
 
 
@@ -431,18 +435,18 @@ static void bes_calc_regs( DisplayLayer *layer )
      int          drw_w;
      int          drw_h;
      int          field_height;
-     CoreSurface *surface = layer->surface;
+     CoreSurface *surface = layer->shared->surface;
 
 
-     drw_w = (int)(layer->screen.w * (float)fbdev->current_mode->xres + 0.5f);
-     drw_h = (int)(layer->screen.h * (float)fbdev->current_mode->yres + 0.5f);
+     drw_w = (int)(layer->shared->screen.w * (float)Sfbdev->current_mode->xres + 0.5f);
+     drw_h = (int)(layer->shared->screen.h * (float)Sfbdev->current_mode->yres + 0.5f);
 
-     dstBox.x1 = (int)(layer->screen.x * (float)fbdev->current_mode->xres + 0.5f);
-     dstBox.y1 = (int)(layer->screen.y * (float)fbdev->current_mode->yres + 0.5f);
-     dstBox.x2 = (int)((layer->screen.x + layer->screen.w) * (float)fbdev->current_mode->xres + 0.5f);
-     dstBox.y2 = (int)((layer->screen.y + layer->screen.h) * (float)fbdev->current_mode->yres + 0.5f);
+     dstBox.x1 = (int)(layer->shared->screen.x * (float)Sfbdev->current_mode->xres + 0.5f);
+     dstBox.y1 = (int)(layer->shared->screen.y * (float)Sfbdev->current_mode->yres + 0.5f);
+     dstBox.x2 = (int)((layer->shared->screen.x + layer->shared->screen.w) * (float)Sfbdev->current_mode->xres + 0.5f);
+     dstBox.y2 = (int)((layer->shared->screen.y + layer->shared->screen.h) * (float)Sfbdev->current_mode->yres + 0.5f);
 
-     hzoom = (1000000/fbdev->current_var.pixclock >= 135) ? 1 : 0;
+     hzoom = (1000000/Sfbdev->current_var.pixclock >= 135) ? 1 : 0;
 
      bes_regs.besCTL = BESCTL_BESEN;
 
@@ -464,8 +468,8 @@ static void bes_calc_regs( DisplayLayer *layer )
                bes_regs.besGLOBCTL = BESRGB16;
                break;
           case DSPF_RGB32:
-               drw_w = layer->width;
-               dstBox.x2 = dstBox.x1 + layer->width;
+               drw_w = layer->shared->width;
+               dstBox.x2 = dstBox.x1 + layer->shared->width;
                bes_regs.besGLOBCTL = BESRGB32;
                break;
           default:
@@ -473,7 +477,7 @@ static void bes_calc_regs( DisplayLayer *layer )
                return;
      }
 
-     bes_regs.besGLOBCTL |= 3*hzoom | (fbdev->current_mode->yres & 0xFFF) << 16;
+     bes_regs.besGLOBCTL |= 3*hzoom | (Sfbdev->current_mode->yres & 0xFFF) << 16;
      bes_regs.besA1ORG    = surface->front_buffer->video.offset;
      bes_regs.besA2ORG    = surface->front_buffer->video.offset +
                             surface->front_buffer->video.pitch;
@@ -482,24 +486,24 @@ static void bes_calc_regs( DisplayLayer *layer )
      bes_regs.besVCOORD   = (dstBox.y1 << 16) | (dstBox.y2 - 1);
 
      bes_regs.besHSRCST   = 0;
-     bes_regs.besHSRCEND  = (layer->width - 1) << 16;
-     bes_regs.besHSRCLST  = (layer->width - 1) << 16;
+     bes_regs.besHSRCEND  = (layer->shared->width - 1) << 16;
+     bes_regs.besHSRCLST  = (layer->shared->width - 1) << 16;
 
-     bes_regs.besLUMACTL  = (layer->adjustment.contrast >> 8) |
-                            ((__u8)(((int)layer->adjustment.brightness >> 8)
+     bes_regs.besLUMACTL  = (layer->shared->adjustment.contrast >> 8) |
+                            ((__u8)(((int)layer->shared->adjustment.brightness >> 8)
                                      - 128)) << 16;
 
      bes_regs.besV1WGHT   = 0;
      bes_regs.besV2WGHT   = 0x18000;
 
-     bes_regs.besV1SRCLST = layer->height - 1;
-     bes_regs.besV2SRCLST = layer->height - 2;
+     bes_regs.besV1SRCLST = layer->shared->height - 1;
+     bes_regs.besV2SRCLST = layer->shared->height - 2;
 
      bes_regs.besPITCH    = surface->front_buffer->video.pitch;
 
-     field_height         = layer->height;
+     field_height         = layer->shared->height;
 
-     if (layer->options & DLOP_INTERLACED_VIDEO)
+     if (layer->shared->options & DLOP_INTERLACED_VIDEO)
           field_height >>= 1;
      else {
           bes_regs.besPITCH >>= 1;
@@ -507,11 +511,11 @@ static void bes_calc_regs( DisplayLayer *layer )
      }
 
 
-     if (layer->surface->format == DSPF_RGB32)
+     if (layer->shared->surface->format == DSPF_RGB32)
           bes_regs.besHISCAL = 0x20000;
      else {
-          intrep = ((drw_w == layer->width) || (drw_w < 2)) ? 0 : 1;
-          tmp = (((layer->width - intrep) << 16) / (drw_w - intrep)) << hzoom;
+          intrep = ((drw_w == layer->shared->width) || (drw_w < 2)) ? 0 : 1;
+          tmp = (((layer->shared->width - intrep) << 16) / (drw_w - intrep)) << hzoom;
           if (tmp >= (32 << 16))
                tmp = (32 << 16) - 1;
           bes_regs.besHISCAL = tmp & 0x001ffffc;
@@ -523,4 +527,5 @@ static void bes_calc_regs( DisplayLayer *layer )
           tmp = (32 << 16) - 1;
      bes_regs.besVISCAL = tmp & 0x001ffffc;
 }
+#endif
 

@@ -144,7 +144,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
           (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
      desc->width  = data->player->GetWidth();
      desc->height = data->player->GetHeight();
-     desc->pixelformat = layers->surface->format;
+     desc->pixelformat = layers->shared->surface->format;
 
      return DFB_OK;
 }
@@ -429,10 +429,10 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      data->source.back_buffer = data->source.front_buffer;
 
-     pthread_mutex_init( &data->source.front_lock, NULL );
-     pthread_mutex_init( &data->source.back_lock, NULL );
+     skirmish_init( &data->source.front_lock );
+     skirmish_init( &data->source.back_lock );
 
-     data->source.reactor = reactor_new();
+     data->source.reactor = reactor_new(sizeof(CoreSurfaceNotification));
 
      data->state.source   = &data->source;
      data->state.modified = SMF_ALL;

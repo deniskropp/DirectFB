@@ -92,7 +92,7 @@ static int verbose = 1;
 static int showComment = 1;
 static int ZeroDataBlock = FALSE;
 
-static __u32* ReadGIF( FILE *fd, int imageNumber, 
+static __u32* ReadGIF( FILE *fd, int imageNumber,
                        int *width, int *height, int *transparency,
                        __u32 *key_rgb, int headeronly);
 
@@ -245,8 +245,8 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
                     return err;
                }
 
-               scale_linear_32( dst, image_data, 
-                                src_width, src_height, width, height, 
+               scale_linear_32( dst, image_data,
+                                src_width, src_height, width, height,
                                 pitch - width * BYTES_PER_PIXEL(format),
                                 format );
 
@@ -264,7 +264,7 @@ static DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
                                                    DFBSurfaceDescription *dsc )
 {
      FILE *f;
- 
+
      INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
      f = fopen( data->filename, "rb" );
@@ -281,7 +281,7 @@ static DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
           dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->width  = width;
           dsc->height = height;
-          dsc->pixelformat = layers->surface->format;
+          dsc->pixelformat = layers->shared->surface->format;
 
           fclose (f);
      }
@@ -294,7 +294,7 @@ static DFBResult IDirectFBImageProvider_GIF_GetImageDescription(
                                                    DFBImageDescription    *dsc )
 {
      FILE *f;
- 
+
      INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
      f = fopen( data->filename, "rb" );
@@ -622,8 +622,8 @@ static __u32* ReadImage( FILE *fd, int len, int height,
                *dst++ = 0xFF00FF00;
           }
           else {
-               __u32 color = cmap[CM_RED][v]   << 16 | 
-                             cmap[CM_GREEN][v] << 8  | 
+               __u32 color = cmap[CM_RED][v]   << 16 |
+                             cmap[CM_GREEN][v] << 8  |
                              cmap[CM_BLUE][v];
 
                /* very ugly quick hack to preserve the colorkey for 16bit,
@@ -687,7 +687,7 @@ fini:
 
 
 
-static __u32* ReadGIF( FILE *fd, int imageNumber, 
+static __u32* ReadGIF( FILE *fd, int imageNumber,
                        int *width, int *height, int *transparency,
                        __u32 *key_rgb, int headeronly)
 {
@@ -813,7 +813,7 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
 
                if (headeronly)
                     return NULL;
-               
+
                return ReadImage( fd, LM_to_uint(buf[4],buf[5]),
                                  LM_to_uint(buf[6],buf[7]), GifScreen.ColorMap,
                                  BitSet(buf[8], INTERLACE),

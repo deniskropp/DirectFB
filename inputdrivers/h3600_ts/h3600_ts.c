@@ -40,16 +40,20 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/reactor.h>
 
 #include <misc/conf.h>
+#include <misc/mem.h>
 
 
-static int fd = -1;
+typedef struct {
+     int            fd;
+     InputDevice   *device;
+     pthread_t      thread;
+} H3600TSData;
 
-static void* h3600_tsEventThread(void *device)
+static void* h3600tsEventThread( void *driver_data )
 {
-     InputDevice *h3600_ts = (InputDevice*)device;
+     H3600TSData *data = (H3600TSData*) driver_data;
 
      TS_EVENT ts_event;
 
@@ -59,12 +63,15 @@ static void* h3600_tsEventThread(void *device)
      unsigned short old_y = -1;
      unsigned short old_pressure = 0;
 
-     while ((readlen = read(fd, &ts_event, sizeof(TS_EVENT))) > 0  ||
+     while ((readlen = read(data->fd, &ts_event, sizeof(TS_EVENT))) > 0  ||
             errno == EINTR)
      {
           DFBInputEvent evt;
 
           pthread_testcancel();
+
+          if (readlen < 1)
+               continue;
 
           if (ts_event.pressure) {
                if (ts_event.x != old_x) {
@@ -73,7 +80,7 @@ static void* h3600_tsEventThread(void *device)
                     evt.axis    = DIAI_X;
                     evt.axisabs = ts_event.x;
 
-                    reactor_dispatch( h3600_ts->reactor, &evt );
+                    input_dispatch( data->device, &evt );
 
                     old_x = ts_event.x;
                }
@@ -84,7 +91,7 @@ static void* h3600_tsEventThread(void *device)
                     evt.axis    = DIAI_Y;
                     evt.axisabs = ts_event.y;
 
-                    reactor_dispatch( h3600_ts->reactor, &evt );
+                    input_dispatch( data->device, &evt );
 
                     old_y = ts_event.y;
                }
@@ -97,7 +104,7 @@ static void* h3600_tsEventThread(void *device)
                evt.flags   = DIEF_BUTTON;
                evt.button  = DIBI_LEFT;
 
-               reactor_dispatch( h3600_ts->reactor, &evt );
+               input_dispatch( data->device, &evt );
 
                old_pressure = ts_event.pressure;
           }
@@ -114,7 +121,12 @@ static void* h3600_tsEventThread(void *device)
 
 /* exported symbols */
 
-int driver_probe()
+int driver_get_abi_version()
+{
+     return DFB_INPUT_DRIVER_ABI_VERSION;
+}
+
+int driver_get_available()
 {
      int fd;
 
@@ -127,36 +139,80 @@ int driver_probe()
      return 1;
 }
 
-int driver_init(InputDevice *device)
+void
+driver_get_info( InputDriverInfo *info )
 {
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "H3600 Touchscreen Driver" );
+
+     snprintf( info->vendor,
+               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->version.major = 0;
+     info->version.minor = 2;
+}
+
+DFBResult
+driver_open_device( InputDevice      *device,
+                    unsigned int      number,
+                    InputDeviceInfo  *info,
+                    void            **driver_data )
+{
+     int          fd;
+     H3600TSData *data;
+
+     /* open device */
      fd = open( "/dev/ts", O_RDONLY | O_NOCTTY );
      if (fd < 0) {
           PERRORMSG( "DirectFB/H3600: Error opening `/dev/ts'!\n" );
           return DFB_INIT;
      }
 
-     device->info.driver_name = "H3600 Touchscreen";
-     device->info.driver_vendor = "convergence integrated media GmbH";
+     /* fill device info structure */
+     snprintf( info->name,
+               DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "H3600 Touchscreen" );
 
-     device->info.driver_version.major = 0;
-     device->info.driver_version.minor = 1;
+     snprintf( info->vendor,
+               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
 
-     device->id = DIDID_MOUSE;
+     info->prefered_id     = DIDID_MOUSE;
 
-     device->desc.type = DIDTF_MOUSE;
-     device->desc.caps = DICAPS_AXIS | DICAPS_BUTTONS;
-     device->desc.max_axis = DIAI_Y;
-     device->desc.max_button = DIBI_LEFT;
+     info->desc.type       = DIDTF_MOUSE;
+     info->desc.caps       = DICAPS_AXIS | DICAPS_BUTTONS;
+     info->desc.max_axis   = DIAI_Y;
+     info->desc.max_button = DIBI_LEFT;
 
-     device->EventThread = h3600_tsEventThread;
+     /* allocate and fill private data */
+     data = DFBCALLOC( 1, sizeof(H3600TSData) );
+
+     data->fd     = fd;
+     data->device = device;
+
+     /* start input thread */
+     pthread_create( &data->thread, NULL, h3600tsEventThread, data );
+
+     /* set private data pointer */
+     *driver_data = data;
 
      return DFB_OK;
 }
 
-void driver_deinit(InputDevice *device)
+void
+driver_close_device( void *driver_data )
 {
-     if (close( fd ) < 0)
+     H3600TSData *data = (H3600TSData*) driver_data;
+
+     /* stop input thread */
+     pthread_cancel( data->thread );
+     pthread_join( data->thread, NULL );
+
+     /* close device */
+     if (close( data->fd ) < 0)
           PERRORMSG( "DirectFB/H3600: Error closing `/dev/ts'!\n" );
-     fd = -1;
+
+     /* free private data */
+     DFBFREE( data );
 }
 

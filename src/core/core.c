@@ -29,6 +29,9 @@
 
 #include <pthread.h>
 
+#include <core/fusion/fusion.h>
+#include <core/fusion/arena.h>
+
 #include "directfb.h"
 
 #include "coredefs.h"
@@ -42,6 +45,7 @@
 #include "gfxcard.h"
 #include "layers.h"
 #include "surfaces.h"
+#include "surfacemanager.h"
 
 #include "misc/mem.h"
 #include "misc/util.h"
@@ -63,7 +67,21 @@ struct _CoreCleanup {
  */
 static CoreCleanup *core_cleanups = NULL;
 
-static int core_refs = 0;
+CoreData *dfb_core = NULL;
+
+
+
+static int core_initialize( FusionArena *arena, void *ctx );
+#ifndef FUSION_FAKE
+static int core_join( FusionArena *arena, void *ctx );
+static int core_takeover( FusionArena *arena, void *ctx );
+#endif
+
+static int core_shutdown( FusionArena *arena, void *ctx );
+#ifndef FUSION_FAKE
+static int core_leave( FusionArena *arena, void *ctx );
+static int core_transfer( FusionArena *arena, void *ctx );
+#endif
 
 /*
  * macro for error handling in init functions
@@ -80,27 +98,35 @@ static int core_refs = 0;
  */
 void core_deinit_check()
 {
-     if (core_refs) {
+#if 0
+     if (dfb_core_local->refs) {
           DEBUGMSG( "DirectFB/core: WARNING - Application "
                     "exitted without deinitialization of DirectFB!\n" );
           core_deinit();
      }
+#endif
 
 #ifdef DFB_DEBUG
      dbg_print_memleaks();
 #endif
 }
 
-DFBResult core_init()
+DFBResult core_init( int *argc, char **argv[] )
 {
-     DFBResult ret;
+     return DFB_OK;
+}
+
+DFBResult core_ref()
+{
 #ifdef USE_MMX
      char *mmx_string = " (with MMX support)";
 #else
      char *mmx_string = "";
 #endif
+     int   fid;
 
-     if (core_refs++)
+     /* check for multiple calls, do reference counting */
+     if (dfb_core && dfb_core->refs++)
           return DFB_OK;
 
      if (!dfb_config->no_sighandler)
@@ -109,85 +135,129 @@ DFBResult core_init()
      if (!dfb_config->no_deinit_check)
           atexit( core_deinit_check );
 
+#ifdef FUSION_FAKE
      INITMSG( "Single Application Core.%s\n", mmx_string );
+#else
+     INITMSG( "Multi Application Core.%s\n", mmx_string );
+#endif
 
      if (dfb_config->sync) {
           INITMSG( "DirectFB/core: doing sync()...\n" );
           sync();
      }
 
-     INITCHECK( vt_open() );
-     INITCHECK( input_init_devices() );
-     INITCHECK( fbdev_open() );
-     INITCHECK( gfxcard_init() );
+     fid = fusion_init();
+     if (fid < 0)
+          return DFB_INIT;
 
-     INITCHECK( primarylayer_init() );
-     INITCHECK( gfxcard_init_layers() );
+     DEBUGMSG( "DirectFB/Core: fusion id %d\n", fid );
+
+     /* allocate local data */
+     dfb_core = DFBCALLOC( 1, sizeof(CoreData) );
+
+     dfb_core->refs  = 1;
+     dfb_core->fid   = fid;
+
+#ifndef FUSION_FAKE
+     arena_enter ("DirectFB/Core",
+                  core_initialize, core_join, core_takeover, NULL);
+     if (!dfb_core->arena) {
+          DFBFREE( dfb_core );
+          fusion_exit();
+          return DFB_INIT;
+     }
+#else
+     if (core_initialize( NULL, NULL ))
+          return DFB_INIT;
+#endif
 
      return DFB_OK;
 }
 
-void core_deinit()
+int core_is_master()
 {
-     if (--core_refs)
+     return dfb_core->master;
+}
+
+void core_unref()
+{
+     if (!dfb_core)
           return;
 
-     while (core_cleanups) {
-          CoreCleanup *cleanup = core_cleanups;
+     if (!dfb_core->refs)
+          return;
 
-          core_cleanups = cleanup->next;
+     if (--dfb_core->refs)
+          return;
 
-          cleanup->cleanup( cleanup->data, 0 );
+#ifndef FUSION_FAKE
+     arena_exit( dfb_core->arena,
+                 core_shutdown, core_leave, core_transfer );
+#else
+     core_shutdown( NULL, NULL );
+#endif
 
-          DFBFREE( cleanup );
-     }
+     fusion_exit();
 
-     layers_deinit();
-     surfaces_deinit();
-     gfxcard_deinit();
-     fbdev_deinit();
-     input_deinit();
-     vt_close();
+     DFBFREE( dfb_core );
+     dfb_core = NULL;
 
      sig_remove_handlers();
 }
 
 void core_deinit_emergency()
 {
-     core_refs = 0;
+     if (!dfb_core->refs)
+          return;
 
-     while (core_cleanups) {
-          CoreCleanup *cleanup = core_cleanups;
+     dfb_core->refs = 0;
 
-          core_cleanups = core_cleanups->prev;
+#ifdef FUSION_FAKE
+     if (dfb_core->master) {
+#if 0
+          while (core_cleanups) {
+               CoreCleanup *cleanup = core_cleanups;
 
-          if (cleanup->emergency)
-               cleanup->cleanup( cleanup->data, 1 );
+               core_cleanups = core_cleanups->prev;
 
-          DFBFREE( cleanup );
-     }
+               if (cleanup->emergency)
+                    cleanup->cleanup( cleanup->data, 1 );
 
-     if (card) {
-          int i;
-
-          /* try to prohibit graphics hardware access,
-             this may fail if the current thread locked it */
-          for (i=0; i<100; i++) {
-               gfxcard_sync();
-
-               if (pthread_mutex_trylock( &card->lock ) != EBUSY)
-                    break;
-
-               sched_yield();
+               DFBFREE( cleanup );
           }
 
-          if (card->info.driver && card->info.driver->DeInit)
-               card->info.driver->DeInit();
-     }
+          if (card) {
+               int i;
 
-     input_deinit();
-     if (core_vt)
-          vt_close();
+               /* try to prohibit graphics hardware access,
+                  this may fail if the current thread locked it */
+               for (i=0; i<100; i++) {
+                    gfxcard_sync();
+
+                    if (skirmish_swoop( &Scard->lock ) != EBUSY)
+                         break;
+
+                    sched_yield();
+               }
+
+               if (card->driver && card->driver->DeInit)
+                    card->driver->DeInit();
+          }
+
+#endif
+          input_shutdown();
+          if (core_vt)
+               vt_shutdown();
+     }
+#else
+     arena_exit( dfb_core->arena,
+                 core_shutdown, core_leave, core_transfer );
+
+     fusion_exit();
+#endif
+
+     DFBFREE( dfb_core );
+     dfb_core = NULL;
 
      sig_remove_handlers();
 }
@@ -289,4 +359,96 @@ DFBResult core_load_modules( char *module_dir,
 
      return ret;
 }
+
+
+/****************************/
+
+static int core_initialize( FusionArena *arena, void *ctx )
+{
+     DFBResult ret;
+
+     DEBUGMSG( "DirectFB/Core: we are the master, initializeing...\n" );
+
+     dfb_core->arena  = arena;
+     dfb_core->master = 1;
+
+     INITCHECK( vt_initialize() );
+     INITCHECK( input_initialize() );
+     INITCHECK( fbdev_initialize() );
+     INITCHECK( gfxcard_initialize() );
+     INITCHECK( layers_initialize() );
+
+     return 0;
+}
+
+#ifndef FUSION_FAKE
+static int core_join( FusionArena *arena, void *ctx )
+{
+     DFBResult ret;
+
+     DEBUGMSG( "DirectFB/Core: we are a slave, joining...\n" );
+
+     dfb_core->arena  = arena;
+
+     INITCHECK( vt_join() );
+     INITCHECK( input_join() );
+     INITCHECK( fbdev_join() );
+     INITCHECK( gfxcard_join() );
+     INITCHECK( layers_join() );
+
+     return 0;
+}
+
+static int core_takeover( FusionArena *arena, void *ctx )
+{
+     DEBUGMSG( "DirectFB/Core: taking over mastership!\n" );
+
+     return 0;
+}
+#endif
+
+static int core_shutdown( FusionArena *arena, void *ctx )
+{
+     DEBUGMSG( "DirectFB/Core: shutting down!\n" );
+
+     while (core_cleanups) {
+          CoreCleanup *cleanup = core_cleanups;
+
+          core_cleanups = cleanup->next;
+
+          cleanup->cleanup( cleanup->data, 0 );
+
+          DFBFREE( cleanup );
+     }
+
+     layers_shutdown();
+     gfxcard_shutdown();
+     fbdev_shutdown();
+     input_shutdown();
+     vt_shutdown();
+
+     return 0;
+}
+
+#ifndef FUSION_FAKE
+static int core_leave( FusionArena *arena, void *ctx )
+{
+     DEBUGMSG( "DirectFB/Core: leaving!\n" );
+
+     layers_leave();
+     gfxcard_leave();
+     fbdev_leave();
+     input_leave();
+     vt_leave();
+
+     return 0;
+}
+
+static int core_transfer( FusionArena *arena, void *ctx )
+{
+     DEBUGMSG( "DirectFB/Core: transferring mastership!\n" );
+
+     return 0;
+}
+#endif
 

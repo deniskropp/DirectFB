@@ -27,6 +27,8 @@
 #include <linux/fb.h>
 #include <pthread.h>
 
+#include <core/fusion/lock.h>
+
 #include <directfb.h>
 #include <core/coretypes.h>
 
@@ -34,8 +36,6 @@ typedef enum {
      CCF_CLIPPING = 0x00000001
 } CardCapabilitiesFlags;
 
-
-typedef struct _GfxDriver GfxDriver;
 
 /*
  * return value for hardware accelerated card functions
@@ -45,111 +45,146 @@ typedef enum {
      CR_FALLBACK
 } CardResult;
 
+typedef struct {
+     CardCapabilitiesFlags   flags;
+
+     DFBAccelerationMask     accel;
+     DFBSurfaceBlittingFlags blitting;
+     DFBSurfaceDrawingFlags  drawing;
+} CardCapabilities;
+
+typedef struct {
+     unsigned int            surface_byteoffset_alignment;
+     unsigned int            surface_pixelpitch_alignment;
+} CardLimitations;
+
 /*
- * stuct for graphics cards
+ * Increase this number when changes result in binary incompatibility!
  */
-struct _GfxCard {
-     /* fbdev fixed screeninfo, contains infos about memory and type of card */
-     struct fb_fix_screeninfo fix;
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION           1
 
-     /* DirectFB driver info */
-     struct {
-          char driver_name[60];
-          char driver_vendor[40];
-          struct {
-               int major;
-               int minor;
-          } driver_version;
+#define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     60
+#define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   80
+#define DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH     120
+#define DFB_GRAPHICS_DRIVER_INFO_LICENSE_LENGTH  40
 
-          GfxDriver *driver;
-     } info;
+#define DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH     60
+#define DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH   80
+
+
+typedef struct {
+     int          major;        /* major version */
+     int          minor;        /* minor version */
+} GraphicsDriverVersion;        /* major.minor, e.g. 0.1 */
+
+typedef struct {
+     GraphicsDriverVersion version;
+
+     char               name[DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH+1];
+                                /* Name of driver, e.g. 'Matrox Driver' */
+
+     char               vendor[DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH+1];
+                                /* Vendor (or author) of the driver,
+                                   e.g. 'convergence' or 'Denis Oliver Kropp' */
+
+     char               url[DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH+1];
+                                /* URL for driver updates,
+                                   e.g. 'http://www.directfb.org/' */
+
+     char               license[DFB_GRAPHICS_DRIVER_INFO_LICENSE_LENGTH+1];
+                                /* License, e.g. 'LGPL' or 'proprietary' */
+
+     unsigned int       driver_data_size;
+     unsigned int       device_data_size;
+} GraphicsDriverInfo;
+
+typedef struct {
+     char               name[DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH+1];
+                                /* Device name, e.g. 'G400' */
+
+     char               vendor[DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH+1];
+                                /* Vendor of the device,
+                                   e.g. 'Matrox' or 'ATI' */
 
      /* hardware acceleration capabilities */
-     struct {
-          CardCapabilitiesFlags   flags;
+     CardCapabilities   caps;
 
-          DFBAccelerationMask     accel;
-          DFBSurfaceBlittingFlags blitting;
-          DFBSurfaceDrawingFlags  drawing;
-     } caps;
+     /* hardware limitations */
+     CardLimitations    limits;
+} GraphicsDeviceInfo;
 
-     /* framebuffer address and size */
-     struct {
-          int length;
-          void *base;
-     } framebuffer;
-
-     pthread_mutex_t     lock;
-
-     /* surface manager stores the offset of the surface heap here */
-     unsigned int        heap_offset;
-
-     /* card limitations for surface offsets and their pitch */
-     unsigned int        byteoffset_align;
-     unsigned int        pixelpitch_align;
-
+typedef struct _GraphicsDeviceFuncs {
      /*
       * function that is called after variable screeninfo is changed
       * (used for buggy fbdev drivers, that reinitialize something when
       * calling FBIO_PUT_VSCREENINFO)
       */
-     void (*AfterSetVar)();
+     void (*AfterSetVar)( void *driver_data, void *device_data );
 
      /*
       * makes sure that graphics hardware has finished all operations
       */
-     void (*EngineSync)();
+     void (*EngineSync)( void *driver_data, void *device_data );
 
      /*
       * after the video memory has been written to by the CPU (e.g. modification
       * of a texture) make sure the accelerator won't use cached texture data
       */
-     void (*FlushTextureCache)();
+     void (*FlushTextureCache)( void *driver_data, void *device_data );
 
      /*
-      * Points to the current state of the graphics card.
+      * Check if the function 'accel' can be accelerated with the 'state'.
+      * If that's true, the function sets the 'accel' bit in 'state->accel'.
+      * Otherwise the function just returns, no need to clear the bit.
       */
-     CardState *state;
+     void (*CheckState)( void *driver_data, void *device_data,
+                         CardState *state, DFBAccelerationMask accel );
 
-     void (*CheckState)( CardState *state, DFBAccelerationMask accel );
-     void (*SetState  )( CardState *state, DFBAccelerationMask accel );
+     /*
+      * Program card for execution of the function 'accel' with the 'state'.
+      * 'state->modified' contains information about changed entries.
+      * This function has to set at least 'accel' in 'state->set'.
+      * The driver should remember 'state->modified' and clear it.
+      * The driver may modify 'funcs' depending on 'state' settings.
+      */
+     void (*SetState)  ( void *driver_data, void *device_data,
+                         struct _GraphicsDeviceFuncs *funcs,
+                         CardState *state, DFBAccelerationMask accel );
 
      /*
       * drawing functions
       */
-     void (*FillRectangle) ( DFBRectangle *rect );
+     void (*FillRectangle) ( void *driver_data, void *device_data,
+                             DFBRectangle *rect );
 
-     void (*DrawRectangle) ( DFBRectangle *rect );
+     void (*DrawRectangle) ( void *driver_data, void *device_data,
+                             DFBRectangle *rect );
 
-     void (*DrawLine) ( DFBRegion *line );
+     void (*DrawLine)      ( void *driver_data, void *device_data,
+                             DFBRegion *line );
 
-     void (*FillTriangle) ( DFBTriangle *tri );
+     void (*FillTriangle)  ( void *driver_data, void *device_data,
+                             DFBTriangle *tri );
 
-     void (*Blit)( DFBRectangle *rect, int dx, int dy );
+     /*
+      * blitting functions
+      */
+     void (*Blit)          ( void *driver_data, void *device_data,
+                             DFBRectangle *rect, int dx, int dy );
 
-     void (*StretchBlit) ( DFBRectangle *srect, DFBRectangle *drect );
+     void (*StretchBlit)   ( void *driver_data, void *device_data,
+                             DFBRectangle *srect, DFBRectangle *drect );
 
-};
-
-extern GfxCard *card;
-
-
-struct _GfxDriver
-{
-     int      (*Probe)( int fd, GfxCard *card ); /* if it returns 1,
-                                                    the driver is suitable */
-     int      (*Init)( int fd, GfxCard *card );  /* initialize gfx driver */
-     void     (*InitLayers)();                   /* initialize additional
-                                                    layers, if supported */
-     void     (*DeInit)();                       /* deinitialize */
-};
+} GraphicsDeviceFuncs;
 
 /*
  * initializes card struct, maps framebuffer, chooses accelerated driver
  */
-DFBResult gfxcard_init();
+DFBResult gfxcard_initialize();
+DFBResult gfxcard_join();
 
-void gfxcard_deinit();
+DFBResult gfxcard_shutdown();
+DFBResult gfxcard_leave();
 
 /*
  * initializes card struct, maps framebuffer, chooses accelerated driver
@@ -181,17 +216,43 @@ void gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
                          CoreFont *font, CardState *state );
 
 
-static inline void gfxcard_sync()
-{
-     if (card->EngineSync)
-          card->EngineSync();
-}
+/*
+ * Graphics drivers call this function to get access to MMIO regions.
+ *
+ * device: Graphics device to map
+ * offset: Offset from MMIO base (default offset is 0)
+ * length: Length of mapped region (-1 uses default length)
+ *
+ * Returns the virtual address or NULL if mapping failed.
+ */
+volatile void *gfxcard_map_mmio( GraphicsDevice *device,
+                                 unsigned int    offset,
+                                 int             length );
 
-static inline void gfxcard_flush_texture_cache()
-{
-     if (card->FlushTextureCache)
-          card->FlushTextureCache();
-}
+/*
+ * Graphics drivers call this function to unmap MMIO regions.
+ *
+ * addr:   Virtual address returned by gfxcard_map_mmio
+ * length: Length of mapped region (-1 uses default length)
+ */
+void gfxcard_unmap_mmio( GraphicsDevice *device,
+                         volatile void  *addr,
+                         int             length );
+
+int gfxcard_get_accelerator( GraphicsDevice *device );
+
+void gfxcard_sync();
+void gfxcard_flush_texture_cache();
+void gfxcard_after_set_var();
+
+DFBResult gfxcard_adjust_heap_offset( unsigned int offset );
+
+SurfaceManager   *gfxcard_surface_manager();
+CardCapabilities  gfxcard_capabilities();
+
+void         *gfxcard_memory_physical( unsigned int offset );
+void         *gfxcard_memory_virtual( unsigned int offset );
+unsigned int  gfxcard_memory_length();
 
 #endif
 

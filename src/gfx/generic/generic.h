@@ -51,10 +51,11 @@ typedef void (*GFunc)();
 void gInit_MMX();
 #endif
 
+void gGetDriverInfo( GraphicsDriverInfo *info );
+void gGetDeviceInfo( GraphicsDeviceInfo *info );
+
 int  gAquire  ( CardState *state, DFBAccelerationMask accel );
 void gRelease ( CardState *state );
-
-void gUpload  ( int offset, void *data, int len );
 
 void gFillRectangle ( DFBRectangle *rect );
 void gDrawLine      ( DFBRegion    *line );

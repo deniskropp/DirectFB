@@ -42,25 +42,29 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <misc/mem.h>
+
 #include <core/input.h>
-#include <core/reactor.h>
 
 
-static int  fd[8];
-static char devicename[10] ="/dev/jsX";
+typedef struct {
+     int          fd;
+     InputDevice *device;
+     pthread_t    thread;
+} JoystickData;
 
 
 static DFBInputEvent joystick_handle_event(struct js_event jse)
-{     
+{
      DFBInputEvent event;
 
      switch (jse.type) {
           case JS_EVENT_BUTTON:
                if (jse.value)
-                    event.type = DIET_BUTTONPRESS;                    
-               else 
+                    event.type = DIET_BUTTONPRESS;
+               else
                     event.type = DIET_BUTTONRELEASE;
-               
+
                event.flags = DIEF_BUTTON;
                event.button = jse.number;
                break;
@@ -75,82 +79,146 @@ static DFBInputEvent joystick_handle_event(struct js_event jse)
      return event;
 }
 
-static void* joystickEventThread(void *device)
+static void*
+joystickEventThread (void *driver_data)
 {
-     int readlen;
-     InputDevice *joystick = (InputDevice*)device;
+     int              len;
+     struct js_event  jse;
+     JoystickData    *data = (JoystickData*) driver_data;
 
-     struct js_event jse;
-
-     while ((readlen = read( fd[((InputDevice*)device)->number], &jse,
-                             sizeof(struct js_event) )) > 0)
+     while ((len = read( data->fd, &jse,
+                         sizeof(struct js_event) )) > 0 || errno == EINTR)
      {
           DFBInputEvent evt;
 
           pthread_testcancel();
 
+          if (len != sizeof(struct js_event))
+               continue;
+
           evt = joystick_handle_event(jse);
-          reactor_dispatch( joystick->reactor, &evt );
+          input_dispatch( data->device, &evt );
      }
 
-     if (readlen <= 0 && errno != EINTR)
+     if (len <= 0 && errno != EINTR)
           PERRORMSG ("joystick thread died\n");
-     
+
      pthread_testcancel();
-     
+
      return NULL;
 }
 
 /* exported symbols */
 
-int driver_probe()
+int
+driver_get_abi_version()
 {
-     int i;
-     int joy_count = 0;
+     return DFB_INPUT_DRIVER_ABI_VERSION;
+}
 
+int
+driver_get_available()
+{
+     int  i, fd;
+     int  joy_count = 0;
+     char devicename[10];
+     
      for (i=0; i<8; i++) {
-          devicename[7] = (char)(i+48);
-          fd[i] = -1;
-          fd[i] = open( devicename, O_RDONLY );
-          if (fd[i] == -1)
+          sprintf( devicename, "/dev/js%d", i );
+          
+          fd = open( devicename, O_RDONLY );
+          if (fd < 0)
                break;
-          close (fd[i]);
+
+          close (fd);
+
           joy_count++;
      }
+
      return joy_count;
 }
 
-int driver_init(InputDevice *device)
+void
+driver_get_info( InputDriverInfo *info )
 {
-     devicename[7] = (char)(device->number+48);
-     fd[device->number] = open( devicename, O_RDONLY);
-     if (fd[device->number] == -1) {
-          PERRORMSG ( "DirectFB/Joystick: Could not open `%s'!\n", devicename );
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "Joystick Driver" );
+
+     snprintf( info->vendor,
+               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->version.major = 0;
+     info->version.minor = 9;
+}
+
+DFBResult
+driver_open_device( InputDevice      *device,
+                    unsigned int      number,
+                    InputDeviceInfo  *info,
+                    void            **driver_data )
+{
+     int           fd, buttons, axes;
+     JoystickData *data;
+     char          devicename[10];
+     
+     /* open the right device */
+     sprintf( devicename, "/dev/js%d", number );
+
+     fd = open( devicename, O_RDONLY );
+     if (fd < 0) {
+          PERRORMSG( "DirectFB/Joystick: Could not open `%s'!\n", devicename );
           return DFB_INIT; // no joystick available
      }
 
-     device->info.driver_name = "Joystick";
-     device->info.driver_vendor = "convergence integrated media GmbH";
+     /* query number of buttons and axes */
+     ioctl( fd, JSIOCGBUTTONS, &buttons );
+     ioctl( fd, JSIOCGAXES, &axes );
+     
+     /* fill device info structure */
+     snprintf( info->name,
+               DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "Joystick" );
 
-     device->info.driver_version.major = 0;
-     device->info.driver_version.minor = 9;
+     snprintf( info->vendor,
+               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
+     
+     info->prefered_id     = DIDID_JOYSTICK;
+     
+     info->desc.type       = DIDTF_JOYSTICK;
+     info->desc.caps       = DICAPS_AXIS | DICAPS_BUTTONS;
+     info->desc.max_button = buttons - 1;
+     info->desc.max_axis   = axes - 1;
 
-     device->id = DIDID_JOYSTICK + device->number;
+     
+     /* allocate and fill private data */
+     data = DFBCALLOC( 1, sizeof(JoystickData) );
+     
+     data->fd     = fd;
+     data->device = device;
 
-     device->desc.type = DIDTF_JOYSTICK;
-     device->desc.caps = DICAPS_AXIS | DICAPS_BUTTONS;
-     ioctl( fd[device->number], JSIOCGBUTTONS, &device->desc.max_button );
-     ioctl( fd[device->number], JSIOCGAXES, &device->desc.max_axis );
-     device->desc.max_button--;
-     device->desc.max_axis--;
+     /* start input thread */
+     pthread_create( &data->thread, NULL, joystickEventThread, data );
 
-     device->EventThread = joystickEventThread;
+     /* set private data pointer */
+     *driver_data = data;
 
      return DFB_OK;
 }
 
-void driver_deinit(InputDevice *device)
+void
+driver_close_device( void *driver_data )
 {
-     close( fd[device->number] );
+     JoystickData *data = (JoystickData*) driver_data;
+
+     /* stop input thread */
+     pthread_cancel( data->thread );
+     pthread_join( data->thread, NULL );
+     
+     /* close device */
+     close( data->fd );
+
+     /* free private data */
+     DFBFREE( data );
 }
 

@@ -25,10 +25,12 @@
 #define __WINDOWS_H__
 
 #include <asm/types.h>
+#include <core/coretypes.h>
+
+#include <core/fusion/lock.h>
 
 #include "state.h"
 
-struct _DisplayLayer;
 
 /*
  * Hidden capability for software cursor,
@@ -65,7 +67,7 @@ struct _CoreWindow
 
      CoreWindowStack      *stack;           /* window stack the window belongs */
 
-     Reactor              *reactor;         /* event dispatcher */
+     FusionReactor        *reactor;         /* event dispatcher */
 };
 
 /*
@@ -73,7 +75,7 @@ struct _CoreWindow
  */
 struct _CoreWindowStack
 {
-     DisplayLayer       *layer;
+     DisplayLayerShared *layer;
 
      int                 num_windows;     /* number of windows on the stack */
      CoreWindow        **windows;         /* array of windows */
@@ -91,7 +93,7 @@ struct _CoreWindowStack
 
      CardState           state;           /* state for windowstack repaints */
 
-     pthread_mutex_t     update;          /* mutex lock for repaints */
+     FusionSkirmish      update;          /* skirmish lock for repaints */
 
      int                 wm_hack;
 

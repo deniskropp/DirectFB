@@ -26,6 +26,8 @@
 
 #include <pthread.h>
 
+#include <core/fusion/lock.h>
+
 #include <directfb.h>
 #include <core/coretypes.h>
 
@@ -74,20 +76,23 @@ struct _CardState {
                                               mark that the source needs to be
                                               unlock when state is released */
 
-     pthread_mutex_t         lock;         /* mutex lock for state access */
+     FusionSkirmish          lock;         /* lock for state access */
 };
+
+int state_init( CardState *state );
+void state_destroy( CardState *state );
 
 void state_set_destination( CardState *state, CoreSurface *destination );
 void state_set_source( CardState *state, CoreSurface *source );
 
 static inline int state_lock( CardState *state )
 {
-     return pthread_mutex_lock( &state->lock );
+     return skirmish_prevail( &state->lock );
 }
 
 static inline int state_unlock( CardState *state )
 {
-     return pthread_mutex_unlock( &state->lock );
+     return skirmish_dismiss( &state->lock );
 }
 
 #endif

@@ -70,31 +70,58 @@ typedef volatile struct {
   __u32 dataPtr;
 } Neo2200;
 
-Neo2200 *neo2200 = NULL;
+typedef struct {
+     NeoDeviceData neo;
+
+     int dstOrg;
+     int dstPitch;
+     int dstPixelWidth;
+
+     int srcOrg;
+     int srcPitch;
+     int srcPixelWidth;
+
+     __u32 bltCntl;
+
+     /* state validation */
+     int n_bltMode_dst;
+     int n_src;
+     int n_fgColor;
+     int n_xpColor;
+} Neo2200DeviceData;
+
+typedef struct {
+     NeoDriverData neo;
+
+     Neo2200 *neo2200;
+} Neo2200DriverData;
 
 
-static inline void neo2200_waitidle()
+static inline void neo2200_waitidle( Neo2200DriverData *ndrv,
+                                     Neo2200DeviceData *ndev )
 {
-  while (neo2200->bltStat & 1)
-    neo_idle_waitcycles++;
+     while (ndrv->neo2200->bltStat & 1)
+          ndev->neo.idle_waitcycles++;
 }
 
-static inline void neo2200_waitfifo( int requested_fifo_space )
+static inline void neo2200_waitfifo( Neo2200DriverData *ndrv,
+                                     Neo2200DeviceData *ndev,
+                                     int requested_fifo_space )
 {
-  neo_waitfifo_calls++;
-  neo_waitfifo_sum += requested_fifo_space;
-     
+  ndev->neo.waitfifo_calls++;
+  ndev->neo.waitfifo_sum += requested_fifo_space;
+
   /* FIXME: does not work
   if (neo_fifo_space < requested_fifo_space)
     {
       neo_fifo_waitcycles++;
 
       while (1)
-	{
-	  neo_fifo_space = (neo2200->bltStat >> 8);
-	  if (neo_fifo_space >= requested_fifo_space)
-	    break;
-	}
+    {
+      neo_fifo_space = (neo2200->bltStat >> 8);
+      if (neo_fifo_space >= requested_fifo_space)
+        break;
+    }
     }
   else
     {
@@ -104,36 +131,22 @@ static inline void neo2200_waitfifo( int requested_fifo_space )
   neo_fifo_space -= requested_fifo_space;
   */
 
-  neo2200_waitidle();
+  neo2200_waitidle( ndrv, ndev );
 }
 
 
-static int Neo2200_dstOrg = 0;
-static int Neo2200_dstPitch = 0;
-static int Neo2200_dstPixelWidth = 0;
 
-static int Neo2200_srcOrg = 0;
-static int Neo2200_srcPitch = 0;
-static int Neo2200_srcPixelWidth = 0;
-
-
-/* state validation */
-static int neo2200_bltMode_dst = 0;
-static int neo2200_src = 0;
-static int neo2200_fgColor = 0;
-static int neo2200_xpColor = 0;
-
-     
-static inline void neo2200_validate_bltMode_dst()
+static inline void neo2200_validate_bltMode_dst( Neo2200DriverData *ndrv,
+                                                 Neo2200DeviceData *ndev,
+                                                 CoreSurface       *dst )
 {
   int bltMode = 0;
-  CoreSurface *destination = neo->state->destination;
-  SurfaceBuffer *buffer = destination->back_buffer;
+  SurfaceBuffer *buffer = dst->back_buffer;
 
-  if (neo2200_bltMode_dst)
+  if (ndev->n_bltMode_dst)
     return;
-     
-  switch (destination->format)
+
+  switch (dst->format)
     {
     case DSPF_A8:
       bltMode |= NEO_MODE1_DEPTH8;
@@ -147,86 +160,94 @@ static inline void neo2200_validate_bltMode_dst()
       break;
     }
 
-  Neo2200_dstOrg = buffer->video.offset;
-  Neo2200_dstPitch = buffer->video.pitch;
-  Neo2200_dstPixelWidth = BYTES_PER_PIXEL(destination->format);
+  ndev->dstOrg = buffer->video.offset;
+  ndev->dstPitch = buffer->video.pitch;
+  ndev->dstPixelWidth = BYTES_PER_PIXEL(dst->format);
 
 
-  neo2200_waitfifo( 2 );
+  neo2200_waitfifo( ndrv, ndev, 2 );
 
-  neo2200->bltStat = bltMode << 16;
-  neo2200->pitch = (Neo2200_dstPitch << 16) | (Neo2200_srcPitch & 0xffff);
+  ndrv->neo2200->bltStat = bltMode << 16;
+  ndrv->neo2200->pitch = (ndev->dstPitch << 16) | (ndev->srcPitch & 0xffff);
 
 
-  neo2200_bltMode_dst = 1;
+  ndev->n_bltMode_dst = 1;
 }
 
-static inline void neo2200_validate_src()
+static inline void neo2200_validate_src( Neo2200DriverData *ndrv,
+                                         Neo2200DeviceData *ndev,
+                                         CoreSurface       *src )
 {
-  CoreSurface *source = neo->state->source;
-  SurfaceBuffer *buffer = source->front_buffer;
+  SurfaceBuffer *buffer = src->front_buffer;
 
-  if (neo2200_src)
+  if (ndev->n_src)
     return;
 
-  Neo2200_srcOrg = buffer->video.offset;
-  Neo2200_srcPitch = buffer->video.pitch;
-  Neo2200_srcPixelWidth = BYTES_PER_PIXEL(source->format);
+  ndev->srcOrg = buffer->video.offset;
+  ndev->srcPitch = buffer->video.pitch;
+  ndev->srcPixelWidth = BYTES_PER_PIXEL(src->format);
 
-  neo2200_waitfifo( 1 );
-  neo2200->pitch = (Neo2200_dstPitch << 16) | (Neo2200_srcPitch & 0xffff);
+  neo2200_waitfifo( ndrv, ndev, 1 );
+  ndrv->neo2200->pitch = (ndev->dstPitch << 16) | (ndev->srcPitch & 0xffff);
 
-  neo2200_src = 1;
+  ndev->n_src = 1;
 }
 
-static inline void neo2200_validate_fgColor()
+static inline void neo2200_validate_fgColor( Neo2200DriverData *ndrv,
+                                             Neo2200DeviceData *ndev,
+                                             CardState         *state )
 {
-  if (neo2200_fgColor)
+  if (ndev->n_fgColor)
     return;
 
-  neo2200_waitfifo( 1 );
+  neo2200_waitfifo( ndrv, ndev, 1 );
 
-  switch (neo->state->destination->format)
+  switch (state->destination->format)
     {
     case DSPF_A8:
-      neo2200->fgColor = neo->state->color.a;
+      ndrv->neo2200->fgColor = state->color.a;
       break;
     case DSPF_RGB15:
-      neo2200->fgColor = PIXEL_RGB15( neo->state->color.r,
-				      neo->state->color.g,
-				      neo->state->color.b );
+      ndrv->neo2200->fgColor = PIXEL_RGB15( state->color.r,
+                                            state->color.g,
+                                            state->color.b );
       break;
     case DSPF_RGB16:
-      neo2200->fgColor = PIXEL_RGB16( neo->state->color.r,
-				      neo->state->color.g,
-				      neo->state->color.b );
+      ndrv->neo2200->fgColor = PIXEL_RGB16( state->color.r,
+                                            state->color.g,
+                                            state->color.b );
       break;
     default:
       BUG( "unexpected pixelformat!" );
       break;
     }
 
-  neo2200_fgColor = 1;
+  ndev->n_fgColor = 1;
 }
 
-static inline void neo2200_validate_xpColor()
+static inline void neo2200_validate_xpColor( Neo2200DriverData *ndrv,
+                                             Neo2200DeviceData *ndev,
+                                             CardState         *state )
 {
-  if (neo2200_xpColor)
+  if (ndev->n_xpColor)
     return;
 
-  neo2200_waitfifo( 1 );
+  neo2200_waitfifo( ndrv, ndev, 1 );
 
-  neo2200->xpColor = neo->state->src_colorkey;
-  
-  neo2200_xpColor = 1;
+  ndrv->neo2200->xpColor = state->src_colorkey;
+
+  ndev->n_xpColor = 1;
 }
 
 
 /* required implementations */
 
-static void neo2200EngineSync()
+static void neo2200EngineSync( void *drv, void *dev )
 {
-  neo2200_waitidle( mmio_base );
+     Neo2200DriverData *ndrv = (Neo2200DriverData*) drv;
+     Neo2200DeviceData *ndev = (Neo2200DeviceData*) dev;
+
+     neo2200_waitidle( ndrv, ndev );
 }
 
 #define NEO_SUPPORTED_DRAWINGFLAGS \
@@ -241,7 +262,8 @@ static void neo2200EngineSync()
 #define NEO_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT)
 
-static void neo2200CheckState( CardState *state, DFBAccelerationMask accel )
+static void neo2200CheckState( void *drv, void *dev,
+                               CardState *state, DFBAccelerationMask accel )
 {
   switch (state->destination->format)
     {
@@ -265,177 +287,227 @@ static void neo2200CheckState( CardState *state, DFBAccelerationMask accel )
     state->accel |= NEO_SUPPORTED_BLITTINGFUNCTIONS;
 }
 
-static void neo2200SetState( CardState *state, DFBAccelerationMask accel )
+static void neo2200SetState( void *drv, void *dev,
+                             GraphicsDeviceFuncs *funcs,
+                             CardState *state, DFBAccelerationMask accel )
 {
-  if (state != neo->state)
-    {
-      state->modified |= SMF_ALL;
-      state->set = 0;
-      neo->state = state;
-     
-      neo2200_xpColor = neo2200_fgColor = neo2200_bltMode_dst = neo2200_src = 0;
-    }
-  else
-    {
-      if (state->modified & SMF_DESTINATION)
-	neo2200_fgColor = neo2200_bltMode_dst = 0;
-      else
-	if (state->modified & SMF_COLOR)
-	  neo2200_fgColor = 0;
+     Neo2200DriverData *ndrv = (Neo2200DriverData*) drv;
+     Neo2200DeviceData *ndev = (Neo2200DeviceData*) dev;
 
-      if (state->modified & SMF_SOURCE)
-	neo2200_src = 0;
+     if (state->modified & SMF_DESTINATION)
+          ndev->n_fgColor = ndev->n_bltMode_dst = 0;
+     else if (state->modified & SMF_COLOR)
+          ndev->n_fgColor = 0;
 
-      if (state->modified & SMF_SRC_COLORKEY)
-	neo2200_xpColor = 0;
-    }
-          
-  switch (accel)
-    {
-    case DFXL_BLIT:
-      neo2200_validate_src();
-      if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-	neo2200_validate_xpColor();
+     if (state->modified & SMF_SOURCE)
+          ndev->n_src = 0;
 
-    case DFXL_FILLRECTANGLE:
-    case DFXL_DRAWRECTANGLE:
-      neo2200_validate_fgColor();
-      neo2200_validate_bltMode_dst();
-      
-      state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_BLIT;
-      break;
+     if (state->modified & SMF_SRC_COLORKEY)
+          ndev->n_xpColor = 0;
 
-    default:
-      BUG( "unexpected drawing/blitting function!" );
-      break;
-    }
+     switch (accel) {
+          case DFXL_BLIT:
+               neo2200_validate_src( ndrv, ndev, state->source );
 
-  state->modified = 0;
+               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                    ndev->bltCntl = NEO_BC0_SRC_TRANS;
+                    neo2200_validate_xpColor( ndrv, ndev, state );
+               }
+               else
+                    ndev->bltCntl = 0;
+
+          case DFXL_FILLRECTANGLE:
+          case DFXL_DRAWRECTANGLE:
+               neo2200_validate_fgColor( ndrv, ndev, state );
+               neo2200_validate_bltMode_dst( ndrv, ndev, state->destination );
+
+               state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_BLIT;
+               break;
+
+          default:
+               BUG( "unexpected drawing/blitting function!" );
+               break;
+     }
+
+     state->modified = 0;
 }
 
-static void neo2200FillRectangle( DFBRectangle *rect )
+static void neo2200FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-  neo2200_waitfifo( 3 );
+     Neo2200DriverData *ndrv    = (Neo2200DriverData*) drv;
+     Neo2200DeviceData *ndev    = (Neo2200DeviceData*) dev;
+     Neo2200           *neo2200 = ndrv->neo2200;
 
-  /* set blt control */
-  neo2200->bltCntl = NEO_BC3_FIFO_EN      |
+     neo2200_waitfifo( ndrv, ndev, 3 );
+
+     /* set blt control */
+     neo2200->bltCntl = NEO_BC3_FIFO_EN      |
                      NEO_BC0_SRC_IS_FG    |
                      NEO_BC3_SKIP_MAPPING |  0x0c0000;
 
-  neo2200->dstStart = Neo2200_dstOrg +
-           (rect->y * Neo2200_dstPitch) +
-           (rect->x * Neo2200_dstPixelWidth);
+     neo2200->dstStart = ndev->dstOrg +
+           (rect->y * ndev->dstPitch) +
+           (rect->x * ndev->dstPixelWidth);
 
-  neo2200->xyExt    = (rect->h << 16) | (rect->w & 0xffff);
+     neo2200->xyExt    = (rect->h << 16) | (rect->w & 0xffff);
 }
 
-static void neo2200DrawRectangle( DFBRectangle *rect )
+static void neo2200DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-  __u32 dst = Neo2200_dstOrg +
-             (rect->y * Neo2200_dstPitch) +
-             (rect->x * Neo2200_dstPixelWidth);
+     Neo2200DriverData *ndrv    = (Neo2200DriverData*) drv;
+     Neo2200DeviceData *ndev    = (Neo2200DeviceData*) dev;
+     Neo2200           *neo2200 = ndrv->neo2200;
 
-  neo2200_waitfifo( 3 );
+     __u32 dst = ndev->dstOrg +
+                (rect->y * ndev->dstPitch) +
+                (rect->x * ndev->dstPixelWidth);
 
-  /* set blt control */
-  neo2200->bltCntl = NEO_BC3_FIFO_EN      |
-                     NEO_BC0_SRC_IS_FG    |
-                     NEO_BC3_SKIP_MAPPING | 0x0c0000;
+     neo2200_waitfifo( ndrv, ndev, 3 );
 
-  neo2200->dstStart = dst;
-  neo2200->xyExt    = (1 << 16) | (rect->w & 0xffff);
+     /* set blt control */
+     neo2200->bltCntl = NEO_BC3_FIFO_EN      |
+                        NEO_BC0_SRC_IS_FG    |
+                        NEO_BC3_SKIP_MAPPING | 0x0c0000;
 
-
-  dst += (rect->h - 1) * Neo2200_dstPitch;
-  neo2200_waitfifo( 2 );
-  neo2200->dstStart = dst;
-  neo2200->xyExt    = (1 << 16) | (rect->w & 0xffff);
+     neo2200->dstStart = dst;
+     neo2200->xyExt    = (1 << 16) | (rect->w & 0xffff);
 
 
-  dst -= (rect->h - 2) * Neo2200_dstPitch;
-  neo2200_waitfifo( 2 );
-  neo2200->dstStart = dst;
-  neo2200->xyExt    = ((rect->h - 2) << 16) | 1;
+     dst += (rect->h - 1) * ndev->dstPitch;
+     neo2200_waitfifo( ndrv, ndev, 2 );
+     neo2200->dstStart = dst;
+     neo2200->xyExt    = (1 << 16) | (rect->w & 0xffff);
 
 
-  dst += (rect->w - 1) * Neo2200_dstPixelWidth;
-  neo2200_waitfifo( 2 );
-  neo2200->dstStart = dst;
-  neo2200->xyExt    = ((rect->h - 2) << 16) | 1;
+     dst -= (rect->h - 2) * ndev->dstPitch;
+     neo2200_waitfifo( ndrv, ndev, 2 );
+     neo2200->dstStart = dst;
+     neo2200->xyExt    = ((rect->h - 2) << 16) | 1;
+
+
+     dst += (rect->w - 1) * ndev->dstPixelWidth;
+     neo2200_waitfifo( ndrv, ndev, 2 );
+     neo2200->dstStart = dst;
+     neo2200->xyExt    = ((rect->h - 2) << 16) | 1;
 }
 
-static void neo2200Blit( DFBRectangle *rect, int dx, int dy )
+static void neo2200Blit( void *drv, void *dev,
+                         DFBRectangle *rect, int dx, int dy )
 {
-  __u32 bltCntl = (neo->state->blittingflags & DSBLIT_SRC_COLORKEY) ? NEO_BC0_SRC_TRANS : 0;
+     Neo2200DriverData *ndrv    = (Neo2200DriverData*) drv;
+     Neo2200DeviceData *ndev    = (Neo2200DeviceData*) dev;
+     Neo2200           *neo2200 = ndrv->neo2200;
 
-  __u32 start;
+     __u32 start;
+     __u32 bltCntl = ndev->bltCntl;
 
-  /* shit, doesn't work */
+     /* shit, doesn't work */
 #if 0
-  if (rect->x < dx)
-    bltCntl |= NEO_BC0_X_DEC;
+     if (rect->x < dx)
+          bltCntl |= NEO_BC0_X_DEC;
 
-  if (rect->y < dy) {
-    bltCntl |= NEO_BC0_DST_Y_DEC | NEO_BC0_SRC_Y_DEC;
+     if (rect->y < dy) {
+          bltCntl |= NEO_BC0_DST_Y_DEC | NEO_BC0_SRC_Y_DEC;
 
-    rect->y += rect->h - 1;
-    dy += rect->h - 1;
-  }
+          rect->y += rect->h - 1;
+          dy += rect->h - 1;
+     }
 #endif
 
-  start = rect->y * Neo2200_srcPitch + rect->x * Neo2200_srcPixelWidth;
+     start = rect->y * ndev->srcPitch + rect->x * ndev->srcPixelWidth;
 
 #if 0
-  if (bltCntl & NEO_BC0_X_DEC)
-    start += (rect->w-1) * Neo2200_srcPixelWidth;
+     if (bltCntl & NEO_BC0_X_DEC)
+          start += (rect->w-1) * ndev->srcPixelWidth;
 #endif
 
-  neo2200_waitfifo( 3 );
+     neo2200_waitfifo( ndrv, ndev, 3 );
 
-  /* set blt control */
-  neo2200->bltCntl = bltCntl |
-                     NEO_BC3_FIFO_EN      |
-                     NEO_BC3_SKIP_MAPPING |  0x0c0000;
+     /* set blt control */
+     neo2200->bltCntl = bltCntl |
+                        NEO_BC3_FIFO_EN      |
+                        NEO_BC3_SKIP_MAPPING |  0x0c0000;
 
-  neo2200->srcStart = Neo2200_srcOrg + start;
+     neo2200->srcStart = ndev->srcOrg + start;
 
-  neo2200->dstStart =  Neo2200_dstOrg +
-                 (dy * Neo2200_dstPitch) +
-                 (dx * Neo2200_dstPixelWidth);
+     neo2200->dstStart = ndev->dstOrg +
+                   (dy * ndev->dstPitch) +
+                   (dx * ndev->dstPixelWidth);
 
-  neo2200->xyExt = (rect->h << 16) | (rect->w & 0xffff);
+     neo2200->xyExt = (rect->h << 16) | (rect->w & 0xffff);
 }
 
-DFBResult neo2200_init( GfxCard *card )
+
+
+void
+neo2200_get_info( GraphicsDevice     *device,
+                  GraphicsDriverInfo *info )
 {
-  //  int i;
-  neo2200 = (Neo2200*) mmio_base;
+     info->version.major = 0;
+     info->version.minor = 2;
 
-  //  printf( "reserved0: %#0x\n", neo2200->reserved0 );
-
-  //  for (i=0; i<19; i++)
-  //    printf( "reserved1[%02d]: %#0x\n", i, neo2200->reserved1[i] );
-
-  strcat( card->info.driver_name, " (2200/2230/2360/2380)" );
-
-  card->caps.flags    = 0;
-  card->caps.accel    = NEO_SUPPORTED_DRAWINGFUNCTIONS |
-                        NEO_SUPPORTED_BLITTINGFUNCTIONS;
-  card->caps.drawing  = NEO_SUPPORTED_DRAWINGFLAGS;
-  card->caps.blitting = NEO_SUPPORTED_BLITTINGFLAGS;
-
-  card->CheckState = neo2200CheckState;
-  card->SetState = neo2200SetState;
-  card->EngineSync = neo2200EngineSync;          
-  
-  card->FillRectangle = neo2200FillRectangle;
-  card->DrawRectangle = neo2200DrawRectangle;
-  //     card->DrawLine = neoDrawLine2D;
-  card->Blit = neo2200Blit;
-  //     card->StretchBlit = neoStretchBlit;
-
-  card->byteoffset_align = 32 * 4;
-  card->pixelpitch_align = 32;
-
-  return DFB_OK;
+     info->driver_data_size = sizeof (Neo2200DriverData);
+     info->device_data_size = sizeof (Neo2200DeviceData);
 }
+
+DFBResult
+neo2200_init_driver( GraphicsDevice      *device,
+                     GraphicsDeviceFuncs *funcs,
+                     void                *driver_data )
+{
+     Neo2200DriverData *ndrv = (Neo2200DriverData*) driver_data;
+
+     ndrv->neo2200 = (Neo2200*) ndrv->neo.mmio_base;
+
+     funcs->CheckState = neo2200CheckState;
+     funcs->SetState = neo2200SetState;
+     funcs->EngineSync = neo2200EngineSync;
+
+     funcs->FillRectangle = neo2200FillRectangle;
+     funcs->DrawRectangle = neo2200DrawRectangle;
+     //     funcs->DrawLine = neoDrawLine2D;
+     funcs->Blit = neo2200Blit;
+     //     funcs->StretchBlit = neoStretchBlit;
+
+     return DFB_OK;
+}
+
+DFBResult
+neo2200_init_device( GraphicsDevice     *device,
+                     GraphicsDeviceInfo *device_info,
+                     void               *driver_data,
+                     void               *device_data )
+{
+     /* fill device info */
+     snprintf( device_info->name,
+               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "2200/2230/2360/2380" );
+
+     snprintf( device_info->vendor,
+               DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "NeoMagic" );
+
+
+     device_info->caps.flags    = 0;
+     device_info->caps.accel    = NEO_SUPPORTED_DRAWINGFUNCTIONS |
+                                  NEO_SUPPORTED_BLITTINGFUNCTIONS;
+     device_info->caps.drawing  = NEO_SUPPORTED_DRAWINGFLAGS;
+     device_info->caps.blitting = NEO_SUPPORTED_BLITTINGFLAGS;
+
+     device_info->limits.surface_byteoffset_alignment = 32 * 4;
+     device_info->limits.surface_pixelpitch_alignment = 32;
+
+     return DFB_OK;
+}
+
+void
+neo2200_close_device( GraphicsDevice *device,
+                      void           *driver_data,
+                      void           *device_data )
+{
+}
+
+void
+neo2200_close_driver( GraphicsDevice *device,
+                      void           *driver_data )
+{
+}
+

@@ -1,5 +1,7 @@
 ## Makefile.am for DirectFB/src/core
 
+SUBDIRS = fusion
+
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
@@ -8,6 +10,7 @@ INCLUDES = \
 noinst_LTLIBRARIES = libdirectfb_core.la
 
 libdirectfb_core_la_LIBADD = \
+	fusion/libdirectfb_core_fusion.la	\
 	$(THREAD_LIBS)
 
 libdirectfb_core_la_LDFLAGS = -export-dynamic
@@ -29,7 +32,6 @@ internalinclude_HEADERS = \
 	gfxcard.h		\
 	input.h			\
 	layers.h		\
-	reactor.h		\
 	state.h			\
 	surfaces.h		\
 	surfacemanager.h	\
@@ -44,7 +46,6 @@ libdirectfb_core_la_SOURCES = \
 	gfxcard.c		\
 	input.c			\
 	layers.c		\
-	reactor.c		\
 	state.c			\
 	surfaces.c		\
 	surfacemanager.c	\

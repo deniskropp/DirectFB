@@ -27,16 +27,33 @@
 #include <asm/types.h>
 #include <core/coretypes.h>
 
-extern volatile __u8 *mmio_base;
+typedef struct {
+     volatile __u8 *mmio_base;
+} ATI128DriverData;
 
-extern __u32 ATI_dst_bpp;
-extern __u32 ATI_color_compare;
-extern __u32 ATI_blend_function;
+typedef struct {
+     CoreSurface *source;
+     CoreSurface *destination;
+     DFBSurfaceBlittingFlags blittingflags;
 
-extern __u32 fake_texture_color;
+     /* store some ATI register values in native format */
+     __u32 ATI_dst_bpp;
+     __u32 ATI_color_compare;
+     __u32 ATI_blend_function;
 
-extern CoreSurface *dst_surface;
+     /* used for the fake texture hack */
+     __u32 ATI_fake_texture_src;
+     __u32 fake_texture_color;
+     unsigned int fake_texture_number;
 
-extern GfxCard *ati;
+     /* for fifo/performance monitoring */
+     unsigned int fifo_space;
+
+     unsigned int waitfifo_sum;
+     unsigned int waitfifo_calls;
+     unsigned int fifo_waitcycles;
+     unsigned int idle_waitcycles;
+     unsigned int fifo_cache_hits;
+} ATI128DeviceData;
 
 #endif

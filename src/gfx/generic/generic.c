@@ -33,11 +33,13 @@
 
 #include "directfb.h"
 
+#include "core/core.h"
 #include "core/coredefs.h"
 #include "core/coretypes.h"
 
 #include "core/gfxcard.h"
 #include "core/state.h"
+#include "core/surfacemanager.h"
 
 #include "misc/gfx_util.h"
 #include "misc/util.h"
@@ -2148,6 +2150,57 @@ static void Dacc_is_Bacc() { Dacc = Bacc;}
 static void Xacc_is_Aacc() { Xacc = Aacc;}
 static void Xacc_is_Bacc() { Xacc = Bacc;}
 
+
+/******************************************************************************/
+
+#ifdef USE_MMX
+unsigned int intel_cpu_features();
+#endif
+
+void gGetDriverInfo( GraphicsDriverInfo *info )
+{
+     snprintf( info->name,
+               DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH, "Software Driver" );
+
+#ifdef USE_MMX
+     if (intel_cpu_features() & (1 << 23)) {
+          if (dfb_config->no_mmx) {
+               INITMSG( "MMX detected, but disabled by --no-mmx \n");
+          }
+          else {
+               gInit_MMX();
+
+               snprintf( info->name, DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
+                         "MMX Software Driver" );
+
+               INITMSG( "MMX detected and enabled\n");
+          }
+     }
+     else {
+          INITMSG( "No MMX detected\n" );
+     }
+#endif
+
+     snprintf( info->vendor, DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->version.major = 0;
+     info->version.minor = 5;
+}
+
+void gGetDeviceInfo( GraphicsDeviceInfo *info )
+{
+     snprintf( info->name, DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Generic" );
+
+     snprintf( info->vendor, DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->caps.accel    = DFXL_NONE;
+     info->caps.flags    = 0;
+     info->caps.drawing  = DSDRAW_NOFX;
+     info->caps.blitting = DSBLIT_NOFX;
+}
+
 int gAquire( CardState *state, DFBAccelerationMask accel )
 {
      GFunc *funcs = gfuncs;
@@ -2206,9 +2259,12 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                return 0;
      }
 
+     surfacemanager_lock( gfxcard_surface_manager() );
+
      if (accel & 0xFFFF0000) {
-          if (surface_soft_lock( state->source,
-                                 DSLF_READ, &src_org, &src_pitch, 1 )) {
+          if (surface_software_lock( state->source,
+                                     DSLF_READ, &src_org, &src_pitch, 1 )) {
+               surfacemanager_unlock( gfxcard_surface_manager() );
                pthread_mutex_unlock( &generic_lock );
                return 0;
           }
@@ -2218,15 +2274,18 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      else
           state->source_locked = 0;
 
-     if (surface_soft_lock( state->destination,
-                            lock_flags, &dst_org, &dst_pitch, 0 )) {
+     if (surface_software_lock( state->destination,
+                                lock_flags, &dst_org, &dst_pitch, 0 )) {
 
           if (accel & 0xFFFF0000)
                     surface_unlock( state->source, 1 );
 
+          surfacemanager_unlock( gfxcard_surface_manager() );
           pthread_mutex_unlock( &generic_lock );
           return 0;
      }
+
+     surfacemanager_unlock( gfxcard_surface_manager() );
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -2504,11 +2563,6 @@ void gRelease( CardState *state )
           surface_unlock( state->source, 1 );
 
      pthread_mutex_unlock( &generic_lock );
-}
-
-void gUpload( int offset, void *data, int len )
-{
-     memcpy( (char*)card->framebuffer.base + offset, data, len );
 }
 
 #define RUN_PIPELINE()             \

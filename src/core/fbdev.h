@@ -60,9 +60,8 @@ typedef struct _VideoMode {
 } VideoMode;
 
 
-typedef struct {
-     int                      fd;            /* file descriptor for /dev/fb */
-
+typedef struct _FBDevShared             FBDevShared;
+struct _FBDevShared {
      VideoMode                *modes;        /* linked list of valid
                                                 video modes */
      VideoMode                *current_mode; /* current video mode */
@@ -72,20 +71,30 @@ typedef struct {
      struct fb_var_screeninfo orig_var;      /* fbdev variable screeninfo
                                                 before DirectFB was started */
      struct fb_cmap           orig_cmap;     /* original palette */
-} FBDev;
+};
+
+struct _FBDev {
+     FBDevShared             *shared;
+
+     int                      fd;            /* file descriptor for /dev/fb */
+};
 
 extern FBDev *fbdev;
+
+#define Sfbdev (fbdev->shared)
 
 /*
  * core init function, opens /dev/fb, get fbdev screeninfo
  * disables font acceleration, reads mode list
  */
-DFBResult fbdev_open();
+DFBResult fbdev_initialize();
+DFBResult fbdev_join();
 
 /*
  * deinitializes DirectFB fbdev stuff and restores fbdev settings
  */
-void fbdev_deinit();
+DFBResult fbdev_shutdown();
+DFBResult fbdev_leave();
 
 /*
  * return when vertical retrace is reached, works with matrox kernel patch
@@ -93,6 +102,9 @@ void fbdev_deinit();
  */
 DFBResult fbdev_wait_vsync();
 
-DFBResult primarylayer_init();
+VideoMode *fbdev_modes();
+
+DFBResult primarylayer_initialize();
+DFBResult primarylayer_join();
 
 #endif

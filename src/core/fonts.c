@@ -25,13 +25,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <pthread.h>
+
 #include "directfb.h"
 
 #include "coredefs.h"
 #include "coretypes.h"
 
 #include "fonts.h"
-#include "reactor.h"
 #include "surfaces.h"
 
 #include "misc/mem.h"
@@ -39,42 +40,55 @@
 #include "misc/util.h"
 
 
-void fonts_destruct (CoreFont *font)
+CoreFont *font_create()
+{
+     CoreFont *font;
+
+     font = (CoreFont *) DFBCALLOC( 1, sizeof(CoreFont) );
+
+     pthread_mutex_init( &font->lock, NULL );
+
+     font->glyph_infos = tree_new ();
+
+     return font;
+}
+
+void font_destroy( CoreFont *font )
 {
      int i;
 
-     if (!font)
-          return;
+     font_lock( font );
 
-     if (font->glyph_infos) {
-          tree_destroy (font->glyph_infos);
-          font->glyph_infos = NULL;
-     }
+     tree_destroy (font->glyph_infos);
 
      for (i = 0; i < font->rows; i++) {
           surface_destroy (font->surfaces[i]);
      }
-     DFBFREE(font->surfaces);
-     font->surfaces = NULL;
-     font->rows = 0;
+
+     if (font->surfaces)
+          DFBFREE( font->surfaces );
+
+     font_unlock( font );
+
+     pthread_mutex_destroy( &font->lock );
+
+     DFBFREE( font );
 }
 
-DFBResult fonts_get_glyph_data (CoreFont        *font,
-                                unichar          glyph,
-                                CoreGlyphData  **glyph_data)
+DFBResult font_get_glyph_data( CoreFont        *font,
+                               unichar          glyph,
+                               CoreGlyphData  **glyph_data )
 {
      CoreGlyphData *data;
 
-     if (!font->glyph_infos)
-       font->glyph_infos = tree_new();
-
-     tree_lock (font->glyph_infos);
-     data = tree_lookup (font->glyph_infos, (void *)glyph);
+     if ((data = tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
+          *glyph_data = data;
+          return DFB_OK;
+     }
 
      if (!data) {
           data = (CoreGlyphData *) DFBCALLOC(1, sizeof (CoreGlyphData));
           if (!data) {
-               tree_unlock (font->glyph_infos);
                return DFB_NOSYSTEMMEMORY;
           }
 
@@ -116,7 +130,6 @@ DFBResult fonts_get_glyph_data (CoreFont        *font,
      }
 
      *glyph_data = data;
-     tree_unlock (font->glyph_infos);
 
      return DFB_OK;
 }

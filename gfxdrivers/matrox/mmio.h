@@ -21,7 +21,12 @@
    Boston, MA 02111-1307, USA.
 */
 
+#ifndef __MATROX_MMIO_H__
+#define __MATROX_MMIO_H__
+
 #include <asm/types.h>
+
+#include "matrox.h"
 
 typedef __u8 uint8;
 typedef __u16 uint16;
@@ -56,45 +61,39 @@ mga_in32(volatile uint8 *mmioaddr, uint32 reg)
      return *((uint32*)(mmioaddr+reg));
 }
 
-extern unsigned int matrox_waitfifo_sum;
-extern unsigned int matrox_waitfifo_calls;
-extern unsigned int matrox_fifo_waitcycles;
-extern unsigned int matrox_idle_waitcycles;
-extern unsigned int matrox_fifo_cache_hits;
-
-extern unsigned int matrox_fifo_space;
-
 /* Wait for fifo space */
 static inline void
-mga_waitfifo(volatile uint8 *mmioaddr, int space)
+mga_waitfifo(MatroxDriverData *mdrv, MatroxDeviceData *mdev, int space)
 {
-     matrox_waitfifo_sum += space;
-     matrox_waitfifo_calls++;
+     mdev->waitfifo_sum += space;
+     mdev->waitfifo_calls++;
 
-     if (matrox_fifo_space < space) {
+     if (mdev->fifo_space < space) {
           do { /* not needed on a G400,
                   hardware does retries on writing if FIFO is full,
                   but results in DMA problems */
-               matrox_fifo_space = mga_in32(mmioaddr, FIFOSTATUS) & 0xff;
-               matrox_fifo_waitcycles++;
-          } while (matrox_fifo_space < space);
+               mdev->fifo_space = mga_in32(mdrv->mmio_base, FIFOSTATUS) & 0xff;
+               mdev->fifo_waitcycles++;
+          } while (mdev->fifo_space < space);
      }
      else {
-          matrox_fifo_cache_hits++;
+          mdev->fifo_cache_hits++;
      }
 
-     matrox_fifo_space -= space;
+     mdev->fifo_space -= space;
 }
 
 /* Wait for idle accelerator */
 static inline void
-mga_waitidle(volatile uint8 *mmioaddr)
+mga_waitidle(MatroxDriverData *mdrv, MatroxDeviceData *mdev)
 {
-     while (mga_in32(mmioaddr, STATUS) & 0x10000) {
-          matrox_idle_waitcycles++;
+     while (mga_in32(mdrv->mmio_base, STATUS) & 0x10000) {
+          mdev->idle_waitcycles++;
      }
 }
 
 #define outMGAdac(reg, val) \
         (mga_out8(mmio_base, reg, DAC_INDEX), mga_out8(mmio_base,val,DAC_DATA))
+
+#endif
 

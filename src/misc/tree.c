@@ -28,6 +28,8 @@
 
 #include <pthread.h>
 
+#include <core/fusion/lock.h>
+
 #include "directfb.h"
 
 #include "core/coretypes.h"
@@ -36,25 +38,6 @@
 
 #include "tree.h"
 
-
-typedef struct _Node Node;
-
-struct _Tree
-{
-     Node            *root;
-     void            *fast_keys[96];
-
-     pthread_mutex_t  mutex;
-};
-
-struct _Node
-{
-     int   balance;
-     Node *left;
-     Node *right;
-     void *key;
-     void *value;
-};
 
 static Node * tree_node_new          (Tree  *tree,
                                       void  *key,
@@ -79,26 +62,16 @@ Tree * tree_new (void)
 
      tree = DFBCALLOC(1, sizeof (Tree));
      if (tree)
-          pthread_mutex_init (&tree->mutex, NULL);
+          skirmish_init (&tree->skirmish);
 
      return tree;
-}
-
-void tree_lock (Tree *tree)
-{
-     pthread_mutex_lock (&tree->mutex);
-}
-
-void tree_unlock (Tree *tree)
-{
-     pthread_mutex_unlock (&tree->mutex);
 }
 
 void tree_destroy (Tree *tree)
 {
      unsigned int i;
 
-     pthread_mutex_destroy (&tree->mutex);
+     skirmish_destroy (&tree->skirmish);
 
      for (i = 0; i < 96; i++) {
           if (tree->fast_keys[i])

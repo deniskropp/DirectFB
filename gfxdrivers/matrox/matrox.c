@@ -47,55 +47,33 @@
 #include "matrox_state.h"
 
 
-volatile __u8 *mmio_base;
+static void matroxBlit2D    ( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy );
 
-GfxCard *matrox = NULL;
+static void matroxBlit2D_Old( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy );
 
-/* Old cards are older than G200/G400, e.g. Mystique or Millenium */
-int old_matrox = 0;
-
-unsigned int matrox_fifo_space = 0;
-
-unsigned int matrox_waitfifo_sum = 0;
-unsigned int matrox_waitfifo_calls = 0;
-unsigned int matrox_fifo_waitcycles = 0;
-unsigned int matrox_idle_waitcycles = 0;
-unsigned int matrox_fifo_cache_hits = 0;
-
-static __u32 atype_blk_rstr = 0;
-
-static void matroxBlit2D( DFBRectangle *rect, int dx, int dy );
-static void matroxBlit2D_Old( DFBRectangle *rect, int dx, int dy );
-static void matroxBlit3D( DFBRectangle *rect, int dx, int dy );
+static void matroxBlit3D    ( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy );
 
 
-int m_Source = 0;
-int m_source = 0;
-
-int m_Color = 0;
-int m_color = 0;
-
-int m_SrcKey = 0;
-int m_srckey = 0;
-
-int m_drawBlend = 0;
-int m_blitBlend = 0;
-
-int dst_pixelpitch = 0;
-int dst_pixeloffset = 0;
-int src_pixelpitch = 0;
-int src_pixeloffset = 0;
 
 
-static void matroxEngineSync()
+static void matroxEngineSync( void *drv, void *dev )
 {
-     mga_waitidle( mmio_base );
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     mga_waitidle( mdrv, mdev );
 }
 
-static void matroxFlushTextureCache()
+static void matroxFlushTextureCache( void *drv, void *dev )
 {
-     mga_waitfifo( mmio_base, 1 );
-     mga_out32( mmio_base, 0, TEXORG1 );
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     mga_waitfifo( mdrv, mdev, 1 );
+     mga_out32( mdrv->mmio_base, 0, TEXORG1 );
 }
 
 /* Old cards (Mystique, Millenium, ...) */
@@ -147,7 +125,8 @@ static void matroxFlushTextureCache()
 #define MATROX_G200G400_BLITTING_FUNCTIONS  (DFXL_BLIT          | \
                                              DFXL_STRETCHBLIT)
 
-static void matroxOldCheckState( CardState *state, DFBAccelerationMask accel )
+static void matroxOldCheckState( void *drv, void *dev,
+                                 CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
@@ -178,7 +157,8 @@ static void matroxOldCheckState( CardState *state, DFBAccelerationMask accel )
      }
 }
 
-static void matroxG100CheckState( CardState *state, DFBAccelerationMask accel )
+static void matroxG100CheckState( void *drv, void *dev,
+                                  CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
@@ -234,7 +214,8 @@ static void matroxG100CheckState( CardState *state, DFBAccelerationMask accel )
      }
 }
 
-static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
+static void matroxG200CheckState( void *drv, void *dev,
+                                  CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
@@ -279,7 +260,8 @@ static void matroxG200CheckState( CardState *state, DFBAccelerationMask accel )
      }
 }
 
-static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
+static void matroxG400CheckState( void *drv, void *dev,
+                                  CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
@@ -326,34 +308,29 @@ static void matroxG400CheckState( CardState *state, DFBAccelerationMask accel )
      }
 }
 
-static void matroxSetState( CardState *state, DFBAccelerationMask accel )
+static void matroxSetState( void *drv, void *dev,
+                            GraphicsDeviceFuncs *funcs,
+                            CardState *state, DFBAccelerationMask accel )
 {
-     if (state != matrox->state) {
-          state->modified |= SMF_ALL;
-          state->set = 0;
-          matrox->state = state;
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
 
-          m_Source = m_source = m_Color = m_color =
-               m_SrcKey = m_srckey = m_drawBlend = m_blitBlend = 0;
-     }
-     else {
-          if (state->modified) {
-               if (state->modified & SMF_COLOR)
-                    m_Color = m_color = 0;
-               else if (state->modified & SMF_DESTINATION)
-                    m_color = 0;
+     if (state->modified) {
+          if (state->modified & SMF_COLOR)
+               mdev->m_Color = mdev->m_color = 0;
+          else if (state->modified & SMF_DESTINATION)
+               mdev->m_color = 0;
 
-               if (state->modified & SMF_SOURCE)
-                    m_Source = m_source = m_SrcKey = m_srckey = 0;
-               else if (state->modified & SMF_SRC_COLORKEY)
-                    m_SrcKey = m_srckey = 0;
+          if (state->modified & SMF_SOURCE)
+               mdev->m_Source = mdev->m_source = mdev->m_SrcKey = mdev->m_srckey = 0;
+          else if (state->modified & SMF_SRC_COLORKEY)
+               mdev->m_SrcKey = mdev->m_srckey = 0;
 
-               if (state->modified & SMF_BLITTING_FLAGS)
-                    m_Source = m_blitBlend = 0;
+          if (state->modified & SMF_BLITTING_FLAGS)
+               mdev->m_Source = mdev->m_blitBlend = 0;
 
-               if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
-                    m_blitBlend = m_drawBlend = 0;
-          }
+          if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
+               mdev->m_blitBlend = mdev->m_drawBlend = 0;
      }
 
      switch (accel) {
@@ -362,11 +339,14 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
           case DFXL_DRAWLINE:
           case DFXL_FILLTRIANGLE:
                if (state->drawingflags & DSDRAW_BLEND) {
-                    matrox_validate_Color();
-                    matrox_validate_drawBlend();
+                    mdev->draw_blend = 1;
+                    matrox_validate_Color( mdrv, mdev, state );
+                    matrox_validate_drawBlend( mdrv, mdev, state );
                }
-               else
-                    matrox_validate_color();
+               else {
+                    mdev->draw_blend = 0;
+                    matrox_validate_color( mdrv, mdev, state );
+               }
 
                state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE |
                             DFXL_DRAWLINE | DFXL_FILLTRIANGLE;
@@ -374,9 +354,12 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
                break;
           case DFXL_BLIT:
           case DFXL_STRETCHBLIT:
+               mdev->blit_src_colorkey = (state->blittingflags &
+                                          DSBLIT_SRC_COLORKEY) ? 1 : 0;
+
                if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                            DSBLIT_COLORIZE))
-                    matrox_validate_Color();
+                    matrox_validate_Color( mdrv, mdev, state );
 
                if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                            DSBLIT_BLEND_COLORALPHA   |
@@ -384,26 +367,26 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
                    state->destination->format != state->source->format  ||
                    accel == DFXL_STRETCHBLIT)
                {
-                    matrox->Blit = matroxBlit3D;
+                    funcs->Blit = matroxBlit3D;
 
-                    matrox_validate_blitBlend();
-                    matrox_validate_Source();
+                    matrox_validate_blitBlend( mdrv, mdev, state );
+                    matrox_validate_Source( mdrv, mdev, state );
 
-                    if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                         matrox_validate_SrcKey();
+                    if (mdev->blit_src_colorkey)
+                         matrox_validate_SrcKey( mdrv, mdev, state );
 
                     state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
                }
                else {
-                    if (old_matrox)
-                         matrox->Blit = matroxBlit2D_Old;
+                    if (mdev->old_matrox)
+                         funcs->Blit = matroxBlit2D_Old;
                     else
-                         matrox->Blit = matroxBlit2D;
+                         funcs->Blit = matroxBlit2D;
 
-                    matrox_validate_source();
+                    matrox_validate_source( mdrv, mdev, state );
 
-                    if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                         matrox_validate_srckey();
+                    if (mdev->blit_src_colorkey)
+                         matrox_validate_srckey( mdrv, mdev, state );
 
                     state->set = DFXL_BLIT;
                }
@@ -414,143 +397,160 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
      }
 
      if (state->modified & SMF_DESTINATION) {
-          matrox_set_destination();
+          matrox_set_destination( mdrv, mdev, state->destination );
 
           /* On old cards the clip depends on the destination's pixel offset */
-          if (old_matrox)
+          if (mdev->old_matrox)
                state->modified |= SMF_CLIP;
      }
 
      if (state->modified & SMF_CLIP)
-          matrox_set_clip();
+          matrox_set_clip( mdrv, mdev, &state->clip );
 
      state->modified = 0;
 }
 
-static void matroxFillRectangle( DFBRectangle *rect )
+static void matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-     mga_waitfifo( mmio_base, 3 );
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
 
-     if (matrox->state->drawingflags & DSDRAW_BLEND)
-          mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO |
-                                ARZERO | ATYPE_I | OP_TRAP,
-                     DWGCTL );
+     mga_waitfifo( mdrv, mdev, 3 );
+
+     if (mdev->draw_blend)
+          mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO |
+                           ARZERO | ATYPE_I | OP_TRAP, DWGCTL );
      else
-          mga_out32( mmio_base, TRANSC | BOP_COPY | SHFTZERO | SGNZERO |
-                                ARZERO | SOLID | atype_blk_rstr | OP_TRAP,
-                     DWGCTL );
+          mga_out32( mmio, TRANSC | BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
+                           SOLID | mdev->atype_blk_rstr | OP_TRAP, DWGCTL );
 
-     mga_out32( mmio_base, (RS16(rect->x + rect->w) << 16) | RS16(rect->x), FXBNDRY );
-     mga_out32( mmio_base, (RS16(rect->y) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
+     mga_out32( mmio, (RS16(rect->x + rect->w) << 16) | RS16(rect->x), FXBNDRY );
+     mga_out32( mmio, (RS16(rect->y) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
 }
 
-static void matroxDrawRectangle( DFBRectangle *rect )
+static void matroxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-     mga_waitfifo( mmio_base, 6 );
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
 
-     if (matrox->state->drawingflags & DSDRAW_BLEND)
-          mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | ATYPE_I |
-                                OP_AUTOLINE_OPEN,
-                     DWGCTL );
+     mga_waitfifo( mdrv, mdev, 6 );
+
+     if (mdev->draw_blend)
+          mga_out32( mmio, BLTMOD_BFCOL | BOP_COPY | ATYPE_I |
+                           OP_AUTOLINE_OPEN, DWGCTL );
      else
-          mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
-                                ATYPE_RSTR | OP_AUTOLINE_OPEN,
-                     DWGCTL );
+          mga_out32( mmio, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
+                           ATYPE_RSTR | OP_AUTOLINE_OPEN, DWGCTL );
 
-     mga_out32(mmio_base, RS16(rect->x) |
-                         (RS16(rect->y) << 16),
-                          XYSTRT);
+     mga_out32(mmio, RS16(rect->x) |
+                    (RS16(rect->y) << 16),
+                     XYSTRT);
 
-     mga_out32(mmio_base, RS16(rect->x + rect->w-1) | (RS16(rect->y) << 16),
-                          XYEND | EXECUTE);
+     mga_out32(mmio, RS16(rect->x + rect->w-1) | (RS16(rect->y) << 16),
+                     XYEND | EXECUTE);
 
-     mga_out32(mmio_base, RS16(rect->x + rect->w-1) |
-                         (RS16(rect->y + rect->h-1) << 16),
-                          XYEND | EXECUTE);
+     mga_out32(mmio, RS16(rect->x + rect->w-1) |
+                    (RS16(rect->y + rect->h-1) << 16),
+                     XYEND | EXECUTE);
 
-     mga_out32(mmio_base, RS16(rect->x) |
-                         (RS16(rect->y + rect->h-1) << 16),
-                          XYEND | EXECUTE);
+     mga_out32(mmio, RS16(rect->x) |
+                    (RS16(rect->y + rect->h-1) << 16),
+                     XYEND | EXECUTE);
 
-     mga_out32(mmio_base, RS16(rect->x) |
-                         (RS16(rect->y) << 16),
-                          XYEND | EXECUTE);
+     mga_out32(mmio, RS16(rect->x) |
+                    (RS16(rect->y) << 16),
+                     XYEND | EXECUTE);
 }
 
-static void matroxDrawLine( DFBRegion *line )
+static void matroxDrawLine( void *drv, void *dev, DFBRegion *line )
 {
-     mga_waitfifo( mmio_base, 3 );
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
 
-     if (matrox->state->drawingflags & DSDRAW_BLEND)
-          mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | ATYPE_I |
-                                OP_AUTOLINE_CLOSE,
+     mga_waitfifo( mdrv, mdev, 3 );
+
+     if (mdev->draw_blend)
+          mga_out32( mmio, BLTMOD_BFCOL | BOP_COPY | ATYPE_I |
+                           OP_AUTOLINE_CLOSE,
                      DWGCTL );
      else
-          mga_out32( mmio_base, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
-                                ATYPE_RSTR | OP_AUTOLINE_CLOSE,
+          mga_out32( mmio, BLTMOD_BFCOL | BOP_COPY | SHFTZERO | SOLID |
+                           ATYPE_RSTR | OP_AUTOLINE_CLOSE,
                      DWGCTL );
 
-     mga_out32( mmio_base, RS16(line->x1) | (RS16(line->y1) << 16),
-                           XYSTRT );
+     mga_out32( mmio, RS16(line->x1) | (RS16(line->y1) << 16),
+                      XYSTRT );
 
-     mga_out32( mmio_base, RS16(line->x2) | (RS16(line->y2) << 16),
-                           XYEND | EXECUTE );
+     mga_out32( mmio, RS16(line->x2) | (RS16(line->y2) << 16),
+                      XYEND | EXECUTE );
 }
 
-static void matroxFillTrapezoid( int Xl, int Xr, int X2l, int X2r, int Y, int dY )
+static void matrox_fill_trapezoid( MatroxDriverData *mdrv,
+                                   MatroxDeviceData *mdev,
+                                   int Xl, int Xr, int X2l,
+                                   int X2r, int Y, int dY )
 {
-  int dxl = X2l - Xl;
-  int dxr = ++X2r - ++Xr;
+     volatile __u8 *mmio = mdrv->mmio_base;
 
-  int dXl = abs(dxl);
-  int dXr = abs(dxr);
+     int dxl = X2l - Xl;
+     int dxr = ++X2r - ++Xr;
 
-  __u32 sgn = 0;
+     int dXl = abs(dxl);
+     int dXr = abs(dxr);
 
-  mga_waitfifo( mmio_base, 6 );
+     __u32 sgn = 0;
 
-  mga_out32( mmio_base, dY, AR0 );
-  mga_out32( mmio_base, - dXl, AR1 );
-  mga_out32( mmio_base, - dXl, AR2 );
-  mga_out32( mmio_base, - dXr, AR4 );
-  mga_out32( mmio_base, - dXr, AR5 );
-  mga_out32( mmio_base, dY, AR6 );
+     mga_waitfifo( mdrv, mdev, 6 );
 
-  if (dxl < 0)
-    sgn |= SDXL;
-  if (dxr < 0)
-    sgn |= SDXR;
+     mga_out32( mmio, dY, AR0 );
+     mga_out32( mmio, - dXl, AR1 );
+     mga_out32( mmio, - dXl, AR2 );
+     mga_out32( mmio, - dXr, AR4 );
+     mga_out32( mmio, - dXr, AR5 );
+     mga_out32( mmio, dY, AR6 );
 
-  mga_waitfifo( mmio_base, 3 );
+     if (dxl < 0)
+          sgn |= SDXL;
+     if (dxr < 0)
+          sgn |= SDXR;
 
-  mga_out32( mmio_base, sgn, SGN );
-  mga_out32( mmio_base, (RS16(Xr) << 16) | RS16(Xl), FXBNDRY );
-  mga_out32( mmio_base, (RS16(Y) << 16) | RS16(dY), YDSTLEN | EXECUTE );
+     mga_waitfifo( mdrv, mdev, 3 );
+
+     mga_out32( mmio, sgn, SGN );
+     mga_out32( mmio, (RS16(Xr) << 16) | RS16(Xl), FXBNDRY );
+     mga_out32( mmio, (RS16(Y) << 16) | RS16(dY), YDSTLEN | EXECUTE );
 }
 
-static void matroxFillTriangle( DFBTriangle *tri )
+static void matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
-     mga_waitfifo( mmio_base, 1 );
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
 
-     if (matrox->state->drawingflags & DSDRAW_BLEND)
-          mga_out32( mmio_base, BOP_COPY | SHFTZERO | ATYPE_I | OP_TRAP,
+     mga_waitfifo( mdrv, mdev, 1 );
+
+     if (mdev->draw_blend)
+          mga_out32( mmio, BOP_COPY | SHFTZERO | ATYPE_I | OP_TRAP,
                      DWGCTL );
      else
-          mga_out32( mmio_base, TRANSC | BOP_COPY | SHFTZERO |
-                                SOLID | atype_blk_rstr | OP_TRAP,
+          mga_out32( mmio, TRANSC | BOP_COPY | SHFTZERO |
+                           SOLID | mdev->atype_blk_rstr | OP_TRAP,
                      DWGCTL );
 
      sort_triangle( tri );
 
      if (tri->y2 == tri->y3) {
-       matroxFillTrapezoid( tri->x1, tri->x1,
+       matrox_fill_trapezoid( mdrv, mdev, tri->x1, tri->x1,
                 MIN( tri->x2, tri->x3 ), MAX( tri->x2, tri->x3 ),
                 tri->y1, tri->y3 - tri->y1 + 1 );
      } else
      if (tri->y1 == tri->y2) {
-       matroxFillTrapezoid( MIN( tri->x1, tri->x2 ), MAX( tri->x1, tri->x2 ),
-                tri->x3, tri->x3,
-                tri->y1, tri->y3 - tri->y1 + 1 );
+       matrox_fill_trapezoid( mdrv, mdev,
+                MIN( tri->x1, tri->x2 ), MAX( tri->x1, tri->x2 ),
+                tri->x3, tri->x3, tri->y1, tri->y3 - tri->y1 + 1 );
      }
      else {
        int majDx = tri->x3 - tri->x1;
@@ -566,22 +566,26 @@ static void matroxFillTriangle( DFBTriangle *tri )
        int majX2  = tri->x1 + (((majXperY * topDy) + (1<<19)) >> 20);
        int majX2a = majX2 - ((majXperY + (1<<19)) >> 20);
 
-       matroxFillTrapezoid( tri->x1, tri->x1,
+       matrox_fill_trapezoid( mdrv, mdev, tri->x1, tri->x1,
                 MIN( X2a, majX2a ), MAX( X2a, majX2a ),
                 tri->y1, topDy );
-       matroxFillTrapezoid( MIN( tri->x2, majX2 ), MAX( tri->x2, majX2 ),
-                tri->x3, tri->x3,
-                tri->y2, botDy + 1 );
+       matrox_fill_trapezoid( mdrv, mdev,
+                MIN( tri->x2, majX2 ), MAX( tri->x2, majX2 ),
+                tri->x3, tri->x3, tri->y2, botDy + 1 );
      }
 }
 
-static void matroxBlit2D( DFBRectangle *rect, int dx, int dy )
+static void matroxBlit2D( void *drv, void *dev,
+                          DFBRectangle *rect, int dx, int dy )
 {
-     __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO |
-                    ATYPE_RSTR | OP_BITBLT;
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO | ATYPE_RSTR | OP_BITBLT;
      __u32 start, end;
      __u32 sgn = 0;
-     __s32 pixelpitch = src_pixelpitch;
+     __s32 pixelpitch = mdev->src_pixelpitch;
 
      if (rect->x < dx)
           sgn |= BLIT_LEFT;
@@ -605,26 +609,30 @@ static void matroxBlit2D( DFBRectangle *rect, int dx, int dy )
      if (sgn & BLIT_UP)
           pixelpitch = -pixelpitch;
 
-     if (matrox->state->blittingflags & DSBLIT_SRC_COLORKEY)
+     if (mdev->blit_src_colorkey)
           dwgctl |= TRANSC;
 
-     mga_waitfifo( mmio_base, 7 );
-     mga_out32( mmio_base, dwgctl, DWGCTL );
-     mga_out32( mmio_base, pixelpitch & 0x3FFFFF, AR5 );
-     mga_out32( mmio_base, start & 0xFFFFFF, AR3 );
-     mga_out32( mmio_base, end & 0x3FFFFF, AR0 );
-     mga_out32( mmio_base, sgn, SGN );
-     mga_out32( mmio_base, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
-     mga_out32( mmio_base, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
+     mga_waitfifo( mdrv, mdev, 7 );
+     mga_out32( mmio, dwgctl, DWGCTL );
+     mga_out32( mmio, pixelpitch & 0x3FFFFF, AR5 );
+     mga_out32( mmio, start & 0xFFFFFF, AR3 );
+     mga_out32( mmio, end & 0x3FFFFF, AR0 );
+     mga_out32( mmio, sgn, SGN );
+     mga_out32( mmio, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
+     mga_out32( mmio, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
 }
 
-static void matroxBlit2D_Old( DFBRectangle *rect, int dx, int dy )
+static void matroxBlit2D_Old( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy )
 {
-     __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO |
-                    ATYPE_RSTR | OP_BITBLT;
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO | ATYPE_RSTR | OP_BITBLT;
      __u32 start, end;
      __u32 sgn = 0;
-     __s32 pixelpitch = src_pixelpitch;
+     __s32 pixelpitch = mdev->src_pixelpitch;
 
      if (rect->x < dx)
           sgn |= BLIT_LEFT;
@@ -636,7 +644,7 @@ static void matroxBlit2D_Old( DFBRectangle *rect, int dx, int dy )
           dy += rect->h - 1;
      }
 
-     start = rect->y * pixelpitch + rect->x + src_pixeloffset;
+     start = rect->y * pixelpitch + rect->x + mdev->src_pixeloffset;
 
      rect->w--;
 
@@ -650,253 +658,331 @@ static void matroxBlit2D_Old( DFBRectangle *rect, int dx, int dy )
      if (sgn & BLIT_UP)
           pixelpitch = -pixelpitch;
 
-     if (matrox->state->blittingflags & DSBLIT_SRC_COLORKEY)
+     if (mdev->blit_src_colorkey)
           dwgctl |= TRANSC;
 
-     mga_waitfifo( mmio_base, 7 );
-     mga_out32( mmio_base, dwgctl, DWGCTL );
-     mga_out32( mmio_base, pixelpitch & 0x3FFFFF, AR5 );
-     mga_out32( mmio_base, start & 0xFFFFFF, AR3 );
-     mga_out32( mmio_base, end & 0x3FFFF, AR0 );
-     mga_out32( mmio_base, sgn, SGN );
-     mga_out32( mmio_base, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
-     mga_out32( mmio_base, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
+     mga_waitfifo( mdrv, mdev, 7 );
+     mga_out32( mmio, dwgctl, DWGCTL );
+     mga_out32( mmio, pixelpitch & 0x3FFFFF, AR5 );
+     mga_out32( mmio, start & 0xFFFFFF, AR3 );
+     mga_out32( mmio, end & 0x3FFFF, AR0 );
+     mga_out32( mmio, sgn, SGN );
+     mga_out32( mmio, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
+     mga_out32( mmio, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
 }
 
-static void matroxBlit3D( DFBRectangle *rect, int dx, int dy )
+static void matroxBlit3D( void *drv, void *dev,
+                          DFBRectangle *rect, int dx, int dy )
 {
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
      __s32 startx, starty;
 
-     startx = ((rect->x << 20) | 0x80000) >> matrox_w2;
-     starty = ((rect->y << 20) | 0x80000) >> matrox_h2;
+     startx = ((rect->x << 20) | 0x80000) >> mdev->matrox_w2;
+     starty = ((rect->y << 20) | 0x80000) >> mdev->matrox_h2;
 
 
-     mga_waitfifo( mmio_base, 8);
+     mga_waitfifo( mdrv, mdev, 8);
 
-     mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO |
+     mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO |
                 ARZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
 
-     mga_out32( mmio_base, MAG_NRST | MIN_NRST, TEXFILTER );
+     mga_out32( mmio, MAG_NRST | MIN_NRST, TEXFILTER );
 
-     mga_out32( mmio_base, 0x100000 >> matrox_w2, TMR0 );
-     mga_out32( mmio_base, 0x100000 >> matrox_h2, TMR3 );
-     mga_out32( mmio_base, startx, TMR6 );
-     mga_out32( mmio_base, starty, TMR7 );
-     mga_out32( mmio_base, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
-     mga_out32( mmio_base, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
+     mga_out32( mmio, 0x100000 >> mdev->matrox_w2, TMR0 );
+     mga_out32( mmio, 0x100000 >> mdev->matrox_h2, TMR3 );
+     mga_out32( mmio, startx, TMR6 );
+     mga_out32( mmio, starty, TMR7 );
+     mga_out32( mmio, (RS16(dx+rect->w) << 16) | RS16(dx), FXBNDRY );
+     mga_out32( mmio, (RS16(dy) << 16) | RS16(rect->h), YDSTLEN | EXECUTE );
 }
 
-static void matroxStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
+static void matroxStretchBlit( void *drv, void *dev,
+                               DFBRectangle *srect, DFBRectangle *drect )
 {
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
      __s32 startx, starty, incx, incy;
 
-     incx = (srect->w << (20 - matrox_w2))  /  drect->w;
-     incy = (srect->h << (20 - matrox_h2))  /  drect->h;
+     incx = (srect->w << (20 - mdev->matrox_w2))  /  drect->w;
+     incy = (srect->h << (20 - mdev->matrox_h2))  /  drect->h;
 
-     startx = srect->x << (20 - matrox_w2);
-     starty = srect->y << (20 - matrox_h2);
+     startx = srect->x << (20 - mdev->matrox_w2);
+     starty = srect->y << (20 - mdev->matrox_h2);
 
 
-     mga_waitfifo( mmio_base, 8);
+     mga_waitfifo( mdrv, mdev, 8);
 
-     mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
-                           ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
+     mga_out32( mmio, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |
+                      ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
 
-     mga_out32( mmio_base, MAG_BILIN | MIN_BILIN, TEXFILTER );
+     mga_out32( mmio, MAG_BILIN | MIN_BILIN, TEXFILTER );
 
-     mga_out32( mmio_base, incx, TMR0 );
-     mga_out32( mmio_base, incy, TMR3 );
-     mga_out32( mmio_base, startx, TMR6 );
-     mga_out32( mmio_base, starty, TMR7 );
+     mga_out32( mmio, incx, TMR0 );
+     mga_out32( mmio, incy, TMR3 );
+     mga_out32( mmio, startx, TMR6 );
+     mga_out32( mmio, starty, TMR7 );
 
-     mga_out32( mmio_base, (RS16(drect->x+drect->w) << 16) | RS16(drect->x), FXBNDRY );
-     mga_out32( mmio_base, (RS16(drect->y) << 16) | RS16(drect->h), YDSTLEN | EXECUTE );
+     mga_out32( mmio, (RS16(drect->x+drect->w) << 16) | RS16(drect->x), FXBNDRY );
+     mga_out32( mmio, (RS16(drect->y) << 16) | RS16(drect->h), YDSTLEN | EXECUTE );
 }
 
 
 /* exported symbols */
 
-int driver_probe( int fd, GfxCard *card )
+int driver_get_abi_version()
 {
-     switch (card->fix.accel) {
+     return DFB_GRAPHICS_DRIVER_ABI_VERSION;
+}
+
+int driver_probe( GraphicsDevice *device )
+{
+     switch (gfxcard_get_accelerator( device )) {
           case FB_ACCEL_MATROX_MGA2064W:     /* Matrox MGA2064W (Millenium)   */
           case FB_ACCEL_MATROX_MGA1064SG:    /* Matrox MGA1064SG (Mystique)   */
           case FB_ACCEL_MATROX_MGA2164W:     /* Matrox MGA2164W (Millenium II)*/
           case FB_ACCEL_MATROX_MGA2164W_AGP: /* Matrox MGA2164W (Millenium II)*/
           case FB_ACCEL_MATROX_MGAG100:      /* Matrox G100                   */
-               old_matrox = 1;
-
-               /* fall through */
-
+          case FB_ACCEL_MATROX_MGAG200:      /* Matrox G200 (Myst, Mill, ...) */
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:      /* Matrox G400                   */
 #endif
-          case FB_ACCEL_MATROX_MGAG200:      /* Matrox G200 (Myst, Mill, ...) */
                return 1;
      }
 
      return 0;
 }
 
-int driver_init( int fd, GfxCard *card )
+void
+driver_get_info( GraphicsDevice     *device,
+                 GraphicsDriverInfo *info )
 {
-     mmio_base = (__u8*)mmap(NULL, card->fix.mmio_len,
-                                      PROT_READ | PROT_WRITE, MAP_SHARED,
-                                      fd, card->fix.smem_len);
-     if (mmio_base == MAP_FAILED) {
-          PERRORMSG("DirectFB/Matrox: Unable to map mmio region!\n");
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
+               "Matrox G450/G400/G200/G100/Millenium/Mystique Driver" );
+
+     snprintf( info->vendor,
+               DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->version.major = 0;
+     info->version.minor = 6;
+
+     info->driver_data_size = sizeof (MatroxDriverData);
+     info->device_data_size = sizeof (MatroxDeviceData);
+}
+
+DFBResult
+driver_init_driver( GraphicsDevice      *device,
+                    GraphicsDeviceFuncs *funcs,
+                    void                *driver_data )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
+
+     mdrv->mmio_base = (volatile __u8*) gfxcard_map_mmio( device, 0, -1 );
+     if (!mdrv->mmio_base)
           return DFB_IO;
-     }
 
-     switch (card->fix.accel) {
+     switch (gfxcard_get_accelerator( device )) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
-               sprintf( card->info.driver_name, "Matrox G400/G450" );
+               funcs->CheckState = matroxG400CheckState;
                break;
 #endif
           case FB_ACCEL_MATROX_MGAG200:
-               sprintf( card->info.driver_name, "Matrox G200" );
-               break;
-          case FB_ACCEL_MATROX_MGAG100:
-               sprintf( card->info.driver_name, "Matrox G100" );
-               break;
-          case FB_ACCEL_MATROX_MGA2064W:
-               sprintf( card->info.driver_name, "Matrox Millenium I" );
-               break;
-          case FB_ACCEL_MATROX_MGA1064SG:
-               sprintf( card->info.driver_name, "Matrox Mystique" );
-               break;
-          case FB_ACCEL_MATROX_MGA2164W:
-          case FB_ACCEL_MATROX_MGA2164W_AGP:
-               sprintf( card->info.driver_name, "Matrox Millenium II" );
-               break;
-          default:
-               BUG("id known by probe() not known by init()");
-               munmap( (void*)mmio_base, card->fix.mmio_len);
-               return DFB_BUG;
-     }
-
-     sprintf( card->info.driver_vendor, "convergence integrated media GmbH" );
-
-     card->info.driver_version.major = 0;
-     card->info.driver_version.minor = 5;
-
-     card->caps.flags = CCF_CLIPPING;
-
-     switch (card->fix.accel) {
-#ifdef FB_ACCEL_MATROX_MGAG400
-          case FB_ACCEL_MATROX_MGAG400:
-               card->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
-                                     MATROX_G200G400_BLITTING_FUNCTIONS;
-               card->caps.drawing  = MATROX_G200G400_DRAWING_FLAGS;
-               card->caps.blitting = MATROX_G200G400_BLITTING_FLAGS;
-
-               card->CheckState = matroxG400CheckState;
-               break;
-#endif
-          case FB_ACCEL_MATROX_MGAG200:
-               card->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
-                                     MATROX_G200G400_BLITTING_FUNCTIONS;
-               card->caps.drawing  = MATROX_G200G400_DRAWING_FLAGS;
-               card->caps.blitting = MATROX_G200G400_BLITTING_FLAGS;
-
-               card->CheckState = matroxG200CheckState;
+               funcs->CheckState = matroxG200CheckState;
                break;
 
           case FB_ACCEL_MATROX_MGAG100:
-               card->caps.accel    = MATROX_G100_DRAWING_FUNCTIONS |
-                                     MATROX_G100_BLITTING_FUNCTIONS;
-               card->caps.drawing  = MATROX_G100_DRAWING_FLAGS;
-               card->caps.blitting = MATROX_G100_BLITTING_FLAGS;
-
-               card->CheckState = matroxG100CheckState;
+               funcs->CheckState = matroxG100CheckState;
                break;
 
           case FB_ACCEL_MATROX_MGA2064W:
           case FB_ACCEL_MATROX_MGA1064SG:
           case FB_ACCEL_MATROX_MGA2164W:
           case FB_ACCEL_MATROX_MGA2164W_AGP:
-               card->caps.accel    = MATROX_OLD_DRAWING_FUNCTIONS |
-                                     MATROX_OLD_BLITTING_FUNCTIONS;
-               card->caps.drawing  = MATROX_OLD_DRAWING_FLAGS;
-               card->caps.blitting = MATROX_OLD_BLITTING_FLAGS;
-
-               card->CheckState = matroxOldCheckState;
+               funcs->CheckState = matroxOldCheckState;
                break;
      }
 
-     card->SetState = matroxSetState;
-     card->EngineSync = matroxEngineSync;
-     card->FlushTextureCache = matroxFlushTextureCache;
+     funcs->SetState          = matroxSetState;
+     funcs->EngineSync        = matroxEngineSync;
+     funcs->FlushTextureCache = matroxFlushTextureCache;
 
-     card->FillRectangle = matroxFillRectangle;
-     card->DrawRectangle = matroxDrawRectangle;
-     card->DrawLine = matroxDrawLine;
-     card->FillTriangle = matroxFillTriangle;
-     card->StretchBlit = matroxStretchBlit;
+     funcs->FillRectangle     = matroxFillRectangle;
+     funcs->DrawRectangle     = matroxDrawRectangle;
+     funcs->DrawLine          = matroxDrawLine;
+     funcs->FillTriangle      = matroxFillTriangle;
+     funcs->StretchBlit       = matroxStretchBlit;
 
-     /* will be set dynamically: card->Blit */
-
-     mga_waitfifo( mmio_base, 11 );
-     mga_out32( mmio_base, 0, TDUALSTAGE0 );   // multi texture registers
-     mga_out32( mmio_base, 0, TDUALSTAGE1 );
-     mga_out32( mmio_base, 0, ALPHAXINC );     // alpha increments
-     mga_out32( mmio_base, 0, ALPHAYINC );
-     mga_out32( mmio_base, 0, DR6 );           // red increments
-     mga_out32( mmio_base, 0, DR7 );
-     mga_out32( mmio_base, 0, DR10 );          // green increments
-     mga_out32( mmio_base, 0, DR11 );
-     mga_out32( mmio_base, 0, DR14 );          // blue increments
-     mga_out32( mmio_base, 0, DR15 );
-     mga_out32( mmio_base, 0, BCOL );
-
-     mga_waitfifo( mmio_base, 5 );
-     mga_out32( mmio_base, 0, TMR1 );
-     mga_out32( mmio_base, 0, TMR2 );
-     mga_out32( mmio_base, 0, TMR4 );
-     mga_out32( mmio_base, 0, TMR5 );
-     mga_out32( mmio_base, 0x10000, TMR8 );
-
-     atype_blk_rstr = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
-
-     /* set hardware limitations */
-     card->byteoffset_align = 32*4;
-     card->pixelpitch_align = 32;
-
-     matrox = card;
+     /* will be set dynamically: funcs->Blit */
 
      return DFB_OK;
 }
 
-void driver_deinit()
+DFBResult
+driver_init_device( GraphicsDevice     *device,
+                    GraphicsDeviceInfo *device_info,
+                    void               *driver_data,
+                    void               *device_data )
 {
+     MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) device_data;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     switch (gfxcard_get_accelerator( device )) {
+#ifdef FB_ACCEL_MATROX_MGAG400
+          case FB_ACCEL_MATROX_MGAG400:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G400/G450" );
+               break;
+#endif
+          case FB_ACCEL_MATROX_MGAG200:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G200" );
+               break;
+          case FB_ACCEL_MATROX_MGAG100:
+               mdev->old_matrox = 1;
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G100" );
+               break;
+          case FB_ACCEL_MATROX_MGA2064W:
+               mdev->old_matrox = 1;
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millenium I" );
+               break;
+          case FB_ACCEL_MATROX_MGA1064SG:
+               mdev->old_matrox = 1;
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mystique" );
+               break;
+          case FB_ACCEL_MATROX_MGA2164W:
+          case FB_ACCEL_MATROX_MGA2164W_AGP:
+               mdev->old_matrox = 1;
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millenium II" );
+               break;
+     }
+
+     snprintf( device_info->vendor,
+               DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "Matrox" );
+
+
+     /* set hardware capabilities */
+     device_info->caps.flags = CCF_CLIPPING;
+
+     switch (gfxcard_get_accelerator( device )) {
+#ifdef FB_ACCEL_MATROX_MGAG400
+          case FB_ACCEL_MATROX_MGAG400:
+               device_info->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
+                                            MATROX_G200G400_BLITTING_FUNCTIONS;
+               device_info->caps.drawing  = MATROX_G200G400_DRAWING_FLAGS;
+               device_info->caps.blitting = MATROX_G200G400_BLITTING_FLAGS;
+               break;
+#endif
+          case FB_ACCEL_MATROX_MGAG200:
+               device_info->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
+                                            MATROX_G200G400_BLITTING_FUNCTIONS;
+               device_info->caps.drawing  = MATROX_G200G400_DRAWING_FLAGS;
+               device_info->caps.blitting = MATROX_G200G400_BLITTING_FLAGS;
+               break;
+
+          case FB_ACCEL_MATROX_MGAG100:
+               device_info->caps.accel    = MATROX_G100_DRAWING_FUNCTIONS |
+                                            MATROX_G100_BLITTING_FUNCTIONS;
+               device_info->caps.drawing  = MATROX_G100_DRAWING_FLAGS;
+               device_info->caps.blitting = MATROX_G100_BLITTING_FLAGS;
+               break;
+
+          case FB_ACCEL_MATROX_MGA2064W:
+          case FB_ACCEL_MATROX_MGA1064SG:
+          case FB_ACCEL_MATROX_MGA2164W:
+          case FB_ACCEL_MATROX_MGA2164W_AGP:
+               device_info->caps.accel    = MATROX_OLD_DRAWING_FUNCTIONS |
+                                            MATROX_OLD_BLITTING_FUNCTIONS;
+               device_info->caps.drawing  = MATROX_OLD_DRAWING_FLAGS;
+               device_info->caps.blitting = MATROX_OLD_BLITTING_FLAGS;
+               break;
+     }
+
+     /* set hardware limitations */
+     device_info->limits.surface_byteoffset_alignment = 32 * 4;
+     device_info->limits.surface_pixelpitch_alignment = 32;
+
+
+     mga_waitfifo( mdrv, mdev, 11 );
+     mga_out32( mmio, 0, TDUALSTAGE0 );   // multi texture registers
+     mga_out32( mmio, 0, TDUALSTAGE1 );
+     mga_out32( mmio, 0, ALPHAXINC );     // alpha increments
+     mga_out32( mmio, 0, ALPHAYINC );
+     mga_out32( mmio, 0, DR6 );           // red increments
+     mga_out32( mmio, 0, DR7 );
+     mga_out32( mmio, 0, DR10 );          // green increments
+     mga_out32( mmio, 0, DR11 );
+     mga_out32( mmio, 0, DR14 );          // blue increments
+     mga_out32( mmio, 0, DR15 );
+     mga_out32( mmio, 0, BCOL );
+
+     mga_waitfifo( mdrv, mdev, 5 );
+     mga_out32( mmio, 0, TMR1 );
+     mga_out32( mmio, 0, TMR2 );
+     mga_out32( mmio, 0, TMR4 );
+     mga_out32( mmio, 0, TMR5 );
+     mga_out32( mmio, 0x10000, TMR8 );
+
+     mdev->atype_blk_rstr = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
+
+     return DFB_OK;
+}
+
+void
+driver_close_device( GraphicsDevice *device,
+                     void           *driver_data,
+                     void           *device_data )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) device_data;
+
      /* reset DSTORG as matroxfb does not */
-     mga_waitfifo( mmio_base, 1 );
-     mga_out32( mmio_base, 0, DSTORG );
+     mga_waitfifo( mdrv, mdev, 1 );
+     mga_out32( mdrv->mmio_base, 0, DSTORG );
 
      /* make sure overlay is off */
-     mga_waitfifo( mmio_base, 1 );
-     mga_out32( mmio_base, 0, BESCTL );
+     mga_waitfifo( mdrv, mdev, 1 );
+     mga_out32( mdrv->mmio_base, 0, BESCTL );
+
 
      DEBUGMSG( "DirectFB/Matrox: FIFO Performance Monitoring:\n" );
      DEBUGMSG( "DirectFB/Matrox:  %9d matrox_waitfifo calls\n",
-               matrox_waitfifo_calls );
+               mdev->waitfifo_calls );
      DEBUGMSG( "DirectFB/Matrox:  %9d register writes (matrox_waitfifo sum)\n",
-               matrox_waitfifo_sum );
+               mdev->waitfifo_sum );
      DEBUGMSG( "DirectFB/Matrox:  %9d FIFO wait cycles (depends on CPU)\n",
-               matrox_fifo_waitcycles );
+               mdev->fifo_waitcycles );
      DEBUGMSG( "DirectFB/Matrox:  %9d IDLE wait cycles (depends on CPU)\n",
-               matrox_idle_waitcycles );
+               mdev->idle_waitcycles );
      DEBUGMSG( "DirectFB/Matrox:  %9d FIFO space cache hits (depends on CPU)\n",
-               matrox_fifo_cache_hits );
+               mdev->fifo_cache_hits );
      DEBUGMSG( "DirectFB/Matrox: Conclusion:\n" );
      DEBUGMSG( "DirectFB/Matrox:  Average register writes/matrox_waitfifo call: %.2f\n",
-               matrox_waitfifo_sum/(float)(matrox_waitfifo_calls) );
+               mdev->waitfifo_sum/(float)(mdev->waitfifo_calls) );
      DEBUGMSG( "DirectFB/Matrox:  Average wait cycles/matrox_waitfifo call:     %.2f\n",
-               matrox_fifo_waitcycles/(float)(matrox_waitfifo_calls) );
+               mdev->fifo_waitcycles/(float)(mdev->waitfifo_calls) );
      DEBUGMSG( "DirectFB/Matrox:  Average fifo space cache hits:                %02d%%\n",
-               (int)(100 * matrox_fifo_cache_hits/(float)(matrox_waitfifo_calls)) );
+               (int)(100 * mdev->fifo_cache_hits/(float)(mdev->waitfifo_calls)) );
+}
 
-     munmap( (void*)mmio_base, matrox->fix.mmio_len);
+void
+driver_close_driver( GraphicsDevice *device,
+                     void           *driver_data )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
+
+     gfxcard_unmap_mmio( device, mdrv->mmio_base, -1 );
 }
 

@@ -25,31 +25,51 @@
 #define ___MATROX_H__
 
 #include <asm/types.h>
-#include <core/coretypes.h>
 
-extern volatile __u8 *mmio_base;
+typedef struct {
+     volatile __u8 *mmio_base;
+} MatroxDriverData;
 
-extern GfxCard *matrox;
+typedef struct {
+     /* Old cards are older than G200/G400, e.g. Mystique or Millenium */
+     int old_matrox;
 
-extern int old_matrox;
+     /* FIFO Monitoring */
+     unsigned int fifo_space;
+     unsigned int waitfifo_sum;
+     unsigned int waitfifo_calls;
+     unsigned int fifo_waitcycles;
+     unsigned int idle_waitcycles;
+     unsigned int fifo_cache_hits;
 
-extern int m_Source;
-extern int m_source;
+     /* ATYPE_BLK or ATYPE_RSTR, depending on SGRAM setting */
+     __u32 atype_blk_rstr;
 
-extern int m_Color;
-extern int m_color;
+     /* State handling */
+     int m_Source;
+     int m_source;
 
-extern int m_SrcKey;
-extern int m_srckey;
+     int m_Color;
+     int m_color;
 
-extern int m_drawBlend;
-extern int m_blitBlend;
+     int m_SrcKey;
+     int m_srckey;
 
-extern int dst_pixelpitch;
-extern int dst_pixeloffset;
-extern int src_pixelpitch;
-extern int src_pixeloffset;
+     int m_drawBlend;
+     int m_blitBlend;
 
+     /* Stored values */
+     int dst_pixelpitch;
+     int dst_pixeloffset;
+     int src_pixelpitch;
+     int src_pixeloffset;
+
+     int draw_blend;
+     int blit_src_colorkey;
+
+     int matrox_w2;
+     int matrox_h2;
+} MatroxDeviceData;
 
 static inline unsigned int log2( unsigned int val )
 {

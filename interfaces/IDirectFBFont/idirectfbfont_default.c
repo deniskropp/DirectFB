@@ -34,7 +34,9 @@
 #include <core/coretypes.h>
 
 #include <core/fonts.h>
+#include <core/gfxcard.h>
 #include <core/surfaces.h>
+#include <core/surfacemanager.h>
 
 #include <gfx/convert.h>
 
@@ -82,13 +84,11 @@ DFBResult Construct( IDirectFBFont *thiz,
           return DFB_FAILURE;
      }
 
-     font = (CoreFont *) DFBCALLOC( 1, sizeof(CoreFont) );
+     font = font_create();
 
      font->height    = 20;
      font->ascender  = 16;
      font->descender = 4;
-
-     font->glyph_infos = tree_new ();
 
      surface_create( 1024, font->height,
                      dfb_config->argb_font ? DSPF_ARGB : DSPF_A8,
@@ -143,7 +143,9 @@ DFBResult Construct( IDirectFBFont *thiz,
                        (void *) utf8_get_char (" "), data);
      }
 
-     surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
+     surfacemanager_lock( gfxcard_surface_manager() );
+     surface_software_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
+     surfacemanager_unlock( gfxcard_surface_manager() );
 
      for (i = 0; i < font->height; i++) {
           if (dfb_config->argb_font) {

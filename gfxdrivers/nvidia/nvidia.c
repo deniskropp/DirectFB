@@ -47,43 +47,67 @@
 
 #include "nvidia.h"
 
-/* for fifo/performance monitoring */
-unsigned int nv_fifo_space      = 0;
-unsigned int nv_waitfifo_sum    = 0;
-unsigned int nv_waitfifo_calls  = 0;
-unsigned int nv_fifo_waitcycles = 0;
-unsigned int nv_idle_waitcycles = 0;
-unsigned int nv_fifo_cache_hits = 0;
+
+typedef struct {
+     /* for fifo/performance monitoring */
+     unsigned int fifo_space;
+     unsigned int waitfifo_sum;
+     unsigned int waitfifo_calls;
+     unsigned int fifo_waitcycles;
+     unsigned int idle_waitcycles;
+     unsigned int fifo_cache_hits;
+
+     __u32        Color;
+} NVidiaDeviceData;
+
+typedef struct {
+     volatile __u8             *mmio_base;
+     volatile __u32            *PGRAPH;
+     volatile __u32            *FIFO;
+     volatile __u32            *PRAMIN;
+
+     volatile RivaRop          *Rop;
+     volatile RivaClip         *Clip;
+     volatile RivaPattern      *Pattern;
+     volatile RivaScreenBlt    *Blt;
+     volatile RivaTriangle     *Triangle;
+     volatile RivaScaledImage  *ScaledImage;
+     volatile RivaRectangle    *Rectangle;
+     volatile RivaLine         *Line;
+     volatile RivaSurface      *Surface;
+} NVidiaDriverData;
+
+#define RIVA_FIFO_FREE(nvdev,ptr,space)                     \
+{                                                           \
+     (nvdev)->waitfifo_sum += (space);                      \
+     (nvdev)->waitfifo_calls++;                             \
+                                                            \
+     if ((nvdev)->fifo_space < (space)) {                   \
+          do {                                              \
+               (nvdev)->fifo_space = (ptr)->FifoFree >> 2;  \
+               (nvdev)->fifo_waitcycles++;                  \
+          } while ((nvdev)->fifo_space < (space));          \
+     }                                                      \
+     else {                                                 \
+          (nvdev)->fifo_cache_hits++;                       \
+     }                                                      \
+                                                            \
+     (nvdev)->fifo_space -= (space);                        \
+}
 
 
-volatile __u8             *mmio_base;
-volatile __u32            *PGRAPH;
-volatile __u32            *FIFO;
-volatile __u32            *PRAMIN;
-
-volatile RivaRop          *Rop;
-volatile RivaClip         *Clip;
-volatile RivaPattern      *Pattern;
-volatile RivaScreenBlt    *Blt;
-volatile RivaTriangle     *Triangle;
-volatile RivaScaledImage  *ScaledImage;
-volatile RivaRectangle    *Rectangle;
-volatile RivaLine         *Line;
-volatile RivaSurface      *Surface;
-
-__u32 nv_Color = 0;
-
-static inline void nv_waitidle()
+static inline void nv_waitidle( NVidiaDriverData *nvdrv,
+                                NVidiaDeviceData *nvdev )
 {
-     while (PGRAPH[0x1C0] & 1) {
-          nv_idle_waitcycles++;
+     while (nvdrv->PGRAPH[0x1C0] & 1) {
+          nvdev->idle_waitcycles++;
      }
 }
 
 
-static void nvEngineSync()
+static void nvEngineSync( void *drv, void *dev )
 {
-     nv_waitidle( mmio_base );
+     nv_waitidle( (NVidiaDriverData*) drv, (NVidiaDeviceData*) dev );
 }
 
 #define NV4_SUPPORTED_DRAWINGFLAGS \
@@ -101,19 +125,23 @@ static void nvEngineSync()
 
 
 
-static void nv_set_clip()
+static inline void nv_set_clip( NVidiaDriverData *nvdrv,
+                                NVidiaDeviceData *nvdev,
+                                DFBRegion        *clip )
 {
-     DFBRegion *clip = &card->state->clip;
-     int width  = clip->x2 - clip->x1 + 1;
-     int height = clip->y2 - clip->y1 + 1;
+     volatile RivaClip *Clip   = nvdrv->Clip;
+     int                width  = clip->x2 - clip->x1 + 1;
+     int                height = clip->y2 - clip->y1 + 1;
 
-     RIVA_FIFO_FREE( Clip, 2 );
+     RIVA_FIFO_FREE( nvdev, Clip, 2 );
+
      Clip->TopLeft     = (clip->y1 << 16) | clip->x1;
      Clip->WidthHeight = (height << 16) | width;
 }
 
 
-static void nvCheckState( CardState *state, DFBAccelerationMask accel )
+static void nvCheckState( void *drv, void *dev,
+                          CardState *state, DFBAccelerationMask accel )
 {
      switch (state->destination->format) {
           case DSPF_RGB16:
@@ -143,13 +171,13 @@ static void nvCheckState( CardState *state, DFBAccelerationMask accel )
      }
 }
 
-static void nvSetState( CardState *state, DFBAccelerationMask accel )
+static void nvSetState( void *drv, void *dev,
+                        GraphicsDeviceFuncs *funcs,
+                        CardState *state, DFBAccelerationMask accel )
 {
-     if (state != card->state) {
-          state->modified |= SMF_ALL;
-          state->set = 0;
-          card->state = state;
-     }
+     NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
+     volatile __u32   *PGRAPH = nvdrv->PGRAPH;
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -172,12 +200,12 @@ static void nvSetState( CardState *state, DFBAccelerationMask accel )
      }
 
      if (state->modified & SMF_CLIP)
-          nv_set_clip();
+          nv_set_clip( nvdrv, nvdev, &state->clip );
 
      if (state->modified & SMF_DESTINATION) {
           /* set offset & pitch */
 #if 1
-          nv_waitidle();
+          nv_waitidle( nvdrv, nvdev );
           PGRAPH[0x640/4] = state->destination->back_buffer->video.offset & 0x1FFFFFF;
           PGRAPH[0x670/4] = state->destination->back_buffer->video.pitch;
           PGRAPH[0x724/4] = (PGRAPH[0x724/4] & ~0x000000FF) | (0x00000055);
@@ -192,17 +220,17 @@ static void nvSetState( CardState *state, DFBAccelerationMask accel )
      }
 
      if (state->modified & SMF_SOURCE && state->source) {
-          nv_waitidle();
-          PGRAPH[0x644/4] = card->state->source->front_buffer->video.offset & 0x1FFFFFF;
-          PGRAPH[0x674/4] = card->state->source->front_buffer->video.pitch;
+          nv_waitidle( nvdrv, nvdev );
+          PGRAPH[0x644/4] = state->source->front_buffer->video.offset & 0x1FFFFFF;
+          PGRAPH[0x674/4] = state->source->front_buffer->video.pitch;
      }
 
      if (state->modified & (SMF_DESTINATION | SMF_COLOR)) {
           switch (state->destination->format) {
                case DSPF_RGB16:
-                    nv_Color = PIXEL_RGB16( state->color.r,
-                                            state->color.g,
-                                            state->color.b );
+                    nvdev->Color = PIXEL_RGB16( state->color.r,
+                                                state->color.g,
+                                                state->color.b );
                     break;
                default:
                     BUG( "unexpected pixelformat" );
@@ -213,32 +241,44 @@ static void nvSetState( CardState *state, DFBAccelerationMask accel )
      state->modified = 0;
 }
 
-static void nvFillRectangle( DFBRectangle *rect )
+static void nvFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-     RIVA_FIFO_FREE( Rectangle, 3 );
+     NVidiaDriverData       *nvdrv     = (NVidiaDriverData*) drv;
+     NVidiaDeviceData       *nvdev     = (NVidiaDeviceData*) dev;
+     volatile RivaRectangle *Rectangle = nvdrv->Rectangle;
 
-     Rectangle->Color = nv_Color;
+     RIVA_FIFO_FREE( nvdev, Rectangle, 3 );
+
+     Rectangle->Color = nvdev->Color;
 
      Rectangle->TopLeft     = (rect->y << 16) | rect->x;
      Rectangle->WidthHeight = (rect->h << 16) | rect->w;
 }
 
-static void nvFillTriangle( DFBTriangle *tri )
+static void nvFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
-     RIVA_FIFO_FREE( Triangle, 4 );
+     NVidiaDriverData      *nvdrv    = (NVidiaDriverData*) drv;
+     NVidiaDeviceData      *nvdev    = (NVidiaDeviceData*) dev;
+     volatile RivaTriangle *Triangle = nvdrv->Triangle;
 
-     Triangle->Color = nv_Color;
+     RIVA_FIFO_FREE( nvdev, Triangle, 4 );
+
+     Triangle->Color = nvdev->Color;
 
      Triangle->TrianglePoint0 = (tri->y1 << 16) | tri->x1;
      Triangle->TrianglePoint1 = (tri->y2 << 16) | tri->x2;
      Triangle->TrianglePoint2 = (tri->y3 << 16) | tri->x3;
 }
 
-static void nvDrawRectangle( DFBRectangle *rect )
+static void nvDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-     RIVA_FIFO_FREE( Rectangle, 9 );
+     NVidiaDriverData       *nvdrv     = (NVidiaDriverData*) drv;
+     NVidiaDeviceData       *nvdev     = (NVidiaDeviceData*) dev;
+     volatile RivaRectangle *Rectangle = nvdrv->Rectangle;
 
-     Rectangle->Color = nv_Color;
+     RIVA_FIFO_FREE( nvdev, Rectangle, 9 );
+
+     Rectangle->Color = nvdev->Color;
 
      Rectangle->TopLeft     = (rect->y << 16) | rect->x;
      Rectangle->WidthHeight = (1 << 16) | rect->w;
@@ -253,27 +293,41 @@ static void nvDrawRectangle( DFBRectangle *rect )
      Rectangle->WidthHeight = ((rect->h - 2) << 16) | 1;
 }
 
-static void nvDrawLine( DFBRegion *line )
+static void nvDrawLine( void *drv, void *dev, DFBRegion *line )
 {
-     RIVA_FIFO_FREE( Line, 3 );
+     NVidiaDriverData  *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData  *nvdev = (NVidiaDeviceData*) dev;
+     volatile RivaLine *Line  = nvdrv->Line;
 
-     Line->Color = nv_Color;
+     RIVA_FIFO_FREE( nvdev, Line, 3 );
+
+     Line->Color = nvdev->Color;
 
      Line->Lin[0].point0 = (line->y1 << 16) | line->x1;
      Line->Lin[0].point1 = (line->y2 << 16) | line->x2;
 }
 
-static void nvBlit( DFBRectangle *rect, int dx, int dy )
+static void nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
-     RIVA_FIFO_FREE( Blt, 3 );
+     NVidiaDriverData       *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData       *nvdev = (NVidiaDeviceData*) dev;
+     volatile RivaScreenBlt *Blt   = nvdrv->Blt;
+
+     RIVA_FIFO_FREE( nvdev, Blt, 3 );
+
      Blt->TopLeftSrc  = (rect->y << 16) | rect->x;
      Blt->TopLeftDst  = (dy << 16) | dx;
      Blt->WidthHeight = (rect->h << 16) | rect->w;
 }
 
-static void nvStretchBlit( DFBRectangle *sr, DFBRectangle *dr )
+static void nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 {
-     RIVA_FIFO_FREE( ScaledImage, 10 );
+#if 0
+     NVidiaDriverData         *nvdrv       = (NVidiaDriverData*) drv;
+     NVidiaDeviceData         *nvdev       = (NVidiaDeviceData*) dev;
+     volatile RivaScaledImage *ScaledImage = nvdrv->ScaledImage;
+
+     RIVA_FIFO_FREE( nvdev, ScaledImage, 10 );
 
      /* does not work yet */
 
@@ -287,10 +341,15 @@ static void nvStretchBlit( DFBRectangle *sr, DFBRectangle *dr )
      ScaledImage->ImageInFormat = card->state->source->front_buffer->video.pitch;
      ScaledImage->ImageInOffset = card->state->source->front_buffer->video.offset;
      ScaledImage->ImageInPoint = 0;
+#endif
 }
 
-static void nvAfterSetVar()
+static void nvAfterSetVar( void *drv, void *dev )
 {
+     NVidiaDriverData *nvdrv   = (NVidiaDriverData*) drv;
+     volatile __u32   *PRAMIN  = nvdrv->PRAMIN;
+     volatile __u32   *FIFO    = nvdrv->FIFO;
+
      /* write object ids and locations */
 #if 0  /* AM I NUTS? */
      PRAMIN[0x00000000] = 0x80000000;   /* Rop         */
@@ -384,120 +443,177 @@ static void nvAfterSetVar()
      FIFO[0xA000/4] = 0x80000012;  /* Rectangle   */
      FIFO[0xC000/4] = 0x80000013;  /* Line        */
      FIFO[0xE000/4] = 0x80000014;  /* Blt         */
+}
 
 
-     RIVA_FIFO_FREE( Pattern, 5 );
+/* exported symbols */
+
+int driver_get_abi_version()
+{
+     return DFB_GRAPHICS_DRIVER_ABI_VERSION;
+}
+
+int driver_probe( GraphicsDevice *device )
+{
+#ifdef FB_ACCEL_NV4
+     switch (gfxcard_get_accelerator( device )) {
+          case FB_ACCEL_NV4:
+          case FB_ACCEL_NV5:
+               return 1;
+     }
+#endif
+
+     return 0;
+}
+
+void
+driver_get_info( GraphicsDevice     *device,
+                 GraphicsDriverInfo *info )
+{
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
+               "nVidia RIVA TNT/TNT2/GeForce Driver" );
+
+     snprintf( info->vendor,
+               DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->version.major = 0;
+     info->version.minor = 2;
+
+     info->driver_data_size = sizeof (NVidiaDriverData);
+     info->device_data_size = sizeof (NVidiaDeviceData);
+}
+
+DFBResult
+driver_init_driver( GraphicsDevice      *device,
+                    GraphicsDeviceFuncs *funcs,
+                    void                *driver_data )
+{
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
+
+     nvdrv->mmio_base = (volatile __u8*) gfxcard_map_mmio( device, 0, -1 );
+     if (!nvdrv->mmio_base)
+          return DFB_IO;
+
+     nvdrv->PGRAPH = (__u32*)(nvdrv->mmio_base + 0x400000);
+     nvdrv->PRAMIN = (__u32*)(nvdrv->mmio_base + 0x710000);
+     nvdrv->FIFO   = (__u32*)(nvdrv->mmio_base + 0x800000);
+
+     nvdrv->Rop         = (RivaRop        *)(nvdrv->FIFO + 0x0000/4);
+     nvdrv->Clip        = (RivaClip       *)(nvdrv->FIFO + 0x2000/4);
+     nvdrv->Pattern     = (RivaPattern    *)(nvdrv->FIFO + 0x4000/4);
+     nvdrv->Triangle    = (RivaTriangle   *)(nvdrv->FIFO + 0x6000/4);
+     nvdrv->ScaledImage = (RivaScaledImage*)(nvdrv->FIFO + 0x8000/4);
+     //nvdrv->Surface     = (RivaSurface    *)(nvdrv->FIFO + 0x8000/4);
+     nvdrv->Rectangle   = (RivaRectangle  *)(nvdrv->FIFO + 0xA000/4);
+     nvdrv->Line        = (RivaLine       *)(nvdrv->FIFO + 0xC000/4);
+     nvdrv->Blt         = (RivaScreenBlt  *)(nvdrv->FIFO + 0xE000/4);
+
+
+     funcs->CheckState    = nvCheckState;
+     funcs->SetState      = nvSetState;
+     funcs->EngineSync    = nvEngineSync;
+     funcs->AfterSetVar   = nvAfterSetVar;
+
+     funcs->FillRectangle = nvFillRectangle;
+     funcs->FillTriangle  = nvFillTriangle;
+     funcs->DrawRectangle = nvDrawRectangle;
+     funcs->DrawLine      = nvDrawLine;
+     funcs->Blit          = nvBlit;
+     funcs->StretchBlit   = nvStretchBlit;
+
+     return DFB_OK;
+}
+
+DFBResult
+driver_init_device( GraphicsDevice     *device,
+                    GraphicsDeviceInfo *device_info,
+                    void               *driver_data,
+                    void               *device_data )
+{
+     NVidiaDriverData     *nvdrv   = (NVidiaDriverData*) driver_data;
+     NVidiaDeviceData     *nvdev   = (NVidiaDeviceData*) device_data;
+     volatile RivaPattern *Pattern = nvdrv->Pattern;
+     volatile RivaRop     *Rop     = nvdrv->Rop;
+
+
+     snprintf( device_info->name,
+               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "RIVA TNT/TNT2/GeForce" );
+
+     snprintf( device_info->vendor,
+               DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nVidia" );
+
+
+     device_info->caps.flags    = CCF_CLIPPING;
+     device_info->caps.accel    = NV4_SUPPORTED_DRAWINGFUNCTIONS |
+                                  NV4_SUPPORTED_BLITTINGFUNCTIONS;
+     device_info->caps.drawing  = NV4_SUPPORTED_DRAWINGFLAGS;
+     device_info->caps.blitting = NV4_SUPPORTED_BLITTINGFLAGS;
+
+     device_info->limits.surface_byteoffset_alignment = 32 * 4;
+     device_info->limits.surface_pixelpitch_alignment = 32;
+
+     dfb_config->pollvsync_after = 1;
+
+
+     RIVA_FIFO_FREE( nvdev, Pattern, 5 );
      Pattern->Shape         = 0; /* 0 = 8X8, 1 = 64X1, 2 = 1X64 */
      Pattern->Color0        = 0xFFFFFFFF;
      Pattern->Color1        = 0xFFFFFFFF;
      Pattern->Monochrome[0] = 0xFFFFFFFF;
      Pattern->Monochrome[1] = 0xFFFFFFFF;
 
-     RIVA_FIFO_FREE( Rop, 1 );
+     RIVA_FIFO_FREE( nvdev, Rop, 1 );
      Rop->Rop3 = 0xCC;
-}
-
-
-/* exported symbols */
-
-int driver_probe( int fd, GfxCard *card )
-{
-#ifdef FB_ACCEL_NV4
-     switch (card->fix.accel) {
-          case FB_ACCEL_NV4:
-          case FB_ACCEL_NV5:
-               return 1;
-     }
-#endif
-     return 0;
-}
-
-int driver_init( int fd, GfxCard *card )
-{
-     mmio_base = (__u8*)mmap(NULL, card->fix.mmio_len, PROT_READ | PROT_WRITE,
-                             MAP_SHARED, fd, card->fix.smem_len);
-
-     if (mmio_base == MAP_FAILED) {
-          PERRORMSG("DirectFB/nvidia: Unable to map mmio region!\n");
-          return DFB_IO;
-     }
-
-     PGRAPH = (__u32*)(mmio_base + 0x400000);
-     PRAMIN = (__u32*)(mmio_base + 0x710000);
-     FIFO   = (__u32*)(mmio_base + 0x800000);
-
-     Rop         = (RivaRop        *)(FIFO + 0x0000/4);
-     Clip        = (RivaClip       *)(FIFO + 0x2000/4);
-     Pattern     = (RivaPattern    *)(FIFO + 0x4000/4);
-     Triangle    = (RivaTriangle   *)(FIFO + 0x6000/4);
-     ScaledImage = (RivaScaledImage*)(FIFO + 0x8000/4);
-     //Surface     = (RivaSurface    *)(FIFO + 0x8000/4);
-     Rectangle   = (RivaRectangle  *)(FIFO + 0xA000/4);
-     Line        = (RivaLine       *)(FIFO + 0xC000/4);
-     Blt         = (RivaScreenBlt  *)(FIFO + 0xE000/4);
-
-     sprintf( card->info.driver_name, "nVidia RIVA TNT/TNT2/GeForce" );
-     sprintf( card->info.driver_vendor, "convergence integrated media GmbH" );
-
-     card->info.driver_version.major = 0;
-     card->info.driver_version.minor = 1;
-
-     card->caps.flags    = CCF_CLIPPING;
-     card->caps.accel    = NV4_SUPPORTED_DRAWINGFUNCTIONS |
-                           NV4_SUPPORTED_BLITTINGFUNCTIONS;
-     card->caps.drawing  = NV4_SUPPORTED_DRAWINGFLAGS;
-     card->caps.blitting = NV4_SUPPORTED_BLITTINGFLAGS;
-
-     card->CheckState    = nvCheckState;
-     card->SetState      = nvSetState;
-     card->EngineSync    = nvEngineSync;
-     card->AfterSetVar   = nvAfterSetVar;
-
-     card->FillRectangle = nvFillRectangle;
-     card->FillTriangle  = nvFillTriangle;
-     card->DrawRectangle = nvDrawRectangle;
-     card->DrawLine      = nvDrawLine;
-     card->Blit          = nvBlit;
-     card->StretchBlit   = nvStretchBlit;
-
-     card->byteoffset_align = 32 * 4;
-     card->pixelpitch_align = 32;
-
-
-     dfb_config->pollvsync_after = 1;
 
      return DFB_OK;
 }
 
-void driver_init_layers()
+void
+driver_init_layers()
 {
 }
 
-void driver_deinit()
+void
+driver_close_device( GraphicsDevice *device,
+                     void           *driver_data,
+                     void           *device_data )
 {
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
+
+     (void) nvdev;
+
      DEBUGMSG( "DirectFB/nvidia: FIFO Performance Monitoring:\n" );
      DEBUGMSG( "DirectFB/nvidia:  %9d nv_waitfifo calls\n",
-               nv_waitfifo_calls );
+               nvdev->waitfifo_calls );
      DEBUGMSG( "DirectFB/nvidia:  %9d register writes (nv_waitfifo sum)\n",
-               nv_waitfifo_sum );
+               nvdev->waitfifo_sum );
      DEBUGMSG( "DirectFB/nvidia:  %9d FIFO wait cycles (depends on CPU)\n",
-               nv_fifo_waitcycles );
+               nvdev->fifo_waitcycles );
      DEBUGMSG( "DirectFB/nvidia:  %9d IDLE wait cycles (depends on CPU)\n",
-               nv_idle_waitcycles );
+               nvdev->idle_waitcycles );
      DEBUGMSG( "DirectFB/nvidia:  %9d FIFO space cache hits(depends on CPU)\n",
-               nv_fifo_cache_hits );
+               nvdev->fifo_cache_hits );
      DEBUGMSG( "DirectFB/nvidia: Conclusion:\n" );
      DEBUGMSG( "DirectFB/nvidia:  Average register writes/nvidia_waitfifo"
                "call:%.2f\n",
-               nv_waitfifo_sum/(float)(nv_waitfifo_calls) );
+               nvdev->waitfifo_sum/(float)(nvdev->waitfifo_calls) );
      DEBUGMSG( "DirectFB/nvidia:  Average wait cycles/nvidia_waitfifo call:"
                " %.2f\n",
-               nv_fifo_waitcycles/(float)(nv_waitfifo_calls) );
+               nvdev->fifo_waitcycles/(float)(nvdev->waitfifo_calls) );
      DEBUGMSG( "DirectFB/nvidia:  Average fifo space cache hits: %02d%%\n",
-               (int)(100 * nv_fifo_cache_hits/
-               (float)(nv_waitfifo_calls)) );
+               (int)(100 * nvdev->fifo_cache_hits/
+               (float)(nvdev->waitfifo_calls)) );
+}
 
+void
+driver_close_driver( GraphicsDevice *device,
+                     void           *driver_data )
+{
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
 
-     munmap( (void*)mmio_base, card->fix.mmio_len);
+     gfxcard_unmap_mmio( device, nvdrv->mmio_base, -1 );
 }
 

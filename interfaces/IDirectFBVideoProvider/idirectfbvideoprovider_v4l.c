@@ -82,7 +82,6 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
                                  IDirectFBVideoProvider_V4L_data *data );
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data );
 static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data );
-static void v4l_suspend_resume( int suspend, void *ctx );
 static void v4l_cleanup( void *data, int emergency );
 
 
@@ -90,8 +89,6 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     DFBRemoveSuspendResumeFunc( v4l_suspend_resume, (void*)data );
 
      v4l_deinit( data );
 
@@ -167,7 +164,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
      desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      desc->width  = 768;
      desc->height = 576;
-     desc->pixelformat = layers->surface->format;
+     desc->pixelformat = layers->shared->surface->format;
 
      return DFB_OK;
 }
@@ -374,8 +371,6 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->fd = fd;
      data->thread = -1;
 
-     DFBAddSuspendResumeFunc( v4l_suspend_resume, (void*)data );
-
      thiz->AddRef    = IDirectFBVideoProvider_V4L_AddRef;
      thiz->Release   = IDirectFBVideoProvider_V4L_Release;
      thiz->GetCapabilities = IDirectFBVideoProvider_V4L_GetCapabilities;
@@ -442,11 +437,11 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      int bpp, palette;
      SurfaceBuffer *buffer = surface->back_buffer;
 
-     surfacemanager_lock();
+     surfacemanager_lock( surface->manager );
 
-     ret = surfacemanager_assure_video(buffer);
+     ret = surfacemanager_assure_video( surface->manager, buffer );
 
-     surfacemanager_unlock();
+     surfacemanager_unlock( surface->manager );
 
      if (ret)
           return ret;
@@ -488,7 +483,7 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      {
           struct video_buffer b;
 
-          b.base = (void*)(card->fix.smem_start + buffer->video.offset);
+          b.base = (void*)gfxcard_memory_physical( buffer->video.offset );
           b.width = surface->width;
           b.height = surface->height;
           b.depth = bpp;
@@ -605,23 +600,6 @@ static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data )
 
      close( data->fd );
      data->fd = -1;
-}
-
-static void v4l_suspend_resume( int suspend, void *ctx )
-{
-     IDirectFBVideoProvider_V4L_data *data =
-          (IDirectFBVideoProvider_V4L_data*)ctx;
-
-     if (suspend) {
-          v4l_stop( data );
-          close( data->fd );
-     }
-     else {
-          data->fd = open( data->filename, O_RDWR );
-          if (data->fd < 0)
-               PERRORMSG( "DirectFB/v4l: Cannot reopen `%s'!\n",
-                          data->filename );
-     }
 }
 
 static void v4l_cleanup( void *ctx, int emergency )

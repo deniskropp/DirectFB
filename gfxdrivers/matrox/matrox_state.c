@@ -39,43 +39,42 @@
 
 #include "matrox_state.h"
 
-int matrox_w2;
-int matrox_h2;
-
-inline void matrox_set_destination()
+void matrox_set_destination( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CoreSurface      *destination )
 {
-     CoreSurface   *surface = matrox->state->destination;
-     SurfaceBuffer *buffer  = surface->back_buffer;
-     int            bytes_per_pixel = BYTES_PER_PIXEL(surface->format);
+     volatile __u8 *mmio            = mdrv->mmio_base;
+     SurfaceBuffer *buffer          = destination->back_buffer;
+     int            bytes_per_pixel = BYTES_PER_PIXEL(destination->format);
 
-     dst_pixelpitch = buffer->video.pitch / bytes_per_pixel;
-     dst_pixeloffset = buffer->video.offset / bytes_per_pixel;
+     mdev->dst_pixelpitch  = buffer->video.pitch / bytes_per_pixel;
+     mdev->dst_pixeloffset = buffer->video.offset / bytes_per_pixel;
 
-     mga_waitfifo( mmio_base, 3 );
+     mga_waitfifo( mdrv, mdev, 3 );
 
-     if (old_matrox)
-          mga_out32( mmio_base, dst_pixeloffset, YDSTORG );
+     if (mdev->old_matrox)
+          mga_out32( mmio, mdev->dst_pixeloffset, YDSTORG );
      else
-          mga_out32( mmio_base, buffer->video.offset, DSTORG );
+          mga_out32( mmio, buffer->video.offset, DSTORG );
 
-     mga_out32( mmio_base, dst_pixelpitch, PITCH );
+     mga_out32( mmio, mdev->dst_pixelpitch, PITCH );
 
-     switch (surface->format) {
+     switch (destination->format) {
           case DSPF_A8:
-               mga_out32( mmio_base, PW8  | NODITHER, MACCESS );
+               mga_out32( mmio, PW8  | NODITHER, MACCESS );
                break;
           case DSPF_RGB15:
-               mga_out32( mmio_base, PW16 | NODITHER | DIT555, MACCESS );
+               mga_out32( mmio, PW16 | NODITHER | DIT555, MACCESS );
                break;
           case DSPF_RGB16:
-               mga_out32( mmio_base, PW16 | NODITHER, MACCESS );
+               mga_out32( mmio, PW16 | NODITHER, MACCESS );
                break;
           case DSPF_RGB24:
-               mga_out32( mmio_base, PW24 | NODITHER, MACCESS );
+               mga_out32( mmio, PW24 | NODITHER, MACCESS );
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
-               mga_out32( mmio_base, PW32 | NODITHER, MACCESS );
+               mga_out32( mmio, PW32 | NODITHER, MACCESS );
                break;
           default:
                BUG( "unexpected pixelformat!" );
@@ -83,79 +82,91 @@ inline void matrox_set_destination()
      }
 }
 
-inline void matrox_set_clip()
+void matrox_set_clip( MatroxDriverData *mdrv,
+                      MatroxDeviceData *mdev,
+                      DFBRegion        *clip )
 {
-     mga_waitfifo( mmio_base, 3 );
+     volatile __u8 *mmio = mdrv->mmio_base;
 
-     if (old_matrox) {
-          mga_out32( mmio_base, (dst_pixeloffset +
-                                 dst_pixelpitch * matrox->state->clip.y1) & 0xFFFFFF, YTOP );
-          mga_out32( mmio_base, (dst_pixeloffset +
-                                 dst_pixelpitch * matrox->state->clip.y2) & 0xFFFFFF, YBOT );
+     mga_waitfifo( mdrv, mdev, 3 );
+
+     if (mdev->old_matrox) {
+          mga_out32( mmio, (mdev->dst_pixeloffset +
+                            mdev->dst_pixelpitch * clip->y1) & 0xFFFFFF, YTOP );
+          mga_out32( mmio, (mdev->dst_pixeloffset +
+                            mdev->dst_pixelpitch * clip->y2) & 0xFFFFFF, YBOT );
      }
      else {
-          mga_out32( mmio_base, (dst_pixelpitch * matrox->state->clip.y1) & 0xFFFFFF, YTOP );
-          mga_out32( mmio_base, (dst_pixelpitch * matrox->state->clip.y2) & 0xFFFFFF, YBOT );
+          mga_out32( mmio, (mdev->dst_pixelpitch * clip->y1) & 0xFFFFFF, YTOP );
+          mga_out32( mmio, (mdev->dst_pixelpitch * clip->y2) & 0xFFFFFF, YBOT );
      }
 
-     mga_out32( mmio_base, ((matrox->state->clip.x2 & 0x0FFF) << 16) |
-                            (matrox->state->clip.x1 & 0x0FFF), CXBNDRY );
+     mga_out32( mmio, ((clip->x2 & 0x0FFF) << 16) |
+                       (clip->x1 & 0x0FFF), CXBNDRY );
 }
 
-inline void matrox_validate_Color()
+void matrox_validate_Color( MatroxDriverData *mdrv,
+                            MatroxDeviceData *mdev,
+                            CardState        *state )
 {
-     if (m_Color)
+     volatile __u8 *mmio = mdrv->mmio_base;
+
+     if (mdev->m_Color)
           return;
 
-     mga_waitfifo( mmio_base, 4 );
+     mga_waitfifo( mdrv, mdev, 4 );
 
-     mga_out32( mmio_base, U8_TO_F0915(matrox->state->color.a), ALPHASTART );
-     mga_out32( mmio_base, U8_TO_F0915(matrox->state->color.r), DR4 );
-     mga_out32( mmio_base, U8_TO_F0915(matrox->state->color.g), DR8 );
-     mga_out32( mmio_base, U8_TO_F0915(matrox->state->color.b), DR12 );
+     mga_out32( mmio, U8_TO_F0915(state->color.a), ALPHASTART );
+     mga_out32( mmio, U8_TO_F0915(state->color.r), DR4 );
+     mga_out32( mmio, U8_TO_F0915(state->color.g), DR8 );
+     mga_out32( mmio, U8_TO_F0915(state->color.b), DR12 );
 
-     m_Color = 1;
+     mdev->m_Color = 1;
 }
 
-inline void matrox_validate_color()
+void matrox_validate_color( MatroxDriverData *mdrv,
+                            MatroxDeviceData *mdev,
+                            CardState        *state )
 {
+     volatile __u8 *mmio = mdrv->mmio_base;
+
      __u32 color;
 
-     if (m_color)
+     if (mdev->m_color)
           return;
 
-     switch (matrox->state->destination->format) {
+     switch (state->destination->format) {
           case DSPF_RGB15:
-               color = PIXEL_RGB15( matrox->state->color.r,
-                                    matrox->state->color.g,
-                                    matrox->state->color.b );
+               color = PIXEL_RGB15( state->color.r,
+                                    state->color.g,
+                                    state->color.b );
                color |= color << 16;
                break;
           case DSPF_RGB16:
-               color = PIXEL_RGB16( matrox->state->color.r,
-                                    matrox->state->color.g,
-                                    matrox->state->color.b );
+               color = PIXEL_RGB16( state->color.r,
+                                    state->color.g,
+                                    state->color.b );
                color |= color << 16;
                break;
           case DSPF_RGB24:
-               color = PIXEL_RGB24( matrox->state->color.r,
-                                    matrox->state->color.g,
-                                    matrox->state->color.b );
+               color = PIXEL_RGB24( state->color.r,
+                                    state->color.g,
+                                    state->color.b );
                color |= color << 24;
                break;
           case DSPF_RGB32:
-               color = PIXEL_RGB32( matrox->state->color.r,
-                                    matrox->state->color.g,
-                                    matrox->state->color.b );
+               color = PIXEL_RGB32( state->color.r,
+                                    state->color.g,
+                                    state->color.b );
                break;
           case DSPF_ARGB:
-               color = PIXEL_ARGB( matrox->state->color.a,
-                                   matrox->state->color.r,
-                                   matrox->state->color.g,
-                                   matrox->state->color.b );
+               color = PIXEL_ARGB( state->color.a,
+                                   state->color.r,
+                                   state->color.g,
+                                   state->color.b );
                break;
           case DSPF_A8:
-               color = matrox->state->color.a;
+               color = state->color.a;
                color |= color << 24 | color << 16 | color << 8;
                break;
           default:
@@ -163,11 +174,11 @@ inline void matrox_validate_color()
                return;
      }
 
-     mga_waitfifo( mmio_base, 1 );
-     mga_out32( mmio_base, color, FCOL );
+     mga_waitfifo( mdrv, mdev, 1 );
+     mga_out32( mmio, color, FCOL );
 
-     m_color = 1;
-     m_srckey = 0;
+     mdev->m_color = 1;
+     mdev->m_srckey = 0;
 }
 
 static __u32 matroxSourceBlend[] = {
@@ -205,57 +216,69 @@ static __u32 matroxModulation[] = {
      VIDEOALPHA | MODULATEDALPHA
 };
 
-inline void matrox_validate_drawBlend()
+void matrox_validate_drawBlend( MatroxDriverData *mdrv,
+                                MatroxDeviceData *mdev,
+                                CardState        *state )
 {
-     if (m_drawBlend)
+     volatile __u8 *mmio = mdrv->mmio_base;
+
+     if (mdev->m_drawBlend)
           return;
 
-     mga_waitfifo( mmio_base, 1 );
-     mga_out32( mmio_base,
-                matroxSourceBlend[matrox->state->src_blend - 1] |
-                matroxDestBlend  [matrox->state->dst_blend - 1], ALPHACTRL );
+     mga_waitfifo( mdrv, mdev, 1 );
+     mga_out32( mmio,
+                matroxSourceBlend[state->src_blend - 1] |
+                matroxDestBlend  [state->dst_blend - 1], ALPHACTRL );
 
-     m_drawBlend = 1;
-     m_blitBlend = 0;
+     mdev->m_drawBlend = 1;
+     mdev->m_blitBlend = 0;
 }
 
-inline void matrox_validate_blitBlend()
+void matrox_validate_blitBlend( MatroxDriverData *mdrv,
+                                MatroxDeviceData *mdev,
+                                CardState        *state )
 {
+     volatile __u8 *mmio = mdrv->mmio_base;
+
      __u32 alphactrl = 1;
 
-     if (m_blitBlend)
+     if (mdev->m_blitBlend)
           return;
 
-     if (matrox->state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+     if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                          DSBLIT_BLEND_COLORALPHA))
-          alphactrl = matroxSourceBlend[matrox->state->src_blend - 1] |
-                      matroxDestBlend  [matrox->state->dst_blend - 1];
+          alphactrl = matroxSourceBlend[state->src_blend - 1] |
+                      matroxDestBlend  [state->dst_blend - 1];
 
-     alphactrl |= matroxModulation [matrox->state->blittingflags & 3];
+     alphactrl |= matroxModulation [state->blittingflags & 3];
 
-     mga_waitfifo( mmio_base, 1 );
-     mga_out32( mmio_base, alphactrl, ALPHACTRL );
+     mga_waitfifo( mdrv, mdev, 1 );
+     mga_out32( mmio, alphactrl, ALPHACTRL );
 
-     m_blitBlend = 1;
-     m_drawBlend = 0;
+     mdev->m_blitBlend = 1;
+     mdev->m_drawBlend = 0;
 }
 
-inline void matrox_validate_Source()
+void matrox_validate_Source( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CardState        *state )
 {
+     volatile __u8 *mmio = mdrv->mmio_base;
+
      __u32 texctl, texctl2;
 
-     CoreSurface   *surface = matrox->state->source;
+     CoreSurface   *surface = state->source;
      SurfaceBuffer *buffer  = surface->front_buffer;
 
-     if (m_Source)
+     if (mdev->m_Source)
           return;
 
-     src_pixelpitch = buffer->video.pitch / BYTES_PER_PIXEL(surface->format);
+     mdev->src_pixelpitch = buffer->video.pitch / BYTES_PER_PIXEL(surface->format);
 
-     matrox_w2 = log2( surface->width );
-     matrox_h2 = log2( surface->height );
+     mdev->matrox_w2 = log2( surface->width );
+     mdev->matrox_h2 = log2( surface->height );
 
-     if (matrox->state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+     if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
           texctl = TAMASK;
      else
           texctl = TAKEY;
@@ -285,96 +308,106 @@ inline void matrox_validate_Source()
                break;
      }
 
-     texctl |= CLAMPUV | ((src_pixelpitch&0x7ff)<<9) | PITCHEXT | NOPERSPECTIVE;
+     texctl |= CLAMPUV | ((mdev->src_pixelpitch&0x7ff)<<9) | PITCHEXT | NOPERSPECTIVE;
 
-     if (matrox->state->blittingflags & DSBLIT_COLORIZE)
+     if (state->blittingflags & DSBLIT_COLORIZE)
           texctl |= TMODULATE;
 
-     if (matrox->state->blittingflags & DSBLIT_SRC_COLORKEY) {
+     if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
           texctl |= DECALCKEY | STRANS;
           texctl2 = DECALDIS;
      }
      else
           texctl2 = DECALDIS | CKSTRANSDIS;
 
-     mga_waitfifo( mmio_base, 5);
+     mga_waitfifo( mdrv, mdev, 5);
 
-     mga_out32( mmio_base, texctl, TEXCTL );
-     mga_out32( mmio_base, texctl2, TEXCTL2 );
-     mga_out32( mmio_base, ((surface->width -1)<<18) |
-                           ((8-matrox_w2)&63)<<9 | matrox_w2, TEXWIDTH );
-     mga_out32( mmio_base, ((surface->height-1)<<18) |
-                           ((8-matrox_h2)&63)<<9 | matrox_h2, TEXHEIGHT );
-     mga_out32( mmio_base, buffer->video.offset, TEXORG );
+     mga_out32( mmio, texctl, TEXCTL );
+     mga_out32( mmio, texctl2, TEXCTL2 );
+     mga_out32( mmio, ((surface->width -1)<<18) |
+                      ((8-mdev->matrox_w2)&63)<<9 | mdev->matrox_w2, TEXWIDTH );
+     mga_out32( mmio, ((surface->height-1)<<18) |
+                      ((8-mdev->matrox_h2)&63)<<9 | mdev->matrox_h2, TEXHEIGHT );
+     mga_out32( mmio, buffer->video.offset, TEXORG );
 
-     m_Source = 1;
+     mdev->m_Source = 1;
 }
 
-inline void matrox_validate_source()
+void matrox_validate_source( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CardState        *state )
 {
-     CoreSurface   *surface         = matrox->state->source;
+     volatile __u8 *mmio            = mdrv->mmio_base;
+     CoreSurface   *surface         = state->source;
      SurfaceBuffer *buffer          = surface->front_buffer;
      int            bytes_per_pixel = BYTES_PER_PIXEL(surface->format);
 
-     if (m_source)
+     if (mdev->m_source)
           return;
 
-     src_pixelpitch = buffer->video.pitch / bytes_per_pixel;
+     mdev->src_pixelpitch = buffer->video.pitch / bytes_per_pixel;
 
-     if (old_matrox)
-          src_pixeloffset = buffer->video.offset / bytes_per_pixel;
+     if (mdev->old_matrox)
+          mdev->src_pixeloffset = buffer->video.offset / bytes_per_pixel;
      else {
-          mga_waitfifo( mmio_base, 1);
-          mga_out32( mmio_base, buffer->video.offset, SRCORG );
+          mga_waitfifo( mdrv, mdev, 1);
+          mga_out32( mmio, buffer->video.offset, SRCORG );
      }
 
-     m_source = 1;
+     mdev->m_source = 1;
 }
 
-inline void matrox_validate_SrcKey()
+void matrox_validate_SrcKey( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CardState        *state )
 {
-     if (m_SrcKey)
+     volatile __u8 *mmio = mdrv->mmio_base;
+
+     if (mdev->m_SrcKey)
           return;
 
-     mga_waitfifo( mmio_base, 2);
+     mga_waitfifo( mdrv, mdev, 2);
 
-     if (BYTES_PER_PIXEL(matrox->state->source->format) > 2) {
-          mga_out32( mmio_base, (0xFFFF << 16) |
-                     (matrox->state->src_colorkey & 0xFFFF),
+     if (BYTES_PER_PIXEL(state->source->format) > 2) {
+          mga_out32( mmio, (0xFFFF << 16) |
+                     (state->src_colorkey & 0xFFFF),
                      TEXTRANS );
-          mga_out32( mmio_base, (((1 << (BITS_PER_PIXEL(matrox->state->source->format)-16)) - 1) << 16) |
-                     ((matrox->state->src_colorkey & 0xFFFF0000) >> 16),
+          mga_out32( mmio, (((1 << (BITS_PER_PIXEL(state->source->format)-16)) - 1) << 16) |
+                     ((state->src_colorkey & 0xFFFF0000) >> 16),
                      TEXTRANSHIGH );
      }
      else {
-          mga_out32( mmio_base, (((1 << BITS_PER_PIXEL(matrox->state->source->format)) - 1) << 16) |
-                     (matrox->state->src_colorkey & 0xFFFF),
+          mga_out32( mmio, (((1 << BITS_PER_PIXEL(state->source->format)) - 1) << 16) |
+                     (state->src_colorkey & 0xFFFF),
                      TEXTRANS );
-          mga_out32( mmio_base, 0, TEXTRANSHIGH );
+          mga_out32( mmio, 0, TEXTRANSHIGH );
      }
 
-     m_SrcKey = 1;
+     mdev->m_SrcKey = 1;
 }
 
-inline void matrox_validate_srckey()
+void matrox_validate_srckey( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CardState        *state )
 {
-     CoreSurface *surface = matrox->state->source;
-     __u32        mask;
+     volatile __u8 *mmio    = mdrv->mmio_base;
+     CoreSurface   *surface = state->source;
+     __u32          mask;
 
-     if (m_srckey)
+     if (mdev->m_srckey)
           return;
 
      mask = (1 << MIN( 24, BITS_PER_PIXEL(surface->format) )) - 1;
 
-     mga_waitfifo( mmio_base, 2);
-     mga_out32( mmio_base, matrox->state->src_colorkey, FCOL );
+     mga_waitfifo( mdrv, mdev, 2);
+     mga_out32( mmio, state->src_colorkey, FCOL );
 
-     if (BYTES_PER_PIXEL(matrox->state->source->format) > 2)
-          mga_out32( mmio_base, mask, BCOL );
+     if (BYTES_PER_PIXEL(state->source->format) > 2)
+          mga_out32( mmio, mask, BCOL );
      else
-          mga_out32( mmio_base, (mask << 16) | mask, BCOL );
+          mga_out32( mmio, (mask << 16) | mask, BCOL );
 
-     m_srckey = 1;
-     m_color = 0;
+     mdev->m_srckey = 1;
+     mdev->m_color = 0;
 }
 

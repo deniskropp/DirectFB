@@ -28,13 +28,14 @@
 #include <string.h>
 #include <malloc.h>
 
+#include <core/fusion/reactor.h>
+
 #include <directfb.h>
 #include <directfb_internals.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <core/reactor.h>
 #include <core/input.h>
 
 #include "misc/util.h"
@@ -75,7 +76,7 @@ static void IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
 
-     reactor_detach( data->device->reactor, IDirectFBInputDevice_React, data );
+     input_detach( data->device, IDirectFBInputDevice_React, data );
 
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
@@ -138,7 +139,7 @@ static DFBResult IDirectFBInputDevice_GetDescription(
      if (!desc)
           return DFB_INVARG;
 
-     *desc = data->device->desc;
+     *desc = input_device_description( data->device );
 
      return DFB_OK;
 }
@@ -242,7 +243,7 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      data->ref = 1;
      data->device = device;
 
-     reactor_attach( data->device->reactor, IDirectFBInputDevice_React, data );
+     input_attach( data->device, IDirectFBInputDevice_React, data );
 
      thiz->AddRef = IDirectFBInputDevice_AddRef;
      thiz->Release = IDirectFBInputDevice_Release;

@@ -103,7 +103,7 @@ static void copy_line24( __u8 *dst, __u8 *src, int width)
           dst[0] = src[2];
           dst[1] = src[1];
           dst[2] = src[0];
-          
+
           dst += 3;
           src += 3;
      }
@@ -195,7 +195,7 @@ static void IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
                                   (IDirectFBImageProvider_JPEG_data*)thiz->priv;
 
      DFBFREE( data->filename );
-     
+
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
@@ -243,8 +243,8 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
      switch (format) {
 #ifdef SUPPORT_RGB332
           case DSPF_RGB332:
-#endif          
- 	    case DSPF_RGB15:
+#endif
+        case DSPF_RGB15:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
@@ -253,7 +253,7 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
           default:
                return DFB_UNSUPPORTED;
      }
-     
+
      err = destination->GetCapabilities( destination, &caps );
      if (err)
           return err;
@@ -339,7 +339,7 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
                                            cinfo.output_width);
                               break;
                          case DSPF_RGB24:
-                              copy_line24( row_ptr, *buffer, 
+                              copy_line24( row_ptr, *buffer,
                                            cinfo.output_width);
                               break;
                          case DSPF_ARGB:
@@ -424,7 +424,7 @@ static DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
           dsc->flags  = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->height = cinfo.output_height;
           dsc->width  = cinfo.output_width;
-          dsc->pixelformat = layers->surface->format;
+          dsc->pixelformat = layers->shared->surface->format;
 
           jpeg_destroy_decompress(&cinfo);
           fclose(f);

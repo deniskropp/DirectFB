@@ -26,9 +26,11 @@
 
 #include <directfb.h>
 
-#include "reactor.h"
+#include <core/fusion/lock.h>
+#include <core/fusion/reactor.h>
 
-#define CSLF_FORCE 0x80000000
+#include <core/coretypes.h>
+
 
 struct _Chunk;
 
@@ -88,16 +90,18 @@ struct _CoreSurface
 
      SurfaceBuffer         *front_buffer;  /* buffer for reading
                                               (blit from or display buffer) */
-     pthread_mutex_t        front_lock;    /* mutex lock for front buffer */
+     FusionSkirmish         front_lock;    /* skirmish lock for front buffer */
 
      SurfaceBuffer         *back_buffer;   /* buffer for (reading&)writing
                                               (drawing/blitting destination) */
-     pthread_mutex_t        back_lock;     /* mutex lock for back buffer,
+     FusionSkirmish         back_lock;     /* skirmish lock for back buffer,
                                               mutexes are outside of
                                               SurfaceBuffer because of flipping
                                               that just swaps the pointers */
 
-     Reactor               *reactor;       /* event dispatcher */
+     SurfaceManager        *manager;
+
+     FusionReactor         *reactor;       /* event dispatcher */
 
      /* doubly linked list */
      CoreSurface           *next;
@@ -144,7 +148,7 @@ static inline void surface_notify_listeners( CoreSurface *surface,
      notification.flags   = flags;
      notification.surface = surface;
 
-     reactor_dispatch( surface->reactor, &notification );
+     reactor_dispatch( surface->reactor, &notification, true );
 }
 
 /*
@@ -152,22 +156,6 @@ static inline void surface_notify_listeners( CoreSurface *surface,
  * otherwise it does a back_to_front_copy, notifies listeners
  */
 void surface_flip_buffers( CoreSurface *surface );
-
-/*
- * lock a surface for access by software, returns a pointer to the
- * surface data and the line pitch a.k.a. rowstride
- */
-DFBResult surface_soft_lock( CoreSurface *surface, unsigned int flags,
-                             void **data, unsigned int *pitch, int front );
-
-/*
- * lock a surface for access by hardware that enforces a video instance
- * an therefore the data and pitch can be looked up in the surface struct's
- * video struct, however this function will fail if the surfacemanager could
- * not assure a video memory instance
- */
-DFBResult surface_hard_lock( CoreSurface *surface,
-                             unsigned int flags, int front );
 
 /*
  * unlocks a previously locked surface

@@ -344,7 +344,7 @@ static DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
           if (png_type & PNG_COLOR_MASK_ALPHA)
                dsc->pixelformat = DSPF_ARGB;
           else
-               dsc->pixelformat= layers->surface->format;
+               dsc->pixelformat= layers->shared->surface->format;
 
           png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
           fclose( f );

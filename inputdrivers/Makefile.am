@@ -8,7 +8,7 @@ endif
 
 SUBDIRS = \
 	joystick	\
-	keyboard 	\
+	keyboard	\
 	lirc		\
 	ps2mouse	\
 	serialmouse	\

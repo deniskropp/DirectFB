@@ -45,7 +45,6 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/reactor.h>
 
 #include <misc/conf.h>
 #include <misc/mem.h>
@@ -63,7 +62,7 @@ typedef enum
      LAST_PROTOCOL
 } MouseProtocol;
 
-static char *protocol_names[LAST_PROTOCOL] = 
+static const char *protocol_names[LAST_PROTOCOL] =
 {
      "MS",
      "MS3",
@@ -71,46 +70,59 @@ static char *protocol_names[LAST_PROTOCOL] =
      "MouseSystems"
 };
 
-static int fd = -1;
-static MouseProtocol protocol = LAST_PROTOCOL;
+typedef struct {
+     int            fd;
+     InputDevice   *device;
+     pthread_t      thread;
 
-static DFBInputEvent x_motion;
-static DFBInputEvent y_motion;
+     MouseProtocol  protocol;
+     
+     DFBInputEvent  x_motion;
+     DFBInputEvent  y_motion;
+} SerialMouseData;
 
 
-static inline void mouse_motion_initialize()
+static inline void
+mouse_motion_initialize( SerialMouseData *data )
 {
-     x_motion.type = y_motion.type = DIET_AXISMOTION;
-     x_motion.flags = y_motion.flags = DIEF_AXISREL;
-     x_motion.axisrel = y_motion.axisrel = 0;
+     data->x_motion.type    = data->y_motion.type    = DIET_AXISMOTION;
+     data->x_motion.flags   = data->y_motion.flags   = DIEF_AXISREL | DIEF_TIMESTAMP;
+     data->x_motion.axisrel = data->y_motion.axisrel = 0;
 
-     x_motion.axis = DIAI_X;
-     y_motion.axis = DIAI_Y;
+     data->x_motion.axis    = DIAI_X;
+     data->y_motion.axis    = DIAI_Y;
 }
 
-static inline void mouse_motion_compress( int dx, int dy )
+static inline void
+mouse_motion_compress( SerialMouseData *data, int dx, int dy )
 {
-     x_motion.axisrel += dx;
-     y_motion.axisrel += dy;
+     data->x_motion.axisrel += dx;
+     data->y_motion.axisrel += dy;
 }
 
-static inline void mouse_motion_realize(InputDevice *device)
+static inline void
+mouse_motion_realize( SerialMouseData *data )
 {
-     if (x_motion.axisrel) {
-          reactor_dispatch( device->reactor, &x_motion );
-          x_motion.axisrel = 0;
+     if (data->x_motion.axisrel) {
+          gettimeofday( &data->x_motion.timestamp, NULL );
+          input_dispatch( data->device, &data->x_motion );
+          data->x_motion.axisrel = 0;
      }
-     if (y_motion.axisrel) {
-          reactor_dispatch( device->reactor, &y_motion );
-          y_motion.axisrel = 0;
+
+     if (data->y_motion.axisrel) {
+          gettimeofday( &data->y_motion.timestamp, NULL );
+          input_dispatch( data->device, &data->y_motion );
+          data->y_motion.axisrel = 0;
      }
 }
 
-static void mouse_setspeed()
+
+static void
+mouse_setspeed( SerialMouseData *data )
 {
      struct termios tty;
 
-     tcgetattr (fd, &tty);
+     tcgetattr (data->fd, &tty);
 
      tty.c_iflag = IGNBRK | IGNPAR;
      tty.c_oflag = 0;
@@ -120,18 +132,19 @@ static void mouse_setspeed()
      tty.c_cc[VMIN] = 1;
      tty.c_cflag = CREAD|CLOCAL|HUPCL|B1200;
 
-     tty.c_cflag |= (protocol == PROTOCOL_MOUSESYSTEMS) ? CS8|CSTOPB : CS7;
+     tty.c_cflag |= (data->protocol == PROTOCOL_MOUSESYSTEMS) ? CS8|CSTOPB : CS7;
 
-     tcsetattr (fd, TCSAFLUSH, &tty);
+     tcsetattr (data->fd, TCSAFLUSH, &tty);
 
-     write (fd, "*n", 2);
+     write (data->fd, "*n", 2);
 }
 
 /* the main routine for MS mice (plus extensions) */
-void* mouseEventThread_ms(void *device)
+static void*
+mouseEventThread_ms( void *driver_data )
 {
-     InputDevice *mouse = (InputDevice*)device;
-     DFBInputEvent evt;
+     SerialMouseData *data = (SerialMouseData*) driver_data;
+     DFBInputEvent    evt;
 
      unsigned char buf[256];
      unsigned char packet[4];
@@ -142,13 +155,10 @@ void* mouseEventThread_ms(void *device)
      int readlen;
      int i;
 
-     if (mouse->number != 0)
-          return NULL;
-
-     mouse_motion_initialize();
+     mouse_motion_initialize( data );
 
      /* Read data */
-     while ((readlen = read( fd, buf, 256 )) >= 0 || errno == EINTR) {
+     while ((readlen = read( data->fd, buf, 256 )) >= 0 || errno == EINTR) {
 
           pthread_testcancel();
 
@@ -158,7 +168,7 @@ void* mouseEventThread_ms(void *device)
                     continue;
 
                /* We did not reset the position in the mouse event handler
-                  since a forth byte may follow. We check for it now and 
+                  since a forth byte may follow. We check for it now and
                   reset the position if this is a start byte. */
                if (pos == 3 && buf[i] & 0x40)
                     pos = 0;
@@ -167,54 +177,54 @@ void* mouseEventThread_ms(void *device)
 
                switch (pos) {
                case 3:
-                    if (protocol != PROTOCOL_MOUSEMAN)
+                    if (data->protocol != PROTOCOL_MOUSEMAN)
                          pos = 0;
-                    
+
                     buttons = packet[0] & 0x30;
-                    dx = (signed char) 
+                    dx = (signed char)
                          (((packet[0] & 0x03) << 6) | (packet[1] & 0x3f));
-                    dy = (signed char) 
+                    dy = (signed char)
                          (((packet[0] & 0x0C) << 4) | (packet[2] & 0x3f));
-                    
-                    mouse_motion_compress( dx, dy );
-                    
-                    if (protocol == PROTOCOL_MS3) {
+
+                    mouse_motion_compress( data, dx, dy );
+
+                    if (data->protocol == PROTOCOL_MS3) {
                          if (!dx && !dy && buttons == (last_buttons & ~MIDDLE))
                               buttons = last_buttons ^ MIDDLE;  /* toggle    */
                          else
                               buttons |= last_buttons & MIDDLE; /* preserve  */
-                    }   
+                    }
 
                     if (!dfb_config->mouse_motion_compression)
-                         mouse_motion_realize( device );
-                         
+                         mouse_motion_realize( data );
+
                     if (last_buttons != buttons) {
                          unsigned char changed_buttons = last_buttons ^ buttons;
-                           
+
                          /* make sure the compressed motion event is dispatched
                             before any button change */
-                         mouse_motion_realize( device );
+                         mouse_motion_realize( data );
 
                          if (changed_buttons & 0x20) {
-                              evt.type = (buttons & 0x20) ? 
+                              evt.type = (buttons & 0x20) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_LEFT;
-                              reactor_dispatch( mouse->reactor, &evt );
+                              input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x10) {
-                              evt.type = (buttons & 0x10) ? 
+                              evt.type = (buttons & 0x10) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_RIGHT;
-                              reactor_dispatch( mouse->reactor, &evt );
+                              input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & MIDDLE) {
-                              evt.type = (buttons & MIDDLE) ? 
+                              evt.type = (buttons & MIDDLE) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_MIDDLE;
-                              reactor_dispatch( mouse->reactor, &evt );
+                              input_dispatch( data->device, &evt );
                          }
 
                          last_buttons = buttons;
@@ -223,14 +233,14 @@ void* mouseEventThread_ms(void *device)
 
                case 4:
                     pos = 0;
-                 
-                    evt.type = (packet[3] & 0x20) ? 
+
+                    evt.type = (packet[3] & 0x20) ?
                          DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                     evt.flags = DIEF_BUTTON;
                     evt.button = DIBI_MIDDLE;
-                    reactor_dispatch( mouse->reactor, &evt );
+                    input_dispatch( data->device, &evt );
                     break;
-                    
+
                default:
                     break;
                }
@@ -239,7 +249,7 @@ void* mouseEventThread_ms(void *device)
           /* make sure the compressed motion event is dispatched,
              necessary if the last packet was a motion event */
           if (readlen > 0)
-               mouse_motion_realize( device );
+               mouse_motion_realize( data );
 
           pthread_testcancel();
      }
@@ -250,9 +260,10 @@ void* mouseEventThread_ms(void *device)
 }
 
 /* the main routine for MouseSystems */
-void* mouseEventThread_mousesystems(void *device)
+static void*
+mouseEventThread_mousesystems( void *driver_data )
 {
-     InputDevice *mouse = (InputDevice*)device;
+     SerialMouseData *data = (SerialMouseData*) driver_data;
 
      unsigned char buf[256];
      unsigned char packet[5];
@@ -261,13 +272,10 @@ void* mouseEventThread_mousesystems(void *device)
      int i;
      int readlen;
 
-     if (mouse->number != 0)
-          return NULL;
-
-     mouse_motion_initialize();
+     mouse_motion_initialize( data );
 
      /* Read data */
-     while ((readlen = read( fd, buf, 256 )) >= 0 || errno == EINTR) {
+     while ((readlen = read( data->fd, buf, 256 )) >= 0 || errno == EINTR) {
 
           pthread_testcancel();
 
@@ -283,44 +291,44 @@ void* mouseEventThread_mousesystems(void *device)
                     int buttons;
 
                     pos = 0;
-                    
+
                     buttons= (~packet[0]) & 0x07;
                     dx =    (signed char) (packet[1]) + (signed char)(packet[3]);
                     dy = - ((signed char) (packet[2]) + (signed char)(packet[4]));
-                    
-                    mouse_motion_compress( dx, dy );
-                    
+
+                    mouse_motion_compress( data, dx, dy );
+
                     if (!dfb_config->mouse_motion_compression)
-                         mouse_motion_realize( device );
-                         
+                         mouse_motion_realize( data );
+
                     if (last_buttons != buttons) {
                          DFBInputEvent evt;
                          unsigned char changed_buttons = last_buttons ^ buttons;
-                           
+
                          /* make sure the compressed motion event is dispatched
                             before any button change */
-                         mouse_motion_realize( device );
+                         mouse_motion_realize( data );
 
                          if (changed_buttons & 0x04) {
-                              evt.type = (buttons & 0x04) ? 
+                              evt.type = (buttons & 0x04) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_LEFT;
-                              reactor_dispatch( mouse->reactor, &evt );
+                              input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x01) {
-                              evt.type = (buttons & 0x01) ? 
+                              evt.type = (buttons & 0x01) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_MIDDLE;
-                              reactor_dispatch( mouse->reactor, &evt );
+                              input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x02) {
-                              evt.type = (buttons & 0x02) ? 
+                              evt.type = (buttons & 0x02) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_RIGHT;
-                              reactor_dispatch( mouse->reactor, &evt );
+                              input_dispatch( data->device, &evt );
                          }
 
                          last_buttons = buttons;
@@ -331,7 +339,7 @@ void* mouseEventThread_mousesystems(void *device)
           /* make sure the compressed motion event is dispatched,
              necessary if the last packet was a motion event */
           if (readlen > 0)
-               mouse_motion_realize( device );
+               mouse_motion_realize( data );
 
           pthread_testcancel();
      }
@@ -341,26 +349,43 @@ void* mouseEventThread_mousesystems(void *device)
      return NULL;
 }
 
-
-/* exported symbols */
-
-int driver_probe()
+static MouseProtocol mouse_get_protocol()
 {
-     struct serial_struct serial_info;
-     struct timeval timeout;
-     fd_set set;
-     char buf[8];
-     int readlen;
-     int lines;
-
+     MouseProtocol protocol;
+     
      if (!dfb_config->mouse_protocol)
-          return 0;
+          return LAST_PROTOCOL;
 
      for (protocol = 0; protocol < LAST_PROTOCOL; protocol++) {
-          if (strcasecmp (dfb_config->mouse_protocol, 
+          if (strcasecmp (dfb_config->mouse_protocol,
                           protocol_names[protocol]) == 0)
                break;
      }
+     
+     return protocol;
+}
+
+/* exported symbols */
+
+int
+driver_get_abi_version()
+{
+     return DFB_INPUT_DRIVER_ABI_VERSION;
+}
+
+int
+driver_get_available()
+{
+     struct serial_struct serial_info;
+     struct timeval       timeout;
+     MouseProtocol        protocol;
+     fd_set               set;
+     int                  fd;
+     char                 buf[8];
+     int                  readlen;
+     int                  lines;
+
+     protocol = mouse_get_protocol();
      if (protocol == LAST_PROTOCOL)
           return 0;
 
@@ -407,10 +432,36 @@ int driver_probe()
      return 0;
 }
 
-int driver_init(InputDevice *device)
+void
+driver_get_info( InputDriverInfo *info )
 {
-     char *driver_name;
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "Serial Mouse Driver" );
 
+     snprintf( info->vendor,
+               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->version.major = 0;
+     info->version.minor = 2;
+}
+
+DFBResult
+driver_open_device( InputDevice      *device,
+                    unsigned int      number,
+                    InputDeviceInfo  *info,
+                    void            **driver_data )
+{
+     int              fd;
+     MouseProtocol    protocol;
+     SerialMouseData *data;
+
+     protocol = mouse_get_protocol();
+     if (protocol == LAST_PROTOCOL) /* shouldn't happen */
+          return DFB_BUG;
+     
+     /* open device */
      fd = open( DEV_NAME, O_RDWR | O_NONBLOCK );
      if (fd < 0) {
           PERRORMSG( "DirectFB/SerialMouse: Error opening '"DEV_NAME"'!\n" );
@@ -420,40 +471,54 @@ int driver_init(InputDevice *device)
      /* reset the O_NONBLOCK flag */
      fcntl (fd, F_SETFL, fcntl (fd, F_GETFL) & ~O_NONBLOCK);
 
-     mouse_setspeed ();
-
-     driver_name = DFBMALLOC( strlen("Serial Mouse ()") +
-                           strlen(protocol_names[protocol]) + 1 );
-     sprintf( driver_name, "Serial Mouse (%s)", protocol_names[protocol]);
+     /* allocate and fill private data */
+     data = DFBCALLOC( 1, sizeof(SerialMouseData) );
      
-     device->info.driver_name   = driver_name;
-     device->info.driver_vendor = "convergence integrated media GmbH";
+     data->fd       = fd;
+     data->device   = device;
+     data->protocol = protocol;
 
-     device->info.driver_version.major = 0;
-     device->info.driver_version.minor = 1;
-
-     device->id = DIDID_MOUSE;
-
-     device->desc.type = DIDTF_MOUSE;
-     device->desc.caps = DICAPS_AXIS | DICAPS_BUTTONS;
-     device->desc.max_axis = DIAI_Y;
-     device->desc.max_button = 
-          (protocol > PROTOCOL_MS) ? DIBI_MIDDLE : DIBI_RIGHT;
+     mouse_setspeed( data );
      
+     /* fill device info structure */
+     snprintf( info->name, DFB_INPUT_DEVICE_INFO_NAME_LENGTH,
+               "Serial Mouse (%s)", protocol_names[protocol] );
+
+     snprintf( info->vendor, DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
+     
+     info->prefered_id     = DIDID_MOUSE;
+     
+     info->desc.type       = DIDTF_MOUSE;
+     info->desc.caps       = DICAPS_AXIS | DICAPS_BUTTONS;
+     info->desc.max_axis   = DIAI_Y;
+     info->desc.max_button = (protocol > PROTOCOL_MS) ? DIBI_MIDDLE : DIBI_RIGHT;
+     
+     /* start input thread */
      if (protocol == PROTOCOL_MOUSESYSTEMS)
-          device->EventThread = mouseEventThread_mousesystems;
+          pthread_create( &data->thread, NULL,
+                          mouseEventThread_mousesystems, data );
      else
-          device->EventThread = mouseEventThread_ms;
+          pthread_create( &data->thread, NULL, mouseEventThread_ms, data );
+
+     /* set private data pointer */
+     *driver_data = data;
 
      return DFB_OK;
 }
 
-void driver_deinit(InputDevice *device)
+void
+driver_close_device( void *driver_data )
 {
-     if (device->number != 0)
-          return;
+     SerialMouseData *data = (SerialMouseData*) driver_data;
 
-     DFBFREE( device->info.driver_name );
+     /* stop input thread */
+     pthread_cancel( data->thread );
+     pthread_join( data->thread, NULL );
+     
+     /* close device */
+     close( data->fd );
 
-     close( fd );
+     /* free private data */
+     DFBFREE( data );
 }
+

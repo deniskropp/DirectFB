@@ -30,6 +30,8 @@
 
 #include <pthread.h>
 
+#include <core/fusion/shmalloc.h>
+
 #include "directfb.h"
 
 #include "coredefs.h"
@@ -38,7 +40,6 @@
 #include "layers.h"
 #include "gfxcard.h"
 #include "input.h"
-#include "reactor.h"
 #include "state.h"
 
 #include "windows.h"
@@ -56,22 +57,29 @@ static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
 static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack );
 static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                                                      void       *ctx );
-
+static DFBEnumerationResult
+windowstack_attach_devices( InputDevice *device,
+                            void        *ctx );
+static DFBEnumerationResult
+windowstack_detach_devices( InputDevice *device,
+                            void        *ctx );
 
 CoreWindowStack* windowstack_new( DisplayLayer *layer )
 {
-     InputDevice *inputdevice = inputdevices;
-     CoreWindowStack *stack;
+     CardCapabilities  caps;
+     CoreWindowStack  *stack;
 
-     stack = (CoreWindowStack*) DFBCALLOC( 1, sizeof(CoreWindowStack) );
+     stack = (CoreWindowStack*) shcalloc( 1, sizeof(CoreWindowStack) );
 
-     stack->layer = layer;
+     stack->layer = layer->shared;
 
      stack->wsp_opaque = stack->wsp_alpha = CSP_SYSTEMONLY;
 
-     if (card->caps.accel & DFXL_BLIT) {
+     caps = gfxcard_capabilities();
+
+     if (caps.accel & DFXL_BLIT) {
           stack->wsp_opaque = CSP_VIDEOHIGH;
-          if (card->caps.blitting & DSBLIT_BLEND_ALPHACHANNEL)
+          if (caps.blitting & DSBLIT_BLEND_ALPHACHANNEL)
                stack->wsp_alpha = CSP_VIDEOHIGH;
      }
 
@@ -79,25 +87,21 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
           stack->wsp_opaque = stack->wsp_alpha = dfb_config->window_policy;
      }
 
-     pthread_mutex_init( &stack->update, NULL );
+     skirmish_init( &stack->update );
 
-     while (inputdevice) {
-          reactor_attach( inputdevice->reactor,
-                          windowstack_inputdevice_react, stack );
-
-          inputdevice = inputdevice->next;
-     }
+     input_enumerate_devices( windowstack_attach_devices, stack );
 
      stack->cursor_region.x1 = 0;
      stack->cursor_region.y1 = 0;
-     stack->cursor_region.x2 = layer->width - 1;
-     stack->cursor_region.y2 = layer->height - 1;
+     stack->cursor_region.x2 = layer->shared->width - 1;
+     stack->cursor_region.y2 = layer->shared->height - 1;
 
      /* initialize state for repaints */
+     state_init( &stack->state );
      stack->state.modified  = SMF_ALL;
      stack->state.src_blend = DSBF_SRCALPHA;
      stack->state.dst_blend = DSBF_INVSRCALPHA;
-     state_set_destination( &stack->state, layer->surface );
+     state_set_destination( &stack->state, layer->shared->surface );
 
      return stack;
 }
@@ -105,29 +109,22 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
 void windowstack_destroy( CoreWindowStack *stack )
 {
      int i;
-     InputDevice *inputdevice = inputdevices;
 
      state_set_destination( &stack->state, NULL );
 
-     while (inputdevice) {
-          reactor_detach( inputdevice->reactor,
-                          windowstack_inputdevice_react, stack );
+     input_enumerate_devices( windowstack_detach_devices, stack );
 
-          inputdevice = inputdevice->next;
-     }
-
-     pthread_mutex_destroy( &stack->update );
+     skirmish_destroy( &stack->update );
 
      for (i=0; i<stack->num_windows; i++)
           window_destroy( stack->windows[i] );
 
-     if (stack->windows) {
-          stack->num_windows = 0;
-          DFBFREE( stack->windows );
-          stack->windows = NULL;
-     }
+     if (stack->windows)
+          shmfree( stack->windows );
 
-     DFBFREE( stack );
+     state_destroy( &stack->state );
+
+     shmfree( stack );
 }
 
 void window_insert( CoreWindow *window, int before )
@@ -138,10 +135,25 @@ void window_insert( CoreWindow *window, int before )
      if (before < 0  ||  before > stack->num_windows)
           before = stack->num_windows;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
-     stack->windows = DFBREALLOC( stack->windows,
-                               sizeof(CoreWindow*) * (stack->num_windows + 1) );
+
+     /* HACK HACK HACK */
+
+     if (stack->windows) {
+          CoreWindow **windows;
+
+          windows = shmalloc( sizeof(CoreWindow*) * (stack->num_windows + 1) );
+
+          memcpy( windows, stack->windows, sizeof(CoreWindow*) * stack->num_windows );
+
+          shmfree( stack->windows );
+
+          stack->windows = windows;
+     }
+     else {
+          stack->windows = shmalloc( sizeof(CoreWindow*) );
+     }
 
      for (i=stack->num_windows; i>before; i--)
           stack->windows[i] = stack->windows[i-1];
@@ -150,7 +162,7 @@ void window_insert( CoreWindow *window, int before )
 
      stack->num_windows++;
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      if (!(window->caps & DWHC_GHOST)) {
           DFBWindowEvent evt;
@@ -160,7 +172,7 @@ void window_insert( CoreWindow *window, int before )
           evt.y = window->y;
           evt.w = window->width;
           evt.h = window->height;
-          reactor_dispatch( window->reactor, &evt );
+          reactor_dispatch( window->reactor, &evt, true );
      }
 
      if (window->opacity)
@@ -175,7 +187,7 @@ void window_remove( CoreWindow *window )
                           window->x + window->width - 1,
                           window->y + window->height - 1 };
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      if (stack->entered_window == window)
           stack->entered_window = NULL;
@@ -199,16 +211,26 @@ void window_remove( CoreWindow *window )
           for (; i<stack->num_windows; i++)
                stack->windows[i] = stack->windows[i+1];
 
-          if (stack->num_windows)
-               stack->windows = DFBREALLOC( stack->windows,
-                                         sizeof(CoreWindow*) * (stack->num_windows) );
+          /* HACK HACK HACK */
+
+          if (stack->windows) {
+               CoreWindow **windows;
+
+               windows = shmalloc( sizeof(CoreWindow*) * stack->num_windows );
+
+               memcpy( windows, stack->windows, sizeof(CoreWindow*) * stack->num_windows );
+
+               shmfree( stack->windows );
+
+               stack->windows = windows;
+          }
           else {
-               DFBFREE( stack->windows );
+               shmfree( stack->windows );
                stack->windows = NULL;
           }
      }
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      windowstack_repaint( stack, &region );
 
@@ -216,20 +238,20 @@ void window_remove( CoreWindow *window )
           windowstack_handle_enter_leave_focus( stack );
 
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      if (!stack->focused_window) {
           for (i=stack->num_windows-1; i>=0; i--) {
                if (!(stack->windows[i]->caps & DWHC_GHOST)) {
-                    pthread_mutex_unlock( &stack->update );
+                    skirmish_dismiss( &stack->update );
                     window_request_focus( stack->windows[i] );
-                    pthread_mutex_lock( &stack->update );
+                    skirmish_prevail( &stack->update );
                     break;
                }
           }
      }
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 }
 
 CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
@@ -242,7 +264,7 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
      DFBSurfaceCapabilities  surface_caps;
      CoreWindow             *window;
 
-     window = (CoreWindow*) DFBCALLOC( 1, sizeof(CoreWindow) );
+     window = (CoreWindow*) shcalloc( 1, sizeof(CoreWindow) );
 
      window->x = x;
      window->y = y;
@@ -271,11 +293,11 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
      ret = surface_create( width, height, surface_format, surface_policy,
                            surface_caps, &window->surface );
      if (ret) {
-          DFBFREE( window );
+          shmfree( window );
           return NULL;
      }
 
-     window->reactor = reactor_new();
+     window->reactor = reactor_new(sizeof(DFBWindowEvent));
 
      return window;
 }
@@ -297,13 +319,13 @@ void window_destroy( CoreWindow *window )
      DFBWindowEvent evt;
 
      evt.type = DWET_DESTROYED;
-     reactor_dispatch( window->reactor, &evt );
+     reactor_dispatch( window->reactor, &evt, true );
 
      surface_destroy( window->surface );
 
      reactor_free( window->reactor );
 
-     DFBFREE( window );
+     shmfree( window );
 }
 
 int window_raise( CoreWindow *window )
@@ -312,7 +334,7 @@ int window_raise( CoreWindow *window )
      int update = 0;
      CoreWindowStack *stack = window->stack;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      for (i=0; i<stack->num_windows; i++)
           if (stack->windows[i] == window)
@@ -326,7 +348,7 @@ int window_raise( CoreWindow *window )
           update = 1;
      }
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      if (update && window->opacity) {
           DFBRegion region = { window->x, window->y,
@@ -347,7 +369,7 @@ int window_lower( CoreWindow *window )
      int update = 0;
      CoreWindowStack *stack = window->stack;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      for (i=0; i<stack->num_windows; i++)
           if (stack->windows[i] == window)
@@ -361,7 +383,7 @@ int window_lower( CoreWindow *window )
           update = 1;
      }
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      if (update && window->opacity) {
           DFBRegion region = { window->x, window->y,
@@ -382,7 +404,7 @@ int window_raisetotop( CoreWindow *window )
      int update = 0;
      CoreWindowStack *stack = window->stack;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      for (i=0; i<stack->num_windows; i++)
           if (stack->windows[i] == window)
@@ -400,7 +422,7 @@ int window_raisetotop( CoreWindow *window )
                break;
      }
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      if (update && window->opacity) {
           DFBRegion region = { window->x, window->y,
@@ -421,7 +443,7 @@ int window_lowertobottom( CoreWindow *window )
      int update = 0;
      CoreWindowStack *stack = window->stack;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      for (i=0; i<stack->num_windows; i++)
           if (stack->windows[i] == window)
@@ -435,7 +457,7 @@ int window_lowertobottom( CoreWindow *window )
           update = 1;
      }
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      if (update && window->opacity) {
           DFBRegion region = { window->x, window->y,
@@ -481,7 +503,7 @@ int window_move( CoreWindow *window, int dx, int dy )
           evt.type = DWET_POSITION;
           evt.x = window->x;
           evt.y = window->y;
-          reactor_dispatch( window->reactor, &evt );
+          reactor_dispatch( window->reactor, &evt, true );
      }
 
      return DFB_OK;
@@ -513,7 +535,7 @@ int window_resize( CoreWindow *window, unsigned int width, unsigned int height )
           evt.type = DWET_SIZE;
           evt.w = window->width;
           evt.h = window->height;
-          reactor_dispatch( window->reactor, &evt );
+          reactor_dispatch( window->reactor, &evt, true );
      }
 
      return DFB_OK;
@@ -571,14 +593,14 @@ DFBResult window_grab_keyboard( CoreWindow *window )
      DFBResult retval = DFB_OK;
      CoreWindowStack *stack = window->stack;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      if (stack->keyboard_window)
           retval = DFB_LOCKED;
      else
           stack->keyboard_window = window;
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      return retval;
 }
@@ -587,12 +609,12 @@ DFBResult window_ungrab_keyboard( CoreWindow *window )
 {
      CoreWindowStack *stack = window->stack;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      if (stack->keyboard_window == window)
           stack->keyboard_window = NULL;
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      return DFB_OK;
 }
@@ -602,14 +624,14 @@ DFBResult window_grab_pointer( CoreWindow *window )
      DFBResult retval = DFB_OK;
      CoreWindowStack *stack = window->stack;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      if (stack->pointer_window)
           retval = DFB_LOCKED;
      else
           stack->pointer_window = window;
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      return retval;
 }
@@ -618,12 +640,12 @@ DFBResult window_ungrab_pointer( CoreWindow *window )
 {
      CoreWindowStack *stack = window->stack;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      if (stack->pointer_window == window)
           stack->pointer_window = NULL;
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 
      windowstack_handle_enter_leave_focus( stack );
 
@@ -648,11 +670,11 @@ int window_request_focus( CoreWindow *window )
 
      if (current) {
           evt.type = DWET_LOSTFOCUS;
-          reactor_dispatch( current->reactor, &evt );
+          reactor_dispatch( current->reactor, &evt, true );
      }
 
      evt.type = DWET_GOTFOCUS;
-     reactor_dispatch( window->reactor, &evt );
+     reactor_dispatch( window->reactor, &evt, true );
 
      stack->focused_window = window;
 
@@ -671,6 +693,24 @@ void windowstack_repaint_all( CoreWindowStack *stack )
  * internals
  */
 
+static DFBEnumerationResult
+windowstack_attach_devices( InputDevice *device,
+                            void        *ctx )
+{
+     input_attach( device, windowstack_inputdevice_react, ctx );
+     
+     return DFENUM_OK;
+}
+
+static DFBEnumerationResult
+windowstack_detach_devices( InputDevice *device,
+                            void        *ctx )
+{
+     input_detach( device, windowstack_inputdevice_react, ctx );
+     
+     return DFENUM_OK;
+}
+
 #define TRANSPARENT_WINDOW(w) ((w)->opacity < 0xff || \
                                (w)->caps & DWCAPS_ALPHACHANNEL)
 
@@ -680,7 +720,7 @@ static void update_region( CoreWindowStack *stack, int window,
      int i = window;
      unsigned int edges = 0;
      DFBRegion region = { x1, y1, x2, y2 };
-     DisplayLayer *layer = stack->layer;
+     DisplayLayerShared *layer = stack->layer;
 
      /* check for empty region */
      if (x1 > x2  ||  y1 > y2)
@@ -773,8 +813,8 @@ static void update_region( CoreWindowStack *stack, int window,
 
 static void windowstack_repaint( CoreWindowStack *stack, DFBRegion *region )
 {
-     DisplayLayer *layer   = stack->layer;
-     CoreSurface  *surface = layer->surface;
+     DisplayLayerShared *layer   = stack->layer;
+     CoreSurface        *surface = layer->surface;
 
      if (layer->exclusive)
           return;
@@ -783,7 +823,7 @@ static void windowstack_repaint( CoreWindowStack *stack, DFBRegion *region )
                             surface->width - 1, surface->height - 1 ))
           return;
 
-     pthread_mutex_lock( &stack->update );
+     skirmish_prevail( &stack->update );
 
      update_region( stack, stack->num_windows - 1,
                     region->x1, region->y1, region->x2, region->y2 );
@@ -792,9 +832,10 @@ static void windowstack_repaint( CoreWindowStack *stack, DFBRegion *region )
           if (region->x1 == 0 &&
               region->y1 == 0 &&
               region->x2 == layer->width - 1 &&
-              region->y2 == layer->height - 1)
+              region->y2 == layer->height - 1 && 0)
           {
-               layer->FlipBuffers( layer );
+               /* FIXME */
+               //layer->FlipBuffers( layer );
           }
           else {
                DFBRectangle rect = { region->x1, region->y1,
@@ -805,7 +846,7 @@ static void windowstack_repaint( CoreWindowStack *stack, DFBRegion *region )
           }
      }
 
-     pthread_mutex_unlock( &stack->update );
+     skirmish_dismiss( &stack->update );
 }
 
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y )
@@ -852,7 +893,7 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                               if (stack->entered_window) {
                                    DFBWindowEvent evt;
                                    evt.type = DWET_CLOSE;
-                                   reactor_dispatch( stack->entered_window->reactor, &evt );
+                                   reactor_dispatch( stack->entered_window->reactor, &evt, true );
                               }
                               return RS_OK;
                          default:
@@ -889,7 +930,7 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                     we.keycode     = evt->keycode;
                     we.modifiers   = evt->modifiers;
 
-                    reactor_dispatch( window->reactor, &we );
+                    reactor_dispatch( window->reactor, &we, true );
                }
 
                break;
@@ -910,7 +951,7 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                     we.x      = we.cx - window->x;
                     we.y      = we.cy - window->y;
 
-                    reactor_dispatch( window->reactor, &we );
+                    reactor_dispatch( window->reactor, &we, true );
                }
 
                break;
@@ -992,7 +1033,7 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
                we.x    = we.cx - stack->pointer_window->x;
                we.y    = we.cy - stack->pointer_window->y;
 
-               reactor_dispatch( stack->pointer_window->reactor, &we );
+               reactor_dispatch( stack->pointer_window->reactor, &we, true );
           }
           else {
                if (!windowstack_handle_enter_leave_focus( stack )
@@ -1002,7 +1043,7 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
                     we.x    = we.cx - stack->entered_window->x;
                     we.y    = we.cy - stack->entered_window->y;
 
-                    reactor_dispatch( stack->entered_window->reactor, &we );
+                    reactor_dispatch( stack->entered_window->reactor, &we, true );
                }
           }
      }
@@ -1026,7 +1067,7 @@ static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack )
                we.x    = we.cx - before->x;
                we.y    = we.cy - before->y;
 
-               reactor_dispatch( before->reactor, &we );
+               reactor_dispatch( before->reactor, &we, true );
           }
 
           if (after) {
@@ -1036,7 +1077,7 @@ static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack )
                we.x    = we.cx - after->x;
                we.y    = we.cy - after->y;
 
-               reactor_dispatch( after->reactor, &we );
+               reactor_dispatch( after->reactor, &we, true );
           }
 
           stack->entered_window = after;

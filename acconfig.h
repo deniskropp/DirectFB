@@ -15,3 +15,5 @@
 #undef USE_MMX
 
 #undef DFB_DEBUG
+
+#undef FUSION_FAKE

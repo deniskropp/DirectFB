@@ -48,93 +48,167 @@
 /* for fifo/performance monitoring */
 //unsigned int neo_fifo_space = 0;
 
-unsigned int neo_waitfifo_sum    = 0;
-unsigned int neo_waitfifo_calls  = 0;
-unsigned int neo_fifo_waitcycles = 0;
-unsigned int neo_idle_waitcycles = 0;
-unsigned int neo_fifo_cache_hits = 0;
-
-
-volatile __u8 *mmio_base = NULL;
-GfxCard       *neo = NULL;
 
 
 /* exported symbols */
 
-int driver_probe( int fd, GfxCard *card )
+int
+driver_get_abi_version()
 {
-  switch (card->fix.accel)
-    {
-    case 42 ... 45:
-      return 1;
-    }
-
-  return 0;
+     return DFB_GRAPHICS_DRIVER_ABI_VERSION;
 }
 
-int driver_init( int fd, GfxCard *card )
+int
+driver_probe( GraphicsDevice *device )
 {
-  mmio_base = (__u8*)mmap(NULL, card->fix.mmio_len, PROT_READ | PROT_WRITE,
-			  MAP_SHARED, fd, card->fix.smem_len);
+     switch (gfxcard_get_accelerator( device )) {
+          /* no support for other NeoMagic cards yet */
+          case 42:        // NM2200
+          case 43:        // NM2230
+          case 44:        // NM2360
+          case 45:        // NM2380
+               return 1;
+     }
 
-  if (mmio_base == MAP_FAILED)
-    {
-      PERRORMSG("DirectFB/NeoMagic: Unable to map mmio region!\n");
-      return DFB_IO;
-    }
+     return 0;
+}
 
-  sprintf( card->info.driver_name, "NeoMagic" );
-  sprintf( card->info.driver_vendor, "convergence integrated media GmbH" );
+void
+driver_get_info( GraphicsDevice     *device,
+                 GraphicsDriverInfo *info )
+{
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
+               "NeoMagic Driver" );
 
-  card->info.driver_version.major = 0;
-  card->info.driver_version.minor = 0;
+     snprintf( info->vendor,
+               DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
 
-  /* use polling for syncing, artefacts occur otherwise */
-  dfb_config->pollvsync_after = 1;
+     info->version.major = 0;
+     info->version.minor = 0;
 
-  neo = card;
+     info->driver_data_size = sizeof (NeoDriverData);
+     info->device_data_size = sizeof (NeoDeviceData);
 
-  switch (card->fix.accel)
-    {
-    /* no support for other NeoMagic cards yet */
-    case 42:        // NM2200
-    case 43:        // NM2230
-    case 44:        // NM2360
-    case 45:        // NM2380
-      return neo2200_init (card);
-    }
-     
-  return DFB_BUG;
+     switch (gfxcard_get_accelerator( device )) {
+          /* no support for other NeoMagic cards yet */
+          case 42:        // NM2200
+          case 43:        // NM2230
+          case 44:        // NM2360
+          case 45:        // NM2380
+               neo2200_get_info( device, info );
+               break;
+     }
+}
+
+
+DFBResult
+driver_init_driver( GraphicsDevice      *device,
+                    GraphicsDeviceFuncs *funcs,
+                    void                *driver_data )
+{
+     NeoDriverData *ndrv = (NeoDriverData*) driver_data;
+
+     ndrv->mmio_base = (volatile __u8*) gfxcard_map_mmio( device, 0, -1 );
+     if (!ndrv->mmio_base)
+          return DFB_IO;
+
+     switch (gfxcard_get_accelerator( device )) {
+          /* no support for other NeoMagic cards yet */
+          case 42:        // NM2200
+          case 43:        // NM2230
+          case 44:        // NM2360
+          case 45:        // NM2380
+               return neo2200_init_driver( device, funcs, driver_data );
+     }
+
+     return DFB_BUG;
+}
+
+DFBResult
+driver_init_device( GraphicsDevice     *device,
+                    GraphicsDeviceInfo *device_info,
+                    void               *driver_data,
+                    void               *device_data )
+{
+     /* use polling for syncing, artefacts occur otherwise */
+     dfb_config->pollvsync_after = 1;
+
+     switch (gfxcard_get_accelerator( device )) {
+          /* no support for other NeoMagic cards yet */
+          case 42:        // NM2200
+          case 43:        // NM2230
+          case 44:        // NM2360
+          case 45:        // NM2380
+               return neo2200_init_device( device, device_info,
+                                           driver_data, device_data );
+     }
+
+     return DFB_BUG;
 }
 
 void driver_init_layers()
 {
 }
 
-void driver_deinit()
+void
+driver_close_device( GraphicsDevice *device,
+                     void           *driver_data,
+                     void           *device_data )
 {
+     NeoDeviceData *ndev = (NeoDeviceData*) device_data;
+
+     (void) ndev;
+
+     switch (gfxcard_get_accelerator( device )) {
+          /* no support for other NeoMagic cards yet */
+          case 42:        // NM2200
+          case 43:        // NM2230
+          case 44:        // NM2360
+          case 45:        // NM2380
+               neo2200_close_device( device, driver_data, device_data );
+     }
+
      DEBUGMSG( "DirectFB/NEO: FIFO Performance Monitoring:\n" );
      DEBUGMSG( "DirectFB/NEO:  %9d neo_waitfifo calls\n",
-               neo_waitfifo_calls );
+               ndev->waitfifo_calls );
      DEBUGMSG( "DirectFB/NEO:  %9d register writes (neo_waitfifo sum)\n",
-               neo_waitfifo_sum );
+               ndev->waitfifo_sum );
      DEBUGMSG( "DirectFB/NEO:  %9d FIFO wait cycles (depends on CPU)\n",
-               neo_fifo_waitcycles );
+               ndev->fifo_waitcycles );
      DEBUGMSG( "DirectFB/NEO:  %9d IDLE wait cycles (depends on CPU)\n",
-               neo_idle_waitcycles );
+               ndev->idle_waitcycles );
      DEBUGMSG( "DirectFB/NEO:  %9d FIFO space cache hits(depends on CPU)\n",
-               neo_fifo_cache_hits );
+               ndev->fifo_cache_hits );
      DEBUGMSG( "DirectFB/NEO: Conclusion:\n" );
      DEBUGMSG( "DirectFB/NEO:  Average register writes/neo_waitfifo"
                "call:%.2f\n",
-               neo_waitfifo_sum/(float)(neo_waitfifo_calls) );
+               ndev->waitfifo_sum/(float)(ndev->waitfifo_calls) );
      DEBUGMSG( "DirectFB/NEO:  Average wait cycles/neo_waitfifo call:"
                " %.2f\n",
-               neo_fifo_waitcycles/(float)(neo_waitfifo_calls) );
+               ndev->fifo_waitcycles/(float)(ndev->waitfifo_calls) );
      DEBUGMSG( "DirectFB/NEO:  Average fifo space cache hits: %02d%%\n",
-               (int)(100 * neo_fifo_cache_hits/
-               (float)(neo_waitfifo_calls)) );
+               (int)(100 * ndev->fifo_cache_hits/
+               (float)(ndev->waitfifo_calls)) );
+}
 
-     munmap( (void*)mmio_base, neo->fix.mmio_len);
+void
+driver_close_driver( GraphicsDevice *device,
+                     void           *driver_data )
+{
+     NeoDriverData *ndrv = (NeoDriverData*) driver_data;
+
+     switch (gfxcard_get_accelerator( device )) {
+          /* no support for other NeoMagic cards yet */
+          case 42:        // NM2200
+          case 43:        // NM2230
+          case 44:        // NM2360
+          case 45:        // NM2380
+               neo2200_close_driver( device, driver_data );
+     }
+
+     gfxcard_unmap_mmio( device, ndrv->mmio_base, -1 );
 }
 

@@ -26,41 +26,6 @@
 
 #include <asm/types.h>
 
-
-static inline void
-riva_out8( volatile __u8 *mmioaddr, __u32 reg, __u8 value )
-{
-     *((__u8*)(mmioaddr+reg)) = value;
-}
-
-static inline void
-riva_out32( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
-{
-     *((__u32*)(mmioaddr+reg)) = value;
-}
-
-static inline volatile __u8
-riva_in8(volatile __u8 *mmioaddr, __u32 reg )
-{
-     return *((__u8*)(mmioaddr+reg));
-}
-
-static inline volatile __u32
-riva_in32(volatile __u8 *mmioaddr, __u32 reg )
-{
-     return *((__u32*)(mmioaddr+reg));
-}
-
-
-#define RIVA_FIFO_FREE(hwptr,cnt)                           \
-{                                                           \
-     while (nv_fifo_space < (cnt)) {                     \
-          nv_fifo_space = hwptr->FifoFree >> 2;       \
-     }                                                   \
-     nv_fifo_space -= (cnt);                             \
-}
-
-
 /***************************************************************************\
 *                                                                           *
 *                             FIFO registers.                               *

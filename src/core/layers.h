@@ -27,12 +27,13 @@
 #include <asm/types.h>
 #include <pthread.h>
 
+#include <core/fusion/lock.h>
+
 #include <directfb.h>
 #include <core/coretypes.h>
 
-extern DisplayLayer *layers;
 
-struct _DisplayLayer
+struct _DisplayLayerShared
 {
      unsigned int   id;                 /* unique id, functions as an index,
                                            primary layer has a fixed id */
@@ -80,7 +81,13 @@ struct _DisplayLayer
 
      int              exclusive;         /* indicates exclusive access to
                                             this layer by an application */
-     pthread_mutex_t  lock;              /* locked when in exclusive access */
+     FusionSkirmish      lock;              /* locked when in exclusive access */
+
+};
+
+struct _DisplayLayer
+{
+     DisplayLayerShared *shared;
 
      void (*deinit)( DisplayLayer *layer );
 
@@ -111,22 +118,29 @@ struct _DisplayLayer
      DisplayLayer *next;
 };
 
+extern DisplayLayer *layers;
 
 /*
- * initializes the lock mutex, registers input event listeners for
+ * initializes the lock skirmish, registers input event listeners for
  * keyboard and mouse devices (for cursor and windowing),
  * adds the layer to the layer list, if it's the first a cleanup function
  * is added to the cleanup stack that removes all layers
  */
 void layers_add( DisplayLayer *layer );
 
-void layers_deinit();
+DFBResult layers_initialize();
+DFBResult layers_join();
+
+DFBResult layers_shutdown();
+DFBResult layers_leave();
 
 /*
  * lock/unlock layer for exclusive access
  */
 DFBResult layer_lock( DisplayLayer *layer );
 DFBResult layer_unlock( DisplayLayer *layer );
+
+CoreSurface *layer_surface( DisplayLayer *layer );
 
 /*
  * utility functions
@@ -137,8 +151,5 @@ DFBResult layer_cursor_set_shape( DisplayLayer *layer, CoreSurface *shape,
 DFBResult layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity );
 DFBResult layer_cursor_warp( DisplayLayer *layer, int x, int y );
 
-
-DFBResult layers_suspend();
-DFBResult layers_resume();
 
 #endif

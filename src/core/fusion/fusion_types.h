@@ -1,0 +1,67 @@
+/*
+   (c) Copyright 2001  Denis Oliver Kropp <dok@directfb.org>
+   All rights reserved.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#ifndef __FUSION__TYPES_H__
+#define __FUSION__TYPES_H__
+
+#ifdef __cplusplus
+extern "C"
+{
+#else
+
+typedef enum {
+  false = 0,
+  true = 1
+} bool;
+
+#endif
+
+#include <config.h>
+
+  typedef enum {
+    FUSION_SUCCESS   = 0,
+    FUSION_FAILURE,
+    FUSION_BUG,
+    FUSION_UNIMPLEMENTED,
+    FUSION_INVARG,
+    FUSION_DESTROYED,
+    FUSION_ACCESSDENIED,
+    FUSION_PERMISSIONDENIED,
+    FUSION_NOTEXISTENT,
+    FUSION_LIMITREACHED,
+    FUSION_TOOHIGH,
+    FUSION_TOOLONG,
+    FUSION_INUSE
+  } FusionResult;
+
+  typedef struct _FusionLink     FusionLink;
+  typedef struct _FusionSkirmish FusionSkirmish;
+  typedef struct _FusionReactor  FusionReactor;
+  typedef struct _FusionArena    FusionArena;
+  typedef struct _FusionRef      FusionRef;
+
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __FUSION__TYPES_H__ */
+

@@ -24,22 +24,39 @@
 #ifndef ___MATROX_STATE_H__
 #define ___MATROX_STATE_H__
 
-inline void matrox_set_destination();
-inline void matrox_set_clip();
+void matrox_set_destination( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CoreSurface      *destination );
+void matrox_set_clip( MatroxDriverData *mdrv,
+                      MatroxDeviceData *mdev,
+                      DFBRegion        *clip );
 
-inline void matrox_validate_Color();
-inline void matrox_validate_color();
+void matrox_validate_Color( MatroxDriverData *mdrv,
+                            MatroxDeviceData *mdev,
+                            CardState        *state );
+void matrox_validate_color( MatroxDriverData *mdrv,
+                            MatroxDeviceData *mdev,
+                            CardState        *state );
 
-inline void matrox_validate_drawBlend();
-inline void matrox_validate_blitBlend();
+void matrox_validate_drawBlend( MatroxDriverData *mdrv,
+                                MatroxDeviceData *mdev,
+                                CardState        *state );
+void matrox_validate_blitBlend( MatroxDriverData *mdrv,
+                                MatroxDeviceData *mdev,
+                                CardState        *state );
 
-inline void matrox_validate_Source();
-inline void matrox_validate_source();
+void matrox_validate_Source( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CardState        *state );
+void matrox_validate_source( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CardState        *state );
 
-inline void matrox_validate_SrcKey();
-inline void matrox_validate_srckey();
-
-extern int matrox_w2;
-extern int matrox_h2;
+void matrox_validate_SrcKey( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CardState        *state );
+void matrox_validate_srckey( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CardState        *state );
 
 #endif

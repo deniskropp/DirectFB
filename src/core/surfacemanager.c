@@ -30,6 +30,8 @@
 
 #include <pthread.h>
 
+#include <core/fusion/shmalloc.h>
+
 #include "directfb.h"
 
 #include "core.h"
@@ -37,14 +39,46 @@
 #include "coretypes.h"
 
 #include "gfxcard.h"
-#include "reactor.h"
 #include "surfaces.h"
 #include "surfacemanager.h"
 
 #include "misc/util.h"
 #include "misc/mem.h"
 
-static Chunk *chunks = NULL;
+/*
+ * initially there is one big free chunk,
+ * chunks are splitted into a free and an occupied chunk if memory is allocated,
+ * two chunks are merged to one free chunk if memory is deallocated
+ */
+struct _Chunk {
+     int             offset;      /* offset in video memory,
+                                     is greater or equal to the heap offset */
+     int             length;      /* length of this chunk in bytes */
+
+     SurfaceBuffer  *buffer;      /* pointer to surface buffer occupying
+                                     this chunk, or NULL if chunk is free */
+
+     int             tolerations; /* number of times this chunk was scanned
+                                     occupied, resetted in assure_video */
+
+     Chunk          *prev;
+     Chunk          *next;
+};
+
+struct _SurfaceManager {
+     FusionSkirmish  lock;
+
+     CoreSurface    *surfaces;
+     Chunk          *chunks;
+
+     /* offset of the surface heap */
+     unsigned int    heap_offset;
+
+     /* card limitations for surface offsets and their pitch */
+     unsigned int    byteoffset_align;
+     unsigned int    pixelpitch_align;
+};
+
 
 static int min_toleration = 1;
 
@@ -52,103 +86,104 @@ static Chunk* split_chunk( Chunk *c, int length );
 static Chunk* free_chunk( Chunk *chunk );
 static void occupy_chunk( Chunk *chunk, SurfaceBuffer *buffer, int length );
 
-pthread_mutex_t surfacemanager_mutex_lock = PTHREAD_MUTEX_INITIALIZER;
+
+SurfaceManager *surfacemanager_create( unsigned int length,
+                                       unsigned int byteoffset_align,
+                                       unsigned int pixelpitch_align )
+{
+     Chunk          *chunk;
+     SurfaceManager *manager;
+
+     manager = shcalloc( 1, sizeof(SurfaceManager) );
+     if (!manager)
+          return NULL;
+
+     chunk = shcalloc( 1, sizeof(Chunk) );
+     if (!chunk) {
+          shmfree( manager );
+          return NULL;
+     }
+
+     chunk->offset = 0;
+     chunk->length = length;
+
+     manager->chunks           = chunk;
+     manager->byteoffset_align = byteoffset_align;
+     manager->pixelpitch_align = pixelpitch_align;
+
+     skirmish_init( &manager->lock );
+
+     return manager;
+}
+
+void surfacemanager_lock( SurfaceManager *manager )
+{
+     skirmish_prevail( &manager->lock );
+}
+
+void surfacemanager_unlock( SurfaceManager *manager )
+{
+     skirmish_dismiss( &manager->lock );
+}
 
 /** public functions locking the surfacemanger theirself,
     NOT to be called between lock/unlock of surfacemanager **/
 
-DFBResult surfacemanager_init_heap()
+void surfacemanager_add_surface( SurfaceManager *manager,
+                                 CoreSurface    *surface )
 {
-     surfacemanager_lock();
+     surfacemanager_lock( manager );
 
-     if (chunks) {
-          BUG( "reinitialization of surface manager" );
-          surfacemanager_unlock();
-          return DFB_BUG;
+     surface->manager = manager;
+
+     if (!manager->surfaces) {
+          surface->next = NULL;
+          surface->prev = NULL;
+          manager->surfaces = surface;
+     }
+     else {
+          surface->prev = NULL;
+          surface->next = manager->surfaces;
+          manager->surfaces->prev = surface;
+          manager->surfaces = surface;
      }
 
-     chunks = (Chunk*) DFBCALLOC( 1, sizeof(Chunk) );
-
-     chunks->offset = card->heap_offset;
-
-     /* make sure it's a multiple of the offset alignment,
-        easier for further chunk splitting */
-     if (card->byteoffset_align > 1) {
-          chunks->offset += card->byteoffset_align - 1;
-          chunks->offset -= chunks->offset % card->byteoffset_align;
-     }
-
-
-     chunks->length = card->framebuffer.length - chunks->offset;
-
-     /* make sure it's a multiple of the offset alignment,
-        easier for further chunk splitting */
-     if (card->byteoffset_align > 1)
-          chunks->length -= chunks->length % card->byteoffset_align;
-
-     surfacemanager_unlock();
-
-     return DFB_OK;
+     surfacemanager_unlock( manager );
 }
 
-void surfacemanager_deinit()
+void surfacemanager_remove_surface( SurfaceManager *manager,
+                                    CoreSurface    *surface )
 {
-     surfacemanager_lock();
+     surfacemanager_lock( manager );
 
-     while (chunks) {
-          Chunk *c = chunks;
+     if (surface->prev)
+          surface->prev->next = surface->next;
+     else
+          manager->surfaces = surface->next;
 
-          chunks = c->next;
+     if (surface->next)
+          surface->next->prev = surface->prev;
 
-          DFBFREE( c );
-     }
-
-     surfacemanager_unlock();
+     surfacemanager_unlock( manager );
 }
 
-DFBResult surfacemanager_suspend()
+
+DFBResult surfacemanager_adjust_heap_offset( SurfaceManager *manager,
+                                             unsigned int    offset )
 {
-     Chunk *c;
+     surfacemanager_lock( manager );
 
-     DEBUGMSG( "DirectFB/core/surfacemanager: suspending...\n" );
-
-     surfacemanager_lock();
-
-     c = chunks;
-     while (c) {
-          if (c->buffer &&
-              c->buffer->policy != CSP_VIDEOONLY &&
-              c->buffer->video.health == CSH_STORED)
-          {
-               surfacemanager_assure_system( c->buffer );
-               c->buffer->video.health = CSH_RESTORE;
-          }
-
-          c = c->next;
+     if (manager->byteoffset_align > 1) {
+          offset += manager->byteoffset_align - 1;
+          offset -= offset % manager->byteoffset_align;
      }
 
-     surfacemanager_unlock();
-
-     DEBUGMSG( "DirectFB/core/surfacemanager: ...suspended\n" );
-
-     return DFB_OK;
-}
-
-DFBResult surfacemanager_adjust_heap_offset( int offset )
-{
-     surfacemanager_lock();
-
-     if (card->byteoffset_align > 1) {
-          offset += card->byteoffset_align - 1;
-          offset -= offset % card->byteoffset_align;
-     }
-
-     if (chunks->buffer == NULL) {
+     if (manager->chunks->buffer == NULL) {
           /* first chunk is free */
-          if (offset < chunks->offset + chunks->length) {
+          if (offset < manager->chunks->offset + manager->chunks->length) {
                /* ok, just recalculate offset and length */
-               chunks->length = chunks->offset + chunks->length - offset;
-               chunks->offset = offset;
+               manager->chunks->length = manager->chunks->offset + manager->chunks->length - offset;
+               manager->chunks->offset = offset;
           }
           else {
                /* more space needed than free at the beginning */
@@ -160,9 +195,9 @@ DFBResult surfacemanager_adjust_heap_offset( int offset )
           /* TODO: move/destroy instances */
      }
 
-     card->heap_offset = offset;
+     manager->heap_offset = offset;
 
-     surfacemanager_unlock();
+     surfacemanager_unlock( manager );
 
      return DFB_OK;
 }
@@ -170,7 +205,8 @@ DFBResult surfacemanager_adjust_heap_offset( int offset )
 /** public functions NOT locking the surfacemanger theirself,
     to be called between lock/unlock of surfacemanager **/
 
-DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
+DFBResult surfacemanager_allocate( SurfaceManager *manager,
+                                   SurfaceBuffer  *buffer )
 {
      int pitch;
      int length;
@@ -183,23 +219,23 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
 
      /* calculate the required length depending on limitations */
      pitch = surface->width;
-     if (card->pixelpitch_align > 1) {
-          pitch += card->pixelpitch_align - 1;
-          pitch -= pitch % card->pixelpitch_align;
+     if (manager->pixelpitch_align > 1) {
+          pitch += manager->pixelpitch_align - 1;
+          pitch -= pitch % manager->pixelpitch_align;
      }
 
      pitch *= BYTES_PER_PIXEL(surface->format);
      length = pitch * surface->height;
 
-     if (card->byteoffset_align > 1) {
-          length += card->byteoffset_align - 1;
-          length -= length % card->byteoffset_align;
+     if (manager->byteoffset_align > 1) {
+          length += manager->byteoffset_align - 1;
+          length -= length % manager->byteoffset_align;
      }
 
      buffer->video.pitch = pitch;
 
      /* examine chunks */
-     c = chunks;
+     c = manager->chunks;
      while (c) {
           if (c->length >= length) {
                if (c->buffer  &&
@@ -237,7 +273,7 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
           DEBUGMSG( "kicking out surface at %d with tolerations %d...\n",
                     best_occupied->offset, best_occupied->tolerations );
 
-          surfacemanager_assure_system( best_occupied->buffer );
+          surfacemanager_assure_system( manager, best_occupied->buffer );
 
           best_occupied->buffer->video.health = CSH_INVALID;
           surface_notify_listeners( kicked, CSNF_VIDEO );
@@ -273,7 +309,8 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
      return DFB_OK;
 }
 
-DFBResult surfacemanager_deallocate( SurfaceBuffer *buffer )
+DFBResult surfacemanager_deallocate( SurfaceManager *manager,
+                                     SurfaceBuffer  *buffer )
 {
      Chunk *chunk = buffer->video.chunk;
 
@@ -294,7 +331,8 @@ DFBResult surfacemanager_deallocate( SurfaceBuffer *buffer )
      return DFB_OK;
 }
 
-DFBResult surfacemanager_assure_video( SurfaceBuffer *buffer )
+DFBResult surfacemanager_assure_video( SurfaceManager *manager,
+                                       SurfaceBuffer  *buffer )
 {
      CoreSurface *surface = buffer->surface;
 
@@ -306,7 +344,7 @@ DFBResult surfacemanager_assure_video( SurfaceBuffer *buffer )
           case CSH_INVALID: {
                DFBResult ret;
 
-               ret = surfacemanager_allocate( buffer );
+               ret = surfacemanager_allocate( manager, buffer );
                if (ret)
                     return ret;
 
@@ -316,7 +354,7 @@ DFBResult surfacemanager_assure_video( SurfaceBuffer *buffer )
           case CSH_RESTORE: {
                int h = surface->height;
                char *src = buffer->system.addr;
-               char *dst = card->framebuffer.base + buffer->video.offset;
+               char *dst = gfxcard_memory_virtual( buffer->video.offset );
 
                if (buffer->system.health != CSH_STORED)
                     BUG( "system/video instances both not stored!" );
@@ -339,7 +377,8 @@ DFBResult surfacemanager_assure_video( SurfaceBuffer *buffer )
      return DFB_BUG;
 }
 
-DFBResult surfacemanager_assure_system( SurfaceBuffer *buffer )
+DFBResult surfacemanager_assure_system( SurfaceManager *manager,
+                                        SurfaceBuffer  *buffer )
 {
      CoreSurface *surface = buffer->surface;
 
@@ -352,7 +391,7 @@ DFBResult surfacemanager_assure_system( SurfaceBuffer *buffer )
           return DFB_OK;
      else if (buffer->video.health == CSH_STORED) {
           int h = surface->height;
-          char *src = card->framebuffer.base + buffer->video.offset;
+          char *src = gfxcard_memory_virtual( buffer->video.offset );
           char *dst = buffer->system.addr;
 
           while (h--) {
@@ -381,7 +420,7 @@ static Chunk* split_chunk( Chunk *c, int length )
      if (c->length == length)          /* does not need be splitted */
           return c;
 
-     newchunk = (Chunk*) DFBCALLOC( 1, sizeof(Chunk) );
+     newchunk = (Chunk*) shcalloc( 1, sizeof(Chunk) );
 
      /* calculate offsets and lengths of resulting chunks */
      newchunk->offset = c->offset + c->length - length;
@@ -425,7 +464,7 @@ static Chunk* free_chunk( Chunk *chunk )
 
           DEBUGMSG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
 
-          DFBFREE( chunk );
+          shmfree( chunk );
           chunk = prev;
      }
 
@@ -440,7 +479,7 @@ static Chunk* free_chunk( Chunk *chunk )
           if (chunk->next)
                chunk->next->prev = chunk;
 
-          DFBFREE( next );
+          shmfree( next );
      }
 
      return chunk;

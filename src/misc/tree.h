@@ -27,11 +27,32 @@
 #ifndef __TREE_H__
 #define __TREE_H__
 
+#include <core/fusion/lock.h>
+
 #include <core/coretypes.h>
 
+
+typedef struct _Node Node;
+
+struct _Tree
+{
+     Node            *root;
+     void            *fast_keys[96];
+
+     FusionSkirmish      skirmish;
+};
+
+struct _Node
+{
+     int   balance;
+     Node *left;
+     Node *right;
+     void *key;
+     void *value;
+};
+
+
 Tree * tree_new     (void);
-void   tree_lock    (Tree *tree);
-void   tree_unlock  (Tree *tree);
 void   tree_destroy (Tree *tree);
 void   tree_insert  (Tree *tree,
                      void *key,
@@ -39,5 +60,15 @@ void   tree_insert  (Tree *tree,
 void * tree_lookup  (Tree *tree,
                      void *key);
 
+
+static inline void tree_lock (Tree *tree)
+{
+     skirmish_prevail (&tree->skirmish);
+}
+
+static inline void tree_unlock (Tree *tree)
+{
+     skirmish_dismiss (&tree->skirmish);
+}
 
 #endif

@@ -41,6 +41,7 @@
 #include "core/fonts.h"
 #include "core/state.h"
 #include "core/surfaces.h"
+#include "core/surfacemanager.h"
 
 #include "media/idirectfbfont.h"
 
@@ -70,6 +71,8 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
           if (!(data->caps & DSCAPS_SUBSURFACE))
                surface_destroy( data->surface );
      }
+
+     state_destroy( &data->state );
 
      if (data->font)
           data->font->Release (data->font);
@@ -218,7 +221,9 @@ DFBResult IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 
      front = (flags & DSLF_WRITE) ? 0 : 1;
 
-     ret = surface_soft_lock( data->surface, flags, ptr, pitch, front );
+     surfacemanager_lock( gfxcard_surface_manager() );
+     ret = surface_software_lock( data->surface, flags, ptr, pitch, front );
+     surfacemanager_unlock( gfxcard_surface_manager() );
      if (ret)
           return ret;
 
@@ -1061,7 +1066,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      data->surface = surface;
 
-     /* all other values got zero */
+     state_init( &data->state );
      state_set_destination( &data->state, surface );
 
      reactor_attach( surface->reactor, IDirectFBSurface_listener, thiz );

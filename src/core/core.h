@@ -24,9 +24,12 @@
 #ifndef __CORE_H__
 #define __CORE_H__
 
+#include <core/fusion/lock.h>
+
 #include <directfb.h>
 
 #include "coretypes.h"
+#include "coredefs.h"
 
 typedef enum {
      MODULE_LOADED_CONTINUE,
@@ -43,16 +46,33 @@ DFBResult core_load_modules( char *module_dir,
                              void *ctx );
 
 
+typedef struct {
+     int                    refs;       /* local references to DirectFB */
+     int                    fid;        /* fusion id */
+     int                    master;     /* if we are the master fusionee */
+     FusionArena           *arena;      /* DirectFB Core arena */
+} CoreData;
+
+extern CoreData *dfb_core;
+
+
+/*
+ * called by DirectFBInit
+ */
+DFBResult core_init( int *argc, char **argv[] );
+
 /*
  * is called by DirectFBCreate(), initializes all core parts
  */
-DFBResult core_init();
+DFBResult core_ref();
 
 /*
  * is called by IDirectFB_Destruct() or by core_deinit_check() via atexit()
  * processes and clears the cleanup stack
  */
-void core_deinit();
+void core_unref();
+
+int core_is_master();
 
 /*
  * called by signal handler

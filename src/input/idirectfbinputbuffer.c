@@ -33,6 +33,8 @@
 
 #include <pthread.h>
 
+#include <core/fusion/reactor.h>
+
 #include <directfb.h>
 #include <directfb_internals.h>
 
@@ -40,7 +42,6 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/reactor.h>
 
 #include "misc/util.h"
 #include "misc/mem.h"
@@ -56,8 +57,8 @@ static ReactionResult IDirectFBInputBuffer_React( const void *msg_data,
 
 typedef struct _InputBufferItem
 {
-     DFBInputEvent       evt;
-     struct _InputBufferItem  *next;
+     DFBInputEvent            evt;
+     struct _InputBufferItem *next;
 } IDirectFBInputBuffer_item;
 
 /*
@@ -85,7 +86,7 @@ static void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
 {
      IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
 
-     reactor_detach( data->device->reactor, IDirectFBInputBuffer_React, data );
+     input_detach( data->device, IDirectFBInputBuffer_React, data );
 
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
@@ -257,7 +258,7 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
      pthread_mutex_init( &data->events_mutex, NULL );
      pthread_cond_init( &data->wait_condition, NULL );
 
-     reactor_attach( data->device->reactor, IDirectFBInputBuffer_React, data );
+     input_attach( data->device, IDirectFBInputBuffer_React, data );
 
      thiz->AddRef = IDirectFBInputBuffer_AddRef;
      thiz->Release = IDirectFBInputBuffer_Release;
@@ -276,7 +277,7 @@ DFBResult IDirectFBInputBuffer_Attach( IDirectFBInputBuffer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBInputBuffer)
 
-     reactor_attach( device->reactor, IDirectFBInputBuffer_React, data );
+     input_attach( device, IDirectFBInputBuffer_React, data );
 
      return DFB_OK;
 }

@@ -63,16 +63,27 @@
 #include "misc/mem.h"
 #include "misc/util.h"
 
+typedef struct {
+     DFBInputDeviceCallback  callback;
+     void                   *callback_ctx;
+} EnumInputDevices_Context;
 
-typedef struct _DFBSuspendResumeHandler {
-     DFBSuspendResumeFunc  func;
-     void                 *ctx;
+typedef struct {
+     IDirectFBInputDevice **interface;
+     unsigned int           id;
+} GetInputDevice_Context;
 
-     struct _DFBSuspendResumeHandler *prev;
-     struct _DFBSuspendResumeHandler *next;
-} DFBSuspendResumeHandler;
+typedef struct {
+     IDirectFBInputBuffer       **interface;
+     DFBInputDeviceCapabilities   caps;
+} CreateInputBuffer_Context;
 
-static DFBSuspendResumeHandler *suspend_resume_handlers = NULL;
+static DFBEnumerationResult EnumInputDevices_Callback ( InputDevice *device,
+                                                        void        *ctx );
+static DFBEnumerationResult GetInputDevice_Callback   ( InputDevice *device,
+                                                        void        *ctx );
+static DFBEnumerationResult CreateInputBuffer_Callback( InputDevice *device,
+                                                        void        *ctx );
 
 /*
  * Destructor
@@ -82,7 +93,12 @@ static DFBSuspendResumeHandler *suspend_resume_handlers = NULL;
  */
 void IDirectFB_Destruct( IDirectFB *thiz )
 {
-     core_deinit();     /* TODO: where should we place this call? */
+     IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
+
+     if (data->level != DFSCL_NORMAL)
+          layer_unlock( layers );
+
+     core_unref();     /* TODO: where should we place this call? */
 
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
@@ -147,15 +163,19 @@ DFBResult IDirectFB_SetCooperativeLevel( IDirectFB *thiz,
 DFBResult IDirectFB_GetCardCapabilities( IDirectFB               *thiz,
                                          DFBCardCapabilities     *caps )
 {
+     CardCapabilities card_caps;
+
      INTERFACE_GET_DATA(IDirectFB)
 
      if (!caps)
           return DFB_INVARG;
 
-     caps->acceleration_mask = card->caps.accel;
-     caps->blitting_flags    = card->caps.blitting;
-     caps->drawing_flags     = card->caps.drawing;
-     caps->video_memory      = card->fix.smem_len;
+     card_caps = gfxcard_capabilities();
+
+     caps->acceleration_mask = card_caps.accel;
+     caps->blitting_flags    = card_caps.blitting;
+     caps->drawing_flags     = card_caps.drawing;
+     caps->video_memory      = gfxcard_memory_length();
 
      return DFB_OK;
 }
@@ -171,7 +191,7 @@ DFBResult IDirectFB_EnumVideoModes( IDirectFB            *thiz,
      if (!callbackfunc)
           return DFB_INVARG;
 
-     m = fbdev->modes;
+     m = fbdev_modes();
      while (m) {
           if (callbackfunc( m->xres, m->yres,
                             m->bpp, callbackdata ) == DFENUM_CANCEL)
@@ -247,7 +267,7 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
      unsigned int width = 300;
      unsigned int height = 300;
      int policy = CSP_VIDEOLOW;
-     DFBSurfacePixelFormat format = layers->surface->format;
+     DFBSurfacePixelFormat format = layers->shared->surface->format;
      DFBSurfaceCapabilities caps = 0;
      CoreSurface *surface = NULL;
 
@@ -293,13 +313,13 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                         && desc->pixelformat == DSPF_ARGB)
                     {
 
-                         window = window_create( layers->windowstack, 0, 0,
+                         window = window_create( layers->shared->windowstack, 0, 0,
                                                  data->primary.width,
                                                  data->primary.height,
                                                  DWCAPS_ALPHACHANNEL | DWCAPS_DOUBLEBUFFER );
                     }
                     else
-                         window = window_create( layers->windowstack, 0, 0,
+                         window = window_create( layers->shared->windowstack, 0, 0,
                                                  data->primary.width,
                                                  data->primary.height, DWCAPS_DOUBLEBUFFER );
 
@@ -350,7 +370,7 @@ DFBResult IDirectFB_EnumDisplayLayers( IDirectFB *thiz,
           return DFB_INVARG;
 
      while (dl) {
-          if (callbackfunc( dl->id, dl->caps, callbackdata ) == DFENUM_CANCEL)
+          if (callbackfunc( dl->shared->id, dl->shared->caps, callbackdata ) == DFENUM_CANCEL)
                break;
 
           dl = dl->next;
@@ -370,7 +390,7 @@ DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
           return DFB_INVARG;
 
      while (dl) {
-          if (dl->id == id) {
+          if (dl->shared->id == id) {
                dl->Enable( dl );
 
                DFB_ALLOCATE_INTERFACE( *layer, IDirectFBDisplayLayer );
@@ -383,77 +403,63 @@ DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
      return DFB_IDNOTFOUND;
 }
 
-DFBResult IDirectFB_EnumInputDevices( IDirectFB *thiz,
-                                      DFBInputDeviceCallback callbackfunc,
-                                      void *callbackdata )
+DFBResult IDirectFB_EnumInputDevices( IDirectFB              *thiz,
+                                      DFBInputDeviceCallback  callbackfunc,
+                                      void                   *callbackdata )
 {
-     InputDevice *d = inputdevices;
+     EnumInputDevices_Context context;
 
      INTERFACE_GET_DATA(IDirectFB)
 
      if (!callbackfunc)
           return DFB_INVARG;
 
-     while (d) {
-          if (callbackfunc( d->id, d->desc, callbackdata ) == DFENUM_CANCEL)
-               break;
+     context.callback     = callbackfunc;
+     context.callback_ctx = callbackdata;
 
-          d = d->next;
-     }
+     input_enumerate_devices( EnumInputDevices_Callback, &context );
 
      return DFB_OK;
 }
 
-DFBResult IDirectFB_GetInputDevice( IDirectFB *thiz, unsigned int id,
-                                    IDirectFBInputDevice **device )
+DFBResult IDirectFB_GetInputDevice( IDirectFB             *thiz,
+                                    unsigned int           id,
+                                    IDirectFBInputDevice **interface )
 {
-     InputDevice *d = inputdevices;
+     GetInputDevice_Context context;
 
      INTERFACE_GET_DATA(IDirectFB)
 
-     if (!device)
+     if (!interface)
           return DFB_INVARG;
 
-     while (d) {
-          if (d->id == id) {
-               DFB_ALLOCATE_INTERFACE( *device, IDirectFBInputDevice );
+     context.interface = interface;
+     context.id        = id;
 
-               return IDirectFBInputDevice_Construct( *device, d );
-          }
-          d = d->next;
-     }
+     input_enumerate_devices( GetInputDevice_Callback, &context );
 
-     return DFB_IDNOTFOUND;
+     return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
 }
 
 DFBResult IDirectFB_CreateInputBuffer( IDirectFB                   *thiz,
                                        DFBInputDeviceCapabilities   caps,
-                                       IDirectFBInputBuffer       **buffer)
+                                       IDirectFBInputBuffer       **interface)
 {
-     InputDevice *d = inputdevices;
+     CreateInputBuffer_Context context;
 
      INTERFACE_GET_DATA(IDirectFB)
 
-     if (!buffer)
+     if (!interface)
           return DFB_INVARG;
 
-     *buffer = NULL;
+     *interface = NULL;
 
-     while (d) {
-          if (d->desc.caps & caps) {
-               if (! *buffer) {
-                    DFB_ALLOCATE_INTERFACE( *buffer, IDirectFBInputBuffer );
-                    if (IDirectFBInputBuffer_Construct( *buffer, d ) != DFB_OK)
-                         *buffer = NULL;
-               }
-               else {
-                    IDirectFBInputBuffer_Attach( *buffer, d );
-               }
-          }
-          d = d->next;
-     }
+     context.caps      = caps;
+     context.interface = interface;
 
-     return (*buffer) ? DFB_OK : DFB_IDNOTFOUND;
+     input_enumerate_devices( CreateInputBuffer_Callback, &context );
+
+     return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
 }
 
 static int image_probe( DFBInterfaceImplementation *impl, void *ctx )
@@ -591,42 +597,12 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
 
 DFBResult IDirectFB_Suspend( IDirectFB *thiz )
 {
-     DFBSuspendResumeHandler *h = suspend_resume_handlers;
-
-     INTERFACE_GET_DATA(IDirectFB)
-
-     while (h) {
-          h->func( 1, h->ctx );
-
-          h = h->next;
-     }
-
-     input_suspend();
-     layers_suspend();
-     surfacemanager_suspend();
-
-     /* reset card state */
-     card->state = NULL;
-
-     return DFB_OK;
+     return DFB_UNSUPPORTED;
 }
 
 DFBResult IDirectFB_Resume( IDirectFB *thiz )
 {
-     DFBSuspendResumeHandler *h = suspend_resume_handlers;
-
-     INTERFACE_GET_DATA(IDirectFB)
-
-     layers_resume();
-     input_resume();
-
-     while (h) {
-          h->func( 0, h->ctx );
-
-          h = h->next;
-     }
-
-     return DFB_OK;
+     return DFB_UNSUPPORTED;
 }
 
 DFBResult IDirectFB_WaitIdle( IDirectFB *thiz )
@@ -688,49 +664,52 @@ DFBResult IDirectFB_Construct( IDirectFB *thiz )
 }
 
 
-/* internals */
-
-void DFBAddSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx )
+/*
+ * internal functions
+ */
+static DFBEnumerationResult
+EnumInputDevices_Callback( InputDevice *device, void *ctx )
 {
-     DFBSuspendResumeHandler *h;
+     EnumInputDevices_Context *context = (EnumInputDevices_Context*) ctx;
 
-     h = DFBMALLOC( sizeof(DFBSuspendResumeHandler) );
-
-     h->func = func;
-     h->ctx  = ctx;
-     h->prev = NULL;
-
-     if (suspend_resume_handlers) {
-          h->next = suspend_resume_handlers;
-          suspend_resume_handlers->prev = h;
-          suspend_resume_handlers = h;
-     }
-     else {
-          h->next = NULL;
-          suspend_resume_handlers = h;
-     }
+     return context->callback( input_device_id( device ),
+                               input_device_description( device ),
+                               context->callback_ctx );
 }
 
-void DFBRemoveSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx )
+static DFBEnumerationResult
+GetInputDevice_Callback( InputDevice *device, void *ctx )
 {
-     DFBSuspendResumeHandler *h = suspend_resume_handlers;
+     GetInputDevice_Context *context = (GetInputDevice_Context*) ctx;
 
-     while (h) {
-          if (h->func == func  &&  h->ctx == ctx) {
-               if (h->prev)
-                    h->prev->next = h->next;
+     if (input_device_id( device ) != context->id)
+          return DFENUM_OK;
 
-               if (h->next)
-                    h->next->prev = h->prev;
+     DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBInputDevice );
 
-               if (h == suspend_resume_handlers)
-                    suspend_resume_handlers = h->next;
+     IDirectFBInputDevice_Construct( *context->interface, device );
 
-               DFBFREE( h );
-               break;
-          }
+     return DFENUM_OK;
+}
 
-          h = h->next;
+static DFBEnumerationResult
+CreateInputBuffer_Callback( InputDevice *device, void *ctx )
+{
+     CreateInputBuffer_Context  *context = (CreateInputBuffer_Context*) ctx;
+     DFBInputDeviceDescription   desc    = input_device_description( device );
+
+     if (! (desc.caps & context->caps))
+          return DFENUM_OK;
+
+     if (! *context->interface) {
+          DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBInputBuffer );
+          if (IDirectFBInputBuffer_Construct( *context->interface, device ))
+               *context->interface = NULL;
      }
+     else {
+          IDirectFBInputBuffer_Attach( *context->interface, device );
+     }
+
+     return DFENUM_OK;
 }
 

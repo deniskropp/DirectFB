@@ -45,134 +45,21 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/reactor.h>
 #include <core/vt.h>
 
 #include <misc/conf.h>
+#include <misc/mem.h>
+
+typedef struct {
+     InputDevice                *device;
+     struct termios              old_ts;
+     DFBInputDeviceModifierKeys  modifier_state;
+     pthread_t                   thread;
+} KeyboardData;
 
 
-static struct termios old_ts;
-
-static DFBInputDeviceModifierKeys modifier_state = 0;
-
-static DFBInputEvent keyboard_handle_code (unsigned char  code);
-static unsigned char keyboard_translate   (unsigned short kb_value);
-static unsigned char keyboard_get_ascii   (unsigned short kb_value);
-
-
-
-static void* keyboardEventThread(void *device)
-{
-     InputDevice *keyboard = (InputDevice*)device;
-
-     int readlen;
-     unsigned char buf[256];
-
-     // Read keyboard data
-     while ((readlen = read (core_vt->fd, buf, 256)) >= 0) {
-          int i;
-
-          pthread_testcancel();
-
-          for (i = 0; i < readlen; i++) {
-               DFBInputEvent evt;
-
-               pthread_testcancel();
-
-               evt = keyboard_handle_code( buf[i] );
-               reactor_dispatch( keyboard->reactor, &evt );
-          }
-     }
-
-     if (readlen <= 0 && errno != EINTR)
-          PERRORMSG ("keyboard thread died\n");
-
-     pthread_testcancel();
-
-     return NULL;
-}
-
-static DFBInputEvent keyboard_handle_code(unsigned char code)
-{
-     int keydown;
-     struct kbentry entry;
-
-     if (code & 0x80) {
-          code &= 0x7f;
-          keydown = 0;
-     }
-     else {
-          keydown = 1;
-     }
-
-     HEAVYDEBUGMSG( "DirectFB/Keyboard: kb_code 0x%x\n", code );
-
-     /* fetch the keycode */
-
-     entry.kb_table = K_NORMTAB;
-     entry.kb_index = code;
-     entry.kb_value = 0;
-
-     ioctl( core_vt->fd, KDGKBENT, &entry );
-
-     {
-          DFBInputEvent event;
-
-          event.type = keydown ? DIET_KEYPRESS : DIET_KEYRELEASE;
-          event.flags = DIEF_KEYCODE | DIEF_MODIFIERS;
-
-          event.keycode = keyboard_translate( entry.kb_value );
-
-          switch (event.keycode) {
-               case DIKC_SHIFT:
-                    if (keydown)
-                         modifier_state |= DIMK_SHIFT;
-                    else
-                         modifier_state &= ~DIMK_SHIFT;
-                    break;
-               case DIKC_CTRL:
-                    if (keydown)
-                         modifier_state |= DIMK_CTRL;
-                    else
-                         modifier_state &= ~DIMK_CTRL;
-                    break;
-               case DIKC_ALT:
-                    if (keydown)
-                         modifier_state |= DIMK_ALT;
-                    else
-                         modifier_state &= ~DIMK_ALT;
-                    break;
-               case DIKC_ALTGR:
-                     if (keydown)
-                          modifier_state |= DIMK_ALTGR;
-                     else
-                          modifier_state &= ~DIMK_ALTGR;
-                     break;
-                default:
-                    break;
-          }
-
-          if (modifier_state & DIMK_SHIFT) {
-               if (modifier_state & DIMK_ALT)
-                    entry.kb_table = K_ALTSHIFTTAB;
-               else
-                    entry.kb_table = K_SHIFTTAB;
-
-               ioctl( core_vt->fd, KDGKBENT, &entry );
-          }
-          else if (modifier_state & DIMK_ALTGR) {
-               entry.kb_table = K_ALTTAB;
-               ioctl( core_vt->fd, KDGKBENT, &entry );
-          }
-
-          event.modifiers = modifier_state;
-          event.key_ascii = keyboard_get_ascii( entry.kb_value );
-
-          return event;
-     }
-}
-
-static unsigned char keyboard_get_ascii(unsigned short kb_value)
+static unsigned char
+keyboard_get_ascii( unsigned short kb_value )
 {
      unsigned char key_type = (kb_value & 0xFF00) >> 8;
      unsigned char key_index = kb_value & 0xFF;
@@ -265,20 +152,158 @@ static unsigned char keyboard_translate(unsigned short kb_value)
      return DIKC_UNKNOWN;
 }
 
+static DFBInputEvent
+keyboard_handle_code( KeyboardData  *data, unsigned char code )
+{
+     int keydown;
+     struct kbentry entry;
+
+     if (code & 0x80) {
+          code &= 0x7f;
+          keydown = 0;
+     }
+     else {
+          keydown = 1;
+     }
+
+     HEAVYDEBUGMSG( "DirectFB/Keyboard: kb_code 0x%x\n", code );
+
+     /* fetch the keycode */
+
+     entry.kb_table = K_NORMTAB;
+     entry.kb_index = code;
+     entry.kb_value = 0;
+
+     ioctl( core_vt->fd, KDGKBENT, &entry );
+
+     {
+          DFBInputEvent event;
+
+          event.type = keydown ? DIET_KEYPRESS : DIET_KEYRELEASE;
+          event.flags = DIEF_KEYCODE | DIEF_MODIFIERS;
+
+          event.keycode = keyboard_translate( entry.kb_value );
+
+          switch (event.keycode) {
+               case DIKC_SHIFT:
+                    if (keydown)
+                         data->modifier_state |= DIMK_SHIFT;
+                    else
+                         data->modifier_state &= ~DIMK_SHIFT;
+                    break;
+               case DIKC_CTRL:
+                    if (keydown)
+                         data->modifier_state |= DIMK_CTRL;
+                    else
+                         data->modifier_state &= ~DIMK_CTRL;
+                    break;
+               case DIKC_ALT:
+                    if (keydown)
+                         data->modifier_state |= DIMK_ALT;
+                    else
+                         data->modifier_state &= ~DIMK_ALT;
+                    break;
+               case DIKC_ALTGR:
+                     if (keydown)
+                          data->modifier_state |= DIMK_ALTGR;
+                     else
+                          data->modifier_state &= ~DIMK_ALTGR;
+                     break;
+                default:
+                    break;
+          }
+
+          if (data->modifier_state & DIMK_SHIFT) {
+               if (data->modifier_state & DIMK_ALT)
+                    entry.kb_table = K_ALTSHIFTTAB;
+               else
+                    entry.kb_table = K_SHIFTTAB;
+
+               ioctl( core_vt->fd, KDGKBENT, &entry );
+          }
+          else if (data->modifier_state & DIMK_ALTGR) {
+               entry.kb_table = K_ALTTAB;
+               ioctl( core_vt->fd, KDGKBENT, &entry );
+          }
+
+          event.modifiers = data->modifier_state;
+          event.key_ascii = keyboard_get_ascii( entry.kb_value );
+
+          return event;
+     }
+}
+
+static void*
+keyboardEventThread( void *driver_data )
+{
+     int            readlen;
+     unsigned char  buf[256];
+     KeyboardData  *data = (KeyboardData*) driver_data;
+
+     // Read keyboard data
+     while ((readlen = read (core_vt->fd, buf, 256)) >= 0 || errno == EINTR) {
+          int i;
+
+          pthread_testcancel();
+
+          for (i = 0; i < readlen; i++) {
+               DFBInputEvent evt;
+
+               pthread_testcancel();
+
+               evt = keyboard_handle_code( data, buf[i] );
+               input_dispatch( data->device, &evt );
+          }
+     }
+
+     if (readlen <= 0 && errno != EINTR)
+          PERRORMSG ("keyboard thread died\n");
+
+     pthread_testcancel();
+
+     return NULL;
+}
 
 /* exported symbols */
 
-int driver_probe()
+int
+driver_get_abi_version()
+{
+     return DFB_INPUT_DRIVER_ABI_VERSION;
+}
+
+int
+driver_get_available()
 {
      return 1;
 }
 
-int driver_init(InputDevice *device)
+void
+driver_get_info( InputDriverInfo *info )
+{
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "Keyboard Driver" );
+
+     snprintf( info->vendor,
+               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->version.major = 0;
+     info->version.minor = 9;
+}
+
+DFBResult
+driver_open_device( InputDevice      *device,
+                    unsigned int      number,
+                    InputDeviceInfo  *info,
+                    void            **driver_data )
 {
 //     char buf[32];
-     struct termios ts;
-     const char cursoroff_str[] = "\033[?1;0;0c";
-     const char blankoff_str[] = "\033[9;0]";
+     KeyboardData   *data;
+     struct termios  ts;
+     const char      cursoroff_str[] = "\033[?1;0;0c";
+     const char      blankoff_str[] = "\033[9;0]";
 
 /*     sprintf(buf, "/dev/tty%d", core_vt->num);
      fd = open( buf, O_RDWR );
@@ -320,9 +345,14 @@ int driver_init(InputDevice *device)
           ioctl( core_vt->fd, TIOCSCTTY, 0 );
      }
 
-     tcgetattr( core_vt->fd, &old_ts );
+     /* allocate and fill private data */
+     data = DFBCALLOC( 1, sizeof(KeyboardData) );
+     
+     data->device = device;
+     
+     tcgetattr( core_vt->fd, &data->old_ts );
 
-     ts = old_ts;
+     ts = data->old_ts;
      ts.c_cc[VTIME] = 0;
      ts.c_cc[VMIN] = 1;
      ts.c_lflag &= ~(ICANON|ECHO|ISIG);
@@ -334,36 +364,50 @@ int driver_init(InputDevice *device)
      write( core_vt->fd, cursoroff_str, strlen(cursoroff_str) );
      write( core_vt->fd, blankoff_str, strlen(blankoff_str) );
 
+     /* fill device info structure */
+     snprintf( info->name,
+               DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "Keyboard" );
 
-     device->info.driver_name = "Keyboard";
-     device->info.driver_vendor = "convergence integrated media GmbH";
+     snprintf( info->vendor,
+               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
+     
+     info->prefered_id = DIDID_KEYBOARD;
+     
+     info->desc.type   = DIDTF_KEYBOARD;
+     info->desc.caps   = DICAPS_KEYS;
 
-     device->info.driver_version.major = 0;
-     device->info.driver_version.minor = 9;
+     /* start input thread */
+     pthread_create( &data->thread, NULL, keyboardEventThread, data );
 
-     device->id = DIDID_KEYBOARD;
-     device->desc.type = DIDTF_KEYBOARD;
-     device->desc.caps = DICAPS_KEYS;
-
-     device->EventThread = keyboardEventThread;
+     /* set private data pointer */
+     *driver_data = data;
 
      return DFB_OK;
 }
 
-void driver_deinit(InputDevice *device)
+void
+driver_close_device( void *driver_data )
 {
-     const char cursoron_str[] = "\033[?0;0;0c";
-     const char blankon_str[] = "\033[9;10]";
+     const char    cursoron_str[] = "\033[?0;0;0c";
+     const char    blankon_str[] = "\033[9;10]";
+     KeyboardData *data = (KeyboardData*) driver_data;
 
+     /* stop input thread */
+     pthread_cancel( data->thread );
+     pthread_join( data->thread, NULL );
+     
      write( core_vt->fd, cursoron_str, strlen(cursoron_str) );
      write( core_vt->fd, blankon_str, strlen(blankon_str) );
 
-     if (tcsetattr( core_vt->fd, TCSAFLUSH, &old_ts ) < 0)
+     if (tcsetattr( core_vt->fd, TCSAFLUSH, &data->old_ts ) < 0)
           PERRORMSG("DirectFB/keyboard: tcsetattr for original values failed!\n");
 
      if (ioctl( core_vt->fd, KDSKBMODE, K_XLATE ) < 0)
           PERRORMSG("DirectFB/keyboard: Could not set mode to XLATE!\n");
      if (ioctl( core_vt->fd, KDSETMODE, KD_TEXT ) < 0)
           PERRORMSG("DirectFB/keyboard: Could not set terminal mode to text!\n");
+
+     /* free private data */
+     DFBFREE( data );
 }
 

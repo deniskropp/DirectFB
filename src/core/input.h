@@ -27,67 +27,80 @@
 #include <pthread.h>
 #include <directfb.h>
 
+#include <core/fusion/reactor.h>
+
 #include <core/coretypes.h>
 
 
+/*
+ * Increase this number when changes result in binary incompatibility!
+ */
+#define DFB_INPUT_DRIVER_ABI_VERSION         1
+
+#define DFB_INPUT_DRIVER_INFO_NAME_LENGTH   60
+#define DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH 80
+
+#define DFB_INPUT_DEVICE_INFO_NAME_LENGTH   60
+#define DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH 80
+
+
 typedef struct {
-     int  (*Probe)();
-     int  (*Init)(InputDevice *device);
-     void (*DeInit)(InputDevice *device);
-} InputDriver;
+     int          major;              /* major version */
+     int          minor;              /* minor version */
+} InputDriverVersion;                 /* major.minor, e.g. 0.1 */
 
-struct _InputDevice {
+typedef struct {
+     InputDriverVersion version;
 
-     /* these must be filled by the driver */
-     struct {
-          char             *driver_name;          /* device name,
-                                                     e.g. PS/2 Mouse */
-          char             *driver_vendor;        /* driver vendor name,
-                                                     e.g. convergence */
+     char               name[DFB_INPUT_DRIVER_INFO_NAME_LENGTH+1];
+                                      /* Name of driver,
+                                         e.g. 'Serial Mouse Driver' */
 
-          struct {
-               int          major;                /* major version */
-               int          minor;                /* minor version */
-          } driver_version;                       /* major.minor, e.g. 0.1 */
+     char               vendor[DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH+1];
+                                      /* Vendor (or author) of the driver,
+                                         e.g. 'convergence' or 'Sven Neumann' */
+} InputDriverInfo;
 
-          InputDriver      *driver;
-     } info;
+typedef struct {
+     char               name[DFB_INPUT_DEVICE_INFO_NAME_LENGTH+1];
+                                      /* Device name,
+                                         e.g. 'MouseMan Serial Mouse' */
 
-     unsigned int                  id;            /* unique device id */
-     DFBInputDeviceDescription     desc;          /* number of axis etc. */
+     char               vendor[DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH+1];
+                                      /* Vendor of the device,
+                                         e.g. 'Logitech' or just 'Unknown' */
 
-     /*
-      * Input thread routine, e.g. to do a blocking read() on a file
-      * descriptor, generate input events and pass them to input_dispath().
-      * Thread runs at realtime priority!
-      */
-     void*                         (*EventThread)(void *device);
+     unsigned int       prefered_id;  /* Prefered predefined input device id,
+                                         e.g. DIDID_MOUSE */
 
-     int                           number;             /* for drivers providing
-                                                          multiple devices */
-
-     Reactor                      *reactor;            /* event dispatcher */
-
-     pthread_t                     event_thread;       /* EventThread handle */
-
-
-     struct _InputDevice           *next;
-};
-
-extern InputDevice *inputdevices;
+     DFBInputDeviceDescription desc;  /* Capabilities, type, etc. */
+} InputDeviceInfo;
 
 
 /*
  * core init function, probes all input drivers and creates devices of them
  */
-DFBResult input_init_devices();
+DFBResult input_initialize();
+DFBResult input_join();
 
 /*
  * cancels input threads, deinitializes drivers, deallocates device structs
  */
-void input_deinit();
+DFBResult input_shutdown();
+DFBResult input_leave();
 
-DFBResult input_suspend();
-DFBResult input_resume();
+typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,
+                                                     void        *ctx);
+
+void input_enumerate_devices( InputDeviceCallback  callback,
+                              void                *ctx );
+
+void input_attach( InputDevice *device, React react, void *ctx );
+void input_detach( InputDevice *device, React react, void *ctx );
+void input_dispatch( InputDevice *device, const DFBInputEvent *event );
+
+DFBInputDeviceDescription input_device_description( const InputDevice *device );
+unsigned int              input_device_id( const InputDevice *device );
+
 
 #endif

@@ -37,14 +37,16 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/reactor.h>
+
+#include <misc/mem.h>
+
 
 typedef struct {
      DFBInputDeviceKeyIdentifier  key;
      char                        *name;
 } KeyCodeString;
 
-static KeyCodeString keycode_strings[] = {
+static const KeyCodeString keycode_strings[] = {
      { DIKC_A, "A" },
      { DIKC_B, "B" },
      { DIKC_C, "C" },
@@ -82,6 +84,19 @@ static KeyCodeString keycode_strings[] = {
      { DIKC_7, "7" },
      { DIKC_8, "8" },
      { DIKC_9, "9" },
+
+     { DIKC_F1,   "F1" },
+     { DIKC_F2,   "F2" },
+     { DIKC_F3,   "F3" },
+     { DIKC_F4,   "F4" },
+     { DIKC_F5,   "F5" },
+     { DIKC_F6,   "F6" },
+     { DIKC_F7,   "F7" },
+     { DIKC_F8,   "F8" },
+     { DIKC_F9,   "F9" },
+     { DIKC_F10, "F10" },
+     { DIKC_F11, "F11" },
+     { DIKC_F12, "F12" },
 
      { DIKC_ESCAPE, "ESCAPE" },
      { DIKC_LEFT, "LEFT" },
@@ -198,13 +213,18 @@ static KeyCodeString keycode_strings[] = {
      { DIKC_UNKNOWN, NULL }
 };
 
-static int lirc_fd = -1;
+
+typedef struct {
+     int          fd;
+     InputDevice *device;
+     pthread_t    thread;
+} LircData;
 
 
 static DFBInputDeviceKeyIdentifier lirc_parse_line(const char *line)
 {
-     KeyCodeString *keycode_string = keycode_strings;
-     char          *s, *name;
+     const KeyCodeString *keycode_string = keycode_strings;
+     char                *s, *name;
 
 
      s = strchr( line, ' ' );
@@ -231,27 +251,31 @@ static DFBInputDeviceKeyIdentifier lirc_parse_line(const char *line)
      return DIKC_UNKNOWN;
 }
 
-static void* lircEventThread(void *device)
+static void*
+lircEventThread( void *driver_data )
 {
+     LircData      *data  = (LircData*) driver_data;
      int            readlen;
      char           buf[128];
      DFBInputEvent  evt;
-     InputDevice   *lirc = (InputDevice*)device;
 
-     memset( &evt, 0, sizeof(evt) );
+     memset( &evt, 0, sizeof(DFBInputEvent) );
 
      evt.flags = DIEF_KEYCODE;
 
-     while ((readlen = read( lirc_fd, buf, 128 )) > 0) {
+     while ((readlen = read( data->fd, buf, 128 )) > 0 || errno == EINTR) {
           pthread_testcancel();
 
+          if (readlen < 1)
+               continue;
+          
           evt.keycode = lirc_parse_line( buf );
           if (evt.keycode != DIKC_UNKNOWN) {
                evt.type = DIET_KEYPRESS;
-               reactor_dispatch( lirc->reactor, &evt );
+               input_dispatch( data->device, &evt );
 
                evt.type = DIET_KEYRELEASE;
-               reactor_dispatch( lirc->reactor, &evt );
+               input_dispatch( data->device, &evt );
           }
      }
 
@@ -263,7 +287,14 @@ static void* lircEventThread(void *device)
 
 /* exported symbols */
 
-int driver_probe()
+int
+driver_get_abi_version()
+{
+     return DFB_INPUT_DRIVER_ABI_VERSION;
+}
+
+int
+driver_get_available()
 {
      int fd;
      struct sockaddr_un addr;
@@ -285,44 +316,88 @@ int driver_probe()
      return 1;
 }
 
-int driver_init(InputDevice *device)
+void
+driver_get_info( InputDriverInfo *info )
 {
-     struct sockaddr_un sa;
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "LIRC Driver" );
 
+     snprintf( info->vendor,
+               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH,
+               "convergence integrated media GmbH" );
+
+     info->version.major = 0;
+     info->version.minor = 2;
+}
+
+DFBResult
+driver_open_device( InputDevice      *device,
+                    unsigned int      number,
+                    InputDeviceInfo  *info,
+                    void            **driver_data )
+{
+     int                 fd;
+     LircData           *data;
+     struct sockaddr_un  sa;
+
+     /* create socket */
      sa.sun_family = AF_UNIX;
      strcpy( sa.sun_path, "/dev/lircd" );
 
-     lirc_fd = socket( PF_UNIX, SOCK_STREAM, 0 );
-     if (lirc_fd < 0) {
+     fd = socket( PF_UNIX, SOCK_STREAM, 0 );
+     if (fd < 0) {
           PERRORMSG( "DirectFB/LIRC: socket" );
           return DFB_INIT;
      }
 
-     if (connect( lirc_fd, (struct sockaddr*)&sa, sizeof(sa) ) < 0) {
+     /* initiate connection */
+     if (connect( fd, (struct sockaddr*)&sa, sizeof(sa) ) < 0) {
           PERRORMSG( "DirectFB/LIRC: connect" );
-          close( lirc_fd );
-          lirc_fd = -1;
+          close( fd );
           return DFB_INIT;
      }
 
-     device->info.driver_name = "LIRC";
-     device->info.driver_vendor = "convergence integrated media GmbH";
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_INPUT_DEVICE_INFO_NAME_LENGTH, "LIRC Device" );
 
-     device->info.driver_version.major = 0;
-     device->info.driver_version.minor = 1;
+     snprintf( info->vendor,
+               DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
+     
+     info->prefered_id = DIDID_REMOTE;
 
-     device->id = DIDID_REMOTE;
+     info->desc.type   = DIDTF_REMOTE;
+     info->desc.caps   = DICAPS_KEYS;
 
-     device->desc.type = DIDTF_REMOTE;
-     device->desc.caps = DICAPS_KEYS;
+     /* allocate and fill private data */
+     data = DFBCALLOC( 1, sizeof(LircData) );
 
-     device->EventThread = lircEventThread;
+     data->fd     = fd;
+     data->device = device;
+     
+     /* start input thread */
+     pthread_create( &data->thread, NULL, lircEventThread, data );
 
+     /* set private data pointer */
+     *driver_data = data;
+     
      return DFB_OK;
 }
 
-void driver_deinit(InputDevice *device)
+void
+driver_close_device( void *driver_data )
 {
-     close( lirc_fd );
+     LircData *data = (LircData*) driver_data;
+
+     /* stop input thread */
+     pthread_cancel( data->thread );
+     pthread_join( data->thread, NULL );
+     
+     /* close socket */
+     close( data->fd );
+
+     /* free private data */
+     DFBFREE( data );
 }
 

@@ -24,28 +24,6 @@
 #ifndef __REACTOR_H__
 #define __REACTOR_H__
 
-#include "coretypes.h"
-
-typedef enum {
-     RS_OK,
-     RS_REMOVE,
-     RS_DROP
-} ReactionResult;
-
-typedef ReactionResult (*React) (const void *msg_data, void *ctx);
-
-Reactor *reactor_new      ();
-void     reactor_free     (Reactor      *reactor);
-void     reactor_attach   (Reactor      *reactor,
-                           React         react,
-                           void         *ctx);
-void     reactor_detach   (Reactor      *reactor,
-                           React         react,
-                           void         *ctx);
-void     reactor_dispatch (Reactor      *reactor,
-                           const void   *msg_data);
-
-
 
 #endif
 

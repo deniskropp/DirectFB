@@ -24,104 +24,82 @@
 #ifndef __SURFACEMANAGER_H__
 #define __SURFACEMANAGER_H__
 
+#include <core/fusion/lock.h>
+
 #include <directfb.h>
-#include <core/coretypes.h>
+#include <core/core.h>
 
-/*
- * initially there is one big free chunk,
- * chunks are splitted into a free and an occupied chunk if memory is allocated,
- * two chunks are merged to one free chunk if memory is deallocated
- */
-typedef struct _Chunk
-{
-     int                 offset;   /* offset in video memory,
-                                      is greater or equal to the heap offset */
-     int                 length;   /* length of this chunk in bytes */
+#define CSLF_FORCE 0x80000000
 
-     SurfaceBuffer      *buffer;   /* pointer to surface buffer occupying
-                                      this chunk, or NULL if chunk is free */
 
-     int                 tolerations; /* number of times this chunk was scanned
-                                         occupied, resetted in assure_video */
-
-     struct _Chunk      *prev;
-     struct _Chunk      *next;
-} Chunk;
-
-/*
- * initializes the surface manager's heap management,
- * creates one big chunk with the size of the framebuffer
- */
-DFBResult surfacemanager_init_heap();
-
-/*
- * frees all data allocated by the surfacemanager,
- * it does not deallocate surfaces from video memory
- */
-void surfacemanager_deinit();
-
-/*
- * marks video instances for restoration,
- * TODO: backup video only surfaces in system memory
- */
-DFBResult surfacemanager_suspend();
+SurfaceManager *surfacemanager_create( unsigned int length,
+                                       unsigned int byteoffset_align,
+                                       unsigned int pixelpitch_align );
 
 /*
  * adjust the offset within the framebuffer for surface storage,
  * needs to be called after a resolution switch
  */
-DFBResult surfacemanager_adjust_heap_offset( int offset );
+DFBResult surfacemanager_adjust_heap_offset( SurfaceManager *manager,
+                                             unsigned int    offset );
 
+void surfacemanager_add_surface( SurfaceManager *manager,
+                                 CoreSurface    *surface );
 
+void surfacemanager_remove_surface( SurfaceManager *manager,
+                                    CoreSurface    *surface );
 
-extern pthread_mutex_t surfacemanager_mutex_lock;
 
 /*
  * Lock/unlock the surfacemanager for usage of the functions below.
  */
-#ifdef DFB_DEBUG
-#define surfacemanager_lock() { \
-     DEBUGMSG("[%d] Locking in "__FUNCTION__" at "__FILE__":%d\n", getpid(), __LINE__); \
-     pthread_mutex_lock( &surfacemanager_mutex_lock ); \
-}
+void surfacemanager_lock( SurfaceManager *manager );
+void surfacemanager_unlock( SurfaceManager *manager );
 
-#define surfacemanager_unlock() { \
-     DEBUGMSG("[%d] Unlocking in "__FUNCTION__" in "__FILE__":%d\n", getpid(), __LINE__); \
-     pthread_mutex_unlock( &surfacemanager_mutex_lock ); \
-}
-#else
-static inline int surfacemanager_lock() {
-     return pthread_mutex_lock( &surfacemanager_mutex_lock );
-}
+/*
+ * lock a surface for access by software, returns a pointer to the
+ * surface data and the line pitch a.k.a. rowstride
+ */
+DFBResult surface_software_lock( CoreSurface *surface, unsigned int flags,
+                                 void **data, unsigned int *pitch, int front );
 
-static inline int surfacemanager_unlock() {
-     return pthread_mutex_unlock( &surfacemanager_mutex_lock );
-}
-#endif
+/*
+ * lock a surface for access by hardware that enforces a video instance
+ * an therefore the data and pitch can be looked up in the surface struct's
+ * video struct, however this function will fail if the surfacemanager could
+ * not assure a video memory instance
+ */
+DFBResult surface_hardware_lock( CoreSurface *surface,
+                                 unsigned int flags, int front );
+
 
 /*
  * finds and allocates one for the surface or fails,
  * after success the video health is CSH_RESTORE.
  * NOTE: this does not notify the listeners
  */
-DFBResult surfacemanager_allocate( SurfaceBuffer *buffer );
+DFBResult surfacemanager_allocate( SurfaceManager *manager,
+                                   SurfaceBuffer  *buffer );
 
 /*
  * sets the video health to CSH_INVALID frees the chunk and
  * notifies the listeners
  */
-DFBResult surfacemanager_deallocate( SurfaceBuffer *buffer );
+DFBResult surfacemanager_deallocate( SurfaceManager *manager,
+                                     SurfaceBuffer  *buffer );
 
 /*
  * puts the surface into the video memory,
- * i.e. it establishes the video instance or fails
+ * i.e. it initializees the video instance or fails
  */
-DFBResult surfacemanager_assure_video( SurfaceBuffer *buffer );
+DFBResult surfacemanager_assure_video( SurfaceManager *manager,
+                                       SurfaceBuffer  *buffer );
 
 /*
  * makes sure the system instance is not outdated,
  * it fails if the policy is CSP_VIDEOONLY
  */
-DFBResult surfacemanager_assure_system( SurfaceBuffer *buffer );
+DFBResult surfacemanager_assure_system( SurfaceManager *manager,
+                                        SurfaceBuffer  *buffer );
 
 #endif

@@ -24,17 +24,31 @@
 #ifndef ___ATI128_STATE_H__
 #define ___ATI128_STATE_H__
 
-inline void ati128_set_destination();
-inline void ati128_set_source();
+#include "ati128.h"
+
+void ati128_set_destination( ATI128DriverData *adrv,
+                             ATI128DeviceData *adev,
+                             CardState        *state );
+void ati128_set_source( ATI128DriverData *adrv,
+                        ATI128DeviceData *adev,
+                        CardState        *state );
 
 //inline void ati128_set_drawingflags( CardState *state, DFBAccelerationMask accel );
-inline void ati128_set_blittingflags();
+void ati128_set_blittingflags( ATI128DriverData *adrv,
+                               ATI128DeviceData *adev,
+                               CardState        *state );
 
-inline void ati128_set_clip();
+void ati128_set_clip( ATI128DriverData *adrv,
+                      ATI128DeviceData *adev,
+                      CardState        *state );
 
-inline void ati128_set_color();
+void ati128_set_color( ATI128DriverData *adrv,
+                       ATI128DeviceData *adev,
+                       CardState        *state );
 
-inline void ati128_set_blending_function();
+void ati128_set_blending_function( ATI128DriverData *adrv,
+                                   ATI128DeviceData *adev,
+                                   CardState        *state );
 
 
 #endif

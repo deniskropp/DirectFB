@@ -89,6 +89,7 @@ char * DirectFBCheckVersion (unsigned int required_major,
      return NULL;
 }
 
+#ifdef FIXME_LATER
 static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
 {
      const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
@@ -109,8 +110,8 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
                                    "Locking/unlocking hardware to "
                                    "increase the chance of idle hardware...\n" );
 
-                         pthread_mutex_lock( &card->lock );
-                         pthread_mutex_unlock( &card->lock );
+                         skirmish_prevail( &Scard->lock );
+                         skirmish_dismiss( &Scard->lock );
 
                          DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
                                    "Switching to VT %d...\n", num );
@@ -135,10 +136,15 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
 
      return RS_OK; /* continue dispatching this event */
 }
+#endif
 
 DFBResult DirectFBInit( int *argc, char **argv[] )
 {
      DFBResult ret;
+
+     ret = core_init( argc, argv );
+     if (ret)
+          return ret;
 
      ret = config_init( argc, argv );
      if (ret)
@@ -180,7 +186,7 @@ DFBResult DirectFBSetOption( char *name, char *value)
  */
 DFBResult DirectFBCreate( IDirectFB **interface )
 {
-     DFBResult ret;
+     DFBResult             ret;
      DFBDisplayLayerConfig layer_config;
 
      if (dfb_config == NULL) {
@@ -209,20 +215,9 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           printf( "\n" );
      }
 
-     ret = core_init();
+     ret = core_ref();
      if (ret)
           return ret;
-
-     {
-          InputDevice *d = inputdevices;
-
-          while (d) {
-               if (d->id == DIDID_KEYBOARD)
-                    reactor_attach( d->reactor, keyboard_handler, NULL );
-
-               d = d->next;
-          }
-     }
 
      DFB_ALLOCATE_INTERFACE( idirectfb_singleton, IDirectFB );
 
@@ -235,11 +230,29 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
      *interface = idirectfb_singleton;
 
+     if (!core_is_master())
+          return DFB_OK;
+
+#ifdef FIXME_LATER
+     {
+          InputDevice *d = inputdevices;
+
+          while (d) {
+               if (input_device_id( d ) == DIDID_KEYBOARD)
+                    reactor_attach( d->shared->reactor, keyboard_handler, NULL );
+
+               d = d->next;
+          }
+     }
+#endif
+
      /* set buffer mode for desktop */
      layer_config.flags = DLCONF_BUFFERMODE;
 
      if (dfb_config->buffer_mode == -1) {
-          if (card->caps.accel & DFXL_BLIT)
+          CardCapabilities caps = gfxcard_capabilities();
+
+          if (caps.accel & DFXL_BLIT)
                layer_config.buffermode = DLBM_BACKVIDEO;
           else
                layer_config.buffermode = DLBM_BACKSYSTEM;
@@ -254,8 +267,8 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      }
 
      /* set desktop background */
-     layers->bg.mode  = dfb_config->layer_bg_mode;
-     layers->bg.color = dfb_config->layer_bg_color;
+     layers->shared->bg.mode  = dfb_config->layer_bg_mode;
+     layers->shared->bg.color = dfb_config->layer_bg_color;
 
      if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
           DFBSurfaceDescription   desc;
@@ -270,9 +283,9 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           }
 
           desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-          desc.width = layers->width;
-          desc.height = layers->height;
-          desc.pixelformat = layers->surface->format;
+          desc.width = layers->shared->width;
+          desc.height = layers->shared->height;
+          desc.pixelformat = layers->shared->surface->format;
 
 
           ret = (*interface)->CreateSurface( *interface, &desc, &image );
@@ -299,10 +312,10 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
           image_data = (IDirectFBSurface_data*) image->priv;
 
-          layers->bg.image = image_data->surface;
+          layers->shared->bg.image = image_data->surface;
      }
 
-     windowstack_repaint_all( layers->windowstack );
+     windowstack_repaint_all( layers->shared->windowstack );
 
      layer_cursor_enable( layers, 1 );
 
@@ -380,7 +393,7 @@ void DirectFBErrorFatal( const char *msg, DFBResult error )
      DirectFBError( msg, error );
 
      /* Deinit all stuff here. */
-     core_deinit();     /* for now, this dirty thing should work */
+     core_unref();     /* for now, this dirty thing should work */
 
      exit( error );
 }

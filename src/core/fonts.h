@@ -25,6 +25,10 @@
 #ifndef __FONTS_H__
 #define __FONTS_H__
 
+#include <pthread.h>
+
+#include <core/fusion/lock.h>
+
 #include <directfb.h>
 
 #include <core/coretypes.h>
@@ -47,22 +51,24 @@ typedef struct {
  */
 
 struct _CoreFont {
-     CoreSurface  **surfaces;           /* contain bitmaps of loaded glyphs */
-     int            rows;
-     int            row_width;
-     int            next_x;
+     CoreSurface    **surfaces;           /* contain bitmaps of loaded glyphs */
+     int              rows;
+     int              row_width;
+     int              next_x;
 
-     Tree          *glyph_infos;        /* infos about loaded glyphs        */
+     Tree            *glyph_infos;        /* infos about loaded glyphs        */
 
-     int            height;             /* font height                      */
+     int              height;             /* font height                      */
 
-     int            ascender;           /* a positive value, the distance
-                                           from the baseline to the top     */
-     int            descender;          /* a negative value, the distance
-                                           from the baseline to the bottom  */
-     int            maxadvance;         /* width of largest character       */
+     int              ascender;           /* a positive value, the distance
+                                             from the baseline to the top     */
+     int              descender;          /* a negative value, the distance
+                                             from the baseline to the bottom  */
+     int              maxadvance;         /* width of largest character       */
 
-     void          *impl_data;          /* a pointer used by the impl.      */
+     pthread_mutex_t  lock;               /* lock during access to the font   */
+
+     void            *impl_data;          /* a pointer used by the impl.      */
 
      DFBResult   (* GetGlyphInfo) (CoreFont *thiz, unichar glyph, CoreGlyphData *info);
      DFBResult   (* RenderGlyph)  (CoreFont *thiz, unichar glyph,
@@ -72,15 +78,36 @@ struct _CoreFont {
 };
 
 /*
+ * allocates and initializes a new font structure
+ */
+CoreFont *font_create();
+
+/*
  * destroy all data in the CoreFont struct
  */
-void fonts_destruct(CoreFont *font);
+void font_destroy( CoreFont *font );
+
+/*
+ * lock the font before accessing it
+ */
+static inline void font_lock( CoreFont *font )
+{
+     pthread_mutex_lock( &font->lock );
+}
+
+/*
+ * unlock the font after access
+ */
+static inline void font_unlock( CoreFont *font )
+{
+     pthread_mutex_unlock( &font->lock );
+}
 
 /*
  * loads glyph data from font
  */
-DFBResult fonts_get_glyph_data(CoreFont        *font,
+DFBResult font_get_glyph_data( CoreFont        *font,
                                unichar          glyph,
-                               CoreGlyphData  **glyph_data);
+                               CoreGlyphData  **glyph_data );
 
 #endif

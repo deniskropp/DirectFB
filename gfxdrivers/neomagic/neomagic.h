@@ -26,8 +26,43 @@
 
 #include <asm/types.h>
 
-#include <directfb.h>
-#include <core/coretypes.h>
+#include <core/gfxcard.h>
+
+typedef struct {
+     unsigned int waitfifo_sum;
+     unsigned int waitfifo_calls;
+     unsigned int fifo_waitcycles;
+     unsigned int idle_waitcycles;
+     unsigned int fifo_cache_hits;
+} NeoDeviceData;
+
+typedef struct {
+     volatile __u8 *mmio_base;
+} NeoDriverData;
+
+void
+neo2200_get_info( GraphicsDevice     *device,
+                  GraphicsDriverInfo *info );
+
+DFBResult
+neo2200_init_driver( GraphicsDevice      *device,
+                     GraphicsDeviceFuncs *funcs,
+                     void                *driver_data );
+
+DFBResult
+neo2200_init_device( GraphicsDevice     *device,
+                     GraphicsDeviceInfo *device_info,
+                     void               *driver_data,
+                     void               *device_data );
+
+void
+neo2200_close_device( GraphicsDevice *device,
+                      void           *driver_data,
+                      void           *device_data );
+
+void
+neo2200_close_driver( GraphicsDevice *device,
+                      void           *driver_data );
 
 
 #define NEO_BS0_BLT_BUSY        0x00000001
@@ -78,20 +113,5 @@
 #define NEO_MODE1_BLT_ON_ADDR   0x2000
 
 
-/* for fifo/performance monitoring */
-//extern unsigned int neo_fifo_space = 0;
-
-extern unsigned int neo_waitfifo_sum;
-extern unsigned int neo_waitfifo_calls;
-extern unsigned int neo_fifo_waitcycles;
-extern unsigned int neo_idle_waitcycles;
-extern unsigned int neo_fifo_cache_hits;
-
-
-extern volatile __u8 *mmio_base;
-extern GfxCard       *neo;
-
-
-DFBResult neo2200_init( GfxCard *card );
 
 #endif

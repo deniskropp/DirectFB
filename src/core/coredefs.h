@@ -31,6 +31,11 @@
 #include <stdio.h>
 #include <misc/conf.h>
 
+
+#define MAX_INPUTDEVICES 100
+#define MAX_LAYERS       100
+
+
 #define INITMSG(x...)    { if (!dfb_config->quiet) fprintf( stderr, "(*) "x ); }
 #define ERRORMSG(x...)   { if (!dfb_config->quiet) fprintf( stderr, "(!) "x ); }
 

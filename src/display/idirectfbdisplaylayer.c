@@ -71,8 +71,8 @@ void IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
 
      /* The background may not be set by us in which case the listener
       * isn't in the listener list, but it doesn't hurt. */
-     if (data->layer->bg.image)
-          reactor_detach( data->layer->bg.image->reactor,
+     if (data->layer->shared->bg.image)
+          reactor_detach( data->layer->shared->bg.image->reactor,
                           IDirectFBDisplayLayer_bgsurface_listener, thiz );
 
      if (data->surface)
@@ -113,7 +113,7 @@ DFBResult IDirectFBDisplayLayer_GetCapabilities( IDirectFBDisplayLayer *thiz,
      if (!caps)
           return DFB_INVARG;
 
-     *caps = data->layer->caps;
+     *caps = data->layer->shared->caps;
 
      return DFB_OK;
 }
@@ -133,14 +133,14 @@ DFBResult IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer *thiz,
      if (!data->surface) {
           rect.x = 0;
           rect.y = 0;
-          rect.w = data->layer->width;
-          rect.h = data->layer->height;
+          rect.w = data->layer->shared->width;
+          rect.h = data->layer->shared->height;
 
           DFB_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
 
           ret = IDirectFBSurface_Layer_Construct( surface, &rect,
                                                   NULL, data->layer,
-                                                  data->layer->surface->caps );
+                                                  data->layer->shared->surface->caps );
           if (ret) {
                DFBFREE( surface );
                return ret;
@@ -217,11 +217,11 @@ DFBResult IDirectFBDisplayLayer_GetConfiguration( IDirectFBDisplayLayer *thiz,
 
      config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT |
                            DLCONF_BUFFERMODE | DLCONF_OPTIONS;
-     config->width       = data->layer->width;
-     config->height      = data->layer->height;
-     config->pixelformat = data->layer->surface->format;
-     config->buffermode  = data->layer->buffermode;
-     config->options     = data->layer->options;
+     config->width       = data->layer->shared->width;
+     config->height      = data->layer->shared->height;
+     config->pixelformat = data->layer->shared->surface->format;
+     config->buffermode  = data->layer->shared->buffermode;
+     config->options     = data->layer->shared->options;
 
      return DFB_OK;
 }
@@ -259,14 +259,14 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer *thiz,
           case DLBM_DONTCARE:
           case DLBM_COLOR:
           case DLBM_IMAGE:
-               if (background_mode != data->layer->bg.mode) {
-                    if (background_mode == DLBM_IMAGE && !data->layer->bg.image)
+               if (background_mode != data->layer->shared->bg.mode) {
+                    if (background_mode == DLBM_IMAGE && !data->layer->shared->bg.image)
                          return DFB_MISSINGIMAGE;
 
-                    data->layer->bg.mode = background_mode;
+                    data->layer->shared->bg.mode = background_mode;
 
                     if (background_mode != DLBM_DONTCARE)
-                         windowstack_repaint_all( data->layer->windowstack );
+                         windowstack_repaint_all( data->layer->shared->windowstack );
                }
                return DFB_OK;
      }
@@ -287,18 +287,18 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
 
      surface_data = (IDirectFBSurface_data*)surface->priv;
 
-     if (data->layer->bg.image != surface_data->surface) {
-          if (data->layer->bg.image)
-               reactor_detach( data->layer->bg.image->reactor,
+     if (data->layer->shared->bg.image != surface_data->surface) {
+          if (data->layer->shared->bg.image)
+               reactor_detach( data->layer->shared->bg.image->reactor,
                                IDirectFBDisplayLayer_bgsurface_listener, thiz );
 
-          data->layer->bg.image = surface_data->surface;
+          data->layer->shared->bg.image = surface_data->surface;
 
-          reactor_attach( data->layer->bg.image->reactor,
+          reactor_attach( data->layer->shared->bg.image->reactor,
                           IDirectFBDisplayLayer_bgsurface_listener, thiz );
 
-          if (data->layer->bg.mode == DLBM_IMAGE)
-               windowstack_repaint_all( data->layer->windowstack );
+          if (data->layer->shared->bg.mode == DLBM_IMAGE)
+               windowstack_repaint_all( data->layer->shared->windowstack );
      }
 
      return DFB_OK;
@@ -310,18 +310,18 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->layer->bg.color.r != r  ||
-         data->layer->bg.color.g != g  ||
-         data->layer->bg.color.b != b  ||
-         data->layer->bg.color.a != a)
+     if (data->layer->shared->bg.color.r != r  ||
+         data->layer->shared->bg.color.g != g  ||
+         data->layer->shared->bg.color.b != b  ||
+         data->layer->shared->bg.color.a != a)
      {
-          data->layer->bg.color.r = r;
-          data->layer->bg.color.g = g;
-          data->layer->bg.color.b = b;
-          data->layer->bg.color.a = a;
+          data->layer->shared->bg.color.r = r;
+          data->layer->shared->bg.color.g = g;
+          data->layer->shared->bg.color.b = b;
+          data->layer->shared->bg.color.a = a;
 
-          if (data->layer->bg.mode == DLBM_COLOR)
-               windowstack_repaint_all( data->layer->windowstack );
+          if (data->layer->shared->bg.mode == DLBM_COLOR)
+               windowstack_repaint_all( data->layer->shared->windowstack );
      }
 
      return DFB_OK;
@@ -355,7 +355,7 @@ DFBResult IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer *thiz,
      if (!width || width > 4096 || !height || height > 4096)
           return DFB_INVARG;
 
-     w = window_create( data->layer->windowstack,
+     w = window_create( data->layer->shared->windowstack,
                         posx, posy, width, height, caps );
      if (!w)
           return DFB_FAILURE;
@@ -394,10 +394,10 @@ DFBResult IDirectFBDisplayLayer_GetCursorPosition( IDirectFBDisplayLayer *thiz,
           return DFB_INVARG;
 
      if (x)
-          *x = data->layer->windowstack->cx;
+          *x = data->layer->shared->windowstack->cx;
 
      if (y)
-          *y = data->layer->windowstack->cy;
+          *y = data->layer->shared->windowstack->cy;
 
      return DFB_OK;
 }
@@ -442,7 +442,7 @@ DFBResult IDirectFBDisplayLayer_GetColorAdjustment( IDirectFBDisplayLayer *thiz,
      if (!adj)
           return DFB_INVARG;
 
-     *adj = data->layer->adjustment;
+     *adj = data->layer->shared->adjustment;
 
      return DFB_OK;
 }
@@ -515,16 +515,16 @@ ReactionResult IDirectFBDisplayLayer_bgsurface_listener( const void *msg_data,
           DEBUGMSG("IDirectFBDisplayLayer: "
                    "CoreSurface for background vanished.\n");
 
-          data->layer->bg.mode  = DLBM_COLOR;
-          data->layer->bg.image = NULL;
+          data->layer->shared->bg.mode  = DLBM_COLOR;
+          data->layer->shared->bg.image = NULL;
 
-          windowstack_repaint_all( data->layer->windowstack );
+          windowstack_repaint_all( data->layer->shared->windowstack );
 
           return RS_REMOVE;
      }
 
      if (notification->flags & (CSNF_FLIP | CSNF_SIZEFORMAT))
-          windowstack_repaint_all( data->layer->windowstack );
+          windowstack_repaint_all( data->layer->shared->windowstack );
 
      return RS_OK;
 }

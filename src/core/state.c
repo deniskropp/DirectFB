@@ -23,15 +23,65 @@
 
 #include <pthread.h>
 
+#include <core/fusion/reactor.h>
+
 #include "directfb.h"
 
 #include "core.h"
 #include "coretypes.h"
 
-#include "reactor.h"
 #include "state.h"
 #include "surfaces.h"
 
+
+static ReactionResult destination_listener( const void *msg_data,
+                                            void       *ctx );
+static ReactionResult source_listener     ( const void *msg_data,
+                                            void       *ctx );
+
+
+
+int state_init( CardState *state )
+{
+     return skirmish_init( &state->lock );
+}
+
+void state_destroy( CardState *state )
+{
+     skirmish_destroy( &state->lock );
+}
+
+void state_set_destination( CardState *state, CoreSurface *destination )
+{
+     if (state->destination != destination) {
+          if (state->destination)
+               reactor_detach( state->destination->reactor,
+                               destination_listener, state );
+
+          if (destination)
+               reactor_attach( destination->reactor,
+                               destination_listener, state );
+
+          state->destination = destination;
+          state->modified |= SMF_DESTINATION;
+     }
+}
+
+void state_set_source( CardState *state, CoreSurface *source )
+{
+     if (state->source != source) {
+          if (state->source)
+               reactor_detach( state->source->reactor, source_listener, state );
+
+          if (source)
+               reactor_attach( source->reactor, source_listener, state );
+
+          state->source = source;
+          state->modified |= SMF_SOURCE;
+     }
+}
+
+/**********************/
 
 static ReactionResult destination_listener( const void *msg_data,
                                             void       *ctx )
@@ -71,22 +121,6 @@ static ReactionResult destination_listener( const void *msg_data,
      return RS_OK;
 }
 
-void state_set_destination( CardState *state, CoreSurface *destination )
-{
-     if (state->destination != destination) {
-          if (state->destination)
-               reactor_detach( state->destination->reactor,
-                               destination_listener, state );
-
-          if (destination)
-               reactor_attach( destination->reactor,
-                               destination_listener, state );
-
-          state->destination = destination;
-          state->modified |= SMF_DESTINATION;
-     }
-}
-
 static ReactionResult source_listener( const void *msg_data, void *ctx )
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
@@ -106,16 +140,3 @@ static ReactionResult source_listener( const void *msg_data, void *ctx )
      return RS_OK;
 }
 
-void state_set_source( CardState *state, CoreSurface *source )
-{
-     if (state->source != source) {
-          if (state->source)
-               reactor_detach( state->source->reactor, source_listener, state );
-
-          if (source)
-               reactor_attach( source->reactor, source_listener, state );
-
-          state->source = source;
-          state->modified |= SMF_SOURCE;
-     }
-}
