@@ -103,7 +103,7 @@ static void surface_destructor( FusionObject *object, bool zombie )
      if (surface->palette) {
           dfb_palette_detach_global( surface->palette,
                                      &surface->palette_reaction );
-          dfb_palette_unlink( surface->palette );
+          dfb_palette_unlink( &surface->palette );
      }
 
      fusion_object_destroy( object );
@@ -457,9 +457,7 @@ dfb_surface_set_palette( CoreSurface *surface,
 
      if (surface->palette) {
           dfb_palette_detach_global( surface->palette, &surface->palette_reaction );
-          dfb_palette_unlink( surface->palette );
-
-          surface->palette = NULL;
+          dfb_palette_unlink( &surface->palette );
      }
 
      if (palette) {

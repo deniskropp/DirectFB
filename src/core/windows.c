@@ -232,7 +232,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
 
      /* Unlink cursor window. */
      if (stack->cursor.window)
-          dfb_window_unlink( stack->cursor.window );
+          dfb_window_unlink( &stack->cursor.window );
 
      /* Destroy the object pool and all remaining objects. FIXME: per stack */
      if (stack->layer_id == DLID_PRIMARY)
@@ -434,7 +434,7 @@ dfb_window_create( CoreWindowStack        *stack,
           if (config->buffermode == DLBM_WINDOWS) {
                ret = dfb_layer_add_window( layer, window );
                if (ret) {
-                    dfb_surface_unlink( surface );
+                    dfb_surface_unlink( &window->surface );
                     fusion_object_destroy( &window->object );
                     return ret;
                }
@@ -518,9 +518,7 @@ dfb_window_destroy( CoreWindow *window )
           dfb_surface_detach_global( window->surface,
                                      &window->surface_reaction );
 
-          dfb_surface_unlink( window->surface );
-
-          window->surface = NULL;
+          dfb_surface_unlink( &window->surface );
      }
 
      /* Unlock the window stack. */

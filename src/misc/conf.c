@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -164,10 +164,10 @@ static const char *config_usage =
     "\n";
 
 typedef struct {
-     char                  *string;
+     const char            *string;
      DFBSurfacePixelFormat  format;
 } FormatString;
- 
+
 static const FormatString format_strings[] = {
      { "A8",       DSPF_A8       },
      { "ALUT44",   DSPF_ALUT44   },
@@ -197,10 +197,10 @@ static DFBSurfacePixelFormat
 parse_pixelformat( const char *format )
 {
      FormatString *format_string;
-      
+
      format_string = bsearch( format, format_strings,
                               NUM_FORMAT_STRINGS, sizeof(FormatString),
-                              format_string_compare );
+                              (__compar_fn_t) format_string_compare );
      if (!format_string)
           return DSPF_UNKNOWN;
 
@@ -308,7 +308,7 @@ static void config_allocate()
 
      /* default to fbdev */
      dfb_config->system = DFBSTRDUP( "FBDev" );
-     
+
      /* default to no-vt-switch if we don't have root privileges */
      if (geteuid())
           dfb_config->vt_switch = false;
@@ -329,7 +329,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
 		      dfb_config->disable_module[n])
 		    n++;
 
-	       dfb_config->disable_module = 
+	       dfb_config->disable_module =
 		    DFBREALLOC( dfb_config->disable_module,
                                 sizeof(char*) * (n + 2) );
 
@@ -481,7 +481,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "videoram-limit" ) == 0) {
           if (value) {
                int limit;
-               
+
                if (sscanf( value, "%d", &limit ) < 1) {
                     ERRORMSG("DirectFB/Config 'videoram-limit': Could not parse value!\n");
                     return DFB_INVARG;
@@ -489,7 +489,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
 
                if (limit < 0)
                     limit = 0;
-               
+
                dfb_config->videoram_limit = limit << 10;
           }
           else {
@@ -609,7 +609,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                if (dfb_config->layer_bg_filename)
                     DFBFREE( dfb_config->layer_bg_filename );
                dfb_config->layer_bg_filename = DFBSTRDUP( value );
-               dfb_config->layer_bg_mode = 
+               dfb_config->layer_bg_mode =
                     strcmp (name, "bg-tile" ) ? DLBM_IMAGE : DLBM_TILE;
           }
           else {
@@ -729,7 +729,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
 
                     s = NULL;
                }
-               
+
                DFBFREE( signals );
           }
           else {
@@ -832,7 +832,7 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
           if (ret)
                return ret;
      }
-     
+
      /* Read system settings. */
      ret = dfb_config_read( "/etc/directfbrc" );
      if (ret  &&  ret != DFB_IO)
@@ -849,7 +849,7 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
           if (ret  &&  ret != DFB_IO)
                return ret;
      }
-     
+
      /* Get application name. */
      if (argc && *argc && argv && *argv) {
           prog = strrchr( (*argv)[0], '/' );
@@ -859,7 +859,7 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
           else
                prog = (*argv)[0];
      }
-     
+
      /* Read global application settings. */
      if (prog && prog[0]) {
           int  len = strlen("/etc/directfbrc.") + strlen(prog) + 1;
@@ -891,7 +891,7 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
           if (ret)
                return ret;
      }
-     
+
      /* Read settings from command line. */
      if (argc && argv) {
           for (i = 1; i < *argc; i++) {

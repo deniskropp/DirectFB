@@ -737,7 +737,7 @@ dfb_layer_disable( CoreLayer *layer )
           /* detach listener from background surface and unlink it */
           if (stack->bg.image) {
                dfb_surface_detach_global( stack->bg.image, &shared->bgimage_reaction );
-               dfb_surface_unlink( stack->bg.image );
+               dfb_surface_unlink( &stack->bg.image );
           }
 
           dfb_windowstack_destroy( stack );
@@ -971,16 +971,14 @@ dfb_layer_set_background_image( CoreLayer   *layer,
 
      /* if the surface is changed */
      if (stack->bg.image != image) {
-          CoreSurface *old_image = stack->bg.image;
+          /* detach listener from old surface and unlink it */
+          if (stack->bg.image) {
+               dfb_surface_detach_global( stack->bg.image, &shared->bgimage_reaction );
+               dfb_surface_unlink( &stack->bg.image );
+          }
 
           /* link surface object */
           dfb_surface_link( &stack->bg.image, image );
-
-          /* detach listener from old surface and unlink it */
-          if (old_image) {
-               dfb_surface_detach_global( old_image, &shared->bgimage_reaction );
-               dfb_surface_unlink( old_image );
-          }
 
           /* attach listener to new surface */
           dfb_surface_attach_global( image, DFB_LAYER_BACKGROUND_IMAGE_LISTENER,

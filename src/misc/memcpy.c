@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -395,17 +395,18 @@ static void *linux_kernel_memcpy(void *to, const void *from, size_t len) {
 
 #endif /* ARCH_X86 */
 
+typedef void* (*memcpy_func)(void *to, const void *from, size_t len);
 
 static struct {
      char                 *name;
      char                 *desc;
-     void               *(*function)(void *to, const void *from, size_t len);
+     memcpy_func           function;
      unsigned long long    time;
      __u32                 cpu_require;
 } memcpy_method[] =
 {
      { NULL, NULL, NULL, 0, 0},
-     { "libc",     "libc memcpy()",             memcpy, 0, 0},
+     { "libc",     "libc memcpy()",             (memcpy_func) memcpy, 0, 0},
 #ifdef ARCH_X86
      { "linux",    "linux kernel memcpy()",     linux_kernel_memcpy, 0, 0},
 #ifdef USE_MMX
@@ -437,14 +438,14 @@ static inline unsigned long long int rdtsc()
 static inline unsigned long long int rdtsc()
 {
      struct timeval tv;
-   
+
      gettimeofday (&tv, NULL);
      return (tv.tv_sec * 1000000 + tv.tv_usec);
 }
 #endif
 
 
-void *(* dfb_memcpy)(void *to, const void *from, size_t len) = memcpy;
+memcpy_func dfb_memcpy = (memcpy_func) memcpy;
 
 #define BUFSIZE 1024
 
@@ -467,7 +468,7 @@ dfb_find_best_memcpy()
                          break;
 
                     dfb_memcpy = memcpy_method[i].function;
-                    
+
                     INITMSG( "DirectFB/misc/memcpy: forced to use %s\n",
                              memcpy_method[i].desc );
 
@@ -512,7 +513,7 @@ dfb_find_best_memcpy()
 
      if (best) {
           dfb_memcpy = memcpy_method[best].function;
-          
+
           INITMSG( "DirectFB/misc/memcpy: using %s\n",
                    memcpy_method[best].desc );
      }
@@ -535,7 +536,7 @@ dfb_print_memcpy_routines() {
           fprintf( stderr, "  %-10s  %-27s  %s\n", memcpy_method[i].name,
                    memcpy_method[i].desc, unsupported ? "" : "supported" );
      }
-     
+
      fprintf( stderr, "\n" );
 }
 

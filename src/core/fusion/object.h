@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -160,8 +160,12 @@ prefix##_link( type **link,                                                    \
 }                                                                              \
                                                                                \
 static inline FusionResult                                                     \
-prefix##_unlink( type *object )                                                \
+prefix##_unlink( type **link )                                                 \
 {                                                                              \
+     type *object = *link;                                                     \
+                                                                               \
+     *link = NULL;                                                             \
+                                                                               \
      return fusion_ref_down( &((FusionObject*)object)->ref, true );            \
 }
 

@@ -23,7 +23,7 @@
 
 static void uc_fifo_pad(struct uc_fifo* fifo)
 {
-    switch (fifo->used & 0x7) 
+    switch (fifo->used & 0x7)
     {
     case 0:
         break;
@@ -40,7 +40,7 @@ static void uc_fifo_pad(struct uc_fifo* fifo)
         UC_FIFO_ADD(fifo, HC_ParaType_NotTex << 16);
         UC_FIFO_ADD(fifo, HC_DUMMY);
         UC_FIFO_ADD(fifo, HC_DUMMY);
-        break;    
+        break;
     case 6:
         UC_FIFO_ADD(fifo, HALCYON_HEADER2);
         UC_FIFO_ADD(fifo, HC_ParaType_NotTex << 16);
@@ -52,7 +52,7 @@ static void uc_fifo_pad(struct uc_fifo* fifo)
         UC_FIFO_ADD(fifo, HC_DUMMY);
         UC_FIFO_ADD(fifo, HC_DUMMY);
         UC_FIFO_ADD(fifo, HC_DUMMY);
-        break;    
+        break;
     default:
         break;
     }
@@ -137,7 +137,7 @@ static void uc_fifo_flush_sys(struct uc_fifo* fifo)
 }
 
 /** Use an AGP transfer to write the FIFO buffer to the hardware. Not implemented. */
-
+#if 0
 static void uc_fifo_flush_agp(struct uc_fifo* fifo)
 {
     // TODO - however, there is no point in doing this, because
@@ -149,6 +149,7 @@ static void uc_fifo_flush_agp(struct uc_fifo* fifo)
     fifo->used = 0;
     fifo->prep = 0;
 }
+#endif
 
 // Public functions ----------------------------------------------------------
 

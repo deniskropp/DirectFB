@@ -114,30 +114,30 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
      if (fusion_skirmish_prevail( &region->lock ))
           return DFB_FUSION;
 
-     /* Throw away old surface. */
-     if (region->surface) {
-          /* Detach the global listener. */
-          dfb_surface_detach_global( region->surface,
-                                     &region->surface_reaction );
+     if (region->surface != surface) {
+          /* Throw away old surface. */
+          if (region->surface) {
+               /* Detach the global listener. */
+               dfb_surface_detach_global( region->surface,
+                                          &region->surface_reaction );
 
-          /* Unlink from structure. */
-          dfb_surface_unlink( region->surface );
-
-          region->surface = NULL;
-     }
-
-     /* Use new surface. */
-     if (surface) {
-          /* Link surface into structure. */
-          if (dfb_surface_link( &region->surface, surface )) {
-               fusion_skirmish_dismiss( &region->lock );
-               return DFB_FUSION;
+               /* Unlink from structure. */
+               dfb_surface_unlink( &region->surface );
           }
 
-          /* Attach the global listener. */
-          dfb_surface_attach_global( region->surface,
-                                     DFB_LAYER_REGION_SURFACE_LISTENER,
-                                     region, &region->surface_reaction );
+          /* Use new surface. */
+          if (surface) {
+               /* Link surface into structure. */
+               if (dfb_surface_link( &region->surface, surface )) {
+                    fusion_skirmish_dismiss( &region->lock );
+                    return DFB_FUSION;
+               }
+
+               /* Attach the global listener. */
+               dfb_surface_attach_global( region->surface,
+                                          DFB_LAYER_REGION_SURFACE_LISTENER,
+                                          region, &region->surface_reaction );
+          }
      }
 
      /* Unlock the region. */

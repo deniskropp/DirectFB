@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -85,7 +85,7 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
           qsort ( keynames,
                   sizeof(keynames) / sizeof(keynames[0]),
                   sizeof(keynames[0]),
-                  keynames_sort_compare );
+                  (__compar_fn_t) keynames_sort_compare );
           keynames_sorted = true;
      }
 
@@ -111,7 +111,8 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
           default:
                symbol_name = bsearch( name, keynames,
                                       sizeof(keynames)/sizeof(keynames[0]),
-                                      sizeof(keynames[0]), keynames_compare );
+                                      sizeof(keynames[0]),
+                                      (__compar_fn_t) keynames_compare );
                if (symbol_name)
                     return symbol_name->symbol;
                break;

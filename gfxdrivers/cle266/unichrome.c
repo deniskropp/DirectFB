@@ -102,8 +102,8 @@ DFB_GRAPHICS_DRIVER(unichrome)
 /**
  * Dump beginning of virtual queue.
  * Use it to check that the VQ actually is in use. */
-
-static void uc_dump_vq(UcDeviceData *ucdev) 
+#if 0
+static void uc_dump_vq(UcDeviceData *ucdev)
 {
     int i;
     __u8* vq;
@@ -116,6 +116,7 @@ static void uc_dump_vq(UcDeviceData *ucdev)
         if ((i+1) % 16 == 0) printf("\n");
     }
 }
+#endif
 
 /** Allocate memory for the virtual queue. */
 
@@ -141,7 +142,7 @@ static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
 }
 
 /**
- * Initialize the hardware. 
+ * Initialize the hardware.
  * @param enable    enable VQ if true (else disable it.)
  */
 
@@ -329,7 +330,7 @@ static void uc_engine_sync(void* drv, void* dev)
     /* printf("Entering uc_engine_sync(), status is 0x%08x\n",
         VIA_IN(ucdrv->hwregs, VIA_REG_STATUS));
      */
-    
+
     while (loop++ < MAXLOOP) {
         if ((VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & 0xfffeffff) == 0x00020000)
             break;
@@ -399,7 +400,7 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
 
     ucdrv->hwregs = mmap(NULL, 0x1000000,
         PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if ((int) ucdrv->hwregs == -1) 
+    if ((int) ucdrv->hwregs == -1)
          return DFB_IO;
 
     uc_after_set_var(driver_data, device_data);
