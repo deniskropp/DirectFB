@@ -137,7 +137,10 @@ Construct( IDirectFBFont      *thiz,
                     data->height  = 20;
                     data->left    = 0;
                     data->top     = 0;
-                    data->advance = data->width + 1;
+                    data->advance = ((desc->flags & DFDESC_FIXEDADVANCE) ?
+                                     desc->fixed_advance :
+                                     data->width + 1);
+
                     HEAVYDEBUGMSG( "DirectFB/core/fonts: "
 				   "glyph '%c' at %d, width %d\n",
                                    glyphs[index], start, i-start );
