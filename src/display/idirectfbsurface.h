@@ -21,8 +21,8 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __DIRECTFBSURFACE_H__
-#define __DIRECTFBSURFACE_H__
+#ifndef __IDIRECTFBSURFACE_H__
+#define __IDIRECTFBSURFACE_H__
 
 #include <directfb.h>
 #include <core/coretypes.h>
@@ -84,7 +84,5 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface *thiz,
  */
 void IDirectFBSurface_Destruct( IDirectFBSurface *thiz );
 
-
-ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx );
 
 #endif

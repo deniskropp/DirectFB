@@ -58,7 +58,7 @@
 #include "idirectfb.h"
 
 
-IDirectFB *idirectfb_singleton = NULL;
+static IDirectFB *idirectfb_singleton = NULL;
 
 /*
  * Version checking
@@ -153,7 +153,7 @@ DFBResult DirectFBInit( int *argc, char **argv[] )
      return DFB_OK;
 }
 
-DFBResult DirectFBSetOption( char *name, char *value)
+DFBResult DirectFBSetOption( char *name, char *value )
 {
      DFBResult ret;
 

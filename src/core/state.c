@@ -62,8 +62,8 @@ void dfb_state_set_destination( CardState *state, CoreSurface *destination )
                reactor_attach( destination->reactor,
                                destination_listener, state );
 
-          state->destination = destination;
-          state->modified |= SMF_DESTINATION;
+          state->destination  = destination;
+          state->modified    |= SMF_DESTINATION;
      }
 }
 
@@ -76,7 +76,7 @@ void dfb_state_set_source( CardState *state, CoreSurface *source )
           if (source)
                reactor_attach( source->reactor, source_listener, state );
 
-          state->source = source;
+          state->source    = source;
           state->modified |= SMF_SOURCE;
      }
 }
@@ -90,8 +90,8 @@ static ReactionResult destination_listener( const void *msg_data,
      CardState               *state        = (CardState*)ctx;
 
      if (notification->flags & CSNF_DESTROY) {
-          state->destination = NULL;
-          state->modified |= SMF_DESTINATION;
+          state->destination  = NULL;
+          state->modified    |= SMF_DESTINATION;
 
           return RS_REMOVE;
      }

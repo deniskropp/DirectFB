@@ -105,25 +105,46 @@ static DFBResult IDirectFBInputDevice_Release( IDirectFBInputDevice *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBInputDevice_CreateInputBuffer(
-                                                  IDirectFBInputDevice  *thiz,
-                                                  IDirectFBInputBuffer **buffer)
+static DFBResult IDirectFBInputDevice_GetID( IDirectFBInputDevice *thiz,
+                                             DFBInputDeviceID     *id )
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     DFB_ALLOCATE_INTERFACE( *buffer, IDirectFBInputBuffer );
+     if (!id)
+          return DFB_INVARG;
 
-     return IDirectFBInputBuffer_Construct( *buffer, data->device );
+     *id = dfb_input_device_id( data->device );
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBInputDevice_CreateEventBuffer(
+                                                  IDirectFBInputDevice  *thiz,
+                                                  IDirectFBEventBuffer **buffer)
+{
+     IDirectFBEventBuffer *b;
+
+     INTERFACE_GET_DATA(IDirectFBInputDevice)
+
+     DFB_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
+
+     IDirectFBEventBuffer_Construct( b );
+
+     IDirectFBEventBuffer_AttachInputDevice( b, data->device );
+
+     *buffer = b;
+
+     return DFB_OK;
 }
 
 
-static DFBResult IDirectFBInputDevice_AttachInputBuffer(
+static DFBResult IDirectFBInputDevice_AttachEventBuffer(
                                                   IDirectFBInputDevice  *thiz,
-                                                  IDirectFBInputBuffer  *buffer)
+                                                  IDirectFBEventBuffer  *buffer)
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     return IDirectFBInputBuffer_Attach( buffer, data->device );
+     return IDirectFBEventBuffer_AttachInputDevice( buffer, data->device );
 }
 
 static DFBResult IDirectFBInputDevice_GetDescription(
@@ -243,8 +264,9 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
 
      thiz->AddRef = IDirectFBInputDevice_AddRef;
      thiz->Release = IDirectFBInputDevice_Release;
-     thiz->CreateInputBuffer = IDirectFBInputDevice_CreateInputBuffer;
-     thiz->AttachInputBuffer = IDirectFBInputDevice_AttachInputBuffer;
+     thiz->GetID = IDirectFBInputDevice_GetID;
+     thiz->CreateEventBuffer = IDirectFBInputDevice_CreateEventBuffer;
+     thiz->AttachEventBuffer = IDirectFBInputDevice_AttachEventBuffer;
      thiz->GetDescription = IDirectFBInputDevice_GetDescription;
      thiz->GetKeyState = IDirectFBInputDevice_GetKeyState;
      thiz->GetModifiers = IDirectFBInputDevice_GetModifiers;

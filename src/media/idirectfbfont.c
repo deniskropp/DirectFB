@@ -44,7 +44,8 @@
 /*
  * increments reference count of font
  */
-DFBResult IDirectFBFont_AddRef( IDirectFBFont *thiz )
+static DFBResult
+IDirectFBFont_AddRef( IDirectFBFont *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBFont)
 
@@ -56,7 +57,8 @@ DFBResult IDirectFBFont_AddRef( IDirectFBFont *thiz )
 /*
  * decrements reference count, destructs interface data if reference count is 0
  */
-DFBResult IDirectFBFont_Release( IDirectFBFont *thiz )
+static DFBResult
+IDirectFBFont_Release( IDirectFBFont *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBFont)
 
@@ -69,7 +71,8 @@ DFBResult IDirectFBFont_Release( IDirectFBFont *thiz )
 /*
  * Get the distance from the baseline to the top.
  */
-DFBResult IDirectFBFont_GetAscender( IDirectFBFont *thiz, int *ascender )
+static DFBResult
+IDirectFBFont_GetAscender( IDirectFBFont *thiz, int *ascender )
 {
      INTERFACE_GET_DATA(IDirectFBFont)
 
@@ -85,7 +88,8 @@ DFBResult IDirectFBFont_GetAscender( IDirectFBFont *thiz, int *ascender )
  * Get the distance from the baseline to the bottom.
  * This is a negative value!
  */
-DFBResult IDirectFBFont_GetDescender( IDirectFBFont *thiz, int *descender )
+static DFBResult
+IDirectFBFont_GetDescender( IDirectFBFont *thiz, int *descender )
 {
      INTERFACE_GET_DATA(IDirectFBFont)
 
@@ -100,7 +104,8 @@ DFBResult IDirectFBFont_GetDescender( IDirectFBFont *thiz, int *descender )
 /*
  * Get the height of this font.
  */
-DFBResult IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
+static DFBResult
+IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
 {
      INTERFACE_GET_DATA(IDirectFBFont)
 
@@ -115,7 +120,8 @@ DFBResult IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
 /*
  * Get the maximum character width.
  */
-DFBResult IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
+static DFBResult
+IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
 {
      INTERFACE_GET_DATA(IDirectFBFont)
 
@@ -131,10 +137,11 @@ DFBResult IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
  * Get the logical and ink extensions of the specified string as if it were
  * drawn with this font.
  */
-DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
-                                          const char *text, int bytes,
-                                          DFBRectangle *logical_rect,
-                                          DFBRectangle *ink_rect )
+static DFBResult
+IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
+                                const char *text, int bytes,
+                                DFBRectangle *logical_rect,
+                                DFBRectangle *ink_rect )
 {
      CoreFont      *font;
      CoreGlyphData *glyph;
@@ -208,9 +215,10 @@ DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
  * Get the logical width of the specified string as if it were drawn
  * with this font. The drawn string may extend this value.
  */
-DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
-                                        const char *text, int bytes,
-                                        int *width )
+static DFBResult
+IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
+                              const char *text, int bytes,
+                              int *width )
 {
      DFBRectangle rect;
      DFBResult    result;
@@ -226,7 +234,8 @@ DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
      return result;
 }
 
-DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
+DFBResult
+IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
 {
      IDirectFBFont_data *data;
 
@@ -250,7 +259,8 @@ DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      return DFB_OK;
 }
 
-void IDirectFBFont_Destruct( IDirectFBFont *thiz )
+void
+IDirectFBFont_Destruct( IDirectFBFont *thiz )
 {
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
 

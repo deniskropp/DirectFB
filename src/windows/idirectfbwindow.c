@@ -46,6 +46,8 @@
 #include "display/idirectfbsurface.h"
 #include "display/idirectfbsurface_window.h"
 
+#include "input/idirectfbinputbuffer.h"
+
 #include "misc/util.h"
 #include "misc/mem.h"
 
@@ -58,27 +60,12 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
                                              void       *ctx );
 
 
-typedef struct _WindowBufferItem
-{
-     DFBWindowEvent           evt;
-     struct _WindowBufferItem *next;
-} IDirectFBWindowBuffer_item;
-
 
 typedef struct {
      int                            ref;
      CoreWindow                    *window;
 
      IDirectFBSurface              *surface;
-
-     IDirectFBWindowBuffer_item    *events;         /* linked list containing
-                                                       events */
-
-     pthread_mutex_t                events_mutex;   /* skirmish lock for accessing
-                                                       the event queue */
-
-     pthread_cond_t                 wait_condition; /* condition used for idle
-                                                       wait in WaitForEvent() */
 } IDirectFBWindow_data;
 
 
@@ -96,17 +83,6 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 
           dfb_window_destroy( data->window );
      }
-
-     while (data->events) {
-          IDirectFBWindowBuffer_item *next = data->events->next;
-
-          DFBFREE( data->events );
-
-          data->events = next;
-     }
-
-     pthread_cond_destroy( &data->wait_condition );
-     pthread_mutex_destroy( &data->events_mutex );
 
      DFBFREE( data );
      thiz->priv = NULL;
@@ -131,6 +107,50 @@ static DFBResult IDirectFBWindow_Release( IDirectFBWindow *thiz )
 
      if (--data->ref == 0)
           IDirectFBWindow_Destruct( thiz );
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBWindow_CreateEventBuffer(
+                                                  IDirectFBWindow       *thiz,
+                                                  IDirectFBEventBuffer **buffer)
+{
+     IDirectFBEventBuffer *b;
+
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     DFB_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
+
+     IDirectFBEventBuffer_Construct( b );
+
+     IDirectFBEventBuffer_AttachWindow( b, data->window );
+
+     *buffer = b;
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBWindow_AttachEventBuffer(
+                                                  IDirectFBWindow       *thiz,
+                                                  IDirectFBEventBuffer  *buffer)
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     return IDirectFBEventBuffer_AttachWindow( buffer, data->window );
+}
+
+static DFBResult IDirectFBWindow_GetID( IDirectFBWindow *thiz,
+                                        DFBWindowID     *id )
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     if (!id)
+          return DFB_INVARG;
+
+     *id = data->window->id;
 
      return DFB_OK;
 }
@@ -372,117 +392,6 @@ static DFBResult IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
      return dfb_window_lowertobottom( data->window );
 }
 
-static DFBResult IDirectFBWindow_WaitForEvent( IDirectFBWindow *thiz )
-{
-     INTERFACE_GET_DATA(IDirectFBWindow)
-
-     DEBUGMSG("DirectFB/IDirectFBWindow: Locking...\n");
-
-     pthread_mutex_lock( &data->events_mutex );
-
-
-     if (!data->events) {
-          DEBUGMSG("DirectFB/IDirectFBWindow: - Waiting...\n");
-          pthread_cond_wait( &data->wait_condition, &data->events_mutex );
-     }
-
-     DEBUGMSG("DirectFB/IDirectFBWindow: - - Unlocking...\n");
-
-     pthread_mutex_unlock( &data->events_mutex );
-
-     DEBUGMSG("DirectFB/IDirectFBWindow: - - - Returning...\n");
-
-     return DFB_OK;
-}
-
-static DFBResult IDirectFBWindow_WaitForEventWithTimeout(
-                                                  IDirectFBWindow *thiz,
-                                                  long int             seconds,
-                                                  long int        nano_seconds )
-{
-     struct timeval  now;
-     struct timespec timeout;
-     DFBResult       ret    = DFB_OK;
-     int             locked = 0;
-
-     INTERFACE_GET_DATA(IDirectFBWindow)
-
-     if (pthread_mutex_trylock( &data->events_mutex ) == 0) {
-          if (data->events) {
-               pthread_mutex_unlock ( &data->events_mutex );
-               return ret;
-          }
-          locked = 1;
-     }
-
-     gettimeofday( &now, NULL );
-
-     timeout.tv_sec  = now.tv_sec + seconds;
-     timeout.tv_nsec = (now.tv_usec * 1000) + nano_seconds;
-
-     timeout.tv_sec  += timeout.tv_nsec / 1000000000;
-     timeout.tv_nsec %= 1000000000;
-
-     if (!locked)
-          pthread_mutex_lock( &data->events_mutex );
-
-     if (!data->events) {
-
-          if (pthread_cond_timedwait( &data->wait_condition,
-                                      &data->events_mutex,
-                                      &timeout ) == ETIMEDOUT)
-               ret = DFB_TIMEOUT;
-     }
-
-     pthread_mutex_unlock( &data->events_mutex );
-
-     return ret;
-}
-
-static DFBResult IDirectFBWindow_GetEvent( IDirectFBWindow *thiz,
-                                           DFBWindowEvent  *event )
-{
-     IDirectFBWindowBuffer_item *e;
-
-     INTERFACE_GET_DATA(IDirectFBWindow)
-
-     pthread_mutex_lock( &data->events_mutex );
-
-     if (!data->events) {
-          pthread_mutex_unlock( &data->events_mutex );
-          return DFB_BUFFEREMPTY;
-     }
-     e = data->events;
-
-     *event = e->evt;
-
-     data->events = e->next;
-     DFBFREE( e );
-
-     pthread_mutex_unlock( &data->events_mutex );
-
-     return DFB_OK;
-}
-
-static DFBResult IDirectFBWindow_PeekEvent( IDirectFBWindow *thiz,
-                                            DFBWindowEvent  *event )
-{
-     INTERFACE_GET_DATA(IDirectFBWindow)
-
-     pthread_mutex_lock( &data->events_mutex );
-
-     if (!data->events) {
-          pthread_mutex_unlock( &data->events_mutex );
-          return DFB_BUFFEREMPTY;
-     }
-
-     *event = data->events->evt;
-
-     pthread_mutex_unlock( &data->events_mutex );
-
-     return DFB_OK;
-}
-
 static DFBResult IDirectFBWindow_Close( IDirectFBWindow *thiz )
 {
      DFBWindowEvent evt;
@@ -528,15 +437,15 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      data->ref = 1;
      data->window = window;
 
-     pthread_mutex_init( &data->events_mutex, NULL );
-     pthread_cond_init( &data->wait_condition, NULL );
-
      reactor_attach( data->window->reactor, IDirectFBWindow_React, data );
 
      dfb_window_init( data->window );
 
      thiz->AddRef = IDirectFBWindow_AddRef;
      thiz->Release = IDirectFBWindow_Release;
+     thiz->CreateEventBuffer = IDirectFBWindow_CreateEventBuffer;
+     thiz->AttachEventBuffer = IDirectFBWindow_AttachEventBuffer;
+     thiz->GetID = IDirectFBWindow_GetID;
      thiz->GetPosition = IDirectFBWindow_GetPosition;
      thiz->GetSize = IDirectFBWindow_GetSize;
      thiz->GetSurface = IDirectFBWindow_GetSurface;
@@ -554,10 +463,6 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->Lower = IDirectFBWindow_Lower;
      thiz->RaiseToTop = IDirectFBWindow_RaiseToTop;
      thiz->LowerToBottom = IDirectFBWindow_LowerToBottom;
-     thiz->WaitForEvent = IDirectFBWindow_WaitForEvent;
-     thiz->WaitForEventWithTimeout = IDirectFBWindow_WaitForEventWithTimeout;
-     thiz->GetEvent = IDirectFBWindow_GetEvent;
-     thiz->PeekEvent = IDirectFBWindow_PeekEvent;
      thiz->Close = IDirectFBWindow_Close;
      thiz->Destroy = IDirectFBWindow_Destroy;
 
@@ -571,34 +476,10 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
                                              void       *ctx )
 {
      const DFBWindowEvent       *evt = (DFBWindowEvent*)msg_data;
-     IDirectFBWindowBuffer_item *item;
      IDirectFBWindow_data       *data = (IDirectFBWindow_data*)ctx;
-
-     item = (IDirectFBWindowBuffer_item*)
-          DFBCALLOC( 1, sizeof(IDirectFBWindowBuffer_item) );
-
-     item->evt = *evt;
-
-     pthread_mutex_lock( &data->events_mutex );
-
-     if (!data->events) {
-          data->events = item;
-     }
-     else {
-          IDirectFBWindowBuffer_item *e = data->events;
-
-          while (e->next)
-               e = e->next;
-
-          e->next = item;
-     }
 
      if (evt->type == DWET_DESTROYED)
           data->window = NULL;
-
-     pthread_cond_broadcast( &data->wait_condition );
-
-     pthread_mutex_unlock( &data->events_mutex );
 
      return RS_OK;
 }

@@ -46,6 +46,7 @@
 #include "misc/util.h"
 #include "misc/conf.h"
 #include "misc/memcpy.h"
+#include "misc/cpu_accel.h"
 
 #include "gfx/convert.h"
 #include "gfx/util.h"
@@ -2173,17 +2174,13 @@ static void Xacc_is_Bacc() { Xacc = Bacc;}
 
 /******************************************************************************/
 
-#ifdef USE_MMX
-unsigned int intel_cpu_features();
-#endif
-
 void gGetDriverInfo( GraphicsDriverInfo *info )
 {
      snprintf( info->name,
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH, "Software Driver" );
 
 #ifdef USE_MMX
-     if (intel_cpu_features() & (1 << 23)) {
+     if (dfb_mm_accel() & MM_MMX) {
           if (dfb_config->no_mmx) {
                INITMSG( "MMX detected, but disabled by --no-mmx \n");
           }

@@ -20,8 +20,7 @@ ASMSOURCES = \
 	Sacc_add_to_Dacc_MMX.s	\
 	Dacc_modulate_argb_MMX.s \
 	Xacc_blend_srcalpha_MMX.s \
-	Xacc_blend_invsrcalpha_MMX.s \
-	detect_MMX.s
+	Xacc_blend_invsrcalpha_MMX.s
 else
 ASMSOURCES =
 endif

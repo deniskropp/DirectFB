@@ -31,13 +31,7 @@
  * initializes interface struct and private data
  */
 DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
-                                           DisplayLayer *layer );
-
-/*
- * frees private data
- */
-void IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer * );
-
+                                           DisplayLayer          *layer );
 
 
 #endif

@@ -59,31 +59,14 @@ typedef struct {
 } IDirectFBSurface_Layer_data;
 
 
-void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
+static void
+IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 {
-     IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
-
-     dfb_state_set_destination( &data->state, NULL );
-     dfb_state_set_source( &data->state, NULL );
-
-     if (data->surface) {
-          reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
-
-          thiz->Unlock( thiz );
-     }
-
-     if (data->font)
-          data->font->Release (data->font);
-
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
-
-#ifndef DFB_DEBUG
-     DFBFREE( thiz );
-#endif
+     IDirectFBSurface_Destruct( thiz );
 }
 
-DFBResult IDirectFBSurface_Layer_Release( IDirectFBSurface *thiz )
+static DFBResult
+IDirectFBSurface_Layer_Release( IDirectFBSurface *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
@@ -93,9 +76,10 @@ DFBResult IDirectFBSurface_Layer_Release( IDirectFBSurface *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBSurface_Layer_Flip( IDirectFBSurface *thiz,
-                                       DFBRegion *region,
-                                       DFBSurfaceFlipFlags flags )
+static DFBResult
+IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
+                             DFBRegion           *region,
+                             DFBSurfaceFlipFlags  flags )
 {
      INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
@@ -141,9 +125,10 @@ DFBResult IDirectFBSurface_Layer_Flip( IDirectFBSurface *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface     *thiz,
-                                                DFBRectangle         *rect,
-                                                IDirectFBSurface     **surface )
+static DFBResult
+IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface  *thiz,
+                                      DFBRectangle      *rect,
+                                      IDirectFBSurface **surface )
 {
      DFBRectangle wanted, granted;
 
@@ -185,11 +170,12 @@ DFBResult IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface     *thiz,
                                               DSCAPS_SUBSURFACE );
 }
 
-DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
-                                            DFBRectangle           *wanted,
-                                            DFBRectangle           *granted,
-                                            DisplayLayer           *layer,
-                                            DFBSurfaceCapabilities caps )
+DFBResult
+IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
+                                  DFBRectangle           *wanted,
+                                  DFBRectangle           *granted,
+                                  DisplayLayer           *layer,
+                                  DFBSurfaceCapabilities  caps )
 {
      DFBResult err = DFB_OK;
      IDirectFBSurface_Layer_data *data;

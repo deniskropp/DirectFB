@@ -38,11 +38,4 @@ DFBResult IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                              CoreWindow             *window,
                                              DFBSurfaceCapabilities  caps );
 
-/*
- * if this is the primary surface there is no Window interface to
- * the core data, so destroy it; free private data
- */
-void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz );
-
-
 #endif

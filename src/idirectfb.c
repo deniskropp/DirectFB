@@ -63,6 +63,20 @@
 #include "misc/mem.h"
 #include "misc/util.h"
 
+/*
+ * private data struct of IDirectFB
+ */
+typedef struct {
+     int                 ref;      /* reference counter */
+     DFBCooperativeLevel level;    /* current cooperative level */
+
+     struct {
+          int            width;    /* IDirectFB stores window width    */
+          int            height;   /* and height and the pixel depth   */
+          int            bpp;      /* from SetVideoMode() parameters.  */
+     } primary;                    /* Used for DFSCL_NORMAL's primary. */
+} IDirectFB_data;
+
 typedef struct {
      DFBInputDeviceCallback  callback;
      void                   *callback_ctx;
@@ -70,13 +84,13 @@ typedef struct {
 
 typedef struct {
      IDirectFBInputDevice **interface;
-     unsigned int           id;
+     DFBInputDeviceID       id;
 } GetInputDevice_Context;
 
 typedef struct {
-     IDirectFBInputBuffer       **interface;
+     IDirectFBEventBuffer       **interface;
      DFBInputDeviceCapabilities   caps;
-} CreateInputBuffer_Context;
+} CreateEventBuffer_Context;
 
 typedef struct {
      char        header[32];
@@ -87,7 +101,7 @@ static DFBEnumerationResult EnumInputDevices_Callback ( InputDevice *device,
                                                         void        *ctx );
 static DFBEnumerationResult GetInputDevice_Callback   ( InputDevice *device,
                                                         void        *ctx );
-static DFBEnumerationResult CreateInputBuffer_Callback( InputDevice *device,
+static DFBEnumerationResult CreateEventBuffer_Callback( InputDevice *device,
                                                         void        *ctx );
 
 /*
@@ -96,7 +110,8 @@ static DFBEnumerationResult CreateInputBuffer_Callback( InputDevice *device,
  * Free data structure and set the pointer to NULL,
  * to indicate the dead interface.
  */
-void IDirectFB_Destruct( IDirectFB *thiz )
+static void
+IDirectFB_Destruct( IDirectFB *thiz )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
 
@@ -114,7 +129,8 @@ void IDirectFB_Destruct( IDirectFB *thiz )
 }
 
 
-DFBResult IDirectFB_AddRef( IDirectFB *thiz )
+static DFBResult
+IDirectFB_AddRef( IDirectFB *thiz )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -123,7 +139,8 @@ DFBResult IDirectFB_AddRef( IDirectFB *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFB_Release( IDirectFB *thiz )
+static DFBResult
+IDirectFB_Release( IDirectFB *thiz )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -133,8 +150,9 @@ DFBResult IDirectFB_Release( IDirectFB *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFB_SetCooperativeLevel( IDirectFB *thiz,
-                                         DFBCooperativeLevel level )
+static DFBResult
+IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
+                               DFBCooperativeLevel  level )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -165,8 +183,9 @@ DFBResult IDirectFB_SetCooperativeLevel( IDirectFB *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFB_GetCardCapabilities( IDirectFB               *thiz,
-                                         DFBCardCapabilities     *caps )
+static DFBResult
+IDirectFB_GetCardCapabilities( IDirectFB           *thiz,
+                               DFBCardCapabilities *caps )
 {
      CardCapabilities card_caps;
 
@@ -185,9 +204,10 @@ DFBResult IDirectFB_GetCardCapabilities( IDirectFB               *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFB_EnumVideoModes( IDirectFB            *thiz,
-                                    DFBVideoModeCallback  callbackfunc,
-                                    void                 *callbackdata )
+static DFBResult
+IDirectFB_EnumVideoModes( IDirectFB            *thiz,
+                          DFBVideoModeCallback  callbackfunc,
+                          void                 *callbackdata )
 {
      VideoMode *m;
 
@@ -208,9 +228,11 @@ DFBResult IDirectFB_EnumVideoModes( IDirectFB            *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFB_SetVideoMode( IDirectFB *thiz,
-                                  unsigned int width, unsigned int height,
-                                  unsigned int bpp )
+static DFBResult
+IDirectFB_SetVideoMode( IDirectFB    *thiz,
+                        unsigned int  width,
+                        unsigned int  height,
+                        unsigned int  bpp )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -267,8 +289,10 @@ DFBResult IDirectFB_SetVideoMode( IDirectFB *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
-                                   IDirectFBSurface **interface )
+static DFBResult
+IDirectFB_CreateSurface( IDirectFB              *thiz,
+                         DFBSurfaceDescription  *desc,
+                         IDirectFBSurface      **interface )
 {
      DFBResult ret;
      unsigned int width = 256;
@@ -412,9 +436,10 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
      return IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
 }
 
-DFBResult IDirectFB_EnumDisplayLayers( IDirectFB *thiz,
-                                       DFBDisplayLayerCallback callbackfunc,
-                                       void *callbackdata )
+static DFBResult
+IDirectFB_EnumDisplayLayers( IDirectFB               *thiz,
+                             DFBDisplayLayerCallback  callbackfunc,
+                             void                    *callbackdata )
 {
      DisplayLayer *dl = dfb_layers;
 
@@ -433,8 +458,10 @@ DFBResult IDirectFB_EnumDisplayLayers( IDirectFB *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
-                                     IDirectFBDisplayLayer **layer )
+static DFBResult
+IDirectFB_GetDisplayLayer( IDirectFB              *thiz,
+                           DFBDisplayLayerID       id,
+                           IDirectFBDisplayLayer **layer )
 {
      DisplayLayer *dl = dfb_layers;
 
@@ -461,9 +488,10 @@ DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
      return DFB_IDNOTFOUND;
 }
 
-DFBResult IDirectFB_EnumInputDevices( IDirectFB              *thiz,
-                                      DFBInputDeviceCallback  callbackfunc,
-                                      void                   *callbackdata )
+static DFBResult
+IDirectFB_EnumInputDevices( IDirectFB              *thiz,
+                            DFBInputDeviceCallback  callbackfunc,
+                            void                   *callbackdata )
 {
      EnumInputDevices_Context context;
 
@@ -480,9 +508,10 @@ DFBResult IDirectFB_EnumInputDevices( IDirectFB              *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFB_GetInputDevice( IDirectFB             *thiz,
-                                    unsigned int           id,
-                                    IDirectFBInputDevice **interface )
+static DFBResult
+IDirectFB_GetInputDevice( IDirectFB             *thiz,
+                          DFBInputDeviceID       id,
+                          IDirectFBInputDevice **interface )
 {
      GetInputDevice_Context context;
 
@@ -499,11 +528,12 @@ DFBResult IDirectFB_GetInputDevice( IDirectFB             *thiz,
      return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
 }
 
-DFBResult IDirectFB_CreateInputBuffer( IDirectFB                   *thiz,
-                                       DFBInputDeviceCapabilities   caps,
-                                       IDirectFBInputBuffer       **interface)
+static DFBResult
+IDirectFB_CreateEventBuffer( IDirectFB                   *thiz,
+                             DFBInputDeviceCapabilities   caps,
+                             IDirectFBEventBuffer       **interface)
 {
-     CreateInputBuffer_Context context;
+     CreateEventBuffer_Context context;
 
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -515,23 +545,26 @@ DFBResult IDirectFB_CreateInputBuffer( IDirectFB                   *thiz,
      context.caps      = caps;
      context.interface = interface;
 
-     dfb_input_enumerate_devices( CreateInputBuffer_Callback, &context );
+     dfb_input_enumerate_devices( CreateEventBuffer_Callback, &context );
 
      return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
 }
 
-static int image_probe( DFBInterfaceImplementation *impl, void *ctx )
+static int
+image_probe( DFBInterfaceImplementation *impl, void *ctx )
 {
      CreateImageProvider_Context *context = (CreateImageProvider_Context*) ctx;
-     
+
      if (impl->Probe( context->header, context->filename ) == DFB_OK)
           return 1;
 
      return 0;
 }
 
-DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
-                                         IDirectFBImageProvider **interface )
+static DFBResult
+IDirectFB_CreateImageProvider( IDirectFB               *thiz,
+                               const char              *filename,
+                               IDirectFBImageProvider **interface )
 {
      int       fd;
      DFBResult ret;
@@ -574,7 +607,8 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
 }
 
 
-static int video_probe( DFBInterfaceImplementation *impl, void *ctx )
+static int
+video_probe( DFBInterfaceImplementation *impl, void *ctx )
 {
      if (impl->Probe( (char*)ctx ) == DFB_OK)
           return 1;
@@ -582,9 +616,10 @@ static int video_probe( DFBInterfaceImplementation *impl, void *ctx )
      return 0;
 }
 
-DFBResult IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
-                                         const char              *filename,
-                                         IDirectFBVideoProvider **interface )
+static DFBResult
+IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
+                               const char              *filename,
+                               IDirectFBVideoProvider **interface )
 {
      DFBResult ret;
      DFBInterfaceImplementation *impl = NULL;
@@ -613,9 +648,11 @@ DFBResult IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      return ret;
 }
 
-DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
-                                DFBFontDescription *desc,
-                                IDirectFBFont **interface )
+static DFBResult
+IDirectFB_CreateFont( IDirectFB           *thiz,
+                      const char          *filename,
+                      DFBFontDescription  *desc,
+                      IDirectFBFont      **interface )
 {
      DFBResult ret;
      DFBInterfaceImplementation *impl = NULL;
@@ -656,17 +693,20 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
      return ret;
 }
 
-DFBResult IDirectFB_Suspend( IDirectFB *thiz )
+static DFBResult
+IDirectFB_Suspend( IDirectFB *thiz )
 {
      return dfb_core_suspend();
 }
 
-DFBResult IDirectFB_Resume( IDirectFB *thiz )
+static DFBResult
+IDirectFB_Resume( IDirectFB *thiz )
 {
      return dfb_core_resume();
 }
 
-DFBResult IDirectFB_WaitIdle( IDirectFB *thiz )
+static DFBResult
+IDirectFB_WaitIdle( IDirectFB *thiz )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -675,7 +715,8 @@ DFBResult IDirectFB_WaitIdle( IDirectFB *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFB_WaitForSync( IDirectFB *thiz )
+static DFBResult
+IDirectFB_WaitForSync( IDirectFB *thiz )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -689,7 +730,8 @@ DFBResult IDirectFB_WaitForSync( IDirectFB *thiz )
  *
  * Fills in function pointers and intializes data structure.
  */
-DFBResult IDirectFB_Construct( IDirectFB *thiz )
+DFBResult
+IDirectFB_Construct( IDirectFB *thiz )
 {
      IDirectFB_data *data;
 
@@ -715,7 +757,7 @@ DFBResult IDirectFB_Construct( IDirectFB *thiz )
      thiz->GetDisplayLayer = IDirectFB_GetDisplayLayer;
      thiz->EnumInputDevices = IDirectFB_EnumInputDevices;
      thiz->GetInputDevice = IDirectFB_GetInputDevice;
-     thiz->CreateInputBuffer = IDirectFB_CreateInputBuffer;
+     thiz->CreateEventBuffer = IDirectFB_CreateEventBuffer;
      thiz->CreateImageProvider = IDirectFB_CreateImageProvider;
      thiz->CreateVideoProvider = IDirectFB_CreateVideoProvider;
      thiz->CreateFont = IDirectFB_CreateFont;
@@ -757,22 +799,21 @@ GetInputDevice_Callback( InputDevice *device, void *ctx )
 }
 
 static DFBEnumerationResult
-CreateInputBuffer_Callback( InputDevice *device, void *ctx )
+CreateEventBuffer_Callback( InputDevice *device, void *ctx )
 {
-     CreateInputBuffer_Context  *context = (CreateInputBuffer_Context*) ctx;
+     CreateEventBuffer_Context  *context = (CreateEventBuffer_Context*) ctx;
      DFBInputDeviceDescription   desc    = dfb_input_device_description( device );
 
      if (! (desc.caps & context->caps))
           return DFENUM_OK;
 
      if (! *context->interface) {
-          DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBInputBuffer );
-          if (IDirectFBInputBuffer_Construct( *context->interface, device ))
-               *context->interface = NULL;
+          DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBEventBuffer );
+
+          IDirectFBEventBuffer_Construct( *context->interface );
      }
-     else {
-          IDirectFBInputBuffer_Attach( *context->interface, device );
-     }
+
+     IDirectFBEventBuffer_AttachInputDevice( *context->interface, device );
 
      return DFENUM_OK;
 }

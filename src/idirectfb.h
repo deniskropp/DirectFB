@@ -27,20 +27,6 @@
 #include <directfb.h>
 
 /*
- * private data struct of IDirectFB
- */
-typedef struct {
-     int                 ref;      /* reference counter */
-     DFBCooperativeLevel level;    /* current cooperative level */
-
-     struct {
-          int            width;    /* IDirectFB stores window width    */
-          int            height;   /* and height and the pixel depth   */
-          int            bpp;      /* from SetVideoMode() parameters.  */
-     } primary;                    /* Used for DFSCL_NORMAL's primary. */
-} IDirectFB_data;
-
-/*
  * IDirectFB constructor/destructor
  */
 DFBResult IDirectFB_Construct( IDirectFB *thiz );

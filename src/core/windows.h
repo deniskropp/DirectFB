@@ -53,6 +53,8 @@ typedef struct _CoreWindowEvent
  */
 struct _CoreWindow
 {
+     DFBWindowID           id;
+
      int                   x;               /* x position in pixels */
      int                   y;               /* y position in pixels */
      unsigned int          width;           /* width in pixels */
@@ -188,6 +190,10 @@ DFBResult dfb_window_grab_keyboard( CoreWindow *window );
 DFBResult dfb_window_ungrab_keyboard( CoreWindow *window );
 DFBResult dfb_window_grab_pointer( CoreWindow *window );
 DFBResult dfb_window_ungrab_pointer( CoreWindow *window );
+
+void dfb_window_attach( CoreWindow *window, React react, void *ctx );
+void dfb_window_detach( CoreWindow *window, React react, void *ctx );
+void dfb_window_dispatch( CoreWindow *window, DFBWindowEvent *event );
 
 /*
  * repaints all window on a window stack

@@ -21,19 +21,21 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __DIRECTFBINPUTBUFFER_H__
-#define __DIRECTFBINPUTBUFFER_H__
+#ifndef __DIRECTFBEVENTBUFFER_H__
+#define __DIRECTFBEVENTBUFFER_H__
 
 #include <core/input.h>
 
 /*
- * initializes input buffer, adds it to input listeners and initializes mutexes
+ * initializes event buffer, adds it to input listeners and initializes mutexes
  */
-DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
-                                          InputDevice          *device );
+DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer *thiz );
 
-DFBResult IDirectFBInputBuffer_Attach( IDirectFBInputBuffer *thiz,
-                                       InputDevice          *device );
+DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
+                                                  InputDevice          *device );
+
+DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
+                                             CoreWindow           *window );
 
 
 #endif

@@ -60,12 +60,4 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
      if (!data)                         \
           return DFB_DEAD;
 
-
-extern IDirectFB *idirectfb_singleton;
-
-typedef void (*DFBSuspendResumeFunc)( int suspend, void *ctx );
-
-void DFBAddSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx );
-void DFBRemoveSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx );
-
 #endif /* __DIRECTFB_INTERNALS_H__ */

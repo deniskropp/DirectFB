@@ -100,9 +100,9 @@ extern "C"
      DECLARE_INTERFACE( IDirectFBInputDevice )
 
      /*
-      * An input buffer puts all events of one device into a FIFO.
+      * An even buffer puts events from devices or windows into a FIFO.
       */
-     DECLARE_INTERFACE( IDirectFBInputBuffer )
+     DECLARE_INTERFACE( IDirectFBEventBuffer )
 
      /*
       * Getting font metrics and pixel width of a string.
@@ -662,6 +662,10 @@ extern "C"
           DFENUM_CANCEL       = 0x00000001   /* Cancel enumeration */
      } DFBEnumerationResult;
 
+     typedef unsigned int DFBDisplayLayerID;
+     typedef unsigned int DFBWindowID;
+     typedef unsigned int DFBInputDeviceID;
+
      /*
       * Called for each supported video mode.
       */
@@ -674,20 +678,20 @@ extern "C"
 
      /*
       * Called for each existing display layer.
-      * "layer_id" can be used to get an interface to the layer.
+      * "id" can be used to get an interface to the layer.
       */
      typedef DFBEnumerationResult (*DFBDisplayLayerCallback) (
-          unsigned int                       layer_id,
+          DFBDisplayLayerID                  id,
           DFBDisplayLayerCapabilities        caps,
           void                              *callbackdata
      );
 
      /*
       * Called for each existing input device.
-      * "device_id" can be used to get an interface to the device.
+      * "id" can be used to get an interface to the device.
       */
      typedef DFBEnumerationResult (*DFBInputDeviceCallback) (
-          unsigned int                       device_id,
+          DFBInputDeviceID                   id,
           DFBInputDeviceDescription          desc,
           void                              *callbackdata
      );
@@ -837,7 +841,7 @@ extern "C"
            * Enumerate all existing display layers.
            *
            * Calls the given callback for all available display
-           * layers. The callback is passed the layer_id that
+           * layers. The callback is passed the layer id that
            * can be used to retrieve an interface on a
            * specific layer using IDirectFB->GetDisplayLayer().
            */
@@ -852,7 +856,7 @@ extern "C"
            */
           DFBResult (*GetDisplayLayer) (
                IDirectFB                *thiz,
-               unsigned int              layer_id,
+               DFBDisplayLayerID         id,
                IDirectFBDisplayLayer   **interface
           );
 
@@ -863,7 +867,7 @@ extern "C"
            * Enumerate all existing input devices.
            *
            * Calls the given callback for all available input
-           * devices. The callback is passed the device_id that
+           * devices. The callback is passed the device id that
            * can be used to retrieve an interface on a
            * specific device using IDirectFB->GetInputDevice().
            */
@@ -878,20 +882,20 @@ extern "C"
            */
           DFBResult (*GetInputDevice) (
                IDirectFB                *thiz,
-               unsigned int              device_id,
+               DFBInputDeviceID          id,
                IDirectFBInputDevice    **interface
           );
 
           /*
-           * Create an input buffer for specific events.
+           * Create an event buffer for specific input events.
            *
-           * Creates an input buffer and attaches all devices
+           * Creates an event buffer and attaches all input devices
            * with matching capabilities.
            */
-          DFBResult (*CreateInputBuffer) (
+          DFBResult (*CreateEventBuffer) (
                IDirectFB                   *thiz,
                DFBInputDeviceCapabilities   caps,
-               IDirectFBInputBuffer       **buffer
+               IDirectFBEventBuffer       **buffer
           );
 
         /** Media **/
@@ -919,12 +923,12 @@ extern "C"
            * to retrieve data. Callback is called one time during creation
            * to determine the data type.
            */
-          DFBResult (*CreateStreamedVideoProvider) (
+          /*DFBResult (*CreateStreamedVideoProvider) (
                IDirectFB                *thiz,
                DFBGetDataCallback        callback,
                void                     *callback_data,
                IDirectFBVideoProvider  **interface
-          );
+          );*/
 
           /*
            * Load a font from the specified file given a description of how
@@ -1036,7 +1040,15 @@ extern "C"
 
      DEFINE_INTERFACE(   IDirectFBDisplayLayer,
 
-        /** Capabilities, surface **/
+        /** Retrieving information **/
+
+          /*
+           * Get the unique layer ID.
+           */
+          DFBResult (*GetID) (
+               IDirectFBDisplayLayer              *thiz,
+               DFBDisplayLayerID                  *id
+          );
 
           /*
            * Get the layer's capabilities.
@@ -1045,6 +1057,9 @@ extern "C"
                IDirectFBDisplayLayer              *thiz,
                DFBDisplayLayerCapabilities        *caps
           );
+
+
+        /** Surface **/
 
           /*
            * Get an interface to layer's surface.
@@ -1786,29 +1801,15 @@ extern "C"
 
      DEFINE_INTERFACE(   IDirectFBInputDevice,
 
-        /** Input buffers **/
-
-          /*
-           * Create an input buffer for this device and attach it.
-           */
-          DFBResult (*CreateInputBuffer) (
-               IDirectFBInputDevice          *thiz,
-               IDirectFBInputBuffer         **buffer
-          );
-
-          /*
-           * Attach an existing input buffer to this device.
-           *
-           * NOTE: Attaching multiple times generates multiple events.
-           *
-           */
-          DFBResult (*AttachInputBuffer) (
-               IDirectFBInputDevice          *thiz,
-               IDirectFBInputBuffer          *buffer
-          );
-
-
         /** Retrieving information **/
+
+          /*
+           * Get the unique device ID.
+           */
+          DFBResult (*GetID) (
+               IDirectFBInputDevice          *thiz,
+               DFBInputDeviceID              *id
+          );
 
           /*
            * Get a description of this device, i.e. the capabilities.
@@ -1816,6 +1817,28 @@ extern "C"
           DFBResult (*GetDescription) (
                IDirectFBInputDevice          *thiz,
                DFBInputDeviceDescription     *desc
+          );
+
+
+        /** Event buffers **/
+
+          /*
+           * Create an event buffer for this device and attach it.
+           */
+          DFBResult (*CreateEventBuffer) (
+               IDirectFBInputDevice          *thiz,
+               IDirectFBEventBuffer         **buffer
+          );
+
+          /*
+           * Attach an existing event buffer to this device.
+           *
+           * NOTE: Attaching multiple times generates multiple events.
+           *
+           */
+          DFBResult (*AttachEventBuffer) (
+               IDirectFBInputDevice          *thiz,
+               IDirectFBEventBuffer          *buffer
           );
 
 
@@ -1883,6 +1906,15 @@ extern "C"
 
 
      /*
+      * Event class.
+      */
+     typedef enum {
+          DFEC_NONE           = 0x00,   /* none of these */
+          DFEC_INPUT          = 0x01,   /* raw input event */
+          DFEC_WINDOW         = 0x02    /* windowing event */
+     } DFBEventClass;
+
+     /*
       * The type of an input event.
       */
      typedef enum {
@@ -1910,7 +1942,10 @@ extern "C"
       * An input event, item of an input buffer.
       */
      typedef struct {
+          DFBEventClass                 clazz;         /* clazz of event */
+
           DFBInputEventType             type;          /* type of event */
+          DFBInputDeviceID              id;            /* source of event */
           DFBInputEventFlags            flags;         /* which fields are
                                                           valid? */
 
@@ -1936,63 +1971,6 @@ extern "C"
           int                                axisrel;  /* relative mouse/
                                                           joystick movement */
      } DFBInputEvent;
-
-
-     /************************
-      * IDirectFBInputBuffer *
-      ************************/
-
-     DEFINE_INTERFACE(   IDirectFBInputBuffer,
-
-
-        /** Buffer handling **/
-
-          /*
-           * Clear all events stored in this buffer.
-           */
-          DFBResult (*Reset) (
-               IDirectFBInputBuffer     *thiz
-          );
-
-
-        /** Event handling **/
-
-          /*
-           * Wait for the next event to occur.
-           * Thread is idle in the meantime.
-           */
-          DFBResult (*WaitForEvent) (
-               IDirectFBInputBuffer     *thiz
-          );
-
-          /*
-           * Block until next event to occur or timeout is reached.
-           * Thread is idle in the meantime.
-           */
-          DFBResult (*WaitForEventWithTimeout) (
-               IDirectFBInputBuffer     *thiz,
-               long int                  seconds,
-               long int                  nano_seconds
-          );
-
-          /*
-           * Get the next event and remove it from the FIFO.
-           */
-          DFBResult (*GetEvent) (
-               IDirectFBInputBuffer     *thiz,
-               DFBInputEvent            *event
-          );
-
-          /*
-           * Get the next event but leave it there, i.e. do a preview.
-           */
-          DFBResult (*PeekEvent) (
-               IDirectFBInputBuffer     *thiz,
-               DFBInputEvent            *event
-          );
-     )
-
-
 
      /*
       * Window Event Types - can also be used as flags for event filters.
@@ -2039,7 +2017,10 @@ extern "C"
       * Event from the windowing system.
       */
      typedef struct {
+          DFBEventClass                      clazz;       /* clazz of event */
+
           DFBWindowEventType                 type;
+          DFBWindowID                        id;
 
           /* used by DWET_MOVE, DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP,
              DWET_ENTER, DWET_LEAVE */
@@ -2068,6 +2049,71 @@ extern "C"
           DFBInputDeviceButtonIdentifier     button;
      } DFBWindowEvent;
 
+     /*
+      * General DirectFB Event.
+      */
+     typedef union {
+          DFBEventClass            clazz;    /* clazz of event */
+          DFBInputEvent            input;    /* field for input events */
+          DFBWindowEvent           window;   /* field for window events */
+     } DFBEvent;
+
+     #define DFB_EVENT(e)          ((DFBEvent *) (e))
+
+     /************************
+      * IDirectFBEventBuffer *
+      ************************/
+
+     DEFINE_INTERFACE(   IDirectFBEventBuffer,
+
+
+        /** Buffer handling **/
+
+          /*
+           * Clear all events stored in this buffer.
+           */
+          DFBResult (*Reset) (
+               IDirectFBEventBuffer     *thiz
+          );
+
+
+        /** Event handling **/
+
+          /*
+           * Wait for the next event to occur.
+           * Thread is idle in the meantime.
+           */
+          DFBResult (*WaitForEvent) (
+               IDirectFBEventBuffer     *thiz
+          );
+
+          /*
+           * Block until next event to occur or timeout is reached.
+           * Thread is idle in the meantime.
+           */
+          DFBResult (*WaitForEventWithTimeout) (
+               IDirectFBEventBuffer     *thiz,
+               unsigned int              seconds,
+               unsigned int              milli_seconds
+          );
+
+          /*
+           * Get the next event and remove it from the FIFO.
+           */
+          DFBResult (*GetEvent) (
+               IDirectFBEventBuffer     *thiz,
+               DFBEvent                 *event
+          );
+
+          /*
+           * Get the next event but leave it there, i.e. do a preview.
+           */
+          DFBResult (*PeekEvent) (
+               IDirectFBEventBuffer     *thiz,
+               DFBEvent                 *event
+          );
+     )
+
 
      /*******************
       * IDirectFBWindow *
@@ -2076,6 +2122,14 @@ extern "C"
      DEFINE_INTERFACE(   IDirectFBWindow,
 
         /** Retrieving information **/
+
+          /*
+           * Get the unique window ID.
+           */
+          DFBResult (*GetID) (
+               IDirectFBWindow     *thiz,
+               DFBWindowID         *id
+          );
 
           /*
            * Get the current position of this window.
@@ -2093,6 +2147,28 @@ extern "C"
                IDirectFBWindow     *thiz,
                unsigned int        *width,
                unsigned int        *height
+          );
+
+
+        /** Event buffers **/
+
+          /*
+           * Create an event buffer for this window and attach it.
+           */
+          DFBResult (*CreateEventBuffer) (
+               IDirectFBWindow               *thiz,
+               IDirectFBEventBuffer         **buffer
+          );
+
+          /*
+           * Attach an existing event buffer to this window.
+           *
+           * NOTE: Attaching multiple times generates multiple events.
+           *
+           */
+          DFBResult (*AttachEventBuffer) (
+               IDirectFBWindow               *thiz,
+               IDirectFBEventBuffer          *buffer
           );
 
 
@@ -2230,43 +2306,6 @@ extern "C"
            */
           DFBResult (*LowerToBottom) (
                IDirectFBWindow     *thiz
-          );
-
-
-        /** Event handling **/
-
-          /*
-           * Wait for the next event to occur.
-           * Thread is idle in the meantime.
-           */
-          DFBResult (*WaitForEvent) (
-               IDirectFBWindow     *thiz
-          );
-
-          /*
-           * Block until next event to occurs or timeout is reached.
-           * Thread is idle in the meantime.
-           */
-          DFBResult (*WaitForEventWithTimeout) (
-               IDirectFBWindow     *thiz,
-               long int                  seconds,
-               long int                  nano_seconds
-          );
-
-          /*
-           * Get the next event and remove from the FIFO.
-           */
-          DFBResult (*GetEvent) (
-               IDirectFBWindow     *thiz,
-               DFBWindowEvent      *event
-          );
-
-          /*
-           * Get the next event but leave it there, i.e. do a preview.
-           */
-          DFBResult (*PeekEvent) (
-               IDirectFBWindow     *thiz,
-               DFBWindowEvent      *event
           );
 
 

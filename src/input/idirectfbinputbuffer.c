@@ -43,6 +43,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
+#include <core/windows.h>
 
 #include "misc/util.h"
 #include "misc/mem.h"
@@ -52,21 +53,30 @@
 /*
  * adds an event to the event queue (function is added to the event listeners)
  */
-static ReactionResult IDirectFBInputBuffer_React( const void *msg_data,
-                                                  void       *ctx );
+static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
+                                                       void       *ctx );
+
+static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
+                                                        void       *ctx );
 
 
-typedef struct _InputBufferItem
+typedef struct _EventBufferItem
 {
-     DFBInputEvent            evt;
-     struct _InputBufferItem *next;
-} IDirectFBInputBuffer_item;
+     DFBEvent                 evt;
+     struct _EventBufferItem *next;
+} IDirectFBEventBuffer_item;
 
 typedef struct {
      FusionLink   link;
 
      InputDevice *device;       /* pointer to input core device struct */
 } AttachedDevice;
+
+typedef struct {
+     FusionLink   link;
+
+     CoreWindow  *window;       /* pointer to core window struct */
+} AttachedWindow;
 
 /*
  * private data struct of IDirectFBInputDevice
@@ -76,7 +86,9 @@ typedef struct {
 
      FusionLink                   *devices;       /* attached devices */
 
-     IDirectFBInputBuffer_item    *events;        /* linked list containing
+     FusionLink                   *windows;       /* attached windows */
+
+     IDirectFBEventBuffer_item    *events;        /* linked list containing
                                                      events */
 
      pthread_mutex_t               events_mutex;  /* mutex lock for accessing
@@ -84,24 +96,32 @@ typedef struct {
 
      pthread_cond_t                wait_condition;/* condition used for idle
                                                      wait in WaitForEvent() */
-} IDirectFBInputBuffer_data;
+} IDirectFBEventBuffer_data;
 
 
 
-static void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
+static void IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
 {
-     IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
+     IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)thiz->priv;
 
      while (data->devices) {
           AttachedDevice *device = (AttachedDevice*) data->devices;
 
-          dfb_input_detach( device->device, IDirectFBInputBuffer_React, data );
+          dfb_input_detach( device->device, IDirectFBEventBuffer_InputReact, data );
           fusion_list_remove( &data->devices, data->devices );
           DFBFREE( device );
      }
 
+     while (data->windows) {
+          AttachedWindow *window = (AttachedWindow*) data->windows;
+
+          dfb_window_detach( window->window, IDirectFBEventBuffer_WindowReact, data );
+          fusion_list_remove( &data->windows, data->windows );
+          DFBFREE( window );
+     }
+
      while (data->events) {
-          IDirectFBInputBuffer_item *next = data->events->next;
+          IDirectFBEventBuffer_item *next = data->events->next;
 
           DFBFREE( data->events );
 
@@ -119,37 +139,37 @@ static void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
 #endif
 }
 
-static DFBResult IDirectFBInputBuffer_AddRef( IDirectFBInputBuffer *thiz )
+static DFBResult IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBInputBuffer)
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      data->ref++;
 
      return DFB_OK;
 }
 
-static DFBResult IDirectFBInputBuffer_Release( IDirectFBInputBuffer *thiz )
+static DFBResult IDirectFBEventBuffer_Release( IDirectFBEventBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBInputBuffer)
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      if (--data->ref == 0)
-          IDirectFBInputBuffer_Destruct( thiz );
+          IDirectFBEventBuffer_Destruct( thiz );
 
      return DFB_OK;
 }
 
-static DFBResult IDirectFBInputBuffer_Reset( IDirectFBInputBuffer *thiz )
+static DFBResult IDirectFBEventBuffer_Reset( IDirectFBEventBuffer *thiz )
 {
-     IDirectFBInputBuffer_item     *e;
+     IDirectFBEventBuffer_item     *e;
 
-     INTERFACE_GET_DATA(IDirectFBInputBuffer)
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
 
      pthread_mutex_lock( &data->events_mutex );
 
      e = data->events;
      while (e) {
-          IDirectFBInputBuffer_item *next = e->next;
+          IDirectFBEventBuffer_item *next = e->next;
           DFBFREE( e );
           e = next;
      }
@@ -160,9 +180,9 @@ static DFBResult IDirectFBInputBuffer_Reset( IDirectFBInputBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBInputBuffer_WaitForEvent( IDirectFBInputBuffer *thiz )
+static DFBResult IDirectFBEventBuffer_WaitForEvent( IDirectFBEventBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBInputBuffer)
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -174,17 +194,18 @@ static DFBResult IDirectFBInputBuffer_WaitForEvent( IDirectFBInputBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBInputBuffer_WaitForEventWithTimeout(
-                                                  IDirectFBInputBuffer *thiz,
-                                                  long int             seconds,
-                                                  long int        nano_seconds )
+static DFBResult IDirectFBEventBuffer_WaitForEventWithTimeout(
+                                                  IDirectFBEventBuffer *thiz,
+                                                  unsigned int          seconds,
+                                                  unsigned int          milli_seconds )
 {
      struct timeval  now;
      struct timespec timeout;
      DFBResult       ret    = DFB_OK;
      int             locked = 0;
+     long int        nano_seconds = milli_seconds * 1000000;
 
-     INTERFACE_GET_DATA(IDirectFBInputBuffer)
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      if (pthread_mutex_trylock( &data->events_mutex ) == 0) {
           if (data->events) {
@@ -217,12 +238,12 @@ static DFBResult IDirectFBInputBuffer_WaitForEventWithTimeout(
      return ret;
 }
 
-static DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz,
-                                                DFBInputEvent *event )
+static DFBResult IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
+                                                DFBEvent             *event )
 {
-     IDirectFBInputBuffer_item     *e;
+     IDirectFBEventBuffer_item     *e;
 
-     INTERFACE_GET_DATA(IDirectFBInputBuffer)
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -233,7 +254,18 @@ static DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz,
 
      e = data->events;
 
-     *event = e->evt;
+     switch (e->evt.clazz) {
+          case DFEC_INPUT:
+               event->input = e->evt.input;
+               break;
+
+          case DFEC_WINDOW:
+               event->window = e->evt.window;
+               break;
+
+          default:
+               BUG("unknown event class");
+     }
 
      data->events = e->next;
      DFBFREE( e );
@@ -243,10 +275,10 @@ static DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBInputBuffer_PeekEvent( IDirectFBInputBuffer *thiz,
-                                                 DFBInputEvent *event )
+static DFBResult IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
+                                                 DFBEvent             *event )
 {
-     INTERFACE_GET_DATA(IDirectFBInputBuffer)
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -255,80 +287,96 @@ static DFBResult IDirectFBInputBuffer_PeekEvent( IDirectFBInputBuffer *thiz,
           return DFB_BUFFEREMPTY;
      }
 
-     *event = data->events->evt;
+     switch (data->events->evt.clazz) {
+          case DFEC_INPUT:
+               event->input = data->events->evt.input;
+               break;
+
+          case DFEC_WINDOW:
+               event->window = data->events->evt.window;
+               break;
+
+          default:
+               BUG("unknown event class");
+     }
 
      pthread_mutex_unlock( &data->events_mutex );
 
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
-                                          InputDevice          *device )
+DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer *thiz )
 {
-     IDirectFBInputBuffer_data *data;
+     IDirectFBEventBuffer_data *data;
 
      if (!thiz->priv)
-          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBInputBuffer_data) );
+          thiz->priv = DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_data) );
 
-     data = (IDirectFBInputBuffer_data*)(thiz->priv);
+     data = (IDirectFBEventBuffer_data*)(thiz->priv);
 
      data->ref = 1;
 
      pthread_mutex_init( &data->events_mutex, NULL );
      pthread_cond_init( &data->wait_condition, NULL );
 
-     IDirectFBInputBuffer_Attach( thiz, device );
-
-     thiz->AddRef = IDirectFBInputBuffer_AddRef;
-     thiz->Release = IDirectFBInputBuffer_Release;
-     thiz->Reset = IDirectFBInputBuffer_Reset;
-     thiz->WaitForEvent = IDirectFBInputBuffer_WaitForEvent;
+     thiz->AddRef = IDirectFBEventBuffer_AddRef;
+     thiz->Release = IDirectFBEventBuffer_Release;
+     thiz->Reset = IDirectFBEventBuffer_Reset;
+     thiz->WaitForEvent = IDirectFBEventBuffer_WaitForEvent;
      thiz->WaitForEventWithTimeout =
-          IDirectFBInputBuffer_WaitForEventWithTimeout;
-     thiz->GetEvent = IDirectFBInputBuffer_GetEvent;
-     thiz->PeekEvent = IDirectFBInputBuffer_PeekEvent;
+          IDirectFBEventBuffer_WaitForEventWithTimeout;
+     thiz->GetEvent = IDirectFBEventBuffer_GetEvent;
+     thiz->PeekEvent = IDirectFBEventBuffer_PeekEvent;
 
      return DFB_OK;
 }
 
-DFBResult IDirectFBInputBuffer_Attach( IDirectFBInputBuffer *thiz,
-                                       InputDevice          *device )
+DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
+                                                  InputDevice          *device )
 {
      AttachedDevice *attached;
 
-     INTERFACE_GET_DATA(IDirectFBInputBuffer)
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      attached = DFBCALLOC( 1, sizeof(AttachedDevice) );
      attached->device = device;
 
-     dfb_input_attach( device, IDirectFBInputBuffer_React, data );
+     dfb_input_attach( device, IDirectFBEventBuffer_InputReact, data );
 
      fusion_list_prepend( &data->devices, &attached->link );
 
      return DFB_OK;
 }
 
+DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
+                                             CoreWindow           *window )
+{
+     AttachedWindow *attached;
+
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     attached = DFBCALLOC( 1, sizeof(AttachedWindow) );
+     attached->window = window;
+
+     dfb_window_attach( window, IDirectFBEventBuffer_WindowReact, data );
+
+     fusion_list_prepend( &data->windows, &attached->link );
+
+     return DFB_OK;
+}
+
 /* internals */
 
-static ReactionResult IDirectFBInputBuffer_React( const void *msg_data,
-                                                  void       *ctx )
+static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
+                                          IDirectFBEventBuffer_item *item )
 {
-     const DFBInputEvent       *evt = (DFBInputEvent*)msg_data;
-     IDirectFBInputBuffer_item *item;
-     IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)ctx;
-
-     item = (IDirectFBInputBuffer_item*)
-          DFBCALLOC( 1, sizeof(IDirectFBInputBuffer_item) );
-
-     item->evt = *evt;
-
      pthread_mutex_lock( &data->events_mutex );
 
      if (!data->events) {
           data->events = item;
      }
      else {
-          IDirectFBInputBuffer_item *e = data->events;
+          IDirectFBEventBuffer_item *e = data->events;
 
           while (e->next)
                e = e->next;
@@ -339,6 +387,57 @@ static ReactionResult IDirectFBInputBuffer_React( const void *msg_data,
      pthread_cond_broadcast( &data->wait_condition );
 
      pthread_mutex_unlock( &data->events_mutex );
+}
+
+static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
+                                                       void       *ctx )
+{
+     const DFBInputEvent       *evt = (DFBInputEvent*)msg_data;
+     IDirectFBEventBuffer_item *item;
+     IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)ctx;
+
+     item = (IDirectFBEventBuffer_item*)
+          DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
+
+     item->evt.input = *evt;
+     item->evt.clazz = DFEC_INPUT;
+
+     IDirectFBEventBuffer_AddItem( data, item );
 
      return RS_OK;
 }
+
+static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
+                                                        void       *ctx )
+{
+     const DFBWindowEvent      *evt = (DFBWindowEvent*)msg_data;
+     IDirectFBEventBuffer_item *item;
+     IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)ctx;
+
+     item = (IDirectFBEventBuffer_item*)
+          DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
+
+     item->evt.window = *evt;
+     item->evt.clazz  = DFEC_WINDOW;
+
+     IDirectFBEventBuffer_AddItem( data, item );
+
+     if (evt->type == DWET_DESTROYED) {
+          AttachedWindow *window = (AttachedWindow*) data->windows;
+
+          while (window) {
+               if (window->window->id == evt->id) {
+                    fusion_list_remove( &data->windows, &window->link );
+                    DFBFREE( window );
+                    break;
+               }
+
+               window = (AttachedWindow*) window->link.next;
+          }
+
+          return RS_REMOVE;
+     }
+
+     return RS_OK;
+}
+

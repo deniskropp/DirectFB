@@ -38,11 +38,4 @@ DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                                             DisplayLayer           *layer,
                                             DFBSurfaceCapabilities  caps );
 
-/*
- * frees private data
- */
-void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz );
-
-
-
 #endif

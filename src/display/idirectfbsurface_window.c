@@ -62,10 +62,12 @@ typedef struct {
 } IDirectFBSurface_Window_data;
 
 
-static void *Flipping_Thread( void *arg );
+static void *
+Flipping_Thread( void *arg );
 
 
-void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
+static void
+IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
 {
      IDirectFBSurface_Window_data *data =
           (IDirectFBSurface_Window_data*)thiz->priv;
@@ -75,15 +77,7 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
           pthread_join( data->flip_thread, NULL );
      }
 
-     dfb_state_set_destination( &data->base.state, NULL );
-     dfb_state_set_source( &data->base.state, NULL );
-
      if (data->base.surface) {
-          reactor_detach( data->base.surface->reactor,
-                          IDirectFBSurface_listener, thiz );
-
-          thiz->Unlock( thiz );
-
           if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
                data->base.caps & DSCAPS_PRIMARY)
           {
@@ -92,18 +86,11 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
           }
      }
 
-     if (data->base.font)
-          data->base.font->Release (data->base.font);
-
-     DFBFREE( thiz->priv );
-     thiz->priv = NULL;
-
-#ifndef DFB_DEBUG
-     DFBFREE( thiz );
-#endif
+     IDirectFBSurface_Destruct( thiz );
 }
 
-DFBResult IDirectFBSurface_Window_Release( IDirectFBSurface *thiz )
+static DFBResult
+IDirectFBSurface_Window_Release( IDirectFBSurface *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
@@ -113,9 +100,10 @@ DFBResult IDirectFBSurface_Window_Release( IDirectFBSurface *thiz )
      return DFB_OK;
 }
 
-DFBResult IDirectFBSurface_Window_Flip( IDirectFBSurface *thiz,
-                                        DFBRegion *region,
-                                        DFBSurfaceFlipFlags flags )
+static DFBResult
+IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
+                              DFBRegion           *region,
+                              DFBSurfaceFlipFlags  flags )
 {
      DFBRegion reg;
 
@@ -172,9 +160,10 @@ DFBResult IDirectFBSurface_Window_Flip( IDirectFBSurface *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
-                                                 DFBRectangle        *rect,
-                                                 IDirectFBSurface    **surface )
+static DFBResult
+IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface  *thiz,
+                                       DFBRectangle      *rect,
+                                       IDirectFBSurface **surface )
 {
      DFBRectangle wanted, granted;
 
@@ -216,11 +205,12 @@ DFBResult IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
                                                DSCAPS_SUBSURFACE );
 }
 
-DFBResult IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
-                                             DFBRectangle           *wanted,
-                                             DFBRectangle           *granted,
-                                             CoreWindow             *window,
-                                             DFBSurfaceCapabilities caps )
+DFBResult
+IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
+                                   DFBRectangle           *wanted,
+                                   DFBRectangle           *granted,
+                                   CoreWindow             *window,
+                                   DFBSurfaceCapabilities  caps )
 {
      IDirectFBSurface_Window_data *data;
 
@@ -253,11 +243,13 @@ DFBResult IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
 
 /* file internal */
 
-static void *Flipping_Thread( void *arg )
+static void *
+Flipping_Thread( void *arg )
 {
-     IDirectFBSurface *thiz = (IDirectFBSurface*) arg;
+     IDirectFBSurface             *thiz = (IDirectFBSurface*) arg;
+     IDirectFBSurface_Window_data *data = (IDirectFBSurface_Window_data*) thiz->priv;
 
-     while (1) {
+     while (data->base.surface) {
           usleep(40000);
 
           pthread_testcancel();
@@ -267,4 +259,7 @@ static void *Flipping_Thread( void *arg )
            */
           thiz->Flip( thiz, NULL, 0 );
      }
+
+     return NULL;
 }
+
