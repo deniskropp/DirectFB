@@ -96,7 +96,7 @@ DFBResult input_suspend()
      while (d) {
           pthread_cancel( d->event_thread );
           pthread_join( d->event_thread, NULL );
-          d->info.driver->DeInit( d );
+          //d->info.driver->DeInit( d );
           
           d = d->next;
      }
@@ -113,7 +113,7 @@ DFBResult input_resume()
      DEBUGMSG( "DirectFB/core/input: resuming...\n" );
      
      while (d) {
-          d->info.driver->Init( d );
+          //d->info.driver->Init( d );
           pthread_create( &d->event_thread, NULL,
                            d->EventThread, d );
           
