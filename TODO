@@ -8,6 +8,7 @@ Fix inter-module-exported symbols, e.g. keyboard -> fbdev(dfb_vt).
 Finish VT switching (already working well after 0.9.18 release)
  - Save/redirect video only buffers.
  - Handle auto video buffers being permanently locked in video memory.
+ - Support switching during exclusive access to a layer.
 
 Finish implementation of cooperative levels.
 
