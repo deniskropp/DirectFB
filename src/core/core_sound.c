@@ -394,7 +394,7 @@ fs_core_initialize( CoreSound *core )
      int              rate   = shared->config.rate;
 
      /* open sound device */
-     fd = dfb_try_open( "/dev/dsp", "/dev/sound/dsp", O_RDWR );
+     fd = dfb_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY );
      if (fd < 0)
           return DFB_INIT;
 
