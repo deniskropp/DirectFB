@@ -87,6 +87,8 @@ fusion_ref_init (FusionRef *ref)
           return FUSION_FAILURE;
      }
 
+     ref->magic = 0x12345678;
+
      return FUSION_SUCCESS;
 }
 
@@ -96,6 +98,7 @@ fusion_ref_up (FusionRef *ref, bool global)
      struct sembuf op[2];
 
      DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
      
      /* lock/increase */
      op[0].sem_num = 0;
@@ -150,6 +153,7 @@ fusion_ref_down (FusionRef *ref, bool global)
      struct sembuf op[2];
 
      DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
      
      /* lock/decrease */
      op[0].sem_num = 0;
@@ -205,6 +209,7 @@ fusion_ref_stat (FusionRef *ref, int *refs)
 
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( refs != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
 
      while ((val = semctl( ref->sem_id, 1, GETVAL )) < 0) {
           FPERROR ("semctl");
@@ -232,6 +237,7 @@ fusion_ref_zero_lock (FusionRef *ref)
      struct sembuf op[2];
 
      DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
      
      /* wait for zero / lock */
      op[0].sem_num = 1;
@@ -265,6 +271,7 @@ fusion_ref_zero_trylock (FusionRef *ref)
      struct sembuf op[2];
 
      DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
      
      /* check for zero / lock */
      op[0].sem_num = 1;
@@ -302,6 +309,7 @@ fusion_ref_unlock (FusionRef *ref)
      struct sembuf op;
 
      DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
      
      /* unlock */
      op.sem_num = 0;
@@ -332,6 +340,7 @@ fusion_ref_destroy (FusionRef *ref)
      union semun semopts;
 
      DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
      
      if (semctl (ref->sem_id, 0, IPC_RMID, semopts)) {
           FPERROR ("semctl");
@@ -347,6 +356,8 @@ fusion_ref_destroy (FusionRef *ref)
 
           return FUSION_FAILURE;
      }
+
+     ref->magic = 0x87654321;
 
      return FUSION_SUCCESS;
 }

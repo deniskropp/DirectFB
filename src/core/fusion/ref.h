@@ -38,6 +38,7 @@ extern "C"
 #ifndef FUSION_FAKE
 
      typedef struct {
+          int magic;
           int sem_id;
      } FusionRef;
 
