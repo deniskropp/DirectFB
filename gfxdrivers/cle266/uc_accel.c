@@ -346,16 +346,11 @@ bool uc_stretch_blit(void* drv, void* dev,
     float s2 = ((float) sr->x + sr->w) / w;
     float t2 = ((float) sr->y + sr->h) / h;
 
-    __u32 c = 0xffffffff; // Not really needed.
-
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_W
         | HC_HVPMSK_Cd | HC_HVPMSK_S | HC_HVPMSK_T;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HVCycle_AFP |
         HC_HVCycle_AA | HC_HVCycle_BB | HC_HVCycle_NewC | HC_HShading_FlatA;
     int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
-
-    int regEnable = HC_HenCW_MASK;
-    regEnable |= HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK;
 
     UC_FIFO_PREPARE(fifo, 100);
 
@@ -363,10 +358,10 @@ bool uc_stretch_blit(void* drv, void* dev,
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYWCST(fifo, dr->x, dr->y, 1.0, c, s1, t1);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dr->y+dr->h, 1.0, c, s2, t2);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dr->y, 1.0, c, s2, t1);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x, dr->y+dr->h, 1.0, c, s1, t2);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x, dr->y, 1.0, ucdev->color3d, s1, t1);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dr->y+dr->h, 1.0, ucdev->color3d, s2, t2);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dr->y, 1.0, ucdev->color3d, s2, t1);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x, dr->y+dr->h, 1.0, ucdev->color3d, s1, t2);
 
     UC_FIFO_ADD(fifo, cmdA_End);
     UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.
