@@ -179,23 +179,25 @@ window_callback( CoreWindow      *window,
 
      printf( "0x%02x  ", window->opacity );
 
-     switch (window->stacking) {
-          case DWSC_UPPER:
-               printf( "^  " );
-               break;
-          case DWSC_MIDDLE:
-               printf( "-  " );
-               break;
-          case DWSC_LOWER:
-               printf( "v  " );
-               break;
-          default:
-               printf( "?  " );
-               break;
+     if (window->caps & DWHC_TOPMOST) {
+          printf( "*  " );
      }
-
-     if (stack->focused_window == window)
-          printf( "FOCUSED        " );
+     else {
+          switch (window->stacking) {
+               case DWSC_UPPER:
+                    printf( "^  " );
+                    break;
+               case DWSC_MIDDLE:
+                    printf( "-  " );
+                    break;
+               case DWSC_LOWER:
+                    printf( "v  " );
+                    break;
+               default:
+                    printf( "?  " );
+                    break;
+          }
+     }
 
      if (window->caps & DWCAPS_ALPHACHANNEL)
           printf( "alphachannel   " );
@@ -205,6 +207,9 @@ window_callback( CoreWindow      *window,
 
      if (window->caps & DWCAPS_DOUBLEBUFFER)
           printf( "double buffer  " );
+
+     if (stack->focused_window == window)
+          printf( "FOCUSED        " );
 
      printf( "\n" );
 
