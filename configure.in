@@ -71,16 +71,19 @@ DFB_CFLAGS="-D_REENTRANT"
 
 dnl Linux framebuffer
 AC_CHECK_HEADER(linux/fb.h,,
-  AC_MSG_ERROR([*** DirectFB requires Linux with framebuffer support.]))
+  AC_MSG_ERROR([
+*** DirectFB requires Linux with framebuffer support.]))
 
 dnl Threads
 AC_CHECK_LIB(pthread, pthread_attr_init, ,
-  AC_MSG_ERROR([*** DirectFB requires libpthread.]))
+  AC_MSG_ERROR([
+*** DirectFB requires libpthread.]))
 
 dnl Dynamic Linker
 if test x$enable_shared = xyes; then
   AC_CHECK_LIB(dl, dlopen, ,
-    AC_MSG_ERROR([*** DirectFB requires libdl.]))
+    AC_MSG_ERROR([
+*** DirectFB requires libdl.]))
 fi
 
 if test "x$GCC" = xyes; then
@@ -158,6 +161,7 @@ if test "x$enable_multi" = xyes; then
     AC_MSG_WARN([
 
 *** Multi application support is highly experimental, you have been warned. ***
+
 ])
 else
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DFUSION_FAKE"
@@ -193,10 +197,11 @@ if test "x$have_mmx" = xon; then
     AC_MSG_RESULT(yes)
   else
     AC_MSG_RESULT(no)
-    echo 2>&1 "****************************************************************"
-    echo 2>&1 " The installed assembler does not supports the MMX command set. "
-    echo 2>&1 " Update your binutils package, if you want to compile MMX code. "
-    echo 2>&1 "****************************************************************"
+    AC_MSG_WARN([
+****************************************************************
+ The installed assembler does not supports the MMX command set. 
+ Update your binutils package, if you want to compile MMX code. 
+****************************************************************])
     MMX=no
   fi
   rm conftest*
@@ -225,16 +230,23 @@ dnl Test for libjpeg
 	  LIBJPEG='-ljpeg'
         else
 	  JPEG=no
-	  AC_MSG_WARN([*** JPEG header files not found. JPEG image provider will not be built.])
+	  AC_MSG_WARN([
+*** JPEG header files not found. JPEG image provider will not be built.])
         fi
       else
 	JPEG=no
-        AC_MSG_WARN([*** JPEG library not found. JPEG image provider will not be built.])
+        AC_MSG_WARN([
+*** JPEG library not found. JPEG image provider will not be built.])
       fi
     fi
   fi
 
   AM_CONDITIONAL(JPEG_PROVIDER, test x$JPEG = xyes)
+
+  if test x$enable_jpeg != xno && test x$JPEG != xyes; then
+    jpeg_warning="
+JPEG support is missing - many applications won't work correctly!"
+  fi
 
 
 dnl Test for libpng and libz
@@ -249,8 +261,10 @@ dnl Test for libpng and libz
       AC_CHECK_LIB(z, gzsetparams,
         AC_CHECK_HEADER(zlib.h,
 	  LIBZ='-lz',
-	  AC_MSG_WARN([*** libz header files not found. PNG image provider will not be built.])),
-        AC_MSG_WARN([*** libz not found. PNG image provider will not be built.]))
+	  AC_MSG_WARN([
+*** libz header files not found. PNG image provider will not be built.])),
+        AC_MSG_WARN([
+*** libz not found. PNG image provider will not be built.]))
     fi
 
   dnl Test for libpng
@@ -258,8 +272,10 @@ dnl Test for libpng and libz
       AC_CHECK_LIB(png, png_read_info,
         AC_CHECK_HEADER(png.h,
 	  png_ok=yes,
-	  AC_MSG_WARN([*** PNG header files not found. PNG image provider will not be built.])),
-        AC_MSG_WARN([*** PNG library not found. PNG image provider will not be built.]), $LIBZ -lm)
+	  AC_MSG_WARN([
+*** PNG header files not found. PNG image provider will not be built.])),
+        AC_MSG_WARN([
+*** PNG library not found. PNG image provider will not be built.]), $LIBZ -lm)
       if test "$png_ok" = yes; then
         AC_MSG_CHECKING([for png_structp in png.h])
         AC_TRY_COMPILE([#include <png.h>],
@@ -273,17 +289,22 @@ dnl Test for libpng and libz
 	  PNG=yes
           LIBPNG="-lpng $LIBZ"
         else
-	  PNG=NO
-          AC_MSG_WARN([*** PNG library is too old. PNG image provider will not be built.])
+	  PNG=no
+          AC_MSG_WARN([
+*** PNG library is too old. PNG image provider will not be built.])
         fi
       else
-	PNG=NO
+	PNG=no
       fi
     fi
-
   fi
 
   AM_CONDITIONAL(PNG_PROVIDER, test x$PNG = xyes)
+
+  if test x$enable_png != xno && test x$PNG != xyes; then
+    png_warning="
+PNG support is missing - many applications won't work correctly!"
+  fi
 
 
 dnl Allow to disable GIF support
@@ -299,7 +320,8 @@ dnl Test for freetype
     AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
     if test "$FREETYPE_CONFIG" = no; then
       FREETYPE=no
-      AC_MSG_WARN(["*** freetype-config not found -- FreeType font provider will not be built."])
+      AC_MSG_WARN([
+*** freetype-config not found -- FreeType font provider will not be built.])
     else
       FREETYPE=yes
       FREETYPE_CFLAGS=`freetype-config --cflags`
@@ -309,6 +331,11 @@ dnl Test for freetype
 
   AM_CONDITIONAL(FREETYPE_PROVIDER, test x$FREETYPE = xyes)
 
+  if test x$enable_freetype != xno && test x$FREETYPE != xyes; then
+    freetype_warning="
+FreeType2 support is missing - many applications won't work correctly!"
+  fi
+
 
 dnl Test for avifile
 AVIFILE=no
@@ -317,7 +344,8 @@ AVIFILE=no
   if test x$enable_avifile = xyes; then
     AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
     if test x$AVIFILE_CONFIG = xno; then
-      AC_MSG_WARN(["*** avifile-config not found -- AVI media provider will not be built."])
+      AC_MSG_WARN([
+*** avifile-config not found -- AVI media provider will not be built.])
     else
       AC_PROG_CXX
       AVIFILE=yes
@@ -338,8 +366,10 @@ dnl Test for libflash
       AC_CHECK_HEADER(flash.h,
 	FLASH=yes
 	LIBFLASH='-lflash',
-	AC_MSG_WARN([*** libflash headers not found -- Flash media provider will not be built.])),
-      AC_MSG_WARN([*** libflash not found -- Flash media provider will not be built.]), $LIBJPEG $LIBZ -lm)
+	AC_MSG_WARN([
+*** libflash headers not found -- Flash media provider will not be built.])),
+      AC_MSG_WARN([
+*** libflash not found -- Flash media provider will not be built.]), $LIBJPEG $LIBZ -lm)
   fi
 
 AM_CONDITIONAL(FLASH_PROVIDER, test x$FLASH = xyes)
@@ -354,8 +384,10 @@ dnl Test for libmpeg3
       AC_CHECK_HEADER(libmpeg3.h,
         MPEG3=yes
         LIBMPEG3='-lmpeg3',
-        AC_MSG_WARN([*** libmpeg3 headers not found -- Libmpeg3 video provider will not be built.])),
-      AC_MSG_WARN([*** libmpeg3 not found -- Libmpeg3 video provider will not be build.]), -lm -lpthread)
+        AC_MSG_WARN([
+*** libmpeg3 headers not found -- Libmpeg3 video provider will not be built.])),
+      AC_MSG_WARN([
+*** libmpeg3 not found -- Libmpeg3 video provider will not be build.]), -lm -lpthread)
   fi
 
 AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
@@ -370,7 +402,8 @@ AC_EGREP_CPP(yes, [
 #endif
 ], ati=yes, 
   ati=no
-  AC_MSG_WARN(*** ATI Rage 128 gfxdriver will not be built.))
+  AC_MSG_WARN([
+*** ATI Rage 128 gfxdriver will not be built.]))
 
 AM_CONDITIONAL(GFX_ATI, test x$ati = xyes)
 
@@ -383,7 +416,8 @@ AC_EGREP_CPP(yes, [
 #endif
 ], matrox=yes, 
   matrox=no  
-  AC_MSG_WARN(*** Matrox G200/400 gfxdriver will not be built.))
+  AC_MSG_WARN([
+*** Matrox G200/400/450/550 gfxdriver will not be built.]))
 
 AM_CONDITIONAL(GFX_MATROX, test x$matrox = xyes)
 
@@ -396,7 +430,8 @@ AC_EGREP_CPP(yes, [
 #endif
 ], tdfx=yes, 
   tdfx=no  
-  AC_MSG_WARN(*** 3DFX Voodoo/Banshee gfxdriver will not be built.))
+  AC_MSG_WARN([
+*** 3DFX Voodoo/Banshee gfxdriver will not be built.]))
 
 AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
 
@@ -409,7 +444,8 @@ AC_EGREP_CPP(yes, [
 #endif
 ], nvidia=yes, 
   nvidia=no  
-  AC_MSG_WARN(*** nVidia RIVA TNT gfxdriver will not be built.))
+  AC_MSG_WARN([
+*** nVidia RIVA TNT gfxdriver will not be built.]))
 
 AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
 
@@ -422,7 +458,8 @@ AC_EGREP_CPP(yes, [
 #endif
 ], savage=yes,
   savage=no   
-  AC_MSG_WARN(*** Savage gfxdriver will not be built.))
+  AC_MSG_WARN([
+*** Savage gfxdriver will not be built.]))
 
 AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
 
@@ -433,21 +470,24 @@ AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
 
 dnl Test for H3600 Touchscreen support
 AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no  
-  AC_MSG_WARN(*** H3600 Touchscreen driver will not be built.))
+  AC_MSG_WARN([
+*** H3600 Touchscreen driver will not be built.]))
 
 AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
 
 
 dnl Test for SonyPI Jogdial support
 AC_CHECK_HEADER( [linux/sonypi.h], sonypi=yes, sonypi=no  
-  AC_MSG_WARN(*** SonyPI Jogdial driver will not be built.))
+  AC_MSG_WARN([
+*** SonyPI Jogdial driver will not be built.]))
 
 AM_CONDITIONAL(SONYPI, test x$sonypi = xyes)
 
 
 dnl Test for DBox2 Remote support
 AC_CHECK_HEADER( [dbox/fp.h], dbox2remote=yes, dbox2remote=no
-  AC_MSG_WARN(*** DBox2 Remote driver will not be built.))
+  AC_MSG_WARN([
+*** DBox2 Remote driver will not be built.]))
 
 AM_CONDITIONAL(DBOX2REMOTE, test x$dbox2remote = xyes)
 
@@ -598,4 +638,5 @@ Building Input Drivers:
   DBox2 Remote        $dbox2remote
   H3600 Touchscreen   $h3600_ts
   SonyPI Jogdial      $sonypi
+$png_warning $jpeg_warning $freetype_warning
 ]);
