@@ -563,13 +563,16 @@ system_leave( bool emergency )
 {
 #ifndef FUSION_FAKE
      DFBResult ret;
-     
-     munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
-     
-     close( dfb_fbdev->fd );
 
-     DFBFREE( dfb_fbdev );
-     dfb_fbdev = NULL;
+     if (dfb_fbdev) {
+          munmap( dfb_fbdev->framebuffer_base,
+                  dfb_fbdev->shared->fix.smem_len );
+     
+          close( dfb_fbdev->fd );
+
+          DFBFREE( dfb_fbdev );
+          dfb_fbdev = NULL;
+     }
 
      ret = dfb_vt_leave( emergency );
      if (ret)
