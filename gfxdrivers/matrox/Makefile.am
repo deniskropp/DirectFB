@@ -15,6 +15,8 @@ libdirectfb_matrox_la_SOURCES =	\
 	i2c-dev.h		\
 	matrox.c		\
 	matrox.h		\
+	matrox_3d.c		\
+	matrox_3d.h		\
 	matrox_bes.c		\
 	matrox_crtc2.c		\
 	matrox_maven.c		\
