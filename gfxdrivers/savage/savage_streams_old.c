@@ -49,7 +49,7 @@
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/windows.h>
-#include <core/fbdev/fbdev.h>
+#include <core/system.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -520,7 +520,7 @@ savageSecondaryFlipBuffers(  DisplayLayer        *layer,
      secondary_set_regs(sdrv, slay);
 
      if (flags & DSFLIP_WAITFORSYNC)
-          dfb_fbdev_wait_vsync();
+          dfb_system_wait_vsync();
 
      return DFB_OK;
 }
