@@ -225,7 +225,12 @@ dfb_core_create( CoreDFB **ret_core )
      setpgid( 0, 0 );
 
      core->fusion_id = fusion_init( dfb_config->session,
-                                    DIRECTFB_CORE_ABI, &world );
+#ifdef DFB_DEBUG
+                                    -DIRECTFB_CORE_ABI,
+#else
+                                    DIRECTFB_CORE_ABI,
+#endif
+                                    &world );
      if (core->fusion_id < 0) {
           DFBFREE( core );
           pthread_mutex_unlock( &core_dfb_lock );
