@@ -1,6 +1,5 @@
 #include <endian.h>
 #include <unistd.h>
-#include <stdio.h>
 
 int main()
 {
@@ -8,19 +7,20 @@ int main()
      unsigned short wrd;
      
      do {
-          fread( &wrd, 2, 1, stdin);
+          if (read( 0, &wrd, 2 ) < 2)
+               break;
           
 #if __BYTE_ORDER == __BIG_ENDIAN
           swab(&wrd, &wrd, 2);          
 #endif
           
           byt = (wrd & 0xf800) >> 8;
-          fwrite (&byt, 1, 1, stdout);
+          write (1, &byt, 1);
           byt = (wrd & 0x07E0) >> 3;
-          fwrite (&byt, 1, 1, stdout);
+          write (1, &byt, 1);
           byt = (wrd & 0x001F) << 3;
-          fwrite (&byt, 1, 1, stdout);
-     } while (!feof(stdin));
+          write (1, &byt, 1);
+     } while (1);
 
      return 0;     
 }
