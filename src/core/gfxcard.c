@@ -249,25 +249,11 @@ DFBResult dfb_gfxcard_join()
 
 DFBResult dfb_gfxcard_shutdown( bool emergency )
 {
-     int i;
-
      if (!card)
           return DFB_OK;
 
-     if (emergency) {
-          /* try to prohibit graphics hardware access,
-             this may fail if the current thread locked it */
-          for (i=0; i<100; i++) {
-               dfb_gfxcard_sync();
-
-               if (skirmish_swoop( &Scard->lock ) != EBUSY)
-                    break;
-
-               sched_yield();
-          }
-     }
-     else
-          skirmish_prevail( &Scard->lock );
+     dfb_gfxcard_lock();
+     dfb_gfxcard_sync();
 
      if (card->driver_funcs) {
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
