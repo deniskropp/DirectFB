@@ -384,6 +384,10 @@ dfb_layers_resume()
                layer->funcs->SetConfiguration( layer, layer->driver_data,
                                                layer->layer_data,
                                                &layer->shared->config );
+
+               layer->funcs->SetOpacity( layer,
+                                         layer->driver_data, layer->layer_data,
+                                         layer->shared->opacity );
           }
           
           fusion_property_cede( &layer->shared->lock );
