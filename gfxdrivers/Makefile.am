@@ -12,6 +12,12 @@ else
 RADEON_DIR =
 endif
 
+if GFX_MACH64
+MACH64_DIR = mach64
+else
+MACH64_DIR =
+endif
+
 if GFX_MATROX
 MATROX_DIR = matrox
 else
@@ -76,6 +82,7 @@ SUBDIRS = \
 	$(ATI_DIR)	\
 	$(RADEON_DIR)	\
 	$(CYBER5K_DIR)	\
+	$(MACH64_DIR)	\
 	$(MATROX_DIR)	\
 	$(TDFX_DIR)	\
 	$(NVIDIA_DIR)	\

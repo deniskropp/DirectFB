@@ -1,0 +1,486 @@
+/*
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002-2004  convergence GmbH.
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#include <dfb_types.h>
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+
+#include <linux/fb.h>
+
+#include <directfb.h>
+
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+
+#include <core/screens.h>
+#include <core/state.h>
+#include <core/gfxcard.h>
+#include <core/surfaces.h>
+
+#include <gfx/convert.h>
+
+#include <core/graphics_driver.h>
+
+
+DFB_GRAPHICS_DRIVER( mach64 )
+
+
+#include "regs.h"
+#include "mmio.h"
+#include "mach64_state.h"
+#include "mach64.h"
+
+
+/* driver capability flags */
+
+
+#define MACH64_SUPPORTED_DRAWINGFLAGS \
+               (DSDRAW_DST_COLORKEY)
+
+#define MACH64_SUPPORTED_DRAWINGFUNCTIONS \
+               (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE)
+
+#define MACH64_SUPPORTED_BLITTINGFLAGS \
+               (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)
+
+#define MACH64_SUPPORTED_BLITTINGFUNCTIONS \
+               (DFXL_BLIT)
+
+/* required implementations */
+
+static void mach64EngineSync( void *drv, void *dev )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+
+     mach64_waitidle( mdrv, mdev );
+}
+
+static void mach64CheckState( void *drv, void *dev,
+                              CardState *state, DFBAccelerationMask accel )
+{
+     switch (state->destination->format) {
+          case DSPF_RGB332:
+          case DSPF_ARGB1555:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               break;
+          default:
+               return;
+     }
+
+     if (DFB_DRAWING_FUNCTION( accel )) {
+          if (state->drawingflags & ~MACH64_SUPPORTED_DRAWINGFLAGS)
+               return;
+
+          state->accel |= MACH64_SUPPORTED_DRAWINGFUNCTIONS;
+     } else {
+          switch (state->source->format) {
+          case DSPF_RGB332:
+          case DSPF_ARGB1555:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               break;
+          default:
+               return;
+          }
+          if (state->source->format != state->destination->format)
+               return;
+
+          if (state->blittingflags & ~MACH64_SUPPORTED_BLITTINGFLAGS)
+               return;
+
+          /* Can't do source and destination color keying at the same time */
+          if ((state->blittingflags & (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)) ==
+              (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY))
+               return;
+
+          state->accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
+     }
+}
+
+static void mach64SetState( void *drv, void *dev,
+                            GraphicsDeviceFuncs *funcs,
+                            CardState *state, DFBAccelerationMask accel )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+
+     if (state->modified & SMF_DESTINATION)
+          mach64_set_destination( mdrv, mdev, state );
+
+     switch (accel) {
+     case DFXL_FILLRECTANGLE:
+     case DFXL_DRAWRECTANGLE:
+     case DFXL_DRAWLINE:
+          if (state->modified & SMF_COLOR)
+               mach64_set_color( mdrv, mdev, state );
+
+          if (state->modified & (SMF_DST_COLORKEY | SMF_DRAWING_FLAGS)) {
+               if (state->drawingflags & DSDRAW_DST_COLORKEY)
+                    mach64_set_dst_colorkey( mdrv, mdev, state );
+               else
+                    mach64_disable_colorkey( mdrv, mdev );
+          }
+
+          state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE;
+          break;
+     case DFXL_BLIT:
+          if (state->modified & SMF_SOURCE)
+               mach64_set_source( mdrv, mdev, state );
+
+          if (state->modified & (SMF_DST_COLORKEY | SMF_SRC_COLORKEY | SMF_BLITTING_FLAGS)) {
+               if (state->blittingflags & DSBLIT_DST_COLORKEY)
+                    mach64_set_dst_colorkey( mdrv, mdev, state );
+               else if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                    mach64_set_src_colorkey( mdrv, mdev, state );
+               else
+                    mach64_disable_colorkey( mdrv, mdev );
+          }
+
+          state->set = DFXL_BLIT;
+          break;
+     default:
+          BUG( "unexpected drawing/blitting function" );
+          break;
+     }
+
+     if (state->modified & SMF_CLIP)
+          mach64_set_clip( mdrv, mdev, state );
+
+     state->modified = 0;
+}
+
+/* */
+
+static bool mach64FillRectangle( void *drv, void *dev, DFBRectangle *rect )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     mach64_waitfifo( mdrv, mdev, 5 );
+
+     mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
+     mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
+
+     mach64_out32( mmio, DST_CNTL, DST_LAST_PEL | DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
+     mach64_out32( mmio, DST_Y_X, (rect->x << 16) | rect->y );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | rect->h );
+
+     return true;
+}
+
+static bool mach64DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     int x2 = rect->x + rect->w - 1;
+     int y2 = rect->y + rect->h - 1;
+
+     mach64_waitfifo( mdrv, mdev, 10 );
+
+     mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
+     mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
+
+     mach64_out32( mmio, DST_CNTL, DST_LAST_PEL | DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
+     mach64_out32( mmio, DST_Y_X, (rect->x << 16) | rect->y );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (1 << 16) | rect->h );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | 1 );
+
+     mach64_out32( mmio, DST_CNTL, DST_LAST_PEL | DST_X_RIGHT_TO_LEFT | DST_Y_BOTTOM_TO_TOP );
+     mach64_out32( mmio, DST_Y_X, (x2 << 16) | y2 );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (1 << 16) | rect->h );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | 1 );
+
+     return true;
+}
+
+static bool mach64DrawLine( void *drv, void *dev, DFBRegion *line )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     __u32 dst_cntl = DST_LAST_PEL;
+     int   dx, dy;
+
+     dx = line->x2 - line->x1;
+     dy = line->y2 - line->y1;
+
+     if (dx < 0) {
+          dx = -dx;
+          dst_cntl |= DST_X_RIGHT_TO_LEFT;
+     } else
+          dst_cntl |= DST_X_LEFT_TO_RIGHT;
+
+     if (dy < 0) {
+          dy = -dy;
+          dst_cntl |= DST_Y_BOTTOM_TO_TOP;
+     } else
+          dst_cntl |= DST_Y_TOP_TO_BOTTOM;
+
+     mach64_waitfifo( mdrv, mdev, 2 );
+
+     mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
+     mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
+
+     if (!dx || !dy) {
+          /* horizontal / vertical line */
+          mach64_waitfifo( mdrv, mdev, 3 );
+
+          mach64_out32( mmio, DST_CNTL, dst_cntl);
+          mach64_out32( mmio, DST_Y_X, (line->x1 << 16) | line->y1 );
+          mach64_out32( mmio, DST_HEIGHT_WIDTH, ((dx+1) << 16) | (dy+1) );
+
+          return true;
+     }
+
+     if (dx < dy) {
+          int tmp = dx;
+          dx = dy;
+          dy = tmp; 
+          dst_cntl |= DST_Y_MAJOR;
+     } else
+          dst_cntl |= DST_X_MAJOR;
+     
+     mach64_waitfifo( mdrv, mdev, 6 );
+
+     mach64_out32( mmio, DST_CNTL, dst_cntl );
+     mach64_out32( mmio, DST_Y_X, (line->x1 << 16) | line->y1 );
+     mach64_out32( mmio, DST_BRES_LNTH, dx+1 );
+     mach64_out32( mmio, DST_BRES_ERR, -dx );
+     mach64_out32( mmio, DST_BRES_INC,  2*dy );
+     mach64_out32( mmio, DST_BRES_DEC, -2*dx );
+
+     return true;
+}
+
+static bool mach64Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+
+     __u32 dst_cntl = DST_LAST_PEL;
+
+     if (rect->x <= dx) {
+          rect->x += rect->w - 1;
+          dx += rect->w - 1;
+          dst_cntl |= DST_X_RIGHT_TO_LEFT;
+     } else
+          dst_cntl |= DST_X_LEFT_TO_RIGHT;
+
+     if (rect->y <= dy) {
+          rect->y += rect->h - 1;
+          dy += rect->h - 1;
+          dst_cntl |= DST_Y_BOTTOM_TO_TOP;
+     } else
+          dst_cntl |= DST_Y_TOP_TO_BOTTOM;
+
+     mach64_waitfifo( mdrv, mdev, 7 );
+
+     mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
+     mach64_out32( mmio, DP_SRC, FRGD_SRC_BLIT );
+
+     mach64_out32( mmio, SRC_Y_X, (rect->x << 16) | rect->y );
+     mach64_out32( mmio, SRC_HEIGHT1_WIDTH1, (rect->w << 16) | rect->h );
+
+     mach64_out32( mmio, DST_CNTL, dst_cntl );
+     mach64_out32( mmio, DST_Y_X, (dx << 16) | dy );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | rect->h );
+
+     return true;
+}
+
+/* exported symbols */
+
+static int
+driver_probe( GraphicsDevice *device )
+{
+     switch (dfb_gfxcard_get_accelerator( device )) {
+          case FB_ACCEL_ATI_MACH64GX:
+          case FB_ACCEL_ATI_MACH64CT:
+          case FB_ACCEL_ATI_MACH64VT:
+          case FB_ACCEL_ATI_MACH64GT:
+               return 1;
+     }
+
+     return 0;
+}
+
+static void
+driver_get_info( GraphicsDevice     *device,
+                 GraphicsDriverInfo *info )
+{
+     /* fill driver info structure */
+     snprintf( info->name,
+               DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
+               "ATI Mach64 Driver" );
+
+     snprintf( info->vendor,
+               DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
+               "Ville Syrjala" );
+
+     info->version.major = 0;
+     info->version.minor = 1;
+
+     info->driver_data_size = sizeof (Mach64DriverData);
+     info->device_data_size = sizeof (Mach64DeviceData);
+}
+
+static DFBResult
+driver_init_driver( GraphicsDevice      *device,
+                    GraphicsDeviceFuncs *funcs,
+                    void                *driver_data,
+                    void                *device_data )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
+
+     mdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     if (!mdrv->mmio_base)
+          return DFB_IO;
+
+     mdrv->accelerator = dfb_gfxcard_get_accelerator( device );
+
+     switch (mdrv->accelerator) {
+          case FB_ACCEL_ATI_MACH64VT:
+          case FB_ACCEL_ATI_MACH64GT:
+               mdrv->mmio_base += 0x400;
+               break;
+     }
+
+     funcs->CheckState    = mach64CheckState;
+     funcs->SetState      = mach64SetState;
+     funcs->EngineSync    = mach64EngineSync;
+
+     funcs->FillRectangle = mach64FillRectangle;
+     funcs->DrawRectangle = mach64DrawRectangle;
+     funcs->DrawLine      = mach64DrawLine;
+     funcs->Blit          = mach64Blit;
+
+     return DFB_OK;
+}
+
+static DFBResult
+driver_init_device( GraphicsDevice     *device,
+                    GraphicsDeviceInfo *device_info,
+                    void               *driver_data,
+                    void               *device_data )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
+
+     /* fill device info */
+     switch (mdrv->accelerator) {
+          case FB_ACCEL_ATI_MACH64GX:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GX" );
+               break;
+          case FB_ACCEL_ATI_MACH64CT:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 CT" );
+               break;
+          case FB_ACCEL_ATI_MACH64VT:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 VT" );
+               break;
+          case FB_ACCEL_ATI_MACH64GT:
+               snprintf( device_info->name,
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GT" );
+               break;
+     }
+
+     snprintf( device_info->vendor,
+               DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "ATI" );
+
+     device_info->caps.flags    = CCF_CLIPPING;
+     device_info->caps.accel    = MACH64_SUPPORTED_DRAWINGFUNCTIONS |
+                                  MACH64_SUPPORTED_BLITTINGFUNCTIONS;
+     device_info->caps.drawing  = MACH64_SUPPORTED_DRAWINGFLAGS;
+     device_info->caps.blitting = MACH64_SUPPORTED_BLITTINGFLAGS;
+
+     device_info->limits.surface_byteoffset_alignment = 32 * 4;
+     device_info->limits.surface_pixelpitch_alignment = 32;
+
+     return DFB_OK;
+}
+
+static void
+driver_close_device( GraphicsDevice *device,
+                     void           *driver_data,
+                     void           *device_data )
+{
+     Mach64DeviceData *mdev = (Mach64DeviceData*) device_data;
+
+     DEBUGMSG( "DirectFB/Mach64: FIFO Performance Monitoring:\n" );
+     DEBUGMSG( "DirectFB/Mach64:  %9d mach64_waitfifo calls\n",
+               mdev->waitfifo_calls );
+     DEBUGMSG( "DirectFB/Mach64:  %9d register writes (mach64_waitfifo sum)\n",
+               mdev->waitfifo_sum );
+     DEBUGMSG( "DirectFB/Mach64:  %9d FIFO wait cycles (depends on CPU)\n",
+               mdev->fifo_waitcycles );
+     DEBUGMSG( "DirectFB/Mach64:  %9d IDLE wait cycles (depends on CPU)\n",
+               mdev->idle_waitcycles );
+     DEBUGMSG( "DirectFB/Mach64:  %9d FIFO space cache hits(depends on CPU)\n",
+               mdev->fifo_cache_hits );
+     DEBUGMSG( "DirectFB/Mach64: Conclusion:\n" );
+     DEBUGMSG( "DirectFB/Mach64:  Average register writes/mach64_waitfifo"
+               "call:%.2f\n",
+               mdev->waitfifo_sum/(float)(mdev->waitfifo_calls) );
+     DEBUGMSG( "DirectFB/Mach64:  Average wait cycles/mach64_waitfifo call:"
+               " %.2f\n",
+               mdev->fifo_waitcycles/(float)(mdev->waitfifo_calls) );
+     DEBUGMSG( "DirectFB/Mach64:  Average fifo space cache hits: %02d%%\n",
+               (int)(100 * mdev->fifo_cache_hits/
+               (float)(mdev->waitfifo_calls)) );
+}
+
+static void
+driver_close_driver( GraphicsDevice *device,
+                     void           *driver_data )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
+
+     switch (mdrv->accelerator) {
+          case FB_ACCEL_ATI_MACH64VT:
+          case FB_ACCEL_ATI_MACH64GT:
+               mdrv->mmio_base -= 0x400;
+               break;
+     }
+
+     dfb_gfxcard_unmap_mmio( device, mdrv->mmio_base, -1 );
+}

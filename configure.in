@@ -596,6 +596,7 @@ dnl check which gfxdrivers to build
 ati=no
 cyber5k=no
 i810=no
+mach64=no
 matrox=no
 neomagic=no
 nsc=no
@@ -614,15 +615,17 @@ AC_ARG_WITH(gfxdrivers,
   [                          gfxdrivers may be comma separated ]
   [                          'all' builds all drivers, 'none' builds none ]
   [                          Possible gfxdrivers are: ]
-  [                          ati128, cle266, cyber5k, i810, matrox, neomagic,]
-  [                          nsc, nvidia, radeon, savage, sis315, tdfx],
-  gfxdrivers="$withval",[gfxdrivers="ati128,cle266,matrox,nsc,nvidia,radeon,sis315,tdfx"])
+  [                          ati128, cle266, cyber5k, i810, mach64, matrox,]
+  [                          neomagic, nsc, nvidia, radeon, savage, sis315,]
+  [                          tdfx],
+  gfxdrivers="$withval",[gfxdrivers="ati128,cle266,mach64,matrox,nsc,nvidia,radeon,sis315,tdfx"])
 
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
   checkfor_cyber5k=yes
   checkfor_cle266=yes
   checkfor_i810=yes
+  checkfor_mach64=yes
   checkfor_matrox=yes
   checkfor_neomagic=yes
   checkfor_nsc=yes
@@ -649,6 +652,9 @@ else
                   ;;
           i810)
                   checkfor_i810=yes
+                  ;;
+          mach64)
+                  checkfor_mach64=yes
                   ;;
           matrox)
                   checkfor_matrox=yes
@@ -710,6 +716,20 @@ if test x$checkfor_radeon = xyes; then
   radeon=no
   AC_MSG_WARN([
 *** ATI Radeon gfxdriver will not be built.]))
+fi
+
+if test x$checkfor_mach64 = xyes; then
+  dnl Test for ati frame buffer support in the kernel
+  AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_ATI_MACH64GX
+  yes
+#endif
+  ],
+  mach64=yes, 
+  mach64=no  
+  AC_MSG_WARN([
+*** ATI Mach64 gfxdriver will not be built.]))
 fi
 
 if test x$checkfor_matrox = xyes; then
@@ -897,6 +917,7 @@ AM_CONDITIONAL(GFX_ATI, test x$ati = xyes)
 AM_CONDITIONAL(GFX_CYBER5K, test x$cyber5k = xyes)
 AM_CONDITIONAL(GFX_CLE266, test x$cle266 = xyes)
 AM_CONDITIONAL(GFX_I810, test x$i810 = xyes)
+AM_CONDITIONAL(GFX_MACH64, test x$mach64 = xyes)
 AM_CONDITIONAL(GFX_MATROX, test x$matrox = xyes)
 AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
 AM_CONDITIONAL(GFX_NSC, test x$nsc = xyes)
@@ -994,6 +1015,7 @@ gfxdrivers/ati128/Makefile
 gfxdrivers/cle266/Makefile
 gfxdrivers/cyber5k/Makefile
 gfxdrivers/i810/Makefile
+gfxdrivers/mach64/Makefile
 gfxdrivers/matrox/Makefile
 gfxdrivers/neomagic/Makefile
 gfxdrivers/nsc/Makefile
@@ -1072,6 +1094,7 @@ if test x$have_linux = xyes; then
 AC_MSG_RESULT([
 Building Graphics Drivers:
   3Dfx Voodoo           $tdfx
+  ATI Mach64            $mach64
   ATI Radeon            $radeon
   ATI Rage 128          $ati
   Intel i810		$i810
