@@ -415,9 +415,25 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     x = ((int)config.width  - (int)width)  / 2;
                     y = ((int)config.height - (int)height) / 2;
 
-                    if ((desc->flags & DSDESC_PIXELFORMAT)
-                        && desc->pixelformat == DSPF_ARGB)
-                         window_caps |= DWCAPS_ALPHACHANNEL;
+                    if (desc->flags & DSDESC_PIXELFORMAT) {
+                         if (desc->pixelformat == DSPF_ARGB)
+                              window_caps |= DWCAPS_ALPHACHANNEL;
+                    }
+                    else {
+                         switch (dfb_config->mode.format) {
+                              case DSPF_UNKNOWN:
+                                   break;
+
+                              case DSPF_ARGB:
+                                   window_caps |= DWCAPS_ALPHACHANNEL;
+                                   /* fall through */
+
+                              default:
+                                   format = dfb_config->mode.format;
+                                   break;
+
+                         }
+                    }
 
                     if (caps & DSCAPS_FLIPPING)
                          window_caps |= DWCAPS_DOUBLEBUFFER;
@@ -900,8 +916,15 @@ IDirectFB_Construct( IDirectFB *thiz )
 
      data->level = DFSCL_NORMAL;
 
-     data->primary.width  = dfb_config->mode.width;
-     data->primary.height = dfb_config->mode.height;
+     if (dfb_config->mode.width)
+          data->primary.width  = dfb_config->mode.width;
+     else
+          data->primary.width  = 640;
+
+     if (dfb_config->mode.height)
+          data->primary.height = dfb_config->mode.height;
+     else
+          data->primary.height = 480;
 
      data->layer = dfb_layer_at( DLID_PRIMARY );
 
