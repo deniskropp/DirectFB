@@ -418,7 +418,8 @@ extern "C"
       */
      typedef enum {
            DFFA_NOKERNING     = 0x00000001,  /* don't use kerning */
-           DFFA_NOHINTING     = 0x00000002   /* don't use hinting */
+           DFFA_NOHINTING     = 0x00000002,  /* don't use hinting */
+           DFFA_MONOCHROME    = 0x00000004   /* don't use anti-aliasing */
      } DFBFontAttributes;
 
      /*

@@ -105,6 +105,20 @@ static inline void span_a8_to_argb( __u8 *src, __u32 *dst, int width )
      while (width--) *dst++ = PIXEL_ARGB( *src++, 0xFF, 0xFF, 0xFF );
 }
 
+static inline void span_a1_to_argb( __u8 *src, __u32 *dst, int width )
+{
+     int i;
+     for (i = 0; i < width; i++)
+          *dst++ =  PIXEL_ARGB( (src[i>>3] & (1<<(7-(i%8)))) ? 0xFF : 0x0, 
+                                0xFF, 0xFF, 0xFF );
+}
+
+static inline void span_a1_to_a8( __u8 *src, __u8 *dst, int width )
+{
+     int i;
+     for (i = 0; i < width; i++)
+          *dst++ = (src[i>>3] & (1<<(7-(i%8)))) ? 0xFF : 0x0;
+}
 
 static inline void span_rgb15_to_rgb16( __u16 *src, __u16 *dst, int width )
 {

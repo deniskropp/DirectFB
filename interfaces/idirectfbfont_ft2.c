@@ -62,7 +62,7 @@ DFBResult render_glyph( CoreFontData  *thiz,
                         CoreGlyphData *info,
                         CoreSurface   *surface )
 {
-     __u8 *dst;
+     __u8 *src, *dst;
      FT_Error err;
      FT_Face  face;
      FT_Int   load_flags;
@@ -72,25 +72,16 @@ DFBResult render_glyph( CoreFontData  *thiz,
 
      face = thiz->impl_data;
 
-     load_flags = (FT_Int) face->generic.data;
-
      index = FT_Get_Char_Index(face, glyph);
+
+     load_flags = (FT_Int) face->generic.data;
+     load_flags |= FT_LOAD_RENDER;
 
      err = FT_Load_Glyph( face, index, load_flags );
      if (err) {
           ERRORMSG( "DirectB/FontFT2: "
-                    "Could not load glyph for character #%d!\n", glyph );
+                    "Could not render glyph for character #%d!\n", glyph );
           return DFB_FAILURE;
-     }
-
-     if (face->glyph->format != ft_glyph_format_bitmap) {
-          err = FT_Render_Glyph( face->glyph, ft_render_mode_normal );
-          if (err) {
-               ERRORMSG( "DirectFB/FontFT2: Could not "
-                         "render glyph for character #%d!\n", glyph );
-               
-               return DFB_FAILURE;
-          }
      }
 
      HEAVYDEBUGMSG( "loaded %d\n", glyph );
@@ -117,21 +108,44 @@ DFBResult render_glyph( CoreFontData  *thiz,
      info->left = face->glyph->bitmap_left;
      info->top  = thiz->ascender - face->glyph->bitmap_top;
 
+     src = face->glyph->bitmap.buffer;
      dst += thiz->next_x * BYTES_PER_PIXEL(surface->format);
 
      for (y=0; y < info->height; y++) {
-          switch (BYTES_PER_PIXEL(surface->format)) {
-             case 4:
-               span_a8_to_argb( &face->glyph->bitmap.buffer[face->glyph->bitmap.pitch*y],
-                                (__u32*) dst, info->width );
-             break;
-             case 1:
-               memcpy( dst, &face->glyph->bitmap.buffer[face->glyph->bitmap.pitch*y],
-                       info->width );
-             break;
-             default:
+
+          switch (face->glyph->bitmap.pixel_mode) {
+          case ft_pixel_mode_grays:
+               switch (BYTES_PER_PIXEL(surface->format)) {
+               case 4:
+                    span_a8_to_argb( src, (__u32*) dst, info->width );
+                    break;
+               case 1:
+                    memcpy( dst, src, info->width );
+                    break;
+               default:
+                    break;
+               }
                break;
+
+          case ft_pixel_mode_mono:
+               switch (BYTES_PER_PIXEL(surface->format)) {
+               case 4:
+                    span_a1_to_argb( src, (__u32*) dst, info->width );
+                    break;
+               case 1:
+                    span_a1_to_a8( src, dst, info->width );
+                    break;
+               default:
+                    break;
+               }
+               break;
+
+          default:
+               break;
+
           }
+
+          src += face->glyph->bitmap.pitch;
           dst += pitch;
      }
 
@@ -265,9 +279,11 @@ DFBResult Construct( IDirectFBFont *thiz,
      }
      
      load_flags = FT_LOAD_DEFAULT;
-     if ((desc->flags & DFDESC_ATTRIBUTES) &&
-         (desc->attributes & DFFA_NOHINTING)) {
-          load_flags |= FT_LOAD_NO_HINTING; 
+     if ((desc->flags & DFDESC_ATTRIBUTES)) {
+         if (desc->attributes & DFFA_NOHINTING)
+              load_flags |= FT_LOAD_NO_HINTING;
+         if (desc->attributes & DFFA_MONOCHROME)
+              load_flags |= FT_LOAD_MONOCHROME;         
      }
      face->generic.data = (void *) load_flags;
      face->generic.finalizer = NULL;
@@ -290,7 +306,7 @@ DFBResult Construct( IDirectFBFont *thiz,
      font->GetGlyphInfo = get_glyph_info;
      font->RenderGlyph  = render_glyph;
 
-     if (face->face_flags & FT_FACE_FLAG_KERNING) {
+     if (FT_HAS_KERNING ( face )) {
           font->GetKerning = get_kerning;
      }
 
