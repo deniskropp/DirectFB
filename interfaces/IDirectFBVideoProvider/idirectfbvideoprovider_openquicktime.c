@@ -71,9 +71,9 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz, const char *filename );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, OpenQuicktime )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, OpenQuicktime )
 
 /*
  * private data struct of IDirectFBVideoProvider
@@ -175,7 +175,7 @@ IDirectFBVideoProvider_OpenQuicktime_Destruct( IDirectFBVideoProvider *thiz )
 static DFBResult
 IDirectFBVideoProvider_OpenQuicktime_AddRef( IDirectFBVideoProvider *thiz )
 {
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+    DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
     data->ref++;
 
@@ -186,7 +186,7 @@ IDirectFBVideoProvider_OpenQuicktime_AddRef( IDirectFBVideoProvider *thiz )
 static DFBResult
 IDirectFBVideoProvider_OpenQuicktime_Release( IDirectFBVideoProvider *thiz )
 {
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+    DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
     if (--data->ref == 0) {
         IDirectFBVideoProvider_OpenQuicktime_Destruct( thiz );
@@ -200,7 +200,7 @@ IDirectFBVideoProvider_OpenQuicktime_GetCapabilities(
                                            IDirectFBVideoProvider       *thiz,
                                            DFBVideoProviderCapabilities *caps )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      if (!caps)
           return DFB_INVARG;
@@ -214,7 +214,7 @@ static DFBResult
 IDirectFBVideoProvider_OpenQuicktime_GetSurfaceDescription(
     IDirectFBVideoProvider *thiz, DFBSurfaceDescription  *desc )
 {
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+    DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
     if (!desc)
         return DFB_INVARG;
@@ -714,7 +714,7 @@ IDirectFBVideoProvider_OpenQuicktime_PlayTo( IDirectFBVideoProvider *thiz,
      DFBRectangle           rect, dest_rect, dest_clip;
      IDirectFBSurface_data *dst_data;
 
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      if (!destination)
           return DFB_INVARG;
@@ -819,7 +819,7 @@ IDirectFBVideoProvider_OpenQuicktime_PlayTo( IDirectFBVideoProvider *thiz,
 static DFBResult
 IDirectFBVideoProvider_OpenQuicktime_Stop( IDirectFBVideoProvider *thiz )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
@@ -866,7 +866,7 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_SeekTo(
 {
      long new_pos, old_pos, audio_pos;
 
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
@@ -919,7 +919,7 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_GetPos(
                                               IDirectFBVideoProvider *thiz,
                                               double                 *seconds )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      pthread_mutex_lock( &data->video.lock );
 
@@ -935,7 +935,7 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_GetLength(
                                               IDirectFBVideoProvider *thiz,
                                               double                 *seconds )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      *seconds = data->video.length / data->video.rate;
 
@@ -946,7 +946,7 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_GetColorAdjustment(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      return DFB_UNSUPPORTED;
 }
@@ -955,7 +955,7 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_SetColorAdjustment(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      return DFB_UNSUPPORTED;
 }

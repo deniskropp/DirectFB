@@ -26,7 +26,6 @@
 #include <sys/types.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <media/idirectfbvideoprovider.h>
 
@@ -36,6 +35,8 @@
 #include <core/layers.h>
 #include <core/surfaces.h>
 #include <display/idirectfbsurface.h>
+
+#include <direct/interface.h>
 
 #include <xine.h>
 #include <xine/xineutils.h>
@@ -53,9 +54,9 @@ static DFBResult Probe(IDirectFBVideoProvider_ProbeContext *ctx);
 static DFBResult Construct(IDirectFBVideoProvider *thiz, const char* filename);
 
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION(IDirectFBVideoProvider, Xine)
+DIRECT_INTERFACE_IMPLEMENTATION(IDirectFBVideoProvider, Xine)
 
 
 typedef struct
@@ -135,14 +136,14 @@ IDirectFBVideoProvider_Xine_Destruct(IDirectFBVideoProvider* thiz)
 	}
 
 	D_FREE(data->mrl);
-	DFB_DEALLOCATE_INTERFACE(thiz);
+	DIRECT_DEALLOCATE_INTERFACE(thiz);
 }
 
 
 static DFBResult
 IDirectFBVideoProvider_Xine_AddRef(IDirectFBVideoProvider* thiz)
 {
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 
 	data->ref++;
 
@@ -153,7 +154,7 @@ IDirectFBVideoProvider_Xine_AddRef(IDirectFBVideoProvider* thiz)
 static DFBResult
 IDirectFBVideoProvider_Xine_Release(IDirectFBVideoProvider *thiz)
 {
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 
 	if(--(data->ref) == 0)
 		IDirectFBVideoProvider_Xine_Destruct(thiz);
@@ -166,7 +167,7 @@ static DFBResult
 IDirectFBVideoProvider_Xine_GetCapabilities(IDirectFBVideoProvider* thiz,
 					DFBVideoProviderCapabilities* caps)
 {
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 	
 	if(!caps)
 		return(DFB_INVARG);
@@ -187,7 +188,7 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription(IDirectFBVideoProvider* thiz,
 					DFBSurfaceDescription* desc)
 {
 	
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 
 	if(!desc)
 		return(DFB_INVARG);
@@ -232,7 +233,7 @@ IDirectFBVideoProvider_Xine_PlayTo(IDirectFBVideoProvider* thiz,
 {
 	IDirectFBSurface_data* dest_data;
 
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 
 	if(!dest)
 		return(DFB_INVARG);
@@ -303,7 +304,7 @@ IDirectFBVideoProvider_Xine_PlayTo(IDirectFBVideoProvider* thiz,
 static DFBResult
 IDirectFBVideoProvider_Xine_Stop(IDirectFBVideoProvider* thiz)
 {
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 
 	if(data->is_playing && !data->is_paused)
 	{
@@ -321,7 +322,7 @@ static DFBResult
 IDirectFBVideoProvider_Xine_SeekTo(IDirectFBVideoProvider* thiz,
 					double seconds)
 {	
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 		
 	if(data->stream && data->is_playing)
 	{		
@@ -352,7 +353,7 @@ static DFBResult
 IDirectFBVideoProvider_Xine_GetPos(IDirectFBVideoProvider* thiz,
 					double* seconds)
 {
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 		
 	if(!seconds)
 		return(DFB_INVARG);
@@ -384,7 +385,7 @@ static DFBResult
 IDirectFBVideoProvider_Xine_GetLength(IDirectFBVideoProvider* thiz,
 					double* seconds)
 {
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 		
 	if(!seconds)
 		return(DFB_INVARG);
@@ -409,7 +410,7 @@ static DFBResult
 IDirectFBVideoProvider_Xine_GetColorAdjustment(IDirectFBVideoProvider* thiz,
 						DFBColorAdjustment* adj)
 {
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 
 	if(!adj)
 		return(DFB_INVARG);
@@ -432,7 +433,7 @@ static DFBResult
 IDirectFBVideoProvider_Xine_SetColorAdjustment(IDirectFBVideoProvider* thiz,
 						DFBColorAdjustment* adj)
 {
-	INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
+	DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Xine)
 
 	if(!adj)
 		return(DFB_INVARG);
@@ -518,7 +519,7 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 	dfb_visual_t visual;
 	const char*  home;
 	
-	DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Xine)
+	DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Xine)
 
 	data->ref = 1;
 	data->mrl = D_STRDUP(filename);

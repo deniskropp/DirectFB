@@ -40,12 +40,12 @@
 #include <pthread.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <media/idirectfbvideoprovider.h>
 
 #include <misc/util.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -59,6 +59,8 @@
 #include <core/gfxcard.h>
 
 #include <gfx/convert.h>
+
+#include <idirectfb.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -79,9 +81,9 @@ static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
            const char             *filename );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, Libmpeg3 )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, Libmpeg3 )
 
 /*
  * private data struct of IDirectFBVideoProvider
@@ -175,13 +177,13 @@ IDirectFBVideoProvider_Libmpeg3_Destruct( IDirectFBVideoProvider *thiz )
 
     D_FREE( data->filename );
 
-    DFB_DEALLOCATE_INTERFACE( thiz );
+    DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_AddRef( IDirectFBVideoProvider *thiz )
 {
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+    DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
     data->ref++;
 
@@ -192,7 +194,7 @@ IDirectFBVideoProvider_Libmpeg3_AddRef( IDirectFBVideoProvider *thiz )
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_Release( IDirectFBVideoProvider *thiz )
 {
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+    DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
     if (--data->ref == 0) {
         IDirectFBVideoProvider_Libmpeg3_Destruct( thiz );
@@ -206,7 +208,7 @@ IDirectFBVideoProvider_Libmpeg3_GetCapabilities(
                                            IDirectFBVideoProvider       *thiz,
                                            DFBVideoProviderCapabilities *caps )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
      if (!caps)
           return DFB_INVARG;
@@ -220,7 +222,7 @@ static DFBResult
 IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription(
     IDirectFBVideoProvider *thiz, DFBSurfaceDescription  *desc )
 {
-    INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+    DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
     if (!desc)
         return DFB_INVARG;
@@ -742,7 +744,7 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
      DFBRectangle           rect, dest_rect, dest_clip;
      IDirectFBSurface_data *dst_data;
 
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
      if (!destination)
           return DFB_INVARG;
@@ -847,7 +849,7 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_Stop( IDirectFBVideoProvider *thiz )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
@@ -894,7 +896,7 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_SeekTo(
 {
      long new_pos, old_pos, audio_pos;
 
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
@@ -941,7 +943,7 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_GetPos(
                                               IDirectFBVideoProvider *thiz,
                                               double                 *seconds )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
      pthread_mutex_lock( &data->video.lock );
 
@@ -957,7 +959,7 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_GetLength(
                                               IDirectFBVideoProvider *thiz,
                                               double                 *seconds )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
      *seconds = data->video.length / data->video.rate;
 
@@ -968,7 +970,7 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_GetColorAdjustment(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
      return DFB_UNSUPPORTED;
 }
@@ -977,7 +979,7 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
      return DFB_UNSUPPORTED;
 }
@@ -1020,7 +1022,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      int i;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Libmpeg3)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Libmpeg3)
 
      /* initialize private data */
      data->ref           = 1;

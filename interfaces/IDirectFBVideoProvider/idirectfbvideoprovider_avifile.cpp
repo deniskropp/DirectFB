@@ -35,7 +35,6 @@ extern "C" {
 #include <malloc.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <media/idirectfbvideoprovider.h>
 
@@ -49,6 +48,7 @@ extern "C" {
 
 #include <display/idirectfbsurface.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 
 #include <misc/util.h>
@@ -60,9 +60,9 @@ static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
            const char             *filename );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, AviFile )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, AviFile )
 
 }
 
@@ -110,13 +110,13 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
 
      dfb_surface_unref( data->source );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult IDirectFBVideoProvider_AviFile_AddRef(
                                                  IDirectFBVideoProvider *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      data->ref++;
 
@@ -126,7 +126,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_AddRef(
 static DFBResult IDirectFBVideoProvider_AviFile_Release(
                                                  IDirectFBVideoProvider *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (--data->ref == 0) {
           IDirectFBVideoProvider_AviFile_Destruct( thiz );
@@ -139,7 +139,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetCapabilities(
                                            IDirectFBVideoProvider       *thiz,
                                            DFBVideoProviderCapabilities *caps )
 {
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (!caps)
           return DFB_INVARG;
@@ -155,7 +155,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
                                                  IDirectFBVideoProvider *thiz,
                                                  DFBSurfaceDescription  *desc )
 {
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (!desc)
           return DFB_INVARG;
@@ -179,7 +179,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
      DFBRectangle           rect;
      IDirectFBSurface_data *dst_data;
 
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (!destination)
         return DFB_INVARG;
@@ -267,7 +267,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
 static DFBResult IDirectFBVideoProvider_AviFile_Stop(
                                                  IDirectFBVideoProvider *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (data->player->IsPlaying())
           data->player->Pause(true);
@@ -286,7 +286,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_SeekTo(
 {
      double curpos;
 
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      curpos = data->player->GetPos();
      data->player->Reseek( seconds );
@@ -303,7 +303,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetPos(
      IDirectFBVideoProvider *thiz,
      double                 *seconds)
 {
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (!seconds)
         return DFB_INVARG;
@@ -317,7 +317,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetLength(
      IDirectFBVideoProvider *thiz,
      double                 *seconds)
 {
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (!seconds)
         return DFB_INVARG;
@@ -331,7 +331,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetColorAdjustment(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (!adj)
           return DFB_INVARG;
@@ -343,7 +343,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_SetColorAdjustment(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
-     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (!adj)
           return DFB_INVARG;
@@ -408,7 +408,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      DFBResult ret;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_AviFile)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_AviFile)
 
      data->ref = 1;
 
@@ -421,7 +421,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      catch (FatalError e) {
           ERRORMSG( "DirectFB/AviFile: CreateAviPlayer failed: %s\n",
                     e.GetDesc() );
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 
@@ -432,7 +432,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
                                             NULL, NULL, 0, 0, &data->source );
      if (ret) {
           delete data->player;
-          DFB_DEALLOCATE_INTERFACE(thiz);
+          DIRECT_DEALLOCATE_INTERFACE(thiz);
           return ret;
      }
 
