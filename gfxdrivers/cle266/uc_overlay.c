@@ -12,6 +12,7 @@
 #include "vidregs.h"
 #include "mmio.h"
 
+#include <core/system.h>
 
 // Forward declaration
 static DFBResult
@@ -52,9 +53,15 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     config->flags  = DLCONF_WIDTH | DLCONF_HEIGHT |
                      DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
 
-    config->width  = ucovl->v1.win.w;
-    config->height = ucovl->v1.win.h;
+    ucovl->v1.win.w = 640;
+    ucovl->v1.win.h = 480;
+    ucovl->v1.win.x = 0;
+    ucovl->v1.win.y = 0;
 
+
+    config->width  = 640;
+    config->height = 480;
+    
     config->pixelformat = DSPF_YUY2;
     config->buffermode  = DLBM_FRONTONLY;
     config->options     = DLOP_NONE;
@@ -165,8 +172,8 @@ uc_ovl_test_region(CoreLayer                  *layer,
 
     // Check layer options
 
-    if (config->options & ~UC_OVL_CAPS)
-        fail |= DLCONF_OPTIONS;
+    if (config->options & ~UC_OVL_OPTIONS)
+        fail |= CLRCF_OPTIONS;
 
     // Check pixelformats
 
@@ -174,7 +181,7 @@ uc_ovl_test_region(CoreLayer                  *layer,
           case DSPF_YUY2:
               break;
           case DSPF_UYVY:
-              fail |= DLCONF_PIXELFORMAT;   // Nope...  doesn't work.
+              fail |= CLRCF_FORMAT;   // Nope...  doesn't work.
               break;
           case DSPF_I420:
           case DSPF_YV12:
@@ -184,16 +191,16 @@ uc_ovl_test_region(CoreLayer                  *layer,
           case DSPF_ARGB:
               break;
           default:
-              fail |= DLCONF_PIXELFORMAT;
+              fail |= CLRCF_FORMAT;
     }
 
     // Check width and height
 
     if (config->width > 4096 || config->width < 32)
-        fail |= DLCONF_WIDTH;
+        fail |= CLRCF_WIDTH;
 
     if (config->height > 4096 || config->height < 32)
-        fail |= DLCONF_HEIGHT;
+        fail |= CLRCF_HEIGHT;
 
     if (failed) *failed = fail;
     if (fail) return DFB_UNSUPPORTED;

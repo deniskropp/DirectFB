@@ -25,32 +25,37 @@ void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth)
 {
     __u8* mclk_save = ucovl->mclk_save;
 
-    if (scrwidth <= 1024) { // Disable
-        if (ucovl->extfifo_on) {
+    if (!iopl(3)) {
+        if (scrwidth <= 1024) { // Disable
+            if (ucovl->extfifo_on) {
 
-            dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
+                dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
 
-            outb(0x16, 0x3c4); outb(mclk_save[0], 0x3c5);
-            outb(0x17, 0x3c4); outb(mclk_save[1], 0x3c5);
-            outb(0x18, 0x3c4); outb(mclk_save[2], 0x3c5);
-            ucovl->extfifo_on = false;
+                outb(0x16, 0x3c4); outb(mclk_save[0], 0x3c5);
+                outb(0x17, 0x3c4); outb(mclk_save[1], 0x3c5);
+                outb(0x18, 0x3c4); outb(mclk_save[2], 0x3c5);
+                ucovl->extfifo_on = false;
+            }
+        }
+        else { // Enable
+            if (!ucovl->extfifo_on) {
+
+                dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
+
+                // Save current setting
+                outb(0x16, 0x3c4); mclk_save[0] = inb(0x3c5);
+                outb(0x17, 0x3c4); mclk_save[1] = inb(0x3c5);
+                outb(0x18, 0x3c4); mclk_save[2] = inb(0x3c5);
+                // Enable extended FIFO
+                outb(0x17, 0x3c4); outb(0x2f, 0x3c5);
+                outb(0x16, 0x3c4); outb((mclk_save[0] & 0xf0) | 0x14, 0x3c5);
+                outb(0x18, 0x3c4); outb(0x56, 0x3c5);
+                ucovl->extfifo_on = true;
+            }
         }
     }
-    else { // Enable
-        if (!ucovl->extfifo_on) {
-
-            dfb_layer_wait_vsync(dfb_layer_at(DLID_PRIMARY));
-
-            // Save current setting
-            outb(0x16, 0x3c4); mclk_save[0] = inb(0x3c5);
-            outb(0x17, 0x3c4); mclk_save[1] = inb(0x3c5);
-            outb(0x18, 0x3c4); mclk_save[2] = inb(0x3c5);
-            // Enable extended FIFO
-            outb(0x17, 0x3c4); outb(0x2f, 0x3c5);
-            outb(0x16, 0x3c4); outb((mclk_save[0] & 0xf0) | 0x14, 0x3c5);
-            outb(0x18, 0x3c4); outb(0x56, 0x3c5);
-            ucovl->extfifo_on = true;
-        }
+    else {
+         printf("cle266: could set io perissons\n");
     }
     ucovl->scrwidth = scrwidth;
 }
@@ -103,7 +108,7 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     scr.y = 0;
 
     if (ucovl->scrwidth != scr.w) {
-        uc_ovl_setup_fifo(ucovl, scr.w);    // This could wait for next VBI.
+        uc_ovl_setup_fifo(ucovl, scr.w);            
         action |= UC_OVL_CHANGE;
     }
 

@@ -2,6 +2,7 @@
 #define __UC_OVERLAY_H__
 
 #define UC_OVL_CAPS (DLCAPS_SURFACE | DLCAPS_OPACITY | DLCAPS_SCREEN_LOCATION)
+#define UC_OVL_OPTIONS DLOP_NONE
 
 #define ALIGN_TO(v, n) (((v) + (n-1)) & ~(n-1))
 #define UC_MAP_V1_FIFO_CONTROL(depth, pre_thr, thr) \
