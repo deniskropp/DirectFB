@@ -29,7 +29,7 @@ idirectfbvideoprovider_LTLIBRARIES =	\
 
 libidirectfbvideoprovider_libmpeg3_la_SOURCES = idirectfbvideoprovider_libmpeg3.c
 
-libidirectfbvideoprovider_libmpeg3_la_LIBADD = $(LIBMPEG3)
+libidirectfbvideoprovider_libmpeg3_la_LIBADD = $(LIBMPEG3) -lm
 
 libidirectfbvideoprovider_libmpeg3_la_LDFLAGS = -avoid-version -module
 
