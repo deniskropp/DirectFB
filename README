@@ -143,11 +143,23 @@ Demos
    df_stress   - stress tests surface manager, for debugging purposes only
 
 
-Dokumentation
+Documentation
 -------------
 
    A complete API reference documentation in HTML format is created during 
    the build in the docs directory.
+
+
+Thanks to
+---------
+
+   Johannes Zellner <johannes@zellner.org>
+   Till Adam <till@adam-lilienthal.de>
+   Felix von Leitner <leitner@fefe.de>
+   Johannes Stezenbach <js@convergence.de>
+   Michael Natterer <mitch@convergence.de>
+   Holger Waechtler <holger@convergence.de>
+   Kim JeongHoe <king@mizi.com>
 
 
 Legal stuff
