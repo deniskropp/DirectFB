@@ -466,7 +466,8 @@ static void* OverlayThread( CoreThread *thread, void *ctx )
 
           dfb_thread_testcancel( thread );
 
-          if (data->destination->caps & DSCAPS_INTERLACED) {
+          if (data->destination &&
+              data->destination->caps & DSCAPS_INTERLACED) {
                dfb_surface_set_field( data->destination, field );
 
                field = !field;
