@@ -68,9 +68,6 @@ DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, GIF )
 
 #define MAXCOLORMAPSIZE 256
 
-#define TRUE  1
-#define FALSE 0
-
 #define CM_RED   0
 #define CM_GREEN 1
 #define CM_BLUE  2
@@ -104,13 +101,13 @@ static struct {
      int disposal;
 } Gif89 = { -1, -1, -1, 0 };
 
-static bool verbose       = FALSE;
-static bool showComment   = TRUE;
-static bool ZeroDataBlock = FALSE;
+static bool verbose       = false;
+static bool showComment   = true;
+static bool ZeroDataBlock = false;
 
 static __u32* ReadGIF( FILE *fd, int imageNumber,
                        int *width, int *height, bool *transparency,
-                       __u32 *key_rgb, bool headeronly);
+                       __u32 *key_rgb, bool alpha, bool headeronly);
 
 /*
  * private data struct of IDirectFBImageProvider_GIF
@@ -213,13 +210,10 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
                                                       IDirectFBSurface *destination,
                                                       DFBRectangle *dest_rect )
 {
-     int err;
-     void *dst;
-     int pitch, src_width, src_height;
-     bool transparency;
      DFBRectangle rect = { 0, 0, 0, 0 };
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
+     int err;
 
      INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
@@ -238,16 +232,20 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
      /* actual loading and rendering */
      if (dest_rect == NULL || dfb_rectangle_intersect ( &rect, dest_rect )) {
 
+          FILE  *f;
           __u32 *image_data;
-          __u32  key_rgb;
-          FILE *f;
+          bool  transparency;
+          void  *dst;
+          int    pitch, src_width, src_height;
 
           f = fopen( data->filename, "rb" );
           if (!f)
                return errno2dfb( errno );
 
           image_data = ReadGIF( f, 1, &src_width, &src_height,
-                                &transparency, &key_rgb, FALSE );
+                                &transparency, NULL,
+                                (format == DSPF_ARGB || format == DSPF_A8),
+                                false );
 
           if (image_data) {
                err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
@@ -289,7 +287,7 @@ static DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
           int  height;
           bool transparency;
 
-          ReadGIF( f, 1, &width, &height, &transparency, NULL, TRUE );
+          ReadGIF( f, 1, &width, &height, &transparency, NULL, false, true );
 
           dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->width  = width;
@@ -320,7 +318,7 @@ static DFBResult IDirectFBImageProvider_GIF_GetImageDescription(
           bool  transparency;
           __u32 key_rgb;
 
-          ReadGIF( f, 1, &width, &height, &transparency, &key_rgb, TRUE );
+          ReadGIF( f, 1, &width, &height, &transparency, &key_rgb, false, true );
 
           if (transparency) {
                dsc->caps = DICAPS_COLORKEY;
@@ -350,29 +348,29 @@ static int ReadColorMap( FILE *fd, int number,
      __u8 rgb[3];
 
      for (i = 0; i < number; ++i) {
-          if (! ReadOK(fd, rgb, sizeof(rgb))) {
+          if (! ReadOK( fd, rgb, sizeof(rgb) )) {
                GIFERRORMSG("bad colormap" );
-               return TRUE;
+               return true;
           }
 
           buffer[CM_RED][i] = rgb[0] ;
           buffer[CM_GREEN][i] = rgb[1] ;
           buffer[CM_BLUE][i] = rgb[2] ;
      }
-     return FALSE;
+     return false;
 }
 
 static int GetDataBlock(FILE *fd, __u8 *buf)
 {
      unsigned char count;
 
-     if (! ReadOK(fd,&count,1)) {
+     if (! ReadOK( fd, &count, 1 )) {
           GIFERRORMSG("error in getting DataBlock size" );
           return -1;
      }
      ZeroDataBlock = count == 0;
 
-     if ((count != 0) && (! ReadOK(fd, buf, count))) {
+     if ((count != 0) && (! ReadOK( fd, buf, count ))) {
           GIFERRORMSG("error in reading DataBlock" );
           return -1;
      }
@@ -390,7 +388,7 @@ static int GetCode(FILE *fd, int code_size, int flag)
      if (flag) {
           curbit = 0;
           lastbit = 0;
-          done = FALSE;
+          done = false;
           return 0;
      }
 
@@ -404,13 +402,13 @@ static int GetCode(FILE *fd, int code_size, int flag)
           buf[0] = buf[last_byte-2];
           buf[1] = buf[last_byte-1];
 
-          if ((count = GetDataBlock(fd, &buf[2])) == 0) {
-               done = TRUE;
+          if ((count = GetDataBlock( fd, &buf[2] )) == 0) {
+               done = true;
           }
 
           last_byte = 2 + count;
           curbit = (curbit - lastbit) + 16;
-          lastbit = (2+count)*8 ;
+          lastbit = (2+count) * 8;
      }
 
      ret = 0;
@@ -436,23 +434,23 @@ static int DoExtension( FILE *fd, int label )
                break;
           case 0xfe:              /* Comment Extension */
                str = "Comment Extension";
-               while (GetDataBlock(fd, (__u8*) buf) != 0) {
+               while (GetDataBlock( fd, (__u8*) buf ) != 0) {
                     if (showComment)
                          GIFERRORMSG("gif comment: %s", buf );
                     }
-               return FALSE;
+               return false;
           case 0xf9:              /* Graphic Control Extension */
                str = "Graphic Control Extension";
-               (void) GetDataBlock(fd, (__u8*) buf);
+               (void) GetDataBlock( fd, (__u8*) buf );
                Gif89.disposal    = (buf[0] >> 2) & 0x7;
                Gif89.inputFlag   = (buf[0] >> 1) & 0x1;
-               Gif89.delayTime   = LM_to_uint(buf[1],buf[2]);
+               Gif89.delayTime   = LM_to_uint( buf[1], buf[2] );
                if ((buf[0] & 0x1) != 0) {
                     Gif89.transparent = buf[3];
                }
-               while (GetDataBlock(fd, (__u8*) buf) != 0)
+               while (GetDataBlock( fd, (__u8*) buf ) != 0)
                     ;
-               return FALSE;
+               return false;
           default:
                str = buf;
                snprintf(buf, 256, "UNKNOWN (0x%02x)", label);
@@ -461,15 +459,15 @@ static int DoExtension( FILE *fd, int label )
 
      GIFERRORMSG("got a '%s' extension", str );
 
-     while (GetDataBlock(fd, (__u8*) buf) != 0)
+     while (GetDataBlock( fd, (__u8*) buf ) != 0)
           ;
 
-     return FALSE;
+     return false;
 }
 
 static int LWZReadByte( FILE *fd, int flag, int input_code_size )
 {
-     static int fresh = FALSE;
+     static int fresh = false;
      int code, incode;
      static int code_size, set_code_size;
      static int max_code, max_code_size;
@@ -487,9 +485,9 @@ static int LWZReadByte( FILE *fd, int flag, int input_code_size )
           max_code_size = 2*clear_code;
           max_code = clear_code+2;
 
-          GetCode(fd, 0, TRUE);
+          GetCode(fd, 0, true);
 
-          fresh = TRUE;
+          fresh = true;
 
           for (i = 0; i < clear_code; ++i) {
                table[0][i] = 0;
@@ -503,9 +501,9 @@ static int LWZReadByte( FILE *fd, int flag, int input_code_size )
           return 0;
      }
      else if (fresh) {
-          fresh = FALSE;
+          fresh = false;
           do {
-               firstcode = oldcode = GetCode(fd, code_size, FALSE);
+               firstcode = oldcode = GetCode( fd, code_size, false );
           } while (firstcode == clear_code);
 
           return firstcode;
@@ -515,7 +513,7 @@ static int LWZReadByte( FILE *fd, int flag, int input_code_size )
           return *--sp;
      }
 
-     while ((code = GetCode(fd, code_size, FALSE)) >= 0) {
+     while ((code = GetCode( fd, code_size, false )) >= 0) {
           if (code == clear_code) {
                for (i = 0; i < clear_code; ++i) {
                     table[0][i] = 0;
@@ -528,7 +526,7 @@ static int LWZReadByte( FILE *fd, int flag, int input_code_size )
                max_code_size = 2*clear_code;
                max_code = clear_code+2;
                sp = stack;
-               firstcode = oldcode = GetCode(fd, code_size, FALSE);
+               firstcode = oldcode = GetCode( fd, code_size, false );
 
                return firstcode;
           }
@@ -540,7 +538,7 @@ static int LWZReadByte( FILE *fd, int flag, int input_code_size )
                     return -2;
                }
 
-               while ((count = GetDataBlock(fd, buf)) > 0)
+               while ((count = GetDataBlock( fd, buf )) > 0)
                     ;
 
                if (count != 0)
@@ -637,7 +635,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
      return color;
 }
 
-static __u32* ReadImage( FILE *fd, int len, int height,
+static __u32* ReadImage( FILE *fd, int width, int height,
                          __u8 cmap[3][MAXCOLORMAPSIZE], __u32 key_rgb,
                          bool interlace, bool ignore )
 {
@@ -649,10 +647,10 @@ static __u32* ReadImage( FILE *fd, int len, int height,
      /*
      **  Initialize the decompression routines
      */
-     if (! ReadOK(fd,&c,1))
+     if (! ReadOK( fd, &c, 1 ))
           GIFERRORMSG("EOF / read error on image data" );
 
-     if (LWZReadByte(fd, TRUE, c) < 0)
+     if (LWZReadByte( fd, true, c ) < 0)
           GIFERRORMSG("error reading image" );
 
      /*
@@ -662,22 +660,22 @@ static __u32* ReadImage( FILE *fd, int len, int height,
           if (verbose) {
                GIFERRORMSG("skipping image..." );
           }
-          while (LWZReadByte(fd, FALSE, c) >= 0)
+          while (LWZReadByte( fd, false, c ) >= 0)
                ;
           return NULL;
      }
 
-     if ((image = DFBMALLOC(len * height * 4)) == NULL) {
+     if ((image = DFBMALLOC(width * height * 4)) == NULL) {
           GIFERRORMSG("couldn't alloc space for image" );
      }
 
      if (verbose) {
-          GIFERRORMSG("reading %d by %d%s GIF image", len, height,
+          GIFERRORMSG("reading %d by %d%s GIF image", width, height,
                       interlace ? " interlaced" : "" );
      }
 
-     while ((v = LWZReadByte(fd,FALSE,c)) >= 0 ) {
-          __u32 *dst = image + (ypos * len + xpos);
+     while ((v = LWZReadByte( fd, false, c )) >= 0 ) {
+          __u32 *dst = image + (ypos * width + xpos);
 
           if (v == Gif89.transparent) {
                *dst++ = key_rgb;
@@ -687,18 +685,10 @@ static __u32* ReadImage( FILE *fd, int len, int height,
                          cmap[CM_RED][v]   << 16 |
                          cmap[CM_GREEN][v] << 8  |
                          cmap[CM_BLUE][v]);
-#if 0
-               /* very ugly quick hack to preserve the colorkey for 16bit,
-                  this will be fixed very soon! */
-               if ((color & 0x00FC00) == 0x00FC00)
-                    *dst++ = (0xFF000000 | (color & 0xFFF8FF));
-               else
-                    *dst++ = 0xFF000000 | color;
-#endif
           }
 
           ++xpos;
-          if (xpos == len) {
+          if (xpos == width) {
                xpos = 0;
                if (interlace) {
                     switch (pass) {
@@ -742,37 +732,35 @@ static __u32* ReadImage( FILE *fd, int len, int height,
 
 fini:
 
-     if (LWZReadByte(fd,FALSE,c)>=0) {
+     if (LWZReadByte( fd, false, c ) >= 0) {
           GIFERRORMSG("too much input data, ignoring extra...");
      }
      return image;
 }
 
 
-
 static __u32* ReadGIF( FILE *fd, int imageNumber,
                        int *width, int *height, bool *transparency,
-                       __u32 *key_rgb, bool headeronly)
+                       __u32 *key_rgb, bool alpha, bool headeronly)
 {
-     __u8 buf[16];
-     __u8 c;
-     __u8 localColorMap[3][MAXCOLORMAPSIZE];
-     int useGlobalColormap;
-     int bitPixel;
-     int imageCount = 0;
-     char version[4];
+     __u8   buf[16];
+     __u8   c;
+     __u8   localColorMap[3][MAXCOLORMAPSIZE];
+     __u32  colorKey = 0;
+     bool   useGlobalColormap;
+     int    bitPixel;
+     int    imageCount = 0;
+     char   version[4];
 
-     DFB_ASSERT( header_only || key_rgb );
-
-     if (! ReadOK(fd,buf,6)) {
+     if (! ReadOK( fd, buf, 6 )) {
           GIFERRORMSG("error reading magic number" );
      }
 
-     if (strncmp((char *)buf,"GIF",3) != 0) {
+     if (strncmp( (char *)buf, "GIF", 3 ) != 0) {
           GIFERRORMSG("not a GIF file" );
      }
 
-     strncpy(version, (char *)buf + 3, 3);
+     strncpy( version, (char *)buf + 3, 3 );
      version[3] = '\0';
 
      if ((strcmp(version, "87a") != 0) && (strcmp(version, "89a") != 0)) {
@@ -791,7 +779,7 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
      GifScreen.AspectRatio     = buf[6];
 
      if (BitSet(buf[4], LOCALCOLORMAP)) {    /* Global Colormap */
-          if (ReadColorMap(fd,GifScreen.BitPixel,GifScreen.ColorMap)) {
+          if (ReadColorMap( fd, GifScreen.BitPixel, GifScreen.ColorMap )) {
                GIFERRORMSG("error reading global colormap" );
           }
      }
@@ -808,7 +796,7 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
      Gif89.disposal    = 0;
 
      for (;;) {
-          if (! ReadOK(fd,&c,1)) {
+          if (! ReadOK( fd, &c, 1)) {
                GIFERRORMSG("EOF / read error on image data" );
           }
 
@@ -821,10 +809,10 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
           }
 
           if (c == '!') {         /* Extension */
-               if (! ReadOK(fd,&c,1)) {
+               if (! ReadOK( fd, &c, 1)) {
                     GIFERRORMSG("OF / read error on extention function code");
                }
-               DoExtension(fd, c);
+               DoExtension( fd, c );
             continue;
           }
 
@@ -835,50 +823,46 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
 
           ++imageCount;
 
-          if (! ReadOK(fd,buf,9)) {
+          if (! ReadOK( fd, buf, 9 )) {
                GIFERRORMSG("couldn't read left/top/width/height");
           }
 
-          *width = LM_to_uint( buf[4], buf[5] );
+          *width  = LM_to_uint( buf[4], buf[5] );
           *height = LM_to_uint( buf[6], buf[7] );
           *transparency = (Gif89.transparent != -1);
 
-          if (headeronly && (!key_rgb || !*transparency))
+          if (headeronly && !(*transparency && key_rgb))
                return NULL;
 
-          useGlobalColormap = ! BitSet(buf[8], LOCALCOLORMAP);
+          useGlobalColormap = ! BitSet( buf[8], LOCALCOLORMAP );
 
-          bitPixel = 2 << (buf[8] & 0x07);
-
-          if (! useGlobalColormap) {
-               if (ReadColorMap(fd, bitPixel, localColorMap)) {
-                    GIFERRORMSG("error reading local colormap" );
-               }
-
-               if (key_rgb && *transparency)
-                    *key_rgb = FindColorKey( bitPixel, localColorMap );
-
-               if (headeronly)
-                    return NULL;
-
-               return ReadImage( fd, LM_to_uint(buf[4],buf[5]),
-                                 LM_to_uint(buf[6],buf[7]), localColorMap,
-                                 *key_rgb, BitSet(buf[8], INTERLACE),
-                                 imageCount != imageNumber);
+          if (useGlobalColormap) {
+               if (*transparency && (key_rgb || !headeronly))
+                    colorKey = FindColorKey( GifScreen.BitPixel,
+                                             GifScreen.ColorMap );
           }
           else {
-               if (key_rgb && *transparency)
-                    *key_rgb = FindColorKey( GifScreen.BitPixel,
-                                             GifScreen.ColorMap );
+               bitPixel = 2 << (buf[8] & 0x07);
+               if (ReadColorMap( fd, bitPixel, localColorMap ))
+                    GIFERRORMSG("error reading local colormap" );
 
-               if (headeronly)
-                    return NULL;
-
-               return ReadImage( fd, LM_to_uint(buf[4],buf[5]),
-                                 LM_to_uint(buf[6],buf[7]), GifScreen.ColorMap,
-                                 *key_rgb, BitSet(buf[8], INTERLACE),
-                                 imageCount != imageNumber);
+               if (*transparency && (key_rgb || !headeronly))
+                    colorKey = FindColorKey( bitPixel, localColorMap );
           }
+
+          if (key_rgb)
+               *key_rgb = colorKey;
+
+          if (headeronly)
+               return NULL;
+
+          if (alpha)
+               colorKey &= 0x00FFFFFF;
+
+          return ReadImage( fd, *width, *height,
+                            (useGlobalColormap ?
+                             GifScreen.ColorMap : localColorMap), colorKey,
+                            BitSet( buf[8], INTERLACE ),
+                            imageCount != imageNumber);
      }
 }
-
