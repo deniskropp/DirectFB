@@ -589,7 +589,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
      __u32 color = 0xFF000000;
      __u8  csort[MAXCOLORMAPSIZE];
      int   i, j, index, d;
-     
+
      if (n_colors < 1)
           return color;
 
@@ -597,7 +597,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
 
      for (i = 0; i < 3; i++) {
           memcpy( csort, cmap[i], n_colors );
-          qsort( csort, 1, n_colors, SortColors );
+          qsort( csort, n_colors, 1, SortColors );
           
           for (j = 1, index = 0, d = 0; j < n_colors; j++) {
                if (csort[j] - csort[j-1] > d) {
@@ -612,7 +612,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
           if (0xFF - (csort[n_colors - 1]) > d) {
                index = n_colors + 1;
           }
-
+          
           if (index < n_colors)
                csort[0] = csort[index] - (d/2);
           else if (index == n_colors)
