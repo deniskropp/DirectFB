@@ -36,6 +36,7 @@
 #include <direct/conf.h>
 #include <direct/messages.h>
 #include <direct/system.h>
+#include <direct/types.h>
 #include <direct/util.h>
 
 
@@ -125,44 +126,50 @@ void direct_assumption( const char *exp,
 
 #else
 
-#define D_HEAVYDEBUG(x...)    do {} while (0)
+#define D_HEAVYDEBUG(x...)         do {} while (0)
 #define D_DEBUG_DOMAIN(i,n,d)
-#define D_DEBUG(x...)         do {} while (0)
-#define D_DEBUG_AT(d,x...)    do {} while (0)
-#define D_ASSERT(exp)         do {} while (0)
-#define D_ASSUME(exp)         do {} while (0)
-#define D_BREAK(x...)         do {} while (0)
+#define D_DEBUG(x...)              do {} while (0)
+#define D_DEBUG_AT(d,x...)         do {} while (0)
+#define D_ASSERT(exp)              do {} while (0)
+#define D_ASSUME(exp)              do {} while (0)
+#define D_BREAK(x...)              do {} while (0)
 
 #endif    /* DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || DIRECT_FORCE_DEBUG) */
 
 
-#define D_MAGIC(spell)        ( (((spell)[sizeof(spell)*8/9] << 24) | \
-                                 ((spell)[sizeof(spell)*7/9] << 16) | \
-                                 ((spell)[sizeof(spell)*6/9] <<  8) | \
-                                 ((spell)[sizeof(spell)*5/9]      )) ^  \
-                                (((spell)[sizeof(spell)*4/9] << 24) | \
-                                 ((spell)[sizeof(spell)*3/9] << 16) | \
-                                 ((spell)[sizeof(spell)*2/9] <<  8) | \
-                                 ((spell)[sizeof(spell)*1/9]      )) )
+#define D_MAGIC(spell)             ( (((spell)[sizeof(spell)*8/9] << 24) | \
+                                      ((spell)[sizeof(spell)*7/9] << 16) | \
+                                      ((spell)[sizeof(spell)*6/9] <<  8) | \
+                                      ((spell)[sizeof(spell)*5/9]      )) ^  \
+                                     (((spell)[sizeof(spell)*4/9] << 24) | \
+                                      ((spell)[sizeof(spell)*3/9] << 16) | \
+                                      ((spell)[sizeof(spell)*2/9] <<  8) | \
+                                      ((spell)[sizeof(spell)*1/9]      )) )
 
-#define D_MAGIC_SET(o,m)      do {                                         \
-                                   D_ASSERT( (o) != NULL );                \
-                                   D_ASSUME( (o)->magic != D_MAGIC(#m) );  \
-                                                                           \
-                                   (o)->magic = D_MAGIC(#m);               \
-                              } while (0)
 
-#define D_MAGIC_ASSERT(o,m)   do {                                         \
-                                   D_ASSERT( (o) != NULL );                \
-                                   D_ASSERT( (o)->magic == D_MAGIC(#m) );  \
-                              } while (0)
+#define D_MAGIC_SET(o,m)           do {                                              \
+                                        D_ASSERT( (o) != NULL );                     \
+                                        D_ASSUME( (o)->magic != D_MAGIC(#m) );       \
+                                                                                     \
+                                        (o)->magic = D_MAGIC(#m);                    \
+                                   } while (0)
 
-#define D_MAGIC_CLEAR(o)      do {                                         \
-                                   D_ASSERT( (o) != NULL );                \
-                                   D_ASSUME( (o)->magic != 0 );            \
-                                                                           \
-                                   (o)->magic = 0;                         \
-                              } while (0)
+#define D_MAGIC_ASSERT(o,m)        do {                                              \
+                                        D_ASSERT( (o) != NULL );                     \
+                                        D_ASSERT( (o)->magic == D_MAGIC(#m) );       \
+                                   } while (0)
+
+#define D_MAGIC_ASSERT_IF(o,m)     do {                                              \
+                                        if (o)                                       \
+                                             D_ASSERT( (o)->magic == D_MAGIC(#m) );  \
+                                   } while (0)
+
+#define D_MAGIC_CLEAR(o)           do {                                              \
+                                        D_ASSERT( (o) != NULL );                     \
+                                        D_ASSUME( (o)->magic != 0 );                 \
+                                                                                     \
+                                        (o)->magic = 0;                              \
+                                   } while (0)
 
 
 #endif
