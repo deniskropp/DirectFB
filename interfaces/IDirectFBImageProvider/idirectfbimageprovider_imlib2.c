@@ -1,0 +1,268 @@
+/*
+   (c) Copyright 2001 Till Adam
+   All rights reserved.
+
+   Written by Till Adam <till@adam-lilienthal.de>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <malloc.h>
+
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+
+#include <sys/soundcard.h>
+
+#include <pthread.h>
+
+#include <directfb.h>
+#include <directfb_internals.h>
+
+#include <misc/util.h>
+#include <misc/gfx_util.h>
+#include <misc/mem.h>
+
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+
+#include <core/layers.h>
+#include <core/state.h>
+#include <core/surfaces.h>
+#include <core/gfxcard.h>
+
+#include <gfx/convert.h>
+
+#include <display/idirectfbsurface.h>
+
+#define X_DISPLAY_MISSING
+#include <Imlib2.h>
+
+/*
+ * private data struct of IDirectFBImageProvider_IMLIB2
+ */
+typedef struct {
+     int            ref;      /* reference counter */
+     char          *filename; /* filename of file to load */
+     Imlib_Image    im;
+} IDirectFBImageProvider_IMLIB2_data;
+
+
+
+static DFBResult
+IDirectFBImageProvider_IMLIB2_AddRef  ( IDirectFBImageProvider *thiz );
+
+static DFBResult
+IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz );
+
+static DFBResult
+IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
+                                     IDirectFBSurface       *destination );
+
+static DFBResult
+IDirectFBImageProvider_IMLIB2_GetSurfaceDescription( IDirectFBImageProvider *thiz,
+                                                  DFBSurfaceDescription  *dsc );
+
+static DFBResult
+IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
+                                                DFBImageDescription    *dsc );
+
+
+char *get_type()
+{
+     return "IDirectFBImageProvider";
+}
+
+char *get_implementation()
+{
+     return "IMLIB2";
+}
+
+DFBResult Probe( const char *head, const char *filename)
+{
+   Imlib_Image im;
+   Imlib_Load_Error err;
+
+   im = imlib_load_image_with_error_return (filename, &err);
+   switch (err)
+   {
+      case IMLIB_LOAD_ERROR_NONE:
+	 return DFB_OK;
+	 break;
+      case IMLIB_LOAD_ERROR_FILE_DOES_NOT_EXIST:
+      case IMLIB_LOAD_ERROR_FILE_IS_DIRECTORY:
+      case IMLIB_LOAD_ERROR_PERMISSION_DENIED_TO_READ:
+      case IMLIB_LOAD_ERROR_NO_LOADER_FOR_FILE_FORMAT:
+      case IMLIB_LOAD_ERROR_PATH_TOO_LONG:
+      case IMLIB_LOAD_ERROR_PATH_COMPONENT_NON_EXISTANT:
+      case IMLIB_LOAD_ERROR_PATH_COMPONENT_NOT_DIRECTORY:
+      case IMLIB_LOAD_ERROR_PATH_POINTS_OUTSIDE_ADDRESS_SPACE:
+      case IMLIB_LOAD_ERROR_TOO_MANY_SYMBOLIC_LINKS:
+      case IMLIB_LOAD_ERROR_OUT_OF_MEMORY:
+      case IMLIB_LOAD_ERROR_OUT_OF_FILE_DESCRIPTORS:
+      case IMLIB_LOAD_ERROR_PERMISSION_DENIED_TO_WRITE:
+      case IMLIB_LOAD_ERROR_OUT_OF_DISK_SPACE:
+      case IMLIB_LOAD_ERROR_UNKNOWN:
+      default:
+	 break;
+   }
+   return DFB_UNSUPPORTED;
+}
+
+DFBResult Construct( IDirectFBImageProvider *thiz,
+                     const char *filename )
+{
+     IDirectFBImageProvider_IMLIB2_data *data;
+
+     data = (IDirectFBImageProvider_IMLIB2_data*)
+         DFBCALLOC( 1, sizeof(IDirectFBImageProvider_IMLIB2_data) );
+
+     thiz->priv = data;
+
+     data->ref = 1;
+     data->filename = (char*)DFBMALLOC( strlen(filename)+1 );
+     strcpy( data->filename, filename );
+
+     /* The image is already loaded and in cache at this point.
+      * Any errors should have been caught in Probe */
+     data->im = imlib_load_image (data->filename);
+     imlib_context_set_image(data->im);
+
+     DEBUGMSG( "DirectFB/Media: IMLIB2 Provider Construct '%s'\n", filename );
+
+     thiz->AddRef = IDirectFBImageProvider_IMLIB2_AddRef;
+     thiz->Release = IDirectFBImageProvider_IMLIB2_Release;
+     thiz->RenderTo = IDirectFBImageProvider_IMLIB2_RenderTo;
+     thiz->GetImageDescription = 
+	IDirectFBImageProvider_IMLIB2_GetImageDescription;
+     thiz->GetSurfaceDescription = 
+	IDirectFBImageProvider_IMLIB2_GetSurfaceDescription;
+
+     return DFB_OK;
+}
+
+   
+   static DFBResult
+IDirectFBImageProvider_IMLIB2_AddRef  ( IDirectFBImageProvider *thiz )
+{
+   INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
+
+   data->ref++;
+
+   return DFB_OK;
+}
+
+static DFBResult
+IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz )
+{
+
+   INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
+
+   if (--data->ref == 0) {
+      DFBFREE( data->filename );    
+      imlib_free_image();
+      DFBFREE( thiz->priv );
+      thiz->priv = NULL;
+   }
+#ifndef DFB_DEBUG
+   DFBFREE( thiz );
+#endif
+   return DFB_OK;
+}
+
+static DFBResult
+IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
+                                     IDirectFBSurface       *destination )
+{
+     int err;
+     void *dst;
+     int pitch, width, height, src_width, src_height;
+     __u32 *image_data = NULL;
+     DFBSurfacePixelFormat format;
+     DFBSurfaceCapabilities caps;
+
+     INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
+  
+     src_width = imlib_image_get_width();
+     src_height = imlib_image_get_height();
+
+     err = destination->GetCapabilities( destination, &caps );
+     if (err)
+          return err;
+
+     err = destination->GetSize( destination, &width, &height );
+     if (err)
+          return err;
+
+     err = destination->GetPixelFormat( destination, &format );
+     if (err)
+          return err;
+
+     image_data = imlib_image_get_data_for_reading_only();
+
+     if (!image_data)
+	return DFB_FAILURE; /* what else makes sense here? */
+
+     err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
+     if (err)
+	return err;
+
+     dfb_scale_linear_32( dst, image_data,
+                          src_width, src_height, width, height,
+                          pitch - width * DFB_BYTES_PER_PIXEL(format),
+                          format );
+
+     destination->Unlock( destination );
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBImageProvider_IMLIB2_GetSurfaceDescription( IDirectFBImageProvider *thiz,
+                                                  DFBSurfaceDescription  *dsc)
+{
+   INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
+
+   dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+   dsc->width = imlib_image_get_width();
+   dsc->height = imlib_image_get_height();
+   dsc->pixelformat = dfb_layers->shared->surface->format;
+
+   return DFB_OK;
+}
+
+static DFBResult
+IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
+                                                   DFBImageDescription    *dsc )
+{
+   INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
+     
+   /* FIXME no color-keying yet */
+   if(imlib_image_has_alpha())
+   {
+      dsc->caps = DICAPS_ALPHACHANNEL;
+   } else
+   {
+      dsc->caps = DICAPS_NONE;
+   }
+   return DFB_OK;
+}
