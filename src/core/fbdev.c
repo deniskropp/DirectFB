@@ -104,6 +104,19 @@ DFBResult fbdev_open()
 
      fbdev = (FBDev*) DFBCALLOC( 1, sizeof(FBDev) );
 
+     if (dfb_config->fb_device) {
+          fbdev->fd = open( dfb_config->fb_device, O_RDWR );
+          if (fbdev->fd < 0) {
+               PERRORMSG( "DirectFB/core/fbdev: Error opening `%s'!\n",
+                          dfb_config->fb_device);
+
+               DFBFREE( fbdev );
+               fbdev = NULL;
+
+               return DFB_INIT;
+          }
+     }
+
      fbdev->fd = open( "/dev/fb0", O_RDWR );
      if (fbdev->fd < 0) {
           if (errno == ENOENT) {
@@ -200,7 +213,7 @@ DFBResult fbdev_open()
                          fbdev->orig_var.transp.length,
                          fbdev->orig_var.transp.offset,
                          fbdev->orig_var.bits_per_pixel );
-               
+
                DFBFREE( fbdev->modes );
                fbdev->modes = NULL;
 
@@ -214,7 +227,7 @@ DFBResult fbdev_open()
      fbdev->orig_cmap.green  = (__u16*)DFBMALLOC( 2 * 256 );
      fbdev->orig_cmap.blue   = (__u16*)DFBMALLOC( 2 * 256 );
      fbdev->orig_cmap.transp = NULL;
-     
+
      if (ioctl( fbdev->fd, FBIOGETCMAP, &fbdev->orig_cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not retrieve palette for backup!\n" );
@@ -224,7 +237,7 @@ DFBResult fbdev_open()
           fbdev->orig_cmap.len = 0;
      }
 
-     
+
      return DFB_OK;
 }
 
@@ -253,12 +266,12 @@ void fbdev_deinit()
           if (ioctl( fbdev->fd, FBIOPUTCMAP, &fbdev->orig_cmap ) < 0)
                PERRORMSG( "DirectFB/core/fbdev: "
                           "Could not restore palette!\n" );
-          
+
           DFBFREE( fbdev->orig_cmap.red );
           DFBFREE( fbdev->orig_cmap.green );
           DFBFREE( fbdev->orig_cmap.blue );
      }
-     
+
      close( fbdev->fd );
 
      DFBFREE( fbdev );
@@ -591,11 +604,11 @@ static DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *va
                This check is omitted, since we want to use RGB332 even if the
                hardware uses a palette (in that case we initzalize a calculated
                one to have correct colors)
-               
+
                if (fbdev_compatible_format( var, 0, 3, 3, 2, 0, 5, 2, 0 ))
                     return DSPF_RGB332;
 */
-               return DSPF_RGB332;               
+               return DSPF_RGB332;
                break;
 #endif
           case 15:
@@ -1023,7 +1036,7 @@ static DFBResult fbdev_set_rgb332_palette()
           BUG( "fbdev_set_rgb332_palette() called while fbdev == NULL!" );
 
           return DFB_BUG;
-     }     
+     }
 
      cmap.start  = 0;
      cmap.len    = 256;
@@ -1038,12 +1051,12 @@ static DFBResult fbdev_set_rgb332_palette()
                for (blue_val = 0; blue_val  < 4 ; blue_val++) {
                     cmap.red[i]   = red_val   << 13;
                     cmap.green[i] = green_val << 13;
-                    cmap.blue[i]  = blue_val  << 14; 
+                    cmap.blue[i]  = blue_val  << 14;
                     i++;
                }
           }
-     }                                        
-     
+     }
+
      if (ioctl( fbdev->fd, FBIOPUTCMAP, &cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not set rgb332 palette" );

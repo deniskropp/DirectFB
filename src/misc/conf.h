@@ -72,6 +72,9 @@ typedef struct
      int       sync;                              /* Do sync() in core_init() */
      int       vt_switching;                      /* Allow VT switching by
                                                      pressing Ctrl+Alt+<F?> */
+
+     char     *fb_device;                         /* Used framebuffer device,
+                                                     e.g. "/dev/fb0" */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

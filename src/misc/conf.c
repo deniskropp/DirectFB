@@ -52,6 +52,8 @@ static void config_print_usage()
      fprintf(stderr,
              "\n"
              "DirectFB options are:\n"
+             " --fbdev=<device>                  "
+             "Open <device> instead of /dev/fb0\n"
              " --quiet                           "
              "No text output except debugging\n"
              " --no-banner                       "
@@ -123,6 +125,12 @@ static void config_cleanup()
           return;
      }
 
+     if (dfb_config->fb_device)
+          DFBFREE( dfb_config->fb_device );
+
+     if (dfb_config->layer_bg_filename)
+          DFBFREE( dfb_config->layer_bg_filename );
+
      DFBFREE( dfb_config );
      dfb_config = NULL;
 }
@@ -142,7 +150,6 @@ static void config_allocate()
      dfb_config->layer_bg_color.g = 0x80;
      dfb_config->layer_bg_color.b = 0xC0;
      dfb_config->layer_bg_mode = DLBM_COLOR;
-     dfb_config->layer_bg_filename = "";
 
      dfb_config->mouse_motion_compression = 1;
      dfb_config->window_policy = -1;
@@ -151,6 +158,17 @@ static void config_allocate()
 
 DFBResult config_set( const char *name, const char *value )
 {
+     if (strcmp (name, "fbdev" ) == 0) {
+          if (value) {
+               if (dfb_config->fb_device)
+                    DFBFREE( dfb_config->fb_device );
+               dfb_config->fb_device = DFBSTRDUP( value );
+          }
+          else {
+               ERRORMSG("DirectFB/Config --fbdev: No device name specified!\n");
+               return DFB_INVARG;
+          }
+     } else
      if (strcmp (name, "quiet" ) == 0) {
           dfb_config->quiet = 1;
      } else
@@ -224,6 +242,8 @@ DFBResult config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "bg-image" ) == 0) {
           if (value) {
+               if (dfb_config->layer_bg_filename)
+                    DFBFREE( dfb_config->layer_bg_filename );
                dfb_config->layer_bg_filename = DFBSTRDUP( value );
                dfb_config->layer_bg_mode = DLBM_IMAGE;
           }
