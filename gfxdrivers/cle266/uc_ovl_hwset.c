@@ -110,7 +110,7 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     if (action & UC_OVL_CHANGE) {
 
         if ((sw > 4096) || (sh > 4096) ||
-            (sw < 32) || (sh < 1))
+            (sw < 32) || (sh < 1) || (sp > 0x1fff))
         {
             DEBUGMSG("Layer surface size is out of bounds.");
             return DFB_INVAREA;
@@ -174,7 +174,7 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
 
         VIDEO_OUT(vio, V1_SOURCE_HEIGHT, (sh << 16) | dcount);
         VIDEO_OUT(vio, V12_QWORD_PER_LINE, qwpitch);
-        VIDEO_OUT(vio, V1_STRIDE, sp);
+        VIDEO_OUT(vio, V1_STRIDE, sp | ((sp >> 1) << 16));
 
         VIDEO_OUT(vio, V1_MINI_CONTROL, mini);
         VIDEO_OUT(vio, V1_ZOOM_CONTROL, zoom);
