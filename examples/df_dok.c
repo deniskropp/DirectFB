@@ -23,12 +23,12 @@
 
 #include <directfb.h>
 
-
 #include <time.h>     /* for `clock()'    */
 #include <stdio.h>    /* for `fprintf()'  */
 #include <stdlib.h>   /* for `rand()'     */
 #include <unistd.h>   /* for `sleep()'    */
 #include <math.h>     /* for `sqrt()'     */
+#include <string.h>   /* for `memset()'   */
 
 /* the super interface */
 IDirectFB *dfb;

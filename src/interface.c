@@ -27,6 +27,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 
 #include <core/coredefs.h>
 

@@ -22,6 +22,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <string.h>
+
 #include <config.h>
 #include <directfb.h>
 

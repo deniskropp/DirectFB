@@ -25,6 +25,7 @@
 
 #include <directfb.h>
 
+#include <string.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -610,6 +611,7 @@ int main( int argc, char *argv[] )
                                    primary->SetClip( primary, NULL );
                               break;
                          default:
+                              break;
                     }
                }
           }

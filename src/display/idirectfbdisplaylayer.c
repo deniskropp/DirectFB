@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <string.h>
 #include <malloc.h>
 
 #include <directfb.h>
@@ -163,6 +164,7 @@ DFBResult IDirectFBDisplayLayer_SetBufferMode( IDirectFBDisplayLayer     *thiz,
           case DLBM_FRONTONLY:
                return data->layer->SetBufferMode( data->layer, mode );
           default:
+               break;
      }
 
      return DFB_INVARG;

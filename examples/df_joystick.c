@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <string.h>
 
 #define PI 3.1415926536f
 #define MAX_JOYSTICKS 8

@@ -552,6 +552,7 @@ void scale_nearest_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
                     case DSPF_A8:
                     case DSPF_A1:
                     case DSPF_UNKNOWN:
+                         break;
                          /* not supported */
                }
           }

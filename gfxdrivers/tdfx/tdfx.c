@@ -257,7 +257,8 @@ static inline void tdfx_validate_colorFore()
                                                   tdfx->state->color.g,
                                                   tdfx->state->color.b );
                break;
-          default:     
+          default:
+               break;
      }
 
      v_colorFore = 1;

@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <malloc.h>
 
@@ -83,6 +84,7 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
                                         windowstack_input_notify, stack );
                     break;
                default:
+                    break;
           }
           inputdevice = inputdevice->next;
      }
@@ -108,6 +110,7 @@ void windowstack_destroy( CoreWindowStack *stack )
                     input_remove_listener( inputdevice, stack );
                     break;
                default:
+                    break;
           }
           inputdevice = inputdevice->next;
      }
@@ -881,6 +884,7 @@ static void windowstack_input_notify( DFBInputEvent *evt, void *ctx )
                }
                break;
           default:
+               break;
      }
 }
 

@@ -24,6 +24,8 @@
 #ifndef __GFX__CONVERT_H__
 #define __GFX__CONVERT_H__
 
+#include <string.h>
+
 #include <asm/types.h>
 
 

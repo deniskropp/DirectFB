@@ -24,6 +24,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <string.h>
+
 #include "util.h"
 
 void trim( char **s )

@@ -189,7 +189,8 @@ inline void ati128_set_color()
                                         ati->state->color.g,
                                         ati->state->color.b );
                break;
-          default:     
+          default:
+               break;
      }
      
      ati128_waitfifo( mmio_base, 1 );

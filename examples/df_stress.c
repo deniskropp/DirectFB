@@ -23,7 +23,7 @@
 
 #include <directfb.h>
 
-
+#include <string.h>   /* for `memset()'  */
 #include <time.h>     /* for `clock()'   */
 #include <stdio.h>    /* for `fprintf()' */
 #include <stdlib.h>   /* for `rand()'    */

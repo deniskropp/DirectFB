@@ -193,6 +193,7 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
                }
                break;
           default:
+               break;
      }
 
      if (state->modified & SMF_DESTINATION)

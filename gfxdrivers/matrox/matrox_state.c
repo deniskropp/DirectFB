@@ -405,5 +405,6 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                break;
           }
           default:
+               break;
      }
 }
