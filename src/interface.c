@@ -96,8 +96,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
           return errno2dfb( errno );
      }
 
-     impl = DFBMALLOC( sizeof(DFBInterfaceImplementation) );
-     memset( impl, 0, sizeof(DFBInterfaceImplementation) );
+     impl = DFBCALLOC( 1, sizeof(DFBInterfaceImplementation) );
 
      while ( (entry = readdir(dir) ) != NULL ) {
           void *handle;
@@ -189,8 +188,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                     *iimpl = impl;
 
                     impl->references = 1;
-                    impl->filename = DFBMALLOC( strlen(buf) + 1 );
-                    strcpy( impl->filename, buf );
+                    impl->filename = DFBSTRDUP( buf );
 
                     INITMSG( "DirectFB/Interface: "
                              "Loaded '%s' implementation of '%s'.\n",
