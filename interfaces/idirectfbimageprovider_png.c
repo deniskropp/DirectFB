@@ -252,10 +252,10 @@ DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
 
      {
           png_uint_32 png_width, png_height;
-          int png_bpp, png_type;
+          int png_bpp, png_type, number_of_passes;
 
           png_get_IHDR( png_ptr, info_ptr, &png_width, &png_height, &png_bpp,
-                        &png_type, NULL, NULL, NULL );
+                        &png_type, NULL /* interlace_type */, NULL, NULL );
 
           if (png_type == PNG_COLOR_TYPE_PALETTE)
                png_set_palette_to_rgb( png_ptr );
@@ -282,12 +282,18 @@ DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
           png_set_bgr( png_ptr );
 #endif
 
+          number_of_passes = png_set_interlace_handling(png_ptr);
+
           if (width == png_width
                 &&  height == png_height && BYTES_PER_PIXEL(format) == 4)
           {
-               while (png_height--) {
-                    png_read_row( png_ptr, dst, NULL );
-                    dst += pitch;
+               while (number_of_passes--) {
+                    int h = png_height;
+                    png_bytep dest = dst;
+                    while (h--) {
+                         png_read_row( png_ptr, dest, NULL );
+                         dest += pitch;
+                    }
                }
           }
           else {
@@ -299,11 +305,14 @@ DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
                /* stupid libpng returns only 3 if we use the filler */
                png_rowbytes = png_width*4;
 
-               buffer = bptr = malloc( png_rowbytes * png_height );
+               buffer = malloc( png_rowbytes * png_height );
 
-               for (i=0; i<png_height; i++)  {
-                    png_read_row( png_ptr, bptr, NULL );
-                    bptr += png_rowbytes;
+               while (number_of_passes--) {
+                    bptr = buffer;
+                    for (i=0; i<png_height; i++)  {
+                         png_read_row( png_ptr, bptr, NULL );
+                         bptr += png_rowbytes;
+                    }
                }
 
                scale_linear_32( (__u32*)dst, (__u32*)buffer, png_width,
