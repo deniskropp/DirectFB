@@ -332,15 +332,17 @@ static void uc_engine_sync(void* drv, void* dev)
     UcDriverData* ucdrv = (UcDriverData*) drv;
     UcDeviceData* ucdev = (UcDeviceData*) dev;
 
-    int loop = -1;
+    int loop = 0;
 
 /*    printf("Entering uc_engine_sync(), status is 0x%08x\n",
         VIA_IN(ucdrv->hwregs, VIA_REG_STATUS));
 */
 
-    while (loop++ < MAXLOOP) {
-        if ((VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & 0xfffeffff) == 0x00020000)
+    while ((VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & 0xfffeffff) != 0x00020000) {
+        if (++loop > MAXLOOP) {
+            ERRORMSG("DirectFB/VIA: Timeout waiting for idle engine!\n");
             break;
+        }
     }
 
     /* printf("Leaving uc_engine_sync(), status is 0x%08x, "
@@ -443,11 +445,12 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
 
     // Driver specific initialization
 
-    funcs->CheckState    = uc_check_state;
-    funcs->SetState      = uc_set_state;
-    funcs->EngineSync    = uc_engine_sync;
-    funcs->EmitCommands  = uc_emit_commands;
-    funcs->AfterSetVar   = uc_after_set_var;
+    funcs->CheckState        = uc_check_state;
+    funcs->SetState          = uc_set_state;
+    funcs->EngineSync        = uc_engine_sync;
+    funcs->EmitCommands      = uc_emit_commands;
+    funcs->FlushTextureCache = uc_flush_texture_cache;
+    funcs->AfterSetVar       = uc_after_set_var;
 
     funcs->FillRectangle = uc_fill_rectangle;
     funcs->DrawRectangle = uc_draw_rectangle;

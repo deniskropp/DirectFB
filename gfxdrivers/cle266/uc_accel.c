@@ -26,18 +26,23 @@
 
 /** Wait until a new command can be set up. */
 
-inline void uc_waitcmd(UcDriverData* ucdrv, UcDeviceData* ucdev)
+static inline void uc_waitcmd(UcDriverData* ucdrv, UcDeviceData* ucdev)
 {
-    int loop = -1;
+    int loop = 0;
+
+    if (!ucdev->must_wait)
+        return;
 
     //printf("waitcmd ");
 
-    while (loop++ < MAXLOOP) {
-        if (!(VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & VIA_CMD_RGTR_BUSY))
+    while (VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & VIA_CMD_RGTR_BUSY) {
+        if (++loop > MAXLOOP) {
+            ERRORMSG("DirectFB/VIA: Timeout waiting for idle command regulator!\n");
             break;
+        }
     }
 
-    //printf("waiting for %d (0x%x) cycles.\n", loop, loop);
+    //printf("waited for %d (0x%x) cycles.\n", loop, loop);
 
     ucdev->cmd_waitcycles += loop;
     ucdev->must_wait = 0;
@@ -48,8 +53,26 @@ inline void uc_waitcmd(UcDriverData* ucdrv, UcDeviceData* ucdev)
 void uc_emit_commands(void* drv, void* dev)
 {
     UC_ACCEL_BEGIN()
-    if (ucdev->must_wait == 1) uc_waitcmd(ucdrv, ucdev);
+
+    uc_waitcmd(ucdrv, ucdev);
+
     UC_FIFO_FLUSH(fifo);
+
+    ucdev->must_wait = 1;
+}
+
+void uc_flush_texture_cache(void* drv, void* dev)
+{
+    UcDriverData   *ucdrv = (UcDriverData*) drv;
+    struct uc_fifo *fifo  = ucdrv->fifo;
+
+    UC_FIFO_PREPARE(fifo, 4);
+
+    UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Tex << 16) | (HC_SubType_TexGeneral << 24));
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXSMD, HC_HTXCHCLR_MASK);
+    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXSMD, 0);
+
+    UC_FIFO_CHECK(fifo);
 }
 
 /**
@@ -235,7 +258,7 @@ bool uc_fill_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
 
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_Cd;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HVCycle_AFP |
-        HC_HVCycle_AA | HC_HVCycle_NewB | HC_HVCycle_CC | HC_HShading_FlatA;
+        HC_HVCycle_AA | HC_HVCycle_BB | HC_HVCycle_NewC | HC_HShading_FlatC;
     int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
 
     if (r->w == 0 || r->h == 0) return true;
@@ -246,13 +269,14 @@ bool uc_fill_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYC(fifo, r->x, r->y, ucdev->color3d);
-    UC_FIFO_ADD_XYC(fifo, r->x + r->w, r->y, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, r->x, r->y, 0);
     UC_FIFO_ADD_XYC(fifo, r->x + r->w, r->y + r->h, 0);
+    UC_FIFO_ADD_XYC(fifo, r->x + r->w, r->y, ucdev->color3d);
     UC_FIFO_ADD_XYC(fifo, r->x, r->y + r->h, ucdev->color3d);
 
     UC_FIFO_ADD(fifo, cmdA_End);
-    UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.
+
+    UC_FIFO_PAD_EVEN(fifo);
 
     UC_ACCEL_END();
     return true;
@@ -299,10 +323,11 @@ bool uc_draw_line_3d(void* drv, void* dev, DFBRegion* line)
     UC_FIFO_ADD(fifo, cmdA);
 
     UC_FIFO_ADD_XYC(fifo, line->x1, line->y1, ucdev->color3d);
-    UC_FIFO_ADD_XYC(fifo, line->x2, line->y2, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, line->x2, line->y2, 0);
 
     UC_FIFO_ADD(fifo, cmdA_End);
-    UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.
+
+    UC_FIFO_PAD_EVEN(fifo);
 
     UC_ACCEL_END();
     return true;
@@ -357,7 +382,7 @@ bool uc_stretch_blit(void* drv, void* dev,
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y |
                HC_HVPMSK_Cd | HC_HVPMSK_S | HC_HVPMSK_T;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HVCycle_AFP |
-               HC_HVCycle_AA | HC_HVCycle_BB | HC_HVCycle_NewC | HC_HShading_FlatA;
+               HC_HVCycle_AA | HC_HVCycle_BB | HC_HVCycle_NewC | HC_HShading_FlatC;
     int cmdA_End = cmdA | HC_HPLEND_MASK | HC_HPMValidN_MASK | HC_HE3Fire_MASK;
 
     UC_FIFO_PREPARE(fifo, 26);
@@ -366,13 +391,14 @@ bool uc_stretch_blit(void* drv, void* dev,
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYCST(fifo, dr->x, dr->y, ucdev->color3d, s1, t1);
-    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dr->y+dr->h, ucdev->color3d, s2, t2);
+    UC_FIFO_ADD_XYCST(fifo, dr->x, dr->y, 0, s1, t1);
+    UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dr->y+dr->h, 0, s2, t2);
     UC_FIFO_ADD_XYCST(fifo, dr->x+dr->w, dr->y, ucdev->color3d, s2, t1);
     UC_FIFO_ADD_XYCST(fifo, dr->x, dr->y+dr->h, ucdev->color3d, s1, t2);
 
     UC_FIFO_ADD(fifo, cmdA_End);
-    UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.
+
+    UC_FIFO_PAD_EVEN(fifo);
 
     UC_ACCEL_END();
 

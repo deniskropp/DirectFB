@@ -18,7 +18,7 @@
 #include <directfb.h>
 
 #define UNICHROME_DEVICE "/dev/cle266vgaio"
-#define UC_FIFO_SIZE 2000
+#define UC_FIFO_SIZE 4096
 
 /** If defined - the driver will use the 3D engine. */
 #define UC_ENABLE_3D
@@ -29,7 +29,6 @@
 struct uc_hw_texture
 {
     DFBSurfaceBlittingFlags bltflags;
-    CoreSurface* surface;
 
     __u32 l2w;      //width, rounded up to nearest 2^m, eg 600 => 1024
     __u32 l2h;      //height, rounded up, e.g 480 => 512

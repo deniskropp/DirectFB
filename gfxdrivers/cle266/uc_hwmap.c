@@ -94,9 +94,9 @@ int uc_map_src_format_3d(DFBSurfacePixelFormat format)
 void uc_map_blending_fn(struct uc_hw_alpha* hwalpha,
                         DFBSurfaceBlendFunction sblend,
                         DFBSurfaceBlendFunction dblend,
-                        DFBSurfacePixelFormat format)
+                        DFBSurfacePixelFormat   dst_format)
 {
-    int bpp = DFB_BYTES_PER_PIXEL(format);
+    bool dst_alpha = DFB_PIXELFORMAT_HAS_ALPHA(dst_format);
 
     // The HW's blending equation is:
     // (Ca * FCa + Cbias + Cb * FCb) << Cshift
@@ -153,7 +153,7 @@ void uc_map_blending_fn(struct uc_hw_alpha* hwalpha,
 
     case DSBF_DESTALPHA:
         // GL_DST_ALPHA
-        if (bpp == 16) { // (1, 1, 1, 1)
+        if (!dst_alpha) { // (1, 1, 1, 1)
             hwalpha->regHABLCsat |= HC_HABLFCa_InvOPC | HC_HABLFCa_HABLRCa;
             hwalpha->regHABLAsat |= HC_HABLFAa_InvOPA | HC_HABLFAa_HABLFRA;
             hwalpha->regHABLRFCa = 0x0;
@@ -167,7 +167,7 @@ void uc_map_blending_fn(struct uc_hw_alpha* hwalpha,
 
     case DSBF_INVDESTALPHA:
         // GL_ONE_MINUS_DST_ALPHA
-        if (bpp == 16) { // (1, 1, 1, 1) - (1, 1, 1, 1) = (0, 0, 0, 0)
+        if (!dst_alpha) { // (1, 1, 1, 1) - (1, 1, 1, 1) = (0, 0, 0, 0)
             hwalpha->regHABLCsat |= HC_HABLFCa_OPC | HC_HABLFCa_HABLRCa;
             hwalpha->regHABLAsat |= HC_HABLFAa_OPA | HC_HABLFAa_HABLFRA;
             hwalpha->regHABLRFCa = 0x0;
@@ -193,7 +193,7 @@ void uc_map_blending_fn(struct uc_hw_alpha* hwalpha,
 
     case DSBF_SRCALPHASAT:
         // GL_SRC_ALPHA_SATURATE
-        if (bpp == 16) {
+        if (!dst_alpha) {
             // (f, f, f, 1), f = min(As, 1 - Ad) = min(As, 1 - 1) = 0
             // So (f, f, f, 1) = (0, 0, 0, 1)
             hwalpha->regHABLCsat |= HC_HABLFCa_OPC | HC_HABLFCa_HABLRCa;
@@ -269,7 +269,7 @@ void uc_map_blending_fn(struct uc_hw_alpha* hwalpha,
 
     case DSBF_DESTALPHA:
         // GL_DST_ALPHA
-        if (bpp == 16) { // (1, 1, 1, 1)
+        if (!dst_alpha) { // (1, 1, 1, 1)
             hwalpha->regHABLCop |= HC_HABLFCb_InvOPC | HC_HABLFCb_HABLRCb;
             hwalpha->regHABLAop |= HC_HABLFAb_InvOPA | HC_HABLFAb_HABLFRA;
             hwalpha->regHABLRFCb = 0x0;
@@ -283,7 +283,7 @@ void uc_map_blending_fn(struct uc_hw_alpha* hwalpha,
 
     case DSBF_INVDESTALPHA:
         // GL_ONE_MINUS_DST_ALPHA
-        if (bpp == 16) { // (1, 1, 1, 1) - (1, 1, 1, 1) = (0, 0, 0, 0)
+        if (!dst_alpha) { // (1, 1, 1, 1) - (1, 1, 1, 1) = (0, 0, 0, 0)
             hwalpha->regHABLCop |= HC_HABLFCb_OPC | HC_HABLFCb_HABLRCb;
             hwalpha->regHABLAop |= HC_HABLFAb_OPA | HC_HABLFAb_HABLFRA;
             hwalpha->regHABLRFCb = 0x0;

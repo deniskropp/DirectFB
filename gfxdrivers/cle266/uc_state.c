@@ -25,7 +25,6 @@ inline bool uc_is_destination_supported(DFBSurfacePixelFormat format)
 {
     switch (format)
     {
-        //case DSPF_RGB15:
     case DSPF_RGB16:
     case DSPF_RGB32:
     case DSPF_LUT8:
@@ -123,30 +122,27 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
     // Check modified states and update hw
 
-    ucdev->v_source3d = 0;
-    if (state->modified & SMF_SOURCE) {
-        // FIXME: ucdev->v_source3d = 0 belongs here, but I always
-        // need to invalidate source to get font rendering working
-        ucdev->v_source2d = 0;
-    }
+    if (state->modified & SMF_SOURCE)
+        ucdev->v_source2d = ucdev->v_source3d = 0;
 
     if (state->modified & (SMF_BLITTING_FLAGS | SMF_SOURCE))
         ucdev->v_texenv = 0;
 
     if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
-        ucdev->v_blending_fn = 0;
+        ucdev->v_blending_fn = 0; /* also depends on SMF_DESTINATION (rarely) */
 
+    if (state->modified & SMF_DESTINATION)
+        uc_set_destination(fifo, ucdev, state);
 
     if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
-        ucdev->color = uc_map_color(state->destination->format,
-            state->color);
+        ucdev->color = uc_map_color(state->destination->format, state->color);
 
-        ucdev->color3d = PIXEL_ARGB( state->color.a , state->color.r,
-                                     state->color.g , state->color.b );
+        if (state->modified & SMF_COLOR)
+            ucdev->color3d = PIXEL_ARGB( state->color.a , state->color.r,
+                                         state->color.g , state->color.b );
     }
 
-    if (state->modified & SMF_DRAWING_FLAGS)
-    {
+    if (state->modified & SMF_DRAWING_FLAGS) {
         if (state->drawingflags & DSDRAW_XOR) {
             ucdev->draw_rop3d = HC_HROP_DPx;
             ucdev->draw_rop2d = VIA_ROP_DPx;
@@ -161,8 +157,6 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
         uc_set_clip(fifo, state);
     }
 
-    if (state->modified & SMF_DESTINATION)
-        uc_set_destination(fifo, ucdev, state);
 
     // if (state->modified & SMF_SRC_COLORKEY) { }
     // if (state->modified & SMF_DST_COLORKEY) { }
@@ -221,12 +215,11 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
             uc_set_texenv(fifo, ucdev, state);
             uc_set_blending_fn(fifo, ucdev, state);
 
+            regEnable |= HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK;
+
             if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                DSBLIT_BLEND_COLORALPHA)) {
-                    regEnable |= HC_HenABL_MASK;
-                }
-            regEnable |=
-                HC_HenTXMP_MASK | HC_HenTXCH_MASK | HC_HenTXPP_MASK | HC_HenDT_MASK;
+                                        DSBLIT_BLEND_COLORALPHA))
+                regEnable |= HC_HenABL_MASK;
 
             state->set = UC_BLITTING_FUNCTIONS_3D;
             break;
@@ -249,11 +242,10 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
     UC_FIFO_ADD_3D(fifo, HC_SubA_HROP, rop3d | ((mask3d >> 24) & 0xff));
     UC_FIFO_ADD_3D(fifo, HC_SubA_HPixGC, 0);  // Don't know what this does...
                                               // ...DRI code always clears it.
-    UC_FIFO_PAD_EVEN(fifo);
 #endif
 
     UC_FIFO_CHECK(fifo);
-    UC_FIFO_FLUSH(fifo);
+//    UC_FIFO_FLUSH(fifo);
 
   state->modified = 0;
 }

@@ -37,7 +37,7 @@ void uc_set_blending_fn(struct uc_fifo* fifo, UcDeviceData *ucdev, CardState *st
         return;
 
     uc_map_blending_fn(&(ucdev->hwalpha), state->src_blend,
-              state->dst_blend, DFB_BITS_PER_PIXEL(state->destination->format));
+              state->dst_blend, state->destination->format);
 
     UC_FIFO_PREPARE(fifo, 14);
     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
@@ -169,7 +169,7 @@ void uc_set_destination(struct uc_fifo* fifo, UcDeviceData *ucdev,
         bpp = 4;
     }
 
-    ucdev->pitch = (ucdev->pitch & 0xffff) | (((dpitch >> 3) & 0xffff) << 16);
+    ucdev->pitch = (ucdev->pitch & 0x7fff) | (((dpitch >> 3) & 0x7fff) << 16);
     UC_FIFO_ADD_2D(fifo, VIA_REG_PITCH, VIA_PITCH_ENABLE | ucdev->pitch);
     UC_FIFO_ADD_2D(fifo, VIA_REG_DSTBASE, dbuf >> 3);
     UC_FIFO_ADD_2D(fifo, VIA_REG_GEMODE, gemodes[bpp >> 1]);
@@ -188,14 +188,13 @@ void uc_set_source_2d(struct uc_fifo* fifo, UcDeviceData *ucdev,
     if (ucdev->v_source2d)
         return;
 
-    ucdev->pitch = (ucdev->pitch & 0xffff0000)
-        | ((buf->video.pitch >> 3) & 0xffff) | VIA_PITCH_ENABLE;
+    ucdev->pitch = (ucdev->pitch & 0x7fff0000) | ((buf->video.pitch >> 3) & 0x7fff);
 
     UC_FIFO_PREPARE(fifo, 6);
     UC_FIFO_ADD_HDR(fifo, HC_ParaType_NotTex << 16);
 
     UC_FIFO_ADD_2D(fifo, VIA_REG_SRCBASE, buf->video.offset >> 3);
-    UC_FIFO_ADD_2D(fifo, VIA_REG_PITCH, ucdev->pitch);
+    UC_FIFO_ADD_2D(fifo, VIA_REG_PITCH, VIA_PITCH_ENABLE | ucdev->pitch);
 
     UC_FIFO_CHECK(fifo);
 
@@ -214,7 +213,6 @@ void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
 
     tex = &(ucdev->hwtex);
     src = state->source;
-    tex->surface = src;
 
     // Round texture size up to nearest
     // value evenly divisible by 2^n
@@ -240,11 +238,7 @@ void uc_set_source_3d(struct uc_fifo* fifo, UcDeviceData *ucdev,
         tex->format = HC_HTXnFM_ARGB8888;
     }
 
-    UC_FIFO_PREPARE(fifo, 14);
-
-    UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Tex << 16) | (HC_SubType_TexGeneral << 24));
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXSMD, 1);
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXSMD, 0);
+    UC_FIFO_PREPARE(fifo, 10);
 
     UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Tex << 16) | (HC_SubType_Tex0 << 24));
 
