@@ -475,8 +475,14 @@ fs_core_initialize( CoreSound *core )
           return DFB_UNSUPPORTED;
      }
 
-//     if (shared->config.block_size > 4096)
+     DEBUGMSG( "FusionSound/Core: got block size %d\n", shared->config.block_size );
+
+     if (shared->config.block_size < 4096)
           shared->config.block_size = 4096;
+     else if (shared->config.block_size > 16384)
+          shared->config.block_size = 16384;
+
+     DEBUGMSG( "FusionSound/Core: using block size %d\n", shared->config.block_size );
 
      /* calculate number of samples fitting into one block */
      shared->config.samples_per_block = shared->config.block_size / bytes;
