@@ -151,6 +151,15 @@ static void rgba_to_dst_format (__u8 *dst,
                }
                break;
 
+          case DSPF_YV12:
+          case DSPF_I420:
+          case DSPF_NV12:
+          case DSPF_NV16:
+               D_ONCE( "format not fully supported (only luma plane, yet)" );
+
+               *((__u8*)dst) = ((r * 16829 + g *  33039 + b *  6416 + 0x8000) >> 16) + 16;
+               break;
+
           default:
                D_ONCE( "unimplemented destination format (0x%08x)", dst_format );
                break;
