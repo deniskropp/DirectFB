@@ -3,7 +3,7 @@ Quick installation
 
 Patch your kernel:
 
-	patch -p1 < fusion-full-linux-2.4.20-rc1.patch
+	patch -p1 < fusion-full-linux-2.4.20.patch
 
 Enable the character device driver module "Fusion Kernel Device",
 build and install modules, insmod fusion. Maybe check /proc/misc.
