@@ -256,9 +256,9 @@ besSetDstColorKey( DisplayLayer *layer,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
      
-     mga_out_dac( mmio, XCOLKEY0RED, r );
+     mga_out_dac( mmio, XCOLKEY0RED,   r );
      mga_out_dac( mmio, XCOLKEY0GREEN, g );
-     mga_out_dac( mmio, XCOLKEY0BLUE, b );
+     mga_out_dac( mmio, XCOLKEY0BLUE,  b );
 
      return DFB_OK;
 }
