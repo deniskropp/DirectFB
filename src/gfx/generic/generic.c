@@ -2008,29 +2008,36 @@ void gFillRectangle( DFBRectangle *rect )
 
 void gDrawLine( DFBRegion *line )
 {
-     int i,dy,sdy,dxabs,dyabs,x,y,px,py;
+     int i,dx,dy,sdy,dxabs,dyabs,x,y,px,py;
 
      /* the horizontal distance of the line */
-     dxabs = abs(line->x2 - line->x1);
+     dx = line->x2 - line->x1;
+     dxabs = abs(dx);
 
      /* the vertical distance of the line */
      dy = line->y2 - line->y1;      
      dyabs = abs(dy);
 
-     if (!dxabs || !dy) {              /* draw horizontal/vertical line */
-          DFBRectangle rect = { MIN (line->x1, line->x2),
+     if (!dx || !dy) {              /* draw horizontal/vertical line */
+          DFBRectangle rect = { 
+               MIN (line->x1, line->x2),
                MIN (line->y1, line->y2),
-               dxabs + 1, dyabs + 1};
+               dxabs + 1, dyabs + 1 };
 
           gFillRectangle( &rect );
           return;
      }
 
-     sdy = SIGN(dy) * dst_pitch;
+     sdy = SIGN(dy) * SIGN(dx) * dst_pitch;
      x   = dyabs >> 1;
      y   = dxabs >> 1;
-     px  = MIN (line->x1, line->x2) * dst_bpp;
-     py  = line->y1 * dst_pitch;
+     if (dx > 0) {
+       px  = line->x1 * dst_bpp;
+       py  = line->y1 * dst_pitch;
+     } else {
+       px  = line->x2 * dst_bpp;
+       py  = line->y2 * dst_pitch;
+     }
 
      if (dxabs >= dyabs) { /* the line is more horizontal than vertical */
 
