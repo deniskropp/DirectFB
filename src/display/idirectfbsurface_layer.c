@@ -186,22 +186,25 @@ DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      IDirectFBSurface_Layer_data *data;
 
      if (!(caps & DSCAPS_SUBSURFACE)  &&  !req_rect) {
-          if (caps & DSCAPS_FLIPPING) {
-               if (caps & DSCAPS_VIDEOONLY) {
-                    err = layer->SetBufferMode( layer, DLBM_BACKVIDEO );
-               } else
-               if (caps & DSCAPS_SYSTEMONLY) {
-                    err = layer->SetBufferMode( layer, DLBM_BACKSYSTEM );
-               }
-               else  {
-                    if (layer->SetBufferMode( layer, DLBM_BACKVIDEO ))
-                         err = layer->SetBufferMode( layer, DLBM_BACKSYSTEM );
-               }
-          }
-          else {
-               err = layer->SetBufferMode( layer, DLBM_FRONTONLY );
-          }
+          DFBDisplayLayerConfig config;
+          
+          config.flags      = DLCONF_BUFFERMODE;
 
+          if (caps & DSCAPS_FLIPPING) {
+               if (caps & DSCAPS_VIDEOONLY)
+                    config.buffermode = DLBM_BACKVIDEO;
+               else if (caps & DSCAPS_SYSTEMONLY)
+                    config.buffermode = DLBM_BACKSYSTEM;
+               else {
+                    config.buffermode = DLBM_BACKVIDEO;
+                    if (layer->SetConfiguration( layer, &config ))
+                         config.buffermode = DLBM_BACKSYSTEM;
+               }
+          }
+          else
+               config.buffermode = DLBM_FRONTONLY;
+               
+          err = layer->SetConfiguration( layer, &config );
           if (err) {
                free( thiz );
                return err;

@@ -110,6 +110,59 @@ DFBResult IDirectFBDisplayLayer_Release( IDirectFBDisplayLayer *thiz )
      return DFB_OK;
 }
 
+DFBResult IDirectFBDisplayLayer_GetCapabilities( IDirectFBDisplayLayer *thiz,
+                                            DFBDisplayLayerCapabilities *caps )
+{
+     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!caps)
+          return DFB_INVARG;
+
+     *caps = data->layer->caps;
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer *thiz,
+                                            IDirectFBSurface **interface )
+{
+     DFBResult ret;
+     DFBRectangle rect;
+     IDirectFBSurface *surface;
+     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!data->surface) {
+          rect.x = 0;
+          rect.y = 0;
+          rect.w = data->layer->width;
+          rect.h = data->layer->height;
+
+          DFB_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
+
+          ret = IDirectFBSurface_Layer_Construct( surface, &rect,
+                                                  NULL, data->layer,
+                                                  data->layer->surface->caps );
+          if (ret) {
+               free( surface );
+               return ret;
+          }
+
+          data->surface = surface;
+     }
+
+     data->surface->AddRef( data->surface );
+
+     *interface = data->surface;
+
+     return DFB_OK;
+}
+
 DFBResult IDirectFBDisplayLayer_SetCooperativeLevel(
                                         IDirectFBDisplayLayer *thiz,
                                         DFBDisplayLayerCooperativeLevel level )
@@ -134,6 +187,94 @@ DFBResult IDirectFBDisplayLayer_SetCooperativeLevel(
      return DFB_OK;
 }
 
+DFBResult IDirectFBDisplayLayer_SetOpacity( IDirectFBDisplayLayer *thiz,
+                                            __u8                   opacity )
+{
+     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     return data->layer->SetOpacity( data->layer, opacity );
+}
+
+DFBResult IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
+                                                   float                  x,
+                                                   float                  y,
+                                                   float                  width,
+                                                   float                  height )
+{
+     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     return data->layer->SetScreenLocation( data->layer, x, y, width, height );
+}
+
+DFBResult IDirectFBDisplayLayer_SetColorKey( IDirectFBDisplayLayer *thiz,
+                                             __u32                  key )
+{
+     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     return data->layer->SetColorKey( data->layer, key );
+}
+
+DFBResult IDirectFBDisplayLayer_GetConfiguration( IDirectFBDisplayLayer *thiz,
+                                                  DFBDisplayLayerConfig *config )
+{
+     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!config)
+          return DFB_INVARG;
+
+     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT |
+                           DLCONF_BUFFERMODE | DLCONF_OPTIONS;
+     config->width       = data->layer->width;
+     config->height      = data->layer->height;
+     config->pixelformat = data->layer->surface->format;
+     config->buffermode  = data->layer->buffermode;
+     config->options     = data->layer->options;
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBDisplayLayer_TestConfiguration(
+                                            IDirectFBDisplayLayer      *thiz,
+                                            DFBDisplayLayerConfig      *config,
+                                            DFBDisplayLayerConfigFlags *failed )
+{
+     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!config)
+          return DFB_INVARG;
+
+     return data->layer->TestConfiguration( data->layer, config, failed );
+}
+
+DFBResult IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer *thiz,
+                                                  DFBDisplayLayerConfig *config )
+{
+     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!config)
+          return DFB_INVARG;
+
+     return data->layer->SetConfiguration( data->layer, config );
+}
+
 DFBResult IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer *thiz,
                                  DFBDisplayLayerBackgroundMode background_mode )
 {
@@ -153,26 +294,6 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer *thiz,
      }
 
      return DFB_OK;
-}
-
-DFBResult IDirectFBDisplayLayer_SetBufferMode( IDirectFBDisplayLayer     *thiz,
-                                               DFBDisplayLayerBufferMode  mode )
-{
-     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
-
-     switch (mode) {
-          case DLBM_BACKSYSTEM:
-          case DLBM_BACKVIDEO:
-          case DLBM_FRONTONLY:
-               return data->layer->SetBufferMode( data->layer, mode );
-          default:
-               break;
-     }
-
-     return DFB_INVARG;
 }
 
 DFBResult IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
@@ -230,43 +351,6 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBDisplayLayer_GetSize( IDirectFBDisplayLayer *thiz,
-                                         unsigned int *width,
-                                         unsigned int *height )
-{
-     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
-
-     if (!width && !height)
-          return DFB_INVARG;
-
-     if (width)
-          *width = data->layer->width;
-
-     if (height)
-          *height = data->layer->height;
-
-     return DFB_OK;
-}
-
-DFBResult IDirectFBDisplayLayer_GetCapabilities( IDirectFBDisplayLayer *thiz,
-                                            DFBDisplayLayerCapabilities *caps )
-{
-     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
-
-     if (!caps)
-          return DFB_INVARG;
-
-     *caps = data->layer->caps;
-
-     return DFB_OK;
-}
-
 DFBResult IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer *thiz,
                                               DFBWindowDescription *desc,
                                               IDirectFBWindow **window )
@@ -304,43 +388,6 @@ DFBResult IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer *thiz,
      DFB_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
      return IDirectFBWindow_Construct( *window, w );
-}
-
-DFBResult IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer *thiz,
-                                            IDirectFBSurface **interface )
-{
-     DFBResult ret;
-     DFBRectangle rect;
-     IDirectFBSurface *surface;
-     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
-
-     if (!data->surface) {
-          rect.x = 0;
-          rect.y = 0;
-          rect.w = data->layer->width;
-          rect.h = data->layer->height;
-
-          DFB_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
-
-          ret = IDirectFBSurface_Layer_Construct( surface, &rect,
-                                                  NULL, data->layer,
-                                                  data->layer->surface->caps );
-          if (ret) {
-               free( surface );
-               return ret;
-          }
-
-          data->surface = surface;
-     }
-
-     data->surface->AddRef( data->surface );
-
-     *interface = data->surface;
-
-     return DFB_OK;
 }
 
 DFBResult IDirectFBDisplayLayer_WarpCursor( IDirectFBDisplayLayer *thiz,
@@ -439,15 +486,19 @@ DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
 
      thiz->AddRef = IDirectFBDisplayLayer_AddRef;
      thiz->Release = IDirectFBDisplayLayer_Release;
+     thiz->GetCapabilities = IDirectFBDisplayLayer_GetCapabilities;
+     thiz->GetSurface = IDirectFBDisplayLayer_GetSurface;
      thiz->SetCooperativeLevel = IDirectFBDisplayLayer_SetCooperativeLevel;
-     thiz->SetBufferMode = IDirectFBDisplayLayer_SetBufferMode;
+     thiz->SetOpacity = IDirectFBDisplayLayer_SetOpacity;
+     thiz->SetScreenLocation = IDirectFBDisplayLayer_SetScreenLocation;
+     thiz->SetColorKey = IDirectFBDisplayLayer_SetColorKey;
+     thiz->GetConfiguration = IDirectFBDisplayLayer_GetConfiguration;
+     thiz->TestConfiguration = IDirectFBDisplayLayer_TestConfiguration;
+     thiz->SetConfiguration = IDirectFBDisplayLayer_SetConfiguration;
      thiz->SetBackgroundMode = IDirectFBDisplayLayer_SetBackgroundMode;
      thiz->SetBackgroundColor = IDirectFBDisplayLayer_SetBackgroundColor;
      thiz->SetBackgroundImage = IDirectFBDisplayLayer_SetBackgroundImage;
-     thiz->GetSize = IDirectFBDisplayLayer_GetSize;
-     thiz->GetCapabilities = IDirectFBDisplayLayer_GetCapabilities;
      thiz->CreateWindow = IDirectFBDisplayLayer_CreateWindow;
-     thiz->GetSurface = IDirectFBDisplayLayer_GetSurface;
      thiz->WarpCursor = IDirectFBDisplayLayer_WarpCursor;
      thiz->EnableCursor = IDirectFBDisplayLayer_EnableCursor;
      thiz->GetCursorPosition = IDirectFBDisplayLayer_GetCursorPosition;

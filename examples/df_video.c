@@ -70,7 +70,7 @@ int enum_layers_callback( unsigned int id, unsigned int caps, void *data )
 
 int main( int argc, char *argv[] )
 {
-     int screenx, screeny;
+     DFBDisplayLayerConfig  layer_config;
      DFBInputDeviceKeyState quit = DIKS_UP;
 
      DFBCHECK(DirectFBInit( &argc, &argv ));
@@ -138,7 +138,7 @@ int main( int argc, char *argv[] )
           dfbwindow->SetOpacity( dfbwindow, 0xFF );
      }
 
-     layer->GetSize( layer, &screenx, &screeny );
+     layer->GetConfiguration( layer, &layer_config );
 
 
      while (quit == DIKS_UP) {
@@ -178,9 +178,9 @@ int main( int argc, char *argv[] )
                     wx += dirx;
                     wy += diry;
 
-                    if (wx >= screenx-768/2  ||  wx <= 0)
+                    if (wx >= layer_config.width - 768/2  ||  wx <= 0)
                          dirx *= -1;
-                    if (wy >= screeny-576/2  ||  wy <= 0)
+                    if (wy >= layer_config.height - 576/2  ||  wy <= 0)
                          diry *= -1;
 
                     videowindow->Move( videowindow, dirx, diry );

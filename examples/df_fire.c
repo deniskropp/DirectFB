@@ -29,10 +29,10 @@
 #include <unistd.h>
 #include <string.h>
 
-IDirectFB            *dfb;
-IDirectFBSurface     *primary;
-IDirectFBInputDevice *keyboard;
-IDirectFBInputBuffer *keybuffer;
+IDirectFB             *dfb;
+IDirectFBSurface      *primary;
+IDirectFBInputDevice  *keyboard;
+IDirectFBInputBuffer  *keybuffer;
 
 typedef struct
 {
@@ -133,44 +133,36 @@ int main( int argc, char *argv[] )
           return 1;
 
      err = dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard );
-     if (err != DFB_OK)
+     if (err)
           DirectFBErrorFatal( "CreateInputDevice for keyboard failed", err );
 
      err = keyboard->CreateInputBuffer( keyboard, &keybuffer );
-     if (err != DFB_OK)
+     if (err)
           DirectFBErrorFatal( "CreateInputBuffer for keyboard failed", err );
 
-     /*
-      * the following hack is to override the default video mode of the
-      * primary layer, SetVideoMode must be called in FULLSCREEN mode.
-      * After the mode is set, switch back to NORMAL mode.
-      *
-      * (df_fire only works in 16bpp mode since it writes directly
-      * to surface data)
-      */
+     
      {
-          IDirectFBDisplayLayer	*layer;
-          int xres, yres;
-
-          dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
+          IDirectFBDisplayLayer *layer;
+          DFBDisplayLayerConfig config;
 
           dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer );
           layer->EnableCursor( layer, 1 );
-          layer->GetSize( layer, &xres, &yres );
-          dfb->SetVideoMode( dfb, xres, yres, 16 );
-          dfb->SetCooperativeLevel( dfb, DFSCL_NORMAL );
+          
+          config.flags = DLCONF_PIXELFORMAT;
+          config.pixelformat = DSPF_RGB16;
+
+          err = layer->SetConfiguration( layer, &config );
+          if (err)
+               DirectFBErrorFatal( "Could not set 16bit video mode", err );
+
+          layer->Release( layer );
      }
-     /*
-      * end of hack ;-)
-      */
 
      {
           DFBSurfaceDescription dsc;
 
-          memset( &dsc, 0, sizeof(DFBSurfaceDescription) );
-
           dsc.flags = DSDESC_CAPS;
-          dsc.caps = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
+          dsc.caps  = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
 
           err = dfb->CreateSurface( dfb, &dsc, &primary );
           if (err != DFB_OK) {

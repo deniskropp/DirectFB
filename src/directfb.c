@@ -174,6 +174,7 @@ DFBResult DirectFBSetOption( char *name, char *value)
 DFBResult DirectFBCreate( IDirectFB **interface )
 {
      DFBResult ret;
+     DFBDisplayLayerConfig layer_config;
 
      if (dfb_config == NULL) {
           ERRORMSG( "DirectFB/DirectFBCreate: DirectFBInit has to be called "
@@ -223,22 +224,21 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      *interface = idirectfb_singleton;
 
      /* set buffer mode for desktop */
-     if (dfb_config->buffer_mode == -1) {
-          if (card->caps.accel & DFXL_BLIT) {
-               ret = layers->SetBufferMode( layers, DLBM_BACKVIDEO );
-          }
-          else {
-               ret = layers->SetBufferMode( layers, DLBM_BACKSYSTEM );
-          }
-     }
-     else {
-          ret = layers->SetBufferMode( layers, dfb_config->buffer_mode );
-     }
+     layer_config.flags = DLCONF_BUFFERMODE;
 
-     if (ret) {
+     if (dfb_config->buffer_mode == -1) {
+          if (card->caps.accel & DFXL_BLIT)
+               layer_config.buffermode = DLBM_BACKVIDEO;
+          else
+               layer_config.buffermode = DLBM_BACKSYSTEM;
+     }
+     else
+          layer_config.buffermode = dfb_config->buffer_mode;
+
+     if (layers->SetConfiguration( layers, &layer_config )) {
           ERRORMSG( "DirectFB/DirectFBCreate: "
                     "Setting primary layer buffer mode failed! "
-                    "-> No support for virtual resolutions?\n" );
+                    "-> No support for virtual resolutions (panning)?\n" );
      }
 
      /* set desktop background */

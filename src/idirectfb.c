@@ -202,11 +202,41 @@ DFBResult IDirectFB_SetVideoMode( IDirectFB *thiz,
                data->primary.height = height;
                data->primary.bpp = bpp;
                break;
+
           case DFSCL_FULLSCREEN:
           case DFSCL_EXCLUSIVE: {
-               DFBResult ret = layers->SetMode( layers, width, height, bpp );
+               DFBResult ret;
+               DFBDisplayLayerConfig config;
+
+               switch (bpp) {
+                    case 15:
+                         config.pixelformat = DSPF_RGB15;
+                         break;
+                    case 16:
+                         config.pixelformat = DSPF_RGB16;
+                         break;
+                    case 24:
+                         config.pixelformat = DSPF_RGB24;
+                         break;
+                    case 32:
+                         config.pixelformat = DSPF_RGB32;
+                         break;
+                    default:
+                         return DFB_INVARG;
+               }
+               
+               config.width      = width;
+               config.height     = height;
+               config.buffermode = DLBM_FRONTONLY;
+               config.options    = 0;
+
+               config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_BUFFERMODE |
+                              DLCONF_PIXELFORMAT | DLCONF_OPTIONS;
+               
+               ret = layers->SetConfiguration( layers, &config );
                if (ret)
                     return ret;
+
                break;
           }
      }

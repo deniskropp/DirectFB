@@ -258,24 +258,49 @@ extern "C"
      } DFBCooperativeLevel;
 
      /*
-      * Capabilities that a layer supports.
+      * Capabilities of a display layer
       */
      typedef enum {
-          DLCAPS_OPACITY      = 0x00000001,  /* layer can have an alpha factor
-                                                defining its opacity */
-          DLCAPS_ALPHACHANNEL = 0x00000002   /* layer can do pixelbased
-                                                alphablending */
+          DLCAPS_SURFACE           = 0x00000001,  /* The layer has a surface
+                                                     that can be drawn to. This
+                                                     may not be provided by
+                                                     layers that only display
+                                                     realtime data, e.g. from an
+                                                     MPEG decoder chip. */
+          DLCAPS_OPACITY           = 0x00000002,  /* The layer supports blending
+                                                     with layer(s) below by
+                                                     a global alpha factor. */
+          DLCAPS_ALPHACHANNEL      = 0x00000004,  /* The layer supports blending
+                                                     with layer(s) below on
+                                                     a pixel per pixel basis. */
+          DLCAPS_SCREEN_LOCATION   = 0x00000008,  /* The layer location on the
+                                                     screen can be changed, this
+                                                     includes position and size
+                                                     as normalized values,
+                                                     default is 0, 0 - 1, 1. */
+          DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be
+                                                     enabled for this layer. */
+          DLCAPS_INTERLACED_VIDEO  = 0x00000020,  /* The layer can display
+                                                     interlaced video data. */
+          DLCAPS_COLORKEYING       = 0x00000040   /* A specific color can be
+                                                     declared as transparent. */
      } DFBDisplayLayerCapabilities;
 
      /*
-      * Layer Mode Flags
+      * Used to enable some capabilities like flicker filtering
+      * or colorkeying. Usage of capabilities not listed here depend
+      * on their settings, e.g. if layer opacity is not set to 100% the opacity
+      * capability is required and used.
       */
      typedef enum {
-          DLMF_PIXELALPHA = 0x00000001,      /* enable blending on a pixel-per-
-                                                pixel basis (e.g. for 32bit) */
-          DLMF_OPACITY    = 0x00000002       /* make usage of global blend
-                                                factor 'opacity' */
-     } DFBDisplayLayerModeFlags;
+          DLOP_ALPHACHANNEL        = 0x00000001,  /* Make usage of alpha channel
+                                                     for blending on a pixel per
+                                                     pixel basis. */
+          DLOP_FLICKER_FILTERING   = 0x00000002,  /* Enable flicker
+                                                     filtering. */
+          DLOP_INTERLACED_VIDEO    = 0x00000004,  /* Source is interlaced. */
+          DLOP_COLORKEYING         = 0x00000008   /* Enable colorkeying. */
+     } DFBDisplayLayerOptions;
 
      /*
       * Layer Buffer Mode
@@ -401,7 +426,7 @@ extern "C"
           DIBI_MIDDLE         = 0x00000002,  /* middle mouse button */
 
           DIBI_FIRST          = DIBI_LEFT    /* other buttons:
-                                                DIBI_FIRST + zerobasedindex */
+                                                DIBI_FIRST + zero based index */
      } DFBInputDeviceButtonIdentifier;
 
      /*
@@ -413,7 +438,7 @@ extern "C"
           DIAI_Z              = 0x00000002,  /* Z axis */
 
           DIAI_FIRST          = DIAI_X       /* other axis:
-                                                DIAI_FIRST + zerobasedindex */
+                                                DIAI_FIRST + zero based index */
      } DFBInputDeviceAxisIdentifier;
 
      /*
@@ -806,6 +831,31 @@ extern "C"
           DLBM_IMAGE                    /* use an image (SetBackgroundImage) */
      } DFBDisplayLayerBackgroundMode;
 
+     /*
+      * Layer configuration flags
+      */
+     typedef enum {
+          DLCONF_WIDTH             = 0x00000001,
+          DLCONF_HEIGHT            = 0x00000002,
+          DLCONF_PIXELFORMAT       = 0x00000004,
+          DLCONF_BUFFERMODE        = 0x00000008,
+          DLCONF_OPTIONS           = 0x00000010
+     } DFBDisplayLayerConfigFlags;
+     
+     /*
+      * Layer configuration
+      */
+     typedef struct {
+          DFBDisplayLayerConfigFlags    flags;       /* Which fields of the
+                                                        configuration are set */
+
+          unsigned int                  width;       /* Pixel width */
+          unsigned int                  height;      /* Pixel height */
+          DFBSurfacePixelFormat         pixelformat; /* Pixel format */
+          DFBDisplayLayerBufferMode     buffermode;  /* Buffer mode */
+          DFBDisplayLayerOptions        options;     /* Enable capabilities */
+     } DFBDisplayLayerConfig;
+
 
      /*************************
       * IDirectFBDisplayLayer *
@@ -813,15 +863,14 @@ extern "C"
 
      DEFINE_INTERFACE(   IDirectFBDisplayLayer,
 
-        /** Cooperative level, layer surface **/
+        /** Capabilities, surface **/
 
           /*
-           * Set cooperative level to get control over the layer
-           * or the windows within this layer.
+           * Get the layer's capabilities.
            */
-          DFBResult (*SetCooperativeLevel) (
+          DFBResult (*GetCapabilities) (
                IDirectFBDisplayLayer              *thiz,
-               DFBDisplayLayerCooperativeLevel     level
+               DFBDisplayLayerCapabilities        *caps
           );
 
           /*
@@ -835,34 +884,79 @@ extern "C"
           );
 
 
-        /** Retrieving information **/
+        /** Settings **/
 
           /*
-           * Get the current pixel resolution of the layer.
+           * Set cooperative level to get control over the layer
+           * or the windows within this layer.
            */
-          DFBResult (*GetSize) (
+          DFBResult (*SetCooperativeLevel) (
                IDirectFBDisplayLayer              *thiz,
-               unsigned int                       *width,
-               unsigned int                       *height
+               DFBDisplayLayerCooperativeLevel     level
           );
 
           /*
-           * Get the layer's capabilities.
+           * Set global alpha factor for blending with layer(s) below.
            */
-          DFBResult (*GetCapabilities) (
+          DFBResult (*SetOpacity) (
                IDirectFBDisplayLayer              *thiz,
-               DFBDisplayLayerCapabilities        *caps
+               __u8                                opacity
+          );
+
+          /*
+           * Set location on screen as normalized values.
+           *
+           * So the whole screen is 0, 0 - 1, 1.
+           */
+          DFBResult (*SetScreenLocation) (
+               IDirectFBDisplayLayer              *thiz,
+               float                               x,
+               float                               y,
+               float                               width,
+               float                               height
+          );
+
+          /*
+           * Set color key, i.e. the color that makes a pixel transparent.
+           *
+           * Note: Parameters are subject to change.
+           */
+          DFBResult (*SetColorKey) (
+               IDirectFBDisplayLayer              *thiz,
+               __u32                               key
           );
 
 
-        /** Buffers and modes **/
+        /** Configuration handling **/
 
           /*
-           * Set the buffering mode for the window stack
+           * Get current layer configuration.
            */
-          DFBResult (*SetBufferMode) (
+          DFBResult (*GetConfiguration) (
                IDirectFBDisplayLayer              *thiz,
-               DFBDisplayLayerBufferMode           mode
+               DFBDisplayLayerConfig              *config
+          );
+
+          /*
+           * Test layer configuration.
+           *
+           * If configuration fails and 'failed' is not NULL it will indicate
+           * which fields of the configuration caused the error.
+           */
+          DFBResult (*TestConfiguration) (
+               IDirectFBDisplayLayer              *thiz,
+               DFBDisplayLayerConfig              *config,
+               DFBDisplayLayerConfigFlags         *failed
+          );
+
+          /*
+           * Set layer configuration.
+           *
+           * Only available in exclusive or administrative mode.
+           */
+          DFBResult (*SetConfiguration) (
+               IDirectFBDisplayLayer              *thiz,
+               DFBDisplayLayerConfig              *config
           );
 
 
@@ -871,7 +965,7 @@ extern "C"
           /*
            * Set the erase behaviour for windowstack repaints.
            *
-           * Only available in exclusive/administrative mode.
+           * Only available in exclusive or administrative mode.
            */
           DFBResult (*SetBackgroundMode) (
                IDirectFBDisplayLayer              *thiz,
@@ -881,7 +975,7 @@ extern "C"
           /*
            * Set the background image for the imaged background mode.
            *
-           * Only available in exclusive/administrative mode.
+           * Only available in exclusive or administrative mode.
            */
           DFBResult (*SetBackgroundImage) (
                IDirectFBDisplayLayer              *thiz,
@@ -889,9 +983,9 @@ extern "C"
           );
 
           /*
-           * Set the color for solid colored background fills.
+           * Set the color for a solid colored background.
            *
-           * Only available in exclusive/administrative mode.
+           * Only available in exclusive or administrative mode.
            */
           DFBResult (*SetBackgroundColor) (
                IDirectFBDisplayLayer              *thiz,

@@ -41,10 +41,10 @@ struct _DisplayLayer
 
      unsigned int   width;              /* width in pixels */
      unsigned int   height;             /* height in pixels */
-     DFBDisplayLayerBufferMode   buffermode;
+     DFBDisplayLayerBufferMode buffermode;
                                         /* buffermode: single or double
                                            (with video or system backbuffer) */
-     DFBDisplayLayerModeFlags    flags; /* enable/disable certain features
+     DFBDisplayLayerOptions    options; /* enable/disable certain features
                                            like pixelbased alphablending */
      __u8           opacity;            /* if enabled this value controls
                                            blending of the whole layer */
@@ -80,21 +80,26 @@ struct _DisplayLayer
      void (*deinit)( DisplayLayer *layer );
 
      /*
-      * preliminary internal layer driver API
+      * internal layer driver API (alpha version)
       */
 
-     DFBResult (*Enable)( DisplayLayer *thiz );
-     DFBResult (*Disable)( DisplayLayer *thiz );
-     DFBResult (*SetMode)( DisplayLayer *thiz, unsigned int width,
-                            unsigned int height, unsigned int bpp );
-     DFBResult (*SetFlags)( DisplayLayer *thiz,
-                            DFBDisplayLayerModeFlags flags );
-     DFBResult (*SetBufferMode)( DisplayLayer *thiz,
-                                 DFBDisplayLayerBufferMode buffermode );
-     DFBResult (*SetScreenLocation)( DisplayLayer *thiz, float x, float y,
-                                     float w, float h );
-     DFBResult (*SetOpacity)( DisplayLayer *thiz, __u8 opacity );
-     DFBResult (*FlipBuffers)( DisplayLayer *thiz );
+     DFBResult (*Enable)           ( DisplayLayer               *thiz );
+     DFBResult (*Disable)          ( DisplayLayer               *thiz );
+     DFBResult (*TestConfiguration)( DisplayLayer               *thiz,
+                                     DFBDisplayLayerConfig      *config,
+                                     DFBDisplayLayerConfigFlags *flags );
+     DFBResult (*SetConfiguration) ( DisplayLayer               *thiz,
+                                     DFBDisplayLayerConfig      *config );
+     DFBResult (*SetOpacity)       ( DisplayLayer               *thiz,
+                                     __u8                        opacity );
+     DFBResult (*SetScreenLocation)( DisplayLayer               *thiz,
+                                     float                       x,
+                                     float                       y,
+                                     float                       width,
+                                     float                       height );
+     DFBResult (*SetColorKey)      ( DisplayLayer               *thiz,
+                                     __u32                       key );
+     DFBResult (*FlipBuffers)      ( DisplayLayer *thiz );
 
      DisplayLayer *next;
 };

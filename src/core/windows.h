@@ -26,6 +26,8 @@
 
 #include <asm/types.h>
 
+#include "state.h"
+
 struct _DisplayLayer;
 
 /*

@@ -557,50 +557,131 @@ static DFBResult primaryDisable( DisplayLayer *thiz )
      return DFB_UNSUPPORTED;
 }
 
-static DFBResult primarySetMode( DisplayLayer *thiz, unsigned int width,
-                                 unsigned int height, unsigned int bpp )
+static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
+                                           DFBDisplayLayerConfig      *config,
+                                           DFBDisplayLayerConfigFlags *failed )
 {
-     VideoMode *m;
+     VideoMode                  *videomode = NULL;
+     DFBDisplayLayerConfigFlags  fail = 0;
+     
+     if (config->flags & (DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT)) {
+          unsigned int  width, height, bpp;
 
-     if (display->current_mode->xres == width  &&
-         display->current_mode->yres == height  &&
-         display->current_mode->bpp == bpp)
-          return DFB_OK;
+          if (config->flags & DLCONF_WIDTH)
+               width = config->width;
+          else
+               width = thiz->width;
+          
+          if (config->flags & DLCONF_HEIGHT)
+               height = config->height;
+          else
+               height = thiz->height;
+          
+          if (config->flags & DLCONF_PIXELFORMAT)
+               bpp = BYTES_PER_PIXEL(config->pixelformat) * 8;
+          else
+               bpp = BYTES_PER_PIXEL(thiz->surface->format) * 8;
+          
+          videomode = display->modes;
+          while (videomode) {
+               if (videomode->xres == width  &&
+                   videomode->yres == height  &&
+                   videomode->bpp == bpp &&
+                   videomode->laced == 0 &&
+                   videomode->doubled == 0)
+                    break;
 
-     m = display->modes;
+               videomode = videomode->next;
+          }
 
-     while (m) {
-          if (m->xres == width  &&
-              m->yres == height  &&
-              m->bpp == bpp &&
-              m->laced == 0 &&
-              m->doubled == 0)
-               break;
-
-          m = m->next;
+          if (!videomode)
+               fail |= (config->flags & (DLCONF_WIDTH  |
+                                         DLCONF_HEIGHT | DLCONF_PIXELFORMAT));
      }
+     
+     if (config->flags & DLCONF_BUFFERMODE) {
+          if (fbdev_set_mode( NULL, videomode, config->buffermode ))
+               fail |= DLCONF_BUFFERMODE;
+     }
+     else if (videomode) {
+          if (fbdev_set_mode( NULL, videomode, thiz->buffermode ))
+               fail |= (config->flags & (DLCONF_WIDTH  |
+                                         DLCONF_HEIGHT | DLCONF_PIXELFORMAT));
+     }
+     
+     if (config->flags & DLCONF_OPTIONS  &&  config->options)
+          fail |= DLCONF_OPTIONS;
 
-     if (!m)
-          return DFB_UNSUPPORTED;
+     
+     if (failed)
+          *failed = fail;
 
-     return fbdev_set_mode( thiz, m, thiz->buffermode );
-}
-
-DFBResult primarySetFlags( DisplayLayer *thiz, unsigned int flags )
-{
-     /* none of the existing flags are supported */
-     if (flags)
+     if (fail)
           return DFB_UNSUPPORTED;
 
      return DFB_OK;
 }
 
-DFBResult primarySetBufferMode( DisplayLayer *thiz, unsigned int buffermode )
+static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
+                                          DFBDisplayLayerConfig *config )
 {
-     if (buffermode == thiz->buffermode)
+     VideoMode                 *videomode = display->modes;
+     DFBDisplayLayerBufferMode  buffermode;
+     unsigned int               width, height, bpp;
+     
+     if (config->flags & DLCONF_OPTIONS  &&  config->options)
+          return DFB_UNSUPPORTED;
+
+     if (config->flags & DLCONF_WIDTH)
+          width = config->width;
+     else
+          width = thiz->width;
+
+     if (config->flags & DLCONF_HEIGHT)
+          height = config->height;
+     else
+          height = thiz->height;
+
+     if (config->flags & DLCONF_PIXELFORMAT)
+          bpp = BYTES_PER_PIXEL(config->pixelformat) * 8;
+     else
+          bpp = BYTES_PER_PIXEL(thiz->surface->format) * 8;
+
+     if (config->flags & DLCONF_BUFFERMODE)
+          buffermode = config->buffermode;
+     else
+          buffermode = thiz->buffermode;
+     
+     if (display->current_mode->xres == width  &&
+         display->current_mode->yres == height &&
+         display->current_mode->bpp  == bpp    &&
+         thiz->buffermode            == buffermode)
           return DFB_OK;
 
-     return fbdev_set_mode( thiz, NULL, buffermode );
+     while (videomode) {
+          if (videomode->xres == width  &&
+              videomode->yres == height  &&
+              videomode->bpp == bpp &&
+              videomode->laced == 0 &&
+              videomode->doubled == 0)
+               break;
+
+          videomode = videomode->next;
+     }
+
+     if (!videomode)
+          return DFB_UNSUPPORTED;
+
+     return fbdev_set_mode( thiz, videomode, buffermode );
+}
+
+DFBResult primarySetOpacity( DisplayLayer *thiz, __u8 opacity )
+{
+     /* opacity is not supported for normal primary layer */
+     if (opacity != 0xFF)
+          return DFB_UNSUPPORTED;
+
+     return DFB_OK;
 }
 
 DFBResult primarySetScreenLocation( DisplayLayer *thiz, float x, float y,
@@ -613,13 +694,9 @@ DFBResult primarySetScreenLocation( DisplayLayer *thiz, float x, float y,
      return DFB_OK;
 }
 
-DFBResult primarySetOpacity( DisplayLayer *thiz, __u8 opacity )
+DFBResult primarySetColorKey( DisplayLayer *thiz, __u32 key )
 {
-     /* opacity is not supported for normal primary layer */
-     if (opacity != 0xFF)
-          return DFB_UNSUPPORTED;
-
-     return DFB_OK;
+     return DFB_UNSUPPORTED;
 }
 
 DFBResult primaryFlipBuffers( DisplayLayer *thiz )
@@ -627,17 +704,12 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
      if (thiz->buffermode == DLBM_FRONTONLY)
           return DFB_UNSUPPORTED;
 
-     surface_flip_buffers( thiz->surface );
-
      if (thiz->buffermode == DLBM_BACKVIDEO) {
           DFBResult ret;
            
           ret = fbdev_pan( thiz->surface->front_buffer->video.offset ? 1 : 0 );
-          if (ret) {
-               /* revert */
-               surface_flip_buffers( thiz->surface );
+          if (ret)
                return ret;
-          }
      }
 
 #if defined(HAVE_INB_OUTB_IOPL)
@@ -647,6 +719,8 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
      }
 #endif
 
+     surface_flip_buffers( thiz->surface );
+     
      return DFB_OK;
 }
 
@@ -658,8 +732,9 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
 static void primarylayer_deinit( DisplayLayer *layer )
 {
      windowstack_destroy( layer->windowstack );
-
-     /* FIXME: deinit layer->surface */
+     reactor_free( layer->surface->reactor );
+     free( layer->surface->front_buffer );
+     free( layer->surface );
 }
 
 DFBResult primarylayer_init()
@@ -685,11 +760,11 @@ DFBResult primarylayer_init()
 
      layer->Enable = primaryEnable;
      layer->Disable = primaryDisable;
-     layer->SetMode = primarySetMode;
-     layer->SetFlags = primarySetFlags;
-     layer->SetBufferMode = primarySetBufferMode;
+     layer->TestConfiguration = primaryTestConfiguration;
+     layer->SetConfiguration = primarySetConfiguration;
      layer->SetScreenLocation = primarySetScreenLocation;
      layer->SetOpacity = primarySetOpacity;
+     layer->SetColorKey = primarySetColorKey;
      layer->FlipBuffers = primaryFlipBuffers;
 
      /* allocate the surface */

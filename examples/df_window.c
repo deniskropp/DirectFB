@@ -43,31 +43,32 @@
 
 int main( int argc, char *argv[] )
 {
-IDirectFB              *dfb;
-IDirectFBDisplayLayer  *layer;
+     IDirectFB              *dfb;
+     IDirectFBDisplayLayer  *layer;
 
-IDirectFBImageProvider *provider;
-IDirectFBVideoProvider *video_provider;
+     IDirectFBImageProvider *provider;
+     IDirectFBVideoProvider *video_provider;
 
-IDirectFBSurface       *bgsurface;
+     IDirectFBSurface       *bgsurface;
 
-IDirectFBWindow        *window1;
-IDirectFBWindow        *window2;
-IDirectFBSurface       *window_surface1;
-IDirectFBSurface       *window_surface2;
+     IDirectFBWindow        *window1;
+     IDirectFBWindow        *window2;
+     IDirectFBSurface       *window_surface1;
+     IDirectFBSurface       *window_surface2;
 
-IDirectFBInputDevice   *keyboard;
+     IDirectFBInputDevice   *keyboard;
 
-IDirectFBFont          *font;
+     IDirectFBFont          *font;
 
-int fontheight;
-int err;
-int SW, SH;
-
+     DFBDisplayLayerConfig  layer_config;
      DFBCardCapabilities    caps;
      DFBInputDeviceKeyState quit = DIKS_UP;
      IDirectFBWindow*       upper;
 
+     int fontheight;
+     int err;
+
+     
      DFBCHECK(DirectFBInit( &argc, &argv ));
 
      DFBCHECK(DirectFBCreate( &dfb ));
@@ -81,17 +82,20 @@ int SW, SH;
      if (!((caps.blitting_flags & DSBLIT_BLEND_ALPHACHANNEL) &&
            (caps.blitting_flags & DSBLIT_BLEND_COLORALPHA  )))
      {
-          layer->SetBufferMode( layer, DLBM_BACKSYSTEM );
+          layer_config.flags = DLCONF_BUFFERMODE;
+          layer_config.buffermode = DLBM_BACKSYSTEM;
+          
+          layer->SetConfiguration( layer, &layer_config );
      }
 
-     layer->GetSize( layer, &SW, &SH );
+     layer->GetConfiguration( layer, &layer_config );
      layer->EnableCursor ( layer, 1 );
 
      {
           DFBFontDescription desc;
 
           desc.flags = DFDESC_HEIGHT;
-          desc.height = SW/50;
+          desc.height = layer_config.width/50;
 
           DFBCHECK(dfb->CreateFont( dfb, FONT, &desc, &font ));
           font->GetHeight( font, &fontheight );
@@ -111,8 +115,8 @@ int SW, SH;
                                              &provider ));
 
           desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT;
-          desc.width = SW;
-          desc.height = SH;
+          desc.width = layer_config.width;
+          desc.height = layer_config.height;
 
           DFBCHECK(dfb->CreateSurface( dfb, &desc, &bgsurface ) );
 
