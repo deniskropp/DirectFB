@@ -30,7 +30,6 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/user.h>
 
 #include <string.h>
 
