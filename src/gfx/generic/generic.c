@@ -2020,40 +2020,36 @@ void gDrawLine( DFBRegion *line )
           return;
      }
 
-     sdx = SIGN(dx);
-     sdy = SIGN(dy);
+     sdx = SIGN(dx) * dst_bpp;
+     sdy = SIGN(dy) * dst_pitch;
      x   = dyabs >> 1;
      y   = dxabs >> 1;
-     px  = line->x1;
-     py  = line->y1;
+     px  = line->x1 * dst_bpp;
+     py  = line->y1 * dst_pitch;
 
      if (dxabs >= dyabs) { /* the line is more horizontal than vertical */
 
           for (i=0, Dlength=1; i<dxabs; i++, Dlength++) {
                y += dyabs;
                if (y >= dxabs) {
-                    if (Dlength) {
-                         Aop = dst_org + py * dst_pitch + px * dst_bpp;
-                         RUN_PIPELINE();
-                         if (sdx > 0)
-                              px += Dlength;
-                         Dlength = 0;
-                    }
+                    Aop = dst_org + py + px;
+                    RUN_PIPELINE();
+                    if (sdx > 0)
+                         px += Dlength * dst_bpp;
+                    Dlength = 0;
                     y -= dxabs;
                     py += sdy;
                }
                if (sdx < 0)
                     px += sdx;
           }
-          if (Dlength) {
-               Aop = dst_org + py * dst_pitch + px * dst_bpp;
-               RUN_PIPELINE();
-          }
+          Aop = dst_org + py + px;
+          RUN_PIPELINE();
      }
      else { /* the line is more vertical than horizontal */
 
           Dlength = 1;
-          Aop = dst_org + py * dst_pitch + px * dst_bpp;
+          Aop = dst_org + py + px;
           RUN_PIPELINE();
 
           for (i=0; i<dyabs; i++) {
@@ -2064,7 +2060,7 @@ void gDrawLine( DFBRegion *line )
                }
                py += sdy;
 
-               Aop = dst_org + py * dst_pitch + px * dst_bpp;
+               Aop = dst_org + py + px;
                RUN_PIPELINE();
           }
      }
