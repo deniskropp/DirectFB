@@ -1122,6 +1122,22 @@ dfb_layer_get_current_output_field( DisplayLayer *layer, int *field )
 }
 
 DFBResult
+dfb_layer_set_field_parity( DisplayLayer *layer, int field )
+{
+     DFBResult ret;
+
+     if (!layer->funcs->SetFieldParity)
+          return DFB_UNSUPPORTED;
+
+     ret = layer->funcs->SetFieldParity( layer, layer->driver_data,
+                                         layer->layer_data, field );
+     if (ret)
+          return ret;
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_layer_wait_vsync( DisplayLayer *layer )
 {
      if (!layer->funcs->WaitVSync)

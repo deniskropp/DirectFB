@@ -379,8 +379,9 @@ typedef enum {
                                                 supported. */
      DLCAPS_SATURATION        = 0x00000800,  /* Adjustment of saturation is
                                                 supported. */
-     DLCAPS_LEVELS            = 0x00001000   /* Adjustment of the layer's level
+     DLCAPS_LEVELS            = 0x00001000,  /* Adjustment of the layer's level
                                                 (z position) is supported. */
+     DLCAPS_FIELD_PARITY      = 0x00002000   /* Field parity can be selected */
 } DFBDisplayLayerCapabilities;
 
 /*
@@ -397,8 +398,9 @@ typedef enum {
                                                 interlaced (video) source. */
      DLOP_SRC_COLORKEY        = 0x00000008,  /* Enable source color key. */
      DLOP_DST_COLORKEY        = 0x00000010,  /* Enable dest. color key. */
-     DLOP_OPACITY             = 0x00000020   /* Make usage of the global alpha
+     DLOP_OPACITY             = 0x00000020,  /* Make usage of the global alpha
                                                 factor set by SetOpacity. */
+     DLOP_FIELD_PARITY        = 0x00000040   /* Set field parity */
 } DFBDisplayLayerOptions;
 
 /*
@@ -1561,6 +1563,15 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      DFBResult (*GetCurrentOutputField) (
           IDirectFBDisplayLayer              *thiz,
           int                                *field
+     );
+
+     /*
+      * For an interlaced display, this sets the field parity.
+      * field: 0 for top field first, and 1 for bottom field first.
+      */
+     DFBResult (*SetFieldParity) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                 field
      );
 
      /*

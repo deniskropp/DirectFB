@@ -57,6 +57,7 @@ typedef struct {
      DFBDisplayLayerConfig config;
      DFBColorAdjustment    adj;
      int                   enabled;
+     int                   field;
 
      /* Stored registers */
      struct {
@@ -86,13 +87,15 @@ static void crtc2_wait_vsync( MatroxDriverData *mdrv );
 static void crtc2_set_regs( MatroxDriverData *mdrv, MatroxCrtc2LayerData *mcrtc2 );
 static void crtc2_calc_regs( MatroxDriverData *mdrv, MatroxCrtc2LayerData *mcrtc2,
                              DisplayLayer *layer );
+static void crtc2_calc_buffer( MatroxDriverData *mdrv, MatroxCrtc2LayerData *mcrtc2,
+                               DisplayLayer *layer );
 static void crtc2_set_buffer( MatroxDriverData *mdrv, MatroxCrtc2LayerData *mcrtc2,
                               DisplayLayer *layer );
 static DFBResult crtc2_disable_output( MatroxDriverData *mdrv, MatroxCrtc2LayerData *mcrtc2 );
 static DFBResult crtc2_enable_output( MatroxDriverData *mdrv, MatroxCrtc2LayerData *mcrtc2,
                                       DisplayLayer *layer );
 
-#define CRTC2_SUPPORTED_OPTIONS   (DLOP_DEINTERLACING | DLOP_FLICKER_FILTERING)
+#define CRTC2_SUPPORTED_OPTIONS   (DLOP_FIELD_PARITY | DLOP_FLICKER_FILTERING)
 
 /**********************/
 
@@ -123,7 +126,7 @@ crtc2InitLayer( GraphicsDevice             *device,
 
      /* set capabilities and type */
      layer_info->desc.caps = DLCAPS_SURFACE |
-                             DLCAPS_DEINTERLACING | DLCAPS_FLICKER_FILTERING |
+                             DLCAPS_FIELD_PARITY | DLCAPS_FLICKER_FILTERING |
                              DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
                              DLCAPS_HUE | DLCAPS_SATURATION;
      layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
@@ -264,12 +267,32 @@ crtc2FlipBuffers( DisplayLayer        *layer,
      MatroxDriverData     *mdrv    = (MatroxDriverData*) driver_data;
      MatroxCrtc2LayerData *mcrtc2  = (MatroxCrtc2LayerData*) layer_data;
      CoreSurface          *surface = dfb_layer_surface( layer );
+     volatile __u8        *mmio    = mdrv->mmio_base;
+
+     int                   vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 2;
+     int                   line;
 
      dfb_surface_flip_buffers( surface );
+     crtc2_calc_buffer( mdrv, mcrtc2, layer );
 
      if (!mcrtc2->enabled)
           return DFB_OK;
 
+     dfb_gfxcard_sync();
+     
+     line = mga_in32( mmio, C2VCOUNT ) & 0x00000FFF;
+     if (line + 6 > vdisplay && line < vdisplay)
+          while ((mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != vdisplay)
+               ;
+
+     if (mcrtc2->config.options & DLOP_FIELD_PARITY) {
+          int field = (mga_in32( mmio, C2VCOUNT ) >> 24) & 0x1;
+
+          while (field == mcrtc2->field) {
+               crtc2_wait_vsync( mdrv );
+               field = (mga_in32( mmio, C2VCOUNT ) >> 24) & 0x1;
+          }
+     }
      crtc2_set_buffer( mdrv, mcrtc2, layer );
 
      if (flags & DSFLIP_WAITFORSYNC)
@@ -354,6 +377,18 @@ crtc2GetCurrentOutputField( DisplayLayer *layer,
      return DFB_OK;
 }
 
+static DFBResult
+crtc2SetFieldParity( DisplayLayer *layer,
+                     void         *driver_data,
+                     void         *layer_data,
+                     int           field )
+{
+     MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
+
+     mcrtc2->field = field;
+
+     return DFB_OK;
+}
 
 static DFBResult
 crtc2WaitVSync( DisplayLayer *layer,
@@ -380,6 +415,7 @@ DisplayLayerFuncs matroxCrtc2Funcs = {
      SetColorAdjustment: crtc2SetColorAdjustment,
      SetOpacity:         crtc2SetOpacity,
      GetCurrentOutputField: crtc2GetCurrentOutputField,
+     SetFieldParity:     crtc2SetFieldParity,
      WaitVSync:          crtc2WaitVSync
 };
 
@@ -530,15 +566,12 @@ static void crtc2_calc_regs( MatroxDriverData     *mdrv,
      }
 }
 
-static void crtc2_set_buffer( MatroxDriverData     *mdrv,
-                              MatroxCrtc2LayerData *mcrtc2,
-                              DisplayLayer         *layer )
+static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
+                               MatroxCrtc2LayerData *mcrtc2,
+                               DisplayLayer         *layer )
 {
      CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;
-     volatile __u8 *mmio         = mdrv->mmio_base;
-     int            vdisplay     = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 2;
-     int            line;
 
      mcrtc2->regs.c2STARTADD1 = front_buffer->video.offset;
      mcrtc2->regs.c2STARTADD0 = front_buffer->video.offset + front_buffer->video.pitch;
@@ -561,13 +594,13 @@ static void crtc2_set_buffer( MatroxDriverData     *mdrv,
           default:
                break;
      }
+}
 
-     dfb_gfxcard_sync();
-
-     line = mga_in32( mmio, C2VCOUNT ) & 0x00000FFF;
-     if (line + 6 > vdisplay && line < vdisplay)
-          while ((mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != vdisplay)
-               ;
+static void crtc2_set_buffer( MatroxDriverData     *mdrv,
+                              MatroxCrtc2LayerData *mcrtc2,
+                              DisplayLayer         *layer )
+{
+     volatile __u8 *mmio = mdrv->mmio_base;
 
      mga_out32( mmio, mcrtc2->regs.c2STARTADD1, C2STARTADD1 );
      mga_out32( mmio, mcrtc2->regs.c2STARTADD0, C2STARTADD0 );
@@ -711,11 +744,11 @@ crtc2_enable_output( MatroxDriverData     *mdrv,
      crtc2OnOff( mdrv, mcrtc2, 0 );
 
      crtc2_set_regs( mdrv, mcrtc2 );
+     crtc2_set_buffer( mdrv, mcrtc2, layer );
 
      if (!mav->g450)
           crtc2_set_mafc( mdrv, 1 );
      crtc2OnOff( mdrv, mcrtc2, 1 );
-     crtc2_set_buffer( mdrv, mcrtc2, layer );
 
      maven_set_regs( mav, mdrv, &mcrtc2->config, &mcrtc2->adj );
 

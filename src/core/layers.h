@@ -84,6 +84,11 @@ typedef struct {
                                           void                   *layer_data,
                                           int                    *field );
 
+     DFBResult (*SetFieldParity)    ( DisplayLayer               *layer,
+                                      void                       *driver_data,
+                                      void                       *layer_data,
+                                      int                         field );
+
      DFBResult (*WaitVSync)         ( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data );
@@ -304,6 +309,9 @@ DFBResult dfb_layer_set_screenlocation( DisplayLayer *layer,
 DFBResult dfb_layer_set_opacity (DisplayLayer *layer, __u8 opacity);
 
 DFBResult dfb_layer_get_current_output_field( DisplayLayer *layer, int *field );
+
+DFBResult dfb_layer_set_field_parity( DisplayLayer *layer, int field );
+
 DFBResult dfb_layer_wait_vsync( DisplayLayer *layer );
 
 DFBResult dfb_layer_set_coloradjustment (DisplayLayer       *layer,

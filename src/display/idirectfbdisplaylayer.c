@@ -209,6 +209,14 @@ IDirectFBDisplayLayer_GetCurrentOutputField( IDirectFBDisplayLayer *thiz, int *f
 }
 
 static DFBResult
+IDirectFBDisplayLayer_SetFieldParity( IDirectFBDisplayLayer *thiz, int field )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     return dfb_layer_set_field_parity( data->layer, field );
+}
+
+static DFBResult
 IDirectFBDisplayLayer_WaitForSync( IDirectFBDisplayLayer *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
@@ -613,6 +621,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetCursorShape = IDirectFBDisplayLayer_SetCursorShape;
      thiz->SetCursorOpacity = IDirectFBDisplayLayer_SetCursorOpacity;
      thiz->WaitForSync = IDirectFBDisplayLayer_WaitForSync;
+     thiz->SetFieldParity = IDirectFBDisplayLayer_SetFieldParity;
 
      return DFB_OK;
 }
