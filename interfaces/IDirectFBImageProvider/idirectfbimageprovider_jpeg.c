@@ -238,13 +238,12 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                       IDirectFBSurface       *destination,
                                       const DFBRectangle     *dest_rect )
 {
-     int err;
+     int   err;
      void *dst;
-     int pitch;
-     int direct;
-     DFBRectangle rect = { 0, 0, 0, 0 };
-     DFBSurfacePixelFormat format;
-     DFBSurfaceCapabilities caps;
+     int   pitch;
+     int   direct;
+     DFBRectangle           rect = { 0, 0, 0, 0 };
+     DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
 
@@ -279,10 +278,6 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                direct = 0;
                break;
      }
-
-     err = destination->GetCapabilities( destination, &caps );
-     if (err)
-          return err;
 
      err = destination->GetSize( destination, &rect.w, &rect.h );
      if (err)

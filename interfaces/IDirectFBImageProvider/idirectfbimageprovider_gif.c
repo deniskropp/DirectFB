@@ -204,9 +204,8 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
                                                       IDirectFBSurface       *destination,
                                                       const DFBRectangle     *dest_rect )
 {
-     DFBRectangle rect = { 0, 0, 0, 0 };
-     DFBSurfacePixelFormat format;
-     DFBSurfaceCapabilities caps;
+     DFBRectangle           rect = { 0, 0, 0, 0 };
+     DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
      int err;
@@ -220,10 +219,6 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
      dst_surface = dst_data->surface;
      if (!dst_surface)
           return DFB_DESTROYED;
-
-     err = destination->GetCapabilities( destination, &caps );
-     if (err)
-          return err;
 
      err = destination->GetSize( destination, &rect.w, &rect.h );
      if (err)
