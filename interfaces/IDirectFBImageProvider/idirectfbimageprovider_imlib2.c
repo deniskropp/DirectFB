@@ -37,13 +37,13 @@
 #include <pthread.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <media/idirectfbimageprovider.h>
 
 #include <misc/util.h>
 #include <misc/gfx_util.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 
 #include <core/coredefs.h>
@@ -71,9 +71,9 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, IMLIB2 )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, IMLIB2 )
 
 /*
  * private data struct of IDirectFBImageProvider_IMLIB2
@@ -152,11 +152,11 @@ Construct( IDirectFBImageProvider *thiz,
 {
      IDirectFBDataBuffer_data *buffer_data;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_IMLIB2)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_IMLIB2)
 
      buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
      if (!buffer_data) {
-          DFB_DEALLOCATE_INTERFACE(thiz);
+          DIRECT_DEALLOCATE_INTERFACE(thiz);
           return DFB_DEAD;
      }
 
@@ -183,7 +183,7 @@ Construct( IDirectFBImageProvider *thiz,
 static DFBResult
 IDirectFBImageProvider_IMLIB2_AddRef  ( IDirectFBImageProvider *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
 
      data->ref++;
 
@@ -194,7 +194,7 @@ static DFBResult
 IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz )
 {
 
-     INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
 
      if (--data->ref == 0) {
           D_FREE( data->filename );
@@ -223,7 +223,7 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
 
-     INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
 
      dst_data = (IDirectFBSurface_data*) destination->priv;
      if (!dst_data)
@@ -277,7 +277,7 @@ static DFBResult
 IDirectFBImageProvider_IMLIB2_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                      DFBSurfaceDescription  *dsc)
 {
-     INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
 
      imlib_context_set_image(data->im);
 
@@ -294,7 +294,7 @@ static DFBResult
 IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
                                                    DFBImageDescription    *dsc )
 {
-     INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
 
      imlib_context_set_image(data->im);
 
