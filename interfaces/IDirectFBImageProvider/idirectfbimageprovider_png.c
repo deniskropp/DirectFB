@@ -126,7 +126,7 @@ static void IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
                                    (IDirectFBImageProvider_PNG_data*)thiz->priv;
 
      DFBFREE( data->filename );
-     
+
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
@@ -225,7 +225,9 @@ static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
                                 int pitch, DFBSurfacePixelFormat format )
 {
      png_structp png_ptr;
-     png_infop info_ptr;
+     png_infop   info_ptr;
+     png_uint_32 png_width, png_height;
+     int         png_bpp, png_type, i;
 
      png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
      if (!png_ptr)
@@ -240,74 +242,57 @@ static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
      png_init_io( png_ptr, f );
      png_read_info( png_ptr, info_ptr );
 
-     {
-          png_uint_32 png_width, png_height;
-          int png_bpp, png_type, number_of_passes;
+     png_get_IHDR( png_ptr, info_ptr, &png_width, &png_height, &png_bpp,
+                   &png_type, NULL, NULL, NULL );
 
-          png_get_IHDR( png_ptr, info_ptr, &png_width, &png_height, &png_bpp,
-                        &png_type, NULL /* interlace_type */, NULL, NULL );
+     if (png_type == PNG_COLOR_TYPE_PALETTE)
+          png_set_palette_to_rgb( png_ptr );
 
-          if (png_type == PNG_COLOR_TYPE_PALETTE)
-               png_set_palette_to_rgb( png_ptr );
+     if (png_type == PNG_COLOR_TYPE_GRAY
+         || png_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+          png_set_gray_to_rgb(png_ptr);
 
-          if (png_type == PNG_COLOR_TYPE_GRAY
-              || png_type == PNG_COLOR_TYPE_GRAY_ALPHA)
-               png_set_gray_to_rgb(png_ptr);
+     if (png_get_valid( png_ptr, info_ptr, PNG_INFO_tRNS ))
+          png_set_tRNS_to_alpha( png_ptr );
 
-          if (png_get_valid( png_ptr, info_ptr, PNG_INFO_tRNS ))
-               png_set_tRNS_to_alpha( png_ptr );
-
-          if (png_bpp == 16)
-               png_set_strip_16( png_ptr );
+     if (png_bpp == 16)
+          png_set_strip_16( png_ptr );
 
 #ifdef __BIG_ENDIAN__
-          if (!(png_type & PNG_COLOR_MASK_ALPHA))
-               png_set_filler( png_ptr, 0xFF, PNG_FILLER_BEFORE );
+     if (!(png_type & PNG_COLOR_MASK_ALPHA))
+          png_set_filler( png_ptr, 0xFF, PNG_FILLER_BEFORE );
 
-          png_set_swap_alpha( png_ptr );
+     png_set_swap_alpha( png_ptr );
 #else
-          if (!(png_type & PNG_COLOR_MASK_ALPHA))
-               png_set_filler( png_ptr, 0xFF, PNG_FILLER_AFTER );
+     if (!(png_type & PNG_COLOR_MASK_ALPHA))
+          png_set_filler( png_ptr, 0xFF, PNG_FILLER_AFTER );
 
-          png_set_bgr( png_ptr );
+     png_set_bgr( png_ptr );
 #endif
 
-          number_of_passes = png_set_interlace_handling(png_ptr);
+     if (width == png_width && height == png_height && format == DSPF_ARGB) {
+          png_bytep bptrs[png_height];
 
-          if (width == png_width && height == png_height && format == DSPF_ARGB)
-          {
-               while (number_of_passes--) {
-                    int h = png_height;
-                    png_bytep dest = dst;
-                    while (h--) {
-                         png_read_row( png_ptr, dest, NULL );
-                         dest += pitch;
-                    }
-               }
-          }
-          else {
-               int i;
-               int png_rowbytes;
-               png_bytep buffer;
-               png_bytep bptr;
+          for (i=0; i<png_height; i++)
+               bptrs[i] = dst + pitch * i;
 
-               /* stupid libpng returns only 3 if we use the filler */
-               png_rowbytes = png_width*4;
+          png_read_image( png_ptr, bptrs );
+     }
+     else {
+          png_bytep bptrs[png_height];
 
-               buffer = alloca( png_rowbytes * png_height );
+          bptrs[0] = DFBMALLOC( png_height * png_width*4 );
 
-               while (number_of_passes--) {
-                    bptr = buffer;
-                    for (i=0; i<png_height; i++)  {
-                         png_read_row( png_ptr, bptr, NULL );
-                         bptr += png_rowbytes;
-                    }
-               }
+          for (i=1; i<png_height; i++)
+               bptrs[i] = bptrs[i-1] + png_width*4;
 
-               scale_linear_32( (__u32*)dst, (__u32*)buffer, png_width,
-                                png_height, width, height,
-                                pitch-width*BYTES_PER_PIXEL(format), format );
-          }
+          png_read_image( png_ptr, bptrs );
+
+          scale_linear_32( (__u32*)dst, (__u32*)bptrs[0], png_width,
+                           png_height, width, height,
+                           pitch-width*BYTES_PER_PIXEL(format), format );
+
+          DFBFREE( bptrs[0] );
      }
 
      png_destroy_read_struct( &png_ptr, &info_ptr, NULL );
@@ -356,10 +341,10 @@ static DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
           dsc->width  = png_width;
           dsc->height = png_height;
 
-          if (png_type & PNG_COLOR_MASK_ALPHA) 
+          if (png_type & PNG_COLOR_MASK_ALPHA)
                dsc->pixelformat = DSPF_ARGB;
-          else 
-               dsc->pixelformat= layers->surface->format;               
+          else
+               dsc->pixelformat= layers->surface->format;
 
           png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
           fclose( f );
@@ -411,9 +396,9 @@ static DFBResult IDirectFBImageProvider_PNG_GetImageDescription(
           png_get_IHDR( png_ptr, info_ptr, NULL, NULL, NULL,
                         &png_type, NULL, NULL, NULL );
 
-          if (png_type & PNG_COLOR_MASK_ALPHA) 
+          if (png_type & PNG_COLOR_MASK_ALPHA)
                dsc->caps = DICAPS_ALPHACHANNEL;
-          else 
+          else
                dsc->caps = DICAPS_NONE;
 
           png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
