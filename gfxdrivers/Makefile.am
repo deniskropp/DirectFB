@@ -78,6 +78,12 @@ else
 CLE266_DIR =
 endif
 
+if GFX_UNICHROME
+UNICHROME_DIR = unichrome
+else
+UNICHROME_DIR =
+endif
+
 SUBDIRS = \
 	$(ATI_DIR)	\
 	$(RADEON_DIR)	\
@@ -91,4 +97,5 @@ SUBDIRS = \
 	$(SIS315_DIR)	\
 	$(I810_DIR)	\
 	$(CLE266_DIR)	\
+	$(UNICHROME_DIR) \
 	$(GEODE_DIR)
