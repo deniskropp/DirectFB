@@ -9,7 +9,11 @@ AM_CFLAGS = -fomit-frame-pointer -ffast-math
 
 video_out_dfb_LTLIBRARIES = xineplug_vo_out_dfb.la
 
-xineplug_vo_out_dfb_la_SOURCES = video_out_dfb.c
+xineplug_vo_out_dfb_la_SOURCES = \
+	video_out_dfb.c		\
+	video_out_dfb.h		\
+	video_out_dfb_blend.h	\
+	video_out_dfb_mmx.h
 
 xineplug_vo_out_dfb_la_LIBADD = $(XINE_LIBS) $(DFB_LIBS)
 
