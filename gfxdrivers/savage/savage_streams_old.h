@@ -31,10 +31,10 @@
 #include "savage.h"
 #include <core/layers.h>
 
-extern DisplayLayerFuncs savageSecondaryFuncs;
-extern DisplayLayerFuncs savagePrimaryFuncs;
-extern DisplayLayerFuncs pfuncs;
-extern void *pdriver_data;
+extern DisplayLayerFuncs  savageSecondaryFuncs;
+extern DisplayLayerFuncs  savagePrimaryFuncs;
+extern DisplayLayerFuncs  savage_pfuncs;
+extern void              *savage_pdriver_data;
 
 /* Streams Processor Registers */
 #define SAVAGE_PRIMARY_STREAM_CONTROL                       0x8180

@@ -515,7 +515,7 @@ savage4_init_driver( GraphicsDevice      *device,
 
      /* setup primary layer functions */
      dfb_layers_hook_primary(device, driver_data, &savagePrimaryFuncs,
-                             &pfuncs, &pdriver_data);
+                             &savage_pfuncs, &savage_pdriver_data);
 
      /* setup secondary layer functions */
      dfb_layers_register(device, driver_data, &savageSecondaryFuncs);

@@ -113,8 +113,8 @@ typedef struct {
      } regs;
 } SavagePrimaryLayerData;
 
-DisplayLayerFuncs pfuncs;
-void *pdriver_data;
+DisplayLayerFuncs savage_pfuncs;
+void *savage_pdriver_data;
 
 /* function prototypes */
 static void
@@ -788,9 +788,9 @@ savagePrimaryInitLayer( GraphicsDevice             *device,
             dfb_config->mode.depth);
 
      /* call the original initialization function first */
-     ret = pfuncs.InitLayer (device, layer, layer_info,
-                             default_config, default_adj,
-                             pdriver_data, layer_data);
+     ret = savage_pfuncs.InitLayer (device, layer, layer_info,
+                                    default_config, default_adj,
+                                    savage_pdriver_data, layer_data);
      if (ret)
           return ret;
 
@@ -826,7 +826,8 @@ savagePrimarySetConfiguration( DisplayLayer          *layer,
             config->width, config->height,
             DFB_BYTES_PER_PIXEL(config->pixelformat) * 8);
 
-     ret = pfuncs.SetConfiguration(layer, driver_data, layer_data, config);
+     ret = savage_pfuncs.SetConfiguration(layer, driver_data,
+                                          layer_data, config);
      if (ret != DFB_OK)
           return ret;
 
